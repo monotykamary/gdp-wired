@@ -3,7 +3,26 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.31.0
+
+Three tracks from 0.30.1, merged: CHC speed, a pilot of CHC-COMP's ADT-LIA track, and distributed protocols with
+model-based instances. Nothing trusted changed (kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/*.lean are 0.30.1's; the
+Lean export, lean-kernel/data.ts, writes `.toNat` for the ADT track's Int measures).
+- **The bar of the merged tree against 3cdf37e** (full, Modal, 60 s, 2 vCPU, three base runs, every differing task
+  rerun three times a side; `runs/bar/runs/89b3df439597-vs-3cdf37eddf65-full-2026-10-281144`). None wrong anywhere.
+  - CHC-COMP LIA-Lin: 1,172 against 1,163, 1,165 and 1,162. Gained 6 (metros_2_e3_112 and metros_3_e3_1275_e1_1350 in
+    every run, 3 FIREFLY systems at the limit), lost 2 (neither in every run, both at the limit). One run of ours: the
+    standings against Spacer and Golem stay 0.30.1's four side-by-side batches.
+  - TIP 2015 213 against 212; TermComp ITS 1,152 against 1,147 to 1,153, and 1,157 per component against 1,155 to
+    1,158; SV-COMP 246, level. Every differing task there was noise on the reruns, but cohencu5-both-t per component
+    (1 of 4 against 4 of 6, at the limit).
+  - Frontier corpora 90 of 92 and 31 of 47, the real-world corpus 274 / 29 / 8, the 332 step goals the same search,
+    both suites 224 of 224, Lean 48 of 48.
+  - The 1-vCPU tests: no failed job. The first run read core/data.test.ts 24% slower than the base; those tests never
+    reach the model-based instances, and a second run of the same tree read them at 0.97 of the base (infer 1.04).
+- **Size:** `core/` and `kernel/` (tests excluded) are 2,402,284 bytes against 2,387,735 (+14,549, +198 lines).
+
+The tracks, each as measured on its own branch:
 
 IMC's interpolants simplified in linear time, and the bounded runs' unrolling readable as clauses (gen/chc-speed).
 Nothing trusted changed (kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/ are 3cdf37e's).
