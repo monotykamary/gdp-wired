@@ -3,7 +3,7 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## 0.31.0
+## Unreleased
 
 Three tracks from 0.30.1, merged: CHC speed, a pilot of CHC-COMP's ADT-LIA track, and distributed protocols with
 model-based instances. Nothing trusted changed (kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/*.lean are 0.30.1's; the
