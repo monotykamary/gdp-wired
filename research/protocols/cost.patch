@@ -1,0 +1,389 @@
+diff --git a/core/solver.ts b/core/solver.ts
+index a3feda5..733c632 100644
+--- a/core/solver.ts
++++ b/core/solver.ts
+@@ -183,7 +183,7 @@ export function solve(constraints: Constraint[], maxRows = 20_000, integral = tr
+       if (!choice || (c.isExact && !choice.isExact) || (c.isExact === choice.isExact && c.size < choice.size)) choice = c
+     }
+     if (!choice) break
+-    if (choice.pos.length * choice.neg.length > 5 * maxRows) return {kind: 'unknown'}
++    if (choice.pos.length * choice.neg.length > 5 * maxRows) { fmWhy.blow++; return {kind: 'unknown'} }
+     work.n += choice.pos.length * choice.neg.length
+     costs.fm += choice.pos.length * choice.neg.length
+     exact &&= choice.isExact
+@@ -204,7 +204,7 @@ export function solve(constraints: Constraint[], maxRows = 20_000, integral = tr
+       if (seen === undefined || (lins[seen]!['1'] ?? 0) < (lin['1'] ?? 0) || (stricts[r]! && !stricts[seen] && (lins[seen]!['1'] ?? 0) === (lin['1'] ?? 0))) best.set(sig, r)
+     }
+     rows = [...best.values()]
+-    if (rows.length > maxRows || inexact) return {kind: 'unknown'}
++    if (rows.length > maxRows || inexact) { fmWhy.rows++; return {kind: 'unknown'} }
+   }
+   const found = contradiction()
+   if (found !== undefined) return inexact ? {kind: 'unknown'} : {kind: 'refuted', steps: prune(steps, found)}
+@@ -237,8 +237,11 @@ export function solve(constraints: Constraint[], maxRows = 20_000, integral = tr
+   const holds = constraints.every(c => Object.entries(c.lin).reduce((sum, [key, a]) => sum + a * (key === '1' ? 1 : point[key]!), 0) <= 0)
+   // An exact elimination always back-substitutes to a witness; anything else is reported as unknown, never as sat.
+   void exact
++  if (!holds) { fmWhy.point++; if (Object.values(rational).some(x => Math.abs(x - Math.round(x)) > 1e-9)) fmWhy.frac++ } else fmWhy.sat++
+   return holds ? {kind: 'sat', witness: point} : {kind: 'unknown', point: rational}
+ }
++// (research, gen/cost) why elimination answered unknown
++export const fmWhy = {blow: 0, rows: 0, point: 0, frac: 0, sat: 0}
+ 
+ // Over the rationals elimination is exact: back-substitution, last eliminated first, gives each variable an exact value
+ // within its bounds (strict ones kept strict): 0 where it may be, else the integer nearest its bounds that fits, else
+diff --git a/kernel/cdcl.ts b/kernel/cdcl.ts
+index 7c20b19..a94da23 100644
+--- a/kernel/cdcl.ts
++++ b/kernel/cdcl.ts
+@@ -17,10 +17,10 @@
+ // sides; one the path decides follows the parent that agrees; a leaf's derivation is found again among the rows at
+ // its tree path (a longer path than its clause's), and where a row isn't there, the rows at the tree path are solved
+ // afresh.
+-import {type Constraint, type Lin, type Step, costs, env, refuteFast, solve, work} from '../core/solver.ts'
++import {type Constraint, type Lin, type Step, costs, env, refuteFast, scale, solve, work} from '../core/solver.ts'
+ import {checkRefutation} from '../core/check.ts'
+ import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isMonomial, leafConstraints} from './kernel.ts'
+-import {cellPair, late, leafRowsOf, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, type Outcome} from './prove.ts'
++import {cellPair, partsOf, tupled, late, leafRowsOf, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, type Outcome} from './prove.ts'
+ import {Clausal, Reader, type Row, namesOf} from './reader.ts'
+ import {Simplex} from './simplex.ts'
+ 
+@@ -62,6 +62,8 @@ type Clause = {lits: Map<string, boolean>, node: number, input?: boolean}
+ // again past this many entries a row the node reads (research/step's comparisons).
+ const lpFill = Number(env.GDP_CDCL_FILL ?? 8), lpGrow = Number(env.GDP_CDCL_GROW ?? 4), lpBase = Number(env.GDP_CDCL_BASE ?? 500), lpGreedy = Number(env.GDP_CDCL_GREEDY ?? 200), useLp = env.GDP_CDCL_LP !== '0', verify = env.GDP_CDCL_VERIFY === '1'
+ // Counters research/step reads (times only while `on`).
++// GDP_LP_POINT=1 (research, gen/cost): an integral simplex point that meets every row is a model in the tree mode too
++const lpPoint = !!env.GDP_LP_POINT
+ export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0, nodes: 0, boundRounds: 0}
+ 
+ // `opts.model`: only whether the goal has a model is wanted (core/bmc.ts): a refutation isn't unfolded into a tree, its
+@@ -96,6 +98,9 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+   // brings it down to its own; each assumption's index by name)
+   let aq = 0, aqOf = new Map<string, number>()
+   const st = cdclStats, timing = st.on
++  // GDP_POINT_PHASE=1 (research, gen/cost): the tree search decides at the simplex's point too, on a goal with instances
++  // (a map's cell or a quantified flag), as the model search does
++  const pointPhase = (env.GDP_POINT_PHASE === '1' || (env.GDP_POINT_PHASE === '2' && tupled.on)) && (() => { const s = JSON.stringify(goal.hyps); return s.includes('"op":"get"') || s.includes('"name":"?') })()
+   const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = performance.now(); try { return f() } finally { add(performance.now() - t0) } }
+   st.runs++
+   // (`tv`: the trail's variables, beside their names)
+@@ -165,6 +170,12 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+         const pair = cellPair(ns[i]!, ns[j]!)
+         if (pairedKeys.skip && Object.keys(pair.d).some(isMonomial)) continue
+         for (const lin of [pair.d, pair.neg]) { const x = recOf(lin).x; if (x) x.pair = true }
++        if (pair.parts === undefined) { const ps = partsOf(pair.d); pair.parts = ps ? ps.map(g => [g, scale(g, -1)]) : null }
++        if (pair.parts) {
++          let open: Lin | undefined
++          for (const [g, ng] of pair.parts as [Lin, Lin][]) { const ga = truthOf(g), gb = truthOf(ng); if (ga === undefined) { open = g; break } if (ga === true && gb === undefined) { open = ng; break } }
++          if (open) { for (const lin of [open, scale(open, -1)]) { const x = recOf(lin).x; if (x) x.pair = true } out.push(open); continue }
++        }
+         const a = truthOf(pair.d), b = truthOf(pair.neg)
+         if (a === undefined) out.push(pair.d)
+         else if (a === true && b === undefined) out.push(pair.neg)
+@@ -678,7 +689,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+             lpSat = lp.kind === 'sat'
+             if (steps || (open && lp.kind === 'sat')) return
+             // (the clausal mode, every clause satisfied: the simplex's point, where it is integral, is a model)
+-            if (clausal && !open && lpSat) { const w = pointOf(sx, rowsR); if (w) { verdict = {kind: 'sat', witness: w}; return } }
++            if ((clausal || lpPoint) && !open && lpSat) { const w = pointOf(sx, rowsR); if (w) { verdict = {kind: 'sat', witness: w}; return } }
+           }
+           st.fmCalls++
+           const rows = plain()
+@@ -694,7 +705,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+           // A decision: the open atom of highest activity (the first candidate among equals).
+           let pick: string | undefined, best = -1, px: Var | undefined
+           for (const x of cands) if (x.val === undefined && x.act > best) { best = x.act; pick = x.name; px = x }
+-          if (opts.model && lpSat && sx && open && px) phaseAtPoint(px, sx)
++          if ((opts.model || pointPhase) && lpSat && sx && open && px) phaseAtPoint(px, sx)
+           if (!pick && verdict?.kind === 'unknown') {
+             for (const [x0, value] of Object.entries(verdict.point ?? {})) {
+               if (Math.abs(value - Math.round(value)) < 1e-9 || isMonomial(x0)) continue
+@@ -702,6 +713,12 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+               if (!decidedLin(lin)) { pick = ensure(lin); break }
+             }
+           }
++          if (!pick && lpPoint && verdict?.kind === 'unknown' && !verdict.point && sx && lpSat) {
++            for (const r of rowsR) { for (const x0 of Object.keys(r.lin)) { if (x0 === '1' || isMonomial(x0)) continue; const j = sx.indexOf(x0); if (j === undefined) continue
++              const value = sx.value(j); if (Math.abs(value - Math.round(value)) < 1e-9) continue
++              const c = Math.floor(value), lin: Lin = c === 0 ? {[x0]: 1} : {[x0]: 1, 1: -c}
++              if (!decidedLin(lin)) { pick = ensure(lin); break } } if (pick) break }
++          }
+           // Nothing open by this reading: the kernel's own reading of the trail (prove.ts's) has the last word.
+           if (!pick && !clausal) {
+             const p = pathOf(), more = openAt(goal, p, rowsAt(goal, p)).find(lin => Object.keys(lin).some(key => key !== '1') && !decidedLin(lin))
+diff --git a/kernel/prove.ts b/kernel/prove.ts
+index ae4e1ad..9713968 100644
+--- a/kernel/prove.ts
++++ b/kernel/prove.ts
+@@ -15,7 +15,12 @@ import {allowNode, allowTranslated, certCyclic, certOn, certSearch, stepCertFloo
+ import type {TStats} from '../core/translate.ts'
+ import type {Cyclic} from './cyclic.ts'
+ import {proveSome, someLaws} from '../core/exists.ts'
+-import {growCdcl} from './cdcl.ts'
++import {growCdcl, cdclStats} from './cdcl.ts'
++// GDP_COST_LOG=1 (research only, gen/cost): JSON lines on stderr, where a law's time goes
++export const costLog = env.GDP_COST_LOG ? (o: Record<string, unknown>) => { console.error(`[cost] ${JSON.stringify(o)}`) } : undefined
++const instCounts = (m: Machine, laws: Law[], inst: Instances) => Object.fromEntries(Object.entries(inst).map(([n, ks]) => [n, Math.floor(ks.length / arity(m, laws, n))]))
++const cdclKeys = ['nodes', 'conflicts', 'decisions', 'rowsMs', 'orderMs', 'boundMs', 'lpMs', 'solveMs', 'coreMs', 'unfoldMs', 'pivots', 'lpRebuilds', 'fmCalls'] as const
++const cdclSnap = () => Object.fromEntries(cdclKeys.map(k2 => [k2, cdclStats[k2]])) as Record<string, number>
+ import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
+ 
+ // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
+@@ -76,7 +81,19 @@ export const pairedKeys = {skip: false}
+ // (each cell's map and key, and each pair's difference both ways, made once: the pairs are quadratic in the names, and
+ // the same forms at every node keep what is remembered per form)
+ const cellKeys = new Map<string, {map: string, key: Lin}>(), cellPairs = new Map<string, {d: Lin, neg: Lin, q0?: Lin, q1?: Lin}>()
+-export const cellPair = (a: string, b: string): {d: Lin, neg: Lin, q0?: Lin, q1?: Lin} => {
++// GDP_KEY_PARTS=1 (research, gen/cost): a pair of cells at composed keys (a·N + b) is split on its parts' equalities
++// first (a = a', b = b'), the whole key's after: each part a linear atom, where the whole key's equality is integer
++// reasoning (b < N). Untrusted: splits only.
++const keyParts = !!env.GDP_KEY_PARTS
++export const partsOf = (d: Lin): Lin[] | undefined => {
++  if (!keyParts || '1' in d) return undefined
++  const by = new Map<number, Lin>()
++  for (const [x, c] of Object.entries(d)) { const m = Math.abs(c); let g = by.get(m); if (!g) by.set(m, (g = {})); g[x] = c / m }
++  if (by.size < 2) return undefined
++  const out = [...by.entries()].sort((a, b) => b[0] - a[0]).map(([, g]) => g)
++  return out.every(g => Object.values(g).reduce((a, b) => a + b, 0) === 0) ? out : undefined
++}
++export const cellPair = (a: string, b: string): {d: Lin, neg: Lin, q0?: Lin, q1?: Lin, parts?: Lin[][] | null} => {
+   const pk = `${a}\u0000${b}`
+   let pair = cellPairs.get(pk)
+   if (!pair) {
+@@ -269,12 +286,25 @@ function growKept0(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
+ // before it (GDP_QUICK_CAP; 64 where the CDCL search isn't tried, as before it): research/step's comparisons.
+ const cdclShare = Number(env.GDP_CDCL_SHARE ?? 0.75), quickCap = Number(env.GDP_QUICK_CAP ?? 16)
+ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
++  if (!costLog || path.size || budget.nodes) return growRoot0(goal, path, budget)
++  const t0 = performance.now(), c0 = cdclSnap(), p0 = {n: profile.nodes, s: profile.solveMs, r: profile.rowsMs}
++  phases = {}
++  const out = growRoot0(goal, path, budget), c1 = cdclSnap()
++  costLog({ev: 'goal', goal: goal.name, hyps: goal.hyps.length, chars: JSON.stringify(goal.hyps).length, rows: rootRows, ms: Math.round(performance.now() - t0), phases,
++    cdcl: Object.fromEntries(cdclKeys.map(k2 => [k2, Math.round(c1[k2]! - c0[k2]!)])), plain: {nodes: profile.nodes - p0.n, solveMs: Math.round(profile.solveMs - p0.s), rowsMs: Math.round(profile.rowsMs - p0.r)},
++    out: 'tree' in out ? 'proven' : out.stuck, why: 'tree' in out ? undefined : out.why})
++  return out
++}
++let phases: Record<string, number> = {}, rootRows = 0
++const ph = <T>(name: string, f: () => T): T => { if (!costLog) return f(); const t = performance.now(); try { return f() } finally { phases[name] = Math.round((phases[name] ?? 0) + performance.now() - t) } }
++function growRoot0(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
+   // Past a few cases, CDCL over the atoms (kernel/cdcl.ts), with most of the budget: a linear goal's refutation there
+   // is a resolution of short clauses, which the tree search would find again in every case that reaches one. Unknown
+   // there, the plain search, the cuts and the plain search again have the rest. Not for a law over k steps in a row
+   // (kernel.ts names its goals `@k steps`): the cuts make its tree a chain of one step's refutations, which the CDCL
+   // search's tree, unfolded, repeats (research/step: four times the Lean text of examples/steps.ts). Nor for products.
+-  const root = path.size === 0 && budget.nodes === 0 ? leafConstraints(goal, path) : undefined
++  const root = path.size === 0 && budget.nodes === 0 ? ph('rootRows', () => leafConstraints(goal, path)) : undefined
++  if (root) rootRows = root.length
+   const cdcl = !!root && cdclShare > 0 && !cellProducts.on && Number(/@(\d+) steps/.exec(goal.name)?.[1] ?? 1) <= 1 && !root.some(r => Object.keys(r.lin).some(isMonomial))
+   // At the root: plainly first; where the cases multiply past a budget, through cuts. The plain budget halves with each
+   // two open choices (what a plain search's cases grow by), so a long run's steps reach the cuts early.
+@@ -282,26 +312,26 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
+     // A goal that a few cases settle needs no units (finding them costs a Farkas check per atom); the rest get them.
+     unitsNow = false
+     try {
+-      const quick = growPlain(goal, path, {nodes: 0, until: budget.until, cap: cdcl ? quickCap : 64})
++      const quick = ph('quick', () => growPlain(goal, path, {nodes: 0, until: budget.until, cap: cdcl ? quickCap : 64}))
+       if ('tree' in quick || quick.stuck === 'sat' || quick.why === undefined) return quick
+     } finally { unitsNow = true }
+   }
+   if (root) {
+     if (cdcl) {
+       const now = clock(), end = withinDeadline(budget.until ?? Infinity), w = fullWork()
+-      const out = withWork(workCap === Infinity ? Infinity : w + cdclShare * (workCap - w), () => growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + cdclShare * (end - now)}))
++      const out = ph('cdcl', () => withWork(workCap === Infinity ? Infinity : w + cdclShare * (workCap - w), () => growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + cdclShare * (end - now)})))
+       // (with `realModels.on`, a model whose products don't multiply out is no model: the CDCL search reads a product as
+       // a name of its own, where the plain search below multiplies rows; a goal whose products only its cases bring,
+       // core/nonterm.ts's x' := x·y)
+       if ('tree' in out || (out.stuck === 'sat' && !(realModels.on && fakeProducts(out.witness)))) return out
+     }
+     const open = new Set(root.flatMap(r => Object.keys(r.lin)).filter(n => n.startsWith('⟦') && columnTerm(n)?.op === 'if')).size
+-    const plain = growPlain(goal, path, {nodes: 0, until: budget.until, cap: Math.max(32, Math.round(4_000 / 2 ** (open / 2)))})
++    const plain = ph('plain', () => growPlain(goal, path, {nodes: 0, until: budget.until, cap: Math.max(32, Math.round(4_000 / 2 ** (open / 2)))}))
+     if ('tree' in plain || plain.stuck === 'sat' || plain.why === undefined) return plain
+-    const cut = withCuts(goal, path, budget)
++    const cut = ph('cuts', () => withCuts(goal, path, budget))
+     if (cut) return cut
+   }
+-  return growPlain(goal, path, budget)
++  return ph('last', () => growPlain(goal, path, budget))
+ }
+ // A CDCL model whose products don't multiply out is no model (GDP_REAL_MODELS=0: taken as one, as before): its
+ // monomials are names of their own there, so x' = (t − last)·rate may read 0 with rate = 1 and t − last = 1, where
+@@ -953,15 +983,20 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
+ export const modelShare = 3
+ const costNow = (): number => (rate ? clock() : fullWork() / groundRate)
+ const within = <T>(ms: number, f: () => T): T => (rate ? withDeadline(clock() + ms, f) : withWork(fullWork() + groundRate * ms, f))
+-export function withModels<T>(m: Machine, laws: Law[], inst: Instances, goalOf: (i: Instances) => Goal[], ask: (gs: Goal[]) => T,
++// (research, gen/cost: GDP_POINT_PHASE=2 sets this around the goals of laws assumed at tuples)
++export const tupled = {on: false}
++export function withModels<T>(m: Machine, laws: Law[], inst: Instances, goalOf: (i: Instances) => Goal[], ask0: (gs: Goal[]) => T,
+   modelOf: (t: T) => {goal: Goal, w: Record<string, number>} | undefined, settled: (t: T) => boolean): {result: T, inst: Instances} {
++  const many = env.GDP_POINT_PHASE === '2' && (laws.some(l => (l.keys?.length ?? 0) > 0) || pairFlags(m))
++  const ask = (gs: Goal[]): T => { if (!many) return ask0(gs); const was = tupled.on; tupled.on = true; try { return ask0(gs) } finally { tupled.on = was } }
+   let at = inst, first: {result: T, inst: Instances} | undefined, cap = 0
+   for (let round = 0; ; round++) {
+-    const c0 = costNow(), result = round ? within(Math.max(0, cap), () => ask(goalOf(at))) : ask(goalOf(at))
++    const c0t = performance.now(), c0 = costNow(), result = round ? within(Math.max(0, cap), () => ask(goalOf(at))) : ask(goalOf(at))
+     if (round) cap -= costNow() - c0; else cap = Math.max(1_000, modelShare * (costNow() - c0))
+     if (round && !settled(result)) return first!
+     first ??= {result, inst: at}
+-    const mw = modelOf(result), more = mw && round < modelRounds && cap > 0 ? modelInstances(m, laws, at, mw.goal, mw.w) : undefined
++    const tm = performance.now(), mw = modelOf(result), more = mw && round < modelRounds && cap > 0 ? modelInstances(m, laws, at, mw.goal, mw.w) : undefined
++    costLog?.({ev: 'round', round, askMs: Math.round(tm - c0t), miMs: Math.round(performance.now() - tm), model: !!mw, settled: settled(result), added: more ? Object.fromEntries(Object.entries(more).map(([n, ks]) => [n, ks.length - (at[n]?.length ?? 0)]).filter(([, d]) => d)) : undefined})
+     if (!more) return {result, inst: at}
+     at = more
+   }
+@@ -1342,10 +1377,12 @@ function proveLawsAsGiven(m: Machine, laws: Law[], defer?: (finish: () => void)
+   // (a machine with sums: its instances are its plain machine's, whose flags hold each sum's facts at every key)
+   const pm = plainOf(m), keys = [...readKeys(pm, laws), ...witnesses(pm)], instances: Record<string, Instances> = {}
+   laws.forEach((law, i) => {
++    const ti = performance.now()
+     instances[law.name] = instancesFor(pm, laws, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), {
+       seed: [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : []), ...(law.keys ?? []).map((name): E => ({op: 'var', name}))],
+       focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
+     })
++    costLog?.({ev: 'inst', law: law.name, keys: (law.keys?.length ?? 0) + (law.forall ? 1 : 0), ms: Math.round(performance.now() - ti), counts: instCounts(pm, laws, instances[law.name]!)})
+   })
+   // (by default a covered machine's certificate is its cyclic proof, core/cyclic.ts's certCyclic, the usual trees its
+   // input, not checked again; where none is made, the usual trees are checked and the proof counted uncovered)
+@@ -1400,11 +1437,14 @@ function proveThinned(m: Machine, laws: Law[], instances: Record<string, Instanc
+   const trees: Record<string, Tree> = {}, fulls = {...instances}
+   let nodes = 0, leaves = 0
+   for (const [i, law] of laws.entries()) {
+-    const full = instances[law.name]!
++    const full = instances[law.name]!, tt = performance.now()
+     const few = triggered(plainOf(m), laws, full, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), law.forall ? [`${law.forall}#`] : [])
+     // (thinned instances first, then the full ones; each asked again at the tuples its models ask for)
++    costLog?.({ev: 'thin', law: law.name, ms: Math.round(performance.now() - tt), few: instCounts(plainOf(m), laws, few), same: sameInstances(few, full)})
+     for (const inst of sameInstances(few, full) ? [full] : [few, full]) {
++      const tw = performance.now()
+       const {result: a, inst: at} = withModels(m, laws, inst, i2 => obligations(m, laws, {...instances, [law.name]: i2}, i), growAll, grownModel, grownSettled)
++      costLog?.({ev: 'law', law: law.name, which: inst === full ? 'full' : 'few', ms: Math.round(performance.now() - tw), out: a.out ? `${a.goal!.name}: ${a.out.stuck}` : 'proven', counts: instCounts(plainOf(m), laws, at)})
+       instances[law.name] = at
+       if (inst === full) fulls[law.name] = at
+       if (a.out && inst !== full) continue
+@@ -1424,8 +1464,9 @@ function proveThinned(m: Machine, laws: Law[], instances: Record<string, Instanc
+     nodes += out.nodes
+     leaves += countLeaves(out.tree)
+   }
+-  const proof = {instances, trees}
+-  return {proven: true, nodes, leaves, checked: !usualCheck.on || checkLaws(m, laws, proof), proof}
++  const proof = {instances, trees}, tc = performance.now(), ok = !usualCheck.on || checkLaws(m, laws, proof)
++  costLog?.({ev: 'check', ms: Math.round(performance.now() - tc), on: usualCheck.on})
++  return {proven: true, nodes, leaves, checked: ok, proof}
+ }
+ // A goal left unproven, the search's report so far.
+ const stuckAt = (goal: Goal, out: Extract<Outcome, {stuck: unknown}>, nodes: number, leaves: number): Report => ({proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false})
+diff --git a/research/protocols/cost.ts b/research/protocols/cost.ts
+new file mode 100644
+index 0000000..2a076ae
+--- /dev/null
++++ b/research/protocols/cost.ts
+@@ -0,0 +1,22 @@
++// Where a written invariant's time goes (research/protocols/COST.md): run.ts's given check (the search off) for one
++// protocol, with kernel/prove.ts's GDP_COST_LOG lines on stderr (each law's instances, each root goal's hypotheses,
++// rows, phases and CDCL counters, each model round) and every goal cut at a wall deadline so the run ends and reports.
++//   GDP_COST_LOG=1 bun research/protocols/cost.ts <id> [--deadline 300000] [--search 60000]
++import {proveRule} from '../../core/dsl.ts'
++import {profile, withDeadline} from '../../kernel/prove.ts'
++import {cdclStats} from '../../kernel/cdcl.ts'
++import {N, protocols} from './models.ts'
++import {forall} from '../../core/dsl.ts'
++
++const arg = (name: string) => { const i = process.argv.indexOf(`--${name}`); return i < 0 ? undefined : process.argv[i + 1] }
++const id = process.argv[2]!, deadline = Number(arg('deadline') ?? 300_000), search = arg('search')
++const p = protocols.find(q => q.id === id)!
++profile.on = true; cdclStats.on = true
++const r = p.make(), t0 = performance.now()
++// --extra: a conjunct the written invariant lacks, by protocol (COST.md says which and why)
++const extra = (r: any): any[] => !process.argv.includes('--extra') ? [] : id === 'distributed_lock'
++  ? [r.law('no transfer or lock before init', ({started, Transfer, Locked}: any) => forall((e, a) => a.lt(N).and(started.eq(0)).implies(Transfer.at(e.times(N).plus(a)).not().and(Locked.at(e.times(N).plus(a)).not()))))] : []
++const v: any = withDeadline(performance.now() + deadline, () => search ? proveRule(r, p.laws(r), {search: {ms: Number(search)}}) : proveRule(r, [...p.human(r), ...extra(r), ...p.laws(r)], {search: false}))
++const ms = Math.round(performance.now() - t0), grown = profile.goals.reduce((a, g) => a + g.ms, 0)
++console.log(JSON.stringify({id, mode: search ? `search ${search}` : 'given', verdict: v.proven && v.checked ? 'proven' : v.run ? 'refuted' : 'unknown', goal: v.goal, stuck: v.stuck, why: v.why && String(v.why).slice(0, 200),
++  ms, rootGoals: profile.goals.length, grownMs: Math.round(grown), cdcl: cdclStats}))
+diff --git a/research/protocols/cost_prof.py b/research/protocols/cost_prof.py
+new file mode 100644
+index 0000000..3667f32
+--- /dev/null
++++ b/research/protocols/cost_prof.py
+@@ -0,0 +1,30 @@
++"""A .cpuprofile read for COST.md: self time by file and by function, and inclusive time for the functions given.
++    python3 cost_prof.py <profile> [fn,fn,...]"""
++import json, sys, collections
++d = json.load(open(sys.argv[1]))
++want = sys.argv[2].split(',') if len(sys.argv) > 2 else []
++nodes = {n['id']: n for n in d['nodes']}
++parent = {}
++for n in d['nodes']:
++    for c in n.get('children', []):
++        parent[c] = n['id']
++def short(u):
++    u = u.split('gdp-wired')[-1].lstrip('-cost').lstrip('/') if 'gdp-wired' in u else (u or '(native)')
++    return u
++def name(n):
++    cf = n['callFrame']; return f"{cf['functionName'] or '(anon)'} {short(cf['url'])}:{cf['lineNumber'] + 1}"
++self_t = collections.Counter(); file_t = collections.Counter(); incl = collections.Counter(); total = 0.0
++for sid, dt in zip(d['samples'], d['timeDeltas']):
++    dt = max(dt, 0) / 1000.0; total += dt
++    n = nodes[sid]; self_t[name(n)] += dt; file_t[short(n['callFrame']['url'])] += dt
++    seen = set(); i = sid
++    while i is not None:
++        cf = nodes[i]['callFrame']; fn = f"{cf['functionName']}@{short(cf['url']).split('/')[-1]}"
++        if cf['functionName'] and fn not in seen: seen.add(fn); incl[fn] += dt
++        i = parent.get(i)
++print(f"profile total {total/1000:.1f} s")
++print("self by file:", ", ".join(f"{f} {t/total*100:.1f}%" for f, t in file_t.most_common(14)))
++print("self by function:")
++for f, t in self_t.most_common(30): print(f"  {t/total*100:5.1f}%  {t/1000:7.1f} s  {f}")
++print("inclusive:", ", ".join(f"{f} {incl[f]/total*100:.1f}%" for f in want))
++print("inclusive top:", ", ".join(f"{f} {t/total*100:.1f}%" for f, t in incl.most_common(60)))
+diff --git a/research/protocols/cost_sum.py b/research/protocols/cost_sum.py
+new file mode 100644
+index 0000000..72f9d9b
+--- /dev/null
++++ b/research/protocols/cost_sum.py
+@@ -0,0 +1,42 @@
++"""GDP_COST_LOG's lines (kernel/prove.ts, research only) summed for COST.md: where a run's time went.
++    python3 cost_sum.py <stderr log> [top]"""
++import json, sys, collections
++top = int(sys.argv[2]) if len(sys.argv) > 2 else 15
++ev = collections.defaultdict(list)
++for line in open(sys.argv[1], errors='replace'):
++    if line.startswith('[cost] '):
++        try: o = json.loads(line[7:]); ev[o['ev']].append(o)
++        except Exception: pass
++    elif line.startswith('{"id"'): print('verdict:', line.strip()[:600])
++goals = ev['goal']; gms = sum(g['ms'] for g in goals)
++ph = collections.Counter(); cd = collections.Counter()
++for g in goals:
++    ph.update(g['phases']); cd.update(g['cdcl'])
++print(f"root goals {len(goals)}, grown {gms/1000:.1f} s; instance building {sum(o['ms'] for o in ev['inst'])/1000:.1f} s; thinning {sum(o['ms'] for o in ev['thin'])/1000:.1f} s; "
++      f"model rounds {len(ev['round'])} (their instance reads {sum(o['miMs'] for o in ev['round'])/1000:.1f} s); check {sum(o['ms'] for o in ev['check'])/1000:.1f} s")
++print("phases (s):", {k: round(v/1000, 1) for k, v in ph.most_common()})
++inner = sum(cd[k] for k in ('rowsMs', 'orderMs', 'boundMs', 'solveMs', 'coreMs', 'unfoldMs'))
++print("cdcl (s): rows/sync", round(cd['rowsMs']/1000, 1), "candidates/relevance", round(cd['orderMs']/1000, 1), "bound prop", round(cd['boundMs']/1000, 1),
++      "simplex", round(cd['lpMs']/1000, 1), "elimination", round((cd['solveMs'] - cd['lpMs'])/1000, 1), "core", round(cd['coreMs']/1000, 1), "unfold", round(cd['unfoldMs']/1000, 1),
++      "rest (unit propagation, analysis)", round((ph['cdcl'] - inner)/1000, 1), "| nodes", cd['nodes'], "conflicts", cd['conflicts'], "decisions", cd['decisions'], "pivots", cd['pivots'])
++outs = collections.Counter((g['out'], (g.get('why') or '')[:40]) for g in goals)
++print("outcomes:", dict(outs.most_common(8)))
++by = collections.defaultdict(lambda: {'n': 0, 'ms': 0, 'hyps': 0, 'rows': 0, 'outs': collections.Counter()})
++for g in goals:
++    b = by[g['goal']]; b['n'] += 1; b['ms'] += g['ms']; b['hyps'] = max(b['hyps'], g['hyps']); b['rows'] = max(b['rows'], g['rows']); b['outs'][g['out'] + ('/' + g['why'][:12] if g.get('why') else '')] += 1
++print(f"top goals by time (of {len(by)} names):")
++for name, b in sorted(by.items(), key=lambda x: -x[1]['ms'])[:top]:
++    print(f"  {b['ms']/1000:7.1f} s  x{b['n']:<3} hyps<={b['hyps']:<5} rows<={b['rows']:<5} {dict(b['outs'])}  {name[:90]}")
++print("slowest single goals (ms, hyps, chars, rows, phases, cdcl nodes, out):")
++for g in sorted(goals, key=lambda g: -g['ms'])[:top]:
++    print(f"  {g['ms']:7}  {g['hyps']:5} {g['chars']:9} {g['rows']:5} {g['phases']} n={g['cdcl']['nodes']} {g['out']}{('/' + g['why'][:50]) if g.get('why') else ''}  {g['goal'][:70]}")
++laws = collections.defaultdict(list)
++for o in ev['law']: laws[o['law']].append(o)
++print("laws (attempt ms, outcome; largest instance counts):")
++for o in ev['inst']:
++    tries = laws.get(o['law'], [])
++    big = sorted(((v, k) for k, v in (tries[-1]['counts'] if tries else o['counts']).items()), reverse=True)[:4]
++    print(f"  {o['keys']} keys, built {o['ms']} ms, tries {[(t['which'], t['ms'], t['out'][-28:]) for t in tries]}  big: {[(k[:28], v) for v, k in big]}  {o['law'][:60]}")
++if '--all' in sys.argv:
++    print("every root goal (ms, hyps, rows, out, goal):")
++    for g in goals: print(f"G\t{g['ms']}\t{g['hyps']}\t{g['rows']}\t{g['out']}{('/' + g['why'][:30]) if g.get('why') else ''}\t{g['goal'][:80]}")
