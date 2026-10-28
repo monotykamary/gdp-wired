@@ -15,7 +15,7 @@ import {allowNode, allowTranslated, certCyclic, certOn, certSearch, stepCertFloo
 import type {TStats} from '../core/translate.ts'
 import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
-import {growCdcl} from './cdcl.ts'
+import {REFUTED, growCdcl} from './cdcl.ts'
 import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
@@ -269,7 +269,7 @@ function growKept0(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
 // before it (GDP_QUICK_CAP; 64 where the CDCL search isn't tried, as before it): research/step's comparisons.
 const cdclShare = Number(env.GDP_CDCL_SHARE ?? 0.75), quickCap = Number(env.GDP_QUICK_CAP ?? 16)
 // (GDP_MODEL_FIRST: the goals of at least this many hypotheses asked for a model before the tree; 0, none)
-const modelFirst = Number(env.GDP_MODEL_FIRST ?? 500)
+const modelFirst = Number(env.GDP_MODEL_FIRST ?? 500), useCore = env.GDP_MODEL_CORE !== '0'
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
   // Past a few cases, CDCL over the atoms (kernel/cdcl.ts), with most of the budget: a linear goal's refutation there
   // is a resolution of short clauses, which the tree search would find again in every case that reaches one. Unknown
@@ -295,8 +295,15 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
   // model in 4 s that the tree search hadn't found in 92 s.)
   if (root && cdcl && modelFirst > 0 && goal.hyps.length >= modelFirst) {
     const now = clock(), end = withinDeadline(budget.until ?? Infinity)
-    const m = growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + 0.25 * (end - now)}, {model: true})
+    const m = growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + 0.25 * (end - now)}, {model: true, core: true}) as Outcome & {core?: number[]}
     if (!('tree' in m) && m.stuck === 'sat' && m.witness && !(realModels.on && fakeProducts(m.witness))) return m
+    // Refuted: the tree searched over the hypotheses the refutation read (its core), each node reading those alone, and
+    // unfolded in the goal itself (its rows at a path include the core's), so the certificate is the goal's.
+    if (useCore && !('tree' in m) && m.why === REFUTED && m.core && m.core.length < goal.hyps.length) {
+      const small: Goal = {name: goal.name, hyps: m.core.map(i => goal.hyps[i]!)}, now2 = clock()
+      const out = growCdcl(small, path, {nodes: 0, until: end === Infinity ? end : now2 + cdclShare * (end - now2)}, {treeOf: goal})
+      if ('tree' in out) return out
+    }
   }
   if (root) {
     if (cdcl) {
