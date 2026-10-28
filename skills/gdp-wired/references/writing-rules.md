@@ -68,13 +68,16 @@ proveRule(token, [token.law('the balances sum to the supply', ({Bal, supply}) =>
 - The map must start where the term is 0 (`.maps({Bal: 0})`), be part of the state (not a carried set or a function),
   and each step must change the term at keys it names: a write at one key, or a write at every key whose value compares
   the key with terms (`k.eq(from)`, `k.eq(to)`) and keeps every other cell. A write that moves every cell (`M.at(k).plus(1)`)
-  has no finite sum: the law about it is not proven.
+  has no finite sum: the law about it is not proven. "Keeps every other cell" may lean on the cells' kind: a yes/no
+  map's other cells are kept because each is 0 or 1 (its kind's law, proven beside yours); so may any law you prove
+  about one key that reads nothing but the summed maps' cells there (`forall(k => Bal.at(k).atMost(100))`).
 - The kernel knows a sum by two facts: a step moves it by the term's change at the keys it writes, and the term at any
   key, with the keys the step writes, is at most the sum (`M[t] <= sum`, and `M[t] + M[from] <= sum` when t isn't from).
   So a cell law like "no balance exceeds the supply" is proven from the sum's law; alone, the search adds the sum of
   each map the step writes and finds that law itself (`found: sum$Bal <= totalSupply`).
 - The runtimes keep the sum as state (one subtraction and one addition a step), so reading it costs nothing.
-- In Lean (Sums.lean): `sum_holds` (every reachable state's sum variable is the sum of its term over the keys, `IsSum`),
+- In Lean (Sums.lean): `sum_cells` and `sum_holds` (every reachable state's sum variable is the sum of its term over
+  the keys, `IsSum`, and with `sum_cells` every law proven holds there too),
   `sum_allowed` (there the machine allows exactly what the rule's assumption allows) and `sum_project_laws` (a law proven
   with a sum the rule doesn't read is a law of the rule).
 
