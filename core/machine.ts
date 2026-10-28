@@ -349,10 +349,17 @@ export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
 // same value, which need not be the default), and past it the value is the new default.
 function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine): {cells: Map<number, number>, default: number} {
   if (!plainKey(w.value, w.each)) {
-    const top = breakKeys(breaksOf(w.value, w.each), env, st, m).at(-1)!
+    const ks = breakKeys(breaksOf(w.value, w.each), env, st, m), top = ks.at(-1)!
     if (top > 1_000_000) throw new RangeError(`a write at every key reads its key in arithmetic past a million keys (${top})`)
-    const fallback = evalE(w.value, {...env, [w.each]: top}, st, m), cells = new Map<number, number>()
-    for (let key = 0; key < top; key++) { const v = evalE(w.value, {...env, [w.each]: key}, st, m); if (v !== fallback) cells.set(key, v) }
+    // (each breakpoint on its own, and each stretch between two at one key of it: no read moves and no comparison turns
+    // inside one, so it holds one value; most stretches hold the default, and a stretch that doesn't is filled)
+    const at = (key: number) => evalE(w.value, {...env, [w.each]: key}, st, m)
+    const fallback = at(top), cells = new Map<number, number>()
+    for (let i = 0; i + 1 < ks.length; i++) {
+      const key = ks[i]!, v = at(key)
+      if (v !== fallback) cells.set(key, v)
+      if (ks[i + 1]! > key + 1) { const u = at(key + 1); if (u !== fallback) for (let k2 = key + 1; k2 < ks[i + 1]!; k2++) cells.set(k2, u) }
+    }
     return {cells, default: fallback}
   }
   const keys = keysAt(st, mapsIn(w.value)), past = keys.at(-1)!
