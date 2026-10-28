@@ -113,7 +113,9 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   const heap: Var[] = [], byId: Var[] = [], vals: number[] = []
   // (relevance, top-down: a hypothesis' own clauses' variables at level 0, a gate's clauses' where the gate is relevant
   // and holds the value that needs them; `rel` the level a variable became relevant at, or -1, `relStack` in order)
-  const rel: number[] = [], relStack: number[] = []
+  // (`relAt`: the level each entry of relStack was put there at, so the stack is popped in that order even where an
+  // entry's own level is lower: chronological backtracking keeps it)
+  const rel: number[] = [], relStack: number[] = [], relAt: number[] = []
   const wl: number[][] = [], ownBy: number[][] = [], cls: Int32Array[] = [], oc: number[] = []
   // (each hypothesis' input clauses; those of a hypothesis retired, read no more)
   const byHyp: number[][] = [], retired: boolean[] = []
@@ -207,13 +209,15 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     if (x.pair) pairsChanged++
     reader.touch(name)
   }
-  const assignClausal = (x: Var, val: boolean, reason?: number) => {
+  // (`lv`: the level it holds from, below the current one where chronological backtracking puts it out of order: the
+  // latest of its reason's other literals', or the learned clause's asserting level)
+  const assignClausal = (x: Var, val: boolean, reason?: number, lv = level()) => {
     lowAt = Math.min(lowAt, trail.length)
-    x.val = val; x.level = level(); x.at = trail.length; x.phase = val; stamps[x.at] = ++stampN
+    x.val = val; x.level = lv; x.at = trail.length; x.phase = val; stamps[x.at] = ++stampN
     x.reason = reason
     trail.push(x.name); tv.push(x)
     vals[x.id] = val ? 1 : 2
-    if (rel[x.id]! >= 0) activate(x.id)
+    if (rel[x.id]! >= 0) activate(x.id, Math.max(lv, rel[x.id]!))
   }
   const assignVar = clausal ? assignClausal : assignKernel
   const assign = (name: string, val: boolean, reason?: number) => assignVar(vars.get(name)!, val, reason)
@@ -221,19 +225,20 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   // variables relevant in turn.
   const relevant = (id: number) => {
     if (rel[id]! >= 0) return
-    rel[id] = levels.length; relStack.push(id); heapIn(byId[id]!)
-    if (vals[id]) activate(id)
+    rel[id] = levels.length; relStack.push(id); relAt.push(levels.length); heapIn(byId[id]!)
+    if (vals[id]) activate(id, levels.length)
   }
-  const activate = (id0: number) => {
-    for (const todo = [id0]; todo.length;) {
-      const id = todo.pop()!, own = ownBy[2 * id + (vals[id] === 1 ? 1 : 0)]
+  // (each variable made relevant from `lv`: the latest of the levels the gate is relevant and holds its value from)
+  const activate = (id0: number, lv0: number) => {
+    for (const todo = [id0, lv0]; todo.length;) {
+      const lv = todo.pop()!, id = todo.pop()!, own = ownBy[2 * id + (vals[id] === 1 ? 1 : 0)]
       if (!own) continue
       for (let i = 0; i < own.length; i++) {
         const ci = own[i]!
         if (retired[ci]) continue
         const c = cls[ci]!
         costs.scan += 1 + (c.length >> 2)
-        for (let j = 0; j < c.length; j++) { const y = c[j]! >> 1; if (rel[y]! < 0) { rel[y] = levels.length; relStack.push(y); heapIn(byId[y]!); if (vals[y]) todo.push(y) } }
+        for (let j = 0; j < c.length; j++) { const y = c[j]! >> 1; if (rel[y]! < 0) { rel[y] = lv; relStack.push(y); relAt.push(levels.length); heapIn(byId[y]!); if (vals[y]) todo.push(y, Math.max(lv, byId[y]!.level)) } }
       }
     }
   }
@@ -247,17 +252,24 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     lowAt = Math.min(lowAt, trail.length)
     levels.length = l
   }
+  // (chronological backtracking: a literal above `l` on the trail that holds from `l` or below stays, put back in
+  // order after the rest, and propagated again)
   const undoClausal = (l: number) => {
-    const keep = levels[l] ?? trail.length, undone: Var[] = []
+    const keep = levels[l] ?? trail.length, undone: Var[] = [], kept: Var[] = []
     while (trail.length > keep) {
-      const name = trail.pop()!, x = tv.pop()!, q = aqOf.size ? aqOf.get(name) : undefined
+      const name = trail.pop()!, x = tv.pop()!
+      if (x.level <= l) { kept.push(x); continue }
+      const q = aqOf.size ? aqOf.get(name) : undefined
       vals[x.id] = 0; undone.push(x)
       x.val = undefined; x.level = -1; x.reason = undefined
       if (q !== undefined && q < aq) aq = q
     }
     lowAt = Math.min(lowAt, trail.length)
     levels.length = l
-    while (relStack.length && rel[relStack.at(-1)!]! > l) rel[relStack.pop()!] = -1
+    if (kept.length) { qkeep = Math.min(qkeep, trail.length); for (let i = kept.length - 1; i >= 0; i--) { const x = kept[i]!; x.at = trail.length; stamps[x.at] = ++stampN; trail.push(x.name); tv.push(x) } }
+    const back: number[] = []
+    while (relStack.length && relAt.at(-1)! > l) { relAt.pop(); const id = relStack.pop()!; if (rel[id]! > l) rel[id] = -1; else back.push(id) }
+    for (let i = back.length - 1; i >= 0; i--) { relStack.push(back[i]!); relAt.push(l) }
     for (const x of undone) heapIn(x)
   }
   const undoTo = clausal ? undoClausal : undoKernel
@@ -274,7 +286,9 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     const c = Int32Array.from([...clauses[ci]!.lits].map(([name, pos]) => 2 * vars.get(name)!.id + (pos ? 1 : 0)))
     cls[ci] = c; oc[ci] = -1
     if (c.length < 2) return
-    const rank = (z: number) => (holds(z) ? byId[z >> 1]!.at : Infinity)
+    // (by level, then by place on the trail: the same order where levels follow the trail, the right one where
+    // chronological backtracking put a literal out of order)
+    const rank = (z: number) => (holds(z) ? byId[z >> 1]!.level * 1e7 + byId[z >> 1]!.at : Infinity)
     for (const j of [0, 1]) { let b = j; for (let q = j + 1; q < c.length; q++) if (rank(c[q]!) > rank(c[b]!)) b = q; const t0 = c[j]!; c[j] = c[b]!; c[b] = t0 }
     for (const j of [0, 1]) (wl[c[j]!] ??= []).push(ci, c[1 - j]!)
   }
@@ -335,7 +349,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     for (const r of rows) { let x = r.lin['1'] ?? 0; for (const n of namesOf(r.lin)) x += r.lin[n]! * w[n]!; if (x > 0) return undefined }
     return w
   }
-  let qhead = 0
+  let qhead = 0, qkeep = Infinity
   // Unit propagation: a clause whose literals all hold is a conflict (its index); all but one, the last is flipped.
   const propagateKernel = (): number | undefined => {
     while (qhead < trail.length) {
@@ -358,6 +372,8 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   // The clausal mode's, over the watches: a pair that now holds moves its watch to a pair that doesn't, else the clause
   // is unit, its other watched pair's variable flipped, or, that pair holding too, a conflict.
   const propagateClausal = (): number | undefined => {
+    if (qkeep < qhead) qhead = qkeep
+    qkeep = Infinity
     // (each watch a clause and a blocker, a pair of it that, where it doesn't hold, satisfies the clause untouched)
     while (qhead < trail.length) {
       const x = tv[qhead++]!, code = 2 * x.id + (x.val ? 1 : 0), ws = wl[code]
@@ -374,7 +390,11 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
         let j = 2
         while (j < c.length && holds(c[j]!)) j++
         if (j < c.length) { const z = c[j]!; c[j] = code; c[1] = z; (wl[z] ??= []).push(ci, o); ws[i] = ws[ws.length - 2]!; ws[i + 1] = ws[ws.length - 1]!; ws.length -= 2; continue }
-        if (!vals[o >> 1]) { assignVar(byId[o >> 1]!, !(o & 1), ci); i += 2; continue }
+        if (!vals[o >> 1]) {
+          let lv = 0
+          if (useCb) for (let q = 1; q < c.length; q++) { const y = byId[c[q]! >> 1]!.level; if (y > lv) lv = y }
+          assignClausal(byId[o >> 1]!, !(o & 1), ci, useCb ? lv : level()); i += 2; continue
+        }
         costs.scan += n
         return ci
       }
@@ -487,6 +507,9 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   }
   let restartAt = 32, nRestart = 0, sinceRestart = 0, free = 0
   const batch = Number(env.GDP_CDCL_BATCH ?? 16)
+  // (GDP_CDCL_CB: chronological backtracking in the clausal mode where a backjump would undo more than this many levels;
+  // -1 none)
+  const cbFar = Number(env.GDP_CDCL_CB ?? 5), useCb = clausal && cbFar >= 0
   const stuck = (kind: 'sat' | 'unknown', why: string, extra: {witness?: Record<string, number>} = {}): Outcome => ({stuck: kind, path: pathOf(), why, ...extra})
   const run = (b: {nodes: number, until?: number}, w?: number, assume?: Lin | Lin[]): Outcome => {
     budget = b; until = b.until ?? Infinity; wall = w; last = goal.hyps.length - 1
@@ -758,9 +781,13 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
       bump(c.lits)
       const learned = addClause(c.lits, c.node)
       if (here !== 1) { undoTo(Math.max(0, top - 1)); qhead = Math.min(qhead, trail.length); continue }
-      undoTo(below)
+      // (clausal: past `cbFar` levels, chronological backtracking: one level back, the flipped literal put at its
+      // asserting level, out of order, so the trail between them stays and isn't propagated again)
+      const far = clausal && useCb && top - below > cbFar
+      undoTo(far ? top - 1 : below)
       qhead = trail.length
-      assign(uip!, !c.lits.get(uip!)!, learned)
+      if (far) assignClausal(vars.get(uip!)!, !c.lits.get(uip!)!, learned, below)
+      else assign(uip!, !c.lits.get(uip!)!, learned)
       if (sinceRestart >= restartAt) { sinceRestart = 0; restartAt = 32 * luby(++nRestart); undoTo(0); qhead = Math.min(qhead, trail.length) }
     }
   }
