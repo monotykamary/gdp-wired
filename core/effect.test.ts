@@ -8,7 +8,7 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import * as effect from 'effect'
 import * as effect3 from 'effect3'
-import {forall, int, nat, oneOf, proveRule, proveSteps, rule, when} from './dsl.ts'
+import {type Term, int, nat, oneOf, proveRule, proveSteps, rule, when} from './dsl.ts'
 import {conforms, extractEffect, fromSchema} from './effect.ts'
 import {quotaConforms, quotaLaws, readQuota} from '../examples/effect.ts'
 
@@ -43,7 +43,8 @@ test('a service (4.x): Refs, Effect.fn methods, a yielded error, a result; read,
   expect(x.evidence!.refusedBoth).toBeGreaterThan(100)
   expect(x.source).toContain('an Effect service')
   const r = x.rule!
-  expect(proveRule(r, [r.law('tokens stay within the capacity', ({tokens, capacity}: never) => (tokens as never as {atMost: (x: unknown) => never}).atMost(capacity))]).proven).toBe(true)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  expect(proveRule(r, [r.law('tokens stay within the capacity', ({tokens, capacity}: any) => tokens.atMost(capacity))]).proven).toBe(true)
 })
 
 test('the forms a make effect is written in (4.x): Layer.effect, a Context.Service, Effect.fn, a lock, Ref.modify', () => {
@@ -91,7 +92,8 @@ export class Wallet extends Effect.Service<Wallet>()('Wallet', {
   expect([x.ok, x.refusals]).toEqual([true, []])
   expect(x.evidence).toMatchObject({coverage: {missed: []}})
   const r = x.rule!
-  expect(proveRule(r, [r.law('the balance never goes below 0', ({balance}: never) => (balance as never as {atLeast: (x: number) => never}).atLeast(0))]).proven).toBe(true)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  expect(proveRule(r, [r.law('the balance never goes below 0', ({balance}: any) => balance.atLeast(0))]).proven).toBe(true)
 })
 
 test('a map of records in a Ref, copied and set, with the clock: the example\'s quota proven', () => {
@@ -139,16 +141,17 @@ test('Effect\'s Semaphore (4.x and 3.x) runs as a rule written by hand; a rule t
 
 test('Schemas as kinds (4.x and 3.x): structs, literals, tagged unions, integers, null and optional fields', () => {
   for (const [E, v] of [[effect, 4], [effect3, 3]] as const) {
-    const S = E.Schema as never as Record<string, (...xs: unknown[]) => never> & Record<string, never>
-    const nonneg = v === 4 ? (S.Int as never as {check: (c: unknown) => never}).check(S.isGreaterThanOrEqualTo!(0)) : S.NonNegativeInt
-    const lits = v === 4 ? S.Literals!(['open', 'closed']) : S.Literal!('open', 'closed')
-    const k = fromSchema(S.Struct!({n: nonneg, i: S.Int, b: S.Boolean, s: S.String, state: lits, maybe: S.NullOr!(S.Int), opt: S.optional!(S.Boolean)}) as never)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const S: any = E.Schema
+    const nonneg = v === 4 ? S.Int.check(S.isGreaterThanOrEqualTo(0)) : S.NonNegativeInt
+    const lits = v === 4 ? S.Literals(['open', 'closed']) : S.Literal('open', 'closed')
+    const k = fromSchema(S.Struct({n: nonneg, i: S.Int, b: S.Boolean, s: S.String, state: lits, maybe: S.NullOr(S.Int), opt: S.optional(S.Boolean)}))
     expect(k.sample(() => 0, 1)).toEqual({n: 0, i: -1, b: false, s: expect.anything(), state: 'open', maybe: null, opt: null})
-    const cmd = fromSchema((v === 4 ? S.Union!([S.TaggedStruct!('Add', {n: nonneg}), S.TaggedStruct!('Clear', {})]) : S.Union!(S.TaggedStruct!('Add', {n: nonneg}), S.TaggedStruct!('Clear', {}))) as never)
-    const r = rule('sum').inputs({cmd}).state({total: 0}).step(({cmd, total}) => ({total: cmd.match({Add: (c: {n: never}) => total.plus(c.n), Clear: () => 0})}))
+    const cmd = fromSchema(v === 4 ? S.Union([S.TaggedStruct('Add', {n: nonneg}), S.TaggedStruct('Clear', {})]) : S.Union(S.TaggedStruct('Add', {n: nonneg}), S.TaggedStruct('Clear', {})))
+    const r = rule('sum').inputs({cmd}).state({total: 0}).step(({cmd, total}) => ({total: cmd.match({Add: (c: {n: Term}) => total.plus(c.n), Clear: () => 0})}))
     expect(proveRule(r, [r.law('the total is never below 0', ({total}) => total.atLeast(0))]).proven).toBe(true)
-    expect(() => fromSchema(S.Number as never)).toThrow(/a number that may be fractional/)
-    expect(() => fromSchema(S.Struct!({at: S.Array!(S.Int)}) as never)).toThrow(/fromSchema: at is a/)
+    expect(() => fromSchema(S.Number)).toThrow(/a number that may be fractional/)
+    expect(() => fromSchema(S.Struct({at: S.Array(S.Int)}))).toThrow(/fromSchema: at is a/)
   }
 })
 
@@ -169,5 +172,4 @@ test('what the reader doesn\'t take is refused where it is, with the reason', ()
     expect(x.ok).toBe(false)
     expect(x.refusals[0]!.what).toMatch(why)
   }
-  void forall
 })
