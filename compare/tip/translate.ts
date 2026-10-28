@@ -76,7 +76,8 @@ export type Translation = {
 // isn't recursive unfolded, a recursive one that computes a built-in bridged to it once the bridge is proven.)
 // `sorts`: the goal's sort variables as abstract sorts (each its own, read by equality alone: the statement for every
 // sort), or at the naturals (the instance there, a change of the statement).
-export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {sorts?: 'abstract' | 'naturals'} = {}): Translation {
+// `integers`: Int as the integers whatever the problem uses (compare/chc-adt: a Horn clause's Int is never a natural).
+export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {sorts?: 'abstract' | 'naturals', integers?: boolean} = {}): Translation {
   const abstractVars = (opts.sorts ?? 'abstract') === 'abstract'
   const changes = new Set<string>(), notes = new Set<string>()
   for (const [s2, n] of tip.sortArity) if (n > 0) throw new Unsupported(`an uninterpreted sort of ${n} arguments (${s2})`)
@@ -84,7 +85,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {sort
   const literal = (x: Sx) => typeof x === 'string' && /^\d+$/.test(x)
   // A subtraction or a negation (a negative literal is one): what truncates on the naturals.
   const needsInt = (x: Sx): boolean => typeof x !== 'string' && (x[0] === '-' || x.some(needsInt))
-  const ints = [...tip.funs.values()].some(f => needsInt(f.body)) || needsInt(tip.goal.body) || lemmas.some(needsInt)
+  const ints = !!opts.integers || [...tip.funs.values()].some(f => needsInt(f.body)) || needsInt(tip.goal.body) || lemmas.some(needsInt)
   if (ints) notes.add('Int as the integers')
   // --- sorts
   const isPeano = (d: string) => {

@@ -1,0 +1,531 @@
+{
+ "about": "CHC-COMP 2026 ADT-LIA (chc-comp/chc-comp26-benchmarks at b4fa7a7, ADT-LIA.set): a fixed pilot of 48 tasks, stratified by family and verdict, drawn by SHA-1 of the task path from the tasks some CHC-COMP26 entrant decided (majority_vote_verdict present); expected is the yml expected_verdict, decided_by the entrants that answered it at CHC-COMP26.",
+ "bench_commit": "b4fa7a708e5863bbcdb5de50d692ead3a67cbedc",
+ "tasks": [
+  {
+   "task": "tip-adt-lia/false_queue2_QueueL_000.yml",
+   "smt2": "tip-adt-lia/false_queue2_QueueL_000.smt2",
+   "family": "tip-adt-lia",
+   "expected": "unsat",
+   "vote": "unsat",
+   "decided_by": [
+    "pcsat",
+    "spacer"
+   ]
+  },
+  {
+   "task": "tip-adt-lia/tip2015_sort_nat_MSortTDIsSort_000.yml",
+   "smt2": "tip-adt-lia/tip2015_sort_nat_MSortTDIsSort_000.smt2",
+   "family": "tip-adt-lia",
+   "expected": "unsat",
+   "vote": "unsat",
+   "decided_by": [
+    "eldarica",
+    "spacer"
+   ]
+  },
+  {
+   "task": "tip-adt-lia/false_productive_use_of_failure_rot_uhhhw2_000.yml",
+   "smt2": "tip-adt-lia/false_productive_use_of_failure_rot_uhhhw2_000.smt2",
+   "family": "tip-adt-lia",
+   "expected": "unsat",
+   "vote": "unsat",
+   "decided_by": [
+    "chococatalia",
+    "eldarica",
+    "pcsat",
+    "spacer"
+   ]
+  },
+  {
+   "task": "tip-adt-lia/tip2015_sort_HSort2Sorts_000.yml",
+   "smt2": "tip-adt-lia/tip2015_sort_HSort2Sorts_000.smt2",
+   "family": "tip-adt-lia",
+   "expected": "sat",
+   "vote": "sat",
+   "decided_by": [
+    "spacer"
+   ]
+  },
+  {
+   "task": "tip-adt-lia/isaplanner_prop_57_000.yml",
+   "smt2": "tip-adt-lia/isaplanner_prop_57_000.smt2",
+   "family": "tip-adt-lia",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "spacer"
+   ]
+  },
+  {
+   "task": "tip-adt-lia/prod_prop_19_000.yml",
+   "smt2": "tip-adt-lia/prod_prop_19_000.smt2",
+   "family": "tip-adt-lia",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "chococatalia",
+    "spacer"
+   ]
+  },
+  {
+   "task": "tip-adt-lia/false_hotel_key_safe3_000.yml",
+   "smt2": "tip-adt-lia/false_hotel_key_safe3_000.smt2",
+   "family": "tip-adt-lia",
+   "expected": "sat",
+   "vote": "sat",
+   "decided_by": [
+    "chococatalia",
+    "pcsat"
+   ]
+  },
+  {
+   "task": "tip-adt-lia/tip2015_sort_NMSortTDSorts_000.yml",
+   "smt2": "tip-adt-lia/tip2015_sort_NMSortTDSorts_000.smt2",
+   "family": "tip-adt-lia",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "chococatalia",
+    "eldarica",
+    "pcsat",
+    "spacer"
+   ]
+  },
+  {
+   "task": "tip-adt-lia/prod_prop_03_000.yml",
+   "smt2": "tip-adt-lia/prod_prop_03_000.smt2",
+   "family": "tip-adt-lia",
+   "expected": "sat",
+   "vote": "sat",
+   "decided_by": [
+    "chococatalia"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/tip2015/int_add_assoc_000.yml",
+   "smt2": "ringen-adt-benchmarks/tip2015/int_add_assoc_000.smt2",
+   "family": "ringen-adt-benchmarks/tip2015",
+   "expected": "unsat",
+   "vote": "unsat",
+   "decided_by": [
+    "chococatalia",
+    "spacer"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/tip2015/weird_nat_op_comm_comm_000.yml",
+   "smt2": "ringen-adt-benchmarks/tip2015/weird_nat_op_comm_comm_000.smt2",
+   "family": "ringen-adt-benchmarks/tip2015",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "spacer"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/tip2015/weird_nat_add3_assoc2_000.yml",
+   "smt2": "ringen-adt-benchmarks/tip2015/weird_nat_add3_assoc2_000.smt2",
+   "family": "ringen-adt-benchmarks/tip2015",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "chococatalia",
+    "spacer"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/tip2015/weird_nat_add3_comm12_000.yml",
+   "smt2": "ringen-adt-benchmarks/tip2015/weird_nat_add3_comm12_000.smt2",
+   "family": "ringen-adt-benchmarks/tip2015",
+   "expected": "sat",
+   "vote": "sat",
+   "decided_by": [
+    "chococatalia"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/tip2015/weird_nat_add3acc_comm12_000.yml",
+   "smt2": "ringen-adt-benchmarks/tip2015/weird_nat_add3acc_comm12_000.smt2",
+   "family": "ringen-adt-benchmarks/tip2015",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "chococatalia",
+    "spacer"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/tip2015/weird_nat_add3acc_assoc1_000.yml",
+   "smt2": "ringen-adt-benchmarks/tip2015/weird_nat_add3acc_assoc1_000.smt2",
+   "family": "ringen-adt-benchmarks/tip2015",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "chococatalia",
+    "spacer"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/tip2015/sort_BubSortCount_000.yml",
+   "smt2": "ringen-adt-benchmarks/tip2015/sort_BubSortCount_000.smt2",
+   "family": "ringen-adt-benchmarks/tip2015",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "spacer"
+   ]
+  },
+  {
+   "task": "ADTRem/isaplanner/unsat-goal30_000_001.yml",
+   "smt2": "ADTRem/isaplanner/unsat-goal30_000.smt2",
+   "family": "ADTRem/isaplanner",
+   "expected": "unsat",
+   "vote": "unsat",
+   "decided_by": [
+    "chococatalia",
+    "eldarica",
+    "pcsat",
+    "spacer"
+   ]
+  },
+  {
+   "task": "ADTRem/isaplanner/goal14_000.yml",
+   "smt2": "ADTRem/isaplanner/goal14_000.smt2",
+   "family": "ADTRem/isaplanner",
+   "expected": "sat",
+   "vote": "sat",
+   "decided_by": [
+    "spacer"
+   ]
+  },
+  {
+   "task": "ADTRem/isaplanner/goal56_000_001.yml",
+   "smt2": "ADTRem/isaplanner/goal56_000.smt2",
+   "family": "ADTRem/isaplanner",
+   "expected": "sat",
+   "vote": "sat",
+   "decided_by": [
+    "chococatalia"
+   ]
+  },
+  {
+   "task": "ADTRem/isaplanner/goal84_000.yml",
+   "smt2": "ADTRem/isaplanner/goal84_000.smt2",
+   "family": "ADTRem/isaplanner",
+   "expected": "sat",
+   "vote": "sat",
+   "decided_by": [
+    "spacer"
+   ]
+  },
+  {
+   "task": "ADTRem/clam/unsat-goal58_000.yml",
+   "smt2": "ADTRem/clam/unsat-goal58_000.smt2",
+   "family": "ADTRem/clam",
+   "expected": "unsat",
+   "vote": "unsat",
+   "decided_by": [
+    "chococatalia",
+    "eldarica",
+    "pcsat",
+    "spacer"
+   ]
+  },
+  {
+   "task": "ADTRem/clam/goal82_000_000.yml",
+   "smt2": "ADTRem/clam/goal82_000.smt2",
+   "family": "ADTRem/clam",
+   "expected": "sat",
+   "vote": "sat",
+   "decided_by": [
+    "chococatalia"
+   ]
+  },
+  {
+   "task": "ADTRem/clam/goal57_000_000.yml",
+   "smt2": "ADTRem/clam/goal57_000.smt2",
+   "family": "ADTRem/clam",
+   "expected": "sat",
+   "vote": "sat",
+   "decided_by": [
+    "chococatalia"
+   ]
+  },
+  {
+   "task": "ADTRem/clam/goal8_000.yml",
+   "smt2": "ADTRem/clam/goal8_000.smt2",
+   "family": "ADTRem/clam",
+   "expected": "sat",
+   "vote": "sat",
+   "decided_by": [
+    "chococatalia"
+   ]
+  },
+  {
+   "task": "ADTRem/leon/bsearch-tree-goal15_000.yml",
+   "smt2": "ADTRem/leon/bsearch-tree-goal15_000.smt2",
+   "family": "ADTRem/leon",
+   "expected": "unsat",
+   "vote": "unsat",
+   "decided_by": [
+    "chococatalia"
+   ]
+  },
+  {
+   "task": "ADTRem/leon/heap-goal5_000.yml",
+   "smt2": "ADTRem/leon/heap-goal5_000.smt2",
+   "family": "ADTRem/leon",
+   "expected": "unsat",
+   "vote": "unsat",
+   "decided_by": [
+    "mucyc"
+   ]
+  },
+  {
+   "task": "ADTRem/leon/heap-goal12_000.yml",
+   "smt2": "ADTRem/leon/heap-goal12_000.smt2",
+   "family": "ADTRem/leon",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "spacer"
+   ]
+  },
+  {
+   "task": "ADTRem/leon/amortize-queue-goal6_000.yml",
+   "smt2": "ADTRem/leon/amortize-queue-goal6_000.smt2",
+   "family": "ADTRem/leon",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "chococatalia",
+    "spacer"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/isaplanner/prop_65_000.yml",
+   "smt2": "ringen-adt-benchmarks/isaplanner/prop_65_000.smt2",
+   "family": "ringen-adt-benchmarks/isaplanner",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "chococatalia",
+    "eldarica"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/isaplanner/prop_56_000.yml",
+   "smt2": "ringen-adt-benchmarks/isaplanner/prop_56_000.smt2",
+   "family": "ringen-adt-benchmarks/isaplanner",
+   "expected": "sat",
+   "vote": "sat",
+   "decided_by": [
+    "chococatalia"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/isaplanner/prop_82_000.yml",
+   "smt2": "ringen-adt-benchmarks/isaplanner/prop_82_000.smt2",
+   "family": "ringen-adt-benchmarks/isaplanner",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "spacer"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/isaplanner/prop_11_000_000.yml",
+   "smt2": "ringen-adt-benchmarks/isaplanner/prop_11_000.smt2",
+   "family": "ringen-adt-benchmarks/isaplanner",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "chococatalia",
+    "eldarica",
+    "pcsat"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/false/regexp_deluxe_switcheroo_000.yml",
+   "smt2": "ringen-adt-benchmarks/false/regexp_deluxe_switcheroo_000.smt2",
+   "family": "ringen-adt-benchmarks/false",
+   "expected": "unsat",
+   "vote": "unsat",
+   "decided_by": [
+    "pcsat"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/false/show_bin_lists_assoc_000.yml",
+   "smt2": "ringen-adt-benchmarks/false/show_bin_lists_assoc_000.smt2",
+   "family": "ringen-adt-benchmarks/false",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "spacer"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/false/productive_use_of_failure_union_idem_000.yml",
+   "smt2": "ringen-adt-benchmarks/false/productive_use_of_failure_union_idem_000.smt2",
+   "family": "ringen-adt-benchmarks/false",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "spacer"
+   ]
+  },
+  {
+   "task": "rust-horn/trees-2-inc-all-unsafe_000.yml",
+   "smt2": "rust-horn/trees-2-inc-all-unsafe_000.smt2",
+   "family": "rust-horn",
+   "expected": "unsat",
+   "vote": "unsat",
+   "decided_by": [
+    "chococatalia",
+    "eldarica",
+    "pcsat",
+    "spacer"
+   ]
+  },
+  {
+   "task": "rust-horn/simple-6-unique_scalar_000.yml",
+   "smt2": "rust-horn/simple-6-unique_scalar_000.smt2",
+   "family": "rust-horn",
+   "expected": "unsat",
+   "vote": "unsat",
+   "decided_by": [
+    "chococatalia",
+    "eldarica",
+    "pcsat",
+    "spacer"
+   ]
+  },
+  {
+   "task": "rust-horn/linger-dec-2-basic3-safe_000.yml",
+   "smt2": "rust-horn/linger-dec-2-basic3-safe_000.smt2",
+   "family": "rust-horn",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "chococatalia",
+    "eldarica",
+    "mucyc",
+    "pcsat",
+    "spacer"
+   ]
+  },
+  {
+   "task": "rust-horn/inc-max-1-base-safe_000.yml",
+   "smt2": "rust-horn/inc-max-1-base-safe_000.smt2",
+   "family": "rust-horn",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "chococatalia",
+    "eldarica",
+    "mucyc",
+    "pcsat",
+    "spacer"
+   ]
+  },
+  {
+   "task": "adt-purified-benchmarks/3-swap-dec-swap-dec-11-1.Z3.0_000.yml",
+   "smt2": "adt-purified-benchmarks/3-swap-dec-swap-dec-11-1.Z3.0_000.smt2",
+   "family": "adt-purified-benchmarks",
+   "expected": "unsat",
+   "vote": "unsat",
+   "decided_by": [
+    "chococatalia",
+    "eldarica",
+    "pcsat"
+   ]
+  },
+  {
+   "task": "adt-purified-benchmarks/3-swap-dec-swap-dec-11-0.Z3.0_000.yml",
+   "smt2": "adt-purified-benchmarks/3-swap-dec-swap-dec-11-0.Z3.0_000.smt2",
+   "family": "adt-purified-benchmarks",
+   "expected": "unsat",
+   "vote": "unsat",
+   "decided_by": [
+    "eldarica"
+   ]
+  },
+  {
+   "task": "adt-purified-benchmarks/2-inc-max-inc-max-00-0.Z3.0_000.yml",
+   "smt2": "adt-purified-benchmarks/2-inc-max-inc-max-00-0.Z3.0_000.smt2",
+   "family": "adt-purified-benchmarks",
+   "expected": "sat",
+   "vote": "sat",
+   "decided_by": [
+    "chococatalia"
+   ]
+  },
+  {
+   "task": "adt-purified-benchmarks/0-simple-04_recursive_unsat.Z3.0_000.yml",
+   "smt2": "adt-purified-benchmarks/0-simple-04_recursive_unsat.Z3.0_000.smt2",
+   "family": "adt-purified-benchmarks",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "chococatalia",
+    "pcsat",
+    "spacer"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/prod/prop_20_000_001.yml",
+   "smt2": "ringen-adt-benchmarks/prod/prop_20_000.smt2",
+   "family": "ringen-adt-benchmarks/prod",
+   "expected": "sat",
+   "vote": "sat",
+   "decided_by": [
+    "chococatalia"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/prod/prop_04_000_001.yml",
+   "smt2": "ringen-adt-benchmarks/prod/prop_04_000.smt2",
+   "family": "ringen-adt-benchmarks/prod",
+   "expected": "sat",
+   "vote": "sat",
+   "decided_by": [
+    "chococatalia"
+   ]
+  },
+  {
+   "task": "ADTRem/hipspec/unsat-rotate-goal7_000.yml",
+   "smt2": "ADTRem/hipspec/unsat-rotate-goal7_000.smt2",
+   "family": "ADTRem/hipspec",
+   "expected": "unsat",
+   "vote": "unsat",
+   "decided_by": [
+    "chococatalia",
+    "eldarica",
+    "pcsat",
+    "spacer"
+   ]
+  },
+  {
+   "task": "ADTRem/hipspec/rotate-goal7_000.yml",
+   "smt2": "ADTRem/hipspec/rotate-goal7_000.smt2",
+   "family": "ADTRem/hipspec",
+   "expected": "sat",
+   "vote": "sat",
+   "decided_by": [
+    "chococatalia"
+   ]
+  },
+  {
+   "task": "ringen-adt-benchmarks/grammars/packrat_unambigPackrat_000.yml",
+   "smt2": "ringen-adt-benchmarks/grammars/packrat_unambigPackrat_000.smt2",
+   "family": "ringen-adt-benchmarks/grammars",
+   "expected": "sat",
+   "vote": "sat_validated",
+   "decided_by": [
+    "spacer"
+   ]
+  }
+ ]
+}

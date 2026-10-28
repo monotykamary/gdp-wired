@@ -5,9 +5,11 @@
 //     copies below (each again, down to the recursive functions), so the induction is chosen on what the law means. A
 //     law that grows past eight times its size so (definitions unfolded into each other's arguments) isn't unfolded.
 //   - Bridges: a recursive function of one or two naturals that computes a built-in (+, ∸, min, max, ≤, <, =, ≥, >, ≠,
-//     x + 1, x ∸ 1, 2·x, x = 0) at every argument up to 6 (12 for one) is a candidate, unless its bridge law (the function
-//     is the built-in, at every argument) is the law itself; the bridge law is proven by the search first, and only a
-//     bridge proven is used.
+//     x + 1, x ∸ 1, 2·x, x = 0) at every argument up to 6 (12 for one) is a candidate, as is a recursive Bool function of
+//     two values of one datatype that is their equality or its negation at 160 pairs of random values (half of them a
+//     value and itself: a Horn system's `diseq` predicates, compare/chc-adt), unless its bridge law (the function is the
+//     built-in, at every argument) is the law itself; the bridge law is proven by the search first, and only a bridge
+//     proven is used.
 //   - Copies: a recursive function that calls a bridged one, one unfolded, or a copied one is copied with the built-in,
 //     the body or the copy in its place, and its copy law (it is its copy at every argument) proven: one node made from
 //     the two bodies walked together (its recursive calls by the node's own induction, at its recursion's uses), or,
@@ -19,7 +21,7 @@
 //     and the same call at the arguments said another way. Its goal is equalities; nothing is assumed.
 // The bridges and the copies' laws are nodes like any lemma's, at levels below the law's.
 import {type C, type E, n as k, walk} from './machine.ts'
-import {type DataLaw, type DataVerdict, type Fn, type Options, type Program, type Proven, type SearchCtx, type Sort, type X, type Y, Bool, Integer, Nat, Val, argsOf, bindName, define, encX, encY, evalX, factsOf, fnNamed, programOf, rankWidth, schemesOf, searchIn} from './data.ts'
+import {type DataLaw, type DataVerdict, type Fn, type Options, type Program, type Proven, type SearchCtx, type Sort, type Value, type X, type Y, Bool, Integer, Nat, Val, argsOf, bindName, define, encX, encY, evalX, factsOf, fnNamed, programOf, randomValue, rankWidth, rng, schemesOf, searchIn} from './data.ts'
 import {type NodeSpec, proveCyclic} from './cyclic.ts'
 import {clock, pairedKeys, withDeadline} from '../kernel/prove.ts'
 import {substE} from '../kernel/kernel.ts'
@@ -60,6 +62,7 @@ const taken = (f: Fn) => recursive(f) || f.measure !== undefined
 // The built-in a recursive function of naturals (structural, or well-founded: its termination proven) computes at every
 // argument up to 6 (one argument: up to 12; three: up to 5; four: up to 3), if one.
 function builtinOf(f: Fn): Op | undefined {
+  if (taken(f) && !f.paramFns.length && f.ret === 'bool' && f.params.length === 2 && typeof f.params[0]!.sort === 'object' && f.params[0]!.sort === f.params[1]!.sort && !f.params[0]!.sort.abstract) return equalityOf(f)
   if (!taken(f) || f.paramFns.length || !(f.ret === 'nat' || f.ret === 'bool') || !f.params.every(q => q.sort === 'nat')) return undefined
   const n = f.params.length
   if (n < 1 || n > 4) return undefined
@@ -79,6 +82,19 @@ function builtinOf(f: Fn): Op | undefined {
   if (c0 === undefined || cs.some(c => c < 0)) return undefined
   const op = linear(cs, c0)
   return agrees(op) ? op : undefined
+}
+// = or ≠, if f (a Bool function of two values of one datatype) is it at 160 pairs of random values, half of them a value
+// and itself.
+function equalityOf(f: Fn): Op | undefined {
+  const rand = rng(3), s = f.params[0]!.sort, args: X[] = [{op: 'var', name: '$p'}, {op: 'var', name: '$q'}]
+  let eq = true, ne = true
+  for (let i = 0; i < 160 && (eq || ne); i++) {
+    const a = randomValue(s, rand, 1 + (i % 6)), b = i % 2 ? a : randomValue(s, rand, 1 + (i % 6)), same = JSON.stringify(a) === JSON.stringify(b)
+    let v: Value
+    try { v = evalX({op: 'call', fn: f.name, args}, new Map([['$p', a], ['$q', b]]), {}) } catch { return undefined }
+    eq &&= v === +same; ne &&= v === +!same
+  }
+  return eq ? OPS.find(o => o.name === '=') : ne ? OPS.find(o => o.name === '≠') : undefined
 }
 // Whether `y` is f's bridge law: f at distinct variables equal (either side) to the built-in at them.
 function isBridge(y: Y, f: Fn, op: Op): boolean {

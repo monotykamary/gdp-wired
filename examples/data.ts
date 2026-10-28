@@ -184,7 +184,14 @@ export const paren: ReturnType<typeof define> = define('paren', {e: Expr}, natur
 export const Runs = data('Runs', {none: {}, run: {first: List, rest: self}})
 export const pairwise: ReturnType<typeof define> = define('pairwise', {rs: Runs}, Runs, ({rs}) => L(rs).match({none: () => Runs.none, run: ({first, rest}) => L(rest).match({none: () => Runs.run(first, Runs.none), run: ({first: second, rest: more}) => Runs.run(mrg(first, second), pairwise(more))})}))
 export const mergeRuns: ReturnType<typeof define> = define('mergeRuns', {rs: Runs}, List, ({rs}) => L(rs).match({none: () => List.nil, run: ({first, rest}) => L(rest).match({none: () => L(first), run: () => L(mergeRuns(pairwise(rs)))})}))
+// A natural written as an integer (compare/chc-adt: CHC-COMP's ADT-LIA writes TIP's naturals as Int): counted down to 0,
+// its measure the integer's value where positive (Lean's Int.toNat), the call on the path where x ≥ 1 (an if, or a
+// condition's choice on Bool).
+export const countDown: ReturnType<typeof define> = define('countDown', {x: integer}, integer, ({x}) => when(I(x).atLeast(1), I(countDown(I(x).minus(1))).plus(1), I(x).times(0)))
+export const reachesZero: ReturnType<typeof define> = define('reachesZero', {x: integer}, boolean, ({x}) => when(I(x).atLeast(1), B(reachesZero(I(x).minus(1))), yes))
 export const wellFounded = {
+  countDownNonneg: () => law('an integer counted down is never negative', {x: integer}, ({x}) => I(countDown(x)).atLeast(0)),
+  reachesZero: () => law('every integer counts down to 0', {x: integer}, ({x}) => B(reachesZero(x))),
   tokensPositive: () => law('an expression has a token', {e: Expr}, ({e}) => N(tokens(e)).atLeast(1)),
   mergeRunsOne: () => law('one run merged is itself', {xs: List}, ({xs}) => L(mergeRuns(Runs.run(xs, Runs.none))).eq(L(xs))),
 } satisfies Record<string, () => DataLaw>
@@ -193,6 +200,9 @@ export const wellFounded = {
 // tried, before any law about it is read. Taken as an equation, any of them would let the kernel prove anything.
 const nearTail = define('nearTail', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(len(tail)).atLeast(9), List.cons(head, L(xs)), L(tail))}))
 const loops = {
+  // an integer counted down below 0 for ever (its size, toNat, stays 0 there): and on Bool, behind a condition's choice
+  intBelow: () => { const f: ReturnType<typeof define> = define('intBelow', {x: integer}, integer, ({x}) => when(I(x).atMost(0), I(f(I(x).minus(1))), I(x).times(0))); return f },
+  intBelowBool: () => { const f: ReturnType<typeof define> = define('intBelowBool', {x: integer}, boolean, ({x}) => when(I(x).atMost(5), B(f(I(x).minus(1))), yes)); return f },
   // a ring that passes its argument round
   passRound: () => { const f: ReturnType<typeof define> = define('passA', {xs: List}, natural, ({xs}) => N(g(xs))), g: ReturnType<typeof define> = define('passB', {xs: List}, natural, ({xs}) => N(f(xs))); return f },
   // one lowers its argument, the other builds it back
@@ -219,7 +229,7 @@ const loops = {
   // a ring whose measures are given and don't fall: (size xs) at both, the call passing xs round
   ringStatedWrong: () => { const f: ReturnType<typeof define> = define('statedA', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: ({tail}) => N(g(tail))}), {measure: ['xs']}), g: ReturnType<typeof define> = define('statedB', {xs: List}, natural, ({xs}) => N(f(List.cons(1, xs))), {measure: ['xs']}); return f },
 }
-export const adversarial = Object.fromEntries(Object.entries(loops).map(([name, mk]) => [name, () => { const f = mk(); return law(`${name} is 0`, Object.fromEntries(f.fn.params.map(p => [p.name, p.sort])) as never, vs => N(f(...f.fn.params.map(p => vs[p.name]))).eq(0)) }])) as Record<keyof typeof loops, () => DataLaw>
+export const adversarial = Object.fromEntries(Object.entries(loops).map(([name, mk]) => [name, () => { const f = mk(); return law(`${name} is 0`, Object.fromEntries(f.fn.params.map(p => [p.name, p.sort])) as never, vs => { const r = f(...f.fn.params.map(p => vs[p.name])) as Nat | Bool; return 'y' in r ? r : N(r).eq(0) }) }])) as Record<keyof typeof loops, () => DataLaw>
 
 // A user's own arithmetic on the naturals, by recursion (as a library ported from a proof assistant writes it): ≤, +,
 // an equality, a count by it, and a definition that isn't recursive over them (≥ as ≤ the other way). proveData proves

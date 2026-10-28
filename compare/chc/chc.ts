@@ -1,11 +1,12 @@
 // CHC-COMP's format (https://chc-comp.github.io/format.html), read: S-expressions, the predicates and their sorts, and
 // each clause as its variables, the predicates its body applies, its constraint (a list of conjuncts) and its head (a
-// predicate applied, or false). Only Int and Bool are read; anything else is refused with the reason.
+// predicate applied, or false). `parseChc` reads Int and Bool alone and refuses anything else with the reason;
+// `parseHorn` is the same reader with the sorts and the commands it skips its caller's (compare/chc-adt reads datatypes).
 export type Sx = string | Sx[]
 export type Sort = 'Int' | 'Bool'
 export type App = {pred: string, args: Sx[]}
-export type Clause = {vars: Map<string, Sort>, body: App[], constraint: Sx[], head: App | null}
-export type Chc = {preds: Map<string, Sort[]>, clauses: Clause[]}
+export type Clause<S = Sort> = {vars: Map<string, S>, body: App[], constraint: Sx[], head: App | null}
+export type Chc<S = Sort> = {preds: Map<string, S[]>, clauses: Clause<S>[]}
 
 export class Unsupported extends Error {}
 
@@ -30,14 +31,15 @@ const sortOf = (s: Sx): Sort => {
 }
 const conjuncts = (s: Sx): Sx[] => (Array.isArray(s) && s[0] === 'and' ? s.slice(1).flatMap(conjuncts) : s === 'true' ? [] : [s])
 
-export function parseChc(text: string): Chc {
-  const preds = new Map<string, Sort[]>(), clauses: Clause[] = []
+export const parseChc = (text: string): Chc => parseHorn(text, sortOf)
+export function parseHorn<S>(text: string, sortOf: (s: Sx) => S, skip: (cmd: Sx[]) => boolean = () => false): Chc<S> {
+  const preds = new Map<string, S[]>(), clauses: Clause<S>[] = []
   const appOf = (s: Sx): App | undefined => {
     if (typeof s === 'string') return preds.has(s) ? {pred: s, args: []} : undefined
     return typeof s[0] === 'string' && preds.has(s[0]) ? {pred: s[0], args: s.slice(1)} : undefined
   }
   for (const cmd of parseSx(text)) {
-    if (!Array.isArray(cmd)) continue
+    if (!Array.isArray(cmd) || skip(cmd)) continue
     const [op] = cmd
     if (op === 'set-logic' || op === 'check-sat' || op === 'exit' || op === 'set-info' || op === 'set-option' || op === 'get-model') continue
     if (op === 'declare-fun') {
@@ -48,7 +50,7 @@ export function parseChc(text: string): Chc {
     }
     if (op !== 'assert') throw new Unsupported(`the command ${String(op)}`)
     let f = cmd[1]!
-    const vars = new Map<string, Sort>()
+    const vars = new Map<string, S>()
     if (Array.isArray(f) && f[0] === 'forall') {
       for (const b of f[1] as Sx[][]) vars.set(b[0] as string, sortOf(b[1]!))
       f = f[2]!
