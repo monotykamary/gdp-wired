@@ -71,7 +71,7 @@ export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions
 // any value: the trail's atoms, the naturals, the term columns' definitions), as core/infer.ts's join reads it.
 export const REFUTED = 'refuted, not unfolded'
 export type Refuted = Outcome & {core?: number[], dag?: Dag, assumed?: number[]}
-export type CdclOptions = {maxLeaves?: number, model?: boolean, core?: boolean, dag?: boolean, clausal?: boolean, sideOf?: (hyp: number) => number, quiet?: (name: string) => boolean, treeOf?: Goal}
+export type CdclOptions = {maxLeaves?: number, model?: boolean, core?: boolean, dag?: boolean, clausal?: boolean, sideOf?: (hyp: number) => number, quiet?: (name: string) => boolean}
 export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: CdclOptions & {wall?: number} = {}): Outcome {
   const go = () => cdclSession(goal, root, opts).run(budget, opts.wall)
   return queryHook.on && !queryHook.depth ? logged(opts.model ? 'model' : 'cdcl', goal, go) : go()
@@ -740,8 +740,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
             }
             return {stuck: 'unknown', path: new Map(), why: REFUTED, ...(whole ? {core: [...core].sort((a, b) => a - b)} : {})} as Refuted
           }
-          // (`treeOf`: a goal whose hypotheses include this one's, the tree unfolded in it: its rows at a path include these)
-          const tree = t(() => unfold(opts.treeOf ?? goal, nodes, c.node, root, opts.maxLeaves ?? 20_000, until), ms => { st.unfoldMs += ms })
+          const tree = t(() => unfold(goal, nodes, c.node, root, opts.maxLeaves ?? 20_000, until), ms => { st.unfoldMs += ms })
           if (!tree) return stuck('unknown', 'unfold')
           st.proven++
           return {tree, nodes: budget.nodes}
