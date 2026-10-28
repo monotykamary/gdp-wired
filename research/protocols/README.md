@@ -218,3 +218,116 @@ flips are the IMC process's timing, not the search.
   - r2 (34 jobs) $0.099 billed so far (its hour wasn't over);
   - the second bar: estimated $0.92 from task seconds, its hour not yet billed;
   - total billed $1.81, about $2.7 with the second bar's estimate.
+
+## Round 2: the key's sort (gen/protocols2, from c4dff18)
+
+STRUCTURE.md's plan: the key's sort, read off the rule, as the one organizing idea. Nothing trusted changed.
+Figures are Modal, 2 vCPU, each configuration its own job (`runs/protocols2/p1` before the views, `p3` the branch
+head 3929980; main checkout).
+
+| Protocol | Search 10 s (c4dff18 → here) | Search 60 s (here) | Written invariant (c4dff18 → here) | Broken variant |
+| --- | --- | --- | --- | --- |
+| lock_server_sync | unknown → **proven 68.9 s** | **proven 70.5 s** | proven → proven 0.9 s | refuted, 5 steps |
+| lock_server_async | unknown → unknown | **proven 100.8 s** (12 laws found) | proven → proven 12.2 s | refuted, 21 steps |
+| decentralized_lock | unknown → unknown | unknown | killed at 420 s → **proven 3.5 s** | refuted, 19 steps |
+| distributed_lock | unknown → unknown | unknown | killed → unknown 3.2 s | refuted, 23 steps |
+| two_phase_commit | unknown → unknown | unknown | proven → proven 18.8 s | refuted, 5 steps |
+| ticket_lock | unknown → unknown | unknown | proven → proven 0.8 s | refuted, 20 steps |
+| toy_consensus_forall | unknown → unknown | unknown | killed → **proven 199.2 s** | refuted, 18 steps |
+| consensus_wo_decide | unknown → unknown | unknown | killed → killed at 600 s | unknown; the hand run breaks it |
+| ring_leader_election | unknown → unknown | unknown | proven 38.9 s → proven 2.1 s | unknown; the hand run breaks it |
+| sharded_key_value_store | killed → killed (600 s) | killed | killed → killed (600 s) | refuted, 6 steps (locally, 3.0 s) |
+
+With nothing written: **2 of 10 at 60 s, 1 of 10 at 10 s** (DuoAI: 10 of 10). Written invariants: 7 of 10 (5 at
+c4dff18). Every broken variant is refused as before.
+
+The c4dff18 column is `runs/protocols/r3`'s "on" (0d815ec, the same search as c4dff18's).
+
+What changed, and what each bought:
+- **Houdini's law watch counted as the tuples it evaluates** (core/infer.ts `lawful`: k^n per law about n keys).
+  - Before, a law about three keys was counted as one evaluation, so Houdini ran 9 s of wall time for 114 counted
+    ms. The wall-time stop then ended the search before the join started.
+  - lock_server_sync's join then proves it in 3 queries, at 10 s.
+- **Views by the key's sort** (core/infer.ts `keySorts`, `View`, `addView`).
+  - **The pair space is one view.** A view is a few keys and the places they are read at.
+  - **The pairs' places are sorted.** A row's maps go at x, a column's at y, the composed maps at the composed key,
+    as a union-find over the places keys are read at says. Before, every map went at every place (ServerHoldsLock at a
+    node, say).
+  - **A view per caller law about several keys** that the pairs don't hold: three keys, two holders and their lock.
+    Its places are the composed keys the law reads, and each map read at a plain key of a key's sort.
+  - **Result:** lock_server_async's join finds the 12 laws a person writes, 3-key forms among them, at 60 s.
+  - `GDP_VIEWS=0` turns the views off.
+- **The prover's tuples cut by sort** (kernel/prove.ts `keySorted`).
+  - **The rule:** a law's key read at a map takes only the terms its read matches against the keys the goal reads that
+    map at. A function's argument is no sort.
+  - **Instances:** lock_server_async's 3-key laws went from 157 tuples to 18.
+  - **Written invariants:** decentralized lock's goes from 436 s to 3.5 s, ring's from 30.7 s to 2.1 s, and toy
+    consensus's from killed to 199.2 s.
+  - `GDP_SORTS=0` turns it off.
+- **One retry loop for model-based instances** (kernel/prove.ts `withModels`; proveLaw, proveThinned and the join's
+  stepWith). The later rounds together get 3 times the first round's work (at least a second's), and an unsettled
+  later round gives back the first answer. One-key laws already at every value of their sort are skipped.
+- **Step 0, the 5 s regression** (core/machine.ts `writeEvery`). This is the CI failure in core/sums.test.ts.
+  - **The fix:** a write at every key with its key in key terms evaluates each breakpoint and one key per stretch
+    between two. It used to evaluate every key below the last, up to a thousand keys a step for a token's `Bal.each`.
+  - **The test:** 1.9 s to 0.95 s locally.
+  - **The cause:** CI went from 3.45 s to 5.7 s because the runner was slower, about 1.7x on every test (the median
+    over 80 tests above 300 ms). Locally the test took the same time at 3cdf37e and at every merge (1.9 s), and with
+    `GDP_MODEL_INST=0` and `GDP_MULTI_MATCH=0`.
+  - **Every default-limited test** is under 1.6 s locally (`bun test --timeout 1600`, both suites).
+
+Why the rest are missed:
+- **decentralized_lock.** The search's second pass, over the maps' sums, finds an inductive set:
+  - `sum$HasLock + sum$Message <= 1`, `every k: HasLock[k] <= started`, and two more;
+  - but the sum's cover goal for HasLock is false for a map of yes/nos. The model is a cell at 2: the cover goal knows
+    no kinds.
+  - Closing it is a trusted change, Lean first (Sums.lean's cover goal with the cells' kinds).
+- **two_phase_commit.** The join stops on an "outside" model of the caller's law: the interpreter's state from the
+  model breaks a set form at a key the goal doesn't hold.
+- **ticket_lock.** Disjunctive facts (class B).
+- **toy and wo_decide consensus, distributed lock.** Laws over 3 to 4 keys whose kernel goals cost too much (class D):
+  - toy consensus's written invariant takes 199 s;
+  - the views find forms, and their goals run out of budget.
+- **sharded KV.** Laws over 5 keys. The instance lists run out of memory before the sort cut filters them, so the cut
+  should make the tuples rather than filter them.
+
+**Quick bars against c4dff18** (Modal; `runs/bar/runs/3929980a3167-vs-c4dff18b387a-quick-2026-10-281454`):
+- **CHC-COMP dev:** 515 against 520, 516, 517. 4 gained and 3 lost, none in every run, all at the limit. CHC has no
+  maps, so these are timing flips.
+- **Real-world dev:** 73 against 74, 74, 74. One task differed in the first pass and was noise after 3 reruns a side
+  (0 lost). Gitea's, Casbin's, Keycloak's and TigerBeetle's open laws are unchanged.
+- **Wrong:** 0.
+- **Casbin roleManager #3:** 2.0 s locally against 17.8 to 21.7 s.
+- **The 1-vCPU group** (`runs/bar/runs/3929980a3167-vs-c4dff18b387a-full-2026-10-281504`): no job failed.
+  - infer's tests are faster (the four-value join 5,001 ms median against 5,761).
+  - Two of data's are slower on Modal: the ring of functions 5,459 against 4,657, and well-founded recursion 4,227
+    against 3,779.
+  - Locally those two take 1.81 and 1.51 s on both sides, so that is not reproduced.
+
+**Size.**
+- `core/` and `kernel/` without tests: 2,418,041 bytes against c4dff18's 2,402,284 (+15,757).
+- By diff lines: core/infer.ts +213 −61, kernel/prove.ts +80 −42, core/machine.ts +10 −3.
+
+**Reuse.**
+- **Reused:**
+  - the join's spaces, forms, levels and hull (a view is a space);
+  - pairingOf's composition;
+  - matchMany and eachRead (the sort cut);
+  - keysOf (the watch's count);
+  - breakKeys (the stretches).
+- **Replaced:** the three model retry loops, now one.
+- **New search:**
+  - keySorts, about 70 lines;
+  - addView and the law views, about 60;
+  - keySorted, about 20;
+  - withModels, about 20.
+- **Could be shared:**
+  - keySorts (the rule's union-find) and prove.ts's keySorted and modelInstances' sorts (the goal's matching) are two
+    readings of one sort;
+  - mapKeys and mapReads walk the goals twice.
+
+**Spend.** No hour of this round's own was billed separately: the account's hours hold other tracks' bars too.
+- **Pilots:** p1 5,516.6 s, p2 3,889.8 s and p3 3,845.1 s of job time, about $0.47 at 2 vCPU.
+- **Quick bars:** about $1.04 each, two of them.
+- **The 1-vCPU group:** $0.07.
+- **Round total:** about $2.6 estimated.

@@ -5,6 +5,22 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**Protocols, round 2: the key's sort (gen/protocols2).** Nothing trusted changed. research/protocols/README.md, "Round 2",
+has the measurements.
+- **Views by the key's sort** (core/infer.ts `keySorts`, `addView`). The pair space is one view, its places now
+  sorted, and each caller law about several keys gets a view of its own (`GDP_VIEWS=0` turns them off).
+- **The prover's tuples cut by sort** (kernel/prove.ts `keySorted`; `GDP_SORTS=0` turns it off).
+- **One retry loop for model-based instances** (`withModels`): later rounds within 3 times the first's work.
+- **Houdini's watch counted by the tuples it evaluates.**
+- **A write at every key evaluated per stretch** (core/machine.ts `writeEvery`). This fixes CI's core/sums.test.ts at
+  5.7 s against its 5 s limit (0.95 s locally); the slowdown itself was the runner.
+- **What moved:**
+  - with nothing written, lock_server_sync (10 s) and lock_server_async (60 s);
+  - written invariants: decentralized lock (436 s to 3.5 s), toy consensus (killed to 199 s), ring (30.7 s to 2.1 s);
+  - Casbin roleManager #3, 17.8 s to 2.0 s locally.
+- **Quick bars** against c4dff18: no solid change on CHC or the real world, wrong 0.
+- **Size:** +15,757 bytes.
+
 Three tracks from 0.30.1, merged: CHC speed, a pilot of CHC-COMP's ADT-LIA track, and distributed protocols with
 model-based instances. Nothing trusted changed (kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/*.lean are 0.30.1's; the
 Lean export, lean-kernel/data.ts, writes `.toNat` for the ADT track's Int measures).
