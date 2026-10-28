@@ -159,8 +159,8 @@ function factoryOf(s: Setup, entry: string): FactoryOf {
     let o = ret && ts.isReturnStatement(ret) && ret.expression ? strip(ret.expression) : undefined
     if (o && ts.isCallExpression(o) && ts.isPropertyAccessExpression(o.expression) && memberName(o.expression.name) === 'of' && o.arguments.length === 1) o = strip(o.arguments[0]!)
     if (!o || !ts.isObjectLiteralExpression(o)) return refuse(fn, `${entry}'s make effect returns no object of methods (\`return {...}\` or \`return Tag.of({...})\`)`)
-    const refs = new Map<string, string>(), locks = new Set<ts.Node>()
-    s.effect = hook(s, refs, locks)
+    const refs = new Map<string, string>(), locks = new Set<ts.Node>(), effects = new Map<ts.Node, ts.Expression>()
+    s.effect = hook(s, refs, locks, effects)
     s.notes.add(`${entry} is an Effect service: its state is its Refs, each method an event, a failure the step's refusal; each method is one step, which holds where calls don't interleave (one at a time, or under a Semaphore of 1)`)
     const R = 'require("gdp-wired:effect")'
     const make = capture ? 'globalThis.__gdpMake' : `__gdp[${JSON.stringify(entry)}]`
@@ -185,6 +185,8 @@ function factoryOf(s: Setup, entry: string): FactoryOf {
           locks.add(d); return 'helper'
         }
         if (ts.isYieldExpression(init)) return refuse(d, `${(d.name as ts.Identifier).text}: ${text(init)} run while the service is made (its value comes from outside the Refs read)`)
+        // An effect the service keeps (`const next = Ref.modify(...)`): made again, and run, where a method yields it.
+        if (s.checker.getTypeAtLocation(d.name).getSymbol()?.getName() === 'Effect') { effects.set(d, init); return 'helper' }
         return undefined
       },
       fnOf: x => fnOf(s, x),
@@ -203,7 +205,7 @@ function factoryOf(s: Setup, entry: string): FactoryOf {
 
 // Effect's expressions in a step: yield* runs an effect; Ref's, Effect's and Clock's calls make one (an `eff` value, run
 // where it is yielded, so a helper or a branch may make it and another place run it).
-function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>) {
+function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects: Map<ts.Node, ts.Expression>) {
   const eff = (run: (p: Path) => [V, Path]): V => ({t: 'eff', run})
   const undef: V = {t: 'undef'}
   return (ex: Exec, e: ts.Expression, p: Path): [V, Path] | undefined => {
@@ -214,6 +216,10 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>) {
       if (ts.isNewExpression(x)) return effectful(x) ? refuse(x, `${text(x)}: an error made with effects`) : [undef, fail(ex, x, p)]
       const [v, q] = ex.ev(x, p)
       return v.t === 'eff' ? v.run(q) : refuse(x, `yield* of ${text(x)}, not an effect the reader runs (a ${v.t})`)
+    }
+    if (ts.isIdentifier(e)) {
+      const d = s.checker.getSymbolAtLocation(e)?.valueDeclaration, init = d && effects.get(d)
+      return init ? ex.ev(init, {...p, locals: new Map()}) : undefined
     }
     if (ts.isPropertyAccessExpression(e)) {
       const api = apiOf(s, e)?.join('.')
@@ -400,7 +406,7 @@ export function conforms<S>(r: Rule, svc: Service<S>, opts: {draw: (rand: Rand) 
   const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b)
   let checked = 0
   for (let run = 0; run < (opts.runs ?? 100); run++) {
-    const params = opts.params?.(rand) ?? {}, ps = r.encodeParams(params as never), made = R.exit(svc.make(params), 0)
+    const params = opts.params?.(rand) ?? {}, ps = r.encodeParams(params as never), m0 = svc.make(params), made = svc.effect.Effect.isEffect(m0) ? R.exit(m0, 0) : {ok: true as const, value: m0}
     if (!made.ok) return {checked, failure: `the service with ${JSON.stringify(params)} fails to be made: ${made.error}`}
     const self = made.value as S, sent: string[] = []
     let st = g.init(ps)
