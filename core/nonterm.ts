@@ -76,6 +76,22 @@ function simpE0(e: E): E {
     case 'get': return {op: 'get', map: e.map, key: simpE(e.key)}
   }
 }
+// An and's (an or's) parts simplified, its nested and-s (or-s) walked in place, each part once (x ∧ x is x): the parts
+// of each nested one simplified and flattened in turn, in order, the same object kept at its first place. A part shared
+// along a DAG (an interpolant's: binary and-s and or-s whose parts recur) is read once, not once per path to it.
+function partsOf(c: Extract<C, {op: 'and' | 'or'}>): C[] {
+  const out: C[] = [], seen = new Set<C>()
+  const put = (y: C) => { if (!seen.has(y)) { seen.add(y); out.push(y) } }
+  for (const todo: C[] = [...c.xs].reverse(); todo.length;) {
+    const x = todo.pop()!
+    if (seen.has(x)) continue
+    seen.add(x)
+    if (x.op === c.op && !simpMemo.has(x)) { for (let i = x.xs.length - 1; i >= 0; i--) todo.push(x.xs[i]!); continue }
+    const y = simpC(x)
+    if (y.op === c.op) for (const z of y.xs) put(z); else put(y)
+  }
+  return out
+}
 function simpC0(c: C): C {
   switch (c.op) {
     case '<=': case '<': case '=': {
@@ -83,8 +99,8 @@ function simpC0(c: C): C {
       if (a.op === 'const' && b.op === 'const') return (c.op === '<=' ? a.value <= b.value : c.op === '<' ? a.value < b.value : a.value === b.value) ? T : F
       return {op: c.op, a, b}
     }
-    case 'and': return and(c.xs.map(simpC))
-    case 'or': return or(c.xs.map(simpC))
+    case 'and': return and(partsOf(c))
+    case 'or': return or(partsOf(c))
     case 'not': { const x = simpC(c.x); return isT(x) ? F : isF(x) ? T : {op: 'not', x} }
     case 'flag': case 'all': return c
   }
