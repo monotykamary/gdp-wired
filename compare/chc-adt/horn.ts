@@ -432,11 +432,13 @@ function compile(h: Horn, args: Sx[], sorts: string[], rows: Row[], dflt: Sx, re
       return leaf(h, r, bind, dflt)
     })
     if (rel) return {body: leaves.length === 1 ? leaves[0]!.a : ['or', ...leaves.map(l => l.a)], defaults: 0}
-    // (the clauses that always apply last; one of them beside any other is an overlap, almost never a function: costed)
-    const order = [...leaves.filter(l => l.a !== 'true'), ...leaves.filter(l => l.a === 'true')]
+    // (the clauses that always apply last; one of them beside another of a different value is an overlap, almost never a
+    // function: costed; beside one of the same value, the same function: that one left out)
+    const always = leaves.find(l => l.a === 'true'), same = (l: {v: Sx}) => !!always && show(l.v) === show(always.v)
+    const rest = leaves.filter(l => l.a !== 'true' && !same(l)), order = [...rest, ...(always ? [always] : [])]
     let body = dflt, defaults = 1
     for (const l of order.reverse()) { if (l.a === 'true') { body = l.v; defaults = 0 } else body = ['ite', l.a, l.v, body] }
-    if (leaves.some(l => l.a === 'true') && leaves.length > 1) defaults += 100 * (leaves.length - 1)
+    if (always) defaults += 100 * (rest.length + leaves.filter(l => l.a === 'true' && !same(l)).length)
     return {body, defaults}
   }
   const d = h.tip.datas.get(sorts[col]!)!
@@ -470,7 +472,12 @@ function leaf(h: Horn, r: Row, bind: Map<string, Sx>, dflt: Sx): {a: Sx, v: Sx} 
     const st = r.steps[i]!
     if (st.k === 'def') return go(i + 1, new Map(m).set(st.x, sub(st.e, m)))
     // (a guard an if: what follows it, a call among it, is on its path, as core/data.ts's termination reads paths)
-    if (st.k === 'guard') { const rest = go(i + 1, m); return {a: guardA(sub(st.g, m), rest.a), v: rest.v} }
+    if (st.k === 'guard') {
+      const g = sub(st.g, m), key = show(g)
+      if (m.has(`%g ${key}`)) return go(i + 1, m)
+      const rest = go(i + 1, new Map(m).set(`%g ${key}`, 'true'))
+      return {a: guardA(g, rest.a), v: rest.v}
+    }
     // a match of a computed value against a constructor pattern: its variables bound where they are new, compared where not
     return matchPat(h, r, sub(st.e, m), st.pat, m, go, i + 1, dflt)
   }
@@ -529,6 +536,8 @@ export function lawOf(h: Horn, pr: Program, n: Norm): Law {
       }
     }
   }
+  // (a hypothesis made true by the substitutions, t = t, or stated twice, is left out)
+  hyps = [...new Map(hyps.filter(y => !(Array.isArray(y) && y[0] === '=' && y.length === 3 && show(y[1]!) === show(y[2]!))).map(y => [show(y), y])).values()]
   const used = new Set<string>(); [...hyps, concl].forEach(s => fv(s, vars, used))
   for (const x of [...vars.keys()]) if (!used.has(x)) vars.delete(x)
   const trivial = hyps.includes('false'), query = concl === 'false'

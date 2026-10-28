@@ -44,7 +44,7 @@ const prove = (l: Law, ms: number, unfold = false): {proven: boolean, cex?: Map<
   if (tr.changes.length || tr.some) return {proven: false, why: `the translation changes the statement: ${tr.changes.join(', ') || 'an existential'}`}
   let v
   try {
-    v = unfold ? proveData(tr.law, {ms: ms / 3, induction: false}) : undefined
+    v = unfold ? proveData(tr.law, {ms, induction: false}) : undefined
     if (!v?.proven && !v?.counterexample) v = proveData(tr.law, {ms})
   } catch (e) { return {proven: false, why: `proveData threw: ${(e as Error).message.slice(0, 120)}`} }
   if (v.proven && v.checked) return {proven: true}
