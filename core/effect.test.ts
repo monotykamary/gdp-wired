@@ -94,6 +94,21 @@ export class Wallet extends Effect.Service<Wallet>()('Wallet', {
   const r = x.rule!
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   expect(proveRule(r, [r.law('the balance never goes below 0', ({balance}: any) => balance.atLeast(0))]).proven).toBe(true)
+  // The clock on 3.x: a cooldown, Ref.make outside a class, Effect.fn.
+  const y = read3(`
+import {Clock, Data, Effect, Ref} from 'effect'
+export class Cooling extends Data.TaggedError('Cooling')<{}> {}
+export const make = (gap: number) => Effect.gen(function* () {
+  const last = yield* Ref.make(0)
+  const fire = Effect.fn('fire')(function* () {
+    const now = yield* Clock.currentTimeMillis
+    if (now - (yield* Ref.get(last)) < gap) return yield* Effect.fail(new Cooling())
+    yield* Ref.set(last, now)
+  })
+  return {fire}
+})`, 'make')
+  expect([y.ok, y.refusals]).toEqual([true, []])
+  expect(y.evidence).toMatchObject({coverage: {missed: []}})
 })
 
 test('a Set in a Ref, a flag from Ref.modify, and a failure after a write that changed nothing', () => {
