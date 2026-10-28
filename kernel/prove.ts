@@ -889,14 +889,23 @@ const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[]): In
 // A law about several keys where its body reads a map at a key naming every one of them (Link[x·N + y]): the tuple
 // that makes that key one the goals read (Link[a·N + b] gives (a, b)), as a fact about several keys is matched
 // (withFacts). A key of one bound name alone matches every key, so it binds no tuple here.
+// Where no one key names every bound name (a relation read at two pairs, Link[c1·N + s] and Link[c2·N + s]), two reads'
+// matches together bind them, as a fact's do (withFacts): at a name both bind, each one's value in turn.
 const matched = (l: Law, keys: E[]): E[][] => {
   const vars = [l.forall!, ...(l.keys ?? [])], names = (e: E) => vars.filter(x => JSON.stringify(e).includes(`"name":${JSON.stringify(x)}`))
   const pats = new Map<string, E>()
-  eachRead(e => { if (names(e.key).length === vars.length) pats.set(JSON.stringify(e.key), e.key) }).inC(l.holds)
-  const out: E[][] = []
-  for (const p of pats.values()) for (const key of keys) { const b = matchMany(p, key, vars); if (b && vars.every(x => x in b)) out.push(vars.map(x => b[x]!)) }
-  return out
+  eachRead(e => { const ns = names(e.key); if (ns.length === vars.length || ns.length > 1 && multiOn) pats.set(JSON.stringify(e.key), e.key) }).inC(l.holds)
+  const partial: Record<string, E>[] = []
+  for (const p of pats.values()) for (const key of keys) { const b = matchMany(p, key, vars); if (b) partial.push(b) }
+  const whole = (b: Record<string, E>) => vars.every(x => x in b), out = partial.filter(whole)
+  if (multiOn) for (let i = 0; i < partial.length; i++) for (let j = i + 1; j < partial.length; j++) {
+    const a = partial[i]!, b = partial[j]!
+    if (whole(a) || whole(b) || !vars.every(x => x in a || x in b)) continue
+    out.push({...b, ...a}, {...a, ...b})
+  }
+  return out.map(b => vars.map(x => b[x]!))
 }
+const multiOn = env.GDP_MULTI_MATCH !== '0'
 // The n-tuples of the keys that relate the focus (withReads).
 const related = (keys: E[], focus: string[], n: number): E[][] => {
   const reads = (e: E, x?: string) => x !== undefined && JSON.stringify(e).includes(`"name":${JSON.stringify(x)}`)
