@@ -3,6 +3,34 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+CHC-COMP's ADT-LIA track (Horn clauses over datatypes and linear integers), a pilot. Nothing trusted changed:
+kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/*.lean are 0.30.1's.
+- **A Horn system over datatypes read as a TIP program** (compare/chc-adt).
+  - Each predicate is read by a mode: the argument its function computes, a Bool function, or false. Its clauses are
+    compiled into matches.
+  - Every clause becomes a TIP goal over that program, and proveData proves it. Every clause proven is a sat answer
+    whose model the kernel checked.
+  - A query's counterexample is unsat only as a derivation checked against the clauses as written (tip.ts's
+    evaluator).
+  - On a fixed pilot of 48 tasks (60 s, Modal, one run each, wrong 0 for every tool): gdp-wired 14 (8 sat, 6 unsat),
+    Spacer 13, Eldarica 14 (runs/adt/p6 and runs/adt/p1). This is a pilot, not a lead.
+- **Termination over integers** (core/data.ts).
+  - A measure may read an Int parameter. Its size is toNat (Lean's Int.toNat), and a component that reads one is
+    compared in the integers.
+  - The calls' paths, in termination and in the recursion schemes, read a condition's choice on Bool (`when`) as an if.
+  - The Lean export writes `.toNat`, and the if inside a well-founded function.
+  - examples/data.ts has two laws over Int recursion (proven) and two Int loops (refused).
+- **Datatype equality bridged** (core/transfer.ts): a Bool function of two values of one datatype that is their equality,
+  or its negation, at 160 random pairs is a bridge candidate. That's the Horn encodings' `diseq` predicates; its bridge
+  law is proven before use, like the naturals' bridges.
+- **The bar against 3cdf37e:**
+  - CHC quick: 520 against a base mean of 517.33, nothing lost in every run, wrong 0
+    (runs/bar/runs/adt-01773e2-q-chc2).
+  - TIP: 213 against 212, nothing lost, wrong 0 (runs/bar/runs/adt-01773e2-tip).
+  - core and kernel: +4,285 bytes.
+
 ## 0.30.1
 
 A patch release: four fixes found while upgrading two projects that use gdp-wired, and the CHC-COMP and
