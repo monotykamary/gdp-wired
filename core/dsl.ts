@@ -2226,6 +2226,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   }
   // The state's variables declared with a kind (a yes/no, a choice, an integer...), with their kinds.
   kindsOfState(): [string, Kind<unknown>][] { return this.spec.kinded ?? [] }
+  // (the maps of a kind, and the kind of their cells)
+  kindsOfCells(): [string, Kind<unknown>][] { return this.spec.cells ?? [] }
   // Random params and inputs that meet their kinds (not the user's `pre` or `assume`, which a caller checks).
   randomParams(rand: Rand, bound: number): Record<string, number> { return this.withSkolems('params', Object.assign({}, ...this.spec.params.map(([n, k]) => k.random(n, rand, bound)))) }
   // The params' values by their kinds, as constants (what a fold that reads them is computed with).

@@ -2,8 +2,9 @@
 // invariant a person writes checked by the kernel (the search off), and the broken variant, which must be refused with
 // a run. One JSON line per protocol on stdout.
 //   bun research/protocols/run.ts [--ms 20000] [--only id,id] [--skip given,broken]
+// (--only lock_server_sync@one,lock_server_async@one: the diagnostic cuts to one server, models.ts's `cuts`)
 import {proveRule} from '../../core/dsl.ts'
-import {protocols} from './models.ts'
+import {cuts, protocols} from './models.ts'
 
 const arg = (name: string) => { const i = process.argv.indexOf(`--${name}`); return i < 0 ? undefined : process.argv[i + 1] }
 const ms = Number(arg('ms') ?? 20_000), only = arg('only')?.split(','), skip = new Set(arg('skip')?.split(',') ?? [])
@@ -12,7 +13,7 @@ const verdictOf = (v: any) => v.proven && v.checked ? 'proven' : v.run ? 'refute
 const brief = (v: any) => ({verdict: verdictOf(v), ...(v.goal ? {goal: v.goal} : {}), ...(v.stuck ? {stuck: v.stuck} : {}), ...(v.why ? {why: String(v.why).slice(0, 160)} : {}),
   ...(v.run ? {run: v.run.trace?.length} : {}), ...(v.found?.laws?.length ? {found: v.found.laws.map((f: any) => f.source ?? f.text)} : {})})
 
-for (const p of protocols.filter(p => !only || only.includes(p.id))) {
+for (const p of [...protocols, ...cuts].filter(p => only ? only.includes(p.id) : !p.id.includes('@'))) {
   const out: Record<string, unknown> = {id: p.id}
   try {
     const r = p.make(), laws = p.laws(r)

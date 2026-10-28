@@ -3,6 +3,24 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+**Distributed protocols, a pilot (research/protocols/, gen/protocols).** Ten protocols of the DistAI and DuoAI suites
+(lock servers, decentralized and distributed locks, two-phase commit, ticket lock, two consensus protocols, ring leader
+election, a sharded key-value store) written as rules with their safety laws, broken variants and written invariants.
+With nothing written, none is proven at 10 s (DuoAI proves all ten in 1.3 to 23.9 s, on its own machine and harness);
+every broken variant is refused, 8 with the run the search finds and 2 with a run written by hand. Cut to one server,
+both lock servers are proven with nothing written. README.md there classifies each miss and names the change for each.
+Nothing trusted changed. In the search:
+- **Laws over several keys at composed keys** (kernel/prove.ts `matched`): a law whose reads each name some of its keys
+  (`Link[c1·N + s]`, `Link[c2·N + s]`) is assumed at the tuples two reads bind together, as a fact about several keys
+  was. The two lock servers' written invariants go from unknown to proven. `GDP_MULTI_MATCH=0` turns it off.
+- **The join's pair space over two plain keys** (core/infer.ts): where a law is about several keys and no key is
+  composed, the cells at two distinct keys x ≠ y, forms reading both. `GDP_PAIRS=0` turns it off. A found law over
+  two keys is given as its builder call (`forall((x, y) => x.eq(y).not().implies(...))`), and a cell of a map of
+  yes/nos reads as `.n` there.
+- **A flag that reads a quantified flag** no longer ends the join with `unknown flag` (two-phase commit's `go1`).
+
 ## 0.30.1
 
 A patch release: four fixes found while upgrading two projects that use gdp-wired, and the CHC-COMP and

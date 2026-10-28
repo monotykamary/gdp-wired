@@ -254,6 +254,52 @@ const shardedKv = (bug?: Bug) => rule('sharded key-value store')
     TransferMsg: TransferMsg.each(z => when(reshards.and(z.eq(pk3(n2, k, v))), yes, when(receives.and(z.eq(pk3(n, k, v))), no, TransferMsg.at(z)))),
   }))
 
+// Diagnostics, not the protocols: the two lock servers cut to one server (one lock), every relation a map keyed by the
+// client (node) alone and the semaphore a scalar. Ivy's actions touch one server (lock) each and the safety property
+// is per server, so each cut is the protocol at one server; gdp-wired does not prove that reduction.
+const lockServerOne = (bug?: Bug) => rule('lock server sync, one server')
+  .inputs({op: oneOf('connect', 'disconnect'), x: nat})
+  .state({semaphore: 1})
+  .maps({Link: rel})
+  .flags(({op, x, semaphore, Link}) => ({connects: op.is('connect').and(bug ? yes : semaphore.eq(1)), disconnects: op.is('disconnect').and(Link.at(x))}))
+  .step(({x, connects, disconnects, semaphore, Link}) => ({
+    Link: Link.set(x, when(connects, yes, when(disconnects, no, Link.at(x)))),
+    semaphore: when(connects, 0, when(disconnects, 1, semaphore)),
+  }))
+const lockAsyncOne = (bug?: Bug) => rule('lock server async, one lock')
+  .inputs({op: oneOf('send_lock', 'recv_lock', 'recv_grant', 'unlock', 'recv_unlock'), n: nat})
+  .state({serverHoldsLock: 1})
+  .maps({LockMsg: rel, GrantMsg: rel, UnlockMsg: rel, HoldsLock: rel})
+  .flags(({op, n, serverHoldsLock, LockMsg, GrantMsg, UnlockMsg, HoldsLock}) => ({
+    sendLock: op.is('send_lock'),
+    recvLock: op.is('recv_lock').and(LockMsg.at(n), bug ? yes : serverHoldsLock.eq(1)),
+    recvGrant: op.is('recv_grant').and(GrantMsg.at(n)),
+    unlocks: op.is('unlock').and(HoldsLock.at(n)),
+    recvUnlock: op.is('recv_unlock').and(UnlockMsg.at(n)),
+  }))
+  .step(({n, sendLock, recvLock, recvGrant, unlocks, recvUnlock, serverHoldsLock, LockMsg, GrantMsg, UnlockMsg, HoldsLock}) => ({
+    LockMsg: LockMsg.set(n, when(sendLock, yes, when(recvLock, no, LockMsg.at(n)))),
+    GrantMsg: GrantMsg.set(n, when(recvLock, yes, when(recvGrant, no, GrantMsg.at(n)))),
+    HoldsLock: HoldsLock.set(n, when(recvGrant, yes, when(unlocks, no, HoldsLock.at(n)))),
+    UnlockMsg: UnlockMsg.set(n, when(unlocks, yes, when(recvUnlock, no, UnlockMsg.at(n)))),
+    serverHoldsLock: when(recvLock, 0, when(recvUnlock, 1, serverHoldsLock)),
+  }))
+export const cuts: Protocol[] = [
+  {id: 'lock_server_sync@one', source: 'lock_server_sync at one server', safety: 'link(C1, s) & link(C2, s) -> C1 = C2', make: lockServerOne, bug: 'connect without the semaphore',
+    laws: r => [r.law('one client', ({Link}: any) => forall((a, b) => Link.at(a).and(Link.at(b)).implies(a.eq(b))))],
+    human: r => [r.law('a link means taken', ({Link, semaphore}: any) => forall(a => Link.at(a).implies(semaphore.eq(0))))]},
+  {id: 'lock_server_async@one', source: 'lock_server_async at one lock', safety: 'holds_lock(N1, l) & holds_lock(N2, l) -> N1 = N2', make: lockAsyncOne, bug: 'recv_lock without server_holds_lock',
+    laws: r => [r.law('one holder', ({HoldsLock}: any) => forall((a, b) => HoldsLock.at(a).and(HoldsLock.at(b)).implies(a.eq(b))))],
+    human: r => {
+      const tok = (env: any, a: Term) => env.GrantMsg.at(a).or(env.HoldsLock.at(a), env.UnlockMsg.at(a))
+      return [
+        r.law('one token among the nodes', (env: any) => forall((a, b) => a.eq(b).not().and(tok(env, a)).implies(tok(env, b).not()))),
+        r.law('a token out means the server has none', (env: any) => forall(a => tok(env, a).implies(env.serverHoldsLock.eq(0)))),
+        r.law('one token per node', ({GrantMsg, HoldsLock, UnlockMsg}: any) => forall(a => GrantMsg.at(a).and(HoldsLock.at(a)).not().and(GrantMsg.at(a).and(UnlockMsg.at(a)).not(), HoldsLock.at(a).and(UnlockMsg.at(a)).not()))),
+      ]
+    }},
+]
+
 const lt = (...ts: Term[]) => ts.map(t => t.lt(N)).reduce((a, b) => a.and(b))
 export const protocols: Protocol[] = [
   {id: 'lock_server_sync', source: 'DuoAI protocols/lock_server_sync (DistAI: lock server)', safety: 'link(C1, S) & link(C2, S) -> C1 = C2',
@@ -304,10 +350,11 @@ export const protocols: Protocol[] = [
       r.law('go_commit and go_abort exclude', ({size, GoCommit, GoAbort}: any) => forall((a, b) => a.lt(size).and(b.lt(size), GoCommit.at(a)).implies(GoAbort.at(b).not()))),
       r.law('a commit had go_commit', ({size, GoCommit, DecideCommit}: any) => forall(a => a.lt(size).and(DecideCommit.at(a)).implies(GoCommit.at(a)))),
       r.law('an abort had go_abort or a no vote', ({size, GoAbort, VoteNo, DecideAbort}: any) => forall(a => a.lt(size).and(DecideAbort.at(a)).implies(GoAbort.at(a).or(VoteNo.at(a))))),
+      r.law('a failed node means the flag', ({size, Alive, abortFlag}: any) => forall(a => a.lt(size).and(Alive.at(a).not()).implies(abortFlag.eq(1)))),
       r.law('go_abort means the flag', ({size, GoAbort, abortFlag}: any) => forall(a => a.lt(size).and(GoAbort.at(a)).implies(abortFlag.eq(1)))),
       r.law('a no vote means the flag and no yes', ({size, VoteNo, VoteYes, abortFlag}: any) => forall(a => a.lt(size).and(VoteNo.at(a)).implies(abortFlag.eq(1).and(VoteYes.at(a).not())))),
       r.law('go_commit means no no vote', ({size, GoCommit, VoteNo}: any) => forall((a, b) => a.lt(size).and(b.lt(size), GoCommit.at(a)).implies(VoteNo.at(b).not()))),
-      r.law('go flags agree', ({size, GoCommit, GoAbort}: any) => forall((a, b) => a.lt(size).and(b.lt(size)).implies(GoCommit.at(a).eq(GoCommit.at(b)).and(GoAbort.at(a).eq(GoAbort.at(b)))))),
+      r.law('go flags agree', ({size, GoCommit, GoAbort}: any) => forall((a, b) => a.lt(size).and(b.lt(size)).implies(GoCommit.at(a).iff(GoCommit.at(b)).and(GoAbort.at(a).iff(GoAbort.at(b)))))),
     ]},
   {id: 'ticket_lock', source: 'DuoAI protocols/ticket_lock (mypyvy ticket.pyv)', safety: 'pc3(T1) & pc3(T2) -> T1 = T2',
     make: ticketLock, bug: 'step23 without m(t, k)',
