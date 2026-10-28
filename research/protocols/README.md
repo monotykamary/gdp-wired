@@ -331,3 +331,60 @@ Why the rest are missed:
 - **Quick bars:** about $1.04 each, two of them.
 - **The 1-vCPU group:** $0.07.
 - **Round total:** about $2.6 estimated.
+
+## Class B: cubes in every view (gen/protocols3, from 2644102)
+
+The base is 2644102: round 2, merged with gen/cdcl-cost, with growRoot's model-first step gated to goals that read map
+cells or quantified flags. Three general changes to the join (core/infer.ts), nothing trusted:
+- **Cubes blocked in every view** (`viewSpaces`, `viewCube`). This is the state space's IC3 cube blocking applied to
+  each view's rows.
+  - **The cube:** a counterexample's row that no sample's row is becomes a cube. Its literals are each few-valued cell
+    at its value, each equality between two cells of one map that holds there (Ticket[x] = Ticket[y]: two `≤`
+    literals, DuoAI's equality literals), and then the bounds that leave the samples' rows out.
+  - **The check:** its negation is proven by the prover relative to the forms proven so far (then the whole set), at
+    the instances the prover would read. Down then takes out the literals it doesn't need.
+  - **The result:** a law at every tuple of the view's keys. It needs no protocol switch: every view takes part, and the
+    equalities are those of each map's cells at two places.
+- **A model's state is judged only at the cells it names.** No fresh key, and no cell the model leaves free; a map
+  written at every key holds anything there. Round 3 tried this alone and it moved nothing (2PC). With the view cubes it
+  is what lets the caller's counterexample reach them: ticket lock's was "outside" before.
+- **A found form nothing strengthens is dropped** (as Houdini drops one). Before, the whole join stopped on it.
+
+**ticket_lock is proven with nothing written.** The view cube found is the disjunction a hull can't say:
+`every x, y with ¬(x = y): never Pc[x] is 1 and Pc[y] is 1 and Ticket[x] <= Ticket[y] and Ticket[y] <= Ticket[x]`
+(two waiting threads hold different tickets). With it the join's cone is inductive: 18 laws, locally 44 s of wall time
+at `--ms 60000`. On Modal (`runs/protocols3/q2`, 8219447):
+- at 60 s, proven once (59.9 s) and unknown once (65.9 s), at the wall-time limit;
+- at 120 s, proven twice (108.8 s, 120.6 s).
+
+**Pilot** (b503155, before the proven-first frame; `runs/protocols3/q1`):
+- **With nothing written:** lock_server_sync (10 s and 60 s), lock_server_async (60 s), and ticket_lock (60 s
+  locally, half the time on Modal; 120 s on Modal). That is 3 of 10 at 60 s against round 2's 2.
+- **Written invariants:** 8 of 10. Proven: sync, async, decentralized (2.6 s), 2PC, ticket, ring (2.9 s), toy
+  consensus (200.8 s). distributed is unknown, and wo_decide and sharded are killed at 600 s.
+- **Broken variants:** refused as before.
+
+**What else it moves.** Nothing beyond ticket_lock:
+- **The other protocols:** no other protocol's verdict changes.
+- **Real world:** Gitea #0 (two counted approvals never by one reviewer) stays unknown locally (37.0 s; a model the
+  search answers nothing to).
+- **Quick bars** (b503155 against c4dff18, `runs/bar/runs/b503155fdfa7-vs-c4dff18b387a-quick-2026-10-281802`), wrong 0:
+  - CHC dev: 520 against 520, 516, 517 (5 gained and 2 lost, all at the limit, none in every run);
+  - real-world dev: 74 against 74, 74, 74, nothing differs.
+- **1-vCPU group** (8219447): no job failed. The infer test moves from 5,848 ms median to 5,456, and data's two tests
+  from 5,166 to 5,500 and from 4,274 to 4,471 (both within their runs' spread).
+
+**The merged sort reading (round 3) is not brought over.** Without the four-key cutoff it was larger than round 2's two
+readings: kernel/prove.ts +6.7 kB against core/infer.ts −2.6 kB.
+
+**Size.** 2,426,345 bytes against 2644102's 2,420,609: +5,736, all in core/infer.ts (+75 −16 lines).
+- `viewSpaces` and `viewCube`: about 30 lines.
+- The named-cells judgement: about 15.
+- Parameterizing queryWith and down by view: 6.
+- The drop: 3.
+
+**Reused:** the state space's cube machinery (`queryWith`, `down`, `formOf`, `litHolds`, `inCube`), lawInstances for a
+view cube's instances, and views' rows.
+
+**Spend:** the pilot q1 3,936.4 s and q2 355.9 s of job time (about $0.15), the quick bar about $1.00, and the 1-vCPU
+group $0.05. About $1.2 estimated; the hours aren't billed separately from other tracks.

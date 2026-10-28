@@ -5,6 +5,18 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**Protocols, class B: cubes in every view (gen/protocols3).** Nothing trusted changed. research/protocols/README.md,
+"Class B", has the measurements.
+- **The cubes:** the join blocks cubes in every view, as it does in the state space. A cube's literals include
+  equalities between two cells of one map (Ticket[x] = Ticket[y]); the prover checks each cube relative to the set, and
+  Down generalizes it.
+- **Model states:** a model's state is judged only at the cells it names.
+- **Dropped forms:** a found form nothing strengthens is dropped.
+- **What moved:** ticket_lock is proven with nothing written (60 s locally, 1 of 2 Modal runs at 60 s, 2 of 2 at
+  120 s). No real-world law moves.
+- **Quick bars** against c4dff18: no change, wrong 0.
+- **Size:** +5,736 bytes.
+
 **Protocols, round 2: the key's sort (gen/protocols2).** Nothing trusted changed. research/protocols/README.md, "Round 2",
 has the measurements.
 - **Views by the key's sort** (core/infer.ts `keySorts`, `addView`). The pair space is one view, its places now
