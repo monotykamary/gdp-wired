@@ -908,14 +908,15 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   const st = {scalars: {}, maps}, read = (at: Record<string, number>) => new Proxy({...w, ...at}, {get: (t, p: string) => t[p] ?? 0}) as Record<string, number>
   const ev = (f: () => boolean): boolean | undefined => { try { return f() } catch { return undefined } }
   const valueOf = (e: E): number | undefined => { try { return evalE(e, read({}), st, mm) } catch { return undefined } }
-  // Each bound key over its own sort as the model fills it: the terms its body's reads bind matched against the goal's
-  // keys (M[x·N + y] against M[a·N + b] binds x to a), one term a value; a key no read binds, every key of the goal.
+  // Each bound key over its own sort as the model fills it: the terms its body's map reads bind matched against the
+  // goal's keys (M[x·N + y] against M[a·N + b] binds x to a), one term a value; a key no read binds (or only a
+  // function's), every key of the goal.
   const keys = mapKeys([goal]), all = new Map<number, E>()
   for (const e of keys) { const v2 = valueOf(e); if (v2 !== undefined && !all.has(v2)) all.set(v2, e) }
   if (!all.size) return undefined
   const sortsOf = (body: C, names: string[]): Map<number, E>[] => {
     const per = names.map(() => new Map<number, E>()), pats = new Map<string, E>()
-    eachRead(e => { if (names.some(x => JSON.stringify(e.key).includes(`"name":${JSON.stringify(x)}`))) pats.set(JSON.stringify(e.key), e.key) }).inC(body)
+    eachRead(e => { if (!fns.includes(e.map) && names.some(x => JSON.stringify(e.key).includes(`"name":${JSON.stringify(x)}`))) pats.set(JSON.stringify(e.key), e.key) }).inC(body)
     for (const p of pats.values()) for (const g of keys) {
       const b = matchMany(p, g, names)
       if (b) names.forEach((x, i) => { if (x in b) { const v2 = valueOf(b[x]!); if (v2 !== undefined && !per[i]!.has(v2)) per[i]!.set(v2, b[x]!) } })
@@ -973,10 +974,10 @@ export function withModels<T>(m: Machine, laws: Law[], inst: Instances, goalOf: 
 // goal's own keys (`focus`: the skolems of the law it proves, or a step law's keys) to each other and to the keys that
 // read none of them: at the i-th place, a key that reads the i-th focus alone (the first, past the focus there is), and
 // at most one place a key that reads no focus.
-const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[], byMap?: Map<string, E[]>): Instances => ({...inst, ...Object.fromEntries(laws.filter(l => l.forall).map(l => {
+const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[], byMap?: Map<string, E[]>, fns: string[] = []): Instances => ({...inst, ...Object.fromEntries(laws.filter(l => l.forall).map(l => {
   const had = inst[l.name] ?? []
   if (l.keys?.length) {
-    const n = l.keys.length + 1, out = new Map<string, E[]>(), sorted = byMap && sortsOn ? keySorted(l, byMap) : undefined
+    const n = l.keys.length + 1, out = new Map<string, E[]>(), sorted = byMap && sortsOn ? keySorted(l, byMap, fns) : undefined
     for (let i = 0; i + n <= had.length; i += n) out.set(JSON.stringify(had.slice(i, i + n)), had.slice(i, i + n))
     for (const tuple of [...related(keys, focus, n), ...matched(l, keys)]) if (!sorted || sorted(tuple)) out.set(JSON.stringify(tuple), tuple)
     return [l.name, [...out.values()].flat()]
@@ -992,14 +993,15 @@ function mapReads(goals: Goal[]): Map<string, E[]> {
 }
 // A tuple of the key's sort: each of a law's keys read at a map (M[x], M[x·N + y]) takes only the terms its read matches
 // against the keys the goals read that map at (the key's sort, as the goal holds it: Link[c1·N + s] against
-// Link[a·N + b] gives c1 a and s b); a key no read binds, or a read no goal key matches, takes any. Untrusted: it chooses
-// instances only (GDP_SORTS=0 keeps every tuple).
+// Link[a·N + b] gives c1 a and s b); a key no read binds, or a read no goal key matches, takes any. A function's
+// argument is no sort (a function is read at any key). Untrusted: it chooses instances only (GDP_SORTS=0 keeps every
+// tuple).
 const sortsOn = env.GDP_SORTS !== '0'
-function keySorted(l: Law, byMap: Map<string, E[]>): (tuple: E[]) => boolean {
+function keySorted(l: Law, byMap: Map<string, E[]>, fns: string[]): (tuple: E[]) => boolean {
   const vars = [l.forall!, ...(l.keys ?? [])], allowed = vars.map(() => new Set<string>()), bound = vars.map(() => false)
   eachRead(e => {
     const names = vars.filter(x => JSON.stringify(e.key).includes(`"name":${JSON.stringify(x)}`))
-    if (!names.length) return
+    if (!names.length || fns.includes(e.map)) return
     for (const t of byMap.get(e.map) ?? []) { const b = matchMany(e.key, t, vars); if (b) for (const x of names) if (x in b) { const i = vars.indexOf(x); allowed[i]!.add(JSON.stringify(b[x])); bound[i] = true } }
   }).inC(l.holds)
   return tuple => tuple.every((t, i) => !bound[i] || allowed[i]!.has(JSON.stringify(t)))
@@ -1128,7 +1130,7 @@ function instancesFor(m: Machine, laws: Law[], build: (inst: Instances) => Goal[
   const reads = opts.reads ?? (!opts.seed || shifts(m) || laws.some(l => l.keys?.length) || pairFlags(m))
   for (let round = 0; round < 2; round++) {
     if (m.facts?.length) inst = withFacts(m, inst, fnKeys(m, build(inst)))
-    if (reads) { const gs = build(inst), keys = mapKeys(gs); inst = union(withReads(laws, inst, keys, opts.focus ?? [], mapReads(gs)), flagInstances(m, keys, opts.focus), m) }
+    if (reads) { const gs = build(inst), keys = mapKeys(gs); inst = union(withReads(laws, inst, keys, opts.focus ?? [], mapReads(gs), Object.keys(m.fns ?? {})), flagInstances(m, keys, opts.focus), m) }
   }
   return inst
 }
