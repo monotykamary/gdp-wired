@@ -622,10 +622,15 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const cellOf = (st: State, map: string, key: number) => st.maps[map]?.get(key) ?? st.defaults?.[map] ?? m.maps![map]!
   // The scalar rows (one per state reached), and the cell rows (one per state and key a map holds, and one fresh key).
   const keysIn = (st: State) => { const ks = new Set<number>(); for (const c of Object.values(st.maps)) for (const k of c.keys()) ks.add(k); return [...ks] }
+  // A state read from a kernel model names some cells (`named`, map|key); the others it leaves free (any value), so a form
+  // is judged there only at rows whose cells it reads the model names (`unnamed`: a row's cells it doesn't), and no
+  // fresh key. Elsewhere every cell is the state's.
+  const named = new WeakMap<State, Set<string>>(), unnamed = new WeakMap<Env, Set<string>>()
+  const mark = (row: Env, st: State, cells: [string, string, number][]) => { const nm = named.get(st); if (nm) { const u = new Set(cells.filter(([, mp, k]) => !nm.has(`${mp}|${k}`)).map(([q]) => q)); if (u.size) unnamed.set(row, u) } return row }
   const cellRows = (params: Env, st: State): Env[] => {
     if (!mapNames.length) return []
     const ks = keysIn(st), fresh = ks.length ? Math.max(...ks) + 1 : 0
-    return [...ks, fresh].map(k => withTerms({...params, ...st.scalars, [K]: k, ...Object.fromEntries(mapNames.map(mp => [AT + mp, cellOf(st, mp, k)]))}, st))
+    return [...ks, ...(named.has(st) ? [] : [fresh])].map(k => mark(withTerms({...params, ...st.scalars, [K]: k, ...Object.fromEntries(mapNames.map(mp => [AT + mp, cellOf(st, mp, k)]))}, st), st, mapNames.map(mp => [AT + mp, mp, k])))
   }
   const rowsS = samples.map(s => withTerms({...s.params, ...s.st.scalars}, s.st))
   const rowsK: Env[] = []
@@ -901,7 +906,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // At a state: a cell form at every key the maps hold and a fresh one.
   type Point = {scalar: Env, cells: Env[], views: Env[][]}
   const pointOf = (params: Env, st: State): Point => ({scalar: withTerms({...params, ...st.scalars}, st), cells: cellRows(params, st), views: views.map(v => v.rowsOf(params, st))})
-  const holdsAt = (f: Form, p: Point) => (f.view !== undefined ? (p.views[f.view] ?? []).every(r => holdsRow(f, r)) : f.cells ? p.cells.every(r => holdsRow(f, r)) : holdsRow(f, p.scalar))
+  const partsOf2 = (f: Form): string[] => [...f.coef.map(([i]) => i), ...(f.guard && 'atom' in f.guard ? [f.guard.atom] : []), ...(f.also ?? []).map(a => a.atom), ...(f.never ?? []).map(a => a.atom), ...(f.unreachable ? [f.unreachable.atom] : []), ...(f.nevers ?? []).flat().map(a => a.atom), ...(f.cube ?? []).flatMap(l => ('at' in l ? [l.at.atom] : l.lin.coef.map(([i]) => i)))].flatMap(i => atoms[i]!.parts.map(([q]) => (atoms[i]!.cell ? AT + q : q)))
+  const judged = (f: Form, r: Env) => { const u = unnamed.get(r); return !u || !partsOf2(f).some(q => u.has(q)) }
+  const holdsAt = (f: Form, p: Point) => (f.view !== undefined ? (p.views[f.view] ?? []).every(r => !judged(f, r) || holdsRow(f, r)) : f.cells ? p.cells.every(r => !judged(f, r) || holdsRow(f, r)) : holdsRow(f, p.scalar))
   // A kernel witness as a point: its scalars, and a cell row per key it reads a map at.
   const witnessPoint = (w: Record<string, number>): Point => {
     const scalar: Env = Object.fromEntries([...scalars, ...m.params].map(v => [v, w[v] ?? 0]))
@@ -1121,13 +1128,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         }
       })
       const rowsOf = (params: Env, st: State): Env[] => {
-        const cand = valuesOf2(st).map(vs => vs.slice(0, per)), out: Env[] = []
+        const cand = valuesOf2(st).map(vs => (named.has(st) ? vs.slice(0, -1) : vs).slice(0, per)), out: Env[] = []
         const go = (i: number, env: Env): void => {
           if (i === v.vars.length) {
             try { if (!evalC(v.frame, env, st, m)) return } catch { return }
-            const row: Env = {...params, ...st.scalars, [K]: env[v.vars[0]!]!}
-            mapsAt.forEach((mps, place) => { const key = evalE(v.places[place]!, env, st, m); for (const mp of mps) row[`${AT}${AT}${mp}${AT}${vi}:${place}`] = cellOf(st, mp, key) })
-            out.push(withTerms(row, st))
+            const row: Env = {...params, ...st.scalars, [K]: env[v.vars[0]!]!}, cells: [string, string, number][] = []
+            mapsAt.forEach((mps, place) => { const key = evalE(v.places[place]!, env, st, m); for (const mp of mps) { const q = `${AT}${AT}${mp}${AT}${vi}:${place}`; row[q] = cellOf(st, mp, key); cells.push([q, mp, key]) } })
+            out.push(mark(withTerms(row, st), st, cells))
             return
           }
           for (const k2 of cand[i]!) go(i + 1, {...env, [v.vars[i]!]: k2})
@@ -1465,7 +1472,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const {result} = withModels<Asked>(mm, ls, inst, i2 => (at = i2, goalOf(i2)), gs => ask(gs, at), x => (mapNames.length && x.stuck === 'sat' && x.witness ? {goal: x.g, w: x.witness} : undefined), x => !!x.used || x.stuck === 'sat')
       return result.used ? {used: result.used} : {stuck: result.stuck, witness: result.witness}
     }
-    const stateOf = (w: Record<string, number>): {params: Env, st: State} => ({params: m.params.length ? Object.fromEntries(m.params.map(p => [p, w[p] ?? 0])) : params0, st: {scalars: Object.fromEntries(scalars.map(v => [v, w[v] ?? 0])), maps: mapsOf(w)}})
+    const stateOf = (w: Record<string, number>): {params: Env, st: State} => {
+      const st: State = {scalars: Object.fromEntries(scalars.map(v => [v, w[v] ?? 0])), maps: mapsOf(w)}
+      named.set(st, new Set(Object.entries(st.maps).flatMap(([mp, cells]) => [...cells.keys()].map(k => `${mp}|${k}`))))
+      return {params: m.params.length ? Object.fromEntries(m.params.map(p => [p, w[p] ?? 0])) : params0, st}
+    }
+    // (a step from a model's state names what it named and the cells the step wrote)
+    const stepNamed = (st: State, next: State) => { const nm = named.get(st); if (nm) named.set(next, new Set([...nm, ...Object.entries(next.maps).flatMap(([mp, cells]) => [...cells].filter(([k, v]) => st.maps[mp]?.get(k) !== v).map(([k]) => `${mp}|${k}`))])) }
     // --- cubes: a point the samples leave out, as literals -------------------------------------------------------------
     const ctrl = modes.filter(mo => (mo.choice || mo.bool) && !atoms[mo.atom]!.cell && !atoms[mo.atom]!.param).map(mo => mo.atom)
     // (the rule's own comparisons first, then each value, then pairs: of two directions that leave out as many samples
@@ -1529,16 +1542,17 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       }
       return true
     }
-    const formOf = (c: Lit[]): Form => ({coef: [], d: 0, cells: false, cube: c, size: 1})
+    const formOf = (c: Lit[], view?: number): Form => ({coef: [], d: 0, cells: false, cube: c, size: 1, ...(view !== undefined ? {view} : {})})
     const witnessStep = (w: Record<string, number>): {pre: State, post?: State} => {
       const pre = stateAt(w), input = Object.fromEntries(m.inputs.map(i => [i, w[i] ?? 0])) as Request
       try { return {pre, post: run.step({}, pre, input)} } catch { return {pre} }
     }
     // Is the cube's negation inductive relative to these laws (the caller's and the kinds' beside)? Its literals after
     // the step are hypotheses of their own, so the refutation's core names those it read.
-    const queryWith = (c: Lit[], frame: Law[]): {ok: true, core: Set<number>} | {ok: false, pre: State, post?: State} | undefined => {
-      const f = formOf(c), own = lawFor(f), names2 = new Set([own.name]), ls = [...given, ...frame.filter(l => !names2.has(l.name) && !!names2.add(l.name)), own], mm = forLaws(ls).m
-      const g = obligations(mm, ls, {}, ls.length - 1)[1]!, last = g.hyps.at(-1)!
+    const queryWith = (c: Lit[], frame: Law[], view?: number): {ok: true, core: Set<number>} | {ok: false, pre: State, post?: State} | undefined => {
+      const f = formOf(c, view), own = lawFor(f), names2 = new Set([own.name]), ls = [...given, ...frame.filter(l => !names2.has(l.name) && !!names2.add(l.name)), own], mm = forLaws(ls).m
+      // (a view's cube at the keys the prover would assume it and the rest at)
+      const g = obligations(mm, ls, view !== undefined ? {[own.name]: lawInstances(mm, ls, ls.length - 1)} : {}, ls.length - 1)[1]!, last = g.hyps.at(-1)!
       const inner = last.op === 'not' && last.x.op === 'not' && last.x.x.op === 'and' && last.x.x.xs.length === c.length ? last.x.x.xs : undefined
       const tails = inner ?? [last], hyps = [...g.hyps.slice(0, -1), ...tails], base = hyps.length - tails.length
       const out = budgeted(joinCubeMs, until2 => growCdcl({name: 'a cube', hyps}, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
@@ -1560,17 +1574,18 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // refutation's core then cutting it further); within joinDownQueries queries. A cube's core reads most of its
     // literals where the step's terms are a chain of ifs (research/dag: a refutation's core is nearly its whole path), so
     // the core alone leaves a cube of every control value; Spacer's clauses on these tasks read two to four.
-    const down = (c: Lit[], frame: Law[]): Lit[] => {
+    const stateOut = (c: Lit[]) => !(initVec && inCube(c, initVec)) && !S.some(s2 => inCube(c, s2))
+    const down = (c: Lit[], frame: Law[], out: (c: Lit[]) => boolean = stateOut, view?: number): Lit[] => {
       let cur = c, queries = 0
       for (let part = Math.ceil(cur.length / 2); part >= 1 && queries < joinDownQueries && now() < jUntil && !stop(); part = part === 1 ? 0 : Math.ceil(part / 2)) {
         for (let i = 0; i < cur.length && cur.length > 1 && queries < joinDownQueries && now() < jUntil && !stop();) {
           const cand = [...cur.slice(0, i), ...cur.slice(i + part)]
-          if (!cand.length || (initVec && inCube(cand, initVec)) || S.some(s2 => inCube(cand, s2))) { i += part; continue }
+          if (!cand.length || !out(cand)) { i += part; continue }
           queries++
-          const r = queryWith(cand, frame)
+          const r = queryWith(cand, frame, view)
           if (!r?.ok) { i += part; continue }
           const cut = cand.filter((_, j) => r.core.has(j))
-          cur = cut.length && !(initVec && inCube(cut, initVec)) && !S.some(s2 => inCube(cut, s2)) ? cut : cand
+          cur = cut.length && out(cut) ? cut : cand
         }
       }
       return cur
@@ -1607,6 +1622,40 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         cubeWhy = 'tries'
       }
       return made
+    }
+    // A view's cube (two holders, two tickets): a row of a counterexample no sample's row is, as literals over the view's
+    // cells (each few-valued cell at its value, each equality between two cells of one map that holds there, then the
+    // bounds that leave the samples' rows out), blocked as the state's cubes are (its negation proven relative to the
+    // set, the literals it doesn't need taken out): a law at every tuple of the view's keys. The disjunctions a hull
+    // can't say (two waiting threads' tickets differ) are such cubes.
+    const viewSpaces = views.map(v => {
+      const R = v.rows.slice(0, 3000).map(valuesOf), seen = new Set(R.map(vecKey)), mapOf = (i: number) => atoms[i]!.parts[0]![0].slice(2, atoms[i]!.parts[0]![0].lastIndexOf(AT))
+      const own = v.atoms.filter(i => !atoms[i]!.int), few = own.filter(i => new Set(R.map(r => r[i])).size <= 3)
+      const eqs: Lit[] = own.flatMap((i, a2) => own.slice(a2 + 1).filter(j => mapOf(i) === mapOf(j) && !few.includes(i)).flatMap(j => [{lin: {coef: [[i, 1], [j, -1]] as [number, number][], d: 0}}, {lin: {coef: [[j, 1], [i, -1]] as [number, number][], d: 0}}]))
+      const dirs = own.filter(i => !few.includes(i)).flatMap(i => [[[i, 1]], [[i, -1]]] as [number, number][][])
+      let starts: Float64Array[] = []
+      try { if (!m.params.length) starts = v.rowsOf({}, run.init({})).map(valuesOf) } catch { starts = [] }
+      const out = (c: Lit[]) => !starts.some(x2 => inCube(c, x2)) && !R.some(x2 => inCube(c, x2))
+      return {R, seen, few, eqs, dirs, out}
+    })
+    const viewCube = (p: Point): Form[] => {
+      for (const [vi, V] of viewSpaces.entries()) for (const r of (p.views[vi] ?? []).slice(0, 8)) {
+        const x2 = valuesOf(r)
+        if (V.seen.has(vecKey(x2))) continue
+        const c: Lit[] = [...V.few.map(i => ({at: {atom: i, value: x2[i]!}})), ...V.eqs.filter(l => litHolds(l, x2))]
+        for (let alive = V.R.filter(y => inCube(c, y)); alive.length;) {
+          let best: [number, number][] | undefined, bestN = 0
+          for (const t of V.dirs) { const tv = dot(t, x2); let cnt = 0; for (const y of alive) if (dot(t, y) > tv) cnt++; if (cnt > bestN) (bestN = cnt, best = t) }
+          if (!best) break
+          const d = dot(best, x2)
+          c.push({lin: {coef: best, d}}); alive = alive.filter(y => dot(best!, y) <= d)
+        }
+        if (!V.out(c)) continue
+        const r2 = queryWith(c, set.map(lawFor), vi)
+        if (!r2?.ok) continue
+        return [formOf(joinDown ? down(c, set.map(lawFor), V.out, vi) : c, vi)]
+      }
+      return []
     }
     // The control refined on demand (as CEGAR refines its predicates, here read off the rule): a counterexample to a
     // caller's law that the set allows and nothing rules out lies among the samples of its control state. A level of a
@@ -1664,7 +1713,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       if (todoForm?.nevers) neversBroken++
       const input = Object.fromEntries(m.inputs.map(i => [i, w[i] ?? 0])) as Request
       let post: State | undefined
-      try { post = run.step(params, st, input) } catch { post = undefined }
+      try { post = run.step(params, st, input); stepNamed(st, post) } catch { post = undefined }
       const pre = pointOf(params, st)
       // A model the interpreter reads otherwise (a remainder's term the kernel left free, a value past what doubles hold):
       // for a form, its goal is set aside; for a caller's law, the state is still one to rule out.
@@ -1693,6 +1742,15 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (next) tried++
         opts.progress?.('join', {round: rounds, set: set.length, ms: qms, target: next ? textOf(next).slice(0, 60) : 'none', ...(next ? {} : {outside: outside ? 1 : 0, goal: todo.slice(0, 120)})})
         if (!next && !alone && cube()) continue
+        // (where the state's cube isn't blocked, a view's)
+        if (!next && joinCubes && !outside && cubed < joinCubeMax && views.length) {
+          const made = viewCube(pre).filter(f => !set.some(g2 => textOf(g2) === textOf(f)))
+          opts.progress?.('join', {round: rounds, set: set.length, viewCubes: made.map(f => textOf(f).slice(0, 120)).join('; ') || 'none'})
+          if (made.length) { cubed += made.length; extras.push(...made); continue }
+        }
+        // (a found form nothing strengthens is dropped, as Houdini drops one: the cone finds its way round it or fails on
+        // a caller's law)
+        if (!next && !callers.has(todo)) { blocked.add(todo); continue }
         if (!next) { why = 'target'; break }
         extras.push(next); continue
       }
