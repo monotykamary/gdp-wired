@@ -8,6 +8,34 @@ noted), each with the command that reproduces it.
 Three tracks from 0.30.1, merged: CHC speed, a pilot of CHC-COMP's ADT-LIA track, and distributed protocols with
 model-based instances. Nothing trusted changed (kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/*.lean are 0.30.1's; the
 Lean export, lean-kernel/data.ts, writes `.toNat` for the ADT track's Int measures).
+- **A large goal asked for a model first, and its tree searched over the model search's core** (gen/cdcl-cost,
+  kernel/prove.ts's `growRoot`; untrusted search, the certificate the kernel checks as before).
+  - A root goal of 500 hypotheses or more (`GDP_MODEL_FIRST`) goes first to the CDCL search for a model alone, with a
+    quarter of the budget. Its phases sit at the simplex's point; the tree search decides by saved phases.
+  - A model is the outcome, and proveThinned's instances read it. Refuted, the tree is searched over the hypotheses
+    the refutation read (its core, `GDP_MODEL_CORE`), then unfolded in the goal itself. kernel/cdcl.ts's `treeOf`:
+    the core's rows at a path are among the goal's.
+  - decentralized lock's written invariant (research/protocols): its safety law's step goal, 2,163 hypotheses at the
+    thinned instances, has a model that the model search finds in 4 s and the tree search hadn't found in 92 s. The
+    check is now proven and checked in 17 to 22 s locally (4,964 work units by the cost model; 6,547 without the core,
+    and unknown at 120 s and 48,601 units on c4dff18).
+  - The bar of f5db71e against c4dff18 (`runs/bar/runs/cdcl-full`, with chronological backtracking, below):
+    - TermComp ITS 1,151 against 1,151, and 1,157 against 1,154.67 per component; SV-COMP 246 and 216 (base 215.33).
+    - TIP 2015 212 against 213 (one task, at the limit). The frontier corpora 90 of 93 and 32 of 47, every broken
+      variant refused. The real-world corpus 273 / 29 / 9 against 273 / 29 / 8, plus a timeout (noise on the reruns).
+    - The 332 step goals: the same search on all 332. Both suites 224 of 224. The 1-vCPU tests: no failed job. Lean:
+      47 of 48 (slayer-3-new.t2_fixed, as before).
+  - CHC of the final code (`runs/bar/runs/cdcl-final-chc`): 1,160 against 1,165, 1,161 and 1,165. Gained 4 and lost 3,
+    none in every run, all but metros_3_e3_1275_e1_1350 (1 of 4) at the limit. Level.
+- **Chronological backtracking in the clausal mode, measured and taken out** (ef7941c, f5db71e).
+  - On metros_4_e1_917's unrolling, a backjump undid 30 levels and 1,024 assignments a conflict: 89% of all
+    assignments were undone and made again.
+  - One level back with the flipped literal at its asserting level gave 36% fewer nodes and 19% less work by the cost
+    model to depth 18 on five deep CHC tasks (local). Each node read more rows, so CPU time was within the local noise.
+  - CHC's dev set: 519 and 515 (from 1 level and from 5) against 520, 516 and 517. Full, with the model-first change:
+    1,168 on the first pass, but gained 6 and lost 13 on the reruns. s_split_46 and HOLA/19 were lost in every run
+    both times: IMC's invariant changes, and its lifted proof, near the limit there, no longer fits.
+
 - **The bar of the merged tree against 3cdf37e** (full, Modal, 60 s, 2 vCPU, three base runs, every differing task
   rerun three times a side; `runs/bar/runs/89b3df439597-vs-3cdf37eddf65-full-2026-10-281144`). None wrong anywhere.
   - CHC-COMP LIA-Lin: 1,172 against 1,163, 1,165 and 1,162. Gained 6 (metros_2_e3_112 and metros_3_e3_1275_e1_1350 in
