@@ -34,9 +34,9 @@
 import {quietly} from './cyclic.ts'
 import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, evalE, get, interpret, machineTerms, modName, n, not, plus, same, seeded, times, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
-import {allowed, watch} from './watch.ts'
-import {clock, counted, grow, keyValue, lawInstances, modelInstances, modelRounds, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withTrees} from '../kernel/prove.ts'
-import {type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
+import {allowed, keysOf, watch} from './watch.ts'
+import {clock, counted, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees} from '../kernel/prove.ts'
+import {type Goal, type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
 import {showC, showE} from './exists.ts'
@@ -849,7 +849,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // --- Houdini on the runs' neighbors ----------------------------------------------------------------------------------
   let alive = forms.slice().sort((p, q) => p.size - q.size).slice(0, maxCandidates)
   const ctis: Point[] = []
-  const lawful = (params: Env, st: State) => { used.watched += given.length; try { return given.every(l => watch(m, run, l, params, 4).start(st)) } catch { return false } }
+  // (a law about keys is evaluated at every tuple of the state's keys, as watch does: counted as that many evaluations)
+  const lawful = (params: Env, st: State) => {
+    used.watched += given.length
+    const k = keysOf(4, st).length
+    for (const l of given) if (l.forall) used.evals += k ** (1 + (l.keys?.length ?? 0))
+    try { return given.every(l => watch(m, run, l, params, 4).start(st)) } catch { return false }
+  }
   const houdiniUntil = Math.min(until, now() + Math.max(500, (until - now()) / 4))
   for (let quiet = 0; samples.length && now() < houdiniUntil && !stop() && quiet < 3;) {
     const killed = new Set<Form>()
@@ -1289,29 +1295,32 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const ctxLaws = [...ctx, ...(form ? [form] : [])].map(lawFor), ls = [...given, ...ctxLaws], mm = forLaws(ctxLaws).m, sl = form ? undefined : stepLawOf.get(name)
       const idx = form ? ls.length - 1 : ls.findIndex(l => l.name === name)
       // (a rule with maps: the laws about every key at the instances the prover would read them at)
-      let inst: Instances = !mapNames.length ? {} : sl ? stepLawInstances(mm, ls)(sl) : lawInstances(mm, ls, idx)
-      const goalOf = (i2: Instances) => (sl ? stepLawObligations(mm, ls, i2, sl)[0]! : obligations(mm, ls, {[ls[idx]!.name]: i2}, idx)[1]!)
-      // (a model that breaks a law or a flag at a tuple of the goal's keys it wasn't assumed at: those instances added,
-      // the goal asked again, a few times; kernel/prove.ts's modelInstances)
-      for (let round = 0; ; round++) {
-        const g = goalOf(inst), lawAt = lawsFrom(mm, ls, !!sl, inst), used: string[] = []
+      const inst: Instances = !mapNames.length ? {} : sl ? stepLawInstances(mm, ls)(sl) : lawInstances(mm, ls, idx)
+      const goalOf = (i2: Instances) => [sl ? stepLawObligations(mm, ls, i2, sl)[0]! : obligations(mm, ls, {[ls[idx]!.name]: i2}, idx)[1]!]
+      type Asked = {used?: string[], stuck?: string, witness?: Record<string, number>, g: Goal}
+      // (a model that breaks a law or a flag at a tuple of the goal's keys it wasn't assumed at: the goal asked again with
+      // those instances; kernel/prove.ts's withModels)
+      const ask = ([g]: Goal[], at: Instances): Asked => {
+        const lawAt = lawsFrom(mm, ls, !!sl, at), used: string[] = []
         const read = (h: number) => { const k = lawAt.get(h); if (k !== undefined && k >= given.length && k !== idx && !used.includes(ls[k]!.name)) used.push(ls[k]!.name) }
-        const again = (w: Record<string, number>) => { const more = mapNames.length && round < modelRounds ? modelInstances(mm, ls, inst, g, w) : undefined; if (more) inst = more; return !!more }
         // First a model alone of the CDCL search (no tree unfolded): refuted, the hypotheses its leaves read are those
         // a tree would (the set's proof is the kernel's below, as before); a model is the counterexample; else the prover.
         if (joinCore) {
-          const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
+          const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g!, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
           if (!('tree' in quick) && quick.why === REFUTED && quick.core) {
             for (const h of quick.core) read(h)
-            return {used}
+            return {used, g: g!}
           }
-          if (!('tree' in quick) && quick.stuck === 'sat' && quick.witness) { if (again(quick.witness)) continue; return {stuck: 'sat', witness: quick.witness} }
+          if (!('tree' in quick) && quick.stuck === 'sat' && quick.witness) return {stuck: 'sat', witness: quick.witness, g: g!}
         }
-        const out = budgeted(joinQueryMs, until2 => grow(g, new Map(), {nodes: 0, until: until2}))
-        if (!('tree' in out)) { if (out.stuck === 'sat' && out.witness && again(out.witness)) continue; return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined} }
-        for (const h of usedHyps(g, out.tree)) read(h)
-        return {used}
+        const out = budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2}))
+        if (!('tree' in out)) return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined, g: g!}
+        for (const h of usedHyps(g!, out.tree)) read(h)
+        return {used, g: g!}
       }
+      let at = inst
+      const {result} = withModels<Asked>(mm, ls, inst, i2 => (at = i2, goalOf(i2)), gs => ask(gs, at), x => (mapNames.length && x.stuck === 'sat' && x.witness ? {goal: x.g, w: x.witness} : undefined), x => !!x.used || x.stuck === 'sat')
+      return result.used ? {used: result.used} : {stuck: result.stuck, witness: result.witness}
     }
     const stateOf = (w: Record<string, number>): {params: Env, st: State} => ({params: m.params.length ? Object.fromEntries(m.params.map(p => [p, w[p] ?? 0])) : params0, st: {scalars: Object.fromEntries(scalars.map(v => [v, w[v] ?? 0])), maps: mapsOf(w)}})
     // --- cubes: a point the samples leave out, as literals -------------------------------------------------------------

@@ -926,6 +926,8 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   let added = 0, evals = 0
   const each = (id: string, names: string[], body: C) => {
     const have = new Set<string>(), had = out[id] ?? [], n = names.length, sorts = sortsOf(body, names)
+    // (a law at one key assumed at a term of every value its sort takes already: nothing to add)
+    if (n === 1) { const covered = new Set(had.map(valueOf)); if ([...sorts[0]!.keys()].every(v2 => covered.has(v2))) return }
     for (let t = 0; t + n <= had.length; t += n) have.add(JSON.stringify(had.slice(t, t + n)))
     const go = (i: number, at: Record<string, number>, terms: E[]): void => {
       if (added >= most || evals > 20_000) return
@@ -944,6 +946,28 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   for (const l of keyed) each(l.name, [l.forall!, ...(l.keys ?? [])], l.holds)
   for (const [f, q] of qs) each(`?${f}`, boundOf(q), q.c)
   return added ? out : undefined
+}
+// A goal (or a law's goals) asked at some instances, and again at those its model asks for (modelInstances), up to
+// modelRounds times. `ask` is the caller's own question; `modelOf` reads a model from its answer, `settled` says it is
+// one (a proof, a model: not out of budget). The later rounds together get modelShare times the cost model's work the
+// first took (at least a second of it), so a model's tuples that make the goal one the prover can't finish cost that,
+// not the goal's usual budget again; a later round left unsettled gives back the first round's answer, so the verdict is
+// never one the model's tuples made worse. Untrusted.
+export const modelShare = 3
+const costNow = (): number => (rate ? clock() : fullWork() / groundRate)
+const within = <T>(ms: number, f: () => T): T => (rate ? withDeadline(clock() + ms, f) : withWork(fullWork() + groundRate * ms, f))
+export function withModels<T>(m: Machine, laws: Law[], inst: Instances, goalOf: (i: Instances) => Goal[], ask: (gs: Goal[]) => T,
+  modelOf: (t: T) => {goal: Goal, w: Record<string, number>} | undefined, settled: (t: T) => boolean): {result: T, inst: Instances} {
+  let at = inst, first: {result: T, inst: Instances} | undefined, cap = 0
+  for (let round = 0; ; round++) {
+    const c0 = costNow(), result = round ? within(Math.max(0, cap), () => ask(goalOf(at))) : ask(goalOf(at))
+    if (round) cap -= costNow() - c0; else cap = Math.max(1_000, modelShare * (costNow() - c0))
+    if (round && !settled(result)) return first!
+    first ??= {result, inst: at}
+    const mw = modelOf(result), more = mw && round < modelRounds && cap > 0 ? modelInstances(m, laws, at, mw.goal, mw.w) : undefined
+    if (!more) return {result, inst: at}
+    at = more
+  }
 }
 // Instances with each every-key law also at these keys. A law about two keys or more goes at tuples that relate the
 // goal's own keys (`focus`: the skolems of the law it proves, or a step law's keys) to each other and to the keys that
@@ -1269,20 +1293,15 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
   const pm = plainOf(m), inst = lawInstances(m, laws, i)
   const few = triggered(pm, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
   if (!sameInstances(few, inst) && obligations(m, laws, {[law.name]: few}, i).every(goal => 'tree' in grow(goal))) return {proven: true}
-  let at = inst
-  for (let round = 0; ; round++) {
-    let more: Instances | undefined
-    for (const goal of obligations(m, laws, {[law.name]: at}, i)) {
-      const out = grow(goal)
-      if ('tree' in out) continue
-      // (a model breaking a law at a tuple of the goal's keys: those added, the law asked again)
-      more = out.stuck === 'sat' && out.witness && round < modelRounds ? modelInstances(m, laws, at, goal, out.witness) : undefined
-      if (!more) return {proven: false, goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {})}
-      break
-    }
-    if (!more) return {proven: true}
-    at = more
-  }
+  // (a model breaking a law at a tuple of the goal's keys: those added, the law asked again)
+  type Asked = {failed?: Goal, out?: Outcome}
+  const {result} = withModels<Asked>(m, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), gs => {
+    for (const goal of gs) { const out = grow(goal); if (!('tree' in out)) return {failed: goal, out} }
+    return {}
+  }, a => (a.failed && a.out && !('tree' in a.out) && a.out.stuck === 'sat' && a.out.witness ? {goal: a.failed, w: a.out.witness} : undefined), a => !a.out || !('tree' in a.out) && a.out.stuck === 'sat')
+  if (!result.failed) return {proven: true}
+  const out = result.out as Extract<Outcome, {stuck: unknown}>
+  return {proven: false, goal: result.failed.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {})}
 }
 // The instances law i's goals are read at (proveLaw's; core/infer.ts's join asks one goal at a time).
 export function lawInstances(m: Machine, laws: Law[], i: number): Instances {
@@ -1360,28 +1379,26 @@ function proveThinned(m: Machine, laws: Law[], instances: Record<string, Instanc
   const trees: Record<string, Tree> = {}, fulls = {...instances}
   let nodes = 0, leaves = 0
   for (const [i, law] of laws.entries()) {
-    let full = instances[law.name]!
+    const full = instances[law.name]!
     const few = triggered(plainOf(m), laws, full, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), law.forall ? [`${law.forall}#`] : [])
-    const tries = sameInstances(few, full) ? [full] : [few, full]
-    for (let t = 0, rounds = 0; t < tries.length; t++) {
-      const inst = tries[t]!
-      instances[law.name] = inst
-      const done: Record<string, Tree> = {}
-      let failed: Report['failed'] | undefined, n = 0, lv = 0, more: Instances | undefined
-      for (const goal of obligations(m, laws, instances, i)) {
-        const out = grow(goal)
-        if (!('tree' in out)) {
-          // (a model breaking a law at a tuple of the goal's keys: those added, the law asked again)
-          more = out.stuck === 'sat' && out.witness && rounds < modelRounds ? modelInstances(m, laws, inst, goal, out.witness) : undefined
-          failed = {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}; break
+    // (thinned instances first, then the full ones; each asked again at the tuples its models ask for)
+    type Asked = {done: Record<string, Tree>, n: number, lv: number, failed?: Report['failed'], goal?: Goal, out?: Outcome}
+    for (const inst of sameInstances(few, full) ? [full] : [few, full]) {
+      const {result: a, inst: at} = withModels<Asked>(m, laws, inst, i2 => obligations(m, laws, {...instances, [law.name]: i2}, i), gs => {
+        const done: Record<string, Tree> = {}
+        let n = 0, lv = 0
+        for (const goal of gs) {
+          const out = grow(goal)
+          if (!('tree' in out)) return {done, n, lv, goal, out, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}}
+          done[goal.name] = out.tree; n += out.nodes; lv += countLeaves(out.tree)
         }
-        done[goal.name] = out.tree; n += out.nodes; lv += countLeaves(out.tree)
-      }
-      // (thinned instances and the model's first, then the full ones and the model's)
-      if (more) { rounds++; if (inst === full) full = fulls[law.name] = more; tries.splice(t + 1, 0, more); continue }
-      if (failed && inst !== full) continue
-      if (failed) return {proven: false, nodes, leaves, failed, checked: false}
-      Object.assign(trees, done); nodes += n; leaves += lv
+        return {done, n, lv}
+      }, x => (x.goal && x.out && !('tree' in x.out) && x.out.stuck === 'sat' && x.out.witness ? {goal: x.goal, w: x.out.witness} : undefined), x => !x.failed || x.failed.stuck === 'sat')
+      instances[law.name] = at
+      if (inst === full) fulls[law.name] = at
+      if (a.failed && inst !== full) continue
+      if (a.failed) return {proven: false, nodes, leaves, failed: a.failed, checked: false}
+      Object.assign(trees, a.done); nodes += a.n; leaves += a.lv
       break
     }
   }
