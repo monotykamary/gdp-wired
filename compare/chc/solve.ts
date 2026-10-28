@@ -69,7 +69,7 @@ say({stage: 'import', preds: chc!.preds.size, clauses: chc!.clauses.length, ints
 // The bounded runs go there too (`--bmc-here` keeps them in this process's stage, after the guided runs, as before), in
 // turn with k-induction, so this process's invariant search starts after the guided runs.
 const kindMs = opt('--kind-ms', Math.max(0, houdiniMs - 2000 - ms())), bmcThere = kindMs > 0 && !args.includes('--bmc-here') && bmcMs > 0
-const kind = kindMs > 0 ? Bun.spawn(['nice', '-n', '19', 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid), '--bmc', bmcThere ? '1' : '0', '--imc', String(opt('--imc', 1)), '--imc-x', String(opt('--imc-x', 2)), '--imc-first', String(opt('--imc-first', 1)), '--bmc-depth', String(opt('--bmc-depth', 64)), '--induction', String(opt('--induction', -1)), '--kind', String(opt('--kind', 0)), '--compose', String(opt('--compose', 1)), '--slice', String(opt('--slice', 0))], {stdout: 'inherit', stderr: 'ignore'}) : undefined
+const kind = kindMs > 0 ? Bun.spawn(['nice', '-n', '19', 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid), '--bmc', bmcThere ? '1' : '0', '--imc', String(opt('--imc', 1)), '--imc-x', String(opt('--imc-x', 1)), '--imc-first', String(opt('--imc-first', 1)), '--bmc-depth', String(opt('--bmc-depth', 0)), '--induction', String(opt('--induction', -1)), '--kind', String(opt('--kind', 0)), '--compose', String(opt('--compose', 1)), '--slice', String(opt('--slice', 0))], {stdout: 'inherit', stderr: 'ignore'}) : undefined
 process.on('exit', () => { kind?.kill() })
 
 // A run, replayed on the compiled rule and checked against the CHC.
