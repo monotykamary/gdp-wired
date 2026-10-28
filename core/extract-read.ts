@@ -157,7 +157,7 @@ export function shapeOf(t: ts.Type, checker: ts.TypeChecker, at: ts.Node, inner?
       return {k: 'list', of: el}
     }
     if (name === 'Date') return {k: 'num', date: true}
-    if (name === 'Set' || name === 'Promise') return refuse(at, `a ${name}`)
+    if (name === 'Set' || name === 'ReadonlySet' || name === 'Promise') return refuse(at, `a ${name}`)
     const sidx = checker.getIndexInfoOfType(t, ts.IndexKind.String), nidx = checker.getIndexInfoOfType(t, ts.IndexKind.Number)
     if (sidx || nidx) {
       if (checker.getPropertiesOfType(t).length) return refuse(at, `${checker.typeToString(t)}: named fields beside an index signature`)

@@ -152,7 +152,7 @@ function moduleOf(m: Model, body: string, file: string): string {
   const used = NAMES.filter(n => new RegExp(`(^|[^.\\w$])${n}\\(|(^|[^.\\w$])${n}\\b(?!\\s*:)`).test(body.replace(/'[^']*'/g, "''")) || (n === 'rule'))
   const ident = identOf(m)
   return [
-    `// Extracted by gdp-wired/extract from ${file} (${m.entry}, ${m.factory ? 'a factory of an object of functions' : m.shape === 'class' ? (/\.go$/.test(file) ? 'a struct and its methods' : 'a class') : m.shape === 'reducer' ? 'a step function' : 'functions over one record'}).`,
+    `// Extracted by gdp-wired/extract from ${file} (${m.entry}, ${m.factory?.calls ? 'an Effect service' : m.factory ? 'a factory of an object of functions' : m.shape === 'class' ? (/\.go$/.test(file) ? 'a struct and its methods' : 'a class') : m.shape === 'reducer' ? 'a step function' : 'functions over one record'}).`,
     `// Checked against the code it was read from; read again with extract() after the code changes.`,
     `import {${[...new Set([...used, ...(m.maps.length ? ['all', 'any', 'forall'] : []), ...['all', 'any', 'forall'].filter(n => (m.laws ?? []).some(l => l.includes(`${n}(`)))])].sort((a, b) => a.localeCompare(b)).join(', ')}} from 'gdp-wired'`,
     '',

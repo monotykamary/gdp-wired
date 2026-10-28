@@ -211,7 +211,7 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>) {
       if (!e.asteriskToken || !e.expression) return refuse(e, 'yield without * (Effect.gen runs an effect with yield*)')
       const x = strip(e.expression)
       // A yielded error (Schema.TaggedError, Data.TaggedError): its failure.
-      if (ts.isNewExpression(x)) return [undef, fail(ex, x, p)]
+      if (ts.isNewExpression(x)) return effectful(x) ? refuse(x, `${text(x)}: an error made with effects`) : [undef, fail(ex, x, p)]
       const [v, q] = ex.ev(x, p)
       return v.t === 'eff' ? v.run(q) : refuse(x, `yield* of ${text(x)}, not an effect the reader runs (a ${v.t})`)
     }
@@ -220,6 +220,7 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>) {
       if (api === 'Effect.void' || api === 'Effect.unit') return [eff(q => [undef, q]), p]
       if (api === 'Clock.currentTimeMillis') return [eff(q => ex.now(e, q)), p]
       if (api?.startsWith('Clock.')) return refuse(e, `${api} (Clock.currentTimeMillis is read, as an input)`)
+      if (api && /^(Random|DateTime|Crypto|Console|Config|FileSystem)\./.test(api) && ts.isYieldExpression(e.parent)) return refuse(e, `${api}: an answer from outside the Refs read (Clock.currentTimeMillis is the one read, as an input)`)
       return undefined
     }
     if (!ts.isCallExpression(e)) return undefined
@@ -234,6 +235,8 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>) {
     }
     // x.pipe(...): only annotations (a span, a log annotation) are read through.
     if (ts.isPropertyAccessExpression(callee) && memberName(callee.name) === 'pipe' && !api) {
+      const head = strip(callee.expression)
+      if (ts.isCallExpression(head) && apiOf(s, head.expression)?.[0] === 'Match') return refuse(head, `${text(head)}: a matcher (write the dispatch as a switch on _tag, or ifs)`)
       for (const a of e.arguments) { const k = ts.isCallExpression(strip(a)) ? apiOf(s, (strip(a) as ts.CallExpression).expression)?.join('.') : undefined; if (!k || !['Effect.withSpan', 'Effect.withLogSpan', 'Effect.annotateLogs', 'Effect.annotateSpans'].includes(k)) return refuse(a, `${text(a)} in a pipe (a combinator's effect isn't read: write the step in Effect.gen)`) }
       return ex.ev(callee.expression, p)
     }
@@ -254,7 +257,7 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>) {
         case 'succeed': { const [v, q] = ex.ev(arg ?? refuse(e, 'Effect.succeed()'), p); return [eff(r => [v, r]), q] }
         case 'sync': { const f = fnOf(s, arg ?? refuse(e, 'Effect.sync()')) ?? refuse(e, 'Effect.sync of other than a function written here'); const locals = p.locals; return [eff(q => ex.inline({decl: f}, [], e, q, locals)), p] }
         case 'fail': case 'failSync': case 'die': case 'dieMessage':
-          if (e.arguments.some(impure)) return refuse(e, `Effect.${op} of a value that has effects`)
+          if (e.arguments.some(effectful)) return refuse(e, `Effect.${op} of a value that has effects`)
           return [eff(q => [undef, fail(ex, e, q)]), p]
         case 'log': case 'logTrace': case 'logDebug': case 'logInfo': case 'logWarning': case 'logError': case 'logFatal': case 'annotateCurrentSpan':
           if (e.arguments.some(impure)) return refuse(e, `Effect.${op} of values that have effects`)
@@ -268,6 +271,12 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>) {
     if (m === 'STM' || m === 'TRef') return refuse(e, `${m}.${op}: STM (v3) is not read (a Ref, SynchronizedRef, or v4's TxRef is)`)
     if (m === 'Semaphore') return refuse(e, `Semaphore.${op} (a Semaphore of 1 made by the service, as a lock, is read)`)
     return undefined
+  }
+  // An error made of pure values: `new E({...})` of a class (an error class has no effects), or a plain value.
+  function effectful(x: ts.Expression): boolean {
+    x = strip(x)
+    if (ts.isNewExpression(x) && ts.isIdentifier(x.expression)) return (x.arguments ?? []).some(impure)
+    return impure(x)
   }
   function argsOf(ex: Exec, xs: readonly ts.Expression[], p: Path): [V[], Path] {
     const out: V[] = []
@@ -421,7 +430,8 @@ export function conforms<S>(r: Rule, svc: Service<S>, opts: {draw: (rand: Rand) 
 // tagged union of structs a variant on `_tag`, integers int (and nat where they are at least 0), Boolean bool, String a
 // string, `X | null` and optional fields a maybe, a Schema.Class its fields. A number that isn't an integer, and every
 // other Schema, is refused with the path to it.
-export function fromSchema(schema: {ast: unknown, fields?: Record<string, {ast: unknown}>}): Kind<unknown> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function fromSchema(schema: {ast: unknown, fields?: Record<string, {ast: unknown}>}): Kind<any> {
   const fail = (path: string, what: string): never => { throw new Error(`fromSchema: ${path || 'the schema'} is ${what}`) }
   type Ast = Mod
   const sym = (a: Ast, id: string) => { const k = Object.getOwnPropertySymbols(a.annotations ?? {}).find(x => x.description === id); return k ? a.annotations[k] : undefined }

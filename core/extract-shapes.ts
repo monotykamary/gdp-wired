@@ -919,7 +919,7 @@ function factoryAttempt(code: string, file: string, opts: ReadOptions, written: 
       continue
     }
     const flow = exC.stmt(st, cp)
-    if (flow.rets.length || flow.breaks.length) refuse(st, 'a return or break in the factory before its object')
+    if (flow.rets.some(([q]) => exC.feasible(q)) || flow.breaks.length) refuse(st, 'a return or break in the factory before its object')
     cp = flow.live ?? refuse(st, 'a factory that always throws')
   }
   s.ctor = false

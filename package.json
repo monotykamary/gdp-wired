@@ -96,6 +96,10 @@
       "types": "./dist/core/extract.d.ts",
       "default": "./dist/core/extract.js"
     },
+    "./effect": {
+      "types": "./dist/core/effect.d.ts",
+      "default": "./dist/core/effect.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -108,10 +112,14 @@
   },
   "peerDependencies": {
     "@gdp-ts/core": ">=0.1.0",
+    "effect": "^3.22.0 || ^4.0.0",
     "typescript": ">=5.0.0"
   },
   "peerDependenciesMeta": {
     "@gdp-ts/core": {
+      "optional": true
+    },
+    "effect": {
       "optional": true
     },
     "typescript": {
