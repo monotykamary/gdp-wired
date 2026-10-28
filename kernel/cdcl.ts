@@ -73,7 +73,7 @@ export const REFUTED = 'refuted, not unfolded'
 // (the clausal mode's: a hypothesis taken in a session's run reads what the clauses don't)
 export const UNREAD = 'a hypothesis the clauses do not read'
 export type Refuted = Outcome & {core?: number[], dag?: Dag, assumed?: number[]}
-export type CdclOptions = {maxLeaves?: number, model?: boolean, core?: boolean, dag?: boolean, clausal?: boolean, sideOf?: (hyp: number) => number, quiet?: (name: string) => boolean}
+export type CdclOptions = {maxLeaves?: number, model?: boolean, core?: boolean, dag?: boolean, clausal?: boolean, sideOf?: (hyp: number) => number, quiet?: (name: string) => boolean, treeOf?: Goal}
 export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: CdclOptions & {wall?: number} = {}): Outcome {
   const go = () => cdclSession(goal, root, opts).run(budget, opts.wall)
   return queryHook.on && !queryHook.depth ? logged(opts.model ? 'model' : 'cdcl', goal, go) : go()
@@ -742,7 +742,8 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
             }
             return {stuck: 'unknown', path: new Map(), why: REFUTED, ...(whole ? {core: [...core].sort((a, b) => a - b)} : {})} as Refuted
           }
-          const tree = t(() => unfold(goal, nodes, c.node, root, opts.maxLeaves ?? 20_000, until), ms => { st.unfoldMs += ms })
+          // (`treeOf`: a goal whose hypotheses include this one's, the tree unfolded in it: its rows at a path include these)
+          const tree = t(() => unfold(opts.treeOf ?? goal, nodes, c.node, root, opts.maxLeaves ?? 20_000, until), ms => { st.unfoldMs += ms })
           if (!tree) return stuck('unknown', 'unfold')
           st.proven++
           return {tree, nodes: budget.nodes}
