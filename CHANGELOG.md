@@ -5,6 +5,31 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**Effect services (gdp-wired/effect, gen/effect).** A team whose stateful logic is written in
+[Effect](https://effect.website), 3.x or 4.x, proves its laws about the code it ships. Nothing trusted changed
+(kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/*.lean are 4f7c7a6's), and nothing the prover runs.
+- **`extractEffect(code, {entry, effect})`** reads a service whose make effect (`Effect.gen`, `Effect.fn`, `Layer.effect`
+  of one, a `Context.Service` or `Effect.Service` class's) creates Refs and returns an object of methods: each Ref a
+  field of the state (Ref, SynchronizedRef, SubscriptionRef, 4.x's TxRef: get, set, update, modify and the rest), each
+  method an event, a typed failure (`Effect.fail`, `yield* new E(...)`) the step's refusal, `Clock.currentTimeMillis` an
+  input, a Semaphore of 1 a lock. It goes through the extractor's factory reader (core/extract-shapes.ts), and the rule
+  is checked by running the service on Effect's runtime (`Effect.runSyncExit`, the clock fixed at each request's time),
+  every Ref, result and failure compared. What it refuses (pipes of combinators, Match, unions of records as state,
+  STM, services yielded in a method), each with the reason, is in core/effect.ts.
+- **`conforms(rule, service)`** runs a rule written by hand beside a running service, failures and the state `observe`
+  reads compared; **`fromSchema(schema)`** is a Schema's kind (structs, literals, tagged unions, integers).
+- **The extractor, for every front end:** Sets (and ReadonlyMap, ReadonlySet) as maps of the keys they hold; `x?.f` on a
+  value that may be missing; a map field set to a copy of itself; spreads of narrowed values and of map cells.
+- **Survey and corpus:** research/effect/README.md (T3 Code, opencode, Zoo's modeling app, Effect itself: what Effect
+  code looks like, and what is read on 4.0.7 and 3.22.4). Four real-world items: Effect's Semaphore (4.0.7 and
+  3.22.4), its RateLimiter memory store's fixedWindow and tokenBucket (4.0.7), T3 Code's SourceControlRateLimit; 19
+  laws, 15 proven, 4 refuted (two laws stated too strongly, by design; two minor bugs: a negative take releases
+  permits, a limit of 0 reads as none). Each rule runs beside the real code with `conforms`
+  (research/realworld/repro/conform-effect.ts). Nothing was reported upstream.
+- `effect` is an optional peer (`^3.22.0 || ^4.0.0`); the dev dependencies are effect 4.0.7 and effect3 (3.22.4), and
+  the tests run on both. core/ and kernel/ without tests: 2,470,042 bytes, +45,615 against 4f7c7a6 (core/effect.ts
+  39,739; the shared reader +5,876).
+
 **Slimmer: what didn't pay since 0.30.1 taken out, what was written twice merged (gen/slim).** Nothing trusted changed
 (kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/*.lean are 57abcb2's). core/ and kernel/ without
 tests: 2,424,427 bytes, 4,255 fewer than 57abcb2 (2,428,682), +36,692 against 3cdf37e (2,387,735).

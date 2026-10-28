@@ -83,6 +83,13 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   and string-literal unions, values that may be null, records, Map and Record keyed state, arrays as lists, Dates as
   their time, branches and early returns, throws as refusals, `Date.now()` as an input) and what it refuses, each with
   the place and the reason, are in `core/extract.ts`.
+- **Effect services** (`gdp-wired/effect`, `effect` 3.x or 4.x): `extractEffect(code, {entry, effect})` reads a service
+  whose make effect creates Refs (Ref, SynchronizedRef, SubscriptionRef, 4.x's TxRef) and returns an object of methods
+  (`Effect.fn` bodies, arrows returning an effect), with typed failures as its refusals and `Clock.currentTimeMillis` as
+  an input; the rule is checked by running the service on Effect's runtime (`Effect.runSyncExit`, the clock fixed at
+  each request's time), every Ref, result and failure compared. `conforms(rule, service)` runs a rule written by hand
+  beside a running service (Effect's own Semaphore, a store), and `fromSchema(schema)` is a Schema's kind
+  (`examples/effect.ts`; what is read and refused, with what Effect projects write, in `research/effect/README.md`).
 - **What nobody stated, looked for when the prover alone stops**: where `proveRule` or `proveSteps` doesn't prove the laws
   and no run breaks them, it looks for lemmas about the rule's recurrences and lists (`discover`), lemmas about the
   functions it knows by their facts (`cycleLemmas`, each proven by a cyclic proof) and then invariants (`inferLaws`),
@@ -473,7 +480,7 @@ The npm package is built from `core/`, `kernel/` and `lean-kernel/` alone; nothi
 
 The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-wired/machine`), composition
 (`gdp-wired/compose`), XState machines as charts (`gdp-wired/xstate`), rules read from the code (`gdp-wired/extract`, with
-`typescript` installed), lemmas nobody stated (`gdp-wired/discover`), invariant
+`typescript` installed), Effect services (`gdp-wired/effect`, with `typescript` and `effect`), lemmas nobody stated (`gdp-wired/discover`), invariant
 inference (`gdp-wired/infer`), the
 Lean export (`gdp-wired/lean`), the kernel (`gdp-wired/kernel`), the prover (`gdp-wired/prove`), the derivation checker
 and solver (`gdp-wired/check`, `gdp-wired/solver`). Everything else here (examples, comparisons, the Lean twin, the GPU

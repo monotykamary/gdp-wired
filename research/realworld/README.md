@@ -61,6 +61,15 @@ Modal at 2 vCPU, 60 s a law): **311 laws, 274 proven, 29 refuted, 8 unknown**, n
 | Medusa captureRefund #4: a pending refund with a key is resolved once retried | Needs the live refunds' total, which the search doesn't propose. Given it, the search still finds no rank in 60 s. |
 | BullMQ jobRetry #6: every job completes or fails for good | True only under strong fairness. The kernel proves it with a rank of the rule's own terms in order, in 120 s locally; the search fits a linear rank from the runs and finds none. |
 
+**Effect items (gen/effect, after 0.30.0's score).** 4 items, 19 laws, each run once on Modal at 2 vCPU, 60 s a law:
+15 proven, 4 refuted, none unknown. concurrency/effect/Semaphore (Effect 4.0.7 and 3.22.4): 3 proven, 3 refuted (a
+release past what is taken and a resize below it, laws stated too strongly against documented behaviour; a negative take
+releasing permits, a minor bug). ratelimit/effect/fixedWindow and tokenBucket (4.0.7's RateLimiter memory store): 7
+proven, 1 refuted (a limit of 0 read as none, a minor bug unreachable through RateLimiter.consume).
+ratelimit/t3code/SourceControlRateLimit: 5 proven. Each rule runs beside the real code with gdp-wired/effect's `conforms`
+(`repro/conform-effect.ts`, which replays each refutation on the real code); triage in `triage/effect.json`. Nothing was
+reported upstream.
+
 The rest of this section is the first scored run, kept as it was measured.
 
 ### The first scored run (r1)

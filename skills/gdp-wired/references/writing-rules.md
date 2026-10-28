@@ -363,6 +363,60 @@ c.check(); c.prove([c.law('retries within 2', ({retries}) => retries.atMost(2))]
 - `conforms` is what ties the two: a guard or an action given wrongly shows up as the run where XState and the chart part.
   Payloads come from `payload: (event, rand) => ({amount: rand(10)})`, with `inputs: {amount: nat}` in `fromXState`.
 
+## Effect services
+
+A service written in [Effect](https://effect.website) (`effect` 3.x or 4.x) keeps its state in Refs its make effect
+creates; `extractEffect` reads it into a rule, checked by running the real code on Effect's runtime beside the rule:
+
+```ts
+import * as effect from 'effect'
+import {extractEffect, conforms, fromSchema} from 'gdp-wired/effect'
+
+// make: Effect.gen(function* () { const usage = yield* Ref.make<ReadonlyMap<string, Usage>>(new Map()); ...
+//   const spend = Effect.fn('spend')(function* (user: string, units: number) { ... yield* new QuotaExceeded(...) ... })
+//   return Quota.of({spend, refund}) })
+const x = extractEffect(code, {file: 'quota.ts', entry: 'make', effect})
+if (!x.ok) console.log(x.refusals)        // where and why
+proveRule(x.rule, [...x.invariants, x.rule.law('within the limit', ({usage, limit}) => forall(k => usage.at(k).used.atMost(limit)))])
+```
+
+- The entry is the make effect: `Effect.gen(...)`, a function returning one, `Effect.fn(...)(function* (...) {...})`,
+  `Layer.effect(Tag, make)`, or a service class's `make` (4.x `Context.Service`) or `effect` (3.x `Effect.Service`)
+  option. It returns `{...}`, `Tag.of({...})` or `{...} satisfies T`.
+- Each Ref (`Ref`, `SynchronizedRef`, `SubscriptionRef`, 4.x `TxRef`) is a field of the state, typed by the Ref; each
+  method an event, its arguments the request, its success value `<method>_result`. A failure (`Effect.fail`,
+  `Effect.die`, `yield* new E(...)`) is the step's refusal; `Clock.currentTimeMillis` an input, like `Date.now()`.
+- Inside a method: `yield*` of get, set, update, modify (its `[result, next]`), updateAndGet, getAndUpdate, getAndSet,
+  setAndGet and the `*Effect` forms; Effect.gen and Effect.fn bodies and helpers; succeed, sync, void, log; a Semaphore
+  of 1's `withPermits(1)` (one call at a time). The functions given to update and modify are the extractor's subset:
+  copy a Map or a Set (`new Map(m)`, `new Set(s)`) and set it, spread records.
+- Each method is one step of the rule: true where calls don't interleave (one fiber at a time, or under the lock). A
+  method that reads a Ref and writes it in two `yield*`s, run by two fibers at once, is not one step.
+- Refused, with the reason: a failure after a Ref changed on that path (the Ref keeps the write), combinators in pipes
+  (retry, catchTag, timeout, forks), Match (write a switch), Data.TaggedEnum or Schema unions of records as state, STM's
+  TRef, services or other effects yielded in a method (Random, DateTime), optional arguments, floats, loops.
+- The check makes the service with `Effect.runSyncExit`, runs each request the same way with the clock fixed at the
+  request's time, reads every Ref after it, and compares the state, the result and whether it failed.
+
+A rule written by hand (for code the reader refuses, or Effect's own primitives) is run beside the service with
+`conforms`; `observe` reads the service's state in the rule's terms (`view` maps the rule's where the service shows
+less), and a rule given wrongly shows up as the run where the two part:
+
+```ts
+conforms(quotaRule, {
+  effect, now: 'now',                                          // the input the clock reads
+  make: ({limit}) => make(limit),                              // the service (an effect, or a value)
+  request: (q, {units}) => q.spend('ada', units),              // the effect a request is
+  observe: (_, remaining) => ({remaining}),                    // compared with the rule's state after each step
+}, {params: rand => ({limit: rand(6)}), draw: rand => ({units: rand(4) - 1, now: rand(3) * DAY})})
+// {checked} or {checked, failure: 'with {"limit":2}, after ...: the service takes the request, the rule refuses it'}
+```
+
+`fromSchema(schema)` is a Schema's kind, for inputs a project already types with Schema: a Struct a `record`, string
+Literals a `oneOf`, a Union of TaggedStructs a `variant` on `_tag` (`cmd.match({Add: c => ..., Clear: () => 0})`),
+`Schema.Int` an `int` (a `nat` checked at least 0), Boolean, String, NullOr and optional fields a `maybe`. A number that
+may be fractional is refused.
+
 ## Sets, lists, functions, composition
 
 - `.carries('Candidate')`: a set the request brings; `everyKey`, `has`, `subsetOf`, `disjointFrom`, `sameAs`;
