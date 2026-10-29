@@ -293,3 +293,33 @@ is the search, not its cost.
 - the real-world corpus one flip of noise, the 332 step goals' search 284.7 against 298.6 s, suites 224 of 224, Lean
   48 of 48;
 - size +3,815 bytes.
+
+## Steps 4 and 5 (gen/cost2, from fb46b48: e7eab01 with gen/cost)
+
+**4. The cell pairs listed cheaply (kept).**
+- **The change:** the CDCL search's list of open cell pairs stands in a flat list, made again only where the live
+  cells change, each pair's atoms read once a session.
+- **The same search:**
+  - local, toy's "one vote per node": 7,366 nodes, 193 conflicts, 4,329 decisions and one tree both ways, candidates
+    1,783 to 828 ms; its model search 663 nodes both ways;
+  - the 332 step goals: the same search on all 332.
+- **The protocols:** two runs a side, every verdict the same, wall times level. One candidate run of 2PC's written
+  invariant took 95.5 s; three reruns took 12.6–14.7 s, so it was a container stall.
+
+**5. Integer leaves by branch and bound (dropped).**
+- **The leaf histogram** (every leaf elimination's rows and outcome, `runs/cost2/fm`, `fm-chc`):
+  - CHC has 13 blow-ups over 1,406 tasks, beside tens of thousands of leaves of 600 rows or more that elimination
+    answers (integer points, cut refutations, models);
+  - the protocols and the multi-key real-world laws have none;
+  - sharded KV blows up at 670–760 rows over 55 variables.
+  - So a fixed size gate would take over CHC's leaves for nothing. The gate tried is the blow-up itself, per session.
+- **Sharded KV's goal:** branch and bound keeps it moving, 113,622 nodes in 25 s against 5,833. But 600 s on Modal
+  prove neither sharded KV's written invariant nor consensus_wo_decide's. A no-go on its own probe.
+- **What the leaves need:** these leaves are rationally feasible and integer-infeasible (elimination refuted 17 of
+  them by cuts). Splitting at fractional points doesn't find those refutations in budget.
+
+**The full bar against fb46b48** (step 4 alone, base launched together; `runs/bar/runs/cost2-full-20618f2`):
+- wrong 0, nothing lost in every run;
+- CHC 1,177 against 1,165 in the first pass, 2 gained and 2 lost after reruns, none solid; ITS +3, TIP, SV, the
+  frontier corpora and the real-world corpus level within one flip of noise;
+- the 332 step goals the same search; suites 225 of 225, Lean 48 of 48; size +1,347 bytes.
