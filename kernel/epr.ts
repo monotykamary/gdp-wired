@@ -724,9 +724,8 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
   let cur = outcome(search())
   if (!('model' in cur)) return cur
   let done = finish(cur.model, undefined)
-  const tT0 = performance.now()
   for (let round = 0; theory.length && 'unknown' in done && round < 256 && !opts.late?.(); round++) {
-    const t1 = performance.now(), r = theoryCheck(cur.model)
+    const r = theoryCheck(cur.model)
     if (!r) break
     if ('val' in r) { done = finish(cur.model, r.val); if ('unknown' in done) done = finish(cur.model, undefined); break }
     for (const l of r.lemmas) {
