@@ -1240,6 +1240,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // holders of one lock), the same space over two distinct keys x ≠ y: the cells at x and at y (`n` 0, no third place).
     const callerLaws = [...laws, ...stepLaws.map(sl => ({name: sl.name, holds: sl.then, ...(sl.forall ? {forall: sl.forall} : {}), ...(sl.keys ? {keys: sl.keys} : {})}) as Law)]
     const sorts = mapNames.length ? keySorts(m, callerLaws, pairing) : undefined
+    // (where the engine follows (keyed maps of few values, a caller's law over keys), a join's query a quarter of its
+    // budget: the joins that prove such rules ask in well under a second, and a query that runs on (wo's, 6 s, unknown)
+    // holds back the engine)
+    const engineNext = !!sorts && callerLaws.some(l => l.keys?.length) && atoms.every((a, i) => a.cell || a.param || !!a.term || a.view !== undefined || i >= valsS.length || new Set(valsS[i]).size <= 4)
     if (pairing) {
       const P = pairing, composed = plus(times(P.n, x(KEY)), x(KEY2)), places = P.n ? [x(KEY), x(KEY2), P.c ? plus(composed, n(P.c)) : composed] : [x(KEY), x(KEY2)]
       // (by sort, where the rule composes: a row's maps at x, a column's at y, the composed maps at the composed key)
@@ -1566,7 +1570,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           }
           if (!('tree' in quick) && quick.stuck === 'sat' && quick.witness) return {stuck: 'sat', witness: quick.witness, g: g!}
         }
-        const out = budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2}))
+        const out = budgeted(engineNext ? joinQueryMs / 4 : joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2}))
         if (!('tree' in out)) return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined, g: g!}
         for (const h of usedHyps(g!, out.tree)) read(h)
         return {used, g: g!}
@@ -1646,6 +1650,19 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       return true
     }
     const formOf = (c: Lit[], view?: number): Form => ({coef: [], d: 0, cells: false, cube: c, size: 1, ...(view !== undefined ? {view} : {})})
+    // (a view's key read only by order literals bounding it from one side (Ep[x] + 1 <= y, y nowhere else): a value past
+    // the small instance's (or 0) always has that literal, so the cube is a stronger one in disguise, and false where that
+    // is: no such cube)
+    const oneSided = (c: Lit[], vi: number): boolean => {
+      const v = views[vi]!, side = new Map<string, number>(), held = new Set<string>()
+      for (const l of c) for (const [a, k] of 'at' in l ? [[l.at.atom, 0] as [number, number]] : l.lin.coef) {
+        const at = atoms[a]!
+        if (at.place !== undefined) for (const ki of v.covers[at.place] ?? []) held.add(v.vars[ki]!)
+        else if (at.term?.op === 'var' && k) { const s0 = side.get(at.term.name), dir = Math.sign(k); side.set(at.term.name, s0 === undefined || s0 === dir ? dir : 2) }
+        else if (at.term) walk(at.term, o => { if (o.op === 'var') held.add(String(o.name)) })
+      }
+      return [...side].some(([nm, d]) => d !== 2 && !held.has(nm))
+    }
     const witnessStep = (w: Record<string, number>): {pre: State, post?: State} => {
       const pre = stateAt(w), input = requestOf(w)
       try { return {pre, post: run.step({}, pre, input)} } catch { return {pre} }
@@ -2033,7 +2050,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             if (now2.length < size) { if (!empty(b)) dfs(j + 1, now2, size, b, most); continue }
             if (!empty(b) || now2.some((_, k) => now2.length > 1 && none(now2.filter((__, q) => q !== k)))) continue
             // (a cube reading no state (keys and functions alone) is a fact of the functions' tables, or false: none)
-            if (contradicts(now2.map(l => lits[l]!.lit)) || !now2.some(l => lits[l]!.state)) continue
+            if (contradicts(now2.map(l => lits[l]!.lit)) || !now2.some(l => lits[l]!.state) || oneSided(now2.map(l => lits[l]!.lit), vi)) continue
             const read = new Set(now2.flatMap(l => lits[l]!.reads)), k2 = canon(now2)
             if (read.size === keys.length && !seen.has(k2)) { seen.add(k2); found.push(now2) }
           }
@@ -2168,7 +2185,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             let c = k.lits.filter(l => litHolds(l, r) && judged(formOf([l], vi), row))
             if (!c.length || k.R.some(y => inCube(c, y))) continue
             for (const l of [...c]) { const c2 = c.filter(x2 => x2 !== l); if (c2.length && !k.R.some(y => inCube(c2, y))) c = c2 }
-            if (c.length <= 5 && !k.R.some(y => inCube(c, y))) out2.push(formOf(c, vi))
+            if (c.length <= 5 && !k.R.some(y => inCube(c, y)) && !oneSided(c, vi)) out2.push(formOf(c, vi))
             if (out2.length >= 4) return out2
           }
         }
@@ -2260,14 +2277,14 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // (the cubes dropped, never asked again)
       const dead = new Set<string>()
       // (what blocks a counterexample's state: the enumeration's minimal cubes false there (the antichain is the
-      // generalization), two at most, those false at the most of the counterexamples' states so far first, then the fewest
-      // literals; else its diagrams)
+      // generalization), or that may be (cells the model leaves unnamed), two at most: the false first, then those false at
+      // the most of the counterexamples' states so far, then the fewest literals; else its diagrams)
       const seenCtis: Pre[] = []
       const blockers = (pre: Pre): Form[] => {
         const pt = ptOf(pre), pts = (seenCtis.push(pre), seenCtis.slice(-16).map(ptOf)), bs: Form[] = []
-        const scored = made.filter(g => !dead.has(textOf(g)) && !holdsAt(g, pt)).map(g => ({g, k: pts.filter(p2 => !holdsAt(g, p2)).length}))
+        const scored = made.filter(g => !dead.has(textOf(g))).map(g => ({g, f: !holdsAt(g, pt) ? 2 : mayFail(g, pt) ? 1 : 0})).filter(q => q.f).map(({g, f}) => ({g, k: f * 1024 + pts.filter(p2 => !holdsAt(g, p2)).length}))
         for (const {g} of scored.sort((a, b) => b.k - a.k || a.g.cube!.length - b.g.cube!.length || width2(b.g) - width2(a.g))) { if (bs.length >= 2) break; if (!bs.some(h => textOf(h) === textOf(g)) && !atStart(g)) bs.push(g) }
-        return bs.length ? bs : withFnsOf(pre.w, () => diagrams(pre)).filter(g => !dead.has(textOf(g)))
+        return bs.length ? bs : withFnsOf(pre.w, () => diagrams(pre)).filter(g => !dead.has(textOf(g)) && !atStart(g))
       }
       // (a cube that may be false at a counterexample: at a row where it reads cells the model doesn't name, every literal
       // the model does name in its pattern)

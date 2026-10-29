@@ -1,0 +1,1 @@
+[{"name": "dl-trace", "cmd": "DBG_BLK=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/err.log; grep -E 'BLK|join (enumerated|set)' /tmp/err.log | cut -c1-1200", "timeout": 130}]
