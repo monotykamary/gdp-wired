@@ -479,3 +479,92 @@ What the protocols bought was measured again where later work could have taken i
   600 s. Every broken variant is refused as before. (m2 and m3 prove the same seven written invariants; the "8 of 10"
   above counts one too many.)
 
+
+## The key's domain (gen/gaps, from e7eab01)
+
+Two of the six misses, two_phase_commit and ring_leader_election, have written invariants the kernel proves in seconds
+(COST.md: 14.2 s and 2.6 s), and searches that end with "found nothing". This round diagnosed both against their
+written invariants and closed 2PC with three general changes to the join (core/infer.ts). Nothing trusted changed, and
+nothing in kernel/.
+
+### two_phase_commit: a law about the keys below `size`
+
+**Where the join stopped.** At 60 s, e7eab01's join ends on "target none" for the safety law. The counterexample is
+size 2, go_commit at both nodes, VoteYes[1] = 0, and a commit at node 0. The written law that rules it out is
+`go_commit only after every yes` (a < size, b < size, GoCommit[a] → VoteYes[b]). Its one-key form,
+`∀x < size. GoCommit[x] ≤ VoteYes[x]`, is in no view:
+- **The cells' space reads every key a state holds, and a fresh one.** GoCommit is written at every key (go1's
+  `each`), and VoteYes only below size, so at every key past size GoCommit[k] = 1 and VoteYes[k] = 0. The hull can't
+  say the law there, since it is false there.
+- **The pair space over two plain keys** has the frame x ≠ y alone; the law's own guards (a < size) were dropped,
+  because a view's frame took only conditions on the keys alone.
+- The other eight written laws are a hull's or a cube's of one or two keys, once the domain is the frame.
+
+**Then two costs.** With the domain views in, the join's first relative-induction goal needed 7 forms, and its six
+tries (two forms each) had gathered 6 of them; the whole set (324 forms) then ran out of its query budget, and the
+join stopped "stuck". And the samples hold 3 commits in 3,000 samples, so the rows the hulls read (capped at 6,000)
+held none: forms like `DecideCommit[x] ≤ 0` came up, and each took a round to drop.
+
+**The changes, all general:**
+- **The key's domain frames its views** (`keySorts`' `shape`, the law views). A caller law's guards on its keys may
+  read the state and params beside them (k < size, j < next, k < 64). A domain that moves (one that reads the state or
+  params) gets a view of its key alone: the cells of its sort at the keys in the domain. Two plain keys get their law's
+  view with the domain in its frame, where before only the pair space's x ≠ y. A view of one key, or of two keys at
+  their own places, prints as a builder call with its frame (`forall(x => x.lt(size).implies(...))`).
+- **The relative induction's tries scale with the set**: until the context would hold a sixteenth of it (6 at least,
+  as before). A small set (CHC's) is asked as before.
+- **Rows alike but for their key are kept once** before the 6,000-row cap (the cells' space and every view). The
+  hull, the bounds and the levels read only which rows there are, so the cap now holds more of the samples.
+- Also fixed: a guard on a cell of yes/nos printed `VoteNo.at(k).eq(0)`, which isn't code; it is `VoteNo.at(k).not()`.
+
+**Measured, ablated one at a time** (Modal, 60 s, `runs/gaps/modal/p2` in this worktree's runs): without the domain
+views, without the scaled tries, or without the distinct rows, 2PC is unknown. A fourth change, a re-asked goal
+starting from its last proof's reads (IC3's frame reuse), moved nothing and was taken out.
+
+**What it finds** (Modal, 60 s, 14 laws, three runs, 14.9 to 17.7 s): the domain law
+`every x with x < size: GoCommit[x] <= VoteYes[x]`, `GoCommit[x] = GoCommit[y]` and `GoAbort[x] = GoAbort[y]` over two
+keys, and ten one-key laws (`VoteNo[k] is 0 → DecideCommit[k] <= GoCommit[k]`, `1 <= VoteNo[k] → 1 <= abortFlag`, ...).
+Pasted back, 13 of the 14 print as code; the fourteenth is core/fresh.ts's `∀k. Alive[k] ≠ 1 → Alive[k] < abortFlag`,
+which has no builder call (as before), and without it the pasted set is not inductive.
+
+### ring_leader_election: not closed, and why
+
+The written invariant is Ivy's three laws: a leader's id is the largest; a node's own id pending at it is the
+largest; an id pending past a node is above that node's (`btw(a, b, c) ∧ Pending[idn(a)·N + c] → idn(b) < idn(a)`).
+The search proposes none of them, for four separate reasons:
+- **A function of a key is no atom.** `idn(x)` is read by every law, and no space has it: a view's atoms are map cells.
+- **A composed key whose part is a function of a key is no place.** `Pending[idn(x)·N + x]` is the cell the rule's
+  `become_leader` reads; keySorts splits a composed key only into two names.
+- **The ring order is a disjunction over three keys.** `btw` is three orders of a, b, c (positions mod size), each a
+  cube with order literals between keys, and the only law with three keys is the one the search would have to invent:
+  views come from the caller's laws, and the safety law has two.
+- **The runs never elect a leader** (class E): every sample has Leader at 0, so the hulls say `Leader[k] <= 0` until
+  the join's counterexamples undo it one form at a time.
+
+Each is general in kind (DistAI's templates have functions of variables and a sort's order), but in this pilot and in
+the real-world corpus only ring needs a function of a key and an order between keys: the corpus's functions (Keycloak's
+`sec`, the queues' backoffs) are of values. By this track's rule it is not built. What would close it: a template view
+over three keys of one sort whose atoms are the rule's own reads with its inputs replaced by the view's keys
+(`Pending[idn(x)·N + y]`, `idn(x)`), with order literals between the keys in its cubes.
+
+### Results
+
+Modal, 2 vCPU, each configuration its own job (`runs/gaps/modal/p1` base against candidate, `p3` the branch head with
+three runs where a search is near its limit):
+
+| Protocol | Search 10 s | Search 60 s (e7eab01 → here) | Written invariant | Broken variant |
+| --- | --- | --- | --- | --- |
+| lock_server_sync | proven (3 of 3, 67–76 s) | proven 120.9 s → proven 92–98 s (3 of 3) | proven 0.9 s | refuted, 5 steps |
+| lock_server_async | unknown | proven 108.1 s → proven 94–106 s (3 of 3) | proven 13.0 s | refuted, 21 steps |
+| decentralized_lock | unknown | proven 15.2 s → proven 15.4–17.7 s (3 of 3) | proven 2.8 s | refuted, 19 steps |
+| distributed_lock | unknown | unknown | unknown 3.5 s (as COST.md says, the written set lacks "nothing before init") | refuted, 23 steps |
+| two_phase_commit | unknown | **unknown 12.9 s → proven 14.9–17.7 s (3 of 3)** | proven 15.3 s | refuted, 5 steps |
+| ticket_lock | unknown | proven 60.1 s → **proven 30.2–35.0 s** (3 of 3) | proven 0.9 s | refuted, 20 steps |
+| toy_consensus_forall | unknown | unknown | proven 185.7 s | refuted, 18 steps |
+| consensus_wo_decide | unknown | unknown | killed at 570 s | unknown; the hand run breaks it |
+| ring_leader_election | unknown | unknown | proven 2.5 s | unknown; the hand run breaks it |
+| sharded_key_value_store | killed at 570 s | killed at 570 s | killed at 570 s | (not reached in the job) |
+
+With nothing written: **5 of 10 at 60 s** (e7eab01: 4), 1 of 10 at 10 s. The same seven written invariants are
+proven, and every broken variant is refused as before. Ticket lock, at e7eab01 proven at the 60 s wall-time stop, now
+takes half of it: that is the scaled tries (without them, 56.0 s).

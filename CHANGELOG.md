@@ -5,6 +5,26 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**Protocols: the key's domain; two_phase_commit proven with nothing written (gen/gaps).** Nothing trusted changed
+(kernel/, core/check.ts and lean-kernel/ are e7eab01's); three general changes to the join, core/infer.ts.
+research/protocols/README.md, "The key's domain", has the diagnosis and the measurements.
+- **A key's domain frames its views.** A caller law's guards on its keys may read the state and params (k < size,
+  j < next): a domain that moves gets a view of its key alone, and two plain keys their law's view with the domain in its
+  frame. Before, the cells' space read every key a state holds, and a map written at every key held its value past the
+  domain too, so `∀x < size. GoCommit[x] ≤ VoteYes[x]` was in no view.
+- **The relative induction's tries scale with the set**, until the context would hold a sixteenth of it (6 at least,
+  as before).
+- **Rows alike but for their key are kept once** before the 6,000-row cap of the cells' space and the views.
+- **Printing:** a view of one or two plain keys prints with its frame (`forall(x => x.lt(size).implies(...))`); a guard
+  on a cell of yes/nos prints as the cell or its negation (it printed `.eq(0)`, which isn't code).
+- **Protocols** (Modal, 60 s): 5 of 10 with nothing written (e7eab01: 4), two_phase_commit in 3 of 3 runs (14.9 to
+  17.7 s); ticket_lock 30 to 35 s (60.1 s, at the wall-time stop, at e7eab01). The same seven written invariants, every
+  broken variant refused as before. ring_leader_election is not closed: it needs a function of a key as an atom, a
+  composed key with such a part, and the ring's order over three keys, which only ring needs here.
+- **Quick bar** (CHC and real-world dev sets, against e7eab01's three runs): CHC 520 against 516 to 523 (2 gained, 2
+  lost, none in every run, all at the limit), real world 74 against 74, wrong 0.
+- A re-asked goal starting from its last proof's reads was tried and taken out: it moved nothing.
+
 **Effect services (gdp-wired/effect, gen/effect).** A team whose stateful logic is written in
 [Effect](https://effect.website), 3.x or 4.x, proves its laws about the code it ships. Nothing trusted changed
 (kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/*.lean are 4f7c7a6's), and nothing the prover runs.
