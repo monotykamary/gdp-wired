@@ -232,6 +232,20 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 - **Still out:** "a leader has the voting quorum's votes" (three literals, among 238). It waits for the caller's models (epr6), whose states would rank it.
 - **Pilot (p26):** wo unknown at 57 s (2 runs, inside the wall); the six proven once each (sync 8 s, async 25, decentralized 25, 2PC 18, ticket 40, toy 26).
 
+**After gen/epr6** (merged at e47121a; `runs/engine/e6b`, `p27`):
+- **distributed_lock:**
+  - Round 0 decides all 49 cubes, with 17 unsure (models not confirmed, no diagram) and 3 diagrams.
+  - Rounds 1 and 2 take under a second, settled by their cores.
+  - The search's own end (about 45 s in, after proveRule's earlier work) comes before the set's proof.
+  - The join takes the search's first 25–30 s.
+  - Unknown, 43–53 s.
+- **ring:** round 0 ends at 8 s with 4 diagrams. Round 1 has 13 unsure among 81 and runs to 59 s. Unknown.
+- **wo:**
+  - At 60 s: the ∃ law, then the caller's law fails with no diagram at round 2, 42–58 s.
+  - At 120 s: five rounds; the set reaches 95 cubes; the caller's law fails with no diagram at 103 s.
+  - Unknown, inside the wall at 55–64 s (one run 4 s over).
+- **The six (2 runs):** sync 9–10 s, async 24–27, decentralized 36–41 (it was 19–34), 2PC 18, ticket 34–37, toy 21–22.
+
 **Next steps, in order:**
 1. Start the stage earlier, with a planned share of the budget, not what's left after the join and the deep runs (distributed_lock's round 1 is cut short).
 2. Carry the model's function values into the judged state (ring): `stateOf`/`realCti` read `idn[...]` cells of the witness into the interpreter's view of `idn`, or judge rows with the model's values.
