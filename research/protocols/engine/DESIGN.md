@@ -129,6 +129,22 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - the ∀ side's selection: the cubes that the caller's counterexample with the ∃ law breaks, first;
   - the time: the small instance and round 0 take about 37 s of 60.
 
+**Small-instance checkpoint** (`runs/engine/p15`, all ten, 2 runs at 60 s):
+- **States are now canonical:**
+  - cells off their map's default, in key order, the least text under each symmetric sort's renamings;
+  - a sort is symmetric unless it is ordered, a function's argument, a param's bound, stored in a cell or written to a scalar.
+- **The step is compiled once** (core/machine.ts's `loadJs`; its assumption refuses a request as `allowed` does). It costs 2.4 µs a call, against 13 µs for allowed() plus the interpreter.
+- **What canonical states revealed:** the old state counts were mostly insertion-order and explicit-zero copies. Ring's 868 states are 25; distributed's 20,000 (the cap) are 9 under symmetry (33 without, for one param vector); toy's 2,365 are 15.
+- **Small-instance times:**
+  - Every protocol except wo now takes 8–271 ms to build its complete small instance.
+  - wo's space is the large one: 3,800+ canonical states, still cut at 6.7 s on Modal. A cheaper wo needs fewer requests a state, not cheaper states: 2,048 requests a state at about 1.5–3 µs each.
+- **Verdicts:**
+  - The six stay proven: sync 8–9 s, async 17–24, decentralized 19–20, 2PC 18–19, ticket 30–33, toy 22–26.
+  - The four stay unknown.
+  - wo runs out of time: round 1 with the ∃ law (nothing dropped) is cut by the end at 48–52 s.
+  - Ring and distributed have 5–17 unsure cubes in round 0, through 59 s.
+- **Size:** core/infer.ts is 194,769 bytes.
+
 **Next steps, in order:**
 1. Start the stage earlier, with a planned share of the budget, not what's left after the join and the deep runs (distributed_lock's round 1 is cut short).
 2. Carry the model's function values into the judged state (ring): `stateOf`/`realCti` read `idn[...]` cells of the witness into the interpreter's view of `idn`, or judge rows with the model's values.
