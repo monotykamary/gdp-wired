@@ -94,6 +94,25 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 | ring | an id pending past a node is above it (btw) | no | the same bug. Also a disjunction of three cyclic orders: three cubes of 4 literals over 3 keys, in reach of the 4-literal limit of the (lo, lo, lo) view (36 literals) |
 | sharded | all six (one owner per key, a table entry is its owner's, a key in transfer has no owner, one transfer per key, one value per owner and key, nothing before start) | yes: the 17 enumerated cubes are them, and their twins | the caller's law still fails from the set (no diagram). To check: the caller's law from those 17 alone, in a probe |
 
+**The sampling bug, fixed** (`runs/engine/p35`, all ten, 2 runs):
+- **The causes:**
+  - Distributed's `e1`, an epoch value, was set to the epoch sort's size (4), above every request's epoch, so no grant ever fired.
+  - Its `first`, a node, was drawn outside the node domain.
+  - Ring's `size` was 4 while `n1`, in no template sort, was drawn over 0..2, so the ring never closed.
+- **Now:**
+  - A param that bounds keys (`k < p`) is the least size of the sorts it bounds.
+  - A param a key equals or a read is at (`k = first`, `M[first]`) is an element of that sort, which is then not renamed (pinned).
+  - An input that only a param bounds takes every value below it.
+- **Small instances:** distributed 36 states over 4 param vectors (it was 9); ring 145 states with leaders (it was 25, none).
+- **The enumeration:**
+  - Ring has `Leader[x] ∧ idn(x) ≤ idn(y)` (with x ≠ y and idn injective, the written "a leader's id is the largest") and `Pending[idn(x)·64 + x] ∧ idn(x) ≤ idn(y)` (the own-id law).
+  - Distributed has `Locked[y,x] ∧ Ep[x] + 1 ≤ y` (a locked epoch is its node's or below), and the Transfer/Locked cubes: 183 cubes, from 58.
+- **Verdicts:** the six proven (sync 9–11 s, async 22–26, decentralized 26–29, 2PC 21–22, ticket 25–34, toy 24–29); the four unknown.
+- **What holds them now: round 0's decisions.**
+  - Ring's round 0 (64 cubes) ends at 59 s with 5 unsure.
+  - Distributed's ends at 59 s with 10–11 unsure and 3–5 diagrams.
+  - Next: a first round they can afford. Fewer places at first (the minimal cubes and a few turns), growing by relevance; or the EPR decision's cost in the stage (about 0.5–1 s a cube).
+
 **What would cover the most** (the next round)
 1. **The small instance's sampling bug** (ring, distributed). The engine's BFS reaches fewer states than a hand BFS over the same domains, without leaders or transfers, so their literals are never made.
    - To find: compare `enumerated()`'s per-params states with `hand-dl.ts` and `hand-ring2.ts`: the request domains (`domOf`, `fnDom`), the param vectors, `keyOf3`'s renamings (distributed's `first` is a param of the node sort, renamed with the nodes).
