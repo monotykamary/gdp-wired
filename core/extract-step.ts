@@ -30,7 +30,7 @@ import {type CodeSide, type Coverage, type Evidence, type Snap, Outside, constan
 // --- the IR (what a reader emits) -----------------------------------------------------------------------------------
 export type SType =
   | {k: 'int', bits?: number, signed?: boolean, unit?: string, atomic?: string, lock?: string, rs?: string} | {k: 'float' | 'bool' | 'str' | 'none' | 'any' | 'lock', atomic?: string, lock?: string}
-  | {k: 'choice', values: string[], discs?: number[], enum?: string} | {k: 'opt', of: SType} | {k: 'res', of: SType}
+  | {k: 'choice', values: string[], discs?: number[], enum?: string, sym?: boolean} | {k: 'opt', of: SType} | {k: 'res', of: SType}
   | {k: 'rec', name: string} | {k: 'map', key: SType, val: SType} | {k: 'list', of: SType} | {k: 'opaque', why: string}
 export type Patch = {mod?: string, path?: string[], self?: string}
 export type SX = {e: string, p: string, text?: string, [k: string]: unknown}
@@ -42,8 +42,9 @@ export type SFunc = {id: string, name: string, cls?: string, p: string, span: [s
   recv?: string, results?: number, why?: string, late?: string}
 export type SRec = {name: string, short: string, fields: {name: string, t: SType, dflt?: SX}[], methods: Record<string, string | null>, kinds: string[], own: boolean, module: string, p: string}
 export type SModule = {lang: string, file: string, path: string, module: string, root: string, entries: ({k: 'class', rec: string} | {k: 'func', id: string} | {k: 'missing', name: string})[], recs: Record<string, SRec>, funcs: Record<string, SFunc>, enums?: Record<string, {values: string[], discs: number[], data: boolean}>, error?: string,
-  // false: a condition the path takes is kept whole (a negated disjunction not split into its parts: Go's reader's)
-  split?: boolean}
+  // false: a condition the path takes is kept whole (a negated disjunction not split into its parts: Go's reader's);
+  // 'nil-false': only nil and false are false (Ruby's), not Python's truthiness
+  split?: boolean, truth?: 'nil-false'}
 
 export type StoreDecl = {get?: string[], set?: string[], delete?: string[], value?: 'int' | 'float' | 'str', attrs?: Record<string, null | boolean | number | string>, async?: Record<string, boolean>}
 export type StepOptions = {
@@ -98,7 +99,7 @@ type Flow = {live?: Path, rets: [Path, V][], brk?: Path[], ft?: Path}
 export type {V as StepValue, Path as StepPath, Obj as StepObj, Ptr as StepPtr}
 // What the harness is told: where each leaf of the state is, how each argument is made, what each stub answers.
 export type Leaf = {t?: SType, name: string, path: string[], kind: 'num' | 'bool' | 'str' | 'choice' | 'none' | 'map' | 'frame', float?: boolean, cls?: string, fields?: {name: string, float?: boolean}[], key?: 'num' | 'str', store?: string, tpl?: string}
-export type PArg = {k: 'in', name: string, float?: boolean, z?: Raw} | {k: 'opt', none: string, v: PArg} | {k: 'rec', cls: string, f: [string, PArg][]} | {k: 'inert'} | {k: 'store', name: string} | {k: 'dflt'}
+export type PArg = {k: 'in', name: string, float?: boolean, sym?: boolean, z?: Raw} | {k: 'opt', none: string, v: PArg} | {k: 'rec', cls: string, f: [string, PArg][]} | {k: 'inert'} | {k: 'store', name: string} | {k: 'dflt'}
 export type Answer = {key: string, patch: Patch, async: boolean, inputs: {name: string, none?: string, float?: boolean}, sort: string}
 export type StepRead = {ints: Record<string, IntTy>, madeAt?: string, model: Model, leaves: Leaf[], args: Record<string, [string, PArg][]>, answers: Answer[], ctor: [string, PArg][], kept: boolean, arms: [string, number][], cls?: string, stores: Record<string, StoreDecl>, results: Record<string, 'none' | 'scalar' | 'maybe'>}
 
@@ -155,7 +156,7 @@ export class Stepper {
 
   rec(name: string, at: {p: string}): SRec { return this.mod.recs[name] ?? refuse(at, `${name}: a type the reader didn't read`) }
   newVar(name: string, sort: Var['sort'], role: Var['role'], note?: string): Var {
-    let n = name.replace(/^_+/, '').replace(/[^\w$]/g, '_') || 'x'
+    let n = name.replace(/^[_@]+/, '').replace(/\?/g, '_p').replace(/!/g, '').replace(/[^\w$]/g, '_') || 'x'
     if (/^\d/.test(n)) n = `_${n}`
     // (a constructor's argument named as a field it sets: the field keeps the name, the argument is the initial one)
     if (role === 'param' && this.fieldNames.has(n)) n = `${n}0`
@@ -184,7 +185,7 @@ export class Stepper {
   // An input of a type: its variables, the value, and how the harness makes it.
   input(name: string, t: SType, at: {p: string}, p: Path, role: Var['role'] = 'input'): [V, PArg] {
     const s = this.scalar(t)
-    if (s) { const v = this.newVar(name, s, role); this.typed(v, t, role); return [this.valueOf(v), {k: 'in', name: v.name, z: zeroRaw(s), ...(t.k === 'float' ? {float: true} : {})}] }
+    if (s) { const v = this.newVar(name, s, role); this.typed(v, t, role); return [this.valueOf(v), {k: 'in', name: v.name, z: zeroRaw(s), ...(t.k === 'float' ? {float: true} : {}), ...(t.k === 'choice' && t.sym ? {sym: true} : {})}] }
     if (t.k === 'opt') {
       if (t.of.k === 'rec') {
         const none = this.newVar(`${name}_none`, {k: 'bool'}, role, `whether ${name} is None`)
@@ -354,6 +355,7 @@ export class Stepper {
   // --- conversions ----------------------------------------------------------------------------------------------------
   // Python's truthiness, made explicit: a later reader's `if` reads a boolean only.
   truthy(v: V, at: {p: string}, p?: Path): B {
+    if (this.mod.truth === 'nil-false') return v.t === 'bool' ? v.e : v.t === 'none' ? I.F : v.t === 'opt' ? I.and(v.has, this.truthy(v.v, at, p)) : v.t === 'opaque' ? refuse(at, `${(at as SX).text ?? ''}: the truth of ${v.why}`) : I.T
     switch (v.t) {
       case 'bool': return v.e
       case 'num': return I.not(I.cmp('=', v.e, I.num(0)))
@@ -430,7 +432,7 @@ export class Stepper {
   }
 
   // A branch arm the step runs: its first statement's line, counted by the harness's line events.
-  arm(ss: SS[]) { const s0 = ss.find(x => x.s !== 'import'); if (s0) { const m = /^(.*):(\d+):\d+$/.exec(s0.p); if (m) this.arms.add(`${m[1]}:${m[2]}`) } }
+  arm(ss: SS[]) { const s0 = ss.find(x => x.s !== 'import' && !/:0:\d+$/.test(x.p)); if (s0) { const m = /^(.*):(\d+):\d+$/.exec(s0.p); if (m) this.arms.add(`${m[1]}:${m[2]}`) } }
   // --- statements -----------------------------------------------------------------------------------------------------
   block(ss: SS[], p: Path): Flow {
     let live: Path | undefined = p, ft: Path | undefined
@@ -567,6 +569,9 @@ export class Stepper {
     if (old?.t === 'opaque' && obj.origin === 'state' && !this.init) return refuse(at, `${at.text}: writes ${old.why}`)
     if (o.id === 'this' && this.frozen.has(f) && !this.init) return refuse(at, `${at.text}: writes a field the constructor sets to None (of no type the code states)`)
     if (this.init && t) this.declared.set(`${o.id}.${f}`, t)
+    // (a literal written to a field of a choice is the choice's)
+    const ft = this.declared.get(`${o.id}.${f}`) ?? this.mod.recs[obj.ty]?.fields.find(x => x.name === f)?.t, ct = ft?.k === 'opt' ? ft.of : ft
+    if (ct?.k === 'choice' && v.t === 'str' && v.e.op === 'slit' && ct.values.includes(v.e.value)) v = {t: 'choice', e: I.llit(v.e.value, ct.values)}
     const heap = new Map(p.heap).set(o.id, {...obj, f: new Map(obj.f).set(f, v)})
     return {...p, heap}
   }
@@ -1895,16 +1900,18 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
       // The fields it sets (named first: the state's names are the fields').
       const scan = (ss: SS[]) => { for (const st of ss) { const to = st.to as SX | undefined; if (st.s === 'set' && to?.e === 'get' && (to.x as SX).e === 'var' && (to.x as SX).n === 'self') g.fieldNames.add(String(to.f)); if (st.s === 'if') { scan(st.then as SS[]); scan(st.else as SS[]) } if (st.s === 'with') scan(st.body as SS[]) } }
       scan(fn.body)
-      const args: V[] = []
+      const args: V[] = [], kw: [string, V][] = []
       let p = fresh
+      // (a keyword argument given as one)
+      const give = (pa: SParam, v: V) => { if (pa.kw) kw.push([pa.name, v]); else args.push(v) }
       for (const pa of fn.params.filter(x => !x.self && !x.star)) {
-        if (opts.stores?.[pa.name]) { const id = `store:${pa.name}`; p.heap.set(id, {k: 'store', name: pa.name}); g.initHeap.set(id, {k: 'store', name: pa.name}); args.push({t: 'ref', id}); ctor.push([pa.name, {k: 'store', name: pa.name}]); continue }
-        if (pa.dflt && !g.scalar(pa.t.k === 'opt' ? pa.t.of : pa.t)) { ctor.push([pa.name, {k: 'dflt'}]); const [d, p2] = g.ev(pa.dflt, p); args.push(d); p = p2; continue }
+        if (opts.stores?.[pa.name]) { const id = `store:${pa.name}`; p.heap.set(id, {k: 'store', name: pa.name}); g.initHeap.set(id, {k: 'store', name: pa.name}); give(pa, {t: 'ref', id}); ctor.push([pa.name, {k: 'store', name: pa.name}]); continue }
+        if (pa.dflt && !g.scalar(pa.t.k === 'opt' ? pa.t.of : pa.t)) { ctor.push([pa.name, {k: 'dflt'}]); const [d, p2] = g.ev(pa.dflt, p); give(pa, d); p = p2; continue }
         const [v, a] = g.input(pa.name, pa.t, fn, p, 'param')
         if (a.k === 'inert') refuse(fn, `${r.short}(${pa.name}): a constructor argument of ${g.why(pa.t)} (state it as a store, or give it a default)`)
-        args.push(v); ctor.push([pa.name, a])
+        give(pa, v); ctor.push([pa.name, a])
       }
-      const [, p2] = g.callFunc(fn, {t: 'ref', id: 'this'}, args, [], {e: 'call', p: fn.p, text: `${r.short}()`}, p, false)
+      const [, p2] = g.callFunc(fn, {t: 'ref', id: 'this'}, args, kw, {e: 'call', p: fn.p, text: `${r.short}()`}, p, false)
       made = p2
       if (ctor.length) g.notes.add(`${r.short} made by its constructor: its arguments are the rule's params`)
     } else if (r.kinds.includes('dataclass')) {
@@ -2254,7 +2261,7 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
     }
     const j = (x: Raw) => (typeof x === 'number' ? String(x) : x)
     const snapJson = (s: Snap): Record<string, unknown> => ({...Object.fromEntries(Object.entries(s.leaves).map(([k, v]) => [k, j(v)])), ...Object.fromEntries(Object.entries(s.maps).map(([k, cells]) => [k, Object.fromEntries(Object.entries(cells).map(([key, c]) => [key, Object.fromEntries(Object.entries(c).map(([f, x]) => [f, j(x)]))]))]))})
-    const build = (a: PArg, inputs: Record<string, Raw>): unknown => (a.k === 'in' ? {in: inputs[a.name] ?? a.z ?? 0, ...(a.float ? {float: true} : {})} : a.k === 'opt' ? (inputs[a.none] === true ? {none: true} : build(a.v, inputs)) : a.k === 'rec' ? (a.f.length ? {rec: a.cls, f: Object.fromEntries(a.f.map(([f, x]) => [f, build(x, inputs)]))} : {inert: true}) : a.k === 'inert' ? {inert: true} : a.k === 'store' ? {store: a.name} : {dflt: true})
+    const build = (a: PArg, inputs: Record<string, Raw>): unknown => (a.k === 'in' ? {in: inputs[a.name] ?? a.z ?? 0, ...(a.float ? {float: true} : {}), ...(a.sym ? {sym: true} : {})} : a.k === 'opt' ? (inputs[a.none] === true ? {none: true} : build(a.v, inputs)) : a.k === 'rec' ? (a.f.length ? {rec: a.cls, f: Object.fromEntries(a.f.map(([f, x]) => [f, build(x, inputs)]))} : {inert: true}) : a.k === 'inert' ? {inert: true} : a.k === 'store' ? {store: a.name} : {dflt: true})
     const ctorArgs = (params: Record<string, Raw>) => read.ctor.map(([n, a]) => [n, build(a, params)])
     let now = 0, inputsNow: Record<string, Raw> = {}
     const answersOf = () => Object.fromEntries(read.answers.map(a => [a.key, a.inputs.none && inputsNow[a.inputs.none] === true ? {none: true} : {in: inputsNow[a.inputs.name] ?? 0, ...(a.inputs.float ? {float: true} : {})}]))

@@ -14,6 +14,9 @@ for (const f of readdirSync(dist, {recursive: true, encoding: 'utf8'}).filter(f 
 // The Python front end's reader and harness, run from beside it (python3 is needed only when it is called).
 mkdirSync(join(dist, 'core', 'py'), {recursive: true})
 for (const f of ['reader.py', 'harness.py']) copyFileSync(join(root, 'core', 'py', f), join(dist, 'core', 'py', f))
+// The Ruby front end's reader and harness, run from beside it (ruby is needed only when it is called).
+mkdirSync(join(dist, 'core', 'rb'), {recursive: true})
+for (const f of ['reader.rb', 'harness.rb']) copyFileSync(join(root, 'core', 'rb', f), join(dist, 'core', 'rb', f))
 // The Rust front end's reader (built with cargo where it is first called) beside it.
 mkdirSync(join(dist, 'core', 'rs', 'src'), {recursive: true})
 for (const f of ['Cargo.toml', 'Cargo.lock', 'src/main.rs']) copyFileSync(join(root, 'core', 'rs', f), join(dist, 'core', 'rs', f))

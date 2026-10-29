@@ -11,5 +11,5 @@
   },
   "include": [],
   "files": ["core/dsl.ts", "core/machine.ts", "core/gdp.ts",
-    "core/compose.ts", "core/xstate.ts", "core/extract.ts", "core/extract-py.ts", "core/extract-rs.ts", "core/effect.ts", "core/discover.ts", "core/infer.ts", "core/cyclic.ts", "core/cycles.ts", "core/data.ts", "core/rationals.ts", "kernel/cyclic.ts", "lean-kernel/emit.ts", "core/solver.ts", "core/check.ts", "kernel/kernel.ts", "kernel/prove.ts"]
+    "core/compose.ts", "core/xstate.ts", "core/extract.ts", "core/extract-py.ts", "core/extract-rb.ts", "core/extract-rs.ts", "core/effect.ts", "core/discover.ts", "core/infer.ts", "core/cyclic.ts", "core/cycles.ts", "core/data.ts", "core/rationals.ts", "kernel/cyclic.ts", "lean-kernel/emit.ts", "core/solver.ts", "core/check.ts", "kernel/kernel.ts", "kernel/prove.ts"]
 }

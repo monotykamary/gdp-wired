@@ -104,6 +104,10 @@
       "types": "./dist/core/extract-py.d.ts",
       "default": "./dist/core/extract-py.js"
     },
+    "./extract-rb": {
+      "types": "./dist/core/extract-rb.d.ts",
+      "default": "./dist/core/extract-rb.js"
+    },
     "./extract-rs": {
       "types": "./dist/core/extract-rs.d.ts",
       "default": "./dist/core/extract-rs.js"
