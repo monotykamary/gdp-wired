@@ -17,6 +17,11 @@ research/protocols/README.md has the diagnosis, and `research/protocols/gaps2.pa
   and pruning the bounds the kinds imply costs two_phase_commit its proof.
 - **ring:** no law in the real-world or frontier corpora needs a function of a key or an order between keys, so ring's
   template is not built.
+- **toy, the second reading:** the template law's goal is proven in 0.32 s on the proof path, and the join's query
+  can't settle it even forced to the one form it needs (571 hypotheses, unknown at 5.2M work). The join's relative
+  induction also ranked that form 12th, behind guarded pieces of the same law. The patch adds research switches for
+  each lead (`GDP_X_RANK`, `GDP_X_WIDEN`, `GDP_X_THIN`, `GDP_X_PROOF`, `GDP_X_WHOLE`). Only asking the proof path
+  settles the goals, and that costs the 60 s search its budget by round 1.
 
 **Protocols: the key's domain; two_phase_commit proven with nothing written (gen/gaps).** Nothing trusted changed
 (kernel/, core/check.ts and lean-kernel/ are e7eab01's); three general changes to the join, core/infer.ts.

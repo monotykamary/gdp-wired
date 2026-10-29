@@ -1,5 +1,5 @@
 diff --git a/core/infer.ts b/core/infer.ts
-index 1baee58..ecb8fc9 100644
+index 1baee58..9223ae6 100644
 --- a/core/infer.ts
 +++ b/core/infer.ts
 @@ -35,7 +35,7 @@ import {quietly} from './cyclic.ts'
@@ -7,7 +7,7 @@ index 1baee58..ecb8fc9 100644
  import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
  import {allowed, keysOf, linKey, watch} from './watch.ts'
 -import {clock, counted, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees} from '../kernel/prove.ts'
-+import {atPoint, clock, counted, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees} from '../kernel/prove.ts'
++import {atPoint, clock, counted, grow, keyValue, triggered, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees} from '../kernel/prove.ts'
  import {type Goal, type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
  import {env, gcd, work} from './solver.ts'
  import {bgcd} from './q.ts'
@@ -88,7 +88,59 @@ index 1baee58..ecb8fc9 100644
        }
      }
      // The directions over some values: each value up and down, pairs of them where there are few, the rule's own
-@@ -1423,9 +1444,23 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+@@ -1298,9 +1319,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+       const atLevel = (a: At): At => atOf(ctl[keyAtoms.indexOf(a.atom)]!, a.value)
+       // a point's rows in this space
+       const vecs = (p: Point): Float64Array[] => (cells ? p.cells.map(valuesOf) : view ? (p.views[kind as number] ?? []).map(valuesOf) : [valuesOf(p.scalar)])
+-      const add = (p: Point, widen: boolean) => { for (const v of vecs(p)) join(keyOf(v), v, widen) }
++      const whole = new Map<string, Group>()
++      const add = (p: Point, widen: boolean) => { for (const v of vecs(p)) { join(keyOf(v), v, widen); join('', v, widen, whole) } }
+       const rows = (cells ? distinctRows(cellRows) : view ? view.rows : rowsS).map(valuesOf)
+-      for (const v of rows) join(keyOf(v), v, false)
++      for (const v of rows) { join(keyOf(v), v, false); join('', v, false, whole) }
+       opts.progress?.('join start', {space: kind, control: ctl.map(c => `${nameOf(c.atom)}:${c.cuts.join('/')}`).join(' '), groups: groups.size, dirs: dirs.length, coords: CN})
+       // The control states no state reached, as fewer and smaller cubes (a program counter in bits: Spacer's clauses there
+       // read two or three of its bits): each cube's values dropped one at a time, the yes/nos first, while it holds at no
+@@ -1339,6 +1361,16 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+           const lv = combo.map((value, k) => ({atom: keyAtoms[k]!, value})), ats = lv.map(atLevel), grp = groups.get(combo.join(','))
+           const guard = ats.length ? {guard: ats[0]!, ...(ats.length > 1 ? {also: ats.slice(1)} : {})} : {}
+           if (!grp) { if (lv.length) nev.push(lv); continue }
++          emit(grp, guard)
++        }
++        // (the control refined: the hull of every row beside, unguarded, as it was before the refining; a law of every
++        // control state, which a goal then reads as one form, not one a control state)
++        if (ctl.length && env.GDP_X_WHOLE !== '0') { const grp = whole.get(''); if (grp) emit(grp, {}) }
++        // (once broken, each its own form from then on, so that a state joined in changes only the forms that
++        // read its own control state, not every proof that read them all)
++        if (nev.length > 1 && joinNevers && neversBroken < joinNeversBreaks) keep({coef: [], d: 0, cells, nevers: nev.map(c => c.map(atLevel)), size: 1})
++        else for (const lvs of joinPrime ? primes(nev) : nev) { const ats = lvs.map(atLevel); keep({coef: [], d: 0, cells, ...(ats.length > 1 ? {never: ats} : {unreachable: ats[0]!}), size: 1}) }
++        function emit(grp: Group, guard: {guard?: At, also?: At[]}) {
+           for (const e of grp.eqs) {
+             if (!emitted(e)) continue
+             const coef: [number, number][] = []
+@@ -1356,10 +1388,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+             keep({coef: t, d: hi, cells, ...guard, size: 0})
+           })
+         }
+-        // (once broken, each its own form from then on, so that a state joined in changes only the forms that
+-        // read its own control state, not every proof that read them all)
+-        if (nev.length > 1 && joinNevers && neversBroken < joinNeversBreaks) keep({coef: [], d: 0, cells, nevers: nev.map(c => c.map(atLevel)), size: 1})
+-        else for (const lvs of joinPrime ? primes(nev) : nev) { const ats = lvs.map(atLevel); keep({coef: [], d: 0, cells, ...(ats.length > 1 ? {never: ats} : {unreachable: ats[0]!}), size: 1}) }
+       }
+       // The control refined on demand (as CEGAR refines its predicates, here read off the rule): a counterexample to a
+       // caller's law that the set allows and nothing rules out lies among the samples of its control state. A level of a
+@@ -1399,8 +1427,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+         }
+         if (!pick) return false
+         ctl.push(pick); keyAtoms = ctl.map(c2 => c2.atom); combos = combosOf()
+-        groups.clear()
+-        for (const v of all) join(keyOf(v), v, false)
++        groups.clear(); whole.clear()
++        for (const v of all) { join(keyOf(v), v, false); join('', v, false, whole) }
+         return true
+       }
+       // More directions (a form's own preimage), each bounded per control state by the states there, kept only where they
+@@ -1423,9 +1451,23 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
        return {cells, add, forms, refine, deepen, coords, control: () => `${ctl.map(c => nameOf(c.atom)).join(' ')} (${scored.join(' ')})`, groups}
      }
      const spaces = [space('state'), ...(mapNames.length && cellAtoms.length ? [space('cells')] : []), ...views.flatMap((v, i) => (v.rows.length ? [space(i)] : []))]
@@ -113,7 +165,16 @@ index 1baee58..ecb8fc9 100644
        for (const sp of spaces) sp.forms(push)
        return out
      }
-@@ -1510,7 +1545,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+@@ -1483,7 +1525,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+     // (a step law's goal: its step from a state the set allows)
+     const stepLawOf = new Map(stepLaws.map(sl => [sl.name, sl]))
+     const stepWith = (name: string, form: Form | undefined, ctx: Form[]) => {
+-      const ctxLaws = [...ctx, ...(form ? [form] : [])].map(lawFor), ls = [...given, ...ctxLaws], mm = forLaws(ctxLaws).m, sl = form ? undefined : stepLawOf.get(name)
++      const ctxLaws = [...ctx, ...(form ? [form] : [])].map(lawFor), ls = [...(form && env.GDP_X_NOCALLER === '1' ? given.filter(l => !callers.has(l.name)) : given), ...ctxLaws], mm = forLaws(ctxLaws).m, sl = form ? undefined : stepLawOf.get(name)
+       const idx = form ? ls.length - 1 : ls.findIndex(l => l.name === name)
+       // (a rule with maps: the laws about every key at the instances the prover would read them at)
+       const inst: Instances = !mapNames.length ? {} : sl ? stepLawInstances(mm, ls)(sl) : lawInstances(mm, ls, idx)
+@@ -1510,7 +1552,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
          return {used, g: g!}
        }
        let at = inst
@@ -121,11 +182,14 @@ index 1baee58..ecb8fc9 100644
 +      const point = env.GDP_X_POINT === '1' && !atPoint.on && ls.some(l => l.keys?.length)
 +      if (point) atPoint.on = true
 +      let result: Asked
-+      try { ({result} = withModels<Asked>(mm, ls, inst, i2 => (at = i2, goalOf(i2)), gs => ask(gs, at), x => (mapNames.length && x.stuck === 'sat' && x.witness ? {goal: x.g, w: x.witness} : undefined), x => !!x.used || x.stuck === 'sat')) } finally { if (point) atPoint.on = false }
++      const askAt = (i0: Instances) => withModels<Asked>(mm, ls, i0, i2 => (at = i2, goalOf(i2)), gs => ask(gs, at), x => (mapNames.length && x.stuck === 'sat' && x.witness ? {goal: x.g, w: x.witness} : undefined), x => !!x.used || x.stuck === 'sat').result
++      // (as the proof path asks a law's goal: its instances thinned to those its triggers read first, then all of them)
++      const few = env.GDP_X_THIN === '1' && !sl && mapNames.length && ls[idx]!.forall ? triggered(plainOf(mm), ls, inst, i2 => goalOf(i2), [`${ls[idx]!.forall}#`]) : inst
++      try { result = few !== inst ? askAt(few) : askAt(inst); if (few !== inst && !result.used) result = askAt(inst) } finally { if (point) atPoint.on = false }
        return result.used ? {used: result.used} : {stuck: result.stuck, witness: result.witness}
      }
      const stateOf = (w: Record<string, number>): {params: Env, st: State} => {
-@@ -1585,7 +1623,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+@@ -1585,7 +1633,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
      }
      const formOf = (c: Lit[], view?: number): Form => ({coef: [], d: 0, cells: false, cube: c, size: 1, ...(view !== undefined ? {view} : {})})
      const witnessStep = (w: Record<string, number>): {pre: State, post?: State} => {
@@ -134,7 +198,57 @@ index 1baee58..ecb8fc9 100644
        try { return {pre, post: run.step({}, pre, input)} } catch { return {pre} }
      }
      // Is the cube's negation inductive relative to these laws (the caller's and the kinds' beside)? Its literals after
-@@ -1762,7 +1800,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+@@ -1725,9 +1773,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+       // counterexample the whole set allows is one to learn from.
+       const todoForm = callers.has(todo) ? undefined : byText.get(todo)!
+       const inCone = new Set(order)
+-      const rank = (f: Form) => (inCone.has(textOf(f)) ? 0 : stood.has(textOf(f)) ? 1 : 2) * 1000 + f.coef.length * 10 + (f.never || f.nevers || f.also ? 1 : 0)
++      // (the fewest values read first, its guards' and control's among them: the most general form)
++      const rank = (f: Form) => (inCone.has(textOf(f)) ? 0 : stood.has(textOf(f)) ? 1 : 2) * 1000 + (env.GDP_X_RANK === '0' ? f.coef.length : atomsIn(f).length) * 10 + (f.never || f.nevers || f.also ? 1 : 0)
+       const whole = set.filter(f => f !== todoForm)
+-      let ctx: Form[] = [], witness: Record<string, number> | undefined, lastStuck = '', qms = 0, settled = false
++      let ctx: Form[] = env.GDP_X_FORCE === '1' && /^every x, y, z/.test(todo) ? set.filter(f => /Vote\[64·x \+ y\] <= Voted\[y\]$/.test(textOf(f))) : [], lastRuling: Form[] = [], witness: Record<string, number> | undefined, lastStuck = '', qms = 0, settled = false
+       // (before the whole set, the forms proven so far beside the context: a proof there is a proof with the whole set,
+       // at a fraction of its hypotheses; a model there, the whole set asked as before)
+       const provenFirst = (): Form[] | undefined => { const ps = whole.filter(f => !ctx.includes(f) && stood.has(textOf(f))); return ps.length && ctx.length + ps.length < whole.length / 2 ? [...ctx, ...ps] : undefined }
+@@ -1739,7 +1788,16 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+           if (pf) { const out = stepWith(todo, todoForm, pf); if ('used' in out) { stood.set(todo, out.used!); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, proven: todo.slice(0, 60), reads: out.used!.length, ctx: pf.length, attempt}); settled = true; break } }
+           ctx = whole
+         }
+-        const tq = performance.now(), out = stepWith(todo, todoForm, ctx)
++        const tq = performance.now()
++        let out = stepWith(todo, todoForm, ctx)
++        // (no answer with part of the set: the goal as the proof path asks it, with its own budget, before more of the set;
++        // proven there, it read the context, and its model is the counterexample)
++        if (!('used' in out) && !out.witness && ctx !== whole && env.GDP_X_PROOF === '1' && !stepLawOf.has(todo)) {
++          const ctxLaws = [...ctx, ...(todoForm ? [todoForm] : [])].map(lawFor), ls2 = [...given, ...ctxLaws], i2 = todoForm ? ls2.length - 1 : ls2.findIndex(l => l.name === todo)
++          const pr = proveLaw(forLaws(ctxLaws).m, ls2, i2)
++          if (pr.proven) out = {used: ctx.map(textOf)}
++          else if (pr.stuck === 'sat' && pr.witness && /@step$/.test(pr.goal)) out = {stuck: 'sat', witness: pr.witness}
++        }
+         qms += Math.round(performance.now() - tq)
+         if ('used' in out) {
+           stood.set(todo, out.used!)
+@@ -1747,10 +1805,17 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+           settled = true; break
+         }
+         lastStuck = out.stuck!
+-        if (!out.witness) { if (ctx === whole) break; ctx = whole; attempt = tries - 1; continue }
++        // (no answer with part of the set: first every form that rules out the last counterexample, then the whole set)
++        if (!out.witness) {
++          if (ctx === whole) break
++          const rest = env.GDP_X_WIDEN === '0' ? [] : lastRuling.filter(f => !ctx.includes(f))
++          if (rest.length) { ctx = [...ctx, ...rest]; lastRuling = []; continue }
++          ctx = whole; attempt = tries - 1; continue
++        }
+         const w = out.witness, {params: pp0, st: st0} = stateOf(w), pre0 = pointOf(pp0, st0)
+         if (ctx === whole) { witness = w; break }
+         const ruling = whole.filter(f => !ctx.includes(f) && !holdsAt(f, pre0)).sort((p2, q2) => rank(p2) - rank(q2))
++        lastRuling = ruling
+         if (!ruling.length) { witness = w; break }
+         ctx = [...ctx, ...ruling.slice(0, joinAdd)]
+       }
+@@ -1762,7 +1827,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
        }
        const w = witness, {params, st} = stateOf(w)
        if (todoForm?.nevers) neversBroken++
@@ -143,3 +257,16 @@ index 1baee58..ecb8fc9 100644
        let post: State | undefined
        try { post = run.step(params, st, input); stepNamed(st, post) } catch { post = undefined }
        const pre = pointOf(params, st)
+diff --git a/kernel/prove.ts b/kernel/prove.ts
+index 2df201d..e0ff463 100644
+--- a/kernel/prove.ts
++++ b/kernel/prove.ts
+@@ -1143,7 +1143,7 @@ const triggers = (body: C, key: string): {map: string, at: E}[] => {
+ const substKey = (e: E, key: string, by: E): E => JSON.parse(JSON.stringify(e).replaceAll(`{"op":"var","name":${JSON.stringify(key)}}`, JSON.stringify(by))) as E
+ // GDP_TRIGGER=0 keeps every instance (for comparing).
+ const triggerOn = env.GDP_TRIGGER !== '0'
+-function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Instances) => Goal[], focus: string[] = []): Instances {
++export function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Instances) => Goal[], focus: string[] = []): Instances {
+   if (!triggerOn) return inst
+   // Per name: its bound keys, and for each the triggers that read it alone (a key with none takes any value).
+   const bodies = new Map<string, {keys: string[], per: {map: string, at: E}[][]}>()

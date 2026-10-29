@@ -668,13 +668,48 @@ finds the model at 32,000.
   one column (N·x + z, N·y + z) and one row at two columns, where no caller law's view has that shape. The join then
   has `every x, y, z: Vote[64·x + z] + Vote[64·y + z] <= 1`.
 
-**What stops it now: the kernel's cost on these goals in the join (class D).** With the three in, at 600 s and four
+**What stops it now** (first reading, corrected below: the goal is cheap on the proof path, so it is the join's query that costs)**.** With the three in, at 600 s and four
 times the query budget, the safety law is proven at round 5 from four forms, among them the three-key template law.
 The template law's own step goal then runs out of budget twice: 3.7 s with two forms assumed, 9.0 s with the whole
 set, unknown. Only 8 rounds fit in 600 counted seconds (45.6 s of wall time). Deciding at the simplex's point in the
 join's goals too (`atPoint`, which gen/cost put on the proof path) changes nothing here. The written invariant's
 three-key law is proven on the proof path, so this is the prover's cost on a three-key goal in the join's queries
 (kernel/prove.ts and cdcl.ts), outside the search.
+
+### toy, again: why the join can't settle a goal the proof path proves in 0.3 s
+
+The pruning agent's lead was right. The template law with "a vote means voted" is proven with the search off in 0.73 s
+here. kernel/prove.ts's `proveLaw` proves the template law's own goal, with the safety law and two unrelated forms
+assumed, in 0.32 to 0.38 s (`runs/g2/one.ts`). In the join that goal comes back unknown. Logged (`GDP_X_LOG`, Modal,
+`runs/g2/modal/d4`–`d12` in the gen/gaps2 worktree), the causes stack up in this order:
+1. **The forms.** The relative induction takes two forms a counterexample rules out, ranked by their coefficients.
+   The plain `Vote[64·x + y] <= Voted[y]` was 12th of the 13 that rule it out. Ahead of it came pieces of the same law
+   under control guards (`Voted[y] is 0 and Decided[x] is 0 → VotingQuorum[y] is 0 → Vote[64·x + y] <= 0`) and a
+   `never` cube, all of one or no coefficient. Ranking by every value a form reads, its guards' among them
+   (`GDP_X_RANK`), puts the plain bounds first, but `Vote <= started` ties with it and is taken.
+2. **An unknown answer jumps to the whole set.** With two forms the goal has a model the query doesn't find, so the
+   join asks the whole set next (178 forms, 12,234 hypotheses), which settles nothing. Widening first by every form
+   the last counterexample's ruling list holds (`GDP_X_WIDEN`, 13 forms, the plain law among them, 1,177 hypotheses)
+   doesn't settle it either.
+3. **The query itself, the real block.** Forced to the plain law alone (`GDP_X_FORCE`, 571 hypotheses), the join's
+   query is unknown at 1.3M of the kernel's work, and at 5.2M with four times the budget. The same goal grown once on
+   lawInstances' tuples is proven in 1.34 s locally, and proveLaw proves it in 0.32 s. What differs:
+   - **The budget.** The proof path gives a goal a second of the counted clock per hypothesis, 20 s at least. The
+     join gives 8 s, a quarter of it to a model-only search first.
+   - **The tuples.** The proof path tries thinned instances (those the triggers read) before the full ones. Trying
+     them first in the join (`GDP_X_THIN`, `triggered` exported from kernel/prove.ts) didn't settle the goal.
+   - **The simplex's point.** The proof path decides there; turned on in the join too (`GDP_X_POINT`), nothing changed.
+   Asking the proof path itself when the join's query has no answer (`GDP_X_PROOF`) does settle these goals. It
+   returns the safety law's models, which the join's own query never finds, but at 0.5 to 10 s a call it spends the
+   60 s search's whole budget by the end of round 1. At 600 s the join gets to the template law and stops on an
+   "outside" model.
+4. **The kept-hull variant.** The join refines the pair view's control by VotingQuorum, Voted and Decided, which
+   splits "a vote means voted" into pieces, one for each control state. Keeping the unrefined hull's forms beside the
+   pieces (`GDP_X_WHOLE`) brings the plain law back into the set; it's still out-ranked (1 above).
+
+So toy at 60 s needs the join's queries to cost what the proof path's do: about a tenth of the counted work per goal,
+or a per-goal budget the 60 s search can afford many of. No change in core/infer.ts alone measured here gets there. Every
+switch above is in `gaps2.patch`, and nothing is in the code; none was put through a bar, since nothing moved.
 
 ### distributed_lock: two shapes the search can't state
 
