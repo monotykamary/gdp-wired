@@ -61,7 +61,7 @@ type V =
   | {t: 'fmt', tpl: string, k: K}
   | {t: 'opaque', why: string}
   | {t: 'ext', q: string, text: string, patch?: Patch}
-  | {t: 'fn', id: string, self?: V} | {t: 'cls', rec: string} | {t: 'builtin', n: string} | {t: 'lib', q: string}
+  | {t: 'fn', id: string, self?: V} | {t: 'cls', rec: string, patch?: Patch} | {t: 'builtin', n: string} | {t: 'lib', q: string}
   | {t: 'sattr', store: string, path: string}
   | {t: 'tuple', xs: V[]} | {t: 'lock'}
 type Origin = 'state' | 'input' | 'fresh'
@@ -73,7 +73,7 @@ type Path = {pc: B[], locals: Map<string, V>, heap: Map<string, Obj>, called: st
 type Flow = {live?: Path, rets: [Path, V][]}
 // What the harness is told: where each leaf of the state is, how each argument is made, what each stub answers.
 export type Leaf = {name: string, path: string[], kind: 'num' | 'bool' | 'str' | 'choice' | 'none' | 'map' | 'frame', float?: boolean, cls?: string, fields?: {name: string, float?: boolean}[], key?: 'num' | 'str', store?: string, tpl?: string}
-export type PArg = {k: 'in', name: string, float?: boolean} | {k: 'opt', none: string, v: PArg} | {k: 'rec', cls: string, f: [string, PArg][]} | {k: 'inert'} | {k: 'store', name: string} | {k: 'dflt'}
+export type PArg = {k: 'in', name: string, float?: boolean, z?: Raw} | {k: 'opt', none: string, v: PArg} | {k: 'rec', cls: string, f: [string, PArg][]} | {k: 'inert'} | {k: 'store', name: string} | {k: 'dflt'}
 export type Answer = {key: string, patch: Patch, async: boolean, inputs: {name: string, none?: string, float?: boolean}, sort: string}
 export type StepRead = {madeAt?: string, model: Model, leaves: Leaf[], args: Record<string, [string, PArg][]>, answers: Answer[], ctor: [string, PArg][], kept: boolean, arms: [string, number][], cls?: string, stores: Record<string, StoreDecl>, results: Record<string, 'none' | 'scalar' | 'maybe'>}
 
@@ -105,6 +105,7 @@ export class Stepper {
   readonly notes = new Set<string>()
   readonly refusals: B[] = []
   fails: B[] = []
+  failPaths: Path[] = []
   readonly maps: MapDecl[] = []
   readonly answers = new Map<string, Answer>()
   readonly spans = new Map<string, [string, number, number]>()
@@ -115,6 +116,7 @@ export class Stepper {
   readonly storeMaps = new Map<string, {store: string, tpl: string, id: string, decl: MapDecl}>()
   frames: string[] = []
   fieldNames = new Set<string>()
+  readonly frozen = new Set<string>()
   now?: Var
   madeAt?: Var
   sel: B = I.T
@@ -153,7 +155,7 @@ export class Stepper {
   // An input of a type: its variables, the value, and how the harness makes it.
   input(name: string, t: SType, at: {p: string}, p: Path, role: Var['role'] = 'input'): [V, PArg] {
     const s = this.scalar(t)
-    if (s) { const v = this.newVar(name, s, role); return [this.valueOf(v), {k: 'in', name: v.name, ...(t.k === 'float' ? {float: true} : {})}] }
+    if (s) { const v = this.newVar(name, s, role); return [this.valueOf(v), {k: 'in', name: v.name, z: zeroRaw(s), ...(t.k === 'float' ? {float: true} : {})}] }
     if (t.k === 'opt') {
       if (t.of.k === 'rec') {
         const none = this.newVar(`${name}_none`, {k: 'bool'}, role, `whether ${name} is None`)
@@ -163,7 +165,7 @@ export class Stepper {
       const inner = this.scalar(t.of)
       if (!inner) return refuse(at, `${name}: an optional ${this.why(t.of)}`)
       const v = this.newVar(name, inner, role, `0 where ${name} is None`), none = this.newVar(`${name}_none`, {k: 'bool'}, role, `whether ${name} is None`)
-      return [{t: 'opt', has: I.not(I.bvar(none.name)), v: this.valueOf(v)}, {k: 'opt', none: none.name, v: {k: 'in', name: v.name, ...(t.of.k === 'float' ? {float: true} : {})}}]
+      return [{t: 'opt', has: I.not(I.bvar(none.name)), v: this.valueOf(v)}, {k: 'opt', none: none.name, v: {k: 'in', name: v.name, z: zeroRaw(inner), ...(t.of.k === 'float' ? {float: true} : {})}}]
     }
     if (t.k === 'none') return [{t: 'none'}, {k: 'dflt'}]
     if (t.k === 'rec' && role === 'input') {
@@ -194,6 +196,8 @@ export class Stepper {
     const w = I.and(this.cond(p), c)
     if (w.op === 'const' && !w.v) return
     if (this.init) { this.fails.push(w); return }
+    // Failures kept with what the step wrote before them (the caller sees both): the path goes on to the step's end.
+    if (this.opts.failures === 'kept' && this.opts.onError !== 'discard') { this.failPaths.push(this.assume(p, c)); this.fails.push(w); this.notes.add(`${this.method}: ${what} (${at.p}) is the step's failure, kept as its result (with what the step wrote before it)`); return }
     if (this.opts.onError !== 'discard' && this.changed(p)) refuse(at, `${what} after the state is written (the caller would see the object changed and the call failed; with onError: 'discard' the caller is taken to drop what a failed call wrote)`)
     this.fails.push(w)
     this.notes.add(`${this.method}: ${what} (${at.p}) is ${this.opts.failures === 'kept' ? 'the step\'s failure, kept as its result' : 'the step\'s refusal'}`)
@@ -243,6 +247,8 @@ export class Stepper {
   ite(c: B, a: V, b: V, at: {p: string}): V {
     if (c.op === 'const') return c.v ? a : b
     if (a === b || keyV(a) === keyV(b)) return a
+    if (a.t === 'opaque') return a
+    if (b.t === 'opaque') return b
     if (a.t === 'num' && b.t === 'num') return {t: 'num', e: I.nite(c, a.e, b.e)}
     if (a.t === 'bool' && b.t === 'bool') return {t: 'bool', e: I.bite(c, a.e, b.e)}
     if (a.t === 'str' && b.t === 'str') return {t: 'str', e: I.kite(c, a.e, b.e)}
@@ -257,8 +263,6 @@ export class Stepper {
       return {t: 'opt', has: I.bite(c, oa.has, ob.has), v: this.ite(c, oa.v, ob.v, at)}
     }
     if (a.t === 'tuple' && b.t === 'tuple' && a.xs.length === b.xs.length) return {t: 'tuple', xs: a.xs.map((x, i) => this.ite(c, x, b.xs[i]!, at))}
-    if (a.t === 'opaque') return a
-    if (b.t === 'opaque') return b
     if (a.t === 'ref' && b.t === 'ref') return refuse(at, 'one of two objects by a condition')
     return refuse(at, `a value that is a ${a.t} on one path and a ${b.t} on another`)
   }
@@ -267,21 +271,40 @@ export class Stepper {
     return {has: {op: 'cell', map: d.name, key, field: 'has'}, vals}
   }
 
+  // A value that may be None, read where the path has decided which (after `if x is None: return`).
+  narrow(v: V, p: Path): V {
+    if (v.t !== 'opt') return v
+    const c = this.cond(p)
+    if (I.and(c, I.not(v.has)).op === 'const') return this.narrow(v.v, p)
+    if (I.and(c, v.has).op === 'const') return {t: 'none'}
+    return v
+  }
   // --- conversions ----------------------------------------------------------------------------------------------------
   // Python's truthiness, made explicit: a later reader's `if` reads a boolean only.
-  truthy(v: V, at: {p: string}): B {
+  truthy(v: V, at: {p: string}, p?: Path): B {
     switch (v.t) {
       case 'bool': return v.e
       case 'num': return I.not(I.cmp('=', v.e, I.num(0)))
       case 'str': return I.not(I.keq(v.e, {op: 'slit', value: ''}))
       case 'choice': return (v.e as {values: string[]}).values.includes('') ? I.not(I.is(v.e, '')) : I.T
       case 'none': return I.F
-      case 'opt': return I.and(v.has, this.truthy(v.v, at))
-      case 'ref': return refuse(at, `${(at as SX).text ?? ''}: the truth of an object (a dict's is whether it is empty; an object's may be its own __bool__)`)
+      case 'opt': return I.and(v.has, this.truthy(v.v, at, p))
+      case 'ref': {
+        // An object is true unless its class (or a base) defines __bool__ or __len__; a dict's truth is whether it is
+        // empty, which the subset doesn't read.
+        const o = (p?.heap ?? this.initHeap).get(v.id)
+        if (o?.k === 'store') return I.T
+        if (o?.k === 'rec' && this.plainTruth(o.ty)) return I.T
+        return refuse(at, `${(at as SX).text ?? ''}: the truth of ${o?.k === 'map' ? 'a dict (whether it is empty)' : 'an object whose class may define __bool__ or __len__'}`)
+      }
       case 'cell': case 'fmt': case 'fn': case 'cls': case 'lock': return I.T
       case 'builtin': case 'ext': case 'lib': case 'opaque': case 'sattr': case 'tuple': break
     }
     return refuse(at, `${(at as SX).text ?? ''}: the truth of ${v.t === 'opaque' ? v.why : `a ${v.t}`}`)
+  }
+  plainTruth(ty: string): boolean {
+    const r = this.mod.recs[ty]
+    return !!r && !('__bool__' in r.methods) && !('__len__' in r.methods) && !r.kinds.includes('typeddict') && !r.kinds.some(k => k.startsWith('outside-base:'))
   }
   // A number, where the code reads one (a failure where it is None: Python raises a TypeError).
   numOf(v: V, at: SX, p: Path): N {
@@ -352,7 +375,7 @@ export class Stepper {
       case 'set': { const [v, q] = this.ev(s.x as SX, p); return {live: this.assign(s.to as SX, v, s, q, s.t as SType | undefined), rets: []} }
       case 'if': {
         const [cv, q] = this.ev(s.c as SX, p)
-        const c = this.truthy(cv, s.c as SX)
+        const c = this.truthy(cv, s.c as SX, q)
         const t = c.op === 'const' && !c.v ? undefined : this.block(s.then as SS[], this.assume(q, c))
         const e = c.op === 'const' && c.v ? undefined : this.block(s.else as SS[], this.assume(q, I.not(c)))
         const lives = [t?.live, e?.live].filter((x): x is Path => !!x)
@@ -404,6 +427,7 @@ export class Stepper {
       }
       case 'tuple': {
         const xs = to.xs as SX[]
+        if (v.t === 'opaque' && xs.every(y => y.e === 'var')) { let q = p; for (const y of xs) q = this.assign(y, v, at, q); return q }
         if (v.t !== 'tuple' || v.xs.length !== xs.length) return refuse(at, `${xs.length} names given ${v.t === 'tuple' ? `${v.xs.length} values` : `a ${v.t === 'opaque' ? v.why : v.t}`}`)
         let q = p
         xs.forEach((x, i) => { q = this.assign(x, v.xs[i]!, at, q) })
@@ -436,6 +460,7 @@ export class Stepper {
     if (obj.origin === 'state' && !this.init && !obj.f.has(f)) return refuse(at, `${at.text}: a field the constructor doesn't set (the state's fields are the constructor's)`)
     const old = obj.f.get(f)
     if (old?.t === 'opaque' && obj.origin === 'state' && !this.init) return refuse(at, `${at.text}: writes ${old.why}`)
+    if (o.id === 'this' && this.frozen.has(f) && !this.init) return refuse(at, `${at.text}: writes a field the constructor sets to None (of no type the code states)`)
     if (this.init && t) this.declared.set(`${o.id}.${f}`, t)
     const heap = new Map(p.heap).set(o.id, {...obj, f: new Map(obj.f).set(f, v)})
     return {...p, heap}
@@ -557,6 +582,7 @@ export class Stepper {
     if (typeof f.q === 'string') out.push(f.q)
     if (f.e === 'get') out.push(String(f.f))
     if (f.e === 'fn') out.push(String(f.id))
+    if (f.e === 'var') out.push(String(f.n))
     return out
   }
   match(list: string[] | undefined, names: string[]): string | undefined {
@@ -591,9 +617,9 @@ export class Stepper {
       case 'bool': return [{t: 'bool', e: x.v ? I.T : I.F}, p]
       case 'str': return [{t: 'str', e: {op: 'slit', value: String(x.v)}}, p]
       case 'none': return [{t: 'none'}, p]
-      case 'var': { const v = p.locals.get(String(x.n)); if (!v) return refuse(x, `${String(x.n)}: a variable read before it is set`); return [v, p] }
+      case 'var': { const v = p.locals.get(String(x.n)); if (!v) return refuse(x, `${String(x.n)}: a variable read before it is set`); return [this.narrow(v, p), p] }
       case 'fn': return [{t: 'fn', id: String(x.id)}, p]
-      case 'cls': return [{t: 'cls', rec: String(x.rec)}, p]
+      case 'cls': return [{t: 'cls', rec: String(x.rec), ...(x.patch ? {patch: x.patch as Patch} : {})}, p]
       case 'builtin': return [{t: 'builtin', n: String(x.n)}, p]
       case 'lib': return [{t: 'lib', q: String(x.q)}, p]
       case 'ext': return [{t: 'ext', q: String(x.q), text: String(x.text), ...(x.patch ? {patch: x.patch as Patch} : {})}, p]
@@ -610,14 +636,14 @@ export class Stepper {
         return this.mapGet(m, this.keyOf(k, x.i as SX), x, q2, 'fail')
       }
       case 'neg': { const [v, q] = this.ev(x.x as SX, p); if (v.t === 'opaque') return [v, q]; return [{t: 'num', e: I.neg(this.numOf(v, x, q))}, q] }
-      case 'not': { const [v, q] = this.ev(x.x as SX, p); if (v.t === 'opaque') return [v, q]; return [{t: 'bool', e: I.not(this.truthy(v, x))}, q] }
+      case 'not': { const [v, q] = this.ev(x.x as SX, p); if (v.t === 'opaque') return [v, q]; return [{t: 'bool', e: I.not(this.truthy(v, x, q))}, q] }
       case 'bin': return this.bin(x, p)
       case 'cmp': return this.compare(x, p)
       case 'and': case 'or': return this.boolOp(x, p)
       case 'ite': {
         const [cv, q] = this.ev(x.c as SX, p)
         if (cv.t === 'opaque') return [cv, q]
-        const c = this.truthy(cv, x.c as SX)
+        const c = this.truthy(cv, x.c as SX, q)
         if (c.op === 'const') return this.ev((c.v ? x.a : x.b) as SX, q)
         const [a, qa] = this.ev(x.a as SX, this.assume(q, c)), [b, qb] = this.ev(x.b as SX, this.assume(q, I.not(c)))
         return [this.ite(c, a, b, x), this.merge(qa, qb, x)]
@@ -653,7 +679,7 @@ export class Stepper {
       case 'cls': {
         const r = this.rec(o.rec, x), mid = r.methods[f]
         if (mid) return [{t: 'fn', id: mid}, q]
-        return [{t: 'ext', q: `${o.rec}.${f}`, text: x.text ?? f}, q]
+        return [{t: 'ext', q: `${o.rec}.${f}`, text: x.text ?? f, ...(o.patch?.path ? {patch: {...o.patch, path: [...o.patch.path, f]}} : {})}, q]
       }
       case 'bool': case 'builtin': case 'choice': case 'fmt': case 'fn': case 'lib': case 'lock': case 'num': case 'str': case 'tuple': return refuse(x, `${x.text}: a field of a ${o.t}`)
     }
@@ -761,7 +787,7 @@ export class Stepper {
     const go = (i: number, q: Path): [V, Path] => {
       const [v, q1] = this.ev(xs[i]!, q)
       if (i === xs.length - 1 || v.t === 'opaque') return [v, q1]
-      const c = this.truthy(v, xs[i]!)
+      const c = this.truthy(v, xs[i]!, q1)
       const stop = isAnd ? I.not(c) : c
       if (stop.op === 'const' && stop.v) return [v, q1]
       const [rest, q2] = go(i + 1, this.assume(q1, I.not(stop)))
@@ -795,9 +821,9 @@ export class Stepper {
     const ans = this.match(Object.keys(this.opts.answers ?? {}), names)
     if (ans) {
       let patch: Patch | undefined
-      if (fx.e === 'ext' || fx.e === 'fn') patch = fx.e === 'ext' ? fx.patch as Patch : {mod: this.mod.module, path: [String(fx.id)]}
+      if (fx.e === 'fn') patch = {mod: this.mod.module, path: [String(fx.id)]}
       else if (fx.e === 'get' && (fx.x as SX).e === 'var' && (fx.x as SX).n === 'self') patch = {self: String(fx.f)}
-      else if (fx.e === 'get') { const [o] = this.ev(fx, p); if (o.t === 'ext') patch = o.patch }
+      else { const [o] = this.ev(fx, p); if (o.t === 'ext' || o.t === 'cls') patch = o.patch }
       return this.answer(ans, names, patch, x, p, awaited)
     }
     if (this.skipped(names)) {
@@ -928,7 +954,7 @@ const split = (t: string): [string, string] => { const i = t.indexOf('{}'); retu
 // --- a module's step: the class (or the functions) read into the Model -------------------------------------------------
 export function readStep(mod: SModule, opts: StepOptions): StepRead {
   if (mod.error) refuse(mod.file, mod.error)
-  const g = new Stepper(mod, opts), kept = opts.failures === 'kept'
+  const g = new Stepper(mod, opts), kept = opts.failures === 'kept', carried = kept && opts.onError !== 'discard'
   const entries = mod.entries
   for (const e of entries) if (e.k === 'missing') refuse(mod.file, `no class or function ${e.name} in ${mod.file}`)
   const cls = entries.length === 1 && entries[0]!.k === 'class' ? (entries[0] as {rec: string}).rec : undefined
@@ -1029,6 +1055,8 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
         return
       }
       if (v.t === 'lock') { into.set(f, v); return }
+      // A field the constructor sets to None, of no declared type: a constant (a method setting it is refused).
+      if (v.t === 'none') { into.set(f, v); g.frozen.add(path.join('.')); leaves.push({name: '', path, kind: 'frame'}); return }
       into.set(f, {t: 'opaque', why: `${path.join('.')}: ${v.t === 'opaque' ? v.why : `a ${v.t}`}, a field outside the subset (left out of the rule)`})
       leaves.push({name: '', path, kind: 'frame'})
     }
@@ -1059,9 +1087,9 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
       const [v, a] = g.input(`${names.length > 1 ? `${fn.name}_` : ''}${pa.name}`, pa.t, fn, p)
       args.push(v); pargs.push([pa.name, a])
     }
-    g.fails = []
+    g.fails = []; g.failPaths = []
     const [out, q] = g.callFunc(fn, cls ? {t: 'ref', id: 'this'} : undefined, args, [], {e: 'call', p: fn.p, text: fn.name}, p, fn.async ?? false)
-    p = q
+    p = g.failPaths.length ? g.join([q, ...g.failPaths], fn)! : q
     finals.push({sel, path: p, out, fails: g.fails})
     argsOf[fn.name] = pargs
   }
@@ -1100,7 +1128,7 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
     for (let i = finals.length - 1; i >= 0; i--) {
       const f = finals[i]!
       let t = leafAt(f.path, l, {p: chosen[i]!.p})
-      if (kept) t = iteTerm(failedOf(f), varTerm(v), t)
+      if (kept && !carried) t = iteTerm(failedOf(f), varTerm(v), t)
       acc = acc === undefined ? t : iteTerm(f.sel, t, acc)
     }
     if (acc && !I.same(acc.e, varTerm(v).e)) writes[v.name] = acc
@@ -1124,7 +1152,7 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
       const base = (k: K) => { const c = g.baseCell(d, k); return {key: k, has: c.has, vals: Object.fromEntries([...c.vals].map(([f, v]) => [f, termOf(v, at)]))} }
       const w0 = ws[i]
       let w = w0 ? {key: w0.key, has: w0.has, vals: Object.fromEntries([...w0.vals].map(([f, v]) => [f, termOf(v, at)]))} : base(acc?.key ?? key0)
-      if (kept && w0) { const fl = failedOf(finals[i]!), b = base(w.key); w = {key: w.key, has: I.bite(fl, b.has, w.has), vals: Object.fromEntries(Object.entries(w.vals).map(([f, t]) => [f, iteTerm(fl, b.vals[f]!, t)]))} }
+      if (kept && !carried && w0) { const fl = failedOf(finals[i]!), b = base(w.key); w = {key: w.key, has: I.bite(fl, b.has, w.has), vals: Object.fromEntries(Object.entries(w.vals).map(([f, t]) => [f, iteTerm(fl, b.vals[f]!, t)]))} }
       acc = acc === undefined ? w : {key: I.kite(finals[i]!.sel, w.key, acc.key), has: I.bite(finals[i]!.sel, w.has, acc.has), vals: Object.fromEntries(Object.entries(w.vals).map(([f, t]) => [f, iteTerm(finals[i]!.sel, t, acc!.vals[f]!)]))}
     }
     mapWrites[d.name] = acc!
@@ -1195,13 +1223,24 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
   }
   const left = leaves.filter(l => l.kind === 'frame' && !l.cls).map(l => l.path.join('.'))
   if (left.length) g.notes.add(`left out (outside the subset; the methods read don't touch them): ${left.join(', ')}`)
+  // Inputs no term reads are left out of the rule (the harness gives them their sort's zero, or None).
+  const read = new Set<string>()
+  const mention = (t: object) => { for (const n of I.varsOf(t as N).vars) read.add(n) }
+  for (const t of [...Object.values(writes), ...Object.values(init)]) mention(t.e)
+  for (const w of Object.values(mapWrites)) { mention(w.has); mention(w.key); for (const t of Object.values(w.vals)) mention(t.e) }
+  mention(refuseB); mention(pre)
+  const unread = g.inputs.filter(v => !read.has(v.name) && v.name !== ev?.name)
+  if (unread.length) g.notes.add(`read by the code but by no term of the rule (given their sort's zero, or None, by the check): ${unread.map(v => v.name).join(', ')}`)
+  const inputs = g.inputs.filter(v => !unread.includes(v))
+  for (const e of events) { const a = e.args[0] as {k: 'rec', fields: [string, Arg][]}; a.fields = a.fields.filter(([n]) => !unread.some(v => v.name === n)) }
   const model: Model = {
     name: cls ? g.rec(cls, at).short : names.length === 1 ? names[0]! : mod.module.split('.').pop()!, shape: 'class', file: mod.file, entry: cls ? g.rec(cls, at).short : names.join(', '),
-    params: g.params, inputs: g.inputs, state, maps, init, writes, mapWrites, outputs,
+    params: g.params, inputs, state, maps, init, writes, mapWrites, outputs,
     refuse: refuseB, pre, layout, events, notes: [...g.notes], hints: g.hints, ...(ev ? {event: ev.name} : {}), results, laws,
   }
   return {...(g.madeAt ? {madeAt: g.madeAt.name} : {}), model, leaves, args: argsOf, answers: [...g.answers.values()], ctor, kept, arms: [...g.arms].map(a => { const i = a.lastIndexOf(':'); return [a.slice(0, i), Number(a.slice(i + 1))] }), ...(cls ? {cls} : {}), stores, results: resultKinds}
 }
+const zeroRaw = (s: Var['sort']): Raw => (s.k === 'num' ? 0 : s.k === 'bool' ? false : s.k === 'choice' ? s.values[0]! : '')
 const zeroOf = (s: Var['sort']): V => (s.k === 'num' ? {t: 'num', e: I.num(0)} : s.k === 'bool' ? {t: 'bool', e: I.F} : s.k === 'choice' ? {t: 'choice', e: I.llit(s.values[0]!, s.values)} : {t: 'str', e: {op: 'slit', value: ''}})
 const varTerm = (v: Var): Term => (v.sort.k === 'num' ? {s: 'num', e: I.nvar(v.name)} : v.sort.k === 'bool' ? {s: 'bool', e: I.bvar(v.name)} : v.sort.k === 'choice' ? {s: 'choice', e: {op: 'var', name: v.name, values: v.sort.values}} : {s: 'str', e: {op: 'svar', name: v.name}})
 function iteTerm(c: B, a: Term, b: Term): Term {
@@ -1258,7 +1297,7 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
     }
     const j = (x: Raw) => (typeof x === 'number' ? String(x) : x)
     const snapJson = (s: Snap): Record<string, unknown> => ({...Object.fromEntries(Object.entries(s.leaves).map(([k, v]) => [k, j(v)])), ...Object.fromEntries(Object.entries(s.maps).map(([k, cells]) => [k, Object.fromEntries(Object.entries(cells).map(([key, c]) => [key, Object.fromEntries(Object.entries(c).map(([f, x]) => [f, j(x)]))]))]))})
-    const build = (a: PArg, inputs: Record<string, Raw>): unknown => (a.k === 'in' ? {in: inputs[a.name] ?? 0, ...(a.float ? {float: true} : {})} : a.k === 'opt' ? (inputs[a.none] === true ? {none: true} : build(a.v, inputs)) : a.k === 'rec' ? {rec: a.cls, f: Object.fromEntries(a.f.map(([f, x]) => [f, build(x, inputs)]))} : a.k === 'inert' ? {inert: true} : a.k === 'store' ? {store: a.name} : {dflt: true})
+    const build = (a: PArg, inputs: Record<string, Raw>): unknown => (a.k === 'in' ? {in: inputs[a.name] ?? a.z ?? 0, ...(a.float ? {float: true} : {})} : a.k === 'opt' ? (inputs[a.none] === true ? {none: true} : build(a.v, inputs)) : a.k === 'rec' ? {rec: a.cls, f: Object.fromEntries(a.f.map(([f, x]) => [f, build(x, inputs)]))} : a.k === 'inert' ? {inert: true} : a.k === 'store' ? {store: a.name} : {dflt: true})
     const ctorArgs = (params: Record<string, Raw>) => read.ctor.map(([n, a]) => [n, build(a, params)])
     let now = 0, inputsNow: Record<string, Raw> = {}
     const answersOf = () => Object.fromEntries(read.answers.map(a => [a.key, a.inputs.none && inputsNow[a.inputs.none] === true ? {none: true} : {in: inputsNow[a.inputs.name] ?? 0, ...(a.inputs.float ? {float: true} : {})}]))
