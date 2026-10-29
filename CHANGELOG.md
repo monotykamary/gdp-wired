@@ -25,6 +25,37 @@ Nothing trusted changed (kernel/ and lean-kernel/ are e537601's); core/infer.ts 
   5,598 against 5,686). The suite --usual and the Lean sample were stopped by the bar's budget guard on both sides.
 - **Size:** core/ and kernel/ without tests +11,714 bytes.
 
+**Ten of ten written invariants proven: model instances at the goal's own names, order atoms in the EPR path, a
+slimmer epr.ts (gen/epr2).** Nothing trusted changed. research/protocols/epr/DESIGN.md, "gen/epr2", has the
+measurements.
+- **kernel/prove.ts `modelInstances`.**
+  - Each sort first ranges over the goal's own names (skolems, the request's inputs, quantified flags' witnesses, ∃
+    ghosts), witnesses first; every key the goal reads only where those show nothing.
+  - Before, a law over three keys at a hundred key values spent the round's 20,000 evaluations before the tuples a
+    model breaks it at.
+- **kernel/epr.ts.**
+  - **Least values:** models take the least values of their finite variables.
+  - **Order atoms:** a map's cells or a scalar compared with another non-constant term (epochs) are terms of a total,
+    transitive, discrete order over the naturals; distributed_lock's step goals went from 1 decided of 10 to 10 of 10,
+    every one agreeing with Z3.
+  - **A cap:** a goal with more than 64 ordered terms keeps the usual path.
+  - **Slimmer:** every part is an ordered term, its bound and equality the order's, so their own clauses and read-back
+    go (kernel/epr.ts 40,755 to 38,428 bytes).
+- **research/protocols/models.ts:** consensus_wo_decide's voting-quorum member is below N, as every request's quorum is
+  (a fix to our model).
+- **The pilot** (Modal, three runs a side against e537601):
+  - **all 10 written invariants proven in every run**, consensus_wo_decide's newly (31–43 s) and distributed_lock's
+    faster (6–11 s against 13–16);
+  - the searches at 60 s: the same five proven in every run, the misses' searches ending later (wo 33–59 s against
+    22–34: the path's work isn't on the search's counted clock);
+  - broken variants refused by the same runs; the 30 real-world laws over several keys the same, 607 s against 594 s.
+- **The full bar against e537601** (base together; `runs/bar/runs/epr2-full-a14265f`): wrong 0, nothing lost in every
+  run.
+  - CHC 1,165 against 1,174 in the first pass (2 gained, 7 lost after reruns, none solid; no changed code runs there).
+  - ITS +2. SV, TIP, the frontier and real-world corpora level. The 332 step goals the same search. Suites 225 of 225.
+  - Lean 47 of 48: slayer-3.t2_fixed, an ITS task this run gained, has a 17 MB certificate past Lean's maxRecDepth.
+- **Size:** core/ and kernel/ without tests +7,517 bytes against e537601.
+
 **The EPR path: goals over composed keys decided by their parts (gen/epr).** Nothing trusted changed.
 research/protocols/epr/DESIGN.md has the design, the probe and the measurements.
 - **kernel/epr.ts (new).** A goal of a rule with a composed key (a relation over several sorts, `a·N² + b·N + c`) whose

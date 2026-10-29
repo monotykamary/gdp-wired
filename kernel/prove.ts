@@ -947,15 +947,24 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   const keys = mapReads([goal]).keys, all = new Map<number, E>()
   for (const e of keys) { const v2 = valueOf(e); if (v2 !== undefined && !all.has(v2)) all.set(v2, e) }
   if (!all.size) return undefined
-  const sortsOf = (body: C, names: string[]): Map<number, E>[] => sortTerms(body, names, fns, () => keys).map(ts => {
+  // (each sort's witnesses first: an ∃ law's ghost, a quantified flag's witness, the terms a model most often breaks a
+  // law at and no read's matching orders well)
+  const witnessFirst = (p: Map<number, E>): Map<number, E> => {
+    const isW = (e: E) => /"name":"(some\$|w\?)/.test(JSON.stringify(e))
+    return new Map([...[...p].filter(([, e]) => isW(e)), ...[...p].filter(([, e]) => !isW(e))])
+  }
+  // (`atoms`: each sort over the goal's own names alone, its skolems, the request's inputs, witnesses and ghosts, the
+  // elements an EPR model names: a composed term in a part's place is an instance at a key of the wrong sort)
+  const sortsOf = (body: C, names: string[], atoms: boolean): Map<number, E>[] => sortTerms(body, names, fns, () => keys).map(ts => {
     const p = new Map<number, E>()
-    for (const e of ts ?? []) { const v2 = valueOf(e); if (v2 !== undefined && !p.has(v2)) p.set(v2, e) }
-    return p.size ? p : all
+    for (const e of ts ?? []) { const v2 = valueOf(e); if (v2 !== undefined && !p.has(v2) && (!atoms || e.op === 'var')) p.set(v2, e) }
+    const q = p.size ? p : atoms ? new Map([...all].filter(([, e]) => e.op === 'var')) : all
+    return witnessFirst(q.size ? q : all)
   })
   const out: Instances = {...inst}
   let added = 0, evals = 0
-  const each = (id: string, names: string[], body: C) => {
-    const have = new Set<string>(), had = out[id] ?? [], n = names.length, sorts = sortsOf(body, names)
+  const each = (id: string, names: string[], body: C, atoms: boolean) => {
+    const have = new Set<string>(), had = out[id] ?? [], n = names.length, sorts = sortsOf(body, names, atoms)
     // (a law at one key assumed at a term of every value its sort takes already: nothing to add)
     if (n === 1) { const covered = new Set(had.map(valueOf)); if ([...sorts[0]!.keys()].every(v2 => covered.has(v2))) return }
     for (let t = 0; t + n <= had.length; t += n) have.add(JSON.stringify(had.slice(t, t + n)))
@@ -973,8 +982,13 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
     }
     go(0, {}, [])
   }
-  for (const l of keyed) each(l.name, [l.forall!, ...(l.keys ?? [])], l.holds)
-  for (const [f, q] of qs) each(`?${f}`, boundOf(q), q.c)
+  // the goal's own names first; every key it reads where they show nothing
+  for (const atoms of [true, false]) {
+    if (atoms === false && added) break
+    evals = 0
+    for (const l of keyed) each(l.name, [l.forall!, ...(l.keys ?? [])], l.holds, atoms)
+    for (const [f, q] of qs) each(`?${f}`, boundOf(q), q.c, atoms)
+  }
   return added ? out : undefined
 }
 // A goal (or a law's goals) asked at some instances, and again at those its model asks for (modelInstances), up to
