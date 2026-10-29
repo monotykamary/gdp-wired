@@ -320,7 +320,9 @@ export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number
   // EPR-shaped: no comparison the abstraction can't read (a counter's arithmetic, a sum, a product) in any hypothesis
   if (opts.exact) { const tied = new Set([...keyEqs, ...intervals].map(k => (k.p as {v: number}).v)); const loose = [...foreign].filter(i => !tied.has(i)).length; if (loose) return {unknown: `${loose} comparisons outside the EPR shape`} }
   // --- the search
-  const out = cdcl(clauses, opts.conflicts ?? 200_000)
+  // (a finite variable at 0 first: models with the least values, which break the fewest laws at keys nothing names)
+  const first = new Set([...fins.values()].map(f => v(finAt(f, 0))!))
+  const out = cdcl(clauses, opts.conflicts ?? 200_000, first)
   if (out === undefined) return {unknown: 'the conflict budget ran out'}
   if (!out.sat) return {sat: false, core: [...out.core].filter(i => i >= 0).sort((a, b) => a - b)}
   // --- a model, read back: each class of equal parts a value of its own (the least its bounds allow), each composed
@@ -392,7 +394,7 @@ export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number
 
 // A small CDCL over clauses with origins: two watched literals, activity, learned clauses carrying the union of the
 // origins they were resolved from, so a refutation's origins are its core. undefined: past the conflict budget.
-function cdcl(input: {lits: number[], from: Origin}[], budget: number): {sat: true, model: boolean[]} | {sat: false, core: Set<number>} | undefined {
+function cdcl(input: {lits: number[], from: Origin}[], budget: number, trueFirst: Set<number> = new Set()): {sat: true, model: boolean[]} | {sat: false, core: Set<number>} | undefined {
   let n = 0
   for (const c of input) for (const l of c.lits) n = Math.max(n, Math.abs(l))
   const idx = new Map<number, number>(), back: number[] = [0]
@@ -469,6 +471,6 @@ function cdcl(input: {lits: number[], from: Origin}[], budget: number): {sat: tr
     for (let x = 1; x < nv; x++) if (val[x] === 0 && act[x]! > ba) { ba = act[x]!; best = x }
     if (!best) { const model: boolean[] = []; for (let x = 1; x < nv; x++) model[back[x]!] = val[x]! > 0; return {sat: true, model} }
     lim.push(trail.length)
-    assign(-best)
+    assign(trueFirst.has(back[best]!) ? best : -best)
   }
 }

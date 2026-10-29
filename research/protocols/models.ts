@@ -389,7 +389,7 @@ export const protocols: Protocol[] = [
       r.law('a leader has the voting quorum\'s votes', ({Leader, Votes, VotingQuorum}: any) => forall((n, s) => lt(n, s).and(Leader.at(n), VotingQuorum.has(s)).implies(Votes.at(pk(n, s))))),
       r.law('nothing before init', ({started, Leader}: any) => forall(n => started.eq(0).implies(Leader.at(n).not()))),
       // (Ivy's quorums meet, so the voting quorum is never empty; without it an empty one lets anyone lead: COST.md)
-      r.law('after init the voting quorum has a member', ({started, VotingQuorum}: any) => started.eq(1).implies(exists((x: Term) => VotingQuorum.has(x),
+      r.law('after init the voting quorum has a member', ({started, VotingQuorum}: any) => started.eq(1).implies(exists((x: Term) => x.lt(N).and(VotingQuorum.has(x)),
         {start: 0, step: (before: Term, env: any) => when(env.inits.or(env.chooses), env.w, before)}))),
     ]},
   {id: 'ring_leader_election', source: 'DuoAI protocols/ring_leader_election (DistAI: leader election; Ivy\'s leader_election_ring)', safety: 'leader(X) & leader(Y) -> X = Y',
