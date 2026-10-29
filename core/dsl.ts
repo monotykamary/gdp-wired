@@ -19,7 +19,7 @@ import {type C, type E, type Fn, argsKey, type Law, type Recurrence, type Machin
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {someHolds, substVars, substVarsE} from './exists.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations, substC, sumMachine} from '../kernel/kernel.ts'
-import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
+import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
@@ -2642,6 +2642,11 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
     if (deeper?.run) return refutedVerdict(deeper)
   }
   const until = clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
+  // (the search's end on the wall too: kernel/prove.ts's withWall, past which every goal is unknown)
+  return withWall(performance.now() + Math.max(0, until - clock()), () => searchedUntil(r, laws, stepLaws, v, opts, until))
+}
+function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions, until: number): Verdict {
+  const any = opts.from === 'any'
   // Bounded runs (core/bmc.ts): a law broken k steps from the start, a model of the kernel's k-step goal, the run taken
   // by the interpreter. The shallow depths first, within a fortieth of the search's budget (at most 250 ms, counted in
   // the cost model's work: kernel/prove.ts's `counted` with `full`); the deeper ones only where the invariant search
