@@ -1725,6 +1725,15 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const ks = sorts!, comp = ks.composedMaps.length && pairing?.n ? [ks.find('hi'), ks.find('lo')] : undefined
       const ss = [...new Set([...ks.plainRead.map(mp => ks.find(`M:${mp}`)), ...(comp ?? [])])]
       const width = ss.map(s => Math.min(3, Math.max(ks.plainMaps(s).length ? 1 : 0, comp?.filter(c => c === s).length ?? 0, ...callerLaws.map(l => [l.forall, ...(l.keys ?? [])].filter(b => b && ks.sortOf(l, b) === s).length))))
+      // (a key's own bounds: a caller's law's guards on one key of the sort alone, k < 64)
+      const bounds = new Map<string, C[]>()
+      for (const l of callerLaws) {
+        const b = [l.forall, ...(l.keys ?? [])].filter((q): q is string => !!q)
+        for (const g of b.length ? ks.shape(l, b).guards : []) {
+          const one = b.filter(q => JSON.stringify(g).includes(`"name":"${q}"`)), s = one.length === 1 && !ks.moving(g, one) ? ks.sortOf(l, one[0]!) : undefined
+          if (s) bounds.set(s, [...(bounds.get(s) ?? []), substC(g, {vars: {[one[0]!]: x(KEY)}, maps: {}, flags: {}})])
+        }
+      }
       const out: Form[] = []
       for (const counts of width.reduce<number[][]>((acc, w) => acc.flatMap(c => Array.from({length: w + 1}, (_, k) => [...c, k])), [[]])) {
         const keys = ss.flatMap((s, i) => Array.from({length: counts[i]!}, () => s)), vars = keys.map((_, i) => `key${i + 1}$enum`)
@@ -1732,7 +1741,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const places: E[] = [], mapsAt: string[][] = [], covers: number[][] = []
         keys.forEach((s, i) => { if (ks.plainMaps(s).length) { places.push(x(vars[i]!)); mapsAt.push(ks.plainMaps(s)); covers.push([i]) } })
         if (comp) keys.forEach((a, i) => keys.forEach((b, j) => { if (a === comp[0] && b === comp[1]) { places.push(ks.compose(x(vars[i]!), x(vars[j]!))); mapsAt.push(ks.composedMaps); covers.push(i === j ? [i] : [i, j]) } }))
-        const frame = all(...keys.flatMap((s, i) => [...(comp && s === comp[1] ? [atMost(x(vars[i]!), n(pairing!.n - 1))] : []), ...keys.slice(0, i).flatMap((t, j) => (t === s ? [not(same(x(vars[j]!), x(vars[i]!)))] : []))]))
+        const frame = all(...keys.flatMap((s, i) => [...(comp && s === comp[1] && !bounds.has(s) ? [atMost(x(vars[i]!), n(pairing!.n - 1))] : []), ...[...new Set((bounds.get(s) ?? []).map(g => JSON.stringify(substC(g, {vars: {[KEY]: x(vars[i]!)}, maps: {}, flags: {}}))))].map(t => JSON.parse(t) as C), ...keys.slice(0, i).flatMap((t, j) => (t === s ? [not(same(x(vars[j]!), x(vars[i]!)))] : []))]))
         const vi = views.length
         addView({vars, names: ['x', 'y', 'z', 'w'].slice(0, keys.length), places, covers, frame, need: keys.length, printable: false}, mapsAt, st => keys.map(s => ks.valuesAt(st, s)), Math.max(2, Math.floor(64 ** (1 / keys.length))))
         const v = views[vi]!, R = v.rows.slice(0, 3000).map(valuesOf)
