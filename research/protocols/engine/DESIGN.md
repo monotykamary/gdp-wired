@@ -163,6 +163,15 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - distributed now runs four rounds in 52 s: 9 real drops and 20 unsure in round 0. The unsure are the cubes no EPR decision covers. Dropped at round 3, they take the caller's law with them.
 - **Next:** the EPR path for the cubes `decideLaw` leaves undecided (their shapes); the caller's proof on wo.
 
+**wo's time** (`runs/engine/p23`, all ten, 2 runs):
+- **Changed:** the small instance gets at most 4 s; the ∃ candidates come at the caller's first failure, with its diagrams; the round timings are out.
+- **wo's 20 s before round 0:** the join takes about 10 s and the small instance 4 s. From there, round 0 takes about 21 s, most of it the caller's own proof (the CDCL check, then proveLaw at 10 s at most).
+- **wo now:**
+  - Round 1 starts at 35–37 s with the ∃ law and 4 diagrams.
+  - The caller's law then fails with no diagram at 43–49 s.
+  - So either the 52 cubes lack a ∀ law the written invariant has, or the caller's proof runs out within its 10 s.
+- **Verdicts:** the six proven (sync 8–9 s, async 27–28, decentralized 14–32, 2PC 17, ticket 30–33, toy 16–29); the four unknown.
+
 **Next steps, in order:**
 1. Start the stage earlier, with a planned share of the budget, not what's left after the join and the deep runs (distributed_lock's round 1 is cut short).
 2. Carry the model's function values into the judged state (ring): `stateOf`/`realCti` read `idn[...]` cells of the witness into the interpreter's view of `idn`, or judge rows with the model's values.
