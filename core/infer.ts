@@ -32,7 +32,7 @@
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
-import {type C, type E, type Fn, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
+import {type C, type E, type Fn, type Law, type Machine, type Request, type State, all, any, atMost, carriedView, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
 import {clock, counted, decideLaw, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
@@ -1768,6 +1768,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       for (let k = 0; k <= ns.length; k++) for (const [p, q, d] of e) if (dist.get(q)! + d < dist.get(p)!) { if (k === ns.length) return true; dist.set(p, dist.get(q)! + d) }
       return false
     }
+    const smallReq: {params: Env, combos: Request[]}[] = []
     const enumerated = (): Form[] => {
       const ks = sorts!, comp = ks.composedMaps.length && pairing?.n ? [ks.find('hi'), ks.find('lo')] : undefined
       const multi = [...ks.arity].map(([mp, k]) => ({mp, slots: Array.from({length: k}, (_, i) => ks.find(`${mp}:${i}`))}))
@@ -1820,6 +1821,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           let combos: Request[] = [{}]
           for (const [i, d] of doms) combos = combos.flatMap(c => d.map(v2 => ({...c, [i]: v2})))
           if (combos.length > 2048) combos = Array.from({length: 2048}, () => combos[rand(combos.length)]!)
+          smallReq.push({params, combos})
           let st0: State
           try { st0 = run.init(params) } catch { continue }
           const queue = [{params, st: st0}]
@@ -1946,6 +1948,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       let cubes: Form[] = []
       for (const f of [...made].sort((a, b) => near(a) - near(b))) { if (cubes.length >= 32 || stop()) break; if (!names.has(textOf(f)) && !implied(f)) cubes.push(f) }
       opts.progress?.('join enumerated', {views: views.length - v0, cubes: cubes.length})
+      opts.progress?.('join cubes', {cubes: cubes.map(textOf).join(' | ')})
       // (a goal's proof within the search's own end, on the cost model's clock: a counted search inside it keeps the end)
       const within = <T>(endWall: number, f: () => T): T => withWall(endWall, () => counted(fullRate, () => withDeadline(clock() + Math.max(0, endWall - performance.now()), f), true))
       // (a model's values past the rule's constants renamed onto small ones in order, a gap kept up to 64: the step then
@@ -1994,6 +1997,73 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         }
         return out2
       }
+      // ∀∃ (DuoAI's): where the caller's counterexample is a reachable small state's row in every view, a law
+      // A → ∃y. B(y): A the scalars' literals (or none), B one or two literals of a one-key view at y, true at every small
+      // state (A there, some key has B), B not at every key. Its witness a ghost (a value at the start, 0, and after
+      // each step: an input where an update of a map B reads takes its branch, else the value before), the first that
+      // holds along random runs of the small instance; then the ghost a state variable of the machine Houdini reads, its
+      // law a goal, and the final proof the ∃ law with that witness (core/exists.ts's).
+      type Ghost = {name: string, start: E, step: E, plain: Law, some: Law}
+      let ghost: Ghost | undefined, ghosts: Ghost[] | undefined
+      const ghosted = new WeakMap<Machine, Machine>()
+      const withGhost = (mm: Machine): Machine => {
+        if (!ghost) return mm
+        let g = ghosted.get(mm)
+        if (!g) { g = {...mm, state: {...mm.state, [ghost.name]: ghost.start}, step: {...mm.step, state: {...mm.step.state, [ghost.name]: ghost.step}}}; ghosted.set(mm, g) }
+        return g
+      }
+      const ghostsOf = (): Ghost[] => {
+        const out3: Ghost[] = []
+        const states = samples.slice(0, 3000), conds = new Map<string, C>()
+        for (const w of Object.values(m.step.maps ?? {})) walk(w.value, o => { if (o.op === 'if' && conds.size < 16) conds.set(JSON.stringify(o.c), o.c as C) })
+        for (const [vi, k] of known) {
+          const v = views[vi]!
+          if (v.vars.length !== 1 || stop()) continue
+          const keyed = (l: Lit) => atomsIn(formOf([l])).some(i => atoms[i]!.place !== undefined || !!atoms[i]!.term)
+          const As = [[], ...k.lits.filter(l => !keyed(l)).map(l => [l])], Bs0 = k.lits.filter(keyed)
+          const off = (l: Lit) => !('at' in l) || l.at.value !== 0
+          const Bs = [...Bs0.map(l => [l]), ...Bs0.flatMap((l, i) => Bs0.slice(i + 1).map(l2 => [l, l2]))].filter(b => !contradicts(b) && b.some(off))
+          const rowsAt = states.map(q => v.rowsOf(q.params, q.st).map(valuesOf))
+          for (const A of As) for (const B of Bs) {
+            if (out3.length >= 6) return out3
+            let some2 = false, notAll = false, ok = true
+            for (const rows of rowsAt) {
+              if (!rows.length || !inCube(A, rows[0]!)) continue
+              some2 = true
+              if (!rows.some(r => inCube(B, r))) { ok = false; break }
+              if (!rows.every(r => inCube(B, r))) notAll = true
+            }
+            if (!ok || !some2 || !notAll) continue
+            const y = `some$enum${vi}`, sub = {vars: {[v.vars[0]!]: x(y)}, maps: {}, flags: {}}
+            const holds = any(...(A.length ? [condOf(formOf(A, vi))] : []), all(substC(v.frame, sub), substC(not(condOf(formOf(B, vi))), sub)))
+            const name = `${A.length ? textOf(formOf(A, vi)) + ' else ' : ''}some ${textOf(formOf(B, vi))}`
+            // (the witness: along random runs of the small instance, the first ghost the law holds at)
+            witness: for (const c of [all(), ...conds.values()]) for (const i of m.inputs) {
+              const step: E = {op: 'if', c, then: x(i), else: x(y)}
+              let held2 = 0, bad = false
+              for (const {params, combos} of smallReq) for (let walk2 = 0; walk2 < 40 && !bad; walk2++) {
+                let st: State, g = 0
+                try { st = run.init(params) } catch { break }
+                for (let d = 0; d < 30 && !bad; d++) {
+                  const input = combos[rand(combos.length)]!
+                  try {
+                    if (!allowed(m, run, params, st, input)) continue
+                    const env2: Env = {...params, ...st.scalars, ...Object.fromEntries(m.inputs.map(i2 => [i2, input[i2] as number])), [y]: g}, seen2 = carriedView(m, st, input)
+                    for (const [fl, c2] of Object.entries(m.step.flags ?? {})) env2[`?${fl}`] = evalC(c2, env2, seen2, m) ? 1 : 0
+                    const next = run.step(params, st, input)
+                    g = evalE(step, env2, seen2, m); st = next
+                    if (evalC(holds, {...params, ...st.scalars, [y]: g}, st, m)) held2++; else bad = true
+                  } catch { continue }
+                }
+              }
+              if (bad || held2 < 50) continue
+              out3.push({name: y, start: n(0), step, plain: {name, holds}, some: {name, holds, some: [y], witness: {ghost: {[y]: {start: n(0), step}}}}})
+              break witness
+            }
+          }
+        }
+        return out3
+      }
       // (a goal the CDCL search refuted, by the laws its core read: settled while each is still in the set, Houdini's
       // cores)
       const settled = new Map<string, string[]>()
@@ -2001,12 +2071,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
         // (later rounds less the sums pass's reserve, unless the caller's law holds from the set: Houdini's part, then)
         const kUntil = () => wallUntil - (round && !held ? reserve : 0)
-        const real = new Set<Form>(), unsure = new Set<Form>(), ls = [...given, ...cubes.map(lawFor)], blocked2: Form[] = []
-        let caller = false, complete = true
+        const real = new Set<Form>(), unsure = new Set<Form>(), ls = [...given, ...cubes.map(lawFor), ...(ghost ? [ghost.plain] : [])], blocked2: Form[] = []
+        let caller = false, complete = true, again = false
         {
-          for (const goal of [...laws.map(l => l.name), ...cubes]) {
+          for (const goal of [...laws.map(l => l.name), ...(ghost ? [ghost.plain.name] : []), ...cubes]) {
             if (performance.now() > kUntil() || stop()) { complete = false; break }
-            const f = typeof goal === 'string' ? undefined : goal, others = cubes.filter(g => g !== f), idx = f ? given.length + cubes.indexOf(f) : ls.findIndex(l => l.name === goal), mm = forLaws(ls).m
+            const f = typeof goal === 'string' ? undefined : goal, others = cubes.filter(g => g !== f), idx = f ? given.length + cubes.indexOf(f) : ls.findIndex(l => l.name === goal), mm = withGhost(forLaws(ls).m)
             if (f) held = true
             const was = settled.get(ls[idx]!.name)
             if (was && was.every(n2 => ls.some(l => l.name === n2))) continue
@@ -2034,6 +2104,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             const ds = isReal && lastPre ? withFnsOf(lastPre.w, () => diagrams(lastPre!)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g)) : []
             // (the caller's: blocked at once, IC3's order, the caller asked again before the cubes)
             if (ds.length) { if (!f) { held = false; break } continue }
+            // (the ∃ law's own goal unproven: it goes; the caller's with every view's rows reached: the ∀∃ law, once)
+            if (!f && ghost && goal === ghost.plain.name) { opts.progress?.('join exists', {dropped: ghost.plain.name.slice(0, 120)}); ghost = ghosts?.shift(); again = true; break }
+            if (!f && isReal && !ghosts) { const t1 = performance.now(); ghosts = ghostsOf(); ghost = ghosts.shift(); opts.progress?.('join exists', {law: ghost ? `${ghost.plain.name.slice(0, 160)}; ${ghost.name} := ${JSON.stringify(ghost.step).slice(0, 160)}` : 'none', ms: Math.round(performance.now() - t1)}); if (ghost) { again = true; held = false; break } }
             if (!f) { caller = true; held = false; break }
             ;(isReal ? real : unsure).add(f)
           }
@@ -2041,7 +2114,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length})
         const drops = real.size ? real : unsure
         if (blocked2.length) { cubes = [...cubes.filter(g => !drops.has(g)), ...blocked2].slice(0, 96); return }
-        if (complete && !caller && !drops.size) { const v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor)])); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } }
+        if (again) return
+        if (complete && !caller && !drops.size) { const v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor), ...(ghost ? [ghost.some] : [])])); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } }
         if (!complete || caller || !drops.size) over = true
         cubes = cubes.filter(g => !drops.has(g))
       })

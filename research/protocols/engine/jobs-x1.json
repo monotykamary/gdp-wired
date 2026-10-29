@@ -1,0 +1,12 @@
+[
+ {
+  "name": "exprobe-all",
+  "cmd": "timeout -s KILL 150 bun research/protocols/engine/exprobe.ts all 2>&1 | tail -5",
+  "timeout": 180
+ },
+ {
+  "name": "exprobe-bare",
+  "cmd": "timeout -s KILL 150 bun research/protocols/engine/exprobe.ts bare 2>&1 | tail -5",
+  "timeout": 180
+ }
+]
