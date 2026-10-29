@@ -50,7 +50,7 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 - **Merged in:** gen/epr4, gen/epr5 at 0b65591, gen/epr6 at e47121a, and gen/epr7 at 977e9c6 (decideLaw about 2.6× faster on distributed's goals).
 - **Where:** all the engine's code is in core/infer.ts, and nothing trusted changed. It runs as `engine()` inside `inferLawsSearch`, after a join that found nothing, on rules of keyed maps whose scalars take few values (`few`).
 - **A commit message to read with care:** c105a71's message says "an ordered sort's keys at every value up to its largest". That change was reverted in 689f492 (it made ring's rows heavier, and its run overshot to 69 s); 689f492's own message doesn't say so.
-- **Size:** core/infer.ts is 209 KB, against 202 KB at ea838a3 and 162 KB at 9987874.
+- **Size:** core/infer.ts is 214 KB, against 202 KB at ea838a3 and 162 KB at 9987874.
 
 **The stage, in order**
 1. **Template:** views over each key sort, up to its width, with order literals and function-part places.
@@ -85,6 +85,23 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 **The probes**
 - **sharded** (`runs/engine/sh1`): proving the caller's law from its 17 enumerated cubes alone, with a 120 s budget and a 150 s cap, did not finish: killed at 150 s, no verdict. The cubes are the written laws and their twins. The README already has the written invariant killed at 420–600 s (an elimination blow-up on 5-key laws). So the gap is the kernel's cost on 5-key laws, not the rounds, a drop or the frames. It belongs to kernel/.
 - **wo** (`runs/engine/wo11`, woprobe.ts on the set at the caller's last failure): with each written ∀ law added on its own, the caller's law fails with the others, but with "a leader has the voting quorum's votes" it proves, in 29.7 s. That law's own step from the set fails (a model), so it needs support beside it. It scored 0 because the caller's counterexamples leave VotingQuorum's cells unnamed, and holdsAt skips such rows. The may-fail score now ranks the voting-quorum cubes (q14 picks two of them), but not yet the exact one (`Votes[64·x + y] is 0`, x the leader). wo also starts its rounds at 29 s, and its caller's proof with the law costs 29.7 s, so it can't fit 60 s on Modal until those costs fall.
+
+**Since 3d5668a** (ring's expressibility, wo's three questions; `runs/engine/r1`–`r7`, `wo12`)
+- **The between law is in the space:**
+  - **The enumeration:** a view whose literals are more than 40 also gets the 4-literal cubes that hold a chain of three keys of one sort (a < b, b < c: betweenness and each cyclic turn), 200 a view, any ordered sort, ranked like the rest.
+  - **The small instance at several function tables:** a function the kernel knows by its facts alone (no recurrence, no call), on a template sort, runs at its own table and up to three others that keep its facts on the sort's keys (reversed, turned by one). Their states' rows are read under their own table and never join the search's samples. With ring's one table (x XOR 5), every y < z < x had idn(x) > idn(y), so the third turn was not minimal.
+  - **No cube reads no state.** A cube over keys and functions alone is a fact of the tables, or false; the junk blockers like `w + 1 <= idn(x) and w + 1 <= idn(y) and w + 1 <= idn(z)` were these.
+  - **Ring's 198 → 160 cubes** now hold all three turns, the leader's and the own-id law.
+- **The set's proof blocks before it drops:** at a cube with a model at its step, the enumeration's cubes false at the model's state (not in the set) join it, and the rounds go on. Only where there are none is the cube dropped.
+- **A cube's EPR budget is 1 s** (was 2 s): ring's round 0 went from 27 s to 16–20 s; distributed's rounds end at 46–52 s (was 56+); toy 12–19 s.
+- **Relevance ties go to the fewer keys** (the more particular law).
+- **Ring still unknown.** Round 0 (16 cubes, 11–12 unsure) ends at 24 s. A set's proof over its 14–17 cubes costs 2–21 s, against 1.2 s locally for the written invariant (`run.ts --skip search,broken`). Round 0 pads its 9 minimal cubes with 3-literal ones that are unsure at 1 s each, and its set holds the true but hard "own id home means everywhere" law. That law's blockers (the path law: `x<y<z ∧ Pending[idn z, x] is 0 ∧ Pending[idn z, y]`) cost more rounds than are left.
+- **wo (a):** the exact cube (`Leader[x] ∧ VotingQuorum[y] ∧ Votes[64·x + y] is 0`) climbs with the caller's counterexamples: 66th, then 14th, then 6th by the third. It ties at the top score with six 3-key cubes, which the old tie-break (wider first) put ahead. Now the fewer keys go first.
+- **wo (b)** (`woprobe.ts <dump> support`): from the set at the caller's last failure in round 2 (35 laws), "a leader has the voting quorum's votes" has its step proven from the set alone, in 27.5 s (21.6–35.3 s with each written law beside it). Its support came in through the rounds, so nothing written is missing. The cost is the kernel's: 21–35 s for each such goal.
+- **wo (c):** the 21–29 s before wo's engine is the join (9 s locally, about 17–21 s on Modal), the small instance's BFS at its 4 s cap, and the template, about 3 s.
+  - **Tried:** a join capped at a quarter of the wall where the engine follows (10 s at least). It saved 2–6 s on wo but put 2PC's join (24 rounds to inductive, up to 11.1 s on a slow container) too near the cap, and once starved decentralized's sums-pass join. Reverted in 051d07c (e4a4602's message still lists it).
+  - **What would help, not tried:** a smaller BFS share for an instance the BFS doesn't finish, and the caller goal's own cost.
+- **Verdicts** (`r7`, all ten, 2 runs): sync 6–7 s, async 20–28, decentralized 25–29, 2PC 16–17, ticket 23–29, toy 14–19, all proven; distributed, ring, wo and sharded unknown. Nothing moved, so no bar.
 
 **The expressibility map** (each written law in models.ts's `human`, against the engine's enumeration; `smallprobe.ts` with CUBES=made lists it, and 'join view' each view's literals)
 
