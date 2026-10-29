@@ -246,6 +246,21 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - Unknown, inside the wall at 55–64 s (one run 4 s over).
 - **The six (2 runs):** sync 9–10 s, async 24–27, decentralized 36–41 (it was 19–34), 2PC 18, ticket 34–37, toy 21–22.
 
+**Decentralized's margin, and the two fixes weighed** (`runs/engine/p28`, all ten, 2 runs):
+- **Decentralized:**
+  - Its engine pass (whose caller's law fails; the sums pass proves it) had grown from 12 s to 19–23 s after epr6.
+  - The time was the caller's goal: the EPR path ran out of its window, then the CDCL search and the proof path ran after it.
+  - Now the proof path is skipped where the EPR path ran out of time on the caller's goal. Decentralized takes 28–29 s.
+- **Whole-state lookup (fix 1):**
+  - A model's state over at most the widest view's keys is a row of that view. "Every row reached in every view" then includes that row, so the lookup among canonical small states gives what diagrams() gives (up to the cells the model leaves unnamed).
+  - A state over more elements than the widest view also has more than the small instance's sorts hold, so it can't be looked up either: unsure both ways.
+  - So the 17 unsure on distributed and 13–17 on ring are models over at most the view's keys. Their states are rows of reachable small states, but the interpreter's step from them doesn't confirm the model's step: the model's unnamed cells differ from the small state's.
+  - Dropping those cubes was measured before, and it lost the caller's law. Not built.
+- **Proofs reused (fix 2):** distributed doesn't reach the set's proof. Round 2 (37 cubes, nothing dropped) begins at 44–51 s, past the search's end. The search starts about 15 s in, after proveRule's own work, and its join takes about 25 s. The final proof isn't what it waits on. Also, decideLaw's answers carry no trees to assemble. Not built.
+- **Verdicts:**
+  - The six proven: sync 9–10 s, async 25–26, decentralized 28–29, 2PC 18, ticket 29–34, toy 17–21.
+  - The four unknown: wo 59–61, distributed 52–61, ring 60, sharded 27–32.
+
 **Next steps, in order:**
 1. Start the stage earlier, with a planned share of the budget, not what's left after the join and the deep runs (distributed_lock's round 1 is cut short).
 2. Carry the model's function values into the judged state (ring): `stateOf`/`realCti` read `idn[...]` cells of the witness into the interpreter's view of `idn`, or judge rows with the model's values.
