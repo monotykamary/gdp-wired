@@ -5,6 +5,40 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**The EPR path: goals over composed keys decided by their parts (gen/epr).** Nothing trusted changed.
+research/protocols/epr/DESIGN.md has the design, the probe and the measurements.
+- **kernel/epr.ts (new).** A goal of a rule with a composed key (a relation over several sorts, `a·N² + b·N + c`) whose
+  hypotheses read no counter, sum or product is decided first by a propositional abstraction:
+  - keys as tuples of their parts, compared by the parts' equalities (transitivity, congruence of cells, a composed
+    key's injectivity under its parts' bounds, a prefix's interval);
+  - few-valued cells and scalars as finite variables;
+  - a small CDCL that keeps each clause's hypotheses.
+  Every clause added holds in every model of the goal, so unsat there is unsat here.
+  - **A refutation:** its core (2 to 13 hypotheses on the protocols) is proven by the usual search and widened to the
+    whole goal (`widen`), whose tree kernel.ts checks as any.
+  - **A model:** read back as the kernel's witness and judged on every hypothesis by the interpreter.
+  - **Where it runs:** off by construction on rules without maps (every CHC task); `GDP_EPR=0` turns it off.
+- **The probe** (28 step goals of four protocols): no answer disagrees with Z3's; every refutation certified (11 to 417
+  leaves, checked on the whole goal); distributed_lock's epochs need order atoms, not built, so 9 of its 10 goals keep
+  the usual path.
+- **What it bought (Modal, three runs a side):**
+  - **sharded_key_value_store's written invariant proven in every run, 22–26 s** (killed at 150 s without it, never
+    proven before);
+  - consensus_wo_decide's law 8, unknown at 586 s, proven, its safety law still open (below);
+  - the searches at 60 s: the same five proven in every run, the misses ending sooner (toy 11–13 s against 15–19, wo
+    about 28 against 34–45, sharded KV 35–38 against 48–53);
+  - broken variants refused by the same runs; the 30 real-world laws over several keys the same, 637 s against 644 s.
+- **research/protocols/models.ts:** consensus_wo_decide's written invariant gets "after init the voting quorum has a
+  member", an ∃ law with the request's witness as its ghost. It is a fix to our model: the path's model of the safety
+  goal was an empty voting quorum letting any node lead. The safety law stays unknown, its later models a tuple short
+  at the ghost that `modelInstances` doesn't propose.
+- **The full bar against 383928a** (base together; `runs/bar/runs/epr-full-b056b08`): wrong 0, nothing lost in every
+  run.
+  - CHC 1,169 against 1,159 (3 gained, 4 lost after reruns, none solid); ITS +2 and +1.
+  - SV, TIP, the frontier and real-world corpora level.
+  - The 332 step goals the same search (288 against 304 s). Suites 225 of 225, Lean 48 of 48.
+- **Size:** core/ and kernel/ without tests +34,407 bytes (kernel/epr.ts).
+
 **Protocols: distributed_lock and toy_consensus_forall diagnosed, not closed (gen/gaps2).** No code changed.
 research/protocols/README.md has the diagnosis, and `research/protocols/gaps2.patch` holds the changes tried.
 - **toy:** three search gaps found and fixed in the patch: a model's request lost the maps it carries, so every model

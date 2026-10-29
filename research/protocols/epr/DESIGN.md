@@ -267,3 +267,73 @@ About 400 to 600 lines, all search. **The measurement that decides the build**, 
 ## Spend
 
 Modal: two Z3 jobs (7.9 s and 14.9 s of job time) and the earlier dumps local: under $0.01. Nothing is left running.
+
+## Built: kernel/epr.ts and its hook (gen/epr)
+
+**What was built differs from section 3 in one place, the certificate.** The design unfolded the abstraction's
+refutation into a tree. The build uses its core instead:
+- the CDCL keeps each clause's hypotheses, so a refutation names the few hypotheses it read (2 to 13 on these goals);
+- kernel/prove.ts's usual search proves the goal over those alone, a weaker goal, in 15 to 431 ms;
+- `widen` makes that tree one of the whole goal, as it does for core/cyclic.ts's parts, and kernel.ts checks it.
+
+That needs no unfolding code and no new certificate, and the trees are small: 11 to 417 leaves against the cap of
+20,000.
+
+**What the abstraction reads.**
+- **Keys.** A key at its map's pattern (the rule's reads, `patternsOf`) is a tuple of parts.
+- **Comparisons.**
+  - A key equality is the equality of the parts, where the parts are under their bounds.
+  - `L ≤ X` and `X < L + c` (put's row interval) are an equal prefix.
+  - `a ∸ b` with b's terms in a is exact.
+  - A part against a constant is a bound atom.
+  - A comparison of finite terms (cells, scalars, if-then-else) against constants is enumerated over capped values.
+- **Ill-sorted reads.** A read at a key of the wrong sort (an instance at a composed key in a part's place) is a cell of
+  its own, with no congruence.
+- **Opaque atoms.** Anything else is an opaque atom.
+- **Soundness.** Every clause added holds in every model of the goal, so unsat is sound.
+
+The hook asks it first on a rule with a composed key, and only where no opaque comparison reads a scalar or a cell
+(counters, sums, products). Rules with no maps (every CHC task) have no patterns, so it is off there by construction.
+
+**The probe** (`probe.ts`, 28 step goals of four protocols, Modal, `runs/epr/all1`):
+
+| Protocol | Goals | Agree with Z3 | Certified (core, leaves, checked) | No answer |
+| --- | --- | --- | --- | --- |
+| sharded_key_value_store | 7 | 7 unsat | all 7: core 2–10, 12–417 leaves | 0 |
+| consensus_wo_decide | 6 | 4 unsat, 2 sat | all 4: core 3–8, 11–79 leaves | 0 |
+| toy_consensus_forall | 5 | 4 unsat, 1 sat | all 4: core 3–13, 11–276 leaves | 0 |
+| distributed_lock | 10 | 1 unsat | 1: core 5, 66 leaves | 9 (its epochs need order atoms, not built) |
+
+No answer disagrees with Z3's. Decisions take 19 to 273 ms.
+
+**In the prover** (Modal, three runs a side, `GDP_EPR=0` against on; `runs/epr/m1`):
+- **sharded_key_value_store's written invariant: proven in every run, 22.3–26.3 s.** It was killed at 150 s in every run
+  without the path, and never proven before.
+- **consensus_wo_decide's written invariant:** law 8 ("a leader has the voting quorum's votes"), unknown at 586 s
+  before, is proven: the path's models (about 40 ms each) give `withModels` its tuples, then a 13-hypothesis core is
+  proven. The safety law still ends in models.
+  - The first was a real counterexample to induction: an empty voting quorum lets any node lead. The written set
+    lacked "after init the voting quorum has a member", now added to models.ts as an ∃ law with the request's witness
+    as its ghost, and proven.
+  - The later models are a tuple short at the ghost, which `modelInstances` doesn't propose (the model rounds end
+    with nothing to add): instance choice, not the decision. Unknown at 20–26 s, where it was killed at 150 s.
+- **The searches at 60 s:** the same five proven in every run both ways (sync, async, decentralized, 2PC, ticket). The
+  misses end sooner: toy 11–13 s against 15–19, wo about 28 s against 34–45, sharded KV 35–38 s against 48–53.
+- **Broken variants:** refused by the same runs in every run.
+- **The 30 real-world laws over several keys:** the same verdicts, 637 s against 644 s.
+
+**The bars** against 383928a (base launched together: no shared baseline of 383928a; `runs/bar/runs/epr-quick-b056b08`,
+`epr-full-b056b08` in the main checkout). Wrong 0 everywhere, nothing lost in every run anywhere.
+- **Quick (chc, rw dev):** CHC 518 against 522, 1 gained and 5 lost after reruns, none solid, all 5 at the time limit
+  (CHC has no maps: the path never runs there). Real-world dev 74 / 14 / 3, nothing differs.
+- **Full:**
+  - CHC 1,169 against 1,159 in the first pass: 3 gained, 4 lost after reruns, none solid.
+  - ITS 1,150 against 1,148, and 1,156 against 1,155 per component. SV, TIP and the frontier corpora level.
+  - The real-world corpus 289 / 33 / 8 both ways.
+  - The 332 step goals: the same search on all 332, 288 s against 304 s.
+  - Suites 225 of 225 both ways (5,663 against 5,695 job seconds; --usual 5,138 against 5,187). Lean 48 of 48.
+  - The 1-vCPU medians within 5%.
+- **Size:** core/ and kernel/ without tests +34,407 bytes, almost all kernel/epr.ts.
+
+**Spend** (this track): the probes and the pilot about $0.25; the quick bar $1.85 and the full bar $11.02, both
+estimated by the bar from task seconds (their hours not yet billed). About $13.1 of the $15.
