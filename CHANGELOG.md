@@ -5,6 +5,41 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**Go on the shared executor: GoReader gone, 88 of 88 extractions byte-identical (gen/go-port).** Nothing trusted
+changed (kernel/ and lean-kernel/ are 9220ad0's). research/langs/DESIGN.md, "Moving Go onto the executor: done", has
+the measurements.
+- **The move.** core/extract-go.ts lowers the reader's JSON into the step IR: what Go's types decide (which operation a
+  node is, an integer's width and name, the receiver's form, a refusal that needs no execution, each with Go's text) is
+  decided there, and core/extract-step.ts runs it. The executor gained, for every reader: pointers by cases (interior
+  ones by a path), places and writes through them, records by value, error values and nil, maps with a nil state, lists
+  pushed, popped or set once a step, big integers, a lock's key with its deferred unlock, switch with fallthrough and
+  break, inlining by id with each result by the path that returned it. The two model assemblies share the map writes'
+  fold, the range laws and the write-before-failure check.
+- **Byte-identical, the acceptance test.** research/langs/go-snapshot/compare.ts: the 88 baseline extractions (38 from
+  the Go tests, 50 from the corpus's 25 Go sources), rule source, notes and refusals, 88 of 88 the same
+  (`python3 modal/run.py --backend modal --jobs research/langs/go-snapshot.json`, then compare). research/langs/
+  go-snapshot/diff.ts compares the readings themselves, no Go needed, in a second: 119 of 119 captured (the 88 and 31
+  probes of functions) and 2,006 of 2,006 more (every struct of every captured package, against 466c0ab's front end).
+- **Go's integer semantics, shared.** Rust's wrap is Go's (by the term's bounds and the path's facts, by cases from the
+  bottom, a product too); trap, saturation and checked operations test only the side of the range those don't exclude; a
+  narrowing cast is refused only where it may not fit; division and remainder are Go's; an input outside its type is
+  refused per bound; a merged number keeps its type; a kept result gets its type's range law. LiteLLM's seven rules
+  re-extracted at v1.106.6 are the committed ones byte for byte, every verdict the same; Rust's StateManager unchanged;
+  GcraState's rule shorter (each input bound its own refusal; the sign tests, and a trap on revert_at's subtraction its
+  `if` excludes, gone), its five laws proven as before, the check agreeing on 2,518 requests.
+- **Bars** (against 9220ad0, launched together: no shared baseline of it exists): quick, wrong 0 everywhere, 4 lost at
+  the limit and none solid (CHC, ITS, one TypeScript law: none reads the extractor), the 332 step goals the same
+  search; rw, wrong 0, nothing lost; onecpu level; the suite and --usual on 80b2aef, 227 of 227 each, wrong 0, nothing lost (job seconds
+  5,829 against 5,834 by default).
+- **Size:** core/extract-go.ts −50,478 bytes, core/extract-step.ts +48,298; core/ and kernel/ without tests −2,180.
+  Not the −57 KB planned: the plan counted +15 KB for the executor, Go's semantics mapped onto the operations it had;
+  mirrored exactly (byte-identical output the bar), they took +48 KB there, and the lowering is about what GoReader's
+  type-directed code was. What the two executors shared (paths, joins, maps, the model's folds) is what was saved; more
+  needs Python and Rust on Go's operations, rules to re-prove, not a byte-identical port.
+- **Hooks:** `GDP_GO_SNAPSHOT` (each extraction's rule, notes and refusals) and `GDP_GO_CAPTURE` (each reading's input,
+  the reader's JSON and its output, and each probe's) in extractGo, for the next such move; research/langs/
+  go-capture.json takes the captures.
+
 **Enumerated view cubes, a fallback stage of the join; toy_consensus_forall proven with nothing written (gen/enum2).**
 Nothing trusted changed (kernel/ and lean-kernel/ are e537601's); core/infer.ts alone. research/protocols/README.md,
 "Enumeration (gen/enum2)", has the measurements; research/protocols/enum/DESIGN.md the design it follows.
