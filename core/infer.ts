@@ -2022,6 +2022,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // (each turn the kinds in order of their own first cube: its fewer literals, then whether it reads the caller's maps)
       const kinds2 = [...byMaps.values()].sort((a, b) => a[0]!.cube!.length - b[0]!.cube!.length || near(a[0]!) - near(b[0]!)), turns: Form[] = []
       for (let i = 0; turns.length < made.length; i++) for (const fs of kinds2) if (fs[i]) turns.push(fs[i]!)
+      // (every cube of at most two literals first, DuoAI's minimal clauses, the turns' order kept within each part)
+      turns.sort((a, b) => Math.min(a.cube!.length, 3) - Math.min(b.cube!.length, 3))
       for (const f of turns) { if (cubes.length >= 64 || stop()) break; if (!names.has(textOf(f)) && !implied(f)) cubes.push(f) }
       opts.progress?.('join enumerated', {views: views.length - v0, cubes: cubes.length})
       opts.progress?.('join cubes', {cubes: cubes.map(textOf).join(' | ')})
