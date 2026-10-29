@@ -56,6 +56,64 @@ measurements.
   - Lean 47 of 48: slayer-3.t2_fixed, an ITS task this run gained, has a 17 MB certificate past Lean's maxRecDepth.
 - **Size:** core/ and kernel/ without tests +7,517 bytes against e537601.
 
+**Rust, on the shared executor (gen/rust).** Nothing trusted changed. research/langs/DESIGN.md, "Rust".
+- **`gdp-wired/extract-rs`**: `extractRust(crateDir, {entry, methods, failures})`. The reader is syn (core/rs/, built
+  once with the cargo on the PATH); the check builds the crate as it ships with a generated harness in the struct's
+  module (a debug build: overflow checks on) and drives it as the Python one is. Without cargo the result is a refusal
+  saying so (scripts/smoke.sh checks it).
+- **The executor's new operations**, shared from here on: fixed-width integers (trap, wrap, saturate, checked;
+  truncating division; ranges for inputs, params and fields), casts, Option and Result values, value records,
+  atomics as read-modify-writes of a field, closures, struct literals, a constructor that returns the object.
+- **Two crates in the real-world corpus** (research/realworld/items/rust-crates.ts, rules in research/langs/rust/rules/):
+  gcra 0.6.0's `GcraState` (the GCRA rate limiter: 5 laws) and circuitbreaker-rs 0.1.1's `StateManager` (an AtomicU8
+  state with compare-and-swap transitions: 5 laws), each checked against the crate's own code (1,986 and 2,400
+  requests), 10 laws proven, none refuted. `bun research/langs/rust/run.ts` fetches each at its pin and runs them.
+- **Printing:** a condition by cases (an ite of conditions) hoisted as a const is printed as a condition; before, it was
+  printed as a number and the rule didn't build (no TypeScript or Go extraction reached it).
+- **The bars** (gen/rust against main e537601, together). Quick (e041ccf, `runs/bar/runs/e041ccfbb54e-vs-e53760145343-quick-2026-10-291233`):
+  wrong 0 everywhere, nothing lost solidly (each flip at the time limit, the prover untouched). Suites and the real-world
+  corpus in full (9a4da5b, `runs/bar/runs/9a4da5b707a0-vs-e53760145343-full-2026-10-291240`): wrong 0, nothing lost;
+  the corpus 317 / 35 / 8 / 1 of 361 laws against 289 / 33 / 8 / 0 of 330 (the 31 added: LiteLLM's 21 and the crates'
+  10; the one timeout, node-oidc-provider's refreshTokenRotation #0, a first-pass flip proven in 16 to 19 s in every
+  rerun, where the base's own rerun timed out); suites 227 of 227 in both modes (extract-py and extract-rs added), job
+  seconds 5,666.6 against 5,822.3 and 5,316.2 against 5,283.5 (--usual); the 1-vCPU tests level. core/ and kernel/
+  +146,363 bytes against main (Python's +104,011 and Rust's +42,352: the executor's operations +21,393, the front end
+  +20,368, and the printer's fix), and 45,627 bytes of Rust in core/rs/.
+
+**Python, on one structure for every language (gen/langs).** Nothing trusted changed (kernel/, core/check.ts and
+lean-kernel/ are b118bf5's). research/langs/DESIGN.md has the design.
+- **One step IR and one executor** (core/extract-step.ts): a reader in the code's own language lowers a module into
+  the IR as JSON; the executor runs it into the Model the TypeScript and Go front ends make, and `fromModel` and
+  `drive` print, build and check it as before. The code's side of the check is a harness in its language over JSON
+  lines (`hello`, `new`, `at`, `get`, `call`, `coverage`). Language semantics are explicit IR operations (floor or
+  trunc division, truthiness, None, failures), so the next readers share the executor.
+- **`gdp-wired/extract-py`**: `extractPython(file, {entry, methods, answers, skip, stores, failures})`. The reader is
+  Python's `ast` (core/py/reader.py, record types read from the repository's own modules); the harness imports the
+  module as it ships (core/py/harness.py). Python runs only when it is called: without it the result is a refusal
+  saying so (scripts/smoke.sh checks it). The subset and its refusals: skills/gdp-wired/references/writing-rules.md,
+  "Python".
+- **Failures kept** (`failures: 'kept'`): a raise is the step's result `failed`, with what the step wrote before it,
+  so a law can say when the code refuses.
+- **The boundary a caller states**, printed in the notes and enforced by the check: `answers` (a call's result an
+  input of the request, the callee stubbed), `skip` (a call left out, run as it is), `stores` (a cache client as a
+  key-value store, a map per key template, its TTL left out).
+- **LiteLLM** (research/langs/litellm/, v1.106.6): 7 rules read from its code (four per-entity max_budget checks, the
+  max-iterations and per-session budget hooks over the internal usage cache, the router's allowed-fails cooldown
+  policy), each checked against LiteLLM's own code on Modal, 21 laws: 19 proven, 2 refuted (a team and an end user at
+  exactly their max_budget are admitted: LiteLLM's own BUDGET_CODE_MATRIX.md names the inconsistency; not reported).
+  The items join the real-world corpus (research/realworld/items/litellm-py.ts); `run.ts --src <checkout>` runs the
+  same laws on a fork.
+- **The quick bar** (7c041aa against b118bf5, `runs/bar/runs/7c041aad45af-vs-b118bf52f2fe-quick-2026-10-290843`): wrong 0
+  in every group, nothing lost solidly (one CHC flip, durationThm, 1 of 4 against 5 of 6, the prover untouched), the
+  332 step goals the same search, the real-world dev set level; core/ and kernel/ +103,695 bytes (the executor and the
+  front end; the Python reader and harness, 38 KB, beside them). The suites and the full real-world corpus are not run
+  yet.
+- **The pre-merge bar** (c93a4e3, gen/langs merged with main e537601, against e537601, together; `runs/bar/runs/c93a4e3d699f-vs-e53760145343-full-2026-10-291139`):
+  wrong 0 and nothing lost in every group. The real-world corpus 308 / 35 / 8 of 351 laws against 289 / 33 / 8 of 330
+  (the 21 LiteLLM laws added: 19 proven, 2 refuted; the base's 330 the same law for law); suites 226 of 226 in both
+  modes (the extract-py job added), job seconds 5,738.8 against 5,869.9 and 5,348.5 against 5,630.0 (--usual); the
+  1-vCPU tests level. core/ and kernel/ +104,011 bytes. $1.64.
+
 **The EPR path: goals over composed keys decided by their parts (gen/epr).** Nothing trusted changed.
 research/protocols/epr/DESIGN.md has the design, the probe and the measurements.
 - **kernel/epr.ts (new).** A goal of a rule with a composed key (a relation over several sorts, `a·N² + b·N + c`) whose

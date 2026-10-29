@@ -62,6 +62,8 @@ export type Model = {
   laws?: string[],
   // A class's fields holding a function: the input each one's call answers (by the input's name, the field's).
   answers?: Record<string, string>, fnFields?: string[],
+  // What the entry is, for the printed module's header (a front end's own words).
+  kind?: string,
 }
 
 // --- values ---------------------------------------------------------------------------------------------------------
