@@ -538,17 +538,36 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
       for (const st of r.steps) if (st.kind === 'input') for (const l of lits[st.index]!) used.add(l)
       return used.size ? [...used].map(l => -l) : undefined
     }
+    const pairRows = (row: (lin: Lin, ls: number[]) => void, a: string, b: string) => {
+      const ab = m[v(le(a, b))!] === true, ba = m[v(le(b, a))!] === true
+      if (ab) row(plus(T(a), times(T(b), -1)), [v(le(a, b))!]); else row(plus(plus(T(b), konst(1)), times(T(a), -1)), [-v(le(a, b))!])
+      if (ba) row(plus(T(b), times(T(a), -1)), [v(le(b, a))!]); else row(plus(plus(T(a), konst(1)), times(T(b), -1)), [-v(le(b, a))!])
+    }
+    // (each comparison alone first, with its terms' order and the constants: a lemma of a few literals for each the
+    // model breaks, all of them in one round)
+    {
+      const ks = [...ords].filter(t => t.startsWith('k:')), lemmas: number[][] = []
+      for (const t of theory) {
+        const rows: Constraint[] = [], lits: number[][] = [], row = (lin: Lin, ls: number[]) => { rows.push({lin, label: ''}); lits.push(ls) }
+        const xs = Object.keys(t.d).filter(x => x !== '1')
+        for (const x of xs) row(times(tv(x), -1), [])
+        for (let i2 = 0; i2 < xs.length; i2++) { for (let j = i2 + 1; j < xs.length; j++) pairRows(row, xs[i2]!, xs[j]!); for (const k2 of ks) pairRows(row, xs[i2]!, k2) }
+        const holds = m[t.x] === true
+        if (t.op === '=') { if (holds) { row(t.d, [t.x]); row(times(t.d, -1), [t.x]) } else continue }
+        else if (holds) row(t.op === '<' ? plus(t.d, konst(1)) : t.d, [t.x])
+        else row(t.op === '<' ? times(t.d, -1) : plus(times(t.d, -1), konst(1)), [-t.x])
+        const l = lemmaOf(solve(rows), lits)
+        if (l) lemmas.push(l)
+      }
+      if (lemmas.length) return {lemmas}
+    }
     {
       const rows: Constraint[] = [], lits: number[][] = [], row = (lin: Lin, ls: number[]) => { rows.push({lin, label: ''}); lits.push(ls) }
       // (the pairs of terms one comparison reads, and each with the constants)
       const ks = [...ords].filter(t => t.startsWith('k:')), pairs = new Map<string, [string, string]>()
       for (const t of theory) { const xs = Object.keys(t.d).filter(x => x !== '1'); for (const a of xs) for (const b of [...xs, ...ks]) if (a !== b) pairs.set(a < b ? `${a}|${b}` : `${b}|${a}`, a < b ? [a, b] : [b, a]) }
       for (const t of theoryTerms) row(times(tv(t), -1), [])
-      for (const [a, b] of pairs.values()) {
-        const ab = m[v(le(a, b))!] === true, ba = m[v(le(b, a))!] === true
-        if (ab) row(plus(T(a), times(T(b), -1)), [v(le(a, b))!]); else row(plus(plus(T(b), konst(1)), times(T(a), -1)), [-v(le(a, b))!])
-        if (ba) row(plus(T(b), times(T(a), -1)), [v(le(b, a))!]); else row(plus(plus(T(a), konst(1)), times(T(b), -1)), [-v(le(b, a))!])
-      }
+      for (const [a, b] of pairs.values()) pairRows(row, a, b)
       theoryRows(row)
       // (several lemmas a round: each refutation's theory rows set aside, the rest solved again, at most eight)
       const lemmas: number[][] = [], off = new Set<number>()
