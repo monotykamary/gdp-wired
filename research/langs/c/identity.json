@@ -7,7 +7,7 @@
  },
  {
   "name": "c-build-smoke",
-  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && if command -v clang; then echo 'clang present: not shadowed'; exit 1; fi; echo 'no clang (shadowed)'; timeout -s KILL 500 sh scripts/smoke.sh > /tmp/smoke.log 2>&1; e=$?; tail -15 /tmp/smoke.log; echo \"smoke exit $e\"",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && if command -v clang; then echo 'clang present: not shadowed'; exit 1; fi; echo 'no clang (shadowed)'; command -v node >/dev/null || { curl -fsSL https://nodejs.org/dist/v22.11.0/node-v22.11.0-linux-x64.tar.xz | tar xJ -C /opt && export PATH=/opt/node-v22.11.0-linux-x64/bin:$PATH; }; node --version; timeout -s KILL 500 sh scripts/smoke.sh > /tmp/smoke.log 2>&1; e=$?; tail -15 /tmp/smoke.log; echo \"smoke exit $e\"",
   "cpu": 2.0,
   "timeout": 600
  },
