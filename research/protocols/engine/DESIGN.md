@@ -207,6 +207,20 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - The four unknown: wo 57–65 (one run 5 s over), ring and distributed unchanged (waiting on epr6), sharded 29–30.
 - **The dump hook is out.** `join cubes` and `join made` are progress events, read by `smallprobe.ts` with CUBES=1 or CUBES=made.
 
+**Relevance** (`runs/engine/wo7`–`wo9`, `p25`):
+- **Built:**
+  - The caller's counterexamples (its judged models' states, from real ones and from obligations) accumulate.
+  - Each round, the enumeration's cubes false at the most of them join the set: at least 16, deduped against the round's diagrams.
+  - The places come from the round's cost a cube goal, 64 at least, 256 at most.
+  - The caller's proof ends 2 s before the stage's end.
+- **On wo:**
+  - 13–17 relevant cubes join a round: 64 → 77–81 → 88.
+  - The IC3 loop runs: diagrams, then the ∃ law, then the relevant cubes.
+  - At round 2 (60 s) or 3 (120 s), the caller's law fails with no diagram: its proof or model doesn't come back within its window.
+  - Unknown at 60 and 120 s.
+- **The overrun:** one 60 s run ended at 68 s. The caller's goal began at 31 s and returned at 61 s, past the stage's end, with its window ending before that. The overrun is inside one decideLaw or proveLaw call on the caller's goal with 75 cubes.
+- **Verdicts (p25):** the six proven (sync 8–9 s, async 23–25, decentralized 27–34, 2PC 19–21, ticket 25–34, toy 15–22); the four unknown.
+
 **Next steps, in order:**
 1. Start the stage earlier, with a planned share of the budget, not what's left after the join and the deep runs (distributed_lock's round 1 is cut short).
 2. Carry the model's function values into the judged state (ring): `stateOf`/`realCti` read `idn[...]` cells of the witness into the interpreter's view of `idn`, or judge rows with the model's values.
