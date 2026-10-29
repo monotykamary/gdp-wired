@@ -281,7 +281,16 @@ state in ETS tables (a store the front end doesn't read yet) and divide by their
 
 ## C and C++ (gen/c): the plan, for a fresh session
 
-Not started beyond this note (the session that ported Go, Ruby and Elixir ran out of room for it). Clang is local
+**Status (gen/c, resume here).** Built: core/c/reader.ts (clang's JSON dump into Go's reader's typed shape, so Go's
+lowering reads both), core/extract-c.ts (the front end, the generated harness, `checkC` on Go's driver `speak`), the
+executor's `ub` mode, fixed arrays as lists of their length (`items(kinds, lens)`), stated failures (`fails`, GoOptions
+too), core/extract-c.test.ts (8 cases, `bun test core/extract-c.test.ts`, ~15 s; on Modal: research/langs/c/identity.json's
+c-tests, clang 19 from research/langs/c/clang-setup.sh). Go identity: `bun research/langs/go-snapshot/diff.ts
+<main>/runs/langs/cap/cap-tests.jsonl <main>/runs/langs/cap/cap-rw.jsonl` (the captures live in the main checkout's
+runs/, gitignored), 119 of 119. Next: the corpus (research/langs/c/specs.ts, run.ts), the identity jobs, the bars,
+the CHANGELOG; then C++ on the user's go.
+
+The plan as written before it started (the session that ported Go, Ruby and Elixir ran out of room for it). Clang is local
 (Apple clang 21: `clang -Xclang -ast-dump=json -fsyntax-only f.c` works; a 3-line struct and function dumps 70 KB, so
 the reader must filter by the file's own `loc` and the names asked for).
 
