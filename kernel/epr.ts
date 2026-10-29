@@ -95,27 +95,26 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
   // --- names: a part is a name some read's key or a key equality reads; the rest are scalars
   // (each function part once: its reads are many, its congruence pairs of parts)
   const parts = new Set<string>(), fnParts: {f: string, n: string, a: string}[] = [], fnSeen = new Set<string>()
-  const collectParts = (o: unknown): void => {
-    if (!o || typeof o !== 'object') return
-    const x = o as {op?: string, key?: E}
-    if (x.op === 'get' && fnMaps.has((x as {map: string}).map)) { const n = partName(x as E), a = partName(x.key!); if (n && a) { if (!fnSeen.has(n)) (fnSeen.add(n), fnParts.push({f: (x as {map: string}).map, n, a})); parts.add(n); parts.add(a) } }
-    else if (x.op === 'get') fits((x as {map: string}).map, x.key!)?.parts.forEach(p => parts.add(p))
-    for (const v of Object.values(o)) collectParts(v)
+  // (the goal's reads and comparisons, gathered in one walk, each shared node once: the walks below read these lists)
+  const reads: Extract<E, {op: 'get'}>[] = [], comps: Extract<C, {a: E}>[] = [], seen = new WeakSet<object>()
+  const gather = (o: unknown): void => {
+    if (!o || typeof o !== 'object' || seen.has(o)) return
+    seen.add(o); tick()
+    const x = o as {op?: string, a?: unknown}
+    if (x.op === 'get') reads.push(o as Extract<E, {op: 'get'}>)
+    else if ((x.op === '<' || x.op === '<=' || x.op === '=') && x.a) comps.push(o as Extract<C, {a: E}>)
+    for (const v of Object.values(o)) gather(v)
   }
-  hyps.forEach(collectParts)
+  hyps.forEach(gather)
+  for (const x of reads) {
+    if (fnMaps.has(x.map)) { const n = partName(x), a = partName(x.key); if (n && a) { if (!fnSeen.has(n)) (fnSeen.add(n), fnParts.push({f: x.map, n, a})); parts.add(n); parts.add(a) } }
+    else fits(x.map, x.key)?.parts.forEach(p => parts.add(p))
+  }
   // (and the names of a key equality between tuples of one shape: of several parts, or of one where the other side is a part)
+  const eqs = comps.flatMap(c => { if (c.op !== '=') return []; const ta = tupleOf(c.a), tb = tupleOf(c.b); return ta && tb && sameCoefs(ta.coefs, tb.coefs) ? [{ta, tb}] : [] })
   for (let grew = true; grew;) {
     grew = false
-    const eqWalk = (o: unknown): void => {
-      if (!o || typeof o !== 'object') return
-      const c = o as C
-      if (c.op === '=') {
-        const ta = tupleOf(c.a), tb = tupleOf(c.b)
-        if (ta && tb && sameCoefs(ta.coefs, tb.coefs) && (ta.parts.length > 1 || [...ta.parts, ...tb.parts].some(x => parts.has(x)))) for (const x of [...ta.parts, ...tb.parts]) if (!parts.has(x)) { parts.add(x); grew = true }
-      }
-      for (const y of Object.values(o)) eqWalk(y)
-    }
-    hyps.forEach(eqWalk)
+    for (const {ta, tb} of eqs) if (ta.parts.length > 1 || [...ta.parts, ...tb.parts].some(x => parts.has(x))) for (const x of [...ta.parts, ...tb.parts]) if (!parts.has(x)) { parts.add(x); grew = true }
   }
   // exact: a scalar or a cell a hypothesis bounds by a constant (M[t] <= 1, a kind's instance): its values are
   // 0 .. that bound exactly, no "cap or more", so it is compared with any finite term by cases, not ordered (a yes/no
@@ -137,10 +136,8 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
   // decides every comparison the cap does: the terms are naturals with coefficients of one sign)
   const caps = new Map<string, number>()
   const termKey = (e: E): string | undefined => (e.op === 'var' && !parts.has(e.name) ? `s:${e.name}` : e.op === 'get' ? `c:${e.map}` : undefined)
-  const capWalk = (o: unknown): void => {
-    if (!o || typeof o !== 'object') return
-    const c = o as C
-    if (c.op === '<' || c.op === '<=' || c.op === '=') {
+  for (const c of comps) {
+    {
       const consts: number[] = [], keys: string[] = []
       let ex = 0
       const w = (e: E, k: number) => { if (e.op === 'const') consts.push(Math.abs(e.value)); else if (e.op === 'add') (w(e.a, k), w(e.b, k)); else if (e.op === 'mul') w(e.a, k * e.k); else if (e.op === 'if') (w(e.then, k), w(e.else, k)); else { const x = exactOf(e); if (x) ex += Math.abs(k) * x.b; const t = termKey(e); if (t) keys.push(t) } }
@@ -149,22 +146,17 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
       const top = Math.max(1, ...consts) + ex + 1
       for (const k of keys) caps.set(k, Math.max(caps.get(k) ?? 1, top))
     }
-    for (const v of Object.values(o)) capWalk(v)
   }
-  hyps.forEach(capWalk)
   // ordered: a map's cells, or a scalar, compared with another non-constant term (an epoch with a node's epoch: Ivy's
   // total order, `le`), not only with constants (a yes/no, a choice, which stay finite)
   const leaves = (e: E, k: number, out: [E, number][]): void => {
     if (e.op === 'add') { leaves(e.a, k, out); leaves(e.b, k, out) } else if (e.op === 'mul') leaves(e.a, k * e.k, out)
     else if (e.op === 'if') { leaves(e.then, k, out); leaves(e.else, k, out) } else if (e.op !== 'const') out.push([e, k])
   }
-  const ordWalk = (o: unknown): void => {
-    if (!o || typeof o !== 'object') return
-    const c = o as C
-    const ofParts = (e: E) => tupleOf(e)?.parts.every(x => parts.has(x))
-    if ((c.op === '<' || c.op === '<=' || c.op === '=') && !(ofParts(c.a) && ofParts(c.b))) {
-      const ts: [E, number][] = []
-      leaves(c.a, 1, ts); leaves(c.b, -1, ts)
+  const ofParts = (e: E) => tupleOf(e)?.parts.every(x => parts.has(x))
+  const ordComps = comps.filter(c => !(ofParts(c.a) && ofParts(c.b))).map(c => { const ts: [E, number][] = []; leaves(c.a, 1, ts); leaves(c.b, -1, ts); return ts })
+  const ordWalk = (ts: [E, number][]): void => {
+    {
       const hasPart = ts.some(([e]) => (n => n !== undefined && parts.has(n))(partName(e)))
       const nonPart = ts.filter(([e]) => (hasPart || !exactOf(e)) && ((e.op === 'get' && !fnMaps.has(e.map)) || (e.op === 'var' && !parts.has(e.name))))
       // (and every term beside an ordered one in a comparison: one value of the sort, an if-then-else's branches)
@@ -172,10 +164,9 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
       const beside = nonPart.some(([e]) => (e.op === 'get' && ordMaps.has(e.map)) || (e.op === 'var' && ordScalars.has(e.name)))
       if (mixed || beside) for (const [e] of nonPart) { if (e.op === 'get' && !ordMaps.has(e.map)) { ordMaps.add(e.map); grew = true } else if (e.op === 'var' && !ordScalars.has(e.name)) { ordScalars.add(e.name); grew = true } }
     }
-    for (const v2 of Object.values(o)) ordWalk(v2)
   }
   let grew = true
-  while (grew) { grew = false; hyps.forEach(h => (tick(), ordWalk(h))) }
+  while (grew) { grew = false; ordComps.forEach(ts => (tick(), ordWalk(ts))) }
 
   // --- atoms
   const ids = new Map<string, number>(), names: string[] = ['']
