@@ -48,19 +48,21 @@ type FS = {mkdtempSync: (p: string) => string, writeFileSync: (p: string, s: str
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
 
 export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead, flags: string[]} {
-  const flags = [...flagsFor(file, opts.compileCommands), ...(opts.flags ?? [])], {tu, target} = clangDump(file, flags, opts.clang, cpp)
-  return {c: readC(file, opts.entry, tu, target, cpp, opts.root), flags}
+  const flags0 = [...flagsFor(file, opts.compileCommands), ...(opts.flags ?? [])], flags = cpp && !flags0.some(f => f.startsWith('-std=')) ? [...flags0, '-std=c++17'] : flags0, {tu, target} = clangDump(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, cpp ? opts.entry : undefined)
+  return {c: readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])]))), flags}
 }
 export function extractC(file: string, opts: COptions, cpp = false): Extraction & {leaves?: GoLeaf[]} {
   const notes: string[] = []
   let read: GoRead, c: CRead, flags: string[]
   try {
     ;({c, flags} = readCFile(file, opts, cpp))
-    read = readGo(c.pkg, {entry: opts.entry, methods: opts.functions ?? c.methods, ...(opts.onError ? {onError: opts.onError} : {}), ...(opts.fails ? {fails: opts.fails} : {})} as GoOptions)
+    read = readGo(c.pkg, {entry: opts.entry, methods: opts.functions?.map(f => f.split('/')[0]!) ?? c.methods, ...(opts.onError ? {onError: opts.onError} : {}), ...(opts.fails ? {fails: opts.fails} : {})} as GoOptions)
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
     throw e
   }
+  // (a signed leaf the caller states is a natural: its range law from 0, the claim for those states)
+  for (const [n, d] of Object.entries(opts.domains ?? {})) if (d === 'nat') read.model.laws = read.model.laws?.map(l => (l.includes(`"${n} within its type's range"`) ? l.replace(/\.atLeast\(-\d+\)/, '.atLeast(0)') : l))
   const x = fromModel(read.model, `${opts.entry}.${cpp ? 'cpp' : 'c'}`, {...unsignedDomains(read), ...signedDomains(c.pkg, read), ...opts.domains}, notes, (rule, sorts) => checkC(file, flags, c, read, rule, sorts, opts, cpp))
   return {...x, leaves: read.leaves}
 }
@@ -74,13 +76,33 @@ function signedDomains(pkg: GoPkg, read: GoRead): Record<string, 'int'> {
   return out
 }
 
+// The C++ front end (`gdp-wired/extract-cpp`): a class, its public methods the requests, its constructor the start (its
+// parameters the rule's); `this` and references are pointers into the state, std::array a fixed array, std::min and
+// std::max, std::lock_guard, std::scoped_lock and std::unique_lock of a member mutex the step atomic (Go's Lock with its
+// deferred Unlock), a throw the step's refusal. Refused: templates, virtual methods, overloads, other classes' methods,
+// STL containers but std::array, lambdas, try and catch.
+export const extractCpp = (file: string, opts: COptions) => extractC(file, opts, true)
+
 // --- the harness: C (or C++) that #includes the file, sets and prints the state's leaves as JSON lines -------------------
 const ty = (pkg: GoPkg, t: number) => pkg.ttab[t] ?? {k: 'invalid'}
 export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, cpp: boolean): string {
-  const pkg = c.pkg, T = (t: number) => ty(pkg, t), acc = (path: string[]) => `o->${path.join('.')}`, q = JSON.stringify
+  const pkg = c.pkg, T = (t: number) => ty(pkg, t), q = JSON.stringify, robs: string[] = []
+  // A leaf's place: o->a.b in C; in C++ each member through a pointer to it the explicit instantiation of gdp_rob takes
+  // (access isn't checked there), so private members are read and set as the class's own code does.
+  const acc = (path: string[]) => {
+    if (!cpp) return `o->${path.join('.')}`
+    let e = '(*o)', t = pkg.types[0]!.t
+    for (const f of path) {
+      const r = T(t), k = `&${t === pkg.types[0]!.t ? c.cname : r.go}::${f}`
+      if (!robs.includes(k)) robs.push(k)
+      e = `(${e}.*gdp_ptr(gdp_tag${robs.indexOf(k)}()))`; t = r.fields!.find(g => g.name === f)!.t
+    }
+    return e
+  }
+  const cast = (dst: string, t: number) => (cpp ? `std::remove_reference_t<decltype(${dst})>` : T(t).go!)
   const get: string[] = [], set: string[] = []
   const intOut = (e: string, t: number) => (T(t).signed === false ? `gdp_putf("\\"%llu\\"", (unsigned long long)(${e}))` : `gdp_putf("\\"%lld\\"", (long long)(${e}))`)
-  const intIn = (dst: string, raw: string, t: number, err: string) => `{ long long s_; unsigned long long u_; if (!gdp_int(${raw}, ${T(t).bits ?? 64}, ${T(t).signed === false ? 0 : 1}, &s_, &u_)) ${err}; ${dst} = (${T(t).go})(${T(t).signed === false ? 'u_' : 's_'}); }`
+  const intIn = (dst: string, raw: string, t: number, err: string) => `{ long long s_; unsigned long long u_; if (!gdp_int(${raw}, ${T(t).bits ?? 64}, ${T(t).signed === false ? 0 : 1}, &s_, &u_)) ${err}; ${dst} = (${cast(dst, t)})(${T(t).signed === false ? 'u_' : 's_'}); }`
   for (const l of read.leaves) {
     const a = acc(l.path), k = q(l.name)
     if (l.kind === 'int') { get.push(`gdp_putf("%s\\"%s\\":", sep, ${k}); sep = ","; ${intOut(a, l.t)};`); set.push(`if ((v = gdp_key(st, ${k}))) ${intIn(a, 'v', l.t, `return "${l.name} outside its type"`)}`) }
@@ -91,7 +113,7 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
       set.push(`if ((v = gdp_key(st, ${k}))) { for (int i = 0; i < ${n}; i++) { const char *e = gdp_idx(v, i); if (!e) return "${l.name}: not ${n} items"; ${T(et).k === 'int' ? intIn(`${a}[i]`, 'e', et, `return "${l.name}: an item outside its type"`) : `${a}[i] = !strncmp(e, "true", 4);`} } if (gdp_idx(v, ${n})) return "${l.name}: not ${n} items"; }`)
     } else if (l.kind === 'bool') { get.push(`gdp_putf("%s\\"%s\\":%s", sep, ${k}, ${a} ? "true" : "false"); sep = ",";`); set.push(`if ((v = gdp_key(st, ${k}))) { if (!strncmp(v, "true", 4)) ${a} = 1; else if (!strncmp(v, "false", 5)) ${a} = 0; else return "${l.name}: not a boolean"; }`) }
   }
-  const frames = read.leaves.filter(l => l.kind === 'frame')
+  const frames = read.leaves.filter(l => l.kind === 'frame' && !T(l.t).mutex)
   const calls = read.methods.map(meth => {
     const lines: string[] = [], args: string[] = ['o'], outs: [string, string, number][] = []
     meth.params.forEach((pa, i) => {
@@ -104,7 +126,7 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
         // (an out-parameter: a local of its type, its address given, what is left in it reported)
         const et = T(t.elem!).fields![0]!.t
         lines.push(`${T(et).go} a${i} = 0; const char *r${i} = ${raw}; if (r${i} && (v = gdp_key(r${i}, "value"))) ${T(et).k === 'int' ? intIn(`a${i}`, 'v', et, `return "argument ${i} outside its type"`) : `a${i} = !strncmp(v, "true", 4);`}`)
-        args.push(`&a${i}`); outs.push([pa.name, `a${i}`, et])
+        args.push(t.go?.trim().endsWith('&') ? `a${i}` : `&a${i}`); outs.push([pa.name, `a${i}`, et])
       } else if (pa.arg.k === 'rec') {
         const byValue = t.k !== 'ptr', st = byValue ? t : T(t.elem!)
         lines.push(`${st.go} a${i}; memset(&a${i}, 0, sizeof a${i}); const char *r${i} = ${raw}; if (!r${i}) return "no argument ${i}";`)
@@ -116,12 +138,21 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
       } else lines.push(`return "an argument the harness can't make";`)
     })
     const rt = meth.results[0], fails = opts.fails?.[meth.name]?.trim()
-    const invoke = rt === undefined ? `${meth.name}(${args.join(', ')});` : `${T(rt).go} r0 = ${meth.name}(${args.join(', ')}); gdp_has = 1; ${T(rt).k === 'int' ? `gdp_outv = ${T(rt).signed === false ? '(long long)' : ''}r0; gdp_outu = ${T(rt).signed === false ? 1 : 0};` : 'gdp_outb = r0; gdp_isb = 1;'}`
+    const callee = cpp ? `o->${meth.name}(${args.slice(1).join(', ')})` : `${meth.name}(${args.join(', ')})`
+    const invoke = rt === undefined ? `${callee};` : `${cpp ? 'auto' : T(rt).go} r0 = ${callee}; gdp_has = 1; ${T(rt).k === 'int' ? `gdp_outv = ${T(rt).signed === false ? '(long long)' : ''}r0; gdp_outu = ${T(rt).signed === false ? 1 : 0};` : 'gdp_outb = r0; gdp_isb = 1;'}`
     const failed = fails !== undefined && rt !== undefined ? `if (r0 ${fails.replace(/^(==|!=|<=|>=|<|>)\s*/, '$1 ')}) gdp_err = 1;` : ''
     // (with out-parameters, the result is a record: the value returned and what each holds)
     const rec = outs.length ? `gdp_rec = 1; gdp_putf(",\\"out\\":{"); ${[...(rt !== undefined ? [['result', 'r0', rt] as [string, string, number]] : []), ...outs].map(([n, v, et], j) => `gdp_putf("${j ? ',' : ''}\\"${n}\\":"); ${T(et).k === 'int' ? `gdp_putf(${T(et).signed === false ? '"%llu", (unsigned long long)' : '"%lld", (long long)'}(${v}))` : `gdp_putf("%s", ${v} ? "true" : "false")`};`).join(' ')} gdp_putf("},\\"hasOut\\":true");` : ''
-    return `if (!strcmp(m, ${q(meth.name)})) {\n    ${lines.join('\n    ')}\n    gdp_T pre = *o;\n    int sg = sigsetjmp(gdp_jb, 1);\n    if (!sg) { gdp_armed = 1; ${invoke} ${failed} gdp_armed = 0; ${rec} } else gdp_sig = sg;\n    return gdp_after(o, &pre);\n  }`
+    return `if (!strcmp(m, ${q(meth.name)})) {\n    ${lines.join('\n    ')}\n    memcpy(gdp_pre, (void *)o, sizeof(gdp_T));\n    int sg = sigsetjmp(gdp_jb, 1);\n    if (!sg) { gdp_armed = 1; ${cpp ? 'try { ' : ''}${invoke} ${failed} gdp_armed = 0; ${rec}${cpp ? ' } catch (...) { gdp_armed = 0; gdp_sig = SIGUSR2; }' : ''} } else gdp_sig = sg;\n    return gdp_after(o);\n  }`
   })
+  const frameLines = frames.map(l => { const e = acc(l.path); return `if (memcmp((char *)&${e}, (char *)gdp_pre + ((char *)&${e} - (char *)o), sizeof ${e})) return ${q(l.path.join('.'))};` })
+  // The object, made as the code makes it: C's zeroed; C++'s constructed (in zeroed memory) with the rule's parameters.
+  const cps = read.ctor ?? [], make = `static gdp_T *gdp_make(const char *line, const char **bad) {
+  const char *a = gdp_key(line, "a"), *v; (void)a; (void)v;
+  ${cps.map((pa, i) => `${T(pa.t).go} c${i} = 0; if (!(v = a ? gdp_idx(a, ${i}) : 0)) { *bad = "no argument ${i}"; return 0; } ${T(pa.t).k === 'int' ? intIn(`c${i}`, 'v', pa.t, `{ *bad = "argument ${i} outside its type"; return 0; }`) : `c${i} = !strncmp(v, "true", 4);`}`).join('\n  ')}
+  void *mem = calloc(1, sizeof(gdp_T));
+  return ${cpp ? `new (mem) gdp_T(${cps.map((_, i) => `c${i}`).join(', ')})` : '(gdp_T *)mem'};
+}`
   return `// Generated by gdp-wired's ${cpp ? 'C++' : 'C'} check (core/extract-c.ts): the file's code is called as it is.
 #define main gdp_orig_main
 #include ${q(file)}
@@ -133,8 +164,10 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
 #include <signal.h>
 #include <setjmp.h>
 #include <errno.h>
-${cpp ? '' : '#include <stdbool.h>\n'}
+${cpp ? '#include <new>\n#include <type_traits>\n' : '#include <stdbool.h>\n'}
 typedef ${c.cname} gdp_T;
+static unsigned char gdp_pre[sizeof(gdp_T)];
+${robs.length ? `template <typename Tag, auto M> struct gdp_rob { friend auto gdp_ptr(Tag) { return M; } };\n${robs.map((k, i) => `struct gdp_tag${i} { friend auto gdp_ptr(gdp_tag${i}); };\ntemplate struct gdp_rob<gdp_tag${i}, ${k}>;`).join('\n')}` : ''}
 static char *gdp_buf; static size_t gdp_n, gdp_cap;
 static void gdp_putf(const char *f, ...) {
   va_list ap; va_start(ap, f); char tmp[512]; int k = vsnprintf(tmp, sizeof tmp, f, ap); va_end(ap);
@@ -188,24 +221,25 @@ static const char *gdp_set(gdp_T *o, const char *st) {
 static sigjmp_buf gdp_jb; static volatile sig_atomic_t gdp_armed;
 static int gdp_sig, gdp_err, gdp_has, gdp_outu, gdp_isb, gdp_rec; static long long gdp_outv; static bool gdp_outb;
 static void gdp_on(int s) { if (gdp_armed) { gdp_armed = 0; siglongjmp(gdp_jb, s); } signal(s, SIG_DFL); raise(s); }
-static const char *gdp_frame(gdp_T *o, gdp_T *pre) {
-  (void)o; (void)pre;
-  ${frames.map(l => `if (memcmp(&o->${l.path.join('.')}, &pre->${l.path.join('.')}, sizeof o->${l.path.join('.')})) return ${q(l.path.join('.'))};`).join('\n  ')}
+static const char *gdp_frame(gdp_T *o) {
+  (void)o;
+  ${frameLines.join('\n  ')}
   return 0;
 }
 // (another file's function, linked as a stub, reached: the step's failure)
 static const char *gdp_extern;
 ${cpp ? 'extern "C" ' : ''}void gdp_extern_called(const char *n) { gdp_extern = n; if (gdp_armed) { gdp_armed = 0; siglongjmp(gdp_jb, SIGUSR1); } abort(); }
-static const char *gdp_after(gdp_T *o, gdp_T *pre) {
-  const char *f = gdp_frame(o, pre);
+static const char *gdp_after(gdp_T *o) {
+  const char *f = gdp_frame(o);
   if (f) { gdp_putf(",\\"frame\\":\\"%s\\"", f); }
-  if (gdp_sig) gdp_putf(",\\"panic\\":\\"%s\\"", gdp_sig == SIGABRT ? "SIGABRT (abort, or an assertion failing)" : gdp_sig == SIGTRAP || gdp_sig == SIGILL ? "undefined behavior (the sanitizer's trap)" : gdp_sig == SIGUSR1 ? "another file's function called" : "a signal");
+  if (gdp_sig) gdp_putf(",\\"panic\\":\\"%s\\"", gdp_sig == SIGABRT ? "SIGABRT (abort, or an assertion failing)" : gdp_sig == SIGTRAP || gdp_sig == SIGILL ? "undefined behavior (the sanitizer's trap)" : gdp_sig == SIGUSR1 ? "another file's function called" : gdp_sig == SIGUSR2 ? "an exception thrown" : "a signal");
   else if (gdp_err) gdp_putf(",\\"err\\":\\"its result is its failure (%lld)\\"", gdp_outv);
   if (!gdp_sig && gdp_has && !gdp_rec) { if (gdp_isb) gdp_putf(",\\"out\\":%s,\\"hasOut\\":true", gdp_outb ? "true" : "false"); else if (gdp_outu) gdp_putf(",\\"out\\":\\"%llu\\",\\"hasOut\\":true", (unsigned long long)gdp_outv); else gdp_putf(",\\"out\\":\\"%lld\\",\\"hasOut\\":true", gdp_outv); }
-  if (${opts.onError === 'discard' ? 1 : 0} && (gdp_sig || gdp_err)) *o = *pre;
+  if (${opts.onError === 'discard' ? 1 : 0} && (gdp_sig || gdp_err)) memcpy((void *)o, gdp_pre, sizeof(gdp_T));
   gdp_putf(",\\"state\\":"); gdp_get(o);
   return 0;
 }
+${make}
 static const char *gdp_call(gdp_T *o, const char *m, const char *a) {
   const char *v; (void)v; (void)a;
   gdp_sig = gdp_err = gdp_has = gdp_outu = gdp_isb = gdp_rec = 0; gdp_outv = 0;
@@ -230,10 +264,11 @@ int main(int argc, char **argv) {
     const char *op = gdp_key(line, "op"), *id = gdp_key(line, "id");
     long long k = 0; unsigned long long ku; if (id) gdp_int(id, 64, 1, &k, &ku);
     gdp_n = 0;
-    if (op && !strncmp(op, "\\"new\\"", 5)) { objs = (gdp_T **)realloc(objs, ++nobj * sizeof *objs); objs[nobj - 1] = (gdp_T *)calloc(1, sizeof(gdp_T)); gdp_putf("{\\"id\\":%zu}", nobj); }
+    if (op && !strncmp(op, "\\"new\\"", 5)) { const char *bad = 0; gdp_T *o = gdp_make(line, &bad); if (!o) gdp_putf("{\\"bad\\":\\"%s\\"}", bad); else { objs = (gdp_T **)realloc(objs, ++nobj * sizeof *objs); objs[nobj - 1] = o; gdp_putf("{\\"id\\":%zu}", nobj); } }
     else if (op && !strncmp(op, "\\"at\\"", 4)) {
-      gdp_T *o = (gdp_T *)calloc(1, sizeof(gdp_T)); const char *st = gdp_key(line, "state"), *bad = st ? gdp_set(o, st) : "no state";
-      if (bad) { gdp_putf("{\\"bad\\":\\"%s\\"}", bad); free(o); }
+      const char *bad = 0; gdp_T *o = gdp_make(line, &bad); const char *st = gdp_key(line, "state");
+      if (o) bad = st ? gdp_set(o, st) : "no state";
+      if (bad) gdp_putf("{\\"bad\\":\\"%s\\"}", bad);
       else { objs = (gdp_T **)realloc(objs, ++nobj * sizeof *objs); objs[nobj - 1] = o; gdp_putf("{\\"id\\":%zu}", nobj); }
     }
     else if (op && !strncmp(op, "\\"get\\"", 5)) { gdp_putf("{\\"state\\":"); gdp_get(objs[k - 1]); gdp_putf("}"); }
@@ -270,8 +305,8 @@ export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r:
     // The same flags; undefined behavior trapped (the rule refuses it, so the code must fail there too); another
     // file's functions linked as stubs that report themselves (the rule refuses their calls: one reached is the
     // code's failure where the rule took the step, a difference).
-    const clang = opts.clang ?? 'clang', stubs = `${work}/gdp_stubs.c`
-    const link = (more: string[]) => cp.execFileSync(clang, [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', ...strictFlex(clang), h, ...(more.length ? ['-x', 'c', ...more] : []), '-o', `${work}/harness`, ...(cpp ? ['-lstdc++'] : [])], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26})
+    const clang = opts.clang ?? (cpp ? 'clang++' : 'clang'), stubs = `${work}/gdp_stubs.c`
+    const link = (more: string[]) => cp.execFileSync(clang, [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', ...strictFlex(clang), h, ...(more.length ? ['-x', 'c', ...more] : []), '-o', `${work}/harness`, ], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26})
     const why = (x: unknown) => String((x as {stderr?: string}).stderr ?? (x as Error).message)
     try { link([]) } catch (x) {
       const names = [...new Set([...why(x).matchAll(/undefined (?:reference to [`']|symbol: )_?([A-Za-z_]\w*)|"_([A-Za-z_]\w*)", referenced from/g)].map(m => m[1] ?? m[2]!))]

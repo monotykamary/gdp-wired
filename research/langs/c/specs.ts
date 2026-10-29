@@ -12,8 +12,10 @@ type X = any
 type R = {stepLaw: (name: string, then: (b: X, a: X) => Cond, when?: (b: X) => Cond) => StepLaw, law: (name: string, f: (s: X) => Cond) => Law}
 export type CLaw = {name: string, kind: 'step' | 'access' | 'safety', intent: 'docs' | 'tests' | 'inferred', why: string, law: (r: R) => StepLaw | Law}
 export type CSpec = {id: string, domain: Domain, project: string, version: string, licence: string, author: string, repo: string,
-  // The source at the pin: a tarball (its first directory stripped), and the files of it that are read.
-  tarball: string, file: string, flags: string[], reads: string, summary: string, opts: Omit<COptions, 'flags' | 'clang' | 'root' | 'compileCommands'>, laws: CLaw[]}
+  // The source at the pin: a tarball (its first directory stripped) or its files one by one (`files`, under `raw`),
+  // the file read; `shims` stand in for headers it includes that would bring a build system's (types and macros only,
+  // each written beside it, its -I first); `cpp` reads it as C++; `root` (in it) holds the project's own files.
+  tarball?: string, raw?: string, files?: string[], shims?: Record<string, string>, cpp?: boolean, root?: string, file: string, flags: string[], reads: string, summary: string, opts: Omit<COptions, 'flags' | 'clang' | 'root' | 'compileCommands'>, laws: CLaw[]}
 
 const AK = '8b93e1bf16c15c7870124e3807e939effe595479'
 // (an index's next, masked by 127: the wrap by cases)
@@ -72,5 +74,44 @@ export const SPECS: CSpec[] = [
       {name: 'timeouts of 0 are the defaults', kind: 'step', intent: 'docs', why: 'peer.c: timeoutLimit, timeoutMinimum and timeoutMaximum each "defaults to ENET_PEER_TIMEOUT_LIMIT / _MINIMUM / _MAXIMUM if 0" (enet.h: 32, 5000, 30000)',
         law: r => r.stepLaw('timeouts of 0 are the defaults', (_b, a) => all(a.timeoutLimit.eq(32), a.timeoutMinimum.eq(5000), a.timeoutMaximum.eq(30000)),
           b => all(b.method.is('enet_peer_timeout'), b.enet_peer_timeout_timeoutLimit.eq(0), b.enet_peer_timeout_timeoutMinimum.eq(0), b.enet_peer_timeout_timeoutMaximum.eq(0)))},
+    ]},
+  {id: 'rate limit/libtorrent/bandwidth_channel', domain: 'rate limit', project: 'libtorrent', version: '2.1.2', licence: 'BSD-3-Clause', author: 'Arvid Norberg and contributors', repo: 'arvidn/libtorrent', cpp: true,
+    raw: 'https://raw.githubusercontent.com/arvidn/libtorrent/6da363d2994f17c0b3c0450d124cf73a31a73847', files: ['include/libtorrent/aux_/bandwidth_limit.hpp', 'src/bandwidth_limit.cpp'],
+    shims: {'libtorrent/assert.hpp': '#include <cassert>\n#define TORRENT_ASSERT(x) assert(x)\n#define TORRENT_ASSERT_VAL(x, v) assert(x)\n#define TORRENT_EXTRA_EXPORT\n'},
+    file: 'src/bandwidth_limit.cpp', flags: ['-Iinclude'],
+    reads: 'src/bandwidth_limit.cpp and include/libtorrent/aux_/bandwidth_limit.hpp: libtorrent::aux::bandwidth_channel\'s throttle(int), update_quota, use_quota, return_quota, quota_left (libtorrent/assert.hpp stood in for: TORRENT_ASSERT as assert)',
+    summary: 'libtorrent\'s bandwidth channel, the token bucket under its rate limits: throttle sets the limit (0: unlimited), update_quota adds the limit\'s share of the milliseconds passed (at most 3 seconds\' worth, and no more than INT32_MAX), use_quota and return_quota spend and give back, quota_left reads it.',
+    opts: {entry: 'bandwidth_channel', functions: ['throttle/1', 'update_quota', 'use_quota', 'return_quota', 'quota_left'], domains: {m_limit: 'nat', update_quota_dt_milliseconds: 'nat'}},
+    laws: [
+      {name: '0 means infinite', kind: 'step', intent: 'docs', why: 'bandwidth_limit.cpp, throttle: "// 0 means infinite"; quota_left returns inf where m_limit is 0',
+        law: r => r.stepLaw('0 means infinite', (_b, a) => a.quota_left_result.eq(2147483647), b => all(b.method.is('quota_left'), b.m_limit.eq(0)))},
+      {name: 'the quota left is never negative', kind: 'step', intent: 'docs', why: 'bandwidth_limit.cpp: quota_left returns std::max(int(m_quota_left), 0)',
+        law: r => r.stepLaw('the quota left is never negative', (_b, a) => a.quota_left_result.atLeast(0), b => b.method.is('quota_left'))},
+      {name: 'a throttle sets the limit', kind: 'step', intent: 'docs', why: 'bandwidth_limit.cpp: throttle asserts 0 <= limit < inf and sets m_limit',
+        law: r => r.stepLaw('a throttle sets the limit', (b, a) => a.m_limit.eq(b.throttle_limit), b => b.method.is('throttle'))},
+      {name: 'using quota spends it', kind: 'step', intent: 'docs', why: 'bandwidth_limit.cpp: use_quota "m_quota_left -= amount" where the channel is limited',
+        law: r => r.stepLaw('using quota spends it', (b, a) => a.m_quota_left.eq(b.m_quota_left.minus(b.use_quota_amount)), b => all(b.method.is('use_quota'), b.m_limit.gt(0)))},
+      {name: 'an update keeps at most 3 seconds of quota', kind: 'step', intent: 'inferred', why: 'bandwidth_limit.cpp, update_quota: "if (m_quota_left / 3 > m_limit) m_quota_left = std::int64_t(m_limit) * 3"',
+        law: r => r.stepLaw('an update keeps at most 3 seconds of quota', (_b, a) => a.m_quota_left.atMost(a.m_limit.times(3)), b => all(b.method.is('update_quota'), b.m_limit.gt(0), b.m_quota_left.atMost(b.m_limit.times(3))))},
+      {name: 'the quota to distribute is never negative', kind: 'step', intent: 'docs', why: 'bandwidth_limit.cpp, update_quota: "distribute_quota = int(std::max(m_quota_left, std::int64_t(0)))"',
+        law: r => r.stepLaw('the quota to distribute is never negative', (_b, a) => a.distribute_quota.atLeast(0), b => all(b.method.is('update_quota'), b.m_limit.gt(0)))},
+    ]},
+  {id: 'state machine/PX4/Hysteresis', domain: 'state machine', project: 'PX4-Autopilot', version: '1.17.0', licence: 'BSD-3-Clause', author: 'PX4 Development Team', repo: 'PX4/PX4-Autopilot', cpp: true,
+    raw: 'https://raw.githubusercontent.com/PX4/PX4-Autopilot/d6f12ad1c4f70ad3230afd7d86e971421e02fef4', files: ['src/lib/hysteresis/hysteresis.h', 'src/lib/hysteresis/hysteresis.cpp'],
+    shims: {'drivers/drv_hrt.h': '#include <cstdint>\ntypedef uint64_t hrt_abstime;\n'}, file: 'src/lib/hysteresis/hysteresis.cpp', flags: [],
+    reads: 'src/lib/hysteresis/hysteresis.cpp and .h: systemlib::Hysteresis (its constructor, get_state, set_hysteresis_time_from, set_state_and_update, update; drivers/drv_hrt.h stood in for: hrt_abstime as uint64_t)',
+    summary: 'PX4\'s hysteresis, the debounced boolean behind its failure and arming checks: a requested change of state takes effect once it has been requested for the delay set for the state it leaves (at once with no delay), a change of mind before then cancels it.',
+    opts: {entry: 'Hysteresis'},
+    laws: [
+      {name: 'with no delay a change is seen at once', kind: 'step', intent: 'tests', why: 'HysteresisTest.cpp, Zero: "Default is 0 hysteresis." / "Change and see result immediately."',
+        law: r => r.stepLaw('with no delay a change is seen at once', (b, a) => all(a.state.iff(a.requested_state), a.state.iff(b.set_state_and_update_new_state)), b => all(b.method.is('set_state_and_update'), b.time_from_false_us.eq(0), b.time_from_true_us.eq(0), b.state.iff(b.requested_state), b.last_time_to_change_state.atMost(b.set_state_and_update_now_us)))},
+      {name: 'a wait changes nothing', kind: 'step', intent: 'tests', why: 'HysteresisTest.cpp, Zero: "A wait won\'t change anything."',
+        law: r => r.stepLaw('a wait changes nothing', (b, a) => a.state.iff(b.state), b => all(b.method.is('update'), b.state.iff(b.requested_state)))},
+      {name: 'a change waits for its delay', kind: 'step', intent: 'tests', why: 'HysteresisTest.cpp, ChangeAfterTime: with 5000 us from false, the state is still false 4000 us after the change',
+        law: r => r.stepLaw('a change waits for its delay', (b, a) => a.state.not(), b => all(b.method.is('update'), b.state.not(), b.requested_state, b.update_now_us.lt(b.last_time_to_change_state.plus(b.time_from_false_us))))},
+      {name: 'a change takes effect after its delay', kind: 'step', intent: 'tests', why: 'HysteresisTest.cpp, ChangeAfterTime: and true 6000 us after it',
+        law: r => r.stepLaw('a change takes effect after its delay', (_b, a) => a.state, b => all(b.method.is('update'), b.state.not(), b.requested_state, b.update_now_us.atLeast(b.last_time_to_change_state.plus(b.time_from_false_us))))},
+      {name: 'a change of mind cancels a pending change', kind: 'step', intent: 'tests', why: 'HysteresisTest.cpp, TakeChangeBack: "Change your mind to false."',
+        law: r => r.stepLaw('a change of mind cancels a pending change', (b, a) => all(a.requested_state.iff(b.state), a.state.iff(b.state)), b => all(b.method.is('set_state_and_update'), b.set_state_and_update_new_state.iff(b.state), b.requested_state.iff(b.state).not()))},
     ]},
 ]

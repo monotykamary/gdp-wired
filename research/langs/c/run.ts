@@ -23,10 +23,12 @@ for (const s of SPECS.filter(x => !only || x.id === only)) {
   const dir = join(src, `${s.project}-${s.version}`)
   if (!existsSync(join(dir, s.file))) {
     mkdirSync(dir, {recursive: true})
-    execFileSync('sh', ['-c', `curl -sfL -A gdp-wired '${s.tarball}' | tar x${s.tarball.endsWith('.xz') ? 'J' : 'z'} -C '${dir}' --strip-components=1`])
+    if (s.tarball) execFileSync('sh', ['-c', `curl -sfL -A gdp-wired '${s.tarball}' | tar x${s.tarball.endsWith('.xz') ? 'J' : 'z'} -C '${dir}' --strip-components=1`])
+    for (const f of s.files ?? []) { mkdirSync(join(dir, f, '..'), {recursive: true}); execFileSync('curl', ['-sfL', '-A', 'gdp-wired', `${s.raw}/${f}`, '-o', join(dir, f)]) }
   }
+  for (const [f, text] of Object.entries(s.shims ?? {})) { mkdirSync(join(dir, '.gdp-shim', f, '..'), {recursive: true}); writeFileSync(join(dir, '.gdp-shim', f), text) }
   const t0 = performance.now()
-  const x = extractC(join(dir, s.file), {...s.opts, flags: s.flags.map(f => f.replace(/^-I(?!\/)/, `-I${dir}/`)), root: dir})
+  const x = extractC(join(dir, s.file), {...s.opts, flags: [...(s.shims ? [`-I${dir}/.gdp-shim`] : []), ...s.flags.map(f => f.replace(/^-I(?!\/)/, `-I${dir}/`))], root: join(dir, s.root ?? '')}, !!s.cpp)
   console.log(`\n${s.id}: ${x.ok ? 'extracted' : 'refused'} in ${Math.round(performance.now() - t0)} ms (${s.project} ${s.version}, reads ${s.reads})`)
   const out = {id: s.id, ok: x.ok, refusals: x.refusals, evidence: x.evidence, notes: x.notes, laws: [] as unknown[]}
   results.push(out)

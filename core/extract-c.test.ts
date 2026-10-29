@@ -7,15 +7,16 @@ import {execFileSync} from 'node:child_process'
 import {mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {proveRule, proveSteps} from './dsl.ts'
-import {type COptions, extractC} from './extract-c.ts'
+import {type COptions, extractC, extractCpp} from './extract-c.ts'
 
 const hasClang = (() => { try { execFileSync('clang', ['--version'], {stdio: 'ignore'}); return true } catch { return false } })()
 const t = hasClang ? test : test.skip
-const c = (code: string, entry: string, more: Partial<COptions> = {}) => {
-  const file = `${mkdtempSync(`${tmpdir()}/gdp-ccase-`)}/case.c`
+const c = (code: string, entry: string, more: Partial<COptions> = {}, cpp = false) => {
+  const file = `${mkdtempSync(`${tmpdir()}/gdp-ccase-`)}/case.${cpp ? 'cpp' : 'c'}`
   writeFileSync(file, code)
-  return extractC(file, {entry, check: {runs: 25, depth: 6, states: 50}, ...more})
+  return (cpp ? extractCpp : extractC)(file, {entry, check: {runs: 25, depth: 6, states: 50}, ...more})
 }
+const cpp = (code: string, entry: string, more: Partial<COptions> = {}) => c(code, entry, more, true)
 type X = ReturnType<typeof c>
 const ok = (x: X) => {
   if (!x.ok) throw new Error(`refused: ${JSON.stringify(x.refusals)}\n${x.source ?? ''}\n${JSON.stringify(x.evidence)}`)
@@ -147,4 +148,48 @@ t('refused where it leaves the subset, each with why', () => {
   expect(why('#include <string.h>\nstruct q { unsigned n; };\nvoid f(struct q *q) { q->n = strlen("ab"); }\n', 'q')).toMatch(/another file or library|a string/)
   expect(why('struct q { unsigned n; };\nvoid f(struct q *q, unsigned k) { q->n = q->n / k; }\n', 'q')).toMatch(/other than a constant/)
   expect(why('struct q { unsigned n; };\nvoid f(struct q *q, unsigned k) { q->n = q->n ^ k; }\n', 'q')).toMatch(/a bit operation/)
+}, 60_000)
+
+// --- C++ (extractCpp: the same reader and harness) ---------------------------------------------------------------------
+const BUCKET = `
+#include <mutex>
+#include <array>
+#include <cstdint>
+#include <algorithm>
+#include <stdexcept>
+class Bucket {
+ public:
+  enum class State { Closed, Open };
+  explicit Bucket(uint32_t cap) : cap_(cap), tokens_(cap) {}
+  bool take(uint32_t n);
+  void refill(uint32_t k) { std::lock_guard<std::mutex> g(mu_); tokens_ = std::min(cap_, tokens_ + k); }
+  void trip() { state_ = State::Open; hits_[0] = 1; }
+  int put(uint32_t n) { if (n > cap_) throw std::invalid_argument("too many"); return clamp(n); }
+  bool pop(int &out) { if (hits_[1] == 0) return false; out = hits_[1]; hits_[1] = 0; return true; }
+ private:
+  int clamp(uint32_t n) { return n > 10 ? 10 : (int)n; }
+  uint32_t cap_, tokens_;
+  State state_ = State::Closed;
+  std::array<int, 4> hits_{};
+  std::mutex mu_;
+};
+bool Bucket::take(uint32_t n) { std::scoped_lock lk(mu_); if (tokens_ < n) return false; tokens_ -= n; return true; }
+`
+t('C++: a class, its constructor the start (its parameters the rule\'s), private members, lock guards, std::min, std::array, a throw', () => {
+  const x = ok(cpp(BUCKET, 'Bucket'))
+  expect(x.source).toContain('.params({cap: nat})')
+  expect(x.source).toContain('tokens_: ({cap}) => cap')
+  expect(proveRule(x.rule!, [...x.invariants!, x.rule!.law('never more tokens than the capacity', ({tokens_, cap_}: A) => tokens_.atMost(cap_))]).proven).toBe(true)
+  step(x, 'a take is all or nothing', (b, a) => a.take_result.implies(a.tokens_.eq(b.tokens_.minus(b.take_n))), b => b.method.is('take'))
+  step(x, 'a pop gives the item and clears it', (b, a) => a.pop_out.eq(b.hits_.at(1)).and(a.hits_.at(1).eq(0)), b => b.method.is('pop').and(b.hits_.at(1).eq(0).not()))
+  expect(x.evidence!.refusedBoth).toBeGreaterThan(0)
+}, 60_000)
+
+t('C++: refused where it leaves the subset, each with why', () => {
+  const why = (code: string) => { const r = cpp(code, 'K'); expect(r.ok).toBe(false); return r.refusals[0]!.what }
+  expect(why('struct K { int n = 0; virtual void v() { n++; } void f() { v(); } };\n')).toMatch(/virtual/)
+  expect(why('#include <vector>\nstruct K { std::vector<int> xs; int n = 0; void f() { n = (int)xs.size(); } };\n')).toMatch(/another class|other code/)
+  expect(why('struct K { int n = 0; void f() { auto g = [this] { n++; }; g(); } };\n')).toMatch(/subset|other code|lambda|another class/)
+  expect(why('struct K { int n = 0; void f() { try { n++; } catch (...) {} } };\n')).toMatch(/try and catch/)
+  expect(why('template <class T> struct K { T n; void f() { n++; } };\nK<int> k;\n')).toMatch(/class template/)
 }, 60_000)

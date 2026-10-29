@@ -26,6 +26,7 @@ export type Domain =
   | 'inventory' // inventory and reservations
   | 'approval' // multi-step approval workflows
   | 'concurrency' // semaphores, locks and permits
+  | 'state machine' // debounces, link and connection states
 
 // Where the code is: the repo (owner/name on GitHub, or a URL), the commit it was read at, the file, the lines the
 // rule mirrors, the function, class or export, its licence (SPDX) and author (the repo's owner or the file's author).

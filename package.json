@@ -116,6 +116,10 @@
       "types": "./dist/core/extract-c.d.ts",
       "default": "./dist/core/extract-c.js"
     },
+    "./extract-cpp": {
+      "types": "./dist/core/extract-c.d.ts",
+      "default": "./dist/core/extract-c.js"
+    },
     "./extract-rs": {
       "types": "./dist/core/extract-rs.d.ts",
       "default": "./dist/core/extract-rs.js"

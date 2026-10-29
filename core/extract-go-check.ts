@@ -371,11 +371,14 @@ export function speak(work: string, bin: string, env: Record<string, string | un
       for (const [k, xs] of Object.entries(s.lists ?? {})) out[k] = xs.map(j)
       return out
     }
+    const ctorArgs = (params: Record<string, Raw>) => (read.ctor ? {a: read.ctor.map(pa => argJson(pa.arg, params))} : {})
     const argJson = (a: Arg, inputs: Record<string, Raw>): unknown => (a.k === 'input' ? (typeof inputs[a.name] === 'number' ? String(inputs[a.name]) : inputs[a.name]) : a.k === 'rec' ? Object.fromEntries(a.fields.map(([f, x]) => [f, argJson(x, inputs)])) : null)
     // A drawn number within its variable's type (a value of the type is all the code can hold); a quarter of them at
     // the type's own edges (where Go wraps).
     const ranges = rangesOf(m, read, pkg), consts = constantsOf(m), strs = ['a', 'b', 'c', '']
-    const fit = (x: Raw, name: string, rand: Rand): Raw => {
+    // (a natural, by its type or as the caller states, drawn at 0 or above)
+    const fit = (x: Raw, name: string, rand: Rand): Raw => { const y = fit0(x, name, rand); return typeof y === 'number' && y < 0 && sorts.get(name) === 'nat' ? Math.min(-y, ranges.get(name)?.[1] ?? -y) : y }
+    const fit0 = (x: Raw, name: string, rand: Rand): Raw => {
       if (typeof x !== 'number') return x
       const rg = ranges.get(name)
       if (!rg) return x
@@ -395,8 +398,9 @@ export function speak(work: string, bin: string, env: Record<string, string | un
     let coverage: Coverage | undefined
     const r0 = performance.now()
     const side: CodeSide = {
-      make: () => ({ok: true, value: ask({op: 'new'}).id}),
-      at: s => { const res = ask({op: 'at', state: snapJson(s)}); return res.bad ? undefined : res.id },
+      // (a constructor's arguments, C++'s: the rule's parameters)
+      make: params => { const res = ask({op: 'new', ...ctorArgs(params)}); return res.bad ? {ok: false, error: `the code can't be made with it (${res.bad as string})`} : {ok: true, value: res.id} },
+      at: (s, params) => { const res = ask({op: 'at', state: snapJson(s), ...ctorArgs(params)}); return res.bad ? undefined : res.id },
       snapOf: self => toSnap(ask({op: 'get', id: self}).state as Record<string, unknown>),
       call: (self, e, args) => {
         const res = ask({op: 'call', id: self, m: e.call, a: args}) as {out?: unknown, hasOut?: boolean, err?: string, panic?: string, bad?: string, frame?: string}
@@ -408,7 +412,7 @@ export function speak(work: string, bin: string, env: Record<string, string | un
       args: (inputs, e) => e.args.map(a => argJson(a, inputs)),
       setNow: () => {},
       coverage: () => (coverage ??= closeAndCount()),
-      input: (v, x, rand) => (rand(8) === 0 ? x : fit(x, v.name, rand)),
+      input: (v, x, rand) => { const y = rand(8) === 0 ? x : fit(x, v.name, rand); return typeof y === 'number' && y < 0 && sorts.get(v.name) === 'nat' ? -y : y },
       drawSnap: rand => {
         const leaves: Record<string, Raw> = {}, maps: Snap['maps'] = {}, lists: Record<string, Raw[]> = {}
         for (const v of m.state) {
@@ -460,6 +464,7 @@ function rangesOf(m: Model, read: GoRead, pkg: GoPkg): Map<string, [number, numb
     return x.signed === false ? [0, 2 ** bits - 1] : [-(2 ** (bits - 1)), 2 ** (bits - 1) - 1]
   }
   for (const l of read.leaves) { const r = l.kind === 'int' ? rg(l.t) : undefined; if (r) out.set(l.name, r) }
+  for (const pa of read.ctor ?? []) { const r = rg(pa.t); if (r && pa.arg.k === 'input') out.set(pa.arg.name, r) }
   for (const meth of read.methods) for (const pa of meth.params) {
     if (pa.arg.k === 'input') { const r = rg(pa.t); if (r) out.set(pa.arg.name, r) }
     if (pa.arg.k === 'rec') {

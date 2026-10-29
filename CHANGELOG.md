@@ -5,6 +5,29 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**C++ on the C reader: classes, their constructor the start, lock guards as an atomic step, libtorrent's bandwidth
+channel and PX4's hysteresis in the corpus (gen/cpp).** Nothing trusted changed. research/langs/DESIGN.md, "C++
+(gen/cpp)", has the details.
+- **The front end** (`gdp-wired/extract-cpp`, `extractCpp`): the C reader extended, no new reader. clang dumps only
+  the declarations named after the class (a file with <mutex> dumps 281 MB whole, 73 KB so). A class's public methods
+  are the requests, `this` and references pointers into the state; its constructor is run once for the rule's start,
+  its parameters the rule's; std::array is a fixed array, std::min and std::max Go's, std::lock_guard, std::scoped_lock
+  and std::unique_lock of a member mutex Go's Lock with its deferred Unlock, `throw` the step's refusal. Refused:
+  templates, virtual dispatch, overloads (but one picked by its arity), STL containers but std::array, lambdas, try and
+  catch. The harness is C's compiled as C++: the object constructed with the rule's parameters, private members through
+  pointers to members taken in an explicit instantiation, exceptions caught as failures.
+- **Fixed (C's too):** a constant converted to a 64-bit type folded in doubles (a `[1]` read as `[0]`); the drive
+  drawing a stated natural below 0. The committed C rules re-extract unchanged; Go stays byte-identical (119 of 119).
+- **The corpus:** libtorrent 2.1.2's bandwidth_channel and PX4-Autopilot 1.17.0's Hysteresis: 10 of 11 laws proven;
+  "an update keeps at most 3 seconds of quota" (inferred) fails where the overflow guard saturates at INT32_MAX (a
+  limit of 714,396,227 bytes/s, a full bucket, 7 ms: 4.3 MB over), an edge recorded in the triage only. No permissively licensed circuit breaker or ring buffer class fit.
+- **Bars** (against 52152a3, launched together): the real-world corpus 357 / 35 / 9 against 347 / 35 / 8 (10 new
+  proven, the cap law unknown there: the prover's witness is symbolic, the counterexample was confirmed on the real code
+  by hand), nothing lost, wrong 0; the suite and --usual 230 of 230 each, job seconds level. Go 119 of 119; LiteLLM's,
+  Ruby's, Elixir's and the C and C++ corpus rules re-extracted are the committed ones. Build and smoke pass with clang
+  absent.
+- **Size:** core/ and kernel/ without tests +18,645 bytes (the reader +12,256, the front end and harness +3,426).
+
 **C on the shared executor: a reader on clang's JSON dump in the shape Go's reader prints, so Go's lowering reads
 both; signed overflow refused, never wrapped; Ring-Buffer, nghttp2's rate limiter and ENet's packet throttle in the
 corpus (gen/c).** Nothing trusted changed. research/langs/DESIGN.md, "C and C++ (gen/c)", has the details.

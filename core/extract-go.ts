@@ -42,7 +42,7 @@ import {type IntTy, type Recipe, type SFunc, type SModule, type SS, type SX, typ
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
 
 // --- the reader's JSON ----------------------------------------------------------------------------------------------
-export type TT = {k: string, go?: string, fixed?: boolean, box?: boolean, generic?: boolean, name?: string, pkg?: string, own?: boolean, bits?: number, signed?: boolean, untyped?: boolean, ub?: boolean, elem?: number, key?: number,
+export type TT = {k: string, go?: string, fixed?: boolean, box?: boolean, mutex?: boolean, generic?: boolean, name?: string, pkg?: string, own?: boolean, bits?: number, signed?: boolean, untyped?: boolean, ub?: boolean, elem?: number, key?: number,
   fields?: {name: string, t: number, embedded: boolean}[], xfields?: {name: string, t: number, embedded: boolean, exported: boolean}[], methods?: {name: string, ptr: boolean}[], params?: number[], results?: number[], elems?: number[], iface?: boolean, args?: number[], len?: number}
 type GC = {int?: string, bool?: boolean, str?: string, float?: string, other?: string}
 export type GX = {e: string, p: string, t: number, text: string, c?: GC, why?: string, what?: string, b?: GX, n?: string, o?: string, id?: string, x?: GX, y?: GX, op?: string, f?: GX, a?: GX[], k?: string, lo?: GX, hi?: GX, three?: boolean,
@@ -52,7 +52,8 @@ export type GS = {s: string, p: string, why?: string, x?: GX, op?: string, l?: G
 export type GoParam = {name?: string, id?: string, t: number, variadic?: boolean, ts?: string}
 export type GoFunc = {name: string, p: string, span: [number, number], recv?: {t: number, ptr: boolean, type: string, name?: string, id?: string}, generic?: boolean, params: GoParam[], results: GoParam[], body?: GS[]}
 // (`lang`: the language the JSON was read from, Go's reader's or another's in its shape, core/c/reader.ts's)
-export type GoPkg = {lang?: string, package: string, files: {name: string, imports: {path: string, name: string, std: boolean}[]}[], funcs: GoFunc[], types: {name: string, t: number, p: string, span: [number, number]}[],
+// (`ctor`: C++'s constructor, run once for the start state, its parameters the rule's)
+export type GoPkg = {lang?: string, ctor?: GoFunc, package: string, files: {name: string, imports: {path: string, name: string, std: boolean}[]}[], funcs: GoFunc[], types: {name: string, t: number, p: string, span: [number, number]}[],
   consts: {name: string, t: number, c: GC, p: string}[], vars: {name: string, t: number, p: string, init?: GX}[], errors: string[], ttab: TT[]}
 
 export type GoOptions = {
@@ -88,7 +89,7 @@ class Go {
   isBig(t: number): boolean { const x = this.T(t); return x.k === 'ext' && x.pkg === 'math/big' && x.name === 'Int' }
   isBigPtr(t: number): boolean { const x = this.T(t); return x.k === 'ptr' && this.isBig(x.elem!) }
   isContext(t: number): boolean { const x = this.T(t); return x.k === 'ext' && x.pkg === 'context' && x.name === 'Context' }
-  isMutex(t: number): boolean { const x = this.T(t); return x.k === 'ext' && x.pkg === 'sync' && (x.name === 'Mutex' || x.name === 'RWMutex') }
+  isMutex(t: number): boolean { const x = this.T(t); return x.mutex === true || (x.k === 'ext' && x.pkg === 'sync' && (x.name === 'Mutex' || x.name === 'RWMutex')) }
   stdlib(path: string): boolean { return !path.split('/')[0]!.includes('.') }
   // The scalar sort a field of type t is in the rule, or why it isn't one.
   scalar(t: number): Var['sort'] | string {
@@ -542,7 +543,7 @@ class Go {
 }
 
 // --- the model --------------------------------------------------------------------------------------------------------
-export type GoRead = {model: Model, edges: B[], unsigned: string[], leaves: GoLeaf[], spans: [string, number, number][], entry: string, methods: {name: string, ptr: boolean, params: {name: string, t: number, arg: Arg}[], results: number[], err: boolean}[]}
+export type GoRead = {ctor?: {name: string, t: number, arg: Arg}[], model: Model, edges: B[], unsigned: string[], leaves: GoLeaf[], spans: [string, number, number][], entry: string, methods: {name: string, ptr: boolean, params: {name: string, t: number, arg: Arg}[], results: number[], err: boolean}[]}
 type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: V, when: B}
 export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
   const go = new Go(pkg, opts), g = go.g
@@ -557,6 +558,29 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
   heap.set('this', {k: 'rec', ty: String(td.t), f: fields, origin: 'state'})
   for (const [id, o] of heap) g.initHeap.set(id, o)
   const stateVars = [...g.vars.values()].filter(v => v.role === 'state')
+  // C++'s constructor, run once from the zeroed object: where it leaves each leaf is the rule's start, its parameters
+  // the rule's (within their types: the precondition).
+  const cparams: Var[] = [], ctorArgs: {name: string, t: number, arg: Arg}[] = []
+  let ctorInit: Map<string, Term> | undefined, pre: B = I.T
+  if (pkg.ctor) {
+    const fn = pkg.ctor, n0 = g.refusals.length
+    g.method = fn.name
+    let p: Path = {pc: [], locals: new Map(), heap: new Map(heap), called: [], locks: [], defers: []}
+    for (const pa of fn.params) {
+      const s = go.scalar(pa.t), it = go.intTy(pa.t)
+      if (typeof s === 'string' || s.k === 'str') refuse(fn, `the constructor's ${pa.name ?? 'argument'}: ${typeof s === 'string' ? s : 'a string'}`)
+      const v = g.newVar(pa.name ?? 'arg', s as Var['sort'], 'param')
+      cparams.push(v); ctorArgs.push({name: pa.name ?? '', t: pa.t, arg: {k: 'input', name: v.name}})
+      if (it) { g.ints.set(v.name, it); const [lo, hi] = rangeOf(it); if (Number.isFinite(lo)) pre = I.and(pre, I.cmp('<=', I.num(lo), I.nvar(v.name))); if (Number.isFinite(hi)) pre = I.and(pre, I.cmp('<=', I.nvar(v.name), I.num(hi))) }
+      if (pa.id) p = g.bindLocal(pa.id, it ? {t: 'num', e: I.nvar(v.name), ty: it} : {t: 'bool', e: I.bvar(v.name)}, fn, p)
+    }
+    p = g.bindLocal('this', {t: 'ptr', to: {k: 'obj', id: 'this', path: []}}, fn, p)
+    const flow = g.block(go.fn(fn).body, p), ends = [...flow.rets.map(([q]) => q), ...(flow.live ? [flow.live] : [])]
+    if (g.refusals.length > n0 || !ends.length) refuse(fn, 'a constructor that can fail (the rule\'s start is where it leaves the object)')
+    const m = materialize(go, g.join(ends, fn)!, fn)
+    if (m.lists.size || m.maps.size) refuse(fn, 'a constructor that writes an array (a list starts as zeros)')
+    ctorInit = m.leaves
+  }
   // The methods: each an event.
   const all = pkg.funcs.filter(f => f.recv?.type === opts.entry && f.body)
   const chosen = opts.methods ? opts.methods.map(n => all.find(f => f.name === n) ?? refuse(td, `no method ${opts.entry}.${n} with a body`)) : all.filter(f => /^[A-Z]/.test(f.name))
@@ -649,7 +673,7 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
   const writes: Record<string, Term> = {}, init: Record<string, Term> = {}
   const leafVars = stateVars.filter(v => !g.lists.some(d => d.name === v.name) && !g.maps.some(d => d.name === v.name))
   for (const v of leafVars) {
-    init[v.name] = v.sort.k === 'num' ? {s: 'num', e: I.num(0)} : v.sort.k === 'bool' ? {s: 'bool', e: v.name.endsWith('_nil') && go.leaves.some(l => l.name === v.name && (l.kind === 'bignil' || l.kind === 'mapnil')) ? I.T : I.F} : {s: 'str', e: {op: 'slit', value: ''}}
+    init[v.name] = ctorInit?.get(v.name) ?? (v.sort.k === 'num' ? {s: 'num', e: I.num(0)} : v.sort.k === 'bool' ? {s: 'bool', e: v.name.endsWith('_nil') && go.leaves.some(l => l.name === v.name && (l.kind === 'bignil' || l.kind === 'mapnil')) ? I.T : I.F} : {s: 'str', e: {op: 'slit', value: ''}})
     let acc: Term | undefined
     for (let i = finals.length - 1; i >= 0; i--) {
       const t = finals[i]!.leaves.get(v.name) ?? varTerm(v)
@@ -705,13 +729,13 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
   const layout: Layout = {k: 'rec', fields: state.filter(v => !outputs.includes(v.name)).map(v => [v.name, {k: 'scalar', name: v.name}] as [string, Layout])}
   const model: Model = {
     name: opts.entry, shape: 'class', file: pkg.files[0]?.name ?? 'go', entry: opts.entry,
-    params: [], inputs: g.inputs, state, maps, init, writes, mapWrites, outputs, ...(lists.length ? {lists, listWrites} : {}),
-    refuse: refuseB, pre: I.T, layout, events, notes: [...g.notes], hints: g.hints, event: ev.name, results, laws,
+    params: cparams, inputs: g.inputs, state, maps, init, writes, mapWrites, outputs, ...(lists.length ? {lists, listWrites} : {}),
+    refuse: refuseB, pre, layout, events, notes: [...g.notes], hints: g.hints, event: ev.name, results, laws,
   }
   // Unsigned inputs are naturals (the input's kind); a state variable's sort is the printer's to decide (a natural where
   // every write is proven one: a wrap by cases may not be, though it stays within the type, which its law says).
-  const unsigned = [...g.ints].filter(([n, ty]) => { const [lo, hi] = rangeOf(ty); return lo === 0 && hi > 0 && g.inputs.some(v => v.name === n) }).map(([n]) => n)
-  return {model, edges: g.edges, unsigned, leaves: go.leaves.filter(l => l.kind === 'frame' || state.some(v => v.name === l.name) || maps.some(d => d.name === l.name) || lists.some(d => d.name === l.name)), spans: [...g.spans.values()], entry: opts.entry, methods}
+  const unsigned = [...g.ints].filter(([n, ty]) => { const [lo, hi] = rangeOf(ty); return lo === 0 && hi > 0 && (g.inputs.some(v => v.name === n) || cparams.some(v => v.name === n)) }).map(([n]) => n)
+  return {...(pkg.ctor ? {ctor: ctorArgs} : {}), model, edges: g.edges, unsigned, leaves: go.leaves.filter(l => l.kind === 'frame' || state.some(v => v.name === l.name) || maps.some(d => d.name === l.name) || lists.some(d => d.name === l.name)), spans: [...g.spans.values()], entry: opts.entry, methods}
 }
 function termOf(v: V, at: {p: string}): Term {
   if (v.t === 'num') return {s: 'num', e: v.e}
