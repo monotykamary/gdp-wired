@@ -124,6 +124,7 @@ export class Stepper {
   readonly frozen = new Set<string>()
   // Each fixed-width variable's type (a number read from it overflows as the type does), and its range.
   readonly ints = new Map<string, IntTy>()
+  readonly paramsOut: B[] = []
   now?: Var
   madeAt?: Var
   method = ''
@@ -196,7 +197,9 @@ export class Stepper {
     const [lo, hi] = rangeOf(ty)
     if (role === 'state') return
     const x = I.nvar(v.name), out = I.or(...(Number.isFinite(lo) ? [I.cmp('<', x, I.num(lo))] : []), ...(Number.isFinite(hi) ? [I.cmp('<', I.num(hi), x)] : []))
-    if (!(out.op === 'const' && !out.v)) this.refusals.push(role === 'param' ? out : I.and(this.sel, out))
+    if (out.op === 'const' && !out.v) return
+    // (a constructor's argument outside its type: no object is made with one, the rule's precondition says so)
+    if (role === 'param') this.paramsOut.push(out); else this.refusals.push(I.and(this.sel, out))
   }
   sel: B = I.T
   // The clock: one input a step.
@@ -1211,7 +1214,8 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
     if (r.kinds.some(k => k.startsWith('generic:'))) refuse(r, `${r.short}: a generic type (its methods read a type parameter)`)
     const rustNew = mod.lang === 'rust' ? r.methods.new : undefined
     if (mod.lang === 'rust' && rustNew) {
-      // Rust: the object is what `new` returns, its arguments the rule's params.
+      // Rust: the object is what `new` returns, its arguments the rule's params (named after the fields' names).
+      for (const f of r.fields) g.fieldNames.add(f.name)
       const fn = g.func(rustNew, at)
       const args: V[] = []
       let p = fresh
@@ -1261,7 +1265,7 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
       made = {...p, heap: new Map(p.heap).set('this', {k: 'rec', ty: cls, f, origin: 'state'})}
       g.notes.add(`${r.short}: a dataclass, made with its fields' defaults (the claim is for objects made so) and the others as params`)
     } else made = fresh
-    pre = I.not(I.or(...g.fails))
+    pre = I.and(I.not(I.or(...g.fails)), I.not(I.or(...g.paramsOut)))
     g.fails = []
     g.init = false
     const self = made.heap.get('this') as Extract<Obj, {k: 'rec'}>

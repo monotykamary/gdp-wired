@@ -18,7 +18,7 @@
 // enums with data, references kept, maps and vectors (for now), floats, unsafe pointers, other crates' code.
 import {type Extraction} from './extract.ts'
 import {Refusal} from './extract-read.ts'
-import {type Harness, type Leaf, type PArg, type SModule, type SType, type StepOptions, type StepRead, extractStep, node} from './extract-step.ts'
+import {type Harness, type Leaf, type SModule, type SType, type StepOptions, type StepRead, extractStep, node} from './extract-step.ts'
 
 export type RsOptions = StepOptions & {cargo?: string}
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
@@ -58,17 +58,6 @@ export function extractRust(dir: string, opts: RsOptions): Extraction & {read?: 
 // --- the harness --------------------------------------------------------------------------------------------------
 // Rust source for one value of a type, from a JSON spec (core/extract-step.ts's checkStep builds the specs).
 type Rec = SModule['recs'][string] & {fields: {name: string, t: SType, rs?: string}[], module?: string}
-const INTS = new Set(['u8', 'u16', 'u32', 'u64', 'u128', 'usize', 'i8', 'i16', 'i32', 'i64', 'i128', 'isize'])
-const bare = (rs: string) => rs.replace(/^&\s*(mut\s*)?/, '').replace(/\s+/g, '')
-function rsOf(t: SType, rs: string | undefined, mod: SModule): string {
-  if (t.k === 'int') return t.unit === 'instant' ? 'std::time::Instant' : t.unit === 'duration' ? 'std::time::Duration' : (t as {rs?: string}).rs ?? bare(rs ?? 'i64')
-  if (t.k === 'bool') return 'bool'
-  if (t.k === 'str') return 'String'
-  if (t.k === 'choice') return t.enum ?? 'UnknownEnum'
-  if (t.k === 'opt') return `Option<${rsOf(t.of, undefined, mod)}>`
-  if (t.k === 'rec') return t.name
-  return `/* ${t.k} */ ()`
-}
 // The expression making a value of type t from the JSON value `v` (a &serde_json::Value), with `?` on errors.
 function fromJson(t: SType, v: string, mod: SModule, depth = 0): string {
   if (depth > 6) return 'return Err("too deep".into())'
@@ -88,7 +77,7 @@ function fromJson(t: SType, v: string, mod: SModule, depth = 0): string {
       if (!r) return `return Err("no record ${t.name}".into())`
       return `${t.name} { ${r.fields.map(f => `${f.name}: match ${v}.get("f").and_then(|m| m.get(${JSON.stringify(f.name)})) { Some(x) => ${fromJson(f.t, 'x', mod, depth + 1)}, None => ${zero(f.t, mod, depth + 1)} }`).join(', ')} }`
     }
-    default: return `return Err("a value of ${t.k}".into())`
+    case 'any': case 'float': case 'list': case 'lock': case 'map': case 'none': case 'opaque': case 'res': return `return Err("a value of ${t.k}".into())`
   }
 }
 // A zero of a type (a field the rule doesn't read: the claim is for any value it holds, and the check gives this one).

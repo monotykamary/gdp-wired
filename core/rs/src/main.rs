@@ -501,12 +501,12 @@ impl Reader {
       let ap = self.at(arm.span());
       self.locals.push(BTreeSet::new());
       let (mut test, mut binds) = self.pattern(&arm.pat, &sv, &ap);
+      let guard = arm.guard.as_ref().map(|(_, g)| self.expr(g));
       let (mut body, bv) = self.expr(&arm.body);
       self.locals.pop();
       let mut then = vec![];
-      if let Some((_, g)) = &arm.guard {
+      if let Some((gpre, gv)) = guard {
         // A guard reads the bindings: tested inside them, falling to the next arms where it fails.
-        let (gpre, gv) = self.expr(g);
         let mut inner = gpre; inner.append(&mut body); inner.push(json!({"s": "set", "p": ap, "to": rv, "x": bv}));
         then.append(&mut binds);
         then.push(json!({"s": "if", "p": ap, "c": gv, "then": inner, "else": chain.clone()}));
