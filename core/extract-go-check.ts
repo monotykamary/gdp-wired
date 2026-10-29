@@ -376,7 +376,9 @@ export function speak(work: string, bin: string, env: Record<string, string | un
     // A drawn number within its variable's type (a value of the type is all the code can hold); a quarter of them at
     // the type's own edges (where Go wraps).
     const ranges = rangesOf(m, read, pkg), consts = constantsOf(m), strs = ['a', 'b', 'c', '']
-    const fit = (x: Raw, name: string, rand: Rand): Raw => {
+    // (a natural, by its type or as the caller states, drawn at 0 or above)
+    const fit = (x: Raw, name: string, rand: Rand): Raw => { const y = fit0(x, name, rand); return typeof y === 'number' && y < 0 && sorts.get(name) === 'nat' ? Math.min(-y, ranges.get(name)?.[1] ?? -y) : y }
+    const fit0 = (x: Raw, name: string, rand: Rand): Raw => {
       if (typeof x !== 'number') return x
       const rg = ranges.get(name)
       if (!rg) return x
@@ -410,7 +412,7 @@ export function speak(work: string, bin: string, env: Record<string, string | un
       args: (inputs, e) => e.args.map(a => argJson(a, inputs)),
       setNow: () => {},
       coverage: () => (coverage ??= closeAndCount()),
-      input: (v, x, rand) => (rand(8) === 0 ? x : fit(x, v.name, rand)),
+      input: (v, x, rand) => { const y = rand(8) === 0 ? x : fit(x, v.name, rand); return typeof y === 'number' && y < 0 && sorts.get(v.name) === 'nat' ? -y : y },
       drawSnap: rand => {
         const leaves: Record<string, Raw> = {}, maps: Snap['maps'] = {}, lists: Record<string, Raw[]> = {}
         for (const v of m.state) {

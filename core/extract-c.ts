@@ -49,18 +49,20 @@ type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) =>
 
 export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead, flags: string[]} {
   const flags0 = [...flagsFor(file, opts.compileCommands), ...(opts.flags ?? [])], flags = cpp && !flags0.some(f => f.startsWith('-std=')) ? [...flags0, '-std=c++17'] : flags0, {tu, target} = clangDump(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, cpp ? opts.entry : undefined)
-  return {c: readC(file, opts.entry, tu, target, cpp, opts.root), flags}
+  return {c: readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])]))), flags}
 }
 export function extractC(file: string, opts: COptions, cpp = false): Extraction & {leaves?: GoLeaf[]} {
   const notes: string[] = []
   let read: GoRead, c: CRead, flags: string[]
   try {
     ;({c, flags} = readCFile(file, opts, cpp))
-    read = readGo(c.pkg, {entry: opts.entry, methods: opts.functions ?? c.methods, ...(opts.onError ? {onError: opts.onError} : {}), ...(opts.fails ? {fails: opts.fails} : {})} as GoOptions)
+    read = readGo(c.pkg, {entry: opts.entry, methods: opts.functions?.map(f => f.split('/')[0]!) ?? c.methods, ...(opts.onError ? {onError: opts.onError} : {}), ...(opts.fails ? {fails: opts.fails} : {})} as GoOptions)
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
     throw e
   }
+  // (a signed leaf the caller states is a natural: its range law from 0, the claim for those states)
+  for (const [n, d] of Object.entries(opts.domains ?? {})) if (d === 'nat') read.model.laws = read.model.laws?.map(l => (l.includes(`"${n} within its type's range"`) ? l.replace(/\.atLeast\(-\d+\)/, '.atLeast(0)') : l))
   const x = fromModel(read.model, `${opts.entry}.${cpp ? 'cpp' : 'c'}`, {...unsignedDomains(read), ...signedDomains(c.pkg, read), ...opts.domains}, notes, (rule, sorts) => checkC(file, flags, c, read, rule, sorts, opts, cpp))
   return {...x, leaves: read.leaves}
 }
@@ -91,7 +93,7 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
     if (!cpp) return `o->${path.join('.')}`
     let e = '(*o)', t = pkg.types[0]!.t
     for (const f of path) {
-      const r = T(t), k = `&${r.go}::${f}`
+      const r = T(t), k = `&${t === pkg.types[0]!.t ? c.cname : r.go}::${f}`
       if (!robs.includes(k)) robs.push(k)
       e = `(${e}.*gdp_ptr(gdp_tag${robs.indexOf(k)}()))`; t = r.fields!.find(g => g.name === f)!.t
     }
