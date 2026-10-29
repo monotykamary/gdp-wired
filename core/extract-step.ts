@@ -21,10 +21,10 @@
 //            check gives the code a store that keeps what is set.
 import * as I from './extract-ir.ts'
 import type {B, K, L, N} from './extract-ir.ts'
-import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, mergeWrites} from './extract-read.ts'
+import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, mergeOps, mergeWrites} from './extract-read.ts'
 import {type Extraction, fromModel} from './extract.ts'
 import type {Rule} from './dsl.ts'
-import type {Sorts} from './extract-print.ts'
+import {type Sorts, nonneg} from './extract-print.ts'
 import {type CodeSide, type Coverage, type Evidence, type Snap, Outside, constantsOf, draw, drive} from './extract-check.ts'
 
 // --- the IR (what a reader emits) -----------------------------------------------------------------------------------
@@ -36,9 +36,14 @@ export type Patch = {mod?: string, path?: string[], self?: string}
 export type SX = {e: string, p: string, text?: string, [k: string]: unknown}
 export type SS = {s: string, p: string, [k: string]: unknown}
 export type SParam = {name: string, t: SType, dflt?: SX, kw?: boolean, self?: boolean, star?: number}
-export type SFunc = {id: string, name: string, cls?: string, p: string, span: [string, number, number], params: SParam[], ret: SType, body: SS[], async?: boolean, static?: boolean, decorators: {name: string, text: string, p: string}[]}
+export type SFunc = {id: string, name: string, cls?: string, p: string, span: [string, number, number], params: SParam[], ret: SType, body: SS[], async?: boolean, static?: boolean, decorators: {name: string, text: string, p: string}[],
+  // (a function inlined by id, Go's: its receiver's local, its results' count, why it can't be called: before the
+  // recursion check, or after it)
+  recv?: string, results?: number, why?: string, late?: string}
 export type SRec = {name: string, short: string, fields: {name: string, t: SType, dflt?: SX}[], methods: Record<string, string | null>, kinds: string[], own: boolean, module: string, p: string}
-export type SModule = {lang: string, file: string, path: string, module: string, root: string, entries: ({k: 'class', rec: string} | {k: 'func', id: string} | {k: 'missing', name: string})[], recs: Record<string, SRec>, funcs: Record<string, SFunc>, enums?: Record<string, {values: string[], discs: number[], data: boolean}>, error?: string}
+export type SModule = {lang: string, file: string, path: string, module: string, root: string, entries: ({k: 'class', rec: string} | {k: 'func', id: string} | {k: 'missing', name: string})[], recs: Record<string, SRec>, funcs: Record<string, SFunc>, enums?: Record<string, {values: string[], discs: number[], data: boolean}>, error?: string,
+  // false: a condition the path takes is kept whole (a negated disjunction not split into its parts: Go's reader's)
+  split?: boolean}
 
 export type StoreDecl = {get?: string[], set?: string[], delete?: string[], value?: 'int' | 'float' | 'str', attrs?: Record<string, null | boolean | number | string>, async?: Record<string, boolean>}
 export type StepOptions = {
@@ -55,27 +60,42 @@ export type StepOptions = {
 
 // --- values ---------------------------------------------------------------------------------------------------------
 // An integer type's width (0: unbounded) and sign: where a number is one, its operations' overflow is the type's.
-export type IntTy = {bits: number, signed: boolean}
+// (`name`: the type's name in the code, for the notes; `t`: the reader's own index of it)
+export type IntTy = {bits: number, signed: boolean, name?: string, t?: number}
+// A number (with the comparison it is the sign of, x.Cmp(y); with the string it is the length of, read only against 0).
 type V =
-  | {t: 'num', e: N, ty?: IntTy} | {t: 'bool', e: B} | {t: 'str', e: K} | {t: 'choice', e: L}
+  | {t: 'num', e: N, ty?: IntTy, cmp?: [N, N], slen?: K} | {t: 'bool', e: B} | {t: 'str', e: K} | {t: 'choice', e: L}
   | {t: 'none'} | {t: 'opt', has: B, v: V}
   | {t: 'ref', id: string} | {t: 'cell', map: string, key: K}
   // A string made by a format with one hole (a store's key): its template and the hole's value.
   | {t: 'fmt', tpl: string, k: K}
-  | {t: 'opaque', why: string}
+  // (firm: a value merged only with itself, refused where a path would make it another; Go's)
+  | {t: 'opaque', why: string, firm?: boolean}
   | {t: 'ext', q: string, text: string, patch?: Patch}
   | {t: 'fn', id: string, self?: V, caps?: Map<string, V>} | {t: 'cls', rec: string, patch?: Patch} | {t: 'builtin', n: string} | {t: 'lib', q: string}
   | {t: 'sattr', store: string, path: string}
   | {t: 'tuple', xs: V[]} | {t: 'lock'}
   // A Result: Ok(v) where ok holds, Err(e) where it doesn't.
   | {t: 'res', ok: B, v: V, e: V}
+  // A pointer by cases; a record by value; an error value (nil or not); nil; a map or a list of the heap, a list with an
+  // item pushed or popped (put back only in its own place).
+  | {t: 'ptr', to: Ptr} | {t: 'struct', ty: string, f: Map<string, V>} | {t: 'err', is: B} | {t: 'nil'}
+  | {t: 'map', id: string} | {t: 'list', id: string} | {t: 'push', id: string, x: V} | {t: 'pop', id: string}
+type Ptr = {k: 'nil'} | {k: 'obj', id: string, path: string[]} | {k: 'phi', c: B, a: Ptr, b: Ptr}
+type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: V, when: B}
+type Place = {k: 'local', id: string, path: string[]} | {k: 'heap', ptr: V, path: string[]} | {k: 'blank'}
+// How a field of a record the caller gives is made where it is first read.
+export type Recipe = {k: 'num' | 'bool' | 'str', ty?: IntTy} | {k: 'big'} | {k: 'no', why: string}
 type Origin = 'state' | 'input' | 'fresh'
 type Obj =
   | {k: 'rec', ty: string, f: Map<string, V>, origin: Origin, lazy?: string, moved?: boolean}
-  | {k: 'map', decl: MapDecl, val: SType, w?: {key: K, has: B, vals: Map<string, V>}, origin: Origin}
+  | {k: 'map', decl: MapDecl, val?: SType, nil?: B, w?: {key: K, has: B, vals: Map<string, V>}, origin: Origin}
   | {k: 'store', name: string}
-type Path = {pc: B[], locals: Map<string, V>, heap: Map<string, Obj>, called: string[]}
-type Flow = {live?: Path, rets: [Path, V][]}
+  | {k: 'big', v: N, origin: Origin} | {k: 'list', decl: MapDecl, ops: ListOp[], origin: Origin}
+// (locks held, and those deferred to the return)
+type Path = {pc: B[], locals: Map<string, V>, heap: Map<string, Obj>, called: string[], locks: string[], defers: string[]}
+type Flow = {live?: Path, rets: [Path, V][], brk?: Path[], ft?: Path}
+export type {V as StepValue, Path as StepPath, Obj as StepObj, Ptr as StepPtr}
 // What the harness is told: where each leaf of the state is, how each argument is made, what each stub answers.
 export type Leaf = {t?: SType, name: string, path: string[], kind: 'num' | 'bool' | 'str' | 'choice' | 'none' | 'map' | 'frame', float?: boolean, cls?: string, fields?: {name: string, float?: boolean}[], key?: 'num' | 'str', store?: string, tpl?: string}
 export type PArg = {k: 'in', name: string, float?: boolean, z?: Raw} | {k: 'opt', none: string, v: PArg} | {k: 'rec', cls: string, f: [string, PArg][]} | {k: 'inert'} | {k: 'store', name: string} | {k: 'dflt'}
@@ -190,16 +210,18 @@ export class Stepper {
   // A fixed-width integer variable: its type, and (for a request) a value outside it refused: the claim is for the
   // type's values.
   intTy(t: SType): IntTy | undefined { return t.k === 'int' && t.bits !== undefined ? {bits: t.bits, signed: t.signed ?? true} : undefined }
-  typed(v: Var, t: SType, role: Var['role']) {
-    const ty = this.intTy(t)
+  typed(v: Var, t: SType | IntTy, role: Var['role'], sel = this.sel) {
+    const ty = 'k' in t ? this.intTy(t) : t
     if (!ty) return
     this.ints.set(v.name, ty)
     const [lo, hi] = rangeOf(ty)
     if (role === 'state') return
-    const x = I.nvar(v.name), out = I.or(...(Number.isFinite(lo) ? [I.cmp('<', x, I.num(lo))] : []), ...(Number.isFinite(hi) ? [I.cmp('<', I.num(hi), x)] : []))
-    if (out.op === 'const' && !out.v) return
+    const x = I.nvar(v.name)
     // (a constructor's argument outside its type: no object is made with one, the rule's precondition says so)
-    if (role === 'param') this.paramsOut.push(out); else this.refusals.push(I.and(this.sel, out))
+    if (role === 'param') { const out = I.or(...(Number.isFinite(lo) ? [I.cmp('<', x, I.num(lo))] : []), ...(Number.isFinite(hi) ? [I.cmp('<', I.num(hi), x)] : [])); if (!(out.op === 'const' && !out.v)) this.paramsOut.push(out); return }
+    if (Number.isFinite(hi)) this.refusals.push(I.and(sel, I.cmp('<', I.num(hi), x)))
+    if (Number.isFinite(lo) && lo < 0) this.refusals.push(I.and(sel, I.cmp('<', x, I.num(lo))))
+    else if (!ty.signed) this.refusals.push(I.and(sel, I.cmp('<', x, I.num(0))))
   }
   sel: B = I.T
   // The clock: one input a step.
@@ -214,7 +236,7 @@ export class Stepper {
   // --- paths ----------------------------------------------------------------------------------------------------------
   cond(p: Path): B { return I.and(...p.pc) }
   // (a negated disjunction as its negated parts, so a later test of one of them is decided)
-  assume(p: Path, c: B): Path { const cs = c.op === 'not' && c.x.op === 'or' ? c.x.xs.map(I.not) : c.op === 'and' ? c.xs : [c]; const kept = cs.filter(x => !(x.op === 'const' && x.v)); return kept.length ? {...p, pc: [...p.pc, ...kept]} : p }
+  assume(p: Path, c: B): Path { if (this.mod.split === false) return c.op === 'const' && c.v ? p : {...p, pc: [...p.pc, c]}; const cs = c.op === 'not' && c.x.op === 'or' ? c.x.xs.map(I.not) : c.op === 'and' ? c.xs : [c]; const kept = cs.filter(x => !(x.op === 'const' && x.v)); return kept.length ? {...p, pc: [...p.pc, ...kept]} : p }
   // A failure of the code where c holds on this path (an exception raised): the step's refusal, or its result.
   fail(p: Path, c: B, at: {p: string}, what: string) {
     const w = I.and(this.cond(p), c)
@@ -229,8 +251,8 @@ export class Stepper {
   changed(p: Path): boolean {
     for (const [id, o] of p.heap) {
       const i = this.initHeap.get(id)
-      if (!i || (o.k === 'rec' && o.origin !== 'state') || (o.k === 'map' && o.origin !== 'state')) continue
-      if (o.k === 'map' ? !!o.w : keyV(o) !== keyV(i)) return true
+      if (!i || ('origin' in o && o.origin !== 'state')) continue
+      if (o.k === 'map' ? !!o.w || (!!o.nil && I.keyOf(o.nil) !== I.keyOf((i as typeof o).nil!)) : o.k === 'list' ? o.ops.length > 0 : keyV(o) !== keyV(i)) return true
     }
     return false
   }
@@ -245,15 +267,17 @@ export class Stepper {
     while (k < a.pc.length && k < b.pc.length && I.same(a.pc[k]!, b.pc[k]!)) k++
     const c = I.and(...a.pc.slice(k)), pc = a.pc.slice(0, k)
     if (c.op === 'const') return c.v ? {...a, pc} : {...b, pc}
+    if (a.locks.join() !== b.locks.join()) refuse(at, 'a mutex locked on one path and not on another')
     const locals = new Map<string, V>()
-    for (const [n, x] of a.locals) { const y = b.locals.get(n); if (y) { try { locals.set(n, this.ite(c, x, y, at)) } catch (e) { if (!(e instanceof Refusal)) throw e; locals.set(n, {t: 'opaque', why: e.what}) } } }
+    for (const [n, x] of a.locals) { const y = b.locals.get(n); if (y) { try { locals.set(n, this.ite(c, x, y, at)) } catch (e) { if (!(e instanceof Refusal) || firm(x) || firm(y)) throw e; locals.set(n, {t: 'opaque', why: e.what}) } } }
     const heap = new Map<string, Obj>()
     for (const [id, x] of a.heap) { const y = b.heap.get(id); heap.set(id, y ? this.mergeObj(c, x, y, at) : x) }
     for (const [id, y] of b.heap) if (!heap.has(id)) heap.set(id, y)
-    return {pc, locals, heap, called: [...new Set([...a.called, ...b.called])]}
+    return {pc, locals, heap, called: [...new Set([...a.called, ...b.called])], locks: a.locks, defers: [...new Set([...a.defers, ...b.defers])]}
   }
   mergeObj(c: B, a: Obj, b: Obj, at: {p: string}): Obj {
     if (a === b) return a
+    if (a.k === 'big' && b.k === 'big') return {...a, v: I.nite(c, a.v, b.v)}
     if (a.k === 'rec' && b.k === 'rec') {
       const f = new Map<string, V>()
       for (const [n, x] of a.f) { const y = b.f.get(n); f.set(n, y ? this.ite(c, x, y, at) : x) }
@@ -262,18 +286,22 @@ export class Stepper {
     }
     if (a.k === 'map' && b.k === 'map') {
       const w = mergeWrites(c, a.w, b.w, key => this.baseCell(a.decl, key), (c2, x, y) => this.ite(c2, x, y, at))
-      return {...a, ...(w ? {w} : {})}
+      return {...a, ...(a.nil ? {nil: I.bite(c, a.nil, b.nil!)} : {}), ...(w ? {w} : {})}
     }
+    if (a.k === 'list' && b.k === 'list') return {...a, ops: mergeOps(c, a.ops, b.ops)}
     if (a.k === 'store' && b.k === 'store') return a
     return refuse(at, 'an object of two kinds by a condition')
   }
   // A value by cases.
   ite(c: B, a: V, b: V, at: {p: string}): V {
     if (c.op === 'const') return c.v ? a : b
-    if (a === b || keyV(a) === keyV(b)) return a
+    if (a === b) return a
+    // (a number keeps its type)
+    if (a.t === 'num' && b.t === 'num') return {t: 'num', e: I.nite(c, a.e, b.e), ...(a.ty ? {ty: a.ty} : {})}
+    if (firm(a) || firm(b)) return this.iteFirm(c, a, b, at)
+    if (keyV(a) === keyV(b)) return a
     if (a.t === 'opaque') return a
     if (b.t === 'opaque') return b
-    if (a.t === 'num' && b.t === 'num') return {t: 'num', e: I.nite(c, a.e, b.e)}
     if (a.t === 'bool' && b.t === 'bool') return {t: 'bool', e: I.bite(c, a.e, b.e)}
     if (a.t === 'str' && b.t === 'str') return {t: 'str', e: I.kite(c, a.e, b.e)}
     if (a.t === 'choice' && b.t === 'choice') return {t: 'choice', e: I.lite(c, a.e, b.e)}
@@ -293,6 +321,18 @@ export class Stepper {
     }
     if (a.t === 'tuple' && b.t === 'tuple' && a.xs.length === b.xs.length) return {t: 'tuple', xs: a.xs.map((x, i) => this.ite(c, x, b.xs[i]!, at))}
     if (a.t === 'ref' && b.t === 'ref') return refuse(at, 'one of two objects by a condition')
+    return refuse(at, `a value that is a ${a.t} on one path and a ${b.t} on another`)
+  }
+  // Pointers, records by value, error values, nil, maps and lists: Go's merge (a firm value with another refused).
+  iteFirm(c: B, a: V, b: V, at: {p: string}): V {
+    if (a.t === 'err' && b.t === 'err') return {t: 'err', is: I.bite(c, a.is, b.is)}
+    const asPtr = (v: V): Ptr | undefined => (v.t === 'ptr' ? v.to : v.t === 'nil' ? {k: 'nil'} : undefined)
+    if ((a.t === 'ptr' || a.t === 'nil') && (b.t === 'ptr' || b.t === 'nil')) return {t: 'ptr', to: phiP(c, asPtr(a)!, asPtr(b)!)}
+    if ((a.t === 'err' && b.t === 'nil') || (a.t === 'nil' && b.t === 'err')) return {t: 'err', is: I.bite(c, a.t === 'err' ? a.is : I.F, b.t === 'err' ? b.is : I.F)}
+    if (a.t === 'struct' && b.t === 'struct') { const f = new Map<string, V>(); for (const [n, x] of a.f) f.set(n, this.ite(c, x, b.f.get(n)!, at)); return {t: 'struct', ty: a.ty, f} }
+    if ((a.t === 'map' && b.t === 'map') || (a.t === 'list' && b.t === 'list')) { if (a.id === b.id) return a; return refuse(at, 'one of two maps or slices by a condition') }
+    if (a.t === 'opaque' && b.t === 'opaque' && a.why === b.why) return a
+    if (keyV(a) === keyV(b)) return a
     return refuse(at, `a value that is a ${a.t} on one path and a ${b.t} on another`)
   }
   baseCell(d: MapDecl, key: K): {has: B, vals: Map<string, V>} {
@@ -390,15 +430,17 @@ export class Stepper {
   arm(ss: SS[]) { const s0 = ss.find(x => x.s !== 'import'); if (s0) { const m = /^(.*):(\d+):\d+$/.exec(s0.p); if (m) this.arms.add(`${m[1]}:${m[2]}`) } }
   // --- statements -----------------------------------------------------------------------------------------------------
   block(ss: SS[], p: Path): Flow {
-    let live: Path | undefined = p
-    const rets: [Path, V][] = []
+    let live: Path | undefined = p, ft: Path | undefined
+    const rets: [Path, V][] = [], brk: Path[] = []
     for (const s of ss) {
       if (!live) break
+      if (s.s === 'fallthrough') { ft = live; live = undefined; break }
       const f = this.stmt(s, live)
       rets.push(...f.rets)
+      if (f.brk) brk.push(...f.brk)
       live = f.live
     }
-    return {...(live ? {live} : {}), rets}
+    return {...(live ? {live} : {}), rets, ...(brk.length ? {brk} : {}), ...(ft ? {ft} : {})}
   }
   stmt(s: SS, p: Path): Flow {
     switch (s.s) {
@@ -412,16 +454,24 @@ export class Stepper {
       }
       case 'if': {
         const [cv, q] = this.ev(s.c as SX, p)
-        const c = this.truthy(cv, s.c as SX, q)
+        const c = s.strict ? (cv.t === 'bool' ? cv.e : refuse({p: String(s.cp)}, String(s.strict))) : this.truthy(cv, s.c as SX, q)
         if (!(c.op === 'const' && !c.v)) this.arm(s.then as SS[])
         if (!(c.op === 'const' && c.v)) this.arm(s.else as SS[])
         const t = c.op === 'const' && !c.v ? undefined : this.block(s.then as SS[], this.assume(q, c))
         const e = c.op === 'const' && c.v ? undefined : this.block(s.else as SS[], this.assume(q, I.not(c)))
         const lives = [t?.live, e?.live].filter((x): x is Path => !!x)
-        const live = this.join(lives, s)
-        return {...(live ? {live} : {}), rets: [...(t?.rets ?? []), ...(e?.rets ?? [])]}
+        const live = this.join(lives, s), brk = [...(t?.brk ?? []), ...(e?.brk ?? [])]
+        return {...(live ? {live} : {}), rets: [...(t?.rets ?? []), ...(e?.rets ?? [])], ...(brk.length ? {brk} : {})}
       }
       case 'ret': {
+        if (s.xs || s.one || s.bare) {
+          // (Go's: each result, one call's several, or the named results)
+          let vs: V[] = [], q = p
+          if (s.one) { const [v, q2] = this.ev(s.one as SX, q); if (v.t !== 'tuple') return refuse(s, String(s.why)); vs = v.xs; q = q2 }
+          else if (s.bare) for (const id of s.bare as (string | null)[]) vs.push((id ? q.locals.get(id) : undefined) ?? refuse(s, 'a bare return of an unnamed result'))
+          else for (const e of s.xs as SX[]) { const [v, q2] = this.ev(e, q); vs.push(v); q = q2 }
+          return {rets: [[q, {t: 'tuple', xs: vs}]]}
+        }
         if (!s.x) return {rets: [[p, {t: 'none'}]]}
         const [v, q] = this.ev(s.x as SX, p)
         return {rets: [[q, v]]}
@@ -451,6 +501,18 @@ export class Stepper {
         return {live: {...p, locals}, rets: []}
       }
       case 'no': return refuse(s, String(s.why))
+      case 'panic': { let q = p; for (const a of s.args as SX[]) q = this.ev(a, q)[1]; this.refuseWhere(q, I.T, s, 'a panic'); return {rets: []} }
+      case 'incdec': {
+        const [pl, q] = this.place(s.to as SX, p), [v, q2] = this.read(pl, s, q)
+        if (v.t !== 'num') return refuse(s, `${s.op} of a ${v.t}`)
+        return {live: this.write(pl, this.arith(s.op === '++' ? '+' : '-', v, {t: 'num', e: I.num(1), ty: v.ty}, s, q2), s, q2), rets: []}
+      }
+      case 'opset': { const [pl, q] = this.place(s.to as SX, p), [x, q2] = this.read(pl, s, q), [y, q3] = this.ev(s.y as SX, q2); return {live: this.write(pl, this.binop(String(s.op), x, y, s, q3), s, q3), rets: []} }
+      case 'mopset': { const at = s.at as SX, [m, q] = this.ev(at.m as SX, p), [k, q2] = this.ev(at.k as SX, q), cell = this.mapRead(m, k, at, q2), [y, q3] = this.ev(s.y as SX, q2); return {live: this.mapWrite(m, k, this.binop(String(s.op), cell.v, y, s, q3), at, q3), rets: []} }
+      case 'assign': return {live: this.assignGo(s, p), rets: []}
+      case 'switch': return this.switchGo(s, p)
+      case 'break': return {rets: [], brk: [p]}
+      case 'defer': { const key = this.lockKey(s.pl as SX, p); if (!p.locks.includes(key)) refuse(s, `defer ${s.text} without its Lock first`); return {live: {...p, defers: [...p.defers, key]}, rets: []} }
     }
     return refuse(s, `a statement the subset doesn't read (${s.s})`)
   }
@@ -609,8 +671,8 @@ export class Stepper {
     if (kind === 'get') return this.mapGet({t: 'ref', id}, k, at, p, 'none')
     if (kind === 'delete') return [{t: 'none'}, this.mapDel({t: 'ref', id}, k, at, p, false)]
     const v = arg('value', 1)
-    if (o.val.k === 'str' ? v.t !== 'str' : v.t !== 'num') return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t} set in a store of ${o.val.k === 'float' ? 'numbers' : o.val.k}`)
-    if (o.val.k === 'str') return refuse(at, `${at.text}: a store of strings (its cells hold numbers)`)
+    if (o.val!.k === 'str' ? v.t !== 'str' : v.t !== 'num') return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t} set in a store of ${o.val!.k === 'float' ? 'numbers' : o.val!.k}`)
+    if (o.val!.k === 'str') return refuse(at, `${at.text}: a store of strings (its cells hold numbers)`)
     return [{t: 'none'}, this.mapSet({t: 'ref', id}, k, v, at, p)]
   }
 
@@ -653,9 +715,9 @@ export class Stepper {
   // --- expressions ----------------------------------------------------------------------------------------------------
   ev(x: SX, p: Path, awaited = false): [V, Path] {
     switch (x.e) {
-      case 'int': { const ty = x.ty ? this.intTy(x.ty as SType) : undefined; return [{t: 'num', e: I.num(Number(x.v)), ...(ty ? {ty} : {})}, p] }
+      case 'int': { const ty = (x.ity as IntTy | undefined) ?? (x.ty ? this.intTy(x.ty as SType) : undefined); return [{t: 'num', e: I.num(Number(x.v)), ...(ty ? {ty} : {})}, p] }
       case 'unit': return [{t: 'none'}, p]
-      case 'opaque': return [{t: 'opaque', why: String(x.why)}, p]
+      case 'opaque': return [{t: 'opaque', why: String(x.why), ...(x.firm ? {firm: true} : {})}, p]
       case 'ref': case 'lock': return this.ev(x.x as SX, p)
       case 'copy': { const [v, q] = this.ev(x.x as SX, p); return this.copy(v, q, x) }
       case 'cast': return this.cast(x, p)
@@ -699,13 +761,92 @@ export class Stepper {
       case 'bool': return [{t: 'bool', e: x.v ? I.T : I.F}, p]
       case 'str': return [{t: 'str', e: {op: 'slit', value: String(x.v)}}, p]
       case 'none': return [{t: 'none'}, p]
-      case 'var': { const v = p.locals.get(String(x.n)); if (!v) return refuse(x, `${String(x.n)}: a variable read before it is set`); return [this.narrow(v, p), p] }
+      case 'var': { const v = p.locals.get(String(x.n)); if (!v) return refuse(x, String(x.why ?? `${String(x.n)}: a variable read before it is set`)); return [this.narrow(v, p), p] }
       case 'fn': return [{t: 'fn', id: String(x.id)}, p]
       case 'cls': return [{t: 'cls', rec: String(x.rec), ...(x.patch ? {patch: x.patch as Patch} : {})}, p]
       case 'builtin': return [{t: 'builtin', n: String(x.n)}, p]
       case 'lib': return [{t: 'lib', q: String(x.q)}, p]
       case 'ext': return [{t: 'ext', q: String(x.q), text: String(x.text), ...(x.patch ? {patch: x.patch as Patch} : {})}, p]
-      case 'no': return refuse(x, String(x.why))
+      case 'no': { let q = p; for (const y of (x.pre as SX[] | undefined) ?? []) q = this.ev(y, q)[1]; if (x.prepl) this.place(x.prepl as SX, q); return refuse(x, String(x.why)) }
+      case 'nil': return [{t: 'nil'}, p]
+      case 'ptr0': return [{t: 'ptr', to: {k: 'nil'}}, p]
+      case 'errv': { let q = p; for (const y of (x.pre as SX[] | undefined) ?? []) q = this.ev(y, q)[1]; if (x.note) this.notes.add(String(x.note)); return [{t: 'err', is: x.is ? I.T : I.F}, q] }
+      case 'struct': { let q = p; const f = new Map<string, V>(); for (const [n, y] of x.fields as [string, SX][]) { const [v, q2] = this.ev(y, q); f.set(n, v); q = q2 } return [{t: 'struct', ty: String(x.ty), f}, q] }
+      case 'at': { const [pl, q] = this.place(x.pl as SX, p); if (pl.k === 'blank') return refuse(x, '_'); const [v, q2] = this.read(pl, x, q); if (v.t === 'opaque' && !x.raw) return refuse(x, v.why); return [v, q2] }
+      case 'deref': { const [v, q] = this.ev(x.x as SX, p); return this.deref(v, [], x, q) }
+      case 'as': { const [v, q] = this.ev(x.x as SX, p); if (v.t === 'num' && x.ity) return [{...v, ty: x.ity as IntTy}, q]; if (v.t === 'nil' && x.nil) return [x.nil === 'ptr' ? {t: 'ptr', to: {k: 'nil'}} : {t: 'err', is: I.F}, q]; return [v, q] }
+      case 'conv': { const [v, q] = this.ev(x.x as SX, p), ty = x.ity as IntTy | undefined; if (ty && v.t === 'num') return [{t: 'num', e: this.wrap(v.e, ty, x, q), ty}, q]; return refuse(x, String(x.why)) }
+      case 'binop': { const [a, q] = this.ev(x.x as SX, p), [b, q2] = this.ev(x.y as SX, q); return [this.binop(String(x.op), a, b, x, q2), q2] }
+      case 'andalso': {
+        // The right side runs only where the left doesn't decide: its failures and effects only there.
+        const and = x.op === '&&', [a, q] = this.ev(x.x as SX, p), ab = this.boolv(a, x.x as SX), c = and ? ab : I.not(ab)
+        const [b, q2] = this.ev(x.y as SX, this.assume(q, c)), bb = this.boolv(b, x.y as SX)
+        return [{t: 'bool', e: and ? I.and(ab, bb) : I.or(ab, bb)}, q2.heap === q.heap ? q : this.merge({...q2, pc: [...q.pc, c]}, q, x)]
+      }
+      case 'unop': {
+        const [a, q] = this.ev(x.x as SX, p), op = String(x.op)
+        if (op === '!') return [{t: 'bool', e: I.not(this.boolv(a, x))}, q]
+        if (op === '-') { if (a.t !== 'num') return refuse(x, `- of a ${a.t}`); return [{t: 'num', e: this.wrap(I.neg(a.e), a.ty!, x, q), ty: a.ty}, q] }
+        if (op === '+') return [a, q]
+        return refuse(x, String(x.why))
+      }
+      case 'addr': {
+        const [pl, q] = this.place(x.pl as SX, p)
+        if (pl.k === 'heap' && pl.ptr.t === 'ptr') { const cs = this.cases(pl.ptr.to); this.refuseWhere(q, cs.nil, x, 'a nil dereference'); return [{t: 'ptr', to: this.shift(pl.ptr.to, pl.path)}, this.assume(q, I.not(cs.nil))] }
+        return refuse(x, String(x.why))
+      }
+      case 'alloc': {
+        const [v, q] = this.ev(x.x as SX, p), id = `new:${++this.fresh}`
+        if (v.t !== 'struct') return refuse({p: ''}, 'new of other than a struct')
+        return [{t: 'ptr', to: {k: 'obj', id, path: []}}, {...q, heap: new Map(q.heap).set(id, {k: 'rec', ty: v.ty, f: new Map(v.f), origin: 'fresh'})}]
+      }
+      case 'bignew': { if (!x.x) return this.newBig(I.num(0), p); const [v, q] = this.ev(x.x as SX, p); return this.newBig(this.numv(v, x), q) }
+      case 'big': return this.bigCall(x, p)
+      case 'mutex': return this.lockCall(x, p)
+      case 'gcall': {
+        const fn = this.func(String(x.fn), x), r = x.recv as SX | undefined
+        let q = p, recv: V | undefined
+        if (r?.e === 'addr') [recv, q] = this.ev(r, q)
+        else if (r?.k === 'rd') { const [pl, q2] = this.place(r.pl as SX, q); [recv, q] = this.read(pl, x, q2) }
+        else if (r) { const [v, q2] = this.ev(r.x as SX, q); q = q2; if (r.k === 'val' && v.t === 'ptr') [recv, q] = this.deref(v, [], x, q); else recv = v }
+        const args: V[] = []
+        for (const a of x.args as SX[]) { const [v, q2] = this.ev(a, q); args.push(v); q = q2 }
+        return this.inline(fn, recv, args, x, q)
+      }
+      case 'len': {
+        const [s, q] = this.ev(x.x as SX, p)
+        if (x.k === 'str') { if (s.t !== 'str') refuse(x, 'len of a non-string'); return [{t: 'num', e: I.num(0), ty: x.ity as IntTy, slen: (s as {e: K}).e}, q] }
+        return [{t: 'num', e: this.listLen(s, x, q), ty: x.ity as IntTy}, q]
+      }
+      case 'append': {
+        const [s, q] = this.ev(x.s as SX, p), [v, q2] = this.ev(x.x as SX, q)
+        if (s.t !== 'list') return refuse(x, 'append to other than a slice of the state')
+        if (v.t === 'num' && v.slen) return refuse(x.at1 as SX, 'len of a string read other than against 0')
+        return [{t: 'push', id: s.id, x: v}, q2]
+      }
+      case 'delete': { const [m, q] = this.ev(x.m as SX, p), [k, q2] = this.ev(x.k as SX, q); return [{t: 'tuple', xs: []}, this.mapDelete(m, k, x, q2)] }
+      case 'newmap': return [{t: 'map', id: 'new-map'}, p]
+      case 'newlist': return [{t: 'list', id: 'new-list'}, p]
+      case 'minmax': {
+        let q = p
+        const vs: V[] = []
+        for (const y of x.xs as SX[]) { const [v, q2] = this.ev(y, q); vs.push(v); q = q2 }
+        let e = this.numv(vs[0]!, x)
+        for (const v of vs.slice(1)) e = x.op === 'min' ? I.nmin(e, this.numv(v, x)) : I.nmax(e, this.numv(v, x))
+        return [{t: 'num', e, ty: (x.ity as IntTy | undefined) ?? refuse(x, String(x.why))}, q]
+      }
+      case 'panic': { let q = p; for (const a of x.args as SX[]) q = this.ev(a, q)[1]; this.refuseWhere(q, I.T, x, 'a panic'); return [{t: 'tuple', xs: []}, {...q, pc: [...q.pc, I.F]}] }
+      case 'midx': { const [b, q] = this.ev(x.m as SX, p), [i, q2] = this.ev(x.k as SX, q); return [this.mapRead(b, i, x, q2).v, q2] }
+      case 'lidx': { const [b, q] = this.ev(x.s as SX, p), [i, q2] = this.ev(x.i as SX, q); return this.listGet(b, i, x, q2) }
+      case 'pop': {
+        const [s, q] = this.ev(x.s as SX, p)
+        if (s.t === 'list' && x.ok) {
+          const len = this.listLen(s, x, q)
+          this.refuseWhere(q, I.cmp('<', len, I.num(1)), x, 'a slice out of range (a panic: s[:len(s)-1] of an empty s)')
+          return [{t: 'pop', id: s.id}, this.assume(q, I.cmp('<=', I.num(1), len))]
+        }
+        return refuse(x, String(x.why))
+      }
       case 'await': {
         const inner = x.x as SX
         if (inner.e !== 'call') return refuse(x, `await ${inner.text ?? ''}: an await of other than a call`)
@@ -816,7 +957,7 @@ export class Stepper {
         if (mid) return [{t: 'fn', id: mid}, q]
         return [{t: 'ext', q: `${o.rec}.${f}`, text: x.text ?? f, ...(o.patch?.path ? {patch: {...o.patch, path: [...o.patch.path, f]}} : {})}, q]
       }
-      case 'bool': case 'builtin': case 'choice': case 'fmt': case 'fn': case 'lib': case 'lock': case 'num': case 'str': case 'tuple': case 'res': return refuse(x, `${x.text}: a field of a ${o.t}`)
+      case 'bool': case 'builtin': case 'choice': case 'fmt': case 'fn': case 'lib': case 'lock': case 'num': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': return refuse(x, `${x.text}: a field of a ${o.t}`)
     }
     if (o.t === 'sattr') return this.storeAttr(o.store, o.path ? `${o.path}.${f}` : f, x, q)
     const obj = q.heap.get(o.id)
@@ -1162,8 +1303,532 @@ export class Stepper {
       return refuse(x, `${x.text}: ${q0}`)
     })
   }
+
+  // --- pointers into the state, value records, lists, error values and locks (Go's lowering's; C's and Rust's next) --
+  // A pointer is by cases on the objects it may be (an interior one, &x.f, a path into it), or nil; a record held by
+  // value is copied where it is assigned; an error value is nil or not; a list of the state is pushed, popped or set
+  // once a step; a lock held until the deferred unlock at the return. Each failure is where it is (refuseWhere: the
+  // step's refusal, the state as it was there), and each refusal text is the reader's own.
+  readonly edges: B[] = []
+  readonly lists: MapDecl[] = []
+  readonly spans = new Map<string, [string, number, number]>()
+  readonly stateOrigin = new Map<string, string>()
+  readonly lazyIn = new Map<string, {id: string, fields: [string, string][], sel: B, recipes: Record<string, Recipe>}>()
+  // A failure where c holds on this path, refused (the step's refusal); `state` false: one the code goes on past and
+  // the rule's numbers stop at (an edge, counted apart by the check).
+  refuseWhere(p: Path, c: B, at: {p: string}, what: string, state = true) {
+    const w = I.and(this.cond(p), c)
+    if (w.op === 'const' && !w.v) return
+    if (state && this.opts.onError !== 'discard' && this.changed(p)) refuse(at, `${what} after the state is written (the caller would see the object changed and the call failed; with onError: 'discard' the caller is taken to drop what a failed call wrote)`)
+    this.refusals.push(w)
+    if (!state) this.edges.push(w)
+  }
+  // The cases a pointer is: each object (with the condition it is that one), and the condition it is nil.
+  cases(p: Ptr, c: B = I.T): {nil: B, objs: {c: B, id: string, path: string[]}[]} {
+    if (p.k === 'nil') return {nil: c, objs: []}
+    if (p.k === 'obj') return {nil: I.F, objs: [{c, id: p.id, path: p.path}]}
+    const a = this.cases(p.a, I.and(c, p.c)), b = this.cases(p.b, I.and(c, I.not(p.c)))
+    return {nil: I.or(a.nil, b.nil), objs: [...a.objs, ...b.objs]}
+  }
+  shift(p: Ptr, path: string[]): Ptr { return p.k === 'nil' ? p : p.k === 'obj' ? {...p, path: [...p.path, ...path]} : {...p, a: this.shift(p.a, path), b: this.shift(p.b, path)} }
+  readObj(o: Obj, path: string[], at: {p: string}, p: Path, id: string): V {
+    if (o.k === 'big') { if (path.length) refuse(at, 'a field of a big.Int'); return refuse(at, 'a big.Int read as a value (it is used through its pointer)') }
+    if (o.k !== 'rec') return refuse(at, 'a field of other than a struct')
+    let v: V = {t: 'struct', ty: o.ty, f: o.f}
+    for (const seg of path) {
+      if (v.t !== 'struct') return refuse(at, `.${seg} of other than a struct`)
+      v = v.f.get(seg) ?? this.lazyFieldIn(id, seg, p, at)
+    }
+    return v
+  }
+  writeObj(o: Obj, path: string[], x: V, at: {p: string}): Obj {
+    if (o.k !== 'rec') return refuse(at, 'a write into other than a struct')
+    if (!path.length) { if (x.t !== 'struct') return refuse(at, 'a struct set to other than a struct'); return {...o, f: new Map(x.f)} }
+    const set = (fs: Map<string, V>, segs: string[]): Map<string, V> => {
+      const seg = segs[0]!, rest = segs.slice(1), out = new Map(fs)
+      if (!rest.length) { const old = fs.get(seg); if (old?.t === 'opaque') refuse(at, `writes ${old.why}`); out.set(seg, x); return out }
+      const inner = fs.get(seg)
+      if (inner?.t !== 'struct') return refuse(at, `.${seg} of other than a struct`)
+      out.set(seg, {...inner, f: set(inner.f, rest)})
+      return out
+    }
+    return {...o, f: set(o.f, path)}
+  }
+  // A field of a record the caller gives, made an input where it is first read (by the reader's recipe for it).
+  lazyFieldIn(id: string, f: string, p: Path, at: {p: string}): V {
+    const li = this.lazyIn.get(id), r = li?.recipes[f]
+    if (!li || !r) return refuse(at, `no field ${f}`)
+    if (r.k === 'no') return refuse(at, r.why)
+    let g: V
+    if (r.k === 'big') {
+      const v = this.newVar(`${li.id}_${f}`, {k: 'num'}, 'input', 'a *big.Int argument (not nil: the claim is for calls that give one)')
+      li.fields.push([f, v.name])
+      p.heap.set(`in:${v.name}`, {k: 'big', v: I.nvar(v.name), origin: 'input'})
+      g = {t: 'ptr', to: {k: 'obj', id: `in:${v.name}`, path: []}}
+    } else {
+      const v = this.newVar(`${li.id}_${f}`, {k: r.k}, 'input')
+      li.fields.push([f, v.name])
+      g = this.valueOfIn(v, r.ty, li.sel)
+    }
+    ;(p.heap.get(id) as {f: Map<string, V>}).f.set(f, g)
+    return g
+  }
+  // An input's value, its type's range kept (a request outside it refused where sel holds: the claim is for its values).
+  valueOfIn(v: Var, ty: IntTy | undefined, sel: B): V {
+    if (ty) this.typed(v, ty, 'input', sel)
+    return v.sort.k === 'num' ? {t: 'num', e: I.nvar(v.name), ty: ty ?? {bits: 64, signed: true}} : this.valueOf(v)
+  }
+  // *x read: by cases on the objects x may point to; nil fails.
+  deref(v: V, path: string[], at: {p: string}, p: Path): [V, Path] {
+    if (v.t === 'nil') { this.refuseWhere(p, I.T, at, 'a nil dereference'); return [{t: 'opaque', why: 'unreachable', firm: true}, {...p, pc: [...p.pc, I.F]}] }
+    if (v.t !== 'ptr') return refuse(at, `a dereference of a ${v.t}`)
+    const cs = this.cases(v.to)
+    this.refuseWhere(p, cs.nil, at, `a nil dereference (${at.p})`)
+    const q = this.assume(p, I.not(cs.nil))
+    if (!cs.objs.length) return [{t: 'opaque', why: 'unreachable', firm: true}, q]
+    let out: V | undefined
+    for (const o of [...cs.objs].reverse()) { const x = this.readObj(q.heap.get(o.id)!, [...o.path, ...path], at, q, o.id); out = out ? this.ite(o.c, x, out, at) : x }
+    return [out!, q]
+  }
+  // A write through a pointer: to each object it may be, where it is that one.
+  writeThrough(v: V, path: string[], x: V, at: {p: string}, p: Path): Path {
+    if (v.t !== 'ptr') return refuse(at, `a write through a ${v.t}`)
+    const cs = this.cases(v.to)
+    this.refuseWhere(p, cs.nil, at, 'a nil dereference')
+    const q = this.assume(p, I.not(cs.nil)), heap = new Map(q.heap)
+    for (const o of cs.objs) {
+      const obj = heap.get(o.id)!, pa = [...o.path, ...path]
+      heap.set(o.id, this.writeObj(obj, pa, this.ite(o.c, x, this.readObj(obj, pa, at, q, o.id), at), at))
+    }
+    return {...q, heap}
+  }
+  // A place: a local (and a path into its record), or a path inside the object a pointer is.
+  place(x: SX, p: Path): [Place, Path] {
+    switch (x.e) {
+      case 'blank': return [{k: 'blank'}, p]
+      case 'var': return [{k: 'local', id: String(x.n), path: []}, p]
+      case 'deref': { const [v, q] = this.ev(x.x as SX, p); return [{k: 'heap', ptr: v, path: []}, q] }
+      case 'fld': { const [b, q] = this.place(x.x as SX, p); if (b.k === 'blank') return refuse(x, 'a field of _'); return [{...b, path: [...b.path, String(x.f)]}, q] }
+    }
+    return refuse(x, String(x.why ?? `${x.text}: an assignment to other than a variable, a field or *p`))
+  }
+  read(pl: Place, at: SX | SS | {p: string}, p: Path): [V, Path] {
+    if (pl.k === 'blank') return refuse(at, '_ read')
+    if (pl.k === 'heap') return this.deref(pl.ptr, pl.path, at, p)
+    let v = p.locals.get(pl.id) ?? refuse(at, `${(at as SX).text ?? ''}: a variable read before it is set`)
+    for (const s of pl.path) { if (v.t !== 'struct') refuse(at, `.${s} of other than a struct`); v = (v as {f: Map<string, V>}).f.get(s) ?? refuse(at, `no field ${s}`) }
+    return [v, p]
+  }
+  write(pl: Place, x: V, at: {p: string}, p: Path): Path {
+    if (pl.k === 'blank') return p
+    this.secondName(x, at)
+    if (pl.k === 'heap') { this.keepsInState(pl, x, at, p); return this.writeThrough(pl.ptr, pl.path, x, at, p) }
+    if (!pl.path.length) return {...p, locals: new Map(p.locals).set(pl.id, x)}
+    const set = (v: V, segs: string[]): V => {
+      const s = segs[0]!, rest = segs.slice(1)
+      if (v.t !== 'struct') return refuse(at, `.${s} of other than a struct`)
+      return {...v, f: new Map(v.f).set(s, rest.length ? set(v.f.get(s)!, rest) : x)}
+    }
+    return {...p, locals: new Map(p.locals).set(pl.id, set(p.locals.get(pl.id) ?? refuse(at, 'a field of a variable not set'), pl.path))}
+  }
+  // A list or a map under a second name: refused (two slices may share a backing array; a map is a reference).
+  secondName(x: V, at: {p: string}) {
+    if (x.t === 'list') refuse(at, 'a slice given a second name (two slices may share a backing array: append writes into it or not by its capacity)')
+    if (x.t === 'map') refuse(at, 'a map given a second name (a map is a reference: a write through either is a write to both)')
+  }
+  // A pointer stored into the state: to a fresh object only (one the state holds would be in two places; one the
+  // caller gave the caller's to change after the call).
+  keepsInState(pl: Extract<Place, {k: 'heap'}>, x: V, at: {p: string}, p: Path) {
+    if (x.t !== 'ptr') return
+    const into = this.cases(pl.ptr.t === 'ptr' ? pl.ptr.to : {k: 'nil'})
+    if (!into.objs.some(o => (p.heap.get(o.id) as {origin?: Origin})?.origin === 'state')) return
+    for (const o of this.cases(x.to).objs) {
+      const origin = (p.heap.get(o.id) as {origin?: Origin})?.origin
+      if (origin === 'input') refuse(at, 'the state keeps a pointer the caller gave (the caller may change its object after the call)')
+      if (origin === 'state') refuse(at, `the state's ${this.stateOrigin.get(o.id) ?? 'object'} put in a second place of the state (one object in two places)`)
+    }
+  }
+  bindLocal(id: string, v: V, at: {p: string}, p: Path): Path {
+    if (v.t === 'list' || v.t === 'map' || v.t === 'push' || v.t === 'pop') this.secondName(v.t === 'push' || v.t === 'pop' ? {t: 'list', id: v.id} : v, at)
+    if (v.t === 'num' && v.slen) refuse(at, 'len of a string kept (it is read only against 0)')
+    return {...p, locals: new Map(p.locals).set(id, v)}
+  }
+  numv(v: V, at: SX | {p: string}): N {
+    if (v.t !== 'num') return refuse(at, `${(at as SX).text ?? ''}: a ${v.t} where a number is read`)
+    if (v.slen) return refuse(at, 'len of a string read other than against 0 (strings are set and compared in the subset)')
+    return v.e
+  }
+  boolv(v: V, at: SX | {p: string}): B { if (v.t !== 'bool') return refuse(at, `${(at as SX).text ?? ''}: a ${v.t} where a condition is read`); return v.e }
+  // A binary operation of the reader's language with fixed-width integers (Go's): comparisons, arithmetic wrapped.
+  binop(op: string, a: V, b: V, x: {p: string}, p: Path): V {
+    if (op === '==' || op === '!=') { const e = this.eq(a, b, x, p); return {t: 'bool', e: op === '==' ? e : I.not(e)} }
+    // len(s) of a string against 0: whether it is empty.
+    const sl = (v: V, k: V) => (v.t === 'num' && v.slen && k.t === 'num' && !k.slen && k.e.op === 'const' && k.e.v === 0 ? v.slen : undefined)
+    const flip: Record<string, string> = {'<': '>', '<=': '>=', '>': '<', '>=': '<='}
+    if (['<', '<=', '>', '>='].includes(op) && (sl(a, b) || sl(b, a))) {
+      const s = (sl(a, b) ?? sl(b, a))!, empty = I.keq(s, {op: 'slit', value: ''}), o = sl(a, b) ? op : flip[op]!
+      return {t: 'bool', e: o === '<=' ? empty : o === '>' ? I.not(empty) : o === '>=' ? I.T : I.F}
+    }
+    if (['<', '<=', '>', '>='].includes(op)) {
+      if (a.t === 'str' || b.t === 'str') return refuse(x, 'strings ordered (strings are set and compared in the subset)')
+      // x.Cmp(y) against 0, read as the comparison of x and y.
+      const cmpOf = (v: V, k: V): [N, N] | undefined => (v.t === 'num' && v.cmp && k.t === 'num' && k.e.op === 'const' && k.e.v === 0 ? v.cmp : undefined)
+      const ca = cmpOf(a, b), cb = cmpOf(b, a)
+      let l: N, r: N, o = op
+      if (ca) [l, r] = ca
+      else if (cb) { [l, r] = cb; o = flip[op]! } else { l = this.numv(a, x); r = this.numv(b, x) }
+      return {t: 'bool', e: o === '<' ? I.cmp('<', l, r) : o === '<=' ? I.cmp('<=', l, r) : o === '>' ? I.cmp('<', r, l) : I.cmp('<=', r, l)}
+    }
+    if (['+', '-', '*', '/', '%', '<<', '>>'].includes(op)) {
+      if (a.t === 'str') return refuse(x, 'strings joined (strings are set and compared in the subset)')
+      return this.arith(op, a, b, x, p)
+    }
+    return refuse(x, `${op}: a bit operation (outside the subset)`)
+  }
+  eq(a: V, b: V, x: {p: string}, p?: Path): B {
+    if (a.t === 'map' && b.t === 'nil' && p) return this.mapAt(a, x as SX, p).nil!
+    if (a.t === 'nil' && b.t === 'map' && p) return this.mapAt(b, x as SX, p).nil!
+    if (a.t === 'num' && b.t === 'num') return I.cmp('=', this.numv(a, x), this.numv(b, x))
+    if (a.t === 'bool' && b.t === 'bool') return I.or(I.and(a.e, b.e), I.and(I.not(a.e), I.not(b.e)))
+    if (a.t === 'str' && b.t === 'str') return I.keq(a.e, b.e)
+    if (a.t === 'err' && b.t === 'nil') return I.not(a.is)
+    if (a.t === 'nil' && b.t === 'err') return I.not(b.is)
+    if (a.t === 'err' && b.t === 'err') return refuse(x, 'two errors compared (an error is nil or not in the subset)')
+    if ((a.t === 'ptr' || a.t === 'nil') && (b.t === 'ptr' || b.t === 'nil')) {
+      if (a.t === 'nil' && b.t === 'nil') return I.T
+      if (b.t === 'nil') return this.cases((a as {to: Ptr}).to).nil
+      if (a.t === 'nil') return this.cases((b as {to: Ptr}).to).nil
+      // Two pointers: the same object (and place), or both nil.
+      const ca = this.cases((a as {to: Ptr}).to), cb = this.cases((b as {to: Ptr}).to)
+      return I.or(I.and(ca.nil, cb.nil), ...ca.objs.flatMap(o => cb.objs.filter(q => q.id === o.id && q.path.join() === o.path.join()).map(q => I.and(o.c, q.c))))
+    }
+    if ((a.t === 'list' || a.t === 'map') && b.t === 'nil') return refuse(x, `a ${a.t === 'list' ? 'slice' : 'map'} compared with nil (nil and empty are one ${a.t === 'list' ? 'list' : 'map'} in the subset)`)
+    return refuse(x, `a ${a.t} compared with a ${b.t}`)
+  }
+  // Integer arithmetic at the type's width: the exact result, wrapped as the type wraps it (or refused, at 64 bits).
+  arith(op: string, a: V, b: V, x: {p: string}, p: Path): V {
+    if (a.t !== 'num' || b.t !== 'num') return refuse(x, `${op} of a ${a.t} and a ${b.t}`)
+    this.numv(a, x); this.numv(b, x)
+    const ty = a.ty?.name !== undefined ? a.ty : b.ty!
+    let e: N
+    switch (op) {
+      case '+': e = I.add(a.e, b.e); break
+      case '-': e = I.sub(a.e, b.e); break
+      case '*': e = I.mul(a.e, b.e); break
+      case '/': case '%': {
+        if (b.e.op !== 'const') return refuse(x, `${op} by other than a constant`)
+        if (b.e.v === 0) { this.refuseWhere(p, I.T, x, 'a division by zero'); return {t: 'num', e: I.num(0), ty} }
+        const k = Math.abs(b.e.v), q = this.quot(a.e, k)
+        e = op === '/' ? (b.e.v < 0 ? I.neg(q) : q) : this.rem(a.e, k)
+        break
+      }
+      case '>>': if (b.e.op !== 'const' || b.e.v < 0) return refuse(x, '>> by other than a constant'); if (b.e.v >= 53) return refuse(x, `>> ${b.e.v} (past the rule's 2^53)`); e = I.divk(2 ** b.e.v, a.e); break
+      case '<<': if (b.e.op !== 'const' || b.e.v < 0) return refuse(x, '<< by other than a constant'); if (b.e.v >= 53) return refuse(x, `<< ${b.e.v} (past the rule's 2^53)`); e = I.mulk(2 ** b.e.v, a.e); break
+      default: return refuse(x, `${op}: outside the subset`)
+    }
+    return {t: 'num', e: this.wrap(e, ty, x, p), ty}
+  }
+  // a / k and a % k truncated toward zero (the remainder takes the dividend's sign), for a constant k > 0: one case
+  // where a's bounds say it is at least 0.
+  quot(a: N, k: number): N { return this.bounds(a)[0] >= 0 ? I.divk(k, a) : I.nite(I.cmp('<=', I.num(0), a), I.divk(k, a), I.neg(I.divk(k, I.neg(a)))) }
+  // (0 − r, not −r: the printer's remainder is a natural's, which Int subtracts from)
+  rem(a: N, k: number): N { return this.bounds(a)[0] >= 0 ? I.modk(k, a) : I.nite(I.cmp('<=', I.num(0), a), I.modk(k, a), I.sub(I.num(0), I.modk(k, I.neg(a)))) }
+  // The bounds a term's value is within, from its variables' types (a cell's too) and its constants.
+  bounds(e: N): [number, number] {
+    const r = (n: string): [number, number] => { const ty = this.ints.get(n); return ty ? rangeOf(ty) : [-Infinity, Infinity] }
+    switch (e.op) {
+      case 'const': return [e.v, e.v]
+      case 'var': return r(e.name)
+      case 'cell': return r(`${e.map}.${e.field}`)
+      case 'add': { const a = this.bounds(e.a), b = this.bounds(e.b); return [a[0] + b[0], a[1] + b[1]] }
+      case 'sub': { const a = this.bounds(e.a), b = this.bounds(e.b); return [a[0] - b[1], a[1] - b[0]] }
+      case 'neg': { const a = this.bounds(e.a); return [-a[1], -a[0]] }
+      case 'mulk': { const a = this.bounds(e.a); return e.k >= 0 ? [e.k * a[0], e.k * a[1]] : [e.k * a[1], e.k * a[0]] }
+      case 'mul': { const a = this.bounds(e.a), b = this.bounds(e.b), xs = [a[0] * b[0], a[0] * b[1], a[1] * b[0], a[1] * b[1]].map(v => (Number.isNaN(v) ? 0 : v)); return [Math.min(...xs), Math.max(...xs)] }
+      case 'min': { const a = this.bounds(e.a), b = this.bounds(e.b); return [Math.min(a[0], b[0]), Math.min(a[1], b[1])] }
+      case 'max': { const a = this.bounds(e.a), b = this.bounds(e.b); return [Math.max(a[0], b[0]), Math.max(a[1], b[1])] }
+      case 'divk': { const a = this.bounds(e.a); return [Math.floor(a[0] / e.k), Math.floor(a[1] / e.k)] }
+      case 'modk': return [0, e.k - 1]
+      case 'ite': { const a = this.bounds(e.a), b = this.bounds(e.b); return [Math.min(a[0], b[0]), Math.max(a[1], b[1])] }
+    }
+  }
+  // A result past its type's range: at 8, 16 and 32 bits modulo 2^n by cases (none where the bounds of the term or the
+  // path's facts keep it within); at 64 bits the rule's numbers stop at ±2^53, and an unsigned one below 0 is refused.
+  wrap(e: N, ty: IntTy, x: {p: string}, p: Path): N {
+    if (ty.bits === 0) return e
+    const [lo, hi] = rangeOf(ty), [blo0, bhi0] = this.bounds(e)
+    if (blo0 >= lo && bhi0 <= hi) return e
+    const blo = blo0 >= lo || this.within(e, lo, 'lo', p) ? Math.max(blo0, lo) : blo0, bhi = bhi0 <= hi || this.within(e, hi, 'hi', p) ? Math.min(bhi0, hi) : bhi0
+    if (blo >= lo && bhi <= hi) return e
+    const name = ty.name ?? tyName(ty)
+    if (ty.bits >= 64) {
+      if (!ty.signed && blo < 0) { this.refuseWhere(p, I.cmp('<', e, I.num(0)), x, `a ${name} below 0 (Go wraps it to 2^64 − x, past the rule's numbers)`, false); this.notes.add(`${name}: a result below 0 is refused (Go would wrap it past 2^53)`) }
+      return e
+    }
+    const m = 2 ** ty.bits, k0 = Math.floor((blo - lo) / m), k1 = Math.floor((bhi - lo) / m)
+    this.notes.add(`${name}: a result past its range wraps modulo 2^${ty.bits}, as Go's does`)
+    if (Number.isFinite(k0) && Number.isFinite(k1) && k1 - k0 <= 3) {
+      // By cases from the bottom: e at least lo + k·2^n takes e − k·2^n.
+      const less = (k: number): N => (k >= 0 ? I.sub(e, I.num(k * m)) : I.add(e, I.num(-k * m)))
+      let acc: N = less(k0)
+      for (let k = k0 + 1; k <= k1; k++) acc = I.nite(I.cmp('<=', I.num(lo + k * m), e), less(k), acc)
+      return acc
+    }
+    // Many times over (a conversion from a wider type, a product): e − 2^n·⌊(e − lo)/2^n⌋.
+    return I.sub(e, I.mulk(m, I.divk(m, I.add(e, I.num(-lo)))))
+  }
+  // Whether e is at least lo (or at most hi) on the path: its conditions and its variables' ranges as facts.
+  within(e: N, b: number, side: 'lo' | 'hi', p: Path): boolean {
+    if (!Number.isFinite(b)) return false
+    const facts: B[] = [...p.pc]
+    for (const n of I.varsOf(e).vars) { const ty = this.ints.get(n); if (ty) { const r = rangeOf(ty); if (Number.isFinite(r[0])) facts.push(I.cmp('<=', I.num(r[0]), I.nvar(n))); if (Number.isFinite(r[1])) facts.push(I.cmp('<=', I.nvar(n), I.num(r[1]))) } }
+    return nonneg(side === 'lo' ? I.sub(e, I.num(b)) : I.sub(I.num(b), e), {m: {refuse: I.F, pre: I.T} as Model, sorts: new Map(), atoms: facts})
+  }
+  // --- maps with a nil state, lists, big integers, locks --------------------------------------------------------------
+  mapAt(m: V, at: SX, p: Path): Extract<Obj, {k: 'map'}> {
+    if (m.t !== 'map' || !p.heap.has(m.id)) return refuse(at, `${at.text}: a map other than the state's`)
+    return p.heap.get(m.id) as Extract<Obj, {k: 'map'}>
+  }
+  mkey(k: V, d: MapDecl, at: SX): K {
+    if (d.key === 'num') { if (k.t !== 'num') refuse(at, 'a map key of the wrong kind'); return {op: 'num', e: (k as {e: N}).e} }
+    if (k.t !== 'str') return refuse(at, 'a map key of the wrong kind')
+    return k.e
+  }
+  // A map's value at a key: its type's zero where the map doesn't hold it.
+  mapRead(m: V, k: V, at: SX, p: Path): {v: V, has: B} {
+    const o = this.mapAt(m, at, p), cell = this.cellOf(o, this.mkey(k, o.decl, at), p, at), tys = at.tys as Record<string, IntTy | null>
+    const vals = new Map([...cell.vals].map(([f, v]) => {
+      const it = tys[f], typed: V = v.t === 'num' && it ? {...v, ty: it} : v
+      return [f, this.ite(cell.has, typed, typed.t === 'num' ? {...typed, e: I.num(0)} : typed.t === 'bool' ? {t: 'bool', e: I.F} : typed, at)] as const
+    }))
+    return {v: o.decl.scalar ? vals.get('value')! : {t: 'struct', ty: String(at.sty), f: new Map(vals)}, has: cell.has}
+  }
+  mapWrite(m: V, k: V, v: V, at: SX, p: Path): Path {
+    const o = this.mapAt(m, at, p), key = this.mkey(k, o.decl, at)
+    if (o.origin !== 'state') return refuse(at, 'a write to a map other than the state\'s')
+    this.refuseWhere(p, o.nil!, at, 'a write to a nil map (a panic)')
+    const q = this.assume(p, I.not(o.nil!))
+    if (o.w && !I.same(o.w.key, key)) return refuse(at, `writes ${o.decl.name} at a second key in one step`)
+    const vals = new Map<string, V>(o.decl.scalar ? [['value', v]] : o.decl.fields.map(f => [f.name, (v as {f?: Map<string, V>}).f?.get(f.name) ?? refuse(at, 'a map value of the wrong kind')]))
+    return {...q, heap: new Map(q.heap).set((m as {id: string}).id, {...o, w: {key, has: I.T, vals}})}
+  }
+  mapDelete(m: V, k: V, at: SX, p: Path): Path {
+    const o = this.mapAt(m, at, p), key = this.mkey(k, o.decl, at)
+    if (o.w && !I.same(o.w.key, key)) return refuse(at, `writes ${o.decl.name} at a second key in one step`)
+    const vals = new Map<string, V>(o.decl.fields.map(f => [f.name, f.sort.k === 'num' ? {t: 'num', e: I.num(0), ty: {bits: 64, signed: true}} : {t: 'bool', e: I.F}]))
+    return {...p, heap: new Map(p.heap).set((m as {id: string}).id, {...o, w: {key, has: I.F, vals}})}
+  }
+  // A map field set to a new empty map where it is nil (the lazy start Go code makes): its nil flag cleared.
+  mapAssign(x: SX, v: V, p: Path): Path {
+    if (v.t !== 'map' || v.id !== 'new-map') return refuse(x, 'a map given a second name (a map is a reference: a write through either is a write to both)')
+    const [pl, q] = this.place(x, p)
+    if (pl.k === 'blank') return q
+    const [cur, q2] = this.read(pl, x, q)
+    if (cur.t !== 'map') return refuse(x, 'a new map kept other than in a map field of the state')
+    const o = this.mapAt(cur, x, q2), nil = o.nil!
+    if (!(nil.op === 'const' && nil.v) && !q2.pc.some(c => I.same(c, nil))) return refuse(x, `${o.decl.name} replaced whole (the subset sets a map once, where it is nil)`)
+    return {...q2, heap: new Map(q2.heap).set(cur.id, {...o, nil: I.F})}
+  }
+  listObj(s: V, at: SX, p: Path): Extract<Obj, {k: 'list'}> {
+    if (s.t !== 'list' || !p.heap.has(s.id)) return refuse(at, `${at.text}: a slice other than the state's`)
+    return p.heap.get(s.id) as Extract<Obj, {k: 'list'}>
+  }
+  listLen(s: V, at: SX, p: Path): N {
+    const o = this.listObj(s, at, p)
+    if (o.ops.length) return refuse(at, `${o.decl.name} read after it is written in one step`)
+    return I.nvar(`${o.decl.name}_len`)
+  }
+  inside(s: V, i: V, at: SX, p: Path): [Extract<Obj, {k: 'list'}>, N, B] {
+    const o = this.listObj(s, at, p), idx = this.numv(i, at), len = this.listLen(s, at, p), inside = I.and(I.cmp('<=', I.num(0), idx), I.cmp('<', idx, len))
+    this.refuseWhere(p, I.not(inside), at, 'an index out of range (a panic)')
+    return [o, idx, inside]
+  }
+  listGet(s: V, i: V, at: SX, p: Path): [V, Path] {
+    const [o, idx, inside] = this.inside(s, i, at, p), e = {op: 'cell', map: o.decl.name, key: {op: 'num', e: idx}, field: '$item'} as const
+    return [o.decl.fields[0]!.sort.k === 'num' ? {t: 'num', e: e as N, ty: at.ty as IntTy} : {t: 'bool', e: e as B}, this.assume(p, inside)]
+  }
+  listSet(s: V, i: V, v: V, at: SX, p: Path): Path {
+    const [o, idx, inside] = this.inside(s, i, at, p), q = this.assume(p, inside)
+    return {...q, heap: new Map(q.heap).set((s as {id: string}).id, {...o, ops: [{op: 'set', i: idx, x: v, when: I.T}]})}
+  }
+  // s = append(s, x) and s = s[:len(s)-1] in s's own place; any other list put there is refused.
+  listAssign(x: SX, v: V, p: Path): Path {
+    const [pl, q] = this.place(x, p)
+    if (pl.k === 'blank') return q
+    const [cur, q2] = this.read(pl, x, q)
+    if ((v.t !== 'push' && v.t !== 'pop') || cur.t !== 'list' || v.id !== cur.id) return refuse(x, 'a slice given a second name, or replaced whole (two slices may share a backing array: append writes into it or not by its capacity)')
+    const o = this.listObj(cur, x, q2)
+    if (o.ops.length) return refuse(x, `a second write to ${o.decl.name} in one step`)
+    const it = o.decl.fields[0]!.sort.k
+    if (v.t === 'push' && ((it === 'num' && v.x.t !== 'num') || (it === 'bool' && v.x.t !== 'bool'))) return refuse(x, 'an item of the wrong kind appended')
+    return {...q2, heap: new Map(q2.heap).set(cur.id, {...o, ops: [v.t === 'push' ? {op: 'push', x: v.x, when: I.T} : {op: 'pop', when: I.T}]})}
+  }
+  newBig(v: N, p: Path): [V, Path] {
+    const id = `new:${++this.fresh}`
+    return [{t: 'ptr', to: {k: 'obj', id, path: []}}, {...p, heap: new Map(p.heap).set(id, {k: 'big', v, origin: 'fresh'})}]
+  }
+  // A big integer's value through a pointer (by cases; nil fails).
+  bigVal(v: V, at: SX, p: Path): [N, Path] {
+    if (v.t !== 'ptr') return refuse(at, `${at.text}: a big.Int read through a ${v.t}`)
+    const cs = this.cases(v.to)
+    this.refuseWhere(p, cs.nil, at, `a nil *big.Int (${at.text})`)
+    const q = this.assume(p, I.not(cs.nil))
+    let out: N | undefined
+    for (const o of [...cs.objs].reverse()) {
+      const obj = q.heap.get(o.id)
+      if (obj?.k !== 'big' || o.path.length) return refuse(at, 'a big.Int pointer to other than a big.Int')
+      out = out === undefined ? obj.v : I.nite(o.c, obj.v, out)
+    }
+    return [out ?? I.num(0), q]
+  }
+  bigCall(x: SX, p: Path): [V, Path] {
+    const n = String(x.op), zx = x.z as SX, ax = x.args as SX[], ty = x.ty as IntTy
+    const [z, q0] = this.ev(zx, p)
+    const as: V[] = []
+    let q = q0
+    for (const a of ax) { const [v, q2] = this.ev(a, q); as.push(v); q = q2 }
+    const vals: N[] = []
+    const ints = (k: number) => { for (let i = 0; i < k; i++) { const a = as[i]!; if (a.t === 'num') vals.push(a.e); else { const [v, q2] = this.bigVal(a, ax[i]!, q); vals.push(v); q = q2 } } }
+    // z = e, z the receiver (its object written where z points), and z returned.
+    const set = (e: N): [V, Path] => {
+      const [, q2] = this.bigVal(z, zx, q)
+      const heap = new Map(q2.heap)
+      for (const o of this.cases((z as {to: Ptr}).to).objs) { const obj = heap.get(o.id) as Extract<Obj, {k: 'big'}>; heap.set(o.id, {...obj, v: I.nite(o.c, e, obj.v)}) }
+      return [z, {...q2, heap}]
+    }
+    const sign = (l: N, r: N): N => I.nite(I.cmp('<', l, r), I.num(-1), I.nite(I.cmp('=', l, r), I.num(0), I.num(1)))
+    switch (n) {
+      case 'Add': ints(2); return set(I.add(vals[0]!, vals[1]!))
+      case 'Sub': ints(2); return set(I.sub(vals[0]!, vals[1]!))
+      case 'Mul': ints(2); return set(I.mul(vals[0]!, vals[1]!))
+      case 'Neg': ints(1); return set(I.neg(vals[0]!))
+      case 'Abs': ints(1); return set(I.nmax(vals[0]!, I.neg(vals[0]!)))
+      case 'Set': ints(1); return set(vals[0]!)
+      case 'SetInt64': case 'SetUint64': return set(this.numv(as[0]!, x))
+      case 'Cmp': case 'CmpAbs': {
+        const [a, q2] = this.bigVal(z, zx, q); q = q2; ints(1)
+        const l = n === 'Cmp' ? a : I.nmax(a, I.neg(a)), r = n === 'Cmp' ? vals[0]! : I.nmax(vals[0]!, I.neg(vals[0]!))
+        return [{t: 'num', e: sign(l, r), ty, cmp: [l, r]}, q]
+      }
+      case 'Sign': { const [a, q2] = this.bigVal(z, zx, q); return [{t: 'num', e: sign(a, I.num(0)), ty, cmp: [a, I.num(0)]}, q2] }
+      case 'Int64': case 'Uint64': {
+        const [a, q2] = this.bigVal(z, zx, q)
+        if (n === 'Uint64') this.refuseWhere(q2, I.cmp('<', a, I.num(0)), x, 'Uint64 of a big.Int below 0 (undefined: Go returns its low bits)', false)
+        return [{t: 'num', e: a, ty}, q2]
+      }
+      case 'IsInt64': { const [, q2] = this.bigVal(z, zx, q); return [{t: 'bool', e: I.T}, q2] }
+      case 'String': return refuse(x, 'a big.Int as a string (outside an error\'s text)')
+    }
+    return refuse(x, `${x.text}: big.Int's ${n} (outside the subset)`)
+  }
+  // A lock's key: the place it is (of the object, or a local).
+  lockKey(x: SX, p: Path): string {
+    const [pl] = this.place(x, p)
+    if (pl.k === 'local') return `local:${pl.id}.${pl.path.join('.')}`
+    if (pl.k === 'heap' && pl.ptr.t === 'ptr' && pl.ptr.to.k === 'obj') return `${pl.ptr.to.id}.${[...pl.ptr.to.path, ...pl.path].join('.')}`
+    return refuse(x, 'a mutex not of the object')
+  }
+  lockCall(x: SX, p: Path): [V, Path] {
+    const n = String(x.op), key = this.lockKey(x.pl as SX, p)
+    if (n === 'Lock' || n === 'RLock') {
+      if (p.locks.includes(key)) refuse(x, `${x.text}: the mutex is locked again in the same step (a deadlock)`)
+      return [{t: 'tuple', xs: []}, {...p, locks: [...p.locks, key]}]
+    }
+    if (n === 'Unlock' || n === 'RUnlock') {
+      if (!p.locks.includes(key)) refuse(x, `${x.text}: an unlock of a mutex not locked (a panic)`)
+      return [{t: 'tuple', xs: []}, {...p, locks: p.locks.filter(k => k !== key)}]
+    }
+    return refuse(x, `${x.text}: a mutex's ${n}`)
+  }
+  // A function of the module inlined, its receiver and arguments bound by id (Go's): its returns joined, each result
+  // by the path that returned it, the locks it deferred released at each.
+  inline(fn: SFunc, recv: V | undefined, args: V[], at: SX, p: Path): [V, Path] {
+    if (fn.why) return refuse(at, fn.why)
+    if (this.frames.includes(fn.id)) return refuse(at, `${fn.name}: a recursive call`)
+    if (fn.late) return refuse(at, fn.late)
+    this.spans.set(fn.id, fn.span)
+    let q: Path = {...p, locals: new Map(p.locals), defers: []}
+    if (fn.recv && recv) q = this.bindLocal(fn.recv, recv, at, q)
+    fn.params.forEach((pa, i) => { if (pa.name) q = this.bindLocal(pa.name, args[i]!, at, q) })
+    this.frames.push(fn.id)
+    let flow: Flow
+    try { flow = this.block(fn.body, q) } finally { this.frames.pop() }
+    if (flow.brk?.length) refuse(at, `${fn.name}: a break outside a switch`)
+    const rets: [Path, V][] = [...flow.rets, ...(flow.live ? [[flow.live, {t: 'tuple', xs: []}] as [Path, V]] : [])]
+    if (flow.live && fn.results) refuse(at, `${fn.name}: a path with no return`)
+    if (!rets.length) return [{t: 'opaque', why: 'no return', firm: true}, {...p, pc: [...p.pc, I.F]}]
+    const joined = this.join(rets.map(([r, v]) => ({...r, locks: r.locks.filter(k => !r.defers.includes(k)), defers: p.defers, locals: new Map([...r.locals, ...(v as {xs: V[]}).xs.map((x, i) => [`$ret${i}`, x] as const)])})), at)!
+    const vals = Array.from({length: fn.results ?? 0}, (_, i) => joined.locals.get(`$ret${i}`)!)
+    return [vals.length === 1 ? vals[0]! : {t: 'tuple', xs: vals}, {...joined, locals: new Map(p.locals), defers: p.defers}]
+  }
+  // An assignment of Go's: each value evaluated (or one of several results, or a map's item and whether it is held),
+  // then each target in order: a local bound, a map's item, a list's, a list or a map put back in its place, a place.
+  assignGo(s: SS, p: Path): Path {
+    const to = s.to as SX[]
+    if (s.mapok) { const at = s.mapok as SX, [m, q] = this.ev(at.m as SX, p), [k, q2] = this.ev(at.k as SX, q), cell = this.mapRead(m, k, at, q2); return this.assignTo(to, [cell.v, {t: 'bool', e: cell.has}], q2) }
+    if (s.one) {
+      const [v, q] = this.ev(s.one as SX, p)
+      if (v.t !== 'tuple' || (!s.decl && v.xs.length !== to.length)) return refuse(s, String(s.why))
+      return s.decl ? to.reduce((q2, x, i) => this.bindLocal(String(x.n), v.xs[i]!, s, q2), q) : this.assignTo(to, v.xs, q)
+    }
+    let q = p
+    const vals: V[] = []
+    for (const e of s.xs as SX[]) { const [v, q2] = this.ev(e, q); vals.push(v); q = q2 }
+    return this.assignTo(to, vals, q)
+  }
+  assignTo(l: SX[], vals: V[], p: Path): Path {
+    let q = p
+    l.forEach((x, i) => {
+      const v = vals[i]!
+      if (x.bind && !(x.bind === 'new' && q.locals.has(String(x.n)))) { q = this.bindLocal(String(x.n), v, x, q); return }
+      if (x.e === 'midx') { const [m, q2] = this.ev(x.m as SX, q), [k, q3] = this.ev(x.k as SX, q2); q = this.mapWrite(m, k, v, x, q3); return }
+      if (x.e === 'lidx') { const [sv, q2] = this.ev(x.s as SX, q), [k, q3] = this.ev(x.i as SX, q2); q = this.listSet(sv, k, v, x, q3); return }
+      if (x.e === 'no') return refuse(x, String(x.why))
+      if (v.t === 'list' || v.t === 'push' || v.t === 'pop') { q = this.listAssign(x, v, q); return }
+      if (v.t === 'map') { q = this.mapAssign(x, v, q); return }
+      const [pl, q2] = this.place(x, q)
+      q = this.write(pl, v, x, q2)
+    })
+    return q
+  }
+  // A switch: each case's condition (none before it matched; the default's, none matched), evaluated in order; a case
+  // carried into the next by fallthrough, a break out of it joined after.
+  switchGo(s: SS, p: Path): Flow {
+    let q = p, tag: V | undefined
+    if (s.tag) { const [v, q2] = this.ev(s.tag as SX, q); tag = v; q = q2 }
+    const cases = s.cases as {list?: SX[], default?: boolean, b: SS[], p: string}[], conds: B[] = []
+    let none: B = I.T
+    for (const c of cases) {
+      if (c.default) { conds.push(I.F); continue }
+      let any: B = I.F
+      for (const e of c.list!) { const [v, q2] = this.ev(e, q); q = q2; any = I.or(any, tag ? this.eq(tag, v, e, q) : v.t === 'bool' ? v.e : refuse(e, 'a case that isn\'t a condition')) }
+      conds.push(I.and(none, any)); none = I.and(none, I.not(any))
+    }
+    const di = cases.findIndex(c => c.default)
+    if (di >= 0) conds[di] = none
+    const lives: Path[] = [], rets: [Path, V][] = []
+    let carried: Path | undefined
+    cases.forEach((c, i) => {
+      const entry = conds[i]!.op === 'const' && !(conds[i] as {v: boolean}).v ? undefined : this.assume(q, conds[i]!)
+      const into = this.join([...(entry ? [entry] : []), ...(carried ? [carried] : [])], c)
+      carried = undefined
+      if (!into) return
+      const f = this.block(c.b, into)
+      if (f.live) lives.push(f.live)
+      rets.push(...f.rets)
+      if (f.brk?.length) lives.push(this.join(f.brk, c)!)
+      if (f.ft) { if (i === cases.length - 1) refuse(c, 'fallthrough out of the last case'); carried = f.ft }
+    })
+    if (di < 0) lives.push(this.assume(q, none))
+    const live = this.join(lives, s)
+    return {...(live ? {live} : {}), rets}
+  }
 }
 
+// A pointer by a condition (one case where both are the same).
+export const phiP = (c: B, a: Ptr, b: Ptr): Ptr => (c.op === 'const' ? (c.v ? a : b) : JSON.stringify(a) === JSON.stringify(b) ? a : {k: 'phi', c, a, b})
+// The values a merge keeps exact (Go's): refused, not made opaque, where two paths make them different.
+const firm = (v: V): boolean => ['ptr', 'struct', 'err', 'nil', 'map', 'list', 'push', 'pop'].includes(v.t) || (v.t === 'opaque' && !!v.firm)
 // An expression that calls nothing (so evaluating it changes nothing).
 const callFree = (x: unknown): boolean => {
   if (!x || typeof x !== 'object') return true
@@ -1206,7 +1871,7 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
   if (cls) {
     const r = g.rec(cls, at)
     if (!r.own) refuse(at, `${r.short}: a class of another module`)
-    const fresh: Path = {pc: [], locals: new Map(), heap: new Map([['this', {k: 'rec', ty: cls, f: new Map(), origin: 'state'}]]), called: []}
+    const fresh: Path = {pc: [], locals: new Map(), heap: new Map([['this', {k: 'rec', ty: cls, f: new Map(), origin: 'state'}]]), called: [], locks: [], defers: []}
     g.init = true
     g.method = '__init__'
     let made: Path
@@ -1345,7 +2010,7 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
     g.method = fn.name
     const sel = evL ? I.is(evL, fn.name) : I.T
     g.sel = sel
-    let p: Path = {pc: [sel], locals: new Map(), heap: new Map(g.initHeap), called: []}
+    let p: Path = {pc: [sel], locals: new Map(), heap: new Map(g.initHeap), called: [], locks: [], defers: []}
     const args: V[] = [], pargs: [string, PArg][] = []
     if ((fn as {recv?: string}).recv === 'value') refuse(fn, `${fn.name}: a method that takes self by value (it consumes the object)`)
     if ((fn as {generic?: boolean}).generic) refuse(fn, `${fn.name}: a generic method`)
@@ -1514,7 +2179,7 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
   return {ints: Object.fromEntries(g.ints), ...(g.madeAt ? {madeAt: g.madeAt.name} : {}), model, leaves, args: argsOf, answers: [...g.answers.values()], ctor, kept, arms: [...g.arms].map(a => { const i = a.lastIndexOf(':'); return [a.slice(0, i), Number(a.slice(i + 1))] }), ...(cls ? {cls} : {}), stores, results: resultKinds}
 }
 // A type's range (64 bits and wider: the rule's numbers stop at ±2^53 before the type's do, and are refused there).
-const rangeOf = (ty: IntTy): [number, number] => (ty.bits === 0 || ty.bits >= 64 ? (ty.signed ? [-Infinity, Infinity] : [0, Infinity]) : ty.signed ? [-(2 ** (ty.bits - 1)), 2 ** (ty.bits - 1) - 1] : [0, 2 ** ty.bits - 1])
+export const rangeOf = (ty: IntTy): [number, number] => (ty.bits === 0 || ty.bits >= 64 ? (ty.signed ? [-Infinity, Infinity] : [0, Infinity]) : ty.signed ? [-(2 ** (ty.bits - 1)), 2 ** (ty.bits - 1) - 1] : [0, 2 ** ty.bits - 1])
 // A value of the same kind as v, its zero (unwrap_or_default).
 const zeroLike = (v: V): V => (v.t === 'num' ? {t: 'num', e: I.num(0), ...(v.ty ? {ty: v.ty} : {})} : v.t === 'bool' ? {t: 'bool', e: I.F} : v.t === 'str' ? {t: 'str', e: {op: 'slit', value: ''}} : v.t === 'choice' ? {t: 'choice', e: I.llit(lvalues(v.e)[0]!, lvalues(v.e))} : {t: 'opaque', why: 'a default of no scalar kind'})
 // A derived Default's value of a type (a Rust field's): 0, false, "", None, the first variant.
