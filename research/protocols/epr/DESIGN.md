@@ -337,3 +337,70 @@ No answer disagrees with Z3's. Decisions take 19 to 273 ms.
 
 **Spend** (this track): the probes and the pilot about $0.25; the quick bar $1.85 and the full bar $11.02, both
 estimated by the bar from task seconds (their hours not yet billed). About $13.1 of the $15.
+
+## gen/epr2: the ghost's instances, order atoms, a slimmer epr.ts
+
+**1. Model instances at the goal's own names, witnesses first** (kernel/prove.ts `modelInstances`).
+- **The cause:** consensus_wo_decide's safety goal ended in models through every round. Each round's 20,000
+  evaluations went to laws over three keys at 91 to 178 key values, most of them composed terms in a part's place
+  (instances at keys of the wrong sort). The tuples through the ∃ law's ghost were never reached.
+- **The fix, general:**
+  - each sort ranges first over the goal's own names: skolems, the request's inputs, flags' witnesses, ∃ ghosts;
+  - witnesses come first;
+  - every key the goal reads is tried only where those show nothing.
+- **Least values:** kernel/epr.ts's models take the least values of their finite variables, so they break no kind law at
+  keys nothing names.
+- **Two fixes to our model** (models.ts): the quorum member is below N (as every request's quorum is), with the ∃ law
+  from gen/epr.
+- **Result:** consensus_wo_decide's written invariant is proven in every run (30.6–42.7 s).
+
+**2. Order atoms** (kernel/epr.ts).
+- **Which terms:** a map's cells, or a scalar, compared with another non-constant term (distributed_lock's epochs: `e ≤
+  Ep[a]`, `Ep[b] < Ep[a]`, the step's `Ep := e`) are ordered terms, with parts, constants and if-then-else over them.
+- **The axioms:** the order is total, transitive and discrete, with the constants in their order and every term at
+  least 0, all true over the naturals.
+- **Result:** distributed_lock's step goals went from 1 decided of 10 to 10 of 10, all agreeing with Z3; its written
+  invariant takes 6.4–10.8 s against 13.0–15.8 s.
+- **A cap:** a join query that compares cells with cells made whole maps ordered, and the order's cubic transitivity
+  took consensus_wo_decide's search from 43 to 157 s of wall time. A goal with more than 64 ordered terms now keeps the
+  usual path.
+
+**3. Slimmer.** Every part is an ordered term, and its bound and equality are the order's. The bound atoms, equality's
+own transitivity, the bounds' monotonicity and congruence, and the parts' class-by-class read-back are gone.
+- **Bytes:** kernel/epr.ts 40,755 after the order atoms, 38,231 after (−2,524), 38,428 with the cap.
+- **What isn't shared:**
+  - the CDCL, because cdcl.ts's is over linear atoms with a simplex and this one is propositional with each clause's
+    hypotheses;
+  - finite variables as ordered terms, because the order's transitivity is cubic and wo's goals hold 141 finite
+    cells.
+
+**Measured** (Modal, three runs a side, against e537601: `runs/epr2/p2` base, `p3` candidate):
+- **Written invariants: 10 of 10 proven in every run.** consensus_wo_decide's was unknown at e537601.
+- **The searches at 60 s:** the same five proven in every run (sync, async, decentralized, 2PC, ticket). Times are level
+  but the misses' ends:
+  - consensus_wo_decide 33–59 s against 22–34 s;
+  - toy 16–18 s against 12–14 s.
+- **Where the misses' time goes:** wo's search took 34 s with the path off on the same tree. The path's work isn't on
+  the search's counted clock, so the join asks more queries in the same counted budget. Counting it would need a
+  calibration that could cost other searches their proofs; not done.
+- **lock_server_async:** level, 16.8 and 21.7 s on against 25.0 and 18.2 s off; not the path.
+- **Broken variants:** refused by the same runs.
+- **The 30 real-world laws over several keys:** the same verdicts, 607 s against 594 s.
+- **The quick bar against e537601:** CHC 521 against 518 (2 gained, 1 lost after reruns, none solid); real-world dev 73
+  against 74 in the first pass, noise after reruns (lost 0); wrong 0.
+- **The full bar against e537601** (base together; `runs/bar/runs/epr2-full-a14265f`): wrong 0 everywhere, nothing lost
+  in every run anywhere.
+  - CHC 1,165 against 1,174 in the first pass: 2 gained and 7 lost after reruns, none solid, 5 of the 7 at the time
+    limit. CHC has no maps, so neither the EPR path nor the changed model instances run there.
+  - ITS 1,153 against 1,151, and 1,157 both per component. SV, TIP and the frontier corpora level. The real-world
+    corpus 288 / 33 / 8 / 1 timeout against 288 / 33 / 9, noise after reruns (lost 0).
+  - The 332 step goals: the same search on all 332, 293 s against 308 s.
+  - Suites 225 of 225 both ways.
+  - The 1-vCPU medians within 10% (infer's four-value join 6,139 against 5,599 ms).
+- **Lean: 47 of 48.** The one not checked is slayer-3.t2_fixed, an ITS task this run solved (nonterminating in 48 s;
+  the base's first pass unknown, so it was sampled first as gained). Its 17 MB certificate stops at Lean's
+  `maxRecDepth`, using the standard axioms only. ITS has no maps: none of gen/epr2's code runs there.
+- **Size:** core/ and kernel/ without tests +7,517 bytes against e537601. kernel/epr.ts is 38,428 bytes, against 40,755
+  before the slimming.
+- **Spend:** about $13.1 of $14: the probes and pilots about $0.35, the quick bar $1.78 and the full bar $10.95 (the
+  bars' estimates; their hours not yet billed).
