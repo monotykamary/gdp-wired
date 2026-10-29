@@ -1945,33 +1945,25 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       T(`runs ${samples.length} leaders ${samples.filter(q => [...(q.st.maps['Leader']?.values() ?? [])].some(v2 => v2 > 0)).length}`); const made = enumerated(); T(`enumerated ${made.length}`)
       if (env.GDP_ENUM_LOG) for (const f of made) console.error('[enum cube]', textOf(f))
       let cubes: Form[] = []
-      for (const f of [...made].sort((a, b) => near(a) - near(b))) { if (cubes.length >= 32 || stop()) break; if (!implied(f)) cubes.push(f) }
+      for (const f of [...made].sort((a, b) => near(a) - near(b))) { if (cubes.length >= 32 || stop()) break; if (!names.has(textOf(f)) && !implied(f)) cubes.push(f) }
       opts.progress?.('join enumerated', {views: views.length - v0, cubes: cubes.length})
       if (env.GDP_ENUM_LOG) for (const f of cubes) console.error('[enum cube]', textOf(f))
       // (a goal's proof within the search's own end, on the cost model's clock: a counted search inside it keeps the end)
       const within = <T>(endWall: number, f: () => T): T => withWall(endWall, () => counted(fullRate, () => withDeadline(clock() + Math.max(0, endWall - performance.now()), f), true))
-      // (a model's values past the rule's constants renamed onto small ones in order, a gap kept up to 64: the step then
-      // runs at every key, and the model's equalities, order and comparisons with the constants are kept)
-      const top = Math.max(1024, ...[...JSON.stringify([m.step, m.assume ?? null, m.pre ?? null]).matchAll(/"value":(\d+)/g)].map(q => Number(q[1])))
-      const smallOf = (w: Record<string, number>): Record<string, number> => {
-        const big = [...new Set(Object.values(w).filter(v => v > top))].sort((a, b) => a - b)
-        if (!big.length) return w
-        const to = new Map<number, number>()
-        big.forEach((v, i) => to.set(v, i ? to.get(big[i - 1]!)! + Math.min(64, v - big[i - 1]!) : top + 1))
-        return Object.fromEntries(Object.entries(w).map(([c, v]) => [c, to.get(v) ?? v]))
-      }
-      const realCti = (w0: Record<string, number>, f: Form | undefined, others: Form[]) => { const w = smallOf(w0); return withFnsOf(w, () => {
+      const realCti = (w: Record<string, number>, f: Form | undefined, others: Form[]) => withFnsOf(w, () => {
         const {params, st} = stateOf(w), read = new Set([...others, f].map(g => g?.view))
+        // (a model's cells past the keys the interpreter steps at every key, a million, left out)
+        for (const cells of Object.values(st.maps)) for (const k of [...cells.keys()]) if (k > 1_000_000) cells.delete(k)
         const at = (s2: State): Point => ({scalar: withTerms({...params, ...s2.scalars}, s2), cells: [], views: views.map((v, i) => (read.has(i) ? v.rowsOf(params, s2) : []))})
         let post: State
-        try { post = run.step(params, st, requestOf(w)); stepNamed(st, post) } catch (e) { if (!f) T(`caller cti no step: ${String(e).slice(0, 120)}`); return false }
+        try { post = run.step(params, st, requestOf(w)); stepNamed(st, post) } catch (e) { if (!f) T(`caller cti no step: ${String(e).slice(0, 120)} w ${Object.entries(w).filter(([c, v]) => c.includes('[') || v > 1000).slice(0, 30).map(([c, v]) => `${c}=${v}`).join(' ')}`); return false }
         if (!others.every(g => holdsAt(g, at(st)))) { if (!f) T(`caller cti outside: ${others.filter(g => !holdsAt(g, at(st))).map(textOf).join(' | ').slice(0, 400)}`); return false }
         lastPre = {params, st, w}
         if (!f) { const b = breaks(params, post, st, requestOf(w)); T(`caller cti breaks ${b} named ${[...(named.get(st) ?? [])].length}`); return b }
         const bad = (at(post).views[f.view!] ?? []).filter(r => judged(f, r) && !holdsRow(f, r)).map(valuesOf)
         if (bad.length) broken.set(f, bad)
         return bad.length > 0
-      }) }
+      })
       // (a counterexample's diagram (UPDR's, IC3PO's): in each template view, a row of its state no reachable small state's
       // row is, as the literals true there, generalized by taking out each literal while no small state's row is inside;
       // blocked as a law ¬diagram, at most four a counterexample)
@@ -2004,6 +1996,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (!k || !bad || f.cube!.length >= 4) return []
         return k.lits.filter(l => bad.every(r => !litHolds(l, r))).map(l => formOf([...f.cube!, l], f.view)).filter(g => !k.R.some(r => inCube(g.cube!, r))).slice(0, 4)
       }
+      // (a goal the CDCL search refuted, by the laws its core read: settled while each is still in the set, Houdini's
+      // cores)
+      const settled = new Map<string, string[]>()
       for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
         const kUntil = wallUntil - (round ? reserve : 0)
         const real = new Set<Form>(), unsure = new Set<Form>(), ls = [...given, ...cubes.map(lawFor)], blocked2: Form[] = []
@@ -2012,22 +2007,25 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           for (const goal of [...laws.map(l => l.name), ...cubes]) {
             if (performance.now() > kUntil || stop()) { complete = false; break }
             const f = typeof goal === 'string' ? undefined : goal, others = cubes.filter(g => g !== f), idx = f ? given.length + cubes.indexOf(f) : ls.findIndex(l => l.name === goal), mm = forLaws(ls).m
+            const was = settled.get(ls[idx]!.name)
+            if (was && was.every(n2 => ls.some(l => l.name === n2))) continue
             // (a model or a refutation of the CDCL search alone first, a quarter of a join query; else the proof path's)
-            const g = obligations(mm, ls, mapNames.length ? {[ls[idx]!.name]: lawInstances(mm, ls, idx)} : {}, idx)[1]!
+            const inst = mapNames.length ? lawInstances(mm, ls, idx) : undefined, g = obligations(mm, ls, inst ? {[ls[idx]!.name]: inst} : {}, idx)[1]!
             const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
             T(`quick ${'tree' in quick || quick.why === REFUTED ? 'refuted' : quick.stuck}`)
+            if (!('tree' in quick) && quick.why === REFUTED && quick.core) { const lawAt = lawsFrom(mm, ls, false, inst ?? {}); settled.set(ls[idx]!.name, [...new Set([...quick.core].map(h => lawAt.get(h)).filter((k): k is number => k !== undefined && k >= given.length && k !== idx).map(k => ls[k]!.name))]) }
             if ('tree' in quick || quick.why === REFUTED) continue
             let isReal = quick.stuck === 'sat' && !!quick.witness && realCti(quick.witness, f, others)
             if (!isReal) {
               proofs++
-              const r2 = within(Math.min(kUntil, performance.now() + joinQueryMs / 4), () => proveLaw(mm, ls, idx))
+              const r2 = within(f ? Math.min(kUntil, performance.now() + joinQueryMs / 4) : kUntil, () => proveLaw(mm, ls, idx))
               T(`proof ${r2.proven ? 'proven' : r2.stuck}`)
               if (r2.proven) continue
               isReal = !!r2.witness && realCti(r2.witness, f, others)
             }
             // (a real counterexample from a state no small state is: its diagram blocked, the goal's laws kept)
-            const ds = isReal && lastPre ? withFnsOf(lastPre.w, () => diagrams(lastPre!)).filter(g => !cubes.some(h => textOf(h) === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g))) : []
-            if (ds.length) { blocked2.push(...ds); continue }
+            const ds = isReal && lastPre ? withFnsOf(lastPre.w, () => diagrams(lastPre!)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g)) : []
+            if (ds.length) continue
             if (!f) { caller = true; break }
             ;(isReal ? real : unsure).add(f)
           }

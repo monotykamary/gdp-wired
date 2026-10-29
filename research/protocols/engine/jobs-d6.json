@@ -1,0 +1,12 @@
+[
+ {
+  "name": "distributed_lock-s60-r1",
+  "cmd": "GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|enum t|join (template|enumerated|end|failed)' /tmp/err.log | grep -v 'diagram rows' | grep -v 'diagram view' | cut -c1-300 | head -c 14000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "sharded_key_value_store-s60-r1",
+  "cmd": "GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|enum t|join (template|enumerated|end|failed)' /tmp/err.log | grep -v 'diagram rows' | grep -v 'diagram view' | cut -c1-300 | head -c 14000; exit $s",
+  "timeout": 130
+ }
+]
