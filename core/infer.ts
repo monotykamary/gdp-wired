@@ -1917,17 +1917,18 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // states within joinKeys) whose part of those samples and of the states joined in leaves it out (past its hull or a
     // bound, or with no state there at all) becomes a control value, and every state is joined again.
     const refine = (p: Point): boolean => { const recent = [p, ...negs.slice(-8)]; used.rows += recent.length; const ok = spaces.some(sp => sp.refine(recent)); if (ok) { stood.clear(); reached.length = 0 } return ok }
-    // The engine, before the join on a rule of keyed maps whose scalars take few values (no counters; research/protocols/
-    // engine/DESIGN.md). Enumerated (DuoAI's ∀ candidates, research/protocols/enum/DESIGN.md): the template's
-    // cubes the caller's and the kinds' laws don't imply, then Houdini, the caller's laws first, every cube assumed: the
-    // CDCL search's model or refutation first, else the proof path's. A model drops its cube where the interpreter reads
-    // a step out of the goal from a state the other cubes hold at; a round with none drops the unsettled. The caller's law
-    // unproven ends it (Houdini only weakens); the set is then proven, its trees kept. The first round has the kernel's
-    // clock, later ones less 21 s for a sums pass where one follows (core/dsl.ts's: decentralized lock's).
+    // The engine, after a join that found nothing, on a rule of keyed maps whose scalars take few values (no counters;
+    // research/protocols/engine/DESIGN.md): the template's cubes (DuoAI's ∀ candidates, research/protocols/enum/
+    // DESIGN.md) read off the small instance, those the caller's and the kinds' laws don't imply; then Houdini, the
+    // caller's laws first, every cube assumed: the CDCL search's refutation (its core settles the goal while the laws it
+    // read stay) or model, else the proof path's. A model the interpreter reads as a real step out of the goal drops its
+    // cube; one out of the caller's law from a state no small state is has its diagrams blocked as cubes, the caller asked
+    // again first (IC3's order); the caller's law unproven otherwise ends it. A round with nothing real drops the
+    // unsettled. The set is then proven, its trees kept. Later rounds leave a sums pass its reserve (core/dsl.ts's:
+    // decentralized lock's) while the caller's law fails from the set.
     const engine = () => {
     if (sorts && callerLaws.some(l => l.keys?.length) && now() < until && !stop()) {
       // (a sums pass's reserve where one follows: 21 s, or a third of what is left where less is)
-      // (its share: half the search's budget, the join and a sums pass after it with the rest)
       const v0 = views.length, reserve = rule?.withMapSums() ? Math.min(21_000, (wallUntil - performance.now()) / 3) : 0
       const implied = (f: Form) => {
         const v = views[f.view!]!, sk = {vars: Object.fromEntries(v.vars.map(k => [k, x(`${k}#`)])), maps: {}, flags: {}}, hyps = [substC(v.frame, sk), not(substC(condOf(f), sk))]
@@ -1941,13 +1942,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // (the cubes that read a map the caller's laws read first)
       const callerMaps = new Set(laws.flatMap(l => [...JSON.stringify(l.holds).matchAll(/"map":"([^"]+)"/g)].map(q => q[1]!)))
       const near = (f: Form) => (f.cube!.some(l => atomsIn(formOf([l])).some(i => callerMaps.has(atoms[i]!.parts[0]![0].split(AT)[2] ?? ''))) ? 0 : 1)
-      const T = (what: string) => { if (env.GDP_ENUM_LOG) console.error('[enum t]', what, Math.round(performance.now() - t0)) }
-      T(`runs ${samples.length} leaders ${samples.filter(q => [...(q.st.maps['Leader']?.values() ?? [])].some(v2 => v2 > 0)).length}`); const made = enumerated(); T(`enumerated ${made.length}`)
-      if (env.GDP_ENUM_LOG) for (const f of made) console.error('[enum cube]', textOf(f))
+      const made = enumerated()
       let cubes: Form[] = []
       for (const f of [...made].sort((a, b) => near(a) - near(b))) { if (cubes.length >= 32 || stop()) break; if (!names.has(textOf(f)) && !implied(f)) cubes.push(f) }
       opts.progress?.('join enumerated', {views: views.length - v0, cubes: cubes.length})
-      if (env.GDP_ENUM_LOG) for (const f of cubes) console.error('[enum cube]', textOf(f))
       // (a goal's proof within the search's own end, on the cost model's clock: a counted search inside it keeps the end)
       const within = <T>(endWall: number, f: () => T): T => withWall(endWall, () => counted(fullRate, () => withDeadline(clock() + Math.max(0, endWall - performance.now()), f), true))
       // (a model's values past the rule's constants renamed onto small ones in order, a gap kept up to 64: the step then
@@ -1967,14 +1965,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const at = (s2: State): Point => ({scalar: withTerms({...params, ...s2.scalars}, s2), cells: [], views: views.map((v, i) => (read.has(i) ? v.rowsOf(params, s2) : []))})
         let post: State
         if (performance.now() > wallUntil) return false
-        try { post = run.step(params, st, requestOf(w)); stepNamed(st, post) } catch (e) { if (!f) T(`caller cti no step: ${String(e).slice(0, 120)} w ${Object.entries(w).filter(([c, v]) => c.includes('[') || v > 1000).slice(0, 30).map(([c, v]) => `${c}=${v}`).join(' ')}`); return false }
+        try { post = run.step(params, st, requestOf(w)); stepNamed(st, post) } catch { return false }
         if (performance.now() > wallUntil) return false
-        if (!others.every(g => holdsAt(g, at(st)))) { if (!f) T(`caller cti outside: ${others.filter(g => !holdsAt(g, at(st))).map(textOf).join(' | ').slice(0, 400)}`); return false }
+        if (!others.every(g => holdsAt(g, at(st)))) return false
         lastPre = {params, st, w}
-        if (!f) { const b = breaks(params, post, st, requestOf(w)); T(`caller cti breaks ${b} named ${[...(named.get(st) ?? [])].length}`); return b }
-        const bad = (at(post).views[f.view!] ?? []).filter(r => judged(f, r) && !holdsRow(f, r)).map(valuesOf)
-        if (bad.length) broken.set(f, bad)
-        return bad.length > 0
+        if (!f) return breaks(params, post, st, requestOf(w))
+        return (at(post).views[f.view!] ?? []).some(r => judged(f, r) && !holdsRow(f, r))
       }) }
       // (a counterexample's diagram (UPDR's, IC3PO's): in each template view, a row of its state no reachable small state's
       // row is, as the literals true there, generalized by taking out each literal while no small state's row is inside;
@@ -1986,12 +1982,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         for (const [vi, k] of known) {
           const seenR = reachedRows.get(vi) ?? new Set(k.R.map(vecKey)); reachedRows.set(vi, seenR)
           // (a model names some cells: the literals over those alone)
-          if (env.GDP_ENUM_LOG) T(`diagram rows view ${vi}: ${views[vi]!.rowsOf(pre.params, pre.st).length} params ${JSON.stringify(pre.params)} maps ${mapsText(pre.st).slice(0, 200)}`)
           for (const row of views[vi]!.rowsOf(pre.params, pre.st)) {
             const r = valuesOf(row)
             if (!unnamed.get(row) && seenR.has(vecKey(r))) continue
             let c = k.lits.filter(l => litHolds(l, r) && judged(formOf([l], vi), row))
-            if (env.GDP_ENUM_LOG && out2.length === 0 && vi === [...known.keys()].at(-1)) T(`diagram view ${vi} lits ${c.length}/${k.lits.length} inR ${k.R.some(y => inCube(c, y))} unnamed ${unnamed.get(row)?.size ?? 0} ${formOf(c, vi) && textOf(formOf(c, vi)).slice(0, 300)}`)
             if (!c.length || k.R.some(y => inCube(c, y))) continue
             for (const l of [...c]) { const c2 = c.filter(x2 => x2 !== l); if (c2.length && !k.R.some(y => inCube(c2, y))) c = c2 }
             if (c.length <= 5 && !k.R.some(y => inCube(c, y))) out2.push(formOf(c, vi))
@@ -1999,14 +1993,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           }
         }
         return out2
-      }
-      // (a cube a real counterexample breaks, weakened (DuoAI's co-implication, one step): each literal false at every
-      // row the counterexample breaks it at, where no sample row is in the cube it makes, at most four)
-      const broken = new Map<Form, Float64Array[]>()
-      const weaker = (f: Form): Form[] => {
-        const k = known.get(f.view!), bad = broken.get(f)
-        if (!k || !bad || f.cube!.length >= 4) return []
-        return k.lits.filter(l => bad.every(r => !litHolds(l, r))).map(l => formOf([...f.cube!, l], f.view)).filter(g => !k.R.some(r => inCube(g.cube!, r))).slice(0, 4)
       }
       // (a goal the CDCL search refuted, by the laws its core read: settled while each is still in the set, Houdini's
       // cores)
@@ -2028,7 +2014,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             // (a model or a refutation of the CDCL search alone first, a quarter of a join query; else the proof path's)
             const inst = mapNames.length ? lawInstances(mm, ls, idx) : undefined, g = obligations(mm, ls, inst ? {[ls[idx]!.name]: inst} : {}, idx)[1]!
             const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
-            T(`quick ${'tree' in quick || quick.why === REFUTED ? 'refuted' : quick.stuck}`)
             if (!('tree' in quick) && quick.why === REFUTED && quick.core) { const lawAt = lawsFrom(mm, ls, false, inst ?? {}); settled.set(ls[idx]!.name, [...new Set([...quick.core].map(h => lawAt.get(h)).filter((k): k is number => k !== undefined && k >= given.length && k !== idx).map(k => ls[k]!.name))]) }
             if ('tree' in quick || quick.why === REFUTED) continue
             // (the caller's law's model from the proof path alone: EPR's, real or with the instances that refute it)
@@ -2036,7 +2021,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             if (!isReal) {
               proofs++
               const r2 = within(f ? Math.min(kUntil(), performance.now() + joinQueryMs / 4) : kUntil(), () => proveLaw(mm, ls, idx))
-              T(`proof ${r2.proven ? 'proven' : r2.stuck}`)
               if (r2.proven) continue
               isReal = !!r2.witness && realCti(r2.witness, f, others)
             }
@@ -2051,12 +2035,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length})
         const drops = real.size ? real : unsure
         if (blocked2.length) { cubes = [...cubes.filter(g => !drops.has(g)), ...blocked2].slice(0, 96); return }
-        if (complete && !caller && !drops.size) { const v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor)])); T(`set ${v.proven} ${v.checked}`); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } }
+        if (complete && !caller && !drops.size) { const v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor)])); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } }
         if (!complete || caller || !drops.size) over = true
-        const texts = new Set(cubes.map(textOf)), more = real.size ? [...real].flatMap(weaker).filter(g => !texts.has(textOf(g)) && !!texts.add(textOf(g))) : []
-        cubes = [...cubes.filter(g => !drops.has(g)), ...more]
+        cubes = cubes.filter(g => !drops.has(g))
       })
-      T(`engine end stop ${stop()} cubes ${cubes.length} now ${Math.round(now())} until ${until} wall ${Math.round(wallUntil - t0)} proof ${!!enumProof}`)
     }
     }
     for (;;) {
