@@ -130,7 +130,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         else { if (f.kind === 'EnumDecl' && n.name) f.$outer = n.name; visitDecl(f) }
       }
     } else if (n.kind === 'EnumDecl') {
-      if (n.name) for (const q of [n.name, ...(n.$outer ? [`${n.$outer}::${n.name}`] : []), `enum ${n.name}`]) enums.set(q, n)
+      if (n.name) for (const q of [n.name, ...(n.$outer ? [`${n.$outer as string}::${n.name}`] : []), `enum ${n.name}`]) enums.set(q, n)
       let v = -1
       for (const c of n.inner ?? []) if (c.kind === 'EnumConstantDecl') { const k = c.inner?.length ? fold(c.inner[0]!) : undefined; v = k ?? v + 1; enumConst.set(c.id!, v) }
     } else if (n.kind === 'VarDecl') globals.set(n.id!, n)

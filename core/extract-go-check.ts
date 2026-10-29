@@ -397,7 +397,7 @@ export function speak(work: string, bin: string, env: Record<string, string | un
     const r0 = performance.now()
     const side: CodeSide = {
       // (a constructor's arguments, C++'s: the rule's parameters)
-      make: params => { const res = ask({op: 'new', ...ctorArgs(params)}); return res.bad ? {ok: false, error: `the code can't be made with it (${String(res.bad)})`} : {ok: true, value: res.id} },
+      make: params => { const res = ask({op: 'new', ...ctorArgs(params)}); return res.bad ? {ok: false, error: `the code can't be made with it (${res.bad as string})`} : {ok: true, value: res.id} },
       at: (s, params) => { const res = ask({op: 'at', state: snapJson(s), ...ctorArgs(params)}); return res.bad ? undefined : res.id },
       snapOf: self => toSnap(ask({op: 'get', id: self}).state as Record<string, unknown>),
       call: (self, e, args) => {
