@@ -3,7 +3,15 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.31.1
+
+A patch: `effect` is no longer a peer dependency, and the CDCL search lists its cell pairs cheaply.
+- **No `effect` peer.** `gdp-wired/effect` never imports `effect`: `extractEffect` and `conforms` take the module you
+  pass them (`{effect: await import('effect')}`). Declaring it as an optional peer only made npm install a release of
+  `effect` into projects that had a prerelease of it from another package (56 MB in one project's production install).
+  It stays a dev dependency for gdp-wired's own tests, on 4.0.7 and 3.22.4.
+- **Cell pairs listed cheaply** (below): the same search on the 332 step goals, every protocol verdict the same, a full
+  bar with none wrong.
 
 **The CDCL search's cell pairs listed cheaply; integer leaves by branch and bound tried and dropped (gen/cost2).**
 Nothing trusted changed. research/protocols/COST.md, "Steps 4 and 5", has the measurements.
