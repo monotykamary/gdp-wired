@@ -5,6 +5,21 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**Rust, on the shared executor (gen/rust).** Nothing trusted changed. research/langs/DESIGN.md, "Rust".
+- **`gdp-wired/extract-rs`**: `extractRust(crateDir, {entry, methods, failures})`. The reader is syn (core/rs/, built
+  once with the cargo on the PATH); the check builds the crate as it ships with a generated harness in the struct's
+  module (a debug build: overflow checks on) and drives it as the Python one is. Without cargo the result is a refusal
+  saying so (scripts/smoke.sh checks it).
+- **The executor's new operations**, shared from here on: fixed-width integers (trap, wrap, saturate, checked;
+  truncating division; ranges for inputs, params and fields), casts, Option and Result values, value records,
+  atomics as read-modify-writes of a field, closures, struct literals, a constructor that returns the object.
+- **Two crates in the real-world corpus** (research/realworld/items/rust-crates.ts, rules in research/langs/rust/rules/):
+  gcra 0.6.0's `GcraState` (the GCRA rate limiter: 5 laws) and circuitbreaker-rs 0.1.1's `StateManager` (an AtomicU8
+  state with compare-and-swap transitions: 5 laws), each checked against the crate's own code (1,986 and 2,400
+  requests), 10 laws proven, none refuted. `bun research/langs/rust/run.ts` fetches each at its pin and runs them.
+- **Printing:** a condition by cases (an ite of conditions) hoisted as a const is printed as a condition; before, it was
+  printed as a number and the rule didn't build (no TypeScript or Go extraction reached it).
+
 **Python, on one structure for every language (gen/langs).** Nothing trusted changed (kernel/, core/check.ts and
 lean-kernel/ are b118bf5's). research/langs/DESIGN.md has the design.
 - **One step IR and one executor** (core/extract-step.ts): a reader in the code's own language lowers a module into

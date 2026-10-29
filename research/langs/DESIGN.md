@@ -86,6 +86,28 @@ files, +142 KB.
 Per language from here: its reader (15–30 KB in its own language) and its harness (8–12 KB reflective, 15–25 KB of TS
 generating it for a static language), and a ~3 KB front end.
 
+## Rust (built second)
+
+`core/rs/src/main.rs` (45,627 bytes of Rust on syn) lowers a crate into the IR in A-normal form: Rust's `if` and
+`match` used as values, `?`, and `return` inside expressions become statements over temporaries, closures are lifted
+to functions of what they capture. `core/extract-rs.ts` (20,368) builds it once per version, and generates the
+harness: a `#[cfg(test)]` module appended to the struct's own module in a copy of the crate (so private fields are read
+and set as the crate's code does), `Instant::now()` rewritten to read the request's time, built by `cargo test
+--no-run` with serde_json as a dev-dependency; the test binary is the harness, on the same JSON-lines protocol.
+
+What the executor gained (+21,393 bytes, each for every language from now on): fixed-width integers on values
+(`IntTy`) with `trap`, `wrap` (by cases, a sum or a difference), `sat`, `checked` overflow and trunc division; ranges
+for inputs (a request outside its type refused), params (the precondition) and fields (a range law); casts (widening,
+a C-like enum's discriminant, narrowing refused where it doesn't fit); Option and Result values (`some`, `ok`, `err`,
+`is`, `unwrap`, `expect`, `opt_or`, `bad` for `?`), a Result returned at the top as the step's failure; value records
+(`copy`); atomics' read-modify-writes on a place (`rmw`); closures with captures; struct literals (`new`); maps' Rust
+methods (insert, remove, contains_key); a constructor that returns the object (`new`) or a derived Default. A latent
+printer bug was fixed on the way (core/extract.ts: a condition by cases, hoisted, printed as a number).
+
+Not yet: maps and vectors in a Rust state, `answers` and `stores` (the harness has no stubs), branch coverage (no
+instrumentation: the arms are not counted), generics, trait methods on foreign types (failsafe's `Millis for
+Duration`), two structs of one name in two modules (leaky-bucket-lite's).
+
 ## The next languages, on this structure
 
 Each is its reader (in the language, with its own parser), a harness, a ~3 KB front end, and the executor operations it

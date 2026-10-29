@@ -1191,7 +1191,7 @@ const split = (t: string): [string, string] => { const i = t.indexOf('{}'); retu
 
 // --- a module's step: the class (or the functions) read into the Model -------------------------------------------------
 export function readStep(mod: SModule, opts: StepOptions): StepRead {
-  if (mod.error) refuse(mod.file, mod.error)
+  if (mod.error) refuse(mod.file ?? mod.root ?? '?', mod.error)
   const g = new Stepper(mod, opts), kept = opts.failures === 'kept', carried = kept && opts.onError !== 'discard'
   const entries = mod.entries
   for (const e of entries) if (e.k === 'missing') refuse(mod.file, `no class or function ${e.name} in ${mod.file}`)

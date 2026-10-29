@@ -104,6 +104,10 @@
       "types": "./dist/core/extract-py.d.ts",
       "default": "./dist/core/extract-py.js"
     },
+    "./extract-rs": {
+      "types": "./dist/core/extract-rs.d.ts",
+      "default": "./dist/core/extract-rs.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

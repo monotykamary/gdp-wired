@@ -465,6 +465,34 @@ proveSteps(x.rule, x.invariants, [x.rule.stepLaw('admitted only below the limit'
 The shared structure every further language uses (a reader in the language, one executor, a harness) is in
 research/langs/DESIGN.md; LiteLLM's budget and session limits, read this way, are research/langs/litellm/.
 
+## Rust
+
+`extractRust` reads a crate's struct and its methods (or its free functions) through syn, and checks the rule by
+building the crate as it ships beside a generated harness (cargo needed only then; a debug build, overflow checks on):
+
+```ts
+import {extractRust} from 'gdp-wired/extract-rs'
+
+// #[derive(Default)] pub struct GcraState { pub tat: Option<Instant> }
+// impl GcraState { pub fn check_and_modify_at(&mut self, rate_limit: &RateLimit, arrived_at: Instant, cost: u32) -> Result<(), GcraError> {...} }
+const x = extractRust('gcra-0.6.0', {entry: 'GcraState', methods: ['check_and_modify_at', 'revert_at'], failures: 'kept'})
+proveSteps(x.rule, x.invariants, [x.rule.stepLaw('a denied request changes nothing',
+  (b, a) => a.failed.implies(a.tat.eq(b.tat)), b => b.method.is('check_and_modify_at'))])
+```
+
+- **Integers** keep their width: `+ - *` past the type's range panic (the step's failure), `wrapping_*` wrap,
+  `saturating_*` saturate, `checked_*` give an Option, `/` and `%` by a constant truncate, `as` widens (a narrowing
+  cast is refused where the value doesn't fit). Each fixed-width field gets its range law; unsigned inputs are naturals.
+- **Read:** structs (made by `new` or a derived Default; nested ones by value, copied where the code copies), C-like
+  enums as choices (`as` their discriminant, their `impl From<u8>`), Option and Result (`?`, `if let`, `match` with
+  guards, unwrap, unwrap_or, is_some; an `Err` returned is the step's failure), `Instant` and `Duration` as nanoseconds
+  (`Instant::now()` the request's time, once a step), atomics and a Mutex's lock as the fields they are (one request
+  is one step: the claim is for calls that don't interleave), closures that don't assign to what they capture, the
+  crate's struct arguments as records of inputs, panics and assertions.
+- **Refused**, with where and why: loops, generics, traits objects, enums with data (an error's payload is kept only
+  as a value nothing reads), maps and vectors in the state (for now), floats, other crates' code; `answers` and
+  `stores` are Python's only for now.
+
 ## Sets, lists, functions, composition
 
 - `.carries('Candidate')`: a set the request brings; `everyKey`, `has`, `subsetOf`, `disjointFrom`, `sameAs`;
