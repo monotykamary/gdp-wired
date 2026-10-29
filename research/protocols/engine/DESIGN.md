@@ -43,7 +43,7 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
-## Status (checkpoint at 21692d8, gen/enum4 from gen/rel8 9987874)
+## Status (checkpoints at 21692d8 and after steps 1, 2, 4; gen/enum4 from gen/rel8 9987874, gen/epr4 merged)
 
 **Built** (core/infer.ts only; nothing trusted changed):
 - **The enumeration stage from gen/enum3:** template views per keySorts sort (plain, composed, three-part keys, function-part places `Pending[idn(x)·N + y]`); literals: few-valued cells (the top value as "at least"), a value cell `= 0`, order literals between a sort's keys, its cells and function values (`t ≤ u`, `t < u`), two keys of one sort strictly ordered; the frame takes the caller's guards on one key (k < 64, k < size); minimal cubes ≤ 3 literals (4 where a view has ≤ 40 literals), canonical per renaming, contradictory orders out; cubes the caller's laws imply dropped; at most 32, those reading the caller's maps first. Houdini: the caller's laws first, a CDCL model or refutation first, else proveLaw within the search's end (`within`, counted clock); models judged by the interpreter (`realCti`); a real counterexample's cube weakened by one literal; the set proven whole with its trees kept. The stage runs after a join that found nothing or ran out of time; the first round has the whole kernel clock, later ones leave 21 s for a sums pass.
@@ -60,6 +60,33 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 - **sharded KV:** the model's keys are huge (154,714,762), and the interpreter's write at every key refuses keys past a million, so the counterexample isn't judged. Unknown, 70–75 s.
 - **The six already proven** (sync, async, decentralized, 2PC, ticket, toy): toy checked only. Re-check all six on this branch before any merge.
 - **Size against 9987874:** not measured yet.
+
+**Checkpoint after steps 1, 2 and 4, with gen/epr4 merged** (e8e3536 and on; the pilot `runs/engine/p10`, all ten, 2 runs at 60 s):
+- **Step 1, the budget:**
+  - The stage first, with half the budget (9471de9), lost 2PC (its join was left 15 s) and slowed the others by 10–18 s. It runs after the join again.
+  - Its planned share is now the rest of the budget. The sums pass's reserve (min(21 s, a third of what's left)) holds only while the caller's law fails from the set: once it holds, the rounds are Houdini's and keep the reserve's time.
+- **Step 2, ring:**
+  - A model's function values are carried into the judged state (`withFnsOf`).
+  - A model's values past the rule's constants are renamed onto small ones in order (`smallOf`).
+  - The caller's law goes straight to the proof path (EPR, whose models are real).
+  - A real caller counterexample's diagrams are blocked at once, and the caller is asked again before the cubes (IC3's order).
+  - Result: ring's caller law holds from the set after 3 diagrams, about 9 s in. Houdini then stalls: 13–19 cube goals stay unsure (each up to a 2 s CDCL check and a 2 s proof), and the round doesn't finish in 60 s.
+  - Halving those caps made more cubes unsure, and distributed_lock overran to the 90 s kill. Reverted.
+- **Step 4, sharded:**
+  - Its large keys are mixed-coefficient sums the kernel instantiates (`Table[k:262144,key$2#:64,…]`), not large values.
+  - A model's cells past a million keys are now left out of the judged state.
+  - The caller's counterexample is judged real (828–1,008 cells named), with 0 diagrams, as with wo.
+- **Also:**
+  - Houdini cores: a cube the CDCL search refuted is skipped while every law its core read stays in the set.
+  - The implied filter is lazy (it stops at 32 kept; it was 7 s on distributed_lock).
+  - Diagrams are deduped against every law's name. A duplicate name had thrown in the kernel and ended the join (`join failed`).
+  - realCti stops at the wall.
+- **Verdicts (p10):**
+  - The six stay proven: sync 8–9 s, async 23–30, decentralized 19–22, 2PC 18, ticket 29–33, toy 55–60. Toy is near the edge; it was 42 s at 835ac18.
+  - The four stay unknown: distributed 63 s, wo 59–62, ring 60–61, sharded 56–72.
+  - Broken variants: the same.
+- **Overruns left:** sharded 72 s (the caller's proof runs to the end, then 15–20 s after the search), distributed 63 s.
+- **Size:** core/infer.ts is 184,749 bytes against 162,204 at 9987874. enum3's stage is +13.2 KB of that, the engine +9.3 KB, tracing included.
 
 **Next steps, in order:**
 1. Start the stage earlier, with a planned share of the budget, not what's left after the join and the deep runs (distributed_lock's round 1 is cut short).
