@@ -431,10 +431,17 @@ naturals, as its asserts and their meaning say) and PX4-Autopilot 1.17.0's `syst
 debounced boolean of its checks; its constructor, the four methods; drivers/drv_hrt.h as hrt_abstime = uint64_t).
 10 of 11 laws proven, each check agreeing on about 2,300 requests, 400 drawn states and 32–39 witnesses.
 
+**Bars** (against 52152a3, together): rw 357 / 35 / 9 against 347 / 35 / 8 (the 10 proven, the cap law unknown),
+nothing lost, wrong 0; the suite and --usual 230 of 230 each, job seconds level (+32 s, +7 s); lint clean. Go 119 of 119;
+LiteLLM, Ruby and Elixir rules and the five C and C++ corpus rules (Linux, clang 19) byte-identical; build and smoke pass
+without clang.
+
 **Triage (recorded only, no one contacted):** "an update keeps at most 3 seconds of quota" (inferred from update_quota's
 `if (m_quota_left / 3 > m_limit) m_quota_left = m_limit * 3`) is refuted: where the addition would pass INT32_MAX the
-overflow guard sets the quota to INT32_MAX, past 3·m_limit. The witness: m_limit 714,396,227, m_quota_left
-2,143,188,681 (3·m_limit), an update of 6 ms: the quota becomes 2,147,483,647, 4.3 MB over. The guard is intentional
+overflow guard sets the quota to INT32_MAX, past 3·m_limit. Concretely, on the real code (compiled and run): throttle
+(714,396,227), update_quota(3000) fills it to 2,143,188,681 (3·m_limit), and update_quota(7) leaves 2,147,483,647, 4.3 MB
+over. (The prover's own witness took the product m_limit·dt as a free value, so the corpus's scoring counts the law
+unknown, not refuted; run.ts prints the witness.) The guard is intentional
 (the comment: "may exceed <int>::max"), and past about 715 MB/s three seconds don't fit an int at all: an edge of the
 cap, not a bug in practice.
 
