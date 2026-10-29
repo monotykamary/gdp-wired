@@ -16,7 +16,7 @@ import type {TStats} from '../core/translate.ts'
 import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
 import {growCdcl} from './cdcl.ts'
-import {type Patterns, decide, patternsOf} from './epr.ts'
+import {type Diagram, type Patterns, decide, patternsOf} from './epr.ts'
 import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
@@ -168,7 +168,8 @@ const proveTrace = !!env.PROVE_TRACE
 // `why`, when the budget ran out: which limit, at what size, and what usually helps.
 // Set while core/cyclic.ts grows its goals.
 export const cellProducts = {on: false}
-export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', witness?: Record<string, number>, path: Path, why?: string}
+// (`diagram`: a model the EPR path found, as a structure: kernel/epr.ts's Diagram)
+export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', witness?: Record<string, number>, diagram?: Diagram, path: Path, why?: string}
 
 // The budget: 200,000 nodes and, by default, a second per hypothesis (at least 20 seconds) per goal, on the counted
 // clock inside `counted` and in the cost model's work outside it (`withWork`); past either the goal is left `unknown`. A goal with many instances (a law about two keys at its pairs) has that many more rows per leaf.
@@ -302,7 +303,7 @@ const withPatterns = <T>(m: Machine, laws: Law[], f: () => T): T => {
 function eprFirst(goal: Goal, budget: {nodes: number, until?: number}): Outcome | undefined {
   const d = decide(goal, eprScope.patterns!, {exact: true, late: pastWall})
   if ('unknown' in d) return undefined
-  if (d.sat) return {stuck: 'sat', witness: d.witness, path: new Map(), why: 'a model'}
+  if (d.sat) return {stuck: 'sat', witness: d.witness, diagram: d.diagram, path: new Map(), why: 'a model'}
   const last = goal.hyps.length - 1, part: Goal = {name: goal.name, hyps: (d.core.includes(last) ? d.core : [...d.core, last]).map(i => goal.hyps[i]!)}
   const now = clock(), end = withinDeadline(budget.until ?? Infinity), w = fullWork()
   eprScope.busy = true
@@ -1388,7 +1389,7 @@ const pointed = <T>(laws: Law[], f: () => T): T => {
   atPoint.on = true
   try { return f() } finally { atPoint.on = false }
 }
-export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>} {
+export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram} {
   if (laws.some(l => someKeys(l.holds).length) || someLaws(laws)) {
     const r = proveLaws(m, laws)
     return r.proven ? {proven: true} : {proven: false, goal: r.failed!.goal, stuck: r.failed!.stuck, ...(r.failed!.witness ? {witness: r.failed!.witness} : {})}
@@ -1396,13 +1397,13 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
   // (the thinned goals too by the EPR path where the rule's keys are composed: withModels' scope, entered here)
   return withPatterns(m, laws, () => pointed(laws, () => proveOne(m, laws, i)))
 }
-function proveOne(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>} {
+function proveOne(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram} {
   const law = laws[i]!, pm = plainOf(m), inst = lawInstances(m, laws, i)
   const few = triggered(pm, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
   if (!sameInstances(few, inst) && obligations(m, laws, {[law.name]: few}, i).every(goal => 'tree' in grow(goal))) return {proven: true}
   // (a model breaking a law at a tuple of the goal's keys: those added, the law asked again)
   const {result: a} = withModels(m, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), growAll, grownModel, grownSettled)
-  return a.out ? {proven: false, goal: a.goal!.name, stuck: a.out.stuck, ...(a.out.witness ? {witness: a.out.witness} : {})} : {proven: true}
+  return a.out ? {proven: false, goal: a.goal!.name, stuck: a.out.stuck, ...(a.out.witness ? {witness: a.out.witness} : {}), ...(a.out.diagram ? {diagram: a.out.diagram} : {})} : {proven: true}
 }
 // Goals grown in turn up to the first one unproven (withModels' question in proveLaw and proveThinned): the trees, their
 // nodes and leaves, and the goal it stopped at with its outcome, whose model asks for more instances.

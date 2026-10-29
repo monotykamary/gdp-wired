@@ -59,7 +59,13 @@ function tupleOf(e: E): Tuple | undefined {
 const sameCoefs = (a: number[], b: number[]) => a.length === b.length && a.every((c, i) => c === b[i])
 
 type Origin = number // a hypothesis' index, or -1 for a clause that holds in every model (an axiom)
-export type Decision = {sat: false, core: number[]} | {sat: true, witness: Record<string, number>} | {unknown: string}
+// A model as a structure, for a caller that blocks it as a diagram (UPDR's): the goal's elements are the values of its
+// parts and ordered terms (an epoch a cell holds), in their order, each an index 0 .. elements − 1; each part (a key's name, a function's read at one) and ordered scalar (a ring's size) is an element; each
+// scalar a value; each map's cells the goal reads, at tuples of elements, with their values (a value of an ordered cell
+// that is an element's, an epoch a node holds, as that element, else the number); each function's table, element to
+// element. Two models equal up to the order's renaming give the same diagram.
+export type Diagram = {elements: number, parts: Record<string, number>, scalars: Record<string, number>, cells: Record<string, {at: number[], value: number}[]>, fns: Record<string, [number, number][]>}
+export type Decision = {sat: false, core: number[]} | {sat: true, witness: Record<string, number>, diagram: Diagram} | {unknown: string}
 
 // `late`: true past the caller's end, checked between the steps and every 256 conflicts; then unknown.
 export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
@@ -533,16 +539,15 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     if (e.op === 'get' && fnMaps.has(e.map)) { const k = valueAt(e.key); return k === undefined ? undefined : maps.get(e.map)?.get(k) }
     return undefined
   }
-  const fnOdd = (o: unknown): void => {
-    if (!o || typeof o !== 'object') return
-    for (const y of Object.values(o)) fnOdd(y)
-    const x = o as E
-    if (x.op !== 'get' || !fnMaps.has(x.map) || partName(x) !== undefined) return
+  // (the reads gathered, the inner ones first: each read is gathered before the reads in its key)
+  const fnOdd = (x: Extract<E, {op: 'get'}>): void => {
+    tick()
+    if (!fnMaps.has(x.map) || partName(x) !== undefined) return
     const key = keyVal(x.key) ?? valueAt(x.key), t = maps.get(x.map) ?? new Map<number, number>()
     if (key === undefined || t.has(key)) return
     maps.set(x.map, t.set(key, ordVal.get(`c:${x.map}#${JSON.stringify(x.key)}`) ?? ++fresh2))
   }
-  goal.hyps.forEach(fnOdd)
+  ;[...reads].reverse().forEach(fnOdd)
   for (const [mp, cells] of cellsOf) for (const c of cells) {
     const key = c.parts.reduce((s, p, i) => s + w[p]! * (patterns[mp]![i] ?? 1), 0)
     if (!maps.has(mp)) maps.set(mp, new Map())
@@ -557,22 +562,30 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     if (!maps.get(o.map)!.has(key)) maps.get(o.map)!.set(key, cellVal.get(o.id)!)
   }
   const allMaps = new Set<string>()
-  const scan = (o: unknown): void => { if (!o || typeof o !== 'object') return; const x = o as {op?: string, map?: string}; if (x.op === 'get') allMaps.add(x.map!); for (const y of Object.values(o)) scan(y) }
-  goal.hyps.forEach(scan)
+  for (const x of reads) allMaps.add(x.map)
   const st = {scalars: {}, maps: Object.fromEntries([...allMaps].map(mp => [mp, maps.get(mp) ?? new Map<number, number>()]))}
   const m = {name: goal.name, params: [], inputs: [], state: {}, step: {}, maps: Object.fromEntries([...allMaps].map(mp => [mp, 0]))} as unknown as Machine
   const env = new Proxy({...w}, {get: (t, q: string) => t[q] ?? 0}) as Record<string, number>
   for (const [i, h] of goal.hyps.entries()) { tick(); try { if (!evalC(h, env, st, m)) { return {unknown: `the abstraction's model breaks hypothesis ${i}${shaped[i] ? '' : ' (not EPR-shaped)'}`} } } catch { return {unknown: 'the model could not be read'} } }
   // the kernel's witness: names, and each cell of the goal by its key's linear form
   const witness: Record<string, number> = {...w}
-  const cellName = (o: unknown): void => {
-    if (!o || typeof o !== 'object') return
-    const x = o as {op?: string, map?: string, key?: E}
-    if (x.op === 'get' && x.key) { const l = linear(x.key, new Map()), kv = keyVal(x.key); if (l && kv !== undefined) witness[`${x.map}[${canon(l)}]`] = st.maps[x.map!]?.get(kv) ?? 0 }
-    for (const y of Object.values(o)) cellName(y)
+  for (const x of reads) { tick(); const l = linear(x.key, new Map()), kv = keyVal(x.key); if (l && kv !== undefined) witness[`${x.map}[${canon(l)}]`] = st.maps[x.map]?.get(kv) ?? 0 }
+  // the structure
+  const values = [...new Set([...[...parts].map(x => w[x]), ...[...ordVal].filter(([t]) => !t.startsWith('k:') && !t.includes('#')).map(([, x]) => x)].filter((x): x is number => x !== undefined))].sort((a, b) => a - b), elem = new Map(values.map((x, i) => [x, i]))
+  const diagram: Diagram = {elements: values.length, parts: {}, scalars: {}, cells: {}, fns: {}}
+  for (const x of [...parts, ...ordScalars].sort()) if (w[x] !== undefined) diagram.parts[x] = elem.get(w[x]!)!
+  for (const f of fins.values()) if (f.id.startsWith('s:')) diagram.scalars[f.id.slice(2)] = w[f.id.slice(2)] ?? 0
+  for (const [mp, cells] of cellsOf) {
+    const seen2 = new Set<string>(), out: {at: number[], value: number}[] = []
+    for (const c of cells) {
+      const at = c.parts.map(x => elem.get(w[x]!)!), id = at.join(','), value = cellVal.get(c.id)!
+      if (!seen2.has(id)) { seen2.add(id); out.push({at, value: ordMaps.has(mp) ? elem.get(value) ?? value : value}) }
+    }
+    diagram.cells[mp] = out.sort((a, b) => { for (let i = 0; i < a.at.length; i++) if (a.at[i] !== b.at[i]) return a.at[i]! - b.at[i]!; return 0 })
   }
-  goal.hyps.forEach(cellName)
-  return {sat: true, witness}
+  for (const {f, n, a} of fnParts) { const t = (diagram.fns[f] ??= []), x = elem.get(w[a]!)!; if (!t.some(r => r[0] === x)) t.push([x, elem.get(w[n]!)!]) }
+  for (const t of Object.values(diagram.fns)) t.sort((a, b) => a[0] - b[0])
+  return {sat: true, witness, diagram}
 }
 
 // A small CDCL over clauses with origins: two watched literals, activity, learned clauses carrying the union of the
