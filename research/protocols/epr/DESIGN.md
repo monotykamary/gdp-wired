@@ -597,3 +597,21 @@ are dropped only where no real one is. That judgment is the stage's.
 
 **Size:** kernel/epr.ts +1,154 bytes, kernel/prove.ts +1,578, against e5253d4. **Spend:** about $3.5 of $6, the two bar
 launches estimated at $2.72 and about $0.3, the probes and pilots the rest.
+
+**The search's last bounded runs within its end.** gen/enum4's sharded KV search ended near 59 s and its run at 77 s.
+The extra 18 s was the last bounded runs, which ran under a lifted wall and on the counted clock alone.
+- **Now:**
+  - the inference is walled where the search's tail begins (`until − tail`, the tenth kept for those runs, at most a
+    second);
+  - the last bounded runs keep the outer wall, the search's end;
+  - they always have a wall stop of their own, not only with step-law ghosts;
+  - the wall's `lift` is gone.
+- **Vendure's law 2,** whose refutation the lifted wall had saved, is refuted in 10.0 and 10.4 s (Modal, two runs).
+  Locally, with the shallow run turned off, it is still refuted in 3.8 s by the earlier phases.
+- **On gen/enum4's stage with this kernel** (Modal, two runs at 60 s): sharded KV's runs end at 58.5 and 71.5 s. About
+  13 s of that is the prover and the deeper runs before the search's clock starts: the 0 ms base of deadline.test.ts,
+  which now also checks sharded KV at 5 and 10 s.
+- **Deadline test** (Modal): the six searches in time.
+- **The quick bar's search-heavy part** (rw, f1, f2, against 5d4da3f): wrong 0, nothing lost. One real-world law (xstate
+  gapless.js track #2) was unknown in the first run, at 64.8 s on a slow container. It was proven in all three reruns at
+  41.7–45.3 s, against 42.0–46.4 s for the base: noise.
