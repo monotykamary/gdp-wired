@@ -1646,11 +1646,11 @@ export class Stepper {
   listLen(s: V, at: SX, p: Path): N {
     const o = this.listObj(s, at, p)
     if (o.ops.length) return refuse(at, `${o.decl.name} read after it is written in one step`)
-    return I.nvar(`${o.decl.name}_len`)
+    return o.decl.len !== undefined ? I.num(o.decl.len) : I.nvar(`${o.decl.name}_len`)
   }
   inside(s: V, i: V, at: SX, p: Path): [Extract<Obj, {k: 'list'}>, N, B] {
     const o = this.listObj(s, at, p), idx = this.numv(i, at), len = this.listLen(s, at, p), inside = I.and(I.cmp('<=', I.num(0), idx), I.cmp('<', idx, len))
-    this.refuseWhere(p, I.not(inside), at, 'an index out of range (a panic)')
+    this.refuseWhere(p, I.not(inside), at, o.decl.len !== undefined ? `an index outside [0, ${o.decl.len}) (undefined behavior)` : 'an index out of range (a panic)')
     return [o, idx, inside]
   }
   listGet(s: V, i: V, at: SX, p: Path): [V, Path] {
@@ -1659,6 +1659,7 @@ export class Stepper {
   }
   listSet(s: V, i: V, v: V, at: SX, p: Path): Path {
     const [o, idx, inside] = this.inside(s, i, at, p), q = this.assume(p, inside)
+    if (o.decl.len !== undefined && o.ops.length) return refuse(at, `a second write to ${o.decl.name} in one step`)
     return {...q, heap: new Map(q.heap).set((s as {id: string}).id, {...o, ops: [{op: 'set', i: idx, x: v, when: I.T}]})}
   }
   // s = append(s, x) and s = s[:len(s)-1] in s's own place; any other list put there is refused.

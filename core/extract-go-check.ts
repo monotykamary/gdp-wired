@@ -386,7 +386,12 @@ export function speak(work: string, bin: string, env: Record<string, string | un
       return x < lo ? lo : x
     }
     // A nil *big.Int holds 0 (the rule's encoding of it).
-    const normalize = (s: Snap): Snap => { for (const l of read.leaves) if (l.kind === 'big' && s.leaves[`${l.name}_nil`] === true) s.leaves[l.name] = 0; return s }
+    // (and a fixed array, C's, holds its length's items: a state made without them holds zeros)
+    const normalize = (s: Snap): Snap => {
+      for (const l of read.leaves) if (l.kind === 'big' && s.leaves[`${l.name}_nil`] === true) s.leaves[l.name] = 0
+      for (const d of m.lists ?? []) if (d.len !== undefined) { const xs = s.lists?.[d.name] ?? []; s.lists = {...s.lists, [d.name]: Array.from({length: d.len}, (_, i) => xs[i] ?? (d.fields[0]!.sort.k === 'bool' ? false : 0))} }
+      return s
+    }
     let coverage: Coverage | undefined
     const r0 = performance.now()
     const side: CodeSide = {
@@ -422,7 +427,7 @@ export function speak(work: string, bin: string, env: Record<string, string | un
           }
           maps[d.name] = cells
         }
-        for (const d of m.lists ?? []) { const f = d.fields[0]!; lists[d.name] = Array.from({length: rand(4)}, () => { let x = draw(f.sort, sorts, `${d.name}.$item`, rand, consts, bound, strs); if (typeof x === 'number' && sorts.get(`${d.name}.$item`) === 'nat') x = Math.abs(x); return fit(x, `${d.name}.$item`, rand) }) }
+        for (const d of m.lists ?? []) { const f = d.fields[0]!; lists[d.name] = Array.from({length: d.len ?? rand(4)}, () => { let x = draw(f.sort, sorts, `${d.name}.$item`, rand, consts, bound, strs); if (typeof x === 'number' && sorts.get(`${d.name}.$item`) === 'nat') x = Math.abs(x); return fit(x, `${d.name}.$item`, rand) }) }
         return {leaves, maps, ...(m.lists?.length ? {lists} : {})}
       },
       normalize,

@@ -30,7 +30,10 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
   const cp = node<CP>('node:child_process'), lang = cpp ? ['-x', 'c++'] : ['-x', 'c']
   const run = (args: string[]) => {
     try { return cp.execFileSync(clang, args, {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe']}) }
-    catch (e) { throw new Refusal(file, `clang didn't read it (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(l => /error|not found/.test(l)).slice(0, 3).join(' | ') || 'no clang'}): clang is needed to extract ${cpp ? 'C++' : 'C'}`) }
+    catch (e) {
+      const x = e as {code?: string, stderr?: string, message: string}
+      throw new Refusal(file, x.code === 'ENOENT' ? `no ${clang} to run: clang is needed to extract ${cpp ? 'C++' : 'C'}` : `clang doesn't compile it (${String(x.stderr ?? x.message).split('\n').filter(l => /error/.test(l)).slice(0, 3).join(' | ')})`)
+    }
   }
   const tu = JSON.parse(run([...lang, ...flags, '-Xclang', '-ast-dump=json', '-fsyntax-only', file])) as CN
   const defs = run([...lang, ...flags, '-dM', '-E', '/dev/null']), def = (k: string) => Number(new RegExp(`#define ${k} (\\d+)`).exec(defs)?.[1] ?? 0)
@@ -178,7 +181,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     const s = s0.replace(/\b(const|volatile|restrict|__restrict)\b/g, '').replace(/\s+/g, ' ').replace(/ \*/g, '*').replace(/\*/g, ' *').replace(/\* \*/g, '**').trim()
     if (s === '_Bool' || s === 'bool') return boolT
     const arr = /^(.*?)\s*\[(\d+)\]$/.exec(s)
-    if (arr) return add(`arr:${s}`, {k: 'array', go: s, elem: parseT(arr[1]!), len: Number(arr[2])})
+    if (arr) return add(`arr:${s}`, {k: 'array', go: s, elem: parseT(arr[1]!), len: Number(arr[2]), fixed: true})
     if (/\(\*\)|\(.*\)$/.test(s)) return add(`fn:${s}`, {k: 'func', go: s})
     if (/\*$/.test(s)) { const e = parseT(s.replace(/\s*\*$/, '')); return add(`ptr:${e}`, {k: 'ptr', go: s, elem: e}) }
     if (/&$/.test(s)) return add(`ref:${s}`, {k: 'ref', go: s})
@@ -297,7 +300,11 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       }
       case 'ConditionalOperator': return {e: 'ite', ...a, x: cond(kids[0]!), y: x(kids[1]!), b: x(kids[2]!)}
       case 'CallExpr': return call(n)
-      case 'ArraySubscriptExpr': return no(n, `${text(n)}: an index into an array or a pointer`)
+      case 'ArraySubscriptExpr': {
+        // An index into an array of the state (its decay to a pointer undone); pointer arithmetic is outside.
+        const b = strip(kids[0]!), arr = b.kind === 'ImplicitCastExpr' && b.castKind === 'ArrayToPointerDecay' ? b.inner![0]! : undefined
+        return arr ? {e: 'index', ...a, x: place(arr), i: x(kids[1]!)} : no(n, `${text(n)}: an index into a pointer (pointer arithmetic)`)
+      }
       case 'StringLiteral': return no(n, `${text(n)}: a string (char arrays are outside the subset)`)
       case 'FloatingLiteral': return no(n, `${text(n)}: a float (the subset reads integers)`)
       case 'UnaryExprOrTypeTraitExpr': return no(n, `${text(n)}: sizeof (the target's layout)`)
@@ -308,7 +315,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   const place = (n0: CN): GX => {
     const n = strip(n0)
     if (n.kind === 'DeclRefExpr' || n.kind === 'MemberExpr' || (n.kind === 'UnaryOperator' && n.opcode === '*')) return x(n)
-    if (n.kind === 'ArraySubscriptExpr') return no(n, `${text(n)}: an index into an array or a pointer`)
+    if (n.kind === 'ArraySubscriptExpr') return x(n)
     return no(n, `${text(n)}: a place the subset doesn't write`)
   }
   const call = (n: CN): GX => {

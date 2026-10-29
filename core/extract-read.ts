@@ -24,7 +24,8 @@ export type Shape = Sort | {k: 'rec', fields: [string, Shape][]} | {k: 'map', ke
 // A rule variable: its sort, and where it comes from.
 export type Var = {name: string, sort: Sort, role: 'param' | 'input' | 'state', note?: string}
 // A map of the state: its cells are records of `fields` (one, `value`, for a map of scalars) and `has` (the key holds one).
-export type MapDecl = {name: string, key: 'num' | 'str', fields: Var[], scalar: boolean, js: 'Map' | 'record' | 'Set', untyped?: boolean}
+// (`len`: a list of that many items, its length fixed: a C array's)
+export type MapDecl = {name: string, key: 'num' | 'str', fields: Var[], scalar: boolean, js: 'Map' | 'record' | 'Set', untyped?: boolean, len?: number}
 // Where each of the code's values is in the rule: the state's tree, leaf by leaf.
 export type Layout = {k: 'scalar', name: string} | {k: 'rec', fields: [string, Layout][]} | {k: 'map', name: string} | {k: 'list', name: string} | {k: 'const', value: Term}
 export type Term = {s: 'num', e: N} | {s: 'bool', e: B} | {s: 'choice', e: L} | {s: 'str', e: K}

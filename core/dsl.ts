@@ -1626,12 +1626,12 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   lists<const N extends string>(...names: N[]): Rule<P, I, S & {[k in N as `${k}_len`]: Term}, M & {[k in N]: ListRef}, F, R, Su, Q> {
     return this.with({maps: [...this.spec.maps, ...names.map(n => [n, 0] as [string, number])], state: [...this.spec.state, ...names.map(n => [`${n}_len`, 0] as [string, number])], lists: [...(this.spec.lists ?? []), ...names]})
   }
-  // Lists whose items are values of a kind, each empty at the start: one list per variable of the kind, of one length
-  // <name>_len (ItemsRef).
-  items<T extends Record<string, Kind<unknown>>>(kinds: T): Rule<P, I, S & {[k in keyof T & string as `${k}_len`]: Term}, M & {[k in keyof T]: ItemsRef<T[k] extends Kind<infer V> ? V : never>}, F, R, Su, Q> {
+  // Lists whose items are values of a kind, each empty at the start (or `lens[name]` items of 0: a C array's): one list
+  // per variable of the kind, of one length <name>_len (ItemsRef).
+  items<T extends Record<string, Kind<unknown>>>(kinds: T, lens: Partial<Record<keyof T & string, number>> = {}): Rule<P, I, S & {[k in keyof T & string as `${k}_len`]: Term}, M & {[k in keyof T]: ItemsRef<T[k] extends Kind<infer V> ? V : never>}, F, R, Su, Q> {
     const entries = Object.entries(kinds)
     return this.with({maps: [...this.spec.maps, ...entries.flatMap(([n, k]) => k.vars(n).map(part => [part, 0] as [string, number]))],
-      state: [...this.spec.state, ...entries.map(([n]) => [`${n}_len`, 0] as [string, number])], items: [...(this.spec.items ?? []), ...entries]})
+      state: [...this.spec.state, ...entries.map(([n]) => [`${n}_len`, (lens as Record<string, number>)[n] ?? 0] as [string, number])], items: [...(this.spec.items ?? []), ...entries]})
   }
   // A table of nodes, empty at the start (NodeTable): a tree in the state, made one node a step.
   nodes<const N extends string, V, const C extends string, Fd extends string = never>(name: N, of: Kind<V>, children: readonly C[], folds: {[f in Fd]: NodeFold<V, C, Fd, TablesOf<M>>} = {} as {[f in Fd]: NodeFold<V, C, Fd, TablesOf<M>>}):

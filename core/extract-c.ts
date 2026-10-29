@@ -67,6 +67,7 @@ export function extractC(file: string, opts: COptions, cpp = false): Extraction 
 function signedDomains(pkg: GoPkg, read: GoRead): Record<string, 'int'> {
   const out: Record<string, 'int'> = {}
   for (const l of read.leaves) if (l.kind === 'int' && ty(pkg, l.t).signed !== false) out[l.name] = 'int'
+  for (const l of read.leaves) if (l.kind === 'list' && ty(pkg, ty(pkg, l.t).elem!).k === 'int' && ty(pkg, ty(pkg, l.t).elem!).signed !== false) out[`${l.name}.$item`] = 'int'
   for (const m of read.methods) if (m.results[0] !== undefined && ty(pkg, m.results[0]).k === 'int' && ty(pkg, m.results[0]).signed !== false) out[`${m.name}_result`] = 'int'
   return out
 }
@@ -81,7 +82,12 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
   for (const l of read.leaves) {
     const a = acc(l.path), k = q(l.name)
     if (l.kind === 'int') { get.push(`gdp_putf("%s\\"%s\\":", sep, ${k}); sep = ","; ${intOut(a, l.t)};`); set.push(`if ((v = gdp_key(st, ${k}))) ${intIn(a, 'v', l.t, `return "${l.name} outside its type"`)}`) }
-    else if (l.kind === 'bool') { get.push(`gdp_putf("%s\\"%s\\":%s", sep, ${k}, ${a} ? "true" : "false"); sep = ",";`); set.push(`if ((v = gdp_key(st, ${k}))) { if (!strncmp(v, "true", 4)) ${a} = 1; else if (!strncmp(v, "false", 5)) ${a} = 0; else return "${l.name}: not a boolean"; }`) }
+    else if (l.kind === 'list') {
+      // (a fixed array: all its items, exactly its length set)
+      const at = T(l.t), n = at.len!, et = at.elem!, item = (e: string) => (T(et).k === 'int' ? intOut(e, et) : `gdp_putf("%s", ${e} ? "true" : "false")`)
+      get.push(`gdp_putf("%s\\"%s\\":[", sep, ${k}); sep = ","; for (int i = 0; i < ${n}; i++) { if (i) gdp_putf(","); ${item(`${a}[i]`)}; } gdp_putf("]");`)
+      set.push(`if ((v = gdp_key(st, ${k}))) { for (int i = 0; i < ${n}; i++) { const char *e = gdp_idx(v, i); if (!e) return "${l.name}: not ${n} items"; ${T(et).k === 'int' ? intIn(`${a}[i]`, 'e', et, `return "${l.name}: an item outside its type"`) : `${a}[i] = !strncmp(e, "true", 4);`} } if (gdp_idx(v, ${n})) return "${l.name}: not ${n} items"; }`)
+    } else if (l.kind === 'bool') { get.push(`gdp_putf("%s\\"%s\\":%s", sep, ${k}, ${a} ? "true" : "false"); sep = ",";`); set.push(`if ((v = gdp_key(st, ${k}))) { if (!strncmp(v, "true", 4)) ${a} = 1; else if (!strncmp(v, "false", 5)) ${a} = 0; else return "${l.name}: not a boolean"; }`) }
   }
   const frames = read.leaves.filter(l => l.kind === 'frame')
   const calls = read.methods.map(meth => {
@@ -245,7 +251,7 @@ export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r:
     // The same flags; undefined behavior trapped (the rule refuses it, so the code must fail there too); another
     // file's functions left unresolved (the rule refuses their calls: one reached is the code's crash, a difference).
     const undef = os.platform() === 'darwin' ? ['-Wl,-undefined,dynamic_lookup'] : ['-Wl,--unresolved-symbols=ignore-all']
-    try { cp.execFileSync(opts.clang ?? 'clang', [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', h, '-o', `${work}/harness`, ...(cpp ? ['-lstdc++'] : []), ...undef], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26}) }
+    try { cp.execFileSync(opts.clang ?? 'clang', [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', '-fstrict-flex-arrays=3', h, '-o', `${work}/harness`, ...(cpp ? ['-lstdc++'] : []), ...undef], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26}) }
     catch (x) { return {...empty, mismatch: `the file doesn't build with the check's harness: ${String((x as {stderr?: string}).stderr ?? (x as Error).message).split('\n').filter(l => /error/.test(l)).slice(0, 6).join(' | ')}`} }
     const buildMs = Math.round(performance.now() - b0), none = (): Coverage => ({arms: 0, hit: 0, missed: []})
     return {...speak(work, `${work}/harness`, (globalThis as {process?: {env?: Record<string, string>}}).process?.env, c.pkg, read, r, sorts, opts.check ?? {}, none), buildMs}

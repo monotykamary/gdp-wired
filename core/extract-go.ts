@@ -42,7 +42,7 @@ import {type IntTy, type Recipe, type SFunc, type SModule, type SS, type SX, typ
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
 
 // --- the reader's JSON ----------------------------------------------------------------------------------------------
-export type TT = {k: string, go?: string, generic?: boolean, name?: string, pkg?: string, own?: boolean, bits?: number, signed?: boolean, untyped?: boolean, ub?: boolean, elem?: number, key?: number,
+export type TT = {k: string, go?: string, fixed?: boolean, generic?: boolean, name?: string, pkg?: string, own?: boolean, bits?: number, signed?: boolean, untyped?: boolean, ub?: boolean, elem?: number, key?: number,
   fields?: {name: string, t: number, embedded: boolean}[], xfields?: {name: string, t: number, embedded: boolean, exported: boolean}[], methods?: {name: string, ptr: boolean}[], params?: number[], results?: number[], elems?: number[], iface?: boolean, args?: number[], len?: number}
 type GC = {int?: string, bool?: boolean, str?: string, float?: string, other?: string}
 export type GX = {e: string, p: string, t: number, text: string, c?: GC, why?: string, what?: string, b?: GX, n?: string, o?: string, id?: string, x?: GX, y?: GX, op?: string, f?: GX, a?: GX[], k?: string, lo?: GX, hi?: GX, three?: boolean,
@@ -182,7 +182,7 @@ class Go {
       case 'index': {
         const xt = this.T(x.x!.t)
         if (xt.k === 'map') return this.midx(x)
-        if (xt.k === 'slice') return {e: 'lidx', ...at, s: this.x(x.x!), i: this.x(x.i!), ty: this.intTy(xt.elem!)}
+        if (xt.k === 'slice' || xt.fixed) return {e: 'lidx', ...at, s: this.x(x.x!), i: this.x(x.i!), ty: this.intTy(xt.elem!)}
         return this.no(x, `${x.text}: an index into a ${this.tname(x.x!.t)}`, {pre: [this.x(x.x!), this.x(x.i!)]})
       }
       case 'slice': {
@@ -388,7 +388,7 @@ class Go {
     if (x.e === 'index') {
       const k = this.T(x.x!.t).k
       if (k === 'map') return this.midx(x)
-      if (k === 'slice') return {e: 'lidx', ...this.at(x), s: this.x(x.x!), i: this.x(x.i!)}
+      if (k === 'slice' || this.T(x.x!.t).fixed) return {e: 'lidx', ...this.at(x), s: this.x(x.x!), i: this.x(x.i!)}
       return this.no(x, 'an index into other than a map or a slice')
     }
     return this.place(x)
@@ -407,7 +407,7 @@ class Go {
     // x op= y
     const bop = op.slice(0, -1)
     if (l[0]!.e === 'index' && this.T(l[0]!.x!.t).k === 'map') return {s: 'mopset', p: s.p, at: this.midx(l[0]!), op: bop, y: this.x(r[0]!)}
-    if (l[0]!.e === 'index') return {s: 'no', p: s.p, why: `${op} on a slice's item (the subset sets an item: s[i] = x)`}
+    if (l[0]!.e === 'index') return {s: 'no', p: s.p, why: `${op} on ${this.T(l[0]!.x!.t).fixed ? 'an array\'s' : 'a slice\'s'} item (the subset sets an item: s[i] = x)`}
     return {s: 'opset', p: s.p, to: this.place(l[0]!), op: bop, y: this.x(r[0]!)}
   }
   fn(f: GoFunc): SFunc {
@@ -450,8 +450,9 @@ class Go {
         this.leaves.push({name: decl.name, path: fp, kind: 'map', t: f.t, go: this.tname(f.t)})
         heap.set(id, {k: 'map', decl, nil: I.bvar(nil.name), origin: 'state'})
         out.set(f.name, {t: 'map', id})
-      } else if (ft.k === 'slice' && ['int', 'bool'].includes(this.T(ft.elem!).k)) {
-        const decl: MapDecl = {name: g.newVar(name, {k: 'num'}, 'state').name, key: 'num', fields: [{name: '$item', sort: this.T(ft.elem!).k === 'int' ? {k: 'num'} : {k: 'bool'}, role: 'state'}], scalar: true, js: 'Map'}
+      } else if ((ft.k === 'slice' || ft.fixed) && ['int', 'bool'].includes(this.T(ft.elem!).k)) {
+        // (a fixed array, C's: a list of its length, never pushed or popped)
+        const decl: MapDecl = {name: g.newVar(name, {k: 'num'}, 'state').name, key: 'num', fields: [{name: '$item', sort: this.T(ft.elem!).k === 'int' ? {k: 'num'} : {k: 'bool'}, role: 'state'}], scalar: true, js: 'Map', ...(ft.fixed ? {len: ft.len!} : {})}
         g.lists.push(decl)
         const it = this.intTy(ft.elem!)
         if (it) g.ints.set(`${decl.name}.$item`, it)
@@ -592,7 +593,11 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
         const m = /^\s*(==|!=|<=|>=|<|>)\s*(-?\d+|true|false)\s*$/.exec(fails) ?? refuse(fn, `fails: ${JSON.stringify(fails)} (a comparison with a constant: '< 0', '!= 0', '== false')`)
         const r = vs[0] ?? refuse(fn, `${fn.name} returns nothing to compare (fails: ${fails})`)
         const k: V = m[2] === 'true' || m[2] === 'false' ? {t: 'bool', e: m[2] === 'true' ? I.T : I.F} : {t: 'num', e: I.num(Number(m[2]))}
-        const is = (g.binop(m[1]!, r, k, fn, q) as {e: B}).e
+        // (no failure where the result's bounds and the path's facts exclude it: an item of a uint8_t is never < 0)
+        const kv = Number(m[2]), e = r.t === 'num' ? r.e : undefined, op = m[1]!
+        const [blo, bhi] = e ? g.bounds(e) : [-Infinity, Infinity], atLeast = (b: number) => blo >= b || g.within(e!, b, 'lo', q), atMost = (b: number) => bhi <= b || g.within(e!, b, 'hi', q)
+        const never = e !== undefined && Number.isFinite(kv) && (op === '<' ? atLeast(kv) : op === '<=' ? atLeast(kv + 1) : op === '>' ? atMost(kv) : op === '>=' ? atMost(kv - 1) : op === '==' ? atLeast(kv + 1) || atMost(kv - 1) : false)
+        const is = never ? I.F : (g.binop(op, r, k, fn, q) as {e: B}).e
         g.refuseWhere(q, is, fn, `${fn.name} returning ${fails.trim()} (its failure, as the caller states)`)
         if (!(is.op === 'const' && is.v)) ok.push([g.assume(q, I.not(is)), vs])
       } else if (errAt >= 0) {
