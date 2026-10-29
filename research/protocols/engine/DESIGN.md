@@ -126,6 +126,7 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - **Tried and reverted:** a join query a quarter of its budget where the engine follows (the proving joins' longest queries are 24–333 ms locally). It cut wo's query to 3.9 s, but stopped decentralized's sums-pass join at round 5 of the 6 it needs (both runs unknown).
   - **Next:** cap only a query whose goal the join has asked unknown before, or run the engine's small instance and enumeration (no kernel) while the join's last query runs.
 - **Checking a change to the join:** measure the first join and the sums pass's (decentralized proves in the second).
+- **The bar** (569ed3b against 5d4da3f, full mode on rw, f1, f2, g332, suite, onecpu; Modal, 495 s, estimated $0.7; <main>/runs/bar/runs/569ed3bbf25b-vs-5d4da3f49013-full-2026-10-292350/REPORT.md): wrong 0 everywhere and nothing lost. f1 90/92 as the base; f2 32 against a base mean of 31.33 (one task, gained 0 after 3 reruns a side); rw 318/361 as the base; g332 332/332 with the same search on every goal (+3.4 s summed); the suite 227/227; onecpu no failures. core/ and kernel/ are 2.77 MB against 2.67 MB (+101 KB).
 
 **The expressibility map** (each written law in models.ts's `human`, against the engine's enumeration; `smallprobe.ts` with CUBES=made lists it, and 'join view' each view's literals)
 
