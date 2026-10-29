@@ -735,3 +735,94 @@ its set, its law, its time, its answer. Replaying them locally:
   - CHC, ITS, SV and TIP were not run: no maps, so none of this code reaches them.
 - **Size:** kernel/epr.ts +1,907 bytes (64,910), kernel/prove.ts +247, against c9e046d.
 - **Spend:** about $1.5 of $4.
+
+## gen/epr8: the set's proof over kept decisions, sharded KV proven at 60 s
+
+Branch gen/epr8 from gen/enum4's 3d5668a, rebased on 673a262. Nothing trusted changed: every proof is still the usual
+search's tree (a core's, widened), and kernel.ts checks it.
+
+**Fixtures** (callers/): `dist-set.json`, distributed_lock's set at its first set proof (94 laws, a 150 s run);
+`sharded-caller.json`, sharded KV's caller law with its 17 enumerated cubes (21 laws); `ring-set.json`, ring's set
+proof on 673a262 (20 laws); `wo-quorum.json`, wo's "a leader has the voting quorum's votes" with its round-1 set (40
+laws). Probes: `setprobe.ts <set> usual|fast|warm` (the drop loop: the failing law dropped and the set asked again),
+`givenprobe.ts` (the written invariants both ways).
+
+**1. The drop loop: `proveSetFast(m, laws)`** (kernel/prove.ts; core/dsl.ts's `proveRule(r, laws, {search: false,
+fast: true})`; the engine's hook is `proveSetFast.patch`, one argument in core/infer.ts's `prove`).
+- **The cause:** each retry was proveLaws from nothing: every law's instances (1.3 s of 3.2 s locally on dist-set), its
+  goals decided, each refutation's core widened to the whole goal (1.3 s), then the check. 7.6–14.8 s a retry on Modal.
+- **The fix:** decisions kept across calls, by the machine's text and each law's name and text:
+  - a law's proven goals with their proofs (the core's tree, or the whole goal's) and each proof's **support**: the laws
+    its hypotheses are instances of, read from obligations' layout and checked against each law's instance at its
+    tuple (a hypothesis that isn't is no support read: the proof then stands only in the very set it was made in);
+  - a proof stands while its support is in the set: dropping or adding another law only takes away or adds hypotheses
+    it doesn't read;
+  - a law's model, kept with its set: a model of every smaller set's goal too;
+  - decideLaw and proveLaw share them, so the rounds' decisions are the set proof's;
+  - re-settling a law starts from its instances and keeps the goals whose proofs stand;
+  - **the proof is made once**, when every law settles: each law at only the tuples its proofs read, each core's tree
+    widened to that smaller goal, then checkLaws over the whole.
+- **Measured** (Modal, `runs/epr8/s1`, `t1`): dist-set's drop loop, 24 retries, median 0.33 s, mean 0.73 s, max 2.8 s
+  (a retry re-decides the laws whose support was dropped), against 7.6–14.8 s each on the usual route. The written
+  invariants, all ten: the same verdicts, 1.5–8× faster where no ∃ law sends it to proveLaws (`givenprobe.ts`; the usual
+  side includes its cyclic certificate). Distributed's set itself collapses (46 drops to the caller's law): 42 of its 94
+  cubes have models, most of them false at large epochs. That is the enumeration's choice.
+
+**2. Sharded KV's caller goal from its 17 cubes.** Not the shape, a cap, the arithmetic or widening: instances.
+- **The cause:** the cubes write their keys `64·(64·n + k) + v`, the machine's reads `4096·n + 64·k + v`. The instance
+  matcher (`matchMany`) is structural, so the cubes' places were never bound to the request's terms: "a key in transfer
+  has no owner" was not assumed at (k, owner, n, v). Each model round added a tuple or two, and four rounds were short of
+  the sixth that proves it.
+- **The fix, general:** keys matched as radix sums too (each part bound to the part of its coefficient). With it:
+  - the caller's goal: 0.2 s locally (2.6 s with six model rounds, unknown at four);
+  - its cube 6, "a table entry is its owner's": a model, now 0.13 s proven;
+  - the whole set (caller and 17 cubes): proven and checked in 2.9 s locally, 8.4 s on Modal (31 s the usual route with
+    its certificate).
+- **With it:**
+  - **related tuples kept by sort at each place** (`related`, keySorted's `at`): the filter ran on whole tuples and the
+    wall was checked only as tuples were kept, so a cube's instances took 3.2–3.5 s past a 1 s wall; now milliseconds,
+    the same tuples in the same order;
+  - **model rounds past the fourth** while the caller's deadline allows (16 at most), each such round's model the answer
+    where it can't finish;
+  - **model instances:** 0, the naturals' least, a term of a key no read binds (distributed's "a holder's epoch is above
+    every other" needs "before start, no epoch above 0" at 0), and the 20,000 evaluations shared evenly among the laws.
+- **Result: sharded KV proven at 60 s in both pilot runs** (30.2 and 35.6 s; the set's proof 7.0 s).
+
+**3. wo and ring (the engine's request on 673a262).**
+- **wo, the leader-quorum step from its set:** proveLaw ran 25 s to unknown on it (the engine's 27.5 s); decideLaw
+  proves it in 0.45 s locally. proveLaw now settles by the EPR path first, kept where it stands, then its usual path:
+  1.4 s on Modal. wo's caller goal is proven in round 2 of the pilot's dumps; its runs still end at the wall (the join
+  and small instance take 21–37 s).
+- **ring's set proof:** 6.9 s on the usual route, 2.7 s fast (Modal), later retries 0.7 s against 3.8 s. Its cube
+  decisions are slow where the theory of the order works: one 5-key cube 11.7 s, 115 DPLL(T) rounds, 90% in the theory
+  check's Fourier–Motzkin solves. A comparison alone that the model reads as an earlier model did is no longer solved
+  again (11.7 → 8.4 s); the joint check, one lemma of 4–5 literals a round over 1,311 rows, is the rest. Not fixed.
+
+**Z3 4.13** (Modal, `runs/epr8/z1`, `z2`): every step goal the settling decided on the four fixtures, at its final
+instances: 382 of 382 agree (dist-set 52 unsat and 260 sat, sharded-caller 20 unsat, ring-set 8 and 18 of the first
+26, wo-quorum 20 and 4). Sharded's caller goal at its first and fifth instances: sat, as ours, before the radix match.
+
+**Deadline test** (Modal): 17 of 17 after one change: distributed's unsure cube 28 is now proven (an epoch at 0), so the
+test asks that each cube be decided, a model or a proof.
+
+**The pilot** (all ten, two runs at 60 s, 673a262's stage with `proveSetFast.patch`, `runs/epr8/p2`):
+- **seven proven:** sync 9–11 s, async 19–23, decentralized 14–16, 2PC 15–18, ticket 28–40, toy 14–15, and **sharded KV
+  30–36 s** (unknown before: its caller's goal failed with no diagram);
+- **unknown:** distributed 62–63 s (its rounds 2–3 cost 17 s each, and from round 5 a diagram blocked every round and
+  the set's proof never came), ring 60 s (its set's proof 16 s at 27 cubes; 11 unsure cubes at 1 s), wo 60–66 s (the
+  join and small instance 21–37 s before the rounds).
+
+**The bar** (`--only rw,f1,f2,g332,suite,onecpu --quick` against 5d4da3f's cached baseline, the hook applied;
+`runs/bar/runs/038ff497304e+45e6c34e-vs-5d4da3f49013-quick-2026-10-292307`, the suite again in
+`…+9f3ee2b7-…-292320`): wrong 0, nothing lost.
+- f1, f2 and the real-world dev set level; the 332 step goals the same on all 332 (290 s against 297 s summed).
+- The suite 227 of 227. Its first pass lost six jobs (check, hw-check-*) to this worktree's vendor submodules not
+  being checked out (a missing module in 0.1 s); with them, 227 of 227.
+- 1 vCPU: no job failed. The four-value join 7.2 s against 5.4 s on Modal; locally, alternating with 673a262, 1.62–1.64
+  s both sides (the base is main, without the engine).
+- CHC, ITS, SV and TIP not run: their rules have no maps, so the EPR path, the kept decisions and the radix match
+  don't reach them, and model instances return at once without a law about keys.
+
+**Size** against 673a262: kernel/prove.ts +13,722 bytes, kernel/epr.ts +880, core/dsl.ts +298.
+
+**Spend:** about $2 of $7 (billed $1.32 by 23:00 UTC; the bars' estimates $0.61 and about $0.3).
