@@ -261,6 +261,25 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - The six proven: sync 9–10 s, async 25–26, decentralized 28–29, 2PC 18, ticket 29–34, toy 17–21.
   - The four unknown: wo 59–61, distributed 52–61, ring 60, sharded 27–32.
 
+**Optimistic Houdini, the profile, wo's listing** (`runs/engine/p29`, `p30`):
+- **Optimistic Houdini:**
+  - An unsure cube holds at every small state and every step from one: the cubes are read off the small instance's rows, and its steps stay inside it. So the concrete test always passes, and the cube is kept and not asked again.
+  - The set's proof decides. A cube it fails at is dropped, and the rounds go on.
+  - distributed now reaches the set's proof (52 cubes). It fails in 5 ms at a cube, which is dropped, and the next round is cut at 59 s. Unknown.
+- **Profile:**
+  - Before the search, proveRule's work takes 1.9–3.8 s (`preprobe.ts`: distributed 3.8, wo 3.7, 2PC 1.9, decentralized 1.9). Not 15 s.
+  - On distributed, the join ends near 10 s and the selection at 16 s.
+  - Round 0 (49 cubes and the caller's goal) takes 22 s and round 1 18 s: about 0.45 s a goal, where epr6's fixtures decide in 0.13 s.
+  - On ring, round 1 (81 cubes) takes 51 s.
+  - The rounds' goals are where the time goes, not the join or the start.
+- **wo's listing:**
+  - At the caller's failure the set holds "a counted vote was sent".
+  - "a leader has the voting quorum's votes" is still out, scoring 0 against the 2 caller counterexamples: neither violates it.
+- **Verdicts (p29):**
+  - The six proven: sync 10 s, async 24–28, decentralized 24–35, 2PC 18–19, ticket 34–40, toy 16–22.
+  - The four unknown: wo 63–64, distributed 63, ring 60, sharded 26.
+- **GDP_ENGINE_LIST** (the listing at the caller's failure) is in: it comes out before a merge.
+
 **Next steps, in order:**
 1. Start the stage earlier, with a planned share of the budget, not what's left after the join and the deep runs (distributed_lock's round 1 is cut short).
 2. Carry the model's function values into the judged state (ring): `stateOf`/`realCti` read `idn[...]` cells of the witness into the interpreter's view of `idn`, or judge rows with the model's values.
