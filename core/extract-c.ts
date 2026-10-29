@@ -193,10 +193,13 @@ static const char *gdp_frame(gdp_T *o, gdp_T *pre) {
   ${frames.map(l => `if (memcmp(&o->${l.path.join('.')}, &pre->${l.path.join('.')}, sizeof o->${l.path.join('.')})) return ${q(l.path.join('.'))};`).join('\n  ')}
   return 0;
 }
+// (another file's function, linked as a stub, reached: the step's failure)
+static const char *gdp_extern;
+${cpp ? 'extern "C" ' : ''}void gdp_extern_called(const char *n) { gdp_extern = n; if (gdp_armed) { gdp_armed = 0; siglongjmp(gdp_jb, SIGUSR1); } abort(); }
 static const char *gdp_after(gdp_T *o, gdp_T *pre) {
   const char *f = gdp_frame(o, pre);
   if (f) { gdp_putf(",\\"frame\\":\\"%s\\"", f); }
-  if (gdp_sig) gdp_putf(",\\"panic\\":\\"%s\\"", gdp_sig == SIGABRT ? "SIGABRT (abort, or an assertion failing)" : gdp_sig == SIGTRAP || gdp_sig == SIGILL ? "undefined behavior (the sanitizer's trap)" : "a signal");
+  if (gdp_sig) gdp_putf(",\\"panic\\":\\"%s\\"", gdp_sig == SIGABRT ? "SIGABRT (abort, or an assertion failing)" : gdp_sig == SIGTRAP || gdp_sig == SIGILL ? "undefined behavior (the sanitizer's trap)" : gdp_sig == SIGUSR1 ? "another file's function called" : "a signal");
   else if (gdp_err) gdp_putf(",\\"err\\":\\"its result is its failure (%lld)\\"", gdp_outv);
   if (!gdp_sig && gdp_has && !gdp_rec) { if (gdp_isb) gdp_putf(",\\"out\\":%s,\\"hasOut\\":true", gdp_outb ? "true" : "false"); else if (gdp_outu) gdp_putf(",\\"out\\":\\"%llu\\",\\"hasOut\\":true", (unsigned long long)gdp_outv); else gdp_putf(",\\"out\\":\\"%lld\\",\\"hasOut\\":true", gdp_outv); }
   if (${opts.onError === 'discard' ? 1 : 0} && (gdp_sig || gdp_err)) *o = *pre;
@@ -210,6 +213,7 @@ static const char *gdp_call(gdp_T *o, const char *m, const char *a) {
   return "no such function";
 }
 int main(int argc, char **argv) {
+  if (argc == 2 && !strcmp(argv[1], "--probe")) return 0;
   if (argc < 3) return 2;
   FILE *in = fopen(argv[1], "r"), *out = fopen(argv[2], "w");
   if (!in || !out) return 2;
@@ -264,10 +268,20 @@ export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r:
     fs.writeFileSync(h, code)
     if (opts.check?.keep) { fs.mkdirSync(opts.check.keep, {recursive: true}); fs.writeFileSync(`${opts.check.keep}/harness.${cpp ? 'cpp' : 'c'}`, code) }
     // The same flags; undefined behavior trapped (the rule refuses it, so the code must fail there too); another
-    // file's functions left unresolved (the rule refuses their calls: one reached is the code's crash, a difference).
-    const undef = os.platform() === 'darwin' ? ['-Wl,-undefined,dynamic_lookup'] : ['-Wl,--unresolved-symbols=ignore-all']
-    try { cp.execFileSync(opts.clang ?? 'clang', [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', ...strictFlex(opts.clang ?? 'clang'), h, '-o', `${work}/harness`, ...(cpp ? ['-lstdc++'] : []), ...undef], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26}) }
-    catch (x) { return {...empty, mismatch: `the file doesn't build with the check's harness: ${String((x as {stderr?: string}).stderr ?? (x as Error).message).split('\n').filter(l => /error/.test(l)).slice(0, 6).join(' | ')}`} }
+    // file's functions linked as stubs that report themselves (the rule refuses their calls: one reached is the
+    // code's failure where the rule took the step, a difference).
+    const clang = opts.clang ?? 'clang', stubs = `${work}/gdp_stubs.c`
+    const link = (more: string[]) => cp.execFileSync(clang, [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', ...strictFlex(clang), h, ...(more.length ? ['-x', 'c', ...more] : []), '-o', `${work}/harness`, ...(cpp ? ['-lstdc++'] : [])], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26})
+    const why = (x: unknown) => String((x as {stderr?: string}).stderr ?? (x as Error).message)
+    try { link([]) } catch (x) {
+      const names = [...new Set([...why(x).matchAll(/undefined (?:reference to [`']|symbol: )_?([A-Za-z_]\w*)|"_([A-Za-z_]\w*)", referenced from/g)].map(m => m[1] ?? m[2]!))]
+      if (!names.length) return {...empty, mismatch: `the file doesn't build with the check's harness: ${why(x).split('\n').filter(l => /error/.test(l)).slice(0, 6).join(' | ')}`}
+      fs.writeFileSync(stubs, `void gdp_extern_called(const char *);\n${names.map(n => `void ${n}(void) { gdp_extern_called(${JSON.stringify(n)}); }`).join('\n')}\n`)
+      try { link([stubs]) } catch (y) { return {...empty, mismatch: `the file doesn't build with the check's harness: ${why(y).split('\n').filter(l => /error/.test(l)).slice(0, 6).join(' | ')}`} }
+    }
+    // (a harness that doesn't start would leave the pipes unopened: asked to start and stop first)
+    try { cp.execFileSync(`${work}/harness`, ['--probe'], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 20_000}) }
+    catch (x) { return {...empty, mismatch: `the check's harness doesn't start: ${why(x).split('\n').filter(Boolean).slice(0, 3).join(' | ')}`} }
     const buildMs = Math.round(performance.now() - b0), none = (): Coverage => ({arms: 0, hit: 0, missed: []})
     return {...speak(work, `${work}/harness`, (globalThis as {process?: {env?: Record<string, string>}}).process?.env, c.pkg, read, r, sorts, opts.check ?? {}, none), buildMs}
   } finally {
