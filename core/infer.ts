@@ -633,11 +633,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   }
   const rowsS = samples.map(s => withTerms({...s.params, ...s.st.scalars}, s.st))
   const rowsK: Env[] = []
-  // (rows alike but for their key once: the hull, the bounds and the levels read only which rows there are, so the cap
-  // holds as many of the samples' kinds of rows as it can)
-  const rowId = (r: Env) => { let t = ''; for (const q in r) if (q !== K) t += `${r[q]},`; return t }
-  const unseen = (seen: Set<string>) => (r: Env) => { const t = rowId(r); return !seen.has(t) && !!seen.add(t) }
-  { const fresh = unseen(new Set()); for (const s of samples) { if (rowsK.length > 6000) break; rowsK.push(...cellRows(s.params, s.st).filter(fresh)) } }
+  for (const s of samples) { if (rowsK.length > 6000) break; rowsK.push(...cellRows(s.params, s.st)) }
   const valsS = atoms.map(a => Float64Array.from(rowsS, r => valueOf(a, r))), valsK = atoms.map(a => Float64Array.from(rowsK, r => valueOf(a, r)))
   const kindOf = new Map(kinds.map(([name, k]) => [name, k]))
   // Modes: a yes/no, a choice, or a state natural (or cell) no run took past a few values.
@@ -1142,6 +1138,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // A view's atoms (each map at each place it is read at there) and rows: each assignment of its keys to keys a state
     // holds (by sort: the keys of the maps read at the key's place, the parts of composed keys there, and a fresh one;
     // per key at most `per`), the frame met, each map's cell at each of its places.
+    // The join's rows of a space of keys (the cells, a view): rows alike but for their keys once, up to 6,000. The hull
+    // and the levels read only which rows there are, so the cap holds as many of the samples' kinds of rows as it can.
+    const distinctRows = (rowsOf: (params: Env, st: State) => Env[]): Env[] => {
+      const rows: Env[] = [], seen = new Set<string>(), fresh = (r: Env) => { let t = ''; for (const q in r) if (q !== K) t += `${r[q]},`; return !seen.has(t) && !!seen.add(t) }
+      for (const s2 of samples) { if (rows.length > 6000) break; rows.push(...rowsOf(s2.params, s2.st).filter(fresh)) }
+      return rows
+    }
     const addView = (v: Omit<View, 'atoms' | 'rows' | 'rowsOf'>, mapsAt: string[][], valuesOf2: (st: State) => number[][], per: number) => {
       const vi = views.length, va: number[] = []
       mapsAt.forEach((mps, place) => {
@@ -1167,10 +1170,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         go(0, {...params, ...st.scalars})
         return out
       }
-      const rows: Env[] = []
-      const fresh = unseen(new Set())
-      for (const s2 of samples) { if (rows.length > 6000) break; rows.push(...rowsOf(s2.params, s2.st).filter(fresh)) }
-      views.push({...v, atoms: va, rows, rowsOf})
+      views.push({...v, atoms: va, rows: distinctRows(rowsOf), rowsOf})
     }
     // The pairs: where the rule composes two keys into one (Link[N·a + b] beside Known[a], Known[b]), the cells at two
     // keys x and y and at N·x + y, a row per two keys a state holds (or the parts of a composed key it holds, or a fresh
@@ -1300,7 +1300,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // a point's rows in this space
       const vecs = (p: Point): Float64Array[] => (cells ? p.cells.map(valuesOf) : view ? (p.views[kind as number] ?? []).map(valuesOf) : [valuesOf(p.scalar)])
       const add = (p: Point, widen: boolean) => { for (const v of vecs(p)) join(keyOf(v), v, widen) }
-      const rows = (cells ? rowsK : view ? view.rows : rowsS).map(valuesOf)
+      const rows = (cells ? distinctRows(cellRows) : view ? view.rows : rowsS).map(valuesOf)
       for (const v of rows) join(keyOf(v), v, false)
       opts.progress?.('join start', {space: kind, control: ctl.map(c => `${nameOf(c.atom)}:${c.cuts.join('/')}`).join(' '), groups: groups.size, dirs: dirs.length, coords: CN})
       // The control states no state reached, as fewer and smaller cubes (a program counter in bits: Spacer's clauses there
