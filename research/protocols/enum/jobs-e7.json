@@ -1,0 +1,62 @@
+[
+ {
+  "name": "toy_consensus_forall-s60-r1",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "toy_consensus_forall-s60-r2",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "toy_consensus_forall-s60-r3",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "decentralized_lock-s60-r1",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "decentralized_lock-s60-r2",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "decentralized_lock-s60-r3",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "consensus_wo_decide-s60-r1",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "consensus_wo_decide-s60-r2",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "consensus_wo_decide-s60-r3",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "two_phase_commit-s60-r1",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "two_phase_commit-s60-r2",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "two_phase_commit-s60-r3",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ }
+]

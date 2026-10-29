@@ -1919,10 +1919,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // quarter of a join query), else the proof path's. A model drops its cube where the interpreter reads it as a step out
     // of the goal from a state the other cubes hold at (at the cells it names); a round with none drops those unsettled.
     // The caller's law unproven with every cube ends it (Houdini only weakens). The set is then proven with these trees.
-    // Its share of the kernel's clock: eight tenths of what is left, less the 21 s a search over the maps' sums takes
-    // where one follows (core/dsl.ts's: decentralized lock's sum$HasLock + sum$Message).
+    // Its share of the kernel's clock: what is left for the first round, then less the 21 s a search over the maps' sums
+    // takes where one follows (core/dsl.ts's: decentralized lock's sum$HasLock + sum$Message); the set's proof past it.
     if (why !== 'inductive' && why !== 'time' && sorts && callerLaws.some(l => l.keys?.length) && now() < until && !stop()) {
-      const v0 = views.length, kUntil = clock() + Math.max(0, k0 + ms - clock() - (rule?.withMapSums() ? 21_000 : 0)) * 0.8
+      const v0 = views.length, end = k0 + ms, reserve = rule?.withMapSums() ? 21_000 : 0
       const implied = (f: Form) => {
         const v = views[f.view!]!, sk = {vars: Object.fromEntries(v.vars.map(k => [k, x(`${k}#`)])), maps: {}, flags: {}}, hyps = [substC(v.frame, sk), not(substC(condOf(f), sk))]
         for (const l of given) {
@@ -1940,7 +1940,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         try { post = run.step(params, st, requestOf(w)); stepNamed(st, post) } catch { return false }
         return others.every(g => holdsAt(g, at(st))) && (f ? !holdsAt(f, at(post)) : breaks(params, post, st, requestOf(w)))
       }
-      for (let round = 0, over = false; !over && cubes.length && clock() < kUntil && !stop(); round++) withTrees(() => {
+      for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
+        const kUntil = end - (round ? reserve : 0)
         const real = new Set<Form>(), unsure = new Set<Form>(), ls = [...given, ...cubes.map(lawFor)]
         let caller = false, complete = true
         withDeadline(kUntil, () => {
