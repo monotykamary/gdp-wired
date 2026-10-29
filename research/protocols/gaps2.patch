@@ -1,0 +1,145 @@
+diff --git a/core/infer.ts b/core/infer.ts
+index 1baee58..ecb8fc9 100644
+--- a/core/infer.ts
++++ b/core/infer.ts
+@@ -35,7 +35,7 @@ import {quietly} from './cyclic.ts'
+ import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, evalE, get, interpret, machineTerms, modName, n, not, plus, same, seeded, times, withArithmetic, x} from './machine.ts'
+ import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
+ import {allowed, keysOf, linKey, watch} from './watch.ts'
+-import {clock, counted, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees} from '../kernel/prove.ts'
++import {atPoint, clock, counted, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees} from '../kernel/prove.ts'
+ import {type Goal, type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
+ import {env, gcd, work} from './solver.ts'
+ import {bgcd} from './q.ts'
+@@ -113,7 +113,7 @@ const inferTrace = !!env.GDP_INFER_TRACE
+ // the control state up to 7, and 128 of its values; a goal tried with 6 parts of the set before all of it, 2 forms added
+ // at a time.
+ const joinOn = env.GDP_JOIN !== '0'
+-const joinShare = 0.6, joinQueryMs = 8000, joinRequestMs = 150, joinWalk = 8, joinPairs = 10, joinRaises = 2, joinSparse = 4, joinCoef = 1000
++const joinShare = 0.6, joinQueryMs = Number(env.GDP_X_QMS ?? 8000), joinRequestMs = 150, joinWalk = 8, joinPairs = 10, joinRaises = 2, joinSparse = 4, joinCoef = 1000
+ const joinExtras = 24, joinTries = 40, joinBits = 7, joinKeys = 128, joinAttempts = 6, joinAdd = 2
+ // GDP_JOIN_CORE=0: the join's goals by the prover's trees alone, as before (else a model, or a refutation's core, of the
+ // CDCL search first, at a quarter of the goal's budget).
+@@ -234,7 +234,8 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing) {
+   const kids = (t: E | C, f: (y: E | C) => void) => { for (const v of Object.values(t)) if (v && typeof v === 'object') (Array.isArray(v) ? v : [v]).forEach(y => { if (y && typeof y === 'object' && 'op' in y) f(y as E | C) }) }
+   const walk = (t: E | C, name: (v: string) => string | undefined): void => {
+     if (t.op === 'get') {
+-      if (!(t.map in (m.maps ?? {}))) { walk(t.key, name); return }
++      // (a map the request carries is a map here too: its key's sort is its cells')
++      if (!(t.map in (m.maps ?? {})) && !m.inputMaps?.includes(t.map)) { walk(t.key, name); return }
+       const sp = split(t.key, name)
+       if (sp) { composed.add(t.map); union(sp[0], 'hi'); union(sp[1], 'lo'); return }
+       if (t.key.op === 'var' && name(t.key.name)) { plainRead.add(t.map); union(name(t.key.name)!, `M:${t.map}`); return }
+@@ -946,18 +947,21 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+     return {scalar, cells: [...byKey.values()], views: []}
+   }
+   // A kernel witness's map cells, each at the key it names (the others at the map's constant).
+-  const mapsOf = (w: Record<string, number>): State['maps'] => {
+-    const out: State['maps'] = Object.fromEntries(mapNames.map(mp => [mp, new Map<number, number>()]))
++  // (`of`: the maps to read, the state's or those a request carries)
++  const mapsOf = (w: Record<string, number>, of: string[] = mapNames): State['maps'] => {
++    const out: State['maps'] = Object.fromEntries(of.map(mp => [mp, new Map<number, number>()]))
+     // (a name the model leaves out is 0, as the state's and the request's are read)
+     const named: Record<string, number> = {...Object.fromEntries([...scalars, ...m.params, ...m.inputs].map(v => [v, 0])), ...w}
+     for (const [name, value] of Object.entries(w)) {
+       const br = name.indexOf('[')
+-      if (br < 0 || !name.endsWith(']') || !mapSet.has(name.slice(0, br))) continue
++      if (br < 0 || !name.endsWith(']') || !out[name.slice(0, br)]) continue
+       const key = keyValue(name, named)
+       if (key !== undefined) out[name.slice(0, br)]!.set(key, value)
+     }
+     return out
+   }
++  // A kernel witness's request: its inputs, and each map it carries at the cells the witness names.
++  const requestOf = (w: Record<string, number>): Request => ({...Object.fromEntries(m.inputs.map(i => [i, w[i] ?? 0])), ...(m.inputMaps?.length ? mapsOf(w, m.inputMaps) : {})}) as Request
+ 
+   // --- Houdini on the runs' neighbors ----------------------------------------------------------------------------------
+   let alive = forms.slice().sort((p, q) => p.size - q.size).slice(0, maxCandidates)
+@@ -1196,7 +1200,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+     // its reads name and each map read at a plain key of a key's sort, its frame its own guards on its keys and the keys
+     // of one sort distinct.
+     if (sorts) {
+-      const seen = new Set<string>()
++      const seen = new Set<string>(), shapes = new Set<string>()
+       for (const l of callerLaws) {
+         const bound = l.forall ? [l.forall, ...(l.keys ?? [])] : []
+         if (!bound.length || bound.length > 4) continue
+@@ -1231,6 +1235,23 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+         const printable = bound.length === 2 && places.length === 2 && places.every((p2, i) => p2.op === 'var' && p2.name === vars[i])
+         addView({vars, names: ['x', 'y', 'z', 'w'].slice(0, bound.length), places, covers, frame, need: bound.length, printable}, mapsAt,
+           st => bound.map(b2 => sorts.valuesAt(st, sorts.sortOf(l, b2))), per)
++        shapes.add(JSON.stringify([bound.map(b2 => sorts.sortOf(l, b2)), covers]))
++      }
++      // The template views of a composed key (DistAI's: two keys of a sort, one of the other): two rows at one column
++      // (N·x + z, N·y + z: two holders of one lock, two values one node voted for) and one row at two columns, each
++      // map read at a plain key of a sort at its keys, the keys of one sort distinct, the pairs' frame at each composed
++      // key; where no caller law's view has that shape.
++      if (pairing?.n && env.GDP_X_TPL !== '0') for (const [two, one] of [[sorts.find('hi'), sorts.find('lo')], [sorts.find('lo'), sorts.find('hi')]] as const) {
++        const vars = [KEY, KEY2, 'key3$found'], [vx, vy, vz] = vars.map(v => x(v)) as [E, E, E], rowTwo = two === sorts.find('hi')
++        const at = (u: E, w: E): [E, E] => (rowTwo ? [u, w] : [w, u])
++        const places: E[] = [sorts.compose(...at(vx, vz)), sorts.compose(...at(vy, vz))], mapsAt: string[][] = [sorts.composedMaps, sorts.composedMaps], covers: number[][] = [[0, 2], [1, 2]]
++        ;([[vx, two, 0], [vy, two, 1], [vz, one, 2]] as const).forEach(([v, sort, i]) => { const mps = sorts.plainMaps(sort); if (mps.length) { places.push(v); mapsAt.push(mps); covers.push([i]) } })
++        const sig = JSON.stringify([[two, two, one], covers])
++        if (shapes.has(sig)) continue
++        shapes.add(sig)
++        const frameAt = (u: E, w: E) => { const [h, l2] = at(u, w); return substC(pairing.frame, {vars: {[KEY]: h, [KEY2]: l2}, maps: {}, flags: {}}) }
++        const frame = all(frameAt(vx, vz), frameAt(vy, vz), not(same(vx, vy)))
++        addView({vars, names: ['x', 'y', 'z'], places, covers, frame, need: 3, printable: false}, mapsAt, st => [sorts.valuesAt(st, two), sorts.valuesAt(st, two), sorts.valuesAt(st, one)], 4)
+       }
+     }
+     // The directions over some values: each value up and down, pairs of them where there are few, the rule's own
+@@ -1423,9 +1444,23 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+       return {cells, add, forms, refine, deepen, coords, control: () => `${ctl.map(c => nameOf(c.atom)).join(' ')} (${scored.join(' ')})`, groups}
+     }
+     const spaces = [space('state'), ...(mapNames.length && cellAtoms.length ? [space('cells')] : []), ...views.flatMap((v, i) => (v.rows.length ? [space(i)] : []))]
++    // (a bound the values' kinds already give, a yes/no's or a choice's range, is no form: every query would read it
++    // for nothing)
++    const boolMaps = new Set(rule ? rule.kindsOfCells().filter(([, kd]) => kd === bool).map(([mp]) => mp) : [])
++    const rangeOf = (i: number): [number, number] | undefined => {
++      const a = atoms[i]!, mo = modeOf(i), p0 = a.parts[0]![0]
++      if (!a.cell && a.place === undefined) return mo?.bool ? [0, 1] : mo?.choice ? [0, mo.choice.length - 1] : undefined
++      return boolMaps.has(a.place !== undefined ? p0.slice(2, p0.lastIndexOf(AT)) : p0) ? [0, 1] : undefined
++    }
++    const vacuous = (f: Form) => {
++      if (env.GDP_X_VAC === '0' || f.never || f.nevers || f.cube || f.unreachable || f.mod || f.cong || f.when || !f.coef.length) return false
++      let most = 0
++      for (const [i, c] of f.coef) { const r = rangeOf(i); if (!r) return false; most += Math.max(c * r[0], c * r[1]) }
++      return most <= f.d
++    }
+     const formsNow = (): Form[] => {
+       const out: Form[] = [], seenT = new Set<string>()
+-      const push = (f: Form) => { const t = textOf(f); if (!seenT.has(t) && !names.has(t)) { seenT.add(t); out.push(f) } }
++      const push = (f: Form) => { if (vacuous(f)) return; const t = textOf(f); if (!seenT.has(t) && !names.has(t)) { seenT.add(t); out.push(f) } }
+       for (const sp of spaces) sp.forms(push)
+       return out
+     }
+@@ -1510,7 +1545,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+         return {used, g: g!}
+       }
+       let at = inst
+-      const {result} = withModels<Asked>(mm, ls, inst, i2 => (at = i2, goalOf(i2)), gs => ask(gs, at), x => (mapNames.length && x.stuck === 'sat' && x.witness ? {goal: x.g, w: x.witness} : undefined), x => !!x.used || x.stuck === 'sat')
++      const point = env.GDP_X_POINT === '1' && !atPoint.on && ls.some(l => l.keys?.length)
++      if (point) atPoint.on = true
++      let result: Asked
++      try { ({result} = withModels<Asked>(mm, ls, inst, i2 => (at = i2, goalOf(i2)), gs => ask(gs, at), x => (mapNames.length && x.stuck === 'sat' && x.witness ? {goal: x.g, w: x.witness} : undefined), x => !!x.used || x.stuck === 'sat')) } finally { if (point) atPoint.on = false }
+       return result.used ? {used: result.used} : {stuck: result.stuck, witness: result.witness}
+     }
+     const stateOf = (w: Record<string, number>): {params: Env, st: State} => {
+@@ -1585,7 +1623,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+     }
+     const formOf = (c: Lit[], view?: number): Form => ({coef: [], d: 0, cells: false, cube: c, size: 1, ...(view !== undefined ? {view} : {})})
+     const witnessStep = (w: Record<string, number>): {pre: State, post?: State} => {
+-      const pre = stateAt(w), input = Object.fromEntries(m.inputs.map(i => [i, w[i] ?? 0])) as Request
++      const pre = stateAt(w), input = requestOf(w)
+       try { return {pre, post: run.step({}, pre, input)} } catch { return {pre} }
+     }
+     // Is the cube's negation inductive relative to these laws (the caller's and the kinds' beside)? Its literals after
+@@ -1762,7 +1800,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+       }
+       const w = witness, {params, st} = stateOf(w)
+       if (todoForm?.nevers) neversBroken++
+-      const input = Object.fromEntries(m.inputs.map(i => [i, w[i] ?? 0])) as Request
++      const input = requestOf(w)
+       let post: State | undefined
+       try { post = run.step(params, st, input); stepNamed(st, post) } catch { post = undefined }
+       const pre = pointOf(params, st)

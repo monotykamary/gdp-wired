@@ -640,3 +640,76 @@ enough that its tries are e7eab01's (six).
 guard printing 5.
 
 **Spend** (billed, `modal billing report`, this round's 77 apps): $16.8 by 05:00 UTC, about $10 of it the full bar.
+
+## distributed_lock and toy_consensus_forall (gen/gaps2, from b118bf5): diagnosed, not closed
+
+On b118bf5 both written invariants are proven (13.7 s and 14.0 s) and both searches end with nothing found. This round
+diagnosed each against its written invariant, built the general changes the diagnosis pointed to, and measured them.
+None closes either protocol at 60 s, and two of them lose a protocol, so **no code change is kept**. The changes are in
+`gaps2.patch` (`git apply research/protocols/gaps2.patch`; core/infer.ts, +50 lines; `GDP_X_TPL=0`, `GDP_X_VAC=0`,
+`GDP_X_POINT=1` and `GDP_X_QMS` are its research switches). Modal, 2 vCPU; `runs/g2/modal/` in the gen/gaps2 worktree.
+
+### toy_consensus_forall: the law is found; its goal costs too much
+
+**Where the join stops on b118bf5.** At round 1, "stuck unknown". The safety law's step goal is asked with nothing
+assumed, and the prover finds neither a proof nor a model within the join's query budget (8,000 counted ms). It
+finds the model at 32,000.
+
+**Then three search gaps, each general:**
+- **A model's request lost the maps it carries.** The join read a kernel model's request as its numbers alone, so
+  toy's quorum `Q` was missing, the interpreter's step threw, and every model was "outside": the join stopped there.
+  Fix: the request takes each carried map's cells the model names (`requestOf`). This holds for every rule whose
+  requests carry a map: toy, consensus_wo_decide, any carried set.
+- **A carried map was no sort.** keySorts skipped reads of a carried map, so `VotingQuorum`, written from `Q`, was a
+  sort of its own and in no view. The written law `Decided[v] ∧ VotingQuorum[n] → Vote[v·N + n]` needs it at the
+  pair's column. Fix: a carried map's key has its cells' sort.
+- **"One vote per node" has three keys (two values, one node), and the caller's law has two.** Views came from the
+  caller's laws, so no view had that shape. Fix: the template views of a composed key (DistAI's template), two rows at
+  one column (N·x + z, N·y + z) and one row at two columns, where no caller law's view has that shape. The join then
+  has `every x, y, z: Vote[64·x + z] + Vote[64·y + z] <= 1`.
+
+**What stops it now: the kernel's cost on these goals in the join (class D).** With the three in, at 600 s and four
+times the query budget, the safety law is proven at round 5 from four forms, among them the three-key template law.
+The template law's own step goal then runs out of budget twice: 3.7 s with two forms assumed, 9.0 s with the whole
+set, unknown. Only 8 rounds fit in 600 counted seconds (45.6 s of wall time). Deciding at the simplex's point in the
+join's goals too (`atPoint`, which gen/cost put on the proof path) changes nothing here. The written invariant's
+three-key law is proven on the proof path, so this is the prover's cost on a three-key goal in the join's queries
+(kernel/prove.ts and cdcl.ts), outside the search.
+
+### distributed_lock: two shapes the search can't state
+
+At 300 s and four times the query budget the join ends on "target none" for the safety law. The counterexample has
+transfers at epoch 2 to nodes 1 and 2, node 1 locked at epoch 2 and Ep[2] = 0. An accept at node 2 locks epoch 2
+twice. The written laws that rule it out are `Locked[e·N + a] → e ≤ Ep[a]` and `Transfer[e·N + a] ∧ e > Ep[a] →
+Ep[b] < e`. The rest of the written set also needs `two live transfers are one`. The search lacks two things:
+- **The key as a value.** The epoch e is the composed key's row, and the laws compare it with a cell (e ≤ Ep[a]).
+  A view's atoms are cells. Its keys are not values the hull or a cube reads.
+- **A law over four keys** (two epochs, two nodes). The only views of four keys come from a caller's law of four.
+Both are general in kind (rounds and ballots are such keys), but both are large: key atoms widen every view of an
+ordered sort, and a four-key view's rows grow as the fourth power of the keys. Neither is built.
+
+### What the built changes did (Modal, 60 s, one run each)
+
+| Protocol | b118bf5 | all four changes | without the template views | without the bound pruning |
+| --- | --- | --- | --- | --- |
+| lock_server_sync | proven 7.5 s | proven 8.9 s | proven 11.6 s | proven 12.1 s |
+| lock_server_async | proven 20.2 s | proven 20.9 s | proven 20.0 s | proven 24.2 s |
+| decentralized_lock | proven 11.7 s | **unknown 53.0 s** | proven 11.3 s | unknown 63.9 s |
+| two_phase_commit | proven 14.4 s | **unknown 13.7 s** | unknown 16.0 s | proven 15.3 s |
+| ticket_lock | proven 30.6 s | proven 34.2 s | proven 32.0 s | proven 30.3 s |
+| toy, distributed, wo_decide, ring, sharded | unknown | unknown | unknown | unknown |
+
+The fourth change was bound pruning: a form the kinds already imply (a yes/no's range, `Vote + Decided <= 2`) was
+dropped from the set, taking toy's set from 210 forms to 131. It costs 2PC its proof, and the template views cost
+decentralized lock its proof. Neither gains anything. The two carried-map fixes alone move nothing measured, so they
+are not kept either; they are what toy and consensus_wo_decide would need first once their goals are cheap.
+
+### ring_leader_election: left
+
+A scan of every law with several keys in the real-world corpus (research/realworld/items) and both frontier corpora
+looked for a function applied to a bound key, or an order (<, ≤) between two bound keys. It finds one: Gitea's
+`i < j`, which only breaks the symmetry of a pair the law states both ways (x ≠ y would do). No law there needs a
+function of a key or an order between keys (queue positions and ranks are values, not keys). By the plan, ring's
+three-key template with order literals is not built.
+
+**Spend** (billed, this round's apps): about $0.4.
