@@ -49,6 +49,7 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 - **Branch:** gen/enum4, in the worktree ../gdp-wired-enum4. It started from gen/rel8 9987874 (main 5d4da3f plus gen/epr3).
 - **Merged in:** gen/epr4, gen/epr5 at 0b65591, gen/epr6 at e47121a, and gen/epr7 at 977e9c6 (decideLaw about 2.6× faster on distributed's goals).
 - **Where:** all the engine's code is in core/infer.ts, and nothing trusted changed. It runs as `engine()` inside `inferLawsSearch`, after a join that found nothing, on rules of keyed maps whose scalars take few values (`few`).
+- **A commit message to read with care:** c105a71's message says "an ordered sort's keys at every value up to its largest". That change was reverted in 689f492 (it made ring's rows heavier, and its run overshot to 69 s); 689f492's own message doesn't say so.
 - **Size:** core/infer.ts is 209 KB, against 202 KB at ea838a3 and 162 KB at 9987874.
 
 **The stage, in order**
