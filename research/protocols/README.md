@@ -513,8 +513,10 @@ held none: forms like `DecideCommit[x] ≤ 0` came up, and each took a round to 
   their own places, prints as a builder call with its frame (`forall(x => x.lt(size).implies(...))`).
 - **The relative induction's tries scale with the set**: until the context would hold a sixteenth of it (6 at least,
   as before). A small set (CHC's) is asked as before.
-- **Rows alike but for their key are kept once** before the 6,000-row cap (the cells' space and every view). The
-  hull, the bounds and the levels read only which rows there are, so the cap now holds more of the samples.
+- **Rows alike but for their key are kept once** before the 6,000-row cap of the join's spaces (the cells' space and
+  every view). The hull and the levels read only which rows there are, so the cap now holds more of the samples. The
+  candidates and Houdini read the cells' rows as before: kept once there too, the forms they made differed, and two of
+  the 1-vCPU infer tests ran 10 to 20% slower in two batches (`runs/bar/runs/9151e47562cc-…-290443`, `…-290500`).
 - Also fixed: a guard on a cell of yes/nos printed `VoteNo.at(k).eq(0)`, which isn't code; it is `VoteNo.at(k).not()`.
 
 **Measured, ablated one at a time** (Modal, 60 s, `runs/gaps/modal/p2` in this worktree's runs): without the domain
@@ -567,4 +569,55 @@ three runs where a search is near its limit):
 
 With nothing written: **5 of 10 at 60 s** (e7eab01: 4), 1 of 10 at 10 s. The same seven written invariants are
 proven, and every broken variant is refused as before. Ticket lock, at e7eab01 proven at the 60 s wall-time stop, now
-takes half of it: that is the scaled tries (without them, 56.0 s).
+takes half of it: that is the scaled tries (without them, 56.0 s). The branch head (a7072ce, the distinct rows in the
+join alone) again in `p4`: 2PC proven in 3 of 3 (17.0 to 18.3 s), sync, async, decentralized and ticket (33.3 s)
+proven, toy and ring unknown, 2PC unknown at 10 s.
+
+**What else it moves.** Nothing beyond 2PC. Gitea #0 ("two counted approvals are never by the same reviewer", whose
+guards are i < j and j < next, a domain that moves) gets its views and stays unknown (three runs a side: 55.2 to
+60.4 s against 52.1 to 56.6 s). TigerBeetle #0 to #7 keep their verdicts: 1,608 s against 1,596 s over three runs a
+side (`runs/gaps/modal/rwc`, `rwb`). Casbin and Keycloak: the same verdicts in the full bar.
+
+### The bars
+
+**Quick bar** (9151e47, against e7eab01's three runs; `runs/bar/runs/ded1ea841fec-vs-e7eab01247e6-quick-2026-10-290424`):
+CHC dev 520 against 522, 523, 516 (2 gained, 2 lost, none in every run, all past 45 s); real-world dev 74 against 74,
+nothing differs; wrong 0.
+
+**Full bar** (9151e47 against e7eab01 launched together, one run a side and three reruns of every differing task;
+`runs/bar/runs/9151e47562cc-vs-e7eab01247e6-full-2026-10-290443`, and `…-290500` for the suite --usual, which the
+first bar's budget guard stopped). Wrong 0 everywhere, nothing lost in every run anywhere.
+
+| Group | Candidate | e7eab01 | Changes |
+| --- | --- | --- | --- |
+| CHC | 1,171 | 1,171 | 5 gained, 4 lost, none in every run (8 of the 9 answered past 45 s) |
+| ITS | 1,152 | 1,151 | 2 gained |
+| ITS per component | 1,154 | 1,157 | 1 lost (1 of 4 runs against 3 of 4, at the limit), none solid |
+| SV, SV per component | 246, 216 | 246, 216 | |
+| TIP | 213 | 213 | |
+| Frontier corpora | 90, 31 | 90, 31 | |
+| Real-world corpus | 289 / 33 / 8 | 289 / 33 / 8 | nothing differs |
+| 332 step goals | 332 | 332 | |
+| Suites | 225 of 225, --usual 225 of 225 | the same | |
+| Lean | 48 of 48 | | |
+
+The head a7072ce differs from 9151e47 only in where rows are kept once (the join alone, as above), which brings the
+candidates and Houdini back to e7eab01's; it was not put through the full bar again (the round was past its budget).
+
+**Speed:**
+- suite job seconds 5,587 against 5,727, and --usual 5,215 against 5,217;
+- the 332 goals' search 296.7 s against 291.6 s (the prover's goals; no code they run changed);
+- the real world's per-law time over its 330 laws 1,608 s against 1,576 s (+2.0%, one run a side; the three-run reruns
+  of TigerBeetle and Gitea above, +0.8%), median 800 ms against 770;
+- the 1-vCPU medians of the head (`runs/bar/runs/a7072ce52841-vs-e7eab01247e6-full-2026-10-290512`): infer's three
+  slowest 5,548 against 5,548 ms, 2,944 against 2,890 and 2,084 against 2,056; data's within 2%.
+
+The CHC, ITS and SV changes are timing flips: CHC's rules have no maps, so no view, and their join's sets are small
+enough that its tries are e7eab01's (six).
+
+**Size.** core/ and kernel/ without tests: 2,469,184 bytes against e7eab01's 2,465,302 (+3,882), all in core/infer.ts
+(+67 −21 lines): the domain views about 25 lines, the frame printer 15, the distinct rows 7, the tries 2, the yes/no
+guard printing 5.
+
+**Spend** (billed, `modal billing report`, this round's 77 apps): $16.8 by 05:00 UTC, about $10 of it the full bar.
+

@@ -14,16 +14,24 @@ research/protocols/README.md, "The key's domain", has the diagnosis and the meas
   domain too, so `∀x < size. GoCommit[x] ≤ VoteYes[x]` was in no view.
 - **The relative induction's tries scale with the set**, until the context would hold a sixteenth of it (6 at least,
   as before).
-- **Rows alike but for their key are kept once** before the 6,000-row cap of the cells' space and the views.
+- **Rows alike but for their key are kept once** before the 6,000-row cap of the join's spaces (the cells' and the
+  views'); the candidates and Houdini read the cells' rows as before.
 - **Printing:** a view of one or two plain keys prints with its frame (`forall(x => x.lt(size).implies(...))`); a guard
   on a cell of yes/nos prints as the cell or its negation (it printed `.eq(0)`, which isn't code).
 - **Protocols** (Modal, 60 s): 5 of 10 with nothing written (e7eab01: 4), two_phase_commit in 3 of 3 runs (14.9 to
   17.7 s); ticket_lock 30 to 35 s (60.1 s, at the wall-time stop, at e7eab01). The same seven written invariants, every
   broken variant refused as before. ring_leader_election is not closed: it needs a function of a key as an atom, a
   composed key with such a part, and the ring's order over three keys, which only ring needs here.
-- **Quick bar** (CHC and real-world dev sets, against e7eab01's three runs): CHC 520 against 516 to 523 (2 gained, 2
-  lost, none in every run, all at the limit), real world 74 against 74, wrong 0.
-- A re-asked goal starting from its last proof's reads was tried and taken out: it moved nothing.
+- **The full bar** (9151e47 against e7eab01, together; `runs/bar/runs/9151e47562cc-vs-e7eab01247e6-full-2026-10-290443`
+  and `…-290500`): wrong 0 everywhere, nothing lost in every run. CHC 1,171 against 1,171, ITS 1,152 against 1,151 and
+  1,154 against 1,157 per component (timing flips at the limit), SV, TIP and both frontier corpora level, the real-world
+  corpus 289 / 33 / 8 both ways, the 332 step goals, suites 225 of 225 both modes, Lean 48 of 48.
+- **Speed:** suite job seconds 5,587 against 5,727 (--usual 5,215 against 5,217); the real world's per-law time 1,608 s
+  against 1,576 s in one run a side, +0.8% over three runs a side of TigerBeetle and Gitea #0; the 1-vCPU infer tests
+  of the head level (5,548 against 5,548 ms). Size: core/ and kernel/ without tests 2,469,184 bytes, +3,882.
+- **Tried and taken out:** a re-asked goal starting from its last proof's reads (it moved nothing); the cells' rows
+  kept once for the candidates and Houdini too (two 1-vCPU infer tests 10 to 20% slower).
+- **Spend:** $16.8 billed for this round's apps, about $10 of it the full bar.
 
 **Effect services (gdp-wired/effect, gen/effect).** A team whose stateful logic is written in
 [Effect](https://effect.website), 3.x or 4.x, proves its laws about the code it ships. Nothing trusted changed
