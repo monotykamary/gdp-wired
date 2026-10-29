@@ -245,10 +245,12 @@ export class Stepper {
     if (this.init) { this.fails.push(w); return }
     // Failures kept with what the step wrote before them (the caller sees both): the path goes on to the step's end.
     if (this.opts.failures === 'kept' && this.opts.onError !== 'discard') { this.failPaths.push(this.assume(p, c)); this.fails.push(w); this.notes.add(`${this.method}: ${what} (${at.p}) is the step's failure, kept as its result (with what the step wrote before it)`); return }
-    if (this.opts.onError !== 'discard' && this.changed(p)) refuse(at, `${what} after the state is written (the caller would see the object changed and the call failed; with onError: 'discard' the caller is taken to drop what a failed call wrote)`)
+    this.unwritten(p, at, what)
     this.fails.push(w)
     this.notes.add(`${this.method}: ${what} (${at.p}) is ${this.opts.failures === 'kept' ? 'the step\'s failure, kept as its result' : 'the step\'s refusal'}`)
   }
+  // A failure after the step wrote the state: refused, but where the caller drops what a failed call wrote.
+  unwritten(p: Path, at: {p: string}, what: string) { if (this.opts.onError !== 'discard' && this.changed(p)) refuse(at, `${what} after the state is written (the caller would see the object changed and the call failed; with onError: 'discard' the caller is taken to drop what a failed call wrote)`) }
   changed(p: Path): boolean {
     for (const [id, o] of p.heap) {
       const i = this.initHeap.get(id)
@@ -1305,7 +1307,7 @@ export class Stepper {
   refuseWhere(p: Path, c: B, at: {p: string}, what: string, state = true) {
     const w = I.and(this.cond(p), c)
     if (w.op === 'const' && !w.v) return
-    if (state && this.opts.onError !== 'discard' && this.changed(p)) refuse(at, `${what} after the state is written (the caller would see the object changed and the call failed; with onError: 'discard' the caller is taken to drop what a failed call wrote)`)
+    if (state) this.unwritten(p, at, what)
     this.refusals.push(w)
     if (!state) this.edges.push(w)
   }
@@ -2071,18 +2073,10 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
   for (const d of g.maps) {
     const id = [...g.initHeap].find(([, o]) => o.k === 'map' && o.decl === d)?.[0]
     if (!id) continue
-    const ws = finals.map(f => { const o = f.path.heap.get(id) as Extract<Obj, {k: 'map'}> | undefined; return o?.w })
-    if (!ws.some(Boolean)) continue
-    const key0 = ws.find(Boolean)!.key
-    let acc: {key: K, has: B, vals: Record<string, Term>} | undefined
-    for (let i = finals.length - 1; i >= 0; i--) {
-      const base = (k: K) => { const c = g.baseCell(d, k); return {key: k, has: c.has, vals: Object.fromEntries([...c.vals].map(([f, v]) => [f, termOf(v, at)]))} }
-      const w0 = ws[i]
-      let w = w0 ? {key: w0.key, has: w0.has, vals: Object.fromEntries([...w0.vals].map(([f, v]) => [f, termOf(v, at)]))} : base(acc?.key ?? key0)
-      if (kept && !carried && w0) { const fl = failedOf(finals[i]!), b = base(w.key); w = {key: w.key, has: I.bite(fl, b.has, w.has), vals: Object.fromEntries(Object.entries(w.vals).map(([f, t]) => [f, iteTerm(fl, b.vals[f]!, t)]))} }
-      acc = acc === undefined ? w : {key: I.kite(finals[i]!.sel, w.key, acc.key), has: I.bite(finals[i]!.sel, w.has, acc.has), vals: Object.fromEntries(Object.entries(w.vals).map(([f, t]) => [f, iteTerm(finals[i]!.sel, t, acc!.vals[f]!)]))}
-    }
-    mapWrites[d.name] = acc!
+    const ws = finals.map(f => { const w0 = (f.path.heap.get(id) as Extract<Obj, {k: 'map'}> | undefined)?.w; return w0 && {key: w0.key, has: w0.has, vals: Object.fromEntries([...w0.vals].map(([f2, v]) => [f2, termOf(v, at)]))} })
+    // (a failure kept, the cell as it was there)
+    const w = mapWritesOf(g, d, finals.map(f => f.sel), ws, (i, w2, base) => { if (!kept || carried) return w2; const fl = failedOf(finals[i]!), b = base(w2.key); return {key: w2.key, has: I.bite(fl, b.has, w2.has), vals: Object.fromEntries(Object.entries(w2.vals).map(([f, t]) => [f, iteTerm(fl, b.vals[f]!, t)]))} })
+    if (w) mapWrites[d.name] = w
   }
   // What each method returns, and whether it failed: the step's result.
   const results: Model['results'] = {}, resultKinds: StepRead['results'] = {}
@@ -2147,7 +2141,7 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
   }
   const laws: string[] = []
   // A fixed-width field within its type's range (every state of the code is).
-  for (const v of state) { const ty = g.ints.get(v.name); if (!ty) continue; const [lo, hi] = rangeOf(ty); if (Number.isFinite(hi)) laws.push(`r.law(${JSON.stringify(`${v.name} within its type's range`)}, ({${v.name}}) => ${v.name}.atMost(${hi}).and(${v.name}.atLeast(${lo})))`); else if (lo === 0) laws.push(`r.law(${JSON.stringify(`${v.name} within its type's range`)}, ({${v.name}}) => ${v.name}.atLeast(0))`) }
+  laws.push(...rangeLaws(state, g.ints))
   for (const l of leaves) if (l.kind === 'none') { const base = l.name.replace(/_none$/, ''); if (g.vars.get(base)?.sort.k === 'num') laws.push(`r.law(${JSON.stringify(`${base}: a None one holds 0`)}, ({${base}, ${l.name}}) => any(${l.name}.not(), ${base}.eq(0)))`) }
   if (g.now) {
     const n = g.vars.get(g.now.name)!
@@ -2189,8 +2183,27 @@ const defaultOf = (t: SType, at: {p: string}): V => {
 const lvalues = (e: L): string[] => (e.op === 'ite' ? lvalues(e.a) : e.values)
 const zeroRaw = (s: Var['sort']): Raw => (s.k === 'num' ? 0 : s.k === 'bool' ? false : s.k === 'choice' ? s.values[0]! : '')
 const zeroOf = (s: Var['sort']): V => (s.k === 'num' ? {t: 'num', e: I.num(0)} : s.k === 'bool' ? {t: 'bool', e: I.F} : s.k === 'choice' ? {t: 'choice', e: I.llit(s.values[0]!, s.values)} : {t: 'str', e: {op: 'slit', value: ''}})
-const varTerm = (v: Var): Term => (v.sort.k === 'num' ? {s: 'num', e: I.nvar(v.name)} : v.sort.k === 'bool' ? {s: 'bool', e: I.bvar(v.name)} : v.sort.k === 'choice' ? {s: 'choice', e: {op: 'var', name: v.name, values: v.sort.values}} : {s: 'str', e: {op: 'svar', name: v.name}})
-function iteTerm(c: B, a: Term, b: Term): Term {
+// A map's writes, the methods' together: each by the method called (where one writes none, the cell as it was).
+type CellW = {key: K, has: B, vals: Record<string, Term>}
+export function mapWritesOf(g: Stepper, d: MapDecl, sels: B[], ws: (CellW | undefined)[], fix: (i: number, w: CellW, base: (k: K) => CellW) => CellW = (_, w) => w): CellW | undefined {
+  if (!ws.some(Boolean)) return undefined
+  const key0 = ws.find(Boolean)!.key, base = (k: K): CellW => { const c = g.baseCell(d, k); return {key: k, has: c.has, vals: Object.fromEntries([...c.vals].map(([f, v]) => [f, {s: v.t === 'num' ? 'num' : v.t === 'choice' ? 'choice' : 'bool', e: (v as {e: N}).e} as Term]))} }
+  let acc: CellW | undefined
+  for (let i = sels.length - 1; i >= 0; i--) {
+    const w = ws[i] ? fix(i, ws[i]!, base) : base(acc?.key ?? key0), c = sels[i]!
+    acc = acc === undefined ? w : {key: I.kite(c, w.key, acc.key), has: I.bite(c, w.has, acc.has), vals: Object.fromEntries(Object.entries(w.vals).map(([f, t]) => [f, iteTerm(c, t, acc!.vals[f]!)]))}
+  }
+  return acc
+}
+// Each fixed-width variable within its type's range: a law every state of the code keeps.
+export const rangeLaws = (state: Var[], ints: Map<string, IntTy>): string[] => state.flatMap(v => {
+  const ty = ints.get(v.name), law = (b: string) => [`r.law(${JSON.stringify(`${v.name} within its type's range`)}, ({${v.name}}) => ${v.name}.${b})`]
+  if (!ty || v.sort.k !== 'num') return []
+  const [lo, hi] = rangeOf(ty)
+  return Number.isFinite(hi) ? law(`atMost(${hi}).and(${v.name}.atLeast(${lo}))`) : lo === 0 ? law('atLeast(0)') : []
+})
+export const varTerm = (v: Var): Term => (v.sort.k === 'num' ? {s: 'num', e: I.nvar(v.name)} : v.sort.k === 'bool' ? {s: 'bool', e: I.bvar(v.name)} : v.sort.k === 'choice' ? {s: 'choice', e: {op: 'var', name: v.name, values: v.sort.values}} : {s: 'str', e: {op: 'svar', name: v.name}})
+export function iteTerm(c: B, a: Term, b: Term): Term {
   if (a.s === 'num' && b.s === 'num') return {s: 'num', e: I.nite(c, a.e, b.e)}
   if (a.s === 'bool' && b.s === 'bool') return {s: 'bool', e: I.bite(c, a.e, b.e)}
   if (a.s === 'choice' && b.s === 'choice') return {s: 'choice', e: I.lite(c, a.e, b.e)}

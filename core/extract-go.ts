@@ -38,7 +38,7 @@ import * as I from './extract-ir.ts'
 import type {B, K, N} from './extract-ir.ts'
 import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var} from './extract-read.ts'
 import {type Extraction, fromModel} from './extract.ts'
-import {type IntTy, type Recipe, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, phiP, rangeOf} from './extract-step.ts'
+import {type IntTy, type Recipe, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, iteTerm, mapWritesOf, phiP, rangeLaws, rangeOf, varTerm} from './extract-step.ts'
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
 
 // --- the reader's JSON ----------------------------------------------------------------------------------------------
@@ -630,17 +630,7 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
     writes[o] = acc
   }
   const mapWrites: Model['mapWrites'] = {}
-  for (const d of g.maps) {
-    const ws = finals.map(f => f.maps.get(d.name))
-    if (!ws.some(Boolean)) continue
-    const key0 = ws.find(Boolean)!.key
-    let acc: {key: K, has: B, vals: Record<string, Term>} | undefined
-    for (let i = finals.length - 1; i >= 0; i--) {
-      const w = ws[i] ?? (() => { const k = acc?.key ?? key0, c = g.baseCell(d, k); return {key: k, has: c.has, vals: Object.fromEntries([...c.vals].map(([f, v]) => [f, termOf(v, {p: ''})]))} })()
-      acc = acc === undefined ? w : {key: I.kite(finals[i]!.sel, w.key, acc.key), has: I.bite(finals[i]!.sel, w.has, acc.has), vals: Object.fromEntries(Object.entries(w.vals).map(([f, t]) => [f, iteTerm(finals[i]!.sel, t, acc!.vals[f]!)]))}
-    }
-    mapWrites[d.name] = acc!
-  }
+  for (const d of g.maps) { const w = mapWritesOf(g, d, finals.map(f => f.sel), finals.map(f => f.maps.get(d.name))); if (w) mapWrites[d.name] = w }
   const listWrites: NonNullable<Model['listWrites']> = {}
   for (const d of g.lists) {
     const ops = finals.flatMap(f => (f.lists.get(d.name) ?? []).map(o => ({...o, when: I.and(f.sel, o.when)})))
@@ -672,14 +662,7 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
   if (leftOut.length) g.notes.add(`left out (no method reads or writes them; the check asks the code not to change them): ${leftOut.join(', ')}`)
   for (const l of go.leaves) if (l.kind === 'frame' && !l.name) g.notes.add(`${l.path.join('.')}: a ${l.go}, outside the subset, left out (no method the rule reads touches it)`)
   // The laws every state of the code keeps: each fixed-width number within its type's range, a nil map holding no key.
-  const laws: string[] = []
-  for (const v of state) {
-    const ty = g.ints.get(v.name)
-    if (!ty || v.sort.k !== 'num') continue
-    const [lo, hi] = rangeOf(ty)
-    if (Number.isFinite(hi)) laws.push(`r.law(${JSON.stringify(`${v.name} within its type's range`)}, ({${v.name}}) => ${v.name}.atMost(${hi}).and(${v.name}.atLeast(${lo})))`)
-    else if (lo === 0) laws.push(`r.law(${JSON.stringify(`${v.name} within its type's range`)}, ({${v.name}}) => ${v.name}.atLeast(0))`)
-  }
+  const laws = rangeLaws(state, g.ints)
   for (const l of go.leaves) if (l.kind === 'big' && state.some(v => v.name === l.name)) laws.push(`r.law(${JSON.stringify(`${l.name}: a nil one holds 0`)}, ({${l.name}, ${l.name}_nil}) => any(${l.name}_nil.not(), ${l.name}.eq(0)))`)
   for (const d of maps) laws.push(`r.law(${JSON.stringify(`${d.name}: a nil map holds no key`)}, ({${d.name}, ${d.name}_nil}) => forall(k => any(${d.name}_nil.not(), ${d.name}.at(k).has.not())))`)
   const layout: Layout = {k: 'rec', fields: state.filter(v => !outputs.includes(v.name)).map(v => [v.name, {k: 'scalar', name: v.name}] as [string, Layout])}
@@ -692,13 +675,6 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
   // every write is proven one: a wrap by cases may not be, though it stays within the type, which its law says).
   const unsigned = [...g.ints].filter(([n, ty]) => { const [lo, hi] = rangeOf(ty); return lo === 0 && hi > 0 && g.inputs.some(v => v.name === n) }).map(([n]) => n)
   return {model, edges: g.edges, unsigned, leaves: go.leaves.filter(l => l.kind === 'frame' || state.some(v => v.name === l.name) || maps.some(d => d.name === l.name) || lists.some(d => d.name === l.name)), spans: [...g.spans.values()], entry: opts.entry, methods}
-}
-const varTerm = (v: Var): Term => (v.sort.k === 'num' ? {s: 'num', e: I.nvar(v.name)} : v.sort.k === 'bool' ? {s: 'bool', e: I.bvar(v.name)} : {s: 'str', e: {op: 'svar', name: v.name}})
-function iteTerm(c: B, a: Term, b: Term): Term {
-  if (a.s === 'num' && b.s === 'num') return {s: 'num', e: I.nite(c, a.e, b.e)}
-  if (a.s === 'bool' && b.s === 'bool') return {s: 'bool', e: I.bite(c, a.e, b.e)}
-  if (a.s === 'str' && b.s === 'str') return {s: 'str', e: I.kite(c, a.e, b.e)}
-  throw new Error('terms of two sorts')
 }
 function termOf(v: V, at: {p: string}): Term {
   if (v.t === 'num') return {s: 'num', e: v.e}
