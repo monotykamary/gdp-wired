@@ -842,22 +842,43 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const body = f.when ? any(condOf({coef: f.when.coef.map(([i, c]) => [i, -c]), d: -f.when.d - 1, cells: false, size: 0}), atMost(lhs, rhs)) : atMost(lhs, rhs)
     return !f.guard ? body : 'keyNot' in f.guard ? any(same(x(KEY), x(atoms[f.guard.keyNot]!.parts[0]![0])), body) : any(notAt(f.guard.atom, f.guard.value, f.guard.hi), body)
   }
+  // A view's frame as builder code (its keys by their names; comparisons of a name with a name or a constant), and the
+  // state and params it reads.
+  const frameSource = (v: View): {binder: string, src: string, reads: string[]} | undefined => {
+    const ren = new Map(v.vars.map((k2, i) => [k2, v.names[i]!])), reads: string[] = []
+    const name = (t: E) => (t.op !== 'var' ? undefined : ren.get(t.name) ?? (reads.push(t.name), t.name))
+    const c = (t: C): string | undefined => {
+      if (t.op === 'not') { const y = c(t.x); return y && `${y}.not()` }
+      if (t.op === 'and') { const xs = t.xs.map(c); return xs.length && xs.every(Boolean) ? xs.slice(1).reduce((a, b) => `${a}.and(${b})`, xs[0]!) : undefined }
+      if (t.op !== '<' && t.op !== '<=' && t.op !== '=') return undefined
+      const a = name(t.a), b = t.b.op === 'const' ? String(t.b.value) : name(t.b)
+      return a && b ? `${a}.${t.op === '<' ? 'lt' : t.op === '<=' ? 'atMost' : 'eq'}(${b})` : undefined
+    }
+    const src = c(v.frame)
+    return src ? {binder: v.names.length === 1 ? v.names[0]! : `(${v.names.join(', ')})`, src, reads} : undefined
+  }
   // The builder call, for a rule whose atoms are its own variables (naturals, or integers alone).
   const sourceOf = (f: Form, text: string): string | undefined => {
     if (!rule || f.when || f.mod || f.also || f.never || f.nevers || f.cube || [...f.coef.map(([i]) => i), ...(f.guard && 'atom' in f.guard ? [f.guard.atom] : [])].some(i => atoms[i]!.term)) return undefined
     const used = [...new Set([...f.coef.map(([i]) => i), ...(f.guard ? ['keyNot' in f.guard ? f.guard.keyNot : f.guard.atom] : []), ...(f.unreachable ? [f.unreachable.atom] : [])])]
     const ints = f.coef.filter(([i]) => atoms[i]!.int).length
     if (ints && ints !== f.coef.length) return undefined
-    // (a view's cell: its map at x or at y; over two plain keys alone, as the frame is then x ≠ y)
-    if (f.view !== undefined && !views[f.view]!.printable) return undefined
+    // (a view's cell: its map at x or at y, a view of one or two plain keys whose frame compares names and constants)
+    const fr = f.view !== undefined ? frameSource(views[f.view]!) : undefined
+    if (f.view !== undefined && (!views[f.view]!.printable || !fr)) return undefined
     const mapOf = (i: number) => { const a = atoms[i]!, p = a.parts[0]![0]; return a.place !== undefined ? p.slice(2, p.lastIndexOf(AT)) : p }
     const ref = (i: number) => (atoms[i]!.place !== undefined ? `${mapOf(i)}.at(${atoms[i]!.place === 0 ? 'x' : 'y'})` : atoms[i]!.cell ? `${atoms[i]!.parts[0]![0]}.at(k)` : nameOf(i))
     // (a cell of a map of yes/nos, at k or at x or y, reads as its 0/1 term too)
     const boolCell = (i: number) => (atoms[i]!.cell || atoms[i]!.place !== undefined) && rule.kindsOfCells().some(([mp, kd]) => mp === mapOf(i) && kd === bool)
     const val = (i: number) => { const mo = modeOf(i); return mo?.choice && !atoms[i]!.cell ? `${ref(i)}.index` : (mo?.bool && !atoms[i]!.cell) || boolCell(i) ? `${ref(i)}.n` : ref(i) }
-    const cond = (i: number, value: number, hi?: number) => { const mo = modeOf(i); if (hi !== undefined) return hi === Infinity ? `${ref(i)}.atLeast(${value})` : `${ref(i)}.atLeast(${value}).and(${ref(i)}.atMost(${hi}))`; return mo?.choice && !atoms[i]!.cell ? `${ref(i)}.is('${mo.choice[value]}')` : mo?.bool && !atoms[i]!.cell ? (value === 1 ? ref(i) : `${ref(i)}.not()`) : `${ref(i)}.eq(${value})` }
-    const args = `({${[...new Set(used.map(i => (atoms[i]!.cell || atoms[i]!.place !== undefined ? mapOf(i) : nameOf(i))))].join(', ')}})`
-    const wrap = (body: string) => (f.cells ? `forall(k => ${body})` : f.view !== undefined ? `forall((x, y) => x.eq(y).not().implies(${body}))` : body)
+    // (a yes/no, a cell of yes/nos too, as itself or its negation; a level of any value by its number)
+    const cond = (i: number, value: number, hi?: number) => {
+      const mo = modeOf(i), v = val(i)
+      if (hi !== undefined) return hi === Infinity ? `${v}.atLeast(${value})` : `${v}.atLeast(${value}).and(${v}.atMost(${hi}))`
+      return mo?.choice && !atoms[i]!.cell ? `${ref(i)}.is('${mo.choice[value]}')` : (mo?.bool && !atoms[i]!.cell) || boolCell(i) ? (value === 1 ? ref(i) : `${ref(i)}.not()`) : `${v}.eq(${value})`
+    }
+    const args = `({${[...new Set([...used.map(i => (atoms[i]!.cell || atoms[i]!.place !== undefined ? mapOf(i) : nameOf(i))), ...(fr?.reads ?? [])])].join(', ')}})`
+    const wrap = (body: string) => (f.cells ? `forall(k => ${body})` : fr ? `forall(${fr.binder} => ${fr.src}.implies(${body}))` : body)
     if (f.unreachable) return `r.law('${text}', ${args} => ${cond(f.unreachable.atom, f.unreachable.value, f.unreachable.hi)}.not())`
     if (f.cong) {
       if (f.coef.length !== 1 || f.coef[0]![1] !== 1) return undefined
@@ -1192,7 +1213,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           const frame = all(...dom.map((g: C) => substC(g, {vars: {[b2]: x(KEY)}, maps: {}, flags: {}}))), sig = JSON.stringify([sorts.sortOf(l, b2), frame])
           if (seen.has(sig)) continue
           seen.add(sig)
-          addView({vars: [KEY], names: ['x'], places: [x(KEY)], covers: [[0]], frame, need: 1, printable: false}, [mps], st => [sorts.valuesAt(st, sorts.sortOf(l, b2))], 64)
+          addView({vars: [KEY], names: ['x'], places: [x(KEY)], covers: [[0]], frame, need: 1, printable: true}, [mps], st => [sorts.valuesAt(st, sorts.sortOf(l, b2))], 64)
         }
         // (two keys the pairs already relate: a row and a column of the composed key, or two plain keys where no domain
         // of the law's moves)
@@ -1207,7 +1228,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (seen.has(sig) || !places.length) continue
         seen.add(sig)
         const per = Math.max(2, Math.floor(64 ** (1 / bound.length)))
-        addView({vars, names: ['x', 'y', 'z', 'w'].slice(0, bound.length), places, covers, frame, need: bound.length, printable: false}, mapsAt,
+        // (printed where its places are its two keys, x and y)
+        const printable = bound.length === 2 && places.length === 2 && places.every((p2, i) => p2.op === 'var' && p2.name === vars[i])
+        addView({vars, names: ['x', 'y', 'z', 'w'].slice(0, bound.length), places, covers, frame, need: bound.length, printable}, mapsAt,
           st => bound.map(b2 => sorts.valuesAt(st, sorts.sortOf(l, b2))), per)
       }
     }
