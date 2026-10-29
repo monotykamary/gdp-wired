@@ -1111,8 +1111,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // them assumed, and what their proofs read (and what those read, in turn) is the answer.
   const pool0 = pool.slice(), ctis0 = ctis.length
   if (joinOn && NS) try {
-    const jT0 = performance.now()
-    const jUntil = Math.min(until, now() + (until - now()) * (opts.join ?? joinShare))
+    const jT0 = performance.now(), jUntil = Math.min(until, now() + (until - now()) * (opts.join ?? joinShare))
     // The control state: the choice (loc) and, where they are few, the yes/nos (a program counter in bits), each of its
     // values reached a part of its own.
     const jChoice = modes.find(mo => mo.choice && !atoms[mo.atom]!.cell), bits = modes.filter(mo => mo.bool && !atoms[mo.atom]!.cell && !atoms[mo.atom]!.param)
@@ -1913,14 +1912,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       }
       opts.progress?.('join', {round: rounds, set: set.length, ms: qms, goal: todo.slice(0, 60), joins: joins - j0, walked, dropped: dropped - d0})
     }
-    // Enumerated, where the join found nothing (DistAI's and DuoAI's ∀ candidates, research/protocols/enum/DESIGN.md): the
-    // template's cubes, less those the caller's and the kinds' laws imply at their keys; then Houdini over them, the
-    // caller's laws first, each goal with every cube assumed: a model or a refutation of the CDCL search alone first (a
-    // quarter of a join query), else the proof path's. A model drops its cube where the interpreter reads it as a step out
-    // of the goal from a state the other cubes hold at (at the cells it names); a round with none drops those unsettled.
-    // The caller's law unproven with every cube ends it (Houdini only weakens). The set is then proven with these trees.
-    // Its share of the kernel's clock: what is left for the first round, then less the 21 s a search over the maps' sums
-    // takes where one follows (core/dsl.ts's: decentralized lock's sum$HasLock + sum$Message); the set's proof past it.
+    // Enumerated, where the join found nothing (DuoAI's ∀ candidates, research/protocols/enum/DESIGN.md): the template's
+    // cubes the caller's and the kinds' laws don't imply, then Houdini, the caller's laws first, every cube assumed: the
+    // CDCL search's model or refutation first, else the proof path's. A model drops its cube where the interpreter reads
+    // a step out of the goal from a state the other cubes hold at; a round with none drops the unsettled. The caller's law
+    // unproven ends it (Houdini only weakens); the set is then proven, its trees kept. The first round has the kernel's
+    // clock, later ones less 21 s for a sums pass where one follows (core/dsl.ts's: decentralized lock's).
     if (why !== 'inductive' && why !== 'time' && sorts && callerLaws.some(l => l.keys?.length) && now() < until && !stop()) {
       const v0 = views.length, end = k0 + ms, reserve = rule?.withMapSums() ? 21_000 : 0
       const implied = (f: Form) => {
