@@ -34,7 +34,7 @@
 import {quietly} from './cyclic.ts'
 import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, evalE, get, interpret, machineTerms, modName, n, not, plus, same, seeded, times, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
-import {allowed, keysOf, watch} from './watch.ts'
+import {allowed, keysOf, linKey, watch} from './watch.ts'
 import {clock, counted, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
@@ -182,7 +182,6 @@ type Pairing = {n: number, c: number, frame: C}
 // The pair space is one: two keys, and the key the rule composes of them where it composes one.
 type View = {vars: string[], names: string[], places: E[], covers: number[][], frame: C, need: number, rowsOf: (params: Env, st: State) => Env[], atoms: number[], rows: Env[], printable: boolean}
 // A key's linear form over the names `ok` admits, into `out` (`1` the constant); false where it is none.
-const linKey = (e: E, ok: (v: string) => boolean, k: number, out: Map<string, number>): boolean => (e.op === 'const' ? (out.set('1', (out.get('1') ?? 0) + k * e.value), true) : e.op === 'var' ? ok(e.name) && (out.set(e.name, (out.get(e.name) ?? 0) + k), true) : e.op === 'add' ? linKey(e.a, ok, k, out) && linKey(e.b, ok, k, out) : e.op === 'mul' ? linKey(e.a, ok, k * e.k, out) : false)
 const conj = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(conj) : [c])
 function pairingOf(m: Machine): Pairing | undefined {
   const inputs = new Set(m.inputs), input = (v: string) => inputs.has(v)
