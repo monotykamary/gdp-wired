@@ -1,0 +1,4 @@
+[
+{"name": "go-snap-tests", "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && . research/extract/go-setup.sh && export GDP_GO_SNAPSHOT=/tmp/snap-tests.jsonl && (cd core && bun test extract-go.test.ts 2>&1 | tail -5); echo '--- snapshot'; cat /tmp/snap-tests.jsonl", "cpu": 2.0, "timeout": 1500},
+{"name": "go-snap-realworld", "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && . research/extract/go-setup.sh && export GDP_GO_SNAPSHOT=/tmp/snap-rw.jsonl && timeout -s KILL 2400 bun research/extract/go-run.ts --out /tmp/xg 2>&1 | tail -3; echo '--- results'; cat /tmp/xg/results.jsonl; echo '--- snapshot'; cat /tmp/snap-rw.jsonl", "cpu": 2.0, "timeout": 2700}
+]

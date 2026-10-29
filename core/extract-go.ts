@@ -1700,12 +1700,19 @@ export function extractGo(dir: string, opts: GoOptions): GoExtraction {
     pkg = readGoPackage(dir)
     read = readGo(pkg, opts)
   } catch (e) {
-    if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
+    if (e instanceof Refusal) { const r = {ok: false, refusals: [{where: e.where, what: e.what}], notes}; snapshot(opts, r); return r }
     throw e
   }
   const file = `${read.entry}.go`
   const x = fromModel(read.model, file, {...unsignedDomains(read), ...opts.domains}, notes, (rule, sorts) => checkGo(dir, pkg, read, rule, sorts, opts))
+  snapshot(opts, x)
   return {...x, leaves: read.leaves}
+}
+// (gen/go-shared: each extraction's rule, notes and refusals appended to $GDP_GO_SNAPSHOT, to compare the Go front end
+// before and after it moves onto the shared executor)
+function snapshot(opts: GoOptions, x: {source?: string, notes: string[], refusals: {where: string, what: string}[], ok: boolean}) {
+  const f = proc?.env?.GDP_GO_SNAPSHOT
+  if (f) node<{appendFileSync: (p: string, s: string) => void}>('node:fs').appendFileSync(f, `${JSON.stringify({entry: opts.entry, methods: opts.methods ?? null, ok: x.ok, source: x.source ?? null, notes: x.notes, refusals: x.refusals})}\n`)
 }
 // Unsigned numbers are naturals by their type (inputs and state alike); the rule's sorts say so.
 function unsignedDomains(r: GoRead): Record<string, 'nat' | 'int'> {
