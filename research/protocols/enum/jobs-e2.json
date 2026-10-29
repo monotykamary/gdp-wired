@@ -1,0 +1,22 @@
+[
+ {
+  "name": "toy-120",
+  "cmd": "nproc; GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 360 bun research/protocols/run.ts --ms 120000 --only toy_consensus_forall --skip given,broken 2>/tmp/err.log; s=$?; grep -E '^\\[enum\\]|join (enumerated|end)' /tmp/err.log | cut -c1-300 | tail -c 40000; times; exit $s",
+  "timeout": 420
+ },
+ {
+  "name": "toy-60",
+  "cmd": "nproc; GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 360 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken 2>/tmp/err.log; s=$?; grep -E '^\\[enum\\]|join (enumerated|end)' /tmp/err.log | cut -c1-300 | tail -c 40000; times; exit $s",
+  "timeout": 420
+ },
+ {
+  "name": "distributed-60",
+  "cmd": "nproc; GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 360 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E '^\\[enum\\]|join (enumerated|end)' /tmp/err.log | cut -c1-300 | tail -c 40000; times; exit $s",
+  "timeout": 420
+ },
+ {
+  "name": "sharded-60",
+  "cmd": "nproc; GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 360 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken 2>/tmp/err.log; s=$?; grep -E '^\\[enum\\]|join (enumerated|end)' /tmp/err.log | cut -c1-300 | tail -c 40000; times; exit $s",
+  "timeout": 420
+ }
+]

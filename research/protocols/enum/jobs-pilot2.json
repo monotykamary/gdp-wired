@@ -1,0 +1,352 @@
+[
+ {
+  "name": "lock_server_sync-s60-r1",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only lock_server_sync --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "lock_server_sync-s60-r2",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only lock_server_sync --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "lock_server_sync-s60-r3",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only lock_server_sync --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "lock_server_async-s60-r1",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only lock_server_async --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "lock_server_async-s60-r2",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only lock_server_async --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "lock_server_async-s60-r3",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only lock_server_async --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "decentralized_lock-s60-r1",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "decentralized_lock-s60-r2",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "decentralized_lock-s60-r3",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "distributed_lock-s60-r1",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "distributed_lock-s60-r2",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "distributed_lock-s60-r3",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "two_phase_commit-s60-r1",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "two_phase_commit-s60-r2",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "two_phase_commit-s60-r3",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "ticket_lock-s60-r1",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only ticket_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "ticket_lock-s60-r2",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only ticket_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "ticket_lock-s60-r3",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only ticket_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "toy_consensus_forall-s60-r1",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "toy_consensus_forall-s60-r2",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "toy_consensus_forall-s60-r3",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "consensus_wo_decide-s60-r1",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "consensus_wo_decide-s60-r2",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "consensus_wo_decide-s60-r3",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "ring_leader_election-s60-r1",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "ring_leader_election-s60-r2",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "ring_leader_election-s60-r3",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "sharded_key_value_store-s60-r1",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "sharded_key_value_store-s60-r2",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "sharded_key_value_store-s60-r3",
+  "cmd": "nproc; timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "lock_server_sync-s120-r1",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only lock_server_sync --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "lock_server_sync-s120-r2",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only lock_server_sync --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "lock_server_sync-s120-r3",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only lock_server_sync --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "lock_server_async-s120-r1",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only lock_server_async --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "lock_server_async-s120-r2",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only lock_server_async --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "lock_server_async-s120-r3",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only lock_server_async --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "decentralized_lock-s120-r1",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only decentralized_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "decentralized_lock-s120-r2",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only decentralized_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "decentralized_lock-s120-r3",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only decentralized_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "distributed_lock-s120-r1",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only distributed_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "distributed_lock-s120-r2",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only distributed_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "distributed_lock-s120-r3",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only distributed_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "two_phase_commit-s120-r1",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only two_phase_commit --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "two_phase_commit-s120-r2",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only two_phase_commit --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "two_phase_commit-s120-r3",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only two_phase_commit --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "ticket_lock-s120-r1",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only ticket_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "ticket_lock-s120-r2",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only ticket_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "ticket_lock-s120-r3",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only ticket_lock --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "toy_consensus_forall-s120-r1",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only toy_consensus_forall --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "toy_consensus_forall-s120-r2",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only toy_consensus_forall --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "toy_consensus_forall-s120-r3",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only toy_consensus_forall --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "consensus_wo_decide-s120-r1",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only consensus_wo_decide --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "consensus_wo_decide-s120-r2",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only consensus_wo_decide --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "consensus_wo_decide-s120-r3",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only consensus_wo_decide --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "ring_leader_election-s120-r1",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only ring_leader_election --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "ring_leader_election-s120-r2",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only ring_leader_election --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "ring_leader_election-s120-r3",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only ring_leader_election --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "sharded_key_value_store-s120-r1",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only sharded_key_value_store --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "sharded_key_value_store-s120-r2",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only sharded_key_value_store --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "sharded_key_value_store-s120-r3",
+  "cmd": "nproc; timeout -s KILL 480 bun research/protocols/run.ts --ms 120000 --only sharded_key_value_store --skip given,broken; s=$?; times; exit $s",
+  "timeout": 540
+ },
+ {
+  "name": "lock_server_sync-broken",
+  "cmd": "timeout -s KILL 300 bun research/protocols/run.ts --only lock_server_sync --skip search,given; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "lock_server_async-broken",
+  "cmd": "timeout -s KILL 300 bun research/protocols/run.ts --only lock_server_async --skip search,given; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "decentralized_lock-broken",
+  "cmd": "timeout -s KILL 300 bun research/protocols/run.ts --only decentralized_lock --skip search,given; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "distributed_lock-broken",
+  "cmd": "timeout -s KILL 300 bun research/protocols/run.ts --only distributed_lock --skip search,given; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "two_phase_commit-broken",
+  "cmd": "timeout -s KILL 300 bun research/protocols/run.ts --only two_phase_commit --skip search,given; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "ticket_lock-broken",
+  "cmd": "timeout -s KILL 300 bun research/protocols/run.ts --only ticket_lock --skip search,given; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "toy_consensus_forall-broken",
+  "cmd": "timeout -s KILL 300 bun research/protocols/run.ts --only toy_consensus_forall --skip search,given; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "consensus_wo_decide-broken",
+  "cmd": "timeout -s KILL 300 bun research/protocols/run.ts --only consensus_wo_decide --skip search,given; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "ring_leader_election-broken",
+  "cmd": "timeout -s KILL 300 bun research/protocols/run.ts --only ring_leader_election --skip search,given; s=$?; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "sharded_key_value_store-broken",
+  "cmd": "timeout -s KILL 300 bun research/protocols/run.ts --only sharded_key_value_store --skip search,given; s=$?; times; exit $s",
+  "timeout": 360
+ }
+]

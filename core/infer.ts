@@ -490,7 +490,7 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
   // (GDP_INFER_TRACE=2: each phase's progress too, to stderr)
   if (env.GDP_INFER_TRACE === '2' && !opts.progress) opts = {...opts, progress: (phase, info) => (globalThis as unknown as {process: {stderr: {write: (s: string) => void}}}).process.stderr.write(`[infer ${phase}] ${JSON.stringify(info)}\n`)}
-  const t0 = performance.now(), ms = opts.ms ?? 20000, wallUntil = t0 + ms, rule = isRule(target) ? target.withSumsOf(laws, stepLaws) : undefined
+  const t0 = performance.now(), k0 = clock(), ms = opts.ms ?? 20000, wallUntil = t0 + ms, rule = isRule(target) ? target.withSumsOf(laws, stepLaws) : undefined
   // The clock the budgets read (counted milliseconds since the start, or wall time where `timed`), and the stop.
   const timed = !!opts.timed, w0 = work.n, used = {tries: 0, rows: 0, evals: 0, watched: 0}
   const now = (): number => (timed ? performance.now() - t0
@@ -1934,7 +1934,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // goal drops its cube; a model it reads otherwise (a tuple short) drops one only where a round finds no real one. The
     // cubes left with the caller's laws proven are the cone, which the kernel proves below as any other.
     if (why !== 'inductive' && why !== 'time' && sorts && callerLaws.some(l => l.keys?.length) && now() < until && !stop()) {
-      const v0 = views.length, hUntil = now() + (until - now()) * 0.7, log = env.GDP_ENUM_LOG ? (...xs: unknown[]) => console.error('[enum]', ...xs, Math.round(now())) : () => {}
+      // (the kernel's share: eight tenths of what is left of its deadline, less the 21 s a search over the maps' sums
+      // takes where one follows, core/dsl.ts's: it proves what this can't, decentralized lock's sum$HasLock + sum$Message)
+      const reserve = rule?.withMapSums() ? 21_000 : 0, v0 = views.length, kUntil = clock() + Math.max(0, k0 + ms - clock() - reserve) * 0.8, log = env.GDP_ENUM_LOG ? (...xs: unknown[]) => console.error('[enum]', ...xs, Math.round(now()), Math.round(clock()), Math.round(kUntil), Math.round(k0 + ms)) : () => {}
       // (a cube the caller's laws and the kinds' already say, at its keys, adds nothing every goal doesn't assume: out)
       const implied = (f: Form) => {
         const v = views[f.view!]!, sk = {vars: Object.fromEntries(v.vars.map(k => [k, x(`${k}#`)])), maps: {}, flags: {}}, hyps: C[] = [substC(v.frame, sk), not(substC(condOf(f), sk))]
@@ -1950,16 +1952,19 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       log(alive2.map(textOf).join(' | '))
       // (a model a real counterexample: from a state the other cubes hold at, at the cells it names, a step out of the goal)
       const realCti = (w: Record<string, number>, f: Form | undefined, others: Form[]) => {
-        const {params, st} = stateOf(w), input = requestOf(w), pre = pointOf(params, st)
+        // (each state's rows only in the views the cubes read)
+        const {params, st} = stateOf(w), input = requestOf(w), read = new Set([...others, ...(f ? [f] : [])].map(g2 => g2.view))
+        const at = (s2: State): Point => ({scalar: withTerms({...params, ...s2.scalars}, s2), cells: [], views: views.map((v, i) => (read.has(i) ? v.rowsOf(params, s2) : []))})
         let post: State
         try { post = run.step(params, st, input); stepNamed(st, post) } catch { return false }
-        return others.every(g2 => holdsAt(g2, pre)) && (f ? !holdsAt(f, pointOf(params, post)) : breaks(params, post, st, input))
+        const pre = at(st)
+        return others.every(g2 => holdsAt(g2, pre)) && (f ? !holdsAt(f, at(post)) : breaks(params, post, st, input))
       }
-      for (let round = 0, done2 = false; !done2 && alive2.length && now() < hUntil && !stop(); round++) withTrees(() => {
+      for (let round = 0, done2 = false; !done2 && alive2.length && clock() < kUntil && !stop(); round++) withTrees(() => { let whole = false; withDeadline(kUntil, () => {
         const real = new Set<Form>(), unsure = new Set<Form>()
         let caller = '', complete = true
-        for (const goal of [...alive2, ...laws.map(l => l.name)]) {
-          if (now() > hUntil || stop()) { complete = false; break }
+        for (const goal of [...laws.map(l => l.name), ...alive2]) {
+          if (clock() > kUntil || stop()) { complete = false; break }
           // (the goals as the set's proof below asks them, so that its trees are these: kept while the round runs)
           const f = typeof goal === 'string' ? undefined : goal, others = alive2.filter(g2 => g2 !== f), ls = [...given, ...alive2.map(lawFor)]
           const idx = f ? given.length + alive2.indexOf(f) : ls.findIndex(l => l.name === goal), mm = forLaws(ls).m, name: string = f ? textOf(f) : goal as string
@@ -1969,6 +1974,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
           if ('tree' in quick || quick.why === REFUTED) { log(round, name.slice(0, 90), 'refuted'); continue }
           let w = quick.stuck === 'sat' ? quick.witness : undefined, isReal = !!w && realCti(w, f, others)
+          log(round, name.slice(0, 60), `quick ${w ? (isReal ? 'real' : 'not real') : quick.stuck}`)
           if (!isReal) {
             proofs++
             const r2 = proveLaw(mm, ls, idx)
@@ -1977,19 +1983,19 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           }
           log(round, name.slice(0, 90), isReal ? 'real' : w ? 'not real' : 'unknown')
           if (f) (isReal ? real : unsure).add(f)
-          else caller = isReal ? 'real' : 'unsure'
+          // (the caller's law unproven with every cube assumed: no fewer cubes prove it, Houdini only weakens the set)
+          else { caller = isReal ? 'real' : 'unsure'; break }
         }
         opts.progress?.('join enumerated', {round, cubes: alive2.length, real: real.size, unsure: unsure.size, ...(caller ? {caller} : {})})
         // (every goal proven: the set's proof, its trees those grown here)
-        if (complete && !real.size && !unsure.size && !caller) {
-          const v = prove([...laws, ...alive2.map(lawFor)])
-          if (v.proven && v.checked) { why = 'inductive'; cone = alive2; enumProof = v }
-          done2 = true; return
-        }
+        if (complete && !real.size && !unsure.size && !caller) { whole = done2 = true; return }
         // (a real counterexample drops its cube; where a round has none, the unsure ones go, as Houdini drops them)
         const drops = real.size ? real : unsure
-        if (!complete || !drops.size) { done2 = true; return }
+        if (!complete || !drops.size || caller) { done2 = true; return }
         alive2 = alive2.filter(g2 => !drops.has(g2))
+      })
+      // (the set's proof, outside the share: the trees grown above kept)
+      if (whole) { const v = prove([...laws, ...alive2.map(lawFor)]); if (v.proven && v.checked) { why = 'inductive'; cone = alive2; enumProof = v } }
       })
     }
     opts.progress?.('join end', {rounds, set: set.length, why, cone: cone.length, ms: Math.round(performance.now() - jT0)})
