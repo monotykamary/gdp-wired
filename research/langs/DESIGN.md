@@ -383,3 +383,36 @@ its docs or tests, and a refuted law that looks like a real bug is recorded only
 shadowed, Go (research/langs/go-snapshot/diff.ts with the captures in ../gdp-wired-goport/runs/langs/cap/), LiteLLM
 (research/langs/litellm/jobs.json on Modal), Ruby (`bun research/langs/ruby/run.ts --write`, no diff) and Elixir
 (`bun research/langs/elixir/run.ts --write`, no diff) byte-identical. $10 for C and C++; stop for merge after each.
+
+## C++ (gen/cpp)
+
+C++ is the C reader extended (core/c/reader.ts, +9.9 KB) and the C harness generated as C++ (core/extract-c.ts, +2.9 KB;
+`extractCpp`, `gdp-wired/extract-cpp`), on Go's lowering (+2.1 KB: the constructor, a mutex of another language) and
+driver (+0.5 KB: the constructor's arguments).
+
+- **The dump.** A C++ file's standard headers make a dump of hundreds of MB (281 MB for <mutex> and <array>): clang
+  dumps only the declarations named after the class (`-ast-dump-filter`), one after another, its locations' state
+  going on from each to the next, so `locate` reads them as one translation unit (73 KB). Free functions and types the
+  class doesn't nest are not in it (a call of one is other code); `-std=c++17` where the project's flags name none.
+- **The class.** Its methods (in the class or out of line, by their declaration's context) are functions whose
+  receiver is `this` (CXXThisExpr a pointer to the object, an implicit member access a field through it); a member
+  call of the class's own method is Go's method call (`obj.m()` through obj's address); the public non-static ones are
+  the requests. An overloaded or virtual method, another class's method, a static method, an operator but std::array's
+  `[]` are refused where they are called.
+- **The constructor** is run once, from the zeroed object: its member initializers, each field's in-class one where
+  it has no other, then its body; where it leaves each leaf is the rule's start, its parameters the rule's
+  (`.params`, their types' ranges the precondition). One that can fail, or writes an array, is refused; so is a class
+  with two constructors.
+- **What else maps onto C's and Go's:** std::array<T, N> is a fixed array (`size()` its length); a reference to an
+  integer parameter is an out-parameter (C's box); std::min and std::max are Go's; `throw` is a panic (the step's
+  refusal); std::lock_guard, std::scoped_lock and std::unique_lock of a member std::mutex in the method's own block are
+  Go's Lock with its deferred Unlock (the step atomic); a scoped enum is its underlying integer.
+- **The harness** is the C one compiled as C++ with clang++: the object made in zeroed memory by its constructor with
+  the rule's parameters (`new (calloc(...)) T(args)`), private members read and set through pointers to members taken
+  in an explicit instantiation (where access isn't checked: `template struct gdp_rob<gdp_tagN, &T::m>`), the state
+  snapshot as bytes (a class with a mutex can't be copied), an exception caught as the step's failure, the mutexes not
+  compared.
+- **Fixed on the way (C's too):** a constant converted to a 64-bit type was folded in doubles (2^64 + 1 is 2^64: an
+  index `a[1]` of a std::array, size_t, read as 0); now exactly. The committed C rules re-extract unchanged.
+- **Refused:** class templates (and templates generally), virtual dispatch, STL containers but std::array, lambdas,
+  try and catch, a reference held in a local, std::atomic and std::chrono (types outside the subset).
