@@ -14,7 +14,7 @@ console.log('set', set.length, 'laws; the ∃ law:', ex.name.slice(0, 120))
 const ask = (what: string, ls: any[], i: number, ms: number) => {
   const t = performance.now(), v: any = withWall(performance.now() + ms, () => { try { return proveLaw(mg, ls, i) } catch (e) { return {proven: false, stuck: String(e).slice(0, 100)} } })
   console.log(what, '→', v.proven ? 'proven' : `${v.stuck} at ${String(v.goal ?? '').slice(0, 100)}`, Math.round(performance.now() - t), 'ms')
-  if (!v.proven && v.witness) console.log('  model:', Object.entries(v.witness).filter(([k, x]: any) => x && !k.startsWith('?') && !k.startsWith('k:')).map(([k, x]) => `${k}=${x}`).slice(0, 60).join(' '))
+  if (!v.proven && v.witness) console.log('  model:', Object.entries(v.witness).filter(([k, x]: any) => x && !k.startsWith('?') && !k.startsWith('k:')).map(([k, x]) => `${k}=${String(x)}`).slice(0, 60).join(' '))
   return v
 }
 const base = [...kinds, ...plain], ci = kinds.length, foralls = human.filter((h: any) => !h.some?.length && !JSON.stringify(h.holds).includes('"ex"'))

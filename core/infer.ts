@@ -2012,13 +2012,15 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const near = (f: Form) => (f.cube!.some(l => atomsIn(formOf([l])).some(i => callerMaps.has(atoms[i]!.parts[0]![0].split(AT)[2] ?? ''))) ? 0 : 1)
       const made = enumerated()
       let cubes: Form[] = []
-      // (in turn by the maps a cube reads, those reading the caller's first: one of each kind before a second of any)
+      // (in turn by the maps a cube reads, those reading the caller's first: one of each kind before a second of any; in
+      // a kind, the cube over more distinct keys first (the law its diagonal case is a case of), then the fewer literals)
       const mapsOfCube = (f: Form) => [...new Set(f.cube!.flatMap(l => atomsIn(formOf([l])).map(i => atoms[i]!.parts[0]![0].split(AT)[2] ?? '')))].sort().join()
       const byMaps = new Map<string, Form[]>()
-      for (const f of [...made].sort((a, b) => near(a) - near(b))) { const k2 = mapsOfCube(f); byMaps.set(k2, [...(byMaps.get(k2) ?? []), f]) }
+      const width2 = (f: Form) => views[f.view!]!.vars.length
+      for (const f of [...made].sort((a, b) => near(a) - near(b) || width2(b) - width2(a) || a.cube!.length - b.cube!.length)) { const k2 = mapsOfCube(f); byMaps.set(k2, [...(byMaps.get(k2) ?? []), f]) }
       const turns: Form[] = []
       for (let i = 0; turns.length < made.length; i++) for (const fs of byMaps.values()) if (fs[i]) turns.push(fs[i]!)
-      for (const f of turns) { if (cubes.length >= 48 || stop()) break; if (!names.has(textOf(f)) && !implied(f)) cubes.push(f) }
+      for (const f of turns) { if (cubes.length >= 64 || stop()) break; if (!names.has(textOf(f)) && !implied(f)) cubes.push(f) }
       opts.progress?.('join enumerated', {views: views.length - v0, cubes: cubes.length})
       opts.progress?.('join cubes', {cubes: cubes.map(textOf).join(' | ')})
       // (a goal's proof within the search's own end, on the cost model's clock: a counted search inside it keeps the end)
@@ -2169,7 +2171,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
               // (a cube the EPR path doesn't decide: the CDCL search's answer alone; the caller's, the proof path's too)
               if (!isReal && !f) {
                 proofs++
-                const r2 = within(Math.min(kUntil(), performance.now() + joinQueryMs * 1.25), () => proveLaw(mm, ls, idx))
+                const r2 = within(Math.min(kUntil(), performance.now() + Math.max(joinQueryMs * 1.25, (kUntil() - performance.now()) / 2)), () => proveLaw(mm, ls, idx))
                 if (r2.proven) continue
                 isReal = !!r2.witness && realCti(r2.witness, f, others)
                 wit = r2.witness ?? wit
@@ -2183,7 +2185,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             // model to read): the ∀∃ laws, once)
             if (!f && ghost && goal === ghost.plain.name) { opts.progress?.('join exists', {dropped: ghost.plain.name.slice(0, 120)}); ghost = ghosts?.shift(); again = true; break }
             if (!f && !ghosts) { const t1 = performance.now(); ghosts = ghostsOf(); ghost = ghosts.shift(); opts.progress?.('join exists', {law: ghost ? `${ghost.plain.name.slice(0, 160)}; ${ghost.name} := ${JSON.stringify(ghost.step).slice(0, 160)}` : 'none', ms: Math.round(performance.now() - t1)}); if (ghost) { again = true; held = false; break } }
-            if (!f && ghost && env.GDP_ENGINE_DUMP) (globalThis as unknown as {Bun: {write: (p: string, s: string) => void}}).Bun.write(env.GDP_ENGINE_DUMP, JSON.stringify({laws: [...laws, ...cubes.map(lawFor), ghost.some], cubes: cubes.length}))
             if (!f) { caller = true; held = false; break }
             // (a cube's model the interpreter doesn't confirm: PDR's obligation at its state, its diagrams blocked and the
             // cube kept where a row of it no small state has; else unsure)
