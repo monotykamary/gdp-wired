@@ -281,14 +281,63 @@ state in ETS tables (a store the front end doesn't read yet) and divide by their
 
 ## C and C++ (gen/c): the plan, for a fresh session
 
-**Status (gen/c, resume here).** Built: core/c/reader.ts (clang's JSON dump into Go's reader's typed shape, so Go's
-lowering reads both), core/extract-c.ts (the front end, the generated harness, `checkC` on Go's driver `speak`), the
-executor's `ub` mode, fixed arrays as lists of their length (`items(kinds, lens)`), stated failures (`fails`, GoOptions
-too), core/extract-c.test.ts (8 cases, `bun test core/extract-c.test.ts`, ~15 s; on Modal: research/langs/c/identity.json's
-c-tests, clang 19 from research/langs/c/clang-setup.sh). Go identity: `bun research/langs/go-snapshot/diff.ts
-<main>/runs/langs/cap/cap-tests.jsonl <main>/runs/langs/cap/cap-rw.jsonl` (the captures live in the main checkout's
-runs/, gitignored), 119 of 119. Next: the corpus (research/langs/c/specs.ts, run.ts), the identity jobs, the bars,
-the CHANGELOG; then C++ on the user's go.
+**Built (gen/c).** core/c/reader.ts (36,864 bytes of TypeScript) reads clang's JSON dump (`-Xclang -ast-dump=json
+-fsyntax-only`, the project's flags or its compile_commands.json entry; the target's widths from `clang -dM -E`) and
+writes the shape core/go/reader.go prints (GoPkg: a type table, typed expressions and statements), so Go's lowering in
+core/extract-go.ts reads both: one lowering, C's semantics written as Go's own nodes where clang's types say so.
+core/extract-c.ts (21,045) is the front end and the harness generator; `checkC` builds the harness and hands it to Go's
+driver (core/extract-go-check.ts's `speak`, split out of checkGo).
+
+- **Reading the dump.** clang writes a location's file and line only where they change, in the dump's order (an
+  include chain's `includedFrom` aside): `locate` replays that order so each node knows its file. The file's own
+  functions are read, and those of the project's headers (`root`, by default the file's directory: a static inline
+  helper); types (typedefs, records, enums) from every file. The state is the struct named (`entry`: its typedef's name
+  or its tag); a function whose first parameter points to it is a method (the receiver), a request by default where it
+  is the file's and not static.
+- **C as Go's nodes.** ImplicitCastExpr is the promotions and conversions (IntegralCast a conversion, a constant folded
+  into the literal); a condition is a comparison with 0 or NULL, and a comparison used as a number is ?: of 1 and 0;
+  stacked case labels are one case, a case that doesn't end in break or return a fallthrough; `x op= y` computed at a
+  wider type is `x = (T)((C)x op y)` and ++ of a narrow type `x = (T)(x + 1)`; `x & (2^k − 1)` is x's floor remainder
+  (u % 2^k for an unsigned or a non-negative sum, ((x % 2^k) + 2^k) % 2^k otherwise, two's complement); assert, abort
+  and __builtin_trap are panics (glibc's assert: a discarded sizeof, __extension__, a statement expression); a struct
+  initializer (a compound literal, clang's semantic form) is Go's struct literal; a pointer to an integer parameter is
+  a box of one field (`*p` its field), what is left in it a result beside the returned one (a record result).
+- **The executor and the lowering gained** (each for every reader, +7.5 KB shared): `ub` on an integer type (signed
+  overflow refused where the bounds and the path's facts don't exclude it, "signed overflow: undefined behavior"; a
+  negative value shifted left too; a conversion wraps as clang defines it), fixed-length lists (`MapDecl.len`,
+  `items(kinds, lens)` in the DSL: a list of N items of 0 is length N with no cells, so a C array starts as the rule
+  does; an index outside [0, N) refused; one write a step; each item's range law), stated failures (`fails:
+  {take: '< 0'}`, pruned where the result's bounds and the path's facts exclude them), a panic's own text, a switch's
+  join that keeps a carried case's condition (merge dropped a path whose conditions were a prefix of the other's: a
+  case entered and carried into by fallthrough lost the later default; Go's switch had it too, no capture reaches it),
+  and the drive skips a probe the prover can't state (a probe is only extra requests).
+- **The harness** is generated C in a temporary directory: it #includes the file (main renamed), so static functions are called as they
+  are, compiled with the same flags, -O0, `-fsanitize=undefined -fsanitize-trap=undefined` and
+  `-fstrict-flex-arrays=3` (clang 15 and later: a fixed array last in a struct is bounds-checked), other files'
+  symbols left unresolved (the rule refuses their calls). A hand-written JSON scanner, the state leaf by leaf (arrays
+  whole), SIGABRT, SIGTRAP and SIGILL caught by siglongjmp (an assertion, the sanitizer's trap: the step's failure), the
+  fields the rule leaves out compared by memcmp, the object restored after a failure under `onError: 'discard'`.
+- **Refused, each where it is with why:** loops, goto, pointer arithmetic and indices into pointers, floats, strings,
+  unions, globals and static locals, other files' and libraries' functions, function pointers, bit operations but the
+  masks, division by a variable, constants past 2^53 (UINT64_MAX), the comma operator outside a statement, an
+  assignment or ++ inside an expression, sizeof, bitfields.
+- **Tests:** core/extract-c.test.ts (8 cases, ~15 s locally; the suite's extract-c job on Modal installs clang 19).
+
+**The corpus** (research/langs/c/specs.ts, run.ts, rules/; research/realworld/items/c-projects.ts), each checked against
+the project's own file: Ring-Buffer 8b93e1b (AndersKaloer, MIT: a 128-char ring in a fixed array, 7 functions,
+dequeue and peek through out-parameters, a queue on a full buffer overwriting the oldest byte), nghttp2 1.70.0's
+nghttp2_ratelim (MIT: init and drain; update refused at UINT64_MAX, and it divides by a variable), ENet 1.3.18's packet
+throttle (MIT: enet_peer_throttle, ping_interval, timeout on ENetPeer, whose lists and pointers they don't touch are left
+out and compared unchanged). 14 laws, all proven, the checks agreeing on 2,392–2,400 requests each. No law refuted.
+Read and not taken: Tor's token_bucket and libevent's
+ev_token_bucket (division by a variable; generated config headers), FreeRTOS-Plus-TCP's stream buffer (the kernel's
+headers and a config), MIN's link state machine (a CRC loop, bit operations; no licence file), quicly's maxsender
+(bitfields), coreMQTT's publish states (functions of no struct). No circuit or connection state machine and no
+allocator's bookkeeping fit: each kept a pointer it writes through, a loop, or bit flags.
+
+**Not yet:** bit flags (`f |= F`, `f & F` for one bit: expressible as / and % by constants), bitfields, division by a
+variable (most often an overflow guard), constants past 2^53 in comparisons, coverage (clang's source-based coverage),
+Go's slices' item range law (C's arrays have it; Go's output kept byte-identical).
 
 The plan as written before it started (the session that ported Go, Ruby and Elixir ran out of room for it). Clang is local
 (Apple clang 21: `clang -Xclang -ast-dump=json -fsyntax-only f.c` works; a 3-line struct and function dumps 70 KB, so
