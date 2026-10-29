@@ -221,6 +221,17 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 - **The overrun:** one 60 s run ended at 68 s. The caller's goal began at 31 s and returned at 61 s, past the stage's end, with its window ending before that. The overrun is inside one decideLaw or proveLaw call on the caller's goal with 75 cubes.
 - **Verdicts (p25):** the six proven (sync 8–9 s, async 23–25, decentralized 27–34, 2PC 19–21, ticket 25–34, toy 15–22); the four unknown.
 
+**wo's set at the caller's failure** (`runs/engine/wo10`):
+- At round 2 the set has 79 cubes, and the caller's counterexamples so far are one, round 0's.
+- "a counted vote was sent" (`VoteMsg[x,y] = 0 ∧ Votes[y,x]`) and "a leader has the voting quorum's votes" (`Leader[x] ∧ VQ[y] ∧ Votes[x,y] = 0`):
+  - both are enumerated (wo's enumeration holds 262 cubes);
+  - neither is in the set;
+  - neither scores: no cube outside the set is false at the one counterexample.
+  - Later rounds' caller goals return no model within their window, so relevance has nothing to rank by.
+- **Fix:** every cube of at most two literals goes first (DuoAI's minimal clauses: 24 of wo's 262), the turns after. "a counted vote was sent" is now in the set.
+- **Still out:** "a leader has the voting quorum's votes" (three literals, among 238). It waits for the caller's models (epr6), whose states would rank it.
+- **Pilot (p26):** wo unknown at 57 s (2 runs, inside the wall); the six proven once each (sync 8 s, async 25, decentralized 25, 2PC 18, ticket 40, toy 26).
+
 **Next steps, in order:**
 1. Start the stage earlier, with a planned share of the budget, not what's left after the join and the deep runs (distributed_lock's round 1 is cut short).
 2. Carry the model's function values into the judged state (ring): `stateOf`/`realCti` read `idn[...]` cells of the witness into the interpreter's view of `idn`, or judge rows with the model's values.
