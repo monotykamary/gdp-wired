@@ -1,0 +1,22 @@
+[
+ {
+  "name": "distributed",
+  "cmd": "nproc; timeout -s KILL 520 bun research/protocols/enum/probe.ts distributed_lock --held --depth 200 --trials 300 --check houdini --trace --ms 450000 --show 0 --out /tmp/out.json 2>/tmp/err.log; s=$?; tail -c 80000 /tmp/err.log; cat /tmp/out.json; times; exit $s",
+  "timeout": 600
+ },
+ {
+  "name": "distributed-weaken",
+  "cmd": "nproc; timeout -s KILL 520 bun research/protocols/enum/probe.ts distributed_lock --held --depth 200 --trials 300 --weaken 1 --check houdini --trace --ms 450000 --show 0 --out /tmp/out.json 2>/tmp/err.log; s=$?; tail -c 80000 /tmp/err.log; cat /tmp/out.json; times; exit $s",
+  "timeout": 600
+ },
+ {
+  "name": "wo_decide",
+  "cmd": "nproc; timeout -s KILL 520 bun research/protocols/enum/probe.ts consensus_wo_decide --plus --trials 1000 --check houdini --trace --ms 450000 --show 0 --out /tmp/out.json 2>/tmp/err.log; s=$?; tail -c 80000 /tmp/err.log; cat /tmp/out.json; times; exit $s",
+  "timeout": 600
+ },
+ {
+  "name": "sharded",
+  "cmd": "nproc; timeout -s KILL 520 bun research/protocols/enum/probe.ts sharded_key_value_store --trials 1000 --check houdini --trace --ms 450000 --show 0 --out /tmp/out.json 2>/tmp/err.log; s=$?; tail -c 80000 /tmp/err.log; cat /tmp/out.json; times; exit $s",
+  "timeout": 600
+ }
+]

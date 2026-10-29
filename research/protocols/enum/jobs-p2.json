@@ -1,0 +1,27 @@
+[
+ {
+  "name": "distributed",
+  "cmd": "nproc; bun research/protocols/enum/probe.ts distributed_lock --held --depth 200 --trials 300 --check houdini --trace --ms 1500000 --show 0 --out /tmp/out.json; s=$?; cat /tmp/out.json; times; exit $s",
+  "timeout": 1800
+ },
+ {
+  "name": "wo_decide",
+  "cmd": "nproc; bun research/protocols/enum/probe.ts consensus_wo_decide --plus --trials 1000 --check houdini --trace --ms 1500000 --show 0 --out /tmp/out.json; s=$?; cat /tmp/out.json; times; exit $s",
+  "timeout": 1800
+ },
+ {
+  "name": "sharded",
+  "cmd": "nproc; bun research/protocols/enum/probe.ts sharded_key_value_store --trials 1000 --check houdini --trace --ms 1500000 --show 0 --out /tmp/out.json; s=$?; cat /tmp/out.json; times; exit $s",
+  "timeout": 1800
+ },
+ {
+  "name": "toy-r2",
+  "cmd": "nproc; bun research/protocols/enum/probe.ts toy_consensus_forall --trials 400 --check houdini --trace --ms 480000 --show 0 --out /tmp/out.json; s=$?; cat /tmp/out.json; times; exit $s",
+  "timeout": 600
+ },
+ {
+  "name": "distributed-weaken",
+  "cmd": "nproc; bun research/protocols/enum/probe.ts distributed_lock --held --depth 200 --trials 300 --weaken 1 --check houdini --trace --ms 1500000 --show 0 --out /tmp/out.json; s=$?; cat /tmp/out.json; times; exit $s",
+  "timeout": 1800
+ }
+]
