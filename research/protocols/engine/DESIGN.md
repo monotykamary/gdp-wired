@@ -145,6 +145,24 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - Ring and distributed have 5–17 unsure cubes in round 0, through 59 s.
 - **Size:** core/infer.ts is 194,769 bytes.
 
+**Obligations checkpoint** (`runs/engine/p17`–`p22`):
+- **Built:**
+  - PDR's obligation for a cube's model the interpreter doesn't confirm: its state's diagrams are blocked, and the cube is kept.
+  - A cube the EPR path doesn't decide (`decideLaw` undefined) gets the CDCL search's answer alone, with no proveLaw fallback.
+  - The round's progress event gives its time by part.
+- **Tried and reverted:**
+  - Dropping a cube whose state's rows are all reached: distributed dropped 29 cubes, and the caller's law then failed.
+  - The join at a quarter of the budget on the engine's shape: it lost 2PC and decentralized. The join's clock is the counted one, faster than the wall.
+- **Where a round's time goes:**
+  - Distributed, before the fallback change: decideLaw 3.4 s for 48 cubes, judging and blocking under 0.1 s. The cubes decideLaw doesn't decide went through the CDCL search and proveLaw, 29 s.
+  - Ring: decideLaw 7.6–8.9 s, the CDCL search for the undecided cubes 42–43 s.
+  - wo: 20 s before round 0 (the join, then the stage's setup), and the caller's proof 17.5 s.
+- **Verdicts:**
+  - The six stay proven (p22, 2 runs): sync 9–11 s, async 22–23, decentralized 23, 2PC 19–21, ticket 37–38, toy 23.
+  - The four stay unknown.
+  - distributed now runs four rounds in 52 s: 9 real drops and 20 unsure in round 0. The unsure are the cubes no EPR decision covers. Dropped at round 3, they take the caller's law with them.
+- **Next:** the EPR path for the cubes `decideLaw` leaves undecided (their shapes); the caller's proof on wo.
+
 **Next steps, in order:**
 1. Start the stage earlier, with a planned share of the budget, not what's left after the join and the deep runs (distributed_lock's round 1 is cut short).
 2. Carry the model's function values into the judged state (ring): `stateOf`/`realCti` read `idn[...]` cells of the witness into the interpreter's view of `idn`, or judge rows with the model's values.
