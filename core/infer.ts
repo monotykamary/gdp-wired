@@ -1149,7 +1149,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // them assumed, and what their proofs read (and what those read, in turn) is the answer.
   const pool0 = pool.slice(), ctis0 = ctis.length
   if (joinOn && NS) try {
-    const jT0 = performance.now(), jUntil = Math.min(until, now() + (until - now()) * (opts.join ?? joinShare))
+    const jT0 = performance.now(), jNow = now(), jUntil = Math.min(until, jNow + (until - jNow) * (opts.join ?? joinShare))
     // The control state: the choice (loc) and, where they are few, the yes/nos (a program counter in bits), each of its
     // values reached a part of its own.
     const jChoice = modes.find(mo => mo.choice && !atoms[mo.atom]!.cell), bits = modes.filter(mo => mo.bool && !atoms[mo.atom]!.cell && !atoms[mo.atom]!.param)
@@ -2157,7 +2157,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             // else a model or a refutation of the CDCL search alone, then the proof path's)
             const dl = f ? within(Math.min(kUntil(), performance.now() + joinQueryMs / 4), () => decideLaw(mm, ls, idx)) : undefined
             if (dl?.proven) continue
-            let isReal = !!dl && !!f && realCti(dl.witness, f, others)
+            let isReal = !!dl && !!f && realCti(dl.witness, f, others), wit = dl?.witness
             if (!dl) {
               const inst = mapNames.length ? lawInstances(mm, ls, idx) : undefined, g = obligations(mm, ls, inst ? {[ls[idx]!.name]: inst} : {}, idx)[1]!
               const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
@@ -2165,11 +2165,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
               if ('tree' in quick || quick.why === REFUTED) continue
               // (the caller's law's model from the proof path alone: EPR's, real or with the instances that refute it)
               isReal = !!f && quick.stuck === 'sat' && !!quick.witness && realCti(quick.witness, f, others)
+              if (quick.stuck === 'sat') wit = quick.witness
               if (!isReal) {
                 proofs++
                 const r2 = within(Math.min(kUntil(), performance.now() + (f ? joinQueryMs / 4 : joinQueryMs * 1.25)), () => proveLaw(mm, ls, idx))
                 if (r2.proven) continue
                 isReal = !!r2.witness && realCti(r2.witness, f, others)
+                wit = r2.witness ?? wit
               }
             }
             // (a real counterexample from a state no small state is: its diagram blocked, the goal's laws kept)
@@ -2181,6 +2183,14 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             if (!f && ghost && goal === ghost.plain.name) { opts.progress?.('join exists', {dropped: ghost.plain.name.slice(0, 120)}); ghost = ghosts?.shift(); again = true; break }
             if (!f && !ghosts) { const t1 = performance.now(); ghosts = ghostsOf(); ghost = ghosts.shift(); opts.progress?.('join exists', {law: ghost ? `${ghost.plain.name.slice(0, 160)}; ${ghost.name} := ${JSON.stringify(ghost.step).slice(0, 160)}` : 'none', ms: Math.round(performance.now() - t1)}); if (ghost) { again = true; held = false; break } }
             if (!f) { caller = true; held = false; break }
+            // (a cube's model the interpreter doesn't confirm: PDR's obligation at its state, its diagrams blocked and the
+            // cube kept where a row of it no small state has; where every row is reached, the cube is false: dropped)
+            if (!isReal && wit) {
+              const w2 = smallOf(wit), pre = withFnsOf(w2, () => { const {params, st} = stateOf(w2); for (const cells of Object.values(st.maps)) for (const k of [...cells.keys()]) if (k > 1_000_000) cells.delete(k); return {params, st, w: w2} })
+              const ds2 = withFnsOf(w2, () => diagrams(pre)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g))
+              if (ds2.length) continue
+              isReal = true
+            }
             ;(isReal ? real : unsure).add(f)
           }
         }
@@ -2194,8 +2204,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       })
     }
     }
+    // (a rule of the engine's shape (keyed maps, scalars at a few values each: no counter) leaves the engine after it
+    // the most: the join a quarter of the budget)
+    const few = atoms.every((a, i) => a.cell || a.param || !!a.term || a.view !== undefined || i >= valsS.length || new Set(valsS[i]).size <= 4)
+    const jEnd = opts.join === undefined && few && sorts && callerLaws.some(l => l.keys?.length) ? Math.min(jUntil, jNow + (until - jNow) / 4) : jUntil
     for (;;) {
-      if (now() > jUntil || stop()) { why = 'time'; break }
+      if (now() > jEnd || stop()) { why = 'time'; break }
       rounds++
       set = [...formsNow(), ...extras].filter(f => !blocked.has(textOf(f)))
       const byText = new Map(set.map(f => [textOf(f), f]))
@@ -2322,8 +2336,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       }
       opts.progress?.('join', {round: rounds, set: set.length, ms: qms, goal: todo.slice(0, 60), joins: joins - j0, walked, dropped: dropped - d0})
     }
-    // (a rule whose scalars the runs held at a few values each: no counter, the engine's shape)
-    const few = atoms.every((a, i) => a.cell || a.param || !!a.term || a.view !== undefined || i >= valsS.length || new Set(valsS[i]).size <= 4)
     if (few && why !== 'inductive') engine()
     opts.progress?.('join end', {rounds, set: set.length, why, cone: cone.length, ms: Math.round(performance.now() - jT0)})
     // (unproven, the search below begins as it would have: the candidates and the counterexamples as they were)
