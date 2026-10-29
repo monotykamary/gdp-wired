@@ -675,7 +675,9 @@ export function widen(part: Goal, whole: Goal, tree: Tree, opaque: Record<string
     const no = yes && widen(part, whole, tree.no, opaque, new Map(pp).set(id, {lin: tree.split, holds: false}), new Map(wp).set(wid, {lin: wl, holds: false}))
     return yes && no ? {split: wl, yes, no} : undefined
   }
-  const rp = rowsAt(part, pp), rw = rowsAt(whole, wp), at = new Map<string, number>()
+  const rp = rowsAt(part, pp)
+  if (pastWall()) return undefined
+  const rw = rowsAt(whole, wp), at = new Map<string, number>()
   rw.forEach((r, i) => { const key = canon(r.lin); if (!at.has(key)) at.set(key, i) })
   const map = (i: number) => { if (i >= rp.length) return i - rp.length + rw.length; const l = rename(rp[i]!.lin); return l && at.get(canon(l)) }
   const leaf: Step[] = [], products: [number, number][] = [], squares = (tree.squares ?? []).map(rename)
