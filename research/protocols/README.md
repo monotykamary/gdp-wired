@@ -479,3 +479,23 @@ What the protocols bought was measured again where later work could have taken i
   600 s. Every broken variant is refused as before. (m2 and m3 prove the same seven written invariants; the "8 of 10"
   above counts one too many.)
 
+
+## Cost (gen/cost, from 4f7c7a6)
+
+COST.md measures where class D's time goes and the first step. Three changes followed (CHANGELOG.md): the random runs
+reading a law at its own keys under a counted cap, distributed_lock's written invariant completed, and decisions at the
+simplex's point on the proof path. Figures are Modal, 2 vCPU, three runs a side (the gen/cost worktree's
+`runs/cost/s3-off` and `s3-on`).
+
+| | 4f7c7a6 | gen/cost |
+| --- | --- | --- |
+| Nothing written, 10 s | lock_server_sync (72.2 s) | lock_server_sync (6.8–7.8 s) |
+| Nothing written, 60 s | sync 109.7 s, async 86.9 s, decentralized 11.8 s, ticket 48.9 s | sync 8.4–10.4 s, async 14.0–21.5 s, decentralized 8.0–11.8 s, ticket 59.3–60.0 s |
+| Written invariants | 7 of 10 (toy 211.7 s) | **8 of 10**: distributed_lock's set completed (a fix to our model, 12.9–14.2 s), toy 12.3–16.0 s |
+| The searches that miss | distributed 202.0 s; sharded KV killed at 540 s | distributed 25.5–30.8 s; sharded KV ends, 46.6–49.9 s |
+| Broken variants | refused as before | refused by the same runs, faster (distributed 21.7 to 1.1–1.4 s) |
+
+Still missed with nothing written: two_phase_commit, distributed_lock, toy_consensus_forall, consensus_wo_decide,
+sharded_key_value_store and ring_leader_election. Their searches now end with "found nothing" well inside their budgets:
+the misses are the search's own, not its cost. consensus_wo_decide's and sharded KV's written invariants are still
+unknown at 150 s (COST.md: one goal each, an elimination blow-up for sharded KV).

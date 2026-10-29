@@ -1296,13 +1296,26 @@ export function proveLaws(m: Machine, laws: Law[]): Report & {laws?: Law[], mach
 }
 // One law's two goals, every law assumed (core/infer.ts adds laws one at a time and reproves only what isn't proven
 // yet); not a proof of the set, which proveLaws gives. Laws with some key go through proveLaws.
+// Decisions at the simplex's point (kernel/cdcl.ts's phaseAtPoint, as its model search decides) in the goals of a law set
+// with a law about several keys, on the proof path (proveLaw, proveThinned): those goals' first rounds are often models
+// a tuple short (withModels asks again at the model's tuples), and the search deciding by its saved phases wanders before
+// it finds one (toy consensus's safety law: 108 s and 181k nodes for a model the point finds in 663; research/protocols/
+// COST.md). Untrusted: the order of the cases only.
+export const atPoint = {on: false}
+const pointed = <T>(laws: Law[], f: () => T): T => {
+  if (atPoint.on || !laws.some(l => l.keys?.length)) return f()
+  atPoint.on = true
+  try { return f() } finally { atPoint.on = false }
+}
 export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>} {
-  const law = laws[i]!
   if (laws.some(l => someKeys(l.holds).length) || someLaws(laws)) {
     const r = proveLaws(m, laws)
     return r.proven ? {proven: true} : {proven: false, goal: r.failed!.goal, stuck: r.failed!.stuck, ...(r.failed!.witness ? {witness: r.failed!.witness} : {})}
   }
-  const pm = plainOf(m), inst = lawInstances(m, laws, i)
+  return pointed(laws, () => proveOne(m, laws, i))
+}
+function proveOne(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>} {
+  const law = laws[i]!, pm = plainOf(m), inst = lawInstances(m, laws, i)
   const few = triggered(pm, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
   if (!sameInstances(few, inst) && obligations(m, laws, {[law.name]: few}, i).every(goal => 'tree' in grow(goal))) return {proven: true}
   // (a model breaking a law at a tuple of the goal's keys: those added, the law asked again)
@@ -1397,6 +1410,9 @@ export const usualProof: {last?: {m: Machine, laws: Law[], proof: {instances: Re
 // A machine with sums has no cyclic twin yet: its certificate is the usual trees, checked with its cover goals.
 const sumsWhy = (m: Machine): string | undefined => (m.sums && Object.keys(m.sums).length ? 'a sum over a map\'s keys (Sums.lean checks the usual trees)' : undefined)
 function proveThinned(m: Machine, laws: Law[], instances: Record<string, Instances>): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
+  return pointed(laws, () => thinned(m, laws, instances))
+}
+function thinned(m: Machine, laws: Law[], instances: Record<string, Instances>): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
   const trees: Record<string, Tree> = {}, fulls = {...instances}
   let nodes = 0, leaves = 0
   for (const [i, law] of laws.entries()) {
