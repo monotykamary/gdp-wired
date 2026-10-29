@@ -1,0 +1,12 @@
+[
+ {
+  "name": "ring-sh1-r1",
+  "cmd": "GDP_ENGINE_SHARE=1 GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|enum t|join (template|enumerated|end)|^\\[infer\\] ' /tmp/err.log | grep -v 'diagram rows' | grep -E 'enum t. (set|engine|caller)|join|small' | cut -c1-300 | head -c 12000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "ring-sh1-r2",
+  "cmd": "GDP_ENGINE_SHARE=1 GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|enum t|join (template|enumerated|end)|^\\[infer\\] ' /tmp/err.log | grep -v 'diagram rows' | grep -E 'enum t. (set|engine|caller)|join|small' | cut -c1-300 | head -c 12000; exit $s",
+  "timeout": 130
+ }
+]

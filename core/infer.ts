@@ -32,10 +32,10 @@
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
-import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
+import {type C, type E, type Fn, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
-import {clock, counted, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees} from '../kernel/prove.ts'
+import {clock, counted, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
@@ -988,6 +988,18 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     return out
   }
 
+  // A kernel witness's function values (a function the kernel knows by its facts alone: the model's own), the steps and
+  // the views reading them where it names them and the interpreter's elsewhere, within f.
+  const withFnsOf = <T>(w: Record<string, number>, f: () => T): T => {
+    const fns = m.fns, saved: [string, Fn][] = [], named: Record<string, number> = {...Object.fromEntries([...scalars, ...m.params, ...m.inputs].map(v => [v, 0])), ...w}
+    for (const [name, fn] of Object.entries(fns ?? {})) {
+      if (fn.call || fn.recur) continue
+      const table: Record<number, number> = {}
+      for (const [c, v] of Object.entries(w)) if (c.startsWith(`${name}[`) && c.endsWith(']')) { const key = keyValue(c, named); if (key !== undefined) table[key] = v }
+      if (Object.keys(table).length) { saved.push([name, fn]); fns![name] = {...fn, js: `(k) => (${JSON.stringify(table)})[k] ?? (${fn.js})(k)`} }
+    }
+    try { return f() } finally { for (const [name, fn] of saved) fns![name] = fn }
+  }
   // A kernel witness's request: its inputs, and each map it carries at the cells the model names (a quorum).
   const requestOf = (w: Record<string, number>): Request => {
     const out: Request = Object.fromEntries(m.inputs.map(i => [i, w[i] ?? 0])), named: Record<string, number> = {...Object.fromEntries([...scalars, ...m.params, ...m.inputs].map(v => [v, 0])), ...w}
@@ -1916,7 +1928,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (sorts && callerLaws.some(l => l.keys?.length) && now() < until && !stop()) {
       // (a sums pass's reserve where one follows: 21 s, or a third of what is left where less is)
       // (its share: half the search's budget, the join and a sums pass after it with the rest)
-      const v0 = views.length, reserve = 0, share = t0 + ms / 2
+      const v0 = views.length, reserve = rule?.withMapSums() ? Math.min(21_000, (wallUntil - performance.now()) / 3) : 0
       const implied = (f: Form) => {
         const v = views[f.view!]!, sk = {vars: Object.fromEntries(v.vars.map(k => [k, x(`${k}#`)])), maps: {}, flags: {}}, hyps = [substC(v.frame, sk), not(substC(condOf(f), sk))]
         for (const l of given) {
@@ -1932,27 +1944,38 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const T = (what: string) => { if (env.GDP_ENUM_LOG) console.error('[enum t]', what, Math.round(performance.now() - t0)) }
       T(`runs ${samples.length} leaders ${samples.filter(q => [...(q.st.maps['Leader']?.values() ?? [])].some(v2 => v2 > 0)).length}`); const made = enumerated(); T(`enumerated ${made.length}`)
       if (env.GDP_ENUM_LOG) for (const f of made) console.error('[enum cube]', textOf(f))
-      let cubes = made.filter(f => !stop() && !implied(f)).sort((a, b) => near(a) - near(b)).slice(0, 32)
+      let cubes: Form[] = []
+      for (const f of [...made].sort((a, b) => near(a) - near(b))) { if (cubes.length >= 32 || stop()) break; if (!implied(f)) cubes.push(f) }
       opts.progress?.('join enumerated', {views: views.length - v0, cubes: cubes.length})
       if (env.GDP_ENUM_LOG) for (const f of cubes) console.error('[enum cube]', textOf(f))
       // (a goal's proof within the search's own end, on the cost model's clock: a counted search inside it keeps the end)
-      const within = <T>(endWall: number, f: () => T): T => counted(fullRate, () => withDeadline(clock() + Math.max(0, endWall - performance.now()), f), true)
-      const realCti = (w: Record<string, number>, f: Form | undefined, others: Form[]) => {
+      const within = <T>(endWall: number, f: () => T): T => withWall(endWall, () => counted(fullRate, () => withDeadline(clock() + Math.max(0, endWall - performance.now()), f), true))
+      // (a model's values past the rule's constants renamed onto small ones in order, a gap kept up to 64: the step then
+      // runs at every key, and the model's equalities, order and comparisons with the constants are kept)
+      const top = Math.max(1024, ...[...JSON.stringify([m.step, m.assume ?? null, m.pre ?? null]).matchAll(/"value":(\d+)/g)].map(q => Number(q[1])))
+      const smallOf = (w: Record<string, number>): Record<string, number> => {
+        const big = [...new Set(Object.values(w).filter(v => v > top))].sort((a, b) => a - b)
+        if (!big.length) return w
+        const to = new Map<number, number>()
+        big.forEach((v, i) => to.set(v, i ? to.get(big[i - 1]!)! + Math.min(64, v - big[i - 1]!) : top + 1))
+        return Object.fromEntries(Object.entries(w).map(([c, v]) => [c, to.get(v) ?? v]))
+      }
+      const realCti = (w0: Record<string, number>, f: Form | undefined, others: Form[]) => { const w = smallOf(w0); return withFnsOf(w, () => {
         const {params, st} = stateOf(w), read = new Set([...others, f].map(g => g?.view))
         const at = (s2: State): Point => ({scalar: withTerms({...params, ...s2.scalars}, s2), cells: [], views: views.map((v, i) => (read.has(i) ? v.rowsOf(params, s2) : []))})
         let post: State
         try { post = run.step(params, st, requestOf(w)); stepNamed(st, post) } catch (e) { if (!f) T(`caller cti no step: ${String(e).slice(0, 120)}`); return false }
         if (!others.every(g => holdsAt(g, at(st)))) { if (!f) T(`caller cti outside: ${others.filter(g => !holdsAt(g, at(st))).map(textOf).join(' | ').slice(0, 400)}`); return false }
-        lastPre = {params, st}
+        lastPre = {params, st, w}
         if (!f) { const b = breaks(params, post, st, requestOf(w)); T(`caller cti breaks ${b} named ${[...(named.get(st) ?? [])].length}`); return b }
         const bad = (at(post).views[f.view!] ?? []).filter(r => judged(f, r) && !holdsRow(f, r)).map(valuesOf)
         if (bad.length) broken.set(f, bad)
         return bad.length > 0
-      }
+      }) }
       // (a counterexample's diagram (UPDR's, IC3PO's): in each template view, a row of its state no reachable small state's
       // row is, as the literals true there, generalized by taking out each literal while no small state's row is inside;
       // blocked as a law ¬diagram, at most four a counterexample)
-      let lastPre: {params: Env, st: State} | undefined
+      let lastPre: {params: Env, st: State, w: Record<string, number>} | undefined
       const reachedRows = new Map<number, Set<string>>()
       const diagrams = (pre: {params: Env, st: State}): Form[] => {
         const out2: Form[] = []
@@ -1982,7 +2005,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         return k.lits.filter(l => bad.every(r => !litHolds(l, r))).map(l => formOf([...f.cube!, l], f.view)).filter(g => !k.R.some(r => inCube(g.cube!, r))).slice(0, 4)
       }
       for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
-        const kUntil = share - reserve
+        const kUntil = wallUntil - (round ? reserve : 0)
         const real = new Set<Form>(), unsure = new Set<Form>(), ls = [...given, ...cubes.map(lawFor)], blocked2: Form[] = []
         let caller = false, complete = true
         {
@@ -1997,13 +2020,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             let isReal = quick.stuck === 'sat' && !!quick.witness && realCti(quick.witness, f, others)
             if (!isReal) {
               proofs++
-              const r2 = within(kUntil, () => proveLaw(mm, ls, idx))
+              const r2 = within(Math.min(kUntil, performance.now() + joinQueryMs / 4), () => proveLaw(mm, ls, idx))
               T(`proof ${r2.proven ? 'proven' : r2.stuck}`)
               if (r2.proven) continue
               isReal = !!r2.witness && realCti(r2.witness, f, others)
             }
             // (a real counterexample from a state no small state is: its diagram blocked, the goal's laws kept)
-            const ds = isReal && lastPre ? diagrams(lastPre).filter(g => !cubes.some(h => textOf(h) === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g))) : []
+            const ds = isReal && lastPre ? withFnsOf(lastPre.w, () => diagrams(lastPre!)).filter(g => !cubes.some(h => textOf(h) === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g))) : []
             if (ds.length) { blocked2.push(...ds); continue }
             if (!f) { caller = true; break }
             ;(isReal ? real : unsure).add(f)
@@ -2012,18 +2035,16 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length})
         const drops = real.size ? real : unsure
         if (blocked2.length) { cubes = [...cubes.filter(g => !drops.has(g)), ...blocked2].slice(0, 96); return }
-        if (complete && !caller && !drops.size) { const v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor)])); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } }
+        if (complete && !caller && !drops.size) { const v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor)])); T(`set ${v.proven} ${v.checked} ${JSON.stringify(v).slice(0, 600)}`); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } }
         if (!complete || caller || !drops.size) over = true
         const texts = new Set(cubes.map(textOf)), more = real.size ? [...real].flatMap(weaker).filter(g => !texts.has(textOf(g)) && !!texts.add(textOf(g))) : []
         cubes = [...cubes.filter(g => !drops.has(g)), ...more]
       })
+      T(`engine end stop ${stop()} cubes ${cubes.length} now ${Math.round(now())} until ${until} wall ${Math.round(wallUntil - t0)} proof ${!!enumProof}`)
     }
     }
-    // (a rule whose scalars the runs held at a few values each: no counter, the engine's shape)
-    const few = atoms.every((a, i) => a.cell || a.param || !!a.term || a.view !== undefined || i >= valsS.length || new Set(valsS[i]).size <= 4)
-    if (few) engine()
     for (;;) {
-      if (enumProof || now() > jUntil || stop()) { if (!enumProof) why = 'time'; break }
+      if (now() > jUntil || stop()) { why = 'time'; break }
       rounds++
       set = [...formsNow(), ...extras].filter(f => !blocked.has(textOf(f)))
       const byText = new Map(set.map(f => [textOf(f), f]))
@@ -2150,6 +2171,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       }
       opts.progress?.('join', {round: rounds, set: set.length, ms: qms, goal: todo.slice(0, 60), joins: joins - j0, walked, dropped: dropped - d0})
     }
+    // (a rule whose scalars the runs held at a few values each: no counter, the engine's shape)
+    const few = atoms.every((a, i) => a.cell || a.param || !!a.term || a.view !== undefined || i >= valsS.length || new Set(valsS[i]).size <= 4)
+    if (few && why !== 'inductive') engine()
     opts.progress?.('join end', {rounds, set: set.length, why, cone: cone.length, ms: Math.round(performance.now() - jT0)})
     // (unproven, the search below begins as it would have: the candidates and the counterexamples as they were)
     if (why === 'inductive') chosen = cone
