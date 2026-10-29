@@ -1996,8 +1996,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // decentralized lock's) while the caller's law fails from the set.
     const engine = () => {
     if (sorts && callerLaws.some(l => l.keys?.length) && now() < until && !stop()) {
-      // (a sums pass's reserve where one follows: 21 s, or a third of what is left where less is)
-      const v0 = views.length, reserve = rule?.withMapSums() ? Math.min(21_000, (wallUntil - performance.now()) / 3) : 0
+      // (a sums pass's reserve where one follows: 10 s, or a quarter of what is left where less is)
+      const v0 = views.length, reserve = rule?.withMapSums() ? Math.min(10_000, (wallUntil - performance.now()) / 4) : 0
       const implied = (f: Form) => {
         const v = views[f.view!]!, sk = {vars: Object.fromEntries(v.vars.map(k => [k, x(`${k}#`)])), maps: {}, flags: {}}, hyps = [substC(v.frame, sk), not(substC(condOf(f), sk))]
         for (const l of given) {
