@@ -298,7 +298,9 @@ const withPatterns = <T>(m: Machine, laws: Law[], f: () => T): T => {
   eprScope.patterns = p
   try { return f() } finally { eprScope.patterns = undefined }
 }
-function eprFirst(goal: Goal, budget: {nodes: number, until?: number}): Outcome | undefined {
+// (`whole: false`: the core's tree alone, not widened to the goal; decideLaw's, whose caller's verdict rests on its own
+// final proof: a refutation of some of a goal's hypotheses refutes the goal)
+function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = true): Outcome | undefined {
   const d = decide(goal, eprScope.patterns!, {exact: true, late: pastWall})
   if ('unknown' in d) return undefined
   if (d.sat) return {stuck: 'sat', witness: d.witness, diagram: d.diagram, path: new Map(), why: 'a model'}
@@ -308,6 +310,7 @@ function eprFirst(goal: Goal, budget: {nodes: number, until?: number}): Outcome 
   try {
     const out = withWork(workCap === Infinity ? Infinity : w + 0.5 * (workCap - w), () => grow(part, new Map(), {nodes: 0, until: end === Infinity ? end : now + 0.5 * (end - now)}))
     if (!('tree' in out)) return undefined
+    if (!whole) return out
     const tree = widen(part, goal, out.tree)
     return tree ? {tree, nodes: out.nodes} : undefined
   } finally { eprScope.busy = false }
@@ -1407,7 +1410,7 @@ export function decideLaw(m: Machine, laws: Law[], i: number, rounds = modelRoun
       let more: Instances | undefined
       for (const g of obligations(m, laws, {[laws[i]!.name]: inst}, i)) {
         if (pastWall()) return undefined
-        const o = eprFirst(g, {nodes: 0, until: clock() + 4_000})
+        const o = eprFirst(g, {nodes: 0, until: clock() + 4_000}, false)
         if (!o) return undefined
         if ('tree' in o) continue
         more = round < rounds ? modelInstances(m, laws, inst, g, o.witness!) : undefined

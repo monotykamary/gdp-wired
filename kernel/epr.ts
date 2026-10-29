@@ -76,6 +76,10 @@ export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number
 }
 // (thrown by `late` checked every 4,096 clauses and hypotheses read: a goal's clauses are quadratic in its terms)
 const pastEnd = new Error('past the deadline')
+// The theory's lemmas, by their atoms' names: each is arithmetic over the terms those names read (a part's value, a cell's
+// at its key), so it holds in every goal that has those atoms, a round's other goals over the same set above all; each
+// goal starts with those it has. At most 20,000, then begun again.
+const lemmaCache = new Map<string, [string, boolean][]>()
 const noRoom = 'no values for the model\'s order'
 function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean, fill?: boolean}): Decision {
   // --- which hypotheses are EPR-shaped: every map read at a key of its map's pattern
@@ -483,6 +487,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     add(ls, f.exact ?? -1)
     for (let i = 0; i < ls.length; i++) for (let j = i + 1; j < ls.length; j++) add([-ls[i]!, -ls[j]!], -1)
   }
+  if (theory.length) for (const l of lemmaCache.values()) { const xs = l.map(([k, b]) => { const x = ids.get(k); return x === undefined ? undefined : b ? x : -x }); if (xs.every((x): x is number => x !== undefined)) add(xs, -1) }
 
   // EPR-shaped: no comparison the abstraction can't read (a counter's arithmetic, a sum, a product) in any hypothesis
   if (opts.exact) { const tied = new Set([...keyEqs, ...intervals].map(k => (k.p as {v: number}).v)); const loose = [...foreign].filter(i => !tied.has(i)).length; if (loose) return {unknown: `${loose} comparisons outside the EPR shape`} }
@@ -566,8 +571,15 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
       // (the pairs of terms one comparison reads, and each with the constants)
       const ks = [...ords].filter(t => t.startsWith('k:')), pairs = new Map<string, [string, string]>()
       for (const t of theory) { const xs = Object.keys(t.d).filter(x => x !== '1'); for (const a of xs) for (const b of [...xs, ...ks]) if (a !== b) pairs.set(a < b ? `${a}|${b}` : `${b}|${a}`, a < b ? [a, b] : [b, a]) }
-      for (const t of theoryTerms) row(times(tv(t), -1), [])
+      // (with few ordered terms, every pair of them: a refutation through a term no comparison reads, a chain of the
+      // order, is then a lemma of the pairs it needs, not of the whole order)
+      const all = ords.size <= 48 ? [...ords] : []
+      for (let i2 = 0; i2 < all.length; i2++) for (let j = i2 + 1; j < all.length; j++) { const a = all[i2]!, b = all[j]!; if (!(a.startsWith('k:') && b.startsWith('k:'))) pairs.set(a < b ? `${a}|${b}` : `${b}|${a}`, a < b ? [a, b] : [b, a]) }
+      for (const t of new Set([...theoryTerms, ...all.filter(x => !x.startsWith('k:'))])) row(times(tv(t), -1), [])
       for (const [a, b] of pairs.values()) pairRows(row, a, b)
+      // (and the successors the model holds among them, n1 = n + 1, both ways: the ring's next node)
+      const tt = new Set([...theoryTerms, ...all])
+      for (const x of succs) if (m[x.s] && (tt.has(x.lo) || tt.has(x.hi))) { row(plus(T(x.hi), times(plus(T(x.lo), konst(1)), -1)), [x.s]); row(plus(plus(T(x.lo), konst(1)), times(T(x.hi), -1)), [x.s]); for (const y of [x.lo, x.hi]) if (!tt.has(y) && !y.startsWith('k:')) row(times(tv(y), -1), []) }
       theoryRows(row)
       // (several lemmas a round: each refutation's theory rows set aside, the rest solved again, at most eight)
       const lemmas: number[][] = [], off = new Set<number>()
@@ -716,7 +728,12 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     const r = theoryCheck(cur.model)
     if (!r) break
     if ('val' in r) { done = finish(cur.model, r.val); if ('unknown' in done) done = finish(cur.model, undefined); break }
-    for (const l of r.lemmas) lemma(l)
+    for (const l of r.lemmas) {
+      lemma(l)
+      const named = l.map((x): [string, boolean] => [names[Math.abs(x)]!, x > 0]), key = named.map(([k, b]) => (b ? '' : '¬') + k).sort().join('|')
+      if (lemmaCache.size > 20_000) lemmaCache.clear()
+      lemmaCache.set(key, named)
+    }
     cur = outcome(search())
     if (!('model' in cur)) return cur
     done = finish(cur.model, undefined)
