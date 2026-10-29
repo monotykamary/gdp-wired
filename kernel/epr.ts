@@ -8,6 +8,7 @@
 import {type C, type E, type Machine, evalC} from '../core/machine.ts'
 import {type Goal, canon, linear} from './kernel.ts'
 import {type Constraint, type Lin, konst, plus, solve, times, v as tv} from '../core/solver.ts'
+import {Simplex} from './simplex.ts'
 
 // Each map's key pattern, as its rule reads it: the coefficients of a key Σ c·x of distinct names (Table 4096, 64, 1;
 // Leader 1). A read at a key of another shape (an instance at a key of the wrong sort) is a cell of its own, by its key's
@@ -498,8 +499,11 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
   // (lazily: the transitivity a model breaks, added and the search again, at most 4,096 a round and 16 rounds; as each
   // holds in every model, a refutation stays one)
   // (one solver, the lemmas added to it: the search goes on from what it learned)
-  let solver = cdclSolver(clauses, first)
-  const lemma = (lits: number[]) => { const n0 = clauses.length; add(lits, -1); if (clauses.length > n0 && !solver.add(clauses.at(-1)!)) solver = cdclSolver(clauses, first) }
+  // (the order's atoms and the theory's comparisons keep the phase of the last model: a lemma then moves the next model
+  // as little as it must, not to the search's first choices again)
+  const kept = new Set([...ids].filter(([k]) => k.startsWith('le ')).map(([, x]) => x).concat(theory.map(t => t.x)))
+  let solver = cdclSolver(clauses, first, kept)
+  const lemma = (lits: number[]) => { const n0 = clauses.length; add(lits, -1); if (clauses.length > n0 && !solver.add(clauses.at(-1)!)) solver = cdclSolver(clauses, first, kept) }
   const search = (): ReturnType<typeof cdcl> | string => {
     let o = solver.solve(opts.conflicts ?? 200_000, opts.late)
     for (let round = 0; lazy && o?.sat; round++) {
@@ -534,6 +538,20 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     for (let i2 = 0; i2 < xs.length; i2++) for (const b of [...xs.slice(i2 + 1), ...ks]) for (const [p, q] of [[xs[i2]!, b], [b, xs[i2]!]]) { const x = v(le(p!, q!)); if (x !== undefined) out.push(x) }
     return (locals[ti] = out)
   }
+  const jointLp = new Simplex(true)
+  // (each pair's order atoms and its four rows, a ≤ b, b < a, b ≤ a, a < b, made once: the same rows every round, which
+  // the simplex knows by their objects)
+  const pairs0 = new Map<string, {ab: number, ba: number, rows: [Lin, Lin, Lin, Lin]}>()
+  const pairOf = (a: string, b: string) => {
+    const key = `${a}|${b}`
+    let p = pairs0.get(key)
+    if (!p) {
+      const T = (t: string): Lin => (t.startsWith('k:') ? konst(Number(t.slice(2))) : tv(t))
+      p = {ab: v(le(a, b))!, ba: v(le(b, a))!, rows: [plus(T(a), times(T(b), -1)), plus(plus(T(b), konst(1)), times(T(a), -1)), plus(T(b), times(T(a), -1)), plus(plus(T(a), konst(1)), times(T(b), -1))]}
+      pairs0.set(key, p)
+    }
+    return p
+  }
   const theoryCheck = (m: boolean[]): {val: Map<string, number>} | {lemmas: number[][]} | undefined => {
     const T = (t: string): Lin => (t.startsWith('k:') ? konst(Number(t.slice(2))) : tv(t))
     const theoryRows = (row: (lin: Lin, ls: number[]) => void) => {
@@ -552,9 +570,9 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
       return used.size ? [...used].map(l => -l) : undefined
     }
     const pairRows = (row: (lin: Lin, ls: number[]) => void, a: string, b: string) => {
-      const ab = m[v(le(a, b))!] === true, ba = m[v(le(b, a))!] === true
-      if (ab) row(plus(T(a), times(T(b), -1)), [v(le(a, b))!]); else row(plus(plus(T(b), konst(1)), times(T(a), -1)), [-v(le(a, b))!])
-      if (ba) row(plus(T(b), times(T(a), -1)), [v(le(b, a))!]); else row(plus(plus(T(a), konst(1)), times(T(b), -1)), [-v(le(b, a))!])
+      const p = pairOf(a, b)
+      if (m[p.ab] === true) row(p.rows[0], [p.ab]); else row(p.rows[1], [-p.ab])
+      if (m[p.ba] === true) row(p.rows[2], [p.ba]); else row(p.rows[3], [-p.ba])
     }
     // (each comparison alone first, with its terms' order and the constants: a lemma of a few literals for each the
     // model breaks, all of them in one round; one the model reads as an earlier model did, feasible then, not again)
@@ -593,12 +611,18 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
       for (const x of succs) if (m[x.s] && (tt.has(x.lo) || tt.has(x.hi))) { row(plus(T(x.hi), times(plus(T(x.lo), konst(1)), -1)), [x.s]); row(plus(plus(T(x.lo), konst(1)), times(T(x.hi), -1)), [x.s]); for (const y of [x.lo, x.hi]) if (!tt.has(y) && !y.startsWith('k:')) row(times(tv(y), -1), []) }
       theoryRows(row)
       // (several lemmas a round: each refutation's theory rows set aside, the rest solved again, at most eight)
-      const lemmas: number[][] = [], off = new Set<number>()
+      // (each by the simplex first (kernel/simplex.ts, the CDCL search's, its tableau kept from round to round): its
+      // conflict's rows refuted exactly (core/solver.ts), the lemma the literals that refutation reads; no answer, the
+      // first time by elimination over them all, as before; feasible, or a conflict the floats misjudge, no more lemmas)
+      const lemmas: number[][] = [], off = new Set<number>(), theoryLits = new Set(theory.flatMap(t => [t.x, -t.x]))
       for (let k = 0; k < 8; k++) {
-        const keep = rows.map((_, i) => i).filter(i => !off.has(i)), l = lemmaOf(solve(keep.map(i => rows[i]!)), keep.map(i => lits[i]!))
+        const keep = rows.map((_, i) => i).filter(i => !off.has(i)), sub = keep.map(i => rows[i]!), subLits = keep.map(i => lits[i]!)
+        let r = jointLp.load(sub)
+        if (r.kind === 'sat') r = jointLp.check()
+        if (r.kind === 'sat') break
+        const l = r.kind === 'conflict' ? lemmaOf(solve(r.rows.map(i => sub[i]!)), r.rows.map(i => subLits[i]!)) : k ? undefined : lemmaOf(solve(sub), subLits)
         if (!l) break
         lemmas.push(l)
-        const theoryLits = new Set(theory.flatMap(t => [t.x, -t.x]))
         keep.forEach(i => { if (lits[i]!.some(x => theoryLits.has(x) && l.includes(-x))) off.add(i) })
       }
       if (lemmas.length) return {lemmas}
@@ -613,6 +637,18 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     }
     for (const x of succs) if (m[x.s]) row(plus(T(x.hi), times(plus(T(x.lo), konst(1)), -1)), [x.s])
     theoryRows(row)
+    // (the simplex first, as the joint check: a conflict's rows refuted exactly; its point the values where every term is
+    // a natural there and every row holds exactly; else elimination over them all, as before)
+    let q = jointLp.load(rows)
+    if (q.kind === 'sat') q = jointLp.check()
+    if (q.kind === 'conflict') { const l = lemmaOf(solve(q.rows.map(i => rows[i]!)), q.rows.map(i => lits[i]!)); if (l) return {lemmas: [l]} }
+    if (q.kind === 'sat') {
+      const at = (t: string) => { const j = jointLp.indexOf(t); return j === undefined ? 0 : jointLp.value(j) }
+      const val = new Map([...ords].map(t => [t, t.startsWith('k:') ? Number(t.slice(2)) : Math.round(at(t))]))
+      const ok = [...ords].every(t => t.startsWith('k:') || (Math.abs(at(t) - val.get(t)!) < 1e-6 && val.get(t)! >= 0))
+        && rows.every(r => Object.entries(r.lin).reduce((x, [k, c]) => x + c * (k === '1' ? 1 : val.get(k) ?? 0), 0) <= 0)
+      if (ok) return {val}
+    }
     const r = solve(rows)
     if (r.kind === 'sat') return {val: new Map([...ords].map(t => [t, t.startsWith('k:') ? Number(t.slice(2)) : r.witness[t] ?? 0]))}
     const l = lemmaOf(r, lits)
@@ -760,7 +796,7 @@ function cdcl(input: {lits: number[], from: Origin}[], budget: number, trueFirst
 }
 // The CDCL as a solver clauses can be added to between its answers (a lemma a model breaks, lazily): each added at level
 // 0, the search again from there with what it learned. `add` false: a clause over a variable it doesn't have.
-function cdclSolver(input: {lits: number[], from: Origin}[], trueFirst: Set<number> = new Set()): {solve: (budget: number, late?: () => boolean) => CdclOut, add: (c: {lits: number[], from: Origin}) => boolean} {
+function cdclSolver(input: {lits: number[], from: Origin}[], trueFirst: Set<number> = new Set(), keepPhase: Set<number> = new Set()): {solve: (budget: number, late?: () => boolean) => CdclOut, add: (c: {lits: number[], from: Origin}) => boolean} {
   let n = 0
   for (const c of input) for (const l of c.lits) n = Math.max(n, Math.abs(l))
   const idx = new Map<number, number>(), back: number[] = [0]
@@ -772,6 +808,7 @@ function cdclSolver(input: {lits: number[], from: Origin}[], trueFirst: Set<numb
   const wl = (l: number) => { let w = watch.get(l); if (!w) watch.set(l, (w = [])); return w }
   const valOf = (l: number) => (val[Math.abs(l)] === 0 ? 0 : (val[Math.abs(l)]! > 0) === (l > 0) ? 1 : -1)
   const trail: number[] = [], lim: number[] = []
+  const phase = new Int8Array(nv)
   const assign = (l: number, r?: Cl) => { val[Math.abs(l)] = l > 0 ? 1 : -1; level[Math.abs(l)] = lim.length; reason[Math.abs(l)] = r; trail.push(l) }
   let qhead = 0, fixed: CdclOut | 'none' = 'none'
   const units: Cl[] = []
@@ -860,9 +897,9 @@ function cdclSolver(input: {lits: number[], from: Origin}[], trueFirst: Set<numb
     // decide: the most active unassigned variable, false first
     let best = 0
     while (heap.length) { const x = pop(); if (val[x] === 0) { best = x; break } }
-    if (!best) { const model: boolean[] = []; for (let x = 1; x < nv; x++) model[back[x]!] = val[x]! > 0; return {sat: true, model} }
+    if (!best) { const model: boolean[] = []; for (let x = 1; x < nv; x++) { model[back[x]!] = val[x]! > 0; if (keepPhase.has(back[x]!)) phase[x] = val[x]! } return {sat: true, model} }
     lim.push(trail.length)
-    assign(trueFirst.has(back[best]!) ? best : -best)
+    assign(phase[best] ? phase[best]! * best : trueFirst.has(back[best]!) ? best : -best)
   }
   }
   return {solve, add}
