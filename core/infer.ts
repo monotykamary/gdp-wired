@@ -1769,6 +1769,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       return false
     }
     const smallReq: {params: Env, combos: Request[]}[] = []
+    let smallAll: Sample[] = []
     const enumerated = (): Form[] => {
       const ks = sorts!, comp = ks.composedMaps.length && pairing?.n ? [ks.find('hi'), ks.find('lo')] : undefined
       const multi = [...ks.arity].map(([mp, k]) => ({mp, slots: Array.from({length: k}, (_, i) => ks.find(`${mp}:${i}`))}))
@@ -1812,6 +1813,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           pvs.set(JSON.stringify(p), p)
         }
         const end2 = performance.now() + (wallUntil - performance.now()) / 7, seen = new Set<string>(), small: Sample[] = []
+        let cut = false
         const keyOf3 = (q: Sample) => JSON.stringify([q.params, q.st.scalars, mapsText(q.st)])
         for (const params of pvs.values()) {
           const drawn = new Map<string, Set<number>>(m.inputs.map(i => [i, new Set<number>()]))
@@ -1824,9 +1826,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           smallReq.push({params, combos})
           let st0: State
           try { st0 = run.init(params) } catch { continue }
-          const queue = [{params, st: st0}]
+          const queue = [{params, st: st0}], bfsEnd = performance.now() + (end2 - performance.now()) * 0.75 / (pvs.size - smallReq.length + 1)
           seen.add(keyOf3(queue[0]!)); small.push(queue[0]!)
-          while (queue.length && small.length < 20_000 && performance.now() < end2) {
+          while (queue.length && small.length < 20_000 && performance.now() < bfsEnd) {
             const q0 = queue.shift()!
             for (const input of combos) {
               used.tries++
@@ -1836,9 +1838,30 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
               if (!seen.has(k1)) { seen.add(k1); small.push(q1); queue.push(q1) }
             }
           }
+          if (queue.length) cut = true
         }
-        opts.progress?.('join small instance', {states: small.length, params: pvs.size, ms: Math.round(performance.now() - t0)})
-        samples.unshift(...small)
+        // (then random walks from its last states, deeper than the BFS's levels reach: each step the first of a few
+        // requests that changes the state, to the end of its share)
+        const bfs = small.length
+        for (let t = 0; cut && smallReq.length && small.length < 20_000 && performance.now() < end2; t++) {
+          const from = small[Math.max(0, small.length - 1 - rand(Math.min(small.length, 64)))]!, req = smallReq.find(q => q.params === from.params)
+          if (!req) break
+          let at = from.st
+          for (let d = 0; d < 40 && performance.now() < end2; d++) {
+            let next: State | undefined
+            for (let k = 0; k < 16 && !next; k++) {
+              const input = req.combos[rand(req.combos.length)]!
+              used.tries++
+              try { if (allowed(m, run, from.params, at, input)) { const s2 = run.step(from.params, at, input); if (keyOf3({params: from.params, st: s2}) !== keyOf3({params: from.params, st: at})) next = s2 } } catch { /* (a request the step refuses) */ }
+            }
+            if (!next) break
+            at = next
+            const q1 = {params: from.params, st: at}, k1 = keyOf3(q1)
+            if (!seen.has(k1)) { seen.add(k1); small.push(q1) }
+          }
+        }
+        opts.progress?.('join small instance', {states: small.length, bfs, params: pvs.size, ms: Math.round(performance.now() - t0)})
+        samples.unshift(...small); smallAll = small
       }
       const out: Form[] = []
       for (const counts of width.reduce<number[][]>((acc, w) => acc.flatMap(c => Array.from({length: w + 1}, (_, k) => [...c, k])), [[]])) {
@@ -1854,7 +1877,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const frame = all(...keys.flatMap((s, i) => [...(comp && s === comp[1] && !bounds.has(s) ? [atMost(x(vars[i]!), n(pairing!.n - 1))] : []), ...[...new Set((bounds.get(s) ?? []).map(g => JSON.stringify(substC(g, {vars: {[KEY]: x(vars[i]!)}, maps: {}, flags: {}}))))].map(t => JSON.parse(t) as C), ...keys.slice(0, i).flatMap((t, j) => (t === s ? [not(same(x(vars[j]!), x(vars[i]!)))] : []))]))
         const vi = views.length
         addView({vars, names, places, covers, frame, need: keys.length, printable: false}, mapsAt, st => keys.map(s => ks.valuesAt(st, s)), Math.max(2, Math.floor(64 ** (1 / keys.length))), extra)
-        const v = views[vi]!, R = v.rows.slice(0, 3000).map(valuesOf)
+        // (the rows: every small state's, distinct, at most 20,000; the view's own rows stop at its first states, the shallow
+        // ones, so a deep state's (a leader's) would be left out)
+        const v = views[vi]!, R: Float64Array[] = [], seenRows = new Set<string>()
+        for (const q of smallAll.length ? smallAll : []) { if (R.length >= 20_000) break; for (const row of v.rowsOf(q.params, q.st)) { const r = valuesOf(row), k2 = vecKey(r); if (!seenRows.has(k2)) { seenRows.add(k2); R.push(r) } } }
+        if (!R.length) R.push(...v.rows.slice(0, 3000).map(valuesOf))
         try { if (!m.params.length) R.push(...v.rowsOf({}, run.init({})).map(valuesOf)) } catch { /* (the samples hold the start) */ }
         // (each literal with the rows it is true at, as bits; `id` its atoms, `name` its text under a renaming of the keys)
         const W = Math.ceil(R.length / 32), lits: {lit: Lit, id: string, name: (ren: number[]) => string, reads: number[], bits: Uint32Array}[] = []
@@ -1896,7 +1923,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const canon = (ls: number[]) => perms.map(ren => ls.map(l => lits[l]!.name(ren)).sort().join('&')).sort()[0]!
         const seen = new Set<string>(), found: number[][] = []
         const dfs = (from: number, chosen: number[], size: number, bits?: Uint32Array) => {
-          for (let j = from; j < lits.length && found.length < 32; j++) {
+          for (let j = from; j < lits.length && found.length < 96; j++) {
             if (chosen.some(c => lits[c]!.id === lits[j]!.id)) continue
             const now2 = [...chosen, j], b = bits ? and(bits, lits[j]!.bits) : lits[j]!.bits
             if (now2.length < size) { if (!empty(b)) dfs(j + 1, now2, size, b); continue }
@@ -1946,7 +1973,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const near = (f: Form) => (f.cube!.some(l => atomsIn(formOf([l])).some(i => callerMaps.has(atoms[i]!.parts[0]![0].split(AT)[2] ?? ''))) ? 0 : 1)
       const made = enumerated()
       let cubes: Form[] = []
-      for (const f of [...made].sort((a, b) => near(a) - near(b))) { if (cubes.length >= 32 || stop()) break; if (!names.has(textOf(f)) && !implied(f)) cubes.push(f) }
+      for (const f of [...made].sort((a, b) => near(a) - near(b))) { if (cubes.length >= 48 || stop()) break; if (!names.has(textOf(f)) && !implied(f)) cubes.push(f) }
       opts.progress?.('join enumerated', {views: views.length - v0, cubes: cubes.length})
       opts.progress?.('join cubes', {cubes: cubes.map(textOf).join(' | ')})
       // (a goal's proof within the search's own end, on the cost model's clock: a counted search inside it keeps the end)
