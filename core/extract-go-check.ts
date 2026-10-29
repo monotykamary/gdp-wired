@@ -281,14 +281,13 @@ const goEnv = () => ({...(globalThis as {process?: {env?: Record<string, string>
 // core/extract-check.ts's `drive`, with the Go code's side: the harness built once and spoken to through two named
 // pipes, a JSON line a request (make an object, set it to a state, read it, call a method on it).
 export function checkGo(dir: string, pkg: GoPkg, read: GoRead, r: Rule, sorts: Sorts, gopts: GoOptions): GoEvidence {
-  const opts = gopts.check ?? {}, m = read.model, bound = opts.bound ?? 12
+  const opts = gopts.check ?? {}, m = read.model
   const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process'), os = node<{tmpdir: () => string}>('node:os')
   const mod = moduleOf(dir), work = fs.mkdtempSync(`${os.tmpdir()}/gdp-gocheck-`)
   const hfile = `${dir.replace(/\/$/, '')}/zz_gdp_harness_gen.go`, mainDir = `${mod.root}/gdpharness_${Date.now().toString(36)}`
   const {code} = harness(pkg, read, m, gopts.onError === 'discard')
   const importPath = mod.path, empty = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0, buildMs: 0, runMs: 0}
   const b0 = performance.now()
-  let child: {kill: () => void} | undefined, wi = -1, ro = -1
   try {
     fs.writeFileSync(hfile, code)
     fs.mkdirSync(mainDir, {recursive: true})
@@ -303,8 +302,40 @@ export function checkGo(dir: string, pkg: GoPkg, read: GoRead, r: Rule, sorts: S
     }
     const buildMs = Math.round(performance.now() - b0)
     fs.mkdirSync(`${work}/cov`, {recursive: true})
+    // The blocks of the code the step reads that the requests reached (the harness's counters, written as it exits).
+    const count = (): Coverage => {
+      try {
+        cp.execFileSync('go', ['tool', 'covdata', 'textfmt', `-i=${work}/cov`, `-o=${work}/cov.txt`], {cwd: mod.root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: goEnv()})
+        const blocks = new Map<string, {file: string, from: number, to: number, hit: boolean}>()
+        for (const l of fs.readFileSync(`${work}/cov.txt`, 'utf8').split('\n').slice(1)) {
+          const mm = /^(.*):(\d+)\.\d+,(\d+)\.\d+ \d+ (\d+)$/.exec(l)
+          if (!mm) continue
+          const file = mm[1]!.split('/').pop()!, from = Number(mm[2]), to = Number(mm[3]), n = Number(mm[4])
+          if (!read.spans.some(([f, a, b]) => f === file && from >= a && to <= b)) continue
+          const k = `${file}:${mm[2]}-${mm[3]}:${l.split(' ')[0]}`
+          blocks.set(k, {file, from, to, hit: (blocks.get(k)?.hit ?? false) || n > 0})
+        }
+        return {arms: blocks.size, hit: [...blocks.values()].filter(b => b.hit).length, missed: [...blocks.values()].filter(b => !b.hit).map(b => `the block at ${b.file}:${b.from}-${b.to}`)}
+      } catch { return {arms: 0, hit: 0, missed: []} }
+    }
+    return {...speak(work, `${work}/harness`, {...goEnv(), GOCOVERDIR: `${work}/cov`}, pkg, read, r, sorts, opts, count), buildMs}
+  } finally {
+    try { fs.rmSync(hfile) } catch { /* gone */ }
+    try { fs.rmSync(mainDir, {recursive: true, force: true}) } catch { /* gone */ }
+    try { fs.rmSync(work, {recursive: true, force: true}) } catch { /* gone */ }
+  }
+}
+
+// The code's side of core/extract-check.ts's `drive`, for a harness built in the code's language (Go's, C's): the
+// harness spoken to through two named pipes in `work`, a JSON line a request (make an object, set it to a state, read
+// it, call a method on it), every state compared; `count` reads the coverage after the harness exits.
+export function speak(work: string, bin: string, env: Record<string, string | undefined> | undefined, pkg: GoPkg, read: GoRead, r: Rule, sorts: Sorts, opts: GoCheckOptions, count: () => Coverage): Evidence & {runMs: number} {
+  const m = read.model, bound = opts.bound ?? 12
+  const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process')
+  let child: {kill: () => void} | undefined, wi = -1, ro = -1
+  try {
     cp.execFileSync('mkfifo', [`${work}/in`, `${work}/out`], {})
-    child = node<{spawn: (f: string, a: string[], o: Record<string, unknown>) => {kill: () => void}}>('node:child_process').spawn(`${work}/harness`, [`${work}/in`, `${work}/out`], {stdio: 'ignore', env: {...goEnv(), GOCOVERDIR: `${work}/cov`}})
+    child = node<{spawn: (f: string, a: string[], o: Record<string, unknown>) => {kill: () => void}}>('node:child_process').spawn(bin, [`${work}/in`, `${work}/out`], {stdio: 'ignore', env})
     wi = fs.openSync(`${work}/in`, 'w'); ro = fs.openSync(`${work}/out`, 'r')
     const buf = new Uint8Array(1 << 20), dec = new TextDecoder()
     let pend = ''
@@ -397,35 +428,19 @@ export function checkGo(dir: string, pkg: GoPkg, read: GoRead, r: Rule, sorts: S
       normalize,
       edge: (s, raw) => read.edges.some(c => evalB(c, s, raw)),
     }
-    // The harness told to stop: its counters written as it exits, the blocks of the code the step reads that the
-    // requests reached.
+    // The harness told to stop: its counters written as it exits.
     function closeAndCount(): Coverage {
       fs.closeSync(wi); wi = -1
       while (line() !== undefined) { /* to its end */ }
       fs.closeSync(ro); ro = -1
-      try {
-        cp.execFileSync('go', ['tool', 'covdata', 'textfmt', `-i=${work}/cov`, `-o=${work}/cov.txt`], {cwd: mod.root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: goEnv()})
-        const blocks = new Map<string, {file: string, from: number, to: number, hit: boolean}>()
-        for (const l of fs.readFileSync(`${work}/cov.txt`, 'utf8').split('\n').slice(1)) {
-          const mm = /^(.*):(\d+)\.\d+,(\d+)\.\d+ \d+ (\d+)$/.exec(l)
-          if (!mm) continue
-          const file = mm[1]!.split('/').pop()!, from = Number(mm[2]), to = Number(mm[3]), n = Number(mm[4])
-          if (!read.spans.some(([f, a, b]) => f === file && from >= a && to <= b)) continue
-          const k = `${file}:${mm[2]}-${mm[3]}:${l.split(' ')[0]}`
-          blocks.set(k, {file, from, to, hit: (blocks.get(k)?.hit ?? false) || n > 0})
-        }
-        return {arms: blocks.size, hit: [...blocks.values()].filter(b => b.hit).length, missed: [...blocks.values()].filter(b => !b.hit).map(b => `the block at ${b.file}:${b.from}-${b.to}`)}
-      } catch { return {arms: 0, hit: 0, missed: []} }
+      return count()
     }
     const ev = drive(m, r, sorts, side, opts)
-    return {...ev, buildMs, runMs: Math.round(performance.now() - r0)}
+    return {...ev, runMs: Math.round(performance.now() - r0)}
   } finally {
     if (wi >= 0) try { fs.closeSync(wi) } catch { /* closed */ }
     if (ro >= 0) try { fs.closeSync(ro) } catch { /* closed */ }
     try { child?.kill() } catch { /* gone */ }
-    try { fs.rmSync(hfile) } catch { /* gone */ }
-    try { fs.rmSync(mainDir, {recursive: true, force: true}) } catch { /* gone */ }
-    try { fs.rmSync(work, {recursive: true, force: true}) } catch { /* gone */ }
   }
 }
 

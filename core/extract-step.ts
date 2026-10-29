@@ -62,7 +62,8 @@ export type StepOptions = {
 // --- values ---------------------------------------------------------------------------------------------------------
 // An integer type's width (0: unbounded) and sign: where a number is one, its operations' overflow is the type's.
 // (`name`: the type's name in the code, for the notes; `t`: the reader's own index of it)
-export type IntTy = {bits: number, signed: boolean, name?: string, t?: number}
+// (`ub`: past its range is undefined behavior, C's and C++'s signed overflow: refused where it may be, never wrapped)
+export type IntTy = {bits: number, signed: boolean, name?: string, t?: number, ub?: boolean}
 // A number (with the comparison it is the sign of, x.Cmp(y); with the string it is the length of, read only against 0).
 type V =
   | {t: 'num', e: N, ty?: IntTy, cmp?: [N, N], slen?: K} | {t: 'bool', e: B} | {t: 'str', e: K} | {t: 'choice', e: L}
@@ -107,7 +108,7 @@ const where = (x: {p: string}) => x.p || '?'
 const refuse = (x: {p: string} | string, what: string): never => { throw new Refusal(typeof x === 'string' ? x : where(x), what) }
 const RESERVED = new Set(['rule', 'nat', 'int', 'bool', 'when', 'min', 'max', 'all', 'any', 'not', 'yes', 'no', 'lit', 'str', 'record', 'oneOf', 'intern', 'Int', 'forall'])
 const keyV = (v: V | Obj): string => JSON.stringify(v, (_, x) => (x instanceof Map ? [...x.entries()] : x))
-const LANG: Record<string, string> = {go: 'Go', rust: 'Rust', python: 'Python'}
+const LANG: Record<string, string> = {go: 'Go', rust: 'Rust', python: 'Python', c: 'C', cpp: 'C++'}
 const tyName = (ty?: IntTy) => (ty ? (ty.bits ? `${ty.signed ? 'i' : 'u'}${ty.bits}` : ty.signed ? 'an Instant' : 'a Duration') : 'the number')
 const constOf = (v: V): number | undefined => (v.t === 'num' && v.e.op === 'const' ? v.e.v : undefined)
 
@@ -506,7 +507,7 @@ export class Stepper {
         return {live: {...p, locals}, rets: []}
       }
       case 'no': return refuse(s, String(s.why))
-      case 'panic': { let q = p; for (const a of s.args as SX[]) q = this.ev(a, q)[1]; this.refuseWhere(q, I.T, s, 'a panic'); return {rets: []} }
+      case 'panic': { let q = p; for (const a of s.args as SX[]) q = this.ev(a, q)[1]; this.refuseWhere(q, I.T, s, String(s.what ?? 'a panic')); return {rets: []} }
       case 'incdec': {
         const [pl, q] = this.place(s.to as SX, p), [v, q2] = this.read(pl, s, q)
         if (v.t !== 'num') return refuse(s, `${s.op as string} of a ${v.t}`)
@@ -790,7 +791,7 @@ export class Stepper {
       case 'at': { const [pl, q] = this.place(x.pl as SX, p); if (pl.k === 'blank') return refuse(x, '_'); const [v, q2] = this.read(pl, x, q); if (v.t === 'opaque' && !x.raw) return refuse(x, v.why); return [v, q2] }
       case 'deref': { const [v, q] = this.ev(x.x as SX, p); return this.deref(v, [], x, q) }
       case 'as': { const [v, q] = this.ev(x.x as SX, p); if (v.t === 'num' && x.ity) return [{...v, ty: x.ity as IntTy}, q]; if (v.t === 'nil' && x.nil) return [x.nil === 'ptr' ? {t: 'ptr', to: {k: 'nil'}} : {t: 'err', is: I.F}, q]; return [v, q] }
-      case 'conv': { const [v, q] = this.ev(x.x as SX, p), ty = x.ity as IntTy | undefined; if (ty && v.t === 'num') return [{t: 'num', e: this.wrap(v.e, ty, x, q), ty}, q]; return refuse(x, String(x.why)) }
+      case 'conv': { const [v, q] = this.ev(x.x as SX, p), ty = x.ity as IntTy | undefined; if (ty && v.t === 'num') return [{t: 'num', e: this.wrap(v.e, ty.ub ? {bits: ty.bits, signed: ty.signed, name: ty.name, t: ty.t} : ty, x, q), ty}, q]; return refuse(x, String(x.why)) }
       case 'binop': { const [a, q] = this.ev(x.x as SX, p), [b, q2] = this.ev(x.y as SX, q); return [this.binop(String(x.op), a, b, x, q2), q2] }
       case 'andalso': {
         // The right side runs only where the left doesn't decide: its failures and effects only there.
@@ -850,7 +851,7 @@ export class Stepper {
         for (const v of vs.slice(1)) e = x.op === 'min' ? I.nmin(e, this.numv(v, x)) : I.nmax(e, this.numv(v, x))
         return [{t: 'num', e, ty: (x.ity as IntTy | undefined) ?? refuse(x, String(x.why))}, q]
       }
-      case 'panic': { let q = p; for (const a of x.args as SX[]) q = this.ev(a, q)[1]; this.refuseWhere(q, I.T, x, 'a panic'); return [{t: 'tuple', xs: []}, {...q, pc: [...q.pc, I.F]}] }
+      case 'panic': { let q = p; for (const a of x.args as SX[]) q = this.ev(a, q)[1]; this.refuseWhere(q, I.T, x, String(x.what ?? 'a panic')); return [{t: 'tuple', xs: []}, {...q, pc: [...q.pc, I.F]}] }
       case 'midx': { const [b, q] = this.ev(x.m as SX, p), [i, q2] = this.ev(x.k as SX, q); return [this.mapRead(b, i, x, q2).v, q2] }
       case 'lidx': { const [b, q] = this.ev(x.s as SX, p), [i, q2] = this.ev(x.i as SX, q); return this.listGet(b, i, x, q2) }
       case 'pop': {
@@ -1521,7 +1522,7 @@ export class Stepper {
         break
       }
       case '>>': if (b.e.op !== 'const' || b.e.v < 0) return refuse(x, '>> by other than a constant'); if (b.e.v >= 53) return refuse(x, `>> ${b.e.v} (past the rule's 2^53)`); e = I.divk(2 ** b.e.v, a.e); break
-      case '<<': if (b.e.op !== 'const' || b.e.v < 0) return refuse(x, '<< by other than a constant'); if (b.e.v >= 53) return refuse(x, `<< ${b.e.v} (past the rule's 2^53)`); e = I.mulk(2 ** b.e.v, a.e); break
+      case '<<': if (b.e.op !== 'const' || b.e.v < 0) return refuse(x, '<< by other than a constant'); if (b.e.v >= 53) return refuse(x, `<< ${b.e.v} (past the rule's 2^53)`); if (ty.ub) this.refuseWhere(p, I.cmp('<', a.e, I.num(0)), x, `${(x as SX).text ? `${(x as SX).text}: ` : ''}a negative value shifted left (undefined behavior)`); e = I.mulk(2 ** b.e.v, a.e); break
       default: return refuse(x, `${op}: outside the subset`)
     }
     return {t: 'num', e: this.wrap(e, ty, x, p), ty}
@@ -1554,6 +1555,11 @@ export class Stepper {
   // path's facts keep it within); at 64 bits the rule's numbers stop at ±2^53, and an unsigned one below 0 is refused.
   wrap(e: N, ty: IntTy, x: {p: string}, p: Path): N {
     if (ty.bits === 0) return e
+    if (ty.ub) {
+      const out = I.or(...this.past(e, ...rangeOf(ty), p))
+      if (!(out.op === 'const' && !out.v)) { this.refuseWhere(p, out, x, `${(x as SX).text ? `${(x as SX).text}: ` : ''}past ${ty.name ?? tyName(ty)}'s range (signed overflow: undefined behavior)`); this.notes.add(`${ty.name ?? tyName(ty)}: a result past its range is refused (signed overflow is undefined behavior in ${LANG[this.mod.lang] ?? this.mod.lang})`) }
+      return e
+    }
     const [lo, hi] = rangeOf(ty), [blo0, bhi0] = this.bounds(e)
     if (blo0 >= lo && bhi0 <= hi) return e
     const blo = blo0 >= lo || this.within(e, lo, 'lo', p) ? Math.max(blo0, lo) : blo0, bhi = bhi0 <= hi || this.within(e, hi, 'hi', p) ? Math.min(bhi0, hi) : bhi0
@@ -1812,7 +1818,9 @@ export class Stepper {
     let carried: Path | undefined
     cases.forEach((c, i) => {
       const entry = conds[i]!.op === 'const' && !(conds[i] as {v: boolean}).v ? undefined : this.assume(q, conds[i]!)
-      const into = this.join([...(entry ? [entry] : []), ...(carried ? [carried] : [])], c)
+      let into = this.join([...(entry ? [entry] : []), ...(carried ? [carried] : [])], c)
+      // (entered and carried into: the join keeps that one or the other got here, which a later join reads)
+      if (entry && carried && into) { let k = 0; while (k < entry.pc.length && k < carried.pc.length && I.same(entry.pc[k]!, carried.pc[k]!)) k++; into = this.assume(into, I.or(I.and(...entry.pc.slice(k)), I.and(...carried.pc.slice(k)))) }
       carried = undefined
       if (!into) return
       const f = this.block(c.b, into)

@@ -42,16 +42,17 @@ import {type IntTy, type Recipe, type SFunc, type SModule, type SS, type SX, typ
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
 
 // --- the reader's JSON ----------------------------------------------------------------------------------------------
-export type TT = {k: string, go?: string, generic?: boolean, name?: string, pkg?: string, own?: boolean, bits?: number, signed?: boolean, untyped?: boolean, elem?: number, key?: number,
+export type TT = {k: string, go?: string, generic?: boolean, name?: string, pkg?: string, own?: boolean, bits?: number, signed?: boolean, untyped?: boolean, ub?: boolean, elem?: number, key?: number,
   fields?: {name: string, t: number, embedded: boolean}[], xfields?: {name: string, t: number, embedded: boolean, exported: boolean}[], methods?: {name: string, ptr: boolean}[], params?: number[], results?: number[], elems?: number[], iface?: boolean, args?: number[], len?: number}
 type GC = {int?: string, bool?: boolean, str?: string, float?: string, other?: string}
-export type GX = {e: string, p: string, t: number, text: string, c?: GC, n?: string, o?: string, id?: string, x?: GX, y?: GX, op?: string, f?: GX, a?: GX[], k?: string, lo?: GX, hi?: GX, three?: boolean,
+export type GX = {e: string, p: string, t: number, text: string, c?: GC, why?: string, what?: string, b?: GX, n?: string, o?: string, id?: string, x?: GX, y?: GX, op?: string, f?: GX, a?: GX[], k?: string, lo?: GX, hi?: GX, three?: boolean,
   path?: number[], indirect?: boolean, mptr?: boolean, mtype?: string, mpkg?: string, pkg?: string, builtin?: string, conv?: boolean, ell?: boolean, elts?: {field?: string, k?: GX, v: GX}[], i?: GX}
-export type GS = {s: string, p: string, x?: GX, op?: string, l?: GX[], r?: GX[], c?: GX, then?: GS[], else?: GS, init?: GS, tag?: GX, cases?: {list?: GX[], default?: boolean, b: GS[], p: string}[],
+export type GS = {s: string, p: string, why?: string, x?: GX, op?: string, l?: GX[], r?: GX[], c?: GX, then?: GS[], else?: GS, init?: GS, tag?: GX, cases?: {list?: GX[], default?: boolean, b: GS[], p: string}[],
   b?: GS[], specs?: {names: {name: string, id: string, t: number, c?: GC}[], v: GX[], const?: boolean, type?: boolean}[], tok?: string, label?: string, st?: GS}
 export type GoParam = {name?: string, id?: string, t: number, variadic?: boolean, ts?: string}
 export type GoFunc = {name: string, p: string, span: [number, number], recv?: {t: number, ptr: boolean, type: string, name?: string, id?: string}, generic?: boolean, params: GoParam[], results: GoParam[], body?: GS[]}
-export type GoPkg = {package: string, files: {name: string, imports: {path: string, name: string, std: boolean}[]}[], funcs: GoFunc[], types: {name: string, t: number, p: string, span: [number, number]}[],
+// (`lang`: the language the JSON was read from, Go's reader's or another's in its shape, core/c/reader.ts's)
+export type GoPkg = {lang?: string, package: string, files: {name: string, imports: {path: string, name: string, std: boolean}[]}[], funcs: GoFunc[], types: {name: string, t: number, p: string, span: [number, number]}[],
   consts: {name: string, t: number, c: GC, p: string}[], vars: {name: string, t: number, p: string, init?: GX}[], errors: string[], ttab: TT[]}
 
 export type GoOptions = {
@@ -63,6 +64,8 @@ export type GoOptions = {
   onError?: 'refuse' | 'discard',
   domains?: Record<string, 'nat' | 'int'>,
   check?: GoCheckOptions,
+  // A result that is a failure where it compares so, by the function (C's return codes: {take: '< 0'}).
+  fails?: Record<string, string>,
 }
 const refuse = (x: {p: string} | string, what: string): never => { throw new Refusal(typeof x === 'string' ? x : x.p || '?', what) }
 type Path = StepPath
@@ -74,14 +77,14 @@ class Go {
   readonly leaves: GoLeaf[] = []
   readonly funcs: Record<string, SFunc> = {}
   constructor(readonly pkg: GoPkg, readonly opts: GoOptions) {
-    const mod: SModule = {lang: 'go', file: pkg.files[0]?.name ?? 'go', path: '', module: pkg.package, root: '', entries: [], recs: {}, funcs: this.funcs, split: false}
+    const mod: SModule = {lang: pkg.lang ?? 'go', file: pkg.files[0]?.name ?? 'go', path: '', module: pkg.package, root: '', entries: [], recs: {}, funcs: this.funcs, split: false}
     this.g = new Stepper(mod, {entry: opts.entry, ...(opts.onError ? {onError: opts.onError} : {})})
     for (const f of pkg.funcs) this.funcs[`${f.recv?.type ?? ''}.${f.name}`] = this.fn(f)
   }
   T(t: number): TT { return this.pkg.ttab[t] ?? {k: 'invalid'} }
   // (another package's types by its name, not the harness's alias for it)
   tname(t: number): string { const x = this.T(t); return x.go?.replace(/\bgdp_(?:\w*_)?(\w+)\./g, '$1.') ?? x.name ?? x.k }
-  intTy(t: number): IntTy | undefined { const x = this.T(t); return x.k === 'int' ? {bits: x.untyped ? 64 : x.bits ?? 64, signed: x.signed ?? true, t, name: this.tname(t)} : undefined }
+  intTy(t: number): IntTy | undefined { const x = this.T(t); return x.k === 'int' ? {bits: x.untyped ? 64 : x.bits ?? 64, signed: x.signed ?? true, t, name: this.tname(t), ...(x.ub ? {ub: true} : {})} : undefined }
   isBig(t: number): boolean { const x = this.T(t); return x.k === 'ext' && x.pkg === 'math/big' && x.name === 'Int' }
   isBigPtr(t: number): boolean { const x = this.T(t); return x.k === 'ptr' && this.isBig(x.elem!) }
   isContext(t: number): boolean { const x = this.T(t); return x.k === 'ext' && x.pkg === 'context' && x.name === 'Context' }
@@ -187,6 +190,8 @@ class Go {
         const h = x.hi, ok = !x.lo && !x.three && h?.e === 'bin' && h.op === '-' && h.y?.c?.int === '1' && h.x?.e === 'call' && h.x.builtin === 'len' && h.x.a?.[0]?.text === x.x!.text
         return {e: 'pop', ...at, s: this.x(x.x!), ok, why: `${x.text}: a slice of a slice (it shares the backing array: a write through either is seen by both, and append writes into it or not by its capacity)`}
       }
+      case 'no': return this.no(x, x.why!)
+      case 'ite': return {e: 'ite', ...at, c: this.x(x.x!), a: this.x(x.y!), b: this.x(x.b!)}
       case 'funclit': return this.no(x, 'a closure')
       case 'assert': return this.no(x, 'a type assertion (interfaces are outside the subset)')
       case 'inst': return this.no(x, 'a generic function')
@@ -298,7 +303,7 @@ class Go {
       }
       case 'new': { const et = this.T(x.t).elem!; return this.isBig(et) ? {e: 'bignew', ...at} : {e: 'alloc', ...at, x: this.zero(et, x)} }
       case 'min': case 'max': return {e: 'minmax', ...at, op: b, xs: a.map(y => this.x(y)), ity: this.intTy(x.t), why: `${b} of other than integers`}
-      case 'panic': return {e: 'panic', ...at, args: a.map(y => this.x(y))}
+      case 'panic': return {e: 'panic', ...at, args: a.map(y => this.x(y)), ...(x.what ? {what: x.what} : {})}
       case 'recover': return this.no(x, 'recover (a panic is a refusal in the subset)')
       case 'cap': return this.no(x, 'cap (a slice\'s capacity decides whether append shares its backing array)')
       case 'copy': return this.no(x, 'copy (between two slices)')
@@ -331,9 +336,10 @@ class Go {
     switch (s.s) {
       case 'block': return this.body(s.b!, fn)
       case 'empty': return []
+      case 'no': return no(s.why!)
       case 'expr': {
         const x = s.x!
-        if (x.e === 'call' && x.builtin === 'panic') return [{s: 'panic', p: s.p, args: (x.a ?? []).map(y => this.x(y))}]
+        if (x.e === 'call' && x.builtin === 'panic') return [{s: 'panic', p: s.p, args: (x.a ?? []).map(y => this.x(y)), ...(x.what ? {what: x.what} : {})}]
         return [{s: 'expr', p: s.p, x: this.x(x)}]
       }
       case 'incdec': return [{s: 'incdec', p: s.p, op: s.op, to: this.place(s.x!)}]
@@ -580,7 +586,16 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
     for (const [q0, vs] of rets) {
       const q = {...q0, locks: q0.locks.filter(k => !q0.defers.includes(k))}
       if (q.locks.length) refuse(fn, `${fn.name} returns with a mutex locked`)
-      if (errAt >= 0) {
+      const fails = opts.fails?.[fn.name]
+      if (fails !== undefined) {
+        // A result the caller states is the failure where it compares so: a refusal there, as an error is.
+        const m = /^\s*(==|!=|<=|>=|<|>)\s*(-?\d+|true|false)\s*$/.exec(fails) ?? refuse(fn, `fails: ${JSON.stringify(fails)} (a comparison with a constant: '< 0', '!= 0', '== false')`)
+        const r = vs[0] ?? refuse(fn, `${fn.name} returns nothing to compare (fails: ${fails})`)
+        const k: V = m[2] === 'true' || m[2] === 'false' ? {t: 'bool', e: m[2] === 'true' ? I.T : I.F} : {t: 'num', e: I.num(Number(m[2]))}
+        const is = (g.binop(m[1]!, r, k, fn, q) as {e: B}).e
+        g.refuseWhere(q, is, fn, `${fn.name} returning ${fails.trim()} (its failure, as the caller states)`)
+        if (!(is.op === 'const' && is.v)) ok.push([g.assume(q, I.not(is)), vs])
+      } else if (errAt >= 0) {
         const e = vs[errAt]
         const is = !e ? I.F : e.t === 'err' ? e.is : e.t === 'nil' ? I.F : refuse(fn, `${fn.name} returns an error of another kind`)
         g.refuseWhere(q, is, fn, 'an error returned')
@@ -782,7 +797,7 @@ function capture(x: Record<string, unknown>) {
   if (f) node<{appendFileSync: (p: string, s: string) => void}>('node:fs').appendFileSync(f, `${JSON.stringify({...x, opts: x.opts ? {...(x.opts as object), check: undefined} : undefined})}\n`)
 }
 // Unsigned numbers are naturals by their type (inputs and state alike); the rule's sorts say so.
-function unsignedDomains(r: GoRead): Record<string, 'nat' | 'int'> {
+export function unsignedDomains(r: GoRead): Record<string, 'nat' | 'int'> {
   const out: Record<string, 'nat' | 'int'> = {}
   for (const n of r.unsigned) out[n] = 'nat'
   return out
