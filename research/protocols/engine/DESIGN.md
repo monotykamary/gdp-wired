@@ -188,6 +188,25 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - within a map set, the cube over more keys first (the general one before its diagonal);
   - or more places for the turns: a second cube of each map set.
 
+**The selection fix** (`runs/engine/wo4`–`wo6`, `p24`):
+- **Selection:**
+  - Cubes are grouped by the maps they read, fewer literals first in a group, then more distinct keys (a law before its diagonal case).
+  - The groups go in turns, ordered by their own first cube; there are 64 places.
+  - The DFS keeps 400 cubes a view: at 96, wo's `VoteMsg[x,y] = 0 ∧ Votes[y,x]` was never enumerated, the cap cutting the two-literal cubes in literal order.
+  - Of the written ∀ laws, the selection now holds "one vote message per voter", "a vote message means voted" and "nothing before init". It still lacks "a counted vote was sent" and "a leader has the voting quorum's votes": both are in the enumeration, past the 64 places.
+- **The caller's goal:**
+  - EPR decides it first (`decideLaw`, within a join query).
+  - Its proof gets half the remaining wall, not a fixed 10 s.
+  - A model of it the interpreter doesn't confirm is an obligation like a cube's, its diagrams blocked.
+- **wo now runs IC3's loop:** the caller's models give diagrams in every round, and the ∃ law comes in at round 1 or 2.
+  - At 60 s: round 0 ends at 25–28 s and the rounds run to 42 s, then the end cuts them.
+  - At 120 s: five rounds; then the caller's law fails with no diagram at 90 s.
+  - Still unknown.
+- **Verdicts (p24):**
+  - The six proven: sync 8–9 s, async 22–25, decentralized 28–29, 2PC 17, ticket 32–34, toy 18–25.
+  - The four unknown: wo 57–65 (one run 5 s over), ring and distributed unchanged (waiting on epr6), sharded 29–30.
+- **The dump hook is out.** `join cubes` and `join made` are progress events, read by `smallprobe.ts` with CUBES=1 or CUBES=made.
+
 **Next steps, in order:**
 1. Start the stage earlier, with a planned share of the budget, not what's left after the join and the deep runs (distributed_lock's round 1 is cut short).
 2. Carry the model's function values into the judged state (ring): `stateOf`/`realCti` read `idn[...]` cells of the witness into the interpreter's view of `idn`, or judge rows with the model's values.
