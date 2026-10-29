@@ -2065,10 +2065,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const {params, st} = stateOf(w), read = new Set([...others, f].map(g => g?.view))
         const at = (s2: State): Point => ({scalar: withTerms({...params, ...s2.scalars}, s2), cells: [], views: views.map((v, i) => (read.has(i) ? v.rowsOf(params, s2) : []))})
         let post: State
-        try { post = run.step(params, st, requestOf(w)); stepNamed(st, post) } catch { return false }
-        if (!others.every(g => holdsAt(g, at(st)))) return false
+        try { post = run.step(params, st, requestOf(w)); stepNamed(st, post) } catch (e) { if (!f) T(`caller cti no step: ${String(e).slice(0, 120)}`); return false }
+        if (!others.every(g => holdsAt(g, at(st)))) { if (!f) T(`caller cti outside: ${others.filter(g => !holdsAt(g, at(st))).map(textOf).join(' | ').slice(0, 400)}`); return false }
         lastPre = {params, st}
-        if (!f) return breaks(params, post, st, requestOf(w))
+        if (!f) { const b = breaks(params, post, st, requestOf(w)); T(`caller cti breaks ${b} named ${[...(named.get(st) ?? [])].length}`); return b }
         const bad = (at(post).views[f.view!] ?? []).filter(r => judged(f, r) && !holdsRow(f, r)).map(valuesOf)
         if (bad.length) broken.set(f, bad)
         return bad.length > 0
@@ -2082,10 +2082,14 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const out2: Form[] = []
         for (const [vi, k] of known) {
           const seenR = reachedRows.get(vi) ?? new Set(k.R.map(vecKey)); reachedRows.set(vi, seenR)
-          for (const row of views[vi]!.rowsOf(pre.params, pre.st).filter(r => !unnamed.get(r))) {
+          // (a model names some cells: the literals over those alone)
+          if (env.GDP_ENUM_LOG) T(`diagram rows view ${vi}: ${views[vi]!.rowsOf(pre.params, pre.st).length} params ${JSON.stringify(pre.params)} maps ${mapsText(pre.st).slice(0, 200)}`)
+          for (const row of views[vi]!.rowsOf(pre.params, pre.st)) {
             const r = valuesOf(row)
-            if (seenR.has(vecKey(r))) continue
-            let c = k.lits.filter(l => litHolds(l, r))
+            if (!unnamed.get(row) && seenR.has(vecKey(r))) continue
+            let c = k.lits.filter(l => litHolds(l, r) && judged(formOf([l], vi), row))
+            if (env.GDP_ENUM_LOG && out2.length === 0 && vi === [...known.keys()].at(-1)) T(`diagram view ${vi} lits ${c.length}/${k.lits.length} inR ${k.R.some(y => inCube(c, y))} unnamed ${unnamed.get(row)?.size ?? 0} ${formOf(c, vi) && textOf(formOf(c, vi)).slice(0, 300)}`)
+            if (!c.length || k.R.some(y => inCube(c, y))) continue
             for (const l of [...c]) { const c2 = c.filter(x2 => x2 !== l); if (c2.length && !k.R.some(y => inCube(c2, y))) c = c2 }
             if (c.length <= 5 && !k.R.some(y => inCube(c, y))) out2.push(formOf(c, vi))
             if (out2.length >= 4) return out2
