@@ -2178,7 +2178,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             // (a goal decided by the EPR path alone first (a proof or a model, a cube's within a quarter of a join query, the
             // caller's within one); else a model or a refutation of the CDCL search alone, then the proof path's)
             if (f) { if (tGoal) cubeMs += performance.now() - tGoal; tGoal = performance.now(); asked++ } else tGoal = 0
-            const dl = within(Math.min(kUntil(), performance.now() + (f ? joinQueryMs / 4 : joinQueryMs)), () => decideLaw(mm, ls, idx))
+            const tDl = performance.now(), dlEnd = Math.min(kUntil(), performance.now() + (f ? joinQueryMs / 4 : joinQueryMs)), dl = within(dlEnd, () => decideLaw(mm, ls, idx))
+            // (the EPR path out of time on the caller's goal: the proof path would be no quicker)
+            const outOfTime = !dl && performance.now() - tDl >= 0.9 * (dlEnd - tDl)
             if (dl?.proven) continue
             let isReal = !!dl && realCti(dl.witness, f, others), wit = dl?.witness
             if (!dl) {
@@ -2190,7 +2192,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
               isReal = !!f && quick.stuck === 'sat' && !!quick.witness && realCti(quick.witness, f, others)
               if (quick.stuck === 'sat') wit = quick.witness
               // (a cube the EPR path doesn't decide: the CDCL search's answer alone; the caller's, the proof path's too)
-              if (!isReal && !f) {
+              if (!isReal && !f && !outOfTime) {
                 proofs++
                 const r2 = within(Math.min(kUntil() - 2000, performance.now() + Math.max(joinQueryMs * 1.25, (kUntil() - performance.now()) / 2)), () => proveLaw(mm, ls, idx))
                 if (r2.proven) continue
