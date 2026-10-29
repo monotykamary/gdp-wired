@@ -35,7 +35,7 @@ import {quietly} from './cyclic.ts'
 import {type C, type E, type Fn, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
-import {clock, counted, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
+import {clock, counted, decideLaw, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
@@ -2011,18 +2011,24 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             const was = settled.get(ls[idx]!.name)
             if (was && was.every(n2 => ls.some(l => l.name === n2))) continue
             settled.delete(ls[idx]!.name)
-            // (a model or a refutation of the CDCL search alone first, a quarter of a join query; else the proof path's)
-            const inst = mapNames.length ? lawInstances(mm, ls, idx) : undefined, g = obligations(mm, ls, inst ? {[ls[idx]!.name]: inst} : {}, idx)[1]!
-            const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
-            if (!('tree' in quick) && quick.why === REFUTED && quick.core) { const lawAt = lawsFrom(mm, ls, false, inst ?? {}); settled.set(ls[idx]!.name, [...new Set([...quick.core].map(h => lawAt.get(h)).filter((k): k is number => k !== undefined && k >= given.length && k !== idx).map(k => ls[k]!.name))]) }
-            if ('tree' in quick || quick.why === REFUTED) continue
-            // (the caller's law's model from the proof path alone: EPR's, real or with the instances that refute it)
-            let isReal = !!f && quick.stuck === 'sat' && !!quick.witness && realCti(quick.witness, f, others)
-            if (!isReal) {
-              proofs++
-              const r2 = within(f ? Math.min(kUntil(), performance.now() + joinQueryMs / 4) : kUntil(), () => proveLaw(mm, ls, idx))
-              if (r2.proven) continue
-              isReal = !!r2.witness && realCti(r2.witness, f, others)
+            // (a cube's goal decided by the EPR path alone first (a proof or a model, within a quarter of a join query);
+            // else a model or a refutation of the CDCL search alone, then the proof path's)
+            const dl = f ? within(Math.min(kUntil(), performance.now() + joinQueryMs / 4), () => decideLaw(mm, ls, idx)) : undefined
+            if (dl?.proven) continue
+            let isReal = !!dl && !!f && realCti(dl.witness, f, others)
+            if (!dl) {
+              const inst = mapNames.length ? lawInstances(mm, ls, idx) : undefined, g = obligations(mm, ls, inst ? {[ls[idx]!.name]: inst} : {}, idx)[1]!
+              const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
+              if (!('tree' in quick) && quick.why === REFUTED && quick.core) { const lawAt = lawsFrom(mm, ls, false, inst ?? {}); settled.set(ls[idx]!.name, [...new Set([...quick.core].map(h => lawAt.get(h)).filter((k): k is number => k !== undefined && k >= given.length && k !== idx).map(k => ls[k]!.name))]) }
+              if ('tree' in quick || quick.why === REFUTED) continue
+              // (the caller's law's model from the proof path alone: EPR's, real or with the instances that refute it)
+              isReal = !!f && quick.stuck === 'sat' && !!quick.witness && realCti(quick.witness, f, others)
+              if (!isReal) {
+                proofs++
+                const r2 = within(f ? Math.min(kUntil(), performance.now() + joinQueryMs / 4) : kUntil(), () => proveLaw(mm, ls, idx))
+                if (r2.proven) continue
+                isReal = !!r2.witness && realCti(r2.witness, f, others)
+              }
             }
             // (a real counterexample from a state no small state is: its diagram blocked, the goal's laws kept)
             const ds = isReal && lastPre ? withFnsOf(lastPre.w, () => diagrams(lastPre!)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g)) : []
