@@ -19,6 +19,15 @@ noted), each with the command that reproduces it.
   requests), 10 laws proven, none refuted. `bun research/langs/rust/run.ts` fetches each at its pin and runs them.
 - **Printing:** a condition by cases (an ite of conditions) hoisted as a const is printed as a condition; before, it was
   printed as a number and the rule didn't build (no TypeScript or Go extraction reached it).
+- **The bars** (gen/rust against main e537601, together). Quick (e041ccf, `runs/bar/runs/e041ccfbb54e-vs-e53760145343-quick-2026-10-291233`):
+  wrong 0 everywhere, nothing lost solidly (each flip at the time limit, the prover untouched). Suites and the real-world
+  corpus in full (9a4da5b, `runs/bar/runs/9a4da5b707a0-vs-e53760145343-full-2026-10-291240`): wrong 0, nothing lost;
+  the corpus 317 / 35 / 8 / 1 of 361 laws against 289 / 33 / 8 / 0 of 330 (the 31 added: LiteLLM's 21 and the crates'
+  10; the one timeout, node-oidc-provider's refreshTokenRotation #0, a first-pass flip proven in 16 to 19 s in every
+  rerun, where the base's own rerun timed out); suites 227 of 227 in both modes (extract-py and extract-rs added), job
+  seconds 5,666.6 against 5,822.3 and 5,316.2 against 5,283.5 (--usual); the 1-vCPU tests level. core/ and kernel/
+  +146,363 bytes against main (Python's +104,011 and Rust's +42,352: the executor's operations +21,393, the front end
+  +20,368, and the printer's fix), and 45,627 bytes of Rust in core/rs/.
 
 **Python, on one structure for every language (gen/langs).** Nothing trusted changed (kernel/, core/check.ts and
 lean-kernel/ are b118bf5's). research/langs/DESIGN.md has the design.
