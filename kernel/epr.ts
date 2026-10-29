@@ -307,6 +307,9 @@ export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number
     }
   }
   const forms = hyps.map(h => (h ? lit(h) : undefined))
+  // (an order over many terms is a cubic number of clauses: such a goal, a join's query comparing cells with cells, keeps
+  // the usual path)
+  if (ords.size > 64) return {unknown: `${ords.size} ordered terms`}
 
   // --- clauses (literals: +v / −v), each with the hypotheses it stands for
   const clauses: {lits: number[], from: Origin}[] = []
