@@ -32,7 +32,6 @@
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
-import {writeFileSync} from 'node:fs'
 import {type C, type E, type Fn, type Law, type Machine, type Request, type State, all, any, atMost, carriedView, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
@@ -1199,7 +1198,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       for (const s2 of samples) { if (rows.length > 6000) break; rows.push(...rowsOf(s2.params, s2.st).filter(fresh)) }
       return rows
     }
-    const addView = (v: Omit<View, 'atoms' | 'rows' | 'rowsOf'>, mapsAt: string[][], valuesOf2: (st: State) => number[][], per: number, extra: {name: string, term: E}[] = []) => {
+    const addView = (v: Omit<View, 'atoms' | 'rows' | 'rowsOf'>, mapsAt: string[][], valuesOf2: (st: State) => number[][], per: number, extra: {name: string, term: E}[] = [], product = false) => {
       const vi = views.length, va: number[] = []
       // (`extra`: values of its keys that are atoms too, a key or a function of one: e ≤ Ep[a], idn(x) < idn(y))
       extra.forEach((t, j) => { va.push(atoms.length); atoms.push({name: t.name, parts: [[`$x${vi}:${j}`, 1]], param: false, int: false, cell: false, term: t.term, view: vi}) })
@@ -1212,10 +1211,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         }
       })
       const rowsOf = (params: Env, st: State): Env[] => {
-        // (at most per^keys rows a state, 64 at least, the fewer-valued sorts' keys taking all of theirs and the cut on the
-        // most-valued: a sort's values past a few are still read where another sort has few; a model's state, every row up
-        // to 1024, so that its diagram is read at the keys it names)
-        const all2 = valuesOf2(st).map(vs => (named.has(st) ? vs.slice(0, -1) : vs)), lens = all2.map(vs => vs.length), most = named.has(st) ? 1024 : Math.max(64, per ** all2.length)
+        // (`per` values a key; the engine's views (`product`) at most per^keys rows a state, 64 at least, the fewer-valued
+        // sorts' keys taking all of theirs and the cut on the most-valued: a sort's values past a few are still read where
+        // another sort has few; a model's state, every row up to 1024, so that its diagram is read at the keys it names)
+        const all2 = valuesOf2(st).map(vs => (named.has(st) ? vs.slice(0, -1) : vs)), lens = all2.map(vs => (product ? vs.length : Math.min(per, vs.length))), most = !product ? Infinity : named.has(st) ? 1024 : Math.max(64, per ** all2.length)
         for (let size = lens.reduce((a, b) => a * b, 1); size > most;) { const i = lens.indexOf(Math.max(...lens)); if (lens[i]! <= 1) break; size = size / lens[i]! * (lens[i]! - 1); lens[i]!-- }
         const cand = all2.map((vs, i) => vs.slice(0, lens[i])), out: Env[] = []
         const go = (i: number, env: Env): void => {
@@ -1938,7 +1937,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const extra = [...keys.flatMap((q, i) => (ordered(q) ? [{name: names[i]!, term: x(vars[i]!)}] : [])), ...fns.flatMap(f => keys.flatMap((q, i) => (q === ks.find(`F:${f}`) ? [{name: `${f}(${names[i]})`, term: get(f, x(vars[i]!))}] : [])))]
         const frame = all(...keys.flatMap((s, i) => [...(comp && s === comp[1] && !bounds.has(s) ? [atMost(x(vars[i]!), n(pairing!.n - 1))] : []), ...[...new Set((bounds.get(s) ?? []).map(g => JSON.stringify(substC(g, {vars: {[KEY]: x(vars[i]!)}, maps: {}, flags: {}}))))].map(t => JSON.parse(t) as C), ...keys.slice(0, i).flatMap((t, j) => (t === s ? [not(same(x(vars[j]!), x(vars[i]!)))] : []))]))
         const vi = views.length
-        addView({vars, names, places, covers, frame, need: keys.length, printable: false}, mapsAt, st => keys.map(s => ks.valuesAt(st, s)), Math.max(2, Math.floor(64 ** (1 / keys.length))), extra)
+        addView({vars, names, places, covers, frame, need: keys.length, printable: false}, mapsAt, st => keys.map(s => ks.valuesAt(st, s)), Math.max(2, Math.floor(64 ** (1 / keys.length))), extra, true)
         // (the rows: every small state's, distinct, at most 20,000; the view's own rows stop at its first states, the shallow
         // ones, so a deep state's (a leader's) would be left out)
         const v = views[vi]!, R: Float64Array[] = [], seenRows = new Set<string>()
@@ -2100,7 +2099,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           const q = budgeted(joinQueryMs / 32, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true})) as Refuted
           b = !('tree' in q) && q.stuck === 'sat' && !!q.witness && badAtStart(f, q.witness)
           startBad.set(f, b)
-          if (process.env.GDP_GOAL_TRACE) opts.progress?.('join startcheck', {goal: textOf(f).replace(/every [^:]*: /, '').slice(0, 110), v: 'tree' in q ? 'proven' : `${q.stuck}${b ? ' bad' : ''}`})
         }
         return b
       }
@@ -2231,7 +2229,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         for (const {g} of scored) { if (out3.length >= room || stop()) break; if (!implied(g) && !atStart(g)) out3.push(g) }
         return out3
       }
-      if (process.env.GDP_ENGINE_PROBE) { const t9 = performance.now(), v9 = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor)])); opts.progress?.('join probe', {cubes: cubes.length, proven: v9.proven && v9.checked ? 1 : 0, ms: Math.round(performance.now() - t9), at: String((v9 as {goal?: string}).goal ?? ''), stuck: String((v9 as {stuck?: string}).stuck ?? ''), witness: JSON.stringify((v9 as {witness?: unknown}).witness ?? null).slice(0, 1500)}); return }
       for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
         cubes = cubes.filter(g => !atStart(g))
         for (const g of cubes) if (!addedAt.has(g)) addedAt.set(g, round)
@@ -2241,11 +2238,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const kUntil = () => wallUntil - (round && !held ? reserve : 0)
         const real = new Set<Form>(), unsure = new Set<Form>(), ls = [...given, ...cubes.map(lawFor), ...(ghost ? [ghost.plain] : [])], blocked2: Form[] = [], mmRound = withGhost(forLaws(ls).m), at2 = new Map(cubes.map((g, i) => [g, i]))
         let caller = false, complete = true, again = false
-        let prevG: string | Form | undefined, prevT = 0, prevB = 0
-        const note = () => { if (prevG !== undefined && process.env.GDP_GOAL_TRACE) { const nm = typeof prevG === 'string' ? prevG : textOf(prevG); opts.progress?.('join goal', {round, goal: nm.replace(/every [^:]*: /, '').slice(0, 110), ms: Math.round(performance.now() - prevT), v: stands.has(nm) ? 'proven' : typeof prevG !== 'string' && real.has(prevG) ? 'real' : typeof prevG !== 'string' && unsure.has(prevG) ? 'unsure' : blocked2.length > prevB ? `blocked ${blocked2.slice(prevB).map(g => textOf(g).replace(/every [^:]*: /, '')).join(' | ')}` : 'other'}) } }
         {
           for (const goal of [...laws.map(l => l.name), ...(ghost ? [ghost.plain.name] : []), ...cubes]) {
-            note(); prevG = goal; prevT = performance.now(); prevB = blocked2.length
             if (performance.now() > kUntil() || stop()) { complete = false; break }
             const f = typeof goal === 'string' ? undefined : goal, others = cubes.filter(g => g !== f), idx = f ? given.length + at2.get(f)! : ls.findIndex(l => l.name === goal), mm = mmRound
             if (f) held = true
@@ -2280,7 +2274,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
                 wit = r2.witness ?? wit
               }
             }
-            if (!f && process.env.GDP_ENGINE_DUMP && laws.some(l => l.name === goal)) writeFileSync(process.env.GDP_ENGINE_DUMP, JSON.stringify({laws: [...laws, ...cubes.map(lawFor), ...(ghost ? [ghost.some] : [])]}))
             // (a real counterexample from a state no small state is: its diagram blocked, the goal's laws kept)
             // (a blocker blocked already this round blocks as well: the goal kept, nothing new blocked; one in the set doesn't
             // (a model the set rules out is no counterexample to learn from))
@@ -2290,7 +2283,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             ds.filter(fresh)
             // (the caller's: blocked at once, IC3's order, the caller asked again before the cubes)
             if (ds.length && !f && lastPre) pres.push(lastPre)
-            if (process.env.GDP_GOAL_TRACE === '2' && isReal && f && !ds.length && lastPre) console.error('REAL', textOf(f).slice(0, 100), JSON.stringify(lastPre.params), JSON.stringify(Object.fromEntries(Object.entries(lastPre.st.maps).map(([k, c]) => [k, [...c]]))), JSON.stringify(lastPre.st.scalars), JSON.stringify(dl ? dl.goal : 'nodl'), JSON.stringify(requestOf(lastPre.w)))
             if (ds.length) { if (!f) { held = false; if (!ghosts) { ghosts = ghostsOf(); ghost = ghosts.shift(); if (ghost) opts.progress?.('join exists', {law: ghost.plain.name.slice(0, 160)}) } break } continue }
             // (a model the interpreter doesn't confirm: PDR's obligation at its state, its diagrams blocked and the goal kept
             // (the caller's asked again first) where a row of it no small state has; else unsure)
@@ -2310,7 +2302,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             ;(isReal ? real : unsure).add(f)
           }
         }
-        note()
         opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length, ms: Math.round(performance.now() - t0)})
         // (optimistic Houdini: an unsure cube holds at every small state and every step from one (they are its rows), so
         // it stays; the set's proof decides, a cube it fails at dropped and the rounds go on)
