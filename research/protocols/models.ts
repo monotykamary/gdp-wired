@@ -15,7 +15,7 @@
 //   - a total order (le) on a sort is ≤ on the naturals, its successor + 1; a ring of `size` nodes is the positions
 //     0..size − 1, next(n) = n + 1 mod size
 import {type Law} from '../../core/machine.ts'
-import {type Term, bool, everyKey, fn, forall, nat, oneOf, no, rule, when, yes} from '../../core/dsl.ts'
+import {type Term, bool, everyKey, exists, fn, forall, nat, oneOf, no, rule, when, yes} from '../../core/dsl.ts'
 
 export const N = 64
 // a relation's cells: 0 or 1 (a kind, so the kernel and the search know it)
@@ -388,6 +388,9 @@ export const protocols: Protocol[] = [
       r.law('a counted vote was sent', ({Votes, VoteMsg}: any) => forall((n, s) => lt(n, s).and(Votes.at(pk(n, s))).implies(VoteMsg.at(pk(s, n))))),
       r.law('a leader has the voting quorum\'s votes', ({Leader, Votes, VotingQuorum}: any) => forall((n, s) => lt(n, s).and(Leader.at(n), VotingQuorum.has(s)).implies(Votes.at(pk(n, s))))),
       r.law('nothing before init', ({started, Leader}: any) => forall(n => started.eq(0).implies(Leader.at(n).not()))),
+      // (Ivy's quorums meet, so the voting quorum is never empty; without it an empty one lets anyone lead: COST.md)
+      r.law('after init the voting quorum has a member', ({started, VotingQuorum}: any) => started.eq(1).implies(exists((x: Term) => VotingQuorum.has(x),
+        {start: 0, step: (before: Term, env: any) => when(env.inits.or(env.chooses), env.w, before)}))),
     ]},
   {id: 'ring_leader_election', source: 'DuoAI protocols/ring_leader_election (DistAI: leader election; Ivy\'s leader_election_ring)', safety: 'leader(X) & leader(Y) -> X = Y',
     make: ringLeader, bug: 'receive forwards every id',
