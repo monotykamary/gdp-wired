@@ -5,6 +5,29 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**Ruby on the shared executor: a Prism reader, a reflective harness, three gems' stateful classes in the corpus
+(gen/ruby).** Nothing trusted changed. research/langs/DESIGN.md, "Ruby (gen/ruby)", has the details.
+- **The front end** (`gdp-wired/extract-rb`): core/rb/reader.rb lowers a class through Prism into the step IR,
+  core/rb/harness.rb runs the file as it ships on Python's protocol, core/extract-rb.ts joins them (4,559 bytes).
+  Ruby states no types, so they are inferred from the code: a field's from what is assigned to it and how it is used
+  (symbols a choice, nil beside numbers an optional number), an argument's from what it is compared with or computed
+  into; a type inferred wrong is a refusal at the check. Every field is nil until set, a method's last expression is
+  its result, `/` and `%` floor, only nil and false are false, case/when on a value, a mutex's synchronize atomic, the
+  code's literal constants read from the files that define them (the check loads them first), the clock (Time.now,
+  Process.clock_gettime, an injected clock object stated with `clocks`) the request's time.
+- **The executor** (+1,038 bytes): Ruby's truth as the module's one switch, symbol arguments, keyword constructor
+  arguments given as keywords (Python's keyword-only ones had the same gap), a literal written to a choice field typed
+  as the choice, statements the reader writes not counted as arms. Go stays byte-identical (119 of 119, 2,006 of
+  2,006); LiteLLM's seven rules re-extracted are the committed ones, every verdict the same.
+- **The corpus:** semian 0.28.4's `Simple::State` (closed, open, half open) and `Simple::Integer` (the success counter),
+  stoplight 6.0.0's in-memory light state (green, yellow and red under a mutex, the recovery scheduled a cool-off after
+  a red, "a recovered light is never breached"): 11 laws, all proven, each rule checked on 2,300–2,800 requests; no law
+  refuted. `bun research/langs/ruby/run.ts --write` re-extracts them from rubygems.org.
+- **Bars** (against 5d4da3f, launched together): the real-world corpus 329 / 35 / 8 against 318 / 35 / 8 (the 11 new
+  laws), nothing lost, wrong 0; the suite and --usual 228 of 228 each (the new extract-rb job, on Debian's ruby 3.1 with
+  the prism gem, among them), job seconds level. Build and smoke pass with ruby, Go, Python and cargo absent.
+- **Size:** core/ and kernel/ without tests +5,597 bytes; the reader and harness 28,997 bytes of Ruby beside them.
+
 **Go on the shared executor: GoReader gone, 88 of 88 extractions byte-identical (gen/go-port).** Nothing trusted
 changed (kernel/ and lean-kernel/ are 9220ad0's). research/langs/DESIGN.md, "Moving Go onto the executor: done", has
 the measurements.
