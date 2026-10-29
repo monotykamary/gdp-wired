@@ -136,15 +136,15 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       case 'BinaryOperator': {
         const a = fold(n.inner![0]!), b = fold(n.inner![1]!)
         if (a === undefined || b === undefined) return undefined
-        switch (n.opcode) {
+        switch (n.opcode ?? '') {
           case '+': return a + b
           case '-': return a - b
           case '*': return a * b
           case '/': return b ? Math.trunc(a / b) : undefined
           case '%': return b ? a % b : undefined
           case '<<': return a * 2 ** b
+          default: return undefined
         }
-        return undefined
       }
       case 'DeclRefExpr': {
         const d = n.referencedDecl!

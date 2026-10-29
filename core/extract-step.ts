@@ -507,7 +507,7 @@ export class Stepper {
         return {live: {...p, locals}, rets: []}
       }
       case 'no': return refuse(s, String(s.why))
-      case 'panic': { let q = p; for (const a of s.args as SX[]) q = this.ev(a, q)[1]; this.refuseWhere(q, I.T, s, String(s.what ?? 'a panic')); return {rets: []} }
+      case 'panic': { let q = p; for (const a of s.args as SX[]) q = this.ev(a, q)[1]; this.refuseWhere(q, I.T, s, (s.what as string | undefined) ?? 'a panic'); return {rets: []} }
       case 'incdec': {
         const [pl, q] = this.place(s.to as SX, p), [v, q2] = this.read(pl, s, q)
         if (v.t !== 'num') return refuse(s, `${s.op as string} of a ${v.t}`)
@@ -851,7 +851,7 @@ export class Stepper {
         for (const v of vs.slice(1)) e = x.op === 'min' ? I.nmin(e, this.numv(v, x)) : I.nmax(e, this.numv(v, x))
         return [{t: 'num', e, ty: (x.ity as IntTy | undefined) ?? refuse(x, String(x.why))}, q]
       }
-      case 'panic': { let q = p; for (const a of x.args as SX[]) q = this.ev(a, q)[1]; this.refuseWhere(q, I.T, x, String(x.what ?? 'a panic')); return [{t: 'tuple', xs: []}, {...q, pc: [...q.pc, I.F]}] }
+      case 'panic': { let q = p; for (const a of x.args as SX[]) q = this.ev(a, q)[1]; this.refuseWhere(q, I.T, x, (x.what as string | undefined) ?? 'a panic'); return [{t: 'tuple', xs: []}, {...q, pc: [...q.pc, I.F]}] }
       case 'midx': { const [b, q] = this.ev(x.m as SX, p), [i, q2] = this.ev(x.k as SX, q); return [this.mapRead(b, i, x, q2).v, q2] }
       case 'lidx': { const [b, q] = this.ev(x.s as SX, p), [i, q2] = this.ev(x.i as SX, q); return this.listGet(b, i, x, q2) }
       case 'pop': {
