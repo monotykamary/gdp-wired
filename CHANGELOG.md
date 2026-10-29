@@ -27,8 +27,8 @@ noted), each with the command that reproduces it.
   permits, a limit of 0 reads as none). Each rule runs beside the real code with `conforms`
   (research/realworld/repro/conform-effect.ts). Nothing was reported upstream.
 - `effect` is an optional peer (`^3.22.0 || ^4.0.0`); the dev dependencies are effect 4.0.7 and effect3 (3.22.4), and
-  the tests run on both. core/ and kernel/ without tests: 2,470,042 bytes, +45,615 against 4f7c7a6 (core/effect.ts
-  39,739; the shared reader +5,876).
+  the tests run on both. core/ and kernel/ without tests: 2,465,302 bytes, +40,875 against 4f7c7a6 (core/effect.ts
+  33,912; the shared reader +6,963, with the refusal helpers and `whole` every TypeScript front end now shares).
 
 **Slimmer: what didn't pay since 0.30.1 taken out, what was written twice merged (gen/slim).** Nothing trusted changed
 (kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/*.lean are 57abcb2's). core/ and kernel/ without
