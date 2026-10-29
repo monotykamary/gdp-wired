@@ -11,7 +11,8 @@ import {decideLaw, proveLaw, withWall} from '../../../kernel/prove.ts'
 import {protocols} from '../models.ts'
 
 // (wo_decide from 5 s: its search's runs, core/infer.ts's 16,000 requests, take 1.4 s of wall time at any budget)
-for (const [id, budgets] of [['consensus_wo_decide', [5_000, 10_000]], ['ring_leader_election', [2_000, 5_000]]] as const) {
+// (sharded KV's: its search's last bounded runs within the search's end, not 18 s past it)
+for (const [id, budgets] of [['consensus_wo_decide', [5_000, 10_000]], ['ring_leader_election', [2_000, 5_000]], ['sharded_key_value_store', [5_000, 10_000]]] as const) {
   for (const ms of budgets) {
     test(`${id}: a ${ms} ms search ends in time`, () => {
       const p = protocols.find(q => q.id === id)!, r = p.make(), laws = p.laws(r)

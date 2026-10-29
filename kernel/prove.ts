@@ -214,11 +214,9 @@ const withWork = <T>(cap: number, f: () => T): T => { const outer = workCap; wor
 // every goal is left unknown, whatever its own budget. Untrusted: it only stops a search.
 let wallEnd = Infinity
 export const pastWall = (): boolean => wallEnd !== Infinity && performance.now() > wallEnd
-// (`lift`: the end set aside, for a phase with a wall stop of its own: the search's last bounded runs, which its counted
-// clock gives the time kept for them)
-export function withWall<T>(end: number, f: () => T, lift = false): T {
+export function withWall<T>(end: number, f: () => T): T {
   const outer = wallEnd
-  wallEnd = lift ? end : Math.min(outer, end)
+  wallEnd = Math.min(outer, end)
   try { return f() } finally { wallEnd = outer }
 }
 export const late = (until: number): boolean => clock() > until || (workCap !== Infinity && fullWork() > workCap) || pastWall()
