@@ -5,6 +5,26 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**Enumerated view cubes, a fallback stage of the join; toy_consensus_forall proven with nothing written (gen/enum2).**
+Nothing trusted changed (kernel/ and lean-kernel/ are e537601's); core/infer.ts alone. research/protocols/README.md,
+"Enumeration (gen/enum2)", has the measurements; research/protocols/enum/DESIGN.md the design it follows.
+- **The stage.** Where the join ends with nothing found on a rule with maps and a caller law over several keys: a view
+  of every sub-template of the keys' sorts (per sort the most places one map or the caller's law reads), and in each
+  every minimal cube of at most three literals that no sample row is in (DistAI's and DuoAI's ∀ candidates). Cubes the
+  caller's laws already imply are dropped, then Houdini over the rest (at most 32): the CDCL search's model or
+  refutation first, else the proof path's; a model drops its cube only where the interpreter reads a step out of it; the
+  caller's law unproven with every cube ends it. The set is then proven with its trees kept.
+- **Two general fixes it needs** (gaps2's diagnosis): a carried map's key has its cells' sort (keySorts), and a model's
+  request carries the maps the model names (the join's three readings of a model).
+- **Protocols** (Modal, three runs, against e537601 side by side): toy_consensus_forall proven in 3 of 3 at 60 s
+  (42–58 s) and at 120 s (39–47 s), unknown at e537601. The five proven before stay proven in every run, every broken
+  variant is refused as before. With nothing written: **6 of 10 at 60 s** (e537601: 5).
+- **Bars** (against e537601, launched together): quick (chc, rw) and full, wrong 0 everywhere, nothing lost in every run;
+  CHC 1,166 against 1,166 (4 gained, 4 lost, none solid, all at the limit: no CHC rule has maps), ITS, SV, TIP, the
+  frontier corpora, the real-world corpus (289 / 33 / 8) and the 332 step goals level; the suite 225 of 225 (job seconds
+  5,598 against 5,686). The suite --usual and the Lean sample were stopped by the bar's budget guard on both sides.
+- **Size:** core/ and kernel/ without tests +11,714 bytes.
+
 **The EPR path: goals over composed keys decided by their parts (gen/epr).** Nothing trusted changed.
 research/protocols/epr/DESIGN.md has the design, the probe and the measurements.
 - **kernel/epr.ts (new).** A goal of a rule with a composed key (a relation over several sorts, `a·N² + b·N + c`) whose

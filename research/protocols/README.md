@@ -748,3 +748,53 @@ function of a key or an order between keys (queue positions and ranks are values
 three-key template with order literals is not built.
 
 **Spend** (billed, this round's apps): about $0.4.
+
+## Enumeration (gen/enum2, from 383928a, merged with e537601's EPR path)
+
+enum/DESIGN.md's first step, built into core/infer.ts: where the join ends with nothing found on a keyed rule with a
+caller law over several keys, the views of every sub-template of the keys' sorts, every minimal cube of at most three
+literals no sample row is in, and Houdini over them (CHANGELOG.md has the stage). Nothing trusted changed.
+
+**toy_consensus_forall is proven with nothing written.** The nine laws found are the written invariant's three
+(a vote means voted, one vote per node, the voting quorum voted for the decided value) and "nothing before init" for
+each map, as cubes:
+
+    every x, y with x <= 63 ∧ y < 64: never Voted[x] is 0 and 1 <= Vote[64·y + x]
+    every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Vote[64·y + x] and 1 <= Vote[64·z + x]
+    every x, y with x <= 63 ∧ y < 64: never 1 <= VotingQuorum[x] and 1 <= Decided[y] and Vote[64·y + x] is 0
+
+**Pilot** (Modal, 2 vCPU, three runs, e537601 launched beside; `runs/enum2/p4-cand` and `p3-base` in this worktree):
+
+| Protocol | 60 s, candidate | 60 s, e537601 | 120 s, candidate | 120 s, e537601 |
+| --- | --- | --- | --- | --- |
+| toy_consensus_forall | **proven 3/3, 42–58 s** | unknown 12–13 s | **proven 3/3, 39–47 s** | unknown 12–13 s |
+| lock_server_sync, lock_server_async, decentralized_lock, two_phase_commit, ticket_lock | proven 3/3 each | proven 3/3 each | proven 3/3 each | proven 3/3 each |
+| distributed_lock, consensus_wo_decide, ring_leader_election, sharded_key_value_store | unknown | unknown | unknown | unknown |
+
+Every broken variant is refused (or left unknown) as at e537601. Times of the five proven before: decentralized 15–19 s
+against 15 s, ticket 35–40 s against 28–32 s (the stage doesn't run on ticket: its join is inductive; container noise),
+the rest level. The misses' searches end within their limits (one sharded KV run of 122 s at 60 s, a stalled container:
+its three reruns took 41–44 s).
+
+**What it took** (each measured on toy or decentralized lock, Modal):
+- **Carried maps** (gaps2's findings): a carried map's key has its cells' sort, so `VotingQuorum` is a node; a model's
+  request carries the quorum it names, so the interpreter can step a kernel model.
+- **The top value as "at least":** `VotingQuorum` is no yes/no kind; a model put 2 there, where cubes read `= 1`.
+- **Implied cubes out:** the cube that restates the safety law cost as much as the safety law's own goal.
+- **The kernel's clock, not the join's counted one:** the proof path's work counts 25 times faster on the join's clock.
+- **The caller's law first, and its failure ends the stage:** decentralized lock's stage failed at once instead of in
+  25 s, so the search over the maps' sums that proves it (core/dsl.ts) keeps its time; later rounds leave it 21 s.
+
+**Bars** against e537601, together: quick (chc, rw) and full (`runs/bar/runs/enum2-quick`, `enum2-full` in the main
+checkout). Wrong 0, nothing lost in every run; CHC 1,166 against 1,166 (4 gained, 4 lost, none solid, all past 45 s: CHC
+has no maps, so the stage never runs), ITS +1 and level per component, SV level, TIP level, the frontier corpora and
+the real-world corpus (289 / 33 / 8) level, the 332 step goals the same search (289.8 s against 287.8 s), the suite
+225 of 225 (5,598 against 5,686 job seconds). Gitea #0 and TigerBeetle #0–#7, three runs a side: every verdict the same,
+times within the runs' spread. The suite --usual and the Lean sample were stopped on both sides by the bar's budget
+guard ($8.5), so they are not measured. Size: +11,714 bytes.
+
+**Sharded KV, tried on gen/enum3 and not merged.** Keys of three parts (`Table[n·N² + k·N + v]`) read in keySorts and
+the template (up to five keys) give 10 cubes. lawInstances then takes 15 s and the caller's goal 17,168 hypotheses before
+a search starts: the instance count for many laws over 5 keys, the kernel's.
+
+**Spend** (billed, this round's 88 apps): $13.0 by 13:00 UTC, the full bar about $9.9 of it, past the $12 budget by $1.
