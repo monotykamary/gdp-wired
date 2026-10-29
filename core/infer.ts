@@ -2217,16 +2217,22 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             // model to read): the ∀∃ laws, once)
             if (!f && ghost && goal === ghost.plain.name) { opts.progress?.('join exists', {dropped: ghost.plain.name.slice(0, 120)}); ghost = ghosts?.shift(); again = true; break }
             if (!f && !ghosts) { const t1 = performance.now(); ghosts = ghostsOf(); ghost = ghosts.shift(); opts.progress?.('join exists', {law: ghost ? `${ghost.plain.name.slice(0, 160)}; ${ghost.name} := ${JSON.stringify(ghost.step).slice(0, 160)}` : 'none', ms: Math.round(performance.now() - t1)}); if (ghost) { again = true; held = false; break } }
+            if (!f && opts.progress && env.GDP_ENGINE_LIST) {
+              const pts = pres.map(q => withFnsOf(q.w, () => pointOf(q.params, q.st))), have = new Set(cubes.map(textOf))
+              opts.progress('join caller failed', {set: cubes.map(textOf).join(' | '), pres: pres.length, scored: made.filter(g => !have.has(textOf(g))).map(g => `${pts.filter(pt => !holdsAt(g, pt)).length}:${textOf(g)}`).join(' | ')})
+            }
             if (!f) { caller = true; held = false; break }
             ;(isReal ? real : unsure).add(f)
           }
         }
         opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length, ms: Math.round(performance.now() - t0)})
-        const drops = real.size ? real : unsure
+        // (optimistic Houdini: an unsure cube holds at every small state and every step from one (they are its rows), so
+        // it stays; the set's proof decides, a cube it fails at dropped and the rounds go on)
+        const drops = new Set<Form>(real)
         if (asked > 1) cap = Math.max(64, Math.min(256, Math.floor((wallUntil - performance.now()) / (3 * cubeMs / (asked - 1)))))
         if (blocked2.length) { const kept = [...cubes.filter(g => !drops.has(g)), ...blocked2]; cubes = [...kept, ...relevant(Math.max(16, cap - kept.length), kept)]; return }
         if (again) return
-        if (complete && !caller && !drops.size) { const t2 = performance.now(), v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor), ...(ghost ? [ghost.some] : [])])); opts.progress?.('join set', {cubes: cubes.length, exists: ghost ? 1 : 0, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), why: String((v as {why?: string}).why ?? (v as {stuck?: string}).stuck ?? '').slice(0, 300)}); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } }
+        if (complete && !caller && !drops.size) { const t2 = performance.now(), v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor), ...(ghost ? [ghost.some] : [])])); opts.progress?.('join set', {cubes: cubes.length, exists: ghost ? 1 : 0, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), why: String((v as {why?: string}).why ?? (v as {stuck?: string}).stuck ?? '').slice(0, 300)}); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } else { const at = String((v as {goal?: string}).goal ?? ''), g = cubes.find(c => at.startsWith(`${textOf(c)} @`)); if (g) drops.add(g) } }
         if (!complete || caller || !drops.size) over = true
         cubes = cubes.filter(g => !drops.has(g))
       })
