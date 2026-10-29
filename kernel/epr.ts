@@ -526,6 +526,14 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
   // (first over the theory's own terms, each pair as the model orders it, so that a lemma names them alone; then every
   // term, the model's order as its groups, for the values)
   const theoryTerms = [...new Set(theory.flatMap(t => Object.keys(t.d).filter(x => x !== '1')))]
+  // (each comparison's literals: its own and its terms' order, among them and with the constants)
+  const feasible: Set<string>[] = [], locals: number[][] = []
+  const localOf = (ti: number, t: (typeof theory)[number], ks: string[]): number[] => {
+    if (locals[ti]) return locals[ti]!
+    const xs = Object.keys(t.d).filter(x => x !== '1'), out = [t.x]
+    for (let i2 = 0; i2 < xs.length; i2++) for (const b of [...xs.slice(i2 + 1), ...ks]) for (const [p, q] of [[xs[i2]!, b], [b, xs[i2]!]]) { const x = v(le(p!, q!)); if (x !== undefined) out.push(x) }
+    return (locals[ti] = out)
+  }
   const theoryCheck = (m: boolean[]): {val: Map<string, number>} | {lemmas: number[][]} | undefined => {
     const T = (t: string): Lin => (t.startsWith('k:') ? konst(Number(t.slice(2))) : tv(t))
     const theoryRows = (row: (lin: Lin, ls: number[]) => void) => {
@@ -549,10 +557,12 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
       if (ba) row(plus(T(b), times(T(a), -1)), [v(le(b, a))!]); else row(plus(plus(T(a), konst(1)), times(T(b), -1)), [-v(le(b, a))!])
     }
     // (each comparison alone first, with its terms' order and the constants: a lemma of a few literals for each the
-    // model breaks, all of them in one round)
+    // model breaks, all of them in one round; one the model reads as an earlier model did, feasible then, not again)
     {
       const ks = [...ords].filter(t => t.startsWith('k:')), lemmas: number[][] = []
-      for (const t of theory) {
+      for (const [ti, t] of theory.entries()) {
+        const local = localOf(ti, t, ks), seen = (feasible[ti] ??= new Set()), key = local.map(l => (m[l] === true ? '1' : '0')).join('')
+        if (seen.has(key)) continue
         const rows: Constraint[] = [], lits: number[][] = [], row = (lin: Lin, ls: number[]) => { rows.push({lin, label: ''}); lits.push(ls) }
         const xs = Object.keys(t.d).filter(x => x !== '1')
         for (const x of xs) row(times(tv(x), -1), [])
@@ -563,6 +573,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
         else row(t.op === '<' ? times(t.d, -1) : plus(times(t.d, -1), konst(1)), [-t.x])
         const l = lemmaOf(solve(rows), lits)
         if (l) lemmas.push(l)
+        else seen.add(key)
       }
       if (lemmas.length) return {lemmas}
     }

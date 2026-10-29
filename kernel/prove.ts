@@ -300,8 +300,8 @@ const withPatterns = <T>(m: Machine, laws: Law[], f: () => T): T => {
 }
 // (`whole: false`: the core's tree alone, not widened to the goal, with the core (`part`); decideLaw's, whose caller's
 // verdict rests on its own final proof: a refutation of some of a goal's hypotheses refutes the goal)
-function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = true): (Outcome & {part?: Goal, core?: number[]}) | undefined {
-  const d = decide(goal, eprScope.patterns!, {exact: true, late: pastWall})
+function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = true, late = pastWall): (Outcome & {part?: Goal, core?: number[]}) | undefined {
+  const d = decide(goal, eprScope.patterns!, {exact: true, late})
   if ('unknown' in d) return undefined
   if (d.sat) return {stuck: 'sat', witness: d.witness, diagram: d.diagram, path: new Map(), why: 'a model'}
   const last = goal.hyps.length - 1, core = d.core.includes(last) ? d.core : [...d.core, last], part: Goal = {name: goal.name, hyps: core.map(i => goal.hyps[i]!)}
@@ -1075,9 +1075,12 @@ const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[], byM
 // against the keys the goals read that map at (the key's sort, as the goal holds it: Link[c1·N + s] against
 // Link[a·N + b] gives c1 a and s b); a key no read binds, or a read no goal key matches, takes any. A function's
 // argument is no sort (a function is read at any key). Untrusted: it chooses instances only.
-function keySorted(l: Law, byMap: Map<string, E[]>, fns: string[]): (tuple: E[]) => boolean {
+// (per place too: `at(i, e)`, whether e is of the i-th key's sort, each key's text read once)
+function keySorted(l: Law, byMap: Map<string, E[]>, fns: string[]): ((tuple: E[]) => boolean) & {at: (i: number, e: E) => boolean} {
   const allowed = sortTerms(l.holds, [l.forall!, ...(l.keys ?? [])], fns, mp => byMap.get(mp) ?? []).map(ts => ts && new Set(ts.map(t => JSON.stringify(t))))
-  return tuple => tuple.every((t, i) => !allowed[i] || allowed[i]!.has(JSON.stringify(t)))
+  const text = new WeakMap<E, string>(), id = (e: E) => { let t = text.get(e); if (t === undefined) text.set(e, (t = JSON.stringify(e))); return t }
+  const at = (i: number, e: E) => !allowed[i] || allowed[i]!.has(id(e))
+  return Object.assign((tuple: E[]) => tuple.every((t, i) => at(i, t)), {at})
 }
 // The terms `body`'s reads (not a function's) bind each of `vars` to, matched against the keys `at` gives their map.
 function sortTerms(body: C, vars: string[], fns: string[], at: (map: string) => E[]): (E[] | undefined)[] {
@@ -1113,15 +1116,18 @@ const matched = (l: Law, keys: E[], most = relatedMost): E[][] => {
 }
 // The n-tuples of the keys that relate the focus (withReads): those `keep` keeps, the first `most` of them in this order
 // (each place's own focus key before the rest).
-const related = (keys: E[], focus: string[], n: number, keep?: (tuple: E[]) => boolean, most = Infinity): E[][] => {
+// (`keep` at each place, `keep.at`, as the tuple is made: a sort no key of keeps no tuple, and none is made of it)
+const related = (keys: E[], focus: string[], n: number, keep?: {at: (i: number, e: E) => boolean}, most = Infinity): E[][] => {
   const reads = (e: E, x?: string) => x !== undefined && JSON.stringify(e).includes(`"name":${JSON.stringify(x)}`)
   const own = (i: number) => { const f = focus[i] ?? focus[0]; return keys.filter(e => reads(e, f) && focus.every(g => g === f || !reads(e, g))) }
-  const R = keys.filter(e => !focus.some(f => reads(e, f))), owns = Array.from({length: n}, (_, i) => own(i)), out: E[][] = []
+  const R0 = keys.filter(e => !focus.some(f => reads(e, f))), out: E[][] = []
+  const owns = Array.from({length: n}, (_, i) => own(i).filter(e => !keep || keep.at(i, e))), R = Array.from({length: n}, (_, i) => R0.filter(e => !keep || keep.at(i, e)))
+  let made = 0
   const go = (i: number, tuple: E[], rest: boolean): void => {
-    if (out.length >= most || (out.length % 4096 === 4095 && pastWall())) return
-    if (i === n) { if (!keep || keep(tuple)) out.push(tuple); return }
+    if (out.length >= most || (++made % 4096 === 0 && pastWall())) return
+    if (i === n) { out.push(tuple); return }
     for (const e of owns[i]!) go(i + 1, [...tuple, e], rest)
-    if (!rest) for (const e of R) go(i + 1, [...tuple, e], true)
+    if (!rest) for (const e of R[i]!) go(i + 1, [...tuple, e], true)
   }
   go(0, [], false)
   return out
@@ -1166,7 +1172,27 @@ function matchMany(pattern: E, term: E, xs: string[]): Record<string, E> | undef
     const pe = Object.entries(p), te = t as Record<string, unknown>
     return pe.every(([k, val]) => k === 'op' || (typeof val === 'object' && val !== null ? (Array.isArray(val) ? Array.isArray(te[k]) && (te[k] as unknown[]).length === val.length && val.every((y, i) => go(y as E, (te[k] as E[])[i]!)) : go(val as E, te[k] as E)) : val === te[k]))
   }
-  return go(pattern, term) ? bound : undefined
+  if (go(pattern, term)) return bound
+  // (else as radix sums: a key written 64·(64·z + x) + w is 4096·n + 64·k + v's sort, each part bound to the part of
+  // its coefficient)
+  const p = radix(pattern), t = p && radix(term)
+  if (!p || !t || p.length !== t.length || p.some(([, c], i) => c !== t[i]![1])) return undefined
+  const out: Record<string, E> = {}
+  for (const [i, [e]] of p.entries()) {
+    const u = t[i]![0]
+    if (e.op === 'var' && xs.includes(e.name)) { if (e.name in out && JSON.stringify(out[e.name]) !== JSON.stringify(u)) return undefined; out[e.name] = u }
+    else if (JSON.stringify(e) !== JSON.stringify(u)) return undefined
+  }
+  return out
+}
+// A key as a radix sum Σ c·part, its parts by coefficient, highest first (distinct coefficients, no constant), else
+// undefined. A part is a name or a read of one (a function's).
+const radix = (e: E): [E, number][] | undefined => {
+  const out: [E, number][] = []
+  const go = (x: E, k: number): boolean => x.op === 'add' ? go(x.a, k) && go(x.b, k) : x.op === 'mul' ? go(x.a, k * x.k) : x.op === 'var' || x.op === 'get' ? (out.push([x, k]), true) : false
+  if (!go(e, 1) || out.length < 2) return undefined
+  out.sort((a, b) => b[1] - a[1])
+  return out.every(([, c], i) => i === 0 || c !== out[i - 1]![1]) ? out : undefined
 }
 // The value of x that makes pattern the term, if one does (structurally).
 function match(pattern: E, term: E, x: string): E | undefined {
@@ -1491,13 +1517,18 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
   let inst = prev && laws.every(l => !l.forall || l.name in prev.inst) ? prev.inst : lawInstances(m, laws, i)
   const proofs: Record<string, Proof1> = Object.fromEntries(Object.entries(prev?.proofs ?? {}).filter(([, p]) => stands(p, byName)))
   const unknown = (g: Goal, why = 'past the search\'s end'): Unsettled | undefined => (usual ? {goal: g.name, stuck: 'unknown', why} : undefined)
+  // (past the `rounds` model rounds, each round within the caller's deadline, its model the answer where the round can't
+  // finish: a model of fewer instances is still one of the goal as it was asked)
+  const end = withinDeadline(Infinity)
+  let last: Unsettled | undefined
   for (let round = 0; ; round++) {
     let more: Instances | undefined
+    const late = round > rounds ? () => pastWall() || clock() > end : pastWall
     for (const g of obligations(m, laws, {[law.name]: inst}, i)) {
       if (proofs[g.name]) continue
-      if (pastWall()) return unknown(g)
-      let o: (Outcome & {part?: Goal, core?: number[]}) | undefined = eprScope.patterns ? eprFirst(g, {nodes: 0, until: clock() + 4_000}, false) : undefined
-      if (!o && !usual) return undefined
+      if (late()) return last ?? unknown(g)
+      let o: (Outcome & {part?: Goal, core?: number[]}) | undefined = eprScope.patterns ? eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late) : undefined
+      if (!o && (last || !usual)) return last
       // (the usual search, the EPR path not asked again)
       if (!o) { const busy = eprScope.busy; eprScope.busy = true; try { o = grow(g) } finally { eprScope.busy = busy } }
       if ('tree' in o) {
@@ -1506,10 +1537,10 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
         proofs[g.name] = {part: o.part ?? g, tree: o.tree, uses: new Map((src ? [...src.keys()] : laws.map(l => l.name)).map(n => [n, textOfLaw(byName.get(n)!)])), ...(src ? {tuples: src} : {})}
         continue
       }
-      if (o.stuck !== 'sat' || !o.witness) return unknown(g, o.why)
-      more = round < rounds || (round < 4 * rounds && withinDeadline(Infinity) !== Infinity && clock() < withinDeadline(Infinity)) ? modelInstances(m, laws, inst, g, o.witness) : undefined
-      if (pastWall()) return unknown(g)
-      if (!more) return {goal: g.name, stuck: 'sat', witness: o.witness, ...(o.diagram ? {diagram: o.diagram} : {}), why: 'a model'}
+      if (o.stuck !== 'sat' || !o.witness) return last ?? unknown(g, o.why)
+      last = {goal: g.name, stuck: 'sat', witness: o.witness, ...(o.diagram ? {diagram: o.diagram} : {}), why: 'a model'}
+      more = round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end) ? modelInstances(m, laws, inst, g, o.witness) : undefined
+      if (!more || pastWall()) return last
       break
     }
     if (!more) return {text: textOfLaw(law), inst, proofs}
@@ -1559,8 +1590,16 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
     const r = proveLaws(m, laws)
     return r.proven ? {proven: true} : {proven: false, goal: r.failed!.goal, stuck: r.failed!.stuck, ...(r.failed!.witness ? {witness: r.failed!.witness} : {})}
   }
-  // (the thinned goals too by the EPR path where the rule's keys are composed: withModels' scope, entered here)
-  return withPatterns(m, laws, () => pointed(laws, () => proveOne(m, laws, i)))
+  // (the thinned goals too by the EPR path where the rule's keys are composed: withModels' scope, entered here; first
+  // the law settled by the EPR path as decideLaw settles it, kept where it stands: a caller's verdict rests on its final
+  // proof, which widens and checks; wo's "a leader has the voting quorum's votes" from its 40-law set, 0.45 s there
+  // against 25 s to unknown here)
+  return withPatterns(m, laws, () => {
+    const out = eprScope.patterns && fastShape(m, laws) ? settled(m, laws, i, modelRounds, false) : undefined
+    if (out && 'proofs' in out) return {proven: true}
+    if (out?.stuck === 'sat') return {proven: false, goal: out.goal, stuck: 'sat', ...(out.witness ? {witness: out.witness} : {}), ...(out.diagram ? {diagram: out.diagram} : {})}
+    return pointed(laws, () => proveOne(m, laws, i))
+  })
 }
 function proveOne(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram} {
   const law = laws[i]!, pm = plainOf(m), inst = lawInstances(m, laws, i)

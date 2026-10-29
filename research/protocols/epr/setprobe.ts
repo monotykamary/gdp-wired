@@ -3,7 +3,7 @@
 // dropped each time, while it is not one of the first `keep` laws (the kinds and the caller's).
 //   bun research/protocols/epr/setprobe.ts <set.json> [usual|fast] [keep=4] [max drops=24]
 import {readFileSync} from 'node:fs'
-import {decideLaw, proveLaws, proveSetFast, withWall} from '../../../kernel/prove.ts'
+import {clock, decideLaw, proveLaws, proveSetFast, withDeadline, withWall} from '../../../kernel/prove.ts'
 
 const [file, mode = 'usual', keepS = '4', maxS = '24'] = process.argv.slice(2)
 let {m, laws} = JSON.parse(readFileSync(file!, 'utf8'))
@@ -22,7 +22,8 @@ if (mode === 'warm') {
 const t0 = performance.now()
 for (let k = 0; k <= max; k++) {
   const t = performance.now()
-  const r = withWall(t0 + Number(process.env.WALL ?? 28_000), () => (mode === 'usual' ? proveLaws : proveSetFast)(m, laws))
+  // (inside the search's end, as the enumeration asks it: the wall and the deadline)
+  const end = Number(process.env.WALL ?? 28_000), r = withWall(t0 + end, () => withDeadline(clock() + t0 + end - performance.now(), () => (mode === 'usual' ? proveLaws : proveSetFast)(m, laws)))
   const at = r.failed?.goal ?? '', i = (laws as {name: string}[]).findIndex(l => at.startsWith(`${l.name} @`))
   console.log(JSON.stringify({k, laws: laws.length, ms: Math.round(performance.now() - t), proven: r.proven && r.checked, i, stuck: r.failed?.stuck, at: at.slice(0, 100)}))
   if (r.proven || i < keep) break
