@@ -386,9 +386,9 @@ shadowed, Go (research/langs/go-snapshot/diff.ts with the captures in ../gdp-wir
 
 ## C++ (gen/cpp)
 
-C++ is the C reader extended (core/c/reader.ts, +9.9 KB) and the C harness generated as C++ (core/extract-c.ts, +2.9 KB;
-`extractCpp`, `gdp-wired/extract-cpp`), on Go's lowering (+2.1 KB: the constructor, a mutex of another language) and
-driver (+0.5 KB: the constructor's arguments).
+C++ is the C reader extended (core/c/reader.ts, +12,256 bytes) and the C harness generated as C++ (core/extract-c.ts,
++3,426; `extractCpp`, `gdp-wired/extract-cpp`), on Go's lowering (+2,110: the constructor, a mutex of another language)
+and driver (+853: the constructor's arguments, a natural sort kept in drawn values): +18,645 bytes in all, no new reader.
 
 - **The dump.** A C++ file's standard headers make a dump of hundreds of MB (281 MB for <mutex> and <array>): clang
   dumps only the declarations named after the class (`-ast-dump-filter`), one after another, its locations' state
@@ -416,3 +416,31 @@ driver (+0.5 KB: the constructor's arguments).
   index `a[1]` of a std::array, size_t, read as 0); now exactly. The committed C rules re-extract unchanged.
 - **Refused:** class templates (and templates generally), virtual dispatch, STL containers but std::array, lambdas,
   try and catch, a reference held in a local, std::atomic and std::chrono (types outside the subset).
+- **Also read:** a const reference to an integer is its value; a class named with its namespaces (`this`'s type gives
+  the harness its qualified name); the standard's fixed-width names without their typedefs (a filtered dump has none)
+  and an integer typedef met desugared elsewhere; `std::numeric_limits<T>::max()` and `min()` folded; an overloaded
+  method picked by its arity (`functions: ['throttle/1']`: the other overloads refused where they are called); a
+  scalar's braces (`T x{0}`). A signed leaf the caller states is a natural (`domains`) gets its range law from 0, and
+  the drive draws it at 0 or above (Go's `domains` had the same gap in its drawn values).
+
+**The C++ corpus** (research/langs/c/specs.ts, `cpp: true`; each project's files fetched one by one at the pin, a header
+that would bring its build system stood in for by `shims`, types and macros only, named in `reads`):
+libtorrent 2.1.2's `aux::bandwidth_channel` (BSD-3-Clause: the token bucket under its rate limits; throttle(int),
+update_quota, use_quota, return_quota, quota_left; libtorrent/assert.hpp as assert; m_limit and the milliseconds stated
+naturals, as its asserts and their meaning say) and PX4-Autopilot 1.17.0's `systemlib::Hysteresis` (BSD-3-Clause: the
+debounced boolean of its checks; its constructor, the four methods; drivers/drv_hrt.h as hrt_abstime = uint64_t).
+10 of 11 laws proven, each check agreeing on about 2,300 requests, 400 drawn states and 32–39 witnesses.
+
+**Triage (recorded only, no one contacted):** "an update keeps at most 3 seconds of quota" (inferred from update_quota's
+`if (m_quota_left / 3 > m_limit) m_quota_left = m_limit * 3`) is refuted: where the addition would pass INT32_MAX the
+overflow guard sets the quota to INT32_MAX, past 3·m_limit. The witness: m_limit 714,396,227, m_quota_left
+2,143,188,681 (3·m_limit), an update of 6 ms: the quota becomes 2,147,483,647, 4.3 MB over. The guard is intentional
+(the comment: "may exceed <int>::max"), and past about 715 MB/s three seconds don't fit an int at all: an edge of the
+cap, not a bug in practice.
+
+**Not fitting, each with why** (the candidates' search): no permissively licensed circuit breaker reads (brpc's,
+mod_pagespeed's, Envoy's: atomics, doubles, a clock read inside; helixscreen's ControlBreaker fits but is GPL-3.0), no ring
+buffer class (Fuchsia's console Fifo: its constructor takes a zx::eventpair, its byte methods private; ot-br-posix's
+queue: memcpy into a void*; tenbox's and Arduino's: GPL and LGPL); WebRTC's IntervalBudget (two constructors, a function
+of another file in the same .cc).
+
