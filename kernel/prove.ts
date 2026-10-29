@@ -16,6 +16,7 @@ import type {TStats} from '../core/translate.ts'
 import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
 import {growCdcl} from './cdcl.ts'
+import {type Patterns, decide, patternsOf} from './epr.ts'
 import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
@@ -271,7 +272,36 @@ function growKept0(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
 // The share of a root goal's budget the CDCL search gets (GDP_CDCL_SHARE; 0 turns it off), and the quick search's nodes
 // before it (GDP_QUICK_CAP; 64 where the CDCL search isn't tried, as before it): research/step's comparisons.
 const cdclShare = Number(env.GDP_CDCL_SHARE ?? 0.75), quickCap = Number(env.GDP_QUICK_CAP ?? 16)
+// The EPR path (kernel/epr.ts): a root goal of a rule with a composed key, its hypotheses EPR-shaped (keys tuples of
+// their parts, cells few-valued, no counter, sum or product), decided first by its abstraction. A model of the goal (the
+// abstraction's, judged on every hypothesis by the interpreter) is the goal's model; a refutation's core (a few
+// hypotheses) is proven by the usual search, within half the goal's budget, and widened to the whole goal (`widen`), whose
+// tree the kernel checks as any; anything else, the usual search. Untrusted. GDP_EPR=0 turns it off.
+const eprOn = env.GDP_EPR !== '0'
+export const eprScope: {patterns?: Patterns, busy?: boolean} = {}
+const withPatterns = <T>(m: Machine, laws: Law[], f: () => T): T => {
+  if (!eprOn || eprScope.patterns) return f()
+  const p = patternsOf(plainOf(m), laws)
+  if (!Object.values(p).some(c => c.length > 1)) return f()
+  eprScope.patterns = p
+  try { return f() } finally { eprScope.patterns = undefined }
+}
+function eprFirst(goal: Goal, budget: {nodes: number, until?: number}): Outcome | undefined {
+  const d = decide(goal, eprScope.patterns!, {exact: true})
+  if ('unknown' in d) return undefined
+  if (d.sat) return {stuck: 'sat', witness: d.witness, path: new Map(), why: 'a model'}
+  const last = goal.hyps.length - 1, part: Goal = {name: goal.name, hyps: (d.core.includes(last) ? d.core : [...d.core, last]).map(i => goal.hyps[i]!)}
+  const now = clock(), end = withinDeadline(budget.until ?? Infinity), w = fullWork()
+  eprScope.busy = true
+  try {
+    const out = withWork(workCap === Infinity ? Infinity : w + 0.5 * (workCap - w), () => grow(part, new Map(), {nodes: 0, until: end === Infinity ? end : now + 0.5 * (end - now)}))
+    if (!('tree' in out)) return undefined
+    const tree = widen(part, goal, out.tree)
+    return tree ? {tree, nodes: out.nodes} : undefined
+  } finally { eprScope.busy = false }
+}
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
+  if (eprScope.patterns && !eprScope.busy && !path.size && !budget.nodes) { const out = eprFirst(goal, budget); if (out) return out }
   // Past a few cases, CDCL over the atoms (kernel/cdcl.ts), with most of the budget: a linear goal's refutation there
   // is a resolution of short clauses, which the tree search would find again in every case that reaches one. Unknown
   // there, the plain search, the cuts and the plain search again have the rest. Not for a law over k steps in a row
@@ -958,6 +988,10 @@ const costNow = (): number => (rate ? clock() : fullWork() / groundRate)
 const within = <T>(ms: number, f: () => T): T => (rate ? withDeadline(clock() + ms, f) : withWork(fullWork() + groundRate * ms, f))
 export function withModels<T>(m: Machine, laws: Law[], inst: Instances, goalOf: (i: Instances) => Goal[], ask: (gs: Goal[]) => T,
   modelOf: (t: T) => {goal: Goal, w: Record<string, number>} | undefined, settled: (t: T) => boolean): {result: T, inst: Instances} {
+  return withPatterns(m, laws, () => modelsLoop(m, laws, inst, goalOf, ask, modelOf, settled))
+}
+function modelsLoop<T>(m: Machine, laws: Law[], inst: Instances, goalOf: (i: Instances) => Goal[], ask: (gs: Goal[]) => T,
+  modelOf: (t: T) => {goal: Goal, w: Record<string, number>} | undefined, settled: (t: T) => boolean): {result: T, inst: Instances} {
   let at = inst, first: {result: T, inst: Instances} | undefined, cap = 0
   for (let round = 0; ; round++) {
     const c0 = costNow(), result = round ? within(Math.max(0, cap), () => ask(goalOf(at))) : ask(goalOf(at))
@@ -1413,7 +1447,7 @@ export const usualProof: {last?: {m: Machine, laws: Law[], proof: {instances: Re
 // A machine with sums has no cyclic twin yet: its certificate is the usual trees, checked with its cover goals.
 const sumsWhy = (m: Machine): string | undefined => (m.sums && Object.keys(m.sums).length ? 'a sum over a map\'s keys (Sums.lean checks the usual trees)' : undefined)
 function proveThinned(m: Machine, laws: Law[], instances: Record<string, Instances>): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
-  return pointed(laws, () => thinned(m, laws, instances))
+  return withPatterns(m, laws, () => pointed(laws, () => thinned(m, laws, instances)))
 }
 function thinned(m: Machine, laws: Law[], instances: Record<string, Instances>): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
   const trees: Record<string, Tree> = {}, fulls = {...instances}
