@@ -25,7 +25,7 @@ import * as dsl from './dsl.ts'
 import {compileFunction, seeded} from './machine.ts'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
-import {Exec, type Model, type Path, Refusal, type Setup, type Shape, type Sort, type Term, type V, type Var, memberName, normalize, placed, program, shapeOf} from './extract-read.ts'
+import {Exec, type Model, type Path, Refusal, type Setup, type Shape, type Sort, type Term, type V, type Var, memberName, normalize, placed, program, refuse, shapeOf, where} from './extract-read.ts'
 import {type Printer, kindOf, pb, pterm, sortsOf} from './extract-print.ts'
 import {type Coverage, sandbox} from './extract-check.ts'
 import {conforms, eventsOf, fromXState} from './xstate.ts'
@@ -42,8 +42,6 @@ export type XStateExtraction = {
   ok: boolean, source?: string, chart?: ReturnType<typeof fromXState>, refusals: {where: string, what: string}[], notes: string[],
   evidence?: {runs: number, events: number, coverage: Coverage, ms: number, mismatch?: string},
 }
-const where = (n: ts.Node) => { const sf = n.getSourceFile(), {line, character} = sf.getLineAndCharacterOfPosition(n.getStart()); return `${sf.fileName.split('/').pop()}:${line + 1}:${character + 1}` }
-const refuse = (n: ts.Node, what: string): never => { throw new Refusal(where(n), what) }
 const strip = (e: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e) ? strip(e.expression) : e)
 const isFn = (e: ts.Node): e is ts.ArrowFunction | ts.FunctionExpression => ts.isArrowFunction(e) || ts.isFunctionExpression(e)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

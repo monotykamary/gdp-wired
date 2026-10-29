@@ -87,13 +87,16 @@ type Heap = Map<string, Obj>
 type Path = {pc: B[], locals: Map<string, V>, heap: Heap, wrote: string[], nows: number, outs?: string[]}
 type Flow = {live?: Path, rets: [Path, V][], breaks: Path[]}
 export const unparen = (x: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(x) ? unparen(x.expression) : x)
+// An expression without its parentheses, casts and `!` (what it is, as the front ends read it).
+export const bare = (x: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(x) || ts.isAsExpression(x) || ts.isSatisfiesExpression(x) || ts.isNonNullExpression(x) ? bare(x.expression) : x)
 
-const where = (n: ts.Node): string => {
+// Where a node is, and a refusal there (every TypeScript front end's).
+export const where = (n: ts.Node): string => {
   const sf = n.getSourceFile(), {line, character} = sf.getLineAndCharacterOfPosition(n.getStart())
   return `${sf.fileName.split('/').pop()}:${line + 1}:${character + 1}`
 }
-const refuse = (n: ts.Node, what: string): never => { throw new Refusal(where(n), what) }
-const text = (n: ts.Node) => n.getText().replace(/\s+/g, ' ').slice(0, 60)
+export const refuse = (n: ts.Node, what: string): never => { throw new Refusal(where(n), what) }
+export const text = (n: ts.Node) => n.getText().replace(/\s+/g, ' ').slice(0, 60)
 
 // --- the program ----------------------------------------------------------------------------------------------------
 // A path, normalized (posix: the files are a repository's).
@@ -1012,6 +1015,22 @@ export class Exec {
       return {...q, heap, wrote: o.origin === 'this' ? [...new Set([...q.wrote, f])] : q.wrote}
   }
 
+  // A value replaced whole (a Ref's: never written in place by another holder): two objects by a condition made one,
+  // a map by cases, a record field by field.
+  whole(v: V, q: Path, at: ts.Node): [V, Path] {
+    if (v.t !== 'phi') return [v, q]
+    const [a, qa] = this.whole(v.a, q, at), [b, qb] = this.whole(v.b, qa, at), oa = a.t === 'ref' ? this.obj(qb, a.id) : undefined, ob = b.t === 'ref' ? this.obj(qb, b.id) : undefined, id = this.id(oa?.k ?? 'obj')
+    if (oa?.k === 'map' && ob?.k === 'map' && oa.base === ob.base) {
+      const w = this.mergeWrites(v.c, oa.decl, oa.w, ob.w, at)
+      return [{t: 'ref', id}, {...qb, heap: new Map(qb.heap).set(id, {k: 'map', base: oa.base, decl: oa.decl, ...(w ? {w} : {}), origin: 'fresh', gen: Math.max(oa.gen, ob.gen) + 1})}]
+    }
+    if (oa?.k !== 'rec' || ob?.k !== 'rec' || oa.lazy || ob.lazy || [...oa.fields.keys()].sort().join() !== [...ob.fields.keys()].sort().join()) return [{t: 'phi', c: v.c, a, b}, qb]
+    let r = qb
+    const fields = new Map<string, V>()
+    for (const [f, x] of oa.fields) { const [y, r2] = this.whole(this.phiV(v.c, x, ob.fields.get(f)!, at), r, at); fields.set(f, y); r = r2 }
+    return [{t: 'ref', id}, {...r, heap: new Map(r.heap).set(id, {k: 'rec', fields, origin: 'fresh'})}]
+  }
+
   // A name's symbol, through an import to what it names.
   resolved(e: ts.Node): ts.Symbol | undefined {
     const sym = this.s.checker.getSymbolAtLocation(e)
@@ -1020,7 +1039,7 @@ export class Exec {
   }
 
   // --- calls -----------------------------------------------------------------------------------------------------
-  private args(xs: readonly ts.Expression[], p: Path): [V[], Path] {
+  args(xs: readonly ts.Expression[], p: Path): [V[], Path] {
     const out: V[] = []
     let q = p
     for (const x of xs) { if (ts.isSpreadElement(x)) refuse(x, 'a spread argument'); const [v, q2] = this.ev(x, q); out.push(v); q = q2 }

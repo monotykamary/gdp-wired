@@ -6,7 +6,7 @@
 import ts from 'typescript'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
-import {type Arg, type Event, Exec, type Heap, type Layout, type ListObj, type ListOp, type ListWrite, type MapDecl, type MapObj, type Model, type Path, type Rec, Refusal, Retype, type Setup, type Shape, type Sort, type Term, type V, type Var, memberName, mergeOps, normalize, program, shapeOf, unparen} from './extract-read.ts'
+import {type Arg, type Event, Exec, type Heap, type Layout, type ListObj, type ListOp, type ListWrite, type MapDecl, type MapObj, type Model, type Path, type Rec, Retype, type Setup, type Shape, type Sort, type Term, type V, type Var, memberName, mergeOps, normalize, program, refuse, shapeOf, unparen} from './extract-read.ts'
 
 export type ReadOptions = {
   entry: string,
@@ -22,8 +22,6 @@ export type ReadOptions = {
   init?: unknown,
 }
 const at0 = (sf: ts.SourceFile): ts.Node => sf.statements[0] ?? sf
-const where = (n: ts.Node) => { const sf = n.getSourceFile(), {line, character} = sf.getLineAndCharacterOfPosition(n.getStart()); return `${sf.fileName.split('/').pop()}:${line + 1}:${character + 1}` }
-const refuse = (n: ts.Node, what: string): never => { throw new Refusal(where(n), what) }
 
 function setupOf(code: string, file: string, typed: Record<string, Sort> = {}, files: Record<string, string> = {}): Setup {
   const root = file.slice(0, file.length - (file.split('/').pop()!.length)), extra = Object.fromEntries(Object.entries(files).map(([p, c]) => [normalize(`${root}${p}`), c]))
