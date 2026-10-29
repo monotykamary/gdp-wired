@@ -320,6 +320,8 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
   // there, the plain search, the cuts and the plain search again have the rest. Not for a law over k steps in a row
   // (kernel.ts names its goals `@k steps`): the cuts make its tree a chain of one step's refutations, which the CDCL
   // search's tree, unfolded, repeats (research/step: four times the Lean text of examples/steps.ts). Nor for products.
+  // (past the wall, not even the root's rows: a large goal's take a second)
+  if (pastWall()) return {stuck: 'unknown', path, why: outOfBudget(goal, 'time', path.size)}
   const root = path.size === 0 && budget.nodes === 0 ? leafConstraints(goal, path) : undefined
   const cdcl = !!root && cdclShare > 0 && !cellProducts.on && Number(/@(\d+) steps/.exec(goal.name)?.[1] ?? 1) <= 1 && !root.some(r => Object.keys(r.lin).some(isMonomial))
   // At the root: plainly first; where the cases multiply past a budget, through cuts. The plain budget halves with each
@@ -791,6 +793,7 @@ function withCuts(goal: Goal, path: Path, budget: {nodes: number, until?: number
   const chain: {split: Lin, no: Tree}[] = []
   let at: Path = new Map(path)
   for (const {n, e} of columns) {
+    if (pastWall()) return undefined
     if (e.op !== 'if') continue
     const a = linear(e.then, at), b = linear(e.else, at), focus = topAtoms(e.c, at)
     if (!a || !b || !focus.length) continue
@@ -818,7 +821,7 @@ function topAtoms(c: C, path: Path): Lin[] {
 }
 // A refutation that splits only on these atoms (a cut's failing side), within a small budget.
 function growFocused(goal: Goal, path: Path, focus: Lin[], budget: {nodes: number}, near: Lin[] = focus): Outcome {
-  if (++budget.nodes > 64) return {stuck: 'unknown', path}
+  if (++budget.nodes > 64 || pastWall()) return {stuck: 'unknown', path}
   const verdict = solveNear(leafConstraints(goal, path), [...near, ...[...path.values()].slice(-1).map(a => a.lin)])
   if (verdict.kind === 'refuted') return {tree: {leaf: verdict.steps}, nodes: budget.nodes}
   const split = focus.find(l => !path.has(canon(l)) && !path.has(canonFlip(l)))
@@ -983,6 +986,7 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   const out: Instances = {...inst}
   let added = 0, evals = 0
   const each = (id: string, names: string[], body: C, atoms: boolean) => {
+    if (pastWall()) return
     const have = new Set<string>(), had = out[id] ?? [], n = names.length, sorts = sortsOf(body, names, atoms)
     // (a law at one key assumed at a term of every value its sort takes already: nothing to add)
     if (n === 1) { const covered = new Set(had.map(valueOf)); if ([...sorts[0]!.keys()].every(v2 => covered.has(v2))) return }

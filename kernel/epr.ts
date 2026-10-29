@@ -64,11 +64,13 @@ export type Decision = {sat: false, core: number[]} | {sat: true, witness: Recor
 // `late`: true past the caller's end, checked between the steps and every 256 conflicts; then unknown.
 export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
   fnMaps = new Set(Object.entries(patterns).filter(([, c]) => c.length === 1 && c[0] === 0).map(([f]) => f))
-  try { return decide0(goal, patterns, opts) } catch (e) { if (e === pastEnd) return {unknown: 'past the deadline'}; throw e } finally { fnMaps = new Set() }
+  // (a model whose order leaves no room between two near constants: again with the constants between them, below)
+  try { const d = decide0(goal, patterns, opts); return 'unknown' in d && d.unknown === noRoom ? decide0(goal, patterns, {...opts, fill: true}) : d } catch (e) { if (e === pastEnd) return {unknown: 'past the deadline'}; throw e } finally { fnMaps = new Set() }
 }
 // (thrown by `late` checked every 4,096 clauses and hypotheses read: a goal's clauses are quadratic in its terms)
 const pastEnd = new Error('past the deadline')
-function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean}): Decision {
+const noRoom = 'no values for the model\'s order'
+function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean, fill?: boolean}): Decision {
   // --- which hypotheses are EPR-shaped: every map read at a key of its map's pattern
   const shaped = goal.hyps.map(h => {
     let ok = true
@@ -87,6 +89,8 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
   const tupled = (o: unknown): boolean => { if (!o || typeof o !== 'object') return true; const x = o as {op?: string, map?: string, key?: E, args?: unknown}; if (x.op === 'get' && !fnMaps.has(x.map!) && (x.args || !tupleOf(x.key!))) return false; return Object.values(o).every(tupled) }
   if (!shaped.at(-1) && !tupled(goal.hyps.at(-1))) return {unknown: 'the conclusion is not EPR-shaped'}
   const hyps: (C | undefined)[] = goal.hyps
+  let ticks = 0
+  const tick = () => { if ((++ticks & 4095) === 0 && opts.late?.()) throw pastEnd }
   const fits = (map: string, key: E) => { const t = tupleOf(key), p = patterns[map]; return t && p && sameCoefs(t.coefs, p) ? t : undefined }
   // --- names: a part is a name some read's key or a key equality reads; the rest are scalars
   // (each function part once: its reads are many, its congruence pairs of parts)
@@ -171,7 +175,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     for (const v2 of Object.values(o)) ordWalk(v2)
   }
   let grew = true
-  while (grew) { grew = false; hyps.forEach(ordWalk) }
+  while (grew) { grew = false; hyps.forEach(h => (tick(), ordWalk(h))) }
 
   // --- atoms
   const ids = new Map<string, number>(), names: string[] = ['']
@@ -214,6 +218,8 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     const pn = partName(e)
     if (pn !== undefined && parts.has(pn)) { ords.add(`p:${pn}`); return `p:${pn}` }
     if (e.op === 'var') { if (ordScalars.has(e.name)) { ords.add(`s:${e.name}`); return `s:${e.name}` } return undefined }
+    // (a function read at a key of the wrong sort, idn(64·m + n): a term of the order too, its value the read-back's)
+    if (e.op === 'get' && fnMaps.has(e.map)) { const id = `c:${e.map}#${JSON.stringify(e.key)}`; ords.add(id); return id }
     if (e.op === 'get' && ordMaps.has(e.map) && !(e as {args?: unknown}).args) {
       const t = fits(e.map, e.key)
       const id = t ? `c:${e.map}(${t.parts.join(',')})` : `c:${e.map}#${JSON.stringify(e.key)}`
@@ -363,11 +369,13 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
       case 'all': case 'flag': return opaque(c)
     }
   }
-  let ticks = 0
-  const tick = () => { if ((++ticks & 4095) === 0 && opts.late?.()) throw pastEnd }
   const forms = hyps.map(h => (tick(), h ? lit(h) : undefined))
   // (an order over many terms is a cubic number of transitivity clauses: past 64 terms they are added lazily, those a
   // model breaks, below; past 512, the totality's pairs alone are too many, and the goal keeps the usual path)
+  // (`fill`: the constants between two near ones too, so that discreteness counts the room between them: k:0 < x < y < k:2
+  // has none, which the read-back meets)
+  if (opts.fill) { const cs = [...ords].filter(x => x.startsWith('k:')).map(x => Number(x.slice(2))).sort((a, b) => a - b)
+    for (let i = 0; i + 1 < cs.length; i++) if (cs[i + 1]! - cs[i]! <= 4) for (let c = cs[i]! + 1; c < cs[i + 1]!; c++) ords.add(`k:${c}`) }
   if (ords.size > 512) return {unknown: `${ords.size} ordered terms`}
   const lazy = ords.size > 64
 
@@ -507,7 +515,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
       for (const h of groups.slice(gi + 1)) { const d = constOf(h); if (d !== undefined) { next = d; break } }
       let x = c ?? (next === Infinity && prev > 0 ? (1 << 24) * ++far + 997 * far + prev + 13 : prev + 1)
       if (c === undefined && next !== Infinity && x % 2 === 0 && x + 1 < next) x++
-      if (x <= prev || x >= next) return {unknown: 'no values for the model\'s order'}
+      if (x <= prev || x >= next) return {unknown: noRoom}
       for (const t of g) ordVal.set(t, x)
       prev = x
     }
@@ -522,16 +530,26 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
   const keyVal = (e: E): number | undefined => { const ts: [string, number][] = [], d = {c: 0}; if (!linTerms(e, 1, ts, d)) return undefined; let s = d.c; for (const [x, c] of ts) { if (w[x] === undefined) return undefined; s += c * w[x]! } return s }
   // (each function's table at its parts' values)
   for (const {f, n, a} of fnParts) { if (!maps.has(f)) maps.set(f, new Map()); maps.get(f)!.set(w[a]!, w[n]!) }
-  // (and at a key of the wrong sort, a value of its own, the least unused: an injective function's instance there holds)
+  // (and at a key of the wrong sort, a value of its own past every value the model gives: an injective function's
+  // instance there holds, and a key it is a part of meets no cell of the right sort)
+  let fresh2 = Math.max(0, ...Object.values(w), ...[...maps.values()].flatMap(t => [...t.values()]))
+  // (a key that reads such a read, idn(64·idn(64·m + n) + n): its value from the tables so far, inner reads first)
+  const valueAt = (e: E): number | undefined => {
+    if (e.op === 'const') return e.value
+    if (e.op === 'var') return w[e.name] ?? 0
+    if (e.op === 'mul') { const a = valueAt(e.a); return a === undefined ? undefined : a * e.k }
+    if (e.op === 'add') { const a = valueAt(e.a), b = valueAt(e.b); return a === undefined || b === undefined ? undefined : a + b }
+    if (e.op === 'get' && fnMaps.has(e.map)) { const k = valueAt(e.key); return k === undefined ? undefined : maps.get(e.map)?.get(k) }
+    return undefined
+  }
   const fnOdd = (o: unknown): void => {
     if (!o || typeof o !== 'object') return
     for (const y of Object.values(o)) fnOdd(y)
     const x = o as E
     if (x.op !== 'get' || !fnMaps.has(x.map) || partName(x) !== undefined) return
-    const key = keyVal(x.key), t = maps.get(x.map) ?? new Map<number, number>()
+    const key = keyVal(x.key) ?? valueAt(x.key), t = maps.get(x.map) ?? new Map<number, number>()
     if (key === undefined || t.has(key)) return
-    const used = new Set(t.values()); let u = 0; while (used.has(u)) u++
-    maps.set(x.map, t.set(key, u))
+    maps.set(x.map, t.set(key, ordVal.get(`c:${x.map}#${JSON.stringify(x.key)}`) ?? ++fresh2))
   }
   goal.hyps.forEach(fnOdd)
   for (const [mp, cells] of cellsOf) for (const c of cells) {
@@ -542,7 +560,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
   // (a cell at a key of the wrong sort, where its key falls, unless a cell of the right sort is there: one cell, whose
   // value the hypotheses are judged with below)
   for (const o of odd) {
-    const key = keyVal(o.key)
+    const key = keyVal(o.key) ?? valueAt(o.key)
     if (key === undefined) continue
     if (!maps.has(o.map)) maps.set(o.map, new Map())
     if (!maps.get(o.map)!.has(key)) maps.get(o.map)!.set(key, cellVal.get(o.id)!)
@@ -553,7 +571,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
   const st = {scalars: {}, maps: Object.fromEntries([...allMaps].map(mp => [mp, maps.get(mp) ?? new Map<number, number>()]))}
   const m = {name: goal.name, params: [], inputs: [], state: {}, step: {}, maps: Object.fromEntries([...allMaps].map(mp => [mp, 0]))} as unknown as Machine
   const env = new Proxy({...w}, {get: (t, q: string) => t[q] ?? 0}) as Record<string, number>
-  for (const [i, h] of goal.hyps.entries()) { try { if (!evalC(h, env, st, m)) { return {unknown: `the abstraction's model breaks hypothesis ${i}${shaped[i] ? '' : ' (not EPR-shaped)'}`} } } catch { return {unknown: 'the model could not be read'} } }
+  for (const [i, h] of goal.hyps.entries()) { tick(); try { if (!evalC(h, env, st, m)) { return {unknown: `the abstraction's model breaks hypothesis ${i}${shaped[i] ? '' : ' (not EPR-shaped)'}`} } } catch { return {unknown: 'the model could not be read'} } }
   // the kernel's witness: names, and each cell of the goal by its key's linear form
   const witness: Record<string, number> = {...w}
   const cellName = (o: unknown): void => {
