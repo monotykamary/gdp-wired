@@ -108,7 +108,6 @@ export class Stepper {
   failPaths: Path[] = []
   readonly maps: MapDecl[] = []
   readonly answers = new Map<string, Answer>()
-  readonly spans = new Map<string, [string, number, number]>()
   readonly arms = new Set<string>()
   readonly hints = new WeakMap<object, string>()
   readonly lazy = new Map<string, {prefix: string, ty: string, args: [string, PArg][], vals: Map<string, V>}>()
@@ -119,7 +118,6 @@ export class Stepper {
   readonly frozen = new Set<string>()
   now?: Var
   madeAt?: Var
-  sel: B = I.T
   method = ''
   fresh = 0
   init = false
@@ -329,7 +327,6 @@ export class Stepper {
     if (this.frames.includes(f.id)) return refuse(at, `${f.name}: a recursive call`)
     for (const d of f.decorators) if (!['staticmethod', 'classmethod', 'property', 'override', 'typing.override', 'abstractmethod'].includes(d.name) && !this.skipped([d.name, d.text])) refuse(d, `@${d.text}: a decorator (one of other code changes what the method does; skip it to take it as transparent)`)
     for (const d of f.decorators) if (this.skipped([d.name, d.text])) this.notes.add(`@${d.text} on ${f.name}: taken as transparent (skip)`)
-    this.spans.set(f.id, f.span)
     this.arm(f.body)
     const locals = new Map<string, V>()
     const ps = f.params.filter(x => !x.star)
@@ -1111,7 +1108,6 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
   for (const fn of chosen) {
     g.method = fn.name
     const sel = evL ? I.is(evL, fn.name) : I.T
-    g.sel = sel
     let p: Path = {pc: [sel], locals: new Map(), heap: new Map(g.initHeap), called: []}
     const args: V[] = [], pargs: [string, PArg][] = []
     for (const pa of fn.params.filter(x => !x.self && !x.star)) {

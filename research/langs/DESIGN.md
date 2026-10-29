@@ -83,6 +83,21 @@ operations anyway, not done in phase 1.
 Per language from here: its reader (15–30 KB in its own language) and its harness (8–12 KB reflective, 15–25 KB of TS
 generating it for a static language), and a ~3 KB front end.
 
+## The next languages, on this structure
+
+Each is its reader (in the language, with its own parser), a harness, a ~3 KB front end, and the executor operations it
+needs that no earlier language added. In the order planned:
+
+| Language | Reader | Harness | Executor additions (shared from then on) | Expected bytes |
+| --- | --- | --- | --- | --- |
+| Rust | a small binary on `syn` (as core/go/reader.go is on go/ast), types from the crate's own items | generated: a `main` beside the crate, built by cargo, serde_json lines | fixed widths with `ovf: trap` (debug) and the `wrapping_*`/`checked_*` forms; value records (copies); `Option`/`Result` as `opt`/`fail`; `HashMap`; `Vec` as lists | reader ~25 KB Rust, harness generator ~15 KB TS, executor +15 KB |
+| Ruby | Prism (`Prism.parse`, Ruby 3.3+), ~15 KB Ruby | reflective (`instance_variable_set`), ~8 KB Ruby | Ruby's truthiness (only nil and false) as a reader choice; `Hash`; `Struct`/`Data.define` as records | ~23 KB, executor +1 KB |
+| Elixir | `Code.string_to_quoted`, ~18 KB Elixir | reflective over a GenServer's state or a module of functions, ~8 KB | the reducer shape (a function returning the new state, the TypeScript front end's own), `case`/`cond`/`with` lowered to `if`, `{:ok, _}`/`{:error, _}` as `fail` | ~26 KB, executor +5 KB |
+| C | `clang -Xclang -ast-dump=json`, lowered by a ~18 KB reader (Python or TS: C has no parser of its own to write it in) | generated C with a line protocol of numbers, ~12 KB TS | `ovf: wrap` (unsigned) and `ub` (signed: refused), trunc division, pointers to the state's structs (refs), return codes as failures stated by the caller | ~30 KB, executor +5 KB |
+| C++ | the same clang JSON, classes and methods | generated C++, ~+5 KB over C's | `std::map`/`unordered_map` | ~+12 KB over C |
+
+Then Go moves onto the executor (above: about −75 KB), since lists, value records and widths are there by then.
+
 ## Packaging
 
 The npm library has no hard dependency on any language: `gdp-wired/extract-py` runs `python3` (or the Python given)
