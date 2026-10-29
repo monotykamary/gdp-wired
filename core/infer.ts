@@ -32,6 +32,7 @@
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
+import {writeFileSync} from 'node:fs'
 import {type C, type E, type Fn, type Law, type Machine, type Request, type State, all, any, atMost, carriedView, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
@@ -1213,8 +1214,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const rowsOf = (params: Env, st: State): Env[] => {
         // (at most per^keys rows a state, 64 at least, the fewer-valued sorts' keys taking all of theirs and the cut on the
         // most-valued: a sort's values past a few are still read where another sort has few; a model's state, every row up
-        // to 4096, so that its diagram is read at the keys it names)
-        const all2 = valuesOf2(st).map(vs => (named.has(st) ? vs.slice(0, -1) : vs)), lens = all2.map(vs => vs.length), most = named.has(st) ? 4096 : Math.max(64, per ** all2.length)
+        // to 1024, so that its diagram is read at the keys it names)
+        const all2 = valuesOf2(st).map(vs => (named.has(st) ? vs.slice(0, -1) : vs)), lens = all2.map(vs => vs.length), most = named.has(st) ? 1024 : Math.max(64, per ** all2.length)
         for (let size = lens.reduce((a, b) => a * b, 1); size > most;) { const i = lens.indexOf(Math.max(...lens)); if (lens[i]! <= 1) break; size = size / lens[i]! * (lens[i]! - 1); lens[i]!-- }
         const cand = all2.map((vs, i) => vs.slice(0, lens[i])), out: Env[] = []
         const go = (i: number, env: Env): void => {
@@ -1937,10 +1938,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const extra = [...keys.flatMap((q, i) => (ordered(q) ? [{name: names[i]!, term: x(vars[i]!)}] : [])), ...fns.flatMap(f => keys.flatMap((q, i) => (q === ks.find(`F:${f}`) ? [{name: `${f}(${names[i]})`, term: get(f, x(vars[i]!))}] : [])))]
         const frame = all(...keys.flatMap((s, i) => [...(comp && s === comp[1] && !bounds.has(s) ? [atMost(x(vars[i]!), n(pairing!.n - 1))] : []), ...[...new Set((bounds.get(s) ?? []).map(g => JSON.stringify(substC(g, {vars: {[KEY]: x(vars[i]!)}, maps: {}, flags: {}}))))].map(t => JSON.parse(t) as C), ...keys.slice(0, i).flatMap((t, j) => (t === s ? [not(same(x(vars[j]!), x(vars[i]!)))] : []))]))
         const vi = views.length
-        // (an ordered sort's keys at every value up to its largest (16 at most) besides those a state holds: a key read only
-        // in order literals (z + 1 <= w) is about every value, not only the ones a state's cells are at)
-        const dense = (s: string, vs: number[]) => (ordered(s) ? [...new Set([...Array.from({length: Math.min(16, vs.at(-1) ?? 0) + 1}, (_, i) => i), ...vs])].sort((a, b) => a - b) : vs)
-        addView({vars, names, places, covers, frame, need: keys.length, printable: false}, mapsAt, st => keys.map(s => dense(s, ks.valuesAt(st, s))), Math.max(2, Math.floor(64 ** (1 / keys.length))), extra)
+        addView({vars, names, places, covers, frame, need: keys.length, printable: false}, mapsAt, st => keys.map(s => ks.valuesAt(st, s)), Math.max(2, Math.floor(64 ** (1 / keys.length))), extra)
         // (the rows: every small state's, distinct, at most 20,000; the view's own rows stop at its first states, the shallow
         // ones, so a deep state's (a leader's) would be left out)
         const v = views[vi]!, R: Float64Array[] = [], seenRows = new Set<string>()
@@ -2216,20 +2214,24 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // literals; else its diagrams)
       const seenCtis: Pre[] = []
       const blockers = (pre: Pre): Form[] => {
-        const pt = ptOf(pre), pts = (seenCtis.push(pre), seenCtis.slice(-64).map(ptOf)), bs: Form[] = []
+        const pt = ptOf(pre), pts = (seenCtis.push(pre), seenCtis.slice(-16).map(ptOf)), bs: Form[] = []
         const scored = made.filter(g => !dead.has(textOf(g)) && !holdsAt(g, pt)).map(g => ({g, k: pts.filter(p2 => !holdsAt(g, p2)).length}))
         for (const {g} of scored.sort((a, b) => b.k - a.k || a.g.cube!.length - b.g.cube!.length || width2(b.g) - width2(a.g))) { if (bs.length >= 2) break; if (!bs.some(h => textOf(h) === textOf(g)) && !atStart(g)) bs.push(g) }
         return bs.length ? bs : withFnsOf(pre.w, () => diagrams(pre)).filter(g => !dead.has(textOf(g)))
       }
+      // (a cube that may be false at a counterexample: at a row where it reads cells the model doesn't name, every literal
+      // the model does name in its pattern)
+      const mayFail = (g: Form, pt: Point) => g.view !== undefined && (pt.views[g.view] ?? []).some(r => !judged(g, r) && g.cube!.every(l => { const h = formOf([l], g.view); return !judged(h, r) || !holdsRow(h, r) }))
       const relevant = (room: number, kept: Form[]): Form[] => {
         if (room <= 0 || !pres.length && !subs.length) return []
         const have = new Set([...kept.map(textOf), ...dead]), pts = pres.map(ptOf), sts = subs.slice(-32).map(ptOf)
-        const scored = made.filter(g => !have.has(textOf(g)) && !names.has(textOf(g))).map(g => ({g, k: pts.filter(pt => !holdsAt(g, pt)).length * 64 + sts.filter(pt => !holdsAt(g, pt)).length})).filter(q => q.k > 0)
+        const scored = made.filter(g => !have.has(textOf(g)) && !names.has(textOf(g))).map(g => ({g, k: pts.filter(pt => !holdsAt(g, pt)).length * 4096 + pts.filter(pt => mayFail(g, pt)).length * 64 + sts.filter(pt => !holdsAt(g, pt)).length})).filter(q => q.k > 0)
         scored.sort((a, b) => b.k - a.k || a.g.cube!.length - b.g.cube!.length || width2(b.g) - width2(a.g))
         const out3: Form[] = []
         for (const {g} of scored) { if (out3.length >= room || stop()) break; if (!implied(g) && !atStart(g)) out3.push(g) }
         return out3
       }
+      if (process.env.GDP_ENGINE_PROBE) { const t9 = performance.now(), v9 = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor)])); opts.progress?.('join probe', {cubes: cubes.length, proven: v9.proven && v9.checked ? 1 : 0, ms: Math.round(performance.now() - t9), at: String((v9 as {goal?: string}).goal ?? ''), stuck: String((v9 as {stuck?: string}).stuck ?? ''), witness: JSON.stringify((v9 as {witness?: unknown}).witness ?? null).slice(0, 1500)}); return }
       for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
         cubes = cubes.filter(g => !atStart(g))
         for (const g of cubes) if (!addedAt.has(g)) addedAt.set(g, round)
@@ -2278,6 +2280,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
                 wit = r2.witness ?? wit
               }
             }
+            if (!f && process.env.GDP_ENGINE_DUMP && laws.some(l => l.name === goal)) writeFileSync(process.env.GDP_ENGINE_DUMP, JSON.stringify({laws: [...laws, ...cubes.map(lawFor), ...(ghost ? [ghost.some] : [])]}))
             // (a real counterexample from a state no small state is: its diagram blocked, the goal's laws kept)
             // (a blocker blocked already this round blocks as well: the goal kept, nothing new blocked; one in the set doesn't
             // (a model the set rules out is no counterexample to learn from))
