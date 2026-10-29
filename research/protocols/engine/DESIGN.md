@@ -280,6 +280,20 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - The four unknown: wo 63–64, distributed 63, ring 60, sharded 26.
 - **GDP_ENGINE_LIST** (the listing at the caller's failure) is in: it comes out before a merge.
 
+**The set's proof drop loop, proofs that stand, the per-goal cost** (`runs/engine/p31`–`p34`):
+- **Drop loop:**
+  - When the set's proof fails at a cube, the cube is dropped and the proof asked again at once, up to 24 times.
+  - On distributed it drops 13 cubes in 2–63 ms each. Three fail at the start: order literals over epochs past the small instance's 0..3. Ten fail at a step.
+  - Then the caller's law fails (1.6 s), and the rounds go on.
+- **Proofs that stand:** a goal proven since the set last lost a law isn't asked again (a set that only grows keeps its proofs). On distributed, round 1 now takes 3 s, from 15 s.
+- **Per-goal cost:** the round's machine and indices are built once a round now. The time measured was the EPR decision itself: on distributed, decideLaw took 25 s of round 0's 25 s (49 cubes and the caller's goal, about 0.5 s a goal). On ring, 14 s of decision and 36 s of the CDCL path for the cubes it leaves undecided.
+- **The sums pass's reserve:** 10 s, or a quarter of what is left (it was 21 s or a third). Decentralized's sums pass, which proves it, takes about 3 s.
+- **distributed now:**
+  - After the drop loop, rounds 2 and 3 run to 49–52 s.
+  - In one run the caller's law fails with no diagram at round 3; in the other, round 3 is cut by the end.
+  - Unknown, 57–60 s.
+- **The six (p34, 2 runs):** sync 8–11 s, async 16–27, decentralized 28, 2PC 18–20, ticket 31–35, toy 21.
+
 **Next steps, in order:**
 1. Start the stage earlier, with a planned share of the budget, not what's left after the join and the deep runs (distributed_lock's round 1 is cut short).
 2. Carry the model's function values into the judged state (ring): `stateOf`/`realCti` read `idn[...]` cells of the witness into the interpreter's view of `idn`, or judge rows with the model's values.
