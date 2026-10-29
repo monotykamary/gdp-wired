@@ -119,6 +119,26 @@ the measurements.
   the reader's JSON and its output, and each probe's) in extractGo, for the next such move; research/langs/
   go-capture.json takes the captures.
 
+**The search keeps its end on the wall; the EPR path reads functions of a key, bounded yes/nos and wrong-sort reads;
+a law about many keys at fewer tuples (gen/epr3).** Nothing trusted changed. research/protocols/epr/DESIGN.md,
+"gen/epr3", has the measurements.
+- **The wall end.** proveRule's search runs inside withWall: late(), grow, the EPR path, model rounds, model instances
+  and instance building stop at the search's end, the goal unknown. research/protocols/epr/deadline.test.ts checks it.
+  On gen/enum3, consensus_wo_decide's 60 s search ended at 154 s and sharded KV's at 304 s; with this, 67 s and 42 s.
+- **The EPR path:**
+  - a function of one key is a part (Ackermann), so ring's step goals are decided as Z3 decides them;
+  - a cell or scalar a hypothesis bounds is exact and compared by cases (wo's 361 ordered terms: 9);
+  - an ordered cell beside a composed key is key-only (distributed's four-key cube: 48 s to 0.2 s);
+  - past 64 ordered terms, transitivity is lazy.
+- **Instances.** A law about several keys takes at most 512 related tuples and 512 paired matches; the model's tuples
+  add the rest (sharded KV's caller goal: 112,587 hypotheses to 8,139). proveLaw's thinned goals now go through the
+  EPR path (wo's 65 s search: 0.5 s). A model's cell at a key that reads a cell is valued, so ring's 'one leader' gets
+  its instance.
+- **Pilot** (three runs, against b2df5dc): every verdict the same; skv's 60 s miss ends in 19–20 s against 35–38 s. The
+  30 real-world laws: the same verdicts.
+- **Quick bar** (against b2df5dc): wrong 0, nothing lost solidly; the full bar not run (budget).
+- **Size:** core/ and kernel/ without tests +10,833 bytes.
+
 **Enumerated view cubes, a fallback stage of the join; toy_consensus_forall proven with nothing written (gen/enum2).**
 Nothing trusted changed (kernel/ and lean-kernel/ are e537601's); core/infer.ts alone. research/protocols/README.md,
 "Enumeration (gen/enum2)", has the measurements; research/protocols/enum/DESIGN.md the design it follows.
