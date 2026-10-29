@@ -234,3 +234,47 @@ research/langs/ruby/run.ts fetches the gems from rubygems.org and re-extracts (`
 **Not yet:** arrays and hashes (semian's CircuitBreaker keeps its errors in a sliding window, an array), blocks other
 than synchronize, `answers` and `stores` (rack-attack's throttles read a cache), records as arguments, def_delegators,
 modules mixed in.
+
+## Elixir (gen/elixir)
+
+`core/ex/reader.exs` (32,705 bytes of Elixir on `Code.string_to_quoted`) lowers a module into the IR;
+`core/ex/harness.exs` (8,346) runs it; `core/ex/json.exs` (2,356) is their JSON (an Elixir before 1.18 has none);
+`core/extract-ex.ts` (3,762) the front end; the executor +374 bytes.
+
+**The reducer shape, on the object shape.** Elixir's state is a value its functions return. The reader lowers each
+handler into a method of an object whose fields are the state's: the state the handler is given is the object
+(`self`), and the state it returns is written back to it field by field, the reply evaluated first. A GenServer's
+`init` returning `{:ok, %{...}}` is the constructor (its argument's names the rule's params), each message of
+`handle_call` (`{:reply, r, state}`) and `handle_cast` (`{:noreply, state}`) a request, its clauses on the message
+and on the state one method; an Agent's public functions ending in `Agent.update` or `Agent.get` are requests over
+the struct's defaults; a plain module's public functions take the state first and return it (`{:ok, s}` too,
+`{:error, _}` the step's failure). A handler's tuple built by another function of the module is taken apart where it
+returns. The one executor addition is `upd`, an immutable update (a copy of the record with fields set: `%{s | f: v}`,
+`Map.put`, `Map.merge` with a literal).
+
+**Patterns.** Function clauses, `case` and `cond` are chains of ifs: a clause's pattern binds its variables (a
+variable, `_`, a literal, `^pin`, a map or struct by its keys, `x = pat`) and tests the rest with its guard; no clause
+matching is the step's failure (Elixir's FunctionClauseError, CaseClauseError, CondClauseError), as is raise. Atoms
+are choices (a handler's atom replies one choice); `div` and `rem` truncate (`trunc(a / k)` too); only nil and false
+are false.
+
+**Types.** From the module's `@type` (or `@typep`) of a map or struct with the state's fields, where it states one
+(written bare, `pos_integer` parses as a variable); else from each field's default and what the module puts in it; an
+argument's from the field it initializes, or from its name's use in arithmetic anywhere in the module.
+
+**The harness.** It compiles the module from its file with its clock calls rewritten to read the request's time
+(System's and `:os`'s and `:erlang`'s times, `DateTime.utc_now`, a DateTime field read and set as unix seconds),
+starts it as the module does (GenServer.start with init's argument, the module's start_link for an Agent), reads and
+sets the state through `:sys`, and after a failed call restores the state the call was given (a fresh process given
+it, where the call crashed the old one). It reads its pipe through a `cat` port: Erlang's own reads of a pipe wait
+for a full buffer.
+
+**The corpus.** ex_break 0.0.9 (MIT, (c) 2018 Jonathan Clem): `ExBreak.Breaker`, an Agent over the breaker struct
+(increment, is_tripped, reset_tripped), 4 laws proven, among them "a tripped breaker knows when it tripped", an
+invariant; the check agreed on 2,715 requests. Refused, each with why: odo 0.1.0's `Odo.Bucket` (get_token divides by
+a field, `div(diff, tick_duration)`, and `tick_started_at` is `:init` or a number), attempt 0.6.0's
+`Attempt.Bucket.Token` (an Erlang `:queue`, a timer's message, another module's errors). hammer and ex_rated keep their
+state in ETS tables (a store the front end doesn't read yet) and divide by their arguments; fuse is Erlang.
+
+**Not yet:** ETS and `:atomics` as stores, lists and `Enum`, tuples in patterns beyond a message's, `handle_info`,
+`with`, recursion, structs of other modules as arguments, a field of two types (an atom or a number).
