@@ -52,3 +52,15 @@ for (const p of ['ring', 'dist']) {
     }
   }, 120_000)
 }
+
+// The cubes gen/enum4's decideLaw left undecided (callers/<p>-undecided.json, its rounds 0-2): each a part compared with
+// a composed key at a wrong-sort instance. distributed_lock's 80 are decided, each within a second (the theory of the
+// order, kernel/epr.ts); ring's 6, on goals of 6,000 to 10,000 hypotheses, are not asserted yet.
+test(`dist's undecided cubes: decideLaw decides each`, () => {
+  const rounds: {m: unknown, laws: unknown[], undecided: number[]}[] = JSON.parse(readFileSync(`${import.meta.dir}/callers/dist-undecided.json`, 'utf8'))
+  for (const {m, laws, undecided} of rounds) for (const i of undecided) {
+    const t = performance.now(), r = withWall(performance.now() + 2_000, () => decideLaw(m as never, laws as never, i)), took = performance.now() - t
+    expect(r).toBeDefined()
+    expect(took).toBeLessThan(1_000)
+  }
+}, 300_000)
