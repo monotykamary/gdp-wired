@@ -370,7 +370,7 @@ export class Stepper {
         return refuse(at, `${(at as SX).text ?? ''}: the truth of ${o?.k === 'map' ? 'a dict (whether it is empty)' : 'an object whose class may define __bool__ or __len__'}`)
       }
       case 'cell': case 'fmt': case 'fn': case 'cls': case 'lock': return I.T
-      case 'builtin': case 'ext': case 'lib': case 'opaque': case 'sattr': case 'tuple': case 'res': break
+      case 'builtin': case 'ext': case 'lib': case 'opaque': case 'sattr': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': break
     }
     return refuse(at, `${(at as SX).text ?? ''}: the truth of ${v.t === 'opaque' ? v.why : `a ${v.t}`}`)
   }
@@ -457,7 +457,7 @@ export class Stepper {
       }
       case 'if': {
         const [cv, q] = this.ev(s.c as SX, p)
-        const c = s.strict ? (cv.t === 'bool' ? cv.e : refuse({p: String(s.cp)}, String(s.strict))) : this.truthy(cv, s.c as SX, q)
+        const c = s.strict ? (cv.t === 'bool' ? cv.e : refuse({p: s.cp as string}, s.strict as string)) : this.truthy(cv, s.c as SX, q)
         if (!(c.op === 'const' && !c.v)) this.arm(s.then as SS[])
         if (!(c.op === 'const' && c.v)) this.arm(s.else as SS[])
         const t = c.op === 'const' && !c.v ? undefined : this.block(s.then as SS[], this.assume(q, c))
@@ -507,7 +507,7 @@ export class Stepper {
       case 'panic': { let q = p; for (const a of s.args as SX[]) q = this.ev(a, q)[1]; this.refuseWhere(q, I.T, s, 'a panic'); return {rets: []} }
       case 'incdec': {
         const [pl, q] = this.place(s.to as SX, p), [v, q2] = this.read(pl, s, q)
-        if (v.t !== 'num') return refuse(s, `${s.op} of a ${v.t}`)
+        if (v.t !== 'num') return refuse(s, `${s.op as string} of a ${v.t}`)
         return {live: this.write(pl, this.arith(s.op === '++' ? '+' : '-', v, {t: 'num', e: I.num(1), ty: v.ty}, s, q2), s, q2), rets: []}
       }
       case 'opset': { const [pl, q] = this.place(s.to as SX, p), [x, q2] = this.read(pl, s, q), [y, q3] = this.ev(s.y as SX, q2); return {live: this.write(pl, this.binop(String(s.op), x, y, s, q3), s, q3), rets: []} }
@@ -515,7 +515,7 @@ export class Stepper {
       case 'assign': return {live: this.assignGo(s, p), rets: []}
       case 'switch': return this.switchGo(s, p)
       case 'break': return {rets: [], brk: [p]}
-      case 'defer': { const key = this.lockKey(s.pl as SX, p); if (!p.locks.includes(key)) refuse(s, `defer ${s.text} without its Lock first`); return {live: {...p, defers: [...p.defers, key]}, rets: []} }
+      case 'defer': { const key = this.lockKey(s.pl as SX, p); if (!p.locks.includes(key)) refuse(s, `defer ${s.text as string} without its Lock first`); return {live: {...p, defers: [...p.defers, key]}, rets: []} }
     }
     return refuse(s, `a statement the subset doesn't read (${s.s})`)
   }
@@ -764,7 +764,7 @@ export class Stepper {
       case 'bool': return [{t: 'bool', e: x.v ? I.T : I.F}, p]
       case 'str': return [{t: 'str', e: {op: 'slit', value: String(x.v)}}, p]
       case 'none': return [{t: 'none'}, p]
-      case 'var': { const v = p.locals.get(String(x.n)); if (!v) return refuse(x, String(x.why ?? `${String(x.n)}: a variable read before it is set`)); return [this.narrow(v, p), p] }
+      case 'var': { const v = p.locals.get(String(x.n)); if (!v) return refuse(x, (x.why as string | undefined) ?? `${String(x.n)}: a variable read before it is set`); return [this.narrow(v, p), p] }
       case 'fn': return [{t: 'fn', id: String(x.id)}, p]
       case 'cls': return [{t: 'cls', rec: String(x.rec), ...(x.patch ? {patch: x.patch as Patch} : {})}, p]
       case 'builtin': return [{t: 'builtin', n: String(x.n)}, p]
@@ -773,7 +773,7 @@ export class Stepper {
       case 'no': { let q = p; for (const y of (x.pre as SX[] | undefined) ?? []) q = this.ev(y, q)[1]; if (x.prepl) this.place(x.prepl as SX, q); return refuse(x, String(x.why)) }
       case 'nil': return [{t: 'nil'}, p]
       case 'ptr0': return [{t: 'ptr', to: {k: 'nil'}}, p]
-      case 'errv': { let q = p; for (const y of (x.pre as SX[] | undefined) ?? []) q = this.ev(y, q)[1]; if (x.note) this.notes.add(String(x.note)); return [{t: 'err', is: x.is ? I.T : I.F}, q] }
+      case 'errv': { let q = p; for (const y of (x.pre as SX[] | undefined) ?? []) q = this.ev(y, q)[1]; if (x.note) this.notes.add(x.note as string); return [{t: 'err', is: x.is ? I.T : I.F}, q] }
       case 'struct': { let q = p; const f = new Map<string, V>(); for (const [n, y] of x.fields as [string, SX][]) { const [v, q2] = this.ev(y, q); f.set(n, v); q = q2 } return [{t: 'struct', ty: String(x.ty), f}, q] }
       case 'at': { const [pl, q] = this.place(x.pl as SX, p); if (pl.k === 'blank') return refuse(x, '_'); const [v, q2] = this.read(pl, x, q); if (v.t === 'opaque' && !x.raw) return refuse(x, v.why); return [v, q2] }
       case 'deref': { const [v, q] = this.ev(x.x as SX, p); return this.deref(v, [], x, q) }
@@ -1186,7 +1186,7 @@ export class Stepper {
       case 'lib': return this.lib(f.q, x, q)
       case 'ext': return refuse(x, `${x.text}: ${f.q}, other code (answer it, skip it, or read that module)`)
       case 'opaque': return refuse(x, `${x.text}: a call of ${f.why}`)
-      case 'bool': case 'cell': case 'choice': case 'fmt': case 'lock': case 'none': case 'num': case 'opt': case 'ref': case 'sattr': case 'str': case 'tuple': case 'res': break
+      case 'bool': case 'cell': case 'choice': case 'fmt': case 'lock': case 'none': case 'num': case 'opt': case 'ref': case 'sattr': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': break
     }
     void args0; void kw0
     return refuse(x, `${x.text}: a call of a ${f.t}`)
@@ -1396,7 +1396,7 @@ export class Stepper {
       case 'deref': { const [v, q] = this.ev(x.x as SX, p); return [{k: 'heap', ptr: v, path: []}, q] }
       case 'fld': { const [b, q] = this.place(x.x as SX, p); if (b.k === 'blank') return refuse(x, 'a field of _'); return [{...b, path: [...b.path, String(x.f)]}, q] }
     }
-    return refuse(x, String(x.why ?? `${x.text}: an assignment to other than a variable, a field or *p`))
+    return refuse(x, (x.why as string | undefined) ?? `${x.text}: an assignment to other than a variable, a field or *p`)
   }
   read(pl: Place, at: SX | SS | {p: string}, p: Path): [V, Path] {
     if (pl.k === 'blank') return refuse(at, '_ read')

@@ -408,10 +408,10 @@ class Go {
     // The named results start at their zero values.
     const zeros: SS[] = f.results.filter(r => r.id).map(r => ({s: 'assign', p: f.p, to: [{e: 'var', p: f.p, n: r.id, bind: 'always'}], xs: [this.zero(r.t, f)]}))
     let body: SS[] | undefined
-    const go = this
+    const lower = () => this.body(f.body ?? [], f)
     return {
       id: `${f.recv?.type ?? ''}.${f.name}`, name: f.name, p: f.p, span: [f.p.split(':')[0]!, f.span[0], f.span[1]], params: f.params.map(pa => ({name: pa.id ?? '', t: {k: 'any'}})), ret: {k: 'any'},
-      get body() { return (body ??= [...zeros, ...go.body(f.body ?? [], f)]) }, decorators: [], ...(f.recv?.id ? {recv: f.recv.id} : {}), results: f.results.length,
+      get body() { return (body ??= [...zeros, ...lower()]) }, decorators: [], ...(f.recv?.id ? {recv: f.recv.id} : {}), results: f.results.length,
       ...(f.generic ? {why: `${f.name}: a generic function`} : !f.body ? {late: `${f.name} has no body`} : f.params.some(x => x.variadic) ? {late: `${f.name}: a variadic function`} : {}),
     } as SFunc
   }
