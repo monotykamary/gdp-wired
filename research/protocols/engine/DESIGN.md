@@ -101,6 +101,34 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - So the two counterexamples' states agree with a reachable small state on every tuple the template's views cover (wo's width is 3). A wider view needs a small instance at least that wide: the 4-node wo BFS, past 3 nodes' 1,400–3,250 states in 30 s, is out of reach. Ivy's wo invariant also needs an ∃ (a leader has a quorum that voted for it), which the ∀ cubes can't say.
 - **Overrun left:** sharded ends at 77 s. Its search ends near 59 s; the rest is after it, in core/dsl.ts's deeper bounded runs (`withWall(Infinity, …)`), which is outside core/infer.ts.
 
+**∀∃ checkpoint** (gen/epr5 merged at 0b65591 and decideLaw applied; `runs/engine/p14`, all ten, 2 runs at 60 s):
+- **Probe** (`exprobe.ts`, Modal):
+  - wo's written laws prove the caller's law in 30 s, 20 s of it the cyclic certificate. That is with the ∃ law's witness given (`w`, set where `inits ∨ chooses`).
+  - The same ∃ law with no witness given doesn't finish in 150 s: proveSome's own witness search is too slow here.
+  - So the stage chooses the witness itself.
+- **Built:**
+  - **Gate:** the caller's law fails with no diagram.
+  - **Candidates:** `A → ∃y. B(y)` over a one-key view, where A is a scalar literal or none, and B is 1–2 literals, at least one off its default. Each is true on every small state, with B not at every key. Up to 6, the weaker B first.
+  - **Witness:** a ghost, starting at 0. After each step it takes an input where an update of a map B reads takes its branch, else keeps its value. The first that holds along random walks of the small instance is taken.
+  - **Houdini:** the ghost is a state variable of the machine it reads (`withGhost`). Its law is a goal; if unproven, the next candidate is tried.
+  - **Final proof:** the ∃ law with that witness, through proveSome.
+- **On wo:**
+  - The stage finds exactly the written ∃ law and its witness: `started = 1 → ∃x. VotingQuorum[x]`, ghost `if inits ∨ chooses then w`. It takes 0.2–0.5 s. With it, the Houdini rounds reach rounds with nothing dropped.
+  - It stays unknown. At 60 s the rounds run out of time: the small instance ends near 17 s and round 0 near 37 s. At 120 s, the caller's law fails from the 48 cubes plus the ∃ law.
+  - The written ∀ laws need cubes that compete for the 48 places: a 3-key cube (one vote message per voter) and the leader's quorum-votes cube.
+- **The small instance, rebuilt for wo's depth:**
+  - Its first leader is at depth 5 (`bfsprobe.ts`). The views' rows had come only from the first, shallow states, so no `Leader ≥ 1` literal existed.
+  - The rows are now every small state's, at most 20,000 distinct.
+  - When the BFS is cut short, its last quarter of the share goes to random walks from its last states.
+  - The cubes are taken in turn by the maps they read: 96 a view, 48 in all.
+- **Verdicts (p14):**
+  - The six stay proven: sync 9 s, async 22–25, decentralized 24–27, 2PC 17–18, ticket 28–30, toy 30 and 87.
+  - Toy's 87 s run was a slow container: its small instance ended at 30 s, against 8–14 s. Four more runs took 23–36 s.
+  - The four stay unknown, with sharded's overrun gone (50–53 s) and distributed at 47–50 s.
+- **Next, for wo:**
+  - the ∀ side's selection: the cubes that the caller's counterexample with the ∃ law breaks, first;
+  - the time: the small instance and round 0 take about 37 s of 60.
+
 **Next steps, in order:**
 1. Start the stage earlier, with a planned share of the budget, not what's left after the join and the deep runs (distributed_lock's round 1 is cut short).
 2. Carry the model's function values into the judged state (ring): `stateOf`/`realCti` read `idn[...]` cells of the witness into the interpreter's view of `idn`, or judge rows with the model's values.
