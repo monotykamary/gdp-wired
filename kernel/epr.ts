@@ -301,6 +301,9 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
       if (ta && tb && sameCoefs(ta.coefs, tb.coefs) && [...ta.parts, ...tb.parts].every(p => parts.has(p))) {
         const p = opaque(c); keyEqs.push({p, a: ta, b: tb}); return p
       }
+      // (keys of two shapes, a part against a composed key, key3 = 64·e + n: of two sorts, so unequal here; a model
+      // that has them equal is judged by its read-back, a refutation through it by the usual search on its core)
+      if (ta && tb && !sameCoefs(ta.coefs, tb.coefs) && [...ta.parts, ...tb.parts].every(p => parts.has(p))) return Fa
     }
     const ts: [E, number][] = [], d = {c: 0}
     sum(c.a, 1, ts, d); sum(c.b, -1, ts, d)
@@ -504,6 +507,11 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     const groups: string[][] = []
     for (let i = 0; i < os.length;) { let j = i; while (j < os.length && leq(os[j]!, os[i]!) && leq(os[i]!, os[j]!)) j++; groups.push(os.slice(i, j)); i = j }
     const constOf = (g: string[]) => { const cs = [...new Set(g.filter(x => x.startsWith('k:')).map(x => Number(x.slice(2))))]; return cs.length > 1 ? NaN : cs[0] }
+    // (a successor the model holds, n1 = n + 1, makes its two groups consecutive values: such a chain is one block, its
+    // first group's value the next free one, or its constant's less the steps to it)
+    const groupOf = new Map<string, number>(); groups.forEach((g, i) => g.forEach(t => groupOf.set(t, i)))
+    const tight = new Set(succs.filter(x => val(x.s)).map(x => `${groupOf.get(x.lo)}>${groupOf.get(x.hi)}`))
+    const tied = (i: number) => tight.has(`${i}>${i + 1}`)
     let prev = -1, far = 0
     for (const [gi, g] of groups.entries()) {
       const c = constOf(g)
@@ -512,7 +520,9 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
       for (const h of groups.slice(gi + 1)) { const d = constOf(h); if (d !== undefined) { next = d; break } }
       let x = c ?? (next === Infinity && prev > 0 ? (1 << 24) * ++far + 997 * far + prev + 13 : prev + 1)
       if (c === undefined && next !== Infinity && x % 2 === 0 && x + 1 < next) x++
-      if (x <= prev || x >= next) return {unknown: noRoom}
+      if (c === undefined && gi > 0 && tied(gi - 1)) x = prev + 1
+      else if (c === undefined) { let k = gi; while (tied(k) && constOf(groups[k + 1]!) === undefined) k++; const d = tied(k) ? constOf(groups[k + 1]!) : undefined; if (d !== undefined) x = d - (k + 1 - gi) }
+      if (x <= prev || x >= next || (gi > 0 && tied(gi - 1) && x !== prev + 1)) return {unknown: noRoom}
       for (const t of g) ordVal.set(t, x)
       prev = x
     }
