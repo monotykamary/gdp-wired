@@ -29,5 +29,11 @@
   "cwd": ".",
   "cpu": 2.0,
   "timeout": 1800
+ },
+ {
+  "name": "c-corpus",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/c/clang-setup.sh && cp -r research/langs/c/rules /tmp/c-before && timeout -s KILL 800 bun research/langs/c/run.ts --write 2>&1 | grep -v '^cyclic:' | tail -40; diff -r /tmp/c-before research/langs/c/rules && echo 'C RULES IDENTICAL'",
+  "cpu": 2.0,
+  "timeout": 900
  }
 ]
