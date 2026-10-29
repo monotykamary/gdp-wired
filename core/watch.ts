@@ -82,6 +82,8 @@ const keysPer = (reads: ReturnType<typeof readValues>, names: string[], bound: n
   return [...vals]
 })
 
+// The tuples every watch has read a law at (core/dsl.ts's refuteByRuns counts its budget in them).
+export const watchWork = {n: 0}
 // Watches one law or step law along one run: `start` with the state at the start, `step` after each step the run takes
 // (the state before, the request, the state after). Each says whether the law still holds.
 export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: number) {
@@ -89,7 +91,7 @@ export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: 
   const names = w.forall ? [w.forall, ...(w.keys ?? [])] : [], reads = names.length ? readValues(isStepLaw(w) ? w.then : w.holds, names) : undefined
   const atKeys = (keys: number[][], env: Env, f: (env: Env) => boolean): boolean => {
     const go = (i: number): boolean => {
-      if (i === names.length) return f(env)
+      if (i === names.length) { watchWork.n++; return f(env) }
       for (const key of keys[i]!) { env[names[i]!] = key; if (!go(i + 1)) return false }
       return true
     }

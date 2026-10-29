@@ -16,7 +16,7 @@
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
 import {type C, type E, type Fn, argsKey, type Law, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
-import {allowed, keysOf, requestEnv, watch} from './watch.ts'
+import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {someHolds, substVars, substVarsE} from './exists.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations, substC, sumMachine} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
@@ -2490,6 +2490,10 @@ const withKinds = (r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[])
 // it is found on any machine. (A stop at 150 ms of wall time left a false law to the kernel whenever the first run alone
 // took that long, a pause on a loaded container: core/pairs.test.ts's two groups, whose 944-hypothesis step goal then ran
 // out its 944 s, in 7 of 130 runs of the suite's pairs job on Modal.)
+// The tuples a law is read at count too (core/watch.ts's watchWork), at most `perTrial` for each trial a budget has: a law
+// about five keys read at every tuple of a run's keys, at every step of 2,400 deeper trials, is half an hour of a 600 s
+// search (sharded KV's); the runs that refute the pilot's broken variants read at most 2.2M of a budget's 6M.
+const perTrial = 10_000
 const refuteBudget = {trials: 60, depth: 6, bound: 3}
 // A request as a run's trace shows it: each map it carries as an object of its cells.
 const shownRequest = (input: Request) => Object.fromEntries(Object.entries(input).map(([n, x]) => [n, typeof x === 'number' ? x : Object.fromEntries(x as ReadonlyMap<number, number>)]))
@@ -2528,8 +2532,9 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
   let alone: boolean | undefined
   const factsHold = (params: Record<string, number>): boolean => (alone ??= facts.filter(f => !readsParams(f)).every(f => holds(f, params)))
     && facts.filter(readsParams).every(f => holds(f, params))
+  const cap = watchWork.n + perTrial * budget.trials
   try {
-    for (let trial = 0; trial < budget.trials; trial++) {
+    for (let trial = 0; trial < budget.trials && watchWork.n <= cap; trial++) {
       // (`mixed`: the trials in turn at bounds 1 to 4, every fourth near)
       const bound = budget.mixed ? 1 + trial % 4 : budget.bound, guided = guides, near = budget.mixed && trial % 4 ? undefined : budget.near
       const params = r.randomParams(rand, bound)
@@ -2542,7 +2547,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       const broken = (w: Law | StepLaw, at: string, before: State, input?: Request) =>
         ({goal: `${w.name} ${at}`, witness: {...params, ...before.scalars, ...(input ? numbersOf(input) : {})}, run: {params, trace: trace.map(shown)}})
       for (const {w, on} of watching) if (!('then' in w) && !on.start(st)) return broken(w, '@start', st)
-      for (let d = 0, tries = 0; d < budget.depth && tries < 40; tries++) {
+      for (let d = 0, tries = 0; d < budget.depth && tries < 40 && watchWork.n <= cap; tries++) {
         const input = r.randomInput(rand, bound, params)
         if (near) for (const x of m.inputs) if (near[x] !== undefined && typeof input[x] === 'number' && rand(2)) input[x] = near[x]!
         for (const g of guided) { const set = g({...params, ...st.scalars}, st, rand, bound); if (set && typeof input[set[0]] === 'number') input[set[0]] = set[1] }
@@ -2561,7 +2566,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     // variable of a kind is drawn as its kind draws (33 yes/nos drawn from 0..7 almost never make a lawful state).
     const steps1 = stepLaws.filter(sl => (sl.steps ?? 1) === 1), given = withKinds(r, laws)
     const wide = Object.keys(m.state).length + m.inputs.length >= 32, lawsHere = wide ? given : [], kinded = wide ? r.kindsOfState() : []
-    for (let trial = 0; budget.states !== false && !m.history && (steps1.length || lawsHere.length) && trial < budget.trials * 4; trial++) {
+    for (let trial = 0; budget.states !== false && !m.history && (steps1.length || lawsHere.length) && trial < budget.trials * 4 && watchWork.n <= cap; trial++) {
       const params = r.randomParams(rand, bound)
       if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m) || !factsHold(params)) continue
       const scalars: Record<string, number> = Object.fromEntries(Object.keys(m.state).map(n => [n, rand(8)]))
