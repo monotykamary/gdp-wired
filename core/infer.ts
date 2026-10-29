@@ -2067,10 +2067,31 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         let post: State
         try { post = run.step(params, st, requestOf(w)); stepNamed(st, post) } catch { return false }
         if (!others.every(g => holdsAt(g, at(st)))) return false
+        lastPre = {params, st}
         if (!f) return breaks(params, post, st, requestOf(w))
         const bad = (at(post).views[f.view!] ?? []).filter(r => judged(f, r) && !holdsRow(f, r)).map(valuesOf)
         if (bad.length) broken.set(f, bad)
         return bad.length > 0
+      }
+      // (a counterexample's diagram (UPDR's, IC3PO's): in each template view, a row of its state no reachable small state's
+      // row is, as the literals true there, generalized by taking out each literal while no small state's row is inside;
+      // blocked as a law ¬diagram, at most four a counterexample)
+      let lastPre: {params: Env, st: State} | undefined
+      const reachedRows = new Map<number, Set<string>>()
+      const diagrams = (pre: {params: Env, st: State}): Form[] => {
+        const out2: Form[] = []
+        for (const [vi, k] of known) {
+          const seenR = reachedRows.get(vi) ?? new Set(k.R.map(vecKey)); reachedRows.set(vi, seenR)
+          for (const row of views[vi]!.rowsOf(pre.params, pre.st).filter(r => !unnamed.get(r))) {
+            const r = valuesOf(row)
+            if (seenR.has(vecKey(r))) continue
+            let c = k.lits.filter(l => litHolds(l, r))
+            for (const l of [...c]) { const c2 = c.filter(x2 => x2 !== l); if (c2.length && !k.R.some(y => inCube(c2, y))) c = c2 }
+            if (c.length <= 5 && !k.R.some(y => inCube(c, y))) out2.push(formOf(c, vi))
+            if (out2.length >= 4) return out2
+          }
+        }
+        return out2
       }
       // (a cube a real counterexample breaks, weakened (DuoAI's co-implication, one step): each literal false at every
       // row the counterexample breaks it at, where no sample row is in the cube it makes, at most four)
@@ -2082,7 +2103,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       }
       for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
         const kUntil = t0 + ms - (round ? reserve : 0)
-        const real = new Set<Form>(), unsure = new Set<Form>(), ls = [...given, ...cubes.map(lawFor)]
+        const real = new Set<Form>(), unsure = new Set<Form>(), ls = [...given, ...cubes.map(lawFor)], blocked2: Form[] = []
         let caller = false, complete = true
         {
           for (const goal of [...laws.map(l => l.name), ...cubes]) {
@@ -2101,12 +2122,16 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
               if (r2.proven) continue
               isReal = !!r2.witness && realCti(r2.witness, f, others)
             }
+            // (a real counterexample from a state no small state is: its diagram blocked, the goal's laws kept)
+            const ds = isReal && lastPre ? diagrams(lastPre).filter(g => !cubes.some(h => textOf(h) === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g))) : []
+            if (ds.length) { blocked2.push(...ds); continue }
             if (!f) { caller = true; break }
             ;(isReal ? real : unsure).add(f)
           }
         }
-        opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0})
+        opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length})
         const drops = real.size ? real : unsure
+        if (blocked2.length) { cubes = [...cubes.filter(g => !drops.has(g)), ...blocked2].slice(0, 96); return }
         if (complete && !caller && !drops.size) { const v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor)])); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } }
         if (!complete || caller || !drops.size) over = true
         const texts = new Set(cubes.map(textOf)), more = real.size ? [...real].flatMap(weaker).filter(g => !texts.has(textOf(g)) && !!texts.add(textOf(g))) : []
