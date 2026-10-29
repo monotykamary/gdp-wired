@@ -265,11 +265,13 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing) {
         kids(t, see)
       }
       see(l.holds)
-      // (the antecedent's conditions on the keys alone: k < 64, a ≠ b)
-      const onKeys = (c: C) => { const s2 = JSON.stringify(c); return !s2.includes('"op":"get"') && [...s2.matchAll(/"name":"([^"]+)"/g)].every(q => own.has(q[1]!)) }
+      // (the antecedent's conditions on the keys, with the state and params beside: k < 64, a ≠ b, k < size, j < next)
+      const onKeys = (c: C) => { const s2 = JSON.stringify(c), ns = [...s2.matchAll(/"name":"([^"]+)"/g)].map(q => q[1]!); return !s2.includes('"op":"get"') && ns.some(v => own.has(v)) && ns.every(v => own.has(v) || v in m.state || m.params.includes(v)) }
       if (l.holds.op === 'or') for (const y of l.holds.xs) if (y.op === 'not') guards.push(...conj(y.x).filter(onKeys))
       return {composites, guards}
     },
+    // (a guard that reads the state or params beside the keys: a domain that moves)
+    moving: (g: C, bound: string[]) => [...JSON.stringify(g).matchAll(/"name":"([^"]+)"/g)].some(q => !bound.includes(q[1]!)),
     composedMaps: [...composed],
     compose: (a: E, b: E): E => { const k = plus(times(pairing!.n, a), b); return pairing!.c ? plus(k, n(pairing!.c)) : k },
     plainMaps: (sort: string) => [...plainRead].filter(mp => find(`M:${mp}`) === sort),
@@ -631,7 +633,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   }
   const rowsS = samples.map(s => withTerms({...s.params, ...s.st.scalars}, s.st))
   const rowsK: Env[] = []
-  for (const s of samples) { if (rowsK.length > 6000) break; rowsK.push(...cellRows(s.params, s.st)) }
+  // (rows alike but for their key once: the hull, the bounds and the levels read only which rows there are, so the cap
+  // holds as many of the samples' kinds of rows as it can)
+  const rowId = (r: Env) => { let t = ''; for (const q in r) if (q !== K) t += `${r[q]},`; return t }
+  const unseen = (seen: Set<string>) => (r: Env) => { const t = rowId(r); return !seen.has(t) && !!seen.add(t) }
+  { const fresh = unseen(new Set()); for (const s of samples) { if (rowsK.length > 6000) break; rowsK.push(...cellRows(s.params, s.st).filter(fresh)) } }
   const valsS = atoms.map(a => Float64Array.from(rowsS, r => valueOf(a, r))), valsK = atoms.map(a => Float64Array.from(rowsK, r => valueOf(a, r)))
   const kindOf = new Map(kinds.map(([name, k]) => [name, k]))
   // Modes: a yes/no, a choice, or a state natural (or cell) no run took past a few values.
@@ -1141,7 +1147,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         return out
       }
       const rows: Env[] = []
-      for (const s2 of samples) { if (rows.length > 6000) break; rows.push(...rowsOf(s2.params, s2.st)) }
+      const fresh = unseen(new Set())
+      for (const s2 of samples) { if (rows.length > 6000) break; rows.push(...rowsOf(s2.params, s2.st).filter(fresh)) }
       views.push({...v, atoms: va, rows, rowsOf})
     }
     // The pairs: where the rule composes two keys into one (Link[N·a + b] beside Known[a], Known[b]), the cells at two
@@ -1172,19 +1179,33 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const seen = new Set<string>()
       for (const l of callerLaws) {
         const bound = l.forall ? [l.forall, ...(l.keys ?? [])] : []
-        if (bound.length < 2 || bound.length > 4) continue
+        if (!bound.length || bound.length > 4) continue
         const shape = sorts.shape(l, bound)
-        // (two keys the pairs already relate: a row and a column of the composed key, or two plain keys)
-        if (!shape || (bound.length === 2 && pairing && (!pairing.n || (shape.composites.length === 1 && sorts.sortOf(l, bound[0]!) !== sorts.sortOf(l, bound[1]!))))) continue
+        if (!shape) continue
+        const reads = (g: C) => bound.filter(b2 => JSON.stringify(g).includes(`"name":"${b2}"`)), moving = shape.guards.some((g: C) => sorts.moving(g, bound))
+        // A key's domain that moves (its guards that read no other key but the state or params: k < size, j < next): a
+        // view of that key alone, the cells of its sort at it where the domain holds (the cells' space reads every key a
+        // state holds, a map written at every key holding its value past the domain too).
+        for (const b2 of bound) {
+          const dom = shape.guards.filter((g: C) => reads(g).length === 1 && reads(g)[0] === b2 && sorts.moving(g, bound)), mps = sorts.plainMaps(sorts.sortOf(l, b2))
+          if (!dom.length || !mps.length) continue
+          const frame = all(...dom.map((g: C) => substC(g, {vars: {[b2]: x(KEY)}, maps: {}, flags: {}}))), sig = JSON.stringify([sorts.sortOf(l, b2), frame])
+          if (seen.has(sig)) continue
+          seen.add(sig)
+          addView({vars: [KEY], names: ['x'], places: [x(KEY)], covers: [[0]], frame, need: 1, printable: false}, [mps], st => [sorts.valuesAt(st, sorts.sortOf(l, b2))], 64)
+        }
+        // (two keys the pairs already relate: a row and a column of the composed key, or two plain keys where no domain
+        // of the law's moves)
+        if (bound.length < 2 || (bound.length === 2 && pairing && ((!pairing.n && !moving) || (shape.composites.length === 1 && sorts.sortOf(l, bound[0]!) !== sorts.sortOf(l, bound[1]!))))) continue
         const vars = bound.map((_, i) => (i ? `key${i + 1}$found` : KEY)), ren = Object.fromEntries(bound.map((b2, i) => [b2, x(vars[i]!)]))
         const places: E[] = [], mapsAt: string[][] = [], covers: number[][] = []
         for (const [a2, b2] of shape.composites) { places.push(sorts.compose(ren[a2]!, ren[b2]!)); mapsAt.push(sorts.composedMaps); covers.push([bound.indexOf(a2), bound.indexOf(b2)]) }
         bound.forEach((b2, i) => { const mps = sorts.plainMaps(sorts.sortOf(l, b2)); if (mps.length) { places.push(x(vars[i]!)); mapsAt.push(mps); covers.push([i]) } })
-        const sig = JSON.stringify([bound.map(b2 => sorts.sortOf(l, b2)), covers, mapsAt])
-        if (seen.has(sig) || !places.length) continue
-        seen.add(sig)
         const distinct = bound.flatMap((b2, i) => bound.slice(i + 1).flatMap((c2, j) => (sorts.sortOf(l, b2) === sorts.sortOf(l, c2) ? [not(same(x(vars[i]!), x(vars[i + 1 + j]!)))] : [])))
         const frame = all(...shape.guards.map((g: C) => substC(g, {vars: ren, maps: {}, flags: {}})), ...distinct)
+        const sig = JSON.stringify([bound.map(b2 => sorts.sortOf(l, b2)), covers, mapsAt, frame])
+        if (seen.has(sig) || !places.length) continue
+        seen.add(sig)
         const per = Math.max(2, Math.floor(64 ** (1 / bound.length)))
         addView({vars, names: ['x', 'y', 'z', 'w'].slice(0, bound.length), places, covers, frame, need: bound.length, printable: false}, mapsAt,
           st => bound.map(b2 => sorts.valuesAt(st, sorts.sortOf(l, b2))), per)
@@ -1418,7 +1439,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // in the set (the set only weakens). A goal's counterexample is a state the set allows: its successor is joined in
     // (or, breaking a caller's law, a candidate that rules the state out is added). Every goal of the cone proven, the
     // cone is inductive with the caller's laws, and it is the answer.
-    const stood = new Map<string, string[]>(), blocked = new Set<string>(), callers = new Set([...laws, ...stepLaws].map(l => l.name))
+    // (`warm`: the forms a goal's last proof read, which outlive the proof: a goal asked again starts from those still in
+    // the set, as IC3 starts a frame from the lemmas it had)
+    const stood = new Map<string, string[]>(), warm = new Map<string, string[]>(), blocked = new Set<string>(), callers = new Set([...laws, ...stepLaws].map(l => l.name))
     let cone: Form[] = [], dropped = 0
     const deepened = new Set<string>(), sameAgain = new Map<string, string>()
     // A state reached from one the set allows: joined in, and every extra false there dropped.
@@ -1684,25 +1707,27 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const inCone = new Set(order)
       const rank = (f: Form) => (inCone.has(textOf(f)) ? 0 : stood.has(textOf(f)) ? 1 : 2) * 1000 + f.coef.length * 10 + (f.never || f.nevers || f.also ? 1 : 0)
       const whole = set.filter(f => f !== todoForm)
-      let ctx: Form[] = [], witness: Record<string, number> | undefined, lastStuck = '', qms = 0, settled = false
+      let ctx: Form[] = (warm.get(todo) ?? []).flatMap(t => { const f = byText.get(t); return f && f !== todoForm ? [f] : [] }), witness: Record<string, number> | undefined, lastStuck = '', qms = 0, settled = false
       // (before the whole set, the forms proven so far beside the context: a proof there is a proof with the whole set,
       // at a fraction of its hypotheses; a model there, the whole set asked as before)
       const provenFirst = (): Form[] | undefined => { const ps = whole.filter(f => !ctx.includes(f) && stood.has(textOf(f))); return ps.length && ctx.length + ps.length < whole.length / 2 ? [...ctx, ...ps] : undefined }
-      for (let attempt = 0; attempt <= joinAttempts; attempt++) {
-        if (attempt === joinAttempts && ctx !== whole) {
+      // (a few tries, more where the set is large: until the context would hold a sixteenth of it)
+      const tries = Math.max(joinAttempts, Math.ceil(whole.length / 16 / joinAdd))
+      for (let attempt = 0; attempt <= tries; attempt++) {
+        if (attempt === tries && ctx !== whole) {
           const pf = provenFirst()
-          if (pf) { const out = stepWith(todo, todoForm, pf); if ('used' in out) { stood.set(todo, out.used!); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, proven: todo.slice(0, 60), reads: out.used!.length, ctx: pf.length, attempt}); settled = true; break } }
+          if (pf) { const out = stepWith(todo, todoForm, pf); if ('used' in out) { stood.set(todo, out.used!); warm.set(todo, out.used!); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, proven: todo.slice(0, 60), reads: out.used!.length, ctx: pf.length, attempt}); settled = true; break } }
           ctx = whole
         }
         const tq = performance.now(), out = stepWith(todo, todoForm, ctx)
         qms += Math.round(performance.now() - tq)
         if ('used' in out) {
-          stood.set(todo, out.used!)
+          stood.set(todo, out.used!); warm.set(todo, out.used!)
           opts.progress?.('join', {round: rounds, set: set.length, ms: qms, proven: todo.slice(0, 60), reads: out.used!.length, ctx: ctx.length, attempt})
           settled = true; break
         }
         lastStuck = out.stuck!
-        if (!out.witness) { if (ctx === whole) break; ctx = whole; attempt = joinAttempts - 1; continue }
+        if (!out.witness) { if (ctx === whole) break; ctx = whole; attempt = tries - 1; continue }
         const w = out.witness, {params: pp0, st: st0} = stateOf(w), pre0 = pointOf(pp0, st0)
         if (ctx === whole) { witness = w; break }
         const ruling = whole.filter(f => !ctx.includes(f) && !holdsAt(f, pre0)).sort((p2, q2) => rank(p2) - rank(q2))
