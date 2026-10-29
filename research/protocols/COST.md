@@ -254,3 +254,42 @@ Total billed: $0.66.
 - Dutertre, de Moura. A Fast Linear-Arithmetic Solver for DPLL(T). CAV 2006.
   [Springer](https://link.springer.com/doi/10.1007/11817963_11),
   [PDF](https://lara.epfl.ch/w/_media/fv20/fastsimplexdpllt.pdf).
+
+## After this note: three steps (gen/cost)
+
+**1. Why random runs ate the search.** `refuteByRuns` is counted in trials, not timed (its comment says why). The
+cost was each step's law watch: a law about n keys was read at every n-tuple of 0..bound+1 and every key any map
+held. Composed keys (e·64 + a) made those raw keys values of every name, so distributed_lock's 3-key safety law was
+read at about 27³ tuples a step, and sharded KV's 5-key law at about 27⁵. On distributed_lock that is about 600k
+reads a trial over `searched`'s 2,400 deeper trials, and sharded KV would take half an hour.
+- **The fix, general:**
+  - each name takes its own keys: a composed key's digits where a map's reads key it, with 0..bound+1;
+  - a cap on each call: 10,000 tuples read per trial it is given, counted, so deterministic. The broken variants'
+    runs read at most 2.2M of a 600-trial budget's 6M.
+- **What it bought:**
+  - the protocols' 18 measured searches at 10 s and 60 s: 964 s to 369 s;
+  - sharded KV's search ends;
+  - every broken variant is refused by the same run as before, faster;
+  - the 311 real-world laws: the same 274 / 29 / 8, per-law time −7.1% (`runs/cost/s1-base`, `s3-off`).
+
+**2. distributed_lock's written invariant** completed with "no transfer or lock before init": a fix to our model, not a
+prover gain. Proven in 12.9 to 16.3 s.
+
+**3. Decisions at the simplex's point, on the proof path only** (`proveLaw`, `proveThinned`; laws about several keys):
+- three runs a side, every verdict the same, and ticket_lock, lock_server_async and decentralized_lock proven in
+  every 60 s run;
+- toy's written invariant: 209–260 s to 12–16 s;
+- Gitea #0 slower (54 to 62 s, unknown either way), TigerBeetle level;
+- the quick bar (chc, rw): nothing lost, wrong 0.
+
+Kept. With the cost gone, the six misses' searches end with "found nothing" inside their budgets: what blocks them now
+is the search, not its cost.
+
+**The full bar against 4f7c7a6** (base launched together: a shared baseline was past the budget;
+`runs/bar/runs/cost-full-83dbc59`):
+- wrong 0 everywhere, nothing lost in every run;
+- CHC 1,166 against 1,167 (timing flips at the limit: no changed path runs there), ITS +3, SV, TIP and the frontier
+  corpora level;
+- the real-world corpus one flip of noise, the 332 step goals' search 284.7 against 298.6 s, suites 224 of 224, Lean
+  48 of 48;
+- size +3,815 bytes.

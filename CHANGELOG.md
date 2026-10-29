@@ -5,6 +5,56 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**Searches end sooner: random runs read a law at its own keys, under a counted cap; decisions at the simplex's point on
+the proof path (gen/cost).** Nothing trusted changed. research/protocols/COST.md has the measurements (Modal, the
+gen/cost worktree's `runs/cost/`).
+- **Where the search's time went:** `refuteByRuns`, not the prover. A run read a law about n keys at every n-tuple of
+  0..bound+1 and of every key any map held, after every step. With composed keys (e·64 + a) those raw keys were values
+  of every name, so distributed_lock's search spent 73% of its 202 s there, and sharded KV's (a 5-key law) was killed
+  at 540 s every time.
+- **core/watch.ts:** a name keyed in a map's reads takes that map's keys' digits there, with 0..bound+1; any other
+  name every key, as before. Each tuple sets one environment in place.
+- **core/dsl.ts:** each refuteByRuns call also stops past 10,000 tuples read per trial it is given, counted, so it is
+  as deterministic as the trial counts. The broken variants' runs read at most 2.2M of a 600-trial budget's 6M.
+- **What it bought:**
+  - the protocols' searches at 10 s and 60 s: 964 s to 369 s of wall time over the 18 measured;
+  - lock_server_sync at 60 s 109.7 to 12.8 s, lock_server_async 86.9 to 27.7 s, distributed_lock 202.0 to 26.7 s;
+  - sharded KV's search now ends (unknown, 47–81 s);
+  - every verdict and every broken variant's run the same (23, 21, 18, 20, 19, 6, 5, 5 steps);
+  - the real-world corpus (311 laws): 274 / 29 / 8 as before, per-law time 1,677 to 1,557 s (−7.1%).
+- **kernel/prove.ts, kernel/cdcl.ts:** `proveLaw` and `proveThinned` (not the join's `stepWith`), for a law set with a
+  law about several keys, let the CDCL tree search decide at the simplex's point, as its model search does. Those
+  goals' first rounds are often models a tuple short, which the search deciding by saved phases wandered before
+  finding: toy consensus's safety law took 108 s and 181k nodes for a model the point finds in 663.
+  - Three runs a side: toy consensus's written invariant 209–260 s to 12–16 s.
+  - Toy's, consensus_wo_decide's and sharded KV's searches at 60 s end 35–55% sooner.
+  - Every verdict is the same. ticket_lock, lock_server_async and decentralized_lock are proven in every 60 s run.
+  - Gitea #0 is unknown either way, 54 to 62 s; TigerBeetle #0–#7 are level.
+  - The same step on every goal reading a cell was measured and dropped: TigerBeetle slower in every run, #2 and #5
+    killed at 150 s in some.
+- **research/protocols/models.ts:** distributed_lock's written invariant gets "no transfer or lock before init". This
+  is a fix to our model, not a prover gain: without it the set is not inductive (a transfer held before init breaks
+  "a live transfer is above every epoch" once init sets Ep[first]). With it the set is proven in 13–16 s.
+- **Merged:** core/infer.ts's `linKey` serves the watch too.
+- **The quick bar** (chc, rw against 4f7c7a6, base together; `runs/bar/runs/cost-quick-816ff45`), wrong 0:
+  - CHC dev 519 against 520: 3 gained, 0 lost after reruns, 10 noise (CHC has no maps);
+  - real-world dev 74 / 14 / 3, nothing differs.
+- **Size:** core/ and kernel/ without tests, +3,815 bytes against 4f7c7a6 (watch.ts +2,403, prove.ts +1,197, dsl.ts
+  +510, cdcl.ts +85, infer.ts −380).
+- **The full bar against 4f7c7a6** (the base launched together, one run a side, three reruns of every differing task:
+  no shared baseline of 4f7c7a6 exists, and making one, about $15, was past this round's budget;
+  `runs/bar/runs/cost-full-83dbc59`). Wrong 0 everywhere, and nothing is lost in every run anywhere.
+  - CHC 1,166 against 1,167: 3 gained, 5 lost, none solid, 4 of the 5 at the time limit. CHC runs none of the changed
+    paths (no maps, no laws over keys), so these are timing flips.
+  - ITS 1,152 against 1,149 (1 gained), and 1,157 against 1,156 per component (1 gained); SV 246 and 216, level;
+    TIP 213, level.
+  - Frontier corpora 90 and 31, level. The real-world corpus 273 / 29 / 9 against 274 / 29 / 8: one first-pass flip,
+    noise after three reruns a side.
+  - The 332 step goals: the same search on all 332, 284.7 s against 298.6 s. Suites 224 of 224 both ways (job
+    seconds 5,497 against 5,544, --usual 5,248 against 5,156). Lean 48 of 48.
+  - The 1-vCPU medians are within the spread of earlier batches except infer's four-value join, 5,822 against
+    5,281 ms (+10%). The base's own medians swung up to 16% between batches before (above).
+
 **Slimmer: what didn't pay since 0.30.1 taken out, what was written twice merged (gen/slim).** Nothing trusted changed
 (kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/*.lean are 57abcb2's). core/ and kernel/ without
 tests: 2,424,427 bytes, 4,255 fewer than 57abcb2 (2,428,682), +36,692 against 3cdf37e (2,387,735).
