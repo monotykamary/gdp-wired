@@ -34,6 +34,42 @@ sum's cells keep their kind (trusted, Lean first). Every benchmark is level with
 
 The tracks, newest first:
 
+**The CDCL search's cell pairs listed cheaply; integer leaves by branch and bound tried and dropped (gen/cost2).**
+Nothing trusted changed. research/protocols/COST.md, "Steps 4 and 5", has the measurements.
+- **kernel/cdcl.ts, kernel/prove.ts (kept):** the CDCL search's candidate list of cell pairs, rebuilt nearly every
+  node, stands in a flat list made again only where the live cells change. Each pair's atoms (their variables and
+  orientation) are read once a session, and prove.ts's cellPair looks pairs up by the two cells' names, not a key text
+  made per lookup. That list was 53% of toy consensus's written-invariant profile.
+  - **The same search:** the same candidates in the same order.
+    - Local: toy's "one vote per node" goal, 7,366 nodes, 193 conflicts, 4,329 decisions and the same tree both
+      ways, its candidates 1,783 to 828 ms; its model search 663 nodes both ways.
+    - The bar's 332 step goals: the same search (outcome, leaves, splits, decisions, conflicts, nodes) on all 332,
+      296.3 to 288.0 s (`runs/bar/runs/cost2-g332-20618f2`).
+  - **The protocols, two runs a side:** every verdict as before, wall times level within noise. The cost it removes
+    sat mostly in goals that time out either way (consensus_wo_decide's, sharded KV's).
+- **Integer leaves by the simplex, branch and bound (dropped, nothing kept).** Gated by the leaf size elimination
+  blows up at, measured per goal: after a blow-up at n rows, a session's leaves of n rows or more go to the simplex's
+  point, a split at a fractional value, its conflicts refuted over their support as before (no certificate change).
+  - **Where elimination blows up:** a leaf-size histogram of every leaf elimination, over CHC (all 1,406 tasks), the
+    protocols' written invariants and 30 real-world laws over several keys.
+    - CHC: 13 blow-ups in all, among tens of thousands of eliminations of 600 rows or more that answer, so no fixed
+      size could gate it.
+    - The protocols and the real-world laws: none at all.
+    - Sharded KV: blow-ups at 670–760 rows over 55 variables.
+  - **Sharded KV's goal:** 113,622 nodes in 25 s against 5,833 (elimination 3 of 25 s), but no proof and no model.
+  - **Written invariants with it, Modal, 600 s:** sharded KV and consensus_wo_decide still unknown. No gain, so the
+    full CHC group was not run and the code was taken out.
+- **Size:** core/ and kernel/ without tests +1,347 bytes against fb46b48.
+- **The full bar against fb46b48** (the base launched together: no shared baseline of fb46b48;
+  `runs/bar/runs/cost2-full-20618f2`). Wrong 0 everywhere, and nothing is lost in every run anywhere.
+  - CHC 1,177 against 1,165 in the first pass: 2 gained and 2 lost after three reruns a side, none solid.
+  - ITS 1,152 against 1,149 (1 gained), per component level. SV level.
+  - TIP 212 against 213: one first-pass flip, noise after reruns.
+  - Frontier corpora 90 and 32 against 90 and 31; the real-world corpus 289 / 33 / 8 against 288 / 33 / 9 (one flip
+    each, noise).
+  - The 332 step goals: the same search on all 332.
+  - Suites 225 of 225 both ways; Lean 48 of 48; the 1-vCPU medians within 5%.
+
 **Effect services (gdp-wired/effect, gen/effect).** A team whose stateful logic is written in
 [Effect](https://effect.website), 3.x or 4.x, proves its laws about the code it ships. Nothing trusted changed
 (kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/*.lean are 4f7c7a6's), and nothing the prover runs.
