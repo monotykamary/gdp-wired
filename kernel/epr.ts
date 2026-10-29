@@ -58,9 +58,9 @@ function tupleOf(e: E): Tuple | undefined {
 const sameCoefs = (a: number[], b: number[]) => a.length === b.length && a.every((c, i) => c === b[i])
 
 type Origin = number // a hypothesis' index, or -1 for a clause that holds in every model (an axiom)
-export type Decision = {sat: false, core: number[]} | {sat: true, witness: Record<string, number>} | {unknown: string}
+export type Decision = {sat: false, core: number[]} | {sat: true, witness: Record<string, number>} | {unknown: string, foreign?: string[]}
 
-export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean} = {}): Decision {
+export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, why?: boolean} = {}): Decision {
   // --- which hypotheses are EPR-shaped: every map read at a key of its map's pattern
   const shaped = goal.hyps.map(h => {
     let ok = true
@@ -116,6 +116,29 @@ export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number
     for (const v of Object.values(o)) capWalk(v)
   }
   hyps.forEach(capWalk)
+  // ordered: a map's cells, or a scalar, compared with another non-constant term (an epoch with a node's epoch: Ivy's
+  // total order, `le`), not only with constants (a yes/no, a choice, which stay finite)
+  const ordMaps = new Set<string>(), ordScalars = new Set<string>()
+  const leaves = (e: E, k: number, out: [E, number][]): void => {
+    if (e.op === 'add') { leaves(e.a, k, out); leaves(e.b, k, out) } else if (e.op === 'mul') leaves(e.a, k * e.k, out)
+    else if (e.op === 'if') { leaves(e.then, k, out); leaves(e.else, k, out) } else if (e.op !== 'const') out.push([e, k])
+  }
+  const ordWalk = (o: unknown): void => {
+    if (!o || typeof o !== 'object') return
+    const c = o as C
+    if ((c.op === '<' || c.op === '<=' || c.op === '=') && !(tupleOf(c.a) && tupleOf(c.b))) {
+      const ts: [E, number][] = []
+      leaves(c.a, 1, ts); leaves(c.b, -1, ts)
+      const nonPart = ts.filter(([e]) => e.op === 'get' || (e.op === 'var' && !parts.has(e.name)))
+      // (and every term beside an ordered one in a comparison: one value of the sort, an if-then-else's branches)
+      const mixed = nonPart.length && ts.length > 1 && ts.some(t => t[1] > 0) && ts.some(t => t[1] < 0)
+      const beside = nonPart.some(([e]) => (e.op === 'get' && ordMaps.has(e.map)) || (e.op === 'var' && ordScalars.has(e.name)))
+      if (mixed || beside) for (const [e] of nonPart) { if (e.op === 'get' && !ordMaps.has(e.map)) { ordMaps.add(e.map); grew = true } else if (e.op === 'var' && !ordScalars.has(e.name)) { ordScalars.add(e.name); grew = true } }
+    }
+    for (const v2 of Object.values(o)) ordWalk(v2)
+  }
+  let grew = true
+  while (grew) { grew = false; hyps.forEach(ordWalk) }
 
   // --- atoms
   const ids = new Map<string, number>(), names: string[] = ['']
@@ -129,6 +152,7 @@ export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number
   const fins = new Map<string, Fin>(), cellsOf = new Map<string, {id: string, parts: string[]}[]>(), odd: {id: string, map: string, key: E}[] = []
   const finAt = (f: Fin, v: number): F => atom(`val ${f.id} ${v}`)
   const finOf = (e: E): Fin | undefined => {
+    if ((e.op === 'get' && ordMaps.has(e.map)) || (e.op === 'var' && ordScalars.has(e.name))) return undefined
     if (e.op === 'var' && !parts.has(e.name)) { const id = `s:${e.name}`; let f = fins.get(id); if (!f) fins.set(id, (f = {id, cap: caps.get(id) ?? 1})); return f }
     if (e.op === 'get' && !(e as {args?: unknown}).args && !fits(e.map, e.key)) {
       const id = `c:${e.map}#${JSON.stringify(e.key)}`
@@ -146,6 +170,45 @@ export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number
   }
   const keyEqs: {p: F, a: Tuple, b: Tuple}[] = []
   const intervals: {p: F, kind: 'lo' | 'hi', X: string[], L: string[], coefs: number[]}[] = []
+  // An ordered term: a part, an ordered scalar, an ordered cell (a tuple's, or one of its own at a key of the wrong
+  // sort), a constant; `le a b` is a ≤ b.
+  const ords = new Set<string>(['k:0']), ordCells = new Map<string, {id: string, parts: string[]}[]>(), ordOdd: {id: string, map: string, key: E}[] = []
+  const le = (a: string, b: string): F => (a === b ? T : atom(`le ${a} ${b}`))
+  const ordOf = (e: E): string | undefined => {
+    if (e.op === 'const') { const id = `k:${e.value}`; ords.add(id); return id }
+    if (e.op === 'var') { if (parts.has(e.name)) { ords.add(`p:${e.name}`); return `p:${e.name}` } if (ordScalars.has(e.name)) { ords.add(`s:${e.name}`); return `s:${e.name}` } return undefined }
+    if (e.op === 'get' && ordMaps.has(e.map) && !(e as {args?: unknown}).args) {
+      const t = fits(e.map, e.key)
+      const id = t ? `c:${e.map}(${t.parts.join(',')})` : `c:${e.map}#${JSON.stringify(e.key)}`
+      if (!ords.has(id)) { ords.add(id); if (t) { if (!ordCells.has(e.map)) ordCells.set(e.map, []); ordCells.get(e.map)!.push({id, parts: t.parts}) } else ordOdd.push({id, map: e.map, key: e.key}) }
+      return id
+    }
+    return undefined
+  }
+  const ordCases = (e: E): {g: F, t: string}[] | undefined => {
+    if (e.op === 'if') { const c = lit(e.c), a = ordCases(e.then), b = ordCases(e.else); return a && b ? [...a.map(x => ({...x, g: and([c, x.g])})), ...b.map(x => ({...x, g: and([not(c), x.g])}))] : undefined }
+    const t = ordOf(e)
+    return t ? [{g: T, t}] : undefined
+  }
+  // t1 − t2 + d ⋈ 0 as order atoms (naturals: t1 < t2 is t1 + 1 ≤ t2), or undefined
+  const ordAtom = (t1: string, t2: string, d: number, op: '<' | '<=' | '='): F | undefined => {
+    const D = op === '<' ? d + 1 : d
+    if (op === '=') return d === 0 ? and([le(t1, t2), le(t2, t1)]) : undefined
+    return D === 0 ? le(t1, t2) : D === 1 ? not(le(t2, t1)) : undefined
+  }
+  const ordered = (ts: [E, number][], d: number, op: '<' | '<=' | '='): F | undefined => {
+    let a: E, b: E, dd = d
+    if (ts.length === 2 && ts[0]![1] === 1 && ts[1]![1] === -1) [a, b] = [ts[0]![0], ts[1]![0]]
+    else if (ts.length === 2 && ts[0]![1] === -1 && ts[1]![1] === 1) [a, b] = [ts[1]![0], ts[0]![0]]
+    else if (ts.length === 1 && ts[0]![1] === 1) { a = ts[0]![0]; if (-d < 0) return op === '=' ? Fa : Fa; b = {op: 'const', value: -d}; dd = 0 }
+    else if (ts.length === 1 && ts[0]![1] === -1) { b = ts[0]![0]; if (d < 0) return op === '<' || op === '<=' ? T : Fa; a = {op: 'const', value: d}; dd = 0 }
+    else return undefined
+    const ca = ordCases(a), cb = ordCases(b)
+    if (!ca || !cb || ca.length * cb.length > 256) return undefined
+    const out: F[] = []
+    for (const x of ca) for (const y of cb) { const at = ordAtom(x.t, y.t, dd, op); if (!at) return undefined; out.push(and([x.g, y.g, at])) }
+    return or(out)
+  }
   // A term's cases: guard and value (a constant, or a finite variable); undefined: not finite.
   type Case = {g: F, n?: number, f?: Fin}
   const cases = (e: E): Case[] | undefined => {
@@ -210,6 +273,11 @@ export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number
         intervals.push({p: a, kind: lo ? 'lo' : 'hi', X: X.map(t => t[0]), L: L.map(t => t[0]), coefs: chainOf(X)})
         return a
       }
+    }
+    // ordered: a term against another, or a constant, one of them an ordered cell or scalar
+    {
+      const reads = (e: E): boolean => e.op === 'get' ? ordMaps.has(e.map) : e.op === 'var' ? ordScalars.has(e.name) : e.op === 'if' ? reads(e.then) || reads(e.else) : false
+      if (ts.some(([e]) => reads(e))) { const f = ordered(ts, d.c, c.op); if (f) return f }
     }
     // finite: every term finite, coefficients of one sign
     if (ts.length && (ts.every(t => t[1] > 0) || ts.every(t => t[1] < 0))) {
@@ -311,6 +379,31 @@ export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number
       if (lb !== undefined) add([...pre, -lb, ...(la !== undefined ? [la] : [])], -1)
     }
   }
+  // the order: total, transitive, discrete, the constants in their order, every term at least 0, a part's equality its order both
+  // ways, a part's bound its order against the bound, equal tuples equal ordered cells
+  if (ords.size > 1) {
+    for (const c of bounds) ords.add(`k:${c}`)
+    const os = [...ords], num = (x: string) => (x.startsWith('k:') ? Number(x.slice(2)) : undefined)
+    for (let i = 0; i < os.length; i++) for (let j = i + 1; j < os.length; j++) {
+      const a = os[i]!, b = os[j]!, na = num(a), nb = num(b)
+      add([v(le(a, b))!, v(le(b, a))!], -1)
+      if (na !== undefined && nb !== undefined) { add([na <= nb ? v(le(a, b))! : -v(le(a, b))!], -1); add([nb <= na ? v(le(b, a))! : -v(le(b, a))!], -1) }
+    }
+    for (const x of os) if (x !== 'k:0') add([v(le('k:0', x))!], -1)
+    // (the naturals are discrete: nothing between c and c + 1)
+    for (const c of os.map(num).filter((n): n is number => n !== undefined)) if (ords.has(`k:${c + 1}`)) for (const x of os) if (!x.startsWith('k:')) add([v(le(x, `k:${c}`))!, v(le(`k:${c + 1}`, x))!], -1)
+    for (const a of os) for (const b of os) if (a !== b) for (const c of os) if (c !== a && c !== b) add([-v(le(a, b))!, -v(le(b, c))!, v(le(a, c))!], -1)
+    const ordParts = os.filter(x => x.startsWith('p:')).map(x => x.slice(2))
+    for (let i = 0; i < ordParts.length; i++) for (let j = i + 1; j < ordParts.length; j++) {
+      const x = ordParts[i]!, y = ordParts[j]!, e = v(eq(x, y))!, a = v(le(`p:${x}`, `p:${y}`))!, b = v(le(`p:${y}`, `p:${x}`))!
+      add([-e, a], -1); add([-e, b], -1); add([e, -a, -b], -1)
+    }
+    for (const x of ordParts) for (const c of bounds) add([-v(lt(x, c))!, -v(le(`k:${c}`, `p:${x}`))!], -1), add([v(lt(x, c))!, v(le(`k:${c}`, `p:${x}`))!], -1)
+    for (const [, cells] of ordCells) for (let i = 0; i < cells.length; i++) for (let j = i + 1; j < cells.length; j++) {
+      const a = cells[i]!, b = cells[j]!, pre = a.parts.map((x, k) => v(eq(x, b.parts[k]!))).filter((e): e is number => e !== undefined).map(e => -e)
+      add([...pre, v(le(a.id, b.id))!], -1); add([...pre, v(le(b.id, a.id))!], -1)
+    }
+  }
   for (const f of fins.values()) {
     const ls = Array.from({length: f.cap + 1}, (_, val) => v(finAt(f, val))!)
     add(ls, -1)
@@ -318,7 +411,7 @@ export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number
   }
 
   // EPR-shaped: no comparison the abstraction can't read (a counter's arithmetic, a sum, a product) in any hypothesis
-  if (opts.exact) { const tied = new Set([...keyEqs, ...intervals].map(k => (k.p as {v: number}).v)); const loose = [...foreign].filter(i => !tied.has(i)).length; if (loose) return {unknown: `${loose} comparisons outside the EPR shape`} }
+  if (opts.exact) { const tied = new Set([...keyEqs, ...intervals].map(k => (k.p as {v: number}).v)); const loose = [...foreign].filter(i => !tied.has(i)).length; if (loose) return {unknown: `${loose} comparisons outside the EPR shape`, ...(opts.why ? {foreign: [...foreign].filter(i => !tied.has(i)).map(i => names[i]!.slice(3))} : {})} }
   // --- the search
   // (a finite variable at 0 first: models with the least values, which break the fewest laws at keys nothing names)
   const first = new Set([...fins.values()].map(f => v(finAt(f, 0))!))
@@ -355,9 +448,29 @@ export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number
     for (let val2 = 0; val2 <= f.cap; val2++) if (val(v(finAt(f, val2))!)) x = val2
     if (f.id.startsWith('s:')) w[f.id.slice(2)] = x
   }
+  // the ordered terms by the model's order, each group of equal ones the next value (a constant's group its own)
+  const ordVal = new Map<string, number>()
+  if (ords.size > 1) {
+    const leq = (a: string, b: string) => a === b || val(v(le(a, b))!)
+    const os = [...ords].sort((a, b) => (leq(a, b) && !leq(b, a) ? -1 : leq(b, a) && !leq(a, b) ? 1 : 0))
+    let prev = -1
+    for (let i = 0; i < os.length;) {
+      let j = i
+      while (j < os.length && leq(os[j]!, os[i]!) && leq(os[i]!, os[j]!)) j++
+      const group = os.slice(i, j), consts = [...new Set(group.filter(x => x.startsWith('k:')).map(x => Number(x.slice(2))))]
+      if (consts.length > 1) return {unknown: 'the model\'s order equates two constants'}
+      const x = consts.length ? consts[0]! : prev + 1
+      if (x <= prev) return {unknown: 'no values for the model\'s order'}
+      for (const t of group) ordVal.set(t, x)
+      prev = x; i = j
+    }
+    for (const [t, x] of ordVal) if (t.startsWith('p:') || t.startsWith('s:')) w[t.slice(2)] = x
+  }
   const maps = new Map<string, Map<number, number>>()
   const cellVal = new Map<string, number>()
   for (const f of fins.values()) if (f.id.startsWith('c:')) { let x = 0; for (let val2 = 0; val2 <= f.cap; val2++) if (val(v(finAt(f, val2))!)) x = val2; cellVal.set(f.id, x) }
+  for (const [mp, cells] of ordCells) for (const c of cells) { cellVal.set(c.id, ordVal.get(c.id) ?? 0); if (!cellsOf.has(mp)) cellsOf.set(mp, []); cellsOf.get(mp)!.push(c) }
+  for (const o of ordOdd) { cellVal.set(o.id, ordVal.get(o.id) ?? 0); odd.push(o) }
   // every read of the goal, at its key's value under w: the abstraction's value where it has one, else 0
   const keyVal = (e: E): number | undefined => { const ts: [string, number][] = [], d = {c: 0}; if (!linTerms(e, 1, ts, d)) return undefined; let s = d.c; for (const [x, c] of ts) { if (w[x] === undefined) return undefined; s += c * w[x]! } return s }
   for (const [mp, cells] of cellsOf) for (const c of cells) {

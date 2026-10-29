@@ -3,7 +3,8 @@ import {lawInstances} from '../../../kernel/prove.ts'
 import {obligations} from '../../../kernel/kernel.ts'
 import {protocols} from '../../../research/protocols/models.ts'
 const [id, dir] = process.argv.slice(2), p = protocols.find(q => q.id === id)!, r = p.make()
-const laws = [...r.kindLaws(), ...p.human(r), ...p.laws(r)], m = r.machine
+// (an ∃ law is proven through its witness, core/exists.ts: its goals aren't obligations' own, so it is left out here)
+const laws = [...r.kindLaws(), ...p.human(r), ...p.laws(r)].filter(l => !JSON.stringify(l.holds).includes('"some$')), m = r.machine
 // Each map's key pattern, as the rule reads it: of its reads in the step, the flags and the laws (not the kinds' laws),
 // the one with the most parts (the coefficients of a key Σ c·x of distinct names: Table 4096,64,1; Leader 1).
 const sig = (e: any): number[] | undefined => { const acc: [string, number][] = []; const go = (x: any, k: number): boolean => x.op === 'var' ? (acc.push([x.name, k]), true) : x.op === 'mul' ? go(x.a, k * x.k) : x.op === 'add' ? go(x.a, k) && go(x.b, k) : false; return go(e, 1) && new Set(acc.map(a => a[0])).size === acc.length ? acc.map(a => a[1]).sort((a, b) => b - a) : undefined }
