@@ -32,7 +32,7 @@
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
-import {type C, type E, type Fn, type Law, type Machine, type Request, type State, all, any, atMost, carriedView, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
+import {type C, type E, type Fn, type Law, type Machine, type Request, type State, all, any, atMost, carriedView, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
 import {clock, counted, decideLaw, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
@@ -1812,9 +1812,47 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           if ((m.pre && !evalC(m.pre, p, {scalars: {}, maps: {}}, m)) || m.params.some(q => ss.includes(ks.find(q)) && !domOf(q, new Set()).includes(p[q]!))) continue
           pvs.set(JSON.stringify(p), p)
         }
-        const end2 = performance.now() + (wallUntil - performance.now()) / 7, seen = new Set<string>(), small: Sample[] = []
+        const t3 = performance.now(), end2 = performance.now() + (wallUntil - performance.now()) / 7, seen = new Set<string>(), small: Sample[] = []
         let cut = false
-        const keyOf3 = (q: Sample) => JSON.stringify([q.params, q.st.scalars, mapsText(q.st)])
+        // (a state's key: its cells off the map's default, in key order, the least under the renamings of each symmetric
+        // sort's elements: a sort the step neither orders, nor computes on (a function's argument, a param's bound), nor
+        // stores in a cell or a scalar; every map's key read as its parts' sorts, else no renaming)
+        const layout = new Map<string, string[]>()
+        for (const mp of Object.keys(m.maps ?? {})) {
+          const ar = ks.arity.get(mp)
+          if (ks.plainRead.includes(mp)) layout.set(mp, [ks.find(`M:${mp}`)])
+          else if (ks.composedMaps.includes(mp) && pairing?.n) layout.set(mp, [ks.find('hi'), ks.find('lo')])
+          else if (ar && pairing?.n) layout.set(mp, Array.from({length: ar}, (_, i) => ks.find(`${mp}:${i}`)))
+        }
+        const stored = new Set(m.inputs.filter(i => JSON.stringify(m.step.state ?? {}).includes(`"name":"${i}"`)).map(i => ks.find(i)))
+        const sym = layout.size === Object.keys(m.maps ?? {}).length ? ss.filter(q => !ordered(q) && !valueSort2(q) && !stored.has(q) && !Object.keys(m.fns ?? {}).some(f => ks.find(`F:${f}`) === q) && !m.params.some(p2 => vf(`P:${p2}`) === vf(q))) : []
+        function valueSort2(q: string) { return Object.keys(m.maps ?? {}).some(mp => valueSort(mp) === q) }
+        const perms = (k: number): number[][] => (k <= 1 ? [[0]] : perms(k - 1).flatMap(p2 => Array.from({length: k}, (_, i) => [...p2.slice(0, i), k - 1, ...p2.slice(i)])))
+        let rens: Map<string, number[]>[] = [new Map()]
+        for (const q of sym) { const next = rens.flatMap(r2 => perms(size(q)).map(pm => new Map([...r2, [q, pm]]))); if (next.length > 36) break; rens = next }
+        const renKey = (mp: string, k: number, ren: Map<string, number[]>): number => {
+          const lay = layout.get(mp)
+          if (!lay || !ren.size) return k
+          if (lay.length === 1) { const pm = ren.get(lay[0]!); return pm && k < pm.length ? pm[k]! : k }
+          if (k < pairing!.c) return k
+          const digits: number[] = []
+          for (let i = 0, r = k - pairing!.c; i < lay.length; i++, r = Math.floor(r / pairing!.n)) digits.unshift(i === lay.length - 1 ? r : r % pairing!.n)
+          return pairing!.c + digits.reduce((acc, d, i) => { const pm = ren.get(lay[i]!); return acc * pairing!.n + (pm && d < pm.length ? pm[d]! : d) }, 0)
+        }
+        const textAt = (q: Sample, ren: Map<string, number[]>) => JSON.stringify([q.params, q.st.scalars, Object.entries(q.st.maps).map(([mp, cells]) => { const d = q.st.defaults?.[mp] ?? m.maps?.[mp] ?? 0; return [...cells].filter(([, v]) => v !== d).map(([k, v]) => [renKey(mp, k, ren), v]).sort((a, b) => a[0]! - b[0]!) }), q.st.defaults ?? null])
+        // (the state's own text first, its renamings' only for a text not seen)
+        const canon = new Map<string, string>()
+        const keyOf3 = (q: Sample) => {
+          const own = textAt(q, new Map())
+          let best = canon.get(own)
+          if (best === undefined) { best = own; for (const ren of rens) { const t = textAt(q, ren); if (t < best) best = t } canon.set(own, best) }
+          return best
+        }
+        // (the step compiled once: core/machine.ts's JavaScript, its assumption refusing a request as `allowed` does)
+        const js = m.history ? undefined : loadJs(m)
+        const stepOf = (params: Env, st: State, input: Request): State | undefined => {
+          try { if (js) return js.step(params, js.fork(st), input); return allowed(m, run, params, st, input) ? run.step(params, st, input) : undefined } catch { return undefined }
+        }
         for (const params of pvs.values()) {
           const drawn = new Map<string, Set<number>>(m.inputs.map(i => [i, new Set<number>()]))
           for (let t = 0; t < 200; t++) { const inp = randomInput(params, 2); for (const i of m.inputs) if (typeof inp[i] === 'number') drawn.get(i)!.add(inp[i] as number) }
@@ -1832,8 +1870,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             const q0 = queue.shift()!
             for (const input of combos) {
               used.tries++
-              let next: State
-              try { if (!allowed(m, run, params, q0.st, input)) continue; next = run.step(params, q0.st, input) } catch { continue }
+              const next = stepOf(params, q0.st, input)
+              if (!next) continue
               const q1 = {params, st: next}, k1 = keyOf3(q1)
               if (!seen.has(k1)) { seen.add(k1); small.push(q1); queue.push(q1) }
             }
@@ -1852,7 +1890,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             for (let k = 0; k < 16 && !next; k++) {
               const input = req.combos[rand(req.combos.length)]!
               used.tries++
-              try { if (allowed(m, run, from.params, at, input)) { const s2 = run.step(from.params, at, input); if (keyOf3({params: from.params, st: s2}) !== keyOf3({params: from.params, st: at})) next = s2 } } catch { /* (a request the step refuses) */ }
+              const s2 = stepOf(from.params, at, input)
+              if (s2 && keyOf3({params: from.params, st: s2}) !== keyOf3({params: from.params, st: at})) next = s2
             }
             if (!next) break
             at = next
@@ -1860,7 +1899,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             if (!seen.has(k1)) { seen.add(k1); small.push(q1) }
           }
         }
-        opts.progress?.('join small instance', {states: small.length, bfs, params: pvs.size, ms: Math.round(performance.now() - t0)})
+        opts.progress?.('join small instance', {states: small.length, bfs, params: pvs.size, symmetric: sym.slice(0, rens.length > 1 ? sym.length : 0).join(), ms: Math.round(performance.now() - t0), took: Math.round(performance.now() - t3)})
         samples.unshift(...small); smallAll = small
       }
       const out: Form[] = []
