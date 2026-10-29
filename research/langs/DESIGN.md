@@ -278,3 +278,46 @@ state in ETS tables (a store the front end doesn't read yet) and divide by their
 
 **Not yet:** ETS and `:atomics` as stores, lists and `Enum`, tuples in patterns beyond a message's, `handle_info`,
 `with`, recursion, structs of other modules as arguments, a field of two types (an atom or a number).
+
+## C and C++ (gen/c): the plan, for a fresh session
+
+Not started beyond this note (the session that ported Go, Ruby and Elixir ran out of room for it). Clang is local
+(Apple clang 21: `clang -Xclang -ast-dump=json -fsyntax-only f.c` works; a 3-line struct and function dumps 70 KB, so
+the reader must filter by the file's own `loc` and the names asked for).
+
+**Reader** (`core/c/reader.ts`, TypeScript: C has no parser of its own to write one in): run clang's JSON dump with
+the project's flags (`-I`, `-D`, `-std`; from a `compile_commands.json` where there is one), keep the translation
+unit's own declarations, and lower into the IR exactly as core/extract-go.ts lowers Go: the executor already has
+what C needs from Go (pointers by cases with paths, places, `writeThrough`, records by value, Go's wrap by bounds and
+facts, refuseWhere). The state is a struct the functions take by pointer (`struct B *b` as the receiver), each
+function named a request.
+
+**Integers, explicit operations:** each `int` node carries its width and sign from clang's type (`unsigned`, `int`,
+`uint32_t`, `size_t`: the target's sizes from `clang -dM -E`); unsigned arithmetic wraps (Go's `wrap`, at every
+width); signed overflow is UB: a new mode beside `wrap`, `ub`, refused where the bounds and the path's facts don't
+exclude it (the Rust `trap` logic, `past`, with the refusal "signed overflow (undefined behavior)"), never assumed;
+integer promotion and the usual arithmetic conversions from clang's `ImplicitCastExpr` nodes (the dump states them);
+`/` and `%` truncate (Go's `quot`/`rem`), by zero UB.
+
+**Fixed arrays** where the index is bounded: an array field as Go's list cells (`cell` of `$item`) with a length that
+is the type's; an index the path doesn't keep within `[0, n)` refused (out of bounds is UB).
+
+**Failures:** a return code the caller states (`fails: {take: '< 0'}`, or `errno` set) is the step's refusal; assert
+and abort too.
+
+**Harness:** generated C beside the file, compiled with the same flags, reading and printing the struct's leaves as
+JSON lines (core/extract-go-check.ts's generator is the model: a `main` that makes the struct, sets a state, calls a
+function by name, prints the state; no JSON library: numbers and booleans only, by a hand-written scanner).
+
+**C++** next, on the same dump: a class's members as the state, methods as requests (`this` the receiver),
+`std::lock_guard<std::mutex>` as the step atomic (Go's lock, `with`), the harness generated as C++.
+
+**Corpus candidates** (real, stateful, small): a token bucket or rate limiter in a C library, a ring buffer's head
+and tail (e.g. an embedded ring buffer: `head - tail` within capacity), a connection or circuit state machine
+(libuv, nginx or redis code that is a struct and functions), a small allocator's bookkeeping. Each needs its laws from
+its docs or tests, and a refuted law that looks like a real bug is recorded only.
+
+**Bars and budget:** the cheap plan (`--only suite,suite-usual,rw --together` against main), build and smoke with clang
+shadowed, Go (research/langs/go-snapshot/diff.ts with the captures in ../gdp-wired-goport/runs/langs/cap/), LiteLLM
+(research/langs/litellm/jobs.json on Modal), Ruby (`bun research/langs/ruby/run.ts --write`, no diff) and Elixir
+(`bun research/langs/elixir/run.ts --write`, no diff) byte-identical. $10 for C and C++; stop for merge after each.
