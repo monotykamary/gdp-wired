@@ -75,14 +75,17 @@ function openH(c: C, path: Path, out: Lin[], positive = true): void {
 export const pairedKeys = {skip: false}
 // (each cell's map and key, and each pair's difference both ways, made once: the pairs are quadratic in the names, and
 // the same forms at every node keep what is remembered per form)
-const cellKeys = new Map<string, {map: string, key: Lin}>(), cellPairs = new Map<string, {d: Lin, neg: Lin, q0?: Lin, q1?: Lin}>()
+// (by the first cell, then the second: no key text made per lookup, the search's nodes ask for every pair again)
+const cellKeys = new Map<string, {map: string, key: Lin}>(), cellPairs = new Map<string, Map<string, {d: Lin, neg: Lin, q0?: Lin, q1?: Lin}>>()
+let cellPairsN = 0
 export const cellPair = (a: string, b: string): {d: Lin, neg: Lin, q0?: Lin, q1?: Lin} => {
-  const pk = `${a}\u0000${b}`
-  let pair = cellPairs.get(pk)
+  let row = cellPairs.get(a)
+  if (!row) cellPairs.set(a, (row = new Map()))
+  let pair = row.get(b)
   if (!pair) {
-    if (cellPairs.size > 200_000) cellPairs.clear()
+    if (++cellPairsN > 200_000) { cellPairs.clear(); cellPairsN = 1; cellPairs.set(a, (row = new Map())) }
     const d = sub(cellKey(a).key, cellKey(b).key)
-    cellPairs.set(pk, (pair = {d, neg: scale(d, -1)}))
+    row.set(b, (pair = {d, neg: scale(d, -1)}))
   }
   return pair
 }

@@ -156,20 +156,41 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   // trail leaves open (that atom, or its flip where the trail decides it one way); made again only where the live cells
   // or the decisions about pairs have changed.
   let cellsAt = [-1, -1], cellsOpen: Lin[] = []
-  const truthOf = (lin: Lin): boolean | undefined => { const x = recOf(lin).x; return x?.val === undefined ? undefined : x.name === canon(lin) ? x.val : !x.val }
+  // Each pair's two atoms read once a session: their variables and which way each stores its form (the same reading as
+  // recOf and canon at every node, which this list's rebuilds, nearly every node, spent most of a wide goal's time on).
+  type PairRec = {d: Lin, neg: Lin, mono: boolean, xd?: Var, sd?: boolean, xn?: Var, sn?: boolean, read?: boolean}
+  const pairRecs = new Map<string, Map<string, PairRec>>()
+  let flat: PairRec[] = [], flatAt = -1
+  const valOf = (x: Var | undefined, same: boolean | undefined): boolean | undefined => (x?.val === undefined ? undefined : same ? x.val : !x.val)
   const openCellsLive = (): Lin[] => {
     if (cellsAt[0] === reader.cellsChanged && cellsAt[1] === pairsChanged) return cellsOpen
-    const out: Lin[] = []
-    for (const names of reader.cells.values()) {
-      const ns = [...names]
-      for (let i = 0; i < ns.length; i++) for (let j = i + 1; j < ns.length; j++) {
-        const pair = cellPair(ns[i]!, ns[j]!)
-        if (pairedKeys.skip && Object.keys(pair.d).some(isMonomial)) continue
-        for (const lin of [pair.d, pair.neg]) { const x = recOf(lin).x; if (x) x.pair = true }
-        const a = truthOf(pair.d), b = truthOf(pair.neg)
-        if (a === undefined) out.push(pair.d)
-        else if (a === true && b === undefined) out.push(pair.neg)
+    // (the pairs in order, made again only where the live cells changed; a decision about a pair reads them again)
+    if (flatAt !== reader.cellsChanged) {
+      flat = []
+      for (const names of reader.cells.values()) {
+        const ns = [...names]
+        for (let i = 0; i < ns.length; i++) {
+          let row = pairRecs.get(ns[i]!)
+          if (!row) pairRecs.set(ns[i]!, (row = new Map()))
+          for (let j = i + 1; j < ns.length; j++) {
+            let r = row.get(ns[j]!)
+            if (!r) { const pair = cellPair(ns[i]!, ns[j]!); row.set(ns[j]!, (r = {d: pair.d, neg: pair.neg, mono: Object.keys(pair.d).some(isMonomial)})) }
+            flat.push(r)
+          }
+        }
       }
+      flatAt = reader.cellsChanged
+    }
+    const out: Lin[] = []
+    for (const r of flat) {
+      if (pairedKeys.skip && r.mono) continue
+      if (!r.read) {
+        for (const lin of [r.d, r.neg]) { const x = recOf(lin).x; if (x) x.pair = true }
+        r.xd = recOf(r.d).x; r.sd = r.xd?.name === canon(r.d); r.xn = recOf(r.neg).x; r.sn = r.xn?.name === canon(r.neg); r.read = true
+      }
+      const a = valOf(r.xd, r.sd), b = valOf(r.xn, r.sn)
+      if (a === undefined) out.push(r.d)
+      else if (a === true && b === undefined) out.push(r.neg)
     }
     cellsAt = [reader.cellsChanged, pairsChanged]
     return (cellsOpen = out)
