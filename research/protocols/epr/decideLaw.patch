@@ -1,0 +1,30 @@
+diff --git a/core/infer.ts b/core/infer.ts
+index 2f5b922..57e71d1 100644
+--- a/core/infer.ts
++++ b/core/infer.ts
+@@ -35,7 +35,7 @@ import {quietly} from './cyclic.ts'
+ import {type C, type E, type Fn, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
+ import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
+ import {allowed, keysOf, linKey, watch} from './watch.ts'
+-import {clock, counted, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
++import {clock, counted, decideLaw, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
+ import {type Goal, type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
+ import {env, gcd, work} from './solver.ts'
+ import {bgcd} from './q.ts'
+@@ -2027,12 +2027,14 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
+             // (a model or a refutation of the CDCL search alone first, a quarter of a join query; else the proof path's)
+             const inst = mapNames.length ? lawInstances(mm, ls, idx) : undefined, g = obligations(mm, ls, inst ? {[ls[idx]!.name]: inst} : {}, idx)[1]!
+             // (the caller's law on the proof path alone: its models are EPR's, real or with the instances that refute them)
+-            const quick = (f ? budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) : {stuck: 'caller', path: new Map()}) as Refuted
++            const dl = f && process.env.GDP_DECIDE_LAW !== '0' ? within(Math.min(kUntil(), performance.now() + joinQueryMs / 4), () => decideLaw(mm, ls, idx)) : undefined
++            if (dl?.proven) continue
++            const quick = (dl ? {stuck: 'sat', witness: dl.witness, path: new Map()} : f ? budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) : {stuck: 'caller', path: new Map()}) as Refuted
+             T(`quick ${'tree' in quick || quick.why === REFUTED ? 'refuted' : quick.stuck}`)
+             if (!('tree' in quick) && quick.why === REFUTED && quick.core) { const lawAt = lawsFrom(mm, ls, false, inst ?? {}); settled.set(ls[idx]!.name, [...new Set([...quick.core].map(h => lawAt.get(h)).filter((k): k is number => k !== undefined && k >= given.length && k !== idx).map(k => ls[k]!.name))]) }
+             if ('tree' in quick || quick.why === REFUTED) continue
+             let isReal = quick.stuck === 'sat' && !!quick.witness && realCti(quick.witness, f, others)
+-            if (!isReal) {
++            if (!isReal && !dl) {
+               proofs++
+               const r2 = within(f ? Math.min(kUntil(), performance.now() + joinQueryMs / 4) : kUntil(), () => proveLaw(mm, ls, idx))
+               T(`proof ${r2.proven ? 'proven' : r2.stuck}`)

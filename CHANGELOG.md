@@ -5,6 +5,16 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**The enumeration's unsure cube goals decided: decideLaw (gen/epr5).** Nothing trusted changed.
+research/protocols/epr/DESIGN.md, "gen/epr5", has the measurements.
+- **The EPR path:** a successor chain the model holds gets consecutive values in the read-back, and keys of two shapes
+  are unequal. gen/enum4's 34 unsure cube goals (13 of ring, 21 of distributed_lock) are now models, as Z3 4.13 says of
+  all 34.
+- **decideLaw:** a law's goals by the EPR path alone, a model returned with its diagram after the model rounds. It
+  decides each of the 34 in at most 0.43 s on Modal; research/protocols/epr/decideLaw.patch has the stage's quick check
+  asking it first.
+- **Quick bar** (against 5d4da3f): wrong 0, nothing lost solidly.
+
 **No kernel-side work past the search's end; ring's caller goal proven; models as diagrams (gen/epr4).** Nothing
 trusted changed. research/protocols/epr/DESIGN.md, "gen/epr4", has the measurements.
 - **The wall.** A function's parts are listed once: ring's congruence pairs had run 300+ s past the end. The EPR path,
