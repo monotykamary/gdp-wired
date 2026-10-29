@@ -1780,6 +1780,15 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const ord = new Set<string>(), leaves = (e: E): E[] => (e.op === 'if' ? [...leaves(e.then), ...leaves(e.else)] : [e])
       const relate = (a?: string, b?: string, less = false) => { if (a && b) { const ra = vf(a), rb = vf(b); if (ra !== rb) vp.set(ra, rb); if (less) ord.add(vf(b)) } }
       walk([m.step, m.assume], o => { const c = o as unknown as C; if (c.op === '<' || c.op === '<=' || c.op === '=') relate(node(c.a), node(c.b), c.op !== '=') })
+      // (a param that bounds a sort's keys, k < p, is that sort's size in the small instance; a param a key equals, a write
+      // at every key at it (k = first) or a read at it, is an element of that sort, which pins it against renaming)
+      const bounding = new Map<string, Set<string>>(), elementOf = new Map<string, string>()
+      walk([m.step, m.assume], o => { const c = o as unknown as C; if ((c.op === '<' || c.op === '<=') && c.b.op === 'var' && m.params.includes(c.b.name) && c.a.op === 'var' && m.inputs.includes(c.a.name)) bounding.set(c.b.name, new Set([...(bounding.get(c.b.name) ?? []), ks.find(c.a.name)])) })
+      for (const [mp, w] of Object.entries(m.step.maps ?? {})) {
+        const srt = ks.plainRead.includes(mp) ? ks.find(`M:${mp}`) : undefined
+        if (srt && 'each' in w) walk(w.value, o => { const c = o as unknown as C; if (c.op === '=' && c.a.op === 'var' && c.b.op === 'var') { const q = c.a.name === w.each ? c.b.name : c.b.name === w.each ? c.a.name : undefined; if (q && m.params.includes(q)) elementOf.set(q, srt) } })
+      }
+      walk([m.step, m.assume], o => { const e = o as unknown as E; if (e.op === 'get' && e.key.op === 'var' && m.params.includes(e.key.name) && ks.plainRead.includes(e.map)) elementOf.set(e.key.name, ks.find(`M:${e.map}`)) })
       for (const [mp, w] of Object.entries(m.step.maps ?? {})) for (const l of leaves(w.value)) relate(`V:${mp}`, node(l))
       const valueSort = (mp: string) => ss.find(q => vf(q) === vf(`V:${mp}`)), ordered = (q: string) => [...ord].some(o => vf(o) === vf(q))
       // (a function of a key whose values are a composed map's rows: Pending[idn(x)·N + y])
@@ -1808,7 +1817,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         for (let t = 0; t < 200 && pvs.size < 4; t++) {
           // (a param a sort's keys are compared with, n < size, is that sort's size in the instance)
           const p = randomParams(2)
-          for (const q of m.params) { const srt = ss.find(r => vf(r) === vf(`P:${q}`)); if (srt && !ss.includes(ks.find(q))) p[q] = keyDom(srt).length }
+          for (const q of m.params) {
+            const el = elementOf.get(q), srts = ss.filter(r => vf(r) === vf(`P:${q}`))
+            if (el && ss.includes(el)) p[q] = keyDom(el)[rand(keyDom(el).length)]!
+            else if (bounding.has(q) && [...bounding.get(q)!].some(r => ss.includes(r))) p[q] = Math.min(...[...bounding.get(q)!].filter(r => ss.includes(r)).map(r => keyDom(r).length))
+            else if (srts.length) { const d = keyDom(srts[0]!); p[q] = d[rand(d.length)]! }
+          }
           if ((m.pre && !evalC(m.pre, p, {scalars: {}, maps: {}}, m)) || m.params.some(q => ss.includes(ks.find(q)) && !domOf(q, new Set()).includes(p[q]!))) continue
           pvs.set(JSON.stringify(p), p)
         }
@@ -1825,7 +1839,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           else if (ar && pairing?.n) layout.set(mp, Array.from({length: ar}, (_, i) => ks.find(`${mp}:${i}`)))
         }
         const stored = new Set(m.inputs.filter(i => JSON.stringify(m.step.state ?? {}).includes(`"name":"${i}"`)).map(i => ks.find(i)))
-        const sym = layout.size === Object.keys(m.maps ?? {}).length ? ss.filter(q => !ordered(q) && !valueSort2(q) && !stored.has(q) && !Object.keys(m.fns ?? {}).some(f => ks.find(`F:${f}`) === q) && !m.params.some(p2 => vf(`P:${p2}`) === vf(q))) : []
+        const pinned = new Set(elementOf.values()), sym = layout.size === Object.keys(m.maps ?? {}).length ? ss.filter(q => !pinned.has(q) && !ordered(q) && !valueSort2(q) && !stored.has(q) && !Object.keys(m.fns ?? {}).some(f => ks.find(`F:${f}`) === q) && !m.params.some(p2 => vf(`P:${p2}`) === vf(q))) : []
         function valueSort2(q: string) { return Object.keys(m.maps ?? {}).some(mp => valueSort(mp) === q) }
         const perms = (k: number): number[][] => (k <= 1 ? [[0]] : perms(k - 1).flatMap(p2 => Array.from({length: k}, (_, i) => [...p2.slice(0, i), k - 1, ...p2.slice(i)])))
         let rens: Map<string, number[]>[] = [new Map()]
@@ -1856,12 +1870,15 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         for (const params of pvs.values()) {
           const drawn = new Map<string, Set<number>>(m.inputs.map(i => [i, new Set<number>()]))
           for (let t = 0; t < 200; t++) { const inp = randomInput(params, 2); for (const i of m.inputs) if (typeof inp[i] === 'number') drawn.get(i)!.add(inp[i] as number) }
-          const doms: [string, (number | Map<number, number>)[]][] = m.inputs.map(i => [i, domOf(i, drawn.get(i)!)])
+          // (an input no template sort holds, bounded by a param (n1 < size): every value below it)
+          const boundBy = (i: string) => [...bounding].find(([, v2]) => v2.has(ks.find(i)))?.[0]
+          const doms: [string, (number | Map<number, number>)[]][] = m.inputs.map(i => [i, !ss.includes(ks.find(i)) && boundBy(i) !== undefined && (params[boundBy(i)!] ?? 0) <= 8 ? Array.from({length: params[boundBy(i)!] ?? 0}, (_, k) => k) : domOf(i, drawn.get(i)!)])
           for (const q of m.inputMaps ?? []) { const ks2 = keyDom(ks.find(`M:${q}`)); doms.push([q, Array.from({length: 2 ** ks2.length}, (_, b) => new Map(ks2.filter((_, j) => b >> j & 1).map(k => [k, 1] as [number, number])))]) }
           let combos: Request[] = [{}]
           for (const [i, d] of doms) combos = combos.flatMap(c => d.map(v2 => ({...c, [i]: v2})))
           if (combos.length > 2048) combos = Array.from({length: 2048}, () => combos[rand(combos.length)]!)
           smallReq.push({params, combos})
+          opts.progress?.('join small domains', {params: JSON.stringify(params), doms: doms.map(([i, d]) => `${i}:${d.length > 8 ? d.length : d.map(v2 => (typeof v2 === 'number' ? v2 : 'map')).join('/')}`).join(' '), combos: combos.length})
           let st0: State
           try { st0 = run.init(params) } catch { continue }
           const queue = [{params, st: st0}], bfsEnd = performance.now() + (end2 - performance.now()) * 0.75 / (pvs.size - smallReq.length + 1)
