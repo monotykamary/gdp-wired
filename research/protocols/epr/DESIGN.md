@@ -404,3 +404,77 @@ own transitivity, the bounds' monotonicity and congruence, and the parts' class-
   before the slimming.
 - **Spend:** about $13.1 of $14: the probes and pilots about $0.35, the quick bar $1.78 and the full bar $10.95 (the
   bars' estimates; their hours not yet billed).
+
+## gen/epr3: functions of a key, exact cells, the search's end on the wall, many-key instances
+
+Branch gen/epr3 from b2df5dc. Nothing trusted changed: every refutation is still the usual search's tree on the core,
+widened and checked by kernel.ts.
+
+**1. A function of one key is a part (ring_leader_election).** `idn(n)` read at a part is a part of its own, `idn(n)`
+(patterns `[0]`): a key `Pending[idn(n)·64 + n]` is a tuple of two parts. Functions are Ackermann's: equal arguments,
+equal values (a clause). The rule's injectivity is its fact, an instance among the hypotheses like any other law. A
+successor (`n1 = n + 1`) is an atom with nothing between, one way. A read at a key of the wrong sort (`idn(64·m + n)`) is
+key-only, and the read-back gives it a value of its own, the least unused, so an injective function's instance there
+holds.
+- **Probe** (`probe.ts`, Z3 4.13 on Modal, `runs/epr3/all1`): ring's four step goals decided, three refuted (cores
+  proven, widened, checked) and one satisfiable, all as Z3. The 28 step goals of skv, wo, toy and distributed still
+  agree.
+
+**2. The enumeration's goals (traced on gen/enum3, 44fe305, with these changes).**
+- **distributed_lock:** the four-key cube took 48 s and the three-key ones 2–7 s in the usual search, because the EPR
+  path refused them. Their wrong-sort instances compare an epoch cell with a composed key (`Ep[x] + 1 <= 64·z + n`).
+  An ordered cell is key-only beside a composed key, so these goals are now decided: 0.1–0.4 s each. Nothing in the run
+  is over a second.
+- **consensus_wo_decide:**
+  - **Ordered terms.** The 361 and 381 ordered terms were yes/nos compared as implications (`Leader[k] <= Voted[k]`).
+    A cell or scalar that a hypothesis bounds (`M[t] <= 1`, a kind's instance) is now exact: values 0 to the bound,
+    compared with any finite term by cases, not ordered. That hypothesis is the origin of its one-hot clause, so a core
+    keeps it. Ordered terms: 57 → 9 and 89 → 10 on the dumped goals.
+  - **The cap.** Past 64 ordered terms, transitivity is lazy (the model's broken triples added, 16 rounds at most), up
+    to 512 terms.
+  - **The 65 s search** was proveLaw's thinned goals outside the EPR path's scope. Now 0.5 s.
+  - **What is left:** the 29,130-hypothesis goal of the candidate `Leader[k] <= VoteRequestMsg[k]` (a relation of
+    pairs read at one key). Its wrong-sort reads have no bound, so `started` and four maps stay ordered. 4,264
+    comparisons are outside the shape, and the usual search takes 12.5 s to unknown. That candidate is the template's.
+  - **The spurious model** is a real model of the ground goal (every EPR model is validated with evalC), with too few
+    instances. Model rounds add the rest where the model's keys can be read.
+- **sharded KV:** the caller goal held 112,587 hypotheses: five-key laws at 24,608 tuples each, from `matched`'s
+  paired matches. Building took 10 s and each EPR decision 20–38 s. A law about several keys now takes at most 512
+  related tuples (each place's own focus key first) and 512 paired matches, and the model's tuples add the rest. Now
+  8,139 hypotheses, 0.3 s to build, about 1 s a decision, and skv's run 304 s → 42 s.
+- **ring (written invariant):** a model's cell at a key that reads a cell (`Pending[idn[n]:64,n]`) was skipped by
+  modelInstances (keyValue), so 'one leader' never got its instance. Now valued, and proven.
+
+**3. The search's end on the wall.** proveRule's search runs inside `withWall(end)`. `late()` reads it, and so do grow,
+the EPR path's propositional search (every 256 conflicts), model rounds, model instances and instance building. Past it,
+a goal is unknown. The counted clock still decides everything before the end, so verdicts don't depend on the machine
+except past the search's own end.
+- **Test:** research/protocols/epr/deadline.test.ts, on gen/enum3 with these changes (Modal, 4 of 4).
+  - ring at 2 s and 5 s: 1.6 and 4.5 s past the 0 ms base.
+  - wo at 5 s and 10 s: 4.2 and 10.1 s past it.
+  - wo at 2 s overruns by 0.8 s in core/infer.ts's runs, a fixed 16,000 requests, about 1.4 s of wall time at any
+    budget. That is the enumeration's side.
+- **gen/enum3's 60 s runs** with these changes: ring 14 s, distributed 47 s, sharded KV 42 s (304 s before), wo 67 s
+  (154 s before).
+
+**Not done: charging the EPR path's work to the counted clock.** It would change how much every counted search may do,
+so it needs a calibration that could cost other searches their proofs. The wall end now bounds the work it hides.
+
+**Measured on gen/epr3** (Modal, three runs, against b2df5dc: `runs/epr3/p1b` base, `p2c` candidate):
+- **Written invariants:** 10 of 10 in every run. wo 27–29 s against 31–37 s, skv 15–19 s against 19–25 s.
+- **Searches at 60 s:** the same 6 proven in every run. skv's miss ends at 19–20 s against 35–38 s; wo's at 49–54 s
+  against 41–46 s.
+- **Broken variants:** refused by the same runs.
+- **The 30 real-world laws:** the same verdicts, 584 s against 602 s.
+- **The quick bar against b2df5dc** (`runs/bar/runs/e38d91ac7027+960092bb-vs-b2df5dc1fca8-quick-2026-10-291427`): wrong 0
+  everywhere, nothing lost solidly (CHC lost 1 and ITS lost 2 after reruns, all at the 60 s limit, noise). SV, TIP, the
+  frontier corpora level. The 332 step goals: the same search on all 332, 291 s against 306 s. The 1-vCPU tests level.
+  Lean 6 of 6.
+  - **Real-world dev set:** 74 proven both. One refutation lost in the single candidate run: vendure's 'a placed order
+    is cancelled only with every line cancelled'. Its shallow bounded run has its own 250 ms wall stop. When that stop
+    misses the bug on a slow container, the last bounded run finds it, and the wall end had cut that run. That phase
+    now has the wall lifted (its own stop stays). Rerun on Modal, refuted in 9.0–9.6 s on both sides.
+- **The full bar was not run:** the quick bar's estimate is $15.6, since it made b2df5dc's shared baseline (21 runs),
+  and that is past this round's budget. Suites and Lean beyond the quick sample are not measured.
+- **Size:** core/ and kernel/ without tests +10,833 bytes against b2df5dc; kernel/epr.ts 46,725 bytes (+8,281).
+

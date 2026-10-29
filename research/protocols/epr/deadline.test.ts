@@ -1,0 +1,23 @@
+// The search keeps its end on the wall (kernel/prove.ts's withWall): two protocols whose searches ran far past it
+// (wo_decide's caller goal, ring's model checks) with tight budgets end within the budget and half a second, beyond what
+// the same call takes with a search of 0 ms (the prover's own proof and the deeper runs before the search's clock starts).
+//   bun test research/protocols/epr/deadline.test.ts
+import {expect, test} from 'bun:test'
+import {proveRule} from '../../../core/dsl.ts'
+import {protocols} from '../models.ts'
+
+// (wo_decide from 5 s: its search's runs, core/infer.ts's 16,000 requests, take 1.4 s of wall time at any budget)
+for (const [id, budgets] of [['consensus_wo_decide', [5_000, 10_000]], ['ring_leader_election', [2_000, 5_000]]] as const) {
+  for (const ms of budgets) {
+    test(`${id}: a ${ms} ms search ends in time`, () => {
+      const p = protocols.find(q => q.id === id)!, r = p.make(), laws = p.laws(r)
+      const t0 = performance.now()
+      proveRule(r, laws, {search: {ms: 0}})
+      const base = performance.now() - t0, t1 = performance.now()
+      const v = proveRule(r, laws, {search: {ms}})
+      const took = performance.now() - t1
+      console.log(JSON.stringify({id, ms, base: Math.round(base), took: Math.round(took), verdict: v.proven ? 'proven' : v.stuck ?? 'unknown'}))
+      expect(took).toBeLessThan(base + ms + 500)
+    }, 600_000)
+  }
+}
