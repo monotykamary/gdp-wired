@@ -2190,7 +2190,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
               // (a cube the EPR path doesn't decide: the CDCL search's answer alone; the caller's, the proof path's too)
               if (!isReal && !f) {
                 proofs++
-                const r2 = within(Math.min(kUntil(), performance.now() + Math.max(joinQueryMs * 1.25, (kUntil() - performance.now()) / 2)), () => proveLaw(mm, ls, idx))
+                const r2 = within(Math.min(kUntil() - 2000, performance.now() + Math.max(joinQueryMs * 1.25, (kUntil() - performance.now()) / 2)), () => proveLaw(mm, ls, idx))
                 if (r2.proven) continue
                 isReal = !!r2.witness && realCti(r2.witness, f, others)
                 wit = r2.witness ?? wit
