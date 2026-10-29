@@ -543,3 +543,57 @@ search's share. The protocols' goals are refuted or satisfied in a few hundred c
   - the 1-vCPU tests level, Lean 6 of 6.
 - **Size:** kernel/epr.ts 51,849 bytes (+5,213), kernel/prove.ts +567, against 9987874.
 - **Spend:** about $4 of $8: the bar's estimate is $2.71, plus the probes and pilot.
+
+## gen/epr5: the enumeration's unsure cube goals decided
+
+Branch gen/epr5 from e5253d4. Nothing trusted changed.
+
+**The goals.** gen/enum4 (a33b07b) leaves 13 cube goals of ring and 21 of distributed_lock unsure in its first Houdini
+round. Each took up to 2 s of CDCL and 2 s of proof. They are dumped in research/protocols/epr/callers/ring-cubes.json
+and dist-cubes.json: the round's machine and laws, and the unsure cubes' indices.
+
+**Why each was unsure:**
+- **ring (13 of 13): the EPR path's model broke its own conclusion.** A successor atom (`n1 = n + 1`, the ring's next
+  node) makes its two terms adjacent in the order, but the read-back gave them values two apart: odd values where
+  there was room. A successor chain the model holds now gets consecutive values, pinned to a constant where the chain
+  reaches one.
+- **distributed_lock: all 21 were already models for the EPR path.** The stage's quick check is cdcl.ts's model mode,
+  not the EPR path, and it ran out of its 2 s. The proof path then spent up to 5 s in model rounds.
+  - One broke the model in its third model round, at a wrong-sort instance a round added (`key3 = 64·e + n`).
+  - Keys of two shapes are now unequal in the abstraction. A model that has them equal is judged by its read-back; a
+    refutation through them is re-proven by the usual search on its core.
+- **None** fell outside the shape or hit a cap or a missing atom kind.
+
+**Z3 4.13** (Modal) on the 34 step goals: sat on all 34, as the EPR path. The 32 protocol step goals and the two caller
+goals still agree.
+
+**decideLaw(m, laws, i)** (kernel/prove.ts) is a law's goals by the EPR path alone:
+- each goal decided;
+- a refutation's core proven and widened as growRoot's;
+- a model's broken tuples added (model rounds) until it is a model on every tuple of the goal's keys;
+- the model returned with its diagram;
+- undefined where a goal isn't EPR-shaped, so the caller's proveLaw comes next.
+
+Measured on Modal, every one of the 34 cubes is decided in at most 0.43 s (callers/ in deadline.test.ts, two runs).
+
+**gen/enum4 with this kernel** (two runs at 60 s each, a 90 s kill). In a scratch copy of its stage, the quick check asked
+decideLaw first (research/protocols/epr/decideLaw.patch, for the engine agent):
+- ring: 46 and 48 cube decisions in the run against 21 and 28 without it;
+- distributed: 100 and 54 against 77 and 76, the run ending at 60 and 52 s;
+- both still unknown.
+
+The cubes are models now, fast. That a model is no real counterexample (realCti) keeps them unsure, and unsure cubes
+are dropped only where no real one is. That judgment is the stage's.
+
+**Deadline test** (Modal, two runs): 23 of 24 checks pass. Ring's caller goal ended at 5.52 s once at a 5 s wall.
+
+**The quick bar against 5d4da3f's cached baseline** (`runs/bar/runs/431e6caf6548+d0a3d1cb-vs-5d4da3f49013-quick-2026-10-291716`):
+- wrong 0 everywhere, nothing lost solidly;
+- CHC, ITS, SV, the frontier corpora and the real-world dev set level;
+- the 1-vCPU tests level, Lean 6 of 6.
+- **TIP:** 93 against 94 in the first pass, the one task at the limit. Rerun alone: 94 against 94.
+- **The 332 step goals didn't run on either side.** Their goals' directory (runs/modal/dag/goals in the main checkout)
+  is gone. That is the bar's input, not this branch.
+
+**Size:** kernel/epr.ts +1,154 bytes, kernel/prove.ts +1,578, against e5253d4. **Spend:** about $3.5 of $6, the two bar
+launches estimated at $2.72 and about $0.3, the probes and pilots the rest.

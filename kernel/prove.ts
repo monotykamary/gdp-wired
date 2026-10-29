@@ -1391,6 +1391,31 @@ const pointed = <T>(laws: Law[], f: () => T): T => {
   atPoint.on = true
   try { return f() } finally { atPoint.on = false }
 }
+// A law's goals decided by the EPR path alone, for a caller that asks many (the enumeration's Houdini rounds): each goal
+// decided, a refutation's core proven and widened as growRoot's (each core's search within a second); a model's tuples
+// added where it breaks a law at the goal's keys (modelInstances), at most `rounds` times, the goals asked again; a model
+// left is one on every tuple of the goal's keys, returned with its diagram. undefined: a goal not EPR-shaped, a core not
+// proven or a budget run out (the caller's proveLaw next). Untrusted: a caller's verdict rests on its final proof.
+export function decideLaw(m: Machine, laws: Law[], i: number, rounds = modelRounds): {proven: true} | {proven: false, goal: string, stuck: 'sat', witness: Record<string, number>, diagram?: Diagram} | undefined {
+  return withPatterns(m, laws, () => {
+    if (!eprScope.patterns) return undefined
+    let inst = lawInstances(m, laws, i)
+    for (let round = 0; ; round++) {
+      let more: Instances | undefined
+      for (const g of obligations(m, laws, {[laws[i]!.name]: inst}, i)) {
+        if (pastWall()) return undefined
+        const o = eprFirst(g, {nodes: 0, until: clock() + 1_000})
+        if (!o) return undefined
+        if ('tree' in o) continue
+        more = round < rounds ? modelInstances(m, laws, inst, g, o.witness!) : undefined
+        if (!more) return {proven: false, goal: g.name, stuck: 'sat', witness: o.witness!, ...(o.diagram ? {diagram: o.diagram} : {})}
+        break
+      }
+      if (!more) return {proven: true}
+      inst = more
+    }
+  })
+}
 export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram} {
   if (laws.some(l => someKeys(l.holds).length) || someLaws(laws)) {
     const r = proveLaws(m, laws)
