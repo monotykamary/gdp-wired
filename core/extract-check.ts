@@ -574,7 +574,9 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
       ev.probes.conditions++
       let law: StepLaw
       try { law = r.stepLaw(`probe ${i + 1}`, () => no, env => condAt(c, env as Record<string, unknown>)) } catch { continue }
-      const v = proveSteps(r as never, [], [law], {search: false})
+      // (a probe the prover can't state is skipped: probes only add requests to compare)
+      let v: ReturnType<typeof proveSteps>
+      try { v = proveSteps(r as never, [], [law], {search: false}) } catch { continue }
       if (v.proven || !v.witness) continue
       ev.probes.witnesses++
       const w = v.witness, params: Record<string, Raw> = {}, inputs: Record<string, Raw> = {}, leaves: Record<string, Raw> = {}

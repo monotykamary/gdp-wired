@@ -272,7 +272,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   const x = (n0: CN): GX => {
     const n = strip(n0), t = n.type ? tyOf(n.type) : -1, a = at(n, t), kids = n.inner ?? []
     const k = t >= 0 && T(t).k === 'int' ? fold(n) : undefined
-    if (k !== undefined) return Number.isSafeInteger(k) ? lit(n, k, t) : no(n, `${text(n)}: the constant ${k} is past 2^53 (the rule's numbers stop there)`)
+    if (k !== undefined) return Number.isSafeInteger(k) ? lit(n, k, t) : no(n, `${text(n)}: the constant ${n.kind === 'IntegerLiteral' ? n.value : k} is past 2^53 (the rule's numbers stop there)`)
     switch (n.kind) {
       case 'CXXBoolLiteralExpr': return {e: 'lit', ...a, c: {bool: !!n.value}}
       case 'DeclRefExpr': {
@@ -326,6 +326,13 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       }
       case 'ConditionalOperator': return {e: 'ite', ...a, x: cond(kids[0]!), y: x(kids[1]!), b: x(kids[2]!)}
       case 'CallExpr': return call(n)
+      case 'CompoundLiteralExpr': return x(kids[0]!)
+      case 'InitListExpr': {
+        // A struct's initializer: clang's semantic form lists every field, one not given an implicit zero.
+        const tt = T(t)
+        if (tt.k !== 'struct') return no(n, `${text(n)}: an initializer of a ${n.type!.qualType}`)
+        return {e: 'comp', ...a, elts: kids.flatMap((k, i) => (k.kind === 'ImplicitValueInitExpr' ? [] : [{field: tt.fields![i]!.name, v: x(k)}]))}
+      }
       case 'ArraySubscriptExpr': {
         // An index into an array of the state (its decay to a pointer undone); pointer arithmetic is outside.
         const b = strip(kids[0]!), arr = b.kind === 'ImplicitCastExpr' && b.castKind === 'ArrayToPointerDecay' ? b.inner![0]! : undefined
@@ -372,7 +379,6 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         if (d.storageClass === 'static') return sno(d, `${d.name}: a static local (state every call shares)`)
         const init = d.init ? (d.inner ?? []).find(c => !c.kind.endsWith('Attr')) : undefined
         if (!init) return []
-        if (init.kind === 'InitListExpr') return sno(d, `${d.name}: an initializer list`)
         return [{s: 'decl', p, specs: [{names: [{name: d.name!, id: d.id!, t: tyOf(d.type!)}], v: [x(init)]}]}]
       })
       case 'ReturnStmt': return [{s: 'return', p, r: kids.length ? [x(kids[0]!)] : []}]

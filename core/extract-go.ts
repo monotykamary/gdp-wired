@@ -698,6 +698,8 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
   for (const l of go.leaves) if (l.kind === 'frame' && !l.name) g.notes.add(`${l.path.join('.')}: a ${l.go}, outside the subset, left out (no method the rule reads touches it)`)
   // The laws every state of the code keeps: each fixed-width number within its type's range, a nil map holding no key.
   const laws = rangeLaws(state, g.ints)
+  // (a fixed array's items within their type's range too: C's; Go's slices have no such law yet)
+  for (const d of lists) { const it = g.ints.get(`${d.name}.$item`); if (d.len === undefined || !it) continue; const [lo, hi] = rangeOf(it); if (Number.isFinite(hi)) laws.push(`r.law(${JSON.stringify(`${d.name}: each item within its type's range`)}, ({${d.name}}) => forall(k => ${d.name}.at(k).atMost(${hi}).and(${d.name}.at(k).atLeast(${lo}))))`) }
   for (const l of go.leaves) if (l.kind === 'big' && state.some(v => v.name === l.name)) laws.push(`r.law(${JSON.stringify(`${l.name}: a nil one holds 0`)}, ({${l.name}, ${l.name}_nil}) => any(${l.name}_nil.not(), ${l.name}.eq(0)))`)
   for (const d of maps) laws.push(`r.law(${JSON.stringify(`${d.name}: a nil map holds no key`)}, ({${d.name}, ${d.name}_nil}) => forall(k => any(${d.name}_nil.not(), ${d.name}.at(k).has.not())))`)
   const layout: Layout = {k: 'rec', fields: state.filter(v => !outputs.includes(v.name)).map(v => [v.name, {k: 'scalar', name: v.name}] as [string, Layout])}
