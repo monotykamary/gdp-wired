@@ -1954,6 +1954,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           for (const [p, q] of [[i, j], [j, i]] as const) for (const d of keysOnly ? [-1] : [0, -1]) add({lin: {coef: [[p, 1], [q, -1]], d}}, `${i}~${j}`, ren => `${term(p, ren)}<=${d}+${term(q, ren)}`, [...reads(p), ...reads(q)], r => r[p]! - r[q]! <= d)
         }
         used.rows += R.length * lits.length
+        opts.progress?.('join view', {keys: keys.join(), places: places.length, lits: lits.length, rows: R.length, names: lits.map(l => l.name(keys.map((_, i) => i))).join(' ').slice(0, 900)})
         if (lits.length > 96) continue
         const empty = (b: Uint32Array) => b.every(w => w === 0), and = (a: Uint32Array, b: Uint32Array) => a.map((w, k) => w & b[k]!)
         const none = (ls: number[]) => empty(ls.slice(1).reduce((b, l) => and(b, lits[l]!.bits), lits[ls[0]!]!.bits))

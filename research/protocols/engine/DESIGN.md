@@ -43,6 +43,84 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## Where it stands (read this first; the checkpoints below are the history)
+
+**Branch and code**
+- **Branch:** gen/enum4, in the worktree ../gdp-wired-enum4. It started from gen/rel8 9987874 (main 5d4da3f plus gen/epr3).
+- **Merged in:** gen/epr4, gen/epr5 at 0b65591, and gen/epr6 at e47121a.
+- **Where:** all the engine's code is in core/infer.ts, and nothing trusted changed. It runs as `engine()` inside `inferLawsSearch`, after a join that found nothing, on rules of keyed maps whose scalars take few values (`few`).
+- **Size:** core/infer.ts is about 200 KB, against 162 KB at 9987874.
+
+**The stage, in order**
+1. **Template:** views over each key sort, up to its width, with order literals and function-part places.
+2. **Small instance:** a BFS over canonical states (cells off their default, in key order, the least under each symmetric sort's renamings), with the step compiled once (`loadJs`), at most 4 s, then random walks where the BFS was cut.
+3. **Enumeration:**
+   - minimal cubes, up to 400 a view and at most 4 literals;
+   - selection: every cube of at most two literals first, then turns by map set, 64 places;
+   - each round adds the cubes most often false at the caller's counterexamples so far (`relevant`).
+4. **Rounds** (Houdini plus IC3/PDR):
+   - **Goals:** the caller's law first, then the cubes. Each is decided by the EPR path first (`decideLaw`); else the CDCL search; for the caller's law, the proof path too, within half of what is left.
+   - **A real counterexample:** its state's diagrams are blocked as new cubes (the caller's at once), else the cube is dropped.
+   - **A model the interpreter doesn't confirm:** an obligation. Its diagrams are blocked; with none, the cube is kept, optimistically.
+   - **Proofs carried over:** a goal stands until the set loses a law, and Houdini's cores settle goals.
+   - **∀∃ candidates:** at the caller's first failure, `A → ∃y. B(y)` over one-key views, with a ghost witness found along small runs (`ghostsOf`).
+   - **The set's proof:** `prove()`. A cube it fails at is dropped and the proof asked again at once (up to 24 times).
+   - **Reserve:** the sums pass (core/dsl.ts) gets min(10 s, a quarter of what is left) while the caller's law fails from the set.
+5. **Trace events** (GDP_INFER_TRACE=2): 'join small instance', 'join template', 'join view' (each view's literals), 'join enumerated' (rounds), 'join exists', 'join set', 'join cubes' and 'join made' (lists).
+
+**Verdicts** (`runs/engine/p32`–`p34`, 2 runs at 60 s)
+- **The six, proven:** lock_server_sync 8–11 s, lock_server_async 16–27, decentralized_lock 28, two_phase_commit 17–20, ticket_lock 31–35, toy_consensus_forall 19–21.
+- **The four, unknown:** consensus_wo_decide 61–62, distributed_lock 49–60, ring_leader_election 60, sharded_key_value_store 24–27.
+- **Broken variants:** the same as at 835ac18.
+- No bar has run on this branch yet. When a protocol moves: `bun gates/bar.ts --base 5d4da3f --quick --only rw,f1,f2,g332,suite,onecpu`; the full bar only before a merge.
+
+**The expressibility map** (each written law in models.ts's `human`, against the engine's enumeration; `smallprobe.ts` with CUBES=made lists it, and 'join view' each view's literals)
+
+| Protocol | Written law | In the candidate space? | Missing block or cause |
+|---|---|---|---|
+| wo | a vote message means voted | yes, selected | |
+| wo | one vote message per voter | yes, selected | |
+| wo | a counted vote was sent | yes, selected (two-literal first) | |
+| wo | a leader has the voting quorum's votes | yes, not selected (3 literals, among 238; scores 0 against the caller's 2 counterexamples) | selection |
+| wo | nothing before init | yes, selected | |
+| wo | after init the voting quorum has a member (∃) | yes: the ∃ stage finds it, with its witness | |
+| distributed | a holder's epoch is above every node's other | yes (`Held[x] ∧ Ep[x] ≤ Ep[y]`) | |
+| distributed | two holders are one | yes | |
+| distributed | nothing before init | yes | |
+| distributed | a locked epoch is its node's epoch or below; a live transfer above every epoch; a live transfer means nobody holds; two live transfers are one | no | the views' rows have Transfer and Locked only at 0, so there is no `≥ 1` literal. The engine's small instance has 9 states (3 param vectors); a hand BFS with the same domains has 19 for one, Transfer and Locked set. A sampling bug (`scratchpad dl.ts`) |
+| distributed | a locked epoch at a node's epoch is its own | implied by the caller's law | |
+| ring | a leader's id is the largest | no | no Leader = 1 literal: the engine's small instance (25 states) has no leader. A hand BFS with the same domains (size 3, ids 5, 4, 7) has 30 states, 6 with a leader. The same sampling bug |
+| ring | a node's own id pending at it is the largest | no | `Pending[idn(x)·64 + x] ≥ 1` never in the rows (the same bug: the max id never returns home) |
+| ring | an id pending past a node is above it (btw) | no | the same bug. Also a disjunction of three cyclic orders: three cubes of 4 literals over 3 keys, in reach of the 4-literal limit of the (lo, lo, lo) view (36 literals) |
+| sharded | all six (one owner per key, a table entry is its owner's, a key in transfer has no owner, one transfer per key, one value per owner and key, nothing before start) | yes: the 17 enumerated cubes are them, and their twins | the caller's law still fails from the set (no diagram). To check: the caller's law from those 17 alone, in a probe |
+
+**What would cover the most** (the next round)
+1. **The small instance's sampling bug** (ring, distributed). The engine's BFS reaches fewer states than a hand BFS over the same domains, without leaders or transfers, so their literals are never made.
+   - To find: compare `enumerated()`'s per-params states with `dl.ts`/`ring2.ts` in the scratchpad: the request domains (`domOf`, `fnDom`), the param vectors, `keyOf3`'s renamings (distributed's `first` is a param of the node sort, renamed with the nodes).
+   - This alone may put most of ring's and distributed's written laws in the space.
+2. **Selection by need** (wo's one law left):
+   - scoring needs caller counterexamples that violate the law; the 2 so far don't;
+   - next, add the written laws one at a time to the set at the caller's failure (`woprobe.ts`), to see which the latest counterexample needs, or raise the cap where decideLaw is cheap.
+3. **sharded:** the written laws are in the set, yet the caller's law fails. Probe the caller's law from the 17 cubes; if it proves, the gap is in the rounds (time or a drop); if not, compare the cubes' frames with the written laws' (distinctness).
+
+**Open costs**
+- The EPR decision is about 0.5 s a goal in the stage (25 s for distributed's round 0) and 14 s plus 36 s of the CDCL path on ring.
+- wo's caller's goal could run past its wall (one run ended at 68 s); epr6 fixed the caller's goal's cost.
+
+**Probes** (research/protocols/engine/)
+- `smallprobe.ts [id]` (MS, CUBES=1|made, EXIT): the small instance, the selection, the enumeration, the views.
+- `woprobe.ts` (with a dump of the set).
+- `exprobe.ts`: ∃ laws with and without witnesses.
+- `bfsprobe.ts`, `stepprobe.ts`: the small instance's cost.
+- `preprobe.ts`: proveRule's work before the search.
+- Jobs are in jobs-*.json; `modal run modal/run.py --jobs <file> --out runs/engine/<name>`.
+
+**Rules**
+- Local runs: ≤ 30 s, one at a time.
+- Modal: 60 s budgets with `timeout -s KILL 90` in the container, 2 runs a config.
+- The six must stay proven.
+- Before a merge, take out every diagnostic. Today none is gated by an env var; the trace events are progress events.
+
 ## Status (checkpoints at 21692d8 and after steps 1, 2, 4; gen/enum4 from gen/rel8 9987874, gen/epr4 merged)
 
 **Built** (core/infer.ts only; nothing trusted changed):
