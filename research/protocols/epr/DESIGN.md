@@ -478,3 +478,68 @@ so it needs a calibration that could cost other searches their proofs. The wall 
   and that is past this round's budget. Suites and Lean beyond the quick sample are not measured.
 - **Size:** core/ and kernel/ without tests +10,833 bytes against b2df5dc; kernel/epr.ts 46,725 bytes (+8,281).
 
+
+## gen/epr4: no work past the wall, ring's caller goal proven, models as diagrams
+
+Branch gen/epr4 from 9987874. Nothing trusted changed.
+
+**Wall overruns under proveLaw** (traced on gen/enum3's stage, 857ebc9, with these changes; a stack sampler past the
+wall found each):
+- **ring's caller goal ran 300+ s past the end.** It was the function parts' congruence: a part was listed once per
+  read, so its pairs grew with the square of the reads, not of the parts. Each part is now listed once.
+- **Smaller ones, now checked:**
+  - the EPR path every 4,096 clauses, hypotheses and read nodes (a throw, then unknown), including the order's walk
+    and the read-back;
+  - model instances per law;
+  - triggered's rounds;
+  - the cuts (`withCuts`, `growFocused`);
+  - before a root goal's rows;
+  - widen, at each node and between a leaf's two readings.
+- **What isn't interruptible:** one kernel.ts reading of a large goal's rows (trusted, unchanged), about 0.3 s on
+  7,000 hypotheses.
+- **wo's search** still overruns by 4–6 s in core/infer.ts's `realCti`, the enumeration's own code.
+- **Test:** research/protocols/epr/deadline.test.ts runs the two caller goals (callers/, dumped from the stage: ring's
+  'one leader' with 33 cubes, wo's with 36) inside walls of 2, 5 and 10 s.
+  - Modal, the last four runs: 38 of 40 checks within 0.5 s.
+  - The two misses are ring at 5 s, ending at 5.6 and 5.8 s.
+
+**Why the caller goals ended in a model:**
+- **ring:** the EPR path's model broke its own hypotheses. These were injectivity and cube instances at keys of the
+  wrong sort: `idn(64·m + n)`, with keys that nest them.
+  - Such reads are now terms of the order, valued by the read-back.
+  - Nested keys are valued from the tables so far.
+  - Near constants get the constants between them on a retry (`k:0 < x < y < k:2` has no room otherwise).
+  - With these, the model is a real model, and its rounds' instances prove the goal: proven alone in 4.3 s
+    (laptop) and 6.6–8.5 s (Modal). It had taken 21 s to unknown in the usual search before.
+- **wo:** the EPR path's model is real. After one round, no law fails at any tuple of the goal's keys, so this is not
+  missing instances. The cubes are not inductive there: a second leader at a node with a quorum's vote. Whether that
+  state is reachable is the enumeration's to judge (realCti).
+
+**Models as diagrams.** decide's sat answer, and proveLaw's unproven one, carry a `Diagram`:
+- the elements: the values of the parts and ordered terms, in order;
+- each part's element, and each ordered scalar's;
+- the scalars' values;
+- each map's cells the goal reads, at tuples of elements;
+- each function's table, element to element.
+
+It is the pre-state and request of the step goal's model. Two models equal up to the order's renaming give the same
+diagram.
+
+**Speed.** The propositional search picks its decisions from an activity heap. The scan over every variable was a fifth
+of a decision. The choices, models and cores are the same (byte-identical output on 46 goals).
+
+**Symmetry breaking: not done.** Over the 32 step goals, the dumps and the caller goals, the propositional search is
+about half of a decision after the heap, and the clause building is the rest. Lex-leader constraints cut only the
+search's share. The protocols' goals are refuted or satisfied in a few hundred conflicts. So it would not pay here.
+
+**Measured** (Modal, two runs, 60 s budgets with a 90 s kill; against gen/epr3's pilot, `runs/epr4/p1c`):
+- Every verdict the same: written invariants 10 of 10, searches 6 of 10, broken variants refused by the same runs.
+- The 30 real-world laws: the same verdicts, 609 s against 584 s.
+- **The quick bar against 5d4da3f's cached baseline** (`runs/bar/runs/c8f7fc27e4f2+195ccb9c-vs-5d4da3f49013-quick-2026-10-291621`):
+  - wrong 0 everywhere, nothing lost solidly;
+  - CHC gained 2;
+  - ITS, SV, TIP, the frontier corpora and the real-world dev set level;
+  - the 332 step goals: the same search on all 332;
+  - the 1-vCPU tests level, Lean 6 of 6.
+- **Size:** kernel/epr.ts 51,849 bytes (+5,213), kernel/prove.ts +567, against 9987874.
+- **Spend:** about $4 of $8: the bar's estimate is $2.71, plus the probes and pilot.
