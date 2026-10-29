@@ -340,6 +340,9 @@ export const protocols: Protocol[] = [
       r.law('two live transfers are one', ({Ep, Transfer}: any) => forall((e, a, f, b) => lt(a, b).and(Transfer.at(pk(e, a)), e.gt(Ep.at(a)), Transfer.at(pk(f, b)), f.gt(Ep.at(b))).implies(e.eq(f).and(a.eq(b))))),
       r.law('a locked epoch at a node\'s epoch is its own', ({Ep, Locked}: any) => forall((e, a, b) => lt(a, b).and(a.eq(b).not(), Locked.at(pk(e, a))).implies(Locked.at(pk(e, b)).not().or(e.eq(Ep.at(b)).not())))),
       r.law('nothing before init', ({started, Held, Ep}: any) => forall(a => lt(a).and(started.eq(0)).implies(Held.at(a).not().and(Ep.at(a).eq(0))))),
+      // (without it the set is not inductive: a transfer held before `init` breaks "a live transfer is above every
+      // epoch" once `init` sets Ep[first] — no run reaches such a state, research/protocols/COST.md)
+      r.law('no transfer or lock before init', ({started, Transfer, Locked}: any) => forall((e, a) => lt(a).and(started.eq(0)).implies(Transfer.at(pk(e, a)).not().and(Locked.at(pk(e, a)).not())))),
     ]},
   {id: 'two_phase_commit', source: 'DuoAI protocols/two_phase_commit (DistAI: two-phase commit; I4)', safety: '(decide_commit(N0) -> ~decide_abort(N1)) & (decide_commit(N0) -> vote_yes(N1)) & (decide_abort(N0) -> abort_flag)',
     make: twoPhaseCommit, bug: 'go1 without every yes vote',
