@@ -795,7 +795,7 @@ export class Stepper {
       }
       case 'addr': {
         const [pl, q] = this.place(x.pl as SX, p)
-        if (pl.k === 'heap' && pl.ptr.t === 'ptr') { const cs = this.cases(pl.ptr.to); this.refuseWhere(q, cs.nil, x, 'a nil dereference'); return [{t: 'ptr', to: this.shift(pl.ptr.to, pl.path)}, this.assume(q, I.not(cs.nil))] }
+        if (pl.k === 'heap' && pl.ptr.t === 'ptr') return [{t: 'ptr', to: this.shift(pl.ptr.to, pl.path)}, this.nonNil(pl.ptr.to, x, q, 'a nil dereference')[1]]
         return refuse(x, String(x.why))
       }
       case 'alloc': {
@@ -1318,6 +1318,8 @@ export class Stepper {
     const a = this.cases(p.a, I.and(c, p.c)), b = this.cases(p.b, I.and(c, I.not(p.c)))
     return {nil: I.or(a.nil, b.nil), objs: [...a.objs, ...b.objs]}
   }
+  // A pointer's cases, a failure (what) where it may be nil, and the path where it isn't.
+  nonNil(to: Ptr, at: {p: string}, p: Path, what: string): [ReturnType<Stepper['cases']>, Path] { const cs = this.cases(to); this.refuseWhere(p, cs.nil, at, what); return [cs, this.assume(p, I.not(cs.nil))] }
   shift(p: Ptr, path: string[]): Ptr { return p.k === 'nil' ? p : p.k === 'obj' ? {...p, path: [...p.path, ...path]} : {...p, a: this.shift(p.a, path), b: this.shift(p.b, path)} }
   readObj(o: Obj, path: string[], at: {p: string}, p: Path, id: string): V {
     if (o.k === 'big') { if (path.length) refuse(at, 'a field of a big.Int'); return refuse(at, 'a big.Int read as a value (it is used through its pointer)') }
@@ -1370,9 +1372,7 @@ export class Stepper {
   deref(v: V, path: string[], at: {p: string}, p: Path): [V, Path] {
     if (v.t === 'nil') { this.refuseWhere(p, I.T, at, 'a nil dereference'); return [{t: 'opaque', why: 'unreachable', firm: true}, {...p, pc: [...p.pc, I.F]}] }
     if (v.t !== 'ptr') return refuse(at, `a dereference of a ${v.t}`)
-    const cs = this.cases(v.to)
-    this.refuseWhere(p, cs.nil, at, `a nil dereference (${at.p})`)
-    const q = this.assume(p, I.not(cs.nil))
+    const [cs, q] = this.nonNil(v.to, at, p, `a nil dereference (${at.p})`)
     if (!cs.objs.length) return [{t: 'opaque', why: 'unreachable', firm: true}, q]
     let out: V | undefined
     for (const o of [...cs.objs].reverse()) { const x = this.readObj(q.heap.get(o.id)!, [...o.path, ...path], at, q, o.id); out = out ? this.ite(o.c, x, out, at) : x }
@@ -1381,9 +1381,7 @@ export class Stepper {
   // A write through a pointer: to each object it may be, where it is that one.
   writeThrough(v: V, path: string[], x: V, at: {p: string}, p: Path): Path {
     if (v.t !== 'ptr') return refuse(at, `a write through a ${v.t}`)
-    const cs = this.cases(v.to)
-    this.refuseWhere(p, cs.nil, at, 'a nil dereference')
-    const q = this.assume(p, I.not(cs.nil)), heap = new Map(q.heap)
+    const [cs, q] = this.nonNil(v.to, at, p, 'a nil dereference'), heap = new Map(q.heap)
     for (const o of cs.objs) {
       const obj = heap.get(o.id)!, pa = [...o.path, ...path]
       heap.set(o.id, this.writeObj(obj, pa, this.ite(o.c, x, this.readObj(obj, pa, at, q, o.id), at), at))
@@ -1664,9 +1662,7 @@ export class Stepper {
   // A big integer's value through a pointer (by cases; nil fails).
   bigVal(v: V, at: SX, p: Path): [N, Path] {
     if (v.t !== 'ptr') return refuse(at, `${at.text}: a big.Int read through a ${v.t}`)
-    const cs = this.cases(v.to)
-    this.refuseWhere(p, cs.nil, at, `a nil *big.Int (${at.text})`)
-    const q = this.assume(p, I.not(cs.nil))
+    const [cs, q] = this.nonNil(v.to, at, p, `a nil *big.Int (${at.text})`)
     let out: N | undefined
     for (const o of [...cs.objs].reverse()) {
       const obj = q.heap.get(o.id)

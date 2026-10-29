@@ -2,10 +2,10 @@
 // research/langs/go-capture.json: the reader's JSON, the options, and what readGo made of it, or its refusal) read
 // again by core/extract-go.ts now and compared as JSON, byte for byte. With --extra, every struct of every package
 // captured (its exported methods, then each method alone) read by the baseline's front end (466c0ab, put beside it as
-// core/extract-go-old.ts, never committed) and by today's.
+// core/extract-go-old.ts while it runs, never committed) and by today's.
 //
 //   bun research/langs/go-snapshot/diff.ts runs/langs/cap/cap-tests.jsonl runs/langs/cap/cap-rw.jsonl [--extra] [-v]
-import {readFileSync, writeFileSync, existsSync} from 'node:fs'
+import {existsSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {execFileSync} from 'node:child_process'
 import {join} from 'node:path'
 import {type GoPkg, probeGoFunc, readGo} from '../../../core/extract-go.ts'
@@ -48,6 +48,7 @@ if (args.includes('--extra')) {
       }
     }
   }
+  rmSync(old)
   console.log(`extra: ${same - s0} the same, ${differ - d0} differ`)
 }
 if (verbose) console.log(`${pkgs.size} packages`)
