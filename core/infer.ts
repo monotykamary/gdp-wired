@@ -1211,7 +1211,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         }
       })
       const rowsOf = (params: Env, st: State): Env[] => {
-        const cand = valuesOf2(st).map(vs => (named.has(st) ? vs.slice(0, -1) : vs).slice(0, per)), out: Env[] = []
+        // (at most per^keys rows a state, 64 at least, the fewer-valued sorts' keys taking all of theirs and the cut on the
+        // most-valued: a sort's values past a few are still read where another sort has few)
+        const all2 = valuesOf2(st).map(vs => (named.has(st) ? vs.slice(0, -1) : vs)), lens = all2.map(vs => vs.length), most = Math.max(64, per ** all2.length)
+        for (let size = lens.reduce((a, b) => a * b, 1); size > most;) { const i = lens.indexOf(Math.max(...lens)); if (lens[i]! <= 1) break; size = size / lens[i]! * (lens[i]! - 1); lens[i]!-- }
+        const cand = all2.map((vs, i) => vs.slice(0, lens[i])), out: Env[] = []
         const go = (i: number, env: Env): void => {
           if (i === v.vars.length) {
             try { if (!evalC(v.frame, env, st, m)) return } catch { return }
@@ -2042,7 +2046,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       for (let i = 0; turns.length < made.length; i++) for (const fs of kinds2) if (fs[i]) turns.push(fs[i]!)
       // (every cube of at most two literals first, DuoAI's minimal clauses, the turns' order kept within each part)
       turns.sort((a, b) => Math.min(a.cube!.length, 3) - Math.min(b.cube!.length, 3))
-      for (const f of turns) { if (cubes.length >= 64 || stop()) break; if (!names.has(textOf(f)) && !implied(f)) cubes.push(f) }
+      // (round 0 the minimal cubes, at most 24, else 16 in all; the rest by relevance to the counterexamples, IC3's order)
+      const minimal = turns.filter(f => f.cube!.length <= 2).length
+      for (const f of turns) { if (cubes.length >= Math.min(24, Math.max(16, minimal)) || stop()) break; if (!names.has(textOf(f)) && !implied(f)) cubes.push(f) }
       opts.progress?.('join enumerated', {views: views.length - v0, cubes: cubes.length, ms: Math.round(performance.now() - t0)})
       opts.progress?.('join cubes', {cubes: cubes.map(textOf).join(' | ')})
       opts.progress?.('join made', {cubes: made.map(textOf).join(' | ')})
@@ -2072,6 +2078,30 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (!f) return breaks(params, post, st, requestOf(w))
         return (at(post).views[f.view!] ?? []).some(r => judged(f, r) && !holdsRow(f, r))
       }) }
+      // (a cube false at a start: its start goal's model, judged at the interpreter's own start at the model's params (a
+      // start is reachable, so it is a real counterexample); such a cube is not asked, nor kept)
+      const startBad = new Map<Form, boolean>()
+      // (the law at the model's keys, at the interpreter's start for the model's params, with the model's function values
+      // where they keep the facts at those keys)
+      const badAtStart = (f: Form, w0: Record<string, number>) => { const w = smallOf(w0), l = lawFor(f); return withFnsOf(w, () => { const {params} = stateOf(w); try {
+        const st = run.init(params), env2: Env = {...params, ...st.scalars}
+        for (const k of [l.forall, ...(l.keys ?? [])]) if (k) env2[k] = w[k] ?? w[`${k}#`] ?? 0
+        const vals = [...new Set([l.forall, ...(l.keys ?? [])].filter((k): k is string => !!k).map(k => env2[k]!))]
+        for (const fct of m.facts ?? []) { const b = [fct.forall, ...(fct.keys ?? [])].filter((q): q is string => !!q); if (vals.length ** b.length > 4096) return false
+          for (const t of b.reduce<number[][]>(acc => acc.flatMap(t2 => vals.map(v => [...t2, v])), [[]])) if (!evalC(fct.holds, {...env2, ...Object.fromEntries(b.map((q, k) => [q, t[k]!]))}, st, m)) return false }
+        return !evalC(l.holds, env2, st, m)
+      } catch { return false } }) }
+      const atStart = (f: Form): boolean => {
+        let b = startBad.get(f)
+        if (b === undefined) {
+          const ls2 = [...given, lawFor(f)], g = obligations(forLaws(ls2).m, ls2, {}, given.length)[0]!
+          const q = budgeted(joinQueryMs / 32, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true})) as Refuted
+          b = !('tree' in q) && q.stuck === 'sat' && !!q.witness && badAtStart(f, q.witness)
+          startBad.set(f, b)
+          if (process.env.GDP_GOAL_TRACE) opts.progress?.('join startcheck', {goal: textOf(f).replace(/every [^:]*: /, '').slice(0, 110), v: 'tree' in q ? 'proven' : `${q.stuck}${b ? ' bad' : ''}`})
+        }
+        return b
+      }
       // (a counterexample's diagram (UPDR's, IC3PO's): in each template view, a row of its state no reachable small state's
       // row is, as the literals true there, generalized by taking out each literal while no small state's row is inside;
       // blocked as a law ¬diagram, at most four a counterexample)
@@ -2164,30 +2194,42 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // (a goal the CDCL search refuted, by the laws its core read: settled while each is still in the set, Houdini's
       // cores)
       // (`stands`: the goals proven since the set last lost a law; a set that only grows keeps their proofs)
-      const settled = new Map<string, string[]>(), kept2 = new Set<Form>(), stands = new Set<string>()
+      // (a goal's proof had every cube in the set as it stood: a drop takes back the proofs since the dropped cube came in)
+      const settled = new Map<string, string[]>(), kept2 = new Set<Form>(), stands = new Set<string>(), provenAt = new Map<string, number>(), addedAt = new Map<Form, number>()
+      const unstand = (gs: Iterable<Form>) => { const r = Math.min(...[...gs].map(g => addedAt.get(g) ?? 0)); for (const [nm, at] of provenAt) if (at >= r) { stands.delete(nm); provenAt.delete(nm) } }
       let held = false
-      // (the caller's counterexamples so far, each a state the set must rule out: the enumeration's cubes false there are
-      // the relevant ones, the most counterexamples first; and the places a round can afford, from the last round's cost
-      // a goal, 64 at least)
-      const pres: {params: Env, st: State, w: Record<string, number>}[] = [], preAt = new WeakMap<object, Point>()
-      let cap = 64
+      // (the counterexamples so far, each a state the set must rule out, the caller's and then the cubes' kept unsure (PDR's
+      // obligations): the enumeration's cubes false there are the relevant ones, the most of the caller's first, then the
+      // most of the cubes'; and the goals a round can afford, a quarter of what is left at the last round's cost a goal)
+      type Pre = {params: Env, st: State, w: Record<string, number>}
+      const pres: Pre[] = [], subs: Pre[] = [], preAt = new WeakMap<object, Point>()
+      let perGoal = 0
+      const ptOf = (q: Pre) => { let pt = preAt.get(q); if (!pt) { pt = withFnsOf(q.w, () => pointOf(q.params, q.st)); preAt.set(q, pt) } return pt }
+      // (the cubes dropped, never asked again)
+      const dead = new Set<string>()
       const relevant = (room: number, kept: Form[]): Form[] => {
-        if (room <= 0 || !pres.length) return []
-        const have = new Set(kept.map(textOf)), pts = pres.map(q => { let pt = preAt.get(q); if (!pt) { pt = withFnsOf(q.w, () => pointOf(q.params, q.st)); preAt.set(q, pt) } return pt })
-        const scored = made.filter(g => !have.has(textOf(g)) && !names.has(textOf(g))).map(g => ({g, k: pts.filter(pt => !holdsAt(g, pt)).length})).filter(q => q.k > 0)
+        if (room <= 0 || !pres.length && !subs.length) return []
+        const have = new Set([...kept.map(textOf), ...dead]), pts = pres.map(ptOf), sts = subs.slice(-32).map(ptOf)
+        const scored = made.filter(g => !have.has(textOf(g)) && !names.has(textOf(g))).map(g => ({g, k: pts.filter(pt => !holdsAt(g, pt)).length * 64 + sts.filter(pt => !holdsAt(g, pt)).length})).filter(q => q.k > 0)
         scored.sort((a, b) => b.k - a.k || a.g.cube!.length - b.g.cube!.length || width2(b.g) - width2(a.g))
         const out3: Form[] = []
-        for (const {g} of scored) { if (out3.length >= room || stop()) break; if (!implied(g)) out3.push(g) }
+        for (const {g} of scored) { if (out3.length >= room || stop()) break; if (!implied(g) && !atStart(g)) out3.push(g) }
         return out3
       }
       for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
+        cubes = cubes.filter(g => !atStart(g))
+        for (const g of cubes) if (!addedAt.has(g)) addedAt.set(g, round)
+        const stand = (nm: string) => { stands.add(nm); provenAt.set(nm, round) }
         let asked = 0, cubeMs = 0, tGoal = 0
         // (later rounds less the sums pass's reserve, unless the caller's law holds from the set: Houdini's part, then)
         const kUntil = () => wallUntil - (round && !held ? reserve : 0)
         const real = new Set<Form>(), unsure = new Set<Form>(), ls = [...given, ...cubes.map(lawFor), ...(ghost ? [ghost.plain] : [])], blocked2: Form[] = [], mmRound = withGhost(forLaws(ls).m), at2 = new Map(cubes.map((g, i) => [g, i]))
         let caller = false, complete = true, again = false
+        let prevG: string | Form | undefined, prevT = 0, prevB = 0
+        const note = () => { if (prevG !== undefined && process.env.GDP_GOAL_TRACE) { const nm = typeof prevG === 'string' ? prevG : textOf(prevG); opts.progress?.('join goal', {round, goal: nm.replace(/every [^:]*: /, '').slice(0, 110), ms: Math.round(performance.now() - prevT), v: stands.has(nm) ? 'proven' : typeof prevG !== 'string' && real.has(prevG) ? 'real' : typeof prevG !== 'string' && unsure.has(prevG) ? 'unsure' : blocked2.length > prevB ? `blocked ${blocked2.length - prevB}` : 'other'}) } }
         {
           for (const goal of [...laws.map(l => l.name), ...(ghost ? [ghost.plain.name] : []), ...cubes]) {
+            note(); prevG = goal; prevT = performance.now(); prevB = blocked2.length
             if (performance.now() > kUntil() || stop()) { complete = false; break }
             const f = typeof goal === 'string' ? undefined : goal, others = cubes.filter(g => g !== f), idx = f ? given.length + at2.get(f)! : ls.findIndex(l => l.name === goal), mm = mmRound
             if (f) held = true
@@ -2201,13 +2243,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             const tDl = performance.now(), dlEnd = Math.min(kUntil(), performance.now() + (f ? joinQueryMs / 4 : joinQueryMs)), dl = within(dlEnd, () => decideLaw(mm, ls, idx))
             // (the EPR path out of time on the caller's goal: the proof path would be no quicker)
             const outOfTime = !dl && performance.now() - tDl >= 0.9 * (dlEnd - tDl)
-            if (dl?.proven) { stands.add(ls[idx]!.name); continue }
-            let isReal = !!dl && realCti(dl.witness, f, others), wit = dl?.witness
+            if (dl?.proven) { stand(ls[idx]!.name); continue }
+            let isReal = !!dl && (f && dl.goal.endsWith('@start') ? badAtStart(f, dl.witness) : realCti(dl.witness, f, others)), wit = dl?.witness
             if (!dl) {
               const inst = mapNames.length ? lawInstances(mm, ls, idx) : undefined, g = obligations(mm, ls, inst ? {[ls[idx]!.name]: inst} : {}, idx)[1]!
               const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
               if (!('tree' in quick) && quick.why === REFUTED && quick.core) { const lawAt = lawsFrom(mm, ls, false, inst ?? {}); settled.set(ls[idx]!.name, [...new Set([...quick.core].map(h => lawAt.get(h)).filter((k): k is number => k !== undefined && k >= given.length && k !== idx).map(k => ls[k]!.name))]) }
-              if ('tree' in quick || quick.why === REFUTED) { stands.add(ls[idx]!.name); continue }
+              if ('tree' in quick || quick.why === REFUTED) { stand(ls[idx]!.name); continue }
               // (the caller's law's model from the proof path alone: EPR's, real or with the instances that refute it)
               isReal = !!f && quick.stuck === 'sat' && !!quick.witness && realCti(quick.witness, f, others)
               if (quick.stuck === 'sat') wit = quick.witness
@@ -2215,13 +2257,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
               if (!isReal && !f && !outOfTime) {
                 proofs++
                 const r2 = within(Math.min(kUntil() - 2000, performance.now() + Math.max(joinQueryMs * 1.25, (kUntil() - performance.now()) / 2)), () => proveLaw(mm, ls, idx))
-                if (r2.proven) { stands.add(ls[idx]!.name); continue }
+                if (r2.proven) { stand(ls[idx]!.name); continue }
                 isReal = !!r2.witness && realCti(r2.witness, f, others)
                 wit = r2.witness ?? wit
               }
             }
             // (a real counterexample from a state no small state is: its diagram blocked, the goal's laws kept)
-            const ds = isReal && lastPre ? withFnsOf(lastPre.w, () => diagrams(lastPre!)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g)) : []
+            const ds = isReal && lastPre ? withFnsOf(lastPre.w, () => diagrams(lastPre!)).filter(g => !dead.has(textOf(g)) && !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g)) : []
             // (the caller's: blocked at once, IC3's order, the caller asked again before the cubes)
             if (ds.length && !f && lastPre) pres.push(lastPre)
             if (ds.length) { if (!f) { held = false; if (!ghosts) { ghosts = ghostsOf(); ghost = ghosts.shift(); if (ghost) opts.progress?.('join exists', {law: ghost.plain.name.slice(0, 160)}) } break } continue }
@@ -2229,10 +2271,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             // (the caller's asked again first) where a row of it no small state has; else unsure)
             if (!isReal && wit) {
               const w2 = smallOf(wit), pre = withFnsOf(w2, () => { const {params, st} = stateOf(w2); for (const cells of Object.values(st.maps)) for (const k of [...cells.keys()]) if (k > 1_000_000) cells.delete(k); return {params, st, w: w2} })
-              const ds2 = withFnsOf(w2, () => diagrams(pre)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g))
+              const ds2 = withFnsOf(w2, () => diagrams(pre)).filter(g => !dead.has(textOf(g)) && !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g))
               if (ds2.length && !f) pres.push(pre)
               if (ds2.length) { if (!f) { held = false; break } continue }
-            }
+              ;(f ? subs : pres).push(pre)
+            } else if (!f && isReal && lastPre) pres.push(lastPre)
             // (the ∃ law's own goal unproven: it goes; the caller's unproven with no diagram (every view's rows reached, or no
             // model to read): the ∀∃ laws, once)
             if (!f && ghost && goal === ghost.plain.name) { opts.progress?.('join exists', {dropped: ghost.plain.name.slice(0, 120)}); ghost = ghosts?.shift(); stands.clear(); again = true; break }
@@ -2241,27 +2284,33 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             ;(isReal ? real : unsure).add(f)
           }
         }
+        note()
         opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length, ms: Math.round(performance.now() - t0)})
         // (optimistic Houdini: an unsure cube holds at every small state and every step from one (they are its rows), so
         // it stays; the set's proof decides, a cube it fails at dropped and the rounds go on)
         const drops = new Set<Form>(real)
         for (const g of unsure) kept2.add(g)
-        if (asked > 1) cap = Math.max(64, Math.min(256, Math.floor((wallUntil - performance.now()) / (3 * cubeMs / (asked - 1)))))
-        if (blocked2.length) { const kept = [...cubes.filter(g => !drops.has(g)), ...blocked2]; cubes = [...kept, ...relevant(Math.max(16, cap - kept.length), kept)]; return }
+        if (asked > 1) perGoal = cubeMs / (asked - 1)
+        // (the next round's new cubes: what a quarter of what is left affords past the goals it asks again, 8 at least)
+        const grow = (kept: Form[]) => { const ask = kept.filter(g => !kept2.has(g) && !stands.has(lawFor(g).name)).length, afford = perGoal ? Math.floor((wallUntil - performance.now()) / (4 * perGoal)) : 16; return relevant(Math.max(8, Math.min(256 - kept.length, afford - ask)), kept) }
+        if (blocked2.length) { if (drops.size) unstand(drops); for (const g of drops) dead.add(textOf(g)); const kept = [...cubes.filter(g => !drops.has(g)), ...blocked2]; cubes = [...kept, ...grow(kept)]; return }
         if (again) return
+        // (the caller's law unproven with no diagram: the cubes its counterexamples make relevant, while there are some)
+        if (caller && complete) { if (drops.size) unstand(drops); for (const g of drops) dead.add(textOf(g)); const kept = cubes.filter(g => !drops.has(g)), more = grow(kept); if (more.length) { cubes = [...kept, ...more]; return } }
         // (the set's proof, relative induction over the set: a cube it fails at dropped and the proof asked again at once, the
         // rounds again only where the caller's law fails or a cube's goal can't be named)
-        let dropped = 0
+        const gone: Form[] = []
         if (complete && !caller && !drops.size) for (let k = 0; k < 24 && !stop() && performance.now() < wallUntil; k++) {
           const t2 = performance.now(), v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor), ...(ghost ? [ghost.some] : [])]))
           const at = String((v as {goal?: string}).goal ?? ''), g = v.proven && v.checked ? undefined : cubes.find(c => at.startsWith(`${textOf(c)} @`))
           opts.progress?.('join set', {cubes: cubes.length, exists: ghost ? 1 : 0, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), at: at.slice(0, 120)})
           if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v; break }
           if (!g) break
-          cubes = cubes.filter(c => c !== g); dropped++
+          cubes = cubes.filter(c => c !== g); gone.push(g)
         }
-        if (!complete || caller || (!drops.size && !dropped) || enumProof) over = true
-        if (drops.size || dropped) stands.clear()
+        if (!complete || caller || (!drops.size && !gone.length) || enumProof) over = true
+        if (drops.size || gone.length) unstand([...drops, ...gone])
+        for (const g of [...drops, ...gone]) dead.add(textOf(g))
         cubes = cubes.filter(g => !drops.has(g))
       })
     }
