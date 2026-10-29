@@ -1,0 +1,27 @@
+[
+ {
+  "name": "ticket-r1",
+  "cmd": "nproc; GDP_INFER_TRACE=2 timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only ticket_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (enumerated|end)|\\[infer\\] (start|runs|kernel|end)' /tmp/err.log | cut -c1-200 | tail -c 30000; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "ticket-r2",
+  "cmd": "nproc; GDP_INFER_TRACE=2 timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only ticket_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (enumerated|end)|\\[infer\\] (start|runs|kernel|end)' /tmp/err.log | cut -c1-200 | tail -c 30000; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "sharded-r1",
+  "cmd": "nproc; GDP_INFER_TRACE=2 timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (enumerated|end)|\\[infer\\] (start|runs|kernel|end)' /tmp/err.log | cut -c1-200 | tail -c 30000; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "sharded-r2",
+  "cmd": "nproc; GDP_INFER_TRACE=2 timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (enumerated|end)|\\[infer\\] (start|runs|kernel|end)' /tmp/err.log | cut -c1-200 | tail -c 30000; times; exit $s",
+  "timeout": 360
+ },
+ {
+  "name": "sharded-r3",
+  "cmd": "nproc; GDP_INFER_TRACE=2 timeout -s KILL 300 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (enumerated|end)|\\[infer\\] (start|runs|kernel|end)' /tmp/err.log | cut -c1-200 | tail -c 30000; times; exit $s",
+  "timeout": 360
+ }
+]
