@@ -2024,14 +2024,15 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             if (f) held = true
             const was = settled.get(ls[idx]!.name)
             if (was && was.every(n2 => ls.some(l => l.name === n2))) continue
+            settled.delete(ls[idx]!.name)
             // (a model or a refutation of the CDCL search alone first, a quarter of a join query; else the proof path's)
             const inst = mapNames.length ? lawInstances(mm, ls, idx) : undefined, g = obligations(mm, ls, inst ? {[ls[idx]!.name]: inst} : {}, idx)[1]!
-            // (the caller's law on the proof path alone: its models are EPR's, real or with the instances that refute them)
-            const quick = (f ? budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) : {stuck: 'caller', path: new Map()}) as Refuted
+            const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
             T(`quick ${'tree' in quick || quick.why === REFUTED ? 'refuted' : quick.stuck}`)
             if (!('tree' in quick) && quick.why === REFUTED && quick.core) { const lawAt = lawsFrom(mm, ls, false, inst ?? {}); settled.set(ls[idx]!.name, [...new Set([...quick.core].map(h => lawAt.get(h)).filter((k): k is number => k !== undefined && k >= given.length && k !== idx).map(k => ls[k]!.name))]) }
             if ('tree' in quick || quick.why === REFUTED) continue
-            let isReal = quick.stuck === 'sat' && !!quick.witness && realCti(quick.witness, f, others)
+            // (the caller's law's model from the proof path alone: EPR's, real or with the instances that refute it)
+            let isReal = !!f && quick.stuck === 'sat' && !!quick.witness && realCti(quick.witness, f, others)
             if (!isReal) {
               proofs++
               const r2 = within(f ? Math.min(kUntil(), performance.now() + joinQueryMs / 4) : kUntil(), () => proveLaw(mm, ls, idx))
@@ -2050,7 +2051,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length})
         const drops = real.size ? real : unsure
         if (blocked2.length) { cubes = [...cubes.filter(g => !drops.has(g)), ...blocked2].slice(0, 96); return }
-        if (complete && !caller && !drops.size) { const v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor)])); T(`set ${v.proven} ${v.checked} ${JSON.stringify(v).slice(0, 600)}`); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } }
+        if (complete && !caller && !drops.size) { const v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor)])); T(`set ${v.proven} ${v.checked}`); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } }
         if (!complete || caller || !drops.size) over = true
         const texts = new Set(cubes.map(textOf)), more = real.size ? [...real].flatMap(weaker).filter(g => !texts.has(textOf(g)) && !!texts.add(textOf(g))) : []
         cubes = [...cubes.filter(g => !drops.has(g)), ...more]
@@ -2261,8 +2262,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   }
   trace('kernel', {chosen: chosen.length, proven: !!(last.proven && last.checked)})
   if (!(last.proven && last.checked)) { trace('end', {proven: false, stopped: stop()}); return {...last, found: [], stats: stats(samples.length, forms.length, alive.length)} }
-  // Take out what the proof doesn't need, the last added first.
-  for (const f of opts.minimize === false ? [] : [...chosen].reverse()) {
+  // Take out what the proof doesn't need, the last added first (not the engine's set: Houdini's, each cube minimal).
+  for (const f of opts.minimize === false || enumProof ? [] : [...chosen].reverse()) {
     if (now() > until || stop()) break
     const without = chosen.filter(g => g !== f), v = prove([...laws, ...without.map(lawFor)])
     if (v.proven && v.checked) (chosen = without, last = v)

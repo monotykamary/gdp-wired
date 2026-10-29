@@ -1,0 +1,7 @@
+[
+ {
+  "name": "toy-r1",
+  "cmd": "GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|enum t. (set|engine end|enumerated|runs)|join (template|enumerated|end|failed)|^\\[infer\\] ' /tmp/err.log | cut -c1-300 | head -c 14000; exit $s",
+  "timeout": 130
+ }
+]
