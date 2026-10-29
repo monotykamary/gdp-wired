@@ -182,12 +182,20 @@ the bottom, any operation: a product wraps too); `trap`, `sat` and `checked` tes
 and facts don't exclude; a narrowing cast is refused only where it may not fit; division and remainder are Go's (one
 case where the dividend's bounds say it is at least 0); an input outside its type is refused per bound (Go's two
 refusals); a merged number keeps its type; a kept result gets its type's range law. Python's integers are unbounded,
-so its rules don't change.
+so its rules don't change: LiteLLM's seven rules re-extracted at v1.106.6 are byte for byte the committed ones, every
+verdict the same. Rust's StateManager is unchanged; GcraState's rule (research/langs/rust/rules/) is shorter: each input
+bound its own refusal, and the sign tests and a trap on revert_at's subtraction that the path's `if` excludes are gone;
+its five laws are proven as before, the check agreeing on 2,518 requests.
 
-**Bytes (measured, not the −57 KB planned).** core/extract-go.ts 112,325 → see the report; core/extract-step.ts
-120,364 → see the report. The plan counted +15 KB for the executor; Go's semantics, mirrored exactly for byte-identical
-output, took about +46 KB there, and the lowering about as much as GoReader's own type-directed code: the structure the
-two executors shared was the paths, joins and maps (about 30 KB of GoReader), the rest Go's own.
+**Bytes (measured, not the −57 KB planned).** core/extract-go.ts 111,679 → 61,201 (−50,478); core/extract-step.ts
+120,364 → 168,662 (+48,298); core/ and kernel/ in TypeScript, tests excluded: −2,180 against 9220ad0 (the snapshot and
+capture hooks, about 1.4 KB, included). The plan counted +15 KB for the executor and +40 KB for the lowering and its
+glue; mirrored exactly (byte-identical output being the bar), Go's semantics took +48 KB in the executor, and the
+lowering with the state, the arguments and the model's assembly is 61 KB, about what GoReader's own type-directed
+code and readGo were. What the two executors really shared (paths, joins, maps, the model's folds) is the 2 KB saved
+plus the 30 KB GoReader no longer repeats inside the 48 KB. Slimmer from here means Python and Rust moving onto the
+operations Go brought (records by value for Rust's copies, pointers by cases for Python's objects, error values for
+Option and Result), each a change to their rules to re-prove, not a byte-identical port.
 
 **Resume.** Captures: runs/langs/cap/*.jsonl (not committed; retake with research/langs/go-capture.json, the realworld
 one through the olean volume's /gocap, then `modal volume get`). Validation: research/langs/go-port.json (snapshot,
