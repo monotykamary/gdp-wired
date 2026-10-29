@@ -1462,9 +1462,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // in the set (the set only weakens). A goal's counterexample is a state the set allows: its successor is joined in
     // (or, breaking a caller's law, a candidate that rules the state out is added). Every goal of the cone proven, the
     // cone is inductive with the caller's laws, and it is the answer.
-    // (`warm`: the forms a goal's last proof read, which outlive the proof: a goal asked again starts from those still in
-    // the set, as IC3 starts a frame from the lemmas it had)
-    const stood = new Map<string, string[]>(), warm = new Map<string, string[]>(), blocked = new Set<string>(), callers = new Set([...laws, ...stepLaws].map(l => l.name))
+    const stood = new Map<string, string[]>(), blocked = new Set<string>(), callers = new Set([...laws, ...stepLaws].map(l => l.name))
     let cone: Form[] = [], dropped = 0
     const deepened = new Set<string>(), sameAgain = new Map<string, string>()
     // A state reached from one the set allows: joined in, and every extra false there dropped.
@@ -1730,7 +1728,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const inCone = new Set(order)
       const rank = (f: Form) => (inCone.has(textOf(f)) ? 0 : stood.has(textOf(f)) ? 1 : 2) * 1000 + f.coef.length * 10 + (f.never || f.nevers || f.also ? 1 : 0)
       const whole = set.filter(f => f !== todoForm)
-      let ctx: Form[] = (warm.get(todo) ?? []).flatMap(t => { const f = byText.get(t); return f && f !== todoForm ? [f] : [] }), witness: Record<string, number> | undefined, lastStuck = '', qms = 0, settled = false
+      let ctx: Form[] = [], witness: Record<string, number> | undefined, lastStuck = '', qms = 0, settled = false
       // (before the whole set, the forms proven so far beside the context: a proof there is a proof with the whole set,
       // at a fraction of its hypotheses; a model there, the whole set asked as before)
       const provenFirst = (): Form[] | undefined => { const ps = whole.filter(f => !ctx.includes(f) && stood.has(textOf(f))); return ps.length && ctx.length + ps.length < whole.length / 2 ? [...ctx, ...ps] : undefined }
@@ -1739,13 +1737,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       for (let attempt = 0; attempt <= tries; attempt++) {
         if (attempt === tries && ctx !== whole) {
           const pf = provenFirst()
-          if (pf) { const out = stepWith(todo, todoForm, pf); if ('used' in out) { stood.set(todo, out.used!); warm.set(todo, out.used!); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, proven: todo.slice(0, 60), reads: out.used!.length, ctx: pf.length, attempt}); settled = true; break } }
+          if (pf) { const out = stepWith(todo, todoForm, pf); if ('used' in out) { stood.set(todo, out.used!); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, proven: todo.slice(0, 60), reads: out.used!.length, ctx: pf.length, attempt}); settled = true; break } }
           ctx = whole
         }
         const tq = performance.now(), out = stepWith(todo, todoForm, ctx)
         qms += Math.round(performance.now() - tq)
         if ('used' in out) {
-          stood.set(todo, out.used!); warm.set(todo, out.used!)
+          stood.set(todo, out.used!)
           opts.progress?.('join', {round: rounds, set: set.length, ms: qms, proven: todo.slice(0, 60), reads: out.used!.length, ctx: ctx.length, attempt})
           settled = true; break
         }
