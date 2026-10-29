@@ -87,7 +87,7 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 | distributed | a holder's epoch is above every node's other | yes (`Held[x] ∧ Ep[x] ≤ Ep[y]`) | |
 | distributed | two holders are one | yes | |
 | distributed | nothing before init | yes | |
-| distributed | a locked epoch is its node's epoch or below; a live transfer above every epoch; a live transfer means nobody holds; two live transfers are one | no | the views' rows have Transfer and Locked only at 0, so there is no `≥ 1` literal. The engine's small instance has 9 states (3 param vectors); a hand BFS with the same domains has 19 for one, Transfer and Locked set. A sampling bug (`scratchpad dl.ts`) |
+| distributed | a locked epoch is its node's epoch or below; a live transfer above every epoch; a live transfer means nobody holds; two live transfers are one | no | the views' rows have Transfer and Locked only at 0, so there is no `≥ 1` literal. The engine's small instance has 9 states (3 param vectors); a hand BFS with the same domains has 19 for one, Transfer and Locked set. A sampling bug (`hand-dl.ts`) |
 | distributed | a locked epoch at a node's epoch is its own | implied by the caller's law | |
 | ring | a leader's id is the largest | no | no Leader = 1 literal: the engine's small instance (25 states) has no leader. A hand BFS with the same domains (size 3, ids 5, 4, 7) has 30 states, 6 with a leader. The same sampling bug |
 | ring | a node's own id pending at it is the largest | no | `Pending[idn(x)·64 + x] ≥ 1` never in the rows (the same bug: the max id never returns home) |
@@ -96,7 +96,7 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 
 **What would cover the most** (the next round)
 1. **The small instance's sampling bug** (ring, distributed). The engine's BFS reaches fewer states than a hand BFS over the same domains, without leaders or transfers, so their literals are never made.
-   - To find: compare `enumerated()`'s per-params states with `dl.ts`/`ring2.ts` in the scratchpad: the request domains (`domOf`, `fnDom`), the param vectors, `keyOf3`'s renamings (distributed's `first` is a param of the node sort, renamed with the nodes).
+   - To find: compare `enumerated()`'s per-params states with `hand-dl.ts` and `hand-ring2.ts`: the request domains (`domOf`, `fnDom`), the param vectors, `keyOf3`'s renamings (distributed's `first` is a param of the node sort, renamed with the nodes).
    - This alone may put most of ring's and distributed's written laws in the space.
 2. **Selection by need** (wo's one law left):
    - scoring needs caller counterexamples that violate the law; the 2 so far don't;
