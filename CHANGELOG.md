@@ -5,6 +5,30 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**Elixir on the shared executor: the reducer shape lowered onto the object shape, ex_break's breaker in the corpus
+(gen/elixir).** Nothing trusted changed. research/langs/DESIGN.md, "Elixir (gen/elixir)", has the details.
+- **The front end** (`gdp-wired/extract-ex`, 3,762 bytes): core/ex/reader.exs reads a module through
+  Code.string_to_quoted and lowers each handler into a method of an object whose fields are the state's: the state
+  it is given is the object, the state it returns written back field by field, the reply evaluated first. A
+  GenServer (init's {:ok, %{...}}, handle_call's {:reply, r, state}, handle_cast's {:noreply, state}), an Agent's
+  update and get, and plain functions over a struct ({:error, _} the step's failure). Clauses, case and cond as
+  branches on their patterns and guards; raise and an unmatched clause the step's failure; div and rem truncating;
+  atoms as choices; types from the module's @type, else from the defaults and what is put in each field.
+  core/ex/harness.exs compiles the module with its clock calls reading the request's time, starts it as the module
+  does, reads and sets its state through :sys, and restores the state a failed call was given.
+- **The executor** (+374 bytes): `upd`, an immutable update (%{s | f: v}, Map.put, Map.merge with a literal). Go stays
+  byte-identical (119 of 119, 2,006 of 2,006); LiteLLM's seven rules and Ruby's three re-extracted are the committed
+  ones, every verdict the same.
+- **The corpus:** ex_break 0.0.9's ExBreak.Breaker (an Agent over the breaker struct): 4 laws proven, among them "a
+  tripped breaker knows when it tripped"; the check agreed on 2,715 requests; no law refuted. Read and refused, each
+  with why: odo 0.1.0's Odo.Bucket (a division by a field; a field that is :init or a number) and attempt 0.6.0's
+  token bucket (an Erlang :queue, a timer's message). hammer and ex_rated keep their state in ETS.
+  `bun research/langs/elixir/run.ts --write` re-extracts from hex.pm.
+- **Bars** (against 6e4a973, launched together): the real-world corpus 333 / 35 / 8 against 329 / 35 / 8 (the 4 new
+  laws), nothing lost, wrong 0; the suite and --usual 229 of 229 each (the new extract-ex job, on Debian's elixir 1.14
+  and OTP 25, among them), job seconds level. Build and smoke pass with elixir, ruby, Go, Python and cargo absent.
+- **Size:** core/ and kernel/ without tests +4,136 bytes; the reader, harness and JSON 43,407 bytes of Elixir.
+
 **Ruby on the shared executor: a Prism reader, a reflective harness, three gems' stateful classes in the corpus
 (gen/ruby).** Nothing trusted changed. research/langs/DESIGN.md, "Ruby (gen/ruby)", has the details.
 - **The front end** (`gdp-wired/extract-rb`): core/rb/reader.rb lowers a class through Prism into the step IR,
