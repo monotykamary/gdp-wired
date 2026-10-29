@@ -1812,7 +1812,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           if ((m.pre && !evalC(m.pre, p, {scalars: {}, maps: {}}, m)) || m.params.some(q => ss.includes(ks.find(q)) && !domOf(q, new Set()).includes(p[q]!))) continue
           pvs.set(JSON.stringify(p), p)
         }
-        const t3 = performance.now(), end2 = performance.now() + (wallUntil - performance.now()) / 7, seen = new Set<string>(), small: Sample[] = []
+        const t3 = performance.now(), end2 = performance.now() + Math.min(4000, (wallUntil - performance.now()) / 7), seen = new Set<string>(), small: Sample[] = []
         let cut = false
         // (a state's key: its cells off the map's default, in key order, the least under the renamings of each symmetric
         // sort's elements: a sort the step neither orders, nor computes on (a function's argument, a param's bound), nor
@@ -2138,7 +2138,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       }
       // (a goal the CDCL search refuted, by the laws its core read: settled while each is still in the set, Houdini's
       // cores)
-      const settled = new Map<string, string[]>(), spent = {decide: 0, real: 0, diagrams: 0, fallback: 0, caller: 0, setup: performance.now() - t0}
+      const settled = new Map<string, string[]>()
       let held = false
       for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
         // (later rounds less the sums pass's reserve, unless the caller's law holds from the set: Houdini's part, then)
@@ -2155,13 +2155,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             settled.delete(ls[idx]!.name)
             // (a cube's goal decided by the EPR path alone first (a proof or a model, within a quarter of a join query);
             // else a model or a refutation of the CDCL search alone, then the proof path's)
-            const tA = performance.now(), dl = f ? within(Math.min(kUntil(), performance.now() + joinQueryMs / 4), () => decideLaw(mm, ls, idx)) : undefined
-            spent.decide += performance.now() - tA
+            const dl = f ? within(Math.min(kUntil(), performance.now() + joinQueryMs / 4), () => decideLaw(mm, ls, idx)) : undefined
             if (dl?.proven) continue
-            const tB = performance.now()
             let isReal = !!dl && !!f && realCti(dl.witness, f, others), wit = dl?.witness
-            spent.real += performance.now() - tB
-            const tD = performance.now()
             if (!dl) {
               const inst = mapNames.length ? lawInstances(mm, ls, idx) : undefined, g = obligations(mm, ls, inst ? {[ls[idx]!.name]: inst} : {}, idx)[1]!
               const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
@@ -2179,11 +2175,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
                 wit = r2.witness ?? wit
               }
             }
-            spent[f ? 'fallback' : 'caller'] += performance.now() - tD
             // (a real counterexample from a state no small state is: its diagram blocked, the goal's laws kept)
             const ds = isReal && lastPre ? withFnsOf(lastPre.w, () => diagrams(lastPre!)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g)) : []
             // (the caller's: blocked at once, IC3's order, the caller asked again before the cubes)
-            if (ds.length) { if (!f) { held = false; break } continue }
+            if (ds.length) { if (!f) { held = false; if (!ghosts) { ghosts = ghostsOf(); ghost = ghosts.shift(); if (ghost) opts.progress?.('join exists', {law: ghost.plain.name.slice(0, 160)}) } break } continue }
             // (the ∃ law's own goal unproven: it goes; the caller's unproven with no diagram (every view's rows reached, or no
             // model to read): the ∀∃ laws, once)
             if (!f && ghost && goal === ghost.plain.name) { opts.progress?.('join exists', {dropped: ghost.plain.name.slice(0, 120)}); ghost = ghosts?.shift(); again = true; break }
@@ -2193,14 +2188,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             // cube kept where a row of it no small state has; else unsure)
             if (!isReal && wit) {
               const w2 = smallOf(wit), pre = withFnsOf(w2, () => { const {params, st} = stateOf(w2); for (const cells of Object.values(st.maps)) for (const k of [...cells.keys()]) if (k > 1_000_000) cells.delete(k); return {params, st, w: w2} })
-              const tC = performance.now(), ds2 = withFnsOf(w2, () => diagrams(pre)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g))
-              spent.diagrams += performance.now() - tC
+              const ds2 = withFnsOf(w2, () => diagrams(pre)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g))
               if (ds2.length) continue
             }
             ;(isReal ? real : unsure).add(f)
           }
         }
-        opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length, ms: Math.round(performance.now() - t0), decide: Math.round(spent.decide), judge: Math.round(spent.real), blocking: Math.round(spent.diagrams), fallback: Math.round(spent.fallback), callerMs: Math.round(spent.caller), setup: Math.round(spent.setup)})
+        opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length, ms: Math.round(performance.now() - t0)})
         const drops = real.size ? real : unsure
         if (blocked2.length) { cubes = [...cubes.filter(g => !drops.has(g)), ...blocked2].slice(0, 96); return }
         if (again) return
