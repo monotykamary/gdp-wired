@@ -595,24 +595,14 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     const l = lemmaOf(r, lits)
     return l && {lemmas: [l]}
   }
-  let found = search(), theoryVal: Map<string, number> | undefined
-  for (let round = 0; theory.length && typeof found === 'object' && found?.sat; round++) {
-    const r = round < 256 && !opts.late?.() ? theoryCheck(found.model) : undefined
-    if (!r) break
-    if ('val' in r) { theoryVal = r.val; break }
-    for (const l of r.lemmas) lemma(l)
-    found = search()
-  }
-  if (typeof found === 'string') return {unknown: found}
-  const out = found
-  if (out === undefined) return {unknown: 'the conflict budget ran out, or the deadline'}
-  if (!out.sat) return {sat: false, core: [...out.core].filter(i => i >= 0).sort((a, b) => a - b)}
+  const outcome = (o: ReturnType<typeof search>): Decision | {model: boolean[]} => (typeof o === 'string' ? {unknown: o} : o === undefined ? {unknown: 'the conflict budget ran out, or the deadline'}
+    : !o.sat ? {sat: false, core: [...o.core].filter(i => i >= 0).sort((a, b) => a - b)} : {model: o.model})
   // --- a model, read back: the ordered terms (the parts among them) by the model's order, each composed key the radix
   // sum of its parts, each cell and scalar its value; then judged on every hypothesis
   // (the read-back with the theory's values, where it checked the model; where they break a hypothesis, the order's own
   // grouping, as without one)
-  const finish = (theoryVal: Map<string, number> | undefined): Decision => {
-    const val = (l: number) => out.model[l] === true
+  const finish = (model: boolean[], theoryVal: Map<string, number> | undefined): Decision => {
+    const val = (l: number) => model[l] === true
     const w: Record<string, number> = {}
     for (const f of fins.values()) {
       let x = 0
@@ -625,7 +615,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     // (where the theory checked the model, its values)
     const ordVal = theoryVal ?? new Map<string, number>()
     if (!theoryVal) {
-      const groups = groupsOf(out.model)
+      const groups = groupsOf(model)
       const constOf = (g: string[]) => { const cs = [...new Set(g.filter(x => x.startsWith('k:')).map(x => Number(x.slice(2))))]; return cs.length > 1 ? NaN : cs[0] }
       // (a successor the model holds, n1 = n + 1, makes its two groups consecutive values: such a chain is one block, its
       // first group's value the next free one, or its constant's less the steps to it)
@@ -717,8 +707,21 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     for (const t of Object.values(diagram.fns)) t.sort((a, b) => a[0] - b[0])
     return {sat: true, witness, diagram}
   }
-  const done = finish(theoryVal)
-  return theoryVal && 'unknown' in done ? finish(undefined) : done
+  // (the order's grouping first, as without a theory; where it breaks a hypothesis, the theory's rounds: lemmas the model
+  // breaks, the search again, until the theory checks a model, its values the read-back's)
+  let cur = outcome(search())
+  if (!('model' in cur)) return cur
+  let done = finish(cur.model, undefined)
+  for (let round = 0; theory.length && 'unknown' in done && round < 256 && !opts.late?.(); round++) {
+    const r = theoryCheck(cur.model)
+    if (!r) break
+    if ('val' in r) { done = finish(cur.model, r.val); if ('unknown' in done) done = finish(cur.model, undefined); break }
+    for (const l of r.lemmas) lemma(l)
+    cur = outcome(search())
+    if (!('model' in cur)) return cur
+    done = finish(cur.model, undefined)
+  }
+  return done
 }
 
 // A small CDCL over clauses with origins: two watched literals, activity, learned clauses carrying the union of the
