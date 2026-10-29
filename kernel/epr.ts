@@ -64,8 +64,10 @@ export type Decision = {sat: false, core: number[]} | {sat: true, witness: Recor
 // `late`: true past the caller's end, checked between the steps and every 256 conflicts; then unknown.
 export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
   fnMaps = new Set(Object.entries(patterns).filter(([, c]) => c.length === 1 && c[0] === 0).map(([f]) => f))
-  try { return decide0(goal, patterns, opts) } finally { fnMaps = new Set() }
+  try { return decide0(goal, patterns, opts) } catch (e) { if (e === pastEnd) return {unknown: 'past the deadline'}; throw e } finally { fnMaps = new Set() }
 }
+// (thrown by `late` checked every 4,096 clauses and hypotheses read: a goal's clauses are quadratic in its terms)
+const pastEnd = new Error('past the deadline')
 function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean}): Decision {
   // --- which hypotheses are EPR-shaped: every map read at a key of its map's pattern
   const shaped = goal.hyps.map(h => {
@@ -87,11 +89,12 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
   const hyps: (C | undefined)[] = goal.hyps
   const fits = (map: string, key: E) => { const t = tupleOf(key), p = patterns[map]; return t && p && sameCoefs(t.coefs, p) ? t : undefined }
   // --- names: a part is a name some read's key or a key equality reads; the rest are scalars
-  const parts = new Set<string>(), fnParts: {f: string, n: string, a: string}[] = []
+  // (each function part once: its reads are many, its congruence pairs of parts)
+  const parts = new Set<string>(), fnParts: {f: string, n: string, a: string}[] = [], fnSeen = new Set<string>()
   const collectParts = (o: unknown): void => {
     if (!o || typeof o !== 'object') return
     const x = o as {op?: string, key?: E}
-    if (x.op === 'get' && fnMaps.has((x as {map: string}).map)) { const n = partName(x as E), a = partName(x.key!); if (n && a) { parts.add(n); parts.add(a); fnParts.push({f: (x as {map: string}).map, n, a}) } }
+    if (x.op === 'get' && fnMaps.has((x as {map: string}).map)) { const n = partName(x as E), a = partName(x.key!); if (n && a) { if (!fnSeen.has(n)) (fnSeen.add(n), fnParts.push({f: (x as {map: string}).map, n, a})); parts.add(n); parts.add(a) } }
     else if (x.op === 'get') fits((x as {map: string}).map, x.key!)?.parts.forEach(p => parts.add(p))
     for (const v of Object.values(o)) collectParts(v)
   }
@@ -360,7 +363,9 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
       case 'all': case 'flag': return opaque(c)
     }
   }
-  const forms = hyps.map(h => (h ? lit(h) : undefined))
+  let ticks = 0
+  const tick = () => { if ((++ticks & 4095) === 0 && opts.late?.()) throw pastEnd }
+  const forms = hyps.map(h => (tick(), h ? lit(h) : undefined))
   // (an order over many terms is a cubic number of transitivity clauses: past 64 terms they are added lazily, those a
   // model breaks, below; past 512, the totality's pairs alone are too many, and the goal keeps the usual path)
   if (ords.size > 512) return {unknown: `${ords.size} ordered terms`}
@@ -368,7 +373,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
 
   // --- clauses (literals: +v / −v), each with the hypotheses it stands for
   const clauses: {lits: number[], from: Origin}[] = []
-  const add = (lits: number[], from: Origin) => { const s = new Set(lits); for (const l of s) if (s.has(-l)) return; clauses.push({lits: [...s], from}) }
+  const add = (lits: number[], from: Origin) => { tick(); const s = new Set(lits); for (const l of s) if (s.has(-l)) return; clauses.push({lits: [...s], from}) }
   let fresh = 0
   const tseitin = (f: F, from: Origin): number => { // a literal equivalent to f
     if (f.k === 'v') return f.v

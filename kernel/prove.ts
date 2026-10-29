@@ -651,6 +651,7 @@ function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {
 // read as the term's linear form at the whole goal's path; a split the whole's path already decides is followed, not
 // made again.
 export function widen(part: Goal, whole: Goal, tree: Tree, opaque: Record<string, E> = {}, pp: Path = new Map(), wp: Path = pp): Tree | undefined {
+  if (pastWall()) return undefined
   const names = Object.keys(opaque)
   const rename = (lin: Lin): Lin | undefined => {
     if (!names.length) return lin
@@ -1232,7 +1233,7 @@ function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Insta
   const tuplesOf = (n: string, ks: E[]) => { const a = bodies.get(n)!.keys.length; return Array.from({length: Math.floor(ks.length / a)}, (_, t) => ks.slice(t * a, (t + 1) * a)) }
   const kept = (tuple: E[]) => tuple.some(e => e.op === 'var' && focus.includes(e.name))
   const out: Instances = Object.fromEntries(Object.entries(inst).map(([n, ks]) => [n, bodies.has(n) ? tuplesOf(n, ks).filter(kept).flat() : ks]))
-  for (let round = 0; round < 8; round++) {
+  for (let round = 0; round < 8 && !pastWall(); round++) {
     const reads = new Set<string>()
     const {inC} = eachRead(e => { reads.add(`${e.map}|${JSON.stringify(e.key)}`) })
     for (const g of build(out)) g.hyps.forEach(inC)
