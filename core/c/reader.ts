@@ -221,7 +221,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   const entryT = entryRec ? recT(entryRec, entry) : refuse(undefined, `no struct ${entry} in ${base}`)
   const params = (f: CN) => (f.inner ?? []).filter(c => c.kind === 'ParmVarDecl')
   const recvOf = (f: CN) => { const p = params(f)[0], t = p ? T(tyOf(p.type!)) : undefined; return t?.k === 'ptr' && t.elem === entryT ? p : undefined }
-  const strip = (n: CN): CN => (n.kind === 'ParenExpr' || ((n.kind === 'ImplicitCastExpr' || n.kind === 'CStyleCastExpr') && ['LValueToRValue', 'NoOp'].includes(n.castKind!)) ? strip(n.inner![0]!) : n)
+  const strip = (n: CN): CN => (n.kind === 'ParenExpr' || (n.kind === 'UnaryOperator' && n.opcode === '__extension__') || ((n.kind === 'ImplicitCastExpr' || n.kind === 'CStyleCastExpr') && ['LValueToRValue', 'NoOp'].includes(n.castKind!)) ? strip(n.inner![0]!) : n)
   const at = (n: CN, t: number) => ({p: pos(n), t, text: text(n)})
   const no = (n: CN, why: string): GX => ({e: 'no', ...at(n, -1), why})
   const lit = (n: CN, v: number, t: number): GX => ({e: 'lit', ...at(n, t), c: {int: String(v)}})
@@ -368,7 +368,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       case 'AttributedStmt': return ss(kids.filter(c => !c.kind.endsWith('Attr')))
       case 'ParenExpr': return st(kids[0]!)
       case 'StmtExpr': return block(kids[0]!)
-      case 'CStyleCastExpr': case 'ImplicitCastExpr': if (n.castKind === 'ToVoid') { const i = strip(kids[0]!); return i.kind === 'DeclRefExpr' ? [] : st(i) } break
+      case 'CStyleCastExpr': case 'ImplicitCastExpr': if (n.castKind === 'ToVoid') { const i = strip(kids[0]!); return ['DeclRefExpr', 'UnaryExprOrTypeTraitExpr', 'IntegerLiteral'].includes(i.kind) ? [] : st(i) } break
       case 'ConditionalOperator': return [{s: 'if', p, c: cond(kids[0]!), then: st(kids[1]!), else: {s: 'block', p, b: st(kids[2]!)}}]
       case 'BinaryOperator': {
         if (n.opcode === ',') return ss(kids)
@@ -387,6 +387,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         return [{s: 'assign', p, op: '=', l: [place(l)], r: [conv(n, lt, {e: 'bin', ...at(n, ct), op: bop, x: conv(l, ct, x(l)), y})]}]
       }
       case 'UnaryOperator': {
+        if (n.opcode === '__extension__') return st(kids[0]!)
         if (!['++', '--'].includes(n.opcode!)) break
         const l = kids[0]!, lt = tyOf(l.type!), tt = T(lt)
         if (tt.k !== 'int') return sno(n, `${text(n)}: ${n.opcode} of a ${l.type!.qualType}`)

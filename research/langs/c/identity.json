@@ -1,7 +1,7 @@
 [
  {
   "name": "c-tests",
-  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/c/clang-setup.sh && cd core && timeout -s KILL 500 bun test extract-c.test.ts 2>&1 | tail -15",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/c/clang-setup.sh && cd core && timeout -s KILL 500 bun test extract-c.test.ts 2>&1 | grep -v \"^cyclic:\" | tail -60",
   "cpu": 2.0,
   "timeout": 600
  },

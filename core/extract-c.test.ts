@@ -83,6 +83,8 @@ void setcap(bucket *b, uint32_t c) { b->cap = c; if (b->tokens > c) b->tokens = 
   const w = c(`#include <stdlib.h>\nstruct s { int a; unsigned b; };\nvoid f(struct s *s, unsigned k) { s->a = 1; if (k > 5) abort(); s->b = k; }\n`, 's')
   expect(w.ok).toBe(false)
   expect(w.refusals[0]!.what).toMatch(/abort\(\) after the state is written/)
+  // (glibc's assert: a discarded sizeof, then a statement expression)
+  ok(c('#include <stdlib.h>\nstruct s { unsigned a; };\n#define gassert(e) ((void) sizeof ((e) ? 1 : 0), __extension__ ({ if (e) ; else abort (); }))\nvoid f(struct s *s, unsigned k) { gassert(k < 9); s->a = k; }\n', 's'))
   ok(c(`#include <stdlib.h>\nstruct s { int a; unsigned b; };\nvoid f(struct s *s, unsigned k) { s->a = 1; if (k > 5) abort(); s->b = k; }\n`, 's', {onError: 'discard'}))
 }, 60_000)
 
