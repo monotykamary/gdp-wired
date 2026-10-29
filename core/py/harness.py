@@ -75,14 +75,23 @@ def build(spec, stores):
     return make_rec(cls, f)
   raise ValueError(f"an argument spec {spec}")
 
+SUBS = {}
 def make_rec(cls, f):
-  if hasattr(cls, 'model_construct'): return cls.model_construct(**f)
+  # A record of the inputs the rule reads: every other field inert (the code may read it, the rule claims nothing of it).
+  if hasattr(cls, 'model_construct'):
+    fields = getattr(cls, 'model_fields', {}) or {}
+    rest = {n: Inert() for n, fi in fields.items() if n not in f and getattr(fi, 'is_required', lambda: False)()}
+    return cls.model_construct(**rest, **f)
   if getattr(cls, '__annotations__', None) is not None and isinstance(cls, type) and issubclass(cls, dict): return dict(f)
   if dataclasses.is_dataclass(cls):
     o = object.__new__(cls)
     for k, v in f.items(): object.__setattr__(o, k, v)
     return o
-  o = object.__new__(cls)
+  sub = SUBS.get(cls)
+  if sub is None:
+    try: sub = SUBS[cls] = type(cls.__name__, (cls,), {'__getattr__': lambda self, n: Inert() if not n.startswith('__') else object.__getattribute__(self, n), '__module__': cls.__module__})
+    except TypeError: sub = SUBS[cls] = cls
+  o = object.__new__(sub)
   for k, v in f.items(): setattr(o, k, v)
   return o
 
@@ -182,8 +191,11 @@ def frames(obj):
       except Exception: pass
   return out
 
+REAL = {}
 def tracer(frame, event, arg):
-  if frame.f_code.co_filename == S['path']:
+  f = frame.f_code.co_filename
+  if f not in REAL: REAL[f] = os.path.realpath(f)
+  if REAL[f] == S['path']:
     def local(fr, ev, a):
       if ev == 'line': HIT.add(fr.f_lineno)
       return local

@@ -417,6 +417,54 @@ Literals a `oneOf`, a Union of TaggedStructs a `variant` on `_tag` (`cmd.match({
 `Schema.Int` an `int` (a `nat` checked at least 0), Boolean, String, NullOr and optional fields a `maybe`. A number that
 may be fractional is refused.
 
+## Python
+
+`extractPython` reads a class (its constructor's arguments the rule's params) or module functions (each a request) from
+a Python file through Python's own parser, and checks the rule by running the module as it ships beside it. Python is
+needed only at extraction (`python3` on the PATH, or `python:` the one with the code's dependencies installed):
+
+```ts
+import {extractPython} from 'gdp-wired/extract-py'
+
+// class SessionLimit:
+//     def __init__(self, cache, limit: int): ...
+//     async def hit(self, session: str) -> None:
+//         key = f"hits:{session}"; n = (await self.cache.get(key) or 0) + 1
+//         await self.cache.set(key, n)
+//         if n > self.limit: raise RuntimeError("over the limit")
+const x = extractPython('limits.py', {entry: 'SessionLimit', methods: ['hit'], failures: 'kept',
+  stores: {cache: {get: ['get'], set: ['set'], value: 'int'}}})
+if (!x.ok) console.log(x.refusals)        // where and why
+proveSteps(x.rule, x.invariants, [x.rule.stepLaw('admitted only below the limit',
+  (b, a) => a.failed.not().implies(b.limit.gt(b.cache_hits.at(b.session.id).value)))])
+```
+
+- **Read:** ints (unbounded in Python; the rule's stop at ±2^53), floats at whole values (as JavaScript's numbers are: a
+  non-whole literal, and `/` but in `math.floor`, `math.ceil` or `int` of `x / k`, refused), bools, strs (set and
+  compared), `Literal[...]` strings as choices, `X | None` (a value and a `<name>_none` flag), the module's dataclasses
+  and classes as records, `dict[K, V]` as maps (`d[k]`, `get`, `pop`, `in`, `del`; one key written a step), an object
+  the caller gives as a record of inputs (its fields read; their types from its class's annotations in the
+  repository's modules, `root:`), if, early returns, ternaries, `and`/`or` with Python's values, truthiness, the
+  module's functions, methods and properties (inlined), `with` a lock, `time.time()` as the request's time,
+  `math.isfinite`, `min`, `max`, `abs`, `int`, `float`, `bool`.
+- **Async:** each request is one step: exact where every `await` is of the module's own coroutines or of answered calls
+  (nothing suspends, so nothing interleaves). An awaited call of other code is refused unless answered.
+- **A failure** (raise, assert, a missing key, None where a number is read) is the step's refusal; with
+  `failures: 'kept'` it is the step's result `failed`, with what the step wrote before it (the caller sees both), so a
+  law can say when the code refuses: `(_, a) => a.failed`.
+- **The boundary**, each printed in the notes and enforced by the check: `answers: {callee: 'float | None'}` (its result
+  an input of the request: a counter in Redis, a registry lookup), `skip: [callee]` (left out: a logger, an alert, a
+  decorator or context manager taken as transparent; its value refused wherever the rule would read it),
+  `stores: {field: {get, set, value, attrs}}` (a cache client as a key-value store: each key template a map, its TTL
+  left out; `attrs` fixes what the code reads of it, `{'dual_cache.redis_cache': null}` for Redis off).
+- **Refused**, with where and why: loops and comprehensions, try/except, lambdas, global, lists, strings beyond set and
+  compared (an f-string is kept only as a store's key), a dict's truth, other code not answered or skipped, a write to
+  an object the caller gave, one object in two places of the state, a write before a failure (with the default
+  failures), two keys of one map written in one step.
+
+The shared structure every further language uses (a reader in the language, one executor, a harness) is in
+research/langs/DESIGN.md; LiteLLM's budget and session limits, read this way, are research/langs/litellm/.
+
 ## Sets, lists, functions, composition
 
 - `.carries('Candidate')`: a set the request brings; `everyKey`, `has`, `subsetOf`, `disjointFrom`, `sameAs`;

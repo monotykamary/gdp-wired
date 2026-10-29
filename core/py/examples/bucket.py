@@ -64,3 +64,26 @@ class Ledger:
 async def check(spend: float, max_budget: float | None) -> None:
     if max_budget is not None and spend >= max_budget:
         raise RuntimeError("over budget")
+
+
+class SessionLimit:
+    """A per-session count in a cache the caller gives (a store): each hit counts one, past the limit refused."""
+
+    def __init__(self, cache, limit: int):
+        self.cache = cache
+        self.limit = limit
+
+    async def hit(self, session: str) -> None:
+        key = f"hits:{session}"
+        n = await self.cache.get(key)
+        n = (n or 0) + 1
+        await self.cache.set(key, n)
+        if n > self.limit:
+            raise RuntimeError("over the limit")
+
+
+def drain(xs: dict[str, int]) -> int:
+    total = 0
+    for k in xs:
+        total += xs[k]
+    return total

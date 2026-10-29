@@ -16,13 +16,17 @@ type R = {stepLaw: (name: string, then: (b: X, a: X) => Cond, when?: (b: X) => C
 // A law: its name, kind and intent (as the corpus's), and the step law on the extracted rule.
 export type PyLaw = {name: string, kind: 'step' | 'access', intent: 'docs' | 'tests' | 'inferred', why: string, law: (r: R) => StepLaw}
 export type PySpec = {
-  id: string, domain: 'quota' | 'rate limit',
+  id: string, domain: 'quota' | 'rate limit' | 'circuit breaker',
   file: string, reads: string, summary: string,
   opts: Omit<PyOptions, 'root' | 'python'>,
   // What the extraction leaves to the request or out, for the triage and a fork's reader (the notes say it in full).
   boundary: string,
   laws: PyLaw[],
 }
+
+// x < y and x ≥ y whichever of the two is the integer (a natural compares to an integer from the integer's side).
+const lt = (x: X, y: X): Cond => { try { return x.lt(y) } catch { return y.gt(x) } }
+const atLeast = (x: X, y: X): Cond => { try { return x.atLeast(y) } catch { return y.atMost(x) } }
 
 // --- the per-entity max_budget checks (litellm/proxy/auth/auth_checks.py) --------------------------------------------
 // Each refuses a request when its entity's spend (the cross-pod counter get_current_spend reads, answered by the
@@ -31,9 +35,9 @@ export type PySpec = {
 // route).
 const budget = (entity: string, set: (b: X) => Cond, max: (b: X) => X, off: (b: X) => Cond, why: string): PyLaw[] => [
   {name: `a ${entity} whose spend has reached its max_budget is refused`, kind: 'access', intent: 'docs', why,
-    law: r => r.stepLaw(`a ${entity} whose spend has reached its max_budget is refused`, (_b, a) => a.failed, b => all(set(b), off(b).not(), b.get_current_spend.atLeast(max(b))))},
+    law: r => r.stepLaw(`a ${entity} whose spend has reached its max_budget is refused`, (_b, a) => a.failed, b => all(set(b), off(b).not(), atLeast(b.get_current_spend, max(b))))},
   {name: `a ${entity} below its max_budget is admitted`, kind: 'access', intent: 'docs', why: 'auth_checks.py: the check raises only when the budget is exceeded',
-    law: r => r.stepLaw(`a ${entity} below its max_budget is admitted`, (_b, a) => a.failed.not(), b => all(set(b), b.get_current_spend.lt(max(b))))},
+    law: r => r.stepLaw(`a ${entity} below its max_budget is admitted`, (_b, a) => a.failed.not(), b => all(set(b), lt(b.get_current_spend, max(b))))},
   {name: `a ${entity} with no max_budget is admitted`, kind: 'access', intent: 'docs', why: 'BUDGET_CODE_MATRIX.md: a hard max_budget blocks; with none set there is nothing to block on',
     law: r => r.stepLaw(`a ${entity} with no max_budget is admitted`, (_b, a) => a.failed.not(), b => set(b).not())},
 ]
@@ -81,9 +85,9 @@ SPECS.push(
     boundary: 'the session counter in the internal usage cache, Redis off (its Lua INCR path not read), its TTL left out; the session id and max_iterations answered by the request',
     laws: [
       {name: 'a call is admitted only while its session is below max_iterations', kind: 'access', intent: 'docs', why: 'max_iterations_limiter.py:3-8 "When the count exceeds max_iterations ... returns 429"',
-        law: r => r.stepLaw('a call is admitted only while its session is below max_iterations', (b, a) => a.failed.not().implies(b[ITER].at(b.get_session_id.id).value.lt(b.get_max_iterations)), b => sessionGiven(b, 'get_max_iterations'))},
+        law: r => r.stepLaw('a call is admitted only while its session is below max_iterations', (b, a) => a.failed.not().implies(lt(b[ITER].at(b.get_session_id.id).value, b.get_max_iterations)), b => sessionGiven(b, 'get_max_iterations'))},
       {name: 'a session at its max_iterations is refused', kind: 'access', intent: 'docs', why: 'max_iterations_limiter.py:3-8',
-        law: r => r.stepLaw('a session at its max_iterations is refused', (_b, a) => a.failed, b => all(sessionGiven(b, 'get_max_iterations'), b[ITER].at(b.get_session_id.id).value.atLeast(b.get_max_iterations)))},
+        law: r => r.stepLaw('a session at its max_iterations is refused', (_b, a) => a.failed, b => all(sessionGiven(b, 'get_max_iterations'), atLeast(b[ITER].at(b.get_session_id.id).value, b.get_max_iterations)))},
       {name: 'every call of a limited session counts one, refused or not', kind: 'step', intent: 'inferred', why: '_in_memory_increment: the counter is incremented before the check',
         law: r => r.stepLaw('every call of a limited session counts one, refused or not', (b, a) => a[ITER].at(b.get_session_id.id).value.eq(b[ITER].at(b.get_session_id.id).value.plus(1)), b => sessionGiven(b, 'get_max_iterations'))},
       {name: 'a call with no session or no max_iterations is admitted and counts nothing', kind: 'step', intent: 'docs', why: 'async_pre_call_hook: "if session_id is None: return None" and "if max_iterations is None: return None"',
@@ -96,8 +100,28 @@ SPECS.push(
     boundary: 'the session\'s spend in the internal usage cache, Redis off, read only (the success event that adds a response\'s cost keys it by the raw key, not read here: the claim is for every spend the cache may hold); the session id and the budget answered by the request',
     laws: [
       {name: 'a session whose spend has reached max_budget_per_session is refused', kind: 'access', intent: 'docs', why: 'max_budget_per_session_limiter.py: "whether accumulated spend exceeds the budget (429 if so)"',
-        law: r => r.stepLaw('a session whose spend has reached max_budget_per_session is refused', (_b, a) => a.failed, b => all(sessionGiven(b, 'get_max_budget_per_session'), b[SPENT].at(b.get_session_id.id).value.atLeast(b.get_max_budget_per_session)))},
+        law: r => r.stepLaw('a session whose spend has reached max_budget_per_session is refused', (_b, a) => a.failed, b => all(sessionGiven(b, 'get_max_budget_per_session'), atLeast(b[SPENT].at(b.get_session_id.id).value, b.get_max_budget_per_session)))},
       {name: 'a session below max_budget_per_session is admitted', kind: 'access', intent: 'docs', why: 'max_budget_per_session_limiter.py',
-        law: r => r.stepLaw('a session below max_budget_per_session is admitted', (_b, a) => a.failed.not(), b => all(sessionGiven(b, 'get_max_budget_per_session'), b[SPENT].at(b.get_session_id.id).value.lt(b.get_max_budget_per_session)))},
+        law: r => r.stepLaw('a session below max_budget_per_session is admitted', (_b, a) => a.failed.not(), b => all(sessionGiven(b, 'get_max_budget_per_session'), lt(b[SPENT].at(b.get_session_id.id).value, b.get_max_budget_per_session)))},
     ]},
 )
+
+// --- router cooldown (litellm/router_utils/cooldown_handlers.py) -------------------------------------------------------
+// The allowed-fails policy: a deployment's fails this window (the fleet-wide counter, answered) against the allowed
+// fails: the deployment's override, else the exception type's router policy (answered), else the router's allowed_fails.
+const COOL = 'should_cooldown_based_on_allowed_fails_policy_result'
+const coolWhen = (r: R, name: string, when: (b: X) => Cond, allowed: (b: X) => X) =>
+  r.stepLaw(name, (b, a) => all(a.failed.not(), a[COOL].iff(lt(allowed(b), b.increment_allowed_fails))), when)
+SPECS.push({id: 'circuit breaker/litellm-py/should_cooldown_based_on_allowed_fails_policy', domain: 'circuit breaker', file: 'litellm/router_utils/cooldown_handlers.py',
+  reads: 'litellm/router_utils/cooldown_handlers.py: should_cooldown_based_on_allowed_fails_policy (Router.get_allowed_fails_from_policy and _increment_allowed_fails answered)',
+  summary: 'A deployment is put in cooldown once its failures this window pass the allowed fails: the deployment\'s override, else the router\'s policy for the exception type, else the router\'s allowed_fails.',
+  opts: {entry: ['should_cooldown_based_on_allowed_fails_policy'], failures: 'kept', answers: {get_allowed_fails_from_policy: 'int | None', _increment_allowed_fails: 'int'}},
+  boundary: 'the fleet-wide fail counter (_increment_allowed_fails: DualCache.increment_cache, Redis or this worker) and the router\'s per-exception policy (Router.get_allowed_fails_from_policy) answered by the request; the counter\'s key and TTL not read',
+  laws: [
+    {name: 'with an override, a deployment cools down exactly when its fails pass it', kind: 'step', intent: 'docs', why: 'cooldown_handlers.py: "When allowed_fails_override ... supplied they take precedence over the router-level values"',
+      law: r => coolWhen(r, 'with an override, a deployment cools down exactly when its fails pass it', b => b.allowed_fails_override_none.not(), b => b.allowed_fails_override)},
+    {name: 'with no override, the exception\'s policy governs', kind: 'step', intent: 'docs', why: 'cooldown_handlers.py: allowed_fails_from_policy if not None, else litellm_router_instance.allowed_fails',
+      law: r => coolWhen(r, 'with no override, the exception\'s policy governs', b => all(b.allowed_fails_override_none, b.get_allowed_fails_from_policy_none.not()), b => b.get_allowed_fails_from_policy)},
+    {name: 'with neither, the router\'s allowed_fails governs', kind: 'step', intent: 'docs', why: 'cooldown_handlers.py: "True if fails exceed the allowed limit (should cooldown)"',
+      law: r => coolWhen(r, 'with neither, the router\'s allowed_fails governs', b => all(b.allowed_fails_override_none, b.get_allowed_fails_from_policy_none, b.litellm_router_instance_allowed_fails_none.not()), b => b.litellm_router_instance_allowed_fails)},
+  ]})

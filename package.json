@@ -100,6 +100,10 @@
       "types": "./dist/core/effect.d.ts",
       "default": "./dist/core/effect.js"
     },
+    "./extract-py": {
+      "types": "./dist/core/extract-py.d.ts",
+      "default": "./dist/core/extract-py.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

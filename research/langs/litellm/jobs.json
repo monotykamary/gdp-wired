@@ -1,9 +1,9 @@
 [
-{
-"name": "litellm-py",
-"cmd": "set -o pipefail; cd /tmp && git clone -q --depth 1 --branch ${LITELLM_REF:-v1.106.6} ${LITELLM_REPO:-https://github.com/BerriAI/litellm} litellm && cd litellm && git rev-parse HEAD && pip install -q uv >/dev/null 2>&1 && timeout -s KILL 600 uv pip install --system -q -e '.[proxy]' 2>&1 | tail -5; python3 -c 'import litellm.proxy.auth.auth_checks' && cd /work/gdp-wired && bun install --frozen-lockfile >/dev/null 2>&1 && timeout -s KILL 1200 bun research/langs/litellm/run.ts --src /tmp/litellm --ms 60000 --json /tmp/litellm-py.json; echo '--- json'; cat /tmp/litellm-py.json",
-"cwd": ".",
-"cpu": 2.0,
-"timeout": 1800
-}
+ {
+  "name": "litellm-py",
+  "cmd": "set -o pipefail; cd /tmp && git clone -q --depth 1 --branch ${LITELLM_REF:-v1.106.6} ${LITELLM_REPO:-https://github.com/BerriAI/litellm} litellm && cd litellm && git rev-parse HEAD && pip install -q uv >/dev/null 2>&1 && timeout -s KILL 600 uv pip install --system -q -e '.[proxy]' 2>&1 | tail -5; python3 -c 'import litellm.proxy.auth.auth_checks' && cd /work/gdp-wired && bun install --frozen-lockfile >/dev/null 2>&1 && timeout -s KILL 1200 bun research/langs/litellm/run.ts --src /tmp/litellm --ms 60000 --write --json /tmp/litellm-py.json; echo '--- json'; cat /tmp/litellm-py.json; for f in research/langs/litellm/rules/*.ts; do echo \"=== $f\"; cat $f; done",
+  "cwd": ".",
+  "cpu": 2.0,
+  "timeout": 1800
+ }
 ]

@@ -35,7 +35,7 @@ export type Patch = {mod?: string, path?: string[], self?: string}
 export type SX = {e: string, p: string, text?: string, [k: string]: unknown}
 export type SS = {s: string, p: string, [k: string]: unknown}
 export type SParam = {name: string, t: SType, dflt?: SX, kw?: boolean, self?: boolean, star?: number}
-export type SFunc = {id: string, name: string, cls?: string, p: string, span: [string, number, number], params: SParam[], ret: SType, body: SS[], async?: boolean, static?: boolean, decorators: {name: string, text: string, p: string}[], arms: number[]}
+export type SFunc = {id: string, name: string, cls?: string, p: string, span: [string, number, number], params: SParam[], ret: SType, body: SS[], async?: boolean, static?: boolean, decorators: {name: string, text: string, p: string}[]}
 export type SRec = {name: string, short: string, fields: {name: string, t: SType, dflt?: SX}[], methods: Record<string, string | null>, kinds: string[], own: boolean, module: string, p: string}
 export type SModule = {lang: string, file: string, path: string, module: string, root: string, entries: ({k: 'class', rec: string} | {k: 'func', id: string} | {k: 'missing', name: string})[], recs: Record<string, SRec>, funcs: Record<string, SFunc>, error?: string}
 
@@ -330,7 +330,7 @@ export class Stepper {
     for (const d of f.decorators) if (!['staticmethod', 'classmethod', 'property', 'override', 'typing.override', 'abstractmethod'].includes(d.name) && !this.skipped([d.name, d.text])) refuse(d, `@${d.text}: a decorator (one of other code changes what the method does; skip it to take it as transparent)`)
     for (const d of f.decorators) if (this.skipped([d.name, d.text])) this.notes.add(`@${d.text} on ${f.name}: taken as transparent (skip)`)
     this.spans.set(f.id, f.span)
-    for (const a of f.arms) this.arms.add(`${f.span[0]}:${a}`)
+    this.arm(f.body)
     const locals = new Map<string, V>()
     const ps = f.params.filter(x => !x.star)
     let i = 0, q = p0
@@ -357,6 +357,8 @@ export class Stepper {
     return [joined.locals.get('$ret')!, {...joined, locals: saved}]
   }
 
+  // A branch arm the step runs: its first statement's line, counted by the harness's line events.
+  arm(ss: SS[]) { const s0 = ss.find(x => x.s !== 'import'); if (s0) { const m = /^(.*):(\d+):\d+$/.exec(s0.p); if (m) this.arms.add(`${m[1]}:${m[2]}`) } }
   // --- statements -----------------------------------------------------------------------------------------------------
   block(ss: SS[], p: Path): Flow {
     let live: Path | undefined = p
@@ -372,10 +374,18 @@ export class Stepper {
   stmt(s: SS, p: Path): Flow {
     switch (s.s) {
       case 'expr': { const [, q] = this.ev(s.x as SX, p); return {live: q, rets: []} }
-      case 'set': { const [v, q] = this.ev(s.x as SX, p); return {live: this.assign(s.to as SX, v, s, q, s.t as SType | undefined), rets: []} }
+      case 'set': {
+        // A local the subset can't compute, from an expression with no calls (nothing it could change): kept as a value
+        // refused wherever the rule would read it.
+        let r: [V, Path]
+        try { r = this.ev(s.x as SX, p) } catch (e) { if (!(e instanceof Refusal) || (s.to as SX).e !== 'var' || !callFree(s.x as SX)) throw e; r = [{t: 'opaque', why: `${e.where}: ${e.what}`}, p] }
+        return {live: this.assign(s.to as SX, r[0], s, r[1], s.t as SType | undefined), rets: []}
+      }
       case 'if': {
         const [cv, q] = this.ev(s.c as SX, p)
         const c = this.truthy(cv, s.c as SX, q)
+        if (!(c.op === 'const' && !c.v)) this.arm(s.then as SS[])
+        if (!(c.op === 'const' && c.v)) this.arm(s.else as SS[])
         const t = c.op === 'const' && !c.v ? undefined : this.block(s.then as SS[], this.assume(q, c))
         const e = c.op === 'const' && c.v ? undefined : this.block(s.else as SS[], this.assume(q, I.not(c)))
         const lives = [t?.live, e?.live].filter((x): x is Path => !!x)
@@ -823,12 +833,17 @@ export class Stepper {
       let patch: Patch | undefined
       if (fx.e === 'fn') patch = {mod: this.mod.module, path: [String(fx.id)]}
       else if (fx.e === 'get' && (fx.x as SX).e === 'var' && (fx.x as SX).n === 'self') patch = {self: String(fx.f)}
-      else { const [o] = this.ev(fx, p); if (o.t === 'ext' || o.t === 'cls') patch = o.patch }
-      return this.answer(ans, names, patch, x, p, awaited)
+      else if (fx.e === 'get') {
+        // A method of an object the caller gives, of another module's class: the class's method stubbed.
+        const [o] = this.ev(fx.x as SX, p), obj = o.t === 'ref' ? p.heap.get(o.id) : undefined
+        if (obj?.k === 'rec') { const r = this.rec(obj.ty, x); patch = {mod: r.module, path: [r.short, String(fx.f)]} }
+        else { const [v] = this.ev(fx, p); if (v.t === 'ext' || v.t === 'cls') patch = v.patch }
+      } else { const [o] = this.ev(fx, p); if (o.t === 'ext' || o.t === 'cls') patch = o.patch }
+      return this.answer(ans, names, patch, x, this.argsRead(x, p), awaited)
     }
     if (this.skipped(names)) {
       this.notes.add(`${names[0]} (${x.p}): left out (stated: skip), run as it is by the check`)
-      return [{t: 'opaque', why: `${x.text}: the value of a call left out (skip)`}, p]
+      return [{t: 'opaque', why: `${x.text}: the value of a call left out (skip)`}, this.argsRead(x, p)]
     }
     // The callee and its object.
     let f: V, q = p
@@ -852,6 +867,15 @@ export class Stepper {
     }
     void args0; void kw0
     return refuse(x, `${x.text}: a call of a ${f.t}`)
+  }
+  // The arguments of a call left to the boundary, read as far as the subset goes: the code evaluates them, so the fields
+  // they read are inputs the check gives (an argument outside the subset is taken as reading nothing of the state).
+  argsRead(x: SX, p: Path): Path {
+    let q = p
+    for (const a of [...(x.args as SX[]), ...(x.kw as [string, SX][]).map(([, v]) => v)]) {
+      try { q = this.ev(a, q)[1] } catch (e) { if (!(e instanceof Refusal)) throw e }
+    }
+    return q
   }
   evArgs<T>(x: SX, p: Path, k: (args: V[], kw: [string, V][], p: Path) => T): T {
     let q = p
@@ -940,6 +964,13 @@ export class Stepper {
   }
 }
 
+// An expression that calls nothing (so evaluating it changes nothing).
+const callFree = (x: unknown): boolean => {
+  if (!x || typeof x !== 'object') return true
+  const o = x as {e?: string}
+  if (o.e === 'call' || o.e === 'await' || o.e === 'no') return false
+  return Object.values(o).every(callFree)
+}
 // Two key templates name disjoint keys: they differ at some position of their fixed prefixes or of their fixed
 // suffixes (a hole's value can be any string, so only those parts tell keys apart).
 export function disjoint(a: string, b: string): boolean {
@@ -1297,7 +1328,7 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
     }
     const j = (x: Raw) => (typeof x === 'number' ? String(x) : x)
     const snapJson = (s: Snap): Record<string, unknown> => ({...Object.fromEntries(Object.entries(s.leaves).map(([k, v]) => [k, j(v)])), ...Object.fromEntries(Object.entries(s.maps).map(([k, cells]) => [k, Object.fromEntries(Object.entries(cells).map(([key, c]) => [key, Object.fromEntries(Object.entries(c).map(([f, x]) => [f, j(x)]))]))]))})
-    const build = (a: PArg, inputs: Record<string, Raw>): unknown => (a.k === 'in' ? {in: inputs[a.name] ?? a.z ?? 0, ...(a.float ? {float: true} : {})} : a.k === 'opt' ? (inputs[a.none] === true ? {none: true} : build(a.v, inputs)) : a.k === 'rec' ? {rec: a.cls, f: Object.fromEntries(a.f.map(([f, x]) => [f, build(x, inputs)]))} : a.k === 'inert' ? {inert: true} : a.k === 'store' ? {store: a.name} : {dflt: true})
+    const build = (a: PArg, inputs: Record<string, Raw>): unknown => (a.k === 'in' ? {in: inputs[a.name] ?? a.z ?? 0, ...(a.float ? {float: true} : {})} : a.k === 'opt' ? (inputs[a.none] === true ? {none: true} : build(a.v, inputs)) : a.k === 'rec' ? (a.f.length ? {rec: a.cls, f: Object.fromEntries(a.f.map(([f, x]) => [f, build(x, inputs)]))} : {inert: true}) : a.k === 'inert' ? {inert: true} : a.k === 'store' ? {store: a.name} : {dflt: true})
     const ctorArgs = (params: Record<string, Raw>) => read.ctor.map(([n, a]) => [n, build(a, params)])
     let now = 0, inputsNow: Record<string, Raw> = {}
     const answersOf = () => Object.fromEntries(read.answers.map(a => [a.key, a.inputs.none && inputsNow[a.inputs.none] === true ? {none: true} : {in: inputsNow[a.inputs.name] ?? 0, ...(a.inputs.float ? {float: true} : {})}]))

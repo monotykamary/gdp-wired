@@ -77,8 +77,8 @@ class Module:
       for t in targets:
         if isinstance(t, ast.Name) and n.value is not None: self.consts[t.id] = n.value
     elif isinstance(n, ast.If):
-      # `if TYPE_CHECKING:` imports: the names are types only.
-      for m in n.body + n.orelse: self.scan(m)
+      # `if TYPE_CHECKING:` imports and aliases: what the names are for the types (its else, `X = Any`, yields to it).
+      for m in n.orelse + n.body: self.scan(m)
 
 class Reader:
   def __init__(self, root, file):
@@ -127,6 +127,23 @@ class Reader:
     dataclass = any((dotted(d.func if isinstance(d, ast.Call) else d) or '').split('.')[-1] == 'dataclass' for d in cdef.decorator_list)
     frozen = any(isinstance(d, ast.Call) and any(k.arg == 'frozen' and isinstance(k.value, ast.Constant) and k.value.value for k in d.keywords) for d in cdef.decorator_list)
     total = not any(k.arg == 'total' and isinstance(k.value, ast.Constant) and k.value.value is False for k in cdef.keywords)
+    # The fields its __init__ sets: annotated there, or set from an annotated argument (a class of another module whose
+    # fields aren't declared on the class).
+    init = next((n for n in cdef.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == '__init__'), None)
+    if init is not None:
+      anns = {x.arg: x.annotation for x in init.args.args + init.args.kwonlyargs if x.annotation is not None}
+      for n in ast.walk(init):
+        t = None
+        if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Attribute) and isinstance(n.target.value, ast.Name) and n.target.value.id == 'self':
+          name, t = n.target.attr, self.ty(n.annotation, mod)
+        elif isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Attribute) and isinstance(n.targets[0].value, ast.Name) and n.targets[0].value.id == 'self':
+          v = n.value
+          if isinstance(v, ast.Name) and v.id in anns: name, t = n.targets[0].attr, self.ty(anns[v.id], mod)
+          elif isinstance(v, ast.BoolOp) and isinstance(v.op, ast.Or) and isinstance(v.values[0], ast.Name) and v.values[0].id in anns and not (isinstance(v.values[-1], ast.Constant) and v.values[-1].value is None):
+            # `x or DEFAULT`: the argument's type, never None
+            name, t = n.targets[0].attr, self.ty(anns[v.values[0].id], mod)
+            if t['k'] == 'opt': t = t['of']
+        if t is not None and not any(g['name'] == name for g in fields): fields.append({'name': name, 't': t, 'init': True})
     for n in cdef.body:
       if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name):
         ann = n.annotation
@@ -212,9 +229,8 @@ class Reader:
       if a.vararg: params.append({'name': a.vararg.arg, 't': {'k': 'opaque', 'why': '*args'}, 'star': 1})
       if a.kwarg: params.append({'name': a.kwarg.arg, 't': {'k': 'opaque', 'why': '**kwargs'}, 'star': 2})
       body = self.block(n.body, mod)
-      arms = sorted({b[0].lineno for b in self.arms_of(n)})
       return {'id': fid, 'name': n.name, **({'cls': cls} if cls else {}), 'p': where(self.file, n), 'span': [os.path.basename(self.file), n.lineno, n.end_lineno],
-              'params': params, 'ret': self.ty(n.returns, mod), 'body': body, 'async': isinstance(n, ast.AsyncFunctionDef), 'decorators': decs, 'arms': arms, 'static': static}
+              'params': params, 'ret': self.ty(n.returns, mod), 'body': body, 'async': isinstance(n, ast.AsyncFunctionDef), 'decorators': decs, 'static': static}
     finally:
       self.local_stack.pop()
   def decorator(self, d):
@@ -229,16 +245,6 @@ class Reader:
       if isinstance(n, (ast.Import, ast.ImportFrom)):
         for a in n.names: out.add((a.asname or a.name).split('.')[0])
     return out
-  def arms_of(self, fn):
-    """The branch arms (each body an if, a ternary or a conditional return opens), for the branches counted."""
-    body = [s for s in fn.body if not (isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant) and isinstance(s.value.value, str))]
-    out = [body] if body else []
-    for n in ast.walk(fn):
-      if isinstance(n, ast.If):
-        out.append(n.body)
-        if n.orelse: out.append(n.orelse)
-    return [b for b in out if b]
-
   # --- statements --------------------------------------------------------------------------------------------------
   def block(self, ss, mod):
     out = []

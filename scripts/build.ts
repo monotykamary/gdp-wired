@@ -1,6 +1,6 @@
 // The npm build: the library's six modules to dist/ as JS with declarations. tsc rewrites the `.ts` imports of the JS
 // to `.js` but leaves them in the declarations, so they are rewritten here too.
-import {readFileSync, readdirSync, rmSync, writeFileSync} from 'node:fs'
+import {copyFileSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
 const root = join(import.meta.dir, '..'), dist = join(root, 'dist')
@@ -11,6 +11,9 @@ for (const f of readdirSync(dist, {recursive: true, encoding: 'utf8'}).filter(f 
   const path = join(dist, f), text = readFileSync(path, 'utf8')
   writeFileSync(path, text.replace(/(from '\.{1,2}\/[^']+)\.ts'/g, "$1.js'"))
 }
+// The Python front end's reader and harness, run from beside it (python3 is needed only when it is called).
+mkdirSync(join(dist, 'core', 'py'), {recursive: true})
+for (const f of ['reader.py', 'harness.py']) copyFileSync(join(root, 'core', 'py', f), join(dist, 'core', 'py', f))
 const left = readdirSync(dist, {recursive: true, encoding: 'utf8'}).filter(f => /\.(js|d\.ts)$/.test(f) && /from ['"]\.{1,2}\/[^'"]+\.ts['"]/.test(readFileSync(join(dist, f), 'utf8')))
 if (left.length) throw new Error(`.ts imports left in ${left.join(', ')}`)
 console.log(`dist: ${readdirSync(dist, {recursive: true}).length} entries`)
