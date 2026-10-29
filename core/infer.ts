@@ -2160,8 +2160,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         return out3
       }
       for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
-        const r0 = performance.now()
-        let asked = 0
+        let asked = 0, cubeMs = 0, tGoal = 0
         // (later rounds less the sums pass's reserve, unless the caller's law holds from the set: Houdini's part, then)
         const kUntil = () => wallUntil - (round && !held ? reserve : 0)
         const real = new Set<Form>(), unsure = new Set<Form>(), ls = [...given, ...cubes.map(lawFor), ...(ghost ? [ghost.plain] : [])], blocked2: Form[] = []
@@ -2176,7 +2175,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             settled.delete(ls[idx]!.name)
             // (a goal decided by the EPR path alone first (a proof or a model, a cube's within a quarter of a join query, the
             // caller's within one); else a model or a refutation of the CDCL search alone, then the proof path's)
-            asked++
+            if (f) { if (tGoal) cubeMs += performance.now() - tGoal; tGoal = performance.now(); asked++ } else tGoal = 0
             const dl = within(Math.min(kUntil(), performance.now() + (f ? joinQueryMs / 4 : joinQueryMs)), () => decideLaw(mm, ls, idx))
             if (dl?.proven) continue
             let isReal = !!dl && realCti(dl.witness, f, others), wit = dl?.witness
@@ -2220,8 +2219,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         }
         opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length, ms: Math.round(performance.now() - t0)})
         const drops = real.size ? real : unsure
-        if (asked) cap = Math.max(64, Math.min(256, Math.floor((wallUntil - performance.now()) / (3 * (performance.now() - r0) / asked))))
-        if (blocked2.length) { const kept = [...cubes.filter(g => !drops.has(g)), ...blocked2]; cubes = [...kept, ...relevant(cap - kept.length)]; return }
+        if (asked > 1) cap = Math.max(64, Math.min(256, Math.floor((wallUntil - performance.now()) / (3 * cubeMs / (asked - 1)))))
+        if (blocked2.length) { const kept = [...cubes.filter(g => !drops.has(g)), ...blocked2]; cubes = [...kept, ...relevant(Math.max(16, cap - kept.length))]; return }
         if (again) return
         if (complete && !caller && !drops.size) { const t2 = performance.now(), v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor), ...(ghost ? [ghost.some] : [])])); opts.progress?.('join set', {cubes: cubes.length, exists: ghost ? 1 : 0, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), why: String((v as {why?: string}).why ?? (v as {stuck?: string}).stuck ?? '').slice(0, 300)}); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } }
         if (!complete || caller || !drops.size) over = true
