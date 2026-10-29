@@ -1973,7 +1973,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const near = (f: Form) => (f.cube!.some(l => atomsIn(formOf([l])).some(i => callerMaps.has(atoms[i]!.parts[0]![0].split(AT)[2] ?? ''))) ? 0 : 1)
       const made = enumerated()
       let cubes: Form[] = []
-      for (const f of [...made].sort((a, b) => near(a) - near(b))) { if (cubes.length >= 48 || stop()) break; if (!names.has(textOf(f)) && !implied(f)) cubes.push(f) }
+      // (in turn by the maps a cube reads, those reading the caller's first: one of each kind before a second of any)
+      const mapsOfCube = (f: Form) => [...new Set(f.cube!.flatMap(l => atomsIn(formOf([l])).map(i => atoms[i]!.parts[0]![0].split(AT)[2] ?? '')))].sort().join()
+      const byMaps = new Map<string, Form[]>()
+      for (const f of [...made].sort((a, b) => near(a) - near(b))) { const k2 = mapsOfCube(f); byMaps.set(k2, [...(byMaps.get(k2) ?? []), f]) }
+      const turns: Form[] = []
+      for (let i = 0; turns.length < made.length; i++) for (const fs of byMaps.values()) if (fs[i]) turns.push(fs[i]!)
+      for (const f of turns) { if (cubes.length >= 48 || stop()) break; if (!names.has(textOf(f)) && !implied(f)) cubes.push(f) }
       opts.progress?.('join enumerated', {views: views.length - v0, cubes: cubes.length})
       opts.progress?.('join cubes', {cubes: cubes.map(textOf).join(' | ')})
       // (a goal's proof within the search's own end, on the cost model's clock: a counted search inside it keeps the end)
@@ -2122,7 +2128,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
               isReal = !!f && quick.stuck === 'sat' && !!quick.witness && realCti(quick.witness, f, others)
               if (!isReal) {
                 proofs++
-                const r2 = within(f ? Math.min(kUntil(), performance.now() + joinQueryMs / 4) : kUntil(), () => proveLaw(mm, ls, idx))
+                const r2 = within(Math.min(kUntil(), performance.now() + (f ? joinQueryMs / 4 : joinQueryMs * 1.25)), () => proveLaw(mm, ls, idx))
                 if (r2.proven) continue
                 isReal = !!r2.witness && realCti(r2.witness, f, others)
               }
@@ -2131,18 +2137,19 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             const ds = isReal && lastPre ? withFnsOf(lastPre.w, () => diagrams(lastPre!)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g)) : []
             // (the caller's: blocked at once, IC3's order, the caller asked again before the cubes)
             if (ds.length) { if (!f) { held = false; break } continue }
-            // (the ∃ law's own goal unproven: it goes; the caller's with every view's rows reached: the ∀∃ law, once)
+            // (the ∃ law's own goal unproven: it goes; the caller's unproven with no diagram (every view's rows reached, or no
+            // model to read): the ∀∃ laws, once)
             if (!f && ghost && goal === ghost.plain.name) { opts.progress?.('join exists', {dropped: ghost.plain.name.slice(0, 120)}); ghost = ghosts?.shift(); again = true; break }
-            if (!f && isReal && !ghosts) { const t1 = performance.now(); ghosts = ghostsOf(); ghost = ghosts.shift(); opts.progress?.('join exists', {law: ghost ? `${ghost.plain.name.slice(0, 160)}; ${ghost.name} := ${JSON.stringify(ghost.step).slice(0, 160)}` : 'none', ms: Math.round(performance.now() - t1)}); if (ghost) { again = true; held = false; break } }
+            if (!f && !ghosts) { const t1 = performance.now(); ghosts = ghostsOf(); ghost = ghosts.shift(); opts.progress?.('join exists', {law: ghost ? `${ghost.plain.name.slice(0, 160)}; ${ghost.name} := ${JSON.stringify(ghost.step).slice(0, 160)}` : 'none', ms: Math.round(performance.now() - t1)}); if (ghost) { again = true; held = false; break } }
             if (!f) { caller = true; held = false; break }
             ;(isReal ? real : unsure).add(f)
           }
         }
-        opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length})
+        opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length, ms: Math.round(performance.now() - t0)})
         const drops = real.size ? real : unsure
         if (blocked2.length) { cubes = [...cubes.filter(g => !drops.has(g)), ...blocked2].slice(0, 96); return }
         if (again) return
-        if (complete && !caller && !drops.size) { const v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor), ...(ghost ? [ghost.some] : [])])); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } }
+        if (complete && !caller && !drops.size) { const t2 = performance.now(), v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor), ...(ghost ? [ghost.some] : [])])); opts.progress?.('join set', {cubes: cubes.length, exists: ghost ? 1 : 0, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), why: String((v as {why?: string}).why ?? (v as {stuck?: string}).stuck ?? '').slice(0, 300)}); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } }
         if (!complete || caller || !drops.size) over = true
         cubes = cubes.filter(g => !drops.has(g))
       })
