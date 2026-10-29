@@ -67,8 +67,8 @@ release past what is taken and a resize below it, laws stated too strongly again
 releasing permits, a minor bug). ratelimit/effect/fixedWindow and tokenBucket (4.0.7's RateLimiter memory store): 7
 proven, 1 refuted (a limit of 0 read as none, a minor bug unreachable through RateLimiter.consume).
 ratelimit/t3code/SourceControlRateLimit: 5 proven. Each rule runs beside the real code with gdp-wired/effect's `conforms`
-(`repro/conform-effect.ts`, which replays each refutation on the real code); triage in `triage/effect.json`. Nothing was
-reported upstream.
+(`repro/conform-effect.ts`, which replays each refutation on the real code); triage in `triage/effect.json`. The two bugs
+are reported upstream: Effect-TS/effect#10101 and #10102 (2026-10-29).
 
 The rest of this section is the first scored run, kept as it was measured.
 

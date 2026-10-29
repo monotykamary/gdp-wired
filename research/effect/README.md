@@ -100,4 +100,5 @@ requests out.
 | ratelimit/t3code/SourceControlRateLimit | t3code 9826dbb | 5 | 5 proven |
 
 Each rule runs beside the real code with `conforms` (research/realworld/repro/conform-effect.ts, 300 runs of 16 requests,
-every one agreeing), which also replays each refutation on the real code. Nothing was reported upstream.
+every one agreeing), which also replays each refutation on the real code. The two bugs were reported upstream on 2026-10-29:
+Effect-TS/effect#10101 (Semaphore) and #10102 (RateLimiter); both are still there on 4.1.0.
