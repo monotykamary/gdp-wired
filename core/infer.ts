@@ -32,7 +32,7 @@
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
-import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, evalE, get, interpret, machineTerms, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
 import {clock, counted, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees} from '../kernel/prove.ts'
@@ -1782,6 +1782,50 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         }
       }
       opts.progress?.('join template', {sorts: ss.map((s, i) => `${s}:${width[i]}`).join(' '), multi: multi.map(q => `${q.mp}:${q.slots.join(',')}`).join(' ')})
+      // The small instance (BRAB's, DuoAI's simulation made complete): each key sort its first 2 to 3 elements (its width),
+      // an ordered one 0..3, a function's values over its argument's, params small, each input over its sort's elements
+      // (a carried set over their subsets, any other over the values a few draws give), every reachable state by BFS up
+      // to 20,000 states and a seventh of what is left; its states the views' rows first.
+      {
+        const size = (q: string) => Math.max(2, Math.min(3, width[ss.indexOf(q)] ?? 2)), keyDom = (q: string) => (ordered(q) ? [0, 1, 2, 3] : Array.from({length: size(q)}, (_, i) => i))
+        const fnDom = (q: string) => Object.keys(m.fns ?? {}).filter(f => vf(`V:${f}`) === vf(q) && ss.includes(ks.find(`F:${f}`))).flatMap(f => keyDom(ks.find(`F:${f}`)).map(k => { try { return fnValue(m.fns![f]!, k) } catch { return 0 } }))
+        const domOf = (v: string, drawn: Set<number>): number[] => { const q = ks.find(v); return ss.includes(q) ? (fnDom(q).length ? fnDom(q) : keyDom(q)) : [...drawn].sort((a, b) => a - b) }
+        const pvs = new Map<string, Env>()
+        for (let t = 0; t < 200 && pvs.size < 4; t++) {
+          // (a param a sort's keys are compared with, n < size, is that sort's size in the instance)
+          const p = randomParams(2)
+          for (const q of m.params) { const srt = ss.find(r => vf(r) === vf(`P:${q}`)); if (srt && !ss.includes(ks.find(q))) p[q] = keyDom(srt).length }
+          if ((m.pre && !evalC(m.pre, p, {scalars: {}, maps: {}}, m)) || m.params.some(q => ss.includes(ks.find(q)) && !domOf(q, new Set()).includes(p[q]!))) continue
+          pvs.set(JSON.stringify(p), p)
+        }
+        const end2 = performance.now() + (wallUntil - performance.now()) / 7, seen = new Set<string>(), small: Sample[] = []
+        const keyOf3 = (q: Sample) => JSON.stringify([q.params, q.st.scalars, mapsText(q.st)])
+        for (const params of pvs.values()) {
+          const drawn = new Map<string, Set<number>>(m.inputs.map(i => [i, new Set<number>()]))
+          for (let t = 0; t < 200; t++) { const inp = randomInput(params, 2); for (const i of m.inputs) if (typeof inp[i] === 'number') drawn.get(i)!.add(inp[i] as number) }
+          const doms: [string, (number | Map<number, number>)[]][] = m.inputs.map(i => [i, domOf(i, drawn.get(i)!)])
+          for (const q of m.inputMaps ?? []) { const ks2 = keyDom(ks.find(`M:${q}`)); doms.push([q, Array.from({length: 2 ** ks2.length}, (_, b) => new Map(ks2.filter((_, j) => b >> j & 1).map(k => [k, 1] as [number, number])))]) }
+          let combos: Request[] = [{}]
+          for (const [i, d] of doms) combos = combos.flatMap(c => d.map(v2 => ({...c, [i]: v2})))
+          if (combos.length > 2048) combos = Array.from({length: 2048}, () => combos[rand(combos.length)]!)
+          let st0: State
+          try { st0 = run.init(params) } catch { continue }
+          const queue = [{params, st: st0}]
+          seen.add(keyOf3(queue[0]!)); small.push(queue[0]!)
+          while (queue.length && small.length < 20_000 && performance.now() < end2) {
+            const q0 = queue.shift()!
+            for (const input of combos) {
+              used.tries++
+              let next: State
+              try { if (!allowed(m, run, params, q0.st, input)) continue; next = run.step(params, q0.st, input) } catch { continue }
+              const q1 = {params, st: next}, k1 = keyOf3(q1)
+              if (!seen.has(k1)) { seen.add(k1); small.push(q1); queue.push(q1) }
+            }
+          }
+        }
+        opts.progress?.('join small instance', {states: small.length, params: pvs.size, ms: Math.round(performance.now() - t0)})
+        samples.unshift(...small)
+      }
       const out: Form[] = []
       for (const counts of width.reduce<number[][]>((acc, w) => acc.flatMap(c => Array.from({length: w + 1}, (_, k) => [...c, k])), [[]])) {
         const keys = ss.flatMap((s, i) => Array.from({length: counts[i]!}, () => s)), vars = keys.map((_, i) => `key${i + 1}$enum`)
@@ -2006,27 +2050,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         }
         return 'tree' in budgeted(joinQueryMs / 8, until2 => grow({name: 'implied', hyps}, new Map(), {nodes: 0, until: until2}))
       }
-      // (deeper runs for the template's rows: a request that changes nothing drawn again, as DuoAI's samplers draw only
-      // enabled actions, up to 200 steps a run)
-      const runsEnd = performance.now() + (wallUntil - performance.now()) * 0.15, deep: Sample[] = []
-      for (let trial = 0, added = 0; trial < 300 && added < 3000 && performance.now() < runsEnd; trial++) {
-        const bound = 2 + trial % 3, params = randomParams(bound)
-        if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) continue
-        let st: State
-        try { st = run.init(params) } catch { continue }
-        for (let d = 0, tries = 0; d < 200 && tries < 1000 && performance.now() < runsEnd; tries++) {
-          used.tries++
-          // (half the inputs drawn from the values the state holds: its scalars, its cells and their keys' parts, as a
-          // request that names an id pending or a node voted for)
-          const input = randomInput(params, bound), held = [...Object.values(params), ...Object.values(st.scalars), ...Object.values(st.maps).flatMap(c => [...c].flatMap(([k, v2]) => [v2, ...(pairing?.n ? [k % pairing.n, Math.floor(k / pairing.n)] : [k])]))]
-          for (const i of m.inputs) if (typeof input[i] === 'number' && held.length && rand(2)) input[i] = held[rand(held.length)]!
-          let next: State
-          try { if (!allowed(m, run, params, st, input)) continue; next = run.step(params, st, input) } catch { continue }
-          if (JSON.stringify(next.scalars) === JSON.stringify(st.scalars) && mapsText(next) === mapsText(st)) continue
-          deep.push({params, st: next}); added++; d++; st = next
-        }
-      }
-      samples.unshift(...deep)
       // (the cubes that read a map the caller's laws read first)
       const callerMaps = new Set(laws.flatMap(l => [...JSON.stringify(l.holds).matchAll(/"map":"([^"]+)"/g)].map(q => q[1]!)))
       const near = (f: Form) => (f.cube!.some(l => atomsIn(formOf([l])).some(i => callerMaps.has(atoms[i]!.parts[0]![0].split(AT)[2] ?? ''))) ? 0 : 1)
