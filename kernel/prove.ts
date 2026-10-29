@@ -961,7 +961,7 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
     const key = keyValue(cell, w)
     if (key !== undefined) maps[cell.slice(0, br)]!.set(key, value)
   }
-  const st = {scalars: {}, maps}, read = (at: Record<string, number>) => new Proxy({...w, ...at}, {get: (t, p: string) => t[p] ?? 0}) as Record<string, number>
+  const st = {scalars: {}, maps}, read = (at: Record<string, number>) => new Proxy(at, {get: (t, p: string) => (p in t ? t[p] : w[p] ?? 0), has: (t, p: string) => p in t || p in w}) as Record<string, number>
   const ev = (f: () => boolean): boolean | undefined => { try { return f() } catch { return undefined } }
   const valueOf = (e: E): number | undefined => { try { return evalE(e, read({}), st, mm) } catch { return undefined } }
   // Each bound key over its own sort as the model fills it: the terms its body's map reads bind matched against the
@@ -1046,17 +1046,22 @@ function modelsLoop<T>(m: Machine, laws: Law[], inst: Instances, goalOf: (i: Ins
 // goal's own keys (`focus`: the skolems of the law it proves, or a step law's keys) to each other and to the keys that
 // read none of them: at the i-th place, a key that reads the i-th focus alone (the first, past the focus there is), and
 // at most one place a key that reads no focus.
-const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[], byMap?: Map<string, E[]>, fns: string[] = []): Instances => ({...inst, ...Object.fromEntries(laws.filter(l => l.forall).map(l => {
+// (a law about several keys at most relatedMost tuples each way, and with many such laws a share of relatedBudget: wo's
+// caller goal with 81 of them, 950 tuples each, held 34,881 hypotheses; the model's tuples add the rest)
+const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[], byMap?: Map<string, E[]>, fns: string[] = []): Instances => {
+  const most = Math.min(relatedMost, Math.max(64, Math.floor(relatedBudget / Math.max(1, laws.filter(l => l.forall && l.keys?.length).length))))
+  return {...inst, ...Object.fromEntries(laws.filter(l => l.forall).map(l => {
   const had = inst[l.name] ?? []
   if (l.keys?.length) {
     const n = l.keys.length + 1, out = new Map<string, E[]>(), sorted = byMap ? keySorted(l, byMap, fns) : undefined
     for (let i = 0; i + n <= had.length; i += n) out.set(JSON.stringify(had.slice(i, i + n)), had.slice(i, i + n))
-    for (const tuple of [...related(keys, focus, n, sorted, relatedMost), ...matched(l, keys)]) if (!sorted || sorted(tuple)) out.set(JSON.stringify(tuple), tuple)
+    for (const tuple of [...related(keys, focus, n, sorted, most), ...matched(l, keys, most)]) if (!sorted || sorted(tuple)) out.set(JSON.stringify(tuple), tuple)
     return [l.name, [...out.values()].flat()]
   }
   const seen = new Set(had.map(e => JSON.stringify(e)))
   return [l.name, [...had, ...keys.filter(e => { const id = JSON.stringify(e); return seen.has(id) ? false : (seen.add(id), true) })]]
-}))})
+  }))}
+}
 // A tuple of the key's sort: each of a law's keys read at a map (M[x], M[x·N + y]) takes only the terms its read matches
 // against the keys the goals read that map at (the key's sort, as the goal holds it: Link[c1·N + s] against
 // Link[a·N + b] gives c1 a and s b); a key no read binds, or a read no goal key matches, takes any. A function's
@@ -1081,16 +1086,16 @@ function sortTerms(body: C, vars: string[], fns: string[], at: (map: string) => 
 // matches together bind them, as a fact's do (withFacts): at a name both bind, each one's value in turn.
 // (at most relatedMost tuples a law, from each way: where a law about many keys has more, sharded KV's five keys at
 // 24,608 tuples each, 112,587 hypotheses before any search, the model's tuples, modelInstances, add those a proof misses)
-export const relatedMost = 512
-const matched = (l: Law, keys: E[]): E[][] => {
+export const relatedMost = 512, relatedBudget = 8_192
+const matched = (l: Law, keys: E[], most = relatedMost): E[][] => {
   const vars = [l.forall!, ...(l.keys ?? [])], names = (e: E) => vars.filter(x => JSON.stringify(e).includes(`"name":${JSON.stringify(x)}`))
   const pats = new Map<string, E>()
   eachRead(e => { const ns = names(e.key); if (ns.length === vars.length || ns.length > 1) pats.set(JSON.stringify(e.key), e.key) }).inC(l.holds)
   const partial: Record<string, E>[] = []
   for (const p of pats.values()) for (const key of keys) { const b = matchMany(p, key, vars); if (b) partial.push(b) }
   const whole = (b: Record<string, E>) => vars.every(x => x in b), out = partial.filter(whole)
-  // (two partial matches together: at most relatedMost of them, as related's)
-  for (let i = 0; i < partial.length && out.length < relatedMost; i++) for (let j = i + 1; j < partial.length && out.length < relatedMost; j++) {
+  // (two partial matches together: at most `most` of them, as related's)
+  for (let i = 0; i < partial.length && out.length < most; i++) for (let j = i + 1; j < partial.length && out.length < most; j++) {
     const a = partial[i]!, b = partial[j]!
     if (whole(a) || whole(b) || !vars.every(x => x in a || x in b)) continue
     out.push({...b, ...a}, {...a, ...b})
@@ -1390,7 +1395,7 @@ const pointed = <T>(laws: Law[], f: () => T): T => {
   try { return f() } finally { atPoint.on = false }
 }
 // A law's goals decided by the EPR path alone, for a caller that asks many (the enumeration's Houdini rounds): each goal
-// decided, a refutation's core proven and widened as growRoot's (each core's search within a second); a model's tuples
+// decided, a refutation's core proven and widened as growRoot's (each core's search within two seconds of its decision, the wall first); a model's tuples
 // added where it breaks a law at the goal's keys (modelInstances), at most `rounds` times, the goals asked again; a model
 // left is one on every tuple of the goal's keys, returned with its diagram. undefined: a goal not EPR-shaped, a core not
 // proven or a budget run out (the caller's proveLaw next). Untrusted: a caller's verdict rests on its final proof.
@@ -1402,10 +1407,11 @@ export function decideLaw(m: Machine, laws: Law[], i: number, rounds = modelRoun
       let more: Instances | undefined
       for (const g of obligations(m, laws, {[laws[i]!.name]: inst}, i)) {
         if (pastWall()) return undefined
-        const o = eprFirst(g, {nodes: 0, until: clock() + 1_000})
+        const o = eprFirst(g, {nodes: 0, until: clock() + 4_000})
         if (!o) return undefined
         if ('tree' in o) continue
         more = round < rounds ? modelInstances(m, laws, inst, g, o.witness!) : undefined
+        if (pastWall()) return undefined
         if (!more) return {proven: false, goal: g.name, stuck: 'sat', witness: o.witness!, ...(o.diagram ? {diagram: o.diagram} : {})}
         break
       }
