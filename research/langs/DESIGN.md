@@ -201,3 +201,36 @@ Option and Result), each a change to their rules to re-prove, not a byte-identic
 one through the olean volume's /gocap, then `modal volume get`). Validation: research/langs/go-port.json (snapshot,
 Rust tests and corpus with --write, LiteLLM). Bars: `bun bar --quick --cand gen/go-port --base 9220ad0 --backend modal
 --together` (no shared baseline of 9220ad0 exists), then `--only suite,suite-usual,rw,onecpu --together`.
+
+## Ruby (gen/ruby)
+
+`core/rb/reader.rb` (23,154 bytes of Ruby on Prism) lowers a class into the IR; `core/rb/harness.rb` (5,843) is the
+reflective harness, Python's protocol; `core/extract-rb.ts` (4,559) the front end; the executor +1,038 bytes.
+
+**Types, inferred.** Ruby states none, so the reader reads them from the code: a field's from what the class assigns
+it (symbols, or literal constants of the code that are symbols: a choice; nil beside numbers: an optional number; a
+local or another field: what it is assigned) and how it is used (computed with or ordered against: a number), an
+argument's from what its method compares it with (`case x when :a`, `x == :b`: a choice) or computes it into, or its
+default, or the field it is kept in. A type inferred wrong is a refusal at the check, never a rule that lies.
+
+**Ruby's semantics, in the IR.** Every field is nil until set (initialize sets them nil first; a class without one
+gets one); a method's last expression is its result (each branch's too); `/` and `%` are floor (`//`); only nil and
+false are false (the module's `truth: 'nil-false'`, the executor's one switch for it); case/when is a chain of ifs on
+`==`; `x.synchronize do ... end` is a lock (`with`); attr_reader, attr_writer and attr_accessor are methods the reader
+writes; a constant of the code that is a literal is read from the file under the root that defines it, and the check
+loads that file first.
+
+**What the executor gained:** the truth switch, symbol arguments (`sym` on a choice type and on the harness's
+argument), keyword arguments to a constructor given as keywords (Python's keyword-only ones had the same gap), a
+literal written to a field of a choice typed as the choice (any reader's), `?` and `!` in names (`open?` is
+`open_p`), `@` dropped from a field's name, and arms at line 0 (statements the reader writes) not counted.
+
+**The corpus.** semian 0.28.4 (Shopify, MIT): `Semian::Simple::State` (closed, open, half open; 4 laws) and
+`Semian::Simple::Integer` (the success counter; 3 laws); stoplight 6.0.0 (MIT): the in-memory light state
+(`transition_to_color`, `clear` under a mutex, the clock an injected object stated with `clocks`; 4 laws, among them
+"a recovered light is never breached", an invariant). All 11 proven; each rule checked on 2,300–2,800 requests.
+research/langs/ruby/run.ts fetches the gems from rubygems.org and re-extracts (`--write`).
+
+**Not yet:** arrays and hashes (semian's CircuitBreaker keeps its errors in a sliding window, an array), blocks other
+than synchronize, `answers` and `stores` (rack-attack's throttles read a cache), records as arguments, def_delegators,
+modules mixed in.
