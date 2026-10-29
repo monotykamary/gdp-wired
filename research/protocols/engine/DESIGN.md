@@ -103,6 +103,15 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - **What would help, not tried:** a smaller BFS share for an instance the BFS doesn't finish, and the caller goal's own cost.
 - **Verdicts** (`r7`, all ten, 2 runs): sync 6–7 s, async 20–28, decentralized 25–29, 2PC 16–17, ticket 23–29, toy 14–19, all proven; distributed, ring, wo and sharded unknown. Nothing moved, so no bar.
 
+**Since 673a262** (`runs/engine/r8`, 2 runs each)
+- **Round 0** is the minimal cubes alone, at most 24, or the whole enumeration where it is 16 cubes or fewer (toy's 10, of which 7 minimal).
+  - **ring:** round 0 is 9 cubes and ends at 7–10 s (was 24 s, with 7 padded 3-literal cubes unsure). Rounds 1–3 cost 2–5 s each. Growth then takes it to 21–28 cubes, and the set's proof over those costs 23–29 s, to the wall. The kernel side (gen/epr8) has the set-proof cost.
+- **A small instance's BFS that won't finish** (a quarter of its share gone, 1 s at least, and its queue still a quarter of what it found) is cut there, and the walks get half a second.
+  - **wo:** the instance takes 1.5 s (was 4 s), with 460–500 states (was 830–1050) and 290 cubes enumerated locally (was 210); the exact voting-quorum cube is still among them. The engine starts at 20–25 s (was 21–26). The caller's goal still costs 9–17 s a round; that is the kernel's side.
+  - **Every BFS that finishes is as it was:** decentralized, distributed, ring, toy, sharded.
+- **The joins:** 2PC's join reaches its proof in 24 rounds, at 5.2–5.4 s; decentralized's sums-pass join in 6 rounds, at 2.6–2.9 s. Untouched.
+- **Verdicts:** 2PC 15–16 s, decentralized 26–31, toy 16–19, proven; wo, ring and distributed unknown.
+
 **The expressibility map** (each written law in models.ts's `human`, against the engine's enumeration; `smallprobe.ts` with CUBES=made lists it, and 'join view' each view's literals)
 
 | Protocol | Written law | In the candidate space? | Missing block or cause |
