@@ -4,7 +4,7 @@ LiteLLM v1.106.6 (61c6ab78393ef45683dd7d963d2a315bd845e20b, the latest release),
 (`research/langs/litellm/jobs.json`: the checkout, `uv pip install -e '.[proxy]'`, `run.ts --ms 60000 --write`), 252 s
 of which the install is most; `runs/langs/modal/run3` (run2, on the code before its last commit, gave the same verdicts). `results.json` beside this file is the run's own output.
 
-**7 of 7 items extracted and checked, 20 laws: 18 proven, 2 refuted, none unknown.**
+**7 of 7 items extracted and checked, 21 laws: 19 proven, 2 refuted, none unknown.**
 
 | Item | Checked (requests from the start / drawn states / witnesses, arms) | Laws |
 | --- | --- | --- |

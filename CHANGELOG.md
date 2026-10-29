@@ -24,7 +24,7 @@ lean-kernel/ are b118bf5's). research/langs/DESIGN.md has the design.
   key-value store, a map per key template, its TTL left out).
 - **LiteLLM** (research/langs/litellm/, v1.106.6): 7 rules read from its code (four per-entity max_budget checks, the
   max-iterations and per-session budget hooks over the internal usage cache, the router's allowed-fails cooldown
-  policy), each checked against LiteLLM's own code on Modal, 20 laws: 18 proven, 2 refuted (a team and an end user at
+  policy), each checked against LiteLLM's own code on Modal, 21 laws: 19 proven, 2 refuted (a team and an end user at
   exactly their max_budget are admitted: LiteLLM's own BUDGET_CODE_MATRIX.md names the inconsistency; not reported).
   The items join the real-world corpus (research/realworld/items/litellm-py.ts); `run.ts --src <checkout>` runs the
   same laws on a fork.
@@ -33,6 +33,11 @@ lean-kernel/ are b118bf5's). research/langs/DESIGN.md has the design.
   332 step goals the same search, the real-world dev set level; core/ and kernel/ +103,695 bytes (the executor and the
   front end; the Python reader and harness, 38 KB, beside them). The suites and the full real-world corpus are not run
   yet.
+- **The pre-merge bar** (c93a4e3, gen/langs merged with main e537601, against e537601, together; `runs/bar/runs/c93a4e3d699f-vs-e53760145343-full-2026-10-291139`):
+  wrong 0 and nothing lost in every group. The real-world corpus 308 / 35 / 8 of 351 laws against 289 / 33 / 8 of 330
+  (the 21 LiteLLM laws added: 19 proven, 2 refuted; the base's 330 the same law for law); suites 226 of 226 in both
+  modes (the extract-py job added), job seconds 5,738.8 against 5,869.9 and 5,348.5 against 5,630.0 (--usual); the
+  1-vCPU tests level. core/ and kernel/ +104,011 bytes. $1.64.
 
 **The EPR path: goals over composed keys decided by their parts (gen/epr).** Nothing trusted changed.
 research/protocols/epr/DESIGN.md has the design, the probe and the measurements.
