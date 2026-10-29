@@ -88,6 +88,19 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 - **Overruns left:** sharded 72 s (the caller's proof runs to the end, then 15–20 s after the search), distributed 63 s.
 - **Size:** core/infer.ts is 184,749 bytes against 162,204 at 9987874. enum3's stage is +13.2 KB of that, the engine +9.3 KB, tracing included.
 
+**Second checkpoint** (`runs/engine/p12`, all ten, 2 runs at 60 s):
+- **toy's margin:** the 13–17 s over 835ac18 was the minimization after the proof: 9 whole-set re-proofs, 23–27 s. The engine's set is no longer minimized. Toy now takes 26–30 s, against 42 s at 835ac18. (A cone read off the Houdini cores didn't help: the caller's law goes to the proof path, which gives no core.)
+- **All six proven, safely:** sync 8–10 s, async 25, decentralized 19–21, 2PC 16–22, ticket 31–35, toy 27–28. Broken variants are the same.
+- **Taken out:**
+  - the diagnostics (`GDP_ENUM_LOG`, `T(...)`; `GDP_ENGINE_SHARE` went with 9471de9's revert);
+  - the one-literal weakening of a real counterexample's cube, which bought no verdict.
+- **Size:** core/infer.ts is 182,318 bytes, +20.1 KB over 9987874 (enum3 +13.2 KB, the engine +6.9 KB).
+- **Step 3 (wider patterns), measured before building:**
+  - wo: the 3-node view (71 literals) holds the whole counterexample row, 24 literals over the cells the model names. That full row is a row of a reachable small state (3 nodes). The 4-node and 5-node views come out the same way.
+  - sharded: the same at its widest view (5 keys, 21 literals). Down to one literal, every generalization is reached.
+  - So the two counterexamples' states agree with a reachable small state on every tuple a view of ≤ 5 keys covers. A wider view needs a small instance at least that wide: the 4-node wo BFS, past 3 nodes' 1,400–3,250 states in 30 s, is out of reach. Ivy's wo invariant also needs an ∃ (a leader has a quorum that voted for it), which the ∀ cubes can't say.
+- **Overrun left:** sharded ends at 77 s. Its search ends near 59 s; the rest is after it, in core/dsl.ts's deeper bounded runs (`withWall(Infinity, …)`), which is outside core/infer.ts.
+
 **Next steps, in order:**
 1. Start the stage earlier, with a planned share of the budget, not what's left after the join and the deep runs (distributed_lock's round 1 is cut short).
 2. Carry the model's function values into the judged state (ring): `stateOf`/`realCti` read `idn[...]` cells of the witness into the interpreter's view of `idn`, or judge rows with the model's values.
