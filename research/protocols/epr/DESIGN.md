@@ -687,3 +687,51 @@ instantiated with a composed key (`y := 64·e + n1`). The goal then compares a p
     and model instances return at once without a law about keys.
 - **Size:** kernel/epr.ts +10,000 bytes (63,003), kernel/prove.ts +532, against a2571b6.
 - **Spend:** about $2 of the $9: the pilots, Z3 and the bar.
+
+## gen/epr7: decideLaw inside the stage, and ring's undecided cubes
+
+Branch gen/epr7 from gen/enum4's c9e046d. Nothing trusted changed.
+
+**The stage's own calls.** On Modal, one run each of distributed_lock and ring_leader_election logged every decideLaw call:
+its set, its law, its time, its answer. Replaying them locally:
+- **distributed round 0** (50 calls): 175 ms on average.
+  - 63% was the EPR decision itself: its read, about a quarter of it the theory's check.
+  - 23% was widen, which reads every leaf's rows again in the whole goal.
+  - Instance building was a few percent. Repeated parsing and sorting of the set didn't show.
+- **ring round 1:** 8 of its 16 cubes undefined at the stage's ~2 s. Their cores' trees, widened to goals of 4,000
+  hypotheses, ran out of time. One cube's theory took 220 rounds of one lemma each: those lemmas were the whole
+  order's chain, true of one ordering only.
+
+**Changes:**
+- **decideLaw no longer widens a core's tree.** A refutation of some of a goal's hypotheses refutes the goal. The
+  caller's verdict rests on its own final proof, which widens and checks as before. growRoot's EPR path still widens.
+- **Theory lemmas are kept across goals by their atoms' names.** Each is arithmetic over what its names read, so it
+  holds in any goal with those atoms. A round's goals over one set share them (at most 20,000).
+- **The joint theory check runs over every pair of ordered terms** (when there are at most 48) and the model's
+  successors. A refutation through a term no comparison reads is then a lemma of the pairs it needs, not of the whole
+  order. Ring's slow cube: 220 rounds and 9.9 s, now 22 rounds and 2.1 s.
+
+**Measured:**
+- **distributed's round 0:** 175 ms to 66 ms a call on average (laptop); round 1 129 ms, rounds 2 and 3 180 ms.
+- **distributed's 80 earlier undecided cubes:** median 54 ms, max 209 ms.
+- **ring round 1:** 7 of its 8 undefined cubes decided, 0.4–2.2 s. The eighth needs six model rounds, past 3 s.
+  - gen/epr6's 6 undecided: 5 decided.
+  - wo's 81-law caller goal: a model in 1.7–1.9 s.
+- **Z3 4.13** (Modal) on every round's step goal of ring's round-1 and distributed's round-0 cubes: 126 of 126 agree.
+  The 32 protocol step goals and the earlier fixtures still agree.
+- **Deadline test** (Modal): 17 of 17.
+- **The pilot** (all ten, two runs at 60 s, c9e046d's stage on both sides):
+  - every verdict the same, the six proven still proven;
+  - distributed ends at 42–51 s against 54–63 s;
+  - ring, wo and sharded KV level, all four still unknown.
+- **The bar** (`--only rw,f1,f2,g332,suite,onecpu`, against 5d4da3f's cached baseline,
+  `runs/bar/runs/1bd990a9428f+524bd30f-vs-5d4da3f49013-quick-2026-10-292058`):
+  - wrong 0;
+  - the real-world dev set, f1 and f2 level;
+  - the 332 step goals: the same search on all 332 (308 s against 287 s summed);
+  - 1 vCPU: no candidate job failed.
+  - **The suite's check job failed:** two timing variables left from a trace, a lint error. Fixed (91f8379). The suite
+    rerun is 227 of 227 (`…/91f837962d79+c1f86ef5-vs-5d4da3f49013-quick-2026-10-292109`).
+  - CHC, ITS, SV and TIP were not run: no maps, so none of this code reaches them.
+- **Size:** kernel/epr.ts +1,907 bytes (64,910), kernel/prove.ts +247, against c9e046d.
+- **Spend:** about $1.5 of $4.

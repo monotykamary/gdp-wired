@@ -5,6 +5,17 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**decideLaw three times quicker inside the enumeration's stage; most of ring's undecided cubes decided (gen/epr7).**
+Nothing trusted changed. research/protocols/epr/DESIGN.md, "gen/epr7", has the measurements.
+- **decideLaw no longer widens a core's tree;** its caller's final proof does.
+- **Theory lemmas are kept across goals** by their atoms' names.
+- **The joint theory check** runs over every pair of ordered terms and the successors.
+- **Results:**
+  - distributed's stage calls: 175 ms to 66 ms on average;
+  - ring's round-1 cubes: 7 of 8 decided, one slow cube from 9.9 s to 2.1 s;
+  - every round's goal as Z3 4.13 says (126 of 126).
+- **Bar** (rw, f1, f2, g332, suite, onecpu against 5d4da3f): wrong 0, nothing lost; the suite 227 of 227 after a lint fix.
+
 **The EPR path checks comparisons it can't read against the order; distributed's undecided cubes and wo's 81-law caller
 goal decided (gen/epr6).** Nothing trusted changed. research/protocols/epr/DESIGN.md, "gen/epr6", has the measurements.
 - **A theory of the order** (DPLL(T)): comparisons of key parts with composed keys, which wrong-sort instances bring, are
