@@ -866,11 +866,12 @@ export class Stepper {
     return refuse(x, `${x.text}: a call of a ${f.t}`)
   }
   // The arguments of a call left to the boundary, read as far as the subset goes: the code evaluates them, so the fields
-  // they read are inputs the check gives (an argument outside the subset is taken as reading nothing of the state).
+  // they read are inputs the check gives. An argument outside the subset that reaches none of the module's code and
+  // not the object itself (other code's calls on other values) is taken as changing nothing of the state.
   argsRead(x: SX, p: Path): Path {
     let q = p
     for (const a of [...(x.args as SX[]), ...(x.kw as [string, SX][]).map(([, v]) => v)]) {
-      try { q = this.ev(a, q)[1] } catch (e) { if (!(e instanceof Refusal)) throw e }
+      try { q = this.ev(a, q)[1] } catch (e) { if (!(e instanceof Refusal) || !foreign(a)) throw e }
     }
     return q
   }
@@ -967,6 +968,13 @@ const callFree = (x: unknown): boolean => {
   const o = x as {e?: string}
   if (o.e === 'call' || o.e === 'await' || o.e === 'no') return false
   return Object.values(o).every(callFree)
+}
+// An expression that reaches none of the module's own code and not `self`.
+const foreign = (x: unknown): boolean => {
+  if (!x || typeof x !== 'object') return true
+  const o = x as {e?: string, n?: string}
+  if (o.e === 'fn' || (o.e === 'var' && o.n === 'self')) return false
+  return Object.values(o).every(foreign)
 }
 // Two key templates name disjoint keys: they differ at some position of their fixed prefixes or of their fixed
 // suffixes (a hole's value can be any string, so only those parts tell keys apart).
