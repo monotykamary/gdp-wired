@@ -125,6 +125,21 @@ int rb_get(struct rb *r) { if (r->count == 0) return -1; int x = r->buf[r->tail]
   expect(oob.source).toMatch(/f_i\.lt\(4\)|f_i\.atMost\(3\)/)
 }, 60_000)
 
+t('an out-parameter: what the function leaves in *data is its result beside the value returned; masks of promoted values', () => {
+  const x = ok(c(`
+#include <stdint.h>
+#include <stdbool.h>
+#define N 16
+typedef struct { uint8_t buf[N]; uint8_t head, tail; } rb_t;
+static inline bool rb_full(rb_t *r) { return ((r->head - r->tail) & (N - 1)) == (N - 1); }
+static inline bool rb_empty(rb_t *r) { return r->head == r->tail; }
+void rb_queue(rb_t *r, uint8_t x) { if (rb_full(r)) r->tail = (r->tail + 1) & (N - 1); r->buf[r->head] = x; r->head = (r->head + 1) & (N - 1); }
+uint8_t rb_dequeue(rb_t *r, uint8_t *data) { if (rb_empty(r)) return 0; *data = r->buf[r->tail]; r->tail = (r->tail + 1) & (N - 1); return 1; }
+`, 'rb_t', {fails: {rb_dequeue: '== 0'}, onError: 'discard'}))
+  expect(x.source).toContain('rb_dequeue_data')
+  step(x, 'a dequeue gives the item at the tail', (b, a) => a.rb_dequeue_data.eq(b.buf.at(b.tail)), b => b.method.is('rb_dequeue').and(b.tail.lt(16)))
+}, 60_000)
+
 t('refused where it leaves the subset, each with why', () => {
   const why = (code: string, entry: string) => { const r = c(code, entry); expect(r.ok).toBe(false); return r.refusals[0]!.what }
   expect(why('struct q { int n; };\nvoid f(struct q *q) { while (q->n > 0) q->n--; }\n', 'q')).toMatch(/a loop \(while\)/)

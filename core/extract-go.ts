@@ -42,7 +42,7 @@ import {type IntTy, type Recipe, type SFunc, type SModule, type SS, type SX, typ
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
 
 // --- the reader's JSON ----------------------------------------------------------------------------------------------
-export type TT = {k: string, go?: string, fixed?: boolean, generic?: boolean, name?: string, pkg?: string, own?: boolean, bits?: number, signed?: boolean, untyped?: boolean, ub?: boolean, elem?: number, key?: number,
+export type TT = {k: string, go?: string, fixed?: boolean, box?: boolean, generic?: boolean, name?: string, pkg?: string, own?: boolean, bits?: number, signed?: boolean, untyped?: boolean, ub?: boolean, elem?: number, key?: number,
   fields?: {name: string, t: number, embedded: boolean}[], xfields?: {name: string, t: number, embedded: boolean, exported: boolean}[], methods?: {name: string, ptr: boolean}[], params?: number[], results?: number[], elems?: number[], iface?: boolean, args?: number[], len?: number}
 type GC = {int?: string, bool?: boolean, str?: string, float?: string, other?: string}
 export type GX = {e: string, p: string, t: number, text: string, c?: GC, why?: string, what?: string, b?: GX, n?: string, o?: string, id?: string, x?: GX, y?: GX, op?: string, f?: GX, a?: GX[], k?: string, lo?: GX, hi?: GX, three?: boolean,
@@ -563,8 +563,8 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
   if (!chosen.length) refuse(td, `${opts.entry} has no methods to read`)
   const names = chosen.map(f => f.name), ev = g.newVar('method', {k: 'choice', values: names}, 'input')
   const evL = {op: 'var' as const, name: ev.name, values: names}
-  const outputs: string[] = [], results: Record<string, {k: 'scalar', name: string}> = {}
-  type Final = {sel: B, leaves: Map<string, Term>, maps: Map<string, {key: K, has: B, vals: Record<string, Term>}>, lists: Map<string, ListOp[]>, out?: [string, Term]}
+  const outputs: string[] = [], results: NonNullable<Model['results']> = {}
+  type Final = {sel: B, leaves: Map<string, Term>, maps: Map<string, {key: K, has: B, vals: Record<string, Term>}>, lists: Map<string, ListOp[]>, out?: [string, Term], more?: [string, Term][]}
   const finals: Final[] = [], events: Event[] = [], methods: GoRead['methods'] = []
   for (const fn of chosen) {
     g.method = fn.name
@@ -621,7 +621,22 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
       if (it) g.ints.set(x.name, it)
       out = [x.name, termOf(acc, fn)]
     }
-    finals.push({sel, ...materialize(go, final, fn), ...(out ? {out} : {})})
+    // An out-parameter (C's `T *out`, a box the caller gives): what the function left in it, beside the result.
+    const more: [string, Term][] = []
+    for (const pa of params) {
+      const pt = go.T(pa.t)
+      if (pt.k !== 'ptr' || !go.T(pt.elem!).box) continue
+      const id = `in:${fn.name}_${pa.name}`
+      if (ok.some(([q]) => !(q.heap.get(id) as {f?: Map<string, V>} | undefined)?.f?.has('value'))) refuse(fn, `${fn.name}: *${pa.name} neither set nor read where it returns (the caller's value, unknown to the rule)`)
+      const v = (final.heap.get(id) as {f: Map<string, V>}).f.get('value')!, s = go.scalar(go.T(pt.elem!).fields![0]!.t)
+      const x = g.newVar(`${fn.name}_${pa.name}`, s as Var['sort'], 'state', `what ${fn.name} left in *${pa.name}, at the step that called it (its default at others)`)
+      outputs.push(x.name)
+      const it = go.intTy(go.T(pt.elem!).fields![0]!.t)
+      if (it) g.ints.set(x.name, it)
+      more.push([x.name, termOf(v, fn)])
+    }
+    if (more.length) results[fn.name] = {k: 'rec', fields: [...(out ? [['result', out[0]] as [string, string]] : []), ...more.map(([n]) => [n.slice(fn.name.length + 1), n] as [string, string])]}
+    finals.push({sel, ...materialize(go, final, fn), ...(out ? {out} : {}), ...(more.length ? {more} : {})})
     events.push({select: {[ev.name]: fn.name}, call: fn.name, args})
     methods.push({name: fn.name, ptr: !!fn.recv?.ptr, params, results: fn.results.map(r => r.t), err: errAt >= 0})
   }
@@ -646,7 +661,7 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
     const v = g.vars.get(o)!
     init[o] = v.sort.k === 'num' ? {s: 'num', e: I.num(0)} : v.sort.k === 'bool' ? {s: 'bool', e: I.F} : {s: 'str', e: {op: 'slit', value: ''}}
     let acc: Term = init[o]!
-    for (let i = finals.length - 1; i >= 0; i--) acc = iteTerm(finals[i]!.sel, finals[i]!.out?.[0] === o ? finals[i]!.out![1] : init[o]!, acc)
+    for (let i = finals.length - 1; i >= 0; i--) acc = iteTerm(finals[i]!.sel, finals[i]!.out?.[0] === o ? finals[i]!.out![1] : finals[i]!.more?.find(([n]) => n === o)?.[1] ?? init[o]!, acc)
     writes[o] = acc
   }
   const mapWrites: Model['mapWrites'] = {}

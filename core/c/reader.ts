@@ -5,7 +5,7 @@
 // written here as Go's own nodes, made explicit where clang's types say so. Integer promotions and the usual arithmetic
 // conversions are clang's ImplicitCastExpr nodes, each a conversion; a condition is a comparison with 0 (or NULL); a
 // switch's case runs into the next unless it breaks (a fallthrough); `x op= y` computed at a wider type is
-// `x = (T)(x op y)`; `u & (2^k − 1)` of an unsigned u is `u % 2^k`; assert and abort are panics; a signed type's
+// `x = (T)(x op y)`; `x & (2^k − 1)` is x's floor remainder by 2^k (two's complement); assert and abort are panics; a signed type's
 // overflow is undefined (`ub`, refused by the executor where it may be). What the subset doesn't read becomes a
 // `no` node with why, refused where a step reaches it.
 //
@@ -220,7 +220,18 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   const entryRec = tags.get(`struct ${entry}`) ?? tags.get(entry) ?? typedefs.get(entry)?.rec
   const entryT = entryRec ? recT(entryRec, entry) : refuse(undefined, `no struct ${entry} in ${base}`)
   const params = (f: CN) => (f.inner ?? []).filter(c => c.kind === 'ParmVarDecl')
+  // An out-parameter (a pointer to an integer or a bool, not the receiver): a pointer to a box of one field, `value`,
+  // *p its field.
+  const boxed = new Map<string, number>()
+  const boxOf = (q: CN): number => {
+    const t = tyOf(q.type!), pt = T(t)
+    if (pt.k !== 'ptr' || !['int', 'bool'].includes(T(pt.elem!).k)) return t
+    const e = pt.elem!, b = add(`box:${e}`, {k: 'struct', own: true, box: true, name: T(e).go, go: T(e).go, fields: [{name: 'value', t: e, embedded: false}]}), bp = add(`ptr:${b}`, {k: 'ptr', go: pt.go, elem: b})
+    boxed.set(q.id!, bp)
+    return bp
+  }
   const recvOf = (f: CN) => { const p = params(f)[0], t = p ? T(tyOf(p.type!)) : undefined; return t?.k === 'ptr' && t.elem === entryT ? p : undefined }
+  for (const f of funcs.values()) for (const q of params(f).slice(recvOf(f) ? 1 : 0)) boxOf(q)
   const strip = (n: CN): CN => (n.kind === 'ParenExpr' || (n.kind === 'UnaryOperator' && n.opcode === '__extension__') || ((n.kind === 'ImplicitCastExpr' || n.kind === 'CStyleCastExpr') && ['LValueToRValue', 'NoOp'].includes(n.castKind!)) ? strip(n.inner![0]!) : n)
   const at = (n: CN, t: number) => ({p: pos(n), t, text: text(n)})
   const no = (n: CN, why: string): GX => ({e: 'no', ...at(n, -1), why})
@@ -232,6 +243,14 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     if ((n.kind === 'ImplicitCastExpr' || n.kind === 'CStyleCastExpr') && n.castKind === 'IntegralCast') return isBoolish(n.inner![0]!)
     if (n.kind === 'CallExpr' && calleeName(n) === '__builtin_expect') return isBoolish(n.inner![1]!)
     return n.type ? T(tyOf(n.type)).k === 'bool' : false
+  }
+  // (a sum or product of promoted unsigned values and constants ≥ 0: at least 0, by its form)
+  const nonneg = (n0: CN): boolean => {
+    const n = strip(n0), k = fold(n)
+    if (k !== undefined) return k >= 0
+    if (n.kind === 'ImplicitCastExpr' && n.castKind === 'IntegralCast') return T(tyOf(n.inner![0]!.type!)).signed === false
+    if (n.kind === 'BinaryOperator' && (n.opcode === '+' || n.opcode === '*')) return nonneg(n.inner![0]!) && nonneg(n.inner![1]!)
+    return !!n.type && T(tyOf(n.type)).signed === false
   }
   const calleeName = (n: CN): string | undefined => { const c = strip(n.inner![0]!); const d = (c.kind === 'ImplicitCastExpr' ? strip(c.inner![0]!) : c).referencedDecl; return d?.kind === 'FunctionDecl' ? d.name : undefined }
   // A condition: a boolean as it is; a number compared with 0; a pointer with NULL.
@@ -258,7 +277,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       case 'CXXBoolLiteralExpr': return {e: 'lit', ...a, c: {bool: !!n.value}}
       case 'DeclRefExpr': {
         const d = n.referencedDecl!
-        if (d.kind === 'ParmVarDecl') return {e: 'id', ...a, o: 'var', id: d.id, n: d.name}
+        if (d.kind === 'ParmVarDecl') return {e: 'id', ...a, ...(boxed.has(d.id) ? {t: boxed.get(d.id)!} : {}), o: 'var', id: d.id, n: d.name}
         if (d.kind === 'VarDecl') return globals.has(d.id) ? no(n, `${d.name}: a ${globals.get(d.id)!.storageClass === 'static' ? 'static' : 'global'} variable (state every object shares)`) : {e: 'id', ...a, o: 'var', id: d.id, n: d.name}
         if (d.kind === 'FunctionDecl') return no(n, `${d.name}: a function used as a value`)
         return no(n, `${text(n)}: a ${d.kind}`)
@@ -286,7 +305,11 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         if (op === '&') {
           // u & (2^k − 1): u's low k bits, u % 2^k for an unsigned u.
           const m = fold(r)
-          if (m !== undefined && m > 0 && Number.isInteger(Math.log2(m + 1)) && T(t).signed === false) return {e: 'bin', ...a, op: '%', x: x(l), y: lit(r, m + 1, t)}
+          // (of a signed x, two's complement: the floor remainder, ((x % 2^k) + 2^k) % 2^k by C's truncating %)
+          if (m !== undefined && m > 0 && Number.isInteger(Math.log2(m + 1))) {
+            const k = lit(r, m + 1, t), lo: GX = {e: 'bin', ...a, op: '%', x: x(l), y: k}
+            return T(t).signed === false || nonneg(l) ? lo : {e: 'bin', ...a, op: '%', x: {e: 'bin', ...a, op: '+', x: lo, y: k}, y: k}
+          }
         }
         if (ARITH.has(op)) return {e: 'bin', ...a, op: op === '^' ? '^' : op, x: x(l), y: x(r)}
         if (op === ',') return no(n, 'the comma operator')
@@ -298,7 +321,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         if (op === '-' || op === '+') return {e: 'un', ...a, op, x: x(kids[0]!)}
         if (op === '~') return {e: 'un', ...a, op: '^', x: x(kids[0]!)}
         if (op === '&') return {e: 'un', ...a, op: '&', x: place(kids[0]!)}
-        if (op === '*') return {e: 'star', ...a, x: x(kids[0]!)}
+        if (op === '*') { const r = strip(kids[0]!); return r.kind === 'DeclRefExpr' && boxed.has(r.referencedDecl!.id) ? {e: 'sel', ...a, k: 'field', x: x(r), path: [0]} : {e: 'star', ...a, x: x(kids[0]!)} }
         return no(n, `${text(n)}: ${op} inside an expression (the subset reads it as a statement)`)
       }
       case 'ConditionalOperator': return {e: 'ite', ...a, x: cond(kids[0]!), y: x(kids[1]!), b: x(kids[2]!)}
@@ -440,7 +463,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     const ps = params(f), r = recvOf(f), body = f.inner!.find(c => c.kind === 'CompoundStmt')!, rt = parseT(f.type!.qualType.slice(0, retEnd(f.type!.qualType)))
     out.push({name, p: pos(f), span: [f.$b?.line ?? 0, f.$e?.line ?? 0],
       ...(r ? {recv: {t: tyOf(r.type!), ptr: true, type: entry, ...(r.name ? {name: r.name, id: r.id} : {})}} : {}),
-      params: ps.slice(r ? 1 : 0).map(q => ({...(q.name ? {name: q.name, id: q.id} : {}), t: tyOf(q.type!), ts: q.type!.qualType})),
+      params: ps.slice(r ? 1 : 0).map(q => ({...(q.name ? {name: q.name, id: q.id} : {}), t: boxed.get(q.id!) ?? tyOf(q.type!), ts: q.type!.qualType})),
       results: T(rt).k === 'void' ? [] : [{t: rt}], body: ss(body.inner ?? []),
       ...(/\.\.\.\)$/.test(f.type!.qualType) ? {params: [{t: -1, variadic: true}]} : {}),
       static: f.storageClass === 'static'} as GoFunc)
