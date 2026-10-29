@@ -108,6 +108,33 @@ Not yet: maps and vectors in a Rust state, `answers` and `stores` (the harness h
 instrumentation: the arms are not counted), generics, trait methods on foreign types (failsafe's `Millis for
 Duration`), two structs of one name in two modules (leaky-bucket-lite's).
 
+## Moving Go onto the executor: measured (gen/go-shared)
+
+**The baseline** is taken (research/langs/go-snapshot/): every extraction the Go tests make (38, 19 tests passing) and
+every one research/extract/go-run.ts makes on the corpus's 25 Go sources (50), each one's rule source, notes and
+refusals, from `GDP_GO_SNAPSHOT` in extract-go.ts (`research/langs/go-snapshot.json`, two Modal jobs, about 6 min).
+`compare.ts` diffs a later run against it byte for byte (88 of 88 the same on the baseline itself).
+
+**What GoReader is** (core/extract-go.ts, 111,679 bytes; its methods by lines): about 360 lines are what the shared
+executor already does the same way (paths, join and merge, the methods assembled into the Model, inlining, lazy
+argument fields: about 30 KB); the other 980 are Go's semantics (pointers into the state by cases, value structs,
+*big.Int, error results, nil maps, slices with append's aliasing, a mutex's deferred Unlock, switch with fallthrough,
+multiple results, 171 refusal sites of which the baseline reaches 36 distinct texts).
+
+**A prototype** (gobreaker's Counts, the first test, lowered by hand into the IR and run through readStep) prints a rule
+of the same shape as Go's, and differs where Go's semantics are better than the shared ones:
+- Go wraps by the bounds of the term and the path's facts (`t2.atLeast(4294967296)`, one case; no wrap at all on a
+  subtraction its `if` guards); the shared `wrap` checks both sides always. Go's should become the shared one.
+- Go gives a kept result its type's range law; the shared executor gives fields only.
+- the header's words and the notes' texts ("uint32: a result past its range wraps modulo 2^32, as Go's does").
+
+**So the move is a port, not a deletion:** Go's integer and pointer semantics into the executor (on its values), a Go
+lowering (the reader's JSON to the IR, in TypeScript beside reader.go, Go's refusal texts carried in the IR's `no` and
+`fail` nodes), then GoReader deleted. Expected: −112 KB (GoReader) +10 KB (the front end's glue) +30 KB (the lowering)
++15 KB (pointers by cases, *big.Int as an unbounded Option, slices as lists, error results, fallthrough) ≈ **−57 KB of
+TypeScript**, not the 75 KB estimated in phase 1 (which counted the lowering in Go). Python's and Rust's rules change
+where the shared integer semantics become Go's (their corpus rules re-extracted; the laws re-proven).
+
 ## The next languages, on this structure
 
 Each is its reader (in the language, with its own parser), a harness, a ~3 KB front end, and the executor operations it
