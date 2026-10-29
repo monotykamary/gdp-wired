@@ -20,7 +20,7 @@
 import {type Constraint, type Lin, type Step, costs, env, refuteFast, solve, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isMonomial, leafConstraints} from './kernel.ts'
-import {cellPair, late, leafRowsOf, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, type Outcome} from './prove.ts'
+import {atPoint, cellPair, late, leafRowsOf, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, type Outcome} from './prove.ts'
 import {Clausal, Reader, type Row, namesOf} from './reader.ts'
 import {Simplex} from './simplex.ts'
 
@@ -65,7 +65,8 @@ const lpFill = Number(env.GDP_CDCL_FILL ?? 8), lpGrow = Number(env.GDP_CDCL_GROW
 export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0, nodes: 0, boundRounds: 0}
 
 // `opts.model`: only whether the goal has a model is wanted (core/bmc.ts): a refutation isn't unfolded into a tree, its
-// outcome `unknown` with `why` REFUTED; each decision's phase is the simplex's point's (phaseAtPoint); past `opts.wall` (wall time) the search stops as past its budget.
+// outcome `unknown` with `why` REFUTED; each decision's phase is the simplex's point's (phaseAtPoint; in the tree search too
+// where prove.ts's `atPoint` is on); past `opts.wall` (wall time) the search stops as past its budget.
 // `opts.core`, with `model`: a refutation's outcome also names the hypotheses its leaves read (`core`, their indices in
 // goal.hyps): those alone have no model (each leaf's rows are those hypotheses' facts at its decisions, or rows true of
 // any value: the trail's atoms, the naturals, the term columns' definitions), as core/infer.ts's join reads it.
@@ -694,7 +695,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
           // A decision: the open atom of highest activity (the first candidate among equals).
           let pick: string | undefined, best = -1, px: Var | undefined
           for (const x of cands) if (x.val === undefined && x.act > best) { best = x.act; pick = x.name; px = x }
-          if (opts.model && lpSat && sx && open && px) phaseAtPoint(px, sx)
+          if ((opts.model || atPoint.on) && lpSat && sx && open && px) phaseAtPoint(px, sx)
           if (!pick && verdict?.kind === 'unknown') {
             for (const [x0, value] of Object.entries(verdict.point ?? {})) {
               if (Math.abs(value - Math.round(value)) < 1e-9 || isMonomial(x0)) continue
