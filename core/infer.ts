@@ -2025,7 +2025,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // (every cube of at most two literals first, DuoAI's minimal clauses, the turns' order kept within each part)
       turns.sort((a, b) => Math.min(a.cube!.length, 3) - Math.min(b.cube!.length, 3))
       for (const f of turns) { if (cubes.length >= 64 || stop()) break; if (!names.has(textOf(f)) && !implied(f)) cubes.push(f) }
-      opts.progress?.('join enumerated', {views: views.length - v0, cubes: cubes.length})
+      opts.progress?.('join enumerated', {views: views.length - v0, cubes: cubes.length, ms: Math.round(performance.now() - t0)})
       opts.progress?.('join cubes', {cubes: cubes.map(textOf).join(' | ')})
       opts.progress?.('join made', {cubes: made.map(textOf).join(' | ')})
       // (a goal's proof within the search's own end, on the cost model's clock: a counted search inside it keeps the end)
@@ -2145,7 +2145,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       }
       // (a goal the CDCL search refuted, by the laws its core read: settled while each is still in the set, Houdini's
       // cores)
-      const settled = new Map<string, string[]>()
+      const settled = new Map<string, string[]>(), kept2 = new Set<Form>()
       let held = false
       // (the caller's counterexamples so far, each a state the set must rule out: the enumeration's cubes false there are
       // the relevant ones, the most counterexamples first; and the places a round can afford, from the last round's cost
@@ -2172,6 +2172,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             if (performance.now() > kUntil() || stop()) { complete = false; break }
             const f = typeof goal === 'string' ? undefined : goal, others = cubes.filter(g => g !== f), idx = f ? given.length + cubes.indexOf(f) : ls.findIndex(l => l.name === goal), mm = withGhost(forLaws(ls).m)
             if (f) held = true
+            if (f && kept2.has(f)) continue
             const was = settled.get(ls[idx]!.name)
             if (was && was.every(n2 => ls.some(l => l.name === n2))) continue
             settled.delete(ls[idx]!.name)
@@ -2229,6 +2230,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         // (optimistic Houdini: an unsure cube holds at every small state and every step from one (they are its rows), so
         // it stays; the set's proof decides, a cube it fails at dropped and the rounds go on)
         const drops = new Set<Form>(real)
+        for (const g of unsure) kept2.add(g)
         if (asked > 1) cap = Math.max(64, Math.min(256, Math.floor((wallUntil - performance.now()) / (3 * cubeMs / (asked - 1)))))
         if (blocked2.length) { const kept = [...cubes.filter(g => !drops.has(g)), ...blocked2]; cubes = [...kept, ...relevant(Math.max(16, cap - kept.length), kept)]; return }
         if (again) return
