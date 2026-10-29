@@ -83,14 +83,17 @@ const CMP = new Set(['==', '!=', '<', '<=', '>', '>=']), ARITH = new Set(['+', '
 const FAIL: Record<string, string> = {abort: 'abort()', __assert_rtn: 'an assertion failing', __assert_fail: 'an assertion failing', __assert: 'an assertion failing', _assert: 'an assertion failing', __builtin_trap: 'a trap', __builtin_unreachable: 'unreachable code reached (undefined behavior)'}
 
 // --- the reading --------------------------------------------------------------------------------------------------------
-export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp = false): CRead {
+// (`root`: the project's own files, whose functions are read too: a static inline helper of its header; by default the
+// file's directory)
+export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp = false, root?: string): CRead {
   const path = node<{resolve: (...p: string[]) => string, basename: (p: string) => string}>('node:path'), fs = node<{readFileSync: (p: string, e: string) => string}>('node:fs')
-  const main = path.resolve(file), base = path.basename(file), src = fs.readFileSync(main, 'utf8')
+  const main = path.resolve(file), base = path.basename(file), dir = `${path.resolve(root ?? main.replace(/\/[^/]*$/, ''))}/`, srcs = new Map<string, string>()
   locate(tu)
-  const top = tu.inner ?? [], mine = (n: CN) => n.$at?.file === main || n.$at?.file === file
+  const top = tu.inner ?? [], mine = (n: CN) => n.$at?.file === main || n.$at?.file === file, own = (n: CN) => mine(n) || (!!n.$at?.file && path.resolve(n.$at.file).startsWith(dir))
   const refuse = (n: CN | undefined, what: string): never => { throw new Refusal(pos(n), what) }
-  const pos = (n: CN | undefined) => (n?.$at && mine(n) ? `${base}:${n.$at.line}:${n.$at.col}` : base)
-  const text = (n: CN) => (n.$b && n.$e && mine(n) && n.$e.off + n.$e.tok >= n.$b.off ? src.slice(n.$b.off, n.$e.off + n.$e.tok) : n.kind)
+  const pos = (n: CN | undefined) => (n?.$at && own(n) ? `${path.basename(n.$at.file)}:${n.$at.line}:${n.$at.col}` : base)
+  const src = (f: string) => { let s = srcs.get(f); if (s === undefined) { try { s = fs.readFileSync(path.resolve(f), 'utf8') } catch { s = '' }; srcs.set(f, s) } return s }
+  const text = (n: CN) => (n.$b && n.$e && n.$b.file === n.$e.file && own(n) && n.$e.off + n.$e.tok >= n.$b.off ? src(n.$b.file).slice(n.$b.off, n.$e.off + n.$e.tok) || n.kind : n.kind)
 
   // The declarations: typedefs, records and enums of every file (a header's types are the file's too), the globals.
   const typedefs = new Map<string, {qual: string, desug?: string, rec?: string}>(), records = new Map<string, CN>(), tags = new Map<string, string>(), anon = new Map<string, string>()
@@ -213,7 +216,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
 
   // --- expressions ---------------------------------------------------------------------------------------------------------
   const funcs = new Map<string, CN>()
-  for (const n of top) if ((n.kind === 'FunctionDecl') && mine(n) && n.inner?.some(c => c.kind === 'CompoundStmt')) funcs.set(n.name!, n)
+  for (const n of top) if ((n.kind === 'FunctionDecl') && own(n) && n.inner?.some(c => c.kind === 'CompoundStmt')) funcs.set(n.name!, n)
   const entryRec = tags.get(`struct ${entry}`) ?? tags.get(entry) ?? typedefs.get(entry)?.rec
   const entryT = entryRec ? recT(entryRec, entry) : refuse(undefined, `no struct ${entry} in ${base}`)
   const params = (f: CN) => (f.inner ?? []).filter(c => c.kind === 'ParmVarDecl')
@@ -443,7 +446,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   }
   const td = records.get(entryRec!)!
   const pkg: GoPkg = {lang: cpp ? 'cpp' : 'c', package: entry, files: [{name: base, imports: []}], funcs: out, types: [{name: entry, t: entryT, p: pos(td), span: [td.$b?.line ?? 0, td.$e?.line ?? 0]}], consts: [], vars: [], errors: [], ttab}
-  const methods = out.filter(f => f.recv && !(f as {static?: boolean}).static).map(f => f.name)
+  const methods = out.filter((f, i) => f.recv && !(f as {static?: boolean}).static && mine([...funcs.values()][i]!)).map(f => f.name)
   return {pkg, methods, entry, cname: T(entryT).go!}
 }
 // Where a function type's result ends: before its parameter list (the last parenthesized group).

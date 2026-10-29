@@ -38,6 +38,8 @@ export type COptions = {
   entry: string, functions?: string[],
   // The project's flags (-I, -D, -std), or its compile_commands.json (the file's entry's), and the clang to run.
   flags?: string[], compileCommands?: string, clang?: string,
+  // The project's own files (their functions are read too: a header's static inline ones); by default the file's directory.
+  root?: string,
   // A function's result that is its failure where it compares so: {take: '< 0'} (the step's refusal there).
   fails?: Record<string, string>,
   onError?: 'refuse' | 'discard', domains?: Record<string, 'nat' | 'int'>, check?: GoCheckOptions,
@@ -47,7 +49,7 @@ type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) =>
 
 export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead, flags: string[]} {
   const flags = [...flagsFor(file, opts.compileCommands), ...(opts.flags ?? [])], {tu, target} = clangDump(file, flags, opts.clang, cpp)
-  return {c: readC(file, opts.entry, tu, target, cpp), flags}
+  return {c: readC(file, opts.entry, tu, target, cpp, opts.root), flags}
 }
 export function extractC(file: string, opts: COptions, cpp = false): Extraction & {leaves?: GoLeaf[]} {
   const notes: string[] = []
@@ -239,6 +241,12 @@ int main(int argc, char **argv) {
 `
 }
 
+// (a fixed array last in a struct is still of its length, its index checked: clang 15 and later)
+const flexOK = new Map<string, boolean>()
+function strictFlex(clang: string): string[] {
+  if (!flexOK.has(clang)) { try { node<CP>('node:child_process').execFileSync(clang, ['-fstrict-flex-arrays=3', '-x', 'c', '-fsyntax-only', '/dev/null'], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}); flexOK.set(clang, true) } catch { flexOK.set(clang, false) } }
+  return flexOK.get(clang) ? ['-fstrict-flex-arrays=3'] : []
+}
 // --- the check ------------------------------------------------------------------------------------------------------------
 export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r: Rule, sorts: Sorts, opts: COptions, cpp: boolean): GoEvidence {
   const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process'), os = node<{tmpdir: () => string, platform: () => string}>('node:os'), path = node<{resolve: (p: string) => string}>('node:path')
@@ -251,7 +259,7 @@ export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r:
     // The same flags; undefined behavior trapped (the rule refuses it, so the code must fail there too); another
     // file's functions left unresolved (the rule refuses their calls: one reached is the code's crash, a difference).
     const undef = os.platform() === 'darwin' ? ['-Wl,-undefined,dynamic_lookup'] : ['-Wl,--unresolved-symbols=ignore-all']
-    try { cp.execFileSync(opts.clang ?? 'clang', [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', '-fstrict-flex-arrays=3', h, '-o', `${work}/harness`, ...(cpp ? ['-lstdc++'] : []), ...undef], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26}) }
+    try { cp.execFileSync(opts.clang ?? 'clang', [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', ...strictFlex(opts.clang ?? 'clang'), h, '-o', `${work}/harness`, ...(cpp ? ['-lstdc++'] : []), ...undef], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26}) }
     catch (x) { return {...empty, mismatch: `the file doesn't build with the check's harness: ${String((x as {stderr?: string}).stderr ?? (x as Error).message).split('\n').filter(l => /error/.test(l)).slice(0, 6).join(' | ')}`} }
     const buildMs = Math.round(performance.now() - b0), none = (): Coverage => ({arms: 0, hit: 0, missed: []})
     return {...speak(work, `${work}/harness`, (globalThis as {process?: {env?: Record<string, string>}}).process?.env, c.pkg, read, r, sorts, opts.check ?? {}, none), buildMs}

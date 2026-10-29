@@ -69,6 +69,10 @@ if (typeof fx.extractEffect !== 'function' || typeof fx.conforms !== 'function' 
 const pyx = await import('gdp-wired/extract-py')
 const noPy = pyx.extractPython('absent.py', {entry: 'X', python: 'gdp-no-such-python'})
 if (noPy.ok || !/python3 is needed to extract Python/.test(noPy.refusals[0]?.what ?? '')) throw new Error(`gdp-wired/extract-py without Python: ${JSON.stringify(noPy)}`)
+// The C front end refuses, never throws, where no clang runs (clang is needed only to extract).
+const cx = await import('gdp-wired/extract-c')
+const noC = cx.extractC('absent.c', {entry: 'X', clang: 'gdp-no-such-clang'})
+if (noC.ok || !/clang is needed to extract C/.test(noC.refusals[0]?.what ?? '')) throw new Error(`gdp-wired/extract-c without clang: ${JSON.stringify(noC)}`)
 const rsx = await import('gdp-wired/extract-rs')
 const noRs = rsx.extractRust('absent-crate', {entry: 'X', cargo: 'gdp-no-such-cargo'})
 if (noRs.ok || !noRs.refusals.length) throw new Error(`gdp-wired/extract-rs without cargo: ${JSON.stringify(noRs)}`)

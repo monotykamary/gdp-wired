@@ -1,0 +1,33 @@
+[
+ {
+  "name": "c-tests",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/c/clang-setup.sh && cd core && timeout -s KILL 500 bun test extract-c.test.ts 2>&1 | tail -15",
+  "cpu": 2.0,
+  "timeout": 600
+ },
+ {
+  "name": "c-build-smoke",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && if command -v clang; then echo 'clang present: not shadowed'; exit 1; fi; echo 'no clang (shadowed)'; timeout -s KILL 500 sh scripts/smoke.sh > /tmp/smoke.log 2>&1; e=$?; tail -15 /tmp/smoke.log; echo \"smoke exit $e\"",
+  "cpu": 2.0,
+  "timeout": 600
+ },
+ {
+  "name": "c-identity-rb",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/ruby/ruby-setup.sh && cp -r research/langs/ruby/rules /tmp/rb-before && timeout -s KILL 900 bun research/langs/ruby/run.ts --write 2>&1 | tail -25; diff -r /tmp/rb-before research/langs/ruby/rules && echo 'RUBY RULES IDENTICAL'",
+  "cpu": 2.0,
+  "timeout": 1000
+ },
+ {
+  "name": "c-identity-ex",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/elixir/elixir-setup.sh && cp -r research/langs/elixir/rules /tmp/ex-before && timeout -s KILL 900 bun research/langs/elixir/run.ts --write 2>&1 | tail -25; diff -r /tmp/ex-before research/langs/elixir/rules && echo 'ELIXIR RULES IDENTICAL'",
+  "cpu": 2.0,
+  "timeout": 1000
+ },
+ {
+  "name": "c-identity-litellm",
+  "cmd": "set -o pipefail; cd /tmp && git clone -q --depth 1 --branch ${LITELLM_REF:-v1.106.6} ${LITELLM_REPO:-https://github.com/BerriAI/litellm} litellm && cd litellm && git rev-parse HEAD && pip install -q uv >/dev/null 2>&1 && timeout -s KILL 600 uv pip install --system -q -e '.[proxy]' 2>&1 | tail -5; python3 -c 'import litellm.proxy.auth.auth_checks' && cd /work/gdp-wired && bun install --frozen-lockfile >/dev/null 2>&1 && cp -r research/langs/litellm/rules /tmp/ll-before && timeout -s KILL 1200 bun research/langs/litellm/run.ts --src /tmp/litellm --ms 60000 --write --json /tmp/litellm-py.json; echo '--- json'; cat /tmp/litellm-py.json; for f in research/langs/litellm/rules/*.ts; do echo \"=== $f\"; cat $f; done; diff -r /tmp/ll-before research/langs/litellm/rules && echo 'LITELLM RULES IDENTICAL'",
+  "cwd": ".",
+  "cpu": 2.0,
+  "timeout": 1800
+ }
+]
