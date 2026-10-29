@@ -1840,7 +1840,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           if ((m.pre && !evalC(m.pre, p, {scalars: {}, maps: {}}, m)) || m.params.some(q => ss.includes(ks.find(q)) && !domOf(q, new Set()).includes(p[q]!))) continue
           pvs.set(JSON.stringify(p), p)
         }
-        const t3 = performance.now(), end2 = performance.now() + Math.min(4000, (wallUntil - performance.now()) / 7), seen = new Set<string>(), small: Sample[] = []
+        const t3 = performance.now(), seen = new Set<string>(), small: Sample[] = []
+        let end2 = performance.now() + Math.min(4000, (wallUntil - performance.now()) / 7)
         let cut = false
         // (a state's key: its cells off the map's default, in key order, the least under the renamings of each symmetric
         // sort's elements: a sort the step neither orders, nor computes on (a function's argument, a param's bound), nor
@@ -1913,7 +1914,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           try { st0 = run.init(params) } catch { continue }
           const tB = performance.now(), queue = [{params, st: st0}], bfsEnd = performance.now() + (end2 - performance.now()) * 0.75 / (pvs.size - smallReq.length + 1)
           seen.add(keyOf3(queue[0]!)); small.push(queue[0]!)
+          // (a BFS that won't finish (a quarter of its share gone, 1 s at least, and its queue still a quarter of what it
+          // found): cut there, the walks half a second after; an instance it does finish is what it was)
+          const cutAt = tB + Math.max(1000, (bfsEnd - tB) / 4)
           while (queue.length && small.length < 20_000 && performance.now() < bfsEnd) {
+            if (performance.now() > cutAt && queue.length * 4 >= small.length) { end2 = Math.min(end2, performance.now() + 500); break }
             const q0 = queue.shift()!
             for (const input of combos) {
               used.tries++
@@ -2090,9 +2095,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       for (let i = 0; turns.length < made.length; i++) for (const fs of kinds2) if (fs[i]) turns.push(fs[i]!)
       // (every cube of at most two literals first, DuoAI's minimal clauses, the turns' order kept within each part)
       turns.sort((a, b) => Math.min(a.cube!.length, 3) - Math.min(b.cube!.length, 3))
-      // (round 0 the minimal cubes, at most 24, else 16 in all; the rest by relevance to the counterexamples, IC3's order)
-      const minimal = turns.filter(f => f.cube!.length <= 2).length
-      for (const f of turns) { if (cubes.length >= Math.min(24, Math.max(16, minimal)) || stop()) break; if (!names.has(textOf(f)) && !implied(f)) cubes.push(f) }
+      // (round 0 the minimal cubes, at most 24, or the whole enumeration where it is 16 or fewer; the rest by relevance to
+      // the counterexamples, IC3's order)
+      const whole = made.length <= 16
+      for (const f of turns) { if (cubes.length >= 24 || stop()) break; if ((whole || f.cube!.length <= 2) && !names.has(textOf(f)) && !implied(f)) cubes.push(f) }
       opts.progress?.('join enumerated', {views: views.length - v0, cubes: cubes.length, ms: Math.round(performance.now() - t0)})
       opts.progress?.('join cubes', {cubes: cubes.map(textOf).join(' | ')})
       opts.progress?.('join made', {cubes: made.map(textOf).join(' | ')})
