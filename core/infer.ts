@@ -2183,6 +2183,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             // model to read): the ∀∃ laws, once)
             if (!f && ghost && goal === ghost.plain.name) { opts.progress?.('join exists', {dropped: ghost.plain.name.slice(0, 120)}); ghost = ghosts?.shift(); again = true; break }
             if (!f && !ghosts) { const t1 = performance.now(); ghosts = ghostsOf(); ghost = ghosts.shift(); opts.progress?.('join exists', {law: ghost ? `${ghost.plain.name.slice(0, 160)}; ${ghost.name} := ${JSON.stringify(ghost.step).slice(0, 160)}` : 'none', ms: Math.round(performance.now() - t1)}); if (ghost) { again = true; held = false; break } }
+            if (!f && ghost && env.GDP_ENGINE_DUMP) (globalThis as unknown as {Bun: {write: (p: string, s: string) => void}}).Bun.write(env.GDP_ENGINE_DUMP, JSON.stringify({laws: [...laws, ...cubes.map(lawFor), ghost.some], cubes: cubes.length}))
             if (!f) { caller = true; held = false; break }
             // (a cube's model the interpreter doesn't confirm: PDR's obligation at its state, its diagrams blocked and the
             // cube kept where a row of it no small state has; else unsure)

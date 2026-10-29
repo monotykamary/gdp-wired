@@ -172,6 +172,22 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - So either the 52 cubes lack a ∀ law the written invariant has, or the caller's proof runs out within its 10 s.
 - **Verdicts:** the six proven (sync 8–9 s, async 27–28, decentralized 14–32, 2PC 17, ticket 30–33, toy 16–29); the four unknown.
 
+**wo's probe** (`woprobe.ts`, `runs/engine/wo2`, `wo3`):
+- **Setup:** the stage's set at the caller law's failure in round 1: 52 cubes, the ∃ law as a ghost, and the kinds' laws.
+- **The caller law from the set alone:** a model, in 65 s. That is far past the stage's 10 s cap, so in the stage it reads as no model.
+- **Adding any one written ∀ law:** still a model, in 48–60 s.
+- **Adding every written ∀ law:** proven, 22 s. So wo's gap is candidates, not time.
+- **The written laws against the set:**
+  - "a vote message means voted": the set has only `Voted[x] = 0 ∧ VoteMsg[x,x]`, not `VoteMsg[x,y]`, y ≠ x.
+  - "a counted vote was sent": only `Votes[x,x] ∧ VoteMsg[x,x] = 0`, not `Votes[x,y] ∧ VoteMsg[y,x] = 0`.
+  - "a leader has the voting quorum's votes": only `Leader[x] ∧ VQ[x] ∧ Votes[x,x] = 0`, not the y ≠ x one.
+  - "one vote message per voter": only `VoteMsg[x,x] ∧ VoteMsg[x,y]`, not `VoteMsg[x,y] ∧ VoteMsg[x,z]`.
+  - "nothing before init": present.
+- **Why:** each missing law is the off-diagonal (distinct keys) twin of a diagonal cube the set has. The cubes are taken in turn by the maps they read, and the one-key (diagonal) cube of each map set comes first. The 48 places run out after the first turn, before any second cube of a map set. So the cause is the selection, not the width, the shape or the small instance.
+- **Next:**
+  - within a map set, the cube over more keys first (the general one before its diagonal);
+  - or more places for the turns: a second cube of each map set.
+
 **Next steps, in order:**
 1. Start the stage earlier, with a planned share of the budget, not what's left after the join and the deep runs (distributed_lock's round 1 is cut short).
 2. Carry the model's function values into the judged state (ring): `stateOf`/`realCti` read `idn[...]` cells of the witness into the interpreter's view of `idn`, or judge rows with the model's values.
