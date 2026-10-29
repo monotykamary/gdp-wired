@@ -1,34 +1,17 @@
-// Effect (the `effect` package, 3.x and 4.x) as a front end (`gdp-wired/effect`). A service keeps its state in Refs
-// its make effect creates, each method an effect over them:
+// Effect (the `effect` package, 3.x and 4.x) as a front end (`gdp-wired/effect`): a service whose make effect creates
+// Refs and returns an object of methods, read as core/extract.ts reads a factory's object of functions
+// (core/extract-shapes.ts). Each Ref (Ref, SynchronizedRef, SubscriptionRef, 4.x's TxRef) is a field of the state, each
+// method an event, its success value `<method>_result`, a failure (Effect.fail, Effect.die, `yield* new E(...)`) the
+// step's refusal, Clock.currentTimeMillis an input, a Semaphore of 1's withPermits(1) a lock; each method is one step
+// (true where calls don't interleave). What is read and refused, with the reasons, is in
+// skills/gdp-wired/references/writing-rules.md ("Effect services") and research/effect/README.md.
 //
-//   export const make = Effect.gen(function* () {
-//     const tokens = yield* Ref.make(10)
-//     const take = Effect.fn('take')(function* (n: number) {
-//       const t = yield* Ref.get(tokens)
-//       if (n > t) return yield* new RateLimited({n})
-//       yield* Ref.set(tokens, t - n)
-//     })
-//     return {take}
-//   })
 //   const x = extractEffect(code, {file: 'limiter.ts', entry: 'make', effect: await import('effect')})
 //
-// It is read as core/extract.ts reads a factory's object of functions (core/extract-shapes.ts): each Ref (Ref,
-// SynchronizedRef, SubscriptionRef, 4.x's TxRef) a field of the state, each method an event, its success value
-// `<method>_result`, a failure (Effect.fail, Effect.die, `yield* new E(...)`) the step's refusal, Clock.currentTimeMillis
-// an input. The make effect is Effect.gen, a function returning one, Effect.fn(...)(function* ...), Layer.effect or
-// Layer.scoped of one, or a service class's `make` (4.x Context.Service) or `effect` (3.x Effect.Service) option, and
-// returns `{...}` or `Tag.of({...})`. In a method: yield* of a Ref's get, set, update, modify, updateAndGet,
-// getAndUpdate, getAndSet, setAndGet and their *Effect forms; Effect.gen, Effect.fn and Effect.fnUntraced bodies and
-// helpers; succeed, sync, void, fail, die, log; a Semaphore of 1's withPermits(1). Each method is one step: true where
-// calls don't interleave (one fiber at a time, or under the lock).
-//
-// Refused where it is, with the reason: a failure after a Ref changed on its path (the Ref keeps it; a refusal leaves the
-// state as it was), combinators in pipes (their effects aren't read), Match, STM's TRef, Refs held in values or made in
-// a step, other effects yielded in a method or while the service is made, and what core/extract.ts refuses. The check
-// runs the code on the Effect given: the service made, and each request run, by Effect.runSyncExit with a Clock fixed at
-// the request's time (4.x's TestClock.setTime yields to its scheduler, which runSync can't), every Ref read after it.
-//
-// `conforms(rule, service)` runs a rule written by hand beside a running service; `fromSchema(schema)` is a Schema's kind.
+// The check runs the code on the Effect given: the service made, and each request run, by Effect.runSyncExit with a
+// Clock fixed at the request's time (4.x's TestClock.setTime yields to its scheduler, which runSync can't), every Ref
+// read after it. `conforms(rule, service)` runs a rule written by hand beside a running service; `fromSchema(schema)` is
+// a Schema's kind.
 import ts from 'typescript'
 import * as dsl from './dsl.ts'
 import type {Kind, Rule} from './dsl.ts'
