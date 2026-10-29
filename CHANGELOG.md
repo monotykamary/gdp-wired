@@ -28,6 +28,11 @@ lean-kernel/ are b118bf5's). research/langs/DESIGN.md has the design.
   exactly their max_budget are admitted: LiteLLM's own BUDGET_CODE_MATRIX.md names the inconsistency; not reported).
   The items join the real-world corpus (research/realworld/items/litellm-py.ts); `run.ts --src <checkout>` runs the
   same laws on a fork.
+- **The quick bar** (7c041aa against b118bf5, `runs/bar/runs/7c041aad45af-vs-b118bf52f2fe-quick-2026-10-290843`): wrong 0
+  in every group, nothing lost solidly (one CHC flip, durationThm, 1 of 4 against 5 of 6, the prover untouched), the
+  332 step goals the same search, the real-world dev set level; core/ and kernel/ +103,695 bytes (the executor and the
+  front end; the Python reader and harness, 38 KB, beside them). The suites and the full real-world corpus are not run
+  yet.
 
 **Protocols: the key's domain; two_phase_commit proven with nothing written (gen/gaps).** Nothing trusted changed
 (kernel/, core/check.ts and lean-kernel/ are e7eab01's); three general changes to the join, core/infer.ts.
