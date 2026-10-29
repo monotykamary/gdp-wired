@@ -1962,7 +1962,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const canon = (ls: number[]) => perms.map(ren => ls.map(l => lits[l]!.name(ren)).sort().join('&')).sort()[0]!
         const seen = new Set<string>(), found: number[][] = []
         const dfs = (from: number, chosen: number[], size: number, bits?: Uint32Array) => {
-          for (let j = from; j < lits.length && found.length < 96; j++) {
+          for (let j = from; j < lits.length && found.length < 400; j++) {
             if (chosen.some(c => lits[c]!.id === lits[j]!.id)) continue
             const now2 = [...chosen, j], b = bits ? and(bits, lits[j]!.bits) : lits[j]!.bits
             if (now2.length < size) { if (!empty(b)) dfs(j + 1, now2, size, b); continue }
@@ -2013,16 +2013,19 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const made = enumerated()
       let cubes: Form[] = []
       // (in turn by the maps a cube reads, those reading the caller's first: one of each kind before a second of any; in
-      // a kind, the cube over more distinct keys first (the law its diagonal case is a case of), then the fewer literals)
+      // a kind, the fewer literals first (DuoAI's minimal clauses), then the cube over more distinct keys (the law its
+      // diagonal case is a case of))
       const mapsOfCube = (f: Form) => [...new Set(f.cube!.flatMap(l => atomsIn(formOf([l])).map(i => atoms[i]!.parts[0]![0].split(AT)[2] ?? '')))].sort().join()
       const byMaps = new Map<string, Form[]>()
       const width2 = (f: Form) => views[f.view!]!.vars.length
-      for (const f of [...made].sort((a, b) => near(a) - near(b) || width2(b) - width2(a) || a.cube!.length - b.cube!.length)) { const k2 = mapsOfCube(f); byMaps.set(k2, [...(byMaps.get(k2) ?? []), f]) }
-      const turns: Form[] = []
-      for (let i = 0; turns.length < made.length; i++) for (const fs of byMaps.values()) if (fs[i]) turns.push(fs[i]!)
+      for (const f of [...made].sort((a, b) => near(a) - near(b) || a.cube!.length - b.cube!.length || width2(b) - width2(a))) { const k2 = mapsOfCube(f); byMaps.set(k2, [...(byMaps.get(k2) ?? []), f]) }
+      // (each turn the kinds in order of their own first cube: its fewer literals, then whether it reads the caller's maps)
+      const kinds2 = [...byMaps.values()].sort((a, b) => a[0]!.cube!.length - b[0]!.cube!.length || near(a[0]!) - near(b[0]!)), turns: Form[] = []
+      for (let i = 0; turns.length < made.length; i++) for (const fs of kinds2) if (fs[i]) turns.push(fs[i]!)
       for (const f of turns) { if (cubes.length >= 64 || stop()) break; if (!names.has(textOf(f)) && !implied(f)) cubes.push(f) }
       opts.progress?.('join enumerated', {views: views.length - v0, cubes: cubes.length})
       opts.progress?.('join cubes', {cubes: cubes.map(textOf).join(' | ')})
+      opts.progress?.('join made', {cubes: made.map(textOf).join(' | ')})
       // (a goal's proof within the search's own end, on the cost model's clock: a counted search inside it keeps the end)
       const within = <T>(endWall: number, f: () => T): T => withWall(endWall, () => counted(fullRate, () => withDeadline(clock() + Math.max(0, endWall - performance.now()), f), true))
       // (a model's values past the rule's constants renamed onto small ones in order, a gap kept up to 64: the step then
@@ -2155,11 +2158,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             const was = settled.get(ls[idx]!.name)
             if (was && was.every(n2 => ls.some(l => l.name === n2))) continue
             settled.delete(ls[idx]!.name)
-            // (a cube's goal decided by the EPR path alone first (a proof or a model, within a quarter of a join query);
-            // else a model or a refutation of the CDCL search alone, then the proof path's)
-            const dl = f ? within(Math.min(kUntil(), performance.now() + joinQueryMs / 4), () => decideLaw(mm, ls, idx)) : undefined
+            // (a goal decided by the EPR path alone first (a proof or a model, a cube's within a quarter of a join query, the
+            // caller's within one); else a model or a refutation of the CDCL search alone, then the proof path's)
+            const dl = within(Math.min(kUntil(), performance.now() + (f ? joinQueryMs / 4 : joinQueryMs)), () => decideLaw(mm, ls, idx))
             if (dl?.proven) continue
-            let isReal = !!dl && !!f && realCti(dl.witness, f, others), wit = dl?.witness
+            let isReal = !!dl && realCti(dl.witness, f, others), wit = dl?.witness
             if (!dl) {
               const inst = mapNames.length ? lawInstances(mm, ls, idx) : undefined, g = obligations(mm, ls, inst ? {[ls[idx]!.name]: inst} : {}, idx)[1]!
               const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
