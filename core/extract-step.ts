@@ -765,6 +765,13 @@ export class Stepper {
         const id = `fresh:${this.fresh++}`
         return [{t: 'ref', id}, {...q, heap: new Map(q.heap).set(id, {k: 'rec', ty: String(x.rec), f, origin: 'fresh'})}]
       }
+      // An immutable update (Elixir's %{s | f: v}): a fresh copy of the record, the fields given set in it.
+      case 'upd': {
+        const [o, q] = this.ev(x.x as SX, p)
+        let [c, q2] = this.copy(o, q, x)
+        for (const [f, y] of x.fields as [string, SX][]) { const [v, q3] = this.ev(y, q2); q2 = this.setField(c, f, v, x, q3) }
+        return [c, q2]
+      }
       case 'rmw': return this.rmw(x, p)
       case 'bool': return [{t: 'bool', e: x.v ? I.T : I.F}, p]
       case 'str': return [{t: 'str', e: {op: 'slit', value: String(x.v)}}, p]
