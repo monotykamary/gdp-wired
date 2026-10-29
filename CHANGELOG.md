@@ -5,6 +5,19 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**Protocols: distributed_lock and toy_consensus_forall diagnosed, not closed (gen/gaps2).** No code changed.
+research/protocols/README.md has the diagnosis, and `research/protocols/gaps2.patch` holds the changes tried.
+- **toy:** three search gaps found and fixed in the patch: a model's request lost the maps it carries, so every model
+  was "outside"; a carried map had no sort; and "one vote per node" needs a template view of a composed key. The join
+  then finds the three-key law, but that law's step goal outruns the join's query budget even at 600 s (the prover's
+  cost, kernel/).
+- **distributed lock:** it needs the composed key's row as a value (e ≤ Ep[a]) and a law over four keys. Neither is
+  built.
+- **What the patch does on the pilot** (60 s): nothing gained. The template views cost decentralized lock its proof,
+  and pruning the bounds the kinds imply costs two_phase_commit its proof.
+- **ring:** no law in the real-world or frontier corpora needs a function of a key or an order between keys, so ring's
+  template is not built.
+
 **Protocols: the key's domain; two_phase_commit proven with nothing written (gen/gaps).** Nothing trusted changed
 (kernel/, core/check.ts and lean-kernel/ are e7eab01's); three general changes to the join, core/infer.ts.
 research/protocols/README.md, "The key's domain", has the diagnosis and the measurements.
