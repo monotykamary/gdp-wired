@@ -1,0 +1,7 @@
+[
+ {
+  "name": "toy-120",
+  "cmd": "nproc; GDP_INFER_TRACE=2 timeout -s KILL 420 bun research/protocols/run.ts --ms 120000 --only toy_consensus_forall --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (gate|enumerated|end)|\\[infer join\\]' /tmp/err.log | cut -c1-400 | tail -c 60000; times; exit $s",
+  "timeout": 480
+ }
+]
