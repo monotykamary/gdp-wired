@@ -204,7 +204,7 @@ function builderOf(m: Model, sorts: Sorts): string {
   const defs: string[] = []
   for (const [key, name] of consts) {
     const node = hoistNodes.get(key)!
-    defs.push(`const ${name} = ${'rel' in node || isBool(node) ? pb(node as B, P, ctx()) : pterm({s: 'num', e: node as N}, P, ctx())}`)
+    defs.push(`const ${name} = ${'rel' in node || isBool(node, m) ? pb(node as B, P, ctx()) : pterm({s: 'num', e: node as N}, P, ctx())}`)
     P.hoisted.set(key, name)
   }
   for (const [n, t] of writes) outs.push([n, pterm(t, P, ctx(), n)])
@@ -229,7 +229,15 @@ function builderOf(m: Model, sorts: Sorts): string {
   lines.push(defs.length ? `  .step((${env}) => {\n${defs.map(d => `    ${d}`).join('\n')}\n    return ${ret}\n  })` : `  .step((${env}) => (${ret}))`)
   return lines.join('\n')
 }
-const isBool = (x: object) => ['cmp', 'and', 'or', 'not', 'is', 'leq', 'keq'].includes((x as {op: string}).op) || ((x as {op: string}).op === 'const' && typeof (x as {v: unknown}).v === 'boolean')
+// (a condition by cases is one where a branch is: an ite of conditions, or of a boolean variable or cell)
+const isBool = (x: object, m?: Model): boolean => {
+  const o = x as {op: string, v?: unknown, a?: object, b?: object, name?: string, map?: string, field?: string}
+  if (['cmp', 'and', 'or', 'not', 'is', 'leq', 'keq'].includes(o.op) || (o.op === 'const' && typeof o.v === 'boolean')) return true
+  if (o.op === 'ite') return isBool(o.a!, m) || isBool(o.b!, m)
+  if (o.op === 'var' && m) return [...m.params, ...m.inputs, ...m.state].some(v => v.name === o.name && v.sort.k === 'bool')
+  if (o.op === 'cell' && m) return o.field === 'has' || !!m.maps.find(d => d.name === o.map)?.fields.some(f => f.name === o.field && f.sort.k === 'bool')
+  return false
+}
 // The env's names: those the terms read, the choices a literal is printed through, and the maps written.
 function withChoices(env: string, text: string, P: Printer, extra: string[] = []): string {
   const names = new Set(env.slice(1, -1).split(', ').filter(Boolean))
@@ -264,7 +272,7 @@ function hoist(m: Model, P: Printer, roots: object[]) {
   for (const k of order) {
     const node = hoistNodes.get(k)!, size = k.length
     if ((count.get(k) ?? 0) < 2 || size < 60) continue
-    if (!isBool(node)) {
+    if (!isBool(node, m)) {
       const ctx: Ctx = {m, sorts: P.sorts, atoms: []}, free = natOK(node as N, ctx)
       const cells: string[] = []
       walk(node, o => { if (o.op === 'cell') cells.push(`${o.map as string}.${o.field as string}`) })
