@@ -156,3 +156,40 @@ The npm library has no hard dependency on any language: `gdp-wired/extract-py` r
 only when called, and its reader and harness ship as files beside it (`dist/core/py/`). A missing Python is a refusal
 saying so, not a crash. A later `gdp-wired/extract` may dispatch on the file's extension; for now each language has
 its entry point, as Go's has.
+
+## Moving Go onto the executor: done (gen/go-port)
+
+**What moved.** GoReader is gone. core/extract-go.ts lowers the reader's JSON into the step IR (what Go's types decide:
+which operation a node is, an integer's width and name, the receiver's form, a refusal that needs no execution, each
+with Go's text), builds the state from the struct's zero value, binds the arguments, and assembles the Model as before;
+core/extract-step.ts executes it. The executor gained, for every reader: pointers by cases (`ptr`, interior ones by a
+path), places and writes through them, records by value (`struct`), error values and nil, maps with a nil state, lists
+pushed, popped or set once a step, big integers, a lock's key with its deferred unlock, switch with fallthrough and
+break, Go's inlining by id (results by the path that returned them), firm values (merged only with themselves), and the
+module's `split: false` (a condition kept whole on the path). Shared with Python and Rust: the map writes' fold, the
+range laws, the write-before-failure check, and the integer semantics below.
+
+**Byte-identical: the acceptance test.** research/langs/go-snapshot/diff.ts reads every reading the baseline jobs
+captured (research/langs/go-capture.json, `GDP_GO_CAPTURE` in extractGo and probeGoFunc: the reader's JSON, the options,
+the GoRead or the refusal) and compares today's as JSON, byte for byte: 119 of 119 (38 from the tests, 50 from the
+corpus, 31 probes of functions). `--extra` compares every struct of every captured package (its exported methods, then
+each alone, with onError both ways) against 466c0ab's front end: 2,006 of 2,006. No Go needed; it runs in a second.
+The snapshot jobs (research/langs/go-snapshot.json, compare.ts) are the end-to-end confirmation (rules, notes,
+refusals, through the check).
+
+**Go's integer semantics, shared.** Rust's `wrap` is Go's (by the term's bounds and the path's facts, by cases from
+the bottom, any operation: a product wraps too); `trap`, `sat` and `checked` test only the side of the range the bounds
+and facts don't exclude; a narrowing cast is refused only where it may not fit; division and remainder are Go's (one
+case where the dividend's bounds say it is at least 0); an input outside its type is refused per bound (Go's two
+refusals); a merged number keeps its type; a kept result gets its type's range law. Python's integers are unbounded,
+so its rules don't change.
+
+**Bytes (measured, not the −57 KB planned).** core/extract-go.ts 112,325 → see the report; core/extract-step.ts
+120,364 → see the report. The plan counted +15 KB for the executor; Go's semantics, mirrored exactly for byte-identical
+output, took about +46 KB there, and the lowering about as much as GoReader's own type-directed code: the structure the
+two executors shared was the paths, joins and maps (about 30 KB of GoReader), the rest Go's own.
+
+**Resume.** Captures: runs/langs/cap/*.jsonl (not committed; retake with research/langs/go-capture.json, the realworld
+one through the olean volume's /gocap, then `modal volume get`). Validation: research/langs/go-port.json (snapshot,
+Rust tests and corpus with --write, LiteLLM). Bars: `bun bar --quick --cand gen/go-port --base 9220ad0 --backend modal
+--together` (no shared baseline of 9220ad0 exists), then `--only suite,suite-usual,rw,onecpu --together`.
