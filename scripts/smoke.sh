@@ -65,6 +65,10 @@ try { await import('effect') } catch { effectThere = false }
 if (effectThere) throw new Error('effect is installed here: the smoke runs without it')
 const fx = await import('gdp-wired/effect')
 if (typeof fx.extractEffect !== 'function' || typeof fx.conforms !== 'function' || typeof fx.fromSchema !== 'function') throw new Error('gdp-wired/effect: an export is missing')
+// The Python front end loads and refuses, never throws, where no Python runs (python3 is needed only to extract).
+const pyx = await import('gdp-wired/extract-py')
+const noPy = pyx.extractPython('absent.py', {entry: 'X', python: 'gdp-no-such-python'})
+if (noPy.ok || !/python3 is needed to extract Python/.test(noPy.refusals[0]?.what ?? '')) throw new Error(`gdp-wired/extract-py without Python: ${JSON.stringify(noPy)}`)
 console.log(`node ${process.version}: proven, kernel accepts; compiled spend 110; Lean project of ${Object.keys(project).length} files; a gate minted once; a recurrence's lemma used`)
 JS
 node smoke.mjs
@@ -77,6 +81,8 @@ import {product} from 'gdp-wired/compose'
 import {type Mint, guard} from 'gdp-wired/gdp'
 import {defineProof} from '@gdp-ts/core'
 import {type EffectOptions, type Service, extractEffect} from 'gdp-wired/effect'
+import {type PyOptions, extractPython} from 'gdp-wired/extract-py'
+const pyRead: (file: string, o: PyOptions) => boolean = (file, o) => extractPython(file, o).ok
 const effectRead: (code: string, o: EffectOptions) => boolean = (code, o) => extractEffect(code, o).ok
 const service: Service<{take: (n: number) => unknown}> | undefined = undefined
 const caps = rule('caps').params({d: nat}).inputs({day: nat}).maps({Day: 0})
@@ -92,7 +98,7 @@ const pay = fun('pay').inputs({p: variant({card: {amount: nat}, cash: {}}), who:
   .returns(({p, who}) => ({ok: p.match({card: c => c.amount.atMost(who.limit), cash: () => p.is('cash')})}))
 const ok: boolean = pay.run({p: {tag: 'card', amount: 3}, who: {limit: 5}}).ok
 const steps = recur('steps', {zero: 0, next: (_, y) => y.plus(1)}, {'at most x': (x, y) => y.atMost(x)})
-export {v, s, m, check, text, mint, ok, steps, effectRead, service}
+export {v, s, m, check, text, mint, ok, steps, effectRead, service, pyRead}
 TS
 printf '{"compilerOptions":{"strict":true,"noEmit":true,"module":"nodenext","moduleResolution":"nodenext","target":"es2022","lib":["es2022"],"types":[],"skipLibCheck":false},"files":["consumer.ts"]}\n' > tsconfig.json
 npx tsc -p tsconfig.json

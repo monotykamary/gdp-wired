@@ -5,6 +5,30 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**Python, on one structure for every language (gen/langs).** Nothing trusted changed (kernel/, core/check.ts and
+lean-kernel/ are b118bf5's). research/langs/DESIGN.md has the design.
+- **One step IR and one executor** (core/extract-step.ts): a reader in the code's own language lowers a module into
+  the IR as JSON; the executor runs it into the Model the TypeScript and Go front ends make, and `fromModel` and
+  `drive` print, build and check it as before. The code's side of the check is a harness in its language over JSON
+  lines (`hello`, `new`, `at`, `get`, `call`, `coverage`). Language semantics are explicit IR operations (floor or
+  trunc division, truthiness, None, failures), so the next readers share the executor.
+- **`gdp-wired/extract-py`**: `extractPython(file, {entry, methods, answers, skip, stores, failures})`. The reader is
+  Python's `ast` (core/py/reader.py, record types read from the repository's own modules); the harness imports the
+  module as it ships (core/py/harness.py). Python runs only when it is called: without it the result is a refusal
+  saying so (scripts/smoke.sh checks it). The subset and its refusals: skills/gdp-wired/references/writing-rules.md,
+  "Python".
+- **Failures kept** (`failures: 'kept'`): a raise is the step's result `failed`, with what the step wrote before it,
+  so a law can say when the code refuses.
+- **The boundary a caller states**, printed in the notes and enforced by the check: `answers` (a call's result an
+  input of the request, the callee stubbed), `skip` (a call left out, run as it is), `stores` (a cache client as a
+  key-value store, a map per key template, its TTL left out).
+- **LiteLLM** (research/langs/litellm/, v1.106.6): 7 rules read from its code (four per-entity max_budget checks, the
+  max-iterations and per-session budget hooks over the internal usage cache, the router's allowed-fails cooldown
+  policy), each checked against LiteLLM's own code on Modal, 20 laws: 18 proven, 2 refuted (a team and an end user at
+  exactly their max_budget are admitted: LiteLLM's own BUDGET_CODE_MATRIX.md names the inconsistency; not reported).
+  The items join the real-world corpus (research/realworld/items/litellm-py.ts); `run.ts --src <checkout>` runs the
+  same laws on a fork.
+
 **Protocols: the key's domain; two_phase_commit proven with nothing written (gen/gaps).** Nothing trusted changed
 (kernel/, core/check.ts and lean-kernel/ are e7eab01's); three general changes to the join, core/infer.ts.
 research/protocols/README.md, "The key's domain", has the diagnosis and the measurements.

@@ -1,0 +1,14 @@
+{
+  "quota/litellm-py/team_max_budget_check#a team whose spend has reached its max_budget is refused": {
+    "verdict": "bug",
+    "note": "Refuted on the rule extracted from the code (v1.106.6, auth_checks.py team_max_budget_check: `spend > team_object.max_budget`): a team whose spend equals its max_budget is admitted (the prover's request: max_budget 0, spend 0), while the key, project, user and org checks refuse at `>=`. The extraction was checked against LiteLLM's own code on 2,708 requests, so the rule is the code's. The same inconsistency the hand-written item quota/litellm/maxBudgetChecks found at v1.106.2 (triage/quotaflag.json), still present; LiteLLM's own tests/e2e/quota_management/budgets/BUDGET_CODE_MATRIX.md lists it under 'flags from the code' ('Comparison operators are inconsistent ... Spend exactly at max_budget blocks a key but not a team'). Low severity: an entity can spend one more request's worth at its limit. Not reported (already documented upstream; disclosure is the owner's decision).",
+    "repro": "bun research/langs/litellm/run.ts --src <litellm v1.106.6> --only 'quota/litellm-py/team_max_budget_check'; the code alone: research/realworld/repro/litellm-team-budget.py",
+    "reported": "not reported"
+  },
+  "quota/litellm-py/check_end_user_budget#an end user whose spend has reached its max_budget is refused": {
+    "verdict": "bug",
+    "note": "Refuted on the rule extracted from the code (v1.106.6, auth_checks.py check_end_user_budget: `end_user_spend > end_user_budget`): an end user (customer) at exactly their budget is admitted (the prover's request: budget 0, spend 0). The same `>` as the team's; BUDGET_CODE_MATRIX.md:38-39 names it ('team/end-user main budget use >'). Low severity, documented upstream. Not reported.",
+    "repro": "bun research/langs/litellm/run.ts --src <litellm v1.106.6> --only 'quota/litellm-py/check_end_user_budget'",
+    "reported": "not reported"
+  }
+}

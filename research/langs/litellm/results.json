@@ -1,0 +1,428 @@
+{
+ "pin": {
+  "repo": "BerriAI/litellm",
+  "tag": "v1.106.6",
+  "commit": "61c6ab78393ef45683dd7d963d2a315bd845e20b",
+  "licence": "MIT",
+  "author": "Berri AI",
+  "language": "Python"
+ },
+ "src": "/tmp/litellm",
+ "results": [
+  {
+   "id": "quota/litellm-py/virtual_key_max_budget_check",
+   "ok": true,
+   "notes": [
+    "get_current_spend (auth_checks.py:5871:30): answered by the request (stated), its arguments not read",
+    "litellm.proxy._types.CallInfo (auth_checks.py:5886:28): left out (stated: skip), run as it is by the check",
+    "asyncio.create_task (auth_checks.py:5898:9): left out (stated: skip), run as it is by the check",
+    "_apply_budget_exceeded_throttle (auth_checks.py:5913:16): answered by the request (stated), its arguments not read",
+    "_MASKED_KEY_NAME_RE.fullmatch (auth_checks.py:5921:45): left out (stated: skip), run as it is by the check",
+    "virtual_key_max_budget_check: raise litellm.BudgetExceededError(current_cost=spend, max_budge... (auth_checks.py:5924:13) is the step's failure, kept as its result (with what the step wrote before it)",
+    "read by the code but by no term of the rule (given their sort's zero, or None, by the check): user_obj_none, valid_token_spend, valid_token_token, valid_token_token_none, user_obj_user_email, user_obj_user_email_none, valid_token_soft_budget, valid_token_soft_budget_none, valid_token_user_id, valid_token_user_id_none, valid_token_team_id, valid_token_team_id_none, valid_token_org_id, valid_token_org_id_none, valid_token_key_alias, valid_token_key_alias_none, valid_token_key_name, valid_token_key_name_none",
+    "valid_token_max_budget: an integer (the code takes any whole number)",
+    "get_current_spend: an integer (the code takes any whole number)"
+   ],
+   "ms": 11880,
+   "laws": [
+    {
+     "name": "a key whose spend has reached its max_budget is refused",
+     "verdict": "proven",
+     "ms": 135
+    },
+    {
+     "name": "a key below its max_budget is admitted",
+     "verdict": "proven",
+     "ms": 44
+    },
+    {
+     "name": "a key with no max_budget is admitted",
+     "verdict": "proven",
+     "ms": 37
+    }
+   ],
+   "evidence": {
+    "runs": 200,
+    "requests": 2221,
+    "fromStates": 400,
+    "probes": {
+     "conditions": 0,
+     "witnesses": 0,
+     "steps": 0
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 40,
+    "compiledAgreed": 2581,
+    "coverage": {
+     "arms": 5,
+     "hit": 5,
+     "missed": []
+    },
+    "ms": 1672,
+    "edgeSample": "virtual_key_max_budget_check([\"valid_token\",{\"rec\":\"litellm.proxy._types.UserAPIKeyAuth\",\"f\":{\"max_budget\":{\"in\":9,\"float\":true},\"spend\":{\"in\":0,\"float\":true},\"token\":{\"in\":\"\"},\"soft_budget\":{\"in\":0,\"float\":true},\"user_id\":{\"in\":\"\"},\"team_id\":{\"in\":\"\"},\"org_id\":{\"in\":\"\"},\"key_alias\":{\"in\":\"\"},\"key_name\":{\"in\":\"\"}}}],[\"proxy_logging_obj\",{\"inert\":true}],[\"user_obj\",{\"rec\":\"litellm.models.user.LiteLLM_UserTable\",\"f\":{\"user_email\":{\"in\":\"\"}}}]) from {}",
+    "runMs": 1673
+   }
+  },
+  {
+   "id": "quota/litellm-py/team_max_budget_check",
+   "ok": true,
+   "notes": [
+    "get_current_spend (auth_checks.py:6380:30): answered by the request (stated), its arguments not read",
+    "litellm.proxy._types.CallInfo (auth_checks.py:6388:36): left out (stated: skip), run as it is by the check",
+    "asyncio.create_task (auth_checks.py:6398:17): left out (stated: skip), run as it is by the check",
+    "team_max_budget_check: raise litellm.BudgetExceededError(current_cost=spend, max_budge... (auth_checks.py:6405:13) is the step's failure, kept as its result (with what the step wrote before it)",
+    "read by the code but by no term of the rule (given their sort's zero, or None, by the check): valid_token_none, team_object_team_id, team_object_spend, team_object_spend_none, valid_token_token, valid_token_token_none, valid_token_user_id, valid_token_user_id_none, valid_token_team_id, valid_token_team_id_none, valid_token_team_alias, valid_token_team_alias_none, valid_token_org_id, valid_token_org_id_none",
+    "team_object_max_budget: an integer (the code takes any whole number)",
+    "get_current_spend: an integer (the code takes any whole number)"
+   ],
+   "ms": 12019,
+   "laws": [
+    {
+     "name": "a team whose spend has reached its max_budget is refused",
+     "verdict": "refuted",
+     "ms": 2,
+     "witness": {
+      "failed": 0,
+      "team_object_none": 0,
+      "team_object_max_budget": 0,
+      "team_object_max_budget$neg": 1,
+      "team_object_max_budget_none": 0,
+      "get_current_spend": 0,
+      "get_current_spend$neg": 1
+     }
+    },
+    {
+     "name": "a team below its max_budget is admitted",
+     "verdict": "proven",
+     "ms": 69
+    },
+    {
+     "name": "a team with no max_budget is admitted",
+     "verdict": "proven",
+     "ms": 38
+    }
+   ],
+   "evidence": {
+    "runs": 200,
+    "requests": 2308,
+    "fromStates": 400,
+    "probes": {
+     "conditions": 0,
+     "witnesses": 0,
+     "steps": 0
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 23,
+    "compiledAgreed": 2685,
+    "coverage": {
+     "arms": 4,
+     "hit": 4,
+     "missed": []
+    },
+    "ms": 1591,
+    "edgeSample": "team_max_budget_check([\"team_object\",{\"rec\":\"litellm.models.team.LiteLLM_TeamTable\",\"f\":{\"max_budget\":{\"in\":9,\"float\":true},\"team_id\":{\"in\":\"\"},\"spend\":{\"in\":0,\"float\":true}}}],[\"valid_token\",{\"rec\":\"litellm.proxy._types.UserAPIKeyAuth\",\"f\":{\"token\":{\"in\":\"\"},\"user_id\":{\"in\":\"\"},\"team_id\":{\"in\":\"\"},\"team_alias\":{\"in\":\"\"},\"org_id\":{\"in\":\"\"}}}],[\"proxy_logging_obj\",{\"inert\":true}]) from {}",
+    "runMs": 1591
+   }
+  },
+  {
+   "id": "quota/litellm-py/_project_max_budget_check",
+   "ok": true,
+   "notes": [
+    "_project_max_budget_check: math.isfinite(max_budget) is None where a number is read (a TypeError) (auth_checks.py:6547:34) is the step's failure, kept as its result (with what the step wrote before it)",
+    "project_spend_counter_key (auth_checks.py:6553:21): left out (stated: skip), run as it is by the check",
+    "get_current_spend (auth_checks.py:6552:34): answered by the request (stated), its arguments not read",
+    "_project_max_budget_check: project_spend >= max_budget is None where a number is read (a TypeError) (auth_checks.py:6558:8) is the step's failure, kept as its result (with what the step wrote before it)",
+    "litellm.proxy._types.CallInfo (auth_checks.py:6560:32): left out (stated: skip), run as it is by the check",
+    "asyncio.create_task (auth_checks.py:6570:13): left out (stated: skip), run as it is by the check",
+    "_project_max_budget_check: raise litellm.BudgetExceededError(current_cost=project_spend, m... (auth_checks.py:6577:9) is the step's failure, kept as its result (with what the step wrote before it)",
+    "read by the code but by no term of the rule (given their sort's zero, or None, by the check): valid_token_none, project_object_project_id, project_object_spend, valid_token_token, valid_token_token_none, valid_token_user_id, valid_token_user_id_none, valid_token_team_id, valid_token_team_id_none, valid_token_team_alias, valid_token_team_alias_none, valid_token_org_id, valid_token_org_id_none",
+    "project_object_litellm_budget_table_max_budget: an integer (the code takes any whole number)",
+    "get_current_spend: an integer (the code takes any whole number)"
+   ],
+   "ms": 11959,
+   "laws": [
+    {
+     "name": "a project whose spend has reached its max_budget is refused",
+     "verdict": "proven",
+     "ms": 110
+    },
+    {
+     "name": "a project below its max_budget is admitted",
+     "verdict": "proven",
+     "ms": 83
+    },
+    {
+     "name": "a project with no max_budget is admitted",
+     "verdict": "proven",
+     "ms": 64
+    }
+   ],
+   "evidence": {
+    "runs": 200,
+    "requests": 2287,
+    "fromStates": 400,
+    "probes": {
+     "conditions": 0,
+     "witnesses": 0,
+     "steps": 0
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 21,
+    "compiledAgreed": 2666,
+    "coverage": {
+     "arms": 6,
+     "hit": 6,
+     "missed": []
+    },
+    "ms": 1456,
+    "edgeSample": "_project_max_budget_check([\"project_object\",{\"rec\":\"litellm.proxy._types.LiteLLM_ProjectTableCachedObj\",\"f\":{\"litellm_budget_table\":{\"rec\":\"litellm.models.budget.LiteLLM_BudgetTable\",\"f\":{\"max_budget\":{\"in\":-9007199254740990,\"float\":true}}},\"project_id\":{\"in\":\"\"},\"spend\":{\"in\":0,\"float\":true}}}],[\"valid_token\",{\"rec\":\"litellm.proxy._types.UserAPIKeyAuth\",\"f\":{\"token\":{\"in\":\"\"},\"user_id\":{\"in\":\"\"},\"team_id\":{\"in\":\"\"},\"team_alias\":{\"in\":\"\"},\"org_id\":{\"in\":\"\"}}}],[\"proxy_logging_obj\",{\"inert\":true}]) from {}",
+    "runMs": 1456
+   }
+  },
+  {
+   "id": "quota/litellm-py/check_end_user_budget",
+   "ok": true,
+   "notes": [
+    "RouteChecks.is_info_route (auth_checks.py:1751:8): answered by the request (stated), its arguments not read",
+    "get_current_spend (auth_checks.py:1763:35): answered by the request (stated), its arguments not read",
+    "check_end_user_budget: raise litellm.BudgetExceededError(current_cost=end_user_spend, ... (auth_checks.py:1770:9) is the step's failure, kept as its result (with what the step wrote before it)",
+    "read by the code but by no term of the rule (given their sort's zero, or None, by the check): route, end_user_obj_user_id, end_user_obj_spend",
+    "end_user_obj_litellm_budget_table_max_budget: an integer (the code takes any whole number)",
+    "get_current_spend: an integer (the code takes any whole number)"
+   ],
+   "ms": 12458,
+   "laws": [
+    {
+     "name": "a end user whose spend has reached its max_budget is refused",
+     "verdict": "refuted",
+     "ms": 1,
+     "witness": {
+      "failed": 0,
+      "is_info_route": 0,
+      "end_user_obj_litellm_budget_table_none": 0,
+      "end_user_obj_litellm_budget_table_max_budget": 0,
+      "end_user_obj_litellm_budget_table_max_budget$neg": 2,
+      "end_user_obj_litellm_budget_table_max_budget_none": 0,
+      "get_current_spend": 0,
+      "get_current_spend$neg": 2
+     }
+    },
+    {
+     "name": "a end user below its max_budget is admitted",
+     "verdict": "proven",
+     "ms": 76
+    },
+    {
+     "name": "a end user with no max_budget is admitted",
+     "verdict": "proven",
+     "ms": 51
+    }
+   ],
+   "evidence": {
+    "runs": 200,
+    "requests": 2287,
+    "fromStates": 400,
+    "probes": {
+     "conditions": 0,
+     "witnesses": 0,
+     "steps": 0
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 21,
+    "compiledAgreed": 2666,
+    "coverage": {
+     "arms": 5,
+     "hit": 5,
+     "missed": []
+    },
+    "ms": 2004,
+    "edgeSample": "check_end_user_budget([\"end_user_obj\",{\"rec\":\"litellm.models.end_user.LiteLLM_EndUserTable\",\"f\":{\"litellm_budget_table\":{\"rec\":\"litellm.models.budget.LiteLLM_BudgetTable\",\"f\":{\"max_budget\":{\"in\":-9007199254740990,\"float\":true}}},\"user_id\":{\"in\":\"\"},\"spend\":{\"in\":0,\"float\":true}}}],[\"route\",{\"in\":\"\"}]) from {}",
+    "runMs": 2004
+   }
+  },
+  {
+   "id": "rate limit/litellm-py/MaxIterationsHandler",
+   "ok": true,
+   "notes": [
+    "os.getenv (max_iterations_limiter.py:74:24): left out (stated: skip), run as it is by the check",
+    "internal_usage_cache.dual_cache.redis_cache is null (stated)",
+    "_PROXY_MaxIterationsHandler made by its constructor: its arguments are the rule's params",
+    "_PROXY_MaxIterationsHandler.message_logging: declared on the class but not set by its constructor (left out)",
+    "_PROXY_MaxIterationsHandler.turn_off_message_logging: declared on the class but not set by its constructor (left out)",
+    "_PROXY_MaxIterationsHandler.enforces_request_content: declared on the class but not set by its constructor (left out)",
+    "@with_service_target('session_iterations') on async_pre_call_hook: taken as transparent (skip)",
+    "self._get_session_id (max_iterations_limiter.py:99:29): answered by the request (stated), its arguments not read",
+    "self._get_max_iterations (max_iterations_limiter.py:103:33): answered by the request (stated), its arguments not read",
+    "verbose_proxy_logger.debug (max_iterations_limiter.py:107:9): left out (stated: skip), run as it is by the check",
+    "internal_usage_cache: a store (stated): \"{session_iterations:{}}:count\" keys held as internal_usage_cache_session_iterations_count, its expiry and eviction left out",
+    "resolve_llm_provider_for_rate_limit (max_iterations_limiter.py:118:44): left out (stated: skip), run as it is by the check",
+    "async_pre_call_hook: raise ProxyRateLimitError(detail=f'Max iterations exceeded for ... (max_iterations_limiter.py:119:13) is the step's failure, kept as its result (with what the step wrote before it)",
+    "verbose_proxy_logger.debug (max_iterations_limiter.py:129:9): left out (stated: skip), run as it is by the check",
+    "left out (outside the subset; the methods read don't touch them): ttl, increment_script",
+    "read by the code but by no term of the rule (given their sort's zero, or None, by the check): call_type",
+    "get_max_iterations: an integer (the code takes any whole number)"
+   ],
+   "ms": 18408,
+   "laws": [
+    {
+     "name": "a call is admitted only while its session is below max_iterations",
+     "verdict": "proven",
+     "ms": 345
+    },
+    {
+     "name": "a session at its max_iterations is refused",
+     "verdict": "proven",
+     "ms": 165
+    },
+    {
+     "name": "every call of a limited session counts one, refused or not",
+     "verdict": "proven",
+     "ms": 145
+    },
+    {
+     "name": "a call with no session or no max_iterations is admitted and counts nothing",
+     "verdict": "proven",
+     "ms": 158
+    }
+   ],
+   "evidence": {
+    "runs": 200,
+    "requests": 2337,
+    "fromStates": 400,
+    "probes": {
+     "conditions": 4,
+     "witnesses": 4,
+     "steps": 4
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 12,
+    "compiledAgreed": 2729,
+    "coverage": {
+     "arms": 9,
+     "hit": 9,
+     "missed": []
+    },
+    "ms": 14052,
+    "edgeSample": "async_pre_call_hook([\"user_api_key_dict\",{\"inert\":true}],[\"cache\",{\"inert\":true}],[\"data\",{\"inert\":true}],[\"call_type\",{\"in\":\"\"}]) from {\"internal_usage_cache_session_iterations_count\":{\"a\":{\"value\":2}}}",
+    "runMs": 14052
+   }
+  },
+  {
+   "id": "quota/litellm-py/MaxBudgetPerSessionHandler",
+   "ok": true,
+   "notes": [
+    "os.getenv (max_budget_per_session_limiter.py:74:13): left out (stated: skip), run as it is by the check",
+    "internal_usage_cache.dual_cache.redis_cache is null (stated)",
+    "_PROXY_MaxBudgetPerSessionHandler made by its constructor: its arguments are the rule's params",
+    "_PROXY_MaxBudgetPerSessionHandler.message_logging: declared on the class but not set by its constructor (left out)",
+    "_PROXY_MaxBudgetPerSessionHandler.turn_off_message_logging: declared on the class but not set by its constructor (left out)",
+    "_PROXY_MaxBudgetPerSessionHandler.enforces_request_content: declared on the class but not set by its constructor (left out)",
+    "@with_service_target('session_budgets') on async_pre_call_hook: taken as transparent (skip)",
+    "self._get_max_budget_per_session (max_budget_per_session_limiter.py:99:22): answered by the request (stated), its arguments not read",
+    "self._get_session_id (max_budget_per_session_limiter.py:101:29): answered by the request (stated), its arguments not read",
+    "@with_service_target('session_budgets') on _get_current_spend: taken as transparent (skip)",
+    "internal_usage_cache: a store (stated): \"{session_budget:{}}:spend\" keys held as internal_usage_cache_session_budget_spend, its expiry and eviction left out",
+    "verbose_proxy_logger.debug (max_budget_per_session_limiter.py:110:9): left out (stated: skip), run as it is by the check",
+    "resolve_llm_provider_for_rate_limit (max_budget_per_session_limiter.py:118:44): left out (stated: skip), run as it is by the check",
+    "async_pre_call_hook: raise ProxyRateLimitError(detail=f'Session budget exceeded for ... (max_budget_per_session_limiter.py:119:13) is the step's failure, kept as its result (with what the step wrote before it)",
+    "left out (outside the subset; the methods read don't touch them): ttl, increment_script",
+    "read by the code but by no term of the rule (given their sort's zero, or None, by the check): call_type",
+    "get_max_budget_per_session: an integer (the code takes any whole number)"
+   ],
+   "ms": 17580,
+   "laws": [
+    {
+     "name": "a session whose spend has reached max_budget_per_session is refused",
+     "verdict": "proven",
+     "ms": 235
+    },
+    {
+     "name": "a session below max_budget_per_session is admitted",
+     "verdict": "proven",
+     "ms": 125
+    }
+   ],
+   "evidence": {
+    "runs": 200,
+    "requests": 2400,
+    "fromStates": 400,
+    "probes": {
+     "conditions": 0,
+     "witnesses": 0,
+     "steps": 0
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 2,
+    "compiledAgreed": 2798,
+    "coverage": {
+     "arms": 8,
+     "hit": 8,
+     "missed": []
+    },
+    "ms": 13336,
+    "edgeSample": "async_pre_call_hook([\"user_api_key_dict\",{\"inert\":true}],[\"cache\",{\"inert\":true}],[\"data\",{\"inert\":true}],[\"call_type\",{\"in\":\"\"}]) from {\"internal_usage_cache_session_budget_spend\":{\"c\":{\"value\":6},\"a\":{\"value\":1},\"b\":{\"value\":9007199254740990}}}",
+    "runMs": 13336
+   }
+  },
+  {
+   "id": "circuit breaker/litellm-py/should_cooldown_based_on_allowed_fails_policy",
+   "ok": true,
+   "notes": [
+    "litellm_router_instance.get_allowed_fails_from_policy (cooldown_handlers.py:604:40): answered by the request (stated), its arguments not read",
+    "_increment_allowed_fails (cooldown_handlers.py:624:28): answered by the request (stated), its arguments not read",
+    "should_cooldown_based_on_allowed_fails_policy: updated_fails > allowed_fails is None where a number is read (a TypeError) (cooldown_handlers.py:627:12) is the step's failure, kept as its result (with what the step wrote before it)",
+    "read by the code but by no term of the rule (given their sort's zero, or None, by the check): deployment, cooldown_time_override, cooldown_time_override_none, cache_key_suffix, cache_key_suffix_none, litellm_router_instance_cooldown_time",
+    "allowed_fails_override: an integer (the code takes any whole number)",
+    "get_allowed_fails_from_policy: an integer (the code takes any whole number)",
+    "litellm_router_instance_allowed_fails: an integer (the code takes any whole number)",
+    "increment_allowed_fails: an integer (the code takes any whole number)"
+   ],
+   "ms": 4749,
+   "laws": [
+    {
+     "name": "with an override, a deployment cools down exactly when its fails pass it",
+     "verdict": "proven",
+     "ms": 129
+    },
+    {
+     "name": "with no override, the exception's policy governs",
+     "verdict": "proven",
+     "ms": 94
+    },
+    {
+     "name": "with neither, the router's allowed_fails governs",
+     "verdict": "proven",
+     "ms": 80
+    }
+   ],
+   "evidence": {
+    "runs": 200,
+    "requests": 2049,
+    "fromStates": 400,
+    "probes": {
+     "conditions": 4,
+     "witnesses": 4,
+     "steps": 4
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 69,
+    "compiledAgreed": 2384,
+    "coverage": {
+     "arms": 1,
+     "hit": 1,
+     "missed": []
+    },
+    "ms": 804,
+    "edgeSample": "should_cooldown_based_on_allowed_fails_policy([\"litellm_router_instance\",{\"rec\":\"litellm.router.Router\",\"f\":{\"allowed_fails\":{\"in\":1},\"cooldown_time\":{\"in\":0,\"float\":true}}}],[\"deployment\",{\"in\":\"\"}],[\"original_exception\",{\"inert\":true}],[\"allowed_fails_override\",{\"none\":true}],[\"cooldown_time_override\",{\"in\":0,\"float\":true}],[\"cache_key_suffix\",{\"in\":\"\"}]) from {}",
+    "runMs": 804
+   }
+  }
+ ]
+}

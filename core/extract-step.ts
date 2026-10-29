@@ -1265,6 +1265,7 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
   const inputs = g.inputs.filter(v => !unread.includes(v))
   for (const e of events) { const a = e.args[0] as {k: 'rec', fields: [string, Arg][]}; a.fields = a.fields.filter(([n]) => !unread.some(v => v.name === n)) }
   const model: Model = {
+    kind: cls ? 'a class and its methods' : names.length > 1 ? 'functions, each a request' : 'a function, each call a request',
     name: cls ? g.rec(cls, at).short : names.length === 1 ? names[0]! : mod.module.split('.').pop()!, shape: 'class', file: mod.file, entry: cls ? g.rec(cls, at).short : names.join(', '),
     params: g.params, inputs, state, maps, init, writes, mapWrites, outputs,
     refuse: refuseB, pre, layout, events, notes: [...g.notes], hints: g.hints, ...(ev ? {event: ev.name} : {}), results, laws,

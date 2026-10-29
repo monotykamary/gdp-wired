@@ -28,18 +28,20 @@ export type PySpec = {
 const lt = (x: X, y: X): Cond => { try { return x.lt(y) } catch { return y.gt(x) } }
 const atLeast = (x: X, y: X): Cond => { try { return x.atLeast(y) } catch { return y.atMost(x) } }
 
+const art = (w: string) => (/^[aeiou]/.test(w) ? 'an' : 'a')
+
 // --- the per-entity max_budget checks (litellm/proxy/auth/auth_checks.py) --------------------------------------------
 // Each refuses a request when its entity's spend (the cross-pod counter get_current_spend reads, answered by the
 // request) has reached the entity's max_budget. The same three laws for each entity; `set` is the condition that the
 // entity and its max_budget are given, `off` what else lets the request through by design (a throttled key, an info
 // route).
 const budget = (entity: string, set: (b: X) => Cond, max: (b: X) => X, off: (b: X) => Cond, why: string): PyLaw[] => [
-  {name: `a ${entity} whose spend has reached its max_budget is refused`, kind: 'access', intent: 'docs', why,
-    law: r => r.stepLaw(`a ${entity} whose spend has reached its max_budget is refused`, (_b, a) => a.failed, b => all(set(b), off(b).not(), atLeast(b.get_current_spend, max(b))))},
-  {name: `a ${entity} below its max_budget is admitted`, kind: 'access', intent: 'docs', why: 'auth_checks.py: the check raises only when the budget is exceeded',
-    law: r => r.stepLaw(`a ${entity} below its max_budget is admitted`, (_b, a) => a.failed.not(), b => all(set(b), lt(b.get_current_spend, max(b))))},
-  {name: `a ${entity} with no max_budget is admitted`, kind: 'access', intent: 'docs', why: 'BUDGET_CODE_MATRIX.md: a hard max_budget blocks; with none set there is nothing to block on',
-    law: r => r.stepLaw(`a ${entity} with no max_budget is admitted`, (_b, a) => a.failed.not(), b => set(b).not())},
+  {name: `${art(entity)} ${entity} whose spend has reached its max_budget is refused`, kind: 'access', intent: 'docs', why,
+    law: r => r.stepLaw(`${art(entity)} ${entity} whose spend has reached its max_budget is refused`, (_b, a) => a.failed, b => all(set(b), off(b).not(), atLeast(b.get_current_spend, max(b))))},
+  {name: `${art(entity)} ${entity} below its max_budget is admitted`, kind: 'access', intent: 'docs', why: 'auth_checks.py: the check raises only when the budget is exceeded',
+    law: r => r.stepLaw(`${art(entity)} ${entity} below its max_budget is admitted`, (_b, a) => a.failed.not(), b => all(set(b), lt(b.get_current_spend, max(b))))},
+  {name: `${art(entity)} ${entity} with no max_budget is admitted`, kind: 'access', intent: 'docs', why: 'BUDGET_CODE_MATRIX.md: a hard max_budget blocks; with none set there is nothing to block on',
+    law: r => r.stepLaw(`${art(entity)} ${entity} with no max_budget is admitted`, (_b, a) => a.failed.not(), b => set(b).not())},
 ]
 const BUDGET = {failures: 'kept' as const, answers: {get_current_spend: 'float'}, skip: ['asyncio.create_task', 'CallInfo', '_MASKED_KEY_NAME_RE', 'project_spend_counter_key']}
 const MATRIX = 'BUDGET_CODE_MATRIX.md: "Hard max_budget ... block"; the docs: a request is rejected once spend reaches max_budget'
