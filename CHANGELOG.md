@@ -5,6 +5,21 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**The EPR path checks comparisons it can't read against the order; distributed's undecided cubes and wo's 81-law caller
+goal decided (gen/epr6).** Nothing trusted changed. research/protocols/epr/DESIGN.md, "gen/epr6", has the measurements.
+- **A theory of the order** (DPLL(T)): comparisons of key parts with composed keys, which wrong-sort instances bring, are
+  solved with the model's order over the integers, where the read-back fails. A refutation is a lemma; otherwise the
+  values are the read-back's. The propositional search is incremental.
+- **Instances:**
+  - many laws about several keys share a budget of tuples (wo's caller goal: 34,881 hypotheses to 14,058);
+  - model instances no longer copy the model per evaluation (16 s to 0.15 s there).
+- **Results:**
+  - distributed_lock's 80 undecided cubes: all decided, at most 0.46 s each;
+  - ring: 4 of its 6 decided;
+  - every round's goal as Z3 4.13 says;
+  - wo's search on gen/enum4 ends at 59–63 s, not 68–72 s.
+- **Bar** (rw, f1, f2, g332, suite, onecpu against 5d4da3f): wrong 0, nothing lost.
+
 **The enumeration's unsure cube goals decided: decideLaw (gen/epr5).** Nothing trusted changed.
 research/protocols/epr/DESIGN.md, "gen/epr5", has the measurements.
 - **The EPR path:** a successor chain the model holds gets consecutive values in the read-back, and keys of two shapes
