@@ -2145,7 +2145,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       }
       // (a goal the CDCL search refuted, by the laws its core read: settled while each is still in the set, Houdini's
       // cores)
-      const settled = new Map<string, string[]>(), kept2 = new Set<Form>(), tm = {pre: 0, decide: 0, rest: 0}
+      // (`stands`: the goals proven since the set last lost a law; a set that only grows keeps their proofs)
+      const settled = new Map<string, string[]>(), kept2 = new Set<Form>(), stands = new Set<string>()
       let held = false
       // (the caller's counterexamples so far, each a state the set must rule out: the enumeration's cubes false there are
       // the relevant ones, the most counterexamples first; and the places a round can afford, from the last round's cost
@@ -2172,25 +2173,23 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             if (performance.now() > kUntil() || stop()) { complete = false; break }
             const f = typeof goal === 'string' ? undefined : goal, others = cubes.filter(g => g !== f), idx = f ? given.length + at2.get(f)! : ls.findIndex(l => l.name === goal), mm = mmRound
             if (f) held = true
-            const tG = performance.now()
-            if (f && kept2.has(f)) continue
+            if ((f && kept2.has(f)) || stands.has(ls[idx]!.name)) continue
             const was = settled.get(ls[idx]!.name)
             if (was && was.every(n2 => ls.some(l => l.name === n2))) continue
             settled.delete(ls[idx]!.name)
             // (a goal decided by the EPR path alone first (a proof or a model, a cube's within a quarter of a join query, the
             // caller's within one); else a model or a refutation of the CDCL search alone, then the proof path's)
             if (f) { if (tGoal) cubeMs += performance.now() - tGoal; tGoal = performance.now(); asked++ } else tGoal = 0
-            const tDl = performance.now(); tm.pre += tDl - tG; const dlEnd = Math.min(kUntil(), performance.now() + (f ? joinQueryMs / 4 : joinQueryMs)), dl = within(dlEnd, () => decideLaw(mm, ls, idx))
+            const tDl = performance.now(), dlEnd = Math.min(kUntil(), performance.now() + (f ? joinQueryMs / 4 : joinQueryMs)), dl = within(dlEnd, () => decideLaw(mm, ls, idx))
             // (the EPR path out of time on the caller's goal: the proof path would be no quicker)
             const outOfTime = !dl && performance.now() - tDl >= 0.9 * (dlEnd - tDl)
-            tm.decide += performance.now() - tDl; const tJ = performance.now()
-            if (dl?.proven) continue
+            if (dl?.proven) { stands.add(ls[idx]!.name); continue }
             let isReal = !!dl && realCti(dl.witness, f, others), wit = dl?.witness
             if (!dl) {
               const inst = mapNames.length ? lawInstances(mm, ls, idx) : undefined, g = obligations(mm, ls, inst ? {[ls[idx]!.name]: inst} : {}, idx)[1]!
               const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
               if (!('tree' in quick) && quick.why === REFUTED && quick.core) { const lawAt = lawsFrom(mm, ls, false, inst ?? {}); settled.set(ls[idx]!.name, [...new Set([...quick.core].map(h => lawAt.get(h)).filter((k): k is number => k !== undefined && k >= given.length && k !== idx).map(k => ls[k]!.name))]) }
-              if ('tree' in quick || quick.why === REFUTED) continue
+              if ('tree' in quick || quick.why === REFUTED) { stands.add(ls[idx]!.name); continue }
               // (the caller's law's model from the proof path alone: EPR's, real or with the instances that refute it)
               isReal = !!f && quick.stuck === 'sat' && !!quick.witness && realCti(quick.witness, f, others)
               if (quick.stuck === 'sat') wit = quick.witness
@@ -2198,12 +2197,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
               if (!isReal && !f && !outOfTime) {
                 proofs++
                 const r2 = within(Math.min(kUntil() - 2000, performance.now() + Math.max(joinQueryMs * 1.25, (kUntil() - performance.now()) / 2)), () => proveLaw(mm, ls, idx))
-                if (r2.proven) continue
+                if (r2.proven) { stands.add(ls[idx]!.name); continue }
                 isReal = !!r2.witness && realCti(r2.witness, f, others)
                 wit = r2.witness ?? wit
               }
             }
-            tm.rest += performance.now() - tJ
             // (a real counterexample from a state no small state is: its diagram blocked, the goal's laws kept)
             const ds = isReal && lastPre ? withFnsOf(lastPre.w, () => diagrams(lastPre!)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g)) : []
             // (the caller's: blocked at once, IC3's order, the caller asked again before the cubes)
@@ -2219,17 +2217,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             }
             // (the ∃ law's own goal unproven: it goes; the caller's unproven with no diagram (every view's rows reached, or no
             // model to read): the ∀∃ laws, once)
-            if (!f && ghost && goal === ghost.plain.name) { opts.progress?.('join exists', {dropped: ghost.plain.name.slice(0, 120)}); ghost = ghosts?.shift(); again = true; break }
+            if (!f && ghost && goal === ghost.plain.name) { opts.progress?.('join exists', {dropped: ghost.plain.name.slice(0, 120)}); ghost = ghosts?.shift(); stands.clear(); again = true; break }
             if (!f && !ghosts) { const t1 = performance.now(); ghosts = ghostsOf(); ghost = ghosts.shift(); opts.progress?.('join exists', {law: ghost ? `${ghost.plain.name.slice(0, 160)}; ${ghost.name} := ${JSON.stringify(ghost.step).slice(0, 160)}` : 'none', ms: Math.round(performance.now() - t1)}); if (ghost) { again = true; held = false; break } }
-            if (!f && opts.progress && env.GDP_ENGINE_LIST) {
-              const pts = pres.map(q => withFnsOf(q.w, () => pointOf(q.params, q.st))), have = new Set(cubes.map(textOf))
-              opts.progress('join caller failed', {set: cubes.map(textOf).join(' | '), pres: pres.length, scored: made.filter(g => !have.has(textOf(g))).map(g => `${pts.filter(pt => !holdsAt(g, pt)).length}:${textOf(g)}`).join(' | ')})
-            }
             if (!f) { caller = true; held = false; break }
             ;(isReal ? real : unsure).add(f)
           }
         }
-        opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length, ms: Math.round(performance.now() - t0), pre: Math.round(tm.pre), decide: Math.round(tm.decide), rest: Math.round(tm.rest)})
+        opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length, ms: Math.round(performance.now() - t0)})
         // (optimistic Houdini: an unsure cube holds at every small state and every step from one (they are its rows), so
         // it stays; the set's proof decides, a cube it fails at dropped and the rounds go on)
         const drops = new Set<Form>(real)
@@ -2249,6 +2243,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           cubes = cubes.filter(c => c !== g); dropped++
         }
         if (!complete || caller || (!drops.size && !dropped) || enumProof) over = true
+        if (drops.size || dropped) stands.clear()
         cubes = cubes.filter(g => !drops.has(g))
       })
     }
