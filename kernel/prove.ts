@@ -919,9 +919,14 @@ function mapReads(goals: Goal[]): {keys: E[], byMap: Map<string, E[]>} {
 // where the names have these (a name left out is 0, as a model leaves it).
 export const keyValue = (cell: string, w: Record<string, number>): number | undefined => {
   const inner = cell.slice(cell.indexOf('[') + 1, -1)
-  if (inner.includes('[')) return undefined
+  // (its parts split at the commas outside brackets: a part may be a cell itself, Pending[idn[n:1]:64,n:1], valued as the
+  // model values it)
+  const parts: string[] = []
+  let depth = 0, from = 0
+  for (let i = 0; i < inner.length; i++) { const ch = inner[i]; if (ch === '[') depth++; else if (ch === ']') depth--; else if (ch === ',' && depth === 0) { parts.push(inner.slice(from, i)); from = i + 1 } }
+  parts.push(inner.slice(from))
   let value = 0
-  for (const part of inner.split(',').filter(Boolean)) {
+  for (const part of parts.filter(Boolean)) {
     const at = part.lastIndexOf(':'), name = part.slice(0, at), coef = Number(part.slice(at + 1))
     if (name === '1') value += coef
     else if (name in w) value += coef * w[name]!
