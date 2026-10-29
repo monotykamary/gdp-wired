@@ -335,6 +335,10 @@ headers and a config), MIN's link state machine (a CRC loop, bit operations; no 
 (bitfields), coreMQTT's publish states (functions of no struct). No circuit or connection state machine and no
 allocator's bookkeeping fit: each kept a pointer it writes through, a loop, or bit flags.
 
+**Bars** (against 4415419, together): rw 347 / 35 / 8 against 333 / 35 / 8, nothing lost; the suite and --usual 229 of
+229 each plus extract-c, job seconds level; check (lint) fixed after the bar and passing. Go 119 of 119; LiteLLM, Ruby and
+Elixir rules byte-identical; build and smoke pass without clang. research/langs/c/identity.json has those jobs.
+
 **Not yet:** bit flags (`f |= F`, `f & F` for one bit: expressible as / and % by constants), bitfields, division by a
 variable (most often an overflow guard), constants past 2^53 in comparisons, coverage (clang's source-based coverage),
 Go's slices' item range law (C's arrays have it; Go's output kept byte-identical).

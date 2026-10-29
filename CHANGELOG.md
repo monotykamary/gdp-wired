@@ -5,6 +5,38 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**C on the shared executor: a reader on clang's JSON dump in the shape Go's reader prints, so Go's lowering reads
+both; signed overflow refused, never wrapped; Ring-Buffer, nghttp2's rate limiter and ENet's packet throttle in the
+corpus (gen/c).** Nothing trusted changed. research/langs/DESIGN.md, "C and C++ (gen/c)", has the details.
+- **The front end** (`gdp-wired/extract-c`, 21,045 bytes, and core/c/reader.ts, 36,864): a struct of a C file and the
+  functions that take it by pointer, read through clang with the project's flags (or its compile_commands.json), the
+  file's own declarations kept and its headers' static inline functions read. Integers carry clang's widths and
+  signs: unsigned arithmetic wraps by cases, signed overflow is undefined behavior (the new `ub` mode: refused where
+  the bounds and the path's facts don't exclude it), the promotions and conversions are clang's ImplicitCastExpr, /
+  and % truncate, by zero refused; fixed arrays are lists of their length (an index outside them refused);
+  `x & (2^k − 1)` is a remainder; assert and abort are refusals, and so is a result the caller states is a failure
+  (`fails: {take: '< 0'}`); a pointer to an integer parameter is an out-parameter, its value a result. The check
+  compiles the file as it ships with a generated harness (#included, the same flags, the undefined-behavior sanitizer
+  trapping, so a rule's refusal for undefined behavior is the code's failure too) and runs it on Go's driver.
+- **Shared** (+7.5 KB): `ub`, fixed-length lists (`items(kinds, lens)`), stated failures, a switch's join keeping a
+  carried case's condition (a latent bug of Go's switch with fallthrough before a default; no Go capture reaches it),
+  probes the prover can't state skipped. Go stays byte-identical (119 of 119).
+- **The corpus:** Ring-Buffer 8b93e1b's ring_buffer_t (a 128-char ring in a fixed array, 7 functions, dequeue and peek
+  through out-parameters), nghttp2 1.70.0's nghttp2_ratelim (init and drain; update refused at UINT64_MAX, past the
+  rule's numbers) and ENet 1.3.18's packet throttle on ENetPeer (its lists and pointers left out, compared unchanged):
+  14 laws proven, among them "only RING_BUFFER_SIZE-1 items are held", "burst is the maximum value of val" and "the
+  throttle stays within its limit"; each check agreed on about 2,400 requests; no law refuted, so no bug to triage.
+  Refused or not fitting, each with why: Tor's and libevent's token buckets (division by a variable), FreeRTOS-Plus-TCP's
+  stream buffer (its kernel's headers), MIN, quicly, coreMQTT; no circuit or connection state machine and no allocator
+  fit (pointers written through, loops, bit flags). `bun research/langs/c/run.ts --write` re-extracts at the pins; on
+  Modal (Linux, clang 19) the rules are byte for byte the committed ones.
+- **Bars** (against 4415419, launched together, at ef15d40): the real-world corpus 347 / 35 / 8 against 333 / 35 / 8
+  (the 14 new laws), nothing lost, wrong 0; the suite and --usual 229 of 229 each plus the new extract-c job, job seconds
+  level (−77 s, −17 s), and one loss, `check` (oxlint: three findings in the new code), fixed at f1cb047 and passing there
+  with extract-c on Modal. Go byte-identical (119 of 119); LiteLLM's seven, Ruby's three and Elixir's rules re-extracted
+  are the committed ones. Build and smoke pass with clang absent (Modal's image, Node 22).
+- **Size:** core/ and kernel/ without tests +65,379 bytes (the reader 36,864, the front end and harness 21,045).
+
 **Elixir on the shared executor: the reducer shape lowered onto the object shape, ex_break's breaker in the corpus
 (gen/elixir).** Nothing trusted changed. research/langs/DESIGN.md, "Elixir (gen/elixir)", has the details.
 - **The front end** (`gdp-wired/extract-ex`, 3,762 bytes): core/ex/reader.exs reads a module through
