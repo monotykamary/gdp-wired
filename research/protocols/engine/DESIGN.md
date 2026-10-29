@@ -112,6 +112,21 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 - **The joins:** 2PC's join reaches its proof in 24 rounds, at 5.2–5.4 s; decentralized's sums-pass join in 6 rounds, at 2.6–2.9 s. Untouched.
 - **Verdicts:** 2PC 15–16 s, decentralized 26–31, toy 16–19, proven; wo, ring and distributed unknown.
 
+**Since 4c80da4: gen/epr8 merged, 7 of 10** (`runs/engine/s1`–`s7`)
+- **Merged:** gen/epr8 (rebased on 673a262; proveSetFast, keys matched as radix sums, EPR-first proveLaw) and research/protocols/epr/proveSetFast.patch (the set's proof loop asks `prove(..., true)`).
+- **Proven:** sharded KV, in 25–44 s. **The seven** (2 runs at 60 s, s6–s7): sync 8–10 s, async 23–25, decentralized 13–16, 2PC 18–19, ticket 32–35, toy 10–16, sharded 27–44.
+- **distributed's endless blocking:** it was one law re-blocked, not a variant. "never started is 0 and Ep[x] + 1 <= y and Ep[x] + 1 <= z" is false at a start, so it was struck at each round's start check, and then blocked again by the diagram fallback (which had no start check).
+  - **The cause is general:** y and z are read only by order literals that bound them from one side. A large y always has `Ep[x] + 1 <= y`, so the cube is "never started is 0" in disguise. The small instance only holds it because y ranges over the epochs a state has. The same goes for the EPR agent's "42 of 94 false at large epochs".
+  - **The fix (`oneSided`):** no cube, enumerated or diagram, with a key read only by order literals bounding it from one side (a key in a map's place or a function's argument counts as read). Diagrams are checked at a start too. Ring: 160 → 69 cubes; distributed: 178 → 140; the needed laws all stay.
+- **Blockers** take the cubes that may be false where the model leaves cells unnamed (below the false ones), as relevance does.
+- **distributed now:** its rounds converge by 14–24 s, set proofs about 1 s each. But true laws (a live transfer above every epoch, a live transfer means nobody holds, a holder's epoch above every other) get dropped one at a time, as real counterexamples nothing blocks yet, and once dead they block nothing later.
+  - **Tried and reverted:** keeping such a cube unsure instead (IC3 not pushing a lemma). The set's proof then dropped the same laws one by one.
+  - **What it needs:** the support in the set together. The written laws as one set prove (README, given mode); the rounds don't assemble them. Next: block by the whole written-law-like antichain at a counterexample (several cubes, not two), or a drop that keeps a cube whose failure is a state that a dead cube's support would rule out.
+- **wo's join** (step 3): its 10 rounds end by 3.4 s locally. The time is one query in its last round, "every k: Leader[k] <= VoteRequestMsg[k]", 6.3 s locally (about 14 s on Modal), unknown. A "set unchanged for N queries" rule would cut 2PC's join, whose set stays the same for 5–10 rounds before it closes.
+  - **Tried and reverted:** a join query a quarter of its budget where the engine follows (the proving joins' longest queries are 24–333 ms locally). It cut wo's query to 3.9 s, but stopped decentralized's sums-pass join at round 5 of the 6 it needs (both runs unknown).
+  - **Next:** cap only a query whose goal the join has asked unknown before, or run the engine's small instance and enumeration (no kernel) while the join's last query runs.
+- **Checking a change to the join:** measure the first join and the sums pass's (decentralized proves in the second).
+
 **The expressibility map** (each written law in models.ts's `human`, against the engine's enumeration; `smallprobe.ts` with CUBES=made lists it, and 'join view' each view's literals)
 
 | Protocol | Written law | In the candidate space? | Missing block or cause |
