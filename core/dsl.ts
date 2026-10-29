@@ -19,7 +19,7 @@ import {type C, type E, type Fn, argsKey, type Law, type Recurrence, type Machin
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {someHolds, substVars, substVarsE} from './exists.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations, substC, sumMachine} from '../kernel/kernel.ts'
-import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
+import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
@@ -2460,7 +2460,9 @@ export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?
 // then still looks for runs that break the laws and for lemmas about the rule's functions and lists (true in every
 // state), never for an invariant, and a step law broken from a state the laws allow is refuted there, with the state
 // (`stuck: 'sat'`, `witness`), reachable or not.
-export type ProveOptions = {search?: boolean | {ms?: number, cycles?: boolean}, from?: 'reachable' | 'any'}
+// `fast`: the laws proven as a set by kernel/prove.ts's proveSetFast (a search's set proof, asked again after a drop: what
+// was settled before kept where it stands), not proveLaws; no cyclic certificate.
+export type ProveOptions = {search?: boolean | {ms?: number, cycles?: boolean}, from?: 'reachable' | 'any', fast?: boolean}
 // A verdict that isn't a checked proof, as the error a lemma, a guard or a gate is refused with (the verdict on `.verdict`).
 export class Unproven extends Error {
   constructor(what: string, readonly verdict: Verdict) {
@@ -2596,7 +2598,7 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
   // at), is a counterexample to induction: the laws may still hold, so the search goes on from it, as from the kernel's.
   // (A step law broken so is refused, proveSteps below: it holds from every state the laws allow, reached or not.)
   if (refuted) return refuted.run ? refutedVerdict(refuted) : searched(r, laws, [], refutedVerdict(refuted), opts)
-  const out = proveLaws(r.machine, withKinds(r, laws))
+  const out = (opts.fast ? proveSetFast : proveLaws)(r.machine, withKinds(r, laws)) as ReturnType<typeof proveLaws>
   const v: Verdict = {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   return searched(r, laws, [], v, opts)
 }
