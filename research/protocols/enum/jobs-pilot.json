@@ -1,0 +1,3 @@
+[
+ {"name": "toy-houdini", "cmd": "nproc; bun research/protocols/enum/probe.ts toy_consensus_forall --check houdini --ms 480000 --show 0 --out /tmp/out.json; s=$?; cat /tmp/out.json; times; exit $s", "timeout": 600}
+]

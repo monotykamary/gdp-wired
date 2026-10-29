@@ -323,3 +323,31 @@ is the search, not its cost.
 - CHC 1,177 against 1,165 in the first pass, 2 gained and 2 lost after reruns, none solid; ITS +3, TIP, SV, the
   frontier corpora and the real-world corpus level within one flip of noise;
 - the 332 step goals the same search; suites 225 of 225, Lean 48 of 48; size +1,347 bytes.
+
+## Hypothesis pruning (gen/prune, from b118bf5): probed, nothing kept
+
+**The idea:** relevance filtering, SInE's, read by cells. A wide root goal is asked first over the hypotheses its
+conclusion reaches: a hypothesis enters by its rarest cells (a map and its key term) or plain names. The part is then
+widened by its model: the hypotheses that model breaks join it, and it is asked again. A proof of the part becomes
+one of the whole goal through `widen`, which the kernel checks as any tree, so nothing trusted changes. Anything else
+leaves the goal to the usual search with the rest of its budget.
+
+**Relevance by plain symbols doesn't prune these goals.** The goals have 15 to 21 distinct symbols, and depth 2 reaches
+nearly every hypothesis. By cells it does: consensus_wo_decide's 859-hypothesis goal reaches 42 to 182, and sharded
+KV's 664 reach 69.
+
+**Measured** (Modal, one run a side, `GDP_PRUNE=300` against off; the gen/prune worktree's `runs/prune/p1`):
+- **The verdicts:** all as before, on the 10 written invariants, the searches at 60 s, the broken variants and the 30
+  real-world laws over several keys.
+- **Sharded KV:** "a key in transfer has no owner @step" goes from unknown at 456 s to proven in 0.66 s (a part of 73
+  of 664 hypotheses, widened). The next law, "one transfer per key" (5 keys), is unknown even as a part of 57
+  hypotheses: its first round takes 210 s, and the written invariant is still killed at 600 s.
+- **consensus_wo_decide:** its parts (50 to 57 hypotheses) have models round after round, and a part of 69 is unknown
+  at 24 s locally. Its goal's difficulty is its cases, not its width; killed at 600 s as before.
+- **Time:** mostly slower where the parts don't settle:
+  - decentralized lock's written invariant 2.2 to 3.9 s, 2PC's 15.4 to 20.3 s;
+  - sharded KV's search 30.8 to 47.2 s;
+  - the 30 real-world laws 578 to 601 s, TigerBeetle #1 and #3 14 to 16 s slower.
+
+**Verdict:** it moves neither of the two written invariants and speeds no large goal generally, so no code is kept.
+What blocks both is a goal that is hard at any width: sharded KV's 5-key law and consensus_wo_decide's quorum goal.

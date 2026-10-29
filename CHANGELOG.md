@@ -34,6 +34,58 @@ lean-kernel/ are b118bf5's). research/langs/DESIGN.md has the design.
   front end; the Python reader and harness, 38 KB, beside them). The suites and the full real-world corpus are not run
   yet.
 
+**The EPR path: goals over composed keys decided by their parts (gen/epr).** Nothing trusted changed.
+research/protocols/epr/DESIGN.md has the design, the probe and the measurements.
+- **kernel/epr.ts (new).** A goal of a rule with a composed key (a relation over several sorts, `a·N² + b·N + c`) whose
+  hypotheses read no counter, sum or product is decided first by a propositional abstraction:
+  - keys as tuples of their parts, compared by the parts' equalities (transitivity, congruence of cells, a composed
+    key's injectivity under its parts' bounds, a prefix's interval);
+  - few-valued cells and scalars as finite variables;
+  - a small CDCL that keeps each clause's hypotheses.
+  Every clause added holds in every model of the goal, so unsat there is unsat here.
+  - **A refutation:** its core (2 to 13 hypotheses on the protocols) is proven by the usual search and widened to the
+    whole goal (`widen`), whose tree kernel.ts checks as any.
+  - **A model:** read back as the kernel's witness and judged on every hypothesis by the interpreter.
+  - **Where it runs:** off by construction on rules without maps (every CHC task); `GDP_EPR=0` turns it off.
+- **The probe** (28 step goals of four protocols): no answer disagrees with Z3's; every refutation certified (11 to 417
+  leaves, checked on the whole goal); distributed_lock's epochs need order atoms, not built, so 9 of its 10 goals keep
+  the usual path.
+- **What it bought (Modal, three runs a side):**
+  - **sharded_key_value_store's written invariant proven in every run, 22–26 s** (killed at 150 s without it, never
+    proven before);
+  - consensus_wo_decide's law 8, unknown at 586 s, proven, its safety law still open (below);
+  - the searches at 60 s: the same five proven in every run, the misses ending sooner (toy 11–13 s against 15–19, wo
+    about 28 against 34–45, sharded KV 35–38 against 48–53);
+  - broken variants refused by the same runs; the 30 real-world laws over several keys the same, 637 s against 644 s.
+- **research/protocols/models.ts:** consensus_wo_decide's written invariant gets "after init the voting quorum has a
+  member", an ∃ law with the request's witness as its ghost. It is a fix to our model: the path's model of the safety
+  goal was an empty voting quorum letting any node lead. The safety law stays unknown, its later models a tuple short
+  at the ghost that `modelInstances` doesn't propose.
+- **The full bar against 383928a** (base together; `runs/bar/runs/epr-full-b056b08`): wrong 0, nothing lost in every
+  run.
+  - CHC 1,169 against 1,159 (3 gained, 4 lost after reruns, none solid); ITS +2 and +1.
+  - SV, TIP, the frontier and real-world corpora level.
+  - The 332 step goals the same search (288 against 304 s). Suites 225 of 225, Lean 48 of 48.
+- **Size:** core/ and kernel/ without tests +34,407 bytes (kernel/epr.ts).
+
+**Protocols: distributed_lock and toy_consensus_forall diagnosed, not closed (gen/gaps2).** No code changed.
+research/protocols/README.md has the diagnosis, and `research/protocols/gaps2.patch` holds the changes tried.
+- **toy:** three search gaps found and fixed in the patch: a model's request lost the maps it carries, so every model
+  was "outside"; a carried map had no sort; and "one vote per node" needs a template view of a composed key. The join
+  then finds the three-key law, but that law's step goal outruns the join's query budget even at 600 s (the prover's
+  cost, kernel/).
+- **distributed lock:** it needs the composed key's row as a value (e ≤ Ep[a]) and a law over four keys. Neither is
+  built.
+- **What the patch does on the pilot** (60 s): nothing gained. The template views cost decentralized lock its proof,
+  and pruning the bounds the kinds imply costs two_phase_commit its proof.
+- **ring:** no law in the real-world or frontier corpora needs a function of a key or an order between keys, so ring's
+  template is not built.
+- **toy, the second reading:** the template law's goal is proven in 0.32 s on the proof path, and the join's query
+  can't settle it even forced to the one form it needs (571 hypotheses, unknown at 5.2M work). The join's relative
+  induction also ranked that form 12th, behind guarded pieces of the same law. The patch adds research switches for
+  each lead (`GDP_X_RANK`, `GDP_X_WIDEN`, `GDP_X_THIN`, `GDP_X_PROOF`, `GDP_X_WHOLE`). Only asking the proof path
+  settles the goals, and that costs the 60 s search its budget by round 1.
+
 **Protocols: the key's domain; two_phase_commit proven with nothing written (gen/gaps).** Nothing trusted changed
 (kernel/, core/check.ts and lean-kernel/ are e7eab01's); three general changes to the join, core/infer.ts.
 research/protocols/README.md, "The key's domain", has the diagnosis and the measurements.

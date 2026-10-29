@@ -1,0 +1,7 @@
+[
+ {
+  "name": "distributed",
+  "cmd": "nproc; timeout -s KILL 1400 bun research/protocols/enum/probe.ts distributed_lock --held --depth 200 --trials 300 --check houdini --trace --ms 1300000 --show 0 --out /tmp/out.json 2>/tmp/err.log; s=$?; tail -c 120000 /tmp/err.log; cat /tmp/out.json; times; exit $s",
+  "timeout": 1500
+ }
+]
