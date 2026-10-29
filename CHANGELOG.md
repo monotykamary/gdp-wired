@@ -3,7 +3,36 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.31.0
+
+Effect services can be proven, searches end sooner, four distributed protocols are proven with nothing written, and a
+sum's cells keep their kind (trusted, Lean first). Every benchmark is level with 0.30.1 or ahead, with none wrong.
+- **Effect** (`gdp-wired/effect`, effect 3.22 and 4.x, an optional peer): `extractEffect` reads a service whose state
+  is in Refs into a rule, `conforms` runs the real service on Effect's runtime beside a rule, and `fromSchema` gives a
+  Schema type as a kind. Effect's Semaphore and in-memory RateLimiter store and T3 Code's source-control rate limit
+  join the real-world corpus: 19 laws, 15 proven and 4 refuted.
+- **Searches end sooner.** Random runs read a law over several keys only at the values its own maps can give, under a
+  counted cap. The ten protocols' searches take 369 s in all, where they took 964 s; the real-world corpus's per-law
+  time is 7% lower (1,557 s against 1,677 s), the 332 step goals 284.7 s against 298.6 s, with every verdict the same.
+- **Distributed protocols** (research/protocols/, ten from the DistAI and DuoAI suites): with nothing written, 4 of 10
+  are proven at a 60 s search (both lock servers, decentralized lock, ticket lock) and 1 at 10 s; DuoAI proves all ten
+  (on its own machine and harness). 8 of 10 written invariants are proven, and every broken variant is refused with
+  its run. What did it: each key's sort read off the rule, model-based instances, cubes in every view, and the sums
+  theorem below.
+- **Trusted:** Sums.lean's `sum_cells` lets a sum's cover goal assume the proven one-key laws about its cells (a kind
+  law among them), proven with the sums' exactness by one induction, on the standard axioms; kernel.ts's `cellLaws`
+  mirrors it.
+- **CHC-COMP:** IMC's interpolants simplified in linear time; LIA-Lin is within its noise against 0.30.1, so the lead
+  stays the four side-by-side batches of 0.30.1. A pilot of the ADT-LIA track: 14 of 48 against Spacer's 13 and
+  Eldarica's 14.
+- **Termination over integers** in core/data.ts (an Int measure's size is its toNat).
+- **Benchmarks** (full bars of each merge, Modal, wrong 0): CHC-COMP 1,161 to 1,172 across them, TIP 2015 213,
+  SV-COMP 246, TermComp ITS level, Lean 48 of 48, both suites passing. The real-world corpus is 330 laws: 288 proven,
+  33 refuted, 9 unknown.
+- **Size:** `core/` and `kernel/` (tests excluded) are 2,469,117 bytes against 2,387,735 (+81,382); the Effect front
+  end is 33,912 of it, and the slimming pass took out what didn't pay.
+
+The tracks, newest first:
 
 **Effect services (gdp-wired/effect, gen/effect).** A team whose stateful logic is written in
 [Effect](https://effect.website), 3.x or 4.x, proves its laws about the code it ships. Nothing trusted changed
