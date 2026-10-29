@@ -75,10 +75,13 @@ operations anyway, not done in phase 1.
 
 | | Bytes | Notes |
 | --- | --- | --- |
-| `core/extract-step.ts` | see the report | the IR, the executor, the check's code side, once |
-| `core/extract-py.ts` | ~5 KB | the front end |
-| `core/py/reader.py` | ~25 KB | Python |
-| `core/py/harness.py` | ~12 KB | Python |
+| `core/extract-step.ts` | 98,952 | the IR, the executor, the check's code side, once (as large as Go's executor alone; the next languages add to it only the operations above) |
+| `core/extract-py.ts` | 4,947 | the front end |
+| `core/py/reader.py` | 25,911 | Python |
+| `core/py/harness.py` | 12,370 | Python |
+
+core/ and kernel/ in TypeScript (the bar's measure, tests excluded): +103,695 bytes against b118bf5; with the two Python
+files, +142 KB.
 
 Per language from here: its reader (15–30 KB in its own language) and its harness (8–12 KB reflective, 15–25 KB of TS
 generating it for a static language), and a ~3 KB front end.
