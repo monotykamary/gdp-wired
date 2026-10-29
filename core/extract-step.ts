@@ -106,6 +106,7 @@ const where = (x: {p: string}) => x.p || '?'
 const refuse = (x: {p: string} | string, what: string): never => { throw new Refusal(typeof x === 'string' ? x : where(x), what) }
 const RESERVED = new Set(['rule', 'nat', 'int', 'bool', 'when', 'min', 'max', 'all', 'any', 'not', 'yes', 'no', 'lit', 'str', 'record', 'oneOf', 'intern', 'Int', 'forall'])
 const keyV = (v: V | Obj): string => JSON.stringify(v, (_, x) => (x instanceof Map ? [...x.entries()] : x))
+const LANG: Record<string, string> = {go: 'Go', rust: 'Rust', python: 'Python'}
 const tyName = (ty?: IntTy) => (ty ? (ty.bits ? `${ty.signed ? 'i' : 'u'}${ty.bits}` : ty.signed ? 'an Instant' : 'a Duration') : 'the number')
 const constOf = (v: V): number | undefined => (v.t === 'num' && v.e.op === 'const' ? v.e.v : undefined)
 
@@ -924,7 +925,7 @@ export class Stepper {
     const argv: V[] = []
     let q2 = q
     for (const a of args) { const [v, q3] = this.ev(a, q2); argv.push(v); q2 = q3 }
-    const wrap = (e: N): V => { const ty = cur.t === 'num' ? cur.ty : undefined; if (!ty) return {t: 'num', e}; const [lo, hi] = rangeOf(ty); if (!Number.isFinite(hi)) return {t: 'num', e, ty}; const m = I.num(2 ** ty.bits); return {t: 'num', e: I.nite(I.cmp('<', I.num(hi), e), I.sub(e, m), I.nite(I.cmp('<', e, I.num(lo)), I.add(e, m), e)), ty} }
+    const wrap = (e: N): V => { const ty = cur.t === 'num' ? cur.ty : undefined; return ty ? {t: 'num', e: this.wrap(e, ty, x, q2), ty} : {t: 'num', e} }
     const set = (v: V) => this.assign(place, v, x, q2)
     switch (op) {
       case 'load': return [cur, q2]
@@ -1038,35 +1039,20 @@ export class Stepper {
       const k = constOf(b)
       if (k === undefined) return refuse(x, `${x.text}: a division by a value that isn't a constant`)
       if (k === 0) { this.fail(q2, I.T, x, `${x.text}: a division by zero (a panic)`); return [{t: 'num', e: I.num(0), ...(ty ? {ty} : {})}, {...q2, pc: [...q2.pc, I.F]}] }
-      const tq = this.truncDiv(na, k)
-      e = op === '/' ? tq : I.sub(na, I.mulk(k, tq))
+      e = op === '/' ? (k < 0 ? I.neg(this.quot(na, -k)) : this.quot(na, k)) : this.rem(na, Math.abs(k))
     } else return refuse(x, `${x.text}: ${op}`)
     const out = (n: N): V => ({t: 'num', e: n, ...(ty ? {ty} : {})})
-    const [lo, hi] = ty ? rangeOf(ty) : [-Infinity, Infinity]
-    const below = Number.isFinite(lo) ? I.cmp('<', e, I.num(lo)) : I.F, above = Number.isFinite(hi) ? I.cmp('<', I.num(hi), e) : I.F
+    const [lo, hi] = ty ? rangeOf(ty) : [-Infinity, Infinity], [below, above] = this.past(e, lo, hi, q2)
     switch (ovf) {
       case 'trap': this.fail(q2, I.or(below, above), x, `${x.text}: past ${tyName(ty)}'s range (a panic: attempt to ${op === '+' ? 'add' : op === '-' ? 'subtract' : op === '*' ? 'multiply' : 'divide'} with overflow)`); return [out(e), this.assume(q2, I.not(I.or(below, above)))]
       case 'sat': return [out(Number.isFinite(lo) || Number.isFinite(hi) ? I.nite(below, I.num(lo), I.nite(above, I.num(hi), e)) : e), q2]
       case 'sat0': return [out(I.nmax(e, I.num(0))), q2]
       case 'checked': return [{t: 'opt', has: I.not(I.or(below, above)), v: out(e)}, q2]
       case 'checked0': return [{t: 'opt', has: I.cmp('<=', I.num(0), e), v: out(e)}, q2]
-      case 'wrap': {
-        if (!ty || ty.bits === 0) return [out(e), q2]
-        if (ty.bits >= 64) {
-          // At 64 bits a wrap leaves the rule's numbers (2^64 − x is past 2^53): refused there, the claim stopping at them.
-          if (!ty.signed) this.refusals.push(I.and(this.cond(q2), below))
-          return [out(e), ty.signed ? q2 : this.assume(q2, I.not(below))]
-        }
-        // Two values of the type summed or subtracted are within one 2^bits of it: the wrap by cases (Go's front end's).
-        if (op !== '+' && op !== '-' && !(op === '*' && (constOf(a) !== undefined || constOf(b) !== undefined) && Math.abs(constOf(a) ?? constOf(b)!) <= 1)) return refuse(x, `${x.text}: a wrapping ${op} (by cases the subset wraps a sum or a difference)`)
-        const m = I.num(2 ** ty.bits)
-        return [out(I.nite(above, I.sub(e, m), I.nite(below, I.add(e, m), e))), q2]
-      }
+      case 'wrap': return [out(ty ? this.wrap(e, ty, x, q2) : e), q2]
     }
     return refuse(x, `${x.text}: an overflow mode ${ovf}`)
   }
-  // a / k truncated toward zero, for a constant k (≠ 0).
-  truncDiv(a: N, k: number): N { const fl = this.floorDiv(a, k), ce = I.neg(this.floorDiv(I.neg(a), k)); return I.nite(k > 0 ? I.cmp('<', a, I.num(0)) : I.cmp('<', I.num(0), a), ce, fl) }
   // `x as T`: an integer into another width (wrapped where it may not fit), a C-like enum's discriminant, a bool's 0 or 1.
   cast(x: SX, p: Path): [V, Path] {
     const [v, q] = this.ev(x.x as SX, p), t = x.ty as SType, ty = this.intTy(t)
@@ -1082,9 +1068,9 @@ export class Stepper {
     const from = v.t === 'num' ? v.ty : {bits: 8, signed: false}
     const [lo, hi] = rangeOf(ty), [flo, fhi] = from ? rangeOf(from) : [-Infinity, Infinity]
     if (flo >= lo && fhi <= hi) return [{t: 'num', e, ty}, q]
-    // (a narrowing cast of a value of a wider type: within the target's range, or refused where it isn't)
-    const [tlo, thi] = rangeOf(ty)
-    const out = I.or(...(Number.isFinite(tlo) ? [I.cmp('<', e, I.num(tlo))] : []), ...(Number.isFinite(thi) ? [I.cmp('<', I.num(thi), e)] : []))
+    // (a narrowing cast of a value of a wider type: within the target's range by its bounds and the path's facts, or
+    // refused where it isn't)
+    const out = I.or(...this.past(e, lo, hi, q))
     if (!(out.op === 'const' && !out.v)) { this.refusals.push(I.and(this.cond(q), out)); this.notes.add(`${x.text} (${x.p}): a narrowing cast, refused where the value doesn't fit (it truncates)`) }
     return [{t: 'num', e, ty}, this.assume(q, I.not(out))]
   }
@@ -1560,13 +1546,13 @@ export class Stepper {
     if (blo0 >= lo && bhi0 <= hi) return e
     const blo = blo0 >= lo || this.within(e, lo, 'lo', p) ? Math.max(blo0, lo) : blo0, bhi = bhi0 <= hi || this.within(e, hi, 'hi', p) ? Math.min(bhi0, hi) : bhi0
     if (blo >= lo && bhi <= hi) return e
-    const name = ty.name ?? tyName(ty)
+    const name = ty.name ?? tyName(ty), lang = LANG[this.mod.lang] ?? this.mod.lang
     if (ty.bits >= 64) {
-      if (!ty.signed && blo < 0) { this.refuseWhere(p, I.cmp('<', e, I.num(0)), x, `a ${name} below 0 (Go wraps it to 2^64 − x, past the rule's numbers)`, false); this.notes.add(`${name}: a result below 0 is refused (Go would wrap it past 2^53)`) }
+      if (!ty.signed && blo < 0) { this.refuseWhere(p, I.cmp('<', e, I.num(0)), x, `a ${name} below 0 (${lang} wraps it to 2^64 − x, past the rule's numbers)`, false); this.notes.add(`${name}: a result below 0 is refused (${lang} would wrap it past 2^53)`) }
       return e
     }
     const m = 2 ** ty.bits, k0 = Math.floor((blo - lo) / m), k1 = Math.floor((bhi - lo) / m)
-    this.notes.add(`${name}: a result past its range wraps modulo 2^${ty.bits}, as Go's does`)
+    this.notes.add(`${name}: a result past its range wraps modulo 2^${ty.bits}, as ${lang}'s does`)
     if (Number.isFinite(k0) && Number.isFinite(k1) && k1 - k0 <= 3) {
       // By cases from the bottom: e at least lo + k·2^n takes e − k·2^n.
       const less = (k: number): N => (k >= 0 ? I.sub(e, I.num(k * m)) : I.add(e, I.num(-k * m)))
@@ -1576,6 +1562,12 @@ export class Stepper {
     }
     // Many times over (a conversion from a wider type, a product): e − 2^n·⌊(e − lo)/2^n⌋.
     return I.sub(e, I.mulk(m, I.divk(m, I.add(e, I.num(-lo)))))
+  }
+  // Where e may be past [lo, hi] on the path: below and above, each false where the term's bounds or the path's facts
+  // keep it within.
+  past(e: N, lo: number, hi: number, p: Path): [B, B] {
+    const [blo, bhi] = this.bounds(e)
+    return [!Number.isFinite(lo) || blo >= lo || this.within(e, lo, 'lo', p) ? I.F : I.cmp('<', e, I.num(lo)), !Number.isFinite(hi) || bhi <= hi || this.within(e, hi, 'hi', p) ? I.F : I.cmp('<', I.num(hi), e)]
   }
   // Whether e is at least lo (or at most hi) on the path: its conditions and its variables' ranges as facts.
   within(e: N, b: number, side: 'lo' | 'hi', p: Path): boolean {
@@ -2105,6 +2097,9 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
       if (inner.t === 'num' || inner.t === 'bool' || inner.t === 'str' || inner.t === 'choice') {
         const sort: Var['sort'] = inner.t === 'num' ? {k: 'num'} : inner.t === 'bool' ? {k: 'bool'} : inner.t === 'str' ? {k: 'str'} : {k: 'choice', values: lvalues(inner.e)}
         rv = g.newVar(`${fn.name}_result`, sort, 'state', `what ${fn.name} returned, at the step that called it (its default at others)`)
+        // (a kept result of a fixed-width type within its range: a law, as a field's is)
+        const rt = g.intTy(fn.ret?.k === 'opt' || fn.ret?.k === 'res' ? fn.ret.of : fn.ret ?? {k: 'any'})
+        if (rt) g.ints.set(rv.name, rt)
         if (out.t === 'opt') { rn = g.newVar(`${fn.name}_result_none`, {k: 'bool'}, 'state', `whether ${fn.name} returned None`); kind = 'maybe' } else kind = 'scalar'
       }
     } else if (out.t !== 'none') g.notes.add(`${fn.name} returns ${out.t === 'opaque' ? out.why : `a ${out.t}`}: not kept`)
@@ -2152,7 +2147,7 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
   }
   const laws: string[] = []
   // A fixed-width field within its type's range (every state of the code is).
-  for (const v of state) { const ty = g.ints.get(v.name); if (!ty || outputs.includes(v.name)) continue; const [lo, hi] = rangeOf(ty); if (Number.isFinite(hi)) laws.push(`r.law(${JSON.stringify(`${v.name} within its type's range`)}, ({${v.name}}) => ${v.name}.atMost(${hi}).and(${v.name}.atLeast(${lo})))`); else if (lo === 0) laws.push(`r.law(${JSON.stringify(`${v.name} within its type's range`)}, ({${v.name}}) => ${v.name}.atLeast(0))`) }
+  for (const v of state) { const ty = g.ints.get(v.name); if (!ty) continue; const [lo, hi] = rangeOf(ty); if (Number.isFinite(hi)) laws.push(`r.law(${JSON.stringify(`${v.name} within its type's range`)}, ({${v.name}}) => ${v.name}.atMost(${hi}).and(${v.name}.atLeast(${lo})))`); else if (lo === 0) laws.push(`r.law(${JSON.stringify(`${v.name} within its type's range`)}, ({${v.name}}) => ${v.name}.atLeast(0))`) }
   for (const l of leaves) if (l.kind === 'none') { const base = l.name.replace(/_none$/, ''); if (g.vars.get(base)?.sort.k === 'num') laws.push(`r.law(${JSON.stringify(`${base}: a None one holds 0`)}, ({${base}, ${l.name}}) => any(${l.name}.not(), ${base}.eq(0)))`) }
   if (g.now) {
     const n = g.vars.get(g.now.name)!
