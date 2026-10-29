@@ -35,7 +35,7 @@ import {quietly} from './cyclic.ts'
 import {type C, type E, type Fn, type Law, type Machine, type Request, type State, all, any, atMost, carriedView, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
-import {clock, counted, decideLaw, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
+import {clock, counted, decideLaw, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
@@ -540,11 +540,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (!out) { const r2 = ks.length ? rule?.withDivisors(...ks) : rule; out = {r: r2, m: r2 ? r2.machine : withArithmetic(m, [], ks)}; byDivisors.set(key, out) }
     return out
   }
-  const prove = (ls: Law[]): Verdict => {
+  // (`fast`: the set's proof asked again after a drop, kernel/prove.ts's proveSetFast: what was settled kept where it stands)
+  const prove = (ls: Law[], fast = false): Verdict => {
     proofs++
     const {r: searchRule, m: mm} = forLaws(ls)
-    if (searchRule) return stepLaws.length ? proveSteps(searchRule, ls, stepLaws, {search: false}) : proveRule(searchRule, ls, {search: false})
-    const out = stepLaws.length ? proveStepLaws(mm, ls, stepLaws) : proveLaws(mm, ls)
+    if (searchRule) return stepLaws.length ? proveSteps(searchRule, ls, stepLaws, {search: false}) : proveRule(searchRule, ls, {search: false, fast})
+    const out = stepLaws.length ? proveStepLaws(mm, ls, stepLaws) : (fast ? proveSetFast : proveLaws)(mm, ls)
     return verdictOf(out)
   }
   const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(performance.now() - t0), stopped: stop()})
@@ -2372,7 +2373,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const gone: Form[] = []
         let grown = false
         if (complete && !caller && !drops.size) for (let k = 0; k < 24 && !stop() && performance.now() < wallUntil; k++) {
-          const t2 = performance.now(), v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor), ...(ghost ? [ghost.some] : [])]))
+          const t2 = performance.now(), v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor), ...(ghost ? [ghost.some] : [])], true))
           const at = String((v as {goal?: string}).goal ?? ''), g = v.proven && v.checked ? undefined : cubes.find(c => at.startsWith(`${textOf(c)} @`))
           opts.progress?.('join set', {cubes: cubes.length, exists: ghost ? 1 : 0, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), at: at.slice(0, 120)})
           if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v; break }
