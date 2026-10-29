@@ -96,9 +96,9 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - the one-literal weakening of a real counterexample's cube, which bought no verdict.
 - **Size:** core/infer.ts is 182,318 bytes, +20.1 KB over 9987874 (enum3 +13.2 KB, the engine +6.9 KB).
 - **Step 3 (wider patterns), measured before building:**
-  - wo: the 3-node view (71 literals) holds the whole counterexample row, 24 literals over the cells the model names. That full row is a row of a reachable small state (3 nodes). The 4-node and 5-node views come out the same way.
-  - sharded: the same at its widest view (5 keys, 21 literals). Down to one literal, every generalization is reached.
-  - So the two counterexamples' states agree with a reachable small state on every tuple a view of ≤ 5 keys covers. A wider view needs a small instance at least that wide: the 4-node wo BFS, past 3 nodes' 1,400–3,250 states in 30 s, is out of reach. Ivy's wo invariant also needs an ∃ (a leader has a quorum that voted for it), which the ∀ cubes can't say.
+  - wo: its widest view, 3 nodes with 71 literals, holds the counterexample's rows as 24 literals over the cells the model names. Each such row, ungeneralized, is a row of a reachable small state (3 nodes).
+  - sharded: the same at its widest view (5 keys, 21 literals): the rows traced were reached as they stand, so nothing is left to generalize.
+  - So the two counterexamples' states agree with a reachable small state on every tuple the template's views cover (wo's width is 3). A wider view needs a small instance at least that wide: the 4-node wo BFS, past 3 nodes' 1,400–3,250 states in 30 s, is out of reach. Ivy's wo invariant also needs an ∃ (a leader has a quorum that voted for it), which the ∀ cubes can't say.
 - **Overrun left:** sharded ends at 77 s. Its search ends near 59 s; the rest is after it, in core/dsl.ts's deeper bounded runs (`withWall(Infinity, …)`), which is outside core/infer.ts.
 
 **Next steps, in order:**
