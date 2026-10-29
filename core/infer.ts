@@ -2184,18 +2184,18 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             const ds = isReal && lastPre ? withFnsOf(lastPre.w, () => diagrams(lastPre!)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g)) : []
             // (the caller's: blocked at once, IC3's order, the caller asked again before the cubes)
             if (ds.length) { if (!f) { held = false; if (!ghosts) { ghosts = ghostsOf(); ghost = ghosts.shift(); if (ghost) opts.progress?.('join exists', {law: ghost.plain.name.slice(0, 160)}) } break } continue }
+            // (a model the interpreter doesn't confirm: PDR's obligation at its state, its diagrams blocked and the goal kept
+            // (the caller's asked again first) where a row of it no small state has; else unsure)
+            if (!isReal && wit) {
+              const w2 = smallOf(wit), pre = withFnsOf(w2, () => { const {params, st} = stateOf(w2); for (const cells of Object.values(st.maps)) for (const k of [...cells.keys()]) if (k > 1_000_000) cells.delete(k); return {params, st, w: w2} })
+              const ds2 = withFnsOf(w2, () => diagrams(pre)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g))
+              if (ds2.length) { if (!f) { held = false; break } continue }
+            }
             // (the ∃ law's own goal unproven: it goes; the caller's unproven with no diagram (every view's rows reached, or no
             // model to read): the ∀∃ laws, once)
             if (!f && ghost && goal === ghost.plain.name) { opts.progress?.('join exists', {dropped: ghost.plain.name.slice(0, 120)}); ghost = ghosts?.shift(); again = true; break }
             if (!f && !ghosts) { const t1 = performance.now(); ghosts = ghostsOf(); ghost = ghosts.shift(); opts.progress?.('join exists', {law: ghost ? `${ghost.plain.name.slice(0, 160)}; ${ghost.name} := ${JSON.stringify(ghost.step).slice(0, 160)}` : 'none', ms: Math.round(performance.now() - t1)}); if (ghost) { again = true; held = false; break } }
             if (!f) { caller = true; held = false; break }
-            // (a cube's model the interpreter doesn't confirm: PDR's obligation at its state, its diagrams blocked and the
-            // cube kept where a row of it no small state has; else unsure)
-            if (!isReal && wit) {
-              const w2 = smallOf(wit), pre = withFnsOf(w2, () => { const {params, st} = stateOf(w2); for (const cells of Object.values(st.maps)) for (const k of [...cells.keys()]) if (k > 1_000_000) cells.delete(k); return {params, st, w: w2} })
-              const ds2 = withFnsOf(w2, () => diagrams(pre)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g))
-              if (ds2.length) continue
-            }
             ;(isReal ? real : unsure).add(f)
           }
         }
