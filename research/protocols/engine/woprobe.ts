@@ -23,6 +23,14 @@ if (process.argv[3] === 'list') {
   ask('caller from the set and every written ∀ law', [...base, ...foralls], ci, 120_000)
   process.exit(0)
 }
+if (process.argv[3] === 'support') {
+  // (the voting quorum's law's own step, from the set with it, then with each other written law beside it)
+  const L = foralls.find((h: any) => h.name.includes('voting quorum'))!
+  ask(`written ${JSON.stringify(L.name)}'s step from the set`, [...base, L], base.length, 40_000)
+  for (const h of foralls.filter((q: any) => q !== L)) ask(`  with written ${JSON.stringify(h.name)}`, [...base, L, h], base.length, 40_000)
+  ask('  with every other written ∀ law', [...base, L, ...foralls.filter((q: any) => q !== L)], base.length, 60_000)
+  process.exit(0)
+}
 ask('caller from the set', base, ci, 120_000)
 for (const h of foralls) {
   ask(`  caller with written ${JSON.stringify(h.name)}`, [...base, h], ci, 60_000)
