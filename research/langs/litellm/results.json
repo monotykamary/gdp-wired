@@ -23,22 +23,22 @@
     "valid_token_max_budget: an integer (the code takes any whole number)",
     "get_current_spend: an integer (the code takes any whole number)"
    ],
-   "ms": 12729,
+   "ms": 13220,
    "laws": [
     {
      "name": "a key whose spend has reached its max_budget is refused",
      "verdict": "proven",
-     "ms": 120
+     "ms": 150
     },
     {
      "name": "a key below its max_budget is admitted",
      "verdict": "proven",
-     "ms": 39
+     "ms": 45
     },
     {
      "name": "a key with no max_budget is admitted",
      "verdict": "proven",
-     "ms": 34
+     "ms": 41
     }
    ],
    "evidence": {
@@ -59,9 +59,9 @@
      "hit": 5,
      "missed": []
     },
-    "ms": 1735,
+    "ms": 1934,
     "edgeSample": "virtual_key_max_budget_check([\"valid_token\",{\"rec\":\"litellm.proxy._types.UserAPIKeyAuth\",\"f\":{\"max_budget\":{\"in\":9,\"float\":true},\"spend\":{\"in\":0,\"float\":true},\"token\":{\"in\":\"\"},\"soft_budget\":{\"in\":0,\"float\":true},\"user_id\":{\"in\":\"\"},\"team_id\":{\"in\":\"\"},\"org_id\":{\"in\":\"\"},\"key_alias\":{\"in\":\"\"},\"key_name\":{\"in\":\"\"}}}],[\"proxy_logging_obj\",{\"inert\":true}],[\"user_obj\",{\"rec\":\"litellm.models.user.LiteLLM_UserTable\",\"f\":{\"user_email\":{\"in\":\"\"}}}]) from {}",
-    "runMs": 1736
+    "runMs": 1935
    }
   },
   {
@@ -76,12 +76,12 @@
     "team_object_max_budget: an integer (the code takes any whole number)",
     "get_current_spend: an integer (the code takes any whole number)"
    ],
-   "ms": 12179,
+   "ms": 13041,
    "laws": [
     {
      "name": "a team whose spend has reached its max_budget is refused",
      "verdict": "refuted",
-     "ms": 1,
+     "ms": 2,
      "witness": {
       "failed": 0,
       "team_object_none": 0,
@@ -95,12 +95,12 @@
     {
      "name": "a team below its max_budget is admitted",
      "verdict": "proven",
-     "ms": 67
+     "ms": 90
     },
     {
      "name": "a team with no max_budget is admitted",
      "verdict": "proven",
-     "ms": 38
+     "ms": 80
     }
    ],
    "evidence": {
@@ -121,9 +121,9 @@
      "hit": 4,
      "missed": []
     },
-    "ms": 1559,
+    "ms": 1959,
     "edgeSample": "team_max_budget_check([\"team_object\",{\"rec\":\"litellm.models.team.LiteLLM_TeamTable\",\"f\":{\"max_budget\":{\"in\":9,\"float\":true},\"team_id\":{\"in\":\"\"},\"spend\":{\"in\":0,\"float\":true}}}],[\"valid_token\",{\"rec\":\"litellm.proxy._types.UserAPIKeyAuth\",\"f\":{\"token\":{\"in\":\"\"},\"user_id\":{\"in\":\"\"},\"team_id\":{\"in\":\"\"},\"team_alias\":{\"in\":\"\"},\"org_id\":{\"in\":\"\"}}}],[\"proxy_logging_obj\",{\"inert\":true}]) from {}",
-    "runMs": 1559
+    "runMs": 1959
    }
   },
   {
@@ -141,22 +141,22 @@
     "project_object_litellm_budget_table_max_budget: an integer (the code takes any whole number)",
     "get_current_spend: an integer (the code takes any whole number)"
    ],
-   "ms": 12119,
+   "ms": 13707,
    "laws": [
     {
      "name": "a project whose spend has reached its max_budget is refused",
      "verdict": "proven",
-     "ms": 178
+     "ms": 142
     },
     {
      "name": "a project below its max_budget is admitted",
      "verdict": "proven",
-     "ms": 86
+     "ms": 119
     },
     {
      "name": "a project with no max_budget is admitted",
      "verdict": "proven",
-     "ms": 61
+     "ms": 71
     }
    ],
    "evidence": {
@@ -177,9 +177,9 @@
      "hit": 6,
      "missed": []
     },
-    "ms": 1482,
+    "ms": 1994,
     "edgeSample": "_project_max_budget_check([\"project_object\",{\"rec\":\"litellm.proxy._types.LiteLLM_ProjectTableCachedObj\",\"f\":{\"litellm_budget_table\":{\"rec\":\"litellm.models.budget.LiteLLM_BudgetTable\",\"f\":{\"max_budget\":{\"in\":-9007199254740990,\"float\":true}}},\"project_id\":{\"in\":\"\"},\"spend\":{\"in\":0,\"float\":true}}}],[\"valid_token\",{\"rec\":\"litellm.proxy._types.UserAPIKeyAuth\",\"f\":{\"token\":{\"in\":\"\"},\"user_id\":{\"in\":\"\"},\"team_id\":{\"in\":\"\"},\"team_alias\":{\"in\":\"\"},\"org_id\":{\"in\":\"\"}}}],[\"proxy_logging_obj\",{\"inert\":true}]) from {}",
-    "runMs": 1482
+    "runMs": 1994
    }
   },
   {
@@ -193,12 +193,12 @@
     "end_user_obj_litellm_budget_table_max_budget: an integer (the code takes any whole number)",
     "get_current_spend: an integer (the code takes any whole number)"
    ],
-   "ms": 12497,
+   "ms": 13488,
    "laws": [
     {
      "name": "an end user whose spend has reached its max_budget is refused",
      "verdict": "refuted",
-     "ms": 1,
+     "ms": 3,
      "witness": {
       "failed": 0,
       "is_info_route": 0,
@@ -213,12 +213,12 @@
     {
      "name": "an end user below its max_budget is admitted",
      "verdict": "proven",
-     "ms": 87
+     "ms": 139
     },
     {
      "name": "an end user with no max_budget is admitted",
      "verdict": "proven",
-     "ms": 59
+     "ms": 60
     }
    ],
    "evidence": {
@@ -239,9 +239,9 @@
      "hit": 5,
      "missed": []
     },
-    "ms": 2080,
+    "ms": 2293,
     "edgeSample": "check_end_user_budget([\"end_user_obj\",{\"rec\":\"litellm.models.end_user.LiteLLM_EndUserTable\",\"f\":{\"litellm_budget_table\":{\"rec\":\"litellm.models.budget.LiteLLM_BudgetTable\",\"f\":{\"max_budget\":{\"in\":-9007199254740990,\"float\":true}}},\"user_id\":{\"in\":\"\"},\"spend\":{\"in\":0,\"float\":true}}}],[\"route\",{\"in\":\"\"}]) from {}",
-    "runMs": 2080
+    "runMs": 2293
    }
   },
   {
@@ -266,27 +266,27 @@
     "read by the code but by no term of the rule (given their sort's zero, or None, by the check): call_type",
     "get_max_iterations: an integer (the code takes any whole number)"
    ],
-   "ms": 18089,
+   "ms": 18935,
    "laws": [
     {
      "name": "a call is admitted only while its session is below max_iterations",
      "verdict": "proven",
-     "ms": 343
+     "ms": 431
     },
     {
      "name": "a session at its max_iterations is refused",
      "verdict": "proven",
-     "ms": 153
+     "ms": 169
     },
     {
      "name": "every call of a limited session counts one, refused or not",
      "verdict": "proven",
-     "ms": 154
+     "ms": 156
     },
     {
      "name": "a call with no session or no max_iterations is admitted and counts nothing",
      "verdict": "proven",
-     "ms": 159
+     "ms": 198
     }
    ],
    "evidence": {
@@ -307,9 +307,9 @@
      "hit": 9,
      "missed": []
     },
-    "ms": 13869,
+    "ms": 14209,
     "edgeSample": "async_pre_call_hook([\"user_api_key_dict\",{\"inert\":true}],[\"cache\",{\"inert\":true}],[\"data\",{\"inert\":true}],[\"call_type\",{\"in\":\"\"}]) from {\"internal_usage_cache_session_iterations_count\":{\"a\":{\"value\":2}}}",
-    "runMs": 13869
+    "runMs": 14209
    }
   },
   {
@@ -334,17 +334,17 @@
     "read by the code but by no term of the rule (given their sort's zero, or None, by the check): call_type",
     "get_max_budget_per_session: an integer (the code takes any whole number)"
    ],
-   "ms": 17625,
+   "ms": 19003,
    "laws": [
     {
      "name": "a session whose spend has reached max_budget_per_session is refused",
      "verdict": "proven",
-     "ms": 245
+     "ms": 285
     },
     {
      "name": "a session below max_budget_per_session is admitted",
      "verdict": "proven",
-     "ms": 135
+     "ms": 150
     }
    ],
    "evidence": {
@@ -365,9 +365,9 @@
      "hit": 8,
      "missed": []
     },
-    "ms": 13480,
+    "ms": 14594,
     "edgeSample": "async_pre_call_hook([\"user_api_key_dict\",{\"inert\":true}],[\"cache\",{\"inert\":true}],[\"data\",{\"inert\":true}],[\"call_type\",{\"in\":\"\"}]) from {\"internal_usage_cache_session_budget_spend\":{\"c\":{\"value\":6},\"a\":{\"value\":1},\"b\":{\"value\":9007199254740990}}}",
-    "runMs": 13480
+    "runMs": 14594
    }
   },
   {
@@ -383,22 +383,22 @@
     "litellm_router_instance_allowed_fails: an integer (the code takes any whole number)",
     "increment_allowed_fails: an integer (the code takes any whole number)"
    ],
-   "ms": 4727,
+   "ms": 5025,
    "laws": [
     {
      "name": "with an override, a deployment cools down exactly when its fails pass it",
      "verdict": "proven",
-     "ms": 142
+     "ms": 132
     },
     {
      "name": "with no override, the exception's policy governs",
      "verdict": "proven",
-     "ms": 96
+     "ms": 94
     },
     {
      "name": "with neither, the router's allowed_fails governs",
      "verdict": "proven",
-     "ms": 102
+     "ms": 97
     }
    ],
    "evidence": {
@@ -419,9 +419,9 @@
      "hit": 1,
      "missed": []
     },
-    "ms": 806,
+    "ms": 907,
     "edgeSample": "should_cooldown_based_on_allowed_fails_policy([\"litellm_router_instance\",{\"rec\":\"litellm.router.Router\",\"f\":{\"allowed_fails\":{\"in\":1},\"cooldown_time\":{\"in\":0,\"float\":true}}}],[\"deployment\",{\"in\":\"\"}],[\"original_exception\",{\"inert\":true}],[\"allowed_fails_override\",{\"none\":true}],[\"cooldown_time_override\",{\"in\":0,\"float\":true}],[\"cache_key_suffix\",{\"in\":\"\"}]) from {}",
-    "runMs": 806
+    "runMs": 907
    }
   }
  ]

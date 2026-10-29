@@ -10,9 +10,10 @@ export const _PROXY_MaxIterationsHandlerRule = rule("_PROXY_MaxIterationsHandler
   .maps({internal_usage_cache_session_iterations_count: record({has: bool, value: nat}).from({has: false, value: 0})})
   .step(({get_session_id_none, get_max_iterations_none, get_max_iterations, get_session_id, internal_usage_cache_session_iterations_count}) => {
     const t1 = not(get_max_iterations_none)
-    const t2 = internal_usage_cache_session_iterations_count.at(get_session_id.id).value
-    const t3 = when(internal_usage_cache_session_iterations_count.at(get_session_id.id).has, t2, 0).plus(1)
-    return {failed: all(not(get_session_id_none), t1, get_max_iterations.lt(t3)), internal_usage_cache_session_iterations_count: internal_usage_cache_session_iterations_count.set(get_session_id.id, {has: when(get_session_id_none, internal_usage_cache_session_iterations_count.at(get_session_id.id).has, any(t1, internal_usage_cache_session_iterations_count.at(get_session_id.id).has)), value: when(get_session_id_none, t2, when(get_max_iterations_none, t2, t3))})}
+    const t2 = internal_usage_cache_session_iterations_count.at(get_session_id.id).has
+    const t3 = internal_usage_cache_session_iterations_count.at(get_session_id.id).value
+    const t4 = when(t2, t3, 0).plus(1)
+    return {failed: all(not(get_session_id_none), t1, get_max_iterations.lt(t4)), internal_usage_cache_session_iterations_count: internal_usage_cache_session_iterations_count.set(get_session_id.id, {has: when(get_session_id_none, t2, any(t1, t2)), value: when(get_session_id_none, t3, when(get_max_iterations_none, t3, t4))})}
   })
 
 // What every state of the code is: a law about every state is about the code's with these beside it.
