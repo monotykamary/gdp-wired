@@ -631,6 +631,15 @@ function cdcl(input: {lits: number[], from: Origin}[], budget: number, trueFirst
     }
     return undefined
   }
+  // (the unassigned variables in a heap, the most active first, ties by the lower index: the choice a scan over them
+  // makes, without the scan; an assigned one is dropped where it surfaces and put back when unassigned)
+  const heap: number[] = [], at = new Int32Array(nv).fill(-1)
+  const above = (a: number, b: number) => act[a]! > act[b]! || (act[a] === act[b] && a < b)
+  const up = (i: number) => { const x = heap[i]!; while (i > 0) { const pi = (i - 1) >> 1, y = heap[pi]!; if (!above(x, y)) break; heap[i] = y; at[y] = i; i = pi } heap[i] = x; at[x] = i }
+  const down = (i: number) => { const x = heap[i]!; for (;;) { let c = 2 * i + 1; if (c >= heap.length) break; if (c + 1 < heap.length && above(heap[c + 1]!, heap[c]!)) c++; if (!above(heap[c]!, x)) break; heap[i] = heap[c]!; at[heap[i]!] = i; i = c } heap[i] = x; at[x] = i }
+  const push = (x: number) => { if (at[x]! >= 0) return; heap.push(x); at[x] = heap.length - 1; up(heap.length - 1) }
+  const pop = (): number => { const x = heap[0]!, y = heap.pop()!; at[x] = -1; if (heap.length) { heap[0] = y; at[y] = 0; down(0) } return x }
+  for (let x = 1; x < nv; x++) push(x)
   let inc = 1, conflicts = 0
   for (;;) {
     const confl = propagate()
@@ -644,7 +653,7 @@ function cdcl(input: {lits: number[], from: Origin}[], budget: number, trueFirst
         for (const q of c!.lits) {
           if (q === p) continue
           const x = Math.abs(q)
-          if (!seen[x] && level[x]! > 0) { seen[x] = 1; act[x] = act[x]! + inc; if (level[x] === lim.length) cnt++; else learnt.push(q) }
+          if (!seen[x] && level[x]! > 0) { seen[x] = 1; act[x] = act[x]! + inc; if (at[x]! >= 0) up(at[x]!); if (level[x] === lim.length) cnt++; else learnt.push(q) }
           else if (!seen[x] && level[x] === 0 && reason[x]) { seen[x] = 1; for (const o of coreOf({lits: [q], from: new Set()})) from.add(o) }
         }
         while (!seen[Math.abs(trail[ti]!)]) ti--
@@ -655,7 +664,7 @@ function cdcl(input: {lits: number[], from: Origin}[], budget: number, trueFirst
       let bt = 0, bi = 1
       for (let i = 1; i < learnt.length; i++) if (level[Math.abs(learnt[i]!)]! > bt) { bt = level[Math.abs(learnt[i]!)]!; bi = i }
       if (learnt.length > 1) { const t = learnt[1]!; learnt[1] = learnt[bi]!; learnt[bi] = t }
-      while (lim.length > bt) { const at = lim.pop()!; while (trail.length > at) { const x = Math.abs(trail.pop()!); val[x] = 0; reason[x] = undefined } }
+      while (lim.length > bt) { const to = lim.pop()!; while (trail.length > to) { const x = Math.abs(trail.pop()!); val[x] = 0; reason[x] = undefined; push(x) } }
       qhead = trail.length
       const nc: Cl = {lits: learnt, from}
       if (learnt.length > 1) { wl(-learnt[0]!).push(nc); wl(-learnt[1]!).push(nc) }
@@ -663,8 +672,8 @@ function cdcl(input: {lits: number[], from: Origin}[], budget: number, trueFirst
       continue
     }
     // decide: the most active unassigned variable, false first
-    let best = 0, ba = -1
-    for (let x = 1; x < nv; x++) if (val[x] === 0 && act[x]! > ba) { ba = act[x]!; best = x }
+    let best = 0
+    while (heap.length) { const x = pop(); if (val[x] === 0) { best = x; break } }
     if (!best) { const model: boolean[] = []; for (let x = 1; x < nv; x++) model[back[x]!] = val[x]! > 0; return {sat: true, model} }
     lim.push(trail.length)
     assign(trueFirst.has(back[best]!) ? best : -best)
