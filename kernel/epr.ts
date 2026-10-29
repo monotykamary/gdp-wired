@@ -234,7 +234,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
   const ordAtom = (t1: string, t2: string, d: number, op: '<' | '<=' | '='): F | undefined => {
     const num = (x: string) => (x.startsWith('k:') ? Number(x.slice(2)) : undefined), n1 = num(t1), n2 = num(t2)
     if (n1 !== undefined && n2 !== undefined) { const x = n1 - n2 + d; return {k: 'c', b: op === '<' ? x < 0 : op === '<=' ? x <= 0 : x === 0} }
-    if (n2 !== undefined && d !== 0) { const c = n2 - d; if (c < 0) return op === '=' ? Fa : Fa; ords.add(`k:${c}`); return ordAtom(t1, `k:${c}`, 0, op) }
+    if (n2 !== undefined && d !== 0) { const c = n2 - d; if (c < 0) return Fa; ords.add(`k:${c}`); return ordAtom(t1, `k:${c}`, 0, op) }
     if (n1 !== undefined && d !== 0) { const c = n1 + d; if (c < 0) return op === '=' ? Fa : T; ords.add(`k:${c}`); return ordAtom(`k:${c}`, t2, 0, op) }
     const D = op === '<' ? d + 1 : d
     if (op === '=') {
@@ -249,7 +249,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     let a: E, b: E, dd = d
     if (ts.length === 2 && ts[0]![1] === 1 && ts[1]![1] === -1) [a, b] = [ts[0]![0], ts[1]![0]]
     else if (ts.length === 2 && ts[0]![1] === -1 && ts[1]![1] === 1) [a, b] = [ts[1]![0], ts[0]![0]]
-    else if (ts.length === 1 && ts[0]![1] === 1) { a = ts[0]![0]; if (-d < 0) return op === '=' ? Fa : Fa; b = {op: 'const', value: -d}; dd = 0 }
+    else if (ts.length === 1 && ts[0]![1] === 1) { a = ts[0]![0]; if (-d < 0) return Fa; b = {op: 'const', value: -d}; dd = 0 }
     else if (ts.length === 1 && ts[0]![1] === -1) { b = ts[0]![0]; if (d < 0) return op === '<' || op === '<=' ? T : Fa; a = {op: 'const', value: d}; dd = 0 }
     else return undefined
     const ca = ordCases(a), cb = ordCases(b)
@@ -329,7 +329,6 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
       if (ts.some(([e]) => reads(e))) { const f = ordered(ts, d.c, c.op); if (f) return f }
     }
     // finite: every term finite, coefficients of one sign
-    // (or of both signs where every value is exact)
     // (the terms not exact of one sign, the exact ones of any: a capped term at its cap decides it as any larger value)
     const cs = ts.length ? ts.map(([e]) => cases(e)) : [], loose = ts.filter((_, i) => !cs[i]?.every(y => y.n !== undefined || y.f!.exact !== undefined))
     if (ts.length && (loose.every(t => t[1] > 0) || loose.every(t => t[1] < 0))) {
