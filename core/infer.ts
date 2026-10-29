@@ -2145,7 +2145,23 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // cores)
       const settled = new Map<string, string[]>()
       let held = false
+      // (the caller's counterexamples so far, each a state the set must rule out: the enumeration's cubes false there are
+      // the relevant ones, the most counterexamples first; and the places a round can afford, from the last round's cost
+      // a goal, 64 at least)
+      const pres: {params: Env, st: State, w: Record<string, number>}[] = [], preAt = new WeakMap<object, Point>()
+      let cap = 64
+      const relevant = (room: number): Form[] => {
+        if (room <= 0 || !pres.length) return []
+        const have = new Set(cubes.map(textOf)), pts = pres.map(q => { let pt = preAt.get(q); if (!pt) { pt = withFnsOf(q.w, () => pointOf(q.params, q.st)); preAt.set(q, pt) } return pt })
+        const scored = made.filter(g => !have.has(textOf(g)) && !names.has(textOf(g))).map(g => ({g, k: pts.filter(pt => !holdsAt(g, pt)).length})).filter(q => q.k > 0)
+        scored.sort((a, b) => b.k - a.k || a.g.cube!.length - b.g.cube!.length || width2(b.g) - width2(a.g))
+        const out3: Form[] = []
+        for (const {g} of scored) { if (out3.length >= room || stop()) break; if (!implied(g)) out3.push(g) }
+        return out3
+      }
       for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
+        const r0 = performance.now()
+        let asked = 0
         // (later rounds less the sums pass's reserve, unless the caller's law holds from the set: Houdini's part, then)
         const kUntil = () => wallUntil - (round && !held ? reserve : 0)
         const real = new Set<Form>(), unsure = new Set<Form>(), ls = [...given, ...cubes.map(lawFor), ...(ghost ? [ghost.plain] : [])], blocked2: Form[] = []
@@ -2160,6 +2176,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             settled.delete(ls[idx]!.name)
             // (a goal decided by the EPR path alone first (a proof or a model, a cube's within a quarter of a join query, the
             // caller's within one); else a model or a refutation of the CDCL search alone, then the proof path's)
+            asked++
             const dl = within(Math.min(kUntil(), performance.now() + (f ? joinQueryMs / 4 : joinQueryMs)), () => decideLaw(mm, ls, idx))
             if (dl?.proven) continue
             let isReal = !!dl && realCti(dl.witness, f, others), wit = dl?.witness
@@ -2183,12 +2200,14 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             // (a real counterexample from a state no small state is: its diagram blocked, the goal's laws kept)
             const ds = isReal && lastPre ? withFnsOf(lastPre.w, () => diagrams(lastPre!)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g)) : []
             // (the caller's: blocked at once, IC3's order, the caller asked again before the cubes)
+            if (ds.length && !f && lastPre) pres.push(lastPre)
             if (ds.length) { if (!f) { held = false; if (!ghosts) { ghosts = ghostsOf(); ghost = ghosts.shift(); if (ghost) opts.progress?.('join exists', {law: ghost.plain.name.slice(0, 160)}) } break } continue }
             // (a model the interpreter doesn't confirm: PDR's obligation at its state, its diagrams blocked and the goal kept
             // (the caller's asked again first) where a row of it no small state has; else unsure)
             if (!isReal && wit) {
               const w2 = smallOf(wit), pre = withFnsOf(w2, () => { const {params, st} = stateOf(w2); for (const cells of Object.values(st.maps)) for (const k of [...cells.keys()]) if (k > 1_000_000) cells.delete(k); return {params, st, w: w2} })
               const ds2 = withFnsOf(w2, () => diagrams(pre)).filter(g => !ls.some(l => l.name === textOf(g)) && !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g))
+              if (ds2.length && !f) pres.push(pre)
               if (ds2.length) { if (!f) { held = false; break } continue }
             }
             // (the ∃ law's own goal unproven: it goes; the caller's unproven with no diagram (every view's rows reached, or no
@@ -2201,7 +2220,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         }
         opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length, ms: Math.round(performance.now() - t0)})
         const drops = real.size ? real : unsure
-        if (blocked2.length) { cubes = [...cubes.filter(g => !drops.has(g)), ...blocked2].slice(0, 96); return }
+        if (asked) cap = Math.max(64, Math.min(256, Math.floor((wallUntil - performance.now()) / (3 * (performance.now() - r0) / asked))))
+        if (blocked2.length) { const kept = [...cubes.filter(g => !drops.has(g)), ...blocked2]; cubes = [...kept, ...relevant(cap - kept.length)]; return }
         if (again) return
         if (complete && !caller && !drops.size) { const t2 = performance.now(), v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor), ...(ghost ? [ghost.some] : [])])); opts.progress?.('join set', {cubes: cubes.length, exists: ghost ? 1 : 0, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), why: String((v as {why?: string}).why ?? (v as {stuck?: string}).stuck ?? '').slice(0, 300)}); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } }
         if (!complete || caller || !drops.size) over = true
