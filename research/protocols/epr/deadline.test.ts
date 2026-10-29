@@ -1,9 +1,13 @@
 // The search keeps its end on the wall (kernel/prove.ts's withWall): two protocols whose searches ran far past it
 // (wo_decide's caller goal, ring's model checks) with tight budgets end within the budget and half a second, beyond what
 // the same call takes with a search of 0 ms (the prover's own proof and the deeper runs before the search's clock starts).
+// And the enumeration's two caller goals that ran past it (callers/: ring's 'one leader' with 33 cubes assumed, 300 s
+// in the function parts' congruence; wo_decide's with 36), proveLaw alone inside a wall of 2, 5 and 10 s.
 //   bun test research/protocols/epr/deadline.test.ts
+import {readFileSync} from 'node:fs'
 import {expect, test} from 'bun:test'
 import {proveRule} from '../../../core/dsl.ts'
+import {proveLaw, withWall} from '../../../kernel/prove.ts'
 import {protocols} from '../models.ts'
 
 // (wo_decide from 5 s: its search's runs, core/infer.ts's 16,000 requests, take 1.4 s of wall time at any budget)
@@ -19,5 +23,16 @@ for (const [id, budgets] of [['consensus_wo_decide', [5_000, 10_000]], ['ring_le
       console.log(JSON.stringify({id, ms, base: Math.round(base), took: Math.round(took), verdict: v.proven ? 'proven' : v.stuck ?? 'unknown'}))
       expect(took).toBeLessThan(base + ms + 500)
     }, 600_000)
+  }
+}
+
+for (const id of ['ring', 'cons']) {
+  for (const ms of [2_000, 5_000, 10_000]) {
+    test(`${id}'s caller goal, cubes assumed: proveLaw ends ${ms} ms in`, () => {
+      const {m, laws, i} = JSON.parse(readFileSync(`${import.meta.dir}/callers/${id}.json`, 'utf8'))
+      const t = performance.now(), r = withWall(performance.now() + ms, () => proveLaw(m, laws, i)), took = performance.now() - t
+      console.log(JSON.stringify({id, ms, took: Math.round(took), out: r.proven ? 'proven' : r.stuck}))
+      expect(took).toBeLessThan(ms + 500)
+    }, 60_000)
   }
 }

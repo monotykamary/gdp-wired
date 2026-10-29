@@ -16,7 +16,7 @@ import type {TStats} from '../core/translate.ts'
 import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
 import {growCdcl} from './cdcl.ts'
-import {type Patterns, decide, patternsOf} from './epr.ts'
+import {type Diagram, type Patterns, decide, patternsOf} from './epr.ts'
 import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
@@ -168,7 +168,8 @@ const proveTrace = !!env.PROVE_TRACE
 // `why`, when the budget ran out: which limit, at what size, and what usually helps.
 // Set while core/cyclic.ts grows its goals.
 export const cellProducts = {on: false}
-export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', witness?: Record<string, number>, path: Path, why?: string}
+// (`diagram`: a model the EPR path found, as a structure: kernel/epr.ts's Diagram)
+export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', witness?: Record<string, number>, diagram?: Diagram, path: Path, why?: string}
 
 // The budget: 200,000 nodes and, by default, a second per hypothesis (at least 20 seconds) per goal, on the counted
 // clock inside `counted` and in the cost model's work outside it (`withWork`); past either the goal is left `unknown`. A goal with many instances (a law about two keys at its pairs) has that many more rows per leaf.
@@ -302,7 +303,7 @@ const withPatterns = <T>(m: Machine, laws: Law[], f: () => T): T => {
 function eprFirst(goal: Goal, budget: {nodes: number, until?: number}): Outcome | undefined {
   const d = decide(goal, eprScope.patterns!, {exact: true, late: pastWall})
   if ('unknown' in d) return undefined
-  if (d.sat) return {stuck: 'sat', witness: d.witness, path: new Map(), why: 'a model'}
+  if (d.sat) return {stuck: 'sat', witness: d.witness, diagram: d.diagram, path: new Map(), why: 'a model'}
   const last = goal.hyps.length - 1, part: Goal = {name: goal.name, hyps: (d.core.includes(last) ? d.core : [...d.core, last]).map(i => goal.hyps[i]!)}
   const now = clock(), end = withinDeadline(budget.until ?? Infinity), w = fullWork()
   eprScope.busy = true
@@ -320,6 +321,8 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
   // there, the plain search, the cuts and the plain search again have the rest. Not for a law over k steps in a row
   // (kernel.ts names its goals `@k steps`): the cuts make its tree a chain of one step's refutations, which the CDCL
   // search's tree, unfolded, repeats (research/step: four times the Lean text of examples/steps.ts). Nor for products.
+  // (past the wall, not even the root's rows: a large goal's take a second)
+  if (pastWall()) return {stuck: 'unknown', path, why: outOfBudget(goal, 'time', path.size)}
   const root = path.size === 0 && budget.nodes === 0 ? leafConstraints(goal, path) : undefined
   const cdcl = !!root && cdclShare > 0 && !cellProducts.on && Number(/@(\d+) steps/.exec(goal.name)?.[1] ?? 1) <= 1 && !root.some(r => Object.keys(r.lin).some(isMonomial))
   // At the root: plainly first; where the cases multiply past a budget, through cuts. The plain budget halves with each
@@ -651,6 +654,7 @@ function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {
 // read as the term's linear form at the whole goal's path; a split the whole's path already decides is followed, not
 // made again.
 export function widen(part: Goal, whole: Goal, tree: Tree, opaque: Record<string, E> = {}, pp: Path = new Map(), wp: Path = pp): Tree | undefined {
+  if (pastWall()) return undefined
   const names = Object.keys(opaque)
   const rename = (lin: Lin): Lin | undefined => {
     if (!names.length) return lin
@@ -671,7 +675,9 @@ export function widen(part: Goal, whole: Goal, tree: Tree, opaque: Record<string
     const no = yes && widen(part, whole, tree.no, opaque, new Map(pp).set(id, {lin: tree.split, holds: false}), new Map(wp).set(wid, {lin: wl, holds: false}))
     return yes && no ? {split: wl, yes, no} : undefined
   }
-  const rp = rowsAt(part, pp), rw = rowsAt(whole, wp), at = new Map<string, number>()
+  const rp = rowsAt(part, pp)
+  if (pastWall()) return undefined
+  const rw = rowsAt(whole, wp), at = new Map<string, number>()
   rw.forEach((r, i) => { const key = canon(r.lin); if (!at.has(key)) at.set(key, i) })
   const map = (i: number) => { if (i >= rp.length) return i - rp.length + rw.length; const l = rename(rp[i]!.lin); return l && at.get(canon(l)) }
   const leaf: Step[] = [], products: [number, number][] = [], squares = (tree.squares ?? []).map(rename)
@@ -790,6 +796,7 @@ function withCuts(goal: Goal, path: Path, budget: {nodes: number, until?: number
   const chain: {split: Lin, no: Tree}[] = []
   let at: Path = new Map(path)
   for (const {n, e} of columns) {
+    if (pastWall()) return undefined
     if (e.op !== 'if') continue
     const a = linear(e.then, at), b = linear(e.else, at), focus = topAtoms(e.c, at)
     if (!a || !b || !focus.length) continue
@@ -817,7 +824,7 @@ function topAtoms(c: C, path: Path): Lin[] {
 }
 // A refutation that splits only on these atoms (a cut's failing side), within a small budget.
 function growFocused(goal: Goal, path: Path, focus: Lin[], budget: {nodes: number}, near: Lin[] = focus): Outcome {
-  if (++budget.nodes > 64) return {stuck: 'unknown', path}
+  if (++budget.nodes > 64 || pastWall()) return {stuck: 'unknown', path}
   const verdict = solveNear(leafConstraints(goal, path), [...near, ...[...path.values()].slice(-1).map(a => a.lin)])
   if (verdict.kind === 'refuted') return {tree: {leaf: verdict.steps}, nodes: budget.nodes}
   const split = focus.find(l => !path.has(canon(l)) && !path.has(canonFlip(l)))
@@ -982,6 +989,7 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   const out: Instances = {...inst}
   let added = 0, evals = 0
   const each = (id: string, names: string[], body: C, atoms: boolean) => {
+    if (pastWall()) return
     const have = new Set<string>(), had = out[id] ?? [], n = names.length, sorts = sortsOf(body, names, atoms)
     // (a law at one key assumed at a term of every value its sort takes already: nothing to add)
     if (n === 1) { const covered = new Set(had.map(valueOf)); if ([...sorts[0]!.keys()].every(v2 => covered.has(v2))) return }
@@ -1232,7 +1240,7 @@ function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Insta
   const tuplesOf = (n: string, ks: E[]) => { const a = bodies.get(n)!.keys.length; return Array.from({length: Math.floor(ks.length / a)}, (_, t) => ks.slice(t * a, (t + 1) * a)) }
   const kept = (tuple: E[]) => tuple.some(e => e.op === 'var' && focus.includes(e.name))
   const out: Instances = Object.fromEntries(Object.entries(inst).map(([n, ks]) => [n, bodies.has(n) ? tuplesOf(n, ks).filter(kept).flat() : ks]))
-  for (let round = 0; round < 8; round++) {
+  for (let round = 0; round < 8 && !pastWall(); round++) {
     const reads = new Set<string>()
     const {inC} = eachRead(e => { reads.add(`${e.map}|${JSON.stringify(e.key)}`) })
     for (const g of build(out)) g.hyps.forEach(inC)
@@ -1383,7 +1391,7 @@ const pointed = <T>(laws: Law[], f: () => T): T => {
   atPoint.on = true
   try { return f() } finally { atPoint.on = false }
 }
-export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>} {
+export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram} {
   if (laws.some(l => someKeys(l.holds).length) || someLaws(laws)) {
     const r = proveLaws(m, laws)
     return r.proven ? {proven: true} : {proven: false, goal: r.failed!.goal, stuck: r.failed!.stuck, ...(r.failed!.witness ? {witness: r.failed!.witness} : {})}
@@ -1391,13 +1399,13 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
   // (the thinned goals too by the EPR path where the rule's keys are composed: withModels' scope, entered here)
   return withPatterns(m, laws, () => pointed(laws, () => proveOne(m, laws, i)))
 }
-function proveOne(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>} {
+function proveOne(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram} {
   const law = laws[i]!, pm = plainOf(m), inst = lawInstances(m, laws, i)
   const few = triggered(pm, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
   if (!sameInstances(few, inst) && obligations(m, laws, {[law.name]: few}, i).every(goal => 'tree' in grow(goal))) return {proven: true}
   // (a model breaking a law at a tuple of the goal's keys: those added, the law asked again)
   const {result: a} = withModels(m, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), growAll, grownModel, grownSettled)
-  return a.out ? {proven: false, goal: a.goal!.name, stuck: a.out.stuck, ...(a.out.witness ? {witness: a.out.witness} : {})} : {proven: true}
+  return a.out ? {proven: false, goal: a.goal!.name, stuck: a.out.stuck, ...(a.out.witness ? {witness: a.out.witness} : {}), ...(a.out.diagram ? {diagram: a.out.diagram} : {})} : {proven: true}
 }
 // Goals grown in turn up to the first one unproven (withModels' question in proveLaw and proveThinned): the trees, their
 // nodes and leaves, and the goal it stopped at with its outcome, whose model asks for more instances.

@@ -5,6 +5,18 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**No kernel-side work past the search's end; ring's caller goal proven; models as diagrams (gen/epr4).** Nothing
+trusted changed. research/protocols/epr/DESIGN.md, "gen/epr4", has the measurements.
+- **The wall.** A function's parts are listed once: ring's congruence pairs had run 300+ s past the end. The EPR path,
+  model instances, the cuts, widen and a root goal's rows all check the wall now. research/protocols/epr/deadline.test.ts
+  runs the enumeration's two caller goals inside walls of 2, 5 and 10 s.
+- **Wrong-sort function reads** (`idn(64·m + n)`) are terms of the order, and nested keys are valued, so the EPR path's
+  model of ring's caller goal is a real one; its model rounds prove the goal.
+- **Diagram:** decide's and proveLaw's models carry the structure (elements, parts, cells, function tables).
+- **The propositional search** picks from an activity heap: the same choices, faster.
+- **Pilot** (two runs, 60 s): every verdict as gen/epr3's; the 30 real-world laws the same. **Quick bar** (against
+  5d4da3f): wrong 0, nothing lost solidly, CHC +2.
+
 **Go on the shared executor: GoReader gone, 88 of 88 extractions byte-identical (gen/go-port).** Nothing trusted
 changed (kernel/ and lean-kernel/ are 9220ad0's). research/langs/DESIGN.md, "Moving Go onto the executor: done", has
 the measurements.
