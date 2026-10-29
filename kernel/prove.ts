@@ -298,19 +298,19 @@ const withPatterns = <T>(m: Machine, laws: Law[], f: () => T): T => {
   eprScope.patterns = p
   try { return f() } finally { eprScope.patterns = undefined }
 }
-// (`whole: false`: the core's tree alone, not widened to the goal; decideLaw's, whose caller's verdict rests on its own
-// final proof: a refutation of some of a goal's hypotheses refutes the goal)
-function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = true): Outcome | undefined {
-  const d = decide(goal, eprScope.patterns!, {exact: true, late: pastWall})
+// (`whole: false`: the core's tree alone, not widened to the goal, with the core (`part`); decideLaw's, whose caller's
+// verdict rests on its own final proof: a refutation of some of a goal's hypotheses refutes the goal)
+function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = true, late = pastWall): (Outcome & {part?: Goal, core?: number[]}) | undefined {
+  const d = decide(goal, eprScope.patterns!, {exact: true, late})
   if ('unknown' in d) return undefined
   if (d.sat) return {stuck: 'sat', witness: d.witness, diagram: d.diagram, path: new Map(), why: 'a model'}
-  const last = goal.hyps.length - 1, part: Goal = {name: goal.name, hyps: (d.core.includes(last) ? d.core : [...d.core, last]).map(i => goal.hyps[i]!)}
+  const last = goal.hyps.length - 1, core = d.core.includes(last) ? d.core : [...d.core, last], part: Goal = {name: goal.name, hyps: core.map(i => goal.hyps[i]!)}
   const now = clock(), end = withinDeadline(budget.until ?? Infinity), w = fullWork()
   eprScope.busy = true
   try {
     const out = withWork(workCap === Infinity ? Infinity : w + 0.5 * (workCap - w), () => grow(part, new Map(), {nodes: 0, until: end === Infinity ? end : now + 0.5 * (end - now)}))
     if (!('tree' in out)) return undefined
-    if (!whole) return out
+    if (!whole) return {...out, part, core}
     const tree = widen(part, goal, out.tree)
     return tree ? {tree, nodes: out.nodes} : undefined
   } finally { eprScope.busy = false }
@@ -981,22 +981,28 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   }
   // (`atoms`: each sort over the goal's own names alone, its skolems, the request's inputs, witnesses and ghosts, the
   // elements an EPR model names: a composed term in a part's place is an instance at a key of the wrong sort)
+  // (a key no read binds is a value, an epoch say, over the naturals: 0, their least, is one of its terms too, as Ivy's
+  // ordered sorts have their zero; a law before the start, nothing above 0, is assumed there)
+  const zero: E = {op: 'const', value: 0}
   const sortsOf = (body: C, names: string[], atoms: boolean): Map<number, E>[] => sortTerms(body, names, fns, () => keys).map(ts => {
     const p = new Map<number, E>()
     for (const e of ts ?? []) { const v2 = valueOf(e); if (v2 !== undefined && !p.has(v2) && (!atoms || e.op === 'var')) p.set(v2, e) }
-    const q = p.size ? p : atoms ? new Map([...all].filter(([, e]) => e.op === 'var')) : all
-    return witnessFirst(q.size ? q : all)
+    const q = p.size ? p : atoms ? new Map([...all].filter(([, e]) => e.op === 'var')) : all, r = witnessFirst(q.size ? q : all)
+    return ts || r.has(0) ? r : r.set(0, zero)
   })
   const out: Instances = {...inst}
-  let added = 0, evals = 0
+  // (the 20,000 evaluations shared: each law and flag at most an even share of what is left, so the laws about five keys
+  // first don't leave none to those after: sharded KV's "a key in transfer has no owner", broken at the goal's own keys)
+  let added = 0, evals = 0, left = 0
   const each = (id: string, names: string[], body: C, atoms: boolean) => {
     if (pastWall()) return
+    const until = evals + Math.max(256, Math.floor((20_000 - evals) / Math.max(1, left--)))
     const have = new Set<string>(), had = out[id] ?? [], n = names.length, sorts = sortsOf(body, names, atoms)
     // (a law at one key assumed at a term of every value its sort takes already: nothing to add)
     if (n === 1) { const covered = new Set(had.map(valueOf)); if ([...sorts[0]!.keys()].every(v2 => covered.has(v2))) return }
     for (let t = 0; t + n <= had.length; t += n) have.add(JSON.stringify(had.slice(t, t + n)))
     const go = (i: number, at: Record<string, number>, terms: E[]): void => {
-      if (added >= most || evals > 20_000 || (evals % 512 === 0 && pastWall())) return
+      if (added >= most || evals > until || (evals % 512 === 0 && pastWall())) return
       if (i === n) {
         evals++
         if (ev(() => evalC(body, read(at), st, mm)) !== false) return
@@ -1012,7 +1018,7 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   // the goal's own names first; every key it reads where they show nothing
   for (const atoms of [true, false]) {
     if (atoms === false && added) break
-    evals = 0
+    evals = 0; left = keyed.length + qs.length
     for (const l of keyed) each(l.name, [l.forall!, ...(l.keys ?? [])], l.holds, atoms)
     for (const [f, q] of qs) each(`?${f}`, boundOf(q), q.c, atoms)
   }
@@ -1069,9 +1075,12 @@ const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[], byM
 // against the keys the goals read that map at (the key's sort, as the goal holds it: Link[c1·N + s] against
 // Link[a·N + b] gives c1 a and s b); a key no read binds, or a read no goal key matches, takes any. A function's
 // argument is no sort (a function is read at any key). Untrusted: it chooses instances only.
-function keySorted(l: Law, byMap: Map<string, E[]>, fns: string[]): (tuple: E[]) => boolean {
+// (per place too: `at(i, e)`, whether e is of the i-th key's sort, each key's text read once)
+function keySorted(l: Law, byMap: Map<string, E[]>, fns: string[]): ((tuple: E[]) => boolean) & {at: (i: number, e: E) => boolean} {
   const allowed = sortTerms(l.holds, [l.forall!, ...(l.keys ?? [])], fns, mp => byMap.get(mp) ?? []).map(ts => ts && new Set(ts.map(t => JSON.stringify(t))))
-  return tuple => tuple.every((t, i) => !allowed[i] || allowed[i]!.has(JSON.stringify(t)))
+  const text = new WeakMap<E, string>(), id = (e: E) => { let t = text.get(e); if (t === undefined) text.set(e, (t = JSON.stringify(e))); return t }
+  const at = (i: number, e: E) => !allowed[i] || allowed[i]!.has(id(e))
+  return Object.assign((tuple: E[]) => tuple.every((t, i) => at(i, t)), {at})
 }
 // The terms `body`'s reads (not a function's) bind each of `vars` to, matched against the keys `at` gives their map.
 function sortTerms(body: C, vars: string[], fns: string[], at: (map: string) => E[]): (E[] | undefined)[] {
@@ -1107,15 +1116,18 @@ const matched = (l: Law, keys: E[], most = relatedMost): E[][] => {
 }
 // The n-tuples of the keys that relate the focus (withReads): those `keep` keeps, the first `most` of them in this order
 // (each place's own focus key before the rest).
-const related = (keys: E[], focus: string[], n: number, keep?: (tuple: E[]) => boolean, most = Infinity): E[][] => {
+// (`keep` at each place, `keep.at`, as the tuple is made: a sort no key of keeps no tuple, and none is made of it)
+const related = (keys: E[], focus: string[], n: number, keep?: {at: (i: number, e: E) => boolean}, most = Infinity): E[][] => {
   const reads = (e: E, x?: string) => x !== undefined && JSON.stringify(e).includes(`"name":${JSON.stringify(x)}`)
   const own = (i: number) => { const f = focus[i] ?? focus[0]; return keys.filter(e => reads(e, f) && focus.every(g => g === f || !reads(e, g))) }
-  const R = keys.filter(e => !focus.some(f => reads(e, f))), owns = Array.from({length: n}, (_, i) => own(i)), out: E[][] = []
+  const R0 = keys.filter(e => !focus.some(f => reads(e, f))), out: E[][] = []
+  const owns = Array.from({length: n}, (_, i) => own(i).filter(e => !keep || keep.at(i, e))), R = Array.from({length: n}, (_, i) => R0.filter(e => !keep || keep.at(i, e)))
+  let made = 0
   const go = (i: number, tuple: E[], rest: boolean): void => {
-    if (out.length >= most || (out.length % 4096 === 4095 && pastWall())) return
-    if (i === n) { if (!keep || keep(tuple)) out.push(tuple); return }
+    if (out.length >= most || (++made % 4096 === 0 && pastWall())) return
+    if (i === n) { out.push(tuple); return }
     for (const e of owns[i]!) go(i + 1, [...tuple, e], rest)
-    if (!rest) for (const e of R) go(i + 1, [...tuple, e], true)
+    if (!rest) for (const e of R[i]!) go(i + 1, [...tuple, e], true)
   }
   go(0, [], false)
   return out
@@ -1160,7 +1172,27 @@ function matchMany(pattern: E, term: E, xs: string[]): Record<string, E> | undef
     const pe = Object.entries(p), te = t as Record<string, unknown>
     return pe.every(([k, val]) => k === 'op' || (typeof val === 'object' && val !== null ? (Array.isArray(val) ? Array.isArray(te[k]) && (te[k] as unknown[]).length === val.length && val.every((y, i) => go(y as E, (te[k] as E[])[i]!)) : go(val as E, te[k] as E)) : val === te[k]))
   }
-  return go(pattern, term) ? bound : undefined
+  if (go(pattern, term)) return bound
+  // (else as radix sums: a key written 64·(64·z + x) + w is 4096·n + 64·k + v's sort, each part bound to the part of
+  // its coefficient)
+  const p = radix(pattern), t = p && radix(term)
+  if (!p || !t || p.length !== t.length || p.some(([, c], i) => c !== t[i]![1])) return undefined
+  const out: Record<string, E> = {}
+  for (const [i, [e]] of p.entries()) {
+    const u = t[i]![0]
+    if (e.op === 'var' && xs.includes(e.name)) { if (e.name in out && JSON.stringify(out[e.name]) !== JSON.stringify(u)) return undefined; out[e.name] = u }
+    else if (JSON.stringify(e) !== JSON.stringify(u)) return undefined
+  }
+  return out
+}
+// A key as a radix sum Σ c·part, its parts by coefficient, highest first (distinct coefficients, no constant), else
+// undefined. A part is a name or a read of one (a function's).
+const radix = (e: E): [E, number][] | undefined => {
+  const out: [E, number][] = []
+  const go = (x: E, k: number): boolean => x.op === 'add' ? go(x.a, k) && go(x.b, k) : x.op === 'mul' ? go(x.a, k * x.k) : x.op === 'var' || x.op === 'get' ? (out.push([x, k]), true) : false
+  if (!go(e, 1) || out.length < 2) return undefined
+  out.sort((a, b) => b[1] - a[1])
+  return out.every(([, c], i) => i === 0 || c !== out[i - 1]![1]) ? out : undefined
 }
 // The value of x that makes pattern the term, if one does (structurally).
 function match(pattern: E, term: E, x: string): E | undefined {
@@ -1398,38 +1430,176 @@ const pointed = <T>(laws: Law[], f: () => T): T => {
   try { return f() } finally { atPoint.on = false }
 }
 // A law's goals decided by the EPR path alone, for a caller that asks many (the enumeration's Houdini rounds): each goal
-// decided, a refutation's core proven and widened as growRoot's (each core's search within two seconds of its decision, the wall first); a model's tuples
-// added where it breaks a law at the goal's keys (modelInstances), at most `rounds` times, the goals asked again; a model
-// left is one on every tuple of the goal's keys, returned with its diagram. undefined: a goal not EPR-shaped, a core not
-// proven or a budget run out (the caller's proveLaw next). Untrusted: a caller's verdict rests on its final proof.
+// decided, a refutation's core proven (each core's search within two seconds of its decision, the wall first), not
+// widened; a model's tuples added where it breaks a law at the goal's keys (modelInstances), at most `rounds` times, the
+// goals asked again; a model left is one on every tuple of the goal's keys, returned with its diagram. undefined: a goal
+// not EPR-shaped, a core not proven or a budget run out (the caller's proveLaw next). What was settled before is kept
+// (`settledOf`). Untrusted: a caller's verdict rests on its final proof.
 export function decideLaw(m: Machine, laws: Law[], i: number, rounds = modelRounds): {proven: true} | {proven: false, goal: string, stuck: 'sat', witness: Record<string, number>, diagram?: Diagram} | undefined {
+  if (!fastShape(m, laws)) return undefined
   return withPatterns(m, laws, () => {
     if (!eprScope.patterns) return undefined
-    let inst = lawInstances(m, laws, i)
-    for (let round = 0; ; round++) {
-      let more: Instances | undefined
-      for (const g of obligations(m, laws, {[laws[i]!.name]: inst}, i)) {
-        if (pastWall()) return undefined
-        const o = eprFirst(g, {nodes: 0, until: clock() + 4_000}, false)
-        if (!o) return undefined
-        if ('tree' in o) continue
-        more = round < rounds ? modelInstances(m, laws, inst, g, o.witness!) : undefined
-        if (pastWall()) return undefined
-        if (!more) return {proven: false, goal: g.name, stuck: 'sat', witness: o.witness!, ...(o.diagram ? {diagram: o.diagram} : {})}
-        break
-      }
-      if (!more) return {proven: true}
-      inst = more
-    }
+    const out = settled(m, laws, i, rounds, false)
+    return !out ? undefined : 'proofs' in out ? {proven: true} : out.stuck === 'sat' ? {proven: false, goal: out.goal, stuck: 'sat', witness: out.witness!, ...(out.diagram ? {diagram: out.diagram} : {})} : undefined
   })
+}
+
+// The decisions of a machine's laws, kept across calls (decideLaw's and proveSetFast's), by the machine's text and each
+// law's name:
+// - a law's proven goals: the instances they were decided at, and each goal's proof (a core's tree with the core, or the
+//   whole goal's tree) with the laws it reads, each by its text (its support). A proof stays one while its support is in
+//   the set: another law dropped or added only takes away or adds hypotheses it doesn't read.
+// - a law's model, with the set it was found in: a model of every smaller set's goal too, whose hypotheses are fewer.
+// Untrusted: proveSetFast's proof is made and checked whole at its end.
+type Proof1 = {part: Goal, tree: Tree, uses: Map<string, string>, tuples?: Map<string, Set<string>>}
+type Settled = {text: string, inst: Instances, proofs: Record<string, Proof1>}
+type Unsettled = {goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram, why?: string}
+type Memo = {proven: Map<string, Settled>, models: Map<string, {text: string, model: Unsettled, set: Map<string, string>}>}
+const memos = new Map<string, Memo>(), machineText = new WeakMap<Machine, string>(), lawText = new WeakMap<C, string>()
+const textOfLaw = (l: Law): string => { let t = lawText.get(l.holds); if (t === undefined) lawText.set(l.holds, (t = JSON.stringify([l.holds, l.forall ?? null, l.keys ?? null]))); return t }
+function memoOf(m: Machine): Memo {
+  let key = machineText.get(m)
+  if (key === undefined) machineText.set(m, (key = JSON.stringify(m)))
+  let memo = memos.get(key)
+  if (!memo) { if (memos.size >= 4) memos.clear(); memos.set(key, (memo = {proven: new Map(), models: new Map()})) }
+  return memo
+}
+const stands = (p: Proof1, byName: Map<string, Law>): boolean => [...p.uses].every(([n, t]) => { const l = byName.get(n); return !!l && textOfLaw(l) === t })
+// Law i settled, from what was kept where it still stands (a proof whose support is in the set, a model of a set holding
+// this one): else its goals settled again, those whose proofs stand kept.
+function settled(m: Machine, laws: Law[], i: number, rounds: number, usual: boolean): Settled | Unsettled | undefined {
+  const law = laws[i]!, memo = memoOf(m), byName = new Map(laws.map(l => [l.name, l])), text = textOfLaw(law)
+  const was = memo.proven.get(law.name), prev = was?.text === text ? was : undefined
+  if (prev && Object.values(prev.proofs).every(p => stands(p, byName))) return prev
+  const mo = rounds === modelRounds ? memo.models.get(law.name) : undefined
+  if (mo && mo.text === text && laws.every(l => mo.set.get(l.name) === textOfLaw(l))) return mo.model
+  const out = settle(m, laws, i, rounds, usual, prev)
+  const cap = <T>(x: Map<string, T>) => { if (x.size >= 4096) x.clear(); return x }
+  if (out && 'proofs' in out) cap(memo.proven).set(law.name, out)
+  else if (out?.stuck === 'sat' && rounds === modelRounds) cap(memo.models).set(law.name, {text, model: out, set: new Map(laws.map(l => [l.name, textOfLaw(l)]))})
+  return out
+}
+// The fast path's machines: no history, sums or "there exists" (their goals are other machines' or need witnesses).
+const fastShape = (m: Machine, laws: Law[]): boolean => !m.history && !(m.sums && Object.keys(m.sums).length) && !someLaws(laws) && !laws.some(l => someKeys(l.holds).length)
+// How many hypotheses a law (or fact) is at these instances (kernel.ts's assumed), and its tuples' width.
+const widthOf = (l: Law): number => (l.keys?.length ? 1 + l.keys.length : 1)
+const countOf = (l: Law, inst: Instances): number => (l.forall ? Math.floor((inst[l.name]?.length ?? 0) / widthOf(l)) : 1)
+// The laws a step goal's hypotheses `used` are instances of, each with the tuples (by text) it is at. kernel.ts's
+// obligations lays a step goal out as: the facts at their instances, the precondition, the assumption, each law at its
+// instances in order, the quantified flags' closing, the conclusion. Each such hypothesis is checked against its law's
+// instance; one that isn't what the layout says leaves the sources unread (undefined). A start goal assumes no law.
+function sourcesOf(m: Machine, laws: Law[], inst: Instances, goal: Goal, used: Iterable<number>): Map<string, Set<string>> | undefined {
+  const out = new Map<string, Set<string>>()
+  if (goal.name.endsWith(' @start')) return out
+  let h = (m.facts ?? []).reduce((n, f) => n + countOf(f, inst), 0) + (m.pre ? 1 : 0) + (m.assume ? 1 : 0)
+  const starts = laws.map(l => { const at = h; h += countOf(l, inst); return at })
+  for (const u of used) {
+    if (!laws.length || u < starts[0]! || u >= h) continue
+    let k = 0
+    while (k + 1 < laws.length && starts[k + 1]! <= u) k++
+    const l = laws[k]!, t = u - starts[k]!, n = widthOf(l), tuple = l.forall ? (inst[l.name] ?? []).slice(t * n, (t + 1) * n) : []
+    const want = assumed([l], l.forall ? {[l.name]: tuple} : {})[0]
+    if (!want || JSON.stringify(want) !== JSON.stringify(goal.hyps[u])) return undefined
+    if (!out.has(l.name)) out.set(l.name, new Set())
+    out.get(l.name)!.add(JSON.stringify(tuple))
+  }
+  return out
+}
+// Law i's goals settled: each decided by the EPR path (a refutation's core proven), else (`usual`) by the usual search;
+// a model's broken tuples added (modelInstances) `rounds` times, and on while the caller's deadline allows (four times
+// as many at most: each round's model breaks a law at a tuple or two, sharded KV's caller goal from its enumerated cubes
+// is proven in its sixth), a goal proven in an earlier round not asked
+// again (the instances only grow). From `prev`, its instances (unless a law about keys is new since) and the proofs that
+// still stand. The proofs with their support, or the goal not proven (a model with its diagram, or unknown), or
+// undefined where the EPR path alone can't say (not `usual`).
+function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boolean, prev?: Settled): Settled | Unsettled | undefined {
+  const law = laws[i]!, byName = new Map(laws.map(l => [l.name, l]))
+  let inst = prev && laws.every(l => !l.forall || l.name in prev.inst) ? prev.inst : lawInstances(m, laws, i)
+  const proofs: Record<string, Proof1> = Object.fromEntries(Object.entries(prev?.proofs ?? {}).filter(([, p]) => stands(p, byName)))
+  const unknown = (g: Goal, why = 'past the search\'s end'): Unsettled | undefined => (usual ? {goal: g.name, stuck: 'unknown', why} : undefined)
+  // (past the `rounds` model rounds, each round within the caller's deadline, its model the answer where the round can't
+  // finish: a model of fewer instances is still one of the goal as it was asked)
+  const end = withinDeadline(Infinity)
+  let last: Unsettled | undefined
+  for (let round = 0; ; round++) {
+    let more: Instances | undefined
+    const late = round > rounds ? () => pastWall() || clock() > end : pastWall
+    for (const g of obligations(m, laws, {[law.name]: inst}, i)) {
+      if (proofs[g.name]) continue
+      if (late()) return last ?? unknown(g)
+      let o: (Outcome & {part?: Goal, core?: number[]}) | undefined = eprScope.patterns ? eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late) : undefined
+      if (!o && (last || !usual)) return last
+      // (the usual search, the EPR path not asked again)
+      if (!o) { const busy = eprScope.busy; eprScope.busy = true; try { o = grow(g) } finally { eprScope.busy = busy } }
+      if ('tree' in o) {
+        // (a proof whose hypotheses' sources aren't read: its support every law of the set)
+        const src = sourcesOf(m, laws, inst, g, o.core ?? usedHyps(g, o.tree))
+        proofs[g.name] = {part: o.part ?? g, tree: o.tree, uses: new Map((src ? [...src.keys()] : laws.map(l => l.name)).map(n => [n, textOfLaw(byName.get(n)!)])), ...(src ? {tuples: src} : {})}
+        continue
+      }
+      if (o.stuck !== 'sat' || !o.witness) return last ?? unknown(g, o.why)
+      last = {goal: g.name, stuck: 'sat', witness: o.witness, ...(o.diagram ? {diagram: o.diagram} : {}), why: 'a model'}
+      more = round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end) ? modelInstances(m, laws, inst, g, o.witness) : undefined
+      if (!more || pastWall()) return last
+      break
+    }
+    if (!more) return {text: textOfLaw(law), inst, proofs}
+    inst = more
+  }
+}
+
+// A set of laws proven as proveLaws proves it, for a search that drops a law the proof fails at and asks again (the
+// enumeration's set proof): each law's goals settled in order (kept from this call or decideLaw's where they stand), the
+// first law not proven returned with its goal's model; when every law is, the proof made once: each law's instances only
+// the tuples its proofs read, each proof widened to its goal there (else the goal grown), and the whole checked by
+// kernel.ts (checkLaws). Machines with a history, sums or "there exists": proveLaws. A search's trial proof: no cyclic
+// certificate is made.
+export function proveSetFast(m: Machine, laws: Law[]): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}, failed?: Report['failed'] & {diagram?: Diagram}} {
+  if (!fastShape(m, laws)) return proveLaws(m, laws)
+  return withPatterns(m, laws, () => pointed(laws, () => {
+    const at: Settled[] = []
+    for (let i = 0; i < laws.length; i++) {
+      const out = settled(m, laws, i, modelRounds, true)!
+      if (!('proofs' in out)) return {proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: out.goal, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {}), ...(out.diagram ? {diagram: out.diagram} : {})}}
+      at.push(out)
+    }
+    const instances: Record<string, Instances> = {}, trees: Record<string, Tree> = {}, byName = new Map(laws.map(l => [l.name, l]))
+    let nodes = 0, leaves = 0
+    for (const [i, law] of laws.entries()) {
+      // (each law about keys at the tuples the proofs read; all of them where a proof's sources weren't read)
+      const s = at[i]!, ps = Object.values(s.proofs), all = ps.some(p => !p.tuples)
+      const inst: Instances = all ? s.inst : Object.fromEntries(Object.entries(s.inst).map(([n, ks]) => {
+        const l = byName.get(n), k = l ? widthOf(l) : 1
+        return [n, !l ? ks : ks.filter((_, j) => ps.some(p => p.tuples!.get(n)?.has(JSON.stringify(ks.slice(j - (j % k), j - (j % k) + k)))))]
+      }))
+      instances[law.name] = inst
+      for (const g of obligations(m, laws, {[law.name]: inst}, i)) {
+        const p = s.proofs[g.name]
+        let tree = p && widen(p.part, g, p.tree)
+        if (!tree) { const o = grow(g); if (!('tree' in o)) return stuckAt(g, o, nodes, leaves); tree = o.tree; nodes += o.nodes }
+        trees[g.name] = tree
+        leaves += countLeaves(tree)
+      }
+    }
+    const proof = {instances, trees}
+    return {proven: true, nodes, leaves, checked: checkLaws(m, laws, proof), proof}
+  }))
 }
 export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram} {
   if (laws.some(l => someKeys(l.holds).length) || someLaws(laws)) {
     const r = proveLaws(m, laws)
     return r.proven ? {proven: true} : {proven: false, goal: r.failed!.goal, stuck: r.failed!.stuck, ...(r.failed!.witness ? {witness: r.failed!.witness} : {})}
   }
-  // (the thinned goals too by the EPR path where the rule's keys are composed: withModels' scope, entered here)
-  return withPatterns(m, laws, () => pointed(laws, () => proveOne(m, laws, i)))
+  // (the thinned goals too by the EPR path where the rule's keys are composed: withModels' scope, entered here; first
+  // the law settled by the EPR path as decideLaw settles it, kept where it stands: a caller's verdict rests on its final
+  // proof, which widens and checks; wo's "a leader has the voting quorum's votes" from its 40-law set, 0.45 s there
+  // against 25 s to unknown here)
+  return withPatterns(m, laws, () => {
+    const out = eprScope.patterns && fastShape(m, laws) ? settled(m, laws, i, modelRounds, false) : undefined
+    if (out && 'proofs' in out) return {proven: true}
+    if (out?.stuck === 'sat') return {proven: false, goal: out.goal, stuck: 'sat', ...(out.witness ? {witness: out.witness} : {}), ...(out.diagram ? {diagram: out.diagram} : {})}
+    return pointed(laws, () => proveOne(m, laws, i))
+  })
 }
 function proveOne(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram} {
   const law = laws[i]!, pm = plainOf(m), inst = lawInstances(m, laws, i)
