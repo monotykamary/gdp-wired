@@ -43,6 +43,112 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneA2: one incremental EPR encoder a sort of goal; the join counted; the ten 20 of 20 (branch gen/laneA2 from dd752f0)
+
+**The ask:** "10 of 10, each inside 60 s" guaranteed: 20 of 20 for every protocol on Modal's 2-vCPU containers, ring with
+margin. Ring was 17/20 and wo 19/20 at dd752f0 (above); ring needed about 35% less work.
+
+**Where ring's EPR work went** (dd752f0, a probe on decide()'s meter; ring's 296 decisions, 15.3M units, 58% of its
+engine clock): building the encoding 82% (each hypothesis' walk and Tseitin clauses, the order's transitivity over ~24
+terms), propagation 5%. 63% of all units were the same goal asked again in settle()'s model rounds (a model breaks a law at
+a new tuple, the goal is asked with a few more instances: 915 hypotheses, then 916), and 75% of a decision's hypotheses
+were the previous decision's, by text.
+
+**Built (kernel/epr.ts, untrusted):**
+- **Facts by text:** each hypothesis' lifted form, its reads, comparisons and bounds, kept by its JSON text (a goal asked
+  again is mostly the same texts); a goal's sorts (parts, caps, ordered maps and scalars, bounded terms: `stateOf`) from
+  them, the comparisons' leaves and tuples memoized.
+- **One encoder a sort of goal** (`encoder`, a pool of four by `State.sig`: the patterns, parts, caps, ordered maps and
+  scalars; each finite variable a goal reads checked against its bound there, else an encoder of its own): every
+  hypothesis encoded once, its clauses guarded by an activation literal (¬a ∨ clause; a Tseitin definition unguarded, it
+  holds in every model); atoms, cells, ordered terms and the axioms over them all kept and extended as terms arrive
+  (congruence, the order's totality, transitivity, discreteness, successors, Ackermann: each holds in every model of any
+  goal); an exact variable's one value under each hypothesis that bounds it.
+- **One CDCL under assumptions** (`cdclSolver`, growing as variables arrive): a goal is its hypotheses' activation
+  literals, decided first in order; a refutation's origins are hypotheses of the goal (a clause of one not assumed is
+  satisfied by its guard, never a reason), mapped back to the goal's indices as the core. A goal that isn't the one asked
+  last searches fresh (learned clauses, activities, phases dropped: its refutation and model are a search of its own); the
+  same goal asked again with more instances keeps its own. Theory lemmas and lazy transitivity stay (each holds always).
+- **Read back over the goal's own terms:** its ordered terms, finite variables, cells, successors and theory rows only, so
+  a model, its witness and its diagram are the goal's as before; judged on every hypothesis as before. `fill` and `fresh`
+  (the retries) take an encoder of their own; GDP_EPR_INC=0 an encoder a goal.
+- **The join's last wall counted** (core/infer.ts): where the engine follows, the join's grow is its tested order
+  (joinQueryMs on the kernel's counted work) cut at 400k units of the cost model (kernel/prove.ts's `withWork`, exported)
+  and 300k EPR units, in place of the 2 s wall. Decentralized's proving query takes 217k and 1.6k; wo's dead one (every k:
+  Leader[k] <= VoteRequestMsg[k]) took 1.2M and 647k on the counted joinQueryMs alone (13 s, wo 44–47 s, the previous
+  lane's variant). Tried and not kept: the query on the cost model's clock (counted(fullRate)) finds a model there and wo
+  ends unknown; a cap on that clock alone keeps the order and the outcome but costs wo 5–7 s; a core shrink (re-solve with
+  the core alone), and a retry alone where a shared encoder's core didn't prove (ring +4 v-s), both out for the fresh search.
+
+**Verdict agreement** (research/protocols/engine/agree.ts: wodump.ts's decideLaw goals of a run, replayed by dd752f0's epr.ts
+and by this one, 4 s a goal): ring 78 goals, 74 decided by both, 0 differ, 0 decided by dd752f0 alone, 4 by this one alone
+(dd752f0's unsat-then-sat at its cap); wo 63 goals, 63 by both, 0 differ. Cores: 734 hypotheses against 810 (ring), 269
+against 299 (wo). Models are confirmed as before (strict); a refutation is the kernel's proof of its core, as before.
+
+**Work saved** (the engine's meters at the join's end, one path per protocol, dd752f0 → gen/laneA2):
+
+| protocol | EPR units | engine clock v |
+| --- | --- | --- |
+| ring_leader_election | 15.26M → 4.75M (−69%) | 52,173 → 31,158 (−40%) |
+| consensus_wo_decide | 4.65M → 1.56M (−66%) | 19,767 → 12,973 (−34%) |
+| distributed_lock | 4.35M → 2.07M (−52%) | 28,798 → 24,188 (−16%) |
+| sharded_key_value_store | 0.82M → 0.54M (−34%) | 14,146 → 13,600 (−4%) |
+| decentralized_lock | 0.49M → 0.44M (−10%) | 7,831 → 7,730 |
+| toy_consensus_forall | 89k → 70k (−22%) | 5,773 → 5,736 |
+| the other four | no EPR decision | unchanged |
+
+The kernel's own work (`full`) is as before (ring 2.64M against 2.63M). Per unit, the new path is slower in real time
+(the texts, the sorts, the read-back's restriction, uncounted), so the wall saved is less than the clock's: ring's median
+55.9 → 39.6 s (−29%) against −40% counted; wo's 41.7 → 41.3 s, its engine's 6.8 counted s saved about what the counted
+join costs over the old wall (its dead query 4–7 s against 2.4 s).
+
+**The gauntlet** (6c21ef2; the ten, 20 runs each at 60 s, one worker, Modal's 2-vCPU containers, four batches of 50, the
+first the pilot; seconds, the search's own time; one value of the engine's clock per protocol across its 20 runs)
+
+| protocol | proven | median s | p95 s | max s | v at the join's end |
+| --- | --- | --- | --- | --- | --- |
+| consensus_wo_decide | 20/20 | 41.3 | 49.4 | 52.4 | 12,973 |
+| decentralized_lock | 20/20 | 15.6 | 18.3 | 18.3 | 7,730 |
+| distributed_lock | 20/20 | 33.1 | 37.1 | 37.8 | 24,188 |
+| lock_server_async | 20/20 | 23.3 | 27.1 | 29.4 | 5,090 |
+| lock_server_sync | 20/20 | 9.5 | 11.2 | 11.2 | 3,768 |
+| ring_leader_election | 20/20 | 39.6 | 43.9 | 44.6 | 31,158 |
+| sharded_key_value_store | 20/20 | 30.1 | 34.3 | 39.0 | 13,600 |
+| ticket_lock | 20/20 | 32.4 | 39.3 | 41.1 | 21,201 |
+| toy_consensus_forall | 20/20 | 11.2 | 12.9 | 13.1 | 5,736 |
+| two_phase_commit | 20/20 | 16.8 | 19.6 | 24.3 | 8,836 |
+
+- **200 of 200.** Ring's p95 43.9 s (median 39.6, 29.4–44.6 across containers), under the ~45 s margin asked; wo's p95
+  49.4 s, max 52.4 (28.4–52.4: wo's spread is the containers', its path one).
+- **An earlier commit's batch** (0627ba1, before the fresh search; runs/laneA2/g0): 49 of 50, the miss two_phase_commit at
+  75.7 s on a container about 7 times slower than the batch's others (the same path, v 8,836; its join alone 30 s against
+  4–6 s; 2PC asks the EPR path nothing). A container that slow misses any protocol past ~8 s; none in the 200.
+
+**Gates** (at 6c21ef2):
+- **IC3Syn's 7** (jobs-ic7.json, 60 s, twice): 14 of 14 proven (0.3–16.4 s).
+- **Lean re-check** (the suite's lean-protocols-wo job, and the same for ring): both found sets exported (ring 18 laws
+  found, 1.85 MB; wo 18 with the ∃ law, 0.57 MB) and checked by Lean 4.34.0, lean-exit 0, no sorry.
+- **The quick bar** (6c21ef2 against ae36917's baseline; <main>/runs/bar/runs/6c21ef201fb8-vs-ae369178e65d-quick-2026-10-301947/REPORT.md,
+  551 s): gained 0, lost 0, wrong 0 in every group. f1 34 as the base; f2 25 against 24 (the one task noise after 3 reruns
+  a side); rw 74/14/3 as the base; g332 the same search on 332 of 332 (291.1 s against 281.5); the suite 237 of 237, none
+  failed; onecpu no failure.
+- **Typecheck and lint:** tsc clean on kernel/epr.ts, kernel/prove.ts, core/infer.ts and the research files touched;
+  oxlint --type-aware --deny-warnings clean on the same.
+
+**Bytes:** core/ and kernel/ +9,551 against dd752f0: epr.ts +9,245, infer.ts +299, prove.ts +7.
+
+**Spend:** $1.35 billed through the 19:00 UTC hour (still filling in): $0.58 for this lane's 30-odd batches (probes,
+profiles, agreement replays, the 250 gauntlet runs, IC3Syn's 7 twice), $0.04 for the two Lean checks, $0.73 for the bar's
+18 apps. Nothing of mine left running.
+
+**Verified, not**
+- **Verified (Modal):** the table (200 runs, one path per protocol); the agreement on ring's and wo's goals; IC3Syn's 7;
+  Lean on ring's and wo's final sets; the bar.
+- **Not verified:** agreement beyond ring's and wo's dumps (the other protocols' decisions only through their verdicts in
+  the gauntlet and the bar); that the counted join's caps hold for rules outside the ten and the bar's corpora (where the
+  engine follows, a proving join query past 400k units of the cost model now ends unknown where a fast machine's 2 s wall
+  let it finish); containers far slower than these (the pilot's 7×).
+
 ## gen/laneA, determinism: the engine on a counted clock; the gauntlet (main a391a3d merged; branch fd06297)
 
 **The ask:** "10 of 10 with nothing written" guaranteed, not usually true: every search decision on work counts, not
