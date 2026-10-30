@@ -43,7 +43,7 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
-## Through the gate: gen/rel-pool (main 2fdc902 with gen/pool merged, d8a1966)
+## Through the gate: gen/rel-pool (main 2fdc902 with gen/pool merged, d8a1966; then main 8fedbea, 7b5b6e8)
 
 **The merge:**
 - gen/rel-pool is made from main's head 2fdc902 (the inferred boundary, Java/Kotlin, the CLI), with gen/pool merged in.
@@ -76,8 +76,21 @@ against the cached 5d4da3f49013-modal-r1; <main>/runs/bar/runs/relpool-d8a1966-q
   core/infer.ts is 230,011 bytes against main's 216,168: gen/enum4 since dfafb37 adds 8.4 KB, gen/pool 5.4 KB.
 - **Spend:** an estimated $0.55 for the bar and $0.05 for the g332 rerun.
 
-**Ready to fast-forward main** to gen/rel-pool. The bar ran at d8a1966; the commit after it adds this note and the plan
-below, DESIGN.md only.
+**Main moved to 8fedbea** (gen/boundary3's soundness fix, a fast-forward of 2fdc902). It was merged into gen/rel-pool
+(7b5b6e8: no conflicts, typecheck and oxlint clean), and both checks ran again there.
+- **The ten** (`runs/engine/rp2`): the eight proven (sync 7.0 s, async 22.2, decentralized 15.1, 2PC 18.8, ticket 33.1,
+  toy 13.3, sharded 34.6, distributed 29.7); ring 60.2 s and wo 64.8 s unknown.
+- **The same quick bar** (<main>/runs/bar/runs/relpool-7b5b6e8-quick/REPORT.md):
+  - f1 34 proven, as the base;
+  - f2 25 against 24.33, one task differing on the first pass and noise after 3 reruns a side;
+  - rw 74 / 14 / 3, as the base;
+  - g332 the same search on 332 of 332, summed 299.3 s against 297.1 s (p50 0.998);
+  - the suite 232 passed, 0 failed;
+  - onecpu no failure.
+  - Gained 0, lost 0, wrong 0 in every group.
+  - Estimated $0.58.
+
+**Ready to fast-forward main** to gen/rel-pool (7b5b6e8 and this DESIGN.md-only commit on top).
 
 ## The plan: our own procedure for the goals Z3 decides (design only, nothing built)
 
