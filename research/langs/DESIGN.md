@@ -505,7 +505,8 @@ answer, and the next run starts again. A refusal it can't use is the reading's, 
   store), which may change it, unless the caller states it (`skip`, or `# gdp: skip` on the line); and everything the
   subset refused before that isn't a call.
 - *Entries*: with no `entry`, the module's one class whose public methods write its state (by `writesState`), and those
-  methods (the others only read it); several or none are refused, naming them.
+  methods (the others only read it); several or none are refused, naming them. Python's reader, asked for no names,
+  lists the module's classes; the other readers still need the entry.
 
 Every inferred statement is a note (`left out (inferred: nothing the rule keeps reads its value)`, `answered by the
 request (inferred: its value is read; assumes X may return any float)`, `an injected dependency (inferred: ...)`,

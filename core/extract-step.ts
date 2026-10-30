@@ -974,7 +974,7 @@ export class Stepper {
       const t = best.ret && answerable(best.ret) ? best.ret : undefined
       if (t && best.patch && this.mod.stubs !== false) { this.inf!.answers.set(best.key, t); return undefined }
       const short = JSON.stringify(best.key.split('.').pop()), cant = this.mod.stubs === false ? `the ${LANG[this.mod.lang] ?? this.mod.lang} check can't stub a call yet` : !best.patch ? 'the check can\'t stub it' : ''
-      hint = `${best.refusal.replace(/ \(answer it, skip it, or read that module\)$/, '')} (${best.at}), whose value is read, and ${cant || (!best.ret || best.ret.k === 'any' ? 'it declares no type' : `it returns ${this.why(best.ret)}`)}: ${cant ? 'read its code, or keep its value unread' : `state what it returns (answers: {${short}: 'int'}, or a \`gdp: answer int\` comment on its line)`}`
+      hint = `${best.refusal.replace(/ \(answer it, skip it, or read that module\)$/, '')} (${best.at}), whose value is read, and ${cant || (!best.ret || best.ret.k === 'any' ? 'it declares no type' : `it returns ${best.ret.k === 'rec' ? `an object (${this.mod.recs[best.ret.name]?.short ?? best.ret.name})` : this.why(best.ret)}`)}: ${cant ? 'read its code, or keep its value unread' : `state what it returns (answers: {${short}: 'int'}, or a \`gdp: answer int\` comment on its line)`}`
     }
     for (const id of (e as Framed).frames ?? []) {
       const fn = this.mod.funcs[id.id]
