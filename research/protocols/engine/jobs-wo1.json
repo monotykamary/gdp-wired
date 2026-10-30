@@ -1,0 +1,7 @@
+[
+ {
+  "name": "woprobe",
+  "cmd": "GDP_ENGINE_DUMP=/tmp/wo.json GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/err.log | cut -c1-200; grep -E 'join (enumerated|exists)' /tmp/err.log | cut -c1-160; ls -la /tmp/wo.json && timeout -s KILL 480 bun research/protocols/engine/woprobe.ts /tmp/wo.json 2>&1 | cut -c1-600 | tail -40",
+  "timeout": 620
+ }
+]

@@ -1,0 +1,22 @@
+[
+ {
+  "name": "consensus_wo_decide-s60-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|cubes)' /tmp/err.log | cut -c1-6000 | tail -c 20000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "consensus_wo_decide-s60-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|cubes)' /tmp/err.log | cut -c1-6000 | tail -c 20000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "toy_consensus_forall-s60-r1",
+  "cmd": "GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed)|enum t. (engine end|set|caller|quick caller|proof proven)' /tmp/err.log | cut -c1-300 | tail -c 3000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "ring_leader_election-s60-r1",
+  "cmd": "GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed)|enum t. (engine end|set|caller|quick caller|proof proven)' /tmp/err.log | cut -c1-300 | tail -c 3000; exit $s",
+  "timeout": 130
+ }
+]

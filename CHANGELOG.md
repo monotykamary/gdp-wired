@@ -107,6 +107,54 @@ corpus (gen/c).** Nothing trusted changed. research/langs/DESIGN.md, "C and C++ 
   the prism gem, among them), job seconds level. Build and smoke pass with ruby, Go, Python and cargo absent.
 - **Size:** core/ and kernel/ without tests +5,597 bytes; the reader and harness 28,997 bytes of Ruby beside them.
 
+**decideLaw three times quicker inside the enumeration's stage; most of ring's undecided cubes decided (gen/epr7).**
+Nothing trusted changed. research/protocols/epr/DESIGN.md, "gen/epr7", has the measurements.
+- **decideLaw no longer widens a core's tree;** its caller's final proof does.
+- **Theory lemmas are kept across goals** by their atoms' names.
+- **The joint theory check** runs over every pair of ordered terms and the successors.
+- **Results:**
+  - distributed's stage calls: 175 ms to 66 ms on average;
+  - ring's round-1 cubes: 7 of 8 decided, one slow cube from 9.9 s to 2.1 s;
+  - every round's goal as Z3 4.13 says (126 of 126).
+- **Bar** (rw, f1, f2, g332, suite, onecpu against 5d4da3f): wrong 0, nothing lost; the suite 227 of 227 after a lint fix.
+
+**The EPR path checks comparisons it can't read against the order; distributed's undecided cubes and wo's 81-law caller
+goal decided (gen/epr6).** Nothing trusted changed. research/protocols/epr/DESIGN.md, "gen/epr6", has the measurements.
+- **A theory of the order** (DPLL(T)): comparisons of key parts with composed keys, which wrong-sort instances bring, are
+  solved with the model's order over the integers, where the read-back fails. A refutation is a lemma; otherwise the
+  values are the read-back's. The propositional search is incremental.
+- **Instances:**
+  - many laws about several keys share a budget of tuples (wo's caller goal: 34,881 hypotheses to 14,058);
+  - model instances no longer copy the model per evaluation (16 s to 0.15 s there).
+- **Results:**
+  - distributed_lock's 80 undecided cubes: all decided, at most 0.46 s each;
+  - ring: 4 of its 6 decided;
+  - every round's goal as Z3 4.13 says;
+  - wo's search on gen/enum4 ends at 59–63 s, not 68–72 s.
+- **Bar** (rw, f1, f2, g332, suite, onecpu against 5d4da3f): wrong 0, nothing lost.
+
+**The enumeration's unsure cube goals decided: decideLaw (gen/epr5).** Nothing trusted changed.
+research/protocols/epr/DESIGN.md, "gen/epr5", has the measurements.
+- **The EPR path:** a successor chain the model holds gets consecutive values in the read-back, and keys of two shapes
+  are unequal. gen/enum4's 34 unsure cube goals (13 of ring, 21 of distributed_lock) are now models, as Z3 4.13 says of
+  all 34.
+- **decideLaw:** a law's goals by the EPR path alone, a model returned with its diagram after the model rounds. It
+  decides each of the 34 in at most 0.43 s on Modal; research/protocols/epr/decideLaw.patch has the stage's quick check
+  asking it first.
+- **Quick bar** (against 5d4da3f): wrong 0, nothing lost solidly.
+
+**No kernel-side work past the search's end; ring's caller goal proven; models as diagrams (gen/epr4).** Nothing
+trusted changed. research/protocols/epr/DESIGN.md, "gen/epr4", has the measurements.
+- **The wall.** A function's parts are listed once: ring's congruence pairs had run 300+ s past the end. The EPR path,
+  model instances, the cuts, widen and a root goal's rows all check the wall now. research/protocols/epr/deadline.test.ts
+  runs the enumeration's two caller goals inside walls of 2, 5 and 10 s.
+- **Wrong-sort function reads** (`idn(64·m + n)`) are terms of the order, and nested keys are valued, so the EPR path's
+  model of ring's caller goal is a real one; its model rounds prove the goal.
+- **Diagram:** decide's and proveLaw's models carry the structure (elements, parts, cells, function tables).
+- **The propositional search** picks from an activity heap: the same choices, faster.
+- **Pilot** (two runs, 60 s): every verdict as gen/epr3's; the 30 real-world laws the same. **Quick bar** (against
+  5d4da3f): wrong 0, nothing lost solidly, CHC +2.
+
 **Go on the shared executor: GoReader gone, 88 of 88 extractions byte-identical (gen/go-port).** Nothing trusted
 changed (kernel/ and lean-kernel/ are 9220ad0's). research/langs/DESIGN.md, "Moving Go onto the executor: done", has
 the measurements.

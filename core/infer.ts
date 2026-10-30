@@ -32,10 +32,10 @@
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
-import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, evalE, get, interpret, machineTerms, modName, n, not, plus, same, seeded, times, withArithmetic, x} from './machine.ts'
+import {type C, type E, type Fn, type Law, type Machine, type Request, type State, all, any, atMost, carriedView, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
-import {clock, counted, grow, keyValue, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees} from '../kernel/prove.ts'
+import {clock, counted, decideLaw, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
@@ -231,20 +231,34 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing) {
     const a = hi && name(hi[0]), b = lo && name(lo[0])
     return a && b ? [a, b] : undefined
   }
+  // (a key of three or more parts, N²·a + N·b + c: its parts, each a place of its own, `${k}:${i}`)
+  const arity = new Map<string, number>()
+  const parts = (key: E, name: (v: string) => string | undefined): string[] | undefined => {
+    if (!pairing?.n) return undefined
+    const lin = new Map<string, number>()
+    if (!linKey(key, () => true, 1, lin) || (lin.get('1') ?? 0) !== pairing.c) return undefined
+    const vs = [...lin].filter(([v, c]) => v !== '1' && c).sort((a, b) => b[1] - a[1]), ns = vs.map(([v]) => name(v))
+    return vs.length >= 3 && vs.every(([, c], i) => c === pairing.n ** (vs.length - 1 - i)) && ns.every(Boolean) ? ns as string[] : undefined
+  }
   const kids = (t: E | C, f: (y: E | C) => void) => { for (const v of Object.values(t)) if (v && typeof v === 'object') (Array.isArray(v) ? v : [v]).forEach(y => { if (y && typeof y === 'object' && 'op' in y) f(y as E | C) }) }
   const walk = (t: E | C, name: (v: string) => string | undefined): void => {
     if (t.op === 'get') {
       // (a carried map's key has its cells' sort, as a map's: the quorum a request brings, read where the stored one is)
       const carried = (m.inputMaps ?? []).includes(t.map)
+      // (a function of a key: its argument's sort, `F:f`)
+      if (m.fns?.[t.map] && t.key.op === 'var' && name(t.key.name)) { union(name(t.key.name)!, `F:${t.map}`); return }
       if (!carried && !(t.map in (m.maps ?? {}))) { walk(t.key, name); return }
       if (carried) { if (t.key.op === 'var' && name(t.key.name)) union(name(t.key.name)!, `M:${t.map}`); else walk(t.key, name); return }
-      const sp = split(t.key, name)
+      const sp = split(t.key, name), ps = parts(t.key, name)
       if (sp) { composed.add(t.map); union(sp[0], 'hi'); union(sp[1], 'lo'); return }
+      if (ps) { arity.set(t.map, ps.length); ps.forEach((q, i) => union(q, `${t.map}:${i}`)); return }
       if (t.key.op === 'var' && name(t.key.name)) { plainRead.add(t.map); union(name(t.key.name)!, `M:${t.map}`); return }
       walk(t.key, name); return
     }
     if (t.op === 'all') { const own = new Set([t.key, ...(t.keys ?? [])]); walk(t.c, v => (own.has(v) ? `Q:${JSON.stringify(t).length}:${v}` : name(v))); return }
     if (t.op === '=' && t.a.op === 'var' && t.b.op === 'var') { const a = name(t.a.name), b = name(t.b.name); if (a && b) union(a, b); return }
+    // (a write at every key of k parts at one: z = N²·n + N·k + v)
+    if (t.op === '=' && t.a.op === 'var' && name(t.a.name)?.startsWith('M:')) { const mp = name(t.a.name)!.slice(2), ps = parts(t.b, name); if (ps) { arity.set(mp, ps.length); ps.forEach((q, i) => union(q, `${mp}:${i}`)) } }
     kids(t, y => walk(y, name))
   }
   const inputs = new Set(m.inputs), rule = (v: string) => (inputs.has(v) ? v : undefined)
@@ -257,6 +271,10 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing) {
   if (m.assume) walk(m.assume, rule)
   const lawName = (l: Law) => { const own = new Set([l.forall, ...(l.keys ?? [])]); return (v: string) => (own.has(v) ? `L:${l.name}:${v}` : undefined) }
   for (const l of laws) walk(l.holds, lawName(l))
+  // (a map read at a composed key is no plain read where a write at every key reads it at its own key)
+  for (const mp of composed) plainRead.delete(mp)
+  // (a map of keys of k parts read at a write at every key's own key is no plain read)
+  for (const mp of arity.keys()) plainRead.delete(mp)
   return {
     find,
     sortOf: (l: Law, v: string) => find(`L:${l.name}:${v}`),
@@ -274,7 +292,9 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing) {
     },
     // (a guard that reads the state or params beside the keys: a domain that moves)
     moving: (g: C, bound: string[]) => [...JSON.stringify(g).matchAll(/"name":"([^"]+)"/g)].some(q => !bound.includes(q[1]!)),
-    composedMaps: [...composed], plainRead: [...plainRead],
+    composedMaps: [...composed], plainRead: [...plainRead], arity,
+    // (a key of k parts at these key terms)
+    composeAll: (ts: E[]): E => { const k = ts.reduce((acc: E, t) => plus(times(pairing!.n, acc), t)); return pairing!.c ? plus(k, n(pairing!.c)) : k },
     compose: (a: E, b: E): E => { const k = plus(times(pairing!.n, a), b); return pairing!.c ? plus(k, n(pairing!.c)) : k },
     plainMaps: (sort: string) => [...plainRead].filter(mp => find(`M:${mp}`) === sort),
     valuesAt: (st: State, sort: string): number[] => {
@@ -282,6 +302,8 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing) {
       for (const [mp, cells] of Object.entries(st.maps)) for (const k of cells.keys()) {
         if (plainRead.has(mp) && find(`M:${mp}`) === sort) ks.add(k)
         if (composed.has(mp) && pairing?.n && k >= pairing.c) { if (find('hi') === sort) ks.add(Math.floor((k - pairing.c) / pairing.n)); if (find('lo') === sort) ks.add((k - pairing.c) % pairing.n) }
+        const ar = arity.get(mp)
+        if (ar && pairing?.n && k >= pairing.c) for (let i = ar - 1, r = k - pairing.c; i >= 0; i--, r = Math.floor(r / pairing.n)) if (find(`${mp}:${i}`) === sort) ks.add(i ? r % pairing.n : r)
       }
       const xs = [...ks].sort((a, b) => a - b)
       return [...xs, xs.length ? xs.at(-1)! + 1 : 0]
@@ -490,7 +512,7 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
   // (GDP_INFER_TRACE=2: each phase's progress too, to stderr)
   if (env.GDP_INFER_TRACE === '2' && !opts.progress) opts = {...opts, progress: (phase, info) => (globalThis as unknown as {process: {stderr: {write: (s: string) => void}}}).process.stderr.write(`[infer ${phase}] ${JSON.stringify(info)}\n`)}
-  const t0 = performance.now(), k0 = clock(), ms = opts.ms ?? 20000, wallUntil = t0 + ms, rule = isRule(target) ? target.withSumsOf(laws, stepLaws) : undefined
+  const t0 = performance.now(), ms = opts.ms ?? 20000, wallUntil = t0 + ms, rule = isRule(target) ? target.withSumsOf(laws, stepLaws) : undefined
   // The clock the budgets read (counted milliseconds since the start, or wall time where `timed`), and the stop.
   const timed = !!opts.timed, w0 = work.n, used = {tries: 0, rows: 0, evals: 0, watched: 0}
   const now = (): number => (timed ? performance.now() - t0
@@ -518,11 +540,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (!out) { const r2 = ks.length ? rule?.withDivisors(...ks) : rule; out = {r: r2, m: r2 ? r2.machine : withArithmetic(m, [], ks)}; byDivisors.set(key, out) }
     return out
   }
-  const prove = (ls: Law[]): Verdict => {
+  // (`fast`: the set's proof asked again after a drop, kernel/prove.ts's proveSetFast: what was settled kept where it stands)
+  const prove = (ls: Law[], fast = false): Verdict => {
     proofs++
     const {r: searchRule, m: mm} = forLaws(ls)
-    if (searchRule) return stepLaws.length ? proveSteps(searchRule, ls, stepLaws, {search: false}) : proveRule(searchRule, ls, {search: false})
-    const out = stepLaws.length ? proveStepLaws(mm, ls, stepLaws) : proveLaws(mm, ls)
+    if (searchRule) return stepLaws.length ? proveSteps(searchRule, ls, stepLaws, {search: false}) : proveRule(searchRule, ls, {search: false, fast})
+    const out = stepLaws.length ? proveStepLaws(mm, ls, stepLaws) : (fast ? proveSetFast : proveLaws)(mm, ls)
     return verdictOf(out)
   }
   const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(performance.now() - t0), stopped: stop()})
@@ -543,7 +566,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const mapsText = (st: State) => JSON.stringify(Object.values(st.maps).map(c => [...c]))
   // Counted: `runs` requests tried at least, and on until the samples are full (a trial keeps its start at least, so as
   // many trials as they hold fill them), the trials at most `runs` or that many. Timed: `runsMs` of wall time.
-  const runsTimed = timed || opts.runsMs !== undefined, runsUntil = Math.min(wallUntil, performance.now() + (opts.runsMs ?? 500)), least = opts.runs ?? inferRuns
+  const runsTimed = timed || opts.runsMs !== undefined, runsUntil = Math.min(wallUntil, performance.now() + (opts.runsMs ?? 500)), least = opts.runs ?? Math.min(inferRuns, Math.max(2000, 4 * ms))
   const moreRuns = (trial: number) => (runsTimed ? performance.now() < runsUntil : trial < Math.max(cap, least) && (used.tries < least || samples.length < cap) && !stop())
   let trials = 0
   // (an assumption with "there exists", a value the request brings, may admit no request at a small bound, a multiple
@@ -678,8 +701,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   pick(2, choose(2, P) * 4 * mags.length ** 2 <= maxCandidates / 4 ? mags : [1], terms, scalarOk, false)
   if (choose(3, P) * 8 * mags.length ** 3 <= maxCandidates / 2) pick(3, mags, terms, scalarOk, false)
   else if (choose(3, P) * 8 <= maxCandidates / 2) pick(3, [1], terms, scalarOk, false)
+  // (a map at a composed key and a map at a plain one read at one key are of two sorts: Leader[k] against
+  // VoteRequestMsg[k], a pair relation's raw key, is no law of the rule's)
+  const pairMaps = new Set(pairingOf(m)?.n ? keySorts(m, laws, pairingOf(m)).composedMaps : []), pairOf = (i: number) => pairMaps.has(atoms[i]!.parts[0]![0])
+  const sortedCells = (acc: [number, number][]) => { const cs = acc.filter(([i]) => atoms[i]!.cell); return cs.every(([i]) => pairOf(i)) || cs.every(([i]) => !pairOf(i)) }
   if (cellAtoms.length) {
-    const all = atoms.flatMap((_, i) => (modeOf(i)?.choice ? [] : [i])), cellOk = (acc: [number, number][]) => acc.some(([i]) => atoms[i]!.cell) && acc.filter(([i]) => !atoms[i]!.cell).length <= 1
+    const all = atoms.flatMap((_, i) => (modeOf(i)?.choice ? [] : [i])), cellOk = (acc: [number, number][]) => acc.some(([i]) => atoms[i]!.cell) && acc.filter(([i]) => !atoms[i]!.cell).length <= 1 && sortedCells(acc)
     pick(1, [1], cellAtoms, () => true, true)
     pick(2, [1], all, cellOk, true)
     if (choose(3, A) * 8 <= maxCandidates / 4) pick(3, [1], all, acc => cellOk(acc) && acc.filter(([i]) => atoms[i]!.cell).length >= 2, true)
@@ -705,7 +732,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // The rule's constants just above the largest value reached, a bound a run may not have hit.
     for (const b of bounds.filter(b => b > d).slice(0, 2)) forms.push({coef, d: b, cells, size: sizeOf(coef) + 1 + (cells ? 10 : 0)})
     if (coef.length > 2) continue
-    const here = guards.filter(mode => !coef.some(([i]) => i === mode.atom) && (cells || !atoms[mode.atom]!.cell))
+    const here = guards.filter(mode => !coef.some(([i]) => i === mode.atom) && (cells ? !atoms[mode.atom]!.cell || sortedCells([...coef, [mode.atom, 1]]) : !atoms[mode.atom]!.cell))
     const most = here.map(() => new Map<number, number>()), away = cells ? keyNots.map(() => -Infinity) : []
     for (let j = 0; j < N; j += cells ? strideK : strideS) {
       const value = at(coef, vals, j)
@@ -962,6 +989,18 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     return out
   }
 
+  // A kernel witness's function values (a function the kernel knows by its facts alone: the model's own), the steps and
+  // the views reading them where it names them and the interpreter's elsewhere, within f.
+  const withFnsOf = <T>(w: Record<string, number>, f: () => T): T => {
+    const fns = m.fns, saved: [string, Fn][] = [], named: Record<string, number> = {...Object.fromEntries([...scalars, ...m.params, ...m.inputs].map(v => [v, 0])), ...w}
+    for (const [name, fn] of Object.entries(fns ?? {})) {
+      if (fn.call || fn.recur) continue
+      const table: Record<number, number> = {}
+      for (const [c, v] of Object.entries(w)) if (c.startsWith(`${name}[`) && c.endsWith(']')) { const key = keyValue(c, named); if (key !== undefined) table[key] = v }
+      if (Object.keys(table).length) { saved.push([name, fn]); fns![name] = {...fn, js: `(k) => (${JSON.stringify(table)})[k] ?? (${fn.js})(k)`} }
+    }
+    try { return f() } finally { for (const [name, fn] of saved) fns![name] = fn }
+  }
   // A kernel witness's request: its inputs, and each map it carries at the cells the model names (a quorum).
   const requestOf = (w: Record<string, number>): Request => {
     const out: Request = Object.fromEntries(m.inputs.map(i => [i, w[i] ?? 0])), named: Record<string, number> = {...Object.fromEntries([...scalars, ...m.params, ...m.inputs].map(v => [v, 0])), ...w}
@@ -1160,8 +1199,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       for (const s2 of samples) { if (rows.length > 6000) break; rows.push(...rowsOf(s2.params, s2.st).filter(fresh)) }
       return rows
     }
-    const addView = (v: Omit<View, 'atoms' | 'rows' | 'rowsOf'>, mapsAt: string[][], valuesOf2: (st: State) => number[][], per: number) => {
+    const addView = (v: Omit<View, 'atoms' | 'rows' | 'rowsOf'>, mapsAt: string[][], valuesOf2: (st: State) => number[][], per: number, extra: {name: string, term: E}[] = [], product = false) => {
       const vi = views.length, va: number[] = []
+      // (`extra`: values of its keys that are atoms too, a key or a function of one: e ≤ Ep[a], idn(x) < idn(y))
+      extra.forEach((t, j) => { va.push(atoms.length); atoms.push({name: t.name, parts: [[`$x${vi}:${j}`, 1]], param: false, int: false, cell: false, term: t.term, view: vi}) })
       mapsAt.forEach((mps, place) => {
         for (const i of cellAtoms) {
           const a = atoms[i]!
@@ -1171,11 +1212,16 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         }
       })
       const rowsOf = (params: Env, st: State): Env[] => {
-        const cand = valuesOf2(st).map(vs => (named.has(st) ? vs.slice(0, -1) : vs).slice(0, per)), out: Env[] = []
+        // (`per` values a key; the engine's views (`product`) at most per^keys rows a state, 64 at least, the fewer-valued
+        // sorts' keys taking all of theirs and the cut on the most-valued: a sort's values past a few are still read where
+        // another sort has few; a model's state, every row up to 1024, so that its diagram is read at the keys it names)
+        const all2 = valuesOf2(st).map(vs => (named.has(st) ? vs.slice(0, -1) : vs)), lens = all2.map(vs => (product ? vs.length : Math.min(per, vs.length))), most = !product ? Infinity : named.has(st) ? 1024 : Math.max(64, per ** all2.length)
+        for (let size = lens.reduce((a, b) => a * b, 1); size > most;) { const i = lens.indexOf(Math.max(...lens)); if (lens[i]! <= 1) break; size = size / lens[i]! * (lens[i]! - 1); lens[i]!-- }
+        const cand = all2.map((vs, i) => vs.slice(0, lens[i])), out: Env[] = []
         const go = (i: number, env: Env): void => {
           if (i === v.vars.length) {
             try { if (!evalC(v.frame, env, st, m)) return } catch { return }
-            const row: Env = {...params, ...st.scalars, [K]: env[v.vars[0]!]!}, cells: [string, string, number][] = []
+            const row: Env = {...params, ...st.scalars, [K]: env[v.vars[0]!]!, ...Object.fromEntries(extra.map((t, j) => { try { return [`$x${vi}:${j}`, evalE(t.term, env, st, m)] } catch { return [`$x${vi}:${j}`, 0] } }))}, cells: [string, string, number][] = []
             mapsAt.forEach((mps, place) => { const key = evalE(v.places[place]!, env, st, m); for (const mp of mps) { const q = `${AT}${AT}${mp}${AT}${vi}:${place}`; row[q] = cellOf(st, mp, key); cells.push([q, mp, key]) } })
             out.push(mark(withTerms(row, st), st, cells))
             return
@@ -1600,6 +1646,19 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       return true
     }
     const formOf = (c: Lit[], view?: number): Form => ({coef: [], d: 0, cells: false, cube: c, size: 1, ...(view !== undefined ? {view} : {})})
+    // (a view's key read only by order literals bounding it from one side (Ep[x] + 1 <= y, y nowhere else): a value past
+    // the small instance's (or 0) always has that literal, so the cube is a stronger one in disguise, and false where that
+    // is: no such cube)
+    const oneSided = (c: Lit[], vi: number): boolean => {
+      const v = views[vi]!, side = new Map<string, number>(), held = new Set<string>()
+      for (const l of c) for (const [a, k] of 'at' in l ? [[l.at.atom, 0] as [number, number]] : l.lin.coef) {
+        const at = atoms[a]!
+        if (at.place !== undefined) for (const ki of v.covers[at.place] ?? []) held.add(v.vars[ki]!)
+        else if (at.term?.op === 'var' && k) { const s0 = side.get(at.term.name), dir = Math.sign(k); side.set(at.term.name, s0 === undefined || s0 === dir ? dir : 2) }
+        else if (at.term) walk(at.term, o => { if (o.op === 'var') held.add(String(o.name)) })
+      }
+      return [...side].some(([nm, d]) => d !== 2 && !held.has(nm))
+    }
     const witnessStep = (w: Record<string, number>): {pre: State, post?: State} => {
       const pre = stateAt(w), input = requestOf(w)
       try { return {pre, post: run.step({}, pre, input)} } catch { return {pre} }
@@ -1720,60 +1779,287 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // row and column key, a column's keys below N, keys of one sort distinct). Its cubes: each set of at most three
     // literals (a few-valued cell or scalar at a value, its largest as "at least") no row of the samples or the start is
     // in, minimal, reading every key, one per renaming of a sort's keys, the fewest literals first.
+    const known = new Map<number, {R: Float64Array[], lits: Lit[]}>()
+    // (order literals that can't hold together, p ≤ q + d around a cycle summing below 0: a cube nothing is in)
+    const contradicts = (c: Lit[]) => {
+      const e = c.flatMap(l => ('lin' in l && l.lin.coef.length === 2 && l.lin.coef[0]![1] === 1 && l.lin.coef[1]![1] === -1 ? [[l.lin.coef[0]![0], l.lin.coef[1]![0], l.lin.d] as const] : []))
+      const ns = [...new Set(e.flatMap(([p, q]) => [p, q]))], dist = new Map(ns.map(q => [q, 0]))
+      for (let k = 0; k <= ns.length; k++) for (const [p, q, d] of e) if (dist.get(q)! + d < dist.get(p)!) { if (k === ns.length) return true; dist.set(p, dist.get(q)! + d) }
+      return false
+    }
+    const smallReq: {params: Env, combos: Request[]}[] = []
+    let smallAll: Sample[] = []
+    // (a small state run under another table of a function: its params' table, the rule's functions swapped while it is read)
+    const tableOf = new WeakMap<Env, Record<string, Fn>>()
+    const withTable = <T>(params: Env, f: () => T): T => {
+      const tb = tableOf.get(params)
+      if (!tb || !m.fns) return f()
+      const saved = Object.entries(tb).map(([k]) => [k, m.fns![k]!] as [string, Fn])
+      Object.assign(m.fns, tb)
+      try { return f() } finally { for (const [k, fn] of saved) m.fns[k] = fn }
+    }
     const enumerated = (): Form[] => {
       const ks = sorts!, comp = ks.composedMaps.length && pairing?.n ? [ks.find('hi'), ks.find('lo')] : undefined
-      const ss = [...new Set([...ks.plainRead.map(mp => ks.find(`M:${mp}`)), ...(comp ?? [])])]
-      const width = ss.map(s => Math.min(3, Math.max(ks.plainMaps(s).length ? 1 : 0, comp?.filter(c => c === s).length ?? 0, ...callerLaws.map(l => [l.forall, ...(l.keys ?? [])].filter(b => b && ks.sortOf(l, b) === s).length))))
-      // (a key's own bounds: a caller's law's guards on one key of the sort alone, k < 64)
+      const multi = [...ks.arity].map(([mp, k]) => ({mp, slots: Array.from({length: k}, (_, i) => ks.find(`${mp}:${i}`))}))
+      const ss = [...new Set([...ks.plainRead.map(mp => ks.find(`M:${mp}`)), ...(comp ?? []), ...multi.flatMap(q => q.slots)])]
+      // (a map's values of a key's sort, and the sorts an order compares: e < Ep[a] makes Ep's values epochs, ordered)
+      const vp = new Map<string, string>(), vf = (a: string): string => { const q = vp.get(a); return q === undefined || q === a ? a : vf(q) }
+      const node = (e: E): string | undefined => (e.op === 'var' ? (m.inputs.includes(e.name) ? ks.find(e.name) : m.params.includes(e.name) ? `P:${e.name}` : undefined) : e.op === 'get' && (mapSet.has(e.map) || m.fns?.[e.map]) ? `V:${e.map}` : undefined)
+      const ord = new Set<string>(), leaves = (e: E): E[] => (e.op === 'if' ? [...leaves(e.then), ...leaves(e.else)] : [e])
+      const relate = (a?: string, b?: string, less = false) => { if (a && b) { const ra = vf(a), rb = vf(b); if (ra !== rb) vp.set(ra, rb); if (less) ord.add(vf(b)) } }
+      walk([m.step, m.assume], o => { const c = o as unknown as C; if (c.op === '<' || c.op === '<=' || c.op === '=') relate(node(c.a), node(c.b), c.op !== '=') })
+      // (a param that bounds a sort's keys, k < p, is that sort's size in the small instance; a param a key equals, a write
+      // at every key at it (k = first) or a read at it, is an element of that sort, which pins it against renaming)
+      const bounding = new Map<string, Set<string>>(), elementOf = new Map<string, string>()
+      walk([m.step, m.assume], o => { const c = o as unknown as C; if ((c.op === '<' || c.op === '<=') && c.b.op === 'var' && m.params.includes(c.b.name) && c.a.op === 'var' && m.inputs.includes(c.a.name)) bounding.set(c.b.name, new Set([...(bounding.get(c.b.name) ?? []), ks.find(c.a.name)])) })
+      for (const [mp, w] of Object.entries(m.step.maps ?? {})) {
+        const srt = ks.plainRead.includes(mp) ? ks.find(`M:${mp}`) : undefined
+        if (srt && 'each' in w) walk(w.value, o => { const c = o as unknown as C; if (c.op === '=' && c.a.op === 'var' && c.b.op === 'var') { const q = c.a.name === w.each ? c.b.name : c.b.name === w.each ? c.a.name : undefined; if (q && m.params.includes(q)) elementOf.set(q, srt) } })
+      }
+      walk([m.step, m.assume], o => { const e = o as unknown as E; if (e.op === 'get' && e.key.op === 'var' && m.params.includes(e.key.name) && ks.plainRead.includes(e.map)) elementOf.set(e.key.name, ks.find(`M:${e.map}`)) })
+      for (const [mp, w] of Object.entries(m.step.maps ?? {})) for (const l of leaves(w.value)) relate(`V:${mp}`, node(l))
+      const valueSort = (mp: string) => ss.find(q => vf(q) === vf(`V:${mp}`)), ordered = (q: string) => [...ord].some(o => vf(o) === vf(q))
+      // (a function of a key whose values are a composed map's rows: Pending[idn(x)·N + y])
+      const fnHi = Object.keys(m.fns ?? {}).filter(f => comp && ss.includes(ks.find(`F:${f}`)) && vf(`V:${f}`) === vf(comp[0]!))
+      const placesOf = (s: string) => (comp ? comp.filter(c => c === s).length + fnHi.filter(f => ks.find(`F:${f}`) === s).length : 0)
+      const width = ss.map(s => Math.min(3, Math.max(ordered(s) ? 2 : 0, ks.plainMaps(s).length ? 1 : 0, placesOf(s) + (placesOf(s) >= 2 ? 1 : 0), ...multi.map(q => q.slots.filter(c => c === s).length), ...callerLaws.map(l => [l.forall, ...(l.keys ?? [])].filter(b => b && ks.sortOf(l, b) === s).length))))
+      // (a key's own bounds and domain: a caller's law's guards on one key of the sort, k < 64, k < size)
       const bounds = new Map<string, C[]>()
       for (const l of callerLaws) {
         const b = [l.forall, ...(l.keys ?? [])].filter((q): q is string => !!q)
         for (const g of b.length ? ks.shape(l, b).guards : []) {
-          const one = b.filter(q => JSON.stringify(g).includes(`"name":"${q}"`)), s = one.length === 1 && !ks.moving(g, one) ? ks.sortOf(l, one[0]!) : undefined
+          const one = b.filter(q => JSON.stringify(g).includes(`"name":"${q}"`)), s = one.length === 1 ? ks.sortOf(l, one[0]!) : undefined
           if (s) bounds.set(s, [...(bounds.get(s) ?? []), substC(g, {vars: {[one[0]!]: x(KEY)}, maps: {}, flags: {}})])
         }
+      }
+      opts.progress?.('join template', {sorts: ss.map((s, i) => `${s}:${width[i]}`).join(' '), multi: multi.map(q => `${q.mp}:${q.slots.join(',')}`).join(' ')})
+      // The small instance (BRAB's, DuoAI's simulation made complete): each key sort its first 2 to 3 elements (its width),
+      // an ordered one 0..3, a function's values over its argument's, params small, each input over its sort's elements
+      // (a carried set over their subsets, any other over the values a few draws give), every reachable state by BFS up
+      // to 20,000 states and a seventh of what is left; its states the views' rows first.
+      {
+        const size = (q: string) => Math.max(2, Math.min(3, width[ss.indexOf(q)] ?? 2)), keyDom = (q: string) => (ordered(q) ? [0, 1, 2, 3] : Array.from({length: size(q)}, (_, i) => i))
+        const fnDom = (q: string) => Object.keys(m.fns ?? {}).filter(f => vf(`V:${f}`) === vf(q) && ss.includes(ks.find(`F:${f}`))).flatMap(f => keyDom(ks.find(`F:${f}`)).map(k => { try { return fnValue(m.fns![f]!, k) } catch { return 0 } }))
+        const domOf = (v: string, drawn: Set<number>): number[] => { const q = ks.find(v); return ss.includes(q) ? (fnDom(q).length ? fnDom(q) : keyDom(q)) : [...drawn].sort((a, b) => a - b) }
+        const pvs = new Map<string, Env>()
+        for (let t = 0; t < 200 && pvs.size < 4; t++) {
+          // (a param a sort's keys are compared with, n < size, is that sort's size in the instance)
+          const p = randomParams(2)
+          for (const q of m.params) {
+            const el = elementOf.get(q), srts = ss.filter(r => vf(r) === vf(`P:${q}`))
+            if (el && ss.includes(el)) p[q] = keyDom(el)[rand(keyDom(el).length)]!
+            else if (bounding.has(q) && [...bounding.get(q)!].some(r => ss.includes(r))) p[q] = Math.min(...[...bounding.get(q)!].filter(r => ss.includes(r)).map(r => keyDom(r).length))
+            else if (srts.length) { const d = keyDom(srts[0]!); p[q] = d[rand(d.length)]! }
+          }
+          if ((m.pre && !evalC(m.pre, p, {scalars: {}, maps: {}}, m)) || m.params.some(q => ss.includes(ks.find(q)) && !domOf(q, new Set()).includes(p[q]!))) continue
+          pvs.set(JSON.stringify(p), p)
+        }
+        const t3 = performance.now(), seen = new Set<string>(), small: Sample[] = []
+        let end2 = performance.now() + Math.min(4000, (wallUntil - performance.now()) / 7)
+        let cut = false
+        // (a state's key: its cells off the map's default, in key order, the least under the renamings of each symmetric
+        // sort's elements: a sort the step neither orders, nor computes on (a function's argument, a param's bound), nor
+        // stores in a cell or a scalar; every map's key read as its parts' sorts, else no renaming)
+        const layout = new Map<string, string[]>()
+        for (const mp of Object.keys(m.maps ?? {})) {
+          const ar = ks.arity.get(mp)
+          if (ks.plainRead.includes(mp)) layout.set(mp, [ks.find(`M:${mp}`)])
+          else if (ks.composedMaps.includes(mp) && pairing?.n) layout.set(mp, [ks.find('hi'), ks.find('lo')])
+          else if (ar && pairing?.n) layout.set(mp, Array.from({length: ar}, (_, i) => ks.find(`${mp}:${i}`)))
+        }
+        const stored = new Set(m.inputs.filter(i => JSON.stringify(m.step.state ?? {}).includes(`"name":"${i}"`)).map(i => ks.find(i)))
+        const pinned = new Set(elementOf.values()), sym = layout.size === Object.keys(m.maps ?? {}).length ? ss.filter(q => !pinned.has(q) && !ordered(q) && !valueSort2(q) && !stored.has(q) && !Object.keys(m.fns ?? {}).some(f => ks.find(`F:${f}`) === q) && !m.params.some(p2 => vf(`P:${p2}`) === vf(q))) : []
+        function valueSort2(q: string) { return Object.keys(m.maps ?? {}).some(mp => valueSort(mp) === q) }
+        const perms = (k: number): number[][] => (k <= 1 ? [[0]] : perms(k - 1).flatMap(p2 => Array.from({length: k}, (_, i) => [...p2.slice(0, i), k - 1, ...p2.slice(i)])))
+        let rens: Map<string, number[]>[] = [new Map()]
+        for (const q of sym) { const next = rens.flatMap(r2 => perms(size(q)).map(pm => new Map([...r2, [q, pm]]))); if (next.length > 36) break; rens = next }
+        const renKey = (mp: string, k: number, ren: Map<string, number[]>): number => {
+          const lay = layout.get(mp)
+          if (!lay || !ren.size) return k
+          if (lay.length === 1) { const pm = ren.get(lay[0]!); return pm && k < pm.length ? pm[k]! : k }
+          if (k < pairing!.c) return k
+          const digits: number[] = []
+          for (let i = 0, r = k - pairing!.c; i < lay.length; i++, r = Math.floor(r / pairing!.n)) digits.unshift(i === lay.length - 1 ? r : r % pairing!.n)
+          return pairing!.c + digits.reduce((acc, d, i) => { const pm = ren.get(lay[i]!); return acc * pairing!.n + (pm && d < pm.length ? pm[d]! : d) }, 0)
+        }
+        const textAt = (q: Sample, ren: Map<string, number[]>) => JSON.stringify([q.params, q.st.scalars, Object.entries(q.st.maps).map(([mp, cells]) => { const d = q.st.defaults?.[mp] ?? m.maps?.[mp] ?? 0; return [...cells].filter(([, v]) => v !== d).map(([k, v]) => [renKey(mp, k, ren), v]).sort((a, b) => a[0]! - b[0]!) }), q.st.defaults ?? null])
+        // (the state's own text first, its renamings' only for a text not seen)
+        const canon = new Map<string, string>()
+        const keyOf3 = (q: Sample) => {
+          const own = textAt(q, new Map())
+          let best = canon.get(own)
+          if (best === undefined) { best = own; for (const ren of rens) { const t = textAt(q, ren); if (t < best) best = t } canon.set(own, best) }
+          return best
+        }
+        // (the step compiled once: core/machine.ts's JavaScript, its assumption refusing a request as `allowed` does)
+        // (a function the kernel knows by its facts alone (no recurrence, no call) on a template sort: its own table and a
+        // few others that keep its facts on the sort's keys (its values reversed, and each turned by one), each run as its
+        // own machine; their states' rows read under their table. One table alone is a fact of it, not of the rule: ring's
+        // ids, every node past another one's below it)
+        const tables: {m: Machine, run: typeof run, js: ReturnType<typeof loadJs> | undefined, fns: Record<string, Fn>}[] = [{m, run, js: m.history ? undefined : loadJs(m), fns: {}}]
+        for (const [f, fn] of Object.entries(m.fns ?? {})) {
+          const arg = ks.find(`F:${f}`)
+          if (fn.call || fn.recur || (fn.arity ?? 1) !== 1 || !ss.includes(arg) || m.history) continue
+          const dom = keyDom(arg), vals = dom.map(k => { try { return fnValue(fn, k) } catch { return 0 } }), turn = (vs: number[]) => [...vs.slice(1), vs[0]!]
+          for (const vs of [[...vals].reverse(), turn(vals), turn([...vals].reverse())]) {
+            const fn2: Fn = {...fn, js: `(k) => (${JSON.stringify(Object.fromEntries(dom.map((k, i) => [k, vs[i]])))})[k] ?? (${fn.js})(k)`}, m2: Machine = {...m, fns: {...m.fns, [f]: fn2}}
+            const keeps = (m.facts ?? []).every(fc => { const b = [fc.forall, ...(fc.keys ?? [])].filter((q): q is string => !!q); return b.reduce<number[][]>(acc => acc.flatMap(t2 => dom.map(k => [...t2, k])), [[]]).every(t => { try { return evalC(fc.holds, Object.fromEntries(b.map((q, k) => [q, t[k]!])), {scalars: {}, maps: {}}, m2) } catch { return false } }) })
+            if (keeps && tables.length < 4) tables.push({m: m2, run: interpret(m2), js: loadJs(m2), fns: {[f]: fn2}})
+          }
+        }
+        const stepIn = (tb: typeof tables[number], params: Env, st: State, input: Request): State | undefined => {
+          try { if (tb.js) return tb.js.step(params, tb.js.fork(st), input); return allowed(tb.m, tb.run, params, st, input) ? tb.run.step(params, st, input) : undefined } catch { return undefined }
+        }
+        const stepOf = (params: Env, st: State, input: Request) => stepIn(tables[0]!, params, st, input)
+        const others: Sample[] = []
+        for (const params of pvs.values()) {
+          const drawn = new Map<string, Set<number>>(m.inputs.map(i => [i, new Set<number>()]))
+          for (let t = 0; t < 200; t++) { const inp = randomInput(params, 2); for (const i of m.inputs) if (typeof inp[i] === 'number') drawn.get(i)!.add(inp[i] as number) }
+          // (an input no template sort holds, bounded by a param (n1 < size): every value below it)
+          const boundBy = (i: string) => [...bounding].find(([, v2]) => v2.has(ks.find(i)))?.[0]
+          const doms: [string, (number | Map<number, number>)[]][] = m.inputs.map(i => [i, !ss.includes(ks.find(i)) && boundBy(i) !== undefined && (params[boundBy(i)!] ?? 0) <= 8 ? Array.from({length: params[boundBy(i)!] ?? 0}, (_, k) => k) : domOf(i, drawn.get(i)!)])
+          for (const q of m.inputMaps ?? []) { const ks2 = keyDom(ks.find(`M:${q}`)); doms.push([q, Array.from({length: 2 ** ks2.length}, (_, b) => new Map(ks2.filter((_, j) => b >> j & 1).map(k => [k, 1] as [number, number])))]) }
+          let combos: Request[] = [{}]
+          for (const [i, d] of doms) combos = combos.flatMap(c => d.map(v2 => ({...c, [i]: v2})))
+          if (combos.length > 2048) combos = Array.from({length: 2048}, () => combos[rand(combos.length)]!)
+          smallReq.push({params, combos})
+          opts.progress?.('join small domains', {params: JSON.stringify(params), doms: doms.map(([i, d]) => `${i}:${d.length > 8 ? d.length : d.map(v2 => (typeof v2 === 'number' ? v2 : 'map')).join('/')}`).join(' '), combos: combos.length})
+          let st0: State
+          try { st0 = run.init(params) } catch { continue }
+          const tB = performance.now(), queue = [{params, st: st0}], bfsEnd = performance.now() + (end2 - performance.now()) * 0.75 / (pvs.size - smallReq.length + 1)
+          seen.add(keyOf3(queue[0]!)); small.push(queue[0]!)
+          // (a BFS that won't finish (a quarter of its share gone, 1 s at least, and its queue still a quarter of what it
+          // found): cut there, the walks half a second after; an instance it does finish is what it was)
+          const cutAt = tB + Math.max(1000, (bfsEnd - tB) / 4)
+          while (queue.length && small.length < 20_000 && performance.now() < bfsEnd) {
+            if (performance.now() > cutAt && queue.length * 4 >= small.length) { end2 = Math.min(end2, performance.now() + 500); break }
+            const q0 = queue.shift()!
+            for (const input of combos) {
+              used.tries++
+              const next = stepOf(params, q0.st, input)
+              if (!next) continue
+              const q1 = {params, st: next}, k1 = keyOf3(q1)
+              if (!seen.has(k1)) { seen.add(k1); small.push(q1); queue.push(q1) }
+            }
+          }
+          if (queue.length) cut = true
+          // (the other tables: a BFS each from the same start, within the same share)
+          for (const tb of tables.slice(1)) {
+            let s0: State
+            try { s0 = tb.run.init(params) } catch { continue }
+            const p2 = {...params}, q2 = [{params: p2, st: s0}], seen2 = new Set([keyOf3(q2[0]!)]), end3 = Math.min(end2, performance.now() + (bfsEnd - tB))
+            tableOf.set(p2, tb.fns); others.push(q2[0]!)
+            while (q2.length && others.length < 20_000 && performance.now() < end3) {
+              const q0 = q2.shift()!
+              for (const input of combos) { const next = stepIn(tb, p2, q0.st, input); if (!next) continue; const q1 = {params: p2, st: next}, k1 = keyOf3(q1); if (!seen2.has(k1)) { seen2.add(k1); others.push(q1); q2.push(q1) } }
+            }
+          }
+        }
+        // (then random walks from its last states, deeper than the BFS's levels reach: each step the first of a few
+        // requests that changes the state, to the end of its share)
+        const bfs = small.length
+        for (let t = 0; cut && smallReq.length && small.length < 20_000 && performance.now() < end2; t++) {
+          const from = small[Math.max(0, small.length - 1 - rand(Math.min(small.length, 64)))]!, req = smallReq.find(q => q.params === from.params)
+          if (!req) break
+          let at = from.st
+          for (let d = 0; d < 40 && performance.now() < end2; d++) {
+            let next: State | undefined
+            for (let k = 0; k < 16 && !next; k++) {
+              const input = req.combos[rand(req.combos.length)]!
+              used.tries++
+              const s2 = stepOf(from.params, at, input)
+              if (s2 && keyOf3({params: from.params, st: s2}) !== keyOf3({params: from.params, st: at})) next = s2
+            }
+            if (!next) break
+            at = next
+            const q1 = {params: from.params, st: at}, k1 = keyOf3(q1)
+            if (!seen.has(k1)) { seen.add(k1); small.push(q1) }
+          }
+        }
+        opts.progress?.('join small instance', {states: small.length, bfs, params: pvs.size, symmetric: sym.slice(0, rens.length > 1 ? sym.length : 0).join(), ms: Math.round(performance.now() - t0), took: Math.round(performance.now() - t3)})
+        samples.unshift(...small); smallAll = [...small, ...others]
       }
       const out: Form[] = []
       for (const counts of width.reduce<number[][]>((acc, w) => acc.flatMap(c => Array.from({length: w + 1}, (_, k) => [...c, k])), [[]])) {
         const keys = ss.flatMap((s, i) => Array.from({length: counts[i]!}, () => s)), vars = keys.map((_, i) => `key${i + 1}$enum`)
-        if (!keys.length || keys.length > 4 || stop()) continue
+        if (!keys.length || keys.length > 5 || stop()) continue
         const places: E[] = [], mapsAt: string[][] = [], covers: number[][] = []
         keys.forEach((s, i) => { if (ks.plainMaps(s).length) { places.push(x(vars[i]!)); mapsAt.push(ks.plainMaps(s)); covers.push([i]) } })
         if (comp) keys.forEach((a, i) => keys.forEach((b, j) => { if (a === comp[0] && b === comp[1]) { places.push(ks.compose(x(vars[i]!), x(vars[j]!))); mapsAt.push(ks.composedMaps); covers.push(i === j ? [i] : [i, j]) } }))
+        for (const q of multi) for (const t of q.slots.reduce<number[][]>((acc, s) => acc.flatMap(p => keys.flatMap((k2, j) => (k2 === s ? [[...p, j]] : []))), [[]])) { places.push(ks.composeAll(t.map(j => x(vars[j]!)))); mapsAt.push([q.mp]); covers.push([...new Set(t)]) }
+        for (const f of fnHi) keys.forEach((a, i) => keys.forEach((b, j) => { if (a === ks.find(`F:${f}`) && b === comp![1]) { places.push(ks.compose(get(f, x(vars[i]!)), x(vars[j]!))); mapsAt.push(ks.composedMaps); covers.push(i === j ? [i] : [i, j]) } }))
+        const names = ['x', 'y', 'z', 'w', 'u'].slice(0, keys.length), fns = Object.keys(m.fns ?? {}).filter(f => ordered(`V:${f}`) && ss.includes(ks.find(`F:${f}`)))
+        const extra = [...keys.flatMap((q, i) => (ordered(q) ? [{name: names[i]!, term: x(vars[i]!)}] : [])), ...fns.flatMap(f => keys.flatMap((q, i) => (q === ks.find(`F:${f}`) ? [{name: `${f}(${names[i]})`, term: get(f, x(vars[i]!))}] : [])))]
         const frame = all(...keys.flatMap((s, i) => [...(comp && s === comp[1] && !bounds.has(s) ? [atMost(x(vars[i]!), n(pairing!.n - 1))] : []), ...[...new Set((bounds.get(s) ?? []).map(g => JSON.stringify(substC(g, {vars: {[KEY]: x(vars[i]!)}, maps: {}, flags: {}}))))].map(t => JSON.parse(t) as C), ...keys.slice(0, i).flatMap((t, j) => (t === s ? [not(same(x(vars[j]!), x(vars[i]!)))] : []))]))
         const vi = views.length
-        addView({vars, names: ['x', 'y', 'z', 'w'].slice(0, keys.length), places, covers, frame, need: keys.length, printable: false}, mapsAt, st => keys.map(s => ks.valuesAt(st, s)), Math.max(2, Math.floor(64 ** (1 / keys.length))))
-        const v = views[vi]!, R = v.rows.slice(0, 3000).map(valuesOf)
+        addView({vars, names, places, covers, frame, need: keys.length, printable: false}, mapsAt, st => keys.map(s => ks.valuesAt(st, s)), Math.max(2, Math.floor(64 ** (1 / keys.length))), extra, true)
+        // (the rows: every small state's, distinct, at most 20,000; the view's own rows stop at its first states, the shallow
+        // ones, so a deep state's (a leader's) would be left out)
+        const v = views[vi]!, R: Float64Array[] = [], seenRows = new Set<string>()
+        for (const q of smallAll.length ? smallAll : []) { if (R.length >= 20_000) break; for (const row of withTable(q.params, () => v.rowsOf(q.params, q.st))) { const r = valuesOf(row), k2 = vecKey(r); if (!seenRows.has(k2)) { seenRows.add(k2); R.push(r) } } }
+        if (!R.length) R.push(...v.rows.slice(0, 3000).map(valuesOf))
         try { if (!m.params.length) R.push(...v.rowsOf({}, run.init({})).map(valuesOf)) } catch { /* (the samples hold the start) */ }
-        // (each literal with the rows it is true at, as bits)
-        const W = Math.ceil(R.length / 32), lits: {lit: Lit, atom: number, key: string, bits: Uint32Array}[] = []
-        for (const i of [...v.atoms.filter(j => !atoms[j]!.int), ...modes.filter(mo => !atoms[mo.atom]!.cell && !atoms[mo.atom]!.param).map(mo => mo.atom)]) {
-          const vals = [...new Set(R.map(r => r[i]!))].sort((a, b) => a - b), pl = atoms[i]!.place
-          if (vals.length <= 3) for (const value of vals) {
-            const top = value > 0 && value === vals.at(-1), bits = new Uint32Array(W)
-            R.forEach((r, k) => { if (top ? r[i]! >= value : r[i] === value) bits[k >> 5]! |= 1 << (k & 31) })
-            lits.push({lit: top ? {lin: {coef: [[i, -1]], d: -value}} : {at: {atom: i, value}}, atom: i, key: pl === undefined ? `${i}=${value}` : `${atoms[i]!.parts[0]![0].split(AT)[2]}=${value}@${mapsAt[pl]!.join()}`, bits})
+        // (each literal with the rows it is true at, as bits; `id` its atoms, `name` its text under a renaming of the keys)
+        const W = Math.ceil(R.length / 32), lits: {lit: Lit, id: string, name: (ren: number[]) => string, reads: number[], bits: Uint32Array, before?: [number, number], state: boolean}[] = []
+        const where = (i: number) => { const pl = atoms[i]!.place; return pl === undefined ? [] : covers[pl]! }
+        // (an extra atom's key, and its function where it is one)
+        const keyOf2 = (i: number) => { const t = atoms[i]!.term; return t?.op === 'var' ? v.vars.indexOf(t.name) : t?.op === 'get' && t.key.op === 'var' ? v.vars.indexOf(t.key.name) : -1 }
+        const fnOf = (i: number) => { const t = atoms[i]!.term; return t?.op === 'get' ? t.map : undefined }
+        const term = (i: number, ren: number[]) => (atoms[i]!.place !== undefined ? `${atoms[i]!.parts[0]![0].split(AT)[2]}[${where(i).map(k => ren[k]).join()}]` : keyOf2(i) >= 0 ? `${fnOf(i) ?? ''}#${ren[keyOf2(i)]}` : `s${i}`)
+        const reads = (i: number) => (keyOf2(i) >= 0 ? [keyOf2(i)] : where(i))
+        const add = (lit: Lit, id: string, name: (ren: number[]) => string, rd: number[], holds: (r: Float64Array) => boolean, before?: [number, number]) => {
+          const bits = new Uint32Array(W)
+          R.forEach((r, k) => { if (holds(r)) bits[k >> 5]! |= 1 << (k & 31) })
+          lits.push({lit, id, name, reads: rd, bits, ...(before ? {before} : {}), state: ('at' in lit ? [lit.at.atom] : lit.lin.coef.map(([a]) => a)).some(a => atoms[a]!.place !== undefined || (!atoms[a]!.term && !atoms[a]!.param))})
+        }
+        const valued = (i: number) => atoms[i]!.place !== undefined && !!valueSort(atoms[i]!.parts[0]![0].split(AT)[2]!)
+        for (const i of [...v.atoms.filter(j => !atoms[j]!.int && !atoms[j]!.term), ...modes.filter(mo => !atoms[mo.atom]!.cell && !atoms[mo.atom]!.param).map(mo => mo.atom)]) {
+          const vals = [...new Set(R.map(r => r[i]!))].sort((a, b) => a - b)
+          // (a value of a key's sort: 0 alone, an order literal below)
+          for (const value of valued(i) ? vals.filter(q => q === 0) : vals.length <= 3 ? vals : []) {
+            const top = value > 0 && value === vals.at(-1)
+            add(top ? {lin: {coef: [[i, -1]], d: -value}} : {at: {atom: i, value}}, `${i}`, ren => `${term(i, ren)}=${value}`, reads(i), r => (top ? r[i]! >= value : r[i] === value))
           }
         }
+        // (an ordered sort's keys and values compared: t ≤ u and u < t, of a key and a value or two values)
+        const ts = v.atoms.filter(i => keyOf2(i) >= 0 || valued(i))
+        const sortOf2 = (i: number) => vf(fnOf(i) ? `V:${fnOf(i)}` : keyOf2(i) >= 0 ? keys[keyOf2(i)]! : valueSort(atoms[i]!.parts[0]![0].split(AT)[2]!)!)
+        for (const [a2, i] of ts.entries()) for (const j of ts.slice(a2 + 1)) {
+          if (sortOf2(i) !== sortOf2(j)) continue
+          // (two keys of one sort are distinct: one before the other)
+          const keysOnly = !fnOf(i) && !fnOf(j) && atoms[i]!.place === undefined && atoms[j]!.place === undefined
+          for (const [p, q] of [[i, j], [j, i]] as const) for (const d of keysOnly ? [-1] : [0, -1]) add({lin: {coef: [[p, 1], [q, -1]], d}}, `${i}~${j}`, ren => `${term(p, ren)}<=${d}+${term(q, ren)}`, [...reads(p), ...reads(q)], r => r[p]! - r[q]! <= d, keysOnly ? [keyOf2(p), keyOf2(q)] : undefined)
+        }
         used.rows += R.length * lits.length
+        opts.progress?.('join view', {keys: keys.join(), places: places.length, lits: lits.length, rows: R.length, names: lits.map(l => l.name(keys.map((_, i) => i))).join(' ').slice(0, 900)})
         if (lits.length > 96) continue
         const empty = (b: Uint32Array) => b.every(w => w === 0), and = (a: Uint32Array, b: Uint32Array) => a.map((w, k) => w & b[k]!)
         const none = (ls: number[]) => empty(ls.slice(1).reduce((b, l) => and(b, lits[l]!.bits), lits[ls[0]!]!.bits))
         // (a renaming of a sort's keys moves each literal to the place its keys go to)
         const perms = keys.reduce<number[][]>((acc, s) => acc.flatMap(p => keys.flatMap((t, j) => (t === s && !p.includes(j) ? [[...p, j]] : []))), [[]])
-        const canon = (ls: number[]) => perms.map(ren => ls.map(l => { const pl = atoms[lits[l]!.atom]!.place; return `${lits[l]!.key}|${pl === undefined ? '' : covers[pl]!.map(k => ren[k]).join()}` }).sort().join('&')).sort()[0]!
+        const canon = (ls: number[]) => perms.map(ren => ls.map(l => lits[l]!.name(ren)).sort().join('&')).sort()[0]!
         const seen = new Set<string>(), found: number[][] = []
-        const dfs = (from: number, chosen: number[], size: number, bits?: Uint32Array) => {
-          for (let j = from; j < lits.length && found.length < 32; j++) {
-            if (chosen.some(c => lits[c]!.atom === lits[j]!.atom)) continue
+        const dfs = (from: number, chosen: number[], size: number, bits?: Uint32Array, most = 400) => {
+          for (let j = from; j < lits.length && found.length < most; j++) {
+            if (chosen.some(c => lits[c]!.id === lits[j]!.id)) continue
             const now2 = [...chosen, j], b = bits ? and(bits, lits[j]!.bits) : lits[j]!.bits
-            if (now2.length < size) { if (!empty(b)) dfs(j + 1, now2, size, b); continue }
+            if (now2.length < size) { if (!empty(b)) dfs(j + 1, now2, size, b, most); continue }
             if (!empty(b) || now2.some((_, k) => now2.length > 1 && none(now2.filter((__, q) => q !== k)))) continue
-            const read = new Set(now2.flatMap(l => { const pl = atoms[lits[l]!.atom]!.place; return pl === undefined ? [] : covers[pl]! })), k2 = canon(now2)
+            // (a cube reading no state (keys and functions alone) is a fact of the functions' tables, or false: none)
+            if (contradicts(now2.map(l => lits[l]!.lit)) || !now2.some(l => lits[l]!.state) || oneSided(now2.map(l => lits[l]!.lit), vi)) continue
+            const read = new Set(now2.flatMap(l => lits[l]!.reads)), k2 = canon(now2)
             if (read.size === keys.length && !seen.has(k2)) { seen.add(k2); found.push(now2) }
           }
         }
-        for (let size = 1; size <= 3; size++) dfs(0, [], size)
+        // (four literals where a view's literals are few: a ring's order of three keys with what holds there)
+        for (let size = 1; size <= (lits.length <= 40 ? 4 : 3); size++) dfs(0, [], size)
+        // (where they are more: the four-literal cubes with a chain of three keys of one sort, a < b < c (betweenness, and a
+        // cycle's turns of it), the two order literals and any two others, 200 at most)
+        if (lits.length > 40) {
+          const at = found.length
+          lits.forEach((a, i) => lits.forEach((b, j) => { if (a.before && b.before && a.before[1] === b.before[0] && a.before[0] !== b.before[1] && found.length < at + 200) { const ab = and(a.bits, b.bits); if (!empty(ab)) dfs(0, [i, j], 4, ab, at + 200) } }))
+        }
+        known.set(vi, {R, lits: lits.map(l => l.lit)})
         out.push(...found.map(ls => formOf(ls.map(l => lits[l]!.lit), vi)))
       }
       return out.filter((f, i) => !set.some(g => textOf(g) === textOf(f)) && out.findIndex(g => textOf(g) === textOf(f)) === i)
@@ -1784,6 +2070,340 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // states within joinKeys) whose part of those samples and of the states joined in leaves it out (past its hull or a
     // bound, or with no state there at all) becomes a control value, and every state is joined again.
     const refine = (p: Point): boolean => { const recent = [p, ...negs.slice(-8)]; used.rows += recent.length; const ok = spaces.some(sp => sp.refine(recent)); if (ok) { stood.clear(); reached.length = 0 } return ok }
+    // The engine, after a join that found nothing, on a rule of keyed maps whose scalars take few values (no counters;
+    // research/protocols/engine/DESIGN.md): the template's cubes (DuoAI's ∀ candidates, research/protocols/enum/
+    // DESIGN.md) read off the small instance, those the caller's and the kinds' laws don't imply; then Houdini, the
+    // caller's laws first, every cube assumed: the CDCL search's refutation (its core settles the goal while the laws it
+    // read stay) or model, else the proof path's. A model the interpreter reads as a real step out of the goal drops its
+    // cube; one out of the caller's law from a state no small state is has its diagrams blocked as cubes, the caller asked
+    // again first (IC3's order); the caller's law unproven otherwise ends it. A round with nothing real drops the
+    // unsettled. The set is then proven, its trees kept. Later rounds leave a sums pass its reserve (core/dsl.ts's:
+    // decentralized lock's) while the caller's law fails from the set.
+    const engine = () => {
+    if (sorts && callerLaws.some(l => l.keys?.length) && now() < until && !stop()) {
+      // (a sums pass's reserve where one follows: 10 s, or a quarter of what is left where less is)
+      const v0 = views.length, reserve = rule?.withMapSums() ? Math.min(10_000, (wallUntil - performance.now()) / 4) : 0
+      const implied = (f: Form) => {
+        const v = views[f.view!]!, sk = {vars: Object.fromEntries(v.vars.map(k => [k, x(`${k}#`)])), maps: {}, flags: {}}, hyps = [substC(v.frame, sk), not(substC(condOf(f), sk))]
+        for (const l of given) {
+          const b = [l.forall, ...(l.keys ?? [])].filter((q): q is string => !!q)
+          if (v.vars.length ** b.length > 64) return false
+          for (const t of b.reduce<string[][]>(acc => acc.flatMap(t2 => v.vars.map(k => [...t2, k])), [[]])) hyps.push(substC(l.holds, {vars: Object.fromEntries(b.map((q, k) => [q, sk.vars[t[k]!]!])), maps: {}, flags: {}}))
+        }
+        return 'tree' in budgeted(joinQueryMs / 8, until2 => grow({name: 'implied', hyps}, new Map(), {nodes: 0, until: until2}))
+      }
+      // (the cubes that read a map the caller's laws read first)
+      const callerMaps = new Set(laws.flatMap(l => [...JSON.stringify(l.holds).matchAll(/"map":"([^"]+)"/g)].map(q => q[1]!)))
+      const near = (f: Form) => (f.cube!.some(l => atomsIn(formOf([l])).some(i => callerMaps.has(atoms[i]!.parts[0]![0].split(AT)[2] ?? ''))) ? 0 : 1)
+      const made = enumerated()
+      let cubes: Form[] = []
+      // (in turn by the maps a cube reads, those reading the caller's first: one of each kind before a second of any; in
+      // a kind, the fewer literals first (DuoAI's minimal clauses), then the cube over more distinct keys (the law its
+      // diagonal case is a case of))
+      const mapsOfCube = (f: Form) => [...new Set(f.cube!.flatMap(l => atomsIn(formOf([l])).map(i => atoms[i]!.parts[0]![0].split(AT)[2] ?? '')))].sort().join()
+      const byMaps = new Map<string, Form[]>()
+      const width2 = (f: Form) => views[f.view!]!.vars.length
+      for (const f of [...made].sort((a, b) => near(a) - near(b) || a.cube!.length - b.cube!.length || width2(b) - width2(a))) { const k2 = mapsOfCube(f); byMaps.set(k2, [...(byMaps.get(k2) ?? []), f]) }
+      // (each turn the kinds in order of their own first cube: its fewer literals, then whether it reads the caller's maps)
+      const kinds2 = [...byMaps.values()].sort((a, b) => a[0]!.cube!.length - b[0]!.cube!.length || near(a[0]!) - near(b[0]!)), turns: Form[] = []
+      for (let i = 0; turns.length < made.length; i++) for (const fs of kinds2) if (fs[i]) turns.push(fs[i]!)
+      // (every cube of at most two literals first, DuoAI's minimal clauses, the turns' order kept within each part)
+      turns.sort((a, b) => Math.min(a.cube!.length, 3) - Math.min(b.cube!.length, 3))
+      // (round 0 the minimal cubes, at most 24, or the whole enumeration where it is 16 or fewer; the rest by relevance to
+      // the counterexamples, IC3's order)
+      const whole = made.length <= 16
+      for (const f of turns) { if (cubes.length >= 24 || stop()) break; if ((whole || f.cube!.length <= 2) && !names.has(textOf(f)) && !implied(f)) cubes.push(f) }
+      opts.progress?.('join enumerated', {views: views.length - v0, cubes: cubes.length, ms: Math.round(performance.now() - t0)})
+      opts.progress?.('join cubes', {cubes: cubes.map(textOf).join(' | ')})
+      opts.progress?.('join made', {cubes: made.map(textOf).join(' | ')})
+      // (a goal's proof within the search's own end, on the cost model's clock: a counted search inside it keeps the end)
+      const within = <T>(endWall: number, f: () => T): T => withWall(endWall, () => counted(fullRate, () => withDeadline(clock() + Math.max(0, endWall - performance.now()), f), true))
+      // (a model's values past the rule's constants renamed onto small ones in order, a gap kept up to 64: the step then
+      // runs at every key, and the model's equalities, order, +1 and comparisons with the constants are kept)
+      const top = Math.max(1024, ...[...JSON.stringify([m.step, m.assume ?? null, m.pre ?? null]).matchAll(/"value":(\d+)/g)].map(q => Number(q[1])))
+      const smallOf = (w: Record<string, number>): Record<string, number> => {
+        const big = [...new Set(Object.values(w).filter(v => v > top))].sort((a, b) => a - b)
+        if (!big.length) return w
+        const to = new Map<number, number>()
+        big.forEach((v, i) => to.set(v, i ? to.get(big[i - 1]!)! + Math.min(64, v - big[i - 1]!) : top + 1))
+        return Object.fromEntries(Object.entries(w).map(([c, v]) => [c, to.get(v) ?? v]))
+      }
+      const realCti = (w0: Record<string, number>, f: Form | undefined, others: Form[]) => { const w = smallOf(w0); return withFnsOf(w, () => {
+        const {params, st} = stateOf(w), read = new Set([...others, f].map(g => g?.view))
+        // (a model's cells past the keys the interpreter steps at every key, a million, left out)
+        for (const cells of Object.values(st.maps)) for (const k of [...cells.keys()]) if (k > 1_000_000) cells.delete(k)
+        const at = (s2: State): Point => ({scalar: withTerms({...params, ...s2.scalars}, s2), cells: [], views: views.map((v, i) => (read.has(i) ? v.rowsOf(params, s2) : []))})
+        let post: State
+        if (performance.now() > wallUntil) return false
+        try { post = run.step(params, st, requestOf(w)); stepNamed(st, post) } catch { return false }
+        if (performance.now() > wallUntil) return false
+        if (!others.every(g => holdsAt(g, at(st)))) return false
+        lastPre = {params, st, w}
+        if (!f) return breaks(params, post, st, requestOf(w))
+        return (at(post).views[f.view!] ?? []).some(r => judged(f, r) && !holdsRow(f, r))
+      }) }
+      // (a cube false at a start: its start goal's model, judged at the interpreter's own start at the model's params (a
+      // start is reachable, so it is a real counterexample); such a cube is not asked, nor kept)
+      const startBad = new Map<Form, boolean>()
+      // (the law at the model's keys, at the interpreter's start for the model's params, with the model's function values
+      // where they keep the facts at those keys)
+      const badAtStart = (f: Form, w0: Record<string, number>) => { const w = smallOf(w0), l = lawFor(f); return withFnsOf(w, () => { const {params} = stateOf(w); try {
+        const st = run.init(params), env2: Env = {...params, ...st.scalars}
+        for (const k of [l.forall, ...(l.keys ?? [])]) if (k) env2[k] = w[k] ?? w[`${k}#`] ?? 0
+        const vals = [...new Set([l.forall, ...(l.keys ?? [])].filter((k): k is string => !!k).map(k => env2[k]!))]
+        for (const fct of m.facts ?? []) { const b = [fct.forall, ...(fct.keys ?? [])].filter((q): q is string => !!q); if (vals.length ** b.length > 4096) return false
+          for (const t of b.reduce<number[][]>(acc => acc.flatMap(t2 => vals.map(v => [...t2, v])), [[]])) if (!evalC(fct.holds, {...env2, ...Object.fromEntries(b.map((q, k) => [q, t[k]!]))}, st, m)) return false }
+        return !evalC(l.holds, env2, st, m)
+      } catch { return false } }) }
+      const atStart = (f: Form): boolean => {
+        let b = startBad.get(f)
+        if (b === undefined) {
+          const ls2 = [...given, lawFor(f)], g = obligations(forLaws(ls2).m, ls2, {}, given.length)[0]!
+          const q = budgeted(joinQueryMs / 32, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true})) as Refuted
+          b = !('tree' in q) && q.stuck === 'sat' && !!q.witness && badAtStart(f, q.witness)
+          startBad.set(f, b)
+        }
+        return b
+      }
+      // (a counterexample's diagram (UPDR's, IC3PO's): in each template view, a row of its state no reachable small state's
+      // row is, as the literals true there, generalized by taking out each literal while no small state's row is inside;
+      // blocked as a law ¬diagram, at most four a counterexample)
+      let lastPre: {params: Env, st: State, w: Record<string, number>} | undefined
+      const reachedRows = new Map<number, Set<string>>()
+      const diagrams = (pre: {params: Env, st: State}): Form[] => {
+        const out2: Form[] = []
+        for (const [vi, k] of known) {
+          const seenR = reachedRows.get(vi) ?? new Set(k.R.map(vecKey)); reachedRows.set(vi, seenR)
+          // (a model names some cells: the literals over those alone)
+          for (const row of views[vi]!.rowsOf(pre.params, pre.st)) {
+            const r = valuesOf(row)
+            if (!unnamed.get(row) && seenR.has(vecKey(r))) continue
+            let c = k.lits.filter(l => litHolds(l, r) && judged(formOf([l], vi), row))
+            if (!c.length || k.R.some(y => inCube(c, y))) continue
+            for (const l of [...c]) { const c2 = c.filter(x2 => x2 !== l); if (c2.length && !k.R.some(y => inCube(c2, y))) c = c2 }
+            if (c.length <= 5 && !k.R.some(y => inCube(c, y)) && !oneSided(c, vi)) out2.push(formOf(c, vi))
+            if (out2.length >= 4) return out2
+          }
+        }
+        return out2
+      }
+      // ∀∃ (DuoAI's): where the caller's counterexample is a reachable small state's row in every view, a law
+      // A → ∃y. B(y): A the scalars' literals (or none), B one or two literals of a one-key view at y, true at every small
+      // state (A there, some key has B), B not at every key. Its witness a ghost (a value at the start, 0, and after
+      // each step: an input where an update of a map B reads takes its branch, else the value before), the first that
+      // holds along random runs of the small instance; then the ghost a state variable of the machine Houdini reads, its
+      // law a goal, and the final proof the ∃ law with that witness (core/exists.ts's).
+      type Ghost = {name: string, start: E, step: E, plain: Law, some: Law}
+      let ghost: Ghost | undefined, ghosts: Ghost[] | undefined
+      const ghosted = new WeakMap<Machine, Machine>()
+      const withGhost = (mm: Machine): Machine => {
+        if (!ghost) return mm
+        let g = ghosted.get(mm)
+        if (!g) { g = {...mm, state: {...mm.state, [ghost.name]: ghost.start}, step: {...mm.step, state: {...mm.step.state, [ghost.name]: ghost.step}}}; ghosted.set(mm, g) }
+        return g
+      }
+      const ghostsOf = (): Ghost[] => {
+        const out3: Ghost[] = []
+        const states = samples.slice(0, 3000), conds = new Map<string, C>()
+        for (const w of Object.values(m.step.maps ?? {})) walk(w.value, o => { if (o.op === 'if' && conds.size < 16) conds.set(JSON.stringify(o.c), o.c as C) })
+        for (const [vi, k] of known) {
+          const v = views[vi]!
+          if (v.vars.length !== 1 || stop()) continue
+          const keyed = (l: Lit) => atomsIn(formOf([l])).some(i => atoms[i]!.place !== undefined || !!atoms[i]!.term)
+          const As = [[], ...k.lits.filter(l => !keyed(l)).map(l => [l])], Bs0 = k.lits.filter(keyed)
+          const off = (l: Lit) => !('at' in l) || l.at.value !== 0
+          const Bs = [...Bs0.map(l => [l]), ...Bs0.flatMap((l, i) => Bs0.slice(i + 1).map(l2 => [l, l2]))].filter(b => !contradicts(b) && b.some(off))
+          const rowsAt = states.map(q => v.rowsOf(q.params, q.st).map(valuesOf))
+          for (const A of As) for (const B of Bs) {
+            if (out3.length >= 6) return out3
+            let some2 = false, notAll = false, ok = true
+            for (const rows of rowsAt) {
+              if (!rows.length || !inCube(A, rows[0]!)) continue
+              some2 = true
+              if (!rows.some(r => inCube(B, r))) { ok = false; break }
+              if (!rows.every(r => inCube(B, r))) notAll = true
+            }
+            if (!ok || !some2 || !notAll) continue
+            const y = `some$enum${vi}`, sub = {vars: {[v.vars[0]!]: x(y)}, maps: {}, flags: {}}
+            const holds = any(...(A.length ? [condOf(formOf(A, vi))] : []), all(substC(v.frame, sub), substC(not(condOf(formOf(B, vi))), sub)))
+            const name = `${A.length ? textOf(formOf(A, vi)) + ' else ' : ''}some ${textOf(formOf(B, vi))}`
+            // (the witness: along random runs of the small instance, the first ghost the law holds at)
+            witness: for (const c of [all(), ...conds.values()]) for (const i of m.inputs) {
+              const step: E = {op: 'if', c, then: x(i), else: x(y)}
+              let held2 = 0, bad = false
+              for (const {params, combos} of smallReq) for (let walk2 = 0; walk2 < 40 && !bad; walk2++) {
+                let st: State, g = 0
+                try { st = run.init(params) } catch { break }
+                for (let d = 0; d < 30 && !bad; d++) {
+                  const input = combos[rand(combos.length)]!
+                  try {
+                    if (!allowed(m, run, params, st, input)) continue
+                    const env2: Env = {...params, ...st.scalars, ...Object.fromEntries(m.inputs.map(i2 => [i2, input[i2] as number])), [y]: g}, seen2 = carriedView(m, st, input)
+                    for (const [fl, c2] of Object.entries(m.step.flags ?? {})) env2[`?${fl}`] = evalC(c2, env2, seen2, m) ? 1 : 0
+                    const next = run.step(params, st, input)
+                    g = evalE(step, env2, seen2, m); st = next
+                    if (evalC(holds, {...params, ...st.scalars, [y]: g}, st, m)) held2++; else bad = true
+                  } catch { continue }
+                }
+              }
+              if (bad || held2 < 50) continue
+              out3.push({name: y, start: n(0), step, plain: {name, holds}, some: {name, holds, some: [y], witness: {ghost: {[y]: {start: n(0), step}}}}})
+              break witness
+            }
+          }
+        }
+        return out3
+      }
+      // (a goal the CDCL search refuted, by the laws its core read: settled while each is still in the set, Houdini's
+      // cores)
+      // (`stands`: the goals proven since the set last lost a law; a set that only grows keeps their proofs)
+      // (a goal's proof had every cube in the set as it stood: a drop takes back the proofs since the dropped cube came in)
+      const settled = new Map<string, string[]>(), kept2 = new Set<Form>(), stands = new Set<string>(), provenAt = new Map<string, number>(), addedAt = new Map<Form, number>()
+      const unstand = (gs: Iterable<Form>) => { const r = Math.min(...[...gs].map(g => addedAt.get(g) ?? 0)); for (const [nm, at] of provenAt) if (at >= r) { stands.delete(nm); provenAt.delete(nm) } }
+      let held = false
+      // (the counterexamples so far, each a state the set must rule out, the caller's and then the cubes' kept unsure (PDR's
+      // obligations): the enumeration's cubes false there are the relevant ones, the most of the caller's first, then the
+      // most of the cubes'; and the goals a round can afford, a quarter of what is left at the last round's cost a goal)
+      type Pre = {params: Env, st: State, w: Record<string, number>}
+      const pres: Pre[] = [], subs: Pre[] = [], preAt = new WeakMap<object, Point>()
+      let perGoal = 0
+      const ptOf = (q: Pre) => { let pt = preAt.get(q); if (!pt) { pt = withFnsOf(q.w, () => pointOf(q.params, q.st)); preAt.set(q, pt) } return pt }
+      // (a kernel model's state, its values past the rule's constants renamed small, its cells past a million left out)
+      const preOf = (wit: Record<string, number>): Pre => { const w2 = smallOf(wit); return withFnsOf(w2, () => { const {params, st} = stateOf(w2); for (const cells of Object.values(st.maps)) for (const k of [...cells.keys()]) if (k > 1_000_000) cells.delete(k); return {params, st, w: w2} }) }
+      // (the cubes dropped, never asked again)
+      const dead = new Set<string>()
+      // (what blocks a counterexample's state: the enumeration's minimal cubes false there (the antichain is the
+      // generalization), or that may be (cells the model leaves unnamed), two at most: the false first, then those false at
+      // the most of the counterexamples' states so far, then the fewest literals; else its diagrams)
+      const seenCtis: Pre[] = []
+      const blockers = (pre: Pre): Form[] => {
+        const pt = ptOf(pre), pts = (seenCtis.push(pre), seenCtis.slice(-16).map(ptOf)), bs: Form[] = []
+        const scored = made.filter(g => !dead.has(textOf(g))).map(g => ({g, f: !holdsAt(g, pt) ? 2 : mayFail(g, pt) ? 1 : 0})).filter(q => q.f).map(({g, f}) => ({g, k: f * 1024 + pts.filter(p2 => !holdsAt(g, p2)).length}))
+        for (const {g} of scored.sort((a, b) => b.k - a.k || a.g.cube!.length - b.g.cube!.length || width2(b.g) - width2(a.g))) { if (bs.length >= 2) break; if (!bs.some(h => textOf(h) === textOf(g)) && !atStart(g)) bs.push(g) }
+        return bs.length ? bs : withFnsOf(pre.w, () => diagrams(pre)).filter(g => !dead.has(textOf(g)) && !atStart(g))
+      }
+      // (a cube that may be false at a counterexample: at a row where it reads cells the model doesn't name, every literal
+      // the model does name in its pattern)
+      const mayFail = (g: Form, pt: Point) => g.view !== undefined && (pt.views[g.view] ?? []).some(r => !judged(g, r) && g.cube!.every(l => { const h = formOf([l], g.view); return !judged(h, r) || !holdsRow(h, r) }))
+      const relevant = (room: number, kept: Form[]): Form[] => {
+        if (room <= 0 || !pres.length && !subs.length) return []
+        const have = new Set([...kept.map(textOf), ...dead]), pts = pres.map(ptOf), sts = subs.slice(-32).map(ptOf)
+        const scored = made.filter(g => !have.has(textOf(g)) && !names.has(textOf(g))).map(g => ({g, k: pts.filter(pt => !holdsAt(g, pt)).length * 4096 + pts.filter(pt => mayFail(g, pt)).length * 64 + sts.filter(pt => !holdsAt(g, pt)).length})).filter(q => q.k > 0)
+        // (ties: the fewer literals, then the fewer keys, the more particular law)
+        scored.sort((a, b) => b.k - a.k || a.g.cube!.length - b.g.cube!.length || width2(a.g) - width2(b.g))
+        const out3: Form[] = []
+        for (const {g} of scored) { if (out3.length >= room || stop()) break; if (!implied(g) && !atStart(g)) out3.push(g) }
+        return out3
+      }
+      for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
+        cubes = cubes.filter(g => !atStart(g))
+        for (const g of cubes) if (!addedAt.has(g)) addedAt.set(g, round)
+        const stand = (nm: string) => { stands.add(nm); provenAt.set(nm, round) }
+        let asked = 0, cubeMs = 0, tGoal = 0
+        // (later rounds less the sums pass's reserve, unless the caller's law holds from the set: Houdini's part, then)
+        const kUntil = () => wallUntil - (round && !held ? reserve : 0)
+        const real = new Set<Form>(), unsure = new Set<Form>(), ls = [...given, ...cubes.map(lawFor), ...(ghost ? [ghost.plain] : [])], blocked2: Form[] = [], mmRound = withGhost(forLaws(ls).m), at2 = new Map(cubes.map((g, i) => [g, i]))
+        let caller = false, complete = true, again = false
+        {
+          for (const goal of [...laws.map(l => l.name), ...(ghost ? [ghost.plain.name] : []), ...cubes]) {
+            if (performance.now() > kUntil() || stop()) { complete = false; break }
+            const f = typeof goal === 'string' ? undefined : goal, others = cubes.filter(g => g !== f), idx = f ? given.length + at2.get(f)! : ls.findIndex(l => l.name === goal), mm = mmRound
+            if (f) held = true
+            if ((f && kept2.has(f)) || stands.has(ls[idx]!.name)) continue
+            const was = settled.get(ls[idx]!.name)
+            if (was && was.every(n2 => ls.some(l => l.name === n2))) continue
+            settled.delete(ls[idx]!.name)
+            // (a goal decided by the EPR path alone first (a proof or a model, a cube's within a quarter of a join query, the
+            // caller's within one); else a model or a refutation of the CDCL search alone, then the proof path's)
+            if (f) { if (tGoal) cubeMs += performance.now() - tGoal; tGoal = performance.now(); asked++ } else tGoal = 0
+            const tDl = performance.now(), dlEnd = Math.min(kUntil(), performance.now() + (f ? joinQueryMs / 8 : joinQueryMs)), dl = within(dlEnd, () => decideLaw(mm, ls, idx))
+            // (the EPR path out of time on the caller's goal: the proof path would be no quicker)
+            const outOfTime = !dl && performance.now() - tDl >= 0.9 * (dlEnd - tDl)
+            if (dl?.proven) { stand(ls[idx]!.name); continue }
+            let isReal = !!dl && (f && dl.goal.endsWith('@start') ? badAtStart(f, dl.witness) : realCti(dl.witness, f, others)), wit = dl?.witness
+            // (a cube the EPR path ran out of time on: unsure at once, kept as optimistic Houdini keeps it; the CDCL search
+            // after it would be no quicker)
+            if (!dl && !(f && outOfTime)) {
+              const inst = mapNames.length ? lawInstances(mm, ls, idx) : undefined, g = obligations(mm, ls, inst ? {[ls[idx]!.name]: inst} : {}, idx)[1]!
+              const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
+              if (!('tree' in quick) && quick.why === REFUTED && quick.core) { const lawAt = lawsFrom(mm, ls, false, inst ?? {}); settled.set(ls[idx]!.name, [...new Set([...quick.core].map(h => lawAt.get(h)).filter((k): k is number => k !== undefined && k >= given.length && k !== idx).map(k => ls[k]!.name))]) }
+              if ('tree' in quick || quick.why === REFUTED) { stand(ls[idx]!.name); continue }
+              // (the caller's law's model from the proof path alone: EPR's, real or with the instances that refute it)
+              isReal = !!f && quick.stuck === 'sat' && !!quick.witness && realCti(quick.witness, f, others)
+              if (quick.stuck === 'sat') wit = quick.witness
+              // (a cube the EPR path doesn't decide: the CDCL search's answer alone; the caller's, the proof path's too)
+              if (!isReal && !f && !outOfTime) {
+                proofs++
+                const r2 = within(Math.min(kUntil() - 2000, performance.now() + Math.max(joinQueryMs * 1.25, (kUntil() - performance.now()) / 2)), () => proveLaw(mm, ls, idx))
+                if (r2.proven) { stand(ls[idx]!.name); continue }
+                isReal = !!r2.witness && realCti(r2.witness, f, others)
+                wit = r2.witness ?? wit
+              }
+            }
+            // (a real counterexample from a state no small state is: its diagram blocked, the goal's laws kept)
+            // (a blocker blocked already this round blocks as well: the goal kept, nothing new blocked; one in the set doesn't
+            // (a model the set rules out is no counterexample to learn from))
+            const fresh = (g: Form) => !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g)
+            const outside = (g: Form) => !ls.some(l => l.name === textOf(g))
+            const ds = isReal && lastPre ? blockers(lastPre).filter(outside) : []
+            ds.filter(fresh)
+            // (the caller's: blocked at once, IC3's order, the caller asked again before the cubes)
+            if (ds.length && !f && lastPre) pres.push(lastPre)
+            if (ds.length) { if (!f) { held = false; if (!ghosts) { ghosts = ghostsOf(); ghost = ghosts.shift(); if (ghost) opts.progress?.('join exists', {law: ghost.plain.name.slice(0, 160)}) } break } continue }
+            // (a model the interpreter doesn't confirm: PDR's obligation at its state, its diagrams blocked and the goal kept
+            // (the caller's asked again first) where a row of it no small state has; else unsure)
+            if (!isReal && wit) {
+              const pre = preOf(wit)
+              const ds2 = blockers(pre).filter(outside)
+              ds2.filter(fresh)
+              if (ds2.length && !f) pres.push(pre)
+              if (ds2.length) { if (!f) { held = false; break } continue }
+              ;(f ? subs : pres).push(pre)
+            } else if (!f && isReal && lastPre) pres.push(lastPre)
+            // (the ∃ law's own goal unproven: it goes; the caller's unproven with no diagram (every view's rows reached, or no
+            // model to read): the ∀∃ laws, once)
+            if (!f && ghost && goal === ghost.plain.name) { opts.progress?.('join exists', {dropped: ghost.plain.name.slice(0, 120)}); ghost = ghosts?.shift(); stands.clear(); again = true; break }
+            if (!f && !ghosts) { const t1 = performance.now(); ghosts = ghostsOf(); ghost = ghosts.shift(); opts.progress?.('join exists', {law: ghost ? `${ghost.plain.name.slice(0, 160)}; ${ghost.name} := ${JSON.stringify(ghost.step).slice(0, 160)}` : 'none', ms: Math.round(performance.now() - t1)}); if (ghost) { again = true; held = false; break } }
+            if (!f) { caller = true; held = false; break }
+            ;(isReal ? real : unsure).add(f)
+          }
+        }
+        opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length, ms: Math.round(performance.now() - t0)})
+        // (optimistic Houdini: an unsure cube holds at every small state and every step from one (they are its rows), so
+        // it stays; the set's proof decides, a cube it fails at dropped and the rounds go on)
+        const drops = new Set<Form>(real)
+        for (const g of unsure) kept2.add(g)
+        // (the costliest round's mean a goal, 250 ms at least: round 0's minimal cubes are the cheapest)
+        if (asked > 1) perGoal = Math.max(perGoal, 250, cubeMs / (asked - 1))
+        // (the next round's new cubes: what a quarter of what is left affords past the goals it asks again, 8 at least)
+        const grow = (kept: Form[]) => { const ask = kept.filter(g => !kept2.has(g) && !stands.has(lawFor(g).name)).length, afford = perGoal ? Math.floor((wallUntil - performance.now()) / (4 * perGoal)) : 16; return relevant(Math.max(8, Math.min(256 - kept.length, afford - ask)), kept) }
+        if (blocked2.length) { if (drops.size) unstand(drops); for (const g of drops) dead.add(textOf(g)); const kept = [...cubes.filter(g => !drops.has(g)), ...blocked2]; cubes = [...kept, ...grow(kept)]; return }
+        if (again) return
+        // (the caller's law unproven with no diagram: the cubes its counterexamples make relevant, while there are some)
+        if (caller && complete) { if (drops.size) unstand(drops); for (const g of drops) dead.add(textOf(g)); const kept = cubes.filter(g => !drops.has(g)), more = grow(kept); if (more.length) { cubes = [...kept, ...more]; return } }
+        // (the set's proof, relative induction over the set: a cube it fails at dropped and the proof asked again at once, the
+        // rounds again only where the caller's law fails or a cube's goal can't be named)
+        const gone: Form[] = []
+        let grown = false
+        if (complete && !caller && !drops.size) for (let k = 0; k < 24 && !stop() && performance.now() < wallUntil; k++) {
+          const t2 = performance.now(), v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor), ...(ghost ? [ghost.some] : [])], true))
+          const at = String((v as {goal?: string}).goal ?? ''), g = v.proven && v.checked ? undefined : cubes.find(c => at.startsWith(`${textOf(c)} @`))
+          opts.progress?.('join set', {cubes: cubes.length, exists: ghost ? 1 : 0, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), at: at.slice(0, 120)})
+          if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v; break }
+          if (!g) break
+          // (IC3's: the failing cube's model at its step, blocked by the enumeration's cubes false at its state where there
+          // are some new ones, the cube kept and the rounds again; else the cube dropped)
+          const wit2 = v.witness, bs = wit2 && at.endsWith('@step') ? blockers(preOf(wit2)).filter(b => !cubes.some(c => textOf(c) === textOf(b)) && !atStart(b)) : []
+          if (bs.length) { cubes = [...cubes, ...bs]; grown = true; break }
+          cubes = cubes.filter(c => c !== g); gone.push(g)
+        }
+        if (!complete || caller || (!drops.size && !gone.length && !grown) || enumProof) over = true
+        if (drops.size || gone.length) unstand([...drops, ...gone])
+        for (const g of [...drops, ...gone]) dead.add(textOf(g))
+        cubes = cubes.filter(g => !drops.has(g))
+      })
+    }
+    }
     for (;;) {
       if (now() > jUntil || stop()) { why = 'time'; break }
       rounds++
@@ -1912,55 +2532,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       }
       opts.progress?.('join', {round: rounds, set: set.length, ms: qms, goal: todo.slice(0, 60), joins: joins - j0, walked, dropped: dropped - d0})
     }
-    // Enumerated, where the join found nothing (DuoAI's ∀ candidates, research/protocols/enum/DESIGN.md): the template's
-    // cubes the caller's and the kinds' laws don't imply, then Houdini, the caller's laws first, every cube assumed: the
-    // CDCL search's model or refutation first, else the proof path's. A model drops its cube where the interpreter reads
-    // a step out of the goal from a state the other cubes hold at; a round with none drops the unsettled. The caller's law
-    // unproven ends it (Houdini only weakens); the set is then proven, its trees kept. The first round has the kernel's
-    // clock, later ones less 21 s for a sums pass where one follows (core/dsl.ts's: decentralized lock's).
-    if (why !== 'inductive' && why !== 'time' && sorts && callerLaws.some(l => l.keys?.length) && now() < until && !stop()) {
-      const v0 = views.length, end = k0 + ms, reserve = rule?.withMapSums() ? 21_000 : 0
-      const implied = (f: Form) => {
-        const v = views[f.view!]!, sk = {vars: Object.fromEntries(v.vars.map(k => [k, x(`${k}#`)])), maps: {}, flags: {}}, hyps = [substC(v.frame, sk), not(substC(condOf(f), sk))]
-        for (const l of given) {
-          const b = [l.forall, ...(l.keys ?? [])].filter((q): q is string => !!q)
-          for (const t of b.reduce<string[][]>(acc => acc.flatMap(t2 => v.vars.map(k => [...t2, k])), [[]])) hyps.push(substC(l.holds, {vars: Object.fromEntries(b.map((q, k) => [q, sk.vars[t[k]!]!])), maps: {}, flags: {}}))
-        }
-        return 'tree' in budgeted(joinQueryMs / 8, until2 => grow({name: 'implied', hyps}, new Map(), {nodes: 0, until: until2}))
-      }
-      let cubes = enumerated().filter(f => !implied(f)).slice(0, 32)
-      opts.progress?.('join enumerated', {views: views.length - v0, cubes: cubes.length})
-      const realCti = (w: Record<string, number>, f: Form | undefined, others: Form[]) => {
-        const {params, st} = stateOf(w), read = new Set([...others, f].map(g => g?.view))
-        const at = (s2: State): Point => ({scalar: withTerms({...params, ...s2.scalars}, s2), cells: [], views: views.map((v, i) => (read.has(i) ? v.rowsOf(params, s2) : []))})
-        let post: State
-        try { post = run.step(params, st, requestOf(w)); stepNamed(st, post) } catch { return false }
-        return others.every(g => holdsAt(g, at(st))) && (f ? !holdsAt(f, at(post)) : breaks(params, post, st, requestOf(w)))
-      }
-      for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
-        const kUntil = end - (round ? reserve : 0)
-        const real = new Set<Form>(), unsure = new Set<Form>(), ls = [...given, ...cubes.map(lawFor)]
-        let caller = false, complete = true
-        withDeadline(kUntil, () => {
-          for (const goal of [...laws.map(l => l.name), ...cubes]) {
-            if (clock() > kUntil || stop()) { complete = false; break }
-            const f = typeof goal === 'string' ? undefined : goal, others = cubes.filter(g => g !== f), idx = f ? given.length + cubes.indexOf(f) : ls.findIndex(l => l.name === goal), mm = forLaws(ls).m
-            const g = obligations(mm, ls, mapNames.length ? {[ls[idx]!.name]: lawInstances(mm, ls, idx)} : {}, idx)[1]!
-            const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
-            if ('tree' in quick || quick.why === REFUTED) continue
-            let isReal = quick.stuck === 'sat' && !!quick.witness && realCti(quick.witness, f, others)
-            if (!isReal) { proofs++; const r2 = proveLaw(mm, ls, idx); if (r2.proven) continue; isReal = !!r2.witness && realCti(r2.witness, f, others) }
-            if (!f) { caller = true; break }
-            ;(isReal ? real : unsure).add(f)
-          }
-        })
-        opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0})
-        const drops = real.size ? real : unsure
-        if (complete && !caller && !drops.size) { const v = prove([...laws, ...cubes.map(lawFor)]); if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v } }
-        if (!complete || caller || !drops.size) over = true
-        cubes = cubes.filter(g => !drops.has(g))
-      })
-    }
+    // (a rule whose scalars the runs held at a few values each: no counter, the engine's shape)
+    const few = atoms.every((a, i) => a.cell || a.param || !!a.term || a.view !== undefined || i >= valsS.length || new Set(valsS[i]).size <= 4)
+    if (few && why !== 'inductive') engine()
     opts.progress?.('join end', {rounds, set: set.length, why, cone: cone.length, ms: Math.round(performance.now() - jT0)})
     // (unproven, the search below begins as it would have: the candidates and the counterexamples as they were)
     if (why === 'inductive') chosen = cone
@@ -2033,8 +2607,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   }
   trace('kernel', {chosen: chosen.length, proven: !!(last.proven && last.checked)})
   if (!(last.proven && last.checked)) { trace('end', {proven: false, stopped: stop()}); return {...last, found: [], stats: stats(samples.length, forms.length, alive.length)} }
-  // Take out what the proof doesn't need, the last added first.
-  for (const f of opts.minimize === false ? [] : [...chosen].reverse()) {
+  // Take out what the proof doesn't need, the last added first (not the engine's set: Houdini's, each cube minimal).
+  for (const f of opts.minimize === false || enumProof ? [] : [...chosen].reverse()) {
     if (now() > until || stop()) break
     const without = chosen.filter(g => g !== f), v = prove([...laws, ...without.map(lawFor)])
     if (v.proven && v.checked) (chosen = without, last = v)
