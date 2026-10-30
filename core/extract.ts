@@ -138,8 +138,9 @@ function evaluate(body: string): Rule {
 // A map's representation: each key it doesn't hold holds the defaults (as no object of the code holds a value there).
 function invariantsOf(m: Model, sorts: Sorts): string[] {
   const empty = (d: MapDecl, f: Var) => (f.sort.k === 'num' ? `.eq(0)` : f.sort.k === 'bool' ? `.not()` : f.sort.k === 'choice' ? `.is(${JSON.stringify(f.sort.values[0])})` : `.eq('')`)
-  void sorts
-  return [...(m.laws ?? []), ...m.maps.filter(d => d.fields.length).map(d => `r.law(${JSON.stringify(`${d.name}: a key it doesn't hold holds the defaults`)}, ({${d.name}}) => forall(k => any(${d.name}.at(k).has, all(${d.fields.map(f => `${d.name}.at(k).${f.name}${empty(d, f)}`).join(', ')}))))`),
+  // (a signed field the printer reads as a natural keeps its range's top: a natural is at least 0 already)
+  const nat = (l: string) => { const r = /^r\.law\(("\w+ within its type's range"), \(\{(\w+)\}\) => \2\.atMost\((\d+)\)\.and\(\2\.atLeast\(-\d+\)\)\)$/.exec(l); return r && sorts.get(r[2]!) === 'nat' ? `r.law(${r[1]}, ({${r[2]}}) => ${r[2]}.atMost(${r[3]}))` : l }
+  return [...(m.laws ?? []).map(nat), ...m.maps.filter(d => d.fields.length).map(d => `r.law(${JSON.stringify(`${d.name}: a key it doesn't hold holds the defaults`)}, ({${d.name}}) => forall(k => any(${d.name}.at(k).has, all(${d.fields.map(f => `${d.name}.at(k).${f.name}${empty(d, f)}`).join(', ')}))))`),
     ...(m.lists ?? []).map(d => `r.law(${JSON.stringify(`${d.name}: nothing past its end`)}, ({${d.name}}) => ${d.name}.within())`),
     ...(m.lists ?? []).filter(d => d.len !== undefined).map(d => `r.law(${JSON.stringify(`${d.name}: ${d.len} items, always`)}, ({${d.name}_len}) => ${d.name}_len.eq(${d.len}))`)]
 }

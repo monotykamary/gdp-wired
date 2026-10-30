@@ -52,7 +52,8 @@ type FS = {existsSync: (p: string) => boolean, readFileSync: (p: string, e: stri
 type Path = {resolve: (...p: string[]) => string, dirname: (p: string) => string, join: (...p: string[]) => string, delimiter: string}
 const here = (f: string) => new URL(`./jvm/${f}`, import.meta.url).pathname
 const TOOLS = ['Jvm.java', 'JavaReader.java', 'Harness.java', 'Rt.java']
-const errText = (e: unknown) => String((e as {stderr?: string}).stderr || (e as {stdout?: string}).stdout || (e as Error).message).split('\n').filter(Boolean).slice(-3).join(' | ').slice(0, 600)
+// (a JVM's stack trace: its exception's line first)
+const errText = (e: unknown) => { const ls = String((e as {stderr?: string}).stderr || (e as {stdout?: string}).stdout || (e as Error).message).split('\n').filter(l => l.trim() && !/^\s+at /.test(l)); return ls.slice(-3).join(' | ').slice(0, 600) }
 
 function jdk(o: JvmOptions): {java: string, javac: string} {
   const env = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}

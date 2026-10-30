@@ -761,7 +761,7 @@ public final class JavaReader implements Jvm.Env {
     }
     String callee = sel.toString().replace("this.", "");
     return m("e", "call", "p", p, "text", t, "f", x("ext", p, "q", oq + "." + n, "text", callee, "patch", m("mod", oq, "path", List.of(n))), "args", argsRead(args), "kw", List.of(),
-      "jt", String.valueOf(out), "decl", oq, "iface", owner.getKind() == ElementKind.INTERFACE ? true : null, "span", span(path, mi), "tag", tag(path, mi));
+      "jt", String.valueOf(out), "ity", ity(out), "decl", oq, "iface", owner.getKind() == ElementKind.INTERFACE ? true : null, "span", span(path, mi), "tag", tag(path, mi));
   }
   static List<Object> prepend(Object a, List<Map<String, Object>> xs) { List<Object> out = new ArrayList<>(); out.add(a); out.addAll(xs); return out; }
   static List<Map<String, Object>> argsRead(List<Map<String, Object>> args) { return args; }

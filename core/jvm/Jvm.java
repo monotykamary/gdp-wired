@@ -110,8 +110,8 @@ public final class Jvm {
   static boolean num(JT t) { String q = prim(t); return q != null && !q.equals("boolean") && !q.equals("void"); }
   static boolean integral(JT t) { String q = prim(t); return q != null && Set.of("int", "long", "short", "byte", "char").contains(q); }
   static boolean floating(JT t) { String q = prim(t); return "float".equals(q) || "double".equals(q); }
-  static boolean map(JT t) { return MAPS.contains(t.n); }
-  static boolean atomic(JT t) { return t.n.startsWith("java.util.concurrent.atomic.Atomic") || t.n.startsWith("kotlinx.atomicfu.Atomic"); }
+  static boolean map(JT t) { return t != null && MAPS.contains(t.n); }
+  static boolean atomic(JT t) { return t != null && t.n.startsWith("java.util.concurrent.atomic.Atomic") || t.n.startsWith("kotlinx.atomicfu.Atomic"); }
   // The type an atomic holds.
   static JT held(JT t) {
     return switch (t.simple()) { case "AtomicInteger", "AtomicInt" -> new JT("int"); case "AtomicLong" -> new JT("long"); case "AtomicBoolean" -> new JT("boolean"); default -> t.arg(0); };

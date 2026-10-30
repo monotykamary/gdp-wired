@@ -847,8 +847,10 @@ public final class KtReader implements Jvm.Env {
     }
     // a constructor: a class of the code's own (made from its fields), an atomic, a map, a lock
     String ctorOf = recv == null && Character.isUpperCase(n.charAt(0)) ? resolve(n) : null;
+    List<JT> targs = new ArrayList<>();
+    for (KtTypeProjection tp : ce.getTypeArguments()) { JT a = type(tp.getTypeReference()); targs.add(a == null ? new JT("java.lang.Object") : a.nul ? a : boxed(a)); }
     if (ctorOf != null) {
-      JT ty = new JT(ctorOf);
+      JT ty = new JT(ctorOf, targs, false);
       if (atomic(ty)) return new X(args.isEmpty() ? lit(0, held(ty), p) : at(args.get(0), argT.get(0), held(ty)), ty);
       if (map(ty)) return new X(x("dict", p, "keys", List.of(), "vals", List.of(), "text", t), ty);
       if (LOCKS.contains(ty.n) || ty.is("java.lang.Object")) return new X(lock(p, t), ty);
@@ -856,7 +858,7 @@ public final class KtReader implements Jvm.Env {
       if (r != null) return new X(m("e", "call", "p", p, "text", t, "f", x("cls", p, "rec", r), "args", args, "kw", kw), ty);
       if (ctorOf.equals(selfName)) return no1(ce, "an object of the class read made inside it");
     }
-    if (recv == null && (n.equals("mutableMapOf") || n.equals("hashMapOf") || n.equals("linkedMapOf")) && args.isEmpty()) return new X(x("dict", p, "keys", List.of(), "vals", List.of(), "text", t), new JT("java.util.Map"));
+    if (recv == null && (n.equals("mutableMapOf") || n.equals("hashMapOf") || n.equals("linkedMapOf")) && args.isEmpty()) return new X(x("dict", p, "keys", List.of(), "vals", List.of(), "text", t), new JT("java.util.Map", targs, false));
     if (recv == null && n.equals("atomic") && args.size() == 1) return new X(args.get(0), new JT("kotlinx.atomicfu.Atomic" + (argT.get(0) != null && "long".equals(prim(argT.get(0))) ? "Long" : "Int")));
     if (recv != null && recv.t() != null && integral(recv.t()) && args.size() <= 2) {
       JT rt = recv.t();
@@ -887,8 +889,24 @@ public final class KtReader implements Jvm.Env {
       return new X(l.x(), rt);
     }
     PsiElement site = ce.getParent() instanceof KtDotQualifiedExpression dq && dq.getSelectorExpression() == ce ? dq : ce;
+    JT dt = declared(owner, n, args.size() + kw.size());
+    if (dt != null) want = dt;
     String callee = recv == null ? n : text(((KtDotQualifiedExpression) site).getReceiverExpression()).replace("this.", "") + "." + n;
     return new X(m("e", "call", "p", p, "text", t, "f", x("ext", p, "q", owner + "." + n, "text", callee, "patch", m("mod", owner, "path", List.of(n))), "args", args, "kw", kw,
-      "jt", String.valueOf(want), "decl", owner, "span", span(site), "tag", tag(site)), want);
+      "jt", String.valueOf(want), "ity", ity(want), "decl", owner, "iface", iface(owner) ? true : null, "span", span(site), "tag", tag(site)), want);
   }
+  // Other code's function's declared result: a class of the code's sources read (its declaration), or one on the
+  // reader's classpath (by reflection).
+  JT declared(String owner, String n, int arity) {
+    if (classes.get(owner) instanceof KtClassOrObject k) for (KtDeclaration d : body(k)) if (d instanceof KtNamedFunction f && n.equals(f.getName()) && f.getValueParameters().size() == arity) return type(f.getTypeReference());
+    Class<?> c = load(owner);
+    if (c != null) for (java.lang.reflect.Method m : c.getMethods()) if (m.getName().equals(n) && m.getParameterCount() == arity) return jtOf(m.getReturnType(), m.getGenericReturnType());
+    return null;
+  }
+  static JT jtOf(Class<?> c, java.lang.reflect.Type g) {
+    List<JT> as = new ArrayList<>();
+    if (g instanceof java.lang.reflect.ParameterizedType pt) for (java.lang.reflect.Type a : pt.getActualTypeArguments()) as.add(a instanceof Class<?> ac ? jtOf(ac, ac) : new JT("java.lang.Object"));
+    return new JT(c.getName(), as, false);
+  }
+  boolean iface(String owner) { KtClassOrObject k = classes.get(owner); if (k instanceof KtClass kc) return kc.isInterface(); Class<?> c = load(owner); return c != null && c.isInterface(); }
 }

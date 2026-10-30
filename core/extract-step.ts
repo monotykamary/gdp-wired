@@ -811,6 +811,8 @@ export class Stepper {
       this.answers.set(key, a)
       this.notes.add(how === 'stated' ? `${names[0]} (${at.p}): answered by the request (stated), its arguments not read` : `${names[0]} (${at.p}): answered by the request (${how}: its value is read; assumes ${names[0]} may return any ${text}), its arguments not read`)
     } else if (a.async !== awaited) return refuse(at, `${at.text}: ${key} awaited at one call and not at another`)
+    // (a callee whose declared result is a fixed-width integer, the reader's `ity`: an answer is within it where it is read)
+    if (at.ity && this.vars.get(a.inputs.name)!.sort.k === 'num') this.typed(this.vars.get(a.inputs.name)!, at.ity as IntTy, 'input', I.and(this.sel, this.cond(p)))
     const vv = this.valueOf(this.vars.get(a.inputs.name)!)
     return [a.inputs.none ? {t: 'opt', has: I.not(I.bvar(a.inputs.none)), v: vv} : vv, q]
   }

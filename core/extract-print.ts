@@ -127,13 +127,19 @@ function atomicFacts(ctx: Ctx, side: Constraint[]): Constraint[] {
   out.push(...atomicCond(ctx.m.pre, ctx, side))
   return out
 }
+// (an atom's own facts read the refusals, whose atoms ask again: past a few levels a term isn't taken as a natural)
+let depth = 0
 export function nonneg(e: N, ctx: Ctx): boolean {
-  const side: Constraint[] = [], lin = atomic(e, ctx, side), afacts = atomicFacts(ctx, side)
-  if (refutes([...side, ...afacts, ...lt(lin, lk(0))])) return true
-  const cs = cases(e, ctx)
-  if (!cs) return false
-  const facts = factsAt(ctx)
-  return cs.every(c => refutes([...facts, ...c.cons, ...lt(c.lin, lk(0))]))
+  if (depth > 3) return false
+  depth++
+  try {
+    const side: Constraint[] = [], lin = atomic(e, ctx, side), afacts = atomicFacts(ctx, side)
+    if (refutes([...side, ...afacts, ...lt(lin, lk(0))])) return true
+    const cs = cases(e, ctx)
+    if (!cs) return false
+    const facts = factsAt(ctx)
+    return cs.every(c => refutes([...facts, ...c.cons, ...lt(c.lin, lk(0))]))
+  } finally { depth-- }
 }
 const withAtom = (ctx: Ctx, c: B): Ctx => ({...ctx, atoms: [...ctx.atoms, c]})
 // A condition the place is already under (or under its negation): the branch it takes.
