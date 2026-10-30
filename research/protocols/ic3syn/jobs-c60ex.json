@@ -1,0 +1,27 @@
+[
+ {
+  "name": "client_server_ae-s60-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'client_server_ae' --skip none 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "client_server_db_ae-s60-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'client_server_db_ae' --skip none 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "firewall-s60-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'firewall' --skip none 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "sharded_kv_no_lost_keys-s60-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'sharded_kv_no_lost_keys' --skip none 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "mldr-probe",
+  "cmd": "mkdir -p /tmp/prof; timeout -s KILL 150 bun --cpu-prof --cpu-prof-dir=/tmp/prof research/protocols/ic3syn/probe.ts mldr 30000; s=$?; python3 research/protocols/engine/profwin.py /tmp/prof/*.cpuprofile 0 400 40; exit $s",
+  "timeout": 200
+ }
+]

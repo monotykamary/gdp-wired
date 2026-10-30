@@ -646,7 +646,9 @@ export const protocols: Protocol[] = [
       ? r => [r.law('one value decided', ({size, Decided}: any) => forall((a, b, v, u) => a.lt(size).and(b.lt(size), v.lt(N), u.lt(N), Decided.at(pk(a, v)), Decided.at(pk(b, u))).implies(v.eq(u))))]
       : r => [r.law('one leader', ({size, Leader}: any) => forall((a, b) => a.lt(size).and(b.lt(size), Leader.at(a), Leader.at(b)).implies(a.eq(b))))],
     bad: decide ? r => new Set(N3.flatMap(n => N2.filter(v => r.cell('Decided', n * N + v)))).size > 1 : r => twoDistinct(r, 'Leader', N3),
-    check: {params: {size: 3}, inputs: {op: decide ? range(7) : range(6), i: N3, j: N3, qm: range(8), ...(decide ? {v: N2} : {})}, expand: withMajority(3),
+    // (the configs' Quorums are the three 2-sets, not the full set, which the port's majorities also take: the check reads
+    // those three alone, since voting_quorum stores the set and a stored full set would be a state the config has not)
+    check: {params: {size: 3}, inputs: {op: decide ? range(7) : range(6), i: N3, j: N3, qm: [3, 5, 6], ...(decide ? {v: N2} : {})}, expand: withMajority(3),
       uses: [['qm'], ['i', 'j'], ['i', 'j'], ['i', 'j'], ['i', 'qm'], ['i'], ['i', 'v']],
       project: r => r.scalar('started') ? [['VoteRequestMsg', 'VoteMsg', 'Votes'].map(m => cells(r, m, pairs(N3, N3))), cells(r, 'Voted', N3), cells(r, 'Leader', N3), cells(r, 'VotingQuorum', N3), cells(r, 'Decided', pairs(N3, N2))] : undefined,
       tlc: tlc(decide ? 'consensus_forall' : 'consensus_wo_decide', `${consts({Node: nodes(3), ...(decide ? {Value: nodes(2, 'v')} : {})})}  ${decide ? 'Quorum' : 'Quorums'} = {{n1, n2}, {n2, n3}, {n1, n3}}\n`, 'Safety')}})),
