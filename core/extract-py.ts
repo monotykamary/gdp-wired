@@ -37,7 +37,7 @@
 // constructor doesn't set, one object in two places of the state, two keys of one map written in one step, a write
 // before a failure (unless onError: 'discard').
 import {type Extraction} from './extract.ts'
-import {Refusal, pathOf} from './extract-read.ts'
+import {Refusal, pathOf, type FileURL} from './extract-read.ts'
 import {type Harness, type SModule, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
@@ -59,7 +59,7 @@ export function readPython(file: string, names: string[], opts: {root?: string, 
   catch (e) { throw new Refusal(file, `the Python reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): python3 is needed to extract Python`) }
   return JSON.parse(out) as SModule
 }
-export function extractPython(at: string | URL, opts: PyOptions = {}): Extraction & {read?: StepRead} {
+export function extractPython(at: string | FileURL, opts: PyOptions = {}): Extraction & {read?: StepRead} {
   const file = pathOf(at)
   let mod: SModule
   try { mod = readPython(file, entryNames(opts), opts) } catch (e) {

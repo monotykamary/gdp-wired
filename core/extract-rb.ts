@@ -20,7 +20,7 @@
 // Refused, each where it is with why: loops and blocks (but synchronize's), begin/rescue, other classes' code, arrays
 // and hashes (for now), &., floats that aren't whole, a field the class writes with values of two types.
 import {type Extraction} from './extract.ts'
-import {Refusal, pathOf} from './extract-read.ts'
+import {Refusal, pathOf, type FileURL} from './extract-read.ts'
 import {type Harness, type SModule, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
@@ -44,7 +44,7 @@ export function readRuby(file: string, names: string[], opts: {root?: string, ru
   catch (e) { throw new Refusal(file, `the Ruby reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): ruby 3.3 or later (with Prism) is needed to extract Ruby`) }
   return JSON.parse(out) as SModule
 }
-export function extractRuby(at: string | URL, opts: RbOptions = {}): Extraction & {read?: StepRead} {
+export function extractRuby(at: string | FileURL, opts: RbOptions = {}): Extraction & {read?: StepRead} {
   const file = pathOf(at)
   let mod: SModule
   try {

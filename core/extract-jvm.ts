@@ -29,7 +29,7 @@
 // collections, instanceof, static fields that aren't constants, inner classes, generic classes and methods, other
 // code's calls not answered or skipped. Not yet: `stores`, branch coverage (the arms aren't counted).
 import {type Extraction} from './extract.ts'
-import {Refusal, pathOf} from './extract-read.ts'
+import {Refusal, pathOf, type FileURL} from './extract-read.ts'
 import {type Harness, type SModule, type SX, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
@@ -164,7 +164,7 @@ function compiled(lang: 'java' | 'kotlin', mod: SModule, read: StepRead, o: JvmO
   } catch (e) { return {dirs: [], error: `the code doesn't compile for the check (${errText(e)})`} }
 }
 
-export function extractJvm(lang: 'java' | 'kotlin', at: string | URL, opts: JvmOptions = {}): Extraction & {read?: StepRead} {
+export function extractJvm(lang: 'java' | 'kotlin', at: string | FileURL, opts: JvmOptions = {}): Extraction & {read?: StepRead} {
   const file = pathOf(at)
   let mod: SModule
   try {
@@ -190,5 +190,5 @@ export function extractJvm(lang: 'java' | 'kotlin', at: string | URL, opts: JvmO
   }
   try { return extractStep(mod, harness, opts) } finally { for (const d of made) node<FS>('node:fs').rmSync(d, {recursive: true, force: true}) }
 }
-export const extractJava = (at: string | URL, opts: JvmOptions = {}) => extractJvm('java', at, opts)
-export const extractKotlin = (at: string | URL, opts: JvmOptions = {}) => extractJvm('kotlin', at, opts)
+export const extractJava = (at: string | FileURL, opts: JvmOptions = {}) => extractJvm('java', at, opts)
+export const extractKotlin = (at: string | FileURL, opts: JvmOptions = {}) => extractJvm('kotlin', at, opts)

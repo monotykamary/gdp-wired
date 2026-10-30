@@ -25,7 +25,7 @@
 // static locals (state every object shares), calls of other files' or libraries' code, function pointers, bit
 // operations but the mask above, the comma operator, an assignment or ++ inside an expression, and sizeof.
 import {type Extraction, fromModel} from './extract.ts'
-import {Refusal, pathOf} from './extract-read.ts'
+import {Refusal, pathOf, type FileURL} from './extract-read.ts'
 import {stubbed} from './extract-step.ts'
 import type {Rule} from './dsl.ts'
 import type {Sorts} from './extract-print.ts'
@@ -74,7 +74,7 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
   }
   return {c: readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])]))), flags}
 }
-export function extractC(at: string | URL, given: COptions = {}, cpp = false): Extraction & {leaves?: GoLeaf[]} {
+export function extractC(at: string | FileURL, given: COptions = {}, cpp = false): Extraction & {leaves?: GoLeaf[]} {
   const notes: string[] = [], file = pathOf(at), fns = given.methods ?? given.functions, opts: COptions = {...given, ...(fns ? {functions: fns} : {})}
   let read: GoRead, c: CRead, flags: string[]
   try {
@@ -106,7 +106,7 @@ function signedDomains(pkg: GoPkg, read: GoRead): Record<string, 'int'> {
 // std::max, std::lock_guard, std::scoped_lock and std::unique_lock of a member mutex the step atomic (Go's Lock with its
 // deferred Unlock), a throw the step's refusal. Refused: templates, virtual methods, overloads, other classes' methods,
 // STL containers but std::array, lambdas, try and catch.
-export const extractCpp = (at: string | URL, opts: COptions = {}) => extractC(at, opts, true)
+export const extractCpp = (at: string | FileURL, opts: COptions = {}) => extractC(at, opts, true)
 
 // --- the harness: C (or C++) that #includes the file, sets and prints the state's leaves as JSON lines -------------------
 const ty = (pkg: GoPkg, t: number) => pkg.ttab[t] ?? {k: 'invalid'}

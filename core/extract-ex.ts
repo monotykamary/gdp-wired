@@ -17,7 +17,7 @@
 // Refused, each where it is with why: other modules' code (but Map's and the clock's), anonymous functions, lists,
 // float division, recursion, receive, and a state that isn't a map of scalars.
 import {type Extraction} from './extract.ts'
-import {Refusal, pathOf} from './extract-read.ts'
+import {Refusal, pathOf, type FileURL} from './extract-read.ts'
 import {type Harness, type SModule, type StepOptions, type StepRead, extractStep, node} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
@@ -33,7 +33,7 @@ export function readElixir(file: string, module: string | undefined, elixir = 'e
   catch (e) { throw new Refusal(file, `the Elixir reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(0, 2).join(' | ')}): elixir is needed to extract Elixir`) }
   return JSON.parse(out) as ExModule
 }
-export function extractElixir(at: string | URL, opts: ExOptions = {}): Extraction & {read?: StepRead} {
+export function extractElixir(at: string | FileURL, opts: ExOptions = {}): Extraction & {read?: StepRead} {
   const file = pathOf(at)
   let mod: ExModule
   try {

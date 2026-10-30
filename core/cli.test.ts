@@ -258,7 +258,8 @@ const WAYS: Record<string, (d: string) => Promise<[Read, Read]>> = {
   java: async d => { const {extractJava: f} = await import('./extract-jvm.ts'); return [f(`${d}/demo/Limiter.java`, {entry: 'Limiter'}), f(url(`${d}/demo/Limiter.java`))] },
   kotlin: async d => { const {extractKotlin: f} = await import('./extract-jvm.ts'); return [f(`${d}/Limiter.kt`, {entry: 'Limiter'}), f(url(`${d}/Limiter.kt`))] },
   go: async d => { const {extractGo: f} = await import('./extract-go.ts'); return [f(`${d}/p`, {entry: 'Limiter'}), f(url(`${d}/p/limiter.go`))] },
-  rust: async d => { const {extractRust: f} = await import('./extract-rs.ts'); return [f(d, {entry: 'Limiter'}), f(url(`${d}/src/lib.rs`))] },
+  // (Rust, the entry named: every pub fn of its impl read, `new` too, so the methods are named with it)
+  rust: async d => { const {extractRust: f} = await import('./extract-rs.ts'); return [f(d, {entry: 'Limiter', methods: ['hit']}), f(url(`${d}/src/lib.rs`))] },
   swift: async d => { const {extractSwift: f} = await import('./extract-swift.ts'); return [f(`${d}/limiter.swift`, {entry: 'Limiter'}), f(url(`${d}/limiter.swift`))] },
   // (C: `methods`, the name every front end has for the requests read; `functions` its old name)
   c: async d => { const {extractC: f} = await import('./extract-c.ts'); return [f(`${d}/lim.c`, {entry: 'lim', functions: ['hit', 'set_limit']}), f(url(`${d}/lim.c`), {methods: ['hit', 'set_limit']})] },

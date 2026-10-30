@@ -26,7 +26,7 @@
 // Refused, each where it is with why: loops, closures, generics, await, do/catch and try?, optional chaining, arrays,
 // floats, enums with associated values, inout, a class's superclass of the code's own, other code given the state.
 import {type Extraction} from './extract.ts'
-import {Refusal, pathOf} from './extract-read.ts'
+import {Refusal, pathOf, type FileURL} from './extract-read.ts'
 import {type Answer, type Harness, type Leaf, type PArg, type SModule, type SType, type StepOptions, type StepRead, entryNames, extractStep, node, stubbed} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
@@ -121,7 +121,7 @@ export function readSwift(at: string, names: string[], o: SwiftOptions = {}): {m
   return {mod, pkg}
 }
 
-export function extractSwift(where: string | URL, opts: SwiftOptions = {}): Extraction & {read?: StepRead} {
+export function extractSwift(where: string | FileURL, opts: SwiftOptions = {}): Extraction & {read?: StepRead} {
   const at = pathOf(where)
   let r: {mod: SModule, pkg: Pkg}
   try {

@@ -36,7 +36,7 @@
 // or two writes of one list in one step.
 import * as I from './extract-ir.ts'
 import type {B, K, N} from './extract-ir.ts'
-import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, pathOf} from './extract-read.ts'
+import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, pathOf, type FileURL} from './extract-read.ts'
 import {type Extraction, type Name, fromModel} from './extract.ts'
 import {type Answer, type Inferred, type IntTy, type Recipe, type SType, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, iteTerm, mapWritesOf, phiP, rangeLaws, rangeOf, varTerm} from './extract-step.ts'
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
@@ -856,7 +856,7 @@ export function readGoPackage(dir: string): GoPkg {
 //
 //   const x = extractGo('internal/limiter')   // the struct inferred: the one whose methods write it
 export type GoExtraction = Extraction & {leaves?: GoLeaf[]}
-export function extractGo(at: string | URL, opts: GoOptions = {}): GoExtraction {
+export function extractGo(at: string | FileURL, opts: GoOptions = {}): GoExtraction {
   const p = pathOf(at), dir = /\.go$/.test(p) ? p.replace(/\/[^/]*$/, '') || '.' : p
   const notes: string[] = []
   let read: GoRead, pkg: GoPkg
