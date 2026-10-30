@@ -243,7 +243,12 @@ Lean proof, asked for first; (4) the suite again.
   paired with main in the same minutes 5 of 15 against main's 10 of 17: every miss on either side is a filter that read
   fewer than ~500 states (above), which neither change touches (no ∃ law in ring, and its deeper runs end well inside
   their wall), so I read it as the containers', not the change's; it is the weakest point of this gate.
-- **The quick bar** @BAR@
+- **The quick bar** (`--quick --cand gen/laneA --base ae36917 --only rw,f1,f2,g332,suite,onecpu` on d5a3e5d, against the
+  shared baseline; <main>/runs/bar/runs/d5a3e5d55b61-vs-ae369178e65d-quick-2026-10-301731/REPORT.md, 649 s, estimated
+  $0.63): f1 34 and f2 24 as the base (no task differs); rw 74/14/3 as the base; g332 the same search on 332 of 332
+  (300.2 s against 286.6 s); onecpu no failure; the suite 234 of 235, **lost 1**: `check` (tsc and oxlint over the
+  repository), from an unused binding in research/protocols/ic3syn/models.ts, fixed in 9f360d4 (oxlint clean on the
+  branch's files); the suite group again on the fix: @SUITE2@. Gained 0, wrong 0; core/ and kernel/ +1,256 bytes.
 - **Typecheck:** clean for every file the branch touches (`tsc -p .` on Modal; the errors left are vendor/ imports and
   research files the branch doesn't touch, as on main's tree there).
 

@@ -10,7 +10,10 @@ sourced from the IC3PO repository" (pyv-paxos-epr).
     common.ts   what they share: majority() by counting, the check's types
     check.ts    a port's reachable states on a small instance, by BFS, as the spec's variables
     tlc.py      Modal: TLC on the Endive spec beside check.ts's BFS, per protocol
-    run.ts      Modal jobs: the search with nothing written, per protocol
+    run.ts      the search with nothing written, per protocol (jobs.ts: its Modal jobs)
+    probe.ts    a port's law through proveRule with the search off, within a wall
+
+The measurements, the failure classes and what was built are in ../engine/DESIGN.md (gen/laneA).
 
 ## Where each comes from
 
