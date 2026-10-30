@@ -5,6 +5,21 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**Java and Kotlin: javac's tree API and Kotlin's PSI on one JVM layer and one reflective harness; gRPC's retry
+throttle, resilience4j's window bucket, OkHttp's flow-control window and Arrow's count-based opening strategy in the
+corpus (gen/jvm).** Nothing trusted changed. research/langs/DESIGN.md, "Java and Kotlin (gen/jvm)", has the details.
+- **The front ends** (`gdp-wired/extract-java`, `gdp-wired/extract-kotlin`; core/extract-jvm.ts and core/jvm/): a class
+  read through its language's own parser, lowered through one shared JVM layer (types, maps, Optional and
+  nullability, atomics and compare-and-set loops, Math's exact arithmetic, TimeUnit, the clock, locks), checked by
+  compiling the file (javac, kotlinc) or loading the project's jar, through one reflective harness that also stubs
+  answered calls and gives injected dependencies (field `@Autowired` included) as stores. A JDK 17+ is needed, and
+  kotlinc for Kotlin; without them the front ends refuse.
+- **The corpus:** 4 items, 20 laws, 17 proven, 3 refuted (two suspected bugs recorded in triage/jvm.json, not reported:
+  gRPC's Throttle overflows at maxTokens past 2,147,484 tokens; OkHttp's WindowCounter writes before its last check).
+- **Shared:** a start's quotient of the params is a param the precondition fixes; a constructor's refusal is the
+  precondition's; an answer is within its callee's declared integer type; two printer fixes (a natural's range law, a
+  recursion guard) and `from()`'s callback type.
+
 **C++ on the C reader: classes, their constructor the start, lock guards as an atomic step, libtorrent's bandwidth
 channel and PX4's hysteresis in the corpus (gen/cpp).** Nothing trusted changed. research/langs/DESIGN.md, "C++
 (gen/cpp)", has the details.
