@@ -882,12 +882,13 @@ dependencies; the state-reference refusal applies unchanged (it is the executor'
 **Where it stands (2026-10-30, WIP).** Verified on Modal (swift:6.3.3): core/extract-swift.test.ts's Budget (UInt8 trap,
 &+ wrap, Optional, raw value, throw), Limiter (store + inferred answer, entry inferred; its laws not yet run green),
 Tally (actor), Loop (refused), and the adversarial s01–s04 (all refused for their reason: state reference ×3, two
-dependencies of one protocol). Real code, checked against the packages: swift-nio-http2 1.46.0 InboundWindowManager
-(1,050 + 400 + 31 requests; 3 laws proven, 3 refuted, of which 2 were laws mis-stated, fixed since, rerun pending) and
-HTTP2FlowControlWindow (1,481 + 400 + 14; 6 proven, 1 refuted: a settings change from a window already below -1 by
--(2^31 - 1) traps, unreachable under HTTP/2's settings bounds: a law, not a bug). swift-nio 2.104.0 HighLowWatermark: the
-copy failed on a symlinked directory (fixed since, not yet rerun). Not verified: the rules committed under
-research/langs/swift/rules/ (none yet), research/realworld/items/swift-projects.ts (parked as research/langs/swift/realworld-items.ts.pending until the rules exist), the CLI on
+dependencies of one protocol). Real code, each checked against its package (research/langs/swift/results.json, the last run): swift-nio-http2 1.46.0
+InboundWindowManager (1,050 from the start + 400 drawn + 31 witnesses; 5 laws proven, 1 refuted: buffered bytes go
+negative only by a negative size given to bufferedFrameReceived, an internal API's precondition: a law, not a bug),
+HTTP2FlowControlWindow (1,481 + 400 + 14; 6 proven, 1 refuted: a settings change of -(2^31 - 1) from a window already
+below -1 traps, unreachable within HTTP/2's settings bounds: a law, not a bug), swift-nio 2.104.0 HighLowWatermark
+(1,294 + 400 + 2; 6 proven). 19 laws: 17 proven, 2 refuted, no suspected bug. Not verified: the rules committed under
+research/langs/swift/rules/ (run.ts --write wrote them inside the container only; none here yet), research/realworld/items/swift-projects.ts (parked as research/langs/swift/realworld-items.ts.pending until the rules exist), the CLI on
 `.swift`, the suite job (research/langs/swift/swift-setup.sh untested), the bar, a TS typecheck after the last edits.
 **Next step:** rerun `research/langs/swift/modal_swift.py --cmd 'bun research/langs/swift/run.ts --write'` and copy the
 printed rules back, rerun the tests, add the suite job, then the quick bar against 5d4da3f.
