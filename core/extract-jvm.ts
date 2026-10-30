@@ -133,7 +133,7 @@ const BOXES: Record<string, string> = {int: 'java.lang.Integer', long: 'java.lan
 const KT: Record<string, string> = {int: 'Int', long: 'Long', short: 'Short', byte: 'Byte', char: 'Char', boolean: 'Boolean', float: 'Float', double: 'Double', 'java.lang.String': 'String'}
 
 // The code compiled for the check: a copy of the file with the clock's and the answered calls' sites rewritten.
-function compiled(lang: 'java' | 'kotlin', mod: SModule, read: StepRead, o: JvmOptions): {dirs: string[], error?: string} {
+function compiled(lang: 'java' | 'kotlin', mod: SModule, read: StepRead, o: JvmOptions, made: string[]): {dirs: string[], error?: string} {
   const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process'), os = node<{tmpdir: () => string}>('node:os'), path = node<Path>('node:path')
   const j = jvmOf(mod), kotlin = lang === 'kotlin'
   const sites = [...j.rewrites.map(r => ({span: r.span, text: 'gdp.Rt.now()'})), ...answerSites(mod, read.answers.filter(a => !a.patch.store).map(a => a.key)).map(s => {
@@ -142,6 +142,7 @@ function compiled(lang: 'java' | 'kotlin', mod: SModule, read: StepRead, o: JvmO
   })]
   if (o.prebuilt) return sites.length ? {dirs: [], error: 'prebuilt: the rule reads the clock or an answered call, which the shipped classes can\'t be given (compile the file instead)'} : {dirs: []}
   const work = fs.mkdtempSync(`${os.tmpdir()}/gdp-jvmcheck-`)
+  made.push(work)
   const src = fs.readFileSync(mod.path, 'utf8')
   let text = src
   for (const s of [...sites].sort((a, b) => b.span[0] - a.span[0])) text = text.slice(0, s.span[0]) + s.text + text.slice(s.span[1])
@@ -172,17 +173,19 @@ export function extractJvm(lang: 'java' | 'kotlin', file: string, opts: JvmOptio
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
     throw e
   }
+  // (the check's copies of the code, removed once it ran)
+  const made: string[] = []
   const harness = (read: StepRead): Harness => {
     read.arms.length = 0
     read.model.notes.push(`${lang === 'java' ? 'Java' : 'Kotlin'}: the code is checked as ${opts.prebuilt ? 'its classes ship' : 'compiled from the file'}; its branch arms are not counted (no instrumentation yet)`)
     const j = classOf(mod, read)
     let c: {dirs: string[], error?: string}
-    try { c = compiled(lang, mod, read, opts) } catch (e) { if (e instanceof Refusal) return {cmd: 'false', args: [], hello: {}, error: e.what}; throw e }
+    try { c = compiled(lang, mod, read, opts, made) } catch (e) { if (e instanceof Refusal) return {cmd: 'false', args: [], hello: {}, error: e.what}; throw e }
     if (c.error) return {cmd: 'false', args: [], hello: {}, error: c.error}
     const t = tools(opts)
     return {cmd: jdk(opts).java, args: ['-cp', t, 'gdp.jvm.Harness'], hello: {jcls: j.cls, cp: [...c.dirs, ...(opts.classpath ?? [])], jctor: {params: j.ctor}, methods: j.methods, reducers: j.reducers}}
   }
-  return extractStep(mod, harness, opts)
+  try { return extractStep(mod, harness, opts) } finally { for (const d of made) node<FS>('node:fs').rmSync(d, {recursive: true, force: true}) }
 }
 export const extractJava = (file: string, opts: JvmOptions) => extractJvm('java', file, opts)
 export const extractKotlin = (file: string, opts: JvmOptions) => extractJvm('kotlin', file, opts)
