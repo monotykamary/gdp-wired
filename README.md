@@ -9,6 +9,10 @@ An automatic prover for stateful rules: budgets, caps, rate limits, workflows, a
 the laws it must keep. gdp-wired proves them with no proof to write, shows a real run that breaks a law when it's false
 (found by searching on the GPU), has every proof checked again by Lean, and ships the rule as JavaScript.
 
+[![How gdp-wired works: certificates, the kernel, the frontier (14 min)](https://raw.githubusercontent.com/monotykamary/gdp-wired/main/static/explainer.jpg)](https://gdpwired.dev/#explainer)
+
+How it works, in 14 minutes: what a certificate is, why the kernel is small, and the frontier. [Watch it on gdpwired.dev](https://gdpwired.dev/#explainer), with captions.
+
 ```sh
 npm install gdp-wired   # or bun add gdp-wired; plain JavaScript with types, Node 20+, Bun or a browser
 ```
