@@ -1,0 +1,3 @@
+[
+ {"name": "wo-p2-dump", "cmd": "bun add z3-solver@5.3.3 >/dev/null 2>&1; WO_Z3=1 timeout -s KILL 90 bun research/protocols/engine/wodl.ts given 1000 2>&1 | cut -c1-400; timeout -s KILL 100 bun research/protocols/engine/wodump.ts consensus_wo_decide 60000 /tmp/wo.jsonl 2>/dev/null; wc -c /tmp/wo.jsonl; grep -o '\"out\":\"[a-z]*' /tmp/wo.jsonl | sort | uniq -c; grep -c '\"i\":' /tmp/wo.jsonl; WO_Z3=1 timeout -s KILL 600 bun research/protocols/engine/wodl.ts replay /tmp/wo.jsonl 1000 0:400 2>&1 | cut -c1-500 | tail -c 150000", "timeout": 900}
+]

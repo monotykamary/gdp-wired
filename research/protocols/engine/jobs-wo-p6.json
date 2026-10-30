@@ -1,0 +1,3 @@
+[
+ {"name": "wo-p6-e2e120", "cmd": "GDP_EXISTS_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 170 bun research/protocols/engine/wodump.ts consensus_wo_decide 120000 /tmp/wo.jsonl 2>&1 | grep -v 'join view\\|join cubes\\|join made\\|join small domains\\|infer join\\] ' | cut -c1-400 | tail -c 200000", "timeout": 240}
+]

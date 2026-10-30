@@ -2539,6 +2539,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             // caller's within one); else a model or a refutation of the CDCL search alone, then the proof path's)
             if (f) { if (tGoal) cubeMs += performance.now() - tGoal; tGoal = performance.now(); asked++ } else tGoal = 0
             const tDl = performance.now(), dlEnd = Math.min(kUntil(), performance.now() + (f ? joinQueryMs / 8 : joinQueryMs)), dl = within(dlEnd, () => decideLaw(mm, ls, idx))
+            const gt = (path: string) => { if (env.GDP_GOAL_TRACE) opts.progress?.('join goal', {goal: String(ls[idx]!.name).slice(0, 90), path, ms: Math.round(performance.now() - tDl)}) }
+            gt(`dl ${!dl ? 'undecided' : dl.proven ? 'proven' : 'model'}`)
             // (the EPR path out of time on the caller's goal: the proof path would be no quicker)
             const outOfTime = !dl && performance.now() - tDl >= 0.9 * (dlEnd - tDl)
             if (dl?.proven) { stand(ls[idx]!.name); continue }
@@ -2549,8 +2551,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             if (!dl && !(f && outOfTime)) {
               const inst = mapNames.length ? lawInstances(mm, ls, idx) : undefined, g = obligations(mm, ls, inst ? {[ls[idx]!.name]: inst} : {}, idx)[1]!
               // (the engine's wall too: a counted budget alone runs on past it, wo's 6 s)
-              const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true, wall: kUntil()})) as Refuted
+              // (its share on the wall too: a counted budget of 2 s ran 8.8 s on wo's 3-key cubes)
+              const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true, wall: Math.min(kUntil(), performance.now() + joinQueryMs / 4)})) as Refuted
               if (!('tree' in quick) && quick.why === REFUTED && quick.core) { const lawAt = lawsFrom(mm, ls, false, inst ?? {}); settled.set(ls[idx]!.name, [...new Set([...quick.core].map(h => lawAt.get(h)).filter((k): k is number => k !== undefined && k >= given.length && k !== idx).map(k => ls[k]!.name))]) }
+              gt(`cdcl ${'tree' in quick || quick.why === REFUTED ? 'refuted' : quick.stuck}`)
               if ('tree' in quick || quick.why === REFUTED) { stand(ls[idx]!.name); continue }
               // (the caller's law's model from the proof path alone: EPR's, real or with the instances that refute it)
               isReal = !!f && quick.stuck === 'sat' && !!quick.witness && realCti(quick.witness, f, others)
@@ -2559,6 +2563,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
               if (!isReal && !f && !outOfTime) {
                 proofs++
                 const r2 = within(Math.min(kUntil() - 2000, performance.now() + Math.max(joinQueryMs * 1.25, (kUntil() - performance.now()) / 2)), () => proveLaw(mm, ls, idx))
+                gt(`prove ${r2.proven ? 'proven' : r2.stuck}`)
                 if (r2.proven) { stand(ls[idx]!.name); continue }
                 isReal = !!r2.witness && realCti(r2.witness, f, others)
                 wit = r2.witness ?? wit

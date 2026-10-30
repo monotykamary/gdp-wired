@@ -300,7 +300,11 @@ const withPatterns = <T>(m: Machine, laws: Law[], f: () => T): T => {
 }
 // (`whole: false`: the core's tree alone, not widened to the goal, with the core (`part`); decideLaw's, whose caller's
 // verdict rests on its own final proof: a refutation of some of a goal's hypotheses refutes the goal)
+// (`refuted`: the last decision refuted the goal and its core's proof didn't finish: a model from fewer instances, asked
+// before, is then no answer, as the abstraction refutes it at these)
+const eprLast = {refuted: false}
 function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = true, late = pastWall): (Outcome & {part?: Goal, core?: number[]}) | undefined {
+  eprLast.refuted = false
   const d = decide(goal, eprScope.patterns!, {exact: true, late})
   if ('unknown' in d) return undefined
   if (d.sat) return {stuck: 'sat', witness: d.witness, diagram: d.diagram, path: new Map(), why: 'a model'}
@@ -308,8 +312,10 @@ function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = t
   const now = clock(), end = withinDeadline(budget.until ?? Infinity), w = fullWork()
   eprScope.busy = true
   try {
-    const out = withWork(workCap === Infinity ? Infinity : w + 0.5 * (workCap - w), () => grow(part, new Map(), {nodes: 0, until: end === Infinity ? end : now + 0.5 * (end - now)}))
-    if (!('tree' in out)) return undefined
+    const out = process.env.MI_CORE ? withDeadline(Infinity, () => grow(part, new Map(), {nodes: 0, until: now + Number(process.env.MI_CORE)})) : withWork(workCap === Infinity ? Infinity : w + 0.5 * (workCap - w), () => grow(part, new Map(), {nodes: 0, until: end === Infinity ? end : now + 0.5 * (end - now)}))
+    if (process.env.MI_DEBUG === '2') for (const h of part.hyps) console.error('  H', (globalThis as any).showC?.(h)?.slice(0, 600) ?? JSON.stringify(h).slice(0, 300))
+    if (process.env.MI_DEBUG) console.error('CORE', goal.name.slice(0, 60), 'core', core.length, 'of', goal.hyps.length, 'tree' in out ? 'proven' : `${out.stuck} ${out.why ?? ''}`.slice(0, 200), Math.round(clock() - now), 'ms; budget', Math.round((end - now) / 2))
+    if (!('tree' in out)) { eprLast.refuted = true; return undefined }
     if (!whole) return {...out, part, core}
     const tree = widen(part, goal, out.tree)
     return tree ? {tree, nodes: out.nodes} : undefined
@@ -956,7 +962,8 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   const pm = plainOf(m), qs = Object.entries(pm.step.flags ?? {}).filter((e): e is [string, Extract<C, {op: 'all'}>] => e[1].op === 'all' && w[`?${e[0]}`] === 1)
   const keyed = laws.filter(l => l.forall)
   if (!keyed.length && !qs.length) return undefined
-  const fns = Object.keys(pm.fns ?? {}), mm: Machine = {...pm, fns: undefined, maps: {...(pm.maps ?? {}), ...Object.fromEntries(fns.map(f => [f, 0]))}}
+  // (the maps a request carries read as maps too: a quantified flag over one, wo's ∀k. Q has k → Votes[src, k])
+  const fns = Object.keys(pm.fns ?? {}), mm: Machine = {...pm, fns: undefined, maps: {...(pm.maps ?? {}), ...Object.fromEntries([...fns, ...(pm.inputMaps ?? [])].map(f => [f, 0]))}}
   const maps: Record<string, Map<number, number>> = Object.fromEntries(Object.keys(mm.maps!).map(mp => [mp, new Map<number, number>()]))
   for (const [cell, value] of Object.entries(w)) {
     const br = cell.indexOf('[')
@@ -1019,8 +1026,8 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   for (const atoms of [true, false]) {
     if (atoms === false && added) break
     evals = 0; left = keyed.length + qs.length
-    for (const l of keyed) each(l.name, [l.forall!, ...(l.keys ?? [])], l.holds, atoms)
-    for (const [f, q] of qs) each(`?${f}`, boundOf(q), q.c, atoms)
+    for (const l of keyed) { const a0 = added, e0 = evals; each(l.name, [l.forall!, ...(l.keys ?? [])], l.holds, atoms); if (process.env.MI_DEBUG) console.error('MI', atoms, l.name.slice(0, 50), 'added', added - a0, 'evals', evals - e0, 'sorts', sortsOf(l.holds, [l.forall!, ...(l.keys ?? [])], atoms).map(s2 => [...s2.keys()].join('/')).join(' | ')) }
+    for (const [f, q] of qs) { const a0 = added; each(`?${f}`, boundOf(q), q.c, atoms); if (process.env.MI_DEBUG) console.error('MI', atoms, f, 'added', added - a0) }
   }
   return added ? out : undefined
 }
@@ -1435,7 +1442,16 @@ const pointed = <T>(laws: Law[], f: () => T): T => {
 // goals asked again; a model left is one on every tuple of the goal's keys, returned with its diagram. undefined: a goal
 // not EPR-shaped, a core not proven or a budget run out (the caller's proveLaw next). What was settled before is kept
 // (`settledOf`). Untrusted: a caller's verdict rests on its final proof.
-export function decideLaw(m: Machine, laws: Law[], i: number, rounds = modelRounds): {proven: true, uses: string[]} | {proven: false, goal: string, stuck: 'sat', witness: Record<string, number>, diagram?: Diagram} | undefined {
+type Decided = {proven: true, uses: string[]} | {proven: false, goal: string, stuck: 'sat', witness: Record<string, number>, diagram?: Diagram} | undefined
+// (a probe's hook: each decision with its machine, set, index and ms)
+export const decideLawHook: {on?: (m: Machine, laws: Law[], i: number, out: Decided, ms: number) => void} = {}
+export function decideLaw(m: Machine, laws: Law[], i: number, rounds = modelRounds): Decided {
+  if (!decideLawHook.on) return decideLaw0(m, laws, i, rounds)
+  const t0 = performance.now(), out = decideLaw0(m, laws, i, rounds)
+  decideLawHook.on(m, laws, i, out, performance.now() - t0)
+  return out
+}
+function decideLaw0(m: Machine, laws: Law[], i: number, rounds: number): Decided {
   if (!fastShape(m, laws)) return undefined
   return withPatterns(m, laws, () => {
     if (!eprScope.patterns) return undefined
@@ -1543,7 +1559,9 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
       if (proofs[g.name]) continue
       if (late()) return strict(usual) ? unknown(g) : last ?? unknown(g)
       let o: (Outcome & {part?: Goal, core?: number[]}) | undefined = eprScope.patterns ? eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late) : undefined
-      if (!o && (last || !usual)) return strict(usual) ? undefined : last
+      // (a refutation whose core's proof didn't finish: a model from fewer instances, which these refute, is no answer;
+      // decideLaw's unknown, the usual search's next)
+      if (!o && eprLast.refuted) { if (!usual) return undefined } else if (!o && (last || !usual)) return strict(usual) ? undefined : last
       // (the usual search, the EPR path not asked again)
       if (!o) { const busy = eprScope.busy; eprScope.busy = true; try { o = grow(g) } finally { eprScope.busy = busy } }
       if ('tree' in o) {
@@ -1577,7 +1595,8 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
 // certificate is made.
 export function proveSetFast(m: Machine, laws: Law[]): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}, failed?: Report['failed'] & {diagram?: Diagram}} {
   if (env.GDP_MEMO_TRACE) { memoHits.setKey = machineKey(m); memoHits.setJson = JSON.stringify(m) }
-  if (!fastShape(m, laws)) return proveLaws(m, laws)
+  // (laws with "there exists": proveSome's witnesses, its whole set this fast proof over the ghosted machine)
+  if (!fastShape(m, laws)) return someLaws(laws) && fastShape(m, laws.map(l => ({name: l.name, holds: l.holds}))) ? proveSome(m, laws, {whole: proveSetFast}) as ReturnType<typeof proveSetFast> : proveLaws(m, laws)
   return withPatterns(m, laws, () => pointed(laws, () => {
     const at: Settled[] = []
     for (let i = 0; i < laws.length; i++) {
