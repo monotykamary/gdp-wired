@@ -1350,7 +1350,7 @@ export class Stepper {
     const out = (n: N): V => ({t: 'num', e: n, ...(ty ? {ty} : {})})
     const [lo, hi] = ty ? rangeOf(ty) : [-Infinity, Infinity], [below, above] = this.past(e, lo, hi, q2)
     switch (ovf) {
-      case 'trap': this.fail(q2, I.or(below, above), x, `${x.text}: past ${tyName(ty)}'s range (${x.trap ?? `a panic: attempt to ${op === '+' ? 'add' : op === '-' ? 'subtract' : op === '*' ? 'multiply' : 'divide'} with overflow`})`); return [out(e), this.assume(q2, I.not(I.or(below, above)))]
+      case 'trap': this.fail(q2, I.or(below, above), x, `${x.text}: past ${tyName(ty)}'s range (${typeof x.trap === 'string' ? x.trap : `a panic: attempt to ${op === '+' ? 'add' : op === '-' ? 'subtract' : op === '*' ? 'multiply' : 'divide'} with overflow`})`); return [out(e), this.assume(q2, I.not(I.or(below, above)))]
       case 'sat': return [out(Number.isFinite(lo) || Number.isFinite(hi) ? I.nite(below, I.num(lo), I.nite(above, I.num(hi), e)) : e), q2]
       case 'sat0': return [out(I.nmax(e, I.num(0))), q2]
       case 'checked': return [{t: 'opt', has: I.not(I.or(below, above)), v: out(e)}, q2]

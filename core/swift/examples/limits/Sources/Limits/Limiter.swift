@@ -11,14 +11,14 @@ protocol Flags {
 final class Limiter {
   private let counter: Counter
   private let flags: Flags
-  private var denied: [String: Int] = [:]
+  private var denied: [UInt: Int] = [:]
 
   init(counter: Counter, flags: Flags) {
     self.counter = counter
     self.flags = flags
   }
 
-  func allow(_ user: String) -> Bool {
+  func allow(_ user: UInt) -> Bool {
     let used = counter.get("hits:\(user)") ?? 0
     guard used < flags.limit() else {
       denied[user, default: 0] += 1

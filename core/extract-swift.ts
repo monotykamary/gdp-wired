@@ -149,42 +149,27 @@ function answerType(a: Answer, read: StepRead): string {
 }
 // The expression making a value of type t from the JSON value `j` (a __GdpJ?), throwing __GdpBad where it can't.
 function conv(t: SType, j: string, mod: SModule, depth = 0): string {
-  switch (t.k) {
-    case 'int': return `try __gdpInt(${j}, ${intName(t)}.self)`
-    case 'bool': return `try __gdpBool(${j})`
-    case 'str': return `try __gdpStr(${j})`
-    case 'choice': return `try { () throws -> ${t.enum} in switch try __gdpStr(${j}) { ${t.values.map(v => `case ${JSON.stringify(v)}: return .${v}`).join('; ')}; default: throw __GdpBad(why: "no case") } }()`
-    case 'opt': return `(__gdpIsNone(${j}) ? nil : ${conv(t.of, j, mod, depth + 1)})`
-    case 'rec': {
-      const r = mod.recs[t.name] as Rec | undefined, ps = r?.swift?.props?.filter(p => !p.init)
-      if (!r || r.swift?.kind !== 'struct' || depth > 4 || r.methods.__init__ === undefined || !ps) return `try { throw __GdpBad(why: "a value of ${t.name}") }()`
-      return `${t.name}(${ps.map(p => `${p.name}: ${conv(r.fields.find(f => f.name === p.name)!.t, `${j}?["f"]?[${JSON.stringify(p.name)}]`, mod, depth + 1)}`).join(', ')})`
-    }
-    default: return `try { throw __GdpBad(why: "a value of ${t.k}") }()`
+  if (t.k === 'int') return `try __gdpInt(${j}, ${intName(t)}.self)`
+  if (t.k === 'bool') return `try __gdpBool(${j})`
+  if (t.k === 'str') return `try __gdpStr(${j})`
+  if (t.k === 'choice') return `try { () throws -> ${t.enum} in switch try __gdpStr(${j}) { ${t.values.map(v => `case ${JSON.stringify(v)}: return .${v}`).join('; ')}; default: throw __GdpBad(why: "no case") } }()`
+  if (t.k === 'opt') return `(__gdpIsNone(${j}) ? nil : ${conv(t.of, j, mod, depth + 1)})`
+  if (t.k === 'rec') {
+    const r = mod.recs[t.name] as Rec | undefined, ps = r?.swift?.props?.filter(p => !p.init)
+    if (!r || r.swift?.kind !== 'struct' || depth > 4 || r.methods.__init__ === undefined || !ps) return `try { throw __GdpBad(why: "a value of ${t.name}") }()`
+    return `${t.name}(${ps.map(p => `${p.name}: ${conv(r.fields.find(f => f.name === p.name)!.t, `${j}?["f"]?[${JSON.stringify(p.name)}]`, mod, depth + 1)}`).join(', ')})`
   }
+  return `try { throw __GdpBad(why: "a value of ${t.k}") }()`
 }
 // A value as a leaf of the state holds it (numbers as strings, choices by their case's name).
 const caseName = (t: SType & {k: 'choice'}, x: string) => `{ () -> String in switch ${x} { ${t.values.map(v => `case .${v}: return ${JSON.stringify(v)}`).join('; ')} } }()`
 function enc(t: SType, x: string): string {
-  switch (t.k) {
-    case 'int': return `__GdpJ.s(String(${x}))`
-    case 'bool': return `__GdpJ.b(${x})`
-    case 'str': return `__GdpJ.s(${x})`
-    case 'choice': return `__GdpJ.s(${caseName(t, x)})`
-    default: return '__GdpJ.null'
-  }
+  return t.k === 'int' ? `__GdpJ.s(String(${x}))` : t.k === 'bool' ? `__GdpJ.b(${x})` : t.k === 'str' ? `__GdpJ.s(${x})` : t.k === 'choice' ? `__GdpJ.s(${caseName(t, x)})` : '__GdpJ.null'
 }
 // A method's result as the protocol tags it.
 function out(t: SType, x: string): string {
-  switch (t.k) {
-    case 'int': return `__GdpJ.o(["n": .s(String(${x}))])`
-    case 'bool': return `__GdpJ.b(${x})`
-    case 'str': return `__GdpJ.o(["s": .s(${x})])`
-    case 'choice': return `__GdpJ.o(["s": ${enc(t, x)}])`
-    case 'opt': return `(${x}.map { (__v) -> __GdpJ in ${out(t.of, '__v')} } ?? __GdpJ.null)`
-    case 'none': return '__GdpJ.null'
-    default: return `__GdpJ.o(["o": .s("value")])`
-  }
+  return t.k === 'int' ? `__GdpJ.o(["n": .s(String(${x}))])` : t.k === 'bool' ? `__GdpJ.b(${x})` : t.k === 'str' ? `__GdpJ.o(["s": .s(${x})])` : t.k === 'choice' ? `__GdpJ.o(["s": ${enc(t, x)}])`
+    : t.k === 'opt' ? `(${x}.map { (__v) -> __GdpJ in ${out(t.of, '__v')} } ?? __GdpJ.null)` : t.k === 'none' ? '__GdpJ.null' : `__GdpJ.o(["o": .s("value")])`
 }
 type Gen = {edits: Map<string, string[]>, access: Map<string, Set<string>>}
 // The accessor of a field of a record type (in the type's own file, so its private members are in reach).
