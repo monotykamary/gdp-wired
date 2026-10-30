@@ -303,11 +303,9 @@ const withPatterns = <T>(m: Machine, laws: Law[], f: () => T): T => {
 // (`refuted`: the last decision refuted the goal and its core's proof didn't finish: a model from fewer instances, asked
 // before, is then no answer, as the abstraction refutes it at these)
 const eprLast = {refuted: false}
-// (a refutation whose core's proof doesn't finish, from an encoder that other goals' clauses were learned in: decided
-// once more alone, as a goal of its own, whose core the proof may find where the first's it didn't)
-function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = true, late = (): boolean => pastWall() || pastEprCap(), alone = false): (Outcome & {part?: Goal, core?: number[]}) | undefined {
+function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = true, late = (): boolean => pastWall() || pastEprCap()): (Outcome & {part?: Goal, core?: number[]}) | undefined {
   eprLast.refuted = false
-  const d = decide(goal, eprScope.patterns!, {exact: true, late, alone})
+  const d = decide(goal, eprScope.patterns!, {exact: true, late})
   if ('unknown' in d) return undefined
   if (d.sat) return {stuck: 'sat', witness: d.witness, diagram: d.diagram, path: new Map(), why: 'a model'}
   const last = goal.hyps.length - 1, core = d.core.includes(last) ? d.core : [...d.core, last], part: Goal = {name: goal.name, hyps: core.map(i => goal.hyps[i]!)}
@@ -315,11 +313,11 @@ function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = t
   eprScope.busy = true
   try {
     const out = withWork(workCap === Infinity ? Infinity : w + 0.5 * (workCap - w), () => grow(part, new Map(), {nodes: 0, until: end === Infinity ? end : now + 0.5 * (end - now)}))
-    if (!('tree' in out)) { eprLast.refuted = true; if (alone || !d.shared || env.GDP_EPR_ALONE === '0') return undefined }
-    else if (!whole) return {...out, part, core}
-    else { const tree = widen(part, goal, out.tree); return tree ? {tree, nodes: out.nodes} : undefined }
+    if (!('tree' in out)) { eprLast.refuted = true; return undefined }
+    if (!whole) return {...out, part, core}
+    const tree = widen(part, goal, out.tree)
+    return tree ? {tree, nodes: out.nodes} : undefined
   } finally { eprScope.busy = false }
-  return eprFirst(goal, budget, whole, late, true)
 }
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
   if (eprScope.patterns && !eprScope.busy && !path.size && !budget.nodes) { const out = eprFirst(goal, budget); if (out) return out }

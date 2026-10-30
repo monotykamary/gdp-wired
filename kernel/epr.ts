@@ -72,19 +72,19 @@ type Origin = number // a hypothesis' index, or -1 for a clause that holds in ev
 // that is an element's, an epoch a node holds, as that element, else the number); each function's table, element to
 // element. Two models equal up to the order's renaming give the same diagram.
 export type Diagram = {elements: number, parts: Record<string, number>, scalars: Record<string, number>, cells: Record<string, {at: number[], value: number}[]>, fns: Record<string, [number, number][]>}
-export type Decision = {sat: false, core: number[], shared?: boolean} | {sat: true, witness: Record<string, number>, diagram: Diagram} | {unknown: string}
+export type Decision = {sat: false, core: number[]} | {sat: true, witness: Record<string, number>, diagram: Diagram} | {unknown: string}
 
 // `late`: true past the caller's end, checked between the steps and every 256 conflicts; then unknown.
 // (a probe's hook: each decision with its goal, ms and outcome)
 export const decideHook: {on?: (goal: Goal, d: Decision, ms: number, shaped?: boolean[]) => void} = {}
 let lastShaped: boolean[] | undefined
-export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean, alone?: boolean} = {}): Decision {
+export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
   if (!decideHook.on) return decide1(goal, patterns, opts)
   const t0 = performance.now(), d = decide1(goal, patterns, opts)
   decideHook.on(goal, d, performance.now() - t0, lastShaped)
   return d
 }
-function decide1(goal0: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean, alone?: boolean} = {}): Decision {
+function decide1(goal0: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
   fnMaps = new Set(Object.entries(patterns).filter(([, c]) => c.length === 1 && c[0] === 0).map(([f]) => f))
   const goal = goal0
   // (a model whose order leaves no room between two near constants: again with the constants between them, below)
@@ -266,7 +266,7 @@ function stateOf(fs: Facts[], patterns: Patterns, tick: () => void): State {
 const incOn = env.GDP_EPR_INC !== '0'
 type Use = {ords: string[], fins: Fin[], opq: number[], succ: number[]}
 type Hyp = {a: number, gid: number, use: Use}
-type Opts = {conflicts?: number, exact?: boolean, late?: () => boolean, fill?: boolean, fresh?: boolean, alone?: boolean}
+type Opts = {conflicts?: number, exact?: boolean, late?: () => boolean, fill?: boolean, fresh?: boolean}
 type Enc = {decide: (goal: Goal, fs: Facts[], st: State, opts: Opts) => Decision, size: () => number}
 const pool = new Map<string, Enc>(), other = 'another encoder\'s goal'
 function decide0(goal: Goal, patterns: Patterns, opts: Opts): Decision {
@@ -281,12 +281,12 @@ function decide0(goal: Goal, patterns: Patterns, opts: Opts): Decision {
   const last = fs.at(-1)
   if (last && !shapedOf(last) && last.reads.some(x => !fnMaps.has(x.map) && ((x as {args?: unknown}).args || !tupleOf(x.key)))) return {unknown: 'the conclusion is not EPR-shaped'}
   const st = stateOf(fs, patterns, tick)
-  if (!incOn || opts.fill || opts.fresh || opts.alone) return encoder(st, patterns).decide(goal, fs, st, opts)
+  if (!incOn || opts.fill || opts.fresh) return encoder(st, patterns).decide(goal, fs, st, opts)
   let enc = pool.get(st.sig)
   if (enc) pool.delete(st.sig)
   else if (pool.size >= 4) pool.delete(pool.keys().next().value!)
-  let d = enc && enc.size() ? enc.decide(goal, fs, st, opts) : undefined
-  if (d && !('unknown' in d && d.unknown === other)) { if ('core' in d) d.shared = true } else d = (enc = encoder(st, patterns)).decide(goal, fs, st, opts)
+  let d = enc?.decide(goal, fs, st, opts)
+  if (!d || ('unknown' in d && d.unknown === other)) d = (enc = encoder(st, patterns)).decide(goal, fs, st, opts)
   if (enc!.size() < 20_000) pool.set(st.sig, enc!)
   return d
 }
@@ -654,6 +654,7 @@ function encoder(st: State, patterns: Patterns): Enc {
     }
   }
   const lemmasIn = new Set<string>()
+  let lastGoal = ''
   const seedLemmas = () => { for (const [key, l] of lemmaCache) { if (lemmasIn.has(key)) continue; const xs = l.map(([k, b]) => { const x = ids.get(k); return x === undefined ? undefined : b ? x : -x }); if (xs.every((x): x is number => x !== undefined)) { lemmasIn.add(key); add(xs, -1) } } }
 
   const decideGoal = (goal: Goal, fs: Facts[], gst: State, opts: Opts): Decision => {
@@ -677,7 +678,8 @@ function encoder(st: State, patterns: Patterns): Enc {
     if (opts.exact) { const loose = [...gOpq].filter(x => { const o = opqs.get(x)!; return o.foreign && !o.tied }).length; if (loose) return {unknown: `${loose} comparisons outside the EPR shape`} }
     // --- the search, the goal's hypotheses assumed
     if (opts.late?.()) return {unknown: 'past the deadline'}
-    solver.fresh()
+    if (goal.name !== lastGoal) solver.fresh()
+    lastGoal = goal.name
     const assume = [...new Set(hs.map(h => h.a))], index = new Map<number, number>()
     hs.forEach((h, i) => { if (!index.has(h.gid)) index.set(h.gid, i) })
     const lemma = (lits: number[]) => add(lits, -1)
@@ -1117,8 +1119,9 @@ function cdclSolver(trueFirst: Set<number>, keepPhase: Set<number>): {solve: (bu
       assign(phase[best] ? phase[best]! * best : trueFirst.has(back[best]!) ? best : -best)
     }
   }
-  // (a goal's search from its clauses alone: the learned clauses, activities and phases of the goals before it dropped, so
-  // its refutation and its model are a search of its own, as with an encoder of its own)
+  // (another goal's search from its clauses alone: the learned clauses, activities and phases of the goals before it
+  // dropped, so its refutation and its model are a search of its own, as with an encoder of its own; a goal asked again
+  // with more instances keeps its own)
   const fresh = () => {
     if (fixed) return
     backjump(0)
