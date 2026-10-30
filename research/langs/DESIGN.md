@@ -769,4 +769,20 @@ The corpora (Rust, C and C++, Ruby, Elixir, Java and Kotlin) re-extract byte for
 the same, the 4 that differ as in the first round (the captured JSON predates a call's end, so nothing there can be
 answered); read by today's reader, `strings.ToUpper`'s is answered over its `string` (core/extract-go.test.ts).
 
-**Bytes.** VALIDATION
+**Bytes.** core/ and kernel/ in TypeScript, tests excluded, against 38b998a (gen/jvm on this branch's base): +14,280. The
+harnesses' stub points and the copies they build are most of it: Go's lowering, driver and harness +4,678, C's front end
+and reader +2,630, the TypeScript front end and its check +2,226, Rust's +1,304. core/extract-step.ts +3,738 (the shared
+rewrite `stubbed`, a file's text by a position's name, typed answers, the `no` node's stated answers and skips); one IR
+visitor for its scans and its callFree and foreign took about 1 KB back. Against 5ac6467, core/extract-step.ts is
++35,128 in all (the first round's +29,324, gen/jvm's +2,066, this round's). The readers and harnesses in their own
+languages: Ruby +2,844, Elixir +1,225, Rust +568, Go +201. The kernel is unchanged.
+
+**Validation** (Modal): every front end's tests (TypeScript 50, Python 10 with fastapi, Rust 4, Ruby 4, Elixir 4, C and
+C++ 11, Go 20, Java and Kotlin 13); the Rust, C and C++, Ruby, Elixir, Java and Kotlin corpus rules re-extracted byte
+for byte; LiteLLM stated (the committed rules reprinted) and bare (7 of 7 byte for byte, the same verdicts); the build
+and smoke without the languages. Locally: Go's captured readings (above).
+
+**Bar** (quick, `--only rw,f1,f2,g332,suite,onecpu`, against the cached baseline of 5d4da3f again: neither 5ac6467 nor
+38b998a has one, and making one costs more than the round's budget): f1 34 / 35, f2 25 / 33 (one task solved by the
+candidate alone in the first pass, noise after three reruns a side: gained 0, lost 0), rw 74 / 14 / 3, g332 332 of 332,
+each 0 differing; the suite 231 of 231 (the base's 227 jobs, 4 added since); onecpu no failure; $0.59 estimated.
