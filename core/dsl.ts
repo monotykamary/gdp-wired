@@ -808,7 +808,8 @@ export const sumsIn = (ts: unknown[], more: Iterable<string> = []): Record<strin
 export class MapRef {
   private readonly cells: Scope['maps'][string] | undefined
   constructor(readonly name: string, readonly init: number) { this.cells = scope?.maps[name] }
-  at(key: TermLike): Term { const k = valOf(key); return new Term({op: 'get', map: this.name, key: termOf(key)}, this.cells && k !== undefined ? this.cells.cells.get(k) ?? this.cells.dflt : undefined) }
+  // (a string key is its interned id, as a map keyed by strings holds it)
+  at(key0: TermLike | Str): Term { const key = key0 instanceof Str ? key0.id : key0, k = valOf(key); return new Term({op: 'get', map: this.name, key: termOf(key)}, this.cells && k !== undefined ? this.cells.cells.get(k) ?? this.cells.dflt : undefined) }
   set(key: TermLike, value: TermLike): MapWrite { return {map: this.name, key: termOf(key), value: termOf(value), concrete: {key: valOf(key), value: valOf(value)}} }
   // key's cell plus `by` where `c` holds (the counter every cap keeps).
   bump(key: TermLike, c: Cond = yes, by: TermLike = 1): MapWrite { return this.set(key, when(c, this.at(key).plus(by), this.at(key))) }
@@ -896,7 +897,7 @@ const partsOf = (kind: Kind<unknown>, name: string, value: unknown): Record<stri
 //   .step(({who, Acct}) => ({Acct: Acct.set(who, {limit: 10, blocked: false})}))
 export class CellsRef<V> {
   constructor(readonly name: string, readonly kind: Kind<V>, private readonly map: (part: string) => MapRef) {}
-  at(key: TermLike): V { return this.kind.build(this.name, part => this.map(part).at(key)) }
+  at(key: TermLike | Str): V { return this.kind.build(this.name, part => this.map(part).at(key)) }
   set(key: TermLike, value: Writes<V>): PartsWrite {
     const parts = partsOf(this.kind, this.name, value)
     return {parts: Object.fromEntries(this.kind.vars(this.name).map(part => [part, this.map(part).set(key, parts[part]!)]))}

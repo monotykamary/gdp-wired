@@ -1,5 +1,6 @@
 // The boundary inferred: two injected protocols (a counter called by a key, held as a store; a flag source whose
-// limit() is answered by the request over its declared Int), the entry inferred, a dictionary in the state.
+// limit() is answered by the request over its declared Int), the entry inferred, a dictionary keyed by a String in the
+// state.
 protocol Counter {
   func get(_ key: String) -> Int?
   func set(_ key: String, value: Int)
@@ -11,14 +12,14 @@ protocol Flags {
 final class Limiter {
   private let counter: Counter
   private let flags: Flags
-  private var denied: [UInt: Int] = [:]
+  private var denied: [String: Int] = [:]
 
   init(counter: Counter, flags: Flags) {
     self.counter = counter
     self.flags = flags
   }
 
-  func allow(_ user: UInt) -> Bool {
+  func allow(_ user: String) -> Bool {
     let used = counter.get("hits:\(user)") ?? 0
     guard used < flags.limit() else {
       denied[user, default: 0] += 1
