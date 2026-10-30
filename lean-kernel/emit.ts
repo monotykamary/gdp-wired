@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+import {type CountedGoal, type CountInst, type Ghosted, countedGoal, countHyps, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {chooseLevels, clock, grow, minimal, proveBuilt, proveLaws, proveSetFast, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
@@ -274,6 +274,37 @@ example : checkGoal ${name}_goal ${name}_tree = false := by ${checkBy}`
 ${body}
 theorem ${name} : ∀ env maps, ¬ ∀ c ∈ ${name}_goal.hyps, evalC env maps c = true :=
   sound ${name}_goal ${name}_tree (by ${checkBy})`
+}
+
+// A counted goal (Count.lean's checkCounted, kernel.ts's twin): its hypotheses and counts, the certificate's instances,
+// and the tree encoded against the goal with the instances' hypotheses after the goal's (kernel.ts's countedGoal). Lean
+// builds those hypotheses itself (countHyps); the example states that they are the ones kernel.ts built. `tampered`:
+// certificates Lean computes to false, as kernel.ts refuses them.
+const varsOfE = (t: E): string[] => [...JSON.stringify(t).matchAll(/"op":"var","name":"([^"]+)"/g)].map(m => m[1]!)
+const mapsOf = (t: E | C): string[] => [...JSON.stringify(t).matchAll(/"op":"get","map":"([^"]+)"/g)].map(m => m[1]!)
+export function countedToLean(id: string, g: CountedGoal, cert: {insts: CountInst[], tree: Tree}, tampered: {what: string, insts: CountInst[]}[] = []): string {
+  const goal = countedGoal(g, cert.insts)
+  if (!goal) throw new Error(`${id}: an instance names no count of the goal, or a count of another bound`)
+  const vars = [...new Set([...goal.hyps.flatMap(varsOf), ...g.counts.flatMap(cn => [cn.v, cn.key, ...varsOfE(cn.below), ...varsOfE(cn.body)]),
+    ...[...cert.insts, ...tampered.flatMap(t => t.insts)].flatMap(i => [i.wit, ...varsOfE(i.below)])])]
+  const maps = [...new Set([...goal.hyps, ...g.counts.flatMap(cn => [cn.below, cn.body])].flatMap(mapsOf))]
+  const enc = encode({name: id, goal, tree: cert.tree}, false, true, vars, maps), {e, c} = enc
+  const ix = (name: string) => vars.indexOf(name)
+  const instsLit = (is: CountInst[]) => list(is.map(i => `⟨${ix(i.wit)}, ${e(i.below)}, ${list(i.terms.map(([z, v2]) => `(${int(z)}, ${ix(v2)})`))}, ${int(i.unit)}⟩`))
+  return `-- ${g.name}  (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')}; maps ${maps.map((m2, j) => `${j} ${m2}`).join(', ')})
+def ${id}_goal : CGoal := ⟨${list(g.hyps.map(c))},
+  ${list(g.counts.map(cn => `⟨${ix(cn.v)}, ${ix(cn.key)}, ${e(cn.below)}, ${e(cn.body)}⟩`))}⟩
+def ${id}_insts : List CInst := ${instsLit(cert.insts)}
+def ${id}_tab : List VDef := ${enc.tab}
+def ${id}_tree : Tree :=
+  ${enc.tree}
+-- The instances' hypotheses Lean builds are the ones kernel.ts built.
+example : countHyps ${id}_goal.counts ${id}_insts = some ${list(countHyps(g.counts, cert.insts)!.map(c))} := by ${checkBy}
+/-- ${g.name}: no naturals and maps where each count is its sum satisfy the hypotheses. -/
+theorem ${id} : ∀ ρ M, (∀ cn ∈ ${id}_goal.counts, cn.Holds ρ M) → ¬ ∀ h ∈ ${id}_goal.hyps, evalC ρ M h = true :=
+  counted_sound ${id}_goal ${id}_insts ${id}_tab ${id}_tree (by ${checkBy})${tampered.map(t => `
+-- TAMPERED: ${t.what}. Lean computes the check to false, as kernel.ts refuses it.
+example : checkCounted ${id}_goal ${instsLit(t.insts)} ${id}_tab ${id}_tree = false := by ${checkBy}`).join('')}`
 }
 
 // Whole machines through Kern.machine_sound: Lean builds the goals from the machine; the trees are the kernel's.
@@ -791,7 +822,10 @@ function machineNames(m: Machine, laws: Law[], allSteps: StepLaw[], stepLaws: St
 // A tampered twin: its k, the base depths it keeps (indices into the k-step laws' base), the law, and kernel.ts's answer.
 export type KindLean = {kl: KInduction, start: {goal: Goal, tree: Tree, inst: Instances}, tampers?: {what: string, k: number, base: number[], law?: C, expect: boolean}[]}
 export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], tamper?: {what: string, machine: Machine}, simp?: string[], free?: string[],
-    ghosts?: string[], after?: (ix: (name: string) => number) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
+    ghosts?: string[], after?: (ix: (name: string) => number, mx: (name: string) => number, lit: (m: Machine) => string) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
+    // (ghost maps: `given` is kernel.ts's ghostedMachine(ghosted), exported as GhostMap.lean's SGhostedM; `forallSome`, the
+    // laws read ∀∃, each with the ghost map it reads, at the key term `at`, read as the variable `as`)
+    ghosted?: Ghosted, forallSome?: {law: string, map: string, at: E, as: string}[],
     refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}, loop?: {loop: Loop, tamper?: {what: string, loop: Loop}}, noFacts?: boolean,
     kind?: KindLean,
     // (core/conformance.ts's twins: a sums machine tampered, with kernel.ts's answer; the cover goals' trees as found; a
@@ -965,6 +999,30 @@ example : (checkSMachine ${id}_tampered ${id}_proof && sliveOk ${id}_tampered ${
     && checkSKStep ${id}_tampered ${id}_proof (sliveStep ${id}_live0 ${id}_live0.pend (liveStayC ${id}_live0) ${id}_live0_sp)
     && checkSKStep ${id}_tampered ${id}_proof (sliveStep ${id}_live0 ${id}_live0.pend (liveCoverC ${id}_live0) ${id}_live0_cp)
     && sliveHelpsOk ${id}_tampered ${id}_proof ${id}_live0 ${id}_live0_hp) = false := by ${checkBy}` : ''}`})
+  // Ghost maps (GhostMap.lean): the laws that read no ghost hold of the original; every law, of the original with some
+  // ghost values and maps (Skolem functions of the keys); and each law read ∀∃.
+  const gm = opts.ghosted
+  if (gm) claims.push({steps: [], allows: [], render: () => {
+    const memOf = (j: number): string => (j === 0 ? 'List.mem_cons_self' : `List.mem_cons_of_mem _ (${memOf(j - 1)})`)
+    return `-- The laws that read no ghost hold of the original.
+theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_gm.orig ρ M → ∀ e ∈ ${id}_proof, avoids ${id}_gm.vars e.law.holds = true → avoidsMaps ${id}_gm.maps e.law.holds = true → e.Holds ρ M :=
+  smghost_laws ${id}_gm ${id}_gmOk ${id}_proof ${id}_check
+-- Every law, at every reachable state of the original: some ghost values and ghost maps where it holds.
+theorem ${id}_skolem : ∀ ρ M, SReach ${id}_gm.orig ρ M → ∃ ρg Mg, Agree ${id}_gm.vars ρg ρ ∧ (∀ mp, mp ∉ ${id}_gm.maps → Mg mp = M mp) ∧ ∀ e ∈ ${id}_proof, e.Holds ρg Mg :=
+  some_of_ghostmap ${id}_gm ${id}_gmOk ${id}_proof ${id}_check${(opts.forallSome ?? []).map((fs, j) => {
+      const li = laws.findIndex(l => l.name === fs.law), law = laws[li]
+      if (!law?.forall || law.keys?.length) throw new Error(`${id}: ${fs.law}: read ∀∃, a law about one key`)
+      const read = substC(law.holds, {vars: {}, maps: {[fs.map]: () => ({op: 'var', name: fs.as})}, flags: {}})
+      return `
+/-- ${law.name}, read ∀∃: for every ${law.forall}, some ${fs.as} (${fs.map} at ${law.forall}, a Skolem function the step keeps) where it holds; no ghost read. -/
+theorem ${id}_some${j} : ∀ ρ M, SReach ${id}_gm.orig ρ M → ∀ v, ∃ val, evalC (upd (upd ρ ${ix(law.forall)} v) ${ix(fs.as)} val) M
+    (${c(read)}) = true := by
+  have h := forall_some_of_ghostmap ${id}_gm ${id}_gmOk ${id}_proof ${id}_check ${id}_e${li} (${memOf(li)}) ${ix(law.forall)} rfl rfl ${mx(fs.map)} ${ix(fs.as)} (${e(fs.at)})
+    (by ${checkBy}) (by ${checkBy}) (by ${checkBy}) (by ${checkBy})
+  have hr : substRC [] (rdW ${mx(fs.map)} ${ix(fs.as)}) ${id}_e${li}.law.holds = ${c(read)} := by ${checkBy}
+  rw [hr] at h; exact h`
+    }).join('')}`
+  }})
   // Ghosts (Ghost.lean's sghost_laws): the laws that read no ghost hold of the machine without its ghosts.
   if (gv.length) claims.push({steps: [], allows: [], render: () => `-- The laws that read no ghost hold of the machine without its ghosts.
 theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈ ${id}_proof, avoids ${id}_ghosted.vars e.law.holds = true → e.Holds ρ M :=
@@ -1164,7 +1222,13 @@ ${rf ? `def ${id}_refined : SRefined := ⟨${lit(rf.impl)},
   ${lit(rf.spec)},
   ${list(Object.entries(rf.wit).map(([inp, t]) => `(${ix(`b_${inp}`)}, ${e(t)})`))},
   ${c(rf.stutter)}⟩
-def ${id}_machine : SMachine := ${id}_refined.full` : gv.length ? `def ${id}_ghosted : SGhosted := ⟨${lit(orig)},
+def ${id}_machine : SMachine := ${id}_refined.full` : gm ? `def ${id}_gm : SGhostedM := ⟨${lit(gm.orig)},
+  ${list(Object.entries(gm.vars).map(([v2, x2]) => `(${ix(v2)}, ${e(x2.start)}, ${e(x2.step)})`))},
+  ${list(Object.entries(gm.maps).map(([mp, x2]) => `(${mx(mp)}, ${x2.start})`))},
+  ${list(Object.entries(gm.maps).flatMap(([mp, x2]) => ('each' in x2.write ? [] : [`(${mx(mp)}, ${e(x2.write.key)}, ${e(x2.write.value)})`])))},
+  ${list(Object.entries(gm.maps).flatMap(([mp, x2]) => ('each' in x2.write ? [`(${mx(mp)}, ${ix(x2.write.each)}, ${e(x2.write.value)})`] : [])))}⟩
+def ${id}_machine : SMachine := ${id}_gm.full
+theorem ${id}_gmOk : smghostOk ${id}_gm = true := by ${checkBy}` : gv.length ? `def ${id}_ghosted : SGhosted := ⟨${lit(orig)},
   ${list(gv.map(v2 => `(${ix(v2)}, ${e(m.state[v2]!)}, ${e(m.step.state?.[v2] ?? {op: 'var', name: v2})})`))}⟩
 def ${id}_machine : SMachine := ${id}_ghosted.full
 theorem ${id}_ghostOk : sghostOk ${id}_ghosted = true := by ${checkBy}` : hm ? `def ${id}_hist : HMachine := ${hlit(hm.history.relations ?? [])}
@@ -1178,7 +1242,7 @@ theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_pro
 ${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e})}${sm ? sumsBlock() : ''}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
-example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`
+example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix, mx, lit)}` : ''}`
 }
 
 // --- the cyclic certificate's export (GDP_CERT=cyclic) -------------------------------------------------------------
