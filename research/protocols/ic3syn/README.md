@@ -147,7 +147,7 @@ vacuous there). `runs/ic3syn/check*.jsonl` in ../gdp-wired-laneA.
 | consensus_epr | 110,464 | 110,464 | (ran past its cap) |
 | consensus_wo_decide (all four majorities) | 102,912 | 135,872 | |
 | consensus_wo_decide (the config's three) | 102,912 | 102,912 | |
-| consensus_forall (the config's three) | @FA_T@ | @FA_P@ | |
+| consensus_forall (the config's three) | 112,128 | 112,128 | |
 | mldr | 5,362 | 1,596 inside the constraint, 2,966 past it | **no**: not verified (below) |
 
 - consensus_wo_decide stores the quorum it chose; its config lists the three 2-sets and not the full set, a majority too,
