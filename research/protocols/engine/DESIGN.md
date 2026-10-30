@@ -227,6 +227,82 @@ The order's size is no longer the cost on the round goals (mean 0.55 s, 9 of 44 
 
 **Spend this round:** $0.85 billed for 34 apps so far; the current hour is still being billed.
 
+**Next round: decentralized, the memo bug, and ring top-down** (gen/ring 41f35a0; exp/pool-z3 for the top-down runs)
+
+**Decentralized's 36 s was real, and strict models caused it** (`runs/engine/gr7`–`gr10`, 60 s, Modal)
+
+| config | runs (s) |
+|---|---|
+| sorts and strict (as built at 63bed40) | 36.0, 29.6, 33.3, 32.8 |
+| strict off | 17.0, 13.3, 15.7 |
+| sorts off (strict on) | 27.4 |
+| 41f35a0: sorts on (memo fixed), strict off | 18.4, 15.7 |
+
+- **Why strict costs it:** where decideLaw used to return an unconfirmed model, the rounds now get no answer and fall
+  through to the CDCL search and the proof path.
+- **Strict is now off by default** (`GDP_STRICT=1` turns it on).
+
+**A bug in the sorts as built: their memo was keyed by machine alone.** One machine is asked with many law sets, so the
+sorts were the first set's, and the cubes' keys had no anchors.
+- In the engine, decideLaw's instances went nearly unfiltered: 11,557 to 11,478 keys a goal, against 54% fewer in the
+  replay.
+- 63bed40's measurements (the ten, ring, the bar) were therefore mostly strict's.
+- Fixed in 41f35a0: the memo is keyed by machine and by the law set's names.
+
+**41f35a0, the ten once** (`gr10`):
+- **proven:** sync 6.3 s, async 23.9, decentralized 18.4 and 15.7 (2 runs), 2PC 19.3, ticket 31.4, toy 12.1, sharded
+  32.9, distributed 32.6;
+- **unknown:** ring 59.7 s (twice) and wo 65.0 s.
+- The typecheck and lint are clean (on Modal).
+
+**Ring by top-down Houdini with the new oracle** (db6c00f's `GDP_POOL=td` on exp/pool-z3, with sorts (memo fixed) and
+strict; `rg19`)
+
+| round | cubes | failed | undecided | ms |
+|---|---|---|---|---|
+| 0 | 42 | 7 (2 back by co-implication) | 8 | 24,299 |
+| 1 | 37 | 6 | 9 | 15,347 |
+| 2 | 31 | 4 (6 back) | 6 | 9,734 |
+| 3 | 33 | 7 | 5 | 12,956 |
+| 4 | 26 | 0 | 5 | 6,094 |
+
+- **The fixpoint:** 26 cubes, 5 of them undecided, **all 5 targets in it** (none failed in any round).
+- **The caller and the cone:** the caller is proven from the fixpoint; the cone is 19 cubes with all 5 targets, 1
+  undecided. **`prove()` of the 19 proves in 8.6 s.**
+- **End to end: proven at 105 s** (`--ms 180000`). At `--ms 60000` it is out of time in round 1 (the engine starts at
+  24 s, and round 0 takes 24 s).
+- Before the memo fix the same run left 42 of 42 undecided in round 0 (`rg17`, `rg18`: every step goal past its
+  deadline at 0.8 s, 49 ordered terms).
+
+**So ring proves with the shrunk pool, the sorted oracle, top-down and the cone, but in 105 s, not 60.** Not wired in,
+as the order said.
+
+**What's left: time.**
+- **Before the engine:** 24 s (the join, the small instance, the filter).
+- **Houdini:** 68 s for 5 rounds; 0.25–0.6 s a goal, with 5–9 undecided a round costing 1 s each.
+- **The cone and `prove()`:** 9 s.
+
+**Levers, not tried:**
+- the undecided goals' 1 s each;
+- asking only the goals whose support a drop took away (DuoAI asks all; the memo's standing proofs would skip the
+  rest);
+- a smaller pool by a deeper filter (64 at +1);
+- the join's share before the engine.
+
+**The quick bar on 41f35a0** (`--only rw,f1,f2,g332,suite,onecpu` against the cached 5d4da3f;
+<main>/runs/bar/runs/ring-41f35a0-quick)
+- f1 34, as the base;
+- f2 25 against 24.33: "gained 1", term/Piecewise. It is proven at 51–56 s in 3 of 4 runs against 3 of 6 for the base,
+  a flip at the time limit;
+- rw 74/14/3, as the base;
+- g332 the same search on 332 of 332, summed 281.5 s against 280.6 s;
+- the suite 232 passed, 0 failed;
+- onecpu no failure.
+- Lost 0, wrong 0. Estimated $0.58.
+
+**Ready:** gen/ring at 41f35a0 (sorted decideLaw instances, strict off) is ready to merge on these numbers. Ring
+and wo are unchanged at 60 s; the eight stay proven; decentralized is back in its spread.
+
 **Not done this round, as the order said:**
 - step 3 (ring twice, the ten, the bar), because 1 didn't land;
 - wo's pilot, because pilot 2 didn't fail fast.
