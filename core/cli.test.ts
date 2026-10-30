@@ -3,17 +3,33 @@
 // isn't installed (the suite's cli-<lang> jobs install them).
 import {expect, test} from 'bun:test'
 import {execFileSync, spawnSync} from 'node:child_process'
-import {mkdirSync, mkdtempSync, readFileSync as readAdv, symlinkSync, writeFileSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, readFileSync as readAdv, realpathSync, symlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
+import {dirname} from 'node:path'
 import {pathToFileURL} from 'node:url'
 import {check, colors} from './cli.ts'
 import {lawsIn, parse} from './laws.ts'
 
 const has = (cmd: string, ...a: string[]) => { try { execFileSync(cmd, a, {stdio: 'ignore'}); return true } catch { return false } }
 const javac = process.env.JAVA_HOME ? `${process.env.JAVA_HOME}/bin/javac` : 'javac'
+// The JVM front ends need a JDK 17 or later, Kotlin's also kotlinc 2.4 (the compiler its reader is built against): an
+// older or other toolchain, which the reader refuses saying so, is skipped here saying so.
+const jvmWhy = (kt: boolean): string | undefined => {
+  let v = ''
+  try { v = execFileSync('sh', ['-c', '"$0" -version 2>&1', javac], {encoding: 'utf8'}) } catch { return 'no javac' }
+  const m = /javac (\d+)(?:\.(\d+))?/.exec(v), major = m ? (m[1] === '1' ? Number(m[2]) : Number(m[1])) : 0
+  if (major < 17) return `${v.trim()}: a JDK 17 or later is needed`
+  if (!kt) return undefined
+  let home = process.env.KOTLIN_HOME
+  if (!home) { try { home = dirname(dirname(realpathSync(execFileSync('sh', ['-c', 'command -v kotlinc'], {encoding: 'utf8'}).trim()))) } catch { return 'no kotlinc' } }
+  let kv: string | undefined
+  for (const f of [`${home}/build.txt`, `${home}/libexec/build.txt`]) { try { kv = readAdv(f, 'utf8').trim(); break } catch { /* not there */ } }
+  return kv !== undefined && !kv.startsWith('2.4.') ? `kotlinc ${kv}: the Kotlin reader is built against kotlinc 2.4.21` : undefined
+}
+const jvm = (lang: string, kt: boolean) => () => { const why = jvmWhy(kt); if (why) console.warn(`${lang} skipped: ${why}`); return !why }
 const TOOLS: Record<string, () => boolean> = {
   python: () => has('python3', '--version'), ruby: () => has('ruby', '-e', 'require "prism"'), elixir: () => has('elixir', '-e', ':ok'),
-  java: () => has(javac, '-version'), kotlin: () => has(javac, '-version') && (!!process.env.KOTLIN_HOME || has('sh', '-c', 'command -v kotlinc')),
+  java: jvm('java', false), kotlin: jvm('kotlin', true),
   go: () => has('go', 'version'), rust: () => has('cargo', '--version'), swift: () => has(process.env.GDP_SWIFT ?? 'swift', '--version'), c: () => has('clang', '--version'), cpp: () => has('clang++', '--version'), ts: () => true,
   effect: () => true, xstate: () => true,
 }

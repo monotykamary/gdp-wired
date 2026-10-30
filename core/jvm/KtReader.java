@@ -945,7 +945,8 @@ public final class KtReader implements Jvm.Env {
   // Other code's function's declared result: a class of the code's sources read (its declaration), or one on the
   // reader's classpath (by reflection).
   JT declared(String owner, String n, int arity) {
-    if (classes.get(owner) instanceof KtClassOrObject k) for (KtDeclaration d : body(k)) if (d instanceof KtNamedFunction f && n.equals(f.getName()) && f.getValueParameters().size() == arity) return type(f.getTypeReference());
+    KtClassOrObject k = classes.get(owner);
+    if (k != null) for (KtDeclaration d : body(k)) if (d instanceof KtNamedFunction f && n.equals(f.getName()) && f.getValueParameters().size() == arity) return type(f.getTypeReference());
     Class<?> c = load(owner);
     if (c != null) for (java.lang.reflect.Method m : c.getMethods()) if (m.getName().equals(n) && m.getParameterCount() == arity) return jtOf(m.getReturnType(), m.getGenericReturnType());
     return null;

@@ -56,6 +56,10 @@ const here = (f: string) => new URL(`./jvm/${f}`, import.meta.url).pathname
 const TOOLS = ['Jvm.java', 'JavaReader.java', 'Harness.java', 'Rt.java']
 // (a JVM's stack trace: its exception's line first)
 const errText = (e: unknown) => { const ls = String((e as {stderr?: string}).stderr || (e as {stdout?: string}).stdout || (e as Error).message).split('\n').filter(l => l.trim() && !/^\s+at /.test(l)); return ls.slice(-3).join(' | ').slice(0, 600) }
+// (javac's: its error lines, not the notes and the count after them)
+const javacErr = (e: unknown) => { const ls = String((e as {stderr?: string}).stderr || (e as {stdout?: string}).stdout || '').split('\n').filter(l => /\berror:/.test(l)); return ls.length ? ls.slice(0, 3).join(' | ').slice(0, 900) : errText(e) }
+// The Kotlin compiler the Kotlin reader is built against (its PSI and its environment's API); research/langs/jvm/jvm-setup.sh.
+const KOTLIN = '2.4.21'
 
 function jdk(o: JvmOptions): {java: string, javac: string} {
   const env = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
@@ -72,15 +76,27 @@ function kotlinLib(o: JvmOptions): string {
   return lib
 }
 // The tools (the readers and the harness), compiled once per version of their sources and of the compiler.
+// (Java 17, the oldest JDK they support, by `--release 17` whichever JDK compiles them, so a later javac refuses what
+// 17's would)
+const FLAGS = ['-nowarn', '-Xlint:none', '--release', '17']
+// What was found, for a refusal: the JDK's version and kotlinc's (its build.txt, beside lib/).
+function found(o: JvmOptions, kt?: string): string {
+  const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process')
+  let j = 'no javac'
+  try { j = cp.execFileSync('sh', ['-c', '"$0" -version 2>&1', jdk(o).javac], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}).trim().split('\n')[0] || 'javac' } catch { /* none */ }
+  let k = ''
+  if (kt) { try { k = `, kotlinc ${fs.readFileSync(`${kt}/../build.txt`, 'utf8').trim()}` } catch { k = ', kotlinc of unknown version' } }
+  return `${j}${k}`
+}
 function tools(o: JvmOptions, kt?: string): string {
   const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process'), os = node<{tmpdir: () => string}>('node:os'), crypto = node<{createHash: (a: string) => {update: (s: string) => {digest: (e: string) => string}}}>('node:crypto')
   const files = kt ? ['KtReader.java'] : TOOLS
-  const h = crypto.createHash('sha256').update(files.map(f => fs.readFileSync(here(f), 'utf8')).join('\0') + (kt ?? '') + jdk(o).javac).digest('hex').slice(0, 16)
+  const h = crypto.createHash('sha256').update(files.map(f => fs.readFileSync(here(f), 'utf8')).join('\0') + (kt ?? '') + jdk(o).javac + FLAGS.join(' ')).digest('hex').slice(0, 16)
   const dir = `${os.tmpdir()}/gdp-jvm${kt ? 'kt' : ''}-${h}`
   if (fs.existsSync(`${dir}/ok`)) return dir
   const base = kt ? tools(o) : undefined, tmp = fs.mkdtempSync(`${dir}-`)
-  try { cp.execFileSync(jdk(o).javac, ['-nowarn', '-Xlint:none', '-d', tmp, ...(kt ? ['-cp', `${base}:${kt}/kotlin-compiler.jar:${kt}/kotlin-stdlib.jar`] : []), ...files.map(here)], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}) }
-  catch (e) { fs.rmSync(tmp, {recursive: true, force: true}); throw new Refusal('javac', `the JVM tools didn't compile (${errText(e)}): a JDK 17 or later is needed to extract ${kt ? 'Kotlin' : 'Java'}`) }
+  try { cp.execFileSync(jdk(o).javac, [...FLAGS, '-d', tmp, ...(kt ? ['-cp', `${base}:${kt}/kotlin-compiler.jar:${kt}/kotlin-stdlib.jar`] : []), ...files.map(here)], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}) }
+  catch (e) { fs.rmSync(tmp, {recursive: true, force: true}); throw new Refusal('javac', `the JVM tools didn't compile (${javacErr(e)}; found ${found(o, kt)}): a JDK 17 or later${kt ? ` and kotlinc ${KOTLIN} (the compiler the Kotlin reader is built against)` : ''} is needed to extract ${kt ? 'Kotlin' : 'Java'}`) }
   fs.writeFileSync(`${tmp}/ok`, '')
   try { fs.renameSync(tmp, dir) } catch { fs.rmSync(tmp, {recursive: true, force: true}) }
   return dir
@@ -111,7 +127,7 @@ export function readJvm(lang: 'java' | 'kotlin', file: string, names: string[], 
   const t = tools(o), cpath = kt ? [t, tools(o, kt), `${kt}/kotlin-compiler.jar`, `${kt}/kotlin-stdlib.jar`, ...(o.classpath ?? [])].join(':') : t
   let out: string
   try { out = cp.execFileSync(jdk(o).java, ['-cp', cpath, `gdp.jvm.${kt ? 'KtReader' : 'JavaReader'}`, JSON.stringify({root, file: abs, names, classpath: (o.classpath ?? []).join(':'), sources: o.sources ?? [], ctor: o.ctor ?? null})], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']}) }
-  catch (e) { throw new Refusal(file, `the ${kt ? 'Kotlin' : 'Java'} reader didn't run (${errText(e)}): a JDK 17 or later${kt ? ' and kotlinc' : ''} is needed to extract ${kt ? 'Kotlin' : 'Java'}`) }
+  catch (e) { throw new Refusal(file, `the ${kt ? 'Kotlin' : 'Java'} reader didn't run (${errText(e)}${kt ? `; found ${found(o, kt)}` : ''}): a JDK 17 or later${kt ? ` and kotlinc ${KOTLIN} (the compiler the Kotlin reader is built against)` : ''} is needed to extract ${kt ? 'Kotlin' : 'Java'}`) }
   return JSON.parse(out) as SModule
 }
 

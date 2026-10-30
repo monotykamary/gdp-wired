@@ -185,6 +185,21 @@ t('C++: a class, its constructor the start (its parameters the rule\'s), private
   expect(x.evidence!.refusedBoth).toBeGreaterThan(0)
 }, 60_000)
 
+// (clang 18 and earlier dump a default member initializer's use with nothing inside: the field's own is read)
+t('C++: a default member initializer beside a constructor that sets other fields', () => {
+  const x = ok(cpp(`
+class Meter {
+ public:
+  explicit Meter(int start) : used_(start > 0 ? 0 : 0) {}
+  bool use() { if (used_ >= cap_) return false; used_++; return true; }
+ private:
+  int used_;
+  int cap_ = 3;
+};
+`, 'Meter'))
+  expect(proveRule(x.rule!, [...x.invariants!, x.rule!.law('the cap is three', ({cap_}: A) => cap_.eq(3))]).proven).toBe(true)
+}, 60_000)
+
 t('C++: refused where it leaves the subset, each with why', () => {
   const why = (code: string) => { const r = cpp(code, 'K'); expect(r.ok).toBe(false); return r.refusals[0]!.what }
   expect(why('struct K { int n = 0; virtual void v() { n++; } void f() { v(); } };\n')).toMatch(/virtual/)

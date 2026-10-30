@@ -281,7 +281,13 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   const recvOf = (f: CN) => { if (f.$m) return f.storageClass === 'static' ? undefined : THIS; const p = params(f)[0], t = p ? T(tyOf(p.type!)) : undefined; return t?.k === 'ptr' && t.elem === entryT ? p : undefined }
   const args0 = (f: CN) => (f.$m ? params(f) : params(f).slice(recvOf(f) ? 1 : 0))
   for (const f of [...funcs.values(), ...ctors]) for (const q of args0(f)) boxOf(q)
-  const strip = (n: CN): CN => (['ParenExpr', 'MaterializeTemporaryExpr', 'ExprWithCleanups', 'CXXBindTemporaryExpr', 'CXXDefaultInitExpr'].includes(n.kind) || (n.kind === 'UnaryOperator' && n.opcode === '__extension__') || (CAST.has(n.kind) && ['LValueToRValue', 'NoOp'].includes(n.castKind!)) ? strip(n.inner![0]!) : n)
+  const strip = (n: CN): CN => ((['ParenExpr', 'MaterializeTemporaryExpr', 'ExprWithCleanups', 'CXXBindTemporaryExpr', 'CXXDefaultInitExpr'].includes(n.kind) || (n.kind === 'UnaryOperator' && n.opcode === '__extension__') || (CAST.has(n.kind) && ['LValueToRValue', 'NoOp'].includes(n.castKind!))) && n.inner?.length ? strip(n.inner[0]!) : n)
+  // A default member initializer's use (CXXDefaultInitExpr): clang 19 dumps the initializer inside it, clang 18 and
+  // earlier nothing (nor the field), so a constructor's is given its field's own (an empty one elsewhere is refused).
+  const fillDefault = (n: CN, f: CN | undefined): CN => {
+    if (n.kind === 'CXXDefaultInitExpr' && !n.inner?.length && f?.inner?.length && !f.inner[0]!.kind.endsWith('Attr')) n.inner = [f.inner[0]!]
+    return n
+  }
   const at = (n: CN, t: number) => ({p: pos(n), t, text: text(n)})
   const no = (n: CN, why: string): GX => ({e: 'no', ...at(n, -1), why})
   const lit = (n: CN, v: number, t: number): GX => ({e: 'lit', ...at(n, t), c: {int: String(v)}})
@@ -574,7 +580,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     if (ctors.length > 1) refuse(ctors[1], `${entry}: ${ctors.length} constructors (the C++ front end reads a class with one)`)
     const c = ctors[0], inits = new Map<string, CN>()
     for (const f of fieldNode.values()) if (fields.get(f.id!)!.rec === entryRec && f.inner?.length && !f.inner[0]!.kind.endsWith('Attr')) inits.set(f.id!, f.inner[0]!)
-    for (const k of c?.inner ?? []) if (k.kind === 'CXXCtorInitializer') { const d = k.anyInit as {id: string} | undefined; if (d && k.inner?.length) inits.set(d.id, k.inner[0]!) }
+    for (const k of c?.inner ?? []) if (k.kind === 'CXXCtorInitializer') { const d = k.anyInit as {id: string} | undefined; if (d && k.inner?.length) inits.set(d.id, fillDefault(k.inner[0]!, fieldNode.get(d.id))) }
     const pre: GS[] = []
     for (const [id, v0] of inits) {
       const f = fieldNode.get(id)!, ft = T(tyOf(f.type!)), v = strip(v0)

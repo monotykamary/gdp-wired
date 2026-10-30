@@ -46,7 +46,9 @@ concurrency:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    # (ubuntu-24.04, not ubuntu-latest: -latest moves to Ubuntu 26.04 in November 2026, which changes the clang and the
+    # JDK the C, C++, Java and Kotlin cases run on; 24.04's are clang 18.1.3 and JDK 17)
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
