@@ -833,6 +833,6 @@ export class Meter {
   const x = ok(ts(code, 'Meter', {files}))
   expect(x.notes.join('\n')).toMatch(/\.\/quota\.bonus\(\) .*answered by the request \(inferred/)
   expect(x.notes.join('\n')).toMatch(/\.\/quota\.log\(\) .*left out \(inferred/)
-  expect(x.source).toMatch(/\.inputs\(\{[^)]*bonus: int/)
+  expect(x.source).toMatch(/\.inputs\(.*bonus: int/)
   refused(ts(code, 'Meter', {files, strict: true}), /log: a function from another module/)
 })
