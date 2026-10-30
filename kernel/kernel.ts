@@ -1578,3 +1578,124 @@ export function checkQMachine(m: QMachine, laws: QLaw[], trees: Record<string, {
     return !!t && !qOccurs(law.holds, m.inputs) && checkQTree(goals.start, t.start) && checkQTree(goals.step, t.step)
   })
 }
+
+// --- counts: quorum facts (Lean twin: ../lean-kernel/Count.lean, counted_sound) ------------------------------------------
+// A counted goal is a goal and the counts its hypotheses read: a count's variable v names Σ body(k) over the keys k below
+// `below`, the body read with its variable `key` at k (a 0/1 body counts a set). Its certificate is instances of
+// Count.lean's lemma and a tree. An instance names a fresh witness, the bound its counts share, an integer coefficient per
+// count (by variable) and one on the constant 1, and stands for its hypothesis (countHyp, P the positive parts and N
+// the negative parts of the coefficients):
+//   (P·counts + P(unit)·below ≤ N·counts + N(unit)·below) ∨ (wit < below ∧ N·bodies(wit) + N(unit) < P·bodies(wit) + P(unit))
+// The tree refutes the goal's hypotheses followed by the instances', in order. Each function below is Count.lean's of the
+// same name, built the same way (DESIGN.md, gen/laneK, has the table); Lean builds the hypotheses itself.
+export type Count = {v: string, key: string, below: E, body: E}
+export type CountInst = {wit: string, below: E, terms: [number, string][], unit: number}
+export type CountedGoal = {name: string, hyps: C[], counts: Count[]}
+
+// Lean's beqE: equal by structure (every field, keys in order).
+const stable = (t: E): string => JSON.stringify(t, (_, x: unknown) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map(key => [key, (x as Record<string, unknown>)[key]])) : x))
+const sameE = (a: E, b: E): boolean => stable(a) === stable(b)
+// findCount: the first count with the variable.
+const findCount = (cs: Count[], v: string): Count | undefined => cs.find(c => c.v === v)
+// resolve: each term's count, if every term names one whose bound is the instance's.
+function resolve(cs: Count[], B: E, ts: [number, string][]): [number, Count][] | undefined {
+  const out: [number, Count][] = []
+  for (const [z, v] of ts) {
+    const c = findCount(cs, v)
+    if (!c || !sameE(c.below, B)) return undefined
+    out.push([z, c])
+  }
+  return out
+}
+// sumE: a sum, right-nested from 0. posP, negP: Int.toNat z and Int.toNat (−z).
+const sumE = (es: E[]): E => es.reduceRight<E>((acc, e) => ({op: 'add', a: e, b: acc}), {op: 'const', value: 0})
+const posP = (z: number) => Math.max(z, 0), negP = (z: number) => Math.max(-z, 0)
+// side: each count read by rd times its coefficient's part, then the unit's part times `one`.
+const side = (part: (z: number) => number, rd: (c: Count) => E, one: E, u: number, rs: [number, Count][]): E =>
+  ({op: 'add', a: sumE(rs.map(([z, c]): E => ({op: 'mul', k: part(z), a: rd(c)}))), b: {op: 'mul', k: part(u), a: one}})
+// atCount: the count's variable; atWit: its body at the witness (substE [(key, var w)] body).
+const atCount = (c: Count): E => ({op: 'var', name: c.v})
+const atWit = (w: string) => (c: Count): E => substE(c.body, {vars: {[c.key]: {op: 'var', name: w}}, maps: {}, flags: {}})
+// countHyp: the instance's hypothesis (and/or binary, as Lean's .and/.or).
+export function countHyp(cs: Count[], i: CountInst): C | undefined {
+  const rs = resolve(cs, i.below, i.terms)
+  if (!rs) return undefined
+  const one: E = {op: 'const', value: 1}, w = atWit(i.wit)
+  return {op: 'or', xs: [
+    {op: '<=', a: side(posP, atCount, i.below, i.unit, rs), b: side(negP, atCount, i.below, i.unit, rs)},
+    {op: 'and', xs: [{op: '<', a: {op: 'var', name: i.wit}, b: i.below}, {op: '<', a: side(negP, w, one, i.unit, rs), b: side(posP, w, one, i.unit, rs)}]}]}
+}
+// countHyps: every instance's, in order, or none if one isn't built.
+export function countHyps(cs: Count[], is: CountInst[]): C[] | undefined {
+  const out: C[] = []
+  for (const i of is) {
+    const h = countHyp(cs, i)
+    if (!h) return undefined
+    out.push(h)
+  }
+  return out
+}
+// witFresh: no hypothesis reads w, no count names it or reads it (in its bound or body), no instance's bound reads it.
+const readsVar = (t: E | C, w: string): boolean => reads(t).vars.has(w)
+export const witFresh = (hyps: C[], cs: Count[], is: CountInst[], w: string): boolean =>
+  hyps.every(h => !readsVar(h, w)) && cs.every(c => c.v !== w && !readsVar(c.below, w) && !readsVar(c.body, w)) && is.every(j => !readsVar(j.below, w))
+// countedOk: the witnesses distinct (cDistinct), each fresh.
+export function countedOk(hyps: C[], cs: Count[], is: CountInst[]): boolean {
+  const ws = is.map(i => i.wit)
+  return new Set(ws).size === ws.length && is.every(i => witFresh(hyps, cs, is, i.wit))
+}
+// checkCounted, and TypeScript's own condition: every coefficient a safe integer (Lean's are Int).
+const integral = (is: CountInst[]): boolean => is.every(i => Number.isSafeInteger(i.unit) && i.terms.every(([z]) => Number.isSafeInteger(z)))
+export function checkCounted(g: CountedGoal, cert: {insts: CountInst[], tree: Tree}): boolean {
+  if (!(countedOk(g.hyps, g.counts, cert.insts) && integral(cert.insts))) return false
+  const goal = countedGoal(g, cert.insts)
+  return goal !== undefined && check(goal, cert.tree)
+}
+// The goal a certificate's tree refutes: the goal's hypotheses, then the instances' (also what the search and the
+// exporter read), or none.
+export function countedGoal(g: CountedGoal, insts: CountInst[]): Goal | undefined {
+  const hs = countHyps(g.counts, insts)
+  return hs && {name: g.name, hyps: [...g.hyps, ...hs]}
+}
+
+// --- ghost maps (Lean twin: ../lean-kernel/GhostMap.lean) ----------------------------------------------------------------
+// A ghosted machine: the original and its ghosts, ghost values (a start over the params, a step) and ghost maps (a start
+// at every key and a write, at one key or at every key), new names no part of the original reads. A ghost map is a Skolem
+// function the step keeps: a law of the ghosted machine about every key k that reads W at k says every k has a witness.
+// GhostMap.lean: smghost_laws (a law that reads no ghost holds of the original), some_of_ghostmap and
+// forall_some_of_ghostmap (a law over a ghost map gives, at every reachable state of the original, ∀ k ∃ x). The two
+// functions below are Lean's SGhostedM.full and smghostOk, over the machine's literal (emit.ts's machineLit).
+export type GhostMap = {start: number, write: MapUpdate}
+export type Ghosted = {orig: Machine, vars: Record<string, {start: E, step: E}>, maps: Record<string, GhostMap>}
+// SGhostedM.full: the original with each ghost's start and step after its own (Lean: lists appended; here records, whose
+// names smghostOk keeps apart from the original's).
+export function ghostedMachine(g: Ghosted): Machine {
+  const o = g.orig, gv = Object.entries(g.vars), gm = Object.entries(g.maps)
+  return {...o,
+    state: {...o.state, ...Object.fromEntries(gv.map(([name, x]) => [name, x.start]))},
+    maps: {...o.maps, ...Object.fromEntries(gm.map(([name, x]) => [name, x.start]))},
+    step: {...o.step,
+      state: {...o.step.state, ...Object.fromEntries(gv.map(([name, x]) => [name, x.step]))},
+      maps: {...o.step.maps, ...Object.fromEntries(gm.map(([name, x]) => [name, x.write]))}}}
+}
+// smghostOk: the original takes no history and no sums (Lean's SGhostedM is over SMachine); the ghost variables are none of
+// its variables (extVars: inputs, quantified flags and their witnesses; the state; the plain flags; the keys its writes
+// and quantified flags bind); the ghost maps none of its maps (origMaps: started, written, carried); and none of its
+// parts reads a ghost (pre, assume, flags, the start, the step, the writes, the facts). Lean's distinct ghosts and ghost
+// writes of ghost maps only hold here by construction (record keys; a ghost map's write is its own).
+export function ghostedOk(g: Ghosted): boolean {
+  const o = g.orig, vs = Object.keys(g.vars), ms = Object.keys(g.maps)
+  const fl = Object.entries(o.step.flags ?? {}), ws = Object.values(o.step.maps ?? {})
+  const quant = fl.filter((e): e is [string, Extract<C, {op: 'all'}>] => e[1].op === 'all')
+  const varNames = [...o.inputs, ...quant.flatMap(([f, q]) => [`?${f}`, ...witnessesOf(f, q)]), ...Object.keys(o.state), ...Object.keys(o.step.state ?? {}),
+    ...fl.map(([f]) => `?${f}`), ...ws.flatMap(w => ('each' in w ? [w.each] : [])), ...quant.flatMap(([, q]) => boundOf(q))]
+  const mapNames = [...Object.keys(o.maps ?? {}), ...Object.keys(o.step.maps ?? {}), ...(o.inputMaps ?? [])]
+  const parts: (E | C)[] = [o.pre ?? trueC, o.assume ?? trueC, ...fl.map(([, c]) => c), ...Object.values(o.state), ...Object.values(o.step.state ?? {}),
+    ...ws.flatMap(w => ('each' in w ? [w.value] : [w.key, w.value])), ...(o.facts ?? []).map(l => l.holds)]
+  const apart = (t: E | C): boolean => { const r = reads(t); return vs.every(v => !r.vars.has(v)) && ms.every(mp => !r.maps.has(mp)) }
+  return !o.history && !o.sums && vs.every(v => !varNames.includes(v)) && ms.every(mp => !mapNames.includes(mp)) && parts.every(apart)
+}
+// The laws of a ghosted machine, checked: the ghosts as smghostOk says, and the laws of the ghosted machine as checkLaws
+// says (Lean: smghostOk and checkSMachine of SGhostedM.full).
+export const checkGhostedLaws = (g: Ghosted, laws: Law[], proof: {instances: Record<string, Instances>, trees: Record<string, Tree>}): boolean =>
+  ghostedOk(g) && checkLaws(ghostedMachine(g), laws, proof)
