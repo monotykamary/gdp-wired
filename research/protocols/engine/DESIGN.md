@@ -748,6 +748,52 @@ minimal cut were then banked ahead of the IC3 rounds at the coordinator's reques
 - **Spend:** $0.09 of Modal billed for this round's apps so far. The current hour is still being billed; about $0.15 in
   all, against $3.
 
+## gen/ring2: fitting ring in 60 s (WIP at the 15:40 checkpoint; nothing wired, ring not yet inside 60 s)
+
+**Built:**
+- **On gen/ring2 from main fc5611b, behind `GDP_TD=1` (off by default), core/infer.ts:** the top-down phase ported from
+  db6c00f.
+  - Houdini is incremental: after a drop, only the goals whose proof read a dropped cube are asked again (by decideLaw's
+    used laws), plus new and undecided goals.
+  - A first cap (`GDP_TD_Q1`, default 250 ms), and a second pass at `GDP_TD_Q2` (1 s), only when a round would end with no
+    drop.
+  - Then the cone and `prove()`.
+- **Its decisions run strict (`withStrict`):** without it, unconfirmed models at the 1 s cap dropped 28 and 23 true cubes
+  in one round each, and the caller was lost (`runs/engine/r2a`).
+- **kernel/prove.ts:** decideLaw returns `uses`; `withStrict` is exported.
+- **Timing events:** 'join engine' and 'join td'.
+- **Checks:** typecheck and lint clean at 7933ce5 (on Modal). The later commits are not rechecked.
+
+**Ring, phase times** (Modal 2 CPU, `--ms 180000`, one run each)
+
+| config | before the engine (join, enumeration, filter) | filter left / pool | Houdini | cone + `prove()` | verdict |
+|---|---|---|---|---|---|
+| exp/pool-z3 rg19 (old filter 4 s an instance; full Houdini; strict) | 24 s | 64 / 42 | 68 s, 5 rounds | 1 + 8.6 s | proven 105 s |
+| ring2, q1 1 s, filter 3 s (main's default) | 12.5 s (join about 4 s) | 94 / 66 | 153 s, 8 rounds (asked 66, 39, 27, 23, 14, 16, 14, 11) | 0.5 + 13 s, cut by the wall | unknown 180 s |
+| ring2, q1 1 s, filter 8 s | 15.4 s | 68 / 44 | 77 s, 7 rounds | 0.7 + **66 s** | proven 160 s |
+| ring2, q1 250 ms with the 1 s second pass, filter 8 s | 15.5 s | 68 / 44 | 128 s, 15 rounds | 0.7 + 30 s (cone 11) | proven 174 s |
+| ring2, q1 500 ms with the second pass, filter 8 s | 16.1 s | 68 / 44 | 136 s, 12 rounds | 0.9 + 26 s, cut | unknown 180 s |
+
+**What the levers did:**
+- **The incremental Houdini** cuts the goals asked a round, to 6–39 after round 0. The proof memo was already cheap for
+  standing proofs, so the time saved is small.
+- **The short first cap with the second pass** is worse on ring. Most of its goals need 0.3–1 s, and since rounds keep
+  dropping, the second pass rarely runs, so each round re-asks the undecided at 250 ms (15 rounds instead of 7).
+- **The time before the engine** is 11–16 s on main, not 24. The join is about 3–4 s; the rest is the enumeration and
+  the filter. Main's 3 s filter leaves a 50% larger pool (66 against 44), which costs more in Houdini than the extra
+  filter seconds.
+- **The final `prove()` of the cone** varies from 8.6 s to 66 s for 19 cubes. It is now the largest single cost.
+
+**The exact next step** (none of this is verified):
+1. a filter budget for the engine's pool that scales with the instance's BFS (ring's +1 instance needs about 8 s), with
+   a general cap;
+2. q1 at 1 s, no two-pass;
+3. the cone's `prove()` cost: the fast set proof (`prove(…, true)`) on the cone first, timed against the usual one;
+4. then ring at 60 s twice;
+5. only then the wiring with a pool threshold, the ten twice, and the quick bar.
+
+**Spend:** about $0.12 for this round's apps (estimated from job seconds; the hour is still being billed).
+
 ## Where it stands (read this first; the checkpoints below are the history)
 
 **Branch and code**
