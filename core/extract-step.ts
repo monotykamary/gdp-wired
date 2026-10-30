@@ -1077,7 +1077,7 @@ export class Stepper {
       case 'at': { const [pl, q] = this.place(x.pl as SX, p); if (pl.k === 'blank') return refuse(x, '_'); const [v, q2] = this.read(pl, x, q); if (v.t === 'opaque' && !x.raw) return refuse(x, v.why); return [v, q2] }
       case 'deref': { const [v, q] = this.ev(x.x as SX, p); return this.deref(v, [], x, q) }
       case 'as': { const [v, q] = this.ev(x.x as SX, p); if (v.t === 'num' && x.ity) return [{...v, ty: x.ity as IntTy}, q]; if (v.t === 'nil' && x.nil) return [x.nil === 'ptr' ? {t: 'ptr', to: {k: 'nil'}} : {t: 'err', is: I.F}, q]; return [v, q] }
-      case 'conv': { const [v, q] = this.ev(x.x as SX, p), ty = x.ity as IntTy | undefined; if (ty && v.t === 'num') return [{t: 'num', e: this.wrap(v.e, ty.ub ? {bits: ty.bits, signed: ty.signed, name: ty.name, t: ty.t} : ty, x, q), ty}, q]; return refuse(x, String(x.why)) }
+      case 'conv': { const [v, q] = this.ev(x.x as SX, p), ty = x.ity as IntTy | undefined; if (ty && v.t === 'num') return [{t: 'num', e: this.wrap(v.e, ty.ub ? {bits: ty.bits, signed: ty.signed, name: ty.name, t: ty.t} : ty, x, q), ty}, q]; return refuse(x, v.t === 'opaque' && v.ask ? `${String(x.why)}: of ${v.why}` : String(x.why)) }
       case 'binop': { const [a, q] = this.ev(x.x as SX, p), [b, q2] = this.ev(x.y as SX, q); return [this.binop(String(x.op), a, b, x, q2), q2] }
       case 'andalso': {
         // The right side runs only where the left doesn't decide: its failures and effects only there.
@@ -2190,13 +2190,14 @@ export function sourceOf(mod: {path: string, root: string}, file: string): strin
 // The stubbing of a compiled language's check: each answered call's text (from its position to its end) replaced in
 // its file by the harness's stub for that answer (in the code's language). Every file a call is answered in,
 // rewritten, by its name in the positions; a call with no end (a reader that doesn't say) is a refusal of the check.
-export function stubbed(read: StepRead, text: (file: string) => string | undefined, stub: (a: Answer, i: number) => string): Map<string, string> {
+export function stubbed(read: StepRead, text: (file: string) => string | undefined, stub: (a: Answer, i: number, call: string) => string): Map<string, string> {
   const edits = new Map<string, [number, number, string][]>(), starts = new Map<string, number[]>()
   read.answers.forEach((a, i) => {
     for (const s of a.at ?? []) {
       const m = /^(.*):(\d+):(\d+)$/.exec(s.p), e = s.end && /^(\d+):(\d+)$/.exec(s.end)
       if (!m || !e) throw new Refusal(s.p, `${a.key}: an answered call whose end the reader doesn't give (the check can't stub it)`)
-      ;(edits.get(m[1]!) ?? edits.set(m[1]!, []).get(m[1]!)!).push([lineCol(m[1]!, Number(m[2]), Number(m[3])), lineCol(m[1]!, Number(e[1]), Number(e[2])), stub(a, i)])
+      const from = lineCol(m[1]!, Number(m[2]), Number(m[3])), to = lineCol(m[1]!, Number(e[1]), Number(e[2]))
+      ;(edits.get(m[1]!) ?? edits.set(m[1]!, []).get(m[1]!)!).push([from, to, stub(a, i, (text(m[1]!) ?? '').slice(from, to))])
     }
   })
   function lineCol(f: string, l: number, c: number): number {

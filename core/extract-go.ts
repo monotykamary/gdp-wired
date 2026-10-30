@@ -38,7 +38,7 @@ import * as I from './extract-ir.ts'
 import type {B, K, N} from './extract-ir.ts'
 import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var} from './extract-read.ts'
 import {type Extraction, fromModel} from './extract.ts'
-import {type Inferred, type IntTy, type Recipe, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, iteTerm, mapWritesOf, phiP, rangeLaws, rangeOf, varTerm} from './extract-step.ts'
+import {type Answer, type Inferred, type IntTy, type Recipe, type SType, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, iteTerm, mapWritesOf, phiP, rangeLaws, rangeOf, varTerm} from './extract-step.ts'
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
 
 // --- the reader's JSON ----------------------------------------------------------------------------------------------
@@ -53,12 +53,13 @@ export type GoParam = {name?: string, id?: string, t: number, variadic?: boolean
 export type GoFunc = {name: string, p: string, span: [number, number], recv?: {t: number, ptr: boolean, type: string, name?: string, id?: string}, generic?: boolean, params: GoParam[], results: GoParam[], body?: GS[]}
 // (`lang`: the language the JSON was read from, Go's reader's or another's in its shape, core/c/reader.ts's)
 // (`ctor`: C++'s constructor, run once for the start state, its parameters the rule's)
-export type GoPkg = {lang?: string, ctor?: GoFunc, package: string, files: {name: string, imports: {path: string, name: string, std: boolean}[]}[], funcs: GoFunc[], types: {name: string, t: number, p: string, span: [number, number]}[],
+// (`dir`: where its files are, for the comments that tag calls and the check's rewritten copies)
+export type GoPkg = {dir?: string, lang?: string, ctor?: GoFunc, package: string, files: {name: string, imports: {path: string, name: string, std: boolean}[]}[], funcs: GoFunc[], types: {name: string, t: number, p: string, span: [number, number]}[],
   consts: {name: string, t: number, c: GC, p: string}[], vars: {name: string, t: number, p: string, init?: GX}[], errors: string[], ttab: TT[]}
 
 export type GoOptions = {
   // The struct, and the methods read (by default every method of it the package declares with a body).
-  entry: string, methods?: string[],
+  entry?: string, methods?: string[],
   // What a failed call (an error result that isn't nil, or a panic) leaves: 'refuse' (the default) refuses a write to
   // the state before it, the object being the caller's to use after; 'discard' takes the caller to discard what the call
   // wrote (it keeps the object as it was before the call), and the check restores it so.
@@ -80,7 +81,7 @@ class Go {
   readonly leaves: GoLeaf[] = []
   readonly funcs: Record<string, SFunc> = {}
   constructor(readonly pkg: GoPkg, readonly opts: GoOptions, inf?: Inferred) {
-    const mod: SModule = {lang: pkg.lang ?? 'go', file: pkg.files[0]?.name ?? 'go', path: '', module: pkg.package, root: '', entries: [], recs: {}, funcs: this.funcs, split: false, stubs: false}
+    const mod: SModule = {lang: pkg.lang ?? 'go', file: pkg.files[0]?.name ?? 'go', path: pkg.dir ? `${pkg.dir}/${pkg.files[0]?.name ?? ''}` : '', module: pkg.package, root: pkg.dir ?? '', entries: [], recs: {}, funcs: this.funcs, split: false}
     this.g = new Stepper(mod, {entry: opts.entry, ...(opts.onError ? {onError: opts.onError} : {})}, inf)
     for (const f of pkg.funcs) this.funcs[`${f.recv?.type ?? ''}.${f.name}`] = this.fn(f)
   }
@@ -126,8 +127,10 @@ class Go {
   no(x: {p: string}, why: string, more: Record<string, unknown> = {}): SX { return {e: 'no', p: x.p, why, ...more} }
   // A call of another package's code: at the boundary where it is inferred, its object and arguments lowered (the
   // executor evaluates them, as Go does, and refuses the call where they give it the state).
+  // (its result's type, where a scalar: an answer's; its end and its type's name: where the check stubs it)
   ext(x: GX, why: string, name: string, recv?: GX): SX {
-    return this.no(x, why, {ext: name, args: (x.a ?? []).map(y => this.x(y)), kw: [], ...(recv ? {recv: this.x(recv)} : {})})
+    const k = this.T(x.t).k, it = this.intTy(x.t), ret: SType | undefined = it ? {k: 'int', bits: it.bits, signed: it.signed} : k === 'bool' ? {k: 'bool'} : k === 'string' ? {k: 'str'} : undefined
+    return this.no(x, why, {ext: name, args: (x.a ?? []).map(y => this.x(y)), kw: [], ...(recv ? {recv: this.x(recv)} : {}), ...(ret ? {ret, ty: this.tname(x.t)} : {}), ...((x as {end?: string}).end ? {end: (x as {end?: string}).end} : {})})
   }
   at(x: GX): {p: string, text: string} { return {p: x.p, text: x.text} }
   // A value as the type it is assigned to: an untyped constant takes the type; an integer stays itself.
@@ -550,11 +553,21 @@ class Go {
 }
 
 // --- the model --------------------------------------------------------------------------------------------------------
-export type GoRead = {ctor?: {name: string, t: number, arg: Arg}[], model: Model, edges: B[], unsigned: string[], leaves: GoLeaf[], spans: [string, number, number][], entry: string, methods: {name: string, ptr: boolean, params: {name: string, t: number, arg: Arg}[], results: number[], err: boolean}[]}
+// (answers: the calls answered, each request's values the last argument of its event; ranges: each one's type's)
+export type GoRead = {answers?: (Answer & {range?: [number, number]})[], ctor?: {name: string, t: number, arg: Arg}[], model: Model, edges: B[], unsigned: string[], leaves: GoLeaf[], spans: [string, number, number][], entry: string, methods: {name: string, ptr: boolean, params: {name: string, t: number, arg: Arg}[], results: number[], err: boolean}[]}
 type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: V, when: B}
 // Read with the boundary inferred unless strict (core/extract-step.ts's readStep: each refused run adds what the next
 // infers): Go's check can't stub a call, so a call of another package is left out where nothing reads its value.
 export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
+  if (!opts.entry && !opts.strict) {
+    // No entry: the package's one struct whose exported methods write it (core/extract-step.ts's writesState).
+    const g = new Go(pkg, opts).g, writing = (t: string) => pkg.funcs.filter(f => f.recv?.type === t && f.body && /^[A-Z]/.test(f.name) && g.writesState(`${t}.${f.name}`, new Set([g.mod.funcs[`${t}.${f.name}`]?.recv ?? ''])))
+    const cands = pkg.types.filter(t => writing(t.name).length)
+    if (cands.length !== 1) refuse(pkg.files[0]?.name ?? '?', cands.length ? `several structs write their state (${cands.map(t => t.name).join(', ')}): name one (entry)` : 'no struct whose exported methods write it: name the entry')
+    const r = readGo(pkg, {...opts, entry: cands[0]!.name})
+    r.model.notes.unshift(`the entry inferred: ${cands[0]!.name}, the struct whose exported methods write it`)
+    return r
+  }
   if (opts.strict) return readGo1(pkg, opts, new Go(pkg, opts))
   const inf: Inferred = {answers: new Map(), cut: new Map()}
   for (let n = 0; ; n++) {
@@ -566,8 +579,8 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
     }
   }
 }
-function readGo1(pkg: GoPkg, opts: GoOptions, go: Go): GoRead {
-  const g = go.g
+function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
+  const g = go.g, opts = {...o, entry: o.entry ?? refuse(pkg.files[0]?.name ?? '?', 'no entry (strict: name the struct)')}
   const td = pkg.types.find(t => t.name === opts.entry) ?? refuse(pkg.files[0]?.name ?? '?', `no type ${opts.entry} in package ${pkg.package}`)
   const st = go.T(td.t)
   if (st.k !== 'struct') refuse(td, `${opts.entry} is a ${st.k === 'float' ? 'float' : st.k} type, not a struct (the subset reads a struct and its methods)`)
@@ -688,6 +701,8 @@ function readGo1(pkg: GoPkg, opts: GoOptions, go: Go): GoRead {
   // The lazy inputs' records: the fields read.
   const recOf = (a: Arg): Arg => (a.k === 'lazy' ? {k: 'rec', fields: (g.lazyIn.get(`in:${a.prefix}`)?.fields ?? []).map(([f, n]) => [f, {k: 'input', name: n} as Arg])} : a)
   for (const e of events) e.args = e.args.map(recOf)
+  const answers = [...g.answers.values()].map(a => ({...a, ...(g.ints.get(a.inputs.name) ? {range: rangeOf(g.ints.get(a.inputs.name)!)} : {})}))
+  if (answers.length) for (const e of events) e.args.push({k: 'rec', fields: answers.flatMap(a => [a.inputs.name, ...(a.inputs.none ? [a.inputs.none] : [])]).map(n => [n, {k: 'input', name: n} as Arg])})
   // (and the harness's: it makes the struct with the fields read)
   for (const mt of methods) mt.params = mt.params.map(pa => ({...pa, arg: recOf(pa.arg)}))
   // The methods together: each variable by the method called.
@@ -756,7 +771,7 @@ function readGo1(pkg: GoPkg, opts: GoOptions, go: Go): GoRead {
   // Unsigned inputs are naturals (the input's kind); a state variable's sort is the printer's to decide (a natural where
   // every write is proven one: a wrap by cases may not be, though it stays within the type, which its law says).
   const unsigned = [...g.ints].filter(([n, ty]) => { const [lo, hi] = rangeOf(ty); return lo === 0 && hi > 0 && (g.inputs.some(v => v.name === n) || cparams.some(v => v.name === n)) }).map(([n]) => n)
-  return {...(pkg.ctor ? {ctor: ctorArgs} : {}), model, edges: g.edges, unsigned, leaves: go.leaves.filter(l => l.kind === 'frame' || state.some(v => v.name === l.name) || maps.some(d => d.name === l.name) || lists.some(d => d.name === l.name)), spans: [...g.spans.values()], entry: opts.entry, methods}
+  return {...(pkg.ctor ? {ctor: ctorArgs} : {}), model, edges: g.edges, unsigned, leaves: go.leaves.filter(l => l.kind === 'frame' || state.some(v => v.name === l.name) || maps.some(d => d.name === l.name) || lists.some(d => d.name === l.name)), spans: [...g.spans.values()], entry: opts.entry, methods, ...(answers.length ? {answers} : {})}
 }
 function termOf(v: V, at: {p: string}): Term {
   if (v.t === 'num') return {s: 'num', e: v.e}
@@ -840,6 +855,7 @@ export function extractGo(dir: string, opts: GoOptions): GoExtraction {
   let read: GoRead, pkg: GoPkg
   try {
     pkg = readGoPackage(dir)
+    pkg.dir = node<{resolve: (p: string) => string}>('node:path').resolve(dir)
     try { read = readGo(pkg, opts) } catch (e) { if (e instanceof Refusal) capture({k: 'read', opts, pkg, refusal: {where: e.where, what: e.what}}); throw e }
     capture({k: 'read', opts, pkg, read})
   } catch (e) {

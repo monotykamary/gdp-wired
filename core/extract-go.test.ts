@@ -419,3 +419,30 @@ func (c *C) Safe() {
 	c.N++
 }`, 'C'), /defer|recover/)
 }, 600_000)
+
+t('the boundary inferred: another package\'s call left out, one whose value is read answered over its type, the entry', () => {
+  const x = ok(go(`import (
+	"log"
+	"unicode/utf8"
+)
+
+type Q struct{ Used int64; Cap int64 }
+
+func (q *Q) Take(name string) bool {
+	log.Println("take", name)
+	n := int64(utf8.RuneCountInString(name))
+	if n < 0 || q.Used > q.Cap-n {
+		return false
+	}
+	q.Used += n
+	return true
+}
+
+func (q *Q) Left() int64 { return q.Cap - q.Used }`, undefined as never))
+  const notes = x.notes.join('\n')
+  expect(notes).toMatch(/the entry inferred: Q/)
+  expect(notes).toMatch(/log.Println .*left out \(inferred/)
+  expect(notes).toMatch(/unicode\/utf8.RuneCountInString .*answered by the request \(inferred: its value is read; assumes .* may return any int\)/)
+  const r = x.rule! as any
+  expect(proveSteps(r, x.invariants ?? [], [r.stepLaw('never past its cap', (_b: any, a: any) => a.Used.atMost(a.Cap), (b: any) => b.Used.atMost(b.Cap))]).proven).toBe(true)
+}, 600_000)

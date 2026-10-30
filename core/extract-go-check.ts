@@ -12,6 +12,7 @@ import type {Arg, Model} from './extract-read.ts'
 import type {B} from './extract-ir.ts'
 import type {Sorts} from './extract-print.ts'
 import {type CodeSide, type Coverage, type Evidence, Outside, type Snap, constantsOf, draw, drive, evalTerm} from './extract-check.ts'
+import {stubbed} from './extract-step.ts'
 import {type GoOptions, type GoPkg, type GoRead, type TT, node} from './extract-go.ts'
 
 export type GoLeaf = {name: string, path: string[], kind: 'int' | 'bool' | 'str' | 'big' | 'bignil' | 'map' | 'mapnil' | 'list' | 'frame', t: number, go: string}
@@ -123,7 +124,30 @@ type gdpCmd struct {
 	State map[string]json.RawMessage \`json:"state"\`
 	M     string                     \`json:"m"\`
 	A     []json.RawMessage          \`json:"a"\`
+	Ans   []json.RawMessage          \`json:"ans"\`
 }
+${read.answers?.length ? `
+// An answered call's value (each one rewritten to gdpAns[T](i) in the package's copy): the request's input for it.
+var gdpAnswers []json.RawMessage
+
+func gdpAns[T any](i int, _ ...any) T {
+	var v T
+	if i >= len(gdpAnswers) {
+		return v
+	}
+	var s string
+	if json.Unmarshal(gdpAnswers[i], &s) == nil {
+		if p, ok := any(&v).(*string); ok {
+			*p = s
+		} else {
+			json.Unmarshal([]byte(s), &v)
+		}
+		return v
+	}
+	json.Unmarshal(gdpAnswers[i], &v)
+	return v
+}
+` : ''}
 type gdpRes struct {
 	State  map[string]any \`json:"state,omitempty"\`
 	Out    any            \`json:"out,omitempty"\`
@@ -246,7 +270,7 @@ func GdpHarnessMain(in, out string) {
 		case "get":
 			res = map[string]any{"state": gdpGet(objs[c.ID])}
 		case "call":
-			res = gdpRun(objs[c.ID], gdpStep{M: c.M, A: c.A})
+			${read.answers?.length ? 'gdpAnswers = c.Ans\n\t\t\t' : ''}res = gdpRun(objs[c.ID], gdpStep{M: c.M, A: c.A})
 		}
 		b, _ := json.Marshal(res)
 		wr.Write(b)
@@ -293,9 +317,14 @@ export function checkGo(dir: string, pkg: GoPkg, read: GoRead, r: Rule, sorts: S
     fs.mkdirSync(mainDir, {recursive: true})
     fs.writeFileSync(`${mainDir}/main.go`, `package main\n\nimport (\n\t"os"\n\n\tpkg ${JSON.stringify(importPath)}\n)\n\nfunc main() { pkg.GdpHarnessMain(os.Args[1], os.Args[2]) }\n`)
     if (opts.keep) { fs.mkdirSync(opts.keep, {recursive: true}); fs.writeFileSync(`${opts.keep}/harness.go`, code) }
+    // (each answered call rewritten to the harness's answer in a copy of its file, the build told by an overlay)
+    const over: Record<string, string> = {}
+    for (const [f, t] of stubbed(read as never, f => fs.readFileSync(`${dir}/${f}`, 'utf8'), (a, i, t) => `gdpAns[${a.ty}](${i}, ${t.slice(0, t.indexOf('('))}, ${t.slice(t.indexOf('(') + 1)}`)) { const o = node<{resolve: (...p: string[]) => string}>('node:path').resolve(dir, f); fs.writeFileSync(`${work}/${f}`, t); over[o] = over[node<{realpathSync: (p: string) => string}>('node:fs').realpathSync(o)] = `${work}/${f}` }
+    if (Object.keys(over).length) fs.writeFileSync(`${work}/overlay.json`, JSON.stringify({Replace: over}))
     try {
       // The harness's own package in -coverpkg too: the counters are written only where main is instrumented.
-      cp.execFileSync('go', ['build', '-cover', `-coverpkg=${importPath},${mod.module}/${mainDir.split('/').pop()}`, '-o', `${work}/harness`, `./${mainDir.split('/').pop()}`], {cwd: mod.root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: goEnv(), maxBuffer: 1 << 26})
+      // (a rewritten copy isn't instrumented with -cover, which reads the files as they are: no arms counted then)
+      cp.execFileSync('go', ['build', ...(fs.existsSync(`${work}/overlay.json`) ? [`-overlay=${work}/overlay.json`] : ['-cover', `-coverpkg=${importPath},${mod.module}/${mainDir.split('/').pop()}`]), '-o', `${work}/harness`, `./${mainDir.split('/').pop()}`], {cwd: mod.root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: goEnv(), maxBuffer: 1 << 26})
     } catch (x) {
       const err = String((x as {stderr?: string}).stderr ?? (x as Error).message)
       return {...empty, mismatch: `the package doesn't build with the check's harness: ${err.split('\n').filter(Boolean).slice(0, 6).join(' | ')}`}
@@ -403,7 +432,13 @@ export function speak(work: string, bin: string, env: Record<string, string | un
       at: (s, params) => { const res = ask({op: 'at', state: snapJson(s), ...ctorArgs(params)}); return res.bad ? undefined : res.id },
       snapOf: self => toSnap(ask({op: 'get', id: self}).state as Record<string, unknown>),
       call: (self, e, args) => {
-        const res = ask({op: 'call', id: self, m: e.call, a: args}) as {out?: unknown, hasOut?: boolean, err?: string, panic?: string, bad?: string, frame?: string}
+        // (the answers' values: the event's last argument, each one within its type or the request is outside)
+        let ans: unknown[] | undefined
+        if (read.answers?.length) {
+          const v = args.pop() as Record<string, Raw>
+          ans = read.answers.map(a => { const x = v[a.inputs.name] ?? 0; if (a.range && (Number(x) < a.range[0] || Number(x) > a.range[1])) throw new Outside(`${a.key} answers ${String(x)}, outside its type`); return a.inputs.none && v[a.inputs.none] === true ? null : x })
+        }
+        const res = ask({op: 'call', id: self, m: e.call, a: args, ...(ans ? {ans} : {})}) as {out?: unknown, hasOut?: boolean, err?: string, panic?: string, bad?: string, frame?: string}
         if (res.frame) throw new Error(`the code changes ${res.frame}, a field the rule leaves out`)
         if (res.bad) return {ok: false, error: `the code can't be given it (${res.bad})`}
         if (res.err !== undefined || res.panic !== undefined) return {ok: false, error: res.err !== undefined ? `error: ${res.err}` : `panic: ${res.panic}`}

@@ -741,6 +741,10 @@ func expr(x ast.Expr) J {
 		}
 	case *ast.CallExpr:
 		j["e"], j["f"], j["a"] = "call", expr(x.Fun), exprs(x.Args)
+		// (its end too: a check stubs an answered call by rewriting it from its position to its end)
+		if q := fset.Position(x.End()); q.IsValid() {
+			j["end"] = fmt.Sprintf("%d:%d", q.Line, q.Column)
+		}
 		if x.Ellipsis.IsValid() {
 			j["ell"] = true
 		}
