@@ -15,7 +15,7 @@ const FRONT: [string, string, string[]][] = [
   ['./extract-ex', 'extractElixir', ['ex/reader.exs', 'ex/harness.exs', 'ex/json.exs']], ['./extract-rs', 'extractRust', ['rs/Cargo.toml', 'rs/src/main.rs']],
   ['./extract-c', 'extractC', []], ['./extract-cpp', 'extractCpp', []], ['./extract-java', 'extractJava', ['jvm/JavaReader.java', 'jvm/Harness.java']],
   ['./extract-kotlin', 'extractKotlin', ['jvm/KtReader.java']], ['./extract-go', 'extractGo', ['go/go.mod', 'go/reader.go']],
-  ['./extract-swift', 'extractSwift', ['swift/Package.swift', 'swift/Sources/gdp-swiftreader/main.swift']],
+  ['./extract-swift', 'extractSwift', ['swift/Package.swift', 'swift/Sources/gdp-swiftreader/main.swift', 'swift/Harness.swift', 'swift/Main.swift']],
 ]
 const built = existsSync(`${root}dist/core/dsl.js`)
 
