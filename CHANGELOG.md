@@ -3,6 +3,42 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.33.0
+
+A soundness fix in the kernel, the ten protocols proven every time inside 60 s, two new certificate kinds proven in
+Lean, and two runs of a rule checked as one.
+- **Fixed: the TypeScript kernel could accept a proof of something false past 2^53.** Over the integers (the default)
+  the checker added and multiplied in floating point: `2^53 - 1 + 3 <= 2^53 - 1 + 1 + 1 + 1` is true, yet each `+ 1`
+  past 2^53 rounds back, and its refutation was accepted. An audit of the trusted code found seven more places of the
+  same kind (a combination's products, a comparison's difference, a decided choice, products and squares, a factor
+  not an integer, folded constants, the witness check). Every number the kernel reads or makes is now a safe integer
+  or refused; a test each (kernel/refusals.test.ts), every one a goal with a model or a false certificate accepted
+  before. Proofs re-checked in Lean were never affected (Lean's arithmetic is exact); a verdict checked only in
+  TypeScript, of a rule with constants near `Number.MAX_SAFE_INTEGER`, could have been wrong in every earlier release.
+  Found by an adversarial review of the new certificate kinds.
+- **Distributed protocols, 10 of 10 every time inside 60 s:** 200 of 200 runs proven (20 each, one worker, 2 vCPU),
+  every protocol along one path across its runs; ring_leader_election's slowest 95% within 43.9 s. One incremental
+  EPR encoder per kind of goal (each hypothesis encoded once behind an activation literal, one CDCL under
+  assumptions) cut ring's EPR work by 69%, and the engine's clock is counted from its own work, so a run's path no
+  longer depends on the machine. research/protocols/engine/DESIGN.md.
+- **Counts and ghost maps, two certificate kinds** (lean-kernel/Count.lean, GhostMap.lean): a goal may read the size
+  of a set below a bound (pigeonhole, majorities that meet, n − t of n quorums outside the faulty), and a law may say
+  every key has a witness through a ghost map the step keeps (∀∃). Both proven sound in Lean, checked alike in
+  TypeScript, with mutants, fuzzing and end-to-end exports; the search does not use them yet.
+- **`gdp-wired/relational`**: two runs of a rule as one rule, for noninterference, isolation between tenants and
+  agreement between a rule and its migration; deadlines over the request's clock; each proven law cites the clauses
+  it rests on, in the output and in the certificate.
+- **`system()`**: rules interleaved over shared stores and per-process maps, with environment models (isolation
+  levels, at-least-once delivery, retrying clients, expiring keys, failing stores), checked against PostgreSQL, Redis
+  and urllib3.
+- **IC3Syn's 29 protocols ported** (25 checked against TLC): 7 proven at 60 s with nothing written. The rest are
+  mostly counting and ∀∃ laws, the two kinds above. research/protocols/ic3syn/.
+- **Front ends**: maps keyed by strings (Swift's dictionaries), `check .` on a directory, and a gate image like
+  GitHub's runner (clang 18, JDK 17).
+- **The release bar** (full, against ae36917, before the fix and the kinds): none wrong in any group; CHC-COMP +2,
+  TermComp ITS +4; the real-world corpus unchanged (440 laws, 391 proven); Lean 48 of 48. With the fix and the kinds:
+  the quick bar, none wrong; both suites 239 of 239.
+
 ## 0.32.0
 
 Every one of the ten distributed protocols proven with nothing written, the extraction boundary inferred in every
