@@ -13,7 +13,7 @@ const javac = process.env.JAVA_HOME ? `${process.env.JAVA_HOME}/bin/javac` : 'ja
 const TOOLS: Record<string, () => boolean> = {
   python: () => has('python3', '--version'), ruby: () => has('ruby', '-e', 'require "prism"'), elixir: () => has('elixir', '-e', ':ok'),
   java: () => has(javac, '-version'), kotlin: () => has(javac, '-version') && (!!process.env.KOTLIN_HOME || has('sh', '-c', 'command -v kotlinc')),
-  go: () => has('go', 'version'), rust: () => has('cargo', '--version'), c: () => has('clang', '--version'), cpp: () => has('clang++', '--version'), ts: () => true,
+  go: () => has('go', 'version'), rust: () => has('cargo', '--version'), swift: () => has(process.env.GDP_SWIFT ?? 'swift', '--version'), c: () => has('clang', '--version'), cpp: () => has('clang++', '--version'), ts: () => true,
 }
 // The case's files (the first the one checked), written to a fresh directory.
 const files = (fs: Record<string, string>): string => {
@@ -133,6 +133,21 @@ impl Limiter {
     }
 }
 `, 'Cargo.toml': '[package]\nname = "clicase"\nversion = "0.1.0"\nedition = "2021"\npublish = false\n\n[lib]\npath = "src/lib.rs"\n'}, target: '.'},
+  swift: {files: {'limiter.swift': `
+final class Limiter {
+  private var count = 0
+  let limit: Int
+  init(limit: Int) { self.limit = limit }
+
+  // gdp: law a hit counts at most one: count <= old(count) + 1
+  // gdp: law every hit counts: count == old(count) + 1
+  func hit() -> Bool {
+    if count >= limit { return false }
+    count += 1
+    return true
+  }
+}
+`}},
   c: {files: {'lim.c': `
 struct lim { int count; int limit; };
 

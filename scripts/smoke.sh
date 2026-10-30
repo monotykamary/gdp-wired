@@ -1,15 +1,20 @@
 #!/bin/sh
 # The published package as a user gets it: the tarball (bun pm pack, as CI packs it) installed with npm into an empty
 # project, the README's budget example run under plain Node, and a TypeScript consumer type-checked against the
-# declarations. Usage: sh scripts/smoke.sh [tarball]  (packs one when none is given)
+# declarations; then gdp-wired-cli (packages/cli) installed alone beside it, its `npx gdp-wired-cli check` on a Python
+# file. Usage: sh scripts/smoke.sh [tarball cli-tarball]  (packs both when none is given)
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-tarball=${1:-}
+tarball=${1:-} clitarball=${2:-}
 if [ -z "$tarball" ]; then
   (cd "$root" && bun scripts/build.ts >/dev/null && bun pm pack --destination "$work/pack" >/dev/null)
   tarball=$(ls "$work"/pack/*.tgz)
+fi
+if [ -z "$clitarball" ]; then
+  (cd "$root/packages/cli" && bun pm pack --destination "$work/pack-cli" >/dev/null)
+  clitarball=$(ls "$work"/pack-cli/*.tgz)
 fi
 cd "$work"
 printf '{"name":"smoke","private":true,"type":"module"}\n' > package.json
@@ -145,3 +150,27 @@ TS
 printf '{"compilerOptions":{"strict":true,"noEmit":true,"module":"nodenext","moduleResolution":"nodenext","target":"es2022","lib":["es2022"],"types":[],"skipLibCheck":false},"files":["consumer.ts"]}\n' > tsconfig.json
 npx tsc -p tsconfig.json
 echo "typescript consumer: declarations resolve and type-check"
+# gdp-wired-cli, installed with nothing else (its typescript comes with it): a law in a Python file proven (exit 0), a
+# broken one (exit 1).
+mkdir "$work/cli" && cd "$work/cli"
+printf '{"name":"smoke-cli","private":true,"type":"module"}\n' > package.json
+npm install --no-audit --no-fund --silent "$tarball" "$clitarball"
+cat > meter.py <<'PY'
+class Meter:
+    def __init__(self, cap: int):
+        self.cap = cap
+        self.used = 0
+
+    # gdp: law never past the cap: used <= cap or used == 0
+    def take(self, n: int) -> bool:
+        if n <= 0 or self.used + n > self.cap:
+            return False
+        self.used += n
+        return True
+PY
+npx --no-install gdp-wired-cli check meter.py --no-propose > cli.log || { cat cli.log; echo 'gdp-wired-cli check: a proven law exits non-zero'; exit 1; }
+grep -q 'proven   never past the cap' cli.log || { cat cli.log; exit 1; }
+sed 's|^    # gdp: law never past the cap.*|    # gdp: law a take always counts: used == old(used) + n|' meter.py > meter2.py
+if npx --no-install gdp-wired-cli check meter2.py --no-propose > cli.log; then cat cli.log; echo 'gdp-wired-cli check: a broken law exits 0'; exit 1; fi
+grep -q 'broken   a take always counts' cli.log || { cat cli.log; exit 1; }
+echo "gdp-wired-cli check: a proven law exits 0, a broken one 1"

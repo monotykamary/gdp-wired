@@ -140,6 +140,10 @@
       "types": "./dist/core/extract-go.d.ts",
       "default": "./dist/core/extract-go.js"
     },
+    "./cli": {
+      "types": "./dist/core/cli.d.ts",
+      "default": "./dist/core/cli.js"
+    },
     "./laws": {
       "types": "./dist/core/laws.d.ts",
       "default": "./dist/core/laws.js"

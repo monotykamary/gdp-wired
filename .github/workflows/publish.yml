@@ -1,8 +1,10 @@
 name: Publish
 
-# Releases of gdp-wired go out from here, and only from here.
+# Releases of gdp-wired and gdp-wired-cli (packages/cli: gdp-wired's CLI with
+# TypeScript beside it) go out from here, and only from here, together.
 #
-#   1. Bump "version" in package.json (the `chore(release): X.Y.Z` commit).
+#   1. Set the version of both: `bun scripts/version.ts X.Y.Z` (the
+#      `chore(release): X.Y.Z` commit; core/exports.test.ts checks they agree).
 #   2. Push it to main. This workflow publishes every version that npm does
 #      not have yet; any other push is a no-op.
 #
@@ -12,6 +14,11 @@ name: Publish
 # Auth is npm Trusted Publishing (OIDC): npm trusts this file, so no npm token
 # is stored anywhere. Registered once with
 #   npm trust github gdp-wired --repo monotykamary/gdp-wired --file publish.yml --allow-publish
+# gdp-wired-cli's first version is published by hand (a new name has nothing to
+# trust yet: npm publish with an OTP), then registered once the same way:
+#   npm trust github gdp-wired-cli --repo monotykamary/gdp-wired --file publish.yml --allow-publish
+# (Publish that first version, at the release's version, before pushing the
+# release commit; else this workflow publishes gdp-wired and fails on it.)
 #
 # Bun installs and packs exactly as `bun publish` does; npm uploads the
 # tarballs because only the npm CLI speaks trusted publishing. Before upload,
@@ -21,7 +28,7 @@ name: Publish
 on:
   push:
     branches: [main]
-    paths: [package.json]
+    paths: [package.json, packages/cli/package.json]
   workflow_dispatch:
     inputs:
       dry_run:
@@ -59,6 +66,7 @@ jobs:
         run: |
           specs=$(
           node -p "const p = require('./package.json'); p.name + '@' + p.version"
+          node -p "const p = require('./packages/cli/package.json'); p.name + '@' + p.version"
           )
           missing=""
           for spec in $specs; do
@@ -95,13 +103,12 @@ jobs:
         run: |
           bun run --if-present prepublishOnly
           bun pm pack --destination "$RUNNER_TEMP/pack"
+          (cd packages/cli && bun pm pack --destination "$RUNNER_TEMP/pack-cli")
 
-      - name: Smoke-test the tarball
+      - name: Smoke-test the tarballs
         if: steps.release.outputs.mode != 'skip'
         run: |
-          for tarball in "$RUNNER_TEMP"/pack/*.tgz; do
-            sh scripts/smoke.sh "$tarball"
-          done
+          sh scripts/smoke.sh "$RUNNER_TEMP"/pack/gdp-wired-*.tgz "$RUNNER_TEMP"/pack-cli/gdp-wired-cli-*.tgz
 
       - name: Publish
         if: steps.release.outputs.mode != 'skip'
@@ -111,8 +118,9 @@ jobs:
           # Trusted publishing needs npm 11.5.1 or newer.
           npm install --global npm@latest
           cd "$RUNNER_TEMP"
-          # ./ keeps npm from reading pack/name.tgz as a GitHub repo shorthand.
-          for tarball in ./pack/*.tgz; do
+          # ./ keeps npm from reading pack/name.tgz as a GitHub repo shorthand;
+          # gdp-wired first, as gdp-wired-cli depends on it.
+          for tarball in ./pack/*.tgz ./pack-cli/*.tgz; do
             spec=$(tar -xOzf "$tarball" package/package.json | node -p "const p = JSON.parse(require('fs').readFileSync(0, 'utf8')); p.name + '@' + p.version")
             echo "::group::$spec"
             tar -tzf "$tarball"

@@ -1,0 +1,28 @@
+{
+  "name": "gdp-wired-cli",
+  "version": "0.31.1",
+  "description": "gdp-wired's command line with TypeScript beside it: `npx gdp-wired-cli check <file|dir>` reads the rule in the code (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, Swift, C, C++, TypeScript), checks it against the code and proves the laws stated in its comments",
+  "license": "MIT",
+  "author": "Tom X Nguyen",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/monotykamary/gdp-wired.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/monotykamary/gdp-wired#readme",
+  "keywords": ["verification", "invariants", "cli", "gdp-wired"],
+  "type": "module",
+  "bin": {
+    "gdp-wired-cli": "bin.js"
+  },
+  "files": [
+    "bin.js"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "gdp-wired": "0.31.1",
+    "typescript": "^5.9.0"
+  }
+}

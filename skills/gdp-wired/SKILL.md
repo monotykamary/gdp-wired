@@ -87,8 +87,8 @@ When adding or changing a rule whose invariants matter:
 
 ## Code in another language (or code that already ships)
 
-`npx -p typescript -p gdp-wired gdp-wired check <file|dir>` reads the rule from Python, Ruby, Elixir, Java, Kotlin,
-Go, Rust, C, C++, TypeScript or Effect with nothing configured, checks it against the code, prints its names in the
+`npx gdp-wired-cli check <file|dir>` (gdp-wired with TypeScript beside it) reads the rule from Python, Ruby, Elixir,
+Java, Kotlin, Go, Rust, Swift, C, C++, TypeScript or Effect with nothing configured, checks it against the code, prints its names in the
 code's terms and proposes laws (each proven, broken with a run, or unknown, with the comment that states it). State a
 law with one comment in the code's language, over the code's names: `# gdp: law <name>: <expr>` (`//` in the
 C-family, Go, Rust, JVM and TypeScript; `@GdpLaw("...")`, `@gdp_law(...)`, `#[doc = "gdp: law ..."]` too). On the

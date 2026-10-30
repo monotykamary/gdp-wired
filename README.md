@@ -48,7 +48,7 @@ The rules already in your code (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, C,
 nothing to write: the language, the class or functions, and what other code is answered or left out are inferred.
 
 ```sh
-npx -p typescript -p gdp-wired gdp-wired check src/limiter.py     # or a .rb .ex .java .kt .go .rs .c .cpp .ts file, a Go package, a crate
+npx gdp-wired-cli check src/limiter.py     # or a .rb .ex .java .kt .go .rs .swift .c .cpp .ts file, a Go package, a crate, a Swift package
 ```
 
 It prints the rule in the code's names, checks it against the code by running both, and proposes laws from the rule's

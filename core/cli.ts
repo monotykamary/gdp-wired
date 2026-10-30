@@ -75,7 +75,7 @@ export function up(d: string, ok: (d: string) => boolean): string | undefined {
 async function extractOne(t: Target, o: Record<string, unknown>): Promise<Extraction> {
   try { return await extractWith(t, o) } catch (e) {
     // (every front end is read through the TypeScript extractor's terms: the typescript package beside gdp-wired)
-    if (/typescript/.test(String((e as Error).message)) && /find|resolve/i.test(String((e as Error).message))) throw new Error('the extractors need the typescript package beside gdp-wired: npm i -D gdp-wired typescript, or npx -p typescript -p gdp-wired gdp-wired check ...')
+    if (/typescript/.test(String((e as Error).message)) && /find|resolve/i.test(String((e as Error).message))) throw new Error('the extractors need the typescript package beside gdp-wired: npx gdp-wired-cli check ... (gdp-wired with TypeScript beside it), or npm i -D gdp-wired typescript')
     throw e
   }
 }

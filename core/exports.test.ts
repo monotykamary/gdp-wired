@@ -36,6 +36,17 @@ for (const [sub, fn, beside] of FRONT) {
   })
 }
 
+test('gdp-wired-cli: gdp-wired\'s CLI with TypeScript beside it, at gdp-wired\'s own version (they release together)', async () => {
+  const cli = JSON.parse(readFileSync(`${root}packages/cli/package.json`, 'utf8')) as {name: string, version: string, bin: Record<string, string>, dependencies: Record<string, string>}
+  expect(cli.name).toBe('gdp-wired-cli')
+  expect(cli.version).toBe((pkg as unknown as {version: string}).version)
+  expect(cli.dependencies['gdp-wired']).toBe(cli.version)
+  expect(cli.dependencies.typescript).toBeDefined()
+  expect(readFileSync(`${root}packages/cli/${cli.bin['gdp-wired-cli']}`, 'utf8')).toContain("from 'gdp-wired/cli'")
+  const mod = await import(built ? `${pkg.name}/cli` : `${root}core/cli.ts`) as Record<string, unknown>
+  expect(typeof mod.main).toBe('function')
+})
+
 test('the CLI is the package\'s bin, built from a file the build compiles', () => {
   expect(pkg.bin?.['gdp-wired']).toBe('dist/core/cli.js')
   expect(build.files).toContain('core/cli.ts')
