@@ -2115,8 +2115,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             }
           }
           live = live.filter(f => !killed.has(f))
-          // (GDP_POOL_STOP=1: no instance after one that kills nothing)
-          if (env.GDP_POOL_STOP === '1' && k > 0 && !killed.size) break
+          // (no instance after one that kills nothing; GDP_POOL_STOP=0 runs them all)
+          if (env.GDP_POOL_STOP !== '0' && k > 0 && !killed.size) break
         }
         opts.progress?.('join pool', {made: pool.length, left: live.length, states, ms: Math.round(performance.now() - t5)})
         return live
@@ -2396,7 +2396,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // and only the goals whose proofs read a dropped cube asked again; then the caller's goals, the cone (their support,
       // closed under each cube's; a cube with no known support asked with the cone alone, a model's pre-state bringing in
       // the fixpoint's cubes false there), and prove() of the cone. A fixpoint that doesn't prove leaves the rounds below.
-      if (env.GDP_TD === '1' && !stop()) withTrees(() => withStrict(() => {
+      // (by default where the pool is past what the rounds' first round takes, 24, and Houdini can afford it, 64: GDP_TD=1
+      // always, GDP_TD=0 never)
+      if ((env.GDP_TD === '1' || (env.GDP_TD !== '0' && made.length > 24 && made.length <= 64)) && !stop()) withTrees(() => withStrict(() => {
         const T0 = performance.now(), ph = (o: Record<string, unknown>) => opts.progress?.('join td', {...o, td: Math.round(performance.now() - T0), wall: Math.round(performance.now() - t0)})
         const by = minPool.by, q1 = Number(env.GDP_TD_Q1 ?? joinQueryMs / 8), q2 = Number(env.GDP_TD_Q2 ?? q1)
         ph({phase: 'start', made: made.length, before: Math.round(tEngine - t0)})
@@ -2417,9 +2419,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           // (a goal left undecided is kept, as optimistic Houdini keeps it, and asked again only once a round has dropped
           // nothing: a drop's round would ask it again at the same cap for nothing most rounds)
           let todo = r === 0 ? hs : hs.filter(f => asked.has(f) && !undecided.has(f))
-          // (GDP_TD_ORDER=1: the goals with the most near misses in the larger instances first, and a failure dropped at
+          // (the goals with the most near misses in the larger instances first, and a failure dropped at
           // once, the round's later goals asked with the smaller set)
-          if (env.GDP_TD_ORDER === '1') {
+          if (env.GDP_TD_ORDER !== '0') {
             todo = [...todo].sort((a2, b2) => (nearMiss.get(b2) ?? 0) - (nearMiss.get(a2) ?? 0))
             let cur = hs.filter(f => !failed.has(f))
             for (const f of todo) {

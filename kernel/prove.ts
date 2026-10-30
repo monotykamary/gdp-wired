@@ -1461,9 +1461,9 @@ const memoCap = Number(env.GDP_MEMO_CAP ?? 4)
 export const memoHits = {n: 0, miss: 0, setKey: '', setJson: ''}
 export const machineKey = (m: Machine): string => { const s = JSON.stringify(m); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return `${s.length}:${h}` }
 const memos = new Map<string, Memo>(), machineText = new WeakMap<Machine, string>(), lawText = new WeakMap<C, string>()
-// (GDP_MEMO_ALPHA=1: texts up to a renaming of fresh names, x$12: a rule's machine and kinds' laws are made again with
-// fresh binders, so the same machine had another text each time and no decision was found again)
-const alpha = env.GDP_MEMO_ALPHA === '1'
+// (texts up to a renaming of fresh names, x$12: a rule's machine and kinds' laws are made again with
+// fresh binders, so the same machine had another text each time and no decision was found again; GDP_MEMO_ALPHA=0 off)
+const alpha = env.GDP_MEMO_ALPHA !== '0'
 const alphaText = (s: string): string => { if (!alpha) return s; const to = new Map<string, string>(); return s.replace(/([A-Za-z_?]+)\$(\d+)/g, (w, p: string) => { let r = to.get(w); if (!r) to.set(w, (r = `${p}$_${to.size}`)); return r }) }
 const textOfLaw = (l: Law): string => { let t = lawText.get(l.holds); if (t === undefined) lawText.set(l.holds, (t = alphaText(JSON.stringify([l.holds, l.forall ?? null, l.keys ?? null])))); return t }
 function memoOf(m: Machine): Memo {
