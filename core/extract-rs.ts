@@ -18,7 +18,7 @@
 // enums with data, references kept, maps and vectors (for now), floats, unsafe pointers, other crates' code.
 import {type Extraction} from './extract.ts'
 import {Refusal} from './extract-read.ts'
-import {type Harness, type Leaf, type SModule, type SType, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
+import {type Harness, type Leaf, type SModule, type SType, type StepOptions, type StepRead, entryNames, extractStep, node, stubbed} from './extract-step.ts'
 
 export type RsOptions = StepOptions & {cargo?: string}
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
@@ -45,10 +45,8 @@ export function readRust(dir: string, names: string[], cargo?: string): SModule 
 export function extractRust(dir: string, opts: RsOptions): Extraction & {read?: StepRead} {
   let mod: SModule
   try {
-    if (opts.answers && Object.keys(opts.answers).length) throw new Refusal(dir, 'answers: the Rust check has no stubs yet (a call of other code is refused where it is)')
     if (opts.stores && Object.keys(opts.stores).length) throw new Refusal(dir, 'stores: not in the Rust front end yet')
     mod = readRust(dir, entryNames(opts), opts.cargo)
-    mod.stubs = false
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
     throw e
@@ -150,6 +148,15 @@ pub(crate) mod __gdp_harness {
   use std::io::{BufRead, Write};
   static BASE: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
   static NOW: std::sync::atomic::AtomicI64 = std::sync::atomic::AtomicI64::new(0);
+  // An answered call's value: the request's input for it (each answered call rewritten to crate::__gdp_answer).
+  static ANS: std::sync::Mutex<Option<Value>> = std::sync::Mutex::new(None);
+  pub(crate) trait GdpAns { fn of(v: &Value) -> Self; }
+  macro_rules! gdp_int { ($($t:ty),*) => { $(impl GdpAns for $t { fn of(v: &Value) -> Self { int(val(v)).ok().and_then(|n| <$t>::try_from(n).ok()).unwrap_or_default() } })* } }
+  gdp_int!(i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize);
+  impl GdpAns for bool { fn of(v: &Value) -> Self { val(v).as_bool().unwrap_or(false) } }
+  impl GdpAns for String { fn of(v: &Value) -> Self { val(v).as_str().unwrap_or("").to_string() } }
+  impl<T: GdpAns> GdpAns for Option<T> { fn of(v: &Value) -> Self { if v.get("none").and_then(|x| x.as_bool()) == Some(true) { None } else { Some(T::of(v)) } } }
+  pub(crate) fn answer<T: GdpAns>(k: &str) -> T { T::of(ANS.lock().unwrap().as_ref().and_then(|a| a.get(k)).unwrap_or(&Value::Null)) }
   fn base() -> std::time::Instant { *BASE.get_or_init(|| std::time::Instant::now() + std::time::Duration::from_secs(1u64 << 31)) }
   pub(crate) fn now() -> std::time::Instant { inst(NOW.load(std::sync::atomic::Ordering::SeqCst) as i128) }
   fn inst(n: i128) -> std::time::Instant { if n >= 0 { base() + std::time::Duration::from_nanos(n as u64) } else { base() - std::time::Duration::from_nanos((-n) as u64) } }
@@ -183,6 +190,7 @@ pub(crate) mod __gdp_harness {
           "call" => {
             let i = req["id"].as_u64().unwrap() as usize - 1;
             NOW.store(int(&req["now"]).unwrap_or(0) as i64, std::sync::atomic::Ordering::SeqCst);
+            *ANS.lock().unwrap() = Some(req["answers"].clone());
             let m = req["m"].as_str().unwrap().to_string();
             let a = req["a"].clone();
             let o = &mut objs[i];
@@ -223,9 +231,11 @@ function harnessFor(dir: string, mod: SModule, read: StepRead, opts: RsOptions):
     // The clock: Instant::now() read through the harness (the request's time), the code's own calls rewritten first.
     const lib = fs.existsSync(`${work}/src/lib.rs`) ? 'src/lib.rs' : 'src/main.rs'
     const walk = (d: string): string[] => fs.readdirSync(d, {withFileTypes: true} as never).flatMap((e: unknown) => { const x = e as {name: string, isDirectory: () => boolean}; return x.isDirectory() ? walk(`${d}/${x.name}`) : x.name.endsWith('.rs') ? [`${d}/${x.name}`] : [] })
+    // (each answered call rewritten to the harness's answer, from the crate's own text, before the clock's)
+    for (const [f, t] of stubbed(read, f => fs.readFileSync(`${dir}/${f}`, 'utf8'), a => `crate::__gdp_answer(${JSON.stringify(a.key)})`)) fs.writeFileSync(`${work}/${f}`, t)
     for (const f of walk(`${work}/src`)) { const s = fs.readFileSync(f, 'utf8'); const t = s.replace(/\b(?:std::time::)?Instant::now\(\)/g, 'crate::__gdp_now()'); if (t !== s) fs.writeFileSync(f, t) }
     fs.writeFileSync(`${work}/${file}`, fs.readFileSync(`${work}/${file}`, 'utf8') + harnessCode(mod, read, cls))
-    fs.writeFileSync(`${work}/${lib}`, `${fs.readFileSync(`${work}/${lib}`, 'utf8')}\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn __gdp_now() -> std::time::Instant { ${modPath}::__gdp_harness::now() }\n`)
+    fs.writeFileSync(`${work}/${lib}`, `${fs.readFileSync(`${work}/${lib}`, 'utf8')}\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn __gdp_now() -> std::time::Instant { ${modPath}::__gdp_harness::now() }\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn __gdp_answer<T: ${modPath}::__gdp_harness::GdpAns>(k: &str) -> T { ${modPath}::__gdp_harness::answer(k) }\n`)
     const target = `${os.tmpdir()}/gdp-rscheck-target`
     let msgs: string
     try { msgs = cp.execFileSync(opts.cargo ?? 'cargo', ['test', '--lib', '--no-run', '--message-format=json', '--target-dir', target], {cwd: work, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 28, env: {...proc?.env}}) }

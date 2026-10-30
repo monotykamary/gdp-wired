@@ -319,8 +319,9 @@ impl Reader {
       }
       Expr::If(i) => self.if_expr(i, &p),
       Expr::Match(m) => self.match_expr(m, &p),
-      Expr::Call(c) => self.call(c, &p, &t),
-      Expr::MethodCall(m) => self.method(m, &p, &t),
+      // (a call's end too: a check stubs an answered one by rewriting it from its position to its end)
+      Expr::Call(c) => { let (s, mut v) = self.call(c, &p, &t); if v["e"] == "call" { let l = c.span().end(); v["end"] = json!(format!("{}:{}", l.line, l.column + 1)); } (s, v) }
+      Expr::MethodCall(m) => { let (s, mut v) = self.method(m, &p, &t); if v["e"] == "call" { let l = m.span().end(); v["end"] = json!(format!("{}:{}", l.line, l.column + 1)); } (s, v) }
       Expr::Struct(s) => {
         // An enum's variant with fields (an error's payload, say): a value the subset keeps only where nothing reads it.
         if s.path.segments.len() >= 2 && self.enums.contains_key(&s.path.segments[s.path.segments.len() - 2].ident.to_string()) {
@@ -662,7 +663,10 @@ fn main() {
   for n in r.structs.keys().cloned().collect::<Vec<_>>() { r.rec(&n); }
   let mut entries = vec![];
   let mut entry_file = String::new();
-  for n in req["names"].as_array().unwrap() {
+  // (no names: every struct of the crate, for the entry inferred)
+  let all: Vec<Value> = r.structs.keys().map(|k| json!(k)).collect();
+  let names = req["names"].as_array().unwrap();
+  for n in if names.is_empty() { &all } else { names } {
     let n = n.as_str().unwrap();
     if r.structs.contains_key(n) { entry_file = r.structs[n].0.clone(); r.rec(n); entries.push(json!({"k": "class", "rec": n})); }
     else if let Some((file, f)) = r.free.get(n).cloned() { entry_file = file.clone(); let fv = r.func(&file, &f.sig, &f.block, &f.attrs, None, n); r.funcs.insert(n.to_string(), fv); entries.push(json!({"k": "func", "id": n})); }

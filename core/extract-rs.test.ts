@@ -5,6 +5,8 @@
 // installed (research/langs/rust/rust-setup.sh installs it in a job).
 import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
+import {mkdirSync, mkdtempSync, writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
 import {extractRust} from './extract-rs.ts'
 import {proveRule, proveSteps} from './dsl.ts'
 
@@ -44,3 +46,27 @@ t('refusals, each where it is with why', () => {
   const map = extractRust(DIR, {entry: 'Ledger', methods: []})
   expect(map.ok).toBe(false)
 }, 120_000)
+
+t('the boundary inferred: other crates\' calls left out or answered (tagged: their types aren\'t read), the entry', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-rscase-`)
+  mkdirSync(`${dir}/src`)
+  writeFileSync(`${dir}/Cargo.toml`, '[package]\nname = "meter"\nversion = "0.1.0"\nedition = "2021"\n\n[lib]\npath = "src/lib.rs"\n')
+  writeFileSync(`${dir}/src/lib.rs`, `pub struct Meter { used: u32, cap: u32 }
+impl Meter {
+    pub fn new(cap: u32) -> Self { Meter { used: 0, cap } }
+    pub fn take(&mut self, n: u32) -> bool {
+        std::thread::yield_now();
+        let extra: u32 = std::process::id(); // gdp: answer u32
+        if n > self.cap || extra > self.cap - n || self.used > self.cap - n - extra { return false; }
+        self.used += n + extra;
+        true
+    }
+}
+`)
+  const x = ok(extractRust(dir, {check: budget}))
+  const notes = x.notes.join('\n')
+  expect(notes).toMatch(/the entry inferred: Meter/)
+  expect(notes).toMatch(/std::thread::yield_now .*left out \(inferred/)
+  expect(notes).toMatch(/std::process::id .*answered by the request \(tagged/)
+  expect(step(x, 'never past its cap', (_b, a) => a.used.atMost(a.cap), b => b.used.atMost(b.cap)).proven).toBe(true)
+}, 300_000)

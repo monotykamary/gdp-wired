@@ -138,6 +138,9 @@ function sortOfText(s: string, at: string): {t: SType} {
     if (rest.length !== 1) return refuse(at, `the answer type ${JSON.stringify(s)} (int, float, bool, str or quoted strings, each with | None)`)
     const k = rest[0]!
     if (k === 'int' || k === 'float' || k === 'bool' || k === 'str') return {k}
+    // (a fixed width, a compiled language's: u32, i64, usize, uint8, int32)
+    const w = /^(u|i|uint|int)(8|16|32|64|128|size)$/.exec(k)
+    if (w) return {k: 'int', bits: w[2] === 'size' ? 64 : Number(w[2]), signed: !w[1]!.startsWith('u')}
     return refuse(at, `the answer type ${JSON.stringify(s)} (int, float, bool, str or quoted strings, each with | None)`)
   }
   const t = one()
@@ -804,12 +807,14 @@ export class Stepper {
     // (where it is called: a compiled language's check stubs it there, its source rewritten)
     const site = {p: at.p, ...(at.end ? {end: String(at.end)} : {})}
     let a = this.answers.get(key)
-    const short = key.split('.').pop()!
+    const short = key.split(/\.|::/).pop()!
     if (!a) {
       const t = typeof type === 'string' ? sortOfText(type, at.p).t : type, text = typeof type === 'string' ? type : typeText(type)
       const inner = t.k === 'opt' ? t.of : t, s = this.scalar(inner)!
       const v = this.newVar(short, s, 'input', how === 'stated' ? `what ${names[0]} returns (stated: answers)` : `what ${names[0]} returns (${how}: any ${text})`)
       const none = t.k === 'opt' ? this.newVar(`${short}_none`, {k: 'bool'}, 'input', `whether ${names[0]} returns None`).name : undefined
+      // (a result of a fixed width: within it, the claim is for the values its type holds)
+      this.typed(v, inner, 'input')
       a = {key, patch: patch ?? {}, async: awaited, inputs: {name: v.name, ...(none ? {none} : {}), ...(inner.k === 'float' ? {float: true} : {})}, sort: text, ...(how === 'stated' ? {} : {how}), at: [], ...(at.ty ? {ty: String(at.ty)} : {})}
       this.answers.set(key, a)
       this.notes.add(how === 'stated' ? `${names[0]} (${at.p}): answered by the request (stated), its arguments not read` : `${names[0]} (${at.p}): answered by the request (${how}: its value is read; assumes ${names[0]} may return any ${text}), its arguments not read`)
@@ -1497,7 +1502,7 @@ export class Stepper {
       case 'lib': return this.lib(f.q, x, q)
       case 'ext': {
         const refusal = `${x.text}: ${f.q}, other code (answer it, skip it, or read that module)`
-        return this.inf ? this.boundary(x, {key: f.q, name: names[0] ?? f.text, ...(f.patch ? {patch: f.patch} : {}), ...(f.ret ? {ret: f.ret} : {}), ...(f.recv ? {recv: f.recv} : {}), refusal}, q, awaited) : refuse(x, refusal)
+        return this.inf ? this.boundary(x, {key: f.q, name: /\s/.test(names[0] ?? ' ') ? f.q : names[0]!, ...(f.patch ? {patch: f.patch} : {}), ...(f.ret ? {ret: f.ret} : {}), ...(f.recv ? {recv: f.recv} : {}), refusal}, q, awaited) : refuse(x, refusal)
       }
       case 'opaque': return this.inf ? this.boundary(x, {key: names[0] ?? String(x.text), name: names[0] ?? String(x.text), refusal: `${x.text}: a call of ${f.why}`}, q, awaited) : refuse(x, `${x.text}: a call of ${f.why}`)
       case 'bool': case 'cell': case 'choice': case 'fmt': case 'lock': case 'none': case 'num': case 'opt': case 'ref': case 'sattr': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': break
@@ -2186,7 +2191,7 @@ export function sourceOf(mod: {path: string, root: string}, file: string): strin
 // its file by the harness's stub for that answer (in the code's language). Every file a call is answered in,
 // rewritten, by its name in the positions; a call with no end (a reader that doesn't say) is a refusal of the check.
 export function stubbed(read: StepRead, text: (file: string) => string | undefined, stub: (a: Answer, i: number) => string): Map<string, string> {
-  const edits = new Map<string, [number, number, string][]>()
+  const edits = new Map<string, [number, number, string][]>(), starts = new Map<string, number[]>()
   read.answers.forEach((a, i) => {
     for (const s of a.at ?? []) {
       const m = /^(.*):(\d+):(\d+)$/.exec(s.p), e = s.end && /^(\d+):(\d+)$/.exec(s.end)
@@ -2194,7 +2199,6 @@ export function stubbed(read: StepRead, text: (file: string) => string | undefin
       ;(edits.get(m[1]!) ?? edits.set(m[1]!, []).get(m[1]!)!).push([lineCol(m[1]!, Number(m[2]), Number(m[3])), lineCol(m[1]!, Number(e[1]), Number(e[2])), stub(a, i)])
     }
   })
-  const starts = new Map<string, number[]>()
   function lineCol(f: string, l: number, c: number): number {
     let ls = starts.get(f)
     if (!ls) { const t = text(f) ?? ''; ls = [0]; for (let k = 0; k < t.length; k++) if (t[k] === '\n') ls.push(k + 1); starts.set(f, ls) }
@@ -2699,7 +2703,12 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
     const build = (a: PArg, inputs: Record<string, Raw>): unknown => (a.k === 'in' ? {in: inputs[a.name] ?? a.z ?? 0, ...(a.float ? {float: true} : {}), ...(a.sym ? {sym: true} : {})} : a.k === 'opt' ? (inputs[a.none] === true ? {none: true} : build(a.v, inputs)) : a.k === 'rec' ? (a.f.length ? {rec: a.cls, f: Object.fromEntries(a.f.map(([f, x]) => [f, build(x, inputs)]))} : {inert: true}) : a.k === 'inert' ? {inert: true} : a.k === 'store' ? {store: a.name} : {dflt: true})
     const ctorArgs = (params: Record<string, Raw>) => read.ctor.map(([n, a]) => [n, build(a, params)])
     let now = 0, inputsNow: Record<string, Raw> = {}
-    const answersOf = () => Object.fromEntries(read.answers.map(a => [a.key, a.inputs.none && inputsNow[a.inputs.none] === true ? {none: true} : {in: inputsNow[a.inputs.name] ?? 0, ...(a.inputs.float ? {float: true} : {})}]))
+    // (an answer outside its type is no value the callee returns: the request is outside what the check compares)
+    const answersOf = () => Object.fromEntries(read.answers.map(a => {
+      const v = inputsNow[a.inputs.name] ?? 0, ty = read.ints[a.inputs.name], n = Number(v)
+      if (ty && !(a.inputs.none && inputsNow[a.inputs.none] === true)) { const [lo, hi] = rangeOf(ty); if (n < lo || n > hi) throw new Outside(`${a.key} answers ${String(v)}, outside its type`) }
+      return [a.key, a.inputs.none && inputsNow[a.inputs.none] === true ? {none: true} : {in: v, ...(a.inputs.float ? {float: true} : {})}]
+    }))
     let coverage: Coverage | undefined
     const r0 = performance.now()
     const side: CodeSide = {
