@@ -157,7 +157,7 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 - **wo's overrun:**
   - **mine, fixed:** the engine's CDCL searches had a counted budget alone, which runs on past the wall (6 s of samples past 59 s in `growCdcl`, `pastwall.py` on bun's CPU profile); they now carry the engine's wall.
   - **what is left is the EPR side:** proveLaw's EPR-first `settle` → `epr.ts` `decide`, about 3.4 s of samples past 59 s. wo ends at 64–66 s (was 68).
-- **The real-world corpus** (`bun gates/bar.ts --only rw`, f483a48 against 5d4da3f): 318/361 as the base, 0 gained, 0 lost, wrong 0. No piece since 3d5668a (two of a pattern, frames, the chains and tables, the one-sided cut) moves a corpus law: the corpus's rules don't reach the engine's shape (keyed maps of few values with a caller's law over keys) where the join hasn't already proven them.
+- **The real-world corpus** (`bun gates/bar.ts --only rw`, f483a48 against 5d4da3f): 318/361 as the base, 0 gained, 0 lost, wrong 0. No piece since 3d5668a (two of a pattern, frames, the chains and tables, the one-sided cut) moves a corpus law. Not yet measured: how many of the 8 unknown corpus laws reach the engine at all.
 - **Verdicts** (`f5`, 2 runs): sync 8 s, async 23–29, decentralized 13–16, 2PC 15–23, ticket 30, toy 15–16, sharded 30–32, proven; distributed 44–46, ring 35–44, wo 65–66, unknown.
 
 **The expressibility map** (each written law in models.ts's `human`, against the engine's enumeration; `smallprobe.ts` with CUBES=made lists it, and 'join view' each view's literals)
