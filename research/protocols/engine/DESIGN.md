@@ -160,6 +160,22 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 - **The real-world corpus** (`bun gates/bar.ts --only rw`, f483a48 against 5d4da3f): 318/361 as the base, 0 gained, 0 lost, wrong 0. No piece since 3d5668a (two of a pattern, frames, the chains and tables, the one-sided cut) moves a corpus law. Not yet measured: how many of the 8 unknown corpus laws reach the engine at all.
 - **Verdicts** (`f5`, 2 runs): sync 8 s, async 23–29, decentralized 13–16, 2PC 15–23, ticket 30, toy 15–16, sharded 30–32, proven; distributed 44–46, ring 35–44, wo 65–66, unknown.
 
+**Checkpoint (verified: `runs/engine/f7`, all ten, 2 runs at 60 s, no 'join failed')**
+- **The corpus's 8 unknown laws reach no engine** (`rw1`, `rw2`: no engine event in any). What keeps each out of the gate:
+  - gitea's "two counted approvals are never by the same reviewer": only the counter `next` (6 values; keyed maps and a keyed caller's law both there);
+  - tigerbeetle ×4: a counter `commit`, and caller laws not over keys;
+  - medusa: amounts and sums, no keyed caller's law;
+  - opossum and bullmq: no keyed maps.
+  So the protocol work can't move the corpus by construction, except gitea's law if the gate let a counter through (leaving it out of the views).
+- **A bug in the frames, fixed:** a cube could be both pending and in the set (a diagram or a promotion), so a push's law list held it twice. kernel's "laws and facts declares X twice" threw, and the engine with it ('join failed'): that, not the frames' fixpoint, was distributed's and ring's early end at 35–46 s. A cube in the set is now never pending, texts are once, and the set-proof loop's blockers skip pending and dead cubes.
+- **A failed push's counterexample is blocked as an obligation** (IC3's): by the enumeration's cubes false at its state, so the next push has what it lacked.
+- **Verdicts** (`f7`): sync 8–9 s, async 23–27, decentralized 14–15, 2PC 18–21, ticket 25–33, toy 12–16, sharded 29–36, proven. distributed 63, ring 60, wo 65–66, unknown; all use their full time now.
+- **The exact next step:** find why distributed's probe-proven five (3–4 literals: a live transfer above every epoch; Held[x] ∧ Transfer[y, x] ∧ Ep[x] + 1 <= y; Held[x] ∧ Transfer[z, y] ∧ Ep[y] + 1 <= z; the two "two live transfers" forms) never enter the set.
+  - **How:** a status at the engine's end of each picked cube (`research/protocols/engine` picks in the scratchpad's form: one cube text a line; the hook was never committed; rebuild it from this note) — not made, in the set, pending, dead (start check) or never chosen.
+  - **If "never chosen":** rank blockers by the push's counterexamples (the demoted written laws' states) above the rest.
+  - **If "dead":** the start check (`atStart`, a 250 ms CDCL model judged by the interpreter) is wrong on it.
+  - **ring:** the same check with its 5 (`ring-pick`: leader, own-id, three between turns), then the guard on the fast proof (the usual proof where it contradicts the rounds).
+
 **The expressibility map** (each written law in models.ts's `human`, against the engine's enumeration; `smallprobe.ts` with CUBES=made lists it, and 'join view' each view's literals)
 
 | Protocol | Written law | In the candidate space? | Missing block or cause |
