@@ -115,7 +115,11 @@ describe('counts', () => {
   refusedByGuard('a count\'s bound reads a witness', {...g, counts: [...g.counts, {v: 'cZ', key: 'n', below: plus(x('N'), times(0, x('w1'))), body: n(1)}]}, insts)
   refusedByGuard('a count\'s body reads a witness', {...g, counts: [...g.counts, {v: 'cZ', key: 'n', below: x('N'), body: ite(same(get('vote', x('n')), x('w1')), n(1), n(0))}]}, insts)
   refusedByGuard('an instance\'s bound reads a witness', g, [...insts, {wit: 'w3', below: plus(x('N'), times(0, x('w1'))), terms: [], unit: 0}])
-  refusedByGuard('a unit coefficient not an integer', g, [...insts, {wit: 'w3', below: x('N'), terms: [], unit: 0.5}])
+  // Since gen/exact the kernel's own linear forms refuse a factor that is not a safe integer, so no tree is found here;
+  // typed still refuses the certificate first.
+  test('refused: a unit coefficient not an integer', () => {
+    expect(checkCounted(g, {insts: [...insts, {wit: 'w3', below: x('N'), terms: [], unit: 0.5}], tree})).toBe(false)
+  })
   refusedByGuard('a count coefficient not an integer', g, [...insts, {wit: 'w3', below: x('N'), terms: [[1, 'cA'], [0.5, 'cB']], unit: 0}])
   // A bound unlike the count's: kernel.ts builds no hypothesis; the goal checked had it been built with the instance's
   // bound (its hypothesis reads the instance's bound only) is refuted.
