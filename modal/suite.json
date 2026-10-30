@@ -1318,6 +1318,14 @@
 "timeout": 600
 },
 {
+"name": "runner-cli-c-jvm",
+"cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && clang --version | head -1 && javac -version 2>&1 && cd core && bun test --timeout 300000 exports.test.ts cli.test.ts extract-c.test.ts extract-jvm.test.ts 2>&1",
+"cwd": ".",
+"cpu": 2.0,
+"timeout": 1200,
+"image": "runner"
+},
+{
 "name": "jev-fabric",
 "cmd": "bun examples/jev-fabric/run.ts 2>&1",
 "cwd": ".",
