@@ -14,7 +14,8 @@ import {type JvmOptions, extractJava, extractKotlin} from './extract-jvm.ts'
 const javac = process.env.JAVA_HOME ? `${process.env.JAVA_HOME}/bin/javac` : 'javac'
 const hasJdk = (() => { try { execFileSync(javac, ['-version'], {stdio: 'ignore'}); return true } catch { return false } })()
 const hasKt = hasJdk && (() => { try { if (process.env.KOTLIN_HOME) return true; execFileSync('sh', ['-c', 'command -v kotlinc'], {stdio: 'ignore'}); return true } catch { return false } })()
-const tj = hasJdk ? test : test.skip, tk = hasKt ? test : test.skip
+// (each case compiles the code it reads: kotlinc's start-up alone is seconds)
+const tj = (n: string, f: () => void) => (hasJdk ? test : test.skip)(n, f, 60_000), tk = (n: string, f: () => void) => (hasKt ? test : test.skip)(n, f, 90_000)
 const CHECK = {runs: 30, depth: 6, states: 60}
 const java = (code: string, entry: string, more: Partial<JvmOptions> = {}, extra: Record<string, string> = {}) => {
   const dir = mkdtempSync(`${tmpdir()}/gdp-javacase-`)

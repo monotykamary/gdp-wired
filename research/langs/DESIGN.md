@@ -560,3 +560,139 @@ captured readings (research/langs/go-snapshot/diff.ts: 115 the same, the 4 above
 5ac6467 has none, and making it costs more than this task's budget; main's changes since were barred clean against it):
 f1 34 / 35 and f2 24 / 33 proven, rw 74 / 14 / 3, g332 332 of 332 with the same search, each 0 differing; the suite 230
 of 230 (the base's 227 jobs, 3 added since); onecpu no failure; $0.58 estimated.
+
+## Java and Kotlin (gen/jvm)
+
+One JVM structure for both languages: a reader per language on its own parser, one shared layer both lower through,
+one reflective harness, one front end (core/extract-jvm.ts: `extractJava`, `extractKotlin`, `gdp-wired/extract-java`
+and `gdp-wired/extract-kotlin`).
+
+| Piece | Where | Bytes | What |
+| --- | --- | --- | --- |
+| the JVM layer | `core/jvm/Jvm.java` | 27,820 | JSON; one canonical name per JVM type (Kotlin's `Int` is Java's `int`, its `Int?` an `Integer` that may be null); each type's SType; the library's calls lowered alike from either reader (maps, Optional, the atomics, Math, TimeUnit, the clock, the checks that throw); the boundary's metadata (annotations, DI, `// gdp:` tags) |
+| Java reader | `core/jvm/JavaReader.java` | 59,123 | javac's tree API (`com.sun.source`, `JavacTask.analyze()` against `-sourcepath` and the classpath): every expression's type is javac's, attributed even where other parts of the file don't compile |
+| Kotlin reader | `core/jvm/KtReader.java` | 72,145 | the Kotlin compiler's PSI (`KtPsiFactory` over a `KotlinCoreEnvironment`, from the kotlinc installed): syntax, the types from the code's declarations, a local's from its initializer, an expression's from its parts; other files of the package indexed for their classes and enums |
+| harness | `core/jvm/Harness.java`, `core/jvm/Rt.java` | 24,645 + 538 | reflective, for both: loads the class (compiled from the file, or the project's own jar), makes it, sets and reads leaves through fields, atomics, Optional, maps (the map the object has), stores; stubs answered calls |
+| front end | `core/extract-jvm.ts` | 15,917 | builds the tools once per version (javac into the tmpdir), runs the reader, compiles the code for the check (javac, or kotlinc's K2JVMCompiler) with the clock's and the answered calls' sites rewritten to `gdp.Rt` |
+
+**Why the Kotlin reader is Java on the compiler's PSI.** The PSI is Kotlin's own parser (the one kotlinc and the IDE
+use); kotlin-compiler.jar is in every kotlinc distribution's `lib/`. Written in Java, the reader shares Jvm.java with the
+Java reader (one lowering of the library, one type model) and needs no Kotlin build step: javac compiles it once against
+the jar (0.3 s to parse a file). Kotlin's analysis API (K2's resolved types) would give every expression's type, but it
+is unstable across releases and heavy; the PSI is stable (one API change between 2.1 and 2.4, an extension storage, met
+reflectively) and Kotlin states the types that matter (a property's, a parameter's, a function's result). Where a type
+can't be read off the code, the value is opaque and refused where a step reads it, never guessed.
+
+**What a user installs.** A JDK 17 or later (`javac` on the PATH or `$JAVA_HOME`; jobs here use Temurin 21) for both;
+for Kotlin also kotlinc (Homebrew's `kotlin`, SDKMAN's, or the GitHub release zip: `$KOTLIN_HOME`, or `kotlinc` on the
+PATH; 2.4.21 here). Nothing at all for the rule printed. Without them the front ends refuse ("a JDK 17 or later is
+needed", "kotlinc ... is needed to extract Kotlin"), never throw; scripts/smoke.sh checks it.
+research/langs/jvm/jvm-setup.sh installs both in a Modal container.
+
+**The subset, as the shared IR's operations.**
+- classes with fields as the state (a static nested one too; their superclasses of the code's own sources merged in);
+  the one constructor (or `ctor: n`, its arity) as `__init__`: `super(...)` inlined, then the fields' defaults and
+  initializers in order, then its body; Kotlin's primary constructor's `val`/`var` parameters, its property initializers
+  and `init` blocks in order. Its arguments are the rule's params. Methods are requests; a Kotlin computed property is
+  one too (`unacknowledged`, the harness calling `getUnacknowledged`); an `internal` one is found by its mangled name.
+- `int`, `long`, `short`, `byte`, `char` (Kotlin's `Int`, `Long`, ...) as fixed widths with Java's wraparound: binary
+  promotion as `as` on each operand, a compound assignment's implicit narrowing a `conv`; `Math.addExact`,
+  `subtractExact`, `multiplyExact`, `incrementExact`, `toIntExact` trap (an ArithmeticException: the step's failure);
+  `/` and `%` truncate by a constant; `Math.min`/`max`/`abs` (abs of MIN_VALUE is MIN_VALUE), `floorDiv`, `floorMod`,
+  `clamp`, Kotlin's `coerceAtLeast`/`AtMost`/`In`, `minOf`/`maxOf`; floats at whole values, a float argument within
+  ±2^24 (its exact integers: the harness refuses to give one past them, as the rule does), a float cast to an int
+  saturating as Java's does.
+- booleans, strings set and compared, enums (Java's, Kotlin's, TimeUnit) as choices; TimeUnit's `toMillis` and the rest
+  as the unit's factor, truncated.
+- records: Java records, Kotlin data classes, plain classes whose one constructor sets their fields from its arguments
+  in order, Lombok's `@Value`/`@Data`/`@Getter` (getters read as the fields); a data class's `copy(f = v)` is an update.
+- `Map`, `HashMap`, `ConcurrentHashMap`, Kotlin's `mutableMapOf`/`HashMap()` as maps: `get`, `getOrDefault`,
+  `containsKey`, `put` (a statement: one key written; a value: Rust's insert, the old value), `remove`, Kotlin's `m[k]`,
+  `m[k] = v`, `k in m`, `getValue`.
+- `Optional` (`empty`, `of`, `ofNullable`, `isPresent`, `isEmpty`, `get`/`orElseThrow`, `orElse`) and Kotlin's nullable
+  types (`?:` with a value, a `return` or a `throw`, `!!`, `?.` and `?.let { }`, `== null` and its smart cast,
+  `checkNotNull`, `requireNotNull`) as options; a Java reference field may be null where the class says so (`@Nullable`,
+  null assigned to it, or no initializer the constructors all set).
+- exceptions as failures: `throw`, Guava's `checkArgument`/`checkState`, `Objects.requireNonNull`, Kotlin's `check`,
+  `require`, `error`, `TODO`; `assert` is off, as the JVM runs by default.
+- `synchronized` (a method or a block), `@Synchronized`, a `ReentrantLock`'s `lock(); try { ... } finally { unlock(); }`,
+  `synchronized(x) { }` and `withLock { }` make the step atomic.
+- the atomics (`AtomicInteger`, `AtomicLong`, `AtomicBoolean`, `AtomicReference`, kotlinx's `atomic()`) as the fields
+  they hold: `get`/`set`, `getAndSet`, the increments and adds, `compareAndSet`; a `while (true)` / `for (;;)` /
+  `do ... while (true)` compare-and-set loop is read as its first pass (a block `break` leaves; a pass that would go
+  around again is refused where it is reached), which is the claim for calls that don't interleave.
+- `switch` (a statement, arrows or colons) and `when` as chains of ifs on `==` inside a block a `break` leaves, each
+  case's arm its statements and those it falls through into; `is` decided where the type is the class read or a parent;
+  `in a..b`; if and when used as a value pushed into their branches where they return.
+- Kotlin's scope functions (`let`, `also`, `takeIf`, `takeUnless`) inlined, their statements before the expression.
+- an immutable class's method that returns its next value (a data class's `copy`, `this`: Arrow's
+  `trackFailure(): OpeningStrategy`) is a step to it: each return writes the fields, the harness keeps the object
+  returned.
+- `System.currentTimeMillis()`, `nanoTime()`, a `Clock`'s `millis()` as the request's time (the check's copy calls
+  `gdp.Rt.now()`).
+- Refused, each where it is with why: other loops, `continue`, try/catch (but a lock's finally), lambdas other than the
+  scope functions', arrays and other collections, `instanceof`, static fields that aren't constants, inner classes,
+  generic classes and methods, a switch or when expression as a value inside an expression, Kotlin's `run`/`apply`.
+
+**The executor gained** (each shared): a start's quotient of the params (`threshold = maxTokens / 2`) is a param of its
+own, which the precondition fixes (k·q ≤ a < k·q + k) and the check computes from the others (the kernel's starts read
+the params alone: gRPC's Throttle couldn't be read without it); what the constructor refuses (a narrowing cast's value
+that doesn't fit) is the precondition's, not a step's refusal; an answered call whose callee declares a fixed-width
+result (`ity` on the call) is an input within it, where it is read; Java and Kotlin named in the notes. The printer: a
+signed field the printer reads as a natural keeps only its range's top (a range law of `maxFailures: Int` that `init`
+keeps at 0 or above didn't build); a recursion guard in `nonneg` (a wrapped sum in a refusal's atom asked for its own
+facts forever); `int.from(({n}) => n.times(2))` typechecks (dsl.ts's `from` took a callback of `never`). The shared changes are
+3,194 bytes; with the front end, core/ in TypeScript (tests excluded) is +19,111 bytes against d2e157a (extract-jvm.ts
+15,917; extract-step.ts +2,066; extract.ts +370; extract-check.ts +309; dsl.ts +234; extract-print.ts +215).
+
+**The boundary (adopted after gen/boundary landed).** The readers emit what the inference reads: other code's types as
+records (`own: false`; an interface `kinds: ['protocol']`; its methods' declared results `rets`, from javac's elements
+or the Kotlin file's interfaces or reflection), `ret` on an `ext` node (a static call's declared result), a method of
+an object of other code called on it (`self.f.m(...)`, so a constructor-injected interface is read as a store),
+`inject` on a field or a parameter annotated `@Autowired`, `@Inject` or `@Resource` (an injected field's default null
+isn't the constructor's), `@GdpSkip`/`@GdpAnswer("int")`/`@GdpStrict` as a method's decorators, and `// gdp:` comments
+(the executor's own). With no entry the readers list the file's classes and the executor takes the one whose public
+methods write its state. The harness stubs answered calls: an injected dependency of an interface type is a
+`java.lang.reflect.Proxy` keeping what its get/set/delete store and answering its other methods from the request (a
+stored value outside its getter's type refused, as a drawn state the code can't hold), a field the framework injects is
+set to one after the constructor, and any other answered call's site is rewritten to `gdp.Rt.answer(key, type)` in the
+check's copy (so `stubs` is false only for `prebuilt`). Field injection's first test is here (core/extract-jvm.test.ts:
+Spring's `@Autowired` on a field, Java and Kotlin `lateinit`), with a constructor-injected interface whose call is an
+inferred answer and the entry inferred.
+
+**The corpus** (research/langs/jvm/specs.ts, run.ts, rules/; research/realworld/items/jvm-projects.ts), each checked
+against the project's own code:
+
+| Item | Language | Code | Checked against | Requests (start / drawn / witness) | Laws |
+| --- | --- | --- | --- | --- | --- |
+| grpc-java 1.85.1 `RetriableStream.Throttle` (Apache-2.0) | Java | the retry throttle's token count: compare-and-set loops on an AtomicInteger, Math.max/min, a float constructor | grpc-core-1.85.1.jar (`prebuilt`) | 1,164 / 400 / 14 | 4 proven, 1 refuted |
+| resilience4j 2.4.0 `PartialAggregation` (Apache-2.0) | Java | a sliding window's bucket: a switch on Metrics.Outcome that falls through, int counts, `TimeUnit.toMillis`, its superclass AbstractAggregation | the package compiled by javac | 2,092 / 400 / 30 | 5 proven, 1 refuted |
+| OkHttp 5.5.1 `WindowCounter` (Apache-2.0) | Kotlin | HTTP/2 flow control: `@Synchronized`, `check`, Long counts, a computed property, `failures: 'kept'` | the file compiled by kotlinc | 1,916 / 400 / 10 | 4 proven, 1 refuted |
+| Arrow 2.3.0.1 `CircuitBreaker.OpeningStrategy.Count` (Apache-2.0) | Kotlin | an immutable data class's steps (`copy`), `init { takeIf ... let ... requireNotNull }`, `when (this) { is Count -> }`, internal methods | arrow-resilience-jvm-2.3.0.1.jar (`prebuilt`) | 996 / 400 / 6 | 4 proven |
+
+20 laws: 17 proven, 3 refuted. The three (research/realworld/triage/jvm.json, recorded only, no one contacted):
+- **gRPC, suspected bug (a configuration's edge).** "The token_count will always be between 0 and maxTokens" is refuted:
+  ServiceConfigUtil checks only maxTokens > 0, and at 2,147,484 tokens or more maxTokens (1000 times them, cast to int)
+  saturates at MAX_VALUE; one qualified failure then one success overflow `currentCount + tokenRatio`, and the count goes
+  negative (then the next failure's `- 1000` wraps it back to MAX_VALUE). On the release's jar:
+  research/realworld/repro/grpc-throttle-overflow.sh prints `after a success: -2147482649`. Within ServiceConfig-sized
+  bounds the invariant is proven.
+- **OkHttp, suspected bug (minor).** "no more is acknowledged than consumed" is refuted: `update` adds both arguments
+  before its last `check(this.acknowledged <= this.total)`, so an update acknowledging more than was consumed throws and
+  leaves the counter holding it (repro: `total=0, acknowledged=3, unacknowledged=-3`). Its two argument checks come
+  before the writes; the last doesn't.
+- **resilience4j, a law stated without the wraparound.** "slow failed calls never outnumber slow calls" breaks only
+  past 2^31 slow calls in one epoch second's bucket; kept as a false law the prover must not prove.
+
+Read and not taken: Ktor's DefaultRateLimiter (a suspend `tryConsume` reading its clock lambda several times a step,
+atomicfu, a sealed State result, a Duration), Arrow's CircuitBreaker itself (an Atomic of a sealed state with
+CompletableDeferreds), resilience4j's AtomicRateLimiter and Eureka's RateLimiter (each divides by a field), Bucket4j's
+state (long arrays), Failsafe's CountingCircuitStats (a BitSet), Guava's SmoothRateLimiter (doubles divided).
+
+**Tests:** core/extract-jvm.test.ts, 13 cases (8 Java, 5 Kotlin), each compiling and running the code it reads; skipped
+where no JDK or kotlinc is installed; the suite's `extract-jvm` job installs both.
+
+**Not yet:** branch coverage (the arms aren't counted: no instrumentation), `stores` stated by the caller (inferred
+ones work), loops beyond a CAS's first pass, a Kotlin expression's type the code doesn't state through a call of other
+code that isn't on the reader's classpath, sealed classes as choices, Duration, suspend functions that suspend, top-level
+functions as entries.

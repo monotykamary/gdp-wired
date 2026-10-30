@@ -1282,6 +1282,13 @@
 "timeout": 900
 },
 {
+"name": "extract-jvm",
+"cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/jvm/jvm-setup.sh && cd core && bun test extract-jvm.test.ts 2>&1",
+"cwd": ".",
+"cpu": 1.0,
+"timeout": 900
+},
+{
 "name": "extract-go",
 "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && . research/extract/go-setup.sh && cd core && bun test extract-go.test.ts 2>&1",
 "cwd": ".",
