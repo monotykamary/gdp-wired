@@ -198,6 +198,21 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - ring: a ranking where a may-fail cube that reads the counterexample's named cells (Pending at the model's keys) outranks one that doesn't.
   - gitea: why its 5 views make no cube.
 
+**Completing counterexamples, measured as an assumption check** (`runs/engine/a1`, distributed, one run at a 220 s budget, a temporary hook taken out)
+- **Why not by naming cells:** a counterexample's unnamed cells are cells its goal never reads, so it holds for any completion of them. Naming them makes the solver fill them arbitrarily, and a candidate false at that one completion still doesn't block. The question that separates is one solver query per candidate: does the counterexample survive with the candidate assumed (IC3's inductive generalization)?
+- **The check:** at each of 42 counterexamples (cube or caller goals with a model), the goal asked again with each of the top-6 ranked candidates and each probe-proven target assumed, 1.5 s each.
+- **Assuming it proves the goal:**
+  - top-ranked definitely false: 59 of 102 (58%); targets definitely false: 10 of 15 (67%);
+  - top-ranked may-fail: 0 of 142; targets may-fail: 4 of 42 (10%);
+  - targets neither false nor may-fail: 0 of 57.
+- **So no real separation:**
+  - where a target only may fail, it almost never removes the counterexample, so completing the state wouldn't make it a blocker;
+  - definitely false junk blocks nearly as often as the targets do.
+  - The counterexamples the rounds generate are mostly not ones the probe-proven set answers: the rounds take another route through the cubes, one that closes on junk. Not built.
+- **What that leaves:** steering by the caller's own obligations rather than the cubes': ask the caller's goal with the set and each candidate assumed (the targets are the caller's support), or seed round 0 from a cheap whole-pool Houdini at small sizes. Not tried.
+
+**Deferred: predicate abstraction against counters** (gitea's "two counted approvals are never by the same reviewer"). Its views relate no row key to the allocation counter `next`: keySorts never relates a state scalar to a key sort (`node` relates inputs and params only), and a view has no scalar atom to compare a key with. The fix is `key < next` order literals for search only (the final proof still over the concrete machine), and it touches the sort analysis for every rule, so it waits until the core ten are done.
+
 **Since e1ae73d** (`runs/engine/c1`, `f9`; the replay offline, no solver call)
 - **The effective few limit:** gen/enum4 has none of `GDP_FEW`: the limit is the literal 4 (core/infer.ts, `few`), and the engine's entry is on the cost clock. tmp/few8w (05ac413, not for merge) has `GDP_FEW` default 8 and the entry on the wall.
 - **Per-obligation blockers, falsified offline:**
