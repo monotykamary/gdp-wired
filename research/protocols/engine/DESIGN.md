@@ -43,6 +43,168 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## Through the gate: gen/rel-pool (main 2fdc902 with gen/pool merged, d8a1966)
+
+**The merge:**
+- gen/rel-pool is made from main's head 2fdc902 (the inferred boundary, Java/Kotlin, the CLI), with gen/pool merged in.
+- The merge also brings gen/enum4's commits since dfafb37: the frames crash fix, push blocking, epr's simplex theory
+  check, and the rest.
+- There were no conflicts. The typecheck and oxlint are clean.
+
+**The ten once on the merged tree** (`runs/engine/rp1`, Modal 2 CPU, 60 s)
+- **The eight are proven:** sync 10.8 s, async 21.9, decentralized 14.2, 2PC 18.9, ticket 34.5, toy 9.8, sharded 33.2,
+  and distributed 27.4.
+- **Unknown:** ring 60.1 s and wo 65.7 s.
+- **The filter's cost:** distributed 1.2 s, ring 2.9 s, wo 2.0 s.
+
+**The quick bar** (`bun gates/bar.ts --quick --cand gen/rel-pool --base 5d4da3f --only rw,f1,f2,g332,suite,onecpu`,
+against the cached 5d4da3f49013-modal-r1; <main>/runs/bar/runs/relpool-d8a1966-quick/REPORT.md)
+
+| group | candidate | base mean | gained / lost / wrong |
+|---|---|---|---|
+| f1 (48) | 34 proven | 34 | 0 / 0 / 0 |
+| f2 (64) | 24 proven | 24.33 | 0 / 0 / 0 (no task differs; the base's own noise) |
+| rw (91) | 74 proven, 14 refuted, 3 unknown | the same | 0 / 0 / 0 |
+| g332 | 332 / 332, the same search on every goal | | summed 309.8 s against 273.7 s (p50 1.087) |
+| suite | 232 passed, 0 failed | 226.67 of 227 | 0 / 0 / 0 |
+| onecpu | no failure | no failure | |
+
+- **g332's timing:** that run's +13% summed time was noise. g332 runs its two sides together, and alone again it read
+  292.0 s against 301.8 s (p50 1.004; `relpool-d8a1966-g332-again`).
+- **The suite's +5 jobs** are main's own new tests since 5d4da3f.
+- **Size:** core/ and kernel/ are 3,020,982 bytes against 2,672,441. Most of the +348 KB is main's since 5d4da3f.
+  core/infer.ts is 230,011 bytes against main's 216,168: gen/enum4 since dfafb37 adds 8.4 KB, gen/pool 5.4 KB.
+- **Spend:** an estimated $0.55 for the bar and $0.05 for the g332 rerun.
+
+**Ready to fast-forward main** to gen/rel-pool. The bar ran at d8a1966; the commit after it adds this note and the plan
+below, DESIGN.md only.
+
+## The plan: our own procedure for the goals Z3 decides (design only, nothing built)
+
+**What it answers.** These are the goals exp/pool-z3 found Z3 decides and decideLaw doesn't:
+- wo's request-carried sets under ∀ flags: every one of wo's goals;
+- ring's injective `idn` in composed keys, with a successor that wraps at a param: 28 of 44;
+- the ∀∃ law that neither oracle decides;
+- and the unsat cores the cone cut needs.
+
+All of it is untrusted search. A verdict is still `prove()` of the final set, checked. No new certificate kind is
+needed, because each piece below decides goals whose proof the kernel already makes.
+
+**What the kernel already certifies** (`runs/engine/given1`, gen/rel-pool, Modal 2 CPU, given mode)
+- wo's written invariant, with its ∃ ghost: proven in 30.5 s (8.2 s usual, 21.4 s cyclic).
+- ring's: 3.4 s.
+
+So both protocols are proof-shape-complete today. What's missing is finding the set: the oracle's decisions, and a set
+small enough that `prove()` costs about what given mode does.
+
+**Ranked by which closes a protocol soonest**
+
+**1. Cores for the cone cut before `prove()`.** (Closes nothing alone; ring's last step in both oracles.)
+- **Mechanism:**
+  - decideLaw returns its proof's support: the union of `settled`'s proofs' `uses`, from `sourcesOf` over the
+    refutation's used hypotheses. db6c00f had it: three lines in kernel/prove.ts.
+  - The rounds keep each proven goal's support. A goal settled by the CDCL search already has its core (`settled`).
+  - Before the set's `prove()`, the set is cut to the closure of the caller's support.
+  - A cube in the cone whose support is unknown is asked again with the cone alone assumed. A proof adds its support; a
+    model's pre-state brings in the set's cubes false there (db6c00f's `close`).
+- **Where:** kernel/prove.ts (decideLaw's return, untrusted) and core/infer.ts (the rounds' final proof).
+- **Bytes:** about 0.3 KB in prove.ts and 2 KB in infer.ts. db6c00f's version was 2.4 KB with diagnostics.
+- **Evidence:** distributed's cone was 26–27 of 50–52 cubes, and its `prove()` 4.5 s (was 43–89 s at about 140 cubes).
+- **Cheapest falsifying pilot:** ring's IC3 set at the end of pz2's `ring-z3ic3` run.
+  - It is 30 cubes holding all 5 targets. Its texts weren't printed, so the run is repeated with the set printed
+    at the end.
+  - Ask each goal with decideLaw at 5 s, take the cone, and `prove()` it. One Modal job, about 2 min.
+  - **Falsified if** the cone isn't well under 30, or its `prove()` fails or costs over 20 s.
+
+**2. Ring: ordered-sort successors and an injective function inside composed keys.** (Closes ring with 1.)
+- **What decideLaw does now:** all 28 goals run to its 1 s cap; none returns a model or an early give-up. So they are
+  EPR-shaped, and the cost is the instance and lemma growth.
+  - epr.ts notes that a goal's clauses are quadratic in its terms.
+  - Each ground `n + 1` of the wrapping successor, each `idn(t)` and each composed key `64·idn(x) + y` adds terms, and
+    the theory lemmas compare every pair.
+- **Mechanism (Z3's encoding, the parts that mattered):**
+  - **An ordered sort as a total order** with a least element and ground successors. `t + 1` is a successor term with
+    only "nothing strictly between t and t + 1", and only at the goal's ground terms. No arithmetic on node keys; the
+    wrap `n + 1 = size ? 0 : n + 1` becomes a case split on the one ground term.
+  - **`idn`'s injectivity as distinctness among the goal's ground `idn` terms alone,** quadratic in those terms, not in
+    every term.
+  - **A composed key whose part is `idn(x)`:** a tuple whose first part is that term (the tuple abstraction of composed
+    keys already compares parts by order and equality).
+- **Where:** kernel/epr.ts (the abstraction and its lemmas), untrusted. An unsat answer goes back through prove.ts's
+  core-and-widen path, which the kernel checks, so no new certificate.
+- **Bytes:** 2–4 KB in epr.ts.
+- **Cheapest falsifying pilot:** replay ring's top-down goals through decideLaw at 1, 5 and 20 s.
+  - Dump them with `GDP_Z3_DUMP` on exp/pool-z3; replay with `research/protocols/engine/z3probe.ts replay`, which times
+    both oracles per goal. One Modal job, about 5 min.
+  - Before it, one local probe of 30 s or less: the `unknown` reason of one of the 28 (the deadline, the model's order,
+    or the read-back).
+  - If most decide by 5 s, the gap is cost. Profile `decide0`'s instance and lemma counts, and the mechanism above is the
+    fix.
+  - **Falsified if** they stay undecided at 20 s with no growth in conflicts: then it is incompleteness, and the
+    successor and injectivity encoding must be rebuilt, not tuned.
+- **Why ring is first:**
+  - its written invariant proves in 3.4 s;
+  - with Z3, IC3 over the shrunk pool already put all 5 targets in the set;
+  - the engine starts at about 23 s.
+  So 1 and 2 together are the whole gap.
+
+**3. wo: a request-carried set under ∀-quantified flags, and a write at every key from it.** (Needed for any wo goal.)
+- **What decideLaw does now:** wo's goals are undecided in 0.24–1.26 s (median 1.0 s), including trivial ones ("Leader
+  ∧ started is 0"). Some give up well before the cap.
+- **The suspicion** (not yet measured) is the shape, not the cube. wo's step has:
+  - the carried set Q, read at a bound key under `everyKey` in the assumption;
+  - two quantified flags (`quorumVotes`, `votingQuorumVotes`: ∀k. Q has k → Votes[src, k]), each a 0/1 variable with a
+    witness key per flag in the kernel's goal (kernel.ts: `w?f`);
+  - VotingQuorum written at every key from Q.
+  `patternsOf` leaves out reads keyed by a write-at-every-key's own name, and `decide0`'s shape check needs every map
+  read at its pattern. A carried map at a bound key, or a flag's witness key, may fail it, and the goal then reads as
+  "not EPR-shaped" or breaks at read-back.
+- **Mechanism (Ivy's shape):**
+  - the carried map gets a pattern like any map;
+  - a quantified flag's 1-side is a ∀ instantiated by the model-instance rounds at the goal's ground keys, as laws
+    already are; its 0-side is its witness constant, a ground key;
+  - the write at every key is, at each ground key read after the step, the if of the write's condition over Q's and the
+    old map's cells there.
+- **Where:** kernel/epr.ts (`patternsOf`, the shape check) and kernel/prove.ts (the flags' witness keys among the
+  instances' ground keys), untrusted.
+- **Bytes:** 2–3 KB.
+- **Cheapest falsifying pilot:** one local probe of 30 s or less. `decide` on wo's trivial goal "never 1 <= Leader[x]
+  and started is 0", every law of round 0 assumed, printing its `unknown` reason and which hypotheses aren't shaped.
+  - **Falsified if** the reason is the deadline with every hypothesis shaped. Then it is cost, as for ring, and the shape
+    work buys nothing.
+- **Why it ranks behind ring:** wo needs this and 4, and its final proof alone is 30.5 s (given mode). With the join
+  and the small instance at 21–26 s before the engine, wo doesn't fit 60 s on Modal even with a perfect oracle, unless
+  that cost falls too:
+  - the cyclic certificate's 21.4 s;
+  - or the join, when the engine follows.
+
+**4. The ∀∃ law ("after init the voting quorum has a member", with its ghost witness).** (Closes wo with 3 and a
+cheaper final proof.)
+- **The state:**
+  - the rounds already find the right witness: the same ghost as the written one, `when(inits ∨ chooses, w, before)`;
+  - the kernel proves the written ∃ law with that ghost through core/exists.ts (`proveSome`) and the Lean twin's Ghost
+    module: the given-mode proof above;
+  - so no new certificate kind is needed.
+  - What no oracle decides is its goals. decideLaw's fast shape refuses any "there exists" law; Z3's translator leaves ∃
+    goals and ∃ laws to the kernel. Z3's set check then finds a model of "one leader" without it.
+- **Mechanism:** the oracle sees the ∃ law as its witness instance, `ghost.plain`, over the ghosted machine
+  (`withGhost`). That is a quantifier-free law of one more state scalar, which the rounds already build. Two changes:
+  - every set check and every oracle call assumes `ghost.plain` in place of leaving the ∃ law out;
+  - the ghost's own goals (start and step) are asked like a cube's.
+  Its step reads `chooses`, so deciding it needs 3 first.
+- **Where:** core/infer.ts (what the oracle is asked), untrusted. The final proof stays `proveSome`'s.
+- **Bytes:** about 0.5 KB.
+- **Cheapest falsifying pilot,** after 3's local probe: decideLaw on `ghost.plain`'s step over `withGhost(m)`, with wo's
+  written ∀ laws assumed (one local probe of 30 s or less).
+  - **Falsified if** it has a model the interpreter confirms. Then the ghost needs support beyond the written laws, and
+    the witness search, not the oracle, is the gap.
+
+**The order to run them**
+1. 2's local reason probe and 3's: two local probes of 30 s or less, one at a time, no code kept.
+2. 1's cone pilot and 2's replay at 1, 5, 20 s: two Modal jobs, about $0.05.
+3. Build 1, then 2. Measure ring at 60 s (2 runs), the seven, the bar.
+4. Only then 3 and 4, with wo's final-proof cost measured beside them.
+
 ## Banked: the data filter and minimal implication ahead of the rounds, by default (gen/pool e353d4e; 8 of 10)
 
 **What changed** (core/infer.ts; `GDP_POOL=0` turns it off)
