@@ -52,9 +52,11 @@ export const atomOf = (lin: Lin, holds: boolean): Constraint => ({lin: holds ? l
 
 // Is lin <= 0 decided by the path? A constant atom decides itself.
 // Over the integers lin <= 0 fails exactly when 1 - lin <= 0 holds, so either atom decides the other.
+// A form with a coefficient past a safe integer decides nothing: it may be a rounded difference, and its flip is
+// rounded again (1 - (2^53 + 1) reads as the safe 1 - 2^53), so an atom about another form would decide it.
 function decide(lin: Lin, path: Path): boolean | undefined {
   let constant = true
-  for (const key in lin) if (key !== '1') { constant = false; break }
+  for (const key in lin) { if (!Number.isSafeInteger(lin[key])) return undefined; if (key !== '1') constant = false }
   if (constant) return (lin['1'] ?? 0) <= 0
   const direct = look(path, canon(lin))
   if (direct !== undefined) return direct
@@ -104,13 +106,14 @@ export function linear(e: E, path: Path): Lin | undefined {
 // here, so no rounding inside a term goes unseen (core/check.ts refuses such rows too).
 function linearOf(e: E, path: Path): Lin | undefined {
   const out = linearOp(e, path)
-  return out && Object.values(out).every(c => Number.isSafeInteger(c)) ? out : undefined
+  return out && safe(out) ? out : undefined
 }
+const safe = (lin: Lin) => Object.values(lin).every(c => Number.isSafeInteger(c))
 function linearOp(e: E, path: Path): Lin | undefined {
   switch (e.op) {
     case 'var': return e.name === '1' || /[*[\],:⟦]/.test(e.name) ? undefined : v(e.name) // those characters build cells, monomials and term columns
     case 'const': return k(e.value)
-    case 'mul': { const a = linear(e.a, path); return a && scale(a, e.k) }
+    case 'mul': { const a = linear(e.a, path); return a && Number.isSafeInteger(e.k) ? scale(a, e.k) : undefined } // (10 · 0.1 is a float 1)
     case 'prod': { const a = linear(e.a, path), b = linear(e.b, path); return a && b && times(a, b) }
     case 'add': { const a = linear(e.a, path), b = linear(e.b, path); return a && b && add(a, b) }
     case 'sub': case 'min': case 'max': {
@@ -180,14 +183,18 @@ export function termRows(name: string, path: Path): Lin[] {
 // product is of its branch). Forgetting how monomials relate (x*x to x, say, or two monomials over cells the path
 // proves equal) only weakens what a leaf may use, so it stays sound; distributing is what proves spend <= m·count over
 // a node from the same law at its children.
+// Every coefficient, product and partial sum a safe integer, else no product: a rounded product is past 2^53, but a
+// monomial's other products could bring its sum back under it (and a square's form is the prover's, any float).
 function times(a: Lin, b: Lin): Lin | undefined {
-  const out: Lin[] = []
+  const out: Lin = {}
   for (const [p, cp] of Object.entries(a)) for (const [q, cq] of Object.entries(b)) {
     if (p.includes('⟦') || q.includes('⟦')) return undefined
-    const fs = [...(p === '1' ? [] : factorsOf(p)), ...(q === '1' ? [] : factorsOf(q))].sort()
-    out.push({[fs.length ? fs.join('*') : '1']: cp * cq})
+    const fs = [...(p === '1' ? [] : factorsOf(p)), ...(q === '1' ? [] : factorsOf(q))].sort(), key = fs.length ? fs.join('*') : '1', c = (out[key] ?? 0) + cp * cq
+    if (!(Number.isSafeInteger(cp) && Number.isSafeInteger(cq) && Number.isSafeInteger(cp * cq) && Number.isSafeInteger(c))) return undefined
+    out[key] = c
   }
-  return add(...out)
+  for (const key in out) if (out[key] === 0) delete out[key]
+  return out
 }
 // A name's factors: split at each '*' outside a cell's brackets (a cell's key may itself read a monomial).
 const factorMemo = new Map<string, string[]>()
@@ -228,7 +235,9 @@ function comparison(c: Extract<C, {a: E}>, path: Path): Comparison {
 function comparisonOf(c: Extract<C, {a: E}>, path: Path): Comparison {
   const a = linear(c.a, path), b = linear(c.b, path)
   if (!a || !b) return undefined
+  // A rounded difference gives no fact: one past 2^53 is refused as a row, but plus 1 it may be safe again.
   const ab = sub(a, b), ba = sub(b, a)
+  if (!safe(ab)) return undefined
   if (c.op === '<=') return {when: [ab], unless: [[add(ba, k(1))]]}
   if (c.op === '<') return {when: [add(ab, k(1))], unless: [[ba]]}
   return {when: [ab, ba], unless: [[add(ab, k(1))], [add(ba, k(1))]]}
@@ -1079,12 +1088,15 @@ const isFC = (c: C) => c.op === '<' && c.a.op === 'const' && c.b.op === 'const' 
 const kE = (value: number): E => ({op: 'const', value})
 // Lean's folds, on kernel.ts's terms: an and of several (Lean: each and of two, nested to the right) is false if one is,
 // else the rest that aren't true, and so for or; read through the Lean text, the two give the same terms.
-const foldMul = (k0: number, a: E): E => (k0 === 0 ? kE(0) : k0 === 1 ? a : a.op === 'const' ? kE(k0 * a.value) : {op: 'mul', k: k0, a})
+// A constant folded past a safe integer is left unfolded (`kF`): its float may be rounded (2 + (2^53 - 1) is 2^53), and
+// the term unfolded has its value exactly, which the kernel's linear forms then refuse (Lean's Nat folds it exactly).
+const kF = (value: number, e: E): E => (Number.isSafeInteger(value) ? kE(value) : e)
+const foldMul = (k0: number, a: E): E => (k0 === 0 ? kE(0) : k0 === 1 ? a : a.op === 'const' ? kF(k0 * a.value, {op: 'mul', k: k0, a}) : {op: 'mul', k: k0, a})
 function foldTerm(e: E, f: (e: E) => E, fc: (c: C) => C): E {
   switch (e.op) {
     case 'var': case 'const': return e
-    case 'add': { const a = f(e.a), b = f(e.b); return a.op === 'const' && a.value === 0 ? b : b.op === 'const' && b.value === 0 ? a : a.op === 'const' && b.op === 'const' ? kE(a.value + b.value) : {op: 'add', a, b} }
-    case 'sub': { const a = f(e.a), b = f(e.b); return b.op === 'const' && b.value === 0 ? a : a.op === 'const' && b.op === 'const' ? kE(Math.max(0, a.value - b.value)) : {op: 'sub', a, b} }
+    case 'add': { const a = f(e.a), b = f(e.b); return a.op === 'const' && a.value === 0 ? b : b.op === 'const' && b.value === 0 ? a : a.op === 'const' && b.op === 'const' ? kF(a.value + b.value, {op: 'add', a, b}) : {op: 'add', a, b} }
+    case 'sub': { const a = f(e.a), b = f(e.b); return b.op === 'const' && b.value === 0 ? a : a.op === 'const' && b.op === 'const' ? kF(Math.max(0, a.value - b.value), {op: 'sub', a, b}) : {op: 'sub', a, b} }
     case 'mul': return foldMul(e.k, f(e.a))
     case 'min': case 'max': { const a = f(e.a), b = f(e.b); return a.op === 'const' && b.op === 'const' ? kE(Math[e.op](a.value, b.value)) : {op: e.op, a, b} }
     case 'prod': { const a = f(e.a), b = f(e.b); return a.op === 'const' ? foldMul(a.value, b) : b.op === 'const' ? foldMul(b.value, a) : {op: 'prod', a, b} }

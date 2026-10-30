@@ -10,7 +10,8 @@
 // Rows over the rationals come with integer coefficients (a leaf's linear forms over a positive denominator,
 // kernel.ts), and in both domains every coefficient read or made must stay a safe integer, so none is rounded (a
 // float past 2^53 would let a row of a true constraint read as a false one).
-// A witness satisfies its constraints when every one of them evaluates to at most 0 at it.
+// A witness satisfies its constraints when every one of them evaluates to at most 0 at it, every value, product and
+// partial sum a safe integer (else it is not taken: a rounded sum may read a positive row as 0).
 import type {Constraint, Lin, Step} from './solver.ts'
 
 const vars = (lin: Lin) => Object.keys(lin).filter(key => key !== '1')
@@ -28,11 +29,13 @@ export function checkRefutation(constraints: Constraint[], steps: Step[], integr
       if (!(s.a < i && s.b < i && Number.isSafeInteger(s.ma) && Number.isSafeInteger(s.mb) && s.ma > 0 && s.mb > 0)) return false
       if (!integral && !(Number.isInteger(s.a) && Number.isInteger(s.b) && s.a >= 0 && s.b >= 0)) return false
       const out: Lin = {}
-      for (const [lin, m] of [[rows[s.a]!, s.ma], [rows[s.b]!, s.mb]] as const) for (const [key, c] of Object.entries(lin)) out[key] = (out[key] ?? 0) + m * c
+      // Each product safe too: a rounded one is past 2^53, but the other row's could bring the sum back under it.
+      for (const [lin, m] of [[rows[s.a]!, s.ma], [rows[s.b]!, s.mb]] as const) for (const [key, c] of Object.entries(lin)) { if (!Number.isSafeInteger(m * c)) return false; out[key] = (out[key] ?? 0) + m * c }
       if (!exact(out)) return false
       rows.push(out); strict.push(strict[s.a]! || strict[s.b]!)
     } else {
       if (!integral) return false
+      // (c / g rounded is never an integer c / g isn't, nor past the next one, for a safe c: its ceiling is exact.)
       const row = rows[s.of]
       if (!(row !== undefined && s.of < i && Number.isSafeInteger(s.g) && s.g > 0 && vars(row).every(key => row[key]! % s.g === 0))) return false
       rows.push({...Object.fromEntries(vars(row).map(key => [key, row[key]! / s.g])), 1: Math.ceil((row['1'] ?? 0) / s.g)}); strict.push(false)
@@ -43,5 +46,13 @@ export function checkRefutation(constraints: Constraint[], steps: Step[], integr
 }
 
 export function checkWitness(constraints: Constraint[], witness: Record<string, number>): boolean {
-  return constraints.every(c => Object.entries(c.lin).reduce((sum, [key, a]) => sum + a * (key === '1' ? 1 : (witness[key] ?? NaN)), 0) <= 0)
+  return constraints.every(c => {
+    let sum = 0
+    for (const [key, a] of Object.entries(c.lin)) {
+      const value = key === '1' ? 1 : witness[key], term = a * value!
+      if (!(Number.isSafeInteger(a) && Number.isSafeInteger(value) && Number.isSafeInteger(term) && Number.isSafeInteger(sum + term))) return false
+      sum += term
+    }
+    return sum <= 0
+  })
 }
