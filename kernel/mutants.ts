@@ -40,6 +40,7 @@ export function mutants(): Mutant[] {
 // Fast and pointed first; the kernel fuzz last. Each is a bun test (exit 0 = pass) with a time limit; a mutant that makes
 // a test hang is caught too.
 const battery: {name: string, cwd: string, cmd: string[], env?: Record<string, string>, ms: number}[] = [
+  {name: 'counts', cwd: 'kernel', cmd: ['bun', 'test', 'count.test.ts'], ms: 120_000},
   {name: 'refusals', cwd: 'kernel', cmd: ['bun', 'test', 'refusals.test.ts'], ms: 60_000},
   {name: 'tamper', cwd: 'kernel', cmd: ['bun', 'test', 'tamper.test.ts'], ms: 120_000},
   {name: 'dsl', cwd: 'core', cmd: ['bun', 'test', 'dsl.test.ts'], ms: 120_000},
@@ -57,9 +58,11 @@ const battery: {name: string, cwd: string, cmd: string[], env?: Record<string, s
   {name: 'lists', cwd: 'core', cmd: ['bun', 'test', 'lists.test.ts'], ms: 300_000},
   {name: 'kernel fuzz', cwd: 'kernel', cmd: ['bun', 'test', 'kernel.test.ts'], env: {FUZZ_SCALE: '0.5'}, ms: 400_000},
 ]
+// MUTANT_BATTERY=a,b: only those tests (by name), for a run over one check's mutants.
+const only = process.env.MUTANT_BATTERY?.split(',')
 function runBattery(): {killedBy?: string, ms: number} {
   const t0 = performance.now()
-  for (const b of battery) {
+  for (const b of only ? battery.filter(x => only.includes(x.name)) : battery) {
     const p = Bun.spawnSync(b.cmd, {cwd: resolve(root, b.cwd), env: {...process.env, ...b.env}, timeout: b.ms, stdout: 'ignore', stderr: 'ignore'})
     if (p.exitCode !== 0) return {killedBy: p.exitCode === null ? `${b.name} (timeout)` : b.name, ms: Math.round(performance.now() - t0)}
   }

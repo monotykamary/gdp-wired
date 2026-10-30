@@ -1684,5 +1684,19 @@
 "cpu": 2.0,
 "memory": 8192,
 "timeout": 1200
+},
+{
+"name": "count",
+"cmd": "bun test count.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 600
+},
+{
+"name": "lean-count",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets Live Ghost; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; for f in Count GhostMap; do lean -o $f.olean $f.lean > $f.out 2>&1 || { grep -B2 -A25 error $f.out | head -80; echo build-failed $f; exit 1; }; if grep -q -e sorry -e sorryAx $f.out; then echo sorry-in $f; exit 1; fi; grep 'Kern\\.' $f.out; done; bun count-examples.ts . && lean CountExamples.lean > ce.out 2>&1; s=$?; grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' ce.out | grep -v -e linter -e warning -e Hint -e '^  ' -e '^$' | tail -20; if grep -q -e sorry -e sorryAx ce.out; then echo sorry; exit 1; fi; grep -c 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' ce.out; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 2.0,
+"timeout": 1200
 }
 ]

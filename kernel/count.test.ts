@@ -3,8 +3,8 @@
 // rest of the check accepts: the goal a guard's absence would check, grown by the search), and a soundness fuzz: every
 // counted goal the kernel accepts has no model where each count is its sum, by brute force.
 import {describe, expect, test} from 'bun:test'
-import {type C, type E, type Law, type Machine, any, atMost, get, ite, less, n, not, plus, same, times, x} from '../core/machine.ts'
-import {type Count, type CountedGoal, type CountInst, type Ghosted, type Goal, type Tree, check, checkCounted, checkGhostedLaws, countedGoal, countHyps, ghostedMachine, ghostedOk} from './kernel.ts'
+import {type C, type E, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, times, x} from '../core/machine.ts'
+import {type Count, type CountedGoal, type CountInst, type Ghosted, type Goal, type Tree, check, checkCounted, checkGhostedLaws, countedGoal, countHyp, countHyps, ghostedMachine, ghostedOk} from './kernel.ts'
 import {clock, grow, proveLaws} from './prove.ts'
 import {byzantineStep, countTree, grants, majorityStep, thresholdStep} from '../lean-kernel/count-examples.ts'
 
@@ -40,7 +40,7 @@ const holds = (c: C, env: Env, maps: Maps): boolean => {
     case 'not': return !holds(c.x, env, maps)
     case 'and': return c.xs.every(y => holds(y, env, maps))
     case 'or': return c.xs.some(y => holds(y, env, maps))
-    default: throw new Error(`no ${c.op} here`)
+    case 'flag': case 'all': throw new Error(`no ${c.op} here`)
   }
 }
 const sumOf = (cn: Count, env: Env, maps: Maps): number => {
@@ -88,6 +88,14 @@ describe('counts', () => {
   test('the tree refutes the goal only with the instances\' hypotheses', () => {
     expect(check({name: g.name, hyps: g.hyps}, tree)).toBe(false)
     expect(treeOf({name: g.name, hyps: g.hyps}, 3000)).toBeUndefined()
+  })
+
+  test('countHyp builds Count.lean\'s hypothesis: positive and negative parts, sums from 0, the unit last', () => {
+    const cs: Count[] = [{v: 'c', key: 'n', below: x('B'), body: get('S', x('n'))}, {v: 'd', key: 'n', below: x('B'), body: get('T', x('n'))}]
+    const side = (p: number, q: number, u: number, a: E, b: E, one: E): E => plus(plus(times(p, a), plus(times(q, b), n(0))), times(u, one))
+    expect(countHyp(cs, {wit: 'w', below: x('B'), terms: [[2, 'c'], [-3, 'd']], unit: -1})).toEqual(
+      any(atMost(side(2, 0, 0, x('c'), x('d'), x('B')), side(0, 3, 1, x('c'), x('d'), x('B'))),
+        all(less(x('w'), x('B')), less(side(0, 3, 1, get('S', x('w')), get('T', x('w')), n(1)), side(2, 0, 0, get('S', x('w')), get('T', x('w')), n(1))))))
   })
 
   test('a tree for another goal is refused', () => {
@@ -151,15 +159,18 @@ describe('counts', () => {
     ]
     const atoms = ['cX', 'cY', 'cV', 'N', 'x', 'y']
     const lin = (): E => { let e: E = n(rand(3)); for (const a of atoms) if (rand(3) === 0) e = plus(e, times(1 + rand(2), x(a))); return e }
-    const cmp = (): C => { const r = rand(4); const c: C = {op: (['<', '<=', '='] as const)[rand(3)]!, a: lin(), b: lin()}; return r === 0 ? not(c) : r === 1 ? any(c, {op: '=', a: x('x'), b: x('y')}) : c }
+    const anyCmp = (): C => { const r = rand(4); const c: C = {op: (['<', '<=', '='] as const)[rand(3)]!, a: lin(), b: lin()}; return r === 0 ? not(c) : r === 1 ? any(c, {op: '=', a: x('x'), b: x('y')}) : c }
+    // (most goals as quorums are written: a·N + b < c·|S|, with x and y apart or not, so many need the lemma)
+    const quorum = (): C => less(plus(times(rand(3), x('N')), n(rand(3))), times(1 + rand(3), x(['cX', 'cY', 'cV'][rand(3)]!)))
+    const cmp = (): C => (rand(4) === 0 ? anyCmp() : rand(3) === 0 ? not(same(x('x'), x('y'))) : quorum())
     const envs = product([range(4), range(3), range(3)]).map(([N, xx, yy]) => ({N: N!, x: xx!, y: yy!}))
     const mapss = [0, 1, 2, 3].flatMap(k => product(range(k).map(() => range(3))).map(vote => ({vote})))
     let accepted = 0, withInstances = 0
     const tries = Math.round(300 * scale)
     for (let i = 0; i < tries; i++) {
-      const g2: CountedGoal = {name: `fuzz ${i}`, hyps: Array.from({length: 1 + rand(3)}, cmp), counts}
-      const insts2: CountInst[] = Array.from({length: rand(3)}, (_, j) => ({wit: `w${j}`, below: x('N'), unit: rand(5) - 2,
-        terms: counts.filter(() => rand(2) === 0).map(cn => [rand(5) - 2, cn.v] as [number, string])}))
+      const g2: CountedGoal = {name: `fuzz ${i}`, hyps: Array.from({length: 1 + rand(4)}, cmp), counts}
+      const insts2: CountInst[] = Array.from({length: 1 + rand(2)}, (_, j) => ({wit: `w${j}`, below: x('N'), unit: rand(4) - 2,
+        terms: counts.filter(() => rand(3) > 0).map(cn => [rand(4) - 1, cn.v] as [number, string])}))
       const t = treeOf(countedGoal(g2, insts2), 400)
       if (!t || !checkCounted(g2, {insts: insts2, tree: t})) continue
       accepted++
@@ -207,7 +218,8 @@ describe('ghost maps', () => {
     ['the original keeps sums', {...g, orig: {...g.orig, sums: {s: {key: 'j', term: get('granted', x('j'))}}}}],
     ['a ghost variable is one of the original\'s (an input)', {...g, vars: {zz: {start: n(0), step: n(0)}, k: {start: n(0), step: n(0)}}}],
     ['a ghost variable is a quantified flag\'s witness', {...g, orig: quant, vars: {zz: {start: n(0), step: n(0)}, 'w?q': {start: n(0), step: n(0)}}}],
-    ['a ghost map is one of the original\'s', {...g, maps: {...g.maps, valid: {start: 0, write: {key: x('k'), value: n(0)}}}}],
+    ['a ghost map is one of the original\'s (read nowhere)', {...g, orig: {...g.orig, maps: {...g.orig.maps, spare: 0}}, maps: {...g.maps, spare: {start: 0, write: {key: x('k'), value: n(0)}}}}],
+    ['a ghost map is one of the original\'s (written and read)', {...g, maps: {...g.maps, valid: {start: 0, write: {key: x('k'), value: n(0)}}}}],
     ['the original\'s assumption reads a ghost variable', {...g, vars: gv, orig: {...g.orig, assume: atMost(x('gv'), n(5))}}],
     ['the original\'s write reads a ghost map', {...g, maps: {...g.maps, ...W2}, orig: {...g.orig, step: {...g.orig.step, maps: {...g.orig.step.maps,
       granted: {key: x('k'), value: ite(same(get('W', x('k')), n(7)), n(0), get('granted', x('k')))}}}}}],
