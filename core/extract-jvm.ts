@@ -8,7 +8,8 @@
 // is needed for both, kotlinc (its lib/ has the compiler's PSI and the standard library) for Kotlin, only here.
 //
 //   const x = extractJava('core/src/main/java/io/grpc/internal/RetriableStream.java', {root: 'core/src/main/java', entry: 'Throttle'})
-//   const k = extractKotlin('okhttp3/internal/http2/flowcontrol/WindowCounter.kt', {entry: 'WindowCounter', failures: 'kept'})
+//   const k = extractKotlin('okhttp3/internal/http2/flowcontrol/WindowCounter.kt', {failures: 'kept'})   // the class inferred
+//   (a path or a URL; the root, by default, the file's package root)
 //
 // The subset: a class (a static nested one too; its superclasses of the code's own sources merged in), its one
 // constructor (or the one of the arity given: `ctor`) with the fields' initializers as the rule's start and its
@@ -28,8 +29,9 @@
 // collections, instanceof, static fields that aren't constants, inner classes, generic classes and methods, other
 // code's calls not answered or skipped. Not yet: `stores`, branch coverage (the arms aren't counted).
 import {type Extraction} from './extract.ts'
-import {Refusal} from './extract-read.ts'
+import {Refusal, pathOf, type FileURL} from './extract-read.ts'
 import {type Harness, type SModule, type SX, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
+export {proveRule, proveSteps} from './dsl.ts'
 
 export type JvmOptions = StepOptions & {
   // The source root the file's package resolves from (javac's -sourcepath); by default the file's package root.
@@ -162,7 +164,8 @@ function compiled(lang: 'java' | 'kotlin', mod: SModule, read: StepRead, o: JvmO
   } catch (e) { return {dirs: [], error: `the code doesn't compile for the check (${errText(e)})`} }
 }
 
-export function extractJvm(lang: 'java' | 'kotlin', file: string, opts: JvmOptions): Extraction & {read?: StepRead} {
+export function extractJvm(lang: 'java' | 'kotlin', at: string | FileURL, opts: JvmOptions = {}): Extraction & {read?: StepRead} {
+  const file = pathOf(at)
   let mod: SModule
   try {
     if (opts.stores && Object.keys(opts.stores).length) throw new Refusal(file, `stores: not in the ${lang === 'java' ? 'Java' : 'Kotlin'} front end yet`)
@@ -187,5 +190,5 @@ export function extractJvm(lang: 'java' | 'kotlin', file: string, opts: JvmOptio
   }
   try { return extractStep(mod, harness, opts) } finally { for (const d of made) node<FS>('node:fs').rmSync(d, {recursive: true, force: true}) }
 }
-export const extractJava = (file: string, opts: JvmOptions) => extractJvm('java', file, opts)
-export const extractKotlin = (file: string, opts: JvmOptions) => extractJvm('kotlin', file, opts)
+export const extractJava = (at: string | FileURL, opts: JvmOptions = {}) => extractJvm('java', at, opts)
+export const extractKotlin = (at: string | FileURL, opts: JvmOptions = {}) => extractJvm('kotlin', at, opts)

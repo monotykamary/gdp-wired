@@ -6,9 +6,11 @@
 // (true where calls don't interleave). What is read and refused, with the reasons, is in
 // skills/gdp-wired/references/writing-rules.md ("Effect services") and research/effect/README.md.
 //
-//   const x = extractEffect(code, {file: 'limiter.ts', entry: 'make', effect: await import('effect')})
+//   const x = extractEffect('./limiter.ts')   // a path or a URL; the service inferred; effect from the file's project
+//   proveRule(x.rule!, [x.rule!.law('never below zero', ({tokens}) => tokens.atLeast(0))])
 //
-// The check runs the code on the Effect given: the service made, and each request run, by Effect.runSyncExit with a
+// {entry: 'make'} names the service, {effect} gives the module, {code, file} reads code in memory; the code-first form,
+// extractEffect(code, {file, entry, effect}), stays. The check runs the code on that Effect: the service made, and each request run, by Effect.runSyncExit with a
 // Clock fixed at the request's time (4.x's TestClock.setTime yields to its scheduler, which runSync can't), every Ref
 // read after it. `conforms(rule, service)` runs a rule written by hand beside a running service; `fromSchema(schema)` is
 // a Schema's kind.
@@ -18,16 +20,21 @@ import type {Kind, Rule} from './dsl.ts'
 import {type Rand, interpret, seeded} from './machine.ts'
 import {allowed} from './watch.ts'
 import * as I from './extract-ir.ts'
-import {type Exec, type Path, Refusal, type Setup, type V, bare as strip, impure, memberName, placed, refuse, shapeOf, text} from './extract-read.ts'
-import {type FactoryOf, readFactory} from './extract-shapes.ts'
+import {type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, impure, memberName, placed, refuse, shapeOf, sourceOf, text} from './extract-read.ts'
+import {type FactoryOf, readFactory, setupOf} from './extract-shapes.ts'
 import {type ExtractOptions, type Extraction, fromModel, namesOf} from './extract.ts'
 import {check} from './extract-check.ts'
+export {proveRule, proveSteps} from './dsl.ts'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Mod = Record<string, any>
-export type EffectOptions = ExtractOptions & {
-  // The `effect` package the code is written for (import * as effect from 'effect'): the check runs the code on it.
-  effect: Mod,
+export type EffectOptions = Omit<ExtractOptions, 'entry'> & {
+  // The service: its make effect's name (`make`, a Layer, an Effect.Service class, `Tag.make`); by default the one the
+  // file has.
+  entry?: string,
+  // The `effect` package the code is written for: the check runs the code on it. By default the one the file imports
+  // (its project's node_modules).
+  effect?: Mod,
   // Other modules the code imports, for the check (by their specifier).
   modules?: Record<string, unknown>,
 }
@@ -297,16 +304,38 @@ export function runner(E: Mod): Runner {
   return {run, exit, get: (mod, ref) => run(E[mod].get(ref)), set: (mod, ref, v) => run(E[mod].set(ref, v))}
 }
 
-export function extractEffect(code: string, opts: EffectOptions): Extraction {
-  const file = opts.file ?? 'input.ts', E = opts.effect
-  let m
-  try { m = readFactory(code, placed(file), opts, s => factoryOf(s, opts.entry)); m.file = file } catch (e) {
+export function extractEffect(at: Source, opts: EffectOptions = {}): Extraction {
+  let m, code: string, file: string, E: Mod | undefined
+  try {
+    ;({code, file} = sourceOf(at, opts.file, 'input.ts'))
+    E = opts.effect ?? beside<Mod>(file, 'effect')
+    if (!E) throw new Refusal(file, 'no effect package resolves from the file (install it in its project, or give it: {effect: await import(\'effect\')})')
+    const entry = opts.entry ?? serviceOf(code, file, opts)
+    m = readFactory(code, placed(file), {...opts, entry}, s => factoryOf(s, entry)); m.file = file
+    if (!opts.entry) m.notes.unshift(`the entry inferred: ${entry}, the file's one make effect`)
+  } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
     throw e
   }
   // The modules the code imports, by specifier (effect, effect/<Module>), and the check's runner.
   const model = m, modules = {effect: E, ...Object.fromEntries(Object.entries(E).map(([k, x]) => [`effect/${k}`, x])), 'gdp-wired:effect': runner(E), ...opts.modules}
   return {...fromModel(model, file, opts.domains, [], (rule, sorts) => check(code, file, model, rule, sorts, {...opts.check, modules, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})), names: namesOf(model)}
+}
+// The service a file has: of its declarations (the exported ones first), those whose make effect reads, one make effect
+// however many names reach it (make, and a Layer of it).
+function serviceOf(code: string, file: string, opts: EffectOptions): string {
+  const s = setupOf(code, placed(file), {}, opts.files), found: [string, ts.Node][] = []
+  const exported = (st: ts.Statement) => !!(ts.canHaveModifiers(st) && ts.getModifiers(st)?.some(x => x.kind === ts.SyntaxKind.ExportKeyword))
+  for (const pass of [true, false]) {
+    for (const st of s.sf.statements.filter(x => exported(x) === pass)) {
+      const names = ts.isVariableStatement(st) ? st.declarationList.declarations.flatMap(d => (ts.isIdentifier(d.name) ? [d.name.text] : []))
+        : (ts.isFunctionDeclaration(st) || ts.isClassDeclaration(st)) && st.name ? [st.name.text, ...(ts.isClassDeclaration(st) ? st.members.flatMap(x => (ts.isPropertyDeclaration(x) && ts.isIdentifier(x.name) ? [`${st.name!.text}.${x.name.text}`] : [])) : [])] : []
+      for (const n of names) { try { const f = factoryOf(s, n); if (!found.some(([, g]) => g === f.fn)) found.push([n, f.fn]) } catch (e) { if (!(e instanceof Refusal)) throw e } }
+    }
+    if (found.length) break
+  }
+  if (found.length > 1) throw new Refusal(file, `several services in the file (${found.map(([n]) => n).join(', ')}): name one (entry)`)
+  return found[0]?.[0] ?? refuse(s.sf.statements[0] ?? s.sf, 'no make effect in the file (an Effect.gen whose Refs its methods write, a function returning one, Effect.fn, or Layer.effect of one): name the entry')
 }
 
 // A rule written by hand beside a running service: `runs` runs of `depth` requests drawn by `draw` (the rule's inputs),

@@ -3,8 +3,9 @@
 // isn't installed (the suite's cli-<lang> jobs install them).
 import {expect, test} from 'bun:test'
 import {execFileSync, spawnSync} from 'node:child_process'
-import {mkdirSync, mkdtempSync, readFileSync as readAdv, writeFileSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, readFileSync as readAdv, symlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
+import {pathToFileURL} from 'node:url'
 import {check, colors} from './cli.ts'
 import {lawsIn, parse} from './laws.ts'
 
@@ -14,14 +15,17 @@ const TOOLS: Record<string, () => boolean> = {
   python: () => has('python3', '--version'), ruby: () => has('ruby', '-e', 'require "prism"'), elixir: () => has('elixir', '-e', ':ok'),
   java: () => has(javac, '-version'), kotlin: () => has(javac, '-version') && (!!process.env.KOTLIN_HOME || has('sh', '-c', 'command -v kotlinc')),
   go: () => has('go', 'version'), rust: () => has('cargo', '--version'), swift: () => has(process.env.GDP_SWIFT ?? 'swift', '--version'), c: () => has('clang', '--version'), cpp: () => has('clang++', '--version'), ts: () => true,
+  effect: () => true, xstate: () => true,
 }
-// The case's files (the first the one checked), written to a fresh directory.
-const files = (fs: Record<string, string>): string => {
+// The case's files (the first the one checked), written to a fresh directory (its node_modules, where the code imports a
+// package, this repository's: effect 4.x, xstate 5.x).
+const files = (fs: Record<string, string>, modules = false): string => {
   const dir = mkdtempSync(`${tmpdir()}/gdp-clicase-`)
   for (const [f, text] of Object.entries(fs)) { mkdirSync(`${dir}/${f}`.replace(/\/[^/]*$/, ''), {recursive: true}); writeFileSync(`${dir}/${f}`, text) }
+  if (modules) symlinkSync(new URL('../node_modules', import.meta.url).pathname, `${dir}/node_modules`)
   return dir
 }
-const CASES: Record<string, {files: Record<string, string>, target?: string}> = {
+const CASES: Record<string, {files: Record<string, string>, target?: string, modules?: boolean}> = {
   python: {files: {'limiter.py': `
 def gdp_law(text):
     return lambda f: f
@@ -190,11 +194,44 @@ export class Limiter {
   }
 }
 `}},
+  // An Effect service: its Refs the state, the laws above its make effect; read with effect from the file's project.
+  effect: {modules: true, files: {'limiter.ts': `
+import {Effect, Ref} from 'effect'
+
+// gdp: law a hit counts at most one: count <= old(count) + 1
+// gdp: law every hit counts: count == old(count) + 1
+export const make = (limit: number) => Effect.gen(function* () {
+  const count = yield* Ref.make(0)
+  const hit = Effect.fn('hit')(function* () {
+    const c = yield* Ref.get(count)
+    if (c >= limit) return false
+    yield* Ref.set(count, c + 1)
+    return true
+  })
+  return {hit}
+})
+`}},
+  // An XState machine: its context the state, `value` its state, `event` the event; xstate from the file's project.
+  xstate: {modules: true, files: {'counter.ts': `
+import {assign, setup} from 'xstate'
+
+// gdp: law a hit counts at most one: count <= old(count) + 1
+// gdp: law every hit counts: count == old(count) + 1
+// gdp: law it stays open: value == "open"
+export const counter = setup({
+  types: {} as {context: {count: number, limit: number}},
+  guards: {room: ({context}) => context.count < context.limit},
+}).createMachine({
+  context: {count: 0, limit: 3},
+  initial: 'open',
+  states: {open: {on: {hit: {guard: 'room', actions: assign({count: ({context}) => context.count + 1})}}}},
+})
+`}},
 }
 
 for (const [lang, c] of Object.entries(CASES)) {
   (TOOLS[lang]!() ? test : test.skip)(`${lang}: a law stated in the code proven, one broken with its run, exit 1`, async () => {
-    const target = `${files(c.files)}/${c.target ?? Object.keys(c.files)[0]}`
+    const target = `${files(c.files, c.modules)}/${c.target ?? Object.keys(c.files)[0]}`
     const {rules, exit} = await check([target], {ms: 5000, propose: false, check: {runs: 30, depth: 6, states: 60}})
     const r = rules.find(x => x.ok) ?? rules[0]!
     if (!r.ok) throw new Error(`refused: ${JSON.stringify(r.refusals)}`)
@@ -204,8 +241,41 @@ for (const [lang, c] of Object.entries(CASES)) {
     expect(broken.verdict).toBe('broken')
     expect(broken.run!.length).toBeGreaterThan(0)
     expect(broken.run!.at(-1)!).toMatch(/hit/i)
+    if (lang === 'xstate') expect(by('it stays open').verdict).toBe('proven')
     expect(exit).toBe(1)
   }, 300_000)
+}
+
+// One way in: each front end called the short way (a file: URL and nothing else: the entry inferred, effect and xstate
+// from the file's project; Go and Rust given a file of the package or crate) reads the rule its call as it was reads
+// (the path or the code, the entry named, the module given), on the same cases.
+type Read = {ok: boolean, source?: string, rule?: {machine: unknown}, refusals: unknown[]}
+const url = (p: string) => pathToFileURL(p)
+const WAYS: Record<string, (d: string) => Promise<[Read, Read]>> = {
+  python: async d => { const {extractPython: f} = await import('./extract-py.ts'); return [f(`${d}/limiter.py`, {entry: 'Limiter'}), f(url(`${d}/limiter.py`))] },
+  ruby: async d => { const {extractRuby: f} = await import('./extract-rb.ts'); return [f(`${d}/limiter.rb`, {entry: 'Limiter'}), f(url(`${d}/limiter.rb`))] },
+  elixir: async d => { const {extractElixir: f} = await import('./extract-ex.ts'); return [f(`${d}/counter.ex`, {entry: 'Counter'}), f(url(`${d}/counter.ex`))] },
+  java: async d => { const {extractJava: f} = await import('./extract-jvm.ts'); return [f(`${d}/demo/Limiter.java`, {entry: 'Limiter'}), f(url(`${d}/demo/Limiter.java`))] },
+  kotlin: async d => { const {extractKotlin: f} = await import('./extract-jvm.ts'); return [f(`${d}/Limiter.kt`, {entry: 'Limiter'}), f(url(`${d}/Limiter.kt`))] },
+  go: async d => { const {extractGo: f} = await import('./extract-go.ts'); return [f(`${d}/p`, {entry: 'Limiter'}), f(url(`${d}/p/limiter.go`))] },
+  // (Rust, the entry named: every pub fn of its impl read, `new` too, so the methods are named with it)
+  rust: async d => { const {extractRust: f} = await import('./extract-rs.ts'); return [f(d, {entry: 'Limiter', methods: ['hit']}), f(url(`${d}/src/lib.rs`))] },
+  swift: async d => { const {extractSwift: f} = await import('./extract-swift.ts'); return [f(`${d}/limiter.swift`, {entry: 'Limiter'}), f(url(`${d}/limiter.swift`))] },
+  // (C: `methods`, the name every front end has for the requests read; `functions` its old name)
+  c: async d => { const {extractC: f} = await import('./extract-c.ts'); return [f(`${d}/lim.c`, {entry: 'lim', functions: ['hit', 'set_limit']}), f(url(`${d}/lim.c`), {methods: ['hit', 'set_limit']})] },
+  cpp: async d => { const {extractCpp: f} = await import('./extract-c.ts'); return [f(`${d}/lim.cpp`, {entry: 'Lim'}), f(url(`${d}/lim.cpp`))] },
+  ts: async d => { const {extract: f} = await import('./extract.ts'); return [f(readAdv(`${d}/limiter.ts`, 'utf8'), {file: `${d}/limiter.ts`, entry: 'Limiter'}), f(url(`${d}/limiter.ts`))] },
+  effect: async d => { const {extractEffect: f} = await import('./effect.ts'), effect = await import('effect'); return [f(readAdv(`${d}/limiter.ts`, 'utf8'), {file: `${d}/limiter.ts`, entry: 'make', effect}), f(url(`${d}/limiter.ts`))] },
+  xstate: async d => { const {extractXState: f} = await import('./extract.ts'), xstate = await import('xstate'); return [f(readAdv(`${d}/counter.ts`, 'utf8'), {file: `${d}/counter.ts`, entry: 'counter', xstate}), f(url(`${d}/counter.ts`))] },
+}
+for (const [lang, way] of Object.entries(WAYS)) {
+  (TOOLS[lang]!() ? test : test.skip)(`${lang}: one way in, a URL and nothing else read the rule the call as it was reads`, async () => {
+    const [was, now] = await way(files(CASES[lang]!.files, CASES[lang]!.modules))
+    if (!was.ok) throw new Error(`refused: ${JSON.stringify(was.refusals)}`)
+    expect(now.ok).toBe(true)
+    expect(now.source).toBe(was.source)
+    expect(JSON.stringify(now.rule!.machine)).toBe(JSON.stringify(was.rule!.machine))
+  }, 600_000)
 }
 
 test('the forms a law is stated in, and the expression syntax', () => {

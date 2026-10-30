@@ -5,6 +5,9 @@
 // the context it writes. The chart is then run beside XState's own actor (`conforms`) on random events with payloads,
 // every state and kept context field compared, the code's branches counted; any difference refuses it.
 //
+//   const x = extractXState('./order.ts')     // a path or a URL; the machine inferred; xstate from the file's project
+//   proveRule(x.rule!, [...x.invariants!, x.rule!.law('retries within 2', ({retries}) => retries.atMost(2))])
+//
 // - A machine made by a function (a factory): read with its arguments as the world gives them. An argument that is an
 //   object of functions (the effects a machine is given, its services) is outside: each answer a guard or an action
 //   reads of it is an input of the step (any value of its type, read once), a call that answers nothing an effect
@@ -25,21 +28,29 @@ import * as dsl from './dsl.ts'
 import {compileFunction, seeded} from './machine.ts'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
-import {Exec, type Model, type Path, Refusal, type Setup, type Shape, type Sort, type Term, type V, type Var, memberName, normalize, placed, program, refuse, shapeOf, where} from './extract-read.ts'
+import {Exec, type Model, type Path, Refusal, type Setup, type Shape, type Sort, type Source, type Term, type V, type Var, beside, memberName, normalize, placed, program, refuse, scriptKind, shapeOf, sourceOf, where} from './extract-read.ts'
+import type {Law} from './machine.ts'
+import type {Name} from './extract.ts'
+import type {Rule} from './dsl.ts'
 import {type Printer, kindOf, pb, pterm, sortsOf} from './extract-print.ts'
 import {type Coverage, sandbox} from './extract-check.ts'
 import {conforms, eventsOf, fromXState} from './xstate.ts'
 
 export type XStateOptions = {
-  file?: string, entry: string,
-  // The XState the code is written for (v5's module, or v4's: the check runs the machine on it).
-  xstate: {createActor?: (m: never) => {start: () => unknown}, interpret?: (m: never) => {start: () => unknown}} & Record<string, unknown>,
+  // The file's name, for code given as a string; the machine (or the function that makes one), by default the file's one.
+  file?: string, entry?: string,
+  // The XState the code is written for (v5's module, or v4's: the check runs the machine on it); by default the one the
+  // file imports (its project's node_modules).
+  xstate?: {createActor?: (m: never) => {start: () => unknown}, interpret?: (m: never) => {start: () => unknown}} & Record<string, unknown>,
   // Other files of the repository the entry's relative imports name (by their path beside the entry's).
   files?: Record<string, string>,
   check?: {runs?: number, depth?: number, seed?: number},
 }
 export type XStateExtraction = {
   ok: boolean, source?: string, chart?: ReturnType<typeof fromXState>, refusals: {where: string, what: string}[], notes: string[],
+  // The rule the chart compiles to, what it keeps true by its construction, and its names in the code's terms
+  // (`value` the state, the context's fields, `event` and `event.<field>`), as every front end's.
+  rule?: Rule, invariants?: Law[], names?: Name[],
   evidence?: {runs: number, events: number, coverage: Coverage, ms: number, mismatch?: string},
 }
 const strip = (e: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e) ? strip(e.expression) : e)
@@ -49,8 +60,36 @@ type Obj = Record<string, any>
 // A context field: a variable of the rule (a maybe: whether it is there, and its value), or left out.
 type Field = {k: string, var?: Var, maybe?: {has: Var, inner: Var, null: boolean}, dropped?: string, kind?: string}
 
-export function extractXState(code: string, opts: XStateOptions): XStateExtraction {
-  const file = opts.file ?? 'machine.ts', t0 = performance.now(), notes: string[] = []
+export function extractXState(at: Source, opts: XStateOptions = {}): XStateExtraction {
+  let code: string, file: string, entry: string, xstate: XStateOptions['xstate']
+  try {
+    ;({code, file} = sourceOf(at, opts.file, 'machine.ts'))
+    xstate = opts.xstate ?? beside(file, 'xstate') ?? none(file, 'no xstate package resolves from the file (install it in its project, or give it: {xstate: await import(\'xstate\')})')
+    entry = opts.entry ?? machineOf(code, file)
+  } catch (e) {
+    if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
+    throw e
+  }
+  const x = readXState(code, {...opts, file, entry, xstate})
+  if (!opts.entry) x.notes.unshift(`the entry inferred: ${entry}, the file's one machine`)
+  return x
+}
+const none = (where: string, what: string): never => { throw new Refusal(where, what) }
+// The machine a file makes: a createMachine (setup(...)'s too) or a function returning one, the only one.
+function machineOf(code: string, file: string): string {
+  const sf = ts.createSourceFile(file, code, ts.ScriptTarget.ES2022, true, scriptKind(file))
+  const makes = (e: ts.Node | undefined): boolean => {
+    if (!e) return false
+    if (isFn(e) || ts.isFunctionDeclaration(e)) { const b = e.body, st = b && ts.isBlock(b) ? b.statements.at(-1) : undefined; return b && ts.isBlock(b) ? !!st && ts.isReturnStatement(st) && makes(st.expression) : makes(b) }
+    const c = strip(e as ts.Expression)
+    if (isFn(c)) return makes(c)
+    return ts.isCallExpression(c) && (ts.isIdentifier(c.expression) ? c.expression.text : ts.isPropertyAccessExpression(c.expression) ? c.expression.name.text : '') === 'createMachine'
+  }
+  const found = sf.statements.flatMap(st => (ts.isVariableStatement(st) ? st.declarationList.declarations.filter(d => ts.isIdentifier(d.name) && makes(d.initializer)).map(d => (d.name as ts.Identifier).text) : ts.isFunctionDeclaration(st) && st.name && makes(st) ? [st.name.text] : []))
+  return found.length === 1 ? found[0]! : none(file, found.length ? `several machines in the file (${found.join(', ')}): name one (entry)` : 'no machine in the file (createMachine, setup(...).createMachine, or a function returning one): name the entry')
+}
+function readXState(code: string, opts: XStateOptions & {file: string, entry: string}): XStateExtraction {
+  const file = opts.file, t0 = performance.now(), notes: string[] = []
   try {
     const at = placed(file), root = at.slice(0, at.length - file.split('/').pop()!.length)
     const extra = Object.fromEntries(Object.entries(opts.files ?? {}).map(([p, c]) => [normalize(`${root}${p}`), c]))
@@ -611,7 +650,13 @@ export function extractXState(code: string, opts: XStateOptions): XStateExtracti
     const evidence = {runs, events: result.checked, coverage, ms: Math.round(performance.now() - t0), ...(result.failure ? {mismatch: result.failure} : {})}
     notes.push(...s.notes)
     if (result.failure) return {ok: false, source, evidence, notes, refusals: [{where: file, what: `the chart and XState differ: ${result.failure}`}]}
-    return {ok: true, source, chart, evidence, notes, refusals: []}
+    // (the names: the state as XState's snapshot.value, each region's as value.<region>, the context's fields, the
+    // factory's context as <field>0, the event and its payload's fields, the answers of the functions it is given)
+    const field = (n: string) => [...s.lazy].find(([k, l]) => k === n && l.prefix === '')?.[1].field ?? n
+    const names0: Name[] = [...Object.keys(chart.rule.machine.state).filter(k => !k.includes('.last') && !keptKeys.some(c => k === c || k.startsWith(`${c}$`) || k.startsWith(`${c}.`))).map(k => ({code: k === 'state' ? 'value' : `value.${k}`, rule: k, role: 'state' as const})),
+      ...fields.filter(f => !f.dropped && f.var).map(f => ({code: f.k, rule: f.k, role: 'state' as const})), ...params.map(x => ({code: x.name, rule: x.name, role: 'param' as const})),
+      ...inputs.map(x => (outside.has(x.name) ? {code: outside.get(x.name)!.path, rule: x.name, role: 'answer' as const} : {code: `event.${field(x.name)}`, rule: x.name, role: 'input' as const})), {code: 'event', rule: 'event', role: 'method'}]
+    return {ok: true, source, chart, rule: chart.rule as unknown as Rule, invariants: chart.chartLaws(), names: names0, evidence, notes, refusals: []}
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
     throw e

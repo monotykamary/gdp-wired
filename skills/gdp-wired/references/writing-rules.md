@@ -363,24 +363,40 @@ c.check(); c.prove([c.law('retries within 2', ({retries}) => retries.atMost(2))]
 - `conforms` is what ties the two: a guard or an action given wrongly shows up as the run where XState and the chart part.
   Payloads come from `payload: (event, rand) => ({amount: rand(10)})`, with `inputs: {amount: nat}` in `fromXState`.
 
+Or let the extractor write the bridge: `extractXState` reads the machine's file (its guards and actions from their
+source), runs the chart beside XState's actor (the xstate of the file's own project), and returns the rule like every
+front end's. In the file, `// gdp: law` comments read its context's fields, `value` (the state) and `event`
+(`npx gdp-wired check machine.ts`):
+
+```ts
+import {extractXState, proveRule} from 'gdp-wired/extract'
+
+const x = extractXState('./order.ts')            // a path or a URL; the machine inferred ({entry} names one)
+proveRule(x.rule!, [...x.invariants!, x.rule!.law('retries within 2', ({retries}) => retries.atMost(2))])
+```
+
 ## Effect services
 
 A service written in [Effect](https://effect.website) (`effect` 3.x or 4.x) keeps its state in Refs its make effect
-creates; `extractEffect` reads it into a rule, checked by running the real code on Effect's runtime beside the rule:
+creates; `extractEffect` reads it into a rule, checked by running the real code on Effect's runtime beside the rule
+(the `effect` the file's own project has, 3.x or 4.x):
 
 ```ts
-import * as effect from 'effect'
-import {extractEffect, conforms, fromSchema} from 'gdp-wired/effect'
+import {extractEffect, proveRule} from 'gdp-wired/effect'
 
 // make: Effect.gen(function* () { const usage = yield* Ref.make<ReadonlyMap<string, Usage>>(new Map()); ...
 //   const spend = Effect.fn('spend')(function* (user: string, units: number) { ... yield* new QuotaExceeded(...) ... })
 //   return Quota.of({spend, refund}) })
-const x = extractEffect(code, {file: 'quota.ts', entry: 'make', effect})
+const x = extractEffect('./quota.ts')     // a path or a URL; the service inferred
 if (!x.ok) console.log(x.refusals)        // where and why
-proveRule(x.rule, [...x.invariants, x.rule.law('within the limit', ({usage, limit}) => forall(k => usage.at(k).used.atMost(limit)))])
+proveRule(x.rule!, [...x.invariants ?? [], x.rule!.law('within the limit', ({usage, limit}) => forall(k => usage.at(k).used.atMost(limit)))])
 ```
 
-- The entry is the make effect: `Effect.gen(...)`, a function returning one, `Effect.fn(...)(function* (...) {...})`,
+Or with nothing written but a comment above the make effect, `// gdp: law within the limit: forall k in usage:
+usage[k].used <= limit`, and `npx gdp-wired check quota.ts`. Code in memory is read as `{code, file}`; `{entry, effect}`
+name the service and give the module where the file has several or none.
+
+- The entry (by default the file's one make effect) is the make effect: `Effect.gen(...)`, a function returning one, `Effect.fn(...)(function* (...) {...})`,
   `Layer.effect(Tag, make)`, or a service class's `make` (4.x `Context.Service`) or `effect` (3.x `Effect.Service`)
   option. It returns `{...}`, `Tag.of({...})` or `{...} satisfies T`.
 - Each Ref (`Ref`, `SynchronizedRef`, `SubscriptionRef`, 4.x `TxRef`) is a field of the state, typed by the Ref; each
@@ -424,7 +440,7 @@ a Python file through Python's own parser, and checks the rule by running the mo
 needed only at extraction (`python3` on the PATH, or `python:` the one with the code's dependencies installed):
 
 ```ts
-import {extractPython} from 'gdp-wired/extract-py'
+import {extractPython, proveSteps} from 'gdp-wired/extract-py'     // extractPython('limits.py'): the class inferred
 
 // class SessionLimit:
 //     def __init__(self, cache, limit: int): ...
@@ -471,7 +487,7 @@ research/langs/DESIGN.md; LiteLLM's budget and session limits, read this way, ar
 building the crate as it ships beside a generated harness (cargo needed only then; a debug build, overflow checks on):
 
 ```ts
-import {extractRust} from 'gdp-wired/extract-rs'
+import {extractRust, proveSteps} from 'gdp-wired/extract-rs'      // the crate's directory, or any file in it
 
 // #[derive(Default)] pub struct GcraState { pub tat: Option<Instant> }
 // impl GcraState { pub fn check_and_modify_at(&mut self, rate_limit: &RateLimit, arrived_at: Instant, cost: u32) -> Result<(), GcraError> {...} }

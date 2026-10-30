@@ -5,6 +5,21 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**One way in: every front end reads a file the same way, `(file, options?)`, and the rule is proven from the same
+import (gen/oneway).** Nothing trusted changed; nothing was removed or renamed. research/langs/DESIGN.md, "One way in",
+has the audit and the shape.
+- **The file**: a path or a `URL` everywhere (Go and Rust: any file of the package or crate too); TypeScript, Effect
+  and XState also `{code, file}` and the code-first call as before. The options argument is optional.
+- **The entry inferred** for TypeScript (the exported class or function that reads as a rule), Effect (the file's one
+  make effect), XState (the file's one machine) and C++ (each class tried), as the other front ends already did.
+- **effect and xstate from the file's own project**, so the check runs the version the code imports; `{effect}` and
+  `{xstate}` still win.
+- **One name per meaning**: `methods` in C (`functions` deprecated), `entry: [...]` in TypeScript (`functions`
+  deprecated). **One result**: `extractXState` returns `rule`, `invariants` and `names` as every front end does; each
+  front end's module exports `proveRule` and `proveSteps`.
+- **The CLI** reads XState files (laws over the context, `value` and `event`) and Effect files with the project's own
+  packages; both tested. From a file to a proven law: 3 lines in every language (4 to 6 before).
+
 **Java and Kotlin: javac's tree API and Kotlin's PSI on one JVM layer and one reflective harness; gRPC's retry
 throttle, resilience4j's window bucket, OkHttp's flow-control window and Arrow's count-based opening strategy in the
 corpus (gen/jvm).** Nothing trusted changed. research/langs/DESIGN.md, "Java and Kotlin (gen/jvm)", has the details.

@@ -25,7 +25,7 @@ export type ReadOptions = {
 }
 const at0 = (sf: ts.SourceFile): ts.Node => sf.statements[0] ?? sf
 
-function setupOf(code: string, file: string, typed: Record<string, Sort> = {}, files: Record<string, string> = {}): Setup {
+export function setupOf(code: string, file: string, typed: Record<string, Sort> = {}, files: Record<string, string> = {}): Setup {
   const root = file.slice(0, file.length - (file.split('/').pop()!.length)), extra = Object.fromEntries(Object.entries(files).map(([p, c]) => [normalize(`${root}${p}`), c]))
   const {sf, checker} = program(code, file, extra)
   return {ours: f => f === sf || f.fileName in extra, checker, sf, names: new Set(), vars: new Map(), maps: new Map(), lazySorts: new Map(Object.entries(typed)), nowRole: 'input', hints: new WeakMap(), notes: new Set(), lazy: new Map()}
