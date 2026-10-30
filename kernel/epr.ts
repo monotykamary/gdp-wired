@@ -72,19 +72,19 @@ type Origin = number // a hypothesis' index, or -1 for a clause that holds in ev
 // that is an element's, an epoch a node holds, as that element, else the number); each function's table, element to
 // element. Two models equal up to the order's renaming give the same diagram.
 export type Diagram = {elements: number, parts: Record<string, number>, scalars: Record<string, number>, cells: Record<string, {at: number[], value: number}[]>, fns: Record<string, [number, number][]>}
-export type Decision = {sat: false, core: number[]} | {sat: true, witness: Record<string, number>, diagram: Diagram} | {unknown: string}
+export type Decision = {sat: false, core: number[], shared?: boolean} | {sat: true, witness: Record<string, number>, diagram: Diagram} | {unknown: string}
 
 // `late`: true past the caller's end, checked between the steps and every 256 conflicts; then unknown.
 // (a probe's hook: each decision with its goal, ms and outcome)
 export const decideHook: {on?: (goal: Goal, d: Decision, ms: number, shaped?: boolean[]) => void} = {}
 let lastShaped: boolean[] | undefined
-export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
+export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean, alone?: boolean} = {}): Decision {
   if (!decideHook.on) return decide1(goal, patterns, opts)
   const t0 = performance.now(), d = decide1(goal, patterns, opts)
   decideHook.on(goal, d, performance.now() - t0, lastShaped)
   return d
 }
-function decide1(goal0: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
+function decide1(goal0: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean, alone?: boolean} = {}): Decision {
   fnMaps = new Set(Object.entries(patterns).filter(([, c]) => c.length === 1 && c[0] === 0).map(([f]) => f))
   const goal = goal0
   // (a model whose order leaves no room between two near constants: again with the constants between them, below)
@@ -266,7 +266,7 @@ function stateOf(fs: Facts[], patterns: Patterns, tick: () => void): State {
 const incOn = env.GDP_EPR_INC !== '0'
 type Use = {ords: string[], fins: Fin[], opq: number[], succ: number[]}
 type Hyp = {a: number, gid: number, use: Use}
-type Opts = {conflicts?: number, exact?: boolean, late?: () => boolean, fill?: boolean, fresh?: boolean}
+type Opts = {conflicts?: number, exact?: boolean, late?: () => boolean, fill?: boolean, fresh?: boolean, alone?: boolean}
 type Enc = {decide: (goal: Goal, fs: Facts[], st: State, opts: Opts) => Decision, size: () => number}
 const pool = new Map<string, Enc>(), other = 'another encoder\'s goal'
 function decide0(goal: Goal, patterns: Patterns, opts: Opts): Decision {
@@ -281,13 +281,13 @@ function decide0(goal: Goal, patterns: Patterns, opts: Opts): Decision {
   const last = fs.at(-1)
   if (last && !shapedOf(last) && last.reads.some(x => !fnMaps.has(x.map) && ((x as {args?: unknown}).args || !tupleOf(x.key)))) return {unknown: 'the conclusion is not EPR-shaped'}
   const st = stateOf(fs, patterns, tick)
-  if (!incOn || opts.fill || opts.fresh) return encoder(st, patterns).decide(goal, fs, st, opts)
+  if (!incOn || opts.fill || opts.fresh || opts.alone) return encoder(st, patterns).decide(goal, fs, st, opts)
   let enc = pool.get(st.sig)
   if (enc) pool.delete(st.sig)
   else if (pool.size >= 4) pool.delete(pool.keys().next().value!)
-  let d = enc?.decide(goal, fs, st, opts)
-  if (!enc || !d || ('unknown' in d && d.unknown === other)) d = (enc = encoder(st, patterns)).decide(goal, fs, st, opts)
-  if (enc.size() < 20_000) pool.set(st.sig, enc)
+  let d = enc && enc.size() ? enc.decide(goal, fs, st, opts) : undefined
+  if (d && !('unknown' in d && d.unknown === other)) { if ('core' in d) d.shared = true } else d = (enc = encoder(st, patterns)).decide(goal, fs, st, opts)
+  if (enc!.size() < 20_000) pool.set(st.sig, enc!)
   return d
 }
 function encoder(st: State, patterns: Patterns): Enc {
