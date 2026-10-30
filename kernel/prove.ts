@@ -1458,13 +1458,17 @@ type Unsettled = {goal: string, stuck: string, witness?: Record<string, number>,
 type Memo = {proven: Map<string, Settled>, models: Map<string, {text: string, model: Unsettled, set: Map<string, string>}>}
 // (GDP_MEMO_CAP: how many machines' decisions are kept, 4 by default; the hits and misses counted for the engine's trace)
 const memoCap = Number(env.GDP_MEMO_CAP ?? 4)
-export const memoHits = {n: 0, miss: 0, setKey: ''}
+export const memoHits = {n: 0, miss: 0, setKey: '', setJson: ''}
 export const machineKey = (m: Machine): string => { const s = JSON.stringify(m); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return `${s.length}:${h}` }
 const memos = new Map<string, Memo>(), machineText = new WeakMap<Machine, string>(), lawText = new WeakMap<C, string>()
-const textOfLaw = (l: Law): string => { let t = lawText.get(l.holds); if (t === undefined) lawText.set(l.holds, (t = JSON.stringify([l.holds, l.forall ?? null, l.keys ?? null]))); return t }
+// (GDP_MEMO_ALPHA=1: texts up to a renaming of fresh names, x$12: a rule's machine and kinds' laws are made again with
+// fresh binders, so the same machine had another text each time and no decision was found again)
+const alpha = env.GDP_MEMO_ALPHA === '1'
+const alphaText = (s: string): string => { if (!alpha) return s; const to = new Map<string, string>(); return s.replace(/([A-Za-z_?]+)\$(\d+)/g, (w, p: string) => { let r = to.get(w); if (!r) to.set(w, (r = `${p}$_${to.size}`)); return r }) }
+const textOfLaw = (l: Law): string => { let t = lawText.get(l.holds); if (t === undefined) lawText.set(l.holds, (t = alphaText(JSON.stringify([l.holds, l.forall ?? null, l.keys ?? null])))); return t }
 function memoOf(m: Machine): Memo {
   let key = machineText.get(m)
-  if (key === undefined) machineText.set(m, (key = JSON.stringify(m)))
+  if (key === undefined) machineText.set(m, (key = alphaText(JSON.stringify(m))))
   let memo = memos.get(key)
   if (!memo) { if (memos.size >= memoCap) memos.clear(); memos.set(key, (memo = {proven: new Map(), models: new Map()})) }
   return memo
@@ -1572,7 +1576,7 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
 // kernel.ts (checkLaws). Machines with a history, sums or "there exists": proveLaws. A search's trial proof: no cyclic
 // certificate is made.
 export function proveSetFast(m: Machine, laws: Law[]): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}, failed?: Report['failed'] & {diagram?: Diagram}} {
-  if (env.GDP_MEMO_TRACE) memoHits.setKey = machineKey(m)
+  if (env.GDP_MEMO_TRACE) { memoHits.setKey = machineKey(m); memoHits.setJson = JSON.stringify(m) }
   if (!fastShape(m, laws)) return proveLaws(m, laws)
   return withPatterns(m, laws, () => pointed(laws, () => {
     const at: Settled[] = []
