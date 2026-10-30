@@ -252,8 +252,8 @@ function stateOf(fs: Facts[], patterns: Patterns, tick: () => void): State {
     if (mixed || beside) for (const [e] of nonPart) { if (e.op === 'get' && !ordMaps.has(e.map)) { ordMaps.add(e.map); grew = true } else if (e.op === 'var' && !ordScalars.has(e.name)) { ordScalars.add(e.name); grew = true } }
   }
   while (grew) { grew = false; ordComps.forEach(ts => (tick(), ordWalk(ts))) }
-  const sorted = <T>(xs: Iterable<T>) => [...xs].sort()
-  // (the bounded terms not in it: each finite variable a goal reads is checked against them, `exactAs`)
+  const sorted = (xs: Iterable<string | [string, number]>) => [...xs].map(x => String(x)).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+  // (the bounded terms not in it: each finite variable a goal reads is checked against them in its encoder)
   return {parts, fnParts, bounded, caps, ordMaps, ordScalars, reads, sig: JSON.stringify([JSON.stringify(patterns), sorted(parts), sorted(caps), sorted(ordMaps), sorted(ordScalars)])}
 }
 
@@ -572,12 +572,11 @@ function encoder(st: State, patterns: Patterns): Enc {
   }
   const v = (f: F) => (f.k === 'v' ? f.v : f.k === 'not' && f.x.k === 'v' ? -f.x.v : undefined)
   // --- the hypotheses, each once by its text
-  const hyps = new Map<string, Hyp>(), gidText: string[] = []
+  const hyps = new Map<string, Hyp>()
   const encode = (f: Facts): Hyp => {
     let hp = hyps.get(f.text)
     if (hp) return hp
-    const gid = gidText.length, a = ++fresh + 1e6
-    gidText.push(f.text)
+    const gid = hyps.size, a = ++fresh + 1e6
     use = {ords: [], fins: [], opq: [], succ: []}
     for (const [k, b] of f.bounds) {
       let xs = boundBy.get(k)
