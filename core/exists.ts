@@ -328,7 +328,9 @@ export type SomeReport = Report & {laws?: Law[], machine?: Machine, ghosts?: str
 
 // The laws with existentials proven through witnesses: chosen per law by the counterexamples the kernel gives, then the
 // whole set proven as plain laws of the machine with its ghosts.
-export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number} = {}): SomeReport {
+// (`whole`: the whole set's prover over the ghosted machine, proveLaws by default; a search's trial proof passes
+// kernel/prove.ts's proveSetFast, which reuses the decisions made over that machine and checks its trees with checkLaws)
+export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole?: (m: Machine, laws: Law[]) => Report & {laws?: Law[]}} = {}): SomeReport {
   const cases = casesOf(m), mapsRead = (l: Law) => readsMaps(l.holds) || !!m.maps || !!m.inputMaps
   // Each law's bound naturals named apart from the machine's names and from each other's (each may become a ghost).
   const taken = new Set([...m.params, ...m.inputs, ...Object.keys(m.state)])
@@ -405,7 +407,7 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number} = {})
   for (const [i, p] of plans) { const f = choose(i, p, 0); if (f) return f }
   for (let pass = 1; ; pass++) {
     const {machine, laws: plain, ghosts} = current(), t0 = performance.now()
-    const out = proveLaws(machine, plain), done = {...out, laws: out.laws ?? plain, machine, ghosts, witnesses: Object.fromEntries([...plans.values()].map(p => [p.law.name, describe(p, cases)]))}
+    const out = (opts.whole ?? proveLaws)(machine, plain), done = {...out, laws: out.laws ?? plain, machine, ghosts, witnesses: Object.fromEntries([...plans.values()].map(p => [p.law.name, describe(p, cases)]))}
     if (log) console.error(`exists: pass ${pass} the whole set: ${out.proven ? 'proven' : `${out.failed?.goal} ${out.failed?.stuck}`} (${Math.round(performance.now() - t0)} ms)`)
     const j = out.proven || !out.failed || pass > 8 ? undefined : [...plans.keys()].find(k => out.failed!.goal.startsWith(`${laws[k]!.name} @`))
     if (j === undefined) return done

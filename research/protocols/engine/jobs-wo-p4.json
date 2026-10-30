@@ -1,0 +1,3 @@
+[
+ {"name": "wo-p4-td", "cmd": "bun add z3-solver@5.3.3 >/dev/null 2>&1; GDP_TD=1 GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/engine/wodump.ts consensus_wo_decide 120000 /tmp/wo.jsonl 2>/tmp/err.log; grep -E 'join (td|enumerated|exists|pool)' /tmp/err.log | cut -c1-300; grep -c '\"i\":' /tmp/wo.jsonl; grep -o '\"out\":\"[a-z]*' /tmp/wo.jsonl | sort | uniq -c; WO_Z3=1 timeout -s KILL 900 bun research/protocols/engine/wodl.ts replay /tmp/wo.jsonl 1000 0:2000:3 2>&1 | cut -c1-400 | tail -c 120000; echo DUMP; gzip -9c /tmp/wo.jsonl | base64 | tr -d '\\n'; echo", "timeout": 1200}
+]

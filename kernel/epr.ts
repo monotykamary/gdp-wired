@@ -50,12 +50,12 @@ const partName = (e: E): string | undefined => e.op === 'var' ? e.name
 const linTerms = (e: E, k: number, out: [string, number][], d: {c: number}): boolean =>
   e.op === 'var' || e.op === 'get' ? (n => n !== undefined && (out.push([n, k]), true))(partName(e)) : e.op === 'const' ? ((d.c += k * e.value), true)
     : e.op === 'mul' ? linTerms(e.a, k * e.k, out, d) : e.op === 'add' ? linTerms(e.a, k, out, d) && linTerms(e.b, k, out, d) : false
-// A radix tuple: distinct names, no constant, coefficients a chain (each a multiple of the next, the last 1); its parts in
+// A radix tuple: names (a name twice is a diagonal key, 64·x + x: the tuple (x, x)), no constant, coefficients a chain (each a multiple of the next, the last 1); its parts in
 // order (highest first) with each part's bound (the next coefficient's ratio; the top part none).
 type Tuple = {coefs: number[], parts: string[], bounds: (number | undefined)[]}
 function tupleOf(e: E): Tuple | undefined {
   const ts: [string, number][] = [], d = {c: 0}
-  if (!linTerms(e, 1, ts, d) || d.c !== 0 || !ts.length || new Set(ts.map(t => t[0])).size !== ts.length) return undefined
+  if (!linTerms(e, 1, ts, d) || d.c !== 0 || !ts.length) return undefined
   ts.sort((a, b) => b[1] - a[1])
   const coefs = ts.map(t => t[1])
   if (coefs.at(-1) !== 1 || coefs.some((c, i) => i + 1 < coefs.length && (c % coefs[i + 1]! !== 0 || c / coefs[i + 1]! < 2))) return undefined
@@ -73,8 +73,18 @@ export type Diagram = {elements: number, parts: Record<string, number>, scalars:
 export type Decision = {sat: false, core: number[]} | {sat: true, witness: Record<string, number>, diagram: Diagram} | {unknown: string}
 
 // `late`: true past the caller's end, checked between the steps and every 256 conflicts; then unknown.
+// (a probe's hook: each decision with its goal, ms and outcome)
+export const decideHook: {on?: (goal: Goal, d: Decision, ms: number, shaped?: boolean[]) => void} = {}
+let lastShaped: boolean[] | undefined
 export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
+  if (!decideHook.on) return decide1(goal, patterns, opts)
+  const t0 = performance.now(), d = decide1(goal, patterns, opts)
+  decideHook.on(goal, d, performance.now() - t0, lastShaped)
+  return d
+}
+function decide1(goal0: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
   fnMaps = new Set(Object.entries(patterns).filter(([, c]) => c.length === 1 && c[0] === 0).map(([f]) => f))
+  const goal: Goal = {name: goal0.name, hyps: goal0.hyps.map(liftedKeys)}
   // (a model whose order leaves no room between two near constants: again with the constants between them, below)
   // (a model the read-back breaks: once more without the other goals' theory lemmas, whose history chose that model)
   try {
@@ -82,6 +92,46 @@ export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number
     return 'unknown' in d2 && d2.unknown.startsWith(breaks) && lemmaCache.size ? decide0(goal, patterns, {...opts, fresh: true}) : d2
   } catch (e) { if (e === pastEnd) return {unknown: 'past the deadline'}; throw e } finally { fnMaps = new Set() }
 }
+// A read at a key that holds an if (a write at every key read at a ghost's key, M'[c ? w : y]) as the if of the reads at
+// its two keys, M[c ? a : b] = c ? M[a] : M[b] (an if inside the key's sum first lifted to its top), so each is a cell
+// at a tuple; equal terms, so a refutation and a model of one are of the other. At most 8 keys a read.
+const liftMemo = new WeakMap<C, C>()
+const ifMemo = new WeakMap<object, boolean>()
+const hasIf = (o: unknown): boolean => {
+  if (!o || typeof o !== 'object') return false
+  let b = ifMemo.get(o)
+  if (b === undefined) ifMemo.set(o, (b = (o as {op?: string}).op === 'if' || Object.values(o).some(hasIf)))
+  return b
+}
+const hoisted = (e: E): E => {
+  if (e.op === 'add') { const a = hoisted(e.a), b = hoisted(e.b); return a.op === 'if' ? {op: 'if', c: a.c, then: hoisted({...e, a: a.then, b}), else: hoisted({...e, a: a.else, b})} : b.op === 'if' ? {op: 'if', c: b.c, then: hoisted({...e, a, b: b.then}), else: hoisted({...e, a, b: b.else})} : a === e.a && b === e.b ? e : {...e, a, b} }
+  if (e.op === 'mul') { const a = hoisted(e.a); return a.op === 'if' ? {op: 'if', c: a.c, then: hoisted({...e, a: a.then}), else: hoisted({...e, a: a.else})} : a === e.a ? e : {...e, a} }
+  return e
+}
+const keysOf = (e: E): number => (e.op === 'if' ? keysOf(e.then) + keysOf(e.else) : 1)
+const liftE = (e: E): E => {
+  if (!hasIf(e)) return e
+  if (e.op === 'get' && !(e as {args?: unknown}).args) {
+    const key = hoisted(liftE(e.key))
+    if (key.op !== 'if' || keysOf(key) > 8) return key === e.key ? e : {...e, key}
+    const at = (k: E): E => (k.op === 'if' ? {op: 'if', c: k.c, then: at(k.then), else: at(k.else)} : {...e, key: k})
+    return at(key)
+  }
+  const out: Record<string, unknown> = {}
+  let changed = false
+  for (const [k, x] of Object.entries(e)) { const y = x && typeof x === 'object' && 'op' in (x as object) ? ((k === 'c' ? liftC(x as C) : liftE(x as E)) as unknown) : x; out[k] = y; if (y !== x) changed = true }
+  return changed ? out as unknown as E : e
+}
+const liftC = (c: C): C => {
+  if (!hasIf(c)) return c
+  if (c.op === 'and' || c.op === 'or') { const xs = c.xs.map(liftC); return xs.every((x, i) => x === c.xs[i]) ? c : {...c, xs} }
+  if (c.op === 'not') { const x = liftC(c.x); return x === c.x ? c : {...c, x} }
+  if (c.op === 'all') { const b = liftC(c.c); return b === c.c ? c : {...c, c: b} }
+  if (c.op === 'flag') return c
+  const a = liftE(c.a), b = liftE(c.b)
+  return a === c.a && b === c.b ? c : {...c, a, b}
+}
+const liftedKeys = (c: C): C => { let x = liftMemo.get(c); if (!x) liftMemo.set(c, (x = liftC(c))); return x }
 // (thrown by `late` checked every 4,096 clauses and hypotheses read: a goal's clauses are quadratic in its terms)
 const pastEnd = new Error('past the deadline')
 // The theory's lemmas, by their atoms' names: each is arithmetic over the terms those names read (a part's value, a cell's
@@ -103,6 +153,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     walk(h)
     return ok
   })
+  if (decideHook.on) lastShaped = shaped
   // (the conclusion's reads at keys of any radix shape: one of the wrong sort, Leader[k] <= Msg[k] with Msg a relation of
   // pairs, is a cell of its own, as in a hypothesis)
   const tupled = (o: unknown): boolean => { if (!o || typeof o !== 'object') return true; const x = o as {op?: string, map?: string, key?: E, args?: unknown}; if (x.op === 'get' && !fnMaps.has(x.map!) && (x.args || !tupleOf(x.key!))) return false; return Object.values(o).every(tupled) }

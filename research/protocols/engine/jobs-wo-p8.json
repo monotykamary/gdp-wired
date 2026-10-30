@@ -1,0 +1,3 @@
+[
+ {"name": "wo-p8-strict", "cmd": "bun add z3-solver@5.3.3 >/dev/null 2>&1; gunzip -c research/protocols/engine/dumps/wo-td-base.jsonl.gz > /tmp/wo.jsonl; GDP_STRICT=1 WO_Z3=1 timeout -s KILL 700 bun research/protocols/engine/wodl.ts replay /tmp/wo.jsonl 1000 2>&1 | cut -c1-300 | tail -c 60000", "timeout": 900}
+]

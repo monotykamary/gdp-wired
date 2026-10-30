@@ -300,7 +300,11 @@ const withPatterns = <T>(m: Machine, laws: Law[], f: () => T): T => {
 }
 // (`whole: false`: the core's tree alone, not widened to the goal, with the core (`part`); decideLaw's, whose caller's
 // verdict rests on its own final proof: a refutation of some of a goal's hypotheses refutes the goal)
+// (`refuted`: the last decision refuted the goal and its core's proof didn't finish: a model from fewer instances, asked
+// before, is then no answer, as the abstraction refutes it at these)
+const eprLast = {refuted: false}
 function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = true, late = pastWall): (Outcome & {part?: Goal, core?: number[]}) | undefined {
+  eprLast.refuted = false
   const d = decide(goal, eprScope.patterns!, {exact: true, late})
   if ('unknown' in d) return undefined
   if (d.sat) return {stuck: 'sat', witness: d.witness, diagram: d.diagram, path: new Map(), why: 'a model'}
@@ -309,7 +313,7 @@ function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = t
   eprScope.busy = true
   try {
     const out = withWork(workCap === Infinity ? Infinity : w + 0.5 * (workCap - w), () => grow(part, new Map(), {nodes: 0, until: end === Infinity ? end : now + 0.5 * (end - now)}))
-    if (!('tree' in out)) return undefined
+    if (!('tree' in out)) { eprLast.refuted = true; return undefined }
     if (!whole) return {...out, part, core}
     const tree = widen(part, goal, out.tree)
     return tree ? {tree, nodes: out.nodes} : undefined
@@ -956,7 +960,8 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   const pm = plainOf(m), qs = Object.entries(pm.step.flags ?? {}).filter((e): e is [string, Extract<C, {op: 'all'}>] => e[1].op === 'all' && w[`?${e[0]}`] === 1)
   const keyed = laws.filter(l => l.forall)
   if (!keyed.length && !qs.length) return undefined
-  const fns = Object.keys(pm.fns ?? {}), mm: Machine = {...pm, fns: undefined, maps: {...(pm.maps ?? {}), ...Object.fromEntries(fns.map(f => [f, 0]))}}
+  // (the maps a request carries read as maps too: a quantified flag over one, wo's ∀k. Q has k → Votes[src, k])
+  const fns = Object.keys(pm.fns ?? {}), mm: Machine = {...pm, fns: undefined, maps: {...(pm.maps ?? {}), ...Object.fromEntries([...fns, ...(pm.inputMaps ?? [])].map(f => [f, 0]))}}
   const maps: Record<string, Map<number, number>> = Object.fromEntries(Object.keys(mm.maps!).map(mp => [mp, new Map<number, number>()]))
   for (const [cell, value] of Object.entries(w)) {
     const br = cell.indexOf('[')
@@ -1105,12 +1110,15 @@ const matched = (l: Law, keys: E[], most = relatedMost): E[][] => {
   eachRead(e => { const ns = names(e.key); if (ns.length === vars.length || ns.length > 1) pats.set(JSON.stringify(e.key), e.key) }).inC(l.holds)
   const partial: Record<string, E>[] = []
   for (const p of pats.values()) for (const key of keys) { const b = matchMany(p, key, vars); if (b) partial.push(b) }
-  const whole = (b: Record<string, E>) => vars.every(x => x in b), out = partial.filter(whole)
+  const whole = (b: Record<string, E>) => vars.every(x => x in b), isWhole = partial.map(whole), out = partial.filter((_, i) => isWhole[i])
   // (two partial matches together: at most `most` of them, as related's)
-  for (let i = 0; i < partial.length && out.length < most; i++) for (let j = i + 1; j < partial.length && out.length < most; j++) {
-    const a = partial[i]!, b = partial[j]!
-    if (whole(a) || whole(b) || !vars.every(x => x in a || x in b)) continue
-    out.push({...b, ...a}, {...a, ...b})
+  for (let i = 0; i < partial.length && out.length < most; i++) {
+    if (isWhole[i]) continue
+    for (let j = i + 1; j < partial.length && out.length < most; j++) {
+      const a = partial[i]!, b = partial[j]!
+      if (isWhole[j] || !vars.every(x => x in a || x in b)) continue
+      out.push({...b, ...a}, {...a, ...b})
+    }
   }
   return out.map(b => vars.map(x => b[x]!))
 }
@@ -1435,7 +1443,20 @@ const pointed = <T>(laws: Law[], f: () => T): T => {
 // goals asked again; a model left is one on every tuple of the goal's keys, returned with its diagram. undefined: a goal
 // not EPR-shaped, a core not proven or a budget run out (the caller's proveLaw next). What was settled before is kept
 // (`settledOf`). Untrusted: a caller's verdict rests on its final proof.
-export function decideLaw(m: Machine, laws: Law[], i: number, rounds = modelRounds): {proven: true, uses: string[]} | {proven: false, goal: string, stuck: 'sat', witness: Record<string, number>, diagram?: Diagram} | undefined {
+type Decided = {proven: true, uses: string[]} | {proven: false, goal: string, stuck: 'sat', witness: Record<string, number>, diagram?: Diagram} | undefined
+// (a probe's hook: each decision with its machine, set, index and ms)
+export const decideLawHook: {on?: (m: Machine, laws: Law[], i: number, out: Decided, ms: number) => void} = {}
+export function decideLaw(m: Machine, laws: Law[], i: number, rounds = modelRounds): Decided {
+  if (!decideLawHook.on) return decideLaw0(m, laws, i, rounds)
+  const t0 = performance.now(), out = decideLaw0(m, laws, i, rounds)
+  decideLawHook.on(m, laws, i, out, performance.now() - t0)
+  return out
+}
+// (why decideLaw last answered nothing: `refuted`, the abstraction refuted a goal whose core's proof didn't finish, a
+// goal the CDCL search after it would find no quicker)
+export const decideNote = {refuted: false}
+function decideLaw0(m: Machine, laws: Law[], i: number, rounds: number): Decided {
+  decideNote.refuted = false
   if (!fastShape(m, laws)) return undefined
   return withPatterns(m, laws, () => {
     if (!eprScope.patterns) return undefined
@@ -1543,7 +1564,9 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
       if (proofs[g.name]) continue
       if (late()) return strict(usual) ? unknown(g) : last ?? unknown(g)
       let o: (Outcome & {part?: Goal, core?: number[]}) | undefined = eprScope.patterns ? eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late) : undefined
-      if (!o && (last || !usual)) return strict(usual) ? undefined : last
+      // (a refutation whose core's proof didn't finish: a model from fewer instances, which these refute, is no answer;
+      // decideLaw's unknown, the usual search's next)
+      if (!o && eprLast.refuted) { if (!usual) { decideNote.refuted = true; return undefined } } else if (!o && (last || !usual)) return strict(usual) ? undefined : last
       // (the usual search, the EPR path not asked again)
       if (!o) { const busy = eprScope.busy; eprScope.busy = true; try { o = grow(g) } finally { eprScope.busy = busy } }
       if ('tree' in o) {
@@ -1561,6 +1584,8 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
       more = raw && bySort(m, laws, raw)
       const count = (x: Instances) => Object.values(x).reduce((s2, ks) => s2 + ks.length, 0)
       if (strict(usual) && (capped || pastWall() || !more || count(more) <= count(inst))) return undefined
+      // (the model's only broken instances another sort's: the next round would find it again; decideLaw's no answer)
+      if (more && count(more) <= count(inst)) return usual ? last : undefined
       if (!more || pastWall()) return last
       break
     }
@@ -1577,7 +1602,8 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
 // certificate is made.
 export function proveSetFast(m: Machine, laws: Law[]): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}, failed?: Report['failed'] & {diagram?: Diagram}} {
   if (env.GDP_MEMO_TRACE) { memoHits.setKey = machineKey(m); memoHits.setJson = JSON.stringify(m) }
-  if (!fastShape(m, laws)) return proveLaws(m, laws)
+  // (laws with "there exists": proveSome's witnesses, its whole set this fast proof over the ghosted machine)
+  if (!fastShape(m, laws)) return someLaws(laws) && fastShape(m, laws.map(l => ({name: l.name, holds: l.holds}))) ? proveSome(m, laws, {whole: proveSetFast}) as ReturnType<typeof proveSetFast> : proveLaws(m, laws)
   return withPatterns(m, laws, () => pointed(laws, () => {
     const at: Settled[] = []
     for (let i = 0; i < laws.length; i++) {
@@ -1659,14 +1685,16 @@ const sortedOn = env.GDP_SORTED !== '0'
 // path where an unconfirmed model used to answer, 27-36 s against 13-17 s): a model is returned where no assumed law is
 // broken at it over its own domain, else nothing (research/protocols/engine/DESIGN.md, gen/ring)
 let strictOn = false
-const strict = (usual: boolean) => !usual && (strictOn || env.GDP_STRICT === '1')
+// (decideLaw's models are confirmed ones only, always: an unconfirmed one, at the deadline or past the model rounds, was
+// wrong against Z3 on 43 of wo's 143 top-down goals; GDP_STRICT=0 gives the old answer)
+const strict = (usual: boolean) => !usual && (strictOn || env.GDP_STRICT !== '0')
 // (strict models for a caller's own decisions: the engine's top-down phase, whose drops an unconfirmed model would make wrong)
 export const withStrict = <T>(f: () => T): T => { const o = strictOn; strictOn = true; try { return f() } finally { strictOn = o } }
 // (by machine and by the law set's names: one machine is asked with many sets)
 const sortsMemo = new WeakMap<Machine, Map<string, {key: (law: string, k: string) => string, of: (e: E) => string | undefined, find: (a: string) => string, anchored: (a: string) => boolean}>>()
 function sortsOf(m: Machine, laws: Law[]) {
   const par = new Map<string, string>(), find = (a: string): string => { const q = par.get(a); if (q === undefined || q === a) return a; const r = find(q); par.set(a, r); return r }
-  const union = (a: string, b: string) => { const ra = find(a), rb = find(b); if (ra !== rb) par.set(ra, rb) }
+  const named = new Set<string>(), union = (a: string, b: string) => { named.add(a); named.add(b); const ra = find(a), rb = find(b); if (ra !== rb) par.set(ra, rb) }
   const pats = patternsOf(m, laws), whole = new Map<string, string>()
   const leaves = (e: E, k: number, out: [E, number][]): void => { if (e.op === 'add') { leaves(e.a, k, out); leaves(e.b, k, out) } else if (e.op === 'mul') leaves(e.a, k * e.k, out); else if (e.op !== 'const') out.push([e, k]) }
   const walkC = (c: C, name: (v: string) => string): void => {
@@ -1698,6 +1726,13 @@ function sortsOf(m: Machine, laws: Law[]) {
   for (const [mp, w] of Object.entries(m.step.maps ?? {})) if (!('each' in w)) walkC({op: 'get', map: mp, key: w.key} as unknown as C, plain)
   for (const [mp, w] of Object.entries(m.step.maps ?? {})) if ('each' in w) union(`V:${w.each}`, (pats[mp] ?? [1]).length > 1 ? `K:${mp}` : `M:${mp}:0`)
   for (const l of laws) { const own = new Set([l.forall, ...(l.keys ?? [])].filter(Boolean)); walkC(l.holds, v => (own.has(v) ? `L:${l.name}:${v}` : `V:${v}`)) }
+  // (two maps of one pattern whose parts are of the same sorts have their whole keys of one sort: wo's Votes, VoteMsg and
+  // VoteRequestMsg, node × node, so a composed term read at one is an instance of a law about another's whole key)
+  const multi = Object.keys(pats).filter(mp => pats[mp]!.length > 1)
+  for (let grew = true; grew;) {
+    grew = false
+    for (const a of multi) for (const b of multi) if (a < b && find(`K:${a}`) !== find(`K:${b}`) && pats[a]!.join() === pats[b]!.join() && pats[a]!.every((_, i) => named.has(`M:${a}:${i}`) && named.has(`M:${b}:${i}`) && find(`M:${a}:${i}`) === find(`M:${b}:${i}`))) { union(`K:${a}`, `K:${b}`); grew = true }
+  }
   const anchorOf = new Map<string, boolean>()
   for (const a of par.keys()) if (/^(M|K|A|F):/.test(a)) anchorOf.set(find(a), true)
   for (const a of [...par.values()]) if (/^(M|K|A|F):/.test(a)) anchorOf.set(find(a), true)

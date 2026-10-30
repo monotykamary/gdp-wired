@@ -1,0 +1,3 @@
+[
+ {"name": "wo-p11-prof", "cmd": "GDP_GOAL_TRACE=1 GDP_INFER_TRACE=2 timeout -s KILL 100 bun --cpu-prof --cpu-prof-dir=/tmp/prof --cpu-prof-name=wo.cpuprofile research/protocols/engine/wodump.ts consensus_wo_decide 60000 /tmp/wo.jsonl 2>&1 | grep -E 'join engine|join pool|join enumerated|houdini|join\\] .*round\":(1|10)' | cut -c1-200; P=/tmp/prof/wo.cpuprofile; for w in '0 8' '8 24' '24 33' '33 45' '45 70'; do python3 research/protocols/engine/profwin.py $P $w 45; done", "timeout": 200}
+]

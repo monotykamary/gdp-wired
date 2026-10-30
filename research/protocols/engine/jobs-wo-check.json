@@ -1,0 +1,7 @@
+[
+ {
+  "name": "check",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 400 bunx tsc -p . 2>&1 | grep -c 'error TS'; timeout -s KILL 400 bunx tsc -p . 2>&1 | grep -E '^(core|kernel|research/protocols|gates)' | head -20; echo tsc-done; timeout -s KILL 300 bun run lint 2>&1 | grep -E '^  x |-\\[|Found' | head -30; echo lint-done",
+  "timeout": 800
+ }
+]

@@ -1,0 +1,22 @@
+[
+ {
+  "name": "consensus_wo_decide-s60-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini)' /tmp/err.log | cut -c1-260 | tail -c 40000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "consensus_wo_decide-s60-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini)' /tmp/err.log | cut -c1-260 | tail -c 40000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "consensus_wo_decide-s60-r3",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini)' /tmp/err.log | cut -c1-260 | tail -c 40000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "check",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 400 bunx tsc -p . 2>&1 | grep -E '^(core|kernel|research/protocols|gates)' | head -20; echo tsc-done; timeout -s KILL 300 bun run lint 2>&1 | grep -E '^  x |-\\[' | head -30; echo lint-done",
+  "timeout": 800
+ }
+]
