@@ -42,10 +42,10 @@ if (mode === 'join') {
   ls.push(...kinds, ...caller, r.law('every k: Leader[k] <= VoteRequestMsg[k]', ({Leader, VoteRequestMsg}: any) => forall((k: any) => Leader.at(k).implies(VoteRequestMsg.at(k)))))
 }
 const trace = !!process.env.WO_TRACE
-const seen: {goal: string, out: string, ms: number, unshaped: number[]}[] = []
+const seen: {goal: string, out: string, ms: number, unshaped: number[], core: number}[] = []
 decideHook.on = (goal, d, t, shaped) => {
   const un = (shaped ?? []).flatMap((s, i) => (s ? [] : [i]))
-  seen.push({goal: goal.name, out: 'unknown' in d ? d.unknown : d.sat ? 'sat' : 'unsat', ms: Math.round(t), unshaped: un})
+  seen.push({goal: goal.name, out: 'unknown' in d ? d.unknown : d.sat ? 'sat' : 'unsat', ms: Math.round(t), unshaped: un, core: 'core' in d ? d.core.length : 0})
   if (trace) { console.log('  EPR', JSON.stringify(seen.at(-1))); for (const i of un.slice(0, 4)) console.log('    unshaped', i, JSON.stringify(goal.hyps[i]).slice(0, 400)) }
 }
 if (mode === 'replay') {
@@ -71,7 +71,7 @@ if (mode === 'replay') {
     const bad = !!z3 && d && zv !== 'undecided' && zv !== dl
     if (bad) wrong++
     if (z3 && d && zv !== 'undecided') both++
-    console.log(JSON.stringify({at: lo + k, law: g.ls[g.i]!.name.slice(0, 100), laws: g.ls.length, engine: g.out, dl, ms: Math.round(dt), ...(z3 ? {z3: zv} : {}), ...(bad ? {WRONG: 1} : {}), outs: [...new Set(seen.map(x => x.out))].slice(0, 3), unshaped: [...new Set(seen.flatMap(x => x.unshaped))].length}))
+    console.log(JSON.stringify({at: lo + k, law: g.ls[g.i]!.name.slice(0, 100), laws: g.ls.length, engine: g.out, dl, ms: Math.round(dt), ...(z3 ? {z3: zv} : {}), ...(bad ? {WRONG: 1} : {}), outs: [...new Set(seen.map(x => x.out))].slice(0, 3), core: seen.reduce((n, x) => n + x.core, 0), unshaped: [...new Set(seen.flatMap(x => x.unshaped))].length}))
   }
   console.log(JSON.stringify({goals: n2, undecided: und, meanMs: Math.round(dlMs / Math.max(1, n2)), ...(z3 ? {z3undecided: z3und, bothDecided: both, wrong} : {}), why: Object.fromEntries(why)}))
   process.exit(0)

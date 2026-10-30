@@ -265,7 +265,7 @@ function stateOf(fs: Facts[], patterns: Patterns, tick: () => void): State {
 // hypotheses' literals assumed: a refutation's origins are hypotheses of the goal (a clause of a hypothesis not assumed is
 // satisfied by its guard, so never a reason), a model is read back over the goal's own terms. Unsat here is unsat there,
 // as for one goal alone; a model is judged on every hypothesis. GDP_EPR_INC=0: an encoder per goal, as before.
-const incOn = env.GDP_EPR_INC !== '0'
+const incOn = env.GDP_EPR_INC !== '0', minOn = env.GDP_EPR_MIN === '1'
 type Use = {ords: string[], fins: Fin[], opq: number[], succ: number[]}
 type Hyp = {a: number, gid: number, use: Use}
 type Opts = {conflicts?: number, exact?: boolean, late?: () => boolean, fill?: boolean, fresh?: boolean}
@@ -575,12 +575,12 @@ function encoder(st: State, patterns: Patterns): Enc {
   }
   const v = (f: F) => (f.k === 'v' ? f.v : f.k === 'not' && f.x.k === 'v' ? -f.x.v : undefined)
   // --- the hypotheses, each once by its text
-  const hyps = new Map<string, Hyp>(), gidText: string[] = []
+  const hyps = new Map<string, Hyp>(), gidText: string[] = [], actOf: number[] = []
   const encode = (f: Facts): Hyp => {
     let hp = hyps.get(f.text)
     if (hp) return hp
     const gid = gidText.length, a = ++fresh + 1e6
-    gidText.push(f.text)
+    gidText.push(f.text); actOf.push(a)
     use = {ords: [], fins: [], opq: [], succ: []}
     for (const [k, b] of f.bounds) {
       let xs = boundBy.get(k)
@@ -844,8 +844,15 @@ function encoder(st: State, patterns: Patterns): Enc {
       }
       return exact()
     }
-    const outcome = (o: ReturnType<typeof search>): Decision | {model: boolean[]} => (typeof o === 'string' ? {unknown: o} : o === undefined ? {unknown: 'the conflict budget ran out, or the deadline'}
-      : !o.sat ? {sat: false, core: [...new Set([...o.core].flatMap(g => (index.has(g) ? [index.get(g)!] : [])))].sort((a, b) => a - b)} : {model: o.model})
+    // (a refutation asked again with its core's hypotheses alone: the learned clauses kept, a core of fewer, for the
+    // usual search's proof of it; GDP_EPR_MIN=0 off)
+    const shrink = (o: ReturnType<typeof search>): ReturnType<typeof search> => {
+      if (!minOn || typeof o === 'string' || !o || o.sat) return o
+      const c = [...o.core].filter(g => g >= 0), o2 = c.length > 1 ? solver.solve(opts.conflicts ?? 200_000, opts.late, c.map(g => actOf[g]!)) : undefined
+      return o2 && !o2.sat && [...o2.core].filter(g => g >= 0).length < c.length ? o2 : o
+    }
+    const outcome = (o0: ReturnType<typeof search>): Decision | {model: boolean[]} => { const o = shrink(o0); return (typeof o === 'string' ? {unknown: o} : o === undefined ? {unknown: 'the conflict budget ran out, or the deadline'}
+      : !o.sat ? {sat: false, core: [...new Set([...o.core].flatMap(g => (index.has(g) ? [index.get(g)!] : [])))].sort((a, b) => a - b)} : {model: o.model}) }
     // the goal's own terms, for the read-back: its finite variables, cells (of its maps' patterns, and at keys of the
     // wrong sort), ordered cells and functions' parts
     const gFinsL = finsList.filter(f => gFins.has(f)), cellsOf = new Map<string, {id: string, parts: string[]}[]>(), odd: {id: string, map: string, key: E}[] = []
