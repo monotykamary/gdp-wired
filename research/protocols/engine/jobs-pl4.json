@@ -1,0 +1,20 @@
+[
+ {
+  "name": "ring-td-g1",
+  "cmd": "GDP_POOL=td GDP_POOL_MS=4000 GDP_POOL_GROW=1 GDP_POOL_LIST=1 GDP_POOL_PICKS=research/protocols/engine/picks/ring_leader_election.txt GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/e.log; s=$?; grep -E 'POOL|join (small instance|template|failed|enumerated|houdini)' /tmp/e.log | cut -c1-30000; exit $s",
+  "timeout": 140,
+  "memory": 8192
+ },
+ {
+  "name": "wo-td-g1",
+  "cmd": "GDP_POOL=td GDP_POOL_MS=5000 GDP_POOL_GROW=1 GDP_POOL_LIST=1 GDP_POOL_PICKS=research/protocols/engine/picks/consensus_wo_decide.txt GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/e.log; s=$?; grep -E 'POOL|join (small instance|template|failed|enumerated|houdini)' /tmp/e.log | cut -c1-30000; exit $s",
+  "timeout": 140,
+  "memory": 8192
+ },
+ {
+  "name": "wo-td-g3",
+  "cmd": "GDP_POOL=td GDP_POOL_MS=20000 GDP_POOL_GROW=3 GDP_POOL_LIST=1 GDP_POOL_PICKS=research/protocols/engine/picks/consensus_wo_decide.txt GDP_INFER_TRACE=2 timeout -s KILL 460 bun research/protocols/run.ts --ms 400000 --only consensus_wo_decide --skip given,broken 2>/tmp/e.log; s=$?; grep -E 'POOL|join (small instance|template|failed|enumerated|houdini)' /tmp/e.log | cut -c1-30000; exit $s",
+  "timeout": 500,
+  "memory": 8192
+ }
+]

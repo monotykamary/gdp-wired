@@ -1,0 +1,5 @@
+never 1 <= Leader[x] and started is 0
+never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]
+never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]
+never 1 <= Leader[x] and 1 <= VotingQuorum[y] and Votes[64·x + y] is 0
+never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]

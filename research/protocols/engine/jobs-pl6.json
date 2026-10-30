@@ -1,0 +1,38 @@
+[
+ {
+  "name": "ring-td-q250",
+  "cmd": "GDP_POOL=td GDP_POOL_Q=250 GDP_POOL_MS=4000 GDP_POOL_GROW=1 GDP_POOL_LIST=1 GDP_POOL_PICKS=research/protocols/engine/picks/ring_leader_election.txt GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/e.log; s=$?; grep -E 'POOL|join (small instance|template|failed|enumerated|houdini|exists)' /tmp/e.log | cut -c1-30000; exit $s",
+  "timeout": 140,
+  "memory": 8192
+ },
+ {
+  "name": "wo-cone",
+  "cmd": "GDP_POOL=td GDP_POOL_HOUDINI=0 GDP_POOL_MS=5000 GDP_POOL_GROW=1 GDP_POOL_LIST=1 GDP_POOL_PICKS=research/protocols/engine/picks/consensus_wo_decide.txt GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/e.log; s=$?; grep -E 'POOL|join (small instance|template|failed|enumerated|houdini|exists)' /tmp/e.log | cut -c1-30000; exit $s",
+  "timeout": 140,
+  "memory": 8192
+ },
+ {
+  "name": "ring-ic3",
+  "cmd": "GDP_POOL=ic3  GDP_POOL_MS=4000 GDP_POOL_GROW=1 GDP_POOL_LIST=1 GDP_POOL_PICKS=research/protocols/engine/picks/ring_leader_election.txt GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/e.log; s=$?; grep -E 'POOL|join (small instance|template|failed|enumerated|houdini|exists)' /tmp/e.log | cut -c1-30000; exit $s",
+  "timeout": 140,
+  "memory": 8192
+ },
+ {
+  "name": "wo-ic3",
+  "cmd": "GDP_POOL=ic3  GDP_POOL_MS=5000 GDP_POOL_GROW=1 GDP_POOL_LIST=1 GDP_POOL_PICKS=research/protocols/engine/picks/consensus_wo_decide.txt GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/e.log; s=$?; grep -E 'POOL|join (small instance|template|failed|enumerated|houdini|exists)' /tmp/e.log | cut -c1-30000; exit $s",
+  "timeout": 140,
+  "memory": 8192
+ },
+ {
+  "name": "distributed-td-r2",
+  "cmd": "GDP_POOL=td  GDP_POOL_MS=4000 GDP_POOL_GROW=1 GDP_POOL_LIST=1 GDP_POOL_PICKS=research/protocols/engine/picks/distributed_lock.txt GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/e.log; s=$?; grep -E 'POOL|join (small instance|template|failed|enumerated|houdini|exists)' /tmp/e.log | cut -c1-30000; exit $s",
+  "timeout": 140,
+  "memory": 8192
+ },
+ {
+  "name": "distributed-ic3",
+  "cmd": "GDP_POOL=ic3  GDP_POOL_MS=4000 GDP_POOL_GROW=1 GDP_POOL_LIST=1 GDP_POOL_PICKS=research/protocols/engine/picks/distributed_lock.txt GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/e.log; s=$?; grep -E 'POOL|join (small instance|template|failed|enumerated|houdini|exists)' /tmp/e.log | cut -c1-30000; exit $s",
+  "timeout": 140,
+  "memory": 8192
+ }
+]

@@ -43,6 +43,153 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## The pool: data filter, minimal implication, top-down, cone (gen/pool from gen/enum4 ff60d1c; the hypothesis holds for distributed only)
+
+**The hypothesis tested:** DuoAI's pool is small because junk is killed by data before any solver call, and ours isn't:
+- (a) cubes true in our small instances but false at larger instances' reachable states;
+- (b) cubes implied by other cubes (DuoAI's minimal-implication pruning);
+- (c) the fixpoint, before the kernel's final `prove()`, cut to the caller's cone.
+
+The oracle stays decideLaw throughout. The Z3 section ("Z3 as the oracle") is on exp/z3, not on this branch.
+
+**What was built** (core/infer.ts, every piece behind `GDP_POOL`, off by default; kernel/prove.ts: one untrusted field)
+- **The small instance as a function** (`instance(grow, share, rnd)`): the BFS of before, with `grow` more elements of a
+  sort (an ordered sort 0..3+g), its own draws (a separate seeded generator, so the engine's own draws are unchanged), up
+  to 8 param vectors, 16,384 input combinations a state, 2,000,000 states, no "won't finish" cut, and its queue read by
+  index (it was `shift()`). The base call is the instance of before, unchanged (pl7 below).
+- **The data filter** (`dataFilter`, in `enumerated()`): for g = 1 .. `GDP_POOL_GROW`, each sort +g alone, then every
+  sort +g. Each instance gets `GDP_POOL_MS` for its BFS and as much again to read it. A cube is dropped when some row of a
+  reached state lies in it (every row: a view's `rowsOf(…, full)` lifts the row cap; literals read by `valueOf` alone).
+  `GDP_POOL_PICKS` names the probe-proven cubes; every drop of one is printed with its state.
+- **Minimal implication** (`minimal`): cube B goes when a kept cube A's law implies B's. The test sends A's keys into B's,
+  one to one within each sort, and needs each literal of A entailed by one of B's: the same literal, the same sum at a
+  bound no larger, or a value at least A's bound. The cubes are taken fewest literals first. A dropped cube remembers its
+  kept impliers (co-implication).
+- **`decideLaw` returns its proof's support** (`uses`: the laws its goals' proofs read, from `settled`'s memo). It is
+  untrusted, as before; `prove()` still makes the verdict.
+- **`GDP_POOL=td`** (before the rounds): the pool is the filtered minimal cubes not given, not implied by the caller's
+  laws and not false at a start.
+  - **Houdini:** every cube's goal is asked with all the others assumed (`GDP_POOL_Q`, 1 s each), and every one with a
+    model is dropped at once. An undecided cube is kept. A cube that a dropped one implied comes back where nothing kept
+    implies it.
+  - **The caller's goals from the fixpoint,** with the first ∀∃ ghost where they fail.
+  - **The cone:** the caller's support, closed under each cube's own. A cube whose support is unknown is asked again
+    with the cone alone assumed. A proof adds its support; a model's pre-state brings in the fixpoint's cubes false there.
+  - **`prove()` of the cone,** a cube it fails at dropped. `GDP_POOL_HOUDINI=0` skips Houdini; `GDP_POOL_CONE=0` proves
+    the whole fixpoint.
+- **`GDP_POOL=ic3`:** the existing rounds with `made` = the filtered minimal pool.
+
+**Step 1, the data filter** (`runs/engine/pl2`: 30 s per instance, g up to 3, Modal 2 CPU; wo again at 20 s in `pl4`)
+
+| protocol (sorts) | made | instance: states (BFS), BFS ms → cubes left | probe-proven kept |
+|---|---|---|---|
+| distributed (lo nodes 2, hi epochs ordered) | 176 | lo+1: 102, 92 ms → 176; **hi+1: 168, 76 ms → 75**; all+1: 498, 0.5 s → 75; lo+2, hi+2, lo+3, hi+3 (144–1,068 states, ≤ 0.8 s) → 75; all+2, all+3: 4,360, 4,473, cut at 30 s → 75 | 12 of 12 |
+| ring (lo nodes ordered, hi ids ordered) | 145 | **lo+1 (5 nodes): 1,180 (421), 8.7 s → 64**; hi+1: 388, 1.4 s → 64; all+1: 1,180 → 64; lo+2: 2,651, 30 s → 64; hi+2, all+2, +3 (cut) → 64 | 5 of 5 |
+| wo (nodes) | 251 | +1: 1,590 (1,096), cut at 30 s → 108; all+1: 1,718 → 87; +2: 3,005 → 78, 2,834 → 75; +3: 4,352 → 73, 4,529 → 73 (every BFS cut) | 5 of 5 (pl4: 228 → 95, 80, 68, 68, 63, 58) |
+
+- **No probe-proven cube died** on any instance, in any run.
+- **wo's picks** are written here: research/protocols/engine/picks/consensus_wo_decide.txt holds the five ∀ written laws
+  in the enumeration's text.
+- **One more element is enough** where the BFS finishes:
+  - distributed: 101 of 176 die at one more epoch, and nothing more dies to +3;
+  - ring: 81 of 145 die at a fifth node.
+- **wo keeps shrinking with depth,** and its instances never finish. So "true in every reached state" is weaker there,
+  and some of its 58–73 may still be false.
+- **The BFS is the cost only on wo.** Each state's successors are 16,384 input combinations, so 189–3,618 states take
+  5–30 s.
+  - The work is data-parallel: successors of different states, and over different inputs, are independent. Only the
+    seen-set is shared, and it can be partitioned by hash.
+  - Reading the states against the cubes is independent per state too. Ring's reading hit its own budget at 4 s (321–440
+    of 712–852 states).
+  - A GPU version through research/hw is the later option; not this round.
+- **In the engine** (GROW 1, 4–5 s an instance; pl3–pl6):
+  - distributed's filter takes about 1 s;
+  - ring's and wo's take 10–12 s, which leaves the engine 34–37 s on Modal.
+
+**Step 2, minimal implication** (pl3–pl6)
+
+| protocol | after the filter | minimal | implied | then not given, not implied by the caller, not false at a start |
+|---|---|---|---|---|
+| distributed | 75 | 60 | 15 | 52 (4.5–5.0 s: `implied` and `atStart` are a solver query each) |
+| ring | 64 | 44 | 20 | 42 (0.7–0.8 s) |
+| wo | 105 / 96 / 58 | 105 / 96 / 58 | 0 | 104 / 95 / 57 |
+
+Every probe-proven cube is among the minimal ones.
+
+**Steps 3 and 4: top-down with decideLaw, then the cone** (Modal 2 CPU, `--ms 60000` unless said; search ms is run.ts's)
+
+| protocol | Houdini (decideLaw, 1 s a goal) | caller | cone → `prove()` | verdict |
+|---|---|---|---|---|
+| distributed (pl3) | round 0: 52 cubes, 2 dropped, 0 undecided, 15.9 s; round 1: 50, none, 1.6 s | proven | 26 of 50 → proven in 4.6 s | **proven, 49.5 s** (td at 44.5 s on the wall) |
+| distributed (pl6 r2) | round 0: 52, none dropped, 14.4 s | proven | 27 of 52 (11 of the 12 picks in it) → proven in 4.5 s | **proven, 43.8 s** |
+| ring (pl4) | round 0: 42, 0 dropped, **36 undecided**, 35.3 s | out of time | | unknown, 59.6 s |
+| ring, 250 ms a goal (pl6) | round 0: 42, **42 undecided**, 13.8 s | proven | 15 (2 of 5 picks, all undecided) → `prove()` 12.7 s, fails at the wall | unknown, 59.1 s |
+| ring, Houdini skipped (pl5) | | proven from the 42 | cone 6 → 15 → 15 → 27 → 28 by blockers, its goals mostly undecided | unknown, 59.0 s |
+| wo, +1 (pl4) | round 0: 104, **104 undecided**, 19.3 s | out of time | | unknown, 63.5 s |
+| wo, +3, `--ms 400000` (pl4) | round 0: 57, **57 undecided**, 44.0 s | not proven | | unknown |
+| wo, Houdini skipped (pl5–6) | | "one leader" has a model from the 95; with the ghost ("some VotingQuorum member"), the ghost's goal is undecided | | unknown, 59.7 s |
+
+**The IC3 rounds over the filtered minimal pool** (`GDP_POOL=ic3`)
+
+| protocol | rounds | verdict |
+|---|---|---|
+| distributed (pl6, pl7) | rounds 0–3 at 14, 19, 23, 27 cubes, all over by 21 s | **proven, 32.1 s and 30.6 s** |
+| ring (pl6) | round 1 has 7 unsure; the pool Houdini at 29 cubes fails in 12.4 s | unknown, 59.8 s |
+| wo (pl6) | | unknown, 62.5 s |
+
+Without the filter, the same rounds leave distributed unknown at 63–65 s (f9, q15; pl7 below).
+
+**The default path is unchanged** (pl7, all ten, GDP_POOL unset, one run): sync, async, decentralized, 2PC, ticket, toy
+and sharded are proven; distributed (64.8 s), ring (60.0 s) and wo (64.2 s) stay unknown.
+
+**Verdict on the hypothesis**
+- **Distributed: it holds.**
+  - Data from one more epoch kills 101 of the 176 cubes before any solver call. Minimal implication takes 15 more.
+  - The rest proves inside 60 s two ways: top-down plus the cone (43.8–49.5 s), and the existing IC3 rounds (30.6–32.1
+    s).
+  - The three costs named under Z3 all fall:
+    - one Houdini round is 14–16 s at 52 laws (was 39–71 s at 140–176 with Z3);
+    - the rounds choose the missing cubes, because junk no longer outranks them;
+    - the cone is 26–27 cubes, and its `prove()` is 4.5 s (was 43–89 s or unfinished at about 140).
+- **Ring and wo: the pool shrinks with every target kept, and the frontier doesn't move.**
+  - ring: 145 → 42; wo: 251 → 57–104.
+  - What's left in the way is decideLaw's decisiveness, not the pool. At 42–104 assumed laws it leaves 86–100% of the
+    cube goals undecided (ring 36 of 42 at 1 s, 42 of 42 at 250 ms; wo 104 of 104 and 57 of 57).
+  - So Houdini can't drop and the cone can't be closed.
+  - Z3 decided those goals on exp/z3 (wo 0 undecided), but with the unfiltered pools.
+- **The hypothesis is confirmed as the cause of distributed's gap, and refuted as the whole gap.** Ring and wo need both:
+  the small pool from here and an oracle that decides at about 40–100 laws.
+
+**Not wired in.** The condition was all three inside 60 s. One of the three is, so:
+- the engine's first phase is unchanged;
+- no ten-twice run and no corpus bar were made (no baseline was created).
+
+**The exact next step**
+- **This branch's pool with exp/z3's oracle,** top-down and IC3: ring 42 and wo 57–104 cubes, where Z3 decided every
+  goal at 0.1–0.4 s.
+- **If that proves them,** wire in the filter (GROW 1, about 1–12 s) and the minimal cut ahead of the rounds:
+  - `GDP_POOL=ic3` is the smaller change; it proved distributed fastest;
+  - top-down plus the cone as the alternative.
+- **For wo,** a deeper filter needs a faster BFS first (its instances never finish), and the ∃ ghost's goal needs a
+  decision.
+
+**Verified and not**
+- **Verified** (Modal, `runs/engine/pl1`–`pl7`):
+  - every table above, one or two runs each as listed;
+  - no probe-proven cube dropped by the filter or the minimal cut;
+  - distributed proven by top-down plus the cone twice and by the filtered IC3 rounds twice;
+  - the default path's ten verdicts once (seven proven).
+- **Not verified:**
+  - **whether wo's survivors are all true:** its BFS never finished;
+  - **the "two runs a config" rule:** ring's and wo's variants ran once each;
+  - **the six's times and the corpus:** not measured with GDP_POOL on, since nothing is wired in;
+  - **the implication test's soundness:** only by construction (literal entailment under a sort-preserving injection).
+    A wrong drop would only have shrunk the pool, and `prove()` decides.
+- **The diagnostics** (`POOL` lines on stderr, `GDP_POOL_LIST`, `GDP_POOL_PICKS`) are in the code behind GDP_POOL. Take
+  them out before any merge.
+- **Spend:** $0.09 of Modal billed for this round's apps so far. The current hour is still being billed; about $0.15 in
+  all, against $3.
+
 ## Where it stands (read this first; the checkpoints below are the history)
 
 **Branch and code**
