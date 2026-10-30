@@ -91,7 +91,7 @@ public final class Harness {
     if (c == byte.class || c == Byte.class) return (byte) fit(v, Byte.MIN_VALUE, Byte.MAX_VALUE);
     if (c == char.class || c == Character.class) return (char) fit(v, 0, 65535);
     if (c == double.class || c == Double.class) { double d = num(v).doubleValue(); if (Math.abs(d) > 9.007199254740992E15) throw new IllegalArgumentException("a double past 2^53 (the subset's floats are whole and exact)"); return d; }
-    if (c == float.class || c == Float.class) { double d = num(v).doubleValue(); if (Math.abs(d) > 16777216) throw new IllegalArgumentException("a float past 2^24 (the subset's floats are whole and exact)"); return (float) d; }
+    if (c == float.class || c == Float.class) { double d = num(v).doubleValue(); if (d < -16777216 || d > 16777215) throw new IllegalArgumentException("a float outside [-2^24, 2^24) (the subset's floats are whole and exact)"); return (float) d; }
     if (c == boolean.class || c == Boolean.class) return v;
     if (c.isEnum()) return enumOf(c, (String) v);
     if (c == String.class || c == CharSequence.class) return String.valueOf(v);

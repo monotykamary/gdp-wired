@@ -120,6 +120,14 @@
       "types": "./dist/core/extract-c.d.ts",
       "default": "./dist/core/extract-c.js"
     },
+    "./extract-java": {
+      "types": "./dist/core/extract-jvm.d.ts",
+      "default": "./dist/core/extract-jvm.js"
+    },
+    "./extract-kotlin": {
+      "types": "./dist/core/extract-jvm.d.ts",
+      "default": "./dist/core/extract-jvm.js"
+    },
     "./extract-rs": {
       "types": "./dist/core/extract-rs.d.ts",
       "default": "./dist/core/extract-rs.js"

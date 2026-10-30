@@ -1,0 +1,16 @@
+{
+  "rate limit/grpc-java/RetriableStream.Throttle#the token count is always between 0 and maxTokens": {
+    "verdict": "bug",
+    "note": "Suspected bug, an edge of the configuration (recorded only, not reported). RetriableStream.java's comment says the token count \"will always be between 0 and maxTokens\", and ServiceConfigUtil.getThrottlePolicy checks only maxTokens > 0 and tokenRatio > 0. At 2,147,484 tokens or more, maxTokens (1000 times them, a float cast to int) saturates at Integer.MAX_VALUE; one qualified failure (the count MAX_VALUE - 1000) and then one success with a token ratio above 1 overflow onSuccess's currentCount + tokenRatio, and Math.min(incremented, maxTokens) keeps the wrapped, negative count; the next qualified failure's currentCount - 1000 wraps it back to MAX_VALUE. The prover's witness is that run (maxTokens 2147484, tokenRatio 2); within ServiceConfig-sized bounds (maxTokens and tokenRatio at most 1000 tokens) the invariant is proven. The extraction was checked against grpc-core-1.85.1.jar on 1,164 requests from the start and 400 from drawn states.",
+    "repro": "research/realworld/repro/grpc-throttle-overflow.sh"
+  },
+  "circuit breaker/resilience4j/PartialAggregation#slow failed calls never outnumber slow calls": {
+    "verdict": "law",
+    "note": "Refuted by Java's int wraparound, not a bug in practice: from a bucket holding 2^31 - 1 slow calls, a SLOW_SUCCESS wraps numberOfSlowCalls to Integer.MIN_VALUE while numberOfSlowFailedCalls stays. A PartialAggregation is one epoch second of the sliding time window (reset every second), so 2^31 calls in it don't happen; the law holds below MAX_VALUE slow calls. Kept as a law the prover must not prove: the counts are ints and wrap."
+  },
+  "rate limit/okhttp/WindowCounter#no more is acknowledged than consumed": {
+    "verdict": "bug",
+    "note": "Suspected bug, minor (recorded only, not reported). WindowCounter.update adds both arguments and only then runs check(this.acknowledged <= this.total): an update that acknowledges more than was consumed throws IllegalStateException and leaves the counter holding the excess (update(acknowledged = 3) on a new counter: total 0, acknowledged 3, unacknowledged -3). The two checks of the arguments run before the writes; the last one doesn't. Whether a caller can reach it depends on Http2Stream and Http2Connection's own accounting; the exception likely fails the connection, but the counter is left inconsistent. Extracted with failures: 'kept' (a failure's writes carried), checked against the file compiled with kotlinc on 1,916 requests and 400 drawn states.",
+    "repro": "research/realworld/repro/okhttp-windowcounter.sh"
+  }
+}

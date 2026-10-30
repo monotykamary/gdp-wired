@@ -89,7 +89,9 @@ const jvmOf = (mod: SModule) => (mod as SModule & {jvm: Jvm}).jvm
 // The package root of a file: its directory less the package's.
 function packageRoot(file: string, kotlin: boolean): string {
   const fs = node<FS>('node:fs'), path = node<Path>('node:path')
-  const m = /^\s*package\s+([\w.]+)/m.exec(fs.readFileSync(file, 'utf8'))
+  let text = ''
+  try { text = fs.readFileSync(file, 'utf8') } catch { /* read by the reader, which says so */ }
+  const m = /^\s*package\s+([\w.]+)/m.exec(text)
   let d = path.dirname(path.resolve(file))
   if (m && !kotlin) for (const _ of m[1]!.split('.')) d = path.dirname(d)
   return d

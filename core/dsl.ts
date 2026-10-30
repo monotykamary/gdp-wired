@@ -205,7 +205,10 @@ export abstract class Kind<V> {
   // A runtime value of the kind (what encode takes), for comparing a rule with the code it describes (compare).
   sample(_rand: Rand, _bound: number): Raw { throw new Error('this kind draws no runtime values') }
   // A state variable of this kind starting at a runtime value, or at a value over the params: `.state({open: bool.from(true)})`.
-  from(init: Raw | ((p: never) => unknown)): Init<V> { return {kind: this, init} }
+  // (a start over the params: the params' kinds aren't known here, so its argument is any, a printed rule's
+  // `int.from(({n}) => n.times(2))` typechecking as it runs)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  from(init: Raw | ((p: any) => unknown)): Init<V> { return {kind: this, init} }
 }
 const v = (name: string) => new Term({op: 'var', name}, scope?.vars[name])
 // Concrete values for the builders to carry (crossCheck): variables by name, maps' cells, the keys a condition at every
