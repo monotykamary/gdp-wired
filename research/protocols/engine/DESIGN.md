@@ -1807,8 +1807,8 @@ waits for gen/laneA.
 
 Every export also asserts the builders agree: `countHyps goal.counts insts = some [kernel.ts's hypotheses]` by `decide`.
 
-**Mutation tests** (kernel/MUTANTS.md's operators, kernel/mutants.ts with `MUTANT_BATTERY=counts`, on Modal): the 38
-mutants in kernel.ts's new lines (lines 1582–1701) are all killed by kernel/count.test.ts. One survived the first run
+**Mutation tests** (kernel/MUTANTS.md's operators, kernel/mutants.ts with `MUTANT_BATTERY=counts`, on Modal): the 40
+mutants in kernel.ts's new lines (lines 1582–1703) are all killed by kernel/count.test.ts. One survived the first run
 (`ms.every → ms.some` in ghostedOk: the test's clashing map was also read, so the parts' check refused it too); the test
 now names a declared map the original never reads.
 
