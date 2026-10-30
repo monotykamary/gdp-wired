@@ -58,7 +58,7 @@ describe('system', () => {
     for (const [level, want] of [['read committed', 'refuted'], ['snapshot', 'proven']] as const) {
       const r = system('bank', {deposit: {rule: isolation(deposit.machine, level), id: 't'}})
       // each commit adds its amount to the balance it lands on (unless snapshot refused it)
-      const law = r.stepLaw('a deposit adds its amount', ({t, Bal, in$acct, in$amount, aborted$}: any, after: any) =>
+      const law = r.stepLaw('a deposit adds its amount', ({t, Bal, in$acct, in$amount}: any, after: any) =>
         level === 'snapshot' ? after.Bal.at(in$acct.at(t)).eq(Bal.at(in$acct.at(t)).plus(in$amount.at(t))).or(after.aborted$.at(t).eq(1)) : after.Bal.at(in$acct.at(t)).eq(Bal.at(in$acct.at(t)).plus(in$amount.at(t))),
       ({t, pc$}: any) => pc$.at(t).eq(1 + (level === 'snapshot' ? 0 : 1)))
       expect([level, verdict(proveSteps(r, [], [law], {search: {ms: 5000}}))]).toEqual([level, want])
