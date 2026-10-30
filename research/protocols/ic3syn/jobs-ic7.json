@@ -1,0 +1,72 @@
+[
+ {
+  "name": "consensus-s60-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus' --skip broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "consensus-s60-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus' --skip broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "tcommit-s60-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'tcommit' --skip broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "tcommit-s60-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'tcommit' --skip broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "lock_server-s60-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lock_server' --skip broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "lock_server-s60-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lock_server' --skip broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "lockserv-s60-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lockserv' --skip broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "lockserv-s60-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lockserv' --skip broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "lockserv_automaton-s60-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lockserv_automaton' --skip broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "lockserv_automaton-s60-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lockserv_automaton' --skip broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "simple_decentralized_lock-s60-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_decentralized_lock' --skip broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "simple_decentralized_lock-s60-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_decentralized_lock' --skip broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "two_phase_commit-s60-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'two_phase_commit' --skip broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ },
+ {
+  "name": "two_phase_commit-s60-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'two_phase_commit' --skip broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ }
+]

@@ -2510,7 +2510,9 @@ const deeperBudget = {trials: 600, depth: 24, bound: 8, seed: 29}
 // one it bounds below moved from it by a small step (t <= x: a clock that only goes on); and near `near`, a
 // counterexample's values (the kernel's, at a step from a state no run reached), each param and input taken from it
 // half the time. `states: false`: the runs alone.
-type RunBudget = typeof refuteBudget & {seed?: number, mixed?: boolean, near?: Record<string, number>, states?: boolean}
+// (`until`: a wall, performance.now()'s, past which no more trials or steps are taken: the work cap counts a law's tuples,
+// not a request's assumption, which a rule carrying many maps decides at every try)
+type RunBudget = typeof refuteBudget & {seed?: number, mixed?: boolean, near?: Record<string, number>, states?: boolean, until?: number}
 const conjuncts = (c: C | undefined): C[] => (!c ? [] : c.op === 'and' ? c.xs.flatMap(conjuncts) : [c])
 function guidesOf(m: Machine): ((env: Record<string, number>, st: State, rand: Rand, bound: number) => [string, number] | undefined)[] {
   const isInput = (e: E): e is {op: 'var', name: string} => e.op === 'var' && m.inputs.includes(e.name)
@@ -2540,7 +2542,8 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     && facts.filter(readsParams).every(f => holds(f, params))
   const cap = watchWork.n + perTrial * budget.trials
   try {
-    for (let trial = 0; trial < budget.trials && watchWork.n <= cap; trial++) {
+    const late = () => budget.until !== undefined && performance.now() > budget.until
+    for (let trial = 0; trial < budget.trials && watchWork.n <= cap && !late(); trial++) {
       // (`mixed`: the trials in turn at bounds 1 to 4, every fourth near)
       const bound = budget.mixed ? 1 + trial % 4 : budget.bound, guided = guides, near = budget.mixed && trial % 4 ? undefined : budget.near
       const params = r.randomParams(rand, bound)
@@ -2553,7 +2556,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       const broken = (w: Law | StepLaw, at: string, before: State, input?: Request) =>
         ({goal: `${w.name} ${at}`, witness: {...params, ...before.scalars, ...(input ? numbersOf(input) : {})}, run: {params, trace: trace.map(shown)}})
       for (const {w, on} of watching) if (!('then' in w) && !on.start(st)) return broken(w, '@start', st)
-      for (let d = 0, tries = 0; d < budget.depth && tries < 40 && watchWork.n <= cap; tries++) {
+      for (let d = 0, tries = 0; d < budget.depth && tries < 40 && watchWork.n <= cap && !late(); tries++) {
         const input = r.randomInput(rand, bound, params)
         if (near) for (const x of m.inputs) if (near[x] !== undefined && typeof input[x] === 'number' && rand(2)) input[x] = near[x]!
         for (const g of guided) { const set = g({...params, ...st.scalars}, st, rand, bound); if (set && typeof input[set[0]] === 'number') input[set[0]] = set[1] }
@@ -2643,8 +2646,10 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   if ((v.proven && v.checked) || opts.search === false || v.run || v.stuck === 'sat' && (any || !/@step|@\d+ steps/.test(v.goal ?? ''))) return v
   // The deeper runs; then runs over small values (keys that meet, small params), whose requests meet their
   // assumption's equalities and clocks, or near the counterexample the verdict ends at.
+  // (the three within the search's budget again, on the wall: past it they stop, and the search starts as it would)
+  const ms = typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000, runsUntil = performance.now() + ms
   for (const b of [deeperBudget, {...deeperBudget, bound: 1, seed: 31, states: false}, {...deeperBudget, trials: 1200, seed: 41, states: false, mixed: true, ...(v.witness ? {near: v.witness} : {})}]) {
-    const deeper = refuteByRuns(r, laws, stepLaws, b)
+    const deeper = refuteByRuns(r, laws, stepLaws, {...b, until: runsUntil})
     if (deeper?.run) return refutedVerdict(deeper)
   }
   const until = clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)

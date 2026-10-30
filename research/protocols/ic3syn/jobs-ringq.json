@@ -1,0 +1,12 @@
+[
+ {
+  "name": "ring-ms90",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 200 bun research/protocols/run.ts --ms 90000 --only ring_leader_election --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (td|engine|meters|end|pool)' /tmp/err.log | cut -c1-300 | tail -c 9000; exit $s",
+  "timeout": 260
+ },
+ {
+  "name": "ring-ms120",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 260 bun research/protocols/run.ts --ms 120000 --only ring_leader_election --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (td|engine|meters|end|pool)' /tmp/err.log | cut -c1-300 | tail -c 9000; exit $s",
+  "timeout": 320
+ }
+]

@@ -1,0 +1,7 @@
+[
+ {
+  "name": "check",
+  "cmd": "bun install --frozen-lockfile >/tmp/i.log 2>&1; timeout -s KILL 400 bun node_modules/typescript/lib/tsc.js -p . > /tmp/tc.log 2>&1; echo TSC-mine $(grep -cE \"ic3syn|^core/|^kernel/\" /tmp/tc.log); grep -E \"ic3syn|^core/|^kernel/\" /tmp/tc.log | head; timeout -s KILL 300 bun node_modules/oxlint/bin/oxlint --deny-warnings --disable-nested-config core kernel research/protocols/ic3syn 2>&1 | tail -8",
+  "timeout": 800
+ }
+]

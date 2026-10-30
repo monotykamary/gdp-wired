@@ -43,6 +43,321 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneA, determinism: the engine on a counted clock; the gauntlet (main a391a3d merged; branch fd06297)
+
+**The ask:** "10 of 10 with nothing written" guaranteed, not usually true: every search decision on work counts, not
+wall time; ring's margin; the ten 20 times each at 60 s.
+
+**What depended on time** (core/infer.ts's engine, from the small instance on: 79 `performance.now()` reads and 24 of
+the search's wall end): the small instance's BFS cut and walks, the filter's time share (six times the small
+instance's own time, at most a sixth of what is left), each goal's cap (`within`: a wall end per goal, the EPR path
+stopped only by that wall), the rounds' growth ("what a quarter of what is left affords"), Houdini's 40%-left switch,
+the cone's and the set proof's loops. On a slow container the filter read fewer states (361–490 against 500–650), left
+more cubes (ring's pool 47–61, not 44), round 0 took 24–36 s, and ring missed: research/protocols/engine/DESIGN.md,
+gen/laneA's IC3Syn section.
+
+**Built (untrusted; core/ and kernel/ +8,489 bytes against the merge base: infer.ts +3,348, machine.ts +2,810, epr.ts
++990, prove.ts +85, plus last round's dsl.ts +612 and exists.ts +644):**
+- **An EPR meter and cap** (kernel/epr.ts): `eprMeter` counts each clause and hypothesis read and each literal the CDCL
+  search propagates; `withEprCap(units, f)` caps it; `eprFirst` and `settle` stop at the cap as at the wall. A goal's
+  EPR decision ends at the same place on any machine. Default cap: none, so nothing outside the engine changes.
+- **The engine's clock** (`vnow`): from the engine's start, its own meters at fitted rates (BFS tries 80 a ms, EPR units
+  500, view rows 100, the cost model's work 220), in place of `performance.now()` in all 79 decisions; the wall
+  (`stop`, the search's 60 s) only ends it. Its budget `eUntil` = 0.95 × (ms − 0.3 × the join's count), fixed at the
+  engine's start (GDP_ENGINE_SHARE).
+- **A goal's cap** (`within`): the kernel's counted deadline and the EPR cap, both from the goal's share of the engine's
+  clock; the per-goal wall is gone, only the search's wall stays.
+- **The filter by kills:** its larger instances' states read as their BFS finds them (`instance`'s `visit`), until 150
+  in a row kill nothing, 1,000 at most, the BFS ending there; a share of the engine's clock its outer bound.
+- **The views' rows compiled** (core/machine.ts's `compileE`/`compileC`, closures over (env, state) with evalE's values
+  and errors; one env per assignment instead of a copy per level): reverted last round because the time-boxed filter
+  spent the time saved; with the filter by kills, it is time saved.
+- **Short clauses without a Set** (kernel/epr.ts's `add`): the same literals in the same order.
+- **Trace:** 'join meters' and the td events carry the meters (real, v, EPR units, rows, tries, work).
+
+**Deterministic, measured:** across the gauntlet's 200 runs every protocol took one path: the engine's clock read the same
+value at the join's end in every run (ring 52,173 in 19 of 20, the 20th stopped by the wall at 51,111; wo 19,767 in 19
+of 20, the 20th at 15,593 by the wall; distributed 28,798 and sharded 14,146 in 20 of 20); ring at --ms 90000 and
+120000 took the same path to the same proof at 52,173. A miss is now only the wall: a container too slow for the path.
+
+**The gauntlet** (fd06297; the ten, 20 runs each at 60 s, one worker, Modal's 2-CPU containers, five batches of 10–50;
+runs/det/g0–g4 in ../gdp-wired-laneA; seconds, the search's own time)
+
+| protocol | proven | median s | p95 s | max s | misses |
+| --- | --- | --- | --- | --- | --- |
+| consensus_wo_decide | 19/20 | 41.7 | 50.8 | 66.1 | unknown 66.1 |
+| decentralized_lock | 20/20 | 16.7 | 18.1 | 18.9 |  |
+| distributed_lock | 20/20 | 34.5 | 39.3 | 40.9 |  |
+| lock_server_async | 20/20 | 23.7 | 31.5 | 33.5 |  |
+| lock_server_sync | 20/20 | 9.6 | 10.9 | 11.0 |  |
+| ring_leader_election | 17/20 | 55.9 | 61.3 | 62.3 | unknown 60.1, unknown 60.1, unknown 60.7 |
+| sharded_key_value_store | 20/20 | 30.2 | 36.8 | 36.9 |  |
+| ticket_lock | 20/20 | 34.6 | 39.9 | 41.3 |  |
+| toy_consensus_forall | 20/20 | 11.3 | 13.8 | 14.5 |  |
+| two_phase_commit | 20/20 | 17.3 | 20.6 | 21.3 |  |
+
+- **The claim doesn't hold for two of the ten.** ring 17/20 and wo 19/20; the other eight 20/20 with their p95 at most
+  41 s. Each miss is the wall on a slow container: the same path took 37–62 s for ring and 31–66 s for wo across the
+  batch (the containers' speed varied 1.6× within one batch of 50).
+- **Ring's margin, not reached.** Its path needs 52.2 of its 54.1 budget units and runs a median 55.9 s: a container 1.5×
+  slower would need ~84 s. Tried at fixed paths (one run each, now that one run is the path): per-goal caps 700, 1,500
+  and 2,000 against 1,000, the filter's quiet window 300 against 150: each ran out of ring's 51.3 units unproven. What would: cut ring's work about 35%; round 0 (44 goals, 22 units, 7–12 left
+  undecided at their cap) and rounds 1–4 (18 units) are the place, and the EPR decision is 37% of a ring run (bun's
+  profile, runs/ic3syn/ringprof2).
+- **Still on time** (not in the engine): the join's grow, where the engine follows, has a 2 s wall per query
+  (`joinGrowWall`); the join's counted clock differs by about 2% between runs (wo's eUntil 42,768–43,165), so that wall
+  changes some query's outcome now and then, and the engine's budget with it. Tried in a separate tree (not on the
+  branch): the query on the counted joinQueryMs with an EPR cap of 2 s's units in place of the wall; the ten once, all
+  proven (decentralized needs the counted joinQueryMs, not 2 s), wo 44–47 s. Not gated, so not merged in.
+
+**Gates:**
+- **The ten:** the gauntlet above.
+- **The IC3Syn suite's 7** (60 s, twice; runs/det/ic7): consensus, tcommit, lock server, lockserv, lockserv automaton,
+  simple decentralized lock, i4 two-phase commit, proven in both runs (0.2–18.4 s).
+- **The quick bar** (fd06297 against ae36917's baseline; <main>/runs/bar/runs/fd06297ad933-vs-ae369178e65d-quick-2026-10-301836/REPORT.md;
+  estimated /bin/zsh.62): f1 34 and f2 24 as the base; rw 73/14/4 against 74/14/3, the one task noise after 3 reruns a side
+  (lost 0); g332 332 of 332 (296.2 s against 290.3); the suite 236 of 236; onecpu no failure. Gained 0, lost 0, wrong 0.
+- **Typecheck and lint:** tsc clean on core/, kernel/ and research/protocols/ic3syn (on Modal; the errors left are
+  vendor/ imports), oxlint clean on the same (without --type-aware, which needs node).
+
+**Spend:** $1.21 billed through the 18:00 UTC hour for this task's 42 apps (the calibration runs, the experiments at
+fixed paths, the 200-run gauntlet, the gates, the bar's 18); the 18:00 hour is still filling in, and the bar estimates
+$0.62 of its own. Nothing of mine left running.
+
+**Verified, not**
+- **Verified (Modal):** one path per protocol across 200 runs (the engine's clock at the join's end, above); the table;
+  the 7; the bar; tsc and oxlint on the branch's files.
+- **Not verified:** the claim for ring and wo (17/20, 19/20); determinism of the join (its 2 s grow wall stays; the
+  counted alternative ran once, not gated); that the rates hold on other hardware (they're fitted to Modal's containers:
+  a much faster or slower machine takes the same path, but where its wall falls against the budget differs); the
+  oxlint type-aware rules on the new code.
+
+## gen/laneA: the IC3Syn suite, its failure classes, the ∃ laws' wall, counting designed (gen/laneA from main ae36917)
+
+**The suite** (research/protocols/ic3syn/: README.md has every source, licence and commit, and each port's
+correspondence). IC3Syn (arXiv 2605.24619) publishes no artifact; its 29 protocols are Endive's TLA+ benchmarks
+(will62794/endive 8b6f2ab, no licence stated) and pyv-paxos-epr, whose TLA+ in Endive is faulty (`Next` calls
+`Decide(n, v, r, Q)` for `Decide(n, r, v, Q)`, so no decision is ever made; `JoinRound` never leaves a round), so its
+model is mypyvy's paxos_epr.pyv (MIT, 12a8f54). 26 are ported (models.ts) and 3 are not expressible in the model format
+(below). Every port is checked against its source: its reachable states on a small instance, by BFS (check.ts), counted
+as the spec's variables, beside TLC's distinct states on the same constants (tlc.py, TLC 1.8.0 on Modal), and its broken
+variant reaching a state that breaks the property.
+
+**Encoding findings** (README.md has them in full):
+- **Quorums.** A quorum sort (Ivy's `member` with the intersection axiom) can't be written: a quorum's members read at a
+  quantified key are a function read there, which kernel.ts's `keyOnly` refuses. So every quorum is a majority, stated
+  exactly by counting (common.ts's `majority`: an injective rank below c on the nodes outside Q, 2c < size): every
+  config's `Quorum` is the majorities of its nodes, and the ports check equal to TLC there.
+- **Not expressible (3):** both learning switches (a write at every tuple of a row reads two other cells of the row: a
+  join, so a key read as a function of the key, `k mod N`), and pyv-paxos-epr (`propose` reads `vote(N, MAXR, V)` with
+  two of its coordinates quantified at once, which a flag's keys, each read on its own, can't). Both need keys that are
+  tuples in the kernel's key rules: trusted, a Lean proof first.
+
+
+**The suite, nothing written, one worker, Modal 2 CPU, the engine at ae36917** (`runs/ic3syn/a60`, `b60`, `b300` in
+../gdp-wired-laneA; seconds; r1 / r2; "killed": no verdict, the job killed at 3.5 times the budget)
+
+| # | IC3Syn name | 60 s | 300 s | class |
+| --- | --- | --- | --- | --- |
+| 1 | tla-consensus | proven 0.4 / 0.3 | proven 0.3 / 0.3 | |
+| 2 | tla-tcommit | proven 0.6 / 0.8 | proven 0.3 / 0.6 | |
+| 3 | i4-lock-server | proven 8.4 / 8.7 | proven 8.2 / 7.6 | |
+| 4 | ex-quorum-leader-election | unknown 37.9 / 47.3 | unknown 48.2 / 43.2 | counting |
+| 5 | pyv-toy-consensus-forall | unknown 36.2 / 44.4 | unknown 43.5 / 29.8 | counting |
+| 6 | tla-simple | unknown 11.1 / 11.9 | unknown 9.4 / 11.8 | ∃ in the property |
+| 7 | ex-lockserv-automaton | proven 14.9 / 10.8 | proven 11.2 / 12.0 | |
+| 8 | tla-simpleregular | unknown 8.8 / 9.1 | unknown 9.1 / 10.3 | ∃ in the property |
+| 9 | pyv-sharded-kv | unknown 68.0 / 68.9 | unknown 130.9 / 122.0 | the oracle's cost (5 keys, a function-valued table) |
+| 10 | pyv-lockserv | proven 13.9 / 15.2 | proven 9.9 / 12.2 | |
+| 11 | tla-twophase | unknown 31.6 / 31.8 | **proven 147.6 / 145.5** (9 laws) | budget |
+| 12 | i4-learning-switch | not ported | | not expressible |
+| 13 | ex-simple-decentralized-lock | proven 8.0 / 8.8 | proven 9.6 / 7.8 | |
+| 14 | i4-two-phase-commit | proven 16.9 / 14.8 | proven 26.9 / 18.4 | |
+| 15 | pyv-consensus-wo-decide | unknown 64.3 / 66.7 | unknown 283.5 / 268.1 | counting |
+| 16 | pyv-consensus-forall | unknown 84.2 / 80.0 | unknown 320.6 / 320.8 | counting |
+| 17 | pyv-learning-switch | not ported | | not expressible |
+| 18 | pyv-sharded-kv-no-lost-keys | killed / killed | not run (the 60 s job capped) | ∃ in the property (∀∃) |
+| 19 | ex-naive-consensus | unknown 65.1 / 64.6 | unknown 305.0 / 304.1 | counting |
+| 20 | pyv-client-server-ae | killed / killed | not run | ∃ in the property (∀∃) |
+| 21 | ex-simple-election | unknown 48.2 / 59.4 | unknown 71.0 / 53.6 | counting |
+| 22 | pyv-toy-consensus-epr | unknown 53.3 / 61.2 | unknown 81.8 / 51.7 | counting |
+| 23 | ex-toy-consensus | unknown 44.2 / 36.6 | unknown 43.4 / 37.0 | counting |
+| 24 | pyv-client-server-db-ae | killed / killed | not run | ∃ in the property (∀∃) |
+| 25 | pyv-firewall | killed / killed | not run | ∃ in the property (∀∃) |
+| 26 | ex-majorityset-leader-election | unknown 58.3 / 58.9 | unknown 216.3 / 194.3 | counting |
+| 27 | pyv-consensus-epr | unknown 77.0 / 74.6 | unknown 313.0 / 315.5 | counting |
+| 28 | mldr | killed / killed | killed / killed (810 s) | counting (the encoding's size) |
+| 29 | pyv-paxos-epr | not ported | | not expressible (and a quorum axiom) |
+
+**Proven: 7 of 29 at 60 s, 8 at 300 s** (twophase), every proven run proven in both runs, no refutation of a port; every
+broken variant the search ran on was refuted or left unknown, none proven. IC3Syn reports candidates for all 29 (its
+invariants checked by TLAPS afterwards, at up to 600 s and 2 h on an M4 Pro); Endive, IC3PO, SWISS and DistAI each miss
+several. So this round is not a lead: on this suite the engine trails, and the gap is two classes.
+
+**The failure classes, by the phase that stalls** (the traces in each job's log; GDP_INFER_TRACE=2)
+1. **Counting: 11 of 22 failures** (quorum leader election, the toy consensuses ×3, wo, forall, naive, simple election,
+   toy epr, consensus epr, majorityset; and mldr). Each stops at the engine's round 0 with the caller's goal unsure and no
+   diagram (`"caller":1,"diagrams":0`): the step goal "one leader / one value" needs "two majorities meet", which the
+   oracle has no theory for (the request's majority is a rank and a bound, `2c < size`). The enumeration finds the ∀
+   cubes ("a voter of a leader voted for it"), but nothing proves the pigeonhole. mldr never reaches the search: its
+   first proof (proveLawsAsGiven, the kinds' laws) spends 99 s building instances of the counting witnesses' 20-odd
+   quantified flags (`probe.ts mldr`: substC and stringify in flagsOf). The missing law in every case is a count: "the
+   votes for v are a majority" (|{n: vote[n] = v}|·2 > size), or the ∃ form, "a decided value has a quorum all voting for
+   it". The ten's toy_consensus_forall and wo prove only because their ports stand the axiom in for one stored quorum.
+2. **An ∃ in the property: 6** (simple, simple regular; client-server ae and db ae, firewall, no lost keys).
+   - **The top-level ∃** (PCorrect's prenex `\E i: pc[i] # "Done" \/ y[i] = 1`): the join refuses a caller law reading its
+     bound value (`join failed: ... reads some$1, which it doesn't declare`), so the search runs nothing and ends in
+     3–4 s; exists.ts's witness choice alone, with no ∀ support, finds none.
+   - **∀∃** (`\A n, p: received => \E r: ...`): before this branch every run was killed at 3.5 times its budget: the runs
+     that refute read a law with ∃ at every tuple of its keys at every state, and someHolds read the law's shape (its atoms,
+     by `namesOf`'s JSON at every node) at every call (`probe.ts`, profiles in `runs/ic3syn/prof5`). Past that, the
+     verdict is "no witness term found": under a `forall` exists.ts takes witness terms only, and here the witness is a
+     function of the keys (the request that matched response p for n), which no term of the state names.
+3. **Budget: 1** (twophase): proven at 147 s, unknown at 60 s (its join's 60 rounds at 1,996 cubes end on time).
+4. **The oracle's cost on 5-key goals: 1** (sharded_kv, TLA+'s `table[n][k] = v` as a function-valued map): round 0's
+   24 cubes cost 26 s and the caller's goal is unknown (the ten's relational sharded KV proves in 27–44 s).
+5. **Not expressible: 3** (both learning switches, paxos), above.
+- **Lane B's shape** (a map read at a key read from another map, `Tag[fp[t]]`): no measured failure here is that shape.
+  mldr's counting witnesses are (`Config[i·N + In[r]]`, a carried rank read through), so with counting decided, mldr would
+  meet it next; paxos's 1b messages carry a max vote read the same way.
+
+**Attacked: the ∃ class's wall (built, general, untrusted; core/ +1,256 bytes: core/exists.ts +644, core/dsl.ts +612).**
+- **someHolds reads a law's shape once** (its groups, atoms, linearity and whether it reads a map, by body and bound
+  names, in a WeakMap): the runs' cost per tuple drops to the witness points' own (firewall's search, killed at 210 s
+  before, ends at 149 s, unknown: "no witness term found ... under a forall").
+- **The search's deeper runs stop at its wall** (`RunBudget.until`: the three deeper run sets get the search budget's
+  wall time; their work cap counts a law's tuples, not the requests tried against a rule's assumption).
+- **Not enough for the class:** client-server ae still ends past its wall at 60 s (a 5 s budget ends in 15 s, 60% of it
+  in someHolds's witness points: every cell of every map is a candidate witness); simple and simple regular are as
+  before. The class needs (designed, not built):
+  - **∀∃: a ghost map,** a Skolem function the step keeps (W[n·N + p] := r where Respond(n, r, p) fires), chosen like
+    exists.ts's scalar ghosts from the step's cases and the request's values; the kernel proves a plain ∀ law of the
+    machine with W. Ghost.lean's `sghost_reach` is about scalar ghosts (ρ); a ghost map needs the same lemma over the maps
+    (M): a lean-kernel/ statement, so it waits for a yes and its Lean proof.
+  - **Top-level ∃:** the search to take such a caller law as its body over the machine with the ghost exists.ts chooses,
+    chosen again with each round's found ∀ laws as support; the verdict proveRule's with the found laws, as wo's ∃ law.
+- **Gates:** below.
+
+**Ring's margin: no lever kept; the cause of its misses found (64 runs).**
+- **Where ring's time goes** (bun's CPU profile, `runs/ic3syn/ringprof2`, proven at 47 s): decideLaw 37% (decide0's
+  clauses: the order's transitivity triples up front and their `add`, a Set each; `hasIf`'s walks), the views' rows 13%
+  (`rowsOf`, interpreted evalE), stringify 5%. By phase: the engine starts at 2.5–3.5 s, the pool's data filter ends at
+  9–11 s, the enumeration at 13–16 s, top-down round 0 (44 goals) 18–22 s, rounds 1–3 10–15 s, the cone's proof 3–5 s.
+- **What decides a miss** (64 ring runs at 60 s in nine batches, base and branch, and two profiled): the data filter's states. It is
+  time-boxed (six times the small instance's search, at most a sixth of what is left), and a slow container reads 361–490
+  states instead of 500–650; it then kills fewer cubes (left 71–88, not 68), top-down's pool is 47–61 cubes instead of
+  44, and round 0 costs 23–36 s instead of 18–22: such a run ends unknown at the wall. With 44 cubes ring proves in
+  39–60 s. **Main's ring today is 14 of 21 at 60 s** (ae36917, four batches: 4/4, 4/5, 5/6, 1/6), not the 51–57 s of the
+  ten's earlier runs: the margin is gone on a busy day's containers.
+- **Tried, not kept:**
+  - the views' rows compiled to closures (`compileE`/`compileC`), the short clauses without a Set, the term walks
+    without value arrays: the filter and enumeration 2–4 s sooner, but the time-boxed filter spends it reading more
+    states; ring 7 of 10 proven against base's 8 of 9 in the same hours. Reverted.
+  - a shorter top-down goal cap (`GDP_TD_Q1` 500 and 700 ms against 1,000): ring 0 of 12 (rounds keep 9–18 goals
+    undecided, the cone never closes); distributed unchanged (4 of 4).
+  - the filter's budget at ten times the small instance's search, 15 s and a quarter of what is left at most: the filter
+    then reads 633–810 states and leaves 66 cubes (pool 43), but it doesn't stop once they are read: it spends its whole
+    9.4–9.7 s on every container, and ring went 2 of 6 against base's 5 of 6 in the same batch (distributed 2 of 2 both).
+    Reverted.
+- **The lever this points to (not built):** read the larger instance's states until they stop killing cubes (a run of
+  states that kill none), not until a time share, with a hard cap at three times today's: a slow container then reads
+  the ~500 states ring's 68 survivors need, and a fast one stops as soon as the kills saturate. It is general (the filter
+  is every engine protocol's), and the 36 runs above say which number it must reach on ring.
+
+**Counting: a design note (nothing built).**
+
+**The class.** A protocol's guard counts: a majority (`Cardinality(Q) * 2 > Cardinality(Node)`: quorum leader election,
+the toy consensuses, majorityset, and, through the configs' Quorum, wo, forall, naive, simple election, toy epr and
+consensus epr), a majority of a set that changes (mldr's `Quorums(config[i])`), two families of majorities that must
+overlap (mldr's `QuorumsOverlap`), or, beyond this suite, a threshold (BFT's n > 3t, "at least n − t", "t + 1 echoes";
+ByMC's threshold automata). Safety rests on one arithmetic fact, the pigeonhole: two sets each more than half of a set
+meet (|A| + |B| > |U| with A, B ⊆ U ⇒ A ∩ B ≠ ∅), or its threshold forms (n − t + n − t > n + t ⇒ the overlap holds a
+correct process). No EPR procedure has it; Ivy and mypyvy state it as an axiom of an abstract quorum sort, and the
+ten's ports state it per protocol as one stored quorum and a witness the request names.
+
+**What a decided theory needs.** BAPA, Boolean algebra with Presburger arithmetic (Kuncak, Nguyen, Rinard; QFBAPA is
+NP-complete, Kuncak and Rinard CADE 2007): sets, their unions, intersections and complements, and linear arithmetic
+over their cardinalities. A goal's sets (a request's Q, a state's row voters[n], a set comprehension `{k: P(k)}` over a
+map's cells) become Venn regions, one natural for each region's size (k sets: 2^k regions, and QFBAPA's sparse models
+keep that polynomial); every cardinality is the sum of its regions; the pigeonhole is then linear. Its bridge to EPR is
+one rule both ways: a region of size at least 1 has a member (a fresh constant, a Skolem witness the EPR part reads), and
+a member puts its region at 1 or more. Threshold automata (ByMC: Konnov, Veith, Widder) are the other road, for
+counters of processes in local states with parameterized thresholds; this suite's counts are of sets, and BAPA is the
+nearer fit.
+
+**Where in the oracle.** kernel/epr.ts's decideLaw already has the parts: a CDCL search over the EPR abstraction, a
+theory check by simplex (`theoryCheck`) whose refutations come back as lemmas (DPLL(T)), and the kernel's exact sums
+(`M.sum()`, sumMachine, Sums.lean) for a map's total. The counting theory would be one more theory beside the order:
+- **Recognise** a count: a sum over a 0/1 map's cells under a condition (`M.sum(c => ...)`), common.ts's injection
+  witnesses (an injective rank below c bounds a set's size), or a new DSL form `Q.size()` for a carried set (no
+  witnesses for the writer to give, the runtimes compute it).
+- **Name** each set the goal reads and its regions; add each region's size as a theory term, each cardinality as their
+  sum, the regions nonnegative.
+- **Bridge** at the abstraction: a region asserted nonempty gets a witness constant whose membership literals join the
+  CDCL clauses; a model's members lift the regions' lower bounds.
+- **Check** the model in simplex with the order's and the counts' comparisons together; a refutation's lemma names the
+  regions it reads.
+- **The search side** needs nothing new to find the laws: the engine's small instances count exactly (they run the
+  step), so the cubes "every voter of a leader is in its quorum" or "a decided value's quorum all voted for it" are
+  enumerated already. What fails is the goal they lead to: the pigeonhole inside the step, which this theory decides.
+- **The ∃.** The laws these protocols need are ∀∃ ("a decided value has a quorum all voting for it"): a quorum is not a
+  state term. Two routes: the engine's ghost (core/exists.ts, as wo's ∃ law) keeps a quorum per decided value, its
+  witness a set (a ghost map, not a natural); or a law over the counts instead ("the votes for v are a majority",
+  |{n: vote[n] = v}| * 2 > size), which is ∀ only and BAPA-decidable. The second fits the oracle above with no ghost
+  of a set and is the one to try first.
+
+**Does it need a new certificate kind?** Yes. The kernel's certificates (kernel.ts, checked by checkLaws and by the
+Lean twin) carry EPR trees and linear arithmetic over terms, and sums kept exact by the step (Sums.lean). A counting
+step's proof is a Venn decomposition plus a linear certificate (Farkas coefficients over the regions), and its
+soundness is a lemma about finite sets, not about the step: for 0/1 maps A, B ≤ U, Σ A + Σ B > Σ U ⇒ ∃k. A[k] = B[k] =
+1 (Finset.card_union_add_card_inter), and its general form, a region's sum is the sum of its cells. Two ways in:
+1. **A lemma kind:** the certificate cites a library lemma of the Lean twin (stated once, proven once, in lean-kernel/,
+   say Count.lean), with its instance (which maps, which bounds); kernel.ts checks the instance's shape and the linear
+   part as now. The trusted statement grows by one lemma and one checker case: its soundness proven in the twin first,
+   and only after asking.
+2. **No new kind, a ghost instead:** the engine adds, per protocol, the exact sums the pigeonhole reads as state
+   variables (`Votes.sum(c => c.eq(v + 1))` per value is not one sum; a sum per value is a map of sums, which the
+   kernel doesn't keep), and the linear certificate over them does the rest. That covers a fixed number of sets only
+   (2PC's yes count, one leader's votes), not "every value's votes", so it is the narrower road.
+
+**Order of work, when it is built:** (1) the `size()` form and its runtime, with the BFS check of this suite's ports
+against TLC (check.ts) unchanged; (2) the theory in decideLaw behind a flag, measured on the majority protocols' goals
+(their dumps, as wo's referee set) against Z3 with its cardinality encoding as the referee; (3) the lemma kind and its
+Lean proof, asked for first; (4) the suite again.
+
+**Gates** (the branch's engine change is core/exists.ts and core/dsl.ts above; the rest of the branch is research/):
+- **The ten twice at 60 s** (`runs/ic3syn/ten-final`, beside main's `ten-base1`): nine of ten proven in both runs at
+  main's times (sync 8.0 / 9.8 s, async 25.4 / 24.0, decentralized 17.2 / 18.0, 2PC 20.6 / 11.8, ticket 35.0 / 35.0, toy
+  11.7 / 10.0, distributed 32.5 / 37.9, wo 45.2 / 40.6, sharded 27.0 / 32.1); ring 1 of 4 there, and across three batches
+  paired with main in the same minutes 5 of 15 against main's 10 of 17: every miss on either side is a filter that read
+  fewer than ~500 states (above), which neither change touches (no ∃ law in ring, and its deeper runs end well inside
+  their wall), so I read it as the containers', not the change's; it is the weakest point of this gate.
+- **The quick bar** (`--quick --cand gen/laneA --base ae36917 --only rw,f1,f2,g332,suite,onecpu` on d5a3e5d, against the
+  shared baseline; <main>/runs/bar/runs/d5a3e5d55b61-vs-ae369178e65d-quick-2026-10-301731/REPORT.md, 649 s, estimated
+  $0.63): f1 34 and f2 24 as the base (no task differs); rw 74/14/3 as the base; g332 the same search on 332 of 332
+  (300.2 s against 286.6 s); onecpu no failure; the suite 234 of 235, **lost 1**: `check` (tsc and oxlint over the
+  repository), from an unused binding in research/protocols/ic3syn/models.ts, fixed in 9f360d4 (oxlint clean on the
+  branch's files); the suite group again on 9f360d4 (<main>/runs/bar/runs/9f360d480880-vs-ae369178e65d-quick-2026-10-301744): 235 of 235,
+  lost 0. Gained 0, wrong 0; core/ and kernel/ +1,256 bytes.
+- **Typecheck:** clean for every file the branch touches (`tsc -p .` on Modal; the errors left are vendor/ imports and
+  research files the branch doesn't touch, as on main's tree there).
+
+**Spend:** $2.25 billed through the 17:00 UTC hour for this round's apps: $1.18 for the 34 of the checks, the suite's runs,
+  the probes and the ring batches, and $1.07 for the two bars' 20 (both sides); the last hour may still be filling in.
+  Nothing of mine is left running. Two jobs were capped and not rerun (mldr at 300 s, twice, 810 s each: no verdict, as
+  at 60 s; launched before the 60 s cap was seen).
+
+**Verified, not**
+- **Verified (Modal, as counted above):** the sources and their commits; 25 of 26 ports equal to TLC in states on their
+  instances (consensus_wo_decide at its config's three quorums), their broken variants reaching a bad state where the
+  BFS finished; the suite table (two runs each, 60 s and 300 s); the failure phases from each run's trace; the profiles;
+  the ring measurements; the ∃ fix's effect on firewall.
+- **Not verified:** mldr's port (README.md: its counts differ from TLC's and its broken variant finds no bad state);
+  pyv-sharded-kv-no-lost-keys, client-server ae and db ae, firewall at 300 s (not run: their 60 s jobs were capped);
+  that the 1,996-cube join of twophase or the ∀∃ ports' witness search behave the same on other instances; IC3Syn's own
+  numbers (no artifact); the counting and ghost-map designs (nothing built); that the branch's ring misses are noise
+  (5 of 15 against 10 of 17 is not significant, p ≈ 0.16, nor shown to be nothing).
+
 ## gen/lean10, the `found` fix: all ten verdicts checked by Lean (gen/lean10, merged with main f0526b6)
 
 **Built (core/infer.ts, +0.6 KB, untrusted):** the engine's ∃ law (its ghost's, `ghost.some`) is reported in `found`

@@ -1,0 +1,12 @@
+[
+ {
+  "name": "client_server_ae-prof5",
+  "cmd": "mkdir -p /tmp/prof; GDP_INFER_TRACE=2 timeout -s KILL 200 bun --cpu-prof --cpu-prof-dir=/tmp/prof research/protocols/ic3syn/run.ts --ms 5000 --only client_server_ae --skip broken 2>/tmp/err.log | cut -c1-300; s=$?; grep -E 'join (end|failed|engine|enumerated)' /tmp/err.log | cut -c1-200 | head; python3 research/protocols/engine/profwin.py /tmp/prof/*.cpuprofile 0 400 45; exit $s",
+  "timeout": 260
+ },
+ {
+  "name": "sharded_kv_no_lost_keys-prof5",
+  "cmd": "mkdir -p /tmp/prof; GDP_INFER_TRACE=2 timeout -s KILL 200 bun --cpu-prof --cpu-prof-dir=/tmp/prof research/protocols/ic3syn/run.ts --ms 5000 --only sharded_kv_no_lost_keys --skip broken 2>/tmp/err.log | cut -c1-300; s=$?; grep -E 'join (end|failed|engine|enumerated)' /tmp/err.log | cut -c1-200 | head; python3 research/protocols/engine/profwin.py /tmp/prof/*.cpuprofile 0 400 45; exit $s",
+  "timeout": 260
+ }
+]

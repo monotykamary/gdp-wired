@@ -131,14 +131,24 @@ function solved(atoms: Atom[], g: Group): Cand[] {
 // Whether ∃ vars. P holds where env and st give every other value, with a witness: exact when the bound values are one
 // natural or one integer read linearly (P's truth changes only next to the values its atoms solve for, so those, their
 // neighbours, 0 and one past them are every case); otherwise found among those points, or undefined.
+// (what P is, apart from the state: its groups, atoms and shape, read once a law; a run reads a law with "there exists"
+// at every tuple of its keys at every state, and P's atoms are quadratic in its size to read)
+const shapes = new WeakMap<C, Map<string, {groups: Group[], atoms: Atom[], linearOnly: boolean, reads: boolean}>>()
+const shapeOf = (body: C, vars: string[]) => {
+  let byVars = shapes.get(body)
+  if (!byVars) shapes.set(body, (byVars = new Map()))
+  const id = vars.join(','), had = byVars.get(id)
+  if (had) return had
+  const bound = new Set(vars), out = {groups: groupsOf(vars), atoms: atomsOf(body, bound), linearOnly: linearIn(body, bound), reads: JSON.stringify(body).includes('"op":"get"')}
+  byVars.set(id, out)
+  return out
+}
 export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machine): {holds: boolean, witness?: Env} | undefined {
-  const groups = groupsOf(vars), bound = new Set(vars)
+  const {groups, atoms, linearOnly, reads} = shapeOf(body, vars)
   const value = (e: E): number | undefined => { try { return evalE(e, env, st, m) } catch { return undefined } }
-  const atoms = atomsOf(body, bound)
-  const linearOnly = linearIn(body, bound)
   // A bound natural read as a map's key: the cells the maps hold, and one past them, are every case a read gives.
   const cells = new Set<number>()
-  if (JSON.stringify(body).includes('"op":"get"')) for (const c of Object.values(st.maps)) for (const key of c.keys()) cells.add(key)
+  if (reads) for (const c of Object.values(st.maps)) for (const key of c.keys()) cells.add(key)
   const points = (g: Group): number[] => {
     const ps = new Set<number>([0, 1, ...cells, ...[...cells].map(c => c + 1)])
     for (const a of atoms) {

@@ -1,0 +1,7 @@
+[
+ {
+  "name": "client_server_ae-s60-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 210 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'client_server_ae' --skip none 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; exit $s",
+  "timeout": 270
+ }
+]

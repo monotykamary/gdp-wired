@@ -1,0 +1,7 @@
+[
+ {
+  "name": "ring-prof-r2",
+  "cmd": "mkdir -p /tmp/prof; GDP_INFER_TRACE=2 timeout -s KILL 170 bun --cpu-prof --cpu-prof-dir=/tmp/prof research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/err.log | cut -c1-300; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter|frames)' /tmp/err.log | cut -c1-200 | tail -c 8000; python3 research/protocols/ic3syn/profcallers.py /tmp/prof/*.cpuprofile 4 stringify cloneObject evalE evalC Set@ values@ map@ hasIf substE; python3 research/protocols/engine/profwin.py /tmp/prof/*.cpuprofile 0 400 120 | grep -E 'infer.ts|epr.ts|prove.ts' | head -70",
+  "timeout": 260
+ }
+]

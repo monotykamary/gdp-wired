@@ -1,0 +1,52 @@
+[
+ {
+  "name": "lock_server_sync-cal",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only lock_server_sync --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|pool|td|engine|set|cone|houdini|meters)' /tmp/err.log | cut -c1-260 | tail -c 9000; tail -c 1500 /tmp/err.log | grep -iE 'error|throw' | tail -3; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "lock_server_async-cal",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only lock_server_async --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|pool|td|engine|set|cone|houdini|meters)' /tmp/err.log | cut -c1-260 | tail -c 9000; tail -c 1500 /tmp/err.log | grep -iE 'error|throw' | tail -3; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "decentralized_lock-cal",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|pool|td|engine|set|cone|houdini|meters)' /tmp/err.log | cut -c1-260 | tail -c 9000; tail -c 1500 /tmp/err.log | grep -iE 'error|throw' | tail -3; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "two_phase_commit-cal",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|pool|td|engine|set|cone|houdini|meters)' /tmp/err.log | cut -c1-260 | tail -c 9000; tail -c 1500 /tmp/err.log | grep -iE 'error|throw' | tail -3; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "ticket_lock-cal",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only ticket_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|pool|td|engine|set|cone|houdini|meters)' /tmp/err.log | cut -c1-260 | tail -c 9000; tail -c 1500 /tmp/err.log | grep -iE 'error|throw' | tail -3; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "toy_consensus_forall-cal",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|pool|td|engine|set|cone|houdini|meters)' /tmp/err.log | cut -c1-260 | tail -c 9000; tail -c 1500 /tmp/err.log | grep -iE 'error|throw' | tail -3; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "distributed_lock-cal",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|pool|td|engine|set|cone|houdini|meters)' /tmp/err.log | cut -c1-260 | tail -c 9000; tail -c 1500 /tmp/err.log | grep -iE 'error|throw' | tail -3; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "consensus_wo_decide-cal",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|pool|td|engine|set|cone|houdini|meters)' /tmp/err.log | cut -c1-260 | tail -c 9000; tail -c 1500 /tmp/err.log | grep -iE 'error|throw' | tail -3; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "ring_leader_election-cal",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|pool|td|engine|set|cone|houdini|meters)' /tmp/err.log | cut -c1-260 | tail -c 9000; tail -c 1500 /tmp/err.log | grep -iE 'error|throw' | tail -3; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "sharded_key_value_store-cal",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|pool|td|engine|set|cone|houdini|meters)' /tmp/err.log | cut -c1-260 | tail -c 9000; tail -c 1500 /tmp/err.log | grep -iE 'error|throw' | tail -3; exit $s",
+  "timeout": 210
+ }
+]
