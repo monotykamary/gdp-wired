@@ -125,6 +125,14 @@ describe('counts', () => {
     refusedByGuard('an instance\'s bound unlike its counts\' (by structure)', g, bad,
       {name: g.name, hyps: [...g.hyps, ...countHyps(patched, bad.slice(0, 1))!, ...countHyps(g.counts, bad.slice(1))!]})
   }
+  // A witness that is no name: the number 5 passes the test of what the hypotheses read (they read the variable "5"),
+  // and the kernel's linear forms read it as that variable. With it the goal is refuted, yet it has a model.
+  {
+    const g5: CountedGoal = {name: 'a witness 5', hyps: [same(x('N'), n(1)), same(x('5'), n(7)), atMost(n(1), x('cA'))], counts: [{v: 'cA', key: 'n', below: x('N'), body: n(1)}]}
+    const i5 = [{wit: 5 as unknown as string, below: x('N'), terms: [[1, 'cA']], unit: 0}] as CountInst[]
+    refusedByGuard('a witness that is not a name (the number 5, the hypotheses reading the variable "5")', g5, i5)
+    test('that goal has a model', () => { expect(hasModel(g5, [{N: 1, 5: 7}], [{}])).toBe(true) })
+  }
   test('an instance naming no count is refused', () => {
     expect(checkCounted(g, {insts: [...insts, {wit: 'w3', below: x('N'), terms: [[1, 'cQ']], unit: 0}], tree})).toBe(false)
   })

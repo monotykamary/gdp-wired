@@ -1784,14 +1784,15 @@ waits for gen/laneA.
 | `findCount`: the first count with v | `cs.find(c => c.v === v)` | first match |
 | `resolve`: per term, its count and `beqE c.below B`, else none | loop, `!c ‖ !sameE` → undefined | same order, same refusals |
 | `sumE`: `[] ↦ .const 0`, `e :: es ↦ .add e (sumE es)` | `reduceRight` from `{const 0}` | same nesting |
-| `posP z = z.toNat`, `negP z = (−z).toNat` | `Math.max(z, 0)`, `Math.max(−z, 0)` | equal on integers; TS refuses others (`integral`) |
+| `posP z = z.toNat`, `negP z = (−z).toNat` | `Math.max(z, 0)`, `Math.max(−z, 0)` | equal on integers; TS refuses others (`typed`) |
+| (a witness is a variable, a coefficient an Int, by type) | `typed`: each witness a string, each coefficient a safe integer | the certificate is input from outside: a number 5 as witness would pass `reads` (which holds names) and be read as the variable "5" by the linear forms; refused (a test shows the unsound acceptance it stops) |
 | `side part rd one u rs = .add (sumE (rs.map (.mul (part c) (rd count)))) (.mul (part u) one)` | `side` | same term |
 | `atCount c = .var c.v`; `atWit w c = substE [(c.key, .var w)] c.body` | `atCount`; `substE(body, {vars: {[key]: var w}})` | Lean's single substitution; TS's on var, get (key), if; counted bodies have no quantifier in Lean |
 | `countHyp = .or (.le P N) (.and (.lt (.var wit) below) (.lt Nw Pw))` | `{or: [<=, {and: [<, <]}]}` | binary and/or print as `.or`/`.and` (lean-terms.ts) |
 | `countHyps`: each in order, none if one is none | loop | same |
 | `witFresh`: no hyp reads w; no count has v = w or reads w in below or body; no instance's below reads w | `reads(t).vars.has(w)` in the same three conjuncts | TS's `reads` leaves out keys an `all` binds; an `all` is opaque to the tree check and has no Lean form |
 | `countedOk = cDistinct wits && all witFresh` | `new Set(ws).size === ws.length && every witFresh` | same |
-| `checkCounted = countedOk && (countHyps → checkGoal ⟨tab, hyps ++ hs⟩ t)` | `countedOk && integral && check({hyps: [...hyps, ...hs]}, tree)` | the tree check is the existing twin (Kernel.lean's checkGoal, kernel.ts's check) |
+| `checkCounted = countedOk && (countHyps → checkGoal ⟨tab, hyps ++ hs⟩ t)` | `countedOk && typed && check({hyps: [...hyps, ...hs]}, tree)` | the tree check is the existing twin (Kernel.lean's checkGoal, kernel.ts's check) |
 
 | Lean (GhostMap.lean) | kernel.ts | How they correspond |
 | --- | --- | --- |

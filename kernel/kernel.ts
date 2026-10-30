@@ -1644,10 +1644,12 @@ export function countedOk(hyps: C[], cs: Count[], is: CountInst[]): boolean {
   const ws = is.map(i => i.wit)
   return new Set(ws).size === ws.length && is.every(i => witFresh(hyps, cs, is, i.wit))
 }
-// checkCounted, and TypeScript's own condition: every coefficient a safe integer (Lean's are Int).
-const integral = (is: CountInst[]): boolean => is.every(i => Number.isSafeInteger(i.unit) && i.terms.every(([z]) => Number.isSafeInteger(z)))
+// checkCounted, and TypeScript's own condition on the certificate, an input from outside: every witness a name (Lean's
+// is a variable; a number 5 would pass `reads` yet be read as the variable "5") and every coefficient a safe integer
+// (Lean's are Int).
+const typed = (is: CountInst[]): boolean => is.every(i => typeof i.wit === 'string' && Number.isSafeInteger(i.unit) && i.terms.every(([z]) => Number.isSafeInteger(z)))
 export function checkCounted(g: CountedGoal, cert: {insts: CountInst[], tree: Tree}): boolean {
-  if (!(countedOk(g.hyps, g.counts, cert.insts) && integral(cert.insts))) return false
+  if (!(countedOk(g.hyps, g.counts, cert.insts) && typed(cert.insts))) return false
   const goal = countedGoal(g, cert.insts)
   return goal !== undefined && check(goal, cert.tree)
 }
