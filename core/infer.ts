@@ -1987,7 +1987,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (base) opts.progress?.('join small instance', {states: small.length, bfs, params: pvs.size, symmetric: sym.slice(0, rens.length > 1 ? sym.length : 0).join(), ms: Math.round(performance.now() - t0), took: Math.round(performance.now() - t3)})
         return {small, others, bfs, cut, params: pvs.size, ms: Math.round(performance.now() - t3)}
       }
-      { const r0 = instance(() => 0, undefined, rand); samples.unshift(...r0.small); smallAll = [...r0.small, ...r0.others] }
+      let baseMs = 0
+      { const r0 = instance(() => 0, undefined, rand); baseMs = r0.ms; samples.unshift(...r0.small); smallAll = [...r0.small, ...r0.others] }
       const out: Form[] = []
       for (const counts of width.reduce<number[][]>((acc, w) => acc.flatMap(c => Array.from({length: w + 1}, (_, k) => [...c, k])), [[]])) {
         const keys = ss.flatMap((s, i) => Array.from({length: counts[i]!}, () => s)), vars = keys.map((_, i) => `key${i + 1}$enum`)
@@ -2090,7 +2091,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // of each sort alone, within a budget of its own (3 s, at most a tenth of what is left: half an instance's share its
       // BFS, uncut, the rest reading its states); a cube some row of such a state is in is no law, and goes
       function dataFilter(pool: Form[]): Form[] {
-        const t5 = performance.now(), until5 = t5 + Math.min(Number(env.GDP_POOL_MS ?? 3000), (wallUntil - t5) / 10)
+        // (its budget scales with the small instance's own search: six times it, 3 s at least, 10 s and a sixth of what is
+        // left at most; ring's one more node needs about 8 s)
+        const t5 = performance.now(), until5 = t5 + Math.min(Number(env.GDP_POOL_MS ?? 10_000), (wallUntil - t5) / 6, Math.max(3000, 6 * baseMs))
         const litAt = (l: Lit, r: Env) => ('at' in l ? valueOf(atoms[l.at.atom]!, r) === l.at.value : l.lin.coef.reduce((s2, [i, c]) => s2 + c * valueOf(atoms[i]!, r), 0) <= l.lin.d)
         const plans: ((q: string) => number)[] = [() => 1, ...(ss.length > 1 ? ss.map(s2 => (q: string) => (q === s2 ? 1 : 0)) : [])]
         let live = pool, states = 0
@@ -2391,7 +2394,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // the fixpoint's cubes false there), and prove() of the cone. A fixpoint that doesn't prove leaves the rounds below.
       if (env.GDP_TD === '1' && !stop()) withTrees(() => withStrict(() => {
         const T0 = performance.now(), ph = (o: Record<string, unknown>) => opts.progress?.('join td', {...o, td: Math.round(performance.now() - T0), wall: Math.round(performance.now() - t0)})
-        const by = minPool.by, q1 = Number(env.GDP_TD_Q1 ?? 250), q2 = Number(env.GDP_TD_Q2 ?? joinQueryMs / 8)
+        const by = minPool.by, q1 = Number(env.GDP_TD_Q1 ?? joinQueryMs / 8), q2 = Number(env.GDP_TD_Q2 ?? q1)
         ph({phase: 'start', made: made.length, before: Math.round(tEngine - t0)})
         const fresh = (f: Form) => !names.has(textOf(f)) && !dead.has(textOf(f)) && !implied(f) && !atStart(f)
         let hs = made.filter(fresh)
@@ -2410,7 +2413,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           const todo = hs.filter(f => asked.has(f) || undecided.has(f))
           for (const f of todo) ask(f, q1)
           let second = 0
-          if (!failed.size && undecided.size) for (const f of hs.filter(g => undecided.has(g))) { second++; ask(f, q2) }
+          if (q2 > q1 && !failed.size && undecided.size) for (const f of hs.filter(g => undecided.has(g))) { second++; ask(f, q2) }
           ph({phase: 'round', round: r, cubes: hs.length, asked: todo.length, second, failed: failed.size, undecided: undecided.size, ms: Math.round(performance.now() - tr)})
           if (!failed.size) break
           for (const f of failed) dead.add(textOf(f))
@@ -2457,9 +2460,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (callerOk) for (let k = 0; k < 24 && performance.now() < wallUntil && !stop(); k++) {
           const t2 = performance.now(), setLaws = [...laws, ...cut.map(lawFor), ...(ghost ? [ghost.some] : [])]
           let v = within(t0 + ms, () => prove(setLaws, true))
+          const fastMs = Math.round(performance.now() - t2), fast = v.proven && v.checked ? 1 : 0, fastAt = String(v.goal ?? '').slice(0, 100)
           if (!(v.proven && v.checked)) v = within(t0 + ms, () => prove(setLaws))
           const at = String(v.goal ?? ''), g = v.proven && v.checked ? undefined : cut.find(c => at.startsWith(`${textOf(c)} @`))
-          ph({phase: 'prove', cubes: cut.length, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2)})
+          ph({phase: 'prove', cubes: cut.length, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), fastMs, fast, fastAt, at: at.slice(0, 100)})
           if (v.proven && v.checked) { why = 'inductive'; cone = cut; enumProof = v; cubes = cut; break }
           if (!g) break
           cut = cut.filter(c => c !== g)
