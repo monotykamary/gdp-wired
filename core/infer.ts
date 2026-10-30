@@ -2102,9 +2102,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // of each sort alone, within a budget of its own (3 s, at most a tenth of what is left: half an instance's share its
       // BFS, uncut, the rest reading its states); a cube some row of such a state is in is no law, and goes
       function dataFilter(pool: Form[]): Form[] {
-        // (its budget scales with the small instance's own search: six times it, 3 s at least, 10 s and a sixth of what is
-        // left at most; ring's one more node needs about 8 s)
-        const t5 = performance.now(), until5 = t5 + Math.min(Number(env.GDP_POOL_MS ?? 10_000), (wallUntil - t5) / 6, Math.max(3000, 6 * baseMs))
+        // (its budget scales with the small instance's own search: ten times it, 3 s at least, 15 s and a quarter of what is
+        // left at most; ring's one more node needs about 8 s, and a slow container that reads fewer of its states kills
+        // fewer cubes: ring's pool past 44 costs its first round 24–36 s, not 18–20, and the wall (DESIGN.md, gen/laneA))
+        const t5 = performance.now(), until5 = t5 + Math.min(Number(env.GDP_POOL_MS ?? 15_000), (wallUntil - t5) / 4, Math.max(3000, 10 * baseMs))
         const litAt = (l: Lit, r: Env) => ('at' in l ? valueOf(atoms[l.at.atom]!, r) === l.at.value : l.lin.coef.reduce((s2, [i, c]) => s2 + c * valueOf(atoms[i]!, r), 0) <= l.lin.d)
         const plans: ((q: string) => number)[] = [() => 1, ...(ss.length > 1 ? ss.map(s2 => (q: string) => (q === s2 ? 1 : 0)) : [])]
         let live = pool, states = 0
