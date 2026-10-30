@@ -2164,7 +2164,7 @@ export function sourceOf(mod: {path: string, root: string}, file: string): strin
 // rewritten, by its name in the positions; a call with no end (a reader that doesn't say) is a refusal of the check.
 export function stubbed(read: StepRead, text: (file: string) => string | undefined, stub: (a: Answer, i: number, call: string) => string): Map<string, string> {
   const edits = new Map<string, [number, number, string][]>(), starts = new Map<string, number[]>()
-  (read.answers ?? []).forEach((a, i) => {
+  for (const [i, a] of (read.answers ?? []).entries()) {
     for (const s of a.at ?? []) {
       // (its place: offsets where the reader gives them, a JVM reader's; else from its position to its end)
       const m = /^(.*):(\d+):(\d+)$/.exec(s.p), e = s.end && /^(\d+):(\d+)$/.exec(s.end)
@@ -2172,7 +2172,7 @@ export function stubbed(read: StepRead, text: (file: string) => string | undefin
       const [from, to] = s.span ?? [lineCol(m[1]!, Number(m[2]), Number(m[3])), lineCol(m[1]!, Number(e![1]), Number(e![2]))]
       ;(edits.get(m[1]!) ?? edits.set(m[1]!, []).get(m[1]!)!).push([from, to, stub(a, i, (text(m[1]!) ?? '').slice(from, to))])
     }
-  })
+  }
   function lineCol(f: string, l: number, c: number): number {
     let ls = starts.get(f)
     if (!ls) { const t = text(f) ?? ''; ls = [0]; for (let k = 0; k < t.length; k++) if (t[k] === '\n') ls.push(k + 1); starts.set(f, ls) }
