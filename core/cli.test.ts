@@ -2,10 +2,10 @@
 // code's own form proven, one broken with the run that breaks it, and the exit code 1. Each skipped where its toolchain
 // isn't installed (the suite's cli-<lang> jobs install them).
 import {expect, test} from 'bun:test'
-import {execFileSync} from 'node:child_process'
+import {execFileSync, spawnSync} from 'node:child_process'
 import {mkdirSync, mkdtempSync, readFileSync as readAdv, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
-import {check} from './cli.ts'
+import {check, colors} from './cli.ts'
 import {lawsIn, parse} from './laws.ts'
 
 const has = (cmd: string, ...a: string[]) => { try { execFileSync(cmd, a, {stdio: 'ignore'}); return true } catch { return false } }
@@ -290,3 +290,39 @@ class SessionLimit:
     expect(exit).toBe(2)
   }
 }, 180_000)
+
+// Color: only on a terminal; piped, with --json, NO_COLOR (any value) or TERM=dumb plain; FORCE_COLOR on. Uncolored, the
+// text is what it was, byte for byte (the colored text less its escapes).
+test('color on a terminal only, NO_COLOR over a terminal, FORCE_COLOR on, and the same text without it', () => {
+  expect(colors({}, true)).toBe(true)
+  expect(colors({}, false)).toBe(false)
+  expect(colors({NO_COLOR: ''}, true)).toBe(false)
+  expect(colors({NO_COLOR: '1'}, true)).toBe(false)
+  expect(colors({TERM: 'dumb'}, true)).toBe(false)
+  expect(colors({FORCE_COLOR: '1'}, false)).toBe(true)
+  expect(colors({FORCE_COLOR: '0'}, true)).toBe(true)
+  expect(colors({FORCE_COLOR: '0', NO_COLOR: '1'}, true)).toBe(false)
+  expect(colors({FORCE_COLOR: '1'}, true, true)).toBe(false)
+  const dir = files({'wallet.ts': `export class Wallet {
+  balance = 0
+  // gdp: law a debit never overdraws: balance >= 0
+  debit(x: number): boolean { if (x <= 0) throw new Error('positive'); if (x > this.balance) return false; this.balance -= x; return true }
+  // gdp: law a credit adds one more: balance == old(balance) + x + 1
+  credit(x: number): void { if (x <= 0) throw new Error('positive'); this.balance += x }
+}
+`})
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !['NO_COLOR', 'FORCE_COLOR'].includes(k)))
+  const run = (more: Record<string, string>, ...flags: string[]) => spawnSync('bun', [new URL('./cli.ts', import.meta.url).pathname, 'check', `${dir}/wallet.ts`, '--no-propose', ...flags], {env: {...env, ...more}, encoding: 'utf8'})
+  const piped = run({}), forced = run({FORCE_COLOR: '1'}), json = run({FORCE_COLOR: '1'}, '--json')
+  expect(piped.status).toBe(1)
+  expect(piped.stdout).not.toContain('\x1b[')
+  expect(piped.stdout).toContain('    proven   a debit never overdraws  (wallet.ts:3)\n')
+  expect(piped.stdout).toContain('    broken   a credit adds one more  (wallet.ts:5)\n')
+  expect(piped.stdout).toContain('1 of 2 stated laws proven, 1 broken, 0 unknown, 0 not read\n')
+  expect(forced.stdout).toContain('\x1b[32mproven\x1b[0m   a debit never overdraws  \x1b[2m(wallet.ts:3)\x1b[0m')
+  expect(forced.stdout).toContain('\x1b[31mbroken\x1b[0m')
+  expect(forced.stdout).toContain('\x1b[32m1\x1b[0m of 2 stated laws proven, \x1b[31m1\x1b[0m broken')
+  expect(forced.stdout.split('\x1b').map((p, i) => (i ? p.replace(/^\[\d+m/, '') : p)).join('')).toBe(piped.stdout)
+  expect(json.stdout).not.toContain('\x1b[')
+}, 180_000)
+

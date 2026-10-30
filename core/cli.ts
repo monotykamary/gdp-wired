@@ -16,9 +16,17 @@ import {type Built, LawError, type LawText, buildLaw, lawsIn} from './laws.ts'
 
 type FS = {existsSync: (p: string) => boolean, readFileSync: (p: string, e: string) => string, readdirSync: (p: string) => string[], statSync: (p: string) => {isDirectory: () => boolean}}
 type Path = {resolve: (...p: string[]) => string, dirname: (p: string) => string, join: (...p: string[]) => string, basename: (p: string) => string, extname: (p: string) => string, relative: (a: string, b: string) => string}
-const proc = (globalThis as unknown as {process: {argv: string[], exitCode?: number, cwd: () => string, stdout: {write: (s: string) => void}, getBuiltinModule: (id: string) => unknown}}).process
+const proc = (globalThis as unknown as {process: {argv: string[], exitCode?: number, cwd: () => string, env: Record<string, string | undefined>, stdout: {write: (s: string) => void, isTTY?: boolean}, getBuiltinModule: (id: string) => unknown}}).process
 const fs = proc.getBuiltinModule('node:fs') as FS, path = proc.getBuiltinModule('node:path') as Path
 const out = (s = '') => proc.stdout.write(`${s}\n`)
+// Color, plain ANSI: only on a terminal, never with --json, NO_COLOR (any value) or TERM=dumb; FORCE_COLOR turns it on.
+// Uncolored, the text is the same byte for byte.
+export const colors = (env: Record<string, string | undefined>, tty: boolean, json = false): boolean =>
+  !json && (env.FORCE_COLOR !== undefined && !['0', 'false'].includes(env.FORCE_COLOR) ? true : env.NO_COLOR === undefined && env.TERM !== 'dumb' && tty)
+let tint = false
+const SGR = {green: 32, red: 31, yellow: 33, dim: 2}
+const paint = (c: keyof typeof SGR, s: string | number) => (tint && s !== '' ? `\x1b[${SGR[c]}m${s}\x1b[0m` : String(s))
+const VERDICT = {proven: 'green', broken: 'red', unknown: 'yellow', 'not read': 'yellow'} as const
 
 // --- the options ---------------------------------------------------------------------------------------------------------
 export type Opts = {entry?: string, methods?: string[], failures?: 'refuse' | 'kept', onError?: 'refuse' | 'discard', json?: boolean, ms: number, propose: boolean, root?: string,
@@ -387,19 +395,19 @@ const ROLE: Record<Name['role'], string> = {state: 'state', param: 'made with', 
 function printRule(r: RuleOut, o: Opts) {
   out(`${r.file}${r.entry ? `: ${r.entry}` : ''} (${r.lang})`)
   if (!r.ok) {
-    for (const f of r.refusals) out(`  refused at ${f.where}: ${f.what}`)
+    for (const f of r.refusals) out(`  ${paint('yellow', `refused at ${f.where}:`)} ${f.what}`)
   } else {
-    if (r.checked) out(`  ${r.checked}`)
+    if (r.checked) out(`  ${paint('dim', r.checked)}`)
     const inferred = r.notes.filter(n => /inferred|tagged|left out|answered|injected|the entry/.test(n))
     for (const n of inferred.slice(0, 12)) out(`  ${n}`)
-    out('  names (the code\'s, then the rule\'s):')
+    out(`  ${paint('dim', 'names (the code\'s, then the rule\'s):')}`)
     const w = Math.min(36, Math.max(...r.names.map(n => label(n).length), 8))
-    for (const n of r.names) out(`    ${label(n).padEnd(w)}  ${ROLE[n.role].padEnd(9)} ${n.rule}${n.none ? `${n.rule ? ', ' : ''}None: ${n.none}` : ''}${n.map ? ` (cells: ${n.map.fields.join(', ')}${n.map.tpl ? `; key ${JSON.stringify(n.map.tpl)}` : ''})` : ''}${n.role === 'const' ? String(n.value) : ''}`)
+    for (const n of r.names) out(`    ${paint('dim', `${label(n).padEnd(w)}  ${ROLE[n.role].padEnd(9)} ${n.rule}${n.none ? `${n.rule ? ', ' : ''}None: ${n.none}` : ''}${n.map ? ` (cells: ${n.map.fields.join(', ')}${n.map.tpl ? `; key ${JSON.stringify(n.map.tpl)}` : ''})` : ''}${n.role === 'const' ? String(n.value) : ''}`)}`)
   }
   const law = (l: LawOut, proposed: boolean) => {
-    out(`    ${l.verdict.padEnd(9)}${l.name}${proposed ? '' : `  (${l.where})`}`)
+    out(`    ${paint(VERDICT[l.verdict], l.verdict)}${' '.repeat(Math.max(0, 9 - l.verdict.length))}${l.name}${proposed ? '' : `  ${paint('dim', `(${l.where})`)}`}`)
     if (!proposed && l.verdict !== 'proven') out(`             ${l.expr}`)
-    if (l.run) for (const [i, s] of l.run.entries()) out(`             ${i === 0 ? 'run: ' : '     '}${s}`)
+    if (l.run) for (const [i, s] of l.run.entries()) out(`             ${i === 0 ? 'run: ' : '     '}${paint('red', s)}`)
     for (const a of l.assumes ?? []) out(`             ${a}`)
     if (l.found) out(`             proven with what the search found: ${l.found.join('; ')}`)
     if (l.why && l.verdict !== 'proven') out(`             ${l.why}`)
@@ -433,10 +441,11 @@ export async function check(targets: string[], given: Partial<Opts> = {}, each?:
 export async function main(argv: string[]): Promise<number> {
   const {cmd, targets, o} = args(argv)
   if (cmd !== 'check' || !targets.length) { out(USAGE); return cmd === 'help' || cmd === '--help' || cmd === '-h' || !cmd ? 0 : 2 }
+  tint = colors(proc.env, !!proc.stdout.isTTY, !!o.json)
   const {rules: all, exit: code} = await check(targets, o, o.json ? undefined : r => printRule(r, o))
   const stated = all.flatMap(r => r.laws)
   if (o.json) out(JSON.stringify({rules: all.map(({source: _s, ...r}) => r), exit: code}, null, 1))
-  else if (stated.length) { const n = (v: LawOut['verdict']) => stated.filter(l => l.verdict === v).length; out(`${n('proven')} of ${stated.length} stated laws proven, ${n('broken')} broken, ${n('unknown')} unknown, ${n('not read')} not read`) }
+  else if (stated.length) { const n = (v: LawOut['verdict']) => stated.filter(l => l.verdict === v).length; out(`${paint('green', n('proven'))} of ${stated.length} stated laws proven, ${paint('red', n('broken'))} broken, ${paint('yellow', n('unknown'))} unknown, ${paint('yellow', n('not read'))} not read`) }
   return code
 }
 
