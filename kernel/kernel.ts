@@ -100,7 +100,13 @@ export function linear(e: E, path: Path): Lin | undefined {
   memo.set(e, out)
   return out
 }
+// A form with a coefficient past a safe integer is no form: its float may be rounded, and every part is read through
+// here, so no rounding inside a term goes unseen (core/check.ts refuses such rows too).
 function linearOf(e: E, path: Path): Lin | undefined {
+  const out = linearOp(e, path)
+  return out && Object.values(out).every(c => Number.isSafeInteger(c)) ? out : undefined
+}
+function linearOp(e: E, path: Path): Lin | undefined {
   switch (e.op) {
     case 'var': return e.name === '1' || /[*[\],:⟦]/.test(e.name) ? undefined : v(e.name) // those characters build cells, monomials and term columns
     case 'const': return k(e.value)

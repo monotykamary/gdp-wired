@@ -8,7 +8,8 @@
 // is refused; over the integers (the default: Cert.lean's check, exactly) a cut is allowed and no row is strict (a
 // strict row over the integers is lin + 1 <= 0), so the naturals and the integers are the rationals plus that rule.
 // Rows over the rationals come with integer coefficients (a leaf's linear forms over a positive denominator,
-// kernel.ts), and every coefficient made must stay a safe integer, so none is rounded.
+// kernel.ts), and in both domains every coefficient read or made must stay a safe integer, so none is rounded (a
+// float past 2^53 would let a row of a true constraint read as a false one).
 // A witness satisfies its constraints when every one of them evaluates to at most 0 at it.
 import type {Constraint, Lin, Step} from './solver.ts'
 
@@ -21,19 +22,19 @@ export function checkRefutation(constraints: Constraint[], steps: Step[], integr
     if (s.kind === 'input') {
       if (!(Number.isInteger(s.index) && s.index >= 0 && s.index < constraints.length)) return false
       const c = constraints[s.index]!
-      if (!integral && !exact(c.lin)) return false
+      if (!exact(c.lin)) return false
       rows.push(c.lin); strict.push(!integral && c.strict === true)
     } else if (s.kind === 'combine') {
-      if (!(s.a < i && s.b < i && Number.isInteger(s.ma) && Number.isInteger(s.mb) && s.ma > 0 && s.mb > 0)) return false
+      if (!(s.a < i && s.b < i && Number.isSafeInteger(s.ma) && Number.isSafeInteger(s.mb) && s.ma > 0 && s.mb > 0)) return false
       if (!integral && !(Number.isInteger(s.a) && Number.isInteger(s.b) && s.a >= 0 && s.b >= 0)) return false
       const out: Lin = {}
       for (const [lin, m] of [[rows[s.a]!, s.ma], [rows[s.b]!, s.mb]] as const) for (const [key, c] of Object.entries(lin)) out[key] = (out[key] ?? 0) + m * c
-      if (!integral && !exact(out)) return false
+      if (!exact(out)) return false
       rows.push(out); strict.push(strict[s.a]! || strict[s.b]!)
     } else {
       if (!integral) return false
       const row = rows[s.of]
-      if (!(row !== undefined && s.of < i && Number.isInteger(s.g) && s.g > 0 && vars(row).every(key => row[key]! % s.g === 0))) return false
+      if (!(row !== undefined && s.of < i && Number.isSafeInteger(s.g) && s.g > 0 && vars(row).every(key => row[key]! % s.g === 0))) return false
       rows.push({...Object.fromEntries(vars(row).map(key => [key, row[key]! / s.g])), 1: Math.ceil((row['1'] ?? 0) / s.g)}); strict.push(false)
     }
   }

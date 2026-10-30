@@ -5,6 +5,7 @@
 // kernel that dropped the precondition from its goals could no longer prove it).
 import {expect, test} from 'bun:test'
 import type {C, E, Law, Machine} from '../core/machine.ts'
+import {checkRefutation} from '../core/check.ts'
 import {type Fold, type Goal, type Loop, check, checkLaws, foldObligations, historyMachine, loopObligations, obligations, progressObligations, scope} from './kernel.ts'
 import {grow, proveLaws} from './prove.ts'
 
@@ -130,4 +131,19 @@ test('a law whose step goal needs the precondition', () => {
   const fixed: Machine = {name: 'fixed step', params: ['cap', 'step'], inputs: [], state: {s: n(0)}, pre: {op: '=', a: x('step'), b: n(0)}, step: {state: {s: plus(x('s'), x('step'))}}}
   expect(proveLaws(fixed, [law]).proven).toBe(true)
   expect(proveLaws({...fixed, pre: undefined}, [law]).proven).toBe(false)
+})
+
+test('no float is rounded: a true hypothesis past 2^53 is not refuted, nor a certificate with unsafe multipliers accepted', () => {
+  // 2^53 - 1 + 3 <= 2^53 - 1 + 1 + 1 + 1 is true (both 2^53 + 2); in floats each + 1 past 2^53 rounds back to 2^53, and the
+  // left side would read 2 more than the right (terra's review of gen/laneK, 2026-10-31).
+  const big = n(Number.MAX_SAFE_INTEGER), one = n(1)
+  const rounded: Goal = {name: 'rounded', hyps: [le(plus(big, n(3)), plus(plus(plus(big, one), one), one))]}
+  expect(check(rounded, {leaf: [{kind: 'input', index: 0}]})).toBe(false)
+  // A rounded sum brought back under 2^53 by a subtraction: (2^53 - 1 + 1 + 1) ∸ 10 is 2^53 - 9, not 2^53 - 10.
+  const back: Goal = {name: 'back', hyps: [le(n(Number.MAX_SAFE_INTEGER - 8), {op: 'sub', a: plus(plus(big, one), one), b: n(10)})]}
+  expect(check(back, {leaf: [{kind: 'input', index: 0}]})).toBe(false)
+  // x <= 1 and 1 <= x hold at x = 1; multipliers past a safe integer are refused in the integers as in the rationals.
+  const rows = [{lin: {x: 1, 1: -1}}, {lin: {x: -1, 1: 1}}]
+  expect(checkRefutation(rows, [{kind: 'input', index: 0}, {kind: 'input', index: 1}, {kind: 'combine', a: 0, b: 1, ma: 2 ** 60, mb: 2 ** 60 + 2 ** 8}])).toBe(false)
+  expect(checkRefutation([{lin: {1: 2 ** 60}}], [{kind: 'input', index: 0}])).toBe(false)
 })
