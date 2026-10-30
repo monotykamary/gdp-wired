@@ -490,12 +490,13 @@ function harnessFor(pkg: Pkg, mod: SModule, read: StepRead, opts: SwiftOptions):
     let code: {entry: string, main: string}
     try { code = harnessCode(g, mod, read, cls) } catch (e) { if (e instanceof Refusal) return {cmd: 'false', args: [], hello: {}, error: e.what}; throw e }
     // The copy: every file of the package written where it differs (so its mtime moves only then).
-    const want = new Map<string, string>()
+    const want = new Map<string, string>(), links = new Map<string, string>()
     if (pkg.single) {
       want.set('Package.swift', `// swift-tools-version:5.9\nimport PackageDescription\nlet package = Package(name: "GdpCode", targets: [.target(name: "GdpCode", path: "Sources/GdpCode")])\n`)
       want.set(rel(pkg.file!), fs.readFileSync(pkg.file!, 'utf8'))
     } else {
-      const walk = (d: string): string[] => (fs.readdirSync(d, {withFileTypes: true}) as {name: string, isDirectory: () => boolean}[]).flatMap(e => (['.build', '.git', '.swiftpm', 'GdpHarness'].includes(e.name) ? [] : e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]))
+      // (a link to a directory linked again in the copy, to where it points)
+      const walk = (d: string): string[] => (fs.readdirSync(d, {withFileTypes: true}) as {name: string, isDirectory: () => boolean}[]).flatMap(e => { const p = path.join(d, e.name); if (['.build', '.git', '.swiftpm', 'GdpHarness'].includes(e.name)) return []; if (e.isDirectory()) return walk(p); if (fs.statSync(p).isDirectory()) { links.set(path.relative(pkg.root, p), fs.realpathSync(p)); return [] } return [p] })
       for (const f of walk(pkg.root)) want.set(path.relative(pkg.root, f), fs.readFileSync(f, 'binary' as 'utf8'))
     }
     // (the check's own changes: let as var where the harness sets a property, the answered calls, the actor, the harness)
@@ -528,8 +529,9 @@ function harnessFor(pkg: Pkg, mod: SModule, read: StepRead, opts: SwiftOptions):
       if (!same) { fs.mkdirSync(path.dirname(to), {recursive: true}); fs.writeFileSync(to, t) }
     }
     // (files of an earlier copy the package no longer has)
-    const walkW = (d: string): string[] => (fs.readdirSync(d, {withFileTypes: true}) as {name: string, isDirectory: () => boolean}[]).flatMap(e => (['.build', '.swiftpm'].includes(e.name) ? [] : e.isDirectory() ? walkW(path.join(d, e.name)) : [path.join(d, e.name)]))
-    for (const f of walkW(work)) if (!want.has(path.relative(work, f))) fs.rmSync(f)
+    const walkW = (d: string): string[] => (fs.readdirSync(d, {withFileTypes: true}) as {name: string, isDirectory: () => boolean}[]).flatMap(e => (['.build', '.swiftpm'].includes(e.name) || links.has(path.relative(work, path.join(d, e.name))) ? [] : e.isDirectory() ? walkW(path.join(d, e.name)) : [path.join(d, e.name)]))
+    for (const f of walkW(work)) if (!want.has(path.relative(work, f)) && !links.has(path.relative(work, f))) fs.rmSync(f)
+    for (const [l, to] of links) if (!fs.existsSync(path.join(work, l))) { fs.mkdirSync(path.dirname(path.join(work, l)), {recursive: true}); node<{symlinkSync: (a: string, b: string) => void}>('node:fs').symlinkSync(to, path.join(work, l)) }
     try { cp.execFileSync(swiftOf(opts), ['build', '--product', 'GdpHarness', '--package-path', work], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 28}) }
     catch (e) { return {cmd: 'false', args: [], hello: {}, error: `the package doesn't build with the check's harness: ${errText(e)}`} }
     const bin = cp.execFileSync(swiftOf(opts), ['build', '--package-path', work, '--show-bin-path'], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}).trim()

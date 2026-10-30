@@ -2539,7 +2539,8 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
       const f = finals[i]! as Final & {rv?: Var, rn?: Var}
       const out = f.out!
       let t: Term = init[o]!
-      if (f.rv?.name === o) t = termOf(out.t === 'opt' ? out.v : out, chosen[i]!)
+      // (a result that is None holds its sort's zero, as the check reads the code's)
+      if (f.rv?.name === o) t = termOf(out.t === 'opt' ? g.ite(out.has, out.v, zeroLike(out.v), chosen[i]!) : out, chosen[i]!)
       if (f.rn?.name === o) t = {s: 'bool', e: out.t === 'opt' ? I.not(out.has) : I.F}
       if (kept && (f.rv?.name === o || f.rn?.name === o)) t = iteTerm(failedOf(f), init[o]!, t)
       acc = iteTerm(f.sel, t, acc)

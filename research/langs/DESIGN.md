@@ -844,3 +844,50 @@ adversarial runner's absolute imports, now relative.)
 
 **Bytes.** core/ and kernel/ in TypeScript, tests excluded, against 2fdc902 (gen/cli merged, this branch's base): +3,210 (core/extract-step.ts +2,722,
 core/extract-read.ts +488); the harnesses +280 (Python), +191 (Ruby), +239 (the JVM's). The kernel is unchanged.
+
+## Swift (gen/swift)
+
+`core/swift/Sources/gdp-swiftreader/main.swift` (a reader on swift-syntax's parser and SwiftOperators' folding) lowers a
+package's target into the IR; `core/extract-swift.ts` (`gdp-wired/extract-swift`) builds it, generates the harness and
+runs `extractStep`. Types are the declarations' own (a property's annotation or literal initializer, a parameter's, a
+result's, a protocol's requirements), parsed from their text; where none is declared the value is opaque and refused
+where read, never guessed. `swiftc -dump-ast` was not needed: the subset reads only declared types.
+
+**The reader, built for the user.** Every Swift 5.9+ toolchain ships SwiftSyntax for macros in `lib/swift/host`
+(checked: Xcode's 6.4 on macOS, swift:6.3.3 on Linux), so the front end compiles main.swift against those modules
+(`swiftc -O -I host -L host -lSwiftSyntax -lSwiftParser -lSwiftOperators`, about 20 s once), cached in the temporary
+directory by a hash of the source and `swift --version`. Where a toolchain lacks them, `core/swift/Package.swift` (swift-syntax
+pinned at 603.0.2) is built by SwiftPM instead (minutes, once). Prebuilding per platform would mean a binary per
+OS/arch per toolchain line (the host modules' ABI is the compiler's), so it is left out.
+
+**The harness.** The package is copied to a stable directory per package (files rewritten only where they differ, so
+`swift build` is incremental); the entry type's file gets an extension (make, call, and per-field accessors, so private
+members are reached as the code's own extensions reach them) and a JSON/stub/store runtime in pure Swift (no Foundation:
+importing it could change the file's name lookup); `let` properties the harness sets become `var` and an actor becomes
+a `final class` in the copy only; answered calls are rewritten with the shared `stubbed` to `(__gdpAnswer("<key>") as T)`;
+an injected protocol gets a generated conforming fake (get, set, delete over what it keeps, answered methods from the
+request, left-out ones doing nothing, any other one a crash the check reports). An executable target appended to
+Package.swift drives it; each `new`, `at` and `call` first runs in a forked child, so a trap (Swift has no recovery from
+overflow, precondition, fatalError or a nil force-unwrap) is the step's failure and the parent keeps the state as it was.
+
+**Executor additions (shared).** A failure node may say `crash: true`: the process ends, so nothing sees what the step
+wrote before it (no write-before-failure refusal; with failures kept and carried, a crash after a write is refused).
+A bin node may carry its own `trap` text. A method's result that is None now holds its sort's zero in the rule (it
+held the other branch's value; no committed rule of any language has an Optional result, so none changes).
+
+**Boundary mechanism.** As the table in gen/boundary2: Swift stubs by rewriting the compiled copy (as Rust, Go, C); stores:
+yes, a generated conforming class per injected protocol. Init parameters typed by a protocol are the injected
+dependencies; the state-reference refusal applies unchanged (it is the executor's).
+
+**Where it stands (2026-10-30, WIP).** Verified on Modal (swift:6.3.3): core/extract-swift.test.ts's Budget (UInt8 trap,
+&+ wrap, Optional, raw value, throw), Limiter (store + inferred answer, entry inferred; its laws not yet run green),
+Tally (actor), Loop (refused), and the adversarial s01–s04 (all refused for their reason: state reference ×3, two
+dependencies of one protocol). Real code, checked against the packages: swift-nio-http2 1.46.0 InboundWindowManager
+(1,050 + 400 + 31 requests; 3 laws proven, 3 refuted, of which 2 were laws mis-stated, fixed since, rerun pending) and
+HTTP2FlowControlWindow (1,481 + 400 + 14; 6 proven, 1 refuted: a settings change from a window already below -1 by
+-(2^31 - 1) traps, unreachable under HTTP/2's settings bounds: a law, not a bug). swift-nio 2.104.0 HighLowWatermark: the
+copy failed on a symlinked directory (fixed since, not yet rerun). Not verified: the rules committed under
+research/langs/swift/rules/ (none yet), research/realworld/items/swift-projects.ts (parked as research/langs/swift/realworld-items.ts.pending until the rules exist), the CLI on
+`.swift`, the suite job (research/langs/swift/swift-setup.sh untested), the bar, a TS typecheck after the last edits.
+**Next step:** rerun `research/langs/swift/modal_swift.py --cmd 'bun research/langs/swift/run.ts --write'` and copy the
+printed rules back, rerun the tests, add the suite job, then the quick bar against 5d4da3f.
