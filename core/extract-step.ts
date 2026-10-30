@@ -734,8 +734,7 @@ export class Stepper {
     const t = pa.t.k === 'opt' ? pa.t.of : pa.t
     if (!pa.inject && (this.scalar(t) || ['lock', 'none', 'map', 'list'].includes(t.k) || (t.k === 'rec' && this.mod.recs[t.name]?.own && !this.mod.recs[t.name]!.kinds.includes('protocol')) || pa.dflt)) return undefined
     const fields: string[] = []
-    const scan = (x: unknown) => { if (!x || typeof x !== 'object') return; const st = x as SS, to = st.to as SX | undefined, v = st.x as SX | undefined; if (st.s === 'set' && to?.e === 'get' && (to.x as SX).e === 'var' && (to.x as SX).n === 'self' && v?.e === 'var' && v.n === pa.name) fields.push(String(to.f)); Object.values(x).forEach(scan) }
-    scan(init.body)
+    deep(init.body, st => { const to = st.to as SX | undefined, v = st.x as SX | undefined; if (st.s === 'set' && to?.e === 'get' && (to.x as SX).e === 'var' && (to.x as SX).n === 'self' && v?.e === 'var' && v.n === pa.name) fields.push(String(to.f)) })
     const ms = this.callsOn(r, fields)
     if (!pa.inject && !ms.length) return undefined
     return {keyed: ms.some(m => !!keyShape(m)), ...(t.k === 'rec' ? {ty: t.name} : {})}
@@ -743,8 +742,7 @@ export class Stepper {
   // The methods the class's code calls on its fields named (self.f.m(...)).
   callsOn(r: SRec, fields: string[]): string[] {
     const ms: string[] = []
-    const walk = (x: unknown) => { if (!x || typeof x !== 'object') return; const o = x as SX, f = o.f as SX | undefined, fx = f?.x as SX | undefined; if (o.e === 'call' && f?.e === 'get' && fx?.e === 'get' && (fx.x as SX).e === 'var' && (fx.x as SX).n === 'self' && fields.includes(String(fx.f))) ms.push(String(f.f)); Object.values(o).forEach(walk) }
-    for (const id of Object.values(r.methods)) if (id && this.mod.funcs[id]) walk(this.mod.funcs[id]!.body)
+    for (const id of Object.values(r.methods)) if (id && this.mod.funcs[id]) deep(this.mod.funcs[id]!.body, o => { const f = o.f as SX | undefined, fx = f?.x as SX | undefined; if (o.e === 'call' && f?.e === 'get' && fx?.e === 'get' && (fx.x as SX).e === 'var' && (fx.x as SX).n === 'self' && fields.includes(String(fx.f))) ms.push(String(f.f)) })
     return ms
   }
   storeDecl(store: string): StoreDecl {
@@ -805,7 +803,7 @@ export class Stepper {
     if (p.called.includes(key)) return refuse(at, `${at.text}: ${key} called twice in one step (an answer is one a step)`)
     const q: Path = {...p, called: [...p.called, key]}
     // (where it is called: a compiled language's check stubs it there, its source rewritten)
-    const site = {p: at.p, ...(at.end ? {end: String(at.end)} : {}), ...(at.span ? {span: at.span as [number, number]} : {})}
+    const site = {p: at.p, ...(at.end ? {end: at.end as string} : {}), ...(at.span ? {span: at.span as [number, number]} : {})}
     let a = this.answers.get(key)
     const short = key.split(/\.|::/).pop()!
     if (!a) {
@@ -815,7 +813,7 @@ export class Stepper {
       const none = t.k === 'opt' ? this.newVar(`${short}_none`, {k: 'bool'}, 'input', `whether ${names[0]} returns None`).name : undefined
       // (a result of a fixed width: within it, the claim is for the values its type holds)
       this.typed(v, inner, 'input')
-      a = {key, patch: patch ?? {}, async: awaited, inputs: {name: v.name, ...(none ? {none} : {}), ...(inner.k === 'float' ? {float: true} : {})}, sort: text, ...(how === 'stated' ? {} : {how}), at: [], ...(at.ty ? {ty: String(at.ty)} : {})}
+      a = {key, patch: patch ?? {}, async: awaited, inputs: {name: v.name, ...(none ? {none} : {}), ...(inner.k === 'float' ? {float: true} : {})}, sort: text, ...(how === 'stated' ? {} : {how}), at: [], ...(at.ty ? {ty: at.ty as string} : {})}
       this.answers.set(key, a)
       this.notes.add(how === 'stated' ? `${names[0]} (${at.p}): answered by the request (stated), its arguments not read` : `${names[0]} (${at.p}): answered by the request (${how}: its value is read; assumes ${names[0]} may return any ${text}), its arguments not read`)
     } else if (a.async !== awaited) return refuse(at, `${at.text}: ${key} awaited at one call and not at another`)
@@ -844,7 +842,7 @@ export class Stepper {
     const t = tag?.k === 'answer' ? (tag.arg ? tag.arg : b.ret && answerable(b.ret) ? b.ret : refuse(x, `${x.text}: tagged gdp: answer, and ${b.name} declares no type an answer takes: give it (gdp: answer float)`)) : this.inf!.answers.get(b.key)
     if (t) return this.answer(b.key, [b.name], b.patch, x, q, awaited, t, tag ? 'tagged' : 'inferred')
     const why = `${x.text ?? b.name}: the value of ${b.name}, other code left out`
-    this.pend.set(why, {...b, why, at: x.p, ...(x.end ? {end: String(x.end)} : {})})
+    this.pend.set(why, {...b, why, at: x.p, ...(x.end ? {end: x.end as string} : {})})
     this.notes.add(`${b.name} (${x.p}): left out (${tag ? 'tagged: gdp: skip' : 'inferred: nothing the rule keeps reads its value'}), run as it is by the check`)
     return [{t: 'opaque', why, ask: b.key}, q]
   }
@@ -859,17 +857,13 @@ export class Stepper {
   // A value that is (or holds) a reference to the rule's state: the object, its nested objects, maps, lists, stores.
   stateRef(v: V, p: Path): boolean {
     const st = (id: string) => { const o = p.heap.get(id); return id === 'this' || o?.k === 'store' || (!!o && 'origin' in o && o.origin === 'state') }
-    switch (v.t) {
-      case 'ref': case 'map': case 'list': return st(v.id)
-      case 'cell': return st(v.map)
-      case 'ptr': return this.cases(v.to).objs.some(c => st(c.id))
-      case 'opt': return this.stateRef(v.v, p)
-      case 'tuple': return v.xs.some(y => this.stateRef(y, p))
-      case 'struct': return [...v.f.values()].some(y => this.stateRef(y, p))
-      case 'fn': return !!v.self && this.stateRef(v.self, p)
-      case 'ext': return !!v.recv && this.stateRef(v.recv, p)
-      case 'bool': case 'builtin': case 'choice': case 'cls': case 'err': case 'fmt': case 'lib': case 'lock': case 'nil': case 'none': case 'num': case 'opaque': case 'pop': case 'push': case 'res': case 'sattr': case 'str': return false
-    }
+    if (v.t === 'ref' || v.t === 'map' || v.t === 'list') return st(v.id)
+    if (v.t === 'cell') return st(v.map)
+    if (v.t === 'ptr') return this.cases(v.to).objs.some(c => st(c.id))
+    if (v.t === 'opt') return this.stateRef(v.v, p)
+    if (v.t === 'tuple' || v.t === 'struct') return [...(v.t === 'tuple' ? v.xs : v.f.values())].some(y => this.stateRef(y, p))
+    const by = v.t === 'fn' ? v.self : v.t === 'ext' ? v.recv : undefined
+    return !!by && this.stateRef(by, p)
   }
   // The parameters of a function a call gives the rule's state (its receiver, its arguments).
   rootsOf(fn: SFunc, recv: V | undefined, args: V[], p: Path): Set<string> {
@@ -892,19 +886,13 @@ export class Stepper {
     const fn = this.mod.funcs[id]
     if (!fn) return true
     const rs = new Set(roots)
-    const mentions = (x: unknown): boolean => { if (!x || typeof x !== 'object') return false; const o = x as SX; if (o.e === 'var' && rs.has(String(o.n))) return true; return Object.values(o).some(mentions) }
+    const mentions = (x: unknown) => deep(x, o => o.e === 'var' && rs.has(String(o.n)))
     const isVar = (x: unknown) => !!x && typeof x === 'object' && (x as SX).e === 'var'
     const targets = (s: SS): unknown[] => [s.to, ...((s.l as unknown[] | undefined) ?? []), s.pl, (s.at as SX | undefined)?.m, s.s === 'del' ? s.x : undefined].filter(Boolean)
     // (aliases first: a local set from a root's parts is one)
     for (let grew = true; grew;) {
       grew = false
-      const scan = (x: unknown) => {
-        if (!x || typeof x !== 'object') return
-        const st = x as SS
-        if ((st.s === 'set' || st.s === 'assign') && mentions(st.x ?? st.r)) for (const t of targets(st)) { const flat = (t as SX).e === 'tuple' ? (t as SX).xs as SX[] : [t as SX]; for (const y of flat) if (isVar(y) && !rs.has(String(y.n))) { rs.add(String(y.n)); grew = true } }
-        Object.values(x).forEach(scan)
-      }
-      scan(fn.body)
+      deep(fn.body, st => { if ((st.s === 'set' || st.s === 'assign') && mentions(st.x ?? st.r)) for (const t of targets(st)) for (const y of (t as SX).e === 'tuple' ? (t as SX).xs as SX[] : [t as SX]) if (isVar(y) && !rs.has(String(y.n))) { rs.add(String(y.n)); grew = true } })
     }
     const own = (f: SX): SFunc | undefined => {
       if (f.e === 'fn') return this.mod.funcs[String(f.id)]
@@ -928,17 +916,9 @@ export class Stepper {
       }
       return this.writesState(target.id, sub, seen)
     }
-    const walk = (x: unknown): boolean => {
-      if (!x || typeof x !== 'object') return false
-      const o = x as SX & SS
-      // (a statement or expression the subset doesn't read: where its reader names what it mentions, by those)
-      if (o.s === 'no' || o.e === 'no') { if (!o.names || (o.names as string[]).some(n => rs.has(n))) return true }
-      if (o.e === 'rmw' && mentions(o)) return true
-      if (o.s && ['set', 'assign', 'del', 'incdec', 'opset', 'mopset'].includes(o.s) && targets(o).some(t => !isVar(t) && mentions(t))) return true
-      if (o.e === 'call' && calls(o)) return true
-      return Object.values(o).some(walk)
-    }
-    return walk(fn.body)
+    // (a statement or expression the subset doesn't read: where its reader names what it mentions, by those)
+    return deep(fn.body, o => ((o.s === 'no' || o.e === 'no') && (!o.names || (o.names as string[]).some(n => rs.has(n)))) || (o.e === 'rmw' && mentions(o)) ||
+      (!!o.s && ['set', 'assign', 'del', 'incdec', 'opset', 'mopset'].includes(o.s) && targets(o).some(t => !isVar(t) && mentions(t))) || (o.e === 'call' && calls(o)))
   }
   // The `gdp:` comments of the file read (skip, answer [type], strict), by line: on a call's line, they state its
   // boundary; on a function's line (or the line above it), every call of it. A decorator or annotation named
@@ -2143,19 +2123,11 @@ export const phiP = (c: B, a: Ptr, b: Ptr): Ptr => (c.op === 'const' ? (c.v ? a 
 // The values a merge keeps exact (Go's): refused, not made opaque, where two paths make them different.
 const firm = (v: V): boolean => ['ptr', 'struct', 'err', 'nil', 'map', 'list', 'push', 'pop'].includes(v.t) || (v.t === 'opaque' && !!v.firm)
 // An expression that calls nothing (so evaluating it changes nothing).
-const callFree = (x: unknown): boolean => {
-  if (!x || typeof x !== 'object') return true
-  const o = x as {e?: string}
-  if (o.e === 'call' || o.e === 'await' || o.e === 'no') return false
-  return Object.values(o).every(callFree)
-}
+// Whether some node of an IR tree (an object, depth first) is one f says yes to.
+const deep = (x: unknown, f: (o: SX & SS) => unknown): boolean => !!x && typeof x === 'object' && (!!f(x as SX & SS) || Object.values(x).some(y => deep(y, f)))
+const callFree = (x: unknown): boolean => !deep(x, o => o.e === 'call' || o.e === 'await' || o.e === 'no')
 // An expression that reaches none of the module's own code and not `self`.
-const foreign = (x: unknown): boolean => {
-  if (!x || typeof x !== 'object') return true
-  const o = x as {e?: string, n?: string}
-  if (o.e === 'fn' || (o.e === 'var' && o.n === 'self')) return false
-  return Object.values(o).every(foreign)
-}
+const foreign = (x: unknown): boolean => !deep(x, o => o.e === 'fn' || (o.e === 'var' && o.n === 'self'))
 // Two key templates name disjoint keys: they differ at some position of their fixed prefixes or of their fixed
 // suffixes (a hole's value can be any string, so only those parts tell keys apart).
 export function disjoint(a: string, b: string): boolean {
