@@ -1872,7 +1872,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // to 20,000 states and a seventh of what is left; its states the views' rows first.
       // (an instance: the small one (`grow` none, the samples), or `grow` more elements of a sort within `share` ms, its
       // BFS uncut and its own draws (the pool's data filter))
-      const instance = (grow: (q: string) => number, share: number | undefined, rnd: Rand, cap = 2_000_000) => {
+      // (`visit`: each new state as the BFS finds it, which ends the BFS by answering false: the filter reads as it goes)
+      const instance = (grow: (q: string) => number, share: number | undefined, rnd: Rand, cap = 2_000_000, visit?: (q: Sample) => boolean) => {
+        let halt = false
         const base = share === undefined, most = base ? 20_000 : cap, combosMax = base ? 2048 : 16_384, reqs: {params: Env, combos: Request[]}[] = []
         const size = (q: string) => Math.max(2, Math.min(3, width[ss.indexOf(q)] ?? 2)) + grow(q), keyDom = (q: string) => Array.from({length: ordered(q) ? 4 + grow(q) : size(q)}, (_, i) => i)
         const fnDom = (q: string) => Object.keys(m.fns ?? {}).filter(f => vf(`V:${f}`) === vf(q) && ss.includes(ks.find(`F:${f}`))).flatMap(f => keyDom(ks.find(`F:${f}`)).map(k => { try { return fnValue(m.fns![f]!, k) } catch { return 0 } }))
@@ -1965,10 +1967,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           try { st0 = run.init(params) } catch { continue }
           const tB = vnow(), queue = [{params, st: st0}], qi = {at: 0}, bfsEnd = vnow() + (end2 - vnow()) * 0.75 / (pvs.size - reqs.length + 1)
           seen.add(keyOf3(queue[0]!)); small.push(queue[0]!)
+          if (visit && !visit(queue[0]!)) halt = true
           // (a BFS that won't finish (a quarter of its share gone, 1 s at least, and its queue still a quarter of what it
           // found): cut there, the walks half a second after; an instance it does finish is what it was)
           const cutAt = base ? tB + Math.max(1000, (bfsEnd - tB) / 4) : Infinity
-          while (qi.at < queue.length && small.length < most && vnow() < bfsEnd) {
+          while (!halt && qi.at < queue.length && small.length < most && vnow() < bfsEnd) {
             if (vnow() > cutAt && (queue.length - qi.at) * 4 >= small.length) { end2 = Math.min(end2, vnow() + 500); break }
             const q0 = queue[qi.at++]!
             for (const input of combos) {
@@ -1976,7 +1979,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
               const next = stepOf(params, q0.st, input)
               if (!next) continue
               const q1 = {params, st: next}, k1 = keyOf3(q1)
-              if (!seen.has(k1)) { seen.add(k1); small.push(q1); queue.push(q1) }
+              if (!seen.has(k1)) { seen.add(k1); small.push(q1); queue.push(q1); if (visit && !visit(q1)) { halt = true; break } }
             }
           }
           if (qi.at < queue.length) cut = true
@@ -1987,16 +1990,16 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             try { s0 = tb.run.init(params) } catch { continue }
             const p2 = {...params}, q2 = [{params: p2, st: s0}], q2i = {at: 0}, seen2 = new Set([keyOf3(q2[0]!)]), end3 = Math.min(end2, vnow() + (bfsEnd - tB))
             tableOf.set(p2, tb.fns); others.push(q2[0]!)
-            while (q2i.at < q2.length && others.length < most && vnow() < end3) {
+            while (!halt && q2i.at < q2.length && others.length < most && vnow() < end3) {
               const q0 = q2[q2i.at++]!
-              for (const input of combos) { used.etries++; const next = stepIn(tb, p2, q0.st, input); if (!next) continue; const q1 = {params: p2, st: next}, k1 = keyOf3(q1); if (!seen2.has(k1)) { seen2.add(k1); others.push(q1); q2.push(q1) } }
+              for (const input of combos) { used.etries++; const next = stepIn(tb, p2, q0.st, input); if (!next) continue; const q1 = {params: p2, st: next}, k1 = keyOf3(q1); if (!seen2.has(k1)) { seen2.add(k1); others.push(q1); q2.push(q1); if (visit && !visit(q1)) { halt = true; break } } }
             }
           }
         }
         // (then random walks from its last states, deeper than the BFS's levels reach: each step the first of a few
         // requests that changes the state, to the end of its share)
         const bfs = small.length
-        for (let t = 0; cut && reqs.length && small.length < most && vnow() < end2; t++) {
+        for (let t = 0; !halt && cut && reqs.length && small.length < most && vnow() < end2; t++) {
           const from = small[Math.max(0, small.length - 1 - rnd(Math.min(small.length, 64)))]!, req = reqs.find(q => q.params === from.params)
           if (!req) break
           let at = from.st
@@ -2121,23 +2124,23 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // of each sort alone, within a budget of its own (3 s, at most a tenth of what is left: half an instance's share its
       // BFS, uncut, the rest reading its states); a cube some row of such a state is in is no law, and goes
       function dataFilter(pool: Form[]): Form[] {
-        // (in work, not time, so that a slow machine reads what a fast one does: each instance's BFS within a share of the
-        // engine's clock (4 s, at most a twelfth of what is left), and its states read until they stop killing, `quiet`
-        // (200) states in a row that kill no cube, `most5` (4,000) at most; a slow container that read fewer states left
-        // ring's pool at 47–61 cubes, not 44, and its first round past the wall: research/protocols/engine/DESIGN.md)
-        const t5 = vnow(), share = Math.min(Number(env.GDP_POOL_MS ?? 8_000), (eUntil - t5) / 6)
-        const quiet = Number(env.GDP_POOL_QUIET ?? 200), most5 = Number(env.GDP_POOL_STATES ?? 1_500)
+        // (in states, not time, so that a slow machine reads what a fast one does: each instance's states read as its BFS
+        // finds them, until they stop killing, `quiet` (100) states in a row that kill no cube, `most5` (1,500) at most;
+        // its BFS ends there, a share of the engine's clock (30 s, a third of what is left) its outer bound. A slow
+        // container that read fewer states left ring's pool at 47–61 cubes, not 44, and its first round past the wall:
+        // research/protocols/engine/DESIGN.md, gen/laneA)
+        const t5 = vnow(), share = Math.min(Number(env.GDP_POOL_MS ?? 30_000), (eUntil - t5) / 3)
+        const quiet = Number(env.GDP_POOL_QUIET ?? 100), most5 = Number(env.GDP_POOL_STATES ?? 1_500)
         const litAt = (l: Lit, r: Env) => ('at' in l ? valueOf(atoms[l.at.atom]!, r) === l.at.value : l.lin.coef.reduce((s2, [i, c]) => s2 + c * valueOf(atoms[i]!, r), 0) <= l.lin.d)
         const plans: ((q: string) => number)[] = [() => 1, ...(ss.length > 1 ? ss.map(s2 => (q: string) => (q === s2 ? 1 : 0)) : [])]
         let live = pool, states = 0
         for (const [k, grow] of plans.entries()) {
           if (!live.length || stop()) break
-          const r = instance(grow, share, seeded(29 + k), most5), killed = new Set<Form>()
-          const byView = new Map<number, Form[]>()
+          const killed = new Set<Form>(), byView = new Map<number, Form[]>()
           for (const f of live) byView.set(f.view!, [...(byView.get(f.view!) ?? []), f])
           let read = 0, still = 0, lastKill = 0
-          for (const q of [...r.small, ...r.others]) {
-            if (read >= most5 || still >= quiet || stop()) break
+          const r = instance(grow, share, seeded(29 + k), most5, q => {
+            if (read >= most5 || still >= quiet || stop()) return false
             states++; read++
             const before = killed.size
             for (const [vi, fs] of byView) {
@@ -2148,7 +2151,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             }
             if (killed.size > before) lastKill = read
             still = killed.size > before ? 0 : still + 1
-          }
+            return read < most5 && still < quiet
+          })
           opts.progress?.('join meters', {at: `filter read ${k}`, read, lastKill, bfs: r.small.length + r.others.length, ...meters()})
           live = live.filter(f => !killed.has(f))
           // (no instance after one that kills nothing; GDP_POOL_STOP=0 runs them all)
