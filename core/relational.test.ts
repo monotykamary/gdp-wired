@@ -4,6 +4,13 @@ import {expect, test} from 'bun:test'
 import {interpret, type State} from './machine.ts'
 import {nat, oneOf, rule, when} from './dsl.ts'
 import {agreement, isolation, noninterference, proveTwoRuns, twoRuns} from './relational.ts'
+import {citesIn, duration, parse} from './laws.ts'
+import {check} from './cli.ts'
+import {type Document, fromInterchange} from '../interchange/format.ts'
+import {checkCertificate} from '../interchange/check.ts'
+import {spawnSync} from 'node:child_process'
+import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
 
 // A claim desk: a claim is submitted with an amount and a diagnosis (kept in notes), then decided by the amount.
 const desk = (leak: boolean, refuseBySecret = false) => rule('desk')
@@ -84,4 +91,75 @@ test('two runs side by side run as their sides do', () => {
     for (const [n, x] of Object.entries(a.scalars)) expect(ab.scalars[`a_${n}`]).toBe(x)
     for (const [n, x] of Object.entries(b.scalars)) expect(ab.scalars[`b_${n}`]).toBe(x)
   }
+})
+
+// --- the law text: durations, citations, laws about two runs in the CLI --------------------------------------------------
+test('durations: linear over the clock; a month, a year or a business day refused', () => {
+  expect(duration('30 days')).toBe(2_592_000)
+  expect(duration('15 minutes', 'ms')).toBe(900_000)
+  expect(duration('2 weeks')).toBe(1_209_600)
+  for (const t of ['1 month', '2 years', '10 business days', '1 quarter']) expect(() => duration(t)).toThrow(/fixed number of seconds/)
+  expect(() => parse('now - t >= 30 days')).not.toThrow()
+  expect(() => parse('now - t < 1 month')).toThrow(/state it in days/)
+  expect(citesIn('x = 1\n# gdp: cite a law: 45 CFR §164.524(b)(2): within 30 days\n', 'f.py')).toEqual([{law: 'a law', text: '45 CFR §164.524(b)(2): within 30 days', where: 'f.py:2'}])
+})
+
+// A records desk (a patient's request for their records): received, then fulfilled within 30 days or escalated.
+const DESK = `import time
+from dataclasses import dataclass
+from typing import Literal
+
+
+@dataclass
+class Req:
+    received: int
+    status: Literal["open", "fulfilled", "escalated"]
+
+
+class RecordsDesk:
+    def __init__(self) -> None:
+        self.requests: dict[str, Req] = {}
+        self.notes: dict[str, int] = {}
+
+    # gdp: law the diagnosis stays private: diagnosis never reaches requests
+    # gdp: law one patient's requests never change another's: isolated by rid
+    def receive(self, rid: str, diagnosis: int) -> None:
+        if rid in self.requests:
+            raise ValueError("already received")
+        self.requests[rid] = Req(int(time.time()), "open")
+        self.notes[rid] = diagnosis
+
+    # gdp: law fulfilled only within 30 days: requests[rid].status == "fulfilled" implies now - requests[rid].received < 30 days
+    # gdp: cite fulfilled only within 30 days: 45 CFR 164.524(b)(2): act on a request for access no later than 30 calendar days after its receipt
+    def fulfill(self, rid: str) -> None:
+        if rid not in self.requests:
+            raise ValueError("no such request")
+        r = self.requests[rid]
+        if r.status != "open":
+            raise ValueError("closed")
+        if int(time.time()) - r.received >= 2592000:
+            r.status = "escalated"
+        else:
+            r.status = "fulfilled"
+`
+const hasPython = (() => { try { return spawnSync('python3', ['--version']).status === 0 } catch { return false } })()
+test.skipIf(!hasPython)('the CLI: laws about two runs, a deadline in days, its citation and certificate, in Python', async () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-regulated-`)
+  writeFileSync(`${dir}/desk.py`, DESK)
+  const r = await check([`${dir}/desk.py`], {ms: 10_000, propose: false, cert: `${dir}/certs`})
+  const laws = Object.fromEntries(r.rules[0]!.laws.map(l => [l.name, l]))
+  expect(r.rules[0]!.ok).toBe(true)
+  for (const n of ['the diagnosis stays private', 'one patient\'s requests never change another\'s', 'fulfilled only within 30 days']) expect(laws[n]?.verdict).toBe('proven')
+  expect(laws['fulfilled only within 30 days']!.cites).toEqual(['45 CFR 164.524(b)(2): act on a request for access no later than 30 calendar days after its receipt'])
+  // the certificate: the kernel's to check, its meta the citation (never read by a checker)
+  const doc = JSON.parse(readFileSync(laws['fulfilled only within 30 days']!.cert!, 'utf8')) as Document
+  expect((doc.meta as {cites: string[]}).cites[0]).toContain('164.524')
+  expect(checkCertificate(fromInterchange(doc)).every(c => c.accepted)).toBe(true)
+  expect(laws['one patient\'s requests never change another\'s']!.cert).toBeDefined()
+  // a law over the diagnosis that it does reach: broken by two runs
+  writeFileSync(`${dir}/desk.py`, DESK.replace('Req(int(time.time()), "open")', 'Req(int(time.time()), "open" if diagnosis < 5 else "escalated")'))
+  const r2 = await check([`${dir}/desk.py`], {ms: 10_000, propose: false})
+  const leak = r2.rules[0]!.laws.find(l => l.name === 'the diagnosis stays private')!
+  expect(leak.verdict).toBe('broken')
+  expect(leak.run!.some(s => s.includes('|'))).toBe(true)
 })
