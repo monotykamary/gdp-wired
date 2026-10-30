@@ -43,6 +43,89 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/ring: the two pilots for ring (from main a095ae3; nothing built)
+
+The pilot code is on exp/pool-z3, since both pilots use its Z3 dump and replay. It adds `GDP_CONE_PILOT` and
+`GDP_EPR_WHY` (each EPR decision's outcome, ms and size, and its ordered terms' classes), plus `withWallAt` for the
+pilot's own wall. Runs are `runs/engine/rg1`–`rg4` in ../gdp-wired-poolz3, Modal 2 CPU.
+
+**Pilot 1, cores for the cone cut: FAIL.**
+- **The setup:** ring's IC3 set with the filtered pool and Z3 (`GDP_POOL=ic3 GDP_Z3=ic3`, 60 s) ended at 29 cubes,
+  with all 5 probe-proven cubes in it.
+- **decideLaw at 5 s per goal, the whole set assumed** (a wall of its own past the search's): 104 s for 30 goals.
+  - 11 proven;
+  - 6 models, 5 of them at the 5 s deadline;
+  - 13 undecided.
+- **The caller** ("one leader") is proven from 4 cubes. That is the cone, well under 30. But 3 of the 4 are undecided,
+  so their own support never joins.
+- **`prove()` of the 4-cube cone** fails in 1.35 s at "Leader[x] ∧ Pending[idn(y), y]" @step.
+- **The caller's support isn't the probe-proven 5.** The proof routes through other true cubes whose own goals
+  decideLaw can't settle.
+- So the cone cut needs an oracle that decides ring's goals. It depends on pilot 2; on its own it isn't built.
+- A first run of this pilot returned in 1–2 ms a goal: it ran after the search's wall, which `withWall` keeps (it takes
+  the smaller of two walls). Rerun with its own wall.
+
+**Pilot 2, ring's ordered successors and the injective `idn`: the goals become decidable with time (PASS on its
+criterion); the mechanism I designed is falsified as the cause.**
+
+**Replay of ring's 44 top-down goals** (round 0, the 44-cube shrunk pool assumed; `z3probe.ts replay`)
+
+| per goal | decideLaw undecided | decideLaw mean | Z3 undecided | Z3 mean | decideLaw's model against Z3's proof |
+|---|---|---|---|---|---|
+| 1 s | 39 of 44 (40 in rg4) | 1.01 s | 15 | 0.52 s | 0 |
+| 5 s | 11 (18 in rg3) | 3.2–3.6 s | 0 | 0.89 s | 4–5, all at the 5 s deadline |
+| 20 s | 5 | 7.1 s | 0 | 0.90 s | 2, both at the 20 s deadline |
+
+- **The unknown reason at 1 s:**
+  - 35 of the EPR decisions end "past the deadline" (median 875 ms);
+  - 53 are unsat, median 21 ms;
+  - no goal is out of the EPR shape.
+- **At 5 and 20 s:**
+  - the sat decisions take 2.0–2.8 s at the median (up to 11.5 s);
+  - 4 at 20 s end in "no values for the model's order";
+  - the disagreements are decideLaw's models returned unconfirmed at its deadline (settle's late exit, recorded before).
+- **So it's cost, not incompleteness.** By 20 s decideLaw decides 39 of 44 and Z3 all 44, at 7× decideLaw's speed.
+
+**Where the time goes** (bun's CPU profile of the 5 s replay, 197 s, `rg3`)
+- `decide0` is 92% of decideLaw's time; the core's proof by `grow` after an unsat, 3%.
+- Inside `decide0`:
+  - the theory check (`theoryCheck`, simplex) 30%;
+  - the order's atoms 17% (`atom` self time, a Map lookup by text, from `le` in the order's axioms);
+  - the CDCL search 15%;
+  - the literals and comparisons 9%;
+  - text keys (`stringify`) 7%;
+  - building the solver 5%.
+- **The order's axioms are cubic:** every pair of ordered terms is total, and below 65 terms transitivity is every
+  triple up front (`!lazy`). Ring's goals have a median of 28.5 ordered terms (60 at most; up to 195,112 transitivity
+  clauses).
+
+**The follow-up (`rg4`): would sorts split that order?**
+- The hope: Ivy's sorts, separate orders for node keys and ids, as Z3 had.
+- **No.** In 86 of 88 decisions all non-constant ordered terms are one class: union over every pair the hypotheses
+  compare or equate, and every successor. The median split of the transitivity triples is 1.0.
+- The likely reason, not yet checked: `lawInstances` seeds each law's keys with every key the goal reads (`readKeys`),
+  of any sort. An instance then puts a node where a law has an id (Pending's first part), and the comparisons it brings
+  join the two orders.
+- Z3 instantiated per sort (its quantified laws over uninterpreted sorts), which kept them apart.
+
+**What it means for the plan**
+- The successor and injectivity encoding I designed doesn't address the cost: neither appears in the profile.
+- The cost is the one order over every ordered term, cubic in its axioms, with the theory check on top. It is that
+  size because the instances aren't sorted.
+- **The next pilot (cheap, not run):** in `lawInstances`, seed a law's key only with keys of its sort.
+  - Use the union-find over key places that core/infer.ts's `keySorts` already does.
+  - Count, on ring's 44 goals, the instances, the ordered terms, the classes and the 1 s and 5 s decisions.
+  - **Passes if** ordered terms halve or split into two classes, and the 1 s undecided count falls below 15 (Z3's).
+- **The risk:** in the kernel's semantics keys are naturals, so a proof may need an instance across sorts. As an
+  untrusted oracle that only costs a decision, and `prove()` still checks the set over its own instances.
+- Pilot 1 is worth rerunning only after that.
+
+**Not done this round, as the order said:**
+- step 3 (ring twice, the ten, the bar), because 1 didn't land;
+- wo's pilot, because pilot 2 didn't fail fast.
+
+**Spend:** $0.06 billed so far for this round's 4 apps; the hour is still being billed, about $0.15 in all.
+
 ## Through the gate: gen/rel-pool (main 2fdc902 with gen/pool merged, d8a1966; then main 8fedbea, 7b5b6e8)
 
 **The merge:**
