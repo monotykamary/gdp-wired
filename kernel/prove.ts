@@ -1515,8 +1515,9 @@ function sourcesOf(m: Machine, laws: Law[], inst: Instances, goal: Goal, used: I
 // undefined where the EPR path alone can't say (not `usual`).
 function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boolean, prev?: Settled): Settled | Unsettled | undefined {
   const law = laws[i]!, byName = new Map(laws.map(l => [l.name, l]))
-  // (decideLaw's: each law's keys of its sort alone, `bySort`; the usual path's as they were)
-  let inst = prev && laws.every(l => !l.forall || l.name in prev.inst) ? prev.inst : usual ? lawInstances(m, laws, i) : bySort(m, laws, lawInstances(m, laws, i))
+  // (decideLaw's and the fast set proof's: each law's keys of its sort alone, `bySort`; proveLaw's and the join's as they
+  // were. The fast set proof is checked over the tuples its proofs read, and the usual proof follows where it fails)
+  let inst = prev && laws.every(l => !l.forall || l.name in prev.inst) ? prev.inst : bySort(m, laws, lawInstances(m, laws, i))
   const proofs: Record<string, Proof1> = Object.fromEntries(Object.entries(prev?.proofs ?? {}).filter(([, p]) => stands(p, byName)))
   const unknown = (g: Goal, why = 'past the search\'s end'): Unsettled | undefined => (usual ? {goal: g.name, stuck: 'unknown', why} : undefined)
   // (past the `rounds` model rounds, each round within the caller's deadline, its model the answer where the round can't
@@ -1545,7 +1546,7 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
       // one that breaks only instances of another sort, or that the rounds or the wall cut off, is no answer)
       const capped = !(round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end)), raw = capped ? undefined : modelInstances(m, laws, inst, g, o.witness)
       if (!capped && !raw) return last
-      more = raw && (usual ? raw : bySort(m, laws, raw))
+      more = raw && bySort(m, laws, raw)
       const count = (x: Instances) => Object.values(x).reduce((s2, ks) => s2 + ks.length, 0)
       if (strict(usual) && (capped || pastWall() || !more || count(more) <= count(inst))) return undefined
       if (!more || pastWall()) return last
