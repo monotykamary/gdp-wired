@@ -6,6 +6,7 @@ regression suite (`../modal/suite.json`) runs the parts below that it lists.
 
 | Path | What |
 | --- | --- |
+| [`ROADMAP.md`](ROADMAP.md) | The reach past the protocols: what 10/10 should leave behind, distributed apps, and the domains not yet reached, in order |
 | [`search/`](search/) | Counterexample search on the GPU: a hand-written WGSL kernel over every run of a bounded space, its u32 JavaScript twin, the CPU search |
 | [`hw/`](hw/) | The same searches, and synthesis's kernels, compiled to the Handwired fork's word stages ([`README-synth.md`](hw/README-synth.md)) |
 | [`modal-gpu/`](modal-gpu/) | The Handwired searches on Modal GPUs, through Dawn on NVIDIA's Vulkan driver |
