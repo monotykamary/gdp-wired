@@ -6,8 +6,8 @@
 //
 //   gdp-wired check <file|dir>... [--entry X] [--methods a,b] [--failures kept] [--json] [--ms 10000] [--no-propose]
 //
-// The language is the file's (.py .rb .ex .java .kt .go .rs .c .h .cpp .cc .hpp .ts .js; a directory with go.mod or
-// .go files is a Go package, with Cargo.toml a Rust crate); the options a rule needs (failures, onError, methods,
+// The language is the file's (.py .rb .ex .java .kt .go .rs .swift .c .h .cpp .cc .hpp .ts .js; a directory with go.mod
+// or .go files is a Go package, with Cargo.toml a Rust crate, with Package.swift a Swift package); the options a rule needs (failures, onError, methods,
 // answers, skip, stores) from the flags or from gdp.toml (configFor, below). Exit code: 0 when no law stated in
 // the code is broken, 1 when one is, 2 when one couldn't be checked (the rule refused, or the law not read).
 import type {Extraction, Name} from './extract.ts'
@@ -41,11 +41,11 @@ function args(argv: string[]): {cmd: string, targets: string[], o: Opts} {
 }
 
 // --- the languages -------------------------------------------------------------------------------------------------------
-type Lang = 'python' | 'ruby' | 'elixir' | 'java' | 'kotlin' | 'go' | 'rust' | 'c' | 'cpp' | 'ts'
-const EXT: Record<string, Lang> = {'.py': 'python', '.rb': 'ruby', '.ex': 'elixir', '.exs': 'elixir', '.java': 'java', '.kt': 'kotlin', '.go': 'go', '.rs': 'rust', '.c': 'c', '.h': 'c',
+type Lang = 'python' | 'ruby' | 'elixir' | 'java' | 'kotlin' | 'go' | 'rust' | 'swift' | 'c' | 'cpp' | 'ts'
+const EXT: Record<string, Lang> = {'.py': 'python', '.rb': 'ruby', '.ex': 'elixir', '.exs': 'elixir', '.java': 'java', '.kt': 'kotlin', '.go': 'go', '.rs': 'rust', '.swift': 'swift', '.c': 'c', '.h': 'c',
   '.cpp': 'cpp', '.cc': 'cpp', '.cxx': 'cpp', '.hpp': 'cpp', '.ts': 'ts', '.mts': 'ts', '.tsx': 'ts', '.js': 'ts', '.mjs': 'ts'}
-const COMMENT: Record<Lang, string> = {python: '#', ruby: '#', elixir: '#', java: '//', kotlin: '//', go: '//', rust: '//', c: '//', cpp: '//', ts: '//'}
-export const LANG_NAME: Record<Lang, string> = {python: 'Python', ruby: 'Ruby', elixir: 'Elixir', java: 'Java', kotlin: 'Kotlin', go: 'Go', rust: 'Rust', c: 'C', cpp: 'C++', ts: 'TypeScript'}
+const COMMENT: Record<Lang, string> = {python: '#', ruby: '#', elixir: '#', java: '//', kotlin: '//', go: '//', rust: '//', swift: '//', c: '//', cpp: '//', ts: '//'}
+export const LANG_NAME: Record<Lang, string> = {python: 'Python', ruby: 'Ruby', elixir: 'Elixir', java: 'Java', kotlin: 'Kotlin', go: 'Go', rust: 'Rust', swift: 'Swift', c: 'C', cpp: 'C++', ts: 'TypeScript'}
 // A target: the path a front end reads (a file, a Go package, a Rust crate), its language and the files its laws are in.
 type Target = {lang: Lang, at: string, files: string[]}
 function targetsOf(p: string): Target[] {
@@ -54,6 +54,7 @@ function targetsOf(p: string): Target[] {
   const src = (d: string, ext: RegExp) => fs.readdirSync(d).filter(f => ext.test(f) && !/_test\.go$|\.test\.|_spec\./.test(f)).map(f => path.join(d, f))
   if (fs.statSync(abs).isDirectory()) {
     if (fs.existsSync(path.join(abs, 'Cargo.toml'))) return [{lang: 'rust', at: abs, files: rustFiles(abs)}]
+    if (fs.existsSync(path.join(abs, 'Package.swift'))) return [{lang: 'swift', at: abs, files: swiftFiles(path.join(abs, 'Sources'))}]
     if (fs.existsSync(path.join(abs, 'go.mod')) || src(abs, /\.go$/).length) return [{lang: 'go', at: abs, files: src(abs, /\.go$/)}]
     return fs.readdirSync(abs).filter(f => EXT[path.extname(f)] && !/\.test\.|_test\.|_spec\.|\.d\.ts$/.test(f)).flatMap(f => targetsOf(path.join(abs, f)))
   }
@@ -63,6 +64,7 @@ function targetsOf(p: string): Target[] {
   if (lang === 'rust') { const crate = up(path.dirname(abs), d => fs.existsSync(path.join(d, 'Cargo.toml'))); return [{lang, at: crate ?? path.dirname(abs), files: crate ? rustFiles(crate) : [abs]}] }
   return [{lang, at: abs, files: [abs]}]
 }
+const swiftFiles = (d: string): string[] => (fs.existsSync(d) ? fs.readdirSync(d).flatMap(f => { const p = path.join(d, f); return fs.statSync(p).isDirectory() ? swiftFiles(p) : f.endsWith('.swift') ? [p] : [] }) : [])
 const rustFiles = (crate: string): string[] => { const d = path.join(crate, 'src'); return fs.existsSync(d) ? fs.readdirSync(d).filter(f => f.endsWith('.rs')).map(f => path.join(d, f)) : [] }
 // The nearest directory from `d` up where `ok` holds.
 export function up(d: string, ok: (d: string) => boolean): string | undefined {
@@ -94,6 +96,7 @@ async function extractWith(t: Target, o: Record<string, unknown>): Promise<Extra
     case 'kotlin': { const {extractKotlin} = await import('./extract-jvm.ts'); return extractKotlin(f, o) }
     case 'go': { const {extractGo} = await import('./extract-go.ts'); return extractGo(f, o) }
     case 'rust': { const {extractRust} = await import('./extract-rs.ts'); return extractRust(f, o) }
+    case 'swift': { const {extractSwift} = await import('./extract-swift.ts'); return extractSwift(f, o) }
     case 'c': case 'cpp': { const {extractC} = await import('./extract-c.ts'); return extractC(f, o, t.lang === 'cpp') }
     case 'ts': {
       const code = fs.readFileSync(f, 'utf8'), file = path.basename(f)
@@ -193,7 +196,7 @@ async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: str
   void _j; void _m; void _p
   // (the options: gdp.toml's for every rule, then the rule's own, then the flags; a rule found with no entry named is
   // read again where gdp.toml has options of its own for it)
-  const cfg = configFor(t.lang === 'go' || t.lang === 'rust' ? t.at : path.dirname(t.at))
+  const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
   const optsFor = (entry?: string) => merge(merge(cfg.all, (entry && cfg.rules[entry]) || {}), flags)
   const one = async (entry?: string) => {
     const x = await extractOne(t, {...optsFor(entry), ...(entry ? {entry} : {})}), found = x.model?.name
@@ -227,7 +230,7 @@ function scoped(file: string): Scoped[] {
   const text = fs.readFileSync(file, 'utf8'), lines = text.split('\n')
   return lawsIn(text, path.basename(file)).map(l => {
     let cls: string | undefined, fn: string | undefined
-    for (let i = l.line! - 1; i >= 0 && !cls; i--) { const m = /\b(?:class|struct|defmodule|module|object|impl|record|interface)\s+([\w.:]+)|\btype\s+(\w+)\s+struct\b/.exec(lines[i]!.replace(/(#|\/\/).*$/, '')); if (m) cls = (m[1] ?? m[2])!.split(/[.:]/).pop() }
+    for (let i = l.line! - 1; i >= 0 && !cls; i--) { const m = /\b(?:class|struct|actor|defmodule|module|object|impl|record|interface)\s+([\w.:]+)|\btype\s+(\w+)\s+struct\b/.exec(lines[i]!.replace(/(#|\/\/).*$/, '')); if (m) cls = (m[1] ?? m[2])!.split(/[.:]/).pop() }
     for (let i = l.line! - 1; i < lines.length && !fn; i++) { const code = i === l.line! - 1 ? lines[i]!.replace(/(#|\/\/|--).*$/, '') : lines[i]!; const m = /\b(?:def|defp|fn|fun|func|function)\s+(?:\([^)]*\)\s*)?(?:self\.)?(\w+)|^\s*(?:(?:public|private|protected|static|final|synchronized|async|override|open|suspend|inline|virtual|const|[\w<>[\],?]+)\s+)*(\w+)\s*\(/.exec(code); if (m && !/^(if|for|while|switch|return|catch|new)$/.test(m[1] ?? m[2]!)) fn = m[1] ?? m[2] }
     // (a Python function at the module's top level is in no class, whatever precedes it)
     if (fn && file.endsWith('.py') && lines.slice(l.line! - 1).some(x => new RegExp(`^(?:async\\s+)?def\\s+${fn}\\b`).test(x))) cls = undefined

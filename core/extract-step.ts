@@ -290,9 +290,15 @@ export class Stepper {
     const w = I.and(this.cond(p), c)
     if (w.op === 'const' && !w.v) return
     if (this.init) { this.fails.push(w); return }
+    // (a crash, Swift's trap: the process ends, so nothing sees what the step wrote before it; the check's harness keeps
+    // the state as it was)
+    const crash = !!(at as {crash?: boolean}).crash
     // Failures kept with what the step wrote before them (the caller sees both): the path goes on to the step's end.
-    if (this.opts.failures === 'kept' && this.opts.onError !== 'discard') { this.failPaths.push(this.assume(p, c)); this.fails.push(w); this.notes.add(`${this.method}: ${what} (${at.p}) is the step's failure, kept as its result (with what the step wrote before it)`); return }
-    this.unwritten(p, at, what)
+    if (this.opts.failures === 'kept' && this.opts.onError !== 'discard') {
+      if (crash && this.changed(p)) refuse(at, `${what} after the state is written: a crash, after which the state is as it was (onError: 'discard' says so of every failure)`)
+      this.failPaths.push(this.assume(p, c)); this.fails.push(w); this.notes.add(`${this.method}: ${what} (${at.p}) is the step's failure, kept as its result (with what the step wrote before it)`); return
+    }
+    if (!crash) this.unwritten(p, at, what)
     this.fails.push(w)
     this.notes.add(`${this.method}: ${what} (${at.p}) is ${this.opts.failures === 'kept' ? 'the step\'s failure, kept as its result' : 'the step\'s refusal'}`)
   }
@@ -1344,7 +1350,7 @@ export class Stepper {
     const out = (n: N): V => ({t: 'num', e: n, ...(ty ? {ty} : {})})
     const [lo, hi] = ty ? rangeOf(ty) : [-Infinity, Infinity], [below, above] = this.past(e, lo, hi, q2)
     switch (ovf) {
-      case 'trap': this.fail(q2, I.or(below, above), x, `${x.text}: past ${tyName(ty)}'s range (a panic: attempt to ${op === '+' ? 'add' : op === '-' ? 'subtract' : op === '*' ? 'multiply' : 'divide'} with overflow)`); return [out(e), this.assume(q2, I.not(I.or(below, above)))]
+      case 'trap': this.fail(q2, I.or(below, above), x, `${x.text}: past ${tyName(ty)}'s range (${x.trap ?? `a panic: attempt to ${op === '+' ? 'add' : op === '-' ? 'subtract' : op === '*' ? 'multiply' : 'divide'} with overflow`})`); return [out(e), this.assume(q2, I.not(I.or(below, above)))]
       case 'sat': return [out(Number.isFinite(lo) || Number.isFinite(hi) ? I.nite(below, I.num(lo), I.nite(above, I.num(hi), e)) : e), q2]
       case 'sat0': return [out(I.nmax(e, I.num(0))), q2]
       case 'checked': return [{t: 'opt', has: I.not(I.or(below, above)), v: out(e)}, q2]
