@@ -2313,7 +2313,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         return out3
       }
       for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
-        cubes = cubes.filter(g => !atStart(g))
+        // (one cube once: a cube in the set is not pending, and a text in the set once)
+        cubes = cubes.filter((g, i) => !atStart(g) && cubes.findIndex(h => textOf(h) === textOf(g)) === i)
+        for (const g of cubes) if (pending.has(g) || [...pending].some(h => textOf(h) === textOf(g))) for (const h of [...pending]) if (textOf(h) === textOf(g)) pending.delete(h)
         for (const g of cubes) if (!addedAt.has(g)) addedAt.set(g, round)
         const stand = (nm: string) => { stands.add(nm); provenAt.set(nm, round) }
         let asked = 0, cubeMs = 0, tGoal = 0
@@ -2400,8 +2402,17 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const pushed = frame.length
         for (const g of frame) tried.set(g, version)
         for (let pass = 0; frame.length && pass < 4 && performance.now() < kUntil() && !stop(); pass++) {
+          frame = frame.filter((g, i) => !lsAll.some(l => l.name === textOf(g)) && frame.findIndex(h => textOf(h) === textOf(g)) === i)
           const lsP = [...lsAll, ...frame.map(lawFor)], mmP = withGhost(forLaws(lsP).m), failed = new Set<Form>()
-          frame.forEach((g, i) => { if (performance.now() > kUntil()) { failed.add(g); return } const dl = within(Math.min(kUntil(), performance.now() + joinQueryMs / 8), () => decideLaw(mmP, lsP, lsAll.length + i)); if (dl && !dl.proven) failed.add(g) })
+          frame.forEach((g, i) => {
+            if (performance.now() > kUntil()) { failed.add(g); return }
+            const dl = within(Math.min(kUntil(), performance.now() + joinQueryMs / 8), () => decideLaw(mmP, lsP, lsAll.length + i))
+            if (!dl || dl.proven) return
+            failed.add(g)
+            // (the push's counterexample an obligation, IC3's: blocked as a round's are, by the enumeration's cubes false
+            // there, so that the next push has what it lacked)
+            if (dl.goal.endsWith('@step')) for (const b of blockers(preOf(dl.witness)).slice(0, 2)) if (!lsP.some(l => l.name === textOf(b)) && !pending.has(b) && !blocked2.some(h => textOf(h) === textOf(b))) blocked2.push(b)
+          })
           if (!failed.size) { promoted.push(...frame); break }
           frame = frame.filter(g => !failed.has(g))
         }
@@ -2436,7 +2447,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           if (!g) break
           // (IC3's: the failing cube's model at its step, blocked by the enumeration's cubes false at its state where there
           // are some new ones, the cube kept and the rounds again; else the cube dropped)
-          const wit2 = v.witness, bs = wit2 && at.endsWith('@step') ? blockers(preOf(wit2)).filter(b => !cubes.some(c => textOf(c) === textOf(b)) && !atStart(b)) : []
+          const wit2 = v.witness, bs = wit2 && at.endsWith('@step') ? blockers(preOf(wit2)).filter(b => !cubes.some(c => textOf(c) === textOf(b)) && ![...pending].some(c => textOf(c) === textOf(b)) && !dead.has(textOf(b)) && !atStart(b)) : []
           if (bs.length) { cubes = [...cubes, ...bs]; grown = true; break }
           if (wit2 && at.endsWith('@step')) subs.push(preOf(wit2))
           cubes = cubes.filter(c => c !== g); gone.push(g)

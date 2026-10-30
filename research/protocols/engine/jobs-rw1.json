@@ -1,0 +1,42 @@
+[
+ {
+  "name": "approval-gitea-reviews-0",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/realworld/score.ts --one 'approval/gitea/reviews' 0 --ms 60000 2>/tmp/e.log | tail -1 | cut -c1-200; echo engine_events $(grep -cE 'join (template|small instance|enumerated)' /tmp/e.log); echo joins $(grep -c 'join end' /tmp/e.log); grep -E 'join (template|small instance|enumerated|end)' /tmp/e.log | head -6 | cut -c1-200",
+  "timeout": 150
+ },
+ {
+  "name": "circuit-breaker-opossum-circuitbreaker-7",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/realworld/score.ts --one 'circuit breaker/opossum/CircuitBreaker' 7 --ms 60000 2>/tmp/e.log | tail -1 | cut -c1-200; echo engine_events $(grep -cE 'join (template|small instance|enumerated)' /tmp/e.log); echo joins $(grep -c 'join end' /tmp/e.log); grep -E 'join (template|small instance|enumerated|end)' /tmp/e.log | head -6 | cut -c1-200",
+  "timeout": 150
+ },
+ {
+  "name": "ledger-tigerbeetle-transfers-0",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/realworld/score.ts --one 'ledger/tigerbeetle/transfers' 0 --ms 60000 2>/tmp/e.log | tail -1 | cut -c1-200; echo engine_events $(grep -cE 'join (template|small instance|enumerated)' /tmp/e.log); echo joins $(grep -c 'join end' /tmp/e.log); grep -E 'join (template|small instance|enumerated|end)' /tmp/e.log | head -6 | cut -c1-200",
+  "timeout": 150
+ },
+ {
+  "name": "ledger-tigerbeetle-transfers-1",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/realworld/score.ts --one 'ledger/tigerbeetle/transfers' 1 --ms 60000 2>/tmp/e.log | tail -1 | cut -c1-200; echo engine_events $(grep -cE 'join (template|small instance|enumerated)' /tmp/e.log); echo joins $(grep -c 'join end' /tmp/e.log); grep -E 'join (template|small instance|enumerated|end)' /tmp/e.log | head -6 | cut -c1-200",
+  "timeout": 150
+ },
+ {
+  "name": "ledger-tigerbeetle-transfers-4",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/realworld/score.ts --one 'ledger/tigerbeetle/transfers' 4 --ms 60000 2>/tmp/e.log | tail -1 | cut -c1-200; echo engine_events $(grep -cE 'join (template|small instance|enumerated)' /tmp/e.log); echo joins $(grep -c 'join end' /tmp/e.log); grep -E 'join (template|small instance|enumerated|end)' /tmp/e.log | head -6 | cut -c1-200",
+  "timeout": 150
+ },
+ {
+  "name": "ledger-tigerbeetle-transfers-6",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/realworld/score.ts --one 'ledger/tigerbeetle/transfers' 6 --ms 60000 2>/tmp/e.log | tail -1 | cut -c1-200; echo engine_events $(grep -cE 'join (template|small instance|enumerated)' /tmp/e.log); echo joins $(grep -c 'join end' /tmp/e.log); grep -E 'join (template|small instance|enumerated|end)' /tmp/e.log | head -6 | cut -c1-200",
+  "timeout": 150
+ },
+ {
+  "name": "payment-medusa-capturerefund-4",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/realworld/score.ts --one 'payment/medusa/captureRefund' 4 --ms 60000 2>/tmp/e.log | tail -1 | cut -c1-200; echo engine_events $(grep -cE 'join (template|small instance|enumerated)' /tmp/e.log); echo joins $(grep -c 'join end' /tmp/e.log); grep -E 'join (template|small instance|enumerated|end)' /tmp/e.log | head -6 | cut -c1-200",
+  "timeout": 150
+ },
+ {
+  "name": "queue-bullmq-jobretry-6",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/realworld/score.ts --one 'queue/bullmq/jobRetry' 6 --ms 60000 2>/tmp/e.log | tail -1 | cut -c1-200; echo engine_events $(grep -cE 'join (template|small instance|enumerated)' /tmp/e.log); echo joins $(grep -c 'join end' /tmp/e.log); grep -E 'join (template|small instance|enumerated|end)' /tmp/e.log | head -6 | cut -c1-200",
+  "timeout": 150
+ }
+]
