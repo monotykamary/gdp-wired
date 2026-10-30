@@ -214,6 +214,7 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
       return {t: 'cond', v: compare(e.op, a, b, e)}
     }
     case 'path': return path(e, c, names, dry)
+    case 'forall': return fail('forall ... in ...: at the top of the law only')
   }
   return fail('an expression of no kind')
 }

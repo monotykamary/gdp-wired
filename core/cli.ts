@@ -312,7 +312,7 @@ function runOf(x: Extraction, run: NonNullable<Verdict['run']>): string[] {
   const lines = ps.length ? [`made with ${ps.map(n => `${code(n)} = ${shownValue(x, n.rule, run.params, n.none)}`).join(', ')}`] : []
   const ev = names.find(n => n.role === 'method')
   for (const req of run.trace as Record<string, unknown>[]) {
-    const m = ev ? String((kindOf(x, ev.rule)?.decode(ev.rule, req as Record<string, number>)) ?? '') : names.find(n => n.method)?.method ?? ''
+    const m = ev ? String(kindOf(x, ev.rule)?.decode(ev.rule, req as Record<string, number>) as string | undefined ?? '') : names.find(n => n.method)?.method ?? ''
     // (an object the caller gives: None, or its fields read; a field of an object that is None not shown)
     const none = (n: Name) => !!n.none && (req[n.none] === 1 || req[n.none] === true)
     const objs = names.filter(n => n.role === 'input' && n.method === m && !n.rule && n.none && n.none in req)
