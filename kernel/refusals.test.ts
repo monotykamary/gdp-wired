@@ -5,7 +5,8 @@
 // kernel that dropped the precondition from its goals could no longer prove it).
 import {expect, test} from 'bun:test'
 import type {C, E, Law, Machine} from '../core/machine.ts'
-import {type Fold, type Goal, type Loop, check, checkLaws, foldObligations, historyMachine, loopObligations, obligations, progressObligations, scope} from './kernel.ts'
+import {checkRefutation, checkWitness} from '../core/check.ts'
+import {type Fold, type Goal, type Loop, type RecurCases, check, checkLaws, checkRecur, foldObligations, historyMachine, loopObligations, obligations, progressObligations, scope} from './kernel.ts'
 import {grow, proveLaws} from './prove.ts'
 
 const x = (name: string): E => ({op: 'var', name}), n = (value: number): E => ({op: 'const', value})
@@ -130,4 +131,88 @@ test('a law whose step goal needs the precondition', () => {
   const fixed: Machine = {name: 'fixed step', params: ['cap', 'step'], inputs: [], state: {s: n(0)}, pre: {op: '=', a: x('step'), b: n(0)}, step: {state: {s: plus(x('s'), x('step'))}}}
   expect(proveLaws(fixed, [law]).proven).toBe(true)
   expect(proveLaws({...fixed, pre: undefined}, [law]).proven).toBe(false)
+})
+
+test('no float is rounded: a true hypothesis past 2^53 is not refuted, nor a certificate with unsafe multipliers accepted', () => {
+  // 2^53 - 1 + 3 <= 2^53 - 1 + 1 + 1 + 1 is true (both 2^53 + 2); in floats each + 1 past 2^53 rounds back to 2^53, and the
+  // left side would read 2 more than the right (terra's review of gen/laneK, 2026-10-31).
+  const big = n(Number.MAX_SAFE_INTEGER), one = n(1)
+  const rounded: Goal = {name: 'rounded', hyps: [le(plus(big, n(3)), plus(plus(plus(big, one), one), one))]}
+  expect(check(rounded, {leaf: [{kind: 'input', index: 0}]})).toBe(false)
+  // A rounded sum brought back under 2^53 by a subtraction: (2^53 - 1 + 1 + 1) ∸ 10 is 2^53 - 9, not 2^53 - 10.
+  const back: Goal = {name: 'back', hyps: [le(n(Number.MAX_SAFE_INTEGER - 8), {op: 'sub', a: plus(plus(big, one), one), b: n(10)})]}
+  expect(check(back, {leaf: [{kind: 'input', index: 0}]})).toBe(false)
+  // x <= 1 and 1 <= x hold at x = 1; multipliers past a safe integer are refused in the integers as in the rationals.
+  const rows = [{lin: {x: 1, 1: -1}, label: ''}, {lin: {x: -1, 1: 1}, label: ''}]
+  expect(checkRefutation(rows, [{kind: 'input', index: 0}, {kind: 'input', index: 1}, {kind: 'combine', a: 0, b: 1, ma: 2 ** 60, mb: 2 ** 60 + 2 ** 8}])).toBe(false)
+  expect(checkRefutation([{lin: {1: 2 ** 60}, label: ''}], [{kind: 'input', index: 0}])).toBe(false)
+})
+
+// Each test below is a goal with a model (or a certificate of something false) that a float rounded on the way would
+// have let the kernel accept; each holds in exact arithmetic, as Lean's Nat and Int read it.
+const lt = (a: E, b: E): C => ({op: '<', a, b}), mul = (k: number, a: E): E => ({op: 'mul', k, a}), sub = (a: E, b: E): E => ({op: 'sub', a, b})
+const M = Number.MAX_SAFE_INTEGER
+
+test('no float is rounded: a combination whose product rounds and whose sum cancels it is refused', () => {
+  // 1801439850948199x + 1 <= 4y and 5y <= 2251799813685249x + 1 hold at x = 1, y = 450359962737050; five times the
+  // first is 9007199254740995x, a float 9007199254740996x, which four times the second cancels: 1 <= 0 (x's 1 lost).
+  const rows = [{lin: {x: 1801439850948199, y: -4, 1: 1}, label: ''}, {lin: {x: -2251799813685249, y: 5, 1: -1}, label: ''}]
+  const steps = [{kind: 'input', index: 0}, {kind: 'input', index: 1}, {kind: 'combine', a: 0, b: 1, ma: 5, mb: 4}] as const
+  expect(checkRefutation(rows, [...steps])).toBe(false)
+  expect(checkRefutation(rows, [...steps], false)).toBe(false)
+  const goal: Goal = {name: 'cancelled', hyps: [le(plus(mul(1801439850948199, x('x')), n(1)), mul(4, x('y'))), le(mul(5, x('y')), plus(mul(2251799813685249, x('x')), n(1)))]}
+  expect(check(goal, {leaf: [...steps]})).toBe(false)
+})
+
+test('no float is rounded: a comparison whose difference rounds gives no fact', () => {
+  // (x ∸ 2) < 2^53 - 1 and 2^53 - 1 + y <= x and 1 <= y hold at x = 2^53, y = 1. Where x >= 2, the first is
+  // x - 2 - (2^53 - 1) + 1 <= 0: its constant -(2^53 + 1) is a float -2^53, plus 1 a safe -(2^53 - 1), so the row read
+  // x <= 2^53 - 1, which the second and third refute.
+  const goal: Goal = {name: 'rounded difference', hyps: [lt(sub(x('x'), n(2)), n(M)), le(plus(n(M), x('y')), x('x')), le(n(1), x('y'))]}
+  const tree = {split: {1: 2, x: -1}, yes: {leaf: [{kind: 'input', index: 1}, {kind: 'input', index: 2}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}, {kind: 'input', index: 3}, {kind: 'combine', a: 2, b: 3, ma: 1, mb: 1}]},
+    no: {leaf: [{kind: 'input', index: 0}, {kind: 'input', index: 2}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}, {kind: 'input', index: 3}, {kind: 'combine', a: 2, b: 3, ma: 1, mb: 1}]}} as const
+  expect(check(goal, structuredClone(tree) as never)).toBe(false)
+})
+
+test('no float is rounded: a choice is not decided by a rounded difference', () => {
+  // min(2^53 - 1, 2y ∸ 2) <= 2^53 - 2 and 2^52 <= y hold at y = 2^52 (the min is 2^53 - 2). Where y >= 1, which side
+  // is smaller is (2^53 - 1) - (2y - 2) <= 0, its constant 2^53 + 1 a float 2^53; flipped, 1 - 2^53 is safe, and a split
+  // on 2y - (2^53 - 1) <= 0 read its no side (y >= 2^52) as min = 2^53 - 1, false at y = 2^52.
+  const goal: Goal = {name: 'rounded choice', hyps: [le({op: 'min', a: n(M), b: sub(mul(2, x('y')), n(2))}, n(M - 1)), le(n(2 ** 52), x('y'))]}
+  const tree = {split: {1: 2, y: -2},
+    yes: {split: {1: -M, y: 2}, yes: {leaf: [{kind: 'input', index: 1}, {kind: 'cut', of: 0, g: 2}, {kind: 'input', index: 3}, {kind: 'combine', a: 1, b: 2, ma: 1, mb: 1}]}, no: {leaf: [{kind: 'input', index: 2}]}},
+    no: {leaf: [{kind: 'input', index: 0}, {kind: 'cut', of: 0, g: 2}, {kind: 'input', index: 2}, {kind: 'combine', a: 1, b: 2, ma: 1, mb: 1}]}}
+  expect(check(goal, tree as never)).toBe(false)
+})
+
+test('no float is rounded: a square or product multiplies safe integers only', () => {
+  // 17·x·x + 4503599963078413 <= 553393890x holds at x = 16276291 (it is equality there). The square of
+  // t = 4.123105625617661x - 67108866.50121884, multiplied in floats, has the safe integer coefficients 17, -553393890 and
+  // 4503599963078412, and is -1 at that x: its row -(t·t) <= 0 and the hypothesis add to 1 <= 0.
+  const goal: Goal = {name: 'rounded square', hyps: [le(plus(mul(17, {op: 'prod', a: x('x'), b: x('x')}), n(4503599963078413)), mul(553393890, x('x')))]}
+  const t = {x: 4.123105625617661, 1: -67108866.50121884}, at = 3 // the hypothesis's row, the naturality of x·x and x, then the square
+  expect(check(goal, {leaf: [{kind: 'input', index: 0}, {kind: 'input', index: at}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}], squares: [t]})).toBe(false)
+})
+
+test('no float is rounded: a factor that is not a safe integer gives no form', () => {
+  // x < 0.1·(10·x) holds at x = 1 (0.1 as a float is a little more than 1/10); 10 · 0.1 is a float 1, so the form read x < x.
+  const goal: Goal = {name: 'fractional factor', hyps: [lt(x('x'), mul(0.1, mul(10, x('x'))))]}
+  expect(check(goal, {leaf: [{kind: 'input', index: 0}]})).toBe(false)
+})
+
+test('no float is rounded: a nontermination certificate folds no constant past a safe integer', () => {
+  // The loop starts at x = 2 and runs while x + (2^53 - 1) + 1 <= 2^53, false there: it ends at once. Folded at x = 2 in
+  // floats, 2 + (2^53 - 1) is 2^53 and 2^53 + 1 is 2^53 again, so the case read the guard as true and the turn as kept.
+  const l: Loop = {name: 'rounded guard', params: [], inputs: [], state: {x: n(2)}, while: le(plus(plus(x('x'), n(M)), n(1)), n(2 ** 53)), body: {x: x('x')}}
+  const set: C = {op: '=', a: x('x'), b: n(2)}, trueC: C = le(n(0), n(0))
+  const cert: RecurCases = {start: {}, stem: [], set, wit: {}, cover: {split: {x: 1, 1: -2},
+    yes: {split: {1: 2, x: -1}, yes: {leaf: [{kind: 'input', index: 4}]}, no: {leaf: [{kind: 'input', index: 1}, {kind: 'input', index: 3}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]}},
+    no: {leaf: [{kind: 'input', index: 0}, {kind: 'input', index: 1}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]}}, cases: [{pins: [['x', 2]], cond: trueC, tree: {leaf: [{kind: 'input', index: 1}]}}]}
+  expect(checkRecur(l, cert)).toBe(false)
+})
+
+test('no float is rounded: a witness is checked with exact products and sums', () => {
+  // 3x - 4y <= 0 fails at x = 3002399751580331, y = 2^51 (it is 1 there); 3x is a float 2^53, which -4y cancels.
+  expect(checkWitness([{lin: {x: 3, y: -4}, label: ''}], {x: 3002399751580331, y: 2 ** 51})).toBe(false)
+  expect(checkWitness([{lin: {x: 3, y: -4}, label: ''}], {x: 4, y: 3})).toBe(true)
 })
