@@ -839,6 +839,60 @@ minimal cut were then banked ahead of the IC3 rounds at the coordinator's reques
 **Not wired, as the order said:** ring doesn't fit 60 s. The sorted fast set proof is on the default path of
 gen/ring2. It needs the ten twice and the quick bar before any merge; one run of the ten is done.
 
+## gen/ring2: the sorted fast set proof banked; Houdini from 77 s to 39–55 s (ring at 60 s still unknown)
+
+**Part 1, the gate for the default path at a28e529** (the sorted fast set proof and the scaled filter; top-down off
+behind GDP_TD):
+- **The ten, twice** (`r3f`, `r4a`):
+  - proven both runs: sync 8.8 / 8.9 s, async 30.7 / 24.9, decentralized 14.0 / 16.6, 2PC 20.3 / 20.6, ticket 30.4 /
+    36.1, toy 10.3 / 11.6, sharded 29.0 / 26.0, distributed 27.0 / 26.5;
+  - unknown: ring 60.4 / 60.0 s and wo 66.1 / 66.8 s.
+- **wo's 66 s:** its filter now takes 3.2 s (the 3 s floor; its small instance's search is short), against 2.0 s
+  before. The filter's budget is at most a sixth of what is left, so it ends well inside the wall. wo's 66–67 s is
+  within its earlier 63.7–69.0 s across runs on main, which is the EPR side's overrun.
+- **The quick bar** (`--only rw,f1,f2,g332,suite,onecpu` against the cached 5d4da3f;
+  <main>/runs/bar/runs/ring2-a28e529-quick):
+  - f1 34, f2 24 (base 24.33, no task differs), rw 74/14/3, the same as the base;
+  - g332 the same search on 332 of 332 (summed 300.9 s against 283.5 s, p50 1.08; earlier bars on this base read
+    +13% and then −3% on a rerun);
+  - the suite 232 passed, 0 failed;
+  - onecpu no failure.
+  - Gained 0, lost 0, wrong 0. Estimated $0.56.
+- **a28e529 is merge-ready on these.** The commits after it touch top-down (behind GDP_TD) and one default-path change,
+  06263bb's epr caching: the same atoms and clauses, faster lookups. That change has had neither the ten nor the bar
+  on its own.
+
+**Part 2, ring's Houdini phase, per lever** (Modal 2 CPU, one worker; `--ms 180000` unless said)
+
+| lever | before the engine | Houdini | ms an asked goal | cone + `prove()` | end to end |
+|---|---|---|---|---|---|
+| base: the sorted fast set proof (r3e; r3c r2) | 15.2 s | 77 s; 65 s | 577; 558 | 8.4 s | 101.5 s |
+| + the atoms by term pair and the term texts once (06263bb; r4c, 2 runs) | 12.8, 16.6 s | 63, 67 s | 528, 561 | 7.5, 7.9 s | 85.4, 93.8 s |
+| + decideLaw's first instances triggered (GDP_DLTRIG=1, off; r4d) | 14.7, 18.2 s | 60, 83 s | 529, 668 | 7.6, 10.5 s | 84.2, 114.3 s: no gain, left off |
+| + undecided goals kept, asked again only after a round with no drop (caef10e; r4e) | 19.9, 10.5 s | 55, 39 s | | 9.2, 6.4 s | 86.4, **57.6 s** |
+| the same at `--ms 60000` (r4e, 2 runs) | 11.8, 12.7 s | 42, 41 s | | the cone reached at 55 s; `prove()` cut by the wall (4 s) | unknown, unknown |
+| + each undecided goal asked again once (b019a0a; 60 s, 3 runs) | 14.8, 14.9, 16.9 s | out of time in round 4 at 59 s | | | unknown ×3 |
+
+- **The biggest lever** was the undecided goals: 4–9 of them re-asked at 1 s every round had been 25–35 s of the
+  phase. Keeping them (optimistic Houdini) and asking them only when a round drops nothing brought Houdini to 39–55 s.
+- **The epr caching** gives about 5–10%, within the run-to-run noise.
+- **Ring now fits 60 s in one run of five** at a 180 s budget's pace (57.6 s), and in none of five at `--ms 60000`.
+  - The run-to-run spread is wide: before the engine 10–20 s, Houdini 39–55 s.
+  - The 60 s runs end in round 4 or 5, or at the cone's proof.
+
+**What's left:** about 5–15 s.
+- **Candidates:**
+  - round 0, which asks all 44–46 goals at about 0.55 s (24–27 s);
+  - the 15 s before the engine on slower containers (the filter's 7–9 s for ring);
+  - the cone's proof (6–9 s).
+- **The next levers, not tried:**
+  - round 0's goals in an order that drops early (the cubes with the most literals first);
+  - stopping the filter once a full pass over the BFS kills nothing new;
+  - the cone's proof reusing Houdini's settled proofs: it already does where the machine's text matches. Check that it
+    does here.
+
+**Spend this part:** $0.69 billed for 18 apps so far (the hour is still being billed).
+
 ## Where it stands (read this first; the checkpoints below are the history)
 
 **Branch and code**
