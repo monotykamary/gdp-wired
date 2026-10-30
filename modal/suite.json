@@ -1296,6 +1296,13 @@
 "timeout": 1200
 },
 {
+"name": "cli",
+"cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && cd core && bun test exports.test.ts cli.test.ts 2>&1",
+"cwd": ".",
+"cpu": 1.0,
+"timeout": 600
+},
+{
 "name": "jev-fabric",
 "cmd": "bun examples/jev-fabric/run.ts 2>&1",
 "cwd": ".",

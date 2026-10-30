@@ -71,12 +71,20 @@ export function up(d: string, ok: (d: string) => boolean): string | undefined {
 
 // A front end run on a target with the options (each loaded only when its language is read).
 async function extractOne(t: Target, o: Record<string, unknown>): Promise<Extraction> {
+  try { return await extractWith(t, o) } catch (e) {
+    // (every front end is read through the TypeScript extractor's terms: the typescript package beside gdp-wired)
+    if (/typescript/.test(String((e as Error).message)) && /find|resolve/i.test(String((e as Error).message))) throw new Error('the extractors need the typescript package beside gdp-wired: npm i -D gdp-wired typescript, or npx -p typescript -p gdp-wired gdp-wired check ...')
+    throw e
+  }
+}
+async function extractWith(t: Target, o: Record<string, unknown>): Promise<Extraction> {
   const f = t.at, dir = path.dirname(f)
   switch (t.lang) {
     case 'python': {
       const {extractPython} = await import('./extract-py.ts')
-      // (the repository's root: above the outermost package the file is in; the Python of a virtualenv beside it)
-      const root = (o.root as string | undefined) ?? up(dir, d => !fs.existsSync(path.join(d, '__init__.py'))) ?? dir
+      // (the repository's root: the project's (pyproject.toml, setup.py), else above the outermost package the file is
+      // in; the Python of a virtualenv beside it)
+      const root = (o.root as string | undefined) ?? up(dir, d => ['pyproject.toml', 'setup.py', 'setup.cfg'].some(m => fs.existsSync(path.join(d, m)))) ?? up(dir, d => !fs.existsSync(path.join(d, '__init__.py'))) ?? dir
       const venv = up(root, d => fs.existsSync(path.join(d, '.venv', 'bin', 'python')))
       return extractPython(f, {root, ...(venv ? {python: path.join(venv, '.venv', 'bin', 'python')} : {}), ...o})
     }
@@ -206,12 +214,11 @@ async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: str
   // (refused with no entry named: the rules gdp.toml names that the code has, each with its options)
   const named = Object.keys(cfg.rules).filter(k => t.files.some(f => new RegExp(`\\b${k.replace(/[^\w]/g, '\\$&')}\\b`).test(fs.readFileSync(f, 'utf8'))))
   if (named.length) return Promise.all(named.map(k => one(k)))
+  // (else each class the refusal names, and each function outside a class a law is stated on)
   const what = first.x.refusals[0]?.what ?? ''
-  const several = /several (?:classes|structs) (?:write their state|written by the file's functions) \(([^)]*)\)/.exec(what)
-  if (several) return Promise.all(several[1]!.split(', ').map(c => one(c)))
-  const fns = [...new Set(laws.map(l => l.fn).filter((f): f is string => !!f))]
-  if (/no (?:class|struct)|name the entry/.test(what) && fns.length) return Promise.all(fns.map(f => one(f)))
-  return [first]
+  const several = /several (?:classes|structs) (?:write their state|written by the file's functions) \(([^)]*)\)/.exec(what)?.[1]!.split(', ') ?? []
+  const fns = [...new Set(laws.filter(l => !l.cls && l.fn).map(l => l.fn!))]
+  return several.length || fns.length ? Promise.all([...several, ...fns].map(c => one(c))) : [first]
 }
 
 // A law with where it sits in the code: the class (or struct, module) it is in and the function after it.
@@ -222,6 +229,8 @@ function scoped(file: string): Scoped[] {
     let cls: string | undefined, fn: string | undefined
     for (let i = l.line! - 1; i >= 0 && !cls; i--) { const m = /\b(?:class|struct|defmodule|module|object|impl|record|interface)\s+([\w.:]+)|\btype\s+(\w+)\s+struct\b/.exec(lines[i]!.replace(/(#|\/\/).*$/, '')); if (m) cls = (m[1] ?? m[2])!.split(/[.:]/).pop() }
     for (let i = l.line! - 1; i < lines.length && !fn; i++) { const code = i === l.line! - 1 ? lines[i]!.replace(/(#|\/\/|--).*$/, '') : lines[i]!; const m = /\b(?:def|defp|fn|fun|func|function)\s+(?:\([^)]*\)\s*)?(?:self\.)?(\w+)|^\s*(?:(?:public|private|protected|static|final|synchronized|async|override|open|suspend|inline|virtual|const|[\w<>[\],?]+)\s+)*(\w+)\s*\(/.exec(code); if (m && !/^(if|for|while|switch|return|catch|new)$/.test(m[1] ?? m[2]!)) fn = m[1] ?? m[2] }
+    // (a Python function at the module's top level is in no class, whatever precedes it)
+    if (fn && file.endsWith('.py') && lines.slice(l.line! - 1).some(x => new RegExp(`^(?:async\\s+)?def\\s+${fn}\\b`).test(x))) cls = undefined
     return {...l, ...(cls ? {cls} : {}), ...(fn ? {fn} : {})}
   })
 }
@@ -265,9 +274,11 @@ function prove(x: Extraction, l: LawText, ms: number, proven: unknown[]): LawOut
   try { v = b.kind === 'law' ? proveRule(x.rule!, [...inv, b.law], search) : proveSteps(x.rule!, [...inv, ...proven] as never, [b.law], search) }
   catch (e) { return {...base, kind: b.kind, verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
   const verdict = v.proven && v.checked ? 'proven' : v.run ? 'broken' : 'unknown'
+  // (a state the laws allow from which a step breaks the law, no run from the start reaching it: shown, not a break)
+  const at = !v.run && v.witness ? (x.names ?? []).filter(n => n.rule && n.rule in v.witness! && n.role !== 'const').map(n => `${label(n)} = ${shownValue(x, n.rule, v.witness!, n.none)}`) : []
   if (verdict === 'proven' && b.kind === 'law') proven.push(b.law)
   const found = v.found?.laws?.map(f => f.text)
-  return {...base, kind: b.kind, verdict, ...(v.run ? {run: runOf(x, v.run)} : {}), ...(verdict === 'unknown' ? {why: v.why ?? (v.witness ? 'not inductive: a state the laws allow breaks it, and no run from the start reaches one' : v.stuck ?? 'not proven')} : {}),
+  return {...base, kind: b.kind, verdict, ...(v.run ? {run: runOf(x, v.run)} : {}), ...(verdict === 'unknown' ? {why: [v.why ?? v.stuck ?? 'not proven', ...(at.length ? [`a state the laws allow where a step breaks it, no run from the start found reaching it: ${at.join(', ')}`] : [])].join('; ')} : {}),
     ...(v.run ? {assumes: assumedOf(x, v.run)} : {}), ...(found?.length ? {found} : {}), ms: Date.now() - t0}
 }
 // What a refutation assumes of the answers inferred (core/extract-step.ts's `assumed`), at the run's last request.
@@ -284,8 +295,8 @@ function assumedOf(x: Extraction, run: NonNullable<Verdict['run']>): string[] {
 // --- runs in the code's terms --------------------------------------------------------------------------------------------
 type KindLike = {decode: (n: string, v: Record<string, number>) => unknown}
 function kindOf(x: Extraction, rule: string): KindLike | undefined {
-  const p = (x.rule as unknown as {parts: {params: [string, KindLike][], inputs: [string, KindLike][]}}).parts
-  return [...p.params, ...p.inputs].find(([n]) => n === rule)?.[1]
+  const r = x.rule as unknown as {parts: {params: [string, KindLike][], inputs: [string, KindLike][]}, kindsOfState: () => [string, KindLike][]}
+  return [...r.parts.params, ...r.parts.inputs, ...r.kindsOfState()].find(([n]) => n === rule)?.[1]
 }
 function shownValue(x: Extraction, rule: string, vars: Record<string, unknown>, none?: string): string {
   if (none && (vars[none] === 1 || vars[none] === true)) return 'None'
@@ -302,7 +313,10 @@ function runOf(x: Extraction, run: NonNullable<Verdict['run']>): string[] {
   const ev = names.find(n => n.role === 'method')
   for (const req of run.trace as Record<string, unknown>[]) {
     const m = ev ? String((kindOf(x, ev.rule)?.decode(ev.rule, req as Record<string, number>)) ?? '') : names.find(n => n.method)?.method ?? ''
-    const as = names.filter(n => n.role === 'input' && n.method === m && (n.rule in req || (n.none && n.none in req)))
+    // (an object the caller gives: None, or its fields read; a field of an object that is None not shown)
+    const none = (n: Name) => !!n.none && (req[n.none] === 1 || req[n.none] === true)
+    const objs = names.filter(n => n.role === 'input' && n.method === m && !n.rule && n.none && n.none in req)
+    const as = names.filter(n => n.role === 'input' && n.method === m && (n.rule ? n.rule in req : none(n)) && !objs.some(o => none(o) && n.code.startsWith(`${o.code}.`)))
     const call = `${m || 'step'}(${as.map(n => `${code(n)}=${n.rule ? shownValue(x, n.rule, req, n.none) : 'None'}`).join(', ')})`
     const extra = names.filter(n => (n.role === 'answer' || n.role === 'clock') && n.rule in req).map(n => `${n.role === 'answer' ? `${n.code.split('.').pop()}(...)` : n.code} = ${shownValue(x, n.rule, req, n.none)}`)
     lines.push(extra.length ? `${call} with ${extra.join(', ')}` : call)

@@ -1,0 +1,23 @@
+# gdp-wired check as a GitHub Action: the laws stated in the code (`# gdp: law <name>: <expr>`, `// gdp: law ...`,
+# @GdpLaw("...")) proven on every push, the job failing when one is broken (exit 1) or can't be checked (exit 2).
+# The code's own toolchain (python3, ruby, a JDK, go, cargo, clang, elixir) is the workflow's to install before it.
+#
+#   - uses: actions/checkout@v4
+#   - uses: actions/setup-python@v5   # the language the rule is in, with the code's dependencies installed
+#     with: {python-version: '3.12'}
+#   - uses: monotykamary/gdp-wired@main
+#     with: {paths: src/limits.py}
+name: gdp-wired check
+description: Prove the laws stated in the code (gdp law comments) with gdp-wired; fail when one is broken.
+branding: {icon: check-circle, color: green}
+inputs:
+  paths: {description: 'The files or directories to check, separated by spaces', required: true}
+  args: {description: 'More flags (--entry X, --failures kept, --ms 30000, --no-propose, --json)', required: false, default: ''}
+  version: {description: 'The gdp-wired version from npm', required: false, default: 'latest'}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with: {node-version: '22'}
+    - shell: bash
+      run: npx -y -p typescript@5.9.3 -p gdp-wired@${{ inputs.version }} gdp-wired check ${{ inputs.paths }} ${{ inputs.args }}

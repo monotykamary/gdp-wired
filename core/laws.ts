@@ -244,7 +244,7 @@ function compare(op: string, a: V, b: V, e: X & {k: 'bin'}): Cond {
 const fail = (s: string): never => { throw new LawError(s) }
 const show = (x: X): string => (x.k === 'path' ? [x.head, ...x.segs.map(s => ('f' in s ? `.${s.f}` : 'i' in s ? '[...]' : '(...)'))].join('') : x.k === 'str' ? JSON.stringify(x.v) : x.k)
 // A map's key as the rule holds it: a string's id, a natural.
-const key = (k: V): Term => (k.t === 'key' ? k.v : k.t === 'str' ? k.v.id : k.t === 'lit' ? fail('a literal key (the rule keys a map by the request\'s values)') : (() => { const n = num(k); return n.neg.e.op === 'const' && n.neg.e.value === 0 ? n.pos : n.clamped })())
+const key = (k: V): Term => (k.t === 'opt' && k.v ? key(k.v) : k.t === 'key' ? k.v : k.t === 'str' ? k.v.id : k.t === 'lit' ? fail('a literal key (the rule keys a map by the request\'s values)') : (() => { const n = num(k); return n.neg.e.op === 'const' && n.neg.e.value === 0 ? n.pos : n.clamped })())
 function cellOf(m: V & {t: 'map'}, k: Term, c: Ctx): {rec: Record<string, unknown>, fields: string[]} {
   const map = (c.a[m.n.rule] ?? c.b[m.n.rule]) as {at: (k: Term) => Record<string, unknown>}
   return {rec: map.at(k), fields: m.n.map!.fields}
