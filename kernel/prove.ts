@@ -315,7 +315,7 @@ function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = t
   eprScope.busy = true
   try {
     const out = withWork(workCap === Infinity ? Infinity : w + 0.5 * (workCap - w), () => grow(part, new Map(), {nodes: 0, until: end === Infinity ? end : now + 0.5 * (end - now)}))
-    if (!('tree' in out)) { eprLast.refuted = true; if (alone || !d.shared) return undefined }
+    if (!('tree' in out)) { eprLast.refuted = true; if (alone || !d.shared || env.GDP_EPR_ALONE === '0') return undefined }
     else if (!whole) return {...out, part, core}
     else { const tree = widen(part, goal, out.tree); return tree ? {tree, nodes: out.nodes} : undefined }
   } finally { eprScope.busy = false }

@@ -677,6 +677,7 @@ function encoder(st: State, patterns: Patterns): Enc {
     if (opts.exact) { const loose = [...gOpq].filter(x => { const o = opqs.get(x)!; return o.foreign && !o.tied }).length; if (loose) return {unknown: `${loose} comparisons outside the EPR shape`} }
     // --- the search, the goal's hypotheses assumed
     if (opts.late?.()) return {unknown: 'past the deadline'}
+    solver.fresh()
     const assume = [...new Set(hs.map(h => h.a))], index = new Map<number, number>()
     hs.forEach((h, i) => { if (!index.has(h.gid)) index.set(h.gid, i) })
     const lemma = (lits: number[]) => add(lits, -1)
@@ -997,9 +998,9 @@ function encoder(st: State, patterns: Patterns): Enc {
 // refutation under them has the origins of the reasons that falsify one (a guarded hypothesis' clause is a reason only
 // where its guard is assumed). undefined: past the conflict budget.
 type CdclOut = {sat: true, model: boolean[]} | {sat: false, core: Set<number>} | undefined
-function cdclSolver(trueFirst: Set<number>, keepPhase: Set<number>): {solve: (budget: number, late: (() => boolean) | undefined, assume: number[]) => CdclOut, add: (c: {lits: number[], from: Origin}) => void} {
+function cdclSolver(trueFirst: Set<number>, keepPhase: Set<number>): {solve: (budget: number, late: (() => boolean) | undefined, assume: number[]) => CdclOut, add: (c: {lits: number[], from: Origin}) => void, fresh: () => void} {
   const idx = new Map<number, number>(), back: number[] = [0]
-  type Cl = {lits: number[], from: Set<number>}
+  type Cl = {lits: number[], from: Set<number>, learnt?: boolean}
   let cap = 0, val = new Int8Array(0), level = new Int32Array(0), act = new Float64Array(0), phase = new Int8Array(0), at = new Int32Array(0)
   const reason: (Cl | undefined)[] = [undefined]
   const heap: number[] = []
@@ -1095,7 +1096,7 @@ function cdclSolver(trueFirst: Set<number>, keepPhase: Set<number>): {solve: (bu
         if (learnt.length > 1) { const t = learnt[1]!; learnt[1] = learnt[bi]!; learnt[bi] = t }
         backjump(bt)
         qhead = trail.length
-        const nc: Cl = {lits: learnt, from}
+        const nc: Cl = {lits: learnt, from, learnt: true}
         if (learnt.length > 1) { wl(-learnt[0]!).push(nc); wl(-learnt[1]!).push(nc) }
         assign(learnt[0]!, nc)
         continue
@@ -1116,5 +1117,15 @@ function cdclSolver(trueFirst: Set<number>, keepPhase: Set<number>): {solve: (bu
       assign(phase[best] ? phase[best]! * best : trueFirst.has(back[best]!) ? best : -best)
     }
   }
-  return {solve, add}
+  // (a goal's search from its clauses alone: the learned clauses, activities and phases of the goals before it dropped, so
+  // its refutation and its model are a search of its own, as with an encoder of its own)
+  const fresh = () => {
+    if (fixed) return
+    backjump(0)
+    for (const [l, ws] of watch) { const ks = ws.filter(c => !c.learnt); if (ks.length !== ws.length) watch.set(l, ks) }
+    act.fill(0); phase.fill(0); inc = 1
+    heap.length = 0; at.fill(-1)
+    for (let x = 1; x < back.length; x++) push(x)
+  }
+  return {solve, add, fresh}
 }
