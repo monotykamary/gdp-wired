@@ -9,6 +9,7 @@ import {readFileSync, writeFileSync} from 'node:fs'
 import {proveRule} from '../../core/dsl.ts'
 import {type Law} from '../../core/machine.ts'
 import {certReport, toLean} from '../../lean-kernel/emit.ts'
+import {clock, withDeadline} from '../../kernel/prove.ts'
 import {protocols} from './models.ts'
 
 const [id = 'lock_server_sync', ms0, file = '/tmp/p.lean'] = process.argv.slice(2), ms = Number(ms0 ?? 60_000)
@@ -34,6 +35,13 @@ const exportOf = (all: Law[], to: string): Record<string, unknown> => {
     return {ok: true, ms: Math.round(performance.now() - t1), bytes: text.length, laws: set.length, cyclic: certReport.cyclic.length, fast: certReport.fast.length, usual: certReport.usual.map(u => u.why.slice(0, 200)),
       imports: text.split('\n').filter(l => l.startsWith('import ')).map(l => l.slice(7))}
   } catch (e) { return {ok: false, ms: Math.round(performance.now() - t1), error: String((e as Error).stack ?? e).slice(0, 600)} }
+}
+// (LEAN10_REPROVE=fast|default: the caller's laws with the verdict's found laws proven again, the search off, as a user
+// passes them back (proveRule's fast set proof, or its default proof with the certificate), within LEAN10_REPROVE_MS)
+if (v.proven && v.checked && process.env.LEAN10_REPROVE) {
+  const t2 = performance.now(), fast = process.env.LEAN10_REPROVE === 'fast'
+  const w: any = withDeadline(clock() + Number(process.env.LEAN10_REPROVE_MS ?? 300_000), () => proveRule(r, [...laws, ...(v.found?.laws ?? []).map((f: any) => f.law)], {search: false, fast}))
+  out.reprove = {how: fast ? 'fast' : 'default', proven: !!(w.proven && w.checked), ms: Math.round(performance.now() - t2), ...(w.goal ? {goal: String(w.goal).slice(0, 120), stuck: w.stuck} : {})}
 }
 if (v.proven && v.checked) {
   const found: Law[] = (v.found?.laws ?? []).map((f: any) => f.law)

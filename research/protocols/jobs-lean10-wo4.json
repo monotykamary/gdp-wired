@@ -1,0 +1,14 @@
+[
+ {
+  "name": "wo-lean-r1",
+  "memory": 8192,
+  "timeout": 2400,
+  "cmd": "export LEAN10_TRIES=2 LEAN10_REPROVE=fast LEAN10_REPROVE_MS=600000 GDP_LEAN_TIMES=1; timeout -s KILL 1300 bun research/protocols/lean10.ts consensus_wo_decide 60000 $PWD/lean-kernel/P_consensus_wo_decide.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -E '^lean item' /tmp/e.log | tail -3; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/dev/null 2>&1 || echo LIBFAIL $m; done; if [ -f P_consensus_wo_decide.lean ]; then t=$(date +%s); timeout -s KILL 1300 lean P_consensus_wo_decide.lean > /tmp/lean.log 2>&1; s=$?; grep -E 'error|axioms|sorry' /tmp/lean.log | tail -c 3000; echo P_consensus_wo_decide lean-exit $s secs $(( $(date +%s)-t )) sorries $(grep -c sorry P_consensus_wo_decide.lean); else echo P_consensus_wo_decide no-export; fi; if [ -f P_consensus_wo_decide_standin.lean ]; then t=$(date +%s); timeout -s KILL 1300 lean P_consensus_wo_decide_standin.lean > /tmp/lean.log 2>&1; s=$?; grep -E 'error|axioms|sorry' /tmp/lean.log | tail -c 3000; echo P_consensus_wo_decide_standin lean-exit $s secs $(( $(date +%s)-t )) sorries $(grep -c sorry P_consensus_wo_decide_standin.lean); else echo P_consensus_wo_decide_standin no-export; fi; "
+ },
+ {
+  "name": "wo-lean-r2",
+  "memory": 8192,
+  "timeout": 2400,
+  "cmd": "export LEAN10_TRIES=2 LEAN10_REPROVE=default LEAN10_REPROVE_MS=600000 GDP_LEAN_TIMES=1; timeout -s KILL 1300 bun research/protocols/lean10.ts consensus_wo_decide 60000 $PWD/lean-kernel/P_consensus_wo_decide.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -E '^lean item' /tmp/e.log | tail -3; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/dev/null 2>&1 || echo LIBFAIL $m; done; if [ -f P_consensus_wo_decide.lean ]; then t=$(date +%s); timeout -s KILL 1300 lean P_consensus_wo_decide.lean > /tmp/lean.log 2>&1; s=$?; grep -E 'error|axioms|sorry' /tmp/lean.log | tail -c 3000; echo P_consensus_wo_decide lean-exit $s secs $(( $(date +%s)-t )) sorries $(grep -c sorry P_consensus_wo_decide.lean); else echo P_consensus_wo_decide no-export; fi; if [ -f P_consensus_wo_decide_standin.lean ]; then t=$(date +%s); timeout -s KILL 1300 lean P_consensus_wo_decide_standin.lean > /tmp/lean.log 2>&1; s=$?; grep -E 'error|axioms|sorry' /tmp/lean.log | tail -c 3000; echo P_consensus_wo_decide_standin lean-exit $s secs $(( $(date +%s)-t )) sorries $(grep -c sorry P_consensus_wo_decide_standin.lean); else echo P_consensus_wo_decide_standin no-export; fi; "
+ }
+]
