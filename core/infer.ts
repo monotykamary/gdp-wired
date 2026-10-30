@@ -35,7 +35,7 @@ import {quietly} from './cyclic.ts'
 import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
-import {clock, counted, decideLaw, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
+import {clock, counted, decideLaw, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
@@ -1791,6 +1791,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       return false
     }
     const smallReq: {params: Env, combos: Request[]}[] = []
+    // (each pool cube's near misses: rows of the filter's larger instances where every literal but one holds)
+    const nearMiss = new Map<Form, number>()
     let smallAll: Sample[] = []
     // (a small state run under another table of a function: its params' table, the rule's functions swapped while it is read)
     const tableOf = new WeakMap<Env, Record<string, Fn>>()
@@ -2109,10 +2111,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
               const alive = fs.filter(f => !killed.has(f))
               if (!alive.length) continue
               const rows = withTable(q.params, () => views[vi]!.rowsOf(q.params, q.st, true))
-              for (const f of alive) if (rows.some(row => f.cube!.every(l => litAt(l, row)))) killed.add(f)
+              for (const f of alive) { let near = 0; for (const row of rows) { let off = 0; for (const l of f.cube!) if (!litAt(l, row) && ++off > 1) break; if (off === 0) { killed.add(f); break } if (off === 1) near++ } if (near) nearMiss.set(f, (nearMiss.get(f) ?? 0) + near) }
             }
           }
           live = live.filter(f => !killed.has(f))
+          // (no instance after one that kills nothing; GDP_POOL_STOP=0 runs them all)
+          if (env.GDP_POOL_STOP !== '0' && k > 0 && !killed.size) break
         }
         opts.progress?.('join pool', {made: pool.length, left: live.length, states, ms: Math.round(performance.now() - t5)})
         return live
@@ -2385,14 +2389,16 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         for (const b of pool) if (!kept.includes(b)) by.set(b, kept.filter(a => implies(a, b)))
         return {kept: pool.filter(f => kept.includes(f)), by}
       }
-      // The top-down phase (DuoAI's, research/protocols/engine/DESIGN.md gen/ring2), behind GDP_TD=1: the filtered minimal
+      // The top-down phase (DuoAI's, research/protocols/engine/DESIGN.md gen/ring2, gen/ring3): the filtered minimal
       // pool, not given, not implied by the caller's laws, not false at a start; Houdini, each round every cube's goal with
       // the others assumed (decideLaw, a short cap first, the undecided again at a longer one only where the round would
       // end with no drop), every failure dropped at once, a cube a dropped one implied back where nothing kept implies it,
       // and only the goals whose proofs read a dropped cube asked again; then the caller's goals, the cone (their support,
       // closed under each cube's; a cube with no known support asked with the cone alone, a model's pre-state bringing in
       // the fixpoint's cubes false there), and prove() of the cone. A fixpoint that doesn't prove leaves the rounds below.
-      if (env.GDP_TD === '1' && !stop()) withTrees(() => withStrict(() => {
+      // (by default where the pool is past what the rounds' first round takes, 24, and Houdini can afford it, 64: GDP_TD=1
+      // always, GDP_TD=0 never)
+      if ((env.GDP_TD === '1' || (env.GDP_TD !== '0' && made.length > 24 && made.length <= 64)) && !stop()) withTrees(() => withStrict(() => {
         const T0 = performance.now(), ph = (o: Record<string, unknown>) => opts.progress?.('join td', {...o, td: Math.round(performance.now() - T0), wall: Math.round(performance.now() - t0)})
         const by = minPool.by, q1 = Number(env.GDP_TD_Q1 ?? joinQueryMs / 8), q2 = Number(env.GDP_TD_Q2 ?? q1)
         ph({phase: 'start', made: made.length, before: Math.round(tEngine - t0)})
@@ -2412,8 +2418,20 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           }
           // (a goal left undecided is kept, as optimistic Houdini keeps it, and asked again only once a round has dropped
           // nothing: a drop's round would ask it again at the same cap for nothing most rounds)
-          const todo = r === 0 ? hs : hs.filter(f => asked.has(f) && !undecided.has(f))
-          for (const f of todo) ask(f, q1)
+          let todo = r === 0 ? hs : hs.filter(f => asked.has(f) && !undecided.has(f))
+          // (the goals with the most near misses in the larger instances first, and a failure dropped at
+          // once, the round's later goals asked with the smaller set)
+          if (env.GDP_TD_ORDER !== '0') {
+            todo = [...todo].sort((a2, b2) => (nearMiss.get(b2) ?? 0) - (nearMiss.get(a2) ?? 0))
+            let cur = hs.filter(f => !failed.has(f))
+            for (const f of todo) {
+              if (performance.now() > wallUntil) { undecided.add(f); continue }
+              const ls2 = [...given, ...cur.map(lawFor)], dl = within(Math.min(wallUntil, performance.now() + q1), () => decideLaw(mm, ls2, given.length + cur.indexOf(f)))
+              if (!dl) { undecided.add(f); continue }
+              undecided.delete(f)
+              if (dl.proven) uses.set(textOf(f), dl.uses); else { failed.add(f); uses.delete(textOf(f)); cur = cur.filter(g => g !== f) }
+            }
+          } else for (const f of todo) ask(f, q1)
           let second = 0
           // (each once: one still undecided then is kept, the cone's proof deciding)
           if (!failed.size && undecided.size) for (const f of hs.filter(g => undecided.has(g) && !reasked.has(g))) { second++; reasked.add(f); ask(f, Math.max(q1, q2)) }
@@ -2464,11 +2482,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         ph({phase: 'cone', fixpoint: hs.length, undecided: undecided.size, caller: callerOk ? 1 : 0, cone: cut.length, undecidedInCone: cut.filter(f => undecided.has(f)).length, ms: Math.round(performance.now() - tc)})
         if (callerOk) for (let k = 0; k < 24 && performance.now() < wallUntil && !stop(); k++) {
           const t2 = performance.now(), setLaws = [...laws, ...cut.map(lawFor), ...(ghost ? [ghost.some] : [])]
+          const h0 = memoHits.n, m0 = memoHits.miss
           let v = within(t0 + ms, () => prove(setLaws, true))
-          const fastMs = Math.round(performance.now() - t2), fast = v.proven && v.checked ? 1 : 0, fastAt = String(v.goal ?? '').slice(0, 100)
+          const hits = memoHits.n - h0, misses = memoHits.miss - m0, fastMs = Math.round(performance.now() - t2), fast = v.proven && v.checked ? 1 : 0, fastAt = String(v.goal ?? '').slice(0, 100)
           if (!(v.proven && v.checked)) v = within(t0 + ms, () => prove(setLaws))
           const at = String(v.goal ?? ''), g = v.proven && v.checked ? undefined : cut.find(c => at.startsWith(`${textOf(c)} @`))
-          ph({phase: 'prove', cubes: cut.length, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), fastMs, fast, fastAt, at: at.slice(0, 100)})
+          ph({phase: 'prove', cubes: cut.length, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), fastMs, fast, hits, misses, setKey: memoHits.setKey, tdKey: env.GDP_MEMO_TRACE ? machineKey(forLaws([...given, ...cut.map(lawFor)]).m) : '', diff: env.GDP_MEMO_TRACE ? ((x: string, y: string) => { let i = 0; while (i < x.length && x[i] === y[i]) i++; return `${i}: ${x.slice(Math.max(0, i - 60), i + 60)} || ${y.slice(Math.max(0, i - 60), i + 60)}` })(JSON.stringify(forLaws([...given, ...cut.map(lawFor)]).m), memoHits.setJson) : '', fastAt, at: at.slice(0, 100)})
           if (v.proven && v.checked) { why = 'inductive'; cone = cut; enumProof = v; cubes = cut; break }
           if (!g) break
           cut = cut.filter(c => c !== g)

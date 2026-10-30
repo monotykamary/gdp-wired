@@ -839,6 +839,63 @@ minimal cut were then banked ahead of the IC3 rounds at the coordinator's reques
 **Not wired, as the order said:** ring doesn't fit 60 s. The sorted fast set proof is on the default path of
 gen/ring2. It needs the ten twice and the quick bar before any merge; one run of the ten is done.
 
+## gen/ring3: ring proven at 60 s (6 of 8 runs), top-down wired in at a pool-size threshold
+
+**The three levers, one at a time at 60 s** (Modal, one worker; run 1, then run 2)
+
+| lever | before the engine | Houdini | the cone's proof (memo hits / misses) | verdict |
+|---|---|---|---|---|
+| none (acb81a8) | 15.5 s | 42 s, 6 rounds | out of time | unknown |
+| 1. near-miss order, failures dropped within the round (`GDP_TD_ORDER`) | 15.7, 14.2 s | 36, 32 s, 4–5 rounds | 5.3 s, failed at a cut; 0.5 s at the wall | unknown, unknown (the cone reached at 54 and 48 s) |
+| 2. the filter stops after an instance that kills nothing (`GDP_POOL_STOP`) | 12.5, 14.1 s (filter 5.8, 6.5 s, against 7.4) | 39, 44 s | 5.4 s at the wall (0 / 22) | unknown, unknown |
+| 3a. a larger memo (`GDP_MEMO_CAP=16`) | 14.5 s | 43 s | 0 / 2 | unknown: no gain, not kept |
+| 3b. the memo up to fresh names (`GDP_MEMO_ALPHA`) | 17.2 s | 41 s | | unknown; at `--ms 180000` the cone's proof hits 19 of 22, 5.2 s against 7.8 |
+
+- **Why the cone's proof missed every decision:** proveRule makes the rule's machine again with fresh binders (`k$16`
+  against Houdini's `k$13`, and the kinds' laws' keys), so the memo's machine text and law texts never matched (0 of
+  22).
+- **The fix:** texts up to a renaming of fresh names (`x$N` named in order of appearance). With it, 19 of 22 are reused
+  and the kernel's check of the set still passes.
+
+**The three together** (`r6f`, 60 s, 3 runs): **proven 55.6, 48.7, 58.0 s.**
+- Before the engine 14.3–16.1 s; Houdini 30–36 s in 3–5 rounds; the cone's proof 2.8–4.6 s.
+
+**Wired in** (efefe58, 030d8a1):
+- **Top-down runs by default** where the minimal pool is 25 to 64 cubes: past what the rounds' first round takes (24),
+  and within what Houdini can afford. The IC3 rounds are the fallback with the time left.
+- **The three levers are on by default.** `GDP_TD=0|1`, `GDP_TD_ORDER=0`, `GDP_POOL_STOP=0` and `GDP_MEMO_ALPHA=0` turn
+  them off.
+- **Which protocols reach top-down:** ring (made 46) and distributed (60). toy (10), decentralized and sharded (17) and
+  wo (99–136) don't.
+
+**The ten twice on the wired tree** (`r7a`; main acb81a8 is its base, nothing newer):
+- **proven both runs:** sync 6.8 / 8.5 s, async 25.5 / 20.8, decentralized 18.2 / 18.3, 2PC 22.1 / 11.6, ticket 32.7 /
+  36.5, toy 12.1 / 11.7, sharded 27.3 / 26.0, distributed 42.2 / 30.6;
+- **ring:** unknown 60.2 s, then **proven 46.0 s**;
+- **wo:** unknown 65.3 / 64.4 s;
+- the typecheck and lint are clean.
+- **Ring three more times** (`r7b`): unknown (the filter left 75 and the pool was 50: Houdini 41 s, out of time),
+  proven 52.3 s, proven 37.2 s.
+- **Ring at 60 s with this code: 6 of 8 runs** (3 of 3 behind the switches, 3 of 5 wired).
+  - The misses are slow containers: 15–17 s before the engine, or a filter that leaves more cubes.
+- **Distributed now goes through top-down,** and its time varies more: 30.6–42.2 s against 25–33 s.
+
+**The quick bar** (`--only rw,f1,f2,g332,suite,onecpu` against the cached 5d4da3f, on 030d8a1;
+<main>/runs/bar/runs/ring3-030d8a1-quick):
+- f1 34 and rw 74/14/3, the same as the base;
+- f2 25: "gained 1", term/Piecewise, a flip at the time limit (seen before);
+- g332 the same search on 332 of 332 (280.2 s against 285.9 s);
+- the suite 233 passed, 0 failed;
+- onecpu no failure.
+- Lost 0, wrong 0. Estimated $0.58.
+
+**Verified, not:**
+- **Verified:** all of the above (Modal; runs as counted).
+- **Not verified:**
+  - ring's 60 s margin on slow containers (2 misses in 8);
+  - distributed's spread under top-down beyond two runs;
+  - the threshold's effect on the corpus beyond the quick bar's dev sets.
+
 ## gen/ring2: the sorted fast set proof banked; Houdini from 77 s to 39–55 s (ring at 60 s still unknown)
 
 **Part 1, the gate for the default path at a28e529** (the sorted fast set proof and the scaled filter; top-down off

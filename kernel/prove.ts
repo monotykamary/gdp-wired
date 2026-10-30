@@ -1456,13 +1456,21 @@ type Proof1 = {part: Goal, tree: Tree, uses: Map<string, string>, tuples?: Map<s
 type Settled = {text: string, inst: Instances, proofs: Record<string, Proof1>}
 type Unsettled = {goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram, why?: string}
 type Memo = {proven: Map<string, Settled>, models: Map<string, {text: string, model: Unsettled, set: Map<string, string>}>}
+// (GDP_MEMO_CAP: how many machines' decisions are kept, 4 by default; the hits and misses counted for the engine's trace)
+const memoCap = Number(env.GDP_MEMO_CAP ?? 4)
+export const memoHits = {n: 0, miss: 0, setKey: '', setJson: ''}
+export const machineKey = (m: Machine): string => { const s = JSON.stringify(m); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return `${s.length}:${h}` }
 const memos = new Map<string, Memo>(), machineText = new WeakMap<Machine, string>(), lawText = new WeakMap<C, string>()
-const textOfLaw = (l: Law): string => { let t = lawText.get(l.holds); if (t === undefined) lawText.set(l.holds, (t = JSON.stringify([l.holds, l.forall ?? null, l.keys ?? null]))); return t }
+// (texts up to a renaming of fresh names, x$12: a rule's machine and kinds' laws are made again with
+// fresh binders, so the same machine had another text each time and no decision was found again; GDP_MEMO_ALPHA=0 off)
+const alpha = env.GDP_MEMO_ALPHA !== '0'
+const alphaText = (s: string): string => { if (!alpha) return s; const to = new Map<string, string>(); return s.replace(/([A-Za-z_?]+)\$(\d+)/g, (w, p: string) => { let r = to.get(w); if (!r) to.set(w, (r = `${p}$_${to.size}`)); return r }) }
+const textOfLaw = (l: Law): string => { let t = lawText.get(l.holds); if (t === undefined) lawText.set(l.holds, (t = alphaText(JSON.stringify([l.holds, l.forall ?? null, l.keys ?? null])))); return t }
 function memoOf(m: Machine): Memo {
   let key = machineText.get(m)
-  if (key === undefined) machineText.set(m, (key = JSON.stringify(m)))
+  if (key === undefined) machineText.set(m, (key = alphaText(JSON.stringify(m))))
   let memo = memos.get(key)
-  if (!memo) { if (memos.size >= 4) memos.clear(); memos.set(key, (memo = {proven: new Map(), models: new Map()})) }
+  if (!memo) { if (memos.size >= memoCap) memos.clear(); memos.set(key, (memo = {proven: new Map(), models: new Map()})) }
   return memo
 }
 const stands = (p: Proof1, byName: Map<string, Law>): boolean => [...p.uses].every(([n, t]) => { const l = byName.get(n); return !!l && textOfLaw(l) === t })
@@ -1471,7 +1479,8 @@ const stands = (p: Proof1, byName: Map<string, Law>): boolean => [...p.uses].eve
 function settled(m: Machine, laws: Law[], i: number, rounds: number, usual: boolean): Settled | Unsettled | undefined {
   const law = laws[i]!, memo = memoOf(m), byName = new Map(laws.map(l => [l.name, l])), text = textOfLaw(law)
   const was = memo.proven.get(law.name), prev = was?.text === text ? was : undefined
-  if (prev && Object.values(prev.proofs).every(p => stands(p, byName))) return prev
+  if (prev && Object.values(prev.proofs).every(p => stands(p, byName))) { memoHits.n++; return prev }
+  memoHits.miss++
   const mo = rounds === modelRounds ? memo.models.get(law.name) : undefined
   if (mo && mo.text === text && laws.every(l => mo.set.get(l.name) === textOfLaw(l))) return mo.model
   const out = settle(m, laws, i, rounds, usual, prev)
@@ -1567,6 +1576,7 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
 // kernel.ts (checkLaws). Machines with a history, sums or "there exists": proveLaws. A search's trial proof: no cyclic
 // certificate is made.
 export function proveSetFast(m: Machine, laws: Law[]): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}, failed?: Report['failed'] & {diagram?: Diagram}} {
+  if (env.GDP_MEMO_TRACE) { memoHits.setKey = machineKey(m); memoHits.setJson = JSON.stringify(m) }
   if (!fastShape(m, laws)) return proveLaws(m, laws)
   return withPatterns(m, laws, () => pointed(laws, () => {
     const at: Settled[] = []
