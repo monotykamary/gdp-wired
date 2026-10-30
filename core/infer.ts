@@ -1566,7 +1566,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           }
           if (!('tree' in quick) && quick.stuck === 'sat' && quick.witness) return {stuck: 'sat', witness: quick.witness, g: g!}
         }
+        const tg = performance.now()
         const out = budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2}))
+        if (env.GDP_JOIN_TRACE) opts.progress?.('join grow', {goal: name.slice(0, 60), ms: Math.round(performance.now() - tg), out: 'tree' in out ? 'proven' : out.stuck})
         if (!('tree' in out)) return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined, g: g!}
         for (const h of usedHyps(g!, out.tree)) read(h)
         return {used, g: g!}
@@ -2198,7 +2200,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (performance.now() > wallUntil) return false
         try { post = run.step(params, st, requestOf(w)); stepNamed(st, post) } catch { return false }
         if (performance.now() > wallUntil) return false
-        if (!others.every(g => holdsAt(g, at(st)))) return false
+        const before = at(st)
+        if (!others.every(g => holdsAt(g, before))) return false
         lastPre = {params, st, w}
         if (!f) return breaks(params, post, st, requestOf(w))
         return (at(post).views[f.view!] ?? []).some(r => judged(f, r) && !holdsRow(f, r))
@@ -2670,6 +2673,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       })
     }
     }
+    if (env.GDP_JOIN_TRACE) opts.progress?.('join follows', {engine: !!sorts && callerLaws.some(l => l.keys?.length) && atoms.every((a, i) => a.cell || a.param || !!a.term || a.view !== undefined || i >= valsS.length || new Set(valsS[i]).size <= 4), now: Math.round(now()), jUntil: Math.round(jUntil), wall: Math.round(performance.now() - t0)})
     for (;;) {
       if (now() > jUntil || stop()) { why = 'time'; break }
       rounds++

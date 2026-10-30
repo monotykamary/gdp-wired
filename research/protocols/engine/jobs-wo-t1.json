@@ -1,0 +1,52 @@
+[
+ {
+  "name": "lock_server_sync-t1",
+  "cmd": "GDP_JOIN_TRACE=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only lock_server_sync --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (grow|end|engine|follows|set|enumerated|td)|infer join\\] .*(ms\":[0-9]{4}|inductive)|houdini\\]' /tmp/err.log | cut -c1-220 | tail -c 30000; exit $s",
+  "timeout": 150
+ },
+ {
+  "name": "lock_server_async-t1",
+  "cmd": "GDP_JOIN_TRACE=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only lock_server_async --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (grow|end|engine|follows|set|enumerated|td)|infer join\\] .*(ms\":[0-9]{4}|inductive)|houdini\\]' /tmp/err.log | cut -c1-220 | tail -c 30000; exit $s",
+  "timeout": 150
+ },
+ {
+  "name": "two_phase_commit-t1",
+  "cmd": "GDP_JOIN_TRACE=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (grow|end|engine|follows|set|enumerated|td)|infer join\\] .*(ms\":[0-9]{4}|inductive)|houdini\\]' /tmp/err.log | cut -c1-220 | tail -c 30000; exit $s",
+  "timeout": 150
+ },
+ {
+  "name": "ticket_lock-t1",
+  "cmd": "GDP_JOIN_TRACE=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only ticket_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (grow|end|engine|follows|set|enumerated|td)|infer join\\] .*(ms\":[0-9]{4}|inductive)|houdini\\]' /tmp/err.log | cut -c1-220 | tail -c 30000; exit $s",
+  "timeout": 150
+ },
+ {
+  "name": "toy_consensus_forall-t1",
+  "cmd": "GDP_JOIN_TRACE=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (grow|end|engine|follows|set|enumerated|td)|infer join\\] .*(ms\":[0-9]{4}|inductive)|houdini\\]' /tmp/err.log | cut -c1-220 | tail -c 30000; exit $s",
+  "timeout": 150
+ },
+ {
+  "name": "distributed_lock-t1",
+  "cmd": "GDP_JOIN_TRACE=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (grow|end|engine|follows|set|enumerated|td)|infer join\\] .*(ms\":[0-9]{4}|inductive)|houdini\\]' /tmp/err.log | cut -c1-220 | tail -c 30000; exit $s",
+  "timeout": 150
+ },
+ {
+  "name": "ring_leader_election-t1",
+  "cmd": "GDP_JOIN_TRACE=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (grow|end|engine|follows|set|enumerated|td)|infer join\\] .*(ms\":[0-9]{4}|inductive)|houdini\\]' /tmp/err.log | cut -c1-220 | tail -c 30000; exit $s",
+  "timeout": 150
+ },
+ {
+  "name": "sharded_key_value_store-t1",
+  "cmd": "GDP_JOIN_TRACE=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (grow|end|engine|follows|set|enumerated|td)|infer join\\] .*(ms\":[0-9]{4}|inductive)|houdini\\]' /tmp/err.log | cut -c1-220 | tail -c 30000; exit $s",
+  "timeout": 150
+ },
+ {
+  "name": "consensus_wo_decide-t1",
+  "cmd": "GDP_JOIN_TRACE=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (grow|end|engine|follows|set|enumerated|td)|infer join\\] .*(ms\":[0-9]{4}|inductive)|houdini\\]' /tmp/err.log | cut -c1-220 | tail -c 30000; exit $s",
+  "timeout": 150
+ },
+ {
+  "name": "decentralized_lock-t1",
+  "cmd": "GDP_JOIN_TRACE=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (grow|end|engine|follows|set|enumerated|td)|infer join\\] .*(ms\":[0-9]{4}|inductive)|houdini\\]' /tmp/err.log | cut -c1-220 | tail -c 30000; exit $s",
+  "timeout": 150
+ }
+]

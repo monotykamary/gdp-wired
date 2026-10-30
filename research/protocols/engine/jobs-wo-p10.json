@@ -1,0 +1,5 @@
+[
+ {"name": "wo-p10-replay", "cmd": "bun add z3-solver@5.3.3 >/dev/null 2>&1; gunzip -c research/protocols/engine/dumps/wo-td-base.jsonl.gz > /tmp/wo.jsonl; WO_Z3=1 timeout -s KILL 700 bun research/protocols/engine/wodl.ts replay /tmp/wo.jsonl 1000 2>&1 | cut -c1-300 | tail -c 80000; WO_Z3=1 timeout -s KILL 60 bun research/protocols/engine/wodl.ts given 1000 2>&1 | cut -c1-200", "timeout": 900},
+ {"name": "wo-p10-e2e60", "cmd": "WO_DUMP_OUT=1 GDP_GOAL_TRACE=1 GDP_EXISTS_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/protocols/engine/wodump.ts consensus_wo_decide 60000 /tmp/wo.jsonl 2>&1 | grep -v 'join view\\|join cubes\\|join made\\|join small domains' | cut -c1-330 | tail -c 300000", "timeout": 200},
+ {"name": "wo-p10-e2e90", "cmd": "WO_DUMP_OUT=1 GDP_GOAL_TRACE=1 GDP_EXISTS_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 130 bun research/protocols/engine/wodump.ts consensus_wo_decide 90000 /tmp/wo.jsonl 2>&1 | grep -v 'join view\\|join cubes\\|join made\\|join small domains' | cut -c1-330 | tail -c 300000", "timeout": 240}
+]

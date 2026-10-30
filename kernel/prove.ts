@@ -1579,6 +1579,8 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
       more = raw && bySort(m, laws, raw)
       const count = (x: Instances) => Object.values(x).reduce((s2, ks) => s2 + ks.length, 0)
       if (strict(usual) && (capped || pastWall() || !more || count(more) <= count(inst))) return undefined
+      // (the model's only broken instances another sort's: the next round would find it again; decideLaw's no answer)
+      if (more && count(more) <= count(inst)) return usual ? last : undefined
       if (!more || pastWall()) return last
       break
     }
@@ -1678,14 +1680,16 @@ const sortedOn = env.GDP_SORTED !== '0'
 // path where an unconfirmed model used to answer, 27-36 s against 13-17 s): a model is returned where no assumed law is
 // broken at it over its own domain, else nothing (research/protocols/engine/DESIGN.md, gen/ring)
 let strictOn = false
-const strict = (usual: boolean) => !usual && (strictOn || env.GDP_STRICT === '1')
+// (decideLaw's models are confirmed ones only, always: an unconfirmed one, at the deadline or past the model rounds, was
+// wrong against Z3 on 43 of wo's 143 top-down goals; GDP_STRICT=0 gives the old answer)
+const strict = (usual: boolean) => !usual && (strictOn || env.GDP_STRICT !== '0')
 // (strict models for a caller's own decisions: the engine's top-down phase, whose drops an unconfirmed model would make wrong)
 export const withStrict = <T>(f: () => T): T => { const o = strictOn; strictOn = true; try { return f() } finally { strictOn = o } }
 // (by machine and by the law set's names: one machine is asked with many sets)
 const sortsMemo = new WeakMap<Machine, Map<string, {key: (law: string, k: string) => string, of: (e: E) => string | undefined, find: (a: string) => string, anchored: (a: string) => boolean}>>()
 function sortsOf(m: Machine, laws: Law[]) {
   const par = new Map<string, string>(), find = (a: string): string => { const q = par.get(a); if (q === undefined || q === a) return a; const r = find(q); par.set(a, r); return r }
-  const union = (a: string, b: string) => { const ra = find(a), rb = find(b); if (ra !== rb) par.set(ra, rb) }
+  const named = new Set<string>(), union = (a: string, b: string) => { named.add(a); named.add(b); const ra = find(a), rb = find(b); if (ra !== rb) par.set(ra, rb) }
   const pats = patternsOf(m, laws), whole = new Map<string, string>()
   const leaves = (e: E, k: number, out: [E, number][]): void => { if (e.op === 'add') { leaves(e.a, k, out); leaves(e.b, k, out) } else if (e.op === 'mul') leaves(e.a, k * e.k, out); else if (e.op !== 'const') out.push([e, k]) }
   const walkC = (c: C, name: (v: string) => string): void => {
@@ -1717,6 +1721,13 @@ function sortsOf(m: Machine, laws: Law[]) {
   for (const [mp, w] of Object.entries(m.step.maps ?? {})) if (!('each' in w)) walkC({op: 'get', map: mp, key: w.key} as unknown as C, plain)
   for (const [mp, w] of Object.entries(m.step.maps ?? {})) if ('each' in w) union(`V:${w.each}`, (pats[mp] ?? [1]).length > 1 ? `K:${mp}` : `M:${mp}:0`)
   for (const l of laws) { const own = new Set([l.forall, ...(l.keys ?? [])].filter(Boolean)); walkC(l.holds, v => (own.has(v) ? `L:${l.name}:${v}` : `V:${v}`)) }
+  // (two maps of one pattern whose parts are of the same sorts have their whole keys of one sort: wo's Votes, VoteMsg and
+  // VoteRequestMsg, node × node, so a composed term read at one is an instance of a law about another's whole key)
+  const multi = Object.keys(pats).filter(mp => pats[mp]!.length > 1)
+  for (let grew = true; grew;) {
+    grew = false
+    for (const a of multi) for (const b of multi) if (a < b && find(`K:${a}`) !== find(`K:${b}`) && pats[a]!.join() === pats[b]!.join() && pats[a]!.every((_, i) => named.has(`M:${a}:${i}`) && named.has(`M:${b}:${i}`) && find(`M:${a}:${i}`) === find(`M:${b}:${i}`))) { union(`K:${a}`, `K:${b}`); grew = true }
+  }
   const anchorOf = new Map<string, boolean>()
   for (const a of par.keys()) if (/^(M|K|A|F):/.test(a)) anchorOf.set(find(a), true)
   for (const a of [...par.values()]) if (/^(M|K|A|F):/.test(a)) anchorOf.set(find(a), true)
