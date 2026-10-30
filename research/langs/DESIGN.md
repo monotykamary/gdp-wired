@@ -929,3 +929,10 @@ changed files. On the suite's own image (modal/run.py): the new `extract-swift` 
 installs swift.org's 6.3.3 for Debian 12 in 46 s; 111 s in all) and scripts/smoke.sh without Swift (the front end
 refuses). Not verified: other platforms than Linux x86-64 for the harness (macOS's fork path is the same code, untested
 here), Swift 5.9 and 5.10 toolchains (6.3.3 only), branch coverage (not counted).
+
+**Bar** (quick, `--only rw,f1,f2,g332,suite,onecpu`, b05f651 on fc5611b against the cached baseline of 5d4da3f): f1, f2,
+rw 74 / 14 / 3 and g332 332 of 332 (the same search) each 0 differing (gained 0, lost 0, wrong 0); the suite 233 of 233
+(the base's 227 jobs, 6 added since, extract-swift among them); onecpu no failure; $0.56 estimated
+(runs/bar/runs/b05f65166824-vs-5d4da3f49013-quick-2026-10-301006). The quick rw dev set holds no Swift item, so the
+realworld Swift items were proven on their own (above).
+
