@@ -2164,7 +2164,7 @@ export function sourceOf(mod: {path: string, root: string}, file: string): strin
 // rewritten, by its name in the positions; a call with no end (a reader that doesn't say) is a refusal of the check.
 export function stubbed(read: StepRead, text: (file: string) => string | undefined, stub: (a: Answer, i: number, call: string) => string): Map<string, string> {
   const edits = new Map<string, [number, number, string][]>(), starts = new Map<string, number[]>()
-  read.answers.forEach((a, i) => {
+  (read.answers ?? []).forEach((a, i) => {
     for (const s of a.at ?? []) {
       // (its place: offsets where the reader gives them, a JVM reader's; else from its position to its end)
       const m = /^(.*):(\d+):(\d+)$/.exec(s.p), e = s.end && /^(\d+):(\d+)$/.exec(s.end)
