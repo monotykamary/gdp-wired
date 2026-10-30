@@ -1,0 +1,7 @@
+[
+ {
+  "name": "distributed-pilot",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/e.log | cut -c1-200; grep -E 'join (pool|small instance|enumerated\" .\"views|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ }
+]

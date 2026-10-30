@@ -1435,13 +1435,12 @@ const pointed = <T>(laws: Law[], f: () => T): T => {
 // goals asked again; a model left is one on every tuple of the goal's keys, returned with its diagram. undefined: a goal
 // not EPR-shaped, a core not proven or a budget run out (the caller's proveLaw next). What was settled before is kept
 // (`settledOf`). Untrusted: a caller's verdict rests on its final proof.
-export function decideLaw(m: Machine, laws: Law[], i: number, rounds = modelRounds): {proven: true, uses: string[]} | {proven: false, goal: string, stuck: 'sat', witness: Record<string, number>, diagram?: Diagram} | undefined {
+export function decideLaw(m: Machine, laws: Law[], i: number, rounds = modelRounds): {proven: true} | {proven: false, goal: string, stuck: 'sat', witness: Record<string, number>, diagram?: Diagram} | undefined {
   if (!fastShape(m, laws)) return undefined
   return withPatterns(m, laws, () => {
     if (!eprScope.patterns) return undefined
     const out = settled(m, laws, i, rounds, false)
-    // (a proof's support: the laws its goals' proofs read, the cone a set's proof can be cut to)
-    return !out ? undefined : 'proofs' in out ? {proven: true, uses: [...new Set(Object.values(out.proofs).flatMap(p => [...p.uses.keys()]))]} : out.stuck === 'sat' ? {proven: false, goal: out.goal, stuck: 'sat', witness: out.witness!, ...(out.diagram ? {diagram: out.diagram} : {})} : undefined
+    return !out ? undefined : 'proofs' in out ? {proven: true} : out.stuck === 'sat' ? {proven: false, goal: out.goal, stuck: 'sat', witness: out.witness!, ...(out.diagram ? {diagram: out.diagram} : {})} : undefined
   })
 }
 
