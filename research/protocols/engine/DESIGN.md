@@ -145,6 +145,20 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 - **wo's join query:** the 6.3 s query is the first ask of "every k: Leader[k] <= VoteRequestMsg[k]" (rounds 1–9 ask other goals), so a cap on repeats saves nothing. Not built.
 - **Verdicts** (`f4`, 2 runs): sync 11–13 s, async 23–26, decentralized 15–18, 2PC 18–20, ticket 29–34, toy 11–15, sharded 27–36, all proven; wo 64–68 (one run past the wall by 8 s), unknown.
 
+**The leave-one-out probe** (`looprobe.ts`; the picks by a temporary hook, at 2bd8806 plus the probe)
+- **ring:** all three written laws are essential. All are in the space: the leader law, the own-id law, the three between turns.
+  - **No shape is missing.** Those 5 cubes prove the caller by the usual proof (0.6 s), but `proveSetFast` reports a spurious model at the own-id law's step, on the EPR side.
+  - **Guard:** the set-proof loop asks the usual proof where the fast one fails at a cube the rounds proved from that same set.
+- **distributed:** essential are the 7 written laws other than "two holders are one" and "a locked epoch at a node's epoch is its own".
+  - **12 enumerated cubes prove the caller** (0.8 s, fast): the 11 forms of the essential laws and "two transfers are never at one epoch", which covers the "two live transfers" case at one epoch (the 4-key form has z ≠ w).
+  - **No shape is missing either,** once the one-sided cut is narrowed. It had struck "started is 0 and y + 1 <= Ep[x]", the only form of "Ep is 0 before init" (Ep has an `is 0` literal only). A key bounded from above alone is 0 there, and the cube a true one; the cut now strikes only keys bounded from below.
+  - **The gap is navigation:** 7 of the 12 are minimal and in round 0; the 3- and 4-literal five must come as blockers, and don't.
+- **The frames' fixpoint** grows by relevance while there is time (a demoted cube's model is a counterexample state). distributed and ring now end early, at 35–46 s, with nothing relevant left: the five never rank.
+- **wo's overrun:**
+  - **mine, fixed:** the engine's CDCL searches had a counted budget alone, which runs on past the wall (6 s of samples past 59 s in `growCdcl`, `pastwall.py` on bun's CPU profile); they now carry the engine's wall.
+  - **what is left is the EPR side:** proveLaw's EPR-first `settle` → `epr.ts` `decide`, about 3.4 s of samples past 59 s. wo ends at 64–66 s (was 68).
+- **Verdicts** (`f5`, 2 runs): sync 8 s, async 23–29, decentralized 13–16, 2PC 15–23, ticket 30, toy 15–16, sharded 30–32, proven; distributed 44–46, ring 35–44, wo 65–66, unknown.
+
 **The expressibility map** (each written law in models.ts's `human`, against the engine's enumeration; `smallprobe.ts` with CUBES=made lists it, and 'join view' each view's literals)
 
 | Protocol | Written law | In the candidate space? | Missing block or cause |
