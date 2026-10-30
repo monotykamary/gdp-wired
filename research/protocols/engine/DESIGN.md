@@ -43,6 +43,272 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/ring: the two pilots for ring (from main a095ae3; nothing built)
+
+The pilot code is on exp/pool-z3, since both pilots use its Z3 dump and replay. It adds `GDP_CONE_PILOT` and
+`GDP_EPR_WHY` (each EPR decision's outcome, ms and size, and its ordered terms' classes), plus `withWallAt` for the
+pilot's own wall. Runs are `runs/engine/rg1`–`rg4` in ../gdp-wired-poolz3, Modal 2 CPU.
+
+**Pilot 1, cores for the cone cut: FAIL.**
+- **The setup:** ring's IC3 set with the filtered pool and Z3 (`GDP_POOL=ic3 GDP_Z3=ic3`, 60 s) ended at 29 cubes,
+  with all 5 probe-proven cubes in it.
+- **decideLaw at 5 s per goal, the whole set assumed** (a wall of its own past the search's): 104 s for 30 goals.
+  - 11 proven;
+  - 6 models, 5 of them at the 5 s deadline;
+  - 13 undecided.
+- **The caller** ("one leader") is proven from 4 cubes. That is the cone, well under 30. But 3 of the 4 are undecided,
+  so their own support never joins.
+- **`prove()` of the 4-cube cone** fails in 1.35 s at "Leader[x] ∧ Pending[idn(y), y]" @step.
+- **The caller's support isn't the probe-proven 5.** The proof routes through other true cubes whose own goals
+  decideLaw can't settle.
+- So the cone cut needs an oracle that decides ring's goals. It depends on pilot 2; on its own it isn't built.
+- A first run of this pilot returned in 1–2 ms a goal: it ran after the search's wall, which `withWall` keeps (it takes
+  the smaller of two walls). Rerun with its own wall.
+
+**Pilot 2, ring's ordered successors and the injective `idn`: the goals become decidable with time (PASS on its
+criterion); the mechanism I designed is falsified as the cause.**
+
+**Replay of ring's 44 top-down goals** (round 0, the 44-cube shrunk pool assumed; `z3probe.ts replay`)
+
+| per goal | decideLaw undecided | decideLaw mean | Z3 undecided | Z3 mean | decideLaw's model against Z3's proof |
+|---|---|---|---|---|---|
+| 1 s | 39 of 44 (40 in rg4) | 1.01 s | 15 | 0.52 s | 0 |
+| 5 s | 11 (18 in rg3) | 3.2–3.6 s | 0 | 0.89 s | 4–5, all at the 5 s deadline |
+| 20 s | 5 | 7.1 s | 0 | 0.90 s | 2, both at the 20 s deadline |
+
+- **The unknown reason at 1 s:**
+  - 35 of the EPR decisions end "past the deadline" (median 875 ms);
+  - 53 are unsat, median 21 ms;
+  - no goal is out of the EPR shape.
+- **At 5 and 20 s:**
+  - the sat decisions take 2.0–2.8 s at the median (up to 11.5 s);
+  - 4 at 20 s end in "no values for the model's order";
+  - the disagreements are decideLaw's models returned unconfirmed at its deadline (settle's late exit, recorded before).
+- **So it's cost, not incompleteness.** By 20 s decideLaw decides 39 of 44 and Z3 all 44, at 7× decideLaw's speed.
+
+**Where the time goes** (bun's CPU profile of the 5 s replay, 197 s, `rg3`)
+- `decide0` is 92% of decideLaw's time; the core's proof by `grow` after an unsat, 3%.
+- Inside `decide0`:
+  - the theory check (`theoryCheck`, simplex) 30%;
+  - the order's atoms 17% (`atom` self time, a Map lookup by text, from `le` in the order's axioms);
+  - the CDCL search 15%;
+  - the literals and comparisons 9%;
+  - text keys (`stringify`) 7%;
+  - building the solver 5%.
+- **The order's axioms are cubic:** every pair of ordered terms is total, and below 65 terms transitivity is every
+  triple up front (`!lazy`). Ring's goals have a median of 28.5 ordered terms (60 at most; up to 195,112 transitivity
+  clauses).
+
+**The follow-up (`rg4`): would sorts split that order?**
+- The hope: Ivy's sorts, separate orders for node keys and ids, as Z3 had.
+- **No.** In 86 of 88 decisions all non-constant ordered terms are one class: union over every pair the hypotheses
+  compare or equate, and every successor. The median split of the transitivity triples is 1.0.
+- The likely reason, not yet checked: `lawInstances` seeds each law's keys with every key the goal reads (`readKeys`),
+  of any sort. An instance then puts a node where a law has an id (Pending's first part), and the comparisons it brings
+  join the two orders.
+- Z3 instantiated per sort (its quantified laws over uninterpreted sorts), which kept them apart.
+
+**What it means for the plan**
+- The successor and injectivity encoding I designed doesn't address the cost: neither appears in the profile.
+- The cost is the one order over every ordered term, cubic in its axioms, with the theory check on top. It is that
+  size because the instances aren't sorted.
+- **The next pilot (cheap, not run):** in `lawInstances`, seed a law's key only with keys of its sort.
+  - Use the union-find over key places that core/infer.ts's `keySorts` already does.
+  - Count, on ring's 44 goals, the instances, the ordered terms, the classes and the 1 s and 5 s decisions.
+  - **Passes if** ordered terms halve or split into two classes, and the 1 s undecided count falls below 15 (Z3's).
+- **The risk:** in the kernel's semantics keys are naturals, so a proof may need an instance across sorts. As an
+  untrusted oracle that only costs a decision, and `prove()` still checks the set over its own instances.
+- Pilot 1 is worth rerunning only after that.
+
+**The per-sort seeding pilot: FAIL** (`runs/engine/rg5` in ../gdp-wired-poolz3; the code is `bySort` in kernel/prove.ts on
+exp/pool-z3, behind `GDP_SORTED=1`)
+- **What it does:** each law's keys, and each quantified flag's, are taken only at keys of their sort. It applies to
+  `lawInstances` and to the model rounds' `modelInstances`. Untrusted instancing; no checking touched.
+  - The sorts are a union-find over:
+    - each part of a map's key, by its pattern;
+    - a map's whole key;
+    - a function's argument and its value;
+    - every name, with a law's own keys and a flag's bound keys local to it;
+    - any two names one comparison relates.
+  - A key term whose sort is anchored (to a map's part or key, or to a function) and differs from the law key's anchored
+    sort is left out.
+- **On the same 44 ring goals at 1 s, against the same dump run without it:**
+
+| | instance keys | ordered terms (median, max) | decisions in one class | decideLaw undecided | against Z3 |
+|---|---|---|---|---|---|
+| unsorted | 684,228 | 24, 60 | 61 of 87 | 43 | 0 disagree |
+| sorted | 313,388 (−54%) | 28.5, 60 | 62 of 88 | **29** (Z3: 15) | 0 disagree |
+
+- **So:** fewer than half the instances, 14 fewer goals undecided, and no wrong verdict. But the ordered terms don't
+  halve, the order doesn't split into classes, and 29 goals stay undecided, against the pass mark of 15.
+- **The cross-sort instances weren't what joins ring's order into one class.** What does join it is not yet known. The
+  next thing to read is one goal's comparisons: which hypothesis relates an id term to a node term (a frame's `x <
+  size` at an unanchored key, the theory's rows, or the parts' equalities).
+- **Not built, as the order said.** The strict deadline rule (unknown in place of an unconfirmed model at decideLaw's
+  deadline) is not included either: timeouts are still the common case (29 of 44 at 1 s), and the order made it
+  conditional on per-sort seeding making them rare.
+- **Spend this round:** $0.07 billed for 5 apps; the hour is still being billed.
+
+**The trace: what joins ring's order** (`runs/engine/rg6`–`rg8`; `GDP_EPR_TRACE` on exp/pool-z3. Each ordered term's
+anchors are read from the goal's reads (a map's key part, `idn`'s argument or value), then the hypotheses' related pairs
+are unioned in order. Goals 7, 11 and 16 of the 44, all undecided at 1 s, three of them Z3 proves.)
+- **The first decision of each goal** (17–22 ordered terms) already has the two sorts apart: ids with `m`, and nodes with
+  `size`. Goal 16 is the exception: a comparison in hypothesis 170, `idn(key1) ≤ key3`, where key3 is a law's key at
+  Pending's id part.
+- **The second decision** (44–59 terms, after a model round) has every term in one class. There, `idn(n)` and `m` are
+  read at Leader's key, a node place, and `idn` is applied to whole Pending keys: `idn(64·m + n)`, nested
+  `idn(64·idn(64·m + n) + …)`.
+- **The source** (`KEEP` trace of `bySort`): node-keyed laws instantiated at whole composed keys. "One leader", the cubes
+  and the kinds' laws were taken at `64·m + n`, `64·idn(n) + n1` and their nests.
+  - The per-sort filter kept them, because a composed term that no read names literally had no sort (`of` returned
+    nothing, and nothing means keep).
+  - The candidates named earlier were a frame's `x < size` at an unanchored key, the theory's rows, and key-part
+    equalities. It is the third: whole keys used as parts. The theory's rows and the frames follow from it.
+
+**The narrowest fix** (untrusted instancing only): a composed term (several parts, or a part under a factor) is a whole
+key, of the map whose pattern its factors are, or of no map. So it never takes a part's place.
+- **Two bugs the regression check found in the sort analysis itself** (toy consensus lost its proof, then got it back):
+  - a write's key wasn't read as a key (`Decided.set(v)`: v is a value);
+  - a write at every key of a one-part map named its binder by the map's whole key, not its part.
+- **Kept with it:** decideLaw's strict models. A model is returned only where confirmed: no model at the deadline,
+  past the instance rounds, or when its only broken instances are another sort's.
+- **Narrowed when built:** on gen/ring, the sorts apply to decideLaw's instances alone (`settle` with `usual` false).
+  The usual path's `lawInstances` is unchanged: with it filtered too, toy's join (before the engine) slowed from 7 to 56
+  s.
+
+**The 44-goal pilot with it: PASS** (`rg9`, `rg11`, `rg16`; the same dump as rg5)
+
+| at 1 s | instance keys | ordered terms (median, max) | decideLaw undecided | wrong against Z3 at 10 s |
+|---|---|---|---|---|
+| before (no sorts) | 684,228 | 28.5, 60 | 40–43 | 0 |
+| sorts with the fix, not strict | 327,537 | 22, 25 | 2 | 1: goal 27, a model where Z3 proves it, from past the instance rounds (5.1 s at 10 s) |
+| sorts with the fix, strict (final) | 310,893 | 22, 25 | **9** (Z3: 14) | **0** |
+| the same at 10 s | | | 1 | 0 (34 proven, 9 models, all as Z3's) |
+
+- **Against the pass mark:**
+  - the largest goal's order halved (60 to 25 ordered terms); the median fell 23% (28.5 to 22);
+  - the classes still don't split (one class in 118 of 144 decisions): ids and nodes share `size` and the comparisons
+    between them;
+  - 9 undecided against the mark of 15;
+  - 0 wrong.
+- decideLaw's mean at 1 s is 0.55 s against Z3's 0.51 s.
+
+**Built** (gen/ring 63bed40, kernel/prove.ts only, +94 lines, about 7 KB; `GDP_SORTED=0` and `GDP_STRICT=0` turn
+each off; untrusted, no checking touched)
+- **The ten, once** (`runs/engine/gr6`): the eight proven (sync 8.5 s, async 23.7, decentralized 36.0, 2PC 21.9, ticket
+  30.2, toy 14.7, sharded 33.2, distributed 33.9); ring and wo unknown.
+  - decentralized's 36 s is above its earlier 13–32 s, one run. Not checked again.
+- **Ring at 60 s, twice:** unknown (59.8 s, 60.0 s). Its rounds now finish their goals, but the pool Houdini's set
+  proofs fail at cubes in turn until the wall.
+- **Pilot 1 again** (the cone, with sorts and strict; `rg12`): FAIL.
+  - 32 cubes, all 5 targets in the set;
+  - at 5 s a goal: 15 proven, 2 models, 16 undecided (median 4.5 s);
+  - the cone is 15 cubes, 4 of them undecided, and `prove()` fails in 0.1 s at a 4-key cube with no support.
+  - At 5 s a goal the oracle still leaves half of the set's goals open with the whole set assumed (32 laws, against the
+    pilot's 47 with fewer instances).
+- **The quick bar** (`--only rw,f1,f2,g332,suite,onecpu` against the cached 5d4da3f; <main>/runs/bar/runs/ring-63bed40-quick):
+  - f1 34 and rw 74/14/3, as the base;
+  - f2 24 against 24.33 (no task differs);
+  - g332 the same search on 332 of 332, summed 289.5 s against 283.3 s;
+  - the suite 232 passed, 0 failed;
+  - onecpu no failure.
+  - Gained 0, lost 0, wrong 0. Estimated $0.57.
+
+**What's left for ring:**
+- the set's own goals at 30–47 assumed laws, about half still open at 5 s;
+- the pool Houdini's one-drop-per-proof loop.
+
+The order's size is no longer the cost on the round goals (mean 0.55 s, 9 of 44 open at 1 s).
+
+**Rule breaks this round, recorded:**
+- Two local commands ran with the 1-minute load over 12: a 1 s trace probe at load 15.9, and a typecheck and lint at
+  load 13.8, with the load checked in the same command rather than before it.
+- After that, the remaining traces and typechecks went to Modal.
+
+**Spend this round:** $0.85 billed for 34 apps so far; the current hour is still being billed.
+
+**Next round: decentralized, the memo bug, and ring top-down** (gen/ring 41f35a0; exp/pool-z3 for the top-down runs)
+
+**Decentralized's 36 s was real, and strict models caused it** (`runs/engine/gr7`–`gr10`, 60 s, Modal)
+
+| config | runs (s) |
+|---|---|
+| sorts and strict (as built at 63bed40) | 36.0, 29.6, 33.3, 32.8 |
+| strict off | 17.0, 13.3, 15.7 |
+| sorts off (strict on) | 27.4 |
+| 41f35a0: sorts on (memo fixed), strict off | 18.4, 15.7 |
+
+- **Why strict costs it:** where decideLaw used to return an unconfirmed model, the rounds now get no answer and fall
+  through to the CDCL search and the proof path.
+- **Strict is now off by default** (`GDP_STRICT=1` turns it on).
+
+**A bug in the sorts as built: their memo was keyed by machine alone.** One machine is asked with many law sets, so the
+sorts were the first set's, and the cubes' keys had no anchors.
+- In the engine, decideLaw's instances went nearly unfiltered: 11,557 to 11,478 keys a goal, against 54% fewer in the
+  replay.
+- 63bed40's measurements (the ten, ring, the bar) were therefore mostly strict's.
+- Fixed in 41f35a0: the memo is keyed by machine and by the law set's names.
+
+**41f35a0, the ten once** (`gr10`):
+- **proven:** sync 6.3 s, async 23.9, decentralized 18.4 and 15.7 (2 runs), 2PC 19.3, ticket 31.4, toy 12.1, sharded
+  32.9, distributed 32.6;
+- **unknown:** ring 59.7 s (twice) and wo 65.0 s.
+- The typecheck and lint are clean (on Modal).
+
+**Ring by top-down Houdini with the new oracle** (db6c00f's `GDP_POOL=td` on exp/pool-z3, with sorts (memo fixed) and
+strict; `rg19`)
+
+| round | cubes | failed | undecided | ms |
+|---|---|---|---|---|
+| 0 | 42 | 7 (2 back by co-implication) | 8 | 24,299 |
+| 1 | 37 | 6 | 9 | 15,347 |
+| 2 | 31 | 4 (6 back) | 6 | 9,734 |
+| 3 | 33 | 7 | 5 | 12,956 |
+| 4 | 26 | 0 | 5 | 6,094 |
+
+- **The fixpoint:** 26 cubes, 5 of them undecided, **all 5 targets in it** (none failed in any round).
+- **The caller and the cone:** the caller is proven from the fixpoint; the cone is 19 cubes with all 5 targets, 1
+  undecided. **`prove()` of the 19 proves in 8.6 s.**
+- **End to end: proven at 105 s** (`--ms 180000`). At `--ms 60000` it is out of time in round 1 (the engine starts at
+  24 s, and round 0 takes 24 s).
+- Before the memo fix the same run left 42 of 42 undecided in round 0 (`rg17`, `rg18`: every step goal past its
+  deadline at 0.8 s, 49 ordered terms).
+
+**So ring proves with the shrunk pool, the sorted oracle, top-down and the cone, but in 105 s, not 60.** Not wired in,
+as the order said.
+
+**What's left: time.**
+- **Before the engine:** 24 s (the join, the small instance, the filter).
+- **Houdini:** 68 s for 5 rounds; 0.25–0.6 s a goal, with 5–9 undecided a round costing 1 s each.
+- **The cone and `prove()`:** 9 s.
+
+**Levers, not tried:**
+- the undecided goals' 1 s each;
+- asking only the goals whose support a drop took away (DuoAI asks all; the memo's standing proofs would skip the
+  rest);
+- a smaller pool by a deeper filter (64 at +1);
+- the join's share before the engine.
+
+**The quick bar on 41f35a0** (`--only rw,f1,f2,g332,suite,onecpu` against the cached 5d4da3f;
+<main>/runs/bar/runs/ring-41f35a0-quick)
+- f1 34, as the base;
+- f2 25 against 24.33: "gained 1", term/Piecewise. It is proven at 51–56 s in 3 of 4 runs against 3 of 6 for the base,
+  a flip at the time limit;
+- rw 74/14/3, as the base;
+- g332 the same search on 332 of 332, summed 281.5 s against 280.6 s;
+- the suite 232 passed, 0 failed;
+- onecpu no failure.
+- Lost 0, wrong 0. Estimated $0.58.
+
+**Ready:** gen/ring at 41f35a0 (sorted decideLaw instances, strict off) is ready to merge on these numbers. Ring
+and wo are unchanged at 60 s; the eight stay proven; decentralized is back in its spread.
+
+**Not done this round, as the order said:**
+- step 3 (ring twice, the ten, the bar), because 1 didn't land;
+- wo's pilot, because pilot 2 didn't fail fast.
+
+**Spend:** $0.06 billed so far for this round's 4 apps; the hour is still being billed, about $0.15 in all.
+
 ## Through the gate: gen/rel-pool (main 2fdc902 with gen/pool merged, d8a1966; then main 8fedbea, 7b5b6e8)
 
 **The merge:**

@@ -1514,7 +1514,8 @@ function sourcesOf(m: Machine, laws: Law[], inst: Instances, goal: Goal, used: I
 // undefined where the EPR path alone can't say (not `usual`).
 function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boolean, prev?: Settled): Settled | Unsettled | undefined {
   const law = laws[i]!, byName = new Map(laws.map(l => [l.name, l]))
-  let inst = prev && laws.every(l => !l.forall || l.name in prev.inst) ? prev.inst : lawInstances(m, laws, i)
+  // (decideLaw's: each law's keys of its sort alone, `bySort`; the usual path's as they were)
+  let inst = prev && laws.every(l => !l.forall || l.name in prev.inst) ? prev.inst : usual ? lawInstances(m, laws, i) : bySort(m, laws, lawInstances(m, laws, i))
   const proofs: Record<string, Proof1> = Object.fromEntries(Object.entries(prev?.proofs ?? {}).filter(([, p]) => stands(p, byName)))
   const unknown = (g: Goal, why = 'past the search\'s end'): Unsettled | undefined => (usual ? {goal: g.name, stuck: 'unknown', why} : undefined)
   // (past the `rounds` model rounds, each round within the caller's deadline, its model the answer where the round can't
@@ -1526,9 +1527,9 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
     const late = round > rounds ? () => pastWall() || clock() > end : pastWall
     for (const g of obligations(m, laws, {[law.name]: inst}, i)) {
       if (proofs[g.name]) continue
-      if (late()) return last ?? unknown(g)
+      if (late()) return strict(usual) ? unknown(g) : last ?? unknown(g)
       let o: (Outcome & {part?: Goal, core?: number[]}) | undefined = eprScope.patterns ? eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late) : undefined
-      if (!o && (last || !usual)) return last
+      if (!o && (last || !usual)) return strict(usual) ? undefined : last
       // (the usual search, the EPR path not asked again)
       if (!o) { const busy = eprScope.busy; eprScope.busy = true; try { o = grow(g) } finally { eprScope.busy = busy } }
       if ('tree' in o) {
@@ -1537,9 +1538,15 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
         proofs[g.name] = {part: o.part ?? g, tree: o.tree, uses: new Map((src ? [...src.keys()] : laws.map(l => l.name)).map(n => [n, textOfLaw(byName.get(n)!)])), ...(src ? {tuples: src} : {})}
         continue
       }
-      if (o.stuck !== 'sat' || !o.witness) return last ?? unknown(g, o.why)
+      if (o.stuck !== 'sat' || !o.witness) return strict(usual) ? unknown(g, o.why) : last ?? unknown(g, o.why)
       last = {goal: g.name, stuck: 'sat', witness: o.witness, ...(o.diagram ? {diagram: o.diagram} : {}), why: 'a model'}
-      more = round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end) ? modelInstances(m, laws, inst, g, o.witness) : undefined
+      // (strict, decideLaw's: a model is returned only where confirmed, no assumed law broken at it over its own domain;
+      // one that breaks only instances of another sort, or that the rounds or the wall cut off, is no answer)
+      const capped = !(round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end)), raw = capped ? undefined : modelInstances(m, laws, inst, g, o.witness)
+      if (!capped && !raw) return last
+      more = raw && (usual ? raw : bySort(m, laws, raw))
+      const count = (x: Instances) => Object.values(x).reduce((s2, ks) => s2 + ks.length, 0)
+      if (strict(usual) && (capped || pastWall() || !more || count(more) <= count(inst))) return undefined
       if (!more || pastWall()) return last
       break
     }
@@ -1624,6 +1631,93 @@ function growAll(gs: Goal[]): Grown {
 }
 const grownModel = (x: Grown) => (x.out?.stuck === 'sat' && x.out.witness ? {goal: x.goal!, w: x.out.witness} : undefined)
 const grownSettled = (x: Grown) => !x.out || x.out.stuck === 'sat'
+// Each law's keys only at keys of their sort (Ivy's sorts; untrusted: an instance left out only weakens a goal, and a
+// set's proof is checked over its own instances). A sort is a class of a union-find over places: each part of a map's
+// key (by its pattern, `M:map:i`), a map's whole key where a law's key is the whole key (`K:map`), a function's
+// argument and value (`A:f`, `F:f`), and every name, a law's keys its own (`L:law:k`), a quantified flag's its own
+// (`Q:f:k`). Names one comparison relates are one sort; a part that is a function's value is that function's value's.
+// A key term whose sort is anchored (a map's part or key, a function's argument or value) and differs from the law key's
+// anchored sort is left out of the law's tuples there; a composed term is a whole key, of the map whose pattern its
+// factors are. GDP_SORTED=0 keeps every instance.
+const sortedOn = env.GDP_SORTED !== '0'
+// decideLaw's models confirmed only (GDP_STRICT=1; off by default: decentralized lock's rounds then lean on the proof
+// path where an unconfirmed model used to answer, 27-36 s against 13-17 s): a model is returned where no assumed law is
+// broken at it over its own domain, else nothing (research/protocols/engine/DESIGN.md, gen/ring)
+const strict = (usual: boolean) => !usual && env.GDP_STRICT === '1'
+// (by machine and by the law set's names: one machine is asked with many sets)
+const sortsMemo = new WeakMap<Machine, Map<string, {key: (law: string, k: string) => string, of: (e: E) => string | undefined, find: (a: string) => string, anchored: (a: string) => boolean}>>()
+function sortsOf(m: Machine, laws: Law[]) {
+  const par = new Map<string, string>(), find = (a: string): string => { const q = par.get(a); if (q === undefined || q === a) return a; const r = find(q); par.set(a, r); return r }
+  const union = (a: string, b: string) => { const ra = find(a), rb = find(b); if (ra !== rb) par.set(ra, rb) }
+  const pats = patternsOf(m, laws), whole = new Map<string, string>()
+  const leaves = (e: E, k: number, out: [E, number][]): void => { if (e.op === 'add') { leaves(e.a, k, out); leaves(e.b, k, out) } else if (e.op === 'mul') leaves(e.a, k * e.k, out); else if (e.op !== 'const') out.push([e, k]) }
+  const walkC = (c: C, name: (v: string) => string): void => {
+    const node = (e: E): string | undefined => (e.op === 'var' ? name(e.name) : e.op === 'get' && m.fns?.[e.map] ? `F:${e.map}` : undefined)
+    const visit = (o: unknown): void => {
+      if (!o || typeof o !== 'object') return
+      const x = o as {op?: string, map?: string, key?: E, a?: E, b?: E}
+      if (x.op === 'get' && x.key) {
+        if (m.fns?.[x.map!]) { const n = node(x.key); if (n) union(n, `A:${x.map}`) }
+        else {
+          const ls: [E, number][] = []; leaves(x.key, 1, ls)
+          const pat = pats[x.map!] ?? [1]
+          if (pat.length > 1 && ls.length === 1 && ls[0]![1] === 1) { const n = node(ls[0]![0]); if (n) union(n, `K:${x.map}`) }
+          else { if (pat.length > 1) whole.set(JSON.stringify(x.key), `K:${x.map}`); for (const [e, k] of ls) { const idx = pat.indexOf(k), n = node(e); if (n && idx >= 0) union(n, `M:${x.map}:${idx}`) } }
+        }
+      }
+      if ((x.op === '<' || x.op === '<=' || x.op === '=') && x.a && x.b) {
+        const la: [E, number][] = [], lb: [E, number][] = []; leaves(x.a, 1, la); leaves(x.b, 1, lb)
+        if (la.length === 1 && lb.length === 1 && Math.abs(la[0]![1]) === 1 && Math.abs(lb[0]![1]) === 1) { const p = node(la[0]![0]), q = node(lb[0]![0]); if (p && q) union(p, q) }
+      }
+      for (const y of Object.values(o)) visit(y)
+    }
+    visit(c)
+  }
+  const plain = (v: string) => `V:${v}`
+  walkC(m.step as unknown as C, plain); if (m.assume) walkC(m.assume, plain); if (m.pre) walkC(m.pre, plain)
+  for (const [f, c] of Object.entries(m.step.flags ?? {})) if (c.op === 'all') { const bs = new Set(boundOf(c)); walkC(c, v => (bs.has(v) ? `Q:${f}:${v}` : `V:${v}`)); witnessesOf(f, c).forEach((w, j) => union(`V:${w}`, `Q:${f}:${boundOf(c)[j]}`)) }
+  // (a write at a key: the key read there; a write at every key, its binder the map's whole key)
+  for (const [mp, w] of Object.entries(m.step.maps ?? {})) if (!('each' in w)) walkC({op: 'get', map: mp, key: w.key} as unknown as C, plain)
+  for (const [mp, w] of Object.entries(m.step.maps ?? {})) if ('each' in w) union(`V:${w.each}`, (pats[mp] ?? [1]).length > 1 ? `K:${mp}` : `M:${mp}:0`)
+  for (const l of laws) { const own = new Set([l.forall, ...(l.keys ?? [])].filter(Boolean)); walkC(l.holds, v => (own.has(v) ? `L:${l.name}:${v}` : `V:${v}`)) }
+  const anchorOf = new Map<string, boolean>()
+  for (const a of par.keys()) if (/^(M|K|A|F):/.test(a)) anchorOf.set(find(a), true)
+  for (const a of [...par.values()]) if (/^(M|K|A|F):/.test(a)) anchorOf.set(find(a), true)
+  const of = (e: E): string | undefined => {
+    const w = whole.get(JSON.stringify(e)); if (w) return w
+    const ls: [E, number][] = []; leaves(e, 1, ls)
+    // (a composed term, several parts or a part under a factor, is a whole key: of the map whose pattern its factors are,
+    // never a part's sort)
+    if (ls.length !== 1 || ls[0]![1] !== 1) { const cs = ls.map(([, c]) => c).sort((a, b) => b - a).join(','); const mp = Object.keys(pats).find(k2 => pats[k2]!.length > 1 && [...pats[k2]!].sort((a, b) => b - a).join(',') === cs); return mp ? `K:${mp}` : `K:?${cs}` }
+    const x = ls[0]![0]
+    return x.op === 'var' ? (x.name.endsWith('#') ? undefined : `V:${x.name}`) : x.op === 'get' && m.fns?.[x.map] ? `F:${x.map}` : undefined
+  }
+  return {key: (law: string, k: string) => `L:${law}:${k}`, of, find, anchored: (a: string) => /^K:/.test(a) || !!anchorOf.get(find(a))}
+}
+function bySort(m: Machine, laws: Law[], inst: Instances): Instances {
+  if (!sortedOn) return inst
+  let byLaws = sortsMemo.get(m)
+  if (!byLaws) sortsMemo.set(m, (byLaws = new Map()))
+  const lk = laws.map(l => l.name).join('\u0001')
+  let s = byLaws.get(lk)
+  if (!s) { if (byLaws.size >= 64) byLaws.clear(); byLaws.set(lk, (s = sortsOf(m, laws))) }
+  const S = s
+  const keysOf = (n: string): string[] | undefined => {
+    if (n.startsWith('?')) { const c = m.step.flags?.[n.slice(1)]; return c?.op === 'all' ? boundOf(c).map(k => `Q:${n.slice(1)}:${k}`) : undefined }
+    const l = laws.find(x => x.name === n); return l?.forall ? [l.forall, ...(l.keys ?? [])].map(k => S.key(n, k)) : undefined
+  }
+  return Object.fromEntries(Object.entries(inst).map(([n, ks]) => {
+    const want = keysOf(n)
+    if (!want || !ks.length) return [n, ks]
+    const a = want.length, out: E[] = []
+    for (let t = 0; t + a <= ks.length; t += a) {
+      const tuple = ks.slice(t, t + a)
+      const ok = tuple.every((e, j) => { const se = S.of(e); return !se || !S.anchored(se) || !S.anchored(want[j]!) || S.find(se) === S.find(want[j]!) })
+      if (ok) out.push(...tuple)
+    }
+    return [n, out]
+  }))
+}
 // The instances law i's goals are read at (proveLaw's; core/infer.ts's join asks one goal at a time).
 export function lawInstances(m: Machine, laws: Law[], i: number): Instances {
   // (a machine with sums: its plain machine's instances, as proveLawsAsGiven's)
