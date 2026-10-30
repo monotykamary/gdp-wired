@@ -2054,10 +2054,21 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         // (four literals where a view's literals are few: a ring's order of three keys with what holds there)
         for (let size = 1; size <= (lits.length <= 40 ? 4 : 3); size++) dfs(0, [], size)
         // (where they are more: the four-literal cubes with a chain of three keys of one sort, a < b < c (betweenness, and a
-        // cycle's turns of it), the two order literals and any two others, 200 at most)
+        // cycle's turns of it), the two order literals and any two others, 200 at most; and the doubled patterns below)
         if (lits.length > 40) {
           const at = found.length
           lits.forEach((a, i) => lits.forEach((b, j) => { if (a.before && b.before && a.before[1] === b.before[0] && a.before[0] !== b.before[1] && found.length < at + 200) { const ab = and(a.bits, b.bits); if (!empty(ab)) dfs(0, [i, j], 4, ab, at + 200) } }))
+          // (and "two of a pattern are one", DuoAI's: a two-literal pattern some row has, beside its image under a renaming of
+          // the view's keys within their sorts (Transfer[z, x] and Ep[x] < z, twice: two live transfers), 200 at most)
+          const byName = new Map(lits.map((l, i) => [l.name(keys.map((_, k) => k)), i])), at2 = found.length
+          for (const ren of perms.filter(r => r.some((k, i) => k !== i))) for (let i = 0; i < lits.length && found.length < at2 + 200; i++) for (let j = i + 1; j < lits.length && found.length < at2 + 200; j++) {
+            const i2 = byName.get(lits[i]!.name(ren)), j2 = byName.get(lits[j]!.name(ren))
+            if (i2 === undefined || j2 === undefined || new Set([i, j, i2, j2]).size < 4 || lits[i]!.id === lits[j]!.id || empty(and(lits[i]!.bits, lits[j]!.bits))) continue
+            const ls2 = [i, j, i2, j2], b2 = ls2.slice(1).reduce((b, l) => and(b, lits[l]!.bits), lits[i]!.bits)
+            if (!empty(b2) || ls2.some((_, k) => none(ls2.filter((__, q) => q !== k))) || contradicts(ls2.map(l => lits[l]!.lit)) || oneSided(ls2.map(l => lits[l]!.lit), vi)) continue
+            const read = new Set(ls2.flatMap(l => lits[l]!.reads)), k2 = canon(ls2)
+            if (read.size === keys.length && !seen.has(k2)) { seen.add(k2); found.push(ls2) }
+          }
         }
         known.set(vi, {R, lits: lits.map(l => l.lit)})
         out.push(...found.map(ls => formOf(ls.map(l => lits[l]!.lit), vi)))
@@ -2380,14 +2391,15 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         // (optimistic Houdini: an unsure cube holds at every small state and every step from one (they are its rows), so
         // it stays; the set's proof decides, a cube it fails at dropped and the rounds go on)
         // (IC3's push: the pending cubes asked together, each with the set and every other pending one assumed (one frame),
-        // those that fail out and the rest asked again, until none fails; what is left comes back into the set together.
+        // those with a model out (an undecided one stays, as Houdini keeps it) and the rest asked again, until none has
+        // one; what is left comes back into the set together.
         // Once the set has changed since the last push; each cube back twice at most)
-        let frame = complete && !caller ? [...pending].filter(g => tried.get(g) !== version && (backs.get(g) ?? 0) < 2).slice(0, 16) : []
+        let frame = complete && !caller ? [...pending].filter(g => tried.get(g) !== version && (backs.get(g) ?? 0) < 2) : []
         const pushed = frame.length
         for (const g of frame) tried.set(g, version)
         for (let pass = 0; frame.length && pass < 4 && performance.now() < kUntil() && !stop(); pass++) {
           const lsP = [...lsAll, ...frame.map(lawFor)], mmP = withGhost(forLaws(lsP).m), failed = new Set<Form>()
-          frame.forEach((g, i) => { if (performance.now() > kUntil()) { failed.add(g); return } const dl = within(Math.min(kUntil(), performance.now() + joinQueryMs / 8), () => decideLaw(mmP, lsP, lsAll.length + i)); if (!dl?.proven) failed.add(g) })
+          frame.forEach((g, i) => { if (performance.now() > kUntil()) { failed.add(g); return } const dl = within(Math.min(kUntil(), performance.now() + joinQueryMs / 8), () => decideLaw(mmP, lsP, lsAll.length + i)); if (dl && !dl.proven) failed.add(g) })
           if (!failed.size) { promoted.push(...frame); break }
           frame = frame.filter(g => !failed.has(g))
         }
