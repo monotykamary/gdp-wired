@@ -38,9 +38,43 @@ def tag(v)
   return {'s' => v.to_s} if v.is_a?(String) || v.is_a?(Symbol)
   {'o' => v.class.name}
 end
+# An answered call's value: the request's input for it (core/extract-step.ts's answers), None where it says so.
+CUR = {}
+def answer(key) = (a = CUR[key]).nil? || a['none'] ? nil : build(a)
+def stub(key) = proc { |*_a, **_k| answer(key) }
+# A store (stated, or an injected dependency inferred): get, set and delete over a Hash that keeps what is set; its
+# other methods answered.
+class GdpStore
+  attr_reader :data
+  def initialize(name, decl)
+    @data = {}
+    {'get' => %w[get], 'set' => %w[set], 'delete' => %w[delete]}.each do |kind, dflt|
+      (decl[kind] || dflt).each do |m|
+        define_singleton_method(m) do |*a, **k|
+          key = k[:key] || a[0]
+          case kind
+          when 'get' then @data[key]
+          when 'set' then @data[key] = k.key?(:value) ? k[:value] : a[1]
+          else @data.delete(key)
+          end
+        end
+      end
+    end
+    S['answers'].each { |x| define_singleton_method(x['patch']['path'][-1], &stub(x['key'])) if x['patch']['store'] == name }
+  end
+end
+# (each object's stores, by its id; the one being made's in $stores)
+SOBJ = {}
+$stores = {}
+def tpl_match(tpl, key)
+  pre, post = tpl.split('{}', 2)
+  return (key == tpl ? '' : nil) if post.nil?
+  key.is_a?(String) && key.start_with?(pre) && key.end_with?(post) && key.length >= pre.length + post.length ? key[pre.length...(key.length - post.length)] : nil
+end
 def sym?(t) = t.is_a?(Hash) && (t['sym'] || (t['k'] == 'opt' && t['of'].is_a?(Hash) && t['of']['sym']))
 def build(spec)
   return nil if spec['none']
+  return ($stores[spec['store']] ||= GdpStore.new(spec['store'], S['stores'][spec['store']] || {})) if spec['store']
   if spec.key?('in')
     v = spec['in']
     return v.to_sym if spec['sym'] && v.is_a?(String)
@@ -54,6 +88,10 @@ def put(o, path, v) = walk(o, path[0..-2]).instance_variable_set(path[-1], v)
 def state_of(obj)
   S['leaves'].each_with_object({}) do |l, s|
     k = l['kind']
+    if l['store']
+      s[l['name']] = (SOBJ[obj.object_id]&.[](l['store'])&.data || {}).each_with_object({}) { |(key, v), c| h = tpl_match(l['tpl'], key); c[h] = {'value' => enc_num(v)} if h }
+      next
+    end
     next if k == 'frame' || k == 'map'
     v = walk(obj, l['path'])
     s[l['name']] = case k
@@ -67,6 +105,12 @@ end
 def set_state(obj, st)
   S['leaves'].each do |l|
     k, v = l['kind'], st[l['name']]
+    if l['store'] && (d = SOBJ[obj.object_id]&.[](l['store'])&.data)
+      d.delete_if { |key, _| tpl_match(l['tpl'], key) }
+      pre, post = l['tpl'].split('{}', 2)
+      (v || {}).each { |h, c| d[post.nil? ? l['tpl'] : "#{pre}#{h}#{post}"] = l['float'] ? Integer(c['value']).to_f : Integer(c['value']) }
+      next
+    end
     case k
     when 'num' then put(obj, l['path'], l['float'] ? Integer(v).to_f : Integer(v))
     when 'str', 'choice' then put(obj, l['path'], sym?(l['t']) ? v.to_sym : v)
@@ -89,6 +133,7 @@ def call_args(m, specs)
     if S['clocks'].include?(n) && %i[key keyreq].include?(kind) then kw[name] = GdpStatedClock.new; next end
     spec = given[n]
     next if spec.nil? || spec['dflt'] || spec['inert']
+    if spec['store'] && %i[key keyreq].include?(kind) then kw[name] = build(spec); next end
     %i[key keyreq].include?(kind) ? kw[name] = build(spec) : pos << build(spec)
   end
   [pos, kw]
@@ -113,17 +158,26 @@ def hello(req)
     retry
   end
   S['cls'] = Object.const_get(req['cls'])
+  # (an answered call of another class's code: that class's method stubbed, the class made where a library is missing)
+  S['answers'].each do |a|
+    next unless (mod = a['patch']['mod'])
+    c = mod.split('::').reject(&:empty?).reduce(Object) { |o, n| o.const_defined?(n, false) ? o.const_get(n, false) : o.const_set(n, Module.new) }
+    c.define_singleton_method(a['patch']['path'][-1], &stub(a['key']))
+  end
   {'ok' => true}
 end
 def make(specs)
+  $stores = {}
   pos, kw = call_args(S['cls'].instance_method(:initialize), specs)
   obj = traced { S['cls'].new(*pos, **kw) }
+  SOBJ[obj.object_id] = $stores
   OBJS[OBJS.length + 1] = obj
   OBJS.length
 end
 def call(req)
   obj = OBJS[req['id']]
   NOW[0] = Integer(req['now'] || 0)
+  CUR.replace(req['answers'] || {})
   m = obj.method(req['m'])
   pos, kw = call_args(m, req['a'])
   before = frames(obj)

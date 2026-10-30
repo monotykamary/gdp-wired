@@ -6,7 +6,7 @@ import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
 import {mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
-import {proveSteps} from './dsl.ts'
+import {proveSteps, yes} from './dsl.ts'
 import {type RbOptions, extractRuby} from './extract-rb.ts'
 
 const hasRuby = (() => { try { execFileSync('ruby', ['-e', 'require "prism"'], {stdio: 'ignore'}); return true } catch { return false } })()
@@ -95,4 +95,34 @@ class F
 end`, 'F', {methods: ['go']})
   expect(fdiv.ok).toBe(false)
   expect(fdiv.refusals[0]!.what).toMatch(/float/)
+})
+
+t('the boundary inferred: another class\'s call left out or answered (tagged: Ruby states no types), a store injected, the entry', () => {
+  const x = ok(rb(`
+module Metrics
+  def self.count(*) = nil
+end
+module Quota
+  def self.bonus(user) = user.length % 3
+end
+class Gate
+  def initialize(cache, cap)
+    @cache = cache
+    @cap = cap
+  end
+  def hit(user = "")
+    Metrics.count("hit", user)
+    n = (@cache.get("hits:#{user}") || 0) + Quota.bonus(user) # gdp: answer int
+    @cache.set("hits:#{user}", n)
+    raise "over" if n > @cap
+    n
+  end
+end
+`, undefined as never, {failures: 'kept'}))
+  const notes = x.notes.join('\n')
+  expect(notes).toMatch(/the entry inferred: Gate/)
+  expect(notes).toMatch(/Metrics.count .*left out \(inferred/)
+  expect(notes).toMatch(/Quota.bonus .*answered by the request \(tagged/)
+  expect(notes).toMatch(/Gate\(cache\): an injected dependency \(inferred/)
+  step(x, 'admitted only within the cap', (_b, a) => a.failed.not().implies(a.cache_hits.at(_b.user.id).value.atMost(a.cap_)), () => yes)
 })

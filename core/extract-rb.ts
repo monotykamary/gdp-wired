@@ -46,10 +46,7 @@ export function readRuby(file: string, names: string[], opts: {root?: string, ru
 export function extractRuby(file: string, opts: RbOptions): Extraction & {read?: StepRead} {
   let mod: SModule
   try {
-    if (opts.answers && Object.keys(opts.answers).length) throw new Refusal(file, 'answers: not in the Ruby front end yet (a call of other code is refused where it is)')
-    if (opts.stores && Object.keys(opts.stores).length) throw new Refusal(file, 'stores: not in the Ruby front end yet')
     mod = readRuby(file, entryNames(opts), opts)
-    mod.stubs = false
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
     throw e

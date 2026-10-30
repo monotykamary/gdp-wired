@@ -353,7 +353,7 @@ class Reader
     else
       return no(x, "#{text(x)}: a method of an array") if r.is_a?(Prism::ArrayNode)
       # (another class's code: at the boundary where it is inferred, with the names its arguments mention)
-      return no(x, "#{text(x)}: #{r.slice}, another class's code").merge('ext' => "#{r.slice}.#{n}", 'names' => mentioned(args)) if r.is_a?(Prism::ConstantReadNode) || r.is_a?(Prism::ConstantPathNode)
+      return no(x, "#{text(x)}: #{r.slice}, another class's code").merge('ext' => "#{r.slice}.#{n}", 'names' => mentioned(args), 'patch' => {'mod' => r.slice, 'path' => [n.to_s]}) if r.is_a?(Prism::ConstantReadNode) || r.is_a?(Prism::ConstantPathNode)
       call({'e' => 'get', 'x' => rv, 'f' => n.to_s, 'p' => p, 'text' => text(x)}, args.map { |a| expr(a) }, x)
     end
   end
@@ -364,7 +364,8 @@ r = Reader.new(req)
 cls = r.classes
 out = {'lang' => 'ruby', 'file' => File.basename(req['file']), 'path' => File.expand_path(req['file']), 'module' => File.basename(req['file'], '.rb'),
        'root' => File.expand_path(req['root']), 'truth' => 'nil-false', 'entries' => []}
-req['names'].each do |n|
+# (no names: every class of the file, for the entry inferred)
+(req['names'].empty? ? cls.keys : req['names']).each do |n|
   key = cls.key?(n) ? n : cls.keys.find { |k| k.end_with?("::#{n}") }
   out['entries'] << (key ? {'k' => 'class', 'rec' => r.rec_of(key, *cls[key])} : {'k' => 'missing', 'name' => n})
 end

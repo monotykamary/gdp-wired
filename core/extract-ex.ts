@@ -25,21 +25,19 @@ type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) =>
 const here = (f: string) => new URL(`./ex/${f}`, import.meta.url).pathname
 type ExModule = SModule & {shape?: string, msgs?: Record<string, unknown>, init?: unknown}
 
-export function readElixir(file: string, module: string, elixir = 'elixir'): ExModule {
+export function readElixir(file: string, module: string | undefined, elixir = 'elixir'): ExModule {
   const cp = node<CP>('node:child_process'), path = node<{resolve: (...p: string[]) => string}>('node:path')
   let out: string
-  try { out = cp.execFileSync(elixir, [here('reader.exs'), JSON.stringify({file: path.resolve(file), module})], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']}) }
+  try { out = cp.execFileSync(elixir, [here('reader.exs'), JSON.stringify({file: path.resolve(file), module: module ?? null})], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']}) }
   catch (e) { throw new Refusal(file, `the Elixir reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(0, 2).join(' | ')}): elixir is needed to extract Elixir`) }
   return JSON.parse(out) as ExModule
 }
 export function extractElixir(file: string, opts: ExOptions): Extraction & {read?: StepRead} {
   let mod: ExModule
   try {
-    if (opts.answers && Object.keys(opts.answers).length) throw new Refusal(file, 'answers: not in the Elixir front end yet')
     if (opts.stores && Object.keys(opts.stores).length) throw new Refusal(file, 'stores: not in the Elixir front end yet')
-    if (Array.isArray(opts.entry) || opts.entry === undefined) throw new Refusal(file, 'one module a time (entry: its name)')
+    if (Array.isArray(opts.entry)) throw new Refusal(file, 'one module a time (entry: its name)')
     mod = readElixir(file, opts.entry, opts.elixir)
-    mod.stubs = false
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
     throw e

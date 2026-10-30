@@ -117,7 +117,8 @@ export type {V as StepValue, Path as StepPath, Obj as StepObj, Ptr as StepPtr}
 export type Leaf = {t?: SType, name: string, path: string[], kind: 'num' | 'bool' | 'str' | 'choice' | 'none' | 'map' | 'frame', float?: boolean, cls?: string, fields?: {name: string, float?: boolean}[], key?: 'num' | 'str', store?: string, tpl?: string}
 export type PArg = {k: 'in', name: string, float?: boolean, sym?: boolean, z?: Raw} | {k: 'opt', none: string, v: PArg} | {k: 'rec', cls: string, f: [string, PArg][]} | {k: 'inert'} | {k: 'store', name: string} | {k: 'dflt'}
 // (how: 'inferred' from the callee's declared type, or 'tagged' by a gdp: comment; stated where absent)
-export type Answer = {key: string, patch: Patch, async: boolean, inputs: {name: string, none?: string, float?: boolean}, sort: string, how?: string}
+// (at: the calls answered, each from its position to its end, `line:col`; ty: the call's type in the code's language)
+export type Answer = {key: string, patch: Patch, async: boolean, inputs: {name: string, none?: string, float?: boolean}, sort: string, how?: string, at?: {p: string, end?: string}[], ty?: string}
 // (inject: the fields the harness sets to the store it gives, after the constructor: a field injected by a framework)
 export type StepRead = {ints: Record<string, IntTy>, madeAt?: string, model: Model, leaves: Leaf[], args: Record<string, [string, PArg][]>, answers: Answer[], ctor: [string, PArg][], kept: boolean, arms: [string, number][], cls?: string, stores: Record<string, StoreDecl>, results: Record<string, 'none' | 'scalar' | 'maybe'>, inject?: string[]}
 
@@ -152,7 +153,7 @@ const TAG_DECO = /(?:^|\.)gdp[._]?(skip|answer|strict)$/i
 // A call at the boundary: its key (an answer's input is named after its last part), what it is, its patch for the
 // check, its declared result, the module's own function it is (cut), its object, its tag, and the refusal it was.
 type Bound = {key: string, name: string, patch?: Patch, ret?: SType, own?: string, recv?: V, tag?: Tag, refusal: string, args?: false}
-type Pend = Bound & {why: string, at: string}
+type Pend = Bound & {why: string, at: string, end?: string}
 // A refusal as it leaves each function inlined: the function and its parameters holding the rule's state.
 type Framed = Refusal & {frames?: {id: string, roots: string[]}[]}
 // A type an answer takes: a scalar, or one with None.
@@ -796,10 +797,12 @@ export class Stepper {
   // A call answered by the request: its result an input (one a step), the check stubbing the callee with it. Its type
   // is the caller's (a type string), a tag's, or the callee's declared one (inferred: `how` says which).
   answer(key: string, names: string[], patch: Patch | undefined, at: SX, p: Path, awaited: boolean, type: string | SType = this.opts.answers![key]!, how = 'stated'): [V, Path] {
-    if (!patch) return refuse(at, `${at.text}: an answered call the check can't stub`)
+    if (!patch && !at.end) return refuse(at, `${at.text}: an answered call the check can't stub`)
     if (this.mod.stubs === false) return refuse(at, `${at.text}: answered (${how}), but the ${LANG[this.mod.lang] ?? this.mod.lang} check can't stub a call yet`)
     if (p.called.includes(key)) return refuse(at, `${at.text}: ${key} called twice in one step (an answer is one a step)`)
     const q: Path = {...p, called: [...p.called, key]}
+    // (where it is called: a compiled language's check stubs it there, its source rewritten)
+    const site = {p: at.p, ...(at.end ? {end: String(at.end)} : {})}
     let a = this.answers.get(key)
     const short = key.split('.').pop()!
     if (!a) {
@@ -807,12 +810,13 @@ export class Stepper {
       const inner = t.k === 'opt' ? t.of : t, s = this.scalar(inner)!
       const v = this.newVar(short, s, 'input', how === 'stated' ? `what ${names[0]} returns (stated: answers)` : `what ${names[0]} returns (${how}: any ${text})`)
       const none = t.k === 'opt' ? this.newVar(`${short}_none`, {k: 'bool'}, 'input', `whether ${names[0]} returns None`).name : undefined
-      a = {key, patch, async: awaited, inputs: {name: v.name, ...(none ? {none} : {}), ...(inner.k === 'float' ? {float: true} : {})}, sort: text, ...(how === 'stated' ? {} : {how})}
+      a = {key, patch: patch ?? {}, async: awaited, inputs: {name: v.name, ...(none ? {none} : {}), ...(inner.k === 'float' ? {float: true} : {})}, sort: text, ...(how === 'stated' ? {} : {how}), at: [], ...(at.ty ? {ty: String(at.ty)} : {})}
       this.answers.set(key, a)
       this.notes.add(how === 'stated' ? `${names[0]} (${at.p}): answered by the request (stated), its arguments not read` : `${names[0]} (${at.p}): answered by the request (${how}: its value is read; assumes ${names[0]} may return any ${text}), its arguments not read`)
     } else if (a.async !== awaited) return refuse(at, `${at.text}: ${key} awaited at one call and not at another`)
     // (a callee whose declared result is a fixed-width integer, the reader's `ity`: an answer is within it where it is read)
     if (at.ity && this.vars.get(a.inputs.name)!.sort.k === 'num') this.typed(this.vars.get(a.inputs.name)!, at.ity as IntTy, 'input', I.and(this.sel, this.cond(p)))
+    if (!a.at!.some(x => x.p === site.p)) a.at!.push(site)
     const vv = this.valueOf(this.vars.get(a.inputs.name)!)
     return [a.inputs.none ? {t: 'opt', has: I.not(I.bvar(a.inputs.none)), v: vv} : vv, q]
   }
@@ -835,7 +839,7 @@ export class Stepper {
     const t = tag?.k === 'answer' ? (tag.arg ? tag.arg : b.ret && answerable(b.ret) ? b.ret : refuse(x, `${x.text}: tagged gdp: answer, and ${b.name} declares no type an answer takes: give it (gdp: answer float)`)) : this.inf!.answers.get(b.key)
     if (t) return this.answer(b.key, [b.name], b.patch, x, q, awaited, t, tag ? 'tagged' : 'inferred')
     const why = `${x.text ?? b.name}: the value of ${b.name}, other code left out`
-    this.pend.set(why, {...b, why, at: x.p})
+    this.pend.set(why, {...b, why, at: x.p, ...(x.end ? {end: String(x.end)} : {})})
     this.notes.add(`${b.name} (${x.p}): left out (${tag ? 'tagged: gdp: skip' : 'inferred: nothing the rule keeps reads its value'}), run as it is by the check`)
     return [{t: 'opaque', why, ask: b.key}, q]
   }
@@ -934,17 +938,18 @@ export class Stepper {
   // The `gdp:` comments of the file read (skip, answer [type], strict), by line: on a call's line, they state its
   // boundary; on a function's line (or the line above it), every call of it. A decorator or annotation named
   // gdp.skip, gdp_skip or GdpSkip (answer, strict) states it for the function too.
-  private tagLines?: Map<number, Tag>
+  private tagLines = new Map<string, Map<number, Tag>>()
   tagAt(at: string): Tag | undefined {
-    if (!this.inf) return undefined
-    if (!this.tagLines) {
-      this.tagLines = new Map()
-      let src = ''
-      try { src = node<{readFileSync: (f: string, e: string) => string}>('node:fs').readFileSync(this.mod.path, 'utf8') } catch { /* no file to read */ }
-      src.split('\n').forEach((l, i) => { const m = /(?:#|\/\/|--|%)\s*gdp:\s*(skip|answer|strict)\b[ \t]*([^#\n]*)$/.exec(l); if (m) this.tagLines!.set(i + 1, {k: m[1] as Tag['k'], arg: m[2]!.trim()}) })
+    const m = this.inf && /^(.*):(\d+):\d+$/.exec(at)
+    if (!m) return undefined
+    let lines = this.tagLines.get(m[1]!)
+    if (!lines) {
+      lines = new Map()
+      const src = sourceOf(this.mod, m[1]!) ?? ''
+      src.split('\n').forEach((l, i) => { const t = /(?:#|\/\/|--|%)\s*gdp:\s*(skip|answer|strict)\b[ \t]*([^#\n]*)$/.exec(l); if (t) lines!.set(i + 1, {k: t[1] as Tag['k'], arg: t[2]!.trim()}) })
+      this.tagLines.set(m[1]!, lines)
     }
-    const m = /^(.*):(\d+):\d+$/.exec(at)
-    return m && this.mod.path.endsWith(m[1]!) ? this.tagLines.get(Number(m[2])) : undefined
+    return lines.get(Number(m[2]))
   }
   fnTag(fn: SFunc): Tag | undefined {
     for (const d of fn.decorators) { const m = TAG_DECO.exec(d.name); if (m) return {k: m[1]!.toLowerCase() as Tag['k'], arg: /\(\s*['"](.*)['"]\s*\)/.exec(d.text)?.[1] ?? ''} }
@@ -974,8 +979,8 @@ export class Stepper {
     let hint = ''
     if (best) {
       const t = best.ret && answerable(best.ret) ? best.ret : undefined
-      if (t && best.patch && this.mod.stubs !== false) { this.inf!.answers.set(best.key, t); return undefined }
-      const short = JSON.stringify(best.key.split('.').pop()), cant = this.mod.stubs === false ? `the ${LANG[this.mod.lang] ?? this.mod.lang} check can't stub a call yet` : !best.patch ? 'the check can\'t stub it' : ''
+      if (t && (best.patch || best.end) && this.mod.stubs !== false) { this.inf!.answers.set(best.key, t); return undefined }
+      const short = JSON.stringify(best.key.split('.').pop()), cant = this.mod.stubs === false ? `the ${LANG[this.mod.lang] ?? this.mod.lang} check can't stub a call yet` : !best.patch && !best.end ? 'the check can\'t stub it' : ''
       hint = `${best.refusal.replace(/ \(answer it, skip it, or read that module\)$/, '')} (${best.at}), whose value is read, and ${cant || (!best.ret || best.ret.k === 'any' ? 'it declares no type' : `it returns ${best.ret.k === 'rec' ? `an object (${this.mod.recs[best.ret.name]?.short ?? best.ret.name})` : this.why(best.ret)}`)}: ${cant ? 'read its code, or keep its value unread' : `state what it returns (answers: {${short}: 'int'}, or a \`gdp: answer int\` comment on its line)`}`
     }
     for (const id of (e as Framed).frames ?? []) {
@@ -1051,10 +1056,13 @@ export class Stepper {
       case 'ext': return [{t: 'ext', q: String(x.q), text: String(x.text), ...(x.patch ? {patch: x.patch as Patch} : {}), ...(x.ret ? {ret: x.ret as SType} : {})}, p]
       case 'no': {
         // (a call of other code a reader doesn't lower, `ext` its name: at the boundary, where it is inferred)
-        if (x.ext && this.inf && !x.pre && !x.prepl) {
+        if (x.ext && !x.pre && !x.prepl) {
+          const names = [x.ext as string], ans = this.match(Object.keys(this.opts.answers ?? {}), names), patch = x.patch as Patch | undefined
+          if (ans) return this.answer(ans, names, patch, x, x.args ? this.argsRead(x, p) : p, false)
+          if (this.skipped(names)) { this.notes.add(`${names[0]} (${x.p}): left out (stated: skip), run as it is by the check`); return [{t: 'opaque', why: `${names[0]}: the value of a call left out (skip)`}, x.args ? this.argsRead(x, p) : p] }
           let q = p, recv: V | undefined
-          if (x.recv) [recv, q] = this.ev(x.recv as SX, q)
-          return this.boundary(x, {key: x.ext as string, name: x.ext as string, refusal: String(x.why), ...(x.args ? {} : {args: false}), ...(recv ? {recv} : {}), ...(x.ret ? {ret: x.ret as SType} : {})}, q, false)
+          if (x.recv && this.inf) [recv, q] = this.ev(x.recv as SX, q)
+          if (this.inf) return this.boundary(x, {key: names[0]!, name: names[0]!, refusal: String(x.why), ...(x.args ? {} : {args: false}), ...(recv ? {recv} : {}), ...(x.ret ? {ret: x.ret as SType} : {}), ...(patch ? {patch} : {})}, q, false)
         }
         let q = p; for (const y of (x.pre as SX[] | undefined) ?? []) q = this.ev(y, q)[1]; if (x.prepl) this.place(x.prepl as SX, q); return refuse(x, String(x.why)) }
       case 'nil': return [{t: 'nil'}, p]
@@ -2165,6 +2173,38 @@ export function assumed(x: {read?: StepRead}, request: Record<string, unknown> |
     const none = a.inputs.none && (request[a.inputs.none] === true || request[a.inputs.none] === 1), v = request[a.inputs.name], neg = request[`${a.inputs.name}$neg`]
     const shown = none ? 'None' : /^bool\b/.test(a.sort) ? String(v === true || v === 1) : typeof v === 'number' ? String(v - (typeof neg === 'number' ? neg : 0)) : JSON.stringify(v)
     out.push(`assumes \`${a.key.split('.').pop()}\` may return ${shown} (${a.how}: any ${a.sort})`)
+  }
+  return out
+}
+// The text of a file a position names (its name as the reader wrote it: absolute, under the root, or beside the file).
+export function sourceOf(mod: {path: string, root: string}, file: string): string | undefined {
+  const fs = node<{readFileSync: (f: string, e: string) => string}>('node:fs'), dir = mod.path.replace(/\/[^/]*$/, '')
+  for (const f of [file.startsWith('/') ? file : '', mod.path.endsWith(`/${file}`) ? mod.path : '', `${mod.root}/${file}`, `${dir}/${file}`]) if (f) try { return fs.readFileSync(f, 'utf8') } catch { /* the next */ }
+  return undefined
+}
+// The stubbing of a compiled language's check: each answered call's text (from its position to its end) replaced in
+// its file by the harness's stub for that answer (in the code's language). Every file a call is answered in,
+// rewritten, by its name in the positions; a call with no end (a reader that doesn't say) is a refusal of the check.
+export function stubbed(read: StepRead, text: (file: string) => string | undefined, stub: (a: Answer, i: number) => string): Map<string, string> {
+  const edits = new Map<string, [number, number, string][]>()
+  read.answers.forEach((a, i) => {
+    for (const s of a.at ?? []) {
+      const m = /^(.*):(\d+):(\d+)$/.exec(s.p), e = s.end && /^(\d+):(\d+)$/.exec(s.end)
+      if (!m || !e) throw new Refusal(s.p, `${a.key}: an answered call whose end the reader doesn't give (the check can't stub it)`)
+      ;(edits.get(m[1]!) ?? edits.set(m[1]!, []).get(m[1]!)!).push([lineCol(m[1]!, Number(m[2]), Number(m[3])), lineCol(m[1]!, Number(e[1]), Number(e[2])), stub(a, i)])
+    }
+  })
+  const starts = new Map<string, number[]>()
+  function lineCol(f: string, l: number, c: number): number {
+    let ls = starts.get(f)
+    if (!ls) { const t = text(f) ?? ''; ls = [0]; for (let k = 0; k < t.length; k++) if (t[k] === '\n') ls.push(k + 1); starts.set(f, ls) }
+    return (ls[l - 1] ?? 0) + c - 1
+  }
+  const out = new Map<string, string>()
+  for (const [f, es] of edits) {
+    let t = text(f) ?? ''
+    for (const [a, b, r] of es.sort((x, y) => y[0] - x[0])) t = t.slice(0, a) + r + t.slice(b)
+    out.set(f, t)
   }
   return out
 }

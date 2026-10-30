@@ -14,15 +14,27 @@ defmodule GdpClock do
   def utc_now(_ \\ nil), do: DateTime.from_unix!(now())
 end
 
+# An answered call's value: the request's input for it, None (nil) where it says so; every process reads it.
+defmodule GdpAnswer do
+  def a(key), do: (case Map.get(:persistent_term.get(:gdp_ans, %{}), key) do nil -> nil; %{"none" => true} -> nil; spec -> GdpHarness.arg(spec) end)
+end
+
 defmodule GdpHarness do
   @clock %{{[:System], :monotonic_time} => :int, {[:System], :system_time} => :int, {[:System], :os_time} => :int, {[:DateTime], :utc_now} => :utc_now,
            {:os, :system_time} => :int, {:erlang, :system_time} => :int, {:erlang, :monotonic_time} => :int}
   def hello(req) do
     ast = Code.string_to_quoted!(File.read!(req["path"]), file: req["path"])
+    # (an answered call of another module's function: the call made the stub's, by the module's and function's names)
+    ans = Map.new(for a <- req["answers"] || [], a["patch"]["mod"], do: {{a["patch"]["mod"], List.last(a["patch"]["path"])}, a["key"]})
     ast = Macro.prewalk(ast, fn
       {{:., m, [mod, f]}, m2, args} = x ->
         key = case mod do {:__aliases__, _, parts} -> parts; a -> a end
-        case @clock[{key, f}] do nil -> x; g -> {{:., m, [{:__aliases__, m, [:GdpClock]}, g]}, m2, args} end
+        name = case mod do {:__aliases__, _, parts} -> Enum.map_join(parts, ".", &to_string/1); a -> inspect(a) end
+        case {ans[{name, to_string(f)}], @clock[{key, f}]} do
+          {k, _} when is_binary(k) -> {{:., m, [{:__aliases__, m, [:GdpAnswer]}, :a]}, m2, [k]}
+          {_, nil} -> x
+          {_, g} -> {{:., m, [{:__aliases__, m, [:GdpClock]}, g]}, m2, args}
+        end
       x -> x
     end)
     Code.compile_quoted(ast, req["path"])
@@ -150,6 +162,7 @@ lines |> Enum.each(fn line ->
         (try do o = GdpHarness.make(req["a"]) |> GdpHarness.set(req["state"]); i = :ets.info(objs, :size) + 1; :ets.insert(objs, {i, o}); %{"id" => i} rescue e -> %{"bad" => Exception.message(e)} catch :exit, r -> %{"bad" => inspect(r)} end)
       "get" -> [{_, o}] = :ets.lookup(objs, req["id"]); %{"state" => GdpHarness.state_of(GdpHarness.get(o))}
       "call" ->
+        :persistent_term.put(:gdp_ans, req["answers"] || %{})
         [{_, o}] = :ets.lookup(objs, req["id"])
         {o2, r} = GdpHarness.call(o, req["m"], req["a"])
         :ets.insert(objs, {req["id"], o2})

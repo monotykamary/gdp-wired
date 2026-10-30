@@ -70,3 +70,28 @@ end`, 'Q')
   expect(r.ok).toBe(false)
   expect(r.refusals[0]!.what).toMatch(/another module's code|outside the subset/)
 })
+
+t('the boundary inferred: another module\'s call left out or answered (tagged: Elixir states no types), the entry', () => {
+  const x = ok(ex(`
+defmodule Metrics do
+  def count(_name, _n), do: :ok
+end
+defmodule Quota do
+  def bonus(n), do: rem(n, 3)
+end
+defmodule Meter do
+  use GenServer
+  @type t :: %{used: integer, cap: integer}
+  def init({cap}), do: {:ok, %{used: 0, cap: cap}}
+  def handle_call({:take, n}, _from, s) do
+    Metrics.count("take", n)
+    extra = Quota.bonus(n) # gdp: answer int
+    if s.used + n + extra > s.cap, do: {:reply, :full, s}, else: {:reply, :ok, %{s | used: s.used + n + extra}}
+  end
+end`, undefined as never))
+  const notes = x.notes.join('\n')
+  expect(notes).toMatch(/the entry inferred: Meter/)
+  expect(notes).toMatch(/Metrics.count .*left out \(inferred/)
+  expect(notes).toMatch(/Quota.bonus .*answered by the request \(tagged/)
+  step(x, 'never past its cap', (_b, a) => a.used.atMost(a.cap), b => b.used.atMost(b.cap))
+})

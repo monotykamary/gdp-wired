@@ -22,7 +22,8 @@ defmodule GdpReader do
     base = Path.basename(file)
     Process.put(:base, base)
     mods = modules(ast, [])
-    name = req["module"]
+    # (no name: the file's one module, or its one GenServer or Agent: the entry inferred)
+    name = req["module"] || (case Enum.filter(mods, fn {_, b} -> length(mods) == 1 or Enum.any?(b, &match?({:use, _, [{:__aliases__, _, [k]} | _]} when k in [:GenServer, :Agent], &1)) end) do [{n, _}] -> n; _ -> "" end)
     case Enum.find(mods, fn {n, _} -> n == name end) || Enum.find(mods, fn {n, _} -> String.ends_with?(n, "." <> name) end) do
       nil -> %{"lang" => "elixir", "file" => base, "path" => Path.expand(file), "module" => name, "root" => Path.dirname(Path.expand(file)), "entries" => [%{"k" => "missing", "name" => name}], "recs" => %{}, "funcs" => %{}}
       {q, body} -> lower(q, body, file, base)
@@ -345,7 +346,7 @@ defmodule GdpReader do
       key == [:Map] and f == :merge and match?([_, {:%{}, _, _}], args) -> upd(expr(Enum.at(args, 0)), elem(Enum.at(args, 1), 2), m)
       key == [:Map] and f == :get and match?([_, k] when is_atom(k), args) -> get(expr(Enum.at(args, 0)), Enum.at(args, 1), m)
       # (another module's code: at the boundary where it is inferred; its arguments are values, which it can't change)
-      is_atom(mod) or is_tuple(mod) and elem(mod, 0) == :__aliases__ -> %{"e" => "no", "why" => "#{text(x)}: another module's code", "p" => p(m), "ext" => "#{text(mod)}.#{f}", "names" => []}
+      is_atom(mod) or is_tuple(mod) and elem(mod, 0) == :__aliases__ -> %{"e" => "no", "why" => "#{text(x)}: another module's code", "p" => p(m), "ext" => "#{text(mod)}.#{f}", "names" => [], "patch" => %{"mod" => text(mod), "path" => [to_string(f)]}}
       true -> %{"e" => "no", "why" => "#{text(x)}: a call outside the subset", "p" => p(m)}
     end
   end
