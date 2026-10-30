@@ -35,7 +35,7 @@ export type Read = {cell: (map: string, key: number) => number, scalar: (name: s
 export type Check = {
   params?: Record<string, number>,
   inputs: Record<string, (number | Map<number, number>)[]>,
-  expand?: (input: Record<string, any>, r: Read) => Record<string, any>[], // a request's further values (a majority's witness)
+  expand?: (input: Record<string, any>, r?: Read) => Record<string, any>[], // a request's further values (a majority's witness)
   byState?: boolean, // expand reads the state (a witness about a state's set): computed at each state
   keep?: (r: Read) => boolean, // TLC's CONSTRAINT: a state outside it is neither counted nor explored
   uses?: string[][], // by op (its position), the inputs it reads: the others take their first value only

@@ -1,0 +1,7 @@
+[
+ {
+  "name": "typecheck",
+  "cmd": "bun install --frozen-lockfile >/tmp/i.log 2>&1; timeout -s KILL 400 bun node_modules/typescript/lib/tsc.js -p . > /tmp/tc.log 2>&1; wc -l /tmp/tc.log; grep -v \"vendor/\" /tmp/tc.log | grep -vE \"^research/(audit|enum)/\" | head -40; echo; grep -oE \"^[a-z]+/[a-z0-9-]+/?\" /tmp/tc.log | sort | uniq -c",
+  "timeout": 500
+ }
+]

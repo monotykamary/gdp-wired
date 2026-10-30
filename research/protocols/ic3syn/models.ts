@@ -158,7 +158,7 @@ const shardedKv = (noLost: boolean) => (bug?: Bug) => ((noLost ? rule('sharded k
     started: when(starts, 1, started),
     Table: Table.set(pk(n, k), when(reshards, 0, when(receives.or(puts), v.plus(1), Table.at(pk(n, k))))),
     Owner: Owner.set(pk(k, n), when(owns.or(receives), yes, when(reshards, no, Owner.at(pk(k, n))))),
-    TransferMsg: TransferMsg.each(z => when(reshards.and(z.eq(pk3(n2, k, v))), bug && noLost ? TransferMsg.at(z) : yes, when(receives.and(z.eq(pk3(n, k, v))), no, TransferMsg.at(z)))),
+    TransferMsg: TransferMsg.each((z: Term) => when(reshards.and(z.eq(pk3(n2, k, v))), bug && noLost ? TransferMsg.at(z) : yes, when(receives.and(z.eq(pk3(n, k, v))), no, TransferMsg.at(z)))),
     ...(noLost ? {Owned: Owned.set(k, when(owns, yes, Owned.at(k)))} : {}),
   }))
 
@@ -456,7 +456,7 @@ const consensusEpr = (bug?: Bug) => overMajority(rule('consensus epr'),
     decides: op.is('decide').and(Leader.at(i), undecided),
   }))
   .step(({i, j, v, nondet, requests, votes, receives, leads, decides, VoteRequestMsg, Voted, VoteMsg, Votes, Leader, Decided}: any) => ({
-    VoteRequestMsg: VoteRequestMsg.set(pk(i, j), when(requests, yes, when(votes, nondet.eq(1), VoteRequestMsg.at(pk(i, j))))),
+    VoteRequestMsg: VoteRequestMsg.set(pk(i, j), when(requests.or(votes.and(nondet.eq(1))), yes, when(votes, no, VoteRequestMsg.at(pk(i, j))))),
     VoteMsg: VoteMsg.set(pk(i, j), when(votes, yes, VoteMsg.at(pk(i, j)))),
     Voted: Voted.set(i, when(votes, yes, Voted.at(i))),
     Votes: Votes.set(pk(i, j), when(receives, yes, Votes.at(pk(i, j)))),
@@ -539,10 +539,10 @@ const bits = (x: number) => range(3).filter(k => x >> k & 1)
 const asMap = (xs: number[]) => new Map(xs.map((v, k) => [k, v] as [number, number]))
 const ranks = (xs: number[]) => new Map(xs.map((v, k) => [v, k] as [number, number]))
 const setOf = (xs: number[]) => new Map(xs.map(v => [v, 1] as [number, number]))
-const mldrRequests = (inp: any, r: Read) => {
+const mldrRequests = (inp: any, r?: Read) => {
   const {op, i, j, sm, qm} = inp, uses: Record<number, string> = {0: 'jS', 1: 'i', 2: '', 3: 'ij', 4: 'iS', 5: 'iSQ', 6: 'ij'}, u = uses[op]!
   if ((!u.includes('i') && i) || (!u.includes('j') && j) || (!u.includes('S') && sm) || (!u.includes('Q') && qm)) return []
-  const X = range(3).filter(k => r.cell('Config', i * N + k)), S = bits(sm), Q = bits(qm), none = new Map<number, number>()
+  const X = range(3).filter(k => r!.cell('Config', i * N + k)), S = bits(sm), Q = bits(qm), none = new Map<number, number>()
   const base = {op, i, j, a: 0, b: 0, dx: 0, dy: 0, m: 0, hx: 0, hy: 0, S: setOf(S), Q2: setOf(Q), In: none, Out: none, Lx: none, Ux: none, Ly: none, Uy: none, Lm: none, Um: none}
   const maj = (q: number[]) => { const rest = X.filter(k => !q.includes(k)); return {a: q.length, In: asMap(q), b: rest.length, Out: ranks(rest)} }
   if (op === 4) return [{...base, ...maj(S)}]
