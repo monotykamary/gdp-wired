@@ -3,8 +3,8 @@
 // (core/extract-step.ts), printed, built and checked as every front end's rule is (core/extract.ts's fromModel), the
 // check running the file as it ships through core/rb/harness.rb. Ruby is needed only here, at extraction.
 //
-//   const x = extractRuby('lib/semian/simple_state.rb', {root: 'lib', entry: 'Semian::Simple::State'})
-//   if (!x.ok) console.log(x.refusals)
+//   const x = extractRuby('lib/semian/simple_state.rb', {root: 'lib'})   // a path or a URL; the class inferred
+//   proveRule(x.rule!, [x.rule!.law('...', env => ...)])
 //
 // The subset: a class (its initialize's arguments the rule's params; every field nil until it is set) and the methods
 // given, its fields' types inferred from what the class assigns them (symbols a choice, nil beside numbers an optional
@@ -20,8 +20,9 @@
 // Refused, each where it is with why: loops and blocks (but synchronize's), begin/rescue, other classes' code, arrays
 // and hashes (for now), &., floats that aren't whole, a field the class writes with values of two types.
 import {type Extraction} from './extract.ts'
-import {Refusal} from './extract-read.ts'
+import {Refusal, pathOf} from './extract-read.ts'
 import {type Harness, type SModule, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
+export {proveRule, proveSteps} from './dsl.ts'
 
 export type RbOptions = StepOptions & {
   // The directory the file's requires resolve from (its library's lib/); by default the file's directory.
@@ -43,7 +44,8 @@ export function readRuby(file: string, names: string[], opts: {root?: string, ru
   catch (e) { throw new Refusal(file, `the Ruby reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): ruby 3.3 or later (with Prism) is needed to extract Ruby`) }
   return JSON.parse(out) as SModule
 }
-export function extractRuby(file: string, opts: RbOptions): Extraction & {read?: StepRead} {
+export function extractRuby(at: string | URL, opts: RbOptions = {}): Extraction & {read?: StepRead} {
+  const file = pathOf(at)
   let mod: SModule
   try {
     mod = readRuby(file, entryNames(opts), opts)

@@ -4,11 +4,12 @@
 // the object of functions a factory returns (its state what they close over), and returns the rule that steps the
 // same way, as a builder value and as the source that makes it (`toSource`), for a user to read and keep:
 //
-//   const x = extract(readFileSync('bucket.ts', 'utf8'), {file: 'bucket.ts', entry: 'TokenBucket'})
+//   const x = extract('./bucket.ts')        // a path or a URL; the entry inferred (or {entry: 'TokenBucket'})
 //   if (!x.ok) console.log(x.refusals)     // where and why
-//   proveRule(x.rule, [x.rule.law('within capacity', ({tokens, capacity}) => tokens.atMost(capacity))])
+//   proveRule(x.rule!, [x.rule!.law('within capacity', ({tokens, capacity}) => tokens.atMost(capacity))])
 //   writeFileSync('bucket.rule.ts', toSource(x))
 //
+// Code in memory is read as {code, file}; the code-first form, extract(code, {file, entry}), stays.
 // The extractor is untrusted. The rule is checked against the original code by running both (core/extract-check.ts):
 // requests from the start, steps from drawn states, and steps from the prover's counterexamples, every state, map cell,
 // list, result and refusal compared, and the code's branches counted. Any difference refuses the extraction with the
@@ -42,13 +43,20 @@ import type {Rule} from './dsl.ts'
 import type {Law} from './machine.ts'
 import * as I from './extract-ir.ts'
 import type {B, N} from './extract-ir.ts'
-import {type Arg, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, placed} from './extract-read.ts'
+import {type Arg, type Layout, type MapDecl, type Model, Refusal, type Source, type Term, type Var, placed, sourceOf} from './extract-read.ts'
 import {type ReadOptions, isFactory, isSlice, readClass, readFactory, readFunctions, readSlice} from './extract-shapes.ts'
 import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pidx, pk, pterm, sortsOf} from './extract-print.ts'
 import {type CheckOptions, type Evidence, check} from './extract-check.ts'
+// (a rule read is proven from the same import: proveRule(x.rule!, [x.rule!.law(...)]))
+export {proveRule, proveSteps} from './dsl.ts'
 
-export type ExtractOptions = ReadOptions & {
-  // The file's name (for locations, and to read it as JavaScript when it ends in .js).
+export type ExtractOptions = Omit<ReadOptions, 'entry' | 'functions'> & {
+  // The class, reducer, slice or factory read (by default the one the file's exports have that reads), or several
+  // functions over one record, each a request.
+  entry?: string | string[],
+  /** @deprecated entry: [...] (the same: several functions over one record, the entry the first) */
+  functions?: string[],
+  // The file's name, for code given as a string (for locations, and to read it as JavaScript when it ends in .js).
   file?: string,
   // 'class' or 'functions' (a reducer is functions of one); by default, a class if the entry names one.
   shape?: 'class' | 'functions',
@@ -105,19 +113,34 @@ export function namesOf(m: Model): Name[] {
   return out
 }
 
-export function extract(code: string, opts: ExtractOptions): Extraction {
-  const file = opts.file ?? 'input.ts', notes: string[] = []
-  let model: Model
+export function extract(at: Source, opts: ExtractOptions = {}): Extraction {
+  const notes: string[] = []
+  let model: Model, code: string, file: string
   try {
-    const isClass = opts.shape ? opts.shape === 'class' : new RegExp(`\\bclass\\s+${opts.entry}\\b|\\b${opts.entry}\\s*=\\s*class\\b`).test(code)
-    const at = placed(file)
-    model = isClass ? readClass(code, at, opts) : isSlice(code, opts.entry) ? readSlice(code, at, opts) : isFactory(code, file, opts.entry) ? readFactory(code, at, opts) : readFunctions(code, at, opts)
+    ;({code, file} = sourceOf(at, opts.file, 'input.ts'))
+    const fns = Array.isArray(opts.entry) ? opts.entry : opts.functions
+    const o: ReadOptions = {...opts, entry: (Array.isArray(opts.entry) ? opts.entry[0] : opts.entry) ?? fns?.[0] ?? '', ...(fns ? {functions: fns} : {})}
+    model = o.entry ? readModel(code, file, o, opts.shape) : inferred(code, file, o, opts.shape)
     model.file = file
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
     throw e
   }
   return {...fromModel(model, file, opts.domains, notes, (rule, sorts) => check(code, file, model, rule, sorts, {...opts.check, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})), names: namesOf(model)}
+}
+function readModel(code: string, file: string, opts: ReadOptions, shape?: 'class' | 'functions'): Model {
+  const isClass = shape ? shape === 'class' : new RegExp(`\\bclass\\s+${opts.entry}\\b|\\b${opts.entry}\\s*=\\s*class\\b`).test(code), at = placed(file)
+  return isClass ? readClass(code, at, opts) : isSlice(code, opts.entry) ? readSlice(code, at, opts) : isFactory(code, file, opts.entry) ? readFactory(code, at, opts) : readFunctions(code, at, opts)
+}
+// No entry named: each exported class and function tried, the one that reads taken.
+function inferred(code: string, file: string, opts: ReadOptions, shape?: 'class' | 'functions'): Model {
+  const names = [...new Set([...code.matchAll(/export\s+(?:default\s+)?(?:abstract\s+)?class\s+(\w+)|export\s+(?:const|function)\s+(\w+)/g)].map(m => (m[1] ?? m[2])!))]
+  const read: Model[] = [], why: Refusal[] = []
+  for (const entry of names) { try { read.push(readModel(code, file, {...opts, entry}, shape)) } catch (e) { if (e instanceof Refusal) why.push(e); else throw e } }
+  if (read.length > 1) throw new Refusal(file, `several rules in the file (${read.map(m => m.entry).join(', ')}): name one (entry)`)
+  if (!read.length) throw names.length === 1 ? why[0]! : new Refusal(file, names.length ? `no exported class or function reads as a rule (${why.map(r => `${r.where}: ${r.what}`).join('; ')}): name the entry` : 'no exported class or function: name the entry')
+  read[0]!.notes.unshift(`the entry inferred: ${read[0]!.entry}, the one of the file's exports that reads as a rule`)
+  return read[0]!
 }
 // A model read by a front end (this file's TypeScript, or core/extract-go.ts's Go) printed as the rule, built, and
 // checked against the code by the front end's own check: what both front ends share.

@@ -4,9 +4,10 @@
 // fromModel), the check running the module as it ships through core/py/harness.py. Python is needed only here, at
 // extraction; the rule printed needs nothing but gdp-wired.
 //
-//   const x = extractPython('litellm/proxy/auth/auth_checks.py', {root: 'litellm-repo', entry: ['team_max_budget_check'],
+//   const x = extractPython('limiter.py')     // a path or a URL; the class inferred, the boundary too
+//   proveRule(x.rule!, [x.rule!.law('within the limit', ({used, limit}) => used.atMost(limit))])
+//   const y = extractPython('litellm/proxy/auth/auth_checks.py', {root: 'litellm-repo', entry: ['team_max_budget_check'],
 //     failures: 'kept'})
-//   if (!x.ok) console.log(x.refusals)
 //
 // The boundary is inferred (core/extract-step.ts): get_current_spend (another module's, `-> float`) answered by the
 // request, CallInfo and asyncio.create_task left out; `answers`, `skip` and `stores` state it where inference can't
@@ -36,8 +37,9 @@
 // constructor doesn't set, one object in two places of the state, two keys of one map written in one step, a write
 // before a failure (unless onError: 'discard').
 import {type Extraction} from './extract.ts'
-import {Refusal} from './extract-read.ts'
+import {Refusal, pathOf} from './extract-read.ts'
 import {type Harness, type SModule, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
+export {proveRule, proveSteps} from './dsl.ts'
 
 export type PyOptions = StepOptions & {
   // The repository's root (its modules importable from it); by default the file's directory.
@@ -57,7 +59,8 @@ export function readPython(file: string, names: string[], opts: {root?: string, 
   catch (e) { throw new Refusal(file, `the Python reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): python3 is needed to extract Python`) }
   return JSON.parse(out) as SModule
 }
-export function extractPython(file: string, opts: PyOptions): Extraction & {read?: StepRead} {
+export function extractPython(at: string | URL, opts: PyOptions = {}): Extraction & {read?: StepRead} {
+  const file = pathOf(at)
   let mod: SModule
   try { mod = readPython(file, entryNames(opts), opts) } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}

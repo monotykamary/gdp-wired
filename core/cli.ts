@@ -107,14 +107,13 @@ async function extractWith(t: Target, o: Record<string, unknown>): Promise<Extra
     case 'swift': { const {extractSwift} = await import('./extract-swift.ts'); return extractSwift(f, o) }
     case 'c': case 'cpp': { const {extractC} = await import('./extract-c.ts'); return extractC(f, o, t.lang === 'cpp') }
     case 'ts': {
-      const code = fs.readFileSync(f, 'utf8'), file = path.basename(f)
-      if (/from\s+['"]effect(\/\w+)?['"]/.test(code)) {
-        const {extractEffect} = await import('./effect.ts'), {createRequire} = proc.getBuiltinModule('node:module') as {createRequire: (p: string) => {resolve: (s: string) => string}}
-        const effect = await import(createRequire(f).resolve('effect')) as Record<string, unknown>
-        return extractEffect(code, {file, effect, ...o} as never)
-      }
+      // (Effect and XState run on the package the file's own project has, imported here as the code imports it)
+      const code = fs.readFileSync(f, 'utf8'), file = path.relative(proc.cwd(), f) || f, {createRequire} = proc.getBuiltinModule('node:module') as {createRequire: (p: string) => {resolve: (s: string) => string}}
+      const own = async (spec: string) => { try { return await import(createRequire(f).resolve(spec)) as Record<string, unknown> } catch { return undefined } }
+      if (/from\s+['"]effect(\/\w+)?['"]/.test(code)) { const {extractEffect} = await import('./effect.ts'), effect = await own('effect'); return extractEffect(file, {...(effect ? {effect} : {}), ...o} as never) }
+      if (/from\s+['"]xstate['"]/.test(code) && /\bcreateMachine\b/.test(code)) { const {extractXState} = await import('./extract-xstate.ts'), xstate = await own('xstate'); return extractXState(file, {...(xstate ? {xstate} : {}), ...o} as never) as Extraction }
       const {extract} = await import('./extract.ts')
-      return extract(code, {file, ...o} as never)
+      return extract(file, o as never)
     }
   }
 }
@@ -263,7 +262,7 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     const mine = rules.length === 1 ? laws : laws.filter(l => (!l.cls && !l.fn) || (l.cls ? l.cls === name : l.fn === name || ms0.has(l.fn)))
     if (!x.ok || !x.rule) { r.laws = mine.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read', why: 'the rule was refused', ms: 0})); continue }
     const ev = x.evidence
-    if (ev) r.checked = `checked against the code: ${ev.requests} requests from the start, ${ev.fromStates} from drawn states, ${ev.probes.steps} from the prover's witnesses${ev.coverage.arms ? `, ${ev.coverage.hit} of ${ev.coverage.arms} branch arms` : ''}`
+    if (ev) r.checked = `checked against ${'probes' in ev ? `the code: ${ev.requests} requests from the start, ${ev.fromStates} from drawn states, ${ev.probes.steps} from the prover's witnesses` : `XState's own actor: ${(ev as unknown as {events: number}).events} events`}${ev.coverage.arms ? `, ${ev.coverage.hit} of ${ev.coverage.arms} branch arms` : ''}`
     // (the rule's methods: the choice of method where it has several, else the one each name says)
     const evSort = x.model?.inputs.find(v => v.name === x.model?.event)?.sort
     const methods = new Set([...(x.names ?? []).filter(n => n.method).map(n => n.method!), ...(evSort?.k === 'choice' ? evSort.values : [])])
@@ -272,7 +271,7 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     // (a law is known by its name: a name stated twice in one rule is refused, both times)
     const twice = (l: LawText) => stated.filter(m => m.name === l.name).map(m => m.where)
     r.laws = stated.map(l => (twice(l).length > 1 ? {name: l.name, expr: l.expr, where: l.where, verdict: 'not read' as const, why: `a law of this name is stated twice (${twice(l).join(', ')}): a law is known by its name`, ms: 0} : prove(x, l, o.ms, proven)))
-    if (o.propose) { const p = propose(x, t.lang, o, proven, new Set(stated.map(l => l.expr.replace(/\s+/g, '')))); r.proposed = p.shown; r.brokenProposed = p.broken }
+    if (o.propose && x.model) { const p = propose(x, t.lang, o, proven, new Set(stated.map(l => l.expr.replace(/\s+/g, '')))); r.proposed = p.shown; r.brokenProposed = p.broken }
   }
   return outs
 }
@@ -427,7 +426,7 @@ const label = (n: Name) => (n.role === 'answer' ? `${n.code.split('.').pop()}(..
 
 const USAGE = `gdp-wired check <file|dir>... [--entry X] [--methods a,b] [--failures kept] [--on-error discard] [--json] [--ms 10000] [--no-propose]
 
-Reads the rule in each file (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, C, C++, TypeScript, Effect), checks it
+Reads the rule in each file (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, Swift, C, C++, TypeScript, Effect, XState), checks it
 against the code by running both, proves the laws stated in the code (\`# gdp: law <name>: <expr>\`, \`// gdp: law ...\`,
 @GdpLaw("<name>: <expr>")) and proposes others. Exit code: 1 when a stated law is broken, 2 when one couldn't be checked.`
 

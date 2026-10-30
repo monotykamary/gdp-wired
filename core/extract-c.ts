@@ -6,7 +6,7 @@
 // called as they are, with the same flags and the undefined-behavior sanitizer trapping), drives the functions with
 // the rule's requests and compares every state (core/extract-go-check.ts's `speak`, Go's own driver).
 //
-//   const x = extractC('src/bucket.c', {entry: 'bucket', fails: {bucket_take: '< 0'}, flags: ['-Iinclude']})
+//   const x = extractC('src/bucket.c', {fails: {bucket_take: '< 0'}, flags: ['-Iinclude']})   // a path or a URL; the struct inferred
 //
 // The subset: a struct of the file (its typedef's name or its tag) starting at all zeros, each function of the file
 // whose first parameter points to it a request (by default the non-static ones; `functions` names them), the others
@@ -25,7 +25,7 @@
 // static locals (state every object shares), calls of other files' or libraries' code, function pointers, bit
 // operations but the mask above, the comma operator, an assignment or ++ inside an expression, and sizeof.
 import {type Extraction, fromModel} from './extract.ts'
-import {Refusal} from './extract-read.ts'
+import {Refusal, pathOf} from './extract-read.ts'
 import {stubbed} from './extract-step.ts'
 import type {Rule} from './dsl.ts'
 import type {Sorts} from './extract-print.ts'
@@ -33,10 +33,14 @@ import type {Coverage} from './extract-check.ts'
 import {type GoOptions, type GoPkg, type GoRead, goNames, readGo, unsignedDomains} from './extract-go.ts'
 import {type GoCheckOptions, type GoEvidence, type GoLeaf, speak} from './extract-go-check.ts'
 import {type CRead, clangDump, flagsFor, node, readC} from './c/reader.ts'
+export {proveRule, proveSteps} from './dsl.ts'
 
 export type COptions = {
-  // The struct, and the functions read as its requests (by default each non-static one whose first parameter points to it).
-  entry?: string, functions?: string[],
+  // The struct (C++: the class), and the functions read as its requests (by default each non-static one whose first
+  // parameter points to it; `name/arity` for an overload).
+  entry?: string, methods?: string[],
+  /** @deprecated methods (the same: the struct's functions read as its requests) */
+  functions?: string[],
   // true: another file's or a library's function refused where it is called (nothing inferred)
   strict?: boolean,
   // The project's flags (-I, -D, -std), or its compile_commands.json (the file's entry's), and the clang to run.
@@ -51,10 +55,18 @@ type FS = {readFileSync: (p: string, e: string) => string, mkdtempSync: (p: stri
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
 
 export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead, flags: string[]} {
+  // (no entry, C++: each class the file declares tried, its dump read for its name only)
+  if (!opts.entry && cpp) {
+    let text = ''
+    try { text = node<FS>('node:fs').readFileSync(file, 'utf8') } catch { throw new Refusal(file, 'no such file') }
+    const why: string[] = [], names = [...new Set([...text.matchAll(/^\s*(?:class|struct)\s+(\w+)\s*(?:final\s*)?(?::[^{;]*)?\{/gm)].map(m => m[1]!))]
+    const ok = names.flatMap(n => { try { const r = readCFile(file, {...opts, entry: n}, cpp); readGo(r.c.pkg, {methods: r.c.methods}); return [r] } catch (e) { if (e instanceof Refusal) { why.push(`${n}: ${e.what}`); return [] } throw e } })
+    if (ok.length !== 1) throw new Refusal(file, ok.length ? `several classes write their state (${ok.map(r => r.c.entry).join(', ')}): name one (entry)` : `no class whose methods write its state${why.length ? ` (${why.join('; ')})` : ''}: name the entry`)
+    return ok[0]!
+  }
   const flags0 = [...flagsFor(file, opts.compileCommands), ...(opts.flags ?? [])], flags = cpp && !flags0.some(f => f.startsWith('-std=')) ? [...flags0, '-std=c++17'] : flags0, {tu, target} = clangDump(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, cpp ? opts.entry : undefined)
-  // (no entry: the file's one struct its functions write, each struct of the dump tried; C++'s dump needs the name)
+  // (no entry: the file's one struct its functions write, each struct of the dump tried)
   if (!opts.entry) {
-    if (cpp) throw new Refusal(file, 'no entry: name the class (the C++ dump reads only the declarations named)')
     const names = [...new Set((tu.inner ?? []).filter(n => n.kind === 'RecordDecl' && n.name && n.completeDefinition).map(n => String(n.name)))]
     const ok = names.filter(n => { try { const c = readC(file, n, tu, target, cpp, opts.root); readGo(c.pkg, {methods: c.methods}); return true } catch (e) { if (e instanceof Refusal) return false; throw e } })
     if (ok.length !== 1) throw new Refusal(file, ok.length ? `several structs written by the file's functions (${ok.join(', ')}): name one (entry)` : 'no struct the file\'s functions write: name the entry')
@@ -62,8 +74,8 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
   }
   return {c: readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])]))), flags}
 }
-export function extractC(file: string, opts: COptions, cpp = false): Extraction & {leaves?: GoLeaf[]} {
-  const notes: string[] = []
+export function extractC(at: string | URL, given: COptions = {}, cpp = false): Extraction & {leaves?: GoLeaf[]} {
+  const notes: string[] = [], file = pathOf(at), fns = given.methods ?? given.functions, opts: COptions = {...given, ...(fns ? {functions: fns} : {})}
   let read: GoRead, c: CRead, flags: string[]
   try {
     ;({c, flags} = readCFile(file, opts, cpp))
@@ -75,7 +87,7 @@ export function extractC(file: string, opts: COptions, cpp = false): Extraction 
   }
   // (a signed leaf the caller states is a natural: its range law from 0, the claim for those states)
   for (const [n, d] of Object.entries(opts.domains ?? {})) if (d === 'nat') read.model.laws = read.model.laws?.map(l => (l.includes(`"${n} within its type's range"`) ? l.replace(/\.atLeast\(-\d+\)/, '.atLeast(0)') : l))
-  if (!opts.entry) read.model.notes.unshift(`the entry inferred: ${c.entry}, the struct the file's functions write`)
+  if (!opts.entry) read.model.notes.unshift(`the entry inferred: ${c.entry}, ${cpp ? 'the class whose methods write its state' : 'the struct the file\'s functions write'}`)
   const x = fromModel(read.model, `${c.entry}.${cpp ? 'cpp' : 'c'}`, {...unsignedDomains(read), ...signedDomains(c.pkg, read), ...opts.domains}, notes, (rule, sorts) => checkC(file, flags, c, read, rule, sorts, opts, cpp))
   return {...x, leaves: read.leaves, names: goNames(read)}
 }
@@ -94,7 +106,7 @@ function signedDomains(pkg: GoPkg, read: GoRead): Record<string, 'int'> {
 // std::max, std::lock_guard, std::scoped_lock and std::unique_lock of a member mutex the step atomic (Go's Lock with its
 // deferred Unlock), a throw the step's refusal. Refused: templates, virtual methods, overloads, other classes' methods,
 // STL containers but std::array, lambdas, try and catch.
-export const extractCpp = (file: string, opts: COptions) => extractC(file, opts, true)
+export const extractCpp = (at: string | URL, opts: COptions = {}) => extractC(at, opts, true)
 
 // --- the harness: C (or C++) that #includes the file, sets and prints the state's leaves as JSON lines -------------------
 const ty = (pkg: GoPkg, t: number) => pkg.ttab[t] ?? {k: 'invalid'}

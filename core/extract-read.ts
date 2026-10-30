@@ -134,6 +134,24 @@ export function placed(file: string): string {
   const cwd = (globalThis as {process?: {cwd?: () => string}}).process?.cwd?.() ?? '.'
   return (/^([A-Za-z]:)?[\\/]/.test(file) ? file : `${cwd}/${file}`).replace(/\\/g, '/')
 }
+// --- one way in: what every front end takes ----------------------------------------------------------------------------
+// The code to read: a path or a file: URL (read from disk), or the code itself with its file's name.
+export type Source = string | URL | {code: string, file?: string}
+const builtin = <T>(id: string): T => (globalThis as {process?: {getBuiltinModule?: (id: string) => unknown}}).process?.getBuiltinModule?.(id) as T
+export const pathOf = (at: string | URL): string => (typeof at === 'string' ? at : builtin<{fileURLToPath: (u: URL) => string}>('node:url').fileURLToPath(at))
+// A TypeScript front end's source. A string is the code where it can't be a path (a line break, or no script's
+// extension): the code-first call, as it was.
+export function sourceOf(at: Source, file: string | undefined, dflt: string): {code: string, file: string} {
+  if (typeof at === 'object' && !(at instanceof URL)) return {code: at.code, file: at.file ?? file ?? dflt}
+  if (typeof at === 'string' && (at.includes('\n') || !/\.[cm]?[jt]sx?$/.test(at))) return {code: at, file: file ?? dflt}
+  const p = pathOf(at).replace(/^(\.\/)+/, '')
+  try { return {code: builtin<{readFileSync: (p: string, e: string) => string}>('node:fs').readFileSync(p, 'utf8'), file: p} } catch { throw new Refusal(p, 'no such file') }
+}
+// A package as the code at `file` imports it (from its own project's node_modules), so the check runs on the version
+// the code is written for; undefined where none resolves.
+export function beside<T>(file: string, spec: string): T | undefined {
+  try { return builtin<{createRequire: (p: string) => (s: string) => unknown}>('node:module').createRequire(placed(file))(spec) as T } catch { return undefined }
+}
 export const scriptKind = (file: string): ts.ScriptKind => (/\.jsx$/.test(file) ? ts.ScriptKind.JSX : /\.tsx$/.test(file) ? ts.ScriptKind.TSX : /\.[cm]?js$/.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.TS)
 // The shape a type has in the subset.
 // (`inner`: the field path inside the value at `at` that t is the type of, for where a refusal says it is)
