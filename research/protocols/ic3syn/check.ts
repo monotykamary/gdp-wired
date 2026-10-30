@@ -5,7 +5,8 @@
 // `bad` counts the reachable states that break the safety property as the port reads it (`bad`): 0 for the port, and
 // above 0 for its broken variant (--broken, which stops at the first), which shows the property is not vacuous on the
 // instance. The op input's
-// values are its choices' positions (0, 1, ...).
+// values are its choices' positions (0, 1, ...). `moved`: by op, the steps that reached a new state; `edge`: the states a
+// constraint (`keep`) leaves out, reached from inside it (TLC counts those as found, and explores none of them).
 import {writeFileSync} from 'node:fs'
 import {interpret} from '../../../core/machine.ts'
 import {protocols} from './models.ts'
@@ -29,6 +30,7 @@ for (const p of protocols.filter(q => q.check && (!only || only.includes(q.id)))
   const t0 = performance.now(), st0 = run.init(params), seen = new Set([keyOf(st0)]), spec = new Set<string>()
   const proj = (st: any) => { const x = c.project(read(st)); if (x !== undefined) spec.add(JSON.stringify(x)); return x }
   let frontier = [st0], depth = 0, refused = 0, stepped = 0, bad = 0, done = true
+  const moved: Record<string, number> = {}, edge = new Set<string>()
   proj(st0); if (p.bad?.(read(st0))) bad++
   while (frontier.length) {
     if (performance.now() - t0 > ms) { done = false; break }
@@ -37,7 +39,8 @@ for (const p of protocols.filter(q => q.check && (!only || only.includes(q.id)))
       let s2: any
       try { s2 = run.step(params, st, q); stepped++ } catch { refused++; continue }
       const k = keyOf(s2); if (seen.has(k)) continue
-      if (c.keep && !c.keep(read(s2))) continue
+      if (k !== keyOf(st)) moved[String(q.op)] = (moved[String(q.op)] ?? 0) + 1
+      if (c.keep && !c.keep(read(s2))) { const x = c.project(read(s2)); if (x !== undefined) edge.add(JSON.stringify(x)); continue }
       seen.add(k); next.push(s2); proj(s2)
       if (p.bad?.(read(s2))) bad++
       if (broken && bad) break
@@ -45,5 +48,5 @@ for (const p of protocols.filter(q => q.check && (!only || only.includes(q.id)))
     if (next.length) depth++
     frontier = broken && bad ? [] : next
   }
-  console.log(JSON.stringify({id: p.id, broken, states: spec.size, raw: seen.size, depth, done, requests: given.length, bad, ...(c.states ? {tlc: c.states} : {}), ms: Math.round(performance.now() - t0)}))
+  console.log(JSON.stringify({id: p.id, broken, states: spec.size, raw: seen.size, depth, done, requests: given.length, bad, ...(c.keep ? {edge: edge.size} : {}), moved, ...(c.states ? {tlc: c.states} : {}), ms: Math.round(performance.now() - t0)}))
 }
