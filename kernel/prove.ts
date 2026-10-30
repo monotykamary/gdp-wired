@@ -207,7 +207,7 @@ export const fullWork = (): number => { let n = 0; for (const [k, w] of model) n
 // on any machine; a deadline it is grown within stays.
 const groundRate = 180
 let workCap = Infinity
-const withWork = <T>(cap: number, f: () => T): T => { const outer = workCap; workCap = Math.min(outer, cap); try { return f() } finally { workCap = outer } }
+export const withWork = <T>(cap: number, f: () => T): T => { const outer = workCap; workCap = Math.min(outer, cap); try { return f() } finally { workCap = outer } }
 // Past a budget's end on the clock, or past the work a goal's own budget allows.
 // A wall-clock end beside the clock's (withWall: the search's own end, core/dsl.ts): work the counted clock doesn't count
 // (the EPR path's propositional search, a node's propagation, building a large goal's rows) stops there too, and past it

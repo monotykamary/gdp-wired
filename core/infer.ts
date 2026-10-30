@@ -35,7 +35,7 @@ import {quietly} from './cyclic.ts'
 import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, compileC, compileE, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
-import {clock, counted, fullWork, decideLaw, decideNote, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
+import {clock, counted, fullWork, decideLaw, decideNote, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall, withWork} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
@@ -116,7 +116,7 @@ const inferTrace = !!env.GDP_INFER_TRACE
 // the control state up to 7, and 128 of its values; a goal tried with 6 parts of the set before all of it, 2 forms added
 // at a time.
 const joinOn = env.GDP_JOIN !== '0'
-const joinShare = 0.6, joinQueryMs = 8000, joinGrowWall = 2000, joinRequestMs = 150, joinWalk = 8, joinPairs = 10, joinRaises = 2, joinSparse = 4, joinCoef = 1000
+const joinShare = 0.6, joinQueryMs = 8000, joinGrowEpr = 300_000, joinGrowWork = 400_000, joinRequestMs = 150, joinWalk = 8, joinPairs = 10, joinRaises = 2, joinSparse = 4, joinCoef = 1000
 const joinExtras = 24, joinTries = 40, joinBits = 7, joinKeys = 128, joinAttempts = 6, joinAdd = 2
 // GDP_JOIN_CORE=0: the join's goals by the prover's trees alone, as before (else a model, or a refutation's core, of the
 // CDCL search first, at a quarter of the goal's budget).
@@ -1593,10 +1593,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           }
           if (!('tree' in quick) && quick.stuck === 'sat' && quick.witness) return {stuck: 'sat', witness: quick.witness, g: g!}
         }
-        // (where the engine follows, the usual search on the wall too, joinGrowWall: the proving joins' searches take under a
-        // second (decentralized lock's sums pass, 0.7–0.8 s), and an unknown one ran 13 s (wo's every k: Leader[k] <=
-        // VoteRequestMsg[k]), the engine's time)
-        const out = withWall(engineFollows() ? performance.now() + joinGrowWall : Infinity, () => budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2})))
+        // (where the engine follows, the usual search cut at joinGrowWork of the cost model's units and its EPR decisions at
+        // joinGrowEpr units: the proving joins' searches take under a second (decentralized lock's sums pass, 0.8 s, 217k
+        // units and 1.6k), and an unknown one ran 13 s (wo's every k: Leader[k] <= VoteRequestMsg[k], 1.2M and 647k), the
+        // engine's time; counted, where a 2 s wall used to end it, so the join ends where it ends on any machine)
+        const follow = engineFollows()
+        const out = withEprCap(follow ? joinGrowEpr : Infinity, () => withWork(follow ? fullWork() + joinGrowWork : Infinity, () => budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2}))))
         if (!('tree' in out)) return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined, g: g!}
         for (const h of usedHyps(g!, out.tree)) read(h)
         return {used, g: g!}
