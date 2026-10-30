@@ -1597,7 +1597,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         // proving joins' searches take under a second (decentralized lock's sums pass, 0.7–0.8 s), and an unknown one ran 13 s
         // (wo's every k: Leader[k] <= VoteRequestMsg[k]), the engine's time; counted, so the join ends where it ends on any
         // machine)
-        const out = withEprCap(engineFollows() ? joinGrowWall * inferRates.epr : Infinity, () => budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2})))
+        const jt0 = performance.now(), je0 = eprMeter.n, jf0 = fullWork()
+        const out = env.GDP_JOIN_WALL === '1' ? withWall(engineFollows() ? performance.now() + joinGrowWall : Infinity, () => budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2})))
+          : withEprCap(engineFollows() ? joinGrowWall * inferRates.epr : Infinity, () => budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2})))
+        if (env.GDP_JOIN_TRACE) process.stderr.write(`JASK ${JSON.stringify({g: g!.name.slice(0, 60), ms: Math.round(performance.now() - jt0), epr: eprMeter.n - je0, full: Math.round(fullWork() - jf0), out: 'tree' in out ? 'tree' : `${out.stuck}:${String(out.why ?? '').slice(0, 40)}`})}\n`)
         if (!('tree' in out)) return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined, g: g!}
         for (const h of usedHyps(g!, out.tree)) read(h)
         return {used, g: g!}

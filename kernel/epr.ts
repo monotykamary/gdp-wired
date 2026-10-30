@@ -53,7 +53,9 @@ const linTerms = (e: E, k: number, out: [string, number][], d: {c: number}): boo
 // A radix tuple: names (a name twice is a diagonal key, 64·x + x: the tuple (x, x)), no constant, coefficients a chain (each a multiple of the next, the last 1); its parts in
 // order (highest first) with each part's bound (the next coefficient's ratio; the top part none).
 type Tuple = {coefs: number[], parts: string[], bounds: (number | undefined)[]}
-function tupleOf(e: E): Tuple | undefined {
+const tupleMemo = new WeakMap<E, Tuple | null>()
+function tupleOf(e: E): Tuple | undefined { let t = tupleMemo.get(e); if (t === undefined) tupleMemo.set(e, (t = tupleOf0(e) ?? null)); return t ?? undefined }
+function tupleOf0(e: E): Tuple | undefined {
   const ts: [string, number][] = [], d = {c: 0}
   if (!linTerms(e, 1, ts, d) || d.c !== 0 || !ts.length) return undefined
   ts.sort((a, b) => b[1] - a[1])
@@ -188,12 +190,24 @@ const leavesOf = (e: E, k: number, out: [E, number][]): void => {
   if (e.op === 'add') { leavesOf(e.a, k, out); leavesOf(e.b, k, out) } else if (e.op === 'mul') leavesOf(e.a, k * e.k, out)
   else if (e.op === 'if') { leavesOf(e.then, k, out); leavesOf(e.else, k, out) } else if (e.op !== 'const') out.push([e, k])
 }
-const leavesMemo = new WeakMap<Comp, [E, number][]>()
-const compLeaves = (c: Comp): [E, number][] => { let ts = leavesMemo.get(c); if (!ts) { ts = []; leavesOf(c.a, 1, ts); leavesOf(c.b, -1, ts); leavesMemo.set(c, ts) } return ts }
+// (a comparison's leaves with their coefficients, its largest constant, and its sides' tuples, once)
+type CompInfo = {ts: [E, number][], top: number, ta?: Tuple, tb?: Tuple}
+const compMemo = new WeakMap<Comp, CompInfo>()
+const compInfo = (c: Comp): CompInfo => {
+  let x = compMemo.get(c)
+  if (!x) {
+    const ts: [E, number][] = [], consts: number[] = []
+    leavesOf(c.a, 1, ts); leavesOf(c.b, -1, ts)
+    const k = (e: E): void => { if (e.op === 'const') consts.push(Math.abs(e.value)); else if (e.op === 'add') (k(e.a), k(e.b)); else if (e.op === 'mul') k(e.a); else if (e.op === 'if') (k(e.then), k(e.else)) }
+    k(c.a); k(c.b)
+    compMemo.set(c, (x = {ts, top: Math.max(1, ...consts), ta: tupleOf(c.a), tb: tupleOf(c.b)}))
+  }
+  return x
+}
 // A goal's sorts of terms, as its hypotheses read them: the parts (a name some read's key or a key equality reads; the
 // rest are scalars), the bounded terms, each finite term's cap, the ordered maps and scalars. Two goals with the same
 // are encoded alike, term by term: one encoder serves both (`sig`).
-type Fin = {id: string, cap: number, exact?: boolean, map?: string, parts?: string[], key?: E}
+type Fin = {id: string, cap: number, bkey: string, exact?: boolean, map?: string, parts?: string[], key?: E}
 type State = {parts: Set<string>, fnParts: {f: string, n: string, a: string}[], bounded: Map<string, number>, caps: Map<string, number>, ordMaps: Set<string>, ordScalars: Set<string>, reads: Get[], sig: string}
 function stateOf(fs: Facts[], patterns: Patterns, tick: () => void): State {
   const fits = (map: string, key: E) => { const t = tupleOf(key), p = patterns[map]; return t && p && sameCoefs(t.coefs, p) ? t : undefined }
@@ -204,7 +218,7 @@ function stateOf(fs: Facts[], patterns: Patterns, tick: () => void): State {
     else fits(x.map, x.key)?.parts.forEach(p => parts.add(p))
   }
   // (and the names of a key equality between tuples of one shape: of several parts, or of one where the other side is a part)
-  const eqs = fs.flatMap(f => f.comps.flatMap(c => { if (c.op !== '=') return []; const ta = tupleOf(c.a), tb = tupleOf(c.b); return ta && tb && sameCoefs(ta.coefs, tb.coefs) ? [{ta, tb}] : [] }))
+  const eqs = fs.flatMap(f => f.comps.flatMap(c => { if (c.op !== '=') return []; const {ta, tb} = compInfo(c); return ta && tb && sameCoefs(ta.coefs, tb.coefs) ? [{ta, tb}] : [] }))
   for (let grew = true; grew;) {
     grew = false
     for (const {ta, tb} of eqs) if (ta.parts.length > 1 || [...ta.parts, ...tb.parts].some(x => parts.has(x))) for (const x of [...ta.parts, ...tb.parts]) if (!parts.has(x)) { parts.add(x); grew = true }
@@ -217,17 +231,16 @@ function stateOf(fs: Facts[], patterns: Patterns, tick: () => void): State {
   // decides every comparison the cap does: the terms are naturals with coefficients of one sign)
   const caps = new Map<string, number>()
   const termKey = (e: E): string | undefined => (e.op === 'var' && !parts.has(e.name) ? `s:${e.name}` : e.op === 'get' ? `c:${e.map}` : undefined)
-  const ofParts = (e: E) => tupleOf(e)?.parts.every(x => parts.has(x))
+  const ofParts = (t: Tuple | undefined) => t?.parts.every(x => parts.has(x))
   const ordComps: [E, number][][] = []
   for (const f of fs) for (const c of f.comps) {
-    const consts: number[] = [], keys: string[] = []
+    const ci = compInfo(c)
     let ex = 0
-    const w = (e: E, k: number) => { if (e.op === 'const') consts.push(Math.abs(e.value)); else if (e.op === 'add') (w(e.a, k), w(e.b, k)); else if (e.op === 'mul') w(e.a, k * e.k); else if (e.op === 'if') (w(e.then, k), w(e.else, k)); else { const x = exactOf(e); if (x !== undefined) ex += Math.abs(k) * x; const t = termKey(e); if (t) keys.push(t) } }
-    w(c.a, 1); w(c.b, 1)
+    for (const [e, k] of ci.ts) { const x = exactOf(e); if (x !== undefined) ex += Math.abs(k) * x }
     // (and past what the exact terms beside can add: x <= Voted[k] with x at its cap is false at every larger x)
-    const top = Math.max(1, ...consts) + ex + 1
-    for (const k of keys) caps.set(k, Math.max(caps.get(k) ?? 1, top))
-    if (!(ofParts(c.a) && ofParts(c.b))) ordComps.push(compLeaves(c))
+    const top = ci.top + ex + 1
+    for (const [e] of ci.ts) { const t = termKey(e); if (t) caps.set(t, Math.max(caps.get(t) ?? 1, top)) }
+    if (!(ofParts(ci.ta) && ofParts(ci.tb))) ordComps.push(ci.ts)
   }
   // ordered: a map's cells, or a scalar, compared with another non-constant term (an epoch with a node's epoch: Ivy's
   // total order, `le`), not only with constants (a yes/no, a choice, which stay finite)
@@ -242,7 +255,8 @@ function stateOf(fs: Facts[], patterns: Patterns, tick: () => void): State {
   }
   while (grew) { grew = false; ordComps.forEach(ts => (tick(), ordWalk(ts))) }
   const sorted = <T>(xs: Iterable<T>) => [...xs].sort()
-  return {parts, fnParts, bounded, caps, ordMaps, ordScalars, reads, sig: JSON.stringify([JSON.stringify(patterns), sorted(parts), sorted(caps), sorted(bounded), sorted(ordMaps), sorted(ordScalars)])}
+  // (the bounded terms not in it: each finite variable a goal reads is checked against them, `exactAs`)
+  return {parts, fnParts, bounded, caps, ordMaps, ordScalars, reads, sig: JSON.stringify([JSON.stringify(patterns), sorted(parts), sorted(caps), sorted(ordMaps), sorted(ordScalars)])}
 }
 
 // One encoder per sort of goal (`State.sig`): every hypothesis it was asked is encoded once, its clauses guarded by an
@@ -256,7 +270,7 @@ type Use = {ords: string[], fins: Fin[], opq: number[], succ: number[]}
 type Hyp = {a: number, gid: number, use: Use}
 type Opts = {conflicts?: number, exact?: boolean, late?: () => boolean, fill?: boolean, fresh?: boolean}
 type Enc = {decide: (goal: Goal, fs: Facts[], st: State, opts: Opts) => Decision, size: () => number}
-const pool = new Map<string, Enc>()
+const pool = new Map<string, Enc>(), other = 'another encoder\'s goal'
 function decide0(goal: Goal, patterns: Patterns, opts: Opts): Decision {
   let ticks = 0
   const tick = () => { eprMeter.n++; if ((++ticks & 4095) === 0 && opts.late?.()) throw pastEnd }
@@ -272,8 +286,9 @@ function decide0(goal: Goal, patterns: Patterns, opts: Opts): Decision {
   if (!incOn || opts.fill || opts.fresh) return encoder(st, patterns).decide(goal, fs, st, opts)
   let enc = pool.get(st.sig)
   if (enc) pool.delete(st.sig)
-  else { enc = encoder(st, patterns); if (pool.size >= 4) pool.delete(pool.keys().next().value!) }
-  const d = enc.decide(goal, fs, st, opts)
+  else if (pool.size >= 4) pool.delete(pool.keys().next().value!)
+  let d = enc?.decide(goal, fs, st, opts)
+  if (!enc || !d || ('unknown' in d && d.unknown === other)) d = (enc = encoder(st, patterns)).decide(goal, fs, st, opts)
   if (enc.size() < 20_000) pool.set(st.sig, enc)
   return d
 }
@@ -302,7 +317,7 @@ function encoder(st: State, patterns: Patterns): Enc {
   const fins = new Map<string, Fin>(), finsList: Fin[] = []
   const finAt = (f: Fin, v: number): F => atom(`val ${f.id} ${v}`)
   const newFin = (id: string, cap: number, ex: number | undefined, more: Partial<Fin>, bkey: string): Fin => {
-    const f: Fin = {id, cap: ex ?? cap, ...(ex !== undefined ? {exact: true} : {}), ...more}
+    const f: Fin = {id, cap: ex ?? cap, bkey, ...(ex !== undefined ? {exact: true} : {}), ...more}
     fins.set(id, f); finsList.push(f)
     const ls = Array.from({length: f.cap + 1}, (_, val) => v(finAt(f, val))!)
     first.add(ls[0]!)
@@ -656,6 +671,8 @@ function encoder(st: State, patterns: Patterns): Enc {
       for (let i = 0; i + 1 < cs.length; i++) if (cs[i + 1]! - cs[i]! <= 4) for (let c = cs[i]! + 1; c < cs[i + 1]!; c++) { ords.add(`k:${c}`); gOrds.add(`k:${c}`) } }
     // (an order over many terms is a cubic number of transitivity clauses: past 64 terms they are added lazily, those a
     // model breaks, below; past 512, the totality's pairs alone are too many, and the goal keeps the usual path)
+    // (a finite variable read as exact here and not there, or at another bound: this goal's sorts aren't the encoder's)
+    for (const f of gFins) if (gst.bounded.get(f.bkey) !== (f.exact ? f.cap : undefined)) return {unknown: other}
     if (gOrds.size > 512 || ords.size > 512) { over = true; return {unknown: `${gOrds.size} ordered terms`} }
     close(gst)
     const theory = [...gOpq].flatMap(x => { const o = opqs.get(x)!; return !o.foreign && o.row ? [o.row] : [] })
@@ -1015,7 +1032,7 @@ function cdclSolver(trueFirst: Set<number>, keepPhase: Set<number>): {solve: (bu
   const valOf = (l: number) => (val[Math.abs(l)] === 0 ? 0 : (val[Math.abs(l)]! > 0) === (l > 0) ? 1 : -1)
   const trail: number[] = [], lim: number[] = []
   const assign = (l: number, r?: Cl) => { val[Math.abs(l)] = l > 0 ? 1 : -1; level[Math.abs(l)] = lim.length; reason[Math.abs(l)] = r; trail.push(l) }
-  let qhead = 0, fixed: Set<number> | undefined
+  let qhead = 0, fixed: Set<number> | undefined, seen = new Uint8Array(0)
   // (the origins of the reasons behind literals, through every level: a refutation's core)
   const coreOf = (lits: number[], out: Set<number>): Set<number> => {
     const seen = new Set<number>(), todo = lits.map(Math.abs)
@@ -1062,18 +1079,20 @@ function cdclSolver(trueFirst: Set<number>, keepPhase: Set<number>): {solve: (bu
         if (++conflicts > budget || (conflicts % 256 === 0 && late?.())) return undefined
         if (!lim.length) return {sat: false, core: (fixed = coreOf(confl.lits, new Set(confl.from)))}
         // first UIP
-        const seen = new Uint8Array(back.length), learnt: number[] = [], from = new Set(confl.from)
+        if (seen.length < back.length) seen = new Uint8Array(cap)
+        const learnt: number[] = [], from = new Set(confl.from), marked: number[] = []
         let p = 0, cnt = 0, c: Cl | undefined = confl, ti = trail.length - 1
         do {
           for (const q of c!.lits) {
             if (q === p) continue
             const x = Math.abs(q)
-            if (!seen[x] && level[x]! > 0) { seen[x] = 1; act[x] = act[x]! + inc; if (at[x]! >= 0) up(at[x]!); if (level[x] === lim.length) cnt++; else learnt.push(q) }
-            else if (!seen[x] && level[x] === 0 && reason[x]) { seen[x] = 1; coreOf([q], from) }
+            if (!seen[x] && level[x]! > 0) { seen[x] = 1; marked.push(x); act[x] = act[x]! + inc; if (at[x]! >= 0) up(at[x]!); if (level[x] === lim.length) cnt++; else learnt.push(q) }
+            else if (!seen[x] && level[x] === 0 && reason[x]) { seen[x] = 1; marked.push(x); coreOf([q], from) }
           }
           while (!seen[Math.abs(trail[ti]!)]) ti--
           p = trail[ti--]!; c = reason[Math.abs(p)]; if (c) for (const o of c.from) from.add(o); cnt--
         } while (cnt > 0)
+        for (const x of marked) seen[x] = 0
         learnt.unshift(-p)
         inc *= 1.05
         let bt = 0, bi = 1
