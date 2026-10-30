@@ -78,8 +78,9 @@ export function parse(s: string): X {
     const a = or()
     return peek() === '=>' ? (eat(), {k: 'bin', op: '=>', a, b: top()}) : a
   }
-  const or = (): X => { let a = and(); while (peek() === '||') { eat(); a = {k: 'bin', op: '||', a, b: and()} } return a }
-  const and = (): X => { let a = neg(); while (peek() === '&&') { eat(); a = {k: 'bin', op: '&&', a, b: neg()} } return a }
+  // (a level of left-associative operators over the next level)
+  const left = (ops: string[], next: () => X) => (): X => { let a = next(); while (ops.includes(peek()!)) { const op = eat(); a = {k: 'bin', op, a, b: next()} } return a }
+  const or = left(['||'], () => and()), and = left(['&&'], () => neg())
   const neg = (): X => (peek() === '!' ? (eat(), {k: 'un', op: 'not', x: neg()}) : cmp())
   const cmp = (): X => {
     const a = sum(), op = peek()
@@ -88,8 +89,7 @@ export function parse(s: string): X {
     if (op && ['<', '<=', '>', '>=', '==', '!=', 'in'].includes(op)) { eat(); return {k: 'bin', op, a, b: sum()} }
     return a
   }
-  const sum = (): X => { let a = prod(); while (peek() === '+' || peek() === '-') { const op = eat(); a = {k: 'bin', op, a, b: prod()} } return a }
-  const prod = (): X => { let a = unary(); while (peek() === '*' || peek() === '//' || peek() === '/' || peek() === '%') { const op = eat(); a = {k: 'bin', op, a, b: unary()} } return a }
+  const sum = left(['+', '-'], () => prod()), prod = left(['*', '//', '/', '%'], () => unary())
   const unary = (): X => (peek() === '-' ? (eat(), {k: 'un', op: '-', x: unary()}) : atom())
   const atom = (): X => {
     const x = eat()
@@ -203,7 +203,7 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
     case 'bin': {
       if (e.op === 'in') { const m = go(e.b); if (m.t !== 'map') throw new LawError('x in m: m a map'); const k = go(e.a); return dry ? {t: 'cond', v: yes} : {t: 'cond', v: cellOf(m, key(k), c).rec.has as Cond} }
       // (a name the rule doesn't have, compared with a choice: the choice's value, Outcome.SLOW_ERROR)
-      const lit = (x: X): V => { try { return go(x) } catch (err) { if (x.k !== 'path' || !(err instanceof LawError) || !['==', '!='].includes(e.op)) throw err; return {t: 'lit', v: (x.segs.length ? (x.segs.at(-1) as {f?: string}).f : x.head) ?? '', err} } }
+      const lit = (x: X): V => { try { return go(x) } catch (err) { if (x.k !== 'path' || !(err instanceof LawError) || !['==', '!='].includes(e.op)) throw err; return {t: 'lit', v: lastName(x) ?? '', err} } }
       const a = lit(e.a), b = lit(e.b)
       if (a.t === 'lit' && a.err && b.t === 'lit' && b.err) throw a.err
       if (['&&', '||', '=>'].includes(e.op)) return dry ? {t: 'cond', v: yes} : {t: 'cond', v: e.op === '&&' ? all(cond(a), cond(b)) : e.op === '||' ? any(cond(a), cond(b)) : cond(a).implies(cond(b))}
@@ -218,6 +218,8 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
   }
   return fail('an expression of no kind')
 }
+// (a path's last name: a choice's value written as one, Outcome.SLOW_ERROR)
+const lastName = (x: X & {k: 'path'}): string | undefined => (x.segs.length ? (x.segs.at(-1) as {f?: string}).f : x.head)
 const constOf = (x: X): number | undefined => (x.k === 'num' ? x.v : x.k === 'un' && x.op === '-' && x.x.k === 'num' ? -x.x.v : undefined)
 function compare(op: string, a: V, b: V, e: X & {k: 'bin'}): Cond {
   if (b.t === 'null' || a.t === 'null') {
@@ -233,7 +235,7 @@ function compare(op: string, a: V, b: V, e: X & {k: 'bin'}): Cond {
   if (a.t === 'choice' || b.t === 'choice') {
     const [ch, o, ox] = a.t === 'choice' ? [a.v, b, e.b] : [(b as {v: Choice<string>}).v, a, e.a]
     if (o.t === 'choice') return eq(ch.eq(o.v))
-    const lit = o.t === 'lit' ? o.v : ox.k === 'path' ? (ox.segs.length ? (ox.segs.at(-1) as {f?: string}).f : ox.head) : undefined
+    const lit = o.t === 'lit' ? o.v : ox.k === 'path' ? lastName(ox) : undefined
     if (lit === undefined || !ch.values.includes(lit)) throw new LawError(`${show(ox)} isn't one of ${ch.values.join(', ')}`)
     return eq(ch.is(lit))
   }

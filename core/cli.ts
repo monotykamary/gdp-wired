@@ -122,9 +122,11 @@ async function extractWith(t: Target, o: Record<string, unknown>): Promise<Extra
 //   stores.internal_usage_cache.attrs = {"dual_cache.redis_cache" = "None"}
 type Config = {all: Record<string, unknown>, rules: Record<string, Record<string, unknown>>, at?: string}
 export function configFor(from: string): Config {
-  const dir = up(from, d => ['gdp.toml', 'pyproject.toml', 'package.json'].some(f => fs.existsSync(path.join(d, f)) && (f === 'gdp.toml' || (f === 'pyproject.toml' ? /^\[tool\.gdp\b/m : /"gdp"\s*:/).test(fs.readFileSync(path.join(d, f), 'utf8')))))
+  // (the first of the three in a directory that holds gdp's options)
+  const holder = (d: string) => ['gdp.toml', 'pyproject.toml', 'package.json'].find(f => fs.existsSync(path.join(d, f)) && (f === 'gdp.toml' || (f === 'pyproject.toml' ? /^\[tool\.gdp\b/m : /"gdp"\s*:/).test(fs.readFileSync(path.join(d, f), 'utf8'))))
+  const dir = up(from, d => !!holder(d))
   if (!dir) return {all: {}, rules: {}}
-  const f = ['gdp.toml', 'pyproject.toml', 'package.json'].find(x => fs.existsSync(path.join(dir, x)) && (x === 'gdp.toml' || (x === 'pyproject.toml' ? /^\[tool\.gdp\b/m : /"gdp"\s*:/).test(fs.readFileSync(path.join(dir, x), 'utf8'))))!
+  const f = holder(dir)!
   const text = fs.readFileSync(path.join(dir, f), 'utf8')
   let c: Record<string, unknown>
   if (f === 'package.json') c = (JSON.parse(text) as {gdp?: Record<string, unknown>}).gdp ?? {}
@@ -143,6 +145,13 @@ export function toml(text: string): Record<string, unknown> {
   let table = root
   const keys = (s: string): string[] => [...s.matchAll(/\s*(?:"((?:[^"\\]|\\.)*)"|'([^']*)'|([\w-]+))\s*(?:\.|$)/g)].map(m => m[1] ?? m[2] ?? m[3]!)
   const at = (o: Record<string, unknown>, ks: string[]) => ks.reduce((t, k) => (t[k] ??= {}) as Record<string, unknown>, o)
+  // (a dotted key = value set in a table; what follows it)
+  const pair = (s: string, into: Record<string, unknown>): string => {
+    const eq = /^((?:"(?:[^"\\]|\\.)*"|'[^']*'|[\w.-]+|\s)+?)\s*=/.exec(s) ?? fail(`gdp.toml: can't read ${s.slice(0, 40)}`)
+    const ks = keys(eq[1]!), [v, r] = value(s.slice(eq[0].length))
+    at(into, ks.slice(0, -1))[ks.at(-1)!] = v
+    return r
+  }
   const value = (s: string): [unknown, string] => {
     s = s.trimStart()
     const str = /^"((?:[^"\\]|\\.)*)"|^'([^']*)'/.exec(s)
@@ -154,11 +163,7 @@ export function toml(text: string): Record<string, unknown> {
         s = s.trimStart()
         if (s[0] === (arr ? ']' : '}')) return [arr ? out : obj, s.slice(1)]
         if (s[0] === ',') { s = s.slice(1); continue }
-        if (arr) { const [v, r] = value(s); out.push(v); s = r } else {
-          const eq = /^((?:"(?:[^"\\]|\\.)*"|'[^']*'|[\w.-]+|\s)+?)\s*=/.exec(s) ?? fail(`gdp.toml: can't read ${s.slice(0, 40)}`)
-          const ks = keys(eq[1]!), [v, r] = value(s.slice(eq[0].length))
-          at(obj, ks.slice(0, -1))[ks.at(-1)!] = v; s = r
-        }
+        if (arr) { const [v, r] = value(s); out.push(v); s = r } else s = pair(s, obj)
       }
     }
     const m = /^(true|false|-?\d+)/.exec(s) ?? fail(`gdp.toml: can't read ${s.slice(0, 40)}`)
@@ -169,10 +174,8 @@ export function toml(text: string): Record<string, unknown> {
     if (!l || l.startsWith('#')) continue
     const h = /^\[([^\]]+)\]\s*(?:#.*)?$/.exec(l)
     if (h) { table = at(root, keys(h[1]!)); continue }
-    const eq = /^((?:"(?:[^"\\]|\\.)*"|'[^']*'|[\w.-]+|\s)+?)\s*=/.exec(l) ?? fail(`gdp.toml: can't read ${l}`)
-    const ks = keys(eq[1]!), [v, r] = value(l.slice(eq[0].length))
-    if (r.trim() && !r.trim().startsWith('#')) fail(`gdp.toml: can't read ${l}`)
-    at(table, ks.slice(0, -1))[ks.at(-1)!] = v
+    const r = pair(l, table).trim()
+    if (r && !r.startsWith('#')) fail(`gdp.toml: can't read ${l}`)
   }
   return root
 }
@@ -321,7 +324,7 @@ function runOf(x: Extraction, run: NonNullable<Verdict['run']>): string[] {
     const objs = names.filter(n => n.role === 'input' && n.method === m && !n.rule && n.none && n.none in req)
     const as = names.filter(n => n.role === 'input' && n.method === m && (n.rule ? n.rule in req : none(n)) && !objs.some(o => none(o) && n.code.startsWith(`${o.code}.`)))
     const call = `${m || 'step'}(${as.map(n => `${code(n)}=${n.rule ? shownValue(x, n.rule, req, n.none) : 'None'}`).join(', ')})`
-    const extra = names.filter(n => (n.role === 'answer' || n.role === 'clock') && n.rule in req).map(n => `${n.role === 'answer' ? `${n.code.split('.').pop()}(...)` : n.code} = ${shownValue(x, n.rule, req, n.none)}`)
+    const extra = names.filter(n => (n.role === 'answer' || n.role === 'clock') && n.rule in req).map(n => `${label(n)} = ${shownValue(x, n.rule, req, n.none)}`)
     lines.push(extra.length ? `${call} with ${extra.join(', ')}` : call)
   }
   return lines
@@ -433,7 +436,7 @@ export async function main(argv: string[]): Promise<number> {
   const {rules: all, exit: code} = await check(targets, o, o.json ? undefined : r => printRule(r, o))
   const stated = all.flatMap(r => r.laws)
   if (o.json) out(JSON.stringify({rules: all.map(({source: _s, ...r}) => r), exit: code}, null, 1))
-  else if (stated.length) out(`${stated.filter(l => l.verdict === 'proven').length} of ${stated.length} stated laws proven, ${stated.filter(l => l.verdict === 'broken').length} broken, ${stated.filter(l => l.verdict === 'unknown').length} unknown, ${stated.filter(l => l.verdict === 'not read').length} not read`)
+  else if (stated.length) { const n = (v: LawOut['verdict']) => stated.filter(l => l.verdict === v).length; out(`${n('proven')} of ${stated.length} stated laws proven, ${n('broken')} broken, ${n('unknown')} unknown, ${n('not read')} not read`) }
   return code
 }
 

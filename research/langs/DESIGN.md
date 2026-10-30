@@ -936,3 +936,9 @@ rw 74 / 14 / 3 and g332 332 of 332 (the same search) each 0 differing (gained 0,
 (runs/bar/runs/b05f65166824-vs-5d4da3f49013-quick-2026-10-301006). The quick rw dev set holds no Swift item, so the
 realworld Swift items were proven on their own (above).
 
+**Next (not built): string-keyed maps.** A Swift map keyed by `String` (a `[String: Int]` field, a store keyed by a
+string's template) extracts and checks, but its laws can't name a key: the rule's maps are keyed by naturals, so a law
+reading `m.at(user)` with a string `user` fails to build (core/dsl.ts's `at` takes a number), and a signed `Int` key is
+refused ("a map key that may be negative"). The Limiter test keys by `UInt` for that reason. The fix belongs to the
+shared maps (keys of a string sort, as the rule's strings are interned), not to the Swift front end.
+
