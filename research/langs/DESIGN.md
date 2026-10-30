@@ -1060,3 +1060,22 @@ ruby, go, ...) are found on the PATH with an option naming another, as before; `
 languages' only (Go and C keep `fails` and `onError`; TypeScript's throws are refusals), `answers`, `skip` and `stores`
 too: a capability each front end lacks, not a name that differs.
 
+**Sizes.** core/ in TypeScript, tests excluded, against 07b2518: +14,405 bytes (core/extract-xstate.ts +4,207: the
+wrapper, the machine inferred, the names; core/effect.ts +2,577: the service inferred; core/extract.ts +2,212;
+core/extract-read.ts +1,881: `sourceOf`, `pathOf`, `beside`; core/extract-c.ts +1,240: C++'s entry; the rest a few
+hundred each, much of it the usage lines). Tests +9,834. kernel/, core/laws.ts and core/infer.ts are unchanged.
+
+**Validation** (Modal, modal/run.py's image): core/extract.test.ts, effect.test.ts (Effect 4.x and 3.x), xstate.test.ts,
+exports.test.ts and cli.test.ts (the TypeScript, Effect and XState cases and their one-way-in cases), 101 of 101 run;
+each language's own test file with its toolchain (research/langs/*-setup.sh, research/extract/go-setup.sh) and its two
+cli.test.ts cases (the CLI's laws, and one way in): Python 29, Ruby 8, Elixir 6, C and C++ 15, Java and Kotlin 21, Swift
+10, Go 22, Rust 6, none skipped; chart.test.ts and examples/effect.ts, xstate.ts, charts.ts; tsc and oxlint clean;
+scripts/smoke.sh under Node 22.12 (its consumer type-check caught the global `URL` in the declarations, which a
+project without DOM or Node types lacks: a URL is now taken by its shape). First pass: the Rust one-way-in case failed
+on the call as it was (with `entry` named, the Rust front end reads every pub fn of the impl, `new` too, and the
+harness calls `new` as a method: an existing behavior, not this change's), so the case names its methods.
+
+**Bar** (quick, `--only rw,f1,f2,g332,suite,onecpu`, 70ca4e6 against the cached baseline of 5d4da3f): f1 34 proven of
+48 (base 34), f2 24 of 64 (base mean 24.33), rw 73 / 14 / 4 (base 74 / 14 / 3: one first-pass flip, noise after 3
+reruns a side: gained 0, lost 0, wrong 0), g332 332 of 332 the same search; the suite 233 of 233; onecpu no failure;
+$0.59 estimated (runs/bar/runs/70ca4e617289-vs-5d4da3f49013-quick-2026-10-301223).
