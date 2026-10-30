@@ -73,7 +73,11 @@ export type Decision = {sat: false, core: number[]} | {sat: true, witness: Recor
 export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
   fnMaps = new Set(Object.entries(patterns).filter(([, c]) => c.length === 1 && c[0] === 0).map(([f]) => f))
   // (a model whose order leaves no room between two near constants: again with the constants between them, below)
-  try { const d = decide0(goal, patterns, opts); return 'unknown' in d && d.unknown === noRoom ? decide0(goal, patterns, {...opts, fill: true}) : d } catch (e) { if (e === pastEnd) return {unknown: 'past the deadline'}; throw e } finally { fnMaps = new Set() }
+  // (a model the read-back breaks: once more without the other goals' theory lemmas, whose history chose that model)
+  try {
+    const d = decide0(goal, patterns, opts), d2 = 'unknown' in d && d.unknown === noRoom ? decide0(goal, patterns, {...opts, fill: true}) : d
+    return 'unknown' in d2 && d2.unknown.startsWith(breaks) && lemmaCache.size ? decide0(goal, patterns, {...opts, fresh: true}) : d2
+  } catch (e) { if (e === pastEnd) return {unknown: 'past the deadline'}; throw e } finally { fnMaps = new Set() }
 }
 // (thrown by `late` checked every 4,096 clauses and hypotheses read: a goal's clauses are quadratic in its terms)
 const pastEnd = new Error('past the deadline')
@@ -81,8 +85,8 @@ const pastEnd = new Error('past the deadline')
 // at its key), so it holds in every goal that has those atoms, a round's other goals over the same set above all; each
 // goal starts with those it has. At most 20,000, then begun again.
 const lemmaCache = new Map<string, [string, boolean][]>()
-const noRoom = 'no values for the model\'s order'
-function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean, fill?: boolean}): Decision {
+const noRoom = 'no values for the model\'s order', breaks = 'the abstraction\'s model breaks'
+function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean, fill?: boolean, fresh?: boolean}): Decision {
   // --- which hypotheses are EPR-shaped: every map read at a key of its map's pattern
   const shaped = goal.hyps.map(h => {
     let ok = true
@@ -488,7 +492,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     add(ls, f.exact ?? -1)
     for (let i = 0; i < ls.length; i++) for (let j = i + 1; j < ls.length; j++) add([-ls[i]!, -ls[j]!], -1)
   }
-  if (theory.length) for (const l of lemmaCache.values()) { const xs = l.map(([k, b]) => { const x = ids.get(k); return x === undefined ? undefined : b ? x : -x }); if (xs.every((x): x is number => x !== undefined)) add(xs, -1) }
+  if (theory.length && !opts.fresh) for (const l of lemmaCache.values()) { const xs = l.map(([k, b]) => { const x = ids.get(k); return x === undefined ? undefined : b ? x : -x }); if (xs.every((x): x is number => x !== undefined)) add(xs, -1) }
 
   // EPR-shaped: no comparison the abstraction can't read (a counter's arithmetic, a sum, a product) in any hypothesis
   if (opts.exact) { const tied = new Set([...keyEqs, ...intervals].map(k => (k.p as {v: number}).v)); const loose = [...foreign].filter(i => !tied.has(i)).length; if (loose) return {unknown: `${loose} comparisons outside the EPR shape`} }
@@ -552,7 +556,8 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     }
     return p
   }
-  const theoryCheck = (m: boolean[]): {val: Map<string, number>} | {lemmas: number[][]} | undefined => {
+  type Checked = {val: Map<string, number>, exact?: () => Checked | {lemmas: number[][]} | undefined}
+  const theoryCheck = (m: boolean[]): Checked | {lemmas: number[][]} | undefined => {
     const T = (t: string): Lin => (t.startsWith('k:') ? konst(Number(t.slice(2))) : tv(t))
     const theoryRows = (row: (lin: Lin, ls: number[]) => void) => {
       for (const t of theory) {
@@ -638,21 +643,25 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     for (const x of succs) if (m[x.s]) row(plus(T(x.hi), times(plus(T(x.lo), konst(1)), -1)), [x.s])
     theoryRows(row)
     // (the simplex first, as the joint check: a conflict's rows refuted exactly; its point the values where every term is
-    // a natural there and every row holds exactly; else elimination over them all, as before)
+    // a natural there and every row holds exactly, with elimination's (as before) for a read-back they break; else
+    // elimination over them all)
     let q = jointLp.load(rows)
     if (q.kind === 'sat') q = jointLp.check()
     if (q.kind === 'conflict') { const l = lemmaOf(solve(q.rows.map(i => rows[i]!)), q.rows.map(i => lits[i]!)); if (l) return {lemmas: [l]} }
+    const exact = (): {val: Map<string, number>} | {lemmas: number[][]} | undefined => {
+      const r = solve(rows)
+      if (r.kind === 'sat') return {val: new Map([...ords].map(t => [t, t.startsWith('k:') ? Number(t.slice(2)) : r.witness[t] ?? 0]))}
+      const l = lemmaOf(r, lits)
+      return l && {lemmas: [l]}
+    }
     if (q.kind === 'sat') {
       const at = (t: string) => { const j = jointLp.indexOf(t); return j === undefined ? 0 : jointLp.value(j) }
       const val = new Map([...ords].map(t => [t, t.startsWith('k:') ? Number(t.slice(2)) : Math.round(at(t))]))
       const ok = [...ords].every(t => t.startsWith('k:') || (Math.abs(at(t) - val.get(t)!) < 1e-6 && val.get(t)! >= 0))
-        && rows.every(r => Object.entries(r.lin).reduce((x, [k, c]) => x + c * (k === '1' ? 1 : val.get(k) ?? 0), 0) <= 0)
-      if (ok) return {val}
+        && rows.every(row => Object.entries(row.lin).reduce((x, [k, c]) => x + c * (k === '1' ? 1 : val.get(k) ?? 0), 0) <= 0)
+      if (ok) return {val, exact}
     }
-    const r = solve(rows)
-    if (r.kind === 'sat') return {val: new Map([...ords].map(t => [t, t.startsWith('k:') ? Number(t.slice(2)) : r.witness[t] ?? 0]))}
-    const l = lemmaOf(r, lits)
-    return l && {lemmas: [l]}
+    return exact()
   }
   const outcome = (o: ReturnType<typeof search>): Decision | {model: boolean[]} => (typeof o === 'string' ? {unknown: o} : o === undefined ? {unknown: 'the conflict budget ran out, or the deadline'}
     : !o.sat ? {sat: false, core: [...o.core].filter(i => i >= 0).sort((a, b) => a - b)} : {model: o.model})
@@ -772,9 +781,16 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
   if (!('model' in cur)) return cur
   let done = finish(cur.model, undefined)
   for (let round = 0; theory.length && 'unknown' in done && round < 256 && !opts.late?.(); round++) {
-    const r = theoryCheck(cur.model)
+    let r = theoryCheck(cur.model)
     if (!r) break
-    if ('val' in r) { done = finish(cur.model, r.val); if ('unknown' in done) done = finish(cur.model, undefined); break }
+    if ('val' in r) {
+      done = finish(cur.model, r.val)
+      // (the simplex's values breaking it: elimination's)
+      if ('unknown' in done && r.exact) { r = r.exact(); if (r && 'val' in r) done = finish(cur.model, r.val) }
+      if (r && !('val' in r)) { for (const l of r.lemmas) lemma(l); cur = outcome(search()); if (!('model' in cur)) return cur; done = finish(cur.model, undefined); continue }
+      if ('unknown' in done) done = finish(cur.model, undefined)
+      break
+    }
     for (const l of r.lemmas) {
       lemma(l)
       const named = l.map((x): [string, boolean] => [names[Math.abs(x)]!, x > 0]), key = named.map(([k, b]) => (b ? '' : '¬') + k).sort().join('|')
