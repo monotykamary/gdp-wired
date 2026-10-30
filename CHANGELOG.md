@@ -3,7 +3,32 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.32.0
+
+Every one of the ten distributed protocols proven with nothing written, the extraction boundary inferred in every
+language, Java, Kotlin and Swift, and a command line with laws written in the code's own language.
+- **Distributed protocols, 10 of 10 with nothing written** (60 s each, one worker): distributed_lock, ring_leader_election
+  and consensus_wo_decide join the seven. Each verdict's proof is checked by the kernel, and all ten were exported and
+  checked again in Lean v4.34.0 on its three core axioms. The pieces are general: the pool filtered by larger instances
+  and minimal implication, top-down Houdini at a pool-size threshold, decideLaw's instances seeded by sort, request-
+  carried sets, and ∃ laws through their ghost (`found` now carries them). research/protocols/engine/DESIGN.md.
+- **The boundary inferred in every language**: calls of other code left out or answered over their declared type,
+  injected dependencies held as stores, the entry found; `gdp:` tags and `strict` to state it. Every argument a call to
+  an injected dependency receives is checked for the rule's state (an independent adversarial review found three
+  false proofs there before this release; all are refused now and kept as tests, research/langs/adversarial/).
+- **Java, Kotlin and Swift** front ends (`gdp-wired/extract-java`, `-kotlin`, `-swift`), with gRPC, resilience4j,
+  OkHttp, Arrow, swift-nio and swift-nio-http2 in the real-world corpus.
+- **The command line**: `npx gdp-wired-cli check <file|dir>` (the new `gdp-wired-cli` package: gdp-wired's CLI with
+  TypeScript beside it). It reads the rule in any of the languages, proves the laws stated as `# gdp: law <name>: <expr>`
+  comments (or `@GdpLaw`), proposes laws nobody wrote, prints a run for each broken one, in color on a terminal;
+  `gdp.toml` for the few modelling choices; a GitHub Action (action.yml).
+- **One way in**: every extractor is `(file | URL, options?)`, the entry inferred, `effect` and `xstate` resolved from
+  the file's own project. Nothing was removed or renamed.
+- **The release bar** (full, against 5d4da3f): none wrong in any group; CHC-COMP +3, SV-COMP termination +1; two
+  tasks at the time limit lost in some runs (none solid); Lean 48 of 48. core/ and kernel/: +434 KB.
+
+The sections below are the branches this release merged, newest first.
+
 
 **One way in: every front end reads a file the same way, `(file, options?)`, and the rule is proven from the same
 import (gen/oneway).** Nothing trusted changed; nothing was removed or renamed. research/langs/DESIGN.md, "One way in",
