@@ -63,6 +63,8 @@ export type Model = {
   laws?: string[],
   // A class's fields holding a function: the input each one's call answers (by the input's name, the field's).
   answers?: Record<string, string>, fnFields?: string[],
+  // The modules whose functions the class calls (each export stubbed by the check: an answer, or nothing).
+  imports?: string[],
   // What the entry is, for the printed module's header (a front end's own words).
   kind?: string,
 }
@@ -213,10 +215,13 @@ export type Setup = {
   // XState's guards and actions: null is a value; a payload of a type outside the subset is opaque (refused where read);
   // each answer of a function from outside, the input it is (by the function's path), read once.
   xstate?: {outside: Map<string, {path: string, sort: Sort}>},
+  // (strict: other modules' functions refused where they are called, as stated only)
+  strict?: boolean,
   // A class's fields that hold a function (an injected clock, random or id source): each call's answer an input (any
   // value of the function's return type), one a step, the same input in every method; the function is taken to leave
   // the object alone.
-  fnFields?: {outside: Map<string, {path: string, sort: Sort}>, names: Set<string>},
+  // (mods: the modules whose functions the class calls, each call at the boundary: the check stubs them by name)
+  fnFields?: {outside: Map<string, {path: string, sort: Sort}>, names: Set<string>, mods?: Set<string>},
   // A front end's expressions read before the subset's (core/effect.ts: yield*, Effect's and Ref's calls): a value and
   // the path after, or undefined where the expression is the subset's.
   effect?: (ex: Exec, e: ts.Expression, p: Path) => [V, Path] | undefined,
@@ -1128,8 +1133,15 @@ export class Exec {
       if (p.locals.get(callee.text)?.t === 'outside') return this.outside(e, (p.locals.get(callee.text) as {path: string}).path, p)
       const sym = this.resolved(callee), decl = sym?.valueDeclaration
       const fn = decl && ts.isFunctionDeclaration(decl) ? decl : decl && ts.isVariableDeclaration(decl) && decl.initializer && (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer)) ? decl.initializer : undefined
-      if (fn && this.s.ours(fn.getSourceFile())) { const [args, q] = this.args(e.arguments, p); return this.inline({decl: fn}, args, e, q) }
-      if (!decl || !this.s.ours(decl.getSourceFile())) return refuse(e, `${callee.text}: a function from another module (not among the files read)`)
+      const bodyless = !!decl && ts.isFunctionDeclaration(decl) && !decl.body
+      if (fn && !bodyless && this.s.ours(fn.getSourceFile())) { const [args, q] = this.args(e.arguments, p); return this.inline({decl: fn}, args, e, q) }
+      if (!decl || bodyless || !this.s.ours(decl.getSourceFile())) {
+        // (another module's function, called by a class: at the boundary, as a function the class is given is, unless
+        // strict: its answer an input over its declared type, a call that returns nothing left out; stubbed by name)
+        const imp = this.s.checker.getSymbolAtLocation(callee)?.declarations?.find(d => ts.isImportSpecifier(d)) as ts.ImportSpecifier | undefined, mod = imp && moduleOf(imp).replace(/^ \('|'\)$/g, '')
+        if (imp && mod && this.s.fnFields && !this.s.strict) { (this.s.fnFields.mods ??= new Set()).add(mod); return this.outside(e, `import:${mod}:${(imp.propertyName ?? imp.name).text}`, p) }
+        return refuse(e, `${callee.text}: a function from another module (not among the files read)`)
+      }
       return refuse(e, `${callee.text}: a call the subset doesn't read`)
     }
     return refuse(e, 'a call the subset doesn\'t read')
@@ -1145,7 +1157,7 @@ export class Exec {
     if (e.arguments.some(impure)) refuse(e, `${path}(...) with arguments that have effects`)
     const [, q] = this.args(e.arguments, p)
     const t = this.s.checker.getTypeAtLocation(e)
-    if (t.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined)) { this.s.notes.add(`${path}() is an effect outside the machine (it returns nothing; left out)`); return [{t: 'undef'}, q] }
+    if (t.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined)) { this.s.notes.add(path.startsWith('import:') ? `${path.slice(7).replace(':', '.')}() (${where(e)}): left out (inferred: it returns nothing), the check giving a function that does nothing` : `${path}() is an effect outside the machine (it returns nothing; left out)`); return [{t: 'undef'}, q] }
     if (t.getSymbol()?.getName() === 'Promise') return refuse(e, `${path}() returns a promise (an answer that comes later is an actor's, invoked)`)
     const sh = shapeOf(t, this.s.checker, e)
     if (sh.k !== 'num' && sh.k !== 'bool' && sh.k !== 'choice' && sh.k !== 'str') return refuse(e, `${path}() returns a compound value`)
@@ -1154,8 +1166,8 @@ export class Exec {
       if (q.outs?.includes(path)) return refuse(e, `${path}() called twice in one step (each call may answer differently: call it once into a local)`)
       const had = [...own.outside].find(([, o]) => o.path === path)
       if (had && had[1].sort.k !== sh.k) return refuse(e, `${path}() read as two sorts`)
-      const v = had ? this.s.vars.get(had[0])! : this.newVar(path.split('.').pop()!, sh, 'input', `${path}(): the answer of the function the field holds (any value of its type: the claim is for every such function that leaves the object alone)`)
-      if (!had) { own.outside.set(v.name, {path, sort: sh}); this.s.notes.add(`${path}(): the answer of the function the field holds, an input (any value of its type: the claim is for every such function that leaves the object alone)`) }
+      const v = had ? this.s.vars.get(had[0])! : this.newVar(path.split(/[.:]/).pop()!, sh, 'input', `${path}(): the answer of the function the field holds (any value of its type: the claim is for every such function that leaves the object alone)`)
+      if (!had) { own.outside.set(v.name, {path, sort: sh}); this.s.notes.add(path.startsWith('import:') ? `${path.slice(7).replace(':', '.')}() (${where(e)}): answered by the request (inferred: its value is read; assumes it may return any value of its declared type)` : `${path}(): the answer of the function the field holds, an input (any value of its type: the claim is for every such function that leaves the object alone)`) }
       return [Exec.valueOf(v), {...q, outs: [...(q.outs ?? []), path]}]
     }
     if ([...x.outside.values()].some(o => o.path === path)) return refuse(e, `${path}() read in two places (each call may answer differently)`)

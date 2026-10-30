@@ -815,3 +815,24 @@ test('XState v4: cond, (context, event) guards and actions, services, after; a f
   const c = x.chart!
   expect(c.prove([c.law('the retries stay within the limit', ({retries, limit}: any) => retries.atMost(limit))])).toMatchObject({proven: true, checked: true})
 })
+
+test('the boundary inferred: another module\'s function a class calls answered over its declared type, one returning nothing left out', () => {
+  const code = `import {bonus, log} from './quota'
+export class Meter {
+  used = 0
+  constructor(private cap: number) {}
+  take(n: number): boolean {
+    log('take')
+    const extra = bonus(n)
+    if (n < 0 || extra < 0 || this.used + n + extra > this.cap) return false
+    this.used += n + extra
+    return true
+  }
+}`
+  const files = {'quota.d.ts': 'export declare function bonus(n: number): number\nexport declare function log(s: string): void\n'}
+  const x = ok(ts(code, 'Meter', {files}))
+  expect(x.notes.join('\n')).toMatch(/\.\/quota\.bonus\(\) .*answered by the request \(inferred/)
+  expect(x.notes.join('\n')).toMatch(/\.\/quota\.log\(\) .*left out \(inferred/)
+  expect(x.source).toMatch(/\.inputs\(\{[^)]*bonus: int/)
+  refused(ts(code, 'Meter', {files, strict: true}), /log: a function from another module/)
+})

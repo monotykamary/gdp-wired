@@ -10,6 +10,8 @@ import {type Arg, type Event, Exec, type Heap, type Layout, type ListObj, type L
 
 export type ReadOptions = {
   entry: string,
+  // true: another module's function refused where a class calls it (none at the boundary, inferred)
+  strict?: boolean,
   // Other files of the repository the entry's relative imports name (by their path beside the entry's).
   files?: Record<string, string>,
   // Sorts of untyped inputs (a JavaScript action's fields), by their path: found by the reader itself (Retype).
@@ -439,7 +441,7 @@ function finish(s: Setup, m: {name: string, shape: Model['shape'], file: string,
   return {name: m.name, shape: m.shape, file: m.file, entry: m.entry, params: vars.filter(v => v.role === 'param'), inputs: vars.filter(v => v.role === 'input'), state: vars.filter(v => v.role === 'state'),
     maps: [...s.maps.values()], ...(s.lists?.size ? {lists: [...s.lists.values()], listWrites} : {}), init: m.init, writes, mapWrites, outputs: m.outputs, refuse: m.refuse, pre: m.pre, layout: m.layout, events: m.events, notes: [...s.notes], hints: s.hints,
     ...(m.event ? {event: m.event} : {}), ...(m.ctorArgs ? {ctorArgs: m.ctorArgs} : {}), ...(s.lazy.size ? {lazy: s.lazy} : {}), ...(m.initSource ? {initSource: m.initSource} : {}), ...(s.spans ? {spans: s.spans} : {}),
-    ...(s.fnFields?.names.size ? {fnFields: [...s.fnFields.names]} : {}), ...(s.fnFields?.outside.size ? {answers: Object.fromEntries([...s.fnFields.outside].map(([n, o]) => [n, o.path.replace(/^this\./, '')]))} : {})}
+    ...(s.fnFields?.names.size ? {fnFields: [...s.fnFields.names]} : {}), ...(s.fnFields?.outside.size ? {answers: Object.fromEntries([...s.fnFields.outside].map(([n, o]) => [n, o.path.replace(/^this\./, '')]))} : {}), ...(s.fnFields?.mods?.size ? {imports: [...s.fnFields.mods]} : {})}
 }
 
 // --- classes --------------------------------------------------------------------------------------------------------
@@ -543,6 +545,7 @@ function attempt(code: string, file: string, opts: ReadOptions, written: Set<str
   // (core/extract-read.ts's fnFields). Its start is a function written there or the one the constructor is given.
   const fnType = (t: ts.Type) => !(t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) && s.checker.getSignaturesOfType(s.checker.getNonNullableType(t), ts.SignatureKind.Call).length > 0 && !s.checker.getPropertiesOfType(s.checker.getNonNullableType(t)).length
   s.fnFields = {outside: new Map(), names: new Set()}
+  s.strict = opts.strict
   // A field's type as the entry's object has it: a class it extends with type arguments (`extends Base<Ctx>`) has its
   // fields of a type parameter at the types given (TypeScript's own instantiation of the chain).
   const ct = s.checker.getTypeAtLocation(cls), inst = ts.isClassDeclaration(cls) ? ct : ct.getConstructSignatures()[0]?.getReturnType()

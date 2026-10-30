@@ -313,7 +313,11 @@ export type CodeSide = {
 }
 export function check(code: string, file: string, m: Model, r: Rule, sorts: Sorts, opts: CheckOptions & {given?: Record<string, 'nat' | 'int'>} = {}): Evidence {
   const isClass = m.shape === 'class', fns = m.shape === 'class' ? [m.entry] : [...new Set(m.events.map(e => e.call))]
-  const box = sandbox(code, file, fns, opts.modules, m.initSource, opts.files, m.factory ? [[m.factory.at, m.factory.text], ...(m.factory.extra ?? [])] : [])
+  let answers: Record<string, Raw> = {}
+  // (the modules whose functions the class calls: each export answers its input, or nothing, by the callee's name)
+  const ans = (path: string) => () => { const n = Object.keys(m.answers ?? {}).find(k => m.answers![k] === path); return n === undefined ? undefined : answers[n] }
+  const mods = {...opts.modules, ...Object.fromEntries((m.imports ?? []).map(mod => [mod, new Proxy({}, {get: (_, k) => (k === '__esModule' ? true : typeof k === 'string' ? ans(`import:${mod}:${k}`) : undefined)})]))}
+  const box = sandbox(code, file, fns, mods, m.initSource, opts.files, m.factory ? [[m.factory.at, m.factory.text], ...(m.factory.extra ?? [])] : [])
   // An object a factory makes: its state is what its functions close over, read and set through the two functions the
   // check added to it.
   const stateOf = (self: unknown): unknown => (m.factory ? (box.call('$get', self, []) as {ok: boolean, value?: unknown}).value : self)
@@ -326,7 +330,6 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
   if (m.factory) vmOf().runInContext(m.factory.calls ?? `__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return __gdp[${E}](...args) }; __gdp.$get = function () { return this.__gdpGet() }; __gdp.$at = function (fields, args) { const o = __gdp[${E}](...args); o.__gdpSet(fields); return o }`, box.ctx)
   // A class's fields holding a function: each answers the request's input (set on the object before each call; a
   // function given to the constructor is one such too).
-  let answers: Record<string, Raw> = {}
   const answering = (f: string) => () => { const n = Object.keys(m.answers ?? {}).find(k => m.answers![k] === f); return n === undefined ? undefined : answers[n] }
   const fnArg = () => () => { throw new Error('a function given to the constructor called while the object is made') }
   const ctorValue = (n: string, params: Record<string, Raw>) => (n === '$fn' ? fnArg() : n.startsWith('$map:') ? vmOf().runInContext(n === '$map:Map' ? 'new Map()' : '({})', box.ctx) : params[n])
@@ -341,7 +344,7 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
     at: (snap, params) => (box.call('$at', undefined, [valueOf(snap, m.layout, m, evalAt(params), box.ctx), ctorValues(params)]).ok ? (box.ctx.__r as {value: object}).value : (() => { throw new Error(`could not make the object: ${(box.ctx.__r as {error?: string}).error}`) })()),
     snapOf: (self, params) => snapOf(stateOf(self), m.layout, m, evalAt(params)),
     call: (self, e, args) => {
-      for (const f of new Set(Object.values(m.answers ?? {}))) (self as Record<string, unknown>)[f] = answering(f)
+      for (const f of new Set(Object.values(m.answers ?? {}))) if (!f.startsWith('import:')) (self as Record<string, unknown>)[f] = answering(f)
       return box.call('$method', self, [e.call, args])
     },
     reduce: (snap, e, args, params) => {
