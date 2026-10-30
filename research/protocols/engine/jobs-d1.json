@@ -1,17 +1,1 @@
-[
- {
-  "name": "distributed_lock-sh1-r1",
-  "cmd": "GDP_ENGINE_SHARE=1 GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|enum t|join (enumerated|end)' /tmp/err.log | cut -c1-200 | tail -c 9000; exit $s",
-  "timeout": 130
- },
- {
-  "name": "distributed_lock-sh1-r2",
-  "cmd": "GDP_ENGINE_SHARE=1 GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|enum t|join (enumerated|end)' /tmp/err.log | cut -c1-200 | tail -c 9000; exit $s",
-  "timeout": 130
- },
- {
-  "name": "distributed_lock-sh0.5-r1",
-  "cmd": "GDP_ENGINE_SHARE=0.5 GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|enum t|join (enumerated|end)' /tmp/err.log | cut -c1-200 | tail -c 9000; exit $s",
-  "timeout": 130
- }
-]
+[{"name": "duoai-topdown", "cmd": "cd /tmp && git clone -q https://github.com/VeriGu/DuoAI d && cd d && git checkout -q ecd37c4 && n=$(grep -n 'Top_down_return_status InvRefiner::top_down_refine' src-c/InvRefiner.cpp | head -1 | cut -d: -f1); sed -n \"${n},$((n+110))p\" src-c/InvRefiner.cpp", "timeout": 120}]

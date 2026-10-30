@@ -1,0 +1,7 @@
+[
+ {
+  "name": "distributed_lock-td180-noreuse",
+  "cmd": "GDP_TD_NOREUSE=1 GDP_ENGINE_TOPDOWN=1 GDP_INFER_TRACE=2 timeout -s KILL 280 bun research/protocols/run.ts --ms 240000 --only distributed_lock --skip given,broken 2>/tmp/e.log | cut -c1-200; grep -E 'join (topdown|failed)' /tmp/e.log | cut -c1-260",
+  "timeout": 320
+ }
+]

@@ -211,6 +211,21 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - The counterexamples the rounds generate are mostly not ones the probe-proven set answers: the rounds take another route through the cubes, one that closes on junk. Not built.
 - **What that leaves:** steering by the caller's own obligations rather than the cubes': ask the caller's goal with the set and each candidate assumed (the targets are the caller's support), or seed round 0 from a cheap whole-pool Houdini at small sizes. Not tried.
 
+**Steering: the caller's goal, and DuoAI's top-down Houdini** (`runs/engine/td1`–`td4`, `d0`–`d1`; temporary experiment code, taken out)
+- **The caller's goal has no signal:** on distributed and ring it is proven from the set in every round ("caller": 0 throughout). What fails is the support laws' own induction, so steering by the caller has nothing to steer by.
+- **DuoAI's refiner** (github.com/VeriGu/DuoAI at ecd37c4, `src-c/InvRefiner.cpp`, `top_down_refine`): each round is one Ivy check of the whole candidate set. Ivy checks every candidate's induction with all the others assumed and reports every failure, and the round removes them all at once (with `co_implication`, replacing a removed one by weaker clauses it implies). A Houdini round drops every failing law, never one per proof.
+- **The same here** (experiment): every enumerated cube not false at a start; each round each cube's goal by decideLaw with all the others assumed, 1 s each; every failure dropped at once, an undecided one kept.
+  - **distributed:** 176 cubes, round 0 asks 129–176 at about 0.6–0.75 s each, 76–134 s on Modal; a 60 s budget doesn't finish round 0.
+    - Reusing a model's successor (cubes true before the step and false after) drops 52 more in round 0; the fixpoint is 34 cubes at 90 s either way (without reuse, 145 s).
+    - That fixpoint doesn't prove the caller. The cause, traced: in round 0 both "two live transfers" cubes get models that the interpreter doesn't confirm (with 176 laws assumed and a 1 s cap, decideLaw's model is spurious), and their dependents fall in rounds 1–2 to real ones.
+    - With only confirmed counterexamples dropping: 23 dropped, 47 unconfirmed kept, a fixpoint of 153 at round 1, and the set's proof (7 s) fails at a false cube kept.
+  - **ring:** every one of its 141 queries undecided at 1 s with 141 laws assumed; nothing drops.
+- **So:**
+  - per-law Houdini at the enumeration's full size costs 2–3× the budget on distributed and doesn't decide on ring;
+  - its verdicts hinge on the EPR path's models at 100+ assumed laws: unconfirmed models drop true laws, and the interpreter's confirmation keeps false ones.
+  - For the EPR side: decideLaw returning a model at its instance-round cap without confirming it, with many laws assumed.
+  - Not built.
+
 **Deferred: predicate abstraction against counters** (gitea's "two counted approvals are never by the same reviewer"). Its views relate no row key to the allocation counter `next`: keySorts never relates a state scalar to a key sort (`node` relates inputs and params only), and a view has no scalar atom to compare a key with. The fix is `key < next` order literals for search only (the final proof still over the concrete machine), and it touches the sort analysis for every rule, so it waits until the core ten are done.
 
 **Since e1ae73d** (`runs/engine/c1`, `f9`; the replay offline, no solver call)

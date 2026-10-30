@@ -1,0 +1,1 @@
+[{"name": "duoai-src", "cmd": "cd /tmp && git clone -q https://github.com/VeriGu/DuoAI d && cd d && git checkout -q ecd37c4 && ls src-c && wc -l src-c/*.cpp src-c/*.h | tail -1 && grep -n -i 'houdini\\|top.down\\|bottom.up\\|remove\\|erase\\|violat\\|counterexample\\|cti' src-c/InvRefiner.cpp | head -80", "timeout": 120}]
