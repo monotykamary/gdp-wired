@@ -1,0 +1,5 @@
+never 1 <= Leader[x] and idn(x) <= idn(y)
+never 1 <= Pending[64·idn[x] + x] and idn(x) <= idn(y)
+never x + 1 <= y and y + 1 <= z and 1 <= Pending[64·idn[x] + z] and idn(x) <= idn(y)
+never x + 1 <= y and y + 1 <= z and 1 <= Pending[64·idn[y] + x] and idn(y) <= idn(z)
+never x + 1 <= y and y + 1 <= z and 1 <= Pending[64·idn[z] + y] and idn(z) <= idn(x)

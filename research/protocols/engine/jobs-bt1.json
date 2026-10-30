@@ -1,0 +1,12 @@
+[
+ {
+  "name": "distributed_lock-batch",
+  "cmd": "GDP_TD_BATCH=research/protocols/engine/picks/distributed_lock.txt timeout -s KILL 220 bun research/protocols/run.ts --ms 180000 --only distributed_lock --skip given,broken 2>/tmp/e.log >/dev/null; grep BATCH /tmp/e.log | cut -c1-300",
+  "timeout": 260
+ },
+ {
+  "name": "ring_leader_election-batch",
+  "cmd": "GDP_TD_BATCH=research/protocols/engine/picks/ring_leader_election.txt timeout -s KILL 220 bun research/protocols/run.ts --ms 180000 --only ring_leader_election --skip given,broken 2>/tmp/e.log >/dev/null; grep BATCH /tmp/e.log | cut -c1-300",
+  "timeout": 260
+ }
+]

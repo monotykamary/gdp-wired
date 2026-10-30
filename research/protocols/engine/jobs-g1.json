@@ -1,0 +1,67 @@
+[
+ {
+  "name": "check",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; bun run check 2>&1 | tail -3",
+  "timeout": 300
+ },
+ {
+  "name": "gitea-few6",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; GDP_FEW=6 GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/realworld/score.ts --one 'approval/gitea/reviews' 0 --ms 60000 2>/tmp/e.log | tail -1 | cut -c1-250; echo engine_events $(grep -cE 'join (template|small instance|enumerated)' /tmp/e.log); grep -E 'join (small instance|enumerated|set|houdini|failed)' /tmp/e.log | tail -6 | cut -c1-200",
+  "timeout": 150
+ },
+ {
+  "name": "gitea-few8",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; GDP_FEW=8 GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/realworld/score.ts --one 'approval/gitea/reviews' 0 --ms 60000 2>/tmp/e.log | tail -1 | cut -c1-250; echo engine_events $(grep -cE 'join (template|small instance|enumerated)' /tmp/e.log); grep -E 'join (small instance|enumerated|set|houdini|failed)' /tmp/e.log | tail -6 | cut -c1-200",
+  "timeout": 150
+ },
+ {
+  "name": "lock_server_sync-s60-r1-few8",
+  "cmd": "GDP_FEW=8 GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only lock_server_sync --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|frames|failed|houdini)' /tmp/err.log | cut -c1-260 | tail -c 40000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "lock_server_async-s60-r1-few8",
+  "cmd": "GDP_FEW=8 GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only lock_server_async --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|frames|failed|houdini)' /tmp/err.log | cut -c1-260 | tail -c 40000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "decentralized_lock-s60-r1-few8",
+  "cmd": "GDP_FEW=8 GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|frames|failed|houdini)' /tmp/err.log | cut -c1-260 | tail -c 40000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "two_phase_commit-s60-r1-few8",
+  "cmd": "GDP_FEW=8 GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|frames|failed|houdini)' /tmp/err.log | cut -c1-260 | tail -c 40000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "ticket_lock-s60-r1-few8",
+  "cmd": "GDP_FEW=8 GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only ticket_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|frames|failed|houdini)' /tmp/err.log | cut -c1-260 | tail -c 40000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "toy_consensus_forall-s60-r1-few8",
+  "cmd": "GDP_FEW=8 GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|frames|failed|houdini)' /tmp/err.log | cut -c1-260 | tail -c 40000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "sharded_key_value_store-s60-r1-few8",
+  "cmd": "GDP_FEW=8 GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|frames|failed|houdini)' /tmp/err.log | cut -c1-260 | tail -c 40000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "distributed_lock-s60-r1-few8",
+  "cmd": "GDP_FEW=8 GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|frames|failed|houdini)' /tmp/err.log | cut -c1-260 | tail -c 40000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "ring_leader_election-s60-r1-few8",
+  "cmd": "GDP_FEW=8 GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|frames|failed|houdini)' /tmp/err.log | cut -c1-260 | tail -c 40000; exit $s",
+  "timeout": 130
+ },
+ {
+  "name": "consensus_wo_decide-s60-r1-few8",
+  "cmd": "GDP_FEW=8 GDP_ENUM_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|frames|failed|houdini)' /tmp/err.log | cut -c1-260 | tail -c 40000; exit $s",
+  "timeout": 130
+ }
+]

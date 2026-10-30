@@ -1,0 +1,1 @@
+[{"name": "dl-houdini", "cmd": "GDP_ENGINE_HOUDINI=1 timeout -s KILL 280 bun research/protocols/run.ts --ms 250000 --only distributed_lock --skip given,broken 2>/tmp/err.log; grep HOUDINI /tmp/err.log | cut -c1-3000 | tail -c 9000", "timeout": 320}]

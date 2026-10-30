@@ -1,0 +1,102 @@
+[
+ {
+  "name": "lock_server_sync-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only lock_server_sync --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo lock_server_sync $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "lock_server_async-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only lock_server_async --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo lock_server_async $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "decentralized_lock-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo decentralized_lock $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "distributed_lock-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo distributed_lock $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "two_phase_commit-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo two_phase_commit $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "ticket_lock-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only ticket_lock --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo ticket_lock $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "toy_consensus_forall-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo toy_consensus_forall $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "consensus_wo_decide-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo consensus_wo_decide $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "ring_leader_election-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo ring_leader_election $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "sharded_key_value_store-r1",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo sharded_key_value_store $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "lock_server_sync-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only lock_server_sync --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo lock_server_sync $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "lock_server_async-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only lock_server_async --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo lock_server_async $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "decentralized_lock-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo decentralized_lock $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "distributed_lock-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo distributed_lock $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "two_phase_commit-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo two_phase_commit $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "ticket_lock-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only ticket_lock --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo ticket_lock $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "toy_consensus_forall-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo toy_consensus_forall $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "consensus_wo_decide-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo consensus_wo_decide $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "ring_leader_election-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo ring_leader_election $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ },
+ {
+  "name": "sharded_key_value_store-r2",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken 2>/tmp/e.log >/tmp/o.log; echo sharded_key_value_store $(grep -o '\"search\":{\"verdict\":\"[a-z]*\"' /tmp/o.log) $(grep -o '\"ms\":[0-9]*}}' /tmp/o.log) $(grep -o '\"error\".\\{0,200\\}' /tmp/o.log); grep -E 'join (pool|failed)' /tmp/e.log | cut -c1-300",
+  "timeout": 130
+ }
+]

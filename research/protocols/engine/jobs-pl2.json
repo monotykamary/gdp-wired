@@ -1,0 +1,20 @@
+[
+ {
+  "name": "distributed_lock-filter",
+  "cmd": "GDP_POOL=filter GDP_POOL_MS=30000 GDP_POOL_GROW=3 GDP_POOL_LIST=1 GDP_POOL_PICKS=research/protocols/engine/picks/distributed_lock.txt GDP_INFER_TRACE=2 timeout -s KILL 560 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/e.log; s=$?; grep -E 'POOL|join (small instance|template|failed)' /tmp/e.log | cut -c1-30000; exit $s",
+  "timeout": 600,
+  "memory": 8192
+ },
+ {
+  "name": "ring_leader_election-filter",
+  "cmd": "GDP_POOL=filter GDP_POOL_MS=30000 GDP_POOL_GROW=3 GDP_POOL_LIST=1 GDP_POOL_PICKS=research/protocols/engine/picks/ring_leader_election.txt GDP_INFER_TRACE=2 timeout -s KILL 560 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/e.log; s=$?; grep -E 'POOL|join (small instance|template|failed)' /tmp/e.log | cut -c1-30000; exit $s",
+  "timeout": 600,
+  "memory": 8192
+ },
+ {
+  "name": "consensus_wo_decide-filter",
+  "cmd": "GDP_POOL=filter GDP_POOL_MS=30000 GDP_POOL_GROW=3 GDP_POOL_LIST=1 GDP_INFER_TRACE=2 timeout -s KILL 560 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/e.log; s=$?; grep -E 'POOL|join (small instance|template|failed)' /tmp/e.log | cut -c1-30000; exit $s",
+  "timeout": 600,
+  "memory": 8192
+ }
+]

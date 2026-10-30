@@ -1,0 +1,1 @@
+[{"name": "wo-prof", "cmd": "mkdir -p /tmp/prof; timeout -s KILL 100 bun --cpu-prof --cpu-prof-dir=/tmp/prof research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/dev/null | cut -c1-300; python3 research/protocols/engine/pastwall.py /tmp/prof/*.cpuprofile 59 40", "timeout": 160}]

@@ -1,0 +1,1 @@
+[{"name": "dl-assume", "cmd": "GDP_ENGINE_ASSUME=research/protocols/engine/picks/distributed_lock.txt timeout -s KILL 260 bun research/protocols/run.ts --ms 220000 --only distributed_lock --skip given,broken 2>/tmp/e.log | cut -c1-200; grep '^ASSUME' /tmp/e.log | cut -c1-2500", "timeout": 300}]

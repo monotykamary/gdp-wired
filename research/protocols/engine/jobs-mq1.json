@@ -1,0 +1,12 @@
+[
+ {
+  "name": "dl-round0-before",
+  "cmd": "GDP_TD_ROUND0=research/protocols/engine/picks/distributed_lock.txt timeout -s KILL 280 bun research/protocols/run.ts --ms 240000 --only distributed_lock --skip given,broken 2>/tmp/e.log >/dev/null; grep ROUND0 /tmp/e.log | cut -c1-200",
+  "timeout": 320
+ },
+ {
+  "name": "dl-round0-strict",
+  "cmd": "GDP_MBQI_STRICT=1 GDP_TD_ROUND0=research/protocols/engine/picks/distributed_lock.txt timeout -s KILL 280 bun research/protocols/run.ts --ms 240000 --only distributed_lock --skip given,broken 2>/tmp/e.log >/dev/null; grep ROUND0 /tmp/e.log | cut -c1-200",
+  "timeout": 320
+ }
+]

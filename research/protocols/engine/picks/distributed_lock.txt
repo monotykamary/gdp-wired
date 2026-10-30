@@ -1,0 +1,12 @@
+never 1 <= Locked[64·y + x] and Ep[x] + 1 <= y
+never 1 <= Held[x] and Ep[x] <= Ep[y]
+never 1 <= Transfer[64·z + x] and Ep[x] + 1 <= z and z <= Ep[y]
+never 1 <= Held[x] and 1 <= Transfer[64·y + x] and Ep[x] + 1 <= y
+never 1 <= Held[x] and 1 <= Transfer[64·z + y] and Ep[y] + 1 <= z
+never 1 <= Transfer[64·z + x] and Ep[x] + 1 <= z and 1 <= Transfer[64·w + y] and Ep[y] + 1 <= w
+never 1 <= Transfer[64·y + x] and 1 <= Transfer[64·z + x] and Ep[x] + 1 <= y and Ep[x] + 1 <= z
+never 1 <= Held[x] and started is 0
+never started is 0 and y + 1 <= Ep[x]
+never 1 <= Transfer[64·y + x] and started is 0
+never 1 <= Locked[64·y + x] and started is 0
+never 1 <= Transfer[64·z + x] and 1 <= Transfer[64·z + y]
