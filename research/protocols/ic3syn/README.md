@@ -112,3 +112,54 @@ paxos_epr.pyv, the model the TLA+ transcribes; IC3Syn's 1806 s and 9 invariants 
   each on its own (kernel.ts's `apart`), so `vote(N, MAXR, V)` at `N·N² + MAXR·N + V` is out. The same kernel change
   (keys that are tuples) would admit it; so would a log of votes (a list read at one position), at the cost of a
   variable the spec doesn't have and ∀∃ invariants linking it to `vote`.
+
+## Checked against TLC
+
+Each port's reachable states on its instance (check.ts, the BFS of the port, read as the spec's variables) against TLC's
+distinct states on the same constants (tlc.py: TLC 1.8.0 on Endive 8b6f2ab, `-deadlock`), and `bad`: the port's
+reachable states that break the property (0 for each port; above 0 for the broken variant, so the property is not
+vacuous there). `runs/ic3syn/check*.jsonl` in ../gdp-wired-laneA.
+
+| port | TLC | port | broken variant reaches a bad state |
+| --- | --- | --- | --- |
+| consensus | 4 | 4 | yes |
+| tcommit | 34 | 34 | yes |
+| lock_server | 9 | 9 | yes |
+| quorum_leader_election | 94 | 94 | yes |
+| toy_consensus_forall | 41 | 41 | yes |
+| simple | 193 | 193 | yes |
+| simple_regular | 109 | 109 | yes |
+| lockserv_automaton | 80 | 80 | yes |
+| sharded_kv | 121 | 121 | (the BFS of the broken variant ran past its cap; the search refutes it in 7 s) |
+| sharded_kv_no_lost_keys | 100 | 100 | (ran past its cap) |
+| lockserv | 80 | 80 | yes |
+| twophase | 288 | 288 | yes |
+| simple_decentralized_lock | 12 | 12 | yes |
+| two_phase_commit | 1,064 | 1,064 | yes |
+| naive_consensus (TLC's VIEW: decide by value) | 55 | 55 | yes |
+| client_server_ae | 4,504 | 4,504 | yes |
+| client_server_db_ae | 56,416 | 56,416 | yes |
+| simple_election | 66 | 66 | yes |
+| toy_consensus_epr | 41 | 41 | yes |
+| toy_consensus | 41 | 41 | yes |
+| firewall | 68 | 68 | yes |
+| majorityset_leader_election | 400 | 400 | yes |
+| consensus_epr | 110,464 | 110,464 | (ran past its cap) |
+| consensus_wo_decide (all four majorities) | 102,912 | 135,872 | |
+| consensus_wo_decide (the config's three) | 102,912 | 102,912 | |
+| consensus_forall (the config's three) | @FA_T@ | @FA_P@ | |
+| mldr | 5,362 | 1,596 inside the constraint, 2,966 past it | **no**: not verified (below) |
+
+- consensus_wo_decide stores the quorum it chose; its config lists the three 2-sets and not the full set, a majority too,
+  so the port with every majority has states the config doesn't (a stored full set). At the config's three it is
+  checked again.
+- **mldr is not verified.** TLC's 5,362 against the port's 1,596 states within `StateConstraint` and 2,966 past it
+  (4,562; TLC counts a state past the constraint as found and explores none), and its broken variant (BecomeLeader
+  without a majority) reaches no state with two primaries in one term on the instance, which the spec's does: the port
+  likely enables too few BecomeLeader steps (its counting witnesses, or the copied initial configs). Its measured
+  verdict (no verdict: its first proof never finishes building instances) doesn't rest on it, but no claim about mldr's
+  semantics does either.
+- consensus_epr's `SendVote` write was later rewritten as one write of the relation (`requests or votes with nondet` to
+  1, `votes` without it to 0): the same cells, not checked again.
+- The depths differ by one (TLC counts the initial state as level 1) and by a setup phase's length where the port has
+  one; only the counts are compared.
