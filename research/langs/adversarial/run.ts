@@ -1,9 +1,9 @@
 import {readFileSync,writeFileSync,appendFileSync} from 'node:fs'
-import {extractPython} from '/Users/monotykamary/VCS/working-remote/open-source/gdp-wired/core/extract-py.ts'
-import {extractRuby} from '/Users/monotykamary/VCS/working-remote/open-source/gdp-wired/core/extract-rb.ts'
-import {extractJava} from '/Users/monotykamary/VCS/working-remote/open-source/gdp-wired/core/extract-jvm.ts'
-import {extract} from '/Users/monotykamary/VCS/working-remote/open-source/gdp-wired/core/extract.ts'
-import {proveRule} from '/Users/monotykamary/VCS/working-remote/open-source/gdp-wired/core/dsl.ts'
+import {extractPython} from '../../../core/extract-py.ts'
+import {extractRuby} from '../../../core/extract-rb.ts'
+import {extractJava} from '../../../core/extract-jvm.ts'
+import {extract} from '../../../core/extract.ts'
+import {proveRule} from '../../../core/dsl.ts'
 const dir=import.meta.dir, cases=JSON.parse(readFileSync(`${dir}/cases.json`,'utf8')), c=cases.find((x:any)=>x.id===process.argv[2]); if(!c) throw Error('unknown case')
 const check={runs:30,depth:6,states:60}, file=`${dir}/${c.file}`
 let result:any={case:c.id};
