@@ -22,7 +22,7 @@ const pairs = (a: number[], b: number[]) => a.flatMap(x => b.map(y => x * N + y)
 const triples = (a: number[], b: number[], c: number[]) => a.flatMap(x => b.flatMap(y => c.map(z => x * N * N + y * N + z)))
 // A majority's request: Q from a bitmask over 0 .. size − 1, with its witness (none for other requests).
 const withMajority = (size: number) => (i: Record<string, any>) => {
-  const q = range(size).filter(k => i.qm >> k & 1), {qm, ...rest} = i
+  const q = range(size).filter(k => i.qm >> k & 1), rest = Object.fromEntries(Object.entries(i).filter(([k]) => k !== 'qm'))
   return [{...rest, ...majorityWitness(q, size)}]
 }
 const twoDistinct = (r: Read, map: string, keys: number[]) => keys.filter(k => r.cell(map, k)).length > 1
