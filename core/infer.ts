@@ -2389,7 +2389,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         for (const b of pool) if (!kept.includes(b)) by.set(b, kept.filter(a => implies(a, b)))
         return {kept: pool.filter(f => kept.includes(f)), by}
       }
-      // The top-down phase (DuoAI's, research/protocols/engine/DESIGN.md gen/ring2), behind GDP_TD=1: the filtered minimal
+      // The top-down phase (DuoAI's, research/protocols/engine/DESIGN.md gen/ring2, gen/ring3): the filtered minimal
       // pool, not given, not implied by the caller's laws, not false at a start; Houdini, each round every cube's goal with
       // the others assumed (decideLaw, a short cap first, the undecided again at a longer one only where the round would
       // end with no drop), every failure dropped at once, a cube a dropped one implied back where nothing kept implies it,
