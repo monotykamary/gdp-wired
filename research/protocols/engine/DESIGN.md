@@ -198,6 +198,22 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - ring: a ranking where a may-fail cube that reads the counterexample's named cells (Pending at the model's keys) outranks one that doesn't.
   - gitea: why its 5 views make no cube.
 
+**Since e1ae73d** (`runs/engine/c1`, `f9`; the replay offline, no solver call)
+- **The effective few limit:** gen/enum4 has none of `GDP_FEW`: the limit is the literal 4 (core/infer.ts, `few`), and the engine's entry is on the cost clock. tmp/few8w (05ac413, not for merge) has `GDP_FEW` default 8 and the entry on the wall.
+- **Per-obligation blockers, falsified offline:**
+  - **The policy tried:** each counterexample its own quota of three, the false lane greedy for new coverage of the last 16 states, then a may-fail lane ranked by the literals the model names.
+  - **The replay:** 39 captured counterexamples on distributed (`c1/dl-caps.json`), 11 on ring, replayed with no solver call. It selects the probe-proven cubes no better than the top-4 ranking: "Held[x] ∧ Transfer[z, y] ∧ Ep[y] + 1 <= z" 7 → 0, "a live transfer above every epoch" and the same-node "two live transfers" 0 under both.
+  - **Why no ranking works:** the eligibility counts say why. distributed's targets are definitely false at 0–2 of the 39 counterexamples, but may-fail at 12–37 (the models leave most cells unnamed). On ring one between turn is definitely false at 4 of 11, the others only may-fail once each. The may-fail lane is diffuse, so any ranking over these models is near arbitrary.
+  - **Not kept.**
+  - **What it points to:** the counterexample states, not the ranking. Either complete a model's unnamed cells (from the small instance or a second, maximal model), or check a candidate by asking whether it unblocks the failing goal (IC3's inductive generalization by a solver call, a few per obligation).
+- **gitea's no-cube diagnosis** (the limit 8 and a wall entry patched locally, uncommitted):
+  - locally its views make 15 cubes (Modal's 0 was a cut instance), over map cells only (By, Off, Dis, Stale, Commit), and the caller's law fails at round 0 with no diagram;
+  - no view relates a row key to the counter `next`: keySorts gives `next` a sort of its own (a state scalar is never related to a key sort; `node` relates inputs and params only), and a view has no scalar atom to compare a key with;
+  - predicate abstraction (`key < next` literals against counters, search only) is confirmed as the missing piece, but it isn't small: it needs state scalars related in the sorts for every rule, and a scalar atom per view. Not built.
+- **Verdicts** (`f9`, all ten, 2 runs, gen/enum4 at b91d305's code): sync 8–10 s, async 24–25, decentralized 17, 2PC 18–20, ticket 31–40, toy 15, sharded 31, proven; distributed 63–65, ring 60, wo 64–68, unknown.
+- **The real-world corpus** (bar, 29ede5f against 5d4da3f): 318/361 as the base, 0 gained, 0 lost, wrong 0.
+- **The exact next step:** for distributed, complete each counterexample's unnamed cells before blocking (the cheapest: the kernel's model asked again with every cell the cube candidates read named), and re-run the offline replay to see whether the targets become definitely false. Only then rank.
+
 **The expressibility map** (each written law in models.ts's `human`, against the engine's enumeration; `smallprobe.ts` with CUBES=made lists it, and 'join view' each view's literals)
 
 | Protocol | Written law | In the candidate space? | Missing block or cause |
