@@ -696,3 +696,13 @@ where no JDK or kotlinc is installed; the suite's `extract-jvm` job installs bot
 ones work), loops beyond a CAS's first pass, a Kotlin expression's type the code doesn't state through a call of other
 code that isn't on the reader's classpath, sealed classes as choices, Duration, suspend functions that suspend, top-level
 functions as entries.
+
+**Validation** (on Modal, research/langs/jvm/jobs.json, 8 jobs, 368 s wall): the JVM tests 13 of 13 on Linux (Temurin
+21, Kotlin 2.4.21); the four corpus rules re-extracted byte for byte; build and smoke without a JDK (the front ends
+refuse); the C and C++, Rust, Ruby and Elixir corpus rules and LiteLLM's seven (v1.106.6 installed) re-extracted byte
+for byte, so the shared changes leave every other language's rules as they were.
+
+**Bar** (quick, `--only rw,f1,f2,g332,suite,onecpu`, against the cached baseline of 5d4da3f, the one cached: d2e157a
+has none): f1 34 / 35 and f2 24 / 33 proven, rw 74 / 14 / 3, g332 332 of 332 with the same search, each 0 differing;
+the suite 231 of 231 (extract-jvm 13 pass among them, tsc and lint clean); onecpu no failure; $0.57 estimated
+(runs/bar/runs/9868500d5293-vs-5d4da3f49013-quick-2026-10-300347).
