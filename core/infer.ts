@@ -35,13 +35,13 @@ import {quietly} from './cyclic.ts'
 import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
-import {clock, counted, decideLaw, decideNote, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
+import {clock, counted, fullWork, decideLaw, decideNote, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
 import {showC, showE} from './exists.ts'
 import {REFUTED, type Refuted, growCdcl} from '../kernel/cdcl.ts'
-import {eprMeter, withEprCap} from '../kernel/epr.ts'
+import {eprMeter, pastEprCap, withEprCap} from '../kernel/epr.ts'
 
 type AnyRule = Parameters<typeof proveRule>[0]
 type Env = Record<string, number>
@@ -103,7 +103,7 @@ const KEY = 'key$found', KEY2 = 'key2$found', AT = '@', K = '#', SOME = 'k$found
 // frontier corpus's then keeps 3,000 samples, at least as many as 500 ms of wall time gave on 2 vCPU (`runs/modal/infer/
 // before`'s cal2 jobs: 29 to 11,625 trials, 745 to 3,000 samples). Of 100 to 3,000 trials (`runs/modal/infer/grid`),
 // 100 lost a corpus item (metered blocks) and 200 to 3,000 none: 400 is a step above the least that lost none.
-export const inferRates = {tries: 100, rows: 10_000, evals: 10_000, watched: 100, work: 40, etries: 12, epr: 330, erows: 73}
+export const inferRates = {tries: 100, rows: 10_000, evals: 10_000, watched: 100, work: 40, etries: 12, epr: 400, erows: 73, ework: 200}
 export const inferRuns = 16_000
 // GDP_INFER_TRACE=1: each phase's wall time beside what it counted, to stderr (the calibration's numbers).
 const inferTrace = !!env.GDP_INFER_TRACE
@@ -527,9 +527,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // fifths of what is left of `ms` once the join's count is taken at 0.3 a millisecond (the join's rates count its work
   // 2 to 14 times faster than a Modal container does it), so the engine ends within the wall on a container half again
   // as slow; past `eUntil` it stops as it would past the wall, at the same place on any machine.
-  let eS = {now: 0, epr: eprMeter.n, erows: 0, etries: 0}, eUntil = ms
-  const vnow = (): number => (timed ? now() : now() - eS.now + (used.etries - eS.etries) / inferRates.etries + (eprMeter.n - eS.epr) / inferRates.epr + (used.erows - eS.erows) / inferRates.erows)
-  const meters = () => ({real: Math.round(performance.now() - t0), v: Math.round(vnow()), now: Math.round(now()), epr: eprMeter.n - eS.epr, erows: used.erows, etries: used.etries, tries: used.tries, rows: used.rows, evals: used.evals, work: work.n - w0})
+  let eS = {now: 0, epr: eprMeter.n, erows: 0, etries: 0, work: work.n}, eUntil = ms
+  const vnow = (): number => (timed ? now() : (used.etries - eS.etries) / inferRates.etries + (eprMeter.n - eS.epr) / inferRates.epr + (used.erows - eS.erows) / inferRates.erows + (work.n - eS.work) / inferRates.ework)
+  const meters = () => ({real: Math.round(performance.now() - t0), v: Math.round(vnow()), now: Math.round(now()), full: Math.round(fullWork()), epr: eprMeter.n - eS.epr, erows: used.erows, etries: used.etries, tries: used.tries, rows: used.rows, evals: used.evals, work: work.n - w0})
   const until = ms
   let tp = performance.now(), cp = 0, wp = w0
   const trace = (what: string, o: Record<string, number | string | boolean> = {}) => {
@@ -2168,7 +2168,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // decentralized lock's) while the caller's law fails from the set.
     const engine = () => {
     if (sorts && callerLaws.some(l => l.keys?.length) && now() < until && !stop()) {
-      if (!timed) { eS = {now: now(), epr: eprMeter.n, erows: used.erows, etries: used.etries}; eUntil = 0.8 * (ms - 0.3 * eS.now) }
+      if (!timed) { eS = {now: now(), epr: eprMeter.n, erows: used.erows, etries: used.etries, work: work.n}; eUntil = 0.8 * (ms - 0.3 * eS.now) }
       opts.progress?.('join engine', {wall: Math.round(vnow()), eUntil: Math.round(eUntil)})
       opts.progress?.('join meters', {at: 'engine', ...meters()})
       // (a sums pass's reserve where one follows: 10 s, or a quarter of what is left where less is)
@@ -2212,7 +2212,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // (a goal's proof within the search's own end, on the cost model's clock: a counted search inside it keeps the end)
       // (a goal's cap, on the engine's clock: the kernel's counted deadline and the EPR path's counted cap, so that the
       // goal ends at the same place on any machine; the search's wall, only its outer end)
-      const within = <T>(end: number, f: () => T): T => { const left = Math.max(0, end - vnow()); return withWall(wallUntil, () => withEprCap(left * inferRates.epr, () => counted(fullRate, () => withDeadline(clock() + left, f), true))) }
+      const wstat = {n: 0, real: 0, epr: 0, full: 0, work: 0, none: 0}, pastEprCapNow = () => pastEprCap()
+      const within = <T>(end: number, f: () => T): T => {
+        const left = Math.max(0, end - vnow()), r0 = performance.now(), p0 = eprMeter.n, f0 = fullWork(), k0 = work.n
+        try { return withWall(wallUntil, () => withEprCap(left * inferRates.epr, () => counted(fullRate, () => withDeadline(clock() + left, f), true))) }
+        finally { wstat.n++; wstat.real += performance.now() - r0; wstat.epr += eprMeter.n - p0; wstat.full += fullWork() - f0; wstat.work += work.n - k0; if (env.GDP_WITHIN_LOG) opts.progress?.('join within', {left: Math.round(left), real: Math.round(performance.now() - r0), epr: eprMeter.n - p0, full: Math.round(fullWork() - f0), work: work.n - k0, past: pastEprCapNow()}) }
+      }
       // (a model's values past the rule's constants renamed onto small ones in order, a gap kept up to 64: the step then
       // runs at every key, and the model's equalities, order, +1 and comparisons with the constants are kept)
       const top = Math.max(1024, ...[...JSON.stringify([m.step, m.assume ?? null, m.pre ?? null]).matchAll(/"value":(\d+)/g)].map(q => Number(q[1])))
@@ -2434,7 +2439,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // (by default where the pool is past what the rounds' first round takes, 24, and Houdini can afford it, 64: GDP_TD=1
       // always, GDP_TD=0 never)
       if ((env.GDP_TD === '1' || (env.GDP_TD !== '0' && made.length > 24 && made.length <= 64)) && !stop()) withTrees(() => withStrict(() => {
-        const T0 = vnow(), ph = (o: Record<string, unknown>) => opts.progress?.('join td', {...o, td: Math.round(vnow() - T0), ...meters()})
+        const T0 = vnow(), ph = (o: Record<string, unknown>) => opts.progress?.('join td', {...o, td: Math.round(vnow() - T0), ...meters(), within: {...wstat, real: Math.round(wstat.real), full: Math.round(wstat.full)}})
         const by = minPool.by, q1 = Number(env.GDP_TD_Q1 ?? joinQueryMs / 8), q2 = Number(env.GDP_TD_Q2 ?? q1)
         ph({phase: 'start', made: made.length, before: Math.round(tEngine - t0)})
         const fresh = (f: Form) => !names.has(textOf(f)) && !dead.has(textOf(f)) && !implied(f) && !atStart(f)
