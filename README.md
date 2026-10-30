@@ -114,6 +114,14 @@ laws about when it raises, a store's attributes, an untyped result) go in a `gdp
 in pyproject.toml, `"gdp"` in package.json), per rule under `[rules.<name>]`. The exit code is 1 when a stated law is
 broken, 2 when one couldn't be checked: `uses: monotykamary/gdp-wired@main` with `paths:` runs it in CI.
 
+Laws about two runs read the same way: `diagnosis never reaches status, result` (two runs differing only in the
+secret keep what is named the same, and fail alike), `isolated by user_id` (what the caller whose `user_id` is B sees
+is the same whatever the others do), `agrees with LimiterV1` (a migration: another class of the target, the same state
+after every history). A duration is linear over the request's time: `now - received < 30 days` (seconds, minutes,
+hours, days, weeks; a month, a year or a business day is refused). `gdp: cite <law name>: <clause>` ties a law to the
+clause it answers: printed with the law, and with `--cert <dir>` kept in the meta of each proven law's certificate,
+never in what is checked (`research/regulated/DESIGN.md`).
+
 ## Where it fits
 
 <img src="https://raw.githubusercontent.com/monotykamary/gdp-wired/main/static/venn.svg" alt="What Lean, Bend and gdp-wired each cover, and where they overlap" width="640" />
@@ -235,6 +243,11 @@ All of these are proven automatically, and each proof is also a Lean theorem:
 - **Pure functions and two-run laws**: laws about what a function returns, and laws comparing two calls, like "the
   secret never changes the answer". `examples/jev-fabric/` ports a Bend project's policy core and proves all 59 laws its
   Bend proofs state.
+- **Laws about two runs of a stateful rule** (`gdp-wired/relational`): noninterference (`noninterference(rule, {secret,
+  visible})`: what a party sees never depends on the secret, nor which requests fail), tenant isolation (`isolation(rule,
+  {owner})`: what tenant B sees is the same whatever the others do) and migration agreement (`agreement(old, next)`),
+  on rules read from code as on written ones; `proveTwoRuns` proves the law of the two runs side by side as one rule, a
+  refutation the two runs (`research/regulated/`).
 
 When a law is false, the GPU search finds a real run that breaks it. When a law needs an invariant nobody wrote,
 `inferLaws` finds one on the CPU (and the GPU synthesizer, at scale, in `research/synth/`) and the kernel proves it.

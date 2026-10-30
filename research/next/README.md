@@ -3,7 +3,7 @@
 | File | What |
 | --- | --- |
 | `synth.ts`, `run-synth.ts` | Guards from laws: the unsafe region by Fourier–Motzkin projection, its complement the weakest guard, every claim checked by the solver |
-| `relational.ts`, `run-relational.ts` | Two machines side by side (`product`), migration safety (`agree`) and tenant isolation, proven by the core prover |
+| `relational.ts`, `run-relational.ts` | Two machines side by side (`product`), migration safety (`agree`) and tenant isolation, proven by the core prover. The library's form, on rules read from code: `gdp-wired/relational` (core/relational.ts, research/regulated/DESIGN.md) |
 | `rebac/model.ts` | A Zanzibar-style org and its Datalog rules; derived object tables; group closure |
 | `rebac/datalog.ts` | A generic semi-naive Datalog engine over the rules as written (the reference) |
 | `rebac/fast.ts`, `rebac/check-small.ts` | The fast JS audit, checked against Datalog on small orgs |

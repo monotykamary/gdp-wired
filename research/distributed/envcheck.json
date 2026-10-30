@@ -1,0 +1,68 @@
+[
+ {
+  "check": "two deposits read before either commits: one is lost",
+  "model": "read committed",
+  "ok": true,
+  "detail": "balance 120 after +10 and +20 on 100 (120: the +10 lost)"
+ },
+ {
+  "check": "a second read in one transaction sees a commit made between",
+  "model": "read committed",
+  "ok": true,
+  "detail": "second read 150 (150: read at its own step)"
+ },
+ {
+  "check": "an increment in the statement itself waits and re-reads",
+  "model": "atomic",
+  "ok": true,
+  "detail": "balance 130 (130: the statement is one atomic step)"
+ },
+ {
+  "check": "the second writer of a cell that moved is refused",
+  "model": "snapshot",
+  "ok": true,
+  "detail": "balance 110, the second: could not serialize access due to concurrent update"
+ },
+ {
+  "check": "write skew: two writers of different cells both commit",
+  "model": "snapshot",
+  "ok": true,
+  "detail": "total -60 (-60: both withdrew against the same snapshot)"
+ },
+ {
+  "check": "serializable refuses the write skew",
+  "model": "atomic",
+  "ok": true,
+  "detail": "total 20, refused: ['could not serialize access due to read/write dependencies among transactions']"
+ },
+ {
+  "check": "SET NX EX: the key is gone once its TTL passes",
+  "model": "keys expire",
+  "ok": true,
+  "detail": "GET after 1.3 s of a 1 s TTL"
+ },
+ {
+  "check": "volatile-lru evicts a key with a 30 s TTL under memory pressure",
+  "model": "keys expire",
+  "ok": true,
+  "detail": "in-flight key evicted after 6 MB of writes over a 2 MB budget"
+ },
+ {
+  "check": "a SET whose reply timed out was applied",
+  "model": "store calls fail",
+  "ok": true,
+  "detail": "raised TimeoutError('Timeout reading from socket'); applied True"
+ },
+ {
+  "check": "a stream entry not acknowledged is delivered again (XAUTOCLAIM)",
+  "model": "at-least-once delivery",
+  "ok": true,
+  "detail": "read by a, then claimed by b: True"
+ },
+ {
+  "check": "a POST retried on a read timeout is applied once per try",
+  "model": "a retrying client",
+  "ok": true,
+  "detail": "one request, applied 3 times; the client saw ConnectionError"
+ }
+]
