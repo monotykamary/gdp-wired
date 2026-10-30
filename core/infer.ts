@@ -1065,6 +1065,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   let pool = alive.slice(), chosen: Form[] = []
   // (the enumeration's set, proven where the join found nothing: the answer, the search below not run)
   let enumProof: Verdict | undefined
+  // (the ∃ law the engine's set proved with, its ghost's: reported in `found` with the cubes, so the verdict's laws prove
+  // again as they are, and export to Lean)
+  let enumSome: Law[] = []
   const goalName = (g: string) => g.replace(/ @[^@]*$/, '')
   let last: Verdict = first
   const slow = Math.max(3000, ms / 10)
@@ -2495,7 +2498,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           if (!(v.proven && v.checked)) v = within(t0 + ms, () => prove(setLaws))
           const at = String(v.goal ?? ''), g = v.proven && v.checked ? undefined : cut.find(c => at.startsWith(`${textOf(c)} @`))
           ph({phase: 'prove', cubes: cut.length, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), fastMs, fast, hits, misses, setKey: memoHits.setKey, tdKey: env.GDP_MEMO_TRACE ? machineKey(forLaws([...given, ...cut.map(lawFor)]).m) : '', diff: env.GDP_MEMO_TRACE ? ((x: string, y: string) => { let i = 0; while (i < x.length && x[i] === y[i]) i++; return `${i}: ${x.slice(Math.max(0, i - 60), i + 60)} || ${y.slice(Math.max(0, i - 60), i + 60)}` })(JSON.stringify(forLaws([...given, ...cut.map(lawFor)]).m), memoHits.setJson) : '', fastAt, at: at.slice(0, 100)})
-          if (v.proven && v.checked) { why = 'inductive'; cone = cut; enumProof = v; cubes = cut; break }
+          if (v.proven && v.checked) { why = 'inductive'; cone = cut; enumProof = v; enumSome = ghost ? [ghost.some] : []; cubes = cut; break }
           if (!g) break
           cut = cut.filter(c => c !== g)
         }
@@ -2520,7 +2523,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             if (!(v.proven && v.checked) && (g0 ? at0.endsWith('@step') && stands.has(lawFor(g0).name) : true)) v = within(t0 + ms, () => prove(hl))
             const at = String(v.goal ?? ''), g = v.proven && v.checked ? undefined : hs.find(c => at.startsWith(`${textOf(c)} @`))
             opts.progress?.('join houdini', {cubes: hs.length, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), at: at.slice(0, 100)})
-            if (v.proven && v.checked) { why = 'inductive'; cone = hs; enumProof = v; cubes = hs; break }
+            if (v.proven && v.checked) { why = 'inductive'; cone = hs; enumProof = v; enumSome = ghost ? [ghost.some] : []; cubes = hs; break }
             if (!g) break
             hs = hs.filter(c => c !== g)
           }
@@ -2559,7 +2562,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             const v = within(t0 + ms, () => prove([...laws, ...cut.map(lawFor), ...(ghost ? [ghost.some] : [])], true))
             const at = String(v.goal ?? ''), g = v.proven && v.checked ? undefined : cut.find(c => at.startsWith(`${textOf(c)} @`))
             opts.progress?.('join cone', {round, it, cubes: cubes.length, cone: cut.length, undecided: open2, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t1), at: at.slice(0, 100)})
-            if (v.proven && v.checked) { why = 'inductive'; cone = cut; enumProof = v; cubes = cut; return true }
+            if (v.proven && v.checked) { why = 'inductive'; cone = cut; enumProof = v; enumSome = ghost ? [ghost.some] : []; cubes = cut; return true }
             if (!g) return false
             out2.add(g)
           }
@@ -2687,7 +2690,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           if (g0 && at0.endsWith('@step') && stands.has(lawFor(g0).name)) v = within(t0 + ms, () => prove(setLaws))
           const at = String((v as {goal?: string}).goal ?? ''), g = v.proven && v.checked ? undefined : cubes.find(c => at.startsWith(`${textOf(c)} @`))
           opts.progress?.('join set', {cubes: cubes.length, exists: ghost ? 1 : 0, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), at: at.slice(0, 120)})
-          if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v; break }
+          if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v; enumSome = ghost ? [ghost.some] : []; break }
           if (!g) break
           // (IC3's: the failing cube's model at its step, blocked by the enumeration's cubes false at its state where there
           // are some new ones, the cube kept and the rounds again; else the cube dropped)
@@ -2919,5 +2922,5 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const kept = chosen.flatMap(f => (f.mod ? [f.mod.k] : []))
   if (kept.length) rule?.dividesBy(...kept)
   trace('end', {proven: true, stopped: stop(), found: chosen.map(f => textOf(f)).join('; ')})
-  return {...last, found: chosen.map(f => { const law = lawFor(f), text = law.name, source = sourceOf(f, text); return {law, text, ...(source ? {source} : {})} }), stats: stats(samples.length, forms.length, alive.length)}
+  return {...last, found: [...chosen.map(f => { const law = lawFor(f), text = law.name, source = sourceOf(f, text); return {law, text, ...(source ? {source} : {})} }), ...(enumProof ? enumSome : []).map(law => ({law, text: law.name}))], stats: stats(samples.length, forms.length, alive.length)}
 }
