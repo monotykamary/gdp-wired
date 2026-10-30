@@ -10,6 +10,9 @@ import {type Goal, canon, linear} from './kernel.ts'
 import {type Constraint, type Lin, konst, plus, solve, times, v as tv} from '../core/solver.ts'
 import {Simplex} from './simplex.ts'
 
+// (a term's text, once per object: the decision asks it of the same terms many times)
+const textsOf = new WeakMap<object, string>()
+const textOfE = (o: object): string => { let s = textsOf.get(o); if (s === undefined) textsOf.set(o, (s = JSON.stringify(o))); return s }
 // Each map's key pattern, as its rule reads it: the coefficients of a key Σ c·x of distinct names (Table 4096, 64, 1;
 // Leader 1). A read at a key of another shape (an instance at a key of the wrong sort) is a cell of its own, by its key's
 // text, with no congruence to the others: weaker, so still sound for a refutation. The conclusion must have the patterns.
@@ -141,13 +144,13 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     if (!c) return
     if (c.op === 'and') { c.xs.forEach(x => unitWalk(x, h)); return }
     if ((c.op === '<=' || c.op === '<') && c.b.op === 'const' && (c.a.op === 'get' || c.a.op === 'var')) {
-      const id = JSON.stringify(c.a), b = c.b.value - (c.op === '<' ? 1 : 0), had = bounded.get(id)
+      const id = textOfE(c.a), b = c.b.value - (c.op === '<' ? 1 : 0), had = bounded.get(id)
       if (b >= 0 && (!had || b < had.b)) bounded.set(id, {b, h})
     }
   }
   hyps.forEach((c, h) => unitWalk(c, h))
   // (one compared with a key part, or beside an ordered term, is of that sort: ordered, below, and not exact)
-  const exactOf = (e: E): {b: number, h: number} | undefined => (e.op === 'get' ? (!ordMaps.has(e.map) ? bounded.get(JSON.stringify(e)) : undefined) : e.op === 'var' && !parts.has(e.name) && !ordScalars.has(e.name) ? bounded.get(JSON.stringify(e)) : undefined)
+  const exactOf = (e: E): {b: number, h: number} | undefined => (e.op === 'get' ? (!ordMaps.has(e.map) ? bounded.get(textOfE(e)) : undefined) : e.op === 'var' && !parts.has(e.name) && !ordScalars.has(e.name) ? bounded.get(textOfE(e)) : undefined)
   // --- caps: a finite term's values are 0 .. cap, cap above every constant a comparison it is in has (so a larger value
   // decides every comparison the cap does: the terms are naturals with coefficients of one sign)
   const caps = new Map<string, number>()
@@ -187,10 +190,14 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
   // --- atoms
   const ids = new Map<string, number>(), names: string[] = ['']
   const atom = (key: string): F => { let v = ids.get(key); if (v === undefined) { v = names.length; ids.set(key, v); names.push(key) } return {k: 'v', v} }
-  const eq = (x: string, y: string): F => (x === y ? T : atom(`eq ${x < y ? x : y} ${x < y ? y : x}`))
+  // (the order's and equality's atoms by their two terms, without building their text again: the axioms ask them
+  // quadratically and the transitivity cubically)
+  const pairAtoms = (tag: string) => { const byA = new Map<string, Map<string, F>>(); return (a: string, b: string): F => { let in2 = byA.get(a); if (!in2) byA.set(a, (in2 = new Map())); let f = in2.get(b); if (!f) in2.set(b, (f = atom(`${tag} ${a} ${b}`))); return f } }
+  const eqAt = pairAtoms('eq'), leAt = pairAtoms('le')
+  const eq = (x: string, y: string): F => (x === y ? T : x < y ? eqAt(x, y) : eqAt(y, x))
   // the ordered terms (every part among them), `le a b` a ≤ b
   const ords = new Set<string>(['k:0', ...[...parts].map(x => `p:${x}`)])
-  const le = (a: string, b: string): F => (a === b ? T : atom(`le ${a} ${b}`))
+  const le = (a: string, b: string): F => (a === b ? T : leAt(a, b))
   // a part under a bound, x < c: ¬(c ≤ x) in the order (below), the constant one of its terms
   const ltAt = (x: string, c: number): F => { if (c <= 0) return Fa; ords.add(`k:${c}`); return not(le(`k:${c}`, `p:${x}`)) }
   // a finite variable at a value: a scalar s:x, or a cell c:M(parts) of map M
@@ -202,7 +209,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     const ex = exactOf(e), fin = (id: string, cap: number): Fin => (ex ? {id, cap: ex.b, exact: ex.h} : {id, cap})
     if (e.op === 'var' && !parts.has(e.name)) { const id = `s:${e.name}`; let f = fins.get(id); if (!f) fins.set(id, (f = fin(id, caps.get(id) ?? 1))); return f }
     if (e.op === 'get' && !(e as {args?: unknown}).args && !fits(e.map, e.key)) {
-      const id = `c:${e.map}#${JSON.stringify(e.key)}`
+      const id = `c:${e.map}#${textOfE(e.key)}`
       let f = fins.get(id)
       if (!f) { fins.set(id, (f = fin(id, caps.get(`c:${e.map}`) ?? 1))); odd.push({id, map: e.map, key: e.key}) }
       return f
@@ -226,10 +233,10 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     if (pn !== undefined && parts.has(pn)) { ords.add(`p:${pn}`); return `p:${pn}` }
     if (e.op === 'var') { if (ordScalars.has(e.name)) { ords.add(`s:${e.name}`); return `s:${e.name}` } return undefined }
     // (a function read at a key of the wrong sort, idn(64·m + n): a term of the order too, its value the read-back's)
-    if (e.op === 'get' && fnMaps.has(e.map)) { const id = `c:${e.map}#${JSON.stringify(e.key)}`; ords.add(id); return id }
+    if (e.op === 'get' && fnMaps.has(e.map)) { const id = `c:${e.map}#${textOfE(e.key)}`; ords.add(id); return id }
     if (e.op === 'get' && ordMaps.has(e.map) && !(e as {args?: unknown}).args) {
       const t = fits(e.map, e.key)
-      const id = t ? `c:${e.map}(${t.parts.join(',')})` : `c:${e.map}#${JSON.stringify(e.key)}`
+      const id = t ? `c:${e.map}(${t.parts.join(',')})` : `c:${e.map}#${textOfE(e.key)}`
       if (!ords.has(id)) { ords.add(id); if (t) { if (!ordCells.has(e.map)) ordCells.set(e.map, []); ordCells.get(e.map)!.push({id, parts: t.parts}) } else ordOdd.push({id, map: e.map, key: e.key}) }
       return id
     }
@@ -297,7 +304,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
   // that reads a scalar or a cell is arithmetic the abstraction can't read: a counter, a sum, a product)
   const foreign = new Set<number>(), opaques = new Map<number, C>()
   const opaque = (c: C): F => {
-    const a = atom(`op ${JSON.stringify(c)}`) as {k: 'v', v: number}
+    const a = atom(`op ${textOfE(c)}`) as {k: 'v', v: number}
     opaques.set(a.v, c)
     let keyOnly = true
     const wk = (o: unknown): void => { if (!keyOnly || !o || typeof o !== 'object') return; const x = o as {op?: string, name?: string}; if ((x.op === 'get' && !fnMaps.has((x as E & {map: string}).map) && !ordMaps.has((x as E & {map: string}).map)) || (x.op === 'var' && !parts.has(x.name!) && !ordScalars.has(x.name!))) { keyOnly = false; return } for (const y of Object.values(o)) wk(y) }
@@ -733,7 +740,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
       if (!fnMaps.has(x.map) || partName(x) !== undefined) return
       const key = keyVal(x.key) ?? valueAt(x.key), t = maps.get(x.map) ?? new Map<number, number>()
       if (key === undefined || t.has(key)) return
-      maps.set(x.map, t.set(key, ordVal.get(`c:${x.map}#${JSON.stringify(x.key)}`) ?? ++fresh2))
+      maps.set(x.map, t.set(key, ordVal.get(`c:${x.map}#${textOfE(x.key)}`) ?? ++fresh2))
     }
     ;[...reads].reverse().forEach(fnOdd)
     for (const [mp, cells] of cellsOf) for (const c of cells) {
