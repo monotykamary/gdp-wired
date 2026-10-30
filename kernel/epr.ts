@@ -100,7 +100,7 @@ const ifMemo = new WeakMap<object, boolean>()
 const hasIf = (o: unknown): boolean => {
   if (!o || typeof o !== 'object') return false
   let b = ifMemo.get(o)
-  if (b === undefined) ifMemo.set(o, (b = (o as {op?: string}).op === 'if' || Object.values(o).some(hasIf)))
+  if (b === undefined) { b = (o as {op?: string}).op === 'if'; if (!b) for (const k in o) if (hasIf((o as Record<string, unknown>)[k])) { b = true; break } ifMemo.set(o, b) }
   return b
 }
 const hoisted = (e: E): E => {
@@ -148,7 +148,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
       const x = o as {op?: string, map?: string, key?: E, args?: unknown}
       if (x.op === 'get' && fnMaps.has(x.map!)) { if (partName(x as E) === undefined) { ok = false; return } }
       else if (x.op === 'get') { const t = x.args ? undefined : tupleOf(x.key!), p = patterns[x.map!]; if (!t || !p || !sameCoefs(t.coefs, p)) { ok = false; return } }
-      for (const v of Object.values(o)) walk(v)
+      for (const k in o) walk((o as Record<string, unknown>)[k])
     }
     walk(h)
     return ok
@@ -173,7 +173,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
     const x = o as {op?: string, a?: unknown}
     if (x.op === 'get') reads.push(o as Extract<E, {op: 'get'}>)
     else if ((x.op === '<' || x.op === '<=' || x.op === '=') && x.a) comps.push(o as Extract<C, {a: E}>)
-    for (const v of Object.values(o)) gather(v)
+    for (const k in o) gather((o as Record<string, unknown>)[k])
   }
   hyps.forEach(gather)
   for (const x of reads) {
