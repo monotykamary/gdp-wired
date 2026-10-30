@@ -344,43 +344,6 @@ export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
     }
   }
 }
-// evalE and evalC compiled once to closures over (env, state): the same values and the same errors, in the same order
-// (a read reads the machine's functions as they are when it runs, which a table swap changes; a quantified condition and
-// a function of several arguments go through evalC and evalE). For a term read at many rows (the engine's views).
-export function compileE(e: E, m: Machine): (env: Env, st: State) => number {
-  switch (e.op) {
-    case 'var': { const name = e.name; return (env, st) => { const v = env[name] ?? st.scalars[name]; if (v === undefined) throw new Error(`no value for ${name}`); return v } }
-    case 'const': { const v = e.value; return () => v }
-    case 'add': { const a = compileE(e.a, m), b = compileE(e.b, m); return (env, st) => exact(a(env, st) + b(env, st)) }
-    case 'sub': { const a = compileE(e.a, m), b = compileE(e.b, m); return (env, st) => Math.max(0, a(env, st) - b(env, st)) }
-    case 'mul': { const k = e.k, a = compileE(e.a, m); return (env, st) => exact(k * a(env, st)) }
-    case 'prod': { const a = compileE(e.a, m), b = compileE(e.b, m); return (env, st) => exact(a(env, st) * b(env, st)) }
-    case 'min': { const a = compileE(e.a, m), b = compileE(e.b, m); return (env, st) => Math.min(a(env, st), b(env, st)) }
-    case 'max': { const a = compileE(e.a, m), b = compileE(e.b, m); return (env, st) => Math.max(a(env, st), b(env, st)) }
-    case 'if': { const c = compileC(e.c, m), t = compileE(e.then, m), f = compileE(e.else, m); return (env, st) => (c(env, st) ? t(env, st) : f(env, st)) }
-    case 'get': {
-      const map = e.map, key = compileE(e.key, m)
-      return (env, st) => {
-        const fn = m.fns?.[map]
-        if (fn?.call && pairedArgs(e.key, fn.arity!)) return evalE(e, env, st, m)
-        const k = key(env, st)
-        return fn ? naturalIn(fnOf(fn)(k), `${map}(${k})`) : st.maps[map]!.get(k) ?? st.defaults?.[map] ?? m.maps![map]!
-      }
-    }
-  }
-}
-export function compileC(c: C, m: Machine): (env: Env, st: State) => boolean {
-  switch (c.op) {
-    case '<': { const a = compileE(c.a, m), b = compileE(c.b, m); return (env, st) => a(env, st) < b(env, st) }
-    case '<=': { const a = compileE(c.a, m), b = compileE(c.b, m); return (env, st) => a(env, st) <= b(env, st) }
-    case '=': { const a = compileE(c.a, m), b = compileE(c.b, m); return (env, st) => a(env, st) === b(env, st) }
-    case 'and': { const xs = c.xs.map(y => compileC(y, m)); return (env, st) => xs.every(x => x(env, st)) }
-    case 'or': { const xs = c.xs.map(y => compileC(y, m)); return (env, st) => xs.some(x => x(env, st)) }
-    case 'not': { const x = compileC(c.x, m); return (env, st) => !x(env, st) }
-    case 'flag': { const name = `?${c.name}`; return env => env[name] === 1 }
-    case 'all': return (env, st) => evalC(c, env, st, m)
-  }
-}
 // A write at every key: its value at each key the maps it reads hold a cell at, and its new default past them.
 // With the key in key terms, every key up to the last breakpoint is computed (the stretches between breakpoints hold the
 // same value, which need not be the default), and past it the value is the new default.

@@ -32,7 +32,7 @@
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
-import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, compileC, compileE, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
+import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
 import {clock, counted, decideLaw, decideNote, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
@@ -634,10 +634,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   }
   const termAtoms = atoms.filter(a => a.term)
   // a row's term atoms' values, at its state (a term whose value the interpreter can't take: 0)
-  const termFns = termAtoms.map(a => compileE(a.term!, m))
   const withTerms = (env: Env, st: State): Env => {
     if (!termAtoms.length) return env
-    termAtoms.forEach((a, i) => { try { env[a.parts[0]![0]] = termFns[i]!(env, st) } catch { env[a.parts[0]![0]] = 0 } })
+    for (const a of termAtoms) { try { env[a.parts[0]![0]] = evalE(a.term!, env, st, m) } catch { env[a.parts[0]![0]] = 0 } }
     return env
   }
   const A = atoms.length, cellAtoms = atoms.flatMap((a, i) => (a.cell ? [i] : []))
@@ -1215,8 +1214,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           atoms.push({name: `${a.parts[0]![0]}[${viewText(v as View, showE(v.places[place]!))}]`, parts: a.parts.map(([q, sg]) => [`${AT}${AT}${q}${AT}${vi}:${place}`, sg] as [string, 1 | -1]), param: false, int: a.int, cell: false, place, view: vi})
         }
       })
-      const compiled = {frame: compileC(v.frame, m), places: v.places.map(p => compileE(p, m)), extra: extra.map(t => compileE(t.term, m)),
-        xs: extra.map((_, j) => `$x${vi}:${j}`), qs: mapsAt.map((mps, place) => mps.map(mp => `${AT}${AT}${mp}${AT}${vi}:${place}`))}
       const rowsOf = (params: Env, st: State, full = false): Env[] => {
         // (`per` values a key; the engine's views (`product`) at most per^keys rows a state, 64 at least, the fewer-valued
         // sorts' keys taking all of theirs and the cut on the most-valued: a sort's values past a few are still read where
@@ -1224,19 +1221,15 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const all2 = valuesOf2(st).map(vs => (named.has(st) ? vs.slice(0, -1) : vs)), lens = all2.map(vs => (product ? vs.length : Math.min(per, vs.length))), most = !product || full ? Infinity : named.has(st) ? 1024 : Math.max(64, per ** all2.length)
         for (let size = lens.reduce((a, b) => a * b, 1); size > most;) { const i = lens.indexOf(Math.max(...lens)); if (lens[i]! <= 1) break; size = size / lens[i]! * (lens[i]! - 1); lens[i]!-- }
         const cand = all2.map((vs, i) => vs.slice(0, lens[i])), out: Env[] = []
-        // (the frame, places and extra terms compiled once a view (`compiled`); one env the keys are set in, as each
-        // assignment's own copy was: a level reads only the keys above it)
         const go = (i: number, env: Env): void => {
           if (i === v.vars.length) {
-            try { if (!compiled.frame(env, st)) return } catch { return }
-            const row: Env = {...params, ...st.scalars}, cells: [string, string, number][] = []
-            row[K] = env[v.vars[0]!]!
-            compiled.extra.forEach((f, j) => { try { row[compiled.xs[j]!] = f(env, st) } catch { row[compiled.xs[j]!] = 0 } })
-            mapsAt.forEach((mps, place) => { const key = compiled.places[place]!(env, st); mps.forEach((mp, h) => { const q = compiled.qs[place]![h]!; row[q] = cellOf(st, mp, key); cells.push([q, mp, key]) }) })
+            try { if (!evalC(v.frame, env, st, m)) return } catch { return }
+            const row: Env = {...params, ...st.scalars, [K]: env[v.vars[0]!]!, ...Object.fromEntries(extra.map((t, j) => { try { return [`$x${vi}:${j}`, evalE(t.term, env, st, m)] } catch { return [`$x${vi}:${j}`, 0] } }))}, cells: [string, string, number][] = []
+            mapsAt.forEach((mps, place) => { const key = evalE(v.places[place]!, env, st, m); for (const mp of mps) { const q = `${AT}${AT}${mp}${AT}${vi}:${place}`; row[q] = cellOf(st, mp, key); cells.push([q, mp, key]) } })
             out.push(mark(withTerms(row, st), st, cells))
             return
           }
-          for (const k2 of cand[i]!) { env[v.vars[i]!] = k2; go(i + 1, env) }
+          for (const k2 of cand[i]!) go(i + 1, {...env, [v.vars[i]!]: k2})
         }
         go(0, {...params, ...st.scalars})
         return out
