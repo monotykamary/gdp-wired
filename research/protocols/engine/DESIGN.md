@@ -120,6 +120,18 @@ runs/det/g0–g4 in ../gdp-wired-laneA; seconds, the search's own time)
 - **Typecheck and lint:** tsc clean on core/, kernel/ and research/protocols/ic3syn (on Modal; the errors left are
   vendor/ imports), oxlint clean on the same (without --type-aware, which needs node).
 
+**Spend:** $1.21 billed through the 18:00 UTC hour for this task's 42 apps (the calibration runs, the experiments at
+fixed paths, the 200-run gauntlet, the gates, the bar's 18); the 18:00 hour is still filling in, and the bar estimates
+$0.62 of its own. Nothing of mine left running.
+
+**Verified, not**
+- **Verified (Modal):** one path per protocol across 200 runs (the engine's clock at the join's end, above); the table;
+  the 7; the bar; tsc and oxlint on the branch's files.
+- **Not verified:** the claim for ring and wo (17/20, 19/20); determinism of the join (its 2 s grow wall stays; the
+  counted alternative ran once, not gated); that the rates hold on other hardware (they're fitted to Modal's containers:
+  a much faster or slower machine takes the same path, but where its wall falls against the budget differs); the
+  oxlint type-aware rules on the new code.
+
 ## gen/laneA: the IC3Syn suite, its failure classes, the ∃ laws' wall, counting designed (gen/laneA from main ae36917)
 
 **The suite** (research/protocols/ic3syn/: README.md has every source, licence and commit, and each port's
