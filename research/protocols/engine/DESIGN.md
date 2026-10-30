@@ -128,6 +128,23 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 - **Checking a change to the join:** measure the first join and the sums pass's (decentralized proves in the second).
 - **The bar** (569ed3b against 5d4da3f, full mode on rw, f1, f2, g332, suite, onecpu; Modal, 495 s, estimated $0.7; <main>/runs/bar/runs/569ed3bbf25b-vs-5d4da3f49013-full-2026-10-292350/REPORT.md): wrong 0 everywhere and nothing lost. f1 90/92 as the base; f2 32 against a base mean of 31.33 (one task, gained 0 after 3 reruns a side); rw 318/361 as the base; g332 332/332 with the same search on every goal (+3.4 s summed); the suite 227/227; onecpu no failures. core/ and kernel/ are 2.77 MB against 2.67 MB (+101 KB).
 
+**IC3's frames, gen/epr9 merged** (`runs/engine/f1`–`f4`, `h1`)
+- **Frames:**
+  - a cube whose relative induction fails without a counterexample from a start is pending, not dropped: out of the set the others assume;
+  - the pending cubes are pushed together each round once the set has changed: each is asked with the set and every other pending cube assumed (one frame); those with a model go out, and the rest are asked again until none has one (an undecided one stays, as Houdini keeps it);
+  - what is left comes back into the set together, each cube twice at most;
+  - the set's proof demotes rather than drops;
+  - a start's counterexample still drops a cube for good;
+  - 'join frames' (pending, pushed, promoted) is a progress event.
+- **ring:** cubes come back. Round 4 promotes 1–2 of its 2–3 pending ones (the own-id and path laws). The sets still fail at the own-id and leader laws, with set proofs of 1–19 s at 9–21 cubes.
+- **distributed:** 10–43 pending, every one with a model even with all the others assumed, none back. So its support was in neither the set nor the frame.
+  - **The written laws prove as one set** (`epr/givenprobe.ts`: 0.8 s fast, 3.6 s usual), so the gap is the enumeration.
+  - **"Two live transfers are one"** (4 literals over 4 keys, in a view of more than 40 literals) was missing. Now enumerated: "two of a pattern are one" (DuoAI's), a two-literal pattern some row has beside its image under a renaming of the view's keys within their sorts, 200 a view. Distributed 140 → 151 cubes, ring 69 → 78; toy, sharded and decentralized unchanged.
+  - With it, pending falls to 10–12; still none come back, and the sets fail at "Held[x] ∧ Ep[x] + 1 <= z ∧ z <= Ep[y]", "Locked ∧ Locked", "Transfer ∧ started is 0".
+- **Houdini over all the enumeration at once** (`h1`, distributed, 140 cubes, a 250 s budget): each fast set proof is about 10 s at 114–140 cubes. 30 drops in 190 s, no inductive set. Too costly as a start; dropped.
+- **wo's join query:** the 6.3 s query is the first ask of "every k: Leader[k] <= VoteRequestMsg[k]" (rounds 1–9 ask other goals), so a cap on repeats saves nothing. Not built.
+- **Verdicts** (`f4`, 2 runs): sync 11–13 s, async 23–26, decentralized 15–18, 2PC 18–20, ticket 29–34, toy 11–15, sharded 27–36, all proven; wo 64–68 (one run past the wall by 8 s), unknown.
+
 **The expressibility map** (each written law in models.ts's `human`, against the engine's enumeration; `smallprobe.ts` with CUBES=made lists it, and 'join view' each view's literals)
 
 | Protocol | Written law | In the candidate space? | Missing block or cause |
