@@ -152,13 +152,13 @@ const shardedKv = (noLost: boolean) => (bug?: Bug) => ((noLost ? rule('sharded k
     // Reshard(k, v, n_old, n_new) is (n, k, v, n2)
     reshards: op.is('reshard').and(started.eq(1), Table.at(pk(n, k)).eq(v.plus(1))),
     receives: op.is('recv_transfer_msg').and(started.eq(1), TransferMsg.at(pk3(n, k, v))),
-    puts: op.is('put').and(started.eq(1), bug ? yes : Owner.at(pk(k, n))),
+    puts: op.is('put').and(started.eq(1), bug && !noLost ? yes : Owner.at(pk(k, n))),
   }))
   .step(({n, k, v, n2, owns, starts, reshards, receives, puts, started, Table, Owner, TransferMsg, Owned}: any) => ({
     started: when(starts, 1, started),
     Table: Table.set(pk(n, k), when(reshards, 0, when(receives.or(puts), v.plus(1), Table.at(pk(n, k))))),
     Owner: Owner.set(pk(k, n), when(owns.or(receives), yes, when(reshards, no, Owner.at(pk(k, n))))),
-    TransferMsg: TransferMsg.each(z => when(reshards.and(z.eq(pk3(n2, k, v))), yes, when(receives.and(z.eq(pk3(n, k, v))), no, TransferMsg.at(z)))),
+    TransferMsg: TransferMsg.each(z => when(reshards.and(z.eq(pk3(n2, k, v))), bug && noLost ? TransferMsg.at(z) : yes, when(receives.and(z.eq(pk3(n, k, v))), no, TransferMsg.at(z)))),
     ...(noLost ? {Owned: Owned.set(k, when(owns, yes, Owned.at(k)))} : {}),
   }))
 

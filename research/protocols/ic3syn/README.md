@@ -7,7 +7,7 @@ artifact. Its suite is Endive's benchmark collection (28 of the 29, by their End
 sourced from the IC3PO repository" (pyv-paxos-epr).
 
     models.ts   the ports (each with its correspondence, a broken variant, its instance and TLC cfg)
-    common.ts   what they share: the quorum sort, majority() by counting, the check's types
+    common.ts   what they share: majority() by counting, the check's types
     check.ts    a port's reachable states on a small instance, by BFS, as the spec's variables
     tlc.py      Modal: TLC on the Endive spec beside check.ts's BFS, per protocol
     run.ts      Modal jobs: the search with nothing written, per protocol
@@ -35,8 +35,8 @@ paxos_epr.pyv, the model the TLA+ transcribes; IC3Syn's 1806 s and 9 invariants 
 | 1 | tla-consensus | Endive Consensus.tla | consensus | | Value 3 |
 | 2 | tla-tcommit | Endive TCommit.tla | tcommit | | RM 3 |
 | 3 | i4-lock-server | Endive lockserver.tla | lock_server | | Server 2, Client 2 |
-| 4 | ex-quorum-leader-election | Endive quorum_leader_election.tla | quorum_leader_election (@q) | majority | Node 3 |
-| 5 | pyv-toy-consensus-forall | Endive toy_consensus_forall.tla | toy_consensus_forall (@q) | majority | Node 3, Value 2 |
+| 4 | ex-quorum-leader-election | Endive quorum_leader_election.tla | quorum_leader_election | majority | Node 3 |
+| 5 | pyv-toy-consensus-forall | Endive toy_consensus_forall.tla | toy_consensus_forall | majority | Node 3, Value 2 |
 | 6 | tla-simple | Endive Simple.tla | simple | | N = 4 |
 | 7 | ex-lockserv-automaton | Endive lockserv_automaton.tla | lockserv_automaton | | Node 3 |
 | 8 | tla-simpleregular | Endive SimpleRegular.tla | simple_regular | | N = 3 |
@@ -46,21 +46,21 @@ paxos_epr.pyv, the model the TLA+ transcribes; IC3Syn's 1806 s and 9 invariants 
 | 12 | i4-learning-switch | Endive learning_switch_i4.tla | (not ported, below) | | |
 | 13 | ex-simple-decentralized-lock | Endive simple_decentralized_lock.tla | simple_decentralized_lock | | Node 3 |
 | 14 | i4-two-phase-commit | Endive two_phase_commit.tla | two_phase_commit | | Node 3 |
-| 15 | pyv-consensus-wo-decide | Endive consensus_wo_decide.tla | consensus_wo_decide | quorum sort | Node 3 |
-| 16 | pyv-consensus-forall | Endive consensus_forall.tla | consensus_forall | quorum sort | Node 3, Value 2 |
+| 15 | pyv-consensus-wo-decide | Endive consensus_wo_decide.tla | consensus_wo_decide | Quorum: majorities | Node 3 |
+| 16 | pyv-consensus-forall | Endive consensus_forall.tla | consensus_forall | Quorum: majorities | Node 3, Value 2 |
 | 17 | pyv-learning-switch | Endive learning_switch.tla | (not ported, below) | | |
 | 18 | pyv-sharded-kv-no-lost-keys | Endive sharded_kv_no_lost_keys.tla | sharded_kv_no_lost_keys | | Node 2, Key 2, Value 2 |
-| 19 | ex-naive-consensus | Endive naive_consensus.tla | naive_consensus | quorum sort | Node 3, Value 2 |
+| 19 | ex-naive-consensus | Endive naive_consensus.tla | naive_consensus | Quorum: majorities | Node 3, Value 2 |
 | 20 | pyv-client-server-ae | Endive client_server_ae.tla | client_server_ae | | Node 2, Request 2, Response 2 |
-| 21 | ex-simple-election | Endive simple_election.tla | simple_election | quorum sort | Acceptor 3, Proposer 2 |
-| 22 | pyv-toy-consensus-epr | Endive toy_consensus_epr.tla | toy_consensus_epr | quorum sort | Node 3, Value 2 |
-| 23 | ex-toy-consensus | Endive toy_consensus.tla | toy_consensus (@q) | majority | Node 3, Value 2 |
+| 21 | ex-simple-election | Endive simple_election.tla | simple_election | Quorum: majorities | Acceptor 3, Proposer 2 |
+| 22 | pyv-toy-consensus-epr | Endive toy_consensus_epr.tla | toy_consensus_epr | Quorum: majorities | Node 3, Value 2 |
+| 23 | ex-toy-consensus | Endive toy_consensus.tla | toy_consensus | majority | Node 3, Value 2 |
 | 24 | pyv-client-server-db-ae | Endive client_server_db_ae.tla | client_server_db_ae | | Node 2, Request 2, Response 2, DbRequestId 2 |
 | 25 | pyv-firewall | Endive firewall.tla | firewall | | Node 3 |
-| 26 | ex-majorityset-leader-election | Endive majorityset_leader_election.tla | majorityset_leader_election (@q) | majority | Node 3 |
-| 27 | pyv-consensus-epr | Endive consensus_epr.tla | consensus_epr | quorum sort | Node 3, Value 2 |
-| 28 | mldr | Endive MongoLoglessDynamicRaft.tla | (below) | majority of a config | |
-| 29 | pyv-paxos-epr | mypyvy paxos_epr.pyv (Endive paxos_epr.tla, faulty) | (not ported, below) | quorum sort | |
+| 26 | ex-majorityset-leader-election | Endive majorityset_leader_election.tla | majorityset_leader_election | majority | Node 3 |
+| 27 | pyv-consensus-epr | Endive consensus_epr.tla | consensus_epr | Quorum: majorities | Node 3, Value 2 |
+| 28 | mldr | Endive MongoLoglessDynamicRaft.tla | mldr | majority of a config, overlap of two | Server 3, MaxTerm 2, MaxConfigVersion 2 |
+| 29 | pyv-paxos-epr | mypyvy paxos_epr.pyv (Endive paxos_epr.tla, faulty) | (not ported, below) | quorum sort (axiom) | |
 
 ## The encoding, beyond ../README.md's
 
@@ -71,16 +71,25 @@ paxos_epr.pyv, the model the TLA+ transcribes; IC3Syn's 1806 s and 9 invariants 
 - **Init that chooses.** `owner \in [Node -> SUBSET Key]`, `match \in SUBSET (Request \X Response)`, `internal \in
   [Node -> BOOLEAN]`, `\E start: has_lock = {start}`, `voting_quorum \in Quorums`: requests before `start` (or one
   `init`) set them, any of the spec's choices reachable; the states before project to no TLA+ state.
-- **Quorums as a set (`CONSTANT Quorum`).** The quorum sort of common.ts: Ivy's and mypyvy's `sort quorum`, `member`,
-  and the axiom `forall Q1, Q2. exists N. member(N, Q1) & member(N, Q2)` as a fact of `meet`, its Skolem function. The
-  TLA+ of consensus_wo_decide and consensus_forall states no intersection; their configs' quorums meet, and so does the
-  port's. Where a config lists the full set as a quorum too (simple_election, consensus_epr), it adds no state: an
-  action a superset enables, its subsets enable.
-- **Majorities (`Cardinality(Q) * 2 > Cardinality(Node)`).** Stated exactly by common.ts's `majority`: Q within 0 ..
-  size − 1, and an injective rank on the nodes outside it below c, with 2c < size. That is counting (the pigeonhole
-  reason two majorities meet), which no EPR prover has. Each majority protocol has a cut `<id>@q` with the quorum sort
-  in its place: a sound abstraction (every two majorities meet, so every run of the spec is a run of the cut), the
-  form Ivy and mypyvy give these protocols.
+- **Majorities (`Cardinality(Q) * 2 > Cardinality(Node)`).** Stated exactly by common.ts's `majority`: the request
+  carries Q, within 0 .. size − 1, and an injective rank `Out` on the nodes outside it below its input c, with 2c <
+  size. For every majority Q, c = |Node \ Q| and a numbering of Node \ Q make it hold; wherever it holds, |Node \ Q| <=
+  c < size / 2. That is counting, the pigeonhole reason two majorities meet, which no EPR prover has.
+- **Quorums as a set (`CONSTANT Quorum`), as majorities.** Every config's Quorum is the majorities of its nodes
+  ({{n1,n2},{n1,n3},{n2,n3}}, with {n1,n2,n3} in two), so these ports take the majorities too, by `majority`. That is
+  narrower than the TLA+ (any family of sets; the specs of consensus_wo_decide and consensus_forall don't even state that
+  two quorums meet, without which the property is false), and the same on every config's instance. The general form,
+  Ivy's `sort quorum` with `member(N, Q)` and the axiom `forall Q1, Q2. exists N. member(N, Q1) & member(N, Q2)`, can't
+  be written in the model format: a quorum's members would be a function read at a quantified key (`\A n:
+  member(n, q) => ...`), and kernel/kernel.ts's `keyOnly` refuses a function there ("a function's values don't stop
+  where a map's cells do"); as a map keyed by (quorum, node), the axiom's witness map is read at a key built from the
+  quantified quorum twice, which `keyOnly` refuses too. The ten (../models.ts) stand the axiom in for one stored quorum
+  and a request-named witness; that is a modelling choice per protocol, not the spec, so it isn't used here.
+- **mldr's counts.** `Quorums(config[i])`, `ConfigIsCommitted` and `QuorumsOverlap(config[i], newConfig)` by exact
+  counts with injections as witnesses (a lower bound by an injection into the set, an upper bound by one out of it):
+  Q is in Quorums(X) iff Q ⊆ X and |Q| > |X \ Q|; X's and Y's quorums overlap iff two disjoint majorities can't be cut
+  from them, i.e. iff (|X|/2 + 1 ∸ |X \ Y|) + (|Y|/2 + 1 ∸ |Y \ X|) > |X ∩ Y| (halves rounded down). Init's single
+  `initConfig` copied to every server is a setup phase (`pick`, `copy` per server, `start`).
 - **A guard that reads a relation along its first coordinate.** A quantified flag reads its key only as the last
   coordinate (../README.md), so where a guard ranges over one coordinate and another guard over the other (naive
   consensus's `\A x: <<n, x>> \notin vote` beside `\A n \in Q: <<n, v>> \in vote`), the relation is laid out for the
@@ -98,7 +107,8 @@ paxos_epr.pyv, the model the TLA+ transcribes; IC3Syn's 1806 s and 9 invariants 
   `tc(pa, x, sw1)` at the key `pa·N² + x·N + y` needs y (`k mod N`), a function of the key. No layout of the three
   coordinates avoids it: each read changes a different coordinate. Porting them needs a write over a tuple of keys
   (`M.each((pa, x, y) => ...)`), a change to the kernel's key rules (trusted: a Lean proof first).
-- **pyv-paxos-epr.** `propose` reads `\A N, MAXR, V: member(N, q) /\ MAXR < r /\ vote(N, MAXR, V) => MAXR <= maxr`:
+- **pyv-paxos-epr.** Its quorums are a sort with the intersection axiom (above: not writable here), and `propose` reads `\A N, MAXR, V: member(N, q) /\ MAXR < r /\ vote(N, MAXR, V) => MAXR <= maxr`:
   a guard quantified over two coordinates of `vote` at once (N and MAXR). A quantified flag over several keys reads
   each on its own (kernel.ts's `apart`), so `vote(N, MAXR, V)` at `N·N² + MAXR·N + V` is out. The same kernel change
-  (keys that are tuples) would admit it.
+  (keys that are tuples) would admit it; so would a log of votes (a list read at one position), at the cost of a
+  variable the spec doesn't have and ∀∃ invariants linking it to `vote`.
