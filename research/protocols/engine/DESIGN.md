@@ -893,6 +893,21 @@ behind GDP_TD):
 
 **Spend this part:** $0.69 billed for 18 apps so far (the hour is still being billed).
 
+**Merged with main 7f5d3de (Swift) as 0cebaac, and gated there.** The tree carries everything above: the epr caching
+on the default path, and top-down behind GDP_TD.
+- **The ten** (`r5a`):
+  - proven: sync 9.3 s, async 24.8, decentralized 16.9, 2PC 17.8, ticket 33.0, toy 15.3, sharded 33.3, distributed 30.9;
+  - unknown: ring 59.8 s and wo 63.2 s;
+  - the typecheck and lint are clean.
+- **The quick bar** (<main>/runs/bar/runs/ring2-0cebaac-quick):
+  - f1 34 and rw 74/14/3, the same as the base;
+  - f2 25 against 24.33: one task differs on the first pass, noise after 3 reruns a side;
+  - g332 the same search on 332 of 332 (291.4 s against 297.6 s);
+  - the suite 233 passed, 0 failed;
+  - onecpu no failure.
+  - Gained 0, lost 0, wrong 0. Estimated $0.59.
+- **gen/ring2 at this merge is merge-ready.**
+
 ## Where it stands (read this first; the checkpoints below are the history)
 
 **Branch and code**
