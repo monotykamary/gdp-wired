@@ -1,0 +1,8 @@
+[
+ {
+  "name": "lock_server_sync-lean",
+  "memory": 8192,
+  "timeout": 1800,
+  "cmd": "GDP_LEAN_TIMES=1 timeout -s KILL 300 bun research/protocols/lean10.ts lock_server_sync 60000 $PWD/lean-kernel/P_lock_server_sync.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -E '^lean item' /tmp/e.log | tail -3; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; tl=$(date +%s); for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/tmp/lib.log 2>&1 || { echo LIBFAIL $m; tail -5 /tmp/lib.log; }; done; echo library-secs $(( $(date +%s)-tl )); [ -f P_lock_server_sync.lean ] || { echo no-export; exit 0; }; t=$(date +%s); timeout -s KILL 1400 lean P_lock_server_sync.lean > /tmp/lean.log 2>&1; s=$?; tail -c 3000 /tmp/lean.log; grep -c 'sorry' P_lock_server_sync.lean; echo lean-exit $s secs $(( $(date +%s)-t ))"
+ }
+]

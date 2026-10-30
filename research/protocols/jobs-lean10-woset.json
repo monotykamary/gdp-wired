@@ -1,0 +1,7 @@
+[
+ {
+  "name": "wo-set",
+  "cmd": "export LEAN10_SAVE=1 LEAN10_SOME=written GDP_EXISTS_LOG=1 GDP_LEAN_TIMES=1; timeout -s KILL 240 bun research/protocols/lean10.ts consensus_wo_decide 60000 /tmp/P.lean > /tmp/o.json 2>/tmp/e.log; echo exit $?; cat /tmp/o.json; grep '^SET ' /tmp/e.log | head -1; grep -v '^SET ' /tmp/e.log | tail -40 | cut -c1-300",
+  "timeout": 360
+ }
+]

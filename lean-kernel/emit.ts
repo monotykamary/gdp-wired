@@ -6,7 +6,7 @@ import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
 import {type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
-import {chooseLevels, grow, minimal, proveBuilt, proveLaws, proveStepLaws, withDeadline} from '../kernel/prove.ts'
+import {chooseLevels, clock, grow, minimal, proveBuilt, proveLaws, proveSetFast, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
 import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.ts'
@@ -1197,10 +1197,20 @@ example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : '
 // is made with no cyclic certificate of its own (quietly): the export makes the certificate it exports from the usual
 // trees (cycMachineProof), and the usual export reads the trees, so a certificate made here is never read.
 const usualMade = new Map<string, ReturnType<typeof proveStepLaws>>()
+// Where the usual proof fails and there are no step laws, the search's own set proof (proveSetFast: per-law instances
+// of each law's sort, a refutation's core widened to its goal, its trees checked by checkLaws): the laws the engine
+// proved that way (ring's) go to Lean from the trees that proof made, which Lean checks as any (`certReport.fast`).
 function proveStepLawsOnce(m: Machine, laws: Law[], stepLaws: StepLaw[]): ReturnType<typeof proveStepLaws> {
   const key = JSON.stringify([m, laws, stepLaws]), had = usualMade.get(key)
   if (had) return had
-  const r = quietly(() => proveStepLaws(m, laws, stepLaws))
+  // (with no step laws, the usual proof within usualMs of the cost model's clock (GDP_LEAN_USUAL_MS, 60 s): past it, the
+  // fast one; wo's set with its ghost ran the usual proof 8 minutes and more)
+  const fastToo = !stepLaws.length && !laws.some(l => l.some?.length)
+  let r = quietly(() => (fastToo ? withDeadline(clock() + Number(envOf()?.GDP_LEAN_USUAL_MS ?? 60_000), () => proveStepLaws(m, laws, stepLaws)) : proveStepLaws(m, laws, stepLaws)))
+  if (!r.proven && fastToo) {
+    const f = quietly(() => proveSetFast(m, laws))
+    if (f.proven && f.checked && f.proof) { r = {proven: true, checked: true, nodes: f.nodes, leaves: f.leaves, proof: {laws: f.proof, instances: {}, perStep: {}, trees: {}}}; certReport.fast.push(m.name) }
+  }
   usualMade.set(key, r)
   return r
 }
@@ -1210,7 +1220,7 @@ const envOf = () => (globalThis as {process?: {env?: Record<string, string | und
 export const cyclicCerts = certMode
 let certsOn = false, cycTexts = 0
 // What the last toLean exported from cyclic certificates, and what went the usual way (and why).
-export const certReport: {cyclic: string[], usual: {id: string, why: string}[], translatedSteps: string[]} = {cyclic: [], usual: [], translatedSteps: []}
+export const certReport: {cyclic: string[], usual: {id: string, why: string}[], translatedSteps: string[], fast: string[]} = {cyclic: [], usual: [], translatedSteps: [], fast: []}
 
 // The cyclic proof of a machine's laws and of the step laws its claims bring: the laws' nodes (the usual proof
 // translated, core/translate.ts; or searched), then each step law's (core/cyclic.ts's stepLawNodes, searched).
@@ -1788,7 +1798,7 @@ export function toLean(items: LeanItem[], opts: {title?: string, native?: boolea
   const env = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
   checkBy = (opts.native ?? env?.GDP_LEAN_NATIVE === '1') ? 'native_decide' : 'decide +kernel'
   certsOn = opts.cyclic ?? cyclicCerts()
-  certReport.cyclic = []; certReport.usual = []; certReport.translatedSteps = []; cycTexts = 0
+  certReport.cyclic = []; certReport.usual = []; certReport.translatedSteps = []; certReport.fast = []; cycTexts = 0
   usualMade.clear()
   // The proofs found with only the instances their leaves use: the same laws, from fewer hypotheses for Lean to build.
   const wasMinimal = minimal.on
@@ -1818,7 +1828,10 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
       // Laws with "there exists" go in as the kernel proved them (core/exists.ts): the machine with the ghosts their
       // witnesses are, each law with its witness terms in place or over its ghosts, each stated again as ∃ (readable).
       if (item.laws.some(l => l.some?.length)) {
-        const it = item, r = proveStepLaws(it.machine, it.laws, it.stepLaws ?? [])
+        // (with no step laws, the search's set proof first, proveSome's witnesses with proveSetFast as its whole-set
+        // prover: the same ghosted machine and laws, without the usual proof and certificate the export makes again below)
+        const it = item, fast = it.stepLaws?.length ? undefined : quietly(() => proveSetFast(it.machine, it.laws)) as ReturnType<typeof proveStepLaws>
+        const r = fast?.proven && fast.checked && fast.laws ? fast : proveStepLaws(it.machine, it.laws, it.stepLaws ?? [])
         if (!r.proven || !r.laws) throw new Error(`${it.id}: not proven (${r.failed?.stuck ?? ''})`)
         const ghosts = [...(it.ghosts ?? []), ...Object.keys(r.machine?.state ?? {}).filter(n => !(n in it.machine.state))]
         item = {...it, machine: r.machine ?? it.machine, laws: r.laws, ...(ghosts.length ? {ghosts} : {})}

@@ -1,0 +1,20 @@
+[
+ {
+  "name": "ring-lean",
+  "memory": 8192,
+  "timeout": 1800,
+  "cmd": "GDP_LEAN_TIMES=1 timeout -s KILL 300 bun research/protocols/lean10.ts ring_leader_election 60000 $PWD/lean-kernel/P_ring_leader_election.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -E '^lean item' /tmp/e.log | tail -3; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; tl=$(date +%s); for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/tmp/lib.log 2>&1 || { echo LIBFAIL $m; tail -5 /tmp/lib.log; }; done; echo library-secs $(( $(date +%s)-tl )); [ -f P_ring_leader_election.lean ] || { echo no-export; exit 0; }; t=$(date +%s); timeout -s KILL 1400 lean P_ring_leader_election.lean > /tmp/lean.log 2>&1; s=$?; grep -E \"error|axioms|sorry\" /tmp/lean.log | tail -c 4000; grep -c 'sorry' P_ring_leader_election.lean; echo lean-exit $s secs $(( $(date +%s)-t ))"
+ },
+ {
+  "name": "wo-lean",
+  "memory": 8192,
+  "timeout": 1800,
+  "cmd": "GDP_LEAN_TIMES=1 timeout -s KILL 300 bun research/protocols/lean10.ts consensus_wo_decide 60000 $PWD/lean-kernel/P_consensus_wo_decide.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -E '^lean item' /tmp/e.log | tail -3; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; tl=$(date +%s); for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/tmp/lib.log 2>&1 || { echo LIBFAIL $m; tail -5 /tmp/lib.log; }; done; echo library-secs $(( $(date +%s)-tl )); [ -f P_consensus_wo_decide.lean ] || { echo no-export; exit 0; }; t=$(date +%s); timeout -s KILL 1400 lean P_consensus_wo_decide.lean > /tmp/lean.log 2>&1; s=$?; grep -E \"error|axioms|sorry\" /tmp/lean.log | tail -c 4000; grep -c 'sorry' P_consensus_wo_decide.lean; echo lean-exit $s secs $(( $(date +%s)-t ))"
+ },
+ {
+  "name": "wo-standin-lean",
+  "memory": 8192,
+  "timeout": 1800,
+  "cmd": "export LEAN10_SOME=written; GDP_LEAN_TIMES=1 timeout -s KILL 300 bun research/protocols/lean10.ts consensus_wo_decide 60000 $PWD/lean-kernel/P_consensus_wo_decide.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -E '^lean item' /tmp/e.log | tail -3; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; tl=$(date +%s); for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/tmp/lib.log 2>&1 || { echo LIBFAIL $m; tail -5 /tmp/lib.log; }; done; echo library-secs $(( $(date +%s)-tl )); [ -f P_consensus_wo_decide.lean ] || { echo no-export; exit 0; }; t=$(date +%s); timeout -s KILL 1400 lean P_consensus_wo_decide.lean > /tmp/lean.log 2>&1; s=$?; grep -E \"error|axioms|sorry\" /tmp/lean.log | tail -c 4000; grep -c 'sorry' P_consensus_wo_decide.lean; echo lean-exit $s secs $(( $(date +%s)-t ))"
+ }
+]

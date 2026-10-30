@@ -1,0 +1,8 @@
+[
+ {
+  "name": "wo-standin",
+  "cmd": "export LEAN10_FROM=research/protocols/lean10-sets/wo.json LEAN10_SOME=written GDP_EXISTS_LOG=1 GDP_LEAN_TIMES=1 X=1; t=$(date +%s); timeout -s KILL 500 bun research/protocols/lean10.ts consensus_wo_decide 60000 $PWD/lean-kernel/P_wo.lean > /tmp/o.json 2>/tmp/e.log; echo exit $? secs $(( $(date +%s)-t )); cat /tmp/o.json; tail -8 /tmp/e.log | cut -c1-300; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/dev/null 2>&1 || echo LIBFAIL $m; done; [ -f P_wo.lean ] || { echo no-export; exit 0; }; t=$(date +%s); timeout -s KILL 1400 lean P_wo.lean > /tmp/lean.log 2>&1; s=$?; grep -E 'error|axioms|sorry' /tmp/lean.log | tail -c 3000; echo lean-exit $s secs $(( $(date +%s)-t ))",
+  "timeout": 1800,
+  "memory": 8192
+ }
+]

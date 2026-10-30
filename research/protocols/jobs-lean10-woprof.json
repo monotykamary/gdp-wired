@@ -1,0 +1,7 @@
+[
+ {
+  "name": "wo-prof",
+  "cmd": "export LEAN10_FROM=research/protocols/lean10-sets/wo.json LEAN10_SOME=written GDP_EXISTS_LOG=1 GDP_LEAN_TIMES=1; timeout -s KILL 200 bun --cpu-prof --cpu-prof-dir=/tmp/prof --cpu-prof-name=x.cpuprofile research/protocols/lean10.ts consensus_wo_decide 60000 /tmp/P.lean > /tmp/o.json 2>/tmp/e.log; echo exit $?; cat /tmp/o.json; tail -20 /tmp/e.log | cut -c1-300; ls -la /tmp/prof; python3 research/protocols/engine/profwin.py /tmp/prof/x.cpuprofile 0 400 60 | cut -c1-120",
+  "timeout": 360
+ }
+]

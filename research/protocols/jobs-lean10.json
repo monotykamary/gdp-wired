@@ -1,0 +1,56 @@
+[
+ {
+  "name": "lock_server_async-lean",
+  "memory": 8192,
+  "timeout": 1800,
+  "cmd": "GDP_LEAN_TIMES=1 timeout -s KILL 300 bun research/protocols/lean10.ts lock_server_async 60000 $PWD/lean-kernel/P_lock_server_async.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -E '^lean item' /tmp/e.log | tail -3; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; tl=$(date +%s); for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/tmp/lib.log 2>&1 || { echo LIBFAIL $m; tail -5 /tmp/lib.log; }; done; echo library-secs $(( $(date +%s)-tl )); [ -f P_lock_server_async.lean ] || { echo no-export; exit 0; }; t=$(date +%s); timeout -s KILL 1400 lean P_lock_server_async.lean > /tmp/lean.log 2>&1; s=$?; grep -E \"error|axioms|sorry\" /tmp/lean.log | tail -c 4000; grep -c 'sorry' P_lock_server_async.lean; echo lean-exit $s secs $(( $(date +%s)-t ))"
+ },
+ {
+  "name": "decentralized_lock-lean",
+  "memory": 8192,
+  "timeout": 1800,
+  "cmd": "GDP_LEAN_TIMES=1 timeout -s KILL 300 bun research/protocols/lean10.ts decentralized_lock 60000 $PWD/lean-kernel/P_decentralized_lock.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -E '^lean item' /tmp/e.log | tail -3; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; tl=$(date +%s); for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/tmp/lib.log 2>&1 || { echo LIBFAIL $m; tail -5 /tmp/lib.log; }; done; echo library-secs $(( $(date +%s)-tl )); [ -f P_decentralized_lock.lean ] || { echo no-export; exit 0; }; t=$(date +%s); timeout -s KILL 1400 lean P_decentralized_lock.lean > /tmp/lean.log 2>&1; s=$?; grep -E \"error|axioms|sorry\" /tmp/lean.log | tail -c 4000; grep -c 'sorry' P_decentralized_lock.lean; echo lean-exit $s secs $(( $(date +%s)-t ))"
+ },
+ {
+  "name": "two_phase_commit-lean",
+  "memory": 8192,
+  "timeout": 1800,
+  "cmd": "GDP_LEAN_TIMES=1 timeout -s KILL 300 bun research/protocols/lean10.ts two_phase_commit 60000 $PWD/lean-kernel/P_two_phase_commit.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -E '^lean item' /tmp/e.log | tail -3; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; tl=$(date +%s); for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/tmp/lib.log 2>&1 || { echo LIBFAIL $m; tail -5 /tmp/lib.log; }; done; echo library-secs $(( $(date +%s)-tl )); [ -f P_two_phase_commit.lean ] || { echo no-export; exit 0; }; t=$(date +%s); timeout -s KILL 1400 lean P_two_phase_commit.lean > /tmp/lean.log 2>&1; s=$?; grep -E \"error|axioms|sorry\" /tmp/lean.log | tail -c 4000; grep -c 'sorry' P_two_phase_commit.lean; echo lean-exit $s secs $(( $(date +%s)-t ))"
+ },
+ {
+  "name": "ticket_lock-lean",
+  "memory": 8192,
+  "timeout": 1800,
+  "cmd": "GDP_LEAN_TIMES=1 timeout -s KILL 300 bun research/protocols/lean10.ts ticket_lock 60000 $PWD/lean-kernel/P_ticket_lock.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -E '^lean item' /tmp/e.log | tail -3; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; tl=$(date +%s); for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/tmp/lib.log 2>&1 || { echo LIBFAIL $m; tail -5 /tmp/lib.log; }; done; echo library-secs $(( $(date +%s)-tl )); [ -f P_ticket_lock.lean ] || { echo no-export; exit 0; }; t=$(date +%s); timeout -s KILL 1400 lean P_ticket_lock.lean > /tmp/lean.log 2>&1; s=$?; grep -E \"error|axioms|sorry\" /tmp/lean.log | tail -c 4000; grep -c 'sorry' P_ticket_lock.lean; echo lean-exit $s secs $(( $(date +%s)-t ))"
+ },
+ {
+  "name": "toy_consensus_forall-lean",
+  "memory": 8192,
+  "timeout": 1800,
+  "cmd": "GDP_LEAN_TIMES=1 timeout -s KILL 300 bun research/protocols/lean10.ts toy_consensus_forall 60000 $PWD/lean-kernel/P_toy_consensus_forall.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -E '^lean item' /tmp/e.log | tail -3; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; tl=$(date +%s); for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/tmp/lib.log 2>&1 || { echo LIBFAIL $m; tail -5 /tmp/lib.log; }; done; echo library-secs $(( $(date +%s)-tl )); [ -f P_toy_consensus_forall.lean ] || { echo no-export; exit 0; }; t=$(date +%s); timeout -s KILL 1400 lean P_toy_consensus_forall.lean > /tmp/lean.log 2>&1; s=$?; grep -E \"error|axioms|sorry\" /tmp/lean.log | tail -c 4000; grep -c 'sorry' P_toy_consensus_forall.lean; echo lean-exit $s secs $(( $(date +%s)-t ))"
+ },
+ {
+  "name": "distributed_lock-lean",
+  "memory": 8192,
+  "timeout": 1800,
+  "cmd": "GDP_LEAN_TIMES=1 timeout -s KILL 300 bun research/protocols/lean10.ts distributed_lock 60000 $PWD/lean-kernel/P_distributed_lock.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -E '^lean item' /tmp/e.log | tail -3; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; tl=$(date +%s); for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/tmp/lib.log 2>&1 || { echo LIBFAIL $m; tail -5 /tmp/lib.log; }; done; echo library-secs $(( $(date +%s)-tl )); [ -f P_distributed_lock.lean ] || { echo no-export; exit 0; }; t=$(date +%s); timeout -s KILL 1400 lean P_distributed_lock.lean > /tmp/lean.log 2>&1; s=$?; grep -E \"error|axioms|sorry\" /tmp/lean.log | tail -c 4000; grep -c 'sorry' P_distributed_lock.lean; echo lean-exit $s secs $(( $(date +%s)-t ))"
+ },
+ {
+  "name": "ring_leader_election-lean",
+  "memory": 8192,
+  "timeout": 1800,
+  "cmd": "GDP_LEAN_TIMES=1 timeout -s KILL 300 bun research/protocols/lean10.ts ring_leader_election 60000 $PWD/lean-kernel/P_ring_leader_election.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -E '^lean item' /tmp/e.log | tail -3; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; tl=$(date +%s); for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/tmp/lib.log 2>&1 || { echo LIBFAIL $m; tail -5 /tmp/lib.log; }; done; echo library-secs $(( $(date +%s)-tl )); [ -f P_ring_leader_election.lean ] || { echo no-export; exit 0; }; t=$(date +%s); timeout -s KILL 1400 lean P_ring_leader_election.lean > /tmp/lean.log 2>&1; s=$?; grep -E \"error|axioms|sorry\" /tmp/lean.log | tail -c 4000; grep -c 'sorry' P_ring_leader_election.lean; echo lean-exit $s secs $(( $(date +%s)-t ))"
+ },
+ {
+  "name": "consensus_wo_decide-lean",
+  "memory": 8192,
+  "timeout": 1800,
+  "cmd": "GDP_LEAN_TIMES=1 timeout -s KILL 300 bun research/protocols/lean10.ts consensus_wo_decide 60000 $PWD/lean-kernel/P_consensus_wo_decide.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -E '^lean item' /tmp/e.log | tail -3; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; tl=$(date +%s); for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/tmp/lib.log 2>&1 || { echo LIBFAIL $m; tail -5 /tmp/lib.log; }; done; echo library-secs $(( $(date +%s)-tl )); [ -f P_consensus_wo_decide.lean ] || { echo no-export; exit 0; }; t=$(date +%s); timeout -s KILL 1400 lean P_consensus_wo_decide.lean > /tmp/lean.log 2>&1; s=$?; grep -E \"error|axioms|sorry\" /tmp/lean.log | tail -c 4000; grep -c 'sorry' P_consensus_wo_decide.lean; echo lean-exit $s secs $(( $(date +%s)-t ))"
+ },
+ {
+  "name": "sharded_key_value_store-lean",
+  "memory": 8192,
+  "timeout": 1800,
+  "cmd": "GDP_LEAN_TIMES=1 timeout -s KILL 300 bun research/protocols/lean10.ts sharded_key_value_store 60000 $PWD/lean-kernel/P_sharded_key_value_store.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -E '^lean item' /tmp/e.log | tail -3; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; tl=$(date +%s); for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data KInd; do [ -f $m.olean ] || lean -o $m.olean $m.lean >/tmp/lib.log 2>&1 || { echo LIBFAIL $m; tail -5 /tmp/lib.log; }; done; echo library-secs $(( $(date +%s)-tl )); [ -f P_sharded_key_value_store.lean ] || { echo no-export; exit 0; }; t=$(date +%s); timeout -s KILL 1400 lean P_sharded_key_value_store.lean > /tmp/lean.log 2>&1; s=$?; grep -E \"error|axioms|sorry\" /tmp/lean.log | tail -c 4000; grep -c 'sorry' P_sharded_key_value_store.lean; echo lean-exit $s secs $(( $(date +%s)-t ))"
+ }
+]
