@@ -42,7 +42,7 @@ import type {Rule} from './dsl.ts'
 import type {Law} from './machine.ts'
 import * as I from './extract-ir.ts'
 import type {B, N} from './extract-ir.ts'
-import {type MapDecl, type Model, Refusal, type Term, type Var, placed} from './extract-read.ts'
+import {type Arg, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, placed} from './extract-read.ts'
 import {type ReadOptions, isFactory, isSlice, readClass, readFactory, readFunctions, readSlice} from './extract-shapes.ts'
 import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pidx, pk, pterm, sortsOf} from './extract-print.ts'
 import {type CheckOptions, type Evidence, check} from './extract-check.ts'
@@ -72,6 +72,37 @@ export type Extraction = {
   evidence?: Evidence,
   // How the code's values sit in the rule, what each number's sort is and why, what was left out.
   notes: string[],
+  // Where each of the rule's variables is in the code (core/laws.ts reads laws written in the code's names through it).
+  names?: Name[],
+}
+// A variable of the rule by the code's own path to it: a field (`cfg.limit`), a constructor's or a request's argument
+// (`team_object.max_budget`, an object's field the caller gives), a call of other code answered by the request (its
+// qualified name), a method's result, whether the step failed. `none`: the rule's flag for the code's value being
+// None, nil or null; `map`: a map's cell fields (`value` for a map of scalars) and, for a store, its key's template.
+export type Name = {code: string, rule: string, role: 'state' | 'param' | 'input' | 'answer' | 'result' | 'failed' | 'method' | 'clock' | 'const',
+  method?: string, none?: string, value?: number, map?: {fields: string[], store?: string, tpl?: string}}
+// The names of a model read from TypeScript (the state's layout, each request's arguments, each method's result).
+export function namesOf(m: Model): Name[] {
+  const out: Name[] = [], fields = (n: string) => m.maps.find(d => d.name === n)?.fields.map(f => f.name) ?? []
+  const lay = (l: Layout, at: string) => {
+    if (l.k === 'scalar') out.push({code: at, rule: l.name, role: 'state'})
+    else if (l.k === 'map') out.push({code: at, rule: l.name, role: 'state', map: {fields: fields(l.name)}})
+    else if (l.k === 'const') { const e = l.value.e as N; if (e.op === 'var') out.push({code: at, rule: e.name, role: 'param'}); else if (e.op === 'const') out.push({code: at, rule: '', role: 'const', value: e.v}) }
+    else if (l.k === 'rec') for (const [f, x] of l.fields) if (!f.endsWith('()')) lay(x, at ? `${at}.${f}` : f)
+  }
+  lay(m.layout, '')
+  const arg = (a: Arg, at: string, method: string) => {
+    if (a.k === 'input') out.push({code: at, rule: a.name, role: 'input', method})
+    else if (a.k === 'rec') for (const [f, x] of a.fields) arg(x, `${at}.${f}`, method)
+  }
+  for (const e of m.events) e.args.forEach((a, i) => { const n = e.names?.[i]; if (n) arg(a, n, e.call) })
+  for (const [method, r] of Object.entries(m.results ?? {})) {
+    if (r.k === 'scalar') out.push({code: 'result', rule: r.name, role: 'result', method})
+    else if (r.k === 'maybe') out.push({code: 'result', rule: r.name, role: 'result', method, none: r.missing})
+    else for (const [f, n] of r.fields) out.push(f === 'failed' ? {code: 'failed', rule: n, role: 'failed'} : {code: f === 'value' ? 'result' : `result.${f}`, rule: n, role: 'result', method})
+  }
+  if (m.event) out.push({code: 'method', rule: m.event, role: 'method'})
+  return out
 }
 
 export function extract(code: string, opts: ExtractOptions): Extraction {
@@ -86,7 +117,7 @@ export function extract(code: string, opts: ExtractOptions): Extraction {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
     throw e
   }
-  return fromModel(model, file, opts.domains, notes, (rule, sorts) => check(code, file, model, rule, sorts, {...opts.check, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})}))
+  return {...fromModel(model, file, opts.domains, notes, (rule, sorts) => check(code, file, model, rule, sorts, {...opts.check, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})), names: namesOf(model)}
 }
 // A model read by a front end (this file's TypeScript, or core/extract-go.ts's Go) printed as the rule, built, and
 // checked against the code by the front end's own check: what both front ends share.

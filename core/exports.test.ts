@@ -34,3 +34,10 @@ for (const [sub, fn, beside] of FRONT) {
     expect(typeof mod[fn]).toBe('function')
   })
 }
+
+test('the CLI is the package\'s bin, built from a file the build compiles', () => {
+  expect(pkg.bin?.['gdp-wired']).toBe('dist/core/cli.js')
+  expect(build.files).toContain('core/cli.ts')
+  expect(readFileSync(`${root}core/cli.ts`, 'utf8').startsWith('#!/usr/bin/env node\n')).toBe(true)
+  if (built) expect(readFileSync(`${root}dist/core/cli.js`, 'utf8').startsWith('#!/usr/bin/env node\n')).toBe(true)
+})

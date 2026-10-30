@@ -136,7 +136,14 @@
       "types": "./dist/core/extract-go.d.ts",
       "default": "./dist/core/extract-go.js"
     },
+    "./laws": {
+      "types": "./dist/core/laws.d.ts",
+      "default": "./dist/core/laws.js"
+    },
     "./package.json": "./package.json"
+  },
+  "bin": {
+    "gdp-wired": "dist/core/cli.js"
   },
   "files": [
     "dist",

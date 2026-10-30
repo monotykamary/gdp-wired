@@ -93,6 +93,22 @@ if (noRs.ok || !noRs.refusals.length) throw new Error(`gdp-wired/extract-rs with
 console.log(`node ${process.version}: proven, kernel accepts; compiled spend 110; Lean project of ${Object.keys(project).length} files; a gate minted once; a recurrence's lemma used`)
 JS
 node smoke.mjs
+# The CLI, as npx runs it: a TypeScript class with one law stated in a comment (proven) and one broken (exit 1).
+cat > wallet.ts <<'TS'
+export class Wallet {
+  balance = 0
+  // gdp: law a debit never overdraws: balance >= 0
+  debit(x: number): boolean { if (x <= 0) throw new Error('positive'); if (x > this.balance) return false; this.balance -= x; return true }
+  credit(x: number): void { if (x <= 0) throw new Error('positive'); this.balance += x }
+}
+TS
+npx --no-install gdp-wired check wallet.ts --no-propose > cli.log || { cat cli.log; echo 'gdp-wired check: a proven law exits non-zero'; exit 1; }
+grep -q 'proven   a debit never overdraws' cli.log || { cat cli.log; exit 1; }
+sed 's|^  credit(x|  // gdp: law a credit adds one more: balance == old(balance) + x + 1\
+  credit(x|' wallet.ts > wallet2.ts
+if npx --no-install gdp-wired check wallet2.ts --no-propose > cli.log; then cat cli.log; echo 'gdp-wired check: a broken law exits 0'; exit 1; fi
+grep -q 'broken   a credit adds one more' cli.log || { cat cli.log; exit 1; }
+echo "gdp-wired check: a proven law exits 0, a broken one 1"
 cat > consumer.ts <<'TS'
 import {bool, forall, fun, nat, proveRule, proveSteps, record, recur, rule, variant, type Verdict} from 'gdp-wired'
 import type {Machine} from 'gdp-wired/machine'

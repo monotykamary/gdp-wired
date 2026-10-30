@@ -27,7 +27,7 @@
 import * as I from './extract-ir.ts'
 import type {B, K, L, N} from './extract-ir.ts'
 import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, mergeOps, mergeWrites} from './extract-read.ts'
-import {type Extraction, fromModel} from './extract.ts'
+import {type Extraction, type Name, fromModel} from './extract.ts'
 import type {Rule} from './dsl.ts'
 import {type Sorts, nonneg} from './extract-print.ts'
 import {type CodeSide, type Coverage, type Evidence, type Snap, Outside, constantsOf, draw, drive} from './extract-check.ts'
@@ -2771,5 +2771,31 @@ export function extractStep(mod: SModule, h: (read: StepRead) => Harness, opts: 
   }
   const unsigned = Object.fromEntries([...read.model.inputs, ...read.model.params].filter(v => read.ints[v.name] && !read.ints[v.name]!.signed).map(v => [v.name, 'nat' as const]))
   const x = fromModel(read.model, mod.file, {...unsigned, ...opts.domains}, notes, (rule, sorts) => checkStep(h(read), read, rule, sorts, opts))
-  return {...x, read}
+  return {...x, read, names: stepNames(read)}
+}
+// The names of a reading: each leaf of the state by its path, the constructor's and each method's arguments (an object
+// the caller gives by its fields), each answer by its callee's qualified name, each method's result, the failure.
+export function stepNames(read: StepRead): Name[] {
+  const out: Name[] = [], m = read.model, at = (code: string) => out.find(n => n.code === code && n.role === 'state')
+  for (const l of read.leaves) {
+    const code = l.path.join('.')
+    if (l.kind === 'map') out.push({code: l.store ?? code, rule: l.name, role: 'state', map: {fields: m.maps.find(d => d.name === l.name)?.fields.map(f => f.name) ?? [], ...(l.store ? {store: l.store, tpl: l.tpl ?? '{}'} : {})}})
+    else if (l.kind === 'none') { const n = at(code); if (n) n.none = l.name; else out.push({code, rule: '', role: 'state', none: l.name}) }
+    else if (l.kind !== 'frame') out.push({code, rule: l.name, role: 'state'})
+  }
+  const arg = (a: PArg, code: string, role: 'param' | 'input', method?: string) => {
+    const k = method ? {method} : {}
+    if (a.k === 'in') out.push({code, rule: a.name, role, ...k})
+    else if (a.k === 'opt') { const n = out.length; arg(a.v, code, role, method); if (out[n]?.code === code) out[n]!.none = a.none; else out.push({code, rule: '', role, none: a.none, ...k}) }
+    else if (a.k === 'rec') for (const [f, x] of a.f) arg(x, `${code}.${f}`, role, method)
+  }
+  for (const [code, a] of read.ctor) arg(a, code, 'param')
+  for (const [method, as] of Object.entries(read.args)) for (const [code, a] of as) arg(a, code, 'input', method)
+  for (const a of read.answers) out.push({code: a.key, rule: a.inputs.name, role: 'answer', ...(a.inputs.none ? {none: a.inputs.none} : {})})
+  const vars = new Set([...m.state, ...m.inputs].map(v => v.name))
+  for (const [method, k] of Object.entries(read.results)) if (k !== 'none') out.push({code: 'result', rule: `${method}_result`, role: 'result', method, ...(k === 'maybe' ? {none: `${method}_result_none`} : {})})
+  if (vars.has('failed')) out.push({code: 'failed', rule: 'failed', role: 'failed'})
+  if (vars.has('now')) out.push({code: 'now', rule: 'now', role: 'clock'})
+  if (m.event) out.push({code: 'method', rule: m.event, role: 'method'})
+  return out
 }

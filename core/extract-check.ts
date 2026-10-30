@@ -438,7 +438,8 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
     // The rule.
     let rule: {refused: string} | {st: State} | {outside: string} = {refused: 'not run'}
     let enc: Request | undefined
-    try { enc = r.encodeInput(raw as never, params as never) } catch (x) { rule = {refused: `outside the input's kind (${(x as Error).message})`} }
+    // (a drawn number past ±(2^53 − 1), next to a big one, is outside what the rule's numbers hold, not its refusal)
+    try { enc = r.encodeInput(raw as never, params as never) } catch (x) { rule = JSON.stringify(raw, (_, v) => (typeof v === 'number' && !Number.isSafeInteger(v) ? 'unsafe$' : v)).includes('"unsafe$"') ? {outside: (x as Error).message} : {refused: `outside the input's kind (${(x as Error).message})`} }
     if (enc) {
       try {
         if (!allowed(machine, interp, ps, st, enc)) throw new Refused('the assumption')
