@@ -105,8 +105,8 @@ const KEY = 'key$found', KEY2 = 'key2$found', AT = '@', K = '#', SOME = 'k$found
 // 100 lost a corpus item (metered blocks) and 200 to 3,000 none: 400 is a step above the least that lost none.
 export const inferRates = {tries: 100, rows: 10_000, evals: 10_000, watched: 100, work: 40, etries: 80, epr: 500, erows: 100, efull: 220}
 export const inferRuns = 16_000
-// (the share of what is left of the search's budget that the engine's clock may spend: GDP_ENGINE_SHARE, 0.9)
-const engineShare = Number(env.GDP_ENGINE_SHARE ?? 0.9)
+// (the share of what is left of the search's budget that the engine's clock may spend: GDP_ENGINE_SHARE, 0.95: ring needs 52.2 of its 55)
+const engineShare = Number(env.GDP_ENGINE_SHARE ?? 0.95)
 // GDP_INFER_TRACE=1: each phase's wall time beside what it counted, to stderr (the calibration's numbers).
 const inferTrace = !!env.GDP_INFER_TRACE
 // The join (below, after the candidates): GDP_JOIN=0 turns it off, for comparing. Its share of what is left of the
