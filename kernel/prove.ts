@@ -16,7 +16,7 @@ import type {TStats} from '../core/translate.ts'
 import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
 import {growCdcl} from './cdcl.ts'
-import {type Diagram, type Patterns, decide, patternsOf} from './epr.ts'
+import {type Diagram, type Patterns, decide, pastEprCap, patternsOf} from './epr.ts'
 import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
@@ -303,7 +303,7 @@ const withPatterns = <T>(m: Machine, laws: Law[], f: () => T): T => {
 // (`refuted`: the last decision refuted the goal and its core's proof didn't finish: a model from fewer instances, asked
 // before, is then no answer, as the abstraction refutes it at these)
 const eprLast = {refuted: false}
-function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = true, late = pastWall): (Outcome & {part?: Goal, core?: number[]}) | undefined {
+function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = true, late = (): boolean => pastWall() || pastEprCap()): (Outcome & {part?: Goal, core?: number[]}) | undefined {
   eprLast.refuted = false
   const d = decide(goal, eprScope.patterns!, {exact: true, late})
   if ('unknown' in d) return undefined
@@ -1559,7 +1559,7 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
   let last: Unsettled | undefined
   for (let round = 0; ; round++) {
     let more: Instances | undefined
-    const late = round > rounds ? () => pastWall() || clock() > end : pastWall
+    const late = round > rounds ? () => pastWall() || pastEprCap() || clock() > end : () => pastWall() || pastEprCap()
     for (const g of obligations(m, laws, {[law.name]: inst}, i)) {
       if (proofs[g.name]) continue
       if (late()) return strict(usual) ? unknown(g) : last ?? unknown(g)

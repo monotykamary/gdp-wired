@@ -134,6 +134,17 @@ const liftC = (c: C): C => {
 const liftedKeys = (c: C): C => { let x = liftMemo.get(c); if (!x) liftMemo.set(c, (x = liftC(c))); return x }
 // (thrown by `late` checked every 4,096 clauses and hypotheses read: a goal's clauses are quadratic in its terms)
 const pastEnd = new Error('past the deadline')
+// The work the EPR path does, counted (each clause and hypothesis read, each literal the CDCL search propagates), and a
+// cap on it a caller sets (core/infer.ts's engine, per goal): past the cap the decision is unknown, at the same place on
+// any machine, where a wall-clock end stops it wherever the machine has got to. Untrusted: it only stops a search.
+export const eprMeter = {n: 0}
+let eprCap = Infinity
+export const pastEprCap = (): boolean => eprMeter.n > eprCap
+export function withEprCap<T>(units: number, f: () => T): T {
+  const outer = eprCap
+  eprCap = Math.min(outer, eprMeter.n + units)
+  try { return f() } finally { eprCap = outer }
+}
 // The theory's lemmas, by their atoms' names: each is arithmetic over the terms those names read (a part's value, a cell's
 // at its key), so it holds in every goal that has those atoms, a round's other goals over the same set above all; each
 // goal starts with those it has. At most 20,000, then begun again.
@@ -160,7 +171,7 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
   if (!shaped.at(-1) && !tupled(goal.hyps.at(-1))) return {unknown: 'the conclusion is not EPR-shaped'}
   const hyps: (C | undefined)[] = goal.hyps
   let ticks = 0
-  const tick = () => { if ((++ticks & 4095) === 0 && opts.late?.()) throw pastEnd }
+  const tick = () => { eprMeter.n++; if ((++ticks & 4095) === 0 && opts.late?.()) throw pastEnd }
   const fits = (map: string, key: E) => { const t = tupleOf(key), p = patterns[map]; return t && p && sameCoefs(t.coefs, p) ? t : undefined }
   // --- names: a part is a name some read's key or a key equality reads; the rest are scalars
   // (each function part once: its reads are many, its congruence pairs of parts)
@@ -899,6 +910,7 @@ function cdclSolver(input: {lits: number[], from: Origin}[], trueFirst: Set<numb
   const propagate = (): Cl | undefined => {
     while (qhead < trail.length) {
       const l = trail[qhead++]!, ws = wl(l)
+      eprMeter.n++
       for (let i = 0; i < ws.length; i++) {
         const c = ws[i]!
         if (c.lits[0] === -l) { c.lits[0] = c.lits[1]!; c.lits[1] = -l }
