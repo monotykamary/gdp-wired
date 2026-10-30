@@ -8,6 +8,7 @@ run the model says it refuses, and whether the stack takes it.
 import argparse
 import http.server
 import json
+import socket
 import threading
 import time
 
@@ -128,16 +129,37 @@ def redis_checks(url):
     r.config_set("maxmemory", "0")
     check("volatile-lru evicts a key with a 30 s TTL under memory pressure", "keys expire", gone, f"in-flight key {'evicted' if gone else 'kept'} after 6 MB of writes over a 2 MB budget")
     r.flushdb()
-    # A call that raises after Redis ran it: the client's timeout passes while the server is paused, then it runs.
-    admin = redis_py.Redis.from_url(url)
-    slow = redis_py.Redis.from_url(url, socket_timeout=0.2)
-    admin.execute_command("CLIENT", "PAUSE", "800", "WRITE")
+    # A call that raises after Redis ran it: the request reaches the server, the reply is held past the client's timeout
+    # (a proxy between them that delays what the server sends back: a reply lost to the network).
+    host, port = r.connection_pool.connection_kwargs["host"], r.connection_pool.connection_kwargs["port"]
+    lag = socket.socket(); lag.bind(("127.0.0.1", 0)); lag.listen(1)
+
+    lagging = threading.Event()
+
+    def pump(src, dst, lags):
+        try:
+            while (b := src.recv(65536)):
+                if lags and lagging.is_set():
+                    time.sleep(0.5)
+                dst.sendall(b)
+        except OSError:
+            pass
+
+    def proxy():
+        c, _ = lag.accept()
+        s = socket.create_connection((host, port))
+        threading.Thread(target=pump, args=(c, s, False), daemon=True).start()
+        pump(s, c, True)
+
+    threading.Thread(target=proxy, daemon=True).start()
+    slow = redis_py.Redis(host="127.0.0.1", port=lag.getsockname()[1], db=r.connection_pool.connection_kwargs.get("db", 0), socket_timeout=0.2)
+    slow.ping()  # the connection made (its handshake answered), then the replies held
+    lagging.set()
     try:
         slow.set("k", "v", nx=True, ex=30); raised = None
     except redis_py.exceptions.TimeoutError as e:
         raised = repr(e)
-    time.sleep(1.0)
-    applied = admin.get("k") is not None
+    applied = r.get("k") is not None
     check("a SET whose reply timed out was applied", "store calls fail", raised is not None and applied, f"raised {raised}; applied {applied}")
     # At-least-once: a stream entry read by one consumer and not acknowledged is claimed and read again by another.
     r.flushdb()

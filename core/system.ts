@@ -175,7 +175,7 @@ function writesWhen(v: E, cell: E): C | true | false {
 // `system(..., {h: {rule: isolation(m, level), id: 't'}})` runs any number of transactions at once.
 export function isolation(m: Machine, level: Level): Machine {
   plain(m, 'isolation')
-  if (level === 'atomic') return modelled({...m}, ISOLATION.atomic)
+  if (level === 'atomic') return modelled({...m}, ...(models.get(m) ?? []), ISOLATION.atomic)
   const stores = new Set(Object.keys(m.maps ?? {}))
   const sites: {map: string, key: E, e: E}[] = [], seen = new Map<string, number>()
   const visitE = (e: E): void => {
@@ -244,7 +244,7 @@ export function isolation(m: Machine, level: Level): Machine {
     ...(m.assume ? {assume: any(not(at(0)), m.assume)} : {}),
     ...(m.pre ? {pre: m.pre} : {}),
   }
-  return modelled(out, ISOLATION[level])
+  return modelled(out, ...(models.get(m) ?? []), ISOLATION[level])
 }
 
 // --- delivery -------------------------------------------------------------------------------------------------------
@@ -278,7 +278,7 @@ export function delivery(m: Machine, pool: string, fields: string[], mode: Deliv
       maps: {...mapValues(m.step.maps, W), ...(mode === 'exactly-once' ? {[taken]: {key: x(msg), value: ite(begin, n(1), get(taken, x(msg)))}} : {})},
     },
     assume: all(any(not(begin), guard), ...(m.assume ? [C(m.assume)] : [])),
-  }, DELIVERY[mode])
+  }, ...(models.get(m) ?? []), DELIVERY[mode])
 }
 
 // The environment's sends into `pool`: a message at a fresh id, its fields any values (the request's).
