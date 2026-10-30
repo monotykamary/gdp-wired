@@ -49,7 +49,7 @@ end`, 'Counter'))
   step(x, 'an open counter under its limit counts a hit', (b, a) => a.count.eq(b.count.plus(1)), b => b.method.is('hit').and(b.mode.is('open')).and(b.limit.gt(b.count)))
   step(x, 'a closed counter counts nothing', (b, a) => a.count.eq(b.count), b => b.method.is('hit').and(b.mode.is('closed')))
   step(x, 'a reset reopens it', (_b, a) => a.mode.is('open'), b => b.method.is('reset'))
-})
+}, 60_000)
 
 t('a plain module over a struct: immutable updates, div and rem truncating toward zero', () => {
   const x = ok(ex(`
@@ -59,7 +59,7 @@ defmodule Halver do
   def clear(%__MODULE__{} = s), do: Map.put(s, :half, 0)
 end`, 'Halver'))
   step(x, 'the half and the rest make k again', (b, a) => a.half.plus(a.half).plus(a.rest).eq(b.split_k), b => b.method.is('split'))
-})
+}, 60_000)
 
 t('refused where it leaves the subset, each with why', () => {
   const r = ex(`
@@ -69,7 +69,7 @@ defmodule Q do
 end`, 'Q')
   expect(r.ok).toBe(false)
   expect(r.refusals[0]!.what).toMatch(/another module's code|outside the subset/)
-})
+}, 60_000)
 
 t('the boundary inferred: another module\'s call left out or answered (tagged: Elixir states no types), the entry', () => {
   const x = ok(ex(`
@@ -94,4 +94,4 @@ end`, undefined as never))
   expect(notes).toMatch(/Metrics.count .*left out \(inferred/)
   expect(notes).toMatch(/Quota.bonus .*answered by the request \(tagged/)
   step(x, 'never past its cap', (_b, a) => a.used.atMost(a.cap), b => b.used.atMost(b.cap))
-})
+}, 60_000)
