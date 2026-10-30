@@ -1593,10 +1593,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           }
           if (!('tree' in quick) && quick.stuck === 'sat' && quick.witness) return {stuck: 'sat', witness: quick.witness, g: g!}
         }
-        // (where the engine follows, the usual search on the wall too, joinGrowWall: the proving joins' searches take under a
-        // second (decentralized lock's sums pass, 0.7–0.8 s), and an unknown one ran 13 s (wo's every k: Leader[k] <=
-        // VoteRequestMsg[k]), the engine's time)
-        const out = withWall(engineFollows() ? performance.now() + joinGrowWall : Infinity, () => budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2})))
+        // (where the engine follows, the usual search's EPR decisions capped too, at joinGrowWall's worth of EPR units: the
+        // proving joins' searches take under a second (decentralized lock's sums pass, 0.7–0.8 s), and an unknown one ran 13 s
+        // (wo's every k: Leader[k] <= VoteRequestMsg[k]), the engine's time; counted, so the join ends where it ends on any
+        // machine)
+        const out = withEprCap(engineFollows() ? joinGrowWall * inferRates.epr : Infinity, () => budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2})))
         if (!('tree' in out)) return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined, g: g!}
         for (const h of usedHyps(g!, out.tree)) read(h)
         return {used, g: g!}
