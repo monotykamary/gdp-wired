@@ -794,6 +794,51 @@ minimal cut were then banked ahead of the IC3 rounds at the coordinator's reques
 
 **Spend:** about $0.12 for this round's apps (estimated from job seconds; the hour is still being billed).
 
+## gen/ring2, resumed: the cone's proof fixed, Houdini still too slow (ring 101 s; nothing wired)
+
+**Changes** (e6397eb–704d482):
+- **The pool filter's budget scales with the small instance's search:** six times it, 3 s at least, 10 s and a sixth of
+  what is left at most. Ring gets about 8.8 s and reaches 68 cubes after the filter, 46 after the minimal cut;
+  distributed keeps 3 s.
+- **Top-down's cap is 1 s, with no second pass** (q2 defaults to q1).
+- **The cone's proof** is timed fast against usual.
+- **The fast set proof's instances are by sort too** (`settle` for both callers; proveLaw's and the join's instances as
+  they were). The fast proof is checked over the tuples its proofs read, and the usual proof follows where it fails.
+
+**Why the cone's proof cost 8.6–76 s** (`r3d`, bun's CPU profile from the cone's start):
+- 94% of the fast set proof was `settle` → `eprFirst` → `decide`, re-deciding every cone law's goals with unsorted
+  instances: the cubic order again (`atom`, `theoryCheck`, `propagate`).
+- Houdini's proofs, made with sorted instances, weren't reused: the set proof asks its own machine.
+- The undecided cubes weren't the cause. With none in the cone (`GDP_TD_DECIDED=1`) the proof still took 75.9 s, and
+  with one, 61.4 s.
+
+**Ring, phases** (Modal, `--ms 180000` unless said)
+
+| run | before the engine | pool | Houdini | cone + `prove()` | verdict |
+|---|---|---|---|---|---|
+| r3a (scaled filter, 1 s cap) | 18.1 s | 44 | 87 s, 9 rounds (asked 44, 27, 14, 10, 12, 10, 6, 4, 3) | 0.8 + 73 s (fast failed at a between-turn cube; usual cut by the wall) | unknown 180 s |
+| r3c r2 | 13.9 s | 44 | 66 s, 6 rounds | 0.7 + 61.4 s | proven 143 s |
+| r3c, decided cubes only | 16.5 s | 44 | 80 s, 7 rounds | 0.1 + 75.9 s | proven 174 s |
+| **r3e, fast set proof sorted** | 15.2 s | 46 | **77 s, 6 rounds** | 0.7 + **7.7 s** | **proven 101.5 s** |
+| r3c at 60 s, twice | 10.6, 13.4 s | 44 | out of time in round 4 and in round 2 | | unknown 59.5, 59.7 s |
+
+**The ten once with the sorted fast set proof** (`r3f`, GDP_TD off):
+- **proven:** sync 8.8 s, async 30.7, decentralized 14.0, 2PC 20.3, ticket 30.4, toy 10.3, sharded 29.0, distributed
+  27.0;
+- **unknown:** ring 60.4 s and wo 66.1 s;
+- the typecheck and lint are clean.
+
+**What's left: Houdini, 66–87 s.**
+- Round 0 asks all 44 goals at about 0.6 s each (26–27 s); the later rounds ask 3–27 goals at about 0.8 s.
+- To fit 60 s, Houdini must come down to about 30 s, a factor of 2.5.
+- **Levers, not tried:**
+  - the per-goal EPR cost (`atom`'s text-keyed map is 16–20% of a decision; the theory check 30%);
+  - Houdini's decisions sharing a machine across rounds, so that the memo's standing proofs are reused, not rebuilt;
+  - two workers (Modal's containers have 2 CPUs).
+
+**Not wired, as the order said:** ring doesn't fit 60 s. The sorted fast set proof is on the default path of
+gen/ring2. It needs the ten twice and the quick bar before any merge; one run of the ten is done.
+
 ## Where it stands (read this first; the checkpoints below are the history)
 
 **Branch and code**
