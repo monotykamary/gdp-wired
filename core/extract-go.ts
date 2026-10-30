@@ -36,10 +36,11 @@
 // or two writes of one list in one step.
 import * as I from './extract-ir.ts'
 import type {B, K, N} from './extract-ir.ts'
-import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var} from './extract-read.ts'
+import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, pathOf, type FileURL} from './extract-read.ts'
 import {type Extraction, type Name, fromModel} from './extract.ts'
 import {type Answer, type Inferred, type IntTy, type Recipe, type SType, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, iteTerm, mapWritesOf, phiP, rangeLaws, rangeOf, varTerm} from './extract-step.ts'
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
+export {proveRule, proveSteps} from './dsl.ts'
 
 // --- the reader's JSON ----------------------------------------------------------------------------------------------
 export type TT = {k: string, go?: string, fixed?: boolean, box?: boolean, mutex?: boolean, generic?: boolean, name?: string, pkg?: string, own?: boolean, bits?: number, signed?: boolean, untyped?: boolean, ub?: boolean, elem?: number, key?: number,
@@ -850,9 +851,13 @@ export function readGoPackage(dir: string): GoPkg {
 }
 
 // --- the front end ---------------------------------------------------------------------------------------------------
-// `dir`: the package's directory inside its module (the check builds it there, with the module's go.mod).
+// `at`: the package's directory inside its module (the check builds it there, with the module's go.mod), or a file of
+// it (a path or a URL).
+//
+//   const x = extractGo('internal/limiter')   // the struct inferred: the one whose methods write it
 export type GoExtraction = Extraction & {leaves?: GoLeaf[]}
-export function extractGo(dir: string, opts: GoOptions): GoExtraction {
+export function extractGo(at: string | FileURL, opts: GoOptions = {}): GoExtraction {
+  const p = pathOf(at), dir = /\.go$/.test(p) ? p.replace(/\/[^/]*$/, '') || '.' : p
   const notes: string[] = []
   let read: GoRead, pkg: GoPkg
   try {

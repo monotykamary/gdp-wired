@@ -5,6 +5,9 @@
 import {expect, test} from 'bun:test'
 import {extract, type Extraction} from './extract.ts'
 import {proveRule} from './dsl.ts'
+import {mkdtempSync, writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {pathToFileURL} from 'node:url'
 
 const budget = {runs: 60, depth: 10, states: 150}
 const ok = (x: Extraction) => {
@@ -17,6 +20,29 @@ const refused = (x: Extraction, why: RegExp) => {
   expect(x.refusals.map(r => r.what).join('; ')).toMatch(why)
 }
 const ts = (code: string, entry: string, more = {}) => extract(code, {file: 'case.ts', entry, check: budget, ...more})
+
+// --- one way in -----------------------------------------------------------------------------------------------------
+test('one way in: a path, a URL and {code, file} read the rule the code-first call reads, the entry inferred', () => {
+  const code = `export const CAP = 10
+export class Bucket {
+  tokens = 0
+  constructor(readonly cap: number) {}
+  add(n: number): void { if (n <= 0) throw new Error('n'); this.tokens = Math.min(this.cap, this.tokens + n) }
+  take(n: number): boolean { if (n > this.tokens) return false; this.tokens -= n; return true }
+}`
+  const dir = mkdtempSync(`${tmpdir()}/gdp-oneway-`), file = `${dir}/bucket.ts`
+  writeFileSync(file, code)
+  const was = ok(extract(code, {file, entry: 'Bucket', check: budget}))
+  for (const x of [extract(file, {check: budget}), extract(pathToFileURL(file), {check: budget}), extract({code, file}, {check: budget})]) {
+    expect([x.ok, x.source, x.notes[0]]).toEqual([true, was.source, "the entry inferred: Bucket, the one of the file's exports that reads as a rule"])
+    expect(JSON.stringify(x.rule!.machine)).toBe(JSON.stringify(was.rule!.machine))
+  }
+  // (entry: [...] names several functions over one record, as functions: [...] did)
+  const fns = `export const up = (s: {n: number} = {n: 0}) => ({n: s.n + 1})\nexport const down = (s: {n: number}) => ({n: Math.max(0, s.n - 1)})`
+  expect(extract(fns, {file: 'n.ts', entry: ['up', 'down'], check: budget}).source).toBe(ok(extract(fns, {file: 'n.ts', entry: 'up', functions: ['up', 'down'], check: budget})).source)
+  expect(extract(`export class A { n = 0; up(): void { this.n++ } }\nexport class B { m = 0; up(): void { this.m++ } }`, {file: 'ab.ts'}).refusals[0]!.what).toBe('several rules in the file (A, B): name one (entry)')
+  expect(extract(`${dir}/absent.ts`).refusals[0]).toEqual({where: `${dir}/absent.ts`, what: 'no such file'})
+})
 
 // --- the subset -----------------------------------------------------------------------------------------------------
 test('a reducer over a discriminated union: switch, spreads, Math.max, a throw as the assumption', () => {
@@ -318,8 +344,7 @@ import * as xstate from 'xstate'
 import {extractXState} from './extract.ts'
 const machineFile = (body: string) => `import {setup, assign, stateIn} from 'xstate'\n${body}`
 
-test('an XState machine: guards and assign actions read from setup(), the chart run beside XState\'s actor', () => {
-  const x = extractXState(machineFile(`
+const ORDER = `
     export const order = setup({
       guards: {canRetry: ({context}) => context.retries < 2, unshipped: stateIn({active: 'paid'})},
       actions: {count: assign({retries: ({context}) => context.retries + 1}), notify: () => {}},
@@ -330,13 +355,22 @@ test('an XState machine: guards and assign actions read from setup(), the chart 
         active: {initial: 'paid', states: {paid: {on: {SHIP: 'shipped'}}, shipped: {}}, on: {REFUND: {target: 'refunded', guard: 'unshipped'}}},
         refunded: {type: 'final'},
       },
-    })`), {file: 'order.ts', entry: 'order', xstate, check: {runs: 100, depth: 12}})
+    })`
+test('an XState machine: guards and assign actions read from setup(), the chart run beside XState\'s actor', () => {
+  const x = extractXState(machineFile(ORDER), {file: 'order.ts', entry: 'order', xstate, check: {runs: 100, depth: 12}})
   if (!x.ok) throw new Error(JSON.stringify(x.refusals))
   expect(x.source).toContain('"canRetry": ({retries}) => retries.lt(2)')
   expect(x.source).toContain('"unshipped": env => env.in("active.paid")')
   expect(x.evidence!.events).toBe(1200)
   const c = x.chart!
   expect(c.prove([c.law('the retries stay within 2', ({retries}: any) => retries.atMost(2))])).toMatchObject({proven: true, checked: true})
+  // (one way in: the machine and xstate inferred from the file, the rule and its names as every front end's, proven
+  // with proveRule as any rule read)
+  const y = extractXState({code: machineFile(ORDER), file: 'order.ts'}, {check: {runs: 100, depth: 12}})
+  expect([y.ok, y.source, y.notes[0]]).toEqual([true, x.source, "the entry inferred: order, the file's one machine"])
+  expect(y.names!.map(n => `${n.code}:${n.role}`)).toEqual(['value:state', 'retries:state', 'event:method'])
+  expect(proveRule(y.rule!, [...y.invariants!, y.rule!.law('the retries stay within 2', ({retries}: any) => retries.atMost(2))])).toMatchObject({proven: true, checked: true})
+  expect(extractXState({code: machineFile(`${ORDER}\nexport const other = createMachine({})`), file: 'order.ts'}).refusals[0]!.what).toBe('several machines in the file (order, other): name one (entry)')
 })
 
 test('XState: a payload read by a guard and an action; a context that goes below 0 is an integer', () => {

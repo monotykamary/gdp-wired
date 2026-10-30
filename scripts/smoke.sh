@@ -131,6 +131,7 @@ import {type GoOptions, extractGo} from 'gdp-wired/extract-go'
 const goRead: (dir: string, o: GoOptions) => boolean = (dir, o) => extractGo(dir, o).ok
 const pyRead: (file: string, o: PyOptions) => boolean = (file, o) => extractPython(file, o).ok
 const effectRead: (code: string, o: EffectOptions) => boolean = (code, o) => extractEffect(code, o).ok
+const shortRead: boolean = extractEffect('./limiter.ts').ok && extractPython('limiter.py').ok && extractGo('p/limiter.go').ok
 const service: Service<{take: (n: number) => unknown}> | undefined = undefined
 const caps = rule('caps').params({d: nat}).inputs({day: nat}).maps({Day: 0})
   .step(({day, Day}) => ({Day: Day.bump(day, Day.at(day).lt(1))}))

@@ -3,7 +3,7 @@
 // step executor (core/extract-step.ts), printed, built and checked as every front end's rule is, the check compiling
 // the file as it ships and running it through core/ex/harness.exs. Elixir is needed only here, at extraction.
 //
-//   const x = extractElixir('lib/ex_break/breaker.ex', {entry: 'ExBreak.Breaker'})
+//   const x = extractElixir('lib/ex_break/breaker.ex')   // a path or a URL; the module inferred (or {entry: 'ExBreak.Breaker'})
 //
 // The subset: a module whose state is a value its functions return. A GenServer: init's {:ok, %{...}} the state (its
 // argument the rule's params), each message of handle_call ({:reply, r, state}) and handle_cast ({:noreply, state}) a
@@ -17,8 +17,9 @@
 // Refused, each where it is with why: other modules' code (but Map's and the clock's), anonymous functions, lists,
 // float division, recursion, receive, and a state that isn't a map of scalars.
 import {type Extraction} from './extract.ts'
-import {Refusal} from './extract-read.ts'
+import {Refusal, pathOf, type FileURL} from './extract-read.ts'
 import {type Harness, type SModule, type StepOptions, type StepRead, extractStep, node} from './extract-step.ts'
+export {proveRule, proveSteps} from './dsl.ts'
 
 export type ExOptions = StepOptions & {elixir?: string}
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
@@ -32,7 +33,8 @@ export function readElixir(file: string, module: string | undefined, elixir = 'e
   catch (e) { throw new Refusal(file, `the Elixir reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(0, 2).join(' | ')}): elixir is needed to extract Elixir`) }
   return JSON.parse(out) as ExModule
 }
-export function extractElixir(file: string, opts: ExOptions): Extraction & {read?: StepRead} {
+export function extractElixir(at: string | FileURL, opts: ExOptions = {}): Extraction & {read?: StepRead} {
+  const file = pathOf(at)
   let mod: ExModule
   try {
     if (opts.stores && Object.keys(opts.stores).length) throw new Refusal(file, 'stores: not in the Elixir front end yet')

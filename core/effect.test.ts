@@ -3,9 +3,10 @@
 // (Effect's own Semaphore on both versions, and the quota) and a wrong one caught by a run; Schemas as kinds; and what the
 // reader doesn't take refused with the reason.
 import {expect, test} from 'bun:test'
-import {mkdirSync, mkdtempSync, symlinkSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, symlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
+import {pathToFileURL} from 'node:url'
 import * as effect from 'effect'
 import * as effect3 from 'effect3'
 import {type Term, int, nat, oneOf, proveRule, proveSteps, rule, when} from './dsl.ts'
@@ -69,11 +70,14 @@ ${tail}`
     const x = read(code, entry)
     expect([entry, x.ok, x.refusals]).toEqual([entry, true, []])
     expect(x.source).toContain('next_result: 0')
+    // (one way in: the service inferred, the make effect its names reach once; effect from the file's project)
+    const y = extractEffect({code, file: SVC})
+    expect([y.ok, y.source, y.notes[0]]).toEqual([true, x.source, `the entry inferred: ${entry}, the file's one make effect`])
   }
 }, 120_000)
 
 test('a service (3.x): Effect.Service, Data.TaggedError, SynchronizedRef, a lock, Effect.fail; run on Effect 3', () => {
-  const x = read3(`
+  const wallet = `
 import {Data, Effect, SynchronizedRef} from 'effect'
 export class Overdrawn extends Data.TaggedError('Overdrawn')<{readonly amount: number}> {}
 export class Wallet extends Effect.Service<Wallet>()('Wallet', {
@@ -88,8 +92,11 @@ export class Wallet extends Effect.Service<Wallet>()('Wallet', {
     }))
     return {deposit, withdraw}
   })
-}) {}`, 'Wallet')
+}) {}`, x = read3(wallet, 'Wallet')
   expect([x.ok, x.refusals]).toEqual([true, []])
+  // (one way in: Effect 3 resolved from the file's own node_modules, the service inferred, a path and a URL)
+  writeFileSync(join(dir3, 'wallet.ts'), wallet)
+  for (const at of [join(dir3, 'wallet.ts'), pathToFileURL(join(dir3, 'wallet.ts'))]) expect(extractEffect(at).source).toBe(extractEffect(wallet, {file: join(dir3, 'wallet.ts'), entry: 'Wallet', effect: effect3}).source)
   expect(x.evidence).toMatchObject({coverage: {missed: []}})
   const r = x.rule!
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -212,6 +219,15 @@ test('Schemas as kinds (4.x and 3.x): structs, literals, tagged unions, integers
     expect(() => fromSchema(S.Struct({at: S.Array(S.Int)}))).toThrow(/fromSchema: at is a/)
   }
 }, 120_000)
+
+test('one way in: two services in a file are refused with their names, none with what to write', () => {
+  const two = extractEffect({code: `import {Effect, Ref} from 'effect'
+export const a = Effect.gen(function* () { const n = yield* Ref.make(0); return {bump: () => Ref.update(n, x => x + 1)} })
+export const b = Effect.gen(function* () { const n = yield* Ref.make(0); return {bump: () => Ref.update(n, x => x + 1)} })`, file: SVC})
+  expect(two.refusals[0]!.what).toBe('several services in the file (a, b): name one (entry)')
+  expect(extractEffect({code: `export const n = 1`, file: SVC}).refusals[0]!.what).toMatch(/^no make effect in the file/)
+  expect(extractEffect(join(dir3, 'absent.ts')).refusals[0]!.what).toBe('no such file')
+})
 
 test('what the reader doesn\'t take is refused where it is, with the reason', () => {
   const cases: [string, RegExp][] = [

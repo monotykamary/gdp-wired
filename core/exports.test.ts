@@ -10,7 +10,7 @@ const build = JSON.parse(readFileSync(`${root}tsconfig.build.json`, 'utf8')) as 
 const buildScript = readFileSync(`${root}scripts/build.ts`, 'utf8')
 // The front ends: the subpath, the function a user calls, and the files it runs beside its module (copied by the build).
 const FRONT: [string, string, string[]][] = [
-  ['./extract', 'extract', []], ['./effect', 'extractEffect', []],
+  ['./extract', 'extract', []], ['./extract', 'extractXState', []], ['./effect', 'extractEffect', []],
   ['./extract-py', 'extractPython', ['py/reader.py', 'py/harness.py']], ['./extract-rb', 'extractRuby', ['rb/reader.rb', 'rb/harness.rb']],
   ['./extract-ex', 'extractElixir', ['ex/reader.exs', 'ex/harness.exs', 'ex/json.exs']], ['./extract-rs', 'extractRust', ['rs/Cargo.toml', 'rs/src/main.rs']],
   ['./extract-c', 'extractC', []], ['./extract-cpp', 'extractCpp', []], ['./extract-java', 'extractJava', ['jvm/JavaReader.java', 'jvm/Harness.java']],
@@ -20,7 +20,7 @@ const FRONT: [string, string, string[]][] = [
 const built = existsSync(`${root}dist/core/dsl.js`)
 
 for (const [sub, fn, beside] of FRONT) {
-  test(`${sub}: exported, typed, built and its ${fn} there`, async () => {
+  test(`${sub}: exported, typed, built and its ${fn} there, with proveRule`, async () => {
     const e = pkg.exports[sub]
     expect(e).toBeDefined()
     const src = e!.default.replace(/^\.\/dist\//, '').replace(/\.js$/, '.ts')
@@ -33,6 +33,8 @@ for (const [sub, fn, beside] of FRONT) {
     }
     const mod = await import(built ? `${pkg.name}/${sub.slice(2)}` : `${root}${src}`) as Record<string, unknown>
     expect(typeof mod[fn]).toBe('function')
+    // (one import: the rule read is proven from the same module)
+    expect(typeof mod.proveRule).toBe('function')
   })
 }
 

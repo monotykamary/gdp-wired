@@ -44,11 +44,12 @@ and refutes every broken variant, random runs of both runtimes agree, and Lean c
 
 ## First proof in your language
 
-The rules already in your code (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, C, C++, TypeScript, Effect) are read with
-nothing to write: the language, the class or functions, and what other code is answered or left out are inferred.
+The rules already in your code (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, Swift, C, C++, TypeScript, Effect,
+XState) are read with nothing to write: the language, the class or functions, and what other code is answered or left
+out are inferred.
 
 ```sh
-npx gdp-wired-cli check src/limiter.py     # or a .rb .ex .java .kt .go .rs .swift .c .cpp .ts file, a Go package, a crate, a Swift package
+npx gdp-wired-cli check src/limiter.py     # or .rb .ex .java .kt .go .rs .swift .c .cpp .ts (Effect, XState), a Go package, a crate, a Swift package
 ```
 
 It prints the rule in the code's names, checks it against the code by running both, and proposes laws from the rule's
@@ -91,7 +92,18 @@ limiter.py: Limiter (Python)
     ...
 ```
 
-`//` in Go, Rust, C, C++, Java, Kotlin and TypeScript; `@GdpLaw("<name>: <expr>")` on a Java or Kotlin method (with
+From code, the same in every language: one import, the file (a path or a URL; a Go package or a Rust crate by any file
+of it), a law. The class, service or machine is inferred (`{entry}` names one), and Effect and XState run on the
+packages the file's own project has:
+
+```ts
+import {extractEffect, proveRule} from 'gdp-wired/effect'     // or extractPython from 'gdp-wired/extract-py', extract, ...
+const x = extractEffect('./limiter.ts')
+proveRule(x.rule!, [...x.invariants ?? [], x.rule!.law('never below zero', ({tokens}) => tokens.atLeast(0))])
+```
+
+`//` in Go, Rust, C, C++, Java, Kotlin and TypeScript (an Effect service's laws above its make effect, an XState
+machine's over its context, `value` and `event`); `@GdpLaw("<name>: <expr>")` on a Java or Kotlin method (with
 the annotation declared in your code), `@gdp_law("...")` in Python, `@gdp_law "..."` in Elixir, `#[doc = "gdp: law
 ..."]` in Rust. The expression: comparisons, `+ - * k`, `and or not implies`, the state after the step by its fields
 (`self.`, `this.`, `@` or bare; `after.x`), `old(x)` or `before.x` before it, the request's arguments by name,
@@ -137,21 +149,21 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   firing are events from outside, taken only where they can come (each once a visit; one timer at a time), and
   eventless transitions and entry and exit actions that write the context are read into each transition as XState's
   macrostep.
-- **Rules read from the code** (`gdp-wired/extract`): `extract(code, {entry})` reads a reducer, `useReducer`'s, functions
+- **Rules read from the code** (`gdp-wired/extract`): `extract('./bucket.ts')` reads a reducer, `useReducer`'s, functions
   over one record, a class whose methods write its fields (with the classes it extends), or the object of functions a
   factory returns, and returns the rule that steps the same way, as a builder value and as source to keep
-  (`toSource`); `extractXState` reads an XState machine, or a function that makes one, its guards and actions named or
-  inline, for `fromXState`. The extractor is untrusted: each rule is run beside the code it was read from (requests
+  (`toSource`); `extractXState('./machine.ts')` reads an XState machine, or a function that makes one, its guards and
+  actions named or inline, into a chart and its rule (xstate the one the file's project has). The extractor is untrusted: each rule is run beside the code it was read from (requests
   from the start, steps from drawn states and from the prover's counterexamples, every state, cell, list, result and
   refusal compared, the code's branches counted), and a difference refuses it. Its subset (integers, booleans, strings
   and string-literal unions, values that may be null, records, Map and Record keyed state, arrays as lists, Dates as
   their time, branches and early returns, throws as refusals, `Date.now()` as an input) and what it refuses, each with
   the place and the reason, are in `core/extract.ts`.
-- **Effect services** (`gdp-wired/effect`, `effect` 3.x or 4.x): `extractEffect(code, {entry, effect})` reads a service
+- **Effect services** (`gdp-wired/effect`, `effect` 3.x or 4.x): `extractEffect('./limiter.ts')` reads a service
   whose make effect creates Refs (Ref, SynchronizedRef, SubscriptionRef, 4.x's TxRef) and returns an object of methods
   (`Effect.fn` bodies, arrows returning an effect), with typed failures as its refusals and `Clock.currentTimeMillis` as
-  an input; the rule is checked by running the service on Effect's runtime (`Effect.runSyncExit`, the clock fixed at
-  each request's time), every Ref, result and failure compared. `conforms(rule, service)` runs a rule written by hand
+  an input; the rule is checked by running the service on Effect's runtime (the `effect` the file's project has,
+  `Effect.runSyncExit`, the clock fixed at each request's time), every Ref, result and failure compared. `conforms(rule, service)` runs a rule written by hand
   beside a running service (Effect's own Semaphore, a store), and `fromSchema(schema)` is a Schema's kind
   (`examples/effect.ts`; what is read and refused, with what Effect projects write, in `research/effect/README.md`).
 - **What nobody stated, looked for when the prover alone stops**: where `proveRule` or `proveSteps` doesn't prove the laws

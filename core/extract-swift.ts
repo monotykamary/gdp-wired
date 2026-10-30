@@ -7,7 +7,7 @@
 // (Swift's crash: overflow, precondition, a nil force-unwrapped) is the step's failure, not the harness's end.
 //
 //   const x = extractSwift('Sources/NIOHTTP2/InboundWindowManager.swift', {entry: 'InboundWindowManager'})
-//   const y = extractSwift('Limiter.swift', {})            // one file: its package made for the check; the entry inferred
+//   const y = extractSwift('Limiter.swift')                // one file (a path or a URL): its package made for the check; the entry inferred
 //
 // The subset: a class, struct or actor (an actor's methods are its steps: Swift runs each without interleaving between
 // suspension points, and the subset reads ones with none) whose stored properties are the state, its init's parameters
@@ -26,8 +26,9 @@
 // Refused, each where it is with why: loops, closures, generics, await, do/catch and try?, optional chaining, arrays,
 // floats, enums with associated values, inout, a class's superclass of the code's own, other code given the state.
 import {type Extraction} from './extract.ts'
-import {Refusal} from './extract-read.ts'
+import {Refusal, pathOf, type FileURL} from './extract-read.ts'
 import {type Answer, type Harness, type Leaf, type PArg, type SModule, type SType, type StepOptions, type StepRead, entryNames, extractStep, node, stubbed} from './extract-step.ts'
+export {proveRule, proveSteps} from './dsl.ts'
 
 export type SwiftOptions = StepOptions & {
   // The toolchain's `swift` (by default the one on the PATH; $GDP_SWIFT).
@@ -120,7 +121,8 @@ export function readSwift(at: string, names: string[], o: SwiftOptions = {}): {m
   return {mod, pkg}
 }
 
-export function extractSwift(at: string, opts: SwiftOptions): Extraction & {read?: StepRead} {
+export function extractSwift(where: string | FileURL, opts: SwiftOptions = {}): Extraction & {read?: StepRead} {
+  const at = pathOf(where)
   let r: {mod: SModule, pkg: Pkg}
   try {
     if (opts.stores && Object.keys(opts.stores).length) throw new Refusal(at, 'stores: not in the Swift front end yet (an injected protocol\'s are inferred)')

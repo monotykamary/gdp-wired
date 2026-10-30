@@ -17,8 +17,9 @@
 // capture, panics and assertions (failures). Refused, each where it is with why: loops, generics and traits objects,
 // enums with data, references kept, maps and vectors (for now), floats, unsafe pointers, other crates' code.
 import {type Extraction} from './extract.ts'
-import {Refusal} from './extract-read.ts'
+import {Refusal, pathOf, type FileURL} from './extract-read.ts'
 import {type Harness, type Leaf, type SModule, type SType, type StepOptions, type StepRead, entryNames, extractStep, node, stubbed} from './extract-step.ts'
+export {proveRule, proveSteps} from './dsl.ts'
 
 export type RsOptions = StepOptions & {cargo?: string}
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
@@ -42,7 +43,11 @@ export function readRust(dir: string, names: string[], cargo?: string): SModule 
   return JSON.parse(out) as SModule
 }
 
-export function extractRust(dir: string, opts: RsOptions): Extraction & {read?: StepRead} {
+// `at`: the crate's directory, or a file in it (a path or a URL).
+export function extractRust(at: string | FileURL, opts: RsOptions = {}): Extraction & {read?: StepRead} {
+  const fs = node<FS>('node:fs'), path = node<{resolve: (p: string) => string, dirname: (p: string) => string}>('node:path'), p = pathOf(at)
+  let dir = p
+  if (/\.rs$/.test(p)) for (let d = path.dirname(path.resolve(p)); ; d = path.dirname(d)) { if (fs.existsSync(`${d}/Cargo.toml`)) { dir = d; break } if (path.dirname(d) === d) break }
   let mod: SModule
   try {
     if (opts.stores && Object.keys(opts.stores).length) throw new Refusal(dir, 'stores: not in the Rust front end yet')

@@ -942,3 +942,140 @@ reading `m.at(user)` with a string `user` fails to build (core/dsl.ts's `at` tak
 refused ("a map key that may be negative"). The Limiter test keys by `UInt` for that reason. The fix belongs to the
 shared maps (keys of a string sort, as the rule's strings are interned), not to the Swift front end.
 
+
+## One way in (gen/oneway)
+
+Every entry point a user calls to read code, audited at 07b2518 before any change: its signature, and the lines a user
+writes from "I have a file" to a proven law (the import statements, the call, the proof; the law itself inline).
+
+| Front end | Export | Signature at 07b2518 | Source | Runtime module | `entry` | Result | CLI | Lines |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TypeScript | `gdp-wired/extract` | `extract(code, {file, entry, ...})` | code string (the caller reads the file; `file` names it) | `typescript` resolved beside gdp-wired | required | `x.rule`, `x.invariants`, `x.names` | yes | 5 |
+| Effect | `gdp-wired/effect` | `extractEffect(code, {file, entry, effect})` | code string | `effect` passed by hand (`import * as effect`) | required (`make` by convention) | `x.rule` | wired (`from 'effect'`), untested | 6 |
+| XState | `gdp-wired/extract` | `extractXState(code, {file, entry, xstate})` | code string | `xstate` passed by hand | required | `x.chart` (no `rule`, `invariants`, `names`) | no (an XState file goes to `extract` and is refused) | 5 |
+| Python | `gdp-wired/extract-py` | `extractPython(file, opts)` | path | `python3` (or `python`) | inferred | `x.rule` | yes | 4 |
+| Ruby | `gdp-wired/extract-rb` | `extractRuby(file, opts)` | path | `ruby` | inferred | `x.rule` | yes | 4 |
+| Elixir | `gdp-wired/extract-ex` | `extractElixir(file, opts)` | path | `elixir` | inferred (one module; a list refused) | `x.rule` | yes | 4 |
+| Java, Kotlin | `gdp-wired/extract-java`, `-kotlin` | `extractJava(file, opts)`, `extractKotlin(file, opts)` | path | a JDK, kotlinc | inferred | `x.rule` | yes | 4 |
+| Go | `gdp-wired/extract-go` | `extractGo(dir, opts)` | a package directory only (a `.go` file is read alone and its check built in the wrong place) | `go` | inferred | `x.rule`, `x.leaves` | yes (a file mapped to its directory) | 4 |
+| Rust | `gdp-wired/extract-rs` | `extractRust(dir, opts)` | a crate directory only | `cargo` | inferred | `x.rule` | yes (a file mapped to its crate) | 4 |
+| Swift | `gdp-wired/extract-swift` | `extractSwift(at, opts)` | a file or a package directory | `swift` | inferred | `x.rule` | yes | 4 |
+| C | `gdp-wired/extract-c` | `extractC(file, opts, cpp?)` | path | `clang` | inferred | `x.rule`, `x.leaves` | yes | 4 |
+| C++ | `gdp-wired/extract-cpp` | `extractCpp(file, opts)` | path | `clang++` | required (the dump reads only the class named) | `x.rule` | yes (each class tried) | 4 |
+| XState, by hand | `gdp-wired/xstate` | `fromXState(machine, bridge)`, `conforms(chart, machine, createActor)` | the machine object, imported | `createActor` passed by hand | n/a | a chart | no | n/a |
+| Effect, by hand | `gdp-wired/effect` | `conforms(rule, {effect, make, request, ...}, {draw})` | a running service | `effect` passed by hand | n/a | `{checked, failure}` | no | n/a |
+| Laws in text | `gdp-wired/laws` | `lawsIn(text, where)`, `buildLaw(x, law)` | text | none | n/a | a law | (the CLI's) | n/a |
+| The CLI | `gdp-wired/cli` | `check(targets, opts)`, `gdp-wired check <file|dir>` | paths | resolved from the target | inferred (TS: each exported class or function tried) | rules and verdicts | itself | 2 (a comment, a command) |
+
+The 4 of the step languages: `import {extractPython}`, `import {proveRule} from 'gdp-wired'`, the call (with `{}`: the
+options are a required argument even when empty), the proof. TypeScript adds `import {readFileSync}` and repeats the
+path as `file`; Effect adds `import * as effect`; XState adds `import * as xstate`.
+
+**Inconsistencies.**
+
+1. *Code, path or directory.* TypeScript, Effect and XState take the code as a string (the caller reads the file and
+   names it again in `file`; a type that should resolve from the project's node_modules, Effect 3.x's say, needs `file`
+   to be the real path). Every other front end takes a path. Go and Rust take only a directory, though the CLI maps a
+   file to its package or crate; Swift takes either. No front end takes a `URL` (`new URL('./x.ts', import.meta.url)`).
+2. *A runtime module passed in by hand.* `effect` (Effect) and `xstate` (XState): required, though the module the code
+   runs on is the one beside the file (the CLI already resolves `effect` from the file). `typescript` is resolved
+   beside gdp-wired; the toolchains (python, ruby, go, ...) are found on the PATH with an option to name another.
+   `conforms` (both) and `fromXState` take a running object: there is no file to resolve from.
+3. *A required `entry` the inference could find.* TypeScript, Effect and XState require it; the step languages, Go and
+   C infer it (the one class or struct whose methods write its state), and the CLI tries every exported class and
+   function of a TypeScript file. C++ requires it (clang's dump is filtered by the name). Elixir takes one module.
+4. *One meaning, several names.* The requests read: `methods` (TypeScript classes, the step languages, Go), `functions`
+   (C: the struct's functions; TypeScript: several functions over one record, the entry first), `entry: [...]`
+   (Python's module functions). Failures: `failures: 'refuse' | 'kept'` in the step languages; Go and C have only
+   `onError` and `fails` (a result that is a failure); TypeScript and Effect neither (a throw is the refusal). The
+   boundary (`answers`, `skip`, `stores`) is in the step languages only; `strict` everywhere but XState. `stores` is
+   refused in Rust, Elixir, Java, Kotlin and Swift. `check` has four shapes (CheckOptions, StepOptions', GoCheckOptions,
+   XState's). The options argument is required everywhere but Swift's readers.
+5. *How the result is read.* Every result has `ok`, `refusals` ({where, what}) and `notes`; the rule is `x.rule` with
+   `x.invariants` beside it (`proveRule(x.rule, [...x.invariants, law])`), except XState's, which is `x.chart` (proven
+   by `x.chart.prove([x.chart.law(...)])`) with no names, so no law stated in its code can be read. The evidence has
+   two shapes (requests, states, probes; or runs and events).
+6. *What the CLI doesn't cover.* XState files (read by `extract`, refused). Effect files were wired but never tested.
+
+## One way in: the shape after it
+
+Every front end is `(file, options?) => {ok, rule, invariants, names, refusals, notes, ...}`:
+
+- **The source** is a path or a `URL` (`new URL('./x.ts', import.meta.url)`), read by the front end; Go and Rust take
+  the package's or crate's directory or any file in it, Swift a file or a package. TypeScript, Effect and XState also
+  take `{code, file}` for code in memory, and their code-first call as it was (a string is code where it holds a line
+  break or doesn't end in a script's extension). core/extract-read.ts's `sourceOf`, `pathOf`.
+- **Runtime modules from the file's project**: `effect` and `xstate` are what the file imports, resolved from its own
+  node_modules (`beside`: a require from the file's place), so the check runs the version the code is written for
+  (Effect 3 where the project has 3); `{effect}`, `{xstate}` still win. The CLI imports them the same way.
+- **The entry inferred** where the reading can decide it: TypeScript tries each exported class and function and takes
+  the one that reads as a rule (several: refused with their names); Effect takes the file's one make effect (each
+  declaration tried, exported ones first; `make` and a `Layer.effect(Tag, make)` are one); XState the file's one
+  machine (a createMachine, or a function returning one); C++ tries each class the file declares. A note says what
+  was inferred; an explicit `entry` wins.
+- **One name per meaning**: the requests read are `methods` everywhere (C's `functions` is a deprecated alias), several
+  functions as requests are `entry: [...]` (TypeScript's `functions` is a deprecated alias, as Python's form was
+  already); `failures`, `onError`, `strict`, `answers`, `skip`, `stores`, `domains`, `check` were already one name each
+  where a front end has them. The options argument is optional everywhere.
+- **One result**: `extractXState`'s has `rule` (the chart's), `invariants` (the chart's own laws) and `names` (`value`,
+  `value.<region>`, the context's fields, `event`, `event.<field>`, the answers of a factory's functions), so it is
+  proven, and its `// gdp: law` comments read, like any front end's. Each front end's module exports `proveRule` and
+  `proveSteps`: one import.
+- **The CLI** reads XState files (a `.ts` importing xstate and calling createMachine) and Effect files with the
+  packages of the file's project, and runs TypeScript with the file's real path (its imports' types resolve as the
+  project's do). Its test has an Effect case and an XState case, each a law proven and one broken with its run.
+
+Nothing was removed or renamed: every signature and option at 07b2518 still type-checks and runs (each one-way-in test
+compares the call as it was with the new one on the same file, source and machine equal).
+
+| Front end | Lines before | Lines after | After |
+| --- | --- | --- | --- |
+| TypeScript | 5 | 3 | `import {extract, proveRule} from 'gdp-wired/extract'`; `const x = extract('./bucket.ts')`; `proveRule(x.rule!, [law])` |
+| Effect | 6 | 3 | `import {extractEffect, proveRule} from 'gdp-wired/effect'`; `const x = extractEffect('./limiter.ts')`; `proveRule(...)` |
+| XState | 5 | 3 | `import {extractXState, proveRule} from 'gdp-wired/extract'`; `extractXState('./machine.ts')`; `proveRule(...)` |
+| Python, Ruby, Elixir, Java, Kotlin, Swift, C | 4 | 3 | `import {extractPython, proveRule} from 'gdp-wired/extract-py'`; `extractPython('limiter.py')`; `proveRule(...)` |
+| Go | 4 (a directory only) | 3 (a file of the package too) | `extractGo('internal/limiter/limiter.go')` |
+| Rust | 4 (a crate directory only) | 3 (a file of the crate too) | `extractRust('src/lib.rs')` |
+| C++ | 4, `entry` required | 3 | `extractCpp('lim.cpp')` |
+| The CLI | 2; XState not read, Effect untested | 2, every front end | a `gdp: law` comment, `npx gdp-wired check <file>` |
+
+The film's Effect harness, before and after:
+
+```ts
+// before: 4 lines to the extraction, and proveRule from another import
+import * as effect from 'effect'
+import {readFileSync} from 'node:fs'
+import {extractEffect} from 'gdp-wired/effect'
+const x = extractEffect(readFileSync('limiter.ts', 'utf8'), {file: 'limiter.ts', entry: 'make', effect})
+// after
+import {extractEffect, proveRule} from 'gdp-wired/effect'
+const x = extractEffect('./limiter.ts')
+proveRule(x.rule!, [x.rule!.law('never below zero', ({tokens}) => tokens.atLeast(0))])
+// or: `// gdp: law never below zero: tokens >= 0` above make, and `npx gdp-wired check limiter.ts`
+```
+
+What stays as it was, and why: `fromXState(machine, bridge)`, `conforms(chart, machine, createActor)` and Effect's
+`conforms(rule, {effect, ...})` take a running object, so there is no file to resolve from; the toolchains (python,
+ruby, go, ...) are found on the PATH with an option naming another, as before; `failures: 'kept'` is still the step
+languages' only (Go and C keep `fails` and `onError`; TypeScript's throws are refusals), `answers`, `skip` and `stores`
+too: a capability each front end lacks, not a name that differs.
+
+**Sizes.** core/ in TypeScript, tests excluded, against 07b2518: +14,405 bytes (core/extract-xstate.ts +4,207: the
+wrapper, the machine inferred, the names; core/effect.ts +2,577: the service inferred; core/extract.ts +2,212;
+core/extract-read.ts +1,881: `sourceOf`, `pathOf`, `beside`; core/extract-c.ts +1,240: C++'s entry; the rest a few
+hundred each, much of it the usage lines). Tests +9,834. kernel/, core/laws.ts and core/infer.ts are unchanged.
+
+**Validation** (Modal, modal/run.py's image): core/extract.test.ts, effect.test.ts (Effect 4.x and 3.x), xstate.test.ts,
+exports.test.ts and cli.test.ts (the TypeScript, Effect and XState cases and their one-way-in cases), 101 of 101 run;
+each language's own test file with its toolchain (research/langs/*-setup.sh, research/extract/go-setup.sh) and its two
+cli.test.ts cases (the CLI's laws, and one way in): Python 29, Ruby 8, Elixir 6, C and C++ 15, Java and Kotlin 21, Swift
+10, Go 22, Rust 6, none skipped; chart.test.ts and examples/effect.ts, xstate.ts, charts.ts; tsc and oxlint clean;
+scripts/smoke.sh under Node 22.12 (its consumer type-check caught the global `URL` in the declarations, which a
+project without DOM or Node types lacks: a URL is now taken by its shape). First pass: the Rust one-way-in case failed
+on the call as it was (with `entry` named, the Rust front end reads every pub fn of the impl, `new` too, and the
+harness calls `new` as a method: an existing behavior, not this change's), so the case names its methods.
+
+**Bar** (quick, `--only rw,f1,f2,g332,suite,onecpu`, 70ca4e6 against the cached baseline of 5d4da3f): f1 34 proven of
+48 (base 34), f2 24 of 64 (base mean 24.33), rw 73 / 14 / 4 (base 74 / 14 / 3: one first-pass flip, noise after 3
+reruns a side: gained 0, lost 0, wrong 0), g332 332 of 332 the same search; the suite 233 of 233; onecpu no failure;
+$0.59 estimated (runs/bar/runs/70ca4e617289-vs-5d4da3f49013-quick-2026-10-301223).
