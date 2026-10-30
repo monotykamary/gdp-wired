@@ -43,6 +43,72 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/lean10: the ten's final proofs through the Lean twin (gen/lean10 from main 4e9d7ec)
+
+**The question.** The README says every proof is checked again by Lean. The engine's verdicts are the fast set proof's
+(proveSetFast, its trees checked by kernel.ts's checkLaws), which no Lean job had read. So, per protocol: the search at
+60 s, then its law set (the kinds', the caller's and every law in the verdict's `found`) exported through the suite's
+Lean path (lean-kernel/emit.ts's `toLean`, cyclic certificates where the cyclic route covers the machine, else the usual
+trees) and checked by `lean` against the twin (Lean v4.34.0, the library as `modal/run.py` caches it). The harness is
+research/protocols/lean10.ts; runs are `runs/lean10/*` in ../gdp-wired-lean10 (Modal, 2 CPU, 8 GB).
+
+**On main's exporter** (`runs/lean10/pilot`, `all`): 8 of 10 exported and checked; two not exportable.
+- **ring:** `toLean` re-proves the set the usual way (proveStepLaws), and the usual proof fails on ring's found set
+  (`smachineToLean`: "not proven", after 28 s). The verdict was the fast proof's (per-law instances of each law's sort);
+  the usual instances don't prove it.
+- **wo:** the verdict's `found` has the 19–25 cubes but not the ∃ law its proof used (the engine's ghost law,
+  `ghost.some`): `chosen` holds forms only, and the ghost lives inside the engine. The found set alone is not inductive,
+  so no prover can export it; this is the search's report, not the exporter.
+
+**The exporter fix (lean-kernel/emit.ts only, +1.4 KB):**
+- `proveStepLawsOnce`, with no step laws and no ∃ law: the usual proof within 60 s of wall (`GDP_LEAN_USUAL_MS`), then,
+  where it fails, the fast set proof's own proof (its per-law instances and trees, checkLaws-checked) as the proof the
+  export reads (`certReport.fast`). Lean checks those trees as it checks any; nothing trusted changes.
+- An item with an ∃ law: its witnesses chosen with `proveSetFast` first (proveSome over the ghosted machine, as the
+  search proved it), else proveStepLaws as before. (wo's ghosted set ran the usual proof 8 minutes and more.)
+
+**Final, every verdict from main's search and the fixed exporter** (`runs/lean10/final`; search at 60 s, each proven at
+its first try; Lean `decide +kernel`; every theorem's `#print axioms` is [propext, Classical.choice, Quot.sound]; no sorry)
+
+| protocol | search | found | exported | route | export | Lean-checked | Lean |
+|---|---|---|---|---|---|---|---|
+| sync | 8.5 s | 1 | yes | cyclic certificate | 0.9 s, 120 KB | yes | 9 s |
+| async | 22.9 s | 11 | yes | cyclic certificate | 7.0 s, 583 KB | yes | 50 s |
+| decentralized | 15.2 s | 2 | yes | usual trees (sums) | 2.4 s, 525 KB | yes | 46 s |
+| 2PC | 22.4 s | 14 | yes | usual trees | 18.3 s, 591 KB | yes | 46 s |
+| ticket | 29.9 s | 12 | yes | cyclic certificate | 4.2 s, 384 KB | yes | 30 s |
+| toy | 12.5 s | 6 | yes | usual trees | 26.5 s, 1.5 MB | yes | 114 s |
+| distributed | 31.2 s | 27 | yes | usual trees | 31.9 s, 5.9 MB | yes | 564 s |
+| sharded | 28.4 s | 16 | yes | usual trees | 69.9 s, 9.5 MB | yes | 1,189 s |
+| ring | 57.1 s | 18 | yes (fix) | the fast proof's trees | 42.1 s, 1.8 MB | yes | 88 s |
+| **wo** | 45.6 s | 24 | **no** | (the verdict's set lacks the ∃ law) | | **no** | |
+| wo, with the written ∃ law as a stand-in | | 24 + 1 | yes | the fast proof's trees, Ghost.lean | 97.1 s, 757 KB | yes | 57 s |
+
+("usual trees": the cyclic certificate past its 10 s deadline, so the usual trees are exported; a one-file `lean`
+check, single-threaded.) The stand-in is the written "after init the voting quorum has a member", whose witness is the
+engine's ghost (`(inits ∨ chooses) ? w : before`); it shows the Lean path covers the shape (Ghost.lean's ∃ statement
+`consensus_wo_decide.some25` checked), not that wo's verdict is checked.
+
+**What wo needs (proposed, not built: it is the search's report, core/infer.ts, not the exporter):** the ∃ law the
+engine's final proof used in its `found`. About 0.4 KB: an `enumSome: Law[]` beside `enumProof`, set to `ghost ? [ghost.some]
+: []` wherever the engine sets `enumProof` from a set with the ghost (the top-down cone, the IC3 cone, the Houdini pass,
+the set's proof), and the return's `found` with `{law, text: law.name}` for each. Untrusted (a verdict's report); then
+`proveRule(r, [...laws, ...found])` proves again, and the export above (the stand-in's route) applies as is.
+
+**No regression:** the bar's suite group on 9bc1776 (`--quick --only suite` against the cached 5d4da3f, its 63 Lean
+and ∃ jobs among the 233; <main>/runs/bar/runs/lean10-9bc1776-suite/REPORT.md): 233 passed, 0 failed; gained 0, lost 0,
+wrong 0. lean-kernel/emit.ts is the only file of core/, kernel/ or lean-kernel/ changed (+18 −5 lines); no trusted
+statement and no Lean file changed.
+
+**Spend:** $1.13 billed by 14:03 UTC for this round's 10 apps (8 of the Lean runs, 2 of the bar; the bar's own $0.39);
+the 14:00 hour is still being billed. Nothing left running.
+
+**Verified, not**
+- **Verified (Modal):** the table; 9 of 10 verdicts checked by Lean, with core axioms only.
+- **Not verified:** wo's own verdict in Lean (it can't be exported until `found` carries its ∃ law); `native_decide`
+  (not used: `decide +kernel` throughout); other runs' found sets (one run each here, ring's earlier run unknown at
+  59.9 s and retried).
+
 ## gen/wo: wo proven with nothing written at 60 s (gen/wo from main 9c07baf; the ten proven in every run)
 
 **Where it stands.** consensus_wo_decide is proven with nothing written at 60 s in 5 of 5 runs on the final code (35.6,
