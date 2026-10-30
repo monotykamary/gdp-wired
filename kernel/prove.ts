@@ -1640,10 +1640,12 @@ const grownSettled = (x: Grown) => !x.out || x.out.stuck === 'sat'
 // anchored sort is left out of the law's tuples there; a composed term is a whole key, of the map whose pattern its
 // factors are. GDP_SORTED=0 keeps every instance.
 const sortedOn = env.GDP_SORTED !== '0'
-// decideLaw's models confirmed only (GDP_STRICT=0 turns it off): a model is returned where no assumed law is broken at
-// it over its own domain, else nothing (research/protocols/engine/DESIGN.md, gen/ring)
-const strict = (usual: boolean) => !usual && env.GDP_STRICT !== '0'
-const sortsMemo = new WeakMap<Machine, {key: (law: string, k: string) => string, of: (e: E) => string | undefined, find: (a: string) => string, anchored: (a: string) => boolean}>()
+// decideLaw's models confirmed only (GDP_STRICT=1; off by default: decentralized lock's rounds then lean on the proof
+// path where an unconfirmed model used to answer, 27-36 s against 13-17 s): a model is returned where no assumed law is
+// broken at it over its own domain, else nothing (research/protocols/engine/DESIGN.md, gen/ring)
+const strict = (usual: boolean) => !usual && env.GDP_STRICT === '1'
+// (by machine and by the law set's names: one machine is asked with many sets)
+const sortsMemo = new WeakMap<Machine, Map<string, {key: (law: string, k: string) => string, of: (e: E) => string | undefined, find: (a: string) => string, anchored: (a: string) => boolean}>>()
 function sortsOf(m: Machine, laws: Law[]) {
   const par = new Map<string, string>(), find = (a: string): string => { const q = par.get(a); if (q === undefined || q === a) return a; const r = find(q); par.set(a, r); return r }
   const union = (a: string, b: string) => { const ra = find(a), rb = find(b); if (ra !== rb) par.set(ra, rb) }
@@ -1694,8 +1696,11 @@ function sortsOf(m: Machine, laws: Law[]) {
 }
 function bySort(m: Machine, laws: Law[], inst: Instances): Instances {
   if (!sortedOn) return inst
-  let s = sortsMemo.get(m)
-  if (!s) sortsMemo.set(m, (s = sortsOf(m, laws)))
+  let byLaws = sortsMemo.get(m)
+  if (!byLaws) sortsMemo.set(m, (byLaws = new Map()))
+  const lk = laws.map(l => l.name).join('\u0001')
+  let s = byLaws.get(lk)
+  if (!s) { if (byLaws.size >= 64) byLaws.clear(); byLaws.set(lk, (s = sortsOf(m, laws))) }
   const S = s
   const keysOf = (n: string): string[] | undefined => {
     if (n.startsWith('?')) { const c = m.step.flags?.[n.slice(1)]; return c?.op === 'all' ? boundOf(c).map(k => `Q:${n.slice(1)}:${k}`) : undefined }
