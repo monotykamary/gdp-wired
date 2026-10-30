@@ -13,6 +13,8 @@ import {proveRule, proveSteps} from '../../../core/dsl.ts'
 import {extractRuby} from '../../../core/extract-rb.ts'
 import {toSource} from '../../../core/extract.ts'
 import {SPECS} from './specs.ts'
+import {sweep, unitsOf} from '../sweep.ts'
+import {readRuby} from '../../../core/extract-rb.ts'
 
 const argv = process.argv.slice(2)
 const opt = (k: string, d = '') => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1] ?? d }
@@ -28,6 +30,9 @@ for (const s of SPECS.filter(x => !only || x.id === only)) {
   const t0 = performance.now()
   const x = extractRuby(join(dir, s.file), {...s.opts, root: join(dir, 'lib')})
   console.log(`\n${s.id}: ${x.ok ? 'extracted' : 'refused'} in ${Math.round(performance.now() - t0)} ms (${s.gem} ${s.version}, reads ${s.reads})`)
+  // (--sweep: every method of every class of the file, each alone)
+  const sw = opt('sweep'), {entry: _e, methods: _m, ...rest} = s.opts as Record<string, unknown>
+  if (sw) await sweep(sw, 'ruby', s.file, () => unitsOf(readRuby(join(dir, s.file), [], {root: join(dir, 'lib'), clocks: rest.clocks as string[] | undefined}), r => r.name), o => extractRuby(join(dir, s.file), {...rest, ...o, root: join(dir, 'lib')} as never))
   const out = {id: s.id, ok: x.ok, refusals: x.refusals, evidence: x.evidence, notes: x.notes, laws: [] as unknown[]}
   results.push(out)
   if (!x.ok) { for (const r of x.refusals) console.log(`  refused at ${r.where}: ${r.what}`); continue }

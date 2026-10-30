@@ -262,6 +262,13 @@ for (const [lang, c] of Object.entries(CASES)) {
   }, 300_000)
 }
 
+// `check .` in the crate: the target is printed as `.`, not as its absolute path.
+;(TOOLS.rust!() ? test : test.skip)('rust: check . in the crate prints the target as ., not its absolute path', async () => {
+  const d = files(CASES.rust!.files), was = process.cwd()
+  process.chdir(d)
+  try { const {rules} = await check(['.'], {ms: 2000, propose: false, check: {runs: 10, depth: 4, states: 20}}); expect(rules[0]!.file).toBe('.') } finally { process.chdir(was) }
+}, 300_000)
+
 // One way in: each front end called the short way (a file: URL and nothing else: the entry inferred, effect and xstate
 // from the file's project; Go and Rust given a file of the package or crate) reads the rule its call as it was reads
 // (the path or the code, the entry named, the module given), on the same cases.

@@ -13,6 +13,8 @@ import {proveRule, proveSteps} from '../../../core/dsl.ts'
 import {extractC} from '../../../core/extract-c.ts'
 import {toSource} from '../../../core/extract.ts'
 import {SPECS} from './specs.ts'
+import {sweep} from '../sweep.ts'
+import {readCFile} from '../../../core/extract-c.ts'
 
 const argv = process.argv.slice(2)
 const opt = (k: string, d = '') => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1] ?? d }
@@ -30,6 +32,13 @@ for (const s of SPECS.filter(x => !only || x.id === only)) {
   const t0 = performance.now()
   const x = extractC(join(dir, s.file), {...s.opts, flags: [...(s.shims ? [`-I${dir}/.gdp-shim`] : []), ...s.flags.map(f => f.replace(/^-I(?!\/)/, `-I${dir}/`))], root: join(dir, s.root ?? '')}, !!s.cpp)
   console.log(`\n${s.id}: ${x.ok ? 'extracted' : 'refused'} in ${Math.round(performance.now() - t0)} ms (${s.project} ${s.version}, reads ${s.reads})`)
+  // (--sweep: every function of the entry's, each alone)
+  const sw = opt('sweep')
+  if (sw) {
+    const o0 = {...s.opts, flags: [...(s.shims ? [`-I${dir}/.gdp-shim`] : []), ...s.flags.map(f => f.replace(/^-I(?!\/)/, `-I${dir}/`))], root: join(dir, s.root ?? '')} as Record<string, unknown>
+    const {functions: _f, methods: _m, ...rest} = o0
+    await sweep(sw, s.cpp ? 'cpp' : 'c', join(dir, s.file), () => readCFile(join(dir, s.file), rest as never, !!s.cpp).c.methods.map(m => ({label: `${String(s.opts.entry)}.${m}`, opts: {methods: [m]}})), o => extractC(join(dir, s.file), {...rest, ...o} as never, !!s.cpp))
+  }
   const out = {id: s.id, ok: x.ok, refusals: x.refusals, evidence: x.evidence, notes: x.notes, laws: [] as unknown[]}
   results.push(out)
   if (!x.ok) { for (const r of x.refusals) console.log(`  refused at ${r.where}: ${r.what}`); continue }

@@ -14,6 +14,8 @@ import {proveRule, proveSteps} from '../../../core/dsl.ts'
 import {extractSwift} from '../../../core/extract-swift.ts'
 import {toSource} from '../../../core/extract.ts'
 import {SPECS} from './specs.ts'
+import {sweep, unitsOf} from '../sweep.ts'
+import {readSwift} from '../../../core/extract-swift.ts'
 
 const argv = process.argv.slice(2)
 const opt = (k: string, d = '') => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1] ?? d }
@@ -25,6 +27,9 @@ for (const s of SPECS.filter(x => !only || x.id === only)) {
   const t0 = performance.now()
   const x = extractSwift(join(dir, s.file), s.opts)
   console.log(`\n${s.id}: ${x.ok ? 'extracted' : 'refused'} in ${Math.round(performance.now() - t0)} ms (${s.project} ${s.version}, reads ${s.reads})`)
+  // (--sweep: every method of every type of the file, each alone)
+  const sw = opt('sweep'), {entry: _e, methods: _m, ctor: _c, ...rest} = s.opts as Record<string, unknown>
+  if (sw) await sweep(sw, 'swift', join(dir, s.file), () => unitsOf(readSwift(join(dir, s.file), [], rest as never).mod), o => extractSwift(join(dir, s.file), {...rest, ...o} as never))
   const out = {id: s.id, ok: x.ok, refusals: x.refusals, evidence: x.evidence, notes: x.notes, laws: [] as unknown[]}
   results.push(out)
   if (!x.ok) { for (const r of x.refusals) console.log(`  refused at ${r.where}: ${r.what}`); continue }

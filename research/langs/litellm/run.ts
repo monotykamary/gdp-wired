@@ -12,7 +12,8 @@
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs'
 import {join, resolve} from 'node:path'
 import {proveSteps} from '../../../core/dsl.ts'
-import {extractPython} from '../../../core/extract-py.ts'
+import {extractPython, readPython} from '../../../core/extract-py.ts'
+import {sweep, unitsOf} from '../sweep.ts'
 import {assumed} from '../../../core/extract-step.ts'
 import {toSource} from '../../../core/extract.ts'
 import {PIN, SPECS} from './specs.ts'
@@ -31,6 +32,9 @@ for (const s of SPECS.filter(x => !only || x.id === only)) {
   const t0 = performance.now()
   const {answers: _a, skip: _s, stores: _t, ...rest} = s.opts
   const x = extractPython(join(src, s.file), {...(bare ? {...rest, ...s.needs} : s.opts), root: src, python})
+  // (--sweep: every method of every class, and every function, of the file, each alone, with the spec's boundary)
+  const sw = opt('sweep'), {entry: _e, methods: _m, ...bound} = s.opts as Record<string, unknown>
+  if (sw) await sweep(sw, 'python', s.file, () => unitsOf(readPython(join(src, s.file), [], {root: src, python})), o => extractPython(join(src, s.file), {...bound, ...o, root: src, python} as never))
   const out: Out = {id: s.id, ok: x.ok, notes: x.notes, ms: Math.round(performance.now() - t0), laws: [], ...(x.evidence ? {evidence: x.evidence} : {})}
   console.log(`\n${s.id}: ${x.ok ? 'extracted' : 'refused'} in ${out.ms} ms (reads ${s.reads})`)
   if (!x.ok) {
