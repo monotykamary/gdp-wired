@@ -55,7 +55,7 @@ export async function sweep(out: string, lang: Lang, file: string, units: () => 
 const LOOPY = /a loop|loop \(|try|except|rescue|catch|comprehension|a block \(a closure\)|continue|a break|generator/
 if (import.meta.main) {
   const [a, b] = process.argv.slice(2)
-  const read = (f: string) => new Map(readFileSync(f, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l) as Record<string, unknown>).map(r => [`${r.lang} ${r.file} ${r.unit}`, r]))
+  const read = (f: string) => new Map(readFileSync(f, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l) as Record<string, unknown>).map(r => [[r.lang, r.file, r.unit].map(String).join(' '), r]))
   const base = read(a!), cand = read(b!)
   const gained: unknown[] = [], lost: unknown[] = [], changed: unknown[] = [], moved: unknown[] = []
   let loopy = 0
