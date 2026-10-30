@@ -253,7 +253,7 @@ export function lift(l: Law, r: AnyRule, prefix: 'a_' | 'b_', shared: string[]):
       case 'mul': return {...x, a: e(x.a)}
       case 'if': return {op: 'if', c: c(x.c), then: e(x.then), else: e(x.else)}
       case 'get': return {op: 'get', map: n(x.map), key: e(x.key)}
-      default: return {...x, a: e(x.a), b: e(x.b)}
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...x, a: e(x.a), b: e(x.b)}
     }
   }
   const c = (x: C): C => {
@@ -262,7 +262,7 @@ export function lift(l: Law, r: AnyRule, prefix: 'a_' | 'b_', shared: string[]):
       case 'not': return {op: 'not', x: c(x.x)}
       case 'and': case 'or': return {op: x.op, xs: x.xs.map(c)}
       case 'all': return {...x, c: c(x.c), ...(x.witness ? {witness: e(x.witness)} : {})}
-      default: return {...x, a: e(x.a), b: e(x.b)}
+      case '<': case '<=': case '=': return {...x, a: e(x.a), b: e(x.b)}
     }
   }
   if (l.some?.length) throw new Error(`${l.name}: a law with "there exists" isn't lifted to two runs`)
