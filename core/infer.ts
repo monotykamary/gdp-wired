@@ -2125,12 +2125,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // BFS, uncut, the rest reading its states); a cube some row of such a state is in is no law, and goes
       function dataFilter(pool: Form[]): Form[] {
         // (in states, not time, so that a slow machine reads what a fast one does: each instance's states read as its BFS
-        // finds them, until they stop killing, `quiet` (100) states in a row that kill no cube, `most5` (1,500) at most;
+        // finds them, until they stop killing, `quiet` (150) states in a row that kill no cube past the first `least5`
+        // (600; wo's last kill came at its 582nd, ring's at its 240th), `most5` (1,500) at most;
         // its BFS ends there, a share of the engine's clock (30 s, a third of what is left) its outer bound. A slow
         // container that read fewer states left ring's pool at 47–61 cubes, not 44, and its first round past the wall:
         // research/protocols/engine/DESIGN.md, gen/laneA)
         const t5 = vnow(), share = Math.min(Number(env.GDP_POOL_MS ?? 30_000), (eUntil - t5) / 3)
-        const quiet = Number(env.GDP_POOL_QUIET ?? 100), most5 = Number(env.GDP_POOL_STATES ?? 1_500)
+        const quiet = Number(env.GDP_POOL_QUIET ?? 150), least5 = Number(env.GDP_POOL_LEAST ?? 600), most5 = Number(env.GDP_POOL_STATES ?? 1_500)
         const litAt = (l: Lit, r: Env) => ('at' in l ? valueOf(atoms[l.at.atom]!, r) === l.at.value : l.lin.coef.reduce((s2, [i, c]) => s2 + c * valueOf(atoms[i]!, r), 0) <= l.lin.d)
         const plans: ((q: string) => number)[] = [() => 1, ...(ss.length > 1 ? ss.map(s2 => (q: string) => (q === s2 ? 1 : 0)) : [])]
         let live = pool, states = 0
@@ -2140,7 +2141,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           for (const f of live) byView.set(f.view!, [...(byView.get(f.view!) ?? []), f])
           let read = 0, still = 0, lastKill = 0
           const r = instance(grow, share, seeded(29 + k), most5, q => {
-            if (read >= most5 || still >= quiet || stop()) return false
+            if (read >= most5 || (read >= least5 && still >= quiet) || stop()) return false
             states++; read++
             const before = killed.size
             for (const [vi, fs] of byView) {
@@ -2151,7 +2152,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             }
             if (killed.size > before) lastKill = read
             still = killed.size > before ? 0 : still + 1
-            return read < most5 && still < quiet
+            return read < most5 && (read < least5 || still < quiet)
           })
           opts.progress?.('join meters', {at: `filter read ${k}`, read, lastKill, bfs: r.small.length + r.others.length, ...meters()})
           live = live.filter(f => !killed.has(f))
