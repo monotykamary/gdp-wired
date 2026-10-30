@@ -739,10 +739,15 @@ export class Stepper {
     if (!pa.inject && !ms.length) return undefined
     return {keyed: ms.some(m => !!keyShape(m)), ...(t.k === 'rec' ? {ty: t.name} : {})}
   }
-  // The methods the class's code calls on its fields named (self.f.m(...)).
+  // The methods the class's code calls on its fields named (self.f.m(...), or through a reader of one: self.f().m()).
   callsOn(r: SRec, fields: string[]): string[] {
-    const ms: string[] = []
-    for (const id of Object.values(r.methods)) if (id && this.mod.funcs[id]) deep(this.mod.funcs[id]!.body, o => { const f = o.f as SX | undefined, fx = f?.x as SX | undefined; if (o.e === 'call' && f?.e === 'get' && fx?.e === 'get' && (fx.x as SX).e === 'var' && (fx.x as SX).n === 'self' && fields.includes(String(fx.f))) ms.push(String(f.f)) })
+    const ms: string[] = [], self = (x?: SX) => x?.e === 'var' && x.n === 'self'
+    const field = (x?: SX): string | undefined => {
+      if (x?.e === 'get' && self(x.x as SX)) return String(x.f)
+      const g = x?.e === 'call' && !(x.args as SX[]).length ? x.f as SX : undefined, body = g?.e === 'get' && self(g.x as SX) ? this.mod.funcs[r.methods[String(g.f)] ?? '']?.body : undefined
+      return body?.length === 1 && body[0]!.s === 'ret' ? field(body[0]!.x as SX) : undefined
+    }
+    for (const id of Object.values(r.methods)) if (id && this.mod.funcs[id]) deep(this.mod.funcs[id]!.body, o => { const f = o.f as SX | undefined; if (o.e === 'call' && f?.e === 'get' && fields.includes(field(f.x as SX) ?? '')) ms.push(String(f.f)) })
     return ms
   }
   storeDecl(store: string): StoreDecl {
