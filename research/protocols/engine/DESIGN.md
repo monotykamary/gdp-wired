@@ -120,6 +120,35 @@ criterion); the mechanism I designed is falsified as the cause.**
   untrusted oracle that only costs a decision, and `prove()` still checks the set over its own instances.
 - Pilot 1 is worth rerunning only after that.
 
+**The per-sort seeding pilot: FAIL** (`runs/engine/rg5` in ../gdp-wired-poolz3; the code is `bySort` in kernel/prove.ts on
+exp/pool-z3, behind `GDP_SORTED=1`)
+- **What it does:** each law's keys, and each quantified flag's, are taken only at keys of their sort. It applies to
+  `lawInstances` and to the model rounds' `modelInstances`. Untrusted instancing; no checking touched.
+  - The sorts are a union-find over:
+    - each part of a map's key, by its pattern;
+    - a map's whole key;
+    - a function's argument and its value;
+    - every name, with a law's own keys and a flag's bound keys local to it;
+    - any two names one comparison relates.
+  - A key term whose sort is anchored (to a map's part or key, or to a function) and differs from the law key's anchored
+    sort is left out.
+- **On the same 44 ring goals at 1 s, against the same dump run without it:**
+
+| | instance keys | ordered terms (median, max) | decisions in one class | decideLaw undecided | against Z3 |
+|---|---|---|---|---|---|
+| unsorted | 684,228 | 24, 60 | 61 of 87 | 43 | 0 disagree |
+| sorted | 313,388 (−54%) | 28.5, 60 | 62 of 88 | **29** (Z3: 15) | 0 disagree |
+
+- **So:** fewer than half the instances, 14 fewer goals undecided, and no wrong verdict. But the ordered terms don't
+  halve, the order doesn't split into classes, and 29 goals stay undecided, against the pass mark of 15.
+- **The cross-sort instances weren't what joins ring's order into one class.** What does join it is not yet known. The
+  next thing to read is one goal's comparisons: which hypothesis relates an id term to a node term (a frame's `x <
+  size` at an unanchored key, the theory's rows, or the parts' equalities).
+- **Not built, as the order said.** The strict deadline rule (unknown in place of an unconfirmed model at decideLaw's
+  deadline) is not included either: timeouts are still the common case (29 of 44 at 1 s), and the order made it
+  conditional on per-sort seeding making them rare.
+- **Spend this round:** $0.07 billed for 5 apps; the hour is still being billed.
+
 **Not done this round, as the order said:**
 - step 3 (ring twice, the ten, the bar), because 1 didn't land;
 - wo's pilot, because pilot 2 didn't fail fast.
