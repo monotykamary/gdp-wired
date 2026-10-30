@@ -2399,7 +2399,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const fresh = (f: Form) => !names.has(textOf(f)) && !dead.has(textOf(f)) && !implied(f) && !atStart(f)
         let hs = made.filter(fresh)
         ph({phase: 'pool', cubes: hs.length})
-        const uses = new Map<string, string[]>(), undecided = new Set<Form>()
+        const uses = new Map<string, string[]>(), undecided = new Set<Form>(), reasked = new Set<Form>()
         let asked = new Set<Form>(hs)
         for (let r = 0; hs.length && performance.now() < wallUntil && !stop(); r++) {
           const ls = [...given, ...hs.map(lawFor)], mm = forLaws(ls).m, failed = new Set<Form>(), tr = performance.now(), at = new Map(hs.map((f, i) => [f, given.length + i]))
@@ -2415,7 +2415,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           const todo = r === 0 ? hs : hs.filter(f => asked.has(f) && !undecided.has(f))
           for (const f of todo) ask(f, q1)
           let second = 0
-          if (!failed.size && undecided.size) for (const f of hs.filter(g => undecided.has(g))) { second++; ask(f, Math.max(q1, q2)) }
+          // (each once: one still undecided then is kept, the cone's proof deciding)
+          if (!failed.size && undecided.size) for (const f of hs.filter(g => undecided.has(g) && !reasked.has(g))) { second++; reasked.add(f); ask(f, Math.max(q1, q2)) }
           ph({phase: 'round', round: r, cubes: hs.length, asked: todo.length, second, failed: failed.size, undecided: undecided.size, ms: Math.round(performance.now() - tr)})
           if (!failed.size) break
           for (const f of failed) dead.add(textOf(f))
