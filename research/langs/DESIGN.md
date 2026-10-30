@@ -830,9 +830,17 @@ On Modal:
 - the Rust, C and C++, Ruby, Elixir, Java and Kotlin corpus rules re-extract byte for byte;
 - LiteLLM stated reprints the committed rules; bare, 7 of 7 are byte for byte, 19 proven and 2 refuted both ways, the
   refutations assuming `get_current_spend` may return -1 and -2;
-- the first round's two test extractions are unchanged, and the build and smoke pass.
+- the first round's two test extractions are unchanged, and the build and smoke pass;
+- the CLI (core/cli.test.ts) reports the j01, j03 and j04 shapes refused, their stated law not read (exit 2), never
+  proven.
 
-BAR3
+On the branch rebased onto 2fdc902 (gen/cli), LiteLLM and the JVM corpus again: the same (stated and bare, 7 of 7
+byte for byte, 19 and 2; the JVM rules identical).
 
-**Bytes.** core/ and kernel/ in TypeScript, tests excluded, against c352cd0: +3,210 (core/extract-step.ts +2,722,
+**Bar** (quick, `--only rw,f1,f2,g332,suite,onecpu`, against the cached baseline of 5d4da3f, the nearest with one): f1
+34 / 35, f2 24 / 33, rw 74 / 14 / 3, g332 332 of 332, each 0 differing; the suite 232 of 232 (the base's 227 jobs, 5
+added since); onecpu no failure; $0.55 estimated. (A first bar, before the rebase, lost the suite's `check`: the
+adversarial runner's absolute imports, now relative.)
+
+**Bytes.** core/ and kernel/ in TypeScript, tests excluded, against 2fdc902 (gen/cli merged, this branch's base): +3,210 (core/extract-step.ts +2,722,
 core/extract-read.ts +488); the harnesses +280 (Python), +191 (Ruby), +239 (the JVM's). The kernel is unchanged.
