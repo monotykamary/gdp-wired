@@ -17,7 +17,8 @@ import {type C, type E, type Machine, type MapUpdate, all, any, get, ite, n, not
 import {type Subst, substC, substE} from '../kernel/kernel.ts'
 import {Cond, type Kind, type Rule, Term, nat, oneOf, rule} from './dsl.ts'
 
-// An environment model: what it assumes, and the documented behaviour it was checked against.
+// An environment model: what it assumes, and the stack's behaviour it was checked against (research/distributed/
+// DESIGN.md, section 2: the documentation quoted; research/distributed/envcheck.py: each claim run on the stack).
 export type Model = {name: string, assumes: string, checked: string}
 const models = new WeakMap<object, Model[]>()
 const modelled = (m: Machine, ...ms: Model[]): Machine => { models.set(m, [...(models.get(m) ?? []), ...ms]); return m }
@@ -151,11 +152,11 @@ export function asRule(m: Machine, kinds: Record<string, Kind<unknown>> = {}): R
 export type Level = 'atomic' | 'read committed' | 'snapshot'
 export const ISOLATION: Record<Level, Model> = {
   'atomic': {name: 'atomic', assumes: 'the handler runs as one step: no other step sees it half done',
-    checked: 'PostgreSQL SERIALIZABLE ("the same effect as running them one at a time in some order", docs 13.2.3) and SELECT ... FOR UPDATE; a Redis Lua script ("executed atomically", EVAL docs); Python asyncio code whose awaits do not suspend'},
+    checked: 'PostgreSQL SERIALIZABLE (13.2.3), SELECT ... FOR UPDATE, UPDATE ... SET x = x + k; a Redis Lua script; asyncio code whose awaits never suspend'},
   'read committed': {name: 'read committed', assumes: 'each read of a store sees the latest committed value at its own step; the writes become visible together at commit; nothing is re-read at commit',
-    checked: 'PostgreSQL READ COMMITTED (docs 13.2.1: a statement sees data committed before it began); a value the code computed from an earlier SELECT and wrote back loses a concurrent update (research/distributed/envcheck.py: lost update reproduced on PostgreSQL)'},
+    checked: 'PostgreSQL READ COMMITTED (13.2.1): the lost update, envcheck.py'},
   'snapshot': {name: 'snapshot', assumes: 'every read sees the store as it was at the transaction start; a commit is refused (aborted$) when a cell it writes changed since then (first committer wins); writes to different cells never conflict (write skew allowed)',
-    checked: 'PostgreSQL REPEATABLE READ (docs 13.2.2: "could not serialize access due to concurrent update"); research/distributed/envcheck.py checks both the abort and the write skew'},
+    checked: 'PostgreSQL REPEATABLE READ (13.2.2): the refused commit and the write skew, envcheck.py'},
 }
 // A request's write of a cell, as it is and where it writes at all: an `if` whose branch is the cell itself is no write.
 function writesWhen(v: E, cell: E): C | true | false {
@@ -252,9 +253,9 @@ export function isolation(m: Machine, level: Level): Machine {
 export type Delivery = 'exactly-once' | 'at-least-once'
 export const DELIVERY: Record<Delivery, Model> = {
   'exactly-once': {name: 'exactly-once delivery', assumes: 'a message is taken by one handler step, once, and the take commits with the handler\'s writes (a transactional consume, an inbox row in the same transaction)',
-    checked: 'Kafka transactions (read-process-write, isolation.level=read_committed); a broker alone gives at-least-once'},
+    checked: 'a transactional consume (Kafka transactions, an inbox row in the handler\'s transaction)'},
   'at-least-once': {name: 'at-least-once delivery', assumes: 'a sent message may be delivered any number of times, in any order, including while an earlier delivery is still being handled (redelivery, duplicates, a retrying client whose earlier try may still run or may have applied)',
-    checked: 'Amazon SQS standard queues ("more than one copy of a message might be delivered"), Kafka after a rebalance before the offset commit, Redis Streams pending entries re-delivered by XAUTOCLAIM, an HTTP client retrying a timed-out request the server applied (research/distributed/envcheck.py: the last two reproduced)'},
+    checked: 'SQS standard queues, Kafka before an offset commit, Redis Streams (XAUTOCLAIM, envcheck.py)'},
 }
 // m's request taken from the message pool `pool`: each input in `fields` read from the message `msg` (an input): the
 // pool's maps `${pool}` (1 once sent) and `${pool}_${field}`; `id`, an input that is the message's id itself (an
@@ -291,17 +292,17 @@ export const client = (pool: string, fields: string[], msg = 'msg'): Machine => 
 
 // A retrying client is at-least-once delivery of its requests: each try a delivery, the next sent on a timeout.
 export const RETRIES: Model = {name: 'a retrying client', assumes: 'a request may be tried again at any time, any number of times, while an earlier try is still running or after it applied (its reply lost to a timeout)',
-  checked: 'urllib3 Retry (requests, httpx-style clients) re-sends after a read timeout; research/distributed/envcheck.py: a server that applies, then stalls past the timeout, applies one request twice'}
+  checked: 'urllib3 Retry after a read timeout (envcheck.py: one POST applied three times)'}
 // A store's call fails: the code takes its failure path; a failed write may still have applied (a lost reply).
 export const STORE_FAILS: Model = {name: 'store calls fail', assumes: 'any call to the store may raise, before it applied or after (its reply lost)',
-  checked: 'redis-py raises ConnectionError and TimeoutError (a socket timeout after the server ran the command); research/distributed/envcheck.py: a SET whose reply times out is applied'}
+  checked: 'redis-py\'s ConnectionError and TimeoutError (envcheck.py: a SET whose reply was lost, applied)'}
 export const WRITES_FAIL: Model = {name: 'database writes fail', assumes: 'a create may raise before its insert committed or after (a receiver run after the INSERT raising)',
-  checked: 'Django: post_save receivers run inside the save after the INSERT; transaction.atomic rolls back on an exception raised inside it'}
+  checked: 'Django: post_save receivers and on_commit hooks raise after the INSERT; transaction.atomic rolls back before it'}
 
 // --- stores that forget ---------------------------------------------------------------------------------------------
 
 export const EXPIRY: Model = {name: 'keys expire', assumes: 'any key of the store may vanish at any step, whatever its TTL (the TTL lapsed while its holder still worked, or an eviction)',
-  checked: 'Redis SET ... EX (the key is gone once the time passes) and maxmemory-policy volatile-lru ("evict ... keys with an expire set"): research/distributed/envcheck.py evicts a key long before its TTL'}
+  checked: 'Redis EX and maxmemory-policy volatile-lru (envcheck.py: a 30 s key evicted at once)'}
 // A store's key reset to its start: `cells`, the maps of one store (a record's parts) and the value each holds when the
 // key is absent.
 export const expiry = (cells: Record<string, number>, key = 'key'): Machine => modelled({
