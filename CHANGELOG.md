@@ -26,6 +26,8 @@ language, Java, Kotlin and Swift, and a command line with laws written in the co
   the file's own project. Nothing was removed or renamed.
 - **The release bar** (full, against 5d4da3f): none wrong in any group; CHC-COMP +3, SV-COMP termination +1; two
   tasks at the time limit lost in some runs (none solid); Lean 48 of 48. core/ and kernel/: +434 KB.
+- **The real-world corpus**: 440 laws, 391 proven, 39 refuted with a run, 10 unknown (the release bar's rw group). The
+  361 laws of 0.31 kept their verdicts (318, 35, 8); the 79 new ones are mostly the Java, Kotlin and Swift items.
 
 The sections below are the branches this release merged, newest first.
 
