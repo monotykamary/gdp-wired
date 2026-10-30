@@ -52,7 +52,7 @@ function args(argv: string[]): {cmd: string, targets: string[], o: Opts} {
 }
 
 // --- the languages -------------------------------------------------------------------------------------------------------
-type Lang = 'python' | 'ruby' | 'elixir' | 'java' | 'kotlin' | 'go' | 'rust' | 'swift' | 'c' | 'cpp' | 'ts'
+export type Lang = 'python' | 'ruby' | 'elixir' | 'java' | 'kotlin' | 'go' | 'rust' | 'swift' | 'c' | 'cpp' | 'ts'
 const EXT: Record<string, Lang> = {'.py': 'python', '.rb': 'ruby', '.ex': 'elixir', '.exs': 'elixir', '.java': 'java', '.kt': 'kotlin', '.go': 'go', '.rs': 'rust', '.swift': 'swift', '.c': 'c', '.h': 'c',
   '.cpp': 'cpp', '.cc': 'cpp', '.cxx': 'cpp', '.hpp': 'cpp', '.ts': 'ts', '.mts': 'ts', '.tsx': 'ts', '.js': 'ts', '.mjs': 'ts'}
 const COMMENT: Record<Lang, string> = {python: '#', ruby: '#', elixir: '#', java: '//', kotlin: '//', go: '//', rust: '//', swift: '//', c: '//', cpp: '//', ts: '//'}
@@ -263,7 +263,8 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
   const ctx: Ctx = {ms: o.ms, clock: unit === 's' ? 1 : unit === 'ms' ? 1000 : undefined, others, cites, cert: o.cert, file: path.relative(proc.cwd(), t.at) || t.at}
   for (const {entry, x} of rules) {
     const name = entry ?? (x.model?.name || undefined)
-    const r: RuleOut = {file: path.relative(proc.cwd(), t.at) || t.at, lang: LANG_NAME[t.lang], ...(name ? {entry: name} : {}), ok: x.ok, refusals: x.refusals, notes: x.notes, names: x.names ?? [], laws: [], proposed: [], ...(x.source ? {source: x.source} : {})}
+    // (a target that is the working directory, a crate's or a package's: `.`)
+    const r: RuleOut = {file: path.relative(proc.cwd(), t.at) || '.', lang: LANG_NAME[t.lang], ...(name ? {entry: name} : {}), ok: x.ok, refusals: x.refusals, notes: x.notes, names: x.names ?? [], laws: [], proposed: [], ...(x.source ? {source: x.source} : {})}
     outs.push(r)
     // (the laws of this rule: all where it is the file's one, else those in its class or on it or its methods, and those
     // outside every class and function)
@@ -425,6 +426,9 @@ function propose(x: Extraction, lang: Lang, o: Opts, proven: unknown[], stated: 
   }
   return {shown, broken}
 }
+
+// The laws `check` proposes for an extraction with nothing stated, each proven (`shown`: those not broken by a run).
+export const proposedLaws = (x: Extraction, lang: Lang, ms = 2000): {shown: LawOut[], broken: number} => propose(x, lang, {ms, propose: true}, [], new Set())
 
 // --- printing ------------------------------------------------------------------------------------------------------------
 const ROLE: Record<Name['role'], string> = {state: 'state', param: 'made with', input: 'request', answer: 'answered', result: 'result', failed: 'failed', method: 'method', clock: 'clock', const: 'constant'}

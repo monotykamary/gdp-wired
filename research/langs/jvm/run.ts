@@ -15,6 +15,8 @@ import {proveRule, proveSteps} from '../../../core/dsl.ts'
 import {extractJvm} from '../../../core/extract-jvm.ts'
 import {toSource} from '../../../core/extract.ts'
 import {SPECS} from './specs.ts'
+import {sweep, unitsOf} from '../sweep.ts'
+import {readJvm} from '../../../core/extract-jvm.ts'
 
 const argv = process.argv.slice(2)
 const opt = (k: string, d = '') => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1] ?? d }
@@ -32,6 +34,9 @@ for (const s of SPECS.filter(x => !only || x.id === only)) {
   const t0 = performance.now()
   const x = extractJvm(s.lang, join(dir, s.files[0]!), {...s.opts, root: join(dir, s.root), classpath: jars})
   console.log(`\n${s.id}: ${x.ok ? 'extracted' : 'refused'} in ${Math.round(performance.now() - t0)} ms (${s.project} ${s.version}, reads ${s.reads})`)
+  // (--sweep: every method of every class of the file, each alone)
+  const sw = opt('sweep'), {entry: _e, methods: _m, ...rest} = s.opts as Record<string, unknown>
+  if (sw) await sweep(sw, s.lang, join(dir, s.files[0]!), () => unitsOf(readJvm(s.lang, join(dir, s.files[0]!), [], {...rest, root: join(dir, s.root), classpath: jars} as never)), o => extractJvm(s.lang, join(dir, s.files[0]!), {...rest, ...o, root: join(dir, s.root), classpath: jars} as never))
   const out = {id: s.id, ok: x.ok, refusals: x.refusals, evidence: x.evidence, notes: x.notes, laws: [] as unknown[]}
   results.push(out)
   if (!x.ok) { for (const r of x.refusals) console.log(`  refused at ${r.where}: ${r.what}`); continue }

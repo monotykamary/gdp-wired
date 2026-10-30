@@ -123,11 +123,15 @@ def run_jobs(app, spec: list[dict], out: str, pre: str, cmd, modal_jobs, backend
             print(f"{name:40} exit {row.get('code', -1):>3}  {row.get('seconds', -1):>8} s", flush=True)
 
     todo = list(spec)
-    if backend in ("auto", "boat"):
+    # (a job on an image of its own, the runner-like one: Modal's, whatever the backend)
+    own = [j for j in spec if j.get("image")]
+    if own:
+        moved.update({j["name"]: f"its image ({j['image']}) is Modal's" for j in own})
+    if backend in ("auto", "boat") and len(own) < len(spec):
         import boat
         reason, info = boat.preflight(1, vm_type) if backend == "auto" else (None, {})
         if reason is None:
-            got, bsum = boat.boat_jobs(spec, out, pre, cmd, vms=vms, idle=idle, teardown=teardown, durations=durations, vm_type=vm_type, max_vms=max_vms,
+            got, bsum = boat.boat_jobs([j for j in spec if not j.get("image")], out, pre, cmd, vms=vms, idle=idle, teardown=teardown, durations=durations, vm_type=vm_type, max_vms=max_vms,
                                        on_lost=(lambda n, why: moved.__setitem__(n, why)) if backend == "auto" else None, max_wait=max_wait if backend == "auto" else 0, on_done=printer)
             rows.update(got)
             where.update({n: "boat" for n in got})
@@ -136,10 +140,10 @@ def run_jobs(app, spec: list[dict], out: str, pre: str, cmd, modal_jobs, backend
             log(f"boat can't take this batch ({reason}): Modal runs it")
         todo = [j for j in spec if j["name"] not in rows]
         if backend == "boat":
-            for j in todo:
+            for j in [j for j in todo if not j.get("image")]:
                 rows[j["name"]] = {"code": -1, "seconds": -1, "out": "", "err": moved.get(j["name"], "never ran")}
                 where[j["name"]] = "boat"
-            todo = []
+            todo = own
     if todo:
         with ModalCtx(app):
             got = modal_jobs(todo, printer)

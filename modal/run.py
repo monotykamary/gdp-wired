@@ -9,7 +9,8 @@ stopped between batches, 2 vCPU and 4 GB a slot) and moves to Modal what boat ca
 gets a 4th column, the backend each job ran on, and the final line says where they ran, why any moved and what the VMs
 cost. `auto` is the default from `python3`; `--backend boat` forces boat; `modal` (and `modal run`) is Modal as before.
 
-jobs.json is a list of {"name", "cmd", "cwd"?, "cpu"?, "memory"?, "timeout"?}; cmd runs under bash in gdp-wired/<cwd>.
+jobs.json is a list of {"name", "cmd", "cwd"?, "cpu"?, "memory"?, "timeout"?, "image"?}; cmd runs under bash in gdp-wired/<cwd>
+("image": "runner": a container like GitHub's ubuntu-24.04 runner, on Modal whatever the backend).
 Each job's output lands in <out>/<name>.log, and <out>/summary.tsv has name, exit code and seconds.
 
 Cost hygiene: the default timeout is 15 minutes (set "timeout" per job for longer ones); a job's command is also killed
@@ -45,6 +46,22 @@ image = (
                                               # the Handwired fork: its sources and lab/json-search, which research/hw/ and research/enum/ import
                                               "vendor/handwired/lab/ui-exploration/**", "vendor/handwired/lab/knuth-plass/**", "vendor/handwired/assets/**", "vendor/handwired/tests/**", "vendor/gdp-ts/examples/**"])
 )
+# A container like GitHub's ubuntu-24.04 runner, which the release's checks run on: clang and clang++ 18.1.3 with GCC 14's
+# libstdc++, Temurin 17 (the runner's default java), kotlinc 2.4.21, bun. A job asks for it with "image": "runner" (the
+# suite's runner-* jobs); the 0.32.0 publish failed only there (clang 18 dumps an empty CXXDefaultInitExpr, javac 17
+# refuses Java 21's patterns), which the default image's clang 19 and JDK 21 don't show.
+runner_image = (
+    modal.Image.from_registry("ubuntu:24.04", add_python="3.12")
+    .apt_install("curl", "unzip", "git", "ca-certificates", "xz-utils", "zstd", "clang-18", "clang", "g++-14", "libstdc++-14-dev")
+    .run_commands(
+        "mkdir -p /usr/lib/jvm/temurin-17 && curl -fsSL 'https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse' | tar xz -C /usr/lib/jvm/temurin-17 --strip-components=1",
+        "curl -fsSL -o /tmp/k.zip https://github.com/JetBrains/kotlin/releases/download/v2.4.21/kotlin-compiler-2.4.21.zip && unzip -q -o /tmp/k.zip -d /usr/share && rm /tmp/k.zip && ln -sf /usr/share/kotlinc/bin/kotlinc /usr/local/bin/kotlinc",
+        "curl -fsSL https://bun.sh/install | bash",
+        "clang --version | head -1; clang++ --version | head -1; /usr/lib/jvm/temurin-17/bin/javac -version",
+    )
+    .env({"JAVA_HOME": "/usr/lib/jvm/temurin-17", "PATH": "/root/.bun/bin:/usr/lib/jvm/temurin-17/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=[".git/**", "**/.git", "**/.git/**", "vendor/handwired/**", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "modal/**", "private/**", "lean-kernel/.lake/**"])
+)
 app = modal.App("gdp-wired-experiments", image=image)
 # The Lean twin's library, compiled once per version of its sources: a job copies the .olean files in before it runs
 # (its `[ -f X.olean ] ||` then skips the compile) and saves the ones it compiled. The key hashes every library source
@@ -60,6 +77,24 @@ def library_key(lean_dir: pathlib.Path) -> str:
     for mod in LIBRARY:
         h.update(mod.encode() + b"\0" + (lean_dir / f"{mod}.lean").read_bytes() + b"\0")
     return h.hexdigest()[:32]
+
+
+@app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=1200, image=runner_image)
+def sh_runner(name: str, cmd: str, cwd: str = ".", limit: int = 1100) -> dict:
+    """A job on the runner-like image (no Lean there: its jobs are the C, C++, Java and Kotlin cases)."""
+    import shutil
+    import subprocess
+
+    work = pathlib.Path("/work/gdp-wired")
+    if not work.exists():
+        shutil.copytree("/src/gdp-wired", work)
+    t0 = time.time()
+    try:
+        p = subprocess.run(["bash", "-c", cmd], cwd=work / cwd, capture_output=True, encoding="utf-8", errors="replace", timeout=limit)
+        code, out, err = p.returncode, p.stdout, p.stderr
+    except subprocess.TimeoutExpired as e:
+        code, out, err = 124, (e.stdout or b"").decode("utf-8", "replace") if isinstance(e.stdout, bytes) else (e.stdout or ""), f"timed out after {limit} s"
+    return {"name": name, "code": code, "seconds": round(time.time() - t0, 2), "out": out[-400_000:], "err": err[-100_000:]}
 
 
 @app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=900, volumes={"/olean": oleans})
@@ -129,13 +164,14 @@ def modal_jobs(spec: list[dict], pre: str, cmd, on_done) -> dict:
     """The jobs on Modal, inside the running app: {name: {code, seconds, out, err}}."""
     # Jobs with the same resources share one function variant; every variant runs its jobs in parallel.
     groups: dict[tuple, list] = {}
+    # (and the image: the default, or the runner-like one a job asks for)
     for j in spec:
-        groups.setdefault((j.get("cpu", 2.0), j.get("memory", 4096), j.get("timeout", 900)), []).append(j)
+        groups.setdefault((j.get("cpu", 2.0), j.get("memory", 4096), j.get("timeout", 900), j.get("image", "")), []).append(j)
     calls = []
     rows = {}
     try:
-        for (cpu, memory, timeout), js in groups.items():
-            fn = sh.with_options(cpu=cpu, memory=memory, timeout=timeout + 60)
+        for (cpu, memory, timeout, img), js in groups.items():
+            fn = (sh_runner if img == "runner" else sh).with_options(cpu=cpu, memory=memory, timeout=timeout + 60)
             calls += [(j["name"], fn.spawn(j["name"], pre + cmd(j["cmd"]), j.get("cwd", "."), timeout - 30), timeout) for j in js]
         for name, c, timeout in calls:
             try:
