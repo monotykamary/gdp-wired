@@ -3,7 +3,8 @@
 // states on the same constants (tlc.py runs both). One JSON line per protocol; --cfg <dir> writes each port's TLC cfg.
 //   bun research/protocols/ic3syn/check.ts [--only id,id] [--cfg dir] [--ms 60000] [--broken]
 // `bad` counts the reachable states that break the safety property as the port reads it (`bad`): 0 for the port, and
-// above 0 for its broken variant (--broken), which shows the property is not vacuous on the instance. The op input's
+// above 0 for its broken variant (--broken, which stops at the first), which shows the property is not vacuous on the
+// instance. The op input's
 // values are its choices' positions (0, 1, ...).
 import {writeFileSync} from 'node:fs'
 import {interpret} from '../../../core/machine.ts'
@@ -20,7 +21,7 @@ for (const p of protocols.filter(q => q.check && (!only || only.includes(q.id)))
   const c = p.check!
   if (cfgDir) { if (c.tlc) writeFileSync(`${cfgDir}/${p.id}.cfg`, c.tlc.cfg); console.log(JSON.stringify({id: p.id, module: c.tlc?.module, fix: c.tlc?.fix ?? []})); continue }
   const r: any = p.make(broken ? p.bug : undefined), m = r.machine, run = interpret(m), params = c.params ?? {}
-  const given = product(c.inputs), plain = given.flatMap(i => (c.expand && !c.byState ? c.expand(i) : [i]))
+  const given = product(c.inputs).filter(i => !c.uses || Object.entries(i).every(([k, v]) => k === 'op' || c.uses![i.op as number]!.includes(k) || v === c.inputs[k]![0])), plain = given.flatMap(i => (c.expand && !c.byState ? c.expand(i) : [i]))
   const reqsAt = (st: any) => (c.byState ? given.flatMap(i => c.expand!(i, read(st))) : plain)
   const dflt = (st: any, name: string) => st.defaults?.[name] ?? m.maps?.[name] ?? 0
   const read = (st: any) => ({cell: (map: string, key: number) => st.maps[map]?.get(key) ?? dflt(st, map), scalar: (name: string) => st.scalars[name]})
@@ -39,9 +40,10 @@ for (const p of protocols.filter(q => q.check && (!only || only.includes(q.id)))
       if (c.keep && !c.keep(read(s2))) continue
       seen.add(k); next.push(s2); proj(s2)
       if (p.bad?.(read(s2))) bad++
+      if (broken && bad) break
     }
     if (next.length) depth++
-    frontier = next
+    frontier = broken && bad ? [] : next
   }
   console.log(JSON.stringify({id: p.id, broken, states: spec.size, raw: seen.size, depth, done, requests: given.length, bad, ...(c.states ? {tlc: c.states} : {}), ms: Math.round(performance.now() - t0)}))
 }

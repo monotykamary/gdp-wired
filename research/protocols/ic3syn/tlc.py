@@ -34,7 +34,7 @@ def sh(cmd: str, cwd: str, limit: int) -> tuple[int, str]:
     return p.returncode, p.stdout + p.stderr
 
 
-@app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=900)
+@app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=1500)
 def one(pid: str, ms: int) -> dict:
     out: dict = {"id": pid}
     src = "/src/gdp-wired"
