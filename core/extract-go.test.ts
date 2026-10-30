@@ -336,18 +336,20 @@ func (q *Q) Reset(_ context.Context) { q.Used = 0 }`, 'Q', {methods: ['Take', 'R
 
 t('another package\'s struct as an argument: its exported fields read as inputs; its methods stay its own code', () => {
   // p reads q's struct as data
-  const two = (code: string) => {
+  const two = (code: string, more: Partial<GoOptions> = {}) => {
     const root = mkdtempSync(`${tmpdir()}/gdp-gocase-`)
     writeFileSync(`${root}/go.mod`, 'module example.com/gocase\n\ngo 1.22\n')
     mkdirSync(`${root}/p`); mkdirSync(`${root}/q`)
     writeFileSync(`${root}/q/q.go`, 'package q\n\ntype Inner struct{ A int64 }\ntype Rule struct {\n\tMax  int64\n\tOn   bool\n\tIn   Inner\n\thidden int64\n}\nfunc (r *Rule) Twice() int64 { return 2 * r.Max }\n')
     writeFileSync(`${root}/p/p.go`, `package p\n\nimport "example.com/gocase/q"\n\n${code}\n`)
-    return extractGo(`${root}/p`, {entry: 'L', check: budget})
+    return extractGo(`${root}/p`, {entry: 'L', check: budget, ...more})
   }
   const x = ok(two('type L struct{ N int64 }\nfunc (l *L) Take(r *q.Rule, n int64) bool {\n\tif !r.On || n < 0 || l.N+n > r.Max { return false }\n\tl.N += n\n\treturn true\n}'))
   expect(x.source).toContain('Take_r_Max')
   expect(x.evidence!.coverage.hit).toBe(x.evidence!.coverage.arms)
-  refused(two('type L struct{ N int64 }\nfunc (l *L) Take(r *q.Rule) { l.N = r.Twice() }'), /a method of example.com\/gocase\/q/)
+  refused(two('type L struct{ N int64 }\nfunc (l *L) Take(r *q.Rule) { l.N = r.Twice() }', {strict: true}), /a method of example.com\/gocase\/q/)
+  // (inferred: its value read, an answer over its int64, the check's copy calling the stub)
+  expect(ok(two('type L struct{ N int64 }\nfunc (l *L) Take(r *q.Rule) { l.N = r.Twice() }')).notes.join(' ')).toMatch(/example.com\/gocase\/q.Twice .*answered by the request \(inferred/)
   refused(two('type L struct{ N int64 }\nfunc (l *L) Take(r *q.Rule) { l.N = r.In.A }'), /In of the argument: q.Inner: a value outside the subset/)
 }, 600_000)
 

@@ -118,7 +118,7 @@ export type Leaf = {t?: SType, name: string, path: string[], kind: 'num' | 'bool
 export type PArg = {k: 'in', name: string, float?: boolean, sym?: boolean, z?: Raw} | {k: 'opt', none: string, v: PArg} | {k: 'rec', cls: string, f: [string, PArg][]} | {k: 'inert'} | {k: 'store', name: string} | {k: 'dflt'}
 // (how: 'inferred' from the callee's declared type, or 'tagged' by a gdp: comment; stated where absent)
 // (at: the calls answered, each from its position to its end, `line:col`; ty: the call's type in the code's language)
-export type Answer = {key: string, patch: Patch, async: boolean, inputs: {name: string, none?: string, float?: boolean}, sort: string, how?: string, at?: {p: string, end?: string, span?: [number, number]}[], ty?: string}
+export type Answer = {key: string, patch: Patch, async: boolean, inputs: {name: string, none?: string, float?: boolean}, sort: string, how?: string, at?: {p: string, end?: string, span?: [number, number]}[], ty?: string, fit?: boolean}
 // (inject: the fields the harness sets to the store it gives, after the constructor: a field injected by a framework)
 export type StepRead = {ints: Record<string, IntTy>, madeAt?: string, model: Model, leaves: Leaf[], args: Record<string, [string, PArg][]>, answers: Answer[], ctor: [string, PArg][], kept: boolean, arms: [string, number][], cls?: string, stores: Record<string, StoreDecl>, results: Record<string, 'none' | 'scalar' | 'maybe'>, inject?: string[]}
 
@@ -817,8 +817,9 @@ export class Stepper {
       const v = this.newVar(short, s, 'input', how === 'stated' ? `what ${names[0]} returns (stated: answers)` : `what ${names[0]} returns (${how}: any ${text})`)
       const none = t.k === 'opt' ? this.newVar(`${short}_none`, {k: 'bool'}, 'input', `whether ${names[0]} returns None`).name : undefined
       // (a result of a fixed width: within it, the claim is for the values its type holds)
-      this.typed(v, inner, 'input')
-      a = {key, patch: patch ?? {}, async: awaited, inputs: {name: v.name, ...(none ? {none} : {}), ...(inner.k === 'float' ? {float: true} : {})}, sort: text, ...(how === 'stated' ? {} : {how}), at: [], ...(at.ty ? {ty: at.ty as string} : {})}
+      const fit = !!this.intTy(inner)
+      if (fit) this.typed(v, inner, 'input')
+      a = {key, patch: patch ?? {}, async: awaited, inputs: {name: v.name, ...(none ? {none} : {}), ...(inner.k === 'float' ? {float: true} : {})}, sort: text, ...(how === 'stated' ? {} : {how}), ...(fit ? {fit} : {}), at: [], ...(at.ty ? {ty: at.ty as string} : {})}
       this.answers.set(key, a)
       this.notes.add(how === 'stated' ? `${names[0]} (${at.p}): answered by the request (stated), its arguments not read` : `${names[0]} (${at.p}): answered by the request (${how}: its value is read; assumes ${names[0]} may return any ${text}), its arguments not read`)
     } else if (a.async !== awaited) return refuse(at, `${at.text}: ${key} awaited at one call and not at another`)
@@ -2685,7 +2686,7 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
     // (an answer outside its type is no value the callee returns: the request is outside what the check compares)
     const answersOf = () => Object.fromEntries(read.answers.map(a => {
       const v = inputsNow[a.inputs.name] ?? 0, ty = read.ints[a.inputs.name], n = Number(v)
-      if (ty && !(a.inputs.none && inputsNow[a.inputs.none] === true)) { const [lo, hi] = rangeOf(ty); if (n < lo || n > hi) throw new Outside(`${a.key} answers ${String(v)}, outside its type`) }
+      if (a.fit && ty && !(a.inputs.none && inputsNow[a.inputs.none] === true)) { const [lo, hi] = rangeOf(ty); if (n < lo || n > hi) throw new Outside(`${a.key} answers ${String(v)}, outside its type`) }
       return [a.key, a.inputs.none && inputsNow[a.inputs.none] === true ? {none: true} : {in: v, ...(a.inputs.float ? {float: true} : {})}]
     }))
     let coverage: Coverage | undefined

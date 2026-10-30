@@ -142,7 +142,7 @@ uint8_t rb_dequeue(rb_t *r, uint8_t *data) { if (rb_empty(r)) return 0; *data = 
 }, 60_000)
 
 t('refused where it leaves the subset, each with why', () => {
-  const why = (code: string, entry: string) => { const r = c(code, entry); expect(r.ok).toBe(false); return r.refusals[0]!.what }
+  const why = (code: string, entry: string) => { const r = c(code, entry, {strict: true}); expect(r.ok).toBe(false); return r.refusals[0]!.what }
   expect(why('struct q { int n; };\nvoid f(struct q *q) { while (q->n > 0) q->n--; }\n', 'q')).toMatch(/a loop \(while\)/)
   expect(why('int g;\nstruct q { int n; };\nvoid f(struct q *q) { q->n = g; }\n', 'q')).toMatch(/a global variable/)
   expect(why('#include <string.h>\nstruct q { unsigned n; };\nvoid f(struct q *q) { q->n = strlen("ab"); }\n', 'q')).toMatch(/another file or library|a string/)

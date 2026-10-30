@@ -440,7 +440,7 @@ export function speak(work: string, bin: string, env: Record<string, string | un
         let answers: Record<string, unknown> | undefined
         if (read.answers?.length) {
           const v = args.pop() as Record<string, Raw>
-          answers = Object.fromEntries(read.answers.map(a => { const x = v[a.inputs.name] ?? 0; if (a.range && (Number(x) < a.range[0] || Number(x) > a.range[1])) throw new Outside(`${a.key} answers ${String(x)}, outside its type`); return [a.key, a.inputs.none && v[a.inputs.none] === true ? {none: true} : {in: x}] }))
+          answers = Object.fromEntries(read.answers.map(a => { const x = v[a.inputs.name] ?? 0; if (a.fit && a.range && (Number(x) < a.range[0] || Number(x) > a.range[1])) throw new Outside(`${a.key} answers ${String(x)}, outside its type`); return [a.key, a.inputs.none && v[a.inputs.none] === true ? {none: true} : {in: x}] }))
         }
         const res = ask({op: 'call', id: self, m: e.call, a: args, ...(answers ? {answers} : {})}) as {out?: unknown, hasOut?: boolean, err?: string, panic?: string, bad?: string, frame?: string}
         if (res.frame) throw new Error(`the code changes ${res.frame}, a field the rule leaves out`)

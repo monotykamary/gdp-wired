@@ -37,6 +37,8 @@ import {type CRead, clangDump, flagsFor, node, readC} from './c/reader.ts'
 export type COptions = {
   // The struct, and the functions read as its requests (by default each non-static one whose first parameter points to it).
   entry?: string, functions?: string[],
+  // true: another file's or a library's function refused where it is called (nothing inferred)
+  strict?: boolean,
   // The project's flags (-I, -D, -std), or its compile_commands.json (the file's entry's), and the clang to run.
   flags?: string[], compileCommands?: string, clang?: string,
   // The project's own files (their functions are read too: a header's static inline ones); by default the file's directory.
@@ -66,7 +68,7 @@ export function extractC(file: string, opts: COptions, cpp = false): Extraction 
   try {
     ;({c, flags} = readCFile(file, opts, cpp))
     c.pkg.dir = node<{resolve: (p: string) => string}>('node:path').resolve(file).replace(/\/[^/]*$/, '')
-    read = readGo(c.pkg, {entry: c.entry, methods: opts.functions?.map(f => f.split('/')[0]!) ?? c.methods, ...(opts.onError ? {onError: opts.onError} : {}), ...(opts.fails ? {fails: opts.fails} : {})} as GoOptions)
+    read = readGo(c.pkg, {entry: c.entry, methods: opts.functions?.map(f => f.split('/')[0]!) ?? c.methods, ...(opts.onError ? {onError: opts.onError} : {}), ...(opts.fails ? {fails: opts.fails} : {}), ...(opts.strict ? {strict: true} : {})} as GoOptions)
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
     throw e

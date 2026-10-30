@@ -706,3 +706,67 @@ for byte, so the shared changes leave every other language's rules as they were.
 has none): f1 34 / 35 and f2 24 / 33 proven, rw 74 / 14 / 3, g332 332 of 332 with the same search, each 0 differing;
 the suite 231 of 231 (extract-jvm 13 pass among them, tsc and lint clean); onecpu no failure; $0.57 estimated
 (runs/bar/runs/9868500d5293-vs-5d4da3f49013-quick-2026-10-300347).
+
+## The boundary inferred in every language (gen/boundary2)
+
+**The stub protocol, one for every check.** An answered call (stated, tagged or inferred) is a stub point named by the
+callee's qualified name (`Answer.key`: `litellm.proxy.proxy_server.get_current_spend`, `unicode/utf8.RuneCountInString`,
+`std::process::id`, `quota_bonus`), and each request carries `answers: {<name>: {in: v} | {none: true}}`. A harness
+reads its stub point's value from there, by the name, whatever stubs it: Python `stub(key)`, Ruby `answer(key)`, Elixir
+`GdpAnswer.a(key)`, Rust `crate::__gdp_answer(key)`, Go `gdpAnswer[T](key, callee, args...)`, C and C++
+`gdp_answer(key)`, the JVM's `gdp.Rt.answer(key, T)` (gen/jvm), TypeScript's module stub's export. A later opt-in macro
+can target the same points. What reaches the point is the language's own mechanism, the slimmer of two:
+
+| Language | How an answered call reaches its stub point | Stores (injected dependencies) |
+| --- | --- | --- |
+| Python | reflection: the callee's attribute set (`patch` by module and path, or on the object) | yes: a store object the check gives |
+| Ruby | reflection: a module prepended to the callee's class, as the clock's is | yes: the same, in Ruby |
+| Elixir | the module's AST rewritten as the harness compiles it: `Mod.f(...)` becomes the stub (another module can't be swapped where it is the standard library's) | no (state is a value) |
+| TypeScript | the sandbox's module for the import: a Proxy whose exports answer, or do nothing | no |
+| Rust | the crate's copy, each answered call's text (the reader's position to its end) replaced by the stub | no |
+| Go | an overlay (`go build -overlay`) of the package's file with each answered call replaced; the callee and its arguments still evaluated, so its imports stay used | no |
+| C, C++ | the copy of the file the harness includes, each answered call replaced (`-iquote` the original directory) | no |
+| Java, Kotlin | the compiled copy (gen/jvm) | yes: a proxy of the interface |
+
+The rewriting is shared (core/extract-step.ts `stubbed`: the answers' sites, by `line:col` from the reader's position
+to the end it gives, or by offsets); each reader gained a call's end (Rust's syn spans, Go's `ast.Node.End`, clang's last
+token). The user's code is never touched: the copies live in the check's temporary directory. A Go copy is built without
+`-cover` (cover reads the files as they are), so its arms are not counted; a C file's call of another file left out
+still links against a stub that reports itself (the file is linked alone), so such a skip is a refusal of the check.
+
+**What every reader gained.** The entry inferred (no names: Ruby's reader lists the file's classes, Rust's the crate's
+structs, Elixir's the file's one module or its GenServer or Agent, Go's `readGo` the package's structs, C's front end
+the dump's structs; C++'s dump needs the class named); `gdp:` comments read in the file a position names (resolved
+against the module's root and path); a call of other code marked (`ext`, its `patch` by name, its result's type where the
+language states one: Go's and C's types make their answers inferred; Ruby, Elixir and Rust state none, so theirs are
+tagged, `# gdp: answer int`, `// gdp: answer u32`). An answer of a fixed width is typed (`u32`, `int64`): the request is
+within it, and the check treats a drawn value outside it as outside what it compares. Rust, Ruby and Elixir now take
+`answers` and (Ruby) `stores` as options too.
+
+**TypeScript: the same behaviour, not the shared executor.** Its executor (core/extract-read.ts) already had the boundary
+for a class's injected functions (`fnFields`: a call's answer an input over the checker's type, a call returning nothing
+left out, a compound result refused). A call of another module's function from a class now goes through it
+(`import:<module>:<name>`), and the check gives the sandbox that module as a Proxy whose exports answer by that name.
+That is about 2.5 KB; moving TypeScript onto the shared executor would mean a second reader for TypeScript's AST into the
+step IR (its own executor is 98 KB), for the same behaviour. `strict: true` refuses as before.
+
+**FastAPI's Depends** is exercised by a real dependency (core/extract-py.test.ts: a rate limiter whose cache is
+`Depends(get_cache)`, held as a store; the suite's extract-py job installs fastapi). Spring's field `@Autowired` is
+gen/jvm's.
+
+**Measured.** The nine extractions of the first round, rerun with nothing stated on the round's code: the same as before
+(5 the same, 4 needing one statement, every rule byte for byte, LiteLLM's 19 proven and 2 refuted). Real code that calls
+other code, per language:
+
+| Language | Extraction | With nothing stated |
+| --- | --- | --- |
+| Python | LiteLLM's 7 (v1.106.6) | 4 the same, 3 need one statement (above) |
+| Ruby | stoplight 6.0.0's `Memory::Storage::State`, its injected clock | needs a tag: the clock is inferred an injected dependency, but Ruby states no type for `current_time`, so `clocks: ['clock']` stays |
+| Java, Kotlin | gen/jvm's corpus (gRPC's Throttle, resilience4j, OkHttp, Arrow) | gen/jvm's |
+| Rust, Elixir, Go, C, C++, TypeScript | no real code of the corpora calls other code (each corpus was chosen among what the subset read); each language's tests extract code that does (a call left out, one answered, the entry) | not measured on real code |
+
+The corpora (Rust, C and C++, Ruby, Elixir, Java and Kotlin) re-extract byte for byte; Go's 119 captured readings: 115
+the same, the 4 that differ as in the first round (the captured JSON predates a call's end, so nothing there can be
+answered); read by today's reader, `strings.ToUpper`'s is answered over its `string` (core/extract-go.test.ts).
+
+**Bytes.** VALIDATION
