@@ -46,6 +46,7 @@ const seen: {goal: string, out: string, ms: number, unshaped: number[], core: nu
 decideHook.on = (goal, d, t, shaped) => {
   const un = (shaped ?? []).flatMap((s, i) => (s ? [] : [i]))
   seen.push({goal: goal.name, out: 'unknown' in d ? d.unknown : d.sat ? 'sat' : 'unsat', ms: Math.round(t), unshaped: un, core: 'core' in d ? d.core.length : 0})
+  if (process.env.WO_CORES && 'core' in d) console.log('  CORE', goal.name.slice(-40), goal.hyps.length, JSON.stringify(d.core), d.core.map(i => JSON.stringify(goal.hyps[i]).slice(0, 220)).join('\n    '))
   if (trace) { console.log('  EPR', JSON.stringify(seen.at(-1))); for (const i of un.slice(0, 4)) console.log('    unshaped', i, JSON.stringify(goal.hyps[i]).slice(0, 400)) }
 }
 if (mode === 'replay') {

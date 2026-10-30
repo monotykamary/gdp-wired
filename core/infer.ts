@@ -116,7 +116,7 @@ const inferTrace = !!env.GDP_INFER_TRACE
 // the control state up to 7, and 128 of its values; a goal tried with 6 parts of the set before all of it, 2 forms added
 // at a time.
 const joinOn = env.GDP_JOIN !== '0'
-const joinShare = 0.6, joinQueryMs = 8000, joinGrowWall = 2000, joinRequestMs = 150, joinWalk = 8, joinPairs = 10, joinRaises = 2, joinSparse = 4, joinCoef = 1000
+const joinShare = 0.6, joinQueryMs = 8000, joinGrowMs = 2000, joinRequestMs = 150, joinWalk = 8, joinPairs = 10, joinRaises = 2, joinSparse = 4, joinCoef = 1000
 const joinExtras = 24, joinTries = 40, joinBits = 7, joinKeys = 128, joinAttempts = 6, joinAdd = 2
 // GDP_JOIN_CORE=0: the join's goals by the prover's trees alone, as before (else a model, or a refutation's core, of the
 // CDCL search first, at a quarter of the goal's budget).
@@ -1593,15 +1593,15 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           }
           if (!('tree' in quick) && quick.stuck === 'sat' && quick.witness) return {stuck: 'sat', witness: quick.witness, g: g!}
         }
-        // (where the engine follows, the usual search's EPR decisions capped too, at joinGrowWall's worth of EPR units: the
-        // proving joins' searches take under a second (decentralized lock's sums pass, 0.7–0.8 s), and an unknown one ran 13 s
-        // (wo's every k: Leader[k] <= VoteRequestMsg[k]), the engine's time; counted, so the join ends where it ends on any
+        // (where the engine follows, the usual search within joinGrowMs, counted on the cost model, its EPR decisions capped at
+        // as many ms' worth of their units: the proving joins' searches take under a second (decentralized lock's sums
+        // pass, 0.8 s, 217k units of the cost model's 500k), and an unknown one ran 13 s (wo's every k: Leader[k] <=
+        // VoteRequestMsg[k]), the engine's time; counted, where a wall used to end it, so the join ends where it ends on any
         // machine)
         const jt0 = performance.now(), je0 = eprMeter.n, jf0 = fullWork()
-        let jc = 0
-        const out = env.GDP_JOIN_WALL === '1' ? withWall(engineFollows() ? performance.now() + joinGrowWall : Infinity, () => budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2})))
-          : withEprCap(engineFollows() ? joinGrowWall * inferRates.epr : Infinity, () => budgeted(joinQueryMs, until2 => { const c0 = clock(), r = grow(g!, new Map(), {nodes: 0, until: until2}); jc = clock() - c0; return r }))
-        if (env.GDP_JOIN_TRACE) process.stderr.write(`JASK ${JSON.stringify({g: g!.name.slice(0, 60), follows: engineFollows(), counted: Math.round(jc), ms: Math.round(performance.now() - jt0), epr: eprMeter.n - je0, full: Math.round(fullWork() - jf0), out: 'tree' in out ? 'tree' : `${out.stuck}:${String(out.why ?? '').slice(0, 40)}`})}\n`)
+        const out = engineFollows() ? withEprCap(joinGrowMs * inferRates.epr, () => (timed ? budgeted(joinGrowMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2}))
+          : counted(fullRate, () => grow(g!, new Map(), {nodes: 0, until: clock() + joinGrowMs}), true))) : budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2}))
+        if (env.GDP_JOIN_TRACE) process.stderr.write(`JASK ${JSON.stringify({g: g!.name.slice(0, 60), follows: engineFollows(), ms: Math.round(performance.now() - jt0), epr: eprMeter.n - je0, full: Math.round(fullWork() - jf0), out: 'tree' in out ? 'tree' : `${out.stuck}:${String(out.why ?? '').slice(0, 40)}`})}\n`)
         if (!('tree' in out)) return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined, g: g!}
         for (const h of usedHyps(g!, out.tree)) read(h)
         return {used, g: g!}
