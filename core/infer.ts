@@ -1646,9 +1646,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       return true
     }
     const formOf = (c: Lit[], view?: number): Form => ({coef: [], d: 0, cells: false, cube: c, size: 1, ...(view !== undefined ? {view} : {})})
-    // (a view's key read only by order literals bounding it from one side (Ep[x] + 1 <= y, y nowhere else): a value past
-    // the small instance's (or 0) always has that literal, so the cube is a stronger one in disguise, and false where that
-    // is: no such cube)
+    // (a view's key read only by order literals bounding it from below (Ep[x] + 1 <= y, y nowhere else): a value past the
+    // small instance's always has that literal, so the cube is a stronger one in disguise, and false where that is: no such
+    // cube. One bounded from above alone is 0 there, the cube a true one (started is 0 and y + 1 <= Ep[x]: Ep is 0 before
+    // init))
     const oneSided = (c: Lit[], vi: number): boolean => {
       const v = views[vi]!, side = new Map<string, number>(), held = new Set<string>()
       for (const l of c) for (const [a, k] of 'at' in l ? [[l.at.atom, 0] as [number, number]] : l.lin.coef) {
@@ -1657,7 +1658,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         else if (at.term?.op === 'var' && k) { const s0 = side.get(at.term.name), dir = Math.sign(k); side.set(at.term.name, s0 === undefined || s0 === dir ? dir : 2) }
         else if (at.term) walk(at.term, o => { if (o.op === 'var') held.add(String(o.name)) })
       }
-      return [...side].some(([nm, d]) => d !== 2 && !held.has(nm))
+      return [...side].some(([nm, d]) => d === -1 && !held.has(nm))
     }
     const witnessStep = (w: Record<string, number>): {pre: State, post?: State} => {
       const pre = stateAt(w), input = requestOf(w)
@@ -2101,7 +2102,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           if (v.vars.length ** b.length > 64) return false
           for (const t of b.reduce<string[][]>(acc => acc.flatMap(t2 => v.vars.map(k => [...t2, k])), [[]])) hyps.push(substC(l.holds, {vars: Object.fromEntries(b.map((q, k) => [q, sk.vars[t[k]!]!])), maps: {}, flags: {}}))
         }
-        return 'tree' in budgeted(joinQueryMs / 8, until2 => grow({name: 'implied', hyps}, new Map(), {nodes: 0, until: until2}))
+        return 'tree' in withWall(wallUntil, () => budgeted(joinQueryMs / 8, until2 => grow({name: 'implied', hyps}, new Map(), {nodes: 0, until: until2})))
       }
       // (the cubes that read a map the caller's laws read first)
       const callerMaps = new Set(laws.flatMap(l => [...JSON.stringify(l.holds).matchAll(/"map":"([^"]+)"/g)].map(q => q[1]!)))
@@ -2170,7 +2171,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         let b = startBad.get(f)
         if (b === undefined) {
           const ls2 = [...given, lawFor(f)], g = obligations(forLaws(ls2).m, ls2, {}, given.length)[0]!
-          const q = budgeted(joinQueryMs / 32, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true})) as Refuted
+          const q = budgeted(joinQueryMs / 32, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, wall: wallUntil})) as Refuted
           b = !('tree' in q) && q.stuck === 'sat' && !!q.witness && badAtStart(f, q.witness)
           startBad.set(f, b)
         }
@@ -2344,7 +2345,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             // after it would be no quicker)
             if (!dl && !(f && outOfTime)) {
               const inst = mapNames.length ? lawInstances(mm, ls, idx) : undefined, g = obligations(mm, ls, inst ? {[ls[idx]!.name]: inst} : {}, idx)[1]!
-              const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
+              // (the engine's wall too: a counted budget alone runs on past it, wo's 6 s)
+              const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true, wall: kUntil()})) as Refuted
               if (!('tree' in quick) && quick.why === REFUTED && quick.core) { const lawAt = lawsFrom(mm, ls, false, inst ?? {}); settled.set(ls[idx]!.name, [...new Set([...quick.core].map(h => lawAt.get(h)).filter((k): k is number => k !== undefined && k >= given.length && k !== idx).map(k => ls[k]!.name))]) }
               if ('tree' in quick || quick.why === REFUTED) { stand(ls[idx]!.name); continue }
               // (the caller's law's model from the proof path alone: EPR's, real or with the instances that refute it)
@@ -2422,7 +2424,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const gone: Form[] = []
         let grown = false
         if (complete && !caller && !drops.size) for (let k = 0; k < 24 && !stop() && performance.now() < wallUntil; k++) {
-          const t2 = performance.now(), v = within(t0 + ms, () => prove([...laws, ...cubes.map(lawFor), ...(ghost ? [ghost.some] : [])], true))
+          const t2 = performance.now(), setLaws = [...laws, ...cubes.map(lawFor), ...(ghost ? [ghost.some] : [])]
+          let v = within(t0 + ms, () => prove(setLaws, true))
+          // (the fast proof failing at a cube whose own goal the rounds proved from this set: the two disagree, and the
+          // usual proof decides (proveSetFast has a spurious model on ring's own-id law))
+          const at0 = String(v.goal ?? ''), g0 = v.proven && v.checked ? undefined : cubes.find(c => at0.startsWith(`${textOf(c)} @`))
+          if (g0 && at0.endsWith('@step') && stands.has(lawFor(g0).name)) v = within(t0 + ms, () => prove(setLaws))
           const at = String((v as {goal?: string}).goal ?? ''), g = v.proven && v.checked ? undefined : cubes.find(c => at.startsWith(`${textOf(c)} @`))
           opts.progress?.('join set', {cubes: cubes.length, exists: ghost ? 1 : 0, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), at: at.slice(0, 120)})
           if (v.proven && v.checked) { why = 'inductive'; cone = cubes; enumProof = v; break }
@@ -2431,14 +2438,16 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           // are some new ones, the cube kept and the rounds again; else the cube dropped)
           const wit2 = v.witness, bs = wit2 && at.endsWith('@step') ? blockers(preOf(wit2)).filter(b => !cubes.some(c => textOf(c) === textOf(b)) && !atStart(b)) : []
           if (bs.length) { cubes = [...cubes, ...bs]; grown = true; break }
+          if (wit2 && at.endsWith('@step')) subs.push(preOf(wit2))
           cubes = cubes.filter(c => c !== g); gone.push(g)
         }
         if (!complete || caller || (!drops.size && !gone.length && !grown && !promoted.length && !pending.size) || enumProof) over = true
         if (drops.size || gone.length) unstand([...drops, ...gone])
         demote([...drops, ...gone])
         cubes = [...cubes.filter(g => !drops.has(g)), ...back()]
-        // (nothing changed and nothing left to push: the frames are at their fixpoint)
-        if (!drops.size && !gone.length && !grown && !promoted.length && [...pending].every(g => tried.get(g) === versionOf() || (backs.get(g) ?? 0) >= 2)) over = true
+        // (nothing changed and nothing left to push: the frames at their fixpoint, the set grown by relevance to the
+        // counterexamples while there is something relevant)
+        if (!enumProof && !drops.size && !gone.length && !grown && !promoted.length && [...pending].every(g => tried.get(g) === versionOf() || (backs.get(g) ?? 0) >= 2)) { const more = complete ? grow(cubes) : []; if (more.length) { cubes = [...cubes, ...more]; over = false } else over = true }
       })
     }
     }
