@@ -176,6 +176,28 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - **If "dead":** the start check (`atStart`, a 250 ms CDCL model judged by the interpreter) is wrong on it.
   - **ring:** the same check with its 5 (`ring-pick`: leader, own-id, three between turns), then the guard on the fast proof (the usual proof where it contradicts the rounds).
 
+**Since ff399ff** (`runs/engine/st1`–`st7`, `f8`, `g1`–`g3`; the typecheck now in the Modal batches, since the laptop's load forbade local runs)
+- **Where the probe-proven cubes end** (an end-of-engine status hook, taken out):
+  - distributed: 10 of 12 in the set; never chosen are "Held[x] ∧ Transfer[z, y] ∧ Ep[y] + 1 <= z" and the same-node "two live transfers".
+  - ring: the own-id law in the set, the leader law pending, the three between turns never chosen.
+- **Why never chosen** (each blocker call's ranking, marked):
+  - distributed's needed blockers are usually among the candidates, at ranks 1–31 (often 2–4), and only the top two were taken. Now four: a different pair then enters (Held ∧ Transfer[z, y] in; a live transfer above every epoch and the same-node two-live-transfers out).
+  - ring's between turns only ever *may* fail at a counterexample (cells unnamed), ranked about 53rd behind fewer-literal cubes of the same score, and are no candidate at most counterexamples.
+- **A pool Houdini** (DuoAI's fixpoint of the relevant candidates): every cube ranked in a counterexample's top eight joins a pool. Once, when 40% of the engine's time is left (at a round's start, ahead of its early returns), one Houdini runs over the set, the pending cubes and the pool, the usual proof deciding where the fast one blames a kind's law or a cube the rounds proved.
+  - distributed: the pool is 73–78 cubes, each fast set proof 1.6–10 s, out of time before it closes.
+  - ring: its first call takes what is left.
+  - Cheap re-proofs after a drop (proveSetFast's kept decisions, at this size) are the EPR side's.
+- **Verified** (`f8`, b91d305's code before the status hook came out; one run each): the seven proven (sync 9 s, async 26, decentralized 13, 2PC 18, ticket 36, toy 14, sharded 31); distributed, ring, wo unknown; the pool Houdini fired only on distributed.
+- **The gitea near-miss** (`g1`–`g3`, and tmp/few8w at 05ac413, not for merge):
+  - a `few` limit of 6 or 8 alone doesn't bring it in: the join has spent the cost clock (22 s over), and the engine's entry checks `now() < until`;
+  - with the limit at 8 and the entry on the wall, it reaches the engine (a small instance of 1009 states at 33.7 s), but the enumeration makes 0 cubes, so it stays unknown;
+  - the ten are unchanged (the seven proven, one run each), and so is the real-world corpus (bar, 05ac413 against 5d4da3f: 318/361, 0 gained, 0 lost, wrong 0; $0.09);
+  - so the raise is harmless and gains nothing until gitea's views make cubes (its counted approvals are over a key and a counter-assigned id).
+- **The exact next step:**
+  - distributed: make the pool Houdini affordable. Either a smaller pool (the top four, and only the counterexamples of laws the set's proof failed at), or proveSetFast's re-proof after a drop cheap at 70 cubes (EPR side).
+  - ring: a ranking where a may-fail cube that reads the counterexample's named cells (Pending at the model's keys) outranks one that doesn't.
+  - gitea: why its 5 views make no cube.
+
 **The expressibility map** (each written law in models.ts's `human`, against the engine's enumeration; `smallprobe.ts` with CUBES=made lists it, and 'join view' each view's literals)
 
 | Protocol | Written law | In the candidate space? | Missing block or cause |

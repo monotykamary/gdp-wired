@@ -1,0 +1,1 @@
+[{"name": "gitea-gate8", "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; DBG_GATE=1 GDP_FEW=8 timeout -s KILL 100 bun research/realworld/score.ts --one 'approval/gitea/reviews' 0 --ms 60000 2>/tmp/e.log | tail -1 | cut -c1-150; grep GATE /tmp/e.log | cut -c1-300", "timeout": 150}]
