@@ -144,7 +144,9 @@ public final class Jvm {
     return stype(t, env);
   }
   // What a reader knows of the code's own types.
-  interface Env { List<String> enumValues(String fq); String rec(String fq); }
+  // (other: another module's class or an interface, a record of other code the boundary's inference reads: its
+  // methods' declared results, and whether it is a protocol; null where the reader knows nothing of it)
+  interface Env { List<String> enumValues(String fq); String rec(String fq); default String other(String fq) { return null; } }
   static Map<String, Object> stype(JT t, Env env) {
     if (t == null) return m("k", "opaque", "why", "a value of no type the reader resolved");
     if (t.nul && !t.is("java.util.Optional")) return m("k", "opt", "of", stype(t.nullable(false), env));
@@ -167,6 +169,8 @@ public final class Jvm {
     String r = env.rec(t.n);
     if (r != null) return m("k", "rec", "name", r);
     if (t.n.startsWith("java.util.") && (t.n.endsWith("List") || t.n.endsWith("Set") || t.n.endsWith("Queue") || t.n.endsWith("Deque") || t.n.equals("java.util.Collection"))) return m("k", "opaque", "why", "a " + t.simple() + " (collections but maps are outside the subset)");
+    String o = t.n.startsWith("java.lang.") || t.n.startsWith("kotlin.jvm.functions.") || t.n.startsWith("typevar:") || t.n.startsWith("array:") ? null : env.other(t.n);
+    if (o != null) return m("k", "rec", "name", o);
     return m("k", "opaque", "why", "a " + t.simple() + " (a type of other code)");
   }
 
@@ -301,6 +305,10 @@ public final class Jvm {
 
   // --- what the caller's boundary inference reads ----------------------------------------------------------------------
   // A declaration's annotations (DI ones among them) and its `// gdp:` tags, as the reader saw them.
+  // An injection by the framework (a field or a constructor's argument the boundary's inference holds as a store).
+  static final Set<String> INJECT = Set.of("Autowired", "Inject", "Resource");
+  // The boundary's tags as annotations (@GdpSkip, @GdpAnswer("int"), @GdpStrict): a function's decorators.
+  static boolean gdpTag(String name) { return name.matches("(?i)gdp[._]?(skip|answer|strict)"); }
   static final Set<String> DI = Set.of("Autowired", "Inject", "Resource", "Value", "Qualifier", "Named", "Lazy", "MockBean", "Bean", "Component", "Service", "Repository", "Configuration");
   static Map<String, Object> anno(String name, String fq, String text) { return m("name", name, "fq", fq, "text", text, "di", DI.contains(name) ? true : null); }
   // `// gdp: ...` comments of a file, by the line they are on (a tag names the declaration or call on its line, or on

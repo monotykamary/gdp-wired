@@ -88,7 +88,10 @@ public final class KtReader implements Jvm.Env {
     for (File s : sibs == null ? new File[0] : sibs) { try { KtFile o = f.createFile(s.getName(), Files.readString(s.toPath())); String op = o.getPackageFqName().asString(); index(o.getDeclarations(), op.isEmpty() ? "" : op + ".", ""); } catch (Exception e) { /* unread */ } }
     Map<String, Object> out = m("lang", "kotlin", "file", base, "path", new File(path).getAbsolutePath(), "module", pkg, "root", new File(root).getAbsolutePath());
     List<Object> entries = new ArrayList<>();
-    for (Object n : (List<?>) req.get("names")) {
+    List<?> names = (List<?>) req.get("names");
+    // (no names: every class of the file, the executor taking the one whose public methods write its state)
+    if (names.isEmpty()) { List<Object> all = new ArrayList<>(); for (Map.Entry<String, KtClassOrObject> e : classes.entrySet()) if (e.getValue().getContainingFile() == file && e.getValue() instanceof KtClass k && !k.isInterface() && !k.isEnum() && !k.isInner() && !k.isSealed() && !k.hasModifier(KtTokens.ABSTRACT_KEYWORD)) all.add(e.getKey().replace('$', '.')); names = all; }
+    for (Object n : names) {
       String key = null;
       for (String k : classes.keySet()) { String dotted = k.replace('$', '.'); if (dotted.equals(n) || dotted.endsWith("." + n)) { key = k; break; } }
       entries.add(key == null ? m("k", "missing", "name", n) : m("k", "class", "rec", entry(key)));
@@ -174,11 +177,49 @@ public final class KtReader implements Jvm.Env {
     recs.put(fq, m("name", fq, "short", k.getName(), "fields", fields, "methods", m(), "kinds", k.isData() || fields.size() == k.getPrimaryConstructorParameters().size() ? List.of("dataclass") : List.of("value"), "own", true, "module", pkg, "p", where(k), "jvm", m("data", k.isData() ? true : null)));
     return fq;
   }
+  // @GdpSkip, @GdpAnswer("int"), @GdpStrict: the boundary's tags, as the executor reads a decorator.
+  List<Object> tagDecos(KtModifierListOwner o) {
+    List<Object> out = new ArrayList<>();
+    for (KtAnnotationEntry a : o.getAnnotationEntries()) if (a.getShortName() != null && gdpTag(a.getShortName().asString())) out.add(m("name", a.getShortName().asString(), "text", a.getText().replace("@", ""), "p", where(a)));
+    return out;
+  }
+  // Another module's class or an interface: a record of other code, its methods' declared results its `rets`.
+  boolean noOther = false;
+  @Override public String other(String fq) {
+    if (noOther || fq == null || fq.isEmpty() || recs.containsKey(fq) && !Boolean.FALSE.equals(((Map<?, ?>) recs.get(fq)).get("own")) && !recs.containsKey(fq)) return null;
+    if (recs.containsKey(fq)) return Boolean.FALSE.equals(((Map<?, ?>) recs.get(fq)).get("own")) ? fq : null;
+    KtClassOrObject k = classes.get(fq);
+    Map<String, Object> methods = new LinkedHashMap<>(), rets = new LinkedHashMap<>();
+    boolean proto;
+    noOther = true;
+    try {
+      if (k != null) {
+        if (!(k instanceof KtClass kc) || !kc.isInterface()) return null;
+        proto = true;
+        for (KtDeclaration d : body(k)) if (d instanceof KtNamedFunction f && f.getName() != null) { methods.put(f.getName(), null); JT t = type(f.getTypeReference()); rets.put(f.getName(), stype(t == null ? new JT("void") : t, this)); }
+      } else {
+        Class<?> c = load(fq);
+        if (c == null || c.isEnum() || c.isPrimitive() || c.isArray()) return null;
+        proto = c.isInterface();
+        Map<String, Integer> seen = new HashMap<>();
+        for (java.lang.reflect.Method mm : c.getMethods()) {
+          if (java.lang.reflect.Modifier.isStatic(mm.getModifiers()) || mm.getDeclaringClass() == Object.class) continue;
+          if (seen.merge(mm.getName(), 1, Integer::sum) > 1) { rets.remove(mm.getName()); continue; }
+          methods.put(mm.getName(), null);
+          rets.put(mm.getName(), stype(jtOf(mm.getReturnType(), mm.getGenericReturnType()), this));
+        }
+      }
+    } finally { noOther = false; }
+    recs.put(fq, m("name", fq, "short", fq.substring(Math.max(fq.lastIndexOf('.'), fq.lastIndexOf('$')) + 1), "fields", List.of(), "methods", methods, "kinds", proto ? List.of("protocol") : List.of(), "own", false, "module", fq.contains(".") ? fq.substring(0, fq.lastIndexOf('.')) : "", "p", "?", "rets", rets));
+    return fq;
+  }
   List<Object> annos(KtModifierListOwner o) {
     List<Object> out = new ArrayList<>();
     for (KtAnnotationEntry a : o.getAnnotationEntries()) { String n = a.getShortName() == null ? a.getText() : a.getShortName().asString(); out.add(anno(n, resolve(n), a.getText())); }
     return out;
   }
+  // Injected by the framework: @Autowired, @Inject or @Resource on it (a constructor's argument: on the constructor too).
+  static boolean injected(KtModifierListOwner o) { for (KtAnnotationEntry a : o.getAnnotationEntries()) if (a.getShortName() != null && INJECT.contains(a.getShortName().asString())) return true; return false; }
   static boolean has(KtModifierListOwner o, String n) { for (KtAnnotationEntry a : o.getAnnotationEntries()) if (a.getShortName() != null && a.getShortName().asString().equals(n)) return true; return false; }
 
   // --- the class ---------------------------------------------------------------------------------------------------------
@@ -203,18 +244,19 @@ public final class KtReader implements Jvm.Env {
     if (c instanceof KtClass k && k.isInner()) return refused(c, name, "an inner class (it holds its outer object; the subset reads a top-level or nested class)");
     List<KtClassOrObject> ch = chain(c);
     boolean immutable = true;
+    List<String> myReducers = new ArrayList<>();
     for (KtClassOrObject k : ch) {
       if (k instanceof KtClass kc) for (KtParameter p : kc.getPrimaryConstructorParameters()) if (p.hasValOrVar()) {
         immutable &= !p.isMutable();
         JT t = type(p.getTypeReference());
-        fields.add(m("name", p.getName(), "t", stype(t, this)));
+        fields.add(m("name", p.getName(), "t", stype(t, this), "inject", injected(p) ? true : null));
         jfields.add(m("name", p.getName(), "jt", String.valueOf(t), "annos", annos(p), "tag", tag(p)));
       }
       for (KtDeclaration d : body(k)) if (d instanceof KtProperty p && !computed(p) && !p.hasModifier(KtTokens.CONST_KEYWORD)) {
         immutable &= !p.isVar();
         JT t = type(p.getTypeReference());
         if (t == null && p.getInitializer() != null) t = ex(p.getInitializer(), new Ctx(new ArrayList<>(), new HashMap<>(), 0, true)).t();
-        fields.add(m("name", p.getName(), "t", stype(t, this)));
+        fields.add(m("name", p.getName(), "t", stype(t, this), "inject", injected(p) ? true : null));
         jfields.add(m("name", p.getName(), "jt", String.valueOf(t), "annos", annos(p), "tag", tag(p)));
       }
     }
@@ -231,7 +273,7 @@ public final class KtReader implements Jvm.Env {
           boolean reducer = immutable && rt != null && (rt.n.equals(name) || chain(c).stream().anyMatch(s -> binOf(s).equals(rt.n)));
           methods.put(key, id);
           funcs.put(id, func(fn, id, reducer, fields));
-          if (reducer) reducers.add(key);
+          if (reducer) { reducers.add(key); myReducers.add(key); }
           sigs.put(key, m("name", fn.getName(), "params", fn.getValueParameters().stream().map(p -> erased(type(p.getTypeReference()))).toList(), "decl", binOf(k)));
         } else if (d instanceof KtProperty p && computed(p)) {
           if (!seen.add(p.getName())) continue;
@@ -251,7 +293,7 @@ public final class KtReader implements Jvm.Env {
       "jts", c instanceof KtClass k ? k.getPrimaryConstructorParameters().stream().map(p -> String.valueOf(type(p.getTypeReference()))).toList() : List.of(),
       "paramAnnos", c instanceof KtClass k ? k.getPrimaryConstructorParameters().stream().map(this::annos).toList() : List.of(),
       "annos", c instanceof KtClass k && k.getPrimaryConstructor() != null ? annos(k.getPrimaryConstructor()) : List.of());
-    recs.put(name, m("name", name, "short", c.getName(), "fields", fields, "methods", methods, "kinds", kinds, "own", true, "module", pkg, "p", where(c), "jvm", m("fields", jfields, "annos", annos(c), "ctor", jctor, "immutable", immutable ? true : null)));
+    recs.put(name, m("name", name, "short", c.getName(), "fields", fields, "methods", methods, "kinds", kinds, "own", true, "module", pkg, "p", where(c), "jvm", m("fields", jfields, "annos", annos(c), "ctor", jctor, "immutable", immutable ? true : null, "cls", name, "sigs", sigs, "reducers", new ArrayList<>(myReducers))));
     jvm.put("cls", name); jvm.put("ctor", ps); jvm.put("methods", sigs);
     return name;
   }
@@ -269,7 +311,7 @@ public final class KtReader implements Jvm.Env {
   Map<String, Object> fn(String id, String name, PsiElement at, List<Object> params, JT ret, List<Object> body, KtModifierListOwner o) {
     List<Object> ps = new ArrayList<>(List.of(m("name", "self", "t", m("k", "any"), "self", true)));
     ps.addAll(params);
-    return m("id", id, "name", name, "cls", selfName, "p", where(at), "span", List.of(base, line(at.getTextRange().getStartOffset()), line(at.getTextRange().getEndOffset())), "params", ps, "ret", stype(ret, this), "body", body, "decorators", List.of(),
+    return m("id", id, "name", name, "cls", selfName, "p", where(at), "span", List.of(base, line(at.getTextRange().getStartOffset()), line(at.getTextRange().getEndOffset())), "params", ps, "ret", stype(ret, this), "body", body, "decorators", o == null ? List.of() : tagDecos(o),
       "annos", o == null ? null : annos(o), "tag", tag(at), "jt", String.valueOf(ret));
   }
   Map<String, Object> func(KtNamedFunction f, String id, boolean reducer, List<Object> fields) {
@@ -329,12 +371,14 @@ public final class KtReader implements Jvm.Env {
     if (c instanceof KtClass k) for (KtParameter pa : k.getPrimaryConstructorParameters()) {
       JT t = type(pa.getTypeReference());
       cx.locals.put(pa.getName(), t);
-      params.add(m("name", pa.getName(), "t", pstype(t, this), "jt", String.valueOf(t), "annos", annos(pa), "dflt", pa.getDefaultValue() == null ? null : ex(pa.getDefaultValue(), cx.fresh(), t).ir()));
+      boolean inj = injected(pa) || (k.getPrimaryConstructor() != null && injected(k.getPrimaryConstructor()) && iface(t == null ? "" : t.n));
+      params.add(m("name", pa.getName(), "t", pstype(t, this), "jt", String.valueOf(t), "inject", inj ? true : null, "annos", annos(pa), "dflt", pa.getDefaultValue() == null ? null : ex(pa.getDefaultValue(), cx.fresh(), t).ir()));
       if (pa.hasValOrVar()) body.add(s("set", where(pa), "to", get(self(z), pa.getName(), z, "this." + pa.getName()), "x", var(pa.getName(), where(pa)), "t", stype(t, this)));
     }
     for (KtClassOrObject k : ch) for (KtDeclaration d : body(k)) {
       if (d instanceof KtProperty pr && !computed(pr) && !pr.hasModifier(KtTokens.CONST_KEYWORD)) {
         JT t = type(pr.getTypeReference());
+        if (pr.getInitializer() == null && injected(pr)) continue;
         if (pr.getInitializer() == null) { body.add(s("set", z, "to", get(self(z), pr.getName(), z, "this." + pr.getName()), "x", x("none", z), "t", stype(t, this))); continue; }
         Ctx sc = cx.fresh();
         X v = ex(pr.getInitializer(), sc, t);
@@ -891,8 +935,11 @@ public final class KtReader implements Jvm.Env {
     PsiElement site = ce.getParent() instanceof KtDotQualifiedExpression dq && dq.getSelectorExpression() == ce ? dq : ce;
     JT dt = declared(owner, n, args.size() + kw.size());
     if (dt != null) want = dt;
-    String callee = recv == null ? n : text(((KtDotQualifiedExpression) site).getReceiverExpression()).replace("this.", "") + "." + n;
-    return new X(m("e", "call", "p", p, "text", t, "f", x("ext", p, "q", owner + "." + n, "text", callee, "patch", m("mod", owner, "path", List.of(n))), "args", args, "kw", kw,
+    String callee = recv == null || !(site instanceof KtDotQualifiedExpression dq2) ? n : text(dq2.getReceiverExpression()).replace("this.", "") + "." + n;
+    // (a method of an object of other code the class holds or is given: called on it, so an injected dependency is
+    // read as one; another call of other code: `ext`, its declared result the answer's type)
+    Map<String, Object> f = recv != null && recv.t() != null && other(recv.t().n) != null ? get(recv.ir(), n, p, callee) : x("ext", p, "q", owner + "." + n, "text", callee, "patch", m("mod", owner, "path", List.of(n)), "ret", want == null ? null : stype(want, this));
+    return new X(m("e", "call", "p", p, "text", t, "f", f, "args", args, "kw", kw,
       "jt", String.valueOf(want), "ity", ity(want), "decl", owner, "iface", iface(owner) ? true : null, "span", span(site), "tag", tag(site)), want);
   }
   // Other code's function's declared result: a class of the code's sources read (its declaration), or one on the

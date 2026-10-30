@@ -161,6 +161,34 @@ public class Lease {
   step(x, 'a grant sets the lease from now', (b, a) => a.expires.eq(b.ttl.plus(b.now)), b => b.expires.atMost(b.now))
 })
 
+tj('the boundary inferred: a field @Autowired (a store), a constructor\'s injected interface (its call an answer the harness stubs), the entry', () => {
+  const x = ok(java(`
+public class Counter {
+  @Autowired private Repo repo;
+  private final Limits limits;
+  private int total;
+  public Counter(Limits limits) { this.limits = limits; }
+  public boolean hit(String key) {
+    Integer n = repo.get(key);
+    int cur = n == null ? 0 : n;
+    if (cur >= limits.limitFor(key)) return false;
+    repo.put(key, cur + 1);
+    total++;
+    return true;
+  }
+  public int total() { return total; }
+}`, 'Counter', {entry: undefined}, {
+    'Repo.java': 'public interface Repo { Integer get(String key); void put(String key, Integer v); }',
+    'Limits.java': 'public interface Limits { int limitFor(String key); }',
+    'Autowired.java': 'public @interface Autowired {}',
+  }))
+  const notes = x.notes.join(' ')
+  expect(notes).toMatch(/the entry inferred: Counter/)
+  expect(notes).toMatch(/repo: an injected dependency \(marked so\)/)
+  expect(notes).toMatch(/answered by the request \(inferred/)
+  step(x, 'a hit counts one, or none where it is refused', (b, a) => a.total.eq(b.total.plus(1)).or(a.total.eq(b.total)).and(a.hit_result.iff(a.total.eq(b.total.plus(1)))), b => b.total.lt(1000).and(b.total.atLeast(0)))
+})
+
 tj('a throw is the step\'s refusal; a failure after a write is refused unless the caller drops the write', () => {
   const src = `
 public class Gate {
@@ -246,6 +274,24 @@ data class Budget(val limit: Int, val spent: Int = 0) {
 }`, 'Budget', {methods: ['spend', 'reset', 'left']}))
   expect(inv(x, 'never past the limit', s => s.spent.atMost(s.limit)).proven).toBe(false)
   step(x, 'a spend within the limit adds it', (b, a) => a.spent.eq(b.spent.plus(b.spend_n)), b => b.method.is('spend').and(b.spend_n.atLeast(0)).and(b.spent.plus(b.spend_n).atMost(b.limit)).and(b.spent.atLeast(0)))
+})
+
+tk('Kotlin: the boundary inferred: a lateinit property @Autowired (a store), the entry', () => {
+  const x = ok(kotlin(`
+annotation class Autowired
+interface Seen { fun get(key: String): Int?; fun put(key: String, n: Int) }
+class Visits {
+  @Autowired lateinit var seen: Seen
+  private var unique = 0
+  fun visit(page: String): Boolean {
+    val n = seen.get(page)
+    if (n == null) unique++
+    seen.put(page, (n ?: 0) + 1)
+    return n == null
+  }
+}`, 'Visits', {entry: undefined}))
+  expect(x.notes.join(' ')).toMatch(/the entry inferred: Visits/)
+  expect(x.notes.join(' ')).toMatch(/seen: an injected dependency \(marked so\)/)
 })
 
 tk('Kotlin: refused where it leaves the subset, each with why', () => {

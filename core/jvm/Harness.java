@@ -22,6 +22,42 @@ public final class Harness {
   static ClassLoader loader;
   static final Map<Long, Object> OBJS = new HashMap<>();
   static Map<?, ?> CUR = Map.of();
+  // Each object's stores (an injected dependency the check gives: get, set and delete over a map that keeps what is
+  // set, its other methods answered by the request), and the current object's.
+  static final Map<Long, Map<String, Store>> STORES = new HashMap<>();
+  static Map<String, Store> ST = new HashMap<>();
+  static final class Store { final Map<String, Object> data = new LinkedHashMap<>(); Method get; }
+  static List<?> list(Object o) { return o instanceof List<?> l ? l : List.of(); }
+  // An injected dependency of an interface type, given as a store.
+  static Object store(String name, Class<?> c) {
+    if (!c.isInterface()) throw new IllegalArgumentException(name + ": a store of a class (the check gives one of an interface)");
+    Store st = ST.computeIfAbsent(name, k -> new Store());
+    Map<?, ?> d = (Map<?, ?>) ((Map<?, ?>) S.get("stores")).get(name);
+    // (the executor's defaults where nothing names them)
+    List<?> gets = d != null && d.get("get") != null ? list(d.get("get")) : List.of("get", "async_get_cache", "get_cache"), sets = d != null && d.get("set") != null ? list(d.get("set")) : List.of("set", "async_set_cache", "set_cache"), dels = d != null && d.get("delete") != null ? list(d.get("delete")) : List.of("delete", "delete_cache", "async_delete_cache");
+    for (Method gm : c.getMethods()) if (gets.contains(gm.getName()) && gm.getParameterCount() == 1) st.get = gm;
+    return Proxy.newProxyInstance(loader, new Class<?>[]{c}, (o, m, a) -> {
+      String n = m.getName();
+      if (n.equals("toString") && m.getParameterCount() == 0) return "store " + name;
+      if (n.equals("hashCode") && m.getParameterCount() == 0) return System.identityHashCode(o);
+      if (n.equals("equals") && m.getParameterCount() == 1) return o == a[0];
+      if (gets.contains(n) && a != null && a.length >= 1) return conv(st.data.get(String.valueOf(a[0] instanceof Enum<?> e ? e.name() : a[0])), m.getReturnType(), m.getGenericReturnType());
+      if (sets.contains(n) && a != null && a.length >= 2) { st.data.put(String.valueOf(a[0] instanceof Enum<?> e ? e.name() : a[0]), a[1]); return m.getReturnType() == void.class ? null : conv(null, m.getReturnType(), m.getGenericReturnType()); }
+      if (dels.contains(n) && a != null && a.length >= 1) { st.data.remove(String.valueOf(a[0])); return m.getReturnType() == void.class || m.getReturnType().isPrimitive() ? conv(null, m.getReturnType(), null) : null; }
+      for (Object a0 : list(S.get("answers"))) {
+        Map<?, ?> an = (Map<?, ?>) a0, pt = (Map<?, ?>) an.get("patch");
+        if (pt != null && name.equals(pt.get("store")) && n.equals(list(pt.get("path")).get(list(pt.get("path")).size() - 1))) { Object v = CUR.get(an.get("key")); return v == null || ((Map<?, ?>) v).containsKey("none") ? conv(null, m.getReturnType(), m.getGenericReturnType()) : conv(((Map<?, ?>) v).get("in"), m.getReturnType(), m.getGenericReturnType()); }
+      }
+      // (another method, left out: it runs as nothing)
+      return m.getReturnType() == void.class ? null : m.getReturnType().isPrimitive() ? conv(null, m.getReturnType(), null) : m.getReturnType() == Optional.class ? Optional.empty() : null;
+    });
+  }
+  static String tplMatch(String tpl, String key) {
+    int i = tpl.indexOf("{}");
+    if (i < 0) return key.equals(tpl) ? "" : null;
+    String pre = tpl.substring(0, i), post = tpl.substring(i + 2);
+    return key.startsWith(pre) && key.endsWith(post) && key.length() >= pre.length() + post.length() ? key.substring(pre.length(), key.length() - post.length()) : null;
+  }
 
   public static void main(String[] argv) throws Exception {
     BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(argv[0]), StandardCharsets.UTF_8));
@@ -56,7 +92,7 @@ public final class Harness {
       case "at":
         try { long i = make((List<?>) req.get("a")); setState(OBJS.get(i), (Map<?, ?>) req.get("state")); return m("id", i); }
         catch (Throwable e) { return m("bad", err(e)); }
-      case "get": return m("state", stateOf(OBJS.get(((Number) req.get("id")).longValue())));
+      case "get": { long id = ((Number) req.get("id")).longValue(); ST = STORES.get(id); return m("state", stateOf(OBJS.get(id))); }
       case "call": return call(req);
       case "coverage": return m("hit", List.of());
       default: return m("error", "no op " + op);
@@ -109,6 +145,7 @@ public final class Harness {
     if (spec.containsKey("in")) return conv(spec.get("in"), c, g);
     if (spec.containsKey("none")) return c == Optional.class ? Optional.empty() : c.isPrimitive() ? conv(0L, c, null) : null;
     if (spec.containsKey("inert")) return inert(c);
+    if (spec.containsKey("store")) return store((String) spec.get("store"), c);
     if (spec.containsKey("rec")) return record(c, (Map<?, ?>) spec.get("f"));
     throw new IllegalArgumentException("an argument spec " + json(spec));
   }
@@ -178,6 +215,13 @@ public final class Harness {
       Map<?, ?> l = (Map<?, ?>) l0;
       String k = (String) l.get("kind");
       if (k.equals("frame")) continue;
+      if (l.get("store") != null) {
+        Store st = ST.get(l.get("store"));
+        Map<String, Object> cells = new LinkedHashMap<>();
+        if (st != null) for (Map.Entry<String, Object> e : st.data.entrySet()) { String h = tplMatch((String) l.get("tpl"), e.getKey()); if (h != null) cells.put(h, m("value", e.getValue() instanceof Boolean ? e.getValue() : enc(e.getValue()))); }
+        s.put((String) l.get("name"), cells);
+        continue;
+      }
       List<?> path = (List<?>) l.get("path");
       Object h = holder(obj, path), v = read(h, (String) path.get(path.size() - 1));
       switch (k) {
@@ -200,6 +244,12 @@ public final class Harness {
         default -> { }
       }
     }
+    // (a store's key no template names: the code keeps state the rule has no place for)
+    for (Map.Entry<String, Store> e : ST.entrySet()) for (String key : e.getValue().data.keySet()) {
+      boolean named = false;
+      for (Object l0 : (List<?>) S.get("leaves")) { Map<?, ?> l = (Map<?, ?>) l0; if (e.getKey().equals(l.get("store")) && tplMatch((String) l.get("tpl"), key) != null) named = true; }
+      if (!named) throw new IllegalStateException("the store " + e.getKey() + " holds " + key + ", a key no template of the rule names");
+    }
     return s;
   }
   @SuppressWarnings("unchecked") static void setState(Object obj, Map<?, ?> st) throws Exception {
@@ -208,6 +258,13 @@ public final class Harness {
       Map<?, ?> l = (Map<?, ?>) l0;
       String k = (String) l.get("kind");
       if (k.equals("frame") || k.equals("none")) continue;
+      if (l.get("store") != null) {
+        Store sto = ST.computeIfAbsent((String) l.get("store"), x -> new Store());
+        String tpl = (String) l.get("tpl");
+        sto.data.keySet().removeIf(key -> tplMatch(tpl, key) != null);
+        for (Map.Entry<?, ?> e : ((Map<?, ?>) st.get(l.get("name"))).entrySet()) { Object v0 = ((Map<?, ?>) e.getValue()).get("value"); Object v1 = v0 instanceof String vs ? (Object) Long.parseLong(vs) : v0; if (sto.get != null) conv(v1, sto.get.getReturnType(), sto.get.getGenericReturnType()); sto.data.put(tpl.contains("{}") ? tpl.replace("{}", (String) e.getKey()) : tpl, v1); }
+        continue;
+      }
       List<?> path = (List<?>) l.get("path");
       Object h = holder(obj, path), v = st.get(l.get("name"));
       String f = (String) path.get(path.size() - 1);
@@ -255,6 +312,7 @@ public final class Harness {
 
   // --- requests -------------------------------------------------------------------------------------------------------
   static long make(List<?> args) throws Exception {
+    ST = new HashMap<>();
     Map<?, ?> ctor = (Map<?, ?>) S.get("jctor");
     Class<?>[] ts = types((List<?>) ctor.get("params"));
     Constructor<?> k = cls.getDeclaredConstructor(ts);
@@ -263,13 +321,17 @@ public final class Harness {
     Object[] a = new Object[ts.length];
     for (int i = 0; i < ts.length; i++) a[i] = i < args.size() ? build(((List<?>) args.get(i)).get(1), ts[i], i < gs.length ? gs[i] : ts[i]) : inert(ts[i]);
     Object o = k.newInstance(a);
+    // (a field the framework injects: set to the store the check gives, after the constructor)
+    for (Object f : list(S.get("inject"))) { Field fd = field(cls, (String) f); fd.set(o, store((String) f, fd.getType())); }
     long id = OBJS.size() + 1;
     OBJS.put(id, o);
+    STORES.put(id, ST);
     return id;
   }
   static Object call(Map<?, ?> req) throws Exception {
     long id = ((Number) req.get("id")).longValue();
     Object obj = OBJS.get(id);
+    ST = STORES.get(id);
     gdp.Rt.NOW = now(req);
     CUR = req.get("answers") == null ? Map.of() : (Map<?, ?>) req.get("answers");
     String key = (String) req.get("m");

@@ -52,7 +52,10 @@ public final class JavaReader implements Jvm.Env {
     CompilationUnitTree cu = cus.iterator().next();
     Map<String, Object> out = m("lang", "java", "file", new File(file).getName(), "path", new File(file).getAbsolutePath(), "module", pkg(cu), "root", new File(root).getAbsolutePath());
     List<Object> entries = new ArrayList<>();
-    for (Object n : (List<?>) req.get("names")) {
+    List<?> names = (List<?>) req.get("names");
+    // (no names: every class of the file, the executor taking the one whose public methods write its state)
+    if (names.isEmpty()) { List<Object> all = new ArrayList<>(); for (TypeElement t : classesOf(cu)) all.add(t.getQualifiedName().toString()); names = all; }
+    for (Object n : names) {
       TypeElement te = find(cu, (String) n);
       if (te == null) { entries.add(m("k", "missing", "name", n)); continue; }
       jvm.put("ctorArity", req.get("ctor"));
@@ -65,9 +68,13 @@ public final class JavaReader implements Jvm.Env {
     return out;
   }
   static String pkg(CompilationUnitTree cu) { return cu.getPackageName() == null ? "" : cu.getPackageName().toString(); }
-  TypeElement find(CompilationUnitTree cu, String name) {
+  List<TypeElement> classesOf(CompilationUnitTree cu) {
     List<TypeElement> all = new ArrayList<>();
-    new TreePathScanner<Void, Void>() { @Override public Void visitClass(ClassTree c, Void v) { Element e = trees.getElement(getCurrentPath()); if (e instanceof TypeElement t) all.add(t); return super.visitClass(c, v); } }.scan(cu, null);
+    new TreePathScanner<Void, Void>() { @Override public Void visitClass(ClassTree c, Void v) { Element e = trees.getElement(getCurrentPath()); if (e instanceof TypeElement t && t.getKind() == ElementKind.CLASS && (t.getNestingKind() == NestingKind.TOP_LEVEL || t.getModifiers().contains(Modifier.STATIC))) all.add(t); return super.visitClass(c, v); } }.scan(cu, null);
+    return all;
+  }
+  TypeElement find(CompilationUnitTree cu, String name) {
+    List<TypeElement> all = classesOf(cu);
     for (TypeElement t : all) { String q = t.getQualifiedName().toString(); if (q.equals(name) || q.endsWith("." + name) || t.getSimpleName().contentEquals(name)) return t; }
     return null;
   }
@@ -141,6 +148,32 @@ public final class JavaReader implements Jvm.Env {
     if (recs.containsKey(name) || reading.contains(name)) return name;
     return valueRec(te);
   }
+  // Another module's class or an interface (the code's own sources' too): a record of other code, its methods' declared
+  // results its `rets` (an answer's type), an interface a protocol.
+  boolean noOther = false;
+  @Override public String other(String fq) {
+    if (noOther) return null;
+    TypeElement te = els.getTypeElement(fq);
+    if (te == null || te.getKind() == ElementKind.ENUM || te.getKind() == ElementKind.ANNOTATION_TYPE) return null;
+    if (te.getKind() != ElementKind.INTERFACE && trees.getPath(te) != null) return null;
+    String name = els.getBinaryName(te).toString();
+    if (recs.containsKey(name)) return name;
+    Map<String, Object> methods = new LinkedHashMap<>(), rets = new LinkedHashMap<>();
+    Map<String, Integer> seen = new HashMap<>();
+    noOther = true;
+    try {
+      for (Element e : els.getAllMembers(te)) {
+        if (e.getKind() != ElementKind.METHOD || e.getModifiers().contains(Modifier.STATIC) || ((TypeElement) e.getEnclosingElement()).getQualifiedName().contentEquals("java.lang.Object")) continue;
+        String n = e.getSimpleName().toString();
+        if (seen.merge(n, 1, Integer::sum) > 1) { rets.remove(n); continue; }
+        methods.put(n, null);
+        rets.put(n, stype(jt(((ExecutableElement) e).getReturnType()), this));
+      }
+    } finally { noOther = false; }
+    recs.put(name, m("name", name, "short", te.getSimpleName().toString(), "fields", List.of(), "methods", methods, "kinds", te.getKind() == ElementKind.INTERFACE ? List.of("protocol") : List.of(), "own", false,
+      "module", els.getPackageOf(te).getQualifiedName().toString(), "p", "?", "rets", rets));
+    return name;
+  }
   Map<String, Object> st(TypeMirror tm) { JT t = jt(tm); return stype(t, this); }
   boolean iface(TypeMirror tm) { return tm.getKind() == TypeKind.DECLARED && ((DeclaredType) tm).asElement().getKind() == ElementKind.INTERFACE; }
   List<Object> annos(TreePath path, List<? extends AnnotationTree> as) {
@@ -152,6 +185,7 @@ public final class JavaReader implements Jvm.Env {
     }
     return out;
   }
+  static boolean injected(List<? extends AnnotationTree> as) { for (AnnotationTree a : as) { String n = a.getAnnotationType().toString(); if (INJECT.contains(n.substring(n.lastIndexOf('.') + 1))) return true; } return false; }
   static boolean has(List<Object> annos, String name) { for (Object a : annos) if (name.equals(((Map<?, ?>) a).get("name"))) return true; return false; }
 
   // --- the classes ---------------------------------------------------------------------------------------------------
@@ -189,7 +223,8 @@ public final class JavaReader implements Jvm.Env {
         TreePath vp = trees.getPath(e);
         JT t = jt(e.asType());
         if (t != null && nullable(c, (VariableElement) e, vt)) t = t.nullable(true);
-        fields.add(m("name", e.getSimpleName().toString(), "t", stype(t, this)));
+        boolean inj = vt != null && injected(vt.getModifiers().getAnnotations());
+        fields.add(m("name", e.getSimpleName().toString(), "t", inj && t != null ? stype(t.nullable(false), this) : stype(t, this), "inject", inj ? true : null));
         jfields.add(m("name", e.getSimpleName().toString(), "jt", String.valueOf(t), "iface", iface(e.asType()) ? true : null, "annos", vp == null ? null : annos(vp, vt.getModifiers().getAnnotations()), "tag", vp == null ? null : tag(vp, vt)));
       }
     }
@@ -227,7 +262,7 @@ public final class JavaReader implements Jvm.Env {
         "paramAnnos", trees.getPath(c) == null ? List.of() : ((MethodTree) trees.getTree(c)).getParameters().stream().map(v -> annos(trees.getPath(c), v.getModifiers().getAnnotations())).toList());
     }
     recs.put(name, m("name", name, "short", te.getSimpleName().toString(), "fields", fields, "methods", methods, "kinds", kinds, "own", true, "module", pkg(cpath.getCompilationUnit()), "p", where(cpath, ct),
-      "jvm", m("fields", jfields, "annos", annos(cpath, ct.getModifiers().getAnnotations()), "ctor", jctor)));
+      "jvm", m("fields", jfields, "annos", annos(cpath, ct.getModifiers().getAnnotations()), "ctor", jctor, "cls", name, "sigs", sigs)));
     jvm.put("cls", name);
     jvm.put("ctor", jctor.get("params"));
     jvm.put("methods", sigs);
@@ -342,15 +377,22 @@ public final class JavaReader implements Jvm.Env {
     if (!me.getModifiers().contains(Modifier.STATIC)) ps.add(m("name", "self", "t", m("k", "any"), "self", true));
     ps.addAll(params);
     return m("id", id, "name", name, "cls", els.getBinaryName((TypeElement) me.getEnclosingElement()).toString(), "p", where(path, t), "span", List.of(new File(cu.getSourceFile().getName()).getName(), cu.getLineMap().getLineNumber(Math.max(0, s)), cu.getLineMap().getLineNumber(Math.max(0, e))),
-      "params", ps, "ret", st(me.getReturnType()), "body", body, "decorators", List.of(), "static", me.getModifiers().contains(Modifier.STATIC) ? true : null,
+      "params", ps, "ret", st(me.getReturnType()), "body", body, "decorators", tagDecos(path, ((MethodTree) t).getModifiers().getAnnotations()), "static", me.getModifiers().contains(Modifier.STATIC) ? true : null,
       "generic", me.getTypeParameters().isEmpty() ? null : true, "annos", annos(path, ((MethodTree) t).getModifiers().getAnnotations()), "tag", tag(path, t), "jt", String.valueOf(jt(me.getReturnType())));
+  }
+  // @GdpSkip, @GdpAnswer("int"), @GdpStrict: the boundary's tags, as the executor reads a decorator.
+  List<Object> tagDecos(TreePath path, List<? extends AnnotationTree> as) {
+    List<Object> out = new ArrayList<>();
+    for (AnnotationTree a : as) { String n = a.getAnnotationType().toString(); n = n.substring(n.lastIndexOf('.') + 1); if (gdpTag(n)) out.add(m("name", n, "text", a.toString().replace("@", ""), "p", where(path, a))); }
+    return out;
   }
   List<Object> params(ExecutableElement me, TreePath path) {
     List<Object> out = new ArrayList<>();
     MethodTree mt = (MethodTree) path.getLeaf();
     for (int i = 0; i < me.getParameters().size(); i++) {
       VariableElement v = me.getParameters().get(i);
-      out.add(m("name", v.getSimpleName().toString(), "t", pstype(jt(v.asType()), this), "jt", String.valueOf(jt(v.asType())), "iface", iface(v.asType()) ? true : null, "annos", annos(path, mt.getParameters().get(i).getModifiers().getAnnotations())));
+      boolean inj = injected(mt.getParameters().get(i).getModifiers().getAnnotations()) || (me.getKind() == ElementKind.CONSTRUCTOR && injected(mt.getModifiers().getAnnotations()) && iface(v.asType()));
+      out.add(m("name", v.getSimpleName().toString(), "t", pstype(jt(v.asType()), this), "jt", String.valueOf(jt(v.asType())), "iface", iface(v.asType()) ? true : null, "inject", inj ? true : null, "annos", annos(path, mt.getParameters().get(i).getModifiers().getAnnotations())));
     }
     return out;
   }
@@ -403,6 +445,8 @@ public final class JavaReader implements Jvm.Env {
         if (mem instanceof VariableTree vt) {
           VariableElement f = (VariableElement) trees.getElement(mp);
           if (f == null || f.getModifiers().contains(Modifier.STATIC)) continue;
+          // (a field the framework injects: set after the constructor, the store the check gives)
+          if (vt.getInitializer() == null && injected(vt.getModifiers().getAnnotations())) continue;
           Map<String, Object> to = get(self(z), vt.getName().toString(), z, "this." + vt.getName());
           JT t = jt(f.asType());
           if (t != null && nullable(te, f, vt)) t = t.nullable(true);
@@ -760,7 +804,10 @@ public final class JavaReader implements Jvm.Env {
       return l;
     }
     String callee = sel.toString().replace("this.", "");
-    return m("e", "call", "p", p, "text", t, "f", x("ext", p, "q", oq + "." + n, "text", callee, "patch", m("mod", oq, "path", List.of(n))), "args", argsRead(args), "kw", List.of(),
+    // (a method of an object of other code the class holds or is given: called on it, so an injected dependency is
+    // read as one; a static method of other code: `ext`, its declared result the answer's type)
+    Map<String, Object> f = recv != null && recvT != null && other(recvT.n) != null ? get(recv, n, p, callee) : x("ext", p, "q", oq + "." + n, "text", callee, "patch", m("mod", oq, "path", List.of(n)), "ret", stype(out, this));
+    return m("e", "call", "p", p, "text", t, "f", f, "args", argsRead(args), "kw", List.of(),
       "jt", String.valueOf(out), "ity", ity(out), "decl", oq, "iface", owner.getKind() == ElementKind.INTERFACE ? true : null, "span", span(path, mi), "tag", tag(path, mi));
   }
   static List<Object> prepend(Object a, List<Map<String, Object>> xs) { List<Object> out = new ArrayList<>(); out.add(a); out.addAll(xs); return out; }

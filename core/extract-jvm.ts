@@ -29,7 +29,7 @@
 // code's calls not answered or skipped. Not yet: `stores`, branch coverage (the arms aren't counted).
 import {type Extraction} from './extract.ts'
 import {Refusal} from './extract-read.ts'
-import {type Harness, type SModule, type SX, type StepOptions, type StepRead, extractStep, node} from './extract-step.ts'
+import {type Harness, type SModule, type SX, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
 
 export type JvmOptions = StepOptions & {
   // The source root the file's package resolves from (javac's -sourcepath); by default the file's package root.
@@ -84,8 +84,14 @@ function tools(o: JvmOptions, kt?: string): string {
   return dir
 }
 
-type Jvm = {cls: string, ctor?: string[], methods: Record<string, {name: string, params: string[]}>, rewrites: {span: [number, number], to: string}[], reducers?: string[], javac?: string[]}
+type Sig = {name: string, params: string[]}
+type Jvm = {cls: string, ctor?: string[], methods: Record<string, Sig>, rewrites: {span: [number, number], to: string}[], reducers?: string[], javac?: string[]}
 const jvmOf = (mod: SModule) => (mod as SModule & {jvm: Jvm}).jvm
+// The class read's own (an entry inferred among the file's classes): its binary name, constructor and methods.
+const classOf = (mod: SModule, read: StepRead): {cls: string, ctor: string[], methods: Record<string, Sig>, reducers: string[]} => {
+  const j = jvmOf(mod), r = read.cls ? (mod.recs[read.cls] as {jvm?: {cls?: string, sigs?: Record<string, Sig>, ctor?: {params?: string[]}, reducers?: string[]}} | undefined)?.jvm : undefined
+  return r?.cls ? {cls: r.cls, ctor: r.ctor?.params ?? [], methods: r.sigs ?? {}, reducers: r.reducers ?? j.reducers ?? []} : {cls: j.cls, ctor: j.ctor ?? [], methods: j.methods, reducers: j.reducers ?? []}
+}
 // The package root of a file: its directory less the package's.
 function packageRoot(file: string, kotlin: boolean): string {
   const fs = node<FS>('node:fs'), path = node<Path>('node:path')
@@ -96,18 +102,19 @@ function packageRoot(file: string, kotlin: boolean): string {
   if (m && !kotlin) for (const _ of m[1]!.split('.')) d = path.dirname(d)
   return d
 }
-export function readJvm(lang: 'java' | 'kotlin', file: string, names: string[], o: JvmOptions = {entry: names}): SModule {
+export function readJvm(lang: 'java' | 'kotlin', file: string, names: string[], o: JvmOptions = {}): SModule {
   const cp = node<CP>('node:child_process'), path = node<Path>('node:path')
   const abs = path.resolve(file), root = path.resolve(o.root ?? packageRoot(abs, lang === 'kotlin'))
   const kt = lang === 'kotlin' ? kotlinLib(o) : undefined
-  const t = tools(o), cpath = kt ? `${t}:${tools(o, kt)}:${kt}/kotlin-compiler.jar:${kt}/kotlin-stdlib.jar` : t
+  const t = tools(o), cpath = kt ? [t, tools(o, kt), `${kt}/kotlin-compiler.jar`, `${kt}/kotlin-stdlib.jar`, ...(o.classpath ?? [])].join(':') : t
   let out: string
   try { out = cp.execFileSync(jdk(o).java, ['-cp', cpath, `gdp.jvm.${kt ? 'KtReader' : 'JavaReader'}`, JSON.stringify({root, file: abs, names, classpath: (o.classpath ?? []).join(':'), sources: o.sources ?? [], ctor: o.ctor ?? null})], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']}) }
   catch (e) { throw new Refusal(file, `the ${kt ? 'Kotlin' : 'Java'} reader didn't run (${errText(e)}): a JDK 17 or later${kt ? ' and kotlinc' : ''} is needed to extract ${kt ? 'Kotlin' : 'Java'}`) }
   return JSON.parse(out) as SModule
 }
 
-// An answered call's sites: the calls of other code whose names the answer's key matches (the executor's own rule).
+// An answered call's sites: the calls of other code whose names the answer's key matches (the executor's own rule):
+// a static one's (`ext`) and a method's of an object of other code (an injected dependency's are the harness's own).
 function answerSites(mod: SModule, keys: string[]): {span: [number, number], key: string, jt: string}[] {
   const out: {span: [number, number], key: string, jt: string}[] = []
   const hit = (names: string[]) => keys.find(e => names.some(n => n === e || n.startsWith(`${e}.`) || n.endsWith(`.${e}`) || n.endsWith(`.${e.replace(/^self\./, '')}`)))
@@ -115,7 +122,8 @@ function answerSites(mod: SModule, keys: string[]): {span: [number, number], key
     if (Array.isArray(x)) { x.forEach(walk); return }
     if (!x || typeof x !== 'object') return
     const n = x as SX & {span?: [number, number], jt?: string}
-    if (n.e === 'call' && (n.f as SX).e === 'ext' && n.span) { const k = hit([String((n.f as SX).text), String((n.f as SX).q)]); if (k) out.push({span: n.span, key: k, jt: n.jt ?? 'java.lang.Object'}) }
+    const f = n.f as SX | undefined
+    if (n.e === 'call' && f && (f.e === 'ext' || f.e === 'get') && n.span) { const k = hit([String(f.text), ...(f.e === 'ext' ? [String(f.q)] : [String(f.f)])]); if (k) out.push({span: n.span, key: k, jt: n.jt ?? 'java.lang.Object'}) }
     for (const v of Object.values(n)) walk(v)
   }
   walk(mod.funcs)
@@ -128,7 +136,7 @@ const KT: Record<string, string> = {int: 'Int', long: 'Long', short: 'Short', by
 function compiled(lang: 'java' | 'kotlin', mod: SModule, read: StepRead, o: JvmOptions): {dirs: string[], error?: string} {
   const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process'), os = node<{tmpdir: () => string}>('node:os'), path = node<Path>('node:path')
   const j = jvmOf(mod), kotlin = lang === 'kotlin'
-  const sites = [...j.rewrites.map(r => ({span: r.span, text: 'gdp.Rt.now()'})), ...answerSites(mod, read.answers.map(a => a.key)).map(s => {
+  const sites = [...j.rewrites.map(r => ({span: r.span, text: 'gdp.Rt.now()'})), ...answerSites(mod, read.answers.filter(a => !a.patch.store).map(a => a.key)).map(s => {
     const t = s.jt.replace(/\?$/, '').replace(/<.*$/, ''), box = BOXES[t] ?? t
     return {span: s.span, text: kotlin ? `(gdp.Rt.answer(${JSON.stringify(s.key)}, ${box}::class.java) as ${KT[t] ?? t.split('.').pop()}${s.jt.endsWith('?') ? '?' : ''})` : `((${box}) gdp.Rt.answer(${JSON.stringify(s.key)}, ${box}.class))`}
   })]
@@ -157,7 +165,9 @@ export function extractJvm(lang: 'java' | 'kotlin', file: string, opts: JvmOptio
   let mod: SModule
   try {
     if (opts.stores && Object.keys(opts.stores).length) throw new Refusal(file, `stores: not in the ${lang === 'java' ? 'Java' : 'Kotlin'} front end yet`)
-    mod = readJvm(lang, file, Array.isArray(opts.entry) ? opts.entry : [opts.entry], opts)
+    mod = readJvm(lang, file, entryNames(opts), opts)
+    // (the shipped classes can't be rewritten: an answer, other than an injected dependency's, can't be stubbed)
+    if (opts.prebuilt) mod.stubs = false
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
     throw e
@@ -165,12 +175,12 @@ export function extractJvm(lang: 'java' | 'kotlin', file: string, opts: JvmOptio
   const harness = (read: StepRead): Harness => {
     read.arms.length = 0
     read.model.notes.push(`${lang === 'java' ? 'Java' : 'Kotlin'}: the code is checked as ${opts.prebuilt ? 'its classes ship' : 'compiled from the file'}; its branch arms are not counted (no instrumentation yet)`)
-    const j = jvmOf(mod)
+    const j = classOf(mod, read)
     let c: {dirs: string[], error?: string}
     try { c = compiled(lang, mod, read, opts) } catch (e) { if (e instanceof Refusal) return {cmd: 'false', args: [], hello: {}, error: e.what}; throw e }
     if (c.error) return {cmd: 'false', args: [], hello: {}, error: c.error}
     const t = tools(opts)
-    return {cmd: jdk(opts).java, args: ['-cp', t, 'gdp.jvm.Harness'], hello: {jcls: j.cls, cp: [...c.dirs, ...(opts.classpath ?? [])], jctor: {params: j.ctor ?? []}, methods: j.methods, reducers: j.reducers ?? []}}
+    return {cmd: jdk(opts).java, args: ['-cp', t, 'gdp.jvm.Harness'], hello: {jcls: j.cls, cp: [...c.dirs, ...(opts.classpath ?? [])], jctor: {params: j.ctor}, methods: j.methods, reducers: j.reducers}}
   }
   return extractStep(mod, harness, opts)
 }
