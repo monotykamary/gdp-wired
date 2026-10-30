@@ -1683,8 +1683,9 @@ export function ghostedMachine(g: Ghosted): Machine {
 // smghostOk: the original takes no history and no sums (Lean's SGhostedM is over SMachine); the ghost variables are none of
 // its variables (extVars: inputs, quantified flags and their witnesses; the state; the plain flags; the keys its writes
 // and quantified flags bind); the ghost maps none of its maps (origMaps: started, written, carried); and none of its
-// parts reads a ghost (pre, assume, flags, the start, the step, the writes, the facts). Lean's distinct ghosts and ghost
-// writes of ghost maps only hold here by construction (record keys; a ghost map's write is its own).
+// parts reads a ghost (pre, assume, flags, the start, the step, the writes, the facts; a flag f reads Lean's ?f). Lean's
+// distinct ghosts and ghost writes of ghost maps only hold here by construction (record keys; a ghost map's write is its
+// own).
 export function ghostedOk(g: Ghosted): boolean {
   const o = g.orig, vs = Object.keys(g.vars), ms = Object.keys(g.maps)
   const fl = Object.entries(o.step.flags ?? {}), ws = Object.values(o.step.maps ?? {})
@@ -1694,7 +1695,7 @@ export function ghostedOk(g: Ghosted): boolean {
   const mapNames = [...Object.keys(o.maps ?? {}), ...Object.keys(o.step.maps ?? {}), ...(o.inputMaps ?? [])]
   const parts: (E | C)[] = [o.pre ?? trueC, o.assume ?? trueC, ...fl.map(([, c]) => c), ...Object.values(o.state), ...Object.values(o.step.state ?? {}),
     ...ws.flatMap(w => ('each' in w ? [w.value] : [w.key, w.value])), ...(o.facts ?? []).map(l => l.holds)]
-  const apart = (t: E | C): boolean => { const r = reads(t); return vs.every(v => !r.vars.has(v)) && ms.every(mp => !r.maps.has(mp)) }
+  const apart = (t: E | C): boolean => { const r = reads(t); return vs.every(v => !r.vars.has(v) && !(v.startsWith('?') && r.flags.has(v.slice(1)))) && ms.every(mp => !r.maps.has(mp)) }
   return !o.history && !o.sums && vs.every(v => !varNames.includes(v)) && ms.every(mp => !mapNames.includes(mp)) && parts.every(apart)
 }
 // The laws of a ghosted machine, checked: the ghosts as smghostOk says, and the laws of the ghosted machine as checkLaws

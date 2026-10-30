@@ -231,6 +231,8 @@ describe('ghost maps', () => {
     ['the original\'s assumption reads a ghost variable', {...g, vars: gv, orig: {...g.orig, assume: atMost(x('gv'), n(5))}}],
     ['the original\'s write reads a ghost map', {...g, maps: {...g.maps, ...W2}, orig: {...g.orig, step: {...g.orig.step, maps: {...g.orig.step.maps,
       granted: {key: x('k'), value: ite(same(get('W', x('k')), n(7)), n(0), get('granted', x('k')))}}}}}],
+    // Lean reads a flag f as the variable ?f, so a ghost named ?f is read by the flag (terra's review, 2026-10-31).
+    ['the original\'s assumption reads a ghost through a flag', {...g, vars: {'?f': {start: n(0), step: n(0)}}, orig: {...g.orig, assume: {op: 'flag', name: 'f'}}}],
   ]
   for (const [what, bad] of cases) test(`refused: ${what}`, () => {
     expect(ghostedOk(bad)).toBe(false)
