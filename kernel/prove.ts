@@ -1458,7 +1458,8 @@ type Unsettled = {goal: string, stuck: string, witness?: Record<string, number>,
 type Memo = {proven: Map<string, Settled>, models: Map<string, {text: string, model: Unsettled, set: Map<string, string>}>}
 // (GDP_MEMO_CAP: how many machines' decisions are kept, 4 by default; the hits and misses counted for the engine's trace)
 const memoCap = Number(env.GDP_MEMO_CAP ?? 4)
-export const memoHits = {n: 0, miss: 0}
+export const memoHits = {n: 0, miss: 0, setKey: ''}
+export const machineKey = (m: Machine): string => { const s = JSON.stringify(m); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return `${s.length}:${h}` }
 const memos = new Map<string, Memo>(), machineText = new WeakMap<Machine, string>(), lawText = new WeakMap<C, string>()
 const textOfLaw = (l: Law): string => { let t = lawText.get(l.holds); if (t === undefined) lawText.set(l.holds, (t = JSON.stringify([l.holds, l.forall ?? null, l.keys ?? null]))); return t }
 function memoOf(m: Machine): Memo {
@@ -1571,6 +1572,7 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
 // kernel.ts (checkLaws). Machines with a history, sums or "there exists": proveLaws. A search's trial proof: no cyclic
 // certificate is made.
 export function proveSetFast(m: Machine, laws: Law[]): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}, failed?: Report['failed'] & {diagram?: Diagram}} {
+  if (env.GDP_MEMO_TRACE) memoHits.setKey = machineKey(m)
   if (!fastShape(m, laws)) return proveLaws(m, laws)
   return withPatterns(m, laws, () => pointed(laws, () => {
     const at: Settled[] = []

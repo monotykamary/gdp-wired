@@ -35,7 +35,7 @@ import {quietly} from './cyclic.ts'
 import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
-import {clock, counted, decideLaw, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
+import {clock, counted, decideLaw, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
@@ -2485,7 +2485,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           const hits = memoHits.n - h0, misses = memoHits.miss - m0, fastMs = Math.round(performance.now() - t2), fast = v.proven && v.checked ? 1 : 0, fastAt = String(v.goal ?? '').slice(0, 100)
           if (!(v.proven && v.checked)) v = within(t0 + ms, () => prove(setLaws))
           const at = String(v.goal ?? ''), g = v.proven && v.checked ? undefined : cut.find(c => at.startsWith(`${textOf(c)} @`))
-          ph({phase: 'prove', cubes: cut.length, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), fastMs, fast, hits, misses, fastAt, at: at.slice(0, 100)})
+          ph({phase: 'prove', cubes: cut.length, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), fastMs, fast, hits, misses, setKey: memoHits.setKey, tdKey: env.GDP_MEMO_TRACE ? machineKey(forLaws([...given, ...cut.map(lawFor)]).m) : '', fastAt, at: at.slice(0, 100)})
           if (v.proven && v.checked) { why = 'inductive'; cone = cut; enumProof = v; cubes = cut; break }
           if (!g) break
           cut = cut.filter(c => c !== g)
