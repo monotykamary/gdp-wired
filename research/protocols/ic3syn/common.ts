@@ -1,6 +1,6 @@
 // What every port of the IC3Syn suite shares (models.ts): the encoding of models.ts one level up (README.md there), plus
 // the two ways a TLA+ spec's quorums are written, and the small instance each port is checked on against TLC (check.ts).
-import {type Cond, type Term, all, bool, everyKey, fn, forall, upTo} from '../../../core/dsl.ts'
+import {type Cond, type Term, all, bool, everyKey, upTo} from '../../../core/dsl.ts'
 import {N, type Protocol as Base} from '../models.ts'
 
 export {N}
@@ -10,17 +10,6 @@ export const pk = (a: Term, b: Term) => a.times(N).plus(b)
 export const pk3 = (a: Term, b: Term, c: Term) => a.times(N * N).plus(b.times(N)).plus(c)
 export const lt = (...ts: Term[]) => ts.map(t => t.lt(N)).reduce((a, b) => a.and(b))
 export const below = (n: Term, ...ts: Term[]) => ts.map(t => t.lt(n)).reduce((a, b) => a.and(b))
-
-// A set of quorums (TLA+'s CONSTANT Quorum with `\A Q1, Q2 \in Quorum : Q1 \cap Q2 # {}`; Ivy's and mypyvy's sort
-// quorum, relation member and axiom `forall Q1, Q2. exists N. member(N, Q1) & member(N, Q2)`): a quorum is a natural,
-// member(n, q) = 1 says n is in q, and meet(q1, q2) is the axiom's witness (its Skolem function). The kernel knows them
-// only by the fact below. Runs compute quorum q as the nodes {0, 1, 2} less q mod 3: the three majorities of three
-// nodes, the configs' Quorum = {{n1,n2},{n1,n3},{n2,n3}}.
-export const member = fn(2, (n: number, q: number) => (n < 3 && n !== q % 3 ? 1 : 0))
-export const meet = fn(2, (a: number, b: number) => [0, 1, 2].find(r => r !== a % 3 && r !== b % 3)!)
-export const quorumFacts = ({member, meet}: any) => ({
-  'two quorums meet': forall((a, b) => member(meet(a, b), a).eq(1).and(member(meet(a, b), b).eq(1), meet(a, b).lt(N))),
-})
 
 // A majority of the nodes 0 .. size − 1 (TLA+'s {Q \in SUBSET Node : Cardinality(Q) * 2 > Cardinality(Node)}), stated
 // exactly, with no axiom: Q is within 0 .. size − 1, and the nodes outside it are fewer than half, by an injective rank
