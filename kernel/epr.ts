@@ -474,7 +474,12 @@ function decide0(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exac
 
   // --- clauses (literals: +v / −v), each with the hypotheses it stands for
   const clauses: {lits: number[], from: Origin}[] = []
-  const add = (lits: number[], from: Origin) => { tick(); const s = new Set(lits); for (const l of s) if (s.has(-l)) return; clauses.push({lits: [...s], from}) }
+  const add = (lits: number[], from: Origin) => {
+    tick()
+    // (a short clause, the order's axioms' above all, without a Set: the same literals in the same order)
+    if (lits.length <= 4) { const out: number[] = []; for (const l of lits) { if (out.includes(-l)) return; if (!out.includes(l)) out.push(l) } clauses.push({lits: out, from}); return }
+    const s = new Set(lits); for (const l of s) if (s.has(-l)) return; clauses.push({lits: [...s], from})
+  }
   let fresh = 0
   const tseitin = (f: F, from: Origin): number => { // a literal equivalent to f
     if (f.k === 'v') return f.v

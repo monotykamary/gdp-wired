@@ -103,7 +103,7 @@ const KEY = 'key$found', KEY2 = 'key2$found', AT = '@', K = '#', SOME = 'k$found
 // frontier corpus's then keeps 3,000 samples, at least as many as 500 ms of wall time gave on 2 vCPU (`runs/modal/infer/
 // before`'s cal2 jobs: 29 to 11,625 trials, 745 to 3,000 samples). Of 100 to 3,000 trials (`runs/modal/infer/grid`),
 // 100 lost a corpus item (metered blocks) and 200 to 3,000 none: 400 is a step above the least that lost none.
-export const inferRates = {tries: 100, rows: 10_000, evals: 10_000, watched: 100, work: 40, etries: 80, epr: 400, erows: 100, ework: 200}
+export const inferRates = {tries: 100, rows: 10_000, evals: 10_000, watched: 100, work: 40, etries: 80, epr: 400, erows: 100, efull: 180}
 export const inferRuns = 16_000
 // GDP_INFER_TRACE=1: each phase's wall time beside what it counted, to stderr (the calibration's numbers).
 const inferTrace = !!env.GDP_INFER_TRACE
@@ -523,12 +523,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // The engine's clock (the stage below, from the small instance on): counted as `now` is, with the EPR path's work
   // (kernel/epr.ts's eprMeter) and the views' rows beside it, so that every choice it makes by its budget (a BFS cut, the
   // filter, a goal's cap, a round's growth) is the same on any machine; the wall (`stop`, `until` past `ms`) only ends it.
-  // It starts at the engine's start (`eS`), and its budget, `eUntil`, is fixed there from what the join counted: four
-  // fifths of what is left of `ms` once the join's count is taken at 0.3 a millisecond (the join's rates count its work
-  // 2 to 14 times faster than a Modal container does it), so the engine ends within the wall on a container half again
-  // as slow; past `eUntil` it stops as it would past the wall, at the same place on any machine.
-  let eS = {now: 0, epr: eprMeter.n, erows: 0, etries: 0, work: work.n}, eUntil = ms
-  const vnow = (): number => (timed ? now() : (used.etries - eS.etries) / inferRates.etries + (eprMeter.n - eS.epr) / inferRates.epr + (used.erows - eS.erows) / inferRates.erows + (work.n - eS.work) / inferRates.ework)
+  // It starts at the engine's start (`eS`), and its budget, `eUntil`, is fixed there from what the join counted: 0.85
+  // of what is left of `ms` once the join's count is taken at 0.3 a millisecond (the join's rates count its work
+  // 2 to 14 times faster than a Modal container does it), so the engine ends within the wall on a container somewhat
+  // slower than Modal's usual; past `eUntil` it stops as it would past the wall, at the same place on any machine.
+  let eS = {now: 0, epr: eprMeter.n, erows: 0, etries: 0, full: fullWork()}, eUntil = ms
+  const vnow = (): number => (timed ? now() : (used.etries - eS.etries) / inferRates.etries + (eprMeter.n - eS.epr) / inferRates.epr + (used.erows - eS.erows) / inferRates.erows + (fullWork() - eS.full) / inferRates.efull)
   const meters = () => ({real: Math.round(performance.now() - t0), v: Math.round(vnow()), now: Math.round(now()), full: Math.round(fullWork()), epr: eprMeter.n - eS.epr, erows: used.erows, etries: used.etries, tries: used.tries, rows: used.rows, evals: used.evals, work: work.n - w0})
   const until = ms
   let tp = performance.now(), cp = 0, wp = w0
@@ -2126,7 +2126,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       function dataFilter(pool: Form[]): Form[] {
         // (in states, not time, so that a slow machine reads what a fast one does: each instance's states read as its BFS
         // finds them, until they stop killing, `quiet` (150) states in a row that kill no cube past the first `least5`
-        // (600; wo's last kill came at its 582nd, ring's at its 240th), `most5` (1,500) at most;
+        // (600, in the first instance, every sort grown; wo's last kill came at its 582nd, ring's at its 529th), `most5`
+        // (1,500) at most;
         // its BFS ends there, a share of the engine's clock (30 s, a third of what is left) its outer bound. A slow
         // container that read fewer states left ring's pool at 47–61 cubes, not 44, and its first round past the wall:
         // research/protocols/engine/DESIGN.md, gen/laneA)
@@ -2141,7 +2142,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           for (const f of live) byView.set(f.view!, [...(byView.get(f.view!) ?? []), f])
           let read = 0, still = 0, lastKill = 0
           const r = instance(grow, share, seeded(29 + k), most5, q => {
-            if (read >= most5 || (read >= least5 && still >= quiet) || stop()) return false
+            if (read >= most5 || (read >= (k ? 0 : least5) && still >= quiet) || stop()) return false
             states++; read++
             const before = killed.size
             for (const [vi, fs] of byView) {
@@ -2152,7 +2153,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             }
             if (killed.size > before) lastKill = read
             still = killed.size > before ? 0 : still + 1
-            return read < most5 && (read < least5 || still < quiet)
+            return read < most5 && (read < (k ? 0 : least5) || still < quiet)
           })
           opts.progress?.('join meters', {at: `filter read ${k}`, read, lastKill, bfs: r.small.length + r.others.length, ...meters()})
           live = live.filter(f => !killed.has(f))
@@ -2180,7 +2181,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // decentralized lock's) while the caller's law fails from the set.
     const engine = () => {
     if (sorts && callerLaws.some(l => l.keys?.length) && now() < until && !stop()) {
-      if (!timed) { eS = {now: now(), epr: eprMeter.n, erows: used.erows, etries: used.etries, work: work.n}; eUntil = 0.8 * (ms - 0.3 * eS.now) }
+      if (!timed) { eS = {now: now(), epr: eprMeter.n, erows: used.erows, etries: used.etries, full: fullWork()}; eUntil = 0.85 * (ms - 0.3 * eS.now) }
       opts.progress?.('join engine', {wall: Math.round(vnow()), eUntil: Math.round(eUntil)})
       opts.progress?.('join meters', {at: 'engine', ...meters()})
       // (a sums pass's reserve where one follows: 10 s, or a quarter of what is left where less is)
