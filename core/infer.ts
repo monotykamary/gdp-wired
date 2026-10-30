@@ -2132,6 +2132,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // decentralized lock's) while the caller's law fails from the set.
     const engine = () => {
     if (sorts && callerLaws.some(l => l.keys?.length) && now() < until && !stop()) {
+      opts.progress?.('join engine', {wall: Math.round(performance.now() - t0)})
       // (a sums pass's reserve where one follows: 10 s, or a quarter of what is left where less is)
       const v0 = views.length, reserve = rule?.withMapSums() ? Math.min(10_000, (wallUntil - performance.now()) / 4) : 0
       const implied = (f: Form) => {
@@ -2147,7 +2148,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const callerMaps = new Set(laws.flatMap(l => [...JSON.stringify(l.holds).matchAll(/"map":"([^"]+)"/g)].map(q => q[1]!)))
       const near = (f: Form) => (f.cube!.some(l => atomsIn(formOf([l])).some(i => callerMaps.has(atoms[i]!.parts[0]![0].split(AT)[2] ?? ''))) ? 0 : 1)
       // (the rounds over the data-filtered pool cut to its minimal cubes)
-      const made = env.GDP_POOL !== '0' ? minimal(enumerated()).kept : enumerated()
+      const minPool = env.GDP_POOL !== '0' ? minimal(enumerated()) : {kept: enumerated(), by: new Map<Form, Form[]>()}, made = minPool.kept
+      const tEngine = performance.now()
       let cubes: Form[] = []
       // (in turn by the maps a cube reads, those reading the caller's first: one of each kind before a second of any; in
       // a kind, the fewer literals first (DuoAI's minimal clauses), then the cube over more distinct keys (the law its
@@ -2380,6 +2382,89 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         for (const b of pool) if (!kept.includes(b)) by.set(b, kept.filter(a => implies(a, b)))
         return {kept: pool.filter(f => kept.includes(f)), by}
       }
+      // The top-down phase (DuoAI's, research/protocols/engine/DESIGN.md gen/ring2), behind GDP_TD=1: the filtered minimal
+      // pool, not given, not implied by the caller's laws, not false at a start; Houdini, each round every cube's goal with
+      // the others assumed (decideLaw, a short cap first, the undecided again at a longer one only where the round would
+      // end with no drop), every failure dropped at once, a cube a dropped one implied back where nothing kept implies it,
+      // and only the goals whose proofs read a dropped cube asked again; then the caller's goals, the cone (their support,
+      // closed under each cube's; a cube with no known support asked with the cone alone, a model's pre-state bringing in
+      // the fixpoint's cubes false there), and prove() of the cone. A fixpoint that doesn't prove leaves the rounds below.
+      if (env.GDP_TD === '1' && !stop()) withTrees(() => {
+        const T0 = performance.now(), ph = (o: Record<string, unknown>) => opts.progress?.('join td', {...o, td: Math.round(performance.now() - T0), wall: Math.round(performance.now() - t0)})
+        const by = minPool.by, q1 = Number(env.GDP_TD_Q1 ?? 250), q2 = Number(env.GDP_TD_Q2 ?? joinQueryMs / 8)
+        ph({phase: 'start', made: made.length, before: Math.round(tEngine - t0)})
+        const fresh = (f: Form) => !names.has(textOf(f)) && !dead.has(textOf(f)) && !implied(f) && !atStart(f)
+        let hs = made.filter(fresh)
+        ph({phase: 'pool', cubes: hs.length})
+        const uses = new Map<string, string[]>(), undecided = new Set<Form>()
+        let asked = new Set<Form>(hs)
+        for (let r = 0; hs.length && performance.now() < wallUntil && !stop(); r++) {
+          const ls = [...given, ...hs.map(lawFor)], mm = forLaws(ls).m, failed = new Set<Form>(), tr = performance.now(), at = new Map(hs.map((f, i) => [f, given.length + i]))
+          const ask = (f: Form, ms2: number) => {
+            if (performance.now() > wallUntil) { undecided.add(f); return }
+            const dl = within(Math.min(wallUntil, performance.now() + ms2), () => decideLaw(mm, ls, at.get(f)!))
+            if (!dl) { undecided.add(f); return }
+            undecided.delete(f)
+            if (dl.proven) uses.set(textOf(f), dl.uses); else { failed.add(f); uses.delete(textOf(f)) }
+          }
+          const todo = hs.filter(f => asked.has(f) || undecided.has(f))
+          for (const f of todo) ask(f, q1)
+          let second = 0
+          if (!failed.size && undecided.size) for (const f of hs.filter(g => undecided.has(g))) { second++; ask(f, q2) }
+          ph({phase: 'round', round: r, cubes: hs.length, asked: todo.length, second, failed: failed.size, undecided: undecided.size, ms: Math.round(performance.now() - tr)})
+          if (!failed.size) break
+          for (const f of failed) dead.add(textOf(f))
+          const gone = new Set([...failed].map(textOf)), inSet = new Set(hs.filter(f => !failed.has(f)))
+          const back = [...by].filter(([b, as]) => !inSet.has(b) && !dead.has(textOf(b)) && as.some(a => failed.has(a)) && !as.some(a => inSet.has(a))).map(([b]) => b).filter(fresh)
+          hs = [...inSet, ...back]
+          // (only the goals whose proofs read a dropped cube, the new ones, and the undecided are asked again)
+          asked = new Set([...back, ...hs.filter(f => !uses.has(textOf(f)) || uses.get(textOf(f))!.some(u => gone.has(u)))])
+        }
+        if (stop() || performance.now() > wallUntil) { ph({phase: 'out of time'}); return }
+        const tc = performance.now(), need = new Set<string>()
+        const callerFrom = (): boolean => {
+          need.clear()
+          const ls = [...given, ...hs.map(lawFor), ...(ghost ? [ghost.plain] : [])], mm = withGhost(forLaws(ls).m)
+          for (const l of [...laws, ...(ghost ? [ghost.plain] : [])]) {
+            const dl = within(Math.min(wallUntil, performance.now() + joinQueryMs), () => decideLaw(mm, ls, ls.findIndex(k => k.name === l.name)))
+            if (!dl?.proven) return false
+            for (const u of dl.uses) need.add(u)
+          }
+          return true
+        }
+        let callerOk = callerFrom()
+        if (!callerOk && !ghosts) { ghosts = ghostsOf(); for (ghost = ghosts.shift(); ghost && !(callerOk = callerFrom()); ghost = ghosts.shift()); }
+        const close = () => { for (const todo = [...need]; todo.length;) for (const u of uses.get(todo.pop()!) ?? []) if (!need.has(u)) { need.add(u); todo.push(u) } }
+        close()
+        for (let it = 0; callerOk && it < 8 && performance.now() < wallUntil && !stop(); it++) {
+          const inCone = hs.filter(f => need.has(textOf(f))), open = inCone.filter(f => !uses.has(textOf(f)))
+          if (!open.length) break
+          const ls = [...given, ...inCone.map(lawFor), ...(ghost ? [ghost.plain] : [])], mm = withGhost(forLaws(ls).m)
+          let grew = 0, settledN = 0
+          for (const f of open) {
+            if (performance.now() > wallUntil) break
+            const dl = within(Math.min(wallUntil, performance.now() + q2), () => decideLaw(mm, ls, ls.findIndex(k => k.name === textOf(f))))
+            if (dl?.proven) { uses.set(textOf(f), dl.uses); settledN++; continue }
+            if (!dl || !dl.goal.endsWith('@step')) continue
+            const pt = ptOf(preOf(dl.witness))
+            for (const g of hs) if (!need.has(textOf(g)) && !holdsAt(g, pt)) { need.add(textOf(g)); grew++ }
+          }
+          close()
+          if (!grew && !settledN) break
+        }
+        let cut = hs.filter(f => need.has(textOf(f)))
+        ph({phase: 'cone', fixpoint: hs.length, undecided: undecided.size, caller: callerOk ? 1 : 0, cone: cut.length, ms: Math.round(performance.now() - tc)})
+        if (callerOk) for (let k = 0; k < 24 && performance.now() < wallUntil && !stop(); k++) {
+          const t2 = performance.now(), setLaws = [...laws, ...cut.map(lawFor), ...(ghost ? [ghost.some] : [])]
+          let v = within(t0 + ms, () => prove(setLaws, true))
+          if (!(v.proven && v.checked)) v = within(t0 + ms, () => prove(setLaws))
+          const at = String(v.goal ?? ''), g = v.proven && v.checked ? undefined : cut.find(c => at.startsWith(`${textOf(c)} @`))
+          ph({phase: 'prove', cubes: cut.length, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2)})
+          if (v.proven && v.checked) { why = 'inductive'; cone = cut; enumProof = v; cubes = cut; break }
+          if (!g) break
+          cut = cut.filter(c => c !== g)
+        }
+      })
       for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
         // (one cube once: a cube in the set is not pending, and a text in the set once)
         cubes = cubes.filter((g, i) => !atStart(g) && cubes.findIndex(h => textOf(h) === textOf(g)) === i)
