@@ -16,7 +16,8 @@ import type {Law} from './machine.ts'
 import {type Built, type Cite, LawError, type LawText, buildLaw, buildTwoRuns, citesIn, isTwoRuns, lawsIn, namesWithClock} from './laws.ts'
 import {type TwoRunLaw, certify, proveTwoRuns} from './relational.ts'
 
-type FS = {existsSync: (p: string) => boolean, readFileSync: (p: string, e: string) => string, readdirSync: (p: string) => string[], statSync: (p: string) => {isDirectory: () => boolean}}
+type FS = {existsSync: (p: string) => boolean, readFileSync: (p: string, e: string) => string, readdirSync: (p: string) => string[], statSync: (p: string) => {isDirectory: () => boolean},
+  mkdirSync: (p: string, o: {recursive: boolean}) => unknown, writeFileSync: (p: string, s: string) => void}
 type Path = {resolve: (...p: string[]) => string, dirname: (p: string) => string, join: (...p: string[]) => string, basename: (p: string) => string, extname: (p: string) => string, relative: (a: string, b: string) => string}
 const proc = (globalThis as unknown as {process: {argv: string[], exitCode?: number, cwd: () => string, env: Record<string, string | undefined>, stdout: {write: (s: string) => void, isTTY?: boolean}, getBuiltinModule: (id: string) => unknown}}).process
 const fs = proc.getBuiltinModule('node:fs') as FS, path = proc.getBuiltinModule('node:path') as Path
@@ -355,7 +356,7 @@ function shownValue(x: Extraction, rule: string, vars: Record<string, unknown>, 
 }
 // A run as calls of the code: the constructor's arguments, then each request (the method, its arguments by the code's
 // names, the answers and the clock), the last the one that breaks the law.
-function runOf(x: Extraction, run: NonNullable<Verdict['run']>): string[] {
+export function runOf(x: Extraction, run: NonNullable<Verdict['run']>): string[] {
   const names = namesWithClock(x), code = (n: Name) => n.code
   const ps = names.filter(n => n.role === 'param' && n.rule && n.rule in run.params)
   const lines = ps.length ? [`made with ${ps.map(n => `${code(n)} = ${shownValue(x, n.rule, run.params, n.none)}`).join(', ')}`] : []

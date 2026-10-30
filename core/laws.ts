@@ -83,7 +83,7 @@ function seconds(unit: string): number {
 }
 // A duration in the clock's units ('s': time.time(), 'ms': Date.now()): duration('30 days') is 2,592,000.
 export function duration(text: string, clock: 's' | 'ms' = 's'): number {
-  const m = /^\s*(\d+)\s*(?:calendar\s+)?([A-Za-z]+)\s*$/.exec(text)
+  const m = /^\s*(\d+)\s*(?:calendar\s+)?([A-Za-z]+)(?:\s+days?)?\s*$/.exec(text)
   if (!m) throw new LawError(`${text}: a duration is a whole number and a unit (30 days, 15 minutes)`)
   if (!Object.hasOwn(SECONDS, m[2]!.toLowerCase()) && !NOT_LINEAR.test(m[2]!)) throw new LawError(`${m[2]}: a unit of ${Object.keys(SECONDS).join(', ')}`)
   const v = Number(m[1]) * seconds(m[2]!) * (clock === 'ms' ? 1000 : 1)

@@ -22,8 +22,8 @@
 // `the two runs refuse the same requests` holds at 0, marks it. `refusals: 'assumed'` only takes requests both allow.
 //
 // Two of the law's names are reserved in the rule built: a$ok and b$ok (each run allows the request), split$.
-import {type Cond, Rule, Term, type Kind, type Law, type StepLaw, type Verdict, type ProveOptions, all, any, forall, nat, no, not, proveSteps, same, when, yes} from './dsl.ts'
-import type {C, E} from './machine.ts'
+import {type Cond, Rule, Term, type Kind, type StepLaw, type Verdict, type ProveOptions, all, any, forall, nat, no, not, proveSteps, same, when, yes} from './dsl.ts'
+import type {C, E, Law} from './machine.ts'
 import {proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {type Certificate, type Document, type Json, fromInterchange, toInterchange} from '../interchange/format.ts'
 import {checkCertificate} from '../interchange/check.ts'
@@ -126,7 +126,7 @@ export function twoRuns(a: AnyRule, b: AnyRule = a, opts: TwoRunsOptions = {}): 
       ...(opts.given ? [(env: never) => opts.given!(env)] : []),
     ],
     sums: [], queries: [],
-    step: (env: never) => {
+    step: (env: never): never => {
       const out: Record<string, unknown> = {}
       for (const sd of sides) {
         const go = (sd === A ? goA : goB)(env), side = view(env, sd)
@@ -138,7 +138,7 @@ export function twoRuns(a: AnyRule, b: AnyRule = a, opts: TwoRunsOptions = {}): 
         }
       }
       if (refusals === 'same') out['split$'] = when(all(not(stays(env)), not((env['a$ok'] as Cond).iff(env['b$ok'] as Cond))), 1, env['split$'] as Term)
-      return out
+      return out as never
     },
   }
   return new Rule(spec) as AnyRule
@@ -274,7 +274,8 @@ export function lift(l: Law, r: AnyRule, prefix: 'a_' | 'b_', shared: string[]):
 // law that needs "this hidden value is the same in both runs" is proven with it; then the search, as proveSteps runs it.
 // A run that breaks it is two runs side by side (`run`: its params and requests in the rule built's names).
 export function proveTwoRuns(l: TwoRunLaw, opts: ProveOptions & {invariants?: [Law[], Law[]] | Law[]} = {}): Verdict & {given: Law[]} {
-  const inv = opts.invariants === undefined ? [[], []] : Array.isArray(opts.invariants[0]) ? opts.invariants as [Law[], Law[]] : [opts.invariants as Law[], opts.invariants as Law[]]
+  const two = (x: [Law[], Law[]] | Law[]): x is [Law[], Law[]] => x.length === 2 && Array.isArray(x[0])
+  const inv: [Law[], Law[]] = !opts.invariants ? [[], []] : two(opts.invariants) ? opts.invariants : [opts.invariants, opts.invariants]
   const lifted = [...inv[0].map(x => lift(x, l.sides[0], 'a_', l.shared)), ...inv[1].map(x => lift(x, l.sides[1], 'b_', l.shared))]
   let helpers = [...l.helpers]
   for (let round = 0; helpers.length && round <= l.helpers.length; round++) {

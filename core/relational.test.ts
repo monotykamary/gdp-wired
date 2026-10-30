@@ -148,6 +148,7 @@ test.skipIf(!hasPython)('the CLI: laws about two runs, a deadline in days, its c
   writeFileSync(`${dir}/desk.py`, DESK)
   const r = await check([`${dir}/desk.py`], {ms: 10_000, propose: false, cert: `${dir}/certs`})
   const laws = Object.fromEntries(r.rules[0]!.laws.map(l => [l.name, l]))
+  if (!r.rules[0]!.ok) console.log(JSON.stringify(r.rules[0]!.refusals))
   expect(r.rules[0]!.ok).toBe(true)
   for (const n of ['the diagnosis stays private', 'one patient\'s requests never change another\'s', 'fulfilled only within 30 days']) expect(laws[n]?.verdict).toBe('proven')
   expect(laws['fulfilled only within 30 days']!.cites).toEqual(['45 CFR 164.524(b)(2): act on a request for access no later than 30 calendar days after its receipt'])
