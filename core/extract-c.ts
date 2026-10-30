@@ -65,6 +65,7 @@ export function extractC(file: string, opts: COptions, cpp = false): Extraction 
   let read: GoRead, c: CRead, flags: string[]
   try {
     ;({c, flags} = readCFile(file, opts, cpp))
+    c.pkg.dir = node<{resolve: (p: string) => string}>('node:path').resolve(file).replace(/\/[^/]*$/, '')
     read = readGo(c.pkg, {entry: c.entry, methods: opts.functions?.map(f => f.split('/')[0]!) ?? c.methods, ...(opts.onError ? {onError: opts.onError} : {}), ...(opts.fails ? {fails: opts.fails} : {})} as GoOptions)
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}

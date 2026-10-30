@@ -1248,7 +1248,7 @@
 },
 {
 "name": "extract-py",
-"cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && cd core && bun test extract-py.test.ts 2>&1",
+"cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && (python3 -m pip install -q fastapi >/dev/null 2>&1 || true) && cd core && bun test extract-py.test.ts 2>&1",
 "cwd": ".",
 "cpu": 1.0,
 "timeout": 600

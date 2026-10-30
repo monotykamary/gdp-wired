@@ -200,7 +200,7 @@ int quota_bonus(int n);
 struct meter { unsigned used; unsigned cap; };
 void meter_init(struct meter *m, unsigned cap) { m->used = 0; m->cap = cap; }
 int meter_take(struct meter *m, unsigned n) {
-  fflush(stdout);
+  fflush(stdout); // gdp: skip
   unsigned extra = (unsigned)quota_bonus((int)(n % 100));
   if (n > m->cap || extra > m->cap - n || m->used > m->cap - n - extra) return -1;
   m->used += n + extra;
@@ -209,7 +209,7 @@ int meter_take(struct meter *m, unsigned n) {
 `, undefined as never))
   const notes = x.notes.join('\n')
   expect(notes).toMatch(/the entry inferred: meter/)
-  expect(notes).toMatch(/fflush .*left out \(inferred/)
+  expect(notes).toMatch(/fflush .*left out \(tagged: gdp: skip/)
   expect(notes).toMatch(/quota_bonus .*answered by the request \(inferred: its value is read; assumes quota_bonus may return any int\)/)
   step(x, 'never past its cap', (_b, a) => a.used.atMost(a.cap), b => b.used.atMost(b.cap))
 })

@@ -114,6 +114,36 @@ t('the boundary inferred: the entry, own code outside the subset cut, an injecte
   ok(py(touch.replace('.info(self)', '.info(self)  # gdp: skip'), {entry: 'C'}))
 })
 
+// FastAPI's Depends marks an injected dependency (a class used as one: its constructor's argument): held as a store.
+const hasFastapi = hasPy && (() => { try { execFileSync('python3', ['-c', 'import fastapi'], {stdio: 'ignore'}); return true } catch { return false } })()
+;(hasFastapi ? test : test.skip)('the boundary inferred: a dependency FastAPI injects (Depends) held as a store', () => {
+  const x = ok(py(`from fastapi import Depends, HTTPException
+
+
+class Cache:
+    async def get(self, key: str) -> int | None: ...
+    async def set(self, key: str, value: int) -> None: ...
+
+
+def get_cache() -> Cache:
+    return Cache()
+
+
+class RateLimiter:
+    def __init__(self, cache: Cache = Depends(get_cache), limit: int = 3):
+        self.cache = cache
+        self.limit = limit
+
+    async def hit(self, user: str) -> None:
+        n = (await self.cache.get(f"rl:{user}")) or 0
+        if n >= self.limit:
+            raise HTTPException(status_code=429)
+        await self.cache.set(f"rl:{user}", n + 1)
+`, {entry: 'RateLimiter', failures: 'kept'}))
+  expect(x.notes.join('\n')).toMatch(/RateLimiter\(cache\): an injected dependency \(inferred: marked so\)/)
+  expect(step(x, 'admitted only below the limit', (b, a) => a.failed.not().implies(b.limit.gt(b.cache_rl.at(b.user.id).value))).proven).toBe(true)
+})
+
 t('refusals, each where it is with why', () => {
   refused(extractPython(EX, {entry: ['drain'], check: budget}), /bucket.py:\d+:\d+: a loop/)
   refused(py('def f(x: int) -> int:\n    return x * 0.5\n', {entry: ['f']}), /a float that isn't whole/)
