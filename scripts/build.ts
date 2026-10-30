@@ -23,6 +23,9 @@ for (const f of ['reader.rb', 'harness.rb']) copyFileSync(join(root, 'core', 'rb
 // The Rust front end's reader (built with cargo where it is first called) beside it.
 mkdirSync(join(dist, 'core', 'rs', 'src'), {recursive: true})
 for (const f of ['Cargo.toml', 'Cargo.lock', 'src/main.rs']) copyFileSync(join(root, 'core', 'rs', f), join(dist, 'core', 'rs', f))
+// The Go front end's reader (built with go where it is first called) beside it.
+mkdirSync(join(dist, 'core', 'go'), {recursive: true})
+for (const f of ['go.mod', 'reader.go']) copyFileSync(join(root, 'core', 'go', f), join(dist, 'core', 'go', f))
 // The JVM front ends' readers and harness (Java sources, compiled with the JDK's javac where they are first called).
 mkdirSync(join(dist, 'core', 'jvm'), {recursive: true})
 for (const f of ['Jvm.java', 'JavaReader.java', 'KtReader.java', 'Harness.java', 'Rt.java']) copyFileSync(join(root, 'core', 'jvm', f), join(dist, 'core', 'jvm', f))

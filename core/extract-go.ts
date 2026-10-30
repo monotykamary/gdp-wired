@@ -845,7 +845,8 @@ export function readerBinary(): string {
 }
 export function readGoPackage(dir: string): GoPkg {
   const cp = node<ChildProcess>('node:child_process')
-  return JSON.parse(cp.execFileSync(readerBinary(), [dir], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']})) as GoPkg
+  try { return JSON.parse(cp.execFileSync(readerBinary(), [dir], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']})) as GoPkg }
+  catch (e) { throw new Refusal(dir, `the Go reader didn't run (${String((e as {stderr?: string}).stderr || (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): go is needed to extract Go`) }
 }
 
 // --- the front end ---------------------------------------------------------------------------------------------------

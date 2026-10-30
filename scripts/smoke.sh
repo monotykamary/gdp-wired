@@ -83,6 +83,10 @@ if (noJdk.ok || !/JDK 17 or later is needed/.test(noJdk.refusals[0]?.what ?? '')
 const kx = await import('gdp-wired/extract-kotlin')
 const noKt = kx.extractKotlin('absent.kt', {entry: 'X', kotlinHome: '/gdp-no-such-kotlin'})
 if (noKt.ok || !/kotlinc .* is needed to extract Kotlin/.test(noKt.refusals[0]?.what ?? '')) throw new Error(`gdp-wired/extract-kotlin without kotlinc: ${JSON.stringify(noKt)}`)
+// The Go front end refuses, never throws, where no Go runs or the package isn't there (its reader is built beside it).
+const gox = await import('gdp-wired/extract-go')
+const noGo = gox.extractGo('absent-package', {})
+if (noGo.ok || !/Go reader didn't run|go is needed/.test(noGo.refusals[0]?.what ?? '')) throw new Error(`gdp-wired/extract-go: ${JSON.stringify(noGo)}`)
 const rsx = await import('gdp-wired/extract-rs')
 const noRs = rsx.extractRust('absent-crate', {entry: 'X', cargo: 'gdp-no-such-cargo'})
 if (noRs.ok || !noRs.refusals.length) throw new Error(`gdp-wired/extract-rs without cargo: ${JSON.stringify(noRs)}`)
@@ -99,6 +103,8 @@ import {type Mint, guard} from 'gdp-wired/gdp'
 import {defineProof} from '@gdp-ts/core'
 import {type EffectOptions, type Service, extractEffect} from 'gdp-wired/effect'
 import {type PyOptions, extractPython} from 'gdp-wired/extract-py'
+import {type GoOptions, extractGo} from 'gdp-wired/extract-go'
+const goRead: (dir: string, o: GoOptions) => boolean = (dir, o) => extractGo(dir, o).ok
 const pyRead: (file: string, o: PyOptions) => boolean = (file, o) => extractPython(file, o).ok
 const effectRead: (code: string, o: EffectOptions) => boolean = (code, o) => extractEffect(code, o).ok
 const service: Service<{take: (n: number) => unknown}> | undefined = undefined
@@ -115,7 +121,7 @@ const pay = fun('pay').inputs({p: variant({card: {amount: nat}, cash: {}}), who:
   .returns(({p, who}) => ({ok: p.match({card: c => c.amount.atMost(who.limit), cash: () => p.is('cash')})}))
 const ok: boolean = pay.run({p: {tag: 'card', amount: 3}, who: {limit: 5}}).ok
 const steps = recur('steps', {zero: 0, next: (_, y) => y.plus(1)}, {'at most x': (x, y) => y.atMost(x)})
-export {v, s, m, check, text, mint, ok, steps, effectRead, service, pyRead}
+export {v, s, m, check, text, mint, ok, steps, effectRead, service, pyRead, goRead}
 TS
 printf '{"compilerOptions":{"strict":true,"noEmit":true,"module":"nodenext","moduleResolution":"nodenext","target":"es2022","lib":["es2022"],"types":[],"skipLibCheck":false},"files":["consumer.ts"]}\n' > tsconfig.json
 npx tsc -p tsconfig.json
