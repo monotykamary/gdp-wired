@@ -33,5 +33,5 @@
 | `probe-products.ts` | Twelve true nonlinear laws (x² + y² ≥ 2xy, x ≤ y ⇒ x³ ≤ y³, …) proven, two false ones refuted with true arithmetic |
 
 ```sh
-bun run-kernel.ts && bun run-more.ts && bun run-progress.ts && bun test kernel.test.ts history.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts
+bun run-kernel.ts && bun run-more.ts && bun run-progress.ts && bun test kernel.test.ts history.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts count.test.ts
 ```
