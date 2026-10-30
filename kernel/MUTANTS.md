@@ -12,6 +12,7 @@ kernel fuzz). Fanned out on Modal (`bun mutants.ts run <from> <to>` per batch):
 | the run algebra, k-step laws, and `compose.test.ts` in the battery (one test added: 16 steps accepted) | 261 | 239 (92%) | 22 |
 | sets (carried maps, quantified flags, writes at every key) and `sets.test.ts` in the battery (two tests added: a history refuses each kind of set; every step law needs its own trees) | 274 | 252 (92%) | 22 |
 | functions and facts, two keys, keys in key terms, liveness, and `functions`, `quantifiers`, `keyterms`, `liveness`, `lists` tests in the battery (four tests added: a key in arithmetic on a comparison's right side, a fact with a negative constant, a second key equal to the first or alone, in laws and step laws) | 317 | 293 (92%) | 24 |
+| counts and ghost maps (gen/laneK: `checkCounted`, `ghostedOk`, `checkGhostedLaws`, kernel.ts's lines 1582–1701), `count.test.ts` first in the battery (`MUTANT_BATTERY=counts`: that test alone) | 38 | 38 (100%) | 0 |
 
 The 24 that survive change nothing the kernel's soundness or answers rest on (line numbers as of liveness):
 
@@ -31,6 +32,13 @@ The 24 that survive change nothing the kernel's soundness or answers rest on (li
 | check.ts:17 (×4) `> 0` → `>= 0` | a zero multiplier: 0·row is a valid (useless) combination, still sound |
 | check.ts:23 `of < i` → `<=` | the row must exist (`row !== undefined`), which already excludes `of = i` |
 | check.ts:23 (×2) `g > 0` → `g >= 0` | g = 0 makes every variable coefficient fail the divisibility test (NaN); a row with no variable is already a contradiction or rejected |
+
+The counts and ghost maps' 38 are each killed by `kernel/count.test.ts`, whose tests give every guard a certificate only it
+refuses (the tree the rest of the check accepts, grown for the goal the guard's absence would check) and a soundness fuzz
+(every counted goal accepted has no model where each count is its sum). The first run left one (`ms.every` → `.some` in
+`ghostedOk`: the test's clashing ghost map was also read by the original, so the check of what it reads refused it too);
+the test now names a map the original declares and never reads. Their builders' mutations past these operators (the
+parts, the nesting) are caught by Lean: each export states `countHyps … = some` kernel.ts's hypotheses.
 
 `kernel/refusals.test.ts` and `kernel/tamper.test.ts` hold the tests the run asked for (and `kernel/steplaw.test.ts` the step-law ones: the 8 mutants of `stepLawObligations` and `checkStepLaws`, 7 caught); the run's logs are in
 `runs/modal/mutants-all2/`, `runs/modal/mutants-surv/`, for the run algebra `runs/modal/relations-mut/` for sets `runs/modal/mut-sets/`, and for functions, two keys, key terms and liveness `runs/modal/mut-all/` (local).

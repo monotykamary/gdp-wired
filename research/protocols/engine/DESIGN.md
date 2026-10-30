@@ -1733,3 +1733,88 @@ on the default path, and top-down behind GDP_TD.
 7. Re-run all ten, 2 runs at 60 s (`research/protocols/enum/jobs-pilot60.json`, adapted to 90 s caps), then the quick bar against 5d4da3f's cached baseline (`bun gates/bar.ts --base 5d4da3f --quick --only chc,rw`, never `--together`).
 
 **Rules:** local probes ≤ 30 s, one at a time; Modal job caps of about 60 s budget + 30 s, killed in the container; 2 runs a config; about $25 for this round (spent about $0.1 billed by 15:00 UTC).
+
+## gen/laneK: counting and ghost maps in the trusted kernel (Lean first; the search not wired)
+
+Two certificate kinds for the IC3Syn classes gen/laneA's design note left out (its "Counting" and "∀∃: a ghost map"
+paragraphs), each proven in the Lean twin first, then checked by kernel.ts as Lean states it, mutation-tested, and carried
+end to end on hand-built examples. Nothing in kernel/prove.ts, kernel/epr.ts or core/infer.ts changed: the search side
+waits for gen/laneA.
+
+**Counting (lean-kernel/Count.lean, on Kernel.lean alone).**
+- **The lemma.** `exists_lt_of_sumBelow_lt`: sums over the keys below n are monotone and linear, so if g sums below f,
+  some key below n has g k < f k. Corollaries over sets of keys (`card p n`, the keys below n where p holds):
+  `pigeonhole` (A, B ⊆ S, |A| + |B| > |S| ⇒ some k ∈ A ∩ B), `majorities_meet` (2|A| > |S|, 2|B| > |S|),
+  `quorums_meet_outside` (|A| + |B| > |S| + |F| ⇒ some k ∈ A ∩ B outside F: f + 1 of 2f + 1, and n − t of n with
+  n > 3t and at most t faulty).
+- **The kind.** A counted goal is a goal and its counts (a variable v naming Σ_{k < below} body(k), the body read with its
+  key variable at k). A certificate is a list of instances and a tree; an instance is a fresh witness, the bound its
+  counts share, integer coefficients on counts and one on the constant 1. Lean builds each instance's hypothesis
+  (`countHyp`: the combination's sum is not positive, or the witness is a key below the bound where its value is),
+  checks the witnesses fresh (`countedOk`) and the tree against the goal's hypotheses followed by the instances'.
+  `counted_sound`: no naturals and maps where every count is its sum satisfy an accepted goal's hypotheses.
+- **Why this shape, and why it is the smallest.** A BAPA refutation is a Venn decomposition plus Farkas coefficients over
+  the regions; what the regions buy is a linear combination of set sizes whose pointwise value is never positive. One
+  instance carries exactly that combination (its coefficients on the counts are the Farkas multipliers), and the
+  pointwise half (which regions the witness lies in) is the tree's ordinary case split over the cells it reads at the
+  witness. So the kind adds one lemma and a hypothesis builder, no region variables and no new term form. Majorities
+  (+1, +1, unit −1), f + 1 of 2f + 1 (the same) and more than two thirds with faults (+1, +1, −1 on the faulty, unit −1)
+  are one instance each; a count of a compound body (A ∩ B) gives the numeric forms (|A ∩ B| ≥ |A| + |B| − |S|).
+- **What is not built.** Counts in a machine's laws and steps: the goal builders (obligations, Sets.lean's goals) would
+  make a counted goal per step, and Lean's machine twin would need a count term or count declarations on SMachine.
+  That is the machine-level kind, the next Lean statement, after gen/laneA lands; this phase's kind is goal-level.
+
+**Ghost maps (lean-kernel/GhostMap.lean, beside Ghost.lean).**
+- `SGhostedM`: the original SMachine, ghost values (as SGhosted's), ghost maps (a start), and their writes at one key
+  (`gwrites`) or at every key (`gevery`). `full` appends the ghosts after the original's lists. `smghostOk`: ghost names
+  new and distinct, ghost writes only of ghost maps, and no part of the original (pre, assume, flags, quantified flags'
+  bodies, start, step, writes, every-key writes, facts) reads a ghost variable or map.
+- `smghost_reach` (`sghost_reach` from ghost values to ghost maps): every reachable state of the original is, outside the
+  ghost variables and maps, a reachable state of the ghosted machine. `smghost_laws`: a law of the ghosted machine that
+  reads no ghost holds of the original. `some_of_ghostmap`: at every reachable state of the original there are ghost
+  values and ghost maps (Skolem functions of the keys) where every law holds. `forall_some_of_ghostmap`: a law about
+  every kv that reads the ghost map W only at one key term gives ∀ kv ∃ x, the law with W's reads replaced by x.
+
+**The correspondence, TS to Lean (each kernel.ts function is the Lean definition of the same name; the review's table).**
+
+| Lean (Count.lean) | kernel.ts | How they correspond |
+| --- | --- | --- |
+| `Count ⟨v, key, below, body⟩`, `CInst ⟨wit, below, terms : List (Int × Nat), unit : Int⟩` | `Count`, `CountInst` (names, numbers) | emit.ts's `countedToLean`: each name its variable index, each term `leanTerms`, each coefficient an Int literal |
+| `beqE` (structure) | `sameE`: JSON with keys sorted | equal TS terms print equal; TS is stricter where n-ary and/or nest differently |
+| `findCount`: the first count with v | `cs.find(c => c.v === v)` | first match |
+| `resolve`: per term, its count and `beqE c.below B`, else none | loop, `!c ‖ !sameE` → undefined | same order, same refusals |
+| `sumE`: `[] ↦ .const 0`, `e :: es ↦ .add e (sumE es)` | `reduceRight` from `{const 0}` | same nesting |
+| `posP z = z.toNat`, `negP z = (−z).toNat` | `Math.max(z, 0)`, `Math.max(−z, 0)` | equal on integers; TS refuses others (`integral`) |
+| `side part rd one u rs = .add (sumE (rs.map (.mul (part c) (rd count)))) (.mul (part u) one)` | `side` | same term |
+| `atCount c = .var c.v`; `atWit w c = substE [(c.key, .var w)] c.body` | `atCount`; `substE(body, {vars: {[key]: var w}})` | Lean's single substitution; TS's on var, get (key), if; counted bodies have no quantifier in Lean |
+| `countHyp = .or (.le P N) (.and (.lt (.var wit) below) (.lt Nw Pw))` | `{or: [<=, {and: [<, <]}]}` | binary and/or print as `.or`/`.and` (lean-terms.ts) |
+| `countHyps`: each in order, none if one is none | loop | same |
+| `witFresh`: no hyp reads w; no count has v = w or reads w in below or body; no instance's below reads w | `reads(t).vars.has(w)` in the same three conjuncts | TS's `reads` leaves out keys an `all` binds; an `all` is opaque to the tree check and has no Lean form |
+| `countedOk = cDistinct wits && all witFresh` | `new Set(ws).size === ws.length && every witFresh` | same |
+| `checkCounted = countedOk && (countHyps → checkGoal ⟨tab, hyps ++ hs⟩ t)` | `countedOk && integral && check({hyps: [...hyps, ...hs]}, tree)` | the tree check is the existing twin (Kernel.lean's checkGoal, kernel.ts's check) |
+
+| Lean (GhostMap.lean) | kernel.ts | How they correspond |
+| --- | --- | --- |
+| `SGhostedM ⟨orig, ghosts, gmaps, gwrites, gevery⟩` | `Ghosted {orig, vars: {start, step}, maps: {start, write}}` | emit.ts (`ghosted`): vars → ghosts, maps → gmaps, point writes → gwrites, every-key writes → gevery |
+| `full`: the original's lists, then the ghosts' | `ghostedMachine`: records spread, the original's first | the names are apart (below), so no entry overrides another |
+| `distinct vars`, `distinct maps`, ghost writes of ghost maps only | (record keys; a ghost map's write is its own) | hold by construction |
+| vars ∉ extVars ++ init ++ step ++ flagVars ++ bkeys | `varNames`: inputs, each quantified flag `?f` and its witnesses, state (start and step), every flag `?f`, every-key and quantified keys | the same names (machineLit numbers them) |
+| maps ∉ origMaps (maps0, writes, every, carried) | `mapNames`: `maps`, `step.maps` (point and every-key), `inputMaps` | the same maps |
+| apartC/apartE of pre, assume, flags, quantified bodies, init, step, writes' keys and values, every-key values, facts, pfacts | `parts.every(apart)`: pre, assume, every flag (a quantified one whole), start, step, writes' keys and values, every-key values, facts (with keys: pfacts) | TS's `reads` leaves out a quantified flag's keys and reads flags as flags; those names are in `varNames`, so TS's verdict implies Lean's |
+| (SMachine has none) | refuses `history` and `sums` | TS stricter |
+| `smghostOk ∧ checkSMachine full` | `checkGhostedLaws = ghostedOk && checkLaws(ghostedMachine)` | the laws' check is the existing twin |
+
+Every export also asserts the builders agree: `countHyps goal.counts insts = some [kernel.ts's hypotheses]` by `decide`.
+
+**Mutation tests** (kernel/MUTANTS.md's operators, kernel/mutants.ts with `MUTANT_BATTERY=counts`, on Modal): the 38
+mutants in kernel.ts's new lines (lines 1582–1701) are all killed by kernel/count.test.ts. One survived the first run
+(`ms.every → ms.some` in ghostedOk: the test's clashing map was also read, so the parts' check refused it too); the test
+now names a declared map the original never reads.
+
+**End to end** (`lean-kernel/count-examples.ts`, the suite's `lean-count` job): the majority step (toy consensus's
+Decide keeps agreement: two instances, cV + cB − N and cA + cV − N), f + 1 of 2f + 1, and the byzantine thresholds, each
+`counted_sound` by `decide +kernel`, with three tampered certificates each computed to false (a witness that is a count's
+variable, an instance dropped, the unit 0); and grants with a ghost map (W[k] := t where Grant(k, t) fires), its laws
+through `smachine_sound` of `full`, `smghost_laws`, `some_of_ghostmap`, and `forall_some_of_ghostmap` read as
+"every granted k has some x < T with valid[x] = 1", with a tampered original (its assumption reads W) whose `smghostOk`
+computes to false. Every theorem's `#print axioms` is [propext, Classical.choice, Quot.sound].
