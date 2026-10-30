@@ -35,7 +35,7 @@ import {quietly} from './cyclic.ts'
 import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
-import {clock, counted, decideLaw, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
+import {clock, counted, decideLaw, decideNote, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
@@ -2527,12 +2527,39 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const kUntil = () => wallUntil - (round && !held ? reserve : 0)
         const real = new Set<Form>(), unsure = new Set<Form>(), lsAll = [...given, ...cubes.map(lawFor), ...(ghost ? [ghost.plain] : [])], blocked2: Form[] = [], mmRound = withGhost(forLaws(lsAll).m), at2 = new Map(cubes.map((g, i) => [g, i]))
         const version = versionOf(), startReal = new Set<Form>(), promoted: Form[] = []
-        let caller = false, complete = true, again = false
+        let caller = false, complete = true, again = false, coneTried = false
+        // (relative induction of the caller's cone first, IC3's: once the caller's goals (and the ∃ law's) are proven, the
+        // cubes their proofs read, closed under each cube's own proof's, each asked (a model ends it; one undecided stays,
+        // its support unknown), and the cone proven whole; a proof ends the rounds. The memo keeps every decision for the
+        // round's goals after it. GDP_IC3_CONE=0 off)
+        const tryCone = (): boolean => {
+          const t1 = performance.now(), byName = new Map(cubes.map(c => [textOf(c), c])), need = new Set<string>(), todo: string[] = []
+          const ask = (i: number) => within(Math.min(kUntil(), performance.now() + joinQueryMs / 8), () => decideLaw(mmRound, lsAll, i))
+          const add = (us: string[]) => { for (const u of us) if (!need.has(u)) { need.add(u); todo.push(u) } }
+          for (const l of [...laws, ...(ghost ? [ghost.plain] : [])]) { const dl = ask(lsAll.findIndex(k => k.name === l.name)); if (!dl?.proven) return false; add(dl.uses) }
+          let open2 = 0
+          while (todo.length) {
+            const c = byName.get(todo.pop()!)
+            if (!c) continue
+            if (performance.now() > kUntil() || stop()) return false
+            const dl = ask(given.length + at2.get(c)!)
+            if (!dl) { open2++; continue }
+            if (!dl.proven) { opts.progress?.('join cone', {round, failed: textOf(c).slice(0, 100), need: need.size, ms: Math.round(performance.now() - t1)}); return false }
+            add(dl.uses)
+          }
+          const cut = cubes.filter(c => need.has(textOf(c)))
+          const v = within(t0 + ms, () => prove([...laws, ...cut.map(lawFor), ...(ghost ? [ghost.some] : [])], true))
+          opts.progress?.('join cone', {round, cubes: cubes.length, cone: cut.length, undecided: open2, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t1), at: String(v.goal ?? '').slice(0, 100)})
+          if (!(v.proven && v.checked)) return false
+          why = 'inductive'; cone = cut; enumProof = v; cubes = cut
+          return true
+        }
         {
           for (const goal of [...laws.map(l => l.name), ...(ghost ? [ghost.plain.name] : []), ...cubes]) {
             if (performance.now() > kUntil() || stop()) { complete = false; break }
             const f = typeof goal === 'string' ? undefined : goal, ls = lsAll, others = cubes.filter(g => g !== f)
             const idx = f ? given.length + at2.get(f)! : ls.findIndex(l => l.name === goal), mm = mmRound
+            if (f && !coneTried && env.GDP_IC3_CONE !== '0') { coneTried = true; if (tryCone()) { over = true; return } }
             if (f) held = true
             if ((f && kept2.has(f)) || stands.has(ls[idx]!.name)) continue
             const was = settled.get(ls[idx]!.name)
@@ -2544,8 +2571,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             const tDl = performance.now(), dlEnd = Math.min(kUntil(), performance.now() + (f ? joinQueryMs / 8 : joinQueryMs)), dl = within(dlEnd, () => decideLaw(mm, ls, idx))
             const gt = (path: string) => { if (env.GDP_GOAL_TRACE) opts.progress?.('join goal', {goal: String(ls[idx]!.name).slice(0, 90), path, ms: Math.round(performance.now() - tDl)}) }
             gt(`dl ${!dl ? 'undecided' : dl.proven ? 'proven' : 'model'}`)
-            // (the EPR path out of time on the caller's goal: the proof path would be no quicker)
-            const outOfTime = !dl && performance.now() - tDl >= 0.9 * (dlEnd - tDl)
+            // (the EPR path out of time on the caller's goal, or refuting it with a core the kernel's search didn't finish:
+            // the proof path would be no quicker)
+            const outOfTime = !dl && (performance.now() - tDl >= 0.9 * (dlEnd - tDl) || decideNote.refuted)
             if (dl?.proven) { stand(ls[idx]!.name); continue }
             let isReal = !!dl && (f && dl.goal.endsWith('@start') ? badAtStart(f, dl.witness) : realCti(dl.witness, f, others)), wit = dl?.witness
             if (f && isReal && dl!.goal.endsWith('@start')) startReal.add(f)

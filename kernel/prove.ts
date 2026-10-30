@@ -1112,12 +1112,15 @@ const matched = (l: Law, keys: E[], most = relatedMost): E[][] => {
   eachRead(e => { const ns = names(e.key); if (ns.length === vars.length || ns.length > 1) pats.set(JSON.stringify(e.key), e.key) }).inC(l.holds)
   const partial: Record<string, E>[] = []
   for (const p of pats.values()) for (const key of keys) { const b = matchMany(p, key, vars); if (b) partial.push(b) }
-  const whole = (b: Record<string, E>) => vars.every(x => x in b), out = partial.filter(whole)
+  const whole = (b: Record<string, E>) => vars.every(x => x in b), isWhole = partial.map(whole), out = partial.filter((_, i) => isWhole[i])
   // (two partial matches together: at most `most` of them, as related's)
-  for (let i = 0; i < partial.length && out.length < most; i++) for (let j = i + 1; j < partial.length && out.length < most; j++) {
-    const a = partial[i]!, b = partial[j]!
-    if (whole(a) || whole(b) || !vars.every(x => x in a || x in b)) continue
-    out.push({...b, ...a}, {...a, ...b})
+  for (let i = 0; i < partial.length && out.length < most; i++) {
+    if (isWhole[i]) continue
+    for (let j = i + 1; j < partial.length && out.length < most; j++) {
+      const a = partial[i]!, b = partial[j]!
+      if (isWhole[j] || !vars.every(x => x in a || x in b)) continue
+      out.push({...b, ...a}, {...a, ...b})
+    }
   }
   return out.map(b => vars.map(x => b[x]!))
 }
@@ -1451,7 +1454,11 @@ export function decideLaw(m: Machine, laws: Law[], i: number, rounds = modelRoun
   decideLawHook.on(m, laws, i, out, performance.now() - t0)
   return out
 }
+// (why decideLaw last answered nothing: `refuted`, the abstraction refuted a goal whose core's proof didn't finish, a
+// goal the CDCL search after it would find no quicker)
+export const decideNote = {refuted: false}
 function decideLaw0(m: Machine, laws: Law[], i: number, rounds: number): Decided {
+  decideNote.refuted = false
   if (!fastShape(m, laws)) return undefined
   return withPatterns(m, laws, () => {
     if (!eprScope.patterns) return undefined
@@ -1561,7 +1568,7 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
       let o: (Outcome & {part?: Goal, core?: number[]}) | undefined = eprScope.patterns ? eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late) : undefined
       // (a refutation whose core's proof didn't finish: a model from fewer instances, which these refute, is no answer;
       // decideLaw's unknown, the usual search's next)
-      if (!o && eprLast.refuted) { if (!usual) return undefined } else if (!o && (last || !usual)) return strict(usual) ? undefined : last
+      if (!o && eprLast.refuted) { if (!usual) { decideNote.refuted = true; return undefined } } else if (!o && (last || !usual)) return strict(usual) ? undefined : last
       // (the usual search, the EPR path not asked again)
       if (!o) { const busy = eprScope.busy; eprScope.busy = true; try { o = grow(g) } finally { eprScope.busy = busy } }
       if ('tree' in o) {

@@ -2,7 +2,8 @@
 // is not, so this thread holds the Z3 contexts and answers each SMT-LIB text through a shared buffer the engine's thread
 // waits on (Atomics.wait). One context a name, made on first use; (reset) inside a text clears it.
 import {parentPort, workerData} from 'node:worker_threads'
-import {init} from 'z3-solver'
+// (the package is the referee's alone, added in its job (bun add z3-solver), not one of the repo's dependencies)
+const {init} = await import(['z3', 'solver'].join('-')) as {init: () => Promise<any>}
 
 const sab = workerData.sab as SharedArrayBuffer
 const head = new Int32Array(sab, 0, 2), body = new Uint8Array(sab, 8)

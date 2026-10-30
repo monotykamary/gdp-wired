@@ -1,0 +1,4 @@
+[
+ {"name": "wo-p13-e2e120", "cmd": "GDP_GOAL_TRACE=1 GDP_EXISTS_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 160 bun research/protocols/engine/wodump.ts consensus_wo_decide 120000 /tmp/wo.jsonl 2>&1 | grep -v 'join view\\|join cubes\\|join made\\|join small domains' | cut -c1-330 | tail -c 300000", "timeout": 240},
+ {"name": "wo-p13-e2e60", "cmd": "GDP_GOAL_TRACE=1 GDP_EXISTS_LOG=1 GDP_INFER_TRACE=2 timeout -s KILL 100 bun research/protocols/engine/wodump.ts consensus_wo_decide 60000 /tmp/wo.jsonl 2>&1 | grep -v 'join view\\|join cubes\\|join made\\|join small domains' | cut -c1-330 | tail -c 300000", "timeout": 200}
+]
