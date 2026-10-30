@@ -125,7 +125,7 @@ const where = (x: {p: string}) => x.p || '?'
 const refuse = (x: {p: string} | string, what: string): never => { throw new Refusal(typeof x === 'string' ? x : where(x), what) }
 const RESERVED = new Set(['rule', 'nat', 'int', 'bool', 'when', 'min', 'max', 'all', 'any', 'not', 'yes', 'no', 'lit', 'str', 'record', 'oneOf', 'intern', 'Int', 'forall'])
 const keyV = (v: V | Obj): string => JSON.stringify(v, (_, x) => (x instanceof Map ? [...x.entries()] : x))
-const LANG: Record<string, string> = {go: 'Go', rust: 'Rust', python: 'Python', c: 'C', cpp: 'C++', ruby: 'Ruby', elixir: 'Elixir'}
+const LANG: Record<string, string> = {go: 'Go', rust: 'Rust', python: 'Python', c: 'C', cpp: 'C++', ruby: 'Ruby', elixir: 'Elixir', java: 'Java', kotlin: 'Kotlin'}
 const tyName = (ty?: IntTy) => (ty ? (ty.bits ? `${ty.signed ? 'i' : 'u'}${ty.bits}` : ty.signed ? 'an Instant' : 'a Duration') : 'the number')
 const constOf = (v: V): number | undefined => (v.t === 'num' && v.e.op === 'const' ? v.e.v : undefined)
 
@@ -2213,6 +2213,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     const fresh: Path = {pc: [], locals: new Map(), heap: new Map([['this', {k: 'rec', ty: cls, f: new Map(), origin: 'state'}]]), called: [], locks: [], defers: []}
     g.init = true
     g.method = '__init__'
+    const r0 = g.refusals.length
     let made: Path
     const initId = r.methods.__init__
     if (initId) g.entryIds.add(initId)
@@ -2280,7 +2281,8 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
       made = {...p, heap: new Map(p.heap).set('this', {k: 'rec', ty: cls, f, origin: 'state'})}
       g.notes.add(`${r.short}: a dataclass, made with its fields' defaults (the claim is for objects made so) and the others as params`)
     } else made = fresh
-    pre = I.and(I.not(I.or(...g.fails)), I.not(I.or(...g.paramsOut)))
+    // (what the constructor refuses, a narrowing cast's value that doesn't fit, is the precondition's)
+    pre = I.and(I.not(I.or(...g.fails)), I.not(I.or(...g.paramsOut)), I.not(I.or(...g.refusals.splice(r0))))
     g.fails = []
     g.init = false
     // (a field a framework injects, @Autowired or @Inject on it: the store the check gives, named by the field)
@@ -2528,6 +2530,31 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
   if (unread.length) g.notes.add(`read by the code but by no term of the rule (given their sort's zero, or None, by the check): ${unread.map(v => v.name).join(', ')}`)
   const inputs = g.inputs.filter(v => !unread.includes(v))
   for (const e of events) { const a = e.args[0] as {k: 'rec', fields: [string, Arg][]}; a.fields = a.fields.filter(([n]) => !unread.some(v => v.name === n)) }
+  // A start that divides (a constructor's `limit / 2`): each quotient of the params a param of its own, which the
+  // precondition fixes (k·q ≤ a < k·q + k) and the check computes from the others (a start reads the params alone,
+  // and a quotient is no term over them).
+  const pnames = new Set(g.params.map(v => v.name)), qs = new Map<string, Var>()
+  const ok = (a: N) => { const r = I.varsOf(a); return !r.maps.size && [...r.vars].every(n => pnames.has(n)) }
+  const qOf = (k: number, a: N): N => {
+    const key = I.keyOf({k, a})
+    let q = qs.get(key)
+    if (!q) {
+      q = g.newVar(`${[...I.varsOf(a).vars][0] ?? 'q'}_div${k}`, {k: 'num'}, 'param', `⌊${k === 1 ? '' : 'the start\'s dividend / '}${k}⌋ of the params (fixed by the precondition: a start divides)`)
+      ;(q as Var & {derived?: N}).derived = {op: 'divk', k, a}
+      qs.set(key, q)
+      pre = I.and(pre, I.cmp('<=', I.mulk(k, I.nvar(q.name)), a), I.cmp('<', a, I.add(I.mulk(k, I.nvar(q.name)), I.num(k))))
+    }
+    return I.nvar(q.name)
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const lift = (t: any): any => {
+    if (Array.isArray(t)) return t.map(lift)
+    if (!t || typeof t !== 'object') return t
+    if ((t.op === 'divk' || t.op === 'modk') && t.k > 1) { const a = lift(t.a) as N; if (ok(a)) return t.op === 'divk' ? qOf(t.k, a) : I.sub(a, I.mulk(t.k, qOf(t.k, a))) }
+    return Object.fromEntries(Object.entries(t).map(([k, v]) => [k, lift(v)]))
+  }
+  for (const [n, t] of Object.entries(init)) init[n] = lift(t) as Term
+  pre = lift(pre) as B
   const model: Model = {
     kind: cls ? 'a class and its methods' : names.length > 1 ? 'functions, each a request' : 'a function, each call a request',
     name: cls ? g.rec(cls, at).short : names.length === 1 ? names[0]! : mod.module.split('.').pop()!, shape: 'class', file: mod.file, entry: cls ? g.rec(cls, at).short : names.join(', '),
