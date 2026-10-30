@@ -248,11 +248,15 @@ Lean proof, asked for first; (4) the suite again.
   $0.63): f1 34 and f2 24 as the base (no task differs); rw 74/14/3 as the base; g332 the same search on 332 of 332
   (300.2 s against 286.6 s); onecpu no failure; the suite 234 of 235, **lost 1**: `check` (tsc and oxlint over the
   repository), from an unused binding in research/protocols/ic3syn/models.ts, fixed in 9f360d4 (oxlint clean on the
-  branch's files); the suite group again on the fix: @SUITE2@. Gained 0, wrong 0; core/ and kernel/ +1,256 bytes.
+  branch's files); the suite group again on 9f360d4 (<main>/runs/bar/runs/9f360d480880-vs-ae369178e65d-quick-2026-10-301744): 235 of 235,
+  lost 0. Gained 0, wrong 0; core/ and kernel/ +1,256 bytes.
 - **Typecheck:** clean for every file the branch touches (`tsc -p .` on Modal; the errors left are vendor/ imports and
   research files the branch doesn't touch, as on main's tree there).
 
-**Spend:** @SPEND@
+**Spend:** $2.25 billed through the 17:00 UTC hour for this round's apps: $1.18 for the 34 of the checks, the suite's runs,
+  the probes and the ring batches, and $1.07 for the two bars' 20 (both sides); the last hour may still be filling in.
+  Nothing of mine is left running. Two jobs were capped and not rerun (mldr at 300 s, twice, 810 s each: no verdict, as
+  at 60 s; launched before the 60 s cap was seen).
 
 **Verified, not**
 - **Verified (Modal, as counted above):** the sources and their commits; 25 of 26 ports equal to TLC in states on their
