@@ -8,7 +8,7 @@
 //
 // The language is the file's (.py .rb .ex .java .kt .go .rs .c .h .cpp .cc .hpp .ts .js; a directory with go.mod or
 // .go files is a Go package, with Cargo.toml a Rust crate); the options a rule needs (failures, onError, methods,
-// answers, skip, stores) come from the flags or from gdp.toml (core/cli-config). Exit code: 0 when no law stated in
+// answers, skip, stores) from the flags or from gdp.toml (configFor, below). Exit code: 0 when no law stated in
 // the code is broken, 1 when one is, 2 when one couldn't be checked (the rule refused, or the law not read).
 import type {Extraction, Name} from './extract.ts'
 import {type Verdict, proveRule, proveSteps} from './dsl.ts'
@@ -100,6 +100,79 @@ async function extractOne(t: Target, o: Record<string, unknown>): Promise<Extrac
   }
 }
 
+// --- gdp.toml: the modelling choices of each rule, written once beside the code -------------------------------------------
+// The nearest gdp.toml, pyproject.toml's [tool.gdp] or package.json's "gdp" from the code up: its top-level keys for
+// every rule, [rules.<entry>] for one (failures, onError, methods, answers, skip, stores and their attrs, strict, root,
+// python, ...: the front end's own options). TOML has no null: "None" (or "null", "nil") is one, Redis off.
+//
+//   failures = "kept"
+//   [rules._PROXY_MaxIterationsHandler]
+//   methods = ["async_pre_call_hook"]
+//   stores.internal_usage_cache.attrs = {"dual_cache.redis_cache" = "None"}
+type Config = {all: Record<string, unknown>, rules: Record<string, Record<string, unknown>>, at?: string}
+export function configFor(from: string): Config {
+  const dir = up(from, d => ['gdp.toml', 'pyproject.toml', 'package.json'].some(f => fs.existsSync(path.join(d, f)) && (f === 'gdp.toml' || (f === 'pyproject.toml' ? /^\[tool\.gdp\b/m : /"gdp"\s*:/).test(fs.readFileSync(path.join(d, f), 'utf8')))))
+  if (!dir) return {all: {}, rules: {}}
+  const f = ['gdp.toml', 'pyproject.toml', 'package.json'].find(x => fs.existsSync(path.join(dir, x)) && (x === 'gdp.toml' || (x === 'pyproject.toml' ? /^\[tool\.gdp\b/m : /"gdp"\s*:/).test(fs.readFileSync(path.join(dir, x), 'utf8'))))!
+  const text = fs.readFileSync(path.join(dir, f), 'utf8')
+  let c: Record<string, unknown>
+  if (f === 'package.json') c = (JSON.parse(text) as {gdp?: Record<string, unknown>}).gdp ?? {}
+  else if (f === 'pyproject.toml') {
+    // (only its [tool.gdp...] tables, read as a gdp.toml's)
+    let on = false
+    c = (toml(text.split('\n').filter(l => { const h = /^\s*\[([^\]]*)\]/.exec(l); if (h) on = /^tool\.gdp\b/.test(h[1]!.trim()); return on }).join('\n')) as {tool?: {gdp?: Record<string, unknown>}}).tool?.gdp ?? {}
+  } else c = toml(text)
+  const {rules, ...all} = c as {rules?: Record<string, Record<string, unknown>>}
+  return {all, rules: rules ?? {}, at: path.join(dir, f)}
+}
+// TOML's subset a gdp.toml needs: tables ([a.b."c.d"]), dotted and quoted keys, strings, integers, booleans, arrays and
+// inline tables on one line, # comments.
+export function toml(text: string): Record<string, unknown> {
+  const root: Record<string, unknown> = {}
+  let table = root
+  const keys = (s: string): string[] => [...s.matchAll(/\s*(?:"((?:[^"\\]|\\.)*)"|'([^']*)'|([\w-]+))\s*(?:\.|$)/g)].map(m => m[1] ?? m[2] ?? m[3]!)
+  const at = (o: Record<string, unknown>, ks: string[]) => ks.reduce((t, k) => (t[k] ??= {}) as Record<string, unknown>, o)
+  const value = (s: string): [unknown, string] => {
+    s = s.trimStart()
+    const str = /^"((?:[^"\\]|\\.)*)"|^'([^']*)'/.exec(s)
+    if (str) { const v = str[1] !== undefined ? JSON.parse(`"${str[1]}"`) as string : str[2]!; return [['None', 'null', 'nil'].includes(v) ? null : v, s.slice(str[0].length)] }
+    if (s[0] === '[' || s[0] === '{') {
+      const arr = s[0] === '[', out: unknown[] = [], obj: Record<string, unknown> = {}
+      s = s.slice(1)
+      for (;;) {
+        s = s.trimStart()
+        if (s[0] === (arr ? ']' : '}')) return [arr ? out : obj, s.slice(1)]
+        if (s[0] === ',') { s = s.slice(1); continue }
+        if (arr) { const [v, r] = value(s); out.push(v); s = r } else {
+          const eq = /^((?:"(?:[^"\\]|\\.)*"|'[^']*'|[\w.-]+|\s)+?)\s*=/.exec(s) ?? fail(`gdp.toml: can't read ${s.slice(0, 40)}`)
+          const ks = keys(eq[1]!), [v, r] = value(s.slice(eq[0].length))
+          at(obj, ks.slice(0, -1))[ks.at(-1)!] = v; s = r
+        }
+      }
+    }
+    const m = /^(true|false|-?\d+)/.exec(s) ?? fail(`gdp.toml: can't read ${s.slice(0, 40)}`)
+    return [m[1] === 'true' ? true : m[1] === 'false' ? false : Number(m[1]), s.slice(m[0].length)]
+  }
+  for (const raw of text.split('\n')) {
+    const l = raw.trim()
+    if (!l || l.startsWith('#')) continue
+    const h = /^\[([^\]]+)\]\s*(?:#.*)?$/.exec(l)
+    if (h) { table = at(root, keys(h[1]!)); continue }
+    const eq = /^((?:"(?:[^"\\]|\\.)*"|'[^']*'|[\w.-]+|\s)+?)\s*=/.exec(l) ?? fail(`gdp.toml: can't read ${l}`)
+    const ks = keys(eq[1]!), [v, r] = value(l.slice(eq[0].length))
+    if (r.trim() && !r.trim().startsWith('#')) fail(`gdp.toml: can't read ${l}`)
+    at(table, ks.slice(0, -1))[ks.at(-1)!] = v
+  }
+  return root
+}
+const fail = (s: string): never => { throw new Error(s) }
+// Two option objects merged, the second's winning (objects merged key by key: a store's attrs beside its methods).
+const merge = (a: Record<string, unknown>, b: Record<string, unknown>): Record<string, unknown> => {
+  const out = {...a}
+  for (const [k, v] of Object.entries(b)) out[k] = v && typeof v === 'object' && !Array.isArray(v) && out[k] && typeof out[k] === 'object' && !Array.isArray(out[k]) ? merge(out[k] as Record<string, unknown>, v as Record<string, unknown>) : v
+  return out
+}
+
 // --- one target: its rules, their laws -------------------------------------------------------------------------------------
 type LawOut = {name: string, expr: string, where?: string, kind?: 'law' | 'step', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], why?: string, assumes?: string[], found?: string[], ms: number}
 export type RuleOut = {file: string, lang: string, entry?: string, ok: boolean, refusals: {where: string, what: string}[], notes: string[], names: Name[], checked?: string,
@@ -108,10 +181,18 @@ export type RuleOut = {file: string, lang: string, entry?: string, ok: boolean, 
 // The entries to read: the one given, else the one inferred; where several classes or structs qualify, each of them; a
 // file of functions, each function a law is stated on.
 async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: string, x: Extraction}[]> {
-  const {json: _j, ms: _m, propose: _p, ...opts} = o
+  const {json: _j, ms: _m, propose: _p, ...flags} = o
   void _j; void _m; void _p
-  const one = async (entry?: string) => ({entry, x: await extractOne(t, {...opts, ...(entry ? {entry} : {})})})
-  if (o.entry) return [await one(o.entry)]
+  // (the options: gdp.toml's for every rule, then the rule's own, then the flags; a rule found with no entry named is
+  // read again where gdp.toml has options of its own for it)
+  const cfg = configFor(t.lang === 'go' || t.lang === 'rust' ? t.at : path.dirname(t.at))
+  const optsFor = (entry?: string) => merge(merge(cfg.all, (entry && cfg.rules[entry]) || {}), flags)
+  const one = async (entry?: string) => {
+    const x = await extractOne(t, {...optsFor(entry), ...(entry ? {entry} : {})}), found = x.model?.name
+    return !entry && found && cfg.rules[found] ? {entry: found, x: await extractOne(t, {...optsFor(found), entry: found})} : {entry, x}
+  }
+  const given = o.entry ?? (cfg.all.entry as string | undefined)
+  if (given) return [await one(given)]
   if (t.lang === 'ts' || t.lang === 'cpp') {
     const code = t.files.map(f => fs.readFileSync(f, 'utf8')).join('\n')
     const re = t.lang === 'cpp' ? /^\s*(?:class|struct)\s+(\w+)\s*(?::[^{]*)?\{/gm : /export\s+(?:default\s+)?(?:abstract\s+)?class\s+(\w+)|export\s+(?:const|function)\s+(\w+)/g
@@ -122,6 +203,9 @@ async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: str
   }
   const first = await one()
   if (first.x.ok) return [first]
+  // (refused with no entry named: the rules gdp.toml names that the code has, each with its options)
+  const named = Object.keys(cfg.rules).filter(k => t.files.some(f => new RegExp(`\\b${k.replace(/[^\w]/g, '\\$&')}\\b`).test(fs.readFileSync(f, 'utf8'))))
+  if (named.length) return Promise.all(named.map(k => one(k)))
   const what = first.x.refusals[0]?.what ?? ''
   const several = /several (?:classes|structs) (?:write their state|written by the file's functions) \(([^)]*)\)/.exec(what)
   if (several) return Promise.all(several[1]!.split(', ').map(c => one(c)))

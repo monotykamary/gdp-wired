@@ -230,3 +230,33 @@ export class W {
   expect(v['a call with arguments@w.ts:8']).not.toMatch(/write the key/)
   expect(exit).toBe(2)
 })
+
+test('gdp.toml, pyproject.toml\'s [tool.gdp] and package.json\'s "gdp": the options of every rule and of one', async () => {
+  const {configFor, toml} = await import('./cli.ts')
+  expect(toml('failures = "kept" # all\n[rules.H]\nmethods = ["a", \'b\']\nstores.c.attrs = {"d.e" = "None", n = 3}\n[rules."x.y"]\nstrict = true\n'))
+    .toEqual({failures: 'kept', rules: {H: {methods: ['a', 'b'], stores: {c: {attrs: {'d.e': null, n: 3}}}}, 'x.y': {strict: true}}})
+  expect(() => toml('x = [1,\n2]')).toThrow(/can't read/)
+  const py = files({'pyproject.toml': '[project]\nname = "p"\ndeps = [\n  "a",\n]\n[tool.gdp]\nfailures = "kept"\n[tool.gdp.rules.H]\nmethods = ["hit"]\n[tool.other]\nx = 1\n', 'src/m.py': ''})
+  expect(configFor(`${py}/src`)).toMatchObject({all: {failures: 'kept'}, rules: {H: {methods: ['hit']}}})
+  const js = files({'package.json': '{"name": "p", "gdp": {"onError": "discard", "rules": {"W": {"methods": ["inc"]}}}}', 'src/w.ts': ''})
+  expect(configFor(`${js}/src`)).toMatchObject({all: {onError: 'discard'}, rules: {W: {methods: ['inc']}}})
+  // (a rule's options from gdp.toml: SessionLimit's request and its kept failure)
+  const dir = files({'s.py': `
+class SessionLimit:
+    def __init__(self, cache, limit: int):
+        self.cache = cache
+        self.limit = limit
+
+    # gdp: law each hit counts one: cache["hits:" + session] == old(cache["hits:" + session]) + 1
+    async def hit(self, session: str) -> None:
+        key = f"hits:{session}"
+        n = await self.cache.get(key)
+        n = (n or 0) + 1
+        await self.cache.set(key, n)
+        if n > self.limit:
+            raise RuntimeError("over the limit")
+`, 'gdp.toml': '[rules.SessionLimit]\nfailures = "kept"\n'})
+  if (!TOOLS.python!()) return
+  const {rules} = await check([`${dir}/s.py`], {ms: 3000, propose: false})
+  expect(rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
+})
