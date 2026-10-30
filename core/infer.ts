@@ -2278,7 +2278,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // most of the cubes'; and the goals a round can afford, a quarter of what is left at the last round's cost a goal)
       type Pre = {params: Env, st: State, w: Record<string, number>}
       const pres: Pre[] = [], subs: Pre[] = [], preAt = new WeakMap<object, Point>()
-      let perGoal = 0
+      let perGoal = 0, houdinied = false
+      const engineStart = performance.now()
       const ptOf = (q: Pre) => { let pt = preAt.get(q); if (!pt) { pt = withFnsOf(q.w, () => pointOf(q.params, q.st)); preAt.set(q, pt) } return pt }
       // (a kernel model's state, its values past the rule's constants renamed small, its cells past a million left out)
       const preOf = (wit: Record<string, number>): Pre => { const w2 = smallOf(wit); return withFnsOf(w2, () => { const {params, st} = stateOf(w2); for (const cells of Object.values(st.maps)) for (const k of [...cells.keys()]) if (k > 1_000_000) cells.delete(k); return {params, st, w: w2} }) }
@@ -2290,13 +2291,18 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const pending = new Set<Form>(), tried = new Map<Form, string>(), backs = new Map<Form, number>()
       const versionOf = () => cubes.map(textOf).sort().join('|')
       // (what blocks a counterexample's state: the enumeration's minimal cubes false there (the antichain is the
-      // generalization), or that may be (cells the model leaves unnamed), two at most: the false first, then those false at
+      // generalization), or that may be (cells the model leaves unnamed), four at most (the frames' pushes prune the wrong
+      // ones; distributed's needed blockers ranked 2nd to 4th): the false first, then those false at
       // the most of the counterexamples' states so far, then the fewest literals; else its diagrams)
       const seenCtis: Pre[] = []
+      // (every cube ranked in the top eight at some counterexample: the pool a fixpoint's Houdini runs over)
+      const pool = new Set<Form>()
       const blockers = (pre: Pre): Form[] => {
         const pt = ptOf(pre), pts = (seenCtis.push(pre), seenCtis.slice(-16).map(ptOf)), bs: Form[] = []
         const scored = made.filter(g => !dead.has(textOf(g)) && !pending.has(g)).map(g => ({g, f: !holdsAt(g, pt) ? 2 : mayFail(g, pt) ? 1 : 0})).filter(q => q.f).map(({g, f}) => ({g, k: f * 1024 + pts.filter(p2 => !holdsAt(g, p2)).length}))
-        for (const {g} of scored.sort((a, b) => b.k - a.k || a.g.cube!.length - b.g.cube!.length || width2(b.g) - width2(a.g))) { if (bs.length >= 2) break; if (!bs.some(h => textOf(h) === textOf(g)) && !atStart(g)) bs.push(g) }
+        const ranked = scored.sort((a, b) => b.k - a.k || a.g.cube!.length - b.g.cube!.length || width2(b.g) - width2(a.g))
+        for (const {g} of ranked.slice(0, 8)) pool.add(g)
+        for (const {g} of ranked) { if (bs.length >= 4) break; if (!bs.some(h => textOf(h) === textOf(g)) && !atStart(g)) bs.push(g) }
         return bs.length ? bs : withFnsOf(pre.w, () => diagrams(pre)).filter(g => !dead.has(textOf(g)) && !atStart(g))
       }
       // (a cube that may be false at a counterexample: at a row where it reads cells the model doesn't name, every literal
@@ -2318,6 +2324,26 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         for (const g of cubes) if (pending.has(g) || [...pending].some(h => textOf(h) === textOf(g))) for (const h of [...pending]) if (textOf(h) === textOf(g)) pending.delete(h)
         for (const g of cubes) if (!addedAt.has(g)) addedAt.set(g, round)
         const stand = (nm: string) => { stands.add(nm); provenAt.set(nm, round) }
+        // (DuoAI's: the Houdini fixpoint of the relevant candidates, once, with 40% of the engine's time left: the set, the pending cubes and every cube a
+        // counterexample ranked in its top eight, a cube the fast proof fails at dropped (the usual proof where it fails at
+        // a cube the rounds proved), until the whole proves or the time is out)
+        if (!houdinied && !enumProof && performance.now() > wallUntil - 0.4 * (wallUntil - engineStart)) {
+          houdinied = true
+          let hs = [...new Map([...cubes, ...pending, ...pool].filter(g => !dead.has(textOf(g)) && !atStart(g)).map(g => [textOf(g), g])).values()]
+          for (let k = 0; k < 200 && hs.length && performance.now() < wallUntil && !stop(); k++) {
+            const t2 = performance.now(), hl = [...laws, ...hs.map(lawFor), ...(ghost ? [ghost.some] : [])]
+            let v = within(t0 + ms, () => prove(hl, true))
+            const at0 = String(v.goal ?? ''), g0 = v.proven && v.checked ? undefined : hs.find(c => at0.startsWith(`${textOf(c)} @`))
+            // (or at a law the caller gave, a kind's: no cube to blame, so the usual proof's verdict)
+            if (!(v.proven && v.checked) && (g0 ? at0.endsWith('@step') && stands.has(lawFor(g0).name) : true)) v = within(t0 + ms, () => prove(hl))
+            const at = String(v.goal ?? ''), g = v.proven && v.checked ? undefined : hs.find(c => at.startsWith(`${textOf(c)} @`))
+            opts.progress?.('join houdini', {cubes: hs.length, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(performance.now() - t2), at: at.slice(0, 100)})
+            if (v.proven && v.checked) { why = 'inductive'; cone = hs; enumProof = v; cubes = hs; break }
+            if (!g) break
+            hs = hs.filter(c => c !== g)
+          }
+        }
+        if (enumProof) { over = true; return }
         let asked = 0, cubeMs = 0, tGoal = 0
         // (later rounds less the sums pass's reserve, unless the caller's law holds from the set: Houdini's part, then)
         const kUntil = () => wallUntil - (round && !held ? reserve : 0)
@@ -2411,7 +2437,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             failed.add(g)
             // (the push's counterexample an obligation, IC3's: blocked as a round's are, by the enumeration's cubes false
             // there, so that the next push has what it lacked)
-            if (dl.goal.endsWith('@step')) for (const b of blockers(preOf(dl.witness)).slice(0, 2)) if (!lsP.some(l => l.name === textOf(b)) && !pending.has(b) && !blocked2.some(h => textOf(h) === textOf(b))) blocked2.push(b)
+            if (dl.goal.endsWith('@step')) for (const b of blockers(preOf(dl.witness))) if (!lsP.some(l => l.name === textOf(b)) && !pending.has(b) && !blocked2.some(h => textOf(h) === textOf(b))) blocked2.push(b)
           })
           if (!failed.size) { promoted.push(...frame); break }
           frame = frame.filter(g => !failed.has(g))
@@ -2458,7 +2484,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         cubes = [...cubes.filter(g => !drops.has(g)), ...back()]
         // (nothing changed and nothing left to push: the frames at their fixpoint, the set grown by relevance to the
         // counterexamples while there is something relevant)
-        if (!enumProof && !drops.size && !gone.length && !grown && !promoted.length && [...pending].every(g => tried.get(g) === versionOf() || (backs.get(g) ?? 0) >= 2)) { const more = complete ? grow(cubes) : []; if (more.length) { cubes = [...cubes, ...more]; over = false } else over = true }
+        if (!enumProof && !drops.size && !gone.length && !grown && !promoted.length && [...pending].every(g => tried.get(g) === versionOf() || (backs.get(g) ?? 0) >= 2)) {
+          const more = complete && !enumProof ? grow(cubes) : []; if (more.length) { cubes = [...cubes, ...more]; over = false } else over = true
+        }
       })
     }
     }
