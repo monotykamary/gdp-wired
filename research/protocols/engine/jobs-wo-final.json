@@ -1,0 +1,3 @@
+[
+ {"name": "wo-final-replay", "cmd": "bun add z3-solver@5.3.3 >/dev/null 2>&1; gunzip -c research/protocols/engine/dumps/wo-td-base.jsonl.gz > /tmp/wo.jsonl; WO_Z3=1 timeout -s KILL 700 bun research/protocols/engine/wodl.ts replay /tmp/wo.jsonl 1000 2>&1 | cut -c1-300 | tail -c 60000; WO_Z3=1 timeout -s KILL 60 bun research/protocols/engine/wodl.ts given 1000 2>&1 | cut -c1-200; WO_Z3=1 timeout -s KILL 60 bun research/protocols/engine/wodl.ts ghost 1000 2>&1 | tail -3 | cut -c1-200; WO_BOTH=1 timeout -s KILL 150 bun research/protocols/engine/wodl.ts set 2>&1 | tail -2", "timeout": 900}
+]

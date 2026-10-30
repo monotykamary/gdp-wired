@@ -43,6 +43,134 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/wo: wo proven with nothing written at 60 s (gen/wo from main 9c07baf; the ten proven in every run)
+
+**Where it stands.** consensus_wo_decide is proven with nothing written at 60 s in 5 of 5 runs on the final code (35.6,
+40.8, 52.3 s in `runs/engine/wo-w3`; 42.1, 48.5 s in `wo-ten`), and the ten are proven in both runs of `wo-ten`. All of
+it is untrusted search: the verdict is still the fast set proof's (`prove(…, true)`: proveSetFast, its trees checked by
+kernel.ts's checkLaws), now through core/exists.ts's ghost for the ∃ law. kernel/kernel.ts and lean-kernel/ are
+untouched; no new certificate kind. Runs are `runs/engine/wo-*` in ../gdp-wired-wo (Modal, 2 CPU).
+
+**The probes** (research/protocols/engine): `wodl.ts` (decideLaw on wo's written laws, `given`; the ∃ law's ghost form,
+`ghost`; the written set's whole proof, `set`; a dump's goals again, `replay`, with `WO_Z3=1` asking Z3 too), `wodump.ts`
+(a search run with every decideLaw goal written out, `decideLawHook`), `z3ref/` (exp/z3's translator, copied as a
+referee only: added per job by `bun add z3-solver`, never imported by core/ or kernel/), `profwin.py` (a CPU profile's
+functions between two times). `dumps/wo-td-base.jsonl.gz` (not committed) is the referee set: the 143 goals of a
+`GDP_TD=1` run at 120 s on 9c07baf, each cube's step with 104–107 laws assumed.
+
+**Pilot (3), the reason probe: the premise didn't hold on main.** On 9c07baf, decideLaw decides 10 of wo's 11 written
+goals in 31–550 ms, "nothing before init" proven in 132 ms. The "every goal undecided" of the note was exp/pool-z3's
+older decideLaw. What it got wrong or left open, each found by the probe and fixed (kernel/epr.ts, kernel/prove.ts,
+untrusted):
+1. **A diagonal key** (`VoteMsg[64·x + x]`, every cube over one node) was no tuple (`tupleOf` refused a name twice): the
+   conclusion "not EPR-shaped". Now the tuple (x, x).
+2. **A read at an if-key**: the ghost's law reads `VotingQuorum'` at the ghost's own next value, `(inits ∨ chooses) ? w
+   : y`. Now `M[c ? a : b]` reads as `c ? M[a] : M[b]` (an if in the key's sum lifted first; at most 8 keys a read), by
+   term equality, before the abstraction.
+3. **The carried map in the model's state**: modelInstances built its state from the machine's maps only, so `Q` read 0
+   and `quorumVotes`' ∀ (∀k. Q has k → Votes[src, k]) was never instantiated where the model breaks it. Now the request's
+   maps are read too. This is the note's "a ∀ flag's true side at ground keys"; its 0 side (the witness `w?f`) and the
+   pattern for `Q` ([1]) were already there, and the write at every key is already an if at each ground key in the
+   kernel's goal; the missing piece was 2.
+4. **A stale model**: a later round that refuted the goal (with the model's instances) but whose core the kernel's
+   search didn't prove returned the earlier round's model ("a leader has the voting quorum's votes": a model, Z3
+   proves it). Now no answer, and `decideNote.refuted` tells the caller (below).
+5. **Whole keys of one shape sorted apart**: `bySort` took a composed term as the whole key of the first map with its
+   pattern (`K:Votes`), so an instance of "every VoteRequestMsg cell is a value of its kind" there was filtered, and the
+   model rounds asked for it again until the cap. Now two maps of one pattern whose parts are of one sort have one
+   whole-key sort; and a model whose only broken instances are another sort's is no answer (not asked again).
+6. **Unconfirmed models**: decideLaw is now strict always (a model only where its round found no instance to add;
+   `GDP_STRICT=0` the old way). Decentralized lock, the case that kept it off, is 15.6–19.3 s with it.
+
+**Pilot 1, measured on the 143 referee goals at 1 s** (Z3 at 2 s as referee; "wrong": decided otherwise than Z3)
+
+| code | undecided | wrong | decided by both |
+|---|---|---|---|
+| 9c07baf (`wo-base`) | 98 | 21 | 45 |
+| 1–4, non-strict (`wo-p5`) | 3 | 43 (unconfirmed models at the deadline) | 140 |
+| 1–4, strict (`wo-p8`) | 94 | 1 | 49 |
+| 1–5, non-strict (`wo-p10`) | 8 | 18 | 135 |
+| final, 1–6 (`wo-p12`, `wo-final`) | 20, 22 | **0**, **0** | 123, 121 |
+
+- The written set's 11 goals: 9c07baf 1 wrong (the voting quorum's law: a model); final 1 undecided, 0 wrong. That
+  goal's EPR core is 14 hypotheses, and the kernel's search proves it in 10 s of counted work (2.1 s wall locally),
+  past decideLaw's 2 s; Z3 decides it at once. It is the kernel's cost on radix-key congruence, not the oracle's.
+- Mean decideLaw time 444 ms before, 559 ms after (the 2,400 hypotheses a goal it left out as unshaped are in now).
+- **PASS** on the criterion (0 wrong; undecided 98 → 22).
+
+**Pilot (4) and step 2, the ∀∃ law in its ghost form: PASS.** The engine already asks the ghost's plain law over
+`withGhost` (`ghost.plain`); it was undecided (the conclusion not EPR-shaped, 8 ms). With 2 it is proven in 26–67 ms
+with the written ∀ laws assumed (no model, so no witness gap), and the caller "one leader" proven with it in 126–178 ms.
+Z3 agrees on both.
+- **The set's proof with the ∃ law**, which was the 30.5 s wall: `proveSetFast` went to `proveLaws` for any ∃ law, so
+  proveSome's whole set got the usual proof and the cyclic certificate. Now proveSetFast calls proveSome with itself as
+  the whole set's prover (`whole`), over proveSome's ghosted machine. The written set: **1.8 s against 33.7 s** (7.4 s
+  usual, 26.1 s certificate; `wo-p9`). The verdict is checked as every engine verdict is (checkLaws), with the ghost's ∃
+  certificate as before.
+
+**Step 3, wo end to end** (`wo-p3` … `wo-w3`; times are seconds into the run)
+- **Before:** the engine starts at 31–40 s (the join 17 s, of it one query of 12–16 s: "every k: Leader[k] <=
+  VoteRequestMsg[k]", unknown), the IC3 rounds' cube goals 0.3–2 s each, the set's Houdini drops one cube a proof.
+- **The cone first (core/infer.ts, IC3 rounds):** once the caller's goals and the ghost's are proven in a round, the
+  cubes their proofs read (decideLaw's `uses`), closed under each cube's own, are asked first, and the cone proven whole
+  (fast). A cube with a model there, or the one the cone's proof fails at, is left out and the caller asked again
+  (Houdini over the cone, 6 times); a proof ends the rounds. Its decisions stay in the memo for the round after it.
+  `GDP_IC3_CONE=0` off. wo: proven at 46.9 s (cone 23 of 46) the first time; then 2 of 3 (62.1 s, past the wall; 59.0 s;
+  unknown), the misses a cone cube with a model (now left out) and a late engine.
+- **The join's usual search on the wall where the engine follows** (`joinGrowWall`, 2 s): the proving joins' searches
+  take under a second (decentralized's sums pass needs 0.7–0.8 s; sync, async, 2PC and ticket prove with it on), and
+  wo's unknown one ran 13 s. The engine then starts at 21–26 s. **wo: 3 of 3** (35.6, 40.8, 52.3 s).
+- **Smaller:** realCti's pre-state rows once, not once per cube (16% of the rounds' profile); the rounds' CDCL search
+  after an undecided cube on the wall too (a counted 2 s ran 8.8 s); a cube the abstraction refuted with a core the
+  kernel didn't finish is unsure at once; `matched`'s wholeness once per match (the instances' 8%).
+- **Where the time goes now** (`wo-p14` profile of the rounds): decideLaw 61% (its instances 27% of that), the CDCL
+  search after undecided cubes 23%, the pool filter's tail 8%, blockers 6%. wo's margin is the cone's: 9–18 s from the
+  caller's first proof.
+
+**Step 4: the ten twice at 60 s** (`wo-ten`, final code f6a22a8)
+
+| protocol | run 1 | run 2 | before (r7a: gen/ring3's wired tree, 9c07baf's code) |
+|---|---|---|---|
+| sync | 8.9 | 8.2 | 6.8 / 8.5 |
+| async | 24.4 | 20.1 | 25.5 / 20.8 |
+| decentralized | 15.6 | 19.3 | 18.2 / 18.3 |
+| 2PC | 19.7 | 17.3 | 22.1 / 11.6 |
+| ticket | 29.7 | 39.2 | 32.7 / 36.5 |
+| toy | 12.1 | 10.3 | 12.1 / 11.7 |
+| sharded | 31.5 | 34.8 | 27.3 / 26.0 |
+| distributed | 35.6 | 34.5 | 42.2 / 30.6 |
+| ring | 51.3 | 52.1 | unknown / 46.0 |
+| **wo** | **42.1** | **48.5** | unknown 65.3 / 64.4 |
+
+All proven, both runs (and `wo-t1`, one run with the join traces: nine proven, ring 53.2 s, wo unknown before the cone).
+
+**The quick bar** (`--quick --cand gen/wo --base 5d4da3f --only rw,f1,f2,g332,suite,onecpu`, against the cached
+5d4da3f49013-modal-r1, on f6a22a8; <main>/runs/bar/runs/wo-f6a22a8-quick/REPORT.md, 484 s, estimated $0.58)
+- f1 34 and rw 74/14/3, the same as the base;
+- f2 24 against 24.33 (no task differs);
+- g332 the same search on 332 of 332 (282.1 s against 284.1 s);
+- the suite 233 passed, 0 failed; onecpu no failure.
+- Gained 0, lost 0, wrong 0.
+
+**Bytes:** core/ and kernel/ 4,175,571 against 4,165,113 at 9c07baf (+10,458): kernel/epr.ts +3,259, kernel/prove.ts
++2,929, core/infer.ts +3,956, core/exists.ts +314. The typecheck has no error in core/, kernel/, research/protocols or
+gates/ (the vendor modules the Modal image leaves out are the only errors, as before); lint clean but for
+research/hw/run-more.ts (as on main).
+
+**Verified, not**
+- **Verified (Modal):** every number above; wo proven at 60 s in 5 of 5 final runs; the ten twice; 0 wrong on the 143
+  referee goals and the written set.
+- **Not verified:**
+  - the Lean twin on these verdicts (the fast set proof's checked trees, as for ring's and distributed's; no cyclic
+    certificate is made in the search);
+  - "0 wrong" beyond wo's goals (the referee set is wo's alone);
+  - the join's wall cap beyond the ten and the bar's dev sets;
+  - wo past 60 s on slower containers (its latest finish 52.3 s);
+  - the voting quorum's law's own step: still the kernel's 10 s counted core; the cone proves without asking it apart.
+
+**Spend:** $0.85 billed by 12:18 UTC for this round's 35 apps (23 of the probes and runs, 12 of the bar); the 12:00 UTC
+hour is still being billed, so about $1.4 in all with the bar's estimate. Nothing of mine left running.
+
 ## gen/ring: the two pilots for ring (from main a095ae3; nothing built)
 
 The pilot code is on exp/pool-z3, since both pilots use its Z3 dump and replay. It adds `GDP_CONE_PILOT` and
