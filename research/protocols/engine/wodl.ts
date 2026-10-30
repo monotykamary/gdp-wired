@@ -10,8 +10,6 @@ import {type Law, type Machine} from '../../../core/machine.ts'
 import {clock, counted, decideLaw, fullRate, withDeadline, withWall} from '../../../kernel/prove.ts'
 import {decideHook} from '../../../kernel/epr.ts'
 import {protocols} from '../models.ts'
-import {showC} from '../../../core/exists.ts'
-;(globalThis as any).showC = showC
 
 const within = <T>(ms: number, f: () => T): T => { const end = performance.now() + ms; return withWall(end, () => counted(fullRate, () => withDeadline(clock() + ms, f), true)) }
 const [mode = 'given', a1, a2, a3] = process.argv.slice(2), ms = Number((mode === 'replay' ? a2 : a1) ?? 1000)

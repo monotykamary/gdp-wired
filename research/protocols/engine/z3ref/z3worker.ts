@@ -1,3 +1,4 @@
+/* eslint-disable */
 // The Z3 worker behind core/z3.ts (exp/z3 only): Z3's wasm build (the z3-solver package) is asynchronous, the engine
 // is not, so this thread holds the Z3 contexts and answers each SMT-LIB text through a shared buffer the engine's thread
 // waits on (Atomics.wait). One context a name, made on first use; (reset) inside a text clears it.

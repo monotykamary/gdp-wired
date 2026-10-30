@@ -1,3 +1,4 @@
+/* eslint-disable */
 // Z3 as the engine's oracle (exp/z3 only, research/protocols/engine/DESIGN.md "Z3 as the oracle"): a law's two goals
 // (its start, and its step with every law of the set assumed) written as SMT-LIB with the laws universally quantified
 // over the naturals, decided by Z3's MBQI, a model read back into a kernel witness (scalars, params and inputs by name,

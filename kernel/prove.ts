@@ -312,9 +312,7 @@ function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = t
   const now = clock(), end = withinDeadline(budget.until ?? Infinity), w = fullWork()
   eprScope.busy = true
   try {
-    const out = process.env.MI_CORE ? withDeadline(Infinity, () => grow(part, new Map(), {nodes: 0, until: now + Number(process.env.MI_CORE)})) : withWork(workCap === Infinity ? Infinity : w + 0.5 * (workCap - w), () => grow(part, new Map(), {nodes: 0, until: end === Infinity ? end : now + 0.5 * (end - now)}))
-    if (process.env.MI_DEBUG === '2') for (const h of part.hyps) console.error('  H', (globalThis as any).showC?.(h)?.slice(0, 600) ?? JSON.stringify(h).slice(0, 300))
-    if (process.env.MI_DEBUG) console.error('CORE', goal.name.slice(0, 60), 'core', core.length, 'of', goal.hyps.length, 'tree' in out ? 'proven' : `${out.stuck} ${out.why ?? ''}`.slice(0, 200), Math.round(clock() - now), 'ms; budget', Math.round((end - now) / 2))
+    const out = withWork(workCap === Infinity ? Infinity : w + 0.5 * (workCap - w), () => grow(part, new Map(), {nodes: 0, until: end === Infinity ? end : now + 0.5 * (end - now)}))
     if (!('tree' in out)) { eprLast.refuted = true; return undefined }
     if (!whole) return {...out, part, core}
     const tree = widen(part, goal, out.tree)
@@ -1026,8 +1024,8 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   for (const atoms of [true, false]) {
     if (atoms === false && added) break
     evals = 0; left = keyed.length + qs.length
-    for (const l of keyed) { const a0 = added, e0 = evals; each(l.name, [l.forall!, ...(l.keys ?? [])], l.holds, atoms); if (process.env.MI_DEBUG) console.error('MI', atoms, l.name.slice(0, 50), 'added', added - a0, 'evals', evals - e0, 'sorts', sortsOf(l.holds, [l.forall!, ...(l.keys ?? [])], atoms).map(s2 => [...s2.keys()].join('/')).join(' | ')) }
-    for (const [f, q] of qs) { const a0 = added; each(`?${f}`, boundOf(q), q.c, atoms); if (process.env.MI_DEBUG) console.error('MI', atoms, f, 'added', added - a0) }
+    for (const l of keyed) each(l.name, [l.forall!, ...(l.keys ?? [])], l.holds, atoms)
+    for (const [f, q] of qs) each(`?${f}`, boundOf(q), q.c, atoms)
   }
   return added ? out : undefined
 }
