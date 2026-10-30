@@ -43,6 +43,83 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneA, determinism: the engine on a counted clock; the gauntlet (main a391a3d merged; branch fd06297)
+
+**The ask:** "10 of 10 with nothing written" guaranteed, not usually true: every search decision on work counts, not
+wall time; ring's margin; the ten 20 times each at 60 s.
+
+**What depended on time** (core/infer.ts's engine, from the small instance on: 79 `performance.now()` reads and 24 of
+the search's wall end): the small instance's BFS cut and walks, the filter's time share (six times the small
+instance's own time, at most a sixth of what is left), each goal's cap (`within`: a wall end per goal, the EPR path
+stopped only by that wall), the rounds' growth ("what a quarter of what is left affords"), Houdini's 40%-left switch,
+the cone's and the set proof's loops. On a slow container the filter read fewer states (361–490 against 500–650), left
+more cubes (ring's pool 47–61, not 44), round 0 took 24–36 s, and ring missed: research/protocols/engine/DESIGN.md,
+gen/laneA's IC3Syn section.
+
+**Built (untrusted; core/ and kernel/ +8,489 bytes against the merge base: infer.ts +3,348, machine.ts +2,810, epr.ts
++990, prove.ts +85, plus last round's dsl.ts +612 and exists.ts +644):**
+- **An EPR meter and cap** (kernel/epr.ts): `eprMeter` counts each clause and hypothesis read and each literal the CDCL
+  search propagates; `withEprCap(units, f)` caps it; `eprFirst` and `settle` stop at the cap as at the wall. A goal's
+  EPR decision ends at the same place on any machine. Default cap: none, so nothing outside the engine changes.
+- **The engine's clock** (`vnow`): from the engine's start, its own meters at fitted rates (BFS tries 80 a ms, EPR units
+  500, view rows 100, the cost model's work 220), in place of `performance.now()` in all 79 decisions; the wall
+  (`stop`, the search's 60 s) only ends it. Its budget `eUntil` = 0.95 × (ms − 0.3 × the join's count), fixed at the
+  engine's start (GDP_ENGINE_SHARE).
+- **A goal's cap** (`within`): the kernel's counted deadline and the EPR cap, both from the goal's share of the engine's
+  clock; the per-goal wall is gone, only the search's wall stays.
+- **The filter by kills:** its larger instances' states read as their BFS finds them (`instance`'s `visit`), until 150
+  in a row kill nothing, 1,000 at most, the BFS ending there; a share of the engine's clock its outer bound.
+- **The views' rows compiled** (core/machine.ts's `compileE`/`compileC`, closures over (env, state) with evalE's values
+  and errors; one env per assignment instead of a copy per level): reverted last round because the time-boxed filter
+  spent the time saved; with the filter by kills, it is time saved.
+- **Short clauses without a Set** (kernel/epr.ts's `add`): the same literals in the same order.
+- **Trace:** 'join meters' and the td events carry the meters (real, v, EPR units, rows, tries, work).
+
+**Deterministic, measured:** across the gauntlet's 200 runs every protocol took one path: the engine's clock read the same
+value at the join's end in every run (ring 52,173 in 19 of 20, the 20th stopped by the wall at 51,111; wo 19,767 in 19
+of 20, the 20th at 15,593 by the wall; distributed 28,798 and sharded 14,146 in 20 of 20); ring at --ms 90000 and
+120000 took the same path to the same proof at 52,173. A miss is now only the wall: a container too slow for the path.
+
+**The gauntlet** (fd06297; the ten, 20 runs each at 60 s, one worker, Modal's 2-CPU containers, five batches of 10–50;
+runs/det/g0–g4 in ../gdp-wired-laneA; seconds, the search's own time)
+
+| protocol | proven | median s | p95 s | max s | misses |
+| --- | --- | --- | --- | --- | --- |
+| consensus_wo_decide | 19/20 | 41.7 | 50.8 | 66.1 | unknown 66.1 |
+| decentralized_lock | 20/20 | 16.7 | 18.1 | 18.9 |  |
+| distributed_lock | 20/20 | 34.5 | 39.3 | 40.9 |  |
+| lock_server_async | 20/20 | 23.7 | 31.5 | 33.5 |  |
+| lock_server_sync | 20/20 | 9.6 | 10.9 | 11.0 |  |
+| ring_leader_election | 17/20 | 55.9 | 61.3 | 62.3 | unknown 60.1, unknown 60.1, unknown 60.7 |
+| sharded_key_value_store | 20/20 | 30.2 | 36.8 | 36.9 |  |
+| ticket_lock | 20/20 | 34.6 | 39.9 | 41.3 |  |
+| toy_consensus_forall | 20/20 | 11.3 | 13.8 | 14.5 |  |
+| two_phase_commit | 20/20 | 17.3 | 20.6 | 21.3 |  |
+
+- **The claim doesn't hold for two of the ten.** ring 17/20 and wo 19/20; the other eight 20/20 with their p95 at most
+  41 s. Each miss is the wall on a slow container: the same path took 37–62 s for ring and 31–66 s for wo across the
+  batch (the containers' speed varied 1.6× within one batch of 50).
+- **Ring's margin, not reached.** Its path needs 52.2 of its 54.1 budget units and runs a median 55.9 s: a container 1.5×
+  slower would need ~84 s. Tried at fixed paths (one run each, now that one run is the path): per-goal caps 700, 1,500
+  and 2,000 against 1,000, the filter's quiet window 300 against 150: each ran out of ring's 51.3 units unproven. What would: cut ring's work about 35%; round 0 (44 goals, 22 units, 7–12 left
+  undecided at their cap) and rounds 1–4 (18 units) are the place, and the EPR decision is 37% of a ring run (bun's
+  profile, runs/ic3syn/ringprof2).
+- **Still on time** (not in the engine): the join's grow, where the engine follows, has a 2 s wall per query
+  (`joinGrowWall`); the join's counted clock differs by about 2% between runs (wo's eUntil 42,768–43,165), so that wall
+  changes some query's outcome now and then, and the engine's budget with it. Tried in a separate tree (not on the
+  branch): the query on the counted joinQueryMs with an EPR cap of 2 s's units in place of the wall; the ten once, all
+  proven (decentralized needs the counted joinQueryMs, not 2 s), wo 44–47 s. Not gated, so not merged in.
+
+**Gates:**
+- **The ten:** the gauntlet above.
+- **The IC3Syn suite's 7** (60 s, twice; runs/det/ic7): consensus, tcommit, lock server, lockserv, lockserv automaton,
+  simple decentralized lock, i4 two-phase commit, proven in both runs (0.2–18.4 s).
+- **The quick bar** (fd06297 against ae36917's baseline; <main>/runs/bar/runs/fd06297ad933-vs-ae369178e65d-quick-2026-10-301836/REPORT.md;
+  estimated /bin/zsh.62): f1 34 and f2 24 as the base; rw 73/14/4 against 74/14/3, the one task noise after 3 reruns a side
+  (lost 0); g332 332 of 332 (296.2 s against 290.3); the suite 236 of 236; onecpu no failure. Gained 0, lost 0, wrong 0.
+- **Typecheck and lint:** tsc clean on core/, kernel/ and research/protocols/ic3syn (on Modal; the errors left are
+  vendor/ imports), oxlint clean on the same (without --type-aware, which needs node).
+
 ## gen/laneA: the IC3Syn suite, its failure classes, the ∃ laws' wall, counting designed (gen/laneA from main ae36917)
 
 **The suite** (research/protocols/ic3syn/: README.md has every source, licence and commit, and each port's

@@ -1,0 +1,252 @@
+[
+ {
+  "name": "lock_server_sync-g12",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only lock_server_sync --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "lock_server_async-g12",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only lock_server_async --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "decentralized_lock-g12",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "two_phase_commit-g12",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "ticket_lock-g12",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only ticket_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "toy_consensus_forall-g12",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "distributed_lock-g12",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "consensus_wo_decide-g12",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "ring_leader_election-g12",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "sharded_key_value_store-g12",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "lock_server_sync-g13",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only lock_server_sync --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "lock_server_async-g13",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only lock_server_async --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "decentralized_lock-g13",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "two_phase_commit-g13",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "ticket_lock-g13",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only ticket_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "toy_consensus_forall-g13",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "distributed_lock-g13",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "consensus_wo_decide-g13",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "ring_leader_election-g13",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "sharded_key_value_store-g13",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "lock_server_sync-g14",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only lock_server_sync --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "lock_server_async-g14",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only lock_server_async --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "decentralized_lock-g14",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "two_phase_commit-g14",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "ticket_lock-g14",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only ticket_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "toy_consensus_forall-g14",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "distributed_lock-g14",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "consensus_wo_decide-g14",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "ring_leader_election-g14",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "sharded_key_value_store-g14",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "lock_server_sync-g15",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only lock_server_sync --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "lock_server_async-g15",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only lock_server_async --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "decentralized_lock-g15",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "two_phase_commit-g15",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "ticket_lock-g15",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only ticket_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "toy_consensus_forall-g15",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "distributed_lock-g15",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "consensus_wo_decide-g15",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "ring_leader_election-g15",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "sharded_key_value_store-g15",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "lock_server_sync-g16",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only lock_server_sync --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "lock_server_async-g16",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only lock_server_async --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "decentralized_lock-g16",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only decentralized_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "two_phase_commit-g16",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only two_phase_commit --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "ticket_lock-g16",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only ticket_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "toy_consensus_forall-g16",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only toy_consensus_forall --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "distributed_lock-g16",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "consensus_wo_decide-g16",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only consensus_wo_decide --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "ring_leader_election-g16",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ },
+ {
+  "name": "sharded_key_value_store-g16",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 150 bun research/protocols/run.ts --ms 60000 --only sharded_key_value_store --skip given,broken 2>/tmp/err.log; s=$?; grep -E 'join (engine|end|td)' /tmp/err.log | cut -c1-260 | tail -c 4000; exit $s",
+  "timeout": 210
+ }
+]
