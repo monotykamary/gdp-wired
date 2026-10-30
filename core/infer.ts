@@ -2424,6 +2424,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           asked = new Set([...back, ...hs.filter(f => !uses.has(textOf(f)) || uses.get(textOf(f))!.some(u => gone.has(u)))])
         }
         if (stop() || performance.now() > wallUntil) { ph({phase: 'out of time'}); return }
+        // (GDP_TD_DECIDED=1: the cubes Houdini left undecided out before the caller's goals: the cone of decided cubes)
+        if (env.GDP_TD_DECIDED === '1') hs = hs.filter(f => !undecided.has(f))
         const tc = performance.now(), need = new Set<string>()
         const callerFrom = (): boolean => {
           need.clear()
@@ -2456,7 +2458,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           if (!grew && !settledN) break
         }
         let cut = hs.filter(f => need.has(textOf(f)))
-        ph({phase: 'cone', fixpoint: hs.length, undecided: undecided.size, caller: callerOk ? 1 : 0, cone: cut.length, ms: Math.round(performance.now() - tc)})
+        ph({phase: 'cone', fixpoint: hs.length, undecided: undecided.size, caller: callerOk ? 1 : 0, cone: cut.length, undecidedInCone: cut.filter(f => undecided.has(f)).length, ms: Math.round(performance.now() - tc)})
         if (callerOk) for (let k = 0; k < 24 && performance.now() < wallUntil && !stop(); k++) {
           const t2 = performance.now(), setLaws = [...laws, ...cut.map(lawFor), ...(ghost ? [ghost.some] : [])]
           let v = within(t0 + ms, () => prove(setLaws, true))
