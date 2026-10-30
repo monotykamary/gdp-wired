@@ -105,6 +105,8 @@ const KEY = 'key$found', KEY2 = 'key2$found', AT = '@', K = '#', SOME = 'k$found
 // 100 lost a corpus item (metered blocks) and 200 to 3,000 none: 400 is a step above the least that lost none.
 export const inferRates = {tries: 100, rows: 10_000, evals: 10_000, watched: 100, work: 40, etries: 80, epr: 500, erows: 100, efull: 220}
 export const inferRuns = 16_000
+// (the share of what is left of the search's budget that the engine's clock may spend: GDP_ENGINE_SHARE, 0.9)
+const engineShare = Number(env.GDP_ENGINE_SHARE ?? 0.9)
 // GDP_INFER_TRACE=1: each phase's wall time beside what it counted, to stderr (the calibration's numbers).
 const inferTrace = !!env.GDP_INFER_TRACE
 // The join (below, after the candidates): GDP_JOIN=0 turns it off, for comparing. Its share of what is left of the
@@ -2180,7 +2182,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // decentralized lock's) while the caller's law fails from the set.
     const engine = () => {
     if (sorts && callerLaws.some(l => l.keys?.length) && now() < until && !stop()) {
-      if (!timed) { eS = {now: now(), epr: eprMeter.n, erows: used.erows, etries: used.etries, full: fullWork()}; eUntil = 0.9 * (ms - 0.3 * eS.now) }
+      if (!timed) { eS = {now: now(), epr: eprMeter.n, erows: used.erows, etries: used.etries, full: fullWork()}; eUntil = engineShare * (ms - 0.3 * eS.now) }
       opts.progress?.('join engine', {wall: Math.round(vnow()), eUntil: Math.round(eUntil)})
       opts.progress?.('join meters', {at: 'engine', ...meters()})
       // (a sums pass's reserve where one follows: 10 s, or a quarter of what is left where less is)
