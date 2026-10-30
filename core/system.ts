@@ -76,10 +76,10 @@ export function system(name: string, parts: Record<string, Part>, opts: {act?: s
   if (!names.length) throw new Error('system: no parts')
   const ps = names.map((p, i) => {
     const part = parts[p]!, spec = 'rule' in part && !('step' in part) && !('machine' in part) ? part : {rule: part as Machine | Rule}
-    let m = machineOf(spec.rule)
-    plain(m, 'system')
-    if (spec.id) m = lift(m, spec.id, spec.shared)
-    return {p, m, on: same(x(act), n(i)), ...mapper(m, {}, f => `${p}$${f}`)}
+    const given = machineOf(spec.rule)
+    plain(given, 'system')
+    const m = spec.id ? lift(given, spec.id, spec.shared) : given
+    return {p, m, assumed: models.get(spec.rule) ?? models.get(given) ?? [], on: same(x(act), n(i)), ...mapper(m, {}, f => `${p}$${f}`)}
   })
   const scalars: Record<string, E> = {}, maps: Record<string, number> = {}
   for (const {m} of ps) {
@@ -118,7 +118,7 @@ export function system(name: string, parts: Record<string, Part>, opts: {act?: s
     ...(assume.length ? {assume: all(...assume)} : {}),
     ...(pres.length ? {pre: all(...pres)} : {}),
   }
-  const ms = [...new Map(ps.flatMap(q => models.get(q.m) ?? []).map(md => [md.name, md])).values()]
+  const ms = [...new Map(ps.flatMap(q => q.assumed).map(md => [md.name, md])).values()]
   const r = asRule(m, {[act]: oneOf(...names), ...opts.kinds})
   models.set(r, ms)
   return r
@@ -257,19 +257,21 @@ export const DELIVERY: Record<Delivery, Model> = {
     checked: 'Amazon SQS standard queues ("more than one copy of a message might be delivered"), Kafka after a rebalance before the offset commit, Redis Streams pending entries re-delivered by XAUTOCLAIM, an HTTP client retrying a timed-out request the server applied (research/distributed/envcheck.py: the last two reproduced)'},
 }
 // m's request taken from the message pool `pool`: each input in `fields` read from the message `msg` (an input): the
-// pool's maps `${pool}` (1 once sent) and `${pool}_${field}`. The request is one m may take only while the message was
-// sent; exactly once also takes it (`${pool}_taken`). On a handler of several steps (pc$, isolation's), the message is
-// taken at its begin.
-export function delivery(m: Machine, pool: string, fields: string[], mode: Delivery, msg = 'msg'): Machine {
+// pool's maps `${pool}` (1 once sent) and `${pool}_${field}`; `id`, an input that is the message's id itself (an
+// idempotency key that is the message id). The request is one m may take only while the message was sent; exactly
+// once also takes it (`${pool}_taken`). On a handler of several steps (pc$, isolation's), the message is taken at its
+// begin.
+export function delivery(m: Machine, pool: string, fields: string[], mode: Delivery, opts: {msg?: string, id?: string} = {}): Machine {
   plain(m, 'delivery')
-  for (const f of fields) if (!m.inputs.includes(f)) throw new Error(`delivery: ${f} is no input of ${m.name}`)
+  const msg = opts.msg ?? 'msg', bound = [...fields, ...(opts.id ? [opts.id] : [])]
+  for (const f of bound) if (!m.inputs.includes(f)) throw new Error(`delivery: ${f} is no input of ${m.name}`)
   if ([...m.inputs, ...Object.keys(m.state)].includes(msg)) throw new Error(`delivery: ${msg} is already a name of ${m.name}`)
   const begin: C = 'pc$' in m.state ? same(x('pc$'), n(0)) : same(n(0), n(0))
-  const vars = Object.fromEntries(fields.map(f => [f, get(`${pool}_${f}`, x(msg))]))
+  const vars = {...Object.fromEntries(fields.map(f => [f, get(`${pool}_${f}`, x(msg))])), ...(opts.id ? {[opts.id]: x(msg)} : {})}
   const {E, C, W} = mapper(m, vars, f => f), taken = `${pool}_taken`
   const guard = all(begin, ...[same(get(pool, x(msg)), n(1))], ...(mode === 'exactly-once' ? [same(get(taken, x(msg)), n(0))] : []))
   return modelled({
-    ...m, name: `${m.name} (${mode} from ${pool})`, inputs: [...m.inputs.filter(i => !fields.includes(i)), msg],
+    ...m, name: `${m.name} (${mode} from ${pool})`, inputs: [...m.inputs.filter(i => !bound.includes(i)), msg],
     maps: {...m.maps, [pool]: 0, ...Object.fromEntries(fields.map(f => [`${pool}_${f}`, 0])), ...(mode === 'exactly-once' ? {[taken]: 0} : {})},
     step: {
       flags: mapValues(m.step.flags, C), state: mapValues(m.step.state, E),

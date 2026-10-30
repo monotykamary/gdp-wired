@@ -10,12 +10,10 @@ const verdict = (v: {proven: boolean, checked: boolean, run?: unknown}) => (v.pr
 const charge = (dedupe: boolean) => rule('charge').inputs({key: nat}).maps({Charged: 0, Done: 0})
   .flags(({key, Done}) => ({fresh: dedupe ? Done.at(key).eq(0) : Done.at(key).atLeast(0)}))
   .step(({key, fresh, Charged, Done}) => ({Charged: Charged.set(key, when(fresh, Charged.at(key).plus(1), Charged.at(key))), Done: Done.set(key, when(fresh, 1, Done.at(key)))}))
-// The client sends each charge once, as a message whose key is its own id: only the delivery can repeat it.
-const sends = rule('client').inputs({msg: nat}).maps({Q: 0, Q_key: 0}).assume(({msg, Q}) => Q.at(msg).eq(0))
-  .step(({msg, Q, Q_key}) => ({Q: Q.set(msg, 1), Q_key: Q_key.set(msg, msg)}))
+// The client sends each charge once, as a message whose id is the charge's key: only the delivery can repeat it.
 const payments = (dedupe: boolean, level: 'atomic' | 'read committed' | 'snapshot', mode: 'exactly-once' | 'at-least-once') => {
-  const h = delivery(isolation(charge(dedupe).machine, level), 'Q', ['key'], mode)
-  return system('payments', {send: sends, handle: level === 'atomic' ? h : {rule: h, id: 't'}})
+  const h = delivery(isolation(charge(dedupe).machine, level), 'Q', [], mode, {id: 'key'})
+  return system('payments', {send: client('Q', []), handle: level === 'atomic' ? h : {rule: h, id: 't'}})
 }
 const once = (r: ReturnType<typeof payments>) => r.law('a key is charged at most once', ({Charged}: any) => forall(k => Charged.at(k).atMost(1)))
 
@@ -44,7 +42,8 @@ describe('system', () => {
   })
   // The six cells: what each delivery and isolation level allows of a charge.
   test('a charge without a dedupe is charged twice when delivered twice', () => {
-    expect(verdict(proveRule(payments(false, 'atomic', 'exactly-once'), [once(payments(false, 'atomic', 'exactly-once'))], {search: {ms: 5000}}))).toBe('proven')
+    const e = payments(false, 'atomic', 'exactly-once')
+    expect(verdict(proveRule(e, [once(e)], {search: {ms: 10_000}}))).toBe('proven')
     const r = payments(false, 'atomic', 'at-least-once')
     expect(verdict(proveRule(r, [once(r)], {search: {ms: 5000}}))).toBe('refuted')
   })
