@@ -18,7 +18,7 @@
 // enums with data, references kept, maps and vectors (for now), floats, unsafe pointers, other crates' code.
 import {type Extraction} from './extract.ts'
 import {Refusal} from './extract-read.ts'
-import {type Harness, type Leaf, type SModule, type SType, type StepOptions, type StepRead, extractStep, node} from './extract-step.ts'
+import {type Harness, type Leaf, type SModule, type SType, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
 
 export type RsOptions = StepOptions & {cargo?: string}
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
@@ -47,7 +47,8 @@ export function extractRust(dir: string, opts: RsOptions): Extraction & {read?: 
   try {
     if (opts.answers && Object.keys(opts.answers).length) throw new Refusal(dir, 'answers: the Rust check has no stubs yet (a call of other code is refused where it is)')
     if (opts.stores && Object.keys(opts.stores).length) throw new Refusal(dir, 'stores: not in the Rust front end yet')
-    mod = readRust(dir, Array.isArray(opts.entry) ? opts.entry : [opts.entry], opts.cargo)
+    mod = readRust(dir, entryNames(opts), opts.cargo)
+    mod.stubs = false
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
     throw e

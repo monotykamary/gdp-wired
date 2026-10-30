@@ -60,6 +60,8 @@ quota/litellm-py/team_max_budget_check: extracted in 7300 ms (reads litellm/prox
   doesn't answer or skip). The item's options in `specs.ts` say what it answers, skips and holds as a store; a fork that
   moves the rule into code the subset doesn't read is refused there, never approximated. Extend the options (answer
   the new call, skip a new logger) only for what you are willing to state: each is printed in the notes.
+  `--bare` states none of it but each item's `needs` (the boundary inferred: a typed result read is answered, a call
+  nothing reads is left out, the cache an injected store): every rule comes out byte for byte the committed one.
 - **the rule and the code differ**: the extractor read your code wrong somewhere: a bug in gdp-wired, and the rule is
   not adopted. Please report it with the request it prints.
 

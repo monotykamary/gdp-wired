@@ -21,7 +21,7 @@
 // and hashes (for now), &., floats that aren't whole, a field the class writes with values of two types.
 import {type Extraction} from './extract.ts'
 import {Refusal} from './extract-read.ts'
-import {type Harness, type SModule, type StepOptions, type StepRead, extractStep, node} from './extract-step.ts'
+import {type Harness, type SModule, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
 
 export type RbOptions = StepOptions & {
   // The directory the file's requires resolve from (its library's lib/); by default the file's directory.
@@ -48,7 +48,8 @@ export function extractRuby(file: string, opts: RbOptions): Extraction & {read?:
   try {
     if (opts.answers && Object.keys(opts.answers).length) throw new Refusal(file, 'answers: not in the Ruby front end yet (a call of other code is refused where it is)')
     if (opts.stores && Object.keys(opts.stores).length) throw new Refusal(file, 'stores: not in the Ruby front end yet')
-    mod = readRuby(file, Array.isArray(opts.entry) ? opts.entry : [opts.entry], opts)
+    mod = readRuby(file, entryNames(opts), opts)
+    mod.stubs = false
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
     throw e

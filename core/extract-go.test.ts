@@ -326,7 +326,10 @@ func (q *Q) Reset(_ context.Context) { q.Used = 0 }`, 'Q', {methods: ['Take', 'R
   // read: its methods are another package's code, and a function of another package takes it as its own
   refused(go('import "context"\ntype Q struct{ N int64 }\nfunc (q *Q) Inc(ctx context.Context) { if ctx.Err() == nil { q.N++ } }', 'Q'), /ctx.Err\(\): a method of context/)
   refused(go('import "context"\ntype Q struct{ N int64 }\nfunc (q *Q) Inc(ctx context.Context) { if ctx != nil { q.N++ } }', 'Q'), /compared with a nil/)
-  refused(go('import (\n\t"context"\n\t"time"\n)\ntype Q struct{ N int64 }\nfunc (q *Q) Inc(ctx context.Context) { c, f := context.WithTimeout(ctx, time.Second); _ = c; f(); q.N++ }', 'Q'), /context.WithTimeout.*standard library the subset doesn't read/)
+  // (the boundary inferred: a context made and its cancel called, their values read by nothing the rule keeps)
+  const wt = 'import (\n\t"context"\n\t"time"\n)\ntype Q struct{ N int64 }\nfunc (q *Q) Inc(ctx context.Context) { c, f := context.WithTimeout(ctx, time.Second); _ = c; f(); q.N++ }'
+  expect(ok(go(wt, 'Q')).notes.join(' ')).toMatch(/context.WithTimeout \(p.go:8:\d+\): left out \(inferred/)
+  refused(go(wt, 'Q', {strict: true}), /context.WithTimeout.*standard library the subset doesn't read/)
 }, 600_000)
 
 t('another package\'s struct as an argument: its exported fields read as inputs; its methods stay its own code', () => {

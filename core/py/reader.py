@@ -28,6 +28,15 @@ def dotted(n):
     return f"{b}.{n.attr}" if b else None
   return None
 
+def mentioned(n):
+  """The names a node the subset doesn't read mentions (the variables it may read or write)."""
+  return sorted({x.id for x in ast.walk(n) if isinstance(x, ast.Name)})
+
+def injected(d):
+  """A parameter's default that marks it an injected dependency: FastAPI's Depends(...), dependency-injector's Provide[...]."""
+  f = d.func if isinstance(d, ast.Call) else d.value if isinstance(d, ast.Subscript) else None
+  return (dotted(f) or '').split('.')[-1] in ('Depends', 'Provide', 'Inject') if f is not None else False
+
 class Repo:
   """The repository's modules, parsed once each, for the classes an annotation names."""
   def __init__(self, root):
@@ -102,17 +111,28 @@ class Reader:
     if name in mod.consts and isinstance(mod.consts[name], ast.Name):  # an alias: X = Y
       return self.find_class(mod, mod.consts[name].id, depth + 1)
     return None
+  def ret_of(self, modname, name, depth=0):
+    """The declared result type of a function a module of the repository defines (through its re-exports), or None."""
+    p = self.repo.path_of(modname) if modname else None
+    if depth > 6 or not p: return None
+    m = Module(self.repo, p) if p != self.mod.path else self.mod
+    f = m.funcs.get(name)
+    if f is not None: return self.ty(f.returns, m) if f.returns is not None else None
+    imp = m.imports.get(name)
+    if imp and imp[0] == 'name': return self.ret_of(imp[1], imp[2], depth + 1)
+    return None
   def rec_of(self, mod, cdef):
     """A class as a record type: its fields (annotations, its bases' first), its methods (to resolve calls)."""
     q = f"{mod.name}.{cdef.name}"
     if q in self.recs: return q
     self.recs[q] = None  # (being read)
-    fields, methods, bases, kinds = [], {}, [], set()
+    fields, methods, bases, kinds, rets = [], {}, [], set(), {}
     for b in cdef.bases:
       bn = dotted(b.value if isinstance(b, ast.Subscript) else b)
       if bn in ('TypedDict', 'typing.TypedDict', 'typing_extensions.TypedDict'): kinds.add('typeddict'); continue
       if bn in ('BaseModel', 'pydantic.BaseModel'): kinds.add('pydantic'); continue
-      if bn in ('Protocol', 'typing.Protocol', 'Generic', 'object', 'Exception'): continue
+      if bn in ('Protocol', 'typing.Protocol', 'ABC', 'abc.ABC'): kinds.add('protocol'); continue
+      if bn in ('Generic', 'object', 'Exception'): continue
       hit = self.find_class(mod, bn.split('.')[-1]) if bn else None
       if hit:
         bq = self.rec_of(*hit)
@@ -123,6 +143,7 @@ class Reader:
           for f in br['fields']:
             if not any(g['name'] == f['name'] for g in fields): fields.append(f)
           for m, fid in br['methods'].items(): methods[m] = fid
+          rets.update(br.get('rets', {}))
       elif bn: kinds.add('outside-base:' + bn)
     dataclass = any((dotted(d.func if isinstance(d, ast.Call) else d) or '').split('.')[-1] == 'dataclass' for d in cdef.decorator_list)
     frozen = any(isinstance(d, ast.Call) and any(k.arg == 'frozen' and isinstance(k.value, ast.Constant) and k.value.value for k in d.keywords) for d in cdef.decorator_list)
@@ -152,6 +173,8 @@ class Reader:
         if n.value is not None: f['dflt'] = self.expr(n.value, mod)
         fields = [g for g in fields if g['name'] != f['name']] + [f]
       elif isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        if n.returns is not None: rets[n.name] = self.ty(n.returns, mod)
+        else: rets.pop(n.name, None)
         if mod.path == self.file:
           fid = f"{cdef.name}.{n.name}"
           self.funcs[fid] = self.func(n, mod, cdef.name, fid)
@@ -159,7 +182,7 @@ class Reader:
         else: methods[n.name] = None  # another module's method: not read
     r = {'name': q, 'short': cdef.name, 'fields': fields, 'methods': methods, 'bases': bases, 'p': where(mod.path, cdef),
          'kinds': sorted(kinds | ({'dataclass'} if dataclass else set()) | ({'frozen'} if frozen else set()) | (set() if total else {'partial'})),
-         'own': mod.path == self.file, 'module': mod.name}
+         'own': mod.path == self.file, 'module': mod.name, **({'rets': rets} if rets else {})}
     self.recs[q] = r
     return q
   def ty(self, a, mod):
@@ -220,9 +243,9 @@ class Reader:
       pos = a.posonlyargs + a.args
       dflts = [None] * (len(pos) - len(a.defaults)) + list(a.defaults)
       for i, (x, d) in enumerate(zip(pos, dflts)):
-        params.append({'name': x.arg, 't': self.ty(x.annotation, mod), **({'dflt': self.expr(d, mod)} if d is not None else {})})
+        params.append({'name': x.arg, 't': self.ty(x.annotation, mod), **({'dflt': self.expr(d, mod)} if d is not None else {}), **({'inject': True} if injected(d) else {})})
       for x, d in zip(a.kwonlyargs, a.kw_defaults):
-        params.append({'name': x.arg, 't': self.ty(x.annotation, mod), 'kw': True, **({'dflt': self.expr(d, mod)} if d is not None else {})})
+        params.append({'name': x.arg, 't': self.ty(x.annotation, mod), 'kw': True, **({'dflt': self.expr(d, mod)} if d is not None else {}), **({'inject': True} if injected(d) else {})})
       decs = [self.decorator(d) for d in n.decorator_list]
       static = any(d['name'] in ('staticmethod',) for d in decs)
       if cls and not static and params: params[0]['self'] = True
@@ -248,7 +271,10 @@ class Reader:
   # --- statements --------------------------------------------------------------------------------------------------
   def block(self, ss, mod):
     out = []
-    for s in ss: out.extend(self.stmt(s, mod))
+    for s in ss:
+      for r in self.stmt(s, mod):
+        if r.get('s') == 'no' and 'names' not in r: r['names'] = mentioned(s)
+        out.append(r)
     return out
   def stmt(self, s, mod):
     p = where(self.file, s)
@@ -285,7 +311,10 @@ class Reader:
       names = {}
       for a in s.names:
         if isinstance(s, ast.Import): names[(a.asname or a.name).split('.')[0]] = {'mod': a.name if a.asname else a.name.split('.')[0]}
-        else: names[a.asname or a.name] = {'mod': resolve_from(self.mod.name, self.mod.is_pkg, s), 'name': a.name}
+        else:
+          m = resolve_from(self.mod.name, self.mod.is_pkg, s)
+          ret = self.ret_of(m, a.name)
+          names[a.asname or a.name] = {'mod': m, 'name': a.name, **({'ret': ret} if ret else {})}
       return [{'s': 'import', 'p': p, 'names': names}]
     if isinstance(s, (ast.For, ast.AsyncFor, ast.While)): return [{'s': 'no', 'p': p, 'why': f"a loop ({type(s).__name__.lower().replace('async', 'async ')})"}]
     if isinstance(s, ast.Try) or type(s).__name__ == 'TryStar': return [{'s': 'no', 'p': p, 'why': 'try/except (an exception caught: the subset reads one only as the step\'s failure)'}]
@@ -316,7 +345,8 @@ class Reader:
       if imp[0] == 'module': return {'e': 'ext', 'q': imp[1], 'text': n, 'patch': {'mod': mod.name, 'path': [n]}, 'p': p}
       hit = self.find_class(mod, n)
       if hit: return {'e': 'cls', 'rec': self.rec_of(*hit), 'q': f"{imp[1]}.{imp[2]}", 'patch': {'mod': mod.name, 'path': [n]}, 'p': p}
-      return {'e': 'ext', 'q': f"{imp[1]}.{imp[2]}", 'text': n, 'patch': {'mod': mod.name, 'path': [n]}, 'p': p}
+      ret = self.ret_of(imp[1], imp[2])
+      return {'e': 'ext', 'q': f"{imp[1]}.{imp[2]}", 'text': n, 'patch': {'mod': mod.name, 'path': [n]}, 'p': p, **({'ret': ret} if ret else {})}
     if n in mod.consts:
       v = mod.consts[n]
       if isinstance(v, ast.Constant) or (isinstance(v, ast.UnaryOp) and isinstance(v.operand, ast.Constant)): return self.expr(v, mod)
@@ -325,6 +355,10 @@ class Reader:
     if n in BUILTINS: return {'e': 'builtin', 'n': n, 'p': p}
     return {'e': 'ext', 'q': n, 'text': n, 'p': p, 'unbound': True}
   def expr(self, x, mod):
+    r = self.expr1(x, mod)
+    if r.get('e') == 'no' and 'names' not in r: r['names'] = mentioned(x)
+    return r
+  def expr1(self, x, mod):
     p = where(self.file, x)
     E = lambda y: self.expr(y, mod)
     if isinstance(x, ast.Constant):
@@ -344,7 +378,8 @@ class Reader:
       if d and base in mod.imports and mod.imports[base][0] == 'module' and not (self.local_stack and base in self.local_stack[-1]):
         q = mod.imports[base][1] + d[len(base):]
         if q in KNOWN: return {'e': 'lib', 'q': q, 'p': p}
-        return {'e': 'ext', 'q': q, 'text': d, 'patch': {'mod': mod.name, 'path': d.split('.')}, 'p': p}
+        ret = self.ret_of(q.rpartition('.')[0], q.rpartition('.')[2])
+        return {'e': 'ext', 'q': q, 'text': d, 'patch': {'mod': mod.name, 'path': d.split('.')}, 'p': p, **({'ret': ret} if ret else {})}
       return {'e': 'get', 'x': E(x.value), 'f': x.attr, 'p': p, 'text': text(x)}
     if isinstance(x, ast.BinOp):
       op = self.binop(x.op)
@@ -394,7 +429,7 @@ def main():
   if mod.tree is None:
     print(json.dumps({'error': f"{req['file']} doesn't parse"})); return
   out = {'lang': 'python', 'file': os.path.basename(r.file), 'path': r.file, 'module': mod.name, 'root': os.path.abspath(req['root']), 'entries': []}
-  for n in req['names']:
+  for n in req['names'] or list(mod.classes):
     if n in mod.classes: out['entries'].append({'k': 'class', 'rec': r.rec_of(mod, mod.classes[n])})
     elif n in mod.funcs:
       r.local_stack = []

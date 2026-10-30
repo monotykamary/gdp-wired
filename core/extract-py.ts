@@ -5,8 +5,12 @@
 // extraction; the rule printed needs nothing but gdp-wired.
 //
 //   const x = extractPython('litellm/proxy/auth/auth_checks.py', {root: 'litellm-repo', entry: ['team_max_budget_check'],
-//     answers: {get_current_spend: 'float'}, skip: ['asyncio.create_task', 'CallInfo'], failures: 'kept'})
+//     failures: 'kept'})
 //   if (!x.ok) console.log(x.refusals)
+//
+// The boundary is inferred (core/extract-step.ts): get_current_spend (another module's, `-> float`) answered by the
+// request, CallInfo and asyncio.create_task left out; `answers`, `skip` and `stores` state it where inference can't
+// (an untyped result: `answers: {get_allowed_fails_from_policy: 'int | None'}`), `strict: true` only as stated.
 //
 // The subset: a class (its constructor's arguments the rule's params, a dataclass's fields without defaults too) and
 // the methods given, or module functions, each a request; ints (Python's, unbounded: the rule's numbers stop at ±2^53,
@@ -20,16 +24,20 @@
 // module's functions and methods (inlined), properties, `with` a lock (the step atomic), async methods whose awaits
 // are the module's own coroutines or answered calls (each request one step: nothing else runs while it does, as no
 // await suspends), time.time() as the request's time, math.isfinite (true at whole values), min, max, abs, int, float,
-// bool. What a caller states (answers, skip, stores) is printed in the notes and enforced by the check.
+// bool. The boundary (answers, skip, stores; inferred, tagged `# gdp: skip` or stated) is printed in the notes and
+// enforced by the check: a result's type from the callee's annotation (the repository's modules read for it), a
+// constructor argument of another module's class, a protocol or no type that the class calls methods on an injected
+// dependency (Depends(...) marks one too), with no entry the class whose public methods write its state.
 //
 // Refused, each where it is with why: loops and comprehensions, try/except, lambdas and closures, global and nonlocal,
 // lists, strings beyond set and compared (an f-string is kept only as a store's key or where nothing reads it), a
-// dict's truthiness, other modules' code not answered or skipped, a write to an object the caller gave, a field the
+// dict's truthiness, other code whose value is read and whose type isn't declared, other code given the object, a
+// write to an object the caller gave, a field the
 // constructor doesn't set, one object in two places of the state, two keys of one map written in one step, a write
 // before a failure (unless onError: 'discard').
 import {type Extraction} from './extract.ts'
 import {Refusal} from './extract-read.ts'
-import {type Harness, type SModule, type StepOptions, type StepRead, extractStep, node} from './extract-step.ts'
+import {type Harness, type SModule, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
 
 export type PyOptions = StepOptions & {
   // The repository's root (its modules importable from it); by default the file's directory.
@@ -51,7 +59,7 @@ export function readPython(file: string, names: string[], opts: {root?: string, 
 }
 export function extractPython(file: string, opts: PyOptions): Extraction & {read?: StepRead} {
   let mod: SModule
-  try { mod = readPython(file, Array.isArray(opts.entry) ? opts.entry : [opts.entry], opts) } catch (e) {
+  try { mod = readPython(file, entryNames(opts), opts) } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
     throw e
   }

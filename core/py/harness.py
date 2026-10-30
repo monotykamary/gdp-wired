@@ -39,7 +39,7 @@ def resolve(q):
 
 class FakeStore:
   """A store as the caller stated it: get, set and delete over a dict that keeps what is set (no expiry)."""
-  def __init__(self, decl):
+  def __init__(self, decl, name=None):
     self.data = {}
     for path, v in (decl.get('attrs') or {}).items():
       o, parts = self, path.split('.')
@@ -60,7 +60,10 @@ class FakeStore:
         return af
       return f
     for kind, dflt in (('get', ['get', 'async_get_cache', 'get_cache']), ('set', ['set', 'async_set_cache', 'set_cache']), ('delete', ['delete', 'delete_cache', 'async_delete_cache'])):
-      for name in decl.get(kind) or dflt: setattr(self, name, mk(kind, name))
+      for m in decl.get(kind) or dflt: setattr(self, m, mk(kind, m))
+    # (an injected dependency's other methods: each answered by the request's input)
+    for a in S.get('answers') or []:
+      if a['patch'].get('store') == name: setattr(self, a['patch']['path'][-1], stub(a['key'], a['async']))
 
 def build(spec, stores):
   if 'in' in spec:
@@ -68,7 +71,7 @@ def build(spec, stores):
     return float(v) if spec.get('float') and isinstance(v, int) and not isinstance(v, bool) else v
   if spec.get('none'): return None
   if spec.get('inert'): return Inert()
-  if 'store' in spec: return stores.setdefault(spec['store'], FakeStore(S['stores'].get(spec['store'], {})))
+  if 'store' in spec: return stores.setdefault(spec['store'], FakeStore(S['stores'].get(spec['store'], {}), spec['store']))
   if 'rec' in spec:
     cls = resolve(spec['rec'])
     f = {k: build(v, stores) for k, v in spec['f'].items()}
@@ -236,6 +239,7 @@ def hello(req):
   S['self_stubs'] = []
   for a in req['answers']:
     p = a['patch']
+    if p.get('store'): continue
     if p.get('self'): S['self_stubs'].append((p['self'], stub(a['key'], a['async'])))
     else:
       o, name = patch_target(p)
@@ -257,6 +261,7 @@ def make(args):
     try: obj = run(S['cls'](**kw))
     finally: sys.settrace(None)
   for name, f in S['self_stubs']: obj.__dict__[name] = f
+  for name in S.get('inject') or []: setattr(obj, name, build({'store': name}, OBJ_STORES))
   i = len(OBJS) + 1
   OBJS[i] = (obj, OBJ_STORES)
   return i

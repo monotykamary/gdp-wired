@@ -53,6 +53,16 @@ class Reader
   def where(n) = "#{@base}:#{n.location.start_line}:#{n.location.start_column + 1}"
   def text(n) = (s = n.slice.split.join(' ')).length <= 60 ? s : "#{s[0, 57]}..."
   def no(n, why) = {'e' => 'no', 'why' => why, 'p' => where(n)}
+  # The locals a node mentions, and self where it reads the object's state.
+  def mentioned(ns)
+    out, q = [], ns.dup
+    while (m = q.shift)
+      out << m.name.to_s if m.is_a?(Prism::LocalVariableReadNode)
+      out << 'self' if m.is_a?(Prism::InstanceVariableReadNode) || m.is_a?(Prism::SelfNode)
+      q.concat(m.compact_child_nodes)
+    end
+    out.uniq
+  end
 
   # --- the classes --------------------------------------------------------------------------------------------------
   def classes
@@ -342,7 +352,8 @@ class Reader
       no(x, "#{text(x)}: an object of another class made")
     else
       return no(x, "#{text(x)}: a method of an array") if r.is_a?(Prism::ArrayNode)
-      return no(x, "#{text(x)}: #{r.slice}, another class's code") if r.is_a?(Prism::ConstantReadNode) || r.is_a?(Prism::ConstantPathNode)
+      # (another class's code: at the boundary where it is inferred, with the names its arguments mention)
+      return no(x, "#{text(x)}: #{r.slice}, another class's code").merge('ext' => "#{r.slice}.#{n}", 'names' => mentioned(args)) if r.is_a?(Prism::ConstantReadNode) || r.is_a?(Prism::ConstantPathNode)
       call({'e' => 'get', 'x' => rv, 'f' => n.to_s, 'p' => p, 'text' => text(x)}, args.map { |a| expr(a) }, x)
     end
   end

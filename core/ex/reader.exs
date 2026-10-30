@@ -344,7 +344,8 @@ defmodule GdpReader do
       key == [:Map] and f == :put and match?([_, k, _] when is_atom(k), args) -> upd(expr(Enum.at(args, 0)), [{Enum.at(args, 1), Enum.at(args, 2)}], m)
       key == [:Map] and f == :merge and match?([_, {:%{}, _, _}], args) -> upd(expr(Enum.at(args, 0)), elem(Enum.at(args, 1), 2), m)
       key == [:Map] and f == :get and match?([_, k] when is_atom(k), args) -> get(expr(Enum.at(args, 0)), Enum.at(args, 1), m)
-      is_atom(mod) or is_tuple(mod) and elem(mod, 0) == :__aliases__ -> %{"e" => "no", "why" => "#{text(x)}: another module's code", "p" => p(m)}
+      # (another module's code: at the boundary where it is inferred; its arguments are values, which it can't change)
+      is_atom(mod) or is_tuple(mod) and elem(mod, 0) == :__aliases__ -> %{"e" => "no", "why" => "#{text(x)}: another module's code", "p" => p(m), "ext" => "#{text(mod)}.#{f}", "names" => []}
       true -> %{"e" => "no", "why" => "#{text(x)}: a call outside the subset", "p" => p(m)}
     end
   end

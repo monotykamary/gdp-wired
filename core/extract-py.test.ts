@@ -8,7 +8,7 @@ import {mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {type PyOptions, extractPython} from './extract-py.ts'
 import {proveRule, proveSteps} from './dsl.ts'
-import {disjoint} from './extract-step.ts'
+import {assumed, disjoint} from './extract-step.ts'
 
 const hasPy = (() => { try { execFileSync('python3', ['--version'], {stdio: 'ignore'}); return true } catch { return false } })()
 const t = hasPy ? test : test.skip
@@ -71,10 +71,54 @@ t('the boundary: an answered call an input, a skipped one kept only where nothin
   expect(x.notes.join('\n')).toMatch(/log.info .*left out/)
 })
 
+// The boundary inferred (no answers, skip or stores stated): each test's rule as the stated one's, or what it needs.
+const body = (x: X) => (x.source ?? '').split('\n').filter(l => !l.startsWith('//')).join('\n')
+t('the boundary inferred: a store, a skip, an answer tagged where the code is a stand-in', () => {
+  const stated = ok(extractPython(EX, {entry: 'SessionLimit', methods: ['hit'], failures: 'kept', stores: {cache: {get: ['get'], set: ['set'], value: 'int'}}, check: budget}))
+  const bare = ok(extractPython(EX, {entry: 'SessionLimit', methods: ['hit'], failures: 'kept', check: budget}))
+  expect(bare.source).toBe(stated.source!)
+  expect(bare.notes.join('\n')).toMatch(/SessionLimit\(cache\): an injected dependency \(inferred/)
+  const gate = `import logging\nlog = logging.getLogger("m")\n\ndef spend_of(key: str) -> float:  # gdp: answer\n    raise RuntimeError("not here")\n\n` +
+    `async def gate(key: str, cap: int | None) -> None:\n    log.info("gate %s", key)\n    used = spend_of(key)\n    if cap is not None and used >= cap:\n        raise RuntimeError(f"{key} over")\n`
+  const tagged = ok(py(gate, {entry: ['gate'], failures: 'kept'}))
+  expect(body(tagged)).toBe(body(ok(py(gate, {entry: ['gate'], failures: 'kept', answers: {spend_of: 'float'}, skip: ['log']}))))
+  expect(tagged.notes.join('\n')).toMatch(/log.info .*left out \(inferred/)
+  expect(tagged.notes.join('\n')).toMatch(/spend_of .*answered by the request \(tagged/)
+  // (untagged, the stand-in is read as it is: it raises, so every call fails)
+  const standIn = py(gate.replace('  # gdp: answer', ''), {entry: ['gate'], failures: 'kept'})
+  expect(standIn.ok).toBe(true)
+  expect(standIn.source).toContain('failed: yes')
+  refused(extractPython(EX, {entry: 'SessionLimit', methods: ['hit'], failures: 'kept', strict: true}), /state it as a store/)
+})
+
+t('the boundary inferred: the entry, own code outside the subset cut, an injected protocol answered', () => {
+  const code = `from typing import Protocol\n\nclass Flags(Protocol):\n    def enabled(self, name: str) -> bool: ...\n\n` +
+    `def score(xs: dict[str, int]) -> int:\n    total = 0\n    for k in xs:\n        total += xs[k]\n    return total\n\n` +
+    `class Gate:\n    def __init__(self, flags: Flags, cap: int):\n        self.flags = flags\n        self.cap = cap\n        self.used = 0\n\n` +
+    `    def take(self, xs: dict[str, int]) -> None:\n        if not self.flags.enabled("limits"):\n            return\n        n = score(xs)\n        if self.used + n > self.cap:\n            raise RuntimeError("over")\n        self.used += n\n\n` +
+    `    def left(self) -> int:\n        return self.cap - self.used\n`
+  const x = ok(py(code, {}))
+  const notes = x.notes.join('\n')
+  expect(notes).toMatch(/the entry inferred: Gate, the class whose public methods write its state \(take; the others read it\)/)
+  expect(notes).toMatch(/score: the module's own code, outside the subset \(m.py:\d+:\d+: a loop/)
+  expect(notes).toMatch(/score .*answered by the request \(inferred: its value is read; assumes score may return any int\)/)
+  expect(notes).toMatch(/flags.enabled .*answered by the request \(inferred/)
+  expect(step(x, 'within the cap where it starts so', (_b, a) => a.used.atMost(a.cap), b => b.used.atMost(b.cap)).proven).toBe(true)
+  // A refutation that depends on an inferred answer says so.
+  const v = step(x, 'used never goes down', (b, a) => a.used.atLeast(b.used))
+  expect(v.proven).toBe(false)
+  expect(assumed(x, (v.witness ?? v.run) as Record<string, unknown>).join('; ')).toMatch(/assumes `score` may return -\d+ \(inferred: any int\)/)
+  // Other code given the rule's state may change it: refused, with what accepts it.
+  const touch = 'import logging\n\nclass C:\n    def __init__(self):\n        self.n = 0\n\n    def bump(self) -> None:\n        logging.getLogger("c").info(self)\n        self.n += 1\n'
+  refused(py(touch, {entry: 'C'}), /it is given the rule's state, which other code may change \(if it doesn't, state it: skip: \["info"\], or a `gdp: skip` comment on its line\)/)
+  ok(py(touch.replace('.info(self)', '.info(self)  # gdp: skip'), {entry: 'C'}))
+})
+
 t('refusals, each where it is with why', () => {
   refused(extractPython(EX, {entry: ['drain'], check: budget}), /bucket.py:\d+:\d+: a loop/)
   refused(py('def f(x: int) -> int:\n    return x * 0.5\n', {entry: ['f']}), /a float that isn't whole/)
-  refused(py('import os\n\ndef f(x: int) -> int:\n    return os.getpid() + x\n', {entry: ['f']}), /os.getpid, other code/)
+  refused(py('import os\n\ndef f(x: int) -> int:\n    return os.getpid() + x\n', {entry: ['f']}), /os.getpid\(\): os.getpid, other code \(m.py:4:12\), whose value is read, and it declares no type: state what it returns/)
+  refused(py('import os\n\ndef f(x: int) -> int:\n    return os.getpid() + x\n', {entry: ['f'], strict: true}), /os.getpid, other code/)
   refused(py('def f(x: int) -> float:\n    return x / 3\n', {entry: ['f']}), /a true division/)
   refused(py('def f(d: dict[str, int]) -> int:\n    try:\n        return d["a"]\n    except KeyError:\n        return 0\n', {entry: ['f']}), /try\/except/)
 })

@@ -37,8 +37,9 @@ export function extractElixir(file: string, opts: ExOptions): Extraction & {read
   try {
     if (opts.answers && Object.keys(opts.answers).length) throw new Refusal(file, 'answers: not in the Elixir front end yet')
     if (opts.stores && Object.keys(opts.stores).length) throw new Refusal(file, 'stores: not in the Elixir front end yet')
-    if (Array.isArray(opts.entry)) throw new Refusal(file, 'one module a time')
+    if (Array.isArray(opts.entry) || opts.entry === undefined) throw new Refusal(file, 'one module a time (entry: its name)')
     mod = readElixir(file, opts.entry, opts.elixir)
+    mod.stubs = false
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
     throw e

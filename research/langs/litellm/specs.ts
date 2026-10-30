@@ -21,6 +21,9 @@ export type PySpec = {
   opts: Omit<PyOptions, 'root' | 'python'>,
   // What the extraction leaves to the request or out, for the triage and a fork's reader (the notes say it in full).
   boundary: string,
+  // With the boundary inferred (run.ts --bare: no answers, skip or stores), what must still be stated: nothing, or
+  // what the code doesn't declare (an untyped result) or a modelling choice (Redis off).
+  needs?: Partial<PyOptions>,
   laws: PyLaw[],
 }
 
@@ -75,6 +78,7 @@ export const SPECS: PySpec[] = [
 // The cache is stated as a store (its async_get_cache and async_set_cache a map per key template; its TTL left out) with
 // Redis off (`dual_cache.redis_cache` None: the in-memory path every limiter falls back to). The session id and the
 // limit come from the request's metadata and the agent registry: answered by the request.
+const REDIS_OFF = {stores: {internal_usage_cache: {attrs: {'dual_cache.redis_cache': null}}}}
 const STORE = (value: 'int' | 'float') => ({internal_usage_cache: {get: ['async_get_cache'], set: ['async_set_cache'], value, attrs: {'dual_cache.redis_cache': null}}})
 const HOOK_SKIP = ['verbose_proxy_logger', 'resolve_llm_provider_for_rate_limit', 'with_service_target', 'os.getenv', 'ProxyRateLimitError', 'log_redis_failure']
 const ITER = 'internal_usage_cache_session_iterations_count', SPENT = 'internal_usage_cache_session_budget_spend'
@@ -85,6 +89,7 @@ SPECS.push(
     summary: 'Each call of an agent session counts one; a call past the session\'s max_iterations is refused with a 429.',
     opts: {entry: '_PROXY_MaxIterationsHandler', methods: ['async_pre_call_hook'], failures: 'kept', answers: {_get_session_id: 'str | None', _get_max_iterations: 'int | None'}, skip: HOOK_SKIP, stores: STORE('int')},
     boundary: 'the session counter in the internal usage cache, Redis off (its Lua INCR path not read), its TTL left out; the session id and max_iterations answered by the request',
+    needs: REDIS_OFF,
     laws: [
       {name: 'a call is admitted only while its session is below max_iterations', kind: 'access', intent: 'docs', why: 'max_iterations_limiter.py:3-8 "When the count exceeds max_iterations ... returns 429"',
         law: r => r.stepLaw('a call is admitted only while its session is below max_iterations', (b, a) => a.failed.not().implies(lt(b[ITER].at(b.get_session_id.id).value, b.get_max_iterations)), b => sessionGiven(b, 'get_max_iterations'))},
@@ -100,6 +105,7 @@ SPECS.push(
     summary: 'A call of an agent session is refused once the session\'s spend has reached its max_budget_per_session.',
     opts: {entry: '_PROXY_MaxBudgetPerSessionHandler', methods: ['async_pre_call_hook'], failures: 'kept', answers: {_get_session_id: 'str | None', _get_max_budget_per_session: 'float | None'}, skip: HOOK_SKIP, stores: STORE('float')},
     boundary: 'the session\'s spend in the internal usage cache, Redis off, read only (the success event that adds a response\'s cost keys it by the raw key, not read here: the claim is for every spend the cache may hold); the session id and the budget answered by the request',
+    needs: REDIS_OFF,
     laws: [
       {name: 'a session whose spend has reached max_budget_per_session is refused', kind: 'access', intent: 'docs', why: 'max_budget_per_session_limiter.py: "whether accumulated spend exceeds the budget (429 if so)"',
         law: r => r.stepLaw('a session whose spend has reached max_budget_per_session is refused', (_b, a) => a.failed, b => all(sessionGiven(b, 'get_max_budget_per_session'), atLeast(b[SPENT].at(b.get_session_id.id).value, b.get_max_budget_per_session)))},
@@ -119,6 +125,8 @@ SPECS.push({id: 'circuit breaker/litellm-py/should_cooldown_based_on_allowed_fai
   summary: 'A deployment is put in cooldown once its failures this window pass the allowed fails: the deployment\'s override, else the router\'s policy for the exception type, else the router\'s allowed_fails.',
   opts: {entry: ['should_cooldown_based_on_allowed_fails_policy'], failures: 'kept', answers: {get_allowed_fails_from_policy: 'int | None', _increment_allowed_fails: 'int'}},
   boundary: 'the fleet-wide fail counter (_increment_allowed_fails: DualCache.increment_cache, Redis or this worker) and the router\'s per-exception policy (Router.get_allowed_fails_from_policy) answered by the request; the counter\'s key and TTL not read',
+  // (Router.get_allowed_fails_from_policy declares no result type)
+  needs: {answers: {get_allowed_fails_from_policy: 'int | None'}},
   laws: [
     {name: 'with an override, a deployment cools down exactly when its fails pass it', kind: 'step', intent: 'docs', why: 'cooldown_handlers.py: "When allowed_fails_override ... supplied they take precedence over the router-level values"',
       law: r => coolWhen(r, 'with an override, a deployment cools down exactly when its fails pass it', b => b.allowed_fails_override_none.not(), b => b.allowed_fails_override)},

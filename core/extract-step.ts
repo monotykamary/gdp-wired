@@ -12,13 +12,18 @@
 // truthiness (`truthy`), a missing value (`none`, `opt`), a failure (`fail`: an exception, a panic, an error value,
 // each the step's refusal or, with failures: 'kept', its result).
 //
-// What a caller states about the code's boundary, each printed in the notes and enforced by the check:
-//   answers: a call of other code whose result is an input of the request (the check stubs it with that input);
+// The code's boundary, inferred unless `strict` (research/langs/DESIGN.md, "The boundary inferred"), each statement
+// printed in the notes and enforced by the check; what the caller states wins:
+//   answers: a call of other code whose result is an input of the request (the check stubs it with that input).
+//            Inferred where its value is read, over its declared result type;
 //   skip:    a call left out (logging, an alert, a context manager): its value is kept only where nothing the rule
-//            keeps reads it, and the check runs it as it is;
+//            keeps reads it, and the check runs it as it is. Inferred where nothing reads it;
 //   stores:  an object of other code held as a key-value store (a cache client): its get and set methods read and
 //            write a map of the state, one per key template; its expiry, eviction and replication are left out, and the
-//            check gives the code a store that keeps what is set.
+//            check gives the code a store that keeps what is set. Inferred for an injected dependency called by a key.
+// Other code given a reference to the rule's state is refused unless stated; the module's own functions the subset
+// can't read, writing none of the state, are taken as other code; `gdp: skip | answer [type] | strict` comments say
+// it in the code.
 import * as I from './extract-ir.ts'
 import type {B, K, L, N} from './extract-ir.ts'
 import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, mergeOps, mergeWrites} from './extract-read.ts'
@@ -32,25 +37,33 @@ export type SType =
   | {k: 'int', bits?: number, signed?: boolean, unit?: string, atomic?: string, lock?: string, rs?: string} | {k: 'float' | 'bool' | 'str' | 'none' | 'any' | 'lock', atomic?: string, lock?: string}
   | {k: 'choice', values: string[], discs?: number[], enum?: string, sym?: boolean} | {k: 'opt', of: SType} | {k: 'res', of: SType}
   | {k: 'rec', name: string} | {k: 'map', key: SType, val: SType} | {k: 'list', of: SType} | {k: 'opaque', why: string}
-export type Patch = {mod?: string, path?: string[], self?: string}
+// (store: a method of an injected dependency, stubbed on the object the check gives)
+export type Patch = {mod?: string, path?: string[], self?: string, store?: string}
 export type SX = {e: string, p: string, text?: string, [k: string]: unknown}
 export type SS = {s: string, p: string, [k: string]: unknown}
-export type SParam = {name: string, t: SType, dflt?: SX, kw?: boolean, self?: boolean, star?: number}
+// (inject: marked as an injected dependency by the language's own means, Spring's @Autowired, FastAPI's Depends)
+export type SParam = {name: string, t: SType, dflt?: SX, kw?: boolean, self?: boolean, star?: number, inject?: boolean}
 export type SFunc = {id: string, name: string, cls?: string, p: string, span: [string, number, number], params: SParam[], ret: SType, body: SS[], async?: boolean, static?: boolean, decorators: {name: string, text: string, p: string}[],
   // (a function inlined by id, Go's: its receiver's local, its results' count, why it can't be called: before the
   // recursion check, or after it)
   recv?: string, results?: number, why?: string, late?: string}
-export type SRec = {name: string, short: string, fields: {name: string, t: SType, dflt?: SX}[], methods: Record<string, string | null>, kinds: string[], own: boolean, module: string, p: string}
+// (rets: the declared result types of its methods, another module's class's too: an inferred answer's type)
+export type SRec = {name: string, short: string, fields: {name: string, t: SType, dflt?: SX, inject?: boolean}[], methods: Record<string, string | null>, kinds: string[], own: boolean, module: string, p: string, rets?: Record<string, SType>}
 export type SModule = {lang: string, file: string, path: string, module: string, root: string, entries: ({k: 'class', rec: string} | {k: 'func', id: string} | {k: 'missing', name: string})[], recs: Record<string, SRec>, funcs: Record<string, SFunc>, enums?: Record<string, {values: string[], discs: number[], data: boolean}>, error?: string,
   // false: a condition the path takes is kept whole (a negated disjunction not split into its parts: Go's reader's);
   // 'nil-false': only nil and false are false (Ruby's), not Python's truthiness
-  split?: boolean, truth?: 'nil-false'}
+  split?: boolean, truth?: 'nil-false',
+  // false: the check can't stub a call (an answer, stated or inferred, is refused where it would be one)
+  stubs?: boolean}
 
 export type StoreDecl = {get?: string[], set?: string[], delete?: string[], value?: 'int' | 'float' | 'str', attrs?: Record<string, null | boolean | number | string>, async?: Record<string, boolean>}
 export type StepOptions = {
-  // The class, or the functions (each a request), and the methods read (by default the public ones).
-  entry: string | string[], methods?: string[],
+  // The class, or the functions (each a request), and the methods read (by default the public ones). With no entry,
+  // the module's one class whose public methods write its state, and those methods.
+  entry?: string | string[], methods?: string[],
   answers?: Record<string, string>, skip?: string[], stores?: Record<string, StoreDecl>,
+  // true: the boundary only as stated (answers, skip, stores), nothing inferred: any other call of other code refused
+  strict?: boolean,
   // A failure (an exception, a panic) is the step's refusal (the default), or its result kept: the step taken, the
   // state as it was, `failed` true (to state laws about when the code refuses).
   failures?: 'refuse' | 'kept',
@@ -72,8 +85,10 @@ type V =
   // A string made by a format with one hole (a store's key): its template and the hole's value.
   | {t: 'fmt', tpl: string, k: K}
   // (firm: a value merged only with itself, refused where a path would make it another; Go's)
-  | {t: 'opaque', why: string, firm?: boolean}
-  | {t: 'ext', q: string, text: string, patch?: Patch}
+  // (ask: the value of a call of other code left out by inference, answered by the next run where it is read)
+  | {t: 'opaque', why: string, firm?: boolean, ask?: string, sattr?: {store: string, path: string}}
+  // (ret: the callee's declared result type; recv: the object its method is called on)
+  | {t: 'ext', q: string, text: string, patch?: Patch, ret?: SType, recv?: V}
   | {t: 'fn', id: string, self?: V, caps?: Map<string, V>} | {t: 'cls', rec: string, patch?: Patch} | {t: 'builtin', n: string} | {t: 'lib', q: string}
   | {t: 'sattr', store: string, path: string}
   | {t: 'tuple', xs: V[]} | {t: 'lock'}
@@ -101,14 +116,16 @@ export type {V as StepValue, Path as StepPath, Obj as StepObj, Ptr as StepPtr}
 // What the harness is told: where each leaf of the state is, how each argument is made, what each stub answers.
 export type Leaf = {t?: SType, name: string, path: string[], kind: 'num' | 'bool' | 'str' | 'choice' | 'none' | 'map' | 'frame', float?: boolean, cls?: string, fields?: {name: string, float?: boolean}[], key?: 'num' | 'str', store?: string, tpl?: string}
 export type PArg = {k: 'in', name: string, float?: boolean, sym?: boolean, z?: Raw} | {k: 'opt', none: string, v: PArg} | {k: 'rec', cls: string, f: [string, PArg][]} | {k: 'inert'} | {k: 'store', name: string} | {k: 'dflt'}
-export type Answer = {key: string, patch: Patch, async: boolean, inputs: {name: string, none?: string, float?: boolean}, sort: string}
-export type StepRead = {ints: Record<string, IntTy>, madeAt?: string, model: Model, leaves: Leaf[], args: Record<string, [string, PArg][]>, answers: Answer[], ctor: [string, PArg][], kept: boolean, arms: [string, number][], cls?: string, stores: Record<string, StoreDecl>, results: Record<string, 'none' | 'scalar' | 'maybe'>}
+// (how: 'inferred' from the callee's declared type, or 'tagged' by a gdp: comment; stated where absent)
+export type Answer = {key: string, patch: Patch, async: boolean, inputs: {name: string, none?: string, float?: boolean}, sort: string, how?: string}
+// (inject: the fields the harness sets to the store it gives, after the constructor: a field injected by a framework)
+export type StepRead = {ints: Record<string, IntTy>, madeAt?: string, model: Model, leaves: Leaf[], args: Record<string, [string, PArg][]>, answers: Answer[], ctor: [string, PArg][], kept: boolean, arms: [string, number][], cls?: string, stores: Record<string, StoreDecl>, results: Record<string, 'none' | 'scalar' | 'maybe'>, inject?: string[]}
 
 const where = (x: {p: string}) => x.p || '?'
 const refuse = (x: {p: string} | string, what: string): never => { throw new Refusal(typeof x === 'string' ? x : where(x), what) }
 const RESERVED = new Set(['rule', 'nat', 'int', 'bool', 'when', 'min', 'max', 'all', 'any', 'not', 'yes', 'no', 'lit', 'str', 'record', 'oneOf', 'intern', 'Int', 'forall'])
 const keyV = (v: V | Obj): string => JSON.stringify(v, (_, x) => (x instanceof Map ? [...x.entries()] : x))
-const LANG: Record<string, string> = {go: 'Go', rust: 'Rust', python: 'Python', c: 'C', cpp: 'C++'}
+const LANG: Record<string, string> = {go: 'Go', rust: 'Rust', python: 'Python', c: 'C', cpp: 'C++', ruby: 'Ruby', elixir: 'Elixir'}
 const tyName = (ty?: IntTy) => (ty ? (ty.bits ? `${ty.signed ? 'i' : 'u'}${ty.bits}` : ty.signed ? 'an Instant' : 'a Duration') : 'the number')
 const constOf = (v: V): number | undefined => (v.t === 'num' && v.e.op === 'const' ? v.e.v : undefined)
 
@@ -125,6 +142,28 @@ function sortOfText(s: string, at: string): {t: SType} {
   const t = one()
   return {t: none ? {k: 'opt', of: t} : t}
 }
+
+// --- the boundary inferred (types) ---------------------------------------------------------------------------------
+// What a reading infers over its runs: the calls answered (their value read) and the module's own functions cut
+// (their bodies outside the subset, writing none of the rule's state). Each refused run adds one, until a run reads.
+export type Inferred = {answers: Map<string, SType>, cut: Map<string, string>}
+type Tag = {k: 'skip' | 'answer' | 'strict', arg: string}
+const TAG_DECO = /(?:^|\.)gdp[._]?(skip|answer|strict)$/i
+// A call at the boundary: its key (an answer's input is named after its last part), what it is, its patch for the
+// check, its declared result, the module's own function it is (cut), its object, its tag, and the refusal it was.
+type Bound = {key: string, name: string, patch?: Patch, ret?: SType, own?: string, recv?: V, tag?: Tag, refusal: string, args?: false}
+type Pend = Bound & {why: string, at: string}
+// A refusal as it leaves each function inlined: the function and its parameters holding the rule's state.
+type Framed = Refusal & {frames?: {id: string, roots: string[]}[]}
+// A type an answer takes: a scalar, or one with None.
+const answerable = (t: SType): boolean => { const i = t.k === 'opt' ? t.of : t; return i.k === 'int' || i.k === 'float' || i.k === 'bool' || i.k === 'str' || i.k === 'choice' }
+const typeText = (t: SType): string => (t.k === 'opt' ? `${typeText(t.of)} | None` : t.k === 'choice' ? t.values.map(v => JSON.stringify(v)).join(' | ') : t.k)
+// A store's method by its name: one that reads, writes or deletes a key (async_, _cache and camel case aside).
+const KEYED: Record<string, 'get' | 'set' | 'delete'> = Object.fromEntries([
+  ...['get', 'getcache', 'find', 'findbyid', 'fetch', 'load', 'lookup', 'read'].map(n => [n, 'get']),
+  ...['set', 'setcache', 'put', 'save', 'store', 'write', 'upsert'].map(n => [n, 'set']),
+  ...['delete', 'deletecache', 'remove', 'deletebyid', 'del', 'evict', 'invalidate'].map(n => [n, 'delete'])])
+const keyShape = (m: string): 'get' | 'set' | 'delete' | undefined => KEYED[m.replace(/^async_?|_?async$/gi, '').replace(/[_-]/g, '').toLowerCase()]
 
 // --- the executor ---------------------------------------------------------------------------------------------------
 export class Stepper {
@@ -153,7 +192,8 @@ export class Stepper {
   method = ''
   fresh = 0
   init = false
-  constructor(readonly mod: SModule, readonly opts: StepOptions) {}
+  // (inf: the boundary inferred so far, where the reading infers one; none: only what the caller states)
+  constructor(readonly mod: SModule, readonly opts: StepOptions, readonly inf?: Inferred) {}
 
   rec(name: string, at: {p: string}): SRec { return this.mod.recs[name] ?? refuse(at, `${name}: a type the reader didn't read`) }
   newVar(name: string, sort: Var['sort'], role: Var['role'], note?: string): Var {
@@ -402,8 +442,12 @@ export class Stepper {
   callFunc(f: SFunc, self: V | undefined, args: V[], kw: [string, V][], at: SX, p0: Path, awaited: boolean, caps?: Map<string, V>): [V, Path] {
     if (f.async && !awaited) return refuse(at, `${f.name}: a coroutine made and not awaited`)
     if (this.frames.includes(f.id)) return refuse(at, `${f.name}: a recursive call`)
-    for (const d of f.decorators) if (!['staticmethod', 'classmethod', 'property', 'override', 'typing.override', 'abstractmethod'].includes(d.name) && !this.skipped([d.name, d.text])) refuse(d, `@${d.text}: a decorator (one of other code changes what the method does; skip it to take it as transparent)`)
-    for (const d of f.decorators) if (this.skipped([d.name, d.text])) this.notes.add(`@${d.text} on ${f.name}: taken as transparent (skip)`)
+    for (const d of f.decorators) {
+      if (['staticmethod', 'classmethod', 'property', 'override', 'typing.override', 'abstractmethod'].includes(d.name) || (this.inf && TAG_DECO.test(d.name))) continue
+      if (this.skipped([d.name, d.text])) this.notes.add(`@${d.text} on ${f.name}: taken as transparent (skip)`)
+      else if (this.inf && this.tagAt(d.p)?.k !== 'strict') this.notes.add(`@${d.text} on ${f.name}: taken as transparent (inferred: the check runs the method as decorated)`)
+      else refuse(d, `@${d.text}: a decorator (one of other code changes what the method does; skip it to take it as transparent)`)
+    }
     this.arm(f.body)
     const locals = new Map<string, V>()
     const ps = f.params.filter(x => !x.star)
@@ -425,7 +469,10 @@ export class Stepper {
     const saved = q.locals
     this.frames.push(f.id)
     let flow: Flow
-    try { flow = this.block(f.body, {...q, locals}) } finally { this.frames.pop() }
+    try { flow = this.block(f.body, {...q, locals}) } catch (e) {
+      if (e instanceof Refusal && this.inf) ((e as Framed).frames ??= []).push({id: f.id, roots: [...locals].filter(([, v]) => this.stateRef(v, q)).map(([n]) => n)})
+      throw e
+    } finally { this.frames.pop() }
     const rets: [Path, V][] = [...flow.rets, ...(flow.live ? [[flow.live, {t: 'none'} as V] as [Path, V]] : [])]
     if (!rets.length) return [{t: 'none'}, {...q, pc: [...q.pc, I.F], locals: saved}]
     const joined = this.join(rets.map(([r, v]) => ({...r, locals: new Map([['$ret', v]])})), at)!
@@ -490,6 +537,7 @@ export class Stepper {
           if (it.x.e === 'call' && this.skipped(this.calleeNames(it.x))) { this.notes.add(`with ${it.x.text} (${it.x.p}): a context manager taken as transparent (skip)`); continue }
           const [v, q2] = this.ev(it.x, q)
           q = q2
+          if (v.t === 'opaque' && v.ask) { this.notes.add(`with ${it.x.text} (${it.x.p}): a context manager of other code taken as transparent (inferred: the check runs it)`); continue }
           if (v.t !== 'lock') refuse(it.x, `with ${it.x.text}: a context manager (the subset reads a lock's, which makes the step atomic)`)
           this.notes.add(`${this.method}: the lock held (${it.x.p}): the step is atomic`)
         }
@@ -503,7 +551,7 @@ export class Stepper {
       }
       case 'import': {
         const locals = new Map(p.locals)
-        for (const [n, x] of Object.entries(s.names as Record<string, {mod: string, name?: string}>)) locals.set(n, {t: 'ext', q: x.name ? `${x.mod}.${x.name}` : x.mod, text: n, patch: {mod: x.mod, ...(x.name ? {path: [x.name]} : {})}})
+        for (const [n, x] of Object.entries(s.names as Record<string, {mod: string, name?: string, ret?: SType}>)) locals.set(n, {t: 'ext', q: x.name ? `${x.mod}.${x.name}` : x.mod, text: n, patch: {mod: x.mod, ...(x.name ? {path: [x.name]} : {})}, ...(x.ret ? {ret: x.ret} : {})})
         return {live: {...p, locals}, rets: []}
       }
       case 'no': return refuse(s, String(s.why))
@@ -649,7 +697,7 @@ export class Stepper {
     let sm = this.storeMaps.get(key)
     if (!sm) {
       for (const other of [...this.storeMaps.values()].filter(x => x.store === store)) if (!disjoint(other.tpl, tpl)) refuse(at, `${store}: the key templates ${JSON.stringify(other.tpl)} and ${JSON.stringify(tpl)} may name one key`)
-      const decl = this.opts.stores?.[store] ?? {}
+      const decl = this.storeDecl(store)
       const val: SType = decl.value === 'int' ? {k: 'int'} : decl.value === 'str' ? {k: 'str'} : {k: 'float'}
       const name = `${store}_${tpl.replace(/\{\}/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '')}`
       const d = this.mapDeclOf(name, {k: 'map', key: {k: kn ? 'int' : 'str'}, val}, at)
@@ -657,7 +705,7 @@ export class Stepper {
       sm = {store, tpl, id, decl: d}
       this.storeMaps.set(key, sm)
       this.initHeap.set(id, {k: 'map', decl: d, val, origin: 'state'})
-      this.notes.add(`${store}: a store (stated): ${JSON.stringify(tpl)} keys held as ${d.name}, its expiry and eviction left out`)
+      this.notes.add(`${store}: a store (${this.opts.stores?.[store] ? 'stated' : 'inferred: an injected dependency, read and written by a key'}): ${JSON.stringify(tpl)} keys held as ${d.name}, its expiry and eviction left out`)
     }
     if (!p.heap.has(sm.id)) p.heap.set(sm.id, this.initHeap.get(sm.id)!)
     return [sm.id, p.heap.get(sm.id) as Extract<Obj, {k: 'map'}>]
@@ -668,13 +716,58 @@ export class Stepper {
     return refuse(at, `${at.text}: a store's key of ${v.t === 'opaque' ? v.why : `a ${v.t}`} (a string, or a format with one hole)`)
   }
   readonly storeAsync: Record<string, Record<string, boolean>> = {}
+  // A store's declaration: the caller's, with the methods inference reads as its get, set and delete added.
+  readonly storeDecls = new Map<string, StoreDecl>()
+  // (an injected dependency's type: its methods' declared results)
+  readonly storeTypes = new Map<string, string>()
+  // (the stores whose keys the rule holds: stated, or an injected dependency the class calls a key's method on)
+  readonly storeKeyed = new Set<string>()
+  readonly injectedFields: string[] = []
+  // A constructor argument held as an injected dependency (a store): one its reader marks so, or one of no scalar type
+  // (another module's class, a protocol, none stated) the class keeps in a field and calls methods on.
+  injected(pa: SParam, init: SFunc, r: SRec): {keyed: boolean, ty?: string} | undefined {
+    if (!this.inf) return undefined
+    const t = pa.t.k === 'opt' ? pa.t.of : pa.t
+    if (!pa.inject && (this.scalar(t) || ['lock', 'none', 'map', 'list'].includes(t.k) || (t.k === 'rec' && this.mod.recs[t.name]?.own && !this.mod.recs[t.name]!.kinds.includes('protocol')) || pa.dflt)) return undefined
+    const fields: string[] = []
+    const scan = (x: unknown) => { if (!x || typeof x !== 'object') return; const st = x as SS, to = st.to as SX | undefined, v = st.x as SX | undefined; if (st.s === 'set' && to?.e === 'get' && (to.x as SX).e === 'var' && (to.x as SX).n === 'self' && v?.e === 'var' && v.n === pa.name) fields.push(String(to.f)); Object.values(x).forEach(scan) }
+    scan(init.body)
+    const ms = this.callsOn(r, fields)
+    if (!pa.inject && !ms.length) return undefined
+    return {keyed: ms.some(m => !!keyShape(m)), ...(t.k === 'rec' ? {ty: t.name} : {})}
+  }
+  // The methods the class's code calls on its fields named (self.f.m(...)).
+  callsOn(r: SRec, fields: string[]): string[] {
+    const ms: string[] = []
+    const walk = (x: unknown) => { if (!x || typeof x !== 'object') return; const o = x as SX, f = o.f as SX | undefined, fx = f?.x as SX | undefined; if (o.e === 'call' && f?.e === 'get' && fx?.e === 'get' && (fx.x as SX).e === 'var' && (fx.x as SX).n === 'self' && fields.includes(String(fx.f))) ms.push(String(f.f)); Object.values(o).forEach(walk) }
+    for (const id of Object.values(r.methods)) if (id && this.mod.funcs[id]) walk(this.mod.funcs[id]!.body)
+    return ms
+  }
+  storeDecl(store: string): StoreDecl {
+    let d = this.storeDecls.get(store)
+    if (!d) { d = {...this.opts.stores?.[store]}; this.storeDecls.set(store, d) }
+    return d
+  }
   storeCall(store: string, m: string, args: V[], kw: [string, V][], at: SX, p: Path, awaited: boolean): [V, Path] {
-    const d = this.opts.stores?.[store] ?? {}
+    const d = this.storeDecl(store)
+    const arg = (n: string, i: number) => kw.find(([k]) => k === n)?.[1] ?? args[i] ?? refuse(at, `${at.text}: the store's ${n} not given`)
+    const has = (n: string, i: number) => kw.some(([k]) => k === n) || args.length > i
+    let kind: 'get' | 'set' | 'delete' | undefined = (d.get ?? ['get', 'async_get_cache', 'get_cache']).includes(m) ? 'get' : (d.set ?? ['set', 'async_set_cache', 'set_cache']).includes(m) ? 'set' : (d.delete ?? ['delete', 'delete_cache', 'async_delete_cache']).includes(m) ? 'delete' : undefined
+    if (!kind && this.inf) {
+      // (inferred: a method named as a key's get, set or delete, given a key that is a string or a format)
+      const k = keyShape(m), key = kw.find(([n]) => n === 'key')?.[1] ?? args[0]
+      if (k && key && (key.t === 'str' || key.t === 'fmt') && (k !== 'set' || has('value', 1))) { kind = k; (d[k] ??= []).push(m); this.notes.add(`${store}.${m}: read as the store's ${k} by a key (inferred from its name)`) }
+      else {
+        // (another method: an answer, or left out; of a store, one that may change what it holds, unless stated)
+        if (this.storeKeyed.has(store) && !this.tagAt(at.p)) return refuse(at, `${at.text}: ${m}, a method of the store not stated as its get, set or delete (one that may change what it holds: state it, stores: {${store}: {get, set, delete}}, or skip it)`)
+        const ty = this.storeTypes.get(store), ret = ty ? this.mod.recs[ty]?.rets?.[m] : undefined
+        return this.boundary({...at, args: [], kw: []}, {key: `${store}.${m}`, name: `${store}.${m}`, patch: {store, path: [m]}, ...(ret ? {ret} : {}), args: false, refusal: `${at.text}: ${m}, a method of the store not stated as its get, set or delete`}, p, awaited)
+      }
+    }
+    if (!kind) return refuse(at, `${at.text}: ${m}, a method of the store not stated as its get, set or delete`)
     const was = (this.storeAsync[store] ??= {})[m]
     if (was !== undefined && was !== awaited) return refuse(at, `${at.text}: the store's ${m} awaited at one call and not at another`)
     this.storeAsync[store]![m] = awaited
-    const arg = (n: string, i: number) => kw.find(([k]) => k === n)?.[1] ?? args[i] ?? refuse(at, `${at.text}: the store's ${n} not given`)
-    const kind = (d.get ?? ['get', 'async_get_cache', 'get_cache']).includes(m) ? 'get' : (d.set ?? ['set', 'async_set_cache', 'set_cache']).includes(m) ? 'set' : (d.delete ?? ['delete', 'delete_cache', 'async_delete_cache']).includes(m) ? 'delete' : refuse(at, `${at.text}: ${m}, a method of the store not stated as its get, set or delete`)
     const {tpl, k, kn} = this.storeKey(arg('key', 0), at)
     const [id, o] = this.storeMap(store, tpl, kn, at, p)
     if (kind === 'get') return this.mapGet({t: 'ref', id}, k, at, p, 'none')
@@ -700,25 +793,196 @@ export class Stepper {
     return list?.find(e => names.some(n => n === e || n.startsWith(`${e}.`) || n.endsWith(`.${e}`) || n.endsWith(`.${e.replace(/^self\./, '')}`)))
   }
   skipped(names: string[]): boolean { return !!this.match(this.opts.skip, names) }
-  // A call answered by the request: its result an input (one a step), the check stubbing the callee with it.
-  answer(key: string, names: string[], patch: Patch | undefined, at: SX, p: Path, awaited: boolean): [V, Path] {
+  // A call answered by the request: its result an input (one a step), the check stubbing the callee with it. Its type
+  // is the caller's (a type string), a tag's, or the callee's declared one (inferred: `how` says which).
+  answer(key: string, names: string[], patch: Patch | undefined, at: SX, p: Path, awaited: boolean, type: string | SType = this.opts.answers![key]!, how = 'stated'): [V, Path] {
     if (!patch) return refuse(at, `${at.text}: an answered call the check can't stub`)
+    if (this.mod.stubs === false) return refuse(at, `${at.text}: answered (${how}), but the ${LANG[this.mod.lang] ?? this.mod.lang} check can't stub a call yet`)
     if (p.called.includes(key)) return refuse(at, `${at.text}: ${key} called twice in one step (an answer is one a step)`)
     const q: Path = {...p, called: [...p.called, key]}
-    const type = this.opts.answers![key]!
     let a = this.answers.get(key)
     const short = key.split('.').pop()!
     if (!a) {
-      const {t} = sortOfText(type, at.p)
+      const t = typeof type === 'string' ? sortOfText(type, at.p).t : type, text = typeof type === 'string' ? type : typeText(type)
       const inner = t.k === 'opt' ? t.of : t, s = this.scalar(inner)!
-      const v = this.newVar(short, s, 'input', `what ${names[0]} returns (stated: answers)`)
+      const v = this.newVar(short, s, 'input', how === 'stated' ? `what ${names[0]} returns (stated: answers)` : `what ${names[0]} returns (${how}: any ${text})`)
       const none = t.k === 'opt' ? this.newVar(`${short}_none`, {k: 'bool'}, 'input', `whether ${names[0]} returns None`).name : undefined
-      a = {key, patch, async: awaited, inputs: {name: v.name, ...(none ? {none} : {}), ...(inner.k === 'float' ? {float: true} : {})}, sort: type}
+      a = {key, patch, async: awaited, inputs: {name: v.name, ...(none ? {none} : {}), ...(inner.k === 'float' ? {float: true} : {})}, sort: text, ...(how === 'stated' ? {} : {how})}
       this.answers.set(key, a)
-      this.notes.add(`${names[0]} (${at.p}): answered by the request (stated), its arguments not read`)
+      this.notes.add(how === 'stated' ? `${names[0]} (${at.p}): answered by the request (stated), its arguments not read` : `${names[0]} (${at.p}): answered by the request (${how}: its value is read; assumes ${names[0]} may return any ${text}), its arguments not read`)
     } else if (a.async !== awaited) return refuse(at, `${at.text}: ${key} awaited at one call and not at another`)
     const vv = this.valueOf(this.vars.get(a.inputs.name)!)
     return [a.inputs.none ? {t: 'opt', has: I.not(I.bvar(a.inputs.none)), v: vv} : vv, q]
+  }
+
+  // --- the boundary inferred ---------------------------------------------------------------------------------------
+  // A call of code the subset doesn't read (another module's, an injected dependency's, or the module's own function
+  // cut): tagged, else inferred. Its arguments are evaluated (the code does). Given a reference to the rule's state,
+  // other code may change it: refused unless the caller states it. Its value read (a run refused where it is): the next
+  // run answers it by the request, over its declared type; else it is left out, kept only where nothing reads it.
+  readonly pend = new Map<string, Pend>()
+  readonly entryIds = new Set<string>()
+  boundary(x: SX, b: Bound, p: Path, awaited: boolean): [V, Path] {
+    const tag = this.tagAt(x.p) ?? b.tag
+    if (tag?.k === 'strict') return refuse(x, b.refusal)
+    const [vals, q] = b.args === false ? [[], p] as [V[], Path] : this.argVals(x, p)
+    // (a call a reader doesn't lower: the names its arguments mention, where the reader says; else taken as given it)
+    const given = b.args === false && x.e === 'no' && !b.recv ? (x.names as string[] | undefined)?.some(n => { const v = q.locals.get(n); return !v || this.stateRef(v, q) }) ?? true : [b.recv, ...vals].some(v => v && this.stateRef(v, q))
+    if (given && !tag && (!b.own || this.writesState(b.own, this.rootsOf(this.func(b.own, x), b.recv, vals, q))))
+      return refuse(x, `${b.refusal}; it is given the rule's state, which ${b.own ? 'its code' : 'other code'} may change (if it doesn't, state it: skip: [${JSON.stringify(b.key.split('.').pop())}], or a \`gdp: skip\` comment on its line)`)
+    const t = tag?.k === 'answer' ? (tag.arg ? tag.arg : b.ret && answerable(b.ret) ? b.ret : refuse(x, `${x.text}: tagged gdp: answer, and ${b.name} declares no type an answer takes: give it (gdp: answer float)`)) : this.inf!.answers.get(b.key)
+    if (t) return this.answer(b.key, [b.name], b.patch, x, q, awaited, t, tag ? 'tagged' : 'inferred')
+    const why = `${x.text ?? b.name}: the value of ${b.name}, other code left out`
+    this.pend.set(why, {...b, why, at: x.p})
+    this.notes.add(`${b.name} (${x.p}): left out (${tag ? 'tagged: gdp: skip' : 'inferred: nothing the rule keeps reads its value'}), run as it is by the check`)
+    return [{t: 'opaque', why, ask: b.key}, q]
+  }
+  argVals(x: SX, p: Path): [V[], Path] {
+    let q = p
+    const out: V[] = []
+    for (const a of [...((x.args as SX[] | undefined) ?? []), ...((x.kw as [string, SX][] | undefined) ?? []).map(([, v]) => v)]) {
+      try { const [v, q2] = this.ev(a, q); out.push(v); q = q2 } catch (e) { if (!(e instanceof Refusal) || !foreign(a)) throw e; out.push({t: 'opaque', why: e.what}) }
+    }
+    return [out, q]
+  }
+  // A value that is (or holds) a reference to the rule's state: the object, its nested objects, maps, lists, stores.
+  stateRef(v: V, p: Path): boolean {
+    const st = (id: string) => { const o = p.heap.get(id); return id === 'this' || o?.k === 'store' || (!!o && 'origin' in o && o.origin === 'state') }
+    switch (v.t) {
+      case 'ref': case 'map': case 'list': return st(v.id)
+      case 'cell': return st(v.map)
+      case 'ptr': return this.cases(v.to).objs.some(c => st(c.id))
+      case 'opt': return this.stateRef(v.v, p)
+      case 'tuple': return v.xs.some(y => this.stateRef(y, p))
+      case 'struct': return [...v.f.values()].some(y => this.stateRef(y, p))
+      case 'fn': return !!v.self && this.stateRef(v.self, p)
+      case 'ext': return !!v.recv && this.stateRef(v.recv, p)
+      case 'bool': case 'builtin': case 'choice': case 'cls': case 'err': case 'fmt': case 'lib': case 'lock': case 'nil': case 'none': case 'num': case 'opaque': case 'pop': case 'push': case 'res': case 'sattr': case 'str': return false
+    }
+  }
+  // The parameters of a function a call gives the rule's state (its receiver, its arguments).
+  rootsOf(fn: SFunc, recv: V | undefined, args: V[], p: Path): Set<string> {
+    const out = new Set<string>(), ps = fn.params.filter(x => !x.star)
+    let i = 0
+    for (const pa of ps) {
+      const v = pa.self && !fn.static ? recv : args[i++]
+      if (v && this.stateRef(v, p)) out.add(pa.name)
+    }
+    return out
+  }
+  // Whether a function may write the state its `roots` (parameters, then locals aliasing them) reach, read from the IR
+  // alone: a write through one, a call of other code given one, a method called on one, or a statement or expression
+  // the subset doesn't read. The module's own functions it calls are read the same way.
+  writesState(id: string, roots: Set<string>, seen = new Set<string>()): boolean {
+    if (!roots.size) return false
+    const key = `${id}(${[...roots].sort().join()})`
+    if (seen.has(key)) return false
+    seen.add(key)
+    const fn = this.mod.funcs[id]
+    if (!fn) return true
+    const rs = new Set(roots)
+    const mentions = (x: unknown): boolean => { if (!x || typeof x !== 'object') return false; const o = x as SX; if (o.e === 'var' && rs.has(String(o.n))) return true; return Object.values(o).some(mentions) }
+    const isVar = (x: unknown) => !!x && typeof x === 'object' && (x as SX).e === 'var'
+    const targets = (s: SS): unknown[] => [s.to, ...((s.l as unknown[] | undefined) ?? []), s.pl, (s.at as SX | undefined)?.m, s.s === 'del' ? s.x : undefined].filter(Boolean)
+    // (aliases first: a local set from a root's parts is one)
+    for (let grew = true; grew;) {
+      grew = false
+      const scan = (x: unknown) => {
+        if (!x || typeof x !== 'object') return
+        const st = x as SS
+        if ((st.s === 'set' || st.s === 'assign') && mentions(st.x ?? st.r)) for (const t of targets(st)) { const flat = (t as SX).e === 'tuple' ? (t as SX).xs as SX[] : [t as SX]; for (const y of flat) if (isVar(y) && !rs.has(String(y.n))) { rs.add(String(y.n)); grew = true } }
+        Object.values(x).forEach(scan)
+      }
+      scan(fn.body)
+    }
+    const own = (f: SX): SFunc | undefined => {
+      if (f.e === 'fn') return this.mod.funcs[String(f.id)]
+      if (f.e === 'get' && isVar(f.x) && rs.has(String((f.x as SX).n))) {
+        const r = Object.values(this.mod.recs).find(r => r.own && Object.values(r.methods).includes(fn.id))
+        const mid = r?.methods[String(f.f)]
+        return mid ? this.mod.funcs[mid] : undefined
+      }
+      return undefined
+    }
+    const calls = (c: SX): boolean => {
+      const f = c.f as SX, args = [...((c.args as SX[] | undefined) ?? [])], kw = (c.kw as [string, SX][] | undefined) ?? []
+      const target = f && own(f)
+      if (!target) return (f?.e === 'get' && mentions(f.x)) || args.some(mentions) || kw.some(([, a]) => mentions(a))
+      const sub = new Set<string>(), ps = target.params.filter(x => !x.star)
+      let i = 0
+      for (const pa of ps) {
+        if (pa.self && !target.static) { if (f.e === 'get') sub.add(pa.name); continue }
+        const a = args[i++] ?? kw.find(([n]) => n === pa.name)?.[1]
+        if (a && mentions(a)) sub.add(pa.name)
+      }
+      return this.writesState(target.id, sub, seen)
+    }
+    const walk = (x: unknown): boolean => {
+      if (!x || typeof x !== 'object') return false
+      const o = x as SX & SS
+      // (a statement or expression the subset doesn't read: where its reader names what it mentions, by those)
+      if (o.s === 'no' || o.e === 'no') { if (!o.names || (o.names as string[]).some(n => rs.has(n))) return true }
+      if (o.e === 'rmw' && mentions(o)) return true
+      if (o.s && ['set', 'assign', 'del', 'incdec', 'opset', 'mopset'].includes(o.s) && targets(o).some(t => !isVar(t) && mentions(t))) return true
+      if (o.e === 'call' && calls(o)) return true
+      return Object.values(o).some(walk)
+    }
+    return walk(fn.body)
+  }
+  // The `gdp:` comments of the file read (skip, answer [type], strict), by line: on a call's line, they state its
+  // boundary; on a function's line (or the line above it), every call of it. A decorator or annotation named
+  // gdp.skip, gdp_skip or GdpSkip (answer, strict) states it for the function too.
+  private tagLines?: Map<number, Tag>
+  tagAt(at: string): Tag | undefined {
+    if (!this.inf) return undefined
+    if (!this.tagLines) {
+      this.tagLines = new Map()
+      let src = ''
+      try { src = node<{readFileSync: (f: string, e: string) => string}>('node:fs').readFileSync(this.mod.path, 'utf8') } catch { /* no file to read */ }
+      src.split('\n').forEach((l, i) => { const m = /(?:#|\/\/|--|%)\s*gdp:\s*(skip|answer|strict)\b[ \t]*([^#\n]*)$/.exec(l); if (m) this.tagLines!.set(i + 1, {k: m[1] as Tag['k'], arg: m[2]!.trim()}) })
+    }
+    const m = /^(.*):(\d+):\d+$/.exec(at)
+    return m && this.mod.path.endsWith(m[1]!) ? this.tagLines.get(Number(m[2])) : undefined
+  }
+  fnTag(fn: SFunc): Tag | undefined {
+    for (const d of fn.decorators) { const m = TAG_DECO.exec(d.name); if (m) return {k: m[1]!.toLowerCase() as Tag['k'], arg: /\(\s*['"](.*)['"]\s*\)/.exec(d.text)?.[1] ?? ''} }
+    const [file, line] = fn.span
+    return this.tagAt(`${file}:${line}:1`) ?? this.tagAt(`${file}:${line - 1}:1`)
+  }
+  // The module's own function called where the boundary is: its patch for the check (a method of the object: on it).
+  ownPatch(fn: SFunc, self: V | undefined): Patch | undefined {
+    if (!fn.cls) return {mod: this.mod.module, path: [fn.id]}
+    if (self?.t === 'ref' && self.id === 'this') return {self: fn.name}
+    const r = Object.values(this.mod.recs).find(r => r.methods[fn.name] === fn.id)
+    return r ? {mod: r.module, path: [r.short, fn.name]} : undefined
+  }
+  ownCut(fn: SFunc, self: V | undefined, x: SX): Bound | undefined {
+    const tag = this.fnTag(fn), lineTag = this.tagAt(x.p)
+    if (!this.inf || tag?.k === 'strict' || lineTag?.k === 'strict' || !(this.inf.cut.has(fn.id) || tag || lineTag)) return undefined
+    const why = this.inf.cut.get(fn.id)
+    if (why) this.notes.add(`${fn.name}: the module's own code, outside the subset (${why}), and writing none of the rule's state: taken as other code where it is called (inferred)`)
+    return {key: fn.id, name: fn.name, patch: this.ownPatch(fn, self), ret: fn.ret, own: fn.id, recv: self, tag, refusal: `${x.text}: ${fn.name}`}
+  }
+  // A refused run: what the next one infers, or the refusal (with the statement that would accept it). A value of
+  // other code read is answered by its declared type (where the check can stub it); else the module's own function the
+  // refusal is in (the innermost but the entries) is cut where it writes none of the rule's state.
+  promote(e: Refusal): Refusal | undefined {
+    let best: Pend | undefined
+    for (const [why, pd] of this.pend) if (e.what.includes(why) && (!best || why.length > best.why.length)) best = pd
+    let hint = ''
+    if (best) {
+      const t = best.ret && answerable(best.ret) ? best.ret : undefined
+      if (t && best.patch && this.mod.stubs !== false) { this.inf!.answers.set(best.key, t); return undefined }
+      const short = JSON.stringify(best.key.split('.').pop()), cant = this.mod.stubs === false ? `the ${LANG[this.mod.lang] ?? this.mod.lang} check can't stub a call yet` : !best.patch ? 'the check can\'t stub it' : ''
+      hint = `${best.refusal.replace(/ \(answer it, skip it, or read that module\)$/, '')} (${best.at}), whose value is read, and ${cant || (!best.ret || best.ret.k === 'any' ? 'it declares no type' : `it returns ${this.why(best.ret)}`)}: ${cant ? 'read its code, or keep its value unread' : `state what it returns (answers: {${short}: 'int'}, or a \`gdp: answer int\` comment on its line)`}`
+    }
+    for (const id of (e as Framed).frames ?? []) {
+      const fn = this.mod.funcs[id.id]
+      if (!fn || this.inf!.cut.has(id.id) || this.entryIds.has(id.id) || this.fnTag(fn)?.k === 'strict' || this.writesState(id.id, new Set(id.roots))) continue
+      this.inf!.cut.set(id.id, `${e.where}: ${e.what}`)
+      return undefined
+    }
+    return hint ? new Refusal(e.where, `${e.what}; ${hint}`) : e
   }
 
   // --- expressions ----------------------------------------------------------------------------------------------------
@@ -782,8 +1046,15 @@ export class Stepper {
       case 'cls': return [{t: 'cls', rec: String(x.rec), ...(x.patch ? {patch: x.patch as Patch} : {})}, p]
       case 'builtin': return [{t: 'builtin', n: String(x.n)}, p]
       case 'lib': return [{t: 'lib', q: String(x.q)}, p]
-      case 'ext': return [{t: 'ext', q: String(x.q), text: String(x.text), ...(x.patch ? {patch: x.patch as Patch} : {})}, p]
-      case 'no': { let q = p; for (const y of (x.pre as SX[] | undefined) ?? []) q = this.ev(y, q)[1]; if (x.prepl) this.place(x.prepl as SX, q); return refuse(x, String(x.why)) }
+      case 'ext': return [{t: 'ext', q: String(x.q), text: String(x.text), ...(x.patch ? {patch: x.patch as Patch} : {}), ...(x.ret ? {ret: x.ret as SType} : {})}, p]
+      case 'no': {
+        // (a call of other code a reader doesn't lower, `ext` its name: at the boundary, where it is inferred)
+        if (x.ext && this.inf && !x.pre && !x.prepl) {
+          let q = p, recv: V | undefined
+          if (x.recv) [recv, q] = this.ev(x.recv as SX, q)
+          return this.boundary(x, {key: x.ext as string, name: x.ext as string, refusal: String(x.why), ...(x.args ? {} : {args: false}), ...(recv ? {recv} : {}), ...(x.ret ? {ret: x.ret as SType} : {})}, q, false)
+        }
+        let q = p; for (const y of (x.pre as SX[] | undefined) ?? []) q = this.ev(y, q)[1]; if (x.prepl) this.place(x.prepl as SX, q); return refuse(x, String(x.why)) }
       case 'nil': return [{t: 'nil'}, p]
       case 'ptr0': return [{t: 'ptr', to: {k: 'nil'}}, p]
       case 'errv': { let q = p; for (const y of (x.pre as SX[] | undefined) ?? []) q = this.ev(y, q)[1]; if (x.note) this.notes.add(x.note as string); return [{t: 'err', is: x.is ? I.T : I.F}, q] }
@@ -959,7 +1230,7 @@ export class Stepper {
   get(x: SX, p: Path): [V, Path] {
     const [o, q] = this.ev(x.x as SX, p), f = String(x.f)
     switch (o.t) {
-      case 'opaque': return [{t: 'opaque', why: o.why}, q]
+      case 'opaque': if (o.sattr) return this.storeAttr(o.sattr.store, `${o.sattr.path}.${f}`, x, q); return [{t: 'opaque', why: o.why, ...(o.ask ? {ask: o.ask} : {})}, q]
       case 'ext': return [{t: 'ext', q: `${o.q}.${f}`, text: `${o.text}.${f}`, ...(o.patch?.path ? {patch: {...o.patch, path: [...o.patch.path, f]}} : {})}, q]
       case 'none': this.fail(q, I.T, x, `${x.text}: a field of None (an AttributeError)`); return [{t: 'opaque', why: 'unreachable'}, {...q, pc: [...q.pc, I.F]}]
       case 'opt': { this.fail(q, I.not(o.has), x, `${x.text}: a field of None (an AttributeError)`); const [v2, q3] = this.get({...x, x: {e: 'var', n: '$v', p: x.p}}, {...this.assume(q, o.has), locals: new Map(q.locals).set('$v', o.v)}); return [v2, {...q3, locals: q.locals}] }
@@ -971,7 +1242,7 @@ export class Stepper {
       case 'cls': {
         const r = this.rec(o.rec, x), mid = r.methods[f]
         if (mid) return [{t: 'fn', id: mid}, q]
-        return [{t: 'ext', q: `${o.rec}.${f}`, text: x.text ?? f, ...(o.patch?.path ? {patch: {...o.patch, path: [...o.patch.path, f]}} : {})}, q]
+        return [{t: 'ext', q: `${o.rec}.${f}`, text: x.text ?? f, ...(o.patch?.path ? {patch: {...o.patch, path: [...o.patch.path, f]}} : {}), ...(r.rets?.[f] ? {ret: r.rets[f]} : {})}, q]
       }
       case 'bool': case 'builtin': case 'choice': case 'fmt': case 'fn': case 'lib': case 'lock': case 'num': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': return refuse(x, `${x.text}: a field of a ${o.t}`)
     }
@@ -984,7 +1255,7 @@ export class Stepper {
     if (v) return [v, q]
     const mid = r.methods[f]
     if (mid !== undefined) {
-      if (mid === null) return refuse(x, `${x.text}: a method of another module's class`)
+      if (mid === null) return this.inf ? [{t: 'ext', q: `${r.name}.${f}`, text: x.text ?? f, patch: {mod: r.module, path: [r.short, f]}, recv: o, ...(r.rets?.[f] ? {ret: r.rets[f]} : {})}, q] : refuse(x, `${x.text}: a method of another module's class`)
       const fn = this.func(mid, x)
       if (fn.decorators.some(d => d.name === 'property')) return this.callFunc(fn, o, [], [], x, q, false)
       return [{t: 'fn', id: mid, self: fn.static ? undefined : o}, q]
@@ -1005,14 +1276,14 @@ export class Stepper {
     return [v, p]
   }
   storeAttr(store: string, path: string, x: SX, p: Path): [V, Path] {
-    const attrs = this.opts.stores?.[store]?.attrs ?? {}
+    const attrs = this.storeDecl(store).attrs ?? {}
     if (path in attrs) {
       const v = attrs[path]!
       this.notes.add(`${store}.${path} is ${JSON.stringify(v)} (stated)`)
       return [v === null ? {t: 'none'} : typeof v === 'boolean' ? {t: 'bool', e: v ? I.T : I.F} : typeof v === 'number' ? {t: 'num', e: I.num(v)} : {t: 'str', e: {op: 'slit', value: v}}, p]
     }
     if (Object.keys(attrs).some(k => k.startsWith(`${path}.`))) return [{t: 'sattr', store, path}, p]
-    return [{t: 'opaque', why: `${x.text}: an attribute of the store not stated`}, p]
+    return [{t: 'opaque', why: `${x.text}: an attribute of the store not stated${this.inf ? ` (where the rule reads it, state its value: stores: {${store}: {attrs: {${JSON.stringify(path)}: null}}})` : ''}`, ...(this.inf ? {sattr: {store, path}} : {})}, p]
   }
   bin(x: SX, p: Path): [V, Path] {
     const op = String(x.op)
@@ -1148,16 +1419,18 @@ export class Stepper {
   // where nothing reads it.
   fstr(x: SX, p: Path): [V, Path] {
     const parts = x.parts as (string | {x: SX, plain: boolean})[]
-    let q = p, tpl = '', hole: K | undefined, n = 0, opaque = false
+    let q = p, tpl = '', hole: K | undefined, n = 0, opaque = false, ask: V | undefined
     for (const part of parts) {
       if (typeof part === 'string') { tpl += part.replace(/\{\}/g, '{ }'); continue }
       const [v, q2] = this.ev(part.x, q)
       q = q2
       n++
+      if (v.t === 'opaque' && v.ask) ask ??= v
       if (!part.plain || n > 1 || !(v.t === 'str' || (v.t === 'num' && part.plain))) { opaque = true; continue }
       hole = v.t === 'str' ? v.e : {op: 'num', e: v.e}
       tpl += '{}'
     }
+    if (ask?.t === 'opaque') return [{t: 'opaque', why: `${x.text}: a formatted string (${ask.why})`, ask: ask.ask}, q]
     if (opaque || !hole) return [{t: 'opaque', why: `${x.text}: a formatted string`}, q]
     return [{t: 'fmt', tpl, k: hole}, q]
   }
@@ -1190,15 +1463,33 @@ export class Stepper {
       if (o.t === 'ref' && q.heap.get(o.id)?.k === 'store') return this.evArgs(x, q, (args, kw, q2) => this.storeCall((q.heap.get(o.id) as {name: string}).name, String(fx.f), args, kw, x, q2, awaited))
       if (o.t === 'sattr') return refuse(x, `${x.text}: a method of the store's ${o.path} (not stated)`)
       ;[f, q] = this.get(fx, q)
-      if (o.t === 'opaque' && f.t === 'opaque') return refuse(x, `${x.text}: a call on ${o.why}`)
+      if (o.t === 'opaque' && f.t === 'opaque') return this.inf ? this.boundary(x, {key: names[0] ?? String(x.text), name: names[0] ?? String(x.text), refusal: `${x.text}: a call on ${o.why}`}, q, awaited) : refuse(x, `${x.text}: a call on ${o.why}`)
     } else [f, q] = this.ev(fx, q)
     switch (f.t) {
-      case 'fn': { const fn = this.func(f.id, x); if ((fn as {generic?: boolean}).generic) return refuse(x, `${fn.name}: a generic function`); return this.evArgs(x, q, (args, kw, q2) => this.callFunc(fn, f.self, args, kw, x, q2, awaited || !fn.async, f.caps)) }
-      case 'cls': return this.evArgs(x, q, (args, kw, q2) => this.construct(f.rec, args, kw, x, q2))
+      case 'fn': {
+        const fn = this.func(f.id, x)
+        if ((fn as {generic?: boolean}).generic) return refuse(x, `${fn.name}: a generic function`)
+        const cut = this.ownCut(fn, f.self, x)
+        if (cut) return this.boundary(x, cut, q, !!fn.async)
+        try { return this.evArgs(x, q, (args, kw, q2) => this.callFunc(fn, f.self, args, kw, x, q2, awaited || !fn.async, f.caps)) } catch (e) {
+          // (refused before its body runs, an argument or the call itself: the function is where it may be cut)
+          if (e instanceof Refusal && this.inf && !(e as Framed).frames?.length) (e as Framed).frames = [{id: fn.id, roots: f.self && this.stateRef(f.self, q) ? fn.params.filter(x => x.self).map(x => x.name) : []}]
+          throw e
+        }
+      }
+      case 'cls': {
+        // (another module's class made: other code, at the boundary)
+        const r = this.inf ? this.mod.recs[f.rec] : undefined
+        if (r && !r.own) return this.boundary(x, {key: f.rec, name: names[0] ?? r.short, ...(f.patch ? {patch: f.patch} : {}), ret: {k: 'rec', name: f.rec}, refusal: `${x.text}: ${r.short} made (the subset makes the module's own dataclasses)`}, q, awaited)
+        return this.evArgs(x, q, (args, kw, q2) => this.construct(f.rec, args, kw, x, q2))
+      }
       case 'builtin': return this.builtin(f.n, x, q)
       case 'lib': return this.lib(f.q, x, q)
-      case 'ext': return refuse(x, `${x.text}: ${f.q}, other code (answer it, skip it, or read that module)`)
-      case 'opaque': return refuse(x, `${x.text}: a call of ${f.why}`)
+      case 'ext': {
+        const refusal = `${x.text}: ${f.q}, other code (answer it, skip it, or read that module)`
+        return this.inf ? this.boundary(x, {key: f.q, name: names[0] ?? f.text, ...(f.patch ? {patch: f.patch} : {}), ...(f.ret ? {ret: f.ret} : {}), ...(f.recv ? {recv: f.recv} : {}), refusal}, q, awaited) : refuse(x, refusal)
+      }
+      case 'opaque': return this.inf ? this.boundary(x, {key: names[0] ?? String(x.text), name: names[0] ?? String(x.text), refusal: `${x.text}: a call of ${f.why}`}, q, awaited) : refuse(x, `${x.text}: a call of ${f.why}`)
       case 'bool': case 'cell': case 'choice': case 'fmt': case 'lock': case 'none': case 'num': case 'opt': case 'ref': case 'sattr': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': break
     }
     void args0; void kw0
@@ -1207,13 +1498,7 @@ export class Stepper {
   // The arguments of a call left to the boundary, read as far as the subset goes: the code evaluates them, so the fields
   // they read are inputs the check gives. An argument outside the subset that reaches none of the module's code and
   // not the object itself (other code's calls on other values) is taken as changing nothing of the state.
-  argsRead(x: SX, p: Path): Path {
-    let q = p
-    for (const a of [...(x.args as SX[]), ...(x.kw as [string, SX][]).map(([, v]) => v)]) {
-      try { q = this.ev(a, q)[1] } catch (e) { if (!(e instanceof Refusal) || !foreign(a)) throw e }
-    }
-    return q
-  }
+  argsRead(x: SX, p: Path): Path { return this.argVals(x, p)[1] }
   evArgs<T>(x: SX, p: Path, k: (args: V[], kw: [string, V][], p: Path) => T): T {
     let q = p
     const args: V[] = [], kw: [string, V][] = []
@@ -1260,7 +1545,7 @@ export class Stepper {
     if (n === 'int' && a0?.e === 'bin' && a0.op === '/') return this.quotient(a0, p, 'trunc')
     return this.evArgs(x, p, (args, kw, q) => {
       if (kw.length) return refuse(x, `${x.text}: ${n} given keywords`)
-      if (args.some(a => a.t === 'opaque') && ['str', 'repr', 'len', 'isinstance', 'round', 'int', 'float', 'bool'].includes(n)) return [{t: 'opaque', why: `${x.text}: of a value outside the subset`}, q]
+      if (args.some(a => a.t === 'opaque') && ['str', 'repr', 'len', 'isinstance', 'round', 'int', 'float', 'bool'].includes(n)) { const ask = args.find(a => a.t === 'opaque' && a.ask) as {why: string, ask: string} | undefined; return [{t: 'opaque', why: `${x.text}: of a value outside the subset${ask ? ` (${ask.why})` : ''}`, ...(ask ? {ask: ask.ask} : {})}, q] }
       const v = args[0]
       switch (n) {
         case 'min': case 'max': {
@@ -1502,7 +1787,7 @@ export class Stepper {
       return I.or(I.and(ca.nil, cb.nil), ...ca.objs.flatMap(o => cb.objs.filter(q => q.id === o.id && q.path.join() === o.path.join()).map(q => I.and(o.c, q.c))))
     }
     if ((a.t === 'list' || a.t === 'map') && b.t === 'nil') return refuse(x, `a ${a.t === 'list' ? 'slice' : 'map'} compared with nil (nil and empty are one ${a.t === 'list' ? 'list' : 'map'} in the subset)`)
-    return refuse(x, `a ${a.t} compared with a ${b.t}`)
+    return refuse(x, `${a.t === 'opaque' && a.ask ? a.why : `a ${a.t}`} compared with a ${b.t}`)
   }
   // Integer arithmetic at the type's width: the exact result, wrapped as the type wraps it (or refused, at 64 bits).
   arith(op: string, a: V, b: V, x: {p: string}, p: Path): V {
@@ -1777,6 +2062,8 @@ export class Stepper {
     if (s.mapok) { const at = s.mapok as SX, [m, q] = this.ev(at.m as SX, p), [k, q2] = this.ev(at.k as SX, q), cell = this.mapRead(m, k, at, q2); return this.assignTo(to, [cell.v, {t: 'bool', e: cell.has}], q2) }
     if (s.one) {
       const [v, q] = this.ev(s.one as SX, p)
+      // (the results of a call left out: each one its value, kept only where nothing reads it)
+      if (v.t === 'opaque' && v.ask) return s.decl ? to.reduce((q2, x) => this.bindLocal(String(x.n), v, s, q2), q) : this.assignTo(to, to.map(() => v), q)
       if (v.t !== 'tuple' || (!s.decl && v.xs.length !== to.length)) return refuse(s, String(s.why))
       return s.decl ? to.reduce((q2, x, i) => this.bindLocal(String(x.n), v.xs[i]!, s, q2), q) : this.assignTo(to, v.xs, q)
     }
@@ -1866,11 +2153,52 @@ export function disjoint(a: string, b: string): boolean {
 const split = (t: string): [string, string] => { const i = t.indexOf('{}'); return i < 0 ? [t, t] : [t.slice(0, i), t.slice(i + 2)] }
 
 // --- a module's step: the class (or the functions) read into the Model -------------------------------------------------
+// What a refutation (or any request of the rule) assumes of the boundary inferred: each answer inferred or tagged
+// that it gives a value, as "assumes `callee` may return v". A refutation that assumes none is the code's own.
+export function assumed(x: {read?: StepRead}, request: Record<string, unknown> | undefined): string[] {
+  const out: string[] = []
+  for (const a of x.read?.answers ?? []) {
+    if (!a.how || !request || !(a.inputs.name in request)) continue
+    // (an integer of the prover's is a pair: x − x$neg; a boolean 0 or 1)
+    const none = a.inputs.none && (request[a.inputs.none] === true || request[a.inputs.none] === 1), v = request[a.inputs.name], neg = request[`${a.inputs.name}$neg`]
+    const shown = none ? 'None' : /^bool\b/.test(a.sort) ? String(v === true || v === 1) : typeof v === 'number' ? String(v - (typeof neg === 'number' ? neg : 0)) : JSON.stringify(v)
+    out.push(`assumes \`${a.key.split('.').pop()}\` may return ${shown} (${a.how}: any ${a.sort})`)
+  }
+  return out
+}
+// The names a reader is asked for (none: the module's classes, for the entry inferred).
+export const entryNames = (opts: {entry?: string | string[]}): string[] => (opts.entry === undefined ? [] : Array.isArray(opts.entry) ? opts.entry : [opts.entry])
+// The module read into the rule. Unless strict, the boundary is inferred: each run that refuses where the subset's
+// inference can go on (a value of other code read, the module's own code outside the subset) adds what the next run
+// infers, until one reads (or refuses with what the caller would state to accept it).
 export function readStep(mod: SModule, opts: StepOptions): StepRead {
+  if (opts.strict) return readOnce(mod, opts, new Stepper(mod, opts))
+  const inf: Inferred = {answers: new Map(), cut: new Map()}
+  for (let n = 0; ; n++) {
+    const g = new Stepper(mod, opts, inf)
+    try { return readOnce(mod, opts, g) } catch (e) {
+      if (!(e instanceof Refusal)) throw e
+      const r = n < 256 ? g.promote(e) : e
+      if (r) throw r
+    }
+  }
+}
+function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
   if (mod.error) refuse(mod.file ?? mod.root ?? '?', mod.error)
-  const g = new Stepper(mod, opts), kept = opts.failures === 'kept', carried = kept && opts.onError !== 'discard'
-  const entries = mod.entries
+  const kept = opts.failures === 'kept', carried = kept && opts.onError !== 'discard'
+  let entries = mod.entries
   for (const e of entries) if (e.k === 'missing') refuse(mod.file, `no class or function ${e.name} in ${mod.file}`)
+  // No entry: the module's one class whose public methods write its state, and those methods.
+  let writing: string[] | undefined
+  if (!entryNames(opts).length) {
+    if (!g.inf) refuse(mod.file, 'no entry (strict: name the class or the functions)')
+    const pub = (r: SRec) => Object.keys(r.methods).filter(m => !m.startsWith('_') && r.methods[m] && g.writesState(r.methods[m]!, new Set(g.mod.funcs[r.methods[m]!]?.params.filter(x => x.self).map(x => x.name) ?? [])))
+    const cands = entries.filter((e): e is {k: 'class', rec: string} => e.k === 'class' && pub(g.rec(e.rec, {p: mod.file})).length > 0)
+    if (cands.length !== 1) refuse(mod.file, cands.length ? `several classes write their state (${cands.map(e => g.rec(e.rec, {p: mod.file}).short).join(', ')}): name one (entry)` : 'no class whose public methods write its state: name the entry (a class, or functions)')
+    entries = cands
+    writing = pub(g.rec(cands[0]!.rec, {p: mod.file}))
+    g.notes.add(`the entry inferred: ${g.rec(cands[0]!.rec, {p: mod.file}).short}, the class whose public methods write its state${opts.methods ? '' : ` (${writing.join(', ')}; the others read it)`}`)
+  }
   const cls = entries.length === 1 && entries[0]!.k === 'class' ? (entries[0] as {rec: string}).rec : undefined
   if (!cls && entries.some(e => e.k === 'class')) refuse(mod.file, 'a class read with other entries (one class, or functions)')
   const leaves: Leaf[] = [], ctor: [string, PArg][] = []
@@ -1887,8 +2215,10 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
     g.method = '__init__'
     let made: Path
     const initId = r.methods.__init__
+    if (initId) g.entryIds.add(initId)
     if (r.kinds.some(k => k.startsWith('generic:'))) refuse(r, `${r.short}: a generic type (its methods read a type parameter)`)
     const rustNew = mod.lang === 'rust' ? r.methods.new : undefined
+    if (rustNew) g.entryIds.add(rustNew)
     if (mod.lang === 'rust' && rustNew) {
       // Rust: the object is what `new` returns, its arguments the rule's params (named after the fields' names).
       for (const f of r.fields) g.fieldNames.add(f.name)
@@ -1921,7 +2251,14 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
       // (a keyword argument given as one)
       const give = (pa: SParam, v: V) => { if (pa.kw) kw.push([pa.name, v]); else args.push(v) }
       for (const pa of fn.params.filter(x => !x.self && !x.star)) {
-        if (opts.stores?.[pa.name]) { const id = `store:${pa.name}`; p.heap.set(id, {k: 'store', name: pa.name}); g.initHeap.set(id, {k: 'store', name: pa.name}); give(pa, {t: 'ref', id}); ctor.push([pa.name, {k: 'store', name: pa.name}]); continue }
+        const dep = opts.stores?.[pa.name] ? undefined : g.injected(pa, fn, r)
+        if (opts.stores?.[pa.name] || dep) {
+          const id = `store:${pa.name}`; p.heap.set(id, {k: 'store', name: pa.name}); g.initHeap.set(id, {k: 'store', name: pa.name}); give(pa, {t: 'ref', id}); ctor.push([pa.name, {k: 'store', name: pa.name}])
+          if (!dep || dep.keyed) g.storeKeyed.add(pa.name)
+          if (dep?.ty) g.storeTypes.set(pa.name, dep.ty)
+          if (dep) g.notes.add(`${r.short}(${pa.name}): an injected dependency (inferred: ${pa.inject ? 'marked so' : `of ${dep.ty ? g.mod.recs[dep.ty]?.short ?? dep.ty : 'no stated type'}, its methods called`}), the check giving one that ${dep.keyed ? 'keeps what is set' : 'answers its calls'}`)
+          continue
+        }
         if (pa.dflt && !g.scalar(pa.t.k === 'opt' ? pa.t.of : pa.t)) { ctor.push([pa.name, {k: 'dflt'}]); const [d, p2] = g.ev(pa.dflt, p); give(pa, d); p = p2; continue }
         const [v, a] = g.input(pa.name, pa.t, fn, p, 'param')
         if (a.k === 'inert') refuse(fn, `${r.short}(${pa.name}): a constructor argument of ${g.why(pa.t)} (state it as a store, or give it a default)`)
@@ -1946,6 +2283,15 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
     pre = I.and(I.not(I.or(...g.fails)), I.not(I.or(...g.paramsOut)))
     g.fails = []
     g.init = false
+    // (a field a framework injects, @Autowired or @Inject on it: the store the check gives, named by the field)
+    for (const fd of g.inf ? r.fields.filter(f => f.inject && !(made.heap.get('this') as Extract<Obj, {k: 'rec'}>).f.has(f.name)) : []) {
+      const id = `store:${fd.name}`, o: Obj = {k: 'store', name: fd.name}
+      made.heap.set(id, o); g.initHeap.set(id, o); g.injectedFields.push(fd.name)
+      ;(made.heap.get('this') as Extract<Obj, {k: 'rec'}>).f.set(fd.name, {t: 'ref', id})
+      if (fd.t.k === 'rec') g.storeTypes.set(fd.name, fd.t.name)
+      if (g.callsOn(r, [fd.name]).some(m => !!keyShape(m))) g.storeKeyed.add(fd.name)
+      g.notes.add(`${r.short}.${fd.name}: an injected dependency (marked so), the check giving one`)
+    }
     const self = made.heap.get('this') as Extract<Obj, {k: 'rec'}>
     for (const [f, v] of self.f) { const t = g.declared.get(`this.${f}`) ?? r.fields.find(x => x.name === f)?.t; tree.push({path: [f], v, ...(t && t.k !== 'any' ? {t} : {})}) }
     for (const fd of r.fields) if (!self.f.has(fd.name) && !r.kinds.includes('dataclass')) g.notes.add(`${r.short}.${fd.name}: declared on the class but not set by its constructor (left out)`)
@@ -2009,9 +2355,10 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
   // --- the requests: each method (or function) one -------------------------------------------------------------------
   const r = cls ? g.rec(cls, at) : undefined
   const chosen: SFunc[] = cls
-    ? (opts.methods ?? Object.keys(r!.methods).filter(m => !m.startsWith('_') && r!.methods[m])).map(m => (r!.methods[m] ? g.func(r!.methods[m]!, at) : refuse(at, `no method ${r!.short}.${m} in ${mod.file}`)))
+    ? (opts.methods ?? writing ?? Object.keys(r!.methods).filter(m => !m.startsWith('_') && r!.methods[m])).map(m => (r!.methods[m] ? g.func(r!.methods[m]!, at) : refuse(at, `no method ${r!.short}.${m} in ${mod.file}`)))
     : entries.map(e => g.func((e as {id: string}).id, at))
   if (!chosen.length) refuse(at, `${cls ? r!.short : 'the entry'} has no methods to read`)
+  for (const f of chosen) g.entryIds.add(f.id)
   for (const f of chosen) if (f.decorators.some(d => d.name === 'property')) refuse(f, `${f.name}: a property (read, not called)`)
   const names = chosen.map(f => f.name)
   const ev = names.length > 1 ? g.newVar('method', {k: 'choice', values: names}, 'input') : undefined
@@ -2105,6 +2452,9 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
     const fn = chosen[i]!
     const out = f.out!
     let kind: 'none' | 'scalar' | 'maybe' = 'none', rv: Var | undefined, rn: Var | undefined
+    // (a result of other code left out by inference: the step's result is kept, so its value is read)
+    const asked = out.t === 'opaque' ? out : out.t === 'opt' && out.v.t === 'opaque' ? out.v : undefined
+    if (asked?.ask) refuse(fn, `${fn.name} returns ${asked.why} (a result the rule keeps)`)
     if (out.t === 'num' || out.t === 'bool' || out.t === 'str' || out.t === 'choice' || out.t === 'opt') {
       const inner = out.t === 'opt' ? out.v : out
       if (inner.t === 'num' || inner.t === 'bool' || inner.t === 'str' || inner.t === 'choice') {
@@ -2147,7 +2497,7 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
   const refuseB = I.or(...g.refusals, ...(kept ? [] : finals.map(anyFail)))
   // Inputs no term reads are still the request's (the check builds the arguments from them).
   const maps = g.maps.filter(d => [...g.initHeap.values()].some(o => o.k === 'map' && o.decl === d))
-  const stores: StepRead['stores'] = Object.fromEntries(Object.entries(opts.stores ?? {}).map(([n, d]) => [n, {...d, async: g.storeAsync[n] ?? {}}]))
+  const stores: StepRead['stores'] = Object.fromEntries([...new Set([...Object.keys(opts.stores ?? {}), ...g.storeDecls.keys()])].map(n => [n, {...g.storeDecl(n), async: g.storeAsync[n] ?? {}}]))
   for (const sm of g.storeMaps.values()) leaves.push({name: sm.decl.name, path: [], kind: 'map', key: sm.decl.key, store: sm.store, tpl: sm.tpl, ...(stores[sm.store]?.value !== 'int' ? {float: true} : {})})
   const layout: Layout = {k: 'rec', fields: state.filter(v => !outputs.includes(v.name)).map(v => [v.name, {k: 'scalar', name: v.name}] as [string, Layout])}
   for (const fn of chosen) {
@@ -2184,7 +2534,7 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
     params: g.params, inputs, state, maps, init, writes, mapWrites, outputs,
     refuse: refuseB, pre, layout, events, notes: [...g.notes], hints: g.hints, ...(ev ? {event: ev.name} : {}), results, laws,
   }
-  return {ints: Object.fromEntries(g.ints), ...(g.madeAt ? {madeAt: g.madeAt.name} : {}), model, leaves, args: argsOf, answers: [...g.answers.values()], ctor, kept, arms: [...g.arms].map(a => { const i = a.lastIndexOf(':'); return [a.slice(0, i), Number(a.slice(i + 1))] }), ...(cls ? {cls} : {}), stores, results: resultKinds}
+  return {ints: Object.fromEntries(g.ints), ...(g.madeAt ? {madeAt: g.madeAt.name} : {}), model, leaves, args: argsOf, answers: [...g.answers.values()], ctor, kept, arms: [...g.arms].map(a => { const i = a.lastIndexOf(':'); return [a.slice(0, i), Number(a.slice(i + 1))] }), ...(cls ? {cls} : {}), stores, results: resultKinds, ...(g.injectedFields.length ? {inject: g.injectedFields} : {})}
 }
 // A type's range (64 bits and wider: the rule's numbers stop at ±2^53 before the type's do, and are refused there).
 export const rangeOf = (ty: IntTy): [number, number] => (ty.bits === 0 || ty.bits >= 64 ? (ty.signed ? [-Infinity, Infinity] : [0, Infinity]) : ty.signed ? [-(2 ** (ty.bits - 1)), 2 ** (ty.bits - 1) - 1] : [0, 2 ** ty.bits - 1])
@@ -2266,7 +2616,7 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
       if (l === undefined) throw new Error('the harness stopped')
       return JSON.parse(l) as Record<string, unknown>
     }
-    const hi = ask({op: 'hello', ...h.hello, leaves: read.leaves, ctor: read.ctor, answers: read.answers, kept: read.kept, cls: read.cls ?? null, stores: read.stores, arms: read.arms, discard: opts.onError === 'discard'})
+    const hi = ask({op: 'hello', ...h.hello, leaves: read.leaves, ctor: read.ctor, answers: read.answers, kept: read.kept, cls: read.cls ?? null, stores: read.stores, arms: read.arms, discard: opts.onError === 'discard', ...(read.inject ? {inject: read.inject} : {})})
     if (hi.error) return {...empty, mismatch: `the code doesn't load with the check's harness: ${JSON.stringify(hi.error)}`}
     const num = (x: unknown, at: string): number => { const n = Number(x); if (typeof x === 'string' && Number.isSafeInteger(n) && String(n) === x) return n; throw new Outside(`${at} is ${String(x)}`) }
     const toSnap = (s: Record<string, unknown>): Snap => {

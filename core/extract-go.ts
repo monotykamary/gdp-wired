@@ -38,7 +38,7 @@ import * as I from './extract-ir.ts'
 import type {B, K, N} from './extract-ir.ts'
 import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var} from './extract-read.ts'
 import {type Extraction, fromModel} from './extract.ts'
-import {type IntTy, type Recipe, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, iteTerm, mapWritesOf, phiP, rangeLaws, rangeOf, varTerm} from './extract-step.ts'
+import {type Inferred, type IntTy, type Recipe, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, iteTerm, mapWritesOf, phiP, rangeLaws, rangeOf, varTerm} from './extract-step.ts'
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
 
 // --- the reader's JSON ----------------------------------------------------------------------------------------------
@@ -67,6 +67,8 @@ export type GoOptions = {
   check?: GoCheckOptions,
   // A result that is a failure where it compares so, by the function (C's return codes: {take: '< 0'}).
   fails?: Record<string, string>,
+  // true: other packages' code refused where it is called, nothing inferred (core/extract-step.ts's strict)
+  strict?: boolean,
 }
 const refuse = (x: {p: string} | string, what: string): never => { throw new Refusal(typeof x === 'string' ? x : x.p || '?', what) }
 type Path = StepPath
@@ -77,9 +79,9 @@ class Go {
   readonly g: Stepper
   readonly leaves: GoLeaf[] = []
   readonly funcs: Record<string, SFunc> = {}
-  constructor(readonly pkg: GoPkg, readonly opts: GoOptions) {
-    const mod: SModule = {lang: pkg.lang ?? 'go', file: pkg.files[0]?.name ?? 'go', path: '', module: pkg.package, root: '', entries: [], recs: {}, funcs: this.funcs, split: false}
-    this.g = new Stepper(mod, {entry: opts.entry, ...(opts.onError ? {onError: opts.onError} : {})})
+  constructor(readonly pkg: GoPkg, readonly opts: GoOptions, inf?: Inferred) {
+    const mod: SModule = {lang: pkg.lang ?? 'go', file: pkg.files[0]?.name ?? 'go', path: '', module: pkg.package, root: '', entries: [], recs: {}, funcs: this.funcs, split: false, stubs: false}
+    this.g = new Stepper(mod, {entry: opts.entry, ...(opts.onError ? {onError: opts.onError} : {})}, inf)
     for (const f of pkg.funcs) this.funcs[`${f.recv?.type ?? ''}.${f.name}`] = this.fn(f)
   }
   T(t: number): TT { return this.pkg.ttab[t] ?? {k: 'invalid'} }
@@ -122,6 +124,11 @@ class Go {
 
   // --- expressions ----------------------------------------------------------------------------------------------------
   no(x: {p: string}, why: string, more: Record<string, unknown> = {}): SX { return {e: 'no', p: x.p, why, ...more} }
+  // A call of another package's code: at the boundary where it is inferred, its object and arguments lowered (the
+  // executor evaluates them, as Go does, and refuses the call where they give it the state).
+  ext(x: GX, why: string, name: string, recv?: GX): SX {
+    return this.no(x, why, {ext: name, args: (x.a ?? []).map(y => this.x(y)), kw: [], ...(recv ? {recv: this.x(recv)} : {})})
+  }
   at(x: GX): {p: string, text: string} { return {p: x.p, text: x.text} }
   // A value as the type it is assigned to: an untyped constant takes the type; an integer stays itself.
   as(v: SX, t: number): SX {
@@ -268,7 +275,7 @@ class Go {
       const after = emb ? {prepl: emb} : {}
       if (this.isBig(base)) return emb ? this.no(x, 'a big.Int method promoted from an embedded field', after) : this.big(x)
       if (this.isMutex(base)) return emb ? this.no(x, `${x.text}: a mutex's method promoted from an embedded field (lock it by its field's name)`, after) : {e: 'mutex', ...at, op: f.n, pl: this.place(f.x!)}
-      if (f.mpkg && f.mpkg !== this.pkg.package) return this.no(x, `${x.text}: a method of ${f.mpkg} (another package's code)`, after)
+      if (f.mpkg && f.mpkg !== this.pkg.package) return emb ? this.no(x, `${x.text}: a method of ${f.mpkg} (another package's code)`, after) : this.ext(x, `${x.text}: a method of ${f.mpkg} (another package's code)`, `${f.mpkg}.${f.n}`, f.x)
       const decl = this.methodOf(f.mtype!, f.n!)
       if (!decl) return this.no(x, `${x.text}: no method ${f.mtype}.${f.n} declared with a body`, after)
       // The receiver: a pointer to the value (its place's address) or a copy of it.
@@ -284,7 +291,7 @@ class Go {
       if (!decl) return this.no(x, `${f.n}: a function with no body here`)
       return {e: 'gcall', ...at, fn: `.${decl.name}`, args: this.args(a, decl)}
     }
-    return this.no(x, `${x.text}: a call of a function value`)
+    return this.ext(x, `${x.text}: a call of a function value`, x.text, f)
   }
   args(a: GX[], decl: GoFunc): SX[] { return a.map((y, i) => (decl.params[i] ? this.as(this.x(y), decl.params[i]!.t) : this.x(y))) }
   builtin(x: GX): SX {
@@ -321,9 +328,9 @@ class Go {
     }
     if (path === 'math/big' && n === 'NewInt') return {e: 'bignew', ...at, x: this.x(x.a![0]!)}
     if (path === 'time' && n === 'Now') return this.no(x, 'time.Now(): the clock (the check can\'t set it for the code, and time.Time is outside the subset)')
-    if (!this.stdlib(path)) return this.no(x, `${x.text}: a function of ${path} (another module's code)`)
+    if (!this.stdlib(path)) return this.ext(x, `${x.text}: a function of ${path} (another module's code)`, `${path}.${n}`)
     if (!path) return this.no(x, `${x.text}: a call on a value whose type isn't read here (another module's, beyond the packages the code imports)`)
-    return this.no(x, `${x.text}: a function of the standard library the subset doesn't read`)
+    return this.ext(x, `${x.text}: a function of the standard library the subset doesn't read`, `${path}.${n}`)
   }
   big(x: GX): SX {
     const f = x.f!, n = f.n!
@@ -545,8 +552,22 @@ class Go {
 // --- the model --------------------------------------------------------------------------------------------------------
 export type GoRead = {ctor?: {name: string, t: number, arg: Arg}[], model: Model, edges: B[], unsigned: string[], leaves: GoLeaf[], spans: [string, number, number][], entry: string, methods: {name: string, ptr: boolean, params: {name: string, t: number, arg: Arg}[], results: number[], err: boolean}[]}
 type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: V, when: B}
+// Read with the boundary inferred unless strict (core/extract-step.ts's readStep: each refused run adds what the next
+// infers): Go's check can't stub a call, so a call of another package is left out where nothing reads its value.
 export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
-  const go = new Go(pkg, opts), g = go.g
+  if (opts.strict) return readGo1(pkg, opts, new Go(pkg, opts))
+  const inf: Inferred = {answers: new Map(), cut: new Map()}
+  for (let n = 0; ; n++) {
+    const go = new Go(pkg, opts, inf)
+    try { return readGo1(pkg, opts, go) } catch (e) {
+      if (!(e instanceof Refusal)) throw e
+      const r = n < 256 ? go.g.promote(e) : e
+      if (r) throw r
+    }
+  }
+}
+function readGo1(pkg: GoPkg, opts: GoOptions, go: Go): GoRead {
+  const g = go.g
   const td = pkg.types.find(t => t.name === opts.entry) ?? refuse(pkg.files[0]?.name ?? '?', `no type ${opts.entry} in package ${pkg.package}`)
   const st = go.T(td.t)
   if (st.k !== 'struct') refuse(td, `${opts.entry} is a ${st.k === 'float' ? 'float' : st.k} type, not a struct (the subset reads a struct and its methods)`)
@@ -741,7 +762,7 @@ function termOf(v: V, at: {p: string}): Term {
   if (v.t === 'num') return {s: 'num', e: v.e}
   if (v.t === 'bool') return {s: 'bool', e: v.e}
   if (v.t === 'str') return {s: 'str', e: v.e}
-  return refuse(at, `a ${v.t} where the rule keeps a number, a boolean or a string`)
+  return refuse(at, `${v.t === 'opaque' && v.ask ? v.why : `a ${v.t}`} where the rule keeps a number, a boolean or a string`)
 }
 // The state at a method's end, leaf by leaf (and the maps' and lists' writes), checking that no object of the state
 // is in two of its places.

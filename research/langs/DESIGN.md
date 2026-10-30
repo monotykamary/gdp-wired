@@ -451,3 +451,103 @@ buffer class (Fuchsia's console Fifo: its constructor takes a zx::eventpair, its
 queue: memcpy into a void*; tenbox's and Arduino's: GPL and LGPL); WebRTC's IntervalBudget (two constructors, a function
 of another file in the same .cc).
 
+
+## The boundary inferred (gen/boundary)
+
+**The API, as shipped (additive; for a front end on gen/jvm after its rebase).**
+- Options (`StepOptions`): `entry` is optional (none: the module's one class whose public methods write its state, and
+  those methods); `strict?: boolean` restores the boundary only as stated. `answers`, `skip` and `stores` are unchanged
+  and win over anything inferred.
+- What a reader may add to the IR, each optional: `ret: SType` on an `ext` node (the callee's declared result), `rets`
+  on a record (its methods' results, another module's class's too), `kinds: ['protocol']` (an interface, a protocol, a
+  trait), `inject: true` on a parameter or a record's field (Spring's `@Autowired`/`@Inject`, FastAPI's `Depends`), `ext:
+  <name>` on a `no` node for a call of other code it doesn't lower (with its `args` and `recv` lowered, or the `names`
+  its arguments mention), `names` on any `no` node, `stubs: false` on the module (its check can't stub a call), and
+  decorators or annotations named `gdp.skip` / `GdpSkip` / `gdp_skip` (and `answer`, `strict`).
+- Exported from core/extract-step.ts: `Inferred`, `entryNames`, `assumed(x, request)` (what a refutation assumes of the
+  inferred answers: "assumes `get_current_spend` may return -1 (inferred: any float)"), `new Stepper(mod, opts, inf)` and
+  `stepper.promote(refusal)` for a front end with its own driver (Go's `readGo` loops on them).
+- The harness protocol gained `patch.store` (an injected dependency's method stubbed on the object the check gives),
+  `how` on an answer (`inferred`, `tagged`), and `inject` in `hello` (fields set to a store after the constructor).
+- In the code: `# gdp: skip`, `# gdp: answer [type]`, `# gdp: strict` (or `//`, `--`, `%`) on a call's line state that
+  call; on a function's line or the line above it, every call of it.
+
+**What is inferred.** The executor already kept a value of other code "only where nothing reads it". Reading is now
+the boundary's test, over runs of one reading (`readStep`, Go's `readGo`): each call of code the subset doesn't read is
+left out (an opaque value that remembers its call); a run refused where such a value is read adds the call as an
+answer, and the next run starts again. A refusal it can't use is the reading's, with the statement that accepts it.
+- *Skip*: a call whose value nothing the rule keeps reads (a logger, an alert, an error's message, an object of another
+  module made and passed on, a context manager's call, a decorator of other code taken as transparent). The check runs
+  it as it is: one that raises, writes the state or changes the step's result is a disagreement, and the rule refused.
+- *Answer*: a call whose value is read becomes an input over its declared result type: the reader takes it from the
+  annotation (Python reads the repository's modules for it, through re-exports: `get_current_spend -> float`), a
+  method's from its class (`rets`). This over-approximates the callee, so a proof holds of the code; a refutation may
+  be the callee's impossibility, so `assumed` names what it assumes. Where no type is declared (untyped Python, Ruby) or
+  the type isn't one an answer takes (a record, a list), it is not guessed: the refusal says where the value is read
+  and prints the option or the comment that states it. Where the check can't stub a call (Rust, Ruby, Elixir, Go and
+  C: `stubs: false`), an answer is refused the same way; their skips are inferred.
+- *Own code the subset can't read*: a function of the module whose body is refused (a loop, try/except, a dict read
+  the subset doesn't take) is taken as other code where it is called: the innermost one around the refusal, never an
+  entry or the constructor, and only where it writes none of the rule's state. That is decided from the IR alone
+  (`writesState`): a write through a parameter holding the state (or a local aliasing it), a method called on one, other
+  code given one, or a node the subset doesn't read that mentions one (readers say which names a `no` node mentions);
+  the module's functions it calls are read the same way. An answered function is stubbed by the check, so this test,
+  not the check, is what makes it sound; a skipped one runs as it is.
+- *Injected dependencies*: a constructor argument marked so, or one of another module's class, a protocol, or no type,
+  that the class keeps in a field and calls methods on, is held as a store: a method named as a key's get, set or delete
+  (`get`, `find`, `findById`, `put`, `save`, `delete`, `remove`, with `async_` and `_cache` forms) given a key that is a
+  string or a format reads and writes a map of the state, one per key template (as a stated store's); its other methods
+  are answers (their class's declared results) or skips. Of a dependency the class reads by a key, another method may
+  change what it holds, so it is refused unless stated. An attribute of it the rule reads (`dual_cache.redis_cache`) is
+  a modelling choice no type decides: refused with the `attrs` that state it. Effect services (core/effect.ts) were
+  already read so.
+- *Still refused*: other code given a reference to the rule's state (the object, its nested objects, maps, lists, a
+  store), which may change it, unless the caller states it (`skip`, or `# gdp: skip` on the line); and everything the
+  subset refused before that isn't a call.
+- *Entries*: with no `entry`, the module's one class whose public methods write its state (by `writesState`), and those
+  methods (the others only read it); several or none are refused, naming them.
+
+Every inferred statement is a note (`left out (inferred: nothing the rule keeps reads its value)`, `answered by the
+request (inferred: its value is read; assumes X may return any float)`, `an injected dependency (inferred: ...)`,
+`the module's own code, outside the subset (...), and writing none of the rule's state: taken as other code`), and the
+check runs both the code and the rule as for a stated one: a skip by running the call, an answer by stubbing it.
+
+**Measured: every extraction that stated a boundary, stated nothing.** Two in the tests (core/extract-py.test.ts) and
+LiteLLM's seven (research/langs/litellm, `run.ts --bare`: no answers, skip or stores, but each item's `needs`), checked
+on Modal against LiteLLM v1.106.6 installed. No other language's tests, examples or corpus state a boundary (Rust, Ruby
+and Elixir refused `answers` and `stores`; Ruby's stoplight states `clocks`, which is not one), and research/realworld
+scores the committed LiteLLM rules.
+
+| Extraction | Language | Stated before | With nothing stated | Rule | Verdicts |
+| --- | --- | --- | --- | --- | --- |
+| SessionLimit (tests) | Python | `stores: {cache: {get, set, value: 'int'}}` | the same (cache an injected store) | byte for byte | its 2 laws proven, as before |
+| gate (tests) | Python | `answers: {spend_of: 'float'}, skip: ['log']` | needs a tag: `spend_of` is a stand-in that raises, read as it is unless `# gdp: answer` on its def | with the tag, byte for byte (but its header's file name) | (no laws) |
+| virtual_key_max_budget_check | Python | answers 2, skip 4 | the same | byte for byte | 3 proven |
+| team_max_budget_check | Python | answers 1, skip 4 | the same | byte for byte | 2 proven, 1 refuted |
+| _project_max_budget_check | Python | answers 1, skip 4 | the same | byte for byte | 3 proven |
+| check_end_user_budget | Python | answers 2, skip 4 | the same | byte for byte | 2 proven, 1 refuted |
+| MaxIterationsHandler | Python | answers 2, skip 6, a store | needs a tag: Redis off (`attrs: {'dual_cache.redis_cache': null}`); the rest inferred | byte for byte | 4 proven |
+| MaxBudgetPerSessionHandler | Python | answers 2, skip 6, a store | needs a tag: Redis off, as above | byte for byte | 2 proven |
+| should_cooldown_based_on_allowed_fails_policy | Python | answers 2 | needs a tag: `Router.get_allowed_fails_from_policy` declares no result (`answers: {get_allowed_fails_from_policy: 'int | None'}`); `_increment_allowed_fails` (own code, a try) inferred | byte for byte | 3 proven |
+
+So 5 of 9 the same with nothing stated, 4 need one statement each (one a stand-in, two a modelling choice, one an
+untyped result): 45 stated names down to 4. Every rule is byte for byte the stated one's, and every verdict is:
+LiteLLM's 21 laws 19 proven and 2 refuted, as at the pin; the stated runs reprinted the committed rules unchanged. The
+two refutations (a team, and an end user, whose spend equals the max_budget are admitted) now read `assumes
+\`get_current_spend\` may return -1 (inferred: any float)` (the end user's -2, with max_budget the same): they are the
+code's `>` against `>=`, not the boundary's, since a spend equal to the budget is one the counter returns.
+
+**The other languages, on the same executor.** Rust's reader already wrote other code as `ext`: its skips are inferred.
+Ruby's and Elixir's readers mark another class's or module's call (`ext`, the names it mentions; Elixir's are values it
+can't change). Go's lowering marks another package's function and method and a call of a function value, its object
+and arguments lowered, and `readGo` loops on `promote`: of the 119 captured readings, 115 are byte for byte the same and
+the 4 that differ were refusals, 3 still refused (with the call that made the value read and why it can't be answered)
+and one now read (`context.WithTimeout`'s context and cancel, read by nothing the rule keeps). C and C++ stay as they
+were: their harness links only the file's own code, so a call of another file can't run as it is.
+
+**Bytes.** core/ and kernel/ in TypeScript, tests excluded, against 5ac6467: +31,337 (core/extract-step.ts +29,229, the
+inference itself: the boundary's decision, the state-reference and write tests, the tags, promotion, injected stores,
+the entry; core/extract-go.ts +1,407, its marks and loop; the front ends +701, most of it extract-py.ts's header). The
+readers in their own languages: +1,989 Python, +536 Ruby, +164 Elixir; the Python harness +371. The kernel is unchanged.
+
+**Bars.** BAR
