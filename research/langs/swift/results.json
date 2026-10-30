@@ -21,9 +21,9 @@
     "hit": 0,
     "missed": []
    },
-   "ms": 74569,
+   "ms": 72251,
    "edgeSample": "initialWindowSizeChanged([\"delta\",{\"in\":-5}]) from {\"lastWindowSize\":1,\"lastWindowSize_none\":false,\"bufferedBytes\":-9007199254740990,\"closed\":false,\"targetWindowSize\":-4} with {\"targetSize\":2}",
-   "runMs": 74570
+   "runMs": 72252
   },
   "notes": [
    "InboundWindowManager made by its constructor: its arguments are the rule's params",
@@ -49,27 +49,27 @@
    {
     "name": "an increment fits a WINDOW_UPDATE (at most 2^31 - 1)",
     "verdict": "proven",
-    "ms": 8837
+    "ms": 9974
    },
    {
     "name": "an increment is positive while the target is not negative",
     "verdict": "proven",
-    "ms": 382
+    "ms": 744
    },
    {
     "name": "a non-negative window is brought back to the target",
     "verdict": "proven",
-    "ms": 403
+    "ms": 8873
    },
    {
     "name": "an update only once the window is at half its target or below",
     "verdict": "proven",
-    "ms": 337
+    "ms": 443
    },
    {
     "name": "no update before a window size is known",
     "verdict": "proven",
-    "ms": 337
+    "ms": 450
    },
    {
     "name": "the buffered bytes are never negative",
@@ -130,8 +130,8 @@
     "hit": 0,
     "missed": []
    },
-   "ms": 146095,
-   "runMs": 146095
+   "ms": 132664,
+   "runMs": 132664
   },
   "notes": [
    "HTTP2FlowControlWindow made by its constructor: its arguments are the rule's params",
@@ -156,37 +156,37 @@
    {
     "name": "a window update of 0 is an error",
     "verdict": "proven",
-    "ms": 731
+    "ms": 690
    },
    {
     "name": "a window update never takes the window past 2^31 - 1",
     "verdict": "proven",
-    "ms": 462
+    "ms": 488
    },
    {
     "name": "a window update past the maximum is an error",
     "verdict": "proven",
-    "ms": 410
+    "ms": 424
    },
    {
     "name": "consuming never takes a window below 0",
     "verdict": "proven",
-    "ms": 457
+    "ms": 467
    },
    {
     "name": "consuming more than the window holds is an error",
     "verdict": "proven",
-    "ms": 443
+    "ms": 432
    },
    {
     "name": "a settings change from a window of 0 or more never fails",
     "verdict": "proven",
-    "ms": 447
+    "ms": 438
    },
    {
     "name": "a settings change never fails but past the maximum",
     "verdict": "refuted",
-    "ms": 829,
+    "ms": 741,
     "witness": {
      "initialValue": 0,
      "windowSize": 0,
@@ -225,9 +225,9 @@
     "hit": 0,
     "missed": []
    },
-   "ms": 20093,
+   "ms": 15704,
    "edgeSample": "didConsume([\"bufferDepth\",{\"in\":9007199254740990}]) from {\"hasOustandingDemand\":true,\"lowWatermark\":-9007199254740990,\"highWatermark\":-1} with {\"lowWatermark0\":-9007199254740990,\"highWatermark0\":-1}",
-   "runMs": 20093
+   "runMs": 15704
   },
   "notes": [
    "HighLowWatermark made by its constructor: its arguments are the rule's params",
@@ -243,32 +243,32 @@
    {
     "name": "a yield at the high watermark stops demand",
     "verdict": "proven",
-    "ms": 141
+    "ms": 111
    },
    {
     "name": "a consume below the low watermark resumes demand",
     "verdict": "proven",
-    "ms": 67
+    "ms": 58
    },
    {
     "name": "a yield never resumes demand",
     "verdict": "proven",
-    "ms": 71
+    "ms": 66
    },
    {
     "name": "a consume never stops demand",
     "verdict": "proven",
-    "ms": 73
+    "ms": 113
    },
    {
     "name": "the result is the demand after the step",
     "verdict": "proven",
-    "ms": 266
+    "ms": 190
    },
    {
     "name": "the watermarks never cross",
     "verdict": "proven",
-    "ms": 60
+    "ms": 54
    }
   ]
  }

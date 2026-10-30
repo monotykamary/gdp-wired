@@ -29,8 +29,7 @@ image = (
     .add_local_file(GDP / "package.json", "/deps/package.json", copy=True)
     .add_local_file(GDP / "bun.lock", "/deps/bun.lock", copy=True)
     .run_commands("cd /deps && bun install --frozen-lockfile >/dev/null 2>&1 || (cd /deps && bun install)")
-    .add_local_dir(GDP, "/src/gdp-wired", ignore=[".git/**", "**/.git", "**/.git/**", "**/node_modules/**", "**/runs/**", "**/.build/**", "**/*.olean", "**/*.ilean",
-                                                  "vendor/**", "compare/**", "static/**", "docs/**", "examples/**", "lean-kernel/**/*.lean"])
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=[".git/**", "**/.git", "**/.git/**", "**/node_modules/**", "runs/**", "**/.build/**", "**/*.olean", "**/*.ilean"])
 )
 app = modal.App("gdp-wired-swift", image=image)
 cache = modal.Volume.from_name("gdp-wired-swift", create_if_missing=True)

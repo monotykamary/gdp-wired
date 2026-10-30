@@ -4,6 +4,7 @@ enum Phase: Int { case idle = 0, running = 1, done = 2 }
 enum BudgetError: Error { case finished }
 
 struct Budget {
+  // gdp: law spent within the limit: spent <= limit
   private(set) var spent: UInt8 = 0
   let limit: UInt8
   var laps: UInt8 = 0

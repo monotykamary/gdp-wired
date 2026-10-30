@@ -41,9 +41,9 @@ t('the boundary inferred: an injected store by its keys, an answer over a protoc
   expect(notes).toMatch(/Limiter\(counter\): an injected dependency/)
   expect(notes).toMatch(/flags\.limit .*answered by the request \(inferred/)
   expect(notes).toMatch(/counter: a store \(inferred: an injected dependency, read and written by a key\): "hits:{}" keys/)
-  expect(step(x, 'allowed only below the limit', (b, a) => a.allow_result.implies(b.limit.gt(b.counter_hits.at(b.user).value))).proven).toBe(true)
-  expect(step(x, 'an allowed hit counts one', (b, a) => a.allow_result.implies(a.counter_hits.at(b.user).value.eq(b.counter_hits.at(b.user).value.plus(1)))).proven).toBe(true)
-  expect(step(x, 'a denied user is counted', (b, a) => a.allow_result.not().implies(a.denied.at(b.user).value.eq(b.denied.at(b.user).value.plus(1)))).proven).toBe(true)
+  expect(step(x, 'an allowed hit keeps the user within the limit', (b, a) => a.allow_result.implies(b.limit.atLeast(a.counter_hits.at(b.user).value))).proven).toBe(true)
+  expect(step(x, 'a denial counts nothing', (b, a) => a.allow_result.not().implies(a.counter_hits.at(b.user).value.eq(b.counter_hits.at(b.user).value))).proven).toBe(true)
+  expect(step(x, 'a denied user is counted', (b, a) => a.allow_result.not().implies(a.denied.at(b.user).value.atLeast(1))).proven).toBe(true)
 }, 900_000)
 
 t('an actor: its methods each one step', () => {

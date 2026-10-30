@@ -1,0 +1,16 @@
+[
+ {
+  "name": "extract-swift",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && time . research/langs/swift/swift-setup.sh && cd core && bun test --timeout 900000 extract-swift.test.ts 2>&1 | tail -30",
+  "cwd": ".",
+  "cpu": 4.0,
+  "memory": 8192,
+  "timeout": 1800
+ },
+ {
+  "name": "build-smoke",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; command -v swift && { echo 'swift present'; exit 1; }; command -v node >/dev/null || { curl -fsSL https://nodejs.org/dist/v22.11.0/node-v22.11.0-linux-x64.tar.xz | tar xJ -C /opt && export PATH=/opt/node-v22.11.0-linux-x64/bin:$PATH; }; timeout -s KILL 500 sh scripts/smoke.sh > /tmp/smoke.log 2>&1; e=$?; tail -15 /tmp/smoke.log; echo \"smoke exit $e\"",
+  "cpu": 2.0,
+  "timeout": 600
+ }
+]
