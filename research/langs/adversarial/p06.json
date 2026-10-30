@@ -1,0 +1,37 @@
+{
+  "case": "p06",
+  "ok": false,
+  "refusals": [
+    {
+      "where": "p06.py",
+      "what": "the rule and the code differ: run 1, request 1: tick() from {\"n\":0}: n is 1 in the code, 0 in the rule"
+    }
+  ],
+  "notes": [
+    "bump: the module's own code, outside the subset (p06.py:4:5: global (a variable every call shares)), and writing none of the rule's state: taken as other code where it is called (inferred)",
+    "bump (p06.py:10:9): left out (inferred: nothing the rule keeps reads its value), run as it is by the check"
+  ],
+  "evidence": {
+    "runs": 1,
+    "requests": 1,
+    "fromStates": 0,
+    "probes": {
+      "conditions": 0,
+      "witnesses": 0,
+      "steps": 0
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 0,
+    "compiledAgreed": 1,
+    "coverage": {
+      "arms": 2,
+      "hit": 2,
+      "missed": []
+    },
+    "ms": 2,
+    "mismatch": "run 1, request 1: tick() from {\"n\":0}: n is 1 in the code, 0 in the rule",
+    "runMs": 3
+  },
+  "source": "// Extracted by gdp-wired/extract from p06.py (Meter, a class and its methods).\n// Checked against the code it was read from; read again with extract() after the code changes.\nimport {rule} from 'gdp-wired'\n\nexport const meterRule = rule(\"Meter\")\n  .state({n: 0})\n  .step(({}) => ({n: 0}))\n"
+}

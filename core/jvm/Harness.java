@@ -48,7 +48,8 @@ public final class Harness {
         Map<?, ?> an = (Map<?, ?>) a0, pt = (Map<?, ?>) an.get("patch");
         if (pt != null && name.equals(pt.get("store")) && n.equals(list(pt.get("path")).get(list(pt.get("path")).size() - 1))) { Object v = CUR.get(an.get("key")); return v == null || ((Map<?, ?>) v).containsKey("none") ? conv(null, m.getReturnType(), m.getGenericReturnType()) : conv(((Map<?, ?>) v).get("in"), m.getReturnType(), m.getGenericReturnType()); }
       }
-      // (another method, left out: it runs as nothing)
+      // (a method the rule leaves out runs as nothing, as the rule takes it; any other fails: the check reports it)
+      if (d == null || !list(d.get("skip")).contains(n)) throw new UnsupportedOperationException(name + "." + n + ": a method of the injected dependency the rule doesn't read");
       return m.getReturnType() == void.class ? null : m.getReturnType().isPrimitive() ? conv(null, m.getReturnType(), null) : m.getReturnType() == Optional.class ? Optional.empty() : null;
     });
   }

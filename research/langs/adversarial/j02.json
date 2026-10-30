@@ -1,0 +1,11 @@
+{
+  "case": "j02",
+  "ok": false,
+  "refusals": [
+    {
+      "where": "Meter.java:7:3",
+      "what": "a source.value(1): the value of source.value, other code left out where the state holds a scalar; source.value(1): value, a method of the store not stated as its get, set or delete (Meter.java:7:28), whose value is read, and it returns a typevar:T (a type of other code): state what it returns (answers: {\"value\": 'int'}, or a `gdp: answer int` comment on its line)"
+    }
+  ],
+  "notes": []
+}

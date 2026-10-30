@@ -1,0 +1,57 @@
+{
+  "case": "p14",
+  "ok": true,
+  "refusals": [],
+  "notes": [
+    "Meter(flags): an injected dependency (inferred: of Flags, its methods called), the check giving one that answers its calls",
+    "Meter made by its constructor: its arguments are the rule's params",
+    "flags.value (p14.py:13:18): answered by the request (inferred: its value is read; assumes flags.value may return any int | None), its arguments not read",
+    "value: an integer (the code takes any whole number)",
+    "n: an integer (a step may take it below 0, or it starts there)"
+  ],
+  "evidence": {
+    "runs": 30,
+    "requests": 180,
+    "fromStates": 60,
+    "probes": {
+      "conditions": 2,
+      "witnesses": 2,
+      "steps": 2
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 0,
+    "compiledAgreed": 242,
+    "coverage": {
+      "arms": 2,
+      "hit": 2,
+      "missed": []
+    },
+    "ms": 29,
+    "runMs": 29
+  },
+  "source": "// Extracted by gdp-wired/extract from p14.py (Meter, a class and its methods).\n// Checked against the code it was read from; read again with extract() after the code changes.\nimport {bool, int, rule, when} from 'gdp-wired'\n\nexport const meterRule = rule(\"Meter\")\n  .inputs({value: int, value_none: bool})\n  .state({n: int.from(0)})\n  .step(({value_none, value}) => ({n: when(value_none, 0, value)}))\n",
+  "proof": {
+    "proven": false,
+    "checked": false,
+    "stuck": "sat",
+    "goal": "n stays zero @step",
+    "witness": {
+      "n": 0,
+      "n$neg": 0,
+      "value": 1,
+      "value$neg": 0,
+      "value_none": 0
+    },
+    "run": {
+      "params": {},
+      "trace": [
+        {
+          "value": 1,
+          "value$neg": 0,
+          "value_none": 0
+        }
+      ]
+    }
+  }
+}

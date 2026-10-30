@@ -300,3 +300,7 @@ tk('Kotlin: refused where it leaves the subset, each with why', () => {
   expect(r.ok).toBe(false)
   expect(r.refusals[0]!.what).toMatch(/loop/)
 })
+
+// The adversarial round (research/langs/adversarial): no false checked proof; what reaches the rule's state, refused.
+import {cases as advCases, judge, ADV} from '../research/langs/adversarial/cases.test-lib.ts'
+for (const c of advCases('Java')) (hasJdk ? test : test.skip)(`adversarial ${c.id}: ${c.attack}`, () => judge(c, extractJava(`${ADV}${c.file}`, {entry: 'Meter', root: `${ADV}${c.id}`, check: {runs: 30, depth: 6, states: 60}})), 120_000)

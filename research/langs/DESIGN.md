@@ -786,3 +786,61 @@ and smoke without the languages. Locally: Go's captured readings (above).
 38b998a has one, and making one costs more than the round's budget): f1 34 / 35, f2 25 / 33 (one task solved by the
 candidate alone in the first pass, noise after three reruns a side: gained 0, lost 0), rw 74 / 14 / 3, g332 332 of 332,
 each 0 differing; the suite 231 of 231 (the base's 227 jobs, 4 added since); onecpu no failure; $0.59 estimated.
+
+## The boundary's state references, closed (gen/boundary3)
+
+An adversarial round against c57c8ee (research/langs/adversarial/: RESULTS.md, the 25 cases and their repros) found
+three checked proofs that are false and one accepted mismatch, all through injected dependencies:
+- j03 and j01: an injected listener handed `this` (answered, or left out). A dependency's call went to `storeCall`,
+  which dropped its arguments before the state-reference test `boundary` makes for other code.
+- j04: a store's `get` given `this` beside its key. The op was modeled by its key alone, and the JVM's proxy ignored
+  the rest.
+- p12: two injected dependencies modeled as two stores, where a real run passing one object twice disagrees.
+- p01–p03 (Python listeners handed `self`) and t01 (TypeScript) were refused only because the check's fake lacked the
+  method, not by the test.
+
+**The fix, the same in every language:**
+- **A dependency's every call inspects all its evaluated arguments.** A key's op (a store's get, set or delete) takes
+  its key, and a set its value; any other argument, and any argument of a dependency's other method (answered or left
+  out), that is or holds a reference to the rule's state is refused. The reference may be `self`/`this`, a nested
+  object, a map, a list, a store whose keys the rule holds, or an alias of one. The refusal names the tag that accepts
+  it, `gdp: skip` on its line. Other code's calls already did this (`boundary`).
+- **No harness does nothing silently.** A dependency's method the rule leaves out is declared in its store
+  (`StoreDecl.skip`, noted as "assumes it returns and changes nothing the rule keeps"), and the check's fake does
+  nothing only for those. Any other method fails there (Python and Ruby: no such method; the JVM's proxy: an
+  `UnsupportedOperationException` naming it).
+- **Two injected dependencies are taken as two objects.** The notes say "assumes its injected dependencies a, b are
+  distinct objects". The narrowest refusal that covers a run passing one object twice: two dependencies of one declared
+  type (or both of none), the rule holding keys of either, are refused unless the caller states both stores. Of two
+  types, or of services whose calls are only answers, nothing the rule keeps depends on their identity.
+- **TypeScript's functions from outside** (a class's injected function, another module's) given the object's state, or
+  a part of it, are refused.
+
+**Validation.** The 25 cases are tests in their front ends' files (core/extract-py.test.ts, extract-rb, extract,
+extract-jvm; research/langs/adversarial/cases.test-lib.ts):
+- the four WRONG cases are refused for their reason: j01, j03 and j04 by the state reference, p12 by the two
+  dependencies of one type;
+- p01–p03, r01 and t01 are refused by the state reference;
+- every other case is refused or its false law is not proven, as before;
+- no case yields a checked proof of `n stays zero`.
+
+On Modal:
+- every front end's tests pass: TypeScript 52, Python 27 (with fastapi: p17 runs, and is refused or unproven), Rust 4,
+  Ruby 6, Elixir 4, C and C++ 11, Go 20, Java and Kotlin 17;
+- the Rust, C and C++, Ruby, Elixir, Java and Kotlin corpus rules re-extract byte for byte;
+- LiteLLM stated reprints the committed rules; bare, 7 of 7 are byte for byte, 19 proven and 2 refuted both ways, the
+  refutations assuming `get_current_spend` may return -1 and -2;
+- the first round's two test extractions are unchanged, and the build and smoke pass;
+- the CLI (core/cli.test.ts) reports the j01, j03 and j04 shapes refused, their stated law not read (exit 2), never
+  proven.
+
+On the branch rebased onto 2fdc902 (gen/cli), LiteLLM and the JVM corpus again: the same (stated and bare, 7 of 7
+byte for byte, 19 and 2; the JVM rules identical).
+
+**Bar** (quick, `--only rw,f1,f2,g332,suite,onecpu`, against the cached baseline of 5d4da3f, the nearest with one): f1
+34 / 35, f2 24 / 33, rw 74 / 14 / 3, g332 332 of 332, each 0 differing; the suite 232 of 232 (the base's 227 jobs, 5
+added since); onecpu no failure; $0.55 estimated. (A first bar, before the rebase, lost the suite's `check`: the
+adversarial runner's absolute imports, now relative.)
+
+**Bytes.** core/ and kernel/ in TypeScript, tests excluded, against 2fdc902 (gen/cli merged, this branch's base): +3,210 (core/extract-step.ts +2,722,
+core/extract-read.ts +488); the harnesses +280 (Python), +191 (Ruby), +239 (the JVM's). The kernel is unchanged.

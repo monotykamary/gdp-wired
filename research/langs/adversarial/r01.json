@@ -1,0 +1,11 @@
+{
+  "case": "r01",
+  "ok": false,
+  "refusals": [
+    {
+      "where": "r01.rb:7:3",
+      "what": "tick returns @listener.emit(self): the value of listener.emit, other code left out (a result the rule keeps); @listener.emit(self): emit, a method of the store not stated as its get, set or delete (r01.rb:8:5), whose value is read, and it declares no type: state what it returns (answers: {\"emit\": 'int'}, or a `gdp: answer int` comment on its line)"
+    }
+  ],
+  "notes": []
+}

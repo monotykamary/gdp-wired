@@ -1,0 +1,38 @@
+{
+  "case": "p03",
+  "ok": false,
+  "refusals": [
+    {
+      "where": "p03.py",
+      "what": "the rule and the code differ: run 1, request 1: tick() from {\"n\":0}: the code throws (raised: AttributeError: 'FakeStore' object has no attribute 'emit'), the rule takes the step"
+    }
+  ],
+  "notes": [
+    "Meter(listener): an injected dependency (inferred: of Listener, its methods called), the check giving one that answers its calls",
+    "Meter made by its constructor: its arguments are the rule's params",
+    "listener.emit (p03.py:11:9): left out (inferred: nothing the rule keeps reads its value), run as it is by the check"
+  ],
+  "evidence": {
+    "runs": 1,
+    "requests": 1,
+    "fromStates": 0,
+    "probes": {
+      "conditions": 0,
+      "witnesses": 0,
+      "steps": 0
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 0,
+    "compiledAgreed": 1,
+    "coverage": {
+      "arms": 2,
+      "hit": 2,
+      "missed": []
+    },
+    "ms": 2,
+    "mismatch": "run 1, request 1: tick() from {\"n\":0}: the code throws (raised: AttributeError: 'FakeStore' object has no attribute 'emit'), the rule takes the step",
+    "runMs": 2
+  },
+  "source": "// Extracted by gdp-wired/extract from p03.py (Meter, a class and its methods).\n// Checked against the code it was read from; read again with extract() after the code changes.\nimport {rule} from 'gdp-wired'\n\nexport const meterRule = rule(\"Meter\")\n  .state({n: 0})\n  .step(({}) => ({}))\n"
+}

@@ -1,0 +1,38 @@
+{
+  "case": "p17",
+  "ok": false,
+  "refusals": [
+    {
+      "where": "p17.py",
+      "what": "the rule and the code differ: the code doesn't load with the check's harness: \"ModuleNotFoundError: No module named 'fastapi'\""
+    }
+  ],
+  "notes": [
+    "Meter(cache): an injected dependency (inferred: marked so), the check giving one that keeps what is set",
+    "Meter made by its constructor: its arguments are the rule's params",
+    "cache: a store (inferred: an injected dependency, read and written by a key): \"{}\" keys held as cache_, its expiry and eviction left out"
+  ],
+  "evidence": {
+    "runs": 0,
+    "requests": 0,
+    "fromStates": 0,
+    "probes": {
+      "conditions": 0,
+      "witnesses": 0,
+      "steps": 0
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 0,
+    "compiledAgreed": 0,
+    "coverage": {
+      "arms": 0,
+      "hit": 0,
+      "missed": []
+    },
+    "ms": 0,
+    "runMs": 0,
+    "mismatch": "the code doesn't load with the check's harness: \"ModuleNotFoundError: No module named 'fastapi'\""
+  },
+  "source": "// Extracted by gdp-wired/extract from p17.py (Meter, a class and its methods).\n// Checked against the code it was read from; read again with extract() after the code changes.\nimport {all, any, bool, forall, intern, nat, record, rule, yes} from 'gdp-wired'\n\nexport const meterRule = rule(\"Meter\")\n  .state({n: 0})\n  .maps({cache_: record({has: bool, value: nat}).from({has: false, value: 0})})\n  .step(({cache_}) => ({n: 1, cache_: cache_.set(intern('k'), {has: yes, value: 1})}))\n\n// What every state of the code is: a law about every state is about the code's with these beside it.\nexport const meterInvariants = [meterRule.law(\"cache_: a key it doesn't hold holds the defaults\", ({cache_}) => forall(k => any(cache_.at(k).has, all(cache_.at(k).value.eq(0)))))]\n"
+}

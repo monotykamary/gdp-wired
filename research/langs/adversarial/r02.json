@@ -1,0 +1,11 @@
+{
+  "case": "r02",
+  "ok": false,
+  "refusals": [
+    {
+      "where": "r02.rb:8:15",
+      "what": ": the truth of Flags.enabled: the value of Flags.enabled, other code left out; Flags.enabled: Flags, another class's code (r02.rb:8:15), whose value is read, and it declares no type: state what it returns (answers: {\"enabled\": 'int'}, or a `gdp: answer int` comment on its line)"
+    }
+  ],
+  "notes": []
+}

@@ -1,0 +1,11 @@
+{
+  "case": "p11",
+  "ok": false,
+  "refusals": [
+    {
+      "where": "p11.py:10:12",
+      "what": "self.flags: no field flags (the object's fields are those its constructor sets)"
+    }
+  ],
+  "notes": []
+}

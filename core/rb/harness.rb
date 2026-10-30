@@ -60,6 +60,8 @@ class GdpStore
         end
       end
     end
+    # (a method left out: nothing, as the rule takes it; any other is no method of this store, and fails)
+    (decl['skip'] || []).each { |m| define_singleton_method(m) { |*_a, **_k| nil } }
     S['answers'].each { |x| define_singleton_method(x['patch']['path'][-1], &stub(x['key'])) if x['patch']['store'] == name }
   end
 end

@@ -1,0 +1,11 @@
+{
+  "case": "p15",
+  "ok": false,
+  "refusals": [
+    {
+      "where": "p15.py:10:5",
+      "what": "a self.source.get_value(1): the value of source.get_value, other code left out where the state holds a scalar; self.source.get_value(1): get_value, a method of the store not stated as its get, set or delete (p15.py:11:18), whose value is read, and it returns T, a type outside the files read: state what it returns (answers: {\"get_value\": 'int'}, or a `gdp: answer int` comment on its line)"
+    }
+  ],
+  "notes": []
+}

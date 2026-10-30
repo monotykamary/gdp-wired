@@ -1,0 +1,11 @@
+{
+  "case": "p05",
+  "ok": false,
+  "refusals": [
+    {
+      "where": "p05.py:15:9",
+      "what": "row.n: a field of a num"
+    }
+  ],
+  "notes": []
+}

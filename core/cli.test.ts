@@ -3,7 +3,7 @@
 // isn't installed (the suite's cli-<lang> jobs install them).
 import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
-import {mkdirSync, mkdtempSync, writeFileSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, readFileSync as readAdv, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {check} from './cli.ts'
 import {lawsIn, parse} from './laws.ts'
@@ -260,3 +260,18 @@ class SessionLimit:
   const {rules} = await check([`${dir}/s.py`], {ms: 3000, propose: false})
   expect(rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
 })
+
+// The adversarial round's Java shapes (research/langs/adversarial: j01, j03, j04, a dependency handed `this`): the CLI
+// reports each rule refused and its law not read, never proven.
+;(TOOLS.java!() ? test : test.skip)('the CLI refuses a dependency given the rule\'s state (the adversarial j01, j03, j04)', async () => {
+  for (const id of ['j01', 'j03', 'j04']) {
+    const src = readAdv(new URL(`../research/langs/adversarial/${id}/Meter.java`, import.meta.url).pathname, 'utf8')
+    const dir = files({'Meter.java': src.replace(/^public class Meter \{/m, '// gdp: law n stays zero: n == 0\npublic class Meter {')})
+    const {rules, exit} = await check([`${dir}/Meter.java`], {ms: 3000, propose: false, check: {runs: 30, depth: 6, states: 60}})
+    expect(rules.length).toBe(1)
+    expect(rules[0]!.ok).toBe(false)
+    expect(rules[0]!.refusals.map(r => r.what).join('; ')).toMatch(/given the rule's state/)
+    expect(rules[0]!.laws.every(l => l.verdict !== 'proven')).toBe(true)
+    expect(exit).toBe(2)
+  }
+}, 180_000)
