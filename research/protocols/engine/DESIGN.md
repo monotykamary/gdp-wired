@@ -43,6 +43,41 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/lean10, the `found` fix: all ten verdicts checked by Lean (gen/lean10, merged with main f0526b6)
+
+**Built (core/infer.ts, +0.6 KB, untrusted):** the engine's ∃ law (its ghost's, `ghost.some`) is reported in `found`
+beside the cubes wherever the engine's final set proof read it: the top-down cone, the IC3 cone, the Houdini pass and
+the set's proof (`enumSome`). A verdict's laws now prove again as they are.
+
+**wo through Lean from its own verdict, no stand-in** (`runs/lean10/wo4`, `suitejobs`; three runs)
+
+| run | search | found (∃) | proven again, search off | exported | Lean-checked |
+|---|---|---|---|---|---|
+| wo4 r1 | 41.0 s | 20 (1) | yes, fast set proof, 1.2 s | yes (fast trees, Ghost.lean), 78.6 s, 612 KB | yes, 71 s |
+| wo4 r2 | 37.5 s | 24 (1) | yes, the default proof with its certificate, **779 s** | yes, 82.5 s, 774 KB | yes, 44 s |
+| suite job pilot | 41.4 s | 20 (1) | | yes, 78.8 s, 626 KB | yes |
+
+Every theorem (the laws and the ∃ statement `consensus_wo_decide.someN`) depends on [propext, Classical.choice,
+Quot.sound] only; no sorry. So all ten protocols' verdicts are now checked by Lean (the nine of the table below, and wo).
+- **A caveat, not fixed:** re-proving wo's verdict with `proveRule(r, [...laws, ...found], {search: false})` (the default,
+  the usual proof and the cyclic certificate over the ghosted machine) proves it, but in 13 minutes; with `{fast: true}`
+  in 1.2 s. It is the cost noted for the usual route on wo's sets (its exporter fallback above); the README's
+  "pass it with the rule's laws" works, slowly, by default.
+
+**The ten once at 60 s with the fix** (`runs/lean10/ten`, merged tree): all proven. sync 10.8 s, async 23.9, decentralized
+18.8, 2PC 15.3, ticket 36.8, toy 12.2, distributed 39.8, ring 57.3, wo 47.7, sharded 27.6. No verdict moved.
+
+**The quick bar** (`--quick --cand gen/lean10 --base 5d4da3f --only rw,f1,f2,g332,suite,onecpu`, on 7a96b6b: the found fix
+merged with main f0526b6; <main>/runs/bar/runs/lean10-7a96b6b-quick/REPORT.md, 577 s, estimated $0.58): f1 34 and rw
+74/14/3 as the base; f2 24 against 24.33 (no task differs); g332 the same search on 332 of 332 (299.0 s against 298.3 s);
+the suite 233 passed, 0 failed; onecpu no failure. Gained 0, lost 0, wrong 0.
+
+**Two suite jobs** (modal/suite.json, added after the bar's tree, piloted alone in `runs/lean10/suitejobs`):
+`lean-protocols-sync` (28 s) and `lean-protocols-wo` (176 s): lean10.ts's search at 60 s (twice at most), export, `lean`,
+failing on an export error, a Lean error, a sorry or an axiom past the core three. wo covers both new routes (the ∃ law in
+`found`, the fast-proof fallback). The other eight run 1–20 minutes each (distributed 10, sharded 20): a separate gate,
+`modal run modal/run.py --jobs research/protocols/jobs-lean10-final.json --out <dir>` (about 40 container-minutes).
+
 ## gen/lean10: the ten's final proofs through the Lean twin (gen/lean10 from main 4e9d7ec)
 
 **The question.** The README says every proof is checked again by Lean. The engine's verdicts are the fast set proof's

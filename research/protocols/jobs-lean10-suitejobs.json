@@ -1,0 +1,18 @@
+[
+ {
+  "name": "lean-protocols-sync",
+  "cmd": "LEAN10_TRIES=2 bun research/protocols/lean10.ts lock_server_sync 60000 $PWD/lean-kernel/P_lock_server_sync.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -q '\"export\":{\"ok\":true' /tmp/o.json || { echo not-exported; tail -5 /tmp/e.log; exit 1; }; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live Ghost Refine Bridge BridgeRules; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; lean P_lock_server_sync.lean > p.out 2>&1; s=$?; grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' p.out | grep -v -e linter -e Hint -e unused -e Note -e 'simp only' -e '^  ' -e '^$' | tail -20; if grep -q -e sorry -e sorryAx p.out P_lock_server_sync.lean; then echo sorry; exit 1; fi; grep -c 'depends on axioms' p.out; [ $s -eq 0 ] || { echo lean-exit $s; exit $s; }; echo lean-exit 0",
+  "cwd": ".",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 600
+ },
+ {
+  "name": "lean-protocols-wo",
+  "cmd": "LEAN10_TRIES=2 bun research/protocols/lean10.ts consensus_wo_decide 60000 $PWD/lean-kernel/P_consensus_wo_decide.lean > /tmp/o.json 2>/tmp/e.log; cat /tmp/o.json; grep -q '\"export\":{\"ok\":true' /tmp/o.json || { echo not-exported; tail -5 /tmp/e.log; exit 1; }; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live Ghost Refine Bridge BridgeRules; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; lean P_consensus_wo_decide.lean > p.out 2>&1; s=$?; grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' p.out | grep -v -e linter -e Hint -e unused -e Note -e 'simp only' -e '^  ' -e '^$' | tail -20; if grep -q -e sorry -e sorryAx p.out P_consensus_wo_decide.lean; then echo sorry; exit 1; fi; grep -c 'depends on axioms' p.out; [ $s -eq 0 ] || { echo lean-exit $s; exit $s; }; echo lean-exit 0",
+  "cwd": ".",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 1200
+ }
+]
