@@ -24,6 +24,9 @@
 // Two of the law's names are reserved in the rule built: a$ok and b$ok (each run allows the request), split$.
 import {type Cond, Rule, Term, type Kind, type Law, type StepLaw, type Verdict, type ProveOptions, all, any, forall, nat, no, not, proveSteps, same, when, yes} from './dsl.ts'
 import type {C, E} from './machine.ts'
+import {proveLaws, proveStepLaws} from '../kernel/prove.ts'
+import {type Certificate, type Document, type Json, fromInterchange, toInterchange} from '../interchange/format.ts'
+import {checkCertificate} from '../interchange/check.ts'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyRule = Rule<any, any, any, any, any, any, any, any>
@@ -200,10 +203,11 @@ export function noninterference(r: AnyRule, o: {secret: string[], visible?: stri
 }
 
 // Tenant isolation: what the tenant `B` sees is the same whatever the others do. A request is B's where its owner (an
-// input, or a term over the request) is B (a new param, `tenant`); run a takes every request, run b only B's. B sees the
+// input, a string's id or a natural) is B (a new param, `tenant`), or where `owner(env, B)` holds; run a takes every
+// request, run b only B's. B sees the
 // cells of `sees` (maps keyed by the owner) at B, the scalars of `results` after each of B's requests, and whether
 // B's requests are refused. `sees` defaults to every map, `results` to none.
-export function isolation(r: AnyRule, o: {owner: string | ((env: Env) => Term), sees?: string[], results?: string[], tenant?: string, mine?: (env: Env) => Cond, name?: string, refusals?: 'same' | 'assumed'}): TwoRunLaw {
+export function isolation(r: AnyRule, o: {owner: string | ((env: Env, tenant: Term) => Cond), sees?: string[], results?: string[], tenant?: string, name?: string, refusals?: 'same' | 'assumed'}): TwoRunLaw {
   const s = specOf(r), vw = stateNames(s), tenant = o.tenant ?? 'tenant'
   if (typeof o.owner === 'string' && !s.inputs.some(([n]) => n === o.owner)) throw new Error(`isolation: ${o.owner} isn't an input of ${s.name}`)
   const sees = o.sees ?? vw.maps, results = o.results ?? []
@@ -212,8 +216,7 @@ export function isolation(r: AnyRule, o: {owner: string | ((env: Env) => Term), 
   if (scalarsSeen.length) throw new Error(`isolation: ${scalarsSeen.join(', ')} isn't a map (what B sees of the state is its cells; a result after B's request goes in results)`)
   // (the owner as a key: a string's id, a natural)
   const keyOf = (x: unknown): Term => (x instanceof Term ? x : (x as {id?: Term}).id ?? (() => { throw new Error('isolation: the owner is a natural or a string') })())
-  const owner = (env: Env): Term => (typeof o.owner === 'string' ? keyOf(env[o.owner]) : o.owner(env))
-  const mine = (env: Env): Cond => all(owner(env).eq(env[tenant] as Term), o.mine?.(env) ?? yes)
+  const mine = (env: Env): Cond => (typeof o.owner === 'string' ? keyOf(env[o.owner]).eq(env[tenant] as Term) : o.owner(env, env[tenant] as Term))
   if ([...s.params, ...s.inputs].some(([n]) => n === tenant)) throw new Error(`isolation: ${tenant} is a name of ${s.name} already (name the tenant's param: tenant)`)
   const base = new Rule({...s, params: [...s.params, [tenant, nat as Kind<unknown>]]}) as AnyRule
   const all2 = [...s.params, ...s.inputs].map(([n]) => n)
@@ -270,18 +273,44 @@ export function lift(l: Law, r: AnyRule, prefix: 'a_' | 'b_', shared: string[]):
 // helpers first (Houdini: the set proven together without the search, the one a failed goal names dropped, again), so a
 // law that needs "this hidden value is the same in both runs" is proven with it; then the search, as proveSteps runs it.
 // A run that breaks it is two runs side by side (`run`: its params and requests in the rule built's names).
-export function proveTwoRuns(l: TwoRunLaw, opts: ProveOptions & {invariants?: [Law[], Law[]] | Law[]} = {}): Verdict & {helpers?: string[]} {
+export function proveTwoRuns(l: TwoRunLaw, opts: ProveOptions & {invariants?: [Law[], Law[]] | Law[]} = {}): Verdict & {given: Law[]} {
   const inv = opts.invariants === undefined ? [[], []] : Array.isArray(opts.invariants[0]) ? opts.invariants as [Law[], Law[]] : [opts.invariants as Law[], opts.invariants as Law[]]
   const lifted = [...inv[0].map(x => lift(x, l.sides[0], 'a_', l.shared)), ...inv[1].map(x => lift(x, l.sides[1], 'b_', l.shared))]
   let helpers = [...l.helpers]
   for (let round = 0; helpers.length && round <= l.helpers.length; round++) {
     const v = proveSteps(l.rule, [...lifted, ...helpers, ...l.laws], l.stepLaws, {search: false})
-    if (v.proven && v.checked) return {...v, helpers: helpers.map(h => h.name)}
+    if (v.proven && v.checked) return {...v, found: {...v.found, laws: [...v.found?.laws ?? [], ...helpers.map(h => ({law: h, text: h.name}))]}, given: lifted}
     const drop = helpers.find(h => v.goal?.startsWith(h.name))
     if (!drop) break
     helpers = helpers.filter(h => h !== drop)
   }
   const {invariants: _i, ...rest} = opts
   void _i
-  return proveSteps(l.rule, [...lifted, ...l.laws], l.stepLaws, rest)
+  return {...proveSteps(l.rule, [...lifted, ...l.laws], l.stepLaws, rest), given: lifted}
+}
+
+// --- certificates ------------------------------------------------------------------------------------------------------
+// A proven set of laws (and step laws) of a rule as one interchange document (docs/interchange.md), the usual trees its
+// proof, checked by the kernel as it is made: `meta` is kept beside it and never read by a checker (the clauses a law
+// answers, where it is stated), so what a citation says is never what is trusted. Undefined where the kernel doesn't
+// prove the set as given (a proof by k-induction, say, or one the search needed more for).
+export function certify(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = [], meta: Json = {}): Document | undefined {
+  const env = (globalThis as unknown as {process?: {env: Record<string, string | undefined>}}).process?.env ?? {}
+  const was = env.GDP_CERT
+  env.GDP_CERT = 'usual'
+  try {
+    const rr = r.withSumsOf(laws, stepLaws), m = rr.machine, given = [...rr.kindLaws().filter(k => !laws.some(l => l.name === k.name)), ...laws]
+    let c: Certificate
+    if (stepLaws.length) {
+      const p = proveStepLaws(m, given, stepLaws)
+      if (!p.proven || !p.checked || !p.proof) return undefined
+      c = {kind: 'stepLaws', machine: p.machine ?? m, laws: p.laws ?? given, stepLaws: p.stepLaws ?? stepLaws, proof: p.proof}
+    } else {
+      const p = proveLaws(m, given)
+      if (!p.proven || !p.checked || !p.proof) return undefined
+      c = {kind: 'laws', machine: p.machine ?? m, laws: p.laws ?? given, proof: {instances: p.proof.instances, trees: p.proof.trees}}
+    }
+    const doc = toInterchange(c, meta)
+    return checkCertificate(fromInterchange(JSON.parse(JSON.stringify(doc)))).every(x => x.accepted) ? doc : undefined
+  } finally { if (was === undefined) delete env.GDP_CERT; else env.GDP_CERT = was }
 }

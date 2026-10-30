@@ -13,7 +13,7 @@ const desk = (leak: boolean, refuseBySecret = false) => rule('desk')
   .step(({op, amount, diagnosis, status, total, notes}) => {
     const approve = leak ? diagnosis.lt(5) : amount.atMost(100)
     return {
-      status: when(op.is('submit'), 'pending', when(status.is('pending'), when(approve, 'approved', 'denied'), status)),
+      status: when(op.is('submit'), 'pending', when(status.is('pending'), when(approve, status.of('approved'), 'denied'), status)),
       total: when(op.is('submit'), total.plus(amount), total),
       notes: when(op.is('submit'), diagnosis, notes),
     }
