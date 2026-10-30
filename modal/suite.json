@@ -876,6 +876,13 @@
 "timeout": 900
 },
 {
+"name": "relational",
+"cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && cd core && bun test relational.test.ts 2>&1",
+"cwd": ".",
+"cpu": 1.0,
+"timeout": 900
+},
+{
 "name": "steplaw-k",
 "cmd": "FUZZ_SCALE=10 bun test steplaw.test.ts -t 'k steps' 2>&1",
 "cwd": "kernel",

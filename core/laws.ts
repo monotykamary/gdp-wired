@@ -25,6 +25,7 @@
 //   mode == "closed", outcome == SLOW_ERROR, mode == :closed        a choice by its value
 import {type Cond, Choice, Int, Str, Term, all, any, forall, no, not, yes} from './dsl.ts'
 import type {Extraction, Name} from './extract.ts'
+import {type AnyRule, type TwoRunLaw, agreement, isolation, noninterference} from './relational.ts'
 
 export type LawText = {name: string, expr: string, where?: string, line?: number, method?: string}
 // A law read: an invariant (`law`) or a law of one step (`step`, for the method `method` where the rule has several).
@@ -60,6 +61,7 @@ type Seg = {f: string} | {i: X} | {call: true, args?: string}
 type X = {k: 'num', v: number} | {k: 'str', v: string, holes?: X[], parts?: string[]} | {k: 'bool', v: boolean} | {k: 'null'}
   | {k: 'path', head: string, segs: Seg[]} | {k: 'un', op: '-' | 'not', x: X}
   | {k: 'bin', op: string, a: X, b: X} | {k: 'old', x: X} | {k: 'fn', f: string, xs: X[]} | {k: 'forall', v: string, over: X, body: X}
+  | {k: 'dur', v: number, text: string}
 const WORDS: Record<string, string> = {'->': '.', '::': '.', and: '&&', or: '||', not: '!', implies: '=>', '∧': '&&', '∨': '||', '¬': '!', '→': '=>', '==>': '=>', '≤': '<=', '≥': '>=', '≠': '!=', '∀': 'forall', AND: '&&', OR: '||', NOT: '!'}
 function tokens(s: string): string[] {
   const out: string[] = [], re = /\s*(f?"(?:[^"\\]|\\.)*"|f?'(?:[^'\\]|\\.)*'|`[^`]*`|\d+(?:\.\d+)?|@?[A-Za-z_][\w?]*|->|::|==>|=>|<=|>=|==|!=|&&|\|\||\/\/|[-+*%/<>()[\],.:!∧∨¬→≤≥≠∀])/y
@@ -67,6 +69,26 @@ function tokens(s: string): string[] {
   while ((m = re.exec(s))) { out.push(WORDS[m[1]!] ?? m[1]!); at = re.lastIndex }
   if (s.slice(at).trim()) throw new LawError(`can't read ${JSON.stringify(s.slice(at).trim())}`)
   return out
+}
+// Durations, as many seconds: linear over the clock (a day is 86,400 s: the request's time counts seconds, with no
+// time zone, leap second or daylight saving). A month, a year, a business day or the end of a day isn't a fixed number
+// of seconds, so a law reading one is refused: state it in days.
+const SECONDS: Record<string, number> = {ms: 0.001, millisecond: 0.001, milliseconds: 0.001, second: 1, seconds: 1, sec: 1, secs: 1, minute: 60, minutes: 60, min: 60, mins: 60,
+  hour: 3600, hours: 3600, day: 86_400, days: 86_400, week: 604_800, weeks: 604_800}
+const NOT_LINEAR = /^(months?|years?|quarters?|business|working|weekdays?|fortnights?)$/i
+function seconds(unit: string): number {
+  const u = unit.toLowerCase()
+  if (NOT_LINEAR.test(u)) throw new LawError(`${unit}: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds`)
+  return SECONDS[u]!
+}
+// A duration in the clock's units ('s': time.time(), 'ms': Date.now()): duration('30 days') is 2,592,000.
+export function duration(text: string, clock: 's' | 'ms' = 's'): number {
+  const m = /^\s*(\d+)\s*(?:calendar\s+)?([A-Za-z]+)(?:\s+days?)?\s*$/.exec(text)
+  if (!m) throw new LawError(`${text}: a duration is a whole number and a unit (30 days, 15 minutes)`)
+  if (!Object.hasOwn(SECONDS, m[2]!.toLowerCase()) && !NOT_LINEAR.test(m[2]!)) throw new LawError(`${m[2]}: a unit of ${Object.keys(SECONDS).join(', ')}`)
+  const v = Number(m[1]) * seconds(m[2]!) * (clock === 'ms' ? 1000 : 1)
+  if (!Number.isInteger(v)) throw new LawError(`${text}: not a whole number of the clock's units`)
+  return v
 }
 export function parse(s: string): X {
   const t = tokens(s)
@@ -95,7 +117,13 @@ export function parse(s: string): X {
     const x = eat()
     if (x === undefined) throw new LawError('the expression ends early')
     if (x === '(') { const e = top(); eat(')'); return e }
-    if (/^\d/.test(x)) { if (x.includes('.') && !/\.0+$/.test(x)) throw new LawError(`${x}: a number that isn't whole`); return {k: 'num', v: Number(x)} }
+    if (/^\d/.test(x)) {
+      if (x.includes('.') && !/\.0+$/.test(x)) throw new LawError(`${x}: a number that isn't whole`)
+      // (a duration: 30 days, 15 minutes, in seconds until the clock's unit is known)
+      const u = peek()?.toLowerCase(), calendar = u === 'calendar' && /^days?$/i.test(t[i + 1] ?? '')
+      if (u && (calendar || Object.hasOwn(SECONDS, u) || NOT_LINEAR.test(u))) { eat(); if (calendar) eat(); return {k: 'dur', v: Number(x) * seconds(calendar ? 'days' : u), text: `${x} ${u}${calendar ? ' days' : ''}`} }
+      return {k: 'num', v: Number(x)}
+    }
     if (/^f?["'`]/.test(x)) return str(x)
     if (x === ':' && /^[A-Za-z_]/.test(peek() ?? '') && !operand(t[i - 2])) return {k: 'str', v: eat()}
     if (['true', 'True'].includes(x)) return {k: 'bool', v: true}
@@ -137,23 +165,29 @@ export function parse(s: string): X {
 // cell, a value that may be None (its flag beside it), a map, a key.
 type V = {t: 'num', v: Int} | {t: 'cond', v: Cond} | {t: 'str', v: Str} | {t: 'choice', v: Choice<string>} | {t: 'lit', v: string, err?: LawError}
   | {t: 'null'} | {t: 'cell', rec: Record<string, unknown>, fields: string[]} | {t: 'opt', none: Cond, v?: V} | {t: 'map', n: Name, maps: Name[]} | {t: 'key', v: Term}
-type Ctx = {b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>}
+type Ctx = {b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>, clock?: number}
 
 // The law a text states, built on the extraction's rule through its names.
-export function buildLaw(x: Extraction, l: LawText): Built {
-  const names = x.names ?? [], r = x.rule as unknown as {law: (n: string, f: (e: never) => unknown) => unknown, stepLaw: (n: string, f: (b: never, a: never) => unknown, w?: (b: never) => Cond) => unknown}
+// The extraction's names, with the request's time as `now` where the rule reads it and no name says so (a TypeScript
+// class's Date.now()).
+export function namesWithClock(x: Extraction): Name[] {
+  const ns = x.names ?? [], ins = (x.rule as {parts?: {inputs: [string, unknown][]}} | undefined)?.parts?.inputs.map(([n]) => n) ?? []
+  return ns.some(n => n.role === 'clock') || !ins.includes('now') || ns.some(n => n.code === 'now') ? ns : [...ns, {code: 'now', rule: 'now', role: 'clock'}]
+}
+export function buildLaw(x: Extraction, l: LawText, opts: {clock?: number} = {}): Built {
+  const names = namesWithClock(x), r = x.rule as unknown as {law: (n: string, f: (e: never) => unknown) => unknown, stepLaw: (n: string, f: (b: never, a: never) => unknown, w?: (b: never) => Cond) => unknown}
   if (!r) throw new LawError('the extraction has no rule')
   if (!l.expr) throw new LawError(`${l.name}: a law is stated as <name>: <expr>`)
   const e = parse(l.expr)
   // A first reading finds what the law reads: a request, a result, the failure or the state before make it a step law.
-  const probe: Ctx = {b: {}, a: {}, step: true, method: l.method, keys: new Map(), roles: new Set(), methods: new Set()}
+  const probe: Ctx = {b: {}, a: {}, step: true, method: l.method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock}
   read(e, probe, names, true)
   // (a law on a method, the line above it, is a law of its step: the state after it, old(x) before)
   const step = !!l.method || ['input', 'answer', 'result', 'failed', 'clock', 'method', 'old'].some(k => probe.roles.has(k))
   const method = probe.methods.size === 1 ? [...probe.methods][0] : l.method
   if (probe.methods.size > 1) throw new LawError(`it reads the arguments of ${[...probe.methods].join(' and ')}: a law of one step is about one method`)
   const gate = step && method && names.some(n => n.role === 'method') ? method : undefined
-  const body = (b: Record<string, unknown>, a: Record<string, unknown>) => read(e, {b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set()}, names, false) as Cond
+  const body = (b: Record<string, unknown>, a: Record<string, unknown>) => read(e, {b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock}, names, false) as Cond
   if (!step) return {kind: 'law', law: r.law(l.name, (env: never) => body(env, env))}
   const mname = names.find(n => n.role === 'method')?.rule
   return {kind: 'step', ...(gate ? {method: gate} : {}), law: r.stepLaw(l.name, (b: never, a: never) => body(b, a), gate ? (b: never) => ((b as Record<string, unknown>)[mname!] as Choice<string>).is(gate) : undefined)}
@@ -189,6 +223,7 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
   const go = (x: X) => val(x, c, names, dry)
   switch (e.k) {
     case 'num': return {t: 'num', v: Int.of(e.v)}
+    case 'dur': if (c.clock === undefined) throw new LawError(`${e.text}: the clock's unit isn't known here (clock = "s" or "ms" in gdp.toml)`); if (!Number.isInteger(e.v * c.clock)) throw new LawError(`${e.text}: not a whole number of the clock's units`); return {t: 'num', v: Int.of(e.v * c.clock)}
     case 'bool': return {t: 'cond', v: e.v ? yes : no}
     case 'null': return {t: 'null'}
     case 'str': if (e.holes) throw new LawError('a string template outside a store\'s key'); return {t: 'lit', v: e.v}
@@ -351,4 +386,63 @@ function storeKey(m: V & {t: 'map'}, k: X, c: Ctx, names: Name[], dry: boolean):
   const hit = m.maps.find(x => x.map!.tpl === tpl) ?? (holes.length === 1 && tpl === '{}' && m.maps.length === 1 ? m.maps[0] : undefined)
   if (!hit || holes.length !== 1) throw new LawError(`${m.n.code}[${tpl}]: its keys are ${m.maps.map(x => JSON.stringify(x.map!.tpl!.replace('{}', '<key>'))).join(', ')}`)
   return [{t: 'map', n: hit, maps: [hit]}, val(holes[0]!, c, names, dry)]
+}
+
+// --- citations ---------------------------------------------------------------------------------------------------------
+// The clause a law answers: `# gdp: cite <law name>: <the clause, as text>` (a regulation's section, a policy's words),
+// any number for one law, in any file of the target. Carried into the output and a certificate's meta, never into what
+// is proven: whether the law is faithful to the clause is the reader's judgment, the citation only says which.
+export type Cite = {law: string, text: string, where: string}
+const CITE = /(?:#|\/\/|--|%|\/\*|^\s*\*)\s*gdp:\s*cite\s+([^:]+?)\s*:\s*(.+?)\s*(?:\*\/)?\s*$/
+export function citesIn(text: string, where = ''): Cite[] {
+  return text.split('\n').flatMap((l, i) => { const m = CITE.exec(l); return m ? [{law: m[1]!.trim(), text: m[2]!, where: `${where}:${i + 1}`}] : [] })
+}
+
+// --- laws about two runs -------------------------------------------------------------------------------------------------
+// Three forms of a stated law (core/relational.ts), over the code's names:
+//   <secret>[, ...] never reaches <visible>[, ...]      noninterference: the secret arguments (or params, answers) never
+//                                                       change the visible fields or results, nor which calls fail
+//   isolated by <owner> [seeing <name>[, ...]]          isolation: what the caller whose <owner> argument is B sees (the
+//                                                       maps' cells at B, the results of B's calls, B's failures) is the
+//                                                       same whatever the other callers do; by default every map, result
+//   agrees with <Entry> [on <name>[, ...]]              a migration: this rule and <Entry> (another rule of the same
+//                                                       target) keep the same fields after the same calls, fail alike
+const TWO = [/^(.+?)\s+never\s+reach(?:es)?\s+(.+)$/i, /^isolated\s+by\s+([\w.]+)(?:\s+seeing\s+(.+))?$/i, /^agrees\s+with\s+([\w.]+)(?:\s+on\s+(.+))?$/i]
+export const isTwoRuns = (expr: string): boolean => TWO.some(re => re.test(expr.trim()))
+const list = (s: string | undefined): string[] => (s ? s.split(/\s*,\s*|\s+and\s+/).map(x => x.trim()).filter(Boolean) : [])
+export function buildTwoRuns(x: Extraction, l: LawText, others: Record<string, Extraction> = {}): TwoRunLaw {
+  const names = namesWithClock(x), e = l.expr.trim(), r = x.rule as AnyRule
+  if (!r) throw new LawError('the extraction has no rule')
+  const known = () => [...new Set(names.filter(n => n.rule).map(n => n.code))].join(', ')
+  const ruleNames = (ns: Name[], code: string, roles: Name['role'][], what: string): string[] => {
+    const hit = ns.filter(n => n.code.replace(/^@/, '') === code.replace(/^(self|this)\./, '') && roles.includes(n.role))
+    if (!hit.length) throw new LawError(`no ${code} ${what} (its names: ${known()})`)
+    return [...new Set(hit.flatMap(n => [n.rule, ...(n.none ? [n.none] : [])]).filter(Boolean))]
+  }
+  const STATE: Name['role'][] = ['state', 'result', 'failed']
+  let m = TWO[0]!.exec(e)
+  if (m) {
+    const secret = list(m[1]).flatMap(c => ruleNames(names, c, ['input', 'param', 'answer', 'clock'], 'among the arguments, params or answered calls'))
+    const visible = list(m[2]).flatMap(c => ruleNames(names, c, STATE, 'among the fields and results'))
+    return {...noninterference(r, {secret, visible, name: l.name}), name: l.name}
+  }
+  if ((m = TWO[1]!.exec(e))) {
+    const owners = names.filter(n => n.role === 'input' && n.code === m![1] && n.rule)
+    if (!owners.length) throw new LawError(`no argument ${m[1]} (its names: ${known()})`)
+    const method = names.find(n => n.role === 'method')?.rule, methods = new Set(owners.map(n => n.method))
+    const key = (v: unknown): Term => (v instanceof Term ? v : v instanceof Int ? v.pos : (v as {id: Term}).id)
+    // (a call is B's where its method takes the owner argument and it is B; with one rule input for every method, that)
+    const owner = (env: Record<string, unknown>, b: Term): Cond => any(...owners.map(n => all(key(env[n.rule]).eq(b), ...(method && methods.size && n.method ? [(env[method] as Choice<string>).is(n.method)] : []))))
+    const seen = m[2] ? list(m[2]).flatMap(c => ruleNames(names, c, STATE, 'among the fields and results')) : undefined
+    const maps = new Set(names.filter(n => n.map).map(n => n.rule))
+    const sees = seen?.filter(n => maps.has(n)), results = seen ? seen.filter(n => !maps.has(n)) : names.filter(n => n.role === 'result' || n.role === 'failed').flatMap(n => [n.rule, ...(n.none ? [n.none] : [])]).filter(Boolean)
+    return {...isolation(r, {owner, ...(sees ? {sees} : {}), results: [...new Set(results)], name: l.name}), name: l.name}
+  }
+  if ((m = TWO[2]!.exec(e))) {
+    const o = others[m[1]!]
+    if (!o?.rule) throw new LawError(`no rule ${m[1]} read beside this one (${Object.keys(others).join(', ') || 'none'}): agrees with names another class of the same target`)
+    const visible = m[2] ? list(m[2]).flatMap(c => { const mine = ruleNames(names, c, STATE, 'among the fields and results'); ruleNames(o.names ?? [], c, STATE, `in ${m![1]}`); return mine }) : undefined
+    return {...agreement(o.rule as AnyRule, r, {...(visible ? {visible} : {}), name: l.name}), name: l.name}
+  }
+  throw new LawError('not a law about two runs')
 }
