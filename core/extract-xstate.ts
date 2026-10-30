@@ -5,6 +5,9 @@
 // the context it writes. The chart is then run beside XState's own actor (`conforms`) on random events with payloads,
 // every state and kept context field compared, the code's branches counted; any difference refuses it.
 //
+//   const x = extractXState('./order.ts')     // a path or a URL; the machine inferred; xstate from the file's project
+//   proveRule(x.rule!, [...x.invariants!, x.rule!.law('retries within 2', ({retries}) => retries.atMost(2))])
+//
 // - A machine made by a function (a factory): read with its arguments as the world gives them. An argument that is an
 //   object of functions (the effects a machine is given, its services) is outside: each answer a guard or an action
 //   reads of it is an input of the step (any value of its type, read once), a call that answers nothing an effect
