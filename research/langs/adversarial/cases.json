@@ -174,5 +174,33 @@
     "attack": "FastAPI Depends with yielding dependency",
     "pred": "refuted",
     "file": "p17.py"
+  },
+  {
+    "id": "s01",
+    "lang": "Swift",
+    "attack": "injected listener handed self (left out)",
+    "pred": "refused",
+    "file": "s01.swift"
+  },
+  {
+    "id": "s02",
+    "lang": "Swift",
+    "attack": "answered callback handed self",
+    "pred": "refused",
+    "file": "s02.swift"
+  },
+  {
+    "id": "s03",
+    "lang": "Swift",
+    "attack": "keyed get extra argument aliases self",
+    "pred": "refused",
+    "file": "s03.swift"
+  },
+  {
+    "id": "s04",
+    "lang": "Swift",
+    "attack": "two injected dependencies of one protocol",
+    "pred": "refused",
+    "file": "s04.swift"
   }
 ]

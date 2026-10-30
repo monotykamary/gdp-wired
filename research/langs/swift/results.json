@@ -1,0 +1,275 @@
+[
+ {
+  "id": "flow control/swift-nio-http2/InboundWindowManager",
+  "ok": true,
+  "refusals": [],
+  "evidence": {
+   "runs": 101,
+   "requests": 1050,
+   "fromStates": 400,
+   "probes": {
+    "conditions": 34,
+    "witnesses": 31,
+    "steps": 31
+   },
+   "refusedBoth": 174,
+   "outside": 10,
+   "edge": 14,
+   "compiledAgreed": 1046,
+   "coverage": {
+    "arms": 0,
+    "hit": 0,
+    "missed": []
+   },
+   "ms": 72251,
+   "edgeSample": "initialWindowSizeChanged([\"delta\",{\"in\":-5}]) from {\"lastWindowSize\":1,\"lastWindowSize_none\":false,\"bufferedBytes\":-9007199254740990,\"closed\":false,\"targetWindowSize\":-4} with {\"targetSize\":2}",
+   "runMs": 72252
+  },
+  "notes": [
+   "InboundWindowManager made by its constructor: its arguments are the rule's params",
+   "newWindowSize: Int32(windowSize): past i32's range (a crash: Int32(_:) of a value past its range) (Sources/NIOHTTP2/InboundWindowManager.swift:90:53) is the step's refusal",
+   "initialWindowSizeChanged: Int32(delta): past i32's range (a crash: Int32(_:) of a value past its range) (Sources/NIOHTTP2/InboundWindowManager.swift:47:34) is the step's refusal",
+   "initialWindowSizeChanged: self.targetWindowSize += Int32(delta): past i32's range (a crash: arithmetic overflow) (Sources/NIOHTTP2/InboundWindowManager.swift:47:9) is the step's refusal",
+   "bufferedFrameEmitted: assert(self.bufferedBytes >= 0) (a crash) (Sources/NIOHTTP2/InboundWindowManager.swift:64:9) is the step's refusal",
+   "bufferedFrameEmitted: Int32(windowSize): past i32's range (a crash: Int32(_:) of a value past its range) (Sources/NIOHTTP2/InboundWindowManager.swift:90:53) is the step's refusal",
+   "targetSize: an integer (the code takes any whole number)",
+   "newWindowSize_newSize: an integer (the code takes any whole number)",
+   "initialWindowSizeChanged_delta: an integer (the code takes any whole number)",
+   "bufferedFrameReceived_size: an integer (the code takes any whole number)",
+   "bufferedFrameEmitted_size: an integer (the code takes any whole number)",
+   "lastWindowSize: an integer (a step may take it below 0, or it starts there)",
+   "bufferedBytes: an integer (a step may take it below 0, or it starts there)",
+   "targetWindowSize: an integer (a step may take it below 0, or it starts there)",
+   "newWindowSize_result: an integer (a step may take it below 0, or it starts there)",
+   "initialWindowSizeChanged_result: an integer (a step may take it below 0, or it starts there)",
+   "bufferedFrameEmitted_result: an integer (a step may take it below 0, or it starts there)",
+   "Swift: checked in a debug build (overflow traps, assert and precondition on), each request run first in a forked child (a crash is the step's failure); branch arms not counted (no instrumentation yet)"
+  ],
+  "laws": [
+   {
+    "name": "an increment fits a WINDOW_UPDATE (at most 2^31 - 1)",
+    "verdict": "proven",
+    "ms": 9974
+   },
+   {
+    "name": "an increment is positive while the target is not negative",
+    "verdict": "proven",
+    "ms": 744
+   },
+   {
+    "name": "a non-negative window is brought back to the target",
+    "verdict": "proven",
+    "ms": 8873
+   },
+   {
+    "name": "an update only once the window is at half its target or below",
+    "verdict": "proven",
+    "ms": 443
+   },
+   {
+    "name": "no update before a window size is known",
+    "verdict": "proven",
+    "ms": 450
+   },
+   {
+    "name": "the buffered bytes are never negative",
+    "verdict": "refuted",
+    "ms": 2,
+    "witness": {
+     "targetSize": 1,
+     "targetSize$neg": 0,
+     "lastWindowSize": 0,
+     "lastWindowSize$neg": 0,
+     "lastWindowSize_none": 1,
+     "bufferedBytes": 0,
+     "bufferedBytes$neg": 0,
+     "closed": 0,
+     "targetWindowSize": 6,
+     "targetWindowSize$neg": 0,
+     "newWindowSize_result": 0,
+     "newWindowSize_result$neg": 0,
+     "newWindowSize_result_none": 0,
+     "initialWindowSizeChanged_result": 0,
+     "initialWindowSizeChanged_result$neg": 0,
+     "initialWindowSizeChanged_result_none": 0,
+     "bufferedFrameEmitted_result": 0,
+     "bufferedFrameEmitted_result$neg": 0,
+     "bufferedFrameEmitted_result_none": 0,
+     "method": 2,
+     "newWindowSize_newSize": 3,
+     "newWindowSize_newSize$neg": 0,
+     "initialWindowSizeChanged_delta": 0,
+     "initialWindowSizeChanged_delta$neg": 1,
+     "bufferedFrameReceived_size": 0,
+     "bufferedFrameReceived_size$neg": 3,
+     "bufferedFrameEmitted_size": 0,
+     "bufferedFrameEmitted_size$neg": 1
+    }
+   }
+  ]
+ },
+ {
+  "id": "flow control/swift-nio-http2/HTTP2FlowControlWindow",
+  "ok": true,
+  "refusals": [],
+  "evidence": {
+   "runs": 127,
+   "requests": 1481,
+   "fromStates": 400,
+   "probes": {
+    "conditions": 18,
+    "witnesses": 14,
+    "steps": 14
+   },
+   "refusedBoth": 271,
+   "outside": 0,
+   "edge": 0,
+   "compiledAgreed": 1438,
+   "coverage": {
+    "arms": 0,
+    "hit": 0,
+    "missed": []
+   },
+   "ms": 132664,
+   "runMs": 132664
+  },
+  "notes": [
+   "HTTP2FlowControlWindow made by its constructor: its arguments are the rule's params",
+   "windowUpdate: assert(amount <= HTTP2FlowControlWindow.maxIncrement) (a crash) (Sources/NIOHTTP2/HTTP2FlowControlWindow.swift:91:9) is the step's failure, kept as its result (with what the step wrote before it)",
+   "windowUpdate: throw NIOHTTP2Errors.invalidWindowIncrementSize() (Sources/NIOHTTP2/HTTP2FlowControlWindow.swift:94:13) is the step's failure, kept as its result (with what the step wrote before it)",
+   "windowUpdate: throw NIOHTTP2Errors.invalidFlowControlWindowSize( delta: Int(a... (Sources/NIOHTTP2/HTTP2FlowControlWindow.swift:101:13) is the step's failure, kept as its result (with what the step wrote before it)",
+   "windowUpdate: self.windowSize += Int32(amount): past i32's range (a crash: arithmetic overflow) (Sources/NIOHTTP2/HTTP2FlowControlWindow.swift:107:9) is the step's failure, kept as its result (with what the step wrote before it)",
+   "initialSizeChanged: assert(amount >= -(Int32.max)) (a crash) (Sources/NIOHTTP2/HTTP2FlowControlWindow.swift:123:9) is the step's failure, kept as its result (with what the step wrote before it)",
+   "initialSizeChanged: throw NIOHTTP2Errors.invalidFlowControlWindowSize( delta: Int(a... (Sources/NIOHTTP2/HTTP2FlowControlWindow.swift:126:13) is the step's failure, kept as its result (with what the step wrote before it)",
+   "initialSizeChanged: self.windowSize += amount: past i32's range (a crash: arithmetic overflow) (Sources/NIOHTTP2/HTTP2FlowControlWindow.swift:132:9) is the step's failure, kept as its result (with what the step wrote before it)",
+   "consume: assert(size >= 0) (a crash) (Sources/NIOHTTP2/HTTP2FlowControlWindow.swift:140:9) is the step's failure, kept as its result (with what the step wrote before it)",
+   "consume: assert(size <= (1 << 24) - 1) (a crash) (Sources/NIOHTTP2/HTTP2FlowControlWindow.swift:142:9) is the step's failure, kept as its result (with what the step wrote before it)",
+   "consume: throw NIOHTTP2Errors.flowControlViolation() (Sources/NIOHTTP2/HTTP2FlowControlWindow.swift:147:13) is the step's failure, kept as its result (with what the step wrote before it)",
+   "initialValue: a natural (the code refuses it below 0)",
+   "windowUpdate_amount: a natural, as given",
+   "initialSizeChanged_amount: an integer (the code takes any whole number)",
+   "consume_size: an integer (the code takes any whole number)",
+   "windowSize: an integer (a step may take it below 0, or it starts there)",
+   "Swift: checked in a debug build (overflow traps, assert and precondition on), each request run first in a forked child (a crash is the step's failure); branch arms not counted (no instrumentation yet)"
+  ],
+  "laws": [
+   {
+    "name": "a window update of 0 is an error",
+    "verdict": "proven",
+    "ms": 690
+   },
+   {
+    "name": "a window update never takes the window past 2^31 - 1",
+    "verdict": "proven",
+    "ms": 488
+   },
+   {
+    "name": "a window update past the maximum is an error",
+    "verdict": "proven",
+    "ms": 424
+   },
+   {
+    "name": "consuming never takes a window below 0",
+    "verdict": "proven",
+    "ms": 467
+   },
+   {
+    "name": "consuming more than the window holds is an error",
+    "verdict": "proven",
+    "ms": 432
+   },
+   {
+    "name": "a settings change from a window of 0 or more never fails",
+    "verdict": "proven",
+    "ms": 438
+   },
+   {
+    "name": "a settings change never fails but past the maximum",
+    "verdict": "refuted",
+    "ms": 741,
+    "witness": {
+     "initialValue": 0,
+     "windowSize": 0,
+     "windowSize$neg": 2,
+     "failed": 0,
+     "broken$0": 0,
+     "method": 1,
+     "windowUpdate_amount": 0,
+     "initialSizeChanged_amount": 0,
+     "initialSizeChanged_amount$neg": 2147483647,
+     "consume_size": 0,
+     "consume_size$neg": 0
+    }
+   }
+  ]
+ },
+ {
+  "id": "backpressure/swift-nio/HighLowWatermark",
+  "ok": true,
+  "refusals": [],
+  "evidence": {
+   "runs": 117,
+   "requests": 1294,
+   "fromStates": 400,
+   "probes": {
+    "conditions": 2,
+    "witnesses": 2,
+    "steps": 2
+   },
+   "refusedBoth": 0,
+   "outside": 0,
+   "edge": 26,
+   "compiledAgreed": 1495,
+   "coverage": {
+    "arms": 0,
+    "hit": 0,
+    "missed": []
+   },
+   "ms": 15704,
+   "edgeSample": "didConsume([\"bufferDepth\",{\"in\":9007199254740990}]) from {\"hasOustandingDemand\":true,\"lowWatermark\":-9007199254740990,\"highWatermark\":-1} with {\"lowWatermark0\":-9007199254740990,\"highWatermark0\":-1}",
+   "runMs": 15704
+  },
+  "notes": [
+   "HighLowWatermark made by its constructor: its arguments are the rule's params",
+   "lowWatermark0: an integer (the code takes any whole number)",
+   "highWatermark0: an integer (the code takes any whole number)",
+   "didYield_bufferDepth: an integer (the code takes any whole number)",
+   "didConsume_bufferDepth: an integer (the code takes any whole number)",
+   "lowWatermark: an integer (a step may take it below 0, or it starts there)",
+   "highWatermark: an integer (a step may take it below 0, or it starts there)",
+   "Swift: checked in a debug build (overflow traps, assert and precondition on), each request run first in a forked child (a crash is the step's failure); branch arms not counted (no instrumentation yet)"
+  ],
+  "laws": [
+   {
+    "name": "a yield at the high watermark stops demand",
+    "verdict": "proven",
+    "ms": 111
+   },
+   {
+    "name": "a consume below the low watermark resumes demand",
+    "verdict": "proven",
+    "ms": 58
+   },
+   {
+    "name": "a yield never resumes demand",
+    "verdict": "proven",
+    "ms": 66
+   },
+   {
+    "name": "a consume never stops demand",
+    "verdict": "proven",
+    "ms": 113
+   },
+   {
+    "name": "the result is the demand after the step",
+    "verdict": "proven",
+    "ms": 190
+   },
+   {
+    "name": "the watermarks never cross",
+    "verdict": "proven",
+    "ms": 54
+   }
+  ]
+ }
+]

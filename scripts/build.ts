@@ -23,6 +23,10 @@ for (const f of ['reader.rb', 'harness.rb']) copyFileSync(join(root, 'core', 'rb
 // The Rust front end's reader (built with cargo where it is first called) beside it.
 mkdirSync(join(dist, 'core', 'rs', 'src'), {recursive: true})
 for (const f of ['Cargo.toml', 'Cargo.lock', 'src/main.rs']) copyFileSync(join(root, 'core', 'rs', f), join(dist, 'core', 'rs', f))
+// The Swift front end's reader (built against the toolchain's SwiftSyntax, or by SwiftPM, where it is first called)
+// and its harness's fixed parts.
+mkdirSync(join(dist, 'core', 'swift', 'Sources', 'gdp-swiftreader'), {recursive: true})
+for (const f of ['Package.swift', 'Sources/gdp-swiftreader/main.swift', 'Harness.swift', 'Main.swift']) copyFileSync(join(root, 'core', 'swift', f), join(dist, 'core', 'swift', f))
 // The Go front end's reader (built with go where it is first called) beside it.
 mkdirSync(join(dist, 'core', 'go'), {recursive: true})
 for (const f of ['go.mod', 'reader.go']) copyFileSync(join(root, 'core', 'go', f), join(dist, 'core', 'go', f))

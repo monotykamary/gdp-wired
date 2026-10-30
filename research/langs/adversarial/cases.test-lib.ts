@@ -13,6 +13,7 @@ const WHY: Record<string, RegExp> = {
   p01: /given the rule's state/, p02: /given the rule's state/, p03: /given the rule's state/, r01: /given the rule's state/,
   j01: /given the rule's state/, j03: /given the rule's state/, j04: /given the rule's state/, t01: /given the object's state/,
   p12: /two injected dependencies of one type/,
+  s01: /given the rule's state/, s02: /given the rule's state/, s03: /given the rule's state/, s04: /two injected dependencies of one type/,
 }
 export function judge(c: Case, x: Extraction) {
   if (WHY[c.id]) { expect(x.ok).toBe(false); expect(x.refusals.map(r => r.what).join('; ')).toMatch(WHY[c.id]!); return }

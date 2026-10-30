@@ -132,6 +132,10 @@
       "types": "./dist/core/extract-rs.d.ts",
       "default": "./dist/core/extract-rs.js"
     },
+    "./extract-swift": {
+      "types": "./dist/core/extract-swift.d.ts",
+      "default": "./dist/core/extract-swift.js"
+    },
     "./extract-go": {
       "types": "./dist/core/extract-go.d.ts",
       "default": "./dist/core/extract-go.js"

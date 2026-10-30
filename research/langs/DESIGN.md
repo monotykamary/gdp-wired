@@ -844,3 +844,95 @@ adversarial runner's absolute imports, now relative.)
 
 **Bytes.** core/ and kernel/ in TypeScript, tests excluded, against 2fdc902 (gen/cli merged, this branch's base): +3,210 (core/extract-step.ts +2,722,
 core/extract-read.ts +488); the harnesses +280 (Python), +191 (Ruby), +239 (the JVM's). The kernel is unchanged.
+
+## Swift (gen/swift)
+
+`core/swift/Sources/gdp-swiftreader/main.swift` (a reader on swift-syntax's parser and SwiftOperators' folding) lowers a
+package's target into the IR; `core/extract-swift.ts` (`gdp-wired/extract-swift`) builds it, generates the harness and
+runs `extractStep`. Types are the declarations' own (a property's annotation or literal initializer, a parameter's, a
+result's, a protocol's requirements), parsed from their text; where none is declared the value is opaque and refused
+where read, never guessed. `swiftc -dump-ast` was not needed: the subset reads only declared types.
+
+**The reader, built for the user.** Every Swift 5.9+ toolchain ships SwiftSyntax for macros in `lib/swift/host`
+(checked: Xcode's 6.4 on macOS, swift:6.3.3 on Linux), so the front end compiles main.swift against those modules
+(`swiftc -O -I host -L host -lSwiftSyntax -lSwiftParser -lSwiftOperators`, about 20 s once), cached in the temporary
+directory by a hash of the source and `swift --version`. Where a toolchain lacks them, `core/swift/Package.swift` (swift-syntax
+pinned at 603.0.2) is built by SwiftPM instead (minutes, once). Prebuilding per platform would mean a binary per
+OS/arch per toolchain line (the host modules' ABI is the compiler's), so it is left out.
+
+**The harness.** The package is copied to a stable directory per package (files rewritten only where they differ, so
+`swift build` is incremental); the entry type's file gets an extension (make, call, and per-field accessors, so private
+members are reached as the code's own extensions reach them) and a JSON/stub/store runtime in pure Swift (no Foundation:
+importing it could change the file's name lookup); `let` properties the harness sets become `var` and an actor becomes
+a `final class` in the copy only; answered calls are rewritten with the shared `stubbed` to `(__gdpAnswer("<key>") as T)`;
+an injected protocol gets a generated conforming fake (get, set, delete over what it keeps, answered methods from the
+request, left-out ones doing nothing, any other one a crash the check reports). An executable target appended to
+Package.swift drives it; each `new`, `at` and `call` first runs in a forked child, so a trap (Swift has no recovery from
+overflow, precondition, fatalError or a nil force-unwrap) is the step's failure and the parent keeps the state as it was.
+
+**Executor additions (shared).** A failure node may say `crash: true`: the process ends, so nothing sees what the step
+wrote before it (no write-before-failure refusal; with failures kept and carried, a crash after a write is refused).
+A bin node may carry its own `trap` text. A method's result that is None now holds its sort's zero in the rule (it
+held the other branch's value; no committed rule of any language has an Optional result, so none changes).
+
+**Boundary mechanism.** As the table in gen/boundary2: Swift stubs by rewriting the compiled copy (as Rust, Go, C); stores:
+yes, a generated conforming class per injected protocol. Init parameters typed by a protocol are the injected
+dependencies; the state-reference refusal applies unchanged (it is the executor's).
+
+**The subset.** A class, struct or actor (an actor's method is one step: Swift runs it without interleaving up to a
+suspension point, and an `await` is refused); stored properties as the state (a `var` of an Optional type with no
+initial value starts nil, as Swift's does); the init's parameters (one init, or `ctor`: its arity or its parameters as
+written, `'(initialValue: Int)'`; a struct's memberwise one where it has none) as params, with the properties' initial
+values run first; methods (mutating ones too) as requests, private and static ones inlined only; computed properties and
+the package's free functions inlined. Int and every fixed width with Swift's default trap on `+ - *`, `&+ &- &*`
+wrapping, `/ %` truncating by a constant, `Int32(x)` trapping where x doesn't fit, `(truncatingIfNeeded:)` wrapping,
+`(clamping:)` saturating, `(exactly:)` an Optional, the `ReportingOverflow` forms a pair, `<< >> &<< &>>` by a constant;
+Bool, String (interpolation as a store's key template); enums without associated values as choices (an Int raw value
+their discriminant, `.rawValue` a cast); Optional (`if let`, `guard let`, `??`, `!`, `== nil`, `case .some`/`.none`/`x?`);
+Dictionary as maps (`[k]`, `[k, default:]`, `[k] = nil`, `updateValue`, `removeValue`); `throw`, `precondition`,
+`assert` (on: the check builds in debug) and `fatalError` as failures; `switch` (enum cases, literals, ranges, `where`,
+`break`) and if/guard condition lists as ifs; a struct made by its memberwise init as a record, copied where read.
+Refused, each where it is: loops, closures, generics, `await`, `do`/`catch`, `try?`, optional chaining, arrays, floats,
+enums with associated values, `inout`, a subclass of the code's own class, `defer`.
+
+**Real code** (research/langs/swift/: specs.ts, run.ts, rules/, results.json; research/realworld/items/swift-projects.ts),
+each checked against its package built by `swift build`:
+
+| Item | Code | Requests (start / drawn / witness) | Laws |
+| --- | --- | --- | --- |
+| swift-nio-http2 1.46.0 `InboundWindowManager` (Apache-2.0) | HTTP/2 inbound flow control: the WINDOW_UPDATE to send; Int32 that traps, Int32(x), an Optional | 1,050 / 400 / 31 | 5 proven, 1 refuted |
+| swift-nio-http2 1.46.0 `HTTP2FlowControlWindow` (Apache-2.0) | a stream's window: updates, settings deltas, consumption; throws kept as failures; `ctor: '(initialValue: Int)'` | 1,481 / 400 / 14 | 6 proven, 1 refuted |
+| swift-nio 2.104.0 `NIOAsyncSequenceProducerBackPressureStrategies.HighLowWatermark` (Apache-2.0) | back-pressure hysteresis between two watermarks | 1,294 / 400 / 2 | 6 proven |
+
+19 laws, 17 proven, 2 refuted, no suspected bug (nothing triaged): "the buffered bytes are never negative" needs a
+negative size given to bufferedFrameReceived (an internal method, frame sizes never negative); "a settings change never
+fails but past the maximum" needs a window already below -1 lowered by -(2^31 - 1) (its `+=` traps), unreachable when
+the deltas are differences of HTTP/2 settings (0 ... 2^31 - 1). InboundWindowManager's `closed` is written only by other
+code, so a law about a closed window is vacuous in the rule (left out).
+
+**Adversarial** (research/langs/adversarial/s01–s04, tests in core/extract-swift.test.ts): a listener protocol given
+`self` (left out), an answered callback given `self`, a keyed `get` given `self` beside its key: refused by the state
+reference; two injected dependencies of one protocol: refused. None proven.
+
+**Sizes.** core/ and kernel/ in TypeScript, tests excluded, against fc5611b: +35,834 (core/extract-swift.ts 34,656, its
+harness's fixed Swift moved to core/swift/Harness.swift and Main.swift, 45,708 before; core/cli.ts +604;
+core/extract-step.ts +574). In Swift: the reader 89,624, the harness's fixed part 11,982. The kernel is unchanged.
+
+**What a user installs.** A Swift 5.9 or later toolchain (`swift` on the PATH, or `swift:` / `$GDP_SWIFT`); nothing
+else (the reader builds against the toolchain's own SwiftSyntax). Without one the front end refuses, never throws.
+
+**Validation** (Modal, swift:6.3.3 image; research/langs/swift/modal_swift.py): core/extract-swift.test.ts 8 of 8
+(Budget, Limiter, Tally, Loop, s01–s04); the three real types extracted and their laws as above; the realworld items'
+19 laws re-proven from the committed rules (17 proven); the CLI on a `.swift` file (its `// gdp: law` proven, exit 0) and
+on a Package.swift directory (Budget, Limiter, Tally read, Loop refused); exports.test.ts; tsc and lint clean for the
+changed files. On the suite's own image (modal/run.py): the new `extract-swift` job (research/langs/swift/swift-setup.sh
+installs swift.org's 6.3.3 for Debian 12 in 46 s; 111 s in all) and scripts/smoke.sh without Swift (the front end
+refuses). Not verified: other platforms than Linux x86-64 for the harness (macOS's fork path is the same code, untested
+here), Swift 5.9 and 5.10 toolchains (6.3.3 only), branch coverage (not counted).
+
+**Bar** (quick, `--only rw,f1,f2,g332,suite,onecpu`, b05f651 on fc5611b against the cached baseline of 5d4da3f): f1, f2,
+rw 74 / 14 / 3 and g332 332 of 332 (the same search) each 0 differing (gained 0, lost 0, wrong 0); the suite 233 of 233
+(the base's 227 jobs, 6 added since, extract-swift among them); onecpu no failure; $0.56 estimated
+(runs/bar/runs/b05f65166824-vs-5d4da3f49013-quick-2026-10-301006). The quick rw dev set holds no Swift item, so the
+realworld Swift items were proven on their own (above).
+
