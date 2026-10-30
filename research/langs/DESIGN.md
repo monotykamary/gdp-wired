@@ -942,3 +942,60 @@ reading `m.at(user)` with a string `user` fails to build (core/dsl.ts's `at` tak
 refused ("a map key that may be negative"). The Limiter test keys by `UInt` for that reason. The fix belongs to the
 shared maps (keys of a string sort, as the rule's strings are interned), not to the Swift front end.
 
+
+## One way in (gen/oneway)
+
+Every entry point a user calls to read code, audited at 07b2518 before any change: its signature, and the lines a user
+writes from "I have a file" to a proven law (the import statements, the call, the proof; the law itself inline).
+
+| Front end | Export | Signature at 07b2518 | Source | Runtime module | `entry` | Result | CLI | Lines |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TypeScript | `gdp-wired/extract` | `extract(code, {file, entry, ...})` | code string (the caller reads the file; `file` names it) | `typescript` resolved beside gdp-wired | required | `x.rule`, `x.invariants`, `x.names` | yes | 5 |
+| Effect | `gdp-wired/effect` | `extractEffect(code, {file, entry, effect})` | code string | `effect` passed by hand (`import * as effect`) | required (`make` by convention) | `x.rule` | wired (`from 'effect'`), untested | 6 |
+| XState | `gdp-wired/extract` | `extractXState(code, {file, entry, xstate})` | code string | `xstate` passed by hand | required | `x.chart` (no `rule`, `invariants`, `names`) | no (an XState file goes to `extract` and is refused) | 5 |
+| Python | `gdp-wired/extract-py` | `extractPython(file, opts)` | path | `python3` (or `python`) | inferred | `x.rule` | yes | 4 |
+| Ruby | `gdp-wired/extract-rb` | `extractRuby(file, opts)` | path | `ruby` | inferred | `x.rule` | yes | 4 |
+| Elixir | `gdp-wired/extract-ex` | `extractElixir(file, opts)` | path | `elixir` | inferred (one module; a list refused) | `x.rule` | yes | 4 |
+| Java, Kotlin | `gdp-wired/extract-java`, `-kotlin` | `extractJava(file, opts)`, `extractKotlin(file, opts)` | path | a JDK, kotlinc | inferred | `x.rule` | yes | 4 |
+| Go | `gdp-wired/extract-go` | `extractGo(dir, opts)` | a package directory only (a `.go` file is read alone and its check built in the wrong place) | `go` | inferred | `x.rule`, `x.leaves` | yes (a file mapped to its directory) | 4 |
+| Rust | `gdp-wired/extract-rs` | `extractRust(dir, opts)` | a crate directory only | `cargo` | inferred | `x.rule` | yes (a file mapped to its crate) | 4 |
+| Swift | `gdp-wired/extract-swift` | `extractSwift(at, opts)` | a file or a package directory | `swift` | inferred | `x.rule` | yes | 4 |
+| C | `gdp-wired/extract-c` | `extractC(file, opts, cpp?)` | path | `clang` | inferred | `x.rule`, `x.leaves` | yes | 4 |
+| C++ | `gdp-wired/extract-cpp` | `extractCpp(file, opts)` | path | `clang++` | required (the dump reads only the class named) | `x.rule` | yes (each class tried) | 4 |
+| XState, by hand | `gdp-wired/xstate` | `fromXState(machine, bridge)`, `conforms(chart, machine, createActor)` | the machine object, imported | `createActor` passed by hand | n/a | a chart | no | n/a |
+| Effect, by hand | `gdp-wired/effect` | `conforms(rule, {effect, make, request, ...}, {draw})` | a running service | `effect` passed by hand | n/a | `{checked, failure}` | no | n/a |
+| Laws in text | `gdp-wired/laws` | `lawsIn(text, where)`, `buildLaw(x, law)` | text | none | n/a | a law | (the CLI's) | n/a |
+| The CLI | `gdp-wired/cli` | `check(targets, opts)`, `gdp-wired check <file|dir>` | paths | resolved from the target | inferred (TS: each exported class or function tried) | rules and verdicts | itself | 2 (a comment, a command) |
+
+The 4 of the step languages: `import {extractPython}`, `import {proveRule} from 'gdp-wired'`, the call (with `{}`: the
+options are a required argument even when empty), the proof. TypeScript adds `import {readFileSync}` and repeats the
+path as `file`; Effect adds `import * as effect`; XState adds `import * as xstate`.
+
+**Inconsistencies.**
+
+1. *Code, path or directory.* TypeScript, Effect and XState take the code as a string (the caller reads the file and
+   names it again in `file`; a type that should resolve from the project's node_modules, Effect 3.x's say, needs `file`
+   to be the real path). Every other front end takes a path. Go and Rust take only a directory, though the CLI maps a
+   file to its package or crate; Swift takes either. No front end takes a `URL` (`new URL('./x.ts', import.meta.url)`).
+2. *A runtime module passed in by hand.* `effect` (Effect) and `xstate` (XState): required, though the module the code
+   runs on is the one beside the file (the CLI already resolves `effect` from the file). `typescript` is resolved
+   beside gdp-wired; the toolchains (python, ruby, go, ...) are found on the PATH with an option to name another.
+   `conforms` (both) and `fromXState` take a running object: there is no file to resolve from.
+3. *A required `entry` the inference could find.* TypeScript, Effect and XState require it; the step languages, Go and
+   C infer it (the one class or struct whose methods write its state), and the CLI tries every exported class and
+   function of a TypeScript file. C++ requires it (clang's dump is filtered by the name). Elixir takes one module.
+4. *One meaning, several names.* The requests read: `methods` (TypeScript classes, the step languages, Go), `functions`
+   (C: the struct's functions; TypeScript: several functions over one record, the entry first), `entry: [...]`
+   (Python's module functions). Failures: `failures: 'refuse' | 'kept'` in the step languages; Go and C have only
+   `onError` and `fails` (a result that is a failure); TypeScript and Effect neither (a throw is the refusal). The
+   boundary (`answers`, `skip`, `stores`) is in the step languages only; `strict` everywhere but XState. `stores` is
+   refused in Rust, Elixir, Java, Kotlin and Swift. `check` has four shapes (CheckOptions, StepOptions', GoCheckOptions,
+   XState's). The options argument is required everywhere but Swift's readers.
+5. *How the result is read.* Every result has `ok`, `refusals` ({where, what}) and `notes`; the rule is `x.rule` with
+   `x.invariants` beside it (`proveRule(x.rule, [...x.invariants, law])`), except XState's, which is `x.chart` (proven
+   by `x.chart.prove([x.chart.law(...)])`) with no names, so no law stated in its code can be read. The evidence has
+   two shapes (requests, states, probes; or runs and events).
+6. *What the CLI doesn't cover.* XState files (read by `extract`, refused). Effect files were wired but never tested.
+
+## One way in: the shape after it
+
