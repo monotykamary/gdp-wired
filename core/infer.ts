@@ -2410,10 +2410,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             undecided.delete(f)
             if (dl.proven) uses.set(textOf(f), dl.uses); else { failed.add(f); uses.delete(textOf(f)) }
           }
-          const todo = hs.filter(f => asked.has(f) || undecided.has(f))
+          // (a goal left undecided is kept, as optimistic Houdini keeps it, and asked again only once a round has dropped
+          // nothing: a drop's round would ask it again at the same cap for nothing most rounds)
+          const todo = r === 0 ? hs : hs.filter(f => asked.has(f) && !undecided.has(f))
           for (const f of todo) ask(f, q1)
           let second = 0
-          if (q2 > q1 && !failed.size && undecided.size) for (const f of hs.filter(g => undecided.has(g))) { second++; ask(f, q2) }
+          if (!failed.size && undecided.size) for (const f of hs.filter(g => undecided.has(g))) { second++; ask(f, Math.max(q1, q2)) }
           ph({phase: 'round', round: r, cubes: hs.length, asked: todo.length, second, failed: failed.size, undecided: undecided.size, ms: Math.round(performance.now() - tr)})
           if (!failed.size) break
           for (const f of failed) dead.add(textOf(f))
