@@ -107,13 +107,13 @@ test('durations: linear over the clock; a month, a year or a business day refuse
 // A records desk (a patient's request for their records): received, then fulfilled within 30 days or escalated.
 const DESK = `import time
 from dataclasses import dataclass
-from typing import Literal
 
 
 @dataclass
 class Req:
     received: int
-    status: Literal["open", "fulfilled", "escalated"]
+    fulfilled: bool
+    escalated: bool
 
 
 class RecordsDesk:
@@ -126,21 +126,21 @@ class RecordsDesk:
     def receive(self, rid: str, diagnosis: int) -> None:
         if rid in self.requests:
             raise ValueError("already received")
-        self.requests[rid] = Req(int(time.time()), "open")
+        self.requests[rid] = Req(int(time.time()), False, False)
         self.notes[rid] = diagnosis
 
-    # gdp: law fulfilled only within 30 days: requests[rid].status == "fulfilled" implies now - requests[rid].received < 30 days
+    # gdp: law fulfilled only within 30 days: requests[rid].fulfilled implies now - requests[rid].received < 30 days
     # gdp: cite fulfilled only within 30 days: 45 CFR 164.524(b)(2): act on a request for access no later than 30 calendar days after its receipt
     def fulfill(self, rid: str) -> None:
         if rid not in self.requests:
             raise ValueError("no such request")
         r = self.requests[rid]
-        if r.status != "open":
+        if r.fulfilled or r.escalated:
             raise ValueError("closed")
         if int(time.time()) - r.received >= 2592000:
-            r.status = "escalated"
+            r.escalated = True
         else:
-            r.status = "fulfilled"
+            r.fulfilled = True
 `
 const hasPython = (() => { try { return spawnSync('python3', ['--version']).status === 0 } catch { return false } })()
 test.skipIf(!hasPython)('the CLI: laws about two runs, a deadline in days, its citation and certificate, in Python', async () => {
@@ -158,7 +158,7 @@ test.skipIf(!hasPython)('the CLI: laws about two runs, a deadline in days, its c
   expect(checkCertificate(fromInterchange(doc)).every(c => c.accepted)).toBe(true)
   expect(laws['one patient\'s requests never change another\'s']!.cert).toBeDefined()
   // a law over the diagnosis that it does reach: broken by two runs
-  writeFileSync(`${dir}/desk.py`, DESK.replace('Req(int(time.time()), "open")', 'Req(int(time.time()), "open" if diagnosis < 5 else "escalated")'))
+  writeFileSync(`${dir}/desk.py`, DESK.replace('Req(int(time.time()), False, False)', 'Req(int(time.time()), False, diagnosis >= 5)'))
   const r2 = await check([`${dir}/desk.py`], {ms: 10_000, propose: false})
   const leak = r2.rules[0]!.laws.find(l => l.name === 'the diagnosis stays private')!
   expect(leak.verdict).toBe('broken')
