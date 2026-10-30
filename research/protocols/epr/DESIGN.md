@@ -826,3 +826,59 @@ test asks that each cube be decided, a model or a proof.
 **Size** against 673a262: kernel/prove.ts +13,722 bytes, kernel/epr.ts +880, core/dsl.ts +298.
 
 **Spend:** about $2 of $7 (billed $1.32 by 23:00 UTC; the bars' estimates $0.61 and about $0.3).
+
+## gen/epr9: the theory of the order by the simplex, ring's cube decisions
+
+Branch gen/epr9 from gen/epr8's 9079b3d. Nothing trusted changed: a refutation is still the core's usual search, a
+model still judged on every hypothesis; the theory's lemmas are arithmetic facts, each refuted exactly before it is one.
+
+**The cause** (ring-set.json, one 5-key cube, 2,894 hypotheses, 793 theory comparisons over 53 ordered terms, most of
+them wrong-sort instances `idn(64·m + n)`): 115 to 263 DPLL(T) rounds, each a fresh search from the first choices, the
+joint check a Fourier–Motzkin solve over 1,311 rows for one lemma, the final check's elimination giving up on 450 rows.
+
+**The fix** (kernel/epr.ts):
+- **The joint and the final checks by the simplex** (kernel/simplex.ts, the CDCL search's, one tableau a goal, kept from
+  round to round): a conflict's rows are refuted exactly by core/solver.ts, and the literals that refutation reads are
+  the lemma. No answer: elimination over all the rows, the first time only (later ones it could blow up on, 60 s+).
+- **The final check's values** are the simplex's point where every term is a natural and every row holds exactly;
+  elimination's where the read-back breaks the hypotheses with them.
+- **Each pair's order rows made once** (the same objects every round, which the simplex knows its forms by).
+- **Phases kept:** the order's atoms and the theory's comparisons keep the last model's phase, so a lemma moves the next
+  model as little as it must. Other atoms (cells, finite values) still start at their least values.
+- **A model the read-back breaks** is decided once more without the other goals' cached lemmas, whose history chose it.
+  distributed's undecided cubes: 75 of 80 decided after the phase change, 80 of 80 with this.
+- **Tried, not kept:**
+  - a function's argument instantiated at parts only (0.4–0.8 s on the slow cubes), the full instances judged against
+    each model: it loses cube 7's proof, which needs model rounds over composed keys;
+  - more than eight joint lemmas a round (one cube faster, another past 30 s);
+  - the single checks' feasibility shared across goals by atom names (the keys cost more than they save).
+
+**Measured** (one cube's goal, decided alone, laptop): 11.7 s (gen/epr8's start) → 8.4 (the single checks cached) →
+4.2 (the simplex) → 3.0 (pair rows once) → 0.97 (phases, the final check by the simplex). The ring-set cubes within an
+8 s budget, model rounds and all:
+
+| | laptop | Modal |
+| --- | --- | --- |
+| gen/epr8 | 0.1–2.1 s, three past 8 s | |
+| gen/epr9 | 0.1–1.6 s, cube 12 2.6 s (four model rounds of 0.5 s) | 0.3–3.7 s, cube 12 6.8 s; 10 of 17 under 1.5 s |
+
+ring-cubes.json's 35 cubes: 0.1–0.5 s each on Modal. So the target, about 1 s a cube on Modal, is met for most cubes but
+not for the 4- and 5-key ones of ring-set (1.5–3.7 s) or cube 12.
+
+**Z3 4.13** (Modal, `runs/epr9/p4`): every step goal decided on all four ring fixtures (ring-set, ring-cubes,
+ring-undecided, ring.json): 65 of 65 agree. (On f327f83, one unsat of ours was a Z3 timeout at 60 s, not a disagreement.)
+
+**Deadline test** (Modal): 17 of 17.
+
+**The pilot** (all ten, two runs at 60 s, 673a262's stage with proveSetFast.patch): the same seven proven (sync 10–11 s,
+async 20–24, decentralized 17, 2PC 18–19, ticket 27–29, toy 14–15, sharded KV 26–36); distributed, ring and wo unknown.
+Ring's set proofs now cost 1.2–7.7 s (16 s on gen/epr8's pilot), and round 0 leaves 4 unsure (11 before), but its sets
+still fail at the own-id laws ("own id home means everywhere" and the leader's), which need support the set lacks.
+
+**1 vCPU** (`bun bar --cand f327f83 --base 673a262 --only onecpu`, 10 runs a side,
+`runs/bar/runs/f327f83ed8f2-vs-673a262e6b49-full-2026-10-292351`): no job failed; the four-value join 5,750 ms median
+against 5,660 (most 7,580 against 7,559). The 7.2 s against 5.4 s of gen/epr8's bar was noise (its base was main).
+
+**Size:** kernel/epr.ts +3,668 bytes against gen/epr8.
+
+**Spend:** about $1.5 this round (the pilots, Z3 and the 1-vCPU A/B); about $3.5 over gen/epr8 and gen/epr9.
