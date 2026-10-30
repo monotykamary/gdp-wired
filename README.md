@@ -38,6 +38,66 @@ protocols, commerce, supply chains, games, education, healthcare, energy, networ
 governance, insurance, bookings, safety and IoT, mobility, media), each checked three ways: the kernel proves every law
 and refutes every broken variant, random runs of both runtimes agree, and Lean checks the trees.
 
+## First proof in your language
+
+The rules already in your code (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, C, C++, TypeScript, Effect) are read with
+nothing to write: the language, the class or functions, and what other code is answered or left out are inferred.
+
+```sh
+npx -p typescript -p gdp-wired gdp-wired check src/limiter.py     # or a .rb .ex .java .kt .go .rs .c .cpp .ts file, a Go package, a crate
+```
+
+It prints the rule in the code's names, checks it against the code by running both, and proposes laws from the rule's
+own comparisons, each proven, broken (with the run, as calls of your code) or unknown, with the comment that states it.
+State a law with one comment over the code's names; on the line above a method it is a law of that method's step:
+
+```python
+class Limiter:
+    def __init__(self, limit: int):
+        self.limit, self.used = limit, 0
+
+    # gdp: law a counted hit adds its cost: result implies used == old(used) + cost
+    # gdp: law used never passes the limit: used <= limit
+    def hit(self, cost: int) -> bool:
+        if cost <= 0 or self.used + cost > self.limit:
+            return False
+        self.used += cost
+        return True
+```
+
+```
+limiter.py: Limiter (Python)
+  checked against the code: 2154 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 3 of 3 branch arms
+  the entry inferred: Limiter, the class whose public methods write its state (hit; the others read it)
+  names (the code's, then the rule's):
+    limit         state     limit_
+    used          state     used
+    limit         made with limit
+    hit(cost)     request   cost
+    hit() result  result    hit_result
+  laws stated in the code:
+    proven   a counted hit adds its cost  (limiter.py:5)
+    broken   used never passes the limit  (limiter.py:6)
+             used <= limit
+             run: made with limit = -3
+                  hit(cost=-3)
+  laws proposed (nothing written; state one with the comment under it):
+    proven   used is never negative
+             # gdp: law used is never negative: used >= 0
+    ...
+```
+
+`//` in Go, Rust, C, C++, Java, Kotlin and TypeScript; `@GdpLaw("<name>: <expr>")` on a Java or Kotlin method (with
+the annotation declared in your code), `@gdp_law("...")` in Python, `@gdp_law "..."` in Elixir, `#[doc = "gdp: law
+..."]` in Rust. The expression: comparisons, `+ - * k`, `and or not implies`, the state after the step by its fields
+(`self.`, `this.`, `@` or bare; `after.x`), `old(x)` or `before.x` before it, the request's arguments by name,
+`result`, `failed`, a call of other code answered by the request as `f(...)`, `x is None`, maps as the code reads them
+(`counts[user]`, `user in counts`, `cache["rl:" + user]`), `forall k in m: ...`, a choice by its value (`mode ==
+"closed"`). Anything else is refused with why, never dropped. Modelling choices a rule needs (`failures = "kept"` for
+laws about when it raises, a store's attributes, an untyped result) go in a `gdp.toml` beside the code (or `[tool.gdp]`
+in pyproject.toml, `"gdp"` in package.json), per rule under `[rules.<name>]`. The exit code is 1 when a stated law is
+broken, 2 when one couldn't be checked: `uses: monotykamary/gdp-wired@main` with `paths:` runs it in CI.
+
 ## Where it fits
 
 <img src="https://raw.githubusercontent.com/monotykamary/gdp-wired/main/static/venn.svg" alt="What Lean, Bend and gdp-wired each cover, and where they overlap" width="640" />

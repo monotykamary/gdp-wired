@@ -1560,8 +1560,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   get name() { return this.spec.name }
   // For core/discover.ts: the functions and carried lists the rule reads, and the same rule with functions made again
   // and lemmas added to its lists' folds (each proven here, as carriesList proves its own).
-  get parts(): {params: [string, Kind<unknown>][], fns: [string, FnDef][], lists: [string, Kind<unknown>, Record<string, ListFold<unknown>>, Record<string, ListLemma>][]} {
-    return {params: this.spec.params, fns: this.spec.fns ?? [], lists: this.spec.lists2 ?? []}
+  get parts(): {params: [string, Kind<unknown>][], inputs: [string, Kind<unknown>][], fns: [string, FnDef][], lists: [string, Kind<unknown>, Record<string, ListFold<unknown>>, Record<string, ListLemma>][]} {
+    return {params: this.spec.params, inputs: this.spec.inputs, fns: this.spec.fns ?? [], lists: this.spec.lists2 ?? []}
   }
   withParts(fns: Record<string, FnDef>, listLemmas: Record<string, Record<string, ListLemma>> = {}): this {
     const lists = (this.spec.lists2 ?? []).map(([n, k, fs, ls]) => [n, k, fs, {...ls, ...(listLemmas[n] ?? {})}] as [string, Kind<unknown>, Record<string, ListFold<unknown>>, Record<string, ListLemma>])

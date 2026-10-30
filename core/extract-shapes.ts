@@ -415,7 +415,7 @@ function readFunctionsOnce(code: string, file: string, opts: ReadOptions): Model
     } else { const [v, q] = ex.ev(f.body as ts.Expression, p); returned = [[q, v]] }
     for (const [rp, rv] of returned) outs.push([rp, materialize(ex, rv, layout, rp, f)])
     throws.push(refusalOf(ex))
-    for (const c of combos) events.push({select: c.select, call: names[i]!, args: c.args})
+    for (const c of combos) events.push({select: c.select, call: names[i]!, args: c.args, names: f.parameters.map(x => x.name.getText())})
   })
   // An untyped record's discriminant, chosen by name now that the variable is made.
   for (const e of events) for (const [k, value] of Object.entries(e.select)) if (k.startsWith('$lazy:')) {
@@ -795,7 +795,7 @@ function attempt(code: string, file: string, opts: ReadOptions, written: Set<str
       return [rp, sv]
     })
     perMethod.push({sel, sv: joinAll(ex, outs, m), refuse: refusalOf(ex)})
-    events.push({select: {[ev.name]: name}, call: name, args})
+    events.push({select: {[ev.name]: name}, call: name, args, names: m.parameters.map(x => x.name.getText())})
   }
   // The methods together: each variable by the method called.
   let final = perMethod.at(-1)!.sv
@@ -993,7 +993,7 @@ function factoryAttempt(code: string, file: string, opts: ReadOptions, written: 
       return [rp, sv]
     })
     perMethod.push({sel, sv: joinAll(ex, outs, f.decl), refuse: refusalOf(ex)})
-    events.push({select: {[ev.name]: f.name}, call: f.name, args})
+    events.push({select: {[ev.name]: f.name}, call: f.name, args, names: f.decl.parameters.map(x => x.name.getText())})
   }
   let final = perMethod.at(-1)!.sv
   for (let i = perMethod.length - 2; i >= 0; i--) final = mergeVals(ex0, perMethod[i]!.sel, perMethod[i]!.sv, final, fn)

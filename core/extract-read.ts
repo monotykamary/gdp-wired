@@ -31,7 +31,8 @@ export type Layout = {k: 'scalar', name: string} | {k: 'rec', fields: [string, L
 export type Term = {s: 'num', e: N} | {s: 'bool', e: B} | {s: 'choice', e: L} | {s: 'str', e: K}
 // How a request is made of the code: the call, and its arguments built from the rule's inputs.
 export type Arg = {k: 'input', name: string} | {k: 'lit', value: string} | {k: 'rec', fields: [string, Arg][]} | {k: 'state'} | {k: 'lazy', prefix: string}
-export type Event = {select: Record<string, string>, call: string, args: Arg[]}
+// (names: the code's own name of each argument, for a law written over them)
+export type Event = {select: Record<string, string>, call: string, args: Arg[], names?: string[]}
 export type MapWrite = {key: K, has: B, vals: Record<string, Term>}
 // A list's write in a step (at most one, by cases): an item pushed, the last popped, or the item at i set (i within it).
 export type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: V, when: B}

@@ -30,7 +30,7 @@ import {stubbed} from './extract-step.ts'
 import type {Rule} from './dsl.ts'
 import type {Sorts} from './extract-print.ts'
 import type {Coverage} from './extract-check.ts'
-import {type GoOptions, type GoPkg, type GoRead, readGo, unsignedDomains} from './extract-go.ts'
+import {type GoOptions, type GoPkg, type GoRead, goNames, readGo, unsignedDomains} from './extract-go.ts'
 import {type GoCheckOptions, type GoEvidence, type GoLeaf, speak} from './extract-go-check.ts'
 import {type CRead, clangDump, flagsFor, node, readC} from './c/reader.ts'
 
@@ -77,7 +77,7 @@ export function extractC(file: string, opts: COptions, cpp = false): Extraction 
   for (const [n, d] of Object.entries(opts.domains ?? {})) if (d === 'nat') read.model.laws = read.model.laws?.map(l => (l.includes(`"${n} within its type's range"`) ? l.replace(/\.atLeast\(-\d+\)/, '.atLeast(0)') : l))
   if (!opts.entry) read.model.notes.unshift(`the entry inferred: ${c.entry}, the struct the file's functions write`)
   const x = fromModel(read.model, `${c.entry}.${cpp ? 'cpp' : 'c'}`, {...unsignedDomains(read), ...signedDomains(c.pkg, read), ...opts.domains}, notes, (rule, sorts) => checkC(file, flags, c, read, rule, sorts, opts, cpp))
-  return {...x, leaves: read.leaves}
+  return {...x, leaves: read.leaves, names: goNames(read)}
 }
 
 // A signed field (and a signed result) is an integer, never inferred a natural: its range law reads below 0.

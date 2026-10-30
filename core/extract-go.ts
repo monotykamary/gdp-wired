@@ -37,7 +37,7 @@
 import * as I from './extract-ir.ts'
 import type {B, K, N} from './extract-ir.ts'
 import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var} from './extract-read.ts'
-import {type Extraction, fromModel} from './extract.ts'
+import {type Extraction, type Name, fromModel} from './extract.ts'
 import {type Answer, type Inferred, type IntTy, type Recipe, type SType, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, iteTerm, mapWritesOf, phiP, rangeLaws, rangeOf, varTerm} from './extract-step.ts'
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
 
@@ -845,7 +845,8 @@ export function readerBinary(): string {
 }
 export function readGoPackage(dir: string): GoPkg {
   const cp = node<ChildProcess>('node:child_process')
-  return JSON.parse(cp.execFileSync(readerBinary(), [dir], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']})) as GoPkg
+  try { return JSON.parse(cp.execFileSync(readerBinary(), [dir], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']})) as GoPkg }
+  catch (e) { throw new Refusal(dir, `the Go reader didn't run (${String((e as {stderr?: string}).stderr || (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): go is needed to extract Go`) }
 }
 
 // --- the front end ---------------------------------------------------------------------------------------------------
@@ -866,7 +867,31 @@ export function extractGo(dir: string, opts: GoOptions): GoExtraction {
   const file = `${read.entry}.go`
   const x = fromModel(read.model, file, {...unsignedDomains(read), ...opts.domains}, notes, (rule, sorts) => checkGo(dir, pkg, read, rule, sorts, opts))
   snapshot(opts, x)
-  return {...x, leaves: read.leaves}
+  return {...x, leaves: read.leaves, names: goNames(read)}
+}
+// The names of a Go (or C, C++) reading: each leaf of the state by its path (a nil one's flag beside it), the
+// constructor's and each method's arguments, each answer by its callee's name, each method's result.
+export function goNames(read: GoRead): Name[] {
+  const out: Name[] = [], m = read.model
+  for (const l of read.leaves) {
+    const code = l.path.join('.')
+    if (l.kind === 'map') out.push({code, rule: l.name, role: 'state', map: {fields: m.maps.find(d => d.name === l.name)?.fields.map(f => f.name) ?? []}})
+    else if (l.kind === 'bignil' || l.kind === 'mapnil') { const n = out.find(x => x.code === code && x.role === 'state'); if (n) n.none = l.name; else out.push({code, rule: '', role: 'state', none: l.name}) }
+    else if (l.kind === 'int' || l.kind === 'bool' || l.kind === 'str' || l.kind === 'big') out.push({code, rule: l.name, role: 'state'})
+  }
+  const arg = (a: Arg, code: string, role: 'param' | 'input', method?: string) => {
+    if (a.k === 'input') out.push({code, rule: a.name, role, ...(method ? {method} : {})})
+    else if (a.k === 'rec') for (const [f, x] of a.fields) arg(x, `${code}.${f}`, role, method)
+  }
+  for (const c of read.ctor ?? []) arg(c.arg, c.name, 'param')
+  for (const mt of read.methods) for (const pa of mt.params) arg(pa.arg, pa.name, 'input', mt.name)
+  for (const a of read.answers ?? []) out.push({code: a.key, rule: a.inputs.name, role: 'answer', ...(a.inputs.none ? {none: a.inputs.none} : {})})
+  for (const [method, r] of Object.entries(m.results ?? {})) {
+    if (r.k === 'scalar') out.push({code: 'result', rule: r.name, role: 'result', method})
+    else if (r.k === 'rec') for (const [f, n] of r.fields) out.push({code: f === 'result' ? 'result' : f, rule: n, role: 'result', method})
+  }
+  if (m.event) out.push({code: 'method', rule: m.event, role: 'method'})
+  return out
 }
 // (gen/go-shared: each extraction's rule, notes and refusals appended to $GDP_GO_SNAPSHOT, to compare the Go front end
 // before and after it moves onto the shared executor)

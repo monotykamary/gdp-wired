@@ -1,0 +1,15 @@
+# LiteLLM's modelling choices, beside its code: every failure kept (the laws are about when a check raises), the
+# limiters' hook the request with Redis off (the in-memory path every limiter falls back to), and the router's policy
+# lookup's result, which the code doesn't declare.
+failures = "kept"
+
+[rules._PROXY_MaxIterationsHandler]
+methods = ["async_pre_call_hook"]
+stores.internal_usage_cache.attrs = {"dual_cache.redis_cache" = "None"}
+
+[rules._PROXY_MaxBudgetPerSessionHandler]
+methods = ["async_pre_call_hook"]
+stores.internal_usage_cache.attrs = {"dual_cache.redis_cache" = "None"}
+
+[rules.should_cooldown_based_on_allowed_fails_policy]
+answers = {get_allowed_fails_from_policy = "int | None"}

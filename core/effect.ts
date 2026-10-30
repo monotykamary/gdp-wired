@@ -20,7 +20,7 @@ import {allowed} from './watch.ts'
 import * as I from './extract-ir.ts'
 import {type Exec, type Path, Refusal, type Setup, type V, bare as strip, impure, memberName, placed, refuse, shapeOf, text} from './extract-read.ts'
 import {type FactoryOf, readFactory} from './extract-shapes.ts'
-import {type ExtractOptions, type Extraction, fromModel} from './extract.ts'
+import {type ExtractOptions, type Extraction, fromModel, namesOf} from './extract.ts'
 import {check} from './extract-check.ts'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -306,7 +306,7 @@ export function extractEffect(code: string, opts: EffectOptions): Extraction {
   }
   // The modules the code imports, by specifier (effect, effect/<Module>), and the check's runner.
   const model = m, modules = {effect: E, ...Object.fromEntries(Object.entries(E).map(([k, x]) => [`effect/${k}`, x])), 'gdp-wired:effect': runner(E), ...opts.modules}
-  return fromModel(model, file, opts.domains, [], (rule, sorts) => check(code, file, model, rule, sorts, {...opts.check, modules, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})}))
+  return {...fromModel(model, file, opts.domains, [], (rule, sorts) => check(code, file, model, rule, sorts, {...opts.check, modules, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})), names: namesOf(model)}
 }
 
 // A rule written by hand beside a running service: `runs` runs of `depth` requests drawn by `draw` (the rule's inputs),

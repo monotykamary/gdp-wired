@@ -1,6 +1,6 @@
 ---
 name: gdp-wired
-description: Prove the laws of stateful rules in TypeScript with gdp-wired, an automatic prover (no proof to write, every proof checkable again in Lean). Use when adding, changing or reviewing a budget, cap, quota, rate limit, sliding window, workflow, ledger, access policy or any state machine whose invariants matter; when code imports from 'gdp-wired'; when an XState machine or an Effect service (Refs updated in Effect.gen) holds such a rule; when a gdp-ts trusted module's check (an authorization or entitlement policy) should be proven, not just trusted; when a law comes back refuted or unproven; or when deciding whether a claim belongs to gdp-wired, Lean or Bend.
+description: Prove the laws of stateful rules in TypeScript, or in Python, Ruby, Elixir, Java, Kotlin, Go, Rust, C or C++ code read as it ships (`npx gdp-wired check`, laws as `gdp: law` comments), with gdp-wired, an automatic prover (no proof to write, every proof checkable again in Lean). Use when adding, changing or reviewing a budget, cap, quota, rate limit, sliding window, workflow, ledger, access policy or any state machine whose invariants matter; when code imports from 'gdp-wired'; when an XState machine or an Effect service (Refs updated in Effect.gen) holds such a rule; when a gdp-ts trusted module's check (an authorization or entitlement policy) should be proven, not just trusted; when a law comes back refuted or unproven; or when deciding whether a claim belongs to gdp-wired, Lean or Bend.
 ---
 
 # gdp-wired
@@ -84,6 +84,19 @@ When adding or changing a rule whose invariants matter:
    give the rule the function with its facts, export with `toLean`
    ([Lean handoff](references/lean-handoff.md)). Don't approximate a
    recursive claim with a bounded one and call it proven.
+
+## Code in another language (or code that already ships)
+
+`npx -p typescript -p gdp-wired gdp-wired check <file|dir>` reads the rule from Python, Ruby, Elixir, Java, Kotlin,
+Go, Rust, C, C++, TypeScript or Effect with nothing configured, checks it against the code, prints its names in the
+code's terms and proposes laws (each proven, broken with a run, or unknown, with the comment that states it). State a
+law with one comment in the code's language, over the code's names: `# gdp: law <name>: <expr>` (`//` in the
+C-family, Go, Rust, JVM and TypeScript; `@GdpLaw("...")`, `@gdp_law(...)`, `#[doc = "gdp: law ..."]` too). On the
+line above a method it is a law of that method's step: fields are the state after, `old(x)` before, arguments by
+name, `result`, `failed`, `f(...)` an answered call; elsewhere it holds in every state. Modelling choices
+(`failures = "kept"`, a store's attrs, an untyped result's type) go in `gdp.toml` under `[rules.<name>]`. Exit 1 is
+a broken law, 2 one not checked: run it in CI (`uses: monotykamary/gdp-wired@main`). A refusal names the tag or
+option that fixes it; read it before changing the code.
 
 ## References
 
