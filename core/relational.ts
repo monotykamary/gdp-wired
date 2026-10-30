@@ -160,7 +160,7 @@ function guarded(sd: Side, key: string, w: unknown, go: Cond): unknown {
 
 // A law about two runs: the rule built, the laws (invariants) and step laws that state it, and laws that may help prove
 // it (each equal in both runs: proveTwoRuns keeps those that hold together with it, Houdini's way).
-export type TwoRunLaw = {name: string, rule: AnyRule, laws: Law[], stepLaws: StepLaw[], helpers: Law[], sides: [AnyRule, AnyRule], shared: string[], cites?: string[]}
+export type TwoRunLaw = {name: string, rule: AnyRule, laws: Law[], stepLaws: StepLaw[], helpers: Law[], sides: [AnyRule, AnyRule], shared: string[]}
 type View = {scalars: string[], maps: string[]}
 // What a run's state holds by name: its scalars (state and kinded values) and maps (plain or of a kind).
 function stateNames(s: Spec): View {
@@ -204,9 +204,8 @@ export function noninterference(r: AnyRule, o: {secret: string[], visible?: stri
 
 // Tenant isolation: what the tenant `B` sees is the same whatever the others do. A request is B's where its owner (an
 // input, a string's id or a natural) is B (a new param, `tenant`), or where `owner(env, B)` holds; run a takes every
-// request, run b only B's. B sees the
-// cells of `sees` (maps keyed by the owner) at B, the scalars of `results` after each of B's requests, and whether
-// B's requests are refused. `sees` defaults to every map, `results` to none.
+// request, run b only B's. B sees the cells of `sees` (maps keyed by the owner) at B, the scalars of `results` after
+// each of B's requests, and whether B's requests are refused. `sees` defaults to every map, `results` to none.
 export function isolation(r: AnyRule, o: {owner: string | ((env: Env, tenant: Term) => Cond), sees?: string[], results?: string[], tenant?: string, name?: string, refusals?: 'same' | 'assumed'}): TwoRunLaw {
   const s = specOf(r), vw = stateNames(s), tenant = o.tenant ?? 'tenant'
   if (typeof o.owner === 'string' && !s.inputs.some(([n]) => n === o.owner)) throw new Error(`isolation: ${o.owner} isn't an input of ${s.name}`)
