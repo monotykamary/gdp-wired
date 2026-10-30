@@ -1,0 +1,2 @@
+[{"name": "dl-capture", "cmd": "GDP_ENGINE_CAPTURE=1 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only distributed_lock --skip given,broken 2>/tmp/e.log | cut -c1-200; grep '^CAPTURE' /tmp/e.log | tail -1 | sed 's/^CAPTURE //'", "timeout": 130},
+ {"name": "ring-capture", "cmd": "GDP_ENGINE_CAPTURE=1 timeout -s KILL 90 bun research/protocols/run.ts --ms 60000 --only ring_leader_election --skip given,broken 2>/tmp/e.log | cut -c1-200; grep '^CAPTURE' /tmp/e.log | tail -1 | sed 's/^CAPTURE //'", "timeout": 130}]
