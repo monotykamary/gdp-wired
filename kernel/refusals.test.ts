@@ -143,7 +143,7 @@ test('no float is rounded: a true hypothesis past 2^53 is not refuted, nor a cer
   const back: Goal = {name: 'back', hyps: [le(n(Number.MAX_SAFE_INTEGER - 8), {op: 'sub', a: plus(plus(big, one), one), b: n(10)})]}
   expect(check(back, {leaf: [{kind: 'input', index: 0}]})).toBe(false)
   // x <= 1 and 1 <= x hold at x = 1; multipliers past a safe integer are refused in the integers as in the rationals.
-  const rows = [{lin: {x: 1, 1: -1}}, {lin: {x: -1, 1: 1}}]
+  const rows = [{lin: {x: 1, 1: -1}, label: ''}, {lin: {x: -1, 1: 1}, label: ''}]
   expect(checkRefutation(rows, [{kind: 'input', index: 0}, {kind: 'input', index: 1}, {kind: 'combine', a: 0, b: 1, ma: 2 ** 60, mb: 2 ** 60 + 2 ** 8}])).toBe(false)
-  expect(checkRefutation([{lin: {1: 2 ** 60}}], [{kind: 'input', index: 0}])).toBe(false)
+  expect(checkRefutation([{lin: {1: 2 ** 60}, label: ''}], [{kind: 'input', index: 0}])).toBe(false)
 })
