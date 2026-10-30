@@ -5,6 +5,13 @@
 // (core/dsl.ts) through the extraction's names (Extraction.names: each rule variable's path in the code), never guessed:
 // a name the code doesn't have is refused with the names it has.
 //
+// The law's view of a step, the same in every language (and what a typed law could target later): the state after the
+// step by its fields (or after.x), the state before it as old(x) or before.x, the request's arguments by name, `result`
+// (the method's) and `failed` (with failures: 'kept'), the constructor's arguments (params) where no field shadows them,
+// an answered call as f(...). A law that reads only the state, placed outside any method, holds in every state; any other
+// is a law of one step (of the method it is written on). Anything else is refused with why, never dropped, and a law is
+// known by its name: two of one name in a rule are refused.
+//
 //   x <= cap and not failed            comparisons (< <= > >= == !=), + − and × a constant, // and % by one, and or not
 //   failed implies spend >= budget     implies (=>), parentheses, min max abs, true false None (nil, null)
 //   self.tokens <= self.capacity       the state by its fields (self., this., @ or a receiver's name, or bare)
@@ -28,7 +35,7 @@ export class LawError extends Error {}
 // --- reading the code's text -------------------------------------------------------------------------------------------
 // Every law stated in a file's text, with its line.
 const FORMS = [
-  /(?:#|\/\/|--|%|\/\*|^\s*\*)\s*gdp:\s*law\s+([^:]+?)\s*:\s*(.+?)\s*(?:\*\/)?\s*$/,
+  /(?:#|\/\/|--|%|\/\*|^\s*\*)\s*gdp:\s*law\s+([^:]+?)\s*(?::\s*(.+?))?\s*(?:\*\/)?\s*$/,
   /@(?:GdpLaw|gdp\.law|gdp_law)\s*\(?\s*(?:value\s*=\s*)?"((?:[^"\\]|\\.)*)"/,
   /#\[doc\s*=\s*"\s*gdp:\s*law\s+((?:[^"\\]|\\.)*)"\s*\]/,
   /@(?:GdpLaw|gdp\.law|gdp_law)\s*\(?\s*'((?:[^'\\]|\\.)*)'/,
@@ -39,9 +46,9 @@ export function lawsIn(text: string, where = ''): LawText[] {
     for (const [k, re] of FORMS.entries()) {
       const m = re.exec(l)
       if (!m) continue
-      const body = k === 0 ? `${m[1]}: ${m[2]}` : m[1]!.replace(/\\(.)/g, '$1').replace(/^\s*gdp:\s*law\s+/, '')
+      const body = k === 0 ? (m[2] ? `${m[1]}: ${m[2]}` : m[1]!) : m[1]!.replace(/\\(.)/g, '$1').replace(/^\s*gdp:\s*law\s+/, '')
       const c = body.indexOf(':')
-      if (c > 0) out.push({name: body.slice(0, c).trim(), expr: body.slice(c + 1).trim(), where: `${where}:${i + 1}`, line: i + 1})
+      out.push(c > 0 ? {name: body.slice(0, c).trim(), expr: body.slice(c + 1).trim(), where: `${where}:${i + 1}`, line: i + 1} : {name: body.trim(), expr: '', where: `${where}:${i + 1}`, line: i + 1})
       break
     }
   })
@@ -49,13 +56,13 @@ export function lawsIn(text: string, where = ''): LawText[] {
 }
 
 // --- the expression's syntax ---------------------------------------------------------------------------------------------
-type Seg = {f: string} | {i: X} | {call: true}
+type Seg = {f: string} | {i: X} | {call: true, args?: string}
 type X = {k: 'num', v: number} | {k: 'str', v: string, holes?: X[], parts?: string[]} | {k: 'bool', v: boolean} | {k: 'null'}
   | {k: 'path', head: string, segs: Seg[]} | {k: 'un', op: '-' | 'not', x: X}
   | {k: 'bin', op: string, a: X, b: X} | {k: 'old', x: X} | {k: 'fn', f: string, xs: X[]} | {k: 'forall', v: string, over: X, body: X}
-const WORDS: Record<string, string> = {and: '&&', or: '||', not: '!', implies: '=>', '∧': '&&', '∨': '||', '¬': '!', '→': '=>', '==>': '=>', '≤': '<=', '≥': '>=', '≠': '!=', '∀': 'forall', AND: '&&', OR: '||', NOT: '!'}
+const WORDS: Record<string, string> = {'->': '.', '::': '.', and: '&&', or: '||', not: '!', implies: '=>', '∧': '&&', '∨': '||', '¬': '!', '→': '=>', '==>': '=>', '≤': '<=', '≥': '>=', '≠': '!=', '∀': 'forall', AND: '&&', OR: '||', NOT: '!'}
 function tokens(s: string): string[] {
-  const out: string[] = [], re = /\s*(f?"(?:[^"\\]|\\.)*"|f?'(?:[^'\\]|\\.)*'|`[^`]*`|\d+(?:\.\d+)?|@?[A-Za-z_][\w?]*|==>|=>|<=|>=|==|!=|&&|\|\||\/\/|[-+*%/<>()[\],.:!∧∨¬→≤≥≠∀])/y
+  const out: string[] = [], re = /\s*(f?"(?:[^"\\]|\\.)*"|f?'(?:[^'\\]|\\.)*'|`[^`]*`|\d+(?:\.\d+)?|@?[A-Za-z_][\w?]*|->|::|==>|=>|<=|>=|==|!=|&&|\|\||\/\/|[-+*%/<>()[\],.:!∧∨¬→≤≥≠∀])/y
   let m: RegExpExecArray | null, at = 0
   while ((m = re.exec(s))) { out.push(WORDS[m[1]!] ?? m[1]!); at = re.lastIndex }
   if (s.slice(at).trim()) throw new LawError(`can't read ${JSON.stringify(s.slice(at).trim())}`)
@@ -101,10 +108,16 @@ export function parse(s: string): X {
     for (;;) {
       if (peek() === '.') { eat(); p.segs.push({f: eat()}) }
       else if (peek() === '[') { eat(); p.segs.push({i: top()}); eat(']') }
-      else if (peek() === '(') { eat(); let d = 1; while (d && i < t.length) { const y = eat(); d += y === '(' ? 1 : y === ')' ? -1 : 0 } p.segs.push({call: true}) }
+      else if (peek() === '(') {
+        eat(); const from = i; let d = 1
+        while (d && i < t.length) { const y = eat(); d += y === '(' ? 1 : y === ')' ? -1 : 0 }
+        const inner = t.slice(from, i - 1).join('')
+        p.segs.push({call: true, ...(inner && inner !== '...' ? {args: inner} : {})})
+      }
       else break
     }
-    return p.head === 'before' && p.segs.length && 'f' in p.segs[0]! ? {k: 'old', x: {k: 'path', head: p.segs[0].f, segs: p.segs.slice(1)}} : p
+    if ((p.head === 'before' || p.head === 'after') && p.segs.length && 'f' in p.segs[0]!) { const q: X = {k: 'path', head: p.segs[0].f, segs: p.segs.slice(1)}; return p.head === 'before' ? {k: 'old', x: q} : q }
+    return p
   }
   // A string: a literal, or a template (f"rl:{k}", `rl:${k}`, "rl:#{k}") as its text and holes.
   const str = (x: string): X => {
@@ -130,6 +143,7 @@ type Ctx = {b: Record<string, unknown>, a: Record<string, unknown>, step: boolea
 export function buildLaw(x: Extraction, l: LawText): Built {
   const names = x.names ?? [], r = x.rule as unknown as {law: (n: string, f: (e: never) => unknown) => unknown, stepLaw: (n: string, f: (b: never, a: never) => unknown, w?: (b: never) => Cond) => unknown}
   if (!r) throw new LawError('the extraction has no rule')
+  if (!l.expr) throw new LawError(`${l.name}: a law is stated as <name>: <expr>`)
   const e = parse(l.expr)
   // A first reading finds what the law reads: a request, a result, the failure or the state before make it a step law.
   const probe: Ctx = {b: {}, a: {}, step: true, method: l.method, keys: new Map(), roles: new Set(), methods: new Set()}
@@ -258,6 +272,8 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
       const hit = find(code, names, c, explicit || hi > 0, next !== undefined && 'call' in next)
       if (hit) {
         c.roles.add(hit.role); if (hit.method) c.methods.add(hit.method)
+        // (an answered call is one value a step, whatever its arguments: written f(...) or f())
+        if (hit.role === 'answer' && next && 'call' in next && next.args) throw new LawError(`${code}(${next.args}): an answered call's value is the request's, one a step: write it ${code}(...)`)
         const segs = e.segs.slice(skip + n - 1 + (hit.role === 'answer' && next && 'call' in next ? 1 : 0))
         return rest(segs, hit.map ? {t: 'map', n: hit, maps: names.filter(x => x.map && x.code === hit.code)} : leaf(hit, c, dry), c, names, dry, e)
       }
@@ -273,6 +289,7 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
 // call (by its callee's last name), the rule's own name (as printed).
 function find(code: string, names: Name[], c: Ctx, stateOnly: boolean, called: boolean): Name | undefined {
   const last = (n: Name) => n.code.split('.').pop() === code.split('.').pop() && (code.split('.').length === 1 || n.code.endsWith(code))
+  const at = (n: Name) => n.code.replace(/^@/, '') === code
   const inputs = names.filter(n => n.role === 'input' && n.code === code)
   if (!stateOnly && !called && inputs.length) {
     const here = inputs.filter(n => n.method === c.method)
@@ -280,7 +297,7 @@ function find(code: string, names: Name[], c: Ctx, stateOnly: boolean, called: b
     if (new Set(inputs.map(n => n.method)).size === 1) return inputs[0]
     throw new LawError(`${code} is an argument of ${inputs.map(n => n.method).join(', ')}: write the law on the method it is about (the line above it), or as <method>.${code}`)
   }
-  return names.find(n => n.role === 'state' && n.code === code && !called)
+  return names.find(n => n.role === 'state' && at(n) && !called)
     ?? (stateOnly ? undefined : names.find(n => (n.role === 'param' || n.role === 'const' || n.role === 'clock') && n.code === code && !called))
     ?? names.find(n => n.role === 'answer' && last(n))
     ?? (stateOnly ? undefined : names.find(n => n.rule === code && !called))

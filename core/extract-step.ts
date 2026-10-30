@@ -447,7 +447,8 @@ export class Stepper {
     if (f.async && !awaited) return refuse(at, `${f.name}: a coroutine made and not awaited`)
     if (this.frames.includes(f.id)) return refuse(at, `${f.name}: a recursive call`)
     for (const d of f.decorators) {
-      if (['staticmethod', 'classmethod', 'property', 'override', 'typing.override', 'abstractmethod'].includes(d.name) || (this.inf && TAG_DECO.test(d.name))) continue
+      // (a law's decorator or annotation, @gdp_law("..."), states a law for core/laws.ts: nothing the method does)
+      if (['staticmethod', 'classmethod', 'property', 'override', 'typing.override', 'abstractmethod'].includes(d.name) || (this.inf && TAG_DECO.test(d.name)) || /(?:^|\.)gdp[._]?law$/i.test(d.name)) continue
       if (this.skipped([d.name, d.text])) this.notes.add(`@${d.text} on ${f.name}: taken as transparent (skip)`)
       else if (this.inf && this.tagAt(d.p)?.k !== 'strict') this.notes.add(`@${d.text} on ${f.name}: taken as transparent (inferred: the check runs the method as decorated)`)
       else refuse(d, `@${d.text}: a decorator (one of other code changes what the method does; skip it to take it as transparent)`)

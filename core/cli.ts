@@ -162,7 +162,9 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     const methods = new Set([...(x.names ?? []).filter(n => n.method).map(n => n.method!), ...(evSort?.k === 'choice' ? evSort.values : [])])
     const stated = mine.map(l => ({...l, ...(l.fn && methods.has(l.fn) ? {method: l.fn} : {})}))
     const proven: unknown[] = []
-    r.laws = stated.map(l => prove(x, l, o.ms, proven))
+    // (a law is known by its name: a name stated twice in one rule is refused, both times)
+    const twice = (l: LawText) => stated.filter(m => m.name === l.name).map(m => m.where)
+    r.laws = stated.map(l => (twice(l).length > 1 ? {name: l.name, expr: l.expr, where: l.where, verdict: 'not read' as const, why: `a law of this name is stated twice (${twice(l).join(', ')}): a law is known by its name`, ms: 0} : prove(x, l, o.ms, proven)))
     if (o.propose) { const p = propose(x, t.lang, o, proven, new Set(stated.map(l => l.expr.replace(/\s+/g, '')))); r.proposed = p.shown; r.brokenProposed = p.broken }
   }
   return outs
@@ -317,17 +319,18 @@ Reads the rule in each file (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, C, C+
 against the code by running both, proves the laws stated in the code (\`# gdp: law <name>: <expr>\`, \`// gdp: law ...\`,
 @GdpLaw("<name>: <expr>")) and proposes others. Exit code: 1 when a stated law is broken, 2 when one couldn't be checked.`
 
+// Every target's rules and their laws, and the exit code (1: a stated law broken; 2: one not checked).
+export async function check(targets: string[], given: Partial<Opts> = {}, each?: (r: RuleOut) => void): Promise<{rules: RuleOut[], exit: number}> {
+  const o: Opts = {ms: 10_000, propose: true, ...given}, all: RuleOut[] = []
+  for (const p of targets) for (const t of targetsOf(p)) { const rs = await checkTarget(t, o); all.push(...rs); if (each) rs.forEach(each) }
+  const stated = all.flatMap(r => r.laws)
+  return {rules: all, exit: stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') ? 2 : 0}
+}
 export async function main(argv: string[]): Promise<number> {
   const {cmd, targets, o} = args(argv)
   if (cmd !== 'check' || !targets.length) { out(USAGE); return cmd === 'help' || cmd === '--help' || cmd === '-h' || !cmd ? 0 : 2 }
-  const all: RuleOut[] = []
-  for (const p of targets) for (const t of targetsOf(p)) {
-    const rs = await checkTarget(t, o)
-    all.push(...rs)
-    if (!o.json) for (const r of rs) printRule(r, o)
-  }
+  const {rules: all, exit: code} = await check(targets, o, o.json ? undefined : r => printRule(r, o))
   const stated = all.flatMap(r => r.laws)
-  const code = stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') ? 2 : 0
   if (o.json) out(JSON.stringify({rules: all.map(({source: _s, ...r}) => r), exit: code}, null, 1))
   else if (stated.length) out(`${stated.filter(l => l.verdict === 'proven').length} of ${stated.length} stated laws proven, ${stated.filter(l => l.verdict === 'broken').length} broken, ${stated.filter(l => l.verdict === 'unknown').length} unknown, ${stated.filter(l => l.verdict === 'not read').length} not read`)
   return code
