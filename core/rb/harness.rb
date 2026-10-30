@@ -158,11 +158,13 @@ def hello(req)
     retry
   end
   S['cls'] = Object.const_get(req['cls'])
-  # (an answered call of another class's code: that class's method stubbed, the class made where a library is missing)
+  # (an answered call of another class's code: the stub prepended to that class's method, as the clock's is; the class
+  # made where a library is missing)
   S['answers'].each do |a|
     next unless (mod = a['patch']['mod'])
     c = mod.split('::').reject(&:empty?).reduce(Object) { |o, n| o.const_defined?(n, false) ? o.const_get(n, false) : o.const_set(n, Module.new) }
-    c.define_singleton_method(a['patch']['path'][-1], &stub(a['key']))
+    m, st = a['patch']['path'][-1], stub(a['key'])
+    c.singleton_class.prepend(Module.new { define_method(m, &st) })
   end
   {'ok' => true}
 end

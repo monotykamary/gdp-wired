@@ -118,7 +118,7 @@ export type Leaf = {t?: SType, name: string, path: string[], kind: 'num' | 'bool
 export type PArg = {k: 'in', name: string, float?: boolean, sym?: boolean, z?: Raw} | {k: 'opt', none: string, v: PArg} | {k: 'rec', cls: string, f: [string, PArg][]} | {k: 'inert'} | {k: 'store', name: string} | {k: 'dflt'}
 // (how: 'inferred' from the callee's declared type, or 'tagged' by a gdp: comment; stated where absent)
 // (at: the calls answered, each from its position to its end, `line:col`; ty: the call's type in the code's language)
-export type Answer = {key: string, patch: Patch, async: boolean, inputs: {name: string, none?: string, float?: boolean}, sort: string, how?: string, at?: {p: string, end?: string}[], ty?: string}
+export type Answer = {key: string, patch: Patch, async: boolean, inputs: {name: string, none?: string, float?: boolean}, sort: string, how?: string, at?: {p: string, end?: string, span?: [number, number]}[], ty?: string}
 // (inject: the fields the harness sets to the store it gives, after the constructor: a field injected by a framework)
 export type StepRead = {ints: Record<string, IntTy>, madeAt?: string, model: Model, leaves: Leaf[], args: Record<string, [string, PArg][]>, answers: Answer[], ctor: [string, PArg][], kept: boolean, arms: [string, number][], cls?: string, stores: Record<string, StoreDecl>, results: Record<string, 'none' | 'scalar' | 'maybe'>, inject?: string[]}
 
@@ -805,7 +805,7 @@ export class Stepper {
     if (p.called.includes(key)) return refuse(at, `${at.text}: ${key} called twice in one step (an answer is one a step)`)
     const q: Path = {...p, called: [...p.called, key]}
     // (where it is called: a compiled language's check stubs it there, its source rewritten)
-    const site = {p: at.p, ...(at.end ? {end: String(at.end)} : {})}
+    const site = {p: at.p, ...(at.end ? {end: String(at.end)} : {}), ...(at.span ? {span: at.span as [number, number]} : {})}
     let a = this.answers.get(key)
     const short = key.split(/\.|::/).pop()!
     if (!a) {
@@ -2194,9 +2194,10 @@ export function stubbed(read: StepRead, text: (file: string) => string | undefin
   const edits = new Map<string, [number, number, string][]>(), starts = new Map<string, number[]>()
   read.answers.forEach((a, i) => {
     for (const s of a.at ?? []) {
+      // (its place: offsets where the reader gives them, a JVM reader's; else from its position to its end)
       const m = /^(.*):(\d+):(\d+)$/.exec(s.p), e = s.end && /^(\d+):(\d+)$/.exec(s.end)
-      if (!m || !e) throw new Refusal(s.p, `${a.key}: an answered call whose end the reader doesn't give (the check can't stub it)`)
-      const from = lineCol(m[1]!, Number(m[2]), Number(m[3])), to = lineCol(m[1]!, Number(e[1]), Number(e[2]))
+      if (!m || (!e && !s.span)) throw new Refusal(s.p, `${a.key}: an answered call whose end the reader doesn't give (the check can't stub it)`)
+      const [from, to] = s.span ?? [lineCol(m[1]!, Number(m[2]), Number(m[3])), lineCol(m[1]!, Number(e![1]), Number(e![2]))]
       ;(edits.get(m[1]!) ?? edits.set(m[1]!, []).get(m[1]!)!).push([from, to, stub(a, i, (text(m[1]!) ?? '').slice(from, to))])
     }
   })
