@@ -139,9 +139,7 @@ const pastEnd = new Error('past the deadline')
 // The work the EPR path does, counted (each clause and hypothesis read, each literal the CDCL search propagates), and a
 // cap on it a caller sets (core/infer.ts's engine, per goal): past the cap the decision is unknown, at the same place on
 // any machine, where a wall-clock end stops it wherever the machine has got to. Untrusted: it only stops a search.
-export const eprMeter = {n: 0, p: 0}
-// (probe only: the last decision's encoding)
-export const decideInfo: {on?: boolean, sig?: string, ords?: number, clauses?: number, lazy?: boolean, built?: number} = {}
+export const eprMeter = {n: 0}
 let eprCap = Infinity
 export const pastEprCap = (): boolean => eprMeter.n > eprCap
 export function withEprCap<T>(units: number, f: () => T): T {
@@ -550,9 +548,8 @@ function encoder(st: State, patterns: Patterns): Enc {
   }
   // --- clauses (literals: +v / −v), each with the hypothesis it stands for, into the search at once
   const solver = cdclSolver(first, kept)
-  let nClauses = 0
   const add = (lits: number[], from: Origin) => {
-    tick(); nClauses++
+    tick()
     // (a short clause, the order's axioms' above all, without a Set: the same literals in the same order)
     if (lits.length <= 4) { const out: number[] = []; for (const l of lits) { if (out.includes(-l)) return; if (!out.includes(l)) out.push(l) } solver.add({lits: out, from}); return }
     const s = new Set(lits); for (const l of s) if (s.has(-l)) return; solver.add({lits: [...s], from})
@@ -677,7 +674,6 @@ function encoder(st: State, patterns: Patterns): Enc {
     close(gst)
     const theory = [...gOpq].flatMap(x => { const o = opqs.get(x)!; return !o.foreign && o.row ? [o.row] : [] })
     if (theory.length && !opts.fresh) seedLemmas()
-    if (decideInfo.on) { decideInfo.ords = gOrds.size; decideInfo.clauses = nClauses; decideInfo.lazy = lazy; decideInfo.built = eprMeter.n; decideInfo.sig = st.sig }
     // EPR-shaped: no comparison the abstraction can't read (a counter's arithmetic, a sum, a product) in any hypothesis
     if (opts.exact) { const loose = [...gOpq].filter(x => { const o = opqs.get(x)!; return o.foreign && !o.tied }).length; if (loose) return {unknown: `${loose} comparisons outside the EPR shape`} }
     // --- the search, the goal's hypotheses assumed
@@ -1042,7 +1038,7 @@ function cdclSolver(trueFirst: Set<number>, keepPhase: Set<number>): {solve: (bu
   const propagate = (): Cl | undefined => {
     while (qhead < trail.length) {
       const l = trail[qhead++]!, ws = wl(l)
-      eprMeter.n++; eprMeter.p++
+      eprMeter.n++
       for (let i = 0; i < ws.length; i++) {
         const c = ws[i]!
         if (c.lits[0] === -l) { c.lits[0] = c.lits[1]!; c.lits[1] = -l }

@@ -1598,7 +1598,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         // 0.8 s, 217k units), and an unknown one ran 13 s (wo's every k: Leader[k] <= VoteRequestMsg[k], 1.2M), the engine's
         // time; counted, where a wall used to end it, so the join ends where it ends on any machine)
         const jt0 = performance.now(), je0 = eprMeter.n, jf0 = fullWork(), follow = engineFollows()
-        const out = withEprCap(follow ? joinGrowMs * inferRates.epr : Infinity, () => withWork(follow ? fullWork() + joinGrowWork : Infinity, () => budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2}))))
+        const out = withEprCap(follow ? Number(env.GDP_JGE ?? joinGrowMs) * inferRates.epr : Infinity, () => withWork(follow ? fullWork() + Number(env.GDP_JGW ?? joinGrowWork) : Infinity, () => budgeted(joinQueryMs, until2 => grow(g!, new Map(), {nodes: 0, until: until2}))))
         if (env.GDP_JOIN_TRACE) process.stderr.write(`JASK ${JSON.stringify({g: g!.name.slice(0, 60), follows: engineFollows(), ms: Math.round(performance.now() - jt0), epr: eprMeter.n - je0, full: Math.round(fullWork() - jf0), out: 'tree' in out ? 'tree' : `${out.stuck}:${String(out.why ?? '').slice(0, 40)}`})}\n`)
         if (!('tree' in out)) return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined, g: g!}
         for (const h of usedHyps(g!, out.tree)) read(h)
