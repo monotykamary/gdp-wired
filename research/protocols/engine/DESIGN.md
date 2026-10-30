@@ -43,6 +43,124 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## Banked: the data filter and minimal implication ahead of the rounds, by default (gen/pool e353d4e; 8 of 10)
+
+**What changed** (core/infer.ts; `GDP_POOL=0` turns it off)
+- **The data filter runs on every enumeration.** It grows every sort by one, then each sort alone where there are
+  several.
+- **Its budget is its own:** at most 3 s and at most a tenth of what is left. Each instance gets half of its share for
+  its BFS, uncut; the rest goes to reading the instance's states against the cubes.
+- **Then minimal implication.** The rounds' `made` (round 0, blockers, relevance, the pool Houdini) is the filtered,
+  minimal pool.
+- **Taken out:** the top-down phase, the cone, `GDP_POOL_*`'s diagnostics, and decideLaw's `uses` (kernel/prove.ts is as
+  at ff60d1c). They are kept at db6c00f, where exp/pool-z3 starts.
+
+**All ten, twice at 60 s** (`runs/engine/pd2`, Modal 2 CPU; search ms; before is f9 and q15 at gen/enum4)
+
+| protocol | run 1 | run 2 | before | filter (made → left, states, ms) |
+|---|---|---|---|---|
+| sync | proven 8.9 s | proven 10.0 s | 8–10 s | (no engine) |
+| async | proven 22.7 s | proven 24.4 s | 24–25 s | (no engine) |
+| decentralized | proven 20.4 s | proven 16.7 s | 13–32 s | 17 → 17, 88 states, 47–58 ms |
+| 2PC | proven 18.7 s | proven 21.1 s | 18–20 s | (no engine) |
+| ticket | proven 30.8 s | proven 41.0 s | 25–45 s | (no engine) |
+| toy | proven 11.4 s | proven 14.9 s | 10–18 s | 10 → 10, 95 states, 0.3–0.5 s |
+| sharded | proven 27.1 s | proven 32.1 s | 25–44 s | 17 → 17, 150 states, 1.7 s |
+| **distributed** | **proven 35.5 s** | **proven 32.3 s** | unknown 63–65 s | 176 → 75, about 600 states, 1.3–1.5 s |
+| ring | unknown 60.0 s | unknown 59.8 s | unknown 60 s | 145 → 94, 217–237 states, 3.0 s (the cap) |
+| wo | unknown 69.0 s | unknown 65.5 s | unknown 63–68 s | 239 → 99, 412–442 states, 2.0–2.1 s |
+
+- **The seven stay proven** in both runs. Every time is within the spread recorded before.
+- **Distributed is proven in both runs** (and in pd1, the pilot).
+- **The filter can't push a run past the wall.** It costs at most its cap (ring 3.0 s, wo 2.1 s), which is a tenth of
+  what is left.
+- **wo's overrun (65–69 s)** is the EPR side's, recorded under f5 (64–66 s there).
+- **At 3 s, ring's filter leaves 94 cubes,** against 64 at 4 s an instance (pl4). Ring isn't proven either way.
+
+**The corpus** (`bun gates/bar.ts --quick --cand gen/pool --base 5d4da3f --only rw`, against the cached baseline
+5d4da3f49013-modal-r1; <main>/runs/bar/runs/pool-e353d4e-quick-rw/REPORT.md)
+- 74 proven, 14 refuted, 3 unknown on the 91-task dev set, as the base's three runs.
+- Gained 0, lost 0, wrong 0; predicted full-set delta 0.
+- Wall 208 s, estimated $0.05.
+- core/ and kernel/: 2,791,002 bytes against 2,672,441 (+118,561 since 5d4da3f).
+
+## The shrunk pool with Z3 as the oracle (exp/pool-z3: db6c00f plus exp/z3's 4689c8f and 10f5aba code; not for merging)
+
+**The test:** this branch's filtered, minimal pool (`GDP_POOL=ic3`, GROW 1, 2–4 s an instance) and exp/z3's oracle
+(`GDP_Z3=td` or `ic3`), on ring and wo.
+- `GDP_POOL_CMP` asks every top-down goal again with decideLaw (1 s) and prints each disagreement.
+- Runs: `runs/engine/pz1`, `pz2` in ../gdp-wired-poolz3, Modal 2 CPU, one run each.
+
+**The verdicts: still unknown, both protocols, both modes**
+
+| run | pool | what happened | verdict |
+|---|---|---|---|
+| ring, Z3 top-down, 60 s (pz1) | 44 | round 0: 0 dropped, 15 unknown at 1 s, 20 s; the caller is proven; `prove()` of the 44 fails at the caller's start (16 s) | unknown, 59.7 s |
+| ring, Z3 top-down, 300 s (pz2) | 44 | the same fixpoint; `prove()` at 44, 43, 42 cubes: 47 s, 28 s, 131 s, each failing (at two Leader/Pending cubes, then at a kind law's start) | unknown, 300 s |
+| ring, Z3 IC3, 60 s (pz2) | 44 | **all 5 probe-proven cubes in the set** by round 4 (30 cubes); Z3's set check unknown at a 3-key cube; the pool Houdini's proofs (3.2 s, 10.1 s) fail at junk | unknown, 60.0 s |
+| wo, Z3 top-down, 60 s (pz2) | 92 | rounds drop 31, 3, 0 (0 unknown; 15.5, 3.9, 2.6 s); fixpoint 58; "a leader has the voting quorum's votes" dropped; caller not proven | unknown, 64.1 s |
+| wo, Z3 top-down, 300 s, with the comparison (pz2) | 83 | 23, 4, 1, 0 dropped; fixpoint 55; caller not proven | unknown, 303 s |
+| wo, deep filter (GROW 3, 20 s an instance), 400 s (pz2) | 49 | 9 dropped, then none (3.0, 1.4 s); fixpoint 40 with all 5 picks; caller not proven; the IC3 rounds after it grow to 159 cubes | unknown, 404 s |
+| wo, Z3 IC3, 60 s (pz2) | (filtered) | **all 5 picks in the set** (77 cubes) with the ∃ ghost; Z3's set check: a model of "one leader @step" (it leaves the ∃ law out); the kernel's proof fails at the ∃ law's goal | unknown, 64.1 s |
+
+So the precondition for the record ("if they prove") is not met. The comparison was made anyway; it is what the
+next oracle must decide.
+
+**What Z3 decides that decideLaw leaves undecided** (top-down round goals, every cube's step with the whole pool
+assumed, each asked by both)
+
+| protocol, round | goals | both decide, agree | Z3 only | decideLaw only | neither | decideLaw's time when undecided |
+|---|---|---|---|---|---|---|
+| ring, round 0 | 44 | 1 | **28** (all proofs) | 0 | 15 | 1,000–1,140 ms: every one at its 1 s cap |
+| wo, rounds 0–3 | 83, 60, 56, 55 | 0 | **all** (round 0: 60 proofs, 23 models) | 0 | 0 | 237–1,263 ms (median 1,003): gives up early or at the cap, on every goal |
+
+No goal was decided differently by the two (0 "differ").
+
+**What kind each is**
+- **wo: request-carried sets with ∀ flags, on every goal.**
+  - The step reads a carried set Q, the request's quorum: `.carries('Q')`, with ∀k. Q[k] ≤ 1 in the assumption.
+  - Two ∀-quantified flags read it: `quorumVotes` and `votingQuorumVotes` (∀k. Q has k → Votes[src, k]).
+  - VotingQuorum is written at every key from Q.
+  - decideLaw decides none of wo's goals, the trivial ones included: "Leader ∧ started is 0" and "Voted is 0 ∧ VoteMsg
+    at x, x" are undecided in 0.25–1.2 s. So the cube isn't what blocks it; the step's shape is (a carried set under a ∀
+    flag, a write at every key).
+  - Z3 decides all 254 at 61 ms mean.
+- **ring: an injective function inside composed keys, an ordered sort, and a successor that wraps at a param.**
+  - Each of the 28 Z3-only goals reads `idn`, known only by its fact (injective), at a composed key: Pending[64·idn(x) +
+    y]. Or it orders node keys (x + 1 ≤ y ≤ z: the between turns), or both.
+  - The step's `next` is n + 1, else 0 at n + 1 = size: an ordered-sort successor that wraps at a parameter.
+  - decideLaw's EPR rounds run to the 1 s cap on all of them. Z3 (ordered sorts as a total order with ground
+    successors, radix keys as digits) proves them in 0.27 s mean.
+  - 15 goals are undecided by both at 1 s: the 3- and 4-key Pending/idn cubes.
+- **∀∃: wo's "the voting quorum has a member after init",** with its ghost witness.
+  - Neither oracle takes it. decideLaw's fast shape refuses "there exists". Z3's translator leaves ∃ goals and ∃ laws
+    to the kernel, so its set check finds a model of "one leader" without it.
+  - It is the law the caller's proof needs, and the one goal the IC3 run's kernel proof fails at.
+
+**What that says**
+- **The shrunk pool plus Z3 puts every target in the set:** ring in IC3, 5 of 5; wo in IC3 and in the deep top-down, 5
+  of 5. So the pool and the oracle together fix the navigation.
+- **What's left on each:**
+  - **ring:** the final proof of a 30–44-cube set (3–131 s, failing at junk that Z3 couldn't decide at 1 s). The cone
+    cut that proved distributed isn't in exp/z3's top-down; it needs Z3's proofs' cores, which Z3 doesn't return here.
+  - **wo:** the ∀∃ law, which no oracle decides. The caller's proof goes through the kernel's ∃ path (core/exists.ts)
+    alone.
+- **What our own procedure must decide** (not built this round):
+  1. steps that read a request-carried set under ∀-quantified flags, and write a map at every key (wo: every goal);
+  2. an injective function's values inside composed keys, with ordered sorts and a successor that wraps at a
+     parameter (ring: 28 goals at 1 s);
+  3. ∀∃ laws with a ghost witness: Z3 doesn't take them either, so this one is ours alone.
+  - And, besides the oracle: unsat cores from the oracle, so the fixpoint can be cut to its cone before `prove()`.
+
+**Verified and not**
+- **Verified:** the verdicts and counts above, one run each (Modal).
+- **Not verified:**
+  - second runs;
+  - Z3's models and proofs on these goals: untrusted, and no verdict here rests on them;
+  - whether the 15 goals neither decides at 1 s are decidable with more time.
+- **Spend for both parts:** $0.24 of Modal billed so far for this session's 15 apps (the 06:00 UTC hour is still being
+  billed); about $0.35 in all, against $3.
+
 ## The pool: data filter, minimal implication, top-down, cone (gen/pool from gen/enum4 ff60d1c; the hypothesis holds for distributed only)
 
 **The hypothesis tested:** DuoAI's pool is small because junk is killed by data before any solver call, and ours isn't:
@@ -160,9 +278,8 @@ and sharded are proven; distributed (64.8 s), ring (60.0 s) and wo (64.2 s) stay
 - **The hypothesis is confirmed as the cause of distributed's gap, and refuted as the whole gap.** Ring and wo need both:
   the small pool from here and an oracle that decides at about 40–100 laws.
 
-**Not wired in.** The condition was all three inside 60 s. One of the three is, so:
-- the engine's first phase is unchanged;
-- no ten-twice run and no corpus bar were made (no baseline was created).
+**Not wired in at db6c00f.** The condition was all three inside 60 s, and one of the three was. The filter and the
+minimal cut were then banked ahead of the IC3 rounds at the coordinator's request: see "Banked" above.
 
 **The exact next step**
 - **This branch's pool with exp/z3's oracle,** top-down and IC3: ring 42 and wo 57–104 cubes, where Z3 decided every
