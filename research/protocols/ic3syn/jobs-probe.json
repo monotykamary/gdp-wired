@@ -1,0 +1,12 @@
+[
+ {
+  "name": "firewall-probe",
+  "cmd": "mkdir -p /tmp/prof; timeout -s KILL 100 bun --cpu-prof --cpu-prof-dir=/tmp/prof research/protocols/ic3syn/probe.ts firewall 20000; s=$?; ls /tmp/prof; python3 research/protocols/engine/profwin.py /tmp/prof/*.cpuprofile 0 400 50; exit $s",
+  "timeout": 160
+ },
+ {
+  "name": "client_server_ae-probe",
+  "cmd": "mkdir -p /tmp/prof; timeout -s KILL 100 bun --cpu-prof --cpu-prof-dir=/tmp/prof research/protocols/ic3syn/probe.ts client_server_ae 20000; s=$?; ls /tmp/prof; python3 research/protocols/engine/profwin.py /tmp/prof/*.cpuprofile 0 400 50; exit $s",
+  "timeout": 160
+ }
+]

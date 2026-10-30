@@ -1,0 +1,12 @@
+[
+ {
+  "name": "firewall-diag",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 80 bun research/protocols/ic3syn/run.ts --ms 20000 --only firewall --skip broken 2>/tmp/err.log; s=$?; wc -l /tmp/err.log; cut -c1-240 /tmp/err.log | head -40; echo ...; cut -c1-240 /tmp/err.log | tail -40; exit $s",
+  "timeout": 140
+ },
+ {
+  "name": "client_server_ae-diag",
+  "cmd": "GDP_INFER_TRACE=2 timeout -s KILL 80 bun research/protocols/ic3syn/run.ts --ms 20000 --only client_server_ae --skip broken 2>/tmp/err.log; s=$?; wc -l /tmp/err.log; cut -c1-240 /tmp/err.log | head -40; echo ...; cut -c1-240 /tmp/err.log | tail -40; exit $s",
+  "timeout": 140
+ }
+]
