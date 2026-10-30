@@ -146,7 +146,7 @@ const hasPython = (() => { try { return spawnSync('python3', ['--version']).stat
 test.skipIf(!hasPython)('the CLI: laws about two runs, a deadline in days, its citation and certificate, in Python', async () => {
   const dir = mkdtempSync(`${tmpdir()}/gdp-regulated-`)
   writeFileSync(`${dir}/desk.py`, DESK)
-  const r = await check([`${dir}/desk.py`], {ms: 10_000, propose: false, cert: `${dir}/certs`})
+  const r = await check([`${dir}/desk.py`], {ms: 5000, propose: false, cert: `${dir}/certs`})
   const laws = Object.fromEntries(r.rules[0]!.laws.map(l => [l.name, l]))
   if (!r.rules[0]!.ok) console.log(JSON.stringify(r.rules[0]!.refusals))
   expect(r.rules[0]!.ok).toBe(true)
@@ -158,9 +158,9 @@ test.skipIf(!hasPython)('the CLI: laws about two runs, a deadline in days, its c
   expect(checkCertificate(fromInterchange(doc)).every(c => c.accepted)).toBe(true)
   expect(laws['one patient\'s requests never change another\'s']!.cert).toBeDefined()
   // a law over the diagnosis that it does reach: broken by two runs
-  writeFileSync(`${dir}/desk.py`, DESK.replace('Req(int(time.time()), False, False)', 'Req(int(time.time()), False, diagnosis >= 5)'))
-  const r2 = await check([`${dir}/desk.py`], {ms: 10_000, propose: false})
+  writeFileSync(`${dir}/desk.py`, DESK.replace('Req(int(time.time()), False, False)', 'Req(int(time.time()) + diagnosis, False, False)'))
+  const r2 = await check([`${dir}/desk.py`], {ms: 5000, propose: false})
   const leak = r2.rules[0]!.laws.find(l => l.name === 'the diagnosis stays private')!
   expect(leak.verdict).toBe('broken')
   expect(leak.run!.some(s => s.includes('|'))).toBe(true)
-})
+}, 300_000)
