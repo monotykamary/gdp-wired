@@ -546,9 +546,17 @@ the 4 that differ were refusals, 3 still refused (with the call that made the va
 and one now read (`context.WithTimeout`'s context and cancel, read by nothing the rule keeps). C and C++ stay as they
 were: their harness links only the file's own code, so a call of another file can't run as it is.
 
-**Bytes.** core/ and kernel/ in TypeScript, tests excluded, against 5ac6467: +31,337 (core/extract-step.ts +29,229, the
+**Bytes.** core/ and kernel/ in TypeScript, tests excluded, against 5ac6467: +31,432 (core/extract-step.ts +29,324, the
 inference itself: the boundary's decision, the state-reference and write tests, the tags, promotion, injected stores,
 the entry; core/extract-go.ts +1,407, its marks and loop; the front ends +701, most of it extract-py.ts's header). The
 readers in their own languages: +1,989 Python, +536 Ruby, +164 Elixir; the Python harness +371. The kernel is unchanged.
 
-**Bars.** BAR
+**Validation.** On Modal: LiteLLM stated and bare (one job, 365 s: the stated run reprints the committed rules, the
+bare run prints them byte for byte, every verdict the same); the Go, Rust and C tests (19, 3 and 10 pass); the Rust, C
+and C++, Ruby and Elixir corpus rules re-extracted byte for byte. Locally: the Python, Ruby and Elixir tests, Go's 119
+captured readings (research/langs/go-snapshot/diff.ts: 115 the same, the 4 above).
+
+**Bar** (quick, `--only rw,f1,f2,g332,suite,onecpu`, against the cached baseline of 5d4da3f, the nearest base with one:
+5ac6467 has none, and making it costs more than this task's budget; main's changes since were barred clean against it):
+f1 34 / 35 and f2 24 / 33 proven, rw 74 / 14 / 3, g332 332 of 332 with the same search, each 0 differing; the suite 230
+of 230 (the base's 227 jobs, 3 added since); onecpu no failure; $0.58 estimated.
