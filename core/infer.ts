@@ -35,7 +35,7 @@ import {quietly} from './cyclic.ts'
 import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
-import {clock, counted, decideLaw, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
+import {clock, counted, decideLaw, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
@@ -2389,7 +2389,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // and only the goals whose proofs read a dropped cube asked again; then the caller's goals, the cone (their support,
       // closed under each cube's; a cube with no known support asked with the cone alone, a model's pre-state bringing in
       // the fixpoint's cubes false there), and prove() of the cone. A fixpoint that doesn't prove leaves the rounds below.
-      if (env.GDP_TD === '1' && !stop()) withTrees(() => {
+      if (env.GDP_TD === '1' && !stop()) withTrees(() => withStrict(() => {
         const T0 = performance.now(), ph = (o: Record<string, unknown>) => opts.progress?.('join td', {...o, td: Math.round(performance.now() - T0), wall: Math.round(performance.now() - t0)})
         const by = minPool.by, q1 = Number(env.GDP_TD_Q1 ?? 250), q2 = Number(env.GDP_TD_Q2 ?? joinQueryMs / 8)
         ph({phase: 'start', made: made.length, before: Math.round(tEngine - t0)})
@@ -2464,7 +2464,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           if (!g) break
           cut = cut.filter(c => c !== g)
         }
-      })
+      }))
       for (let round = 0, over = false; !over && cubes.length && !stop(); round++) withTrees(() => {
         // (one cube once: a cube in the set is not pending, and a text in the set once)
         cubes = cubes.filter((g, i) => !atStart(g) && cubes.findIndex(h => textOf(h) === textOf(g)) === i)

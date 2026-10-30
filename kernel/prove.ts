@@ -1644,7 +1644,10 @@ const sortedOn = env.GDP_SORTED !== '0'
 // decideLaw's models confirmed only (GDP_STRICT=1; off by default: decentralized lock's rounds then lean on the proof
 // path where an unconfirmed model used to answer, 27-36 s against 13-17 s): a model is returned where no assumed law is
 // broken at it over its own domain, else nothing (research/protocols/engine/DESIGN.md, gen/ring)
-const strict = (usual: boolean) => !usual && env.GDP_STRICT === '1'
+let strictOn = false
+const strict = (usual: boolean) => !usual && (strictOn || env.GDP_STRICT === '1')
+// (strict models for a caller's own decisions: the engine's top-down phase, whose drops an unconfirmed model would make wrong)
+export const withStrict = <T>(f: () => T): T => { const o = strictOn; strictOn = true; try { return f() } finally { strictOn = o } }
 // (by machine and by the law set's names: one machine is asked with many sets)
 const sortsMemo = new WeakMap<Machine, Map<string, {key: (law: string, k: string) => string, of: (e: E) => string | undefined, find: (a: string) => string, anchored: (a: string) => boolean}>>()
 function sortsOf(m: Machine, laws: Law[]) {
