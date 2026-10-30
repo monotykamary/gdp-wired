@@ -159,3 +159,7 @@ test('key templates: disjoint where their fixed parts differ', () => {
   expect(disjoint('{}', 'x:{}')).toBe(false)
   expect(disjoint('a{}', 'ab{}')).toBe(false)
 })
+
+// The adversarial round (research/langs/adversarial): no false checked proof; what reaches the rule's state, refused.
+import {cases as advCases, judge, ADV} from '../research/langs/adversarial/cases.test-lib.ts'
+for (const c of advCases('Python')) t(`adversarial ${c.id}: ${c.attack}`, () => judge(c, extractPython(`${ADV}${c.file}`, {...(c.discover ? {} : {entry: 'Meter'}), check: {runs: 30, depth: 6, states: 60}})))

@@ -1,0 +1,178 @@
+[
+  {
+    "id": "p01",
+    "lang": "Python",
+    "attack": "listener handed self",
+    "pred": "needs a tag",
+    "file": "p01.py"
+  },
+  {
+    "id": "p02",
+    "lang": "Python",
+    "attack": "listener handed mutable state field",
+    "pred": "needs a tag",
+    "file": "p02.py"
+  },
+  {
+    "id": "p03",
+    "lang": "Python",
+    "attack": "alias to self passed to listener",
+    "pred": "needs a tag",
+    "file": "p03.py"
+  },
+  {
+    "id": "p04",
+    "lang": "Python",
+    "attack": "repository save mutates held record",
+    "pred": "needs a tag",
+    "file": "p04.py"
+  },
+  {
+    "id": "p05",
+    "lang": "Python",
+    "attack": "store get mutable object alias",
+    "pred": "refused",
+    "file": "p05.py"
+  },
+  {
+    "id": "p06",
+    "lang": "Python",
+    "attack": "skipped helper mutates global used by rule",
+    "pred": "refused",
+    "file": "p06.py"
+  },
+  {
+    "id": "p07",
+    "lang": "Python",
+    "attack": "truthiness of inferred boolean answer",
+    "pred": "refuted",
+    "file": "p07.py"
+  },
+  {
+    "id": "p08",
+    "lang": "Python",
+    "attack": "optional None answer truthiness",
+    "pred": "refuted",
+    "file": "p08.py"
+  },
+  {
+    "id": "p09",
+    "lang": "Python",
+    "attack": "untyped Any answer",
+    "pred": "needs a tag",
+    "file": "p09.py"
+  },
+  {
+    "id": "p10",
+    "lang": "Python",
+    "attack": "async answer",
+    "pred": "refuted",
+    "file": "p10.py"
+  },
+  {
+    "id": "p11",
+    "lang": "Python",
+    "attack": "post-construction field injection",
+    "pred": "refused",
+    "file": "p11.py"
+  },
+  {
+    "id": "p12",
+    "lang": "Python",
+    "attack": "two dependencies with shared underlying store",
+    "pred": "refused",
+    "file": "p12.py"
+  },
+  {
+    "id": "p13",
+    "lang": "Python",
+    "attack": "entry discovery through private helper",
+    "pred": "refuted",
+    "file": "p13.py",
+    "discover": true
+  },
+  {
+    "id": "p14",
+    "lang": "Python",
+    "attack": "overloaded declared result",
+    "pred": "refuted",
+    "file": "p14.py"
+  },
+  {
+    "id": "p15",
+    "lang": "Python",
+    "attack": "generic return TypeVar",
+    "pred": "needs a tag",
+    "file": "p15.py"
+  },
+  {
+    "id": "p16",
+    "lang": "Python",
+    "attack": "exception-only use of external call",
+    "pred": "refused",
+    "file": "p16.py"
+  },
+  {
+    "id": "r01",
+    "lang": "Ruby",
+    "attack": "listener handed self",
+    "pred": "needs a tag",
+    "file": "r01.rb"
+  },
+  {
+    "id": "r02",
+    "lang": "Ruby",
+    "attack": "call truthiness in condition",
+    "pred": "needs a tag",
+    "file": "r02.rb"
+  },
+  {
+    "id": "j01",
+    "lang": "Java",
+    "attack": "injected callback handed this",
+    "pred": "needs a tag",
+    "file": "j01/Meter.java"
+  },
+  {
+    "id": "j02",
+    "lang": "Java",
+    "attack": "generic return type",
+    "pred": "refuted",
+    "file": "j02/Meter.java"
+  },
+  {
+    "id": "t01",
+    "lang": "TypeScript",
+    "attack": "injected callback handed this",
+    "pred": "needs a tag",
+    "file": "t01.ts"
+  },
+  {
+    "id": "t02",
+    "lang": "TypeScript",
+    "attack": "injected boolean result truthiness",
+    "pred": "refuted",
+    "file": "t02.ts"
+  },
+  {
+    "id": "j03",
+    "lang": "Java",
+    "attack": "answered callback handed this",
+    "pred": "needs a tag",
+    "file": "j03/Meter.java"
+  },
+  {
+    "id": "j04",
+    "lang": "Java",
+    "attack": "keyed get extra argument aliases this",
+    "pred": "needs a tag",
+    "file": "j04/Meter.java"
+  },
+  {
+    "id": "p17",
+    "lang": "Python",
+    "attack": "FastAPI Depends with yielding dependency",
+    "pred": "refuted",
+    "file": "p17.py"
+  }
+]

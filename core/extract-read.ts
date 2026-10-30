@@ -1156,7 +1156,10 @@ export class Exec {
     const own = this.s.fnFields
     const x = this.s.xstate ?? own ?? refuse(e, `${path}: a function from outside`)
     if (e.arguments.some(impure)) refuse(e, `${path}(...) with arguments that have effects`)
-    const [, q] = this.args(e.arguments, p)
+    const [args, q] = this.args(e.arguments, p)
+    // (a function from outside given the object's state, or a part of it, may change it: refused)
+    const state = (v: V): boolean => v.t === 'ref' ? (o => !!o && (o.k === 'alias' ? state(o.to) : o.origin === 'this' || o.origin === 'shared'))(q.heap.get(v.id)) : v.t === 'phi' ? state(v.a) || state(v.b) : v.t === 'opt' ? state(v.v) : v.t === 'tuple' && v.xs.some(state)
+    if (args.some(state)) refuse(e, `${path}(...) is given the object's state, which the function may change`)
     const t = this.s.checker.getTypeAtLocation(e)
     if (t.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined)) { this.s.notes.add(path.startsWith('import:') ? `${path.slice(7).replace(':', '.')}() (${where(e)}): left out (inferred: it returns nothing), the check giving a function that does nothing` : `${path}() is an effect outside the machine (it returns nothing; left out)`); return [{t: 'undef'}, q] }
     if (t.getSymbol()?.getName() === 'Promise') return refuse(e, `${path}() returns a promise (an answer that comes later is an actor's, invoked)`)

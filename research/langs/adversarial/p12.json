@@ -1,0 +1,46 @@
+{
+  "case": "p12",
+  "ok": true,
+  "refusals": [],
+  "notes": [
+    "Meter(a): an injected dependency (inferred: of Store, its methods called), the check giving one that keeps what is set",
+    "Meter(b): an injected dependency (inferred: of Store, its methods called), the check giving one that keeps what is set",
+    "Meter made by its constructor: its arguments are the rule's params",
+    "a: a store (inferred: an injected dependency, read and written by a key): \"{}\" keys held as a_, its expiry and eviction left out",
+    "b: a store (inferred: an injected dependency, read and written by a key): \"{}\" keys held as b_, its expiry and eviction left out"
+  ],
+  "evidence": {
+    "runs": 30,
+    "requests": 180,
+    "fromStates": 60,
+    "probes": {
+      "conditions": 0,
+      "witnesses": 0,
+      "steps": 0
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 0,
+    "compiledAgreed": 240,
+    "coverage": {
+      "arms": 2,
+      "hit": 2,
+      "missed": []
+    },
+    "ms": 35,
+    "runMs": 35
+  },
+  "source": "// Extracted by gdp-wired/extract from p12.py (Meter, a class and its methods).\n// Checked against the code it was read from; read again with extract() after the code changes.\nimport {all, any, bool, forall, intern, nat, record, rule, when, yes} from 'gdp-wired'\n\nexport const meterRule = rule(\"Meter\")\n  .state({n: 0})\n  .maps({a_: record({has: bool, value: nat}).from({has: false, value: 0}), b_: record({has: bool, value: nat}).from({has: false, value: 0})})\n  .step(({b_, a_}) => {\n    const t1 = b_.at(intern('k')).value\n    return {n: when(all(b_.at(intern('k')).has, t1.eq(0).not()), t1, 0), a_: a_.set(intern('k'), {has: yes, value: 1})}\n  })\n\n// What every state of the code is: a law about every state is about the code's with these beside it.\nexport const meterInvariants = [meterRule.law(\"a_: a key it doesn't hold holds the defaults\", ({a_}) => forall(k => any(a_.at(k).has, all(a_.at(k).value.eq(0))))), meterRule.law(\"b_: a key it doesn't hold holds the defaults\", ({b_}) => forall(k => any(b_.at(k).has, all(b_.at(k).value.eq(0)))))]\n",
+  "proof": {
+    "proven": false,
+    "checked": false,
+    "stuck": "sat",
+    "goal": "n stays zero @step",
+    "witness": {
+      "b_.value[1:1]": 1,
+      "n": 0,
+      "a_.has[1:1]": 1,
+      "b_.has[1:1]": 1
+    }
+  }
+}

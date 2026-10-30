@@ -1,0 +1,36 @@
+{
+  "case": "j01",
+  "ok": true,
+  "refusals": [],
+  "notes": [
+    "Meter(listener): an injected dependency (inferred: of Listener, its methods called), the check giving one that answers its calls",
+    "Meter made by its constructor: its arguments are the rule's params",
+    "listener.emit (Meter.java:7:24): left out (inferred: nothing the rule keeps reads its value), run as it is by the check"
+  ],
+  "evidence": {
+    "runs": 30,
+    "requests": 180,
+    "fromStates": 60,
+    "probes": {
+      "conditions": 0,
+      "witnesses": 0,
+      "steps": 0
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 0,
+    "compiledAgreed": 239,
+    "coverage": {
+      "arms": 0,
+      "hit": 0,
+      "missed": []
+    },
+    "ms": 46,
+    "runMs": 46
+  },
+  "source": "// Extracted by gdp-wired/extract from Meter.java (Meter, a class and its methods).\n// Checked against the code it was read from; read again with extract() after the code changes.\nimport {rule} from 'gdp-wired'\n\nexport const meterRule = rule(\"Meter\")\n  .state({n: 0})\n  .step(({}) => ({}))\n\n// What every state of the code is: a law about every state is about the code's with these beside it.\nexport const meterInvariants = [meterRule.law(\"n within its type's range\", ({n}) => n.atMost(2147483647))]\n",
+  "proof": {
+    "proven": true,
+    "checked": true
+  }
+}

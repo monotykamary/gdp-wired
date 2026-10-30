@@ -126,3 +126,7 @@ end
   expect(notes).toMatch(/Gate\(cache\): an injected dependency \(inferred/)
   step(x, 'admitted only within the cap', (_b, a) => a.failed.not().implies(a.cache_hits.at(_b.user.id).value.atMost(a.cap_)), () => yes)
 })
+
+// The adversarial round (research/langs/adversarial): no false checked proof; what reaches the rule's state, refused.
+import {cases as advCases, judge, ADV} from '../research/langs/adversarial/cases.test-lib.ts'
+for (const c of advCases('Ruby')) t(`adversarial ${c.id}: ${c.attack}`, () => judge(c, extractRuby(`${ADV}${c.file}`, {entry: 'Meter', root: ADV, check: {runs: 30, depth: 6, states: 60}})))

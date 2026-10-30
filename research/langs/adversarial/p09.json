@@ -1,0 +1,11 @@
+{
+  "case": "p09",
+  "ok": false,
+  "refusals": [
+    {
+      "where": "p09.py:10:12",
+      "what": "self.flags.value(): the truth of self.flags.value(): the value of flags.value, other code left out; self.flags.value(): value, a method of the store not stated as its get, set or delete (p09.py:10:12), whose value is read, and it declares no type: state what it returns (answers: {\"value\": 'int'}, or a `gdp: answer int` comment on its line)"
+    }
+  ],
+  "notes": []
+}

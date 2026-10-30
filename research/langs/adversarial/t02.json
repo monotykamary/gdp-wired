@@ -1,0 +1,53 @@
+{
+  "case": "t02",
+  "ok": true,
+  "refusals": [],
+  "notes": [
+    "this.enabled(): the answer of the function the field holds, an input (any value of its type: the claim is for every such function that leaves the object alone)"
+  ],
+  "evidence": {
+    "runs": 30,
+    "requests": 180,
+    "fromStates": 60,
+    "probes": {
+      "conditions": 2,
+      "witnesses": 2,
+      "steps": 2
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 0,
+    "compiledAgreed": 242,
+    "coverage": {
+      "arms": 2,
+      "hit": 2,
+      "missed": []
+    },
+    "ms": 14
+  },
+  "source": "// Extracted by gdp-wired/extract from case.ts (Meter, a class).\n// Checked against the code it was read from; read again with extract() after the code changes.\nimport {bool, oneOf, rule, when} from 'gdp-wired'\n\nexport const meterRule = rule(\"Meter\")\n  .inputs({method: oneOf('tick'), enabled: bool})\n  .state({n: 0})\n  .step(({enabled, n}) => ({n: when(enabled, 1, n)}))\n",
+  "proof": {
+    "proven": false,
+    "checked": false,
+    "stuck": "sat",
+    "goal": "n stays zero @step",
+    "witness": {
+      "n": 0,
+      "method": 0,
+      "enabled": 1
+    },
+    "run": {
+      "params": {},
+      "trace": [
+        {
+          "method": 0,
+          "enabled": 0
+        },
+        {
+          "method": 0,
+          "enabled": 1
+        }
+      ]
+    }
+  }
+}

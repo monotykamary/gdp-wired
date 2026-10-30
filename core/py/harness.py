@@ -61,6 +61,10 @@ class FakeStore:
       return f
     for kind, dflt in (('get', ['get', 'async_get_cache', 'get_cache']), ('set', ['set', 'async_set_cache', 'set_cache']), ('delete', ['delete', 'delete_cache', 'async_delete_cache'])):
       for m in decl.get(kind) or dflt: setattr(self, m, mk(kind, m))
+    # (a method left out: nothing, as the rule takes it; any other is no method of this store, and fails)
+    for m in decl.get('skip') or []:
+      async def anop(*a, **k): return None
+      setattr(self, m, (lambda *a, **k: anop()) if asyncs.get(m) else (lambda *a, **k: None))
     # (an injected dependency's other methods: each answered by the request's input)
     for a in S.get('answers') or []:
       if a['patch'].get('store') == name: setattr(self, a['patch']['path'][-1], stub(a['key'], a['async']))

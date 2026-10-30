@@ -1,0 +1,35 @@
+{
+  "case": "t01",
+  "ok": false,
+  "refusals": [
+    {
+      "where": "case.ts",
+      "what": "the rule and the code differ: run 1, request 1: tick() from {\"n\":0}: the code throws (a function given to the constructor called while the object is made), the rule takes the step"
+    }
+  ],
+  "notes": [
+    "this.listener() is an effect outside the machine (it returns nothing; left out)"
+  ],
+  "evidence": {
+    "runs": 1,
+    "requests": 1,
+    "fromStates": 0,
+    "probes": {
+      "conditions": 0,
+      "witnesses": 0,
+      "steps": 0
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 0,
+    "compiledAgreed": 1,
+    "coverage": {
+      "arms": 0,
+      "hit": 0,
+      "missed": []
+    },
+    "ms": 2,
+    "mismatch": "run 1, request 1: tick() from {\"n\":0}: the code throws (a function given to the constructor called while the object is made), the rule takes the step"
+  },
+  "source": "// Extracted by gdp-wired/extract from case.ts (Meter, a class).\n// Checked against the code it was read from; read again with extract() after the code changes.\nimport {oneOf, rule} from 'gdp-wired'\n\nexport const meterRule = rule(\"Meter\")\n  .inputs({method: oneOf('tick')})\n  .state({n: 0})\n  .step(({}) => ({}))\n"
+}

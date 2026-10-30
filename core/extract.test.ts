@@ -836,3 +836,8 @@ export class Meter {
   expect(x.source).toMatch(/\.inputs\(.*bonus: int/)
   refused(ts(code, 'Meter', {files, strict: true}), /log: a function from another module/)
 })
+
+// The adversarial round (research/langs/adversarial): no false checked proof; what reaches the object's state, refused.
+import {readFileSync as readAdv} from 'node:fs'
+import {cases as advCases, judge, ADV} from '../research/langs/adversarial/cases.test-lib.ts'
+for (const c of advCases('TypeScript')) test(`adversarial ${c.id}: ${c.attack}`, () => judge(c, extract(readAdv(`${ADV}${c.file}`, 'utf8'), {file: 'case.ts', entry: 'Meter', check: {runs: 30, depth: 6, states: 60}})))

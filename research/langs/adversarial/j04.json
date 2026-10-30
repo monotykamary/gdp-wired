@@ -1,0 +1,36 @@
+{
+  "case": "j04",
+  "ok": true,
+  "refusals": [],
+  "notes": [
+    "Meter(repo): an injected dependency (inferred: of Repo, its methods called), the check giving one that keeps what is set",
+    "Meter made by its constructor: its arguments are the rule's params",
+    "repo: a store (inferred: an injected dependency, read and written by a key): \"{}\" keys held as repo_, its expiry and eviction left out"
+  ],
+  "evidence": {
+    "runs": 30,
+    "requests": 180,
+    "fromStates": 60,
+    "probes": {
+      "conditions": 0,
+      "witnesses": 0,
+      "steps": 0
+    },
+    "refusedBoth": 0,
+    "outside": 0,
+    "edge": 0,
+    "compiledAgreed": 240,
+    "coverage": {
+      "arms": 0,
+      "hit": 0,
+      "missed": []
+    },
+    "ms": 52,
+    "runMs": 53
+  },
+  "source": "// Extracted by gdp-wired/extract from Meter.java (Meter, a class and its methods).\n// Checked against the code it was read from; read again with extract() after the code changes.\nimport {all, any, bool, forall, nat, record, rule} from 'gdp-wired'\n\nexport const meterRule = rule(\"Meter\")\n  .state({n: 0})\n  .maps({repo_: record({has: bool, value: nat}).from({has: false, value: 0})})\n  .step(({}) => ({}))\n\n// What every state of the code is: a law about every state is about the code's with these beside it.\nexport const meterInvariants = [meterRule.law(\"n within its type's range\", ({n}) => n.atMost(2147483647)), meterRule.law(\"repo_: a key it doesn't hold holds the defaults\", ({repo_}) => forall(k => any(repo_.at(k).has, all(repo_.at(k).value.eq(0)))))]\n",
+  "proof": {
+    "proven": true,
+    "checked": true
+  }
+}

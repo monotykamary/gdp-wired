@@ -56,7 +56,8 @@ export type SModule = {lang: string, file: string, path: string, module: string,
   // false: the check can't stub a call (an answer, stated or inferred, is refused where it would be one)
   stubs?: boolean}
 
-export type StoreDecl = {get?: string[], set?: string[], delete?: string[], value?: 'int' | 'float' | 'str', attrs?: Record<string, null | boolean | number | string>, async?: Record<string, boolean>}
+// (skip: methods left out, which the check's store does nothing for; any method it isn't told of fails there)
+export type StoreDecl = {get?: string[], set?: string[], delete?: string[], skip?: string[], value?: 'int' | 'float' | 'str', attrs?: Record<string, null | boolean | number | string>, async?: Record<string, boolean>}
 export type StepOptions = {
   // The class, or the functions (each a request), and the methods read (by default the public ones). With no entry,
   // the module's one class whose public methods write its state, and those methods.
@@ -728,6 +729,8 @@ export class Stepper {
   // (the stores whose keys the rule holds: stated, or an injected dependency the class calls a key's method on)
   readonly storeKeyed = new Set<string>()
   readonly injectedFields: string[] = []
+  // (the injected dependencies and stores: their type, whether the rule holds keys of theirs, whether the caller stated them)
+  readonly deps: {name: string, ty?: string, keyed: boolean, stated: boolean}[] = []
   // A constructor argument held as an injected dependency (a store): one its reader marks so, or one of no scalar type
   // (another module's class, a protocol, none stated) the class keeps in a field and calls methods on.
   injected(pa: SParam, init: SFunc, r: SRec): {keyed: boolean, ty?: string} | undefined {
@@ -757,7 +760,9 @@ export class Stepper {
     return d
   }
   storeCall(store: string, m: string, args: V[], kw: [string, V][], at: SX, p: Path, awaited: boolean): [V, Path] {
-    const d = this.storeDecl(store)
+    const d = this.storeDecl(store), all = [...args, ...kw.map(([, v]) => v)]
+    // (other code given the rule's state may change it: refused unless the caller states it, the tag on its line)
+    const given = (vs: V[]) => { if (!this.tagAt(at.p) && vs.some(v => this.stateRef(v, p))) refuse(at, `${at.text}: ${store}.${m} is given the rule's state, which other code may change (if it doesn't, a \`gdp: skip\` comment on its line says so)`) }
     const arg = (n: string, i: number) => kw.find(([k]) => k === n)?.[1] ?? args[i] ?? refuse(at, `${at.text}: the store's ${n} not given`)
     const has = (n: string, i: number) => kw.some(([k]) => k === n) || args.length > i
     let kind: 'get' | 'set' | 'delete' | undefined = (d.get ?? ['get', 'async_get_cache', 'get_cache']).includes(m) ? 'get' : (d.set ?? ['set', 'async_set_cache', 'set_cache']).includes(m) ? 'set' : (d.delete ?? ['delete', 'delete_cache', 'async_delete_cache']).includes(m) ? 'delete' : undefined
@@ -768,15 +773,22 @@ export class Stepper {
       else {
         // (another method: an answer, or left out; of a store, one that may change what it holds, unless stated)
         if (this.storeKeyed.has(store) && !this.tagAt(at.p)) return refuse(at, `${at.text}: ${m}, a method of the store not stated as its get, set or delete (one that may change what it holds: state it, stores: {${store}: {get, set, delete}}, or skip it)`)
+        given(all)
         const ty = this.storeTypes.get(store), ret = ty ? this.mod.recs[ty]?.rets?.[m] : undefined
-        return this.boundary({...at, args: [], kw: []}, {key: `${store}.${m}`, name: `${store}.${m}`, patch: {store, path: [m]}, ...(ret ? {ret} : {}), args: false, refusal: `${at.text}: ${m}, a method of the store not stated as its get, set or delete`}, p, awaited)
+        const out = this.boundary({...at, args: [], kw: []}, {key: `${store}.${m}`, name: `${store}.${m}`, patch: {store, path: [m]}, ...(ret ? {ret} : {}), args: false, refusal: `${at.text}: ${m}, a method of the store not stated as its get, set or delete`}, p, awaited)
+        // (left out: the check's store does nothing for it; the claim assumes it returns and changes nothing the rule keeps)
+        if (out[0].t === 'opaque' && out[0].ask) { if (!(d.skip ??= []).includes(m)) { d.skip.push(m); this.notes.add(`${store}.${m}: assumes it returns and changes nothing the rule keeps (left out: the check's ${store} does nothing for it)`) } (this.storeAsync[store] ??= {})[m] = awaited }
+        return out
       }
     }
     if (!kind) return refuse(at, `${at.text}: ${m}, a method of the store not stated as its get, set or delete`)
     const was = (this.storeAsync[store] ??= {})[m]
     if (was !== undefined && was !== awaited) return refuse(at, `${at.text}: the store's ${m} awaited at one call and not at another`)
     this.storeAsync[store]![m] = awaited
-    const {tpl, k, kn} = this.storeKey(arg('key', 0), at)
+    // (a key's operation takes its key, and a set its value: any other argument given the rule's state is refused)
+    const keyV = arg('key', 0), valV = kind === 'set' ? arg('value', 1) : undefined
+    given(all.filter(v => v !== keyV && v !== valV))
+    const {tpl, k, kn} = this.storeKey(keyV, at)
     const [id, o] = this.storeMap(store, tpl, kn, at, p)
     if (kind === 'get') return this.mapGet({t: 'ref', id}, k, at, p, 'none')
     if (kind === 'delete') return [{t: 'none'}, this.mapDel({t: 'ref', id}, k, at, p, false)]
@@ -863,7 +875,7 @@ export class Stepper {
   }
   // A value that is (or holds) a reference to the rule's state: the object, its nested objects, maps, lists, stores.
   stateRef(v: V, p: Path): boolean {
-    const st = (id: string) => { const o = p.heap.get(id); return id === 'this' || o?.k === 'store' || (!!o && 'origin' in o && o.origin === 'state') }
+    const st = (id: string) => { const o = p.heap.get(id); return id === 'this' || (o?.k === 'store' ? this.storeKeyed.has(o.name) : !!o && 'origin' in o && o.origin === 'state') }
     if (v.t === 'ref' || v.t === 'map' || v.t === 'list') return st(v.id)
     if (v.t === 'cell') return st(v.map)
     if (v.t === 'ptr') return this.cases(v.to).objs.some(c => st(c.id))
@@ -2283,6 +2295,8 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
         if (opts.stores?.[pa.name] || dep) {
           const id = `store:${pa.name}`; p.heap.set(id, {k: 'store', name: pa.name}); g.initHeap.set(id, {k: 'store', name: pa.name}); give(pa, {t: 'ref', id}); ctor.push([pa.name, {k: 'store', name: pa.name}])
           if (!dep || dep.keyed) g.storeKeyed.add(pa.name)
+          const pt = pa.t.k === 'opt' ? pa.t.of : pa.t
+          g.deps.push({name: pa.name, ...(pt.k === 'rec' ? {ty: pt.name} : {}), keyed: !dep || dep.keyed, stated: !dep})
           if (dep?.ty) g.storeTypes.set(pa.name, dep.ty)
           if (dep) g.notes.add(`${r.short}(${pa.name}): an injected dependency (inferred: ${pa.inject ? 'marked so' : `of ${dep.ty ? g.mod.recs[dep.ty]?.short ?? dep.ty : 'no stated type'}, its methods called`}), the check giving one that ${dep.keyed ? 'keeps what is set' : 'answers its calls'}`)
           continue
@@ -2318,9 +2332,17 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
       made.heap.set(id, o); g.initHeap.set(id, o); g.injectedFields.push(fd.name)
       ;(made.heap.get('this') as Extract<Obj, {k: 'rec'}>).f.set(fd.name, {t: 'ref', id})
       if (fd.t.k === 'rec') g.storeTypes.set(fd.name, fd.t.name)
-      if (g.callsOn(r, [fd.name]).some(m => !!keyShape(m))) g.storeKeyed.add(fd.name)
+      const keyed = g.callsOn(r, [fd.name]).some(m => !!keyShape(m))
+      if (keyed) g.storeKeyed.add(fd.name)
+      g.deps.push({name: fd.name, ...(fd.t.k === 'rec' ? {ty: fd.t.name} : {}), keyed, stated: false})
       g.notes.add(`${r.short}.${fd.name}: an injected dependency (marked so), the check giving one`)
     }
+    // (two injected dependencies are taken as two objects: where they are of one type and the rule holds keys of one,
+    // the code may be given one object for both, which the rule would take as two; refused unless both are stated)
+    for (const [i, a] of g.deps.entries()) for (const b of g.deps.slice(i + 1)) {
+      if (a.ty === b.ty && (a.keyed || b.keyed) && !(a.stated && b.stated)) refuse(r, `${r.short}(${a.name}, ${b.name}): two injected dependencies of one type (${a.ty ? g.mod.recs[a.ty]?.short ?? a.ty : 'none stated'}), the rule holding keys of ${a.keyed ? a.name : b.name}: the code may be given one object for both, which the rule would take as two (state both stores, stores: {${a.name}: {}, ${b.name}: {}}, to take them as distinct)`)
+    }
+    if (g.deps.length > 1) g.notes.add(`${r.short}: assumes its injected dependencies ${g.deps.map(d => d.name).join(', ')} are distinct objects (each with what it holds)`)
     const self = made.heap.get('this') as Extract<Obj, {k: 'rec'}>
     for (const [f, v] of self.f) { const t = g.declared.get(`this.${f}`) ?? r.fields.find(x => x.name === f)?.t; tree.push({path: [f], v, ...(t && t.k !== 'any' ? {t} : {})}) }
     for (const fd of r.fields) if (!self.f.has(fd.name) && !r.kinds.includes('dataclass')) g.notes.add(`${r.short}.${fd.name}: declared on the class but not set by its constructor (left out)`)

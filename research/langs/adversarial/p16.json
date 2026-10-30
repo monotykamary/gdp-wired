@@ -1,0 +1,11 @@
+{
+  "case": "p16",
+  "ok": false,
+  "refusals": [
+    {
+      "where": "p16.py:6:5",
+      "what": "Meter(source): a constructor argument of rec (state it as a store, or give it a default)"
+    }
+  ],
+  "notes": []
+}

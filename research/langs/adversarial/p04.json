@@ -1,0 +1,11 @@
+{
+  "case": "p04",
+  "ok": false,
+  "refusals": [
+    {
+      "where": "p04.py:15:9",
+      "what": "self.repo.save('one', self.row): a ref set in a store of numbers"
+    }
+  ],
+  "notes": []
+}
