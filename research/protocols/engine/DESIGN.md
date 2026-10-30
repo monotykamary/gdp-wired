@@ -149,6 +149,84 @@ exp/pool-z3, behind `GDP_SORTED=1`)
   conditional on per-sort seeding making them rare.
 - **Spend this round:** $0.07 billed for 5 apps; the hour is still being billed.
 
+**The trace: what joins ring's order** (`runs/engine/rg6`–`rg8`; `GDP_EPR_TRACE` on exp/pool-z3. Each ordered term's
+anchors are read from the goal's reads (a map's key part, `idn`'s argument or value), then the hypotheses' related pairs
+are unioned in order. Goals 7, 11 and 16 of the 44, all undecided at 1 s, three of them Z3 proves.)
+- **The first decision of each goal** (17–22 ordered terms) already has the two sorts apart: ids with `m`, and nodes with
+  `size`. Goal 16 is the exception: a comparison in hypothesis 170, `idn(key1) ≤ key3`, where key3 is a law's key at
+  Pending's id part.
+- **The second decision** (44–59 terms, after a model round) has every term in one class. There, `idn(n)` and `m` are
+  read at Leader's key, a node place, and `idn` is applied to whole Pending keys: `idn(64·m + n)`, nested
+  `idn(64·idn(64·m + n) + …)`.
+- **The source** (`KEEP` trace of `bySort`): node-keyed laws instantiated at whole composed keys. "One leader", the cubes
+  and the kinds' laws were taken at `64·m + n`, `64·idn(n) + n1` and their nests.
+  - The per-sort filter kept them, because a composed term that no read names literally had no sort (`of` returned
+    nothing, and nothing means keep).
+  - The candidates named earlier were a frame's `x < size` at an unanchored key, the theory's rows, and key-part
+    equalities. It is the third: whole keys used as parts. The theory's rows and the frames follow from it.
+
+**The narrowest fix** (untrusted instancing only): a composed term (several parts, or a part under a factor) is a whole
+key, of the map whose pattern its factors are, or of no map. So it never takes a part's place.
+- **Two bugs the regression check found in the sort analysis itself** (toy consensus lost its proof, then got it back):
+  - a write's key wasn't read as a key (`Decided.set(v)`: v is a value);
+  - a write at every key of a one-part map named its binder by the map's whole key, not its part.
+- **Kept with it:** decideLaw's strict models. A model is returned only where confirmed: no model at the deadline,
+  past the instance rounds, or when its only broken instances are another sort's.
+- **Narrowed when built:** on gen/ring, the sorts apply to decideLaw's instances alone (`settle` with `usual` false).
+  The usual path's `lawInstances` is unchanged: with it filtered too, toy's join (before the engine) slowed from 7 to 56
+  s.
+
+**The 44-goal pilot with it: PASS** (`rg9`, `rg11`, `rg16`; the same dump as rg5)
+
+| at 1 s | instance keys | ordered terms (median, max) | decideLaw undecided | wrong against Z3 at 10 s |
+|---|---|---|---|---|
+| before (no sorts) | 684,228 | 28.5, 60 | 40–43 | 0 |
+| sorts with the fix, not strict | 327,537 | 22, 25 | 2 | 1: goal 27, a model where Z3 proves it, from past the instance rounds (5.1 s at 10 s) |
+| sorts with the fix, strict (final) | 310,893 | 22, 25 | **9** (Z3: 14) | **0** |
+| the same at 10 s | | | 1 | 0 (34 proven, 9 models, all as Z3's) |
+
+- **Against the pass mark:**
+  - the largest goal's order halved (60 to 25 ordered terms); the median fell 23% (28.5 to 22);
+  - the classes still don't split (one class in 118 of 144 decisions): ids and nodes share `size` and the comparisons
+    between them;
+  - 9 undecided against the mark of 15;
+  - 0 wrong.
+- decideLaw's mean at 1 s is 0.55 s against Z3's 0.51 s.
+
+**Built** (gen/ring 63bed40, kernel/prove.ts only, +94 lines, about 7 KB; `GDP_SORTED=0` and `GDP_STRICT=0` turn
+each off; untrusted, no checking touched)
+- **The ten, once** (`runs/engine/gr6`): the eight proven (sync 8.5 s, async 23.7, decentralized 36.0, 2PC 21.9, ticket
+  30.2, toy 14.7, sharded 33.2, distributed 33.9); ring and wo unknown.
+  - decentralized's 36 s is above its earlier 13–32 s, one run. Not checked again.
+- **Ring at 60 s, twice:** unknown (59.8 s, 60.0 s). Its rounds now finish their goals, but the pool Houdini's set
+  proofs fail at cubes in turn until the wall.
+- **Pilot 1 again** (the cone, with sorts and strict; `rg12`): FAIL.
+  - 32 cubes, all 5 targets in the set;
+  - at 5 s a goal: 15 proven, 2 models, 16 undecided (median 4.5 s);
+  - the cone is 15 cubes, 4 of them undecided, and `prove()` fails in 0.1 s at a 4-key cube with no support.
+  - At 5 s a goal the oracle still leaves half of the set's goals open with the whole set assumed (32 laws, against the
+    pilot's 47 with fewer instances).
+- **The quick bar** (`--only rw,f1,f2,g332,suite,onecpu` against the cached 5d4da3f; <main>/runs/bar/runs/ring-63bed40-quick):
+  - f1 34 and rw 74/14/3, as the base;
+  - f2 24 against 24.33 (no task differs);
+  - g332 the same search on 332 of 332, summed 289.5 s against 283.3 s;
+  - the suite 232 passed, 0 failed;
+  - onecpu no failure.
+  - Gained 0, lost 0, wrong 0. Estimated $0.57.
+
+**What's left for ring:**
+- the set's own goals at 30–47 assumed laws, about half still open at 5 s;
+- the pool Houdini's one-drop-per-proof loop.
+
+The order's size is no longer the cost on the round goals (mean 0.55 s, 9 of 44 open at 1 s).
+
+**Rule breaks this round, recorded:**
+- Two local commands ran with the 1-minute load over 12: a 1 s trace probe at load 15.9, and a typecheck and lint at
+  load 13.8, with the load checked in the same command rather than before it.
+- After that, the remaining traces and typechecks went to Modal.
+
+**Spend this round:** $0.85 billed for 34 apps so far; the current hour is still being billed.
+
 **Not done this round, as the order said:**
 - step 3 (ring twice, the ten, the bar), because 1 didn't land;
 - wo's pilot, because pilot 2 didn't fail fast.
