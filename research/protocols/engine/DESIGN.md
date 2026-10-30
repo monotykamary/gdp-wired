@@ -226,6 +226,22 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
   - For the EPR side: decideLaw returning a model at its instance-round cap without confirming it, with many laws assumed.
   - Not built.
 
+**Confirmed models and DuoAI-shaped batches** (`runs/engine/mq1`, `bt1`; temporary code in kernel/prove.ts and core/infer.ts, taken out)
+- **Where an unconfirmed countermodel leaves `settle`** (kernel/prove.ts): three exits return the last model without confirming it:
+  - on the deadline (`late()`);
+  - where the EPR path can't decide a round;
+  - past the instance rounds (4, up to 16 while a deadline allows).
+  Only `modelInstances` returning nothing (no assumed law broken at the model over its own domain) is a confirmed model.
+- **The strict rule tried:** a model only where confirmed, otherwise unknown, the rounds on while the deadline allows. Measured on distributed's round 0, every cube's goal with all 176 assumed, cold, 1 s each:
+  - **before:** 116 proven, 60 models (30 the interpreter confirms, 30 it doesn't, the two "two live transfers" among them), 0.6 s a query;
+  - **strict:** 103 proven, 9 models (3 the interpreter confirms), 64 undecided, 0.75 s a query. The two "two live transfers" cubes are undecided, no longer refuted, but at a 1 s cap the MBQI loop rarely confirms, so Houdini could drop almost none of the false cubes.
+  - Not kept as the default.
+- **Houdini batched by view:** a view's cubes share its keys, so their conjunction is one law; each round each view's law is asked with every cube assumed, a model's successor (the interpreter's) drops each cube of the view true before and false after, and the view is asked again. (A goal over all 176 cubes at once needs hundreds of Skolem keys, so this is the shared-reads batching.)
+  - **distributed:** 26 queries in all (13, 7, 6 a round), 1.4–3 s each. 176 → 138 cubes, then stalled: groups end undecided, or with a model whose successor drops nothing. All 12 targets are kept, but the set's proof (7 s) fails at a false cube that stayed. 66 s.
+  - **ring:** 51 queries over 4 rounds, 172 s; it loses the own-id and leader laws to the successor's reading (true laws; the model's unnamed cells are read at their defaults).
+- **So:** neither reaches the probe-proven set inside 60 s. Not built.
+  - **The two levers:** a cheaper confirmation of a model at many assumed laws (the MBQI loop converging within a second), and reading a model's successor only where the model names what the cube reads.
+
 **Deferred: predicate abstraction against counters** (gitea's "two counted approvals are never by the same reviewer"). Its views relate no row key to the allocation counter `next`: keySorts never relates a state scalar to a key sort (`node` relates inputs and params only), and a view has no scalar atom to compare a key with. The fix is `key < next` order literals for search only (the final proof still over the concrete machine), and it touches the sort analysis for every rule, so it waits until the core ten are done.
 
 **Since e1ae73d** (`runs/engine/c1`, `f9`; the replay offline, no solver call)
