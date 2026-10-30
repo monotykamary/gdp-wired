@@ -324,6 +324,7 @@ class Go {
   }
   std(x: GX): SX {
     const f = x.f!, path = f.pkg ?? '', n = f.n!, at = this.at(x)
+    if (f.why) return this.ext(x, f.why, n)
     if ((path === 'errors' && n === 'New') || (path === 'fmt' && n === 'Errorf')) {
       // An error: not nil. Its arguments are evaluated (they may panic), its text is not compared.
       const pre = (x.a ?? []).flatMap(a => (a.e === 'call' && a.f?.e === 'sel' && a.f.n === 'String' && a.f.k === 'method' && (this.isBigPtr(a.f.x!.t) || this.isBig(a.f.x!.t)) ? [this.x(a.f.x!)] : a.c ? [] : [this.x(a)]))
@@ -561,7 +562,7 @@ type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i
 export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
   if (!opts.entry && !opts.strict) {
     // No entry: the package's one struct whose exported methods write it (core/extract-step.ts's writesState).
-    const g = new Go(pkg, opts).g, writing = (t: string) => pkg.funcs.filter(f => f.recv?.type === t && f.body && /^[A-Z]/.test(f.name) && g.writesState(`${t}.${f.name}`, new Set([g.mod.funcs[`${t}.${f.name}`]?.recv ?? ''])))
+    const g = new Go(pkg, opts).g, writing = (t: string) => pkg.funcs.filter(f => f.recv?.type === t && f.body && (pkg.lang === 'c' || pkg.lang === 'cpp' || /^[A-Z]/.test(f.name)) && g.writesState(`${t}.${f.name}`, new Set([g.mod.funcs[`${t}.${f.name}`]?.recv ?? ''])))
     const cands = pkg.types.filter(t => writing(t.name).length)
     if (cands.length !== 1) refuse(pkg.files[0]?.name ?? '?', cands.length ? `several structs write their state (${cands.map(t => t.name).join(', ')}): name one (entry)` : 'no struct whose exported methods write it: name the entry')
     const r = readGo(pkg, {...opts, entry: cands[0]!.name})

@@ -124,19 +124,23 @@ type gdpCmd struct {
 	State map[string]json.RawMessage \`json:"state"\`
 	M     string                     \`json:"m"\`
 	A     []json.RawMessage          \`json:"a"\`
-	Ans   []json.RawMessage          \`json:"ans"\`
+	Answers map[string]json.RawMessage \`json:"answers"\`
 }
 ${read.answers?.length ? `
-// An answered call's value (each one rewritten to gdpAns[T](i) in the package's copy): the request's input for it.
-var gdpAnswers []json.RawMessage
+// The stub point of an answered call, by the callee's name (each call rewritten to it in the package's copy, the
+// callee and its arguments still evaluated): the request's input for it, the zero value where it is none.
+var gdpAnswers map[string]json.RawMessage
 
-func gdpAns[T any](i int, _ ...any) T {
+func gdpAnswer[T any](name string, _ ...any) T {
 	var v T
-	if i >= len(gdpAnswers) {
+	var a struct {
+		In json.RawMessage \`json:"in"\`
+	}
+	if json.Unmarshal(gdpAnswers[name], &a) != nil || len(a.In) == 0 {
 		return v
 	}
 	var s string
-	if json.Unmarshal(gdpAnswers[i], &s) == nil {
+	if json.Unmarshal(a.In, &s) == nil {
 		if p, ok := any(&v).(*string); ok {
 			*p = s
 		} else {
@@ -144,7 +148,7 @@ func gdpAns[T any](i int, _ ...any) T {
 		}
 		return v
 	}
-	json.Unmarshal(gdpAnswers[i], &v)
+	json.Unmarshal(a.In, &v)
 	return v
 }
 ` : ''}
@@ -270,7 +274,7 @@ func GdpHarnessMain(in, out string) {
 		case "get":
 			res = map[string]any{"state": gdpGet(objs[c.ID])}
 		case "call":
-			${read.answers?.length ? 'gdpAnswers = c.Ans\n\t\t\t' : ''}res = gdpRun(objs[c.ID], gdpStep{M: c.M, A: c.A})
+			${read.answers?.length ? 'gdpAnswers = c.Answers\n\t\t\t' : ''}res = gdpRun(objs[c.ID], gdpStep{M: c.M, A: c.A})
 		}
 		b, _ := json.Marshal(res)
 		wr.Write(b)
@@ -319,7 +323,7 @@ export function checkGo(dir: string, pkg: GoPkg, read: GoRead, r: Rule, sorts: S
     if (opts.keep) { fs.mkdirSync(opts.keep, {recursive: true}); fs.writeFileSync(`${opts.keep}/harness.go`, code) }
     // (each answered call rewritten to the harness's answer in a copy of its file, the build told by an overlay)
     const over: Record<string, string> = {}
-    for (const [f, t] of stubbed(read as never, f => fs.readFileSync(`${dir}/${f}`, 'utf8'), (a, i, t) => `gdpAns[${a.ty}](${i}, ${t.slice(0, t.indexOf('('))}, ${t.slice(t.indexOf('(') + 1)}`)) { const o = node<{resolve: (...p: string[]) => string}>('node:path').resolve(dir, f); fs.writeFileSync(`${work}/${f}`, t); over[o] = over[node<{realpathSync: (p: string) => string}>('node:fs').realpathSync(o)] = `${work}/${f}` }
+    for (const [f, t] of stubbed(read as never, f => fs.readFileSync(`${dir}/${f}`, 'utf8'), (a, _i, t) => `gdpAnswer[${a.ty}](${JSON.stringify(a.key)}, ${t.slice(0, t.indexOf('('))}, ${t.slice(t.indexOf('(') + 1)}`)) { const o = node<{resolve: (...p: string[]) => string}>('node:path').resolve(dir, f); fs.writeFileSync(`${work}/${f}`, t); over[o] = over[node<{realpathSync: (p: string) => string}>('node:fs').realpathSync(o)] = `${work}/${f}` }
     if (Object.keys(over).length) fs.writeFileSync(`${work}/overlay.json`, JSON.stringify({Replace: over}))
     try {
       // The harness's own package in -coverpkg too: the counters are written only where main is instrumented.
@@ -433,12 +437,12 @@ export function speak(work: string, bin: string, env: Record<string, string | un
       snapOf: self => toSnap(ask({op: 'get', id: self}).state as Record<string, unknown>),
       call: (self, e, args) => {
         // (the answers' values: the event's last argument, each one within its type or the request is outside)
-        let ans: unknown[] | undefined
+        let answers: Record<string, unknown> | undefined
         if (read.answers?.length) {
           const v = args.pop() as Record<string, Raw>
-          ans = read.answers.map(a => { const x = v[a.inputs.name] ?? 0; if (a.range && (Number(x) < a.range[0] || Number(x) > a.range[1])) throw new Outside(`${a.key} answers ${String(x)}, outside its type`); return a.inputs.none && v[a.inputs.none] === true ? null : x })
+          answers = Object.fromEntries(read.answers.map(a => { const x = v[a.inputs.name] ?? 0; if (a.range && (Number(x) < a.range[0] || Number(x) > a.range[1])) throw new Outside(`${a.key} answers ${String(x)}, outside its type`); return [a.key, a.inputs.none && v[a.inputs.none] === true ? {none: true} : {in: x}] }))
         }
-        const res = ask({op: 'call', id: self, m: e.call, a: args, ...(ans ? {ans} : {})}) as {out?: unknown, hasOut?: boolean, err?: string, panic?: string, bad?: string, frame?: string}
+        const res = ask({op: 'call', id: self, m: e.call, a: args, ...(answers ? {answers} : {})}) as {out?: unknown, hasOut?: boolean, err?: string, panic?: string, bad?: string, frame?: string}
         if (res.frame) throw new Error(`the code changes ${res.frame}, a field the rule leaves out`)
         if (res.bad) return {ok: false, error: `the code can't be given it (${res.bad})`}
         if (res.err !== undefined || res.panic !== undefined) return {ok: false, error: res.err !== undefined ? `error: ${res.err}` : `panic: ${res.panic}`}

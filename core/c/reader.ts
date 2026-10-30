@@ -422,7 +422,9 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     if (cpp && (name === 'min' || name === 'max') && args.length === 2) return {e: 'call', ...a, builtin: name, a: args.map(x)}
     const f = funcs.get(name)
     if (f?.$m) return no(n, `${name}: a static method`)
-    if (!f) return no(n, `${name}: a function of another file or library (other code)`)
+    // (another file's or a library's function: at the boundary where it is inferred, with its end, where the check
+    // stubs an answered one in a copy of the file)
+    if (!f) return {e: 'call', ...a, f: {e: 'sel', ...at(n, -1), k: 'qual', pkg: '', n: name, why: `${name}: a function of another file or library (other code)`}, a: args.map(x), ...(n.$e && own(n) ? {end: `${n.$e.line}:${n.$e.col + n.$e.tok}`} : {})}
     if (recvOf(f) && args.length) return {e: 'call', ...a, f: {e: 'sel', ...at(n, -1), k: 'method', x: x(args[0]!), n: name, mtype: entry, mptr: true}, a: args.slice(1).map(x)}
     return {e: 'call', ...a, f: {e: 'id', ...at(n, -1), o: 'func', n: name}, a: args.map(x)}
   }

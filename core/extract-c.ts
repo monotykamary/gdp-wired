@@ -26,6 +26,7 @@
 // operations but the mask above, the comma operator, an assignment or ++ inside an expression, and sizeof.
 import {type Extraction, fromModel} from './extract.ts'
 import {Refusal} from './extract-read.ts'
+import {stubbed} from './extract-step.ts'
 import type {Rule} from './dsl.ts'
 import type {Sorts} from './extract-print.ts'
 import type {Coverage} from './extract-check.ts'
@@ -35,7 +36,7 @@ import {type CRead, clangDump, flagsFor, node, readC} from './c/reader.ts'
 
 export type COptions = {
   // The struct, and the functions read as its requests (by default each non-static one whose first parameter points to it).
-  entry: string, functions?: string[],
+  entry?: string, functions?: string[],
   // The project's flags (-I, -D, -std), or its compile_commands.json (the file's entry's), and the clang to run.
   flags?: string[], compileCommands?: string, clang?: string,
   // The project's own files (their functions are read too: a header's static inline ones); by default the file's directory.
@@ -44,11 +45,19 @@ export type COptions = {
   fails?: Record<string, string>,
   onError?: 'refuse' | 'discard', domains?: Record<string, 'nat' | 'int'>, check?: GoCheckOptions,
 }
-type FS = {mkdtempSync: (p: string) => string, writeFileSync: (p: string, s: string) => void, rmSync: (p: string, o?: unknown) => void, mkdirSync: (p: string, o?: unknown) => void}
+type FS = {readFileSync: (p: string, e: string) => string, mkdtempSync: (p: string) => string, writeFileSync: (p: string, s: string) => void, rmSync: (p: string, o?: unknown) => void, mkdirSync: (p: string, o?: unknown) => void}
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
 
 export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead, flags: string[]} {
   const flags0 = [...flagsFor(file, opts.compileCommands), ...(opts.flags ?? [])], flags = cpp && !flags0.some(f => f.startsWith('-std=')) ? [...flags0, '-std=c++17'] : flags0, {tu, target} = clangDump(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, cpp ? opts.entry : undefined)
+  // (no entry: the file's one struct its functions write, each struct of the dump tried; C++'s dump needs the name)
+  if (!opts.entry) {
+    if (cpp) throw new Refusal(file, 'no entry: name the class (the C++ dump reads only the declarations named)')
+    const names = [...new Set((tu.inner ?? []).filter(n => n.kind === 'RecordDecl' && n.name && n.completeDefinition).map(n => String(n.name)))]
+    const ok = names.filter(n => { try { const c = readC(file, n, tu, target, cpp, opts.root); readGo(c.pkg, {methods: c.methods}); return true } catch (e) { if (e instanceof Refusal) return false; throw e } })
+    if (ok.length !== 1) throw new Refusal(file, ok.length ? `several structs written by the file's functions (${ok.join(', ')}): name one (entry)` : 'no struct the file\'s functions write: name the entry')
+    return readCFile(file, {...opts, entry: ok[0]!}, cpp)
+  }
   return {c: readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])]))), flags}
 }
 export function extractC(file: string, opts: COptions, cpp = false): Extraction & {leaves?: GoLeaf[]} {
@@ -56,14 +65,15 @@ export function extractC(file: string, opts: COptions, cpp = false): Extraction 
   let read: GoRead, c: CRead, flags: string[]
   try {
     ;({c, flags} = readCFile(file, opts, cpp))
-    read = readGo(c.pkg, {entry: opts.entry, methods: opts.functions?.map(f => f.split('/')[0]!) ?? c.methods, ...(opts.onError ? {onError: opts.onError} : {}), ...(opts.fails ? {fails: opts.fails} : {})} as GoOptions)
+    read = readGo(c.pkg, {entry: c.entry, methods: opts.functions?.map(f => f.split('/')[0]!) ?? c.methods, ...(opts.onError ? {onError: opts.onError} : {}), ...(opts.fails ? {fails: opts.fails} : {})} as GoOptions)
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
     throw e
   }
   // (a signed leaf the caller states is a natural: its range law from 0, the claim for those states)
   for (const [n, d] of Object.entries(opts.domains ?? {})) if (d === 'nat') read.model.laws = read.model.laws?.map(l => (l.includes(`"${n} within its type's range"`) ? l.replace(/\.atLeast\(-\d+\)/, '.atLeast(0)') : l))
-  const x = fromModel(read.model, `${opts.entry}.${cpp ? 'cpp' : 'c'}`, {...unsignedDomains(read), ...signedDomains(c.pkg, read), ...opts.domains}, notes, (rule, sorts) => checkC(file, flags, c, read, rule, sorts, opts, cpp))
+  if (!opts.entry) read.model.notes.unshift(`the entry inferred: ${c.entry}, the struct the file's functions write`)
+  const x = fromModel(read.model, `${c.entry}.${cpp ? 'cpp' : 'c'}`, {...unsignedDomains(read), ...signedDomains(c.pkg, read), ...opts.domains}, notes, (rule, sorts) => checkC(file, flags, c, read, rule, sorts, opts, cpp))
   return {...x, leaves: read.leaves}
 }
 
@@ -154,7 +164,18 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
   return ${cpp ? `new (mem) gdp_T(${cps.map((_, i) => `c${i}`).join(', ')})` : '(gdp_T *)mem'};
 }`
   return `// Generated by gdp-wired's ${cpp ? 'C++' : 'C'} check (core/extract-c.ts): the file's code is called as it is.
-#define main gdp_orig_main
+${read.answers?.length ? `// The stub point of an answered call, by the callee's name (each call rewritten to it in the file's copy): the
+// request's input for it, 0 where it is none.
+#include <stdlib.h>
+static const char *gdp_answers;
+static const char *gdp_key(const char *p, const char *k);
+static long long gdp_answer(const char *name) {
+  const char *a = gdp_answers ? gdp_key(gdp_answers, name) : 0, *v = a ? gdp_key(a, "in") : 0;
+  if (!v) return 0;
+  if (*v == '"') v++;
+  return strtoll(v, 0, 10);
+}
+` : ''}#define main gdp_orig_main
 #include ${q(file)}
 #undef main
 #include <stdio.h>
@@ -275,7 +296,8 @@ int main(int argc, char **argv) {
     else if (op && !strncmp(op, "\\"call\\"", 6)) {
       const char *mv = gdp_key(line, "m"), *av = gdp_key(line, "a"); char m[256] = {0};
       if (mv && *mv == '"') { const char *e = strchr(mv + 1, '"'); size_t n = e ? (size_t)(e - mv - 1) : 0; if (n > 255) n = 255; memcpy(m, mv + 1, n); }
-      gdp_putf("{\\"ok\\":true");
+      gdp_putf("{\\"ok\\":true");${read.answers?.length ? `
+      gdp_answers = gdp_key(line, "answers");` : ''}
       const char *bad = gdp_call(objs[k - 1], m, av ? av : "[]");
       if (bad) { gdp_n = 0; gdp_putf("{\\"bad\\":\\"%s\\"", bad); }
       gdp_putf("}");
@@ -296,7 +318,12 @@ function strictFlex(clang: string): string[] {
 // --- the check ------------------------------------------------------------------------------------------------------------
 export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r: Rule, sorts: Sorts, opts: COptions, cpp: boolean): GoEvidence {
   const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process'), os = node<{tmpdir: () => string, platform: () => string}>('node:os'), path = node<{resolve: (p: string) => string}>('node:path')
-  const work = fs.mkdtempSync(`${os.tmpdir()}/gdp-ccheck-`), code = harnessC(path.resolve(file), c, read, opts, cpp), b0 = performance.now()
+  const work = fs.mkdtempSync(`${os.tmpdir()}/gdp-ccheck-`), b0 = performance.now()
+  // (each answered call rewritten to the harness's answer in a copy of the file, its own includes found beside it)
+  const copy = stubbed(read as never, f => fs.readFileSync(`${path.resolve(file).replace(/[^/]*$/, '')}${f}`, 'utf8'), a => `((${a.ty})gdp_answer(${JSON.stringify(a.key)}))`)
+  for (const [f, t] of copy) fs.writeFileSync(`${work}/${f}`, t)
+  const code = harnessC(copy.size ? `${work}/${path.resolve(file).split('/').pop()}` : path.resolve(file), c, read, opts, cpp)
+  if (copy.size) flags = [...flags, '-iquote', path.resolve(file).replace(/\/[^/]*$/, '')]
   const empty = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0, buildMs: 0, runMs: 0}
   try {
     const h = `${work}/harness.${cpp ? 'cpp' : 'c'}`

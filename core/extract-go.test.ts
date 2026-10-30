@@ -307,7 +307,9 @@ t('outside the subset, each where it is: floats, loops, goroutines, closures, ge
   refused(go('type F struct{ N int64 }\nfunc (f *F) Go() { go func() {}() }', 'F'), /a goroutine/)
   refused(go('type F struct{ N int64 }\nfunc (f *F) Do() { g := func() int64 { return 1 }; f.N = g() }', 'F'), /a closure/)
   refused(go('type F[T any] struct{ N int64; v T }\nfunc (f *F[T]) Inc() { f.N++ }', 'F'), /generic/)
-  refused(go('import "strings"\ntype F struct{ S string; N int64 }\nfunc (f *F) Up() { f.S = strings.ToUpper(f.S) }', 'F'), /standard library the subset doesn't read/)
+  // (another package's call whose value is kept: refused as stated, answered over its type as inferred)
+  refused(go('import "strings"\ntype F struct{ S string; N int64 }\nfunc (f *F) Up() { f.S = strings.ToUpper(f.S) }', 'F', {strict: true}), /standard library the subset doesn't read/)
+  expect(ok(go('import "strings"\ntype F struct{ S string; N int64 }\nfunc (f *F) Up() { f.S = strings.ToUpper(f.S) }', 'F')).notes.join(' ')).toMatch(/strings.ToUpper .*answered by the request \(inferred/)
 }, 600_000)
 
 t('a context.Context argument passed on to the package\'s own functions is read; one the step reads is refused', () => {

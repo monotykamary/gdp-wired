@@ -193,3 +193,23 @@ t('C++: refused where it leaves the subset, each with why', () => {
   expect(why('struct K { int n = 0; void f() { try { n++; } catch (...) {} } };\n')).toMatch(/try and catch/)
   expect(why('template <class T> struct K { T n; void f() { n++; } };\nK<int> k;\n')).toMatch(/class template/)
 }, 60_000)
+
+t('the boundary inferred: a library call left out, another file\'s function answered over its declared type, the entry', () => {
+  const x = ok(c(`#include <stdio.h>
+int quota_bonus(int n);
+struct meter { unsigned used; unsigned cap; };
+void meter_init(struct meter *m, unsigned cap) { m->used = 0; m->cap = cap; }
+int meter_take(struct meter *m, unsigned n) {
+  fflush(stdout);
+  unsigned extra = (unsigned)quota_bonus((int)(n % 100));
+  if (n > m->cap || extra > m->cap - n || m->used > m->cap - n - extra) return -1;
+  m->used += n + extra;
+  return 0;
+}
+`, undefined as never))
+  const notes = x.notes.join('\n')
+  expect(notes).toMatch(/the entry inferred: meter/)
+  expect(notes).toMatch(/fflush .*left out \(inferred/)
+  expect(notes).toMatch(/quota_bonus .*answered by the request \(inferred: its value is read; assumes quota_bonus may return any int\)/)
+  step(x, 'never past its cap', (_b, a) => a.used.atMost(a.cap), b => b.used.atMost(b.cap))
+})
