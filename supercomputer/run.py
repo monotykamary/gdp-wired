@@ -210,5 +210,10 @@ if __name__ == "__main__":
     ap.add_argument("--vm-type", default="large", choices=["small", "default", "large", "xlarge"])
     ap.add_argument("--durations", default="", help="a summary.tsv whose times order the jobs (default: the last run's)")
     ap.add_argument("--max-wait", type=int, default=120, help="auto: seconds to wait for a boat VM before Modal takes the batch")
+    ap.add_argument("--class", dest="sc_class", default="", choices=["", "interactive", "gate", "submission", "sweep", "filler"],
+                    help="the supercomputer scheduler's priority class (default $SUPERCOMPUTER_CLASS, else interactive for a small batch, submission for a bigger one)")
     a = ap.parse_args()
+    if a.sc_class:
+        import os
+        os.environ["SUPERCOMPUTER_CLASS"] = a.sc_class
     main(a.jobs, a.out, a.native, a.cyclic, a.usual, a.backend, a.vms, a.idle, a.teardown, a.vm_type, a.durations, a.max_vms, a.max_wait)

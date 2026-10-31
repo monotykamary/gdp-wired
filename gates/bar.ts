@@ -119,7 +119,8 @@ process.on('exit', () => { for (const c of live.values()) try { c.kill('SIGINT')
 // uploaded), and every launch reads this checkout's supercomputer.toml (SUPERCOMPUTER_CONFIG), so every launch spends
 // starts under one policy, reaches warm VMs by their agents, and is in the ledger.
 const CLIENT = `bar-${process.pid}`
-const SC_CONFIG: Record<string, string> = existsSync(join(HERE, '..', 'supercomputer.toml')) ? {SUPERCOMPUTER_CONFIG: resolve(HERE, '..', 'supercomputer.toml')} : {}
+// (and every launch is the supercomputer scheduler's class 2, a gate: it takes the treadmill's slots first)
+const SC_CONFIG: Record<string, string> = {SUPERCOMPUTER_CLASS: 'gate', ...(existsSync(join(HERE, '..', 'supercomputer.toml')) ? {SUPERCOMPUTER_CONFIG: resolve(HERE, '..', 'supercomputer.toml')} : {})}
 function declare(done = false) {
   if (backend === 'modal') return
   Bun.spawnSync(['python3', join(HERE, '..', 'supercomputer', 'boat.py'), 'demand', CLIENT, ...(done ? ['--done'] : ['--for', '300', '--pid', String(process.pid)])], {stdout: 'ignore', stderr: 'ignore', env: {...process.env, ...SC_CONFIG}})
