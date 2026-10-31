@@ -31,7 +31,7 @@ let dumped = 0
 
 const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
 const json = (t: unknown) => JSON.stringify(t)
-const knob = {pairs: env.GDP_K_PAIRS === '1', rounds: Number(env.GDP_K_ROUNDS ?? 0), cap: Number(env.GDP_K_CAP ?? 24), ts: env.GDP_K_TS === '1', keyed: env.GDP_K_KEYED !== '0', flagTs: env.GDP_K_FLAGTS !== '0', shrink: Number(env.GDP_K_SHRINK ?? 150), walks: Number(env.GDP_K_WALKS ?? 100_000), alone: Number(env.GDP_K_ALONE ?? 300), hops: Number(env.GDP_K_HOPS ?? 16), first: env.GDP_K_FIRST !== '0', decide: Number(env.GDP_K_DECIDE ?? 0), mbqi: Number(env.GDP_K_MBQI ?? 12), once: env.GDP_K_ONCE !== '0', reads: Number(env.GDP_K_READS ?? 6), memo: env.GDP_K_MEMO !== '0', part: env.GDP_K_PART !== '0'}
+const knob = {pairs: env.GDP_K_PAIRS === '1', rounds: Number(env.GDP_K_ROUNDS ?? 0), cap: Number(env.GDP_K_CAP ?? 24), ts: env.GDP_K_TS === '1', keyed: env.GDP_K_KEYED !== '0', flagTs: env.GDP_K_FLAGTS !== '0', shrink: Number(env.GDP_K_SHRINK ?? 150), walks: Number(env.GDP_K_WALKS ?? 100_000), alone: Number(env.GDP_K_ALONE ?? 300), hops: Number(env.GDP_K_HOPS ?? 16), first: env.GDP_K_FIRST !== '0', decide: Number(env.GDP_K_DECIDE ?? 0), mbqi: Number(env.GDP_K_MBQI ?? 12), once: env.GDP_K_ONCE !== '0', reads: Number(env.GDP_K_READS ?? 6), memo: env.GDP_K_MEMO !== '0', part: env.GDP_K_PART !== '0', rows: env.GDP_K_ROWS !== '0', widen: env.GDP_K_WIDEN !== '0'}
 const one = k(1), zero = k(0)
 type Env = Record<string, number>
 
@@ -196,14 +196,41 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
     const most = Math.max(0, ...states.flatMap(({sts}) => sts.flatMap(st => [...(st.maps[mp]?.values() ?? [])])))
     return {name: `${mp} at most ${most}`, forall: 'a$c', holds: {op: '<=', a: {op: 'get', map: mp, key: v('a$c')}, b: k(most)}} as Law
   })
+  // (a relation written at a composed key N·a + b: at most one b a row, or one a a column, K2's support the engine's
+  // cubes of two keys can't state (three keys read): one decision a node, one vote a voter)
+  const rowLaws: Law[] = Object.entries(m.step.maps ?? {}).flatMap(([mp, w]) => {
+    const key = 'each' in w ? undefined : w.key, n = key?.op === 'add' && key.a.op === 'mul' && key.a.a.op === 'var' && key.b.op === 'var' ? key.a.k : 0
+    if (!n) return []
+    const at = (p: E, q: E): C => ({op: '<=', a: one, b: {op: 'get', map: mp, key: {op: 'add', a: {op: 'mul', k: n, a: p}, b: q}}})
+    return [false, true].map((col): Law => {
+      const [a, x, y] = [v('a$c'), v('x$c'), v('y$c')], cell = (z: E) => (col ? at(z, a) : at(a, z))
+      return {name: `${mp}: one ${col ? 'first key a second' : 'second key a first'}`, forall: 'a$c', keys: ['x$c', 'y$c'],
+        holds: {op: 'or', xs: [{op: 'not', x: {op: 'and', xs: [...[a, x, y].map((z): C => ({op: '<', a: z, b: k(n)})), cell(x), cell(y)]}}, {op: '=', a: x, b: y}]}}
+    })
+  })
   const trueAll = (l: Law) => clock() < until && states.every(({p, sts}) => sts.every(st => holdsAt(m, l, p, st, 4)))
   if (!caller.every(trueAll)) return {proven: false, laws: caller, m, why: clock() < until ? 'a law fails on the small instances' : 'time'}
   // (the engine's minimal ∀ cubes on its own small instances and data filter, core/infer.ts's: the supports no guard reads)
   const t1 = clock(), rows = states.flatMap(({p, sts}) => sts.map(st => ({params: p, st})))
-  const cubes = ptime('cubes', () => inferLaws(m0, caller, [], {cubes: 2, ms: Math.min(15_000, ms / 4), first: {proven: false, checked: false}, rows}).found.map(f => f.law))
+  const cubes0 = ptime('cubes', () => inferLaws(m0, caller, [], {cubes: 2, ms: Math.min(15_000, ms / 4), first: {proven: false, checked: false}, rows}).found.map(f => f.law))
+  // (a cube's guard `u < param` dropped where u sits at a map's place that a caller reads with no param bound, the
+  // decided value below N and not below size, if the small instances still hold it: the engine's template reads every
+  // key of a composed map as one sort)
+  const placesOf = (key: E): string[] | undefined => (key.op === 'var' ? [key.name] : key.op === 'add' && key.a.op === 'mul' && key.a.a.op === 'var' && key.b.op === 'var' ? [key.a.a.name, key.b.name] : undefined)
+  const guardsOf = (l: Law): C[] => (l.holds.op === 'or' ? l.holds.xs.flatMap(d => (d.op === 'not' ? atoms(d.x) : [])) : [])
+  const bounded = (gs: C[], u: string) => gs.some(c => c.op === '<' && c.a.op === 'var' && c.a.name === u && c.b.op === 'var' && m.params.includes(c.b.name))
+  const loose = new Set(caller.flatMap(l => [...reads(l.holds, mp => mp in (m.maps ?? {})).values()].flatMap(([mp, key]) => (placesOf(key) ?? []).flatMap((u, i) => (bounded(guardsOf(l), u) ? [] : [`${mp}:${i}`])))))
+  const widen = (c: Law): Law => {
+    const drop = new Set([...reads(c.holds, () => true).values()].flatMap(([mp, key]) => (placesOf(key) ?? []).filter((u, i) => loose.has(`${mp}:${i}`))))
+    const keep = (x: C): boolean => !(x.op === '<' && x.a.op === 'var' && drop.has(x.a.name) && x.b.op === 'var' && m.params.includes(x.b.name))
+    if (!drop.size || c.holds.op !== 'or' || !guardsOf(c).some(x => !keep(x))) return c
+    const w: Law = {...c, name: `${c.name} (at any ${[...drop].join(', ')} below the key's bound)`, holds: {op: 'or', xs: c.holds.xs.map(d => (d.op === 'not' ? {op: 'not', x: {op: 'and', xs: atoms(d.x).filter(keep)}} : d))}}
+    return trueAll(w) ? w : c
+  }
+  const cubes = knob.widen ? cubes0.map(widen) : cubes0
   if (env.GDP_COUNTS_TRACE) console.error(`counts: small ${states.map(({sts}) => sts.length).join('/')}; declared ${Object.keys(g.counts ?? {}).join(', ')}`)
   if (env.GDP_COUNTS_TRACE) console.error(`counts: cubes ${cubes.length} in ${Math.round(clock() - t1)} ms: ${cubes.map(l => l.name).join('; ')}`)
-  let set = [...caller, ...ptime('filter', () => [...kinds, ...g.laws, ...cubes].filter(trueAll))]
+  let set = [...caller, ...ptime('filter', () => [...kinds, ...g.laws, ...(knob.rows ? rowLaws : []), ...cubes].filter(trueAll))]
   if (env.GDP_COUNTS_TRACE) console.error(`counts: candidates at ${Math.round(clock() - t1)} ms: ${set.map(l => l.name).join('; ')}`)
   // (the law's own names and the request's values that key a map: an action's value keys none)
   const keys0 = [...[...reads([m.step, m.assume ?? null], () => true).values()].map(([, key]) => key), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [] : [w.key]))]
