@@ -1051,7 +1051,7 @@ function modelsLoop<T>(m: Machine, laws: Law[], inst: Instances, goalOf: (i: Ins
     if (round && !settled(result)) return first!
     if (pastWall()) return first ?? {result, inst: at}
     first ??= {result, inst: at}
-    const mw = modelOf(result), more = mw && round < (sorted.on ? 3 * modelRounds : modelRounds) && cap > 0 ? modelInstances(m, laws, at, mw.goal, mw.w) : undefined
+    const mw = modelOf(result), more = mw && round < modelRounds && cap > 0 ? modelInstances(m, laws, at, mw.goal, mw.w) : undefined
     if (!more) return {result, inst: at}
     at = more
   }
@@ -1547,7 +1547,7 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
   const law = laws[i]!, byName = new Map(laws.map(l => [l.name, l]))
   // (decideLaw's and the fast set proof's: each law's keys of its sort alone, `bySort`; proveLaw's and the join's as they
   // were. The fast set proof is checked over the tuples its proofs read, and the usual proof follows where it fails)
-  let inst = prev && laws.every(l => !l.forall || l.name in prev.inst) ? prev.inst : bySort(m, laws, lawInstances0(m, laws, i))
+  let inst = prev && laws.every(l => !l.forall || l.name in prev.inst) ? prev.inst : bySort(m, laws, lawInstances(m, laws, i))
   // (GDP_DLTRIG=1: decideLaw's first instances only those a goal's reads trigger (proveOne's `triggered`), the model
   // rounds adding the instances a model breaks (MBQI's))
   if (!prev && !usual && env.GDP_DLTRIG === '1') inst = triggered(plainOf(m), laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
@@ -1652,17 +1652,10 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
 function proveOne(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram} {
   const law = laws[i]!, pm = plainOf(m), inst = lawInstances(m, laws, i)
   const few = triggered(pm, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
-  // (the ∃ path, `sorted.on`: the triggered instances grown by what each model breaks (MBQI), not every instance first:
-  // a ghost map's goals over every kept cube and key were 699–1,089 hypotheses, 5 MB)
-  if (!sameInstances(few, inst) && !sorted.on && obligations(m, laws, {[law.name]: few}, i).every(goal => 'tree' in grow(goal))) return {proven: true}
+  if (!sameInstances(few, inst) && obligations(m, laws, {[law.name]: few}, i).every(goal => 'tree' in grow(goal))) return {proven: true}
   // (a model breaking a law at a tuple of the goal's keys: those added, the law asked again)
-  const {result: a} = withModels(m, laws, sorted.on ? ownOnly(m, laws, inst, law.forall ? [`${law.forall}#`, ...(law.keys ?? [])] : []) : inst, i2 => obligations(m, laws, {[law.name]: i2}, i), growAll, grownModel, grownSettled)
+  const {result: a} = withModels(m, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), growAll, grownModel, grownSettled)
   return a.out ? {proven: false, goal: a.goal!.name, stuck: a.out.stuck, ...(a.out.witness ? {witness: a.out.witness} : {}), ...(a.out.diagram ? {diagram: a.out.diagram} : {})} : {proven: true}
-}
-// (the tuples that hold one of the goal's own keys alone: where the ∃ path's MBQI starts)
-function ownOnly(m: Machine, laws: Law[], inst: Instances, own: string[]): Instances {
-  const width = (n: string) => { const q = n.startsWith('?') ? m.step.flags?.[n.slice(1)] : undefined, l = q ? undefined : laws.find(x => x.name === n); return q?.op === 'all' ? boundOf(q).length : l?.forall ? 1 + (l.keys?.length ?? 0) : 0 }
-  return Object.fromEntries(Object.entries(inst).map(([n, ks]) => { const a = width(n); return [n, !a ? ks : Array.from({length: Math.floor(ks.length / a)}, (_, t) => ks.slice(t * a, (t + 1) * a)).filter(t => t.some(e => e.op === 'var' && own.includes(e.name))).flat()] }))
 }
 // Goals grown in turn up to the first one unproven (withModels' question in proveLaw and proveThinned): the trees, their
 // nodes and leaves, and the goal it stopped at with its outcome, whose model asks for more instances.
@@ -1779,15 +1772,7 @@ function bySort(m: Machine, laws: Law[], inst: Instances): Instances {
   }))
 }
 // The instances law i's goals are read at (proveLaw's; core/infer.ts's join asks one goal at a time).
-// (`sorted.on`: every law's instances of its keys' sorts alone, bySort's, here too: the ∃ path's goals, core/exists.ts's
-// proveSome, where a ghost map's goals read every key the machine reads, wrong sorts among them: firewall's 799–1,308
-// hypotheses with Internal at 64·s + d)
-export const sorted = {on: false}
 export function lawInstances(m: Machine, laws: Law[], i: number): Instances {
-  const out = lawInstances0(m, laws, i)
-  return sorted.on ? bySort(m, laws, out) : out
-}
-function lawInstances0(m: Machine, laws: Law[], i: number): Instances {
   // (a machine with sums: its plain machine's instances, as proveLawsAsGiven's)
   const law = laws[i]!, pm = plainOf(m), keys = [...readKeys(pm, laws), ...witnesses(pm)]
   return instancesFor(pm, laws, inst => obligations(m, laws, {[law.name]: inst}, i), {
@@ -1808,7 +1793,6 @@ function proveLawsAsGiven(m: Machine, laws: Law[], defer?: (finish: () => void) 
       seed: [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : []), ...(law.keys ?? []).map((name): E => ({op: 'var', name}))],
       focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
     })
-    if (sorted.on) instances[law.name] = bySort(m, laws, instances[law.name]!)
   })
   // (by default a covered machine's certificate is its cyclic proof, core/cyclic.ts's certCyclic, the usual trees its
   // input, not checked again; where none is made, the usual trees are checked and the proof counted uncovered)
