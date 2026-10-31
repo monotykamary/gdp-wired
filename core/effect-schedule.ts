@@ -28,7 +28,8 @@ export type ReadCtx = {api: Api, checker: ts.TypeChecker, v4: boolean, params: M
 // A fragment's step, given the rule's env, a reader of its state (its start, for a schedule entered fresh) and its
 // context: how many times it was stepped before (from 0), how long since its first step, the schedule's input.
 type Ctx = {attempt: Term, elapsed: Term, first: Cond}
-type Res = {cont: Cond, delay: Term, out?: Term, next: Record<string, Any>, jittered?: boolean}
+// (out: the schedule's output where a function may read it; outDur: it is a Duration, an object in JavaScript)
+type Res = {cont: Cond, delay: Term, out?: Term, outDur?: boolean, next: Record<string, Any>, jittered?: boolean}
 type Frag = {step: (env: Env, get: (n: string) => Any, c: Ctx) => Res, names: string[], jitters?: string[]}
 type Init = {kind: 'nat' | 'bool', init: number | boolean | ((p: Env) => Term)}
 // What the reading builds beside the fragments: the rule's params, inputs, functions, assumptions, state and notes.
@@ -85,7 +86,7 @@ function sched(e0: ts.Expression, rc: ReadCtx, P: Parts): Frag {
     case 'linear': if (!rc.v4) return linearFrag(P, dur(a0, c, rc)); break
     case 'during': if (rc.v4) return duringFrag(P, dur(a0, c, rc)); break
     case 'fromDelay': case 'duration': return onceFrag(P, dur(a0, c, rc))
-    case 'recurUpTo': if (!rc.v4) return upToFrag(spacedFrag(P, {k: 'lit', v: 0}), P, dur(a0, c, rc), undefined, true); break
+    case 'recurUpTo': if (!rc.v4) return upToFrag(leaf((_, __, cx) => ({cont: yes, delay: lit(0), out: cx.elapsed, outDur: true, next: {}})), P, dur(a0, c, rc), undefined, true); break
     case 'min': case 'max': if (rc.v4) {
       const xs = a0 && ts.isArrayLiteralExpression(strip(a0)) ? (strip(a0) as ts.ArrayLiteralExpression).elements : refuse(c, `Schedule.${op} of other than an array written here`)
       if (!xs.length) return refuse(c, `Schedule.${op}([])`)
@@ -215,9 +216,9 @@ const leaf = (step: Frag['step']): Frag => ({step, names: []})
 function spacedFrag(P: Parts, d: Num): Frag { void P; return leaf((env, _, c) => ({cont: yes, delay: term(d, env), out: c.attempt, next: {}})) }
 function recursFrag(P: Parts, n: Num): Frag { void P; return leaf((env, _, c) => ({cont: c.attempt.lt(term(n, env)), delay: lit(0), out: c.attempt, next: {}})) }
 function onceFrag(P: Parts, d: Num): Frag { void P; return leaf((env, _, c) => ({cont: c.attempt.eq(0), delay: when(c.attempt.eq(0), term(d, env), 0), next: {}})) }
-function duringFrag(P: Parts, d: Num): Frag { void P; return leaf((env, _, c) => ({cont: c.elapsed.atMost(term(d, env)), delay: lit(0), out: c.elapsed, next: {}})) }
+function duringFrag(P: Parts, d: Num): Frag { void P; return leaf((env, _, c) => ({cont: c.elapsed.atMost(term(d, env)), delay: lit(0), out: c.elapsed, outDur: true, next: {}})) }
 function linearFrag(P: Parts, d: Num): Frag {
-  return leaf((env, _, c) => { const base = term(d, env), at = c.attempt.plus(1), delay = d.k === 'lit' ? at.times(d.v) : base.mul(at); void P; return {cont: yes, delay, out: delay, next: {}} })
+  return leaf((env, _, c) => { const base = term(d, env), at = c.attempt.plus(1), delay = d.k === 'lit' ? at.times(d.v) : base.mul(at); void P; return {cont: yes, delay, out: delay, outDur: true, next: {}} })
 }
 // The exponential's delay: base·factor^attempt, a function defined by its recurrence on the attempt, its lemmas (at
 // least the base; never shrinks) proven by induction when it is made.
@@ -234,13 +235,13 @@ function expFrag(P: Parts, d: Num, f: number, at: ts.Node): Frag {
   }
   P.fns[name] = fd
   P.notes.add(`an exponential's delay is ${name}(attempt), defined by its recurrence (base, then ×${f} a step); its lemmas (at least the base; never shrinks) are proven by induction and are its facts`)
-  return leaf((env, _, c) => { const delay: Term = d.k === 'lit' ? env[name](c.attempt) : env[name](c.attempt, term(d, env)); return {cont: yes, delay, out: delay, next: {}} })
+  return leaf((env, _, c) => { const delay: Term = d.k === 'lit' ? env[name](c.attempt) : env[name](c.attempt, term(d, env)); return {cont: yes, delay, out: delay, outDur: true, next: {}} })
 }
 // Fibonacci: its two numbers in the state (one, one, two, three, ...), as Effect keeps them.
 function fibFrag(P: Parts, d: Num): Frag {
   const a = P.fresh('fib_a'), b = P.fresh('fib_b')
   P.state.set(a, {kind: 'nat', init: 0}); P.state.set(b, {kind: 'nat', init: d.k === 'lit' ? d.v : (p: Env) => term(d, p)})
-  return {names: [a, b], step: (_, get) => ({cont: yes, delay: get(b), out: get(b), next: {[a]: get(b), [b]: get(a).plus(get(b))}})}
+  return {names: [a, b], step: (_, get) => ({cont: yes, delay: get(b), out: get(b), outDur: true, next: {[a]: get(b), [b]: get(a).plus(get(b))}})}
 }
 // union: either goes on, the smaller delay of those that do; intersect: both go on, the larger delay.
 function both(how: 'union' | 'intersect', l: Frag, r: Frag, P: Parts): Frag {
@@ -292,7 +293,7 @@ function jitterFrag(self: Frag, P: Parts, lo: [number, number], hi: [number, num
   const j = P.fresh('jitter'), base = nat0(P, `${j}_base`), on = flag(P, `${j}_on`)
   P.inputs.set(j, nat)
   P.jitters.push({name: j, base, on, lo, hi})
-  P.notes.add(`each jittered delay is an input (${j}), assumed between ${lo[0] / lo[1]} and ${hi[0] / hi[1]} times the delay it jitters, rounded outward to whole milliseconds: Effect draws a real number there. Every run of Effect's is one of the rule's with each jittered delay rounded down or up (the attempts' times taking up the rest), so a decision on the time (at most a whole number of milliseconds, as upTo and during make it) comes out the same, and so does a law comparing the delay with a whole number of milliseconds or with another delay; a law comparing it with the elapsed time is decided on whole milliseconds. A function reading the delay after the jitter is refused`)
+  P.notes.add(`each jittered delay is an input (${j}), assumed between ${lo[0] / lo[1]} and ${hi[0] / hi[1]} times the delay it jitters, rounded outward to whole milliseconds: Effect draws a real number there. Every run of Effect's is one of the rule's with each jittered delay rounded down or up (the attempts' times taking up the rest), so a decision on the time (below or at most a whole number of milliseconds, as upTo and during make it: the times rounded down, or up) comes out the same, and so does a law comparing the delay with a whole number of milliseconds or with another delay; a law comparing it with the elapsed time is decided on whole milliseconds. A function reading the delay after the jitter is refused`)
   // (the range assumed where the jitter is drawn: the delay it jitters goes on, in a schedule the step takes)
   P.assume.push(env => { const d: Term = env[`${j}$d`] ?? lit(0), used: Cond = env[`${j}$on`] ?? no; return used.implies(all(d.times(lo[0]).atMost(env[j].times(lo[1]).plus(lo[1] - 1)), env[j].times(hi[1]).atMost(d.times(hi[0]).plus(hi[1] - 1)))) })
   return {names: [...self.names, base, on], jitters: [...self.jitters ?? [], j], step: (env, get, c) => {
@@ -333,8 +334,11 @@ type CbCtx = {rc: ReadCtx, P: Parts, env: Env, vars: Map<ts.Node, () => Val>}
 function callbackCtx(fn: ts.ArrowFunction | ts.FunctionExpression, rc: ReadCtx, P: Parts, env: Env, c: Ctx, x: Res, op: string): CbCtx {
   // (each parameter's value made where the function reads it)
   const vars = new Map<ts.Node, () => Val>()
-  const out = (at: ts.Node): Val => (x.out ? {t: 'dur', e: x.out} : refuse(at, `the output of this schedule (a combination, or one whose output isn't a number or a duration): ${op} reads it`))
+  const out = (at: ts.Node): Val => (x.out ? {t: x.outDur ? 'dur' : 'num', e: x.out} : refuse(at, `the output of this schedule (a combination, or one whose output isn't a number or a duration): ${op} reads it`))
   const input = (p: ts.ParameterDeclaration): Val => inputVal(p, rc, P, env)
+  // (the elapsed time, where a jitter moves it, is Effect's real number: a comparison of it in a function may come out
+  // otherwise on whole milliseconds; upTo and during compare it as the rule's rounding keeps)
+  const elapsedRead = (at: ts.Node): Val => (P.jitters.length ? refuse(at, 'the elapsed time read in a function of a jittered schedule (Effect\'s is a real number of milliseconds there, the rule\'s a whole one): bound it with upTo or during') : {t: 'num', e: c.elapsed})
   const ps = fn.parameters
   const bind = (p: ts.ParameterDeclaration | undefined, v: () => Val) => {
     if (!p) return
@@ -349,7 +353,7 @@ function callbackCtx(fn: ts.ArrowFunction | ts.FunctionExpression, rc: ReadCtx, 
   if (rc.v4) {
     // 4.x's metadata: input, output, attempt (from 1), elapsed, duration (the delay).
     const p = ps[0]
-    const meta: Val = {t: 'obj', field: (k, at) => k === 'input' ? (p ? inputVal(p, rc, P, env, 'input') : refuse(at, 'input')) : k === 'output' ? out(at) : k === 'attempt' ? {t: 'num', e: c.attempt.plus(1)} : k === 'elapsed' ? {t: 'dur', e: c.elapsed} : k === 'duration' ? jitteredDelay(x, at)
+    const meta: Val = {t: 'obj', field: (k, at) => k === 'input' ? (p ? inputVal(p, rc, P, env, 'input') : refuse(at, 'input')) : k === 'output' ? out(at) : k === 'attempt' ? {t: 'num', e: c.attempt.plus(1)} : k === 'elapsed' ? elapsedRead(at) : k === 'duration' ? jitteredDelay(x, at)
       : refuse(at, `the metadata's ${k} (input, output, attempt, elapsed and duration are read)`)}
     bind(p, () => meta)
   } else if (op === 'whileInput' || op === 'untilInput') bind(ps[0], () => input(ps[0]!))
@@ -367,7 +371,7 @@ function inputVal(p: ts.ParameterDeclaration, rc: ReadCtx, P: Parts, env: Env, s
   // (an input first read while the rule is made: a stand-in, the rule made again with it)
   const scalar = (ty: ts.Type | ts.Type[], name: string, at: ts.Node): Val => {
     const k = kindOfType(ty, rc.checker, at)
-    if (!P.inputs.has(name)) { P.inputs.set(name, k); P.fields.set(name, k) }
+    if (!P.inputs.has(name)) { P.inputs.set(name, k); P.fields.set(name, k); if (k === nat) P.notes.add(`the input's ${name === 'input' ? 'value' : name.replace(/^input_/, '')} is read as a natural (a whole number at least 0): an input below 0 or with a fraction is one the rule's runs don't feed it`) }
     const v = env[name] ?? (k === nat ? lit(0) : k === bool ? no : {is: () => no})
     return k === nat ? {t: 'num', e: v} : k === bool ? {t: 'bool', c: v} : {t: 'choice', e: v}
   }
@@ -403,7 +407,7 @@ const kindOfType = (t0: ts.Type | ts.Type[], checker: ts.TypeChecker, at: ts.Nod
 // whole one, and a comparison with it may come out otherwise.
 const jitteredDelay = (x: Res, at: ts.Node): Val => (x.jittered ? refuse(at, 'the delay read after a jitter (Effect\'s is a real number of milliseconds there, the rule\'s a whole one: a comparison with it may come out otherwise): jitter after this function') : {t: 'dur', e: x.delay})
 const asCond = (v: Val, at: ts.Node): Cond => (v.t === 'bool' ? v.c : v.t === 'eff' ? asCond(v.v, at) : refuse(at, `${text(at)} gives other than a boolean`))
-const asNum = (v: Val, at: ts.Node): Term => (v.t === 'num' || v.t === 'dur' ? v.e : refuse(at, `${text(at)} is other than a number`))
+const asNum = (v: Val, at: ts.Node): Term => (v.t === 'num' ? v.e : refuse(at, `${text(at)} is ${v.t === 'dur' ? 'a Duration (an object in JavaScript: Duration.toMillis reads its milliseconds)' : 'other than a number'}`))
 const asDur = (v: Val, at: ts.Node): Term => (v.t === 'dur' || v.t === 'num' ? v.e : v.t === 'eff' ? asDur(v.v, at) : v.t === 'str' ? lit(strDur(v.s, at)) : refuse(at, `${text(at)} gives other than a duration`))
 const strDur = (s: string, at: ts.Node): number => { const m = /^\s*(\d+(?:\.\d+)?)\s*([a-z]+)\s*$/.exec(s); return m && m[2]! in UNITS ? whole(at, Number(m[1]) * UNITS[m[2]!]!, s) : refuse(at, `the duration '${s}'`) }
 function body(fn: ts.ArrowFunction | ts.FunctionExpression, c: CbCtx): Val {
@@ -436,18 +440,21 @@ function val(e0: ts.Expression, c: CbCtx): Val {
   if (ts.isConditionalExpression(e)) {
     const k = asCond(val(e.condition, c), e.condition), a = val(e.whenTrue, c), b = val(e.whenFalse, c)
     if (a.t === 'bool' || b.t === 'bool') return {t: 'bool', c: when(k, asCond(a, e.whenTrue), asCond(b, e.whenFalse))}
-    return {t: a.t === 'dur' || b.t === 'dur' ? 'dur' : 'num', e: when(k, a.t === 'str' ? asDur(a, e) : asNum(a, e.whenTrue), b.t === 'str' ? asDur(b, e) : asNum(b, e.whenFalse))}
+    if ((a.t === 'dur') !== (b.t === 'dur') && a.t !== 'str' && b.t !== 'str') return refuse(e, `${text(e)}: a Duration on one side and a number on the other`)
+    return {t: a.t === 'dur' || b.t === 'dur' || a.t === 'str' ? 'dur' : 'num', e: when(k, a.t === 'str' ? asDur(a, e) : a.t === 'dur' ? a.e : asNum(a, e.whenTrue), b.t === 'str' ? asDur(b, e) : b.t === 'dur' ? b.e : asNum(b, e.whenFalse))}
   }
   if (ts.isBinaryExpression(e)) {
     const o = e.operatorToken.kind, K = ts.SyntaxKind
     if (o === K.AmpersandAmpersandToken || o === K.BarBarToken) { const a = asCond(val(e.left, c), e.left), b = asCond(val(e.right, c), e.right); return {t: 'bool', c: o === K.AmpersandAmpersandToken ? a.and(b) : a.or(b)} }
     const a = val(e.left, c), b = val(e.right, c)
     if (o === K.EqualsEqualsEqualsToken || o === K.ExclamationEqualsEqualsToken || o === K.EqualsEqualsToken || o === K.ExclamationEqualsToken) {
+      if (a.t === 'dur' || b.t === 'dur') return refuse(e, `${text(e)}: a Duration compared with ${e.operatorToken.getText()} (an object there): Duration.equals or a comparison of Duration's is read`)
       const neg = o === K.ExclamationEqualsEqualsToken || o === K.ExclamationEqualsToken
       const eq = a.t === 'choice' && b.t === 'str' ? a.e.is(b.s) : b.t === 'choice' && a.t === 'str' ? b.e.is(a.s) : a.t === 'bool' && b.t === 'bool' ? a.c.iff(b.c) : asNum(a, e.left).eq(asNum(b, e.right))
       return {t: 'bool', c: neg ? eq.not() : eq}
     }
-    const x = asNum(a, e.left), y = asNum(b, e.right), t = a.t === 'dur' || b.t === 'dur' ? 'dur' : 'num'
+    if (a.t === 'dur' || b.t === 'dur') return refuse(e, `${text(e)}: a Duration with JavaScript's ${e.operatorToken.getText()} (an object there): Duration's own comparisons and arithmetic are read`)
+    const x = asNum(a, e.left), y = asNum(b, e.right), t = 'num' as const
     if (o === K.MinusToken) return refuse(e, `${text(e)}: a subtraction (a natural's is truncated at 0, JavaScript's isn't)`)
     if (o === K.AsteriskToken) { const r = strip(e.right), l = strip(e.left); return {t, e: ts.isNumericLiteral(r) ? x.times(Number(r.text)) : ts.isNumericLiteral(l) ? y.times(Number(l.text)) : x.mul(y)} }
     if (o === K.PlusToken) return {t, e: x.plus(y)}
@@ -461,7 +468,9 @@ function val(e0: ts.Expression, c: CbCtx): Val {
     if (m === 'Duration') {
       const d = (i: number) => asDur(args[i]!(), e.arguments[i]!)
       if (UNITS[op] !== undefined && op !== 'nanos' && op !== 'micros') { const n = asNum(args[0]!(), e.arguments[0]!); return {t: 'dur', e: UNITS[op] === 1 ? n : n.times(UNITS[op]!)} }
-      if (op === 'toMillis' || op === 'decode' || op === 'fromInputUnsafe') return {t: 'dur', e: d(0)}
+      if (op === 'toMillis') return {t: 'num', e: d(0)}
+      if (op === 'decode' || op === 'fromInputUnsafe') return {t: 'dur', e: d(0)}
+      if (op === 'equals') return {t: 'bool', c: d(0).eq(d(1))}
       if (op === 'sum') return {t: 'dur', e: d(0).plus(d(1))}
       if (op === 'min' || op === 'max') return {t: 'dur', e: (op === 'min' ? min : max)(d(0), d(1))}
       if (op === 'times') { const k = strip(e.arguments[1]!); return ts.isNumericLiteral(k) ? {t: 'dur', e: d(0).times(whole(k, Number(k.text), k.text))} : refuse(k, 'Duration.times by other than a whole number written here') }
@@ -470,7 +479,8 @@ function val(e0: ts.Expression, c: CbCtx): Val {
     }
     if (api === '' && ts.isPropertyAccessExpression(e.expression) && ts.isIdentifier(e.expression.expression) && e.expression.expression.text === 'Math' && ['min', 'max'].includes(memberName(e.expression.name)) && args.length === 2) {
       const a = val(e.arguments[0]!, c), b = val(e.arguments[1]!, c)
-      return {t: a.t === 'dur' || b.t === 'dur' ? 'dur' : 'num', e: (memberName(e.expression.name) === 'min' ? min : max)(asNum(a, e), asNum(b, e))}
+      if (a.t === 'dur' || b.t === 'dur') return refuse(e, `${text(e)}: Math.${memberName(e.expression.name)} of a Duration (an object there): Duration.min and Duration.max are read`)
+      return {t: 'num', e: (memberName(e.expression.name) === 'min' ? min : max)(asNum(a, e), asNum(b, e))}
     }
     return refuse(e, `${text(e)} in a schedule's function (Duration's arithmetic and comparisons, Math.min and max, Effect.succeed are read)`)
   }

@@ -56,6 +56,8 @@ export const V3 = [
   'Schedule.exponential("10 millis").pipe(Schedule.jittered)', 'Schedule.exponential("10 millis").pipe(Schedule.jitteredWith({min: 0.5, max: 1.5}), Schedule.union(Schedule.spaced("1 second")))',
   'Schedule.recurs(3).pipe(Schedule.andThen(Schedule.exponential("10 millis").pipe(Schedule.jittered, Schedule.upTo("1 second"))))',
   'Schedule.recurs(n).pipe(Schedule.either(Schedule.spaced(Duration.seconds(m))))',
+  // (recurUpTo's output is the elapsed time, a Duration)
+  'Schedule.recurUpTo("1 second").pipe(Schedule.whileOutput((x) => Duration.lessThan(x, 500)))',
 ]
 // (the params a source reads: n where it recurs(n) or waits millis(n), m where it waits seconds(m))
 const params = (src: string) => [...(/recurs\(n\)|millis\(n\)/.test(src) ? ['n'] : []), ...(/seconds\(m\)/.test(src) ? ['m'] : [])]
@@ -156,6 +158,11 @@ test('what the schedule reader doesn\'t take is refused where it is, with the re
     [3, 'Schedule.spaced("10 millis").pipe(Schedule.whileInput((e: {at: Date}) => e.at === e.at))', /the input's Date/],
     [3, 'Schedule.spaced("10 millis").pipe(Schedule.addDelay((n) => Duration.millis(n - 1)))', /a subtraction/],
     [4, 'Schedule.spaced(Duration.millis(Math.random()))', /Math.random\(\): a number other than/],
+    // (a Duration is an object in JavaScript: its operators aren't the rule's arithmetic; a review's cases)
+    [3, 'Schedule.linear(1).pipe(Schedule.whileOutput((x) => (x as any) !== 20))', /a Duration compared with !==/],
+    [3, 'Schedule.linear(1).pipe(Schedule.modifyDelay((x, d) => Math.min(x as any, 5)))', /Math.min of a Duration/],
+    [3, 'Schedule.linear(1).pipe(Schedule.modifyDelay((x) => (x as any) * 2))', /a Duration with JavaScript's \*/],
+    [4, 'Schedule.exponential("10 millis").pipe(Schedule.jittered, Schedule.while(({elapsed}) => elapsed < 100))', /the elapsed time read in a function of a jittered schedule/],
   ]
   for (const [v, src, why] of refused) {
     const x = v === 4 ? sched4(src) : sched3(src)
