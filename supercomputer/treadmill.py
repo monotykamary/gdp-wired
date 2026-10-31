@@ -72,7 +72,7 @@ FUZZ = {"kernel": ("kernel", "FUZZ_SEED={s} bun test kernel.test.ts 2>&1"),
         "tamper": ("kernel", "FUZZ_SEED={s} bun test tamper.test.ts 2>&1")}
 REFUSED = ("unsupported", "refused")
 SWEEP_HOURS = 24  # a sweep's commit is replaced by main's at the latest after this long
-YIELD = 200  # the treadmill starts a VM only while more than this many free starts are left this hour (else warm ones)
+YIELD = 60  # the treadmill starts a VM only while more than this many free starts are left this hour (else warm ones): 200 starved it after an image change emptied the warm pool
 MODAL_MAX = 64  # a batch boat refuses whole goes to Modal only when it is this small (a submission, a short round)
 
 
