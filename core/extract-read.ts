@@ -1328,7 +1328,8 @@ export class Exec {
       })
       if (!ts.isBlock(d.body)) { const [v, q2] = this.ev(d.body, q); return [v, {...q2, locals: p.locals}] }
       const flow = this.block(d.body.statements, q)
-      const outs: [Path, V][] = [...flow.rets, ...(flow.live ? [[flow.live, {t: 'undef'} as V] as [Path, V]] : [])]
+      // (the paths that return or fall off the end; those no run takes, a failure's, left out)
+      const outs: [Path, V][] = [...flow.rets, ...(flow.live ? [[flow.live, {t: 'undef'} as V] as [Path, V]] : [])].filter(([q2]) => this.feasible(q2))
       if (!outs.length) return [{t: 'undef'}, {...p, pc: [...p.pc, I.F]}]
       const [first, ...rest] = outs
       let [mp, mv] = first!

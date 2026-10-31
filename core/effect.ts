@@ -23,8 +23,11 @@ import * as I from './extract-ir.ts'
 import {type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, impure, memberName, placed, refuse, shapeOf, sourceOf, text} from './extract-read.ts'
 import {type FactoryOf, readFactory, setupOf} from './extract-shapes.ts'
 import {type ExtractOptions, type Extraction, fromModel, namesOf} from './extract.ts'
-import {check} from './extract-check.ts'
+import {check, sandbox} from './extract-check.ts'
+import {Parts, type ScheduleRule, readSchedule, scheduleConforms, scheduleRule} from './effect-schedule.ts'
+import {asRule, lift} from './system.ts'
 export {proveRule, proveSteps} from './dsl.ts'
+export {scheduleConforms, stepper} from './effect-schedule.ts'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Mod = Record<string, any>
@@ -37,12 +40,25 @@ export type EffectOptions = Omit<ExtractOptions, 'entry'> & {
   effect?: Mod,
   // Other modules the code imports, for the check (by their specifier).
   modules?: Record<string, unknown>,
+  // Calls from many fibers at once: a method that runs several transactions (or Ref operations) is one step per
+  // transaction, the fibers interleaving them (core/system.ts's lift: each fiber's place and locals its own, the Refs
+  // shared). By default on where the service uses transactions (STM, TRef, TxRef, Effect.tx) and a method spans several.
+  fibers?: boolean,
 }
-const REFS = new Set(['Ref', 'SynchronizedRef', 'SubscriptionRef', 'TxRef']), MAKES = ['make', 'makeUnsafe', 'unsafeMake']
-const STM = (api: string) => `${api}: STM (v3) is not read (a Ref, SynchronizedRef, or v4's TxRef is)`, MATCH = (x: string) => `${x}: a matcher (write the dispatch as a switch on _tag, or ifs)`
+const REFS = new Set(['Ref', 'SynchronizedRef', 'SubscriptionRef', 'TxRef', 'TRef']), MAKES = ['make', 'makeUnsafe', 'unsafeMake']
+const STM = (api: string) => `${api} (of STM: gen, commit, succeed, sync, void, fail, die, check and retry are read)`, MATCH = (x: string) => `${x}: a matcher (write the dispatch as a switch on _tag, or ifs)`
+// The Effect line the file is read for (4.x unless the project's effect is 3.x), and the policies its methods retry or
+// repeat with, each read into its schedule's rule.
+let V4 = true
+export type MethodSchedule = {at: string, use: 'retry' | 'repeat', source: string, rule: ScheduleRule}
+let found: MethodSchedule[] = []
+const SLEPT = '$slept'
 // Where on a path the step has changed a Ref so far (a condition in the heap, so merges and helpers carry it).
 const CHANGED = '$changed'
-const changedOn = (p: Path): I.B => { const o = p.heap.get(CHANGED); return o?.k === 'alias' && o.to.t === 'bool' ? o.to.e : I.F }
+const changedOn = (p: Path, k = CHANGED): I.B => { const o = p.heap.get(k); return o?.k === 'alias' && o.to.t === 'bool' ? o.to.e : I.F }
+// Inside a transaction (STM.gen, STM.commit, 4.x's Effect.tx), the writes made before it: what a failure there keeps
+// (the transaction's own are rolled back).
+const OUTER = '$outer', flagged = (b: I.B) => ({k: 'alias', to: {t: 'bool', e: b}}) as never
 const changedOf = (v: V, c: V): I.B => (v.t === 'phi' ? I.bite(v.c, changedOf(v.a, c), changedOf(v.b, c)) : v.t === 'ref' && c.t === 'ref' && v.id === c.id ? I.F
   : (v.t === 'num' || v.t === 'bool' || v.t === 'str' || v.t === 'choice') && v.t === c.t && I.same(v.e as never, (c as unknown as {e: never}).e) ? I.F : I.T)
 
@@ -76,11 +92,11 @@ function fnOf(s: Setup, e: ts.Expression): ts.FunctionLikeDeclaration | undefine
   if (e.arguments.length > 1) refuse(e.arguments[1]!, `${head} with combinators after its body (their effects aren't read)`)
   return g
 }
-const genOf = (s: Setup, e: ts.Expression): ts.FunctionExpression | undefined => {
-  if (callOf(s, e) !== 'Effect.gen') return undefined
+const genOf = (s: Setup, e: ts.Expression, which = 'Effect.gen'): ts.FunctionExpression | undefined => {
+  if (callOf(s, e) !== which) return undefined
   const args = (strip(e) as ts.CallExpression).arguments, g = args.at(-1)
-  if (args.length !== 1) refuse(e, 'Effect.gen with a this (a generator of one function is read)')
-  return g && ts.isFunctionExpression(g) && g.asteriskToken ? g : refuse(e, 'Effect.gen of other than a function*')
+  if (args.length !== 1) refuse(e, `${which} with a this (a generator of one function is read)`)
+  return g && ts.isFunctionExpression(g) && g.asteriskToken ? g : refuse(e, `${which} of other than a function*`)
 }
 // A type's type argument: Ref<A>'s A, Effect<A, E, R>'s A, Generator<Y, R, N>'s R.
 const argOf = (s: Setup, t: ts.Type, i: number): ts.Type | undefined => (t.aliasTypeArguments ?? (t.flags & ts.TypeFlags.Object ? s.checker.getTypeArguments(t as ts.TypeReference) : undefined))?.[i]
@@ -143,7 +159,7 @@ function factoryOf(s: Setup, entry: string): FactoryOf {
           refs.set(id, m)
           return {shape: shapeOf(t, s.checker, d), init: start}
         }
-        if (m === 'TRef' || m === 'STM') return refuse(d, STM(api))
+        if (m === 'STM') return refuse(d, STM(api))
         if (m === 'Semaphore' || /^Effect\.(unsafeM|m)akeSemaphore$/.test(api)) {
           const n = (call as ts.CallExpression).arguments[0]
           if (!n || !ts.isNumericLiteral(n) || n.text !== '1') return refuse(d, `${text(d)}: a Semaphore of other than 1 permit (one of 1 is read as a lock)`)
@@ -178,10 +194,26 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
   // An error made of pure values: `new E({...})` of a class (an error class has no effects), or a plain value.
   const effectful = (x: ts.Expression) => (x = strip(x), ts.isNewExpression(x) && ts.isIdentifier(x.expression) ? (x.arguments ?? []).some(impure) : impure(x))
   // A failure: the step refused where it is reached; where a Ref has been changed on the path, the Ref keeps it.
-  const fail = (ex: Exec, at: ts.Node, q: Path): [V, Path] => {
-    if (!ex.known(q, I.not(changedOn(q)))) refuse(at, `fails after writing ${q.wrote.join(', ')}: a Ref keeps what was written (a rule's refusal leaves the state as it was)`)
-    ex.throws.push({pc: q.pc})
-    return [undef, {...q, pc: [...q.pc, I.F]}]
+  const fail = (ex: Exec, at: ts.Node, q: Path, when: I.B = I.T): [V, Path] => {
+    const kept = q.heap.has(OUTER) ? changedOn(q, OUTER) : changedOn(q), at2 = {...q, pc: [...q.pc, when]}
+    if (!ex.known(at2, I.not(kept))) refuse(at, `fails after writing ${q.wrote.join(', ')}${q.heap.has(OUTER) ? ' before the transaction' : ''}: a Ref keeps what was written (a rule's refusal leaves the state as it was)`)
+    ex.throws.push({pc: at2.pc})
+    return [undef, {...q, pc: [...q.pc, I.not(when)]}]
+  }
+  // A transaction: its writes kept where it succeeds, rolled back where it fails or waits (one inside another joins it).
+  const tx = (inner: V, at: ts.Node): V => (inner.t !== 'eff' ? refuse(at, `${text(at)}: a transaction of other than an effect`) : eff(q => {
+    if (q.heap.has(OUTER)) return inner.run(q)
+    const [v, q2] = inner.run({...q, heap: new Map(q.heap).set(OUTER, flagged(changedOn(q))).set(CHANGED, flagged(I.F))})
+    const heap = new Map(q2.heap).set(CHANGED, flagged(I.or(changedOn(q2, OUTER), changedOn(q2))))
+    heap.delete(OUTER)
+    return [v, {...q2, heap}]
+  }))
+  // A transaction that waits (STM.check of false, STM.retry, 4.x's Effect.txRetry): the request isn't taken until a TRef it
+  // read changes, a refusal in the rule.
+  const waits = (ex: Exec, at: ts.Node, q: Path, when: I.B = I.T): [V, Path] => {
+    if (!q.heap.has(OUTER)) refuse(at, `${text(at)} outside a transaction`)
+    s.notes.add('a transaction that waits (STM.check, STM.retry, Effect.txRetry) is not taken until a TRef it read changes: the rule refuses the request (it is taken later as a new one)')
+    return fail(ex, at, q, when)
   }
   // A function's body run on a path, with the locals where it was made.
   const body = (ex: Exec, f: ts.FunctionLikeDeclaration, at: ts.Node, locals: Map<string, V>, args: V[] = []) => eff(q => ex.inline({decl: f}, args, at, q, locals))
@@ -202,8 +234,10 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
     }
     if (ts.isPropertyAccessExpression(e)) {
       const api = apiOf(s, e)
-      if (api === 'Effect.void' || api === 'Effect.unit') return [eff(q => [undef, q]), p]
-      if (api === 'Clock.currentTimeMillis') return [eff(q => ex.now(e, q)), p]
+      if (api === 'Effect.void' || api === 'Effect.unit' || api === 'STM.void' || api === 'STM.unit') return [eff(q => [undef, q]), p]
+      if (api === 'Effect.txRetry' || api === 'STM.retry') return [eff(q => waits(ex, e, q)), p]
+      if (api === 'Effect.yieldNow') return [eff(q => [undef, q]), p]
+      if (api === 'Clock.currentTimeMillis') return [eff(q => (q.heap.has(SLEPT) ? refuse(e, 'the clock read after a repeat that waits (the time has moved on by its delays)') : ex.now(e, q))), p]
       if (api?.startsWith('Clock.')) return refuse(e, `${api} (Clock.currentTimeMillis is read, as an input)`)
       if (api && /^(Random|DateTime|Crypto|Console|Config|FileSystem)\./.test(api) && ts.isYieldExpression(e.parent)) return refuse(e, `${api}: an answer from outside the Refs read (Clock.currentTimeMillis is the one read, as an input)`)
       return undefined
@@ -220,9 +254,16 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
     // x.pipe(...): only annotations (a span, a log annotation) are read through.
     if (ts.isPropertyAccessExpression(callee) && memberName(callee.name) === 'pipe' && !api) {
       const head = strip(callee.expression)
+      if (e.arguments.length === 1 && apiOf(s, e.arguments[0]!) === 'STM.commit') { const [v, q] = ex.ev(head, p); return [tx(v, head), q] }
       if (callOf(s, head)?.startsWith('Match.')) return refuse(head, MATCH(text(head)))
-      for (const a of e.arguments) if (!ANNOTATIONS.has(callOf(s, a) ?? '')) return refuse(a, `${text(a)} in a pipe (a combinator's effect isn't read: write the step in Effect.gen)`)
-      return ex.ev(callee.expression, p)
+      let [v, q] = ex.ev(callee.expression, p)
+      for (const a of e.arguments) {
+        const c = callOf(s, a) ?? ''
+        if (ANNOTATIONS.has(c)) continue
+        if ((c === 'Effect.retry' || c === 'Effect.repeat') && (strip(a) as ts.CallExpression).arguments.length === 1) { v = scheduled(ex, c, v, (strip(a) as ts.CallExpression).arguments[0]!, e); continue }
+        return refuse(a, `${text(a)} in a pipe (a combinator's effect isn't read: write the step in Effect.gen)`)
+      }
+      return [v, q]
     }
     // A helper of the same files written with Effect.fn: its body run where it is yielded.
     if (ts.isIdentifier(callee)) {
@@ -233,22 +274,101 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
       return [body(ex, f, e, new Map(), args), q]
     }
     if (REFS.has(m)) return refOp(ex, e, m, op, p)
-    if (m === 'Effect') {
+    if ((api === 'Effect.retry' || api === 'Effect.repeat') && e.arguments.length === 2) { const [v, q] = ex.ev(one!, p); return [scheduled(ex, api, v, e.arguments[1]!, e), q] }
+    if (api === 'Effect.tx' || api === 'STM.commit') { const [v, q] = ex.ev(one ?? refuse(e, `${api}()`), p); return [tx(v, e), q] }
+    if (m === 'STM') {
+      if (op === 'gen') return [tx(body(ex, genOf(s, e, 'STM.gen')!, e, p.locals), e), p]
+      if (op === 'check') {
+        const f = one && fnOf(s, one)
+        if (!f || f.parameters.length || ts.isBlock(f.body!)) return refuse(e, 'STM.check of other than () => condition written here')
+        return [eff(q => { const [c, q1] = ex.ev(f.body as ts.Expression, q); return c.t === 'bool' ? waits(ex, e, q1, I.not(c.e)) : refuse(e, `STM.check of other than a condition (${c.t})`) }), p]
+      }
+      if (!['succeed', 'sync', 'fail', 'failSync', 'die', 'dieMessage'].includes(op)) return refuse(e, STM(api!))
+    }
+    if (m === 'Effect' || m === 'STM') {
       if (op === 'gen') return [body(ex, genOf(s, e)!, e, p.locals), p]
       if (op === 'succeed') { const [v, q] = ex.ev(one ?? refuse(e, 'Effect.succeed()'), p); return [eff(r => [v, r]), q] }
       if (op === 'sync') return [body(ex, fnOf(s, one ?? refuse(e, 'Effect.sync()')) ?? refuse(e, 'Effect.sync of other than a function written here'), e, p.locals), p]
       if (FAILS.has(op)) return e.arguments.some(effectful) ? refuse(e, `Effect.${op} of a value that has effects`) : [eff(q => fail(ex, e, q)), p]
+      if (op === 'sleep') {
+        if (e.arguments.some(impure)) return refuse(e, 'Effect.sleep of a value that has effects')
+        return [eff(q => [undef, {...q, heap: new Map(q.heap).set(SLEPT, flagged(I.T))}]), p]
+      }
       if (LOGS.has(op)) {
         if (e.arguments.some(impure)) return refuse(e, `Effect.${op} of values that have effects`)
         s.notes.add('Effect.log and span annotations are left out (they write nothing the rule keeps)')
         return [eff(q => [undef, q]), p]
       }
+      if (m === 'STM') return refuse(e, STM(api!))
       return refuse(e, op === 'fn' || op === 'fnUntraced' ? `Effect.${op} as a value inside a step (a method or a helper of the service is read)` : `Effect.${op} (Effect.gen, Effect.fn bodies, succeed, sync, fail, die, void and log are read; the effect of ${op} isn't)`)
     }
     if (m === 'Match') return refuse(e, MATCH(api!))
-    if (m === 'STM' || m === 'TRef') return refuse(e, STM(api!))
+    if (m === 'TRef') return refuse(e, `${api} (a TRef the service's make effect makes is read: get, set, update, modify and their variants)`)
     if (m === 'Semaphore') return refuse(e, `${api} (a Semaphore of 1 made by the service, as a lock, is read)`)
     return undefined
+  }
+  // Effect.retry / Effect.repeat of an effect read here, with a schedule (or {times, schedule, while, until}). The
+  // policy is read into its schedule's rule (its laws proven on their own: x.schedules). The effect is what the service
+  // does to its Refs, so each attempt of a retry fails as the first did (a failure leaves the Refs as they were, and the
+  // attempts read nothing else that moves): the step is the effect's, the policy's delays passing only on the way to the
+  // failure. A repeat runs it again as many times as the policy goes on, counted by running the policy's rule.
+  function scheduled(ex: Exec, api: string, v: V, policy: ts.Expression, at: ts.CallExpression): V {
+    const use = api === 'Effect.retry' ? 'retry' : 'repeat', pol = strip(policy)
+    if (v.t !== 'eff') return refuse(at, `${api} of other than an effect`)
+    let sched: ts.Expression | undefined, times: number | undefined
+    if (ts.isObjectLiteralExpression(pol)) {
+      for (const pr of pol.properties) {
+        const k = ts.isPropertyAssignment(pr) ? memberName(pr.name) : ''
+        if (k === 'schedule') sched = (pr as ts.PropertyAssignment).initializer
+        else if (k === 'times') { const n = strip((pr as ts.PropertyAssignment).initializer); times = ts.isNumericLiteral(n) ? Number(n.text) : refuse(n, `${use}'s times of other than a number written here`) }
+        else if ((k === 'while' || k === 'until') && use === 'retry') s.notes.add(`${use}'s ${k} reads the error: each attempt fails with the same one, so it decides only how many attempts are made`)
+        else return refuse(pr, `${use}'s ${text(pr)} (schedule, times${use === 'retry' ? ', while and until' : ''} are read)`)
+      }
+    } else sched = pol
+    const P = new Parts(), base = sched ? readSchedule(sched, {api: x => apiOf(s, x), checker: s.checker, v4: V4, params: new Map(), sf: s.sf}, P) : undefined
+    let frag = base?.frag
+    if (times !== undefined) { const lim = (frag ?? {step: () => ({cont: dsl.yes, delay: dsl.lit(0), next: {}}), names: []}) as typeof frag & object, n = times; frag = {...lim, step: (env, get, c) => { const x = lim.step(env, get, c); return {...x, cont: x.cont.and(c.attempt.lt(n))} }} }
+    if (!frag) return refuse(at, `${use} with no schedule and no times (it would go on forever)`)
+    if (P.params.size) return refuse(sched!, `a ${use} policy reading the service's params (one written with literals is read: the check runs it)`)
+    const sr = scheduleRule(frag, P, `${use} policy`, V4)
+    found.push({at: text(at), use, source: sched ? sched.getText() : `{times: ${times}}`, rule: sr})
+    // The policy run as Effect drives it, each attempt taking no time: how many times it goes on (for every input it
+    // may be fed, drawn), and how long it waits in all.
+    const g = sr.rule.compiled(), ps = sr.rule.encodeParams({} as never), rand = (() => { let x = 7; return (n: number) => (x = (x * 1103515245 + 12345) % 2147483648) % Math.max(1, n) })()
+    const runOnce = (draw: boolean) => {
+      let st = g.init(ps), n = 0, waited = 0
+      for (; n < 1000; n++) {
+        const inp: Record<string, unknown> = {took: 0}
+        for (const [f, k] of sr.fields) inp[f === '_tag' ? 'input__tag' : f === 'input' ? 'input' : `input_${f}`] = (k as never as {sample: (r: (n: number) => number, b: number) => unknown}).sample(draw ? rand : () => 0, 3)
+        for (const j of sr.jitters) inp[j.name] = 0
+        try { st = g.step(ps, st, sr.rule.encodeInput(inp as never)) } catch { return {stops: true, n, waited} }
+        const d = sr.rule.decode(st) as Record<string, number | boolean>
+        if (d.done) return {stops: true, n, waited}
+        waited += Number(d.delay)
+      }
+      return {stops: false, n, waited}
+    }
+    const runs = [runOnce(false), ...(sr.fields.size ? Array.from({length: 8}, () => runOnce(true)) : [])]
+    if (runs.some(r => !r.stops)) return refuse(policy, `a ${use} whose policy goes on past 1000 attempts${use === 'retry' ? ' around an effect read here, which fails the same way each time: the call would never return' : ''} (bound it: recurs, upTo, times)`)
+    if (sr.jitters.length) s.notes.add(`the ${use} policy's jitter is left to its rule (x.schedules): it moves only the time the step waits`)
+    if (use === 'retry') {
+      s.notes.add(`${text(at)}: retried with ${sched ? text(sched) : `{times: ${times}}`}; each attempt fails as the first did (the effect reads only the Refs, which a failure leaves as they were), so the step is the effect's; the policy's own laws are proven on its rule (x.schedules)`)
+      return eff(q => { const now = ex.now; ex.now = (n: ts.Node) => refuse(n, 'the clock read in an effect that is retried (each attempt reads a later time: a loop the step doesn\'t unroll)'); try { return v.run(q) } finally { ex.now = now } })
+    }
+    if (sr.fields.size) return refuse(sched!, 'a repeat whose policy reads the effect\'s result (a loop the step doesn\'t unroll)')
+    const n = runs[0]!.n, waited = runs[0]!.waited
+    if (n > 16) return refuse(policy, `a repeat that runs the effect ${n + 1} times (up to 17 are unrolled)`)
+    let host: ts.Node = at
+    while (host.parent && (ts.isCallExpression(host.parent) || ts.isParenthesizedExpression(host.parent) || ts.isPropertyAccessExpression(host.parent))) host = host.parent
+    if (!ts.isYieldExpression(host.parent) || !ts.isExpressionStatement(host.parent.parent)) return refuse(at, 'the value of a repeat (its policy\'s output): yield* it as a statement')
+    s.notes.add(`${text(at)}: the effect runs ${n + 1} times in the step (its policy goes on ${n} times)${waited ? `, waiting ${waited} ms in all` : ''}`)
+    return eff(q => {
+      let r: [V, Path] = [undef, q]
+      const now = ex.now
+      ex.now = (x: ts.Node) => refuse(x, 'the clock read in an effect that is repeated (each run reads a later time)')
+      try { for (let i = 0; i <= n; i++) r = v.run(r[1]) } finally { ex.now = now }
+      return [undef, waited ? {...r[1], heap: new Map(r[1].heap).set(SLEPT, flagged(I.T))} : r[1]]
+    })
   }
   // Ref.op(ref, ...): the ref a Ref the service made (by its name), its value the state's field.
   function refOp(ex: Exec, e: ts.CallExpression, m: string, op: string, p: Path): [V, Path] {
@@ -293,12 +413,20 @@ export function runner(E: Mod): Runner {
   let now = 0
   // A Clock at `now`: 4.x names its unsafe reads currentTime<X>Unsafe, 3.x unsafeCurrentTime<X>.
   const unsafe = (x: string) => (v4 ? `currentTime${x}Unsafe` : `unsafeCurrentTime${x}`), ns = () => BigInt(now) * 1_000_000n
-  const clock = Object.create(Effect.runSync(v4 ? Effect.clockWith((c: unknown) => Effect.succeed(c)) : Effect.clock), {[unsafe('Millis')]: {value: () => now}, currentTimeMillis: {value: Effect.sync(() => now)}, [unsafe('Nanos')]: {value: ns}, currentTimeNanos: {value: Effect.sync(ns)}})
+  // (a sleep, a retry's or a repeat's, passes at once: the clock moves on by its duration)
+  const clock = Object.create(Effect.runSync(v4 ? Effect.clockWith((c: unknown) => Effect.succeed(c)) : Effect.clock), {[unsafe('Millis')]: {value: () => now}, currentTimeMillis: {value: Effect.sync(() => now)}, [unsafe('Nanos')]: {value: ns}, currentTimeNanos: {value: Effect.sync(ns)},
+    sleep: {value: (d: unknown) => Effect.sync(() => { now += E.Duration.toMillis(d) })}})
   const exit = (eff: unknown, t: number): {ok: true, value: unknown} | {ok: false, error: string} => {
     if (!Effect.isEffect(eff)) return {ok: false, error: `not an effect: ${String(eff).slice(0, 60)}`}
     now = t
-    const x = Effect.runSyncExit(v4 ? Effect.provideService(eff, Clock.Clock, clock) : Effect.withClock(eff, clock))
-    return Exit.isSuccess(x) ? {ok: true, value: x.value} : {ok: false, error: String(Cause.pretty(x.cause)).split('\n')[0]!}
+    // (3.x on a scheduler of its own, so a fiber left waiting, a transaction that retries, is interrupted at once: it
+    // would otherwise wake and commit inside a later request)
+    const sch = v4 ? undefined : new E.Scheduler.SyncScheduler()
+    const x = Effect.runSyncExit(v4 ? Effect.provideService(eff, Clock.Clock, clock) : Effect.withScheduler(Effect.withClock(eff, clock), sch))
+    if (Exit.isSuccess(x)) return {ok: true, value: x.value}
+    const waiting = [x.cause.defect, ...(x.cause.reasons ?? []).map((r: {defect?: unknown}) => r.defect)].find(d => d && typeof d === 'object' && 'fiber' in d) as {fiber: Mod} | undefined
+    if (waiting) { if (v4) waiting.fiber.interruptUnsafe(); else { waiting.fiber.unsafeInterruptAsFork(E.FiberId.none); sch.flush() } }
+    return {ok: false, error: waiting ? 'it waits (an effect that suspends: a transaction that retries, a fiber it waits for)' : String(Cause.pretty(x.cause)).split('\n')[0]!}
   }
   const run = (eff: unknown, t = now) => { const x = exit(eff, t); if (!x.ok) throw new Error(x.error); return x.value }
   return {run, exit, get: (mod, ref) => run(E[mod].get(ref)), set: (mod, ref, v) => run(E[mod].set(ref, v))}
@@ -310,7 +438,11 @@ export function extractEffect(at: Source, opts: EffectOptions = {}): Extraction 
     ;({code, file} = sourceOf(at, opts.file, 'input.ts'))
     E = opts.effect ?? beside<Mod>(file, 'effect')
     if (!E) throw new Refusal(file, 'no effect package resolves from the file (install it in its project, or give it: {effect: await import(\'effect\')})')
+    V4 = 'TxRef' in E; found = []
+    const sch = scheduleEntry(code, file, opts)
+    if (sch) return fromScheduleEntry(code, file, sch, E, opts)
     const entry = opts.entry ?? serviceOf(code, file, opts)
+    if (opts.fibers !== false) { const f = fibered(code, file, entry, E, opts); if (f) return f }
     m = readFactory(code, placed(file), {...opts, entry}, s => factoryOf(s, entry)); m.file = file
     if (!opts.entry) m.notes.unshift(`the entry inferred: ${entry}, the file's one make effect`)
   } catch (e) {
@@ -319,8 +451,174 @@ export function extractEffect(at: Source, opts: EffectOptions = {}): Extraction 
   }
   // The modules the code imports, by specifier (effect, effect/<Module>), and the check's runner.
   const model = m, modules = {effect: E, ...Object.fromEntries(Object.entries(E).map(([k, x]) => [`effect/${k}`, x])), 'gdp-wired:effect': runner(E), ...opts.modules}
-  return {...fromModel(model, file, opts.domains, [], (rule, sorts) => check(code, file, model, rule, sorts, {...opts.check, modules, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})), names: namesOf(model)}
+  const schedules = found
+  return {...fromModel(model, file, opts.domains, [], (rule, sorts) => check(code, file, model, rule, sorts, {...opts.check, modules, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})), names: namesOf(model), ...(schedules.length ? {schedules} : {})} as Extraction
 }
+// --- many fibers: a method that is several steps ---------------------------------------------------------------------
+// A method's atomic units: the statements of its body that run an effect on the service's state (a transaction, a Ref
+// operation, a helper's), each a step another fiber's may come between. A failure, a log, a sleep or a wait runs no
+// such effect. A method of two or more is read as its steps: the service written again with one fiber's place in it
+// (`__pc`) and what it carries from one step to the next (its arguments, its locals) in Refs of its own, read and
+// checked as any service; then lift (core/system.ts) makes those Refs every fiber's at once (maps keyed by `fiber`, an
+// input), the service's own Refs shared, and each request one fiber's next step.
+const QUIET = new Set(['Effect.fail', 'Effect.failSync', 'Effect.die', 'Effect.dieMessage', 'Effect.void', 'Effect.sleep', 'Effect.yieldNow', 'Effect.txRetry', 'STM.fail', 'STM.die', 'STM.retry', ...[...LOGS].map(l => `Effect.${l}`)])
+const TX = /\b(TRef|TxRef|STM)\.|Effect\.tx\b/
+function fibered(code: string, file: string, entry: string, E: Mod, opts: EffectOptions): Extraction | undefined {
+  const s = setupOf(code, placed(file), {}, opts.files), f = factoryOf(s, entry)
+  const yields = (n: ts.Node): ts.YieldExpression[] => { const out: ts.YieldExpression[] = []; const go = (x: ts.Node) => { if (ts.isYieldExpression(x)) out.push(x); if (!ts.isFunctionLike(x)) ts.forEachChild(x, go) }; ts.forEachChild(n, go); if (ts.isYieldExpression(n)) out.unshift(n); return out }
+  const quiet = (y: ts.YieldExpression) => { const x = y.expression && strip(y.expression); return !x || ts.isNewExpression(x) || QUIET.has((ts.isCallExpression(x) ? callOf(s, x) : apiOf(s, x)) ?? '') }
+  const failing = (y: ts.YieldExpression) => { const x = y.expression && strip(y.expression); return !!x && (ts.isNewExpression(x) || /^(Effect|STM)\.(fail|failSync|die|dieMessage)$/.test((ts.isCallExpression(x) ? callOf(s, x) : '') ?? '')) }
+  // The methods: each property of the returned object, its function where the make effect writes it.
+  type M = {name: string, fn: ts.FunctionExpression, at: ts.Expression, units: number[], stmts: readonly ts.Statement[]}
+  const methods: M[] = []
+  for (const pr of f.obj.properties) {
+    const name = pr.name ? memberName(pr.name) : ''
+    let init: ts.Expression | undefined = ts.isPropertyAssignment(pr) ? pr.initializer : ts.isShorthandPropertyAssignment(pr) ? pr.name : undefined
+    if (init && ts.isIdentifier(strip(init))) { const d = (ts.isShorthandPropertyAssignment(pr) ? s.checker.getShorthandAssignmentValueSymbol(pr) : s.checker.getSymbolAtLocation(strip(init)))?.valueDeclaration; init = d && ts.isVariableDeclaration(d) ? d.initializer : init }
+    const fn = init && fnOf(s, init)
+    if (!fn || !ts.isFunctionExpression(fn) || !fn.asteriskToken || !fn.body) continue
+    const stmts = fn.body.statements, units = stmts.flatMap((st, i) => (yields(st).some(y => !quiet(y)) ? [i] : []))
+    methods.push({name, fn, at: init!, units, stmts})
+  }
+  const split = methods.filter(mt => mt.units.length >= 2)
+  if (!split.length || (opts.fibers === undefined && !TX.test(code))) {
+    if (split.length) s.notes.add(`${split.map(mt => mt.name).join(', ')} run several Ref operations one after another: each method is read as one step, which holds where calls don't interleave (fibers: true reads them as interleaving steps)`)
+    return undefined
+  }
+  // Each split method's segments, the names each carries on, and the service written again.
+  const edits: [number, number, string][] = [], decls: string[] = [], resumes: string[] = []
+  const tyOf = (n: ts.Node) => { const t = s.checker.getTypeAtLocation(n), str = s.checker.typeToString(s.checker.getBaseTypeOfLiteralType(t)); return t.flags & ts.TypeFlags.BooleanLike ? ['boolean', 'false'] : t.flags & ts.TypeFlags.NumberLike ? ['number', '0'] : t.isUnion() && t.types.every(u => u.isStringLiteral()) ? [s.checker.typeToString(t), JSON.stringify((t.types[0] as ts.StringLiteralType).value)] : t.flags & ts.TypeFlags.StringLike ? ['string', "''"] : refuse(n, `${text(n)} is carried from one step to the next, and is a ${str} (a number, a boolean or a string is carried)`) }
+  split.forEach((mt, mi) => {
+    const base = (mi + 1) * 100, K = mt.units.length, segs: ts.Statement[][] = []
+    mt.units.forEach((u, k) => segs.push([...mt.stmts.slice(k === 0 ? 0 : mt.units[k - 1]! + 1, u + 1), ...(k === K - 1 ? mt.stmts.slice(u + 1) : [])]))
+    for (const [k, seg] of segs.entries()) for (const st of seg) {
+      const ys = yields(st).filter(y => !quiet(y))
+      if (ys.length > 1) refuse(st, `${mt.name}: ${text(st)} runs ${ys.length} effects on the state in one statement (write each in a statement of its own: each is a step)`)
+      // (a later step's failing transaction: the call would end with the earlier steps' writes kept and this one's rolled
+      // back, which a refusal of this step leaves the fiber waiting on instead)
+      if (k > 0) { const go = (x: ts.Node, inner: boolean) => { if (ts.isYieldExpression(x) && inner && failing(x)) refuse(x, `${mt.name}: a transaction that fails in a step after the first (the call ends there, its earlier steps' writes kept): fail in the first step, or wait (STM.check, Effect.txRetry) instead`); ts.forEachChild(x, c => go(c, inner || ts.isFunctionLike(x))) }; go(st, false) }
+    }
+    // What a later step reads of an earlier one: the arguments and the locals declared at the top of a segment.
+    const carried = new Map<ts.Node, string>()
+    for (const p of mt.fn.parameters) if (ts.isIdentifier(p.name)) carried.set(p, p.name.text)
+    segs.forEach(seg => seg.forEach(st => { if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) { if (!ts.isIdentifier(d.name)) refuse(d, `${mt.name}: ${text(d)} (a name is carried, not a pattern)`); carried.set(d, d.name.text) } }))
+    const usedIn = (seg: ts.Statement[]) => { const u = new Set<ts.Node>(); const go = (x: ts.Node) => { if (ts.isIdentifier(x)) { const d = s.checker.getSymbolAtLocation(x)?.valueDeclaration; if (d && carried.has(d)) u.add(d) } ts.forEachChild(x, go) }; seg.forEach(go); return u }
+    const later = segs.map((_, k) => { const u = new Set<ts.Node>(); segs.slice(k + 1).forEach(sg => usedIn(sg).forEach(d => u.add(d))); return u })
+    const ref = (d: ts.Node) => `__${mt.name}_${carried.get(d)}`
+    const kept = new Set<ts.Node>(); later.forEach(u => u.forEach(d => kept.add(d)))
+    for (const d of kept) { const [t, zero] = tyOf(d); decls.push(`const ${ref(d)} = yield* __Ref.make<${t}>(${zero})`) }
+    // (where each carried name is defined: a parameter, or the segment that declares it)
+    const defined = (d: ts.Node, k: number) => (ts.isParameter(d) ? k === 0 : segs[k]!.some(st => st.pos <= d.pos && d.end <= st.end))
+    const body = (seg: ts.Statement[], k: number) => {
+      const loads = k === 0 ? '' : [...usedIn(seg)].filter(d => !defined(d, k)).map(d => `const ${carried.get(d)} = yield* __Ref.get(${ref(d)})\n`).join('')
+      const stores = [...later[k]!].filter(d => defined(d, k) || ts.isParameter(d) && k === 0).map(d => `yield* __Ref.set(${ref(d)}, ${carried.get(d)})\n`).join('')
+      // (in a later step, a return ends the call: the fiber goes back to where it starts; a failure outside a transaction
+      // too, as a return (the earlier steps' writes kept, as Effect keeps them); a wait leaves it where it is)
+      const textOf = (st: ts.Statement): string => {
+        if (k === 0) return st.getText()
+        let t = st.getText(); const rs: ts.Node[] = []
+        const go = (x: ts.Node) => { if (ts.isReturnStatement(x) || ts.isExpressionStatement(x) && ts.isYieldExpression(strip(x.expression)) && failing(strip(x.expression) as ts.YieldExpression)) rs.push(x); if (!ts.isFunctionLike(x)) ts.forEachChild(x, go) }
+        go(st)
+        for (const r of rs.reverse()) {
+          const y = ts.isReturnStatement(r) ? r.expression && strip(r.expression) : strip((r as ts.ExpressionStatement).expression), fails = !!y && ts.isYieldExpression(y) && failing(y)
+          if (y && ts.isYieldExpression(y) && quiet(y) && !fails) continue
+          t = t.slice(0, r.getStart() - st.getStart()) + `{ yield* __Ref.set(__pc, 0); ${fails ? 'return' : r.getText()} }` + t.slice(r.end - st.getStart())
+        }
+        return t
+      }
+      return `${loads}${seg.map(textOf).join('\n')}\n${stores}yield* __Ref.set(__pc, ${k === K - 1 ? 0 : base + k + 2})`
+    }
+    resumes.push(...segs.slice(1).map((seg, j) => `if (__p === ${base + j + 2}) {\n${body(seg, j + 1)}\n}`))
+    const params = mt.fn.parameters.map(p => p.getText()).join(', ')
+    edits.push([mt.fn.getStart(), mt.fn.end, `function* (${params}) {\nconst __p = yield* __Ref.get(__pc)\nif (__p !== 0) return yield* __resume()\n${body(segs[0]!, 0)}\n}`])
+  })
+  const ret = (f.fn.body as ts.Block).statements.at(-1)!
+  edits.push([ret.getStart(), ret.getStart(), `const __pc = yield* __Ref.make<number>(0)\n${decls.join('\n')}\nconst __resume = __Effect.fn('__resume')(function* () {\nconst __p = yield* __Ref.get(__pc)\n${resumes.join(' else ')}\n})\n`])
+  let out = code
+  for (const [a, b, t] of edits.sort((x, y) => y[0] - x[0])) out = out.slice(0, a) + t + out.slice(b)
+  out = `import {Effect as __Effect, Ref as __Ref} from 'effect'\n${out}`
+  // One fiber: the service written again, read and checked as any.
+  const one = extractEffect(out, {...opts, file, entry, effect: E, fibers: false})
+  if (!one.ok || !one.rule) return {...one, notes: [`read as one fiber's steps (${split.map(mt => `${mt.name}: ${mt.units.length}`).join(', ')}), the service written again:`, out, ...one.notes]}
+  const m0 = one.rule.machine, model = one.model!
+  const local = (n: string) => n.startsWith('__') || model.outputs.some(o => n === o || n.startsWith(`${o}_`)) || n === 'failed'
+  const shared = Object.keys(m0.state).filter(n => !local(n))
+  if (m0.inputs.includes('fiber')) return {ok: false, refusals: [{where: file, what: 'a method takes an argument named fiber (the name the fibers are told apart by)'}], notes: []}
+  const lifted = lift(m0, 'fiber', shared)
+  const parts = (one.rule as never as {parts: {params: [string, dsl.Kind<unknown>][], inputs: [string, dsl.Kind<unknown>][]}}).parts
+  // (the kinds of the requests' choices kept; an integer is its two naturals, x and x$neg, as the machine has it)
+  const named = new Set([...lifted.params, ...lifted.inputs]), whole = ([n]: [string, unknown]) => named.has(n) && !named.has(`${n}$neg`)
+  const rule = asRule({...lifted, name: `${m0.name}, every fiber`}, Object.fromEntries([...parts.params, ...parts.inputs].filter(whole)))
+  const names = (one.names ?? []).filter(n => !(n.role === 'state' && local(n.rule)) && n.role !== 'result' && !n.code.startsWith('__'))
+  const inv = (one.invariants ?? []).filter(l => !JSON.stringify(l.holds).match(/"name":"(__[^"]*|[^"]*_result[^"]*)"/))
+  return {...one, rule, names: [...names, {code: 'fiber', rule: 'fiber', role: 'input'}], invariants: inv,
+    notes: [`calls from many fibers at once: ${split.map(mt => `${mt.name} is ${mt.units.length} steps`).join(', ')} (each transaction or Ref operation one), the fibers interleaving them: the rule is every fiber's (lift: each fiber's place and what it carries a map keyed by the input fiber, the service's Refs (${shared.join(', ')}) shared); each other method is one step. A request is one fiber's next step: a fiber in the middle of a call takes its next step whatever method the request names. A failure in a later step ends the call as a return does. A law reads the service's Refs`, ...one.notes],
+    source: out}
+}
+
+// --- a schedule as the entry ------------------------------------------------------------------------------------------
+// A declaration whose value is a Schedule (or a function returning one, its parameters the rule's params): the named
+// entry, else the file's one schedule where it has no service.
+type SchedEntry = {name: string, expr: ts.Expression, params: string[], s: Setup}
+const isSchedule = (s: Setup, e: ts.Expression): boolean => {
+  e = strip(e)
+  if (ts.isCallExpression(e) && ts.isPropertyAccessExpression(e.expression) && memberName(e.expression.name) === 'pipe' && !apiOf(s, e.expression)) return isSchedule(s, e.expression.expression)
+  return (ts.isCallExpression(e) ? apiOf(s, e.expression) : apiOf(s, e))?.startsWith('Schedule.') ?? false
+}
+function scheduleEntry(code: string, file: string, opts: EffectOptions): SchedEntry | undefined {
+  if (!/\bSchedule\b/.test(code)) return undefined
+  const s = setupOf(code, placed(file), {}, opts.files), found: SchedEntry[] = []
+  for (const st of s.sf.statements) {
+    const decls = ts.isVariableStatement(st) ? st.declarationList.declarations.filter(d => ts.isIdentifier(d.name) && d.initializer).map(d => [(d.name as ts.Identifier).text, d.initializer!] as const)
+      : ts.isFunctionDeclaration(st) && st.name ? [[st.name.text, st] as const] : []
+    for (const [name, init] of decls) {
+      if (opts.entry && opts.entry !== name) continue
+      const f = ts.isFunctionDeclaration(init) ? init : ts.isArrowFunction(strip(init as ts.Expression)) || ts.isFunctionExpression(strip(init as ts.Expression)) ? strip(init as ts.Expression) as ts.FunctionLikeDeclaration : undefined
+      const body = f ? lastReturn(f.body) : init as ts.Expression
+      if (!body || !isSchedule(s, body) || (f && ts.isBlock(f.body!) && f.body.statements.length > 1)) continue
+      found.push({name, expr: body, params: (f?.parameters ?? []).map(p => (ts.isIdentifier(p.name) ? p.name.text : refuse(p, `${text(p)}: a parameter other than a name`))), s})
+    }
+  }
+  if (opts.entry) return found[0]
+  // (a file with a service reads the service; else its one schedule, the exported ones first)
+  if (found.length === 0) return undefined
+  try { serviceOf(code, file, opts); return undefined } catch (e) { if (!(e instanceof Refusal)) throw e }
+  const exported = found.filter(f => new RegExp(`export\\s+(?:const|function)\\s+${f.name}\\b`).test(code))
+  const pick = exported.length ? exported : found
+  if (pick.length > 1) throw new Refusal(file, `several schedules in the file (${pick.map(f => f.name).join(', ')}): name one (entry)`)
+  return pick[0]
+}
+// The schedule read into its rule, and checked by stepping the file's own schedule on Effect beside it.
+function fromScheduleEntry(code: string, file: string, e: SchedEntry, E: Mod, opts: EffectOptions): Extraction {
+  const t0 = Date.now(), v4 = 'TxRef' in E, s = e.s
+  const params = new Map<ts.Node, string>()
+  const fnDecl = (() => { let n: ts.Node | undefined = e.expr; while (n && !ts.isFunctionLike(n)) n = n.parent; return n as ts.FunctionLikeDeclaration | undefined })()
+  for (const p of fnDecl?.parameters ?? []) if (ts.isIdentifier(p.name)) params.set(p, p.name.text)
+  const P = new Parts()
+  for (const n of e.params) P.params.set(n, dsl.nat)
+  let sr: ScheduleRule
+  try { sr = scheduleRule(readSchedule(e.expr, {api: x => apiOf(s, x), checker: s.checker, v4, params, sf: s.sf}, P).frag, P, e.name, v4) } catch (x) {
+    if (x instanceof Refusal) return {ok: false, refusals: [{where: x.where, what: x.what}], notes: []}
+    throw x
+  }
+  const notes = [`${e.name} is an Effect ${v4 ? '4' : '3'} Schedule: each step is one of its decisions (go on after a delay, or stop), at the time the attempt before it ended; attempt, retries, delay, elapsed and done are the rule's own${e.params.length ? `; its parameters (${e.params.join(', ')}) are the rule's params, naturals` : ''}`, ...sr.notes]
+  const modules = {effect: E, ...Object.fromEntries(Object.entries(E).map(([k, x]) => [`effect/${k}`, x])), ...opts.modules}
+  const box = sandbox(code, file, [e.name], modules, undefined, opts.files)
+  const value = box.get(e.name), make = (p: Record<string, number>) => (typeof value === 'function' ? (value as (...a: number[]) => unknown)(...e.params.map(n => p[n]!)) : value)
+  const runs = (opts.check as {runs?: number} | undefined)?.runs ?? 60, c = scheduleConforms(sr, make, E, {runs, depth: 14})
+  const evidence = {runs, requests: c.checked, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: c.checked, coverage: {arms: 0, hit: 0, missed: []}, ms: Date.now() - t0, ...(c.failure ? {mismatch: c.failure} : {})}
+  const source = `// ${e.name}: ${e.expr.getText().replace(/\s+/g, ' ')}\n${sr.rule.machine.name}: state ${Object.keys(sr.rule.machine.state).join(', ')}; inputs ${sr.rule.machine.inputs.join(', ')}${sr.rule.machine.params.length ? `; params ${sr.rule.machine.params.join(', ')}` : ''}`
+  if (c.failure) return {ok: false, rule: sr.rule, source, refusals: [{where: file, what: `the rule and Effect's own schedule part: ${c.failure}`}], notes, names: sr.names, evidence}
+  return {ok: true, rule: sr.rule, source, refusals: [], notes, names: sr.names, evidence, schedule: sr} as Extraction
+}
+// A schedule written as source (an expression over Schedule and Duration, with `params` its free names) read into its
+// rule and checked against the schedule Effect makes of it: fromSchedule('Schedule.exponential("10 millis").pipe(Schedule.upTo({times: 5}))', {effect}).
+export function fromSchedule(source: string, opts: {effect: Mod, params?: string[], name?: string, runs?: number}): Extraction {
+  const ps = opts.params ?? [], name = opts.name ?? 'schedule'
+  const code = `import {Duration, Effect, Schedule} from 'effect'\nexport const ${name} = (${ps.map(p => `${p}: number`).join(', ')}) => ${source}\n`
+  return extractEffect(code, {file: 'schedule.ts', entry: name, effect: opts.effect, check: {runs: opts.runs ?? 60}} as EffectOptions)
+}
+
 // The service a file has: of its declarations (the exported ones first), those whose make effect reads, one make effect
 // however many names reach it (make, and a Layer of it).
 function serviceOf(code: string, file: string, opts: EffectOptions): string {
