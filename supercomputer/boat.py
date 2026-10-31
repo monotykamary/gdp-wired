@@ -474,11 +474,16 @@ def ensure_image(build: bool = True) -> str:
 def prune_snapshots(keep: set[str], current: str):
     """Named snapshots of superseded images (gdpw-*): every layer of the current image is kept, and the image before
     it (the registry's `images`, newest last), nothing older; the plan names 10 for free."""
+    # (an image is kept while it is younger than a day too: a client started before a layer changed still runs on it;
+    # the order is by when each image was first made current, so an old client can't make its image the newest)
     try:
         with Registry().locked() as d:
-            imgs = [i for i in d.get("images", []) if i != current] + [current]
+            seen = d.setdefault("image_t", {})
+            seen.setdefault(current, time.time())
+            imgs = sorted(set(d.get("images", [])) | {current}, key=lambda i: seen.get(i, 0))
             d["images"] = imgs[-2:]
-        keep = keep | set(imgs[-2:])
+            young = {i for i, t in seen.items() if time.time() - t < 86400}
+        keep = keep | set(imgs[-2:]) | young
         for n in named_snapshots():
             if n.startswith("gdpw-") and n not in keep and n != "gdpw-base":
                 boat("snapshot", "rm", n, "--json", check=False)
