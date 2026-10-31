@@ -12,7 +12,15 @@ import {REFUTED, growCdcl} from './cdcl.ts'
 
 let seed = Number(process.env.FUZZ_SEED ?? 4242)
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
-const rand = (n: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * n) }
+// x' = (1103515245 x + 12345) mod 2^31, exactly: in doubles the product passes 2^53 and rounds, which folds every seed
+// into one of six short cycles (61 to 10,466 steps; 98.8% of seeds 1000..12999 into the same one), so a seed meant
+// fresh drew the goals of its cycle again, and a seed on a short one drew a handful of goals, all one way.
+const rand = (n: number) => { seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff; return Math.floor(seed / 2 ** 31 * n) }
+// A test's draws: n, then more while an outcome it counts is short (a seed whose goals all fell one way tests nothing
+// about the other), up to `most`. A count still short fails as COVERAGE: the harness's failure, not the kernel's (the
+// treadmill files it apart from a soundness failure).
+const draws = function* (n: number, most: number, short: () => boolean) { for (let t = 0; t < most && (t < n || short()); t++) yield t }
+const covered = (what: string, count: number, least = 1) => expect(count, `COVERAGE: ${what}: ${count}, under ${least}`).toBeGreaterThanOrEqual(least)
 const names = ['x', 'y', 'z', 'w'] as const
 const term = (d: number): E => {
   const r = rand(d <= 0 ? 2 : 9)
@@ -58,7 +66,7 @@ const models = function* (): Generator<Env> {
 
 test('every tree the CDCL search returns checks, and refutes only goals with no model', () => {
   let proven = 0, sat = 0, unknown = 0
-  for (let t = 0; t < 150 * scale; t++) {
+  for (const _ of draws(150 * scale, 600 * scale, () => !proven || !sat)) {
     const goal: Goal = {name: 'random', hyps: Array.from({length: 4 + rand(4)}, () => cmp(rand(3)))}
     const out = growCdcl(goal, new Map(), {nodes: 0, until: clock() + 5_000})
     const plain = grow(goal, new Map(), {nodes: 0, until: clock() + 5_000, units: false})
@@ -73,7 +81,8 @@ test('every tree the CDCL search returns checks, and refutes only goals with no 
     } else unknown++
   }
   console.log(`cdcl fuzz: ${proven} refuted, ${sat} satisfiable, ${unknown} unknown`)
-  expect(proven).toBeGreaterThan(0)
+  covered('cdcl refuted', proven)
+  covered('cdcl satisfiable', sat)
 }, 600_000)
 
 // The clausal mode (a model alone): a goal it refutes has no model, the model it gives meets every hypothesis, and it
@@ -81,7 +90,7 @@ test('every tree the CDCL search returns checks, and refutes only goals with no 
 test('the clausal mode refutes only goals with no model, and its models meet the goal', () => {
   let refuted = 0, sat = 0, same = 0
   const reads = (x: unknown): boolean => JSON.stringify(x).includes('"op":"get"')
-  for (let t = 0; t < 300 * scale; t++) {
+  for (const _ of draws(300 * scale, 1200 * scale, () => !refuted || !sat)) {
     const goal: Goal = {name: 'random', hyps: Array.from({length: 4 + rand(4)}, () => cmp(rand(3)))}
     if (reads(goal)) continue
     const out = growCdcl(goal, new Map(), {nodes: 0, until: clock() + 5_000}, {model: true, clausal: true})
@@ -98,6 +107,6 @@ test('the clausal mode refutes only goals with no model, and its models meet the
     }
   }
   console.log(`clausal fuzz: ${refuted} refuted, ${sat} satisfiable, ${same} as the kernel's reading`)
-  expect(refuted).toBeGreaterThan(0)
-  expect(sat).toBeGreaterThan(0)
+  covered('clausal refuted', refuted)
+  covered('clausal satisfiable', sat)
 }, 600_000)
