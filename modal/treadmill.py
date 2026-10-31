@@ -579,7 +579,7 @@ class Submission:
         self.save()
 
         def on_row(it, row):
-            rows[it["name"]] = {k: row.get(k) for k in ("code", "seconds", "error")}
+            rows[it["name"]] = {k: row.get(k) for k in ("code", "seconds", "error")} | {"where": row.get("where", "boat")}
 
         def after(logs):
             out = self.d / "out"
@@ -593,7 +593,7 @@ class Submission:
                     (out / f"{n}.log").write_text(lg.get("out", "") + ("\n--- stderr ---\n" + lg["err"] + (f"\n{r['error']}" if r.get("error") else "") if lg.get("err", "").strip() else ""))
                     if r.get("code") == 0 or not r.get("error"):
                         (cache / f"{keys[n]}.json").write_text(json.dumps({**r, "log": str(out / f"{n}.log")}))
-            (out / "summary.tsv").write_text("".join(f"{j['name']}\t{rows.get(j['name'], {}).get('code', -1)}\t{rows.get(j['name'], {}).get('seconds', -1)}\tboat\n" for j in spec))
+            (out / "summary.tsv").write_text("".join(f"{j['name']}\t{rows.get(j['name'], {}).get('code', -1)}\t{rows.get(j['name'], {}).get('seconds', -1)}\t{rows.get(j['name'], {}).get('where', '-')}\n" for j in spec))
             self.meta["status"], self.meta["wall_s"] = "done", time.time() - self.meta["started"]
             self.save()
         if not todo:
