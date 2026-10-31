@@ -72,6 +72,7 @@ FUZZ = {"kernel": ("kernel", "FUZZ_SEED={s} bun test kernel.test.ts 2>&1"),
         "tamper": ("kernel", "FUZZ_SEED={s} bun test tamper.test.ts 2>&1")}
 REFUSED = ("unsupported", "refused")
 SWEEP_HOURS = 24  # a sweep's commit is replaced by main's at the latest after this long
+YIELD = 200  # the treadmill starts a VM only while more than this many free starts are left this hour (else warm ones)
 
 
 def log(*a):
@@ -189,6 +190,7 @@ class Batch:
                 raise boat.Unavailable("boat off (GDPW_TREADMILL_NO_BOAT)")
             sess = boat.Session(f"treadmill {self.label}", build=False, oleans=self.oleans, root=self.root or MAIN, tar=self.tar)
             sess.cap = self.vms
+            sess.min_left = YIELD  # (bars and lanes come first: the treadmill starts VMs only while the hour has plenty)
             self.sess = sess
             sess.ensure(self.vms)
             sess.run(self.items, row, on_lost=lambda it, why: lost.__setitem__(it["name"], why), max_wait=self.tm.max_wait)

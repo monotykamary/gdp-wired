@@ -77,6 +77,12 @@ RESERVE_HOUR = int(os.environ.get("GDPW_BOAT_RESERVE_HOUR", "15"))
 # shares of the free limits sets one. ALERT_DOLLARS: `starts` (and the treadmill's digest) warn past this month's.
 CEIL = [float(x) for x in os.environ["GDPW_BOAT_CEIL"].split(",")] if os.environ.get("GDPW_BOAT_CEIL") else None
 ALERT_DOLLARS = 50
+# Paced (the user, 10-31: no ceiling, but not wasteful): a batch spends the FREE starts (the hour's 420, the day's
+# 1,680, less the reserve), and extra starts only when it is urgent (GDPW_BOAT_URGENT=1): the first day with extra
+# starts on, bursts of baselines, bars and the treadmill at once spent 708 in an hour and $21 of them. Within the hour a
+# batch takes at most a sixth of what's left in any minute (PACE), so one burst doesn't spend the hour by itself.
+URGENT = os.environ.get("GDPW_BOAT_URGENT", "") not in ("", "0")
+PACE = 6
 # How a batch spends the plan's starts (research/boat-starts: the simulation of today's mix and the runs that chose
 # it). GDPW_BOAT_POLICY=old restores the policy before, to compare: as many VMs as speed a batch up, no waiting for a
 # released VM when no start is left.
@@ -169,9 +175,10 @@ def limits() -> dict:
 
 
 def effective(lim: dict) -> dict:
-    """The starts' limits in force: the free ones, or the wallet's while extra starts are on and under their cap."""
+    """The starts' limits in force: the free ones, or, for an urgent batch, the wallet's while extra starts are on and
+    under their cap."""
     st, kg, w = lim["starts"], lim.get("keepGoing") or {}, lim.get("startLimitsWithWallet")
-    if not (kg.get("enabled") and not kg.get("capReached")):
+    if not (URGENT and kg.get("enabled") and not kg.get("capReached")):
         return st
     if not w:  # (boat drops startLimitsWithWallet once the wallet is empty; extra starts still go to the invoice)
         op, sl = lim.get("overagePrices") or {}, lim.get("startLimits") or {"perDay": st["day"]["limit"], "perHour": st["hour"]["limit"], "perMinute": st["minute"]["limit"]}
@@ -706,7 +713,8 @@ class StartGate:
                     left = starts_left({"starts": self.st}, mine) - self.used
                     if left <= 0:
                         return 0
-                    k = min(n, left, self.st["minute"]["remaining"] - self.used, int(CEIL[2]) - mine[60] if CEIL else n)
+                    k = min(n, left, self.st["minute"]["remaining"] - self.used, int(CEIL[2]) - mine[60] if CEIL else n,
+                            n if URGENT else max(1, math.ceil(left / PACE)) - mine[60])
                     if k > 0:
                         self.used += k
                         note_starts(k)
@@ -770,6 +778,7 @@ class Session:
         # (run.py's batches, the treadmill's); fanout.BoatEx turns it on for its starmap, after its single calls
         self.early = False
         self.cap = 0  # at most this many VMs at once (a client that shares a fixed pool among its batches: the treadmill)
+        self.min_left = 0  # starts only while more than this many are left (the treadmill leaves the rest to bars and lanes)
         self.logs: dict[str, dict] = {}
         self.collected: set[str] = set()
         try:
@@ -804,7 +813,7 @@ class Session:
                 starts = max(0, starts_left(limits()))
             except Exception:
                 starts = need
-            if self.warm_only:
+            if self.warm_only or starts <= self.min_left:  # (a client that yields: no start while few are left)
                 starts = 0
             elif need > len(up) and starts <= 0:
                 self.short = True
@@ -886,6 +895,7 @@ class Session:
                         p = subprocess.run([BOAT, "resume", vm.id, "--json"], capture_output=True, text=True, timeout=300, env=ENV)
                     said = p.stdout + p.stderr
                     if p.returncode != 0 and ("rate_limited" in said or '"status":429' in said):
+                        note_starts(-1)  # (refused: not a start)
                         if "per hour" in said or "per day" in said:
                             raise RuntimeError("boat's start limit (a resume counts as a start): " + said.split('"error":"')[-1][:120])
                         time.sleep(15)  # the minute's starts: the next minute
