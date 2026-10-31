@@ -1,5 +1,5 @@
 // Modal jobs for the corpus, one per item and prover (`bun research/frontier/jobs.ts [--track t] > jobs.json`), each a
-// `score.ts --one` run: `modal run modal/run.py --jobs jobs.json --out runs/modal/frontier/<name>`, then
+// `score.ts --one` run: `modal run supercomputer/run.py --jobs jobs.json --out runs/modal/frontier/<name>`, then
 // `bun research/frontier/score.ts --from runs/modal/frontier/<name>` for the table.
 import {corpus} from './corpus.ts'
 

@@ -1,4 +1,4 @@
-"""DuoAI (Yao, Tao, Gu, Nieh, OSDI 2022) on Modal, on the shape gdp-wired's pilot uses (modal/run.py: 2 CPU, 4 GB),
+"""DuoAI (Yao, Tao, Gu, Nieh, OSDI 2022) on Modal, on the shape gdp-wired's pilot uses (supercomputer/run.py: 2 CPU, 4 GB),
 each run its own container, held to a wall-time limit.
 
     modal run research/protocols/duoai/duoai.py --out runs/duoai/<name> [--protocols a,b] [--limits 60,10] [--runs 3] [--hard]

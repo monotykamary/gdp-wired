@@ -183,7 +183,7 @@ A new kind of certificate is a new trusted rule, so the order is fixed:
   benchmarks' unsolved groups), each item with broken variants that must be refused; `research/realworld/` (rules
   written from open-source code, the laws a reviewer would ask, its verdicts kept). A change keeps each unchanged or
   better, every broken variant refused.
-- **The suites** (`modal/suite.json`, 217 jobs): by default, then with `--usual` (the usual trees as every certificate,
+- **The suites** (`supercomputer/suite.json`, 217 jobs): by default, then with `--usual` (the usual trees as every certificate,
   rather than the cyclic proofs), one at a time; the 5 s-limited tests on 1 vCPU, measured against main interleaved
   where a change touches their paths.
 - **The interchange**: `interchange/suite-jobs.ts` runs the suites again with every certificate captured

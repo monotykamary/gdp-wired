@@ -7,7 +7,7 @@ here, mounted fresh), killed at `limit` seconds (default 120); `collect`, a dire
 written under <out>/<name>/. The image is modal_chc.py's (Ubuntu 24.04, bun, Z3 5.3.1, the CHC-COMP'26 benchmarks at the
 same pinned commit under /bench) plus cvc5 1.4.1; runs/modal/dag/goals/ (the step goals given-dump.ts wrote) is mounted
 at /goals. Each container has 2 vCPU and 4 GB. <out>/<name>.log has the job's exit code, seconds, stdout and stderr;
-<out>/summary.tsv one row per job. The app id and client pid are registered in modal/.live/ (modal/reap.sh stops an
+<out>/summary.tsv one row per job. The app id and client pid are registered in supercomputer/.live/ (supercomputer/reap.sh stops an
 orphan); every call is cancelled when this entrypoint exits.
 """
 import json
@@ -35,7 +35,7 @@ for p in sorted(root.rglob('*'), reverse=True):
     elif p.is_dir() and not any(p.iterdir()):
         p.rmdir()
 """
-GOALS = GDP / "runs" / "modal" / "dag" / "goals"
+GOALS = GDP / "runs" / "supercomputer" / "dag" / "goals"
 
 image = (
     modal.Image.from_registry("ubuntu:24.04", add_python="3.12")
@@ -54,7 +54,7 @@ image = (
         " && unzip -q /tmp/cvc5.zip -d /opt/cvc5 && find /opt/cvc5 -name cvc5 -type f -exec ln -s {} /usr/local/bin/cvc5 \\; && cvc5 --version | head -1",
     )
     .env({"PATH": "/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
-    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "modal/**", "private/**",
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal", "private/**",
                                               "vendor/**", "compare/**/*.js", "compare/**/out/**", "research/enum/**", "research/perf/**", "research/hw/**", "research/modal-gpu/**"])
 )
 if GOALS.exists():
@@ -89,7 +89,7 @@ def job(name: str, cmd: str, limit: int, collect: str) -> dict:
 
 @app.local_entrypoint()
 def main(jobs: str, out: str):
-    live = GDP / "modal" / ".live"
+    live = GDP / "supercomputer" / ".live"
     live.mkdir(exist_ok=True)
     ticket = live / f"{app.app_id}"
     ticket.write_text(str(os.getpid()))

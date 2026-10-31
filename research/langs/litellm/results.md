@@ -2,7 +2,7 @@
 
 LiteLLM v1.106.6 (61c6ab78393ef45683dd7d963d2a315bd845e20b, the latest release), Modal, 2 vCPU, one job
 (`research/langs/litellm/jobs.json`: the checkout, `uv pip install -e '.[proxy]'`, `run.ts --ms 60000 --write`), 252 s
-of which the install is most; `runs/langs/modal/run3`, and again on gen/rust's executor in `runs/langs/modal/run4` (the same verdicts; MaxIterationsHandler's rule printed with one more hoisted condition). `results.json` beside this file is the run's own output.
+of which the install is most; `runs/langs/supercomputer/run3`, and again on gen/rust's executor in `runs/langs/supercomputer/run4` (the same verdicts; MaxIterationsHandler's rule printed with one more hoisted condition). `results.json` beside this file is the run's own output.
 
 **7 of 7 items extracted and checked, 21 laws: 19 proven, 2 refuted, none unknown.**
 

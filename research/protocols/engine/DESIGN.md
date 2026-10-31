@@ -880,11 +880,11 @@ merged with main f0526b6; <main>/runs/bar/runs/lean10-7a96b6b-quick/REPORT.md, 5
 74/14/3 as the base; f2 24 against 24.33 (no task differs); g332 the same search on 332 of 332 (299.0 s against 298.3 s);
 the suite 233 passed, 0 failed; onecpu no failure. Gained 0, lost 0, wrong 0.
 
-**Two suite jobs** (modal/suite.json, added after the bar's tree, piloted alone in `runs/lean10/suitejobs`):
+**Two suite jobs** (supercomputer/suite.json, added after the bar's tree, piloted alone in `runs/lean10/suitejobs`):
 `lean-protocols-sync` (28 s) and `lean-protocols-wo` (176 s): lean10.ts's search at 60 s (twice at most), export, `lean`,
 failing on an export error, a Lean error, a sorry or an axiom past the core three. wo covers both new routes (the ∃ law in
 `found`, the fast-proof fallback). The other eight run 1–20 minutes each (distributed 10, sharded 20): a separate gate,
-`modal run modal/run.py --jobs research/protocols/jobs-lean10-final.json --out <dir>` (about 40 container-minutes).
+`modal run supercomputer/run.py --jobs research/protocols/jobs-lean10-final.json --out <dir>` (about 40 container-minutes).
 
 ## gen/lean10: the ten's final proofs through the Lean twin (gen/lean10 from main 4e9d7ec)
 
@@ -892,7 +892,7 @@ failing on an export error, a Lean error, a sorry or an axiom past the core thre
 (proveSetFast, its trees checked by kernel.ts's checkLaws), which no Lean job had read. So, per protocol: the search at
 60 s, then its law set (the kinds', the caller's and every law in the verdict's `found`) exported through the suite's
 Lean path (lean-kernel/emit.ts's `toLean`, cyclic certificates where the cyclic route covers the machine, else the usual
-trees) and checked by `lean` against the twin (Lean v4.34.0, the library as `modal/run.py` caches it). The harness is
+trees) and checked by `lean` against the twin (Lean v4.34.0, the library as `supercomputer/run.py` caches it). The harness is
 research/protocols/lean10.ts; runs are `runs/lean10/*` in ../gdp-wired-lean10 (Modal, 2 CPU, 8 GB).
 
 **On main's exporter** (`runs/lean10/pilot`, `all`): 8 of 10 exported and checked; two not exportable.
@@ -2272,7 +2272,7 @@ on the default path, and top-down behind GDP_TD.
 - `smallprobe.ts [id]` (MS, CUBES=1|made, EXIT): the small instance, round 0's cubes (CUBES=1) or every enumerated cube (made), the views.
 - `woprobe.ts <dump>`: needs GDP_ENGINE_DUMP (689f492).
 - `exprobe.ts`, `bfsprobe.ts`, `stepprobe.ts`, `preprobe.ts`, `hand-dl.ts`, `hand-ring2.ts`.
-- Jobs are in jobs-*.json (q1–q16 this round). Run them with `modal run modal/run.py --jobs <file> --out runs/engine/<name>`.
+- Jobs are in jobs-*.json (q1–q16 this round). Run them with `modal run supercomputer/run.py --jobs <file> --out runs/engine/<name>`.
 
 **Rules**
 - Local runs: ≤ 30 s, one at a time (there is no `timeout` on the Mac: `perl -e 'alarm shift; exec @ARGV' 30 bun …`).

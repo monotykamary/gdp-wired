@@ -10,7 +10,7 @@ and mounted) with "base": true, killed at `limit` seconds
 (<out>/<name>/prof-<n>.json). Mounted: the CHC-COMP'26 LIA-Lin benchmarks at compare/chc's pinned commit (/chc),
 TermComp's ITS at compare/term's (/its), research/dag's 332 dumped step goals (/goals, from the main checkout's
 runs/modal/dag/goals). <out>/<name>.log has the exit code, seconds, stdout and stderr; <out>/summary.tsv one row a job.
-The app id and client pid are registered in modal/.live/ (modal/reap.sh stops an orphan); every call is cancelled when
+The app id and client pid are registered in supercomputer/.live/ (supercomputer/reap.sh stops an orphan); every call is cancelled when
 this entrypoint exits.
 """
 import json
@@ -40,9 +40,9 @@ for p in sorted(root.rglob('*'), reverse=True):
     elif p.is_dir() and not any(p.iterdir()):
         p.rmdir()
 """
-GOALS = MAIN / "runs" / "modal" / "dag" / "goals"
+GOALS = MAIN / "runs" / "supercomputer" / "dag" / "goals"
 BASE = pathlib.Path(os.environ.get("GDP_QUERY_BASE", "/tmp/gdp-query-base"))
-IGNORE = ["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "modal/**", "private/**", "vendor/**",
+IGNORE = ["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal", "private/**", "vendor/**",
           "compare/**/*.js", "compare/**/out/**", "research/enum/**", "research/perf/bend-enum/**", "research/hw/**", "research/modal-gpu/**",
           "docs/**", "static/**", "**/lean-kernel/.lake/**", "research/extract/.cache/**", "**/.git"]
 
@@ -99,7 +99,7 @@ def job(name: str, cmd: str, limit: int, prof: bool, base: bool) -> dict:
 
 @app.local_entrypoint()
 def main(jobs: str, out: str):
-    live = GDP / "modal" / ".live"
+    live = GDP / "supercomputer" / ".live"
     live.mkdir(exist_ok=True)
     ticket = live / f"{app.app_id}"
     ticket.write_text(str(os.getpid()))

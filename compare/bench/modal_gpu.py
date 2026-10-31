@@ -3,7 +3,7 @@ apt.llvm.org, bun, and the Bend repo's bend2/ mounted beside gdp-wired's compare
 
     modal run compare/bench/modal_gpu.py --out ../runs/modal/compare-bench/gpu [--gpu L4]
 
-One container, a 30-minute timeout, cancelled if this entrypoint stops for any reason; `sh modal/reap.sh` afterwards.
+One container, a 30-minute timeout, cancelled if this entrypoint stops for any reason; `sh supercomputer/reap.sh` afterwards.
 """
 import os
 import pathlib

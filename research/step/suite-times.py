@@ -1,4 +1,4 @@
-"""Suite job times side by side: `python3 research/step/suite-times.py <run dir> <run dir> [...]` (each a modal/run.py
+"""Suite job times side by side: `python3 research/step/suite-times.py <run dir> <run dir> [...]` (each a supercomputer/run.py
 output: summary.tsv with name, exit code, seconds, backend). Prints each run's failures and total job seconds over the
 jobs every run has, then the jobs whose time moved most between the first two."""
 import pathlib

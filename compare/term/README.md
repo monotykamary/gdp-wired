@@ -30,7 +30,7 @@ wall-clock limit for every tool:
 | `modal_sv.py` | The SV-COMP tasks on Modal: gdp-wired on its translation, Ultimate Automizer on the C program, LoAT and KoAT2 on gdp-wired's translation |
 | `summary.ts` | The tables below from run directories (later rows replacing earlier ones) |
 | `failures.ts` | The tasks another tool answered and gdp-wired didn't, by where gdp-wired stopped and what KoAT2's proof used |
-| `probes.ts`, `probes.json` | Two of the failure classes on loops written by hand (`modal run modal/run.py --jobs compare/term/probes.json`) |
+| `probes.ts`, `probes.json` | Two of the failure classes on loops written by hand (`modal run supercomputer/run.py --jobs compare/term/probes.json`) |
 
     modal run compare/term/modal_term.py --out runs/modal/term/<name> [--tools gdp,gdp-scc,loat,loat-abmc,koat2] [--limit 60] [--tasks-file <names>]
     modal run compare/term/modal_sv.py --out runs/modal/term/<name> [--tools gdp,gdp-scc,uautomizer,loat-abmc,koat2]

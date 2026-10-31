@@ -1,5 +1,5 @@
-"""One interface over three providers: boat.dev VMs for CPU work (modal/boat.py), RunPod pods for GPU work
-(modal/runpod.py), Modal for the rest and as the fallback of both.
+"""One interface over three providers: boat.dev VMs for CPU work (supercomputer/boat.py), RunPod pods for GPU work
+(supercomputer/runpod.py), Modal for the rest and as the fallback of both.
 
     --backend modal     Modal, as always (the default until it's flipped)
     --backend auto      CPU work on boat, GPU work on RunPod; Modal takes over when the primary can't serve
@@ -11,7 +11,7 @@ its billing (credit, balance), no capacity (boat's active-VM or start limits lea
 image that isn't built; RunPod out of every GPU type in the list), a VM or pod lost mid-job. Every fallback is logged
 with its reason, in the final line and in <out>/backends.json; a job's results are the same whichever provider ran it.
 Whatever happens, each provider's cleanup runs: boat VMs released (stopped after --idle), pods deleted, the Modal app
-stopped (its id and this client's pid in modal/.live/ while it runs).
+stopped (its id and this client's pid in supercomputer/.live/ while it runs).
 
 The compare runners write their entrypoint's body as `run(ex, ...)` with `ex.remote(fn, *args)` and
 `ex.starmap(fn, args)` (results as they finish, an exception for a failed call); `python3 <runner> --backend ...`
@@ -74,7 +74,7 @@ def reexec_with_modal():
 
 class ModalCtx:
     """The runner's Modal app, running: the one `modal run` started, or one started here (and stopped on exit), its
-    id and this client's pid in modal/.live/ while it runs (modal/reap.sh stops it if this client dies)."""
+    id and this client's pid in supercomputer/.live/ while it runs (supercomputer/reap.sh stops it if this client dies)."""
 
     def __init__(self, app):
         self.app, self.ctx, self.ticket = app, None, None
@@ -85,7 +85,7 @@ class ModalCtx:
         if getattr(self.app, "app_id", None) is None:
             self.ctx = self.app.run()
             self.ctx.__enter__()
-        live = GDP / "modal" / ".live"
+        live = GDP / "supercomputer" / ".live"
         live.mkdir(exist_ok=True)
         self.ticket = live / f"{self.app.app_id}"
         self.ticket.write_text(str(os.getpid()))
@@ -101,12 +101,12 @@ class ModalCtx:
         return False
 
 
-# ------------------------------------------------------------------------------------------------- modal/run.py jobs
+# ------------------------------------------------------------------------------------------------- supercomputer/run.py jobs
 def run_jobs(app, spec: list[dict], out: str, pre: str, cmd, modal_jobs, backend: str = "modal", vms: int = 0, idle: int | None = None, teardown: bool = False,
-             durations: str = "", vm_type: str = "default", max_vms: int = 0, max_wait: int = 120):
-    """modal/run.py's batch on its backend. modal_jobs(jobs, on_done) runs jobs on Modal (inside the running app)
+             durations: str = "", vm_type: str = "large", max_vms: int = 0, max_wait: int = 120, tar: bytes | None = None):
+    """supercomputer/run.py's batch on its backend. modal_jobs(jobs, on_done) runs jobs on Modal (inside the running app)
     and returns {name: {code, seconds, out, err}}. Writes <out>/<name>.log and <out>/summary.tsv (name, exit,
-    seconds, backend) and prints modal/run.py's final line, with where the jobs ran and why any moved."""
+    seconds, backend) and prints supercomputer/run.py's final line, with where the jobs ran and why any moved."""
     if backend not in ("modal", "auto", "boat"):
         raise SystemExit(f"--backend for CPU jobs is modal, auto or boat, not {backend}")
     outdir = pathlib.Path(out)
@@ -123,24 +123,25 @@ def run_jobs(app, spec: list[dict], out: str, pre: str, cmd, modal_jobs, backend
             print(f"{name:40} exit {row.get('code', -1):>3}  {row.get('seconds', -1):>8} s", flush=True)
 
     todo = list(spec)
-    # (a job on an image of its own, the runner-like one: Modal's, whatever the backend)
-    own = [j for j in spec if j.get("image")]
+    # (a job on an image of its own, the runner-like one, or one that says "backend": "modal": Modal's, whatever the backend)
+    own = [j for j in spec if (j.get("image") and j["image"] != "runner") or j.get("backend") == "modal"]  # (boat's langs layer has the runner image's)
     if own:
-        moved.update({j["name"]: f"its image ({j['image']}) is Modal's" for j in own})
+        moved.update({j["name"]: f"its image ({j['image']}) is Modal's" if j.get("image") else "it asks for Modal" for j in own})
     if backend in ("auto", "boat") and len(own) < len(spec):
         import boat
         reason, info = boat.preflight(1, vm_type) if backend == "auto" else (None, {})
         if reason is None:
-            got, bsum = boat.boat_jobs([j for j in spec if not j.get("image")], out, pre, cmd, vms=vms, idle=idle, teardown=teardown, durations=durations, vm_type=vm_type, max_vms=max_vms,
-                                       on_lost=(lambda n, why: moved.__setitem__(n, why)) if backend == "auto" else None, max_wait=max_wait if backend == "auto" else 0, on_done=printer)
+            got, bsum = boat.boat_jobs([j for j in spec if j not in own], out, pre, cmd, vms=vms, idle=idle, teardown=teardown, durations=durations, vm_type=vm_type, max_vms=max_vms,
+                                       on_lost=(lambda n, why: moved.__setitem__(n, why)) if backend == "auto" else None, max_wait=max_wait if backend == "auto" else 0, on_done=printer, tar=tar)
             rows.update(got)
             where.update({n: "boat" for n in got})
         else:
             moved.update({j["name"]: reason for j in spec})
             log(f"boat can't take this batch ({reason}): Modal runs it")
+            boat.ledger(batch=None, label=f"run.py {outdir.name}", starts=0, vms=0, slots=0, jobs=len(spec), to="modal", why=reason)
         todo = [j for j in spec if j["name"] not in rows]
         if backend == "boat":
-            for j in [j for j in todo if not j.get("image")]:
+            for j in [j for j in todo if j not in own]:
                 rows[j["name"]] = {"code": -1, "seconds": -1, "out": "", "err": moved.get(j["name"], "never ran")}
                 where[j["name"]] = "boat"
             todo = own
@@ -166,7 +167,7 @@ def run_jobs(app, spec: list[dict], out: str, pre: str, cmd, modal_jobs, backend
 
 
 def boat_order(spec):
-    """modal/run.py's summary order: its resource groups, in the order they first appear."""
+    """supercomputer/run.py's summary order: its resource groups, in the order they first appear."""
     groups: dict[tuple, list] = {}
     for j in spec:
         groups.setdefault((j.get("cpu", 2.0), j.get("memory", 4096), j.get("timeout", 900)), []).append(j)
@@ -214,12 +215,12 @@ class ModalEx:
 
 
 class BoatEx:
-    """The pool (modal/boat.py): each call a py item in the runner's setting (its BOAT mounts and PATH, 2 vCPU and
+    """The pool (supercomputer/boat.py): each call a py item in the runner's setting (its BOAT mounts and PATH, 2 vCPU and
     4 GB, the function's own timeout)."""
 
     backend = "boat"
 
-    def __init__(self, runner: str, vms: int = 0, idle: int | None = None, teardown: bool = False, vm_type: str = "default", max_vms: int = 0, durations: str = "",
+    def __init__(self, runner: str, vms: int = 0, idle: int | None = None, teardown: bool = False, vm_type: str = "large", max_vms: int = 0, durations: str = "",
                  limit: int = 3600, build: bool = True, max_wait: int = 0):
         import boat
         self.boat = boat
@@ -269,6 +270,7 @@ class BoatEx:
         slots = self.boat.TYPES[self.sess.vm_type][0] // self.boat.SLOT_CPU
         n = self.boat.plan_vms(items, slots, self.vms, self.max_vms)
         self.boat.log(f"{len(items)} calls of {name} on up to {n} {self.sess.vm_type} VM(s)")
+        self.sess.early = not self.sess.teardown  # (its VMs go back to the pool as the calls run out)
         self.sess.ensure(n)
         q: queue.Queue = queue.Queue()
         END = object()
@@ -318,7 +320,7 @@ class AutoEx:
         self.app, self.modal, self.bx = app, None, None
         self.where = {"boat": 0, "modal": 0}
         self.why: dict[str, int] = {}
-        self.reason, _ = boat.preflight(1, opts.get("vm_type", "default"))
+        self.reason, _ = boat.preflight(1, opts.get("vm_type", boat.VM_TYPE))
         if self.reason is None:
             try:
                 self.bx = BoatEx(runner, build=False, max_wait=max_wait, **opts)
@@ -401,7 +403,7 @@ def cli(run, runner: str, doc: str = ""):
     ap.add_argument("--max-vms", type=int, default=0, help="at most this many VMs, and the batch's cap on its starts (default 50: GDPW_BOAT_MAX_STARTS)")
     ap.add_argument("--idle", type=int, default=None, help="seconds a released VM stays up before boat stops it (0: stop at once; default 60)")
     ap.add_argument("--teardown", action="store_true", help="delete the batch's VMs at the end instead of stopping them")
-    ap.add_argument("--vm-type", default="default", choices=["small", "default", "large"])
+    ap.add_argument("--vm-type", default="large", choices=["small", "default", "large", "xlarge"])
     ap.add_argument("--durations", default="", help="an earlier results.jsonl: the longest calls start first")
     ap.add_argument("--max-wait", type=int, default=120, help="auto: seconds to wait for a boat VM before Modal takes the batch")
     params = list(inspect.signature(run).parameters.values())[1:]

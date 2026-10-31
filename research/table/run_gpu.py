@@ -6,7 +6,7 @@ one container per job, every job at once.
 jobs.json as modal_table.py's ({"name", "cmd", "timeout"?}); cmd runs under bash in gdp-wired/ with DAWN_MODULE set.
 The image has bun, Dawn (webgpu 0.6.2), Z3 5.3.1, pycparser, and the same benchmarks as modal_table.py at the same
 commits. <out>/results.jsonl: one row per job (name, gpu, exit code, seconds, stdout). The app id and client pid are
-registered in modal/.live/ (modal/reap.sh stops an orphan); every call is cancelled when this entrypoint stops."""
+registered in supercomputer/.live/ (supercomputer/reap.sh stops an orphan); every call is cancelled when this entrypoint stops."""
 import json
 import os
 import pathlib
@@ -88,7 +88,7 @@ def job_h100(name: str, cmd: str, limit: int) -> dict:
 
 @app.local_entrypoint()
 def main(jobs: str, out: str, gpu: str = "L4"):
-    live = GDP / "modal" / ".live"
+    live = GDP / "supercomputer" / ".live"
     live.mkdir(exist_ok=True)
     ticket = live / f"{app.app_id}"
     ticket.write_text(str(os.getpid()))

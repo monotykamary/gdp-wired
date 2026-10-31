@@ -2,7 +2,7 @@
 `modal run compare/chc/prof/spacer_models.py --out <dir> --tasks-json <file of task names> [--engine z3|golem] [--limit 60]`.
 Each task's model (Z3 5.3.1, fp.engine=spacer) lands in <dir>/models.jsonl, whole (up to 2 MB). With --engine golem,
 Golem 0.9.0's --print-witness instead: for an unsat task, the derivation of false it found (its counterexample). The
-app id and client pid are registered in modal/.live/ (modal/reap.sh stops an orphan)."""
+app id and client pid are registered in supercomputer/.live/ (supercomputer/reap.sh stops an orphan)."""
 import json
 import os
 import pathlib
@@ -43,7 +43,7 @@ def model(task: str, engine: str, limit: int) -> dict:
 
 @app.local_entrypoint()
 def main(out: str, tasks_json: str, engine: str = "z3", limit: int = 60):
-    live = GDP / "modal" / ".live"
+    live = GDP / "supercomputer" / ".live"
     live.mkdir(exist_ok=True)
     ticket = live / f"{app.app_id}"
     ticket.write_text(str(os.getpid()))

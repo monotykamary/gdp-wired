@@ -45,7 +45,7 @@ def main():
     a = ap.parse_args()
     R = lambda p: os.path.join(a.runs, p)
     disputed = json.load(open(os.path.join(os.path.dirname(__file__), "..", "disputed.json")))
-    others = [json.loads(l) for l in open(R("modal/chc2/combined-v020/results.jsonl"))]
+    others = [json.loads(l) for l in open(R("supercomputer/chc2/combined-v020/results.jsonl"))]
 
     def right(r):
         if r is None or r.get("answer") not in ("sat", "unsat"):
@@ -61,7 +61,7 @@ def main():
     mine = [load(R(p + "/results.jsonl")) for p in a.mine.split(",") if os.path.exists(R(p + "/results.jsonl"))]
     base = [load(R(p + "/results.jsonl")) for p in a.main.split(",") if os.path.exists(R(p + "/results.jsonl"))]
     first = mine[0]
-    gap20 = json.load(open(R("modal/chc2/gap-v020.json")))
+    gap20 = json.load(open(R("supercomputer/chc2/gap-v020.json")))
     given = load(R("chc3/given2-usual/results.jsonl")) if os.path.exists(R("chc3/given2-usual/results.jsonl")) else {}
     from groups_chc import GROUPS
 

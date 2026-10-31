@@ -1,7 +1,7 @@
 // The Go front end's outputs before and after a change, compared byte for byte: each extraction's rule source, notes
 // and refusals (in the order the test file and research/extract/go-run.ts make them).
 //
-//   python3 modal/run.py --backend modal --jobs research/langs/go-snapshot.json --out runs/langs/go-snap-after
+//   python3 supercomputer/run.py --backend modal --jobs research/langs/go-snapshot.json --out runs/langs/go-snap-after
 //   bun research/langs/go-snapshot/compare.ts runs/langs/go-snap-after
 import {readFileSync} from 'node:fs'
 import {join} from 'node:path'

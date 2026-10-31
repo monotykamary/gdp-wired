@@ -7,7 +7,7 @@ LoAT and KoAT2, each task in its own container (2 vCPU, 4 GB), each tool under t
 
 The benchmarks are TermCOMP/TPDB-ARI at a pinned commit, fetched into the image. <out>/results.jsonl has one row per
 tool and task: the answer (terminates, nonterminating, unknown, unsupported, timeout, error), the seconds and, for
-gdp-wired, the stages it printed. The app id and client pid are registered in modal/.live/ (modal/reap.sh stops an
+gdp-wired, the stages it printed. The app id and client pid are registered in supercomputer/.live/ (supercomputer/reap.sh stops an
 orphan); the app, and every call in it, stops when this entrypoint exits.
 """
 import json
@@ -17,9 +17,9 @@ import time
 
 try:
     import modal
-except ImportError:  # plain python3, --backend boat: the runner's functions run on boat VMs (modal/fanout.py)
+except ImportError:  # plain python3, --backend boat: the runner's functions run on boat VMs (supercomputer/fanout.py)
     import sys
-    sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent.parent / "modal"))
+    sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent.parent / "supercomputer"))
     from agent import modal_stub
     modal = modal_stub()
 
@@ -40,12 +40,12 @@ image = (
         "find /bench -name '*.ari' | wc -l",
     )
     .env({"PATH": "/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
-    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "modal/**", "private/**",
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal", "private/**",
                                               "vendor/**", "compare/**/*.js", "compare/**/out/**", "docs/**", "static/**", "lean-kernel/.lake/**"])
 )
 app = modal.App("gdp-wired-term", image=image)
 
-# The same image on a boat VM, a layer of the pool's snapshot (modal/boat.py): the benchmarks under /opt/gdpw/term,
+# The same image on a boat VM, a layer of the pool's snapshot (supercomputer/boat.py): the benchmarks under /opt/gdpw/term,
 # mounted at /bench for each call (BOAT).
 BOAT_SETUP = f"""
 curl -fsSL -o /tmp/loat https://github.com/LoAT-developers/LoAT/releases/download/{LOAT}/loat-static && sudo install -m 755 /tmp/loat /usr/local/bin/loat
@@ -156,7 +156,7 @@ def versions() -> dict:
 @app.local_entrypoint()
 def main(out: str, tools: str = "gdp,loat,loat-abmc,koat2", limit: int = 60, sample: int = 0, only: str = "", env: str = "", tasks_file: str = ""):
     import sys
-    sys.path.insert(0, str(GDP / "modal"))
+    sys.path.insert(0, str(GDP / "supercomputer"))
     import fanout
     run(fanout.ModalEx(app), out, tools, limit, sample, only, env, tasks_file)
 
@@ -196,6 +196,6 @@ def run(ex, out: str, tools: str = "gdp,loat,loat-abmc,koat2", limit: int = 60, 
 
 if __name__ == "__main__":
     import sys
-    sys.path.insert(0, str(GDP / "modal"))
+    sys.path.insert(0, str(GDP / "supercomputer"))
     import fanout
     fanout.cli(run, __file__, __doc__)

@@ -7,7 +7,7 @@ oracle the drivers check with), KoAT2 2.7.0 (its proofs, for the termination com
 benchmarks at the commits compare/ pins: CHC-COMP 2026 (/chc, the LIA-Lin tasks), TIP 2015 (/tip), TPDB-ARI's
 integer transition systems (/ari), sv-benchmarks' termination directories (/sv). Spacer's models of the 536 sat gap
 tasks are at /data/spacer-models.jsonl. <out>/results.jsonl: one row per job (name, exit code, seconds, stdout). The
-app id and client pid are registered in modal/.live/ (modal/reap.sh stops an orphan)."""
+app id and client pid are registered in supercomputer/.live/ (supercomputer/reap.sh stops an orphan)."""
 import json
 import os
 import pathlib
@@ -56,7 +56,7 @@ image = (
     )
     .env({"PATH": "/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
     .add_local_file(GDP / "runs/modal/chc2/spacer-models-sat/models.jsonl", "/data/spacer-models.jsonl")
-    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "modal/**", "private/**",
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal", "private/**",
                                               "vendor/gdp-ts/**", "vendor/handwired/lab/**", "vendor/handwired/assets/**", "vendor/handwired/tests/**", "vendor/handwired/docs/**", "compare/**/*.js", "compare/**/out/**", "docs/**", "static/**", "lean-kernel/.lake/**"])
 )
 app = modal.App("gdp-wired-table", image=image)
@@ -81,7 +81,7 @@ def job(name: str, cmd: str, limit: int) -> dict:
 
 @app.local_entrypoint()
 def main(jobs: str, out: str):
-    live = GDP / "modal" / ".live"
+    live = GDP / "supercomputer" / ".live"
     live.mkdir(exist_ok=True)
     ticket = live / f"{app.app_id}"
     ticket.write_text(str(os.getpid()))

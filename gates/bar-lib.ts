@@ -55,7 +55,7 @@ const tipRows = (tool: string) => (dir: string): Rows => {
 const tipHead = (rows: Rows) => ({proven: count(rows, o => o.solved), refuted: count(rows, o => o.answer === 'refuted'), wrong: count(rows, o => !!o.wrong), unknown: count(rows, o => o.answer === 'unknown'),
   timeout: count(rows, o => o.answer === 'timeout'), unsupported: count(rows, o => o.answer === 'unsupported'), error: count(rows, o => o.answer === 'error'), tasks: rows.size})
 
-// ------------------------------------------------------------------------------------------- modal/run.py job lists
+// ------------------------------------------------------------------------------------------- supercomputer/run.py job lists
 // A job's log: research/*/jobs.ts echo the key first, the verdict JSON is the last line (score.ts --from's reading).
 export function jobLogs(dir: string): {job: string, key: string, last: string, text: string}[] {
   if (!existsSync(dir)) return []
@@ -118,7 +118,7 @@ const g332Rows = (dir: string): Rows => {
   return out
 }
 
-// modal/run.py's summary.tsv: a job passes on exit 0.
+// supercomputer/run.py's summary.tsv: a job passes on exit 0.
 export function summaryRows(dir: string): Rows {
   const out: Rows = new Map()
   for (const l of lines(`${dir}/summary.tsv`)) {

@@ -5,8 +5,8 @@ repo's bend2/ mounted fresh on every run (read-only sources, copied to /work in 
 
 jobs.json is a list of {"name", "cmd", "timeout"?}; cmd runs under bash in /work/gdp-wired, with BEND=/work/bend (the
 Bend repo root, holding bend2/) in the environment. Each job's output lands in <out>/<name>.log and <out>/summary.tsv
-has name, exit code and seconds. Modeled on modal/run.py: the app id and client pid are registered in modal/.live/
-(so modal/reap.sh can stop an orphan), and every spawned call is cancelled when this entrypoint exits.
+has name, exit code and seconds. Modeled on supercomputer/run.py: the app id and client pid are registered in supercomputer/.live/
+(so supercomputer/reap.sh can stop an orphan), and every spawned call is cancelled when this entrypoint exits.
 """
 import json
 import os
@@ -28,7 +28,7 @@ image = (
         "/root/.elan/bin/lean --version",
     )
     .env({"PATH": "/root/.bun/bin:/root/.elan/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "BEND_NO_TELEMETRY": "1"})
-    .add_local_dir(GDP, "/src/gdp-wired", ignore=["**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "modal/**", "private/**",
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=["**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal", "private/**",
                                               "vendor/handwired/lab/ui-exploration/**", "vendor/handwired/lab/knuth-plass/**", "vendor/handwired/assets/**",
                                               "vendor/handwired/tests/**", "vendor/gdp-ts/examples/**", "compare/**/*.js", "compare/**/out/**"])
     .add_local_dir(BEND / "bend2", "/src/bend/bend2", ignore=["**/node_modules/**", "docs/**"])
@@ -58,7 +58,7 @@ def sh(name: str, cmd: str, limit: int = 1500) -> dict:
 @app.local_entrypoint()
 def main(jobs: str, out: str):
     spec = json.loads(pathlib.Path(jobs).read_text())
-    live = GDP / "modal" / ".live"
+    live = GDP / "supercomputer" / ".live"
     live.mkdir(exist_ok=True)
     ticket = live / f"{app.app_id}"
     ticket.write_text(str(os.getpid()))

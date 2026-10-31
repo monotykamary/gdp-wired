@@ -16,7 +16,7 @@ checked against itself by running both (core/extract-check.ts); a difference ref
 | `results/` | the last batch's (`runs/extract2/batch3`, the code of 956e28e): `ours.jsonl`, `realworld.jsonl` (one line per source: extracted or refused, where and why, the check's evidence), `verdicts.jsonl`, `corpus.jsonl` (one line per corpus law: both verdicts, or why it has no statement on the code's rule), `rules/` (the rules extracted, as `toSource` prints them) |
 
 ```sh
-python3 modal/run.py --backend auto --jobs research/extract/jobs.json --out runs/extract/<name> && sh modal/reap.sh   # with corpus-jobs.json, one batch
+python3 supercomputer/run.py --backend auto --jobs research/extract/jobs.json --out runs/extract/<name> && sh supercomputer/reap.sh   # with corpus-jobs.json, one batch
 bun research/extract/collect.ts runs/extract/<name>
 ```
 
@@ -142,7 +142,7 @@ TimelockController, ERC20, RefundEscrow); in the 41-source list above, Go 6 item
 | `results/go/` | `realworld.jsonl` (one line per source) and `rules/` from `runs/front-go/step1/extract` (the code of 146ca37), `corpus.jsonl` (one line per law) from `runs/front-go/go2` |
 
 ```sh
-python3 modal/run.py --backend auto --jobs research/extract/go-jobs.json --out runs/front-go/<name> && sh modal/reap.sh   # with go-verdict-jobs.json
+python3 supercomputer/run.py --backend auto --jobs research/extract/go-jobs.json --out runs/front-go/<name> && sh supercomputer/reap.sh   # with go-verdict-jobs.json
 ```
 
 **On the corpus's Go code** (`runs/front-go/step1/extract`): of its 25 Go sources (8 items), 1 is extracted whole and 24 are

@@ -1,4 +1,4 @@
-// The cyclic route against the usual one, from a run's `cyclic: {...}` lines (modal/run.py --cyclic):
+// The cyclic route against the usual one, from a run's `cyclic: {...}` lines (supercomputer/run.py --cyclic):
 // `bun research/cyclic/ratios.ts <run dir> [--prefix base-]`, per kind: proofs compared, the usual and the cyclic ms,
 // their ratio, the comparisons left uncovered and those that differ; machines also without the normalized scope. Where
 // the run translated the usual proofs (GDP_CYCLIC_ROUTE, core/cyclic.ts): how many were translated, fell back to the

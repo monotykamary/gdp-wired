@@ -9,7 +9,7 @@ The benchmarks are tip-org/benchmarks at a pinned commit, fetched into the image
 tools (tip-org/tools, pinned, built in the image with Stack) translate them: `tip <f> --smtlib` (monomorphised, lambdas
 axiomatised, the goal negated: `(assert (not φ)) (check-sat)`) and `tip <f> --vampire` (the same, the goal as
 `assert-not`), both made once in the image. gdp-wired reads the TIP file itself (translate.ts). <out>/results.jsonl has
-one row per tool and task. The app id and client pid are registered in modal/.live/ (modal/reap.sh stops an orphan); the
+one row per tool and task. The app id and client pid are registered in supercomputer/.live/ (supercomputer/reap.sh stops an orphan); the
 app, and every call in it, stops when this entrypoint exits.
 """
 import json
@@ -19,9 +19,9 @@ import time
 
 try:
     import modal
-except ImportError:  # plain python3, --backend boat: the runner's functions run on boat VMs (modal/fanout.py)
+except ImportError:  # plain python3, --backend boat: the runner's functions run on boat VMs (supercomputer/fanout.py)
     import sys
-    sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent.parent / "modal"))
+    sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent.parent / "supercomputer"))
     from agent import modal_stub
     modal = modal_stub()
 
@@ -104,12 +104,12 @@ image = (
     .run_commands(f"python3 - <<'EOF'\n{CONVERT}\nEOF")
     .run_commands(f"python3 - <<'EOF'\n{WILD}\nEOF")
     .env({"PATH": "/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
-    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "modal/**", "private/**",
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal", "private/**",
                                               "vendor/**", "compare/**/*.js", "compare/**/out/**", "lean-kernel/**", "research/**", "static/**", "docs/**"])
 )
 app = modal.App("gdp-wired-tip", image=image)
 
-# The same image on a boat VM, a layer of the pool's snapshot (modal/boat.py): the TIP tools built once, bun 1.4.4
+# The same image on a boat VM, a layer of the pool's snapshot (supercomputer/boat.py): the TIP tools built once, bun 1.4.4
 # beside the pool's (first on PATH for each call), the benchmarks under /opt/gdpw/tip mounted at /bench (BOAT).
 BOAT_SETUP = f"""
 sudo apt-get install -y -q build-essential libtinfo-dev libgmp-dev zlib1g-dev netbase
@@ -259,7 +259,7 @@ def probe(cmds: list[str]) -> str:
 @app.local_entrypoint()
 def main(out: str = "", tools: str = "gdp,cvc5,cvc5cg,vampire", limit: int = 60, sets: str = "isaplanner,prod,tip2015,grammars", only: str = "", sample: int = 0, per: int = 1, probe_only: bool = False, probe_cmd: str = "", gdp_args: str = "", lemmas: str = ""):
     import sys
-    sys.path.insert(0, str(GDP / "modal"))
+    sys.path.insert(0, str(GDP / "supercomputer"))
     import fanout
     run(fanout.ModalEx(app), out, tools, limit, sets, only, sample, per, probe_only, probe_cmd, gdp_args, lemmas)
 
@@ -305,6 +305,6 @@ def run(ex, out: str = "", tools: str = "gdp,cvc5,cvc5cg,vampire", limit: int = 
 
 if __name__ == "__main__":
     import sys
-    sys.path.insert(0, str(GDP / "modal"))
+    sys.path.insert(0, str(GDP / "supercomputer"))
     import fanout
     fanout.cli(run, __file__, __doc__)

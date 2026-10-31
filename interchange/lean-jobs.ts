@@ -1,8 +1,8 @@
-// The Lean conformance through the interchange format as jobs (modal/run.py): each writes its kinds' documents
+// The Lean conformance through the interchange format as jobs (supercomputer/run.py): each writes its kinds' documents
 // (interchange/lean.ts write), reads them back in another process, checks them and emits Lean (emit), and runs Lean on
 // each file, printing per file its exit code and the number of claims in it. A file elaborates exactly when Lean computes
 // the checker's answer on every claim.
-//   bun interchange/lean-jobs.ts > jobs.json && python3 modal/run.py --jobs jobs.json --out <runs dir>
+//   bun interchange/lean-jobs.ts > jobs.json && python3 supercomputer/run.py --jobs jobs.json --out <runs dir>
 const lib = 'Cert Kernel Progress StepLaw Steps Sets Live KInd NonTerm Rationals Cyclic Data'
 const job = (name: string, counts: string, files: string[]) => ({
   name: `ix-lean-${name}`, cwd: '.', cpu: 4.0, memory: 8192, timeout: 3600,
