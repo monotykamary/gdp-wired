@@ -379,6 +379,11 @@ function hoist(m: Model, P: Printer, roots: object[]) {
   for (const k of order) {
     const node = hoistNodes.get(k)!, size = k.length
     if ((count.get(k) ?? 0) < 2 || size < 60 || isChoice(node)) continue
+    // (a product of integers kept at 0 or above only by the conditions the path is under: printed where it is read,
+    // under them, never hoisted out of them)
+    let guarded = false
+    walk(node, o => { if (o.op === 'mul' && !(natOK(o.a as N, {m, sorts: P.sorts, atoms: []}) && natOK(o.b as N, {m, sorts: P.sorts, atoms: []}))) guarded = true })
+    if (guarded) continue
     if (!isBool(node, m)) {
       const ctx: Ctx = {m, sorts: P.sorts, atoms: []}, free = natOK(node as N, ctx)
       const cells: string[] = []

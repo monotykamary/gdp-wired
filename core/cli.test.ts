@@ -718,6 +718,18 @@ def ceiling(share_pct: int, limit: int) -> int:
     return share_pct * limit // 100
 
 
+# gdp: law a batch's budget is within the starts left: result <= max(0, left)
+def budget(left: int, share_pct: int, cap: int) -> int:
+    if share_pct < 0 or cap < 0:
+        raise ValueError("at least 0")
+    if left <= 0:
+        return 0
+    k = min(left, max(2, share_pct * left // 100))
+    if cap > 0:
+        return min(k, cap)
+    return k
+
+
 class Entry:
     def __init__(self):
         self.up = True
@@ -790,7 +802,7 @@ class Item:
 
 
 class Holder:
-    """Holds the time budget."""
+    """Holds the time budgets."""
 
     def __init__(self):
         self.n = 0
@@ -803,17 +815,18 @@ class Holder:
 
 def hit(x: int) -> int:
     return x
-`, 'gdp.toml': 'from = "any"\n[rules.budget]\n'})
+`, 'gdp.toml': 'from = "any"\n[rules.budgets]\n'})
   const {rules} = await check([`${dir}/s.py`], {ms: 8000, propose: false})
   const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
   expect(v['a demand keeps a VM no longer than the idle time']).toEqual(['release_ttl', 'proven'])
   expect(v['a share of a count never exceeds the count']).toEqual(['ceiling', 'proven'])
   expect(v['a warm lease never takes a VM about to stop']).toEqual(['Entry', 'proven'])
+  expect(v["a batch's budget is within the starts left"]).toEqual(['budget', 'proven'])
   expect(v['a step grows by a quarter of the pool at most']).toEqual(['Grow', 'proven'])
   expect(v['finished at most once']).toEqual(['Item', 'proven'])
   expect(v['taken at most once more than lost']).toEqual(['Item', 'unknown'])
   expect(v['at most one hold a call']).toEqual(['Holder', 'proven'])
-  expect(rules.some(r => r.entry === 'budget')).toBe(false)
+  expect(rules.some(r => r.entry === 'budgets')).toBe(false)
   // (a sum of integers after a step: from the start, the search finds the sums' laws; from any state it needs them)
   const reach = await check([`${dir}/s.py`], {ms: 8000, propose: false, from: 'reachable', entry: 'Pending'})
   expect(reach.rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
