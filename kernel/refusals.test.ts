@@ -8,6 +8,7 @@ import type {C, E, Law, Machine} from '../core/machine.ts'
 import {checkRefutation, checkWitness} from '../core/check.ts'
 import {type Fold, type Goal, type Loop, type QC, type QE, type QGoal, type QMachine, type RecurCases, type StepLaw, type Tree, check, checkQMachine, checkQTree, checkRecurCases, kInductionSteps, leafConstraints, livenessParts, sideGoals, sumCovers, sumMachine, checkLaws, checkRecur, checkStepLaws, foldObligations, historyMachine, loopObligations, obligations, progressObligations, scope, stepLawObligations, termColumn} from './kernel.ts'
 import {grow, proveLaws} from './prove.ts'
+import {toLean} from '../lean-kernel/emit.ts'
 
 const x = (name: string): E => ({op: 'var', name}), n = (value: number): E => ({op: 'const', value})
 const le = (a: E, b: E): C => ({op: '<=', a, b}), plus = (a: E, b: E): E => ({op: 'add', a, b})
@@ -232,8 +233,9 @@ test('a law is proven at k#: no further key and no name of the machine may be k#
 // term's column ⟦n⟧) are reserved, a later step's (a@2, I@2) kept apart from the machine's, and a fold's children's
 // copies (l_n, r_n) are no names of the fold: before, a name of the machine or a step law's key spelled like one was
 // read as the kernel's own, and each certificate below was accepted of something false. Lean's twin refuses the ?f
-// param, I@2, s~1 and l_size ones (checkSMachine, checkSKStep, checkFold compute false); it reads a step law's key ?f
-// as the flag's value.
+// param, I@2, s~1 and l_size ones (checkSMachine, checkSKStep, checkFold compute false). A step law's key ?f it
+// accepts, and soundly: the export numbered the key as the flag's variable, so the claim Lean proved was "the flag's
+// 0/1 value is at most 1", true, not the law (lean-kernel/README.md; pinned in export-kernel.ts --sets, keyf_*).
 const get = (map: string, key: E): E => ({op: 'get', map, key})
 // A flag f at every key, 1 while no cell of M passes 3 (none ever does): s is 1 after any step.
 const flagged: Machine = {name: 'flagged', params: [], inputs: [], state: {s: n(0)}, maps: {M: 0},
@@ -252,6 +254,8 @@ test('reserved names: ?, a param ?f read as the flag f\'s variable', () => {
   for (const name of ['?f', 'w?f', 'w2?f']) expect(() => scope({...flagged, params: [name]}), name).toThrow(/reserved/)
   // A step law's key ?f: "every natural is at most 1" read as the flag's variable, which is.
   expect(() => stepLawObligations(flagged, [], {}, {name: 'every natural is at most 1', forall: '?f', then: le(x('?f'), n(1))})).toThrow(/reserved/)
+  // and so is its export: no Lean text states the flag's value under the law's name.
+  expect(() => toLean([{id: 'flagged', machine: flagged, laws: [], stepLaws: [{name: 'every natural is at most 1', forall: '?f', then: le(x('?f'), n(1))}]}])).toThrow(/reserved/)
   // A progress law reads its machine as obligations does: when ?f = 0 (the param) met ?f = 1 (the flag, whose body
   // always holds), so any `then` followed, 1 <= 0 too.
   expect(() => progressObligations({...flagged, params: ['?f']}, [], {}, {name: 'p', when: {op: '=', a: x('?f'), b: n(0)}, then: le(n(1), n(0)), request: {}})).toThrow(/reserved/)
