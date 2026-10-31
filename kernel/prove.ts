@@ -8,7 +8,6 @@
 //   - a refutation of a split's yes side that never reads the split refutes its parent (lift), and the no side is skipped;
 //   - a hypothesis' rows and open atoms, and every term inside them, are reused from an earlier path that decided the
 //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
-import {appendFileSync} from 'node:fs'
 import {type C, type E, type Law, type Machine, evalC, evalE, walkOnce} from '../core/machine.ts'
 import {type Lin, type Step, add, costs, env, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
@@ -166,10 +165,6 @@ const solveP = (rows: Parameters<typeof solve>[0], maxRows?: number): ReturnType
 export let proveDump: ((goal: Goal) => void) | undefined
 export const setProveDump = (f: ((goal: Goal) => void) | undefined) => { proveDump = f }
 const proveTrace = !!env.PROVE_TRACE
-// (GDP_DUMP_UNKNOWN=<file>: the first four root goals left unknown, of GDP_DUMP_MIN hypotheses or more, written there as
-// JSON lines: research's profiles, research/protocols/engine/goalbench.ts)
-const dumpTo = env.GDP_DUMP_UNKNOWN, dumpMin = Number(env.GDP_DUMP_MIN ?? 0)
-let dumped = 0
 // `why`, when the budget ran out: which limit, at what size, and what usually helps.
 // Set while core/cyclic.ts grows its goals.
 export const cellProducts = {on: false}
@@ -244,12 +239,6 @@ export function grow(goal: Goal, path: Path = new Map(), budget?: {nodes: number
   if (deadline < (budget.until ?? Infinity)) budget.until = deadline
   if (budget.units === false && unitsNow) { unitsNow = false; try { return grow(goal, path, budget) } finally { unitsNow = true } }
   if (proveDump && !path.size && !budget.nodes) { proveDump(goal); }
-  if (dumpTo && !path.size && !budget.nodes && dumped < 4) {
-    const t = performance.now(), out = growRoot(goal, path, budget)
-    if (proveTrace) console.error(`[grow] ${goal.name}: ${goal.hyps.length} hyps, ${Math.round(performance.now() - t)} ms, ${'tree' in out ? 'proven' : `${out.stuck}${out.why ? ` (${out.why})` : ''}`}`)
-    if (!('tree' in out) && out.stuck === 'unknown' && goal.hyps.length >= dumpMin) { dumped++; appendFileSync(dumpTo, JSON.stringify({goal: goal.name, ms: Math.round(performance.now() - t), why: out.why, hyps: goal.hyps}) + '\n') }
-    return out
-  }
   if (proveTrace && !path.size && !budget.nodes) {
     const t = performance.now(), out = growRoot(goal, path, budget)
     console.error(`[grow] ${goal.name}: ${goal.hyps.length} hyps, ${budget.nodes} nodes, ${Math.round(performance.now() - t)} ms, ${'tree' in out ? 'proven' : `${out.stuck}${out.why ? ` (${out.why})` : ''}`}`)
@@ -724,30 +713,6 @@ export function nearOf(goal: Goal): boolean[] {
     nearSeen.set(goal, (out = goal.hyps.map(h => [...namesOf(h)].every(n => theirs.has(n)))))
   }
   return out
-}
-// The hypotheses relevant to the conclusion (its last), `depth` rounds out (SInE's selection, as large-theory provers
-// pick axioms): a hypothesis' symbols are the cells it reads (map and key) and its plain names; a symbol triggers the
-// hypotheses for which it is among the rarest they read (at most `tol` times their rarest's count of hypotheses); from
-// the conclusion's symbols, each round adds the hypotheses they trigger and their symbols. The conclusion is kept, last.
-// (a choice of the search only: a refutation of the part is widened to the whole and checked there)
-export function relevant(goal: Goal, depth: number, tol = 1.5): number[] {
-  const n = goal.hyps.length, syms = goal.hyps.map(h => {
-    const out = new Set<string>()
-    walkOnce(h, o => { const x = o as {op?: string, name?: unknown, map?: unknown, key?: unknown}; if (x.op === 'var' && typeof x.name === 'string') out.add(x.name); else if (x.op === 'get') out.add(`${String(x.map)}[${JSON.stringify(x.key)}]`) })
-    return [...out]
-  })
-  const occ = new Map<string, number>()
-  for (const ss of syms) for (const s of ss) occ.set(s, (occ.get(s) ?? 0) + 1)
-  const by = new Map<string, number[]>()
-  syms.forEach((ss, i) => { const least = Math.min(...ss.map(s => occ.get(s)!)); for (const s of ss) if (occ.get(s)! <= tol * least) by.set(s, [...by.get(s) ?? [], i]) })
-  const keep = new Set([n - 1]), seen = new Set(syms[n - 1])
-  let front = [...seen]
-  for (let d = 0; d < depth && front.length; d++) {
-    const next: string[] = []
-    for (const s of front) for (const i of by.get(s) ?? []) if (!keep.has(i)) { keep.add(i); for (const t of syms[i]!) if (!seen.has(t)) { seen.add(t); next.push(t) } }
-    front = next
-  }
-  return [...keep].sort((a, b) => a - b)
 }
 // Units first: an atom some hypothesis splits on whose value the root's rows already force (a guard `?f = 0` where
 // `?f = 1` holds, `k < len` where it is given). Split at the top, its forced side refutes at once; split late, under

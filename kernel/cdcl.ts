@@ -758,7 +758,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
               if (seen.has(i)) continue
               seen.add(i)
               const nd = nodes[i]!
-              if ('res' in nd) todo.push(...nd.res); else if ('hyp' in nd) core.add(nd.hyp); else for (const h of leafHyps.get(i) ?? []) core.add(h)
+              if ('res' in nd) todo.push(...nd.res); else for (const h of leafHyps.get(i) ?? []) core.add(h)
             }
             return {stuck: 'unknown', path: new Map(), why: REFUTED, ...(whole ? {core: [...core].sort((a, b) => a - b)} : {})} as Refuted
           }

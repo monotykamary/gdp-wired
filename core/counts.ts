@@ -21,11 +21,11 @@ import {REFUTED, type Refuted, cdclStats, growCdcl} from '../kernel/cdcl.ts'
 import {inferLaws} from './infer.ts'
 import {holdsAt, small} from './exists.ts'
 import {env} from './solver.ts'
-import {appendFileSync} from 'node:fs'
 
-// (GDP_COUNTS_PROF: where a counted search's time goes, by phase, on stderr at the end; GDP_COUNTS_DUMP=<file>: each goal
-// left unknown past 300 hypotheses written there as a JSON line, the first 3: research's profiles)
+// (GDP_COUNTS_PROF: where a counted search's time goes, by phase, on stderr at the end; `countsDump.on`, set by research's
+// profiles: each step goal left unknown or with a model past GDP_COUNTS_DUMP_MIN (300) hypotheses, the first GDP_COUNTS_DUMP_N (3))
 export const cprof: Record<string, number> = {}
+export const countsDump: {on?: (goal: object) => void} = {}
 const ptime = <T>(k: string, f: () => T): T => { const t = performance.now(); try { return f() } finally { cprof[k] = (cprof[k] ?? 0) + performance.now() - t } }
 let dumped = 0
 
@@ -285,7 +285,7 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
       }
       if (!asked) {
         stuck = 'sat'
-        if (env.GDP_COUNTS_DUMP && pass && ls.length >= Number(env.GDP_COUNTS_DUMP_LS ?? 0) && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; appendFileSync(env.GDP_COUNTS_DUMP, json({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps}) + '\n') }
+        if (countsDump.on && pass && ls.length >= Number(env.GDP_COUNTS_DUMP_LS ?? 0) && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps}) }
         if (env.GDP_COUNTS_TRACE === '2') console.error(`counts: ${ls.length === 1 ? 'alone' : `kept${ls.length}`} ${pass} ${step.goal.name}: sat by its model, round ${round}, ${step.gg.hyps.length} hyps`)
         return undefined
       }
@@ -300,7 +300,7 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
     const certs: Record<string, CountCert> = {}
     for (const {goal, c, gg} of built) {
       const t0 = clock(), o = gg && ptime(`grow${(gg.hyps.length > 300 ? '>300' : '')}`, () => grow(gg, new Map(), {nodes: 0, until: Math.min(until, clock() + ms)}))
-      if (env.GDP_COUNTS_DUMP && gg && o && !('tree' in o) && gg.hyps.length > Number(env.GDP_COUNTS_DUMP_MIN ?? 300) && ls.length >= Number(env.GDP_COUNTS_DUMP_LS ?? 0) && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; appendFileSync(env.GDP_COUNTS_DUMP, json({law: law.name, goal: goal.name, ls: ls.map(l => l.name), stuck: (o as {stuck?: string}).stuck, hyps: gg.hyps}) + '\n') }
+      if (countsDump.on && gg && o && !('tree' in o) && gg.hyps.length > Number(env.GDP_COUNTS_DUMP_MIN ?? 300) && ls.length >= Number(env.GDP_COUNTS_DUMP_LS ?? 0) && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: goal.name, ls: ls.map(l => l.name), stuck: (o as {stuck?: string}).stuck, hyps: gg.hyps}) }
       if (env.GDP_COUNTS_TRACE === '2') console.error(`counts: ${ls.length === 1 ? 'alone' : ls.length < set.length ? `kept${ls.length}` : 'all'} ${pass} ${goal.name}: ${o && 'tree' in o ? 'proven' : gg ? (o as {stuck?: string}).stuck : 'no read'} ${gg?.hyps.length ?? 0} hyps ${Math.round(clock() - t0)} ms`)
       if (!o || !('tree' in o)) {
         stuck = gg ? (o as {stuck?: string}).stuck ?? '' : ''
