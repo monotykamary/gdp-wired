@@ -238,6 +238,11 @@ describe('ghost maps', () => {
     // Lean reads a flag f as the variable ?f, so a ghost named ?f is read by the flag (terra's review, 2026-10-31).
     ['the original\'s assumption reads a ghost through a flag', {...g, vars: {'?f': {start: n(0), step: n(0)}}, orig: {...g.orig, assume: {op: 'flag', name: 'f'}}}],
   ]
+  // (mutation run, 2026-10-31) A ghost variable apart from the original is accepted: one named like no ?f, beside a flag f.
+  test('accepted: ghost variables, beside a flag the original reads', () => {
+    expect(ghostedOk({...g, vars: gv})).toBe(true)
+    expect(ghostedOk({...g, vars: {af: {start: n(0), step: n(0)}}, orig: {...g.orig, assume: {op: 'flag', name: 'f'}}})).toBe(true)
+  })
   for (const [what, bad] of cases) test(`refused: ${what}`, () => {
     expect(ghostedOk(bad)).toBe(false)
   })
