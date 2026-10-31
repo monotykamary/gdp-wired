@@ -9,6 +9,9 @@ steps, and a small library of environment models, each checked against the stack
 - **The environment checked.** 11 of 11 claims hold on PostgreSQL 15, Redis 7 and urllib3 (`envcheck.py`).
 - **An extracted rule.** The same layer runs on a rule the Python reader extracted: LiteLLM's session limiter. Its
   own step law is proven atomic and refuted under read committed.
+- **Liveness over every key, clocks and leases (gen/laneT, section 6).** A leads-to about every key is the one-machine
+  liveness at a fresh param; time, a clock within a skew and keys that expire at their time are environment steps;
+  a fair run that never gets there refutes a leads-to. SIP's four transactions, an outbox and a lease are decided.
 
 ## 1. The system model
 
@@ -126,6 +129,128 @@ what the same code would do over a store whose calls suspend. This was checked b
 **Not verified:**
 - **That a rule is the code.** A rule's steps are the code's only by a correspondence check of running both, never a
   proof.
-- **Liveness.** The roadmap's gap 3, liveness over keyed state under fairness, is not in the library. No liveness law
-  is claimed here.
+- **Liveness.** Section 6 (gen/laneT) has it now: liveness over keyed state under stated fairness.
 - **LiteLLM's model choice.** It was made by reading the cache's code, not by a run.
+
+## 6. Liveness over every key, and time (ROADMAP gaps 3 and 5; gen/laneT)
+
+### 6.1 A leads-to about every key
+
+`leadsTo`'s callbacks may take a second parameter, the key (`from: ({S}, k) => S.at(k).eq(1)`). The key is then a fresh
+param no step reads (`forall` on the liveness), and `proveLeadsTo` proves the rule with it (`keyed(r, l)`, the rule with
+one more natural param). Nothing new is trusted, and the kernel's kind is the one it had:
+- **Why it is the law at every key.** A run of the rule with the param is a run of the rule without it, the param fixed
+  at some value: no step, assumption or start reads it. Live.lean's theorems hold of every run of the keyed rule, so of
+  every run of the rule at every value of the key, each key's helpful requests fair on their own (fairness per key:
+  "each message's delivery", not "some delivery").
+- **Refused without it.** `proveLiveness` on the rule itself throws (the key is out of scope), so a keyed liveness can't
+  be proven about a rule that lacks its key.
+- **The search, generalized** (core/live.ts's `leadsByTerms`, core/cycles.ts's `findLeadsTo`): a control rank of the cells
+  `from` and `to` read at a key of the params (a status per key, its values ranked by the steps between them, as a
+  bounded scalar's were); laws about every key kept from the invariant search (they were dropped; a keyed liveness needs
+  its key's); ranks of up to four components; a third of the time left for the invariants of the first rank.
+- **Lean.** `research/distributed/lean.ts` exports three keyed proofs (NICT, NIST with the TU's response, the outbox's
+  "published"), their ranks and laws found: Lean 4.34.0 checks them (`nict_live0_holds`, ...: `propext`,
+  `Classical.choice`, `Quot.sound`), 52 s, 673 KB. Suite job `lean-keyed`.
+
+### 6.2 A fair run that never gets there
+
+core/live.ts's `refutedBy` checks a ring: a stem from the start (run on the interpreter, the params meeting the
+precondition) to a state of R_0 where `from` holds and `to` doesn't; then sets R_0..R_{n−1}, each with a fully named
+request the kernel proves allowed in every reachable state of R_j and taking it into R_{j+1} with `from` kept and `to` not
+reached (kernel.ts's progress goals). Which of Live.lean's fairness hypotheses the infinite run meets, per helpful request:
+- **taken** (`sleads_sound`): some R_j's request names its inputs as it does;
+- **weak** (`sleads_wf_soundA`): taken, or no request with its named inputs is allowed in some R_j (a step law whose
+  `then` is false);
+- **strong** (`sleads_sf_soundA`): taken at some R_j inside its region (a step law: R_j's request outside the region is
+  never allowed), or allowed in its region in no R_j.
+"Allowed" is the machine's assumption, which the theorems' condition `a` implies where the machine is, so "no request
+allowed" is "not enabled" in their sense. The law is refuted when the run meets the law's fairness (strong where it says
+so, else weak). `findRing` finds a one-set ring from the runs: a state where the helpful requests taken in turn for up to
+3,000 steps never reach `to` (the time passing every deadline), the set its literals of the rule's comparisons, dropped
+(Houdini) until each ring request is proven to keep them. `refuteLeadsTo(r, laws, l)` runs it on the keyed rule.
+
+terra reviewed `refutedBy` against the three theorems (read only): the classification is sufficient where `a` is the
+machine's assumption or implies it (the instantiations the kernel uses); and the params were not checked against the
+precondition, a false refutation (fixed: the precondition is checked).
+
+### 6.3 Time, clocks, leases (core/system.ts)
+
+| Combinator | Model | What it assumes | Checked |
+| --- | --- | --- | --- |
+| `time()` | time passes | a true time `now`, a natural that only rises, by any amount at a step of its own; nothing bounds how many steps run between two of its | the time reference: a store's clock for its TTLs, a node's monotonic clock for its timers |
+| `clocked(m, at, ε)` | clock skew ≤ ε | m's request time `at` (the readers' time.time(), Instant::now()) is within ε of `now` either way; readings need not rise (more runs than a monotonic clock's); ε = 0 is the time itself (the input gone); Infinity is no bound | the deployment's bound (NTP/PTP discipline): stated, not checked |
+| `expires(cells, at)` | keys expire at their time | a key vanishes only once `now` has reached its expiry, at any step after; never before (no eviction) | Redis 7.0.15, `envcheck.py` on Modal: a PX key there at 1.0 s of 1.5 s and refusing a second SET NX, gone at 1.8 s; under noeviction a write past maxmemory refused (OOM), the key with a TTL kept. 6 of 6 Redis checks, 13 of 13 in `envcheck.json` |
+
+A timer is a handler step allowed once the clock has passed its deadline (late by any amount, never early); a timeout
+is the same step. `lift` keeps `now` shared (a scalar `clocked` and `expires` mark as the system's).
+
+### 6.4 Measures
+
+**SIP transactions (research/distributed/sip.ts): a written model, not an extraction.** A survey (re, oSIP2, sofia-sip,
+PJSIP, sipgo, rsipstack, sippy, JAIN-SIP) found no transaction layer a reader takes as it ships: every one has function
+pointers or callbacks, async code or loops, strings and unions in the transaction's struct, or its state changes in
+other files; the closest (re's `src/sip/ctrans.c` at e5ec9ba) needs about 100 lines copied into a clean struct, a rewrite.
+So the four machines of RFC 3261 section 17 (Figures 5 to 8; 17.1.1.2, 17.1.2.2, 17.2.1, 17.2.2, 17.1.4 transport
+errors) with RFC 6026's Accepted states (7.1, 7.2; Timers L and M) are written, each state, event and timer of the
+figures, every transaction at once (`lift` by its id) beside `time()` and `clocked(…, 0)`. Not modelled: message contents,
+the TU's other duties. The law, "every transaction eventually terminates", is about every transaction (keyed), under weak
+fairness of time passing, each due timer firing and, where stated, the far end's or the TU's final response; rank and
+laws found, nothing else written (Modal, 2 vCPU, 20 s each):
+
+| Transaction | With time and timers only | With the final response assumed |
+| --- | --- | --- |
+| NICT (Trying, Proceeding: Timer F; Completed: K) | proven, 13.7 s, rank (fAt − now, the state's level, kAt − now) | — |
+| ICT (Calling: B; Completed: D; Accepted: M) | refuted: a ring in Proceeding, the time passing, every timer never allowed there (fair weakly and strongly), 2.6 s | proven, 7.1 s, rank (bAt + 1 − now, level, mAt − now, dAt − now) |
+| IST (Completed: H; Confirmed: I; Accepted: L) | refuted: a ring in Proceeding (no timer until the TU answers), 2.3 s | proven, 5.0 s, four components |
+| NIST (Completed: J) | refuted: a ring in Trying (the TU never answers), 0.5 s | proven, 2.3 s |
+
+The refutations are the RFC's own: Proceeding has no timer in the INVITE client (17.1.1.2: Timer B fires only in
+Calling) and in the INVITE server, and Trying and Proceeding have none in the non-INVITE server; such a transaction ends
+only when the far end or the TU sends a final response (in the RFC, Timer C at proxies, 16.6, and the UAS core's
+duties bound that, outside the transaction layer).
+
+**An outbox over every row (research/distributed/time.ts).** The app inserts a row (`client`), a relay publishes pending
+rows to the broker at least once and then marks them, crashing between the two (a model, `CRASH`), the consumer takes
+each message at least once (`delivery`):
+
+| Law (every row k) | Fairness | Verdict |
+| --- | --- | --- |
+| eventually published (Outbox[k] = 1 leads to Q[k] = 1) | weak, the relay's poll of k | proven, 2.1 s; laws found: InFlight[k] ≤ Q[k], Q[k] ≤ 1 |
+| eventually handled by the consumer | weak, the poll of k while pending and unsent, the delivery of k | proven, 3.3 s; rank 1 − Q[k] and Outbox[k] ≤ Q[k] + 1 found |
+| eventually marked published | weak | refuted: the ring publish, crash (mark never allowed in the first set), fair weakly; findRing finds no one-set ring, the two-set ring is written |
+| eventually marked published | strong | proven, 2.4 s; InFlight[k] ≤ 1 found; the same ring is not strongly fair |
+
+**A lease (research/distributed/time.ts).** A process acquires as SET NX PX L does (`expires`: the key's expiry the
+store's `now + L`), counts it valid until its clock's reading + L − M, and uses it only while its clock reads before
+that (the write it protects at the instant of the check). The law, a step law at every use: "a process uses the lease
+only while the store holds it for that process, unexpired" (so at most one holder uses an unexpired lease).
+
+| Skew, margin | Verdict |
+| --- | --- |
+| clocks within E, M ≥ 2E, L ≥ M | proven with one written invariant (every process's until is 0, or until + E ≤ now, or it is the owner with until + E ≤ the expiry), 0.6 s; the search alone does not find it (6 s) |
+| no bound on the skew | refuted, 3 ms: a process whose clock reads early uses its lease after it expired and another acquired it (the run replayed on the interpreter in core/system.test.ts) |
+| clocks within E, M ≥ E | refuted, 38 ms: a margin of E is not enough |
+
+A check-then-act with a pause between (Kleppmann's GC pause) is not this model: the use is atomic with its check. Split
+into two steps it is refuted at any skew; fencing tokens are the remedy, not modelled here.
+
+### 6.5 What is verified and what is not
+
+**Verified:** every proof is the kernel's on the rule built; three keyed proofs exported and checked by Lean; every
+refutation is a run (safety: the bounded run, replayed; liveness: a ring whose steps are the kernel's progress goals
+and step laws, its stem replayed); the TTL model's claims run on Redis 7.
+
+**Not verified:** that the SIP model is any stack's code (written from the RFC); the skew bound of a deployment; the
+lease's invariant was written; the outbox's two-set ring was written (findRing finds one-set rings only).
+
+**Gates.** The quick bar (`--quick --cand 1e5a35e --base ae36917`, 356 s, about $2.81): none wrong anywhere, nothing
+solid lost (CHC gained 3 and lost 2, SV lost 1, each noise, none solid; ITS gained 1; frontier, real-world corpus, TIP the
+same; 332 step goals the same search on all 332; the 1-vCPU tests none failed; Lean 6 of 6). The suites (`--only
+suite,suite-usual` at 5679000): `--usual` none failed; by default one, the new `system` job, where laneB's dedupe test
+passed bun's 5 s on one vCPU (5.09 s): its tests now get 30 s and the job 2 vCPU (2f33a01), passing on 1 and 2 vCPU (6.6
+and 7.3 s); `liveness` and `lean-keyed` passed. tsc over the tree and oxlint on the changed files clean.
+
+**Bytes.** Against cd97c61 (tests excluded): core/live.ts +10,520 (refutedBy, findRing, the key's control rank), core/
+system.ts +5,783 (time, clocked, expires), core/dsl.ts +2,298 (keyed leadsTo, `keyed`, `refuteLeadsTo`, the verdict's
+rank), core/cycles.ts +76. kernel/ and lean-kernel/ unchanged.

@@ -64,5 +64,17 @@
   "model": "a retrying client",
   "ok": true,
   "detail": "one request, applied 3 times; the client saw ConnectionError"
+ },
+ {
+  "check": "SET NX PX: the key is there before its time (and refuses a second SET NX), gone after",
+  "model": "keys expire at their time",
+  "ok": true,
+  "detail": "at 1.0 s of 1.5 s: there; at 1.8 s: gone"
+ },
+ {
+  "check": "noeviction: a write past maxmemory is refused, the key with a TTL kept",
+  "model": "keys expire at their time",
+  "ok": true,
+  "detail": "refused: command not allowed when used memory > 'maxmemory'.; in-flight key kept"
  }
 ]

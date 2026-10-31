@@ -1,12 +1,13 @@
 // Liveness under fairness (kernel.ts livenessParts, dsl.ts leadsTo): the ticket queue of examples/liveness.ts proven and
 // its broken variant refused; on random runs that send `work` at least every third request, each ticket issued is
 // served within a bound; and the broken variant has a run that sends only `work` and never serves the first ticket.
-// Batches (two helpful requests, a rank of two in order), a history with a query, and a machine with sets too.
+// Batches (two helpful requests, a rank of two in order), a history with a query, and a machine with sets too. A
+// liveness about every key (a fresh param), its rank found, and its stalling variant refuted by a fair ring.
 import {expect, test} from 'bun:test'
-import {evalC, interpret} from './machine.ts'
+import {evalC, evalE, interpret} from './machine.ts'
 import {proveLiveness} from '../kernel/prove.ts'
 import {allDone, batchLaws, batches, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
-import {count, nat, rule, when} from './dsl.ts'
+import {count, keyed, nat, oneOf, proveLeadsTo, refuteLeadsTo, rule, when} from './dsl.ts'
 import {allowed} from './watch.ts'
 
 test('every ticket is served: proven; the stalling variant refused', () => {
@@ -125,4 +126,34 @@ test('weak fairness: each example\'s helpful requests proven allowed in their re
   const out = toLean([{id: 'never', machine: never.machine, laws: [never.law('served at most 1', ({served}) => served.atMost(1))], liveness: [live]}])
   expect(out).toMatch(/never_live0_holds \(run/)
   expect(out).not.toMatch(/holds_wf/)
+})
+
+// Orders by id: placing one sets it to 1, settling a placed one to 2 (the stalling variant leaves it at 1).
+const orders = (stalls = false) => rule('orders').inputs({op: oneOf('place', 'settle'), id: nat}).maps({S: 0})
+  .assume(({op, id, S}) => op.is('place').implies(S.at(id).eq(0)))
+  .step(({op, id, S}) => ({S: S.set(id, when(op.is('place'), 1, when(S.at(id).eq(1), stalls ? 1 : 2, S.at(id))))}))
+const settled = (r: ReturnType<typeof orders>) => r.leadsTo('every order placed is settled', {from: ({S}, k) => S.at(k).eq(1), to: ({S}, k) => S.at(k).eq(2), helpful: (_, k) => ({op: 1, id: k})})
+
+test('a liveness about every key: its key a fresh param no step reads, refused without it; the stalling variant refuted by a fair ring', () => {
+  const r = orders(), l = settled(r)
+  expect(l.forall).toMatch(/^key\$/)
+  expect(keyed(r, l).machine.params).toEqual([l.forall!])
+  expect(() => proveLiveness(r.machine, [], l)).toThrow()
+  expect(proveLeadsTo(r, [], l, {ms: 10_000})).toMatchObject({proven: true, checked: true})
+  // not refuted where it holds: no ring
+  expect(refuteLeadsTo(r, [], l, {ms: 3000})?.verdict.refuted ?? false).toBe(false)
+  const bad = orders(true), lb = settled(bad)
+  expect(proveLeadsTo(bad, [], lb, {ms: 5000}).proven).toBe(false)
+  const f = refuteLeadsTo(bad, [], lb, {ms: 10_000})
+  expect(f?.verdict).toEqual({refuted: true, fair: ['taken', 'weak', 'strong']})
+  // the stem and one lap on the interpreter: the order stays placed
+  const m = keyed(bad, lb).machine, run = interpret(m), ps = f!.ring.params
+  let st = run.init(ps)
+  for (const q of f!.ring.stem) st = run.step(ps, st, q)
+  for (let lap = 0; lap < 5; lap++) for (const set of f!.ring.sets) {
+    const q = Object.fromEntries(m.inputs.map(i => [i, set.request[i] ? evalE(set.request[i]!, {...ps, ...st.scalars}, st, m) : 0]))
+    expect(allowed(m, run, ps, st, q)).toBe(true)
+    st = run.step(ps, st, q)
+    expect([evalC(lb.from, ps, st, m), evalC(lb.to, ps, st, m)]).toEqual([true, false])
+  }
 })

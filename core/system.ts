@@ -9,11 +9,14 @@
 //   delivery(m, pool, ...)     a handler's request taken from a message pool, exactly once or at least once
 //   client(pool, fields)       the environment's sends: any message, at a fresh id
 //   expiry(cells)              a store's key vanishes at any step: a TTL lapsed, an eviction
+//   time()                     the true time `now`, rising by any amount at a step of the environment's
+//   clocked(m, at, skew)       m reads its node's clock as the input `at`, within `skew` of the true time
+//   expires(cells, at)         a store's key vanishes once the time has passed its expiry `at`, never before
 //   asRule(m)                  a Machine as a Rule, for the provers' entries (proveRule, proveSteps)
 // The handlers are any rules: extracted by the readers (a step of one process, its maps the stores it reads and writes)
 // or written; a handler that awaits other services between its reads and writes is several steps (a `pc` scalar), the
 // form `isolation` gives an atomic one.
-import {type C, type E, type Machine, type MapUpdate, all, any, get, ite, n, not, same, x} from './machine.ts'
+import {type C, type E, type Machine, type MapUpdate, all, any, atMost, get, ite, n, not, plus, same, x} from './machine.ts'
 import {type Subst, substC, substE} from '../kernel/kernel.ts'
 import {Cond, type Kind, type Rule, Term, nat, oneOf, rule} from './dsl.ts'
 
@@ -22,8 +25,10 @@ import {Cond, type Kind, type Rule, Term, nat, oneOf, rule} from './dsl.ts'
 export type Model = {name: string, assumes: string, checked: string}
 const models = new WeakMap<object, Model[]>()
 const modelled = (m: Machine, ...ms: Model[]): Machine => { models.set(m, [...(models.get(m) ?? []), ...ms]); return m }
+// m made from `from`: the models it assumes, and the scalars it keeps shared (`sharedOf`), carried over.
+const from = (m: Machine, src: Machine | Rule, ...ms: Model[]): Machine => { const sh = sharedOf.get(machineOf(src)); if (sh) sharedOf.set(m, sh); return modelled(m, ...(models.get(src) ?? []), ...ms) }
 // m, stated to assume these models (a copy: what a written rule's inputs or steps assume of its environment).
-export const assuming = (m: Machine | Rule, ...ms: Model[]): Machine => modelled({...machineOf(m)}, ...(models.get(m) ?? []), ...ms)
+export const assuming = (m: Machine | Rule, ...ms: Model[]): Machine => from({...machineOf(m)}, m, ...ms)
 // The models a machine, or a system's rule, assumes.
 export const modelsOf = (m: Machine | Rule): Model[] => models.get(m) ?? []
 
@@ -35,6 +40,8 @@ function mapper(m: Machine, vars: Record<string, E>, flag: (f: string) => string
   return {E, C, W: (w: MapUpdate): MapUpdate => ('each' in w ? {each: w.each, value: E(w.value)} : {key: E(w.key), value: E(w.value)})}
 }
 const machineOf = (r: Machine | Rule): Machine => ('machine' in r ? r.machine : r)
+// The scalars a machine reads that are the system's, not a process's: the true time, which lift keeps shared.
+const sharedOf = new WeakMap<Machine, string[]>()
 const plain = (m: Machine, what: string) => { if (m.history || m.sums || m.inputMaps?.length) throw new Error(`${what}: ${m.name} has a history, sums or carried maps (not taken here)`) }
 
 // --- one process, every process ------------------------------------------------------------------------------------
@@ -42,8 +49,9 @@ const plain = (m: Machine, what: string) => { if (m.history || m.sums || m.input
 // Every process of m at once: each scalar but `shared` a map keyed by the process `id` (an input), read and written at
 // the request's process; m's maps stay as they are, shared. A process starts where m starts (a constant: a map's cells
 // all start at one value).
-export function lift(m: Machine, id: string, shared: string[] = []): Machine {
+export function lift(m: Machine, id: string, given: string[] = []): Machine {
   plain(m, 'lift')
+  const shared = [...given, ...(sharedOf.get(m) ?? [])]
   const locals = Object.keys(m.state).filter(s => !shared.includes(s))
   for (const s of locals) {
     if (m.state[s]!.op !== 'const') throw new Error(`lift: ${m.name}'s ${s} starts at a term of the params; a process starts at constants`)
@@ -176,7 +184,7 @@ function writesWhen(v: E, cell: E): C | true | false {
 // `system(..., {h: {rule: isolation(m, level), id: 't'}})` runs any number of transactions at once.
 export function isolation(m: Machine, level: Level): Machine {
   plain(m, 'isolation')
-  if (level === 'atomic') return modelled({...m}, ...(models.get(m) ?? []), ISOLATION.atomic)
+  if (level === 'atomic') return from({...m}, m, ISOLATION.atomic)
   const stores = new Set(Object.keys(m.maps ?? {}))
   const sites: {map: string, key: E, e: E}[] = [], seen = new Map<string, number>()
   const visitE = (e: E): void => {
@@ -245,7 +253,7 @@ export function isolation(m: Machine, level: Level): Machine {
     ...(m.assume ? {assume: any(not(at(0)), m.assume)} : {}),
     ...(m.pre ? {pre: m.pre} : {}),
   }
-  return modelled(out, ...(models.get(m) ?? []), ISOLATION[level])
+  return from(out, m, ISOLATION[level])
 }
 
 // --- delivery -------------------------------------------------------------------------------------------------------
@@ -271,7 +279,7 @@ export function delivery(m: Machine, pool: string, fields: string[], mode: Deliv
   const vars = {...Object.fromEntries(fields.map(f => [f, get(`${pool}_${f}`, x(msg))])), ...(opts.id ? {[opts.id]: x(msg)} : {})}
   const {E, C, W} = mapper(m, vars, f => f), taken = `${pool}_taken`
   const guard = all(begin, ...[same(get(pool, x(msg)), n(1))], ...(mode === 'exactly-once' ? [same(get(taken, x(msg)), n(0))] : []))
-  return modelled({
+  return from({
     ...m, name: `${m.name} (${mode} from ${pool})`, inputs: [...m.inputs.filter(i => !bound.includes(i)), msg],
     maps: {...m.maps, [pool]: 0, ...Object.fromEntries(fields.map(f => [`${pool}_${f}`, 0])), ...(mode === 'exactly-once' ? {[taken]: 0} : {})},
     step: {
@@ -279,7 +287,7 @@ export function delivery(m: Machine, pool: string, fields: string[], mode: Deliv
       maps: {...mapValues(m.step.maps, W), ...(mode === 'exactly-once' ? {[taken]: {key: x(msg), value: ite(begin, n(1), get(taken, x(msg)))}} : {})},
     },
     assume: all(any(not(begin), guard), ...(m.assume ? [C(m.assume)] : [])),
-  }, ...(models.get(m) ?? []), DELIVERY[mode])
+  }, m, DELIVERY[mode])
 }
 
 // The environment's sends into `pool`: a message at a fresh id, its fields any values (the request's).
@@ -309,3 +317,59 @@ export const expiry = (cells: Record<string, number>, key = 'key'): Machine => m
   name: `expiry of ${Object.keys(cells).join(', ')}`, params: [], inputs: [key], state: {}, maps: cells,
   step: {maps: mapValues(cells, v => ({key: x(key), value: n(v)}))},
 }, EXPIRY)
+
+// --- time -----------------------------------------------------------------------------------------------------------
+
+// The true time: a natural the environment raises by any amount (`dt`) at a step of its own. Nothing bounds how many
+// other steps run between two of its steps, or how far one goes: a law that needs time to pass says so by its fairness
+// (a helpful request {act: <time's part>, dt: 1}), and a timer is a step allowed once the time has passed its deadline.
+export const TIME: Model = {name: 'time passes', assumes: 'one true time `now`, a natural that only rises, by any amount at a step of its own; nothing bounds how many other steps run between two of its steps',
+  checked: 'the time reference: a store\'s clock for its TTLs (Redis\'s own), a node\'s monotonic clock (CLOCK_MONOTONIC) for its own timers'}
+export const time = (now = 'now', by = 'dt'): Machine => modelled({name: 'time', params: [], inputs: [by], state: {[now]: n(0)}, step: {state: {[now]: plus(x(now), x(by))}}}, TIME)
+
+// A node's clock within `skew` of the true time: m's request time (the input `at`, as the readers read time.time(),
+// Instant::now() and the like) is any reading t with now − skew ≤ t ≤ now + skew. A reading need not rise from the
+// last: more runs than a monotonic clock's, so a proof holds for those too. `skew` is a constant or a param's name (a
+// param of the rule then); 0 is the time itself (`at` replaced by `now`, no longer an input); Infinity is no bound (the
+// reading any natural).
+export const SKEW = (skew: number | string): Model => ({name: `clock skew ${skew === Infinity ? 'unbounded' : `≤ ${skew}`}`,
+  assumes: skew === Infinity ? 'a node\'s clock may read any time at all' : `every reading of a node's clock is within ${skew} of the true time, either way; readings need not rise`,
+  checked: 'the deployment\'s bound (NTP or PTP discipline and its alarm, e.g. chrony\'s maxdistance): stated, not checked here'})
+export function clocked(m: Machine, at: string, skew: number | string, now = 'now'): Machine {
+  plain(m, 'clocked')
+  if (!m.inputs.includes(at)) throw new Error(`clocked: ${at} is no input of ${m.name}`)
+  if (now in (m.maps ?? {}) || m.inputs.includes(now) || m.params.includes(now)) throw new Error(`clocked: ${now} is a name of ${m.name} other than a scalar`)
+  if (m.step.state?.[now]) throw new Error(`clocked: ${m.name} writes ${now}; the time is the environment's`)
+  if (typeof skew === 'number' && skew !== Infinity && !(Number.isSafeInteger(skew) && skew >= 0)) throw new Error(`clocked: a skew is a natural, a param's name or Infinity`)
+  const eps: E = typeof skew === 'string' ? x(skew) : n(skew as number), t = x(at), tn = x(now)
+  const bound = skew === Infinity || skew === 0 ? [] : [atMost(t, plus(tn, eps)), atMost(tn, plus(t, eps))]
+  // (no skew: the reading is the time itself, the input gone)
+  const {E: S, C, W} = mapper(m, skew === 0 ? {[at]: tn} : {}, f => f), assume = m.assume && C(m.assume)
+  const out: Machine = {
+    ...m, params: typeof skew === 'string' && !m.params.includes(skew) ? [...m.params, skew] : m.params,
+    inputs: skew === 0 ? m.inputs.filter(i => i !== at) : m.inputs,
+    state: {...m.state, [now]: m.state[now] ?? n(0)},
+    step: {flags: mapValues(m.step.flags, C), state: mapValues(m.step.state, S), maps: mapValues(m.step.maps, W)},
+    ...(bound.length || assume ? {assume: all(...(assume ? [assume] : []), ...bound)} : {}),
+    ...(m.pre ? {pre: m.pre} : {}),
+  }
+  from(out, m, SKEW(skew))
+  sharedOf.set(out, [...new Set([...(sharedOf.get(m) ?? []), now])])
+  return out
+}
+
+// Keys that expire at their time: a key of the store vanishes (each of `cells`, the record's parts, back to its value
+// when absent; the expiry `at` too) at any step once the true time has reached its expiry, and never before. With no
+// `key`, the cells are scalars (one record).
+export const TTL: Model = {name: 'keys expire at their time', assumes: 'a key vanishes only once the store\'s clock (the true time) has reached its expiry, at any step after; never before (no eviction: maxmemory-policy noeviction, or no memory pressure)',
+  checked: 'Redis PX: the key is there before its time and gone after (envcheck.py); under noeviction a write past maxmemory is refused (OOM), not evicted'}
+export function expires(cells: Record<string, number>, at: string, opts: {key?: string, now?: string} = {}): Machine {
+  const now = opts.now ?? 'now', all0 = {...cells, [at]: 0}, key = opts.key
+  const m: Machine = key
+    ? {name: `expiry of ${Object.keys(cells).join(', ')} at ${at}`, params: [], inputs: [key], state: {[now]: n(0)}, maps: all0,
+      step: {maps: mapValues(all0, v => ({key: x(key), value: n(v)}))}, assume: atMost(get(at, x(key)), x(now))}
+    : {name: `expiry of ${Object.keys(cells).join(', ')} at ${at}`, params: [], inputs: [], state: {...mapValues(all0, v => n(v)), [now]: n(0)},
+      step: {state: mapValues(all0, v => n(v))}, assume: atMost(x(at), x(now))}
+  sharedOf.set(m, [now])
+  return modelled(m, TTL)
+}
