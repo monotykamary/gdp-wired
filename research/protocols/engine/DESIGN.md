@@ -110,6 +110,13 @@ ports' state counts equal TLC's; the suites (`--only suite,suite-usual`, 75ce118
 Bytes (against cd97c61, both steps): core/ +20,038 (counts.ts 16,455, machine.ts 1,868, dsl.ts 1,696, watch.ts 19),
 kernel/ +13,313.
 
+**After the rebase onto main 078bd1d (0.34.0):**
+- **Lean:** the three new proofs (toy_consensus 4 laws, quorum_leader_election 4, toy_consensus_forall 8, found with
+  nothing written) exported by research/protocols/ic3syn/counted-lean.ts through cmachineToLean and checked: lean-exit 0,
+  no sorry, each `ic*_laws` on [propext, Classical.choice, Quot.sound].
+- **A second run** of every counting protocol at 60 s, broken variants included: the same verdicts (proven: toy 2.3 s,
+  quorum 2.1, toy forall 3.1; the rest unknown); every broken variant unknown, none proven.
+
 ## gen/laneK2, step 1: counts in a machine's laws and steps, proven in Lean
 
 **The ask:** win IC3Syn's counting (11) and ∀∃ (6) classes with nothing written: (1) a machine-level counting statement
