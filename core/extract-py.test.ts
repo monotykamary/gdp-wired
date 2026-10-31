@@ -7,7 +7,7 @@ import {execFileSync} from 'node:child_process'
 import {mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {type PyOptions, extractPython} from './extract-py.ts'
-import {all, proveRule, proveSteps} from './dsl.ts'
+import {all, proveRule, proveSteps, yes} from './dsl.ts'
 import {assumed, disjoint} from './extract-step.ts'
 
 const hasPy = (() => { try { execFileSync('python3', ['--version'], {stdio: 'ignore'}); return true } catch { return false } })()
@@ -455,4 +455,112 @@ t('a store of JSON records over a client of name= and nx: the conditional set, t
 })
 t('a store key template that may name another\'s is refused unless stated apart', () => {
   refused(claims({stores: {client: {get: ['get'], set: ['set'], values: {'{}': {json: {status: ['OPEN', 'DONE'], until: 'int'}}, '{}:lock': ['1']}}}}), /the key templates "\{\}" and "\{\}:lock" may name one key/)
+})
+
+// What a scheduler's rules hit (supercomputer's rules.py and scheduler.py, read as they ship): sets, type aliases,
+// Literal results, an int param beside a choice, an untyped dict given to the constructor, a dict of other code's
+// objects, another module's constants, bytes.
+const FATE = `
+from typing import Literal
+
+Fate = Literal["queued", "placed", "done", "modal"]
+Strike = Literal["again", "modal", "none"]
+
+
+class ItemFate:
+    def __init__(self, boat_tries: int):
+        self.boat_tries = boat_tries
+        self.state: Fate = "queued"
+        self.fails = 0
+        self.vm = ""
+        self.avoid: set[str] = set()
+
+    def place(self, vm: str, another: bool) -> bool:
+        if self.state != "queued" or (vm in self.avoid and another):
+            return False
+        self.state = "placed"
+        self.vm = vm
+        return True
+
+    def boat_failed(self, vm: str) -> Strike:
+        if self.state != "placed" or self.vm != vm:
+            return "none"
+        self.state = "queued"
+        if vm in self.avoid:
+            return "none"
+        self.avoid.add(vm)
+        return self._strike()
+
+    def waited(self, start_failed: bool) -> Strike:
+        if self.state != "queued" or not start_failed:
+            return "none"
+        return self._strike()
+
+    def forgive(self, vm: str) -> None:
+        self.avoid.discard(vm)
+
+    def _strike(self) -> Strike:
+        self.fails += 1
+        if self.fails < self.boat_tries:
+            self.state = "queued"
+            return "again"
+        self.state = "modal"
+        return "modal"
+`
+t('a set of the state (add, discard, in), a Literal alias, a Literal result, an int param beside a choice', () => {
+  const x = ok(py(FATE, {entry: 'ItemFate', check: budget}))
+  expect(x.source).toContain("state: oneOf('queued', 'placed', 'done', 'modal')")
+  expect(x.source).toContain("boat_failed_result: oneOf('again', 'modal', 'none')")
+  expect(x.source).not.toContain('undefined')
+  expect(proveRule(x.rule!, [...x.invariants ?? [], x.rule!.law('Modal only after boat_tries strikes', ({state, fails, boat_tries}: A) => state.is('modal').implies(boat_tries.atMost(fails)))]).proven).toBe(true)
+  // a strike only for a VM the item hadn't failed on: the set before the step
+  expect(step(x, 'one strike per VM', (b, a) => a.fails.gt(b.fails).implies(b.avoid.at(b.boat_failed_vm.id).has.not()), b => b.method.is('boat_failed')).proven).toBe(true)
+  expect(step(x, 'a VM failed on is avoided after', (b, a) => a.avoid.at(b.boat_failed_vm.id).has.or(b.state.is('placed').not()).or(b.vm.eq(b.boat_failed_vm).not()), b => b.method.is('boat_failed')).proven).toBe(true)
+})
+
+t('a set removed from: a key it doesn\'t hold is a KeyError, the step\'s failure', () => {
+  const x = ok(py(`class Seen:\n    def __init__(self):\n        self.ids: set[str] = set()\n\n    def add(self, i: str) -> None:\n        self.ids.add(i)\n\n    def drop(self, i: str) -> None:\n        self.ids.remove(i)\n`,
+    {entry: 'Seen', failures: 'kept', check: budget}))
+  expect(step(x, 'a drop of an id not held fails', (_b, a) => a.failed, b => b.method.is('drop').and(b.ids.at(b.drop_i.id).has.not())).proven).toBe(true)
+  expect(step(x, 'a drop of a held id leaves it out', (b, a) => a.failed.not().and(a.ids.at(b.drop_i.id).has.not()), b => b.method.is('drop').and(b.ids.at(b.drop_i.id).has)).proven).toBe(true)
+})
+
+t('a type alias of 3.12 (type X = ...), and dict() as {}', () => {
+  const x = ok(py(`from typing import Literal\n\ntype Mode = Literal["on", "off"]\n\nclass Switch:\n    def __init__(self):\n        self.mode: Mode = "off"\n        self.n: dict[str, int] = dict()\n\n    def flip(self, k: str) -> None:\n        self.mode = "on" if self.mode == "off" else "off"\n        self.n[k] = self.n.get(k, 0) + 1\n`,
+    {entry: 'Switch', check: budget}))
+  expect(x.source).toContain("mode: oneOf('on', 'off')")
+})
+
+t('a constructor given a dict of no stated types, read nowhere the rule keeps; a dict of other code\'s objects left out', () => {
+  const x = ok(py(`import threading\n\nclass Gate:\n    def __init__(self, msg: dict, cap: int):\n        self.msg = msg\n        self.cap = cap\n        self.n = 0\n        self.events: dict[str, threading.Event] = {}\n\n    def hit(self) -> bool:\n        if self.n >= self.cap:\n            return False\n        self.n += 1\n        return True\n`,
+    {entry: 'Gate', check: budget}))
+  expect(x.notes.join('\n')).toMatch(/Gate\(msg\): dict with no key and value types, read nowhere the rule keeps/)
+  expect(proveRule(x.rule!, [x.rule!.law('within the cap', ({n, cap}: A) => cap.atLeast(n).or(n.eq(0)))]).proven).toBe(true)
+  // (read by the constructor: refused, the check's inert dict holding no key)
+  refused(py(`class Gate:\n    def __init__(self, msg: dict):\n        self.cap = int(msg["cap"])\n        self.n = 0\n\n    def hit(self) -> None:\n        self.n += 1\n`, {entry: 'Gate', check: budget}), /KeyError: 'cap'/)
+})
+
+t('another module\'s constant read as its value; bytes never equal to a str', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-pycase-`)
+  writeFileSync(`${dir}/conf.py`, 'LIMIT = 3\n')
+  writeFileSync(`${dir}/m.py`, `import conf\n\nclass Box:\n    def __init__(self):\n        self.n = 0\n\n    def put(self, body: bytes, tag: bytes | None) -> bool:\n        if self.n >= conf.LIMIT or body == "x" or (tag is not None and tag == body):\n            return False\n        self.n += 1\n        return True\n`)
+  const x = ok(extractPython(`${dir}/m.py`, {entry: 'Box', check: budget}))
+  expect(proveRule(x.rule!, [x.rule!.law('at most conf.LIMIT', ({n}: A) => n.atMost(3))]).proven).toBe(true)
+  // (body == "x" is never true: bytes and a str differ in Python)
+  expect(step(x, 'a body other than its tag is always put below the limit', (_b, a) => a.put_result, b => b.n.lt(3).and(b.tag_none)).proven).toBe(true)
+})
+
+t('a str result that is one of its literals on every path: a choice of them', () => {
+  const x = ok(py(`class Life:\n    def __init__(self):\n        self.up = True\n        self.owned = False\n\n    def tick(self, work: bool) -> str:\n        if not self.up or self.owned:\n            return "keep"\n        if work:\n            self.owned = True\n            return "adopt"\n        self.up = False\n        return "stop"\n`,
+    {entry: 'Life', check: budget}))
+  expect(x.source).toContain("tick_result: oneOf('keep', 'adopt', 'stop')")
+  expect(step(x, 'a VM stopped only with no work', (b, a) => a.tick_result.is('stop').implies(b.work.not()), () => yes).proven).toBe(true)
+})
+
+t('an argument the code ignores, kept where a law reads it (keep): the law about it broken', () => {
+  const code = `class Fate:\n    def __init__(self):\n        self.fails = 0\n\n    def waited(self, start_failed: bool) -> None:\n        self.fails += 1\n`
+  const bare = ok(py(code, {entry: 'Fate', check: budget}))
+  expect(bare.model!.inputs.map(v => v.name)).not.toContain('start_failed')
+  const x = ok(py(code, {entry: 'Fate', keep: ['start_failed'], check: budget}))
+  expect(step(x, 'a wait counts only where a start failed', (b, a) => a.fails.gt(b.fails).implies(b.start_failed), () => yes).proven).toBe(false)
 })

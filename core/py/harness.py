@@ -82,6 +82,7 @@ class FakeStore:
 def build(spec, stores):
   if 'in' in spec:
     v = spec['in']
+    if spec.get('bytes') and isinstance(v, str): return v.encode('latin-1')
     return float(v) if spec.get('float') and isinstance(v, int) and not isinstance(v, bool) else v
   if spec.get('none'): return None
   if spec.get('inert'): return {} if spec.get('dict') else Inert()
@@ -174,13 +175,14 @@ def state_of(obj, stores):
     v = walk(obj, l['path'])
     if k == 'none': s[l['name']] = v is None
     elif k == 'num': s[l['name']] = '0' if v is None else enc_num(v)
-    elif k in ('str', 'choice'): s[l['name']] = '' if v is None else v
+    elif k in ('str', 'choice'): s[l['name']] = '' if v is None else v.decode('latin-1') if isinstance(v, (bytes, bytearray)) else v
     elif k == 'bool': s[l['name']] = False if v is None else v
     elif k == 'map':
       cells = {}
       # (a list: its items by their places, 0 first)
-      for key, x in (enumerate(v or []) if l.get('ordered') else (v or {}).items()):
-        if l.get('fields'): cells[str(key)] = {f['name']: (lambda y: y if f.get('choice') else enc_num(y))(x[f['name']] if isinstance(x, dict) else getattr(x, f['name'])) for f in l['fields']}
+      for key, x in (enumerate(v or []) if l.get('ordered') else ((k, None) for k in v or ()) if l.get('set') else (v or {}).items()):
+        if l.get('set'): cells[str(key)] = {}
+        elif l.get('fields'): cells[str(key)] = {f['name']: (lambda y: y if f.get('choice') else enc_num(y))(x[f['name']] if isinstance(x, dict) else getattr(x, f['name'])) for f in l['fields']}
         else: cells[str(key)] = {'value': enc_num(x)}
       s[l['name']] = cells
   # A store's key no template names: the code keeps state the rule has no place for.
@@ -189,6 +191,10 @@ def state_of(obj, stores):
     for key in st.data:
       if not any(tpl_match(t, key) is not None for t in tpls): raise ValueError(f"the store {name} holds {key!r}, a key no template of the rule names")
   return s
+
+def is_bytes(l):
+  t = l.get('t') or {}
+  return bool((t.get('of') if t.get('k') == 'opt' else t).get('bytes'))
 
 def num_in(x, flt):
   return float(int(x)) if flt else int(x)
@@ -208,15 +214,16 @@ def set_state(obj, stores, state):
         else: st.data[at] = c['value'] if l.get('choice') else num_in(c['value'], l.get('float'))
       continue
     if k == 'num': put(obj, l['path'], num_in(v, l.get('float')))
-    elif k in ('str', 'choice', 'bool'): put(obj, l['path'], v)
+    elif k in ('str', 'choice', 'bool'): put(obj, l['path'], v.encode('latin-1') if k == 'str' and is_bytes(l) and isinstance(v, str) else v)
     elif k == 'map':
       d = {}
       for key, c in (v or {}).items():
         kk = int(key) if l.get('key') == 'num' else key
-        if l.get('fields'):
+        if l.get('set'): d[kk] = True
+        elif l.get('fields'):
           d[kk] = make_rec(resolve(l['cls']), {f['name']: (num_in(c[f['name']], f.get('float')) if isinstance(c[f['name']], str) and not f.get('choice') else c[f['name']]) for f in l['fields']})
         else: d[kk] = num_in(c['value'], l.get('float')) if isinstance(c['value'], str) else c['value']
-      put(obj, l['path'], [d[kk] for kk in sorted(d)] if l.get('ordered') else d)
+      put(obj, l['path'], [d[kk] for kk in sorted(d)] if l.get('ordered') else set(d) if l.get('set') else d)
   for l in S['leaves']:
     if l['kind'] == 'none' and state.get(l['name']) is True: put(obj, l['path'], None)
 

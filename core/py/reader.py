@@ -10,6 +10,9 @@ import ast, builtins, json, os, sys
 BUILTINS = {'min', 'max', 'abs', 'len', 'int', 'float', 'bool', 'str', 'isinstance', 'round', 'sum', 'any', 'all', 'print', 'repr', 'getattr', 'setattr', 'hasattr', 'type', 'list', 'dict', 'set', 'tuple', 'sorted', 'range', 'zip', 'enumerate'}
 # Library functions the executor knows (their meaning, not their code).
 KNOWN = {'time.time', 'time.monotonic', 'time.perf_counter', 'datetime.datetime.now', 'datetime.timedelta', 'math.floor', 'math.ceil', 'math.isfinite', 'math.isnan', 'math.isinf', 'threading.Lock', 'threading.RLock', 'asyncio.Lock'}
+# The heads of a subscripted type an alias may stand for (`Mode = Literal[...]`).
+TYPE_HEADS = {'Literal', 'Optional', 'Union', 'Final', 'Annotated', 'dict', 'Dict', 'Mapping', 'MutableMapping', 'defaultdict', 'OrderedDict', 'list', 'List', 'Sequence',
+              'set', 'Set', 'frozenset', 'FrozenSet', 'AbstractSet', 'MutableSet'}
 TRANSPARENT = {'staticmethod', 'classmethod', 'property', 'dataclass', 'dataclasses.dataclass', 'override', 'typing.override', 'abstractmethod'}
 
 def where(file, n):
@@ -85,6 +88,7 @@ class Module:
       targets = n.targets if isinstance(n, ast.Assign) else [n.target]
       for t in targets:
         if isinstance(t, ast.Name) and n.value is not None: self.consts[t.id] = n.value
+    elif type(n).__name__ == 'TypeAlias' and isinstance(n.name, ast.Name): self.consts[n.name.id] = n.value  # `type X = ...` (3.12)
     elif isinstance(n, ast.If):
       # `if TYPE_CHECKING:` imports and aliases: what the names are for the types (its else, `X = Any`, yields to it).
       for m in n.orelse + n.body: self.scan(m)
@@ -234,16 +238,21 @@ class Reader:
       if head in ('dict', 'Dict', 'Mapping', 'MutableMapping', 'defaultdict', 'OrderedDict') and len(args) == 2:
         return {'k': 'map', 'key': self.ty(args[0], mod), 'val': self.ty(args[1], mod), 'py': head}
       if head in ('list', 'List', 'Sequence'): return {'k': 'list', 'of': self.ty(args[0], mod)}
+      # (a set: a map of its keys alone, each held or not)
+      if head in ('set', 'Set', 'frozenset', 'FrozenSet', 'AbstractSet', 'MutableSet') and len(args) == 1: return {'k': 'map', 'key': self.ty(args[0], mod), 'val': {'k': 'none'}, 'set': True, 'py': head}
       return {'k': 'opaque', 'why': f"{text(a)}"}
     n = dotted(a)
     if n in ('int',): return {'k': 'int'}
     if n in ('float',): return {'k': 'float'}
     if n in ('bool',): return {'k': 'bool'}
     if n in ('str',): return {'k': 'str'}
+    if n in ('bytes', 'bytearray'): return {'k': 'str', 'bytes': True}  # (a string of bytes: set and compared, never equal to a str)
     if n in ('None',): return {'k': 'none'}
     if n in ('Final', 'Any', 'typing.Any', 'object'): return {'k': 'any'}
     if n in ('dict', 'Dict'): return {'k': 'opaque', 'why': f"{n} with no key and value types"}
     if n in ('threading.Lock', 'asyncio.Lock', 'Lock'): return {'k': 'lock'}
+    al = self.alias_of(mod, n) if n and '.' not in n else None
+    if al: return self.ty(al[1], al[0])
     if n:
       hit = self.find_class(mod, n.split('.')[-1]) if '.' not in n or n.split('.')[0] in mod.imports else None
       if hit:
@@ -251,6 +260,37 @@ class Reader:
         if q: return {'k': 'rec', 'name': q}
       return {'k': 'opaque', 'why': f"{n}, a type outside the files read"}
     return {'k': 'opaque', 'why': text(a)}
+  def const_value(self, mod, v):
+    """A constant's value, through constants bound to other constants' names (LONG = IDLE)."""
+    for _ in range(6):
+      if isinstance(v, ast.Name) and v.id in mod.consts and v.id not in mod.classes and v.id not in mod.funcs: v = mod.consts[v.id]
+      else: break
+    return v
+  def module_const(self, mod, x):
+    """`m.NAME` where m is a module of the repository (imported whole, or `from pkg import m`) and NAME one of its
+    constants bound to a literal (a number, a string, a bool, None): that literal, else None."""
+    if not isinstance(x.value, ast.Name): return None
+    imp = mod.imports[x.value.id]
+    q = imp[1] if imp[0] == 'module' else f"{imp[1]}.{imp[2]}"
+    path = self.repo.path_of(q)
+    if not path or path == mod.path: return None
+    sub = Module(self.repo, path)
+    v = self.const_value(sub, sub.consts.get(x.attr))
+    lit = isinstance(v, ast.Constant) or (isinstance(v, ast.UnaryOp) and isinstance(v.op, ast.USub) and isinstance(v.operand, ast.Constant))
+    return self.expr(v, mod) if lit and not isinstance(getattr(v, 'value', getattr(getattr(v, 'operand', None), 'value', None)), bytes) else None
+  def alias_of(self, mod, name, depth=0):
+    """A type alias a module names, through its imports: `Mode = Literal["a", "b"]`, `Key = int | str`, `X: TypeAlias = ...`,
+    `type X = ...`: (module, the type it stands for), or None (a class, or a constant that is no type)."""
+    if depth > 6 or mod is None or name in mod.classes: return None
+    v = mod.consts.get(name)
+    if v is not None:
+      typing = isinstance(v, ast.Subscript) and (dotted(v.value) or '').split('.')[-1] in TYPE_HEADS
+      return (mod, v) if typing or (isinstance(v, ast.BinOp) and isinstance(v.op, ast.BitOr)) else None
+    imp = mod.imports.get(name)
+    if imp and imp[0] == 'name':
+      p = self.repo.path_of(imp[1])
+      if p and p != mod.path: return self.alias_of(Module(self.repo, p), imp[2], depth + 1)
+    return None
   def union(self, ts, a):
     none = any(t['k'] == 'none' for t in ts)
     rest = [t for t in ts if t['k'] != 'none']
@@ -433,6 +473,10 @@ class Reader:
       return {'e': 'ext', 'q': f"{imp[1]}.{imp[2]}", 'text': n, 'patch': {'mod': mod.name, 'path': [n]}, 'p': p, **({'ret': ret} if ret else {})}
     if n in mod.consts:
       v = mod.consts[n]
+      # (a constant bound to another constant's name, LONG = IDLE: that one's value, a few deep)
+      for _ in range(6):
+        if isinstance(v, ast.Name) and v.id in mod.consts and v.id != n and v.id not in mod.classes and v.id not in mod.funcs: v = mod.consts[v.id]
+        else: break
       if isinstance(v, ast.Constant) or (isinstance(v, ast.UnaryOp) and isinstance(v.operand, ast.Constant)): return self.expr(v, mod)
       cm = self.const_map(v, mod, p)
       if cm: return cm
@@ -464,6 +508,10 @@ class Reader:
     if isinstance(x, ast.Attribute):
       d = dotted(x)
       base = d.split('.')[0] if d else None
+      # (a literal constant of another module of the repository, `boat.BRING_UP`: its value, as the module's own
+      # constants are read; what the module is set to at import, the check importing it as it ships)
+      lit = self.module_const(mod, x) if d and base in mod.imports and not (self.local_stack and base in self.local_stack[-1]) else None
+      if lit is not None: return {**lit, 'p': p}
       if d and base in mod.imports and mod.imports[base][0] == 'module' and not (self.local_stack and base in self.local_stack[-1]):
         q = mod.imports[base][1] + d[len(base):]
         if q in KNOWN: return {'e': 'lib', 'q': q, 'p': p}
@@ -543,7 +591,9 @@ def main():
   mod = r.mod
   if mod.tree is None:
     print(json.dumps({'error': f"{req['file']} doesn't parse"})); return
-  out = {'lang': 'python', 'file': os.path.basename(r.file), 'path': r.file, 'module': mod.name, 'root': os.path.abspath(req['root']), 'entries': []}
+  out = {'lang': 'python', 'file': os.path.basename(r.file), 'path': r.file, 'module': mod.name, 'root': os.path.abspath(req['root']), 'entries': [],
+         # (the module's constants bound to literals, as the code reads them: a law may name them too)
+         'consts': {k: v.value for k, v in ((k, r.const_value(mod, v)) for k, v in mod.consts.items()) if isinstance(v, ast.Constant) and isinstance(v.value, (int, float, str, bool)) and not (isinstance(v.value, float) and not v.value.is_integer())}}
   for n in req['names'] or list(mod.classes):
     if n in mod.classes: out['entries'].append({'k': 'class', 'rec': r.rec_of(mod, mod.classes[n])})
     elif n in mod.funcs:

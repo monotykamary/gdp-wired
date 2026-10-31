@@ -168,8 +168,8 @@ export function parse(s: string): X {
 // A value: a number (an integer of the builders'), a condition, a string, a choice, a literal string, None, a map's
 // cell, a value that may be None (its flag beside it), a map, a key.
 type V = {t: 'num', v: Int} | {t: 'cond', v: Cond} | {t: 'str', v: Str} | {t: 'choice', v: Choice<string>} | {t: 'lit', v: string, err?: LawError}
-  | {t: 'null'} | {t: 'cell', rec: Record<string, unknown>, fields: string[]} | {t: 'opt', none: Cond, v?: V} | {t: 'map', n: Name, maps: Name[]} | {t: 'key', v: Term}
-type Ctx = {b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>, clock?: number,
+  | {t: 'null'} | {t: 'cell', rec: Record<string, unknown>, fields: string[]} | {t: 'opt', none: Cond, v?: V} | {t: 'map', n: Name, maps: Name[], env?: Record<string, unknown>} | {t: 'key', v: Term}
+type Ctx = {consts?: Record<string, number | string | boolean>, b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>, clock?: number,
   // (a key bound over a list: the item there, its map in the state it was read in)
   items?: Map<string, {map: Record<string, unknown>, fields: string[]}>}
 
@@ -186,14 +186,14 @@ export function buildLaw(x: Extraction, l: LawText, opts: {clock?: number} = {})
   if (!l.expr) throw new LawError(`${l.name}: a law is stated as <name>: <expr>`)
   const e = parse(l.expr)
   // A first reading finds what the law reads: a request, a result, the failure or the state before make it a step law.
-  const probe: Ctx = {b: {}, a: {}, step: true, method: l.method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock}
+  const probe: Ctx = {consts: x.consts, b: {}, a: {}, step: true, method: l.method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock}
   read(e, probe, names, true)
   // (a law on a method, the line above it, is a law of its step: the state after it, old(x) before)
   const step = !!l.method || ['input', 'answer', 'result', 'failed', 'clock', 'method', 'old'].some(k => probe.roles.has(k))
   const method = probe.methods.size === 1 ? [...probe.methods][0] : l.method
   if (probe.methods.size > 1) throw new LawError(`it reads the arguments of ${[...probe.methods].join(' and ')}: a law of one step is about one method`)
   const gate = step && method && names.some(n => n.role === 'method') ? method : undefined
-  const body = (b: Record<string, unknown>, a: Record<string, unknown>) => read(e, {b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock}, names, false) as Cond
+  const body = (b: Record<string, unknown>, a: Record<string, unknown>) => read(e, {consts: x.consts, b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock}, names, false) as Cond
   if (!step) return {kind: 'law', law: r.law(l.name, (env: never) => (x.quiet ? ((env as Record<string, Int>)[x.quiet]!.eq(0) as Cond).implies(body(env, env)) : body(env, env)))}
   const mname = names.find(n => n.role === 'method')?.rule
   return {kind: 'step', ...(gate ? {method: gate} : {}), law: r.stepLaw(l.name, (b: never, a: never) => body(b, a), gate ? (b: never) => ((b as Record<string, unknown>)[mname!] as Choice<string>).is(gate) : undefined)}
@@ -260,8 +260,22 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
         const fs = m.n.map!.fields
         if (fs.length !== 1) throw new LawError(`sum(${m.n.code}): its cells have ${fs.join(', ')} (the sum is of a map of numbers)`)
         if (dry) return DRY
-        const map = (c.a[m.n.rule] ?? c.b[m.n.rule]) as {sum: (of: (cell: Record<string, unknown>) => unknown) => unknown}
-        return {t: 'num', v: Int.of(map.sum(cell => cell[fs[0]!]) as Term)}
+        const map = ((m.env ?? c.a)[m.n.rule] ?? c.b[m.n.rule]) as {sum: (of: (cell: Record<string, unknown>) => unknown) => unknown}
+        try {
+          // (a map of integers: the sum of its cells' positive parts less the sum of their negative parts, each a sum of
+          // naturals the kernel keeps exact)
+          const one = (map as unknown as {at: (k: Term) => Record<string, unknown>}).at(new Term({op: 'const', value: 0}))[fs[0]!]
+          if (one instanceof Int) {
+            // (after the step: the sums over the map before it, as the state after it holds them, primed)
+            const after = (m.env ?? c.a) === c.a && c.step && c.a !== c.b, src = (after ? c.b[m.n.rule] : map) as typeof map
+            const sumOf = (part: 'pos' | 'neg') => { const t = src.sum(cell => (cell[fs[0]!] as Int)[part]) as Term; return after && t.e.op === 'var' ? new Term({op: 'var', name: `${t.e.name}'`}) : t }
+            return {t: 'num', v: new Int(sumOf('pos'), sumOf('neg'))}
+          }
+          return {t: 'num', v: Int.of(map.sum(cell => cell[fs[0]!]) as Term)}
+        } catch (x) {
+          if (x instanceof TypeError) throw new LawError(`sum(${m.n.code}): a sum is of naturals, and ${m.n.code}'s cells are integers (a cell the code may set below 0): state them as naturals (domains, in gdp.toml) where the code never does`)
+          throw x
+        }
       }
       const xs = e.xs.map(go)
       if (dry) return DRY
@@ -270,6 +284,20 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
     }
     case 'un': { const v = go(e.x); if (dry) return v.t === 'cond' ? v : DRY; return e.op === '-' ? {t: 'num', v: num(v).negate()} : {t: 'cond', v: not(cond(v))} }
     case 'bin': {
+      // (a comparison with x // k on one side, k a positive constant: the same comparison without the division, exact
+      // over the integers (a <= x // k is k·a <= x; a < x // k is k·(a + 1) <= x), so it needs no function, which a law
+      // of one step can't read)
+      const flip: Record<string, string> = {'<': '>', '<=': '>=', '>': '<', '>=': '<=', '==': '==', '!=': '!='}
+      const divk = (x: X) => (x.k === 'bin' && x.op === '//' && (constOf(x.b) ?? 0) >= 1 ? x as X & {k: 'bin'} : undefined)
+      if (flip[e.op] && (divk(e.b) || divk(e.a))) {
+        const [op, lhs, d] = divk(e.b) ? [e.op, e.a, divk(e.b)!] : [flip[e.op]!, e.b, divk(e.a)!]
+        const k = constOf(d.b)!, ka: X = {k: 'bin', op: '*', a: {k: 'num', v: k}, b: lhs}, ka1: X = {k: 'bin', op: '*', a: {k: 'num', v: k}, b: {k: 'bin', op: '+', a: lhs, b: {k: 'num', v: 1}}}
+        const le = (a: X, b: X): X => ({k: 'bin', op: '<=', a, b}), lt = (a: X, b: X): X => ({k: 'bin', op: '<', a, b})
+        // a ⋈ ⌊x/k⌋:  <= : k·a <= x;  < : k·(a+1) <= x;  >= : x < k·(a+1);  > : x < k·a;  == : both;  != : not both
+        const x = d.a, eq: X = {k: 'bin', op: '&&', a: le(ka, x), b: lt(x, ka1)}
+        const out: X = op === '<=' ? le(ka, x) : op === '<' ? le(ka1, x) : op === '>=' ? lt(x, ka1) : op === '>' ? lt(x, ka) : op === '==' ? eq : {k: 'un', op: 'not', x: eq}
+        return go(out)
+      }
       if (e.op === 'in') { const m = go(e.b); if (m.t !== 'map') throw new LawError('x in m: m a map'); const k = go(e.a); return dry ? {t: 'cond', v: yes} : {t: 'cond', v: cellOf(m, key(k), c).rec.has as Cond} }
       // (a name the rule doesn't have, compared with a choice: the choice's value, Outcome.SLOW_ERROR)
       const lit = (x: X): V => { try { return go(x) } catch (err) { if (x.k !== 'path' || !(err instanceof LawError) || !['==', '!='].includes(e.op)) throw err; return {t: 'lit', v: lastName(x) ?? '', err} } }
@@ -318,7 +346,7 @@ const show = (x: X): string => (x.k === 'path' ? [x.head, ...x.segs.map(s => ('f
 // A map's key as the rule holds it: a string's id, a natural.
 const key = (k: V): Term => (k.t === 'opt' && k.v ? key(k.v) : k.t === 'key' ? k.v : k.t === 'str' ? k.v.id : k.t === 'lit' ? fail('a literal key (the rule keys a map by the request\'s values)') : (() => { const n = num(k); return n.neg.e.op === 'const' && n.neg.e.value === 0 ? n.pos : n.clamped })())
 function cellOf(m: V & {t: 'map'}, k: Term, c: Ctx): {rec: Record<string, unknown>, fields: string[]} {
-  const map = (c.a[m.n.rule] ?? c.b[m.n.rule]) as {at: (k: Term) => Record<string, unknown>}
+  const map = ((m.env ?? c.a)[m.n.rule] ?? c.b[m.n.rule]) as {at: (k: Term) => Record<string, unknown>}
   return {rec: map.at(k), fields: m.n.map!.fields}
 }
 
@@ -330,13 +358,16 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
   const item = c.items?.get(e.head)
   if (item && e.segs.length) return dry ? DRY : rest(e.segs, {t: 'cell', rec: item.map, fields: item.fields}, c, names, dry, e)
   if (c.keys.has(e.head) && dry) return DRY
-  if (e.head === 'result' || e.head === 'failed') {
+  // (result and failed are the step's, unless the code has a name of its own so: a field named failed, read bare, is
+  // that field, as self.failed always is)
+  if ((e.head === 'result' || e.head === 'failed') && !names.some(n => n.code === e.head && n.role !== 'failed' && n.role !== 'result')) {
     const n = e.head === 'failed' ? names.find(x => x.role === 'failed') : results(names, c)
     if (!n) throw new LawError(e.head === 'failed' ? 'the rule keeps no failure (with failures: \'kept\' it does: `failures = "kept"` in gdp.toml or --failures kept)' : 'the method returns nothing the rule keeps')
     c.roles.add(n.role); if (n.method) c.methods.add(n.method)
     return rest(e.segs, leaf(n, c, dry), c, names, dry, e)
   }
-  const explicit = ['self', 'this', 'state', 's'].includes(e.head) || e.head.startsWith('@')
+  // (self.x, this.x, state.x, @x: the state's x; a bare `state` or `s` is a name of the code's, a field named so)
+  const explicit = (['self', 'this', 'state', 's'].includes(e.head) && e.segs.length > 0) || e.head.startsWith('@')
   const parts = [e.head.replace(/^@/, ''), ...e.segs.map(s => ('f' in s ? s.f : undefined))]
   const heads = explicit && !e.head.startsWith('@') ? [parts.slice(1)] : [parts, ...(parts.length > 1 && parts[1] !== undefined ? [parts.slice(1)] : [])]
   for (const [hi, p] of heads.entries()) {
@@ -351,11 +382,15 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
         // (an answered call is one value a step, whatever its arguments: written f(...) or f())
         if (hit.role === 'answer' && next && 'call' in next && next.args) throw new LawError(`${code}(${next.args}): an answered call's value is the request's, one a step: write it ${code}(...)`)
         const segs = e.segs.slice(skip + n - 1 + (hit.role === 'answer' && next && 'call' in next ? 1 : 0))
-        return rest(segs, hit.map ? {t: 'map', n: hit, maps: names.filter(x => x.map && x.code === hit.code)} : leaf(hit, c, dry), c, names, dry, e)
+        // (a map read where it is named: old(m) is the map before the step wherever its cells are read, `k in old(m)`)
+        return rest(segs, hit.map ? {t: 'map', n: hit, maps: names.filter(x => x.map && x.code === hit.code), env: c.a} : leaf(hit, c, dry), c, names, dry, e)
       }
     }
   }
   // A method's argument by its method's name (charge.user), where several methods take one of that name.
+  // A constant of the module bound to a literal, by its name.
+  const k = c.consts?.[e.head]
+  if (k !== undefined && !e.segs.length) return typeof k === 'number' ? {t: 'num', v: Int.of(k)} : typeof k === 'boolean' ? {t: 'cond', v: k ? yes : no} : {t: 'lit', v: k}
   const m = names.find(n => n.role === 'input' && n.method === e.head && e.segs[0] && 'f' in e.segs[0] && n.code === e.segs[0].f)
   if (m) { c.roles.add('input'); c.methods.add(m.method!); return rest(e.segs.slice(1), leaf(m, c, dry), c, names, dry, e) }
   const known = [...new Set(names.filter(n => n.rule || n.none).map(n => (n.role === 'answer' ? `${n.code.split('.').pop()}()` : n.method && n.role === 'input' ? `${n.code} (${n.method})` : n.code)))]
@@ -370,6 +405,9 @@ function find(code: string, names: Name[], c: Ctx, stateOnly: boolean, called: b
   if (!stateOnly && !called && inputs.length) {
     const here = inputs.filter(n => n.method === c.method)
     if (here.length) return here[0]
+    // (a field of that name: the field, never another method's argument)
+    const field = names.find(n => n.role === 'state' && at(n))
+    if (field) return field
     if (new Set(inputs.map(n => n.method)).size === 1) return inputs[0]
     throw new LawError(`${code} is an argument of ${inputs.map(n => n.method).join(', ')}: write the law on the method it is about (the line above it), or as <method>.${code}`)
   }
@@ -423,7 +461,7 @@ function storeKey(m: V & {t: 'map'}, k: X, c: Ctx, names: Name[], dry: boolean):
   const tpl = parts.join('')
   const hit = m.maps.find(x => x.map!.tpl === tpl) ?? (holes.length === 1 && tpl === '{}' && m.maps.length === 1 ? m.maps[0] : undefined)
   if (!hit || holes.length !== 1) throw new LawError(`${m.n.code}[${tpl}]: its keys are ${m.maps.map(x => JSON.stringify(x.map!.tpl!.replace('{}', '<key>'))).join(', ')}`)
-  return [{t: 'map', n: hit, maps: [hit]}, val(holes[0]!, c, names, dry)]
+  return [{t: 'map', n: hit, maps: [hit], ...(m.env ? {env: m.env} : {})}, val(holes[0]!, c, names, dry)]
 }
 
 // --- citations ---------------------------------------------------------------------------------------------------------
@@ -483,4 +521,92 @@ export function buildTwoRuns(x: Extraction, l: LawText, others: Record<string, E
     return {...agreement(o.rule as AnyRule, r, {...(visible ? {visible} : {}), name: l.name}), name: l.name}
   }
   throw new LawError('not a law about two runs')
+}
+
+// --- liveness: "whenever <from>, later <to>" ---------------------------------------------------------------------------
+// `<from> leads to <to> by <rank>[, <rank>...] via <helpful>[; <helpful>...] [strongly]`, each helpful request
+// `[<cond> ->] <method>(<arg> = <value>, ...)`: in every run that takes each helpful request (where its condition holds)
+// infinitely often, a state where `from` holds is followed by one where `to` does (core/dsl.ts's leadsTo, proven by
+// proveLeadsTo: no step raises the rank (in order) while `from` holds and `to` doesn't, except into `to`, and each helpful
+// request lowers it or reaches `to`). `strongly`: strong fairness (a request taken wherever, infinitely often, it is
+// allowed). The conditions and the rank read the state and the params; a helpful request's values are literals (true,
+// false, a number, one of a choice's values) or terms of the state.
+const LEADS = /^(.*?)\s+leads\s+to\s+(.*?)(?:\s+by\s+(.*?))?\s+via\s+(.*?)(\s+strongly)?\s*$/s
+export const isLeadsTo = (expr: string): boolean => LEADS.test(expr.trim())
+export function buildLeadsTo(x: Extraction, l: LawText, opts: {clock?: number} = {}): unknown {
+  const m = LEADS.exec(l.expr.trim())
+  if (!m) throw new LawError(`${l.name}: <from> leads to <to> [by <rank>] via <method>(<arg> = <value>, ...)`)
+  const names = namesWithClock(x), r = x.rule as unknown as {leadsTo: (n: string, spec: unknown) => unknown}
+  const model = x.model as unknown as {inputs: {name: string, sort: {k: string, values?: string[]}}[]} | undefined
+  const sorts = (x as unknown as {sorts?: Map<string, string>}).sorts
+  const ctxOf = (env: Record<string, unknown>): Ctx => ({consts: x.consts, b: env, a: env, step: false, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock})
+  const stateOnly = (text: string, what: string) => {
+    const e = parse(text), probe = ctxOf({})
+    if (e.k === 'forall') read(e, probe, names, true); else val(e, probe, names, true)  // (what it reads: a bare yes/no field reads as one)
+    if ([...probe.roles].some(k => ['input', 'answer', 'result', 'failed', 'old', 'method'].includes(k))) throw new LawError(`${what} reads the request or the step: it reads the state and the params`)
+    return e
+  }
+  const from = stateOnly(m[1]!, 'its from'), to = stateOnly(m[2]!, 'its to')
+  const ranks = (m[3] ? split(m[3], ',') : []).map(t => { const e = parse(t); val(e, ctxOf({}), names, true); return e })
+  const mname = names.find(n => n.role === 'method')?.rule
+  const helpful = split(m[4]!, ';').map(h => {
+    const arrow = topIndex(h, '->')
+    const when = arrow >= 0 ? stateOnly(h.slice(0, arrow), 'a helpful request\'s condition') : undefined
+    const call = /^\s*(\w+)\s*\((.*)\)\s*$/s.exec(arrow >= 0 ? h.slice(arrow + 2) : h)
+    if (!call) throw new LawError(`a helpful request is <method>(<arg> = <value>, ...): ${h.trim()}`)
+    const method = call[1]!, args = call[2]!.trim() ? split(call[2]!, ',').map(a => { const eq = a.indexOf('='); if (eq < 0) throw new LawError(`${method}(${a.trim()}): <arg> = <value>`); return [a.slice(0, eq).trim(), a.slice(eq + 1).trim()] as [string, string] }) : []
+    const ins = names.filter(n => n.role === 'input' && (n.method === method || !n.method))
+    if (mname && !names.some(n => n.method === method)) {
+      const ev = model?.inputs.find(v => v.name === mname)
+      if (!ev?.sort.values?.includes(method)) throw new LawError(`no method ${method} (its methods: ${ev?.sort.values?.join(', ') ?? 'none'})`)
+    }
+    const vals = args.map(([a, v]) => {
+      const n = ins.find(y => y.code === a) ?? (() => { throw new LawError(`${method}(${a}): no such argument (its arguments: ${ins.filter(y => y.method === method).map(y => y.code).join(', ')})`) })()
+      if (!n.rule) throw new LawError(`${method}(${a}): an argument the rule doesn't keep`)
+      return [n.rule, v, model?.inputs.find(y => y.name === n.rule)?.sort, sorts?.get(n.rule)] as const
+    })
+    return {when, method, vals}
+  })
+  const strongly = !!m[5]
+  const term = (e: X, env: Record<string, unknown>): Term => { const v = val(e, ctxOf(env), names, false); const n = num(v); return n.clamped }
+  const request = (h: (typeof helpful)[number]) => (env: Record<string, unknown>): Record<string, unknown> => {
+    const out: Record<string, unknown> = {}
+    if (mname) { const ev = model!.inputs.find(v => v.name === mname)!; out[mname] = ev.sort.values!.indexOf(h.method) }
+    for (const [rule, text, sort, dom] of h.vals) {
+      const lit = text.replace(/^["']|["']$/g, '')
+      if (sort?.k === 'bool') { if (!['true', 'false', 'True', 'False'].includes(text)) throw new LawError(`${h.method}: ${rule} is a yes/no: true or false`); out[rule] = /^t/i.test(text) ? 1 : 0 }
+      else if (sort?.k === 'choice') { const i = sort.values!.indexOf(lit); if (i < 0) throw new LawError(`${text} isn't one of ${sort.values!.join(', ')}`); out[rule] = i }
+      else if (sort?.k === 'num' && dom !== 'int') out[rule] = /^\d+$/.test(text) ? Number(text) : term(parse(text), env)
+      // (an integer: its two parts, the natural above 0 and the one below)
+      else if (sort?.k === 'num') { const n = num(val(parse(text), ctxOf(env), names, false)); out[rule] = n.pos; out[`${rule}$neg`] = n.neg }
+      else throw new LawError(`${h.method}: ${rule}, a ${sort?.k ?? 'value'}, isn't given in a helpful request (numbers, yes/no and choices are)`)
+    }
+    return out
+  }
+  return r.leadsTo(l.name, {
+    from: (env: Record<string, unknown>) => read(from, ctxOf(env), names, false),
+    to: (env: Record<string, unknown>) => read(to, ctxOf(env), names, false),
+    ...(ranks.length ? {rank: (env: Record<string, unknown>) => ranks.map(e => term(e, env))} : {}),
+    helpful: helpful.map(h => ({...(h.when ? {when: (env: Record<string, unknown>) => read(h.when!, ctxOf(env), names, false)} : {}), request: request(h)})),
+    ...(strongly ? {fairness: 'strong'} : {}),
+  })
+}
+// (the index of `tok` outside parentheses and quotes, or -1; a text split there)
+function topIndex(s: string, tok: string): number {
+  let depth = 0, q = ''
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]!
+    if (q) { if (ch === q) q = ''; continue }
+    if (ch === '"' || ch === "'") q = ch
+    else if (ch === '(' || ch === '[') depth++
+    else if (ch === ')' || ch === ']') depth--
+    else if (depth === 0 && s.startsWith(tok, i)) return i
+  }
+  return -1
+}
+function split(s: string, sep: string): string[] {
+  const out: string[] = []
+  let rest = s
+  for (let i = topIndex(rest, sep); i >= 0; i = topIndex(rest, sep)) { out.push(rest.slice(0, i)); rest = rest.slice(i + sep.length) }
+  return [...out, rest].map(t => t.trim()).filter(Boolean)
 }

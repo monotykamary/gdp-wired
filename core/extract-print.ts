@@ -249,7 +249,14 @@ function pn(e: N, P: Printer, ctx: Ctx, mode: 'nat' | 'int', recv = false): stri
     case 'neg': return `${pn(e.a, P, ctx, 'int', true)}.negate()`
     case 'mulk': return `${R(e.a)}.times(${e.k})`
     case 'mul':
-      if (!(natOK(e.a, ctx) && natOK(e.b, ctx))) throw new Refusal(P.m.file, 'a product of two numbers that may be negative (Int multiplies only by constants)')
+      if (!(natOK(e.a, ctx) && natOK(e.b, ctx))) {
+        // (each factor at least 0 where the product is read, the path's conditions say so: their product over the
+        // naturals, each factor clamped at 0, which is itself there)
+        if (!(nonneg(e.a, ctx) && nonneg(e.b, ctx))) throw new Refusal(P.m.file, 'a product of two numbers that may be negative (Int multiplies only by constants)')
+        const f = (x: N, recv: boolean) => (natOK(x, ctx) ? pn(x, P, ctx, 'nat', recv) : `${pn(x, P, ctx, 'int', true)}.clamped`)
+        const prod = `${f(e.a, true)}.mul(${f(e.b, false)})`
+        return nat ? prod : `Int.of(${prod})`
+      }
       return `${pn(e.a, P, ctx, 'nat', true)}.mul(${pn(e.b, P, ctx, 'nat')})`
     case 'min': return nat ? `min(${A(e.a)}, ${A(e.b)})` : `${R(e.a)}.min(${A(e.b)})`
     case 'max':

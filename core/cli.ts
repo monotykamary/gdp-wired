@@ -11,9 +11,9 @@
 // answers, skip, stores) from the flags or from gdp.toml (configFor, below). Exit code: 0 when no law stated in
 // the code is broken, 1 when one is, 2 when one couldn't be checked (the rule refused, or the law not read).
 import type {Extraction, Name} from './extract.ts'
-import {type Verdict, proveRule, proveSteps} from './dsl.ts'
+import {type Verdict, proveLeadsTo, proveRule, proveSteps} from './dsl.ts'
 import type {Law} from './machine.ts'
-import {type Built, type Cite, LawError, type LawText, buildLaw, buildTwoRuns, citesIn, isTwoRuns, lawsIn, namesWithClock} from './laws.ts'
+import {type Built, type Cite, LawError, type LawText, buildLaw, buildLeadsTo, buildTwoRuns, citesIn, isLeadsTo, isTwoRuns, lawsIn, namesWithClock} from './laws.ts'
 import {type TwoRunLaw, certify, proveTwoRuns} from './relational.ts'
 
 type FS = {existsSync: (p: string) => boolean, readFileSync: (p: string, e: string) => string, readdirSync: (p: string) => string[], statSync: (p: string) => {isDirectory: () => boolean},
@@ -199,21 +199,42 @@ const merge = (a: Record<string, unknown>, b: Record<string, unknown>): Record<s
 }
 
 // --- one target: its rules, their laws -------------------------------------------------------------------------------------
-type LawOut = {name: string, expr: string, where?: string, kind?: 'law' | 'step' | 'two runs', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], replayed?: string, why?: string, assumes?: string[], found?: string[], cites?: string[], cert?: string, ms: number}
+type LawOut = {name: string, expr: string, where?: string, kind?: 'law' | 'step' | 'two runs' | 'leads to', from?: 'any', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], replayed?: string, why?: string, assumes?: string[], found?: string[], cites?: string[], cert?: string, ms: number}
 export type RuleOut = {file: string, lang: string, entry?: string, ok: boolean, refusals: {where: string, what: string}[], notes: string[], names: Name[], checked?: string,
   laws: LawOut[], proposed: LawOut[], brokenProposed?: number, source?: string}
 
 // The entries to read: the one given, else the one inferred; where several classes or structs qualify, each of them; a
 // file of functions, each function a law is stated on.
+// Every class or function a law is stated on is read too (a class that writes no state, a decision, among them): no law
+// stated in the code is left without a rule to be proven on, or refused with why.
 async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: string, x: Extraction}[]> {
-  const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, ...flags} = o
-  void _j; void _m; void _p; void _c; void _t
+  const got = await rulesOf0(t, o, laws)
+  if (o.entry) return got
+  const have = new Set(got.flatMap(r => [r.entry, r.x.model?.name].filter((n): n is string => !!n)))
+  const more = [...new Set(laws.map(l => l.cls ?? l.fn).filter((n): n is string => !!n && !have.has(n)))]
+  if (!more.length) return got
+  const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, ...flags} = o
+  void _j; void _m; void _p; void _c; void _t; void _fr
+  const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
+  const {clock: _k, from: _f, ...shared} = cfg.all
+  void _k; void _f
+  const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*/g) ?? []))]
+  const extra = await Promise.all(more.map(async entry => ({entry, x: await extractOne(t, {...merge(merge({...shared, keep}, cfg.rules[entry] || {}), flags), entry})})))
+  // (the first rule, read with no entry named, kept only where it read something or nothing else was)
+  return [...got.filter(r => r.x.ok || r.entry || !extra.length), ...extra]
+}
+async function rulesOf0(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: string, x: Extraction}[]> {
+  const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, ...flags} = o
+  void _j; void _m; void _p; void _c; void _t; void _fr
   // (the options: gdp.toml's for every rule, then the rule's own, then the flags; a rule found with no entry named is
   // read again where gdp.toml has options of its own for it)
   const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
-  const {clock: _k, ...shared} = cfg.all
+  const {clock: _k, from: _f, ...shared} = cfg.all
+  void _f
   void _k
-  const optsFor = (entry?: string) => merge(merge(shared, (entry && cfg.rules[entry]) || {}), flags)
+  // (the names the laws read, so an argument a law reads stays in the rule though the code ignores it)
+  const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*/g) ?? []))]
+  const optsFor = (entry?: string) => merge(merge({...shared, keep}, (entry && cfg.rules[entry]) || {}), flags)
   const one = async (entry?: string) => {
     const x = await extractOne(t, {...optsFor(entry), ...(entry ? {entry} : {})}), found = x.model?.name
     return !entry && found && cfg.rules[found] ? {entry: found, x: await extractOne(t, {...optsFor(found), entry: found})} : {entry, x}
@@ -231,8 +252,12 @@ async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: str
   const first = await one()
   if (first.x.ok) return [first]
   // (refused with no entry named: the rules gdp.toml names that the code has, each with its options)
-  const named = Object.keys(cfg.rules).filter(k => t.files.some(f => new RegExp(`\\b${k.replace(/[^\w]/g, '\\$&')}\\b`).test(fs.readFileSync(f, 'utf8'))))
-  if (named.length) return Promise.all(named.map(k => one(k)))
+  // (a rule gdp.toml names, where the file defines a class, struct or function of that name: never a word of its prose)
+  const named = Object.keys(cfg.rules).filter(k => t.files.some(f => new RegExp(`\\b(?:class|struct|def|defp|defmodule|module|fn|fun|func|function|interface|contract|object|impl|type|record|enum)\\s+(?:\\([^)]*\\)\\s*)?${k.replace(/[^\w]/g, '\\$&')}\\b`).test(fs.readFileSync(f, 'utf8'))))
+  // (and each class the refusal names: gdp.toml's rules beside the file's others, not instead of them)
+  const many = /several (?:classes|structs) (?:write their state|written by the file's functions) \(([^)]*)\)/.exec(first.x.refusals[0]?.what ?? '')?.[1]!.split(', ') ?? []
+  const fns0 = [...new Set(laws.filter(l => !l.cls && l.fn).map(l => l.fn!))]
+  if (named.length) return Promise.all([...new Set([...many, ...named, ...fns0])].map(k => one(k)))
   // (a contract's file names its contracts: refused with none named, the refusal is the rule's)
   if (t.lang === 'solidity') return [first]
   // (else each class the refusal names, and each function outside a class a law is stated on)
@@ -248,14 +273,30 @@ function scoped(file: string): Scoped[] {
   const text = fs.readFileSync(file, 'utf8'), lines = text.split('\n')
   return lawsIn(text, path.basename(file)).map(l => {
     let cls: string | undefined, fn: string | undefined
-    for (let i = l.line! - 1; i >= 0 && !cls; i--) { const m = /\b(?:class|struct|actor|defmodule|module|object|impl|record|interface|contract)\s+([\w.:]+)|\btype\s+(\w+)\s+struct\b/.exec(lines[i]!.replace(/(#|\/\/).*$/, '')); if (m) cls = (m[1] ?? m[2])!.split(/[.:]/).pop() }
+    // (the nearest enclosing class statement: its keyword at the start of a line, after modifiers, never a word in a
+    // docstring's or a comment's prose; in Python, at an indentation that encloses the law's)
+    const indent = (x: string) => /^\s*/.exec(x)![0].length, lawIndent = indent(lines[l.line! - 1]!), py = file.endsWith('.py')
+    for (let i = l.line! - 1; i >= 0 && !cls; i--) {
+      const m = /^\s*(?:(?:export|default|public|private|protected|internal|abstract|final|sealed|open|data|static|partial|pub(?:\([^)]*\))?|unsafe)\s+)*(?:class|struct|actor|defmodule|module|object|impl(?:<[^>]*>)?|record|interface|contract)\s+([\w.:]+)|^\s*type\s+(\w+)\s+struct\b/.exec(lines[i]!.replace(/(#|\/\/).*$/, ''))
+      if (m && (!py || indent(lines[i]!) < lawIndent)) cls = (m[1] ?? m[2])!.split(/[.:<]/).filter(Boolean).pop()
+    }
     // (in TypeScript, a law right above a declaration of a value, a schedule's say, is that value's)
-    // (at the top of the module, unindented: in no class, whatever class was declared above it)
     let top = false
     if (/\.[cm]?[jt]sx?$/.test(file)) { let i = l.line!; while (i < lines.length && /^\s*(\/\/|\/?\*|$)/.test(lines[i]!)) i++; const d = /^(\s*)(?:export\s+)?(?:const|let|var)\s+(\w+)\s*[=:]/.exec(lines[i] ?? ''); if (d) { fn = d[2]; top = d[1] === '' } }
-    for (let i = l.line! - 1; i < lines.length && !fn; i++) { const code = i === l.line! - 1 ? lines[i]!.replace(/(#|\/\/|--).*$/, '') : lines[i]!; const m = /\b(?:def|defp|fn|fun|func|function)\s+(?:\([^)]*\)\s*)?(?:self\.)?(\w+)|^\s*(?:(?:public|private|protected|static|final|synchronized|async|override|open|suspend|inline|virtual|const|[\w<>[\],?]+)\s+)*(\w+)\s*\(/.exec(code); if (m && !/^(if|for|while|switch|return|catch|new)$/.test(m[1] ?? m[2]!)) fn = m[1] ?? m[2] }
-    // (a Python function at the module's top level is in no class, whatever precedes it)
-    if (fn && file.endsWith('.py') && lines.slice(l.line! - 1).some(x => new RegExp(`^(?:async\\s+)?def\\s+${fn}\\b`).test(x))) cls = undefined
+    let fnLine = -1
+    for (let i = l.line! - 1; i < lines.length && !fn; i++) { const code = i === l.line! - 1 ? lines[i]!.replace(/(#|\/\/|--).*$/, '') : lines[i]!; const m = /\b(?:def|defp|fn|fun|func|function)\s+(?:\([^)]*\)\s*)?(?:self\.)?(\w+)|^\s*(?:(?:public|private|protected|static|final|synchronized|async|override|open|suspend|inline|virtual|const|[\w<>[\],?]+)\s+)*(\w+)\s*\(/.exec(code); if (m && !/^(if|for|while|switch|return|catch|new)$/.test(m[1] ?? m[2]!)) { fn = m[1] ?? m[2]; fnLine = i } }
+    // (a Python function at the module's top level is in no class, whatever precedes it: the def the law sits on, not a
+    // later one of the same name)
+    // (likewise in every language where a definition at the line's start is outside any class: Ruby's, Elixir's, a
+    // TypeScript, Kotlin, Swift or Rust free function; a Go func is its receiver's type's, or none)
+    const at0 = fn && fnLine >= 0 ? lines[fnLine]! : ''
+    // (a law indented inside a class's body, the class's last line, is the class's: a free function after the class
+    // isn't what it sits on)
+    if (fn && fnLine >= 0 && /\.(py|rb|ex|exs|ts|mts|tsx|js|mjs|kt|swift|rs)$/.test(file) && /^\S/.test(at0) && !/^\s*(?:class|struct|impl|module|defmodule|object|interface)\b/.test(at0)) {
+      if (/^\S/.test(lines[l.line! - 1]!)) cls = undefined
+      else if (cls) fn = undefined
+    }
+    if (fn && fnLine >= 0 && file.endsWith('.go')) { const rv = /^func\s+\(\s*\w*\s*\*?\s*(\w+)/.exec(at0); cls = rv ? rv[1] : /^func\s/.test(at0) ? undefined : cls }
     if (top) cls = undefined
     return {...l, ...(cls ? {cls} : {}), ...(fn ? {fn} : {})}
   })
@@ -268,6 +309,7 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
   // (the clock's unit, for durations in a law: the language's clock, or clock = "s" | "ms" in gdp.toml or --clock)
   const unit = o.clock ?? configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at)).all.clock ?? CLOCK[t.lang]
   const others = Object.fromEntries(rules.filter(r => r.x.ok).map(r => [r.entry ?? r.x.model?.name ?? '', r.x]))
+  const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
   const ctx: Ctx = {ms: o.ms, clock: unit === 's' ? 1 : unit === 'ms' ? 1000 : undefined, others, cites, cert: o.cert, file: path.relative(proc.cwd(), t.at) || t.at}
   for (const {entry, x} of rules) {
     const name = entry ?? (x.model?.name || undefined)
@@ -277,10 +319,14 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     // (the laws of this rule: all where it is the file's one, else those in its class or on it or its methods, and those
     // outside every class and function)
     const ms0 = new Set((x.names ?? []).map(n => n.method))
-    const mine = rules.length === 1 ? laws : laws.filter(l => (!l.cls && !l.fn) || (l.cls ? l.cls === name : l.fn === name || ms0.has(l.fn)))
+    // (a law in a class is that class's alone, an entry named or not)
+    // (a law on a function outside any class is that function's, where the file has a rule of its name, never a method
+    // of another rule that shares the name)
+    const fnRules = new Set(rules.map(r => r.entry ?? r.x.model?.name).filter(Boolean))
+    const mine = rules.length === 1 ? laws.filter(l => !name || (l.cls ? l.cls === name : !l.fn || l.fn === name || ms0.has(l.fn))) : laws.filter(l => (!l.cls && !l.fn) || (l.cls ? l.cls === name : l.fn === name || (ms0.has(l.fn) && !fnRules.has(l.fn))))
     if (!x.ok || !x.rule) { r.laws = mine.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read', why: 'the rule was refused', ms: 0})); continue }
     const ev = x.evidence
-    if (ev) r.checked = `checked against ${'probes' in ev ? `the code: ${ev.requests} requests from the start, ${ev.fromStates} from drawn states, ${ev.probes.steps} from the prover's witnesses` : `XState's own actor: ${(ev as unknown as {events: number}).events} events`}${ev.coverage.arms ? `, ${ev.coverage.hit} of ${ev.coverage.arms} branch arms` : ''}`
+    if (ev) r.checked = `checked against ${'probes' in ev ? `the code: ${ev.requests} requests from the start, ${ev.fromStates} from drawn states, ${ev.probes.steps} from the prover's witnesses` : `XState's own actor: ${(ev as unknown as {events: number}).events} events`}${ev.coverage.arms ? `, ${ev.coverage.hit} of ${ev.coverage.arms} branch arms` : ''}${'startsOutside' in ev && ev.startsOutside ? `; ${ev.startsOutside} starts whose constructor passes 2^53 - 1 left out (outside the rule's numbers: the claim is for starts within them)` : ''}`
     // (the rule's methods: the choice of method where it has several, else the one each name says)
     const evSort = x.model?.inputs.find(v => v.name === x.model?.event)?.sort
     const methods = new Set([...(x.names ?? []).filter(n => n.method).map(n => n.method!), ...(evSort?.k === 'choice' ? evSort.values : [])])
@@ -288,9 +334,32 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     const proven: unknown[] = []
     // (a law is known by its name: a name stated twice in one rule is refused, both times)
     const twice = (l: LawText) => stated.filter(m => m.name === l.name).map(m => m.where)
-    r.laws = stated.map(l => (twice(l).length > 1 ? {name: l.name, expr: l.expr, where: l.where, verdict: 'not read' as const, why: `a law of this name is stated twice (${twice(l).join(', ')}): a law is known by its name`, ms: 0} : prove(x, l, o.ms, proven, {...ctx, entry: name})))
+    // (from = "any": every law proven from every state the laws allow, not only those a run from the start reaches, for
+    // code that steps the rule from states it is handed (a restart's, a stored one): the laws about states proven
+    // together as one inductive set, then each law of a step from every state they allow; none rests on what the
+    // search found)
+    const from = ((o.from as string | undefined) ?? (name ? cfg.rules[name]?.from as string | undefined : undefined) ?? cfg.all.from as string | undefined) === 'any' ? 'any' as const : undefined
+    const kindOf = (l: LawText): string => { if (isTwoRuns(l.expr)) return 'two'; if (isLeadsTo(l.expr)) return 'leads'; try { return buildLaw(x, l, {clock: ctx.clock}).kind } catch { return 'bad' } }
+    const rank = (l: LawText) => ({law: 0, leads: 2}[kindOf(l)] ?? 1)
+    const order = [...stated.keys()].sort((a, b) => rank(stated[a]!) - rank(stated[b]!))
+    // (from any state, the laws about states as one inductive set: the largest the stated ones make, each law the
+    // kernel's step breaks taken out in turn (Houdini), the others proven together; one taken out is judged alone)
+    const inductive = from && x.rule ? houdini(x, stated.filter(m => twice(m).length === 1 && kindOf(m) === 'law'), o.ms, ctx.clock) : undefined
+    const outsOf: LawOut[] = []
+    for (const i of order) {
+      const l = stated[i]!
+      outsOf[i] = twice(l).length > 1 ? {name: l.name, expr: l.expr, where: l.where, verdict: 'not read' as const, why: `a law of this name is stated twice (${twice(l).join(', ')}): a law is known by its name`, ms: 0}
+        : prove(x, l, o.ms, proven, {...ctx, entry: name, ...(from ? {from, inductive, together: stated.filter(m => twice(m).length === 1 && kindOf(m) === 'law' && inductive!.has(m.name))} : {})})
+    }
+    r.laws = outsOf
     if (o.propose && x.model) { const p = propose(x, t.lang, o, proven, new Set(stated.map(l => l.expr.replace(/\s+/g, '')))); r.proposed = p.shown; r.brokenProposed = p.broken }
   }
+  // (every law stated is accounted for: one that no rule took is reported not read, with why, never dropped)
+  const told = new Set(outs.flatMap(r => r.laws.map(l => l.where)))
+  const lost = laws.filter(l => !told.has(l.where))
+  if (lost.length) outs.push({file: path.relative(proc.cwd(), t.at) || '.', lang: LANG_NAME[t.lang], entry: [...new Set(lost.map(l => l.cls ?? l.fn ?? '(the file)'))].join(', '), ok: false,
+    refusals: [{where: t.at, what: 'laws no rule read'}], notes: [], names: [], proposed: [],
+    laws: lost.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read' as const, why: `no rule read for it (${l.cls ? `class ${l.cls}` : l.fn ? `function ${l.fn}` : 'the file'}): name its entry (--entry, or [rules.<entry>] in gdp.toml)`, ms: 0}))})
   // (a citation of no law stated in the target: refused, as a law not read is)
   const named = new Set(laws.map(l => l.name))
   for (const c of cites.filter(c => !named.has(c.law))) outs[0]?.laws.push({name: c.law, expr: '', where: c.where, verdict: 'not read', why: `a citation of no law stated here (gdp: cite <law name>: <clause>): ${c.text}`, ms: 0})
@@ -299,23 +368,74 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
 // The unit of each language's clock (Date.now() and a Clock's millis count milliseconds; time.time(), DateTime.diff in
 // seconds and Instant's as_secs count seconds); the others say it in gdp.toml (clock = "s" or "ms").
 const CLOCK: Partial<Record<Lang, string>> = {python: 's', elixir: 's', rust: 's', ts: 'ms', java: 'ms', kotlin: 'ms'}
-type Ctx = {ms: number, clock?: number, others: Record<string, Extraction>, cites: Cite[], cert?: string, file: string, entry?: string}
+type Ctx = {ms: number, clock?: number, others: Record<string, Extraction>, cites: Cite[], cert?: string, file: string, entry?: string, from?: 'any', together?: LawText[], inductive?: Set<string>}
+// The largest set of these laws that is inductive from every state they allow together: each law whose step the
+// kernel breaks taken out, the rest tried again.
+function houdini(x: Extraction, ls: LawText[], ms: number, clock?: number): Set<string> {
+  let set = ls.flatMap(l => { try { const b = buildLaw(x, l, {clock}); return b.kind === 'law' ? [{l, law: b.law as Law}] : [] } catch { return [] } })
+  for (let i = 0; i <= ls.length && set.length; i++) {
+    let v: Verdict
+    try { v = proveRule(x.rule!, [...(x.invariants ?? []), ...set.map(s => s.law)], {search: {ms}, from: 'any'}) } catch { return new Set() }
+    if (v.proven && v.checked && !v.assumes) return new Set(set.map(s => s.l.name))
+    const bad = set.find(s => v.goal === s.l.name || v.goal?.startsWith(`${s.l.name} @`))
+    if (!bad) return new Set()
+    set = set.filter(s => s !== bad)
+  }
+  return new Set()
+}
 
 // A law proven: an invariant with the rule's own invariants beside it, a step law with them and the invariants proven
 // so far (each holds in every reachable state, so the step laws may assume them); a law about two runs with the rule's
 // invariants holding of each run (core/relational.ts). Its citations go beside it, and with --cert <dir> the proof, as
 // an interchange document whose meta holds them.
-function prove(x: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: Ctx): LawOut {
+// The rule a law is proven on: the extraction's, declaring the divisors the law reads that the code doesn't (x // k,
+// x % k: floor division and remainder by a constant, known by their facts), its machine made again with them.
+function ruleFor(x: Extraction, expr: string): Extraction {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const r = x.rule as any as {spec?: {arith?: Set<number>}, withDivisors: (...ks: number[]) => unknown} | undefined
+  if (!r) return x
+  const ks = [...expr.matchAll(/(?:\/\/|%)\s*(\d+)/g)].map(m => Number(m[1])).filter(k => k >= 1)
+  return ks.length ? {...x, rule: r.withDivisors(...ks) as never} : x
+}
+function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: Ctx): LawOut {
+  const x = ruleFor(x0, l.expr)
   const t0 = Date.now(), cites = ctx?.cites.filter(c => c.law === l.name).map(c => c.text) ?? []
   const base = {name: l.name, expr: l.expr, ...(l.where ? {where: l.where} : {}), ...(cites.length ? {cites} : {})}
-  const inv = x.invariants ?? [], search = {search: {ms}}
+  const inv = x.invariants ?? [], search = {search: {ms}, ...(ctx?.from ? {from: ctx.from} : {})}
+  // (whenever <from>, later <to>: proven with the rule's invariants and the laws proven so far, each helpful request fair)
+  if (isLeadsTo(l.expr)) {
+    let lt: unknown
+    try { lt = buildLeadsTo(x, l, {clock: ctx?.clock}) } catch (e) { if (e instanceof LawError) return {...base, verdict: 'not read', why: (e as Error).message, ms: 0}; throw e }
+    let v: Verdict
+    try { v = proveLeadsTo(x.rule! as never, [...inv, ...proven] as never, lt as never, {ms}) } catch (e) { return {...base, kind: 'leads to', verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
+    return {...base, kind: 'leads to', verdict: v.proven && v.checked ? 'proven' : 'unknown', ...(v.proven && v.checked ? {} : {why: [v.goal, v.stuck, v.why].filter(Boolean).join('; ') || 'not proven'}), ms: Date.now() - t0}
+  }
   let b: Built | undefined, two: TwoRunLaw | undefined
-  try { if (isTwoRuns(l.expr)) two = buildTwoRuns(x, l, ctx?.others); else b = buildLaw(x, l, {clock: ctx?.clock}) } catch (e) { if (e instanceof LawError || two === undefined && isTwoRuns(l.expr)) return {...base, verdict: 'not read', why: (e as Error).message, ms: 0}; throw e }
+  // (a law that can't be built is not read, with why: never the whole check aborted)
+  try { if (isTwoRuns(l.expr)) two = buildTwoRuns(x, l, ctx?.others); else b = buildLaw(x, l, {clock: ctx?.clock}) } catch (e) { return {...base, verdict: 'not read', why: (e as Error).message, ms: 0} }
   const kind = two ? 'two runs' as const : b!.kind
   let v: Verdict & {given?: Law[]}
-  try { v = two ? proveTwoRuns(two, {...search, invariants: [two.sides[0] === x.rule ? inv : (ctx?.others && Object.values(ctx.others).find(o => o.rule === two!.sides[0])?.invariants) ?? [], inv]}) : b!.kind === 'law' ? proveRule(x.rule!, [...inv, b!.law], search) : proveSteps(x.rule!, [...inv, ...proven] as never, [b!.law], search) }
+  // (from any state, a law about states outside the inductive set: false from the start (a run), or true there and
+  // needing a law beside it to hold from every state the laws allow)
+  if (ctx?.from && ctx.inductive && b?.kind === 'law' && !ctx.inductive.has(l.name)) {
+    let r: Verdict
+    try { r = proveRule(x.rule!, [...inv, b.law], {search: {ms}}) } catch (e) { return {...base, kind: 'law', verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
+    if (r.run) return {...base, kind: 'law', verdict: 'broken', run: runOf(x, r.run), ms: Date.now() - t0}
+    return {...base, kind: 'law', verdict: 'unknown', why: r.proven && r.checked ? `true in every state a run from the start reaches, not inductive from every state the laws allow (from = "any"): state the law it needs beside it${r.found?.laws?.length ? `: ${r.found.laws.map(f => f.text).join('; ')}` : ''}` : r.why ?? r.stuck ?? 'not proven', ...(r.found?.laws?.length ? {found: r.found.laws.map(f => f.text)} : {}), ms: Date.now() - t0}
+  }
+  // (from any state: a law about states proven with the others stated beside it, as one inductive set)
+  const beside = (): Law[] => (ctx?.together ?? []).filter(m => m.name !== l.name).flatMap(m => { try { const y = buildLaw(x, m, {clock: ctx?.clock}); return y.kind === 'law' ? [y.law] : [] } catch { return [] } })
+  try { v = two ? proveTwoRuns(two, {...search, invariants: [two.sides[0] === x.rule ? inv : (ctx?.others && Object.values(ctx.others).find(o => o.rule === two!.sides[0])?.invariants) ?? [], inv]}) : b!.kind === 'law' ? proveRule(x.rule!, [...inv, ...(ctx?.from ? beside() : []), b!.law], search) : proveSteps(x.rule!, [...inv, ...proven] as never, [b!.law], search) }
   catch (e) { return {...base, kind, verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
-  let verdict: LawOut['verdict'] = v.proven && v.checked ? 'proven' : v.run ? 'broken' : 'unknown', replayed: string | undefined
+  // (from any state: a step that breaks the law from a state the laws allow refutes it, reachable or not; the run that
+  // reaches one from the start, where the search from the start finds it, is shown with it)
+  if (ctx?.from && !v.proven && !v.run && v.stuck === 'sat' && v.witness && b) {
+    try { const r = b.kind === 'law' ? proveRule(x.rule!, [...inv, b.law], {search: {ms}}) : proveSteps(x.rule!, [...inv, ...proven] as never, [b.law], {search: {ms}}); if (r.run) v = {...v, run: r.run} } catch { /* the state stands alone */ }
+    if (!v.run) v = {...v, why: `broken from a state the laws allow (from = "any"), no run from the start found reaching it`}
+  }
+  const brokenAt = !!(ctx?.from && !v.proven && !v.run && v.stuck === 'sat' && v.witness)
+  let verdict: LawOut['verdict'] = v.proven && v.checked && !(ctx?.from && v.assumes) ? 'proven' : v.run || brokenAt ? 'broken' : 'unknown', replayed: string | undefined
+  if (ctx?.from && v.proven && v.assumes) v.why = `proven only in states a run from the start reaches (from = "any" asks for every state the laws allow): it needs ${v.assumes.laws.join('; ') || 'k-induction'}`
   // (a run the front end replays on the code: broken only where the code runs it so)
   if (verdict === 'broken' && x.replay && v.run && !two) { const r = x.replay(v.run, b!.law); if (r.ok) replayed = r.what; else { verdict = 'unknown'; v.why = `a run breaks it in the rule, not on the code: ${r.what}` } }
   // (a state the laws allow from which a step breaks the law, no run from the start reaching it: shown, not a break)
@@ -330,7 +450,7 @@ function prove(x: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: C
       : b!.kind === 'law' ? certify(x.rule!, [...inv, ...more, b!.law], [], meta) : certify(x.rule!, [...inv, ...proven as Law[], ...more], [b!.law], meta)
     if (doc) { fs.mkdirSync(ctx.cert, {recursive: true}); cert = path.join(ctx.cert, `${[ctx.entry ?? path.basename(ctx.file), l.name].join('.').replace(/[^\w.-]+/g, '-')}.json`); fs.writeFileSync(cert, JSON.stringify(doc)) }
   }
-  return {...base, kind, verdict, ...(replayed ? {replayed} : {}), ...(v.run && verdict === 'broken' ? {run: two ? pairRunOf(x, v.run, two) : runOf(x, v.run)} : {}), ...(verdict === 'unknown' ? {why: [v.why ?? v.stuck ?? 'not proven', ...(at.length ? [`a state the laws allow where a step breaks it, no run from the start found reaching it: ${at.join(', ')}`] : [])].join('; ')} : {}),
+  return {...base, kind, verdict, ...(ctx?.from && verdict === 'proven' ? {from: 'any' as const} : {}), ...(replayed ? {replayed} : {}), ...(v.run && verdict === 'broken' ? {run: two ? pairRunOf(x, v.run, two) : runOf(x, v.run)} : {}), ...(verdict === 'unknown' || (verdict === 'broken' && !v.run) ? {why: [v.why ?? v.stuck ?? 'not proven', ...(at.length ? [`a state the laws allow where a step breaks it, no run from the start found reaching it: ${at.join(', ')}`] : [])].join('; ')} : {}),
     ...(v.run && !two ? {assumes: assumedOf(x, v.run)} : {}), ...(found?.length ? {found} : {}), ...(cert ? {cert} : {}), ms: Date.now() - t0}
 }
 // Two runs as calls of the code: each request once, the values the two runs take apart as `a | b`, and the run b leaves
@@ -455,7 +575,7 @@ function printRule(r: RuleOut, o: Opts) {
     for (const n of r.names) out(`    ${paint('dim', `${label(n).padEnd(w)}  ${ROLE[n.role].padEnd(9)} ${n.rule}${n.none ? `${n.rule ? ', ' : ''}None: ${n.none}` : ''}${n.map ? ` (cells: ${n.map.fields.join(', ')}${n.map.tpl ? `; key ${JSON.stringify(n.map.tpl)}` : ''})` : ''}${n.role === 'const' ? String(n.value) : ''}`)}`)
   }
   const law = (l: LawOut, proposed: boolean) => {
-    out(`    ${paint(VERDICT[l.verdict], l.verdict)}${' '.repeat(Math.max(0, 9 - l.verdict.length))}${l.name}${proposed ? '' : `  ${paint('dim', `(${l.where})`)}`}`)
+    out(`    ${paint(VERDICT[l.verdict], l.verdict)}${' '.repeat(Math.max(0, 9 - l.verdict.length))}${l.name}${l.from ? ' (from any state)' : ''}${proposed ? '' : `  ${paint('dim', `(${l.where})`)}`}`)
     if (!proposed && l.verdict !== 'proven') out(`             ${l.expr}`)
     for (const c of l.cites ?? []) out(`             cites: ${c}`)
     if (l.cert) out(`             ${paint('dim', `certificate: ${l.cert}`)}`)
@@ -478,13 +598,14 @@ function printRule(r: RuleOut, o: Opts) {
 }
 const label = (n: Name) => (n.role === 'answer' ? `${n.code.split('.').pop()}(...)` : n.role === 'input' && n.method ? `${n.method}(${n.code})` : n.role === 'result' && n.method ? `${n.method}() result` : n.code)
 
-const USAGE = `gdp-wired check <file|dir>... [--entry X] [--methods a,b] [--failures kept] [--on-error discard] [--json] [--ms 10000] [--no-propose] [--clock s|ms] [--cert <dir>]
+const USAGE = `gdp-wired check <file|dir>... [--entry X] [--methods a,b] [--failures kept] [--on-error discard] [--json] [--ms 10000] [--no-propose] [--clock s|ms] [--cert <dir>] [--from any]
 
 Reads the rule in each file (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, Swift, C, C++, TypeScript, Effect, XState), checks it
 against the code by running both, proves the laws stated in the code (\`# gdp: law <name>: <expr>\`, \`// gdp: law ...\`,
 @GdpLaw("<name>: <expr>")) and proposes others. Laws about two runs: \`<secret> never reaches <fields>\`, \`isolated by <argument>\`,
 \`agrees with <Class>\`; a duration over the clock: \`now - t < 30 days\`; the clause a law answers: \`gdp: cite <law name>: <clause>\`;
---cert <dir> writes each proven law's certificate (its meta the citations). Exit code: 1 when a stated law is broken, 2 when
+--cert <dir> writes each proven law's certificate (its meta the citations); --from any (or from = "any" in gdp.toml, for every
+rule or one) proves every law from every state the laws allow, for code that steps the rule from states it is handed. Exit code: 1 when a stated law is broken, 2 when
 one couldn't be checked.`
 
 // Every target's rules and their laws, and the exit code (1: a stated law broken; 2: one not checked).

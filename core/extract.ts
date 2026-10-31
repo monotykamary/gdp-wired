@@ -92,6 +92,8 @@ export type Extraction = {
   // with, each read into its own; the methods read as several steps of each fiber (their steps, where each fiber's
   // place numbers them from).
   schedule?: unknown, schedules?: unknown[], fibers?: {name: string, steps: number, base: number}[],
+  // The module's constants bound to literals (a law reads them as the code does: `n <= LIMIT`).
+  consts?: Record<string, number | string | boolean>,
 }
 // A variable of the rule by the code's own path to it: a field (`cfg.limit`), a constructor's or a request's argument
 // (`team_object.max_budget`, an object's field the caller gives), a call of other code answered by the request (its
@@ -342,6 +344,11 @@ const isBool = (x: object, m?: Model): boolean => {
   if (o.op === 'cell' && m) return o.field === 'has' || [...m.maps, ...(m.seqs ?? []), ...(m.folds ?? []).map(d => ({name: d.run, fields: d.fields}))].some(d => d.name === o.map && d.fields.some(f => f.name === o.field && f.sort.k === 'bool'))
   return false
 }
+// (a choice by cases, `when(c, 'a', 'b')`: printed where it is read, through its variable, never hoisted as a number)
+const isChoice = (x: object): boolean => {
+  const o = x as {op: string, values?: unknown, a?: object, b?: object}
+  return o.op === 'lit' || (o.op === 'var' && Array.isArray(o.values)) || (o.op === 'ite' && (isChoice(o.a!) || isChoice(o.b!)))
+}
 // The env's names: those the terms read, the choices a literal is printed through, and the maps written.
 function withChoices(env: string, text: string, P: Printer, extra: string[] = []): string {
   const names = new Set(env.slice(1, -1).split(', ').filter(Boolean))
@@ -375,7 +382,12 @@ function hoist(m: Model, P: Printer, roots: object[]) {
   const names = new Set([...m.params, ...m.inputs, ...m.state].map(v => v.name).concat(m.maps.map(d => d.name)))
   for (const k of order) {
     const node = hoistNodes.get(k)!, size = k.length
-    if ((count.get(k) ?? 0) < 2 || size < 60) continue
+    if ((count.get(k) ?? 0) < 2 || size < 60 || isChoice(node)) continue
+    // (a product of integers kept at 0 or above only by the conditions the path is under: printed where it is read,
+    // under them, never hoisted out of them)
+    let guarded = false
+    walk(node, o => { if (o.op === 'mul' && !(natOK(o.a as N, {m, sorts: P.sorts, atoms: []}) && natOK(o.b as N, {m, sorts: P.sorts, atoms: []}))) guarded = true })
+    if (guarded) continue
     if (!isBool(node, m)) {
       const ctx: Ctx = {m, sorts: P.sorts, atoms: []}, free = natOK(node as N, ctx)
       const cells: string[] = []

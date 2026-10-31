@@ -259,6 +259,10 @@ for (const [lang, c] of Object.entries(CASES)) {
     expect(broken.run!.at(-1)!).toMatch(/hit/i)
     if (lang === 'xstate') expect(by('it stays open').verdict).toBe('proven')
     expect(exit).toBe(1)
+    // (every law stated in the code is reported, each once at least: none dropped by any language's reader)
+    const stated = Object.entries(c.files).flatMap(([f, text]) => lawsIn(text, f.split('/').pop()!).map(l => l.where))
+    const told = new Set(rules.flatMap(x => x.laws.map(l => l.where)))
+    expect(stated.filter(w => !told.has(w))).toEqual([])
   }, 300_000)
 }
 
@@ -419,3 +423,411 @@ test('color on a terminal only, NO_COLOR over a terminal, FORCE_COLOR on, and th
   expect(json.stdout).not.toContain('\x1b[')
 }, 180_000)
 
+
+// Two classes of one Python file with no bases (`class X:`), each its laws: a field named `state` read bare, a set read
+// before the step (`k in old(s)`); a variant that breaks one comes back broken with its run.
+;(TOOLS.python!() ? test : test.skip)('the CLI on two classes with no bases: their laws by class, a field named state, k in old(s)', async () => {
+  const dir = files({'fate.py': `
+from typing import Literal
+
+
+class Fate:
+    # gdp: law modal only after tries strikes: state != "modal" or fails >= tries
+
+    def __init__(self, tries: int):
+        if tries < 1:
+            raise ValueError("tries")
+        self.tries = tries
+        self.state: Literal["queued", "placed", "modal"] = "queued"
+        self.fails = 0
+        self.vm = ""
+        self.avoid: set[str] = set()
+
+    def place(self, vm: str) -> None:
+        if self.state == "queued":
+            self.state = "placed"
+            self.vm = vm
+
+    # gdp: law one strike per VM: fails == old(fails) or vm not in old(avoid)
+    def failed(self, vm: str) -> None:
+        if self.state != "placed" or self.vm != vm:
+            return
+        self.state = "queued"
+        if vm in self.avoid:
+            return
+        self.avoid.add(vm)
+        self.fails += 1
+        if self.fails >= self.tries:
+            self.state = "modal"
+
+
+class Counter:
+    # gdp: law at most cap: n <= cap
+
+    def __init__(self, cap: int):
+        if cap < 0:
+            raise ValueError("cap")
+        self.cap = cap
+        self.n = 0
+
+    def hit(self) -> None:
+        if self.n < self.cap:
+            self.n += 1
+`})
+  const {rules, exit} = await check([`${dir}/fate.py`], {ms: 5000, propose: false})
+  expect(rules.map(r => [r.entry, r.laws.map(l => [l.name, l.verdict])])).toEqual([
+    ['Fate', [['modal only after tries strikes', 'proven'], ['one strike per VM', 'proven']]], ['Counter', [['at most cap', 'proven']]]])
+  expect(exit).toBe(0)
+  // (the strike charged whatever VM: the law about distinct VMs broken, with its run)
+  writeFileSync(`${dir}/fate.py`, readAdv(`${dir}/fate.py`, 'utf8').replace('        if vm in self.avoid:\n            return\n', ''))
+  const b = await check([`${dir}/fate.py`], {ms: 5000, propose: false})
+  const law = b.rules[0]!.laws.find(l => l.name === 'one strike per VM')!
+  expect(law.verdict).toBe('broken')
+  expect(law.run!.join('\n')).toMatch(/failed\(vm=/)
+  expect(b.exit).toBe(1)
+}, 180_000)
+
+// A law about an argument the code ignores (the bug is that it does): the argument kept in the rule, the law broken.
+;(TOOLS.python!() ? test : test.skip)('the CLI on a law reading an argument the code ignores: broken, with its run', async () => {
+  const dir = files({'waits.py': `
+class Waits:
+    def __init__(self):
+        self.fails = 0
+
+    # gdp: law a wait counts only where a start failed: fails == old(fails) or start_failed
+    def waited(self, start_failed: bool) -> None:
+        self.fails += 1
+`})
+  const {rules, exit} = await check([`${dir}/waits.py`], {ms: 5000, propose: false})
+  expect(rules[0]!.laws.map(l => l.verdict)).toEqual(['broken'])
+  expect(rules[0]!.laws[0]!.run!.join('\n')).toMatch(/waited\(start_failed=false\)/)
+  expect(exit).toBe(1)
+}, 180_000)
+
+// from = "any": a law proven only with an invariant the search finds holds from the start, not from every state the laws
+// allow; stated beside it, the invariant makes the two one inductive set, proven from any state.
+;(TOOLS.python!() ? test : test.skip)('the CLI from any state: a law needing an invariant refuted from a state alone, proven with it stated', async () => {
+  const code = (helper: boolean) => `
+class Mirror:
+    # gdp: law b within 3: b <= 3
+${helper ? '    # gdp: law a within 3: a <= 3\n' : ''}
+    def __init__(self):
+        self.a = 0
+        self.b = 0
+
+    def hit(self) -> None:
+        if self.a < 3:
+            self.a += 1
+        self.b = self.a
+`
+  const dir = files({'mirror.py': code(false), 'gdp.toml': 'from = "any"\n'})
+  const a = await check([`${dir}/mirror.py`], {ms: 5000, propose: false})
+  // (true from the start, not inductive alone: unknown, the law it needs said)
+  expect(a.rules[0]!.laws.map(l => l.verdict)).toEqual(['unknown'])
+  expect(a.rules[0]!.laws[0]!.why).toMatch(/not inductive from every state the laws allow/)
+  const reach = await check([`${dir}/mirror.py`], {ms: 5000, propose: false, from: 'reachable'})
+  expect(reach.rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
+  writeFileSync(`${dir}/mirror.py`, code(true))
+  const b = await check([`${dir}/mirror.py`], {ms: 5000, propose: false})
+  expect(b.rules[0]!.laws.map(l => [l.verdict, l.from])).toEqual([['proven', 'any'], ['proven', 'any']])
+}, 180_000)
+
+// Laws of "eventually" in the code's comments: `<from> leads to <to> by <rank> via [<cond> ->] <method>(<arg> = <value>)`,
+// an episode of the class (a subclass whose requests gdp.toml names) where other requests would undo the progress.
+;(TOOLS.python!() ? test : test.skip)('the CLI on laws of "eventually": proven with their rank and helpful requests, not where a step undoes it', async () => {
+  const dir = files({'retry.py': `
+from typing import Literal
+
+
+class Retry:
+    # gdp: law a waiting job ends: state == "waiting" leads to state != "waiting" by tries - fails via fail(boat = true)
+
+    def __init__(self, tries: int):
+        if tries < 1:
+            raise ValueError("tries")
+        self.tries = tries
+        self.fails = 0
+        self.state: Literal["waiting", "done", "gave_up"] = "waiting"
+
+    def fail(self, boat: bool) -> None:
+        if self.state != "waiting" or not boat:
+            return
+        self.fails += 1
+        if self.fails >= self.tries:
+            self.state = "gave_up"
+
+    def finish(self) -> None:
+        if self.state == "waiting":
+            self.state = "done"
+
+
+class Resettable(Retry):
+    # gdp: law a job of a resettable kind ends: state == "waiting" leads to state != "waiting" by tries - fails via fail(boat = true)
+    def reset(self) -> None:
+        self.fails = 0
+`})
+  const {rules} = await check([`${dir}/retry.py`], {ms: 5000, propose: false})
+  const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [`${r.entry}: ${l.name}`, l.verdict])))
+  expect(v['Retry: a waiting job ends']).toBe('proven')
+  expect(v['Resettable: a job of a resettable kind ends']).toBe('unknown')
+}, 180_000)
+
+
+// No law stated is dropped: a class that writes no state is read (its law a decision's); a law on a method is the
+// class's even where a module function of its name comes later; one that no rule takes is reported not read, exit 2.
+;(TOOLS.python!() ? test : test.skip)('the CLI accounts for every law: a stateless class, a later function of a method\'s name, a law no rule takes', async () => {
+  const dir = files({'m.py': `
+class Ok:
+    def __init__(self):
+        self.n = 0
+
+    def hit(self) -> None:
+        self.n += 1
+
+
+class Gate:
+    # gdp: law nothing but health answers without the token: health or token_ok or not result
+    def allows(self, health: bool, token_ok: bool) -> bool:
+        return health or token_ok
+
+
+class Store:
+    def __init__(self):
+        self.n = 0
+
+    # gdp: law a made tree was asked for: not result or ok
+    def make_tree(self, ok: bool) -> bool:
+        if ok:
+            self.n += 1
+        return ok
+
+
+def make_tree(tid: str) -> dict:
+    return {}
+
+
+class Spin:
+    def __init__(self):
+        self.n = 0
+
+    # gdp: law spins stop: n >= 0
+    def spin(self) -> None:
+        while self.n < 3:
+            self.n += 1
+`})
+  const {rules, exit} = await check([`${dir}/m.py`], {ms: 5000, propose: false})
+  const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
+  expect(v['nothing but health answers without the token']).toEqual(['Gate', 'proven'])
+  expect(v['a made tree was asked for']).toEqual(['Store', 'proven'])
+  expect(v['spins stop']![1]).toBe('not read')
+  const stated = lawsIn(readAdv(`${dir}/m.py`, 'utf8'), 'm.py').map(l => l.where), told = new Set(rules.flatMap(r => r.laws.map(l => l.where)))
+  expect(stated.filter(w => !told.has(w))).toEqual([])
+  expect(exit).toBe(2)
+}, 180_000)
+
+// A start whose constructor arithmetic passes 2^53 - 1 is outside the rule's numbers, as a step past them is: left out of
+// the check (and said so), not a refusal of the class.
+;(TOOLS.python!() ? test : test.skip)('the CLI on a constructor whose arithmetic may pass 2^53: those starts left out, the class read', async () => {
+  const dir = files({'t.py': `
+class Tries:
+    # gdp: law never past its tries: made <= max_tries or made == 0
+    def __init__(self, max_tries: int, max_wait: int, t0: float):
+        self.max_tries = max_tries
+        self.deadline = t0 + max_wait
+        self.made = 0
+
+    def another(self, now: float) -> bool:
+        return self.made < self.max_tries and now <= self.deadline
+
+    def never_up(self) -> None:
+        if self.made < self.max_tries:
+            self.made += 1
+`})
+  const {rules} = await check([`${dir}/t.py`], {ms: 5000, propose: false})
+  expect(rules[0]!.ok).toBe(true)
+  expect(rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
+}, 180_000)
+
+// What the code names, a law names the same: a field named failed (the keyword yields to it), a module's constant, a
+// class found by its statement (never a word of a docstring); a sum it can't take is a law not read, never a crash.
+;(TOOLS.python!() ? test : test.skip)('the CLI reads laws in the code\'s names: a field named failed, a module constant, a class not taken from prose; an integer sum read', async () => {
+  const dir = files({'n.py': `
+LIMIT = 3
+
+
+class Creation:
+    # gdp: law every start boat made no VM for is given back: refunded == failed
+    # gdp: law at most LIMIT asks: asks <= LIMIT
+
+    def __init__(self):
+        self.failed = 0
+        self.refunded = 0
+        self.asks = 0
+
+    def made(self, asked: int, got: int) -> None:
+        """(the record holds what boat made)"""
+        if self.asks < LIMIT:
+            self.asks += 1
+        if got < asked:
+            self.failed += asked - got
+            self.refunded += asked - got
+
+
+class Pending:
+    def __init__(self):
+        self.pending: dict[str, int] = {}
+        self.need = 0
+
+    # gdp: law the need is the pending sum: need == sum(pending)
+    def add(self, name: str, slots: int) -> None:
+        if name in self.pending:
+            return
+        self.pending[name] = slots
+        self.need += slots
+`, 'gdp.toml': 'from = "any"\n'})
+  const {rules} = await check([`${dir}/n.py`], {ms: 5000, propose: false})
+  const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
+  expect(v['every start boat made no VM for is given back']).toEqual(['Creation', 'proven'])
+  expect(v['at most LIMIT asks']).toEqual(['Creation', 'proven'])
+  // (a sum of a map of integers: its positive parts less its negative parts; from any state it needs the laws about them)
+  expect(v['the need is the pending sum']![1]).not.toBe('not read')
+}, 180_000)
+
+// What supercomputer's rules hit, each read as the code means it: a constant bound to another's name, a field never
+// shadowed by another method's argument, a product of factors the path keeps at 0 or above, a comparison with x // k, a
+// sum of a map of integers after a step, a function's law never a same-named method's, a class's last law its own, a
+// gdp.toml rule only where the file defines it; and from any state, the largest inductive set of laws proven, a law
+// outside it said to need one beside it.
+;(TOOLS.python!() ? test : test.skip)('the CLI on supercomputer\'s shapes: aliases, shadowing, guarded products, floor division, integer sums, scoping, Houdini', async () => {
+  const dir = files({'s.py': `
+IDLE = 60
+LONG = IDLE
+
+
+# gdp: law a demand keeps a VM no longer than the idle time: not declared or result <= 60
+def release_ttl(declared: bool) -> int:
+    if declared:
+        return LONG
+    return IDLE
+
+
+# gdp: law a share of a count never exceeds the count: share_pct > 100 or limit <= 0 or result <= limit
+def ceiling(share_pct: int, limit: int) -> int:
+    if share_pct <= 0 or limit <= 0:
+        return 0
+    return share_pct * limit // 100
+
+
+# gdp: law a batch's budget is within the starts left: result <= max(0, left)
+def budget(left: int, share_pct: int, cap: int) -> int:
+    if share_pct < 0 or cap < 0:
+        raise ValueError("at least 0")
+    if left <= 0:
+        return 0
+    k = min(left, max(2, share_pct * left // 100))
+    if cap > 0:
+        return min(k, cap)
+    return k
+
+
+class Entry:
+    def __init__(self):
+        self.up = True
+        self.lease = "none"
+        self.until = 0
+
+    # gdp: law a warm lease never takes a VM about to stop: lease == old(lease) or (up and until > now + 8)
+    def lease_warm(self, now: int) -> None:
+        if self.up and self.until > now + 8:
+            self.lease = "ours"
+
+    def release(self, now: int, up: bool) -> None:
+        self.lease = "none"
+        self.up = up
+
+
+class Grow:
+    def __init__(self, vms: int):
+        self.vms = vms
+        self.free = vms
+
+    # gdp: law a step grows by a quarter of the pool at most: result <= 1 or result <= vms // 4
+    def grow(self) -> int:
+        if self.free <= 0:
+            return 0
+        k = min(self.free, max(1, self.vms // 4))
+        self.free -= k
+        return k
+
+
+class Pending:
+    def __init__(self):
+        self.pending: dict[str, int] = {}
+        self.need = 0
+
+    def add(self, name: str, slots: int) -> None:
+        if slots < 0 or name in self.pending:
+            return
+        self.pending[name] = slots
+        self.need += slots
+
+    # gdp: law a row back keeps the need the pending sum: need == sum(pending)
+    def back(self, name: str) -> None:
+        if name not in self.pending:
+            return
+        self.need -= self.pending.pop(name)
+
+
+class Item:
+    # gdp: law finished at most once: finishes <= 1
+    # gdp: law taken at most once more than lost: runs <= tries + 1
+
+    def __init__(self):
+        self.queued = True
+        self.runs = 0
+        self.tries = 0
+        self.finishes = 0
+
+    def take(self) -> None:
+        if self.queued:
+            self.queued = False
+            self.runs += 1
+
+    def lose(self) -> None:
+        if not self.queued and self.tries == 0:
+            self.tries = 1
+            self.queued = True
+        elif not self.queued and self.finishes == 0:
+            self.finishes = 1
+
+
+class Holder:
+    """Holds the time budgets."""
+
+    def __init__(self):
+        self.n = 0
+
+    def hit(self) -> None:
+        self.n += 1
+
+    # gdp: law at most one hold a call: n <= old(n) + 1
+
+
+def hit(x: int) -> int:
+    return x
+`, 'gdp.toml': 'from = "any"\n[rules.budgets]\n'})
+  const {rules} = await check([`${dir}/s.py`], {ms: 8000, propose: false})
+  const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
+  expect(v['a demand keeps a VM no longer than the idle time']).toEqual(['release_ttl', 'proven'])
+  expect(v['a share of a count never exceeds the count']).toEqual(['ceiling', 'proven'])
+  expect(v['a warm lease never takes a VM about to stop']).toEqual(['Entry', 'proven'])
+  expect(v["a batch's budget is within the starts left"]).toEqual(['budget', 'proven'])
+  expect(v['a step grows by a quarter of the pool at most']).toEqual(['Grow', 'proven'])
+  expect(v['finished at most once']).toEqual(['Item', 'proven'])
+  expect(v['taken at most once more than lost']).toEqual(['Item', 'unknown'])
+  expect(v['at most one hold a call']).toEqual(['Holder', 'proven'])
+  expect(rules.some(r => r.entry === 'budgets')).toBe(false)
+  // (a sum of integers after a step: from the start, the search finds the sums' laws; from any state it needs them)
+  const reach = await check([`${dir}/s.py`], {ms: 8000, propose: false, from: 'reachable', entry: 'Pending'})
+  expect(reach.rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
+}, 300_000)
