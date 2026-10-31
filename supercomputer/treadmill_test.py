@@ -62,5 +62,34 @@ class FuzzClasses(unittest.TestCase):
         self.assertEqual(c(1, '(fail) t [600000ms]\nerror: Test "t" timed out after 600000ms'), "infra")
 
 
+class FillYields(unittest.TestCase):
+    """11-01 04:24: every fuzz kind at its day's cap since 00:10, the fill launched nothing, the VMs above the floor
+    had nothing to run, the drain let 84 go and the next wave resumed 32 (churn). The fill's batch yields the caps."""
+
+    def soundness(self):
+        s = object.__new__(tm.Soundness)
+
+        class TM:
+            state, batches, chains = {}, [], {"fuzz", "xfuzz", "mutants"}
+
+            def save_state(self):
+                pass
+        s.tm, s.commit, s.mutants, s.hash, s.tree = TM(), "c" * 40, [], "h", HERE.parent
+        import types
+        real = tm.Batch, tm.tracked
+        tm.Batch, tm.tracked = (lambda _tm, label, chain, items, vms, *a, **k: types.SimpleNamespace(items=items, vms=vms)), (lambda *a, **k: None)
+        self.addCleanup(lambda: setattr(tm, "Batch", real[0]) or setattr(tm, "tracked", real[1]))
+        s.today_counts = lambda: {**{k: tm.FUZZ_PER_DAY for k in tm.FUZZ}, **{"x:" + l: tm.XFUZZ_PER_DAY for l in tm.XFUZZ}}
+        return s
+
+    def test_capped_batch_is_empty(self):
+        self.assertIsNone(self.soundness().batch(4))
+
+    def test_the_fill_yields_the_caps(self):
+        b = self.soundness().batch(4, uncapped=True)
+        self.assertIsNotNone(b)
+        self.assertGreaterEqual(len(b.items), 4 * tm.SLOTS)
+
+
 if __name__ == "__main__":
     unittest.main()
