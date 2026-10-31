@@ -6,7 +6,7 @@
 import {expect, test} from 'bun:test'
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {checkRefutation, checkWitness} from '../core/check.ts'
-import {type Fold, type Goal, type Loop, type QE, type QGoal, type RecurCases, type StepLaw, type Tree, check, checkQTree, checkLaws, checkRecur, checkStepLaws, foldObligations, historyMachine, loopObligations, obligations, progressObligations, scope, stepLawObligations} from './kernel.ts'
+import {type Fold, type Goal, type Loop, type QE, type QGoal, type RecurCases, type StepLaw, type Tree, check, checkQTree, checkLaws, checkRecur, checkStepLaws, foldObligations, historyMachine, loopObligations, obligations, progressObligations, scope, stepLawObligations, termColumn} from './kernel.ts'
 import {grow, proveLaws} from './prove.ts'
 
 const x = (name: string): E => ({op: 'var', name}), n = (value: number): E => ({op: 'const', value})
@@ -304,4 +304,66 @@ test('a fold\'s names are not its children\'s copies: a param l_size read as the
   const fold: Fold = {name: 'capped', params: ['l_size'], inputs: [], leaf: {size: n(0)}, node: {size: x('l_size')}}
   expect(() => foldObligations(fold, [{name: 'size <= 1', holds: le(x('size'), n(1))}])).toThrow(/copy/)
   expect(() => foldObligations({...fold, params: ['p']}, [{name: 'size <= 1', holds: le(x('size'), n(1))}])).not.toThrow()
+})
+
+// The mutation run's survivors of 2026-10-31 (kernel/MUTANTS.md): a certificate or a machine each mutant answers
+// otherwise than the kernel. The first two are certificates of something false that the mutant accepts.
+test('termRows: a column whose sides the path leaves without a form gives no row', () => {
+  // z >= 1 and min(x, if(z >= 1, 2^60, y)) >= 1 hold at x = y = z = 1. Where z >= 1 the if's form is 2^60's, none (past
+  // a safe integer), so the min's column has no bounds there; read as min(x, nothing) it was col <= x and col <= 0.
+  const T: E = {op: 'min', a: x('x'), b: {op: 'if', c: le(n(1), x('z')), then: n(2 ** 60), else: x('y')}}, col = termColumn(T)
+  const goal: Goal = {name: 'a column without bounds', hyps: [le(n(1), x('z')), le(n(1), T)]}
+  const tree: Tree = {split: {[col]: 1},
+    yes: {leaf: [{kind: 'input', index: 0}, {kind: 'input', index: 2}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]},
+    no: {split: {1: 1, z: -1},
+      yes: {leaf: [{kind: 'input', index: 0}, {kind: 'input', index: 4}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]},
+      no: {leaf: [{kind: 'input', index: 1}, {kind: 'input', index: 2}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]}}}
+  expect(check(goal, tree)).toBe(false)
+})
+
+test('products: a factor that is not a safe integer gives no product, so a fractional split stays unusable', () => {
+  // x = 3 holds 3 <= x and x <= 3. A split on x/2 - 1 <= 0 is no split over the integers (x = 3 is on neither side), and
+  // its rows can't be read; times 2 (the row 0 <= 2) they would be x <= 2 and x >= 4, each refuting one side.
+  const goal: Goal = {name: 'fractional split', hyps: [le(n(3), x('x')), le(x('x'), n(3)), le(n(0), n(2))]}
+  const tree: Tree = {split: {x: 0.5, 1: -1},
+    yes: {leaf: [{kind: 'input', index: 5}, {kind: 'input', index: 1}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}], products: [[0, 3]]},
+    no: {leaf: [{kind: 'input', index: 5}, {kind: 'input', index: 2}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}], products: [[0, 3]]}}
+  expect(check(goal, tree)).toBe(false)
+})
+
+test('a term is one column however its parts list their fields', () => {
+  // 1 <= min(x, y) and min(x, y) <= 0, the second built with its parts' fields in another order: one column, refuted.
+  const goal: Goal = {name: 'one column', hyps: [le(n(1), {op: 'min', a: x('x'), b: x('y')}), le({op: 'min', a: {name: 'x', op: 'var'} as E, b: x('y')}, n(0))]}
+  expect(check(goal, {leaf: [{kind: 'input', index: 0}, {kind: 'input', index: 1}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]})).toBe(true)
+})
+
+test('a multiple by 0 is natural', () => {
+  expect(() => obligations({...counter, step: {state: {s: {op: 'mul', k: 0, a: x('s')}}}}, [law])).not.toThrow()
+})
+
+test('a progress law: its when, request and precondition read what they may, all of it', () => {
+  const grow: Machine = {name: 'grow', params: ['cap'], inputs: ['k'], state: {s: n(0)}, step: {state: {s: plus(x('s'), x('k'))}}}
+  const p = {name: 'grows', when: le(n(0), n(0)), then: le(n(0), n(0)), request: {k: n(1)}}
+  expect(() => progressObligations(grow, [], {}, p)).not.toThrow()
+  expect(() => progressObligations(grow, [], {}, {...p, when: le(x('k'), x('cap'))})).toThrow() // the request's input beside a param
+  expect(() => progressObligations(grow, [], {}, {...p, request: {k: plus(x('k'), x('cap'))}})).toThrow()
+  expect(() => progressObligations({...grow, pre: {op: '=', a: x('s'), b: n(0)}}, [], {}, p)).toThrow() // a precondition about the state
+  expect(() => progressObligations({...grow, pre: le(x('s'), x('cap'))}, [], {}, p)).toThrow() // the state beside a param
+  // And a history's record goals, which read the precondition where no scope has: an input, alone or beside a param.
+  const h: Machine = {name: 'h', params: ['p'], inputs: ['a', 'q'], state: {}, step: {}, history: {keep: le(n(0), n(0)), record: ['a'], sums: {u: x('r.a')}, queries: {q: x('r.a')},
+    relations: [{when: le(n(0), n(0)), holds: le(x('u'), x('q'))}]}}
+  expect(() => historyMachine(h)).not.toThrow()
+  expect(() => historyMachine({...h, pre: le(x('a'), n(1))})).toThrow()
+  expect(() => historyMachine({...h, pre: le(x('a'), x('p'))})).toThrow()
+})
+
+test('a flag over two keys compares them plainly anywhere, in a comparison or a term', () => {
+  const at = (key: E): E => ({op: 'get', map: 'I', key}), k1 = x('k'), j = x('j'), lt = (a: E, b: E): C => ({op: '<', a, b}), eq = (a: E, b: E): C => ({op: '=', a, b})
+  const bit = (c: C): E => ({op: 'if', c, then: n(1), else: n(0)})
+  const body: C = {op: 'or', xs: [lt(k1, j), le(k1, j), eq(k1, j),
+    le(at(k1), plus(bit(lt(k1, j)), at(j))), le(at(k1), {op: 'sub', a: at(j), b: bit(le(k1, j))}), le(at(k1), {op: 'min', a: bit(eq(k1, j)), b: at(j)}),
+    le(at(k1), {op: 'max', a: bit(lt(k1, j)), b: at(j)}), le(at(k1), {op: 'prod', a: bit(lt(k1, j)), b: at(j)})]}
+  const m: Machine = {name: 'pairs', params: [], inputs: ['a'], state: {r: n(0)}, inputMaps: ['I'],
+    step: {flags: {f: {op: 'all', key: 'k', keys: ['j'], c: body}}, state: {r: {op: 'if', c: {op: 'flag', name: 'f'}, then: n(1), else: n(0)}}}}
+  expect(() => scope(m)).not.toThrow()
 })
