@@ -2738,11 +2738,12 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     const lists = finals.map(f => { const o = f.path.heap.get(id) as Extract<Obj, {k: 'map'}> | undefined; return [...(o?.pre ?? []), ...(o?.w ? [o.w] : [])].map(cw) })
     // (a failure kept, the cell as it was there)
     const fix = (i: number, w2: CellW, base: (k: K) => CellW): CellW => { if (!kept || carried) return w2; const fl = failedOf(finals[i]!), b = base(w2.key); return {key: w2.key, has: I.bite(fl, b.has, w2.has), vals: Object.fromEntries(Object.entries(w2.vals).map(([f, t]) => [f, iteTerm(fl, b.vals[f]!, t)]))} }
-    // (several keys written by some method: every method's writes padded to one length, each place by the method)
-    const padded = padWrites(lists, k => { const c = g.baseCell(d, k); return {has: c.has, vals: Object.fromEntries([...c.vals].map(([f2, v]) => [f2, termOf(v, at)]))} })
-    const ws = padded[0]!.length > 1 ? padded[0]!.map((_, j) => mapWritesOf(g, d, finals.map(f => f.sel), padded.map(l => l[j]), fix)!) : [mapWritesOf(g, d, finals.map(f => f.sel), lists.map(l => l[0]), fix)]
-    const w = ws.at(-1)
-    if (w) mapWrites[d.name] = ws.length > 1 ? {...w, pre: ws.slice(0, -1) as CellW[]} : w
+    // (several keys written by some method: each method's writes under its own selector, so a key compared is the
+    // request's, never one of two by the method)
+    const base = (k: K): CellW => { const c = g.baseCell(d, k); return {key: k, has: c.has, vals: Object.fromEntries([...c.vals].map(([f2, v]) => [f2, termOf(v, at)]))} }
+    const ws: (CellW & {when?: B})[] = lists.some(l => l.length > 1) ? finals.flatMap((f, i) => lists[i]!.map(w2 => ({...fix(i, w2, base), when: f.sel}))) : []
+    const w = ws.length ? ws.at(-1) : mapWritesOf(g, d, finals.map(f => f.sel), lists.map(l => l[0]), fix)
+    if (w) mapWrites[d.name] = ws.length > 1 ? {...w, pre: ws.slice(0, -1)} : w
   }
   // What each method returns, and whether it failed: the step's result.
   const results: Model['results'] = {}, resultKinds: StepRead['results'] = {}
@@ -2823,7 +2824,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
   const read = new Set<string>()
   const mention = (t: object) => { for (const n of I.varsOf(t as N).vars) read.add(n) }
   for (const t of [...Object.values(writes), ...Object.values(init)]) mention(t.e)
-  for (const w of Object.values(mapWrites).flatMap(x => [x, ...(x.pre ?? [])])) { mention(w.has); mention(w.key); for (const t of Object.values(w.vals)) mention(t.e) }
+  for (const w of Object.values(mapWrites).flatMap(x => [x, ...(x.pre ?? [])])) { mention(w.has); mention(w.key); if (w.when) mention(w.when); for (const t of Object.values(w.vals)) mention(t.e) }
   mention(refuseB); mention(pre)
   const unread = g.inputs.filter(v => !read.has(v.name) && v.name !== ev?.name)
   if (unread.length) g.notes.add(`read by the code but by no term of the rule (given their sort's zero, or None, by the check): ${unread.map(v => v.name).join(', ')}`)

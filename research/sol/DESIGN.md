@@ -49,12 +49,21 @@ request brings ether past W (none exists).
 
 ## Addresses, mappings, msg
 
-Addresses are naturals below 2^19 compared only by equality (ordering them is refused), address(0) is 0, no request
-comes from it: the code is symmetric in them, so a law about runs among fewer than 2^19 accounts is the rule's. The bound
-is the rule's runtimes' (they write a map at every key only below a million keys, a transfer's two cells) and pairs:
-a mapping of mappings keyed by two addresses is one map keyed by a·2^19 + b (allowances). A mapping's cell is held
-where it isn't zero (Solidity's storage: a zero written is no cell). msg.sender is an input of every request, msg.value
-of a payable one, block.timestamp the request's time.
+Addresses are naturals compared only by equality (ordering them is refused), address(0) is 0, no request comes from it:
+the code is symmetric in them. A mapping's cell is held where it isn't zero (Solidity's storage: a zero written is no
+cell). msg.sender is an input of every request, msg.value of a payable one, block.timestamp the request's time.
+
+A mapping of mappings (ERC-20's allowances) is not in the rule's state: each cell read is any value of its type, an input
+of the request (one a step: a second read in one step is refused, so two reads are never made one), and its writes are
+left out. That is more runs than the code has, so a law proven holds of the code, and a law can't read such a map. The
+check sets every cell of the addresses the object has seen to the request's value before a method that reads it. (Keyed
+by one number, a·2^19 + b, the map was exact, but the kernel took minutes on a step reading it where a map keyed by
+one address took 3 s: research/sol/pilot/Allow1.sol, Allow2.sol.)
+
+Two writes of one map in a step (a transfer's two cells) are printed as `M.each(k$ => ...)`, a write at every key. The
+rule's compiled runtime wrote one densely up to its last breakpoint (a million keys at most); it now follows the
+interpreter's stretches (core/machine.ts `$dense`: each breakpoint and one key of each stretch between, a stretch filled
+only where its value differs from the one past the last), so a key of 2^32 costs what a key of 3 does.
 
 ## Re-entrancy: the environment that calls back
 
@@ -81,6 +90,10 @@ calls and makes them from inside, up to the return (`ok`), then returns or rever
 state is compared with the rule's, and every call of the script must have succeeded. The extraction's own check replays
 the rule's random runs (40 by default, each up to 12 steps with every pending call returned); the CLI replays every run
 that breaks a law.
+
+**The check's probes.** A step's refusal condition holds at no step the rule takes, so its probe (refute "it never
+holds") is a proof; on ERC20Mock one such proof ran past 8 minutes. The Solidity front end probes the branches'
+conditions only (`check.probes: 'writes'`, core/extract-check.ts), 30 of them there, each answered in milliseconds.
 
 ## Measured
 
