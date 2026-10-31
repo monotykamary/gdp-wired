@@ -1580,15 +1580,15 @@ def report(day: str) -> dict:
             mine = [r for r in allrows if r["commit"] == c and r["bench"] == b]
             if not mine:
                 continue
-            first = {}
-            for r in sorted(mine, key=lambda r: r["t"]):
+            first = {}  # (each task's solving config with the least budget, the base first: chains land in any order)
+            for r in sorted(mine, key=lambda r: (budget_of(r["config"]) if r["config"][:1].isdigit() else 10**6, variant_of(r["config"]) not in ("base", "timing", "full"), r["t"])):
                 if r["solved"] and r["task"] not in first:
                     first[r["task"]] = r["config"]
             at60 = {t for t, cfg in first.items() if budget_of(cfg) == 60}
             new = {t: cfg for t, cfg in first.items() if budget_of(cfg) > 60}
             st = jl_one(TM / "commits" / c[:12] / b / "state.json")
             sweeps.append({"commit": c, "bench": b, "tasks": len({r["task"] for r in mine}), "solved60": len(at60), "past60": len(new), "round": st.get("round"),
-                           "of": len(st.get("plan", [])) or "?", "done": st.get("done"), "same": st.get("same")})
+                           "of": len(st.get("plan", [])) or "?", "done": st.get("done"), "same": st.get("same"), "swept": bool(st)})
             fams: dict = {}
             for t, cfg in new.items():
                 fams.setdefault(family(t), {}).setdefault(cfg, []).append(t)
@@ -1597,9 +1597,14 @@ def report(day: str) -> dict:
                 best = max(by.items(), key=lambda kv: len(kv[1]))
                 note = (f"candidate for a general change: {best[0]} wins {len(best[1])} of {n}" if variant_of(best[0]) != "base" and len(best[1]) >= 3 and len(best[1]) >= 0.6 * n else "")
                 solves.append({"commit": c, "bench": b, "family": f, "by": {k: v for k, v in by.items()}, "n": n, "note": note})
-            prev = [p for p in {r["commit"] for r in allrows if r["bench"] == b and r["config"] == "60:base" and r["commit"] != c and not r["commit"].startswith("tree:")}]
+            # (the commit before: the newest whose first 60 s row came before this one's)
+            t60 = {}
+            for r in allrows:
+                if r["bench"] == b and r["config"] == "60:base" and not r["commit"].startswith("tree:"):
+                    t60[r["commit"]] = min(t60.get(r["commit"], r["t"]), r["t"])
+            prev = [x for x in t60 if x != c and c in t60 and t60[x] < t60[c]]
             if prev:
-                p = max(prev, key=lambda x: max(r["t"] for r in allrows if r["commit"] == x))
+                p = max(prev, key=lambda x: t60[x])
                 was = {r["task"] for r in allrows if r["commit"] == p and r["bench"] == b and r["config"] == "60:base" and r["solved"]}
                 now_ = {r["task"] for r in mine if r["config"] == "60:base" and r["solved"]}
                 seen = {r["task"] for r in mine if r["config"] == "60:base"}
@@ -1700,7 +1705,8 @@ def sections(day: str) -> list[str]:
         out.append(f"- ... {len(R['solves']) - 20} more families (digest.json)")
     out += ["", "## Sweeps"]
     for s in R["sweeps"]:
-        out.append(f"- {s['commit'][:12]} {s['bench']}: {s['solved60']} of {s['tasks']} at 60 s, {s['past60']} past it; round {s['round']} of {s['of']}{' (done)' if s['done'] else ''}"
+        out.append(f"- {s['commit'][:12]} {s['bench']}: {s['solved60']} of {s['tasks']} at 60 s, {s['past60']} past it; "
+                   + (f"round {s['round']} of {s['of']}{' (done)' if s['done'] else ''}" if s["swept"] else "no sweep here (the per-commit chains' rows)")
                    + (f"; same inputs as {s['same'][:12]}" if s.get("same") else "") + (f"; at 60 s against {s['against'][:12]}: +{s['gained60']} -{s['lost60']}" if s.get("against") else ""))
     tg = R["targets"]
     out += ["", f"## Targets: {len(tg)} tasks solved only past 60 s (the latest profile, ms by stage; against the one before)"]
