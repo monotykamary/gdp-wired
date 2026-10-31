@@ -179,7 +179,8 @@ function treeOf(rev: string): Tree {
 // -------------------------------------------------------------------------------------------------------- the groups
 type Side = 'cand' | 'base'
 type Pass = {group: string, side: Side, tree: Tree, dir: string, tasks?: string[], quickSize?: boolean, backend?: string}
-type Job = {name: string, cmd: string, cwd?: string, cpu?: number, memory?: number, timeout?: number}
+// (timing: alone on its VM while it runs, the supercomputer scheduler's placement for a job whose seconds are compared)
+type Job = {name: string, cmd: string, cwd?: string, cpu?: number, memory?: number, timeout?: number, timing?: boolean}
 type Group = {key: string, views: string[], cap: number, launch: (p: Pass) => Promise<number>, pairAlways?: boolean, noRerun?: boolean, candOnly?: boolean, after?: string, inQuick: boolean}
 
 const py = (p: Pass, script: string, args: string[], cap: number) => run(['python3', script, '--backend', backendOf(p), '--out', p.dir, ...args], {cwd: p.tree.path, log: `${p.dir}.log`, cap})
@@ -226,7 +227,7 @@ const GROUPS: Group[] = [
   {key: 'suite-usual', views: ['suite-usual'], cap: 2400, inQuick: false, after: 'suite', launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, sc(p.tree.path), 'suite.json')), j => j.name, 2400, ['--usual'])},
   {key: 'onecpu', views: [], cap: 1500, inQuick: true, pairAlways: true, noRerun: true, launch: p => {
     const n = smoke ? 1 : p.quickSize ? 3 : 10, jobs: Job[] = []
-    for (let i = 0; i < n; i++) for (const t of ['data', 'infer']) jobs.push({name: `${p.side}-${t}-${i}`, cmd: `bun install --frozen-lockfile >/dev/null 2>&1; bun test core/${t}.test.ts 2>&1`, cpu: 1.0, timeout: 600})
+    for (let i = 0; i < n; i++) for (const t of ['data', 'infer']) jobs.push({name: `${p.side}-${t}-${i}`, cmd: `bun install --frozen-lockfile >/dev/null 2>&1; bun test core/${t}.test.ts 2>&1`, cpu: 1.0, timeout: 600, timing: true})
     return jobsPass(p, jobs, j => j.name, 1500)
   }},
   {key: 'lean', views: ['lean'], cap: 3600, inQuick: true, candOnly: true, noRerun: true, after: 'its', launch: leanPass},
