@@ -78,15 +78,24 @@ def one(pid: str, ms: int) -> dict:
         subprocess.run(["bash", "-c", f"rm -rf /tmp/w && cp -r {endive}/benchmarks /tmp/w"])
         for fix in meta["fix"]:
             subprocess.run(["bash", "-c", fix], cwd="/tmp/w")
-        code, text = sh(f"java -Xmx3g -XX:+UseParallelGC -cp {jar} tlc2.TLC -deadlock -workers 2 -metadir /tmp/meta -config /tmp/cfg/{pid}.cfg {meta['module']}.tla", "/tmp/w", 600)
+        code, text = sh(f"java -Xmx3g -XX:+UseParallelGC -cp {jar} tlc2.TLC -deadlock -workers 2 -metadir /tmp/meta -dump dot /tmp/graph -config /tmp/cfg/{pid}.cfg {meta['module']}.tla", "/tmp/w", 600)
         m = re.findall(r"([\d,]+) distinct states found", text)
         d = re.search(r"depth of the complete state graph search is (\d+)", text)
         out["tlc"] = {"states": int(m[-1].replace(",", "")) if m else None, "depth": int(d.group(1)) if d else None,
                       "violated": bool(re.search(r"Invariant \S+ is violated", text)), "exit": code}
+        try:  # (the state graph's distinct edges between two different states: TLC's -dump dot)
+            seen = set()
+            for line in open("/tmp/graph.dot"):
+                e = re.match(r"\s*(-?\d+) -> (-?\d+)", line)
+                if e and e.group(1) != e.group(2):
+                    seen.add((e.group(1), e.group(2)))
+            out["tlc"]["edges"] = len(seen)
+        except OSError:
+            pass
         if not m or code not in (0, 12):
             out["tlc"]["tail"] = text[-1200:]
     for broken in (False, True):
-        code, text = sh(f"bun research/protocols/ic3syn/check.ts --only '{pid}' --ms {ms}{' --broken' if broken else ''}", src, ms // 1000 + 60)
+        code, text = sh(f"bun research/protocols/ic3syn/check.ts --only '{pid}' --ms {ms}{' --broken' if broken else ' --edges'}", src, ms // 1000 + 60)
         line = next((json.loads(l) for l in text.splitlines() if l.startswith("{")), None)
         out["broken" if broken else "port"] = line if line else {"error": text[-1500:], "exit": code}
     return out

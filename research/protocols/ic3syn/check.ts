@@ -12,7 +12,7 @@ import {interpret} from '../../../core/machine.ts'
 import {protocols} from './models.ts'
 
 const arg = (name: string) => { const i = process.argv.indexOf(`--${name}`); return i < 0 ? undefined : process.argv[i + 1] }
-const only = arg('only')?.split(','), cfgDir = arg('cfg'), ms = Number(arg('ms') ?? 60_000), broken = process.argv.includes('--broken'), dump = arg('dump')
+const only = arg('only')?.split(','), cfgDir = arg('cfg'), ms = Number(arg('ms') ?? 60_000), broken = process.argv.includes('--broken'), dump = arg('dump'), edges = process.argv.includes('--edges')
 
 const product = (dom: Record<string, unknown[]>): Record<string, unknown>[] =>
   Object.entries(dom).reduce<Record<string, unknown>[]>((acc, [k, vs]) => acc.flatMap(a => vs.map(v => ({...a, [k]: v}))), [{}])
@@ -30,7 +30,9 @@ for (const p of protocols.filter(q => q.check && (!only || only.includes(q.id)))
   const t0 = performance.now(), st0 = run.init(params), seen = new Set([keyOf(st0)]), spec = new Set<string>()
   const proj = (st: any) => { const x = c.project(read(st)); if (x !== undefined) spec.add(JSON.stringify(x)); return x }
   let frontier = [st0], depth = 0, refused = 0, stepped = 0, bad = 0, done = true
-  const moved: Record<string, number> = {}, edge = new Set<string>()
+  const moved: Record<string, number> = {}, edge = new Set<string>(), pairs = new Set<string>(), pjs = new WeakMap<object, string | null>()
+  // --edges: the distinct steps between two spec states, each a different one, inside the constraint (TLC's state graph's edges)
+  const pj = (st: any) => { let x = pjs.get(st); if (x === undefined) { const y = c.project(read(st)); pjs.set(st, (x = y === undefined ? null : JSON.stringify(y))) } return x }
   proj(st0); if (p.bad?.(read(st0))) bad++
   while (frontier.length) {
     if (performance.now() - t0 > ms) { done = false; break }
@@ -38,6 +40,7 @@ for (const p of protocols.filter(q => q.check && (!only || only.includes(q.id)))
     for (const st of frontier) for (const q of reqsAt(st)) {
       let s2: any
       try { s2 = run.step(params, st, q); stepped++ } catch { refused++; continue }
+      if (edges) { const a = pj(st), b = pj(s2); if (a && b && a !== b && (!c.keep || c.keep(read(s2)))) pairs.add(`${a}>${b}`) }
       const k = keyOf(s2); if (seen.has(k)) continue
       if (k !== keyOf(st)) moved[String(q.op)] = (moved[String(q.op)] ?? 0) + 1
       if (c.keep && !c.keep(read(s2))) { const x = c.project(read(s2)); if (x !== undefined) edge.add(JSON.stringify(x)); continue }
@@ -49,5 +52,5 @@ for (const p of protocols.filter(q => q.check && (!only || only.includes(q.id)))
     frontier = broken && bad ? [] : next
   }
   if (dump) for (const x of spec) appendFileSync(dump, x + '\n')
-  console.log(JSON.stringify({id: p.id, broken, states: spec.size, raw: seen.size, depth, done, requests: given.length, bad, ...(c.keep ? {edge: edge.size} : {}), moved, ...(c.states ? {tlc: c.states} : {}), ms: Math.round(performance.now() - t0)}))
+  console.log(JSON.stringify({id: p.id, broken, states: spec.size, ...(edges ? {edges: pairs.size} : {}), raw: seen.size, depth, done, requests: given.length, bad, ...(c.keep ? {edge: edge.size} : {}), moved, ...(c.states ? {tlc: c.states} : {}), ms: Math.round(performance.now() - t0)}))
 }
