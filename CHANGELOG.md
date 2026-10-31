@@ -3,6 +3,23 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.39.0
+
+The Python reader closer to real services, and a fifteenth IC3Syn protocol; nothing trusted changed.
+- **Fixed: a conditional store write read as a plain one.** `set(..., nx=True)` on a Redis-like client was read as an
+  unconditional set, and the check's stand-in store ignored `nx` too, so a rule that differed from the code could pass
+  its check. `nx`/`xx` are now conditional writes (their result whether they wrote), expiry options are noted, and
+  anything else is refused; the stand-in behaves as redis-py does.
+- **More of real Python read as it ships**: store values stated per key form (JSON records or literals), dict literals
+  as records, `json.dumps`/`loads`, datetimes, `super()` and bases from other modules, classes built through their own
+  `__init__`, constructor defaults and stated fields, `@contextmanager`, `and`/`or` over mixed kinds, an unset local as
+  that path's `UnboundLocalError`. Four fixes in the shared executor and check, each found by the check on real code
+  (failure paths kept at a join, an object one path left untouched at a merge, a callee's raise with its own locals,
+  the check's stub raising only inside a `try`).
+- **IC3Syn, 15 of 29 at 60 s with nothing written** (16 at 300 s): Simple's correctness, a top-level ∃, proven through
+  a ghost variable the search picks; checked again by Lean.
+- **The bar**: none wrong in any group (CHC-COMP +3); both suites pass; the library build passes.
+
 ## 0.38.0
 
 Solidity, re-entrancy and 256-bit arithmetic; liveness refutations by longer cycles; nothing trusted changed.
