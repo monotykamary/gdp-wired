@@ -479,7 +479,7 @@ export function extractEffect(at: Source, opts: EffectOptions = {}): Extraction 
 // checked as any service; then lift (core/system.ts) makes those Refs every fiber's at once (maps keyed by `fiber`, an
 // input), the service's own Refs shared, and each request one fiber's next step.
 const QUIET = new Set(['Effect.fail', 'Effect.failSync', 'Effect.die', 'Effect.dieMessage', 'Effect.void', 'Effect.sleep', 'Effect.yieldNow', 'Effect.txRetry', 'STM.fail', 'STM.die', 'STM.retry', ...[...LOGS].map(l => `Effect.${l}`)])
-const TX = /\b(TRef|TxRef|STM)\.|Effect\.tx\b/
+const TX = /\b(TRef|TxRef|STM)\.|Effect\.tx\b/, WAITS = new Set(['Effect.txRetry', 'STM.retry'])
 function fibered(code: string, file: string, entry: string, E: Mod, opts: EffectOptions): Extraction | undefined {
   const s = setupOf(code, placed(file), {}, opts.files), f = factoryOf(s, entry)
   const yields = (n: ts.Node): ts.YieldExpression[] => { const out: ts.YieldExpression[] = []; const go = (x: ts.Node) => { if (ts.isYieldExpression(x)) out.push(x); if (!ts.isFunctionLike(x)) ts.forEachChild(x, go) }; ts.forEachChild(n, go); if (ts.isYieldExpression(n)) out.unshift(n); return out }
@@ -583,7 +583,8 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
         go(st)
         for (const r of rs.reverse()) {
           const y = ts.isReturnStatement(r) ? r.expression && strip(r.expression) : strip((r as ts.ExpressionStatement).expression), fails = !!y && ts.isYieldExpression(y) && failing(y)
-          if (y && ts.isYieldExpression(y) && quiet(y) && !(fails && k > 0)) continue
+          // (a wait leaves the fiber where it is; so does a failure in the first step, which ends the call with nothing done)
+          if (y && ts.isYieldExpression(y) && (WAITS.has(apiOf(s, strip(y.expression!)) ?? '') || fails && k === 0)) continue
           const run = fails || !y ? '' : `${ts.isYieldExpression(y) ? '' : 'void '}(${y.getText()}); `
           t = t.slice(0, r.getStart() - st.getStart()) + `{ ${run}${k > 0 ? 'yield* __gdp_Ref.set(__gdp_pc, 0); ' : ''}return }` + t.slice(r.end - st.getStart())
         }

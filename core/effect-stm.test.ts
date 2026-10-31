@@ -144,6 +144,19 @@ test('what a method carries from one step to the next is what the code has there
   expect([x.ok, x.refusals, x.rule.machine.name]).toEqual([true, [], 'make, every fiber'])
   expect(x.source).toMatch(/let x = yield\* __gdp_Ref.get\(__gdp_go_x\)/)
   expect(x.source.match(/yield\* __gdp_Ref.set\(__gdp_go_x, x\)/g).length).toBe(3)
+  // (a return of nothing in a later step ends the call too: the fiber goes back to where it starts (a review's go(skip)))
+  const skip = extractEffect(inProject(4, 'skip.ts', svc4(`  const go = Effect.fn('go')(function* (skip: boolean) {
+    yield* TxRef.update(a, n => n + 1)
+    if (skip) return yield* Effect.void
+    yield* TxRef.set(b, 1)
+  })
+  return {go}`)), {entry: 'make'}) as Any, r = skip.rule
+  expect([skip.ok, r.machine.name]).toEqual([true, 'make, every fiber'])
+  expect(skip.source).toContain('if (skip) { (yield* Effect.void); yield* __gdp_Ref.set(__gdp_pc, 0); return }')
+  const g = r.compiled(), ps = r.encodeParams({})
+  let st = g.init(ps)
+  for (const q of [{skip: 1}, {skip: 1}, {skip: 0}, {skip: 0}]) st = g.step(ps, st, r.encodeInput({method: 'go', go_skip: q.skip, fiber: 0}))
+  expect(r.decode(st)).toMatchObject({a: 7, b: 1})
 }, 120_000)
 
 test('a Ref of the service\'s is shared among the fibers whatever its name (a review\'s __gate): the waiting fiber sees it open', () => {
