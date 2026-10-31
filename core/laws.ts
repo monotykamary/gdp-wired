@@ -13,6 +13,7 @@
 // known by its name: two of one name in a rule are refused.
 //
 //   x <= cap and not failed            comparisons (< <= > >= == !=), + − and × a constant, // and % by one, and or not
+//   sum(balances) == total_supply      a map's cells summed over every key
 //   failed implies spend >= budget     implies (=>), parentheses, min max abs, true false None (nil, null)
 //   self.tokens <= self.capacity       the state by its fields (self., this., @ or a receiver's name, or bare)
 //   result == (n <= old(tokens))       a request's arguments by name, `result`, `failed`, old(x) or before.x the state
@@ -134,7 +135,7 @@ export function parse(s: string): X {
     if (['None', 'nil', 'null', 'undefined', 'NULL', 'nullptr'].includes(x)) return {k: 'null'}
     if (!/^@?[A-Za-z_]/.test(x)) throw new LawError(`unexpected ${JSON.stringify(x)}`)
     if (x === 'old' && peek() === '(') { eat(); const e = top(); eat(')'); return {k: 'old', x: e} }
-    if (['min', 'max', 'abs'].includes(x) && peek() === '(') { eat(); const xs = [top()]; while (peek() === ',') { eat(); xs.push(top()) } eat(')'); return {k: 'fn', f: x, xs} }
+    if (['min', 'max', 'abs', 'sum'].includes(x) && peek() === '(') { eat(); const xs = [top()]; while (peek() === ',') { eat(); xs.push(top()) } eat(')'); return {k: 'fn', f: x, xs} }
     const p: X & {k: 'path'} = {k: 'path', head: x, segs: []}
     for (;;) {
       if (peek() === '.') { eat(); p.segs.push({f: eat()}) }
@@ -193,7 +194,7 @@ export function buildLaw(x: Extraction, l: LawText, opts: {clock?: number} = {})
   if (probe.methods.size > 1) throw new LawError(`it reads the arguments of ${[...probe.methods].join(' and ')}: a law of one step is about one method`)
   const gate = step && method && names.some(n => n.role === 'method') ? method : undefined
   const body = (b: Record<string, unknown>, a: Record<string, unknown>) => read(e, {b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock}, names, false) as Cond
-  if (!step) return {kind: 'law', law: r.law(l.name, (env: never) => body(env, env))}
+  if (!step) return {kind: 'law', law: r.law(l.name, (env: never) => (x.quiet ? ((env as Record<string, Int>)[x.quiet]!.eq(0) as Cond).implies(body(env, env)) : body(env, env)))}
   const mname = names.find(n => n.role === 'method')?.rule
   return {kind: 'step', ...(gate ? {method: gate} : {}), law: r.stepLaw(l.name, (b: never, a: never) => body(b, a), gate ? (b: never) => ((b as Record<string, unknown>)[mname!] as Choice<string>).is(gate) : undefined)}
 }
@@ -252,6 +253,16 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
     case 'str': if (e.holes) throw new LawError('a string template outside a store\'s key'); return {t: 'lit', v: e.v}
     case 'old': { c.roles.add('old'); return val(e.x, {...c, a: c.b}, names, dry) }
     case 'fn': {
+      // sum(m): a map's cells summed over every key (one number a cell; a key it doesn't hold holds 0)
+      if (e.f === 'sum') {
+        const m = go(e.xs[0]!)
+        if (m.t !== 'map' || e.xs.length !== 1) throw new LawError('sum(m): the sum of a map\'s cells, m a map')
+        const fs = m.n.map!.fields
+        if (fs.length !== 1) throw new LawError(`sum(${m.n.code}): its cells have ${fs.join(', ')} (the sum is of a map of numbers)`)
+        if (dry) return DRY
+        const map = (c.a[m.n.rule] ?? c.b[m.n.rule]) as {sum: (of: (cell: Record<string, unknown>) => unknown) => unknown}
+        return {t: 'num', v: Int.of(map.sum(cell => cell[fs[0]!]) as Term)}
+      }
       const xs = e.xs.map(go)
       if (dry) return DRY
       if (e.f === 'abs') return {t: 'num', v: Int.of(num(xs[0]!).abs)}

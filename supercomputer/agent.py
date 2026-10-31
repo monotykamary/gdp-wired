@@ -1,4 +1,4 @@
-"""The VM side of modal/boat.py: one file, the Python standard library only, sent to every boat VM it leases.
+"""The VM side of supercomputer/boat.py: one file, the Python standard library only, sent to every boat VM it leases.
 
     python3 agent.py prep <batch> <tree source> <library key>   unpack a batch's tree (a URL or a file), drop older batches
     python3 agent.py tick <batch> <base64 JSON, in parts>       start items, ack reported ones, wait (<= 25 s) for a finish
@@ -167,15 +167,12 @@ def oleanin(key: str, path: str):
     print(json.dumps({"ok": True, "got": olean_in(key, pathlib.Path(path))}))
 
 
-def prep(batch: str, source: str, key: str, olean_src: str = "-", names: str = ""):
+def prep(batch: str, source: str, key: str, olean_src: str = "-", names: str = "", sha: str = ""):
     t0 = time.time()
+    # older batches' trees go, but never one with an item still running: two batches overlap on a VM only by a race
+    # (a batch let it go, another leased it, a late call of the first came), and the running one keeps its tree
     for old in (ROOT / "b").glob("*") if (ROOT / "b").exists() else []:
-        if old.name != batch:
-            for j in old.glob("jobs/*/pid"):
-                try:
-                    kill_tree(int(j.read_text()))
-                except Exception:
-                    pass
+        if old.name != batch and not any(alive(int(j.read_text())) for j in old.glob("jobs/*/pid") if j.read_text().strip().isdigit() and not (j.parent / "done.json").exists()):
             sudo("rm", "-rf", str(old), check=False)
     d = batch_dir(batch)
     tree = d / "tree"
@@ -188,13 +185,27 @@ def prep(batch: str, source: str, key: str, olean_src: str = "-", names: str = "
     tree.mkdir(parents=True)
     (d / "jobs").mkdir(exist_ok=True)
     tar = d / "tree.tar.gz"
-    err = fetch(source, tar, d / "cookies")
+    trees = ROOT / "trees"  # (the trees this VM unpacked lately, by the tarball's hash: the same tree again needs no upload)
+    if source.startswith("cache:"):
+        if not (trees / f"{source[6:]}.tar.gz").exists():
+            print(json.dumps({"ok": False, "err": "not in this VM's tree cache"}))
+            return
+        shutil.copy(trees / f"{source[6:]}.tar.gz", tar)
+        err = ""
+    else:
+        err = fetch(source, tar, d / "cookies")
     if err:
         print(json.dumps({"ok": False, "err": err}))
         return
     with tarfile.open(tar) as tf:
         tf.extractall(tree, filter="tar")
-    tar.unlink()
+    if sha and not source.startswith("cache:"):
+        trees.mkdir(parents=True, exist_ok=True)
+        shutil.move(tar, trees / f"{sha}.tar.gz")
+        for old in sorted(trees.glob("*.tar.gz"), key=lambda p: -p.stat().st_mtime)[4:]:
+            old.unlink(missing_ok=True)
+    else:
+        tar.unlink()
     # the Lean library the client has for this key, fetched only when this VM's cache lacks some of it
     got = []
     cache = ROOT / "olean" / key
@@ -301,17 +312,20 @@ def wrap(j: pathlib.Path, spec: dict, work: pathlib.Path, tree: pathlib.Path, cw
     binds += [(src, dst) for dst, src in spec.get("mounts", {}).items()]
     lines = ["set -e"] + [f"mount --bind {json.dumps(s)} {json.dumps(t)}" for s, t in binds]
     # a directory a tool writes into (as root on Modal, each in its own container): a private overlay per item
+    # (its upper and work dirs on a tmpfs: a VM whose root is itself an overlay refuses an upper dir there)
     for k, o in enumerate(spec.get("overlays", [])):
-        up, wk = j / f"ov{k}" / "up", j / f"ov{k}" / "work"
-        up.mkdir(parents=True, exist_ok=True)
-        wk.mkdir(parents=True, exist_ok=True)
-        lines.append(f"mount -t overlay overlay -o lowerdir={o},upperdir={up},workdir={wk} {o}")
+        ov = j / f"ov{k}"
+        ov.mkdir(parents=True, exist_ok=True)
+        lines += [f"mount -t tmpfs tmpfs {ov}", f"mkdir -p {ov}/up {ov}/work", f"mount -t overlay overlay -o lowerdir={o},upperdir={ov}/up,workdir={ov}/work {o}"]
     lines.append(f"mount -o remount,bind,ro /src/gdp-wired")
     lines.append(f"cd {json.dumps(cwd)}")
     lines.append('exec "$@"')
     (j / "ns.sh").write_text("\n".join(lines) + "\n")
     path = ":".join([*spec.get("path", []), PATH])
-    env = ["env", "-i", f"PATH={path}", f"HOME={HOME}", "USER=user", "LOGNAME=user", "SHELL=/bin/bash", "LANG=C.UTF-8", *[f"{k}={v}" for k, v in spec.get("env", {}).items()]]
+    # (bun's install cache in the item's own /tmp: two `bun install`s at once in one shared cache failed, silently,
+    # where each Modal container has a HOME of its own)
+    env = ["env", "-i", f"PATH={path}", f"HOME={HOME}", "USER=user", "LOGNAME=user", "SHELL=/bin/bash", "LANG=C.UTF-8", "BUN_INSTALL_CACHE_DIR=/tmp/.bun-install-cache",
+           *[f"{k}={v}" for k, v in spec.get("env", {}).items()]]
     cpus = ",".join(map(str, json.loads((j / "cpus").read_text())))
     return ["sudo", "-n", "unshare", "-m", "--propagation", "private", "--", "sh", str(j / "ns.sh"),
             "setpriv", f"--reuid={os.getuid()}", f"--regid={os.getgid()}", "--init-groups", "--",
@@ -327,6 +341,9 @@ def run(batch: str, name: str):
     work = j / "work"
     work.mkdir()
     row: dict = {"name": name}
+    if not (tree / ".").exists() or not (d / "ready").exists():  # (the batch's tree gone from this VM: the item runs elsewhere)
+        write_json(j / "done.json", {"name": name, "code": -1, "seconds": -1, "lost": True, "err": f"the batch's tree isn't on {os.uname().nodename}"})
+        return
     try:
         if spec["kind"] == "sh":
             subprocess.run(["cp", "-a", str(tree), str(work / "gdp-wired")], check=True)
@@ -341,7 +358,7 @@ def run(batch: str, name: str):
                 p = subprocess.run(argv, stdout=out, stderr=err, stdin=subprocess.DEVNULL)
             secs = round(time.time() - t0, 2)
             code = p.returncode
-            if code in (137, -9) and secs >= spec["limit"] - 1:  # as modal/run.py reports its own limit
+            if code in (137, -9) and secs >= spec["limit"] - 1:  # as supercomputer/run.py reports its own limit
                 code = 124
                 (j / "err").write_text(f"timed out after {spec['limit']} s")
             row.update(code=code, seconds=secs)

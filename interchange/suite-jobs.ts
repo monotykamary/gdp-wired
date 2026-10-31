@@ -1,15 +1,15 @@
-// The release suite's jobs (modal/suite.json, those that aren't Lean's or the type check) with their certificates
+// The release suite's jobs (supercomputer/suite.json, those that aren't Lean's or the type check) with their certificates
 // captured and checked again: each job builds the checker (the bundle and the WebAssembly module, interchange/tools.sh's
 // Javy and Wasmtime), runs its command with interchange/capture.ts preloaded into every bun it starts, then
 // interchange/verify.ts over what it took (tampered twins, the WebAssembly module, the second checker), printing the
 // summary after SUMMARY-JSON. interchange/aggregate.ts sums the logs.
-//   bun interchange/suite-jobs.ts > jobs.json && python3 modal/run.py --jobs jobs.json --out <runs dir> [--usual]
+//   bun interchange/suite-jobs.ts > jobs.json && python3 supercomputer/run.py --jobs jobs.json --out <runs dir> [--usual]
 import {readFileSync} from 'node:fs'
 import {join} from 'node:path'
 
 type Job = {name: string, cmd: string, cwd?: string, cpu?: number, memory?: number, timeout?: number}
 // (and the examples no suite job runs: the guide's and the wide rule's)
-const jobs = [...JSON.parse(readFileSync(join(import.meta.dir, '..', 'modal', 'suite.json'), 'utf8')) as Job[], {name: 'examples-rest', cmd: 'bun examples/guide.ts 2>&1 && bun examples/wide.ts 2>&1', cwd: '.', timeout: 900}]
+const jobs = [...JSON.parse(readFileSync(join(import.meta.dir, '..', 'supercomputer', 'suite.json'), 'utf8')) as Job[], {name: 'examples-rest', cmd: 'bun examples/guide.ts 2>&1 && bun examples/wide.ts 2>&1', cwd: '.', timeout: 900}]
 const only = process.argv[2] ? new RegExp(process.argv[2]) : undefined
 const wrap = (j: Job): Job => ({
   name: `ix-${j.name}`, cwd: '.', ...(j.cpu ? {cpu: j.cpu} : {}), ...(j.memory ? {memory: j.memory} : {}), timeout: (j.timeout ?? 900) + 1200,

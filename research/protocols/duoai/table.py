@@ -1,4 +1,4 @@
-"""The side-by-side table from a DuoAI batch (duoai.py's --out) and a gdp-wired batch (modal/run.py's --out with
+"""The side-by-side table from a DuoAI batch (duoai.py's --out) and a gdp-wired batch (supercomputer/run.py's --out with
 gdp-jobs.json): one row per protocol and limit, each tool's verdicts and wall times over its runs.
 
     python3 research/protocols/duoai/table.py runs/duoai/main runs/duoai/gdp [runs/duoai/hard]

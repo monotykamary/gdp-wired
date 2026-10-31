@@ -3,16 +3,16 @@ one pod per batch, prepared once (Dawn's node bindings, bun, NVIDIA's Vulkan dri
 calls run on it one after another, the pod deleted when the batch ends however it ends.
 
     python3 research/hw/run_gpu.py --backend runpod --out runs/backends/hw/x.json [--args ...] [--gpus "NVIDIA GeForce RTX 4090,..."]
-    python3 modal/runpod.py batch --jobs gpu-jobs.json --out runs/backends/gpu/<name>   (jobs: [{name, runner, fn, args}])
-    python3 modal/runpod.py reap | status
+    python3 supercomputer/runpod.py batch --jobs gpu-jobs.json --out runs/backends/gpu/<name>   (jobs: [{name, runner, fn, args}])
+    python3 supercomputer/runpod.py reap | status
 
 Each call runs the runner's own function (the one its Modal GPU function wraps) on the pod, imported with a stub
 `modal`, in the same paths as the Modal image (/work/gdp-wired, /opt/dawn, /tmp/result.json), so its output is the
 Modal run's output. The GPU types are tried in order (--gpus, else $GDPW_RUNPOD_GPUS, else GPUS below) until one is
 in stock, in the secure cloud then the community cloud ($GDPW_RUNPOD_CLOUDS). Before any call, `vulkaninfo --summary` must list an NVIDIA device, else the batch fails at once.
 
-Cost hygiene: the pod's name and this client's pid are in modal/.live/runpod-<name>.json from before the pod exists
-until it's deleted; the pod is deleted in a finally (Ctrl-C, SIGTERM and SIGHUP included); `modal/reap.sh` deletes a
+Cost hygiene: the pod's name and this client's pid are in supercomputer/.live/runpod-<name>.json from before the pod exists
+until it's deleted; the pod is deleted in a finally (Ctrl-C, SIGTERM and SIGHUP included); `supercomputer/reap.sh` deletes a
 pod whose client is gone, and any gdpw- pod with no ticket.
 """
 import base64

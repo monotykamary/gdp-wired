@@ -200,9 +200,9 @@ export function sortsOf(m: Model, given: Record<string, 'nat' | 'int'> = {}): {s
       if ((init && init.s === 'num' && !natOK(init.e, ctx0())) || (w && w.s === 'num' && !natOK(w.e, ctx0()))) { sorts.set(v.name, 'int'); changed = true }
     }
     for (const d of m.maps) for (const f of d.fields) {
-      const n = `${d.name}.${f.name}`, w = m.mapWrites[d.name]?.vals[f.name]
+      const n = `${d.name}.${f.name}`, mw = m.mapWrites[d.name]
       if (f.sort.k !== 'num' || sorts.get(n) === 'int' || given[n]) continue
-      if (w && w.s === 'num' && !natOK(w.e, withAtom(ctx0(), m.mapWrites[d.name]!.has))) { sorts.set(n, 'int'); changed = true }
+      if (mw && [...(mw.pre ?? []), mw].some(x => { const w = x.vals[f.name]; return w && w.s === 'num' && !natOK(w.e, withAtom(ctx0(), x.has)) })) { sorts.set(n, 'int'); changed = true }
     }
     for (const d of m.lists ?? []) {
       const n = `${d.name}.$item`
@@ -283,7 +283,9 @@ function pcmp(rel: '<' | '<=' | '=', a: N, b: N, P: Printer, ctx: Ctx): string {
   const op = rel === '<' ? 'lt' : rel === '<=' ? 'atMost' : 'eq', flip = rel === '<' ? 'gt' : rel === '<=' ? 'atLeast' : 'eq'
   const nat = natOK(a, ctx) && natOK(b, ctx)
   const [x, y, o] = a.op === 'const' && b.op !== 'const' ? [b, a, flip] : [a, b, op]
-  return `${pn(x, P, ctx, nat ? 'nat' : 'int', true)}.${o}(${pn(y, P, ctx, nat || natOK(y, ctx) ? 'nat' : 'int')})`
+  // (a natural by cases compared with an integer: its when(...) is a natural's, made an integer to compare from)
+  const left = !nat && x.op === 'ite' && natOK(x, ctx) ? `Int.of(${pn(x, P, ctx, 'nat')})` : pn(x, P, ctx, nat ? 'nat' : 'int', true)
+  return `${left}.${o}(${pn(y, P, ctx, nat || natOK(y, ctx) ? 'nat' : 'int')})`
 }
 export function pb(c: B, P: Printer, ctx: Ctx): string {
   const h = P.hoisted.get(I.keyOf(c))

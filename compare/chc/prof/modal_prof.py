@@ -42,7 +42,7 @@ image = (
     )
     .run_commands(f"python3 - <<'EOF'\n{KEEP}\nEOF", "du -sh /bench")
     .env({"PATH": "/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
-    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "modal/**", "private/**",
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal", "private/**",
                                               "vendor/**", "compare/**/*.js", "compare/**/out/**"])
 )
 app = modal.App("gdp-wired-chc-prof", image=image)
@@ -83,7 +83,7 @@ def one(task: str, prof: bool, env: dict) -> str:
 
 @app.local_entrypoint()
 def main(out: str, tasks: str, prof: bool = False, trace: bool = False):
-    live = GDP / "modal" / ".live"
+    live = GDP / "supercomputer" / ".live"
     live.mkdir(exist_ok=True)
     ticket = live / f"{app.app_id}"
     ticket.write_text(str(os.getpid()))

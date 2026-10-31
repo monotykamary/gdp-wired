@@ -24,7 +24,7 @@ image = (
         "curl -fsSL -o /tla2tools.jar https://github.com/tlaplus/tlaplus/releases/download/v1.8.0/tla2tools.jar",
     )
     .env({"PATH": "/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
-    .add_local_dir(GDP, "/src/gdp-wired", ignore=[".git/**", "**/.git", "**/node_modules/**", "**/runs/**", "modal/**", "private/**", "vendor/**", "lean-kernel/**", "docs/**", "static/**", "examples/**", "packages/**"])
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=[".git/**", "**/.git", "**/node_modules/**", "**/runs/**", "supercomputer/**", "modal/**", "modal", "private/**", "vendor/**", "lean-kernel/**", "docs/**", "static/**", "examples/**", "packages/**"])
 )
 app = modal.App("gdp-wired-laneA-tlc", image=image)
 

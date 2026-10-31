@@ -1,5 +1,5 @@
 #!/bin/bash
-# Some items of lean-kernel/package-check.ts built against the twin's library compiled once and cached (modal/run.py
+# Some items of lean-kernel/package-check.ts built against the twin's library compiled once and cached (supercomputer/run.py
 # keeps lean-kernel/*.olean by a hash of their sources), not by `lake build`, which compiles the library again per job:
 #   ONLY=a,b bash scripts/lean-items.sh    SHARD=1/4 bash scripts/lean-items.sh
 # The lean-package-0 job builds the whole Lake project as a user would. Run from the repo root.

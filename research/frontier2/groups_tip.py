@@ -2,9 +2,9 @@
 
     python3 research/frontier2/groups_tip.py [--runs runs] > runs/corpus2/groups-tip.txt
 
-Every figure is read from a run directory under --runs: modal/arith/tip-gdp (gdp-wired at 0.21.0, the CHANGELOG's
-140 of 492), backends/tip-gdp3 (the same at 0.21.0 on boat VMs), modal/tip/full2 (cvc5, cvc5 with conjecture
-generation, Vampire, at 60 s), modal/tip/diag-t300 (proveData at 300 s, a diagnostic). The classes of the 20 failures
+Every figure is read from a run directory under --runs: supercomputer/arith/tip-gdp (gdp-wired at 0.21.0, the CHANGELOG's
+140 of 492), backends/tip-gdp3 (the same at 0.21.0 on boat VMs), supercomputer/tip/full2 (cvc5, cvc5 with conjecture
+generation, Vampire, at 60 s), supercomputer/tip/diag-t300 (proveData at 300 s, a diagnostic). The classes of the 20 failures
 read by hand are compare/tip/README.md's ("Where gdp-wired stops"), written out below as that table lists them: a
 class's size is known only on that sample of 20, and nothing here extrapolates it.
 """
@@ -62,10 +62,10 @@ def main():
     ap.add_argument("--runs", default="runs")
     a = ap.parse_args()
     R = a.runs
-    g = load(f"{R}/modal/arith/tip-gdp/results.jsonl")
+    g = load(f"{R}/supercomputer/arith/tip-gdp/results.jsonl")
     b = load(f"{R}/backends/tip-gdp3/results.jsonl")
-    full2 = {t: load(f"{R}/modal/tip/full2/results.jsonl", t) for t in ("gdp", "cvc5", "cvc5cg", "vampire")}
-    t300 = load(f"{R}/modal/tip/diag-t300/results.jsonl")
+    full2 = {t: load(f"{R}/supercomputer/tip/full2/results.jsonl", t) for t in ("gdp", "cvc5", "cvc5cg", "vampire")}
+    t300 = load(f"{R}/supercomputer/tip/diag-t300/results.jsonl")
     theorems = {t for t in g if not t.startswith("false/")}
     print(f"runs/modal/arith/tip-gdp (0.21.0): {len(theorems)} theorems, {sum(g[t]['answer'] == 'proven' for t in theorems)} proven; answers {dict(collections.Counter(g[t]['answer'] for t in theorems))}")
     print(f"runs/backends/tip-gdp3 (0.21.0, boat): {sum(b[t]['answer'] == 'proven' for t in b if not t.startswith('false/'))} proven of {sum(1 for t in b if not t.startswith('false/'))}")

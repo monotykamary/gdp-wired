@@ -274,19 +274,19 @@ what the `!` costs a serial fold on the CPU: about 10 ms more startup, otherwise
 
 ## Running it
 
-[`modal_compare.py`](modal_compare.py) is modeled on `modal/run.py`. It mounts gdp-wired and the Bend repo's `bend2/`
-(from `$BEND_REPO`, default `../bend`, read-only), registers its app in `modal/.live/`, and cancels its calls on exit.
+[`modal_compare.py`](modal_compare.py) is modeled on `supercomputer/run.py`. It mounts gdp-wired and the Bend repo's `bend2/`
+(from `$BEND_REPO`, default `../bend`, read-only), registers its app in `supercomputer/.live/`, and cancels its calls on exit.
 [`jobs.json`](jobs.json) has three jobs: `run.ts` (the table), the Lean twin, and the typecheck.
 
 ```sh
-cd gdp-wired && modal run compare/modal_compare.py --jobs compare/jobs.json --out runs/modal/compare/final && sh modal/reap.sh
+cd gdp-wired && modal run compare/modal_compare.py --jobs compare/jobs.json --out runs/modal/compare/final && sh supercomputer/reap.sh
 ```
 
 The runtime bench has one job per rule in [`bench/jobs.json`](bench/jobs.json), and each job installs clang for
 Bend's native build:
 
 ```sh
-cd gdp-wired && modal run compare/modal_compare.py --jobs compare/bench/jobs.json --out ../runs/modal/compare-bench/v1 && sh modal/reap.sh
+cd gdp-wired && modal run compare/modal_compare.py --jobs compare/bench/jobs.json --out ../runs/modal/compare-bench/v1 && sh supercomputer/reap.sh
 ```
 
 One rule locally: `BEND=/path/to/bend bun compare/bench/run.ts caps` (`RUNS=3`, `NS=0,1000,10000,100000` and

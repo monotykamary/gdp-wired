@@ -3,7 +3,7 @@
 // needs of an exported proof, besides its trees. Likewise recurNodes' equations (recOk) for the examples' recurrences
 // that read no other function, and foldNodes' table (foldOk) for the examples' folds and their broken variants. `bun research/cyclic/bridge.ts <dir> [domain...]` writes one Lean file
 // per domain (no proof is grown: the check reads no tree); with --lean it also runs Lean on each (LEAN_PATH set, Bridge
-// compiled: modal/suite.json's lean-bridge-sweep) and prints each check that fails.
+// compiled: supercomputer/suite.json's lean-bridge-sweep) and prints each check that fails.
 import {mkdirSync, writeFileSync} from 'node:fs'
 import type {Law, Machine} from '../../core/machine.ts'
 import {domains} from '../../examples/index.ts'

@@ -10,7 +10,7 @@ same container size under the same wall-clock limit, one tool and a shard of tas
 The benchmarks are chc-comp/chc-comp26-benchmarks at a pinned commit, fetched into the image; the track's task list is
 its LIA-Lin.set, each task's expected verdict its .yml's. <out>/results.jsonl has one row per tool and task: the
 answer, the seconds and, for gdp-wired, the stages it printed. The app id and client pid are registered in
-modal/.live/ (modal/reap.sh stops an orphan); the app, and every call in it, stops when this entrypoint exits.
+supercomputer/.live/ (supercomputer/reap.sh stops an orphan); the app, and every call in it, stops when this entrypoint exits.
 """
 import json
 import os
@@ -19,9 +19,9 @@ import time
 
 try:
     import modal
-except ImportError:  # plain python3, --backend boat: the runner's functions run on boat VMs (modal/fanout.py)
+except ImportError:  # plain python3, --backend boat: the runner's functions run on boat VMs (supercomputer/fanout.py)
     import sys
-    sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent.parent / "modal"))
+    sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent.parent / "supercomputer"))
     from agent import modal_stub
     modal = modal_stub()
 
@@ -59,12 +59,12 @@ image = (
     )
     .run_commands(f"python3 - <<'EOF'\n{KEEP}\nEOF", "du -sh /bench")
     .env({"PATH": "/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
-    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "modal/**", "private/**",
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal", "private/**",
                                               "vendor/**", "compare/**/*.js", "compare/**/out/**"])
 )
 app = modal.App("gdp-wired-chc", image=image)
 
-# The same image on a boat VM, a layer of the pool's snapshot (modal/boat.py): the benchmarks under /opt/gdpw/chc,
+# The same image on a boat VM, a layer of the pool's snapshot (supercomputer/boat.py): the benchmarks under /opt/gdpw/chc,
 # mounted at /bench for each call (BOAT).
 BOAT_SETUP = f"""
 curl -fsSL -o /tmp/z3.zip https://github.com/Z3Prover/z3/releases/download/z3-5.3.1/z3-5.3.1-x64-glibc-2.39.zip
@@ -182,7 +182,7 @@ def tasks() -> list[dict]:
 @app.local_entrypoint()
 def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: int = 1, sample: int = 0, only: str = "", env: str = "", tasks_json: str = ""):
     import sys
-    sys.path.insert(0, str(GDP / "modal"))
+    sys.path.insert(0, str(GDP / "supercomputer"))
     import fanout
     run(fanout.ModalEx(app), out, tools, limit, per, sample, only, env, tasks_json)
 
@@ -221,6 +221,6 @@ def run(ex, out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per
 
 if __name__ == "__main__":
     import sys
-    sys.path.insert(0, str(GDP / "modal"))
+    sys.path.insert(0, str(GDP / "supercomputer"))
     import fanout
     fanout.cli(run, __file__, __doc__)

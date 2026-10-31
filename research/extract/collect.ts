@@ -1,4 +1,4 @@
-// A batch's logs (modal/run.py --jobs research/extract/jobs.json --out <dir>) into research/extract/results/: each job's
+// A batch's logs (supercomputer/run.py --jobs research/extract/jobs.json --out <dir>) into research/extract/results/: each job's
 // results file as it printed it, and the rules extracted from the examples.
 //
 //   bun research/extract/collect.ts <dir>

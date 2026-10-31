@@ -6,7 +6,7 @@ same two limits (60 s and 10 s), three runs of every protocol and limit for both
 
     modal run research/protocols/duoai/duoai.py --out runs/duoai/main            # DuoAI, run.py's shape (cpu=2.0)
     modal run research/protocols/duoai/duoai.py --out runs/duoai/hard --hard     # DuoAI, a hard cap of 2 CPUs
-    modal run modal/run.py --jobs research/protocols/duoai/gdp-jobs.json --out runs/duoai/gdp     # gdp-wired
+    modal run supercomputer/run.py --jobs research/protocols/duoai/gdp-jobs.json --out runs/duoai/gdp     # gdp-wired
     python3 research/protocols/duoai/table.py runs/duoai/main runs/duoai/gdp runs/duoai/hard
 
 Every figure below comes from `runs/duoai/` in this worktree (gitignored).
@@ -51,13 +51,13 @@ kept in `runs/duoai/main-v1` and `hard-v1` and not used below. Its DuoAI verdict
   leave out: nothing is compiled per protocol (the C++ is built once in the image) and Ivy compiles nothing ahead.
   Simulation is part of DuoAI's inference (it is data-driven), so the inference-only time is DuoAI's own runtime.
 - **gdp-wired.** `bun research/protocols/run.ts --ms <limit> --only <id> --skip given,broken` at `b118bf5` (main),
-  through `modal/run.py` (`gdp-jobs.json`), the earlier pilots' commands with the CPU count and time logged. Its verdict is `proveRule`'s:
+  through `supercomputer/run.py` (`gdp-jobs.json`), the earlier pilots' commands with the CPU count and time logged. Its verdict is `proveRule`'s:
   proven only with a certificate the kernel checked. Times: the job's wall time (the bun process, from `summary.tsv`)
   and the search's own (`ms` in run.ts's line). Its `--ms` is a counted budget, not wall time: every proven run ended
   within its limit in wall time too, but the unknowns at 10 s ran up to 30 s of wall time before giving up, which
   DuoAI, killed at 10 s, could not. A run counts as proven below only if it ended within the limit.
 - **The machines.** Both on Modal, 4 GB, one container per run, each batch launched at once and the three within
-  minutes of each other (07:59 to 08:03 UTC). `modal/run.py`'s shape is `cpu=2.0`, which Modal treats as a reservation
+  minutes of each other (07:59 to 08:03 UTC). `supercomputer/run.py`'s shape is `cpu=2.0`, which Modal treats as a reservation
   a container may burst above (DuoAI's containers' CPU affinity held 18 CPUs). DuoAI runs nine
   sampler processes and four refinement processes in parallel, gdp-wired one thread of search; so DuoAI was also run
   with a hard cap of 2 CPUs (`cpu=(2, 2)`). gdp-wired's CPU time over wall time was about 1.3 (bun's own threads), under

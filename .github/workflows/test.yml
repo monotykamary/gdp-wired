@@ -3,7 +3,7 @@ name: Test
 # The fast gate on every push and pull request: types and lint over the whole tree, the quick tests (builders,
 # conformance of the two runtimes, kernel tamper/refusals/step laws, the nine example domains, the README snippets),
 # and the npm package as a user installs it, on the oldest and newest Node it supports. The long runs (the kernel's
-# 32-seed soundness fuzz, histories, the Lean twin, mutation testing) are modal/suite.json on Modal.
+# 32-seed soundness fuzz, histories, the Lean twin, mutation testing) are supercomputer/suite.json on Modal.
 
 on:
   push:

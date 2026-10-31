@@ -1,6 +1,6 @@
 # The bar: gen/laneB (8a889b12b159) against ae36917 (ae369178e65d)
 
-Quick mode (each benchmark's dev set, gates/bar-dev.json); backend modal; the base from the shared baseline (3 runs, /Users/monotykamary/VCS/working-remote/open-source/gdp-wired/runs/bar/base/ae369178e65d-modal-r1), except onecpu and g332 (always together); 3 rerun(s) a side of every task that differs. Started 2026-10-30T17:12:44.402Z.
+Quick mode (each benchmark's dev set, gates/bar-dev.json); backend modal; the base from the shared baseline (3 runs, runs/bar/base/ae369178e65d-modal-r1), except onecpu and g332 (always together); 3 rerun(s) a side of every task that differs. Started 2026-10-30T17:12:44.402Z.
 
 ## Frontier corpus, round 1 (dev set: 48 tasks)
 
@@ -95,6 +95,6 @@ core/ and kernel/ (.ts, tests excluded): 3,132,255 bytes and 41,677 lines, again
 ## Wall time and spend
 
 - Wall: 532 s.
-- Modal, billed for this bar's own 12 apps: $0 (`modal billing report --start 2026-10-30 --resolution h --json`, complete hours only: the last reported starts 2026-10-30T16:00:00Z); estimated from the task seconds: $0.59. `bun gates/bar.ts spend /Users/monotykamary/VCS/working-remote/open-source/gdp-wired/runs/bar/runs/8a889b12b159-vs-ae369178e65d-quick-2026-10-301712` reads the bill again once the hours are over.
+- Modal, billed for this bar's own 12 apps: $0 (`modal billing report --start 2026-10-30 --resolution h --json`, complete hours only: the last reported starts 2026-10-30T16:00:00Z); estimated from the task seconds: $0.59. `bun gates/bar.ts spend runs/bar/runs/8a889b12b159-vs-ae369178e65d-quick-2026-10-301712` reads the bill again once the hours are over.
 - Where the jobs ran (each launch's backends.json): {"modal":93}; {"modal":128}; {"modal":91}; {"modal":235}; {"modal":6}.
 

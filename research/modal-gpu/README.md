@@ -32,5 +32,5 @@ cd gdp-wired && modal run research/modal-gpu/run_gpu.py --config research/modal-
 # locally, on the Mac's GPU through Dawn (webgpu installed under ../runs/dawn-local):
 cd research/modal-gpu && DAWN_MODULE=$PWD/../../runs/dawn-local/node_modules/webgpu/index.js bun dawn-run.ts --config "$(cat suite.json)" --out local.json
 ```
-The apps are named `hw-gpu-*`. (`modal/reap.sh` now stops only runs whose client died, so it is safe either way; it
+The apps are named `hw-gpu-*`. (`supercomputer/reap.sh` now stops only runs whose client died, so it is safe either way; it
 doesn't know about GPU runs.) After a run: `modal app list`, and `modal app stop -y <id>` for anything left.

@@ -254,3 +254,89 @@ and 7.3 s); `liveness` and `lean-keyed` passed. tsc over the tree and oxlint on 
 **Bytes.** Against cd97c61 (tests excluded): core/live.ts +10,520 (refutedBy, findRing, the key's control rank), core/
 system.ts +5,783 (time, clocked, expires), core/dsl.ts +2,298 (keyed leadsTo, `keyed`, `refuteLeadsTo`, the verdict's
 rank), core/cycles.ts +76. kernel/ and lean-kernel/ unchanged.
+
+## 7. Lassos of several steps, and a clock a param apart, found (gen/laneT2)
+
+Lane T left two things written: the outbox's two-step ring (publish, crash) and the lease's invariant. Both are now
+found; nothing new is trusted (refutedBy and the kernel are as they were).
+
+### 7.1 A lasso of k steps (core/live.ts's findRing)
+
+findRing found one-set rings only: from a state the runs reach, the helpful requests in turn, the ring their literals.
+A ring that needs a step no helpful request makes (the relay's crash between its publish and its mark) was out of reach.
+Now: from each state a random stem reaches, a walk of up to 3,000 steps, each a helpful request allowed there (in turn,
+as before) or, in every other walk, half of them any request, drawn as the runs draw them, each input a helpful request
+names set to its value there with odds of a half (the environment acting on the same key). A state's abstraction is the
+literals of the rule's comparisons true there (as before; constant ones dropped). A step back to an abstraction seen in
+the last 64 steps closes a cycle, taken when
+- the walk since then is fair to every helpful request as the law asks, read on the run: weakly, taken (its named
+  inputs at its terms) or not allowed at one of its states; strongly, taken in its region, or allowed there at none
+  (Live.lean's `sleads_wf_soundA` and `sleads_sf_soundA` hypotheses; the shortest such cycle);
+- the cycle runs again from where it closed for 3,000 steps, through the same abstractions, each request allowed and
+  `to` never reached (a cycle a deadline ends is none: the time step before a timer is due; without this filter ICT's
+  refutation took 10.6 s, the kernel asked of each such cycle).
+Its sets R_0..R_{k−1} are its states' abstractions, its requests the walk's (an input a helpful request's term where
+it has that value, the key, else its value); a literal of R_{j+1} that R_j's request is not proven to keep is dropped,
+round the cycle (Houdini over a chain), and refutedBy checks the ring as before: each request proven allowed in R_j and
+into R_{j+1} with `from` kept and `to` not reached, the stem replayed, fairness by step laws. refutedBy's classification
+was already per set; terra's review of it (section 6.2) covers rings of any length, which this lane did not re-ask.
+
+### 7.2 A clock a param apart, where a key was written (core/infer.ts's candidates)
+
+Why the lease's invariant was not proposed: it is `until[q] = 0 ∨ until[q] + E ≤ now ∨ (taken = 1 ∧ owner = q ∧
+until[q] + E ≤ at)`. Its comparisons read a cell, a param and a scalar; the candidates over cells allowed at most one
+value beside the cells (`until[k] ≤ now`, never `until[k] + E ≤ now`). And its first disjunct, a key never written, is
+a guard no candidate had: a cell's guards were one value of a cell of few values, or one scalar's key (`k = owner or`).
+The search found `taken is 1 → until[k] ≤ at` and `taken is 0 → until[k] ≤ now`, E left out, which do not prove it.
+Two shapes added, general (nothing about leases):
+- **A cell against a scalar, a param apart**: three-atom cell forms of one cell, one param and one scalar, the cell and
+  the scalar of opposite signs (a time a key holds and a window against the clock: `Ts[k] + window ≤ now`).
+- **Where the cell was written**: a one-cell form bounding a natural cell that starts at 0 and takes many values gets
+  each of its guards (none, a value of a few-valued value, every key but a scalar's) also over the rows where its cell is
+  off 0, at the samples' largest value there and the constant above it, or 0 where that is below 0 (a run seldom meets a
+  bound between two times exactly). The three-atom forms get only these guards.
+Found on the lease (proveSteps, nothing written): `every k: 1 ≤ until[k] → k = owner or E + until[k] ≤ now`;
+`every k: 1 ≤ until[k] → taken is 0 → E + until[k] ≤ now`; `every k: 1 ≤ until[k] → taken is 1 → E + until[k] ≤ at`;
+`taken ≤ 1`. (Not the written one: the three say the same split by `taken`, and the owner's case needs no owner.)
+
+### 7.3 Measures (boat, 2 vCPU)
+
+| Measure | Before (42f78b3) | After (7e13c05) |
+| --- | --- | --- |
+| outbox, eventually marked published, weak | refuteLeadsTo: none found; the two-set ring written | refuted, found: the ring crash (from InFlight[k] = 1), publish (from InFlight[k] = 0), fair weakly, 0.12–0.24 s |
+| outbox, the same, strong | proven | proven (unchanged) |
+| SIP refutations, ICT / IST / NIST (alone, two jobs a VM) | 1.57 / 1.48 / 0.27 s | 0.95 / 0.80 / 0.22 s, the same rings (fair weakly and strongly) |
+| lease, skew ≤ E, M ≥ 2E | unknown (search 2 s); proven with the invariant written | proven, nothing written, at a search budget of 40 s (counted work; 4.0 s wall alone, 20 s on a VM running 14 jobs) |
+| lease, skew unbounded | refuted, 1 ms | refuted, 1–2 ms |
+| lease, margin E | refuted, 20 ms | refuted, 20–268 ms |
+
+At the default 20 s budget the lease is still unknown through proveSteps: the search's runs, bounded runs and fresh
+laws take half the counted budget before inferLaws starts, whose candidates and Houdini take 8.4 counted s of it
+(24,400 forms, all but 60 alive); inferLaws given 20 s alone proves it in 12 kernel rounds (4.4 s wall). time.ts takes
+`--lease-ms` (40 s); core/system.test.ts asserts the proof at 40 s.
+
+The ten core protocols (research/protocols/run.ts, 60 s, one run each): ten of ten proven. SIP's NICT proof (wall-clock
+liveness budget) missed once at 20.7 s on a VM running 14 jobs; alone it is proven in 9.3 s, 9.9 s with the old
+infer.ts on the same VM.
+
+### 7.4 Gates, bytes, what is verified
+
+**Gates.** The quick bar (`--quick --cand 7e13c05 --base ae36917`, Modal, 731 s, about $2.90 estimated): none wrong
+anywhere, nothing solid lost (CHC gained 1, lost 2, ITS gained 1, lost 1: each at the time limit or noise, none solid;
+SV, frontier, real-world corpus the same; TIP and f2 one noise each); 332 step goals the same search on all 332 (search
+time −6%); the 1-vCPU tests none failed (infer's "a machine with no rule" read 1,969 against 1,426 ms there; on boat,
+five runs of each side twice, 459–759 against 465–485 ms median, one candidate run matching the base: noise); Lean 6 of
+6. The suites (`--only suite,suite-usual` at bcf3aae, 1,296 s, about $0.73): 243 of 243 jobs passed in each mode, the
+`system` job with the lease's search (8.0 s on Modal) and the found outbox ring. The ten protocols, 20 runs each at
+60 s (boat, 2 vCPU, four batches of 50): 200 of 200 proven; medians wo 23.3, ring 20.5, ticket 18.0, distributed 14.6,
+sharded 11.8, async 10.0, two-phase 7.6, decentralized 7.3, toy 5.7, sync 3.4 s (max 39.9 s). tsc over the tree: no
+error outside vendor/ imports the remote image lacks; oxlint on the changed files clean.
+
+**Bytes.** Against 42f78b3 (tests excluded): core/live.ts +4,186 (findRing's walks, cycles, replay, Houdini round the
+cycle), core/infer.ts +2,638 (the two candidate shapes). kernel/ and lean-kernel/ unchanged.
+
+**Verified:** every refutation is refutedBy's (each ring step the kernel's progress goal, fairness by step laws, the
+stem replayed; core/system.test.ts replays the outbox ring's laps on the interpreter); the lease's found laws are the
+kernel's proof. **Not verified:** that findRing finds every lasso (a heuristic search: walks of 3,000 steps, cycles of at
+most 64, the requests it draws); the lease at the default budget (section 7.3); no Lean export of the lease's proof or
+of the rings (a refutation is a run, not a certificate Lean reads).

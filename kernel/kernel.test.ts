@@ -7,7 +7,7 @@ import {type Goal, check, leafConstraints, withProducts} from './kernel.ts'
 import {solve} from '../core/solver.ts'
 import {grow} from './prove.ts'
 
-// FUZZ_SEED and FUZZ_SCALE shard the fuzz (modal/fuzz.json runs many seeds in parallel); slow goals are reported.
+// FUZZ_SEED and FUZZ_SCALE shard the fuzz (supercomputer/fuzz.json runs many seeds in parallel); slow goals are reported.
 let seed = Number(process.env.FUZZ_SEED ?? 12345)
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
 const timed = <T>(what: string, goal: unknown, f: () => T): T => { if (process.env.FUZZ_TRACE) require("node:fs").writeFileSync(process.env.FUZZ_TRACE, JSON.stringify(goal)); const t0 = performance.now(), r = f(), ms = performance.now() - t0; if (ms > 2000) console.log(`SLOW ${Math.round(ms)} ms ${what}: ${JSON.stringify(goal)}`); return r }
@@ -109,7 +109,7 @@ test('products of products stay sound', () => {
   console.log(`degree three: ${proven} monotonicity laws proven, ${falseSeen} false variants (none accepted), ${randomAccepted} random-product leaves accepted (${deep} needing a product of a product), all with no model`)
   expect(proven).toBeGreaterThan(30 * scale) // every true one is proven (checked above); how many are true varies by seed
   expect(falseSeen).toBeGreaterThan(50 * scale)
-  expect(randomAccepted).toBeGreaterThan(0) // products of products: a few per shard, summed over modal/suite.json's 32 shards
+  expect(randomAccepted).toBeGreaterThan(0) // products of products: a few per shard, summed over supercomputer/suite.json's 32 shards
 }, 600000)
 
 // Squares and cells as factors: random hypotheses whose products multiply a map's cell or any two terms, leaves at the

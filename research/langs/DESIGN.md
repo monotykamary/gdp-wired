@@ -925,7 +925,7 @@ else (the reader builds against the toolchain's own SwiftSyntax). Without one th
 (Budget, Limiter, Tally, Loop, s01–s04); the three real types extracted and their laws as above; the realworld items'
 19 laws re-proven from the committed rules (17 proven); the CLI on a `.swift` file (its `// gdp: law` proven, exit 0) and
 on a Package.swift directory (Budget, Limiter, Tally read, Loop refused); exports.test.ts; tsc and lint clean for the
-changed files. On the suite's own image (modal/run.py): the new `extract-swift` job (research/langs/swift/swift-setup.sh
+changed files. On the suite's own image (supercomputer/run.py): the new `extract-swift` job (research/langs/swift/swift-setup.sh
 installs swift.org's 6.3.3 for Debian 12 in 46 s; 111 s in all) and scripts/smoke.sh without Swift (the front end
 refuses). Not verified: other platforms than Linux x86-64 for the harness (macOS's fork path is the same code, untested
 here), Swift 5.9 and 5.10 toolchains (6.3.3 only), branch coverage (not counted).
@@ -1065,7 +1065,7 @@ wrapper, the machine inferred, the names; core/effect.ts +2,577: the service inf
 core/extract-read.ts +1,881: `sourceOf`, `pathOf`, `beside`; core/extract-c.ts +1,240: C++'s entry; the rest a few
 hundred each, much of it the usage lines). Tests +9,834. kernel/, core/laws.ts and core/infer.ts are unchanged.
 
-**Validation** (Modal, modal/run.py's image): core/extract.test.ts, effect.test.ts (Effect 4.x and 3.x), xstate.test.ts,
+**Validation** (Modal, supercomputer/run.py's image): core/extract.test.ts, effect.test.ts (Effect 4.x and 3.x), xstate.test.ts,
 exports.test.ts and cli.test.ts (the TypeScript, Effect and XState cases and their one-way-in cases), 101 of 101 run;
 each language's own test file with its toolchain (research/langs/*-setup.sh, research/extract/go-setup.sh) and its two
 cli.test.ts cases (the CLI's laws, and one way in): Python 29, Ruby 8, Elixir 6, C and C++ 15, Java and Kotlin 21, Swift

@@ -11,7 +11,7 @@ Each law is proven with nothing stated beyond the rule and the law itself:
 - `proveDecision` for a claim about one request.
 
     bun research/realworld/jobs.ts > jobs.json                                   # one job per law (311)
-    python3 modal/run.py --backend auto --jobs jobs.json --out runs/realworld/<name>
+    python3 supercomputer/run.py --backend auto --jobs jobs.json --out runs/realworld/<name>
     bun research/realworld/score.ts --from runs/realworld/<name> --md results.md --json results.json
     bun research/realworld/score.ts --item '<item id>' --ms 3000                 # one item's laws, locally
     bun research/realworld/rank0.ts                                              # the liveness diagnostic below
@@ -24,7 +24,7 @@ Each law is proven with nothing stated beyond the rule and the law itself:
 | `lib.ts` | The item format and the law helpers: the domains, the law kinds, where intent comes from, the gap keys |
 | `items/*.ts` | The items, one file per repo or family. Each file's header names the repo, the commit, the licence and the author. Each part of a rule cites the source lines it mirrors. |
 | `corpus.ts` | Every `items/*.ts` file's `items`, in file order |
-| `jobs.ts`, `score.ts` | The job list (shaped like frontier2's, for `modal/run.py`) and the score |
+| `jobs.ts`, `score.ts` | The job list (shaped like frontier2's, for `supercomputer/run.py`) and the score |
 | `sources.json` | The machine-readable source list, for gen/extract: one entry per file an item mirrors (repo, commit, path, lines, function or export, licence, author, URL) |
 | `triage/*.json` | Every refutation, and every law the original code breaks, with its verdict (`bug`, `model`, `law`), a note and its repro |
 | `repro/` | Harnesses that run the original code at the pinned version: counterexamples replayed (`<name>.ts`, `.py`, `.go`, `.rb`, `.sh`) and conformance runs of the rule against the original (`conform-*.ts`) |
@@ -456,4 +456,4 @@ also skipped again where the hull says it, as before. The reruns of the differin
 
 Together that is about $0.05–0.10 at Modal's CPU and memory prices. The prover itself ran 1,995 s in all, 8 of the
 laws over 100 s. Everything else ran locally: the authors' 3 s checks, the repro and conformance
-harnesses, and `rank0.ts` (35 proofs, 6 minutes, most of it TigerBeetle's). `modal/reap.sh` ran after each batch.
+harnesses, and `rank0.ts` (35 proofs, 6 minutes, most of it TigerBeetle's). `supercomputer/reap.sh` ran after each batch.

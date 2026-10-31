@@ -50,9 +50,9 @@ def main():
     ap.add_argument("--runs", default="runs")
     ap.add_argument("--tasks", action="store_true", help="list every task of each group")
     a = ap.parse_args()
-    gap = json.load(open(f"{a.runs}/modal/chc2/gap-v020.json"))
+    gap = json.load(open(f"{a.runs}/supercomputer/chc2/gap-v020.json"))
     load = lambda p: {r["task"]: r for r in map(json.loads, open(p))}
-    final = load(f"{a.runs}/modal/infer/chc-final/results.jsonl")
+    final = load(f"{a.runs}/supercomputer/infer/chc-final/results.jsonl")
     boat = load(f"{a.runs}/backends/chc-gdp/results.jsonl")
     solved = lambda rs, t: rs.get(t, {}).get("answer") in ("sat", "unsat")
     by = collections.defaultdict(list)

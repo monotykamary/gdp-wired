@@ -1,4 +1,4 @@
-// The Modal jobs (modal/run.py's format) for run.ts: one a protocol, a run and a budget, the search's phases kept.
+// The Modal jobs (supercomputer/run.py's format) for run.ts: one a protocol, a run and a budget, the search's phases kept.
 //   bun research/protocols/ic3syn/jobs.ts --ms 60000 --runs 2 [--only id,id] [--skip broken] > jobs.json
 import {protocols} from './models.ts'
 

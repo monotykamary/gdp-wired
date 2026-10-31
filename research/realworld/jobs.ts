@@ -1,5 +1,5 @@
 // The real-world corpus as a job list, one job per law, each a `score.ts --one` run in a container of its own (2
-// vCPU): `bun research/realworld/jobs.ts [--domain d] [--item id] > jobs.json`, then `python3 modal/run.py --backend
+// vCPU): `bun research/realworld/jobs.ts [--domain d] [--item id] > jobs.json`, then `python3 supercomputer/run.py --backend
 // modal --jobs jobs.json --out runs/realworld/<name>` and `bun research/realworld/score.ts --from runs/realworld/<name>`.
 // Each law's search has 60 s; the run is killed at 150 s (a killed run reads as a timeout).
 import {corpus} from './corpus.ts'
