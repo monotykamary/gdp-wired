@@ -497,7 +497,7 @@ const phaseStep = (starts: any, rows: any, size: Term, pa: Term, sw0: Term, sw1:
     rpa: when(starts, pa, when(last, 0, rpa)), rsw0: when(starts, sw0, when(last, 0, rsw0)), rsw1: when(starts, sw1, when(last, 0, rsw1))}
 }
 // The table's safety law (both switches' Safety): reflexive, transitive, antisymmetric, and the successors of x a chain.
-const tableSafe = (T: any, size: Term) => forall((t, x, y, z) => below(size, t, x, y, z).implies(all(
+const tableSafe = (T: any, size: Term, idle: any) => forall((t, x, y, z) => idle.and(below(size, t, x, y, z)).implies(all(
   tab(T, t, x, y).and(tab(T, t, y, z)).implies(tab(T, t, x, z)),
   tab(T, t, x, y).and(tab(T, t, y, x)).implies(x.eq(y)),
   tab(T, t, x, y).and(tab(T, t, x, z)).implies(tab(T, t, y, z).or(tab(T, t, z, y))))))
@@ -668,8 +668,9 @@ Safety == \\A r1, r2 \\in Round, v1, v2 \\in Value : (<<r1, v1>> \\in decision /
 // state St[s] (Secondary 0, Primary 1), configVersion CV[s] (1 at first), configTerm CfgT[s], s2 \in config[s]
 // Config[s·N + s2]; InitTerm is 0. Init's `\E initConfig # {}: config = [i |-> initConfig]`: `pick` stores a nonempty
 // set (S, its member j) as C0, `copy` gives it to server i, `start` once every server has it. A request names its sets
-// whole (S: BecomeLeader's voteQuorum, Reconfig's newConfig, pick's initConfig; Q2: ConfigIsCommitted's quorum), and
-// the sizes the guards read are counts of the request (the servers below size in each set, X = config[i]):
+// whole (S: BecomeLeader's voteQuorum, Reconfig's newConfig, pick's initConfig; Q2: ConfigIsCommitted's quorum; X:
+// config[i], equal to it at every key), and the sizes the guards read are counts of the request (the servers below size
+// in each set):
 //   - Q \in Quorums(config[i]): Q ⊆ config[i] and |Q| > |config[i] \ Q| (Cardinality(Q) * 2 > Cardinality(config[i]));
 //   - QuorumsOverlap(X, Y) (Y = S): with dx = |X \ Y|, dy = |Y \ X|, m = |X ∩ Y| and hx, hy (inputs) the halves of |X| =
 //     dx + m and |Y| = dy + m rounded down, two disjoint majorities need hx + 1 − dx (at least 0) of X ∩ Y and hy + 1 − dy
@@ -677,22 +678,23 @@ Safety == \\A r1, r2 \\in Round, v1, v2 \\in Value : (<<r1, v1>> \\in decision /
 const mldr = (bug?: Bug) => rule('mongo logless dynamic raft')
   .params({size: nat}).pre(({size}) => size.atLeast(1).and(size.atMost(N)))
   .inputs({op: oneOf('pick', 'copy', 'start', 'update_terms', 'become_leader', 'reconfig', 'send_config'), i: nat, j: nat, hx: nat, hy: nat})
-  .carries('S', 'Q2')
+  .carries('S', 'Q2', 'X')
   .state({started: 0, picked: 0})
   .maps({C0: rel, Copied: rel, Config: rel, CT: 0, St: few(1), CV: 1, CfgT: 0})
   .counts({
     inS: ({S, size}: any) => ({below: size, body: (_x: Term, k: Term) => S.has(k)}),
     inQ2: ({Q2, size}: any) => ({below: size, body: (_x: Term, k: Term) => Q2.has(k)}),
-    xNotS: ({i, S, Config, size}: any) => ({below: size, body: (_x: Term, k: Term) => Config.at(pk(i, k)).and(S.has(k).not())}),
-    xNotQ2: ({i, Q2, Config, size}: any) => ({below: size, body: (_x: Term, k: Term) => Config.at(pk(i, k)).and(Q2.has(k).not())}),
-    sNotX: ({i, S, Config, size}: any) => ({below: size, body: (_x: Term, k: Term) => S.has(k).and(Config.at(pk(i, k)).not())}),
-    xAndS: ({i, S, Config, size}: any) => ({below: size, body: (_x: Term, k: Term) => Config.at(pk(i, k)).and(S.has(k))}),
+    xNotS: ({S, X, size}: any) => ({below: size, body: (_x: Term, k: Term) => X.has(k).and(S.has(k).not())}),
+    xNotQ2: ({Q2, X, size}: any) => ({below: size, body: (_x: Term, k: Term) => X.has(k).and(Q2.has(k).not())}),
+    sNotX: ({S, X, size}: any) => ({below: size, body: (_x: Term, k: Term) => S.has(k).and(X.has(k).not())}),
+    xAndS: ({S, X, size}: any) => ({below: size, body: (_x: Term, k: Term) => X.has(k).and(S.has(k))}),
   })
-  .assume(({op, i, j, hx, hy, size, S, Q2, Config, inS, inQ2, xNotS, xNotQ2, sNotX, xAndS}: any) => {
+  .assume(({op, i, j, hx, hy, size, S, Q2, X: Xs, Config, inS, inQ2, xNotS, xNotQ2, sNotX, xAndS}: any) => {
     const X = (k: Term) => Config.at(pk(i, k))
     const majorityOf = (Q: any, q: Term, xq: Term) => all(everyKey(k => Q.has(k).implies(X(k))), bug ? yes : xq.lt(q))
     const dx = xNotS.at(0), dy = sNotX.at(0), m = xAndS.at(0)
     return all(i.lt(size), j.lt(size), everyKey(k => S.at(k).atMost(1).and(Q2.at(k).atMost(1), S.has(k).implies(k.lt(size)), Q2.has(k).implies(k.lt(size)))),
+      everyKey(k => Xs.at(k).atMost(1).and(Xs.has(k).implies(X(k)), X(k).implies(Xs.has(k)))),
       op.is('pick').implies(S.has(j)),
       op.is('become_leader').implies(majorityOf(S, inS.at(0), xNotS.at(0))),
       op.is('reconfig').implies(all(majorityOf(Q2, inQ2.at(0), xNotQ2.at(0)),
@@ -742,7 +744,7 @@ const mldrRequests = (inp: any, r?: Read) => {
   const {op, i, j, sm, qm} = inp, uses: Record<number, string> = {0: 'jS', 1: 'i', 2: '', 3: 'ij', 4: 'iS', 5: 'iSQ', 6: 'ij'}, u = uses[op]!
   if ((!u.includes('i') && i) || (!u.includes('j') && j) || (!u.includes('S') && sm) || (!u.includes('Q') && qm)) return []
   const X = range(3).filter(k => r!.cell('Config', i * N + k)), S = bits(sm)
-  const base = {op, i, j, hx: 0, hy: 0, S: setOf(S), Q2: setOf(bits(qm))}
+  const base = {op, i, j, hx: 0, hy: 0, S: setOf(S), Q2: setOf(bits(qm)), X: setOf(X)}
   return op === 5 ? [{...base, hx: Math.floor(X.length / 2), hy: Math.floor(S.length / 2)}] : [base]
 }
 
@@ -903,7 +905,7 @@ export const protocols: Protocol[] = [
       tlc: tlc('consensus_epr', `${consts({Node: nodes(3), Value: nodes(2, 'v')})}  Quorum = {{n1, n2}, {n2, n3}, {n1, n3}, {n1, n2, n3}}\n`, 'Safety')}},
   {id: 'learning_switch', ic3syn: 'pyv-learning-switch', file: 'learning_switch.tla', source: 'Endive benchmarks/learning_switch.tla (mypyvy\'s)',
     safety: 'table(t, ·, ·) reflexive, transitive, antisymmetric, its successors a chain', make: learningSwitch, bug: 'forward learns without the no-route check',
-    laws: r => [r.law('the table is a forest', ({size, busy, T}: any) => busy.eq(0).implies(tableSafe(T, size)))],
+    laws: r => [r.law('the table is a forest', ({size, busy, T}: any) => tableSafe(T, size, busy.eq(0)))],
     bad: r => r.scalar('busy') === 0 && tableBad(r, 3),
     check: {params: {size: 3}, inputs: {op: range(3), ps: N3, pd: N3, sw0: N3, sw1: N3, nondet: N3}, uses: [['ps', 'pd'], ['ps', 'pd', 'sw0', 'sw1', 'nondet'], []],
       keep: r => r.scalar('busy') === 1 || N3.flatMap(a => triples(N3, N3, N3).map(k => r.cell('P', a * N * N * N + k))).filter(Boolean).length < 5,
@@ -911,7 +913,7 @@ export const protocols: Protocol[] = [
       tlc: tlc('learning_switch', consts({Node: nodes(3)}), 'Safety', 'CONSTRAINT StateConstraint\n')}},
   {id: 'learning_switch_i4', ic3syn: 'i4-learning-switch', file: 'learning_switch_i4.tla', source: 'Endive benchmarks/learning_switch_i4.tla (I4\'s)',
     safety: 'route_tc(n, ·, ·) reflexive, transitive, antisymmetric, its successors a chain', make: learningSwitchI4, bug: 'a route learned both ways',
-    laws: r => [r.law('the routes are a forest', ({size, started, busy, T}: any) => started.eq(1).and(busy.eq(0)).implies(tableSafe(T, size)))],
+    laws: r => [r.law('the routes are a forest', ({size, started, busy, T}: any) => tableSafe(T, size, started.eq(1).and(busy.eq(0))))],
     bad: r => r.scalar('started') === 1 && r.scalar('busy') === 0 && tableBad(r, 4),
     check: {params: {size: 4, packets: 1}, inputs: {op: range(8), p: [0], sw0: N4, sw1: N4, sw2: N4},
       uses: [['p', 'sw0'], ['p', 'sw0'], ['sw0', 'sw1'], [], ['p'], ['p', 'sw0', 'sw1'], ['p', 'sw0', 'sw1', 'sw2'], []],
