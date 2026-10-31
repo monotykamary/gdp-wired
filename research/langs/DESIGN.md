@@ -1143,49 +1143,46 @@ unknown; laws about the first pass, about an empty list, or that need no fact ab
 proven, and a law the fold breaks is refuted with a list. Probes (the prover's witnesses run on the code) are skipped
 where a rule carries folds: each one is slow under the quantified equations, and its lists empty.
 
+**A result of other code's class, not kept.** A step whose result is an object of another module's class (a
+`model_validate`, a `get_user_object`), which no answer takes, keeps no result (as any value of no scalar kind), where
+before it was refused; where the module's own function that returned it can be cut (answered by its declared type,
+writing none of the state its call gave it) or the value answered, that is done first. The claim says nothing of the
+result, and the check compares none.
+
 **Measured on real code** (Modal, 2 vCPU a job; the corpora sweep, research/langs/sweep.ts through each language's
-`run.ts --sweep`, base cd97c61 against 1396388, the same jobs; logs in the worktree's runs/laneL/). 508 methods and
-functions of the cited files (Python 276, Rust 112, Ruby 39, C 30, Swift 28, C++ 10, Java 9, Kotlin 4), extracted
-119 → 122, all three gains Python's; no rule extracted on both sides differs (by hash), none lost; the laws `check`
-proposes: proven 234 → 240, unknown 15 → 11, refuted 0 → 0 (every change a unit whose rule is the same on both sides
-and that this lane's code doesn't reach: C, C++, Java, Ruby, Swift, each flipping between runs under the 2 s a law;
-two sweeps of the candidate disagree on the same ones). Refused for a loop or a try: 55 → 39 by the sweep's own
-pattern (it also counts refusals that only mention an exception); by hand, of the 21 Python functions with a try,
-the 10 Python loops, Rust's 4 `while let` and C's 4 loops:
-- **gained** (3): `_cache_registry_answer` and `delete_cache_key_object` (a cache write or delete inside
-  `try/except Exception`: the call may raise, the handler logs), `_can_object_call_search_tool` (an empty list's
-  truth). Their rules propose no laws (no state but a store's cell).
-- **read past the try or loop, stopped further** (most): a function that returns other code's object
-  (`get_user_object`, `get_org_object`, `model_validate`, `LitellmUserRoles(...)`, 9); other code called on a value the
-  check can't stub inside a try (a callable argument `fetch_ids()`, `load_team_object()`, an untyped `kwargs.get`, 3);
-  a TypedDict's `get` on a list's item (3); a list of no item type (`list`, 3); a loop over a dict, a tuple literal, a
-  list literal, a `zip`, or other code's value (5); `in` against another module's enum value; a call answered twice in
-  one step inside a try; `can_grants_view_search_tool`, where the check ran the module's own function left out with
-  an inert argument and it raised what the handler doesn't catch: the rule and the code differ, so it is refused (the
-  assumption that other code raises only what a handler catches is checked where the check runs the call).
-- **Rust's `while let`** (governor's FixedWindow, 4): `while let Some(b) = buckets.first() { if b.0 < cutoff {
-  buckets.remove(0) } else { break } }` drops the expired prefix of a list of the state; no fold over a collection
-  (its passes are what they remove). Refused now with that reason; reading it needs a list of the state with a prefix
-  dropped (a window), not a fold.
-- C's 4 (ENet's linked lists, the ring buffer's copies) and Go's 5 (`range` over another package's `[]string`, not
-  in the sweep) are unchanged: Go's reader and harness make no list argument yet, and C's are pointer walks.
+`run.ts --sweep`; base main 078bd1d, candidate this branch, the same jobs; logs in the worktree's runs/laneL/base2 and
+c9). 508 methods and functions of the cited files (Python 276, Rust 112, Ruby 39, C 30, Swift 28, C++ 10, Java 9,
+Kotlin 4): extracted 119 → 125, all six gains Python's; none lost; no rule extracted on both sides differs (by hash);
+the laws `check` proposes 235 proven, 13 unknown, 0 refuted on both sides (4 units flip a law between proven and unknown,
+each in a language this lane's code doesn't reach, under the 2 s a law). The gains: `_cache_registry_answer`,
+`delete_cache_key_object` (a cache write or delete inside `try/except Exception`), `_can_object_call_search_tool` (an
+empty list's truth), `get_user_role`, `_model_access_group_budget`, `_malformed_vector_store_ids` (a result of other
+code's class, not kept); their rules propose no laws. Of the 21 Python functions with a try and the 10 Python loops,
+where the rest now stop: a callable argument or an untyped `kwargs` the check can't stub inside a try (3); a TypedDict's
+`get` on an item (3, each a nested optional dict); a list of no item type (3, each matched by a regex or a route
+template); a loop over a dict, a tuple or list literal, a `zip`, or other code's value (5); `in` against another
+module's enum value; a call answered twice in one step inside a try; `can_grants_view_search_tool`, where the check ran
+the module's own function left out with an inert argument and it raised what the handler doesn't catch (the rule and
+the code differ: refused). Rust's 4 `while let` (FixedWindow drops the expired prefix of a list of the state: no fold
+over a collection) and C's 4 (pointer walks) are unchanged; Go's 5 (`range` over another package's `[]string`, not in
+the sweep) wait on Go's reader and harness making a list argument.
 
-**Soundness checks.** Every extraction above is checked against the code by the readers' own correspondence runs
-(the check draws lists of 0 to 12 items and the raise inputs, the harness stubs raise). Mutation: with the returns of
-a try's body not assumed past its raises, the check finds the difference (a request where a raise and a return both
-hold). terra's review of the try machinery (read-only, two narrow prompts) found two real cases, both fixed and in
-the tests: a raise caught by an outer handler skipped an inner `finally` (now refused), and a raise's argument that
-fails first (now evaluated, its failure raised); its review of the folds found a nested loop sharing the pass name
-(already refused) and nothing else. Tests (core/extract-py.test.ts, core/extract-rb.test.ts): a call that may raise
-with two handlers' outcomes, a KeyError and a raise by a class with bases, else/finally/re-raise, a store that may
-fail inside a try, Ruby's begin/rescue/else/ensure and a method's own rescue, a fold with continue, a raise in a pass
-and an early return, strings, any/sum of a generator, a loop that reads no item, `len`; laws proven and refuted on
-each. What is not verified: laws about a fold's end beyond the first pass need induction over the passes, which the
-equations don't give (unknown, not wrong); the JVM, Swift and C++ readers' try, and Go's and Rust's list arguments,
-are not built.
+**Soundness checks.** Every extraction is checked against the code by the readers' own correspondence runs (lists of
+0 to 12 items, the raise inputs, stubs that raise). Mutation: with a try body's returns not assumed past its raises,
+the check finds the difference. terra (read-only, narrow prompts) found two real try cases, both fixed and tested: a
+raise caught by an outer handler skipped an inner `finally` (refused now), a raise's argument failing first (evaluated
+now); and in the folds, a nested loop sharing the pass name (refused). Tests (core/extract-py.test.ts,
+core/extract-rb.test.ts): a call that may raise with two handlers' outcomes, a KeyError and a raise by a class with
+bases, else/finally/re-raise, a store that may fail inside a try, Ruby's begin/rescue/else/ensure and a method's own
+rescue, a fold with continue, a raise in a pass and an early return, strings, any/sum, a loop that reads no item,
+`len`, a loop over a list of the state, a function returning other code's value cut; laws proven and refuted on each.
+Not verified: laws about a fold's end beyond the first pass need induction over the passes, which the equations don't
+give (unknown, not wrong); the JVM, Swift and C++ readers' try and Go's and Rust's list arguments are not built; Rust's
+`for` and `while let` stay refused as loops (lowering them onto the fold buys nothing while Rust's harness makes no
+list argument).
 
-**Gates** (1396388): quick bar against the cached ae36917 baseline: wrong 0 in every group, lost (solid) 0, rw
-74 / 14 / 3 as the base, f1 34, f2 24, g332 332 of 332, onecpu no failure; suites 239 of 239 by default and with
---usual (the base 235: the extra jobs are other merges'); typecheck (`tsc -p .`, no error in core/ or kernel/) and
-lint clean. core/: +47 KB without tests (core/extract-step.ts +31 KB), kernel/ untouched; Lane D's unrolling was
-+69 KB.
+**Gates** (on main 078bd1d, then rebased onto fc69578 with no conflict): quick bar against the cached ae36917 baseline:
+wrong 0 and lost (solid) 0 in every group, rw 74 / 14 / 3 as the base, f1 34, f2 25, g332 332 of 332, onecpu no
+failure; suites 243 of 243 by default and with --usual on the rebased commit; typecheck (`tsc -p .`: no error in
+core/ or kernel/) and lint clean. core/: +47.2 KB without tests (core/extract-step.ts +31.9 KB; the readers +6.8 KB,
+the harnesses +1.7 KB), kernel/ untouched.
