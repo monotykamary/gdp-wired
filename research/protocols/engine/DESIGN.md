@@ -43,6 +43,246 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneC: the counted and ∃ searches as one pipeline; the nineteen GDP_K_* knobs retired; consensus_wo_decide proven at 60 s (untrusted; nothing trusted changed)
+
+Branch gen/laneC from main a496507 (0.41.1); final commit 81db1f0. kernel/kernel.ts, lean-kernel/ and core/check.ts
+untouched (kernel/ untouched altogether); nothing reads a protocol's name. Probes: `GDP_COUNTS_TRACE=3` prints each
+attempt (its goal's time, how it ended), each kept law's tier.
+
+**Before: four pipelines, by four lanes.**
+- The counted search (core/counts.ts; K2's guard shapes and templates, K3's cubes and E-matching, G's model-first goals
+  and MBQI rounds, G2's row laws and loosened guards): its own BFS of each param 2 and 3; its own instance choice (the
+  flags at the law's terms, then each model's tuples, then E-matching of the goal's cells, then the every-key laws at
+  the law's terms); its own loop (tiers, then a hard stage with a hop-limited cone, then Houdini); nineteen env knobs.
+- The ∃ cone (core/dsl.ts's someCone, K4): its own cubes call (withKinds and the engine's, unfiltered), its own loop
+  (each cube with every kept one, 1 s a goal, to a fixpoint).
+- ghostOf's filter (exists.ts, K4): a BFS of each candidate ghost's whole machine, inputs below 3, keys below 3.
+- The ghost maps' filter (exists.ts, K3): a BFS of each candidate's machine, inputs below 2, 1,500 states, keys below 2,
+  and the same for each witness term of the same machine, again each time.
+
+**After: one pipeline** (core/counts.ts's header, core/exists.ts's smallOf and trueSmall):
+
+    1. small instances   smallOf(m): each param 2 and 3, inputs and carried sets below 3, the BFS (3,000 states,
+                         300,000 steps) and the walks past it (a third as many steps); once a machine; each state's
+                         step from the state that first reached it kept
+    2. one filter        trueSmall(m, laws[, ghosted]): every law at every small state, keys below 4; a machine with
+                         ghosts (a witness, a ghost map) is read along m's own instance, each state with the ghosts'
+                         values along the step that first reached it: one BFS a machine, however many ghosts are asked
+    3. candidates        candidates(src, m, caller, shapes, guarded, ms, until): cells' maxima · the guards' count
+                         comparisons · one key a row · the engine's ∀ cubes of two literals (template `shapes`: the
+                         caller's laws, or an ∃ law's frame), loosened where a caller reads the key unbounded; one that
+                         a law before it already states is not proposed again; each through (2)
+    4. a goal's instances the flags at the law's own terms, then only what each model asks (kernel/prove.ts's
+                         modelInstances) while the attempt's time lasts; a goal the CDCL search refutes is cut to the
+                         instances its core reads and its core's tree widened to it
+    5. the cone          cone(m, set, attempt, until): each candidate kept where proven from the kept ones and itself
+                         (IC3's relative induction), in tiers (alone, with the kept laws sharing a map, with every kept
+                         law), within two thirds of what is left, each goal an even share of that
+    then                 counted: Houdini over the rest, each law an even share of what is left; checkCountedLaws
+                         ∃ (someCone): ghostOf's witness, steps 1–3 and 5 with the kernel's proveLaw as `attempt`;
+                         proveSome with the kept laws
+
+**What went, as redundant once one:** E-matching (`matched`, `bindKey`, `ground`, `more`) and the every-key
+escalation: in every traced attempt of the ten counted protocols (base, `prof`: 1,000+ attempts, 60 and 300 s), an
+attempt whose model asked nothing and that the escalations grew never ended kept (escAsk > 0 in 0 kept attempts); the
+hard stage and its hop-limited cone: it kept no law in any traced run (wo's 300 s proof came from Houdini); the cell
+maxima the kind laws already state ("Votes at most 1" beside "every Votes cell is a value of its kind": 6 of wo's 43
+candidates); someCone's own loop; three BFS settings for one. Two bugs it showed, fixed: two laws' ghost maps named
+alike (`AllowedIn$w` twice), and a ghost map picked on one machine reused unchecked on another (a sums machine).
+
+**The knobs** (all `env` reads in core/counts.ts; none is left, none replaced by another env read):
+
+| knob | default | fate | the rule now |
+| --- | --- | --- | --- |
+| GDP_K_PAIRS | off | deleted | models ask the pairs a goal needs |
+| GDP_K_TS | off | deleted | (the every-key laws at the law's terms up front: models ask them) |
+| GDP_K_ROUNDS | 0 | deleted | (E-matching before the first decision; never ran at its default) |
+| GDP_K_CAP | 24 | deleted with E-matching | a goal grows only by what its models ask |
+| GDP_K_FIRST | on | deleted with E-matching | (the conclusion's cells first in E-matching) |
+| GDP_K_KEYED | on | always | a request's value is a key term only if it keys a map |
+| GDP_K_FLAGTS | on | always | the quantified flags start at the law's own terms |
+| GDP_K_ONCE | on | always | a count that doesn't read its key is read once |
+| GDP_K_MEMO | on | always | the same law over the same laws is asked once |
+| GDP_K_ROWS | on | always | one key a row is a candidate shape like the others |
+| GDP_K_WIDEN | on | always | a cube's guard is loosened where a caller reads the key unbounded |
+| GDP_K_DECIDE | 0 | deleted | every step goal is decided by the CDCL search first |
+| GDP_K_PART | on | merged with SHRINK | a refuted goal is cut to its core's instances and its core's tree widened to it |
+| GDP_K_SHRINK | 150 | deleted | (the same at every size: no threshold) |
+| GDP_K_MBQI | 12 (36 long) | derived | the model rounds go on while the attempt's time lasts, a second at least (the kernel's floor in withModels) |
+| GDP_K_ALONE | 300 ms | derived | each cone goal gets an even share of the cone's time over the candidates (someCone's 1 s too) |
+| GDP_K_HOPS | 16 | deleted with the hard stage | (it kept nothing) |
+| GDP_K_READS | 6 | deleted | a certificate reads every count cell its goal reads (its ten instances stay the cap) |
+| GDP_K_WALKS | 100,000 | fixed in smallOf | the walks take a third of the BFS's steps, in the one setting every filter reads |
+
+Houdini's 10 s a goal went the same way as ALONE: each law not kept an even share of what is left. Tried and not kept:
+the model rounds by the kernel's own budget (modelShare times the first round): wo's pigeonhole needs 11 rounds over
+3 s and ended unknown at 1–4 s, so wo at 300 s lost its proof (`v3`); rounds within the attempt's time won it back.
+The cubes' budget first read "a quarter of what the small instances leave": consensus_forall's engine then ran out at
+9.8 s with no cube (`v4`); a quarter of the search's own budget again (81db1f0).
+
+**IC3Syn at 60 s, nothing written** (Modal 2-vCPU, `python3 supercomputer/run.py --backend modal` (boat's controller
+dropped every client then), two runs a side, broken variants in the first; before: main a496507, `i60-base`; after:
+81db1f0, `final-modal`; seconds of search; "killed": no verdict at 210 s)
+
+| protocol | before | after | broken, after |
+| --- | --- | --- | --- |
+| client_server_ae | **proven 4.5** / **proven 7.4** | **proven 7.9** / **proven 7.4** | unknown |
+| client_server_db_ae | killed / killed | killed / unknown 136.8 | killed |
+| consensus | **proven 0.3** / **proven 0.4** | **proven 0.3** / **proven 0.4** | refuted |
+| consensus_epr | unknown 60.2 / unknown 60.2 | **proven 58.2** / unknown 60.2 | unknown |
+| consensus_forall | unknown 60.1 / unknown 60.1 | unknown 60.2 / unknown 60.2 | unknown |
+| consensus_wo_decide | unknown 60.2 / unknown 60.1 | **proven 40.7** / **proven 50.2** | unknown |
+| firewall | unknown 83.5 / unknown 91.9 | unknown 76.7 / unknown 80.5 | unknown |
+| lock_server | **proven 8.4** / **proven 7.9** | **proven 9.0** / **proven 8.6** | refuted |
+| lockserv | **proven 8.1** / **proven 15.4** | **proven 12.0** / **proven 13.3** | refuted |
+| lockserv_automaton | **proven 8.5** / **proven 8.3** | **proven 12.6** / **proven 14.6** | refuted |
+| majorityset_leader_election | **proven 13.9** / **proven 13.2** | **proven 16.3** / **proven 13.6** | unknown |
+| mldr | killed / killed | killed / killed | killed |
+| naive_consensus | **proven 17.1** / **proven 24.6** | **proven 17.3** / **proven 19.3** | unknown |
+| quorum_leader_election | **proven 6.6** / **proven 5.6** | **proven 6.9** / **proven 9.0** | unknown |
+| sharded_kv | unknown 71.6 / unknown 69.2 | unknown 71.1 / unknown 72.9 | refuted |
+| sharded_kv_no_lost_keys | killed / killed | killed / killed | killed |
+| simple | **proven 12.7** / **proven 12.4** | **proven 12.2** / **proven 13.1** | refuted |
+| simple_decentralized_lock | **proven 7.0** / **proven 5.7** | **proven 9.1** / **proven 9.8** | refuted |
+| simple_election | **proven 14.4** / **proven 15.5** | **proven 19.4** / **proven 15.3** | unknown |
+| simple_regular | unknown 7.7 / unknown 6.6 | unknown 10.1 / unknown 11.4 | refuted |
+| tcommit | **proven 0.6** / **proven 0.7** | **proven 0.7** / **proven 0.7** | refuted |
+| toy_consensus | **proven 5.2** / **proven 7.0** | **proven 4.5** / **proven 7.5** | unknown |
+| toy_consensus_epr | **proven 13.1** / **proven 15.6** | **proven 11.9** / **proven 9.9** | unknown |
+| toy_consensus_forall | **proven 9.4** / **proven 6.1** | **proven 8.6** / **proven 9.0** | unknown |
+| two_phase_commit | **proven 11.0** / **proven 16.5** | **proven 17.2** / **proven 17.7** | refuted |
+| twophase | unknown 30.5 / unknown 32.4 | unknown 34.9 / unknown 37.6 | refuted |
+
+**16 → 17 of 29 proven in both runs, a superset; consensus_epr in one of two (58.2 s).** New: consensus_wo_decide (40.7,
+50.2 s; on Modal's containers before, 0 of 8 in gen/laneG2). No broken variant proven. The protocols the pipeline
+doesn't reach moved between the two batches (lockserv_automaton 8.4 → 13.6 s): run side by side in one batch, three
+runs each (`tim-base`, `tim-cand`), the candidate is as fast or faster on every one:
+
+| protocol | before (three runs) | after (three runs) |
+| --- | --- | --- |
+| client_server_ae | proven 6.9 / proven 8.4 / proven 6.3 | proven 6.1 / proven 5.2 / proven 7.0 |
+| lockserv_automaton | proven 9.8 / proven 10.2 / proven 12.4 | proven 8.7 / proven 9.5 / proven 12.3 |
+| quorum_leader_election | proven 9.0 / proven 8.4 / proven 7.1 | proven 8.4 / proven 6.5 / proven 9.0 |
+| simple_decentralized_lock | proven 5.9 / proven 9.8 / proven 8.7 | proven 5.6 / proven 6.8 / proven 7.9 |
+| simple_regular | unknown 10.9 / unknown 11.3 / unknown 10.3 | unknown 7.5 / unknown 7.5 / unknown 9.7 |
+| toy_consensus | proven 8.3 / proven 8.7 / proven 4.7 | proven 5.0 / proven 5.5 / proven 6.1 |
+| two_phase_commit | proven 14.3 / proven 16.4 / proven 17.9 | proven 12.6 / proven 10.7 / proven 15.7 |
+
+**IC3Syn at 300 s** (boat's VMs, `python3 supercomputer/run.py --backend auto`, two runs a side, broken variants in the
+first; before: a496507, `i300-base`, with 22 jobs run again in `i300-base3` (the controller dropped the first client
+before it had every log); after: 81db1f0, `i300-cand`; "killed": no verdict at 810 s, or mldr out of the VM's 4 GB)
+
+| protocol | before | after | broken, after |
+| --- | --- | --- | --- |
+| client_server_ae | **proven 3.7** / **proven 3.8** | **proven 7.7** / **proven 8.1** | unknown |
+| client_server_db_ae | killed / killed | killed / unknown 414.9 | killed |
+| consensus | **proven 0.1** / **proven 0.4** | **proven 0.2** / **proven 0.4** | refuted |
+| consensus_epr | **proven 148.1** / **proven 155.6** | **proven 48.2** / **proven 67.4** | unknown |
+| consensus_forall | unknown 300.1 / unknown 300.2 | unknown 300.1 / unknown 300.1 | unknown |
+| consensus_wo_decide | **proven 44.2** / **proven 39.4** | **proven 30.9** / **proven 25.6** | unknown |
+| firewall | unknown 94.2 / unknown 80.5 | unknown 62.2 / unknown 73.2 | unknown |
+| lock_server | **proven 4.1** / **proven 6.5** | **proven 5.7** / **proven 5.6** | refuted |
+| lockserv | **proven 8.7** / **proven 14.0** | **proven 6.4** / **proven 5.6** | refuted |
+| lockserv_automaton | **proven 7.5** / **proven 10.9** | **proven 10.1** / **proven 10.1** | refuted |
+| majorityset_leader_election | **proven 9.9** / **proven 10.5** | **proven 10.5** / **proven 7.9** | unknown |
+| mldr | killed / killed | killed / killed | killed |
+| naive_consensus | **proven 23.4** / **proven 28.7** | **proven 18.7** / **proven 11.2** | unknown |
+| quorum_leader_election | **proven 4.8** / **proven 7.7** | **proven 6.4** / **proven 3.8** | unknown |
+| sharded_kv | unknown 121.0 / unknown 69.8 | unknown 83.3 / unknown 81.8 | refuted |
+| sharded_kv_no_lost_keys | killed / killed | killed / killed | killed |
+| simple | **proven 10.0** / **proven 10.8** | **proven 11.7** / **proven 15.0** | refuted |
+| simple_decentralized_lock | **proven 4.8** / **proven 4.8** | **proven 7.3** / **proven 6.0** | refuted |
+| simple_election | **proven 12.5** / **proven 19.7** | **proven 15.3** / **proven 14.2** | unknown |
+| simple_regular | unknown 8.9 / unknown 8.3 | unknown 9.7 / unknown 9.7 | refuted |
+| tcommit | **proven 0.4** / **proven 0.6** | **proven 0.5** / **proven 0.4** | refuted |
+| toy_consensus | **proven 5.5** / **proven 7.7** | **proven 2.9** / **proven 4.2** | unknown |
+| toy_consensus_epr | **proven 17.9** / **proven 10.1** | **proven 11.4** / **proven 10.0** | unknown |
+| toy_consensus_forall | **proven 5.6** / **proven 6.9** | **proven 6.2** / **proven 6.4** | unknown |
+| two_phase_commit | **proven 20.6** / **proven 23.4** | **proven 30.1** / **proven 16.5** | refuted |
+| twophase | **proven 202.7** / **proven 131.3** | **proven 144.7** / **proven 154.0** | refuted |
+
+**19 → 19 of 29, the same set.** No broken variant proven. consensus_epr 148–156 s → 48–67 s, consensus_wo_decide 39–44 s
+→ 26–31 s, naive_consensus 23–29 → 11–19 s; client_server_db_ae ended unknown at 415 s in one run where every run
+before was killed (its ∀∃ witness needs a ghost reading a ghost, not built). client_server_ae 3.7–3.8 → 7.7–8.1 s: the one small instance of the original machine (inputs below 3, the walks) is read where the ghost maps' filter read a
+smaller one (inputs below 2, 1,500 states) per candidate. Side by side in one Modal batch at 60 s (`tim`, three runs
+each) the candidate was 5.2–7.0 s against 6.3–8.4 s; on boat side by side not measured (the scheduler went down).
+
+**Where the time went** (the traces, `GDP_COUNTS_TRACE=3`, `prof` on a496507 and `v4`): consensus_epr at 300 s proven in
+50–73 s where it took 166–182 s (its candidates 47 → 41: the kind laws' duplicates out; the cone keeps 29 of them, every
+caller among them, so Houdini never runs); consensus_wo_decide at 60 s keeps 35 of 37 in its cone by 28 s, Houdini
+proves the rest (base: 33 of 43 by 44 s, the hard stage then took the rest of the budget); majorityset 19 → 16
+candidates, the same proof; at 60 s every one of wo's 34 attempts that ended with a model had gone through the escalations first, none of them kept.
+
+**The ten at 60 s** (ae8e133, which differs from 81db1f0 only in the counted search's cubes budget; the gauntlet's jobs-g-pilot and jobs-g1–4, Modal 2-vCPU, job seconds): **200 of 200
+proven**, median / max: consensus_wo_decide 20/20 (37.7 / 41.2), decentralized 20/20 (16.9 / 19.0), distributed 20/20
+(31.9 / 36.6), lock_server_async 20/20 (22.4 / 25.5), lock_server_sync 20/20 (8.0 / 9.6), ring 20/20 (38.8 / 45.2),
+sharded 20/20 (23.5 / 28.8), ticket 20/20 (31.8 / 37.4), toy_consensus_forall 20/20 (11.2 / 12.2), two_phase_commit 20/20
+(16.1 / 19.4). None of the ten reaches the pipeline (no count declared, no someCone: `GDP_EXISTS_LOG` prints no cone in
+wo's 20 runs again at 81db1f0, 20 of 20, median 40.0 s), so these are their main paths.
+
+**ERC-20 and research/distributed** (base a496507 and the candidate ae8e133, every verdict line compared; neither reaches the counted search): the same verdicts.
+ERC-20 (research/sol/oz-erc20.sh 120000, OpenZeppelin v5.1.0): the sum law proven, no balance past the supply unknown,
+transfer and transferFrom never mint proven (3 of 4), on both. distributed: sip.ts (NICT proven; ICT, IST, NIST
+unknown without the final response, proven with it), time.ts (the lease proven with the skew bounded and the margin
+twice it, refuted with the skew unbounded or a margin of the skew; the outbox's four as before: published and handled
+proven, marked published unknown under weak and proven under strong fairness), litellm.ts (atomic proven, read
+committed refuted, a run of 9 steps): 16 of 16 the same.
+
+**Lean** (81db1f0, Modal, Lean 4.34.0; every IC3Syn proof that changed shape): counted-lean.ts on toy_consensus (4
+laws), quorum_leader_election (4), toy_consensus_forall (8), toy_consensus_epr (8), naive_consensus (12),
+simple_election (10), majorityset_leader_election (16), consensus_wo_decide (37, was 43) and consensus_epr (29, was 35):
+lean-exit 0, no sorry, every `ic*_laws` on [propext, Classical.choice, Quot.sound]; ghosted-lean.ts on client_server_ae
+(6 laws, ResponseSent$w): `gh0_orig_laws`, `gh0_skolem` the same; some-lean.ts on simple (10 laws): `simple_laws`,
+`simple.some0` the same.
+
+**Gates**
+- **tsc, the library build and oxlint** (the suite's `check` command, Modal, 81db1f0): the build (`tsconfig.build.json`)
+  clean; tsc's only errors the checkout's vendor-less research dirs (research/audit, enum, gpu, hw, next: 94 lines, as
+  before this lane); oxlint 0 warnings and one error, research/hw/run-more.ts's (`any` in a union: a vendor type
+  missing), none in a touched file. Tests: core/exists.test.ts, kernel/count.test.ts, kernel/countmachine.test.ts: 65
+  of 65.
+- **The quick bar, boat** (`SUPERCOMPUTER_CONTROLLER=0 GDPW_BOAT_URGENT=1 bun gates/bar.ts --quick --cand 81db1f0 --base
+  ae36917`, <main>/runs/bar/runs/81db1f0-quick-laneC/REPORT.md, 888 s; a first one on ae8e133 was stopped when the boat
+  controller went down): wrong 0 in every group, nothing solid lost: CHC +1 (gained 3, lost 4, none solid), ITS +3
+  (gained 3, lost 5, none solid), ITS per component +0.33 (gained 1), SV, SV per component, TIP, f1, f2, rw and g332 as
+  the base; Lean's 6 recurrent sets checked. onecpu: no failure on either side; its infer tests read 1.3–2x the base's
+  in both onecpu runs (the bar's and `--only onecpu`), but the base there is ae36917; against a496507 side by side
+  (`inf-base`, `inf-cand`, three runs each on 1 vCPU) the three tests take 1.1–8.2 s against 1.9–8.3 s: the VMs'
+  noise, no change of this lane's (none of them reaches counts.ts, someCone or a ghost).
+- **The suites, boat** (`--only suite,suite-usual`, <main>/runs/bar/runs/81db1f0-suites-laneC2/REPORT.md): 243 of 243
+  in each mode, none failed, nothing differs from the base (whose runs have 235 jobs).
+
+**Bytes** (the four files the brief names; kernel/ untouched; research/protocols/engine/smallbench.ts −8 lines):
+
+| file | before (a496507) | after (81db1f0) | change |
+| --- | --- | --- | --- |
+| core/counts.ts | 38343 | 31477 | -6866 |
+| core/exists.ts | 46566 | 48336 | 1770 |
+| core/infer.ts | 252014 | 252014 | 0 |
+| core/dsl.ts | 265634 | 265367 | -267 |
+| the four | 602557 | 597194 | -5363 |
+
+Net −5,363 bytes: counts.ts −6,866 (E-matching, the hard stage, the knobs, someCone's loop moved in as `cone`), exists.ts
++1,770 (smallOf, trueSmall along a path, the naming fixes), dsl.ts −267, infer.ts unchanged.
+
+**Spend:** Modal billed $1.42 for this lane's 32 apps through the 14:00 UTC hour (the 60 s grids, the profiles and dev
+batches, the ten's 200, Lean, the measures, the bars' Modal groups), the last hour still filling in; the bars estimate
+$3.41 and $0.61 from their task seconds (boat, where nearly all of them ran); boat's batches report 0 starts charged to
+them. Under $10 all told. Nothing of this lane's is left running.
+
+**Verified, not**
+- **Verified:** consensus_wo_decide proven at 60 s in both grid runs and every dev run since `v4` (40–53 s), its 37 laws
+  checked by the kernel (checkCountedLaws) and by Lean; consensus_epr at 300 s in 48–73 s in every run, Lean-checked; the
+  60 s grid a superset of main's (17 of 29); no broken variant proven anywhere; the ten 200 of 200; ERC-20 and
+  distributed the same; every changed proof through Lean; the knob table's claims about the escalations and the hard
+  stage read off `GDP_COUNTS_TRACE=3` on main (the `prof` runs).
+- **Not verified:** that the models alone reach every instance E-matching did on goals outside IC3Syn (every IC3Syn
+  goal is proven or unknown as before or better; a miss would be an unknown, never a wrong proof); consensus_epr at 60 s
+  (one run of two); the walks' third as a law of nature (it is the old 100,000 against the BFS's 300,000, now one
+  setting, not tuned here); the ghost filters along the original's instance see one ghost value a state (the path that
+  first reached it), so they can keep a ghost the old BFS of the ghosted machine would have dropped (firewall's
+  AllowedIn$w at key$2, then refused by the kernel's goals, unknown as before).
+
 ## gen/laneG2: consensus_epr proven (two supports the counted search didn't propose); the ERC-20 sum law proven whole (arguments shared across methods); firewall and wo measured, not won (untrusted; nothing trusted changed)
 
 Branch gen/laneG2 from main cf00792 (0.40.0). Nothing reads a protocol's or a contract's name; kernel/, lean-kernel/ and
