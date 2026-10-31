@@ -1885,7 +1885,7 @@ def starts_summary(since: str = "24h"):
     """The ledger since a time (ISO 8601 UTC, or 24h, 7d): our starts by day and by client, the batches that went to
     Modal for want of a start, and now: ours this hour and day against the ceiling, the account's, the other's."""
     import datetime
-    t = time.time() - float(since[:-1]) * {"h": 3600, "d": 86400}[since[-1]] if since[-1] in "hd" else datetime.datetime.fromisoformat(since.replace("Z", "+00:00")).timestamp()
+    t = time.time() - float(since[:-1]) * {"m": 60, "h": 3600, "d": 86400}[since[-1]] if since[-1] in "mhd" else datetime.datetime.fromisoformat(since.replace("Z", "+00:00")).timestamp()
     rows = [r for r in (json.loads(l) for l in LEDGER.read_text().splitlines() if l.strip()) if r["t"] >= t] if LEDGER.exists() else []
     by_day, by_client = {}, {}
     for r in rows:
