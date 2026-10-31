@@ -1877,7 +1877,7 @@ def migrate_live():
     ex = m / ".git" / "info" / "exclude"
     if ex.parent.is_dir() and "supercomputer/" not in (ex.read_text() if ex.exists() else ""):
         with open(ex, "a") as f:
-            f.write("supercomputer/\n")
+            f.write("supercomputer/\nmodal/.live\n")
     print(f"moved {old} to {new}; {old} links there")
 
 
