@@ -187,6 +187,7 @@ test('what the transaction reader doesn\'t take is refused where it is, with the
     [4, `  const go = Effect.fn('go')(function* () { if (true) { const x = yield* TxRef.get(a); yield* Effect.yieldNow; yield* TxRef.set(a, x + 1); yield* TxRef.update(b, t => t + 1) } })\n  return {go}`, /runs 3 effects on the state one after another in one statement, and another fiber's step may come between them/],
     [4, `  const go = Effect.fn('go')(function* () { yield* Effect.gen(function* () { const x = yield* TxRef.get(a); yield* TxRef.set(a, x + 1) }) })\n  return {go}`, /runs 2 effects on the state one after another in one statement/],
     [3, `  const go = () => Effect.gen(function* () { const x = yield* TRef.get(a); yield* TRef.set(b, x) })\n  return {go}`, /runs 2 effects on the state one after another, and another fiber's step may come between them: write the method as Effect.fn/],
+    [4, `  const go = Effect.fn('go')(function* () { yield* TxRef.set(a, yield* TxRef.get(b)); yield* TxRef.set(b, 1) })\n  return {go}`, /runs 2 effects on the state one after another in one statement/],
     [4, `  const __gdp_gate = yield* TxRef.make(0)\n  const go = Effect.fn('go')(function* () { const x = yield* TxRef.get(a); yield* Effect.tx(TxRef.set(__gdp_gate, x)) })\n  return {go}`, /a name of the code starts with __gdp_/],
   ]
   for (const [v, body, why] of cases) {

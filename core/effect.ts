@@ -493,7 +493,8 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
     if (ts.isFunctionLike(n)) return 0
     if (ts.isIfStatement(n)) return units(n.expression) + Math.max(units(n.thenStatement), n.elseStatement ? units(n.elseStatement) : 0)
     if (ts.isConditionalExpression(n)) return units(n.condition) + Math.max(units(n.whenTrue), units(n.whenFalse))
-    if (ts.isYieldExpression(n)) return n.expression ? ran(n.expression) : 0
+    // (a yield inside the effect's arguments runs before it: its own points first)
+    if (ts.isYieldExpression(n)) { let inner = 0; if (n.expression) ts.forEachChild(n.expression, c => { inner += units(c) }); return inner + (n.expression ? ran(n.expression) : 0) }
     let t = 0
     ts.forEachChild(n, c => { t += units(c) })
     return t
