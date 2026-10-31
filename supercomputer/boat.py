@@ -357,9 +357,9 @@ get "https://download.swift.org/swift-6.3.3-release/ubuntu2404/swift-6.3.3-RELEA
 # commands in /usr/local/bin through wrappers that name those homes (rust-setup.sh then finds cargo)
 sudo mkdir -p /opt/rustup /opt/cargo && sudo chown "$(id -un)" /opt/rustup /opt/cargo
 curl -sSf https://sh.rustup.rs | RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable
-for b in cargo rustc rustup rustdoc; do printf '#!/bin/sh\nexport RUSTUP_HOME=/opt/rustup CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"\nexec /opt/cargo/bin/%s "$@"\n' "$b" | sudo tee /usr/local/bin/$b > /dev/null; sudo chmod +x /usr/local/bin/$b; done
+for b in cargo rustc rustup rustdoc; do printf '#!/bin/sh\nexport RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo\nexec /opt/cargo/bin/%s "$@"\n' "$b" | sudo tee /usr/local/bin/$b > /dev/null; sudo chmod +x /usr/local/bin/$b; done
 rm -rf ~/.cargo ~/.rustup
-env -i HOME=/tmp PATH=/usr/local/bin:/usr/bin:/bin cargo --version
+env -i HOME=/tmp PATH=/usr/local/bin:/usr/bin:/bin cargo --version | grep '^cargo '  # (a proxy outside its CARGO_HOME answers as rustup)
 # solc 0.8.28 and anvil (research/sol/sol-setup.sh's)
 sudo mkdir -p /opt/sol /opt/foundry && sudo chown "$(id -un)" /opt/sol /opt/foundry
 get https://github.com/ethereum/solidity/releases/download/v0.8.28/solc-static-linux /opt/sol/solc && chmod +x /opt/sol/solc
