@@ -131,7 +131,7 @@ export type Law = {name: string, holds: C, forall?: string, keys?: string[], sta
 // is holds over the ghosts. `ex`, on the law the kernel proved, is what it states: ∃ vars. body, with `sub` the
 // witnesses in place (holds = body with them substituted) or `ghost` (holds = body, its vars the machine's ghosts).
 export type SomeWitness = {terms?: Record<string, E>, ghost?: Record<string, {start: E, step: E}>}
-export type SomeProof = {vars: string[], body: C, sub?: Record<string, E>, ghost?: true}
+export type SomeProof = {vars: string[], body: C, sub?: Record<string, E>, ghost?: true, map?: {name: string, at: E}}
 
 export {unreachable} from '../kernel/kernel.ts'
 

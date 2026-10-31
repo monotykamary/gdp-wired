@@ -67,6 +67,7 @@ export type InferOptions = {
   minimize?: boolean // once proven, each chosen law the proof doesn't need taken out again (true); false answers at once
   remainders?: boolean // remainders (v mod k = r, a guard where only some runs keep one) where the runs keep one (true); with false, congruences instead (`existentials`)
   join?: number // the join's share of what is left of the search after the candidates (0.6)
+  cubes?: number // the engine's minimal ∀ cubes of at most this many literals alone, as found laws, nothing proven (core/counts.ts's)
 }
 // What was found: each law as a Law (pass it with the rule's laws), how it reads, and for a rule, the builder call
 // that states it (`r.law(...)`), to paste.
@@ -562,7 +563,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     return verdictOf(out)
   }
   const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(performance.now() - t0), stopped: stop()})
-  const first = opts.first ?? prove(laws)
+  const first = opts.first ?? (opts.cubes ? {proven: false, checked: false} as Verdict : prove(laws))
   if ((first.proven && first.checked) || first.run) return {...first, found: [], stats: stats(0, 0, 0)}
 
   // --- runs ------------------------------------------------------------------------------------------------------------
@@ -734,7 +735,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // guard in one pass over (at most 1,500 of) the rows. Building candidates takes at most a quarter of the time.
   const guards = [...modes].sort((p, q) => Number(!!q.choice) - Number(!!p.choice) || Number(!!q.bool) - Number(!!p.bool)).slice(0, 8)
   const strideS = Math.max(1, Math.ceil(NS / 1500)), strideK = Math.max(1, Math.ceil(NK / 1500))
-  const buildUntil = Math.min(until, now() + (until - now()) / 4)
+  const buildUntil = opts.cubes ? 0 : Math.min(until, now() + (until - now()) / 4)
   for (const [n_, {coef, cells}] of shapes.entries()) {
     if (forms.length > maxCandidates || (n_ % 256 === 0 && (now() > buildUntil || stop()))) break
     const vals = cells ? valsK : valsS, N = cells ? NK : NS, rows = cells ? rowsK : rowsS
@@ -1036,7 +1037,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     for (const l of given) if (l.forall) used.evals += k ** (1 + (l.keys?.length ?? 0))
     try { return given.every(l => watch(m, run, l, params, 4).start(st)) } catch { return false }
   }
-  const houdiniUntil = Math.min(until, now() + Math.max(500, (until - now()) / 4))
+  const houdiniUntil = opts.cubes ? 0 : Math.min(until, now() + Math.max(500, (until - now()) / 4))
   for (let quiet = 0; samples.length && now() < houdiniUntil && !stop() && quiet < 3;) {
     const killed = new Set<Form>()
     for (let tries = 0; tries < 400 && now() < houdiniUntil && !stop(); tries++) {
@@ -1569,7 +1570,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // (a step law's goal: its step from a state the set allows)
     const stepLawOf = new Map(stepLaws.map(sl => [sl.name, sl]))
     // (the engine runs after a join that finds nothing, on a rule whose scalars the runs held at few values: below)
-    let follows: boolean | undefined
+    let follows: boolean | undefined, cubesOut: Form[] | undefined
     const engineFollows = () => (follows ??= !!sorts && callerLaws.some(l => l.keys?.length) && atoms.every((a, i) => a.cell || a.param || !!a.term || a.view !== undefined || i >= valsS.length || new Set(valsS[i]).size <= 4))
     const stepWith = (name: string, form: Form | undefined, ctx: Form[]) => {
       const ctxLaws = [...ctx, ...(form ? [form] : [])].map(lawFor), ls = [...given, ...ctxLaws], mm = forLaws(ctxLaws).m, sl = form ? undefined : stepLawOf.get(name)
@@ -1938,10 +1939,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         // few others that keep its facts on the sort's keys (its values reversed, and each turned by one), each run as its
         // own machine; their states' rows read under their table. One table alone is a fact of it, not of the rule: ring's
         // ids, every node past another one's below it)
-        const tables: {m: Machine, run: typeof run, js: ReturnType<typeof loadJs> | undefined, fns: Record<string, Fn>}[] = [{m, run, js: m.history ? undefined : loadJs(m), fns: {}}]
+        const tables: {m: Machine, run: typeof run, js: ReturnType<typeof loadJs> | undefined, fns: Record<string, Fn>}[] = [{m, run, js: m.history || m.counts ? undefined : loadJs(m), fns: {}}]
         for (const [f, fn] of Object.entries(m.fns ?? {})) {
           const arg = ks.find(`F:${f}`)
-          if (fn.call || fn.recur || (fn.arity ?? 1) !== 1 || !ss.includes(arg) || m.history) continue
+          if (fn.call || fn.recur || (fn.arity ?? 1) !== 1 || !ss.includes(arg) || m.history || m.counts) continue
           const dom = keyDom(arg), vals = dom.map(k => { try { return fnValue(fn, k) } catch { return 0 } }), turn = (vs: number[]) => [...vs.slice(1), vs[0]!]
           for (const vs of [[...vals].reverse(), turn(vals), turn([...vals].reverse())]) {
             const fn2: Fn = {...fn, js: `(k) => (${JSON.stringify(Object.fromEntries(dom.map((k, i) => [k, vs[i]])))})[k] ?? (${fn.js})(k)`}, m2: Machine = {...m, fns: {...m.fns, [f]: fn2}}
@@ -2203,6 +2204,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const near = (f: Form) => (f.cube!.some(l => atomsIn(formOf([l])).some(i => callerMaps.has(atoms[i]!.parts[0]![0].split(AT)[2] ?? ''))) ? 0 : 1)
       // (the rounds over the data-filtered pool cut to its minimal cubes)
       const minPool = env.GDP_POOL !== '0' ? minimal(enumerated()) : {kept: enumerated(), by: new Map<Form, Form[]>()}, made = minPool.kept
+      if (opts.cubes) { cubesOut = made; return }
       const tEngine = vnow()
       let cubes: Form[] = []
       // (in turn by the maps a cube reads, those reading the caller's first: one of each kind before a second of any; in
@@ -2752,6 +2754,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       })
     }
     }
+    // (the cubes alone: the engine's enumeration on the small instance and the data filter, then out)
+    if (opts.cubes) { engine(); return {...first, proven: false, found: (cubesOut ?? []).filter(f => f.cube!.length <= opts.cubes!).map(f => ({law: lawFor(f), text: textOf(f)})), stats: stats(0, 0, 0)} }
     for (;;) {
       if (now() > jUntil || stop()) { why = 'time'; break }
       rounds++

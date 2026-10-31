@@ -19,7 +19,7 @@ type Taken = {before: State, input: Request, after: State}
 
 // A request's environment: the params, its inputs and queries, and the step's flags decided (as ?name).
 export function requestEnv(m: Machine, run: Runtime, params: Env, st: State, input: Request): Env {
-  const env: Env = {...params, ...numbersOf(input), ...run.queries(params, st, input)}, seen = carriedView(m, st, input)
+  const env: Env = {...params, ...numbersOf(input), ...run.queries(params, st, input)}, seen = carriedView(m, st, input, undefined, params)
   for (const [name, c] of Object.entries(m.step.flags ?? {})) env[`?${name}`] = evalC(c, env, seen, m) ? 1 : 0
   return env
 }
