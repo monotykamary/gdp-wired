@@ -275,7 +275,7 @@ const consensusWo = (decide: boolean) => (bug?: Bug) => overMajority(rule(decide
   .flags(({i, Q, VotingQuorum, Votes, Decided}: any) => ({
     quorumVotes: everyKey(k => Q.has(k).implies(Votes.at(pk(i, k)))),
     votingQuorumVotes: everyKey(k => VotingQuorum.at(k).implies(Votes.at(pk(i, k)))),
-    ...(decide ? {undecided: everyKey(x => Decided.at(pk(i, x)).not())} : {}),
+    ...(decide ? {undecided: everyKey(x => x.lt(N).implies(Decided.at(pk(i, x)).not()))} : {}),
   }))
   .flags(({op, i, j, started, quorumVotes, votingQuorumVotes, undecided, Voted, VoteRequestMsg, VoteMsg, Leader}: any) => ({
     inits: op.is('init').and(started.eq(0)),
@@ -330,7 +330,7 @@ const clientServer = (db: boolean) => (bug?: Bug) => (rule(db ? 'client server d
   .assume(({n, r, p, i}: any) => lt(n, r, p, ...(db ? [i] : [])))
   .state({started: 0})
   .maps({Match: rel, RequestSent: rel, ResponseSent: rel, ResponseReceived: rel, ...(db ? {DbRequestSent: rel, DbResponseSent: rel, T: rel} : {})})
-  .flags(({i, T}: any) => (db ? {noneWithId: everyKey(m => T.at(pk(i, m)).not())} : {}))
+  .flags(({i, T}: any) => (db ? {noneWithId: everyKey(m => m.lt(N).implies(T.at(pk(i, m)).not()))} : {}))
   .flags(({op, n, r, p, i, started, noneWithId, Match, RequestSent, ResponseSent, DbRequestSent, DbResponseSent, T}: any) => ({
     matches: op.is('match').and(started.eq(0)),
     starts: op.is('start').and(started.eq(0)),
@@ -425,7 +425,7 @@ const majoritySet = (bug?: Bug) => rule('majorityset leader election')
   .maps({Vote: rel, Voters: rel, Leader: rel})
   .counts({voters: ({Voters, size}: any) => ({below: size, body: (x: Term, k: Term) => Voters.at(pk(x, k))})})
   .assume(({op, n, m, size, voters}: any) => n.lt(size).and(m.lt(size), op.is('become_leader').implies(size.lt(voters.at(n).times(2)))))
-  .flags(({n, Vote}) => ({didNotVote: everyKey(x => Vote.at(pk(n, x)).not())}))
+  .flags(({n, Vote}) => ({didNotVote: everyKey(x => x.lt(N).implies(Vote.at(pk(n, x)).not()))}))
   .flags(({op, n, m, didNotVote, Vote, Voters}) => ({
     // Voting(n1, n2) is (n, m); ReceiveVote(voter, n, vs) is (m, n)
     votes: op.is('voting').and(bug ? yes : didNotVote),
@@ -447,7 +447,7 @@ const consensusEpr = (bug?: Bug) => overMajority(rule('consensus epr'),
   .maps({VoteRequestMsg: rel, Voted: rel, VoteMsg: rel, Votes: rel, Leader: rel, Decided: rel})
   .flags(({i, Q, Votes, Decided}: any) => ({
     quorumVotes: everyKey(k => Q.has(k).implies(Votes.at(pk(i, k)))),
-    undecided: everyKey(x => Decided.at(pk(i, x)).not()),
+    undecided: everyKey(x => x.lt(N).implies(Decided.at(pk(i, x)).not())),
   }))
   .flags(({op, i, j, quorumVotes, undecided, Voted, VoteRequestMsg, VoteMsg, Leader}: any) => ({
     requests: op.is('send_request_vote'),
@@ -518,7 +518,7 @@ const learningSwitch = (bug?: Bug) => rule('learning switch')
   .assume(({ps, pd, sw0, sw1, nondet, size}) => below(size, ps, pd, sw0, sw1, nondet))
   .state({busy: 0, row: 0, rpa: 0, rsw0: 0, rsw1: 0})
   .maps({T: rel, P: rel})
-  .flags(({ps, sw1, T}) => ({noRoute: everyKey(w => w.eq(sw1).or(T.at(pk3(ps, sw1, w)).not()))}))
+  .flags(({ps, sw1, size, T}) => ({noRoute: everyKey(w => w.lt(size).implies(w.eq(sw1).or(T.at(pk3(ps, sw1, w)).not())))}))
   .flags(({op, ps, pd, sw0, sw1, busy, noRoute, P}) => {
     const forwards = op.is('forward').and(busy.eq(0), P.at(pk4(ps, pd, sw0, sw1)))
     return {news: op.is('new_packet').and(busy.eq(0)), forwards, learns: forwards.and(ps.eq(sw1).not(), bug ? yes : noRoute), rows: op.is('row').and(busy.eq(1))}
@@ -549,7 +549,7 @@ const learningSwitchI4 = (bug?: Bug) => rule('learning switch i4')
       total: everyKey(q => q.lt(packets).implies(Src.at(q).atLeast(1).and(Dst.at(q).atLeast(1)))),
       linked: everyKey(x => x.lt(size).implies(Link.at(x).atLeast(1))),
       // \A z \in Node : (<<dst[p], sw1, z>> \in route_tc /\ sw1 # z) => <<dst[p], sw2, z>> \in route_tc
-      below2: everyKey(z => z.eq(sw1).or(T.at(pk3(d, sw1, z)).not(), tab(T, d, sw2, z))),
+      below2: everyKey(z => z.lt(size).implies(z.eq(sw1).or(T.at(pk3(d, sw1, z)).not(), tab(T, d, sw2, z)))),
     }
   })
   .flags(({op, p, sw0, sw1, sw2, started, busy, total, linked, below2, Src, Dst, Pend, Dom, T}) => {
@@ -596,7 +596,7 @@ const paxos = (bug?: Bug) => overMajority(rule('paxos epr').params({none: nat}).
   .maps({OneA: rel, OneB: rel, Left: rel, Proposal: rel, Vote: rel, Decision: rel, Qs: rel})
   .counts({missing: ({Q, r, v, Vote, size}: any) => ({below: size, body: (_x: Term, k: Term) => Q.has(k).and(Vote.at(pk3(k, r, v)).not())})})
   .flags(({r, Q, cnt, pr, pmaxr, none, Proposal, OneB, Vote}: any) => ({
-    noProposal: everyKey(x => Proposal.at(pk(r, x)).not()),
+    noProposal: everyKey(x => x.lt(N).implies(Proposal.at(pk(r, x)).not())),
     joined: everyKey(k => Q.has(k).implies(OneB.at(pk(r, k)))),
     rowOk: everyKey(j => Vote.at(cnt.times(N * N).plus(j)).and(j.lt(pr.times(N))).implies(pmaxr.eq(none).not().and(j.lt(pmaxr.plus(1).times(N))))),
   }))
@@ -640,16 +640,16 @@ JoinRound(n, r) == /\\ r # None /\\ r \\in one_a /\\ <<n, r>> \\notin left_round
   /\\ left_round' = left_round \\cup {<<n, R>> : R \\in {R2 \\in Round : R2 < r}}
   /\\ UNCHANGED <<one_a, proposal, vote, decision>>
 Propose(r, q, maxr, v) == /\\ r # None
-  /\\ \\A V \\in Value : <<r, V>> \\notin proposal
-  /\\ \\A N \\in q : <<N, r>> \\in one_b
-  /\\ \\/ maxr = None /\\ \\A N \\in q, MAXR \\in Round, V \\in Value : ~(MAXR < r /\\ <<N, MAXR, V>> \\in vote)
-     \\/ /\\ maxr # None /\\ \\E N \\in q : maxr < r /\\ <<N, maxr, v>> \\in vote
-        /\\ \\A N \\in q, MAXR \\in Round, V \\in Value : (MAXR < r /\\ <<N, MAXR, V>> \\in vote) => MAXR <= maxr
+  /\\ \\A x \\in Value : <<r, x>> \\notin proposal
+  /\\ \\A m \\in q : <<m, r>> \\in one_b
+  /\\ \\/ maxr = None /\\ \\A m \\in q, MAXR \\in Round, x \\in Value : ~(MAXR < r /\\ <<m, MAXR, x>> \\in vote)
+     \\/ /\\ maxr # None /\\ \\E m \\in q : maxr < r /\\ <<m, maxr, v>> \\in vote
+        /\\ \\A m \\in q, MAXR \\in Round, x \\in Value : (MAXR < r /\\ <<m, MAXR, x>> \\in vote) => MAXR <= maxr
   /\\ proposal' = proposal \\cup {<<r, v>>}
   /\\ UNCHANGED <<one_a, one_b, left_round, vote, decision>>
 CastVote(n, v, r) == /\\ r # None /\\ <<n, r>> \\notin left_round /\\ <<r, v>> \\in proposal
   /\\ vote' = vote \\cup {<<n, r, v>>} /\\ UNCHANGED <<one_a, one_b, left_round, proposal, decision>>
-Decide(r, v, q) == /\\ r # None /\\ \\A N \\in q : <<N, r, v>> \\in vote
+Decide(r, v, q) == /\\ r # None /\\ \\A m \\in q : <<m, r, v>> \\in vote
   /\\ decision' = decision \\cup {<<r, v>>} /\\ UNCHANGED <<one_a, one_b, left_round, proposal, vote>>
 Next == \\/ \\E r \\in Round : Send1a(r)
         \\/ \\E n \\in Node, r \\in Round : JoinRound(n, r)

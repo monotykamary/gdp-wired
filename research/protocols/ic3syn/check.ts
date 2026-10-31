@@ -7,12 +7,12 @@
 // instance. The op input's
 // values are its choices' positions (0, 1, ...). `moved`: by op, the steps that reached a new state; `edge`: the states a
 // constraint (`keep`) leaves out, reached from inside it (TLC counts those as found, and explores none of them).
-import {writeFileSync} from 'node:fs'
+import {appendFileSync, writeFileSync} from 'node:fs'
 import {interpret} from '../../../core/machine.ts'
 import {protocols} from './models.ts'
 
 const arg = (name: string) => { const i = process.argv.indexOf(`--${name}`); return i < 0 ? undefined : process.argv[i + 1] }
-const only = arg('only')?.split(','), cfgDir = arg('cfg'), ms = Number(arg('ms') ?? 60_000), broken = process.argv.includes('--broken')
+const only = arg('only')?.split(','), cfgDir = arg('cfg'), ms = Number(arg('ms') ?? 60_000), broken = process.argv.includes('--broken'), dump = arg('dump')
 
 const product = (dom: Record<string, unknown[]>): Record<string, unknown>[] =>
   Object.entries(dom).reduce<Record<string, unknown>[]>((acc, [k, vs]) => acc.flatMap(a => vs.map(v => ({...a, [k]: v}))), [{}])
@@ -48,5 +48,6 @@ for (const p of protocols.filter(q => q.check && (!only || only.includes(q.id)))
     if (next.length) depth++
     frontier = broken && bad ? [] : next
   }
+  if (dump) for (const x of spec) appendFileSync(dump, x + '\n')
   console.log(JSON.stringify({id: p.id, broken, states: spec.size, raw: seen.size, depth, done, requests: given.length, bad, ...(c.keep ? {edge: edge.size} : {}), moved, ...(c.states ? {tlc: c.states} : {}), ms: Math.round(performance.now() - t0)}))
 }
