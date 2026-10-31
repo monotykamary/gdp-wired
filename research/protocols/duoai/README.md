@@ -4,6 +4,8 @@ The protocols track (`../README.md`) compared gdp-wired with DuoAI's published T
 figures from a paper. This directory runs DuoAI itself, in gdp-wired's harness: the same Modal container shape, the
 same two limits (60 s and 10 s), three runs of every protocol and limit for both tools, so the gap is measured.
 
+(`duoai.py` is Modal-only and historical: DuoAI's Ubuntu 20.04 and Python 3.8 image, a measurement of 2026-10-29.)
+
     modal run research/protocols/duoai/duoai.py --out runs/duoai/main            # DuoAI, run.py's shape (cpu=2.0)
     modal run research/protocols/duoai/duoai.py --out runs/duoai/hard --hard     # DuoAI, a hard cap of 2 CPUs
     modal run supercomputer/run.py --jobs research/protocols/duoai/gdp-jobs.json --out runs/duoai/gdp     # gdp-wired

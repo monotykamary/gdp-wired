@@ -241,7 +241,7 @@ clause refutes the goal.
 | `vars.ts` | a goal's variables by class, and what fixing the yes/no and finite ones leaves |
 | `bmc.ts` | BMC over a CHC task's rule: the prototype, z3 as a reference, runs checked by checkDerivation |
 | `items.ts` | the tree against the DAG on the examples' own goals |
-| `modal_dag.py`, `jobs.py` | the Modal runner and its jobs files |
+| `modal_dag.py`, `jobs.py` | the Modal runner and its jobs files (Modal-only and historical: the dump g332 reads was made with it; not run since) |
 | `summarize.py` | every figure here, from runs/modal/dag/ |
 | `step332-tasks.json`, `bmc-tasks.json` | the 332 step-goal tasks; the 273 unsat Lustre tasks with Golem's derivation length |
 

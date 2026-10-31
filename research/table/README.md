@@ -44,7 +44,7 @@ gdp-wired's own searches find (the frontier corpus). It is a measurement: nothin
 | `frontier.ts` | research/frontier's cycle and lemma items, the existing search beside the table |
 | `gpu.ts` | The GPU passes as Handwired loop programs (u32 word stages): columns (Q2 bounds and Q4 fingerprints of sparse linear columns), implies (Q5 on 0/1 columns as bitsets), box (guard filtering) |
 | `summary.ts`, `gpu-summary.ts`, `term-tasks.ts`, `jobs.ts` | The tables below; the termination tasks with failures.ts's classes; the job files |
-| `modal_table.py`, `run_gpu.py` | Modal runners: one container per job (2 vCPU, 4 GB; GPU: L4), all at once |
+| `modal_table.py`, `run_gpu.py` | Modal runners: one container per job (2 vCPU, 4 GB; GPU: L4), all at once (Modal-only and historical) |
 
 The check is Z3, not gdp-wired's kernel. "Recovered" is stated two ways: **on the samples** (L_k ⇒ Spacer's invariant;
 L_k holds of every sample, but may hold of no invariant) and **inductive** (the relations Houdini keeps, an inductive

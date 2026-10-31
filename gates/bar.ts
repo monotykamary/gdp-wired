@@ -216,12 +216,17 @@ const GROUPS: Group[] = [
   {key: 'f1', views: ['f1'], cap: 1800, inQuick: true, launch: corpusPass('frontier')},
   {key: 'f2', views: ['f2'], cap: 1800, inQuick: true, launch: corpusPass('frontier2')},
   {key: 'rw', views: ['rw'], cap: 1800, inQuick: true, launch: async p => jobsPass(p, await jobsOf(p, ['bun', 'research/realworld/jobs.ts']), j => keyOfCmd(j.cmd) ?? j.name, 1800)},
-  // research/query's runner is Modal's (`modal run`) whatever --backend says; GDP_QUERY_BASE pointed at nothing, so
-  // no second tree is mounted
+  // research/query's runner on the bar's backend (boat: research/dag's goals from the store, the benchmarks from the
+  // image's layers), a gate's batch; GDP_QUERY_BASE pointed at nothing, so no second tree is mounted. A tree whose runner
+  // is Modal's only (before gen/laneQ) gets this checkout's, which only launches the jobs: they run in that tree.
   {key: 'g332', views: ['g332'], cap: 1200, inQuick: true, pairAlways: true, noRerun: true, launch: async p => {
     const jobs = (await jobsOf(p, ['python3', 'research/query/jobs.py', 'g332'])).filter(j => !p.tasks || p.tasks.includes(j.name))
     writeJson(`${p.dir}.jobs.json`, jobs)
-    return run(['modal', 'run', 'research/query/modal_query.py', '--jobs', `${p.dir}.jobs.json`, '--out', p.dir], {cwd: p.tree.path, log: `${p.dir}.log`, env: {GDP_QUERY_BASE: join(BAR, 'none')}, cap: 1200})
+    writeJson(`${p.dir}.keys.json`, Object.fromEntries(jobs.map(j => [j.name, j.name])))
+    const runner = join(p.tree.path, 'research/query/modal_query.py'), mine = join(HERE, '..', 'research/query/modal_query.py')
+    if (!readFileSync(runner, 'utf8').includes('fanout.cli') && resolve(runner) !== resolve(mine)) cpSync(mine, runner)
+    return run(['python3', 'research/query/modal_query.py', '--backend', backendOf(p), '--jobs', `${p.dir}.jobs.json`, '--out', p.dir],
+      {cwd: p.tree.path, log: `${p.dir}.log`, env: {GDP_QUERY_BASE: join(BAR, 'none'), SUPERCOMPUTER_CLASS: 'gate'}, cap: 1200})
   }},
   {key: 'suite', views: ['suite'], cap: 2400, inQuick: false, launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, sc(p.tree.path), 'suite.json')), j => j.name, 2400)},
   {key: 'suite-usual', views: ['suite-usual'], cap: 2400, inQuick: false, after: 'suite', launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, sc(p.tree.path), 'suite.json')), j => j.name, 2400, ['--usual'])},
