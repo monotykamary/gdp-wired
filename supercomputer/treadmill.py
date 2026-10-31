@@ -30,6 +30,7 @@ import contextlib
 import hashlib
 import json
 import math
+import os
 import pathlib
 import re
 import subprocess
@@ -46,7 +47,7 @@ from supercomputer.treadmill import Batch, append, append_many, jl, log, py_item
 
 TM = T.use()
 MAIN = config.main_checkout(HERE.parent)
-CLIENT = "treadmill"
+CLIENT = os.environ.get("SUPERCOMPUTER_TREADMILL_CLIENT", "treadmill")  # (a test treadmill beside the real one: a name of its own)
 SLOTS = boat.TYPES[boat.VM_TYPE][0] // boat.SLOT_CPU
 # the search's variants: knobs the prover already reads (core/infer.ts, core/interp.ts, core/cyclic.ts, kernel/prove.ts)
 VARIANTS = {"base": {}, "cyclic": {"GDP_CYCLIC": "1"}, "td": {"GDP_TD": "1"}, "clausal": {"GDP_ITP_CLAUSAL": "1"},
