@@ -75,7 +75,12 @@ export type Model = {
   kind?: string,
   // The least keys the step reads (an ordered collection's first or last item, its min or max by a key).
   leasts?: LeastRead[],
+  // Lists a request carries (each its items' fields, its length the input <name>_len), and the loops over them read as
+  // folds: each loop's running values a list of its own (<run>, one longer), its start and its step at a pass i$ (the
+  // item and the running values there): every request assumed to carry the running values the passes compute.
+  seqs?: {name: string, fields: Var[]}[], folds?: Fold[],
 }
+export type Fold = {list: string, run: string, fields: Var[], init: Record<string, Term>, step: Record<string, Term>}
 
 // --- values ---------------------------------------------------------------------------------------------------------
 type V =

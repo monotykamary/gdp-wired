@@ -183,8 +183,17 @@ export function sortsOf(m: Model, given: Record<string, 'nat' | 'int'> = {}): {s
   for (const c of cellNums) sorts.set(c, given[c] ?? 'nat')
   // A list's length is a natural; its items naturals until one written may be below 0.
   for (const d of m.lists ?? []) { sorts.set(`${d.name}_len`, 'nat'); if (d.fields[0]!.sort.k === 'num') sorts.set(`${d.name}.$item`, given[`${d.name}.$item`] ?? 'nat') }
+  // A carried list's length and a fold's pass are naturals; an item's numbers integers (any the request carries), a
+  // fold's running ones naturals until its start or a step may be below 0.
+  for (const q of m.seqs ?? []) { sorts.set(`${q.name}_len`, 'nat'); for (const f of q.fields) if (f.sort.k === 'num') sorts.set(`${q.name}.${f.name}`, given[`${q.name}.${f.name}`] ?? 'int') }
+  for (const d of m.folds ?? []) { sorts.set(`${d.run}_len`, 'nat'); for (const f of d.fields) if (f.sort.k === 'num') sorts.set(`${d.run}.${f.name}`, 'nat') }
+  if (m.folds?.length) sorts.set(I.PASS, 'nat')
   for (let changed = true; changed;) {
     changed = false
+    for (const d of m.folds ?? []) for (const f of d.fields) {
+      const n = `${d.run}.${f.name}`, a = d.init[f.name]!, b = d.step[f.name]!
+      if (f.sort.k === 'num' && sorts.get(n) === 'nat' && ((a.s === 'num' && !natOK(a.e, ctx0())) || (b.s === 'num' && !natOK(b.e, ctx0())))) { sorts.set(n, 'int'); changed = true }
+    }
     for (const v of nums(m.state)) {
       if (sorts.get(v.name) === 'int' || given[v.name]) continue
       const init = m.init[v.name], w = m.writes[v.name]
@@ -297,8 +306,8 @@ export function pb(c: B, P: Printer, ctx: Ctx): string {
     case 'is': return `${pl(c.l, P, ctx)}.is(${q(c.value)})`
     case 'leq': return `${pl(c.a, P, ctx)}.eq(${pl(c.b, P, ctx)})`
     case 'keq': {
-      const s = (k: K) => (k.op === 'svar' ? k.name : k.op === 'slit' ? q(k.value) : pk(k, P, ctx))
-      return c.a.op === 'svar' ? `${c.a.name}.eq(${s(c.b)})` : c.b.op === 'svar' ? `${c.b.name}.eq(${s(c.a)})` : `${pk(c.a, P, ctx)}.eq(${pk(c.b, P, ctx)})`
+      const s = (k: K) => (k.op === 'svar' || k.op === 'cell' ? pstr(k, P, ctx) : k.op === 'slit' ? q(k.value) : pk(k, P, ctx))
+      return c.a.op === 'svar' || c.a.op === 'cell' ? `${pstr(c.a, P, ctx)}.eq(${s(c.b)})` : c.b.op === 'svar' || c.b.op === 'cell' ? `${pstr(c.b, P, ctx)}.eq(${s(c.a)})` : `${pk(c.a, P, ctx)}.eq(${pk(c.b, P, ctx)})`
     }
     case 'cell': return cellText(c, P, ctx)
   }
@@ -330,6 +339,7 @@ export function pk(k: K, P: Printer, ctx: Ctx): string {
       if (!natOK(k.e, ctx)) throw new Refusal(P.m.file, 'a map key that may be negative (a rule\'s map is keyed by naturals)')
       return pn(k.e, P, ctx, 'nat')
     case 'svar': return `${k.name}.id`
+    case 'cell': return `${cellText(k, P, ctx)}.id`
     case 'slit': return `intern(${q(k.value)})`
     case 'kite': return `when(${pb(k.c, P, ctx)}, ${pk(k.a, P, ctx)}, ${pk(k.b, P, ctx)})`
   }
@@ -343,6 +353,7 @@ export function pterm(t: Term, P: Printer, ctx: Ctx, target?: string): string {
 // A string: a variable (a Str), a literal written whole, or one of two Strs by a condition.
 function pstr(k: K, P: Printer, ctx: Ctx, top = false): string {
   if (k.op === 'svar') return k.name
+  if (k.op === 'cell') return cellText(k, P, ctx)
   if (k.op === 'slit') { if (top) return q(k.value); throw new Refusal(P.m.file, `the literal '${k.value}' chosen by a condition (a string by cases is of two strings the rule holds)`) }
   if (k.op === 'kite') {
     const d = decided(k.c, ctx)

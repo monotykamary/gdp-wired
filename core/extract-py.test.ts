@@ -7,7 +7,7 @@ import {execFileSync} from 'node:child_process'
 import {mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {type PyOptions, extractPython} from './extract-py.ts'
-import {proveRule, proveSteps} from './dsl.ts'
+import {all, proveRule, proveSteps} from './dsl.ts'
 import {assumed, disjoint} from './extract-step.ts'
 
 const hasPy = (() => { try { execFileSync('python3', ['--version'], {stdio: 'ignore'}); return true } catch { return false } })()
@@ -150,7 +150,186 @@ t('refusals, each where it is with why', () => {
   refused(py('import os\n\ndef f(x: int) -> int:\n    return os.getpid() + x\n', {entry: ['f']}), /os.getpid\(\): os.getpid, other code \(m.py:4:12\), whose value is read, and it declares no type: state what it returns/)
   refused(py('import os\n\ndef f(x: int) -> int:\n    return os.getpid() + x\n', {entry: ['f'], strict: true}), /os.getpid, other code/)
   refused(py('def f(x: int) -> bool:\n    if x / 3 > 1:\n        return True\n    return False\n', {entry: ['f']}), /a true division/)
-  refused(py('def f(d: dict[str, int]) -> int:\n    try:\n        return d["a"]\n    except KeyError:\n        return 0\n', {entry: ['f']}), /try\/except/)
+  refused(py('import x\n\ndef f(k: int) -> int:\n    try:\n        raise x.Boom()\n    except KeyError:\n        return 0\n', {entry: ['f']}), /a raise of x.Boom, whose bases the reader doesn't know, inside a try whose handler names builtins.KeyError/)
+  refused(py('import x\n\ndef f(k: int) -> int:\n    try:\n        x.go()\n    finally:\n        if k > 0:\n            return 1\n    return 0\n', {entry: ['f']}), /a finally that returns, raises or breaks/)
+})
+
+// Loops over a list the request carries, read as folds (any length, no pass unrolled): a continue, a raise in a pass,
+// an early return; the check gives the code lists of 0 to 12 items, the rule the running values its passes compute.
+const FOLD = `from dataclasses import dataclass
+
+
+@dataclass
+class Line:
+    amount: int
+    refund: bool
+
+
+class Ledger:
+    def __init__(self, cap: int):
+        self.cap = cap
+        self.spent = 0
+
+    def charge(self, lines: list[Line]) -> bool:
+        total = 0
+        for line in lines:
+            if line.refund:
+                continue
+            if line.amount < 0:
+                raise ValueError("negative")
+            total += line.amount
+        if self.spent + total > self.cap:
+            return False
+        self.spent += total
+        return True
+
+    def has_big(self, xs: list[int], k: int) -> bool:
+        for x in xs:
+            if x > k:
+                return True
+        return False
+
+    def matches(self, verbs: list[str], verb: str) -> bool:
+        return any(v == "*" or v == verb for v in verbs)
+
+    def owed(self, xs: list[int]) -> int:
+        return sum(x for x in xs if x > 0) + self.spent
+
+    def count(self, xs: list[int], ys: list[int]) -> int:
+        n = 0
+        for _ in xs:
+            n += 1
+        return n + len(ys)
+`
+t('a loop over a list the request carries: a fold, exact for every length', () => {
+  const x = ok(py(FOLD, {entry: 'Ledger', failures: 'kept'}))
+  expect(x.source).toContain('.carriesList("charge_lines", record({refund: bool, amount: int}))')
+  expect(x.source).toMatch(/charge_lines\.every\(\(_x, i\$\) =>/)
+  expect(step(x, 'a charge admitted keeps the spend within the cap', (b, a) => a.spent.atMost(b.cap).or(a.spent.eq(b.spent)), b => b.method.is('charge')).proven).toBe(true)
+  // (a fact of the passes past the first needs induction over them, which the equations alone don't give: one line)
+  expect(step(x, 'a charge of one negative line fails', (_b, a) => a.failed, b => all(b.method.is('charge'), b.charge_lines_len.eq(1), b.charge_lines.at(0).refund.not(), b.charge_lines.at(0).amount.lt(0))).proven).toBe(true)
+  expect(step(x, 'has_big is false on an empty list', (_b, a) => a.has_big_result.not(), b => all(b.method.is('has_big'), b.has_big_xs_len.eq(0))).proven).toBe(true)
+  expect(step(x, 'has_big of one item past k is true', (_b, a) => a.has_big_result, b => all(b.method.is('has_big'), b.has_big_xs_len.eq(1), b.has_big_xs.at(0).value.gt(b.has_big_k))).proven).toBe(true)
+  expect(step(x, 'matches of one "*" is true', (_b, a) => a.matches_result, b => all(b.method.is('matches'), b.matches_verbs_len.eq(1), b.matches_verbs.at(0).value.eq('*'))).proven).toBe(true)
+  expect(step(x, 'owed of no items is the spend', (b, a) => a.owed_result.eq(b.spent), b => all(b.method.is('owed'), b.owed_xs_len.eq(0))).proven).toBe(true)
+  expect(step(x, 'count of no items is the other list\'s length', (_b, a) => a.count_result.eq(_b.count_ys_len), b => all(b.method.is('count'), b.count_xs_len.eq(0))).proven).toBe(true)
+  expect(step(x, 'has_big is never true', (_b, a) => a.has_big_result.not(), b => b.method.is('has_big')).proven).toBe(false)
+}, 60_000)
+
+// A store's get and set inside a try that catches what they raise (a cache that may fail): each may raise, an input
+// says which, the check's store raising there; and terra's two cases: a finally an outer handler's raise goes out
+// through (refused), and a raise whose argument fails first (that failure is what is raised).
+t('a store that may fail inside a try; a finally on a raise\'s way out; a raise\'s argument failing first', () => {
+  const x = ok(py(`class Hits:
+    def __init__(self, cache, limit: int):
+        self.cache = cache
+        self.limit = limit
+        self.misses = 0
+
+    async def hit(self, user: str) -> bool:
+        try:
+            n = await self.cache.async_get_cache(key=f"h:{user}") or 0
+        except Exception:
+            self.misses += 1
+            return True
+        if n >= self.limit:
+            return False
+        try:
+            await self.cache.async_set_cache(key=f"h:{user}", value=n + 1)
+        except Exception:
+            pass
+        return True
+`, {entry: 'Hits', stores: {cache: {get: ['async_get_cache'], set: ['async_set_cache'], value: 'int'}}}))
+  expect(x.source).toMatch(/async_get_cache_raises: bool/)
+  expect(step(x, 'a failed read admits and counts a miss', (b, a) => a.misses.eq(b.misses.plus(1)).and(a.hit_result), b => b.async_get_cache_raises).proven).toBe(true)
+  expect(step(x, 'admitted past the limit never', (b, a) => a.hit_result.not(), b => b.limit.atMost(b.cache_h.at(b.user.id).value).and(b.async_get_cache_raises.not())).proven).toBe(true)
+  refused(py('class A:\n    def __init__(self):\n        self.x = 0\n\n    def f(self, n: int) -> int:\n        try:\n            try:\n                if n == 7:\n                    raise ValueError()\n            finally:\n                self.x = 1\n        except ValueError:\n            pass\n        return self.x\n', {entry: 'A'}), /finally on a raise's way out of its try/)
+  const y = ok(py('class A:\n    def __init__(self):\n        self.x = 0\n        self.d: dict[str, int] = {}\n\n    def f(self, k: str) -> int:\n        try:\n            raise ValueError(self.d[k])\n        except KeyError:\n            self.x = 1\n        except ValueError:\n            self.x = 2\n        return self.x\n', {entry: 'A'}))
+  expect(step(y, 'a key it doesn\'t hold is the KeyError\'s', (_b, a) => a.x.eq(1), b => b.d.at(b.k.id).has.not()).proven).toBe(true)
+})
+
+// A module function whose try returns other code's object field: where the caller reads it and it can't be answered,
+// that function is cut (other code, answered by its declared bool), as it was while the try was refused.
+t('a function returning other code\'s value its caller reads: cut, answered by its declared type', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-pycase-`)
+  writeFileSync(`${dir}/m.py`, 'from other import Settings\n\n\ndef _deny(s: dict[str, int]) -> bool:\n    try:\n        return Settings.model_validate(s).flag\n    except ValueError:\n        return True\n\n\ndef applied(s: dict[str, int], b: bool) -> bool:\n    return _deny(s) and b\n')
+  writeFileSync(`${dir}/other.py`, 'class Settings:\n    flag: bool = False\n\n    @classmethod\n    def model_validate(cls, s) -> "Settings":\n        return cls()\n')
+  const x = extractPython(`${dir}/m.py`, {entry: ['applied'], check: budget})
+  if (!x.ok) throw new Error(`${JSON.stringify(x.refusals)}\n${x.notes.join('\n')}`)
+  expect(x.notes.join('\n')).toMatch(/_deny/)
+})
+
+// try/except: other code called inside a try may return or raise what a handler catches (an input of the request says
+// which, the check's stub raising it); the executor's own failures and the code's raises go to the handler naming their
+// class or a base; else, finally and a re-raise.
+const TRY = `import other
+
+
+class Full(LookupError):
+    pass
+
+
+class Book:
+    def __init__(self, cap: int):
+        self.cap = cap
+        self.n = 0
+        self.used: dict[str, int] = {}
+        self.misses = 0
+        self.errors = 0
+
+    def take(self, k: str) -> int:
+        try:
+            u = self.used[k]
+        except KeyError:
+            self.misses += 1
+            return -1
+        try:
+            if u >= self.cap:
+                raise Full("x")
+            self.used[k] = u + 1
+        except KeyError:
+            return -2
+        except LookupError:
+            return -3
+        else:
+            self.n += 1
+        finally:
+            other.log(k)
+        return u + 1
+
+    def hit(self, d: int) -> int:
+        self.n += 1
+        try:
+            other.notify(d)
+            self.n += 1
+            if d > 3:
+                return 7
+        except ValueError:
+            self.n -= 1
+            return 0
+        except Exception:
+            self.errors += 1
+        return 1
+
+    def strict(self, d: int) -> int:
+        try:
+            other.ping()
+        except ValueError:
+            raise
+        return d
+`
+const OTHER = 'def log(k):\n    pass\ndef notify(d):\n    pass\ndef ping():\n    pass\n'
+t('try/except: a call that may raise, a KeyError, a raise by its class, else and finally, a re-raise', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-pycase-`)
+  writeFileSync(`${dir}/m.py`, TRY); writeFileSync(`${dir}/other.py`, OTHER)
+  const x = ok(extractPython(`${dir}/m.py`, {entry: 'Book', failures: 'kept', check: budget}))
+  expect(x.source).toContain("notify_raises: oneOf('none', 'ValueError', 'Exception')")
+  expect(x.notes.join('\n')).toMatch(/other.notify \(m.py:\d+:\d+\): may raise inside a try that catches it/)
+  // (the raise's outcomes: each handler's)
+  expect(step(x, 'a hit counts its errors only where notify raised', (b, a) => a.errors.gt(b.errors).implies(b.notify_raises.is('Exception')), b => b.method.is('hit')).proven).toBe(true)
+  expect(step(x, 'a hit past 3 returns 7', (_b, a) => a.hit_result.eq(7), b => b.method.is('hit').and(b.hit_d.gt(3))).proven).toBe(false)
+  expect(step(x, 'a take never past the cap', (b, a) => b.cap.atLeast(a.used.at(b.take_k.id).value).or(a.used.at(b.take_k.id).value.eq(b.used.at(b.take_k.id).value)), b => b.method.is('take')).proven).toBe(true)
+  expect(step(x, 'strict fails only where ping raised', (_b, a) => a.failed.implies(_b.ping_raises), b => b.method.is('strict')).proven).toBe(true)
 })
 
 test('key templates: disjoint where their fixed parts differ', () => {

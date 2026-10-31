@@ -271,7 +271,13 @@ const cellKind = (d: MapDecl, sorts: Sorts) => record({has: bool, ...Object.from
 const BIG = [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER - 1, 2 ** 31, 2 ** 32]
 export function constantsOf(m: Model): number[] {
   const out = new Set<number>([0, 1])
-  walk([m.writes, m.mapWrites, m.refuse, m.pre, m.init], o => { if (o.op === 'const' && typeof o.v === 'number') out.add(o.v); if (typeof o.k === 'number') out.add(o.k) })
+  walk([m.writes, m.mapWrites, m.refuse, m.pre, m.init, m.folds ?? []], o => { if (o.op === 'const' && typeof o.v === 'number') out.add(o.v); if (typeof o.k === 'number') out.add(o.k) })
+  return [...out]
+}
+// The strings drawn: a few, and the literals the rule compares with.
+export function stringsOf(m: Model): string[] {
+  const out = new Set(['a', 'b', 'c', ''])
+  walk([m.writes, m.mapWrites, m.refuse, m.folds ?? []], o => { if (o.op === 'slit' && typeof o.value === 'string') out.add(o.value) })
   return [...out]
 }
 export function draw(sort: Var['sort'], sorts: Sorts, name: string, rand: Rand, near: number[], bound: number, strs: string[]): Raw {
@@ -382,7 +388,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
   const isClass = m.shape === 'class'
   const interp = r.interpreter(), gen = r.compiled(), machine = r.machine
   const ev: Evidence = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0}
-  const consts = constantsOf(m), strs = ['a', 'b', 'c', '']
+  const consts = constantsOf(m), strs = stringsOf(m)
   const paramKinds = m.params.map(v => [v, kindOfVar(v, sorts)] as const), inputKinds = m.inputs.map(v => [v, kindOfVar(v, sorts)] as const)
   const fail = (what: string): Evidence => { ev.mismatch = what; return finish() }
   const finish = (): Evidence => {
@@ -404,6 +410,8 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
       const x = draw(v.sort, sorts, v.name, rand, near, bound, [...strs, ...keys])
       inputs[v.name] = code.input ? code.input(v, x, rand) : opts.given?.[v.name] === 'nat' && typeof x === 'number' ? Math.abs(x) : x
     }
+    // (a list the request carries: up to 4 items, mostly, each field drawn by its sort)
+    for (const q of m.seqs ?? []) (inputs as Record<string, unknown>)[q.name] = Array.from({length: rand(4) === 0 ? rand(bound + 1) : rand(5)}, () => Object.fromEntries(q.fields.map(f => [f.name, draw(f.sort, sorts, `${q.name}.${f.name}`, rand, near, bound, strs)])))
     return {e, inputs}
   }
   const ruleInputs = (inputs: Record<string, Raw>, e: Ev): Record<string, Raw> => {
@@ -418,6 +426,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
   // through `next`), else the difference.
   const step = (params: Record<string, Raw>, ps: Record<string, number>, side: Side, st: State, inputs: Record<string, Raw>, e: Ev, next: {side?: Side, st?: State, stop?: boolean}, where: string): string | undefined => {
     const args = code.args(inputs, e), raw = ruleInputs(inputs, e)
+    if (m.folds) carry(m, raw, inputs, side.snap, params)
     const nowVar = m.inputs.find(v => v.note?.startsWith('Date.now()'))
     if (nowVar) code.setNow(inputs[nowVar.name] as number)
     // The code.
@@ -577,8 +586,9 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
     ev.fromStates++
     if (diff) return fail(diff)
   }
-  // Steps from the prover's counterexamples: each condition of the step, refuted as "never holds".
-  if (opts.probes !== false) {
+  // Steps from the prover's counterexamples: each condition of the step, refuted as "never holds". (Not where the
+  // rule carries folds: their equations, quantified over every pass, make each probe slow, and a witness's lists empty.)
+  if (opts.probes !== false && !m.folds?.length) {
     const conds = conditionsOf(m)
     for (const [i, c] of conds.entries()) {
       ev.probes.conditions++
@@ -662,11 +672,27 @@ export function condAt(c: B, env: Record<string, unknown>): ReturnType<Term['lt'
 import {yes as yesC, no as noC, when as whenDsl} from './dsl.ts'
 const whenInt = (c: ReturnType<Term['lt']>, a: Int, b: Int): Int => whenDsl(c, a, b)
 
+// The lists a request carries, and each fold's running values as its passes compute them over the items (from the
+// state before the step, the request and the params): what the rule assumes every request carries.
+function carry(m: Model, raw: Record<string, unknown>, inputs: Record<string, unknown>, st: Snap, params: Record<string, Raw>) {
+  const lists: Record<string, Record<string, Raw>[]> = {}
+  for (const q of m.seqs ?? []) { lists[q.name] = (inputs[q.name] ?? []) as Record<string, Raw>[]; raw[q.name] = lists[q.name]; raw[`${q.name}_len`] = lists[q.name]!.length }
+  const dflt = (map: string, field: string): Raw => { const f = m.maps.find(d => d.name === map)?.fields.find(x => x.name === field); return field === 'has' || f?.sort.k === 'bool' ? false : f?.sort.k === 'choice' ? f.sort.values[0]! : 0 }
+  const cell = (map: string, key: Raw, field: string): Raw => (lists[map] ? lists[map]![key as number]![field]! : st.maps[map]?.[String(key)]?.[field] ?? (field === 'has' ? map in st.maps && String(key) in st.maps[map]! : dflt(map, field)))
+  for (const d of m.folds ?? []) {
+    const items = lists[d.list]!, env: Record<string, Raw> = {...params, ...st.leaves, ...raw as Record<string, Raw>}, runs: Record<string, Raw>[] = []
+    const at = (t: Model["init"][string], i?: number) => evalTerm(t.e as N, i === undefined ? env : {...env, [I.PASS]: i}, cell)
+    runs.push(Object.fromEntries(d.fields.map(f => [f.name, at(d.init[f.name]!)])))
+    lists[d.run] = runs
+    for (let i = 0; i < items.length; i++) runs.push(Object.fromEntries(d.fields.map(f => [f.name, at(d.step[f.name]!, i)])))
+    raw[d.run] = runs
+  }
+}
 // A term at concrete values (a constant field over the params, a start, the precondition; with `cell`, a state's
 // map cells and list items too).
 export function evalTerm(t: N | B | I.L, env: Record<string, Raw>, cell?: (map: string, key: Raw, field: string) => Raw): Raw {
   const at = (map: string, k: I.K, field: string): Raw => (cell ?? (() => { throw new Error('a map cell at the start') }))(map, key(k), field)
-  const key = (k: I.K): Raw => (k.op === 'num' ? n(k.e) : k.op === 'svar' ? env[k.name]! : k.op === 'slit' ? k.value : b(k.c) ? key(k.a) : key(k.b))
+  const key = (k: I.K): Raw => (k.op === 'num' ? n(k.e) : k.op === 'svar' ? env[k.name]! : k.op === 'slit' ? k.value : k.op === 'cell' ? at(k.map, k.key, k.field) : b(k.c) ? key(k.a) : key(k.b))
   const n = (e: N): number => {
     switch (e.op) {
       case 'var': return env[e.name] as number
@@ -684,7 +710,7 @@ export function evalTerm(t: N | B | I.L, env: Record<string, Raw>, cell?: (map: 
       case 'cell': return at(e.map, e.key, e.field) as number
     }
   }
-  const l = (x: I.L): string => (x.op === 'var' ? env[x.name] as string : x.op === 'lit' ? x.value : x.op === 'ite' ? (b(x.c) ? l(x.a) : l(x.b)) : (() => { throw new Error('a map cell') })())
+  const l = (x: I.L): string => (x.op === 'var' ? env[x.name] as string : x.op === 'lit' ? x.value : x.op === 'ite' ? (b(x.c) ? l(x.a) : l(x.b)) : at(x.map, x.key, x.field) as string)
   const b = (x: B): boolean => {
     switch (x.op) {
       case 'const': return x.v

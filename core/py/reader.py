@@ -5,7 +5,7 @@
 # arguments carry are read from the repository's own modules (their class annotations, never run).
 #
 #   python3 -I core/py/reader.py '{"root": <repo>, "file": <file>, "names": [<classes or functions>]}'
-import ast, json, os, sys
+import ast, builtins, json, os, sys
 
 BUILTINS = {'min', 'max', 'abs', 'len', 'int', 'float', 'bool', 'str', 'isinstance', 'round', 'sum', 'any', 'all', 'print', 'repr', 'getattr', 'setattr', 'hasattr', 'type', 'list', 'dict', 'set', 'tuple', 'sorted', 'range', 'zip', 'enumerate'}
 # Library functions the executor knows (their meaning, not their code).
@@ -96,6 +96,7 @@ class Reader:
     self.file = os.path.abspath(file)
     self.recs, self.funcs = {}, {}
     self.local_stack = []
+    self.caught = []  # (the names the handlers being read bind their exceptions to)
 
   # --- types -------------------------------------------------------------------------------------------------------
   def find_class(self, mod, name, depth=0):
@@ -301,7 +302,12 @@ class Reader:
       return [{'s': 'if', 'p': p, 'c': E(s.test), 'then': self.block(s.body, mod), 'else': self.block(s.orelse, mod)}]
     if isinstance(s, ast.Return): return [{'s': 'ret', 'p': p, **({'x': E(s.value)} if s.value is not None else {})}]
     if isinstance(s, ast.Raise):
-      return [{'s': 'fail', 'p': p, 'why': f"raise {text(s.exc) if s.exc else ''}".strip(), **({'x': E(s.exc)} if s.exc else {})}]
+      # (the class raised and its bases; a bare raise, or of the exception a handler caught, a re-raise)
+      x = s.exc.func if isinstance(s.exc, ast.Call) else s.exc
+      re = x is None or (isinstance(x, ast.Name) and x.id in self.caught)
+      cls = None if re else self.exc_class(x, mod)
+      return [{'s': 'fail', 'p': p, 'why': f"raise {text(s.exc) if s.exc else ''}".strip(), **({'x': E(s.exc)} if s.exc else {}), **({'reraise': True} if re else {}),
+               **({'cls': cls[0], **({'open': True} if cls[1] else {})} if cls else {})}]
     if isinstance(s, ast.Assert):
       return [{'s': 'if', 'p': p, 'c': E(s.test), 'then': [], 'else': [{'s': 'fail', 'p': p, 'why': f"assert {text(s.test)}"}]}]
     if isinstance(s, (ast.With, ast.AsyncWith)):
@@ -318,12 +324,50 @@ class Reader:
           ret = self.ret_of(m, a.name)
           names[a.asname or a.name] = {'mod': m, 'name': a.name, **({'ret': ret} if ret else {})}
       return [{'s': 'import', 'p': p, 'names': names}]
-    if isinstance(s, (ast.For, ast.AsyncFor, ast.While)): return [{'s': 'no', 'p': p, 'why': f"a loop ({type(s).__name__.lower().replace('async', 'async ')})"}]
-    if isinstance(s, ast.Try) or type(s).__name__ == 'TryStar': return [{'s': 'no', 'p': p, 'why': 'try/except (an exception caught: the subset reads one only as the step\'s failure)'}]
+    # (a loop over a collection: a fold, where it is over a list the request carries; a while loop isn't one)
+    if isinstance(s, ast.For): return [{'s': 'for', 'p': p, 'to': self.target(s.target, mod), 'over': E(s.iter), 'body': self.block(s.body, mod), 'els': self.block(s.orelse, mod)}]
+    if isinstance(s, ast.Continue): return [{'s': 'continue', 'p': p}]
+    if isinstance(s, ast.Break): return [{'s': 'break', 'p': p}]
+    if isinstance(s, (ast.AsyncFor, ast.While)): return [{'s': 'no', 'p': p, 'why': f"a loop ({type(s).__name__.lower().replace('async', 'async ')})"}]
+    if type(s).__name__ == 'TryStar': return [{'s': 'no', 'p': p, 'why': 'try/except* (exception groups)'}]
+    if isinstance(s, ast.Try):
+      hs = []
+      for h in s.handlers:
+        ts = [] if h.type is None else h.type.elts if isinstance(h.type, ast.Tuple) else [h.type]
+        cs = [self.exc_class(t, mod) for t in ts]
+        self.caught.append(h.name)
+        try: body = self.block(h.body, mod)
+        finally: self.caught.pop()
+        hs.append({'p': where(self.file, h), 'names': [c[0][0] for c in cs], **({'any': True} if h.type is None else {'mro': cs[0][0], 'raise': [mod.name, text(ts[0])]}),
+                   **({'open': True} if cs and cs[0][1] else {}), **({'as': h.name} if h.name else {}), 'body': body})
+      return [{'s': 'try', 'p': p, 'body': self.block(s.body, mod), 'handlers': hs, 'els': self.block(s.orelse, mod), 'fin': self.block(s.finalbody, mod)}]
     if isinstance(s, (ast.Global, ast.Nonlocal)): return [{'s': 'no', 'p': p, 'why': f"{type(s).__name__.lower()} (a variable every call shares)"}]
     if isinstance(s, ast.Match): return [{'s': 'no', 'p': p, 'why': 'match'}]
     if isinstance(s, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)): return [{'s': 'no', 'p': p, 'why': f"a {'class' if isinstance(s, ast.ClassDef) else 'function'} defined in a function (a closure)"}]
     return [{'s': 'no', 'p': p, 'why': f"{type(s).__name__} (a statement outside the subset)"}]
+  def exc_class(self, x, mod, depth=0):
+    """A class an except or a raise names: its qualified name then its bases' ([names], open: some the reader can't know)."""
+    d = dotted(x)
+    if d is None or depth > 8: return [text(x)], True
+    head, *rest = d.split('.')
+    if not rest and head not in mod.imports and head not in mod.classes:
+      b = getattr(builtins, head, None)
+      if isinstance(b, type) and issubclass(b, BaseException): return [f"builtins.{c.__name__}" for c in b.__mro__ if c is not object], False
+    hit = self.find_class(mod, head) if not rest else None
+    imp = mod.imports.get(head)
+    if hit is None and imp:
+      q = f"{imp[1]}.{imp[2]}" if imp[0] == 'name' else imp[1]
+      q = '.'.join([q, *rest])
+      sub = self.repo.path_of(q.rpartition('.')[0])
+      hit = self.find_class(Module(self.repo, sub), q.rpartition('.')[2]) if sub else None
+      if hit is None: return [q], True
+    if hit is None: return [d], True
+    cm, cdef = hit
+    out, op = [f"{cm.name}.{cdef.name}"], False
+    for b in cdef.bases:
+      bs, bo = self.exc_class(b, cm, depth + 1)
+      out += [n for n in bs if n not in out]; op = op or bo
+    return out, op
   def target(self, t, mod):
     p = where(self.file, t)
     if isinstance(t, ast.Name): return {'e': 'var', 'n': t.id, 'p': p}
@@ -405,6 +449,11 @@ class Reader:
     if isinstance(x, ast.Call):
       f = E(x.func)
       if f.get('e') == 'ext' and f.get('q') in KNOWN: f = {'e': 'lib', 'q': f['q'], 'p': f['p']}
+      # any, all or sum of one generator: a loop over its collection (a fold), its value the accumulator's
+      g = x.args[0] if len(x.args) == 1 and not x.keywords and isinstance(x.args[0], (ast.GeneratorExp, ast.ListComp)) else None
+      if g and f.get('e') == 'builtin' and f.get('n') in ('any', 'all', 'sum') and len(g.generators) == 1 and not g.generators[0].is_async:
+        c = g.generators[0]
+        return {'e': 'fold', 'f': f['n'], 'to': self.target(c.target, mod), 'over': E(c.iter), 'x': E(g.elt), 'ifs': [E(i) for i in c.ifs], 'p': p, 'text': text(x)}
       args = [E(a) if not isinstance(a, ast.Starred) else {'e': 'no', 'why': f"{text(a)}: *args", 'p': p} for a in x.args]
       kw = [[k.arg, E(k.value)] if k.arg else ['**', {'e': 'no', 'why': f"**{text(k.value)}", 'p': p}] for k in x.keywords]
       return {'e': 'call', 'f': f, 'args': args, 'kw': kw, 'p': p, 'text': text(x)}
@@ -450,6 +499,10 @@ def main():
   for n, f in mod.funcs.items():
     if n not in r.funcs: r.funcs[n] = r.func(f, mod, None, n)
   out['recs'] = {k: v for k, v in r.recs.items() if v}
+  # The executor's own failures' bases, and the class a stub raises for a handler of every exception.
+  out['kinds'] = {n: [f"builtins.{c.__name__}" for c in getattr(builtins, n).__mro__ if c is not object] for n in ('KeyError', 'TypeError', 'AttributeError', 'ZeroDivisionError', 'ValueError')}
+  out['exc'] = {'mro': ['builtins.Exception', 'builtins.BaseException'], 'raise': ['builtins', 'Exception']}
+  out['lists'] = True
   out['funcs'] = r.funcs
   print(json.dumps(out))
 

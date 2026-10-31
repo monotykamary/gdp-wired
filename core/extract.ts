@@ -42,7 +42,7 @@ import {compileFunction, walk} from './machine.ts'
 import type {Rule} from './dsl.ts'
 import type {Law} from './machine.ts'
 import * as I from './extract-ir.ts'
-import type {B, N} from './extract-ir.ts'
+import {type B, type N, PASS} from './extract-ir.ts'
 import {type Arg, type Layout, type MapDecl, type Model, Refusal, type Source, type Term, type Var, placed, sourceOf} from './extract-read.ts'
 import {type ReadOptions, isFactory, isSlice, readClass, readFactory, readFunctions, readSlice} from './extract-shapes.ts'
 import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pidx, pk, pnum, pterm, sortsOf} from './extract-print.ts'
@@ -244,12 +244,24 @@ function builderOf(m: Model, sorts: Sorts): string {
   const envOf = (...xs: object[]) => {
     const vars = new Set<string>(), maps = new Set<string>()
     for (const x of xs) I.varsOf(x as N, vars, maps)
-    return `{${[...new Set([...vars].filter(n => !m.leasts?.some(l => l.key === n)).map(leastOf)), ...maps].join(', ')}}`
+    return `{${[...new Set([...vars].filter(n => !m.leasts?.some(l => l.key === n)).map(leastOf)), ...maps].filter(n => n !== PASS).join(', ')}}`
   }
   // The least keys: each where it holds, by what, read at the state before the step.
   if (m.leasts?.length) {
     const c = ctx()
     lines.push(`  .least({${m.leasts.map(l => `${l.name}: (${envOf(l.where, ...l.by.map(b => b.e))}) => ({where: ${l.key} => ${pb(l.where, P, c)}, by: ${l.key} => [${l.by.map(b => (b.desc ? `desc(${pnum(b.e, P, c)})` : pnum(b.e, P, c))).join(', ')}]})`).join(', ')}})`)
+  }
+  // The lists a request carries, the folds' running values, and what every request is assumed to carry in them: each
+  // fold's start at 0 and its step at every pass below the list's length (printed over the pass, i$).
+  const rec = (name: string, fs: Var[]) => `record({${fs.map(f => `${f.name}: ${kindOf(f, sorts, `${name}.${f.name}`)}`).join(', ')}})`
+  for (const q of [...(m.seqs ?? []), ...(m.folds ?? []).map(d => ({name: d.run, fields: d.fields}))]) lines.push(`  .carriesList(${JSON.stringify(q.name)}, ${rec(q.name, q.fields)})`)
+  for (const d of m.folds ?? []) {
+    const cell = (i: N, f: Var) => ({op: 'cell', map: d.run, key: {op: 'num', e: i}, field: f.name, ...(f.sort.k === 'choice' ? {values: f.sort.values} : {})}) as never
+    const eq = (i: N, f: Var, t: Term): B => (t.s === 'num' ? I.cmp('=', cell(i, f), t.e) : t.s === 'bool' ? I.and(I.or(I.not(cell(i, f)), t.e), I.or(cell(i, f), I.not(t.e))) : t.s === 'str' ? I.keq(cell(i, f), t.e) : I.leq(cell(i, f), t.e as I.L))
+    const start = I.and(...d.fields.map(f => eq(I.num(0), f, d.init[f.name]!))), step = I.and(...d.fields.map(f => eq(I.add(I.nvar(PASS), I.num(1)), f, d.step[f.name]!)))
+    const text = `all(${d.run}_len.eq(${d.list}_len.plus(1)), ${pb(start, P, ctx())}, ${d.list}.every((_x, ${PASS}) => ${pb(step, P, ctx())}))`
+    const env = envOf(start, step).slice(1, -1).split(', ').filter(Boolean)
+    lines.push(`  .assume((${withChoices(`{${[...new Set([...env, d.list, d.run, `${d.list}_len`, `${d.run}_len`])].join(', ')}}`, text, P)}) => ${text})`)
   }
   if (!(m.pre.op === 'const' && m.pre.v)) lines.push(`  .pre((${envOf(m.pre)}) => ${pb(m.pre, P, ctx())})`)
   const allowed = I.not(m.refuse)
@@ -298,7 +310,7 @@ const isBool = (x: object, m?: Model): boolean => {
   if (['cmp', 'and', 'or', 'not', 'is', 'leq', 'keq'].includes(o.op) || (o.op === 'const' && typeof o.v === 'boolean')) return true
   if (o.op === 'ite') return isBool(o.a!, m) || isBool(o.b!, m)
   if (o.op === 'var' && m) return [...m.params, ...m.inputs, ...m.state].some(v => v.name === o.name && v.sort.k === 'bool') || !!m.leasts?.some(l => l.some === o.name)
-  if (o.op === 'cell' && m) return o.field === 'has' || !!m.maps.find(d => d.name === o.map)?.fields.some(f => f.name === o.field && f.sort.k === 'bool')
+  if (o.op === 'cell' && m) return o.field === 'has' || [...m.maps, ...(m.seqs ?? []), ...(m.folds ?? []).map(d => ({name: d.run, fields: d.fields}))].some(d => d.name === o.map && d.fields.some(f => f.name === o.field && f.sort.k === 'bool'))
   return false
 }
 // The env's names: those the terms read, the choices a literal is printed through, and the maps written.

@@ -127,6 +127,53 @@ end
   step(x, 'admitted only within the cap', (_b, a) => a.failed.not().implies(a.cache_hits.at(_b.user.id).value.atMost(a.cap_)), () => yes)
 })
 
+t('begin/rescue/else/ensure and a method\'s own rescue: another class\'s call may raise what a rescue catches, a raise by its class', () => {
+  const x = ok(rb(`
+module Remote
+  def self.ping(*) = nil
+  def self.log(*) = nil
+end
+class Full < IndexError; end
+class Gate
+  def initialize(cap)
+    @cap = cap
+    @n = 0
+    @errors = 0
+  end
+  def hit(k)
+    begin
+      Remote.ping(k)
+      raise Full if @n >= @cap
+      @n += 1
+    rescue KeyError
+      return -2
+    rescue IndexError
+      return -1
+    rescue => e
+      @errors += 1
+      return 0
+    else
+      @n += 0
+    ensure
+      Remote.log(k)
+    end
+    @n
+  end
+  def soft
+    Remote.ping(1)
+    @n
+  rescue
+    @errors += 1
+    0
+  end
+end
+`, 'Gate', {failures: 'kept'}))
+  expect(x.source).toContain("ping_raises: oneOf('none', 'KeyError', 'IndexError', 'StandardError')")
+  step(x, 'errors only where ping raised a StandardError', (b, a) => a.errors.gt(b.errors).implies(b.ping_raises.is('StandardError')), b => b.method.is('hit'))
+  step(x, 'never past its cap but by a raise', (b, a) => a.n.gt(b.n).implies(b.cap_.gt(b.n)), () => yes)
+  step(x, 'soft counts an error only where ping raised', (b, a) => a.errors.gt(b.errors).implies(b.soft_ping_raises), b => b.method.is('soft'))
+})
+
 // The adversarial round (research/langs/adversarial): no false checked proof; what reaches the rule's state, refused.
 import {cases as advCases, judge, ADV} from '../research/langs/adversarial/cases.test-lib.ts'
 for (const c of advCases('Ruby')) t(`adversarial ${c.id}: ${c.attack}`, () => judge(c, extractRuby(`${ADV}${c.file}`, {entry: 'Meter', root: ADV, check: {runs: 30, depth: 6, states: 60}})))

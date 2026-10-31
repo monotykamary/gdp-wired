@@ -28,8 +28,11 @@ export type L =
   | {op: 'lit', value: string, values: string[]}
   | {op: 'ite', c: B, a: L, b: L}
   | {op: 'cell', map: string, key: K, field: string, values: string[]}
-// A key: a number, a string input, a string literal, or one of two by a condition.
-export type K = {op: 'num', e: N} | {op: 'svar', name: string} | {op: 'slit', value: string} | {op: 'kite', c: B, a: K, b: K}
+// A key: a number, a string input, a string literal, one of two by a condition, or a string a carried list holds.
+export type K = {op: 'num', e: N} | {op: 'svar', name: string} | {op: 'slit', value: string} | {op: 'kite', c: B, a: K, b: K} | {op: 'cell', map: string, key: K, field: string}
+
+// The pass a fold's step is at: a bound name in its terms (cells of carried lists at i$ and i$ + 1).
+export const PASS = 'i$'
 
 // Structural keys (memoized: the same object is compared many times while paths merge).
 const keys = new WeakMap<object, string>()
