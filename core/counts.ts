@@ -196,14 +196,16 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
     const most = Math.max(0, ...states.flatMap(({sts}) => sts.flatMap(st => [...(st.maps[mp]?.values() ?? [])])))
     return {name: `${mp} at most ${most}`, forall: 'a$c', holds: {op: '<=', a: {op: 'get', map: mp, key: v('a$c')}, b: k(most)}} as Law
   })
-  // (a relation written at a composed key N·a + b: at most one b a row, or one a a column, K2's support the engine's
-  // cubes of two keys can't state (three keys read): one decision a node, one vote a voter)
+  // (a relation written at a composed key N·a + b under a quantified flag that its row a (or column b) holds no cell:
+  // at most one b a row (one a a column), K2's support the engine's cubes of two keys can't state, three keys read:
+  // one decision a node where a decision needs the node undecided)
   const rowLaws: Law[] = Object.entries(m.step.maps ?? {}).flatMap(([mp, w]) => {
-    const key = 'each' in w ? undefined : w.key, n = key?.op === 'add' && key.a.op === 'mul' && key.a.a.op === 'var' && key.b.op === 'var' ? key.a.k : 0
-    if (!n) return []
-    const at = (p: E, q: E): C => ({op: '<=', a: one, b: {op: 'get', map: mp, key: {op: 'add', a: {op: 'mul', k: n, a: p}, b: q}}})
-    return [false, true].map((col): Law => {
-      const [a, x, y] = [v('a$c'), v('x$c'), v('y$c')], cell = (z: E) => (col ? at(z, a) : at(a, z))
+    const key = 'each' in w ? undefined : w.key
+    if (key?.op !== 'add' || key.a.op !== 'mul' || key.a.a.op !== 'var' || key.b.op !== 'var') return []
+    const n = key.a.k, cellAt = (p: E, q: E): E => ({op: 'get', map: mp, key: {op: 'add', a: {op: 'mul', k: n, a: p}, b: q}})
+    const empty = (col: boolean) => Object.values(m.step.flags ?? {}).some(q => q.op === 'all' && !q.keys?.length && json(q.c).includes(json(col ? cellAt(v(q.key), key.b) : cellAt(key.a.a, v(q.key)))))
+    return [false, true].filter(empty).map((col): Law => {
+      const [a, x, y] = [v('a$c'), v('x$c'), v('y$c')], cell = (z: E): C => ({op: '<=', a: one, b: col ? cellAt(z, a) : cellAt(a, z)})
       return {name: `${mp}: one ${col ? 'first key a second' : 'second key a first'}`, forall: 'a$c', keys: ['x$c', 'y$c'],
         holds: {op: 'or', xs: [{op: 'not', x: {op: 'and', xs: [...[a, x, y].map((z): C => ({op: '<', a: z, b: k(n)})), cell(x), cell(y)]}}, {op: '=', a: x, b: y}]}}
     })
@@ -217,14 +219,15 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
   // decided value below N and not below size, if the small instances still hold it: the engine's template reads every
   // key of a composed map as one sort)
   const placesOf = (key: E): string[] | undefined => (key.op === 'var' ? [key.name] : key.op === 'add' && key.a.op === 'mul' && key.a.a.op === 'var' && key.b.op === 'var' ? [key.a.a.name, key.b.name] : undefined)
-  const guardsOf = (l: Law): C[] => (l.holds.op === 'or' ? l.holds.xs.flatMap(d => (d.op === 'not' ? atoms(d.x) : [])) : [])
+  const conjs = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(conjs) : [c])
+  const guardsOf = (l: Law): C[] => (l.holds.op === 'or' ? l.holds.xs.flatMap(d => (d.op === 'not' ? conjs(d.x) : [])) : [])
   const bounded = (gs: C[], u: string) => gs.some(c => c.op === '<' && c.a.op === 'var' && c.a.name === u && c.b.op === 'var' && m.params.includes(c.b.name))
   const loose = new Set(caller.flatMap(l => [...reads(l.holds, mp => mp in (m.maps ?? {})).values()].flatMap(([mp, key]) => (placesOf(key) ?? []).flatMap((u, i) => (bounded(guardsOf(l), u) ? [] : [`${mp}:${i}`])))))
   const widen = (c: Law): Law => {
     const drop = new Set([...reads(c.holds, () => true).values()].flatMap(([mp, key]) => (placesOf(key) ?? []).filter((u, i) => loose.has(`${mp}:${i}`))))
     const keep = (x: C): boolean => !(x.op === '<' && x.a.op === 'var' && drop.has(x.a.name) && x.b.op === 'var' && m.params.includes(x.b.name))
     if (!drop.size || c.holds.op !== 'or' || !guardsOf(c).some(x => !keep(x))) return c
-    const w: Law = {...c, name: `${c.name} (at any ${[...drop].join(', ')} below the key's bound)`, holds: {op: 'or', xs: c.holds.xs.map(d => (d.op === 'not' ? {op: 'not', x: {op: 'and', xs: atoms(d.x).filter(keep)}} : d))}}
+    const w: Law = {...c, name: `${c.name} (at any ${[...drop].join(', ')} below the key's bound)`, holds: {op: 'or', xs: c.holds.xs.map(d => (d.op === 'not' ? {op: 'not', x: {op: 'and', xs: conjs(d.x).filter(keep)}} : d))}}
     return trueAll(w) ? w : c
   }
   const cubes = knob.widen ? cubes0.map(widen) : cubes0
