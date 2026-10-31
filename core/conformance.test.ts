@@ -15,6 +15,7 @@ import {type Termination, checkMeasures} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
 import {type Loop, type Recur, check, checkQTree, checkRecur, recurGoal} from '../kernel/kernel.ts'
 import {recurLean} from '../lean-kernel/emit.ts'
+import {exactNat, leanSurface, leanTerms} from '../lean-kernel/lean-terms.ts'
 import {growQ} from '../kernel/qprove.ts'
 import {q, qeq} from './q.ts'
 import {evalQC, interpretQ, loadQJs} from './rationals.ts'
@@ -269,3 +270,14 @@ test('strong fairness: found certificates accepted and true, tampered ones refus
   }
   console.log(`strong fairness: ${Object.entries(counts).map(([w, x]) => `${w} ${x.accepted}/${x.n} accepted`).join('; ')}`)
 }, 600_000)
+
+test('a number past 2^53 goes to Lean as the integer JavaScript holds, not its shortest decimal (terra, gen/laneQ)', () => {
+  // 10^18 + 100 is 10^18 + 128 in JavaScript, which prints it 1000000000000000100: the kernel and the runtimes read 128
+  expect(exactNat(1e18 + 100)).toBe('1000000000000000128')
+  expect(exactNat(2 ** 53)).toBe('9007199254740992')
+  expect(exactNat(42)).toBe('42')
+  const big: E = {op: 'const', value: 1e18 + 100}, xv: E = {op: 'var', name: 'x'}
+  expect(leanTerms(['x'], [], 'test').e({op: 'add', a: {op: 'mul', k: 1e18 + 100, a: xv}, b: big})).toBe('.add (.mul 1000000000000000128 (.var 0)) (.const 1000000000000000128)')
+  expect(leanSurface({x: 'x'}, 'test').e({op: 'add', a: xv, b: big})).toBe('(x + 1000000000000000128)')
+})
+

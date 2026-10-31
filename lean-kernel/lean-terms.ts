@@ -4,14 +4,19 @@
 // A name with no number fails here, never as a malformed index in the Lean text.
 import {type C, type E, unreachable} from '../core/machine.ts'
 
+// A number as Lean reads it: the exact integer JavaScript holds. (Past 2^53 a JavaScript number prints as the shortest
+// decimal that reads back to it, 10^18 + 128 as 1000000000000000100: Lean would read another number than the kernel and
+// the runtimes do. terra's review of gen/laneQ.)
+export const exactNat = (x: number): string => (Number.isSafeInteger(x) ? String(x) : BigInt(x).toString())
+
 export function leanTerms(vars: readonly string[], maps: readonly string[], where: string) {
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${where}: no variable for ${name}`); return j }
   const mx = (name: string) => { const j = maps.indexOf(name); if (j < 0) throw new Error(`${where}: no map for ${name}`); return j }
   const e = (t: E): string => {
     switch (t.op) {
       case 'var': return `.var ${ix(t.name)}`
-      case 'const': return `.const ${t.value}`
-      case 'mul': return `.mul ${t.k} (${e(t.a)})`
+      case 'const': return `.const ${exactNat(t.value)}`
+      case 'mul': return `.mul ${exactNat(t.k)} (${e(t.a)})`
       case 'add': case 'sub': case 'min': case 'max': case 'prod': return `.${t.op} (${e(t.a)}) (${e(t.b)})`
       case 'if': return `.ite (${c(t.c)}) (${e(t.then)}) (${e(t.else)})`
       case 'get': return `.get ${mx(t.map)} (${e(t.key)})`
@@ -43,8 +48,8 @@ export function leanSurface(names: Record<string, string>, where: string, get?: 
   const e = (t: E): string => {
     switch (t.op) {
       case 'var': return name(t.name)
-      case 'const': return String(t.value)
-      case 'mul': return `(${t.k} * ${e(t.a)})`
+      case 'const': return exactNat(t.value)
+      case 'mul': return `(${exactNat(t.k)} * ${e(t.a)})`
       case 'add': return `(${e(t.a)} + ${e(t.b)})`
       case 'sub': return `(${e(t.a)} - ${e(t.b)})`
       case 'prod': return `(${e(t.a)} * ${e(t.b)})`
