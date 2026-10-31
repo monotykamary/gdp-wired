@@ -24,6 +24,8 @@ except ImportError:  # plain python3, --backend boat: the runner's functions run
     sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent.parent / "supercomputer"))
     from agent import modal_stub
     modal = modal_stub()
+# On boat a call takes this many 2-vCPU slots: 2 matches Modal's cpu=2.0 (two physical cores), 1 is one core's two threads.
+BOAT = {"weight": int(__import__("os").environ.get("CHC_BOAT_WEIGHT", "1"))}
 
 HERE = pathlib.Path(__file__).resolve().parent
 GDP = HERE.parent.parent
