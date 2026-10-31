@@ -125,7 +125,7 @@ COMMON = ("core/", "kernel/", "interchange/", "lean-kernel/", "examples/", "vend
 INPUTS = {"chc": COMMON + ("compare/chc/",), "its": COMMON + ("compare/term/",), "sv": COMMON + ("compare/term/",), "tip": COMMON + ("compare/tip/",),
           "ic3syn": COMMON + ("research/protocols/",), "ten": COMMON + ("research/protocols/",),
           "rw": COMMON + ("research/realworld/", "research/langs/", "research/sol/", "research/protocols/")}
-NOT_INPUT = re.compile(r"\.md$|\.test\.ts$|(^|/)(jobs[^/]*\.json|results[^/]*\.(json|md|tsv)|RESULTS[^/]*)$")
+NOT_INPUT = re.compile(r"\.md$|\.test\.ts$|^kernel/mutants\.ts$|(^|/)(jobs[^/]*\.json|results[^/]*\.(json|md|tsv)|RESULTS[^/]*)$")
 _fp: dict = {}
 _fp_lock = threading.Lock()
 
@@ -334,8 +334,8 @@ def ranking(cache, bench: str, budget: int) -> dict:
     by: dict = {}
     base_solved: dict = {}
     for (c, b, t, cfg), r in cache.d.items():
-        if b != bench or not cfg[:1].isdigit():
-            continue
+        if b != bench or not cfg[:1].isdigit() or str(r.get("source", "")).startswith("idea") or c.startswith("tree:"):
+            continue  # (an idea's few tasks are no round of the sweep's: they don't rank its variants)
         bud, v = budget_of(cfg), variant_of(cfg)
         if v in ("base", "timing", "full") and bud <= budget and r["solved"]:
             base_solved.setdefault(c, set()).add(t)
@@ -695,7 +695,7 @@ class Speed(Follow):
     by the previous run (or at the newest 60 s round in the cache), in shards of about ten minutes."""
     name, inputs = "speed", "chc"
     PER_DAY = knob("SPEED_PER_DAY", 12)
-    SLOWER, FLOOR_S = 1.5, 1.0
+    SLOWER, FLOOR_S = knob("SLOWER", 1.5), knob("FLOOR_S", 1.0)
 
     def reset(self, r: dict):
         r["benches"] = {b: x for b, x in r.get("benches", {}).items() if x.get("status") == "done"}
@@ -759,12 +759,40 @@ class Speed(Follow):
             r["benches"][bench] = {"status": "running", "claimed": tasks}
             self.save()
             free -= self.batch(c, a, bench, got, tasks, free)
-        if all(r["benches"].get(b, {}).get("status") == "done" for b in SPEED_BENCHES if b in self.tm.benches) and not any(not x.done for x in a["batches"].values()):
+        if not all(r["benches"].get(b, {}).get("status") == "done" for b in SPEED_BENCHES if b in self.tm.benches) or any(not x.done for x in a["batches"].values()):
+            return free
+        # each task flagged (slower or lost) once more, timed, at both commits: the search's own spread on identical code
+        # reaches 3x on a few tasks (two runs of 0010208 and 604b62d: 6.3 s and 2.0 s), so one run is no regression
+        prev = self.prev_done(c)
+        if "confirm" not in r:
+            r["confirm"] = {b: {"tasks": ts, c: "pending", prev: "pending"} for b, ts in self.flagged(c, prev).items() if ts} if prev else {}
+            self.save()
+        for bench, cf in r["confirm"].items():
+            for side in (c, prev):
+                if cf[side] == "pending" and free > 0:
+                    got = self.tm.lists.get(c, a["tree"], bench)
+                    if got is None:
+                        continue
+                    cf[side] = "running"
+                    self.save()
+                    free -= self.batch(c, a, bench, got, cf["tasks"], free, side=side)
+        if all(cf[x] == "done" for cf in r["confirm"].values() for x in (c, prev)) and not any(not x.done for x in a["batches"].values()):
             self.compare(c)
             self.finish(c)
         return free
 
-    def batch(self, c: str, a: dict, bench: str, got, tasks: list[str], free: int) -> int:
+    def flagged(self, c: str, prev: str) -> dict:
+        """Per benchmark, the tasks one run says are slower (SLOWER and FLOOR_S) or lost against the previous run."""
+        out = {}
+        for bench in SPEED_BENCHES:
+            if self.obs_file(c, bench).exists() and self.obs_file(prev, bench).exists():
+                now, was = json.loads(self.obs_file(c, bench).read_text()), json.loads(self.obs_file(prev, bench).read_text())
+                out[bench] = [t for t in now if was.get(t, {}).get("solved") and (not now[t].get("solved") or (now[t]["secs"] > self.SLOWER * was[t]["secs"] and now[t]["secs"] - was[t]["secs"] >= self.FLOOR_S))]
+        return out
+
+    def batch(self, c: str, a: dict, bench: str, got, tasks: list[str], free: int, side: str = "") -> int:
+        """The timed shards of tasks at c (or, `side`, the confirming runs of c's flagged tasks at c or the commit before)."""
+        tree = self.tm.tree_of(side) if side else a["tree"]
         by = task_specs(got)
         est = {t: max(1.0, float(r.get("secs") or 10)) for (cc, b, t, cfg), r in self.tm.cache.d.items() if b == bench and cfg in ("60:base", "60:timing") and r["solved"]}
         shards, cur, s = [], [], 0.0
@@ -777,8 +805,8 @@ class Speed(Follow):
             s += est.get(t, 10)
         if cur:
             shards.append((cur, s))
-        items = [shard_item(f"speed-{bench}-{k}", bench, [by[t] for t in ts], 60, {}, a["tree"], timing=True, est=s) for k, (ts, s) in enumerate(shards)]
-        rdir = TM / "commits" / c[:12] / "speed" / bench
+        items = [shard_item(f"speed-{bench}-{k}", bench, [by[t] for t in ts], 60, {}, tree, timing=True, est=s) for k, (ts, s) in enumerate(shards)]
+        rdir = TM / "commits" / c[:12] / "speed" / bench / (f"confirm-{side[:12]}" if side else "")
         rdir.mkdir(parents=True, exist_ok=True)
         (rdir / "results.jsonl").write_text("")
         rows, lock = [], threading.Lock()
@@ -794,10 +822,14 @@ class Speed(Follow):
 
         def after(logs):
             (rdir / "tasks.json").write_text(json.dumps({"limit": 60, **got} if isinstance(got, dict) else got))
-            obs = read_obs(rdir, bench, a["tree"])
+            obs = read_obs(rdir, bench, tree)
             cpu = {x.get("task"): x.get("placement", {}).get("cpu") for x in rows}
             obs = {t: {**o, "cpu": cpu.get(t)} for t, o in obs.items()}
-            self.obs_file(c, bench).write_text(json.dumps(obs))
+            (rdir / "obs.json").write_text(json.dumps(obs))
+            if side:
+                self.st["runs"][c]["confirm"][bench][side] = "done"
+                self.save()
+                return
             seen = self.tm.cache.seen(c, bench, "60:base")
             for t, o in obs.items():
                 put(self.tm, c, bench, t, "60:timing", o)
@@ -805,25 +837,35 @@ class Speed(Follow):
                     put(self.tm, c, bench, t, "60:base", o, "speed")
             self.st["runs"][c]["benches"][bench]["status"] = "done"
             self.save()
-        label = f"speed {c[:12]} {bench}"
+        label = f"speed {c[:12]} {bench}" + (f" confirm at {side[:12]}" if side else "")
         vms = max(1, min(free, len(items), math.ceil(sum(i["est"] for i in items) / 1800)))
-        log(f"speed {c[:12]} {bench}: {len(tasks)} solved tasks in {len(items)} timed shards on {vms} VMs")
-        b = Batch(self.tm, label, "a", items, vms, tracked(self.tm, "speed", label, on_row), root=a["tree"], after=after)
-        a["batches"][bench] = b
+        log(f"{label}: {len(tasks)} {'flagged' if side else 'solved'} tasks in {len(items)} timed shards on {vms} VMs")
+        b = Batch(self.tm, label, "a", items, vms, tracked(self.tm, "speed", label, on_row), root=tree, after=after)
+        a["batches"][bench + (f"@{side[:12]}" if side else "")] = b
         self.tm.batches.append(b)
         return vms
 
     def poll(self, head: str):
         super().poll(head)
         for c, a in self.active.items():  # (a shard batch boat couldn't run: the benchmark again later)
-            for bench, b in list(a["batches"].items()):
+            for key, b in list(a["batches"].items()):
                 if b.done and b.failed:
-                    del a["batches"][bench]
-                    self.st["runs"][c]["benches"].pop(bench, None)
+                    del a["batches"][key]
+                    bench, _, side = key.partition("@")
+                    if side:
+                        cf = self.st["runs"][c].get("confirm", {}).get(bench, {})
+                        for x in cf:
+                            if x.startswith(side) and cf[x] == "running":
+                                cf[x] = "pending"
+                    else:
+                        self.st["runs"][c]["benches"].pop(bench, None)
                     self.save()
 
     def compare(self, c: str):
-        """Against the previous run: slower (1.5x and 1 s more), lost, faster; one speed.jsonl row a benchmark."""
+        """Against the previous run: slower (1.5x and 1 s more), lost, faster; one speed.jsonl row a benchmark. A task
+        flagged by the first runs counts only if its confirming runs agree: slower when the faster of its two runs here
+        is SLOWER times the slower of its two there (and FLOOR_S more), lost when neither run here solved it; the others
+        are `noise`."""
         prev = self.prev_done(c)
         for bench in SPEED_BENCHES:
             f = self.obs_file(c, bench)
@@ -834,15 +876,27 @@ class Speed(Follow):
             if prev and self.obs_file(prev, bench).exists():
                 was = json.loads(self.obs_file(prev, bench).read_text())
                 both = [t for t in now if t in was and was[t].get("solved")]
-                slower = [(t, was[t]["secs"], now[t]["secs"], now[t].get("cpu") != was[t].get("cpu")) for t in both if now[t].get("solved") and now[t]["secs"] > self.SLOWER * was[t]["secs"]
-                          and now[t]["secs"] - was[t]["secs"] >= self.FLOOR_S]
+                cdir = TM / "commits" / c[:12] / "speed" / bench
+                cn = jl_one(cdir / f"confirm-{c[:12]}" / "obs.json")
+                cp = jl_one(cdir / f"confirm-{prev[:12]}" / "obs.json")
+                flagged = self.st["runs"].get(c, {}).get("confirm", {}).get(bench, {}).get("tasks", [])
+                slower, lost, noise = [], [], []
+                for t in flagged:
+                    runs_now, runs_was = [now[t], cn.get(t, now[t])], [was[t], cp.get(t, was[t])]
+                    if not any(o.get("solved") for o in runs_now):
+                        lost.append((t, now[t].get("answer")))
+                    elif all(o.get("solved") for o in runs_now) and min(o["secs"] for o in runs_now) > self.SLOWER * max(o["secs"] for o in runs_was) \
+                            and min(o["secs"] for o in runs_now) - max(o["secs"] for o in runs_was) >= self.FLOOR_S:
+                        slower.append((t, max(o["secs"] for o in runs_was), min(o["secs"] for o in runs_now), now[t].get("cpu") != was[t].get("cpu")))
+                    else:
+                        noise.append(t)
                 faster = [t for t in both if now[t].get("solved") and was[t]["secs"] > self.SLOWER * now[t]["secs"] and was[t]["secs"] - now[t]["secs"] >= self.FLOOR_S]
-                lost = [(t, now[t].get("answer")) for t in both if not now[t].get("solved")]
                 tot_now, tot_was = sum(now[t]["secs"] for t in both if now[t].get("solved")), sum(was[t]["secs"] for t in both if now[t].get("solved"))
-                row.update(compared=len(both), slower=sorted(slower, key=lambda x: -x[2] / max(0.01, x[1])), faster=len(faster), lost=lost,
+                row.update(compared=len(both), slower=sorted(slower, key=lambda x: -x[2] / max(0.01, x[1])), faster=len(faster), lost=lost, noise=noise,
                            total_s=round(tot_now, 1), prev_total_s=round(tot_was, 1))
             append(TM / "speed.jsonl", row)
-            log(f"speed {c[:12]} {bench}: " + (f"{len(row.get('slower', []))} slower, {len(row.get('lost', []))} lost, {row.get('faster', 0)} faster against {prev[:12]}" if prev else "the first run (its baseline)"))
+            log(f"speed {c[:12]} {bench}: " + (f"{len(row.get('slower', []))} slower, {len(row.get('lost', []))} lost (confirmed), {len(row.get('noise', []))} flags not confirmed, "
+                                                 f"{row.get('faster', 0)} faster against {prev[:12]}" if prev else "the first run (its baseline)"))
 
 
 class IC3(Follow):
@@ -1133,7 +1187,9 @@ class Soundness:
                 code = codes.get(it["name"], -1)
                 if k.startswith("x:"):
                     m = DIFFER.search(out)
-                    append(TM / "xfuzz.jsonl", {"t": time.time(), "commit": self.commit, "lang": k[2:], "seed": s, "code": code,
+                    # (the tests' own counts, kept every time: a seed whose tests all skipped, a toolchain missing, ran nothing)
+                    counts = {w: int(x.group(1)) for w in ("pass", "skip", "fail") for x in [re.search(rf"^\s*(\d+) {w}$", out, re.M)] if x}
+                    append(TM / "xfuzz.jsonl", {"t": time.time(), "commit": self.commit, "lang": k[2:], "seed": s, "code": code, **counts,
                                                 **({"differ": m.group(1)} if m else {}), **({"tail": out[-1500:]} if code != 0 else {})})
                     if m:
                         log(f"XFUZZ: {k[2:]} seed {s} at {self.commit[:12]}: the rule and the code differ: {m.group(1)[:200]}")
@@ -1341,7 +1397,8 @@ class Treadmill(T.Treadmill):
                     git("config", f"submodule.{m}.url", str(MAIN / m), cwd=path)
             subprocess.run(["git", "-C", str(path), "-c", "protocol.file.allow=always", "submodule", "update", "--init"], capture_output=True, timeout=600)
             (path / ".treadmill-ready").write_text(sha)
-        keep = {sha[:12], (self.state.get("sweep") or "")[:12], *(c[:12] for f in (self.speed, self.ic3, self.rw, self.ten) for c in f.active)}
+        keep = {sha[:12], (self.state.get("sweep") or "")[:12], *(c[:12] for f in (self.speed, self.ic3, self.rw, self.ten) for c in f.active),
+                *((self.speed.prev_done(c) or "")[:12] for c in self.speed.active)}
         for old in [p for p in sorted((TM / "trees").iterdir(), key=lambda p: p.stat().st_mtime)[:-2] if p.name not in keep]:
             with contextlib.suppress(Exception):
                 git("worktree", "remove", "--force", str(old))
@@ -1573,7 +1630,8 @@ def report(day: str) -> dict:
     ideas = [json.loads(p.read_text()) for p in (TM / "subs").glob("*/meta.json")] if (TM / "subs").exists() else []
     ideas = [m for m in ideas if m.get("config") and on(day, m.get("t_done", m["t"]))]
     sound = {"fuzz": {k: sum(1 for r in fz if r["kind"] == k) for k in FUZZ}, "fuzz_failed": [(r["kind"], r["seed"], r["code"], first_error(r)) for r in bad],
-             "unsound": len(unsound), "xfuzz": {l: sum(1 for r in xz if r["lang"] == l) for l in XFUZZ}, "xfuzz_failed": [(r["lang"], r["seed"], r["code"], first_error(r)) for r in xz if r["code"] != 0],
+             "unsound": len(unsound), "xfuzz": {l: sum(1 for r in xz if r["lang"] == l) for l in XFUZZ}, "xfuzz_tests": sum(r.get("pass", 0) for r in xz),
+             "xfuzz_idle": sorted({r["lang"] for r in xz if r["code"] == 0 and "pass" in r and not r["pass"]}), "xfuzz_failed": [(r["lang"], r["seed"], r["code"], first_error(r)) for r in xz if r["code"] != 0],
              "mutants": len(mt), "survived": len(surv), "equivalent": sum(1 for r in surv if r.get("equivalent")), "new_survivors": len(new_surv),
              "known_survivors": sorted({f"{r['where']} {r['change'].strip()}" for r in surv if not r.get("equivalent")} - {f"{r['where']} {r['change'].strip()}" for r in new_surv})}
     chains = {f: jl_one(TM / "chains" / f"{f}.json").get("runs", {}) for f in ("speed", "ic3syn", "rw", "ten")}
@@ -1654,7 +1712,7 @@ def sections(day: str) -> list[str]:
     out += ["", "## Speed (the solved set at 60 s, alone on a VM, against the previous run)"]
     for r in R["speed"][-8:]:
         out.append(f"- {r['commit'][:12]} {r['bench']}: {r['solved']} of {r['tasks']} solved" + (f"; against {r['prev'][:12]}: {len(r.get('slower', []))} slower (1.5x, 1 s), {len(r.get('lost', []))} lost, "
-                                                                                                    f"{r.get('faster', 0)} faster; {r.get('total_s')} s against {r.get('prev_total_s')} s in all" if r.get("prev") else " (the first run: its baseline)"))
+                                                                                                    f"{r.get('faster', 0)} faster, {len(r.get('noise', []))} flags not confirmed; {r.get('total_s')} s against {r.get('prev_total_s')} s in all" if r.get("prev") else " (the first run: its baseline)"))
     if not R["speed"]:
         out.append("- no run today")
     out += ["", "## Corpora"]
@@ -1668,7 +1726,8 @@ def sections(day: str) -> list[str]:
     out += ["", "## Soundness",
             f"- fuzz: {sum(s['fuzz'].values())} seeds ({', '.join(f'{k} {v}' for k, v in s['fuzz'].items())}), {s['unsound']} unsound, {len(s['fuzz_failed'])} failed"
             + (" (a count a test expects at its own seeds): " + "; ".join(f"{k} {sd} ({e or 'exit ' + str(c)})" for k, sd, c, e in s["fuzz_failed"][:4]) if s["fuzz_failed"] else ""),
-            f"- extractor correspondence: {sum(s['xfuzz'].values())} seeds ({', '.join(f'{k} {v}' for k, v in s['xfuzz'].items() if v)}), {len(s['xfuzz_failed'])} failed"
+            f"- extractor correspondence: {sum(s['xfuzz'].values())} seeds ({', '.join(f'{k} {v}' for k, v in s['xfuzz'].items() if v)}), {s['xfuzz_tests']} tests passed, {len(s['xfuzz_failed'])} failed"
+            + (f"; ran no test (a toolchain missing?): {', '.join(s['xfuzz_idle'])}" if s["xfuzz_idle"] else "")
             + (": " + "; ".join(f"{k} {sd} ({e or 'exit ' + str(c)})" for k, sd, c, e in s["xfuzz_failed"][:4]) if s["xfuzz_failed"] else ""),
             f"- mutants: {s['mutants']} run, {s['survived']} survived ({s['equivalent']} listed equivalent, {s['new_survivors']} new, {len(s['known_survivors'])} known before)"]
     if R["ideas"]:
