@@ -43,6 +43,123 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneG2: consensus_epr proven (two supports the counted search didn't propose); the ERC-20 sum law proven whole (arguments shared across methods); firewall and wo measured, not won (untrusted; nothing trusted changed)
+
+Branch gen/laneG2 from main cf00792 (0.40.0). Nothing reads a protocol's or a contract's name; kernel/, lean-kernel/ and
+core/check.ts untouched. Probes: research/protocols/engine/hintprobe.ts (a counted search with laws written by hand
+added, to tell a missing law from a missing instance), smallbench.ts and cpuprof.py (the counted search's first two
+phases under `bun --cpu-prof`, the profile's top functions).
+
+**1. consensus_epr and consensus_forall: missing supports, then (forall) a goal.** The hint probe (300 s, `runs/laneG2/h1`,
+`h2`): with two laws added by hand, "a decision is its node's leader's" (Decided[a·N + x] ⇒ Leader[a], x below N) and "one
+decision a node" (Decided[a·N + x] ∧ Decided[a·N + y] ⇒ x = y), **consensus_epr is proven** (43 laws, 288 s); without
+them it is unknown at 300 s. So epr's models were a missing law, not a missing instance. Why the search had neither:
+- the engine's template reads every part of a composed key as one sort (keySorts' `hi`/`lo` unite i, j and the value v),
+  so its cubes bound the value by the nodes' `x < size`: "a decision is a leader's" was proposed for values below size
+  only, and the caller reads values below N (a model decides value 2 at size 2);
+- "one decision a node" reads three keys (a row and two values); the engine's cubes are over two keys, and K2's pair
+  template that stated it was replaced by the cubes in K3.
+Built (core/counts.ts, both general, each candidate kept only if true on the small instances, as every candidate is):
+- **one key a row**: a relation written at a composed key N·a + b under a quantified flag saying its row a (or column b)
+  holds no cell (`undecided`), on a map a caller reads: at most one b a row (one a a column). Without the caller filter
+  it was proposed for majorityset's Vote too (its "voted" flag reads the row), whose goal K4 found out of reach: kept 12
+  of 19, unknown at 59 s where main proves it in 13 s (`c60b`); with the filter majorityset is as on main.
+- **loosened guards**: a cube's `u < param` guard dropped where u sits at a map's place that a guarded caller reads with
+  no param bound (the decided value), if the small instances still hold the loosened cube (size 2's instance has value 2).
+  (First version counted the kind laws, which bound nothing, as callers, and loosened "one leader" to keys below 64:
+  forall's pigeonhole then failed; fixed by reading only guarded callers.)
+consensus_epr with nothing written: **proven at 300 s** (boat 173.5 s, `c4`; Modal 207.9 s, `c3`), its goals as large as
+before (up to 590 hypotheses); at 60 s unknown, as before (kept 23 of 47 at 47 s). consensus_forall: unknown at 300 s
+still (kept 46 of 55): with the two supports given (`h2`), its "one leader" cube (wo's pigeonhole, which wo proves) ends
+with a model at 88–121 hypotheses or unknown at 10 s a try, and "one value decided" needs it. forall's machine has wo's
+maps and Decided; why its pigeonhole goal has a model where wo's doesn't is not diagnosed.
+
+**2. firewall (∀∃): measured, nothing kept.** K4's cone for laws about keys restored (with three-literal cubes, as gen/laneG's
+WIP; `fw1`–`fw5`, 120 s, goals dumped by goaldump.ts): the ghost map AllowedIn$w[d] := s and 18 of 19 cubes kept, the
+support Sent[y·N + x] ∧ Internal[x] ⇒ AllowedIn[y] among them.
+- **No wrong-sort instances in these goals.** Of every dumped goal (152–1,089 hypotheses), none reads Internal or
+  AllowedIn at a composed key; bySort over the ∃ path (prove.ts's `sorted` scope in proveLaw, proveOne and
+  proveLawsAsGiven under proveSome) gave the same goals, hypothesis for hypothesis (`fw2`: sorted and GDP_SOME_SORTED=0
+  alike). Firewall's keys are all nodes: one sort, nothing to filter. The size is the 18 cubes and the ghost law at every
+  key term the ghosted machine reads (s, d, W[s], W[d], the request's), 4.7 KB a hypothesis (the ghost write's terms).
+- **Lazy, model-driven instances** (proveOne under proveSome: the tuples holding the goal's own keys first, the model
+  rounds tripled): the ghost round's step goal is 460–646 hypotheses, not 1,089, and ends with a **model** at 646 (it was
+  unknown at 19 s), not a proof. The ∀∃ path then fails as before ("no ghost map found"), firewall unknown at 95–105 s.
+- Taken out again (core/dsl.ts, exists.ts and kernel/prove.ts as on main): nothing won, and K4 saw the restored path run
+  firewall past its wall at 300 s. Next: what the model at 646 hypotheses breaks (the main law's step needs the ghost law
+  at s and the support at (s, d), both kept; whether the ghosted laws' instances reach W[s] is the question).
+
+**3. The ERC-20 sum law, whole contract: proven (remedy a).** core/extract-step.ts `share` (the Solidity reader sets it):
+the methods' scalar arguments one input a type and place (the k-th argument of a type in every method), named by the
+argument where every method names it alike (msg_sender), else by the type and place (uint_1, uint256_0; an address is a
+uint of the reader's width). Each method's typing refusals stay under its own selector; the harness reads each method's
+arguments by the names table, as before. Cover keys 6 → 3 (msg.sender, the first and second address argument).
+OpenZeppelin v5.1.0 ERC20Mock, all five methods, `research/sol/oz-erc20.sh 120000` (Modal, solc 0.8.28, anvil):
+| | the sum law | no balance exceeds the supply | transfer / transferFrom never mint | job s |
+| --- | --- | --- | --- | --- |
+| before (cf00792, `erc-before`) | unknown | unknown | proven / proven | 164.7 |
+| after (`erc1`, `sol2`) | **proven** / **proven** | unknown / unknown | proven / proven | 54.4 / 48.2 |
+Checked against the bytecode as before: 1,680 requests from the start, 400 from drawn states, 21 from the prover's
+witnesses. **Remedy b** (equality-only keys as a partition): the kernel's tree splits on one linear form at a node (yes:
+lin ≤ 0, no: lin ≥ 1; kernel.ts `Tree`), so k ≠ k' is two branches (k < k', k > k') and a partition's ≠ class can't be a
+node; it would need a trusted tree node (a split on lin = 0 with a ≠ branch whose leaves read it only through the cells'
+congruence), Lean first. Not built: (a) proves the law, so no trusted change is required.
+
+**4. consensus_wo_decide at 60 s on Modal: not won.** Profiled on Modal (`sb1`–`sb3`, `wo1`, `wo2`): of 60 s, the small
+instances 7.4–17.5 s and the engine's cubes 9.4–15.8 s (its 15 s cap; boat 5.2 and 6.8 s), the step goals' model-first
+decisions 16–31 s, the trees 7–16 s; the same job's small instances take 7.4 to 12.3 s across four Modal containers. Tried:
+- GDP_K_DECIDE (a goal below n hypotheses grown before it is decided): 0, 40, 80, 150, two runs each, then 0 and 40 four
+  runs each: proven 1 of 2 at 40 and at 80 (50.7, 56.8 s), then **0 of 8**;
+- the interpreter: copy-on-write maps and quantified flags that only other flags read inlined (so `and` stops at the
+  action's literal): the small instances 14.9 → 13.4 s on one container, within the containers' spread; taken out.
+wo stays proven at 300 s (boat, 45–66 s); at 60 s on boat it sits at the wall (before 59.3 / 60.6 proven, after 60.1 /
+60.1 unknown, its path unchanged); on Modal's 2-vCPU containers it needs about a third less work, which none of the above gives.
+
+**Gates** (before: main cf00792; after: 5f26d5a, then a7d4b16 = 5f26d5a with main b6a23b0 merged, which only makes boat the
+bar's default; `runs/laneG2/`; mid-lane the execution moved to boat: the numbers say where they ran)
+- **IC3Syn at 300 s, boat**, two runs a side, broken variants in both (`i300-before`, `i300-after`): **18 → 19 of 29**,
+  consensus_epr new (177.5 / 177.0 s). The after batch's twophase ran 534 s on a VM mldr starved (counted clock 88 s of
+  532 s real; twophase never reaches counts.ts) and is unknown there; alone again (`tp300`) it is proven in 253 / 258 s,
+  as before (205 / 206 s). Everything else as before; wo 45.7 / 47.1 before, 65.6 / 60.5 after (its candidates the same 43;
+  the batch's load). No broken variant proven.
+- **IC3Syn at 60 s, boat** (`boat2-before`, `boat2-after`: the three that always run out of memory or their wall, mldr,
+  client_server_db_ae and sharded_kv_no_lost_keys, left out, as they starved their VMs' other slots in the first boat
+  batch `boat-*`, which isn't read): before 17 of 26 ported in both runs, after 16. The one difference is
+  consensus_wo_decide, at the wall on both sides (before proven 59.3 / 60.6, after unknown 60.1 / 60.1); its candidates and
+  path are main's (no row law, no loosened guard applies to it), so this reads as the shared pool's load, not a change
+  (untouched protocols moved as much: two_phase_commit 7.7 → 21.5 s, lockserv 5.5 → 18.5 s). No broken variant proven.
+  On Modal 2-vCPU, before any of this moved (`i60-before`, `i60-after`): 16 and 16 of 29, the same set, none broken proven.
+- **The ten at 60 s, boat**, 200 a side (`boat2-*`, the gauntlet's g-pilot and g1–g4): before 199 of 200 (ring 19/20),
+  after 199 of 200 (wo 19/20); none of the ten reaches counts.ts or the Solidity reader, so these are their main paths
+  (medians/max after: wo 42.2 / 64.5, decentralized 20.7 / 34.1, distributed 24.7 / 57.4, async 27.1 / 37.6, sync 5.6 /
+  9.4, ring 31.5 / 58.4, sharded 19.0 / 32.6, ticket 30.4 / 60.7, toy forall 12.9 / 25.2, 2PC 15.5 / 30.9; the misses at
+  64.5 s and before's at 60.3 s, the wall on a busy pool). On Modal (`ten-pilot`, `ten190`, 5f26d5a): **200 of 200**.
+- **Lean** (`lean1`): counted-lean.ts (GDP_LEAN_MS=300000) on consensus_epr, consensus_wo_decide, majorityset: 35, 43 and
+  19 laws exported (CountedIC3.lean, 1.83 MB), Lean 4.34.0: lean-exit 0, no sorry, `ic0_laws`–`ic2_laws` on [propext,
+  Classical.choice, Quot.sound].
+- **The quick bar, boat** (a7d4b16 against ae36917's boat baseline; <main>/runs/bar/runs/a7d4b16bea56-vs-ae369178e65d-quick-2026-10-310935/REPORT.md):
+  wrong 0 in every group, nothing solid lost (CHC gained 4 lost 4, ITS gained 2 lost 2, f2 lost 1, none solid); onecpu
+  no failure; Lean's 6 recurrent sets checked. (On Modal first, 5f26d5a: wrong 0, nothing solid lost.)
+- **The suites, boat** (`--only suite,suite-usual`, …-quick-2026-10-310951): 243 of 243 in each mode, none failed.
+- **tsc and oxlint** (the suite's form, boat): no tsc error in core/ or the new research files (the tree's research/enum
+  and research/audit errors are the vendor checkouts it lacks); oxlint 0 warnings, 0 errors on the touched files.
+- **ERC-20, boat** (`boat-before`, `boat-after`): the sum law unknown before, **proven** after (and on Modal twice).
+
+**Bytes** (against main): core/ +4,992 (counts.ts +3,685, extract-step.ts +1,280, extract-sol.ts +27); kernel/ 0. No
+trusted file changed, so no Lean-first change and no terra review.
+
+**Spend:** Modal billed $3.93 for this lane's 63 run.py apps through the 10:00 UTC hour, plus the first quick bar's
+estimated $2.8 (its own apps); boat 27 starts for this lane's batches, about $1.26 by their reports, plus the two boat
+bars. Nothing of this lane's is left running.
+
+**Verified, not**
+- **Verified:** consensus_epr proven with nothing written at 300 s (four runs: two boat grid, one boat and one Modal
+  probe), its set checked by the kernel (checkCountedLaws) and by Lean; the ERC-20 sum law proven on the whole contract
+  (four runs) and checked against the bytecode by the drive; no broken variant proven anywhere; the bars and suites.
+- **Not verified:** that the loosened guards and row laws never cost a counted protocol time inside 60 s (the boat 60 s
+  grids are noisy: the shared pool moved untouched protocols by 2–3x); forall's remaining model (not diagnosed past
+  "one leader"); firewall's model at 646 hypotheses; wo inside 60 s on Modal (0 of 8).
+
 ## gen/laneG: big goals: counted goals decided by a model first, their instances asked by models (MBQI); majorityset and wo proven (untrusted; nothing trusted changed)
 
 Branch gen/laneG: gen/laneK4-counted-wip (K4's tiers, stored-set counts, walks) with main merged (0.39.0, gen/laneK4's

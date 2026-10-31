@@ -648,7 +648,7 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
   // (the check's probes: the branches' conditions, each a state and request the prover finds; a revert's condition
   // holds at no step the rule takes, and a contract's rule is large)
   const havoc = Object.fromEntries(meta.fields.filter(f => meta.nested.includes(f.name)).map(f => [f.name, (f.t as {val: SType}).val.k === 'bool' ? 'bool' : 'int']))
-  const o: StepOptions = {...opts, methods, strict: true, onError: 'discard', entry: meta.contract, check: {probes: 'writes', ...opts.check}, answers: {...havoc, ...opts.answers}}
+  const o: StepOptions = {...opts, methods, share: opts.share ?? true, strict: true, onError: 'discard', entry: meta.contract, check: {probes: 'writes', ...opts.check}, answers: {...havoc, ...opts.answers}}
   // extractStep's run, the width's param fixed for the check's own draws (2^52: the proof is for every width)
   const notes: string[] = []
   let read: StepRead
