@@ -40,7 +40,7 @@ def resolve(q):
 class FakeStore:
   """A store as the caller stated it: get, set and delete over a dict that keeps what is set (no expiry)."""
   def __init__(self, decl, name=None):
-    self.data = {}
+    self.data, self.name = {}, name
     for path, v in (decl.get('attrs') or {}).items():
       o, parts = self, path.split('.')
       for p in parts[:-1]:
@@ -54,7 +54,12 @@ class FakeStore:
         key = k.get('key', a[0] if a else None); val = k.get('value', a[1] if len(a) > 1 else None)
         self.data[key] = val
       def delete(*a, **k): self.data.pop(k.get('key', a[0] if a else None), None)
-      f = {'get': get, 'set': set_, 'delete': delete}[kind]
+      f0, key = {'get': get, 'set': set_, 'delete': delete}[kind], f"{self.name}.{name}"
+      # (where the request says the operation raises, inside a try that catches it)
+      def f(*a, **k):
+        r = (CUR.get(key) or {}).get('raise')
+        if r is not None: raise raised(r)
+        return f0(*a, **k)
       if asyncs.get(name):
         async def af(*a, **k): return f(*a, **k)
         return af
@@ -67,7 +72,7 @@ class FakeStore:
       setattr(self, m, (lambda *a, **k: anop()) if asyncs.get(m) else (lambda *a, **k: None))
     # (an injected dependency's other methods: each answered by the request's input)
     for a in S.get('answers') or []:
-      if a['patch'].get('store') == name: setattr(self, a['patch']['path'][-1], stub(a['key'], a['async']))
+      if a['patch'].get('store') == name and not a.get('pass'): setattr(self, a['patch']['path'][-1], stub(a['key'], a['async']))
 
 def build(spec, stores):
   if 'in' in spec:
@@ -76,6 +81,7 @@ def build(spec, stores):
   if spec.get('none'): return None
   if spec.get('inert'): return Inert()
   if 'store' in spec: return stores.setdefault(spec['store'], FakeStore(S['stores'].get(spec['store'], {}), spec['store']))
+  if 'list' in spec: return [build(x, stores) for x in spec['list']]
   if 'rec' in spec:
     cls = resolve(spec['rec'])
     f = {k: build(v, stores) for k, v in spec['f'].items()}
@@ -217,15 +223,27 @@ class Clock:
   def perf_counter(self): return float(NOW[0])
   def __getattr__(self, n): return getattr(self.real, n)
 
-def stub(key, is_async):
-  def value():
+def raised(r):
+  """The exception a stub raises where the request says: the class a handler names, made without its arguments."""
+  cls = eval(r[1], vars(importlib.import_module(r[0])))
+  try: return cls('gdp: raised where the request says')
+  except Exception:
+    e = cls.__new__(cls); e.args = ('gdp: raised where the request says',); return e
+
+def stub(key, is_async, orig=None):
+  # (orig: a call left out, run as it is unless the request says it raises)
+  def value(a_, k_):
     a = CUR.get(key)
+    if a is not None and a.get('raise') is not None: raise raised(a['raise'])
+    if orig is not None: return orig(*a_, **k_)
     if a is None or a.get('none'): return None
     return build(a, {})
   if is_async:
-    async def f(*a, **k): return value()
+    async def f(*a, **k):
+      v = value(a, k)
+      return (await v) if orig is not None and inspect.isawaitable(v) else v
     return f
-  def g(*a, **k): return value()
+  def g(*a, **k): return value(a, k)
   return g
 
 def patch_target(p):
@@ -245,11 +263,11 @@ def hello(req):
   for a in req['answers']:
     p = a['patch']
     if p.get('store'): continue
-    if p.get('self'): S['self_stubs'].append((p['self'], stub(a['key'], a['async'])))
+    if p.get('self'): S['self_stubs'].append((p['self'], a))
     else:
       o, name = patch_target(p)
       raw = inspect.getattr_static(o, name, None)
-      f = stub(a['key'], a['async'])
+      f = stub(a['key'], a['async'], getattr(o, name) if a.get('pass') else None)
       setattr(o, name, staticmethod(f) if isinstance(raw, staticmethod) else classmethod(lambda cls, *x, **k: f(*x, **k)) if isinstance(raw, classmethod) else f)
   S['cls'] = getattr(mod, req['cls'].rpartition('.')[2]) if req.get('cls') else None
   S['loop'] = asyncio.new_event_loop()
@@ -265,7 +283,7 @@ def make(args):
     sys.settrace(tracer)
     try: obj = run(S['cls'](**kw))
     finally: sys.settrace(None)
-  for name, f in S['self_stubs']: obj.__dict__[name] = f
+  for name, a in S['self_stubs']: obj.__dict__[name] = stub(a['key'], a['async'], getattr(obj, name) if a.get('pass') else None)
   for name in S.get('inject') or []: setattr(obj, name, build({'store': name}, OBJ_STORES))
   i = len(OBJS) + 1
   OBJS[i] = (obj, OBJ_STORES)

@@ -41,7 +41,9 @@ end
 # An answered call's value: the request's input for it (core/extract-step.ts's answers), None where it says so.
 CUR = {}
 def answer(key) = (a = CUR[key]).nil? || a['none'] ? nil : build(a)
-def stub(key) = proc { |*_a, **_k| answer(key) }
+# (a call inside a rescue's begin: raises the class the request says; one left out runs as it is unless it raises)
+def raising(key) = (r = CUR[key]&.[]('raise')) && raise(Object.const_get(r), 'gdp: raised where the request says')
+def stub(key) = proc { |*_a, **_k| raising(key); answer(key) }
 # A store (stated, or an injected dependency inferred): get, set and delete over a Hash that keeps what is set; its
 # other methods answered.
 class GdpStore
@@ -51,6 +53,7 @@ class GdpStore
     {'get' => %w[get], 'set' => %w[set], 'delete' => %w[delete]}.each do |kind, dflt|
       (decl[kind] || dflt).each do |m|
         define_singleton_method(m) do |*a, **k|
+          raising("#{name}.#{m}")
           key = k[:key] || a[0]
           case kind
           when 'get' then @data[key]
@@ -62,7 +65,7 @@ class GdpStore
     end
     # (a method left out: nothing, as the rule takes it; any other is no method of this store, and fails)
     (decl['skip'] || []).each { |m| define_singleton_method(m) { |*_a, **_k| nil } }
-    S['answers'].each { |x| define_singleton_method(x['patch']['path'][-1], &stub(x['key'])) if x['patch']['store'] == name }
+    S['answers'].each { |x| define_singleton_method(x['patch']['path'][-1], &stub(x['key'])) if x['patch']['store'] == name && !x['pass'] }
   end
 end
 # (each object's stores, by its id; the one being made's in $stores)
@@ -134,7 +137,9 @@ def call_args(m, specs)
     n = name.to_s
     if S['clocks'].include?(n) && %i[key keyreq].include?(kind) then kw[name] = GdpStatedClock.new; next end
     spec = given[n]
-    next if spec.nil? || spec['dflt'] || spec['inert']
+    next if spec.nil? || spec['dflt']
+    # (an argument the rule doesn't read: nil where it is required, else its default)
+    if spec['inert'] then kind == :req ? pos << nil : kind == :keyreq ? kw[name] = nil : nil; next end
     if spec['store'] && %i[key keyreq].include?(kind) then kw[name] = build(spec); next end
     %i[key keyreq].include?(kind) ? kw[name] = build(spec) : pos << build(spec)
   end
@@ -165,8 +170,8 @@ def hello(req)
   S['answers'].each do |a|
     next unless (mod = a['patch']['mod'])
     c = mod.split('::').reject(&:empty?).reduce(Object) { |o, n| o.const_defined?(n, false) ? o.const_get(n, false) : o.const_set(n, Module.new) }
-    m, st = a['patch']['path'][-1], stub(a['key'])
-    c.singleton_class.prepend(Module.new { define_method(m, &st) })
+    m, st, key = a['patch']['path'][-1], stub(a['key']), a['key']
+    c.singleton_class.prepend(Module.new { a['pass'] ? define_method(m) { |*x, **k, &b| raising(key); super(*x, **k, &b) } : define_method(m, &st) })
   end
   {'ok' => true}
 end

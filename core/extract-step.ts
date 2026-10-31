@@ -26,7 +26,7 @@
 // it in the code.
 import * as I from './extract-ir.ts'
 import type {B, K, L, N} from './extract-ir.ts'
-import {type Arg, type Event, type Layout, type LeastRead, type MapDecl, type Model, Refusal, type Term, type Var, mergeOps, mergeWrites} from './extract-read.ts'
+import {type Arg, type Event, type Layout, type Fold, type LeastRead, type MapDecl, type Model, Refusal, type Term, type Var, mergeOps, mergeWrites} from './extract-read.ts'
 import {type Extraction, type Name, fromModel} from './extract.ts'
 import type {Rule} from './dsl.ts'
 import {type Sorts, nonneg} from './extract-print.ts'
@@ -54,7 +54,18 @@ export type SModule = {lang: string, file: string, path: string, module: string,
   // 'nil-false': only nil and false are false (Ruby's), not Python's truthiness
   split?: boolean, truth?: 'nil-false',
   // false: the check can't stub a call (an answer, stated or inferred, is refused where it would be one)
-  stubs?: boolean}
+  stubs?: boolean,
+  // The bases of the failures the executor raises, by their names in `what` ("(a KeyError)"), qualified; and the class
+  // a stub raises for a handler of every exception other code raises (its bases, and how the harness names it)
+  kinds?: Record<string, string[]>, exc?: {mro: string[], raise: unknown},
+  // true: the check's harness makes a list an argument carries (a list[T] read as one the request carries)
+  lists?: boolean}
+// A handler of a try: the classes it names (qualified), or every one (`any`); the bases of its first (open: some the
+// reader can't know), and how a stub raises it (the harness's own reference); the exception's local; its body.
+export type Handler = {p?: string, any?: boolean, names: string[], mro?: string[], open?: boolean, raise?: unknown, as?: string, body: SS[]}
+// A raise's kind: its class and bases (open: not all known); null: a panic or a trap, which no handler catches.
+type Kind = {mro: string[], open?: boolean} | null | undefined
+type Try = {hs: Handler[], to: [Path, number, Kind][], ws: B[]}
 
 // (skip: methods left out, which the check's store does nothing for; any method it isn't told of fails there)
 export type StoreDecl = {get?: string[], set?: string[], delete?: string[], skip?: string[], value?: 'int' | 'float' | 'str', attrs?: Record<string, null | boolean | number | string>, async?: Record<string, boolean>}
@@ -111,15 +122,21 @@ type Obj =
   | {k: 'store', name: string}
   | {k: 'big', v: N, origin: Origin} | {k: 'list', decl: MapDecl, ops: ListOp[], origin: Origin}
 // (locks held, and those deferred to the return)
-type Path = {pc: B[], locals: Map<string, V>, heap: Map<string, Obj>, called: string[], locks: string[], defers: string[]}
+// (cont: a path a continue ends, carried out as a break is, to its loop)
+type Path = {pc: B[], locals: Map<string, V>, heap: Map<string, Obj>, called: string[], locks: string[], defers: string[], cont?: true}
 type Flow = {live?: Path, rets: [Path, V][], brk?: Path[], ft?: Path}
 export type {V as StepValue, Path as StepPath, Obj as StepObj, Ptr as StepPtr}
 // What the harness is told: where each leaf of the state is, how each argument is made, what each stub answers.
 export type Leaf = {t?: SType, name: string, path: string[], kind: 'num' | 'bool' | 'str' | 'choice' | 'none' | 'map' | 'frame', float?: boolean, cls?: string, fields?: {name: string, float?: boolean, choice?: boolean}[], key?: 'num' | 'str', store?: string, tpl?: string, ordered?: boolean}
+// (list: a list the request carries, its items made by `item` (a record's fields, as read; or its one value))
 export type PArg = {k: 'in', name: string, float?: boolean, sym?: boolean, z?: Raw} | {k: 'opt', none: string, v: PArg} | {k: 'rec', cls: string, f: [string, PArg][]} | {k: 'inert'} | {k: 'store', name: string} | {k: 'dflt'}
+  | {k: 'list', name: string, item: PArg}
 // (how: 'inferred' from the callee's declared type, or 'tagged' by a gdp: comment; stated where absent)
 // (at: the calls answered, each from its position to its end, `line:col`; ty: the call's type in the code's language)
-export type Answer = {key: string, patch: Patch, async: boolean, inputs: {name: string, none?: string, float?: boolean}, sort: string, how?: string, at?: {p: string, end?: string, span?: [number, number]}[], ty?: string, fit?: boolean}
+// (raises: the input saying whether the call raises, and which handler's class (cls, by the choice's values after
+// 'none'); pass: a call left out, the stub running it unless it raises)
+export type Answer = {key: string, patch: Patch, async: boolean, inputs: {name: string, none?: string, float?: boolean}, sort: string, how?: string, at?: {p: string, end?: string, span?: [number, number]}[], ty?: string, fit?: boolean,
+  raises?: {name: string, cls: unknown[], m: string}[], pass?: boolean}
 // (inject: the fields the harness sets to the store it gives, after the constructor: a field injected by a framework)
 export type StepRead = {ints: Record<string, IntTy>, madeAt?: string, model: Model, leaves: Leaf[], args: Record<string, [string, PArg][]>, answers: Answer[], ctor: [string, PArg][], kept: boolean, arms: [string, number][], cls?: string, stores: Record<string, StoreDecl>, results: Record<string, 'none' | 'scalar' | 'maybe'>, inject?: string[]}
 
@@ -186,6 +203,13 @@ export class Stepper {
   readonly arms = new Set<string>()
   readonly hints = new WeakMap<object, string>()
   readonly lazy = new Map<string, {prefix: string, ty: string, args: [string, PArg][], vals: Map<string, V>}>()
+  // The lists the request carries (maps by place), those a step reads, and the loops over lists read as folds.
+  readonly seqs: MapDecl[] = []
+  readonly used = new Set<string>()
+  readonly folds: Fold[] = []
+  // (inside a fold's pass: the tries outside it, hidden, and how deep)
+  hidden = 0
+  inFold = 0
   readonly initHeap = new Map<string, Obj>()
   readonly storeMaps = new Map<string, {store: string, tpl: string, id: string, decl: MapDecl}>()
   // The least keys the step reads (an ordered collection's first or last item, its min or max by a key), each once.
@@ -205,13 +229,15 @@ export class Stepper {
   constructor(readonly mod: SModule, readonly opts: StepOptions, readonly inf?: Inferred) {}
 
   rec(name: string, at: {p: string}): SRec { return this.mod.recs[name] ?? refuse(at, `${name}: a type the reader didn't read`) }
-  newVar(name: string, sort: Var['sort'], role: Var['role'], note?: string): Var {
+  newVar(name: string, sort: Var['sort'], role: Var['role'], note?: string, own = true): Var {
     let n = name.replace(/^[_@]+/, '').replace(/\?/g, '_p').replace(/!/g, '').replace(/[^\w$]/g, '_') || 'x'
     if (/^\d/.test(n)) n = `_${n}`
     // (a constructor's argument named as a field it sets: the field keeps the name, the argument is the initial one)
     if (role === 'param' && this.fieldNames.has(n)) n = `${n}0`
     while (this.vars.has(n) || RESERVED.has(n)) n = `${n}_`
     const v: Var = {name: n, sort, role, ...(note ? {note} : {})}
+    // (not own: a name the rule's builders declare, a carried list's, kept from the others)
+    if (!own) { this.vars.set(n, v); return v }
     this.vars.set(n, v)
     if (role === 'input') this.inputs.push(v)
     if (role === 'param') this.params.push(v)
@@ -249,6 +275,18 @@ export class Stepper {
       return [{t: 'opt', has: I.not(I.bvar(none.name)), v: this.valueOf(v)}, {k: 'opt', none: none.name, v: {k: 'in', name: v.name, z: zeroRaw(inner), ...(t.of.k === 'float' ? {float: true} : {})}}]
     }
     if (t.k === 'none') return [{t: 'none'}, {k: 'dflt'}]
+    // A list the request carries, of any length: a map by place (as a list of the state is), each place below its
+    // length holding an item, of the scalar fields of its records (or its one value).
+    if (t.k === 'list' && role === 'input' && this.mod.lists && (this.scalar(t.of) || t.of.k === 'rec')) {
+      const n = this.newVar(name, {k: 'num'}, 'input', undefined, false).name, id = `in:${n}`, sc = this.scalar(t.of)
+      this.newVar(`${n}_len`, {k: 'num'}, 'input', `the length of ${name}`, false)
+      const fs = sc ? [{name: 'value', t: t.of}] : this.rec((t.of as {name: string}).name, at).fields.filter(x => this.scalar(x.t))
+      const decl: MapDecl = {name: n, key: 'num', fields: fs.map(x => ({name: x.name, sort: this.scalar(x.t)!, role: 'input' as const})), scalar: !!sc, js: 'Map', carried: true}
+      this.seqs.push(decl)
+      p.heap.set(id, {k: 'map', decl, val: t.of, origin: 'input'})
+      const arg = (x: {name: string, t: SType}): PArg => ({k: 'in', name: x.name, ...(x.t.k === 'float' ? {float: true} : {})})
+      return [{t: 'ref', id}, {k: 'list', name: n, item: sc ? arg(fs[0]!) : {k: 'rec', cls: (t.of as {name: string}).name, f: fs.map(x => [x.name, arg(x)])}}]
+    }
     if (t.k === 'rec' && role === 'input') {
       // An object the caller gives: its fields read are inputs, each made where it is first read.
       const id = `in:${name}:${this.fresh++}`, args: [string, PArg][] = []
@@ -286,13 +324,16 @@ export class Stepper {
   }
 
   // --- paths ----------------------------------------------------------------------------------------------------------
-  cond(p: Path): B { return I.and(...p.pc) }
+  // (inside a try, every path is also outside the raises its handlers caught before it: no path goes on past a raise)
+  cond(p: Path): B { return this.tries.length ? I.and(...p.pc, ...this.tries.flatMap(t => t.ws.map(I.not))) : I.and(...p.pc) }
   // (a negated disjunction as its negated parts, so a later test of one of them is decided)
   assume(p: Path, c: B): Path { if (this.mod.split === false) return c.op === 'const' && c.v ? p : {...p, pc: [...p.pc, c]}; const cs = c.op === 'not' && c.x.op === 'or' ? c.x.xs.map(I.not) : c.op === 'and' ? c.xs : [c]; const kept = cs.filter(x => !(x.op === 'const' && x.v)); return kept.length ? {...p, pc: [...p.pc, ...kept]} : p }
   // A failure of the code where c holds on this path (an exception raised): the step's refusal, or its result.
-  fail(p: Path, c: B, at: {p: string}, what: string) {
+  // (kind: the class raised and its bases, where it isn't the executor's own named in `what`, "(a KeyError)")
+  fail(p: Path, c: B, at: {p: string}, what: string, kind = this.kindOf(what, at)) {
     const w = I.and(this.cond(p), c)
     if (w.op === 'const' && !w.v) return
+    if (this.tries.length) { const h = this.catcher(kind, at); if (h) return this.raise(p, c, w, h, kind, at) }
     if (this.init) { this.fails.push(w); return }
     // (a crash, Swift's trap: the process ends, so nothing sees what the step wrote before it; the check's harness keeps
     // the state as it was)
@@ -300,13 +341,224 @@ export class Stepper {
     // Failures kept with what the step wrote before them (the caller sees both): the path goes on to the step's end.
     if (this.opts.failures === 'kept' && this.opts.onError !== 'discard') {
       if (crash && this.changed(p)) refuse(at, `${what} after the state is written: a crash, after which the state is as it was (onError: 'discard' says so of every failure)`)
-      this.failPaths.push(this.assume(p, c)); this.fails.push(w); this.notes.add(`${this.method}: ${what} (${at.p}) is the step's failure, kept as its result (with what the step wrote before it)`); return
+      this.failPaths.push(this.assume(p, this.tries.length ? w : c)); this.fails.push(w); this.notes.add(`${this.method}: ${what} (${at.p}) is the step's failure, kept as its result (with what the step wrote before it)`); return
     }
     if (!crash) this.unwritten(p, at, what)
     this.fails.push(w)
     this.notes.add(`${this.method}: ${what} (${at.p}) is ${this.opts.failures === 'kept' ? 'the step\'s failure, kept as its result' : 'the step\'s refusal'}`)
   }
   // A failure after the step wrote the state: refused, but where the caller drops what a failed call wrote.
+  // --- exceptions caught ---------------------------------------------------------------------------------------------
+  // The tries the path is in (innermost last): each one's handlers, the paths raised to each (with the raise's kind),
+  // and the conditions they were raised under; `handling`, the kinds each handler being run caught (a bare re-raise's).
+  tries: Try[] = []
+  handling: Kind[][] = []
+  // (the tries around each context manager of other code entered, taken as transparent)
+  cms: number[] = []
+  kindOf(what: string, at: {p: string}): Kind {
+    if ((at as {crash?: boolean}).crash || /\(a panic\)$/.test(what)) return null
+    const m = /\(an? ([A-Z]\w*)\)$/.exec(what), b = m && this.mod.kinds?.[m[1]!]
+    return b ? {mro: b} : undefined
+  }
+  // The handler a raise of this kind goes to, the innermost try's first that names one of its classes (or any), or none
+  // (the step's failure); one that may or may not (a kind of bases unknown, or none named) is refused, unless `loose`.
+  catcher(k: Kind, at: {p: string}, loose = false): [Try, number] | undefined {
+    if (k === null) return undefined
+    for (let j = this.tries.length - 1; j >= 0; j--) {
+      for (const [i, h] of this.tries[j]!.hs.entries()) {
+        if (h.any || (k && h.names.some(n => k.mro.includes(n)))) return [this.tries[j]!, i]
+        if ((!k || k.open) && !loose) refuse(at, `${k ? `a raise of ${k.mro[0]}, whose bases the reader doesn't know` : 'a failure the reader names no class for'}, inside a try whose handler names ${h.names.join(', ')}`)
+      }
+    }
+    return undefined
+  }
+  // A raise (where c holds; w on this path) caught: its path goes to the handler, and no path of the try goes on past it.
+  // (through a context manager of other code taken as transparent, which may suppress it: refused)
+  raise(p: Path, c: B, w: B, [t, i]: [Try, number], k: Kind, at: {p: string}) {
+    if (this.cms.some(b => this.tries.indexOf(t) < b)) refuse(at, 'a raise through a context manager of other code (which may suppress it) to a handler around it')
+    t.to.push([{...this.assume(p, c), pc: [...p.pc, ...this.tries.flatMap(x => x.ws.map(I.not)), c]}, i, k]); t.ws.push(w) }
+  tryStmt(s: SS, p: Path): Flow {
+    const hs = s.handlers as Handler[], fin = (s.fin as SS[] | undefined) ?? [], t: Try = {hs, to: [], ws: []}, f0 = this.fails.length, outer = this.tries.map(x => x.ws.length)
+    this.tries.push(t)
+    let body: Flow
+    try { body = this.block(s.body as SS[], p) } finally { this.tries.pop() }
+    // (every way out of the body is past the raises its handlers caught)
+    const out = (q: Path): Path => (t.ws.length ? this.assume(q, I.not(I.or(...t.ws))) : q)
+    const rets: [Path, V][] = body.rets.map(([q, v]) => [out(q), v]), brk = (body.brk ?? []).map(out), lives: Path[] = []
+    const add = (f: Flow) => { rets.push(...f.rets); brk.push(...(f.brk ?? [])); if (f.live) lives.push(f.live) }
+    for (const [i, h] of hs.entries()) {
+      const to = t.to.filter(x => x[1] === i)
+      if (!to.length) continue
+      this.arm(h.body)
+      const q = this.joinSome(to.map(x => x[0]), s)!
+      this.handling.push(to.map(x => x[2]))
+      try { add(this.block(h.body, h.as ? {...q, locals: new Map(q.locals).set(h.as, {t: 'opaque', why: `${h.as}: the exception caught`})} : q)) } finally { this.handling.pop() }
+    }
+    if (body.live) add(this.block((s.els as SS[] | undefined) ?? [], out(body.live)))
+    let live = this.join(lives, s)
+    if (fin.length) {
+      // (finally on every way out: run where the try ends and on each return; a failure's way out through it is refused)
+      if (deep(fin, o => o.s === 'ret' || o.s === 'fail' || o.s === 'break' || o.s === 'try')) refuse(s, 'a finally that returns, raises or breaks')
+      // (a raise an outer handler catches, from the body or a handler, goes out through it too)
+      const past = this.tries.some((x, j) => x.ws.length > outer[j]!)
+      if (this.fails.length > f0 || brk.length || past) refuse(s, `finally on ${brk.length ? 'a break' : past ? 'a raise' : 'a failure'}'s way out of its try`)
+      const fl = (q: Path): Path | undefined => { const f = this.block(fin, q); return f.live }
+      if (live) live = fl(live)
+      for (const r of rets) r[0] = fl(r[0]) ?? r[0]
+    }
+    return {...(live ? {live} : {}), rets, ...(brk.length ? {brk} : {})}
+  }
+  // --- loops over a list the request carries, read as folds -----------------------------------------------------------
+  // The body runs once, at a pass i$: the item there (its fields cells of the list's carried maps), and each local the
+  // body sets that is set before it a running value (a cell of the loop's own list, at i$). Its step is what the pass
+  // makes of them: each running value at i$ + 1, and whether the pass ended the loop (a return, a break, a failure or a
+  // refusal of the step), with what it returned. Every request is assumed to carry the running values its items make
+  // (Model's folds: the start at 0, the step at every i$ below the length), so after the loop each one is its cell at
+  // the length: exact for every length, no pass unrolled. A pass that writes the state, reads an answer (one a pass) or
+  // raises out of the loop to a try around it is refused.
+  // A list a loop may run over: one the request carries (every place below its length held) or one of the state (its
+  // places up to its last, each where it holds an item: its least key's, read in the state before the step).
+  // (carried: only one the request carries, whose length is an input: its len() and its truth)
+  listOf(v: V, p: Path, at: SX, carried = false): {id: string, o: Extract<Obj, {k: 'map'}>, len: N, held: (k: K) => B} | undefined {
+    const o = v.t === 'ref' ? p.heap.get(v.id) : undefined
+    if (o?.k !== 'map' || !(o.decl.carried || (!carried && o.decl.ordered && o.origin === 'state'))) return undefined
+    this.used.add(o.decl.name)
+    if (o.decl.carried) return {id: (v as {id: string}).id, o, len: I.nvar(`${o.decl.name}_len`), held: () => I.T}
+    const last = this.least(o, at, k => this.baseCell(o.decl, k).has, k => [{e: (k as {e: N}).e, desc: true}])
+    return {id: (v as {id: string}).id, o, len: I.nite(last.some, I.add(last.key, I.num(1)), I.num(0)), held: k => this.baseCell(o.decl, k).has}
+  }
+  forStmt(s: SS, p: Path): Flow {
+    const why = (w: string) => refuse(s, `a loop over ${(s.over as SX).text ?? 'a value'}: ${w} (the subset reads a loop over a list the request carries, as a fold)`)
+    let ov: V, q0: Path
+    try { [ov, q0] = this.ev(s.over as SX, p) } catch (e) { if (e instanceof Refusal) { try { why(`${e.where}: ${e.what}`) } catch (r) { (r as Framed).frames = (e as Framed).frames; throw r } } throw e }
+    const ls = this.listOf(ov, q0!, s.over as SX) ?? why(ov.t === 'opaque' ? ov.why : `a ${ov.t}`)
+    if ((s.els as SS[] | undefined)?.length) return refuse(s, 'a loop\'s else')
+    if (this.inFold) return refuse(s, 'a loop inside a loop\'s pass (one fold at a time)')
+    const d = ls.o.decl, run = this.newVar(`${d.name}$${this.folds.length}`, {k: 'num'}, 'input', undefined, false).name, i = I.nvar(PASS), ik: K = {op: 'num', e: i}
+    const own = assigned(s.body as SS[]), tv = s.to as SX
+    if (deep(tv, o => o.e === 'var' && q0.locals.has(String(o.n)))) return refuse(s, 'a loop whose variable is a local set before it (after the loop it would hold the last item)')
+    // The running values: the locals the body sets that are set before it.
+    const fields: Var[] = [], init: Record<string, Term> = {}, locals = new Map(q0.locals)
+    for (const n of [...own].filter(x => q0.locals.has(x))) {
+      if (FLAGS.includes(n)) refuse(s, `${n}: a local the loop carries named as a fold's own values are`)
+      const v0 = q0.locals.get(n)!, srt = sortOfV(v0) ?? refuse(s, `${n}: ${v0.t === 'opaque' ? v0.why : `a ${v0.t}`}, carried by the loop (the subset reads a loop's numbers, booleans and choices)`)
+      fields.push({name: n, sort: srt, role: 'state'}); init[n] = termOfV(v0, s)
+      locals.set(n, cellV(run, i, n, srt, v0.t === 'num' ? v0.ty : undefined))
+    }
+    // The item at the pass: its place's cell (its one value, for a list of scalars), where the place holds one.
+    const held = ls.held(ik)
+    let b0: Path = {...q0, pc: held.op === 'const' ? [] : [held], locals, cont: undefined}
+    b0 = this.assign(tv, d.scalar ? this.baseCell(d, ik).vals.get('value')! : {t: 'cell', map: ls.id, key: ik}, s, b0)
+    // One pass: the tries around the loop hidden (a raise out of a pass is the loop's), its failures and refusals its own.
+    const saved = {tries: this.tries, fails: this.fails, failPaths: this.failPaths, refusals: this.refusals.length, edges: this.edges.length}
+    this.hidden += this.tries.length; this.tries = []; this.fails = []; this.failPaths = []; this.inFold++
+    let f: Flow
+    try { f = this.block(s.body as SS[], b0) } finally { this.tries = saved.tries; this.hidden -= saved.tries.length; this.inFold-- }
+    const F = I.or(...this.fails), Rf = I.or(...this.refusals.splice(saved.refusals))
+    this.fails = saved.fails; this.failPaths = saved.failPaths
+    if (this.edges.length > saved.edges) refuse(s, 'a loop whose passes reach the edge of a fixed-width type')
+    const brks = (f.brk ?? []).filter(x => !x.cont), on = this.join([...(f.brk ?? []).filter(x => x.cont), ...(f.live ? [f.live] : [])], s), brk = this.join(brks, s)
+    for (const e of [...(on ? [on] : []), ...(brk ? [brk] : []), ...f.rets.map(r => r[0])]) if (this.changedFrom(e, q0)) refuse(s, `a loop whose passes write the state (the subset reads a loop over a list as a fold of its locals)`)
+    const pc = (x: Path) => I.and(...x.pc), R = I.or(...f.rets.map(([x]) => pc(x))), Br = I.or(...brks.map(pc))
+    const no = (c: B) => c.op === 'const' && !c.v, ends = !(no(R) && no(Br) && no(F) && no(Rf))
+    const at = (n: string, x: N = i) => cellV(run, x, n, fields.find(v => v.name === n)!.sort) as V & {e: B}
+    const flag = (n: string, c: B) => { fields.push({name: n, sort: {k: 'bool'}, role: 'state'}); init[n] = {s: 'bool', e: I.F}; return c }
+    const step: Record<string, Term> = {}, done: B = ends ? flag('__done', I.or(R, Br, F, Rf)) : I.F
+    const doneAt: B = ends ? at('__done').e : I.F, idle = I.or(doneAt, I.not(held))
+    for (const v of fields.filter(x => !FLAGS.includes(x.name))) {
+      const val = (x?: Path) => x?.locals.get(v.name)
+      const nx = brk && on ? this.ite(Br, val(brk)!, val(on)!, s) : val(brk) ?? val(on) ?? locals.get(v.name)!
+      if (sortOfV(nx)?.k !== v.sort.k) refuse(s, `${v.name}: ${nx.t === 'opaque' ? nx.why : `a ${nx.t}`} after a pass of the loop`)
+      step[v.name] = iteTerm(idle, termOfV(locals.get(v.name)!, s), termOfV(nx, s))
+    }
+    if (ends) step.__done = {s: 'bool', e: I.or(doneAt, I.and(held, done))}
+    // (what a pass returned, where one did: kept, and the loop's value after it)
+    let retV: V | undefined
+    if (!no(R)) {
+      retV = this.join(f.rets.map(([r, v]) => ({...r, locals: new Map([['__ret', v]])})), s)!.locals.get('__ret')!
+      const srt = sortOfV(retV) ?? refuse(s, `a loop that returns ${retV.t === 'opaque' ? retV.why : `a ${retV.t}`} (the subset reads a loop's return of a number, a boolean or a choice)`)
+      flag('__returned', R)
+      step.__returned = {s: 'bool', e: I.or(at('__returned').e, I.and(I.not(idle), R))}
+      fields.push({name: '__ret', sort: srt, role: 'state'}); init.__ret = termOfV(zeroOf(srt), s)
+      step.__ret = iteTerm(I.and(I.not(idle), R), termOfV(retV, s), termOfV(at('__ret'), s))
+    }
+    if (!no(F)) { flag('__failed', F); step.__failed = {s: 'bool', e: I.or(at('__failed').e, I.and(I.not(idle), F))} }
+    if (!no(Rf)) { flag('__refused', Rf); step.__refused = {s: 'bool', e: I.or(at('__refused').e, I.and(I.not(idle), Rf))} }
+    this.folds.push({list: d.name, run, fields, init, step, len: ls.len, ...(d.carried ? {} : {state: true as const})})
+    // After the loop: each running value its cell at the length.
+    const end = (n: string) => at(n, ls.len)
+    let q: Path = {...q0, locals: new Map(q0.locals), called: [...new Set([q0.called, ...f.rets.map(r => r[0].called), ...(on ? [on.called] : []), ...(brk ? [brk.called] : [])].flat())]}
+    for (const v of fields) if (!FLAGS.includes(v.name)) q.locals.set(v.name, end(v.name))
+    // (a pass that failed or refused: the loop's, and no path goes on past it)
+    if (!no(F)) { if (this.tries.length) refuse(s, 'a failure in a loop inside a try'); this.fail(q, end('__failed').e, s, `a failure in a pass of the loop over ${d.name}`, null); q = this.assume(q, I.not(end('__failed').e)) }
+    if (!no(Rf)) { this.refuseWhere(q, end('__refused').e, s, `a refusal in a pass of the loop over ${d.name}`); q = this.assume(q, I.not(end('__refused').e)) }
+    if (no(R)) return {live: q, rets: []}
+    const ret = q
+    q = this.assume(q, I.not(end('__returned').e))
+    return {live: q, rets: [[{...ret, pc: [...q0.pc, end('__returned').e]}, end('__ret')]]}
+  }
+  // any, all or sum of a generator: the loop it is, its value an accumulator's (any: true at the first that is; all:
+  // false at the first that isn't; sum: each added), the fold above.
+  foldExpr(x: SX, p: Path): [V, Path] {
+    const acc = `__fold${this.fresh++}`, at = x.p, n = (): SX => ({e: 'var', n: acc, p: at}), set = (y: SX): SS => ({s: 'set', p: at, to: n(), x: y})
+    const k = (v: boolean): SX => ({e: 'bool', v, p: at}), f = String(x.f), y = x.x as SX
+    const body: SS[] = f === 'any' ? [{s: 'if', p: at, c: y, then: [set(k(true)), {s: 'break', p: at}], else: []}] : f === 'all' ? [{s: 'if', p: at, c: y, then: [], else: [set(k(false)), {s: 'break', p: at}]}]
+      : [set({e: 'bin', op: '+', x: n(), y, p: at, text: x.text})]
+    const ifs = x.ifs as SX[], init: V = f === 'sum' ? {t: 'num', e: I.num(0)} : {t: 'bool', e: f === 'all' ? I.T : I.F}
+    const fl = this.forStmt({s: 'for', p: at, to: x.to, over: x.over, body: ifs.length ? [{s: 'if', p: at, c: ifs.length > 1 ? {e: 'and', xs: ifs, p: at} : ifs[0]!, then: body, else: []}] : body}, {...p, locals: new Map(p.locals).set(acc, init)})
+    const q = fl.live!, out = q.locals.get(acc)!, locals = new Map(q.locals)
+    locals.delete(acc)
+    return [out, {...q, locals}]
+  }
+  changedFrom(e: Path, p: Path): boolean {
+    for (const [id, o] of e.heap) { const b = p.heap.get(id); if (b && b !== o && 'origin' in o && o.origin === 'state' && keyV(o) !== keyV(b)) return true }
+    return false
+  }
+  // Paths that don't cover where they started (the raises to one handler) joined, keeping that one of them was taken.
+  joinSome(ps: Path[], at: {p: string}): Path | undefined {
+    const j = this.join(ps, at)
+    if (!j || ps.length < 2) return j
+    const k = j.pc.length, d = I.or(...ps.map(q => I.and(...q.pc.slice(k))))
+    return d.op === 'const' && d.v ? j : {...j, pc: [...j.pc, d]}
+  }
+  // A call of other code inside a try that catches what it may raise: it returns, or raises what one handler of the
+  // tries it is in catches (the innermost's first, up to one catching every exception other code raises), an input of
+  // the request saying which (`<callee>_raises`), its stub raising the handler's class there.
+  mayRaise(a: Answer, name: string, at: SX, p: Path): Path {
+    if (!this.tries.length) return p
+    const exc = this.mod.exc
+    const outs: {t: Try, i: number, k: Kind, raise: unknown, n: string}[] = []
+    for (let j = this.tries.length - 1, done = false; j >= 0 && !done; j--) {
+      for (const [i, h] of this.tries[j]!.hs.entries()) {
+        const k: Kind = h.any ? (exc ? {mro: exc.mro} : null) : h.mro ? {mro: h.mro, ...(h.open ? {open: true} : {})} : null
+        if (!k || (h.any ? !exc : h.raise === undefined)) return refuse(at, `${at.text ?? name}: other code called inside a try whose handler ${h.any ? 'catches every exception' : `names ${h.names.join(', ')}`}, which the ${LANG[this.mod.lang] ?? this.mod.lang} check can't raise`)
+        // (its class caught by an earlier handler: that one's outcome)
+        const c = this.catcher(k, at, true)
+        if (c && (c[0] !== this.tries[j] || c[1] !== i)) continue
+        outs.push({t: this.tries[j]!, i, k, raise: h.any ? exc!.raise : h.raise, n: (h.any ? exc!.mro[0]! : h.names[0]!).split('.').pop()!})
+        // (one catching the class other code raises catches every exception it raises: the last outcome)
+        if (h.any || h.names.some(n => exc?.mro.includes(n))) { done = true; break }
+      }
+    }
+    if (!outs.length) return p
+    if (this.init) return refuse(at, `${at.text ?? name}: other code called inside a try in the constructor (whether it raises would be a param)`)
+    if (p.called.includes(`${a.key}$raises`)) return refuse(at, `${at.text ?? name}: ${a.key} called twice in one step inside a try (whether it raises is one input a step)`)
+    if (!a.patch && !a.at?.length) return refuse(at, `${at.text ?? name}: may raise inside a try that catches it, and the check can't stub it`)
+    const short = a.key.split(/\.|::/).pop()!, vals = ['none', ...outs.map((o, i) => (outs.findIndex(x => x.n === o.n) === i ? o.n : `${o.n}_${i}`))]
+    // (one input a method: each method's tries may catch it differently)
+    let r = a.raises?.find(x => x.m === this.method)
+    if (!r) {
+      const v = this.newVar(a.raises?.length ? `${this.method}_${short}_raises` : `${short}_raises`, outs.length === 1 ? {k: 'bool'} : {k: 'choice', values: vals}, 'input', `whether ${name} raises${outs.length > 1 ? ', and what (the class each handler catches)' : ''}: other code called inside a try that catches it (assumed: it returns, or raises what a handler of the try catches)`)
+      ;(a.raises ??= []).push(r = {name: v.name, cls: outs.map(o => o.raise), m: this.method})
+      this.notes.add(`${name} (${at.p}): may raise inside a try that catches it (assumed: it returns, or raises ${outs.map(o => o.n).join(' or ')}); whether it raises is an input of the request, ${v.name}`)
+    } else if (JSON.stringify(r.cls) !== JSON.stringify(outs.map(o => o.raise))) return refuse(at, `${at.text ?? name}: ${a.key} called inside tries that catch differently in one method`)
+    const v = this.vars.get(r.name)!
+    for (const [i, o] of outs.entries()) {
+      const c = v.sort.k === 'bool' ? I.bvar(v.name) : I.is({op: 'var', name: v.name, values: vals}, vals[i + 1]!), w = I.and(this.cond(p), c)
+      if (!(w.op === 'const' && !w.v)) this.raise(p, c, w, [o.t, o.i], o.k, at)
+    }
+    return {...p, called: [...p.called, `${a.key}$raises`]}
+  }
   unwritten(p: Path, at: {p: string}, what: string) { if (this.opts.onError !== 'discard' && this.changed(p)) refuse(at, `${what} after the state is written (the caller would see the object changed and the call failed; with onError: 'discard' the caller is taken to drop what a failed call wrote)`) }
   changed(p: Path): boolean {
     for (const [id, o] of p.heap) {
@@ -380,6 +632,8 @@ export class Stepper {
       return {t: 'res', ok: I.bite(c, a.ok, b.ok), v: no(a.ok) ? b.v : no(b.ok) ? a.v : this.ite(c, a.v, b.v, at), e: yes(a.ok) ? b.e : yes(b.ok) ? a.e : this.ite(c, a.e, b.e, at)}
     }
     if (a.t === 'tuple' && b.t === 'tuple' && a.xs.length === b.xs.length) return {t: 'tuple', xs: a.xs.map((x, i) => this.ite(c, x, b.xs[i]!, at))}
+    // (a list the request carries on one path, another value on another: kept only where nothing reads it)
+    if ([a, b].some(x => x.t === 'ref' && this.seqs.some(d => x.id === `in:${d.name}`))) return {t: 'opaque', why: 'a list the request carries on one path, another value on another'}
     if (a.t === 'ref' && b.t === 'ref') return refuse(at, 'one of two objects by a condition')
     return refuse(at, `a value that is a ${a.t} on one path and a ${b.t} on another`)
   }
@@ -396,7 +650,7 @@ export class Stepper {
     return refuse(at, `a value that is a ${a.t} on one path and a ${b.t} on another`)
   }
   baseCell(d: MapDecl, key: K): {has: B, vals: Map<string, V>} {
-    const vals = new Map<string, V>(d.fields.map(f => [f.name, f.sort.k === 'num' ? {t: 'num', e: {op: 'cell', map: d.name, key, field: f.name}} : f.sort.k === 'choice' ? {t: 'choice', e: {op: 'cell', map: d.name, key, field: f.name, values: f.sort.values}} : {t: 'bool', e: {op: 'cell', map: d.name, key, field: f.name}}]))
+    const vals = new Map<string, V>(d.fields.map(f => [f.name, f.sort.k === 'num' ? {t: 'num', e: {op: 'cell', map: d.name, key, field: f.name}} : f.sort.k === 'str' ? {t: 'str', e: {op: 'cell', map: d.name, key, field: f.name}} : f.sort.k === 'choice' ? {t: 'choice', e: {op: 'cell', map: d.name, key, field: f.name, values: f.sort.values}} : {t: 'bool', e: {op: 'cell', map: d.name, key, field: f.name}}]))
     return {has: {op: 'cell', map: d.name, key, field: 'has'}, vals}
   }
 
@@ -420,6 +674,9 @@ export class Stepper {
       case 'none': return I.F
       case 'opt': return I.and(v.has, this.truthy(v.v, at, p))
       case 'ref': {
+        // (a list the request carries: whether it has an item)
+        const cl = p && this.listOf(v, p, at as SX, true)
+        if (cl) return I.cmp('<', I.num(0), cl.len)
         // An object is true unless its class (or a base) defines __bool__ or __len__; a dict's truth is whether it is
         // empty, which the subset doesn't read.
         const o = (p?.heap ?? this.initHeap).get(v.id)
@@ -493,8 +750,12 @@ export class Stepper {
     } finally { this.frames.pop() }
     const rets: [Path, V][] = [...flow.rets, ...(flow.live ? [[flow.live, {t: 'none'} as V] as [Path, V]] : [])]
     if (!rets.length) return [{t: 'none'}, {...q, pc: [...q.pc, I.F], locals: saved}]
-    const joined = this.join(rets.map(([r, v]) => ({...r, locals: new Map([['$ret', v]])})), at)!
-    return [joined.locals.get('$ret')!, {...joined, locals: saved}]
+    const joined = this.join(rets.map(([r, v]) => ({...r, locals: new Map([['$ret', v]])})), at)!, out = joined.locals.get('$ret')!
+    // (other code's value left out, returned: where it is read and can't be answered, the innermost function that
+    // returned it is what is cut)
+    const o = out.t === 'opt' ? out.v : out
+    if (this.inf && o.t === 'opaque' && o.ask && !this.returnedBy.has(o.why)) this.returnedBy.set(o.why, {id: f.id, roots: [...locals].filter(([, v]) => this.stateRef(v, q)).map(([n]) => n)})
+    return [out, {...joined, locals: saved}]
   }
 
   // A branch arm the step runs: its first statement's line, counted by the harness's line events.
@@ -547,19 +808,37 @@ export class Stepper {
         const [v, q] = this.ev(s.x as SX, p)
         return {rets: [[q, v]]}
       }
-      case 'fail': this.fail(p, I.T, s, String(s.why)); return {rets: []}
-      case 'with': {
+      case 'fail': {
+        // (a class raised, with its bases; a bare re-raise, what its handler caught: one outer handler for all of it)
+        let k: Kind = s.cls ? {mro: s.cls as string[], ...(s.open ? {open: true} : {})} : this.kindOf(String(s.why), s)
+        if (s.reraise && this.tries.length) {
+          const ks = this.handling.at(-1) ?? refuse(s, 'a bare raise outside a handler'), hs = ks.map(x => this.catcher(x, s))
+          if (hs.some(h => h?.[0] !== hs[0]?.[0] || h?.[1] !== hs[0]?.[1])) refuse(s, 'a re-raise of exceptions outer handlers tell apart')
+          k = ks[0]
+        }
+        // (inside a try, the exception's arguments are evaluated first: a failure there is raised instead)
         let q = p
+        const x = s.x as SX | undefined
+        if (this.tries.length && x?.e === 'call' && !s.reraise) for (const a of [...(x.args as SX[]), ...(x.kw as [string, SX][]).map(([, y]) => y)]) q = this.ev(a, q)[1]
+        this.fail(q, I.T, s, String(s.why), k); return {rets: []}
+      }
+      case 'try': return this.tryStmt(s, p)
+      case 'with': {
+        // (a context manager of other code, taken as transparent: a raise inside it may be suppressed by it, so none
+        // goes through it to a handler around it)
+        let q = p, other = false
         for (const it of s.items as {x: SX, as?: SX}[]) {
           if (it.as) refuse(s, 'with ... as (a context manager\'s value)')
-          if (it.x.e === 'call' && this.skipped(this.calleeNames(it.x))) { this.notes.add(`with ${it.x.text} (${it.x.p}): a context manager taken as transparent (skip)`); continue }
+          if (it.x.e === 'call' && this.skipped(this.calleeNames(it.x))) { this.notes.add(`with ${it.x.text} (${it.x.p}): a context manager taken as transparent (skip)`); other = true; continue }
           const [v, q2] = this.ev(it.x, q)
           q = q2
-          if (v.t === 'opaque' && v.ask) { this.notes.add(`with ${it.x.text} (${it.x.p}): a context manager of other code taken as transparent (inferred: the check runs it)`); continue }
+          if (v.t === 'opaque' && v.ask) { this.notes.add(`with ${it.x.text} (${it.x.p}): a context manager of other code taken as transparent (inferred: the check runs it)`); other = true; continue }
           if (v.t !== 'lock') refuse(it.x, `with ${it.x.text}: a context manager (the subset reads a lock's, which makes the step atomic)`)
           this.notes.add(`${this.method}: the lock held (${it.x.p}): the step is atomic`)
         }
-        return this.block(s.body as SS[], q)
+        if (!other) return this.block(s.body as SS[], q)
+        this.cms.push(this.tries.length)
+        try { return this.block(s.body as SS[], q) } finally { this.cms.pop() }
       }
       case 'del': {
         const t = s.x as SX
@@ -584,6 +863,8 @@ export class Stepper {
       case 'assign': return {live: this.assignGo(s, p), rets: []}
       case 'switch': return this.switchGo(s, p)
       case 'break': return {rets: [], brk: [p]}
+      case 'continue': return {rets: [], brk: [{...p, cont: true}]}
+      case 'for': return this.forStmt(s, p)
       case 'defer': { const key = this.lockKey(s.pl as SX, p); if (!p.locks.includes(key)) refuse(s, `defer ${s.text as string} without its Lock first`); return {live: {...p, defers: [...p.defers, key]}, rets: []} }
     }
     return refuse(s, `a statement the subset doesn't read (${s.s})`)
@@ -963,6 +1244,8 @@ export class Stepper {
     given(all.filter(v => v !== keyV && v !== valV))
     const {tpl, k, kn} = this.storeKey(keyV, at)
     const [id, o] = this.storeMap(store, tpl, kn, at, p)
+    // (inside a try that may catch it: the store's operation may raise, as other code's may, before it acts)
+    if (this.tries.length) p = this.passing(`${store}.${m}`, `${store}.${m}`, {store, path: [m]}, at, p, awaited)
     if (kind === 'get') return this.mapGet({t: 'ref', id}, k, at, p, 'none')
     if (kind === 'delete') return [{t: 'none'}, this.mapDel({t: 'ref', id}, k, at, p, false)]
     const v = arg('value', 1)
@@ -989,6 +1272,7 @@ export class Stepper {
   // A call answered by the request: its result an input (one a step), the check stubbing the callee with it. Its type
   // is the caller's (a type string), a tag's, or the callee's declared one (inferred: `how` says which).
   answer(key: string, names: string[], patch: Patch | undefined, at: SX, p: Path, awaited: boolean, type: string | SType = this.opts.answers![key]!, how = 'stated'): [V, Path] {
+    if (this.inFold) return refuse(at, `${at.text ?? names[0]}: other code's value read in a loop's pass (it may differ each pass)`)
     if (!patch && !at.end) return refuse(at, `${at.text}: an answered call the check can't stub`)
     if (this.mod.stubs === false) return refuse(at, `${at.text}: answered (${how}), but the ${LANG[this.mod.lang] ?? this.mod.lang} check can't stub a call yet`)
     if (p.called.includes(key)) return refuse(at, `${at.text}: ${key} called twice in one step (an answer is one a step)`)
@@ -1013,7 +1297,18 @@ export class Stepper {
     if (at.ity && this.vars.get(a.inputs.name)!.sort.k === 'num') this.typed(this.vars.get(a.inputs.name)!, at.ity as IntTy, 'input', I.and(this.sel, this.cond(p)))
     if (!a.at!.some(x => x.p === site.p)) a.at!.push(site)
     const vv = this.valueOf(this.vars.get(a.inputs.name)!)
-    return [a.inputs.none ? {t: 'opt', has: I.not(I.bvar(a.inputs.none)), v: vv} : vv, q]
+    return [a.inputs.none ? {t: 'opt', has: I.not(I.bvar(a.inputs.none)), v: vv} : vv, this.mayRaise(a, names[0]!, at, q)]
+  }
+  // A call left out inside a try (its value unread): stubbed only to raise where the request says, else run as it is.
+  passing(key: string, name: string, patch: Patch | undefined, at: SX, p: Path, awaited: boolean): Path {
+    if (this.hidden) return refuse(at, `${at.text ?? name}: other code called in a loop inside a try (whether it raises would be one input a pass)`)
+    if (!this.tries.length) return p
+    if (!patch && !at.end) return refuse(at, `${at.text ?? name}: other code left out inside a try that may catch what it raises, and the check can't stub it`)
+    let a = this.answers.get(key)
+    if (!a) this.answers.set(key, a = {key, patch: patch ?? {}, async: awaited, inputs: {name: ''}, sort: '', pass: true, at: []})
+    if (!a.pass) return refuse(at, `${at.text ?? name}: ${key} answered at one call and left out at another`)
+    if (!a.at!.some(x => x.p === at.p)) a.at!.push({p: at.p, ...(at.end ? {end: at.end as string} : {}), ...(at.span ? {span: at.span as [number, number]} : {})})
+    return this.mayRaise(a, name, at, p)
   }
 
   // --- the boundary inferred ---------------------------------------------------------------------------------------
@@ -1022,6 +1317,7 @@ export class Stepper {
   // other code may change it: refused unless the caller states it. Its value read (a run refused where it is): the next
   // run answers it by the request, over its declared type; else it is left out, kept only where nothing reads it.
   readonly pend = new Map<string, Pend>()
+  readonly returnedBy = new Map<string, {id: string, roots: string[]}>()
   readonly entryIds = new Set<string>()
   boundary(x: SX, b: Bound, p: Path, awaited: boolean): [V, Path] {
     const tag = this.tagAt(x.p) ?? b.tag
@@ -1036,7 +1332,7 @@ export class Stepper {
     const why = `${x.text ?? b.name}: the value of ${b.name}, other code left out`
     this.pend.set(why, {...b, why, at: x.p, ...(x.end ? {end: x.end as string} : {})})
     this.notes.add(`${b.name} (${x.p}): left out (${tag ? 'tagged: gdp: skip' : 'inferred: nothing the rule keeps reads its value'}), run as it is by the check`)
-    return [{t: 'opaque', why, ask: b.key}, q]
+    return [{t: 'opaque', why, ask: b.key}, this.passing(b.key, b.name, b.patch, x, q, awaited)]
   }
   argVals(x: SX, p: Path): [V[], Path] {
     let q = p
@@ -1147,6 +1443,12 @@ export class Stepper {
     if (why) this.notes.add(`${fn.name}: the module's own code, outside the subset (${why}), and writing none of the rule's state: taken as other code where it is called (inferred)`)
     return {key: fn.id, name: fn.name, patch: this.ownPatch(fn, self), ret: fn.ret, own: fn.id, recv: self, tag, refusal: `${x.text}: ${fn.name}`}
   }
+  // The module's own function that returned other code's value (the innermost), where it may be cut: not cut yet, not
+  // an entry, not strict, writing none of the state its call gave it.
+  cuttable(why: string): SFunc | undefined {
+    const own = this.returnedBy.get(why), fn = own ? this.mod.funcs[own.id] : undefined
+    return fn && !this.inf!.cut.has(fn.id) && !this.entryIds.has(fn.id) && this.fnTag(fn)?.k !== 'strict' && !this.writesState(fn.id, new Set(own!.roots)) ? fn : undefined
+  }
   // A refused run: what the next one infers, or the refusal (with the statement that would accept it). A value of
   // other code read is answered by its declared type (where the check can stub it); else the module's own function the
   // refusal is in (the innermost but the entries) is cut where it writes none of the rule's state.
@@ -1166,6 +1468,10 @@ export class Stepper {
       this.inf!.cut.set(id.id, `${e.where}: ${e.what}`)
       return undefined
     }
+    // (last: a value returned by the module's own function, writing none of the state: that function cut, answered by
+    // its declared type)
+    const fn = best && this.cuttable(best.why)
+    if (fn) { this.inf!.cut.set(fn.id, `${e.where}: ${e.what}`); return undefined }
     return hint ? new Refusal(e.where, `${e.what}; ${hint}`) : e
   }
 
@@ -1236,7 +1542,7 @@ export class Stepper {
         if (x.ext && !x.pre && !x.prepl) {
           const names = [x.ext as string], ans = this.match(Object.keys(this.opts.answers ?? {}), names), patch = x.patch as Patch | undefined
           if (ans) return this.answer(ans, names, patch, x, x.args ? this.argsRead(x, p) : p, false)
-          if (this.skipped(names)) { this.notes.add(`${names[0]} (${x.p}): left out (stated: skip), run as it is by the check`); return [{t: 'opaque', why: `${names[0]}: the value of a call left out (skip)`}, x.args ? this.argsRead(x, p) : p] }
+          if (this.skipped(names)) { this.notes.add(`${names[0]} (${x.p}): left out (stated: skip), run as it is by the check`); return [{t: 'opaque', why: `${names[0]}: the value of a call left out (skip)`}, this.passing(names[0]!, names[0]!, patch, x, x.args ? this.argsRead(x, p) : p, false)] }
           let q = p, recv: V | undefined
           if (x.recv && this.inf) [recv, q] = this.ev(x.recv as SX, q)
           if (this.inf) return this.boundary(x, {key: names[0]!, name: names[0]!, refusal: String(x.why), ...(x.args ? {} : {args: false}), ...(recv ? {recv} : {}), ...(x.ret ? {ret: x.ret as SType} : {}), ...(patch ? {patch} : {})}, q, false)
@@ -1368,6 +1674,7 @@ export class Stepper {
       case 'list': return (x.xs as SX[]).length ? refuse(x, 'a list literal with items (the subset keeps a list of the state, made empty)') : [{t: 'opaque', why: '[] (an empty list, a collection only where a field declares its type)'}, p]
       case 'lambda': return refuse(x, `${x.text}: a lambda (a closure; read only as min's or max's key over a collection of the state)`)
       case 'call': return this.call(x, p, awaited)
+      case 'fold': return this.foldExpr(x, p)
     }
     return refuse(x, `${x.text ?? x.e}: an expression the subset doesn't read`)
   }
@@ -1575,6 +1882,15 @@ export class Stepper {
       const e = b.t === 'none' ? isNone(a) : isNone(b)
       return out(op === 'is' ? e : I.not(e))
     }
+    if ((op === 'in' || op === 'not in') && this.listOf(b, q2, x)) {
+      // (an item of a list, the request's or the state's: any(item == a for item in it), the fold)
+      if (!callFree(x.y)) return refuse(x, `${x.text}: in a list made by a call`)
+      const tmp = `__in${this.fresh++}`, it = `__item${this.fresh++}`, at = x.p, vr = (n: string): SX => ({e: 'var', n, p: at})
+      const [v, q3] = this.foldExpr({e: 'fold', f: 'any', p: at, text: x.text, to: vr(it), over: x.y, x: {e: 'cmp', op: '==', x: vr(it), y: vr(tmp), p: at, text: x.text}, ifs: []}, {...q2, locals: new Map(q2.locals).set(tmp, a)})
+      const locals = new Map(q3.locals)
+      locals.delete(tmp)
+      return [{t: 'bool', e: op === 'in' ? (v as {e: B}).e : I.not((v as {e: B}).e)}, {...q3, locals}]
+    }
     if (op === 'in' || op === 'not in') {
       let e: B
       if (b.t === 'tuple') e = I.or(...b.xs.map(y => this.equal(a, y, x, q2)))
@@ -1638,10 +1954,11 @@ export class Stepper {
   call(x: SX, p: Path, awaited: boolean): [V, Path] {
     const fx = x.f as SX, names = this.calleeNames(x), args0 = x.args as SX[], kw0 = x.kw as [string, SX][]
     // The boundary first: an answered call, then a skipped one (neither's arguments read).
-    const ans = this.match(Object.keys(this.opts.answers ?? {}), names)
-    if (ans) {
+    const ans = this.match(Object.keys(this.opts.answers ?? {}), names), skip = !ans && this.skipped(names)
+    if (ans || skip) {
       let patch: Patch | undefined
-      if (fx.e === 'fn') patch = {mod: this.mod.module, path: [String(fx.id)]}
+      if (!ans && !this.tries.length) {} // (left out outside a try: run as it is, no stub)
+      else if (fx.e === 'fn') patch = {mod: this.mod.module, path: [String(fx.id)]}
       else if (fx.e === 'get' && (fx.x as SX).e === 'var' && (fx.x as SX).n === 'self') patch = {self: String(fx.f)}
       else if (fx.e === 'get') {
         // A method of an object the caller gives, of another module's class: the class's method stubbed.
@@ -1649,11 +1966,9 @@ export class Stepper {
         if (obj?.k === 'rec') { const r = this.rec(obj.ty, x); patch = {mod: r.module, path: [r.short, String(fx.f)]} }
         else { const [v] = this.ev(fx, p); if (v.t === 'ext' || v.t === 'cls') patch = v.patch }
       } else { const [o] = this.ev(fx, p); if (o.t === 'ext' || o.t === 'cls') patch = o.patch }
-      return this.answer(ans, names, patch, x, this.argsRead(x, p), awaited)
-    }
-    if (this.skipped(names)) {
+      if (ans) return this.answer(ans, names, patch, x, this.argsRead(x, p), awaited)
       this.notes.add(`${names[0]} (${x.p}): left out (stated: skip), run as it is by the check`)
-      return [{t: 'opaque', why: `${x.text}: the value of a call left out (skip)`}, this.argsRead(x, p)]
+      return [{t: 'opaque', why: `${x.text}: the value of a call left out (skip)`}, this.passing(names[0]!, names[0]!, patch, x, this.argsRead(x, p), awaited)]
     }
     // The callee and its object.
     let f: V, q = p
@@ -1753,6 +2068,9 @@ export class Stepper {
       if (kw.length) return refuse(x, `${x.text}: ${n} given keywords`)
       if (args.some(a => a.t === 'opaque') && ['str', 'repr', 'len', 'isinstance', 'round', 'int', 'float', 'bool'].includes(n)) { const ask = args.find(a => a.t === 'opaque' && a.ask) as {why: string, ask: string} | undefined; return [{t: 'opaque', why: `${x.text}: of a value outside the subset${ask ? ` (${ask.why})` : ''}`, ...(ask ? {ask: ask.ask} : {})}, q] }
       const v = args[0]
+      // (a list the request carries: its length, an input)
+      const cl = v && this.listOf(v, q, x, true)
+      if (n === 'len' && cl) return [{t: 'num', e: cl.len}, q]
       switch (n) {
         case 'min': case 'max': {
           if (args.length < 2) return refuse(x, `${x.text}: ${n} of an iterable`)
@@ -2317,7 +2635,7 @@ export class Stepper {
     }
     const di = cases.findIndex(c => c.default)
     if (di >= 0) conds[di] = none
-    const lives: Path[] = [], rets: [Path, V][] = []
+    const lives: Path[] = [], rets: [Path, V][] = [], conts: Path[] = []
     let carried: Path | undefined
     cases.forEach((c, i) => {
       const entry = conds[i]!.op === 'const' && !(conds[i] as {v: boolean}).v ? undefined : this.assume(q, conds[i]!)
@@ -2329,15 +2647,32 @@ export class Stepper {
       const f = this.block(c.b, into)
       if (f.live) lives.push(f.live)
       rets.push(...f.rets)
-      if (f.brk?.length) lives.push(this.join(f.brk, c)!)
+      const bs = (f.brk ?? []).filter(x => !x.cont)
+      if (bs.length) lives.push(this.join(bs, c)!)
+      conts.push(...(f.brk ?? []).filter(x => x.cont))
       if (f.ft) { if (i === cases.length - 1) refuse(c, 'fallthrough out of the last case'); carried = f.ft }
     })
     if (di < 0) lives.push(this.assume(q, none))
     const live = this.join(lives, s)
-    return {...(live ? {live} : {}), rets}
+    return {...(live ? {live} : {}), rets, ...(conts.length ? {brk: conts} : {})}
   }
 }
 
+// --- folds' helpers --------------------------------------------------------------------------------------------------
+// A cell of a carried list at a pass; a fold's own values (whether a pass ended it, returned, failed, refused).
+const PASS = I.PASS, FLAGS = ['__done', '__returned', '__ret', '__failed', '__refused']
+const cellV = (map: string, i: N, f: string, s: Var['sort'], ty?: IntTy): V => {
+  const c = {op: 'cell' as const, map, key: {op: 'num' as const, e: i}, field: f}
+  return s.k === 'num' ? {t: 'num', e: c, ...(ty ? {ty} : {})} : s.k === 'bool' ? {t: 'bool', e: c} : s.k === 'str' ? {t: 'str', e: c} : {t: 'choice', e: {...c, values: s.k === 'choice' ? s.values : []}}
+}
+const sortOfV = (v: V): Var['sort'] | undefined => (v.t === 'num' ? {k: 'num'} : v.t === 'bool' ? {k: 'bool'} : v.t === 'choice' ? {k: 'choice', values: lvalues(v.e)} : v.t === 'str' ? {k: 'str'} : undefined)
+const termOfV = (v: V, at: {p: string}): Term => (v.t === 'num' ? {s: 'num', e: v.e} : v.t === 'bool' ? {s: 'bool', e: v.e} : v.t === 'choice' ? {s: 'choice', e: v.e} : v.t === 'str' ? {s: 'str', e: v.e} : refuse(at, `a ${v.t} where a fold keeps a number, a boolean, a string or a choice`))
+// The locals a body sets (each statement's targets), by name.
+const assigned = (ss: SS[]): Set<string> => {
+  const out = new Set<string>(), tv = (t?: SX): void => { if (t?.e === 'var') out.add(String(t.n)); else if (t?.e === 'tuple') (t.xs as SX[]).forEach(tv) }
+  deep(ss, o => { if (o.s === 'set' || o.s === 'incdec' || o.s === 'opset' || o.s === 'for') tv(o.to as SX); if (o.s === 'assign') ((o.to as SX[] | undefined) ?? []).forEach(tv); return false })
+  return out
+}
 // A pointer by a condition (one case where both are the same).
 export const phiP = (c: B, a: Ptr, b: Ptr): Ptr => (c.op === 'const' ? (c.v ? a : b) : JSON.stringify(a) === JSON.stringify(b) ? a : {k: 'phi', c, a, b})
 // The values a merge keeps exact (Go's): refused, not made opaque, where two paths make them different.
@@ -2365,7 +2700,12 @@ const split = (t: string): [string, string] => { const i = t.indexOf('{}'); retu
 export function assumed(x: {read?: StepRead}, request: Record<string, unknown> | undefined): string[] {
   const out: string[] = []
   for (const a of x.read?.answers ?? []) {
-    if (!a.how || !request || !(a.inputs.name in request)) continue
+    // (a call that raises inside a try: the request says it does, and which handler's class)
+    for (const rs of a.raises ?? []) {
+      const r = request?.[rs.name]
+      if (r !== undefined && r !== false && r !== 0 && r !== 'none') out.push(`assumes \`${a.key.split('.').pop()}\` may raise${typeof r === 'string' ? ` ${r}` : ''} (inside a try that catches it)`)
+    }
+    if (!a.how || a.pass || !request || !(a.inputs.name in request)) continue
     // (an integer of the prover's is a pair: x − x$neg; a boolean 0 or 1)
     const none = a.inputs.none && (request[a.inputs.none] === true || request[a.inputs.none] === 1), v = request[a.inputs.name], neg = request[`${a.inputs.name}$neg`]
     const shown = none ? 'None' : /^bool\b/.test(a.sort) ? String(v === true || v === 1) : typeof v === 'number' ? String(v - (typeof neg === 'number' ? neg : 0)) : JSON.stringify(v)
@@ -2717,7 +3057,10 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     let kind: 'none' | 'scalar' | 'maybe' = 'none', rv: Var | undefined, rn: Var | undefined
     // (a result of other code left out by inference: the step's result is kept, so its value is read)
     const asked = out.t === 'opaque' ? out : out.t === 'opt' && out.v.t === 'opaque' ? out.v : undefined
-    if (asked?.ask) refuse(fn, `${fn.name} returns ${asked.why} (a result the rule keeps)`)
+    // (other code's value returned: answered or cut by the next reading where it can be; an object of other code's
+    // class, not kept, as any other value of no scalar kind)
+    const pd = asked?.ask ? [...g.pend.values()].find(x => x.why === asked.why) : undefined
+    if (asked?.ask && (pd?.ret?.k !== 'rec' || g.cuttable(asked.why))) refuse(fn, `${fn.name} returns ${asked.why} (a result the rule keeps)`)
     if (out.t === 'num' || out.t === 'bool' || out.t === 'str' || out.t === 'choice' || out.t === 'opt') {
       const inner = out.t === 'opt' ? out.v : out
       if (inner.t === 'num' || inner.t === 'bool' || inner.t === 'str' || inner.t === 'choice') {
@@ -2768,7 +3111,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     const used = new Set<string>()
     const walk = (a: PArg) => { if (a.k === 'in') used.add(a.name); else if (a.k === 'opt') { used.add(a.none); walk(a.v) } else if (a.k === 'rec') a.f.forEach(([, x]) => walk(x)) }
     argsOf[fn.name]!.forEach(([, a]) => walk(a))
-    for (const a of g.answers.values()) { used.add(a.inputs.name); if (a.inputs.none) used.add(a.inputs.none) }
+    for (const a of g.answers.values()) { if (!a.pass) used.add(a.inputs.name); if (a.inputs.none) used.add(a.inputs.none); for (const r of a.raises ?? []) if (r.m === fn.name) used.add(r.name) }
     if (g.now) used.add(g.now.name)
     events.push({select: ev ? {[ev.name]: fn.name} : {}, call: fn.name, args: [{k: 'rec', fields: [...used].map(n => [n, {k: 'input', name: n} as Arg])}]})
   }
@@ -2788,6 +3131,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
   for (const t of [...Object.values(writes), ...Object.values(init)]) mention(t.e)
   for (const w of Object.values(mapWrites)) { mention(w.has); mention(w.key); for (const t of Object.values(w.vals)) mention(t.e) }
   mention(refuseB); mention(pre)
+  for (const fd of g.folds) for (const t of [...Object.values(fd.init), ...Object.values(fd.step)]) mention(t.e)
   const unread = g.inputs.filter(v => !read.has(v.name) && v.name !== ev?.name)
   if (unread.length) g.notes.add(`read by the code but by no term of the rule (given their sort's zero, or None, by the check): ${unread.map(v => v.name).join(', ')}`)
   const inputs = g.inputs.filter(v => !unread.includes(v))
@@ -2823,6 +3167,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     params: g.params, inputs, state, maps, init, writes, mapWrites, outputs,
     refuse: refuseB, pre, layout, events, notes: [...g.notes], hints: g.hints, ...(ev ? {event: ev.name} : {}), results, laws,
     ...(g.leasts.length ? {leasts: g.leasts} : {}),
+    ...(g.used.size ? {seqs: g.seqs.filter(d => g.used.has(d.name)), folds: g.folds} : {}),
   }
   return {ints: Object.fromEntries(g.ints), ...(g.madeAt ? {madeAt: g.madeAt.name} : {}), model, leaves, args: argsOf, answers: [...g.answers.values()], ctor, kept, arms: [...g.arms].map(a => { const i = a.lastIndexOf(':'); return [a.slice(0, i), Number(a.slice(i + 1))] }), ...(cls ? {cls} : {}), stores, results: resultKinds, ...(g.injectedFields.length ? {inject: g.injectedFields} : {})}
 }
@@ -2917,14 +3262,17 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
     }
     const j = (x: Raw) => (typeof x === 'number' ? String(x) : x)
     const snapJson = (s: Snap): Record<string, unknown> => ({...Object.fromEntries(Object.entries(s.leaves).map(([k, v]) => [k, j(v)])), ...Object.fromEntries(Object.entries(s.maps).map(([k, cells]) => [k, Object.fromEntries(Object.entries(cells).map(([key, c]) => [key, Object.fromEntries(Object.entries(c).map(([f, x]) => [f, j(x)]))]))]))})
-    const build = (a: PArg, inputs: Record<string, Raw>): unknown => (a.k === 'in' ? {in: inputs[a.name] ?? a.z ?? 0, ...(a.float ? {float: true} : {}), ...(a.sym ? {sym: true} : {})} : a.k === 'opt' ? (inputs[a.none] === true ? {none: true} : build(a.v, inputs)) : a.k === 'rec' ? (a.f.length ? {rec: a.cls, f: Object.fromEntries(a.f.map(([f, x]) => [f, build(x, inputs)]))} : {inert: true}) : a.k === 'inert' ? {inert: true} : a.k === 'store' ? {store: a.name} : {dflt: true})
+    const build = (a: PArg, inputs: Record<string, Raw>): unknown => (a.k === 'in' ? {in: inputs[a.name] ?? a.z ?? 0, ...(a.float ? {float: true} : {}), ...(a.sym ? {sym: true} : {})} : a.k === 'opt' ? (inputs[a.none] === true ? {none: true} : build(a.v, inputs)) : a.k === 'rec' ? (a.f.length ? {rec: a.cls, f: Object.fromEntries(a.f.map(([f, x]) => [f, build(x, inputs)]))} : {inert: true}) : a.k === 'inert' ? {inert: true} : a.k === 'store' ? {store: a.name}
+      : a.k === 'list' ? {list: ((inputs[a.name] ?? []) as unknown as Record<string, Raw>[]).map(it => build(a.item, it))} : {dflt: true})
     const ctorArgs = (params: Record<string, Raw>) => read.ctor.map(([n, a]) => [n, build(a, params)])
     let now = 0, inputsNow: Record<string, Raw> = {}
     // (an answer outside its type is no value the callee returns: the request is outside what the check compares)
-    const answersOf = () => Object.fromEntries(read.answers.map(a => {
+    const answersOf = (call: string) => Object.fromEntries(read.answers.map(a => {
       const v = inputsNow[a.inputs.name] ?? 0, ty = read.ints[a.inputs.name], n = Number(v)
       if (a.fit && ty && !(a.inputs.none && inputsNow[a.inputs.none] === true)) { const [lo, hi] = rangeOf(ty); if (n < lo || n > hi) throw new Outside(`${a.key} answers ${String(v)}, outside its type`) }
-      return [a.key, a.inputs.none && inputsNow[a.inputs.none] === true ? {none: true} : {in: v, ...(a.inputs.float ? {float: true} : {})}]
+      // (a call that may raise: the class of the handler the request says, by its index; a call left out runs as it is)
+      const rs = a.raises?.find(x => x.m === call), r = rs && inputsNow[rs.name], raise = r === true ? 0 : typeof r === 'string' && r !== 'none' ? rs!.cls.findIndex((_, i) => (g0r(read.model, rs!.name, i + 1)) === r) : -1
+      return [a.key, {...(a.pass ? {pass: true} : a.inputs.none && inputsNow[a.inputs.none] === true ? {none: true} : {in: v, ...(a.inputs.float ? {float: true} : {})}), ...(raise >= 0 ? {raise: rs!.cls[raise]} : {})}]
     }))
     let coverage: Coverage | undefined
     const r0 = performance.now()
@@ -2933,7 +3281,7 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
       at: (s, params) => { const res = ask({op: 'at', a: ctorArgs(params), now: read.madeAt ? params[read.madeAt] : 0, state: snapJson(s)}); return res.bad ? undefined : res.id },
       snapOf: self => { const res = ask({op: 'get', id: self}); if (res.error) throw new Error(JSON.stringify(res.error)); return toSnap(res.state as Record<string, unknown>) },
       call: (self, e, args) => {
-        const res = ask({op: 'call', id: self, m: e.call, a: args, now, answers: answersOf()}) as {out?: unknown, err?: string, frame?: string, bad?: string}
+        const res = ask({op: 'call', id: self, m: e.call, a: args, now, answers: answersOf(e.call)}) as {out?: unknown, err?: string, frame?: string, bad?: string}
         if (res.frame) throw new Error(`the code changes ${res.frame}, a field the rule leaves out`)
         if (res.bad !== undefined) return {ok: false, error: `the code can't be given it (${res.bad})`}
         const kind = read.results[e.call] ?? 'none', failed = res.err !== undefined
@@ -2995,6 +3343,8 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
     try { fs.rmSync(work, {recursive: true, force: true}) } catch { /* gone */ }
   }
 }
+// The i-th value of a choice input (a raise's handler by its index after 'none').
+const g0r = (m: Model, name: string, i: number): string | undefined => { const v = m.inputs.find(x => x.name === name); return v?.sort.k === 'choice' ? v.sort.values[i] : undefined }
 // The value a None leaf holds in the rule (its sort's zero).
 const g0 = (m: Model, name: string): Raw => { const v = m.state.find(x => x.name === name); return v?.sort.k === 'num' ? 0 : v?.sort.k === 'bool' ? false : v?.sort.k === 'choice' ? v.sort.values[0]! : '' }
 
@@ -3028,7 +3378,10 @@ export function stepNames(read: StepRead): Name[] {
   }
   for (const [code, a] of read.ctor) arg(a, code, 'param')
   for (const [method, as] of Object.entries(read.args)) for (const [code, a] of as) arg(a, code, 'input', method)
-  for (const a of read.answers) out.push({code: a.key, rule: a.inputs.name, role: 'answer', ...(a.inputs.none ? {none: a.inputs.none} : {})})
+  for (const a of read.answers) {
+    if (!a.pass) out.push({code: a.key, rule: a.inputs.name, role: 'answer', ...(a.inputs.none ? {none: a.inputs.none} : {})})
+    for (const r of a.raises ?? []) out.push({code: `${a.key} raises`, rule: r.name, role: 'answer', method: r.m})
+  }
   const vars = new Set([...m.state, ...m.inputs].map(v => v.name))
   for (const [method, k] of Object.entries(read.results)) if (k !== 'none') out.push({code: 'result', rule: `${method}_result`, role: 'result', method, ...(k === 'maybe' ? {none: `${method}_result_none`} : {})})
   if (vars.has('failed')) out.push({code: 'failed', rule: 'failed', role: 'failed'})

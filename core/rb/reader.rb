@@ -21,6 +21,7 @@ class Reader
     @consts = {}
     Dir.glob(File.join(@root, '**', '*.rb')).each { |f| index_consts(f) rescue nil }
     @recs, @funcs, @loads = {}, {}, []
+    @caught = []
   end
 
   # --- constants of the code: Mod::NAME = literal, from every file under the root -----------------------------------
@@ -269,17 +270,58 @@ class Reader
       op = s.respond_to?(:binary_operator) ? s.binary_operator : s.operator
       [{'s' => 'set', 'p' => p, 'to' => t, 'x' => binop(op, t, expr(s.value), s)}, *(tail ? ret.(t) : [])]
     when Prism::CallNode
-      if s.name == :raise && !s.receiver then return [{'s' => 'fail', 'p' => p, 'why' => "raise #{text(s.arguments || s)}".sub(/raise raise/, 'raise')}] end
+      if s.name == :raise && !s.receiver
+        # (the class raised and its bases; a bare raise, or of the exception a rescue bound, a re-raise)
+        a0 = s.arguments&.arguments&.first
+        a0 = a0.receiver if a0.is_a?(Prism::CallNode) && a0.name == :new && a0.receiver
+        return [{'s' => 'fail', 'p' => p, 'why' => 'raise', 'reraise' => true}] if a0.nil? || (a0.is_a?(Prism::LocalVariableReadNode) && @caught.include?(a0.name.to_s))
+        k = a0.is_a?(Prism::ConstantReadNode) || a0.is_a?(Prism::ConstantPathNode) ? exc_class(a0.slice) : [['RuntimeError', 'StandardError', 'Exception'], false]
+        return [{'s' => 'fail', 'p' => p, 'why' => "raise #{text(s.arguments || s)}".sub(/raise raise/, 'raise'), 'cls' => k[0], **(k[1] ? {'open' => true} : {})}]
+      end
       if s.name == :synchronize && s.block.is_a?(Prism::BlockNode) && s.receiver
         return [{'s' => 'with', 'p' => p, 'items' => [{'x' => expr(s.receiver)}], 'body' => block(body_of(s.block.body), tail)}]
       end
       ret.(expr(s))
     when Prism::ParenthesesNode then block(body_of(s.body), tail)
     when Prism::WhileNode, Prism::UntilNode, Prism::ForNode then [{'s' => 'no', 'p' => p, 'why' => 'a loop'}]
-    when Prism::BeginNode then [{'s' => 'no', 'p' => p, 'why' => 'begin/rescue (an exception caught: the subset reads one only as the step\'s failure)'}]
+    when Prism::BeginNode
+      # begin/rescue/else/ensure (a method's own rescue too): each rescue with the classes it names (none: StandardError)
+      body = block(body_of(s.statements), tail && !s.else_clause)
+      return body unless s.rescue_clause || s.else_clause || s.ensure_clause
+      hs, rc = [], s.rescue_clause
+      while rc
+        again = false
+        each_node(rc) { |n| again ||= n.is_a?(Prism::RetryNode) }
+        return [{'s' => 'no', 'p' => p, 'why' => 'retry (a loop back into begin)'}] if again
+        names = rc.exceptions.empty? ? ['StandardError'] : rc.exceptions.map(&:slice)
+        ks = names.map { |n| exc_class(n) }
+        as = rc.reference.respond_to?(:name) ? rc.reference.name.to_s : nil
+        @caught << as
+        hb = block(body_of(rc.statements), tail)
+        @caught.pop
+        hs << {'p' => where(rc), 'names' => ks.map { |k| k[0][0] }, 'mro' => ks[0][0], **(ks[0][1] ? {'open' => true} : {}), 'raise' => names[0], **(as ? {'as' => as} : {}), 'body' => hb}
+        rc = rc.respond_to?(:subsequent) ? rc.subsequent : rc.consequent
+      end
+      [{'s' => 'try', 'p' => p, 'body' => body, 'handlers' => hs, 'els' => s.else_clause ? block(body_of(s.else_clause), tail) : [], 'fin' => s.ensure_clause ? block(body_of(s.ensure_clause.statements), false) : []}]
     when Prism::DefNode, Prism::ClassNode, Prism::ModuleNode then [{'s' => 'no', 'p' => p, 'why' => 'a definition inside a method'}]
     else ret.(expr(s))
     end
+  end
+  # A class an exception is: its name and its bases' ([names], open: some the reader can't know), from the file's
+  # classes, else Ruby's own.
+  def exc_class(name, depth = 0)
+    name = name.sub(/\A::/, '')
+    @classes ||= classes
+    hit = @classes[name] || @classes.find { |k, _| k.end_with?("::#{name}") }&.last
+    if hit && depth < 8
+      sup = hit[0].superclass
+      return [[name], true] unless sup
+      b = exc_class(sup.slice, depth + 1)
+      return [[name, *b[0]], b[1]]
+    end
+    k = (Object.const_get(name) rescue nil)
+    return [k.ancestors.grep(Class).map(&:name) - %w[Object BasicObject], false] if k.is_a?(Class) && k <= Exception
+    [[name], true]
   end
   def ivar(name, n) = {'e' => 'get', 'x' => {'e' => 'var', 'n' => 'self', 'p' => where(n)}, 'f' => name, 'p' => where(n), 'text' => name}
   def binop(op, a, b, n)
@@ -372,4 +414,9 @@ end
 out['recs'] = r.instance_variable_get(:@recs)
 out['funcs'] = r.instance_variable_get(:@funcs)
 out['loads'] = r.loads
+# The executor's own failures' bases (nil read as a number: a NoMethodError or a TypeError by the operand's side), and
+# the class a stub raises for a rescue of every StandardError.
+std = ->(k) { k.ancestors.grep(Class).map(&:name) - %w[Object BasicObject] }
+out['kinds'] = {'KeyError' => std.(KeyError), 'ZeroDivisionError' => std.(ZeroDivisionError), 'AttributeError' => std.(NoMethodError)}
+out['exc'] = {'mro' => %w[StandardError Exception], 'raise' => 'StandardError'}
 puts JSON.generate(out)

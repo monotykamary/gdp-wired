@@ -1079,3 +1079,110 @@ harness calls `new` as a method: an existing behavior, not this change's), so th
 48 (base 34), f2 24 of 64 (base mean 24.33), rw 73 / 14 / 4 (base 74 / 14 / 3: one first-pass flip, noise after 3
 reruns a side: gained 0, lost 0, wrong 0), g332 332 of 332 the same search; the suite 233 of 233; onecpu no failure;
 $0.59 estimated (runs/bar/runs/70ca4e617289-vs-5d4da3f49013-quick-2026-10-301223).
+
+## Loops and exceptions, read generally (gen/laneL)
+
+Lane D unrolled loops pass by pass (+69 KB, 0 of 44 real extractions gained, lists capped at 3 items: shelved). This
+lane reads the same two refusals with no pass unrolled and no cap, each one mechanism in the shared executor
+(core/extract-step.ts) that every reader lowers its forms onto.
+
+**A try: a raise routed to the handler that catches it, on the path where it is raised.** `{s: 'try', body, handlers:
+[{names, mro, open?, any?, raise, as?, body}], els, fin}`. A raise has a kind: its class and bases, qualified (Python's
+from the classes of the repository and builtins' `__mro__`, Ruby's from the file's classes and `ancestors`); `open`
+where some base can't be known (an imported class's), `null` for a panic or a trap, which nothing catches. It goes to
+the innermost try's first handler naming one of its classes (or any, a bare `except:`); a handler that may or may not
+catch it (open bases, or a failure no reader names) is refused. Raised are: the code's `raise` (inside a try its
+arguments are evaluated first, so a failure there is what is raised), a bare re-raise (what its handler caught, refused
+where outer handlers would tell its kinds apart), and the executor's own failures (KeyError, TypeError of None,
+AttributeError, ZeroDivisionError), whose bases each reader gives (`kinds`). A raise caught is a path to its handler,
+and every later condition in the try is outside it: `cond(p)` is conjoined with the negations of the conditions the
+enclosing tries' raises were caught under, every way out of the body (returns, breaks, the live end) is assumed past
+them, and the paths raised to one handler are joined keeping that one of them was taken (`joinSome`). `else` runs on the
+body's live end, outside the try; `finally` on the live end and each return, refused where it returns, raises or
+breaks, or where a failure, a break or a raise an outer handler catches goes out through it. A raise through a context
+manager of other code taken as transparent (which may suppress it) to a handler around it is refused.
+
+**Other code inside a try may raise.** A call of other code (answered, left out, or stated skip) or a store's get, set
+or delete inside a try is a step that returns or raises what one handler of the tries around it catches: the innermost
+first, up to the first handler that catches the class other code raises (Python's `Exception`, Ruby's
+`StandardError`). An input of the request says which (`<callee>_raises`: a boolean for one outcome, a choice of the
+handlers' classes for several; one a method), and the check's stub raises that class there (the handler's own class,
+made without its arguments); a call left out runs as it is unless the input says it raises. So a law is proven for
+every outcome; what is assumed, as outside a try, is that other code raises nothing a handler there doesn't catch (the
+notes say it, and a refutation that needs a raise says `assumes \`callee\` may raise`). Python and Ruby read it (their
+harnesses raise); the JVM, Swift and C++ readers still refuse a try (their stubs are rewritten call sites, which can't
+raise yet). Rust, Go and C have none.
+
+**A loop over a list the request carries: a fold, exact for every length.** `{s: 'for', to, over, body}`, `continue`,
+`break`; Python's `for` and `any`/`all`/`sum` of a generator (the same loop with an accumulator); `x in xs` is `any(item == x for item in xs)`, `len(xs)` the length, the truth of
+`xs` an item. A list is one representation, Lane O's map by place:
+a list of the state (an ordered collection: each item at a place that only grows) or a list the request carries
+(Python's `list[T]`/`Sequence[T]` argument, T a scalar or a record of scalars and strings, where the harness makes
+one: `lists`), a map by place 0 to its length `<list>_len` with every place held, printed as a carried list
+(`carriesList`). An item is its place's cell either way (`{t: 'cell', map, key}`, its fields read as any map's
+record's), and a loop runs over either: the passes a carried list's length, or one past a list of the state's last
+place (its least key's, read in the state before the step) with a place that holds no item a pass that changes
+nothing. The body runs once, at a pass `i$`: the item
+there (its fields cells at `i$`), and each local the body sets that is set before it a running value, a cell of the
+loop's own carried list `<list>$<k>` (one longer). What the pass makes of them is the fold's step: each running value
+at `i$ + 1`, and whether the pass ended the loop (`__done`: a return, a break, a failure or a refusal), what it returned
+(`__returned`, `__ret`), whether it failed or refused. The rule assumes every request carries the running values its
+items make: `.assume(... <run>.at(0) = start, <run>.every((_x, i$) => i$ < len implies <run>.at(i$ + 1) = step))`; after the loop each
+running value is its cell at the length, a return the cell `__ret` where `__returned`, a failure the step's where
+`__failed`. The step reads anything the body reads (the state before the step, the request, the params, other folds'
+ends), since an assumption may: every request of the code has exactly one sequence of running values meeting it, so the
+assumption excludes none. The check draws lists of 0 to 12 items and computes the running values the same way
+(extract-check.ts `carry`; a list of the state's from the rule's own places), so a step that misreads the body is a request the rule refuses and the code doesn't.
+Refused, each where it is: a pass that writes the state, reads an answer (it would be one a pass), calls other code
+inside a try around the loop, raises out of the loop to a try around it, or holds a loop itself; a loop over anything
+but a list the request carries (a map or a list of the state, a literal, a range), and a loop's `else`.
+
+What a fold leaves the prover: the equations are its only facts about the passes, so a law about the end of a list
+of any length that needs induction over the passes (a running sum stays at least 0, a flag once set stays set) is
+unknown; laws about the first pass, about an empty list, or that need no fact about the fold beyond its value, are
+proven, and a law the fold breaks is refuted with a list. Probes (the prover's witnesses run on the code) are skipped
+where a rule carries folds: each one is slow under the quantified equations, and its lists empty.
+
+**A result of other code's class, not kept.** A step whose result is an object of another module's class (a
+`model_validate`, a `get_user_object`), which no answer takes, keeps no result (as any value of no scalar kind), where
+before it was refused; where the module's own function that returned it can be cut (answered by its declared type,
+writing none of the state its call gave it) or the value answered, that is done first. The claim says nothing of the
+result, and the check compares none.
+
+**Measured on real code** (Modal, 2 vCPU a job; the corpora sweep, research/langs/sweep.ts through each language's
+`run.ts --sweep`; base main 078bd1d, candidate this branch, the same jobs; logs in the worktree's runs/laneL/base2 and
+c9). 508 methods and functions of the cited files (Python 276, Rust 112, Ruby 39, C 30, Swift 28, C++ 10, Java 9,
+Kotlin 4): extracted 119 → 125, all six gains Python's; none lost; no rule extracted on both sides differs (by hash);
+the laws `check` proposes 235 proven, 13 unknown, 0 refuted on both sides (4 units flip a law between proven and unknown,
+each in a language this lane's code doesn't reach, under the 2 s a law). The gains: `_cache_registry_answer`,
+`delete_cache_key_object` (a cache write or delete inside `try/except Exception`), `_can_object_call_search_tool` (an
+empty list's truth), `get_user_role`, `_model_access_group_budget`, `_malformed_vector_store_ids` (a result of other
+code's class, not kept); their rules propose no laws. Of the 21 Python functions with a try and the 10 Python loops,
+where the rest now stop: a callable argument or an untyped `kwargs` the check can't stub inside a try (3); a TypedDict's
+`get` on an item (3, each a nested optional dict); a list of no item type (3, each matched by a regex or a route
+template); a loop over a dict, a tuple or list literal, a `zip`, or other code's value (5); `in` against another
+module's enum value; a call answered twice in one step inside a try; `can_grants_view_search_tool`, where the check ran
+the module's own function left out with an inert argument and it raised what the handler doesn't catch (the rule and
+the code differ: refused). Rust's 4 `while let` (FixedWindow drops the expired prefix of a list of the state: no fold
+over a collection) and C's 4 (pointer walks) are unchanged; Go's 5 (`range` over another package's `[]string`, not in
+the sweep) wait on Go's reader and harness making a list argument.
+
+**Soundness checks.** Every extraction is checked against the code by the readers' own correspondence runs (lists of
+0 to 12 items, the raise inputs, stubs that raise). Mutation: with a try body's returns not assumed past its raises,
+the check finds the difference. terra (read-only, narrow prompts) found two real try cases, both fixed and tested: a
+raise caught by an outer handler skipped an inner `finally` (refused now), a raise's argument failing first (evaluated
+now); and in the folds, a nested loop sharing the pass name (refused). Tests (core/extract-py.test.ts,
+core/extract-rb.test.ts): a call that may raise with two handlers' outcomes, a KeyError and a raise by a class with
+bases, else/finally/re-raise, a store that may fail inside a try, Ruby's begin/rescue/else/ensure and a method's own
+rescue, a fold with continue, a raise in a pass and an early return, strings, any/sum, a loop that reads no item,
+`len`, a loop over a list of the state, a function returning other code's value cut; laws proven and refuted on each.
+Not verified: laws about a fold's end beyond the first pass need induction over the passes, which the equations don't
+give (unknown, not wrong); the JVM, Swift and C++ readers' try and Go's and Rust's list arguments are not built; Rust's
+`for` and `while let` stay refused as loops (lowering them onto the fold buys nothing while Rust's harness makes no
+list argument).
+
+**Gates** (on main 078bd1d, then rebased onto fc69578 with no conflict): quick bar against the cached ae36917 baseline:
+wrong 0 and lost (solid) 0 in every group, rw 74 / 14 / 3 as the base, f1 34, f2 25, g332 332 of 332, onecpu no
+failure; suites 243 of 243 by default and with --usual on the rebased commit; typecheck (`tsc -p .`: no error in
+core/ or kernel/) and lint clean. core/: +47.2 KB without tests (core/extract-step.ts +31.9 KB; the readers +6.8 KB,
+the harnesses +1.7 KB), kernel/ untouched.
