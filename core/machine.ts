@@ -554,9 +554,11 @@ export function interpret(m: Machine) {
       const scalars = {...st.scalars}
       for (const [name, e] of Object.entries(plain.step.state ?? {})) scalars[name] = evalE(e, env, st, plain)
       const writes = Object.entries(plain.step.maps ?? {}).map(([name, w]) => [name, 'each' in w ? writeEvery(w, env, st, plain) : {key: evalE(w.key, env, st, plain), value: evalE(w.value, env, st, plain)}] as const)
-      const maps = Object.fromEntries(Object.entries(given.maps).map(([name, cells]) => [name, new Map(cells)]))
+      // (a map no write changes is shared with the state given, which no step changes: a cell written with the value it
+      // holds changes nothing; the maps the step would have copied, at every request of a search's instance)
+      const maps = {...given.maps}
       const defaults = {...given.defaults}
-      for (const [name, w] of writes) if ('cells' in w) { maps[name] = w.cells; defaults[name] = w.default } else maps[name]!.set(w.key, w.value)
+      for (const [name, w] of writes) if ('cells' in w) { maps[name] = w.cells; defaults[name] = w.default } else if (maps[name]!.get(w.key) !== w.value || !maps[name]!.has(w.key)) (maps[name] = new Map(maps[name])).set(w.key, w.value)
       const withDefaults = Object.keys(defaults).length ? {defaults} : {}
       if (!h) return {scalars, maps, ...withDefaults}
       const kept = evalC(h.keep, env, st, plain)

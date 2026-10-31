@@ -202,8 +202,8 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
   const rowLaws: Law[] = Object.entries(m.step.maps ?? {}).flatMap(([mp, w]) => {
     const key = 'each' in w ? undefined : w.key
     if (key?.op !== 'add' || key.a.op !== 'mul' || key.a.a.op !== 'var' || key.b.op !== 'var') return []
-    const n = key.a.k, cellAt = (p: E, q: E): E => ({op: 'get', map: mp, key: {op: 'add', a: {op: 'mul', k: n, a: p}, b: q}})
-    const empty = (col: boolean) => Object.values(m.step.flags ?? {}).some(q => q.op === 'all' && !q.keys?.length && json(q.c).includes(json(col ? cellAt(v(q.key), key.b) : cellAt(key.a.a, v(q.key)))))
+    const n = key.a.k, row = key.a.a, col0 = key.b, cellAt = (p: E, q: E): E => ({op: 'get', map: mp, key: {op: 'add', a: {op: 'mul', k: n, a: p}, b: q}})
+    const empty = (col: boolean) => Object.values(m.step.flags ?? {}).some(q => q.op === 'all' && !q.keys?.length && json(q.c).includes(json(col ? cellAt(v(q.key), col0) : cellAt(row, v(q.key)))))
     return [false, true].filter(empty).map((col): Law => {
       const [a, x, y] = [v('a$c'), v('x$c'), v('y$c')], cell = (z: E): C => ({op: '<=', a: one, b: col ? cellAt(z, a) : cellAt(a, z)})
       return {name: `${mp}: one ${col ? 'first key a second' : 'second key a first'}`, forall: 'a$c', keys: ['x$c', 'y$c'],
@@ -223,14 +223,14 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
   const guardsOf = (l: Law): C[] => (l.holds.op === 'or' ? l.holds.xs.flatMap(d => (d.op === 'not' ? conjs(d.x) : [])) : [])
   const bounded = (gs: C[], u: string) => gs.some(c => c.op === '<' && c.a.op === 'var' && c.a.name === u && c.b.op === 'var' && m.params.includes(c.b.name))
   const loose = new Set(caller.flatMap(l => [...reads(l.holds, mp => mp in (m.maps ?? {})).values()].flatMap(([mp, key]) => (placesOf(key) ?? []).flatMap((u, i) => (bounded(guardsOf(l), u) ? [] : [`${mp}:${i}`])))))
-  const widen = (c: Law): Law => {
+  const loosened = (c: Law): Law => {
     const drop = new Set([...reads(c.holds, () => true).values()].flatMap(([mp, key]) => (placesOf(key) ?? []).filter((u, i) => loose.has(`${mp}:${i}`))))
     const keep = (x: C): boolean => !(x.op === '<' && x.a.op === 'var' && drop.has(x.a.name) && x.b.op === 'var' && m.params.includes(x.b.name))
     if (!drop.size || c.holds.op !== 'or' || !guardsOf(c).some(x => !keep(x))) return c
     const w: Law = {...c, name: `${c.name} (at any ${[...drop].join(', ')} below the key's bound)`, holds: {op: 'or', xs: c.holds.xs.map(d => (d.op === 'not' ? {op: 'not', x: {op: 'and', xs: conjs(d.x).filter(keep)}} : d))}}
     return trueAll(w) ? w : c
   }
-  const cubes = knob.widen ? cubes0.map(widen) : cubes0
+  const cubes = knob.widen ? cubes0.map(loosened) : cubes0
   if (env.GDP_COUNTS_TRACE) console.error(`counts: small ${states.map(({sts}) => sts.length).join('/')}; declared ${Object.keys(g.counts ?? {}).join(', ')}`)
   if (env.GDP_COUNTS_TRACE) console.error(`counts: cubes ${cubes.length} in ${Math.round(clock() - t1)} ms: ${cubes.map(l => l.name).join('; ')}`)
   let set = [...caller, ...ptime('filter', () => [...kinds, ...g.laws, ...(knob.rows ? rowLaws : []), ...cubes].filter(trueAll))]
