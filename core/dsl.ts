@@ -2808,7 +2808,7 @@ function someCone(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws0: Law[],
     return {name: l.name, forall: ks[0], keys: [ks[1]!], holds: {op: 'or', xs: [{op: 'not', x: {op: 'and', xs: ks.flatMap(k => frame.map(c => at(c, k)))}}, ...ks.flatMap(k => rest.map(c => at(c, k))), yes]}}
   }
   const shapes = laws.map(l => (l.some?.length ? shapeOf(l) : l))
-  const set = [...withKinds(r, []), ...candidates(r, m, shapes, shapes, [], until - clock())]
+  const set = [...withKinds(r, []), ...candidates(r, m, shapes, shapes, [], ms, until)]
   // (a cube the kernel refuses to state, one past its key rules, is never kept)
   const plain = (law: Law, ls: Law[], ms2: number): Tried<true> => {
     try { const o = withDeadline(Math.min(until, clock() + ms2), () => proveLaw(m, ls, ls.indexOf(law))); return o.proven ? {proof: true} : {stuck: o.stuck} } catch { return {stuck: ''} }

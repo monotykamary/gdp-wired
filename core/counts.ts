@@ -139,10 +139,10 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
 // --- the candidates --------------------------------------------------------------------------------------------------
 // One list from the machine's shapes, each kept only if true on every small state: each map's cells at most what the
 // small instances reach; the guards' count comparisons (guardLaws, `guarded`); one key a row; the engine's minimal ∀
-// cubes of at most two literals (core/infer.ts's `cubes`, read off these small states), its template `shapes` (the
-// caller's laws, or an ∃ law's frame), each guard `u < param` loosened where a caller reads u with no param bound.
-export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, caller: Law[], shapes: Law[], guarded: Law[], ms: number): Law[] {
-  const states = ptime('small', () => smallOf(m)), until = clock() + ms
+// cubes of at most two literals (core/infer.ts's `cubes`, read off these small states, within a quarter of the search's
+// budget `ms`, 15 s at most), its template `shapes` (the caller's laws, or an ∃ law's frame), each guard `u < param` loosened where a caller reads u with no param bound.
+export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, caller: Law[], shapes: Law[], guarded: Law[], ms: number, until: number): Law[] {
+  const states = ptime('small', () => smallOf(m))
   const trueAll = (l: Law) => clock() < until && trueSmall(m, [l])
   const kinds: Law[] = Object.keys(m.maps ?? {}).map(mp => {
     const most = Math.max(0, ...states.flatMap(({sts}) => sts.flatMap(st => [...(st.maps[mp]?.values() ?? [])])))
@@ -250,7 +250,7 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
   const until = clock() + ms, g = guardLaws(m0), m: Machine = {...m0, counts: {...m0.counts, ...g.counts}}
   if (!caller.every(l => clock() < until && trueSmall(m, [l]))) return {proven: false, laws: caller, m, why: clock() < until ? 'a law fails on the small instances' : 'time'}
   const t1 = clock()
-  let set = [...caller, ...candidates(m0, m, caller, caller, g.laws, until - clock())]
+  let set = [...caller, ...candidates(m0, m, caller, caller, g.laws, ms, until)]
   if (env.GDP_COUNTS_TRACE) console.error(`counts: candidates at ${Math.round(clock() - t1)} ms: ${set.map(l => l.name).join('; ')}`)
   // (the law's own names and the request's values that key a map: an action's value keys none)
   const keys0 = [...[...reads([m.step, m.assume ?? null], () => true).values()].map(([, key]) => key), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [] : [w.key]))]
