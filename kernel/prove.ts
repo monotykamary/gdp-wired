@@ -1850,14 +1850,19 @@ function thinned(m: Machine, laws: Law[], instances: Record<string, Instances>):
   const trees: Record<string, Tree> = {}, fulls = {...instances}
   let nodes = 0, leaves = 0
   for (const [i, law] of laws.entries()) {
-    const full = instances[law.name]!
-    const few = triggered(plainOf(m), laws, full, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), law.forall ? [`${law.forall}#`] : [])
-    // (thinned instances first, then the full ones; each asked again at the tuples its models ask for)
-    for (const inst of sameInstances(few, full) ? [full] : [few, full]) {
+    const full = instances[law.name]!, focus = law.forall ? [`${law.forall}#`] : []
+    const few = triggered(plainOf(m), laws, full, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), focus)
+    // (a law about three keys or more, whose tuples grow as their power, first at none, its models asking for them;
+    // then the thinned instances, then the full ones, each asked again at the tuples its models ask for)
+    const seeded = seededAt(laws, few)
+    const tries = [...(seeded ? [seeded] : []), ...(sameInstances(few, full) ? [full] : [few, full])]
+    for (const inst of tries) {
       const {result: a, inst: at} = withModels(m, laws, inst, i2 => obligations(m, laws, {...instances, [law.name]: i2}, i), growAll, grownModel, grownSettled)
       instances[law.name] = at
       if (inst === full) fulls[law.name] = at
-      if (a.out && inst !== full) continue
+      // (one that ran out past the wall: the next instances can't be tried, and the goal that ran out is the verdict's, not
+      // the next one's first goal)
+      if (a.out && inst !== full && !(a.out.stuck === 'unknown' && pastWall())) continue
       if (a.out) return stuckAt(a.goal!, a.out, nodes, leaves)
       Object.assign(trees, a.done); nodes += a.n; leaves += a.lv
       break
@@ -1876,6 +1881,13 @@ function thinned(m: Machine, laws: Law[], instances: Record<string, Instances>):
   }
   const proof = {instances, trees}
   return {proven: true, nodes, leaves, checked: !usualCheck.on || checkLaws(m, laws, proof), proof}
+}
+// A law about three keys or more assumed at no tuple at first: the goal's models ask for the ones it needs (`withModels`).
+// None such with instances: undefined. Untrusted: fewer instances; a proof found is checked, and where they don't prove
+// the goal the thinned and the full instances follow.
+function seededAt(laws: Law[], inst: Instances): Instances | undefined {
+  const wide = laws.filter(l => l.forall && (l.keys?.length ?? 0) >= 2 && (inst[l.name]?.length ?? 0) > 0)
+  return wide.length ? {...inst, ...Object.fromEntries(wide.map(l => [l.name, []]))} : undefined
 }
 // A goal left unproven, the search's report so far.
 const stuckAt = (goal: Goal, out: Extract<Outcome, {stuck: unknown}>, nodes: number, leaves: number): Report => ({proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false})
