@@ -3,6 +3,19 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.41.0
+
+A whole ERC-20's supply law proven, and a nineteenth IC3Syn protocol at 300 s; nothing trusted changed.
+- **OpenZeppelin's ERC-20: the sum of balances equals totalSupply, proven on the whole contract** (mint, burn,
+  transfer, approve, transferFrom), with nothing written but the law. The Solidity reader now gives method arguments
+  one input per type and position across methods, so the law reads three keys instead of six, and the prover's case
+  splits no longer grow with every order of six keys.
+- **Two kinds of supporting law the counting search proposes**: at most one entry per row or column of a pair-keyed map
+  written only into an empty row; and a key's bound loosened where the law reads it up to N.
+- **IC3Syn, 19 of 29 at 300 s** with nothing written (consensus EPR new, checked again by Lean); 16 of 29 at 60 s;
+  no broken variant proven.
+- **The bar** (on boat): none wrong in any group; both suites pass; the library build passes.
+
 ## 0.40.0
 
 Big goals decided by asking for a model first: sixteen of IC3Syn's 29 protocols at 60 s, eighteen at 300 s.
