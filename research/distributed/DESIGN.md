@@ -244,6 +244,13 @@ and step laws, its stem replayed); the TTL model's claims run on Redis 7.
 **Not verified:** that the SIP model is any stack's code (written from the RFC); the skew bound of a deployment; the
 lease's invariant was written; the outbox's two-set ring was written (findRing finds one-set rings only).
 
+**Gates.** The quick bar (`--quick --cand 1e5a35e --base ae36917`, 356 s, about $2.81): none wrong anywhere, nothing
+solid lost (CHC gained 3 and lost 2, SV lost 1, each noise, none solid; ITS gained 1; frontier, real-world corpus, TIP the
+same; 332 step goals the same search on all 332; the 1-vCPU tests none failed; Lean 6 of 6). The suites (`--only
+suite,suite-usual` at 5679000): `--usual` none failed; by default one, the new `system` job, where laneB's dedupe test
+passed bun's 5 s on one vCPU (5.09 s): its tests now get 30 s and the job 2 vCPU (2f33a01), passing on 1 and 2 vCPU (6.6
+and 7.3 s); `liveness` and `lean-keyed` passed. tsc over the tree and oxlint on the changed files clean.
+
 **Bytes.** Against cd97c61 (tests excluded): core/live.ts +10,520 (refutedBy, findRing, the key's control rank), core/
 system.ts +5,783 (time, clocked, expires), core/dsl.ts +2,298 (keyed leadsTo, `keyed`, `refuteLeadsTo`, the verdict's
 rank), core/cycles.ts +76. kernel/ and lean-kernel/ unchanged.
