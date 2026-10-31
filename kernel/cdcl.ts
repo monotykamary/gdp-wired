@@ -56,7 +56,7 @@ export type Dag = {nodes: DagNode[], top: number, clausal?: boolean}
 // (the clausal mode's: `id` its index, a pair (x, v) coded 2·id + v; `hp` its place in the heap; `cond` whether a
 // decision may take it)
 type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, quiet?: boolean, id: number, hp?: number, cond?: boolean, val?: boolean | undefined, level: number, reason?: number | undefined, at: number, act: number, phase: boolean,
-  bj?: number[], bjAt?: number, bsig?: number, bver?: number, sj?: (number | undefined)[], sx?: Simplex, pair?: boolean}
+  bj?: number[], bjAt?: number, bsig?: number, bver?: number, sj?: (number | undefined)[], sx?: Simplex, pair?: boolean, fs?: number, aq?: number}
 type Clause = {lits: Map<string, boolean>, node: number, input?: boolean}
 // GDP_CDCL_LP=0: each node solved by elimination alone (no simplex); GDP_CDCL_FILL (8): the simplex's tableau begun
 // again past this many entries a row the node reads (research/step's comparisons).
@@ -95,7 +95,8 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   let until = Infinity, budget: {nodes: number, until?: number} = {nodes: 0}, wall: number | undefined, assumed: [string, boolean][] = [], listed = false
   // (the first assumption not known to hold: those before it held when last looked at, and an assumption taken back
   // brings it down to its own; each assumption's index by name)
-  let aq = 0, aqOf = new Map<string, number>()
+  // (and on each assumption's variable, `aq`, its index this run: the undo's lookup by variable, not by name)
+  let aq = 0, aqOf = new Map<string, number>(), aqVars: Var[] = []
   const st = cdclStats, timing = st.on
   const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = performance.now(); try { return f() } finally { add(performance.now() - t0) } }
   st.runs++
@@ -260,7 +261,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   const undoKernel = (l: number) => {
     const keep = levels[l] ?? trail.length
     while (trail.length > Math.max(keep, fixed)) {
-      const name = trail.pop()!, x = tv.pop()!, q = aqOf.size ? aqOf.get(name) : undefined
+      const name = trail.pop()!, x = tv.pop()!, q = x.aq
       x.val = undefined; x.level = -1; x.reason = undefined; if (x.col) colsOn--; if (x.pair) pairsChanged++; reader.touch(name)
       if (q !== undefined && q < aq) aq = q
     }
@@ -270,7 +271,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   const undoClausal = (l: number) => {
     const keep = levels[l] ?? trail.length, undone: Var[] = []
     while (trail.length > keep) {
-      const name = trail.pop()!, x = tv.pop()!, q = aqOf.size ? aqOf.get(name) : undefined
+      trail.pop(); const x = tv.pop()!, q = x.aq
       vals[x.id] = 0; undone.push(x)
       x.val = undefined; x.level = -1; x.reason = undefined
       if (q !== undefined && q < aq) aq = q
@@ -507,7 +508,9 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   }
   let restartAt = 32, nRestart = 0, sinceRestart = 0, free = 0
   const batch = Number(env.GDP_CDCL_BATCH ?? 16)
-  const stuck = (kind: 'sat' | 'unknown', why: string, extra: {witness?: Record<string, number>} = {}): Outcome => ({stuck: kind, path: pathOf(), why, ...extra})
+  // (the clausal mode's path left empty: its callers, core/interp.ts's sessions, read a model's witness and never the
+  // path, which over a session's gates is a map of thousands, made at every model)
+  const stuck = (kind: 'sat' | 'unknown', why: string, extra: {witness?: Record<string, number>} = {}): Outcome => ({stuck: kind, path: clausal ? new Map() : pathOf(), why, ...extra})
   const run = (b: {nodes: number, until?: number}, w?: number, assume?: Lin | Lin[]): Outcome => {
     budget = b; until = b.until ?? Infinity; wall = w; last = goal.hyps.length - 1
     restartAt = 32; nRestart = 0; sinceRestart = 0
@@ -524,6 +527,8 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
       q++; keep = l + 1
     }
     aq = 0; aqOf = new Map(assumed.map(([name], q) => [name, q]))
+    for (const y of aqVars) y.aq = undefined
+    aqVars = assumed.map(([name], q) => { const y = vars.get(name)!; y.aq = q; return y })
     undoTo(keep); qhead = Math.min(qhead, trail.length)
     take()
     if (unread) return {stuck: 'unknown', path: new Map(), why: 'a hypothesis the clauses do not read'}
@@ -532,15 +537,18 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   }
   // The assumptions a falsified one rests on: the decisions its reasons reach, each reason materialized where it is a
   // bound's (every decision on the trail is an assumption here: the search decides nothing else until they all hold).
+  // (the walk by variables, each seen once a call (`fs`, a stamp); a clause of the clausal mode read by its codes)
+  let finalN = 0
   const final = (q0: number): number[] => {
-    const at = aqOf, out = new Set([q0]), seen = new Set<string>(), todo = [assumed[q0]![0]]
+    const out = new Set([q0]), todo: Var[] = [vars.get(assumed[q0]![0])!], stamp = ++finalN
     while (todo.length) {
-      const name = todo.pop()!, x = vars.get(name)!
-      if (seen.has(name) || x.level <= 0) continue
-      seen.add(name)
-      if (x.reason === undefined) { const q = at.get(name); if (q !== undefined) out.add(q); continue }
+      const x = todo.pop()!
+      if (x.fs === stamp || x.level <= 0) continue
+      x.fs = stamp
+      if (x.reason === undefined) { if (x.aq !== undefined) out.add(x.aq); continue }
       if (clauses[x.reason]!.node < 0) materialize(x.reason)
-      for (const w of clauses[x.reason]!.lits.keys()) if (w !== name) todo.push(w)
+      const c = clausal ? cls[x.reason] : undefined
+      if (c) { for (let j = 0; j < c.length; j++) { const y = byId[c[j]! >> 1]!; if (y !== x) todo.push(y) } } else for (const w of clauses[x.reason]!.lits.keys()) if (w !== x.name) todo.push(vars.get(w)!)
     }
     return [...out].sort((a, b) => a - b)
   }
