@@ -167,7 +167,7 @@ def oleanin(key: str, path: str):
     print(json.dumps({"ok": True, "got": olean_in(key, pathlib.Path(path))}))
 
 
-def prep(batch: str, source: str, key: str, olean_src: str = "-", names: str = ""):
+def prep(batch: str, source: str, key: str, olean_src: str = "-", names: str = "", sha: str = ""):
     t0 = time.time()
     # older batches' trees go, but never one with an item still running: two batches overlap on a VM only by a race
     # (a batch let it go, another leased it, a late call of the first came), and the running one keeps its tree
@@ -185,13 +185,27 @@ def prep(batch: str, source: str, key: str, olean_src: str = "-", names: str = "
     tree.mkdir(parents=True)
     (d / "jobs").mkdir(exist_ok=True)
     tar = d / "tree.tar.gz"
-    err = fetch(source, tar, d / "cookies")
+    trees = ROOT / "trees"  # (the trees this VM unpacked lately, by the tarball's hash: the same tree again needs no upload)
+    if source.startswith("cache:"):
+        if not (trees / f"{source[6:]}.tar.gz").exists():
+            print(json.dumps({"ok": False, "err": "not in this VM's tree cache"}))
+            return
+        shutil.copy(trees / f"{source[6:]}.tar.gz", tar)
+        err = ""
+    else:
+        err = fetch(source, tar, d / "cookies")
     if err:
         print(json.dumps({"ok": False, "err": err}))
         return
     with tarfile.open(tar) as tf:
         tf.extractall(tree, filter="tar")
-    tar.unlink()
+    if sha and not source.startswith("cache:"):
+        trees.mkdir(parents=True, exist_ok=True)
+        shutil.move(tar, trees / f"{sha}.tar.gz")
+        for old in sorted(trees.glob("*.tar.gz"), key=lambda p: -p.stat().st_mtime)[4:]:
+            old.unlink(missing_ok=True)
+    else:
+        tar.unlink()
     # the Lean library the client has for this key, fetched only when this VM's cache lacks some of it
     got = []
     cache = ROOT / "olean" / key

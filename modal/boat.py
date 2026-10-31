@@ -248,8 +248,14 @@ def sandboxes() -> dict:
     return {s["id"]: s for s in bj("list", "--all")["sandboxes"]}
 
 
-def named_snapshots() -> dict:
-    return {s["name"]: s for s in bj("snapshots").get("named", [])}
+_snaps = {"t": 0.0, "d": {}}
+
+
+def named_snapshots(max_age: float = 0) -> dict:
+    """boat's named snapshots (at most max_age seconds old: preflight's and the session's image check share one call)."""
+    if time.time() - _snaps["t"] > max_age:
+        _snaps["d"], _snaps["t"] = {s["name"]: s for s in bj("snapshots").get("named", [])}, time.time()
+    return _snaps["d"]
 
 
 RUNNING = {"ready", "idle", "running"}
@@ -377,7 +383,7 @@ def build_layer(name: str, snap: str, script: str, parent: str | None):
 
 
 def ensure_image(build: bool = True) -> str:
-    have = named_snapshots()
+    have = named_snapshots(60)
     if os.environ.get("GDPW_BOAT_IMAGE"):
         if have.get(image_name(), {}).get("status") != "ready":
             raise Unavailable(f"boat image {image_name()} doesn't exist")
@@ -686,6 +692,7 @@ class Session:
         self.image = ensure_image(build)  # (raises Unavailable when it's missing and build is off)
         # the tree: this checkout's, another directory's (a commit's worktree), or a tarball taken earlier (a submission)
         self.tar = tar or tree_tarball(root)
+        self.tree_sha = hashlib.sha256(self.tar).hexdigest()[:20]
         self.key = library_key(root / "lean-kernel") if tar is None else library_key_of(self.tar)
         if oleans:
             olean_from_modal(self.key)
@@ -959,7 +966,9 @@ class Session:
             if seed:
                 self.seed_vm = vm
         src = f"/home/user/.gdpw/in-{self.batch}.tar.gz"
-        if seed or self.wanted <= 2:
+        if not seed and exec_(vm.id, ["test", "-f", f"/home/user/.gdpw/trees/{self.tree_sha}.tar.gz"], 30).get("exitCode") == 0:
+            src = f"cache:{self.tree_sha}"  # (this VM unpacked this very tree before: no upload)
+        elif seed or self.wanted <= 2:
             try:
                 if seed and self.olean:  # both files in one upload (each ssh session costs seconds to open)
                     buf = io.BytesIO()
@@ -992,12 +1001,12 @@ class Session:
                 src = f"/home/user/.gdpw/in-{self.batch}.tar.gz"
                 self._upload(vm, src)
         osrc = self.olean_url if (src == self.seed_url or vm is self.seed_vm) and self.olean_url else "-"
-        r = self._agent(vm, ["prep", self.batch, src, self.key, osrc, ",".join(self.olean_names)], 600, ship=True)
-        if not r.get("ok") and src == self.seed_url:  # the URL failed: straight from here
+        r = self._agent(vm, ["prep", self.batch, src, self.key, osrc, ",".join(self.olean_names), self.tree_sha], 600, ship=True)
+        if not r.get("ok") and (src == self.seed_url or src.startswith("cache:")):  # the URL (or the cache) failed: straight from here
             log(f"{vm.id}: the seed's URL failed ({str(r.get('err'))[:200]}); the tree from here")
             src = f"/home/user/.gdpw/in-{self.batch}.tar.gz"
             self._upload(vm, src)
-            r = self._agent(vm, ["prep", self.batch, src, self.key], 600, ship=True)
+            r = self._agent(vm, ["prep", self.batch, src, self.key, "-", "", self.tree_sha], 600, ship=True)
         if not r.get("ok"):
             raise RuntimeError(f"prep failed: {r}")
         if self.olean and set(self.olean_names) - set(r.get("olean", [])) - set(r.get("shipped", [])) and osrc == "-":
