@@ -3,6 +3,18 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.41.1
+
+- **Fixed: the TypeScript kernel could accept false laws through names that collide with the names it generates.** A
+  machine's or law's name could take over one the kernel makes for itself: a param `?f` became quantified flag `f`'s
+  0/1 variable (in laws and in progress laws), a function `I@2` a later request's map, a step-law key `s~1` the state
+  after a step, a fold param `l_size` a child's size, and a rational variable spelled like a sum the sum's row. Each
+  let a false law be accepted. `?`, `~`, `'`, `⟦` and `⟧` are now reserved in every name (with `*`, `[`, `]`, `,`, `:`
+  and `#`), a later step's names are checked against every name, progress laws are scoped, a fold's names are kept from
+  its children's copies, and a rational variable may not spell a row. Lean's checks refuse six of the seven; the
+  seventh (a step-law key `?f`) is now refused in TypeScript. Found by triaging the treadmill's surviving mutants and by
+  a narrow review; a test each in kernel/refusals.test.ts.
+
 ## 0.41.0
 
 A whole ERC-20's supply law proven, and a nineteenth IC3Syn protocol at 300 s; nothing trusted changed.
