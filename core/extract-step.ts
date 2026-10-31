@@ -3048,7 +3048,10 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     let kind: 'none' | 'scalar' | 'maybe' = 'none', rv: Var | undefined, rn: Var | undefined
     // (a result of other code left out by inference: the step's result is kept, so its value is read)
     const asked = out.t === 'opaque' ? out : out.t === 'opt' && out.v.t === 'opaque' ? out.v : undefined
-    if (asked?.ask) refuse(fn, `${fn.name} returns ${asked.why} (a result the rule keeps)`)
+    // (other code's value returned: answered by the next reading where its type takes an answer; else, an object of
+    // other code, not kept, as any other value of no scalar kind)
+    const pd = asked?.ask ? [...g.pend.values()].find(x => x.why === asked.why) : undefined
+    if (pd?.ret && answerable(pd.ret) && (pd.patch || pd.end) && mod.stubs !== false) refuse(fn, `${fn.name} returns ${asked!.why} (a result the rule keeps)`)
     if (out.t === 'num' || out.t === 'bool' || out.t === 'str' || out.t === 'choice' || out.t === 'opt') {
       const inner = out.t === 'opt' ? out.v : out
       if (inner.t === 'num' || inner.t === 'bool' || inner.t === 'str' || inner.t === 'choice') {
