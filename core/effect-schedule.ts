@@ -13,7 +13,7 @@
 //   proveRule(x.rule!, [x.rule!.law('the delay never exceeds the cap', ({delay}) => delay.atMost(5000))])
 import ts from 'typescript'
 import {type Cond, type FnDef, type Kind, type Rule, type Term, all, any, bool, lit, max, min, nat, no, oneOf, recur, rule, when, yes} from './dsl.ts'
-import {type Law, type Rand, evalC, interpret, seeded} from './machine.ts'
+import {type Law, type Rand, evalC, interpret, searchSeeded} from './machine.ts'
 import {Refusal, bare as strip, memberName, refuse, text} from './extract-read.ts'
 import type {Name} from './extract.ts'
 
@@ -554,7 +554,7 @@ export function stepper(E: Any, schedule: unknown): Decide {
 // drawn, each jitter drawn within its range and Effect's Random answering what gives it. They must decide alike: go on
 // together, with the same delay (within a millionth of a millisecond, a jittered delay being Effect's real number).
 export function scheduleConforms(s: ScheduleRule, make: (params: Record<string, number>) => unknown, E: Any, opts: {runs?: number, depth?: number, seed?: number, params?: (rand: Rand) => Record<string, number>, input?: (rand: Rand) => unknown} = {}): {checked: number, failure?: string} {
-  const rand = seeded(opts.seed ?? 1), r = s.rule as Any, g = r.compiled(), free = interpret({...r.machine, assume: undefined})
+  const rand = searchSeeded(opts.seed ?? 1), r = s.rule as Any, g = r.compiled(), free = interpret({...r.machine, assume: undefined})
   let checked = 0
   for (let run = 0; run < (opts.runs ?? 100); run++) {
     const params = opts.params?.(rand) ?? Object.fromEntries(s.params.map(p => [p, rand(6)]))

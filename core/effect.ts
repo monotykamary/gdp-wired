@@ -17,7 +17,7 @@
 import ts from 'typescript'
 import * as dsl from './dsl.ts'
 import type {Kind, Rule} from './dsl.ts'
-import {type Rand, interpret, searchSeeded} from './machine.ts'
+import {type Rand, interpret, lcgFloat, searchSeeded} from './machine.ts'
 import {allowed} from './watch.ts'
 import * as I from './extract-ir.ts'
 import {type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, impure, memberName, normalize, placed, refuse, shapeOf, sourceOf, text, where} from './extract-read.ts'
@@ -335,7 +335,7 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
     if (!found.some(f => f.at === where(at))) found.push({at: where(at), use, source: sched ? sched.getText() : `{times: ${times}}`, rule: sr})
     // The policy run as Effect drives it, each attempt taking no time: how many times it goes on (for every input it
     // may be fed, drawn), and how long it waits in all.
-    const g = sr.rule.compiled(), ps = sr.rule.encodeParams({} as never), rand = (() => { let x = 7; return (n: number) => (x = (x * 1103515245 + 12345) % 2147483648) % Math.max(1, n) })()
+    const g = sr.rule.compiled(), ps = sr.rule.encodeParams({} as never), rand = (() => { let x = 7; return (n: number) => (x = lcgFloat(x)) % Math.max(1, n) })()
     const runOnce = (draw: boolean) => {
       let st = g.init(ps), n = 0, waited = 0
       for (; n < 1000; n++) {
