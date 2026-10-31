@@ -172,8 +172,10 @@ function replay1(steps: Step[], row: (k: number) => {lin: Lin, a: boolean} | und
 // and-s.
 // (the DAG walked from its last node with a stack of its own, its parents before it: a deep DAG is no deep recursion;
 // past `wall`, none)
-export function fromDag(goal: Goal, dag: Dag, isA: (hyp: number) => boolean, maxNodes = 50_000, strong = false, wall?: number, names?: Names): C | undefined {
-  const {nameSide, linSide} = sidesOf(goal, isA, names), memo = new Map<number, C | undefined>()
+// (`memo`: each node's part kept by a caller whose DAG only grows and whose sides stay as they were, an IMC session's
+// between queries: a learned clause's derivation, which later refutations read again, is walked once)
+export function fromDag(goal: Goal, dag: Dag, isA: (hyp: number) => boolean, maxNodes = 50_000, strong = false, wall?: number, names?: Names, memo = new Map<number, C | undefined>()): C | undefined {
+  const {nameSide, linSide} = sidesOf(goal, isA, names)
   let made = 0
   const at = (top: number): C | undefined => {
     for (const todo = [top]; todo.length;) {
@@ -220,10 +222,13 @@ export function fromDag(goal: Goal, dag: Dag, isA: (hyp: number) => boolean, max
       const shared = (n.lits ?? []).filter(([lin]) => linSide(lin) === 'S').map(([lin, holds]) => linLe(atomOf(lin, holds).lin))
       out = p && shared.reduceRight((acc, c) => and(c, acc), p)
     }
-    if (out && ++made > maxNodes) out = undefined
+    if (out && ++made > maxNodes) { out = undefined; over = true }
     return out
   }
+  let over = false
   const out = at(dag.top)
+  // (past the limit, no part kept: another query's limit counts its own)
+  if (over) memo.clear()
   return out && simpC(out)
 }
 
@@ -454,7 +459,8 @@ export function imcSession(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' 
   for (const c of opts.kinds ?? []) add(c, true)
   const one: E = {op: 'const', value: 1}, guard = (s: string, c: C): C => ({op: 'or', xs: [{op: '<=', a: one, b: v(s)}, c]}), off = (s: string): C => ({op: '<=', a: one, b: v(s)})
   let nSel = 0, act = 0, named = 0, kAsked = 0
-  const seen: Names = {a: new Set(), b: new Set()}
+  const seen: Names = {a: new Set(), b: new Set()}, parts0 = new Map<number, C | undefined>()
+  let shared = 0
   // The query: the frontier at its depth. An interpolant (over the state's names), a model (a run where the frontier is
   // the start), or why neither came.
   const depth = (k: number) => {
@@ -476,7 +482,11 @@ export function imcSession(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' 
     if (out.why === REFUTED) {
       if (!out.dag) return {unknown: 'no DAG'}
       sideNames(goal, h => isA[h]!, seen, named); named = goal.hyps.length
-      const itp = fromDag(goal, out.dag, h => isA[h]!, 200_000, useStrong && !!out.dag.clausal, budget.wall, seen)
+      // (the parts kept while no name has come to be read by both sides since: a name's side is all a part reads)
+      let both = 0
+      for (const n of seen.a) if (seen.b.has(n)) both++
+      if (both !== shared) { shared = both; parts0.clear() }
+      const itp = fromDag(goal, out.dag, h => isA[h]!, 200_000, useStrong && !!out.dag.clausal, budget.wall, seen, parts0)
       return itp ? {itp: useTidy ? tidyC(renamed(itp, back)) : renamed(itp, back)} : {unknown: 'a leaf with no interpolant'}
     }
     return out.stuck === 'sat' && out.witness ? {sat: out.witness} : {unknown: out.why ?? out.stuck}
@@ -588,7 +598,17 @@ export function compress(m: Machine, law: Law, R: C, kinds: C[], budget: {until:
     }
     return core
   }
-  const holdsAfter = (i: number, skip = -1) => { const out = S.run({nodes: 0, until: budget.until}, budget.wall, [{[targets[i]!.sel]: 1}, ...from(skip)]) as Refuted; return out }
+  // (each target's last refutation: the clauses its assumptions named, those it needs; a clause outside it can go, or
+  // another come, and the target still holds after the step)
+  const needs: (Set<number> | undefined)[] = []
+  const holdsAfter = (i: number, skip = -1) => {
+    const on1 = clauses.flatMap((_, j) => (on[j] && j !== skip ? [j] : []))
+    // (the clauses first and the target last, so the session keeps the clauses' levels from one target to the next)
+    const out = S.run({nodes: 0, until: budget.until}, budget.wall, [...on1.map(j => ({[`k@${j}`]: 1})), {[targets[i]!.sel]: 1}]) as Refuted
+    if (!('tree' in out) && out.why === REFUTED) needs[i] = out.assumed ? new Set(out.assumed.flatMap(q => (q < on1.length ? [on1[q]!] : []))) : new Set(on1)
+    return out
+  }
+  // (a target that held holds with a clause more assumed: after a clause is added the targets before it aren't asked again)
   for (let i = 0; i < targets.length;) {
     if (clock() > budget.until || (budget.wall !== undefined && performance.now() > budget.wall)) return undefined
     if (i > 0 && !on[i - 1]) { i++; continue }
@@ -612,7 +632,6 @@ export function compress(m: Machine, law: Law, R: C, kinds: C[], budget: {until:
     const clause: C = {op: 'or', xs: core.map(lin => linLe(atomOf(lin, false).lin))}
     sGoal.hyps.push({op: 'or', xs: [{op: '<=', a: one, b: v(`k@${clauses.length}`)}, clause]}); clauses.push(clause); cores.push(core); on.push(true); target(clause)
     if (clauses.length > maxClauses) return undefined
-    i = 0
   }
   // Smaller: each clause generalized again from where all the others hold (a stronger frame than it was made from), the
   // smaller one beside it (the old one then left out below where it isn't needed).
@@ -627,7 +646,7 @@ export function compress(m: Machine, law: Law, R: C, kinds: C[], budget: {until:
   for (let j = 0; j < clauses.length; j++) {
     if (late()) break
     let still = true
-    for (let i = 0; i < targets.length && still; i++) if ((i === 0 || (on[i - 1] && i - 1 !== j)) && !refuted(holdsAfter(i, j))) still = false
+    for (let i = 0; i < targets.length && still; i++) if ((i === 0 || (on[i - 1] && i - 1 !== j)) && (!needs[i] || needs[i]!.has(j)) && !refuted(holdsAfter(i, j))) still = false
     if (still) on[j] = false
   }
   return clauses.filter((_, j) => on[j])

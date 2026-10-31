@@ -42,7 +42,8 @@ const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 
 process.env.GDP_CERT ??= 'usual'
 const liftMs = opt('--lift-ms', 8000), bmcMs = opt('--bmc-ms', 15000), runsMs = opt('--runs-ms', 5000), guideMs = opt('--guide-ms', 8000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini'), oldHoudini = args.includes('--old-houdini')
 const t0 = performance.now(), ms = () => Math.round(performance.now() - t0)
-const say = (o: object) => console.log(JSON.stringify({task: file, ms: ms(), ...o}))
+let unpin = () => {}
+const say = (o: object) => { unpin(); console.log(JSON.stringify({task: file, ms: ms(), ...o})) }
 const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer, ...o}); process.exit(0) }
 
 // `--compose 1`: the chains composed away first (compose.ts); every search here then reads the composed rule, its
@@ -69,8 +70,19 @@ say({stage: 'import', preds: chc!.preds.size, clauses: chc!.clauses.length, ints
 // The bounded runs go there too (`--bmc-here` keeps them in this process's stage, after the guided runs, as before), in
 // turn with k-induction, so this process's invariant search starts after the guided runs.
 const kindMs = opt('--kind-ms', Math.max(0, houdiniMs - 2000 - ms())), bmcThere = kindMs > 0 && !args.includes('--bmc-here') && bmcMs > 0
-const kind = kindMs > 0 ? Bun.spawn(['nice', '-n', '19', 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid), '--bmc', bmcThere ? '1' : '0', '--imc', String(opt('--imc', 1)), '--imc-x', String(opt('--imc-x', 1)), '--imc-first', String(opt('--imc-first', 1)), '--bmc-depth', String(opt('--bmc-depth', 0)), '--induction', String(opt('--induction', -1)), '--kind', String(opt('--kind', 0)), '--compose', String(opt('--compose', 1)), '--slice', String(opt('--slice', 0))], {stdout: 'inherit', stderr: 'ignore'}) : undefined
+// `--kind-nice n` (19): the second process' niceness. `--kind-pin 1`: each process a CPU of its own where the slot has
+// two or more (this one, every thread of it, on the first, the second process on the last), so neither's helper threads
+// (the engine's garbage collector and compiler) take the other's CPU; `--kind-pin 2`: the second process alone on the
+// last CPU, this one on all of them.
+const pinMode = opt('--kind-pin', 0), cpus = pinMode === 0 ? [] : (() => { try { const m = /Cpus_allowed_list:\s*(\S+)/.exec(readFileSync('/proc/self/status', 'utf8')); return m ? m[1]!.split(',').flatMap(p => { const [a, z] = p.split('-').map(Number); return Array.from({length: (z ?? a!) - a! + 1}, (_, i) => a! + i) }) : [] } catch { return [] } })()
+const pin = kindMs > 0 && cpus.length >= 2
+if (pin && pinMode === 1) Bun.spawnSync(['taskset', '-a', '-p', '-c', String(cpus[0]), String(process.pid)], {stdout: 'ignore', stderr: 'ignore'})
+const kind = kindMs > 0 ? Bun.spawn([...(pin ? ['taskset', '-c', String(cpus.at(-1))] : []), 'nice', '-n', String(opt('--kind-nice', 19)), 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid), '--bmc', bmcThere ? '1' : '0', '--imc', String(opt('--imc', 1)), '--imc-x', String(opt('--imc-x', 1)), '--imc-first', String(opt('--imc-first', 1)), '--bmc-depth', String(opt('--bmc-depth', 0)), '--induction', String(opt('--induction', -1)), '--kind', String(opt('--kind', 0)), '--compose', String(opt('--compose', 1)), '--slice', String(opt('--slice', 0))], {stdout: 'inherit', stderr: 'ignore'}) : undefined
 process.on('exit', () => { kind?.kill() })
+// (the second process done: this one takes the slot's CPUs back, looked at with each stage line this prints)
+let pinned = pin && pinMode === 1
+const ended = () => { try { return /\) [ZX] /.test(readFileSync(`/proc/${kind!.pid}/stat`, 'utf8')) } catch { return true } }
+unpin = () => { if (pinned && ended()) { pinned = false; Bun.spawnSync(['taskset', '-a', '-p', '-c', cpus.join(','), String(process.pid)], {stdout: 'ignore', stderr: 'ignore'}) } }
 
 // A run, replayed on the compiled rule and checked against the CHC.
 const g = r.compiled()
