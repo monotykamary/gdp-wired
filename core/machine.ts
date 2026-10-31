@@ -63,6 +63,11 @@ export type Machine = {
   // Sums over a map's keys (kernel.ts's sumMachine, Sums.lean): each a state variable no step sets, worth at every state
   // the sum over every key of `term` read there (the term reads its maps at the key `key` alone: M.sum() is M[key]).
   sums?: Record<string, Sum>
+  // Counts (kernel.ts's countedObligations, CountMachine.lean): each a map no step writes, at x the number Σ_{k < below}
+  // body(k), read with `j` at x and `key` at k (a 0/1 body counts a set: the votes for x, a request's set). A request
+  // reads each at its count at the request's view (its inputs, the state's maps, the maps it carries); a law reads one
+  // whose bound and body read no request (no input, no carried map) as the state's count.
+  counts?: Record<string, Counted>
   // Functions the rule reads and never writes, defined outside it (in Lean, say): each read like a map, at any key.
   // The kernel knows a function only through `facts`; the runtimes compute it with its `js`.
   fns?: Record<string, Fn>
@@ -104,6 +109,8 @@ export type History = {keep: C, record: string[], sums: Record<string, E>, queri
 // it reads holds its start value. The kernel keeps the sum exact (each step moves it by the term's change at the keys
 // the step writes) and gives every goal that the term at any key, with the keys a step writes, is at most the sum.
 export type Sum = {key: string, term: E}
+// A count: `j` the map's key, `key` the counted key, both bound (`below` reads j, not key; `body` reads both).
+export type Counted = {j: string, key: string, below: E, body: E}
 // A step writes a map at one key, or at every key at once: `each` names the key, read in `value` only as a map's key
 // (M[k]), so every key the maps hold nothing at reads alike.
 export type MapUpdate = {key: E, value: E} | {each: string, value: E}

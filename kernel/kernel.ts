@@ -18,7 +18,7 @@
 // meet it), so it holds at the start and at every step; `assume`, about each request, holds only at a step, since no
 // request has come at the start.
 import {checkRefutation} from '../core/check.ts'
-import type {C, E, Law, Machine, MapUpdate} from '../core/machine.ts'
+import type {C, Counted, E, Law, Machine, MapUpdate} from '../core/machine.ts'
 import {type Constraint, type Lin, type Step, add, k, scale, sub, v} from '../core/solver.ts'
 
 // An exhaustive switch's default: TypeScript proves it unreachable, and if it is reached anyway (a value from outside
@@ -636,7 +636,9 @@ const distinct = (what: string, names: string[]) => { const seen = new Set<strin
 // step reads params, inputs and the state before it; a flag reads the flags declared before it; a start value reads the
 // params; a law reads the params, the state, the maps and its own key.
 export function scope(m: Machine, laws: Law[] = []) {
-  const state = Object.keys(m.state), maps = Object.keys(m.maps ?? {}), flags = Object.keys(m.step.flags ?? {}), carried = m.inputMaps ?? [], fns = Object.keys(m.fns ?? {})
+  const state = Object.keys(m.state), maps = Object.keys(m.maps ?? {}), flags = Object.keys(m.step.flags ?? {}), fns = Object.keys(m.fns ?? {})
+  // (a count map is read as a map the request carries; a law reads the counts of the state, countsScope says which)
+  const counts = Object.keys(m.counts ?? {}), carried = [...(m.inputMaps ?? []), ...counts]
   const names = [...m.params, ...m.inputs, ...state]
   distinct(m.name, [...names, ...maps, ...carried, ...fns])
   for (const name of [...names, ...maps, ...carried, ...fns, ...flags]) plainName(m.name, name)
@@ -682,7 +684,8 @@ export function scope(m: Machine, laws: Law[] = []) {
     unquantified(what, law.holds)
   }
   const keysOf = (l: Law) => [...(l.forall ? [l.forall] : []), ...(l.keys ?? [])]
-  for (const law of laws) inScope(`law ${law.name}`, [law.holds], [...m.params, ...state, ...keysOf(law)], [...maps, ...fns])
+  for (const law of laws) inScope(`law ${law.name}`, [law.holds], [...m.params, ...state, ...keysOf(law)], [...maps, ...fns, ...stateCounts(m)])
+  countsScope(m, laws)
   // A fact reads the params and the functions alone: what holds of them holds at every state.
   for (const fact of facts) inScope(`fact ${fact.name}`, [fact.holds], [...m.params, ...keysOf(fact)], fns)
 }
@@ -941,6 +944,8 @@ export const sideGoals = (m: Machine, laws: Law[] = []): Goal[] => (m.history ? 
 // `only`: the goals of that law alone (the prover's instance search asks for one law's at a time).
 export function obligations(m: Machine, laws: Law[], instances: Record<string, Instances> = {}, only?: number): Goal[] {
   if (m.history || (m.sums && Object.keys(m.sums).length)) { const goals = only === undefined ? sideGoals(m, laws) : []; return [...obligations(plainOf(m), laws, instances, only), ...goals] }
+  // (a count changes with the state: a law reading one is read after the step at its post name, countedObligations')
+  if (m.counts && Object.keys(m.counts).length) throw new Error(`${m.name} counts: its goals are countedObligations'`)
   scope(m, laws)
   const ok = [...Object.values(m.state), ...Object.values(m.step.state ?? {}), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.value] : [w.key, w.value]))].every(natural)
     && Object.values(m.step.flags ?? {}).every(naturalC) && laws.every(l => naturalC(l.holds)) && Object.values(m.maps ?? {}).every(c => Number.isInteger(c) && c >= 0)
@@ -1677,6 +1682,136 @@ export function checkCounted(g: CountedGoal, cert: {insts: CountInst[], tree: Tr
 export function countedGoal(g: CountedGoal, insts: CountInst[]): Goal | undefined {
   const hs = countHyps(g.counts, insts)
   return hs && {name: g.name, hyps: [...g.hyps, ...hs]}
+}
+
+// --- counts in a machine (Lean twin: ../lean-kernel/CountMachine.lean, cmachine_sound) ---------------------------------
+// A machine's count map C (Machine.counts): at x, Σ_{k < below} body(k), j at x and key at k. Lean reads C as a map the
+// request carries (CReach: each request carries it at its count at the request's view, as the runtimes compute it); a
+// guard reads it there, a law a count of the state (`stateOnly`: its bound and body read no input and no carried map).
+// The goals are obligations', the law proven read with each count map renamed to its post name C# (Lean's renLaw); a
+// goal declares the counts it reads (Lean's cStartDecls, cStepDecls): after the start, each state count read across
+// it; at a step, every count as the request carries it, then each state count read across the step (afterDecl). A
+// goal's certificate names the cells it reads (a fresh variable, a count map, a key term) and Count.lean's instances
+// and tree; checkMC is Lean's, line for line (DESIGN.md, gen/laneK2, has the table).
+export type CountDecl = {map: string, j: string, key: string, below: E, body: E}
+export type MapRead = [string, string, E]
+export type CountCert = {reads: MapRead[], insts: CountInst[], tree: Tree}
+export const postName = (map: string) => `${map}#`
+const declsOf = (m: Machine): CountDecl[] => Object.entries(m.counts ?? {}).map(([map, c]) => ({map, j: c.j, key: c.key, below: c.below, body: c.body}))
+// stateOnly: the bound and body read no input and no map a request carries (Lean: avoidsE (extVars ++ flagVars) and
+// avoidsMapsE carried; a count reads no flag, quantified flag or witness here, countsScope's).
+const stateOnly = (m: Machine, d: Counted): boolean => [d.below, d.body].every(t => {
+  const r = reads(t)
+  return m.inputs.every(i => !r.vars.has(i)) && [...(m.inputMaps ?? []), ...Object.keys(m.counts ?? {})].every(mp => !r.maps.has(mp))
+})
+export const stateCounts = (m: Machine): string[] => Object.entries(m.counts ?? {}).filter(([, d]) => stateOnly(m, d)).map(([c]) => c)
+// Each count, as Lean's cDeclOk and cApart: its post name none of the machine's; j and key distinct plain names that are
+// none of its names, bound keys, quantified flags or witnesses, nor a law's key or skolem (k, k#); the bound reading
+// the params, inputs, state and j, the body those and key, each of the maps, carried maps and functions (no count, no
+// post name, no flag); naturals only.
+function countsScope(m: Machine, laws: Law[]): void {
+  const counts = m.counts ?? {}
+  if (!Object.keys(counts).length) return
+  const state = Object.keys(m.state), maps = Object.keys(m.maps ?? {}), carried = m.inputMaps ?? [], fns = Object.keys(m.fns ?? {})
+  const names = [...m.params, ...m.inputs, ...state], declared = [...names, ...maps, ...carried, ...fns, ...Object.keys(counts), ...Object.keys(m.step.flags ?? {})]
+  const bound = [...quantified(m).flatMap(([f, q]) => [`?${f}`, ...witnessesOf(f, q), ...boundOf(q)]), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))]
+  const lawNames = laws.flatMap(l => [l.forall, ...(l.keys ?? [])].flatMap(k => (k ? [k, `${k}#`] : [])))
+  for (const [c, d] of Object.entries(counts)) {
+    const what = `${m.name}'s count ${c}`
+    if (declared.includes(postName(c))) throw new Error(`${what}: its post name ${postName(c)} is already a name of ${m.name}`)
+    plainName(what, d.j); plainName(what, d.key)
+    if (d.j === d.key) throw new Error(`${what}: j and key are one name`)
+    for (const x of [d.j, d.key]) if ([...declared, ...bound, ...lawNames].includes(x)) throw new Error(`${what}: ${x} is already a name of ${m.name} or a law`)
+    unquantified(what, d.below); unquantified(what, d.body)
+    inScope(`${what}'s bound`, [d.below], [...names, d.j], [...maps, ...carried, ...fns])
+    inScope(`${what}'s body`, [d.body], [...names, d.j, d.key], [...maps, ...carried, ...fns])
+    if (!natural(d.below) || !natural(d.body)) throw new Error(`${what}: a negative constant or factor is outside the kernel`)
+  }
+}
+// toCount: a read cell as Count.lean's count (its variable, the declaration with j at the key term); toCounts: each.
+const toCount = (ds: CountDecl[], r: MapRead): Count | undefined => {
+  const d = ds.find(x => x.map === r[1])
+  if (!d) return undefined
+  const at: Subst = {vars: {[d.j]: r[2]}, maps: {}, flags: {}}
+  return {v: r[0], key: d.key, below: substE(d.below, at), body: substE(d.body, at)}
+}
+function toCounts(ds: CountDecl[], rs: MapRead[]): Count[] | undefined {
+  const out: Count[] = []
+  for (const r of rs) {
+    const c = toCount(ds, r)
+    if (!c) return undefined
+    out.push(c)
+  }
+  return out
+}
+const readHyp = (r: MapRead): C => ({op: '=', a: {op: 'var', name: r[0]}, b: {op: 'get', map: r[1], key: r[2]}})
+// readFresh: no hypothesis, declaration or key term reads v, and v is no declaration's j or key.
+const readFresh = (hyps: C[], ds: CountDecl[], rs: MapRead[], v: string): boolean =>
+  hyps.every(h => !readsVar(h, v)) && ds.every(d => !readsVar(d.below, v) && !readsVar(d.body, v) && d.j !== v && d.key !== v) && rs.every(r => !readsVar(r[2], v))
+// readsOk: the variables distinct (cDistinct), each fresh, each key term reading no declaration's key.
+const readsOk = (hyps: C[], ds: CountDecl[], rs: MapRead[]): boolean =>
+  new Set(rs.map(r => r[0])).size === rs.length && rs.every(r => readFresh(hyps, ds, rs, r[0]) && ds.every(d => !readsVar(r[2], d.key)))
+// TypeScript's own condition on the certificate, an input from outside: each read a name, a map's name and a term.
+const readsTyped = (rs: MapRead[]): boolean => Array.isArray(rs) && rs.every(r => Array.isArray(r) && r.length === 3 && typeof r[0] === 'string' && typeof r[1] === 'string' && !!r[2] && typeof r[2] === 'object')
+// witFreshW, countedOkW, checkCountedW: Count.lean's checkCounted with each witness fresh for the counts and the
+// instances' bounds only. A machine's goal may read a witness in its instances of laws, facts and quantified flags,
+// which hold at every value of a variable the machine never reads (witsOk): CountMachine.lean's countedW_sound asks the
+// hypotheses at every value of the witnesses.
+const witFreshW = (cs: Count[], is: CountInst[], w: string): boolean =>
+  cs.every(c => c.v !== w && !readsVar(c.below, w) && !readsVar(c.body, w)) && is.every(j => !readsVar(j.below, w))
+const countedOkW = (cs: Count[], is: CountInst[]): boolean => { const ws = is.map(i => i.wit); return new Set(ws).size === ws.length && is.every(i => witFreshW(cs, is, i.wit)) }
+function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree: Tree}): boolean {
+  if (!(countedOkW(cs, cert.insts) && typed(cert.insts))) return false
+  const hs = countHyps(cs, cert.insts)
+  return hs !== undefined && check({name: 'counted', hyps: [...hyps, ...hs]}, cert.tree)
+}
+// checkMC: each declaration's j and key differ, the reads are fresh, no read is a witness or reads one in its key
+// term, and checkCountedW accepts the counted goal they make (the goal's hypotheses, each read variable equal to its
+// cell; Lean's names the hypotheses it uses, each the goal's).
+export function checkMC(hyps: C[], ds: CountDecl[], k: CountCert): boolean {
+  if (!(ds.every(d => d.j !== d.key) && readsTyped(k.reads) && Array.isArray(k.insts) && readsOk(hyps, ds, k.reads))) return false
+  if (!k.reads.every(r => k.insts.every(i => i.wit !== r[0] && !readsVar(r[2], i.wit)))) return false
+  const cs = toCounts(ds, k.reads)
+  return cs !== undefined && checkCountedW([...hyps, ...k.reads.map(readHyp)], cs, {insts: k.insts, tree: k.tree})
+}
+// The goal a certificate's tree refutes (what the search and the exporter read), or none.
+export function mcGoal(hyps: C[], ds: CountDecl[], k: Pick<CountCert, 'reads' | 'insts'>): Goal | undefined {
+  const cs = toCounts(ds, k.reads)
+  return cs && countedGoal({name: 'counted', hyps: [...hyps, ...k.reads.map(readHyp)], counts: cs}, k.insts)
+}
+// The goals of a machine with counts: obligations', each law proven renamed (renLaw), with the counts each declares.
+export function countedObligations(m: Machine, laws: Law[], instances: Record<string, Instances> = {}, only?: number): {goal: Goal, decls: CountDecl[]}[] {
+  if (m.history || (m.sums && Object.keys(m.sums).length)) throw new Error(`${m.name}: counts go with no history and no sums`)
+  scope(m, laws)
+  const ok = [...Object.values(m.state), ...Object.values(m.step.state ?? {}), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.value] : [w.key, w.value]))].every(natural)
+    && Object.values(m.step.flags ?? {}).every(naturalC) && laws.every(l => naturalC(l.holds)) && Object.values(m.maps ?? {}).every(c => Number.isInteger(c) && c >= 0)
+  if (!ok || !(m.facts ?? []).every(l => naturalC(l.holds)) || laws.some(l => mentions(l.holds, m.inputs))) throw new Error('a negative constant or factor, or a law about a request, is outside the kernel')
+  const ren: Subst = {vars: {}, maps: Object.fromEntries(Object.keys(m.counts ?? {}).map(c => [c, (key: E): E => ({op: 'get', map: postName(c), key})])), flags: {}}
+  const proven = (law: Law) => { const h = substC(law.holds, ren); return law.forall ? substC(h, {vars: {[law.forall]: {op: 'var', name: `${law.forall}#`}}, maps: {}, flags: {}}) : h }
+  const all = declsOf(m), st = all.filter(d => stateOnly(m, d))
+  const after = (at: Subst): CountDecl[] => st.map(d => ({map: postName(d.map), j: d.j, key: d.key, below: substE(d.below, at), body: substE(d.body, at)}))
+  const pre = preOf(m), u = updateOf(m), assume = m.assume ? [inlineFlags(m, m.assume)] : []
+  return laws.flatMap((law, i) => {
+    if (only !== undefined && i !== only) return []
+    const start = given(m, holds(from(startOf(m)), pre), instances[law.name] ?? {})
+    const turn = step(holds(given(m, from(), instances[law.name] ?? {}), [...pre, ...assume, ...assumed(laws, instances[law.name] ?? {}), ...closing(m, instances[law.name] ?? {})]), u)
+    return [{goal: goal(`${law.name} @start`, start, atEnd(start, proven(law))), decls: after(start.at)},
+      {goal: goal(`${law.name} @step`, turn, atEnd(turn, proven(law))), decls: [...all, ...after(turn.at)]}]
+  })
+}
+// witsOk: a certificate's witnesses are names nothing of the machine or its laws reads or binds: none of its names, bound
+// keys, quantified flags or witnesses, nor a law's key or skolem (Lean's witsOk: fresh for the machine, the precondition
+// and the laws, no entry's skolem or further key).
+function witsOk(m: Machine, laws: Law[], k: CountCert): boolean {
+  const flags = Object.keys(m.step.flags ?? {})
+  const taken = new Set([...m.params, ...m.inputs, ...Object.keys(m.state), ...Object.keys(m.maps ?? {}), ...(m.inputMaps ?? []), ...Object.keys(m.fns ?? {}), ...Object.keys(m.counts ?? {}), ...flags,
+    ...flags.map(f => `?${f}`), ...quantified(m).flatMap(([f, q]) => [...witnessesOf(f, q), ...boundOf(q)]), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : [])),
+    ...laws.flatMap(l => [l.forall, ...(l.keys ?? [])].flatMap(x => (x ? [x, `${x}#`] : [])))])
+  return Array.isArray(k.insts) && k.insts.every(i => typeof i.wit === 'string' && !taken.has(i.wit))
+}
+// Lean's checkCMachine: every goal has a certificate, its witnesses fresh, and every certificate checks.
+export function checkCountedLaws(m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}): boolean {
+  return countedObligations(m, laws, proof.instances).every(({goal: g, decls}) => { const k = proof.certs[g.name]; return k !== undefined && witsOk(m, laws, k) && checkMC(g.hyps, decls, k) })
 }
 
 // --- ghost maps (Lean twin: ../lean-kernel/GhostMap.lean) ----------------------------------------------------------------

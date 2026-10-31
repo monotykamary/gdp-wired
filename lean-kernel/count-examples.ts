@@ -8,9 +8,10 @@
 import {writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, times, x} from '../core/machine.ts'
-import {type CountedGoal, type CountInst, type Ghosted, type Tree, checkCounted, checkGhostedLaws, countedGoal, ghostedMachine} from '../kernel/kernel.ts'
+import {type CountCert, type CountedGoal, type CountInst, type Ghosted, type Instances, type MapRead, type Tree, checkCounted, checkCountedLaws, checkGhostedLaws, countedGoal, countedObligations,
+  ghostedMachine, mcGoal} from '../kernel/kernel.ts'
 import {grow, proveLaws} from '../kernel/prove.ts'
-import {countedToLean, smachineToLean} from './emit.ts'
+import {cmachineToLean, countedToLean, smachineToLean} from './emit.ts'
 
 const one = n(1), zero = n(0)
 // A set's indicator at the key n: 1 where c holds.
@@ -89,6 +90,71 @@ export function grants(): {g: Ghosted, laws: Law[], forallSome: {law: string, ma
   return {g, laws, forallSome: [{law: 'a grant names a valid ticket', map: 'W', at: x('j'), as: 'tk'}]}
 }
 
+// --- counts in a machine (CountMachine.lean) ------------------------------------------------------------------------------
+
+// Toy consensus with its counts as TLA+ states them: op 0 casts i's vote for val (once), op 1 decides val with a request's
+// set Q, a majority of the size nodes (2·|Q| > size, |Q| the count `quorum`) all of whom voted val. Laws: a decided
+// value has a majority of the votes (2·votes[a] > size, votes[a] = |{n < size: Vote[n] = a + 1}|, a count of the state),
+// and one value is decided. The certificates name the cells each goal reads and the instances of Count.lean's lemma.
+export function toyCounted(): {m: Machine, laws: Law[], instances: Record<string, Instances>, certs: Record<string, {reads: MapRead[], insts: CountInst[]}>} {
+  const v = (k: string): C => same(get('Vote', x(k)), plus(x('val'), one))
+  const m: Machine = {name: 'toy consensus, counted', params: ['size'], inputs: ['op', 'i', 'val'], state: {}, maps: {Vote: 0, Decision: 0}, inputMaps: ['Q'],
+    counts: {
+      votes: {j: 'x', key: 'n', below: x('size'), body: ind(same(get('Vote', x('n')), plus(x('x'), one)))},
+      quorum: {j: 'x2', key: 'n2', below: x('size'), body: ind(same(get('Q', x('n2')), one))},
+    },
+    step: {
+      flags: {
+        chosen: {op: 'all', key: 'q', c: any(not(same(get('Q', x('q')), one)), v('q'))},
+        casts: all(same(x('op'), zero), same(get('Vote', x('i')), zero)),
+        decides: all(same(x('op'), one), {op: 'flag', name: 'chosen'}),
+      },
+      maps: {
+        Vote: {key: x('i'), value: ite({op: 'flag', name: 'casts'}, plus(x('val'), one), get('Vote', x('i')))},
+        Decision: {key: x('val'), value: ite({op: 'flag', name: 'decides'}, one, get('Decision', x('val')))},
+      },
+    },
+    assume: all(less(x('i'), x('size')), any(not(same(x('op'), one)), less(x('size'), times(2, get('quorum', zero)))))}
+  const decided = (k: E) => same(get('Decision', k), one)
+  const laws: Law[] = [
+    {name: 'decided is 0 or 1', forall: 'a', holds: atMost(get('Decision', x('a')), one)},
+    {name: 'a decided value has a majority', forall: 'a', holds: any(not(decided(x('a'))), less(x('size'), times(2, get('votes', x('a')))))},
+    {name: 'one value decided', forall: 'a', keys: ['b'], holds: any(not(all(decided(x('a')), decided(x('b')))), same(x('a'), x('b')))},
+  ]
+  const a = x('a#'), b = x('b')
+  const instances: Record<string, Instances> = {
+    'decided is 0 or 1': {'decided is 0 or 1': [a]},
+    'a decided value has a majority': {'a decided value has a majority': [a], 'decided is 0 or 1': [a], '?chosen': [x('w1')]},
+    'one value decided': {'one value decided': [a, b], 'a decided value has a majority': [a, b], 'decided is 0 or 1': [a, b], '?chosen': [x('w1'), x('w2')]},
+  }
+  const none = {reads: [] as MapRead[], insts: [] as CountInst[]}
+  const certs: Record<string, {reads: MapRead[], insts: CountInst[]}> = {
+    'decided is 0 or 1 @start': none, 'decided is 0 or 1 @step': none, 'a decided value has a majority @start': none, 'one value decided @start': none,
+    // Decide: the quorum's members all voted the value, so its votes after the step are at least |Q|; Cast: a value's
+    // votes don't drop (the cell written held no vote).
+    'a decided value has a majority @step': {reads: [['cQ', 'quorum', zero], ['cA', 'votes', a], ['cA1', 'votes#', a]],
+      insts: [{wit: 'w1', below: x('size'), terms: [[1, 'cQ'], [-1, 'cA1']], unit: 0}, {wit: 'w2', below: x('size'), terms: [[1, 'cA'], [-1, 'cA1']], unit: 0}]},
+    // Two majorities meet: a node in Q that voted for the value decided before, so they are one value.
+    'one value decided @step': {reads: [['cA', 'votes', a], ['cB', 'votes', b], ['cQ', 'quorum', zero]],
+      insts: [{wit: 'w1', below: x('size'), terms: [[1, 'cA'], [1, 'cQ']], unit: -1}, {wit: 'w2', below: x('size'), terms: [[1, 'cB'], [1, 'cQ']], unit: -1}]},
+  }
+  return {m, laws, instances, certs}
+}
+
+// The untrusted search's trees for the hand-named reads and instances.
+export function countedProof(m: Machine, laws: Law[], instances: Record<string, Instances>, named: Record<string, {reads: MapRead[], insts: CountInst[]}>): Record<string, CountCert> {
+  const out: Record<string, CountCert> = {}
+  for (const {goal: g, decls} of countedObligations(m, laws, instances)) {
+    const k = named[g.name]
+    if (!k) throw new Error(`${g.name}: no certificate named`)
+    const goal = mcGoal(g.hyps, decls, k)
+    const o = goal && grow(goal)
+    if (!o || !('tree' in o)) throw new Error(`${g.name}: no tree`)
+    out[g.name] = {...k, tree: o.tree}
+  }
+  return out
+}
+
 // --- the Lean export -----------------------------------------------------------------------------------------------------
 
 export function countExamplesLean(): string {
@@ -112,7 +178,16 @@ export function countExamplesLean(): string {
   parts.push(smachineToLean('grants', m, laws, {ghosted: g, forallSome, free: forallSome.map(f => f.as), noFacts: true,
     after: (_ix, _mx, lit) => `-- TAMPERED: the original's assumption reads the ghost map. Lean computes smghostOk to false, as kernel.ts's ghostedOk.
 example : smghostOk { grants_gm with orig := ${lit(tOrig)} } = false := by decide +kernel`}))
+  const tc = toyCounted(), tcerts = countedProof(tc.m, tc.laws, tc.instances, tc.certs)
+  if (!checkCountedLaws(tc.m, tc.laws, {instances: tc.instances, certs: tcerts})) throw new Error('toy counted: not proven')
+  const stepMaj = 'a decided value has a majority @step', stepOne = 'one value decided @step'
+  parts.push(cmachineToLean('toyc', tc.m, tc.laws, {instances: tc.instances, certs: tcerts}, [
+    {what: 'a witness is the law\'s skolem', certs: {...tcerts, [stepOne]: {...tcerts[stepOne]!, insts: tcerts[stepOne]!.insts.map((i, j) => (j === 0 ? {...i, wit: 'a#'} : i))}}},
+    {what: 'the read after the step read before it (votes for votes#)', certs: {...tcerts, [stepMaj]: {...tcerts[stepMaj]!, reads: tcerts[stepMaj]!.reads.map(r => (r[0] === 'cA1' ? [r[0], 'votes', r[2]] as MapRead : r))}}},
+    {what: 'an instance\'s unit coefficient 0', certs: {...tcerts, [stepOne]: {...tcerts[stepOne]!, insts: tcerts[stepOne]!.insts.map(i => ({...i, unit: 0}))}}},
+  ]))
   return `import Count
+import CountMachine
 import GhostMap
 open Kern Cert
 set_option maxRecDepth 100000
@@ -128,6 +203,7 @@ ${parts.join('\n\n')}
 #print axioms grants_orig_laws
 #print axioms grants_skolem
 #print axioms grants_some0
+#print axioms toyc_laws
 `
 }
 

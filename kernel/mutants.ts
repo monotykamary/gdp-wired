@@ -41,6 +41,7 @@ export function mutants(): Mutant[] {
 // a test hang is caught too.
 const battery: {name: string, cwd: string, cmd: string[], env?: Record<string, string>, ms: number}[] = [
   {name: 'counts', cwd: 'kernel', cmd: ['bun', 'test', 'count.test.ts'], ms: 120_000},
+  {name: 'countmachine', cwd: 'kernel', cmd: ['bun', 'test', 'countmachine.test.ts'], ms: 180_000},
   {name: 'refusals', cwd: 'kernel', cmd: ['bun', 'test', 'refusals.test.ts'], ms: 60_000},
   {name: 'tamper', cwd: 'kernel', cmd: ['bun', 'test', 'tamper.test.ts'], ms: 120_000},
   {name: 'dsl', cwd: 'core', cmd: ['bun', 'test', 'dsl.test.ts'], ms: 120_000},
