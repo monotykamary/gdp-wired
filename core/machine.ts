@@ -628,8 +628,8 @@ export function compileJs(m: Machine): string {
       case '<': return `(${ex(c.a)} < ${ex(c.b)})`
       case '<=': return `(${ex(c.a)} <= ${ex(c.b)})`
       case '=': return `(${ex(c.a)} === ${ex(c.b)})`
-      case 'and': return `(${c.xs.map(cx).join(' && ')})`
-      case 'or': return `(${c.xs.map(cx).join(' || ')})`
+      case 'and': return c.xs.length ? `(${c.xs.map(cx).join(' && ')})` : 'true'
+      case 'or': return c.xs.length ? `(${c.xs.map(cx).join(' || ')})` : 'false'
       case 'not': return `(!${cx(c.x)})`
       case 'flag': return `flag${flags.indexOf(c.name)}`
       case 'all': {

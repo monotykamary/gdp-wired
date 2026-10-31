@@ -8,7 +8,7 @@ import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solv
 import {type CountCert, type CountedGoal, type CountInst, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {chooseLevels, clock, grow, minimal, proveBuilt, proveLaws, proveSetFast, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
-import {leanSurface, leanTerms} from './lean-terms.ts'
+import {exactNat, leanSurface, leanTerms} from './lean-terms.ts'
 import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.ts'
 import {allowNode, certMs, closingInsts, reqTS, withWitness, foldNodes, certMode, quietly, uncoveredWhy, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, routeOf, searchedStepNodes, skMachine, stepLawNodes, tBack, tSub} from '../core/cyclic.ts'
 import type {Fact} from '../kernel/cyclic.ts'
@@ -747,7 +747,7 @@ export function mmachineToLean(id: string, m: Machine, laws: Law[], opts: {corol
   const ix = (name: string) => vars.indexOf(name)
   const lit = (mm: Machine) => `⟨⟨${list(mm.inputs.map(name => String(ix(name))))},
   ${list(Object.entries(mm.state).map(([name, e]) => `(${ix(name)}, ${any0.e(e)})`))},
-  ${list(Object.entries(mm.maps ?? {}).map(([name, c2]) => `(${mapNames.indexOf(name)}, ${c2})`))},
+  ${list(Object.entries(mm.maps ?? {}).map(([name, c2]) => `(${mapNames.indexOf(name)}, ${exactNat(c2)})`))},
   ${list(Object.entries(mm.step.state ?? {}).map(([name, e]) => `(${ix(name)}, ${any0.e(e)})`))},
   ${list(Object.entries(mm.step.maps ?? {}).map(([name, w]) => { const pw = pointWrite(w, 'Lean (for now)'); return `(${mapNames.indexOf(name)}, ${any0.e(pw.key)}, ${any0.e(pw.value)})` }))},
   ${mm.pre ? any0.c(mm.pre) : TRUE},
@@ -841,7 +841,7 @@ export function machineLit(mm: Machine, t: {e: (x: E) => string, c: (x: C) => st
   const fl = flagsOfM(mm), fs = Object.entries(mm.step.flags ?? {}), ws = Object.entries(mm.step.maps ?? {})
   return `⟨⟨⟨${list(mm.inputs.map(name => String(ix(name))))},
   ${list(Object.entries(mm.state).map(([name, e2]) => `(${ix(name)}, ${e(e2)})`))},
-  ${list(Object.entries(mm.maps ?? {}).map(([name, c2]) => `(${mx(name)}, ${c2})`))},
+  ${list(Object.entries(mm.maps ?? {}).map(([name, c2]) => `(${mx(name)}, ${exactNat(c2)})`))},
   ${list(Object.entries(mm.step.state ?? {}).map(([name, e2]) => `(${ix(name)}, ${e(e2)})`))},
   ${list(ws.flatMap(([name, w]) => ('each' in w ? [] : [`(${mx(name)}, ${e(w.key)}, ${e(w.value)})`])))},
   ${mm.pre ? c(mm.pre) : TRUE},

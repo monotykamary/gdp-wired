@@ -164,3 +164,12 @@ test('the window limit: proven pruned or not, and its pruned compiled runs equal
   }
   console.log(`window limit: ${events.toLocaleString()} ordered events × 5 window ends, pruned compiled = unpruned interpreted, ceiling held`)
 })
+
+test('an empty and or or, compiled: true and false, as interpreted (terra, gen/laneQ)', () => {
+  const m: Machine = {name: 'empty', params: [], inputs: [], state: {a: n(0), o: n(0)},
+    step: {state: {a: {op: 'if', c: {op: 'and', xs: []}, then: n(1), else: n(2)}, o: {op: 'if', c: {op: 'or', xs: []}, then: n(1), else: n(2)}}}}
+  const run = interpret(m), gen = loadJs(m)
+  expect(run.step({}, run.init({}), {}).scalars).toEqual({a: 1, o: 2})
+  expect(gen.step({}, gen.init({}), {}).scalars).toEqual({a: 1, o: 2})
+})
+
