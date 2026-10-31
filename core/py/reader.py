@@ -147,6 +147,8 @@ class Reader:
       elif bn: kinds.add('outside-base:' + bn)
     dataclass = any((dotted(d.func if isinstance(d, ast.Call) else d) or '').split('.')[-1] == 'dataclass' for d in cdef.decorator_list)
     frozen = any(isinstance(d, ast.Call) and any(k.arg == 'frozen' and isinstance(k.value, ast.Constant) and k.value.value for k in d.keywords) for d in cdef.decorator_list)
+    # (a dataclass whose == is its fields' unless eq=False says it is identity)
+    if any(isinstance(d, ast.Call) and any(k.arg == 'eq' and not (isinstance(k.value, ast.Constant) and k.value.value is True) for k in d.keywords) for d in cdef.decorator_list): kinds.add('eq-identity')
     total = not any(k.arg == 'total' and isinstance(k.value, ast.Constant) and k.value.value is False for k in cdef.keywords)
     # The fields its __init__ sets: annotated there, or set from an annotated argument (a class of another module whose
     # fields aren't declared on the class).

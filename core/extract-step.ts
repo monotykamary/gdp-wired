@@ -426,7 +426,7 @@ export class Stepper {
         if (o?.k === 'store') return I.T
         if (o?.k === 'rec' && this.plainTruth(o.ty)) return I.T
         // (a list or a dict of the state: whether it holds an item, its least key's)
-        if (o?.k === 'map' && o.origin === 'state') return this.least(o, at as SX, k => this.baseCell(o.decl, k).has, () => []).some
+        if (o?.k === 'map' && o.origin === 'state') return p ? this.least(o, at as SX, k => this.baseCell(o.decl, k).has, () => []).some : refuse(at, `${(at as SX).text ?? ''}: the truth of a collection read with no step around it`)
         return refuse(at, `${(at as SX).text ?? ''}: the truth of ${o?.k === 'map' ? 'a dict (whether it is empty)' : 'an object whose class may define __bool__ or __len__'}`)
       }
       case 'cell': case 'fmt': case 'fn': case 'cls': case 'lock': return I.T
@@ -646,6 +646,7 @@ export class Stepper {
   // A value as a cell's field holds it (a string literal of a choice field as the choice).
   fit(v: V, f: Var, at: SX): V {
     if (f.sort.k === 'choice' && v.t === 'str' && v.e.op === 'slit') { if (!f.sort.values.includes(v.e.value)) refuse(at, `${JSON.stringify(v.e.value)} is not one of ${f.name}'s literals`); return {t: 'choice', e: I.llit(v.e.value, f.sort.values)} }
+    if (f.sort.k === 'choice' && v.t !== 'choice') return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t} set where one of ${f.sort.values.map(x => JSON.stringify(x)).join(', ')} is held`)
     if (f.sort.k === 'num' && v.t !== 'num') return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t} set where a number is held`)
     if (f.sort.k === 'bool' && v.t !== 'bool') return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t} set where a boolean is held`)
     return v
@@ -780,9 +781,12 @@ export class Stepper {
   }
   // A list of the state's methods: append (at a place past every item), remove (the first item equal to the value),
   // pop (the last, or the first), each a write of one place.
-  listCall(id: string, o: Extract<Obj, {k: 'map'}>, name: string, x: SX, p: Path): [V, Path] {
+  listCall(id: string, o0: Extract<Obj, {k: 'map'}>, name: string, x: SX, p: Path): [V, Path] {
+    let o = o0
     return this.evArgs(x, p, (args, kw, q) => {
       const m: V = {t: 'ref', id}
+      // (the list as evaluating the arguments left it: a write there is one the least keys see, and refuse)
+      o = q.heap.get(id) as Extract<Obj, {k: 'map'}>
       if (kw.length) return refuse(x, `${x.text}: a list's method given keywords`)
       if (name === 'append' && args.length === 1) {
         const last = this.least(o, x, k => this.baseCell(o.decl, k).has, k => [{e: (k as {e: N}).e, desc: true}])
@@ -790,7 +794,7 @@ export class Stepper {
       }
       if (name === 'remove' && args.length === 1) {
         const r = o.decl.scalar ? undefined : this.recOf(o.decl, x)
-        if (r && (!r.kinds.includes('dataclass') || r.methods.__eq__)) return refuse(x, `${x.text}: a list's remove of ${r.short}, whose equality isn't its fields' (a dataclass's)`)
+        if (r && (!r.kinds.includes('dataclass') || r.kinds.includes('eq-identity') || r.methods.__eq__)) return refuse(x, `${x.text}: a list's remove of ${r.short}, whose equality isn't its fields' (a dataclass's)`)
         const v = args[0]!, field = (f: string): V => (o.decl.scalar ? v : this.fieldOf(v, f, x, q))
         const hit = this.least(o, x, k => { const c = this.cellOf(o, k, q, x); return I.and(c.has, ...o.decl.fields.map(f => this.equal(c.vals.get(f.name)!, field(f.name), x, q))) }, () => [])
         // (an item of this list itself: none equal to it only where it isn't held either)
@@ -837,6 +841,8 @@ export class Stepper {
     const keyFn = kw.find(([k]) => k === 'key')?.[1], dflt = kw.find(([k]) => k === 'default')?.[1]
     let q2 = q, d: V | undefined
     if (dflt) { [d, q2] = this.ev(dflt, q2) }
+    // (the collection as evaluating the default left it: a write there refuses the least key)
+    const now = m.t === 'ref' ? q2.heap.get(m.id) : undefined
     const desc = n === 'max'
     const partsOf = (v: V, at: SX): N[] => (v.t === 'tuple' ? v.xs.flatMap(y => partsOf(y, at)) : v.t === 'num' ? [v.e] : refuse(at, `${at.text}: a key of ${v.t === 'opaque' ? v.why : `a ${v.t}`} (the subset orders by numbers and tuples of them)`))
     // (a part negated: the part itself, ordered the other way)
@@ -844,10 +850,10 @@ export class Stepper {
     if (dict) {
       // (min(d), max(d): the least or greatest key the dict holds)
       if (keyFn) return refuse(x, `${x.text}: ${n} of a dict's keys by a key function`)
-      const o = dict as Extract<Obj, {k: 'map'}>, l = this.least(o, x, k => this.baseCell(o.decl, k).has, k => [{e: (k as {e: N}).e, desc}])
+      const o = now as Extract<Obj, {k: 'map'}>, l = this.least(o, x, k => this.baseCell(o.decl, k).has, k => [{e: (k as {e: N}).e, desc}])
       return this.emptyOr(n, {t: 'num', e: l.key}, l, d, x, q2)
     }
-    const [id, o] = ord!
+    const [id] = ord!, o = now as Extract<Obj, {k: 'map'}>
     let by: (k: K) => {e: N, desc?: boolean}[]
     if (keyFn) {
       if (keyFn.e !== 'lambda') return refuse(x, `${x.text}: ${n}'s key other than a lambda of one argument`)
@@ -1761,7 +1767,7 @@ export class Stepper {
           if (v?.t === 'str') return refuse(x, `${x.text}: a string parsed`)
           if (v?.t === 'bool') return [{t: 'num', e: I.nite(v.e, I.num(1), I.num(0))}, q]
           return [{t: 'num', e: this.numOf(v ?? {t: 'num', e: I.num(0)}, x, q)}, q]
-        case 'bool': return [{t: 'bool', e: v ? this.truthy(v, x) : I.F}, q]
+        case 'bool': return [{t: 'bool', e: v ? this.truthy(v, x, q) : I.F}, q]
         case 'str': if (v?.t === 'str') return [v, q]; return [{t: 'opaque', why: `${x.text}: a value made a string`}, q]
         case 'repr': return [{t: 'opaque', why: `${x.text}: a repr`}, q]
       }
