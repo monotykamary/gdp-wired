@@ -290,17 +290,7 @@ describe('pointed', () => {
 
 // --- terra's review (gen/laneK2): a law's fresh name k# captured; certificate terms over the naturals; fact keys -----------
 describe('names a goal reads by', () => {
-  test('a law is proven at k#: no further key and no name of the machine may be k#', () => {
-    // Before: ∀ k, k#. k = k# read k as k# (k# = k#), and a state named k# made ∀ k. k = 0 read 0 = 0 at the start.
-    const plain: Machine = {name: 'empty', params: [], inputs: [], state: {}, step: {}}
-    const capture: Law = {name: 'every two naturals equal', forall: 'k', keys: ['k#'], holds: same(x('k'), x('k#'))}
-    expect(() => obligations(plain, [capture])).toThrow(/reserved/)
-    const tree = {leaf: [{kind: 'input', index: 0}]} as unknown as CountCert['tree']
-    expect(() => checkLaws(plain, [capture], {instances: {}, trees: {'every two naturals equal @start': tree, 'every two naturals equal @step': tree}})).toThrow(/reserved/)
-    expect(() => obligations({...plain, state: {'k#': n(0)}}, [{name: 'all zero', forall: 'k', holds: same(x('k'), n(0))}])).toThrow(/reserved/)
-    expect(() => countedObligations({...toy.m, maps: {...toy.m.maps, 'V#': 0}}, toy.laws)).toThrow(/reserved/)
-    expect(() => countedObligations(toy.m, [...toy.laws, capture])).toThrow(/reserved/)
-  })
+  // (a law's k# captured by a further key or a machine name: kernel/refusals.test.ts, 0.33.1)
   test('a read\'s key term and an instance\'s bound are terms over the naturals', () => {
     for (const t of [n(0.5), n(-1), n(2 ** 53), {op: 'mul', k: 0.5, a: x('b')}, {op: 'bogus'}] as E[]) {
       expect(checkCountedLaws(toy.m, toy.laws, withCert(stepOne, k => ({...k, reads: [...k.reads, ['z6', 'votes', t] as MapRead]})))).toBe(false)
