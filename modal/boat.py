@@ -705,7 +705,9 @@ class Session:
         self.max_starts = 0  # this batch's cap on its starts (--max-vms), else MAX_STARTS
         self.short = False  # no start was to be had for VMs the batch wanted: run() waits longer for released ones
         self.warm_only = False  # a tiny batch: VMs already up only, never a start
-        self.early = not teardown  # a VM with nothing left to take goes back to the pool at once, its logs collected
+        # a VM with nothing left to take goes back to the pool at once, its logs collected: for a session of one run()
+        # (run.py's batches, the treadmill's); fanout.BoatEx turns it on for its starmap, after its single calls
+        self.early = False
         self.cap = 0  # at most this many VMs at once (a client that shares a fixed pool among its batches: the treadmill)
         self.logs: dict[str, dict] = {}
         self.collected: set[str] = set()
@@ -1053,7 +1055,7 @@ class Session:
         lock = threading.Lock()
         left = {"n": len(items)}
         self._enough = lambda without=None: len(queue) <= sum(v.slots for v in list(self.vms.values()) if not v.dead and not v.released and v is not without)
-        started_threads, active = set(), set()
+        started_threads, active, revived = set(), set(), False
         all_done = threading.Event()
         t_start = time.time()
         if not items:
@@ -1225,6 +1227,10 @@ class Session:
             if self.stop.is_set():
                 raise KeyboardInterrupt
             gone = self.vms and all(v.dead or v.released for v in list(self.vms.values())) and queue and not any(t.is_alive() for t in self.threads)
+            if gone and not revived:  # (every VM let go or lost with items left: one more VM before giving up)
+                revived = True
+                self._go(self.ensure, sum(1 for v in list(self.vms.values()) if not v.dead and not v.released) + 1)
+                continue
             if max_wait and self.ready and time.time() - t_start > max_wait and not any(t.is_alive() for t in self.threads):
                 # items that need a bigger VM than the batch's own, none of which came (no start for it): not on boat
                 with lock:
@@ -1613,6 +1619,7 @@ def boat_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int
             sess = Session(f"run.py {outdir.name}", idle=idle, teardown=teardown, vm_type=vm_type, build=on_lost is None, tar=tar)
             sess.max_starts = max_vms
             sess.warm_only = tiny
+            sess.early = not teardown
             plain = [it for it in items if not it.get("vm_type")]
             bigs: dict[str, int] = {}
             for it in items:

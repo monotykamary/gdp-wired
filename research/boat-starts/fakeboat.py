@@ -23,9 +23,11 @@ if mode == "lose" and cmd == "exec" and "tick" in args and '"start": []' not in 
         print(json.dumps({"exitCode": 1, "stdout": "", "stderr": "sandbox not found (404)", "success": False}))
         sys.exit(0)
     open(flag, "w").close()  # (the first tick goes through: the items start, then the VM is lost)
+if not (mode == "nostarts" and cmd == "limits"):
+    os.execv(real, [real, *args])  # (everything else: the real CLI itself, its stdin and stdout untouched)
 p = subprocess.run([real, *args], capture_output=True, text=True)
 out = p.stdout
-if mode == "nostarts" and cmd == "limits" and p.returncode == 0:
+if p.returncode == 0:
     d = json.loads(out)
     for k, w in (("day", "perDay"), ("hour", "perHour"), ("minute", "perMinute")):
         lim = d.get("startLimitsWithWallet", {}).get(w, d["starts"][k]["limit"])

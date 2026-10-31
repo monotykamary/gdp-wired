@@ -270,6 +270,7 @@ class BoatEx:
         slots = self.boat.TYPES[self.sess.vm_type][0] // self.boat.SLOT_CPU
         n = self.boat.plan_vms(items, slots, self.vms, self.max_vms)
         self.boat.log(f"{len(items)} calls of {name} on up to {n} {self.sess.vm_type} VM(s)")
+        self.sess.early = not self.sess.teardown  # (its VMs go back to the pool as the calls run out)
         self.sess.ensure(n)
         q: queue.Queue = queue.Queue()
         END = object()

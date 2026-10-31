@@ -251,15 +251,31 @@ def import_real(path: pathlib.Path):
     return mod
 
 
+_modal_lock = threading.Lock()
+
+
+@contextlib.contextmanager
+def modal_app(app):
+    """A tree's Modal app running for one fallback (one at a time: the client is not for threads at once), its id and
+    this client's pid in modal/.live/ meanwhile (modal/reap.sh stops it if this client dies)."""
+    with _modal_lock, app.run():
+        t = HERE / ".live" / app.app_id
+        t.parent.mkdir(exist_ok=True)
+        t.write_text(str(os.getpid()))
+        try:
+            yield
+        finally:
+            t.unlink(missing_ok=True)
+
+
 def on_modal(items: list[dict], root: pathlib.Path, on_row) -> dict:
     """Items boat couldn't run, on Modal: a runner's function through the runner's own app, shell items through
     the tree's modal/run.py; each row to on_row, and the shell items' logs back."""
-    import fanout
     logs: dict = {}
     for module in sorted({it["module"] for it in items if it["kind"] == "py"}):
         mod = import_real(root / module)
         group = [it for it in items if it["kind"] == "py" and it["module"] == module]
-        with fanout.ModalCtx(mod.app):
+        with modal_app(mod.app):
             for fn in sorted({it["fn"] for it in group}):
                 its = [it for it in group if it["fn"] == fn]
                 for it, res in zip(its, getattr(mod, fn).starmap([tuple(it["args"]) for it in its], return_exceptions=True, order_outputs=True)):
@@ -273,7 +289,7 @@ def on_modal(items: list[dict], root: pathlib.Path, on_row) -> dict:
         def done(name, r):
             logs[name] = {"out": r.get("out", ""), "err": r.get("err", "")}
             on_row(by[name], {"code": r.get("code", -1), "seconds": r.get("seconds", -1), "where": "modal"})
-        with fanout.ModalCtx(run.app):
+        with modal_app(run.app):
             run.modal_jobs(spec, "", lambda c: c, done)
     return logs
 
