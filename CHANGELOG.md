@@ -3,6 +3,21 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.36.0
+
+Exceptions and loops read from code, for every outcome and every length; nothing trusted changed.
+- **try/except (Python) and rescue (Ruby)**: a raise goes to the innermost handler that names its class or a base, on
+  the path where it was raised, with `else`, `finally` and re-raise. A call to other code or a store inside a try may
+  return or raise, and the law is proven for every outcome.
+- **Folds over a list, exact for every length**: a loop's body runs once at a symbolic place, and each value it
+  updates is carried per place, so the result after the loop is exact for every length with nothing unrolled. `len`,
+  `x in xs`, `any`/`all`/`sum` of a generator and the truth of a list go through it; one fold serves a list the request
+  brings and a list in the state (0.34's map by place).
+- **A returned object of another module's class** is not kept, as any non-scalar value, instead of refusing the
+  function.
+- **The language sweep**: 125 of 508 functions read, from 119, none lost and no rule changed. research/langs/DESIGN.md.
+- **The bar**: none wrong in any group; both suites pass; the library build passes.
+
 ## 0.35.0
 
 Counts in a machine's laws, proven in Lean first, and the search that finds them: three more distributed protocols
