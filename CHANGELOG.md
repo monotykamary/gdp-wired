@@ -3,6 +3,18 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.37.0
+
+Fourteen of IC3Syn's 29 protocols proven with nothing written, the first through a ghost map; nothing trusted changed.
+- **The engine's ∀ laws joined to counted goals**: the small-instance search that finds the ten protocols' invariants
+  now proposes the supporting laws a counting proof needs, so the counting search no longer relies on templates.
+- **Ghost maps found by the search**: for a law "every key has some x", a map W written where the step sets a cell,
+  with a request value as the witness; the law proven with W in x's place, through 0.33's ghost-map kind.
+- **IC3Syn, 14 of 29 at 60 s** (from 10; 15 at 300 s): toy consensus (EPR), naive consensus, simple election and
+  client-server (∀∃) new, in two runs each; every counting and ghost-map proof checked again by Lean; no broken
+  variant proven. What is left, and why, is in research/protocols/engine/DESIGN.md.
+- **The bar**: none wrong in any group (CHC-COMP +3.7, TermComp ITS +1.3); both suites pass; the library build passes.
+
 ## 0.36.0
 
 Exceptions and loops read from code, for every outcome and every length; nothing trusted changed.
