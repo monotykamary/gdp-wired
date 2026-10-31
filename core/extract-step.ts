@@ -2080,7 +2080,8 @@ export class Stepper {
       if (hasProduct(e)) return refuse(x, `${(x as SX).text ? `${(x as SX).text}: ` : ''}a product wrapped modulo 2^${ty.bits} (the subset wraps sums and differences at that width)`)
       const [below] = this.past(e, 0, Infinity, p), above = this.pastMod(e, ty.mod), m = I.nvar(ty.mod)
       this.notes.add(`${ty.name ?? tyName(ty)}: a result past its range wraps modulo 2^${ty.bits} (${ty.mod}, any width at least 2 in the rule: a law proven is proven at 2^${ty.bits})`)
-      return I.nite(below, I.add(e, m), I.nite(above, I.sub(e, m), e))
+      // (a − b below 0 is (2^n − b) + a: each part a natural, b being below 2^n)
+      return I.nite(below, e.op === 'sub' ? I.add(I.sub(m, e.b), e.a) : I.add(e, m), I.nite(above, I.sub(e, m), e))
     }
     if (ty.ub) {
       const out = I.or(...this.past(e, ...rangeOf(ty), p))
