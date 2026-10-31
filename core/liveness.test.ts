@@ -4,7 +4,7 @@
 // Batches (two helpful requests, a rank of two in order), a history with a query, and a machine with sets too. A
 // liveness about every key (a fresh param), its rank found, and its stalling variant refuted by a fair ring.
 import {expect, test} from 'bun:test'
-import {evalC, evalE, interpret} from './machine.ts'
+import {evalC, evalE, interpret, lcg} from './machine.ts'
 import {proveLiveness} from '../kernel/prove.ts'
 import {allDone, batchLaws, batches, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
 import {count, keyed, nat, oneOf, proveLeadsTo, refuteLeadsTo, rule, when} from './dsl.ts'
@@ -21,7 +21,7 @@ test('every ticket is served: proven; the stalling variant refused', () => {
 
 test('fair runs serve every ticket; the stalling variant has a fair run that never does', () => {
   let seed = 21
-  const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+  const rand = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
   const r = tickets(), m = r.machine, run = interpret(m), l = everyTicket(r)
   let checked = 0
   for (let trial = 0; trial < 300; trial++) {
@@ -67,7 +67,7 @@ test('batches: two helpful requests, each in its region, a rank of two in order;
   expect(proveLiveness(r.machine, batchLaws(r), {...l, rank: (l.rank as unknown[])[1] as never}).proven).toBe(false)
   // Runs that send both, each at least every third request, get everything done.
   let seed = 5
-  const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+  const rand = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
   const m = r.machine, run = interpret(m)
   for (let trial = 0; trial < 50; trial++) {
     const params = {size: rand(4)}

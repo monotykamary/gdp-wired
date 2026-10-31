@@ -8,7 +8,7 @@
 // same record (`Tok.st`, `Tok.grant`) or itself; those the runs' states keep, then those proven inductive together
 // (Houdini: a candidate whose goal fails is dropped, the rest proven again). Nothing new is trusted: what is kept is
 // laws the kernel proves.
-import {type C, type E, type Law, type Machine, type State, evalC, interpret, seeded} from './machine.ts'
+import {type C, type E, type Law, type Machine, type State, evalC, interpret, searchSeeded} from './machine.ts'
 import {clock, proveLaws} from '../kernel/prove.ts'
 import {allowed, watch} from './watch.ts'
 import type {Draws} from './live.ts'
@@ -18,7 +18,7 @@ export type FreshLaw = {law: Law, text: string}
 export function freshLaws(m: Machine, kinds: Law[], draws: Draws, opts: {ms?: number} = {}): FreshLaw[] {
   const maps = Object.entries(m.maps ?? {}).filter(([n]) => !(m.inputMaps ?? []).includes(n))
   if (!maps.length || m.history) return []
-  const until = clock() + (opts.ms ?? 5000), run = interpret(m), rand = seeded(53), bound = 4
+  const until = clock() + (opts.ms ?? 5000), run = interpret(m), rand = searchSeeded(53), bound = 4
   // the runs: their states, and the variables some step lowers
   const states: {ps: Record<string, number>, st: State}[] = [], lowered = new Set<string>(), handed = new Set<string>()
   // a high-water mark: a variable every key a step writes some map at is at most, after the step (top = max(top, b),

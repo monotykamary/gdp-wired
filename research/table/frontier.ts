@@ -16,7 +16,7 @@
 //     slopes the values show, and over pairs of points (f(y) − f(x) for x ≤ y)
 // One JSON line out: the existing search's verdict and found text, the table's answer, sizes and times.
 import type {C, E, Law} from '../../core/machine.ts'
-import {compileFunction, pairedArgs} from '../../core/machine.ts'
+import {compileFunction, pairedArgs, seeded} from '../../core/machine.ts'
 import type {Fact} from '../../kernel/cyclic.ts'
 import {check, loopObligations, livenessHelpful, type Liveness, type Loop} from '../../kernel/kernel.ts'
 import {grow, proveLiveness} from '../../kernel/prove.ts'
@@ -30,7 +30,6 @@ import {type LpRow, type Pair, type Q, type Row, type Term, bounds, equalities, 
 
 type Env = Record<string, number>
 const args = process.argv.slice(2), opt = (k: string) => { const i = args.indexOf(k); return i < 0 ? undefined : args[i + 1] }
-const seeded = (seed: number) => { let x = seed; return (n: number) => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * n) } }
 const B = (x: number) => BigInt(x)
 
 // --- an evaluator over the naturals (as the kernel reads them: subtraction truncated) -------------------------------------

@@ -2,7 +2,7 @@
 // variant refused; a law that needs a fact fails without it; the interpreter and the compiled code compute the
 // functions alike, and every law holds on random runs (the broken variant broken by one); and the refusals.
 import {expect, test} from 'bun:test'
-import {type Machine, interpret, loadJs} from './machine.ts'
+import {type Machine, interpret, loadJs, seeded} from './machine.ts'
 import {divBy, everyKey, fn, forall, fun, min, modBy, nat, proveDecision, proveRule, rule, upTo} from './dsl.ts'
 import {larger, largerLaws, minuteLaws, minutes} from '../examples/functions.ts'
 import {checkLaws, obligations} from '../kernel/kernel.ts'
@@ -26,8 +26,7 @@ test('functions known by their facts: proven; the broken variant refused; a law 
 })
 
 test('the runtimes compute functions alike; every law holds on random runs, and the broken variant is broken by one', () => {
-  let seed = 3
-  const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+  const rand = seeded(3)
   for (const bug of [undefined, 'keeps the raw time'] as const) {
     const r = minutes(bug), m = r.machine, run = interpret(m), gen = loadJs(m), laws = minuteLaws(r)
     let broken = false

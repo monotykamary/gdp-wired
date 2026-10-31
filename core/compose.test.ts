@@ -2,7 +2,7 @@
 // is: refinement (an implementation against its spec, broken implementations refused), laws of an interleaving, and
 // k-step laws of a composed machine.
 import {expect, test} from 'bun:test'
-import {type E, type Machine, type State, evalC, interpret, loadJs, plus, x} from './machine.ts'
+import {type E, type Machine, type State, evalC, interpret, loadJs, plus, x, lcg} from './machine.ts'
 import {nat, rule, when} from './dsl.ts'
 import {count, ever, ghost, interleave, product, refinement, steps, total} from './compose.ts'
 import {counterLaws, counterSteps, counters, countdown, escrowLaws, escrowSteps, escrowWatched, ledger, meterRefinement, poolLaws, poolTotal, pooled, transferRefinement, twoPhaseRefinement} from '../examples/composition.ts'
@@ -11,7 +11,7 @@ import {authority, lazyAuthority, lazyRefinement} from '../examples/sets.ts'
 import {type StepLaw, checkStepLaws} from '../kernel/kernel.ts'
 
 let seed = 7
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
 const vv = (name: string): E => ({op: 'var', name}), cc = (value: number): E => ({op: 'const', value})
 const term = (d: number, names: string[]): E => {
   const r = rand(d <= 0 ? 2 : 6)
@@ -196,7 +196,7 @@ test('refinement over sets: the lazy authority refines the eager one (carried se
   // Runs: the same requests to both, the relation read on the composite's runs, against the two run on their own.
   const lazy = interpret(lazyAuthority().machine), eager = interpret(authority().machine), both = interpret(R.machine)
   let seed = 9
-  const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+  const rand = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
   let nonempty = 0
   for (let trial = 0; trial < 40; trial++) {
     let a = lazy.init({}), b = eager.init({}), c = both.init({})

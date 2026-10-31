@@ -6,6 +6,7 @@
 // covering is transitive, and a pattern covers itself.
 // The research record, by hand over carried maps; the same laws with the library's sequences are examples/scopes.ts.
 import {type Cond, type Verdict, bool, everyKey, nat, oneOf, proveSteps, rule, when, yes, all} from '../../core/dsl.ts'
+import {lcg} from '../../core/machine.ts'
 
 const pattern = (p: string) => ({[`ns${p}`]: nat, [`all${p}`]: bool, [`abs${p}`]: bool, [`w${p}`]: oneOf('none', 'one', 'any'), [`len${p}`]: nat})
 export type ScopeBug = 'skips the prefix' | 'lets /* cover /**'
@@ -97,7 +98,7 @@ export function compareScopes(trials = 20000, seed = 7): {checked: number, failu
     .step(({ab, bc, mA}) => ({z: when(ab, 1, 0).plus(when(bc, 2, 0)).plus(when(mA, 4, 0))}))
   const gen = r.compiled(), ps = r.encodeParams({} as never)
   let x = seed
-  const draw = (k: number) => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) }
+  const draw = (k: number) => { x = lcg(x); return Math.floor(x / 2 ** 31 * k) }
   const ws = ['none', 'one', 'any'] as const
   const pat = (): Parsed => { const all = draw(6) === 0; return {ns: 'ab'[draw(2)]!, all, absolute: draw(2) === 1, segments: all ? [] : Array.from({length: draw(4)}, () => 'xyz'[draw(3)]!), wildcard: all ? 'none' : ws[draw(3)]!} }
   const enc = (p: Parsed, n: string) => ({[`ns${n}`]: p.ns === 'a' ? 0 : 1, [`all${n}`]: p.all, [`abs${n}`]: p.absolute, [`w${n}`]: p.wildcard, [`len${n}`]: p.segments.length, [`S${n}`]: new Map(p.segments.map((g, i) => [i, 1 + 'xyz'.indexOf(g)]))})
@@ -117,7 +118,7 @@ export function compareGrants(trials = 5000, seed = 11): {checked: number, failu
   const r = grants().step(({covered, childAllows, parentAllows}: any) => ({z: when(covered, 1, 0).plus(when(childAllows, 2, 0)).plus(when(parentAllows, 4, 0))}))
   const gen = r.compiled(), ps = r.encodeParams({} as never)
   let x = seed
-  const draw = (k: number) => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) }
+  const draw = (k: number) => { x = lcg(x); return Math.floor(x / 2 ** 31 * k) }
   const ws = ['none', 'one', 'any'] as const, acts = ['read', 'write', 'exec'] as const
   type Grant = Parsed & {actions: string[]}
   const grant = (): Grant => { const all = draw(6) === 0; return {ns: 'ab'[draw(2)]!, all, absolute: draw(2) === 1, segments: all ? [] : Array.from({length: draw(4)}, () => 'xyz'[draw(3)]!), wildcard: all ? 'none' : ws[draw(3)]!, actions: acts.filter(() => draw(2) === 1)} }

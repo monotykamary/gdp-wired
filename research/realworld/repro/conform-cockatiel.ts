@@ -10,6 +10,7 @@ import {mkdtempSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {cockatiel} from '../items/queuebreaker-breaker.ts'
+import {lcg} from '../../../core/machine.ts'
 
 const dir = mkdtempSync(join(tmpdir(), 'cockatiel-'))
 execSync('npm init -y >/dev/null && npm install --silent cockatiel@3.2.1', {cwd: dir, stdio: 'inherit'})
@@ -19,7 +20,7 @@ let clock = 1000
 Date.now = () => clock
 const flush = () => new Promise(r => setTimeout(r, 0))
 let seed = 7
-const rand = (n: number) => { seed = (seed * 1103515245 + 12345) % 2147483648; return Math.floor(seed / 65536) % n }
+const rand = (n: number) => { seed = lcg(seed); return Math.floor(seed / 65536) % n }
 
 const r = cockatiel(), x = r.compiled()
 type Pending = {kind: 'closedDone' | 'testDone', resolve: (v: string) => void, reject: (e: Error) => void}

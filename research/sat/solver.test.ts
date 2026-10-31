@@ -2,9 +2,10 @@ import {expect, test} from 'bun:test'
 import {checkModel, checkProof} from './check.ts'
 import {checkLrat} from './lrat.ts'
 import {type Clause, type LratStep, type Result, type Step, solve} from './solver.ts'
+import {lcg} from '../../core/machine.ts'
 
 // A seeded generator, so failures reproduce.
-const rng = (seed: number) => () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x80000000)
+const rng = (seed: number) => () => ((seed = lcg(seed)) / 0x80000000)
 const random3 = (n: number, m: number, next: () => number): Clause[] =>
   Array.from({length: m}, () => Array.from({length: 3}, () => (Math.floor(next() * n) + 1) * (next() < 0.5 ? -1 : 1)))
 const modes = ['backward', 'forward'] as const

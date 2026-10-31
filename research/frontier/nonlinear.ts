@@ -5,6 +5,7 @@
 // values too (`bun research/frontier/nonlinear.ts`), apart from the prover.
 import {type Verdict, forall, fun, nat, oneOf, proveDecision, proveRule, rule, when} from '../../core/dsl.ts'
 import type {Item} from './corpus.ts'
+import {seeded} from '../../core/machine.ts'
 
 const quota = () => rule('per-key quota').params({per: nat}).inputs({op: oneOf('join', 'use'), k: nat, amt: nat}).state({}).maps({Seats: 0, Used: 0})
   .step(({op, k, amt, per, Seats, Used}) => ({
@@ -34,7 +35,7 @@ const four = fun('four').inputs({a: nat, b: nat, c: nat, d: nat}).returns(({a, b
 const three = fun('three').inputs({a: nat, b: nat, c: nat}).returns(({a, b, c}) => ({cubes: a.mul(a).mul(a).plus(b.mul(b).mul(b)).plus(c.mul(c).mul(c)), abc: a.mul(b).mul(c)}))
 const two = fun('two').inputs({a: nat, b: nat}).returns(({a, b}) => ({a3: a.mul(a).mul(a), b3: b.mul(b).mul(b)}))
 
-const rand = (() => { let x = 7; return (k: number) => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) } })()
+const rand = seeded(7)
 // Each item: the law through the library, and the same law on random values (a run of the rule, or the arithmetic).
 type Case = Item & {holds: () => boolean, proven: boolean}
 const sample = (n: number, f: (r: (k: number) => number) => boolean) => Array.from({length: n}, () => f(rand)).every(Boolean)

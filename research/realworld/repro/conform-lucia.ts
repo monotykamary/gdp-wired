@@ -8,6 +8,7 @@ import {existsSync, mkdtempSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {lucia} from '../items/authz-lucia.ts'
+import {lcg} from '../../../core/machine.ts'
 
 let dir = process.argv[2]
 if (!dir || !existsSync(join(dir, 'node_modules/lucia'))) {
@@ -35,7 +36,7 @@ const adapter = {
 
 const r = lucia(), run = r.interpreter()
 let seed = 11
-const rand = (n: number) => ((seed = (seed * 1103515245 + 12345) % 2 ** 31), seed % n)
+const rand = (n: number) => ((seed = lcg(seed)), seed % n)
 const ops = ['create', 'validate', 'invalidate', 'invalidateUser'] as const
 let failure: string | undefined, runs = 0
 for (; runs < 2000 && !failure; runs++) {

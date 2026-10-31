@@ -1,7 +1,7 @@
 // The conformance generator: random terms and conditions over every operation of E and C (the op lists must name every
 // op, or this file doesn't type-check), concrete inputs and map cells, and the reference value from evalE and evalC.
 // core/conformance.test.ts holds every consumer of terms to it; lean-kernel/conformance.ts writes its cases for Lean.
-import {type C, type E, type Law, type Machine, type State, evalC, evalE, interpret, n as k, x as v} from './machine.ts'
+import {type C, type E, type Law, type Machine, type State, evalC, evalE, interpret, n as k, x as v, lcg} from './machine.ts'
 import {type Goal, type KInduction, type Loop, type QC, type QE, type QGoal, type QMachine, type Recur, type RecurCases, type Tree, type Liveness, caseGoals, check, checkKInduction, checkLaws, checkStepLaws, coverGoal, kInductionStart, kInductionSteps, livenessParts, recurGoal, stepLawObligations, sumCovers, sumMachine, trueC} from '../kernel/kernel.ts'
 import {type KindProof, proveKInduction} from './kind.ts'
 import type {Step} from './solver.ts'
@@ -19,7 +19,7 @@ export const coverage: [Covers<E['op'], typeof E_OPS>, Covers<Exclude<C['op'], '
 
 let seed = Number(process.env.FUZZ_SEED ?? 777)
 export const reseed = (s: number) => { seed = s }
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
 const pick = <T>(xs: readonly T[]): T => xs[rand(xs.length)]!
 export const VARS = ['a', 'b', 'c'] as const, CELLS = 4, INIT = 2
 
@@ -38,8 +38,10 @@ export function term(d: number, flag = true): E {
     case 'get': return {op, map: 'M', key: {op: 'min', a: term(d - 1, flag), b: {op: 'const', value: CELLS - 1}}}
   }
 }
+// (at depth 0 a comparison or the flag: and, or and not below it once recursed without end, rarely in the float form of
+// the generator's few short cycles, but often enough in the exact one to inline a flag dozens of levels deep, out of memory)
 export function cond(d: number, flag = true): C {
-  const op = pick(flag ? C_OPS : C_OPS.filter(o => o !== 'flag'))
+  const op = pick((d <= 0 ? C_OPS.filter(o => o !== 'and' && o !== 'or' && o !== 'not') : C_OPS).filter(o => flag || o !== 'flag'))
   seen[op] = (seen[op] ?? 0) + 1
   switch (op) {
     case '<': case '<=': case '=': return {op, a: term(d, flag), b: term(d, flag)}
@@ -323,7 +325,7 @@ export function qterm(d: number): QE {
   }
 }
 export function qcond(d: number): QC {
-  const op = pick(QC_OPS)
+  const op = pick(d <= 0 ? QC_OPS.filter(o => o !== 'and' && o !== 'or' && o !== 'not') : QC_OPS) // (bounded as cond is)
   seen[`q${op}`] = (seen[`q${op}`] ?? 0) + 1
   switch (op) {
     case '<': case '<=': case '=': return {op, a: qterm(d), b: qterm(d)}

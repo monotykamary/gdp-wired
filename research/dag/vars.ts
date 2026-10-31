@@ -5,7 +5,7 @@
 // value drawn within its bound), the kernel's reading there: the atoms still open and the variables they read, the
 // rows and their variables, and the solver's verdict on the rows. Prints one JSON line.
 import {readFileSync} from 'node:fs'
-import type {C, E} from '../../core/machine.ts'
+import {type C, type E, lcg} from '../../core/machine.ts'
 import {type Lin, solve} from '../../core/solver.ts'
 import {type Path, canon, leafConstraints} from '../../kernel/kernel.ts'
 import {loadGoal} from './goalio.ts'
@@ -35,7 +35,7 @@ const yesNo = [...all].filter(n => max.get(n) === 1), finite = [...all].filter(n
 const halves = [...all].filter(n => !max.has(n) && (n.endsWith('$neg') || all.has(`${n}$neg`)))
 const rest = [...all].filter(n => !max.has(n) && !halves.includes(n))
 let seed = 4242
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2147483648; return Math.floor(seed / 2147483648 * k) }
+const rand = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2147483648 * k) }
 const fixedVars = new Set([...yesNo, ...finite])
 const samples = Array.from({length: 16}, () => {
   const path: Path = new Map()

@@ -11,14 +11,14 @@ import {createRequire} from 'node:module'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {rateLimiterMemory} from '../items/ratelimit-flexible.ts'
+import {seeded} from '../../../core/machine.ts'
 
 const dir = mkdtempSync(join(tmpdir(), 'rlf-conform-'))
 execFileSync('npm', ['install', '--prefix', dir, '--no-audit', '--no-fund', '--silent', 'rate-limiter-flexible@11.2.3'], {stdio: 'inherit'})
 const {RateLimiterMemory} = createRequire(join(dir, 'x.js'))('rate-limiter-flexible') as {RateLimiterMemory: new (o: object) => any}
 
 const r = rateLimiterMemory(), m = r.compiled()
-let seed = 7
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = seeded(7)
 let clock = 0
 Date.now = () => clock
 const ops = ['consume', 'penalty', 'reward', 'block', 'set', 'delete'] as const

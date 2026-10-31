@@ -1,6 +1,7 @@
 import {expect, test} from 'bun:test'
 import {checkRefutation, checkWitness} from './check.ts'
 import {add, eq, k, le, nat, solve, v} from './solver.ts'
+import {lcg} from './machine.ts'
 
 test('2x = 1 has no integer solution, by a cut', () => {
   const cs = eq(add(v('x'), v('x')), k(1))
@@ -18,7 +19,7 @@ test('3x + 3y = 2 refuted; x + 2y = 3 with x, y >= 0 has a witness', () => {
 })
 test('random small systems: every refutation and witness checks, and agrees with brute force', () => {
   let seed = 7
-  const rnd = (n: number) => ((seed = (seed * 1103515245 + 12345) % 2 ** 31), seed % n)
+  const rnd = (n: number) => ((seed = lcg(seed)), seed % n)
   let refuted = 0, sat = 0, unknown = 0
   for (let trial = 0; trial < 3000; trial++) {
     const names = ['x', 'y', 'z']

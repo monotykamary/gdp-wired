@@ -3,7 +3,7 @@
 // mutated, every accepted set of laws true on every reachable state of the small instances (count maps read at the
 // request's view, a law's at the state), by brute force.
 import {describe, expect, test} from 'bun:test'
-import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, x} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, seeded, x} from '../core/machine.ts'
 import {type CountCert, type CountInst, type MapRead, check, checkCountedLaws, checkMC, countedObligations, mcGoal, obligations} from './kernel.ts'
 import {clock, grow} from './prove.ts'
 import {countedProof, toyCounted} from '../lean-kernel/count-examples.ts'
@@ -311,7 +311,7 @@ describe('names a goal reads by', () => {
 })
 
 // --- fuzz: mutated certificates and laws, every acceptance true ---------------------------------------------------------
-const rnd = (seed: number) => { let s = seed; return (k: number) => { s = (s * 1103515245 + 12345) % 2 ** 31; return Math.floor(s / 2 ** 31 * k) } }
+const rnd = seeded
 const mutateLaw = (l: Law, r: (k: number) => number): Law => {
   const t = JSON.stringify(l.holds)
   const options = [t.replace('"op":"<"', '"op":"<="'), t.replace('"k":2', '"k":1'), t.replace('"value":1}', '"value":2}'), t.replace('"name":"size"', '"name":"a"'), t]

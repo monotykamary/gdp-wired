@@ -2,14 +2,13 @@
 // step through both runtimes; kinds encode and decode as declared; laws with forall, decisions and loops prove and
 // refute as they should; and what the types let through, the kernel's scope check still refuses.
 import {expect, test} from 'bun:test'
-import {type Machine, type State, interpret, search} from './machine.ts'
+import {type Machine, type State, interpret, search, seeded} from './machine.ts'
 import {admitFlagged, boundedLoss, capLaws, loss, windowCeiling, windowLimit} from './models.ts'
 import {proveLaws} from '../kernel/prove.ts'
 import {wide} from '../examples/wide.ts'
 import {type DecisionEnv, type Rule, type Term, Cond, all, bool, count, forall, fun, loop, maybe, min, nat, oneOf, proveDecision, proveLoop, proveRule, proveSteps, relation, rule, upTo, when} from './dsl.ts'
 
-let seed = Number(process.env.FUZZ_SEED ?? 777)
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = seeded(Number(process.env.FUZZ_SEED ?? 777))
 const cells = (st: State) => JSON.stringify(Object.fromEntries(Object.entries(st.maps).map(([n, m]) => [n, [...m.entries()].sort((a, b) => a[0] - b[0])])))
 
 const budget = rule('budget')

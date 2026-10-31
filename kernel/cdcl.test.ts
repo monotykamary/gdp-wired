@@ -5,17 +5,15 @@
 // other way round. FUZZ_SEED and FUZZ_SCALE shard it, as kernel.test.ts; GDP_CDCL_VERIFY=1 (the suite's shards) also
 // compares reader.ts's rows with kernel.ts's at every node of the search and every leaf of the unfolded tree.
 import {expect, test} from 'bun:test'
-import type {C, E} from '../core/machine.ts'
+import {type C, type E, seeded} from '../core/machine.ts'
 import {type Goal, check} from './kernel.ts'
 import {clock, grow} from './prove.ts'
 import {REFUTED, growCdcl} from './cdcl.ts'
 
-let seed = Number(process.env.FUZZ_SEED ?? 4242)
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
-// x' = (1103515245 x + 12345) mod 2^31, exactly: in doubles the product passes 2^53 and rounds, which folds every seed
-// into one of six short cycles (61 to 10,466 steps; 98.8% of seeds 1000..12999 into the same one), so a seed meant
-// fresh drew the goals of its cycle again, and a seed on a short one drew a handful of goals, all one way.
-const rand = (n: number) => { seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff; return Math.floor(seed / 2 ** 31 * n) }
+// (core/machine.ts's generator: exact since its float form folded every seed into a few short cycles, a seed on a short
+// one drawing a handful of goals, all one way)
+const rand = seeded(Number(process.env.FUZZ_SEED ?? 4242))
 // A test's draws: n, then more while an outcome it counts is short (a seed whose goals all fell one way tests nothing
 // about the other), up to `most`. A count still short fails as COVERAGE: the harness's failure, not the kernel's (the
 // treadmill files it apart from a soundness failure).

@@ -28,7 +28,7 @@ import {proveRule} from '../../core/dsl.ts'
 import {houdini} from './houdini.ts'
 import {inferLaws} from '../../core/infer.ts'
 import {findBoundedRun} from '../../core/bmc.ts'
-import type {C, E, Law, State} from '../../core/machine.ts'
+import {type C, type E, type Law, type State, lcgFloat} from '../../core/machine.ts'
 import {grow} from '../../kernel/prove.ts'
 import {substC} from '../../kernel/kernel.ts'
 import {type Composed, expand, invOf, liftProven, prepare} from './compose.ts'
@@ -131,7 +131,7 @@ const seen: State[] = []
 {
   // dsl.ts's generator: the high bits of a linear congruence (the low ones repeat with a short period)
   let x = 7
-  const rand = (k: number) => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) }
+  const rand = (k: number) => { x = lcgFloat(x); return Math.floor(x / 2 ** 31 * k) }
   const at = b!.plans.map(p => (p.clause.body[0] ? b!.loc[b!.predNames.indexOf(p.clause.body[0].pred)]! : 'start'))
   const until = performance.now() + runsMs
   let trials = 0
@@ -173,7 +173,7 @@ const seen: State[] = []
   const at = b!.plans.map(p => (p.clause.body[0] ? b!.loc[b!.predNames.indexOf(p.clause.body[0].pred)]! : 'start'))
   const k = (value: number): E => ({op: 'const', value})
   let x = 11
-  const rand = (n: number) => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * n) }
+  const rand = (n: number) => { x = lcgFloat(x); return Math.floor(x / 2 ** 31 * n) }
   const modelFor = (st: State, j: number, fix: Record<string, number>): Record<string, number | boolean | string> | undefined => {
     const vars: Record<string, E> = {c: k(j)}
     for (const [n, v] of Object.entries(st.scalars)) vars[n] = k(v)

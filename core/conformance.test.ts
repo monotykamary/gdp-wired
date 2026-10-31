@@ -9,7 +9,7 @@
 //   - and the Lean printer, through lean-kernel/conformance.ts, which writes the same cases for Lean's evalE.
 // Each consumer either agrees or refuses with an error; undefined, NaN or a silent different answer fails.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Law, compileFunction, conditionCases, interpret, loadJs} from './machine.ts'
+import {type C, type E, type Law, compileFunction, conditionCases, interpret, loadJs, seeded} from './machine.ts'
 import {type Case, C_OPS, CELLS, E_OPS, QC_OPS, QE_OPS, VARS, inlineC, inlineE, machineOf, qcoverage, qgoals, qmachineOf, qreference, qtampered, randomCase, randomQCase, recurCases, recurCasesCases, recurReference, reference, ringCase, ringLowers, ringReference, seen, stateOf, tamperedMeasures, kindAnswer, kindCases, kindReference, fairAnswer, fairCases, ladderReference, sumAnswer, sumCases, sumReference} from './conformance.ts'
 import {type Termination, checkMeasures} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
@@ -23,8 +23,7 @@ import {grow} from '../kernel/prove.ts'
 import {expressions} from '../research/search/compile.ts'
 
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
-let seed2 = Number(process.env.FUZZ_SEED ?? 777) + 1
-const rand = (k: number) => { seed2 = (seed2 * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed2 / 2 ** 31 * k) }
+const rand = seeded(Number(process.env.FUZZ_SEED ?? 777) + 1)
 
 const hasProd = (t: E | C): boolean => JSON.stringify(t).includes('"op":"prod"')
 const n = (value: number): E => ({op: 'const', value})

@@ -2,11 +2,10 @@
 // every key, and compute a write at every key, on finitely many breakpoints. Random conditions and values over two maps a
 // request carries, against brute force over every key up to well past every cell and value, interpreted and compiled.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Machine, interpret, loadJs} from './machine.ts'
+import {type C, type E, type Machine, interpret, loadJs, seeded} from './machine.ts'
 import {plainKey} from '../kernel/kernel.ts'
 
-let seed = 17
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = seeded(17)
 const v = (name: string): E => ({op: 'var', name}), c = (value: number): E => ({op: 'const', value})
 const pick = <T>(xs: T[]): T => xs[rand(xs.length)]!
 // A key term over k, with an offset from the request or a constant.

@@ -2,7 +2,7 @@
 // proven, each broken variant refused; the interpreter and the compiled code shift positions alike; every law and step
 // law holds on random runs, and each broken variant is broken by one; a law about two keys reads both keys.
 import {expect, test} from 'bun:test'
-import {interpret, loadJs} from './machine.ts'
+import {interpret, loadJs, seeded} from './machine.ts'
 import {forall, rule} from './dsl.ts'
 import {bits, bitsLaws, scope, scopeLaws, scopeSteps} from '../examples/lists.ts'
 import {checkStepLaws, obligations, stepLawObligations} from '../kernel/kernel.ts'
@@ -33,8 +33,7 @@ test('the normalized scope: proven, through a law about every two positions; eac
 }, 300_000)
 
 test('runs: interpreted = compiled; every law holds, and each broken variant is broken by a run', () => {
-  let seed = 9
-  const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+  const rand = seeded(9)
   for (const bug of [undefined, 'skips the right neighbour', 'shifts the wrong way on removal'] as const) {
     const r = scope(bug), m = r.machine, run = interpret(m), gen = loadJs(m)
     const laws = [...scopeLaws(r), ...(bug ? [] : scopeSteps(r))]

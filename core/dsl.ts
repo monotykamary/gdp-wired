@@ -17,7 +17,7 @@
 // both runtimes do.
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {env as knobs} from './solver.ts'
-import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
+import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, searchSeeded, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, someHolds, substVars, substVarsE} from './exists.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations, substC, sumMachine} from '../kernel/kernel.ts'
@@ -2092,7 +2092,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   crossCheck(laws: Law[], stepLaws: StepLaw[] = [], opts: {trials?: number, depth?: number, bound?: number, rand?: Rand} = {}): {checked: number, failure?: string} {
     const summed = this.withSumsOf(laws, stepLaws)
     if (summed !== this) return summed.crossCheck(laws, stepLaws, opts)
-    const s = this.spec, m = this.machine, run = interpret(m), bound = opts.bound ?? 4, rand = opts.rand ?? seeded(7)
+    const s = this.spec, m = this.machine, run = interpret(m), bound = opts.bound ?? 4, rand = opts.rand ?? searchSeeded(7)
     let checked = 0
     const at = (what: string, params: object, st: State, input?: Request) => `${what}: params ${JSON.stringify(params)}, state ${JSON.stringify(this.decode(st))}${input ? `, request ${JSON.stringify(numbersOf(input))}` : ''}`
     const mapsOf = (st: State) => Object.fromEntries(Object.entries(st.maps).map(([n, cells]) => [n, {cells, dflt: st.defaults?.[n] ?? m.maps?.[n] ?? 0}]))
@@ -2201,7 +2201,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // decimals as numbers) for every field the reference's state has, after every step of `trials` runs of `depth`.
   compare<St extends Record<string, Raw>>(reference: {init(params: Value<P>): St, step(params: Value<P>, st: St, request: RawInputs<I>): St},
     opts: Draws<RawInputs<I>> & {params?: (rand: Rand) => Value<P>, depth?: number} = {}): Agreement {
-    const s = this.spec, rand = opts.rand ?? seeded(5), bound = opts.bound ?? 100, gen = this.compiled(), run = interpret(this.machine)
+    const s = this.spec, rand = opts.rand ?? searchSeeded(5), bound = opts.bound ?? 100, gen = this.compiled(), run = interpret(this.machine)
     let checked = 0
     const sample = (kinds: [string, Kind<unknown>][]) => Object.fromEntries(kinds.map(([n, k]) => [n, k.sample(rand, bound)]))
     for (let trial = 0; trial < (opts.trials ?? 200); trial++) {
@@ -2401,7 +2401,7 @@ export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
   // check for an encoding: that the terms here are what the real function computes, on its real inputs.
   //   cap.compare(({left, local}) => ({out: realCap(left, local)}), {edges: [{left: 2 ** 32 + 5, local: 10}]})
   compare(reference: (values: Value<I>, params: Value<P>) => Partial<Value<O>>, opts: Draws<Value<I>> & {params?: Value<P>} = {}): Agreement {
-    const rand = opts.rand ?? seeded(5), bound = opts.bound ?? 1000, params = (opts.params ?? {}) as Value<P>, kinds = this.r['spec'].inputs
+    const rand = opts.rand ?? searchSeeded(5), bound = opts.bound ?? 1000, params = (opts.params ?? {}) as Value<P>, kinds = this.r['spec'].inputs
     let checked = 0
     const draws = [...(opts.edges ?? []), ...Array.from({length: opts.trials ?? 2000}, () => opts.draw?.(rand) ?? Object.fromEntries(kinds.map(([n, k]) => [n, k.sample(rand, bound)])) as Value<I>)]
     for (const values of draws) {
@@ -2579,7 +2579,7 @@ function guidesOf(m: Machine): ((env: Record<string, number>, st: State, rand: R
 }
 function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = [], budget: RunBudget = refuteBudget): {goal: string, witness: Record<string, number>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
   const m = r.machine
-  const run = interpret(m), rand = seeded(budget.seed ?? 13), bound = budget.bound, shown = shownRequest, guides = budget.mixed ? guidesOf(m) : []
+  const run = interpret(m), rand = searchSeeded(budget.seed ?? 13), bound = budget.bound, shown = shownRequest, guides = budget.mixed ? guidesOf(m) : []
   // (Division by a constant is a function too, its facts Euclid's, which its JavaScript meets: not checked.)
   const facts = (m.facts ?? []).filter(f => !isArithmetic(f.name.slice(0, f.name.indexOf(':'))))
   const holds = (f: Law, params: Record<string, number>): boolean => {
@@ -2885,7 +2885,7 @@ export const proveDecision = (d: Decision, opts: {ms?: number} = {}): Verdict =>
 export function crossCheckDecision(d: Decision, opts: {trials?: number, bound?: number, rand?: Rand} = {}): {checked: number, failure?: string} {
   const src = sources.get(d)?.decision
   if (!src) return {checked: 0}
-  const r = d.rule, m = r.machine, bound = opts.bound ?? 4, rand = opts.rand ?? seeded(11), own = d.given.slice(d.given.length - src.own)
+  const r = d.rule, m = r.machine, bound = opts.bound ?? 4, rand = opts.rand ?? searchSeeded(11), own = d.given.slice(d.given.length - src.own)
   let checked = 0
   for (let i = 0; i < (opts.trials ?? 500); i++) {
     const ps = r.randomParams(rand, bound), input = r.randomInput(rand, bound, ps), values = {...ps, ...numbersOf(input)}
@@ -3009,7 +3009,7 @@ export class FoldRule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}
   // The builders against what they built, on random trees: each value by the callbacks' own arithmetic against the
   // terms the kernel proved (as run evaluates them), and each law's callback against its condition.
   crossCheck(laws: Law[] = [], opts: {trials?: number, depth?: number, bound?: number, rand?: Rand} = {}): Agreement {
-    const s = this.spec, rand = opts.rand ?? seeded(13), bound = opts.bound ?? 6, f = this.fold
+    const s = this.spec, rand = opts.rand ?? searchSeeded(13), bound = opts.bound ?? 6, f = this.fold
     let checked = 0
     const sample = (kinds: [string, Kind<unknown>][]) => Object.fromEntries(kinds.map(([n, k]) => [n, k.sample(rand, bound)]))
     const tree = (d: number): TreeValue<Record<string, Raw>> => (d === 0 || rand(3) === 0 ? {leaf: sample(s.inputs)} : {node: sample(s.inputs), left: tree(d - 1), right: tree(d - 1)})
@@ -3142,7 +3142,7 @@ export class RoseFold<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}
   // The builders against what they built, on random rose trees: each value by the callbacks' own arithmetic (the
   // children folded by step, then the node) against the terms proven, and each law and lemma at the root.
   crossCheck(laws: Law[] = [], opts: {trials?: number, depth?: number, bound?: number, rand?: Rand} = {}): Agreement {
-    const s = this.spec, rand = opts.rand ?? seeded(17), bound = opts.bound ?? 6, f = this.fold
+    const s = this.spec, rand = opts.rand ?? searchSeeded(17), bound = opts.bound ?? 6, f = this.fold
     let checked = 0
     const sample = (kinds: [string, Kind<unknown>][]) => Object.fromEntries(kinds.map(([n, k]) => [n, k.sample(rand, bound)]))
     const tree = (d: number): RoseValue<Record<string, Raw>> => (d === 0 || rand(3) === 0 ? {leaf: sample(s.inputs)} : {node: sample(s.inputs), children: Array.from({length: rand(4)}, () => tree(d - 1))})

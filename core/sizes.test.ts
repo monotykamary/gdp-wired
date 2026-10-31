@@ -2,7 +2,7 @@
 // broken variant refused; on random runs the size term is the number of names in the set, every law holds, and the
 // broken variant is broken by a run.
 import {expect, test} from 'bun:test'
-import {evalE, interpret} from './machine.ts'
+import {evalE, interpret, seeded} from './machine.ts'
 import {NAMES, team, teamLaws, teamSteps} from '../examples/sizes.ts'
 import {proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {allowed, watch} from './watch.ts'
@@ -14,8 +14,7 @@ test('the team roster: proven; checking the current team instead refused', () =>
 })
 
 test('runs: the size is the count of names; every law holds, and the broken variant breaks one', () => {
-  let seed = 13
-  const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+  const rand = seeded(13)
   const size = team().law('size', ({Team}) => Team.sizeBelow(NAMES).atLeast(0)).holds as {b: Parameters<typeof evalE>[0]}
   for (const bug of [undefined, 'checks the current team'] as const) {
     const r = team(bug), m = r.machine, run = interpret(m), laws = [...teamLaws(r), ...(bug ? [] : teamSteps(r))]

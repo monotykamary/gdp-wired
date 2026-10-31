@@ -5,12 +5,13 @@
 // goal is false there), and how many ran out of the evaluator's fuel.
 import {readFileSync} from 'node:fs'
 import {OutOfFuel, type Sx, type Ty, type V, evaluate, parseTip, prenex, showV, substTy, tyOf} from '../../compare/tip/tip.ts'
+import {lcg} from '../../core/machine.ts'
 
 const args = process.argv.slice(2), file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
 const n = opt('--n', 3000)
 let seed = opt('--seed', 1)
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
 const tip = parseTip(readFileSync(file, 'utf8'))
 const {vars, body} = prenex(tip.goal.body)
 const tvars = new Set(tip.goal.params)

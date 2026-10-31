@@ -2,12 +2,12 @@
 // random machines whose map values read the other map and whose scalars read both, so a write seen before every read
 // is done would show; and branches made with fork stay apart. FUZZ_SEED and FUZZ_SCALE shard it as kernel.test.ts.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Machine, type State, compileJs, interpret, loadJs} from './machine.ts'
+import {type C, type E, type Machine, type State, compileJs, interpret, loadJs, lcg} from './machine.ts'
 import {distinctNames, sortedList} from '../examples/pairs.ts'
 
 let seed = Number(process.env.FUZZ_SEED ?? 777)
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
-const rand = (n: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * n) }
+const rand = (n: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * n) }
 const pick = <T>(xs: T[]): T => xs[rand(xs.length)]!
 const names = ['p', 'a', 'b', 'z', 'y']
 const term = (d: number): E => {

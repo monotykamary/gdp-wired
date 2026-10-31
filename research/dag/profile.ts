@@ -10,7 +10,7 @@
 // atoms still open, the rows, the variables the rows read that aren't yes/no, the solver's verdict there).
 // Prints one JSON line (and writes it to <dir>/profile.json).
 import {mkdirSync, readFileSync, writeFileSync} from 'node:fs'
-import type {C, E} from '../../core/machine.ts'
+import {type C, type E, lcg} from '../../core/machine.ts'
 import {checkRefutation} from '../../core/check.ts'
 import {type Lin, solve} from '../../core/solver.ts'
 import {type Path, canon, leafConstraints, withProducts} from '../../kernel/kernel.ts'
@@ -84,7 +84,7 @@ for (const h of goal.hyps) for (const t of tops(h)) {
 }
 goal.hyps.forEach(walkC)
 let seed = 12345
-const rand = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648)
+const rand = () => ((seed = lcg(seed)) / 2147483648)
 const fixed = Array.from({length: 8}, () => {
   const path: Path = new Map()
   for (const b of [...bools].sort()) { const lin: Lin = {[b]: 1}; path.set(canon(lin), {lin, holds: rand() < 0.5}) }

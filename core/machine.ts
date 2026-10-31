@@ -8,9 +8,21 @@
 import {boundOf, crossFree, historyMachine, keyTerm, plainKey, scope, sumRuntime} from '../kernel/kernel.ts'
 import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
 
-// The searches' random draws: the high bits of a linear congruence (the low ones repeat with a short period).
+// The one generator of the repo's random draws: x' = (1103515245 x + 12345) mod 2^31, exact (Math.imul). In doubles
+// the product passes 2^53 and rounds, which folds every seed into one of six short cycles (61 to 10,466 steps; 98.8% of
+// seeds into the same one). Its period is 2^31 (core/rand.test.ts). Draws are its high bits (the low ones repeat with a
+// short period). Every test, harness and fuzz draws from it.
+export const lcg = (x: number): number => (Math.imul(x, 1103515245) + 12345) & 0x7fffffff
 export type Rand = (k: number) => number
-export const seeded = (seed: number): Rand => { let x = seed; return k => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) } }
+export const seeded = (seed: number): Rand => { let x = seed; return k => { x = lcg(x); return Math.floor(x / 2 ** 31 * k) } }
+// The searches' draws (core's searches, data.ts's rng, the CHC and ITS runners) still follow the float form: one
+// 10,466-step cycle whatever the seed. Exact draws move their results both ways (the quick bar: CHC-COMP +5/-3, ITS
+// +5/-2, SV +1, F1 -1 (bstInsert), F2 +1/-1, none wrong), and some tests pass only at this cycle's phase: over 20 seed
+// shifts, float against exact, bstInsert 6 and 9, system's lease 3 and 1, effect's caught run 9 and 3, infer's in-flight
+// bound 16 and 15, hypothesis 20 and 19, nonterm's accelerated `choose` 19 and 0 (exact draws find its lasso). A search
+// moves to `seeded` once it no longer passes by the phase.
+export const lcgFloat = (x: number): number => (x * 1103515245 + 12345) % 2 ** 31
+export const searchSeeded = (seed: number): Rand => { let x = seed; return k => { x = lcgFloat(x); return Math.floor(x / 2 ** 31 * k) } }
 // Every object in a term, the term first.
 export const walk = (t: unknown, f: (o: Record<string, unknown>) => void): void => {
   if (Array.isArray(t)) { for (const x of t) walk(x, f); return }

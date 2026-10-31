@@ -2,7 +2,7 @@
 // on the interpreter (search/compile.ts's replay), which shares no code with the compiled program: every document's
 // least failing (depth, candidate) must be the least over its candidates by the replay, a broken law must turn up a run
 // that breaks it, and a proven one none. `generated` runs every document of each space, `executor` a sample.
-import type {C, E, Machine} from '../../core/machine.ts'
+import {type C, type E, type Machine, lcg} from '../../core/machine.ts'
 import type {StepLaw} from '../../kernel/kernel.ts'
 import {proveLaws, proveStepLaws} from '../../kernel/prove.ts'
 import {createLoopRunner} from '../../vendor/handwired/src/json-search/loop-program.ts'
@@ -15,7 +15,7 @@ const part = (p: string) => !process.env.PART || process.env.PART === p
 const chunk = 32
 const vv = (name: string): E => ({op: 'var', name}), cc = (value: number): E => ({op: 'const', value})
 let seed = 5, failed = false
-const rand = (n: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor((seed / 2 ** 31) * n) }
+const rand = (n: number) => { seed = lcg(seed); return Math.floor((seed / 2 ** 31) * n) }
 if (part('steps')) {
   for (const s of stepSearches) {
     const loop = compile(s.m, s.law, s.space, chunk)

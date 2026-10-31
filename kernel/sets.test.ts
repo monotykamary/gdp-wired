@@ -4,14 +4,13 @@
 // flag instances are dropped no longer checks; and a fuzz: random machines over sets, every law the kernel accepts holds
 // on every run.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Law, type Machine, type Request, type State, interpret, loadJs} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type State, interpret, loadJs, seeded} from '../core/machine.ts'
 import {allowed, watch} from '../core/watch.ts'
 import {authority, authorityLaws, authorityPairs, authoritySteps} from '../examples/sets.ts'
 import {type Instances, type StepLaw, checkStepLaws, obligations, stepLawObligations} from './kernel.ts'
 import {proveLaws, proveStepLaws} from './prove.ts'
 
-let seed = 11
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = seeded(11)
 const cells = (st: State) => JSON.stringify(Object.fromEntries(Object.entries(st.maps).map(([n, c]) => [n, [...c.entries()].sort((a, b) => a[0] - b[0])]))) + JSON.stringify(st.defaults ?? {})
 
 test('the derived authority: proven; each broken variant refused where it breaks', () => {

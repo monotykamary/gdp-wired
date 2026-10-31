@@ -3,7 +3,7 @@
 // random step laws; whenever the kernel accepts one, no run of the interpreter breaks it, and some false ones are caught.
 import {expect, test} from 'bun:test'
 import type {C, E, Machine, State} from '../core/machine.ts'
-import {evalC, interpret} from '../core/machine.ts'
+import {evalC, interpret, lcg} from '../core/machine.ts'
 import {forall, maybe, nat, oneOf, proveSteps, rule, upTo, when} from '../core/dsl.ts'
 import {windowLimit} from '../core/models.ts'
 import {type StepLaw, checkStepLaws, stepLawObligations} from './kernel.ts'
@@ -73,7 +73,7 @@ test('a step-law proof checks only whole: every law tree and every step tree', (
 // --- soundness fuzz ------------------------------------------------------------------------------------------------------
 let seed = Number(process.env.FUZZ_SEED ?? 31)
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
 const pick = <T>(xs: readonly T[]): T => xs[rand(xs.length)]!
 const vv = (name: string): E => ({op: 'var', name}), cc = (value: number): E => ({op: 'const', value})
 const term = (d: number): E => {

@@ -11,6 +11,7 @@ import {createRequire} from 'node:module'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {orderProcess} from '../../items/ledgerpay-vendure.ts'
+import {lcg} from '../../../../core/machine.ts'
 
 let dir = process.argv[2]
 if (!dir || !existsSync(join(dir, 'node_modules/@vendure/core'))) {
@@ -42,7 +43,7 @@ const original = async (state: string, to: string): Promise<string> => {
 }
 
 let seed = 11
-const rand = (n: number) => ((seed = (seed * 1103515245 + 12345) % 2 ** 31), (seed >>> 8) % n)
+const rand = (n: number) => ((seed = lcg(seed)), (seed >>> 8) % n)
 const pick = <T>(xs: readonly T[]) => xs[rand(xs.length)]!
 const payStates = ['Created', 'Authorized', 'Settled', 'Declined', 'Error', 'Cancelled'] as const
 const randomFacts = (): Facts => {

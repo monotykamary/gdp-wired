@@ -9,6 +9,7 @@ import {createRequire} from 'node:module'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {orderItem} from '../items/ledgerpay-medusa.ts'
+import {lcg} from '../../../core/machine.ts'
 
 let dir = process.argv[2]
 if (!dir || !existsSync(join(dir, 'node_modules/@medusajs/order'))) {
@@ -56,7 +57,7 @@ const ruleRun = (q0: number, trace: {op: (typeof ops)[number], q: number}[]) => 
 }
 
 let seed = 7
-const rand = (n: number) => ((seed = (seed * 1103515245 + 12345) % 2 ** 31), (seed >>> 8) % n)
+const rand = (n: number) => ((seed = lcg(seed)), (seed >>> 8) % n)
 let failure: string | undefined, runs = 0
 for (; runs < 3000 && !failure; runs++) {
   const q0 = rand(6), trace = Array.from({length: 1 + rand(12)}, () => ({op: ops[rand(ops.length)]!, q: rand(9) - 3}))
