@@ -24,8 +24,6 @@ except ImportError:  # plain python3, --backend boat: the runner's functions run
     sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent.parent / "supercomputer"))
     from agent import modal_stub
     modal = modal_stub()
-# On boat a call takes this many 2-vCPU slots: 2 matches Modal's cpu=2.0 (two physical cores), 1 is one core's two threads.
-BOAT = {"weight": int(__import__("os").environ.get("CHC_BOAT_WEIGHT", "1"))}
 
 HERE = pathlib.Path(__file__).resolve().parent
 GDP = HERE.parent.parent
@@ -82,7 +80,11 @@ python3 - <<'PY'
 PY
 sudo rm /bench && sudo mkdir /bench && du -sh /opt/gdpw/chc/bench
 """
-BOAT = {"mounts": {"/bench": "/opt/gdpw/chc/bench"}}
+# On boat a call takes CHC_BOAT_WEIGHT 2-vCPU slots of a large (8-vCPU) VM, its CPUs pinned by the agent; 4 takes the whole
+# VM, no co-tenant. CHC_CPUS=n runs each tool on n of the call's CPUs (taskset), the rest left idle. Every tool alone on 4
+# vCPUs (CHC_BOAT_WEIGHT=4 CHC_CPUS=4) is Modal's cpu=2.0 (two physical cores) without its bursts past them.
+BOAT = {"mounts": {"/bench": "/opt/gdpw/chc/bench"}, "weight": int(os.environ.get("CHC_BOAT_WEIGHT", "1")),
+        **({"env": {"CHC_CPUS": os.environ["CHC_CPUS"]}} if os.environ.get("CHC_CPUS") else {})}
 
 
 def command(tool: str, task: str, limit: int) -> list[str]:
@@ -129,12 +131,23 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
     if not work.exists():
         shutil.copytree("/src/gdp-wired", work)
     rows = []
+    mine = sorted(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else []
+    pin = mine[:int(os.environ.get("CHC_CPUS", "0"))] if os.environ.get("CHC_CPUS") and shutil.which("taskset") else []
+    def items() -> int:  # the boat agent's items running on this VM at the task's start (this one included; 0 on Modal)
+        n = 0
+        for d in os.listdir("/proc") if os.path.isdir("/proc") else []:
+            try:
+                n += d.isdigit() and b"agent.py\0run\0" in open(f"/proc/{d}/cmdline", "rb").read()
+            except OSError:
+                pass
+        return n
     for t in tasks:
         path = f"/bench/{t['smt2']}"
+        on_vm = items()
         t0 = time.time()
         try:
             extra = dict(kv.split("=", 1) for kv in env.split(",") if kv)
-            p = subprocess.run(["timeout", "-k", "5", str(limit), *command(tool, path, limit)], cwd=work, capture_output=True, text=True, timeout=limit + 30, env={**os.environ, **extra})
+            p = subprocess.run([*(["taskset", "-c", ",".join(map(str, pin))] if pin else []), "timeout", "-k", "5", str(limit), *command(tool, path, limit)], cwd=work, capture_output=True, text=True, timeout=limit + 30, env={**os.environ, **extra})
             code, out, err = p.returncode, p.stdout, p.stderr
         except subprocess.TimeoutExpired:
             code, out, err = 124, "", "killed"
@@ -162,6 +175,7 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
             # (the witness search's log, core/exists.ts, for profiling the given-invariant check)
             row["log"] = err[-6000:]
         row["expected"] = t["expected"]
+        row["cpus"], row["vm_items"] = len(pin or mine), on_vm
         rows.append(row)
     return rows
 
