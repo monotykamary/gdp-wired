@@ -270,9 +270,10 @@ export class Reader {
         for (const row of inner) out.push({lin: row.lin, w: join(row.w, closed.w), label: ''})
         // (the last open part's own value is a read: open while it is)
         const last = this.truth(open[0]!)
-        // (and the facts are kept only while the part's own value is: its reason is theirs, though not their rows')
+        // (and the facts are kept only while the part's own value is: its reason is theirs, though not their rows'; and
+        // while the closed parts' are: one closed through an open term column opens when the column's choice is decided)
         const x = both(both(closed, r), last)
-        return {w: x.w, pos: x.pos, fin: r.fin && last.t !== undefined && last.fin}
+        return {w: x.w, pos: x.pos, fin: x.fin && last.t !== undefined}
       }
       case '<': case '<=': case '=': {
         const cmp = this.atoms(c)

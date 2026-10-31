@@ -6,9 +6,10 @@
 // compares reader.ts's rows with kernel.ts's at every node of the search and every leaf of the unfolded tree.
 import {expect, test} from 'bun:test'
 import {type C, type E, seeded} from '../core/machine.ts'
-import {type Goal, check} from './kernel.ts'
+import {type Goal, type Path, canon, check, leafConstraints, termColumn} from './kernel.ts'
 import {clock, grow} from './prove.ts'
 import {REFUTED, growCdcl} from './cdcl.ts'
+import {Reader} from './reader.ts'
 
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
 // (core/machine.ts's generator: exact since its float form folded every seed into a few short cycles, a seed on a short
@@ -108,3 +109,33 @@ test('the clausal mode refutes only goals with no model, and its models meet the
   covered('clausal refuted', refuted)
   covered('clausal satisfiable', sat)
 }, 600_000)
+
+// FUZZ_SEED=28018 (shrunk): a disjunction with one open part kept its facts as final although a part it took as false
+// was false only through an open term column (1 ∸ y, read as its column while y ≤ 1 was open). Once y ≤ 1 was decided
+// the column read 1 − y, that part opened, and kernel.ts gave the hypothesis no fact, but reader.ts kept 0 = 0's.
+test("reader.ts keeps a disjunction's facts only while its closed parts' values are kept too", () => {
+  const x: E = {op: 'var', name: 'x'}, y: E = {op: 'var', name: 'y'}, z: E = {op: 'var', name: 'z'}, n = (value: number): E => ({op: 'const', value})
+  const cut = (): E => ({op: 'sub', a: n(1), b: y})
+  const goal: Goal = {name: 'seed 28018', hyps: [
+    {op: 'or', xs: [{op: '=', a: n(0), b: {op: 'if', c: {op: '<=', a: x, b: y}, then: x, else: n(0)}}, {op: 'not', x: {op: '<', a: cut(), b: x}}]},
+    {op: '<', a: cut(), b: x},
+    {op: '=', a: x, b: z},
+  ]}
+  // The search's trail: 1 ∸ y < x (its column), y < x, y ≤ 1, each decided true at a node of its own.
+  const steps = [{'1': 1, x: -1, [termColumn(cut())]: 1}, {'1': 1, x: -1, y: 1}, {'1': -1, y: 1}].map(lin => ({name: canon(lin), lin, holds: true}))
+  const trail: typeof steps = [], stamps: number[] = []
+  const reader = new Reader(goal, {
+    get: name => { const at = trail.findIndex(a => a.name === name); return at < 0 ? undefined : {val: trail[at]!.holds, at} },
+    stamp: at => stamps[at]!, size: () => trail.length, lin: at => trail[at]!,
+  })
+  const texts = (lins: {lin: Record<string, number>}[]) => [...new Set(lins.map(r => canon(r.lin)))].sort()
+  for (let i = 0; ; i++) {
+    reader.begin()
+    reader.sync()
+    const path: Path = new Map(trail.map(a => [a.name, {lin: a.lin, holds: a.holds}]))
+    expect(texts(reader.rows())).toEqual(texts(leafConstraints(goal, path)))
+    expect(texts(reader.live)).toEqual(texts(leafConstraints(goal, path)))
+    if (i === steps.length) break
+    stamps[trail.length] = i + 1; trail.push(steps[i]!); reader.touch(steps[i]!.name)
+  }
+})
