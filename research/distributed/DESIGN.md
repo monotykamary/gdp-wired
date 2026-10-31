@@ -318,3 +318,25 @@ laws take half the counted budget before inferLaws starts, whose candidates and 
 The ten core protocols (research/protocols/run.ts, 60 s, one run each): ten of ten proven. SIP's NICT proof (wall-clock
 liveness budget) missed once at 20.7 s on a VM running 14 jobs; alone it is proven in 9.3 s, 9.9 s with the old
 infer.ts on the same VM.
+
+### 7.4 Gates, bytes, what is verified
+
+**Gates.** The quick bar (`--quick --cand 7e13c05 --base ae36917`, Modal, 731 s, about $2.90 estimated): none wrong
+anywhere, nothing solid lost (CHC gained 1, lost 2, ITS gained 1, lost 1: each at the time limit or noise, none solid;
+SV, frontier, real-world corpus the same; TIP and f2 one noise each); 332 step goals the same search on all 332 (search
+time −6%); the 1-vCPU tests none failed (infer's "a machine with no rule" read 1,969 against 1,426 ms there; on boat,
+five runs of each side twice, 459–759 against 465–485 ms median, one candidate run matching the base: noise); Lean 6 of
+6. The suites (`--only suite,suite-usual` at bcf3aae, 1,296 s, about $0.73): 243 of 243 jobs passed in each mode, the
+`system` job with the lease's search (8.0 s on Modal) and the found outbox ring. The ten protocols, 20 runs each at
+60 s (boat, 2 vCPU, four batches of 50): 200 of 200 proven; medians wo 23.3, ring 20.5, ticket 18.0, distributed 14.6,
+sharded 11.8, async 10.0, two-phase 7.6, decentralized 7.3, toy 5.7, sync 3.4 s (max 39.9 s). tsc over the tree: no
+error outside vendor/ imports the remote image lacks; oxlint on the changed files clean.
+
+**Bytes.** Against 42f78b3 (tests excluded): core/live.ts +4,186 (findRing's walks, cycles, replay, Houdini round the
+cycle), core/infer.ts +2,638 (the two candidate shapes). kernel/ and lean-kernel/ unchanged.
+
+**Verified:** every refutation is refutedBy's (each ring step the kernel's progress goal, fairness by step laws, the
+stem replayed; core/system.test.ts replays the outbox ring's laps on the interpreter); the lease's found laws are the
+kernel's proof. **Not verified:** that findRing finds every lasso (a heuristic search: walks of 3,000 steps, cycles of at
+most 64, the requests it draws); the lease at the default budget (section 7.3); no Lean export of the lease's proof or
+of the rings (a refutation is a run, not a certificate Lean reads).
