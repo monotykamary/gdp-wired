@@ -5,7 +5,7 @@ gdp-wired's (boat.py's CLI helpers only).
     python3 modal/store.py push <name> <dir | modal:<volume>[/path]> [--form snapshot|layer] [--max-gb 4]
     python3 modal/store.py serve <name> [--minutes 30]       a VM from the snapshot; its URL on stdout (a secret)
     python3 modal/store.py pull <name> <dest> --url URL [--cache DIR]
-    python3 modal/store.py verify <name> <dir> | ls
+    python3 modal/store.py verify <name> <dir> | ls | unserve [name] [--all]
 
 The forms: `snapshot` (an archive, or data a job fetches: about $0.056 a day a named snapshot) and `layer` (a
 read-mostly cache or toolchain meant to be built into a pool image: the same snapshot, its files at /store/<name>, to
@@ -142,35 +142,53 @@ def push(name: str, src: str, form: str = "snapshot", max_gb: float = 4.0):
 def serve(name: str, minutes: int = 30) -> str:
     vm = new_vm(f"store-{name}", ttl=minutes * 60)
     tok = secrets.token_urlsafe(24)
+    # (a VM from a snapshot fills its disk lazily: a file read before it's there came out cut short, so every file is
+    # read once first)
+    subprocess.run([boat.BOAT, "ssh", vm, "--", f"find /store/{name} -type f -exec cat {{}} + > /dev/null"], capture_output=True, env=boat.ENV, timeout=3600)
     boat.exec_(vm, ["bash", "-c", f"mkdir -p ~/srv && ln -sfn /store/{name} ~/srv/{tok} && (setsid nohup python3 -m http.server 8766 --bind 127.0.0.1 --directory ~/srv > /dev/null 2>&1 &)"], 60)
     h = boat.bj("host", vm, "8766", "--localhost", "--private")
     u = urllib.parse.urlparse(h["url"])
     url = urllib.parse.urlunparse(u._replace(path=f"/{tok}/"))
-    log(f"{name}: served from {vm} for {minutes} minutes (the URL is a secret: boat's token and ours)")
+    (STORE / "serving").mkdir(parents=True, exist_ok=True)
+    (STORE / "serving" / f"{vm}.json").write_text(json.dumps({"vm": vm, "name": name, "until": time.time() + minutes * 60}))
+    log(f"{name}: served from {vm} for {minutes} minutes (the URL is a secret: boat's token and ours); `unserve` deletes it")
     print(url)
     return url
 
 
 def pull(name: str, dest: str, url: str, cache: pathlib.Path = CACHE) -> dict:
     """The volume into dest, each file fetched only when the cache lacks its sha256 (and checked as it lands)."""
-    get = lambda path: urllib.request.urlopen(urllib.parse.urljoin(url, urllib.parse.quote(path)), timeout=600)
+    # (boat's token is in the URL's query: its first answer sets a cookie and redirects, so a cookie jar, and the query kept)
+    import http.cookiejar
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    u = urllib.parse.urlparse(url)
+    get = lambda path: opener.open(urllib.parse.urlunparse(u._replace(path=u.path.rstrip("/") + "/" + urllib.parse.quote(path))), timeout=600)
     m = json.loads(get("manifest.json").read())
     cache.mkdir(parents=True, exist_ok=True)
     d, fetched = pathlib.Path(dest), 0
     for path, (size, digest) in m.items():
         c = cache / digest
-        if not c.exists():
+        for k in range(6):  # (boat's front cuts a stream now and then: the file again, whole)
+            if c.exists():
+                break
             tmp = cache / f".{digest}.part"
             h = hashlib.sha256()
-            with get(path) as r, open(tmp, "wb") as f:
-                for b in iter(lambda: r.read(1 << 20), b""):
-                    h.update(b)
-                    f.write(b)
-            if h.hexdigest() != digest:
+            try:
+                with get(path) as r, open(tmp, "wb") as f:
+                    for b in iter(lambda: r.read(1 << 20), b""):
+                        h.update(b)
+                        f.write(b)
+            except Exception as e:
+                log(f"{path}: {str(e)[:120]}; again")
+                time.sleep(1 + 2 * k)
+                continue
+            if h.hexdigest() == digest:
+                tmp.rename(c)
+                fetched += size
+            else:
                 tmp.unlink()
-                raise RuntimeError(f"{path}: its sha256 isn't the manifest's")
-            tmp.rename(c)
-            fetched += size
+        if not c.exists():
+            raise RuntimeError(f"{path}: not fetched whole with its manifest's sha256")
         out = d / path
         out.parent.mkdir(parents=True, exist_ok=True)
         with contextlib.suppress(FileNotFoundError):
@@ -181,6 +199,16 @@ def pull(name: str, dest: str, url: str, cache: pathlib.Path = CACHE) -> dict:
             shutil.copy2(c, out)
     log(f"{name}: {len(m)} files into {dest}, {fetched / 1e6:.1f} MB fetched, the rest from the cache")
     return m
+
+
+def unserve(name: str = "", all_: bool = False):
+    """Deletes the VMs `serve` started (of a name, or those past their minutes, or all)."""
+    for f in sorted((STORE / "serving").glob("*.json")) if (STORE / "serving").exists() else []:
+        s = json.loads(f.read_text())
+        if all_ or s["name"] == name or s["until"] < time.time():
+            boat.boat("delete", s["vm"], "--yes", "--json", check=False, timeout=300)
+            f.unlink()
+            log(f"{s['name']}: {s['vm']} deleted")
 
 
 def verify(name: str, d: str) -> bool:
@@ -211,6 +239,9 @@ if __name__ == "__main__":
     s.add_argument("name")
     s.add_argument("dir")
     sub.add_parser("ls")
+    s = sub.add_parser("unserve")
+    s.add_argument("name", nargs="?", default="")
+    s.add_argument("--all", action="store_true")
     a = ap.parse_args()
     if a.cmd == "push":
         push(a.name, a.src, a.form, a.max_gb)
@@ -218,6 +249,8 @@ if __name__ == "__main__":
         serve(a.name, a.minutes)
     elif a.cmd == "pull":
         pull(a.name, a.dest, a.url, pathlib.Path(a.cache))
+    elif a.cmd == "unserve":
+        unserve(a.name, a.all)
     elif a.cmd == "verify":
         sys.exit(0 if verify(a.name, a.dir) else 1)
     elif a.cmd == "ls":
