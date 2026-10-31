@@ -220,7 +220,7 @@ lock_server_async 20/20 (23.8 / 28.7), lock_server_sync 20/20 (9.1 / 11.1), ring
 counts +8,132 and this lane's +7,085; exists.ts +1,512 and infer.ts +748, the WIP's walks and rows restored); kernel/ +33
 (prove.ts). No trusted file changed.
 
-**Spend:** Modal billed $3.59 for this lane's apps through the 08:00 UTC hour (the profiles, the benches, the IC3Syn
+**Spend:** Modal billed $4.34 for this lane's 63 apps through the 08:00 UTC hour (the profiles, the benches, the IC3Syn
 60 s grids, the ten's 200, Lean, the bars), the last hours still filling in (the bars estimated $2.8 and $0.04 from their
 task seconds, the suites' about $1); boat: 6 starts for this lane's client, about $0.17 (the 300 s grids, the 60 s
 counted grid, a Lean check). Nothing of this lane's is left running.
