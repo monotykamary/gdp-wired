@@ -543,7 +543,8 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
     if (p.law.forall && !p.given && p.groups.length === 1 && p.groups[0]!.length === 1 && mapsRead(p.law) && p.pick.mode === 'term' && !first) {
       // (the first pick a machine's law got, again: a search asks the same law with each candidate set)
       const id = key([m.step, m.assume ?? null, m.maps ?? null, p.law.holds]), had = firstPicks.get(id)
-      if (had?.mode === 'map') { p.maps = mapGhostsOf(m, p.law, apart(p)); p.pick = {...had} }
+      // (a ghost map this machine refuses, one with sums, say, is no pick here)
+      if (had?.mode === 'map') { p.maps = mapGhostsOf(m, p.law, apart(p)); try { withMap(m, p.maps[had.at]!); p.pick = {...had} } catch { /* the term */ } }
       else if (had) p.pick = {mode: 'term', at: [...had.at]}
     }
     if (p.law.forall && !p.given && p.groups.length === 1 && p.groups[0]!.length === 1 && mapsRead(p.law) && p.pick.mode === 'term' && !first && !firstPicks.has(key([m.step, m.assume ?? null, m.maps ?? null, p.law.holds]))) {
