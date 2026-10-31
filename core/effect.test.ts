@@ -233,7 +233,7 @@ test('what the reader doesn\'t take is refused where it is, with the reason', ()
   const cases: [string, RegExp][] = [
     [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {bump: Effect.fn(function* () { yield* Ref.update(n, x => x + 1); if ((yield* Ref.get(n)) > 3) return yield* Effect.fail('too many') })} })`, /fails after writing n: a Ref keeps what was written/],
     [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {go: (op: 'a' | 'b') => Ref.update(n, x => Match.value(op).pipe(Match.when('a', () => x + 1), Match.orElse(() => x)))} })`, /Match.value\(op\): a matcher/],
-    [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {go: () => Ref.update(n, x => x + 1).pipe(Effect.retry({times: 2}))} })`, /Effect.retry\(\{times: 2\}\) in a pipe/],
+    [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {go: () => Ref.update(n, x => x + 1).pipe(Effect.catchAll(() => Effect.void))} })`, /Effect.catchAll\(\(\) => Effect.void\) in a pipe/],
     [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {roll: Effect.fn(function* () { yield* Ref.set(n, yield* Random.nextInt) })} })`, /Random.nextInt: an answer from outside/],
     [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {go: () => Effect.gen(function* () { const m = yield* Ref.make(1); yield* Ref.set(n, yield* Ref.get(m)) })} })`, /Ref.make in a step/],
     [`export const make = Effect.gen(function* () { const s = yield* Ref.make<ReadonlySet<string>>(new Set()); return {add: (k: string) => Ref.update(s, x => new Set([...x, k]))} })`, /a spread of other than an array/],

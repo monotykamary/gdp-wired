@@ -249,9 +249,14 @@ function scoped(file: string): Scoped[] {
   return lawsIn(text, path.basename(file)).map(l => {
     let cls: string | undefined, fn: string | undefined
     for (let i = l.line! - 1; i >= 0 && !cls; i--) { const m = /\b(?:class|struct|actor|defmodule|module|object|impl|record|interface|contract)\s+([\w.:]+)|\btype\s+(\w+)\s+struct\b/.exec(lines[i]!.replace(/(#|\/\/).*$/, '')); if (m) cls = (m[1] ?? m[2])!.split(/[.:]/).pop() }
+    // (in TypeScript, a law right above a declaration of a value, a schedule's say, is that value's)
+    // (at the top of the module, unindented: in no class, whatever class was declared above it)
+    let top = false
+    if (/\.[cm]?[jt]sx?$/.test(file)) { let i = l.line!; while (i < lines.length && /^\s*(\/\/|\/?\*|$)/.test(lines[i]!)) i++; const d = /^(\s*)(?:export\s+)?(?:const|let|var)\s+(\w+)\s*[=:]/.exec(lines[i] ?? ''); if (d) { fn = d[2]; top = d[1] === '' } }
     for (let i = l.line! - 1; i < lines.length && !fn; i++) { const code = i === l.line! - 1 ? lines[i]!.replace(/(#|\/\/|--).*$/, '') : lines[i]!; const m = /\b(?:def|defp|fn|fun|func|function)\s+(?:\([^)]*\)\s*)?(?:self\.)?(\w+)|^\s*(?:(?:public|private|protected|static|final|synchronized|async|override|open|suspend|inline|virtual|const|[\w<>[\],?]+)\s+)*(\w+)\s*\(/.exec(code); if (m && !/^(if|for|while|switch|return|catch|new)$/.test(m[1] ?? m[2]!)) fn = m[1] ?? m[2] }
     // (a Python function at the module's top level is in no class, whatever precedes it)
     if (fn && file.endsWith('.py') && lines.slice(l.line! - 1).some(x => new RegExp(`^(?:async\\s+)?def\\s+${fn}\\b`).test(x))) cls = undefined
+    if (top) cls = undefined
     return {...l, ...(cls ? {cls} : {}), ...(fn ? {fn} : {})}
   })
 }

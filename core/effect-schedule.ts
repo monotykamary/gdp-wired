@@ -13,7 +13,7 @@
 //   proveRule(x.rule!, [x.rule!.law('the delay never exceeds the cap', ({delay}) => delay.atMost(5000))])
 import ts from 'typescript'
 import {type Cond, type FnDef, type Kind, type Rule, type Term, all, any, bool, lit, max, min, nat, no, oneOf, recur, rule, when, yes} from './dsl.ts'
-import {type Rand, interpret, seeded} from './machine.ts'
+import {type Law, type Rand, evalC, interpret, seeded} from './machine.ts'
 import {Refusal, bare as strip, memberName, refuse, text} from './extract-read.ts'
 import type {Name} from './extract.ts'
 
@@ -244,8 +244,8 @@ function andThenFrag(l: Frag, r: Frag, P: Parts): Frag {
     const y0 = r.step(env, fromStart, {attempt: lit(0), elapsed: lit(0), first: yes}), d0 = (r.jitters ?? []).map(j => ({d: env[`${j}$d`], on: env[`${j}$on`] as Cond}))
     const y1 = r.step(env, get, {attempt: get(n), elapsed: now.minus(get(start)), first: get(n).eq(0)})
     // (a jitter of the second schedule jitters the delay of the step taken: from its start, or where it is)
-    ;(r.jitters ?? []).forEach((j, i) => { env[`${j}$d`] = when(inR, env[`${j}$d`], d0[i].d); env[`${j}$on`] = when(inR, env[`${j}$on`], d0[i].on.and(inR.not(), x.cont.not())) })
-    ;(l.jitters ?? []).forEach((j, i) => { env[`${j}$on`] = inR.not().and(dl[i]) })
+    ;(r.jitters ?? []).forEach((j, i) => { env[`${j}$d`] = when(inR, env[`${j}$d`], d0[i]!.d); env[`${j}$on`] = when(inR, env[`${j}$on`], d0[i]!.on.and(inR.not(), x.cont.not())) })
+    ;(l.jitters ?? []).forEach((j, i) => { env[`${j}$on`] = inR.not().and(dl[i]!) })
     const toR = inR.not().and(x.cont.not())
     const pick = <T>(a: T, b: T, cc: T): T => when(inR, a as Any, when(x.cont, b as Any, cc as Any))
     const next: Record<string, Any> = {}
@@ -340,10 +340,10 @@ function callbackCtx(fn: ts.ArrowFunction | ts.FunctionExpression, rc: ReadCtx, 
 // those (a tagged error's _tag a choice of its cases' tags). Each is an input of the step.
 function inputVal(p: ts.ParameterDeclaration, rc: ReadCtx, P: Parts, env: Env, sub?: string): Val {
   let t = rc.checker.getTypeAtLocation(p)
-  if (sub) t = rc.checker.getTypeOfPropertyOfType(t, sub) ?? refuse(p, `no type for the input of ${text(p)}`)
+  if (sub) t = propType(rc.checker, t, sub, p) ?? refuse(p, `no type for the input of ${text(p)}`)
   P.inputType ??= t; P.inputAt ??= p
   // (an input first read while the rule is made: a stand-in, the rule made again with it)
-  const scalar = (ty: ts.Type, name: string, at: ts.Node): Val => {
+  const scalar = (ty: ts.Type | ts.Type[], name: string, at: ts.Node): Val => {
     const k = kindOfType(ty, rc.checker, at)
     if (!P.inputs.has(name)) { P.inputs.set(name, k); P.fields.set(name, k) }
     const v = env[name] ?? (k === nat ? lit(0) : k === bool ? no : {is: () => no})
@@ -353,25 +353,29 @@ function inputVal(p: ts.ParameterDeclaration, rc: ReadCtx, P: Parts, env: Env, s
   return {t: 'obj', field: (k, at) => {
     const types = t.isUnion() ? t.types : [t]
     if (k === '_tag') {
-      const tags = types.map(u => { const pt = rc.checker.getTypeOfPropertyOfType(u, '_tag'); return pt?.isStringLiteral() ? pt.value : undefined })
+      const tags = types.map(u => { const pt = propType(rc.checker, u, '_tag', at); return pt?.isStringLiteral() ? pt.value : undefined })
       if (tags.some(x => x === undefined)) return refuse(at, `_tag of an input whose cases aren't each tagged`)
       const name = 'input__tag'
       if (!P.inputs.has(name)) { const kd = oneOf(...new Set(tags as string[])) as Kind<unknown>; P.inputs.set(name, kd); P.fields.set('_tag', kd) }
       return {t: 'choice', e: env[name] ?? {is: () => no}}
     }
-    const pts = types.map(u => rc.checker.getTypeOfPropertyOfType(u, k))
+    const pts = types.map(u => propType(rc.checker, u, k, at))
     if (pts.some(x => !x)) return refuse(at, `the input's ${k}, which not every case of it has`)
-    const name = `input_${k}`, v = scalar(rc.checker.getUnionType(pts as ts.Type[]), name, at)
+    const name = `input_${k}`, v = scalar(pts as ts.Type[], name, at)
     P.fields.set(k, P.inputs.get(name)!)
     return v
   }}
 }
-const kindOfType = (t: ts.Type, checker: ts.TypeChecker, at: ts.Node): Kind<unknown> => {
-  if (t.flags & ts.TypeFlags.NumberLike) return nat
-  if (t.flags & ts.TypeFlags.BooleanLike) return bool
-  const lits = (t.isUnion() ? t.types : [t]).map(u => (u.isStringLiteral() ? u.value : undefined))
-  if (lits.every(x => x !== undefined)) return oneOf(...lits as string[]) as Kind<unknown>
-  return refuse(at, `the input's ${checker.typeToString(t)} (a number, a boolean, a string literal or a tagged error is read)`)
+// A property's type, through its symbol (the checker's public API).
+const propType = (checker: ts.TypeChecker, t: ts.Type, k: string, at: ts.Node): ts.Type | undefined => { const p = t.getProperty(k); return p && checker.getTypeOfSymbolAtLocation(p, at) }
+// The kind of an input's type (or of the union of several: a field each case of a union has).
+const kindOfType = (t0: ts.Type | ts.Type[], checker: ts.TypeChecker, at: ts.Node): Kind<unknown> => {
+  const ts0 = Array.isArray(t0) ? t0 : [t0], all = ts0.flatMap(t => (t.isUnion() ? t.types : [t]))
+  if (all.every(t => t.flags & ts.TypeFlags.NumberLike)) return nat
+  if (all.every(t => t.flags & ts.TypeFlags.BooleanLike)) return bool
+  const lits = all.map(u => (u.isStringLiteral() ? u.value : undefined))
+  if (lits.every(x => x !== undefined)) return oneOf(...new Set(lits as string[])) as Kind<unknown>
+  return refuse(at, `the input's ${ts0.map(t => checker.typeToString(t)).join(' | ')} (a number, a boolean, a string literal or a tagged error is read)`)
 }
 const asCond = (v: Val, at: ts.Node): Cond => (v.t === 'bool' ? v.c : v.t === 'eff' ? asCond(v.v, at) : refuse(at, `${text(at)} gives other than a boolean`))
 const asNum = (v: Val, at: ts.Node): Term => (v.t === 'num' || v.t === 'dur' ? v.e : refuse(at, `${text(at)} is other than a number`))
@@ -419,15 +423,11 @@ function val(e0: ts.Expression, c: CbCtx): Val {
       return {t: 'bool', c: neg ? eq.not() : eq}
     }
     const x = asNum(a, e.left), y = asNum(b, e.right), t = a.t === 'dur' || b.t === 'dur' ? 'dur' : 'num'
-    switch (o) {
-      case K.LessThanToken: return {t: 'bool', c: x.lt(y)}
-      case K.LessThanEqualsToken: return {t: 'bool', c: x.atMost(y)}
-      case K.GreaterThanToken: return {t: 'bool', c: x.gt(y)}
-      case K.GreaterThanEqualsToken: return {t: 'bool', c: x.atLeast(y)}
-      case K.PlusToken: return {t, e: x.plus(y)}
-      case K.MinusToken: return refuse(e, `${text(e)}: a subtraction (a natural's is truncated at 0, JavaScript's isn't)`)
-      case K.AsteriskToken: { const r = strip(e.right), l = strip(e.left); return {t, e: ts.isNumericLiteral(r) ? x.times(Number(r.text)) : ts.isNumericLiteral(l) ? y.times(Number(l.text)) : x.mul(y)} }
-    }
+    if (o === K.MinusToken) return refuse(e, `${text(e)}: a subtraction (a natural's is truncated at 0, JavaScript's isn't)`)
+    if (o === K.AsteriskToken) { const r = strip(e.right), l = strip(e.left); return {t, e: ts.isNumericLiteral(r) ? x.times(Number(r.text)) : ts.isNumericLiteral(l) ? y.times(Number(l.text)) : x.mul(y)} }
+    if (o === K.PlusToken) return {t, e: x.plus(y)}
+    const cmp = new Map<ts.SyntaxKind, () => Cond>([[K.LessThanToken, () => x.lt(y)], [K.LessThanEqualsToken, () => x.atMost(y)], [K.GreaterThanToken, () => x.gt(y)], [K.GreaterThanEqualsToken, () => x.atLeast(y)]]).get(o)
+    if (cmp) return {t: 'bool', c: cmp()}
     return refuse(e, `${text(e)} (comparisons, + and * are read)`)
   }
   if (ts.isCallExpression(e)) {
@@ -557,6 +557,58 @@ export function scheduleConforms(s: ScheduleRule, make: (params: Record<string, 
     }
   }
   return {checked}
+}
+// A run of the rule (a refutation's) replayed on Effect's own schedule: each decision at the rule's time, each jitter
+// answered so Effect draws the run's delay. ok where Effect decides as the rule did at every step.
+export function replaySchedule(s: ScheduleRule, schedule: unknown, E: Any, run: {params: Record<string, number>, trace: Record<string, unknown>[]}): {ok: boolean, what: string} {
+  const r = s.rule as Any, g = r.compiled(), free = interpret({...r.machine, assume: undefined}), ps = r.encodeParams(run.params), decide = stepper(E, schedule)
+  let st = g.init(ps)
+  const said: string[] = []
+  for (const req of run.trace) {
+    const before = r.decode(st) as Record<string, number | boolean>
+    const now = Number(before.attempt) === 0 ? 0 : Number(before.elapsed) + Number(before.delay) + Number(req.took ?? 0)
+    const randoms: number[] = []
+    for (const j of s.jitters) {
+      const seen = r.decode(free.step(ps, st, req)) as Record<string, number | boolean>
+      if (!seen[j.on]) continue
+      const base = Number(seen[j.base]), pick = Number(req[j.name] ?? 0)
+      randoms.push(base === 0 ? 0 : Math.min(1 - 1e-12, Math.max(0, (pick - base * j.lo[0] / j.lo[1]) / (base * (j.hi[0] / j.hi[1] - j.lo[0] / j.lo[1])))))
+    }
+    const x = decide(1_000_000 + now, effectInput(s, req), randoms)
+    st = g.step(ps, st, req)
+    const after = r.decode(st) as Record<string, number | boolean>
+    said.push(x.cont ? `goes on after ${+x.delay.toFixed(6)} ms` : 'stops')
+    if (Boolean(after.done) === x.cont || (x.cont && Math.abs(Number(after.delay) - x.delay) > 1e-6)) return {ok: false, what: `Effect's schedule ${said.join(', ')}; the rule ${after.done ? 'stops' : `goes on after ${after.delay} ms`}`}
+  }
+  return {ok: true, what: `Effect's schedule, decision by decision: ${said.join(', ')}`}
+}
+// What Effect is fed for a request's input fields (decoded): the value, or an object of the fields read.
+function effectInput(s: ScheduleRule, req: Record<string, unknown>): unknown {
+  const vals: Record<string, unknown> = {}
+  for (const [f, k] of s.fields) { const name = f === '_tag' ? 'input__tag' : f === 'input' ? 'input' : `input_${f}`; if (name in req) vals[f] = (k as Any).decode(name, req) }
+  return 'input' in vals ? vals.input : vals
+}
+// A run of the rule where each jitter takes the edge of its range (its top, or its bottom), the attempts taking no time:
+// the run a law about the jittered delay is broken by, where a random draw rarely lands (a jitter's range moves with the
+// delay it jitters). The first state that breaks `law` ends it; undefined where none within `depth` decisions does.
+export function jitterRun(s: ScheduleRule, law: Law, depth = 40, params: Record<string, number> = {}): {params: Record<string, number>, trace: Record<string, unknown>[]} | undefined {
+  const r = s.rule as Any, m = r.machine, run = interpret(m), free = interpret({...m, assume: undefined}), ps = r.encodeParams(params)
+  for (const edge of ['top', 'bottom'] as const) {
+    let st = run.init(ps)
+    const trace: Record<string, unknown>[] = []
+    for (let d = 0; d < depth; d++) {
+      const req: Record<string, unknown> = {took: 0, ...Object.fromEntries([...m.inputs].filter((i: string) => i !== 'took').map((i: string) => [i, 0]))}
+      for (const j of s.jitters) {
+        const seen = r.decode(free.step(ps, st, req)) as Record<string, number | boolean>, base = Number(seen[j.base])
+        req[j.name] = !seen[j.on] || base === 0 ? 0 : edge === 'top' ? Math.ceil(base * j.hi[0] / j.hi[1]) - 1 : Math.ceil(base * j.lo[0] / j.lo[1])
+      }
+      try { st = run.step(ps, st, req) } catch { break }
+      trace.push(req)
+      if (!evalC(law.holds, {...ps}, st, m)) return {params, trace}
+      if ((r.decode(st) as Record<string, unknown>).done) break
+    }
+  }
+  return undefined
 }
 // An input of the schedule drawn from its kinds: the rule's values and what Effect is given (an object of its fields, a
 // tagged error's _tag among them, or the value itself).

@@ -20,14 +20,14 @@ import type {Kind, Rule} from './dsl.ts'
 import {type Rand, interpret, seeded} from './machine.ts'
 import {allowed} from './watch.ts'
 import * as I from './extract-ir.ts'
-import {type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, impure, memberName, placed, refuse, shapeOf, sourceOf, text} from './extract-read.ts'
+import {type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, impure, memberName, placed, refuse, shapeOf, sourceOf, text, where} from './extract-read.ts'
 import {type FactoryOf, readFactory, setupOf} from './extract-shapes.ts'
 import {type ExtractOptions, type Extraction, fromModel, namesOf} from './extract.ts'
 import {check, sandbox} from './extract-check.ts'
-import {Parts, type ScheduleRule, readSchedule, scheduleConforms, scheduleRule} from './effect-schedule.ts'
+import {Parts, type ScheduleRule, readSchedule, replaySchedule, scheduleConforms, scheduleRule} from './effect-schedule.ts'
 import {asRule, lift} from './system.ts'
 export {proveRule, proveSteps} from './dsl.ts'
-export {scheduleConforms, stepper} from './effect-schedule.ts'
+export {jitterRun, replaySchedule, scheduleConforms, stepper} from './effect-schedule.ts'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Mod = Record<string, any>
@@ -331,7 +331,8 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
     if (!frag) return refuse(at, `${use} with no schedule and no times (it would go on forever)`)
     if (P.params.size) return refuse(sched!, `a ${use} policy reading the service's params (one written with literals is read: the check runs it)`)
     const sr = scheduleRule(frag, P, `${use} policy`, V4)
-    found.push({at: text(at), use, source: sched ? sched.getText() : `{times: ${times}}`, rule: sr})
+    // (a method may be read more than once: one entry a place)
+    if (!found.some(f => f.at === where(at))) found.push({at: where(at), use, source: sched ? sched.getText() : `{times: ${times}}`, rule: sr})
     // The policy run as Effect drives it, each attempt taking no time: how many times it goes on (for every input it
     // may be fed, drawn), and how long it waits in all.
     const g = sr.rule.compiled(), ps = sr.rule.encodeParams({} as never), rand = (() => { let x = 7; return (n: number) => (x = (x * 1103515245 + 12345) % 2147483648) % Math.max(1, n) })()
@@ -353,7 +354,7 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
     if (sr.jitters.length) s.notes.add(`the ${use} policy's jitter is left to its rule (x.schedules): it moves only the time the step waits`)
     if (use === 'retry') {
       s.notes.add(`${text(at)}: retried with ${sched ? text(sched) : `{times: ${times}}`}; each attempt fails as the first did (the effect reads only the Refs, which a failure leaves as they were), so the step is the effect's; the policy's own laws are proven on its rule (x.schedules)`)
-      return eff(q => { const now = ex.now; ex.now = (n: ts.Node) => refuse(n, 'the clock read in an effect that is retried (each attempt reads a later time: a loop the step doesn\'t unroll)'); try { return v.run(q) } finally { ex.now = now } })
+      return eff(q => withoutClock(ex, 'the clock read in an effect that is retried (each attempt reads a later time: a loop the step doesn\'t unroll)', () => v.run(q)))
     }
     if (sr.fields.size) return refuse(sched!, 'a repeat whose policy reads the effect\'s result (a loop the step doesn\'t unroll)')
     const n = runs[0]!.n, waited = runs[0]!.waited
@@ -364,11 +365,15 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
     s.notes.add(`${text(at)}: the effect runs ${n + 1} times in the step (its policy goes on ${n} times)${waited ? `, waiting ${waited} ms in all` : ''}`)
     return eff(q => {
       let r: [V, Path] = [undef, q]
-      const now = ex.now
-      ex.now = (x: ts.Node) => refuse(x, 'the clock read in an effect that is repeated (each run reads a later time)')
-      try { for (let i = 0; i <= n; i++) r = v.run(r[1]) } finally { ex.now = now }
+      withoutClock(ex, 'the clock read in an effect that is repeated (each run reads a later time)', () => { for (let i = 0; i <= n; i++) r = v.run(r[1]) })
       return [undef, waited ? {...r[1], heap: new Map(r[1].heap).set(SLEPT, flagged(I.T))} : r[1]]
     })
+  }
+  // f run with the clock refused where it is read (an effect run again later in the step reads a later time).
+  function withoutClock<T>(ex: Exec, why: string, f: () => T): T {
+    const own = Object.getOwnPropertyDescriptor(ex, 'now')
+    Object.defineProperty(ex, 'now', {value: (n: ts.Node) => refuse(n, why), configurable: true, writable: true})
+    try { return f() } finally { if (own) Object.defineProperty(ex, 'now', own); else delete (ex as {now?: unknown}).now }
   }
   // Ref.op(ref, ...): the ref a Ref the service made (by its name), its value the state's field.
   function refOp(ex: Exec, e: ts.CallExpression, m: string, op: string, p: Path): [V, Path] {
@@ -421,11 +426,23 @@ export function runner(E: Mod): Runner {
     now = t
     // (3.x on a scheduler of its own, so a fiber left waiting, a transaction that retries, is interrupted at once: it
     // would otherwise wake and commit inside a later request)
-    const sch = v4 ? undefined : new E.Scheduler.SyncScheduler()
-    const x = Effect.runSyncExit(v4 ? Effect.provideService(eff, Clock.Clock, clock) : Effect.withScheduler(Effect.withClock(eff, clock), sch))
-    if (Exit.isSuccess(x)) return {ok: true, value: x.value}
-    const waiting = [x.cause.defect, ...(x.cause.reasons ?? []).map((r: {defect?: unknown}) => r.defect)].find(d => d && typeof d === 'object' && 'fiber' in d) as {fiber: Mod} | undefined
-    if (waiting) { if (v4) waiting.fiber.interruptUnsafe(); else { waiting.fiber.unsafeInterruptAsFork(E.FiberId.none); sch.flush() } }
+    let x: Mod, waiting: {fiber: Mod} | undefined
+    if (v4) {
+      x = Effect.runSyncExit(Effect.provideService(eff, Clock.Clock, clock))
+      waiting = Exit.isSuccess(x) ? undefined : (x.cause.reasons ?? []).map((r: {defect?: unknown}) => r.defect).find((d: unknown) => d && typeof d === 'object' && 'fiber' in d)
+      waiting?.fiber.interruptUnsafe()
+    } else {
+      // (on a scheduler of its own: what yields to it (a SynchronizedRef's lock) runs on when it is flushed; a fiber still
+      // waiting then is interrupted there)
+      const sch = new E.Scheduler.SyncScheduler()
+      x = Effect.runSyncExit(Effect.withScheduler(Effect.withClock(eff, clock), sch))
+      const fiber = Exit.isSuccess(x) ? undefined : (x.cause.defect as {fiber?: Mod} | undefined)?.fiber
+      if (fiber) {
+        for (let i = 0; i < 64 && !(x = fiber.unsafePoll()); i++) sch.flush()
+        if (!x) { waiting = {fiber}; fiber.unsafeInterruptAsFork(E.FiberId.none); sch.flush() }
+      }
+    }
+    if (x && Exit.isSuccess(x)) return {ok: true, value: x.value}
     return {ok: false, error: waiting ? 'it waits (an effect that suspends: a transaction that retries, a fiber it waits for)' : String(Cause.pretty(x.cause)).split('\n')[0]!}
   }
   const run = (eff: unknown, t = now) => { const x = exit(eff, t); if (!x.ok) throw new Error(x.error); return x.value }
@@ -501,7 +518,7 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
     // What a later step reads of an earlier one: the arguments and the locals declared at the top of a segment.
     const carried = new Map<ts.Node, string>()
     for (const p of mt.fn.parameters) if (ts.isIdentifier(p.name)) carried.set(p, p.name.text)
-    segs.forEach(seg => seg.forEach(st => { if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) { if (!ts.isIdentifier(d.name)) refuse(d, `${mt.name}: ${text(d)} (a name is carried, not a pattern)`); carried.set(d, d.name.text) } }))
+    segs.forEach(seg => seg.forEach(st => { if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) carried.set(d, ts.isIdentifier(d.name) ? d.name.text : refuse(d, `${mt.name}: ${text(d)} (a name is carried, not a pattern)`)) }))
     const usedIn = (seg: ts.Statement[]) => { const u = new Set<ts.Node>(); const go = (x: ts.Node) => { if (ts.isIdentifier(x)) { const d = s.checker.getSymbolAtLocation(x)?.valueDeclaration; if (d && carried.has(d)) u.add(d) } ts.forEachChild(x, go) }; seg.forEach(go); return u }
     const later = segs.map((_, k) => { const u = new Set<ts.Node>(); segs.slice(k + 1).forEach(sg => usedIn(sg).forEach(d => u.add(d))); return u })
     const ref = (d: ts.Node) => `__${mt.name}_${carried.get(d)}`
@@ -551,9 +568,28 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
   const rule = asRule({...lifted, name: `${m0.name}, every fiber`}, Object.fromEntries([...parts.params, ...parts.inputs].filter(whole)))
   const names = (one.names ?? []).filter(n => !(n.role === 'state' && local(n.rule)) && n.role !== 'result' && !n.code.startsWith('__'))
   const inv = (one.invariants ?? []).filter(l => !JSON.stringify(l.holds).match(/"name":"(__[^"]*|[^"]*_result[^"]*)"/))
-  return {...one, rule, names: [...names, {code: 'fiber', rule: 'fiber', role: 'input'}], invariants: inv,
+  const steps = split.map((mt, mi) => ({name: mt.name, steps: mt.units.length, base: (mi + 1) * 100}))
+  return {...one, rule, names: [...names, {code: 'fiber', rule: 'fiber', role: 'input'}], invariants: inv, fibers: steps, replay: undefined,
     notes: [`calls from many fibers at once: ${split.map(mt => `${mt.name} is ${mt.units.length} steps`).join(', ')} (each transaction or Ref operation one), the fibers interleaving them: the rule is every fiber's (lift: each fiber's place and what it carries a map keyed by the input fiber, the service's Refs (${shared.join(', ')}) shared); each other method is one step. A request is one fiber's next step: a fiber in the middle of a call takes its next step whatever method the request names. A failure in a later step ends the call as a return does. A law reads the service's Refs`, ...one.notes],
     source: out}
+}
+
+// A run of every fiber's rule as what each fiber does: starts a call (with its arguments), or takes the next step of the
+// call it is in.
+export function fiberRun(x: Extraction, run: {params: Record<string, number>, trace: Record<string, unknown>[]}): string[] {
+  const fibers = (x as {fibers?: {name: string, steps: number, base: number}[]}).fibers ?? [], r = x.rule as never as {machine: dsl.Rule['machine'], parts: {inputs: [string, dsl.Kind<unknown>][]}, encodeParams: (p: unknown) => Record<string, number>}
+  const go = interpret(r.machine), ps = r.encodeParams(run.params), method = new Map(r.parts.inputs).get('method') as {decode: (n: string, v: unknown) => string} | undefined
+  let st = go.init(ps)
+  return run.trace.map(q => {
+    const f = Number(q.fiber), pc = st.maps.__pc?.get(f) ?? 0, m = method ? method.decode('method', q) : x.model?.events[0]?.call ?? 'step'
+    st = go.step(ps, st, q as never)
+    if (pc === 0) {
+      const sp = fibers.find(s2 => s2.name === m), args = (x.names ?? []).filter(n => n.role === 'input' && n.method === m && n.rule in q).map(n => `${n.code.split('.').pop()} = ${q[n.rule]}`)
+      return `fiber ${f}: ${m}(${args.join(', ')})${sp ? `, its step 1 of ${sp.steps}` : ''}`
+    }
+    const sp = fibers.find(s2 => pc > s2.base && pc <= s2.base + s2.steps)!
+    return `fiber ${f}: ${sp.name}, its step ${pc - sp.base} of ${sp.steps}`
+  })
 }
 
 // --- a schedule as the entry ------------------------------------------------------------------------------------------
@@ -609,7 +645,7 @@ function fromScheduleEntry(code: string, file: string, e: SchedEntry, E: Mod, op
   const evidence = {runs, requests: c.checked, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: c.checked, coverage: {arms: 0, hit: 0, missed: []}, ms: Date.now() - t0, ...(c.failure ? {mismatch: c.failure} : {})}
   const source = `// ${e.name}: ${e.expr.getText().replace(/\s+/g, ' ')}\n${sr.rule.machine.name}: state ${Object.keys(sr.rule.machine.state).join(', ')}; inputs ${sr.rule.machine.inputs.join(', ')}${sr.rule.machine.params.length ? `; params ${sr.rule.machine.params.join(', ')}` : ''}`
   if (c.failure) return {ok: false, rule: sr.rule, source, refusals: [{where: file, what: `the rule and Effect's own schedule part: ${c.failure}`}], notes, names: sr.names, evidence}
-  return {ok: true, rule: sr.rule, source, refusals: [], notes, names: sr.names, evidence, schedule: sr} as Extraction
+  return {ok: true, rule: sr.rule, source, refusals: [], notes, names: sr.names, evidence, schedule: sr, replay: run => replaySchedule(sr, make(run.params), E, run)} as Extraction
 }
 // A schedule written as source (an expression over Schedule and Duration, with `params` its free names) read into its
 // rule and checked against the schedule Effect makes of it: fromSchedule('Schedule.exponential("10 millis").pipe(Schedule.upTo({times: 5}))', {effect}).
