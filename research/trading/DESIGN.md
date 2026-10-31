@@ -124,3 +124,18 @@ a choice of "ask" and "bid"; the lists read in order; `try_match`'s `time` read 
 - Matching loops over the book (`while qty and book: fill the best`): the loop's pass as a step of its own (the state
   between passes as state) would read them; folds over a carried list (Lane L) do not.
 - A step law reading a division needs the kernel to read functions in step laws (a trusted change, Lean first).
+
+## Gates and review
+
+- **Review** (terra, read-only, on the reading of lists): four findings, each fixed and tested (core/ordered.test.ts's
+  refusals): a list read through `bool()` saw the list before the step's writes; a call's own arguments (or min's
+  `default=`) writing the list before the call read it; `remove` on a dataclass with `eq=False` (identity) read as
+  field equality. Also guarded: a choice cell given a string other than its literals.
+- **Quick bar** (bf732d8 against ae36917): none wrong in any group; the one solid loss, ITS's elmhes, flips at the 60 s
+  limit (the base answers it at 51.8 to 60 s) and is lost the same way in other lanes' bars against ae36917; the
+  real-world corpus, both frontier rounds and research/dag's 332 goals unchanged.
+- **Suites** (5122df8, with the review's fixes): by default 240 of 240, `--usual` 240 of 240 (the new `trading` job
+  among them); rw, f1, f2 unchanged. tsc (no error outside the research files that need the vendored repos) and oxlint
+  on the changed files clean.
+- **Size:** core/ +28 KB outside tests (extract-step.ts +17 KB, machine.ts +3.5 KB, dsl.ts +3.2 KB, laws.ts +1.6 KB);
+  kernel/ and lean-kernel/ unchanged.
