@@ -179,11 +179,14 @@ at 2.5 times its budget plus 60 s**
 - **The quick bar** (9875117 against ae36917's boat baseline, `runs/bar/runs/9875117d2592-vs-ae369178e65d-quick-2026-10-311405`):
   wrong 0 everywhere; nothing solid lost (ITS gdp lost 6 at the limit, noise; scc gained 1; f2 lost 1 not solid); CHC,
   SV and TIP's candidate launches failed on boat (no task ran: `tasks failed on boat`, then their 1,800 s wall), rerun
-  below. SUITE_AND_RERUN
+  below. Rerun (`…-quick-2026-10-311503`): CHC wrong 0, gained 1, lost 6 (0 solid, all at the limit),
+  SV and TIP no task differs. **The suites** (`…-quick-2026-10-311447`): 243 of 243 in each mode, none failed.
 - **Bytes**: core/ 0; kernel/ +135 (kernel.ts) and +1,709 (refusals.test.ts).
 
 **Spend**: boat reported $1.95 for the whole account from 12:15 to the first check (this lane 14 starts then); the
-bar's report and the final figure below. FINAL_SPEND
+bar's report and the final figure below. At the end: boat $3.85 for the whole account
+  from 12:15 UTC (16 starts were this lane's; the before batches 0), Modal $1.24 billed for the ten fallback apps
+  (lost boat VMs), the bars' estimates $1.26 and $1.84. Under $10 in all. Nothing of this lane's is left running.
 
 **Verified, not**
 - **Verified:** the count-at-a-bound-key divergence (probe) and its refusal (test, terra, its claim checked); every
