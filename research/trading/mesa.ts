@@ -23,11 +23,10 @@ export const METHODS = ['submit_bid', 'submit_ask', 'best_bid', 'best_ask', 'spr
 
 // The laws, each with what its break looks like in the real code (a Python condition over the book before and after
 // the last call: b0, a0 the lists before, b1, a1 after; the run is the one `check` found, replayed as it printed it).
-const fill = (side: 'bids' | 'asks', o: string, j: string) => `${o} in self.${side}`
 export const LAWS: {name: string, expr: string, broken: string}[] = [
-  {name: 'the best bid fills', expr: `forall o in old(self.bids): forall j in old(self.bids): ${fill('bids', 'o', 'j')} or o.price > j.price or (o.price == j.price and o.timestamp <= j.timestamp)`,
+  {name: 'the best bid fills', expr: `forall o in old(self.bids): forall j in old(self.bids): o in self.bids or o.price > j.price or (o.price == j.price and o.timestamp <= j.timestamp)`,
     broken: 'any(o not in b1 and any(j.price > o.price or (j.price == o.price and j.timestamp < o.timestamp) for j in b0) for o in b0)'},
-  {name: 'the best ask fills', expr: `forall o in old(self.asks): forall j in old(self.asks): ${fill('asks', 'o', 'j')} or o.price < j.price or (o.price == j.price and o.timestamp <= j.timestamp)`,
+  {name: 'the best ask fills', expr: `forall o in old(self.asks): forall j in old(self.asks): o in self.asks or o.price < j.price or (o.price == j.price and o.timestamp <= j.timestamp)`,
     broken: 'any(o not in a1 and any(j.price < o.price or (j.price == o.price and j.timestamp < o.timestamp) for j in a0) for o in a0)'},
   {name: 'a fill crosses', expr: 'forall b in old(self.bids): forall a in old(self.asks): b in self.bids or a in self.asks or a.price <= b.price',
     broken: 'any(b not in b1 and a not in a1 and a.price > b.price for b in b0 for a in a0)'},
