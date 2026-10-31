@@ -243,10 +243,15 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
   const keyed = m.inputs.filter(i => keys0.some(key => mentions(key, i)))
   const terms = (l: Law): E[] => [...(l.forall ? [v(`${l.forall}#`)] : []), ...(l.keys ?? []).map(v), ...(knob.keyed ? keyed : m.inputs).map(v)]
   type Proof = {instances: Instances, certs: Record<string, CountCert>}
-  let counted = true, stuck = ''
+  let counted = true, stuck = '', esc = 0, round = 0, escAsk = 0
   // One law's goals and their certificates, the laws `ls` assumed (a subsequence of the set): pass 0 with no instances of
   // the lemma, pass 1 with the cells' (one set of witnesses a law); a tree each within `ms`.
   const attempt = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Proof | undefined => {
+    const t0 = clock(), w0 = performance.now(), r = attempt0(law, ls, pass, ms)
+    if (env.GDP_COUNTS_TRACE === '3') console.error(`counts: try ${law.name.slice(0, 50)} | ls ${ls.length} pass ${pass} ms ${ms} took ${Math.round(clock() - t0)} wall ${Math.round(performance.now() - w0)} rounds ${round} esc ${esc} escAsk ${escAsk} -> ${r ? 'kept' : stuck}`)
+    return r
+  }
+  const attempt0 = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Proof | undefined => {
     const ts = terms(law)
     // (the laws over one key at pairs of the law's own names and the request's, every-key laws at those; the rest, and
     // the witnesses, by the goal's reads below)
@@ -288,7 +293,7 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
     //     model and is given up at once (no tree to grow);
     //   - unknown: the goals grown as they are.
     // (a long attempt, the hard stage's or Houdini's, three times the rounds; past them, the goal is unknown, not a model)
-    let esc = 0, round = 0
+    esc = 0; round = 0; escAsk = 0
     const rounds = ms >= 5_000 ? 3 * knob.mbqi : knob.mbqi
     again: for (;;) {
     // (a refutation's core, where the step goal was decided refuted and not cut: its hypotheses, grown on their own first)
@@ -321,7 +326,7 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
         const at2: Instances = Object.fromEntries(Object.entries(at).map(([n, t]) => [n, [...t]]))
         const grew = esc === 0 ? ptime('match', () => more(at2, built.map(b => b.gg?.hyps ?? b.goal.hyps), built.map(b => b.goal.hyps.at(-1)!)))
           : ls.filter(l => !l.keys?.length && l.forall).map(l => ts.filter(t => { const had = at2[l.name] ?? []; if (had.some(x => json(x) === json(t))) return false; at2[l.name] = [...had, t]; return true }).length).some(n => n > 0)
-        if (grew) asked = at2
+        if (grew) { asked = at2; escAsk++ }
       }
       if (!asked) {
         stuck = 'sat'
@@ -372,7 +377,8 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
   // the kept laws' proofs reused.
   // (a law about no key is assumed in every goal, so with one in the set nothing is kept)
   const kept = new Map<string, Proof>(), cone = (l: Law) => kept.has(l.name), tried = new Map<string, number>(), late = new Map<string, string>(), hard = new Map<string, number>()
-  const keep = (law: Law, pr: Proof | undefined) => { if (pr) kept.set(law.name, pr); else late.set(law.name, stuck); return !!pr }
+  let curTier = 0
+  const keep = (law: Law, pr: Proof | undefined) => { if (pr) kept.set(law.name, pr); else late.set(law.name, stuck); if (pr && env.GDP_COUNTS_TRACE === '3') console.error(`counts: keep ${law.name.slice(0, 50)} tier ${curTier} at ${Math.round(clock() - t1)}`); return !!pr }
   // (the maps a law reads, a count's through its body)
   const mapsOf = (l: Law) => new Set([...reads(l.holds, () => true).values()].flatMap(([mp]) => [mp, ...(m.counts?.[mp] ? [...reads(m.counts[mp]!.body, () => true).values()].map(([q]) => q) : [])]))
   const near = (law: Law) => { const ms0 = mapsOf(law); return set.filter(l => l === law || (cone(l) && [...mapsOf(l)].some(q => ms0.has(q)))) }
@@ -407,6 +413,7 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
         const same = `${law.name}\n${ls.map(l => l.name).join('\n')}`
         if (knob.memo && askedLs.has(same)) continue
         askedLs.add(same)
+        curTier = t
         if (keep(law, attempt(law, ls, 1, knob.alone))) grew = any = true
       }
       if (t === 2) break
@@ -425,6 +432,7 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
     hard.set(next.name, kept.size)
     // (the kept laws a few hops from the law's maps first, a smaller goal, then every kept law)
     const few = hops(next, knob.hops), all = set.filter(l => l === next || cone(l))
+    curTier = 3
     if (keep(next, (few.length < all.length ? attempt(next, few, 1, 10_000) : undefined) ?? attempt(next, all, 1, 10_000))) sweep()
   }
   if (env.GDP_COUNTS_TRACE) console.error(`counts: kept ${kept.size} of ${set.length} in ${Math.round(clock() - t1)} ms`)

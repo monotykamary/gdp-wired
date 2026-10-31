@@ -154,6 +154,8 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
       if (!seen.has(id)) { seen.set(id, next); queue.push(next) }
     }
   }
+  const bfs = seen.size
+  if (env.GDP_COUNTS_TRACE === '3' && !queue.length) console.error(`counts: small ${JSON.stringify(p)} b ${b} bfs ${bfs} done, work left ${work}`)
   if (!queue.length) return [...seen.values()]
   const cell = (s: State, n: string, x: number) => s.maps[n]?.get(x) ?? s.defaults?.[n] ?? 0
   const kindOf = (a: State, c: State) => [...Object.keys(c.scalars).filter(n => a.scalars[n] !== c.scalars[n]),
@@ -177,6 +179,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
       if (!seen.has(id)) seen.set(id, st)
     }
   }
+  if (env.GDP_COUNTS_TRACE === '3') console.error(`counts: small ${JSON.stringify(p)} b ${b} bfs ${bfs} stopped (work left ${work}), walks to ${seen.size}`)
   return [...seen.values()]
 }
 // A ghost for a law about no key with one value ∃x. P over maps (PCorrect's "some process not done, or its y is 1"): x a
