@@ -107,17 +107,17 @@ def push(name: str, src: str, form: str = "snapshot", max_gb: float = 4.0):
     vm = new_vm()
     try:
         (d / "manifest.json").write_text(json.dumps(m))
-        tar = subprocess.Popen(["tar", "-C", str(d), "-cf", "-", "."], stdout=subprocess.PIPE)
+        tar = subprocess.Popen(["tar", "-C", str(d), "-cf", "-", "."], stdout=subprocess.PIPE, env={**os.environ, "COPYFILE_DISABLE": "1"})  # (no macOS ._ files)
         p = subprocess.run([boat.BOAT, "ssh", vm, "--", f"sudo mkdir -p /store/{name} && sudo chown $(id -un) /store/{name} && tar -C /store/{name} -xf -"],
                            stdin=tar.stdout, capture_output=True, env=boat.ENV, timeout=7200)
         tar.wait()
         if p.returncode != 0:
             raise RuntimeError(f"upload: {p.stderr.decode()[-300:]}")
         b64 = base64.b64encode(CHECK.encode()).decode()
-        r = boat.exec_(vm, ["bash", "-c", f"echo {b64} | base64 -d > /tmp/check.py && python3 /tmp/check.py /store/{name}"], 1800)
-        if not r.get("stdout", "").strip():
-            raise RuntimeError(f"the check on the VM said nothing: {r.get('stderr', '')[-300:]}")
-        check = json.loads(r["stdout"].strip().splitlines()[-1])
+        r = subprocess.run([boat.BOAT, "ssh", vm, "--", f"echo {b64} | base64 -d > /tmp/check.py && python3 /tmp/check.py /store/{name}"], capture_output=True, text=True, env=boat.ENV, timeout=3600)
+        if not r.stdout.strip():
+            raise RuntimeError(f"the check on the VM said nothing: {r.stderr[-300:]}")
+        check = json.loads(r.stdout.strip().splitlines()[-1])
         if check["nbad"] or check["files"] != len(m):
             raise RuntimeError(f"the VM's copy differs: {check}")
         log(f"{name}: on {vm}, {check['files']} files, every sha256 as here; saving store-{name}")
