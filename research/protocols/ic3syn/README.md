@@ -141,6 +141,23 @@ distinct states on the same constants (tlc.py: TLC 1.8.0 on Endive 8b6f2ab, `-de
 reachable states that break the property (0 for each port; above 0 for the broken variant, so the property is not
 vacuous there). `runs/ic3syn/check*.jsonl` in ../gdp-wired-laneA.
 
+**States are not enough: steps too (gen/laneK5).** Equal state counts leave out a guard stronger than the spec's whose
+lost steps end in states reached by other orders. tlc.py now dumps TLC's state graph (`-dump dot`) and counts its
+distinct steps between two different states; check.ts `--edges` counts the port's (a phase read as one step, from its
+start to each spec state it ends in). `runs/laneK5/tlc-main` (main a496507) and `runs/laneK5/tlc-branch`,
+`tlc-phases` (gen/laneK5), all on boat:
+- **On main, 23 of 26 ports equal TLC in states and steps; 3 do not.** majorityset_leader_election (400 states equal,
+  steps 705 against TLC's 993), client_server_db_ae (56,416 equal, steps 212,128 against 220,128) and mldr (states
+  1,596 against 5,362). The first two read a relation's row with a quantifier unbounded by the sort (`\A x: <<n, x>>
+  \notin vote` as `everyKey(x => Vote.at(n·N + x).not())`): at x >= N the key is the next row's (n + 1, x − N), so the
+  guard also asked that node n + 1 had not voted (majorityset's Voting, client_server_db_ae's NoneWithId), a guard
+  stronger than the spec's. consensus_epr and consensus_forall had the same unbounded `undecided`, and equal steps on
+  their instance (the next row was never decided where it was read).
+- **On the branch, all 26 unphased ports equal TLC in states and steps, and learning_switch_i4 (300) and paxos_epr
+  (23,578) in steps too, their phases read as one step**: every such quantifier is bounded by its
+  sort (k < N, or k < size: majorityset, client_server_db_ae, consensus_epr, consensus_forall, and the new ports), and
+  mldr is counted (below).
+
 | port | TLC | port | broken variant reaches a bad state |
 | --- | --- | --- | --- |
 | consensus | 4 | 4 | yes |
@@ -171,6 +188,8 @@ vacuous there). `runs/ic3syn/check*.jsonl` in ../gdp-wired-laneA.
 | consensus_forall (the config's three) | 112,128 | 112,128 | |
 | mldr (counted, gen/laneK5) | 5,362 | 5,362 (10,536 past the constraint) | yes |
 | learning_switch_i4 (Node 4, Packet 1) | 240 | 240 | yes (its own bug: a route learned both ways; below) |
+| learning_switch (Node 3, \|pending\| < 5) | 43,672 | 43,672 | yes (learning without the no-route check) |
+| paxos_epr (our TLA+ of paxos_epr.pyv; Node 3, Value 2, rounds 0..2, None 0) | 7,377 | 7,377 (steps 23,578 = 23,578) | yes (propose without the votes check) |
 
 - consensus_wo_decide stores the quorum it chose; its config lists the three 2-sets and not the full set, a majority too,
   so the port with every majority has states the config doesn't (a stored full set). At the config's three it is

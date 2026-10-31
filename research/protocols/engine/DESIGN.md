@@ -43,6 +43,157 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneK5: the three composed-key ports with nothing trusted added; a count read at a bound key refused (trusted, a narrowing); quantifiers past their sort found in four ports (steps checked against TLC); mldr counted and verified
+
+Branch gen/laneK5 from main a496507 (0.41.1). Not touched: core/counts.ts, exists.ts, infer.ts, dsl.ts (Lane C's), and
+lean-kernel/. Everything ran on boat (`SUPERCOMPUTER_CONTROLLER=0 GDPW_BOAT_URGENT=1` after the controller stopped);
+two jobs fell back to Modal when a boat VM was lost. Runs: `runs/laneK5/` in the worktree.
+
+**1. Composed keys: no kernel extension (untrusted).** gen/laneA's three "not expressible" (both learning switches'
+table write, pyv-paxos-epr's propose guard) need a quantifier over a relation's coordinate other than its last (read
+scaled, k·N) or a coordinate of its key (k mod N). The kernel's key rules refuse both because the runtimes decide a
+quantified flag or a write at every key on the breakpoints of plain key terms; the meaning has no such rule (Sets.lean's
+`decideQ` is the classical ∀, `everyMaps` any value). Encodings the kernel already accepts express each exactly
+(research/protocols/ic3syn/README.md, "Composed keys"):
+- **a radix block as one key**: node n's ∀ MAXR, V is one key j = MAXR·N + V of its block (MAXR < r iff j < r·N);
+- **a phase**: the action as a fixed sequence of steps, one value of the high coordinate a step, nothing between them
+  (`busy`), its states no spec states: the switches' table write a row a step (row sw0 is the same after its step, and
+  row x's <<pa, x, sw1>> is read before row x is written), paxos's propose a node a step (its quorum kept);
+- **a count of the request** for decide's ∀ N ∈ q (counts read any key term in their body).
+Designed, not built: bounded quantified flags (each key below a bound reading no key, decided by enumerating the box,
+any read inside), which would make each one step; the meaning needs no change, only scope and the runtimes. Not built
+because the encodings above express the three with nothing trusted changed.
+
+**2. Found and fixed (trusted, a refusal): a count map read at a bound key.** A count map (Machine.counts;
+CountMachine.lean's `cntOf`, a value at every key) is read by scope as a carried map, so keyOnly accepted it at a
+quantified flag's or a write-at-every-key's key; the runtimes decide those on the cells the maps hold, and a count's map
+(carriedView's CountCells) holds only the cells read so far. Probe (`runs/laneK5/pilot1/countkey.log`): C[x] = |{k <
+64: k < x}|, a flag `∀y. C[y] <= 5` (false in the meaning at every state), `ok := small ? 1 : ok`: scope accepted it and
+the interpreter's first step set ok = 1 where the meaning keeps 0. The search did not prove "ok stays 0", so no wrong
+verdict was shown end to end, but a proven law's promise about the runtime's states was broken for such machines.
+- **Fix** (kernel/kernel.ts, scope's `bound`, 31bd348): counts join fns in keyOnly's list: a count is read at no key
+  term of a bound key, as a function already isn't; C[i] and C[M[k]] (constant between M's cells) are accepted as before.
+- **No Lean change**: the twin has no key rules (they are the runtimes' decidability), and this only narrows what scope
+  accepts. **Test**: kernel/refusals.test.ts (a flag, an offset key, a write at every key refused; C[i] and M[y] beside
+  C[i] accepted); refusals, countmachine, sets, keyterms, pairs, quantifiers pass (`tests1`). No mutant: the change has
+  none of mutants.ts's operators; the test fails without it (countkey's probe accepted before, refused after).
+- **terra** (gpt-6.1-terra, scratch copy, one question, table first): every quantified-flag and write site refused for
+  direct reads; nested C[M[k]] accepted and decided correctly (it varies only where M's read does). Its one "no": least
+  keys (Machine.leasts) aren't checked by scope, and leastsIn would find a wrong least where `where` reads a count at
+  the key. Checked: to the kernel a least key is an input like any other, proven for every value unless the rule's
+  assumption constrains it, and the DSL's assumption is an everyKey flag, which the fix refuses at the key; the runtimes
+  check the assumption and refuse a step that fails it. A wrong least is a value the proof covers, or a refused step.
+
+**3. Quantifiers past their sort: four of main's ports had a guard stronger than the spec's (untrusted ports).** A
+quantified flag over a relation's last coordinate, unbounded (`everyKey(x => Vote.at(n·N + x).not())` for `\A x: <<n,
+x>> \notin vote`), reads at x >= N the next row's cell (n + 1, x − N): the guard also asks that node n + 1 had not voted.
+Found by a probe of the new pyv switch (its `noRoute`), then in majorityset (`didNotVote`), client_server_db_ae
+(`noneWithId`), consensus_epr and consensus_forall (`undecided`); fixed by bounding each by its sort (248bf64).
+**State counts didn't show it** (the lost steps' targets are reached in other orders), so tlc.py now counts TLC's state
+graph's steps (`-dump dot`) and check.ts `--edges` the port's:
+- **main** (`tlc-main`): 23 of 26 ports equal TLC in states and steps; majorityset steps 705 against 993,
+  client_server_db_ae 212,128 against 220,128 (states equal), mldr 1,596 states against 5,362. consensus_epr and
+  consensus_forall equal on their instance (the next row was never decided where read).
+- **branch** (`tlc-branch`, `tlc-phases`, `ls-diff2`): all 26 unphased ports equal TLC in states and steps; the new
+  ports in states (learning_switch 43,672, learning_switch_i4 240, paxos_epr 7,377) and, phases read as one step,
+  learning_switch_i4 and paxos_epr in steps (300; 23,578); every broken variant reaches a bad state but consensus_epr's and forall's (their BFS
+  ran past the cap, as before).
+- **What main's proofs were about:** majorityset's (proven at 60 and 300 s) was of a machine with fewer steps than the
+  spec's; consensus_epr's (proven at 300 s) of one equal on the instance and differing only where another node had
+  decided. **Re-proven on the corrected ports**: majorityset 60 s 33.6 / 15.8 s, 300 s 11.9 / 10.6 s; consensus_epr 300 s
+  236.3 / 279.5 s (unknown at 60 s, as on main); both exported to Lean and checked (below). client_server_db_ae and
+  consensus_forall are unknown or killed on both sides. **So the published 16 / 19 hold as counts**, and the two proofs
+  now stand on ports equal to TLC's state graphs.
+
+**4. The ports' TLC checks.** learning_switch (Node 3, |pending| < 5): 43,672 = 43,672 (BFS 1,200 s), broken variant
+(learn without the no-route check) 18 bad states. learning_switch_i4 (Node 4, Packet 1): 240 = 240, steps 300 = 300;
+with link a perfect matching a packet goes one hop and each source learns one route, so its broken variant writes the
+route both ways (36 bad). paxos_epr: TLC on our transcription of paxos_epr.pyv (models.ts `paxosTla`; Node 3, Value 2,
+rounds 0..2, None 0): 7,377 = 7,377, broken (propose without the votes check) 137 bad. Two port bugs the checks found on
+the way: the row overflow above (noRoute, below2, noProposal), and i4's link constraint read as a comparison of the key
+with a map's value at it (refused; now `link` pairs two unlinked nodes both ways).
+
+**5. mldr: counted, verified, no longer starving.** Its majorities and QuorumsOverlap are now counts of the request
+(one count per majority, 2·|Q| + |Server \ X| > size; dx, dy, m for the overlap), config[i] carried as X (equal to it
+at every key below size), no injection witnesses: 5,362 = TLC's 5,362, steps 18,327 = 18,327, broken variant 5 bad.
+gen/laneA's port reached 1,596 (TLC counts no state past the constraint, so the earlier reading of the gap was wrong
+too). The search now reaches the engine (pool at 15 s) and ends inside its budget: unknown 60.1 / 60.2 s and 300.1 /
+297.0 s, alone on its VM (`"timing": true`), where main's was killed at 2.5 times its budget on both. Two engine bugs
+(core/counts.ts, Lane C's, worked around in the port, not fixed): a request count whose body reads an input made the
+engine evaluate it without the request ("no value for i"); a guard comparing two request counts made guardLaws propose
+a stored-count law reading the other request count ("law inS$CT keeps inS's bound 0 reads the map xNotS").
+
+**IC3Syn, per protocol, before (main a496507) and after (9875117 and the commits before it on the protocols they
+touch); boat; seconds r1 / r2; r1 also ran the broken variant (none proven anywhere); killed: no verdict, the job killed
+at 2.5 times its budget plus 60 s**
+
+| protocol | 60 s before | 60 s after | 300 s before | 300 s after |
+| --- | --- | --- | --- | --- |
+| consensus | proven 0.4 / 0.3 | proven 0.7 / 0.4 | proven 0.7 / 0.3 | proven 0.3 / 0.4 |
+| tcommit | proven 0.7 / 0.4 | proven 0.8 / 0.7 | proven 1.1 / 0.6 | proven 0.4 / 0.6 |
+| lock_server | proven 9.6 / 9.7 | proven 5.3 / 7.6 | proven 5.7 / 5.6 | proven 4.4 / 7.3 |
+| quorum_leader_election | proven 8.8 / 8.9 | proven 16.7 / 15.9 | proven 6.2 / 6.7 | proven 8.9 / 7.3 |
+| toy_consensus_forall | proven 6.3 / 6.4 | proven 18.6 / 7.1 | proven 7.7 / 6.8 | proven 10.1 / 4.5 |
+| simple | proven 12.2 / 11.7 | proven 13.9 / 13.9 | proven 17.4 / 12.3 | proven 12.2 / 11.1 |
+| lockserv_automaton | proven 12.9 / 13.6 | proven 10.7 / 10.5 | proven 18.1 / 22.4 | proven 9.6 / 19.0 |
+| simple_regular | unknown 8.6 / 9.8 | unknown 9.8 / 25.2 | unknown 15.5 / 9.9 | unknown 9.1 / 16.9 |
+| sharded_kv | unknown 70.8 / 71.9 | unknown 72.2 / 68.9 | unknown 102.1 / 86.0 | unknown 66.4 / 123.1 |
+| lockserv | proven 13.8 / 12.2 | proven 10.6 / 14.1 | proven 11.2 / 9.5 | proven 7.5 / 8.9 |
+| twophase | unknown 37.1 / 24.8 | unknown 31.9 / 32.6 | proven 205.5 / 155.7 | proven 190.7 / 163.4 |
+| learning_switch_i4 | not ported | killed / killed | not ported | killed / killed |
+| simple_decentralized_lock | proven 7.5 / 6.2 | proven 6.0 / 9.1 | proven 9.0 / 6.3 | proven 7.0 / 5.0 |
+| two_phase_commit | proven 15.8 / 18.7 | proven 16.3 / 15.9 | proven 27.2 / 14.3 | proven 19.7 / 18.2 |
+| consensus_wo_decide | proven 55.4 / 48.7, 49.7 / 49.7 | proven 48.6 / 48.5, 48.2 / 56.7 | proven 69.0 / 70.6 | proven 68.7 / 45.6 |
+| consensus_forall | unknown 60.2 / 60.2 | unknown 60.3 / 60.2 | unknown 300.5 / 300.2 | unknown 300.1 / 300.2 |
+| learning_switch | not ported | killed / killed | not ported | killed / killed |
+| sharded_kv_no_lost_keys | killed / killed | killed / killed | killed / killed | killed / killed |
+| naive_consensus | proven 24.1 / 26.0 | proven 24.3 / 22.9 | proven 13.9 / 23.0 | proven 23.2 / 17.8 |
+| client_server_ae | proven 7.9 / 6.6 | proven 6.9 / 5.5 | proven 3.0 / 4.2 | proven 8.8 / 8.3 |
+| simple_election | proven 19.8 / 15.5 | proven 15.1 / 19.6 | proven 10.8 / 19.7 | proven 22.1 / 28.5 |
+| toy_consensus_epr | proven 16.1 / 18.2 | proven 15.0 / 15.9 | proven 10.0 / 9.5 | proven 8.9 / 23.5 |
+| toy_consensus | proven 7.3 / 8.9 | proven 9.8 / 6.2 | proven 4.3 / 4.2 | proven 3.8 / 11.9 |
+| client_server_db_ae | killed / killed | killed / killed | killed / killed | killed / killed |
+| firewall | unknown 70.0 / 91.9 | unknown 85.5 / 91.5 | unknown 69.3 / 97.3 | unknown 67.6 / 118.3 |
+| majorityset_leader_election | proven 15.5 / 14.8 | proven 33.6 / 15.8 | proven 8.9 / 17.9 | proven 11.9 / 10.6 |
+| consensus_epr | unknown 60.2 / 60.2 | unknown 60.1 / 60.3 | unknown 59.2 / **proven 149.9** | **proven 236.3 / 279.5** |
+| mldr | killed / killed | unknown 60.1 / 60.2 | killed / killed | unknown 300.1 / 297.0 |
+| pyv-paxos-epr | not ported | unknown 60.2 / 60.1 | not ported | unknown 300.2 / 66.0 |
+
+- **60 s: 17 of 29 proven in both runs, before and after** (the same 17; the coordinator's 16 is Modal's, wo at the
+  wall there). **300 s: before 18 in both runs and consensus_epr in one; after 19 in both.** Nothing proven was lost;
+  no broken variant proven. The new ports are measured, not won: the switches' search never starts (the start goal of
+  their table laws times out in the prover at 2 hypotheses; a minimal machine with the same law proves in 1.5 s, so it
+  is the machine's shape, not diagnosed further; i4's bun crashed at 4.85 GB once), paxos and mldr end unknown.
+
+**Gates**
+- **The ten at 60 s, boat, 200** (`ten-pilot`, `ten190`): 199 of 200, the miss ring at the wall (unknown 60.0 s, pool 44
+  cubes); paired ring runs (`ringa`, `ringb`, 20 a side, same hour): after 18 of 20 (both misses at the wall, pool 44),
+  before 20 of 20, medians 31.8 and 35.8 s: ring's margin, which the change (one more name in scope's key check) doesn't
+  touch; not significant, not shown to be nothing.
+- **Lean** (`lean`, Modal fallback after a lost boat VM): counted-lean.ts on the corrected consensus_epr,
+  consensus_wo_decide, majorityset: 35, 43, 19 laws, CountedIC3.lean 1.79 MB, Lean 4.34.0 exit 0, no sorry, `ic0_laws`
+  to `ic2_laws` on [propext, Classical.choice, Quot.sound].
+- **tsc and oxlint** (the suite's form, `tsc2`): no tsc error in kernel/ or research/protocols/ic3syn; oxlint 0 / 0 on the
+  touched files. The tree's other tsc errors are the vendor/ checkouts, as on main; main's oxlint error in
+  research/hw/run-more.ts is not this branch's.
+- **The quick bar** (9875117 against ae36917's boat baseline, `runs/bar/runs/9875117d2592-vs-ae369178e65d-quick-2026-10-311405`):
+  wrong 0 everywhere; nothing solid lost (ITS gdp lost 6 at the limit, noise; scc gained 1; f2 lost 1 not solid); CHC,
+  SV and TIP's candidate launches failed on boat (no task ran: `tasks failed on boat`, then their 1,800 s wall), rerun
+  below. SUITE_AND_RERUN
+- **Bytes**: core/ 0; kernel/ +135 (kernel.ts) and +1,709 (refusals.test.ts).
+
+**Spend**: boat reported $1.95 for the whole account from 12:15 to the first check (this lane 14 starts then); the
+bar's report and the final figure below. FINAL_SPEND
+
+**Verified, not**
+- **Verified:** the count-at-a-bound-key divergence (probe) and its refusal (test, terra, its claim checked); every
+  IC3Syn port on the branch equal to TLC in states, all but pyv learning_switch in steps too; main's three ports that weren't
+  (steps), and that two were proven there; the corrected majorityset and consensus_epr proven again and checked by Lean;
+  the IC3Syn table (two runs each side at 60 and 300 s); the ten 199 of 200.
+- **Not verified:** pyv learning_switch's steps (states only: its BFS alone takes 1,200 s); that
+  the switches' start goal fails for the reason guessed (machine shape); the two count bugs in core/counts.ts beyond
+  their messages; IC3Syn's own numbers (no artifact); the bounded-quantifier design (not built).
+
 ## gen/laneG2: consensus_epr proven (two supports the counted search didn't propose); the ERC-20 sum law proven whole (arguments shared across methods); firewall and wo measured, not won (untrusted; nothing trusted changed)
 
 Branch gen/laneG2 from main cf00792 (0.40.0). Nothing reads a protocol's or a contract's name; kernel/, lean-kernel/ and
