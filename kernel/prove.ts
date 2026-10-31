@@ -219,6 +219,8 @@ export function withWall<T>(end: number, f: () => T): T {
   wallEnd = Math.min(outer, end)
   try { return f() } finally { wallEnd = outer }
 }
+// (the wall's end in force, Infinity where none: a search inside that stops itself there)
+export const wallAt = (): number => wallEnd
 export const late = (until: number): boolean => clock() > until || (workCap !== Infinity && fullWork() > workCap) || pastWall()
 // A budget's end, within the deadline (a translation's own bound, core/cyclic.ts's, kept by the export's GDP_CERT_MS).
 export const withinDeadline = (until: number): number => Math.min(until, deadline)
