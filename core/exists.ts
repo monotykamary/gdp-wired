@@ -519,10 +519,10 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
   // (a law about every key with no witness term: the next ghost map past `from` that keeps its law and the ghost's own
   // on every state of the small instances, each param 2 and 3)
   // (a ghost map named apart from the machine's names and from the maps the other laws' plans chose)
-  const taken = (p: Plan) => new Set([...takenOf(m), ...[...plans.values()].flatMap(q => (q !== p && q.pick.mode === 'map' ? [q.maps[q.pick.at]!.name] : []))])
+  const apart = (p: Plan) => new Set([...takenOf(m), ...[...plans.values()].flatMap(q => (q !== p && q.pick.mode === 'map' ? [q.maps[q.pick.at]!.name] : []))])
   const toMap = (p: Plan, from: number): boolean => {
     const others = [...plans.values()].filter(q => q !== p && q.pick.mode === 'map')
-    if (from < 0) p.maps = mapGhostsOf(m, p.law, taken(p))
+    if (from < 0) p.maps = mapGhostsOf(m, p.law, apart(p))
     for (let j = from + 1; j < p.maps.length; j++) {
       const g = p.maps[j]!
       try {
@@ -543,7 +543,7 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
     if (p.law.forall && !p.given && p.groups.length === 1 && p.groups[0]!.length === 1 && mapsRead(p.law) && p.pick.mode === 'term' && !first) {
       // (the first pick a machine's law got, again: a search asks the same law with each candidate set)
       const id = key([m.step, m.assume ?? null, m.maps ?? null, p.law.holds]), had = firstPicks.get(id)
-      if (had?.mode === 'map') { p.maps = mapGhostsOf(m, p.law, taken(p)); p.pick = {...had} }
+      if (had?.mode === 'map') { p.maps = mapGhostsOf(m, p.law, apart(p)); p.pick = {...had} }
       else if (had) p.pick = {mode: 'term', at: [...had.at]}
     }
     if (p.law.forall && !p.given && p.groups.length === 1 && p.groups[0]!.length === 1 && mapsRead(p.law) && p.pick.mode === 'term' && !first && !firstPicks.has(key([m.step, m.assume ?? null, m.maps ?? null, p.law.holds]))) {
