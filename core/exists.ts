@@ -128,12 +128,13 @@ function solved(atoms: Atom[], g: Group): Cand[] {
 }
 
 const atomsOf2 = (c: C): C[] => (c.op === 'and' || c.op === 'or' ? c.xs.flatMap(atomsOf2) : c.op === 'not' ? atomsOf2(c.x) : [c])
-// --- the small instances (core/counts.ts's filter and the ghost maps' below) --------------------------------------------------------------------------------------------------
+// --- the small instances ---------------------------------------------------------------------------------------------
 // Every state reached from the start with the params at `p`, each input below `b`, each carried map a subset of 0 .. b − 1.
 // (at most `cap` states, and `work` steps tried: a wide request space ends the BFS early, its states still reachable;
 // then, with `walks` steps more, random walks past it, each step a change of a kind (the variables it writes) chosen
 // alike among those a few requests make: an action the BFS's levels never reach, a leader past a majority's votes, is
-// taken as often as any other)
+// taken as often as any other. Each state's step from the state it was first reached from is kept: `pathTo`.)
+const pathTo = new WeakMap<State, [State, Request]>()
 export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000, walks = 0): State[] {
   const run = interpret(m), start = run.init(p)
   const subsets = Array.from({length: 1 << b}, (_, s) => new Map(Array.from({length: b}, (_, i) => i).filter(i => (s >> i) & 1).map(i => [i, 1] as [number, number])))
@@ -144,14 +145,15 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
   for (const c of m.inputMaps ?? []) reqs = reqs.flatMap(r => subsets.map(s => ({...r, [c]: s})))
   const idOf = (s: State) => key([s.scalars, Object.entries(s.maps).map(([n, cs]) => [n, [...cs].filter(([, x]) => x).sort((a, c) => a[0] - c[0])])])
   const seen = new Map<string, State>([[idOf(start), start]]), queue = [start]
+  const reached = (next: State, from: State, r: Request): State => { const id = idOf(next), had = seen.get(id); if (had) return had; seen.set(id, next); pathTo.set(next, [from, r]); return next }
   while (queue.length && seen.size < cap && work > 0) {
     const st = queue.shift()!
     for (const r of reqs) {
       if (--work < 0) break
       let next: State
       try { next = run.step(p, st, r) } catch { continue }
-      const id = idOf(next)
-      if (!seen.has(id)) { seen.set(id, next); queue.push(next) }
+      const n0 = seen.size
+      if (reached(next, st, r) && seen.size > n0) queue.push(next)
     }
   }
   if (!queue.length) return [...seen.values()]
@@ -163,18 +165,17 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
   for (let t = 0; walks > 0 && seen.size < 2 * cap; t++) {
     let st = t % 2 ? start : [...seen.values()][rnd(seen.size)]!
     for (let d = 0; d < 40 && walks > 0; d++) {
-      const by = new Map<string, State[]>()
+      const by = new Map<string, [State, Request][]>()
       for (let i = 0; i < 48; i++, walks--) {
+        const r = reqs[rnd(reqs.length)]!
         let next: State
-        try { next = run.step(p, st, reqs[rnd(reqs.length)]!) } catch { continue }
+        try { next = run.step(p, st, r) } catch { continue }
         const kd = kindOf(st, next)
-        if (kd) by.set(kd, [...by.get(kd) ?? [], next])
+        if (kd) by.set(kd, [...by.get(kd) ?? [], [next, r]])
       }
       if (!by.size) break
-      const ks = [...by.values()], at = ks[rnd(ks.length)]!
-      st = at[rnd(at.length)]!
-      const id = idOf(st)
-      if (!seen.has(id)) seen.set(id, st)
+      const ks = [...by.values()], at = ks[rnd(ks.length)]!, [next, r] = at[rnd(at.length)]!
+      st = reached(next, st, r)
     }
   }
   return [...seen.values()]
@@ -193,10 +194,32 @@ export function ghostOf(m: Machine, law: Law): SomeWitness | undefined {
   const starts = [k(0), ...m.params.flatMap(q => [v(q), sub(v(q), k(1))])]
   for (const t of ts.values()) for (const start of starts) {
     const step: E = {op: 'if', c: keep, then: v(x), else: t}, gm: Machine = {...m, state: {...m.state, [x]: start}, step: {...m.step, state: {...m.step.state, [x]: step}}}
-    const ok = [2, 3].every(q => { const ps = Object.fromEntries(m.params.map(p => [p, q])); try { return small(gm, ps, 3, 3000, 100_000).every(st => holdsAt(gm, {...law, some: undefined}, ps, st, 3)) } catch { return false } })
-    if (ok) return {ghost: {[x]: {start, step}}}
+    if (trueSmall(m, [{...law, some: undefined}], gm)) return {ghost: {[x]: {start, step}}}
   }
   return undefined
+}
+// The small instances, the one filter of every candidate (core/counts.ts's laws, the witnesses and ghosts here): each
+// param 2 and 3, every input and carried set below 3, every state the BFS reaches in 300,000 steps (3,000 at most) and
+// the walks past it in a third as many; an instance whose params the machine refuses has no states. Read once a machine.
+const smalls = new WeakMap<Machine, {p: Env, sts: State[]}[]>()
+export function smallOf(m: Machine): {p: Env, sts: State[]}[] {
+  let out = smalls.get(m)
+  if (!out) smalls.set(m, (out = [2, 3].map(x => { const p = Object.fromEntries(m.params.map(q => [q, x])); try { return {p, sts: small(m, p, 3, 3000, 300_000, 100_000)} } catch { return {p, sts: []} } })))
+  return out
+}
+// Laws true at every small state, at every key below one past their values. With `ghosted`, the machine with ghosts
+// (state no step of m reads), each small state of m with the ghosts' values along the steps it was first reached by:
+// one instance a machine, however many ghosts are asked of it.
+export function trueSmall(m: Machine, laws: Law[], ghosted?: Machine): boolean {
+  const g = ghosted ?? m, run = ghosted && interpret(ghosted)
+  return smallOf(m).every(({p, sts}) => {
+    const at = new Map<State, State>()
+    return sts.every(st => {
+      let s = st
+      if (run) { const from = pathTo.get(st); try { s = from ? run.step(p, at.get(from[0])!, from[1]) : run.init(p) } catch { return false } at.set(st, s) }
+      return laws.every(l => holdsAt(g, l, p, s, 4))
+    })
+  })
 }
 // A law at a state, its counts the state's, at every key below b.
 // (a state's view once: a law is read at every state, and every law at each)
@@ -495,15 +518,16 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
   const rounds = opts.rounds ?? 24
   // (a law about every key with no witness term: the next ghost map past `from` that keeps its law and the ghost's own
   // on every state of the small instances, each param 2 and 3)
-  const smallOk = (mm: Machine, ls: Law[]) => [2, 3].every(x => { const ps = Object.fromEntries(m.params.map(q => [q, x])); return small(mm, ps, 2, 1500, 100_000).every(st => ls.every(l => holdsAt(mm, l, ps, st, 2))) })
+  // (a ghost map named apart from the machine's names and from the other laws' plans' maps)
+  const apart = (p: Plan) => new Set([...takenOf(m), ...[...plans.values()].flatMap(q => (q !== p ? q.maps.map(g => g.name) : []))])
   const toMap = (p: Plan, from: number): boolean => {
-    if (from < 0) p.maps = mapGhostsOf(m, p.law, takenOf(m))
     const others = [...plans.values()].filter(q => q !== p && q.pick.mode === 'map')
+    if (from < 0) p.maps = mapGhostsOf(m, p.law, apart(p))
     for (let j = from + 1; j < p.maps.length; j++) {
       const g = p.maps[j]!
       try {
         const mm = withMap(others.reduce((acc, q) => withMap(acc, q.maps[(q.pick as {at: number}).at]!), m), g)
-        const ok = smallOk(mm, [g.inv, {...p.law, holds: g.holds, some: undefined}])
+        const ok = trueSmall(m, [g.inv, {...p.law, holds: g.holds, some: undefined}], mm)
         if (log) console.error(`exists: map ${g.name} at ${showE(g.at)} := ${showE(g.write.value)}: ${ok ? 'kept' : 'false on the small instances'}`)
         if (ok) { p.pick = {mode: 'map', at: j}; return true }
       } catch (e) { if (log) console.error(`exists: map ${g.name}: ${String(e).slice(0, 120)}`) }
@@ -519,11 +543,12 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
     if (p.law.forall && !p.given && p.groups.length === 1 && p.groups[0]!.length === 1 && mapsRead(p.law) && p.pick.mode === 'term' && !first) {
       // (the first pick a machine's law got, again: a search asks the same law with each candidate set)
       const id = key([m.step, m.assume ?? null, m.maps ?? null, p.law.holds]), had = firstPicks.get(id)
-      if (had?.mode === 'map') { p.maps = mapGhostsOf(m, p.law, takenOf(m)); p.pick = {...had} }
+      // (a ghost map this machine refuses, one with sums, say, is no pick here)
+      if (had?.mode === 'map') { p.maps = mapGhostsOf(m, p.law, apart(p)); try { withMap(m, p.maps[had.at]!); p.pick = {...had} } catch { /* the term */ } }
       else if (had) p.pick = {mode: 'term', at: [...had.at]}
     }
     if (p.law.forall && !p.given && p.groups.length === 1 && p.groups[0]!.length === 1 && mapsRead(p.law) && p.pick.mode === 'term' && !first && !firstPicks.has(key([m.step, m.assume ?? null, m.maps ?? null, p.law.holds]))) {
-      const x = p.groups[0]![0]!, at = p.terms[0]!.findIndex(t => { try { return smallOk(m, [{...p.law, holds: substVars(p.law.holds, {[x]: t[0]!}), some: undefined}]) } catch { return false } })
+      const x = p.groups[0]![0]!, at = p.terms[0]!.findIndex(t => { try { return trueSmall(m, [{...p.law, holds: substVars(p.law.holds, {[x]: t[0]!}), some: undefined}]) } catch { return false } })
       if (log) console.error(`exists: first term on the small instances: ${at < 0 ? 'none' : describe({...p, pick: {mode: 'term', at: [at]}}, cases)}`)
       if (at >= 0) p.pick = {mode: 'term', at: [at]}
       else if (!toMap(p, -1)) return {proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: `${p.law.name} @step`, stuck: 'unknown', why: `no witness for "${p.law.name}" holds on the small instances`}}
