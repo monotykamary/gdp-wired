@@ -627,8 +627,9 @@ function inScope(what: string, ts: (E | C)[], vars: string[], maps: string[] = [
   }
 }
 // A name the kernel's linear forms would read as something else: '1' is the constant, and '*', '[', ']', ',' and ':'
-// build monomials and cells. Such a name could never be proven about; refused instead, with its name.
-const plainName = (what: string, name: string) => { if (name === '1' || /[*[\],:]/.test(name)) throw new Error(`${what}: the name ${name} is reserved (1, or * [ ] , :)`) }
+// build monomials and cells; '#' marks the fresh name a law is proven at (k#, its key's), which a name of the machine or
+// another key of the law would capture. Such a name could never be proven about; refused instead, with its name.
+const plainName = (what: string, name: string) => { if (name === '1' || /[*[\],:#]/.test(name)) throw new Error(`${what}: the name ${name} is reserved (1, or * [ ] , : #)`) }
 const distinct = (what: string, names: string[]) => { const seen = new Set<string>(); for (const name of names) { if (seen.has(name)) throw new Error(`${what} declares ${name} twice`); seen.add(name) } }
 
 // A machine (without its history: historyMachine checks that and scopes the plain machine it makes) and its laws. The
@@ -675,7 +676,7 @@ export function scope(m: Machine, laws: Law[] = []) {
   distinct(`${m.name}'s laws and facts`, [...laws, ...facts].map(l => l.name))
   for (const law of [...laws, ...facts]) {
     const what = facts.includes(law) ? `fact ${law.name}` : `law ${law.name}`
-    for (const key of [law.forall, ...(law.keys ?? [])]) if (key && [...names, ...maps, ...carried, ...fns].includes(key)) throw new Error(`${what}'s key ${key} is already a name of ${m.name}`)
+    for (const key of [law.forall, ...(law.keys ?? [])]) if (key) { plainName(what, key); if ([...names, ...maps, ...carried, ...fns].includes(key)) throw new Error(`${what}'s key ${key} is already a name of ${m.name}`) }
     if (law.keys?.length && (!law.forall || new Set([law.forall, ...law.keys]).size !== law.keys.length + 1)) throw new Error(`${what}: further keys come with a first, each a different name`)
     if (law.name.startsWith('?')) throw new Error(`${what}: a name starting with ? is a flag's (its instances)`)
     unquantified(what, law.holds)
