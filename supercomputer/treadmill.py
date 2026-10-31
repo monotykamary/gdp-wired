@@ -1127,6 +1127,9 @@ DIFFER = re.compile(r"the rule and the code differ: (?!the code doesn't load|the
 
 def xfuzz_cmd(lang: str, seed: int) -> str:
     setup, test, _, _ = XFUZZ[lang]
+    # (a fresh seed draws more requests than the tests' own: bun's 5 s a test cut extract-c's boundary test 3 times in 6
+    # in the pilot, a timeout and no difference; every test gets 5 minutes unless its file's command says more)
+    test = test if "--timeout" in test else f"--timeout 300000 {test}"
     return (f"bun install --frozen-lockfile >/dev/null 2>&1; {XPATCH}{setup}; cd core && XFUZZ_SEED={seed} bun test {test} 2>&1 | "
             f"grep -v '^(pass)' | tail -c 6000; s=${{PIPESTATUS[0]}}; echo xfuzz-exit $s; exit $s")
 
