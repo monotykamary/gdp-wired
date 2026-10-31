@@ -22,7 +22,7 @@ first:
           once; tried ones with no gain parked, tried again every REVISIT sweeps); a budget stops after --nogain tried
           rounds in a row that solve nothing new. A task solved past 60 s (a target) runs with timing placement, and
           its per-stage profile is kept (e: the target list).
-  ten     (f) the ten core protocols (research/protocols) at 60 s, 20 runs each, timing placement, low priority.
+  ten     (f) the ten core protocols (research/protocols) at 60 s, 20 runs each, timing placement, launched last.
   sound   the floor and the fill: kernel, CDCL and tamper fuzz at fresh seeds, the extractor correspondence fuzz (each
           reader's own check harness, core/<lang>, at a fresh seed: the extracted rule against the real code on random
           requests), and at a commit that changes kernel/kernel.ts or core/check.ts its mutants. A NEW survivor (not
@@ -1039,9 +1039,11 @@ class RealWorld(Follow):
 
 
 class Ten(Follow):
-    """(f) the ten core protocols (research/protocols/models.ts) at 60 s, RUNS runs each, timing placement, at the
-    filler class (low priority: idle capacity only)."""
-    name, inputs, chain = "ten", "ten", "b"
+    """(f) the ten core protocols (research/protocols/models.ts) at 60 s, RUNS runs each, timing placement, at low
+    priority: launched last (from the fill, with what the main chains left), at the sweep class all the same, as a
+    timing item needs an empty VM and only a higher class empties a VM of the fuzz fill (a filler timing item waited
+    behind it: 6 of 20 placed in 15 minutes in the pilot)."""
+    name, inputs = "ten", "ten"
     RUNS = knob("TEN_RUNS", 20)
 
     def advance(self, c: str, a: dict, free: int) -> int:
@@ -1075,7 +1077,7 @@ class Ten(Follow):
                     v = json.loads(logs.get(it["name"], {}).get("out", "").strip().splitlines()[-1])
                     s = v.get("search") or {}
                     append(TM / "ten.jsonl", {"t": time.time(), "commit": c, "id": ids[k], "run": r, "verdict": s.get("verdict"), "ms": s.get("ms"), "cpu": place.get(it["name"])})
-        b = Batch(self.tm, label, "b", items, max(1, min(free, 4)), tracked(self.tm, "ten", label, on_row), root=a["tree"], after=after, oleans=True)
+        b = Batch(self.tm, label, "a", items, max(1, min(free, 4)), tracked(self.tm, "ten", label, on_row), root=a["tree"], after=after, oleans=True)
         a["batches"]["ten"] = b
         self.tm.batches.append(b)
         return free - b.vms
