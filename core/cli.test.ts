@@ -482,3 +482,20 @@ class Counter:
   expect(law.run!.join('\n')).toMatch(/failed\(vm=/)
   expect(b.exit).toBe(1)
 })
+
+// A law about an argument the code ignores (the bug is that it does): the argument kept in the rule, the law broken.
+;(TOOLS.python!() ? test : test.skip)('the CLI on a law reading an argument the code ignores: broken, with its run', async () => {
+  const dir = files({'waits.py': `
+class Waits:
+    def __init__(self):
+        self.fails = 0
+
+    # gdp: law a wait counts only where a start failed: fails == old(fails) or start_failed
+    def waited(self, start_failed: bool) -> None:
+        self.fails += 1
+`})
+  const {rules, exit} = await check([`${dir}/waits.py`], {ms: 5000, propose: false})
+  expect(rules[0]!.laws.map(l => l.verdict)).toEqual(['broken'])
+  expect(rules[0]!.laws[0]!.run!.join('\n')).toMatch(/waited\(start_failed=false\)/)
+  expect(exit).toBe(1)
+})

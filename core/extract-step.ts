@@ -95,6 +95,9 @@ export type StepOptions = {
   failures?: 'refuse' | 'kept',
   onError?: 'refuse' | 'discard',
   domains?: Record<string, 'nat' | 'int'>,
+  // The request's arguments (by the code's names) kept in the rule though no term reads them: a law about the request
+  // may read one the code ignores ("a wait counts only when start_failed", of code that never looks at it)
+  keep?: string[],
   // Constructor arguments taken at their defaults (the claim is for objects made so): the fields the constructor sets
   // to them, which no method read writes, are constants of the rule, not its state.
   defaults?: string[],
@@ -339,6 +342,8 @@ export class Stepper {
   intTy(t: SType): IntTy | undefined { return t.k === 'int' && t.bits !== undefined ? {bits: t.bits, signed: t.signed ?? true, ...(t.mod ? {mod: t.mod} : {})} : undefined }
   // (bytes: a string of the rule's that is never equal to a str, as Python's b"x" != "x")
   bytesVars = new Set<string>()
+  // (the request's arguments kept though no term reads them: opts.keep)
+  kept = new Set<string>()
   typed(v: Var, t: SType | IntTy, role: Var['role'], sel = this.sel) {
     if ('k' in t && t.k === 'str' && t.bytes) this.bytesVars.add(v.name)
     const ty = 'k' in t ? this.intTy(t) : t
@@ -3376,6 +3381,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
       const had = at ? g.shared.get(`${ty} ${k}`) : undefined
       if (had && had[1].k === 'in') { g.typed(g.vars.get(had[1].name)!, pa.t, 'input'); args.push(had[0]); pargs.push([pa.name, had[1]]); continue }
       const [v, a] = g.input(nm, pa.t, fn, p)
+      if (opts.keep?.includes(pa.name)) { const keepOf = (x: PArg): void => { if (x.k === 'in') g.kept.add(x.name); else if (x.k === 'opt') { g.kept.add(x.none); keepOf(x.v) } }; keepOf(a) }
       if (at) g.shared.set(`${ty} ${k}`, [v, a])
       args.push(v); pargs.push([pa.name, a])
     }
@@ -3467,7 +3473,14 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     // class, not kept, as any other value of no scalar kind)
     const pd = asked?.ask ? [...g.pend.values()].find(x => x.why === asked.why) : undefined
     if (asked?.ask && (pd?.ret?.k !== 'rec' || g.cuttable(asked.why))) refuse(fn, `${fn.name} returns ${asked.why} (a result the rule keeps)`)
-    if (out.t === 'num' || out.t === 'bool' || out.t === 'str' || out.t === 'choice' || out.t === 'opt') {
+    // (a string result that is one of the method's literals on every path, `return "adopt"` / `return "stop"`: a choice
+    // of them, as a Literal result is; a string kept by cases is otherwise of two strings the rule holds)
+    const strLits = (k: K): string[] | undefined => (k.op === 'slit' ? [k.value] : k.op === 'kite' ? ((a, b) => (a && b ? [...new Set([...a, ...b])] : undefined))(strLits(k.a), strLits(k.b)) : undefined)
+    const lits = out.t === 'str' && out.e.op === 'kite' ? strLits(out.e) : undefined
+    if (lits) { const l = asChoice((out as {e: K}).e, lits)!; f.out = {t: 'choice', e: l}; g.notes.add(`${fn.name} returns ${lits.map(x => JSON.stringify(x)).join(' or ')}: kept as a choice of them`) }
+    const out1 = f.out!
+    if (out1.t === 'num' || out1.t === 'bool' || out1.t === 'str' || out1.t === 'choice' || out1.t === 'opt') {
+      const out = out1
       const inner = out.t === 'opt' ? out.v : out
       if (inner.t === 'num' || inner.t === 'bool' || inner.t === 'str' || inner.t === 'choice') {
         const sort: Var['sort'] = inner.t === 'num' ? {k: 'num'} : inner.t === 'bool' ? {k: 'bool'} : inner.t === 'str' ? {k: 'str'} : {k: 'choice', values: lvalues(inner.e)}
@@ -3543,7 +3556,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
   for (const w of Object.values(mapWrites).flatMap(x => [x, ...(x.pre ?? [])])) { mention(w.has); mention(w.key); if (w.when) mention(w.when); for (const t of Object.values(w.vals)) mention(t.e) }
   mention(refuseB); mention(pre)
   for (const fd of g.folds) for (const t of [...Object.values(fd.init), ...Object.values(fd.step)]) mention(t.e)
-  const unread = g.inputs.filter(v => !read.has(v.name) && v.name !== ev?.name)
+  const unread = g.inputs.filter(v => !read.has(v.name) && v.name !== ev?.name && !g.kept.has(v.name))
   if (unread.length) g.notes.add(`read by the code but by no term of the rule (given their sort's zero, or None, by the check): ${unread.map(v => v.name).join(', ')}`)
   const inputs = g.inputs.filter(v => !unread.includes(v))
   for (const e of events) { const a = e.args[0] as {k: 'rec', fields: [string, Arg][]}; a.fields = a.fields.filter(([n]) => !unread.some(v => v.name === n)) }

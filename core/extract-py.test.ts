@@ -7,7 +7,7 @@ import {execFileSync} from 'node:child_process'
 import {mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {type PyOptions, extractPython} from './extract-py.ts'
-import {all, proveRule, proveSteps} from './dsl.ts'
+import {all, proveRule, proveSteps, yes} from './dsl.ts'
 import {assumed, disjoint} from './extract-step.ts'
 
 const hasPy = (() => { try { execFileSync('python3', ['--version'], {stdio: 'ignore'}); return true } catch { return false } })()
@@ -548,4 +548,19 @@ t('another module\'s constant read as its value; bytes never equal to a str', ()
   expect(proveRule(x.rule!, [x.rule!.law('at most conf.LIMIT', ({n}: A) => n.atMost(3))]).proven).toBe(true)
   // (body == "x" is never true: bytes and a str differ in Python)
   expect(step(x, 'a body other than its tag is always put below the limit', (_b, a) => a.put_result, b => b.n.lt(3).and(b.tag_none)).proven).toBe(true)
+})
+
+t('a str result that is one of its literals on every path: a choice of them', () => {
+  const x = ok(py(`class Life:\n    def __init__(self):\n        self.up = True\n        self.owned = False\n\n    def tick(self, work: bool) -> str:\n        if not self.up or self.owned:\n            return "keep"\n        if work:\n            self.owned = True\n            return "adopt"\n        self.up = False\n        return "stop"\n`,
+    {entry: 'Life', check: budget}))
+  expect(x.source).toContain("tick_result: oneOf('keep', 'adopt', 'stop')")
+  expect(step(x, 'a VM stopped only with no work', (b, a) => a.tick_result.is('stop').implies(b.work.not()), () => yes).proven).toBe(true)
+})
+
+t('an argument the code ignores, kept where a law reads it (keep): the law about it broken', () => {
+  const code = `class Fate:\n    def __init__(self):\n        self.fails = 0\n\n    def waited(self, start_failed: bool) -> None:\n        self.fails += 1\n`
+  const bare = ok(py(code, {entry: 'Fate', check: budget}))
+  expect(bare.model!.inputs.map(v => v.name)).not.toContain('start_failed')
+  const x = ok(py(code, {entry: 'Fate', keep: ['start_failed'], check: budget}))
+  expect(step(x, 'a wait counts only where a start failed', (b, a) => a.fails.gt(b.fails).implies(b.start_failed), () => yes).proven).toBe(false)
 })

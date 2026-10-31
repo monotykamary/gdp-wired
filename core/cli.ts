@@ -213,7 +213,9 @@ async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: str
   const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
   const {clock: _k, ...shared} = cfg.all
   void _k
-  const optsFor = (entry?: string) => merge(merge(shared, (entry && cfg.rules[entry]) || {}), flags)
+  // (the names the laws read, so an argument a law reads stays in the rule though the code ignores it)
+  const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*/g) ?? []))]
+  const optsFor = (entry?: string) => merge(merge({...shared, keep}, (entry && cfg.rules[entry]) || {}), flags)
   const one = async (entry?: string) => {
     const x = await extractOne(t, {...optsFor(entry), ...(entry ? {entry} : {})}), found = x.model?.name
     return !entry && found && cfg.rules[found] ? {entry: found, x: await extractOne(t, {...optsFor(found), entry: found})} : {entry, x}
