@@ -16,7 +16,7 @@
 //      induction), the proof the caller's (the counted goals here, the kernel's for an ∃ law's cubes); then, for the
 //      counted search, Houdini over the rest; the kernel checks the set (checkCountedLaws), as any proof.
 import {type C, type E, type Law, type Machine} from './machine.ts'
-import {type CountCert, type CountDecl, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, substC} from '../kernel/kernel.ts'
+import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, substC} from '../kernel/kernel.ts'
 import {clock, grow, modelInstances, widen} from '../kernel/prove.ts'
 import {REFUTED, type Refuted, cdclStats, growCdcl} from '../kernel/cdcl.ts'
 import {inferLaws} from './infer.ts'
