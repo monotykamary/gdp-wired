@@ -89,7 +89,7 @@ names and the request's values): 313–797 hypotheses at 34–43 laws.
   rename pointed g332 at runs/supercomputer, so every candidate since the rename ran 0 of 332 in the bar).
 
 **IC3Syn at 60 s, nothing written** (Modal 2-vCPU, `modal run supercomputer/run.py`, two runs a side, broken variants in
-both; before: main fdf3460, `<laneG-base>/runs/laneG/i60-before`; after: fecc19e, `runs/laneG/i60-after`; seconds of
+both; before: main fdf3460, `runs/laneG/i60-before`; after: fecc19e, `runs/laneG/i60-after`; seconds of
 search; "killed": no verdict at 210 s; simple's proof is gen/laneK4's, merged into main after fdf3460)
 
 | protocol | before | after | broken, after |
@@ -129,7 +129,7 @@ consensus_epr: unknown, as before. naive_consensus takes 21–28 s where it took
 model first).
 
 **IC3Syn at 300 s** (boat's VMs, `python3 supercomputer/run.py --backend auto`, two runs a side, broken variants in both;
-before fdf3460 `<laneG-base>/runs/laneG/i300-before`, after fecc19e `runs/laneG/i300-after`; "killed": no verdict at
+before fdf3460 `runs/laneG/i300-before`, after fecc19e `runs/laneG/i300-after`; "killed": no verdict at
 810 s, or mldr out of the VM's 4 GB; the before batch's times are slow where it shared VMs with mldr's runs:
 client_server_ae 144 s there, 3–4 s in gen/laneK3's and K4's runs)
 
