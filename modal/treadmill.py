@@ -278,7 +278,7 @@ def on_modal(items: list[dict], root: pathlib.Path, on_row) -> dict:
         with modal_app(mod.app):
             for fn in sorted({it["fn"] for it in group}):
                 its = [it for it in group if it["fn"] == fn]
-                for it, res in zip(its, getattr(mod, fn).starmap([tuple(it["args"]) for it in its], return_exceptions=True, order_outputs=True)):
+                for it, res in zip(its, list(getattr(mod, fn).starmap([tuple(it["args"]) for it in its], return_exceptions=True, order_outputs=True))):
                     on_row(it, {"code": -1, "error": repr(res)[:400]} if isinstance(res, BaseException) else {"code": 0, "result": res, "where": "modal"})
     sh = [it for it in items if it["kind"] == "sh"]
     if sh:
