@@ -204,7 +204,7 @@ class Ledger:
 t('a loop over a list the request carries: a fold, exact for every length', () => {
   const x = ok(py(FOLD, {entry: 'Ledger', failures: 'kept'}))
   expect(x.source).toContain('.carriesList("charge_lines", record({amount: int, refund: bool}))')
-  expect(x.source).toMatch(/charge_lines\.every\(\(_x, i\$\) =>/)
+  expect(x.source).toMatch(/charge_lines\$0\.every\(\(_x, i\$\) => i\$\.lt\(charge_lines_len\)/)
   expect(step(x, 'a charge admitted keeps the spend within the cap', (b, a) => a.spent.atMost(b.cap).or(a.spent.eq(b.spent)), b => b.method.is('charge')).proven).toBe(true)
   // (a fact of the passes past the first needs induction over them, which the equations alone don't give: one line)
   expect(step(x, 'a charge of one negative line fails', (_b, a) => a.failed, b => all(b.method.is('charge'), b.charge_lines_len.eq(1), b.charge_lines.at(0).refund.not(), b.charge_lines.at(0).amount.lt(0))).proven).toBe(true)
