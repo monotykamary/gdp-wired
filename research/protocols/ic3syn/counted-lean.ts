@@ -3,6 +3,7 @@
 import {writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {searchCounted} from '../../../core/counts.ts'
+import {env} from '../../../core/solver.ts'
 import {cmachineToLean} from '../../../lean-kernel/emit.ts'
 import {protocols} from './models.ts'
 
@@ -10,7 +11,8 @@ const [dir = '.', only = 'toy_consensus,quorum_leader_election,toy_consensus_for
 const parts: string[] = [], ids: string[] = []
 for (const [j, id] of only.split(',').entries()) {
   const p = protocols.find(q => q.id === id)!, r = p.make()
-  const c = searchCounted(r.machine, [...(r as any).kindLaws(), ...p.laws(r)], 120_000)
+  // (GDP_LEAN_MS: the search's budget, 120 s by default; consensus_epr's takes 160–210 s)
+  const c = searchCounted(r.machine, [...(r as any).kindLaws(), ...p.laws(r)], Number(env.GDP_LEAN_MS ?? 120_000))
   if (!c.proven || !c.proof) throw new Error(`${id}: not proven (${c.why})`)
   parts.push(cmachineToLean(`ic${j}`, c.m, c.laws, c.proof)); ids.push(`ic${j}_laws`)
   console.log(`${id}: ${c.laws.length} laws exported`)
