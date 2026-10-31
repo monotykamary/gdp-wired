@@ -205,7 +205,25 @@ export type RuleOut = {file: string, lang: string, entry?: string, ok: boolean, 
 
 // The entries to read: the one given, else the one inferred; where several classes or structs qualify, each of them; a
 // file of functions, each function a law is stated on.
+// Every class or function a law is stated on is read too (a class that writes no state, a decision, among them): no law
+// stated in the code is left without a rule to be proven on, or refused with why.
 async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: string, x: Extraction}[]> {
+  const got = await rulesOf0(t, o, laws)
+  if (o.entry) return got
+  const have = new Set(got.flatMap(r => [r.entry, r.x.model?.name].filter((n): n is string => !!n)))
+  const more = [...new Set(laws.map(l => l.cls ?? l.fn).filter((n): n is string => !!n && !have.has(n)))]
+  if (!more.length) return got
+  const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, ...flags} = o
+  void _j; void _m; void _p; void _c; void _t; void _fr
+  const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
+  const {clock: _k, from: _f, ...shared} = cfg.all
+  void _k; void _f
+  const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*/g) ?? []))]
+  const extra = await Promise.all(more.map(async entry => ({entry, x: await extractOne(t, {...merge(merge({...shared, keep}, cfg.rules[entry] || {}), flags), entry})})))
+  // (the first rule, read with no entry named, kept only where it read something or nothing else was)
+  return [...got.filter(r => r.x.ok || r.entry || !extra.length), ...extra]
+}
+async function rulesOf0(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: string, x: Extraction}[]> {
   const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, ...flags} = o
   void _j; void _m; void _p; void _c; void _t; void _fr
   // (the options: gdp.toml's for every rule, then the rule's own, then the flags; a rule found with no entry named is
@@ -237,7 +255,8 @@ async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: str
   const named = Object.keys(cfg.rules).filter(k => t.files.some(f => new RegExp(`\\b${k.replace(/[^\w]/g, '\\$&')}\\b`).test(fs.readFileSync(f, 'utf8'))))
   // (and each class the refusal names: gdp.toml's rules beside the file's others, not instead of them)
   const many = /several (?:classes|structs) (?:write their state|written by the file's functions) \(([^)]*)\)/.exec(first.x.refusals[0]?.what ?? '')?.[1]!.split(', ') ?? []
-  if (named.length) return Promise.all([...new Set([...many, ...named])].map(k => one(k)))
+  const fns0 = [...new Set(laws.filter(l => !l.cls && l.fn).map(l => l.fn!))]
+  if (named.length) return Promise.all([...new Set([...many, ...named, ...fns0])].map(k => one(k)))
   // (a contract's file names its contracts: refused with none named, the refusal is the rule's)
   if (t.lang === 'solidity') return [first]
   // (else each class the refusal names, and each function outside a class a law is stated on)
@@ -254,9 +273,15 @@ function scoped(file: string): Scoped[] {
   return lawsIn(text, path.basename(file)).map(l => {
     let cls: string | undefined, fn: string | undefined
     for (let i = l.line! - 1; i >= 0 && !cls; i--) { const m = /\b(?:class|struct|actor|defmodule|module|object|impl|record|interface|contract)\s+([\w.:]+)|\btype\s+(\w+)\s+struct\b/.exec(lines[i]!.replace(/(#|\/\/).*$/, '')); if (m) cls = (m[1] ?? m[2])!.split(/[.:]/).filter(Boolean).pop() }
-    for (let i = l.line! - 1; i < lines.length && !fn; i++) { const code = i === l.line! - 1 ? lines[i]!.replace(/(#|\/\/|--).*$/, '') : lines[i]!; const m = /\b(?:def|defp|fn|fun|func|function)\s+(?:\([^)]*\)\s*)?(?:self\.)?(\w+)|^\s*(?:(?:public|private|protected|static|final|synchronized|async|override|open|suspend|inline|virtual|const|[\w<>[\],?]+)\s+)*(\w+)\s*\(/.exec(code); if (m && !/^(if|for|while|switch|return|catch|new)$/.test(m[1] ?? m[2]!)) fn = m[1] ?? m[2] }
-    // (a Python function at the module's top level is in no class, whatever precedes it)
-    if (fn && file.endsWith('.py') && lines.slice(l.line! - 1).some(x => new RegExp(`^(?:async\\s+)?def\\s+${fn}\\b`).test(x))) cls = undefined
+    let fnLine = -1
+    for (let i = l.line! - 1; i < lines.length && !fn; i++) { const code = i === l.line! - 1 ? lines[i]!.replace(/(#|\/\/|--).*$/, '') : lines[i]!; const m = /\b(?:def|defp|fn|fun|func|function)\s+(?:\([^)]*\)\s*)?(?:self\.)?(\w+)|^\s*(?:(?:public|private|protected|static|final|synchronized|async|override|open|suspend|inline|virtual|const|[\w<>[\],?]+)\s+)*(\w+)\s*\(/.exec(code); if (m && !/^(if|for|while|switch|return|catch|new)$/.test(m[1] ?? m[2]!)) { fn = m[1] ?? m[2]; fnLine = i } }
+    // (a Python function at the module's top level is in no class, whatever precedes it: the def the law sits on, not a
+    // later one of the same name)
+    // (likewise in every language where a definition at the line's start is outside any class: Ruby's, Elixir's, a
+    // TypeScript, Kotlin, Swift or Rust free function; a Go func is its receiver's type's, or none)
+    const at0 = fn && fnLine >= 0 ? lines[fnLine]! : ''
+    if (fn && fnLine >= 0 && /\.(py|rb|ex|exs|ts|mts|tsx|js|mjs|kt|swift|rs)$/.test(file) && /^\S/.test(at0) && !/^\s*(?:class|struct|impl|module|defmodule|object|interface)\b/.test(at0)) cls = undefined
+    if (fn && fnLine >= 0 && file.endsWith('.go')) { const rv = /^func\s+\(\s*\w*\s*\*?\s*(\w+)/.exec(at0); cls = rv ? rv[1] : /^func\s/.test(at0) ? undefined : cls }
     return {...l, ...(cls ? {cls} : {}), ...(fn ? {fn} : {})}
   })
 }
@@ -282,7 +307,7 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     const mine = rules.length === 1 ? laws.filter(l => !l.cls || !name || l.cls === name) : laws.filter(l => (!l.cls && !l.fn) || (l.cls ? l.cls === name : l.fn === name || ms0.has(l.fn)))
     if (!x.ok || !x.rule) { r.laws = mine.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read', why: 'the rule was refused', ms: 0})); continue }
     const ev = x.evidence
-    if (ev) r.checked = `checked against ${'probes' in ev ? `the code: ${ev.requests} requests from the start, ${ev.fromStates} from drawn states, ${ev.probes.steps} from the prover's witnesses` : `XState's own actor: ${(ev as unknown as {events: number}).events} events`}${ev.coverage.arms ? `, ${ev.coverage.hit} of ${ev.coverage.arms} branch arms` : ''}`
+    if (ev) r.checked = `checked against ${'probes' in ev ? `the code: ${ev.requests} requests from the start, ${ev.fromStates} from drawn states, ${ev.probes.steps} from the prover's witnesses` : `XState's own actor: ${(ev as unknown as {events: number}).events} events`}${ev.coverage.arms ? `, ${ev.coverage.hit} of ${ev.coverage.arms} branch arms` : ''}${'startsOutside' in ev && ev.startsOutside ? `; ${ev.startsOutside} starts whose constructor passes 2^53 - 1 left out (outside the rule's numbers: the claim is for starts within them)` : ''}`
     // (the rule's methods: the choice of method where it has several, else the one each name says)
     const evSort = x.model?.inputs.find(v => v.name === x.model?.event)?.sort
     const methods = new Set([...(x.names ?? []).filter(n => n.method).map(n => n.method!), ...(evSort?.k === 'choice' ? evSort.values : [])])
@@ -307,6 +332,12 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     r.laws = outsOf
     if (o.propose && x.model) { const p = propose(x, t.lang, o, proven, new Set(stated.map(l => l.expr.replace(/\s+/g, '')))); r.proposed = p.shown; r.brokenProposed = p.broken }
   }
+  // (every law stated is accounted for: one that no rule took is reported not read, with why, never dropped)
+  const told = new Set(outs.flatMap(r => r.laws.map(l => l.where)))
+  const lost = laws.filter(l => !told.has(l.where))
+  if (lost.length) outs.push({file: path.relative(proc.cwd(), t.at) || '.', lang: LANG_NAME[t.lang], entry: [...new Set(lost.map(l => l.cls ?? l.fn ?? '(the file)'))].join(', '), ok: false,
+    refusals: [{where: t.at, what: 'laws no rule read'}], notes: [], names: [], proposed: [],
+    laws: lost.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read' as const, why: `no rule read for it (${l.cls ? `class ${l.cls}` : l.fn ? `function ${l.fn}` : 'the file'}): name its entry (--entry, or [rules.<entry>] in gdp.toml)`, ms: 0}))})
   // (a citation of no law stated in the target: refused, as a law not read is)
   const named = new Set(laws.map(l => l.name))
   for (const c of cites.filter(c => !named.has(c.law))) outs[0]?.laws.push({name: c.law, expr: '', where: c.where, verdict: 'not read', why: `a citation of no law stated here (gdp: cite <law name>: <clause>): ${c.text}`, ms: 0})

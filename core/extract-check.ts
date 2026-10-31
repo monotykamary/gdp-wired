@@ -32,7 +32,7 @@ export type Arm = {label: string, where: string, pos: number}
 export type Coverage = {arms: number, hit: number, missed: string[]}
 export type Evidence = {
   runs: number, requests: number, fromStates: number, probes: {conditions: number, witnesses: number, steps: number},
-  refusedBoth: number, outside: number, edge: number, edgeSample?: string, compiledAgreed: number, coverage: Coverage, ms: number, mismatch?: string,
+  refusedBoth: number, outside: number, startsOutside?: number, edge: number, edgeSample?: string, compiledAgreed: number, coverage: Coverage, ms: number, mismatch?: string,
 }
 
 // --- the code, instrumented and loaded ------------------------------------------------------------------------------
@@ -521,11 +521,16 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
       const ruleRefuses = ps === undefined || ctorRefuses
       if (!made.ok) return ruleRefuses ? {} : {problem: `new ${m.entry}(${JSON.stringify(params)}) throws (${made.error}), the rule's precondition holds`}
       if (ruleRefuses) return {problem: `new ${m.entry}(${JSON.stringify(params)}) is made, the rule's ${ps === undefined ? 'param kinds refuse' : 'precondition refuses'} it`}
-      const st = interp.init(ps!)
+      // (a start whose constructor arithmetic passes 2^53 - 1: outside the rule's numbers, as a step past them is; the
+      // claim is for starts within them, and the check draws on)
+      let st: State
+      try { st = interp.init(ps!) } catch (x) { if (/2\^53/.test((x as Error).message)) { ev.startsOutside = (ev.startsOutside ?? 0) + 1; return {} } throw x }
       try { const snap = code.snapOf(made.value, params); const diff = sameSnap(snap, ruleSnap(r, m, st, sorts)); if (diff) return {problem: `new ${m.entry}(${JSON.stringify(params)}): ${diff}`}; return {side: {snap, self: made.value as object}, st, ps: ps!} }
       catch (x) { return {problem: `new ${m.entry}: ${(x as Error).message}`} }
     }
-    const st = interp.init(ps ?? {}), snap = ruleSnap(r, m, st, sorts)
+    let st: State
+    try { st = interp.init(ps ?? {}) } catch (x) { if (/2\^53/.test((x as Error).message)) { ev.startsOutside = (ev.startsOutside ?? 0) + 1; return {} } throw x }
+    const snap = ruleSnap(r, m, st, sorts)
     const problem = code.init?.(snap, params)
     if (problem) return {problem}
     return {side: {snap}, st, ps: ps ?? {}}
@@ -573,7 +578,9 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
     let ps: Record<string, number>
     try { ps = r.encodeParams(params as never) } catch { return undefined }
     if (evalTerm(m.pre, params) !== true) return undefined
-    const st = ruleState(interp.init(ps), snap, m, sorts)
+    let st0: State
+    try { st0 = interp.init(ps) } catch (x) { if (/2\^53/.test((x as Error).message)) { ev.startsOutside = (ev.startsOutside ?? 0) + 1; return undefined } throw x }
+    const st = ruleState(st0, snap, m, sorts)
     // A state the code can't hold (a value outside its type, Go's): no state of the code is that one.
     const self = isClass ? code.at(snap, params) as object | undefined : undefined
     if (isClass && self === undefined) return undefined

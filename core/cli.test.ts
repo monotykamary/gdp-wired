@@ -259,6 +259,10 @@ for (const [lang, c] of Object.entries(CASES)) {
     expect(broken.run!.at(-1)!).toMatch(/hit/i)
     if (lang === 'xstate') expect(by('it stays open').verdict).toBe('proven')
     expect(exit).toBe(1)
+    // (every law stated in the code is reported, each once at least: none dropped by any language's reader)
+    const stated = Object.entries(c.files).flatMap(([f, text]) => lawsIn(text, f.split('/').pop()!).map(l => l.where))
+    const told = new Set(rules.flatMap(x => x.laws.map(l => l.where)))
+    expect(stated.filter(w => !told.has(w))).toEqual([])
   }, 300_000)
 }
 
@@ -565,4 +569,80 @@ class Resettable(Retry):
   const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [`${r.entry}: ${l.name}`, l.verdict])))
   expect(v['Retry: a waiting job ends']).toBe('proven')
   expect(v['Resettable: a job of a resettable kind ends']).toBe('unknown')
+})
+
+
+// No law stated is dropped: a class that writes no state is read (its law a decision's); a law on a method is the
+// class's even where a module function of its name comes later; one that no rule takes is reported not read, exit 2.
+;(TOOLS.python!() ? test : test.skip)('the CLI accounts for every law: a stateless class, a later function of a method\'s name, a law no rule takes', async () => {
+  const dir = files({'m.py': `
+class Ok:
+    def __init__(self):
+        self.n = 0
+
+    def hit(self) -> None:
+        self.n += 1
+
+
+class Gate:
+    # gdp: law nothing but health answers without the token: health or token_ok or not result
+    def allows(self, health: bool, token_ok: bool) -> bool:
+        return health or token_ok
+
+
+class Store:
+    def __init__(self):
+        self.n = 0
+
+    # gdp: law a made tree was asked for: not result or ok
+    def make_tree(self, ok: bool) -> bool:
+        if ok:
+            self.n += 1
+        return ok
+
+
+def make_tree(tid: str) -> dict:
+    return {}
+
+
+class Spin:
+    def __init__(self):
+        self.n = 0
+
+    # gdp: law spins stop: n >= 0
+    def spin(self) -> None:
+        while self.n < 3:
+            self.n += 1
+`})
+  const {rules, exit} = await check([`${dir}/m.py`], {ms: 5000, propose: false})
+  const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
+  expect(v['nothing but health answers without the token']).toEqual(['Gate', 'proven'])
+  expect(v['a made tree was asked for']).toEqual(['Store', 'proven'])
+  expect(v['spins stop']![1]).toBe('not read')
+  const stated = lawsIn(readAdv(`${dir}/m.py`, 'utf8'), 'm.py').map(l => l.where), told = new Set(rules.flatMap(r => r.laws.map(l => l.where)))
+  expect(stated.filter(w => !told.has(w))).toEqual([])
+  expect(exit).toBe(2)
+})
+
+// A start whose constructor arithmetic passes 2^53 - 1 is outside the rule's numbers, as a step past them is: left out of
+// the check (and said so), not a refusal of the class.
+;(TOOLS.python!() ? test : test.skip)('the CLI on a constructor whose arithmetic may pass 2^53: those starts left out, the class read', async () => {
+  const dir = files({'t.py': `
+class Tries:
+    # gdp: law never past its tries: made <= max_tries or made == 0
+    def __init__(self, max_tries: int, max_wait: int, t0: float):
+        self.max_tries = max_tries
+        self.deadline = t0 + max_wait
+        self.made = 0
+
+    def another(self, now: float) -> bool:
+        return self.made < self.max_tries and now <= self.deadline
+
+    def never_up(self) -> None:
+        if self.made < self.max_tries:
+            self.made += 1
+`})
+  const {rules} = await check([`${dir}/t.py`], {ms: 5000, propose: false})
+  expect(rules[0]!.ok).toBe(true)
+  expect(rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
 })
