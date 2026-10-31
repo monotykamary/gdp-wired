@@ -16,7 +16,7 @@
 //      induction), the proof the caller's (the counted goals here, the kernel's for an ∃ law's cubes), in two thirds of
 //      what is left; then, for the counted search, Houdini over the rest; the kernel checks the set (checkCountedLaws).
 import {type C, type E, type Law, type Machine} from './machine.ts'
-import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, substC} from '../kernel/kernel.ts'
+import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, scope, substC} from '../kernel/kernel.ts'
 import {clock, grow, modelInstances, widen} from '../kernel/prove.ts'
 import {REFUTED, type Refuted, cdclStats, growCdcl} from '../kernel/cdcl.ts'
 import {inferLaws} from './infer.ts'
@@ -143,7 +143,10 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
 // budget `ms`, 15 s at most), its template `shapes` (the caller's laws, or an ∃ law's frame), each guard `u < param` loosened where a caller reads u with no param bound.
 export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, caller: Law[], shapes: Law[], guarded: Law[], ms: number, until: number): Law[] {
   const states = ptime('small', () => smallOf(m))
-  const trueAll = (l: Law) => clock() < until && trueSmall(m, [l])
+  // (a law of the state only: one the kernel's scope refuses, reading an input or a count of the request (a guard's
+  // comparison with a second request count), has no value at a state, and is not proposed)
+  const ofState = (l: Law) => { try { scope(m, [l]); return true } catch { return false } }
+  const trueAll = (l: Law) => clock() < until && ofState(l) && trueSmall(m, [l])
   const kinds: Law[] = Object.keys(m.maps ?? {}).map(mp => {
     const most = Math.max(0, ...states.flatMap(({sts}) => sts.flatMap(st => [...(st.maps[mp]?.values() ?? [])])))
     return {name: `${mp} at most ${most}`, forall: 'a$c', holds: {op: '<=', a: {op: 'get', map: mp, key: v('a$c')}, b: k(most)}} as Law

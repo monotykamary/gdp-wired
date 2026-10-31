@@ -5,7 +5,8 @@
 // finds congruences as existentials; the Lean export states each as ∃, proven by ⟨witness, proof⟩.
 import {expect, test} from 'bun:test'
 import {type Law, evalC, interpret} from './machine.ts'
-import {exists, int, nat, oneOf, proveRule, proveSteps, rule, when} from './dsl.ts'
+import {type Term, all, bool, everyKey, exists, forall, int, nat, oneOf, proveRule, proveSteps, rule, when, yes} from './dsl.ts'
+import {guardLaws, searchCounted} from './counts.ts'
 import {proveSome, someHolds} from './exists.ts'
 import {inferLaws} from './infer.ts'
 import {proveLaws} from '../kernel/prove.ts'
@@ -130,3 +131,27 @@ test('the Lean export states each law as ∃, from a witness term (some_of_subst
     expect(text).toContain('#print axioms window.some0')
   }
 }, 120_000)
+
+// The counted search's candidates are laws of the state: a guard comparing two counts of the request (S's members against
+// row i's cells outside S) stored at the keys a step marks gives a law that still reads the second, a request's count;
+// read at a small state without the request it threw "no value for i" (its body reads the input), or, with the row
+// carried as X, read 0 and was proposed, and the kernel's scope refused the set ("reads the map rowNotS"). Not proposed.
+test('the counted search proposes no law reading a count of the request', () => {
+  const pk = (a: Term, b: Term) => a.times(64).plus(b)
+  for (const carried of [false, true]) {
+    const r = rule('two counts').params({size: nat}).pre(({size}) => size.atMost(64)).inputs({op: oneOf('accept', 'lead'), i: nat, j: nat}).carries('S', 'X')
+      .maps({Acc: bool.from(false), Mark: 0})
+      .counts({
+        inS: ({S, size}: any) => ({below: size, body: (_x: Term, k: Term) => S.has(k)}),
+        rowNotS: ({i, S, X, Acc, size}: any) => ({below: size, body: (_x: Term, k: Term) => (carried ? X.has(k) : Acc.at(pk(i, k))).and(S.has(k).not())}),
+      })
+      .assume(({op, i, j, size, S, X, Acc, inS, rowNotS}: any) => all(i.lt(size), j.lt(size), op.is('lead').implies(rowNotS.at(0).lt(inS.at(0))),
+        everyKey(k => S.at(k).atMost(1).and(X.at(k).atMost(1), S.has(k).implies(k.lt(size)), X.has(k).implies(k.lt(size).and(Acc.at(pk(i, k)))), k.lt(size).and(Acc.at(pk(i, k))).implies(X.has(k))))))
+      .flags(({op, i, j, Acc}: any) => ({accepts: op.is('accept').and(Acc.at(pk(i, j)).not()), leads: op.is('lead')}))
+      .step(({i, j, accepts, leads, S, Acc, Mark}: any) => ({Acc: Acc.set(pk(i, j), when(accepts, yes, Acc.at(pk(i, j)))), Mark: Mark.each((s: Term) => when(leads.and(S.has(s)), 1, Mark.at(s)))}))
+    expect(guardLaws(r.machine).laws.map(l => l.name)).toEqual(["inS$Mark keeps inS's bound 0"])
+    const c = searchCounted(r.machine, [r.law('marks at most 1', ({Mark}) => forall(a => Mark.at(a).atMost(1)))], 8_000)
+    expect(c.proven).toBe(true)
+    expect(c.laws.map(l => l.name)).not.toContain("inS$Mark keeps inS's bound 0")
+  }
+}, 60_000)
