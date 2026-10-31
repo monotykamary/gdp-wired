@@ -30,7 +30,7 @@ first:
           requests), and at a commit that changes kernel/kernel.ts or core/check.ts its mutants. A NEW survivor (not
           killed, not listed equivalent in kernel/MUTANTS.md, never a survivor before) is an alert. The fill stops for
           the day at FUZZ_PER_DAY seeds a kind (3,000) and XFUZZ_PER_DAY a reader (48).
-  (the knobs: GDPW_TM_<NAME> in the environment: SPEED_PER_DAY, SLOWER, FLOOR_S, TEN_RUNS, FUZZ_PER_DAY,
+  (the knobs: GDPW_TM_<NAME> in the environment: SPEED_PER_DAY, IC3_PER_DAY, RW_PER_DAY, TEN_PER_DAY, SLOWER, FLOOR_S, TEN_RUNS, FUZZ_PER_DAY,
   XFUZZ_PER_DAY, XFUZZ_EVERY, PAIR_TOP, PAIRS_MAX, REVISIT, STAGES, PLAN_MAX)
   ideas   a lane's or terra's "knobs K on tasks S at budget B" (`idea`), the submission class, cached like the rest.
 
@@ -594,7 +594,9 @@ class Follow:
     inputs are those of a commit it ran (`skipped`, with the commit that had them); a commit main passed while it was
     busy isn't run. At most MAX_ACTIVE runs at once and PER_DAY a day. State: chains/<name>.json."""
     name, inputs = "", ""
-    MAX_ACTIVE, PER_DAY = 2, 48
+    # (main changes a chain's inputs 46 to 52 times a day (10-29, 10-30): each chain's own cap a day, main's newest
+    # taken when it is free, the sweep's commit always)
+    MAX_ACTIVE, PER_DAY = 2, 24
 
     def __init__(self, tm):
         self.tm = tm
@@ -909,6 +911,7 @@ class IC3(Follow):
     are IC3Syn's speed run too) and 300 s. The searches' verdicts are the sweep's IC3Syn rounds at those budgets."""
     name, inputs = "ic3syn", "ic3syn"
     BUDGETS = (60, 300)
+    PER_DAY = knob("IC3_PER_DAY", 24)
 
     def reset(self, r: dict):
         r["budgets"] = {b: x for b, x in r.get("budgets", {}).items() if x == "done"}
@@ -991,6 +994,7 @@ class RealWorld(Follow):
     """(d) the real-world corpus (the bar's rw group: research/realworld/jobs.ts's jobs, each law's search 60 s), each
     law's verdict against the previous run's."""
     name, inputs = "rw", "rw"
+    PER_DAY = knob("RW_PER_DAY", 24)
 
     def advance(self, c: str, a: dict, free: int) -> int:
         if a["batches"] or free <= 0:
@@ -1050,6 +1054,7 @@ class Ten(Follow):
     behind it: 6 of 20 placed in 15 minutes in the pilot)."""
     name, inputs = "ten", "ten"
     RUNS = knob("TEN_RUNS", 20)
+    PER_DAY = knob("TEN_PER_DAY", 12)
 
     def advance(self, c: str, a: dict, free: int) -> int:
         if a["batches"]:
