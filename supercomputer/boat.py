@@ -360,10 +360,11 @@ curl -sSf https://sh.rustup.rs | RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo s
 for b in cargo rustc rustdoc; do sudo ln -sf "$(ls -d /opt/rustup/toolchains/stable-*/bin)/$b" /usr/local/bin/$b; done
 rm -rf ~/.cargo ~/.rustup
 env -i HOME=/tmp PATH=/usr/local/bin:/usr/bin:/bin cargo --version | grep '^cargo '
-# solc 0.8.28 and anvil (research/sol/sol-setup.sh's)
+# solc 0.8.28 and anvil 1.5.1 (research/sol/sol-setup.sh's, pinned as research/sol/DESIGN.md measured them on Modal), so
+# core/extract-sol.test.ts, core/sol/harness.py and the Solidity measure jobs run on boat
 sudo mkdir -p /opt/sol /opt/foundry && sudo chown "$(id -un)" /opt/sol /opt/foundry
 get https://github.com/ethereum/solidity/releases/download/v0.8.28/solc-static-linux /opt/sol/solc && chmod +x /opt/sol/solc
-get https://github.com/foundry-rs/foundry/releases/download/stable/foundry_stable_linux_amd64.tar.gz /tmp/foundry.tgz && tar xzf /tmp/foundry.tgz -C /opt/foundry && rm /tmp/foundry.tgz
+get https://github.com/foundry-rs/foundry/releases/download/v1.5.1/foundry_v1.5.1_linux_amd64.tar.gz /tmp/foundry.tgz && tar xzf /tmp/foundry.tgz -C /opt/foundry && rm /tmp/foundry.tgz
 /opt/sol/solc --version | tail -1; /opt/foundry/anvil --version | head -1
 # LiteLLM's Python: uv, its pinned dependencies, and the system site directory the user installs into (uv pip install --system)
 sudo pip install --break-system-packages -q uv
