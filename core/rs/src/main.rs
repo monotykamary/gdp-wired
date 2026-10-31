@@ -256,16 +256,6 @@ impl Reader {
     }
     (out, json!({"e": "unit", "p": self.at(b.span())}))
   }
-  fn for_loop(&mut self, pat: &Pat, over: &Expr, body: &syn::Block, p: &str) -> (Vec<Value>, Value) {
-    let (mut pre, over) = self.expr(over);
-    self.locals.push(Default::default());
-    self.bind_pat(pat);
-    let to = self.target_pat(pat, p);
-    let (body, _) = self.block(body);
-    self.locals.pop();
-    pre.push(json!({"s": "for", "p": p, "to": to, "over": over, "body": body}));
-    (pre, json!({"e": "unit", "p": p}))
-  }
   fn target_pat(&self, p: &Pat, at: &str) -> Value {
     match p {
       Pat::Ident(i) => json!({"e": "var", "n": i.ident.to_string(), "p": at}),
@@ -355,19 +345,7 @@ impl Reader {
       Expr::Closure(c) => self.closure(c, &p),
       Expr::Macro(m) => { let (pre, v) = self.mac(&m.mac, m.span()); (pre, if v.is_null() { json!({"e": "unit", "p": p}) } else { v }) }
       Expr::Let(_) => (vec![], no(&p, format!("{t}: a let outside an if"))),
-      // A loop over a collection (for, and `while let Some(x) = it.next()`, the same loop): the executor's fold, where
-      // it is over a list the request carries. Any other while, and loop, is no loop over a collection.
-      Expr::ForLoop(f) => self.for_loop(&f.pat, &f.expr, &f.body, &p),
-      Expr::While(w) => match &*w.cond {
-        Expr::Let(l) => match (&*l.pat, &*l.expr) {
-          (Pat::TupleStruct(ts), Expr::MethodCall(m)) if last_ident(&ts.path) == "Some" && ts.elems.len() == 1 && m.method == "next" && m.args.is_empty() => self.for_loop(&ts.elems[0], &m.receiver, &w.body, &p),
-          _ => (vec![sno(&p, format!("while let {} = {}: a loop whose passes the pattern ends, not a loop over a collection (the subset reads those as folds)", text(&*l.pat), text(&*l.expr)))], json!({"e": "unit", "p": p})),
-        },
-        _ => (vec![sno(&p, "a while loop (not a loop over a collection, which the subset reads as a fold)".into())], json!({"e": "unit", "p": p})),
-      },
-      Expr::Loop(_) => (vec![sno(&p, "a loop (loop, not one over a collection)".into())], json!({"e": "unit", "p": p})),
-      Expr::Break(b) if b.label.is_none() && b.expr.is_none() => (vec![json!({"s": "break", "p": p})], json!({"e": "unit", "p": p})),
-      Expr::Continue(c) if c.label.is_none() => (vec![json!({"s": "continue", "p": p})], json!({"e": "unit", "p": p})),
+      Expr::Loop(_) | Expr::While(_) | Expr::ForLoop(_) => (vec![sno(&p, "a loop".into())], json!({"e": "unit", "p": p})),
       Expr::Await(_) | Expr::Async(_) => (vec![], no(&p, format!("{t}: async"))),
       _ => (vec![], no(&p, format!("{t}: an expression outside the subset"))),
     }
