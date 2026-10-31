@@ -2792,10 +2792,10 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   return {...verdict, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}
 }
 // A law with "there exists", which the join can't take as its goal (core/exists.ts's witnesses: a ghost map for a law
-// about every key, `ghostOf`'s ghost for one about no key): the engine's minimal ∀ cubes of three literals at most (core/infer.ts's
+// about every key, `ghostOf`'s ghost for one about no key): the engine's minimal ∀ cubes of two literals (core/infer.ts's
 // `cubes`, its template read off the law's keys and guards with the ∃ part read as true, or off two keys at the bound
-// value's places), each kept where it is proven from the kept ones and itself (the cone, as core/counts.ts keeps its
-// laws), again while more are kept; then the laws with those kept, their witnesses chosen with them as support.
+// value's places), each kept where it is proven from the kept ones and itself (IC3's relative induction, its
+// cone), again while more are kept; then the laws with those kept, their witnesses chosen with them as support.
 function someCone(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws0: Law[], ms: number): Verdict | undefined {
   const until = clock() + ms, m = r.machine, yes: C = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
   const laws = laws0.map(l => (l.some?.length && !l.forall && !l.witness ? {...l, witness: ghostOf(m, l)} : l))
@@ -2804,7 +2804,7 @@ function someCone(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws0: Law[],
   const shape = (l: Law): Law => (!l.some?.length ? l : l.forall
     ? {name: l.name, forall: l.forall, ...(l.keys ? {keys: l.keys} : {}), holds: {op: 'or', xs: [...(l.holds.op === 'or' ? l.holds.xs : [l.holds]).filter(d => !named(d, l)), yes]}}
     : {name: l.name, forall: 'k$some', keys: ['k2$some'], holds: {op: 'or', xs: ['k$some', 'k2$some'].map(k => substVars(l.holds, {[l.some![0]!]: {op: 'var', name: k}})).concat(yes)}})
-  const cubes = [...withKinds(r, []), ...inferLaws(r, laws.map(shape), [], {cubes: 3, ms: Math.min(10_000, ms / 3), first: {proven: false, checked: false}}).found.map(f => f.law)]
+  const cubes = [...withKinds(r, []), ...inferLaws(r, laws.map(shape), [], {cubes: 2, ms: Math.min(10_000, ms / 3), first: {proven: false, checked: false}}).found.map(f => f.law)]
   const kept: Law[] = [], tried = new Map<string, number>()
   for (let grew = true; grew && clock() < until;) {
     grew = false

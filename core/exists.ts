@@ -130,11 +130,8 @@ function solved(atoms: Atom[], g: Group): Cand[] {
 const atomsOf2 = (c: C): C[] => (c.op === 'and' || c.op === 'or' ? c.xs.flatMap(atomsOf2) : c.op === 'not' ? atomsOf2(c.x) : [c])
 // --- the small instances (core/counts.ts's filter and the ghost maps' below) --------------------------------------------------------------------------------------------------
 // Every state reached from the start with the params at `p`, each input below `b`, each carried map a subset of 0 .. b − 1.
-// (at most `cap` states, and `work` steps tried: a wide request space ends the BFS early, its states still reachable;
-// then, with `walks` steps more, random walks past it, each step a change of a kind (the variables it writes) chosen
-// alike among those a few requests make: an action the BFS's levels never reach, a leader past a majority's votes, is
-// taken as often as any other)
-export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000, walks = 0): State[] {
+// (at most `cap` states, and `work` steps tried: a wide request space ends the BFS early, its states still reachable)
+export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000): State[] {
   const run = interpret(m), start = run.init(p)
   const subsets = Array.from({length: 1 << b}, (_, s) => new Map(Array.from({length: b}, (_, i) => i).filter(i => (s >> i) & 1).map(i => [i, 1] as [number, number])))
   // (an input the assumption keeps below a few values, an action's, over all of them; the rest below b)
@@ -142,39 +139,15 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
   let reqs: Request[] = [{}]
   for (const i of m.inputs) reqs = reqs.flatMap(r => Array.from({length: below(i)}, (_, x) => ({...r, [i]: x})))
   for (const c of m.inputMaps ?? []) reqs = reqs.flatMap(r => subsets.map(s => ({...r, [c]: s})))
-  const idOf = (s: State) => key([s.scalars, Object.entries(s.maps).map(([n, cs]) => [n, [...cs].filter(([, x]) => x).sort((a, c) => a[0] - c[0])])])
-  const seen = new Map<string, State>([[idOf(start), start]]), queue = [start]
+  const seen = new Map<string, State>([[key(start), start]]), queue = [start]
   while (queue.length && seen.size < cap && work > 0) {
     const st = queue.shift()!
     for (const r of reqs) {
       if (--work < 0) break
       let next: State
       try { next = run.step(p, st, r) } catch { continue }
-      const id = idOf(next)
+      const id = key([next.scalars, Object.entries(next.maps).map(([n, cs]) => [n, [...cs].filter(([, x]) => x).sort((a, c) => a[0] - c[0])])])
       if (!seen.has(id)) { seen.set(id, next); queue.push(next) }
-    }
-  }
-  if (!queue.length) return [...seen.values()]
-  const cell = (s: State, n: string, x: number) => s.maps[n]?.get(x) ?? s.defaults?.[n] ?? 0
-  const kindOf = (a: State, c: State) => [...Object.keys(c.scalars).filter(n => a.scalars[n] !== c.scalars[n]),
-    ...Object.keys(c.maps).filter(n => a.defaults?.[n] !== c.defaults?.[n] || [...a.maps[n]?.keys() ?? [], ...c.maps[n]!.keys()].some(x => cell(a, n, x) !== cell(c, n, x)))].join()
-  let seed = 7
-  const rnd = (n: number) => { seed = (seed * 48271) % 2147483647; return seed % n }
-  for (let t = 0; walks > 0 && seen.size < 2 * cap; t++) {
-    let st = t % 2 ? start : [...seen.values()][rnd(seen.size)]!
-    for (let d = 0; d < 40 && walks > 0; d++) {
-      const by = new Map<string, State[]>()
-      for (let i = 0; i < 48; i++, walks--) {
-        let next: State
-        try { next = run.step(p, st, reqs[rnd(reqs.length)]!) } catch { continue }
-        const kd = kindOf(st, next)
-        if (kd) by.set(kd, [...by.get(kd) ?? [], next])
-      }
-      if (!by.size) break
-      const ks = [...by.values()], at = ks[rnd(ks.length)]!
-      st = at[rnd(at.length)]!
-      const id = idOf(st)
-      if (!seen.has(id)) seen.set(id, st)
     }
   }
   return [...seen.values()]
@@ -532,7 +505,8 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, mapMs
     }
     for (let round = 0; ; round++) {
       const now = current(), t0 = performance.now(), r: ReturnType<typeof proveLaw> = round === 0 && first ? {proven: false, ...first}
-        // (a ghost map's goals within 2 s, or `mapMs`: a search asks them with every candidate set, and one without its supports can take minutes; a term's within `termMs` where given)
+        // (a ghost map's goals within 2 s, or `mapMs`: a search asks them with every candidate set, and one without its
+        // supports can take minutes; a term's within `termMs` where given)
         : p.pick.mode === 'map' ? withDeadline(clock() + (opts.mapMs ?? 2_000), () => proveLaw(now.machine, now.laws, i)) : opts.termMs ? withDeadline(clock() + opts.termMs, () => proveLaw(now.machine, now.laws, i)) : proveLaw(now.machine, now.laws, i)
       if (log) console.error(`exists: pass ${pass} round ${round} "${p.law.name}" ${p.pick.mode} ${describe(p, cases).slice(0, 160)}: ${r.proven ? 'proven' : `${r.goal} ${r.stuck}`} (${Math.round(performance.now() - t0)} ms)`)
       if (r.proven) return undefined

@@ -68,7 +68,6 @@ export type InferOptions = {
   remainders?: boolean // remainders (v mod k = r, a guard where only some runs keep one) where the runs keep one (true); with false, congruences instead (`existentials`)
   join?: number // the join's share of what is left of the search after the candidates (0.6)
   cubes?: number // the engine's minimal ∀ cubes of at most this many literals alone, as found laws, nothing proven (core/counts.ts's)
-  rows?: {params: Record<string, number>, st: State}[] // more reachable states the engine's cubes are read off, beside its small instance's (core/counts.ts's)
 }
 // What was found: each law as a Law (pass it with the rule's laws), how it reads, and for a rule, the builder call
 // that states it (`r.law(...)`), to paste.
@@ -2027,14 +2026,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (base) opts.progress?.('join small instance', {states: small.length, bfs, params: pvs.size, symmetric: sym.slice(0, rens.length > 1 ? sym.length : 0).join(), ms: Math.round(vnow()), took: Math.round(vnow() - t3)})
         return {small, others, bfs, cut, params: pvs.size, ms: Math.round(vnow() - t3)}
       }
-      {
-        const r0 = instance(() => 0, undefined, rand), own = [...r0.small, ...r0.others], most = new Map<string, number>()
-        samples.unshift(...r0.small)
-        for (const q of own) for (const [mp, cs] of Object.entries(q.st.maps)) for (const c of cs.values()) most.set(mp, Math.max(most.get(mp) ?? 0, c))
-        // (the rows given, where their cells take values the small instance's do (a yes/no's 1 at least): more states, not
-        // more values, so the literals the cubes are made of are the instance's own)
-        smallAll = [...(opts.rows ?? []).filter(q => Object.entries(q.st.maps).every(([mp, cs]) => [...cs.values()].every(c => c <= Math.max(1, most.get(mp) ?? 1)))), ...own]
-      }
+      { const r0 = instance(() => 0, undefined, rand); samples.unshift(...r0.small); smallAll = [...r0.small, ...r0.others] }
       const out: Form[] = []
       for (const counts of width.reduce<number[][]>((acc, w) => acc.flatMap(c => Array.from({length: w + 1}, (_, k) => [...c, k])), [[]])) {
         const keys = ss.flatMap((s, i) => Array.from({length: counts[i]!}, () => s)), vars = keys.map((_, i) => `key${i + 1}$enum`)
