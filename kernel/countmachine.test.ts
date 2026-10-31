@@ -4,7 +4,7 @@
 // request's view, a law's at the state), by brute force.
 import {describe, expect, test} from 'bun:test'
 import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, x} from '../core/machine.ts'
-import {type CountCert, type CountInst, type MapRead, check, checkCountedLaws, checkLaws, checkMC, countedObligations, mcGoal, obligations} from './kernel.ts'
+import {type CountCert, type CountInst, type MapRead, check, checkCountedLaws, checkMC, countedObligations, mcGoal, obligations} from './kernel.ts'
 import {clock, grow} from './prove.ts'
 import {countedProof, toyCounted} from '../lean-kernel/count-examples.ts'
 
