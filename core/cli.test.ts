@@ -1,7 +1,10 @@
 // The CLI on a small file in each language (core/cli.ts): the rule read with nothing configured, one law stated in the
 // code's own form proven, one broken with the run that breaks it, and the exit code 1. Each skipped where its toolchain
 // isn't installed (the suite's cli-<lang> jobs install them).
-import {expect, test} from 'bun:test'
+import {expect, setDefaultTimeout, test} from 'bun:test'
+
+// (each test runs the CLI end to end: a loaded VM takes past bun's 5 s, so every test gets the 180 s the long ones have)
+setDefaultTimeout(180_000)
 import {execFileSync, spawnSync} from 'node:child_process'
 import {mkdirSync, mkdtempSync, readFileSync as readAdv, realpathSync, symlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
