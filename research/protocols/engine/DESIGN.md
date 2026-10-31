@@ -114,6 +114,11 @@ kernel/ +13,313.
 - **Lean:** the three new proofs (toy_consensus 4 laws, quorum_leader_election 4, toy_consensus_forall 8, found with
   nothing written) exported by research/protocols/ic3syn/counted-lean.ts through cmachineToLean and checked: lean-exit 0,
   no sorry, each `ic*_laws` on [propext, Classical.choice, Quot.sound].
+- **The ITS loss** (elmhes.c.i.elmhes.pl.t2.fixed.t2.ari), three runs a side on Modal: main 078bd1d terminates 58.5 s,
+  terminates 58.7 s, unknown 58.2 s; this branch unknown 58.2, timeout 60.0, unknown 58.2. Every answer either side
+  gives is in the last 2.5% of the 60 s limit: a time-limit flip, as other lanes saw on elmhes. The path is untouched
+  by reading: an ITS machine has no carried map and no count, so carriedView returns as before, countsScope returns at
+  once, proveRule's counted branch is never taken; timing equality itself is not shown.
 - **A second run** of every counting protocol at 60 s, broken variants included: the same verdicts (proven: toy 2.3 s,
   quorum 2.1, toy forall 3.1; the rest unknown); every broken variant unknown, none proven.
 
