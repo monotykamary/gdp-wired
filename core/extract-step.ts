@@ -51,7 +51,7 @@ export type SFunc = {id: string, name: string, cls?: string, p: string, span: [s
   recv?: string, results?: number, why?: string, late?: string}
 // (rets: the declared result types of its methods, another module's class's too: an inferred answer's type)
 export type SRec = {name: string, short: string, fields: {name: string, t: SType, dflt?: SX, inject?: boolean}[], methods: Record<string, string | null>, kinds: string[], own: boolean, module: string, p: string, rets?: Record<string, SType>}
-export type SModule = {lang: string, file: string, path: string, module: string, root: string, entries: ({k: 'class', rec: string} | {k: 'func', id: string} | {k: 'missing', name: string})[], recs: Record<string, SRec>, funcs: Record<string, SFunc>, enums?: Record<string, {values: string[], discs: number[], data: boolean}>, error?: string,
+export type SModule = {lang: string, file: string, path: string, module: string, root: string, consts?: Record<string, number | string | boolean>, entries: ({k: 'class', rec: string} | {k: 'func', id: string} | {k: 'missing', name: string})[], recs: Record<string, SRec>, funcs: Record<string, SFunc>, enums?: Record<string, {values: string[], discs: number[], data: boolean}>, error?: string,
   // false: a condition the path takes is kept whole (a negated disjunction not split into its parts: Go's reader's);
   // 'nil-false': only nil and false are false (Ruby's), not Python's truthiness
   split?: boolean, truth?: 'nil-false',
@@ -3794,7 +3794,7 @@ export function extractStep(mod: SModule, h: (read: StepRead) => Harness, opts: 
   }
   const unsigned = Object.fromEntries([...read.model.inputs, ...read.model.params].filter(v => read.ints[v.name] && !read.ints[v.name]!.signed).map(v => [v.name, 'nat' as const]))
   const x = fromModel(read.model, mod.file, {...unsigned, ...opts.domains}, notes, (rule, sorts) => checkStep(h(read), read, rule, sorts, opts))
-  return {...x, read, names: stepNames(read)}
+  return {...x, read, names: stepNames(read), ...(mod.consts ? {consts: mod.consts} : {})}
 }
 // The names of a reading: each leaf of the state by its path, the constructor's and each method's arguments (an object
 // the caller gives by its fields), each answer by its callee's qualified name, each method's result, the failure.

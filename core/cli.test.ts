@@ -646,3 +646,47 @@ class Tries:
   expect(rules[0]!.ok).toBe(true)
   expect(rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
 })
+
+// What the code names, a law names the same: a field named failed (the keyword yields to it), a module's constant, a
+// class found by its statement (never a word of a docstring); a sum it can't take is a law not read, never a crash.
+;(TOOLS.python!() ? test : test.skip)('the CLI reads laws in the code\'s names: a field named failed, a module constant, a class not taken from prose; an integer sum not read', async () => {
+  const dir = files({'n.py': `
+LIMIT = 3
+
+
+class Creation:
+    # gdp: law every start boat made no VM for is given back: refunded == failed
+    # gdp: law at most LIMIT asks: asks <= LIMIT
+
+    def __init__(self):
+        self.failed = 0
+        self.refunded = 0
+        self.asks = 0
+
+    def made(self, asked: int, got: int) -> None:
+        """(the record holds what boat made)"""
+        if self.asks < LIMIT:
+            self.asks += 1
+        if got < asked:
+            self.failed += asked - got
+            self.refunded += asked - got
+
+
+class Pending:
+    def __init__(self):
+        self.pending: dict[str, int] = {}
+        self.need = 0
+
+    # gdp: law the need is the pending sum: need == sum(pending)
+    def add(self, name: str, slots: int) -> None:
+        if name in self.pending:
+            return
+        self.pending[name] = slots
+        self.need += slots
+`, 'gdp.toml': 'from = "any"\n'})
+  const {rules} = await check([`${dir}/n.py`], {ms: 5000, propose: false})
+  const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
+  expect(v['every start boat made no VM for is given back']).toEqual(['Creation', 'proven'])
+  expect(v['at most LIMIT asks']).toEqual(['Creation', 'proven'])
+  expect(v['the need is the pending sum']).toEqual(['Pending', 'not read'])
+})

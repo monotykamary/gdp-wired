@@ -272,7 +272,13 @@ function scoped(file: string): Scoped[] {
   const text = fs.readFileSync(file, 'utf8'), lines = text.split('\n')
   return lawsIn(text, path.basename(file)).map(l => {
     let cls: string | undefined, fn: string | undefined
-    for (let i = l.line! - 1; i >= 0 && !cls; i--) { const m = /\b(?:class|struct|actor|defmodule|module|object|impl|record|interface|contract)\s+([\w.:]+)|\btype\s+(\w+)\s+struct\b/.exec(lines[i]!.replace(/(#|\/\/).*$/, '')); if (m) cls = (m[1] ?? m[2])!.split(/[.:]/).filter(Boolean).pop() }
+    // (the nearest enclosing class statement: its keyword at the start of a line, after modifiers, never a word in a
+    // docstring's or a comment's prose; in Python, at an indentation that encloses the law's)
+    const indent = (x: string) => /^\s*/.exec(x)![0].length, lawIndent = indent(lines[l.line! - 1]!), py = file.endsWith('.py')
+    for (let i = l.line! - 1; i >= 0 && !cls; i--) {
+      const m = /^\s*(?:(?:export|default|public|private|protected|internal|abstract|final|sealed|open|data|static|partial|pub(?:\([^)]*\))?|unsafe)\s+)*(?:class|struct|actor|defmodule|module|object|impl(?:<[^>]*>)?|record|interface|contract)\s+([\w.:]+)|^\s*type\s+(\w+)\s+struct\b/.exec(lines[i]!.replace(/(#|\/\/).*$/, ''))
+      if (m && (!py || indent(lines[i]!) < lawIndent)) cls = (m[1] ?? m[2])!.split(/[.:<]/).filter(Boolean).pop()
+    }
     let fnLine = -1
     for (let i = l.line! - 1; i < lines.length && !fn; i++) { const code = i === l.line! - 1 ? lines[i]!.replace(/(#|\/\/|--).*$/, '') : lines[i]!; const m = /\b(?:def|defp|fn|fun|func|function)\s+(?:\([^)]*\)\s*)?(?:self\.)?(\w+)|^\s*(?:(?:public|private|protected|static|final|synchronized|async|override|open|suspend|inline|virtual|const|[\w<>[\],?]+)\s+)*(\w+)\s*\(/.exec(code); if (m && !/^(if|for|while|switch|return|catch|new)$/.test(m[1] ?? m[2]!)) { fn = m[1] ?? m[2]; fnLine = i } }
     // (a Python function at the module's top level is in no class, whatever precedes it: the def the law sits on, not a
@@ -365,7 +371,8 @@ function prove(x: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: C
     return {...base, kind: 'leads to', verdict: v.proven && v.checked ? 'proven' : 'unknown', ...(v.proven && v.checked ? {} : {why: [v.goal, v.stuck, v.why].filter(Boolean).join('; ') || 'not proven'}), ms: Date.now() - t0}
   }
   let b: Built | undefined, two: TwoRunLaw | undefined
-  try { if (isTwoRuns(l.expr)) two = buildTwoRuns(x, l, ctx?.others); else b = buildLaw(x, l, {clock: ctx?.clock}) } catch (e) { if (e instanceof LawError || two === undefined && isTwoRuns(l.expr)) return {...base, verdict: 'not read', why: (e as Error).message, ms: 0}; throw e }
+  // (a law that can't be built is not read, with why: never the whole check aborted)
+  try { if (isTwoRuns(l.expr)) two = buildTwoRuns(x, l, ctx?.others); else b = buildLaw(x, l, {clock: ctx?.clock}) } catch (e) { return {...base, verdict: 'not read', why: (e as Error).message, ms: 0} }
   const kind = two ? 'two runs' as const : b!.kind
   let v: Verdict & {given?: Law[]}
   // (from any state: a law about states proven with the others stated beside it, as one inductive set)

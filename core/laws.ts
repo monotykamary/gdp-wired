@@ -169,7 +169,7 @@ export function parse(s: string): X {
 // cell, a value that may be None (its flag beside it), a map, a key.
 type V = {t: 'num', v: Int} | {t: 'cond', v: Cond} | {t: 'str', v: Str} | {t: 'choice', v: Choice<string>} | {t: 'lit', v: string, err?: LawError}
   | {t: 'null'} | {t: 'cell', rec: Record<string, unknown>, fields: string[]} | {t: 'opt', none: Cond, v?: V} | {t: 'map', n: Name, maps: Name[], env?: Record<string, unknown>} | {t: 'key', v: Term}
-type Ctx = {b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>, clock?: number,
+type Ctx = {consts?: Record<string, number | string | boolean>, b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>, clock?: number,
   // (a key bound over a list: the item there, its map in the state it was read in)
   items?: Map<string, {map: Record<string, unknown>, fields: string[]}>}
 
@@ -186,14 +186,14 @@ export function buildLaw(x: Extraction, l: LawText, opts: {clock?: number} = {})
   if (!l.expr) throw new LawError(`${l.name}: a law is stated as <name>: <expr>`)
   const e = parse(l.expr)
   // A first reading finds what the law reads: a request, a result, the failure or the state before make it a step law.
-  const probe: Ctx = {b: {}, a: {}, step: true, method: l.method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock}
+  const probe: Ctx = {consts: x.consts, b: {}, a: {}, step: true, method: l.method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock}
   read(e, probe, names, true)
   // (a law on a method, the line above it, is a law of its step: the state after it, old(x) before)
   const step = !!l.method || ['input', 'answer', 'result', 'failed', 'clock', 'method', 'old'].some(k => probe.roles.has(k))
   const method = probe.methods.size === 1 ? [...probe.methods][0] : l.method
   if (probe.methods.size > 1) throw new LawError(`it reads the arguments of ${[...probe.methods].join(' and ')}: a law of one step is about one method`)
   const gate = step && method && names.some(n => n.role === 'method') ? method : undefined
-  const body = (b: Record<string, unknown>, a: Record<string, unknown>) => read(e, {b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock}, names, false) as Cond
+  const body = (b: Record<string, unknown>, a: Record<string, unknown>) => read(e, {consts: x.consts, b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock}, names, false) as Cond
   if (!step) return {kind: 'law', law: r.law(l.name, (env: never) => (x.quiet ? ((env as Record<string, Int>)[x.quiet]!.eq(0) as Cond).implies(body(env, env)) : body(env, env)))}
   const mname = names.find(n => n.role === 'method')?.rule
   return {kind: 'step', ...(gate ? {method: gate} : {}), law: r.stepLaw(l.name, (b: never, a: never) => body(b, a), gate ? (b: never) => ((b as Record<string, unknown>)[mname!] as Choice<string>).is(gate) : undefined)}
@@ -261,7 +261,10 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
         if (fs.length !== 1) throw new LawError(`sum(${m.n.code}): its cells have ${fs.join(', ')} (the sum is of a map of numbers)`)
         if (dry) return DRY
         const map = ((m.env ?? c.a)[m.n.rule] ?? c.b[m.n.rule]) as {sum: (of: (cell: Record<string, unknown>) => unknown) => unknown}
-        return {t: 'num', v: Int.of(map.sum(cell => cell[fs[0]!]) as Term)}
+        try { return {t: 'num', v: Int.of(map.sum(cell => cell[fs[0]!]) as Term)} } catch (x) {
+          if (x instanceof TypeError) throw new LawError(`sum(${m.n.code}): a sum is of naturals, and ${m.n.code}'s cells are integers (a cell the code may set below 0): state them as naturals (domains, in gdp.toml) where the code never does`)
+          throw x
+        }
       }
       const xs = e.xs.map(go)
       if (dry) return DRY
@@ -330,7 +333,9 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
   const item = c.items?.get(e.head)
   if (item && e.segs.length) return dry ? DRY : rest(e.segs, {t: 'cell', rec: item.map, fields: item.fields}, c, names, dry, e)
   if (c.keys.has(e.head) && dry) return DRY
-  if (e.head === 'result' || e.head === 'failed') {
+  // (result and failed are the step's, unless the code has a name of its own so: a field named failed, read bare, is
+  // that field, as self.failed always is)
+  if ((e.head === 'result' || e.head === 'failed') && !names.some(n => n.code === e.head && n.role !== 'failed' && n.role !== 'result')) {
     const n = e.head === 'failed' ? names.find(x => x.role === 'failed') : results(names, c)
     if (!n) throw new LawError(e.head === 'failed' ? 'the rule keeps no failure (with failures: \'kept\' it does: `failures = "kept"` in gdp.toml or --failures kept)' : 'the method returns nothing the rule keeps')
     c.roles.add(n.role); if (n.method) c.methods.add(n.method)
@@ -358,6 +363,9 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
     }
   }
   // A method's argument by its method's name (charge.user), where several methods take one of that name.
+  // A constant of the module bound to a literal, by its name.
+  const k = c.consts?.[e.head]
+  if (k !== undefined && !e.segs.length) return typeof k === 'number' ? {t: 'num', v: Int.of(k)} : typeof k === 'boolean' ? {t: 'cond', v: k ? yes : no} : {t: 'lit', v: k}
   const m = names.find(n => n.role === 'input' && n.method === e.head && e.segs[0] && 'f' in e.segs[0] && n.code === e.segs[0].f)
   if (m) { c.roles.add('input'); c.methods.add(m.method!); return rest(e.segs.slice(1), leaf(m, c, dry), c, names, dry, e) }
   const known = [...new Set(names.filter(n => n.rule || n.none).map(n => (n.role === 'answer' ? `${n.code.split('.').pop()}()` : n.method && n.role === 'input' ? `${n.code} (${n.method})` : n.code)))]
@@ -503,7 +511,7 @@ export function buildLeadsTo(x: Extraction, l: LawText, opts: {clock?: number} =
   const names = namesWithClock(x), r = x.rule as unknown as {leadsTo: (n: string, spec: unknown) => unknown}
   const model = x.model as unknown as {inputs: {name: string, sort: {k: string, values?: string[]}}[]} | undefined
   const sorts = (x as unknown as {sorts?: Map<string, string>}).sorts
-  const ctxOf = (env: Record<string, unknown>): Ctx => ({b: env, a: env, step: false, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock})
+  const ctxOf = (env: Record<string, unknown>): Ctx => ({consts: x.consts, b: env, a: env, step: false, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock})
   const stateOnly = (text: string, what: string) => {
     const e = parse(text), probe = ctxOf({})
     if (e.k === 'forall') read(e, probe, names, true); else val(e, probe, names, true)  // (what it reads: a bare yes/no field reads as one)

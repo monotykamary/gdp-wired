@@ -88,6 +88,8 @@ export type Extraction = {
   notes: string[],
   // Where each of the rule's variables is in the code (core/laws.ts reads laws written in the code's names through it).
   names?: Name[],
+  // The module's constants bound to literals (a law reads them as the code does: `n <= LIMIT`).
+  consts?: Record<string, number | string | boolean>,
 }
 // A variable of the rule by the code's own path to it: a field (`cfg.limit`), a constructor's or a request's argument
 // (`team_object.max_budget`, an object's field the caller gives), a call of other code answered by the request (its

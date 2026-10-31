@@ -580,7 +580,9 @@ def main():
   mod = r.mod
   if mod.tree is None:
     print(json.dumps({'error': f"{req['file']} doesn't parse"})); return
-  out = {'lang': 'python', 'file': os.path.basename(r.file), 'path': r.file, 'module': mod.name, 'root': os.path.abspath(req['root']), 'entries': []}
+  out = {'lang': 'python', 'file': os.path.basename(r.file), 'path': r.file, 'module': mod.name, 'root': os.path.abspath(req['root']), 'entries': [],
+         # (the module's constants bound to literals, as the code reads them: a law may name them too)
+         'consts': {k: v.value for k, v in mod.consts.items() if isinstance(v, ast.Constant) and isinstance(v.value, (int, float, str, bool)) and not (isinstance(v.value, float) and not v.value.is_integer())}}
   for n in req['names'] or list(mod.classes):
     if n in mod.classes: out['entries'].append({'k': 'class', 'rec': r.rec_of(mod, mod.classes[n])})
     elif n in mod.funcs:
