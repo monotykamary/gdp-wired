@@ -222,12 +222,15 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
   const conjs = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(conjs) : [c])
   const guardsOf = (l: Law): C[] => (l.holds.op === 'or' ? l.holds.xs.flatMap(d => (d.op === 'not' ? conjs(d.x) : [])) : [])
   const bounded = (gs: C[], u: string) => gs.some(c => c.op === '<' && c.a.op === 'var' && c.a.name === u && c.b.op === 'var' && m.params.includes(c.b.name))
-  const loose = new Set(caller.flatMap(l => [...reads(l.holds, mp => mp in (m.maps ?? {})).values()].flatMap(([mp, key]) => (placesOf(key) ?? []).flatMap((u, i) => (bounded(guardsOf(l), u) ? [] : [`${mp}:${i}`])))))
+  const loose = new Set(caller.filter(l => guardsOf(l).length).flatMap(l => [...reads(l.holds, mp => mp in (m.maps ?? {})).values()].flatMap(([mp, key]) => (placesOf(key) ?? []).flatMap((u, i) => (bounded(guardsOf(l), u) ? [] : [`${mp}:${i}`])))))
   const loosened = (c: Law): Law => {
     const drop = new Set([...reads(c.holds, () => true).values()].flatMap(([mp, key]) => (placesOf(key) ?? []).filter((u, i) => loose.has(`${mp}:${i}`))))
     const keep = (x: C): boolean => !(x.op === '<' && x.a.op === 'var' && drop.has(x.a.name) && x.b.op === 'var' && m.params.includes(x.b.name))
     if (!drop.size || c.holds.op !== 'or' || !guardsOf(c).some(x => !keep(x))) return c
-    const w: Law = {...c, name: `${c.name} (at any ${[...drop].join(', ')} below the key's bound)`, holds: {op: 'or', xs: c.holds.xs.map(d => (d.op === 'not' ? {op: 'not', x: {op: 'and', xs: conjs(d.x).filter(keep)}} : d))}}
+    // (the engine names the law's keys x, y, z in order)
+    const shown = [c.forall, ...(c.keys ?? [])].flatMap((u, i) => (u && drop.has(u) ? ['xyzw'[i] ?? u] : []))
+    const name = shown.reduce((t, x) => t.replace(new RegExp(`\\b${x} < (${m.params.join('|')}) ∧ `, 'g'), ''), c.name)
+    const w: Law = {...c, name: name === c.name ? `${c.name} (any ${shown.join(', ')})` : name, holds: {op: 'or', xs: c.holds.xs.map(d => (d.op === 'not' ? {op: 'not', x: {op: 'and', xs: conjs(d.x).filter(keep)}} : d))}}
     return trueAll(w) ? w : c
   }
   const cubes = knob.widen ? cubes0.map(loosened) : cubes0
