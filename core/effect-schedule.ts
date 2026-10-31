@@ -28,7 +28,7 @@ export type ReadCtx = {api: Api, checker: ts.TypeChecker, v4: boolean, params: M
 // A fragment's step, given the rule's env, a reader of its state (its start, for a schedule entered fresh) and its
 // context: how many times it was stepped before (from 0), how long since its first step, the schedule's input.
 type Ctx = {attempt: Term, elapsed: Term, first: Cond}
-type Res = {cont: Cond, delay: Term, out?: Term, next: Record<string, Any>}
+type Res = {cont: Cond, delay: Term, out?: Term, next: Record<string, Any>, jittered?: boolean}
 type Frag = {step: (env: Env, get: (n: string) => Any, c: Ctx) => Res, names: string[], jitters?: string[]}
 type Init = {kind: 'nat' | 'bool', init: number | boolean | ((p: Env) => Term)}
 // What the reading builds beside the fragments: the rule's params, inputs, functions, assumptions, state and notes.
@@ -234,7 +234,7 @@ function both(how: 'union' | 'intersect', l: Frag, r: Frag, P: Parts): Frag {
     const x = l.step(env, get, c), y = r.step(env, get, c)
     const cont = how === 'union' ? any(x.cont, y.cont) : all(x.cont, y.cont)
     const delay = how === 'union' ? when(x.cont.and(y.cont), min(x.delay, y.delay), when(x.cont, x.delay, y.delay)) : max(x.delay, y.delay)
-    return {cont, delay, next: {...x.next, ...y.next}}
+    return {cont, delay, next: {...x.next, ...y.next}, jittered: x.jittered || y.jittered}
   }}
 }
 // andThen: the first until it stops, then the second from its start (stepped at once, as Effect steps it), its own
@@ -258,7 +258,7 @@ function andThenFrag(l: Frag, r: Frag, P: Parts): Frag {
     for (const j of r.jitters ?? []) { const on = P.jitters.find(q => q.name === j)!.on; next[on] = env[`${j}$on`] }
     for (const j of l.jitters ?? []) { const on = P.jitters.find(q => q.name === j)!.on; next[on] = env[`${j}$on`] }
     next[phase] = inR.or(toR); next[n] = when(inR.or(toR), get(n).plus(1), get(n)); next[start] = when(toR, now, get(start))
-    return {cont: pick(y1.cont, yes, y0.cont), delay: pick(y1.delay, x.delay, y0.delay), next}
+    return {cont: pick(y1.cont, yes, y0.cont), delay: pick(y1.delay, x.delay, y0.delay), next, jittered: x.jittered || y0.jittered || y1.jittered}
   }}
 }
 // upTo: goes on while the elapsed time is within the duration (3.x: below it; 4.x: at most it) and, in 4.x, while it has
@@ -277,13 +277,13 @@ function jitterFrag(self: Frag, P: Parts, lo: [number, number], hi: [number, num
   const j = P.fresh('jitter'), base = nat0(P, `${j}_base`), on = flag(P, `${j}_on`)
   P.inputs.set(j, nat)
   P.jitters.push({name: j, base, on, lo, hi})
-  P.notes.add(`each jittered delay is an input (${j}), assumed between ${lo[0] / lo[1]} and ${hi[0] / hi[1]} times the delay it jitters, rounded outward to whole milliseconds: Effect draws a real number there, and a decision on the time (at most a whole number of milliseconds, as upTo and during make it) comes out the same with the run's times rounded up`)
+  P.notes.add(`each jittered delay is an input (${j}), assumed between ${lo[0] / lo[1]} and ${hi[0] / hi[1]} times the delay it jitters, rounded outward to whole milliseconds: Effect draws a real number there. Every run of Effect's is one of the rule's with each jittered delay rounded down or up (the attempts' times taking up the rest), so a decision on the time (at most a whole number of milliseconds, as upTo and during make it) comes out the same, and so does a law comparing the delay with a whole number of milliseconds or with another delay; a law comparing it with the elapsed time is decided on whole milliseconds. A function reading the delay after the jitter is refused`)
   // (the range assumed where the jitter is drawn: the delay it jitters goes on, in a schedule the step takes)
   P.assume.push(env => { const d: Term = env[`${j}$d`] ?? lit(0), used: Cond = env[`${j}$on`] ?? no; return used.implies(all(d.times(lo[0]).atMost(env[j].times(lo[1]).plus(lo[1] - 1)), env[j].times(hi[1]).atMost(d.times(hi[0]).plus(hi[1] - 1)))) })
   return {names: [...self.names, base, on], jitters: [...self.jitters ?? [], j], step: (env, get, c) => {
     const x = self.step(env, get, c)
     env[`${j}$d`] = x.delay; env[`${j}$on`] = x.cont
-    return {...x, delay: when(x.cont, env[j], x.delay), next: {...x.next, [base]: x.delay, [on]: x.cont}}
+    return {...x, delay: when(x.cont, env[j], x.delay), next: {...x.next, [base]: x.delay, [on]: x.cont}, jittered: true}
   }}
 }
 // while / whileInput / whileOutput / untilInput / untilOutput / check: goes on where the inner one does and the predicate
@@ -312,18 +312,19 @@ function delayFrag(self: Frag, P: Parts, f: ts.Expression | undefined, rc: ReadC
 
 // --- the functions combinators are given: read as terms over the step ------------------------------------------------
 type Val = {t: 'num', e: Term} | {t: 'dur', e: Term} | {t: 'bool', c: Cond} | {t: 'str', s: string} | {t: 'choice', e: Any} | {t: 'obj', field: (k: string, at: ts.Node) => Val} | {t: 'eff', v: Val}
-type CbCtx = {rc: ReadCtx, P: Parts, env: Env, vars: Map<ts.Node, Val>}
+type CbCtx = {rc: ReadCtx, P: Parts, env: Env, vars: Map<ts.Node, () => Val>}
 function callbackCtx(fn: ts.ArrowFunction | ts.FunctionExpression, rc: ReadCtx, P: Parts, env: Env, c: Ctx, x: Res, op: string): CbCtx {
-  const vars = new Map<ts.Node, Val>()
+  // (each parameter's value made where the function reads it)
+  const vars = new Map<ts.Node, () => Val>()
   const out = (at: ts.Node): Val => (x.out ? {t: 'dur', e: x.out} : refuse(at, `the output of this schedule (a combination, or one whose output isn't a number or a duration): ${op} reads it`))
   const input = (p: ts.ParameterDeclaration): Val => inputVal(p, rc, P, env)
   const ps = fn.parameters
   const bind = (p: ts.ParameterDeclaration | undefined, v: () => Val) => {
     if (!p) return
-    if (ts.isIdentifier(p.name)) { vars.set(p, v()); return }
+    if (ts.isIdentifier(p.name)) { vars.set(p, v); return }
     if (ts.isObjectBindingPattern(p.name)) {
       const o = v()
-      for (const el of p.name.elements) { const k = memberName((el.propertyName ?? el.name) as ts.PropertyName); vars.set(el, o.t === 'obj' ? o.field(k, el) : refuse(el, `${k} of a value with no fields`)) }
+      for (const el of p.name.elements) { const k = memberName((el.propertyName ?? el.name) as ts.PropertyName); vars.set(el, () => (o.t === 'obj' ? o.field(k, el) : refuse(el, `${k} of a value with no fields`))) }
       return
     }
     refuse(p, `the parameter ${text(p)} (a name, or {fields} of the metadata)`)
@@ -331,13 +332,13 @@ function callbackCtx(fn: ts.ArrowFunction | ts.FunctionExpression, rc: ReadCtx, 
   if (rc.v4) {
     // 4.x's metadata: input, output, attempt (from 1), elapsed, duration (the delay).
     const p = ps[0]
-    const meta: Val = {t: 'obj', field: (k, at) => k === 'input' ? (p ? inputVal(p, rc, P, env, 'input') : refuse(at, 'input')) : k === 'output' ? out(at) : k === 'attempt' ? {t: 'num', e: c.attempt.plus(1)} : k === 'elapsed' ? {t: 'dur', e: c.elapsed} : k === 'duration' ? {t: 'dur', e: x.delay}
+    const meta: Val = {t: 'obj', field: (k, at) => k === 'input' ? (p ? inputVal(p, rc, P, env, 'input') : refuse(at, 'input')) : k === 'output' ? out(at) : k === 'attempt' ? {t: 'num', e: c.attempt.plus(1)} : k === 'elapsed' ? {t: 'dur', e: c.elapsed} : k === 'duration' ? jitteredDelay(x, at)
       : refuse(at, `the metadata's ${k} (input, output, attempt, elapsed and duration are read)`)}
     bind(p, () => meta)
   } else if (op === 'whileInput' || op === 'untilInput') bind(ps[0], () => input(ps[0]!))
   else if (op === 'whileOutput' || op === 'untilOutput' || op === 'addDelay') bind(ps[0], () => out(ps[0]!))
   else if (op === 'check') { bind(ps[0], () => input(ps[0]!)); bind(ps[1], () => out(ps[1]!)) }
-  else if (op === 'modifyDelay') { bind(ps[0], () => out(ps[0]!)); bind(ps[1], () => ({t: 'dur', e: x.delay})) }
+  else if (op === 'modifyDelay') { bind(ps[0], () => out(ps[0]!)); bind(ps[1], () => jitteredDelay(x, ps[1]!)) }
   return {rc, P, env, vars}
 }
 // The schedule's input (a retry's error): a number, a boolean, a choice of strings, or an object whose fields read are
@@ -381,6 +382,9 @@ const kindOfType = (t0: ts.Type | ts.Type[], checker: ts.TypeChecker, at: ts.Nod
   if (lits.every(x => x !== undefined)) return oneOf(...new Set(lits as string[])) as Kind<unknown>
   return refuse(at, `the input's ${ts0.map(t => checker.typeToString(t)).join(' | ')} (a number, a boolean, a string literal or a tagged error is read)`)
 }
+// The delay a function reads, where a jitter decided it: Effect's is a real number of milliseconds there, the rule's a
+// whole one, and a comparison with it may come out otherwise.
+const jitteredDelay = (x: Res, at: ts.Node): Val => (x.jittered ? refuse(at, 'the delay read after a jitter (Effect\'s is a real number of milliseconds there, the rule\'s a whole one: a comparison with it may come out otherwise): jitter after this function') : {t: 'dur', e: x.delay})
 const asCond = (v: Val, at: ts.Node): Cond => (v.t === 'bool' ? v.c : v.t === 'eff' ? asCond(v.v, at) : refuse(at, `${text(at)} gives other than a boolean`))
 const asNum = (v: Val, at: ts.Node): Term => (v.t === 'num' || v.t === 'dur' ? v.e : refuse(at, `${text(at)} is other than a number`))
 const asDur = (v: Val, at: ts.Node): Term => (v.t === 'dur' || v.t === 'num' ? v.e : v.t === 'eff' ? asDur(v.v, at) : v.t === 'str' ? lit(strDur(v.s, at)) : refuse(at, `${text(at)} gives other than a duration`))
@@ -400,8 +404,8 @@ function val(e0: ts.Expression, c: CbCtx): Val {
   if (e.kind === ts.SyntaxKind.FalseKeyword) return {t: 'bool', c: no}
   if (ts.isIdentifier(e)) {
     const d = c.rc.checker.getSymbolAtLocation(e)?.valueDeclaration
-    const v = d && (c.vars.get(d) ?? (ts.isBindingElement(d) ? c.vars.get(d) : undefined))
-    if (v) return v
+    const v = d && c.vars.get(d)
+    if (v) return v()
     const n = count(e, e, c.rc)
     return {t: 'num', e: term(n, c.env)}
   }

@@ -399,8 +399,8 @@ name the service and give the module where the file has several or none.
 - The entry (by default the file's one make effect) is the make effect: `Effect.gen(...)`, a function returning one, `Effect.fn(...)(function* (...) {...})`,
   `Layer.effect(Tag, make)`, or a service class's `make` (4.x `Context.Service`) or `effect` (3.x `Effect.Service`)
   option. It returns `{...}`, `Tag.of({...})` or `{...} satisfies T`.
-- Each Ref (`Ref`, `SynchronizedRef`, `SubscriptionRef`, 4.x `TxRef`) is a field of the state, typed by the Ref; each
-  method an event, its arguments the request, its success value `<method>_result`. A failure (`Effect.fail`,
+- Each Ref (`Ref`, `SynchronizedRef`, `SubscriptionRef`, 4.x `TxRef`, 3.x STM's `TRef`) is a field of the state, typed
+  by the Ref; each method an event, its arguments the request, its success value `<method>_result`. A failure (`Effect.fail`,
   `Effect.die`, `yield* new E(...)`) is the step's refusal; `Clock.currentTimeMillis` an input, like `Date.now()`.
 - Inside a method: `yield*` of get, set, update, modify (its `[result, next]`), updateAndGet, getAndUpdate, getAndSet,
   setAndGet and the `*Effect` forms; Effect.gen and Effect.fn bodies and helpers; succeed, sync, void, log; a Semaphore
@@ -408,11 +408,78 @@ name the service and give the module where the file has several or none.
   copy a Map or a Set (`new Map(m)`, `new Set(s)`) and set it, spread records.
 - Each method is one step of the rule: true where calls don't interleave (one fiber at a time, or under the lock). A
   method that reads a Ref and writes it in two `yield*`s, run by two fibers at once, is not one step.
-- Refused, with the reason: a failure after a Ref changed on that path (the Ref keeps the write), combinators in pipes
-  (retry, catchTag, timeout, forks), Match (write a switch), Data.TaggedEnum or Schema unions of records as state, STM's
-  TRef, services or other effects yielded in a method (Random, DateTime), optional arguments, floats, loops.
+- Refused, with the reason: a failure after a Ref changed on that path outside a transaction (the Ref keeps the write),
+  combinators in pipes other than retry and repeat (catchTag, timeout, forks), Match (write a switch), Data.TaggedEnum or
+  Schema unions of records as state, services or other effects yielded in a method (Random, DateTime), optional
+  arguments, floats, loops.
 - The check makes the service with `Effect.runSyncExit`, runs each request the same way with the clock fixed at the
   request's time, reads every Ref after it, and compares the state, the result and whether it failed.
+
+**Transactions.** A transaction (3.x `STM.gen` yielded or `STM.commit`, 4.x `Effect.tx`) is one atomic step over its
+TRefs: a failure inside it rolls its writes back (a refusal, the state as it was), and one that waits (`STM.check(() =>
+c)`, `STM.retry`, 4.x `if (...) return yield* Effect.txRetry`) is a guard: the request isn't taken until it can go. The
+check interrupts a waiting transaction rather than leaving it to commit inside a later request. Calls from any number of
+fibers are any order of the methods' steps, so where each method is one transaction a law of the rule holds under every
+interleaving. A method that runs several transactions or Ref operations one after another (a read in one, the write in
+the next) is several steps: where the service uses transactions, the rule is every fiber's (core/system.ts's `lift`: each
+fiber's place and what it carries from one step to the next a map keyed by the input `fiber`, the service's Refs shared),
+each request one fiber's next step; `{fibers: true}` reads a service of plain Refs that way, `{fibers: false}` keeps one
+step a method. A lost update comes back as a run of two fibers (`fiberRun(x, run)` says which starts and which goes on):
+
+```ts
+import {extractEffect, fiberRun, proveRule} from 'gdp-wired/effect'
+
+// save: const balance = yield* TxRef.get(checking); ...; yield* Effect.tx(... TxRef.set(checking, balance - amount) ...)
+const x = extractEffect('./bank.ts')                   // two steps of save, every fiber's
+const v = proveRule(x.rule!, [x.rule!.law('the money is conserved', ({checking, savings}) => checking.plus(savings).eq(100))])
+fiberRun(x, v.run!) // fiber 1: save(amount = 1), its step 1 of 2; fiber 0: save(amount = 3), its step 1 of 2; fiber 0: save, its step 2 of 2; ...
+```
+
+Under fibers a law reads the machine's naturals (an integer as `x` and `x$neg`; `domains` makes a Ref a natural). A
+failure in a later step ends the call as a return does (the earlier steps' writes kept); a transaction that fails in a
+later step, a name carried as a pattern, and two state effects in one statement are refused (`examples/effect-stm.ts`).
+
+**Schedules.** A retry or repeat policy (`Schedule`, 3.x or 4.x) is a rule of its own, read from its source: each step
+one of its decisions (go on after a delay, or stop), at the time the attempt before it ended. Its state is `attempt`
+(decisions made), `retries` (those that went on), `delay` (the last delay), `elapsed` (the last decision's time from the
+first) and `done`, beside each combinator's own; each step's inputs are `took` (how long the attempt ran) and, where a
+combinator reads it, the input (a retry's error: a number, a boolean, a choice, or a tagged error's `_tag` and fields).
+Every combinator is a fragment of one machine and composes with any other: spaced, recurs, forever, once, exponential (its
+delay a `recur` function of the attempt, `exponential_x<factor>_b<base>`, its lemmas at least the base and never shrinks
+proven by induction), fibonacci (its two numbers in the state), linear (3.x), during (4.x), upTo (3.x below the duration,
+4.x at most it, and `times`), union / either / intersect / zipLeft / zipRight (3.x) and min / max (4.x), andThen (3.x) and
+concat (4.x), whileInput / whileOutput / untilInput / untilOutput / check (3.x) and while (4.x, over the metadata's input,
+output, attempt, elapsed and duration), addDelay, modifyDelay, jittered and jitteredWith (3.x), passthrough, and a function
+of the schedule in a pipe. Each jittered delay is an input, assumed within its range rounded outward to whole milliseconds.
+The check steps Effect's own schedule (4.x `Schedule.toStep`, 3.x its `step`) beside the rule on drawn times, inputs and
+jitters (Effect's Random answered so it draws the rule's delay), and compares every decision and delay:
+
+```ts
+import {extractEffect, jitterRun, proveRule, proveSteps} from 'gdp-wired/effect'
+
+// export const backoff = Schedule.min([Schedule.exponential('100 millis'), Schedule.spaced('2 seconds')]).pipe(Schedule.upTo({times: 6, duration: '10 seconds'}))
+const x = extractEffect('./policy.ts', {entry: 'backoff'}), r = x.rule!
+const cap = r.law('the delay never exceeds the cap', ({delay}) => delay.atMost(2000))
+proveRule(r, [cap])                                                                                   // proven
+proveRule(r, [r.law('it stops after the deadline', ({elapsed, done}) => elapsed.gt(10_000).implies(done))])  // proven
+// the delays never decrease: a step law, beside the lemma the exponential's recurrence gives (not found by the search)
+proveSteps(r, [cap, r.law('the last delay is at most the next backoff', e => e.delay.atMost(e.exponential_x2_b100(e.attempt)))],
+  [r.stepLaw('the delays never decrease', (b, a) => a.delay.atLeast(b.delay))])                       // proven
+// broken (no cap): refuted by a run, and x.replay(run) steps Effect's own schedule through it (3,200 ms at the sixth)
+```
+
+A law about a jittered delay is broken where the jitter sits at the edge of its range, which a random draw rarely finds:
+`jitterRun(x.schedule, law)` runs the rule with each jitter at its top (then its bottom) and gives the run, for
+`x.replay`. `fromSchedule(source, {effect, params})` reads a schedule written as source. In a file, `// gdp: law` comments
+right above the schedule's `const` are its laws (`npx gdp-wired-cli check policy.ts`).
+
+**Retry and repeat in a method.** `eff.pipe(Effect.retry(policy))`, `Effect.retry(eff, policy)` (a schedule, or `{times,
+schedule, while, until}`) around an effect the reader reads is part of the method's step: each attempt fails as the first
+did (a failure leaves the Refs as they were, and the attempts read nothing else that moves), so the step is the effect's;
+the policy is read into its own rule (`x.schedules`, its laws proven on their own). A repeat runs the effect again as many
+times as its policy goes on (counted by running the policy's rule, up to 17 runs). Refused: a retry whose policy never
+stops (the call would never return), the clock read in what is retried or repeated, a repeat whose policy reads the
+effect's result or whose value is used, a policy reading the service's params, a clock read after a repeat that waits.
 
 A rule written by hand (for code the reader refuses, or Effect's own primitives) is run beside the service with
 `conforms`; `observe` reads the service's state in the rule's terms (`view` maps the rule's where the service shows
