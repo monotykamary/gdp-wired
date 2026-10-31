@@ -2803,7 +2803,13 @@ function someCone(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws0: Law[],
   const named = (d: C, l: Law) => l.some!.some(x => JSON.stringify(d).includes(`"name":${JSON.stringify(x)}`))
   const shape = (l: Law): Law => (!l.some?.length ? l : l.forall
     ? {name: l.name, forall: l.forall, ...(l.keys ? {keys: l.keys} : {}), holds: {op: 'or', xs: [...(l.holds.op === 'or' ? l.holds.xs : [l.holds]).filter(d => !named(d, l)), yes]}}
-    : {name: l.name, forall: 'k$some', keys: ['k2$some'], holds: {op: 'or', xs: ['k$some', 'k2$some'].map(k => substVars(l.holds, {[l.some![0]!]: {op: 'var', name: k}})).concat(yes)}})
+    : shapeOf(l))
+  // (a law about no key: two keys at the bound value's places, its conjuncts that read the value and no map their frame)
+  function shapeOf(l: Law): Law {
+    const x = l.some![0]!, at = (c: C, k: string) => substVars(c, {[x]: {op: 'var', name: k}}), ks = ['k$some', 'k2$some']
+    const cs = l.holds.op === 'and' ? l.holds.xs : [l.holds], frame = cs.filter(c => named(c, l) && !JSON.stringify(c).includes('"op":"get"')), rest = cs.filter(c => !frame.includes(c))
+    return {name: l.name, forall: ks[0], keys: [ks[1]!], holds: {op: 'or', xs: [{op: 'not', x: {op: 'and', xs: ks.flatMap(k => frame.map(c => at(c, k)))}}, ...ks.flatMap(k => rest.map(c => at(c, k))), yes]}}
+  }
   const cubes = [...withKinds(r, []), ...inferLaws(r, laws.map(shape), [], {cubes: 2, ms: Math.min(10_000, ms / 3), first: {proven: false, checked: false}}).found.map(f => f.law)]
   const kept: Law[] = [], tried = new Map<string, number>()
   for (let grew = true; grew && clock() < until;) {
