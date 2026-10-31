@@ -322,7 +322,10 @@ def wrap(j: pathlib.Path, spec: dict, work: pathlib.Path, tree: pathlib.Path, cw
     lines.append('exec "$@"')
     (j / "ns.sh").write_text("\n".join(lines) + "\n")
     path = ":".join([*spec.get("path", []), PATH])
-    env = ["env", "-i", f"PATH={path}", f"HOME={HOME}", "USER=user", "LOGNAME=user", "SHELL=/bin/bash", "LANG=C.UTF-8", *[f"{k}={v}" for k, v in spec.get("env", {}).items()]]
+    # (bun's install cache in the item's own /tmp: two `bun install`s at once in one shared cache failed, silently,
+    # where each Modal container has a HOME of its own)
+    env = ["env", "-i", f"PATH={path}", f"HOME={HOME}", "USER=user", "LOGNAME=user", "SHELL=/bin/bash", "LANG=C.UTF-8", "BUN_INSTALL_CACHE_DIR=/tmp/.bun-install-cache",
+           *[f"{k}={v}" for k, v in spec.get("env", {}).items()]]
     cpus = ",".join(map(str, json.loads((j / "cpus").read_text())))
     return ["sudo", "-n", "unshare", "-m", "--propagation", "private", "--", "sh", str(j / "ns.sh"),
             "setpriv", f"--reuid={os.getuid()}", f"--regid={os.getgid()}", "--init-groups", "--",
