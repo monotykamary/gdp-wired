@@ -27,8 +27,9 @@ first:
   ten     (f) the ten core protocols (research/protocols) at 60 s, 20 runs each, timing placement, launched last.
   sound   the floor and the fill: kernel, CDCL and tamper fuzz at fresh seeds, the extractor correspondence fuzz (each
           reader's own check harness, core/<lang>, at a fresh seed: the extracted rule against the real code on random
-          requests), and at a commit that changes kernel/kernel.ts or core/check.ts its mutants. A NEW survivor (not
-          killed, not listed equivalent in kernel/MUTANTS.md, never a survivor before) is an alert. The fill stops for
+          requests), and at a commit that changes kernel/kernel.ts or core/check.ts its mutants. A NEW survivor (one
+          surviving at the newest commit that ran it, not listed equivalent in kernel/MUTANTS.md as it is now, never a
+          survivor before) is an alert. The fill stops for
           the day at FUZZ_PER_DAY seeds a kind (3,000) and XFUZZ_PER_DAY a reader (48). A failed fuzz run is filed as
           soundness (an alert), coverage (a harness bug) or infra (no test failed; run once more): fuzz_class.
   (the knobs: GDPW_TM_<NAME> in the environment: SPEED_PER_DAY, IC3_PER_DAY, RW_PER_DAY, TEN_PER_DAY, SLOWER, FLOOR_S, TEN_RUNS, FUZZ_PER_DAY,
@@ -1162,16 +1163,59 @@ def xfuzz_cmd(lang: str, seed: int) -> str:
             f"grep -v '^(pass)' | tail -c 6000; s=${{PIPESTATUS[0]}}; echo xfuzz-exit $s; exit $s")
 
 
-def mutant_sig(commit: str, where: str, change: str, _cache: dict = {}) -> str:  # noqa: B006  (the files by commit, kept)
+def file_at(commit: str, f: str, _cache: dict = {}) -> list[str]:  # noqa: B006  (the files by commit, kept)
+    if (commit, f) not in _cache:
+        with contextlib.suppress(Exception):
+            _cache[(commit, f)] = git("show", f"{commit}:{f}").split("\n")
+    return _cache.get((commit, f)) or []
+
+
+def mutant_sig(commit: str, where: str, change: str) -> str:
     """A mutant by its file, its line's text and its change: the same mutant at another commit, whose lines moved."""
     f, _, line = where.rpartition(":")
-    k = (commit, f)
-    if k not in _cache:
-        with contextlib.suppress(Exception):
-            _cache[k] = git("show", f"{commit}:{f}").split("\n")
-    lines = _cache.get(k) or []
+    lines = file_at(commit, f)
     text = lines[int(line) - 1].strip() if line.isdigit() and 0 < int(line) <= len(lines) else line
     return f"{f}|{text}|{change}"
+
+
+# The equivalent mutants as kernel/MUTANTS.md lists them now (its ```equivalent block: `file | function | snippet |
+# from -> to | why`), matched as kernel/mutants.ts's equivalentOf matches them: the file, the top-level declaration the
+# line sits in, the change, and the snippet on the line with the operator inside it. A row is read against the list as
+# it stands, not the flag it was stored with.
+EQUIV_BLOCK, DECLARED = re.compile(r"```equivalent\n(.*?)```", re.S), re.compile(r"^(?:export )?(?:async )?(?:function|const|let|type) ([A-Za-z_$][\w$]*)")
+
+
+def equivalents(md: str) -> list[tuple[str, str, str, str, str]]:
+    m, out = EQUIV_BLOCK.search(md), []
+    for line in (m.group(1).splitlines() if m else []):
+        with contextlib.suppress(Exception):
+            f, fn, snippet, change, _ = [x.strip() for x in line.split(" | ", 4)]
+            frm, to = (json.loads(x) for x in change.split(" -> "))
+            out.append((f, fn, json.loads(snippet), frm, to))
+    return out
+
+
+def listed_equivalent(r: dict, eqs: list, lines: list[str]) -> bool:
+    f, _, n = r["where"].rpartition(":")
+    if not n.isdigit() or not 0 < int(n) <= len(lines):
+        return False
+    line, frm, to = lines[int(n) - 1], *r["change"].split(" -> ", 1)
+    fn = next((m.group(1) for i in range(int(n) - 1, -1, -1) for m in [DECLARED.match(lines[i])] if m), None)
+    return any(e[0] == f and e[1] == fn and e[3] == frm and e[4] == to and e[2] in line and frm in e[2] for e in eqs)
+
+
+def standing_survivors(rows: list[dict], eqs: list, lines_of, rank) -> set[str]:
+    """The signatures that survive where they ran last: at the newest commit (`rank`) whose kernel ran them, some row
+    there not killed, and not listed equivalent under `eqs`. A survivor at an older commit that a later one killed, or
+    that the list names now, stands no more."""
+    newest: dict[str, list[dict]] = {}
+    for r in rows:
+        at = newest.setdefault(r["sig"], [])
+        if not at or rank(r) > rank(at[0]):
+            newest[r["sig"]] = [r]
+        elif rank(r) == rank(at[0]):
+            at.append(r)
+    return {sig for sig, rs in newest.items() if any(not r.get("killedBy") and not listed_equivalent(r, eqs, lines_of(r)) for r in rs)}
 
 
 class Soundness:
@@ -1628,10 +1672,18 @@ def report(day: str) -> dict:
         r.setdefault("sig", mutant_sig(r["commit"], r["where"], r["change"]))
     mt = list({(r["hash"], r["id"]): r for r in mall if on(day, r["t"])}.values())
     surv = [r for r in mt if not r.get("killedBy")]
-    # (a survivor is new when no survivor before today had its signature: its file, its line's text and its change)
+    # (a survivor is an alert when it stands, survived at the newest commit that ran it and not listed equivalent in
+    # kernel/MUTANTS.md as it is now, and is new: no survivor before today had its signature, its file, its line's text
+    # and its change)
+    eqs, lines_of = equivalents((MAIN / "kernel" / "MUTANTS.md").read_text()), lambda r: file_at(r["commit"], r["where"].rpartition(":")[0])
+    when: dict = {}
+    rank = lambda r: (when.setdefault(r["commit"], int(git("show", "-s", "--format=%ct", r["commit"]).strip() or 0) if r["commit"] else 0), r["t"])  # noqa: E731
+    standing = standing_survivors(mall, eqs, lines_of, rank)
+    for r in surv:
+        r["equivalent_now"] = listed_equivalent(r, eqs, lines_of(r))
     t_day = calendar.timegm(time.strptime(day, "%Y-%m-%d"))
     before = {r["sig"] for r in mall if not r.get("killedBy") and r["t"] < t_day}
-    new_surv = list({r["sig"]: r for r in surv if not r.get("equivalent") and r["sig"] not in before}.values())
+    new_surv = list({r["sig"]: r for r in surv if r["sig"] in standing and not r["equivalent_now"] and r["sig"] not in before}.values())
     for r in new_surv:
         alerts.append({"kind": "soundness", "what": f"NEW mutant survivor: {r['where']} {r['change'].strip()} (id {r['id']}, {r['commit'][:12]})"})
     # regressions: the speed chain, 60 s losses, the corpus, the ten, IC3Syn
@@ -1725,8 +1777,9 @@ def report(day: str) -> dict:
     sound = {"fuzz": {k: sum(1 for r in fz if r["kind"] == k) for k in FUZZ}, "fuzz_failed": {c: [(r["kind"], r["seed"], r["code"], first_error(r)) for r in rs] for c, rs in by_class.items()},
              "unsound": len(unsound), "xfuzz": {l: sum(1 for r in xz if r["lang"] == l) for l in XFUZZ}, "xfuzz_tests": sum(r.get("pass", 0) for r in xz),
              "xfuzz_idle": sorted({r["lang"] for r in xz if r["code"] == 0 and "pass" in r and not r["pass"]}), "xfuzz_failed": [(r["lang"], r["seed"], r["code"], first_error(r)) for r in xz if r["code"] != 0],
-             "mutants": len(mt), "survived": len(surv), "equivalent": sum(1 for r in surv if r.get("equivalent")), "new_survivors": len(new_surv),
-             "known_survivors": sorted({f"{r['where']} {r['change'].strip()}" for r in surv if not r.get("equivalent")} - {f"{r['where']} {r['change'].strip()}" for r in new_surv})}
+             "mutants": len(mt), "survived": len(surv), "equivalent": sum(1 for r in surv if r["equivalent_now"]), "new_survivors": len(new_surv),
+             "stale_survivors": sum(1 for r in surv if not r["equivalent_now"] and r["sig"] not in standing),
+             "known_survivors": sorted({f"{r['where']} {r['change'].strip()}" for r in surv if not r["equivalent_now"] and r["sig"] in standing} - {f"{r['where']} {r['change'].strip()}" for r in new_surv})}
     chains = {f: jl_one(TM / "chains" / f"{f}.json").get("runs", {}) for f in ("speed", "ic3syn", "rw", "ten")}
     return {"day": day, "alerts": alerts, "solves": solves, "sweeps": sweeps, "targets": targets, "speed": speed, "rw": rw, "ten": ten, "ic3syn": ic3,
             "soundness": sound, "ideas": ideas, "spend_vmh": {k: round(v, 1) for k, v in sorted(sp.items())}, "pool": pool,
@@ -1826,7 +1879,7 @@ def sections(day: str) -> list[str]:
     out += [f"- extractor correspondence: {sum(s['xfuzz'].values())} seeds ({', '.join(f'{k} {v}' for k, v in s['xfuzz'].items() if v)}), {s['xfuzz_tests']} tests passed, {len(s['xfuzz_failed'])} failed"
             + (f"; ran no test (a toolchain missing?): {', '.join(s['xfuzz_idle'])}" if s["xfuzz_idle"] else "")
             + (": " + "; ".join(f"{k} {sd} ({e or 'exit ' + str(c)})" for k, sd, c, e in s["xfuzz_failed"][:4]) if s["xfuzz_failed"] else ""),
-            f"- mutants: {s['mutants']} run, {s['survived']} survived ({s['equivalent']} listed equivalent, {s['new_survivors']} new, {len(s['known_survivors'])} known before)"]
+            f"- mutants: {s['mutants']} run, {s['survived']} survived ({s['equivalent']} listed equivalent, {s['stale_survivors']} killed or listed at a later commit, {s['new_survivors']} new, {len(s['known_survivors'])} known before)"]
     if R["ideas"]:
         out += ["", "## Ideas"] + [f"- {m['name']}: {m.get('config')} on {m.get('tasks')} tasks: {m.get('status')}, {m.get('gained', 0)} gained, {m.get('lost', 0)} lost" for m in R["ideas"][-8:]]
     out += ["", "## Spend by chain (default-VM hours of item time; a timed item counts its whole VM)",
