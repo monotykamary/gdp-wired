@@ -5,7 +5,7 @@
 //   bun mutants.ts run <from> <to>      runs the battery on mutants from..to-1 (in this checkout: run it in a container)
 //   bun mutants.ts ids <a,b,...>        runs the battery on those mutants
 //   bun mutants.ts baseline             the battery on the unmutated code, which must pass
-// modal/mutants.json fans the run out on Modal, one container per batch.
+// supercomputer/mutants.json fans the run out on Modal, one container per batch.
 import {readFileSync, writeFileSync} from 'node:fs'
 import {resolve} from 'node:path'
 

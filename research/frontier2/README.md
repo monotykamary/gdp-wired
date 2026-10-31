@@ -6,7 +6,7 @@ that gdp-wired's benchmark runs at 0.21.0 left unproven and another tool solved.
 such tasks that fail for one reason, and the README says which tasks and how many, from which run.
 
     bun research/frontier2/jobs.ts > jobs.json                        # one job per item and prover
-    python3 modal/run.py --jobs jobs.json --out runs/corpus2/<name>    # 168 jobs, 2 vCPU each
+    python3 supercomputer/run.py --jobs jobs.json --out runs/corpus2/<name>    # 168 jobs, 2 vCPU each
     bun research/frontier2/score.ts --from runs/corpus2/<name>         # the table and the score
     bun research/frontier2/score.ts [--track t] [--limit 180]         # or in one process, each item in a child
 

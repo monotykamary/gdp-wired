@@ -587,7 +587,7 @@ cd kernel && bun run-kernel.ts && bun test kernel.test.ts
 The whole suite (163 jobs, about 10 minutes of wall time and 46 minutes of job time) runs on [Modal](https://modal.com):
 
 ```sh
-modal run modal/run.py --jobs modal/suite.json --out runs/modal/suite && sh modal/reap.sh
+modal run supercomputer/run.py --jobs supercomputer/suite.json --out runs/modal/suite && sh supercomputer/reap.sh
 ```
 
 Each directory's README has its own runs and results.

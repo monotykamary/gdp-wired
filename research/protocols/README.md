@@ -539,7 +539,7 @@ held none: forms like `DecideCommit[x] ≤ 0` came up, and each took a round to 
   the 1-vCPU infer tests ran 10 to 20% slower in two batches (`runs/bar/runs/9151e47562cc-…-290443`, `…-290500`).
 - Also fixed: a guard on a cell of yes/nos printed `VoteNo.at(k).eq(0)`, which isn't code; it is `VoteNo.at(k).not()`.
 
-**Measured, ablated one at a time** (Modal, 60 s, `runs/gaps/modal/p2` in this worktree's runs): without the domain
+**Measured, ablated one at a time** (Modal, 60 s, `runs/gaps/supercomputer/p2` in this worktree's runs): without the domain
 views, without the scaled tries, or without the distinct rows, 2PC is unknown. A fourth change, a re-asked goal
 starting from its last proof's reads (IC3's frame reuse), moved nothing and was taken out.
 
@@ -571,7 +571,7 @@ over three keys of one sort whose atoms are the rule's own reads with its inputs
 
 ### Results
 
-Modal, 2 vCPU, each configuration its own job (`runs/gaps/modal/p1` base against candidate, `p3` the branch head with
+Modal, 2 vCPU, each configuration its own job (`runs/gaps/supercomputer/p1` base against candidate, `p3` the branch head with
 three runs where a search is near its limit):
 
 | Protocol | Search 10 s | Search 60 s (e7eab01 → here) | Written invariant | Broken variant |
@@ -596,7 +596,7 @@ proven, toy and ring unknown, 2PC unknown at 10 s.
 **What else it moves.** Nothing beyond 2PC. Gitea #0 ("two counted approvals are never by the same reviewer", whose
 guards are i < j and j < next, a domain that moves) gets its views and stays unknown (three runs a side: 55.2 to
 60.4 s against 52.1 to 56.6 s). TigerBeetle #0 to #7 keep their verdicts: 1,608 s against 1,596 s over three runs a
-side (`runs/gaps/modal/rwc`, `rwb`). Casbin and Keycloak: the same verdicts in the full bar.
+side (`runs/gaps/supercomputer/rwc`, `rwb`). Casbin and Keycloak: the same verdicts in the full bar.
 
 ### The bars
 
@@ -681,7 +681,7 @@ three-key law is proven on the proof path, so this is the prover's cost on a thr
 The pruning agent's lead was right. The template law with "a vote means voted" is proven with the search off in 0.73 s
 here. kernel/prove.ts's `proveLaw` proves the template law's own goal, with the safety law and two unrelated forms
 assumed, in 0.32 to 0.38 s (`runs/g2/one.ts`). In the join that goal comes back unknown. Logged (`GDP_X_LOG`, Modal,
-`runs/g2/modal/d4`–`d12` in the gen/gaps2 worktree), the causes stack up in this order:
+`runs/g2/supercomputer/d4`–`d12` in the gen/gaps2 worktree), the causes stack up in this order:
 1. **The forms.** The relative induction takes two forms a counterexample rules out, ranked by their coefficients.
    The plain `Vote[64·x + y] <= Voted[y]` was 12th of the 13 that rule it out. Ahead of it came pieces of the same law
    under control guards (`Voted[y] is 0 and Decided[x] is 0 → VotingQuorum[y] is 0 → Vote[64·x + y] <= 0`) and a

@@ -7,7 +7,7 @@ The mix (mix.py) is today's batches as they arrived, each with its jobs' measure
 
 - boat's limits are rolling windows (the $100 plan: 30 starts a minute, 210 an hour, 840 a day; 300 VMs up); a
   creation and a resume are one start each, a VM still up (released less than its idle time ago) is leased without
-  one. As modal/boat.py, 10 starts of the hour and of the day are never spent.
+  one. As supercomputer/boat.py, 10 starts of the hour and of the day are never spent.
 - A started VM is ready BOOT + PREP seconds after its start, PREP after its lease when it was up: the typical
   `to_running_s` and `prep_s` of the runs' backends.json (run.py's batches prepare the Lean library too). Starts go
   round-robin to the batches that want them, within the minute's room. A batch stops creating VMs once its VMs have
@@ -225,7 +225,7 @@ class Sim:
 
     # ------------------------------------------------------------------ sizing
     def plan_old(self, items, up):
-        """modal/boat.py's plan_vms before this change."""
+        """supercomputer/boat.py's plan_vms before this change."""
         if not items:
             return 0
         W = sum(j[0] * j[1] for j in items)
@@ -613,7 +613,7 @@ def load(path):
 
 BASE = {"idle": 60, "share": 1 / 4, "min_budget": 2, "check_resume": True, "topup": True, "wait": 600}
 # the chosen policy: BASE, and a released VM up 900 s instead of 60 only when, at the last hour's pace, the starts
-# left (hour and day) run out within those 900 s (modal/boat.py's release_idle)
+# left (hour and day) run out within those 900 s (supercomputer/boat.py's release_idle)
 # and (the coordinator's decisions) at most 30 starts a batch, the last 60 of the day and 15 of the hour kept for the
 # account's other project
 NEW100 = dict(BASE, adaptive={"exhaust": True, "long": 900}, cap=30, reserve=(60, 15))  # the $100 plan's choice

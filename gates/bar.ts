@@ -8,7 +8,7 @@
 //
 // Groups (`--only`): chc, its (the task's statement and per component), sv (both), tip (`--rivals`: cvc5 and Vampire
 // too), f1 and f2 (the frontier corpora), rw (the real-world corpus), g332 (research/dag's step goals), suite and
-// suite-usual (modal/suite.json, by default and --usual, one mode after the other), onecpu (the 5 s-limited tests on
+// suite-usual (supercomputer/suite.json, by default and --usual, one mode after the other), onecpu (the 5 s-limited tests on
 // 1 vCPU, ten jobs a side), lean (a sample of the ITS run's recurrent sets checked by Lean: 48 in full mode, 6 in quick).
 //
 // The candidate is a commit (a worktree is made for it under <main>/runs/bar/trees/) or a directory, run as it is
@@ -18,11 +18,11 @@
 // --reruns times more on each side, together. onecpu and g332 time the two sides, so their base always runs beside
 // the candidate. `--quick` runs each benchmark's dev set (gates/bar-dev.json: stratified by family and by how main
 // did) and predicts the full delta from it. Every launch is a runner's own command in its side's tree (python3
-// compare/chc/modal_chc.py ..., python3 modal/run.py ...), so a figure here is that runner's.
+// compare/chc/modal_chc.py ..., python3 supercomputer/run.py ...), so a figure here is that runner's.
 //
 // Cost hygiene: the runners' functions have scaledown_window=2 and their own timeouts; each launch here has a wall
 // cap and is stopped (SIGINT, then SIGTERM, then SIGKILL, by its exact pid) at it; on any exit the bar stops every
-// launch it started and runs modal/reap.sh in every tree it used. Each tree's first launch of a group is a pilot of
+// launch it started and runs supercomputer/reap.sh in every tree it used. Each tree's first launch of a group is a pilot of
 // one or two tasks, read before the fan-out. `--budget` (default $25 full, $6 quick) is checked against the real spend
 // of the bar's own apps (`modal billing report`) between phases and every five minutes.
 import {closeSync, cpSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync} from 'node:fs'
@@ -55,6 +55,8 @@ const readJson = <T>(f: string): T => JSON.parse(readFileSync(f, 'utf8')) as T
 const writeJson = (f: string, x: unknown) => { mkdir(dirname(f)); writeFileSync(f, JSON.stringify(x, null, 1) + '\n') }
 
 let stopping = false
+// a tree's runners' directory: supercomputer/, or modal/ in a tree from before the rename
+const sc = (tree: string) => existsSync(join(tree, 'supercomputer', 'run.py')) ? 'supercomputer' : 'modal'
 type Child = {pid: number, kill: (s: NodeJS.Signals) => void, what: string, cwd: string}
 const live = new Map<number, Child>()
 const treesUsed = new Set<string>()
@@ -102,23 +104,23 @@ async function stopAll(why: string) {
 }
 function reap() {
   for (const t of new Set([...treesUsed, HERE + '/..'])) {
-    if (!existsSync(join(t, 'modal', 'reap.sh'))) continue
-    const p = Bun.spawnSync(['sh', join(t, 'modal', 'reap.sh')], {cwd: t, stdout: 'pipe', stderr: 'pipe'})
+    if (!existsSync(join(t, sc(t), 'reap.sh'))) continue
+    const p = Bun.spawnSync(['sh', join(t, sc(t), 'reap.sh')], {cwd: t, stdout: 'pipe', stderr: 'pipe'})
     const said = p.stdout.toString().split('\n').filter(l => l.startsWith('stopped orphan')).join('; ')
     if (said) log(`reap ${t}: ${said}`)
   }
 }
 for (const s of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) process.on(s, () => { void stopAll(s).then(() => process.exit(130)) })
 process.on('exit', () => { for (const c of live.values()) try { c.kill('SIGINT') } catch { /* gone */ } declare(true) })
-// On boat, the bar declares the work it still has to launch (modal/boat.py's demand): while it runs, the VMs its
+// On boat, the bar declares the work it still has to launch (supercomputer/boat.py's demand): while it runs, the VMs its
 // launches release stay up for its next group (at most as many as it held at once lately, 10 minutes at most), and they
-// stop a minute after it ends. A tree whose modal/boat.py predates the starts ledger gets this checkout's boat.py,
+// stop a minute after it ends. A tree whose supercomputer/boat.py predates the starts ledger gets this checkout's boat.py,
 // fanout.py and agent.py (they ship the tree and run its jobs, which never read them: modal/ isn't uploaded), so every
 // launch spends starts under one policy, with its reserve for the account's other project, and is in the ledger.
 const CLIENT = `bar-${process.pid}`
 function declare(done = false) {
   if (backend === 'modal') return
-  Bun.spawnSync(['python3', join(HERE, '..', 'modal', 'boat.py'), 'demand', CLIENT, ...(done ? ['--done'] : ['--for', '300', '--pid', String(process.pid)])], {stdout: 'ignore', stderr: 'ignore'})
+  Bun.spawnSync(['python3', join(HERE, '..', 'supercomputer', 'boat.py'), 'demand', CLIENT, ...(done ? ['--done'] : ['--for', '300', '--pid', String(process.pid)])], {stdout: 'ignore', stderr: 'ignore'})
 }
 declare()
 if (backend !== 'modal') setInterval(declare, 120_000).unref()
@@ -150,7 +152,7 @@ function treeOf(rev: string): Tree {
     if (!existsSync(join(path, '.bar-ready'))) {
       log(`copying ${src} (uncommitted changes) to ${path}`)
       mkdir(path)
-      out0(['rsync', '-a', '--delete', '--exclude', 'node_modules/', '--exclude', '/runs/', '--exclude', '.git', '--exclude', '*.olean', '--exclude', '*.ilean', '--exclude', '.lake/', '--exclude', 'modal/.live/', '--exclude', '.bar-lean/', `${src}/`, `${path}/`])
+      out0(['rsync', '-a', '--delete', '--exclude', 'node_modules/', '--exclude', '/runs/', '--exclude', '.git', '--exclude', '*.olean', '--exclude', '*.ilean', '--exclude', '.lake/', '--exclude', 'supercomputer/.live/', '--exclude', 'modal/.live/', '--exclude', '.bar-lean/', `${src}/`, `${path}/`])
       out0(['bun', 'install', '--frozen-lockfile'], path)
       writeFileSync(join(path, '.bar-ready'), key + '\n')
     }
@@ -184,7 +186,7 @@ async function jobsPass(p: Pass, jobs: Job[], keyOf: (j: Job) => string, cap: nu
   writeJson(`${p.dir}.jobs.json`, js)
   writeJson(`${p.dir}.keys.json`, Object.fromEntries(js.map(j => [j.name, keyOf(j)])))
   if (!js.length) { mkdir(p.dir); return 0 }
-  return run(['python3', 'modal/run.py', '--backend', backendOf(p), '--jobs', `${p.dir}.jobs.json`, '--out', p.dir, ...extra], {cwd: p.tree.path, log: `${p.dir}.log`, cap})
+  return run(['python3', `${sc(p.tree.path)}/run.py`, '--backend', backendOf(p), '--jobs', `${p.dir}.jobs.json`, '--out', p.dir, ...extra], {cwd: p.tree.path, log: `${p.dir}.log`, cap})
 }
 async function jobsOf(p: Pass, args: string[]): Promise<Job[]> {
   const f = `${p.dir}.all-jobs.json`
@@ -217,8 +219,8 @@ const GROUPS: Group[] = [
     writeJson(`${p.dir}.jobs.json`, jobs)
     return run(['modal', 'run', 'research/query/modal_query.py', '--jobs', `${p.dir}.jobs.json`, '--out', p.dir], {cwd: p.tree.path, log: `${p.dir}.log`, env: {GDP_QUERY_BASE: join(BAR, 'none')}, cap: 1200})
   }},
-  {key: 'suite', views: ['suite'], cap: 2400, inQuick: false, launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, 'modal/suite.json')), j => j.name, 2400)},
-  {key: 'suite-usual', views: ['suite-usual'], cap: 2400, inQuick: false, after: 'suite', launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, 'modal/suite.json')), j => j.name, 2400, ['--usual'])},
+  {key: 'suite', views: ['suite'], cap: 2400, inQuick: false, launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, sc(p.tree.path), 'suite.json')), j => j.name, 2400)},
+  {key: 'suite-usual', views: ['suite-usual'], cap: 2400, inQuick: false, after: 'suite', launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, sc(p.tree.path), 'suite.json')), j => j.name, 2400, ['--usual'])},
   {key: 'onecpu', views: [], cap: 1500, inQuick: true, pairAlways: true, noRerun: true, launch: p => {
     const n = smoke ? 1 : p.quickSize ? 3 : 10, jobs: Job[] = []
     for (let i = 0; i < n; i++) for (const t of ['data', 'infer']) jobs.push({name: `${p.side}-${t}-${i}`, cmd: `bun install --frozen-lockfile >/dev/null 2>&1; bun test core/${t}.test.ts 2>&1`, cpu: 1.0, timeout: 600})
@@ -651,7 +653,7 @@ function g332(r: Result, cand: Tree, base: Tree, p: (s?: string) => void) {
 async function main() {
   if (sub === 'read') {
     const [v, ...dirs] = argv.filter((a, i) => !a.startsWith('--') && argv[i - 1] !== '--tree')
-    // (--tasks: each task's observation, {task: {answer, solved, wrong?, secs}}, one line a directory: modal/treadmill.py reads it)
+    // (--tasks: each task's observation, {task: {answer, solved, wrong?, secs}}, one line a directory: supercomputer/treadmill.py reads it)
     for (const d of dirs) { const rows = VIEWS[v!]!.parse(d, opt('tree', MAIN)); console.log(d, JSON.stringify(flag('tasks') ? Object.fromEntries(rows) : VIEWS[v!]!.headline(rows))) }
     return
   }

@@ -21,6 +21,6 @@ for c in ${@:-nostarts api create lose image}; do
     image) env=(GDPW_BOAT_IMAGE=gdpw-missing GDPW_LIVE=$live) ;;
   esac
   echo "=== $c (${env[*]})"
-  env "${env[@]}" python3 modal/run.py --backend auto --jobs "$out/$c.json" --out "$out/$c" --max-wait $([ $c = lose ] && echo 300 || echo 60) 2>&1 | grep -E "jobs, |fallback|boat can't|lost|refuses|on Modal" | tail -4
+  env "${env[@]}" python3 supercomputer/run.py --backend auto --jobs "$out/$c.json" --out "$out/$c" --max-wait $([ $c = lose ] && echo 300 || echo 60) 2>&1 | grep -E "jobs, |fallback|boat can't|lost|refuses|on Modal" | tail -4
   rm -rf "$live"
 done

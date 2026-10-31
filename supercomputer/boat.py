@@ -1,15 +1,15 @@
-"""boat.dev VMs as a backend for modal/run.py and the compare runners: a pool of VMs that lives across batches, kept
+"""boat.dev VMs as a backend for supercomputer/run.py and the compare runners: a pool of VMs that lives across batches, kept
 stopped between them (a stopped VM bills no compute and keeps its disk), resumed per batch, stopped again a short idle
 time after it, and deleted only on teardown or when the image changes.
 
-    python3 modal/run.py --backend boat --jobs modal/suite.json --out runs/backends/suite [--vms N] [--idle 60]
-    python3 modal/boat.py status | reap | cold | teardown [--all] | image [--build] | usage <since ISO>
-    python3 modal/boat.py starts [--since 24h|7d|ISO]          the starts ledger: ours by day and client, and now
-    python3 modal/boat.py demand <client> [--for 300] [--pid P] [--done]   declare (or end) work about to be launched
+    python3 supercomputer/run.py --backend boat --jobs supercomputer/suite.json --out runs/backends/suite [--vms N] [--idle 60]
+    python3 supercomputer/boat.py status | reap | cold | teardown [--all] | image [--build] | usage <since ISO>
+    python3 supercomputer/boat.py starts [--since 24h|7d|ISO]          the starts ledger: ours by day and client, and now
+    python3 supercomputer/boat.py demand <client> [--for 300] [--pid P] [--done]   declare (or end) work about to be launched
 
 The image is one named snapshot, `gdpw-<hash>`, built in layers (bun and Lean, then each compare runner's solvers and
 benchmarks: its BOAT_SETUP), each layer a snapshot of its own, so changing a layer rebuilds it and the ones above only.
-The pool is a registry of VM ids in modal/.live/boat-pool.json of the main checkout (so every worktree shares it),
+The pool is a registry of VM ids in supercomputer/.live/boat-pool.json of the main checkout (so every worktree shares it),
 guarded by a lock: a batch leases VMs (its pid on each), resumes the stopped ones, creates the rest within the plan's
 limits (`boat limits`: active VMs, starts per minute, hour and day), and releases them at the end. Every VM a batch
 holds has a TTL renewed while the client lives (a VM whose client died stops by itself within 15 minutes); a released
@@ -33,8 +33,8 @@ hours, would be idle compute parked to save starts: left out (research/boat-star
 limits are read from `boat limits` at every batch. GDPW_BOAT_POLICY=old: the sizing before (the ceiling stays).
 
 A batch: the worktree as git sees it (tracked and untracked files that aren't ignored, with the submodules', minus the
-same paths modal/run.py leaves out) goes to one VM, which serves it to the others through a token-gated boat URL, and
-each VM unpacks it fresh (no item sees an earlier batch's tree). Items run as modal/agent.py describes, longest first
+same paths supercomputer/run.py leaves out) goes to one VM, which serves it to the others through a token-gated boat URL, and
+each VM unpacks it fresh (no item sees an earlier batch's tree). Items run as supercomputer/agent.py describes, longest first
 by the last run's times, each VM taking what fits its free CPUs (2 vCPU and 4 GB a slot, as Modal's default container).
 """
 import base64
@@ -112,7 +112,14 @@ def main_checkout() -> pathlib.Path:
         return GDP
 
 
-LIVE = pathlib.Path(os.environ.get("GDPW_LIVE") or main_checkout() / "modal" / ".live")
+def live_dir() -> pathlib.Path:
+    """The pool's shared directory in the main checkout: supercomputer/.live once it has moved there (`migrate-live`),
+    modal/.live before (a main checkout from before the rename)."""
+    m = main_checkout()
+    return next((m / d / ".live" for d in ("supercomputer", "modal") if (m / d / ".live").is_dir()), m / "supercomputer" / ".live")
+
+
+LIVE = pathlib.Path(os.environ.get("GDPW_LIVE") or live_dir())
 LEDGER = LIVE / "boat-starts.jsonl"
 
 
@@ -306,7 +313,7 @@ def wait_running(ids: list[str], timeout: int = 600) -> dict:
 TOOLS = r"""
 sudo apt-get update -y -q
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q curl unzip git ca-certificates xz-utils zstd bzip2 coreutils python3-pip
-# as modal/run.py's image: bun (the version that image has) and Lean 4.34.0 by elan
+# as supercomputer/run.py's image: bun (the version that image has) and Lean 4.34.0 by elan
 curl -fsSL https://bun.sh/install | bash -s bun-v1.4.3
 curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain leanprover/lean4:v4.34.0
 ~/.elan/bin/lean --version
@@ -317,7 +324,7 @@ sudo chown "$(id -un)" /smt /vamp /sv /opt/gdpw
 # The toolchains the lanes' jobs install at their start on Modal (as root, which a boat item isn't): the language
 # sweep's (research/langs/*/*-setup.sh: Ruby and Prism, Elixir, clang 19, a JDK 21 and kotlinc 2.4.21, Swift, Rust),
 # LiteLLM's Python (uv, its pinned dependencies, a site directory the user installs into), Solidity's solc and anvil
-# (research/sol), and the runner image's own (modal/run.py's runner_image: clang 18, GCC 14's libstdc++, Temurin 17), so
+# (research/sol), and the runner image's own (supercomputer/run.py's runner_image: clang 18, GCC 14's libstdc++, Temurin 17), so
 # "image": "runner" jobs run on boat too. Each setup script then finds its tool and installs nothing.
 LANGS = r"""
 export DEBIAN_FRONTEND=noninteractive
@@ -452,7 +459,7 @@ def ensure_image(build: bool = True) -> str:
             snap = _ALIAS[snap]  # (a layer that was the image's top before another went on it)
         if snap not in have or have[snap].get("status") != "ready":
             if not build:
-                raise Unavailable(f"boat image {chain[-1][1]} isn't built (layer {snap} missing): python3 modal/boat.py image --build")
+                raise Unavailable(f"boat image {chain[-1][1]} isn't built (layer {snap} missing): python3 supercomputer/boat.py image --build")
             build_layer(name, snap, script, parent)
         parent = snap
     prune_snapshots({s for _, s, _ in chain} | {_ALIAS[s] for _, s, _ in chain if s in _ALIAS}, chain[-1][1])
@@ -602,7 +609,7 @@ def declared(d: dict, name: str) -> dict | None:
 
 
 # ---------------------------------------------------------------------------------------------------------- the tree
-IGNORE = ["vendor/handwired/lab/recovery-*/**", "**/*.olean", "**/*.ilean", "**/*.c", "**/node_modules/**", "**/runs/**", "runs/**", "modal/**", "private/**",
+IGNORE = ["vendor/handwired/lab/recovery-*/**", "**/*.olean", "**/*.ilean", "**/*.c", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal", "private/**",
           "vendor/handwired/lab/ui-exploration/**", "vendor/handwired/lab/knuth-plass/**", "vendor/handwired/assets/**", "vendor/handwired/tests/**", "vendor/gdp-ts/examples/**",
           "**/__pycache__/**"]
 
@@ -616,7 +623,7 @@ def _ignored(path: str, patterns: list[str]) -> bool:
 
 
 def tree_files(root: pathlib.Path = GDP, ignore: list[str] = IGNORE) -> list[str]:
-    """What git sees: tracked and untracked-not-ignored files, the submodules' too, minus `ignore` (modal/run.py's)."""
+    """What git sees: tracked and untracked-not-ignored files, the submodules' too, minus `ignore` (supercomputer/run.py's)."""
     def ls(d: pathlib.Path, prefix: str) -> list[str]:
         out = subprocess.run(["git", "-C", str(d), "ls-files", "-z", "-co", "--exclude-standard"], capture_output=True, check=True).stdout.decode().split("\0")
         files = []
@@ -652,7 +659,7 @@ def olean_tarball(key: str) -> tuple[bytes | None, list[str]]:
 
 
 def olean_from_modal(key: str):
-    """The Lean library for this key from Modal's olean volume (modal/run.py's jobs keep it there) when this client has
+    """The Lean library for this key from Modal's olean volume (supercomputer/run.py's jobs keep it there) when this client has
     less of it: a boat batch on a new key would otherwise compile it in every job, which slows the jobs that time a
     kernel check (core/data.test.ts's 5 s limit) and fails one that imports a module it doesn't build (lean-ksteps)."""
     cache = LIVE / "olean" / key
@@ -1339,7 +1346,7 @@ class Session:
 
     # -- collecting and closing
     def collect(self) -> dict[str, dict]:
-        """Every item's out and err (their tails, as modal/run.py keeps), by name (a VM let go early: collected then)."""
+        """Every item's out and err (their tails, as supercomputer/run.py keeps), by name (a VM let go early: collected then)."""
         ts = [threading.Thread(target=self._collect, args=(vm,)) for vm in self.ready if not vm.dead and vm.id not in self.collected]
         [t.start() for t in ts]
         [t.join() for t in ts]
@@ -1597,7 +1604,7 @@ def last_durations(out: pathlib.Path, names: set[str], explicit: str = "") -> di
     return {}
 
 
-# ------------------------------------------------------------------------------------------------- modal/run.py's jobs
+# ------------------------------------------------------------------------------------------------- supercomputer/run.py's jobs
 def preflight(want: int = 1, vm_type: str = VM_TYPE) -> tuple[str | None, dict]:
     """Can boat serve a batch now? None and what it can give, or the reason it can't: its API, the account's billing,
     the image, or no VM to be had (the pool's free VMs, and what the plan lets this batch start)."""
@@ -1615,7 +1622,7 @@ def preflight(want: int = 1, vm_type: str = VM_TYPE) -> tuple[str | None, dict]:
     except Exception as e:
         return f"boat API unreachable ({str(e)[:160]})", {}
     if not snap or snap.get("status") != "ready":
-        return f"boat image {img} isn't there (python3 modal/boat.py image --build)", {}
+        return f"boat image {img} isn't there (python3 supercomputer/boat.py image --build)", {}
     try:
         with Registry().locked() as d:
             reconcile(d, sandboxes())
@@ -1652,7 +1659,7 @@ def warm_up(vm_type: str = VM_TYPE) -> int:
 
 
 def job_items(spec: list[dict], pre: str, cmd, vm_type: str, past: dict) -> tuple[list[dict], list[str]]:
-    """modal/run.py's jobs as items, in its summary's order (its resource groups, in the order they first appear)."""
+    """supercomputer/run.py's jobs as items, in its summary's order (its resource groups, in the order they first appear)."""
     med = sorted(past.values())[len(past) // 2] if past else 60
     cap_slots = TYPES[vm_type][0] // SLOT_CPU
     items, order = [], []
@@ -1677,7 +1684,7 @@ def job_items(spec: list[dict], pre: str, cmd, vm_type: str, past: dict) -> tupl
 
 def boat_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int | None = None, teardown: bool = False, durations: str = "", vm_type: str = VM_TYPE,
               max_vms: int = 0, on_lost=None, max_wait: int = 0, on_done=None, tar: bytes | None = None) -> tuple[dict, dict]:
-    """modal/run.py's jobs on the pool: {name: {code, seconds, out, err}} for those that ran, and the batch's figures.
+    """supercomputer/run.py's jobs on the pool: {name: {code, seconds, out, err}} for those that ran, and the batch's figures.
     A job lost twice (its VM died) goes to on_lost(name, reason), as does every job when boat can't serve the batch."""
     outdir = pathlib.Path(out)
     past = last_durations(outdir, {j["name"] for j in spec}, durations)
@@ -1841,6 +1848,27 @@ def teardown(everything: bool = False, vm_type: str = ""):
     print(f"deleted {len(gone)} VMs")
 
 
+def migrate_live():
+    """Once, at the rename: the main checkout's modal/.live (the registry, the ledger, the olean and store caches) moves to
+    supercomputer/.live, and modal/.live becomes a link to it, so a client of either name shares one registry. In a
+    main checkout from before the rename merges, supercomputer/ is listed in .git/info/exclude meanwhile."""
+    m = main_checkout()
+    old, new = m / "modal" / ".live", m / "supercomputer" / ".live"
+    if old.is_symlink() or not old.is_dir():
+        print(f"nothing to move: {old} is {'a link' if old.is_symlink() else 'missing'}; the pool's directory is {live_dir()}")
+        return
+    if new.exists():
+        raise SystemExit(f"{new} exists already")
+    new.parent.mkdir(exist_ok=True)
+    os.rename(old, new)
+    old.symlink_to(pathlib.Path("..") / "supercomputer" / ".live")
+    ex = m / ".git" / "info" / "exclude"
+    if ex.parent.is_dir() and "supercomputer/" not in (ex.read_text() if ex.exists() else ""):
+        with open(ex, "a") as f:
+            f.write("supercomputer/\n")
+    print(f"moved {old} to {new}; {old} links there")
+
+
 def starts_summary(since: str = "24h"):
     """The ledger since a time (ISO 8601 UTC, or 24h, 7d): our starts by day and by client, the batches that went to
     Modal for want of a start, and now: ours this hour and day against the ceiling, the account's, the other's."""
@@ -1891,6 +1919,7 @@ if __name__ == "__main__":
     i.add_argument("--build", action="store_true")
     u = sub.add_parser("usage")
     u.add_argument("since")
+    sub.add_parser("migrate-live")
     g = sub.add_parser("starts")
     g.add_argument("--since", default="24h")
     m = sub.add_parser("demand")
@@ -1901,6 +1930,8 @@ if __name__ == "__main__":
     a = ap.parse_args()
     if a.cmd == "status":
         status()
+    elif a.cmd == "migrate-live":
+        migrate_live()
     elif a.cmd == "starts":
         starts_summary(a.since)
     elif a.cmd == "demand":  # (the bar every 2 min while it runs; --done at its end)

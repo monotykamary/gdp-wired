@@ -1,5 +1,5 @@
-"""One interface over three providers: boat.dev VMs for CPU work (modal/boat.py), RunPod pods for GPU work
-(modal/runpod.py), Modal for the rest and as the fallback of both.
+"""One interface over three providers: boat.dev VMs for CPU work (supercomputer/boat.py), RunPod pods for GPU work
+(supercomputer/runpod.py), Modal for the rest and as the fallback of both.
 
     --backend modal     Modal, as always (the default until it's flipped)
     --backend auto      CPU work on boat, GPU work on RunPod; Modal takes over when the primary can't serve
@@ -11,7 +11,7 @@ its billing (credit, balance), no capacity (boat's active-VM or start limits lea
 image that isn't built; RunPod out of every GPU type in the list), a VM or pod lost mid-job. Every fallback is logged
 with its reason, in the final line and in <out>/backends.json; a job's results are the same whichever provider ran it.
 Whatever happens, each provider's cleanup runs: boat VMs released (stopped after --idle), pods deleted, the Modal app
-stopped (its id and this client's pid in modal/.live/ while it runs).
+stopped (its id and this client's pid in supercomputer/.live/ while it runs).
 
 The compare runners write their entrypoint's body as `run(ex, ...)` with `ex.remote(fn, *args)` and
 `ex.starmap(fn, args)` (results as they finish, an exception for a failed call); `python3 <runner> --backend ...`
@@ -74,7 +74,7 @@ def reexec_with_modal():
 
 class ModalCtx:
     """The runner's Modal app, running: the one `modal run` started, or one started here (and stopped on exit), its
-    id and this client's pid in modal/.live/ while it runs (modal/reap.sh stops it if this client dies)."""
+    id and this client's pid in supercomputer/.live/ while it runs (supercomputer/reap.sh stops it if this client dies)."""
 
     def __init__(self, app):
         self.app, self.ctx, self.ticket = app, None, None
@@ -85,7 +85,7 @@ class ModalCtx:
         if getattr(self.app, "app_id", None) is None:
             self.ctx = self.app.run()
             self.ctx.__enter__()
-        live = GDP / "modal" / ".live"
+        live = GDP / "supercomputer" / ".live"
         live.mkdir(exist_ok=True)
         self.ticket = live / f"{self.app.app_id}"
         self.ticket.write_text(str(os.getpid()))
@@ -101,12 +101,12 @@ class ModalCtx:
         return False
 
 
-# ------------------------------------------------------------------------------------------------- modal/run.py jobs
+# ------------------------------------------------------------------------------------------------- supercomputer/run.py jobs
 def run_jobs(app, spec: list[dict], out: str, pre: str, cmd, modal_jobs, backend: str = "modal", vms: int = 0, idle: int | None = None, teardown: bool = False,
              durations: str = "", vm_type: str = "large", max_vms: int = 0, max_wait: int = 120, tar: bytes | None = None):
-    """modal/run.py's batch on its backend. modal_jobs(jobs, on_done) runs jobs on Modal (inside the running app)
+    """supercomputer/run.py's batch on its backend. modal_jobs(jobs, on_done) runs jobs on Modal (inside the running app)
     and returns {name: {code, seconds, out, err}}. Writes <out>/<name>.log and <out>/summary.tsv (name, exit,
-    seconds, backend) and prints modal/run.py's final line, with where the jobs ran and why any moved."""
+    seconds, backend) and prints supercomputer/run.py's final line, with where the jobs ran and why any moved."""
     if backend not in ("modal", "auto", "boat"):
         raise SystemExit(f"--backend for CPU jobs is modal, auto or boat, not {backend}")
     outdir = pathlib.Path(out)
@@ -167,7 +167,7 @@ def run_jobs(app, spec: list[dict], out: str, pre: str, cmd, modal_jobs, backend
 
 
 def boat_order(spec):
-    """modal/run.py's summary order: its resource groups, in the order they first appear."""
+    """supercomputer/run.py's summary order: its resource groups, in the order they first appear."""
     groups: dict[tuple, list] = {}
     for j in spec:
         groups.setdefault((j.get("cpu", 2.0), j.get("memory", 4096), j.get("timeout", 900)), []).append(j)
@@ -215,7 +215,7 @@ class ModalEx:
 
 
 class BoatEx:
-    """The pool (modal/boat.py): each call a py item in the runner's setting (its BOAT mounts and PATH, 2 vCPU and
+    """The pool (supercomputer/boat.py): each call a py item in the runner's setting (its BOAT mounts and PATH, 2 vCPU and
     4 GB, the function's own timeout)."""
 
     backend = "boat"

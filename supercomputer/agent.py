@@ -1,4 +1,4 @@
-"""The VM side of modal/boat.py: one file, the Python standard library only, sent to every boat VM it leases.
+"""The VM side of supercomputer/boat.py: one file, the Python standard library only, sent to every boat VM it leases.
 
     python3 agent.py prep <batch> <tree source> <library key>   unpack a batch's tree (a URL or a file), drop older batches
     python3 agent.py tick <batch> <base64 JSON, in parts>       start items, ack reported ones, wait (<= 25 s) for a finish
@@ -355,7 +355,7 @@ def run(batch: str, name: str):
                 p = subprocess.run(argv, stdout=out, stderr=err, stdin=subprocess.DEVNULL)
             secs = round(time.time() - t0, 2)
             code = p.returncode
-            if code in (137, -9) and secs >= spec["limit"] - 1:  # as modal/run.py reports its own limit
+            if code in (137, -9) and secs >= spec["limit"] - 1:  # as supercomputer/run.py reports its own limit
                 code = 124
                 (j / "err").write_text(f"timed out after {spec['limit']} s")
             row.update(code=code, seconds=secs)

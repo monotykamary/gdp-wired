@@ -34,7 +34,7 @@ job, then reap.
 
 ```sh
 LITELLM_REPO=https://github.com/<you>/litellm LITELLM_REF=<branch or tag> \
-  python3 modal/run.py --backend modal --jobs research/langs/litellm/jobs.json --out runs/langs/<name> && sh modal/reap.sh
+  python3 supercomputer/run.py --backend modal --jobs research/langs/litellm/jobs.json --out runs/langs/<name> && sh supercomputer/reap.sh
 ```
 
 (The job reads both variables in its command; with neither it runs upstream at the pin, v1.106.6.)

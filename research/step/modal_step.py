@@ -4,11 +4,11 @@
 
 Modal only: the jobs read research/dag's dumped step goals (runs/modal/dag/goals/, mounted at /goals), the table's
 (runs/step/goals223/, at /goals223), any other goals kept for a profile (runs/step/extra/, at /extra), the CHC-COMP'26 LIA-Lin benchmarks at compare/'s pinned commit (/chc) and Spacer's
-models of the sat gap tasks (/data/spacer-models.jsonl), none of which modal/run.py's tree carries. jobs.json is a list
+models of the sat gap tasks (/data/spacer-models.jsonl), none of which supercomputer/run.py's tree carries. jobs.json is a list
 of {"name", "cmd", "limit"?, "collect"?}: cmd runs under bash in /work/gdp-wired (this tree, mounted fresh), killed at
 `limit` seconds (default 120) by `timeout -s KILL`; `collect`, a directory, has its files returned and written under
 <out>/<name>/. <out>/<name>.log has the exit code, seconds, stdout and stderr; <out>/summary.tsv one row a job. The app
-id and client pid are registered in modal/.live/ (modal/reap.sh stops an orphan); every call is cancelled when this
+id and client pid are registered in supercomputer/.live/ (supercomputer/reap.sh stops an orphan); every call is cancelled when this
 entrypoint exits.
 """
 import json
@@ -36,10 +36,10 @@ for p in sorted(root.rglob('*'), reverse=True):
     elif p.is_dir() and not any(p.iterdir()):
         p.rmdir()
 """
-GOALS = GDP / "runs" / "modal" / "dag" / "goals"
+GOALS = GDP / "runs" / "supercomputer" / "dag" / "goals"
 GOALS223 = GDP / "runs" / "step" / "goals223"
 EXTRA = GDP / "runs" / "step" / "extra"
-MODELS = GDP.parent / "gdp-wired" / "runs" / "modal" / "chc2" / "spacer-models-sat" / "models.jsonl"
+MODELS = GDP.parent / "gdp-wired" / "runs" / "supercomputer" / "chc2" / "spacer-models-sat" / "models.jsonl"
 
 image = (
     modal.Image.from_registry("ubuntu:24.04", add_python="3.12")
@@ -52,7 +52,7 @@ image = (
     )
     .run_commands(f"python3 - <<'EOF'\n{KEEP}\nEOF", "du -sh /chc")
     .env({"PATH": "/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
-    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "modal/**", "private/**",
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "private/**",
                                               "vendor/**", "compare/**/*.js", "compare/**/out/**", "research/enum/**", "research/perf/**", "research/hw/**", "research/modal-gpu/**",
                                               "docs/**", "static/**", "lean-kernel/.lake/**"])
 )
@@ -94,7 +94,7 @@ def job(name: str, cmd: str, limit: int, collect: str) -> dict:
 
 @app.local_entrypoint()
 def main(jobs: str, out: str):
-    live = GDP / "modal" / ".live"
+    live = GDP / "supercomputer" / ".live"
     live.mkdir(exist_ok=True)
     ticket = live / f"{app.app_id}"
     ticket.write_text(str(os.getpid()))

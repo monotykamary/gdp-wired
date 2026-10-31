@@ -2,7 +2,7 @@
 
 One command measures a candidate against a base on every benchmark and writes one report. It launches the runners
 the tracks ran by hand (compare/chc/modal_chc.py, compare/term/modal_term.py and modal_sv.py, compare/tip/modal_tip.py,
-modal/run.py with research/frontier*/, research/realworld/ and modal/suite.json, research/query/modal_query.py), each in
+supercomputer/run.py with research/frontier*/, research/realworld/ and supercomputer/suite.json, research/query/modal_query.py), each in
 its side's own tree, reads their output as their summary scripts do, reruns what differs and compares.
 
 | File | What |
@@ -40,7 +40,7 @@ always runs beside the candidate. A task the backend failed (a lost VM or contai
 job) runs once more on Modal and its row replaces the failed one; the report lists them.
 
 **Cost hygiene.** Every launch is its runner's own command (scaledown_window=2, its own timeouts), under a wall cap,
-stopped by its exact pid (SIGINT, SIGTERM, SIGKILL); any exit of the bar stops every launch and runs modal/reap.sh in
+stopped by its exact pid (SIGINT, SIGTERM, SIGKILL); any exit of the bar stops every launch and runs supercomputer/reap.sh in
 every tree it used. Each tree's first launch of a group is a pilot of one or two tasks, read before the fan-out.
 `--budget` ($25 full, $6 quick) is checked between phases and every five minutes against an estimate from the task
 seconds (Modal bills an hour once it is over); the report gives the bill for the bar's own apps from
@@ -67,7 +67,7 @@ report` where the hour was over, else the bar's estimate from task seconds (whic
 run, both answered past 45 s, 4 noise); ITS 1,151 against a mean of 1,152.33 (2 differ, both in the band, noise);
 per component 2 differ, noise; SV-COMP, TIP, both frontier corpora and the real-world corpus with no task differing;
 the 332 goals the same search on all 332; Lean 48 of 48; `--usual` 224 of 224 (the default suite's client hung on a
-call Modal lost, 0 tasks running for 20 minutes: modal/run.py now bounds each wait). Two past merges, the candidate
+call Modal lost, 0 tasks running for 20 minutes: supercomputer/run.py now bounds each wait). Two past merges, the candidate
 against a baseline of its base made at another time:
 
 | | Launched together (the track's runs) | Against the cached baseline (`runs/repro-*-cache`) |

@@ -1,10 +1,10 @@
-"""The treadmill: a long-lived client of the boat pool (modal/boat.py) that keeps a base pool of VMs busy with a queue
+"""The treadmill: a long-lived client of the boat pool (supercomputer/boat.py) that keeps a base pool of VMs busy with a queue
 of experiments, caches every result by (commit, benchmark, task, config) so nothing unchanged runs twice, and writes a
 daily digest.
 
-    python3 modal/treadmill.py run [--vms 8] [--hours 0] [--budget-vmh 384] [--quiet 1500] [--nogain 3]
-    python3 modal/treadmill.py submit <jobs.json> [--tree DIR] [--name NAME]     a lane's (or terra's) batch
-    python3 modal/treadmill.py results <name> | status | digest [--day YYYY-MM-DD]
+    python3 supercomputer/treadmill.py run [--vms 8] [--hours 0] [--budget-vmh 384] [--quiet 1500] [--nogain 3]
+    python3 supercomputer/treadmill.py submit <jobs.json> [--tree DIR] [--name NAME]     a lane's (or terra's) batch
+    python3 supercomputer/treadmill.py results <name> | status | digest [--day YYYY-MM-DD]
 
 The base pool: `--vms` large VMs (4 slots each) held by the treadmill's batches, which a scheduler keeps full every
 15 s, in this order:
@@ -160,9 +160,9 @@ class Batch:
             d.mkdir(parents=True, exist_ok=True)
             with tarfile.open(fileobj=io.BytesIO(self.tar)) as tf:
                 tf.extractall(d, filter="tar")
-            (d / "modal").mkdir(exist_ok=True)
+            (d / "supercomputer").mkdir(exist_ok=True)
             for f in ("run.py", "fanout.py", "agent.py", "boat.py", "runpod.py"):
-                (d / "modal" / f).write_bytes((HERE / f).read_bytes())
+                (d / "supercomputer" / f).write_bytes((HERE / f).read_bytes())
             (d / ".ready").write_text("")
         return d
 
@@ -251,7 +251,7 @@ def py_item(name: str, module: str, fn: str, args: list, limit: int, est: float,
 
 
 def import_real(path: pathlib.Path):
-    """A module of a tree (a runner, modal/run.py) under the real Modal client: its app, functions and image."""
+    """A module of a tree (a runner, supercomputer/run.py) under the real Modal client: its app, functions and image."""
     import importlib.util
     if getattr(sys.modules.get("modal"), "__gdpw_stub__", False):  # (agent.import_runner's stub, for BOAT configs: not here)
         del sys.modules["modal"]
@@ -272,7 +272,7 @@ _modal_lock = threading.Lock()
 @contextlib.contextmanager
 def modal_app(app):
     """A tree's Modal app running for one fallback (one at a time: the client is not for threads at once), its id and
-    this client's pid in modal/.live/ meanwhile (modal/reap.sh stops it if this client dies)."""
+    this client's pid in supercomputer/.live/ meanwhile (supercomputer/reap.sh stops it if this client dies)."""
     with _modal_lock, app.run():
         t = HERE / ".live" / app.app_id
         t.parent.mkdir(exist_ok=True)
@@ -285,7 +285,7 @@ def modal_app(app):
 
 def on_modal(items: list[dict], root: pathlib.Path, on_row) -> dict:
     """Items boat couldn't run, on Modal: a runner's function through the runner's own app, shell items through
-    the tree's modal/run.py; each row to on_row, and the shell items' logs back."""
+    the tree's supercomputer/run.py; each row to on_row, and the shell items' logs back."""
     logs: dict = {}
     for module in sorted({it["module"] for it in items if it["kind"] == "py"}):
         mod = import_real(root / module)
@@ -297,7 +297,7 @@ def on_modal(items: list[dict], root: pathlib.Path, on_row) -> dict:
                     on_row(it, {"code": -1, "error": repr(res)[:400]} if isinstance(res, BaseException) else {"code": 0, "result": res, "where": "modal"})
     sh = [it for it in items if it["kind"] == "sh"]
     if sh:
-        run = import_real(root / "modal" / "run.py")
+        run = import_real(root / "supercomputer" / "run.py")
         by = {it["name"]: it for it in sh}
         spec = [{"name": it["name"], "cmd": it["cmd"], "cwd": it.get("cwd", "."), "cpu": 2.0 * it.get("weight", 1), "memory": 4096 * it.get("weight", 1), "timeout": int(it["limit"]) + 30} for it in sh]
 
@@ -551,7 +551,7 @@ def job_key(tk: str, j: dict) -> str:
 def submit(jobs: str, tree: str, name: str):
     spec = json.loads(pathlib.Path(jobs).read_text())
     if any(j.get("image") or j.get("backend") == "modal" for j in spec):
-        raise SystemExit("a job on Modal's own image doesn't belong on the treadmill: run it with modal/run.py")
+        raise SystemExit("a job on Modal's own image doesn't belong on the treadmill: run it with supercomputer/run.py")
     root = pathlib.Path(git("rev-parse", "--show-toplevel", cwd=pathlib.Path(tree).resolve()))
     tar = boat.tree_tarball(root)
     name = name or f"{root.name}-{pathlib.Path(jobs).stem}-{time.strftime('%m%d-%H%M%S')}"
@@ -563,7 +563,7 @@ def submit(jobs: str, tree: str, name: str):
     (d / "jobs.json").write_text(json.dumps(spec, indent=1))
     (d / "meta.json").write_text(json.dumps({"name": name, "tree": str(root), "sha": git("rev-parse", "HEAD", cwd=root), "tree_key": tree_key(tar), "jobs": len(spec),
                                              "t": time.time(), "status": "queued"}, indent=1))
-    print(f"queued {name}: {len(spec)} jobs from {root} (tree {tree_key(tar)}); results: python3 modal/treadmill.py results {name}")
+    print(f"queued {name}: {len(spec)} jobs from {root} (tree {tree_key(tar)}); results: python3 supercomputer/treadmill.py results {name}")
 
 
 def results(name: str):

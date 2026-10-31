@@ -1,5 +1,5 @@
 // Rules over the rationals (core/rationals.ts): for the suite (`bun examples/rationals.ts`), core/rationals.test.ts and
-// the Lean export (lean-kernel/qlean.ts, `lean-rationals` in modal/suite.json). Every value is an exact rational: 0.1
+// the Lean export (lean-kernel/qlean.ts, `lean-rationals` in supercomputer/suite.json). Every value is an exact rational: 0.1
 // is 1/10 and a third is 1/3; no law below is scaled to cents or encoded as naturals.
 //   - a fee split: each payment splits into a 2.5% fee and the rest, the parts sum to the whole exactly, the fee is a
 //     fortieth of the total (broken: a fee rounded up to the cent can't be written here; broken instead: the payout

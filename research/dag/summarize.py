@@ -6,7 +6,7 @@ import pathlib
 import re
 import statistics as st
 
-RUNS = pathlib.Path(__file__).resolve().parent.parent.parent / "runs" / "modal" / "dag"
+RUNS = pathlib.Path(__file__).resolve().parent.parent.parent / "runs" / "supercomputer" / "dag"
 TASKS = json.loads((pathlib.Path(__file__).resolve().parent / "step332-tasks.json").read_text())
 SAFE = {t.removesuffix(".yml").replace("/", "__"): t for t in TASKS}
 

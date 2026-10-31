@@ -1181,7 +1181,7 @@ export function foldNodes(f: Fold, laws: Law[], usual?: Record<string, Tree>, st
 let quiet = 0
 export const cyclicOn = () => quiet === 0 && env.GDP_CYCLIC === '1'
 // The `cyclic: {...}` lines research/cyclic/ratios.ts reads, printed only with GDP_CYCLIC=1 (the cross-check) or
-// GDP_CYCLIC_LOG=1 (modal/run.py sets it): a user's proofs print nothing.
+// GDP_CYCLIC_LOG=1 (supercomputer/run.py sets it): a user's proofs print nothing.
 export const cycLog = (o: object) => { if (env.GDP_CYCLIC === '1' || env.GDP_CYCLIC_LOG === '1') console.error(`cyclic: ${JSON.stringify(o)}`) }
 // A search's many trial proofs (core/discover.ts, core/infer.ts) aren't compared: what it finds is proven again.
 export const quietly = <T>(f: () => T): T => { quiet++; try { return f() } finally { quiet-- } }

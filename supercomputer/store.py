@@ -2,10 +2,10 @@
 served over a token-gated HTTPS URL, and pulled into a consumer-side cache by hash. The store imports nothing of
 gdp-wired's (boat.py's CLI helpers only).
 
-    python3 modal/store.py push <name> <dir | modal:<volume>[/path]> [--form snapshot|layer] [--max-gb 4]
-    python3 modal/store.py serve <name> [--minutes 30]       a VM from the snapshot; its URL on stdout (a secret)
-    python3 modal/store.py pull <name> <dest> --url URL [--cache DIR]
-    python3 modal/store.py verify <name> <dir> | ls | unserve [name] [--all]
+    python3 supercomputer/store.py push <name> <dir | modal:<volume>[/path]> [--form snapshot|layer] [--max-gb 4]
+    python3 supercomputer/store.py serve <name> [--minutes 30]       a VM from the snapshot; its URL on stdout (a secret)
+    python3 supercomputer/store.py pull <name> <dest> --url URL [--cache DIR]
+    python3 supercomputer/store.py verify <name> <dir> | ls | unserve [name] [--all]
 
 The forms: `snapshot` (an archive, or data a job fetches: about $0.056 a day a named snapshot) and `layer` (a
 read-mostly cache or toolchain meant to be built into a pool image: the same snapshot, its files at /store/<name>, to

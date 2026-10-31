@@ -1,4 +1,4 @@
-// A Modal job list (modal/run.py) for the datatype laws: one job per law of examples/data.ts through research/data/prof.ts,
+// A Modal job list (supercomputer/run.py) for the datatype laws: one job per law of examples/data.ts through research/data/prof.ts,
 // each broken variant too, and the extra cells given: bun research/data/jobs.ts [extra.json] > jobs.json
 import {readFileSync} from 'node:fs'
 import {broken, laws} from '../../examples/data.ts'

@@ -1,5 +1,5 @@
 // Two of the failure classes the termination benchmarks show, reproduced on loops written by hand in the library's own
-// language (`bun compare/term/probes.ts`; on Modal through modal/run.py with compare/term/probes.json):
+// language (`bun compare/term/probes.ts`; on Modal through supercomputer/run.py with compare/term/probes.json):
 //   - params the loop never reads: while i <= 100 and X >= 1, i := i + 1, beside k params nothing reads. The rank is
 //     101 − i; with enough idle params the runs' LP fits one reading them, which the kernel refuses
 //   - a reset to any value: while x > 0 and y > 0, either x := x − 1, or x := any v >= 1 and y := y − 1 (the inner loop

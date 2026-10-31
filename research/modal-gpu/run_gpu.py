@@ -14,7 +14,7 @@ try:
     import modal
 except ImportError:  # plain python3, --backend runpod: no Modal client needed
     import sys
-    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent.parent / "modal"))
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent.parent / "supercomputer"))
     from agent import modal_stub
     modal = modal_stub()
 
@@ -80,9 +80,9 @@ def search_h100(config: dict, mode: str = "dawn") -> dict:
 
 @app.local_entrypoint()
 def main(config: str, out: str, gpu: str = "L4", mode: str = "dawn", backend: str = "modal", gpus: str = ""):
-    if backend != "modal":  # RunPod, or Modal when RunPod can't serve (modal/fanout.py): the same run, the same output
+    if backend != "modal":  # RunPod, or Modal when RunPod can't serve (supercomputer/fanout.py): the same run, the same output
         import sys
-        sys.path.insert(0, str(GDP / "modal"))
+        sys.path.insert(0, str(GDP / "supercomputer"))
         import fanout
         r, meta = fanout.gpu_call(__file__, "run", [json.loads(pathlib.Path(config).read_text()), mode], app, {"L4": search_l4, "A10G": search_a10g, "H100": search_h100}[gpu], backend, gpus, label="search")
         pathlib.Path(out).parent.mkdir(parents=True, exist_ok=True)
@@ -109,6 +109,6 @@ def main(config: str, out: str, gpu: str = "L4", mode: str = "dawn", backend: st
 
 if __name__ == "__main__":  # python3 <this> --backend auto|runpod|modal --out ... [--gpus "NVIDIA GeForce RTX 4090,NVIDIA L4"]
     import sys
-    sys.path.insert(0, str(GDP / "modal"))
+    sys.path.insert(0, str(GDP / "supercomputer"))
     import fanout
     fanout.gpu_cli(main, __file__)

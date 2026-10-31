@@ -1,5 +1,5 @@
 // gdp-wired/lean end to end: rules written with the builders, exported by toLean, laid out by leanProject, and built by
-// `lake build` (modal/suite.json's lean-package job). Usage: bun package-check.ts <empty folder>
+// `lake build` (supercomputer/suite.json's lean-package job). Usage: bun package-check.ts <empty folder>
 import {mkdirSync, writeFileSync} from 'node:fs'
 import {type DataLaw, proveData} from '../core/data.ts'
 import {laws as dataLaws, through as throughLaws, wellFounded as wellFoundedLaws} from '../examples/data.ts'
@@ -101,7 +101,7 @@ const later = (id: string, make: (id: string) => Item): Later => ({id, make})
 const only = process.env.ONLY?.split(',')
 // SHARD=i/n exports every n-th item from the i-th (the suite's lean-package-0..n−1, one Lean build each).
 const shard = process.env.SHARD?.split('/').map(Number)
-// Built by jobs of their own (modal/suite.json: lean-big's trees and groups; lean-cyclic's cyclic proofs).
+// Built by jobs of their own (supercomputer/suite.json: lean-big's trees and groups; lean-cyclic's cyclic proofs).
 const cyclicItems = ['mccarthy', 'mutual', 'cycgrowing', 'cycfilled', 'cyccounter', 'cycrollup', 'cyccaps', 'cycfill', 'cyctally', 'cycbudget']
 // The proofs core/cycles.ts finds (examples/cycles.ts's leanItems; the suite's lean-cycles jobs, the loops in a file
 // of their own).

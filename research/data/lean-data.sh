@@ -1,5 +1,5 @@
 #!/bin/bash
-# The Lean twin's library compiled (cached by modal/run.py), Data.lean with its errors shown, then the datatype items of
+# The Lean twin's library compiled (cached by supercomputer/run.py), Data.lean with its errors shown, then the datatype items of
 # lean-kernel/package-check.ts (ONLY=…), every error shown: `ONLY=datalen bash research/data/lean-data.sh`.
 cd lean-kernel
 export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean

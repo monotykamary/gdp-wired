@@ -4,11 +4,11 @@
 //   bun research/frontier2/groups_term.ts [--runs <runs dir>] [--bench <TPDB-ARI checkout>]
 // The runs (under --runs, `runs` by default):
 //   - TermComp ITS: gdp-wired's `gdp` rows from backends/term-gdp (boat, the code at the 0.21.0 release's parent);
-//     LoAT, LoAT abmc and KoAT2 from modal/term/full1 and koat-fix1 (KoAT2's reruns); KoAT2's proofs from
-//     modal/term/diag-koat (the depth of its multiphase ranking functions); `gdp-scc` from modal/term/gdp2, only to
+//     LoAT, LoAT abmc and KoAT2 from supercomputer/term/full1 and koat-fix1 (KoAT2's reruns); KoAT2's proofs from
+//     supercomputer/term/diag-koat (the depth of its multiphase ranking functions); `gdp-scc` from supercomputer/term/gdp2, only to
 //     count how many of a class the per-component statement proved there
-//   - SV-COMP: gdp-wired's rows and LoAT abmc's and KoAT2's on its translation from modal/term/sv3, Ultimate Automizer
-//     from modal/term/sv2 (sv3 replacing sv2 where both have a tool's row)
+//   - SV-COMP: gdp-wired's rows and LoAT abmc's and KoAT2's on its translation from supercomputer/term/sv3, Ultimate Automizer
+//     from supercomputer/term/sv2 (sv3 replacing sv2 where both have a tool's row)
 // Classes, the first that applies:
 //   - multiphase rank: KoAT2's proof has a multiphase ranking function of depth 2 or more (ITS only)
 //   - no turn sampled / no rank fits the sampled turns: findRank's runs took no turn of the loop, or no rank of its
@@ -100,7 +100,7 @@ function report(title: string, dirs: string[], koatDir?: string, benchDir?: stri
   console.log('')
 }
 const items = (b: string) => [...new Set(termItems.filter(i => i.source?.benchmark === b).map(i => i.source!.task))]
-report('TermComp ITS', ['modal/term/full1', 'modal/term/koat-fix1', 'modal/term/gdp2', 'backends/term-gdp'], 'modal/term/diag-koat', bench, items('TermComp ITS'))
-report('SV-COMP termination', ['modal/term/sv2', 'modal/term/sv3'], undefined, undefined, items('SV-COMP termination'))
-const sv = read('modal/term/sv3').filter(r => r.tool === 'gdp' && r.answer === 'unsupported')
-console.log(`SV-COMP: refused by the translation (modal/term/sv3): ${sv.length}`, JSON.stringify(count(sv.map(r => String(r.why)))))
+report('TermComp ITS', ['supercomputer/term/full1', 'supercomputer/term/koat-fix1', 'supercomputer/term/gdp2', 'backends/term-gdp'], 'supercomputer/term/diag-koat', bench, items('TermComp ITS'))
+report('SV-COMP termination', ['supercomputer/term/sv2', 'supercomputer/term/sv3'], undefined, undefined, items('SV-COMP termination'))
+const sv = read('supercomputer/term/sv3').filter(r => r.tool === 'gdp' && r.answer === 'unsupported')
+console.log(`SV-COMP: refused by the translation (supercomputer/term/sv3): ${sv.length}`, JSON.stringify(count(sv.map(r => String(r.why)))))
