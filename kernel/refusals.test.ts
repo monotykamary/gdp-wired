@@ -576,3 +576,20 @@ test('a k-step law\'s assumptions read no state after a step (s~1), as Lean\'s a
   expect(checkStepLaws(m, [], [sl], proofAt(n(3)))).toBe(true)
   expect(checkStepLaws(m, [], [sl], proofAt(x('s~1')))).toBe(false)
 })
+
+// A count map holds a value at every key (CountMachine.lean's cntOf), and the runtimes decide a quantified flag or a
+// write at every key on the cells the maps hold: a count read at the bound key would be decided on the cells read so
+// far. Here C[x] = |{k < 64 : k < x}| = min(x, 64), so "∀y. C[y] <= 5" is false at every state, and the interpreter,
+// with no cell of C yet, decided it true (ok became 1, which "ok stays 0" says it never does). Refused, at a flag and at
+// a write; read at a key term that isn't the bound key's, it is accepted as before.
+test('a count map is read at no bound key: its value at every key is no cell a runtime lists', () => {
+  const C = {j: 'x', key: 'k', below: n(64), body: {op: 'if', c: {op: '<', a: x('k'), b: x('x')}, then: n(1), else: n(0)}} as const
+  const flagged = (c: C): Machine => ({name: 'count at a key', params: [], inputs: ['i'], state: {ok: n(0)}, maps: {M: 0}, counts: {C},
+    step: {flags: {small: c}, state: {ok: {op: 'if', c: {op: 'flag', name: 'small'}, then: n(1), else: x('ok')}}}})
+  const get = (map: string, key: E): E => ({op: 'get', map, key})
+  expect(() => scope(flagged({op: 'all', key: 'y', c: le(get('C', x('y')), n(5))}))).toThrow(/key y is read only/)
+  expect(() => scope(flagged({op: 'all', key: 'y', c: le(get('C', plus(x('y'), x('i'))), n(5))}))).toThrow(/key y is read only/)
+  expect(() => scope({...flagged(le(n(0), n(0))), step: {state: {ok: x('ok')}, maps: {M: {each: 'y', value: get('C', x('y'))}}}})).toThrow(/key y is read only/)
+  expect(() => scope(flagged({op: 'all', key: 'y', c: le(get('M', x('y')), get('C', x('i')))}))).not.toThrow()
+  expect(() => scope(flagged(le(get('C', x('i')), n(5))))).not.toThrow()
+})

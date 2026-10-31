@@ -657,7 +657,8 @@ export function scope(m: Machine, laws: Law[] = []) {
   const bound = (what: string, key: string, t: E | C) => {
     plainName(what, key)
     if ([...names, ...readable, ...flags].includes(key)) throw new Error(`${what}: the key ${key} is already a name of ${m.name}`)
-    keyOnly(what, t, key, fns)
+    // (a count map, like a function, has a value at every key, not cells a runtime can list: read at no key term)
+    keyOnly(what, t, key, [...fns, ...counts])
   }
   inScope(`${m.name}'s start`, Object.values(m.state), m.params)
   flags.forEach((f, i) => {
@@ -697,7 +698,7 @@ export function scope(m: Machine, laws: Law[] = []) {
 }
 
 // A key bound in t is read in key terms only: the key, or the key plus or less a term that doesn't read it (k + e, e + k,
-// k ∸ e), each a map's key (no function's: a function's values don't stop where a map's cells do) or a side of a
+// k ∸ e), each a map's key (no function's or count's: their values don't stop where a map's cells do) or a side of a
 // comparison whose other side doesn't read the key. Then t is constant between finitely many keys (the runtimes'
 // breakpoints: each map's cells and each compared value, shifted by the offsets), so a runtime decides it on those.
 const readsKey = (t: E | C, key: string) => JSON.stringify(t).includes(`"op":"var","name":${JSON.stringify(key)}`)

@@ -102,19 +102,37 @@ paxos_epr.pyv, the model the TLA+ transcribes; IC3Syn's 1806 s and 9 invariants 
   `\E i: pc[i] # "Done" \/ y[i] = 1`; the others (`ResponseMatched`, firewall's, no-lost-keys') as they read, with
   `exists`.
 
-## Not ported, and why
+## Composed keys: the three ported by gen/laneK5 (no kernel change)
 
-- **i4-learning-switch, pyv-learning-switch.** Both update `route_tc` / `table` at every tuple of a row by a join of
-  two other cells of that row: `(pa, x, y)` becomes `tc(pa, x, y) \/ (tc(pa, x, sw1) /\ tc(pa, sw0, y))`. A write at
-  every key reads its key only plainly (k, or k plus a term that doesn't read it; kernel/kernel.ts's `keyOnly`), and
-  `tc(pa, x, sw1)` at the key `pa·N² + x·N + y` needs y (`k mod N`), a function of the key. No layout of the three
-  coordinates avoids it: each read changes a different coordinate. Porting them needs a write over a tuple of keys
-  (`M.each((pa, x, y) => ...)`), a change to the kernel's key rules (trusted: a Lean proof first).
-- **pyv-paxos-epr.** Its quorums are a sort with the intersection axiom (above: not writable here), and `propose` reads `\A N, MAXR, V: member(N, q) /\ MAXR < r /\ vote(N, MAXR, V) => MAXR <= maxr`:
-  a guard quantified over two coordinates of `vote` at once (N and MAXR). A quantified flag over several keys reads
-  each on its own (kernel.ts's `apart`), so `vote(N, MAXR, V)` at `N·N² + MAXR·N + V` is out. The same kernel change
-  (keys that are tuples) would admit it; so would a log of votes (a list read at one position), at the cost of a
-  variable the spec doesn't have and ∀∃ invariants linking it to `vote`.
+These three were "not expressible" (gen/laneA): a guard or a write that ranges over a coordinate of a relation other
+than its last reads its key scaled (k·N), or a coordinate of it (k mod N), and a quantified flag or a write at every key
+reads its key only plainly (k, k + e, k ∸ e; kernel/kernel.ts's `keyOnly`), so a runtime decides it on the breakpoints
+of the maps' cells. Two encodings the kernel already accepts express them, each the spec's transition relation exactly:
+- **A radix block as one key.** Where only the low coordinates range (n fixed), `\A MAXR, V: vote(n, MAXR, V) /\ MAXR
+  < r => MAXR <= maxr` is one key j = MAXR·N + V of node n's block, `Vote[n·N² + j]`, with MAXR < r iff j < r·N and
+  MAXR <= maxr iff j < (maxr + 1)·N (V < N).
+- **A phase.** Where a higher coordinate ranges, the action is a sequence of steps in a fixed order, one value of that
+  coordinate a step, nothing else between them (`busy`); a state inside the phase projects to no spec state (as a setup
+  phase's), and the steps together make the TLA+ step: the switches' table write (row pa := pa's cells, plus <<pa, x,
+  y>> where <<pa, x, sw1>> and <<pa, sw0, y>>) is one `row` step a row x (row sw0 is the same after its step, and row
+  x's cell <<pa, x, sw1>> is read before row x is written, so each step reads the table as the single step does);
+  paxos's propose (`\A N \in q, MAXR, V`) is one `check` step a node, its quorum kept (Qs), a node that fails ending the
+  phase with no proposal (propose not taken), the last that passes ending it with the proposal.
+- **A count where the guard ranges the high coordinate alone.** paxos's decide (`\A N \in q: vote(N, r, v)`) is a count
+  of the request, the members without that vote, 0 (counts read any key term in their body; CountMachine.lean).
+- **The table's diagonal.** Both switches start with every <<t, x, x>> in the table and only add to it, so a cell
+  <<t, x, y>> is x = y or T[t·N² + x·N + y], and T's diagonal stays 0.
+- **pyv-paxos-epr's TLA+.** Endive's paxos_epr.tla is faulty (above), so models.ts carries a TLA+ transcription of
+  mypyvy's paxos_epr.pyv (`paxosTla`, rounds 0 .. MaxRound with None one of them, the quorums the majorities), which
+  tlc.py writes into the checkout before TLC runs.
+
+What these cost the search: the phases' states are states of the port, so an inductive invariant must say what holds
+inside a phase too (the safety laws are stated at `busy = 0`).
+
+A kernel extension would let the three be one step each: a quantified flag whose keys are bounded (`k < B` for each,
+B reading none of them) decided by enumerating the box, any read inside it allowed (the meaning in Sets.lean is
+already the classical ∀, so only the runtimes and the scope check change). Not built: the encodings above express the
+three with nothing trusted changed.
 
 ## Checked against TLC
 
@@ -122,6 +140,23 @@ Each port's reachable states on its instance (check.ts, the BFS of the port, rea
 distinct states on the same constants (tlc.py: TLC 1.8.0 on Endive 8b6f2ab, `-deadlock`), and `bad`: the port's
 reachable states that break the property (0 for each port; above 0 for the broken variant, so the property is not
 vacuous there). `runs/ic3syn/check*.jsonl` in ../gdp-wired-laneA.
+
+**States are not enough: steps too (gen/laneK5).** Equal state counts leave out a guard stronger than the spec's whose
+lost steps end in states reached by other orders. tlc.py now dumps TLC's state graph (`-dump dot`) and counts its
+distinct steps between two different states; check.ts `--edges` counts the port's (a phase read as one step, from its
+start to each spec state it ends in). `runs/laneK5/tlc-main` (main a496507) and `runs/laneK5/tlc-branch`,
+`tlc-phases` (gen/laneK5), all on boat:
+- **On main, 23 of 26 ports equal TLC in states and steps; 3 do not.** majorityset_leader_election (400 states equal,
+  steps 705 against TLC's 993), client_server_db_ae (56,416 equal, steps 212,128 against 220,128) and mldr (states
+  1,596 against 5,362). The first two read a relation's row with a quantifier unbounded by the sort (`\A x: <<n, x>>
+  \notin vote` as `everyKey(x => Vote.at(n·N + x).not())`): at x >= N the key is the next row's (n + 1, x − N), so the
+  guard also asked that node n + 1 had not voted (majorityset's Voting, client_server_db_ae's NoneWithId), a guard
+  stronger than the spec's. consensus_epr and consensus_forall had the same unbounded `undecided`, and equal steps on
+  their instance (the next row was never decided where it was read).
+- **On the branch, all 26 unphased ports equal TLC in states and steps, and learning_switch_i4 (300) and paxos_epr
+  (23,578) in steps too, their phases read as one step**: every such quantifier is bounded by its
+  sort (k < N, or k < size: majorityset, client_server_db_ae, consensus_epr, consensus_forall, and the new ports), and
+  mldr is counted (below).
 
 | port | TLC | port | broken variant reaches a bad state |
 | --- | --- | --- | --- |
@@ -151,17 +186,23 @@ vacuous there). `runs/ic3syn/check*.jsonl` in ../gdp-wired-laneA.
 | consensus_wo_decide (all four majorities) | 102,912 | 135,872 | |
 | consensus_wo_decide (the config's three) | 102,912 | 102,912 | |
 | consensus_forall (the config's three) | 112,128 | 112,128 | |
-| mldr | 5,362 | 1,596 inside the constraint, 2,966 past it | **no**: not verified (below) |
+| mldr (counted, gen/laneK5) | 5,362 | 5,362 (10,536 past the constraint) | yes |
+| learning_switch_i4 (Node 4, Packet 1) | 240 | 240 | yes (its own bug: a route learned both ways; below) |
+| learning_switch (Node 3, \|pending\| < 5) | 43,672 | 43,672 | yes (learning without the no-route check) |
+| paxos_epr (our TLA+ of paxos_epr.pyv; Node 3, Value 2, rounds 0..2, None 0) | 7,377 | 7,377 (steps 23,578 = 23,578) | yes (propose without the votes check) |
 
 - consensus_wo_decide stores the quorum it chose; its config lists the three 2-sets and not the full set, a majority too,
   so the port with every majority has states the config doesn't (a stored full set). At the config's three it is
   checked again.
-- **mldr is not verified.** TLC's 5,362 against the port's 1,596 states within `StateConstraint` and 2,966 past it
-  (4,562; TLC counts a state past the constraint as found and explores none), and its broken variant (BecomeLeader
-  without a majority) reaches no state with two primaries in one term on the instance, which the spec's does: the port
-  likely enables too few BecomeLeader steps (its counting witnesses, or the copied initial configs). Its measured
-  verdict (no verdict: its first proof never finishes building instances) doesn't rest on it, but no claim about mldr's
-  semantics does either.
+- **mldr, counted (gen/laneK5): verified.** Its majorities and QuorumsOverlap are now counts of the request (common.ts's
+  counting, as the other majorities: `.counts`), no injection witnesses: 5,362 states, TLC's, its broken variant (no
+  majority) reaching two primaries in a term. gen/laneA's port with injections reached 1,596 (the cause not found: its
+  requests' witnesses or the two-key injectivity flags' decisions refused BecomeLeader and Reconfig steps the spec takes).
+  TLC counts no state past the constraint (5,362 inside it here, beside 10,536 past it), so the earlier reading of the
+  gap was wrong too.
+- **learning_switch_i4's broken variant.** With link a perfect matching (Init's constraints), a packet goes one hop and
+  each source learns one route, so no single-step bug of the learning rule breaks the table's laws on any instance this
+  spec allows; the broken variant writes <<pa, sw0, sw1>> beside <<pa, sw1, sw0>> (a route both ways).
 - consensus_epr's `SendVote` write was later rewritten as one write of the relation (`requests or votes with nondet` to
   1, `votes` without it to 0): the same cells, not checked again.
 - The depths differ by one (TLC counts the initial state as level 1) and by a setup phase's length where the port has

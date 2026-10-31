@@ -10,7 +10,7 @@
 // Each port has its correspondence beside it (`file`, and what differs), a broken variant (`bug`), `bad` (the safety
 // property broken, read on the check's instance) and `check` (the instance and its TLC cfg; check.ts, tlc.py).
 import {type Term, all, any, everyKey, exists, forall, nat, no, oneOf, rule, when, yes} from '../../../core/dsl.ts'
-import {N, type Protocol, type Read, few, lt, majority, majorityWitness, pk, pk3, range, rel, relTrue} from './common.ts'
+import {N, type Protocol, type Read, below, few, lt, majority, majorityWitness, pk, pk3, range, rel, relTrue} from './common.ts'
 
 type Bug = string | undefined
 const tlc = (module: string, constants: string, inv: string, more = '') => ({module, cfg: `INIT Init\nNEXT Next\n${constants}\nINVARIANT ${inv}\n${more}`})
@@ -275,7 +275,7 @@ const consensusWo = (decide: boolean) => (bug?: Bug) => overMajority(rule(decide
   .flags(({i, Q, VotingQuorum, Votes, Decided}: any) => ({
     quorumVotes: everyKey(k => Q.has(k).implies(Votes.at(pk(i, k)))),
     votingQuorumVotes: everyKey(k => VotingQuorum.at(k).implies(Votes.at(pk(i, k)))),
-    ...(decide ? {undecided: everyKey(x => Decided.at(pk(i, x)).not())} : {}),
+    ...(decide ? {undecided: everyKey(x => x.lt(N).implies(Decided.at(pk(i, x)).not()))} : {}),
   }))
   .flags(({op, i, j, started, quorumVotes, votingQuorumVotes, undecided, Voted, VoteRequestMsg, VoteMsg, Leader}: any) => ({
     inits: op.is('init').and(started.eq(0)),
@@ -330,7 +330,7 @@ const clientServer = (db: boolean) => (bug?: Bug) => (rule(db ? 'client server d
   .assume(({n, r, p, i}: any) => lt(n, r, p, ...(db ? [i] : [])))
   .state({started: 0})
   .maps({Match: rel, RequestSent: rel, ResponseSent: rel, ResponseReceived: rel, ...(db ? {DbRequestSent: rel, DbResponseSent: rel, T: rel} : {})})
-  .flags(({i, T}: any) => (db ? {noneWithId: everyKey(m => T.at(pk(i, m)).not())} : {}))
+  .flags(({i, T}: any) => (db ? {noneWithId: everyKey(m => m.lt(N).implies(T.at(pk(i, m)).not()))} : {}))
   .flags(({op, n, r, p, i, started, noneWithId, Match, RequestSent, ResponseSent, DbRequestSent, DbResponseSent, T}: any) => ({
     matches: op.is('match').and(started.eq(0)),
     starts: op.is('start').and(started.eq(0)),
@@ -425,7 +425,7 @@ const majoritySet = (bug?: Bug) => rule('majorityset leader election')
   .maps({Vote: rel, Voters: rel, Leader: rel})
   .counts({voters: ({Voters, size}: any) => ({below: size, body: (x: Term, k: Term) => Voters.at(pk(x, k))})})
   .assume(({op, n, m, size, voters}: any) => n.lt(size).and(m.lt(size), op.is('become_leader').implies(size.lt(voters.at(n).times(2)))))
-  .flags(({n, Vote}) => ({didNotVote: everyKey(x => Vote.at(pk(n, x)).not())}))
+  .flags(({n, Vote}) => ({didNotVote: everyKey(x => x.lt(N).implies(Vote.at(pk(n, x)).not()))}))
   .flags(({op, n, m, didNotVote, Vote, Voters}) => ({
     // Voting(n1, n2) is (n, m); ReceiveVote(voter, n, vs) is (m, n)
     votes: op.is('voting').and(bug ? yes : didNotVote),
@@ -447,7 +447,7 @@ const consensusEpr = (bug?: Bug) => overMajority(rule('consensus epr'),
   .maps({VoteRequestMsg: rel, Voted: rel, VoteMsg: rel, Votes: rel, Leader: rel, Decided: rel})
   .flags(({i, Q, Votes, Decided}: any) => ({
     quorumVotes: everyKey(k => Q.has(k).implies(Votes.at(pk(i, k)))),
-    undecided: everyKey(x => Decided.at(pk(i, x)).not()),
+    undecided: everyKey(x => x.lt(N).implies(Decided.at(pk(i, x)).not())),
   }))
   .flags(({op, i, j, quorumVotes, undecided, Voted, VoteRequestMsg, VoteMsg, Leader}: any) => ({
     requests: op.is('send_request_vote'),
@@ -466,36 +466,241 @@ const consensusEpr = (bug?: Bug) => overMajority(rule('consensus epr'),
     Decided: Decided.set(pk(i, v), when(decides, yes, Decided.at(pk(i, v)))),
   }))
 
+// --- the three that need a composed key (README.md: "Composed keys"). A guard or write that ranges over a coordinate
+// of a relation other than its last reads its key scaled (k·N), which the kernel's key rules refuse (a runtime decides
+// a quantifier on the breakpoints of plain key terms, k + e and k ∸ e); a write of every pair of two coordinates at
+// once reads a coordinate of its key (k mod N). Where only the low coordinates range, they are one key (the block of a
+// radix key: MAXR·N + V below r·N is every MAXR below r); where a higher coordinate ranges, the action is a phase:
+// steps in a fixed order, one value of that coordinate a step, nothing else between them (`busy`), so the steps
+// together are the TLA+ action, and a state inside a phase is no state of the spec (it projects to none).
+export const pk4 = (a: Term, b: Term, c: Term, d: Term | number) => a.times(N * N * N).plus(b.times(N * N)).plus(c.times(N)).plus(d)
+// <<t, x, y>> \in table (route_tc) is x = y or T[t·N² + x·N + y]: Init puts the diagonal in, and both switches only add
+// to a row (route_tc \ row ∪ a superset of the row), so T holds the rest and its diagonal stays 0.
+const tab = (T: any, t: Term, x: Term, y: Term) => x.eq(y).or(T.at(pk3(t, x, y)))
+// The switches' table write, row pa := {<<pa, x, y>> : <<pa, x, y>> \in table \/ (<<pa, x, sw1>> \in table /\ <<pa, sw0, y>>
+// \in table)}, as a phase: the action stores pa, sw0 and sw1 (busy, row 0), then `row` writes row x = row of pa (every
+// key of it, y below size) and moves to the next, the last one ending the phase. Row sw0 is the same after its step
+// (row sw0 ∪ row sw0), and row x's cell <<pa, x, sw1>> is read at row x's own step, before it is written, so each step
+// reads the table as TLA+'s single step does.
+const rowWrite = (T: any, k: Term, on: any, size: Term, {row, rpa, rsw0, rsw1}: any, back = false) => {
+  const base = rpa.times(N * N).plus(row.times(N))
+  const inRow = k.atLeast(base).and(k.lt(base.plus(size)), k.eq(base.plus(row)).not())
+  const fromSw0 = k.eq(base.plus(rsw0)).or(when(row.atLeast(rsw0), T.at(k.minus(row.minus(rsw0).times(N))), T.at(k.plus(rsw0.minus(row).times(N)))) as any)
+  // (back: a broken variant's, <<pa, sw0, sw1>> learned too, the route both ways)
+  return when(on.and(inRow, tab(T, rpa, row, rsw1).and(fromSw0).or(back ? row.eq(rsw0).and(k.eq(base.plus(rsw1))) : no)), yes, T.at(k))
+}
+// The phase's scalars after a step: `starts` begins it at (pa, sw0, sw1), `rows` moves it on and ends it after row
+// size − 1 (back to 0 then, so a finished phase leaves nothing behind).
+const phaseStep = (starts: any, rows: any, size: Term, pa: Term, sw0: Term, sw1: Term, {busy, row, rpa, rsw0, rsw1}: any) => {
+  const last = rows.and(row.plus(1).eq(size))
+  return {busy: when(starts, 1, when(last, 0, busy)), row: when(rows.and(last.not()), row.plus(1), when(last, 0, row)),
+    rpa: when(starts, pa, when(last, 0, rpa)), rsw0: when(starts, sw0, when(last, 0, rsw0)), rsw1: when(starts, sw1, when(last, 0, rsw1))}
+}
+// The table's safety laws (both switches' Safety; reflexive by the encoding): transitive, antisymmetric, the successors of
+// x a chain, as three laws.
+const tableSafe = (r: any, what: string, idle: (env: any) => any) => [
+  r.law(`${what} transitive`, (env: any) => forall((t, x, y, z) => idle(env).and(below(env.size, t, x, y, z), tab(env.T, t, x, y), tab(env.T, t, y, z)).implies(tab(env.T, t, x, z)))),
+  r.law(`${what} antisymmetric`, (env: any) => forall((t, x, y) => idle(env).and(below(env.size, t, x, y), tab(env.T, t, x, y), tab(env.T, t, y, x)).implies(x.eq(y)))),
+  r.law(`${what} a chain above each node`, (env: any) => forall((t, x, y, z) => idle(env).and(below(env.size, t, x, y, z), tab(env.T, t, x, y), tab(env.T, t, x, z)).implies(tab(env.T, t, y, z).or(tab(env.T, t, z, y))))),
+]
+const tableBad = (r: Read, n: number) => {
+  const t3 = (t: number, x: number, y: number) => x === y || r.cell('T', t * N * N + x * N + y) === 1, P = range(n)
+  return P.some(t => P.some(x => P.some(y => P.some(z => (t3(t, x, y) && t3(t, y, z) && !t3(t, x, z)) || (x !== y && t3(t, x, y) && t3(t, y, x))
+    || (t3(t, x, y) && t3(t, x, z) && !t3(t, y, z) && !t3(t, z, y))))))
+}
+const tableCells = (r: Read, n: number) => triples(range(n), range(n), range(n)).map(k => (Math.floor(k / N) % N === k % N ? 1 : r.cell('T', k)))
+
+// --- pyv-learning-switch: learning_switch.tla. Node is 0 .. size − 1 (Forward reads \A w \in Node and every d \in Node);
+// the table as above; <<ps, pd, s, d>> \in pending is P[ps·N³ + pd·N² + s·N + d]. Forward(ps, pd, sw0, sw1, nondet) keeps
+// the pending tuples whose first is nondet (keys nondet·N³ .. nondet·N³ + N³ − 1) and adds <<ps, pd, sw1, d>> for every d;
+// where it learns (ps # sw1, no <<ps, sw1, w>> for w # sw1) the table write is the phase above.
+const learningSwitch = (bug?: Bug) => rule('learning switch')
+  .params({size: nat}).pre(({size}) => size.atLeast(1).and(size.atMost(N)))
+  .inputs({op: oneOf('new_packet', 'forward', 'row'), ps: nat, pd: nat, sw0: nat, sw1: nat, nondet: nat})
+  .assume(({ps, pd, sw0, sw1, nondet, size}) => below(size, ps, pd, sw0, sw1, nondet))
+  .state({busy: 0, row: 0, rpa: 0, rsw0: 0, rsw1: 0})
+  .maps({T: rel, P: rel})
+  .flags(({ps, sw1, size, T}) => ({noRoute: everyKey(w => w.lt(size).implies(w.eq(sw1).or(T.at(pk3(ps, sw1, w)).not())))}))
+  .flags(({op, ps, pd, sw0, sw1, busy, noRoute, P}) => {
+    const forwards = op.is('forward').and(busy.eq(0), P.at(pk4(ps, pd, sw0, sw1)))
+    return {news: op.is('new_packet').and(busy.eq(0)), forwards, learns: forwards.and(ps.eq(sw1).not(), bug ? yes : noRoute), rows: op.is('row').and(busy.eq(1))}
+  })
+  .step(({ps, pd, sw0, sw1, nondet, size, news, forwards, learns, rows, T, P, ...s}: any) => ({
+    ...phaseStep(learns, rows, size, ps, sw0, sw1, s),
+    T: T.each((k: Term) => rowWrite(T, k, rows, size, s)),
+    P: P.each((k: Term) => {
+      const kept = k.atLeast(nondet.times(N * N * N)).and(k.lt(nondet.times(N * N * N).plus(N * N * N)), P.at(k)), b = pk4(ps, pd, sw1, 0)
+      return when(news.and(k.eq(pk4(ps, pd, ps, ps))), yes, when(forwards, kept.or(k.atLeast(b).and(k.lt(b.plus(size)))), P.at(k)) as any)
+    }),
+  }))
+
+// --- i4-learning-switch: learning_switch_i4.tla. Node is 0 .. size − 1, Packet 0 .. packets − 1; src[p], dst[p] and
+// link[x] are Src, Dst and Link (v + 1: Init picks them, `src`, `dst` and `link` requests before `start`, which checks
+// they are total; `link` pairs two unlinked nodes both ways, so link has no self-loop and is symmetric); <<p, x, y>> \in pending is Pend[p·N² + x·N + y], <<x, y>> \in
+// route_dom Dom[x·N + y], route_tc the table above. Flood's and Route's route_tc write (row src[p], where cond1) is the
+// phase; Flood's pending write (row <<p, sw1>> of pending: y where link[sw1] = y and y # sw0) is one write at every key.
+const learningSwitchI4 = (bug?: Bug) => rule('learning switch i4')
+  .params({size: nat, packets: nat}).pre(({size, packets}) => size.atLeast(1).and(size.atMost(N), packets.atMost(N)))
+  .inputs({op: oneOf('src', 'dst', 'link', 'start', 'new_packet', 'flood', 'route', 'row'), p: nat, sw0: nat, sw1: nat, sw2: nat})
+  .assume(({p, sw0, sw1, sw2, size, packets}) => p.lt(packets).and(below(size, sw0, sw1, sw2)))
+  .state({started: 0, busy: 0, row: 0, rpa: 0, rsw0: 0, rsw1: 0})
+  .maps({Src: 0, Dst: 0, Link: 0, Pend: rel, Dom: rel, T: rel})
+  .flags(({p, sw1, sw2, size, packets, Src, Dst, Link, T}) => {
+    const d = Dst.at(p).minus(1)
+    return {
+      total: everyKey(q => q.lt(packets).implies(Src.at(q).atLeast(1).and(Dst.at(q).atLeast(1)))),
+      linked: everyKey(x => x.lt(size).implies(Link.at(x).atLeast(1))),
+      // \A z \in Node : (<<dst[p], sw1, z>> \in route_tc /\ sw1 # z) => <<dst[p], sw2, z>> \in route_tc
+      below2: everyKey(z => z.lt(size).implies(z.eq(sw1).or(T.at(pk3(d, sw1, z)).not(), tab(T, d, sw2, z)))),
+    }
+  })
+  .flags(({op, p, sw0, sw1, sw2, started, busy, total, linked, below2, Src, Dst, Pend, Dom, T}) => {
+    const s = Src.at(p).minus(1), d = Dst.at(p).minus(1), live = started.eq(1).and(busy.eq(0))
+    const floods = op.is('flood').and(live, Pend.at(pk3(p, sw0, sw1)), Dom.at(pk(d, sw1)).not())
+    const routes = op.is('route').and(live, Pend.at(pk3(p, sw0, sw1)), Dom.at(pk(d, sw1)), tab(T, d, sw1, sw2), sw1.eq(sw2).not(), below2)
+    return {
+      setup: started.eq(0), starts: op.is('start').and(started.eq(0), total, linked), news: op.is('new_packet').and(live),
+      floods, routes, learns: floods.or(routes).and(Dom.at(pk(s, sw1)).not(), s.eq(sw1).not()), cond2: d.eq(sw1).not(),
+      rows: op.is('row').and(busy.eq(1)),
+    }
+  })
+  .step(({op, p, sw0, sw1, sw2, size, setup, starts, news, floods, routes, learns, cond2, rows, started, Src, Dst, Link, Pend, Dom, T, ...s}: any) => {
+    const src = Src.at(p).minus(1), pb = p.times(N * N).plus(sw1.times(N))
+    return {
+      started: when(starts, 1, started),
+      ...phaseStep(learns, rows, size, src, sw0, sw1, s),
+      Src: Src.set(p, when(setup.and(op.is('src')), sw0.plus(1), Src.at(p))),
+      Dst: Dst.set(p, when(setup.and(op.is('dst')), sw0.plus(1), Dst.at(p))),
+      // link[sw0] = sw1 and link[sw1] = sw0 at once, both unset before: a total link is then symmetric with no self-loop
+      Link: Link.each((k: Term) => when(setup.and(op.is('link'), sw0.eq(sw1).not(), Link.at(sw0).eq(0), Link.at(sw1).eq(0)), when(k.eq(sw0), sw1.plus(1), when(k.eq(sw1), sw0.plus(1), Link.at(k))), Link.at(k))),
+      Dom: Dom.set(pk(src, sw1), when(learns, yes, Dom.at(pk(src, sw1)))),
+      T: T.each((k: Term) => rowWrite(T, k, rows, size, s, !!bug)),
+      Pend: Pend.each((k: Term) => when(news.and(k.eq(pk3(p, src, src))), yes,
+        when(floods.and(cond2, k.atLeast(pb), k.lt(pb.plus(size))), k.eq(pb.plus(Link.at(sw1).minus(1))).and(k.eq(pb.plus(sw0)).not()),
+          when(routes.and(cond2, k.eq(pk3(p, sw1, sw2))), yes, Pend.at(k))))),
+    }
+  })
+
+// --- pyv-paxos-epr: mypyvy's paxos_epr.pyv (README.md: Endive's paxos_epr.tla is faulty), transcribed to TLA+ for TLC
+// below (paxosTla). Node is 0 .. size − 1, the quorums its majorities (the axiom's intersection by counting, as every
+// port's Quorum); rounds and values the naturals below N, `none` a round (a param), le the order. one_a(r) OneA[r];
+// one_b(n, r) OneB[r·N + n]; left_round(n, r) Left[n·N + r]; proposal(r, v) Proposal[r·N + v]; vote(n, r, v)
+// Vote[n·N² + r·N + v]; decision(r, v) Decision[r·N + v]. decide's \A N. member(N, q) -> vote(N, r, v) reads n, the high
+// coordinate: a count of the request (`missing`, the members without that vote, 0). propose's \A N, MAXR, V reads
+// all three: the phase above over N (`check`, one node a step in order; Q kept as Qs), each node's \A MAXR, V one key j =
+// MAXR·N + V of its block (MAXR < r iff j < r·N, MAXR <= maxr iff j < (maxr + 1)·N); a node that fails it ends the phase
+// with no proposal (the spec's propose not taken), the last one passing ends it with the proposal. propose's
+// \E N. member(N, q) /\ ... /\ vote(N, maxr, v) is the request's w.
+const paxos = (bug?: Bug) => overMajority(rule('paxos epr').params({none: nat}).pre(({none}) => none.lt(N)),
+  {op: oneOf('send_1a', 'join_round', 'propose', 'check', 'cast_vote', 'decide'), n: nat, r: nat, v: nat, maxr: nat, w: nat}, ['propose', 'decide'],
+  ({n, r, v, maxr, w, size}: any) => all(n.lt(size), w.lt(size), lt(r, v, maxr)))
+  .state({busy: 0, cnt: 0, pr: 0, pmaxr: 0, pv: 0})
+  .maps({OneA: rel, OneB: rel, Left: rel, Proposal: rel, Vote: rel, Decision: rel, Qs: rel})
+  .counts({missing: ({Q, r, v, Vote, size}: any) => ({below: size, body: (_x: Term, k: Term) => Q.has(k).and(Vote.at(pk3(k, r, v)).not())})})
+  .flags(({r, Q, cnt, pr, pmaxr, none, Proposal, OneB, Vote}: any) => ({
+    noProposal: everyKey(x => x.lt(N).implies(Proposal.at(pk(r, x)).not())),
+    joined: everyKey(k => Q.has(k).implies(OneB.at(pk(r, k)))),
+    rowOk: everyKey(j => Vote.at(cnt.times(N * N).plus(j)).and(j.lt(pr.times(N))).implies(pmaxr.eq(none).not().and(j.lt(pmaxr.plus(1).times(N))))),
+  }))
+  .flags(({op, n, r, v, maxr, w, none, busy, cnt, size, noProposal, joined, rowOk, missing, Q, Qs, OneA, Left, Proposal, Vote}: any) => {
+    const idle = busy.eq(0).and(r.eq(none).not()), checks = op.is('check').and(busy.eq(1)), fails = checks.and(Qs.at(cnt), bug ? no : rowOk.not())
+    return {
+      sends: op.is('send_1a').and(idle),
+      joins: op.is('join_round').and(idle, OneA.at(r), Left.at(pk(n, r)).not()),
+      proposes: op.is('propose').and(idle, noProposal, joined, maxr.eq(none).or(Q.has(w).and(maxr.lt(r), Vote.at(pk3(w, maxr, v))))),
+      checks, fails, commits: checks.and(fails.not(), cnt.plus(1).eq(size)),
+      casts: op.is('cast_vote').and(idle, Left.at(pk(n, r)).not(), Proposal.at(pk(r, v))),
+      decides: op.is('decide').and(idle, missing.at(0).eq(0)),
+    }
+  })
+  .step(({n, r, v, maxr, sends, joins, proposes, checks, fails, commits, casts, decides, busy, cnt, pr, pmaxr, pv, Q, Qs, OneA, OneB, Left, Proposal, Vote, Decision}: any) => {
+    const ends = fails.or(commits)
+    return {
+      busy: when(proposes, 1, when(ends, 0, busy)), cnt: when(checks.and(ends.not()), cnt.plus(1), when(ends, 0, cnt)),
+      pr: when(proposes, r, when(ends, 0, pr)), pmaxr: when(proposes, maxr, when(ends, 0, pmaxr)), pv: when(proposes, v, when(ends, 0, pv)),
+      Qs: Qs.each((k: Term) => when(proposes, Q.has(k), when(ends, no, Qs.at(k)))),
+      OneA: OneA.set(r, when(sends, yes, OneA.at(r))),
+      OneB: OneB.set(pk(r, n), when(joins, yes, OneB.at(pk(r, n)))),
+      Left: Left.each((k: Term) => when(joins.and(k.atLeast(n.times(N)), k.lt(pk(n, r))), yes, Left.at(k))),
+      Proposal: Proposal.set(pk(pr, pv), when(commits, yes, Proposal.at(pk(pr, pv)))),
+      Vote: Vote.set(pk3(n, r, v), when(casts, yes, Vote.at(pk3(n, r, v)))),
+      Decision: Decision.set(pk(r, v), when(decides, yes, Decision.at(pk(r, v)))),
+    }
+  })
+// paxos_epr.pyv as TLA+ (by hand, for TLC; mypyvy MIT, 12a8f54): rounds 0 .. MaxRound with None one of them, the
+// quorums the majorities of Node, le the order of the naturals.
+const paxosTla = `---- MODULE PaxosEprPyv ----
+EXTENDS Naturals, FiniteSets
+CONSTANTS Node, Value, MaxRound, None
+Round == 0..MaxRound
+Quorum == {Q \\in SUBSET Node : Cardinality(Q) * 2 > Cardinality(Node)}
+VARIABLES one_a, one_b, left_round, proposal, vote, decision
+Init == one_a = {} /\\ one_b = {} /\\ left_round = {} /\\ proposal = {} /\\ vote = {} /\\ decision = {}
+Send1a(r) == r # None /\\ one_a' = one_a \\cup {r} /\\ UNCHANGED <<one_b, left_round, proposal, vote, decision>>
+JoinRound(n, r) ==
+  /\\ r # None /\\ r \\in one_a /\\ <<n, r>> \\notin left_round
+  /\\ one_b' = one_b \\cup {<<n, r>>}
+  /\\ left_round' = left_round \\cup {<<n, R>> : R \\in {R2 \\in Round : R2 < r}}
+  /\\ UNCHANGED <<one_a, proposal, vote, decision>>
+Propose(r, q, maxr, v) ==
+  /\\ r # None
+  /\\ \\A x \\in Value : <<r, x>> \\notin proposal
+  /\\ \\A m \\in q : <<m, r>> \\in one_b
+  /\\ \\/ maxr = None /\\ \\A m \\in q, MAXR \\in Round, x \\in Value : ~(MAXR < r /\\ <<m, MAXR, x>> \\in vote)
+     \\/ /\\ maxr # None /\\ \\E m \\in q : maxr < r /\\ <<m, maxr, v>> \\in vote
+        /\\ \\A m \\in q, MAXR \\in Round, x \\in Value : (MAXR < r /\\ <<m, MAXR, x>> \\in vote) => MAXR <= maxr
+  /\\ proposal' = proposal \\cup {<<r, v>>}
+  /\\ UNCHANGED <<one_a, one_b, left_round, vote, decision>>
+CastVote(n, v, r) ==
+  /\\ r # None /\\ <<n, r>> \\notin left_round /\\ <<r, v>> \\in proposal
+  /\\ vote' = vote \\cup {<<n, r, v>>} /\\ UNCHANGED <<one_a, one_b, left_round, proposal, decision>>
+Decide(r, v, q) ==
+  /\\ r # None /\\ \\A m \\in q : <<m, r, v>> \\in vote
+  /\\ decision' = decision \\cup {<<r, v>>} /\\ UNCHANGED <<one_a, one_b, left_round, proposal, vote>>
+Next == \\/ \\E r \\in Round : Send1a(r)
+        \\/ \\E n \\in Node, r \\in Round : JoinRound(n, r)
+        \\/ \\E r \\in Round, q \\in Quorum, maxr \\in Round, v \\in Value : Propose(r, q, maxr, v)
+        \\/ \\E n \\in Node, v \\in Value, r \\in Round : CastVote(n, v, r)
+        \\/ \\E r \\in Round, v \\in Value, q \\in Quorum : Decide(r, v, q)
+Safety == \\A r1, r2 \\in Round, v1, v2 \\in Value : (<<r1, v1>> \\in decision /\\ <<r2, v2>> \\in decision) => v1 = v2
+====
+`
+
 // --- mldr: MongoLoglessDynamicRaft.tla. Server is 0 .. size − 1 (Quorums(S) reads its sets whole); currentTerm is CT[s],
 // state St[s] (Secondary 0, Primary 1), configVersion CV[s] (1 at first), configTerm CfgT[s], s2 \in config[s]
 // Config[s·N + s2]; InitTerm is 0. Init's `\E initConfig # {}: config = [i |-> initConfig]`: `pick` stores a nonempty
 // set (S, its member j) as C0, `copy` gives it to server i, `start` once every server has it. A request names its sets
-// whole (S: BecomeLeader's voteQuorum, Reconfig's newConfig, pick's initConfig; Q2: ConfigIsCommitted's quorum) and each
-// count by an exact witness (common.ts's counting, by injections):
-//   - Q \in Quorums(config[i]): Q ⊆ config[i], |Q| >= a (In: 0 .. a − 1 into Q), |config[i] \ Q| <= b (Out, below b), a > b;
-//   - QuorumsOverlap(X, Y) (X = config[i], Y = S): dx = |X \ Y|, dy = |Y \ X|, m = |X ∩ Y|, exactly (L into, U out of each),
-//     hx = |X| div 2 and hy = |Y| div 2; two disjoint majorities need hx + 1 − dx (at least 0) of X ∩ Y and hy + 1 − dy of
-//     it, so the quorums overlap iff (hx + 1 ∸ dx) + (hy + 1 ∸ dy) > m.
-const atMostCount = (P: (k: Term) => any, U: any, c: Term) => all(everyKey(k => P(k).implies(U.at(k).lt(c))),
-  everyKey((k, j) => P(k).and(P(j), k.eq(j).not()).implies(U.at(k).eq(U.at(j)).not())))
-const atLeastCount = (P: (k: Term) => any, L: any, c: Term) => all(everyKey(r => r.lt(c).implies(P(L.at(r)))),
-  everyKey((r, t) => r.lt(c).and(t.lt(c), r.eq(t).not()).implies(L.at(r).eq(L.at(t)).not())))
-const exactCount = (P: (k: Term) => any, L: any, U: any, c: Term) => all(atLeastCount(P, L, c), atMostCount(P, U, c))
+// whole (S: BecomeLeader's voteQuorum, Reconfig's newConfig, pick's initConfig; Q2: ConfigIsCommitted's quorum; X:
+// config[i], equal to it at every key), and the sizes the guards read are counts of the request (the servers below size
+// in each set):
+//   - Q \in Quorums(config[i]): Q ⊆ config[i] and 2·|Q| + |Server \ X| > size, i.e. Cardinality(Q) * 2 > Cardinality(X), one
+//     count (a guard that compares two of a request's counts gave the engine's stored-count laws a request count: core/counts.ts);
+//   - QuorumsOverlap(X, Y) (Y = S): with dx = |X \ Y|, dy = |Y \ X|, m = |X ∩ Y| and hx, hy (inputs) the halves of |X| =
+//     dx + m and |Y| = dy + m rounded down, two disjoint majorities need hx + 1 − dx (at least 0) of X ∩ Y and hy + 1 − dy
+//     of it, so the quorums overlap iff (hx + 1 ∸ dx) + (hy + 1 ∸ dy) > m.
 const mldr = (bug?: Bug) => rule('mongo logless dynamic raft')
   .params({size: nat}).pre(({size}) => size.atLeast(1).and(size.atMost(N)))
-  .inputs({op: oneOf('pick', 'copy', 'start', 'update_terms', 'become_leader', 'reconfig', 'send_config'), i: nat, j: nat,
-    a: nat, b: nat, dx: nat, dy: nat, m: nat, hx: nat, hy: nat})
-  .carries('S', 'Q2', 'In', 'Out', 'Lx', 'Ux', 'Ly', 'Uy', 'Lm', 'Um')
+  .inputs({op: oneOf('pick', 'copy', 'start', 'update_terms', 'become_leader', 'reconfig', 'send_config'), i: nat, j: nat, hx: nat, hy: nat})
+  .carries('S', 'Q2', 'X')
   .state({started: 0, picked: 0})
   .maps({C0: rel, Copied: rel, Config: rel, CT: 0, St: few(1), CV: 1, CfgT: 0})
-  .assume(({op, i, j, a, b, dx, dy, m, hx, hy, size, S, Q2, In, Out, Lx, Ux, Ly, Uy, Lm, Um, Config}) => {
-    const X = (k: Term) => Config.at(pk(i, k)), Y = (k: Term) => S.has(k)
-    const majorityOf = (Q: any) => all(everyKey(k => Q.has(k).implies(X(k))), atLeastCount(k => Q.has(k), In, a), atMostCount(k => X(k).and(Q.has(k).not()), Out, b), bug ? yes : b.lt(a))
+  .counts({
+    // 2·|Q| + |Server \ X|, more than size iff 2·|Q| > |X| (Q ⊆ X): one count a guard compares, a majority of X
+    majS: ({S, X, size}: any) => ({below: size, body: (_x: Term, k: Term) => when(S.has(k), 2, when(X.has(k), 0, 1))}),
+    majQ2: ({Q2, X, size}: any) => ({below: size, body: (_x: Term, k: Term) => when(Q2.has(k), 2, when(X.has(k), 0, 1))}),
+    xNotS: ({S, X, size}: any) => ({below: size, body: (_x: Term, k: Term) => X.has(k).and(S.has(k).not())}),
+    sNotX: ({S, X, size}: any) => ({below: size, body: (_x: Term, k: Term) => S.has(k).and(X.has(k).not())}),
+    xAndS: ({S, X, size}: any) => ({below: size, body: (_x: Term, k: Term) => X.has(k).and(S.has(k))}),
+  })
+  .assume(({op, i, j, hx, hy, size, S, Q2, X: Xs, Config, majS, majQ2, xNotS, sNotX, xAndS}: any) => {
+    const X = (k: Term) => Config.at(pk(i, k))
+    const majorityOf = (Q: any, maj: Term) => all(everyKey(k => Q.has(k).implies(X(k))), bug ? yes : size.lt(maj))
+    const dx = xNotS.at(0), dy = sNotX.at(0), m = xAndS.at(0)
     return all(i.lt(size), j.lt(size), everyKey(k => S.at(k).atMost(1).and(Q2.at(k).atMost(1), S.has(k).implies(k.lt(size)), Q2.has(k).implies(k.lt(size)))),
+      everyKey(k => Xs.at(k).atMost(1).and(Xs.has(k).implies(k.lt(size).and(X(k))), k.lt(size).and(X(k)).implies(Xs.has(k)))),
       op.is('pick').implies(S.has(j)),
-      op.is('become_leader').implies(majorityOf(S)),
-      op.is('reconfig').implies(all(majorityOf(Q2),
-        exactCount(k => X(k).and(Y(k).not()), Lx, Ux, dx), exactCount(k => Y(k).and(X(k).not()), Ly, Uy, dy), exactCount(k => X(k).and(Y(k)), Lm, Um, m),
+      op.is('become_leader').implies(majorityOf(S, majS.at(0))),
+      op.is('reconfig').implies(all(majorityOf(Q2, majQ2.at(0)),
         hx.times(2).atMost(dx.plus(m)), dx.plus(m).lt(hx.times(2).plus(2)), hy.times(2).atMost(dy.plus(m)), dy.plus(m).lt(hy.times(2).plus(2)))))
   })
   .flags(({i, size, S, Q2, Copied, CT, CV, CfgT}) => {
@@ -506,7 +711,7 @@ const mldr = (bug?: Bug) => rule('mongo logless dynamic raft')
       committedQuorum: everyKey(t => Q2.has(t).implies(CV.at(i).eq(CV.at(t)).and(CfgT.at(i).eq(CfgT.at(t)), CT.at(t).eq(CT.at(i))))),
     }
   })
-  .flags(({op, i, j, hx, hy, dx, dy, m, started, picked, allCopied, canVote, committedQuorum, S, Config, CT, St, CV, CfgT}) => ({
+  .flags(({op, i, j, hx, hy, started, picked, allCopied, canVote, committedQuorum, S, Config, CT, St, CV, CfgT, xNotS, sNotX, xAndS}: any) => ({
     picks: op.is('pick').and(started.eq(0), picked.eq(0)),
     copies: op.is('copy').and(started.eq(0), picked.eq(1)),
     starts: op.is('start').and(started.eq(0), picked.eq(1), allCopied),
@@ -514,7 +719,7 @@ const mldr = (bug?: Bug) => rule('mongo logless dynamic raft')
     updates: op.is('update_terms').and(started.eq(1), CT.at(i).gt(CT.at(j))),
     leads: op.is('become_leader').and(started.eq(1), Config.at(pk(i, i)), S.has(i), canVote),
     reconfigs: op.is('reconfig').and(started.eq(1), St.at(i).eq(1), CfgT.at(i).eq(CT.at(i)), committedQuorum,
-      hx.plus(1).minus(dx).plus(hy.plus(1).minus(dy)).gt(m), S.has(i)),
+      hx.plus(1).minus(xNotS.at(0)).plus(hy.plus(1).minus(sNotX.at(0))).gt(xAndS.at(0)), S.has(i)),
     sends: op.is('send_config').and(started.eq(1), St.at(j).eq(0), CfgT.at(i).gt(CfgT.at(j)).or(CfgT.at(i).eq(CfgT.at(j)).and(CV.at(i).gt(CV.at(j))))),
   }))
   .step(({i, j, picks, copies, starts, updates, leads, reconfigs, sends, started, picked, S, C0, Copied, Config, CT, St, CV, CfgT}) => ({
@@ -534,30 +739,22 @@ const mldr = (bug?: Bug) => rule('mongo logless dynamic raft')
     CfgT: CfgT.each(s => when(leads.and(s.eq(i)), CT.at(i).plus(1), when(reconfigs.and(s.eq(i)), CT.at(i), when(sends.and(s.eq(j)), CfgT.at(i), CfgT.at(s))))),
   }))
 
-
-// mldr's requests at a state of the check: each op's own inputs (the others 0), the sets from bitmasks, every witness
-// computed from the state (the counts of config[i] against S and Q2).
+// mldr's requests at a state of the check: each op's own inputs (the others 0), the sets from bitmasks, the halves of
+// |config[i]| and |S| computed from the state (the counts are the runtime's).
 const bits = (x: number) => range(3).filter(k => x >> k & 1)
-const asMap = (xs: number[]) => new Map(xs.map((v, k) => [k, v] as [number, number]))
-const ranks = (xs: number[]) => new Map(xs.map((v, k) => [v, k] as [number, number]))
 const setOf = (xs: number[]) => new Map(xs.map(v => [v, 1] as [number, number]))
 const mldrRequests = (inp: any, r?: Read) => {
   const {op, i, j, sm, qm} = inp, uses: Record<number, string> = {0: 'jS', 1: 'i', 2: '', 3: 'ij', 4: 'iS', 5: 'iSQ', 6: 'ij'}, u = uses[op]!
   if ((!u.includes('i') && i) || (!u.includes('j') && j) || (!u.includes('S') && sm) || (!u.includes('Q') && qm)) return []
-  const X = range(3).filter(k => r!.cell('Config', i * N + k)), S = bits(sm), Q = bits(qm), none = new Map<number, number>()
-  const base = {op, i, j, a: 0, b: 0, dx: 0, dy: 0, m: 0, hx: 0, hy: 0, S: setOf(S), Q2: setOf(Q), In: none, Out: none, Lx: none, Ux: none, Ly: none, Uy: none, Lm: none, Um: none}
-  const maj = (q: number[]) => { const rest = X.filter(k => !q.includes(k)); return {a: q.length, In: asMap(q), b: rest.length, Out: ranks(rest)} }
-  if (op === 4) return [{...base, ...maj(S)}]
-  if (op !== 5) return [base]
-  const xy = X.filter(k => !S.includes(k)), yx = S.filter(k => !X.includes(k)), both = X.filter(k => S.includes(k))
-  return [{...base, ...maj(Q), dx: xy.length, dy: yx.length, m: both.length, hx: Math.floor(X.length / 2), hy: Math.floor(S.length / 2),
-    Lx: asMap(xy), Ux: ranks(xy), Ly: asMap(yx), Uy: ranks(yx), Lm: asMap(both), Um: ranks(both)}]
+  const X = range(3).filter(k => r!.cell('Config', i * N + k)), S = bits(sm)
+  const base = {op, i, j, hx: 0, hy: 0, S: setOf(S), Q2: setOf(bits(qm)), X: setOf(X)}
+  return op === 5 ? [{...base, hx: Math.floor(X.length / 2), hy: Math.floor(S.length / 2)}] : [base]
 }
 
 // --- the protocols, with their safety laws, their instances and their TLC cfgs --------------------------------------
 const one = (name: string, map: string) => (r: any) => [r.law(name, (env: any) => forall((a, b) => lt(a, b).and(env[map].at(a), env[map].at(b)).implies(a.eq(b))))]
 const mutex = one('one holder', 'HoldsLock')
-const N3 = range(3), N2 = range(2)
+const N3 = range(3), N2 = range(2), N4 = range(4)
 
 export const protocols: Protocol[] = [
   {id: 'consensus', ic3syn: 'tla-consensus', file: 'Consensus.tla', source: 'Endive benchmarks/Consensus.tla (Lamport\'s Consensus)', safety: 'Cardinality(chosen) <= 1',
@@ -709,6 +906,32 @@ export const protocols: Protocol[] = [
       uses: [['i', 'j'], ['i', 'j', 'nondet'], ['i', 'j'], ['i', 'qm'], ['i', 'v']],
       project: r => [['VoteRequestMsg', 'VoteMsg', 'Votes'].map(m => cells(r, m, pairs(N3, N3))), cells(r, 'Voted', N3), cells(r, 'Leader', N3), cells(r, 'Decided', pairs(N3, N2))],
       tlc: tlc('consensus_epr', `${consts({Node: nodes(3), Value: nodes(2, 'v')})}  Quorum = {{n1, n2}, {n2, n3}, {n1, n3}, {n1, n2, n3}}\n`, 'Safety')}},
+  {id: 'learning_switch', ic3syn: 'pyv-learning-switch', file: 'learning_switch.tla', source: 'Endive benchmarks/learning_switch.tla (mypyvy\'s)',
+    safety: 'table(t, ·, ·) reflexive, transitive, antisymmetric, its successors a chain', make: learningSwitch, bug: 'forward learns without the no-route check',
+    laws: r => tableSafe(r, 'the table is', ({busy}: any) => busy.eq(0)),
+    bad: r => r.scalar('busy') === 0 && tableBad(r, 3),
+    check: {params: {size: 3}, inputs: {op: range(3), ps: N3, pd: N3, sw0: N3, sw1: N3, nondet: N3}, uses: [['ps', 'pd'], ['ps', 'pd', 'sw0', 'sw1', 'nondet'], []],
+      keep: r => r.scalar('busy') === 1 || N3.flatMap(a => triples(N3, N3, N3).map(k => r.cell('P', a * N * N * N + k))).filter(Boolean).length < 5,
+      project: r => r.scalar('busy') ? undefined : [tableCells(r, 3), N3.flatMap(a => triples(N3, N3, N3).map(k => r.cell('P', a * N * N * N + k)))],
+      tlc: tlc('learning_switch', consts({Node: nodes(3)}), 'Safety', 'CONSTRAINT StateConstraint\n')}},
+  {id: 'learning_switch_i4', ic3syn: 'i4-learning-switch', file: 'learning_switch_i4.tla', source: 'Endive benchmarks/learning_switch_i4.tla (I4\'s)',
+    safety: 'route_tc(n, ·, ·) reflexive, transitive, antisymmetric, its successors a chain', make: learningSwitchI4, bug: 'a route learned both ways',
+    laws: r => tableSafe(r, 'route_tc is', ({started, busy}: any) => started.eq(1).and(busy.eq(0))),
+    bad: r => r.scalar('started') === 1 && r.scalar('busy') === 0 && tableBad(r, 4),
+    check: {params: {size: 4, packets: 1}, inputs: {op: range(8), p: [0], sw0: N4, sw1: N4, sw2: N4},
+      uses: [['p', 'sw0'], ['p', 'sw0'], ['sw0', 'sw1'], [], ['p'], ['p', 'sw0', 'sw1'], ['p', 'sw0', 'sw1', 'sw2'], []],
+      project: r => r.scalar('started') && !r.scalar('busy') ? [cells(r, 'Src', [0]), cells(r, 'Dst', [0]), cells(r, 'Link', N4), cells(r, 'Dom', pairs(N4, N4)),
+        cells(r, 'Pend', triples([0], N4, N4)), tableCells(r, 4)] : undefined,
+      tlc: tlc('learning_switch_i4', consts({Node: nodes(4), Packet: ['p1']}), 'Safety')}},
+  {id: 'paxos_epr', ic3syn: 'pyv-paxos-epr', file: 'paxos_epr.pyv', source: 'mypyvy examples/pd/paxos_epr.pyv (12a8f54; Endive benchmarks/paxos_epr.tla is faulty)',
+    safety: 'decision(R1, V1) & decision(R2, V2) -> V1 = V2', make: paxos, bug: 'propose without the votes check',
+    laws: r => [r.law('one value decided', ({Decision}: any) => forall((r1, v1, r2, v2) => lt(r1, v1, r2, v2).and(Decision.at(pk(r1, v1)), Decision.at(pk(r2, v2))).implies(v1.eq(v2))))],
+    bad: r => new Set(N3.flatMap(x => N2.filter(v => r.cell('Decision', x * N + v)))).size > 1,
+    check: {params: {size: 3, none: 0}, inputs: {op: range(6), n: N3, r: N3, v: N2, maxr: N3, w: N3, qm: range(8)}, expand: withMajority(3),
+      uses: [['r'], ['n', 'r'], ['r', 'v', 'maxr', 'w', 'qm'], [], ['n', 'r', 'v'], ['r', 'v', 'qm']],
+      project: r => r.scalar('busy') ? undefined : [cells(r, 'OneA', N3), cells(r, 'OneB', pairs(N3, N3)), cells(r, 'Left', pairs(N3, N3)), cells(r, 'Proposal', pairs(N3, N2)),
+        cells(r, 'Vote', triples(N3, N3, N2)), cells(r, 'Decision', pairs(N3, N2))],
+      tlc: {...tlc('PaxosEprPyv', `${consts({Node: nodes(3), Value: nodes(2, 'v')})}  MaxRound = 2\n  None = 0\n`, 'Safety'), fix: [`cat > PaxosEprPyv.tla <<'EOF'\n${paxosTla}EOF`]}}},
   {id: 'mldr', ic3syn: 'mldr', file: 'MongoLoglessDynamicRaft.tla', source: 'Endive benchmarks/MongoLoglessDynamicRaft.tla (MongoDB\'s logless dynamic Raft)',
     safety: 'state[s] = Primary /\\ state[t] = Primary /\\ currentTerm[s] = currentTerm[t] => s = t', make: mldr, bug: 'become_leader without a majority',
     laws: r => [r.law('one primary per term', ({size, St, CT}: any) => forall((a, b) => a.lt(size).and(b.lt(size), St.at(a).eq(1), St.at(b).eq(1), CT.at(a).eq(CT.at(b))).implies(a.eq(b))))],
