@@ -191,6 +191,10 @@ const wide: Machine = {...toy.m, params: [...toy.m.params, 'lim', 'lim2'],
 const b = x('b'), atLeast2 = atMost(n(2), x('size'))
 
 describe('pointed', () => {
+  test('a witness is fresh for every instance\'s bound, not only its own (mutation run, 2026-10-31)', () => {
+    const one = 'one value decided @step', is = toy.certs[one]!.insts
+    refusedOnly(toy.m, toy.laws, toy.instances, {...toy.certs, [one]: {...toy.certs[one]!, insts: [...is, {wit: 'w8', below: x(is[0]!.wit), terms: [], unit: 0}]}})
+  })
   test('a plain machine has its plain obligations', () => {
     const plain: Machine = {...toy.m, counts: undefined, assume: less(x('i'), x('size'))}
     expect(() => obligations(plain, [{name: 'decided is 0 or 1', forall: 'a', holds: toy.laws[0]!.holds}])).not.toThrow()

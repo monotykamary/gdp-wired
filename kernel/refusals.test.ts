@@ -6,7 +6,7 @@
 import {expect, test} from 'bun:test'
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {checkRefutation, checkWitness} from '../core/check.ts'
-import {type Fold, type Goal, type Loop, type QE, type QGoal, type RecurCases, type StepLaw, type Tree, check, checkQTree, checkLaws, checkRecur, checkStepLaws, foldObligations, historyMachine, loopObligations, obligations, progressObligations, scope, stepLawObligations, termColumn} from './kernel.ts'
+import {type Fold, type Goal, type Loop, type QC, type QE, type QGoal, type QMachine, type RecurCases, type StepLaw, type Tree, check, checkQMachine, checkQTree, checkRecurCases, kInductionSteps, leafConstraints, livenessParts, sideGoals, sumCovers, sumMachine, checkLaws, checkRecur, checkStepLaws, foldObligations, historyMachine, loopObligations, obligations, progressObligations, scope, stepLawObligations, termColumn} from './kernel.ts'
 import {grow, proveLaws} from './prove.ts'
 
 const x = (name: string): E => ({op: 'var', name}), n = (value: number): E => ({op: 'const', value})
@@ -366,4 +366,213 @@ test('a flag over two keys compares them plainly anywhere, in a comparison or a 
   const m: Machine = {name: 'pairs', params: [], inputs: ['a'], state: {r: n(0)}, inputMaps: ['I'],
     step: {flags: {f: {op: 'all', key: 'k', keys: ['j'], c: body}}, state: {r: {op: 'if', c: {op: 'flag', name: 'f'}, then: n(1), else: n(0)}}}}
   expect(() => scope(m)).not.toThrow()
+})
+
+// Nontermination (checkRecur): the stem is evaluated exactly, over naturals, and the certificate's language checked.
+const lt2 = (a: E, b: E): C => ({op: '<', a, b}), or2 = (...xs: C[]): C => ({op: 'or', xs}), trueLe: C = le(n(0), n(0))
+// i from 0, one turn while i < 1 or i >= 2: it ends at i = 1. {i >= 2} is closed, but no run reaches it.
+const ends: Loop = {name: 'ends at 1', params: ['p'], inputs: [], state: {i: n(0)}, while: or2(lt2(x('i'), n(1)), le(n(2), x('i'))), body: {i: plus(x('i'), n(1))}}
+const closed = {split: {1: 2, i: -1}, yes: {leaf: [{kind: 'input', index: 0}, {kind: 'input', index: 2}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]},
+  no: {leaf: [{kind: 'input', index: 0}, {kind: 'input', index: 1}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]}} as Tree
+// A loop that never ends (while 0 <= 0), its set everything, its closure refuted at once.
+const forever: Loop = {name: 'forever', params: ['p'], inputs: ['w'], state: {i: n(0)}, while: trueLe, body: {i: x('i')}}
+const always = {start: {p: 0}, stem: [{w: 0}], set: trueLe, wit: {w: n(0)}, tree: {leaf: [{kind: 'input', index: 1}]} as Tree}
+
+test('nontermination: the stem runs as the loop does (i < 1 is false at 1), from a start the precondition allows', () => {
+  expect(checkRecur(ends, {start: {}, stem: [{}, {}], set: le(n(2), x('i')), wit: {}, tree: closed})).toBe(false) // the second turn: 1 < 1 is false
+  expect(checkRecur({...ends, pre: le(n(1), x('p'))}, {start: {p: 0}, stem: [], set: le(n(2), x('i')), wit: {}, tree: closed})).toBe(false) // p = 0 fails pre
+  expect(checkRecur(forever, always)).toBe(true) // a start and a turn at 0 are naturals
+})
+
+test('nontermination: a certificate outside the language is refused', () => {
+  // A start below 0: i = p = -1 makes i + 1 <= 0 hold, which no natural start does (the loop ends at once).
+  const never: Loop = {name: 'ends at once', params: ['p'], inputs: [], state: {i: x('p')}, while: le(plus(x('i'), n(1)), n(0)), body: {i: x('i')}}
+  const tree = {leaf: [{kind: 'input', index: 0}, {kind: 'input', index: 1}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]} as Tree
+  expect(() => checkRecur(never, {start: {p: -1}, stem: [], set: le(plus(x('i'), n(1)), n(0)), wit: {}, tree})).toThrow()
+  expect(() => checkRecur(forever, {...always, start: {i: 0}})).toThrow() // a start that names no param
+  expect(() => checkRecur(forever, {...always, stem: [{i: 1}]})).toThrow() // a turn that names no input
+  expect(() => checkRecur(forever, {...always, stem: [{w: 0, i: 1}]})).toThrow()
+  expect(() => checkRecur(forever, {...always, stem: [{w: -1}]})).toThrow()
+  expect(() => checkRecur({...forever, body: {i: n(-1)}}, always)).toThrow() // a non-natural body, beside natural conditions
+  expect(() => checkRecur({...forever, while: le(x('i'), n(-1))}, always)).toThrow() // a non-natural while, beside a natural set
+  // A witness that names the state: read as i = 5, 1 <= i held at the witness, though the loop at i = 0 ends at once.
+  const down: Loop = {name: 'down', params: [], inputs: ['w'], state: {i: n(0)}, while: le(n(1), x('i')), body: {i: {op: 'sub', a: x('i'), b: n(1)}}}
+  expect(checkRecur(down, {start: {}, stem: [], set: trueLe, wit: {w: n(0), i: n(5)}, tree: {leaf: [{kind: 'input', index: 1}]}})).toBe(false)
+})
+
+// Rationals: a constant's denominator, a row's exact coefficients, a negated equation's strictness, and the splits.
+const qv = (name: string): QE => ({op: 'var', name}), qc = (num: number, den = 1): QE => ({op: 'const', q: {num: BigInt(num), den: BigInt(den)}})
+const qle = (a: QE, b: QE): QC => ({op: '<=', a, b}), qlt = (a: QE, b: QE): QC => ({op: '<', a, b}), qnot = (c: QC): QC => ({op: 'not', x: c}), qeq = (a: QE, b: QE): QC => ({op: '=', a, b})
+const step = (...s: [number, number?, number?, number?, number?][]) => s.map(([a, b, ma, mb]) => (b === undefined ? {kind: 'input', index: a} : {kind: 'combine', a, b, ma, mb}))
+test('rationals: constants, coefficients at 2^53 - 1, and a negated equation, as Lean reads them', () => {
+  expect(() => checkQTree({name: 'over 0', hyps: [qle(qc(1, 0), qv('x'))]}, {leaf: [{kind: 'input', index: 0}]})).toThrow() // 1/0 is no rational
+  // x <= 2/4 and 1 <= x: 2/4 is 1/2, so 2x - 1 <= 0, and twice 1 - x <= 0 adds to 1 <= 0.
+  expect(checkQTree({name: 'reduced', hyps: [qle(qv('x'), qc(2, 4)), qle(qc(1), qv('x'))]}, {leaf: step([0], [1], [0, 1, 1, 2]) as never})).toBe(true)
+  const M = Number.MAX_SAFE_INTEGER, Mx: QE = {op: 'mul', k: {num: BigInt(M), den: 1n}, a: qv('x')}
+  expect(checkQTree({name: '+M x', hyps: [qle(qc(1), qv('x')), qle(Mx, qc(0))]}, {leaf: step([0], [1], [0, 1, M, 1]) as never})).toBe(true)
+  expect(checkQTree({name: '-M x', hyps: [qle(qv('x'), qc(-1)), qle(qc(0), Mx)]}, {leaf: step([0], [1], [0, 1, M, 1]) as never})).toBe(true)
+  expect(checkQTree({name: '+-M', hyps: [qlt(qv('x'), qc(M)), qle(qc(M), qv('x'))]}, {leaf: step([0], [1], [0, 1, 1, 1]) as never})).toBe(true)
+  // x != 0, x <= 0 and 0 <= x: where -x <= 0, x != 0 gives -x < 0 (strict), which x <= 0 refutes.
+  const ne = qnot(qeq(qv('x'), qc(0)))
+  expect(checkQTree({name: 'strict', hyps: [ne, qle(qv('x'), qc(0)), qle(qc(0), qv('x'))]},
+    {split: {x: -1}, yes: {leaf: step([1], [2], [0, 1, 1, 1]) as never}, no: {leaf: step([0], [2], [0, 1, 1, 1]) as never}})).toBe(true)
+  // x != 0 and x <= -1 hold at x = -1: where x < 0 (no side), x != 0 gives no row (-x < 0 would be false there).
+  expect(checkQTree({name: 'not a fact', hyps: [ne, qle(qv('x'), qc(-1))]},
+    {split: {x: -1}, yes: {leaf: step([0], [1], [0, 1, 1, 1]) as never}, no: {leaf: step([0], [1], [0, 1, 1, 1]) as never}})).toBe(false)
+})
+
+test('rationals: a split is a safe row the path leaves open', () => {
+  const goal: QGoal = {name: 'x <= 0 and 1 <= x', hyps: [qle(qv('x'), qc(0)), qle(qc(1), qv('x'))]}
+  const leaf = {leaf: step([1], [2], [0, 1, 1, 1]) as never}
+  expect(checkQTree(goal, {split: {x: 1, 1: -1}, yes: leaf, no: leaf})).toBe(true)
+  expect(checkQTree(goal, {split: {x: 1, 1: -1}, yes: {split: {x: 1, 1: -1}, yes: leaf, no: leaf}, no: leaf})).toBe(false) // decided already
+  expect(checkQTree(goal, {split: {x: 2 ** 60}, yes: {leaf: []}, no: {leaf: []}})).toBe(false) // past a safe integer
+})
+
+test('check.ts: a strict row only over the rationals, multipliers positive, rows read by their index', () => {
+  expect(checkRefutation([{lin: {}, label: '', strict: true}], [{kind: 'input', index: 0}])).toBe(false) // over the integers 0 < 0 is no row
+  // x < 1 and 0 <= 0 hold at x = 0: 0 times the strict row is no strict row.
+  const rows: {lin: Record<string, number>, label: string, strict?: boolean}[] = [{lin: {x: 1, 1: -1}, label: '', strict: true}, {lin: {}, label: ''}]
+  expect(checkRefutation(rows, step([0], [1], [0, 1, 0, 1]) as never, false)).toBe(false)
+  expect(checkRefutation(rows, step([1], [0], [0, 1, 1, 0]) as never, false)).toBe(false)
+  expect(checkRefutation([{lin: {1: 1}, label: ''}], [{kind: 'input', index: 0}, {kind: 'combine', a: -1, b: 0, ma: 1, mb: 1}], false)).toBe(false)
+  // a - ... : -(2^53 - 1) + 3x + -1 at x = 3002399751580331 is 1 (3x is 2^53 + 1, a float 2^53): the witness fails the row.
+  expect(checkWitness([{lin: {a: -1, x: 3, b: -1}, label: ''}], {a: Number.MAX_SAFE_INTEGER, x: 3002399751580331, b: 1})).toBe(false)
+})
+
+// Nontermination by cases (checkRecurCases): the pins, every case's tree, and the folds of a case's goal. One loop at
+// i = 1, its set {i = 1}, covered by the case pinned there (two splits decide i = 1).
+const at1: Tree = {split: {i: 1, 1: -1}, yes: {split: {1: 1, i: -1}, yes: {leaf: [{kind: 'input', index: 4}]},
+  no: {leaf: [{kind: 'input', index: 1}, {kind: 'input', index: 3}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]}},
+  no: {leaf: [{kind: 'input', index: 0}, {kind: 'input', index: 1}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]}}
+const eq = (a: E, b: E): C => ({op: '=', a, b}), refuted: Tree = {leaf: [{kind: 'input', index: 1}]}
+const stays: Loop = {name: 'stays at 1', params: ['p'], inputs: ['w'], state: {i: n(1)}, while: trueLe, body: {i: x('i')}}
+const cases = (pins: [string, number][][], trees: Tree[] = pins.map(() => refuted)): RecurCases =>
+  ({start: {}, stem: [], set: eq(x('i'), n(1)), wit: {w: n(0)}, cover: at1, cases: pins.map((p, j) => ({pins: p, cond: trueLe, tree: trees[j]!}))})
+
+test('nontermination by cases: pins over the naturals, in scope, once each; every case checked', () => {
+  expect(checkRecurCases(stays, cases([[['i', 1]], [['i', 1], ['p', 0]]]))).toBe(true) // a pin at 0 is a natural
+  expect(checkRecurCases(stays, cases([[['i', 1]], [['i', 1]]], [refuted, {leaf: []}]))).toBe(false) // the second case's tree fails
+  for (const bad of [[['w', 0]], [['i', 0.5]], [['i', -1]], [['i', 1], ['i', 1]]] as [string, number][][])
+    expect(() => checkRecurCases(stays, cases([[['i', 1]], bad])), JSON.stringify(bad)).toThrow()
+})
+
+test('nontermination by cases: a case goal folds each constant as Lean does', () => {
+  // At i = 1 every disjunct of `while` is false (min(p, 0) <= 0, 2 <= 1, 1 <= 0): the loop ends at once. A fold that
+  // read 2·1 as 0 or 1, 1 ∸ 1 as 1, or min(p, 0) as a constant would make `while` true there, and the case refuted.
+  const ends1: Loop = {...stays, inputs: [], while: or2({op: 'not', x: le({op: 'min', a: x('p'), b: n(0)}, n(0))}, {op: 'not', x: le({op: 'min', a: n(0), b: x('p')}, n(0))},
+    le(mul(2, x('i')), n(1)), le(n(1), sub(x('i'), n(1))))}
+  const c1 = {...cases([[['i', 1]]]), wit: {}}
+  expect(checkRecurCases(ends1, c1)).toBe(false)
+  // A case whose condition, at its pins, is 1 = 1 and 0 <= 0: true, so no row; read as false, its goal was refuted.
+  expect(checkRecurCases(ends1, {...c1, cases: [{pins: [['i', 1]], cond: {op: 'and', xs: [eq(x('i'), n(1)), trueLe]}, tree: {leaf: [{kind: 'input', index: 0}]}}]})).toBe(false)
+})
+
+test('k-induction: a law with no key, k from 1 to 64, the law and the start reading no request and no state', () => {
+  const k = (law: Law, kk = 2, m: Machine = counter) => () => kInductionSteps(m, {law, k: kk})
+  expect(k(law, 64)).not.toThrow()
+  for (const kk of [0, 1.5, 65]) expect(k(law, kk), String(kk)).toThrow(/whole number/)
+  for (const bad of [{...law, forall: 'j'}, {...law, forall: 'j', keys: ['j2']}, {...law, some: ['z']}, {...law, ex: {} as never}]) expect(k(bad)).toThrow(/no key/)
+  expect(k({...law, holds: le(x('k'), x('cap'))})).toThrow(/request/)
+  expect(k(law, 2, {...counter, state: {s: n(0), k: n(0)}})).toThrow(/request/) // a state named as an input
+  expect(k(law, 2, {...counter, state: {s: x('t'), t: n(0)}})).toThrow(/params alone/) // a start reading the state
+})
+
+test('liveness: a rank and a helpful request at least; under strong fairness a natural level per request', () => {
+  const live = {name: 'l', from: trueLe, to: trueLe, rank: x('s'), request: {k: n(0)}}
+  expect(() => livenessParts(counter, live)).not.toThrow()
+  expect(() => livenessParts(counter, {...live, rank: []})).toThrow(/a rank/)
+  expect(() => livenessParts(counter, {...live, request: undefined, helpful: []})).toThrow(/a rank/)
+  const two = {...live, request: undefined, helpful: [{request: {k: n(0)}}, {request: {k: n(1)}}], fairness: 'strong' as const}
+  expect(() => livenessParts(counter, {...two, levels: [0, 1]})).not.toThrow()
+  for (const levels of [[0], [0, 0.5], [0, -1]]) expect(() => livenessParts(counter, {...two, levels}), JSON.stringify(levels)).toThrow(/level/)
+})
+
+test('rationals: a machine\'s laws read no input, its precondition no state', () => {
+  const m: QMachine = {name: 'q', params: [], inputs: ['i'], state: {s: qc(0)}, step: {}}, qor = (a: QC, b: QC): QC => ({op: 'or', a, b})
+  const qif = (c: QC, t: QE, e: QE): QE => ({op: 'if', c, then: t, else: e})
+  const laws: [QC, Tree, Tree][] = [
+    [qor(qle(qv('i'), qv('i')), qle(qc(1), qc(0))), {leaf: [{kind: 'input', index: 1}]}, {leaf: [{kind: 'input', index: 3}]}],
+    [qor(qle(qv('i'), qc(5)), qle(qc(1), qc(5))), {leaf: [{kind: 'input', index: 2}]}, {leaf: [{kind: 'input', index: 3}]}],
+    [qle(qc(1), qif(qle(qv('i'), qc(0)), qc(1), qc(1))), {split: {i: 1}, yes: {leaf: [{kind: 'input', index: 2}]}, no: {leaf: [{kind: 'input', index: 2}]}},
+      {split: {i: 1}, yes: {leaf: [{kind: 'input', index: 4}]}, no: {leaf: [{kind: 'input', index: 4}]}}],
+    [qle(qc(1), qif(qle(qc(1), qc(0)), qv('i'), qc(1))), {leaf: [{kind: 'input', index: 1}]}, {leaf: [{kind: 'input', index: 3}]}],
+  ]
+  for (const [j, [holds, start, stepTree]] of laws.entries()) expect(checkQMachine(m, [{name: 'L', holds}], {L: {start, step: stepTree}}), `law ${j}`).toBe(false)
+  expect(checkQMachine({...m, pre: qle(qv('s'), qc(0))}, [], {})).toBe(false)
+})
+
+// Sums: what a sum's term may read, its names, the maps and keys it is kept by, and the cover goals' hypotheses.
+const tok: Machine = {name: 'tok', params: [], inputs: ['from', 'v'], state: {}, maps: {Bal: 0}, step: {maps: {Bal: {key: x('from'), value: plus(get('Bal', x('from')), x('v'))}}},
+  sums: {S: {key: 'k', term: get('Bal', x('k'))}}}
+const withSum = (term: E, key = 'k', name = 'S') => ({...tok, sums: {[name]: {key, term}}})
+const ite = (c: C, t: E, e: E): E => ({op: 'if', c, then: t, else: e}), bal = get('Bal', x('k'))
+test('sums: a term reads the maps at its key alone', () => {
+  expect(() => sumMachine(tok)).not.toThrow()
+  expect(() => sumMachine(withSum(ite({op: 'and', xs: [le(n(1), bal), le(n(2), bal)]}, n(1), n(0))))).not.toThrow()
+  for (const term of [get('Bal', x('j')), ite(le(n(1), bal), bal, x('z')), ite({op: 'flag', name: 'f'}, bal, n(0)), ite({op: 'and', xs: [le(n(1), bal), le(n(1), x('z'))]}, n(1), n(0)), get('Zed', x('k'))])
+    expect(() => sumMachine(withSum(term)), JSON.stringify(term)).toThrow()
+})
+test('sums: its names are new, and a point write\'s key is a cover key with no flag', () => {
+  expect(() => sumMachine(withSum(bal, 'k', 'from'))).toThrow(/already a name/)
+  expect(() => sumMachine(withSum(get('Bal', x('S')), 'S'))).toThrow(/collide/)
+  expect(() => sumMachine({...tok, step: {...tok.step, flags: {q: {op: 'all', key: 'k', c: le(get('Bal', x('k')), n(5))}}}})).toThrow(/already a name/) // a flag's key
+  const flagged2: Machine = {...tok, step: {flags: {f: le(x('v'), n(1))}, maps: {Bal: {key: ite({op: 'flag', name: 'f'}, x('from'), x('v')), value: x('v')}}}}
+  expect(() => sumMachine(flagged2)).toThrow(/flag/)
+  const two: Machine = {...tok, maps: {A: 0, B: 0}, step: {maps: {A: {key: x('from'), value: x('v')}, B: {key: x('v'), value: x('v')}}}, sums: {S: {key: 'k', term: plus(get('A', x('k')), get('B', x('k')))}}}
+  expect(() => sumMachine(two)).not.toThrow()
+})
+test('sums: the keys a write at every key compares its key with, either side; the cover goal as Lean builds it', () => {
+  const at = get('Bal', x('e')), each = (c: C): Machine => ({...tok, maps: {Bal: 0, O: 0}, step: {flags: {f: le(x('v'), n(3))}, maps: {Bal: {each: 'e', value: ite(c, plus(at, x('v')), at)}}}})
+  expect(sumCovers(each(eq(x('from'), x('e'))))['S']).toEqual([x('from')])
+  const m = each({op: 'and', xs: [{op: 'flag', name: 'f'}, eq(x('e'), x('from'))]})
+  // a plain flag read as (if f's condition then 1 else 0) = 1, as Lean inlines it
+  expect(JSON.stringify(sideGoals(m))).toContain('"then":{"op":"const","value":1},"else":{"op":"const","value":0}},"b":{"op":"const","value":1}')
+  // a law over Bal and O is no law of the term's cells: the cover goal doesn't assume it
+  const other: Law = {name: 'Bal under O', forall: 'j', holds: le(get('Bal', x('j')), get('O', x('j')))}
+  expect(sideGoals(m, [other])[0]!.hyps.length).toBe(sideGoals(m, [])[0]!.hyps.length)
+  expect(sideGoals(counter)).toEqual([])
+})
+
+test('a flag over two keys: a key plus an offset compared with the other key is refused, by <= and = too', () => {
+  const k1 = x('k'), j = x('j'), m = (body: C): Machine => ({name: 'pairs', params: [], inputs: ['a'], state: {r: n(0)}, inputMaps: ['I'],
+    step: {flags: {f: {op: 'all', key: 'k', keys: ['j'], c: body}}, state: {r: {op: 'if', c: {op: 'flag', name: 'f'}, then: n(1), else: n(0)}}}})
+  for (const body of [le(k1, plus(j, n(1))), eq(k1, plus(j, n(1)))]) expect(() => scope(m(body)), JSON.stringify(body)).toThrow(/each read on their own/)
+})
+
+test('a history\'s relation is homogeneous: a multiple by 0 is one', () => {
+  const h: Machine = {name: 'h', params: ['p'], inputs: ['a', 'q'], state: {}, step: {}, history: {keep: le(n(0), n(0)), record: ['a'], sums: {u: x('r.a')}, queries: {q: x('r.a')},
+    relations: [{when: le(n(0), n(0)), holds: le(x('u'), {op: 'mul', k: 0, a: x('q')})}]}}
+  expect(() => historyMachine(h)).not.toThrow()
+})
+
+test('nontermination by cases: a fold never reads a false condition as true, nor drops a conjunct or a pin', () => {
+  // `while` false at i = 1 (1 < 1, i = 2, 2·1 <= 1): the case's goal is no contradiction, the loop ends at once.
+  for (const w of [lt2(x('i'), n(1)), eq(x('i'), n(2)), le(mul(2, x('i')), n(1)), {op: 'and', xs: [lt2(x('i'), n(1)), le(n(0), x('p'))]} as C])
+    expect(checkRecurCases({...stays, inputs: [], while: w}, {...cases([[['i', 1]]]), wit: {}}), JSON.stringify(w)).toBe(false)
+  // `while` is 0 <= p and p = 1, both: at p = 0 the loop ends at once (the second conjunct kept, not only the first).
+  const p1: Loop = {name: 'while p = 1', params: ['p'], inputs: [], state: {i: n(1)}, while: {op: 'and', xs: [le(n(0), x('p')), eq(x('p'), n(1))]}, body: {i: x('i')}}
+  const nat = {leaf: [{kind: 'input', index: 1}, {kind: 'input', index: 2}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]} as Tree
+  expect(checkRecurCases(p1, {start: {p: 0}, stem: [], set: eq(x('i'), n(1)), wit: {}, cover: at1, cases: [{pins: [['i', 1]], cond: trueLe, tree: nat}]})).toBe(false)
+  // A case pinned at i = 1 and p = 0 covers no start with p = 1, where `while` (p = 0) fails at once.
+  const p0: Loop = {...p1, name: 'while p = 0', while: eq(x('p'), n(0))}
+  expect(checkRecurCases(p0, {start: {p: 1}, stem: [], set: eq(x('i'), n(1)), wit: {}, cover: at1, cases: [{pins: [['i', 1], ['p', 0]], cond: trueLe, tree: refuted}]})).toBe(false)
+  // A product of two unpinned terms stays a product (0 <= p·p is proven, the turn always taken).
+  expect(checkRecurCases({...stays, while: le(n(0), {op: 'prod', a: x('p'), b: x('p')})}, cases([[['i', 1]]], [nat]))).toBe(true)
+})
+
+test('k-induction: k - 1 base laws and one k-step law', () => {
+  expect(kInductionSteps(counter, {law, k: 3}).map(s => s.steps)).toEqual([1, 2, 3])
+})
+
+test('a k-step law\'s assumptions read no state after a step (s~1), as Lean\'s avoids asks', () => {
+  const F: Law = {name: 'F', forall: 'k', holds: le(n(0), get('fn', x('k')))}
+  const m: Machine = {name: 'z', params: [], inputs: [], state: {s: n(0)}, fns: {fn: {js: 'x => 0', lean: 'fun _ => 0'}}, facts: [F], step: {state: {s: x('s')}}}
+  const sl: StepLaw = {name: 'two', then: trueLe, steps: 2}
+  const proofAt = (key: E) => {
+    const g = stepLawObligations(m, [], {F: [key]}, sl)[0]!, i = leafConstraints(g, new Map()).findIndex(r => r.lin['1'] === 1 && Object.keys(r.lin).length === 1)
+    return {laws: {instances: {}, trees: {}}, instances: {F: [key]}, trees: {[g.name]: {leaf: [{kind: 'input', index: i}]} as Tree}}
+  }
+  expect(checkStepLaws(m, [], [sl], proofAt(n(3)))).toBe(true)
+  expect(checkStepLaws(m, [], [sl], proofAt(x('s~1')))).toBe(false)
 })

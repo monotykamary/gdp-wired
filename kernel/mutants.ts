@@ -79,6 +79,10 @@ const battery: {name: string, cwd: string, cmd: string[], env?: Record<string, s
   {name: 'keyterms', cwd: 'core', cmd: ['bun', 'test', 'keyterms.test.ts'], ms: 120_000},
   {name: 'liveness', cwd: 'core', cmd: ['bun', 'test', 'liveness.test.ts'], ms: 120_000},
   {name: 'lists', cwd: 'core', cmd: ['bun', 'test', 'lists.test.ts'], ms: 300_000},
+  {name: 'sums', cwd: 'core', cmd: ['bun', 'test', 'sums.test.ts'], ms: 120_000},
+  {name: 'rationals', cwd: 'core', cmd: ['bun', 'test', 'rationals.test.ts'], ms: 120_000},
+  {name: 'pairs', cwd: 'core', cmd: ['bun', 'test', 'pairs.test.ts'], ms: 120_000},
+  {name: 'nonterm', cwd: 'core', cmd: ['bun', 'test', 'nonterm.test.ts'], ms: 300_000},
   {name: 'kernel fuzz', cwd: 'kernel', cmd: ['bun', 'test', 'kernel.test.ts'], env: {FUZZ_SCALE: '0.5'}, ms: 400_000},
 ]
 // MUTANT_BATTERY=a,b: only those tests (by name), for a run over one check's mutants.
