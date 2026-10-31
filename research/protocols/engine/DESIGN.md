@@ -43,7 +43,7 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
-## gen/laneI2: the counted search on the counted clock (wo 20 of 20 on shared VMs); equation-fixed keys and seeded instances in the prover; the ran-out goal named; a ghost of a ghost (untrusted; nothing trusted changed)
+## gen/laneI2: the counted search on the counted clock (wo 20 of 20 on shared VMs; IC3Syn 60 s 17 → 20); equation-fixed keys in the prover; the ran-out goal named; a ghost of a ghost; seeded instances measured and out (untrusted; nothing trusted changed)
 
 Branch gen/laneI2 from main ad88d36. kernel/kernel.ts, core/check.ts and lean-kernel/ untouched; kernel/prove.ts is the
 untrusted prover (kernel/README.md: "prove.ts | Untrusted"), so (b) and (3) are built there. Nothing reads a protocol's
