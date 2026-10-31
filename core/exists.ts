@@ -152,6 +152,25 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000)
   }
   return [...seen.values()]
 }
+// A ghost for a law about no key with one value ∃x. P over maps (PCorrect's "some process not done, or its y is 1"): x a
+// state variable that starts at 0 or a param (or one less) and after each step keeps its value while P still holds there
+// after the step, else moves to a term the step reads a map at (the process before the one that stepped); the first
+// whose P holds at every state of the small instances (each param 2 and 3), given as the law's witness, or none.
+export function ghostOf(m: Machine, law: Law): SomeWitness | undefined {
+  const x = law.some?.[0]
+  if (!x || law.forall || law.some!.length !== 1 || x.endsWith('$neg') || !readsMaps(law.holds) || x in m.state) return undefined
+  const after = {vars: Object.fromEntries(Object.keys(m.state).map(n => [n, m.step.state?.[n] ?? v(n)])), flags: {},
+    maps: Object.fromEntries(Object.entries(m.step.maps ?? {}).map(([mp, w]) => [mp, (at: E): E => ('each' in w ? substVarsE(w.value, {[w.each]: at}) : {op: 'if', c: {op: '=', a: at, b: w.key}, then: w.value, else: {op: 'get', map: mp, key: at}})]))}
+  const keep = substC(law.holds, after), ts = new Map<string, E>(m.inputs.map(i => [key(v(i)), v(i)]))
+  walk([m.step, m.assume ?? null], o => { if (o.op === 'get' && namesOf(o.key as E).some(n => m.inputs.includes(n))) ts.set(key(o.key), o.key as E) })
+  const starts = [k(0), ...m.params.flatMap(q => [v(q), sub(v(q), k(1))])]
+  for (const t of ts.values()) for (const start of starts) {
+    const step: E = {op: 'if', c: keep, then: v(x), else: t}, gm: Machine = {...m, state: {...m.state, [x]: start}, step: {...m.step, state: {...m.step.state, [x]: step}}}
+    const ok = [2, 3].every(q => { const ps = Object.fromEntries(m.params.map(p => [p, q])); try { return small(gm, ps, 3, 3000, 100_000).every(st => holdsAt(gm, {...law, some: undefined}, ps, st, 3)) } catch { return false } })
+    if (ok) return {ghost: {[x]: {start, step}}}
+  }
+  return undefined
+}
 // A law at a state, its counts the state's, at every key below b.
 // (a state's view once: a law is read at every state, and every law at each)
 const views = new WeakMap<State, State>()
