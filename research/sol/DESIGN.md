@@ -130,3 +130,16 @@ compiled every-key write; core/extract-print.ts: a comparison's natural by cases
   at the top of an entry's body after its modifiers).
 - Branch coverage (anvil runs the bytecode: the arms aren't counted).
 - `stores`, `answers`: a contract has no other code it reads but through calls, which are refused.
+
+**Gates** (8e24df3, rebased on main 0.34.0): the quick bar against ae36917 on Modal, wrong 0 on every benchmark, nothing
+solid lost (CHC gained 4, lost 1 at the time limit; ITS lost 2 at the time limit; the others 0 differing; rw, f1, f2 and
+g332 the same), runs/bar/runs/8e24df383613-vs-ae369178e65d-quick-2026-10-310502; the suites (`--only
+suite,suite-usual`) 242 of 242 each, none failed; tsc and oxlint clean on the changed files (boat). The Solidity jobs
+need solc and anvil (research/sol/sol-setup.sh), which boat's image lacks: they ran on Modal.
+
+**Verified / not.** Verified: every rule above checked against its bytecode by the drive (requests, drawn states,
+witnesses) and, for re-entrancy, by the replayed random runs; every broken law's run replayed on the code. Not verified:
+the symbolic-width argument has no Lean statement (it is the untrusted reader's model, checked by runs, not a kernel
+claim); the band mapping is exercised near W by draws, not exhaustively; a callee's revert keeps, in the rule, what its
+own calls did (an over-approximation the replay refuses, not a model the check confirms); the guarded EtherStore and the
+OZ sum law are unknown.
