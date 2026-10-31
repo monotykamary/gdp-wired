@@ -85,7 +85,6 @@ export function compile(file: string, o: SolOptions): Compiled {
 }
 
 // --- the lowering -------------------------------------------------------------------------------------------------------
-type Fn = {def: Ast, contract: Ast}
 type Field = {name: string, t: SType, decl: Ast, sol: string}
 export type SolMeta = {calls: boolean, resumes: string[], addrBits: number, contract: string, source: string, fields: Field[], fns: Record<string, Ast>, payable: string[], minW: number, nested: string[], entries: Record<string, {sig: string, inputs: string[], payable: boolean, out?: string}>, ctor: {inputs: string[], payable: boolean}, ether: boolean}
 
@@ -634,9 +633,7 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
   }
   // (methods: the external functions that may write the state, unless named)
   const methods = opts.methods ?? Object.keys(meta.entries)
-  // (an unsigned value is a natural, wrapped where it would go below 0: its state and its mappings' cells naturals)
-  const nats = Object.fromEntries([...meta.fields, ...(meta.ether ? [{name: 'balance', t: U256}] : [])].flatMap(f => { const t = f.t.k === 'map' ? (f.t as {val: SType}).val : f.t; return t.k === 'int' && t.bits !== undefined && !t.signed ? [[f.t.k === 'map' ? `${f.name}.value` : f.name, 'nat' as const]] : [] }))
-  const o: StepOptions = {...opts, methods, strict: true, onError: 'discard', entry: meta.contract, domains: {...nats, ...opts.domains}}
+  const o: StepOptions = {...opts, methods, strict: true, onError: 'discard', entry: meta.contract}
   // extractStep's run, the width's param fixed for the check's own draws (2^52: the proof is for every width)
   const notes: string[] = []
   let read: StepRead
@@ -646,6 +643,11 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
   }
   const w = read.model.params.find(v => v.name.startsWith(MOD))
   if (w) (w as {derived?: unknown}).derived = {op: 'const', v: CHECK_W}
+  // (an unsigned value is a natural, wrapped where it would go below 0: its state and its mappings' cells naturals, by
+  // the rule's names of the code's fields)
+  const unsignedField = new Set([...meta.fields, ...(meta.ether ? [{name: 'balance', t: U256}] : [])].filter(f => { const t = f.t.k === 'map' ? (f.t as {val: SType}).val : f.t; return t.k === 'int' && t.bits !== undefined && !t.signed }).map(f => f.name))
+  const nats = (r: StepRead) => Object.fromEntries(r.leaves.filter(l => l.name && unsignedField.has(l.path[0]!)).map(l => [l.kind === 'map' ? `${l.name}.value` : l.name, 'nat' as const]))
+  o.domains = {...nats(read), ...opts.domains}
   const unsigned = Object.fromEntries([...read.model.inputs, ...read.model.params].filter(v => read.ints[v.name] && !read.ints[v.name]!.signed).map(v => [v.name, 'nat' as const]))
   const x = fromModel(read.model, mod.file, {...unsigned, ...o.domains}, notes, (rule, sorts) => checkStep(harness(read), read, rule, sorts, o))
   if (!x.ok) return {...x, read, names: stepNames(read)}
@@ -671,7 +673,7 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
   // every address an Agent that makes the run's calls from inside the call it receives.
   let replays: ReturnType<typeof replayer> | undefined
   const runs = {runs: 0, txs: 0, nested: 0, steps: 0}
-  const rx = fromModel(rread.model, mod.file, {...unsigned, ...o.domains, 'pending$': 'nat'}, rnotes, (rule, sorts) => {
+  const rx = fromModel(rread.model, mod.file, {...unsigned, ...nats(rread), ...opts.domains, 'pending$': 'nat'}, rnotes, (rule, sorts) => {
     replays = replayer({rule, sorts, model: rread.model, names: stepNames(rread), leaves: read.leaves, hello: (harness(read).hello as {sol: unknown}).sol, ctor: read.ctor, replay: compileReplay(opts), opts})
     const ev = {...x.evidence!}
     const n = opts.check?.runs === undefined ? 40 : Math.max(4, Math.round(opts.check.runs / 5)), rand = seeded((opts.check?.seed ?? 11) >>> 0 || 1)
@@ -785,6 +787,7 @@ function replayer(c: ReplayCtx) {
     return {ok: true, what: `replayed on the code (anvil, the contract's bytecode): ${groups.length} transactions, ${nested} calls made from inside another, the state after each the rule's${law ? ', the law broken there' : ''}`, txs: groups.length, nested}
   }
 }
+const byKey = (a: [string, string], b: [string, string]) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)
 // The rule's state (decoded) against the code's (the harness's), leaf by leaf: undefined where they agree.
 function sameState(leaves: StepRead['leaves'], rule: Record<string, unknown>, code: Record<string, unknown>): string | undefined {
   for (const l of leaves) {
@@ -792,7 +795,7 @@ function sameState(leaves: StepRead['leaves'], rule: Record<string, unknown>, co
     if (l.kind === 'map') {
       const r = Object.fromEntries(Object.entries((rule[l.name] ?? {}) as Record<string, Record<string, unknown>>).filter(([, c]) => c.has).map(([k, c]) => [k, String(c.value)]))
       const k = Object.fromEntries(Object.entries((code[l.name] ?? {}) as Record<string, {value: unknown}>).map(([key, c]) => [key, String(c.value)]))
-      if (JSON.stringify(Object.entries(r).sort()) !== JSON.stringify(Object.entries(k).sort())) return `${l.path.join('.')} is ${JSON.stringify(k)} in the code, ${JSON.stringify(r)} in the rule`
+      if (JSON.stringify(Object.entries(r).sort(byKey)) !== JSON.stringify(Object.entries(k).sort(byKey))) return `${l.path.join('.')} is ${JSON.stringify(k)} in the code, ${JSON.stringify(r)} in the rule`
       continue
     }
     if (String(rule[l.name]) !== String(code[l.name])) return `${l.path.join('.')} is ${String(code[l.name])} in the code, ${String(rule[l.name])} in the rule`

@@ -40,6 +40,29 @@ def rpc(method, params):
   return out['result']
 
 
+# Many calls in one request (JSON-RPC's batch): their results in order.
+def rpc_batch(calls):
+  if not calls: return []
+  body = []
+  for m, p in calls:
+    RPC_ID[0] += 1
+    body.append({'jsonrpc': '2.0', 'id': RPC_ID[0], 'method': m, 'params': p})
+  req = urllib.request.Request(f'http://127.0.0.1:{PORT[0]}', data=json.dumps(body).encode(), headers={'content-type': 'application/json'})
+  with urllib.request.urlopen(req, timeout=120) as r:
+    out = {x['id']: x for x in json.loads(r.read())}
+  res = []
+  for b in body:
+    x = out[b['id']]
+    if 'error' in x: raise RpcError(x['error'])
+    res.append(x['result'])
+  return res
+
+
+def keccak_many(hexes):
+  todo = [h for h in dict.fromkeys(hexes) if h not in SHA]
+  for h, r in zip(todo, rpc_batch([('web3_sha3', ['0x' + h]) for h in todo])): SHA[h] = r[2:]
+
+
 class RpcError(Exception):
   pass
 
@@ -307,6 +330,17 @@ def state_of(i):
   o = OBJS[i]
   W = o['W']
   s = {}
+  # (every slot the state reads, hashed and read in two batches)
+  cells = [(l, key) for l in S['leaves'] if l['kind'] == 'map' for key in keys_of(o, l['path'][0], W)]
+  pre = []
+  for l, key in cells:
+    label = l['path'][0]; kk = S['keys'][label]; base = word(int(slot_of(label)['slot']))
+    if S['slots'][label].get('nested'): pre.append(key_word(kk[0], key >> S['pairBits'], W) + base)
+    else: pre.append(key_word(kk[0], key, W) + base)
+  keccak_many(pre)
+  keccak_many([key_word(S['keys'][l['path'][0]][1], key & ((1 << S['pairBits']) - 1), W) + keccak(key_word(S['keys'][l['path'][0]][0], key >> S['pairBits'], W) + word(int(slot_of(l['path'][0])['slot']))) for l, key in cells if S['slots'][l['path'][0]].get('nested')])
+  slots = [cell_slot(l['path'][0], key, W) for l, key in cells]
+  vals = dict(zip([(l['name'], key) for l, key in cells], [int(x, 16) for x in rpc_batch([('eth_getStorageAt', [o['addr'], hex(sl), 'latest']) for sl in slots])]))
   for l in S['leaves']:
     if l['kind'] == 'frame': continue
     label = l['path'][0]
@@ -319,7 +353,7 @@ def state_of(i):
       vk = k[4:]
       cells = {}
       for key in keys_of(o, label, W):
-        c = read_slot(o['addr'], cell_slot(label, key, W))
+        c = vals[(l['name'], key)]
         if c != 0: cells[str(key)] = {'value': dec(vk, c, W)}
       s[l['name']] = cells
       continue

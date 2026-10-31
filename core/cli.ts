@@ -233,6 +233,8 @@ async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: str
   // (refused with no entry named: the rules gdp.toml names that the code has, each with its options)
   const named = Object.keys(cfg.rules).filter(k => t.files.some(f => new RegExp(`\\b${k.replace(/[^\w]/g, '\\$&')}\\b`).test(fs.readFileSync(f, 'utf8'))))
   if (named.length) return Promise.all(named.map(k => one(k)))
+  // (a contract's file names its contracts: refused with none named, the refusal is the rule's)
+  if (t.lang === 'solidity') return [first]
   // (else each class the refusal names, and each function outside a class a law is stated on)
   const what = first.x.refusals[0]?.what ?? ''
   const several = /several (?:classes|structs) (?:write their state|written by the file's functions) \(([^)]*)\)/.exec(what)?.[1]!.split(', ') ?? []

@@ -394,7 +394,6 @@ export function compileC(c: C, m: Machine): (env: Env, st: State) => boolean {
 function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine): {cells: Map<number, number>, default: number} {
   if (!plainKey(w.value, w.each)) {
     const ks = breakKeys(breaksOf(w.value, w.each), env, st, m), top = ks.at(-1)!
-    if (top > 1_000_000) throw new RangeError(`a write at every key reads its key in arithmetic past a million keys (${top})`)
     // (each breakpoint on its own, and each stretch between two at one key of it: no read moves and no comparison turns
     // inside one, so it holds one value; most stretches hold the default, and a stretch that doesn't is filled)
     const at = (key: number) => evalE(w.value, {...env, [w.each]: key}, st, m)
@@ -402,7 +401,7 @@ function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine
     for (let i = 0; i + 1 < ks.length; i++) {
       const key = ks[i]!, v = at(key)
       if (v !== fallback) cells.set(key, v)
-      if (ks[i + 1]! > key + 1) { const u = at(key + 1); if (u !== fallback) for (let k2 = key + 1; k2 < ks[i + 1]!; k2++) cells.set(k2, u) }
+      if (ks[i + 1]! > key + 1) { const u = at(key + 1); if (u !== fallback) { if (ks[i + 1]! - key > 1_000_000) throw new RangeError(`a write at every key fills a stretch of more than a million keys (${key + 1} to ${ks[i + 1]! - 1})`); for (let k2 = key + 1; k2 < ks[i + 1]!; k2++) cells.set(k2, u) } }
     }
     return {cells, default: fallback}
   }
@@ -543,7 +542,9 @@ const RUNTIME: [string, string][] = [
   // A condition at every two keys that holds wherever x(k) differs from y(k1): only the pairs whose values match are read.
   ['$join', `function $join(ks, x, y, f) { const by = new Map(); for (const k1 of ks) { const v = y(k1), l = by.get(v); if (l) l.push(k1); else by.set(v, [k1]); } return ks.every(k => { const l = by.get(x(k)); return l === undefined || l.every(k1 => f(k, k1)); }); }`],
   ['$spread', `function $spread(keys, n) { const out = new Set(); for (const k of keys) for (let i = 0; i < n; i++) out.add(k + i); return [...out].sort((a, b) => a - b); }`],
-  ['$dense', `function $dense(keys, f) { const top = keys[keys.length - 1]; if (top > 1000000) throw new RangeError('a write at every key reads its key in arithmetic past a million keys (' + top + ')'); const d = f(top), cells = new Map(); for (let k = 0; k < top; k++) { const v = f(k); if (v !== d) cells.set(k, v); } return {cells, d}; }`],
+  // (the interpreter's writeEvery: each breakpoint, and each stretch between two at one key of it, filled only where it
+  // holds other than the value past the last)
+  ['$dense', `function $dense(keys, f) { const top = keys[keys.length - 1], d = f(top), cells = new Map(); for (let i = 0; i + 1 < keys.length; i++) { const key = keys[i], v = f(key); if (v !== d) cells.set(key, v); if (keys[i + 1] > key + 1) { const u = f(key + 1); if (u !== d) { if (keys[i + 1] - key > 1000000) throw new RangeError('a write at every key fills a stretch of more than a million keys (' + (key + 1) + ' to ' + (keys[i + 1] - 1) + ')'); for (let k2 = key + 1; k2 < keys[i + 1]; k2++) cells.set(k2, u); } } } return {cells, d}; }`],
   ['$every', `function $every(keys, f) { const past = keys[keys.length - 1], d = f(past), cells = new Map(); for (let i = 0; i < keys.length - 1; i++) { const v = f(keys[i]); if (v !== d) cells.set(keys[i], v); } return {cells, d}; }`],
 ]
 function runtimeFor(code: string): string {

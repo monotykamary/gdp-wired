@@ -274,7 +274,9 @@ function pcmp(rel: '<' | '<=' | '=', a: N, b: N, P: Printer, ctx: Ctx): string {
   const op = rel === '<' ? 'lt' : rel === '<=' ? 'atMost' : 'eq', flip = rel === '<' ? 'gt' : rel === '<=' ? 'atLeast' : 'eq'
   const nat = natOK(a, ctx) && natOK(b, ctx)
   const [x, y, o] = a.op === 'const' && b.op !== 'const' ? [b, a, flip] : [a, b, op]
-  return `${pn(x, P, ctx, nat ? 'nat' : 'int', true)}.${o}(${pn(y, P, ctx, nat || natOK(y, ctx) ? 'nat' : 'int')})`
+  // (a natural by cases compared with an integer: its when(...) is a natural's, made an integer to compare from)
+  const left = !nat && x.op === 'ite' && natOK(x, ctx) ? `Int.of(${pn(x, P, ctx, 'nat')})` : pn(x, P, ctx, nat ? 'nat' : 'int', true)
+  return `${left}.${o}(${pn(y, P, ctx, nat || natOK(y, ctx) ? 'nat' : 'int')})`
 }
 export function pb(c: B, P: Printer, ctx: Ctx): string {
   const h = P.hoisted.get(I.keyOf(c))
