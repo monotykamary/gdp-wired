@@ -106,7 +106,9 @@ distributed 32.5/37.8, async 23.4/28.3, sync 8.3/11.2, ring 37.4/43.2, sharded 2
 11.5/21.1, 2PC 16.0/20.4); the quick bar (75ce118; <main>/runs/bar/runs/75ce118b7b5c-vs-ae369178e65d-quick-2026-10-310213):
 wrong 0 everywhere, one ITS task lost "solid" at the time limit (the base answers it at 50–60 s of 60; ITS reads no
 count and no carried map), nothing else solid lost; tsc and oxlint (the suite's form) clean on the touched files; the
-ports' state counts equal TLC's.
+ports' state counts equal TLC's; the suites (`--only suite,suite-usual`, 75ce118): 240 of 240 in each, nothing lost.
+Bytes (against cd97c61, both steps): core/ +20,038 (counts.ts 16,455, machine.ts 1,868, dsl.ts 1,696, watch.ts 19),
+kernel/ +13,313.
 
 ## gen/laneK2, step 1: counts in a machine's laws and steps, proven in Lean
 
