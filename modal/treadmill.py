@@ -38,6 +38,7 @@ import json
 import math
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import tarfile
@@ -691,10 +692,11 @@ class Treadmill:
                 if b:
                     self.batches.append(b)
                     free -= k
-            for sw in self.sweeps.values():  # (a): the next round of each benchmark
+            live = max(1, sum(1 for sw in self.sweeps.values() if not sw.state["done"]))
+            for sw in self.sweeps.values():  # (a): the next round of each benchmark, a fair share of the pool to start with
                 if free <= 0:
                     break
-                b = sw.next_round(free)
+                b = sw.next_round(min(free, max(1, (self.vms - 1) // live)))
                 if b:
                     self.batches.append(b)
                     free -= b.vms
@@ -801,10 +803,11 @@ def digest(day: str, quiet: bool = False) -> str:
                 if lost or gained:
                     out.append(f"  - at 60 s against {p[:12]}: {len(gained)} gained, {len(lost)} lost" + (f" (lost: {', '.join(lost[:10])})" if lost else ""))
     fz = [r for r in jl(TM / "fuzz.jsonl") if time.strftime("%Y-%m-%d", time.gmtime(r["t"])) == day]
-    mt = [r for r in jl(TM / "mutants.jsonl") if time.strftime("%Y-%m-%d", time.gmtime(r["t"])) == day]
+    mt = list({(r["hash"], r["id"]): r for r in jl(TM / "mutants.jsonl") if time.strftime("%Y-%m-%d", time.gmtime(r["t"])) == day}.values())
     bad = [r for r in fz if r["code"] != 0]
+    unsound = [r for r in bad if re.search(r"^\s*(error: )?(Error: )?UNSOUND", r.get("tail", ""), re.M)]  # (thrown, not quoted from the source)
     out += ["", "## Soundness", f"- fuzz: {len(fz)} seeds ({', '.join(f'{k} {sum(1 for r in fz if r["kind"] == k)}' for k in FUZZ)}), "
-            + (f"**{len(bad)} failed**: " + ", ".join(f"{r['kind']} seed {r['seed']} (exit {r['code']}: {next((l.strip() for l in r.get('tail', '').splitlines() if l.strip().startswith(('error', '(fail)'))), '')[:120]})" for r in bad[:10]) if bad else "none failed"),
+            + (f"**{len(unsound)} UNSOUND**; " if unsound else "") + (f"{len(bad)} failed (" + ("none unsound: " if not unsound else "") + "a count a test expects at its own seeds, e.g. accepted > 0): " + ", ".join(f"{r['kind']} seed {r['seed']} (exit {r['code']}: {next((l.strip() for l in r.get('tail', '').splitlines() if l.strip().startswith(('error', '(fail)'))), '')[:120]})" for r in bad[:10]) if bad else "none failed"),
             f"- mutants: {len(mt)} run, {sum(1 for r in mt if not r.get('killedBy'))} survived" + "".join(f"\n  - survived: {r['id']} {r['where']} {r['change']}" for r in mt if not r.get("killedBy"))]
     subs = [json.loads(p.read_text()) for p in (TM / "subs").glob("*/meta.json")] if (TM / "subs").exists() else []
     subs = [s for s in subs if time.strftime("%Y-%m-%d", time.gmtime(s["t"])) == day]
