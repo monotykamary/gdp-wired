@@ -9,7 +9,8 @@ machines with sets) and `Count.lean` (the counted goal and `counted_sound`), nei
 body(k), with the declaration's variable `j` at x and its key variable `key` at k (a 0/1 body is a set's size: the
 votes for x, the members of a request's set). The map is one the request carries (`mp ∈ s.carried`), so the machine
 itself is an `SMachine` as it was: its runs (`CReach`) are `SReach`'s with each request's count maps at their counts,
-read at the request's view (its inputs set, over the state's maps and the maps it carries). A guard (the assumption)
+read at the request's view (its inputs set, over the state's maps and the maps it carries; a count reads no flag,
+quantified flag or witness, so the view's flags don't change it). A guard (the assumption)
 reads a count there: `2·|Q| > size` for a request's set Q. A law reads a count of the state: a declaration whose bound
 and body read no request (`stateOnly`: no input, quantified flag, witness, flag variable or carried map), whose value
 at a state is `withCnt` (each count map at its count there): `2·|{n < size: vote[n] = x + 1}| > size` for a decided x.
@@ -391,13 +392,14 @@ def cApart (s : SMachine) (ds : List CDecl) : Bool :=
     && (cPosts ds).all (fun mp => !s.carried.contains mp && !(s.f.m.maps0.map (·.1)).contains mp
         && !(s.every.map (·.1)).contains mp && !(s.f.m.writes.map (·.1)).contains mp)
 
--- Each declaration: its map carried, its j and key fresh and distinct, its bound and body reading no quantified flag,
--- witness, count map or post name, and no entry's skolem or further key (nor having them as j or key).
+-- Each declaration: its map carried, its j and key fresh and distinct, its bound and body reading no flag, quantified
+-- flag, witness, count map or post name, and no entry's skolem, key or further key (nor having them as j or key): a law
+-- reads a count at the state, its own keys set after (withCnt).
 def cDeclOk (s : SMachine) (ds : List CDecl) (ps : List SEntry) (d : CDecl) : Bool :=
   s.carried.contains d.mp && d.j != d.key && mFresh s d.j && mFresh s d.key && !occE d.key d.below
-    && avoidsE (s.qVars ++ s.wVars) d.below && avoidsE (s.qVars ++ s.wVars) d.body
+    && avoidsE (s.qVars ++ s.wVars ++ flagVars s.f.flags) d.below && avoidsE (s.qVars ++ s.wVars ++ flagVars s.f.flags) d.body
     && avoidsMapsE (cMaps ds ++ cPosts ds) d.below && avoidsMapsE (cMaps ds ++ cPosts ds) d.body
-    && ps.all (fun e => (e.sk :: e.keys2).all (fun g => !occE g d.below && !occE g d.body && g != d.j && g != d.key))
+    && ps.all (fun e => (e.sk :: (e.keys2 ++ e.law.key.toList)).all (fun g => !occE g d.below && !occE g d.body && g != d.j && g != d.key))
 
 -- The entries' own conditions (Sets.lean's checkSMachine's), a law reading count maps of the state only, and no post name.
 def cEntryOk (s : SMachine) (ds : List CDecl) (ps : List SEntry) (e : SEntry) : Bool :=
@@ -642,11 +644,11 @@ structure DeclParts (s : SMachine) (ds : List CDecl) (ps : List SEntry) (d : CDe
   jf : FreshParts s d.j
   kf : FreshParts s d.key
   kB : occE d.key d.below = false
-  qwB : avoidsE (s.qVars ++ s.wVars) d.below = true
-  qwD : avoidsE (s.qVars ++ s.wVars) d.body = true
+  qwB : avoidsE (s.qVars ++ s.wVars ++ flagVars s.f.flags) d.below = true
+  qwD : avoidsE (s.qVars ++ s.wVars ++ flagVars s.f.flags) d.body = true
   mB : avoidsMapsE (cMaps ds ++ cPosts ds) d.below = true
   mD : avoidsMapsE (cMaps ds ++ cPosts ds) d.body = true
-  ent : ∀ e ∈ ps, ∀ g ∈ e.sk :: e.keys2, occE g d.below = false ∧ occE g d.body = false ∧ g ≠ d.j ∧ g ≠ d.key
+  ent : ∀ e ∈ ps, ∀ g ∈ e.sk :: (e.keys2 ++ e.law.key.toList), occE g d.below = false ∧ occE g d.body = false ∧ g ≠ d.j ∧ g ≠ d.key
 
 theorem decl_parts {s : SMachine} {ds : List CDecl} {ps : List SEntry} {d : CDecl} (h : cDeclOk s ds ps d = true) : DeclParts s ds ps d := by
   simp only [cDeclOk, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq] at h
@@ -1271,8 +1273,8 @@ theorem cstep_case (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : chec
       · show withInputs s.f.m.inputs ρ ι i = withExt s ρ' (sReq s ρ' M' ι κ) i
         have hq : i ∉ s.qVars ++ s.wVars := by
           rcases hi with hi | hi
-          · exact avoidsE_occ D.qwB hi
-          · exact avoidsE_occ D.qwD hi
+          · exact fun h' => avoidsE_occ D.qwB hi (List.mem_append_left _ h')
+          · exact fun h' => avoidsE_occ D.qwD hi (List.mem_append_left _ h')
         have hik : i ≠ ce.e.sk := fun h' => by rcases hi with hi | hi <;> (rw [h'] at hi; simp_all)
         simp only [withExt]
         by_cases hie : s.extVars.contains i = true
@@ -1491,8 +1493,8 @@ theorem cmachine_sound (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : 
     rw [congrC _ ρ M s.f.m.pre (fun i hi => by have hig' : i ≠ g := (fun h' => by rw [h', hpg] at hi; cases hi); simp only [upd, if_neg hig'])]; exact h0
   -- The counts read no further key.
   have hcg : ∀ ce ∈ ps, ∀ g ∈ ce.e.keys2, ∀ d ∈ ds, occE g d.below = false ∧ occE g d.body = false := fun ce hce g hg d hd =>
-    ⟨((decl_parts (P.decls d hd)).ent ce.e (List.mem_map_of_mem hce) g (List.mem_cons_of_mem _ hg)).1,
-      ((decl_parts (P.decls d hd)).ent ce.e (List.mem_map_of_mem hce) g (List.mem_cons_of_mem _ hg)).2.1⟩
+    ⟨((decl_parts (P.decls d hd)).ent ce.e (List.mem_map_of_mem hce) g (List.mem_cons_of_mem _ (List.mem_append_left _ hg))).1,
+      ((decl_parts (P.decls d hd)).ent ce.e (List.mem_map_of_mem hce) g (List.mem_cons_of_mem _ (List.mem_append_left _ hg))).2.1⟩
   intro ρ M hr
   induction hr with
   | start ρ M hM h0 hfa hpf =>

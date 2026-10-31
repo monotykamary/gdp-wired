@@ -1715,7 +1715,7 @@ function countsScope(m: Machine, laws: Law[]): void {
   const state = Object.keys(m.state), maps = Object.keys(m.maps ?? {}), carried = m.inputMaps ?? [], fns = Object.keys(m.fns ?? {})
   const names = [...m.params, ...m.inputs, ...state], declared = [...names, ...maps, ...carried, ...fns, ...Object.keys(counts), ...Object.keys(m.step.flags ?? {})]
   const bound = [...quantified(m).flatMap(([f, q]) => [`?${f}`, ...witnessesOf(f, q), ...boundOf(q)]), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))]
-  const lawNames = laws.flatMap(l => [l.forall, ...(l.keys ?? [])].flatMap(k => (k ? [k, `${k}#`] : [])))
+  const lawNames = [...laws, ...(m.facts ?? [])].flatMap(l => [l.forall, ...(l.keys ?? [])].flatMap(k => (k ? [k, `${k}#`] : [])))
   for (const [c, d] of Object.entries(counts)) {
     const what = `${m.name}'s count ${c}`
     if (declared.includes(postName(c))) throw new Error(`${what}: its post name ${postName(c)} is already a name of ${m.name}`)
@@ -1751,8 +1751,24 @@ const readFresh = (hyps: C[], ds: CountDecl[], rs: MapRead[], v: string): boolea
 // readsOk: the variables distinct (cDistinct), each fresh, each key term reading no declaration's key.
 const readsOk = (hyps: C[], ds: CountDecl[], rs: MapRead[]): boolean =>
   new Set(rs.map(r => r[0])).size === rs.length && rs.every(r => readFresh(hyps, ds, rs, r[0]) && ds.every(d => !readsVar(r[2], d.key)))
-// TypeScript's own condition on the certificate, an input from outside: each read a name, a map's name and a term.
-const readsTyped = (rs: MapRead[]): boolean => Array.isArray(rs) && rs.every(r => Array.isArray(r) && r.length === 3 && typeof r[0] === 'string' && typeof r[1] === 'string' && !!r[2] && typeof r[2] === 'object')
+// TypeScript's own condition on the certificate, an input from outside: each read a name, a map's name and a term over
+// the naturals (Lean's E: every constant and factor a safe integer, which `safeTerm` checks), each instance's bound too.
+const safeTerm = (t: unknown): boolean => {
+  if (!t || typeof t !== 'object') return false
+  const e = t as E
+  switch (e.op) {
+    case 'var': return typeof e.name === 'string'
+    case 'const': return Number.isSafeInteger(e.value) && e.value >= 0
+    case 'mul': return Number.isSafeInteger(e.k) && e.k >= 0 && safeTerm(e.a)
+    case 'get': return typeof e.map === 'string' && safeTerm(e.key)
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': return safeTerm(e.a) && safeTerm(e.b)
+    case 'if': return safeCond(e.c) && safeTerm(e.then) && safeTerm(e.else)
+    default: return false
+  }
+}
+const safeCond = (c: C): boolean => !!c && typeof c === 'object' && (c.op === '<' || c.op === '<=' || c.op === '=' ? safeTerm(c.a) && safeTerm(c.b)
+  : c.op === 'not' ? safeCond(c.x) : (c.op === 'and' || c.op === 'or') && Array.isArray(c.xs) && c.xs.every(safeCond))
+const readsTyped = (rs: MapRead[]): boolean => Array.isArray(rs) && rs.every(r => Array.isArray(r) && r.length === 3 && typeof r[0] === 'string' && typeof r[1] === 'string' && safeTerm(r[2]))
 // witFreshW, countedOkW, checkCountedW: Count.lean's checkCounted with each witness fresh for the counts and the
 // instances' bounds only. A machine's goal may read a witness in its instances of laws, facts and quantified flags,
 // which hold at every value of a variable the machine never reads (witsOk): CountMachine.lean's countedW_sound asks the
@@ -1769,7 +1785,7 @@ function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree: 
 // term, and checkCountedW accepts the counted goal they make (the goal's hypotheses, each read variable equal to its
 // cell; Lean's names the hypotheses it uses, each the goal's).
 export function checkMC(hyps: C[], ds: CountDecl[], k: CountCert): boolean {
-  if (!(ds.every(d => d.j !== d.key) && readsTyped(k.reads) && Array.isArray(k.insts) && readsOk(hyps, ds, k.reads))) return false
+  if (!(ds.every(d => d.j !== d.key) && readsTyped(k.reads) && Array.isArray(k.insts) && k.insts.every(i => !!i && safeTerm(i.below)) && readsOk(hyps, ds, k.reads))) return false
   if (!k.reads.every(r => k.insts.every(i => i.wit !== r[0] && !readsVar(r[2], i.wit)))) return false
   const cs = toCounts(ds, k.reads)
   return cs !== undefined && checkCountedW([...hyps, ...k.reads.map(readHyp)], cs, {insts: k.insts, tree: k.tree})
@@ -1806,8 +1822,8 @@ function witsOk(m: Machine, laws: Law[], k: CountCert): boolean {
   const flags = Object.keys(m.step.flags ?? {})
   const taken = new Set([...m.params, ...m.inputs, ...Object.keys(m.state), ...Object.keys(m.maps ?? {}), ...(m.inputMaps ?? []), ...Object.keys(m.fns ?? {}), ...Object.keys(m.counts ?? {}), ...flags,
     ...flags.map(f => `?${f}`), ...quantified(m).flatMap(([f, q]) => [...witnessesOf(f, q), ...boundOf(q)]), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : [])),
-    ...laws.flatMap(l => [l.forall, ...(l.keys ?? [])].flatMap(x => (x ? [x, `${x}#`] : [])))])
-  return Array.isArray(k.insts) && k.insts.every(i => typeof i.wit === 'string' && !taken.has(i.wit))
+    ...[...laws, ...(m.facts ?? [])].flatMap(l => [l.forall, ...(l.keys ?? [])].flatMap(x => (x ? [x, `${x}#`] : [])))])
+  return Array.isArray(k.insts) && k.insts.every(i => !!i && typeof i.wit === 'string' && !taken.has(i.wit))
 }
 // Lean's checkCMachine: every goal has a certificate, its witnesses fresh, and every certificate checks.
 export function checkCountedLaws(m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}): boolean {

@@ -3,8 +3,8 @@
 // mutated, every accepted set of laws true on every reachable state of the small instances (count maps read at the
 // request's view, a law's at the state), by brute force.
 import {describe, expect, test} from 'bun:test'
-import {type C, type E, type Law, type Machine, any, get, less, n, not, same, times, x} from '../core/machine.ts'
-import {type CountCert, type CountInst, type MapRead, checkCountedLaws, checkMC, countedObligations, mcGoal, obligations} from './kernel.ts'
+import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, times, x} from '../core/machine.ts'
+import {type CountCert, type CountInst, type MapRead, check, checkCountedLaws, checkLaws, checkMC, countedObligations, mcGoal, obligations} from './kernel.ts'
 import {clock, grow} from './prove.ts'
 import {countedProof, toyCounted} from '../lean-kernel/count-examples.ts'
 
@@ -115,10 +115,12 @@ describe('counts in a machine', () => {
     expect(bad({c: {j: 'k', key: 'k', below: x('size'), body}})).toThrow(/one name/)
     expect(bad({c: {j: 'i', key: 'n', below: x('size'), body}})).toThrow(/already a name/)
     expect(bad({c: {j: 'a', key: 'n', below: x('size'), body}})).toThrow(/already a name/)
-    expect(bad({}, {maps: {...toy.m.maps, 'votes#': 0}})).toThrow(/post name/)
+    expect(bad({}, {maps: {...toy.m.maps, 'votes#': 0}})).toThrow(/reserved/)
     expect(bad({c: {j: 'x', key: 'n', below: x('size'), body: get('Vote', x('?chosen'))}})).toThrow(/doesn't declare/)
     expect(bad({c: {j: 'x', key: 'n', below: x('n'), body}})).toThrow(/doesn't declare/)
     expect(bad({c: {j: 'x', key: 'n', below: x('size'), body: get('quorum', x('n'))}})).toThrow(/doesn't declare/)
+    // (a law's key, as the count would read it frozen at the state: Lean's cDeclOk refuses it too)
+    expect(bad({c: {j: 'x', key: 'n', below: x('size'), body: get('Vote', x('a'))}})).toThrow(/doesn't declare/)
   })
 
   test('each guard on a certificate refuses what only it refuses', () => {
@@ -159,6 +161,158 @@ describe('counts in a machine', () => {
     expect('tree' in o).toBe(true)
     const k: CountCert = {reads: [], insts: [], tree: (o as {tree: CountCert['tree']}).tree}
     expect(checkMC(step!.goal.hyps, step!.decls, k)).toBe(false)
+  })
+})
+
+
+// --- pointed: each guard on its own, a certificate whose tree the rest of the check accepts --------------------------------
+// A variant of the toy (more counts, a precondition), its named certificates changed by `f`, the trees regrown; the
+// tree must check against the goal mcGoal builds (what the kernel would accept with no guard), and the kernel refuses.
+type Named = Record<string, {reads: MapRead[], insts: CountInst[]}>
+const regrow = (m: Machine, laws: Law[], instances: typeof toy.instances, named: Named): Record<string, CountCert> | undefined => {
+  const out: Record<string, CountCert> = {}
+  for (const {goal: g, decls} of countedObligations(m, laws, instances)) {
+    const k = named[g.name]!, goal = mcGoal(g.hyps, decls, k)
+    const o = goal && grow(goal, new Map(), {nodes: 0, until: clock() + 20_000})
+    if (!o || !('tree' in o) || !check(goal!, o.tree)) return undefined
+    out[g.name] = {reads: k.reads, insts: k.insts, tree: o.tree}
+  }
+  return out
+}
+const refusedOnly = (m: Machine, laws: Law[], instances: typeof toy.instances, named: Named) => {
+  const cs = regrow(m, laws, instances, named)
+  expect(cs).toBeDefined()
+  expect(checkCountedLaws(m, laws, {instances, certs: cs!})).toBe(false)
+}
+const addRead = (g: string, r: MapRead): Named => ({...toy.certs, [g]: {...toy.certs[g]!, reads: [...toy.certs[g]!.reads, r]}})
+// (a param only one count's bound reads, a count whose body reads one only it reads, a count of every key below a bound)
+const wide: Machine = {...toy.m, params: [...toy.m.params, 'lim', 'lim2'],
+  counts: {...toy.m.counts, below: {j: 'x3', key: 'n3', below: x('lim'), body: n(1)}, fixed: {j: 'x4', key: 'n4', below: x('size'), body: get('Vote', x('lim2'))}}}
+const b = x('b'), atLeast2 = atMost(n(2), x('size'))
+
+describe('pointed', () => {
+  test('a plain machine has its plain obligations', () => {
+    const plain: Machine = {...toy.m, counts: undefined, assume: less(x('i'), x('size'))}
+    expect(() => obligations(plain, [{name: 'decided is 0 or 1', forall: 'a', holds: toy.laws[0]!.holds}])).not.toThrow()
+  })
+  test('a law reads only a count of the state: its bound and body read no input and no carried map', () => {
+    const law = (c: string): Law => ({name: 'reads it', holds: less(n(0), get(c, n(0)))})
+    const body = toy.m.counts!.votes!.body
+    for (const c of [{j: 'x5', key: 'n5', below: x('i'), body}, {j: 'x5', key: 'n5', below: x('size'), body: get('Vote', x('val'))}, {j: 'x5', key: 'n5', below: x('size'), body: get('Q', x('n5'))}])
+      expect(() => countedObligations({...toy.m, counts: {...toy.m.counts, c5: c}}, [law('c5')])).toThrow(/c5/)
+    expect(() => countedObligations({...toy.m, counts: {...toy.m.counts, c5: {j: 'x5', key: 'n5', below: x('size'), body: get('Vote', x('n5'))}}}, [law('c5')])).not.toThrow()
+  })
+  test('a count is over the naturals', () => {
+    expect(() => countedObligations({...toy.m, counts: {...toy.m.counts, c5: {j: 'x5', key: 'n5', below: x('size'), body: n(-1)}}}, toy.laws)).toThrow(/negative/)
+    expect(() => countedObligations({...toy.m, counts: {...toy.m.counts, c5: {j: 'x5', key: 'n5', below: {op: 'mul', k: -1, a: x('size')}, body: n(1)}}}, toy.laws)).toThrow(/negative/)
+  })
+  test('countedObligations refuses what obligations refuses, and builds one law\'s goals', () => {
+    expect(() => countedObligations({...toy.m, maps: {...toy.m.maps, Vote: -1}}, toy.laws)).toThrow(/negative/)
+    expect(() => countedObligations({...toy.m, step: {...toy.m.step, flags: {...toy.m.step.flags, neg: same(x('op'), n(-2))}}}, toy.laws)).toThrow(/negative/)
+    expect(() => countedObligations(toy.m, [{name: 'about a request', holds: less(x('val'), n(9))}])).toThrow(/request/)
+    expect(() => countedObligations(toy.m, [...toy.laws, {name: 'about a request', holds: less(x('val'), n(9))}])).toThrow(/request/)
+    expect(() => countedObligations({...toy.m, step: {...toy.m.step, maps: {...toy.m.step.maps, Vote: {key: x('i'), value: n(-1)}}}}, toy.laws)).toThrow(/negative/)
+    expect(() => countedObligations({...toy.m, facts: [{name: 'negative fact', holds: same(x('size'), n(-1))}]}, toy.laws)).toThrow(/negative/)
+    expect(() => countedObligations(toy.m, [...toy.laws, {name: 'negative', holds: same(x('size'), n(-1))}])).toThrow(/negative/)
+    expect(() => countedObligations({...toy.m, sums: {s: {key: 'k', term: get('Vote', x('k'))}}}, toy.laws)).toThrow(/sums/)
+    expect(countedObligations(toy.m, toy.laws, toy.instances, 1).map(o => o.goal.name)).toEqual(['a decided value has a majority @start', 'a decided value has a majority @step'])
+  })
+  test('the step goal assumes the precondition', () => {
+    // (the assumption gives size ≥ 1; the precondition size ≥ 2, which the step needs where it decides)
+    const pm: Machine = {...toy.m, pre: atLeast2}
+    const laws: Law[] = [...toy.laws, {name: 'a decision below size', forall: 'a', holds: atMost(plus(get('Decision', x('a')), n(1)), x('size'))}]
+    const inst = {...toy.instances, 'a decision below size': {'a decision below size': [x('a#')], 'decided is 0 or 1': [x('a#')]}}
+    const named: Named = {...toy.certs, 'a decision below size @start': {reads: [], insts: []}, 'a decision below size @step': {reads: [], insts: []}}
+    expect(regrow(pm, laws, inst, named)).toBeDefined()
+    expect(checkCountedLaws(pm, laws, {instances: inst, certs: regrow(pm, laws, inst, named)!})).toBe(true)
+  })
+  test('a read: its variable fresh for the hypotheses, the counts\' bounds and bodies, their j and key, the other reads', () => {
+    const one = 'one value decided @step'
+    // (b only the hypotheses read; op a count after the step reads too, as the step reads it)
+    refusedOnly(wide, toy.laws, toy.instances, addRead(one, ['b', 'votes', x('a#')]))
+    refusedOnly(wide, toy.laws, toy.instances, addRead(one, ['op', 'votes', b]))
+    refusedOnly(wide, toy.laws, toy.instances, addRead(one, ['lim', 'votes', b]))
+    refusedOnly(wide, toy.laws, toy.instances, addRead(one, ['lim2', 'votes', b]))
+    refusedOnly(wide, toy.laws, toy.instances, addRead(one, ['x2', 'votes', b]))
+    refusedOnly(wide, toy.laws, toy.instances, addRead(one, ['n3', 'votes', b]))
+    refusedOnly(wide, toy.laws, toy.instances, {...toy.certs, [one]: {...toy.certs[one]!, reads: [...toy.certs[one]!.reads, ['z1', 'votes', b], ['z2', 'votes', x('z1')]]}})
+    // twice the same variable; a key term reading a count's key
+    refusedOnly(wide, toy.laws, toy.instances, addRead(one, ['cA', 'votes', b]))
+    refusedOnly(wide, toy.laws, toy.instances, addRead(one, ['z3', 'votes', x('n')]))
+  })
+  test('a read is a name, a map\'s name and a term', () => {
+    const one = 'one value decided @step'
+    for (const r of [['z4', 'votes', b, 'more'], [5, 'votes', b], ['z4', 7, b], ['z4', 'votes', 'b'], ['z4', 'votes', null]] as unknown as MapRead[])
+      expect(checkCountedLaws(toy.m, toy.laws, {instances: toy.instances, certs: {...certs, [one]: {...certs[one]!, reads: [...certs[one]!.reads, r]}}})).toBe(false)
+    expect(checkCountedLaws(toy.m, toy.laws, {instances: toy.instances, certs: {...certs, [one]: {...certs[one]!, reads: {} as unknown as MapRead[]}}})).toBe(false)
+    expect(checkCountedLaws(toy.m, toy.laws, {instances: toy.instances, certs: {...certs, [one]: {...certs[one]!, insts: {} as unknown as CountInst[]}}})).toBe(false)
+  })
+  test('a term of a certificate: each constructor over the naturals, its edges accepted', () => {
+    const one = 'one value decided @step', with1 = (t: E) => addRead(one, ['z8', 'votes', t])
+    const ok = (t: E) => { const cs = regrow(toy.m, toy.laws, toy.instances, with1(t)); expect(cs).toBeDefined(); expect(checkCountedLaws(toy.m, toy.laws, {instances: toy.instances, certs: cs!})).toBe(true) }
+    // (refused: the tree grown with b at the place, the read's term swapped; the tree never reads that read)
+    const grown = regrow(toy.m, toy.laws, toy.instances, with1(b))!
+    const bad = (t: E) => {
+      const k = grown[one]!, swapped = {...k, reads: k.reads.map((r, j) => (j === k.reads.length - 1 ? [r[0], r[1], t] as MapRead : r))}
+      expect(checkCountedLaws(toy.m, toy.laws, {instances: toy.instances, certs: {...grown, [one]: swapped}})).toBe(false)
+    }
+    expect(checkCountedLaws(toy.m, toy.laws, {instances: toy.instances, certs: grown})).toBe(true)
+    const half = n(0.5), neg = n(-1)
+    for (const t of [{op: 'mul', k: 0, a: b} as E, get('Vote', b), plus(b, n(0)), ite(less(b, n(2)), b, n(0)), ite(atMost(b, b), b, b), ite(same(b, b), b, b),
+      ite(not(same(b, n(1))), b, b), ite(all(same(b, b), less(n(0), n(1))), b, b), ite(any(same(b, b), same(b, n(1))), b, b)]) ok(t)
+    for (const t of [{op: 'mul', k: -1, a: b} as E, {op: 'mul', k: 1, a: half} as E, get('Vote', half), {op: 'get', map: 3, key: b} as unknown as E, plus(b, neg), plus(neg, b),
+      ite(same(b, half), b, b), ite(less(half, b), b, b), ite(atMost(b, neg), b, b), ite(same(b, b), half, b), ite(same(b, b), b, neg),
+      ite(not(same(b, half)), b, b), ite(all(same(b, b), same(b, half)), b, b), ite(any(same(b, half), same(b, b)), b, b),
+      ite({op: 'and', xs: 'no'} as unknown as C, b, b), ite({op: 'flag', name: 'chosen'} as C, b, b), {op: 'var', name: 7} as unknown as E]) bad(t)
+  })
+  test('a read is no witness and reads none', () => {
+    const one = 'one value decided @step'
+    refusedOnly(toy.m, toy.laws, toy.instances, addRead(one, ['z5', 'votes', x('w1')]))
+    // (a read named as the witness: its count reads the witness as its variable)
+    const named: Named = {...toy.certs, [one]: {reads: [...toy.certs[one]!.reads, ['w9', 'votes', b]], insts: [...toy.certs[one]!.insts, {wit: 'w9', below: x('size'), terms: [[1, 'cA']], unit: 0}]}}
+    refusedOnly(toy.m, toy.laws, toy.instances, named)
+  })
+  test('a witness: a name the machine and its laws don\'t read, the counts\' key not either', () => {
+    const one = 'one value decided @step'
+    // the witness the param size: the instance's second half is false, so it claims the sum is not positive
+    const atSize: Named = {...toy.certs, [one]: {...toy.certs[one]!, insts: toy.certs[one]!.insts.map((i, j) => (j === 0 ? {...i, wit: 'size'} : i))}}
+    refusedOnly(toy.m, toy.laws, toy.instances, atSize)
+    const inst = {...toy.instances, 'one value decided': {...toy.instances['one value decided']!, '?chosen': [x('n'), x('w2')]}}
+    const atKey: Named = {...toy.certs, [one]: {...toy.certs[one]!, insts: toy.certs[one]!.insts.map((i, j) => (j === 0 ? {...i, wit: 'n'} : i))}}
+    refusedOnly(toy.m, toy.laws, inst, atKey)
+  })
+  test('checkMC on its own: a declaration\'s j and key apart', () => {
+    const k = certs[stepOne]!, g = countedObligations(toy.m, toy.laws, toy.instances).find(o => o.goal.name === stepOne)!
+    expect(checkMC(g.goal.hyps, g.decls, k)).toBe(true)
+    expect(checkMC(g.goal.hyps, g.decls.map(d => (d.map === 'quorum' ? {...d, j: d.key} : d)), k)).toBe(false)
+  })
+})
+
+// --- terra's review (gen/laneK2): a law's fresh name k# captured; certificate terms over the naturals; fact keys -----------
+describe('names a goal reads by', () => {
+  test('a law is proven at k#: no further key and no name of the machine may be k#', () => {
+    // Before: ∀ k, k#. k = k# read k as k# (k# = k#), and a state named k# made ∀ k. k = 0 read 0 = 0 at the start.
+    const plain: Machine = {name: 'empty', params: [], inputs: [], state: {}, step: {}}
+    const capture: Law = {name: 'every two naturals equal', forall: 'k', keys: ['k#'], holds: same(x('k'), x('k#'))}
+    expect(() => obligations(plain, [capture])).toThrow(/reserved/)
+    const tree = {leaf: [{kind: 'input', index: 0}]} as unknown as CountCert['tree']
+    expect(() => checkLaws(plain, [capture], {instances: {}, trees: {'every two naturals equal @start': tree, 'every two naturals equal @step': tree}})).toThrow(/reserved/)
+    expect(() => obligations({...plain, state: {'k#': n(0)}}, [{name: 'all zero', forall: 'k', holds: same(x('k'), n(0))}])).toThrow(/reserved/)
+    expect(() => countedObligations({...toy.m, maps: {...toy.m.maps, 'V#': 0}}, toy.laws)).toThrow(/reserved/)
+    expect(() => countedObligations(toy.m, [...toy.laws, capture])).toThrow(/reserved/)
+  })
+  test('a read\'s key term and an instance\'s bound are terms over the naturals', () => {
+    for (const t of [n(0.5), n(-1), n(2 ** 53), {op: 'mul', k: 0.5, a: x('b')}, {op: 'bogus'}] as E[]) {
+      expect(checkCountedLaws(toy.m, toy.laws, withCert(stepOne, k => ({...k, reads: [...k.reads, ['z6', 'votes', t] as MapRead]})))).toBe(false)
+      expect(checkCountedLaws(toy.m, toy.laws, withCert(stepOne, k => ({...k, insts: [...k.insts, {wit: 'w7', below: t, terms: [], unit: 0}]})))).toBe(false)
+    }
+    expect(checkCountedLaws(toy.m, toy.laws, withCert(stepOne, k => ({...k, insts: [...k.insts, null as unknown as CountInst]})))).toBe(false)
+  })
+  test('a fact\'s key is no witness and no count\'s j or key', () => {
+    const fm: Machine = {...toy.m, facts: [{name: 'every natural is itself', forall: 'w8', holds: same(x('w8'), x('w8'))}]}
+    expect(checkCountedLaws(fm, toy.laws, proof)).toBe(true)
+    expect(checkCountedLaws(fm, toy.laws, withCert(stepOne, k => ({...k, insts: [...k.insts, {wit: 'w8', below: x('size'), terms: [], unit: 0}]})))).toBe(false)
+    expect(() => countedObligations({...fm, counts: {...fm.counts, c9: {j: 'w8', key: 'n9', below: x('size'), body: n(1)}}}, toy.laws)).toThrow(/already a name/)
   })
 })
 
