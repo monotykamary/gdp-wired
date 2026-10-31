@@ -1069,14 +1069,43 @@ const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[], byM
   return {...inst, ...Object.fromEntries(laws.filter(l => l.forall).map(l => {
   const had = inst[l.name] ?? []
   if (l.keys?.length) {
-    const n = l.keys.length + 1, out = new Map<string, E[]>(), sorted = byMap ? keySorted(l, byMap, fns) : undefined
+    const n = l.keys.length + 1, out = new Map<string, E[]>()
     for (let i = 0; i + n <= had.length; i += n) out.set(JSON.stringify(had.slice(i, i + n)), had.slice(i, i + n))
-    for (const tuple of [...related(keys, focus, n, sorted, most), ...matched(l, keys, most)]) if (!sorted || sorted(tuple)) out.set(JSON.stringify(tuple), tuple)
+    // (a key the law's hypothesis fixes by an equation, x + c = t: the tuples of the others, x at t ∸ c in each)
+    const {law: lr, back} = fixedOut(l), m2 = lr.keys?.length ?? 0, sorted = byMap ? keySorted(lr, byMap, fns) : undefined
+    const tuples = m2 ? [...related(keys, focus, m2 + 1, sorted, most), ...matched(lr, keys, most)] : related(keys, focus, 1, sorted, most)
+    for (const t0 of tuples) if (!sorted || sorted(t0)) { const tuple = back(t0); out.set(JSON.stringify(tuple), tuple) }
     return [l.name, [...out.values()].flat()]
   }
   const seen = new Set(had.map(e => JSON.stringify(e)))
   return [l.name, [...had, ...keys.filter(e => { const id = JSON.stringify(e); return seen.has(id) ? false : (seen.add(id), true) })]]
   }))}
+}
+// A law's keys that its hypothesis fixes by an equation (x + c = t, or t = x, t reading no fixed key): the law without
+// them (each read at t ∸ c, c ≤ t a further hypothesis: the same law over the naturals), and `back`, a tuple of its keys
+// made a tuple of the law's (each fixed key at its t). A law with five keys of which two a cell fixes (Table[a·N + k] =
+// v + 1) has its instances over three. Untrusted: it chooses instances only.
+function fixedOut(l: Law): {law: Law, back: (t: E[]) => E[]} {
+  const all = [l.forall!, ...(l.keys ?? [])], same = {law: l, back: (t: E[]) => t}
+  const hyps = l.holds.op === 'or' ? l.holds.xs.flatMap(d => (d.op === 'not' ? (d.x.op === 'and' ? d.x.xs : [d.x]) : [])) : []
+  const named = (e: E, x: string) => JSON.stringify(e).includes(`"name":${JSON.stringify(x)}`)
+  const offset = (e: E): [string, number] | undefined => (e.op === 'var' && all.includes(e.name) ? [e.name, 0] : e.op === 'add' && e.a.op === 'var' && all.includes(e.a.name) && e.b.op === 'const' ? [e.a.name, e.b.value] : undefined)
+  const fixed = new Map<string, {t: E, c: number}>()
+  for (const h of hyps) {
+    if (h.op !== '=') continue
+    for (const [x, t] of [[h.a, h.b], [h.b, h.a]] as const) {
+      const o = offset(x)
+      if (!o || o[0] === l.forall || fixed.has(o[0]) || named(t, o[0]) || [...fixed.keys()].some(f => named(t, f)) || [...fixed.values()].some(f => named(f.t, o[0]))) continue
+      fixed.set(o[0], {t, c: o[1]}); break
+    }
+  }
+  if (!fixed.size) return same
+  const at = (x: string): E => { const {t, c} = fixed.get(x)!; return c ? {op: 'sub', a: t, b: {op: 'const', value: c}} : t }
+  const sub0 = {vars: Object.fromEntries([...fixed.keys()].map(x => [x, at(x)])), maps: {}, flags: {}}
+  const guards: C[] = [...fixed.values()].flatMap(({t, c}) => (c ? [{op: '<=', a: {op: 'const', value: c}, b: t} as C] : []))
+  const kept = all.filter(x => !fixed.has(x)), holds = substC(guards.length ? {op: 'or', xs: [{op: 'not', x: {op: 'and', xs: guards}}, l.holds]} : l.holds, sub0)
+  const law: Law = {...l, holds, keys: kept.slice(1)}
+  return {law, back: t => { const s2 = {vars: Object.fromEntries(kept.map((x, i) => [x, t[i]!])), maps: {}, flags: {}}; return all.map(x => (fixed.has(x) ? substE(at(x), s2) : t[kept.indexOf(x)]!)) }}
 }
 // A tuple of the key's sort: each of a law's keys read at a map (M[x], M[x·N + y]) takes only the terms its read matches
 // against the keys the goals read that map at (the key's sort, as the goal holds it: Link[c1·N + s] against
