@@ -88,6 +88,10 @@ export type Extraction = {
   notes: string[],
   // Where each of the rule's variables is in the code (core/laws.ts reads laws written in the code's names through it).
   names?: Name[],
+  // (core/effect.ts) The schedule an entry is, read into its rule; the policies a service's methods retry or repeat
+  // with, each read into its own; the methods read as several steps of each fiber (their steps, where each fiber's
+  // place numbers them from).
+  schedule?: unknown, schedules?: unknown[], fibers?: {name: string, steps: number, base: number}[],
 }
 // A variable of the rule by the code's own path to it: a field (`cfg.limit`), a constructor's or a request's argument
 // (`team_object.max_budget`, an object's field the caller gives), a call of other code answered by the request (its

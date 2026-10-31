@@ -325,11 +325,11 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
         else return refuse(pr, `${use}'s ${text(pr)} (schedule, times${use === 'retry' ? ', while and until' : ''} are read)`)
       }
     } else sched = pol
-    const P = new Parts(), base = sched ? readSchedule(sched, {api: x => apiOf(s, x), checker: s.checker, v4: V4, params: new Map(), sf: s.sf}, P) : undefined
+    const outer = (n: ts.Node): never => refuse(n, `${text(n)}: a ${use} policy reading the service's params (one written with literals and consts is read: the check runs it)`)
+    const P = new Parts(), base = sched ? readSchedule(sched, {api: x => apiOf(s, x), checker: s.checker, v4: V4, params: new Map(), sf: s.sf, outer}, P) : undefined
     let frag = base?.frag
     if (times !== undefined) { const lim = (frag ?? {step: () => ({cont: dsl.yes, delay: dsl.lit(0), next: {}}), names: []}) as typeof frag & object, n = times; frag = {...lim, step: (env, get, c) => { const x = lim.step(env, get, c); return {...x, cont: x.cont.and(c.attempt.lt(n))} }} }
     if (!frag) return refuse(at, `${use} with no schedule and no times (it would go on forever)`)
-    if (P.params.size) return refuse(sched!, `a ${use} policy reading the service's params (one written with literals is read: the check runs it)`)
     const sr = scheduleRule(frag, P, `${use} policy`, V4)
     // (a method may be read more than once: one entry a place)
     if (!found.some(f => f.at === where(at))) found.push({at: where(at), use, source: sched ? sched.getText() : `{times: ${times}}`, rule: sr})
@@ -584,7 +584,7 @@ export function fiberRun(x: Extraction, run: {params: Record<string, number>, tr
     const f = Number(q.fiber), pc = st.maps.__pc?.get(f) ?? 0, m = method ? method.decode('method', q) : x.model?.events[0]?.call ?? 'step'
     st = go.step(ps, st, q as never)
     if (pc === 0) {
-      const sp = fibers.find(s2 => s2.name === m), args = (x.names ?? []).filter(n => n.role === 'input' && n.method === m && n.rule in q).map(n => `${n.code.split('.').pop()} = ${q[n.rule]}`)
+      const sp = fibers.find(s2 => s2.name === m), args = (x.names ?? []).filter(n => n.role === 'input' && n.method === m && n.rule in q).map(n => `${n.code.split('.').pop()} = ${String(q[n.rule])}`)
       return `fiber ${f}: ${m}(${args.join(', ')})${sp ? `, its step 1 of ${sp.steps}` : ''}`
     }
     const sp = fibers.find(s2 => pc > s2.base && pc <= s2.base + s2.steps)!

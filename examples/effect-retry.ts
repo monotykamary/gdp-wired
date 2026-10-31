@@ -13,7 +13,6 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import * as effect from 'effect'
-import * as effect3 from 'effect3'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any
 import {type Law} from '../core/machine.ts'

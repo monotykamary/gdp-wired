@@ -22,7 +22,7 @@ type Any = any
 type Env = Record<string, Any>
 // What a name is in the code: `Schedule.spaced`, `Duration.millis` (the module and the member), or undefined.
 export type Api = (e: ts.Expression) => string | undefined
-export type ReadCtx = {api: Api, checker: ts.TypeChecker, v4: boolean, params: Map<ts.Node, string>, sf: ts.SourceFile, bound?: Map<ts.Node, Frag>}
+export type ReadCtx = {api: Api, checker: ts.TypeChecker, v4: boolean, params: Map<ts.Node, string>, sf: ts.SourceFile, bound?: Map<ts.Node, Frag>, outer?: (at: ts.Node) => never}
 
 // --- the machine's parts ---------------------------------------------------------------------------------------------
 // A fragment's step, given the rule's env, a reader of its state (its start, for a schedule entered fresh) and its
@@ -172,11 +172,15 @@ function count(x: ts.Expression | undefined, at: ts.Node, rc: ReadCtx): Num {
     const d = rc.checker.getSymbolAtLocation(e)?.valueDeclaration
     const p = d && rc.params.get(d)
     if (p) return {k: 'param', name: p, scale: 1}
+    // (a parameter of a function around it that isn't the schedule's: a policy written inside a service)
+    if (d && ts.isParameter(d) && rc.outer) return rc.outer(e)
     if (d && ts.isVariableDeclaration(d) && d.initializer && ts.isVariableDeclarationList(d.parent) && d.parent.flags & ts.NodeFlags.Const) return count(d.initializer, at, rc)
   }
   return refuse(e, `${text(e)}: a number other than a literal, a const or a param of the function making the schedule`)
 }
 const factor = (x: ts.Expression, rc: ReadCtx): number => {
+  const lit0 = strip(x)
+  if (ts.isNumericLiteral(lit0) && !(Number.isInteger(Number(lit0.text)) && Number(lit0.text) >= 1)) return refuse(x, `an exponential's factor ${lit0.text}: a whole number at least 1, written here, is read (another makes fractional delays)`)
   const n = count(x, x, rc)
   return n.k === 'lit' && n.v >= 1 ? n.v : refuse(x, `an exponential's factor ${text(x)}: a whole number at least 1, written here, is read (another makes fractional delays)`)
 }
@@ -569,7 +573,7 @@ export function replaySchedule(s: ScheduleRule, schedule: unknown, E: Any, run: 
     const now = Number(before.attempt) === 0 ? 0 : Number(before.elapsed) + Number(before.delay) + Number(req.took ?? 0)
     const randoms: number[] = []
     for (const j of s.jitters) {
-      const seen = r.decode(free.step(ps, st, req)) as Record<string, number | boolean>
+      const seen = r.decode(free.step(ps, st, req as never)) as Record<string, number | boolean>
       if (!seen[j.on]) continue
       const base = Number(seen[j.base]), pick = Number(req[j.name] ?? 0)
       randoms.push(base === 0 ? 0 : Math.min(1 - 1e-12, Math.max(0, (pick - base * j.lo[0] / j.lo[1]) / (base * (j.hi[0] / j.hi[1] - j.lo[0] / j.lo[1])))))
@@ -599,10 +603,10 @@ export function jitterRun(s: ScheduleRule, law: Law, depth = 40, params: Record<
     for (let d = 0; d < depth; d++) {
       const req: Record<string, unknown> = {took: 0, ...Object.fromEntries([...m.inputs].filter((i: string) => i !== 'took').map((i: string) => [i, 0]))}
       for (const j of s.jitters) {
-        const seen = r.decode(free.step(ps, st, req)) as Record<string, number | boolean>, base = Number(seen[j.base])
+        const seen = r.decode(free.step(ps, st, req as never)) as Record<string, number | boolean>, base = Number(seen[j.base])
         req[j.name] = !seen[j.on] || base === 0 ? 0 : edge === 'top' ? Math.ceil(base * j.hi[0] / j.hi[1]) - 1 : Math.ceil(base * j.lo[0] / j.lo[1])
       }
-      try { st = run.step(ps, st, req) } catch { break }
+      try { st = run.step(ps, st, req as never) } catch { break }
       trace.push(req)
       if (!evalC(law.holds, {...ps}, st, m)) return {params, trace}
       if ((r.decode(st) as Record<string, unknown>).done) break
