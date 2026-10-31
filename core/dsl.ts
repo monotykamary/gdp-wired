@@ -739,9 +739,9 @@ export const everyKey = (f: (key: Term, key2: Term, key3: Term) => Cond): Cond =
   return new Cond({op: 'all', key: names[0]!, ...(names.length > 1 ? {keys: names.slice(1)} : {}), c: g(...names.map(v)).c}, ok([]))
 }
 // A least key's definition (Rule.least): the keys it ranges over, and what it is least by, part by part.
-export type LeastDef = {where: (key: Term) => Cond, by: (key: Term) => (TermLike | {desc: TermLike})[]}
+export type LeastDef = {where: (key: Term) => Cond, by: (key: Term) => (IntLike | {desc: IntLike})[]}
 // A part of a least key's order compared the other way (the greatest first).
-export const desc = (t: TermLike): {desc: TermLike} => ({desc: t})
+export const desc = (t: IntLike): {desc: IntLike} => ({desc: t})
 // Some key where f holds, in a law or a step law's conclusion (¬∀k. ¬f(k)): proven through a witness, a term naming the
 // key, given here or found by the prover among a few candidates (kernel/prove.ts).
 export const someKey = (f: (key: Term) => Cond, witness?: TermLike): Cond => {
@@ -2009,11 +2009,12 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const leasts: Record<string, Least> = {}, leastAssume: Cond[] = []
     for (const [n, f] of s.leasts ?? []) {
       const d = (f as (env: never) => LeastDef)(env as never), key = `k$${++boundCounter}`, best = (env[n] as Maybe<Term>)
-      const parts = (k: Term) => d.by(k).map(b => (typeof b === 'object' && 'desc' in b ? {t: termOf(b.desc), desc: true} : {t: termOf(b as TermLike), desc: false}))
-      leasts[n] = {some: `${n}$some`, key, where: d.where(v(key)).c, by: parts(v(key)).map(b => ({e: b.t, ...(b.desc ? {desc: true} : {})}))}
+      const parts = (k: Term) => d.by(k).map(b => (typeof b === 'object' && !(b instanceof Term) && !(b instanceof Int) && 'desc' in b ? {t: Int.of(b.desc), desc: true} : {t: Int.of(b as IntLike), desc: false}))
+      const zero = (e: E) => e.op === 'const' && e.value === 0
+      leasts[n] = {some: `${n}$some`, key, where: d.where(v(key)).c, by: parts(v(key)).map(b => ({e: b.t.pos.e, ...(zero(b.t.neg.e) ? {} : {neg: b.t.neg.e}), ...(b.desc ? {desc: true} : {})}))}
       inputs.push(`${n}$some`, n)
-      const atMost = (a: {t: E, desc: boolean}[], b: {t: E, desc: boolean}[]): Cond => (a.length === 0 ? yes
-        : ((x: Term, y: Term) => (a.length === 1 ? x.atMost(y) : x.lt(y).or(x.eq(y).and(atMost(a.slice(1), b.slice(1))))))(new Term(a[0]!.desc ? b[0]!.t : a[0]!.t), new Term(a[0]!.desc ? a[0]!.t : b[0]!.t)))
+      const atMost = (a: {t: Int, desc: boolean}[], b: {t: Int, desc: boolean}[]): Cond => (a.length === 0 ? yes
+        : ((x: Int, y: Int) => (a.length === 1 ? x.atMost(y) : x.lt(y).or(x.eq(y).and(atMost(a.slice(1), b.slice(1))))))(a[0]!.desc ? b[0]!.t : a[0]!.t, a[0]!.desc ? a[0]!.t : b[0]!.t))
       leastAssume.push(best.present.atMost(1), best.isSome.implies(d.where(best.inner)), best.isNone.implies(everyKey(k => d.where(k).not())),
         best.isSome.implies(everyKey(k => d.where(k).implies(atMost(parts(best.inner), parts(k))))))
     }

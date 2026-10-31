@@ -22,6 +22,9 @@
 //   counts[user] < limit, user in m    a map at a key as the code reads it (m.get(k), k in m, m[k] is None)
 //   cache["hits:" + s] <= limit        a store at its key's template ("hits:" + s, f"hits:{s}")
 //   forall k in budgets: budgets[k].spent <= budgets[k].limit       every key the map holds (at the top of the law)
+//   forall o in old(asks): forall j in old(asks): o in asks or o.price <= j.price
+//                                      every item of a list (o.price its field; `o in asks` whether that item is still
+//                                      in it, the same item, not an equal one), at every two (or three) at once
 //   mode == "closed", outcome == SLOW_ERROR, mode == :closed        a choice by its value
 import {type Cond, Choice, Int, Str, Term, all, any, forall, no, not, yes} from './dsl.ts'
 import type {Extraction, Name} from './extract.ts'
@@ -165,7 +168,9 @@ export function parse(s: string): X {
 // cell, a value that may be None (its flag beside it), a map, a key.
 type V = {t: 'num', v: Int} | {t: 'cond', v: Cond} | {t: 'str', v: Str} | {t: 'choice', v: Choice<string>} | {t: 'lit', v: string, err?: LawError}
   | {t: 'null'} | {t: 'cell', rec: Record<string, unknown>, fields: string[]} | {t: 'opt', none: Cond, v?: V} | {t: 'map', n: Name, maps: Name[]} | {t: 'key', v: Term}
-type Ctx = {b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>, clock?: number}
+type Ctx = {b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>, clock?: number,
+  // (a key bound over a list: the item there, its map in the state it was read in)
+  items?: Map<string, {map: Record<string, unknown>, fields: string[]}>}
 
 // The law a text states, built on the extraction's rule through its names.
 // The extraction's names, with the request's time as `now` where the rule reads it and no name says so (a TypeScript
@@ -196,10 +201,28 @@ export function buildLaw(x: Extraction, l: LawText, opts: {clock?: number} = {})
 // The expression read: its value (`dry`: only which names it reads, nothing built).
 function read(e: X, c: Ctx, names: Name[], dry: boolean): unknown {
   if (e.k === 'forall') {
-    const over = val(e.over, c, names, dry)
-    if (over.t !== 'map') throw new LawError(`forall ${e.v} in ...: over a map (a dict, a Map, a hash)`)
-    if (dry) { c.keys.set(e.v, new Term({op: 'const', value: 0})); return cond(val(e.body, c, names, true)) }
-    return forall(k => { c.keys.set(e.v, k); const m = (c.step ? c.a : c.b)[over.n.rule] as {at: (k: Term) => Record<string, unknown>}; return (m.at(k).has as Cond).implies(cond(val(e.body, c, names, false))) })
+    // (forall a in X: forall b in Y: ...: at every two keys at once, each held by its map)
+    const chain: (X & {k: 'forall'})[] = []
+    let body: X = e
+    while (body.k === 'forall') { chain.push(body); body = body.body }
+    if (chain.length > 3) throw new LawError('forall ... in ...: at most three at once')
+    c.items ??= new Map()
+    const overs = chain.map(f => {
+      const over = val(f.over, c, names, dry)
+      if (over.t !== 'map') throw new LawError(`forall ${f.v} in ...: over a map (a dict, a Map, a hash) or a list`)
+      return {over, env: f.over.k === 'old' || !c.step ? c.b : c.a}
+    })
+    if (dry) { for (const f of chain) c.keys.set(f.v, new Term({op: 'const', value: 0})); return cond(val(body, c, names, true)) }
+    const at = (ks: Term[]): Cond => {
+      const held = overs.map((o, i) => {
+        const m = o.env[o.over.n.rule] as {at: (k: Term) => Record<string, unknown>}
+        c.keys.set(chain[i]!.v, ks[i]!)
+        if (o.over.n.map?.ordered) c.items!.set(chain[i]!.v, {map: m.at(ks[i]!), fields: o.over.n.map.fields})
+        return m.at(ks[i]!).has as Cond
+      })
+      return all(...held).implies(cond(val(body, c, names, false)))
+    }
+    return chain.length === 1 ? forall(k => at([k])) : chain.length === 2 ? forall((k, j) => at([k, j])) : forall((k, j, i) => at([k, j, i]))
   }
   return cond(val(e, c, names, dry))
 }
@@ -292,6 +315,10 @@ function cellOf(m: V & {t: 'map'}, k: Term, c: Ctx): {rec: Record<string, unknow
 // code), then its fields, keys and calls.
 function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
   if (c.keys.has(e.head) && !e.segs.length) return {t: 'key', v: c.keys.get(e.head)!}
+  // (an item of a list a forall is over: its fields)
+  const item = c.items?.get(e.head)
+  if (item && e.segs.length) return dry ? DRY : rest(e.segs, {t: 'cell', rec: item.map, fields: item.fields}, c, names, dry, e)
+  if (c.keys.has(e.head) && dry) return DRY
   if (e.head === 'result' || e.head === 'failed') {
     const n = e.head === 'failed' ? names.find(x => x.role === 'failed') : results(names, c)
     if (!n) throw new LawError(e.head === 'failed' ? 'the rule keeps no failure (with failures: \'kept\' it does: `failures = "kept"` in gdp.toml or --failures kept)' : 'the method returns nothing the rule keeps')

@@ -45,7 +45,7 @@ import * as I from './extract-ir.ts'
 import type {B, N} from './extract-ir.ts'
 import {type Arg, type Layout, type MapDecl, type Model, Refusal, type Source, type Term, type Var, placed, sourceOf} from './extract-read.ts'
 import {type ReadOptions, isFactory, isSlice, readClass, readFactory, readFunctions, readSlice} from './extract-shapes.ts'
-import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pidx, pk, pterm, sortsOf} from './extract-print.ts'
+import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pidx, pk, pnum, pterm, sortsOf} from './extract-print.ts'
 import {type CheckOptions, type Evidence, check} from './extract-check.ts'
 // (a rule read is proven from the same import: proveRule(x.rule!, [x.rule!.law(...)]))
 export {proveRule, proveSteps} from './dsl.ts'
@@ -88,7 +88,7 @@ export type Extraction = {
 // qualified name), a method's result, whether the step failed. `none`: the rule's flag for the code's value being
 // None, nil or null; `map`: a map's cell fields (`value` for a map of scalars) and, for a store, its key's template.
 export type Name = {code: string, rule: string, role: 'state' | 'param' | 'input' | 'answer' | 'result' | 'failed' | 'method' | 'clock' | 'const',
-  method?: string, none?: string, value?: number, map?: {fields: string[], store?: string, tpl?: string}}
+  method?: string, none?: string, value?: number, map?: {fields: string[], store?: string, tpl?: string, ordered?: boolean}}
 // The names of a model read from TypeScript (the state's layout, each request's arguments, each method's result).
 export function namesOf(m: Model): Name[] {
   const out: Name[] = [], fields = (n: string) => m.maps.find(d => d.name === n)?.fields.map(f => f.name) ?? []
@@ -182,7 +182,7 @@ function datesInRange(m: Model, sorts: Sorts) {
 export const toSource = (x: Extraction): string => x.source ?? ''
 
 // The source is the rule: it is evaluated with the builders, so what is checked is what is printed.
-const NAMES = ['rule', 'nat', 'int', 'bool', 'oneOf', 'str', 'record', 'when', 'min', 'max', 'all', 'any', 'not', 'yes', 'no', 'lit', 'intern', 'Int'] as const
+const NAMES = ['rule', 'nat', 'int', 'bool', 'oneOf', 'str', 'record', 'when', 'min', 'max', 'all', 'any', 'not', 'yes', 'no', 'lit', 'intern', 'Int', 'desc'] as const
 function evaluate(body: string): Rule {
   const f = compileFunction<(...xs: unknown[]) => Rule>([...NAMES], `return ${body}`)
   const r = f(...NAMES.map(n => (dsl as Record<string, unknown>)[n]))
@@ -194,7 +194,7 @@ function invariantsOf(m: Model, sorts: Sorts): string[] {
   const empty = (d: MapDecl, f: Var) => (f.sort.k === 'num' ? `.eq(0)` : f.sort.k === 'bool' ? `.not()` : f.sort.k === 'choice' ? `.is(${JSON.stringify(f.sort.values[0])})` : `.eq('')`)
   // (a signed field the printer reads as a natural keeps its range's top: a natural is at least 0 already)
   const nat = (l: string) => { const r = /^r\.law\(("\w+ within its type's range"), \(\{(\w+)\}\) => \2\.atMost\((\d+)\)\.and\(\2\.atLeast\(-\d+\)\)\)$/.exec(l); return r && sorts.get(r[2]!) === 'nat' ? `r.law(${r[1]}, ({${r[2]}}) => ${r[2]}.atMost(${r[3]}))` : l }
-  return [...(m.laws ?? []).map(nat), ...m.maps.filter(d => d.fields.length).map(d => `r.law(${JSON.stringify(`${d.name}: a key it doesn't hold holds the defaults`)}, ({${d.name}}) => forall(k => any(${d.name}.at(k).has, all(${d.fields.map(f => `${d.name}.at(k).${f.name}${empty(d, f)}`).join(', ')}))))`),
+  return [...(m.laws ?? []).map(nat), ...m.maps.filter(d => d.fields.length && !d.ordered).map(d => `r.law(${JSON.stringify(`${d.name}: a key it doesn't hold holds the defaults`)}, ({${d.name}}) => forall(k => any(${d.name}.at(k).has, all(${d.fields.map(f => `${d.name}.at(k).${f.name}${empty(d, f)}`).join(', ')}))))`),
     ...(m.lists ?? []).map(d => `r.law(${JSON.stringify(`${d.name}: nothing past its end`)}, ({${d.name}}) => ${d.name}.within())`),
     ...(m.lists ?? []).filter(d => d.len !== undefined).map(d => `r.law(${JSON.stringify(`${d.name}: ${d.len} items, always`)}, ({${d.name}_len}) => ${d.name}_len.eq(${d.len}))`)]
 }
@@ -239,10 +239,17 @@ function builderOf(m: Model, sorts: Sorts): string {
   if (m.state.length) lines.push(`  .state({${m.state.map(v => `${v.name}: ${start(v)}`).join(', ')}})`)
   if (m.maps.length) lines.push(`  .maps({${m.maps.map((d: MapDecl) => `${d.name}: ${mapKind(d, sorts)}.from(${mapEmpty(d)})`).join(', ')}})`)
   if (m.lists?.length) lines.push(`  .items({${m.lists.map(d => `${d.name}: ${kindOf(d.fields[0]!, sorts, `${d.name}.$item`)}`).join(', ')}}${m.lists.some(d => d.len !== undefined) ? `, {${m.lists.filter(d => d.len !== undefined).map(d => `${d.name}: ${d.len}`).join(', ')}}` : ''})`)
+  // (a least key's two names are its one Maybe; the key its order is read at is bound by its own function)
+  const leastOf = (n: string) => m.leasts?.find(l => l.some === n)?.name ?? n
   const envOf = (...xs: object[]) => {
     const vars = new Set<string>(), maps = new Set<string>()
     for (const x of xs) I.varsOf(x as N, vars, maps)
-    return `{${[...vars, ...maps].join(', ')}}`
+    return `{${[...new Set([...vars].filter(n => !m.leasts?.some(l => l.key === n)).map(leastOf)), ...maps].join(', ')}}`
+  }
+  // The least keys: each where it holds, by what, read at the state before the step.
+  if (m.leasts?.length) {
+    const c = ctx()
+    lines.push(`  .least({${m.leasts.map(l => `${l.name}: (${envOf(l.where, ...l.by.map(b => b.e))}) => ({where: ${l.key} => ${pb(l.where, P, c)}, by: ${l.key} => [${l.by.map(b => (b.desc ? `desc(${pnum(b.e, P, c)})` : pnum(b.e, P, c))).join(', ')}]})`).join(', ')}})`)
   }
   if (!(m.pre.op === 'const' && m.pre.v)) lines.push(`  .pre((${envOf(m.pre)}) => ${pb(m.pre, P, ctx())})`)
   const allowed = I.not(m.refuse)
@@ -290,7 +297,7 @@ const isBool = (x: object, m?: Model): boolean => {
   const o = x as {op: string, v?: unknown, a?: object, b?: object, name?: string, map?: string, field?: string}
   if (['cmp', 'and', 'or', 'not', 'is', 'leq', 'keq'].includes(o.op) || (o.op === 'const' && typeof o.v === 'boolean')) return true
   if (o.op === 'ite') return isBool(o.a!, m) || isBool(o.b!, m)
-  if (o.op === 'var' && m) return [...m.params, ...m.inputs, ...m.state].some(v => v.name === o.name && v.sort.k === 'bool')
+  if (o.op === 'var' && m) return [...m.params, ...m.inputs, ...m.state].some(v => v.name === o.name && v.sort.k === 'bool') || !!m.leasts?.some(l => l.some === o.name)
   if (o.op === 'cell' && m) return o.field === 'has' || !!m.maps.find(d => d.name === o.map)?.fields.some(f => f.name === o.field && f.sort.k === 'bool')
   return false
 }

@@ -149,7 +149,7 @@ t('refusals, each where it is with why', () => {
   refused(py('def f(x: int) -> int:\n    return x * 0.5\n', {entry: ['f']}), /a float that isn't whole/)
   refused(py('import os\n\ndef f(x: int) -> int:\n    return os.getpid() + x\n', {entry: ['f']}), /os.getpid\(\): os.getpid, other code \(m.py:4:12\), whose value is read, and it declares no type: state what it returns/)
   refused(py('import os\n\ndef f(x: int) -> int:\n    return os.getpid() + x\n', {entry: ['f'], strict: true}), /os.getpid, other code/)
-  refused(py('def f(x: int) -> float:\n    return x / 3\n', {entry: ['f']}), /a true division/)
+  refused(py('def f(x: int) -> bool:\n    if x / 3 > 1:\n        return True\n    return False\n', {entry: ['f']}), /a true division/)
   refused(py('def f(d: dict[str, int]) -> int:\n    try:\n        return d["a"]\n    except KeyError:\n        return 0\n', {entry: ['f']}), /try\/except/)
 })
 

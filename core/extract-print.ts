@@ -178,6 +178,8 @@ export function sortsOf(m: Model, given: Record<string, 'nat' | 'int'> = {}): {s
   }
   const cellNums = m.maps.flatMap(d => d.fields.filter(f => f.sort.k === 'num').map(f => `${d.name}.${f.name}`))
   for (const v of nums(m.state)) sorts.set(v.name, given[v.name] ?? 'nat')
+  // (a least key, and the key its order is read at: naturals, a map's keys)
+  for (const l of m.leasts ?? []) { sorts.set(l.name, 'nat'); sorts.set(l.key, 'nat') }
   for (const c of cellNums) sorts.set(c, given[c] ?? 'nat')
   // A list's length is a natural; its items naturals until one written may be below 0.
   for (const d of m.lists ?? []) { sorts.set(`${d.name}_len`, 'nat'); if (d.fields[0]!.sort.k === 'num') sorts.set(`${d.name}.$item`, given[`${d.name}.$item`] ?? 'nat') }
@@ -218,6 +220,11 @@ function refusedBelowZero(m: Model, x: string, ctx: Ctx): boolean {
 }
 
 // --- printing -------------------------------------------------------------------------------------------------------
+// A least key's names as the printed rule reads them: the key `<name>.inner`, whether there is one `<name>.isSome`.
+export const leastName = (m: Model, n: string): string => {
+  const l = m.leasts?.find(x => x.name === n || x.some === n)
+  return !l ? n : l.name === n ? `${n}.inner` : `${l.name}.isSome`
+}
 export type Printer = {sorts: Sorts, m: Model, hoisted: Map<string, string>, choiceVars: Map<string, string>}
 const q = (s: string) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
 function pn(e: N, P: Printer, ctx: Ctx, mode: 'nat' | 'int', recv = false): string {
@@ -226,7 +233,7 @@ function pn(e: N, P: Printer, ctx: Ctx, mode: 'nat' | 'int', recv = false): stri
   const nat = mode === 'nat'
   const R = (x: N, c = ctx) => pn(x, P, c, nat ? 'nat' : 'int', true), A = (x: N, c = ctx) => pn(x, P, c, nat || natOK(x, c) ? 'nat' : 'int')
   switch (e.op) {
-    case 'var': return !nat && recv && P.sorts.get(e.name) === 'nat' ? `Int.of(${e.name})` : e.name
+    case 'var': { const n = leastName(P.m, e.name); return !nat && recv && P.sorts.get(e.name) === 'nat' ? `Int.of(${n})` : n }
     case 'const': return recv ? (nat ? `lit(${e.v})` : `Int.of(${e.v})`) : String(e.v)
     case 'add': return e.a.op === 'const' ? `${R(e.b)}.plus(${A(e.a)})` : `${R(e.a)}.plus(${A(e.b)})`
     case 'sub': return `${R(e.a)}.minus(${A(e.b)})`
@@ -274,7 +281,7 @@ export function pb(c: B, P: Printer, ctx: Ctx): string {
   if (h) return h
   switch (c.op) {
     case 'const': return c.v ? 'yes' : 'no'
-    case 'var': return c.name
+    case 'var': return leastName(P.m, c.name)
     case 'cmp': return pcmp(c.rel, c.a, c.b, P, ctx)
     case 'and': return `all(${c.xs.map(x => pb(x, P, ctx)).join(', ')})`
     case 'or': return `any(${c.xs.map(x => pb(x, P, ctx)).join(', ')})`

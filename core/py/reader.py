@@ -419,7 +419,15 @@ class Reader:
       return {'e': 'fstr', 'parts': parts, 'p': p, 'text': text(x)}
     if isinstance(x, ast.List): return {'e': 'list', 'xs': [E(v) for v in x.elts], 'p': p}
     if isinstance(x, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)): return {'e': 'no', 'why': f"{text(x)}: a comprehension (a loop)", 'p': p}
-    if isinstance(x, ast.Lambda): return {'e': 'no', 'why': f"{text(x)}: a lambda (a closure)", 'p': p}
+    if isinstance(x, ast.Lambda):
+      # (read as a key function where one is taken, min/max(xs, key=lambda o: ...); anywhere else refused, a closure)
+      a = x.args
+      if a.vararg or a.kwarg or a.kwonlyargs or a.defaults or a.posonlyargs or len(a.args) != 1: return {'e': 'no', 'why': f"{text(x)}: a lambda (a closure)", 'p': p}
+      ps = [y.arg for y in a.args]
+      self.local_stack.append((self.local_stack[-1] if self.local_stack else set()) | set(ps))
+      try: body = E(x.body)
+      finally: self.local_stack.pop()
+      return {'e': 'lambda', 'params': ps, 'x': body, 'p': p, 'text': text(x)}
     return {'e': 'no', 'why': f"{text(x)}: {type(x).__name__} (outside the subset)", 'p': p}
 
 def main():

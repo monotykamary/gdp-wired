@@ -25,7 +25,12 @@ export type Shape = Sort | {k: 'rec', fields: [string, Shape][]} | {k: 'map', ke
 export type Var = {name: string, sort: Sort, role: 'param' | 'input' | 'state', note?: string}
 // A map of the state: its cells are records of `fields` (one, `value`, for a map of scalars) and `has` (the key holds one).
 // (`len`: a list of that many items, its length fixed: a C array's)
-export type MapDecl = {name: string, key: 'num' | 'str', fields: Var[], scalar: boolean, js: 'Map' | 'record' | 'Set', untyped?: boolean, len?: number}
+// (ordered: a list of the state as a map keyed by each item's place in the list's order, a natural that only grows as
+// items are added, so removing an item leaves the others' keys and order as they were; core/extract-step.ts)
+export type MapDecl = {name: string, key: 'num' | 'str', fields: Var[], scalar: boolean, js: 'Map' | 'record' | 'Set', untyped?: boolean, len?: number, ordered?: true}
+// A least key the step reads (core/dsl.ts's least): `name` the key, `some` whether there is one, over the keys of `map`
+// where `where` holds, least by `by` (each a term of the cells at the key `key`).
+export type LeastRead = {name: string, some: string, map: string, key: string, where: B, by: {e: N, desc?: boolean}[]}
 // Where each of the code's values is in the rule: the state's tree, leaf by leaf.
 export type Layout = {k: 'scalar', name: string} | {k: 'rec', fields: [string, Layout][]} | {k: 'map', name: string} | {k: 'list', name: string} | {k: 'const', value: Term}
 export type Term = {s: 'num', e: N} | {s: 'bool', e: B} | {s: 'choice', e: L} | {s: 'str', e: K}
@@ -68,6 +73,8 @@ export type Model = {
   imports?: string[],
   // What the entry is, for the printed module's header (a front end's own words).
   kind?: string,
+  // The least keys the step reads (an ordered collection's first or last item, its min or max by a key).
+  leasts?: LeastRead[],
 }
 
 // --- values ---------------------------------------------------------------------------------------------------------

@@ -75,7 +75,8 @@ export type Machine = {
   // kernel each is an input like any other: what makes it the least is the rule's assumption (core/dsl.ts's least).
   leasts?: Record<string, Least>
 }
-export type Least = {some: string, key: string, where: C, by: {e: E, desc?: boolean}[]}
+// (a part with `neg` is the integer e − neg, as Int keeps one: two naturals)
+export type Least = {some: string, key: string, where: C, by: {e: E, neg?: E, desc?: boolean}[]}
 // A function from a key to a natural. `js`: its JavaScript source (k => ...), what the runtimes call; `lean`: a Lean term
 // of type Nat → Nat, for an export that proves the facts of this function in Lean.
 // A function of several arguments is read at their pairing (core/dsl.ts's argsKey, left-nested (a + b)² + b), which the
@@ -424,13 +425,13 @@ function runnable(m: Machine) {
 export function leastsIn(m: Machine, env: Env, st: State): Env {
   const out: Env = {}
   for (const [name, l] of Object.entries(m.leasts ?? {})) {
-    const keys = keysAt(st, mapsIn({op: 'and', xs: [l.where, ...l.by.map(b => ({op: '=', a: b.e, b: b.e}) as C)]}).filter(mp => !m.fns?.[mp])), past = keys.pop()!
+    const keys = keysAt(st, mapsIn({op: 'and', xs: [l.where, ...l.by.flatMap(b => [b.e, ...(b.neg ? [b.neg] : [])].map(e => ({op: '=', a: e, b: e}) as C))]}).filter(mp => !m.fns?.[mp])), past = keys.pop()!
     const at = (key: number): Env => ({...env, ...out, [l.key]: key})
     if (evalC(l.where, at(past), st, m)) throw new RangeError(`${m.name}: ${name} has no least (its condition holds at every key past the cells)`)
     let best: {key: number, by: number[]} | undefined
     for (const key of keys.sort((a, b) => a - b)) {
       if (!evalC(l.where, at(key), st, m)) continue
-      const by = l.by.map(b => evalE(b.e, at(key), st, m))
+      const by = l.by.map(b => evalE(b.e, at(key), st, m) - (b.neg ? evalE(b.neg, at(key), st, m) : 0))
       const first = best && by.findIndex((x, i) => x !== best!.by[i])
       if (!best || (first !== -1 && (l.by[first!]!.desc ? by[first!]! > best.by[first!]! : by[first!]! < best.by[first!]!))) best = {key, by}
     }
@@ -660,9 +661,9 @@ export function compileJs(m: Machine): string {
   for (const [name, l] of Object.entries(m.leasts ?? {})) {
     const outer = bound
     bound = {...bound, [l.key]: 'lk'}
-    const where = cx(l.where), by = l.by.map(b => ex(b.e))
+    const where = cx(l.where), by = l.by.map(b => (b.neg ? `(${ex(b.e)} - ${ex(b.neg)})` : ex(b.e)))
     bound = outer
-    const ms = mapsIn({op: 'and', xs: [l.where, ...l.by.map(b => ({op: '=', a: b.e, b: b.e}) as C)]}).filter(mp => !fns.includes(mp))
+    const ms = mapsIn({op: 'and', xs: [l.where, ...l.by.flatMap(b => [b.e, ...(b.neg ? [b.neg] : [])].map(e => ({op: '=', a: e, b: e}) as C))]}).filter(mp => !fns.includes(mp))
     const better = l.by.map((b, i) => `by[${i}] !== bb[${i}] ? by[${i}] ${b.desc ? '>' : '<'} bb[${i}] : `).join('') + 'false'
     lines.push(`{ const ks = $keys(maps, ${JSON.stringify(ms)}), past = ks.pop(); let lk = past; if (${where}) throw new RangeError(${id(`${m.name}: ${name} has no least (its condition holds at every key past the cells)`)}); let bk, bb; for (lk of ks.sort((a, b) => a - b)) { if (!(${where})) continue; const by = [${by.join(', ')}]; if (bk === undefined || (${better})) { bk = lk; bb = by; } } env[${id(name)}] = bk ?? 0; env[${id(l.some)}] = bk === undefined ? 0 : 1; }`)
   }
