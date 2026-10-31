@@ -1109,6 +1109,9 @@ XFUZZ = {  # lang: (setup, test file, weight, limit)
     "typescript": ("true", "extract.test.ts", 1, 900),
 }
 XFUZZ_EVERY = knob("XFUZZ_EVERY", 6)  # one correspondence item for every 6 fuzz items
+# (the stop rule, with no VM-hour budget: seeds a day per fuzz kind, about 3x the rate before, and per language; past
+# them the fill launches nothing and its VMs go back to the pool until the next day)
+FUZZ_PER_DAY, XFUZZ_PER_DAY = knob("FUZZ_PER_DAY", 3000), knob("XFUZZ_PER_DAY", 48)
 DIFFER = re.compile(r"the rule and the code differ: (?!the code doesn't load|the check's harness)(.{0,300})")
 
 
@@ -1150,27 +1153,54 @@ class Soundness:
             return [int(l.split("\t")[0]) for l in out.splitlines() if l.split("\t")[0].isdigit() and int(l.split("\t")[0]) not in done]
         return []
 
-    def batch(self, vms: int) -> Batch:
+    def today_counts(self) -> dict:
+        c: dict = {}
+        for f, key in ((TM / "fuzz.jsonl", "kind"), (TM / "xfuzz.jsonl", "lang")):
+            for r in jl(f):
+                if on(today(), r["t"]):
+                    k = r[key] if key == "kind" else "x:" + r[key]
+                    c[k] = c.get(k, 0) + 1
+        return c
+
+    def batch(self, vms: int) -> Batch | None:
         st = self.tm.state
         items, kinds = [], []
         n = vms * SLOTS * 8
+        counts = self.today_counts()
+        for b in self.tm.batches:  # (what is queued now counts too)
+            if not b.done and b.label.startswith("sound"):
+                for it in b.items:
+                    k = it["name"].split("-")[0]
+                    k = "x:" + it["name"].split("-")[1] if k == "xfuzz" else k
+                    counts[k] = counts.get(k, 0) + 1
+        open_kinds = [k for k in FUZZ if counts.get(k, 0) < FUZZ_PER_DAY]
+        open_langs = [l for l in XFUZZ for _ in range(XFUZZ[l][2]) if counts.get("x:" + l, 0) < XFUZZ_PER_DAY] if "xfuzz" in self.tm.chains else []
         while self.mutants and "mutants" in self.tm.chains and len(items) < vms * SLOTS:
             m = self.mutants.pop(0)
             items.append(sh_item(f"mutant-{m}", f"bun mutants.ts ids {m} 2>&1 | tail -1", "kernel", 3600, 600))
             kinds.append(("mutant", m))
-        while len(items) < n:
+        while len(items) < n and (open_kinds or open_langs):
             s = st["seed"] = st.get("seed", 1000) + 1
-            if "xfuzz" in self.tm.chains and s % XFUZZ_EVERY == 0:
-                langs = [l for l, x in XFUZZ.items() for _ in range(x[2])]
-                lang = langs[(s // XFUZZ_EVERY) % len(langs)]
+            if open_langs and (s % XFUZZ_EVERY == 0 or not open_kinds):
+                lang = open_langs[(s // XFUZZ_EVERY) % len(open_langs)]
+                counts["x:" + lang] = counts.get("x:" + lang, 0) + 1
+                if counts["x:" + lang] >= XFUZZ_PER_DAY:
+                    open_langs = [l for l in open_langs if l != lang]
                 items.append(sh_item(f"xfuzz-{lang}-{s}", xfuzz_cmd(lang, s), ".", XFUZZ[lang][3], XFUZZ[lang][3] / 3, weight=2 if lang == "swift" else 1))
                 kinds.append(("x:" + lang, s))
                 continue
-            k = list(FUZZ)[s % len(FUZZ)]
+            if not open_kinds:
+                continue
+            k = open_kinds[s % len(open_kinds)]
+            counts[k] = counts.get(k, 0) + 1
+            if counts[k] >= FUZZ_PER_DAY:
+                open_kinds = [x for x in open_kinds if x != k]
             cwd, cmd = FUZZ[k]
             items.append(sh_item(f"{k}-fuzz-{s}", cmd.format(s=s), cwd, 900, 60))
             kinds.append((k, s))
         self.tm.save_state()
+        if not items:
+            return None
         codes = {}
 
         def on_row(it, row):
@@ -1473,8 +1503,10 @@ class Treadmill(T.Treadmill):
 
     def floor(self, free: int) -> int:
         if free > 0 and not self.want("b") and self.sound_on and self.sound:  # (soundness's floor: one VM)
-            self.batches.append(self.sound.batch(1))
-            free -= 1
+            b = self.sound.batch(1)
+            if b:
+                self.batches.append(b)
+                free -= 1
         return free
 
     def main_chains(self, free: int) -> int:
@@ -1501,6 +1533,8 @@ class Treadmill(T.Treadmill):
             free = self.ten.launch(free)
         while free > 0 and self.sound_on and self.sound:  # the fuzz fills the rest of the pool (filler: preempted at once)
             b = self.sound.batch(min(free, 4))
+            if not b:  # (the day's seeds all run: nothing more)
+                break
             self.batches.append(b)
             free -= b.vms
         return free
