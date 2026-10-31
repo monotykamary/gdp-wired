@@ -338,6 +338,11 @@ const isBool = (x: object, m?: Model): boolean => {
   if (o.op === 'cell' && m) return o.field === 'has' || [...m.maps, ...(m.seqs ?? []), ...(m.folds ?? []).map(d => ({name: d.run, fields: d.fields}))].some(d => d.name === o.map && d.fields.some(f => f.name === o.field && f.sort.k === 'bool'))
   return false
 }
+// (a choice by cases, `when(c, 'a', 'b')`: printed where it is read, through its variable, never hoisted as a number)
+const isChoice = (x: object): boolean => {
+  const o = x as {op: string, values?: unknown, a?: object, b?: object}
+  return o.op === 'lit' || (o.op === 'var' && Array.isArray(o.values)) || (o.op === 'ite' && (isChoice(o.a!) || isChoice(o.b!)))
+}
 // The env's names: those the terms read, the choices a literal is printed through, and the maps written.
 function withChoices(env: string, text: string, P: Printer, extra: string[] = []): string {
   const names = new Set(env.slice(1, -1).split(', ').filter(Boolean))
@@ -371,7 +376,7 @@ function hoist(m: Model, P: Printer, roots: object[]) {
   const names = new Set([...m.params, ...m.inputs, ...m.state].map(v => v.name).concat(m.maps.map(d => d.name)))
   for (const k of order) {
     const node = hoistNodes.get(k)!, size = k.length
-    if ((count.get(k) ?? 0) < 2 || size < 60) continue
+    if ((count.get(k) ?? 0) < 2 || size < 60 || isChoice(node)) continue
     if (!isBool(node, m)) {
       const ctx: Ctx = {m, sorts: P.sorts, atoms: []}, free = natOK(node as N, ctx)
       const cells: string[] = []

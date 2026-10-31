@@ -168,7 +168,7 @@ export function parse(s: string): X {
 // A value: a number (an integer of the builders'), a condition, a string, a choice, a literal string, None, a map's
 // cell, a value that may be None (its flag beside it), a map, a key.
 type V = {t: 'num', v: Int} | {t: 'cond', v: Cond} | {t: 'str', v: Str} | {t: 'choice', v: Choice<string>} | {t: 'lit', v: string, err?: LawError}
-  | {t: 'null'} | {t: 'cell', rec: Record<string, unknown>, fields: string[]} | {t: 'opt', none: Cond, v?: V} | {t: 'map', n: Name, maps: Name[]} | {t: 'key', v: Term}
+  | {t: 'null'} | {t: 'cell', rec: Record<string, unknown>, fields: string[]} | {t: 'opt', none: Cond, v?: V} | {t: 'map', n: Name, maps: Name[], env?: Record<string, unknown>} | {t: 'key', v: Term}
 type Ctx = {b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>, clock?: number,
   // (a key bound over a list: the item there, its map in the state it was read in)
   items?: Map<string, {map: Record<string, unknown>, fields: string[]}>}
@@ -260,7 +260,7 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
         const fs = m.n.map!.fields
         if (fs.length !== 1) throw new LawError(`sum(${m.n.code}): its cells have ${fs.join(', ')} (the sum is of a map of numbers)`)
         if (dry) return DRY
-        const map = (c.a[m.n.rule] ?? c.b[m.n.rule]) as {sum: (of: (cell: Record<string, unknown>) => unknown) => unknown}
+        const map = ((m.env ?? c.a)[m.n.rule] ?? c.b[m.n.rule]) as {sum: (of: (cell: Record<string, unknown>) => unknown) => unknown}
         return {t: 'num', v: Int.of(map.sum(cell => cell[fs[0]!]) as Term)}
       }
       const xs = e.xs.map(go)
@@ -318,7 +318,7 @@ const show = (x: X): string => (x.k === 'path' ? [x.head, ...x.segs.map(s => ('f
 // A map's key as the rule holds it: a string's id, a natural.
 const key = (k: V): Term => (k.t === 'opt' && k.v ? key(k.v) : k.t === 'key' ? k.v : k.t === 'str' ? k.v.id : k.t === 'lit' ? fail('a literal key (the rule keys a map by the request\'s values)') : (() => { const n = num(k); return n.neg.e.op === 'const' && n.neg.e.value === 0 ? n.pos : n.clamped })())
 function cellOf(m: V & {t: 'map'}, k: Term, c: Ctx): {rec: Record<string, unknown>, fields: string[]} {
-  const map = (c.a[m.n.rule] ?? c.b[m.n.rule]) as {at: (k: Term) => Record<string, unknown>}
+  const map = ((m.env ?? c.a)[m.n.rule] ?? c.b[m.n.rule]) as {at: (k: Term) => Record<string, unknown>}
   return {rec: map.at(k), fields: m.n.map!.fields}
 }
 
@@ -336,7 +336,8 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
     c.roles.add(n.role); if (n.method) c.methods.add(n.method)
     return rest(e.segs, leaf(n, c, dry), c, names, dry, e)
   }
-  const explicit = ['self', 'this', 'state', 's'].includes(e.head) || e.head.startsWith('@')
+  // (self.x, this.x, state.x, @x: the state's x; a bare `state` or `s` is a name of the code's, a field named so)
+  const explicit = (['self', 'this', 'state', 's'].includes(e.head) && e.segs.length > 0) || e.head.startsWith('@')
   const parts = [e.head.replace(/^@/, ''), ...e.segs.map(s => ('f' in s ? s.f : undefined))]
   const heads = explicit && !e.head.startsWith('@') ? [parts.slice(1)] : [parts, ...(parts.length > 1 && parts[1] !== undefined ? [parts.slice(1)] : [])]
   for (const [hi, p] of heads.entries()) {
@@ -351,7 +352,8 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
         // (an answered call is one value a step, whatever its arguments: written f(...) or f())
         if (hit.role === 'answer' && next && 'call' in next && next.args) throw new LawError(`${code}(${next.args}): an answered call's value is the request's, one a step: write it ${code}(...)`)
         const segs = e.segs.slice(skip + n - 1 + (hit.role === 'answer' && next && 'call' in next ? 1 : 0))
-        return rest(segs, hit.map ? {t: 'map', n: hit, maps: names.filter(x => x.map && x.code === hit.code)} : leaf(hit, c, dry), c, names, dry, e)
+        // (a map read where it is named: old(m) is the map before the step wherever its cells are read, `k in old(m)`)
+        return rest(segs, hit.map ? {t: 'map', n: hit, maps: names.filter(x => x.map && x.code === hit.code), env: c.a} : leaf(hit, c, dry), c, names, dry, e)
       }
     }
   }
@@ -423,7 +425,7 @@ function storeKey(m: V & {t: 'map'}, k: X, c: Ctx, names: Name[], dry: boolean):
   const tpl = parts.join('')
   const hit = m.maps.find(x => x.map!.tpl === tpl) ?? (holes.length === 1 && tpl === '{}' && m.maps.length === 1 ? m.maps[0] : undefined)
   if (!hit || holes.length !== 1) throw new LawError(`${m.n.code}[${tpl}]: its keys are ${m.maps.map(x => JSON.stringify(x.map!.tpl!.replace('{}', '<key>'))).join(', ')}`)
-  return [{t: 'map', n: hit, maps: [hit]}, val(holes[0]!, c, names, dry)]
+  return [{t: 'map', n: hit, maps: [hit], ...(m.env ? {env: m.env} : {})}, val(holes[0]!, c, names, dry)]
 }
 
 // --- citations ---------------------------------------------------------------------------------------------------------

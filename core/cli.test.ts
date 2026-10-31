@@ -419,3 +419,66 @@ test('color on a terminal only, NO_COLOR over a terminal, FORCE_COLOR on, and th
   expect(json.stdout).not.toContain('\x1b[')
 }, 180_000)
 
+
+// Two classes of one Python file with no bases (`class X:`), each its laws: a field named `state` read bare, a set read
+// before the step (`k in old(s)`); a variant that breaks one comes back broken with its run.
+;(TOOLS.python!() ? test : test.skip)('the CLI on two classes with no bases: their laws by class, a field named state, k in old(s)', async () => {
+  const dir = files({'fate.py': `
+from typing import Literal
+
+
+class Fate:
+    # gdp: law modal only after tries strikes: state != "modal" or fails >= tries
+
+    def __init__(self, tries: int):
+        if tries < 1:
+            raise ValueError("tries")
+        self.tries = tries
+        self.state: Literal["queued", "placed", "modal"] = "queued"
+        self.fails = 0
+        self.vm = ""
+        self.avoid: set[str] = set()
+
+    def place(self, vm: str) -> None:
+        if self.state == "queued":
+            self.state = "placed"
+            self.vm = vm
+
+    # gdp: law one strike per VM: fails == old(fails) or vm not in old(avoid)
+    def failed(self, vm: str) -> None:
+        if self.state != "placed" or self.vm != vm:
+            return
+        self.state = "queued"
+        if vm in self.avoid:
+            return
+        self.avoid.add(vm)
+        self.fails += 1
+        if self.fails >= self.tries:
+            self.state = "modal"
+
+
+class Counter:
+    # gdp: law at most cap: n <= cap
+
+    def __init__(self, cap: int):
+        if cap < 0:
+            raise ValueError("cap")
+        self.cap = cap
+        self.n = 0
+
+    def hit(self) -> None:
+        if self.n < self.cap:
+            self.n += 1
+`})
+  const {rules, exit} = await check([`${dir}/fate.py`], {ms: 5000, propose: false})
+  expect(rules.map(r => [r.entry, r.laws.map(l => [l.name, l.verdict])])).toEqual([
+    ['Fate', [['modal only after tries strikes', 'proven'], ['one strike per VM', 'proven']]], ['Counter', [['at most cap', 'proven']]]])
+  expect(exit).toBe(0)
+  // (the strike charged whatever VM: the law about distinct VMs broken, with its run)
+  writeFileSync(`${dir}/fate.py`, readAdv(`${dir}/fate.py`, 'utf8').replace('        if vm in self.avoid:\n            return\n', ''))
+  const b = await check([`${dir}/fate.py`], {ms: 5000, propose: false})
+  const law = b.rules[0]!.laws.find(l => l.name === 'one strike per VM')!
+  expect(law.verdict).toBe('broken')
+  expect(law.run!.join('\n')).toMatch(/failed\(vm=/)
+  expect(b.exit).toBe(1)
+})
