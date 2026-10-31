@@ -56,7 +56,7 @@ image = (
     )
     .env({"PATH": "/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
     .add_local_file(GDP / "runs/modal/chc2/spacer-models-sat/models.jsonl", "/data/spacer-models.jsonl")
-    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "private/**",
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal", "private/**",
                                               "vendor/gdp-ts/**", "vendor/handwired/lab/**", "vendor/handwired/assets/**", "vendor/handwired/tests/**", "vendor/handwired/docs/**", "compare/**/*.js", "compare/**/out/**", "docs/**", "static/**", "lean-kernel/.lake/**"])
 )
 app = modal.App("gdp-wired-table", image=image)

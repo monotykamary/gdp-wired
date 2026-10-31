@@ -104,7 +104,7 @@ image = (
     .run_commands(f"python3 - <<'EOF'\n{CONVERT}\nEOF")
     .run_commands(f"python3 - <<'EOF'\n{WILD}\nEOF")
     .env({"PATH": "/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
-    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "private/**",
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal", "private/**",
                                               "vendor/**", "compare/**/*.js", "compare/**/out/**", "lean-kernel/**", "research/**", "static/**", "docs/**"])
 )
 app = modal.App("gdp-wired-tip", image=image)

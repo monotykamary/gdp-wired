@@ -313,7 +313,7 @@ def wait_running(ids: list[str], timeout: int = 600) -> dict:
 TOOLS = r"""
 sudo apt-get update -y -q
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q curl unzip git ca-certificates xz-utils zstd bzip2 coreutils python3-pip
-# as supercomputer/run.py's image: bun (the version that image has) and Lean 4.34.0 by elan
+# as modal/run.py's image: bun (the version that image has) and Lean 4.34.0 by elan
 curl -fsSL https://bun.sh/install | bash -s bun-v1.4.3
 curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain leanprover/lean4:v4.34.0
 ~/.elan/bin/lean --version

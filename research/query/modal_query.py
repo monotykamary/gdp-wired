@@ -42,7 +42,7 @@ for p in sorted(root.rglob('*'), reverse=True):
 """
 GOALS = MAIN / "runs" / "supercomputer" / "dag" / "goals"
 BASE = pathlib.Path(os.environ.get("GDP_QUERY_BASE", "/tmp/gdp-query-base"))
-IGNORE = ["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "private/**", "vendor/**",
+IGNORE = ["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal", "private/**", "vendor/**",
           "compare/**/*.js", "compare/**/out/**", "research/enum/**", "research/perf/bend-enum/**", "research/hw/**", "research/modal-gpu/**",
           "docs/**", "static/**", "**/lean-kernel/.lake/**", "research/extract/.cache/**", "**/.git"]
 

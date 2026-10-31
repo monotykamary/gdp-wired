@@ -28,7 +28,7 @@ image = (
         "/root/.elan/bin/lean --version",
     )
     .env({"PATH": "/root/.bun/bin:/root/.elan/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "BEND_NO_TELEMETRY": "1"})
-    .add_local_dir(GDP, "/src/gdp-wired", ignore=["**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "private/**",
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=["**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal", "private/**",
                                               "vendor/handwired/lab/ui-exploration/**", "vendor/handwired/lab/knuth-plass/**", "vendor/handwired/assets/**",
                                               "vendor/handwired/tests/**", "vendor/gdp-ts/examples/**", "compare/**/*.js", "compare/**/out/**"])
     .add_local_dir(BEND / "bend2", "/src/bend/bend2", ignore=["**/node_modules/**", "docs/**"])

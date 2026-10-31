@@ -297,7 +297,7 @@ def on_modal(items: list[dict], root: pathlib.Path, on_row) -> dict:
                     on_row(it, {"code": -1, "error": repr(res)[:400]} if isinstance(res, BaseException) else {"code": 0, "result": res, "where": "modal"})
     sh = [it for it in items if it["kind"] == "sh"]
     if sh:
-        run = import_real(root / "supercomputer" / "run.py")
+        run = import_real(root / ("supercomputer" if (root / "supercomputer" / "run.py").exists() else "modal") / "run.py")  # (a tree from before the rename)
         by = {it["name"]: it for it in sh}
         spec = [{"name": it["name"], "cmd": it["cmd"], "cwd": it.get("cwd", "."), "cpu": 2.0 * it.get("weight", 1), "memory": 4096 * it.get("weight", 1), "timeout": int(it["limit"]) + 30} for it in sh]
 
