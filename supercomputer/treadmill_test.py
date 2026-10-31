@@ -89,6 +89,8 @@ class FillYields(unittest.TestCase):
         b = self.soundness().batch(4, uncapped=True)
         self.assertIsNotNone(b)
         self.assertGreaterEqual(len(b.items), 4 * tm.SLOTS)
+
+
 # The eight regressions of 31 Oct's digest, each run again at both commits with the prover's work counted (kernel/prove.ts
 # fullWork, read at exit; quiet, two runs a side; a lost one also as four copies at once on its two vCPUs, the load the
 # treadmill's VMs may carry): (task, commit, against, wall seconds before and at it, the work of the commit before's
