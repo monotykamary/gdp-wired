@@ -198,10 +198,10 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
   })
   // (a relation written at a composed key N·a + b under a quantified flag that its row a (or column b) holds no cell:
   // at most one b a row (one a a column), K2's support the engine's cubes of two keys can't state, three keys read:
-  // one decision a node where a decision needs the node undecided)
+  // one decision a node where a decision needs the node undecided; a map a caller reads)
   const rowLaws: Law[] = Object.entries(m.step.maps ?? {}).flatMap(([mp, w]) => {
     const key = 'each' in w ? undefined : w.key
-    if (key?.op !== 'add' || key.a.op !== 'mul' || key.a.a.op !== 'var' || key.b.op !== 'var') return []
+    if (key?.op !== 'add' || key.a.op !== 'mul' || key.a.a.op !== 'var' || key.b.op !== 'var' || !caller.some(l => reads(l.holds, x => x === mp).size)) return []
     const n = key.a.k, row = key.a.a, col0 = key.b, cellAt = (p: E, q: E): E => ({op: 'get', map: mp, key: {op: 'add', a: {op: 'mul', k: n, a: p}, b: q}})
     const empty = (col: boolean) => Object.values(m.step.flags ?? {}).some(q => q.op === 'all' && !q.keys?.length && json(q.c).includes(json(col ? cellAt(v(q.key), col0) : cellAt(row, v(q.key)))))
     return [false, true].filter(empty).map((col): Law => {
