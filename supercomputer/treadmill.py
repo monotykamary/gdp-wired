@@ -3,7 +3,7 @@ queue and digest) with this repo's chains: a base pool of VMs kept busy with swe
 and the queue, every result cached by (commit, benchmark, task, config) so nothing unchanged runs twice, and a daily
 digest.
 
-    python3 supercomputer/treadmill.py run [--vms 8] [--hours 0] [--budget-vmh 384] [--quiet 1500] [--nogain 3]
+    python3 supercomputer/treadmill.py run [--vms 8] [--max-vms 32] [--step-vms 4] [--backlog-hours 2] [--budget-vmh auto] [--quiet 1500] [--nogain 3]
     python3 supercomputer/treadmill.py submit <jobs.json> [--tree DIR] [--name NAME]     a lane's (or terra's) batch
     python3 supercomputer/treadmill.py results <name> | status | digest [--day YYYY-MM-DD]
     (the same as `supercomputer treadmill run ...`, `supercomputer queue add|ls|results`, `supercomputer digest`)
@@ -307,8 +307,9 @@ class Treadmill(T.Treadmill):
 
     CLIENT = CLIENT
 
-    def __init__(self, vms: int, budget_vmh: float, quiet: int, nogain: int, benches: str = "", sample: int = 0, sound: bool = True, modal: bool = True, max_wait: int = 900):
-        super().__init__(vms, budget_vmh, quiet, modal, max_wait)
+    def __init__(self, vms: int, budget_vmh, quiet: int, nogain: int, benches: str = "", sample: int = 0, sound: bool = True, modal: bool = True, max_wait: int = 900,
+                 max_vms: int = 0, step_vms: int = 4, backlog_hours: float = 2.0):
+        super().__init__(vms, budget_vmh, quiet, modal, max_wait, max_vms, step_vms, backlog_hours)
         self.nogain = nogain
         self.benches = [b for b in benches.split(",") if b] or list(BENCHES)
         self.sample, self.sound_on = sample, sound
@@ -374,7 +375,7 @@ class Treadmill(T.Treadmill):
         return free
 
     def fill(self, free: int) -> int:
-        if free > 0 and self.sound_on and len(self.want("b")) < 1 + self.vms // 2:  # (b) fills the rest
+        if free > 0 and self.sound_on and len(self.want("b")) < 1 + self.floor_vms // 2:  # (b) fills the rest (the floor busy)
             b = self.sound.batch(min(free, 2))
             self.batches.append(b)
             free -= b.vms
@@ -441,9 +442,12 @@ def main(argv: list[str]):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run")
-    r.add_argument("--vms", type=int, default=8)
+    r.add_argument("--vms", type=int, default=8, help="the floor: VMs kept busy (the soundness fill keeping them so)")
+    r.add_argument("--max-vms", type=int, default=0, help="the ceiling of its growth on a backlog (default 4x the floor)")
+    r.add_argument("--step-vms", type=int, default=4, help="VMs added a step (one step per 5 minutes while the backlog lasts)")
+    r.add_argument("--backlog-hours", type=float, default=2.0, help="grow while the sweeps' and the queue's work would take longer on the floor")
     r.add_argument("--hours", type=float, default=0)
-    r.add_argument("--budget-vmh", type=float, default=384)
+    r.add_argument("--budget-vmh", default="auto", help="default-VM hours a day (a large VM counts 2); auto: the plan's prepaid hours left over the days to its period's end")
     r.add_argument("--quiet", type=int, default=1500)
     r.add_argument("--nogain", type=int, default=3)
     r.add_argument("--benches", default="", help="these benchmarks only (default: all)")
@@ -462,7 +466,7 @@ def main(argv: list[str]):
     s.add_argument("--day", default="")
     a = ap.parse_args(argv)
     if a.cmd == "run":
-        Treadmill(a.vms, a.budget_vmh, a.quiet, a.nogain, a.benches, a.sample, not a.no_soundness, not a.no_modal, a.max_wait).run(a.hours, digest)
+        Treadmill(a.vms, a.budget_vmh, a.quiet, a.nogain, a.benches, a.sample, not a.no_soundness, not a.no_modal, a.max_wait, a.max_vms, a.step_vms, a.backlog_hours).run(a.hours, digest)
     elif a.cmd == "submit":
         T.submit(a.jobs, a.tree, a.name)
     elif a.cmd == "results":
