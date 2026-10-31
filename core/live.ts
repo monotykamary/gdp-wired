@@ -172,7 +172,9 @@ export function leadsByTerms(m: Machine, laws: Law[], l: Liveness, draws: Draws,
   walk([l.from, l.to], o => { if (o.op === 'get' && !reads(o.key as E, [...m.inputs, ...Object.keys(m.state)]) && !id(o.key).includes('"op":"get"')) cells.set(id(o), o as unknown as E) })
   const controls = [...bounded(m, laws).map(v), ...cells.values()]
   let last: ReturnType<typeof proveLiveness> | undefined, best: E[] | undefined
-  for (let round = 0; round < 6 && until - clock() > 200; round++) {
+  // (the ranks alone until two thirds of the time are spent: the rest for the invariants the first one needs)
+  const ranksUntil = until - (until - clock()) / 3
+  for (let round = 0; round < 6 && ranksUntil - clock() > 200; round++) {
     const cands = [...controls.map(x => controlRank(x, (e, st, after) => value(e, st.ps, after ? st.t : st.s), steps)).filter((e): e is E => !!e), ...fixed]
     const vals = cands.map(e => steps.map(st => [value(e, st.ps, st.s), value(e, st.ps, st.t)] as const))
     const build = (banned: Set<number>): E[] | undefined => {
@@ -205,7 +207,7 @@ export function leadsByTerms(m: Machine, laws: Law[], l: Liveness, draws: Draws,
     if (!fresh.length) break
     let learnt = false
     for (const rank of fresh) {
-      const ms = until - clock()
+      const ms = ranksUntil - clock()
       if (ms < 200) break
       tried.add(id(rank)); best ??= rank
       last = withDeadline(clock() + ms / 3, () => proveLiveness(m, laws, {...l, rank}))
@@ -233,19 +235,27 @@ export function leadsByTerms(m: Machine, laws: Law[], l: Liveness, draws: Draws,
 
 // A leads-to refuted by a run: a stem (requests from the start, at `params`) to a state of the first of a ring of sets
 // where `from` holds and `to` doesn't; then round the ring forever: from each set R_j its request (a term per input over
-// the state and params; inputs left out are 0), which the kernel proves allowed in every state of R_j that is reachable
-// and taking it into R_{j+1} (R_n = R_0) with `from` kept and `to` not reached (kernel.ts's progressObligations). The run
-// is fair to a helpful request it takes in the ring (each named input the helpful one's term): so taken infinitely
-// often. One it never takes must be allowed nowhere in some set (weak fairness: never allowed throughout) or in every
-// set (strong: allowed only finitely often), each proven by the kernel as a step law with `then` false. The verdict
-// says which fairness the run keeps: 'every' (each helpful request taken infinitely often: a run of every notion),
-// 'strong' or 'weak'; the law is refuted where that covers the law's own (weak unless it says strong). Nothing is
-// trusted beyond the kernel's goals; the stem runs on the interpreter. Untrusted, as the rest of this file.
+// the state and params; inputs left out are 0), which the kernel proves allowed in every reachable state of R_j and
+// taking it into R_{j+1} (R_n = R_0) with `from` kept and `to` not reached (kernel.ts's progressObligations). Which of
+// Live.lean's fairness hypotheses the run meets, each helpful request h (its named inputs, its region W) checked:
+// - 'taken' (sleads_sound: h taken infinitely often): some R_j's request names h's inputs as h does;
+// - 'weak' (sleads_wf_soundA: h taken infinitely often where from some point on it is always allowed): taken, or in
+//   some R_j no request with h's named inputs is allowed (a step law whose `then` is false);
+// - 'strong' (sleads_sf_soundA: h taken in W infinitely often where it is allowed in W infinitely often): taken at some
+//   R_j inside W (R_j's own request allowed there, a step law with R_j's request outside W false), or in every R_j no
+//   request with h's named inputs is allowed in W.
+// "Allowed" is the machine's assumption: the condition `a` of the theorems the kernel's claims use (the machine's own,
+// or a sums rule's, which implies it where the machine is), so a request no state of R_j allows is not enabled there in
+// their sense either. The law is refuted when the run meets its fairness (strong where it says so, else weak). Nothing is
+// trusted beyond the kernel's goals; the params meet the precondition and the stem runs on the interpreter. Untrusted,
+// as the rest of this file.
 export type Ring = {params: Env, stem: Request[], sets: {holds: C, request: Record<string, E>}[]}
-export type RingVerdict = {refuted: boolean, fairness?: 'every' | 'strong' | 'weak', why?: string}
+export type Fairness = 'taken' | 'weak' | 'strong'
+export type RingVerdict = {refuted: boolean, fair?: Fairness[], why?: string}
 export function refutedBy(m: Machine, laws: Law[], l: Liveness, ring: Ring): RingVerdict {
   const run = interpret(m), helpful = livenessHelpful(l), n = ring.sets.length
   if (!n) return {refuted: false, why: 'no set'}
+  if (m.pre && !evalC(m.pre, ring.params, {scalars: {}, maps: {}}, m)) return {refuted: false, why: 'the params break the precondition'}
   let st = run.init(ring.params)
   for (const [i, req] of ring.stem.entries()) {
     if (!allowed(m, run, ring.params, st, req)) return {refuted: false, why: `the stem's request ${i + 1} is not allowed`}
@@ -260,18 +270,20 @@ export function refutedBy(m: Machine, laws: Law[], l: Liveness, ring: Ring): Rin
     const p = proveProgress(m, laws, {name: `${l.name}: ring ${j + 1}`, when: set.holds, then, request: full(set.request)})
     if (!p.proven || !p.checked) return {refuted: false, why: `ring ${j + 1}: its request not proven allowed and into the next set${p.failed ? ` (${p.failed.goal})` : ''}`}
   }
-  // each helpful request: taken in the ring, else where it is never allowed
-  const same = (a: unknown, b: unknown) => id(a) === id(b)
-  let fair: 'every' | 'strong' | 'weak' = 'every'
+  // "no allowed request from a state of R_j meets these": a step law whose `then` is false
+  const never = (what: string, ...cs: C[]) => { const r = proveStepLaws(m, laws, [{name: `${l.name}: ${what}`, when: {op: 'and', xs: cs}, then: falseC}]); return r.proven && r.checked }
+  const named = (req: Record<string, E>): C[] => Object.entries(req).map(([x, t]): C => ({op: '=', a: v(x), b: t}))
+  const fair = new Set<Fairness>(['taken', 'weak', 'strong'])
   for (const [i, h] of helpful.entries()) {
-    if (ring.sets.some(set => Object.entries(h.request).every(([x, t]) => same(full(set.request)[x], t)))) continue
-    const off = ring.sets.map(set => { const r = proveStepLaws(m, laws, [{name: `${l.name}: helpful request ${i + 1} not allowed`, when: {op: 'and', xs: [set.holds, ...Object.entries(h.request).map(([x, t]): C => ({op: '=', a: v(x), b: t}))]}, then: falseC}]); return r.proven && r.checked })
-    if (off.every(Boolean)) fair = fair === 'every' ? 'strong' : fair
-    else if (off.some(Boolean)) fair = 'weak'
-    else return {refuted: false, why: `helpful request ${i + 1} is not taken in the ring and not shown never allowed in any set`}
+    const takes = ring.sets.map(set => Object.entries(h.request).every(([x, t]) => id(full(set.request)[x]) === id(t)))
+    if (!takes.some(Boolean)) fair.delete('taken')
+    if (!takes.some(Boolean) && !ring.sets.some(set => never(`helpful request ${i + 1} not allowed`, set.holds, ...named(h.request)))) fair.delete('weak')
+    if (!ring.sets.some((set, j) => takes[j] && never(`helpful request ${i + 1} taken in its region`, set.holds, {op: 'not', x: h.when}, ...named(full(set.request))))
+      && !ring.sets.every(set => never(`helpful request ${i + 1} not allowed in its region`, set.holds, h.when, ...named(h.request)))) fair.delete('strong')
+    if (!fair.size) return {refuted: false, fair: [], why: `helpful request ${i + 1}: the run is fair to it under no notion`}
   }
-  const refuted = l.fairness === 'strong' ? fair !== 'weak' : true
-  return {refuted, fairness: fair, ...(refuted ? {} : {why: 'the run is fair only weakly; the law is under strong fairness'})}
+  const want: Fairness = l.fairness === 'strong' ? 'strong' : 'weak', out = [...fair]
+  return {refuted: fair.has(want), fair: out, ...(fair.has(want) ? {} : {why: `the run is not ${want}ly fair`})}
 }
 
 // A ring of one set, found: a state the runs reach where `from` holds and `to` doesn't and the helpful requests taken in
@@ -286,8 +298,8 @@ export function findRing(m: Machine, laws: Law[], l: Liveness, draws: Draws, opt
   const pending = (ps: Env, st: State) => holds(l.from, ps, st) === true && holds(l.to, ps, st) === false
   const full = (r: Record<string, E>) => Object.fromEntries(m.inputs.map(i => [i, r[i] ?? k(0)]))
   const concrete = (r: Record<string, E>, ps: Env, st: State): Request => Object.fromEntries(Object.entries(full(r)).map(([i, t]) => [i, evalE(t, env(ps, st), st, m)]))
-  // A state where `from` holds and `to` doesn't, then the helpful requests allowed taken in turn, a hundred laps (the
-  // time passing them, every deadline the params allow passed), never reaching `to`: the state the laps end at.
+  // A state where `from` holds and `to` doesn't, then the helpful requests allowed taken in turn, up to 3,000 steps (the
+  // time passing in them, every deadline small params allow passed), never reaching `to`: the state they end at.
   let found: {ps: Env, stem: Request[], st: State, hs: number[]} | undefined
   const allowedAt = (ps: Env, st: State) => helpful.flatMap((h, i) => { try { return allowed(m, run, ps, st, concrete(h.request, ps, st)) ? [i] : [] } catch { return [] } })
   for (let trial = 0; trial < 400 && !found && clock() < until; trial++) {
@@ -298,7 +310,7 @@ export function findRing(m: Machine, laws: Law[], l: Liveness, draws: Draws, opt
       if (turn > 0 && pending(ps, st)) {
         let s2: State | undefined = st
         const laps: Request[] = []
-        for (let lap = 0; lap < 100 && s2; lap++) for (const i of allowedAt(ps, s2)) {
+        for (let lap = 0; lap < 1000 && s2 && laps.length < 3000; lap++) for (const i of allowedAt(ps, s2)) {
           if (!s2) break
           const req = concrete(helpful[i]!.request, ps, s2)
           if (!allowed(m, run, ps, s2, req)) continue

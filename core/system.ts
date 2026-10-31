@@ -330,7 +330,8 @@ export const time = (now = 'now', by = 'dt'): Machine => modelled({name: 'time',
 // A node's clock within `skew` of the true time: m's request time (the input `at`, as the readers read time.time(),
 // Instant::now() and the like) is any reading t with now − skew ≤ t ≤ now + skew. A reading need not rise from the
 // last: more runs than a monotonic clock's, so a proof holds for those too. `skew` is a constant or a param's name (a
-// param of the rule then); Infinity is no bound (the reading any natural, `now` still read by the rule's other terms).
+// param of the rule then); 0 is the time itself (`at` replaced by `now`, no longer an input); Infinity is no bound (the
+// reading any natural).
 export const SKEW = (skew: number | string): Model => ({name: `clock skew ${skew === Infinity ? 'unbounded' : `≤ ${skew}`}`,
   assumes: skew === Infinity ? 'a node\'s clock may read any time at all' : `every reading of a node's clock is within ${skew} of the true time, either way; readings need not rise`,
   checked: 'the deployment\'s bound (NTP or PTP discipline and its alarm, e.g. chrony\'s maxdistance): stated, not checked here'})
@@ -341,11 +342,16 @@ export function clocked(m: Machine, at: string, skew: number | string, now = 'no
   if (m.step.state?.[now]) throw new Error(`clocked: ${m.name} writes ${now}; the time is the environment's`)
   if (typeof skew === 'number' && skew !== Infinity && !(Number.isSafeInteger(skew) && skew >= 0)) throw new Error(`clocked: a skew is a natural, a param's name or Infinity`)
   const eps: E = typeof skew === 'string' ? x(skew) : n(skew as number), t = x(at), tn = x(now)
-  const bound = skew === Infinity ? [] : [atMost(t, plus(tn, eps)), atMost(tn, plus(t, eps))]
+  const bound = skew === Infinity || skew === 0 ? [] : [atMost(t, plus(tn, eps)), atMost(tn, plus(t, eps))]
+  // (no skew: the reading is the time itself, the input gone)
+  const {E: S, C, W} = mapper(m, skew === 0 ? {[at]: tn} : {}, f => f), assume = m.assume && C(m.assume)
   const out: Machine = {
     ...m, params: typeof skew === 'string' && !m.params.includes(skew) ? [...m.params, skew] : m.params,
+    inputs: skew === 0 ? m.inputs.filter(i => i !== at) : m.inputs,
     state: {...m.state, [now]: m.state[now] ?? n(0)},
-    ...(bound.length || m.assume ? {assume: all(...(m.assume ? [m.assume] : []), ...bound)} : {}),
+    step: {flags: mapValues(m.step.flags, C), state: mapValues(m.step.state, S), maps: mapValues(m.step.maps, W)},
+    ...(bound.length || assume ? {assume: all(...(assume ? [assume] : []), ...bound)} : {}),
+    ...(m.pre ? {pre: m.pre} : {}),
   }
   from(out, m, SKEW(skew))
   sharedOf.set(out, [...new Set([...(sharedOf.get(m) ?? []), now])])

@@ -1114,6 +1114,13 @@
 "timeout": 1800
 },
 {
+"name": "system",
+"cmd": "bun test system.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
 "name": "liveness",
 "cmd": "bun test liveness.test.ts 2>&1 && cd .. && bun examples/liveness.ts 2>&1",
 "cwd": "core",
@@ -1216,6 +1223,13 @@
 "cwd": "core",
 "cpu": 1.0,
 "timeout": 900
+},
+{
+"name": "lean-keyed",
+"cwd": "lean-kernel",
+"cpu": 2.0,
+"timeout": 900,
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets History Live; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } || exit 3; done; bun ../research/distributed/lean.ts > Keyed.lean 2> keyed.err || { grep -v '^cyclic:' keyed.err; exit 4; }; grep -v '^cyclic:' keyed.err; lean Keyed.lean 2>&1 | grep -v linter | tail -8; s=${PIPESTATUS[0]}; grep -c '_live0_holds' Keyed.lean; echo lean-exit $s; exit $s"
 },
 {
 "name": "lean-sums",

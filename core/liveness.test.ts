@@ -137,7 +137,7 @@ const settled = (r: ReturnType<typeof orders>) => r.leadsTo('every order placed 
 test('a liveness about every key: its key a fresh param no step reads, refused without it; the stalling variant refuted by a fair ring', () => {
   const r = orders(), l = settled(r)
   expect(l.forall).toMatch(/^key\$/)
-  expect(keyed(r, l).machine.params).toEqual([l.forall])
+  expect(keyed(r, l).machine.params).toEqual([l.forall!])
   expect(() => proveLiveness(r.machine, [], l)).toThrow()
   expect(proveLeadsTo(r, [], l, {ms: 10_000})).toMatchObject({proven: true, checked: true})
   // not refuted where it holds: no ring
@@ -145,7 +145,7 @@ test('a liveness about every key: its key a fresh param no step reads, refused w
   const bad = orders(true), lb = settled(bad)
   expect(proveLeadsTo(bad, [], lb, {ms: 5000}).proven).toBe(false)
   const f = refuteLeadsTo(bad, [], lb, {ms: 10_000})
-  expect(f?.verdict).toEqual({refuted: true, fairness: 'every'})
+  expect(f?.verdict).toEqual({refuted: true, fair: ['taken', 'weak', 'strong']})
   // the stem and one lap on the interpreter: the order stays placed
   const m = keyed(bad, lb).machine, run = interpret(m), ps = f!.ring.params
   let st = run.init(ps)

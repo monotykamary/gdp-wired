@@ -1431,7 +1431,8 @@ export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sample
   const ms = until - clock()
   if (ms > 300) {
     const {stay, cover, helps} = livenessParts(m, lv), inf = inferLaws(sample.rule ?? m, laws, [stay, cover, ...helps], {ms})
-    const kept = inf.found.filter(f => !f.law.forall && !f.law.keys?.length), more = kept.map(f => f.law)
+    // (laws about every key too: a liveness about every key needs those of its key's cells)
+    const kept = inf.found.filter(f => !f.law.some?.length), more = kept.map(f => f.law)
     if (inf.proven && more.length) {
       const again = withDeadline(until + 5000, () => proveLiveness(m, [...laws, ...more], lv))
       if (again.proven && again.checked) return {proven: true, checked: true, rank, laws: more, found: {rank: text, laws: kept.map(f => f.text)}}

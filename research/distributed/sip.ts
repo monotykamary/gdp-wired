@@ -136,7 +136,8 @@ export const transactions = (kind: keyof typeof KINDS, skew: number | string = 0
 // of the far end's or the TU's final response in the states no timer ends.
 export function terminates(kind: keyof typeof KINDS, r: ReturnType<typeof transactions>, answered: boolean): KeyedLiveness {
   const s = KINDS[kind]!, ev = (e: string) => s.events.indexOf(e)
-  const fire = (k: Env, e: string, b: Env) => ({act: 1, tx: k, ev: ev(e), t: b.now})
+  // (the clock's reading left free: with no skew it is the time itself)
+  const fire = (k: Env, e: string, _b: Env) => ({act: 1, tx: k, ev: ev(e)})
   return r.leadsTo(`every ${kind} eventually terminates${answered ? ' (the final response comes)' : ''}`, {
     from: ({st}: Env, k) => inS(st.at(k), ...s.live), to: ({st}: Env, k) => st.at(k).eq(S.terminated),
     helpful: [
@@ -159,7 +160,7 @@ if (import.meta.main) {
       if (verdict !== 'proven') {
         // a fair run that never terminates: found from the runs, its ring checked by the kernel
         const t1 = performance.now(), f = refuteLeadsTo(r, [], l, {ms})
-        console.log(`    a fair run that never gets there: ${f ? (f.verdict.refuted ? `refuted, fair ${f.verdict.fairness === 'every' ? 'to every helpful request' : `${f.verdict.fairness}ly`}` : `not shown (${f.verdict.why})`) : 'none found'} | ${Math.round(performance.now() - t1)} ms`)
+        console.log(`    a fair run that never gets there: ${f ? (f.verdict.refuted ? `refuted, the run fair: ${f.verdict.fair!.join(', ')}` : `not shown (${f.verdict.why})`) : 'none found'} | ${Math.round(performance.now() - t1)} ms`)
         if (f?.verdict.refuted) console.log(`      stem ${JSON.stringify(f.ring.stem)} at ${JSON.stringify(f.ring.params)}; ring: ${f.ring.sets.map(x => `${JSON.stringify(x.request)} from ${JSON.stringify(x.holds)}`).join(' ; ')}`)
       }
     }

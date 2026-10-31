@@ -66,7 +66,7 @@ export const published = (r: ReturnType<typeof outbox>): KeyedLiveness => r.lead
   from: ({Outbox}: Env, k) => Outbox.at(k).eq(1), to: ({Q}: Env, k) => Q.at(k).eq(1), helpful: (_: Env, k) => ({act: ACT.relay, msg: k})})
 export const handled = (r: ReturnType<typeof outbox>): KeyedLiveness => r.leadsTo('every outbox row is eventually handled by the consumer', {
   from: ({Outbox}: Env, k) => Outbox.at(k).atLeast(1), to: ({Done}: Env, k) => Done.at(k).eq(1),
-  helpful: [{when: ({Q}: Env, k) => Q.at(k).eq(0), request: (_: Env, k) => ({act: ACT.relay, msg: k})}, {when: ({Q}: Env, k) => Q.at(k).eq(1), request: (_: Env, k) => ({act: ACT.consume, msg: k})}]})
+  helpful: [{when: ({Outbox, Q}: Env, k) => Outbox.at(k).eq(1).and(Q.at(k).eq(0)), request: (_: Env, k) => ({act: ACT.relay, msg: k})}, {when: ({Q}: Env, k) => Q.at(k).eq(1), request: (_: Env, k) => ({act: ACT.consume, msg: k})}]})
 export const marked = (r: ReturnType<typeof outbox>, fairness: 'weak' | 'strong'): KeyedLiveness => r.leadsTo('every outbox row is eventually marked published', {
   from: ({Outbox}: Env, k) => Outbox.at(k).eq(1), to: ({Outbox}: Env, k) => Outbox.at(k).eq(2), fairness,
   helpful: [{when: ({InFlight}: Env, k) => InFlight.at(k).eq(0), request: (_: Env, k) => ({act: ACT.relay, msg: k})}, {when: ({InFlight}: Env, k) => InFlight.at(k).eq(1), request: (_: Env, k) => ({act: ACT.mark, msg: k})}]})
@@ -91,7 +91,7 @@ if (import.meta.main) {
       if (!(v.proven && v.checked)) {
         console.log(`    ${v.goal ?? ''} ${v.stuck ?? ''} ${v.why ?? ''}`)
         const f = refuteLeadsTo(r, [], l, {ms})
-        console.log(`    a ring of one set from the runs: ${f ? (f.verdict.refuted ? `refuted (${f.verdict.fairness})` : `not shown (${f.verdict.why})`) : 'none found'}`)
+        console.log(`    a ring of one set from the runs: ${f ? (f.verdict.refuted ? `refuted, fair: ${f.verdict.fair!.join(', ')}` : `not shown (${f.verdict.why})`) : 'none found'}`)
       }
     }
     // "eventually marked" under weak fairness: a fair run that never gets there. The app sends row 0; then round a ring of
@@ -110,7 +110,7 @@ if (import.meta.main) {
     for (const fairness of ['weak', 'strong'] as const) {
       const l = marked(r, fairness), {m, ring} = ringFor(l)
       const [rv, rt] = timed(() => refutedBy(m, [], l, ring))
-      console.log(`outbox | ${l.name} (${fairness} fairness) | the ring publish, crash: ${rv.refuted ? `refuted, a run fair ${rv.fairness === 'every' ? 'to every helpful request' : rv.fairness}ly` : `no counterexample (${rv.why})`} | ${rt} ms`)
+      console.log(`outbox | ${l.name} (${fairness} fairness) | the ring publish, crash: ${rv.refuted ? 'refuted' : `no counterexample (${rv.why})`}, the run fair: ${(rv.fair ?? []).join(', ') || 'none'} | ${rt} ms`)
     }
   }
 }
