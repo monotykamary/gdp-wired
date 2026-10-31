@@ -1087,7 +1087,13 @@ const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[], byM
 // them (each read at t ∸ c, c ≤ t a further hypothesis: the same law over the naturals), and `back`, a tuple of its keys
 // made a tuple of the law's (each fixed key at its t). A law with five keys of which two a cell fixes (Table[a·N + k] =
 // v + 1) has its instances over three. Untrusted: it chooses instances only.
+const fixedMemo = new WeakMap<Law, {law: Law, back: (t: E[]) => E[]}>()
 function fixedOut(l: Law): {law: Law, back: (t: E[]) => E[]} {
+  let out = fixedMemo.get(l)
+  if (!out) fixedMemo.set(l, (out = fixedOut0(l)))
+  return out
+}
+function fixedOut0(l: Law): {law: Law, back: (t: E[]) => E[]} {
   const all = [l.forall!, ...(l.keys ?? [])], same = {law: l, back: (t: E[]) => t}
   const hyps = l.holds.op === 'or' ? l.holds.xs.flatMap(d => (d.op === 'not' ? (d.x.op === 'and' ? d.x.xs : [d.x]) : [])) : []
   const named = (e: E, x: string) => JSON.stringify(e).includes(`"name":${JSON.stringify(x)}`)
