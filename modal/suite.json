@@ -539,7 +539,7 @@
 },
 {
 "name": "check",
-"cmd": "bun install >/dev/null 2>&1; echo TSC; bunx tsc -p . 2>&1 | grep \"error TS\"; t=${PIPESTATUS[0]}; echo LINT; bunx oxlint --type-aware --deny-warnings --disable-nested-config 2>&1 | grep -E \"^  [x!] |,-\\[|Found\"; l=${PIPESTATUS[0]}; echo \"tsc=$t lint=$l\"; [ $t = 0 ] && [ $l = 0 ]",
+"cmd": "bun install >/dev/null 2>&1; echo TSC; bunx tsc -p . 2>&1 | grep \"error TS\"; t=${PIPESTATUS[0]}; echo BUILD; bunx tsc -p tsconfig.build.json --noEmit 2>&1 | grep \"error TS\"; b=${PIPESTATUS[0]}; echo LINT; bunx oxlint --type-aware --deny-warnings --disable-nested-config 2>&1 | grep -E \"^  [x!] |,-\\[|Found\"; l=${PIPESTATUS[0]}; echo \"tsc=$t build=$b lint=$l\"; [ $t = 0 ] && [ $b = 0 ] && [ $l = 0 ]",
 "cwd": ".",
 "cpu": 4.0,
 "memory": 8192,
