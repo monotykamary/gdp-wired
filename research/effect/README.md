@@ -77,11 +77,53 @@ Read (core/effect.ts, through core/extract-shapes.ts's factory reader and core/e
 | `conforms(rule, service)`: a rule by hand beside the running service | the quota, Semaphore, RateLimiter store, T3 Code | Semaphore |
 | `fromSchema`: Struct, Literal(s), tagged Union, Int (and ≥ 0), Boolean, String, NullOr, optional, Class | tested | tested |
 
-Refused, with the reason where it is: a failure after a Ref changed on that path (the Ref keeps it), combinators in
-pipes (retry, catch, timeout, forks: their effects aren't read), Match, unions of records as state (Data.TaggedEnum,
-Schema unions), STM (3.x's TRef), Refs held in values or made in a step, services and other effects yielded inside a
-method or while the service is made (Random, DateTime, a service tag), optional arguments, and everything core/extract.ts
-refuses (floats, loops, template strings, other modules' code).
+Refused, with the reason where it is: a failure after a Ref changed on that path outside a transaction (the Ref keeps
+it), combinators in pipes other than retry, repeat and STM.commit (catch, timeout, forks: their effects aren't read),
+Match, unions of records as state (Data.TaggedEnum, Schema unions), Refs held in values or made in a step, services and
+other effects yielded inside a method or while the service is made (Random, DateTime, a service tag), optional
+arguments, and everything core/extract.ts refuses (floats, loops, template strings, other modules' code).
+
+### Schedules, retries and transactions (2026-11-01)
+
+Effect 4.0.7's Schedule (src/Schedule.ts) is a step function of (now, input) returning an output and a delay or Done,
+its metadata (attempt from 1, elapsed from the first step) counted per wrapper; 3.22.4's (src/internal/schedule.ts) a
+state and a step returning a decision of intervals. The combinators differ by line: 4.x has min/max where 3.x has
+union/intersect, concat for andThen, `while` over the metadata for whileInput/whileOutput, `upTo({times, duration})`
+(at most the duration) where 3.x's `upTo(duration)` stops at it (below it), `during`; 3.x has linear, jitteredWith,
+check, recurUpTo, stop. Both draw a jitter as `d·0.8·(1 − r) + d·1.2·r`. core/effect-schedule.ts reads each into a
+fragment of one machine (its state beside the others', a context of its own attempts and elapsed time, under andThen
+counted from where the second schedule starts), and the rule steps them all once per decision:
+
+| Read | 4.0.7 | 3.22.4 |
+| --- | --- | --- |
+| spaced, recurs, forever, once, exponential (whole factor; `recur`), fibonacci, fromDelay/duration | tested | tested |
+| linear, recurUpTo, stop | not in 4.x | tested |
+| during | tested | not in 3.x |
+| union, either, intersect, zipLeft, zipRight / min, max | min, max tested | tested |
+| andThen / concat | concat tested | andThen tested |
+| upTo | {times, duration} tested | duration tested |
+| whileInput, whileOutput, untilInput, untilOutput, check / while (input, output, attempt, elapsed, duration) | tested | tested |
+| addDelay, modifyDelay (Duration's arithmetic, Math.min/max, Effect.succeed) | tested | tested |
+| jittered, jitteredWith | jittered tested | both tested |
+| a tagged error, a number, a boolean or a string choice as the input | tested | tested |
+| Effect.retry / Effect.repeat inside a method (a schedule, or {times, schedule, while, until}) | tested | tested |
+| TxRef in Effect.tx, Effect.txRetry / TRef in STM.gen, STM.commit, STM.check, STM.retry, STM.fail | tested | tested |
+| a method of several transactions as every fiber's steps (`lift`) | tested | tested |
+
+The check steps Effect's own schedule (4.x `Schedule.toStep` read through `Pull.matchEffect`; 3.x `schedule.step` and
+`ScheduleIntervals.start`), Effect's Random answered so each jitter draws the rule's delay (4.x `Random.Random`'s
+`nextDoubleUnsafe`, 3.x `Effect.withRandom`). For services, the runner's Clock now also sleeps at once (moving its time
+on by the duration), so a retry's or repeat's waits run synchronously; a transaction left waiting is interrupted (4.x
+`interruptUnsafe` on the AsyncFiberError's fiber; 3.x run on a SyncScheduler of its own, flushed until the fiber is done
+or interrupted), since it would otherwise wake and commit inside a later request.
+
+Refused, with the reason where it is: a factor that isn't a whole number, a duration of a fraction of a millisecond,
+cron, fixed, windowed, map, tap, a subtraction in a schedule's function, the output of a combination read, the metadata's
+now, start and elapsedSincePrevious, an input of another type (a Date), a schedule's parameter read twice in a pipe's
+function; in a method, a retry whose policy never stops, the clock read in what is retried or repeated, a repeat whose
+policy reads the effect's result or whose value is used, more than 17 runs of a repeat, a policy reading the service's
+params, a clock read after a repeat that waits; in a split method, a transaction that fails in a later step, a name
+carried as a pattern, two state effects in one statement.
 
 The check runs the code on the Effect given: the service made by `Effect.runSyncExit`, each request run the same way
 with a Clock fixed at the request's time (4.x's `TestClock.setTime` yields to its scheduler, which `runSync` can't run:

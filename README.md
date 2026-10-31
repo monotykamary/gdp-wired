@@ -171,7 +171,13 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   whose make effect creates Refs (Ref, SynchronizedRef, SubscriptionRef, 4.x's TxRef) and returns an object of methods
   (`Effect.fn` bodies, arrows returning an effect), with typed failures as its refusals and `Clock.currentTimeMillis` as
   an input; the rule is checked by running the service on Effect's runtime (the `effect` the file's project has,
-  `Effect.runSyncExit`, the clock fixed at each request's time), every Ref, result and failure compared. `conforms(rule, service)` runs a rule written by hand
+  `Effect.runSyncExit`, the clock fixed at each request's time), every Ref, result and failure compared. Transactions
+  (3.x STM's TRef, 4.x `Effect.tx` over TxRefs) are atomic steps, waits (`STM.check`, `Effect.txRetry`) their guards,
+  and a method of several transactions is every fiber's steps (core/system.ts's `lift`), so a lost update comes back as
+  a run of two fibers; `Effect.retry` and `Effect.repeat` inside a method are part of its step. A `Schedule` is a rule of
+  its decisions (attempt, retries, delay, elapsed, done; exponential a `recur` function, jitter an input within its
+  range), every combinator a fragment of one machine, checked by stepping Effect's own schedule
+  (`examples/effect-retry.ts`, `examples/effect-stm.ts`). `conforms(rule, service)` runs a rule written by hand
   beside a running service (Effect's own Semaphore, a store), and `fromSchema(schema)` is a Schema's kind
   (`examples/effect.ts`; what is read and refused, with what Effect projects write, in `research/effect/README.md`).
 - **What nobody stated, looked for when the prover alone stops**: where `proveRule` or `proveSteps` doesn't prove the laws
