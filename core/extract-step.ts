@@ -416,12 +416,12 @@ export class Stepper {
   // (Model's folds: the start at 0, the step at every i$ below the length), so after the loop each one is its cell at
   // the length: exact for every length, no pass unrolled. A pass that writes the state, reads an answer (one a pass) or
   // raises out of the loop to a try around it is refused.
-  carriedOf(v: V, p: Path): MapDecl | undefined { const o = v.t === 'ref' ? p.heap.get(v.id) : undefined; if (o?.k !== 'map' || !o.decl.carried) return undefined; this.used.add(o.decl.name); return o.decl }
   // A list a loop may run over: one the request carries (every place below its length held) or one of the state (its
   // places up to its last, each where it holds an item: its least key's, read in the state before the step).
-  listOf(v: V, p: Path, at: SX): {id: string, o: Extract<Obj, {k: 'map'}>, len: N, held: (k: K) => B} | undefined {
+  // (carried: only one the request carries, whose length is an input: its len() and its truth)
+  listOf(v: V, p: Path, at: SX, carried = false): {id: string, o: Extract<Obj, {k: 'map'}>, len: N, held: (k: K) => B} | undefined {
     const o = v.t === 'ref' ? p.heap.get(v.id) : undefined
-    if (o?.k !== 'map' || !(o.decl.carried || (o.decl.ordered && o.origin === 'state'))) return undefined
+    if (o?.k !== 'map' || !(o.decl.carried || (!carried && o.decl.ordered && o.origin === 'state'))) return undefined
     this.used.add(o.decl.name)
     if (o.decl.carried) return {id: (v as {id: string}).id, o, len: I.nvar(`${o.decl.name}_len`), held: () => I.T}
     const last = this.least(o, at, k => this.baseCell(o.decl, k).has, k => [{e: (k as {e: N}).e, desc: true}])
@@ -673,8 +673,8 @@ export class Stepper {
       case 'opt': return I.and(v.has, this.truthy(v.v, at, p))
       case 'ref': {
         // (a list the request carries: whether it has an item)
-        const cl = p && this.carriedOf(v, p)
-        if (cl) return I.cmp('<', I.num(0), I.nvar(`${cl.name}_len`))
+        const cl = p && this.listOf(v, p, at as SX, true)
+        if (cl) return I.cmp('<', I.num(0), cl.len)
         // An object is true unless its class (or a base) defines __bool__ or __len__; a dict's truth is whether it is
         // empty, which the subset doesn't read.
         const o = (p?.heap ?? this.initHeap).get(v.id)
@@ -2061,7 +2061,8 @@ export class Stepper {
       if (args.some(a => a.t === 'opaque') && ['str', 'repr', 'len', 'isinstance', 'round', 'int', 'float', 'bool'].includes(n)) { const ask = args.find(a => a.t === 'opaque' && a.ask) as {why: string, ask: string} | undefined; return [{t: 'opaque', why: `${x.text}: of a value outside the subset${ask ? ` (${ask.why})` : ''}`, ...(ask ? {ask: ask.ask} : {})}, q] }
       const v = args[0]
       // (a list the request carries: its length, an input)
-      if (n === 'len' && v?.t === 'ref' && this.carriedOf(v, q)) return [{t: 'num', e: I.nvar(`${this.carriedOf(v, q)!.name}_len`)}, q]
+      const cl = v && this.listOf(v, q, x, true)
+      if (n === 'len' && cl) return [{t: 'num', e: cl.len}, q]
       switch (n) {
         case 'min': case 'max': {
           if (args.length < 2) return refuse(x, `${x.text}: ${n} of an iterable`)
