@@ -103,7 +103,7 @@ class ModalCtx:
 
 # ------------------------------------------------------------------------------------------------- modal/run.py jobs
 def run_jobs(app, spec: list[dict], out: str, pre: str, cmd, modal_jobs, backend: str = "modal", vms: int = 0, idle: int | None = None, teardown: bool = False,
-             durations: str = "", vm_type: str = "large", max_vms: int = 0, max_wait: int = 120):
+             durations: str = "", vm_type: str = "large", max_vms: int = 0, max_wait: int = 120, tar: bytes | None = None):
     """modal/run.py's batch on its backend. modal_jobs(jobs, on_done) runs jobs on Modal (inside the running app)
     and returns {name: {code, seconds, out, err}}. Writes <out>/<name>.log and <out>/summary.tsv (name, exit,
     seconds, backend) and prints modal/run.py's final line, with where the jobs ran and why any moved."""
@@ -132,7 +132,7 @@ def run_jobs(app, spec: list[dict], out: str, pre: str, cmd, modal_jobs, backend
         reason, info = boat.preflight(1, vm_type) if backend == "auto" else (None, {})
         if reason is None:
             got, bsum = boat.boat_jobs([j for j in spec if j not in own], out, pre, cmd, vms=vms, idle=idle, teardown=teardown, durations=durations, vm_type=vm_type, max_vms=max_vms,
-                                       on_lost=(lambda n, why: moved.__setitem__(n, why)) if backend == "auto" else None, max_wait=max_wait if backend == "auto" else 0, on_done=printer)
+                                       on_lost=(lambda n, why: moved.__setitem__(n, why)) if backend == "auto" else None, max_wait=max_wait if backend == "auto" else 0, on_done=printer, tar=tar)
             rows.update(got)
             where.update({n: "boat" for n in got})
         else:

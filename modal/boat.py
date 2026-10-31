@@ -15,10 +15,10 @@ limits (`boat limits`: active VMs, starts per minute, hour and day), and release
 holds has a TTL renewed while the client lives (a VM whose client died stops by itself within 15 minutes); a released
 VM's TTL is the idle time, after which boat stops it.
 
-Starts are what the plan rations (a resume is one), and the account shares them with another project: we spend at
-most CEIL of the plan's FREE starts (half of its day, 40% of its hour, 25 a minute; extra starts stay off),
-never the reserve (60 a day, 15 an hour, or twice what the other project used in the last day and hour, if more), and
-a batch at most a share of what's left (budget()). VMs are large (4 slots a start). A tiny batch (TINY) runs on a VM
+Starts are what the plan rations (a resume is one), and the account shares them with another project: we spend
+within the limits in force (the free ones, or the wallet's with extra starts on: effective()), never the reserve (60 a
+day, 15 an hour, or twice what the other project used in the last day and hour, if more), and a batch at most a share
+of what's left (budget()). VMs are large (4 slots a start). A tiny batch (TINY) runs on a VM
 that's already up, else on Modal. With no start left a batch waits for released VMs within --max-wait, then goes to
 Modal. Every start is noted in the registry and every batch in the ledger (LIVE/boat-starts.jsonl; `starts`).
 
@@ -70,11 +70,12 @@ BACKSTOP = 900  # the TTL a held VM keeps renewing: a VM whose client is gone st
 # project may need, twice what it used in the last day (hour): the account's used starts less ours (the registry's).
 RESERVE_DAY = int(os.environ.get("GDPW_BOAT_RESERVE_DAY", "60"))
 RESERVE_HOUR = int(os.environ.get("GDPW_BOAT_RESERVE_HOUR", "15"))
-# and our own ceiling on the plan's FREE starts (extra starts stay off): a share of its day and of its hour, and so
-# many a minute. research/boat-starts/week-500.txt: the week of 10-28 asks more than any ceiling, so we spend exactly
-# it; at half the day (840) the pool does more of that work on boat than today's policy at 1,600, for less Modal; a
-# quarter (GDPW_BOAT_CEIL=0.25,0.2,15) does 86% of it, for 16% more Modal and slower big fan-outs
-CEIL = [float(x) for x in os.environ.get("GDPW_BOAT_CEIL", "0.5,0.4,25").split(",")]
+# The plan's limits are its free starts and, with extra starts on (`boat limits` keepGoing, $0.03-0.07 each past the
+# free ones, capped a month), the wallet's: up to 6x the day and hour, 3x the minute. No ceiling of our own (the user,
+# 10-31: the overage is there to use; research/boat-starts/week-500.txt measured ceilings); GDPW_BOAT_CEIL=day,hour,min
+# shares of the free limits sets one. ALERT_DOLLARS: `starts` (and the treadmill's digest) warn past this month's.
+CEIL = [float(x) for x in os.environ["GDPW_BOAT_CEIL"].split(",")] if os.environ.get("GDPW_BOAT_CEIL") else None
+ALERT_DOLLARS = 50
 # How a batch spends the plan's starts (research/boat-starts: the simulation of today's mix and the runs that chose
 # it). GDPW_BOAT_POLICY=old restores the policy before, to compare: as many VMs as speed a batch up, no waiting for a
 # released VM when no start is left.
@@ -166,13 +167,23 @@ def limits() -> dict:
     return bj("limits")
 
 
+def effective(lim: dict) -> dict:
+    """The starts' limits in force: the free ones, or the wallet's while extra starts are on and under their cap."""
+    st, kg, w = lim["starts"], lim.get("keepGoing") or {}, lim.get("startLimitsWithWallet")
+    if not (w and kg.get("enabled") and not kg.get("capReached")):
+        return st
+    return {k: {"limit": w[p], "used": st[k]["used"], "remaining": w[p] - st[k]["used"]} for k, p in (("day", "perDay"), ("hour", "perHour"), ("minute", "perMinute"))}
+
+
 def starts_left(lim: dict, mine: dict | None = None) -> int:
-    """The starts we may spend now: the plan's left this hour and day less the reserve for the account's other users
-    (at least twice their last day's and hour's), and our ceiling's left (CEIL)."""
-    st, m = lim["starts"], mine or ours()
-    rd = max(RESERVE_DAY, 2 * max(0, st["day"]["used"] - m[86400]))
-    rh = max(RESERVE_HOUR, 2 * max(0, st["hour"]["used"] - m[3600]))
-    return min(st["hour"]["remaining"] - rh, st["day"]["remaining"] - rd, int(CEIL[0] * st["day"]["limit"]) - m[86400], int(CEIL[1] * st["hour"]["limit"]) - m[3600])
+    """The starts we may spend now: the limits in force left this hour and day, less the reserve for the account's
+    other users (at least twice their last day's and hour's), and a ceiling's left if one is set (CEIL)."""
+    free, m = lim["starts"], mine or ours()
+    st = effective(lim) if "keepGoing" in lim else free
+    rd = max(RESERVE_DAY, 2 * max(0, free["day"]["used"] - m[86400]))
+    rh = max(RESERVE_HOUR, 2 * max(0, free["hour"]["used"] - m[3600]))
+    k = min(st["hour"]["remaining"] - rh, st["day"]["remaining"] - rd)
+    return min(k, int(CEIL[0] * free["day"]["limit"]) - m[86400], int(CEIL[1] * free["hour"]["limit"]) - m[3600]) if CEIL else k
 
 
 def ours(d: dict | None = None) -> dict:
@@ -547,11 +558,11 @@ def tree_files(root: pathlib.Path = GDP, ignore: list[str] = IGNORE) -> list[str
     return sorted(f for f in set(ls(root, "")) if not _ignored(f, ignore))
 
 
-def tree_tarball() -> bytes:
+def tree_tarball(root: pathlib.Path = GDP) -> bytes:
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz", compresslevel=6) as tf:
-        for f in tree_files():
-            tf.add(GDP / f, arcname=f, recursive=False)
+        for f in tree_files(root):
+            tf.add(root / f, arcname=f, recursive=False)
     return buf.getvalue()
 
 
@@ -588,6 +599,19 @@ def olean_from_modal(key: str):
             log(f"{len(got)} .olean files of library {key[:12]} from Modal's volume")
 
 
+def library_key_of(tar: bytes) -> str:
+    """library_key() of a tree's tarball."""
+    with tarfile.open(fileobj=io.BytesIO(tar)) as tf:
+        h = hashlib.sha256(b"leanprover/lean4:v4.34.0\n")
+        for mod in LIBRARY:
+            try:
+                data = tf.extractfile(f"lean-kernel/{mod}.lean").read()
+            except (KeyError, AttributeError):
+                data = b""
+            h.update(mod.encode() + b"\0" + data + b"\0")
+    return h.hexdigest()[:32]
+
+
 def library_key(lean_dir: pathlib.Path = GDP / "lean-kernel") -> str:
     h = hashlib.sha256(b"leanprover/lean4:v4.34.0\n")
     for mod in LIBRARY:
@@ -610,7 +634,7 @@ class StartGate:
                 if time.time() - self.t > 5:
                     try:
                         lim = limits()
-                        self.st, self.room = lim["starts"], lim["currentLimits"]["activeSandboxes"] - lim["activeSandboxes"]
+                        self.st, self.room = effective(lim), lim["currentLimits"]["activeSandboxes"] - lim["activeSandboxes"]
                         self.t, self.used = time.time(), 0
                     except Exception:
                         pass
@@ -619,7 +643,7 @@ class StartGate:
                     left = starts_left({"starts": self.st}, mine) - self.used
                     if left <= 0:
                         return 0
-                    k = min(n, left, self.st["minute"]["remaining"] - self.used, int(CEIL[2]) - mine[60])
+                    k = min(n, left, self.st["minute"]["remaining"] - self.used, int(CEIL[2]) - mine[60] if CEIL else n)
                     if k > 0:
                         self.used += k
                         note_starts(k)
@@ -640,21 +664,24 @@ class VM:
         self.src = ""
         self.busy: list[list[float]] = []  # [start, end] per item
         self.dead = False
+        self.released = False  # let go before the batch's end (nothing left for it): another batch may lease it
         self.skipped = False  # leased stopped, then not resumed: the batch no longer needed it
 
 
 class Session:
     """The VMs a batch holds: leased from the pool, resumed, or created, each prepared with the batch's tree."""
 
-    def __init__(self, label: str, idle: int | None = None, teardown: bool = False, vm_type: str = VM_TYPE, build: bool = True, oleans: bool = True):
+    def __init__(self, label: str, idle: int | None = None, teardown: bool = False, vm_type: str = VM_TYPE, build: bool = True, oleans: bool = True,
+                 root: pathlib.Path = GDP, tar: bytes | None = None):
         self.batch = time.strftime("%Y%m%d-%H%M%S") + "-" + "".join(random.choice("abcdefghijklmnopqrstuvwxyz0123456789") for _ in range(6))
         self.label, self.idle, self.teardown, self.vm_type = label, idle, teardown, vm_type
         self.reg = Registry()
         self.image = ensure_image(build)  # (raises Unavailable when it's missing and build is off)
-        self.key = library_key()
+        # the tree: this checkout's, another directory's (a commit's worktree), or a tarball taken earlier (a submission)
+        self.tar = tar or tree_tarball(root)
+        self.key = library_key(root / "lean-kernel") if tar is None else library_key_of(self.tar)
         if oleans:
             olean_from_modal(self.key)
-        self.tar = tree_tarball()
         self.olean, self.olean_names = olean_tarball(self.key) if oleans else (None, [])
         self.olean_url = None
         self.agent_b64 = base64.b64encode((HERE / "agent.py").read_bytes()).decode()
@@ -675,6 +702,9 @@ class Session:
         self.max_starts = 0  # this batch's cap on its starts (--max-vms), else MAX_STARTS
         self.short = False  # no start was to be had for VMs the batch wanted: run() waits longer for released ones
         self.warm_only = False  # a tiny batch: VMs already up only, never a start
+        self.early = not teardown  # a VM with nothing left to take goes back to the pool at once, its logs collected
+        self.logs: dict[str, dict] = {}
+        self.collected: set[str] = set()
         try:
             self.day0 = limits()["starts"]["day"]["used"]  # the account's starts of the day, before (and after, in close)
         except Exception:
@@ -1003,7 +1033,7 @@ class Session:
         queue = sorted(items, key=lambda it: -it.get("est", 60))
         lock = threading.Lock()
         left = {"n": len(items)}
-        self._enough = lambda without=None: len(queue) <= sum(v.slots for v in list(self.vms.values()) if not v.dead and v is not without)
+        self._enough = lambda without=None: len(queue) <= sum(v.slots for v in list(self.vms.values()) if not v.dead and not v.released and v is not without)
         started_threads = set()
         all_done = threading.Event()
         t_start = time.time()
@@ -1065,6 +1095,8 @@ class Session:
                 if not starts and not running and not acks and not unsent:
                     with lock:
                         if not queue:
+                            if self.early and vm is not self.seed_vm and not vm.dead:
+                                self._let_go(vm)
                             break
                     time.sleep(2)  # what's left doesn't fit this VM now
                     continue
@@ -1129,7 +1161,7 @@ class Session:
             while not all_done.wait(10) and not self.stop.is_set():
                 with lock:
                     q = [it for it in queue if not it.get("vm_type")]
-                alive = [v for v in list(self.vms.values()) if not v.dead and v.type == self.vm_type]
+                alive = [v for v in list(self.vms.values()) if not v.dead and not v.released and v.type == self.vm_type]
                 short = len(q) - sum(v.slots for v in alive)
                 if short <= 0:
                     continue
@@ -1152,7 +1184,7 @@ class Session:
         while not all_done.wait(1):
             if self.stop.is_set():
                 raise KeyboardInterrupt
-            gone = self.vms and all(v.dead for v in list(self.vms.values())) and not any(t.is_alive() for t in self.threads)
+            gone = self.vms and all(v.dead or v.released for v in list(self.vms.values())) and queue and not any(t.is_alive() for t in self.threads)
             if max_wait and self.ready and time.time() - t_start > max_wait and not any(t.is_alive() for t in self.threads):
                 # items that need a bigger VM than the batch's own, none of which came (no start for it): not on boat
                 with lock:
@@ -1186,27 +1218,36 @@ class Session:
 
     # -- collecting and closing
     def collect(self) -> dict[str, dict]:
-        """Every item's out and err (their tails, as modal/run.py keeps), by name."""
-        got: dict[str, dict] = {}
-        lock = threading.Lock()
-
-        def one(vm: VM):
-            try:
-                first = self._agent(vm, ["collect", self.batch, "0"], 120)
-                parts = [base64.b64decode(first["data"])]
-                for k in range(1, first["parts"]):
-                    parts.append(base64.b64decode(self._agent(vm, ["collect", self.batch, str(k)], 120)["data"]))
-                with tarfile.open(fileobj=io.BytesIO(b"".join(parts))) as tf:
-                    for m in tf.getmembers():
-                        name, f = m.name.rsplit("/", 1)
-                        with lock:
-                            got.setdefault(name, {})[f] = tf.extractfile(m).read().decode("utf-8", "replace")
-            except Exception as e:
-                log(f"{vm.id}: collect failed: {e}")
-        ts = [threading.Thread(target=one, args=(vm,)) for vm in self.ready if not vm.dead]
+        """Every item's out and err (their tails, as modal/run.py keeps), by name (a VM let go early: collected then)."""
+        ts = [threading.Thread(target=self._collect, args=(vm,)) for vm in self.ready if not vm.dead and vm.id not in self.collected]
         [t.start() for t in ts]
         [t.join() for t in ts]
-        return got
+        return self.logs
+
+    def _collect(self, vm: VM):
+        try:
+            first = self._agent(vm, ["collect", self.batch, "0"], 120)
+            parts = [base64.b64decode(first["data"])]
+            for k in range(1, first["parts"]):
+                parts.append(base64.b64decode(self._agent(vm, ["collect", self.batch, str(k)], 120)["data"]))
+            with tarfile.open(fileobj=io.BytesIO(b"".join(parts))) as tf:
+                for m in tf.getmembers():
+                    name, f = m.name.rsplit("/", 1)
+                    with self.cv:
+                        self.logs.setdefault(name, {})[f] = tf.extractfile(m).read().decode("utf-8", "replace")
+            self.collected.add(vm.id)
+        except Exception as e:
+            log(f"{vm.id}: collect failed: {e}")
+
+    def _let_go(self, vm: VM):
+        """A VM with nothing left to take in this batch (its items done, none queued): its logs collected, it goes
+        back to the pool now (up for the idle time, or the declared demand's), so a batch still running takes it."""
+        self._collect(vm)
+        vm.released, vm.t_end = True, time.time()
+        ttl = self.warm_ttls([vm], held=sum(1 for v in list(self.vms.values()) if not v.dead and v.t_end is None) + 1) if self.idle is None else {}
+        t = ttl.get(vm.id, self.idle if self.idle is not None else IDLE)
+        boat("extend", vm.id, "--ttl", str(max(t, 30)), "--json", check=False)
+        self._release([vm.id], idle=t, up={vm.id}, ttl=ttl)
 
     def harvest_oleans(self):
         """The Lean library this batch compiled, from the VM that has the most of it, kept here so the next batch
@@ -1220,7 +1261,7 @@ class Session:
         def ls(vm):
             with contextlib.suppress(Exception):
                 names[vm.id] = self._agent(vm, ["oleans", self.key, "-"], 30, tries=1)["names"]
-        ts = [threading.Thread(target=ls, args=(vm,)) for vm in self.ready if not vm.dead]
+        ts = [threading.Thread(target=ls, args=(vm,)) for vm in self.ready if not vm.dead and not vm.released]
         [t.start() for t in ts]
         [t.join(60) for t in ts]
         if not names:
@@ -1257,9 +1298,10 @@ class Session:
                 break
             time.sleep(1)
         vms = [v for v in list(self.vms.values()) if not v.skipped]
+        keep = [v for v in vms if not v.released]  # (those let go early are the pool's already)
         idle = self.idle if self.idle is not None else IDLE
         self.idle_used = idle
-        ttl = self.warm_ttls([v for v in vms if not v.dead]) if self.idle is None and not self.teardown else {}
+        ttl = self.warm_ttls([v for v in keep if not v.dead]) if self.idle is None and not self.teardown else {}
 
         def wind(vm: VM):
             if kill and vm.t_ready and not vm.dead:
@@ -1275,10 +1317,10 @@ class Session:
                 stop_vm(vm.id)
             else:
                 boat("extend", vm.id, "--ttl", str(ttl.get(vm.id, idle)), "--json", check=False)
-        ts = [threading.Thread(target=wind, args=(vm,)) for vm in vms]
+        ts = [threading.Thread(target=wind, args=(vm,)) for vm in keep]
         [t.start() for t in ts]
         [t.join(timeout=400) for t in ts]
-        self._release([v.id for v in vms], deleted=self.teardown, idle=idle, up={v.id for v in vms if not v.dead}, ttl=ttl)
+        self._release([v.id for v in keep], deleted=self.teardown, idle=idle, up={v.id for v in keep if not v.dead}, ttl=ttl)
         held = sum((v.t_end or time.time()) - v.t_request for v in vms if v.t_running)  # (a VM that never ran bills nothing)
         busy = sum(union(v.busy) for v in vms)
         ready_held = sum((v.t_end or time.time()) - v.t_ready for v in vms if v.t_ready)
@@ -1292,12 +1334,12 @@ class Session:
                 "tree_from_seed": sum(1 for v in vms if v.src == "seed"), "types": sorted({v.type for v in vms}), "held_s": round(held, 1), "ready_held_s": round(ready_held, 1),
                 "busy_s": round(busy, 1), "idle_vm_s": round(ready_held - busy, 1), "bring_up_s": round(held - ready_held, 1),
                 "idle_tail_s": 0 if self.teardown else sum(max(0, ttl.get(v.id, idle)) for v in vms if not v.dead), "idle_s": idle,
-                "starts": self.counts["created"] + self.counts["resumed"], "kept_for_demand": len(ttl)}
+                "starts": self.counts["created"] + self.counts["resumed"], "kept_for_demand": len(ttl), "let_go_early": sum(1 for v in vms if v.released)}
         ledger(batch=self.batch, label=self.label, starts=s["starts"], created=s["created"], resumed=s["resumed"], warm=s["leased_running"], vms=len(vms),
-               slots=sum(v.slots for v in vms if v.t_ready), types=s["types"], kept=len(ttl), wall_s=round(time.time() - self.t0, 1))
+               slots=sum(v.slots for v in vms if v.t_ready), types=s["types"], kept=len(ttl), early=s["let_go_early"], wall_s=round(time.time() - self.t0, 1))
         return s
 
-    def warm_ttls(self, vms: list) -> dict:
+    def warm_ttls(self, vms: list, held: int = 0) -> dict:
         """For a client that declared more work (demand()): how long each released VM stays up, LONG for as many as
         it held at once in the last LONG s (its recent demand) less those already kept up for it; the rest IDLE."""
         name, now = client(), time.time()
@@ -1305,7 +1347,7 @@ class Session:
             dm = declared(d, name)
             if not dm:
                 return {}
-            dm["recent"] = [r for r in dm.get("recent", []) if r[0] > now - LONG] + [[round(now), len(vms)]]
+            dm["recent"] = [r for r in dm.get("recent", []) if r[0] > now - LONG] + [[round(now), held or len(vms)]]
             kept = sum(1 for v in d["vms"].values() if v.get("owner") == name and lease_free(v) and v.get("until", 0) > now + IDLE)
             k = max(0, max(n for _, n in dm["recent"]) - kept)
             return {v.id: LONG for v in vms[:k]}
@@ -1504,7 +1546,7 @@ def job_items(spec: list[dict], pre: str, cmd, vm_type: str, past: dict) -> tupl
 
 
 def boat_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int | None = None, teardown: bool = False, durations: str = "", vm_type: str = VM_TYPE,
-              max_vms: int = 0, on_lost=None, max_wait: int = 0, on_done=None) -> tuple[dict, dict]:
+              max_vms: int = 0, on_lost=None, max_wait: int = 0, on_done=None, tar: bytes | None = None) -> tuple[dict, dict]:
     """modal/run.py's jobs on the pool: {name: {code, seconds, out, err}} for those that ran, and the batch's figures.
     A job lost twice (its VM died) goes to on_lost(name, reason), as does every job when boat can't serve the batch."""
     outdir = pathlib.Path(out)
@@ -1521,7 +1563,7 @@ def boat_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int
             ledger(batch=None, label=f"run.py {outdir.name}", starts=0, vms=0, slots=0, jobs=len(items), to="modal", why="tiny, no VM up")
             raise Unavailable(f"a tiny batch ({len(items)} jobs): no boat VM up, and a start isn't worth it")
         with signals_as_interrupt():
-            sess = Session(f"run.py {outdir.name}", idle=idle, teardown=teardown, vm_type=vm_type, build=on_lost is None)
+            sess = Session(f"run.py {outdir.name}", idle=idle, teardown=teardown, vm_type=vm_type, build=on_lost is None, tar=tar)
             sess.max_starts = max_vms
             sess.warm_only = tiny
             plain = [it for it in items if not it.get("vm_type")]
@@ -1688,10 +1730,20 @@ def starts_summary(since: str = "24h"):
             print(f"  {name} {key:28} {n:4} batches {st:5} starts {warm:5} VMs without one {modal:4} to Modal")
     m = ours()
     with contextlib.suppress(Exception):
-        st = limits()["starts"]
-        print(f"now: ours {m[60]} this minute, {m[3600]} this hour (ceiling {int(CEIL[1] * st['hour']['limit'])}), {m[86400]} today (ceiling {int(CEIL[0] * st['day']['limit'])});"
-              f" the account {st['hour']['used']} / {st['hour']['limit']} this hour, {st['day']['used']} / {st['day']['limit']} today; others {st['day']['used'] - m[86400]} today;"
-              f" we may start {max(0, starts_left({'starts': st}, m))} now")
+        lim = limits()
+        st, eff = lim["starts"], effective(lim)
+        print(f"now: ours {m[60]} this minute, {m[3600]} this hour, {m[86400]} today; the account {st['hour']['used']} this hour, {st['day']['used']} today"
+              f" (free {st['hour']['limit']} / {st['day']['limit']}, in force {eff['hour']['limit']} / {eff['day']['limit']}); others {st['day']['used'] - m[86400]} today;"
+              f" we may start {max(0, starts_left(lim, m))} now")
+        print(extra_starts(lim))
+
+
+def extra_starts(lim: dict | None = None) -> str:
+    """Extra starts this billing month (`boat limits` keepGoing), with an ALERT past ALERT_DOLLARS."""
+    kg = (lim or limits()).get("keepGoing") or {}
+    d = float(kg.get("usedDollars") or 0)
+    return (f"{'ALERT: ' if d > ALERT_DOLLARS else ''}extra starts {'on' if kg.get('enabled') else 'off'}: {kg.get('usedUnits', 0)} this month, ${d:.2f}"
+            f" (alert past ${ALERT_DOLLARS}, cap ${kg.get('capDollars')}{', reached' if kg.get('capReached') else ''})")
 
 
 if __name__ == "__main__":

@@ -112,8 +112,9 @@ for (const s of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) process.on(s, () => { 
 process.on('exit', () => { for (const c of live.values()) try { c.kill('SIGINT') } catch { /* gone */ } declare(true) })
 // On boat, the bar declares the work it still has to launch (modal/boat.py's demand): while it runs, the VMs its
 // launches release stay up for its next group (at most as many as it held at once lately, 10 minutes at most), and they
-// stop a minute after it ends. A tree whose modal/boat.py predates the starts ledger (no ceiling, no reserve for the
-// account's other project) runs on Modal instead.
+// stop a minute after it ends. A tree whose modal/boat.py predates the starts ledger gets this checkout's boat.py,
+// fanout.py and agent.py (they ship the tree and run its jobs, which never read them: modal/ isn't uploaded), so every
+// launch spends starts under one policy, with its reserve for the account's other project, and is in the ledger.
 const CLIENT = `bar-${process.pid}`
 function declare(done = false) {
   if (backend === 'modal') return
@@ -121,11 +122,15 @@ function declare(done = false) {
 }
 declare()
 if (backend !== 'modal') setInterval(declare, 120_000).unref()
-const frugal = new Map<string, boolean>()
+const overlaid = new Set<string>()
 const backendOf = (p: Pass) => {
-  const b = p.backend ?? backend, f = join(p.tree.path, 'modal', 'boat.py')
-  if (!frugal.has(f)) frugal.set(f, existsSync(f) && readFileSync(f, 'utf8').includes('boat-starts.jsonl'))
-  return b !== 'modal' && !frugal.get(f) ? 'modal' : b
+  const b = p.backend ?? backend, d = join(p.tree.path, 'modal')
+  if (b !== 'modal' && !overlaid.has(d) && resolve(d) !== resolve(HERE, '..', 'modal')) {
+    if (!readFileSync(join(d, 'boat.py'), 'utf8').includes('boat-starts.jsonl'))
+      for (const f of ['boat.py', 'fanout.py', 'agent.py']) cpSync(join(HERE, '..', 'modal', f), join(d, f))
+    overlaid.add(d)
+  }
+  return b
 }
 
 // ------------------------------------------------------------------------------------------------------- the trees
@@ -646,7 +651,8 @@ function g332(r: Result, cand: Tree, base: Tree, p: (s?: string) => void) {
 async function main() {
   if (sub === 'read') {
     const [v, ...dirs] = argv.filter((a, i) => !a.startsWith('--') && argv[i - 1] !== '--tree')
-    for (const d of dirs) console.log(d, JSON.stringify(VIEWS[v!]!.headline(VIEWS[v!]!.parse(d, opt('tree', MAIN)))))
+    // (--tasks: each task's observation, {task: {answer, solved, wrong?, secs}}, one line a directory: modal/treadmill.py reads it)
+    for (const d of dirs) { const rows = VIEWS[v!]!.parse(d, opt('tree', MAIN)); console.log(d, JSON.stringify(flag('tasks') ? Object.fromEntries(rows) : VIEWS[v!]!.headline(rows))) }
     return
   }
   if (sub === 'devset') return devsetCmd()
