@@ -126,8 +126,8 @@ const overlaid = new Set<string>()
 const backendOf = (p: Pass) => {
   const b = p.backend ?? backend, d = join(p.tree.path, 'modal')
   if (b !== 'modal' && !overlaid.has(d) && resolve(d) !== resolve(HERE, '..', 'modal')) {
-    if (!readFileSync(join(d, 'boat.py'), 'utf8').includes('boat-starts.jsonl'))
-      for (const f of ['boat.py', 'fanout.py', 'agent.py']) cpSync(join(HERE, '..', 'modal', f), join(d, f))
+    if (!readFileSync(join(d, 'boat.py'), 'utf8').includes('boat-starts.jsonl') || existsSync(join(d, '.bar-orchestration')))
+      for (const f of ['boat.py', 'fanout.py', 'agent.py']) if (readFileSync(join(HERE, '..', 'modal', f), 'utf8') !== readFileSync(join(d, f), 'utf8')) { cpSync(join(HERE, '..', 'modal', f), join(d, f)); writeFileSync(join(d, '.bar-orchestration'), '') }
     overlaid.add(d)
   }
   return b

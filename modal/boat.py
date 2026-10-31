@@ -65,6 +65,7 @@ TYPES = {"small": (2, 4096), "default": (4, 8192), "large": (8, 16384), "xlarge"
 VM_TYPE = os.environ.get("GDPW_BOAT_VM", "large")  # a batch's VMs: large ones, so a start brings 4 slots, not 2
 LIBRARY = ["Cert", "Kernel", "Cyclic", "Progress", "StepLaw", "Steps", "Sets", "History", "Live", "NonTerm", "Ghost", "Sums", "Refine", "Bridge", "BridgeRules", "Data"]
 BACKSTOP = 900  # the TTL a held VM keeps renewing: a VM whose client is gone stops within this
+BRING_UP = 120  # seconds from a start to a VM ready for items (resume or creation, then the tree), typically
 # The account's starts are shared with another project's pool (its setup takes a few to a few dozen a day): this pool
 # never spends the last RESERVE_DAY of the rolling day nor the last RESERVE_HOUR of the hour, nor what the other
 # project may need, twice what it used in the last day (hour): the account's used starts less ours (the registry's).
@@ -194,14 +195,16 @@ def ours(d: dict | None = None) -> dict:
 
 
 def note_starts(k: int, d: dict | None = None):
-    """k starts made now, into the registry (within a locked registry `d`, or locking it)."""
-    if k <= 0:
+    """k starts made now, into the registry (within a locked registry `d`, or locking it); k < 0 takes back the
+    newest -k (granted, then refused by boat)."""
+    if k == 0:
         return
     if d is None:
         with Registry().locked() as d:
             return note_starts(k, d)
     now = time.time()
-    d["starts"] = [t for t in d.get("starts", []) if t > now - 86400] + [round(now, 1)] * k
+    ts = [t for t in d.get("starts", []) if t > now - 86400]
+    d["starts"] = ts + [round(now, 1)] * k if k > 0 else ts[:max(0, len(ts) + k)]
 
 
 def ledger(**row):
@@ -696,7 +699,7 @@ class Session:
         self.creating = 0
         self.t0 = time.time()
         self.threads: list[threading.Thread] = []
-        self.counts = {"leased_running": 0, "resumed": 0, "created": 0, "topped_up": 0, "not_resumed": 0}
+        self.counts = {"leased_running": 0, "resumed": 0, "created": 0, "topped_up": 0, "not_resumed": 0, "failed": 0}
         self.gate = StartGate()
         self.last_error = ""
         self.max_starts = 0  # this batch's cap on its starts (--max-vms), else MAX_STARTS
@@ -847,7 +850,7 @@ class Session:
             log(f"{vm.id}: {e}")
             self.last_error = f"{vm.id}: {str(e)[:200]}"
             vm.dead = True
-            if vm.t_running:  # up but of no use to this batch: stopped now, not at the batch's end
+            if vm.t_running and self.mine(vm.id):  # up but of no use to this batch: stopped now, not at the batch's end
                 stop_vm(vm.id)
             self._release([vm.id])
 
@@ -884,8 +887,14 @@ class Session:
                     e = json.loads(line)
                     if e.get("id") and e["id"] not in ids and e.get("event") != "error":
                         ids.append(e["id"])
+            if len(ids) < room:  # (starts the gate granted that made no VM: not ours to count; the ledger has them as failed)
+                note_starts(-(room - len(ids)))
+                self.counts["failed"] += room - len(ids)
             if not ids:
                 self.last_error = f"boat new: {out.strip()[-200:]}"
+                if self.counts["failed"] >= 3 * max(1, self.counts["created"]):  # boat refusing: no creation loop
+                    log("boat refuses creations: no more for this batch")
+                    break
                 log(f"boat new gave no VM: {out[-300:]}")
                 time.sleep(15)
                 continue
@@ -919,8 +928,15 @@ class Session:
             log(f"{vm.id}: {e}")
             self.last_error = f"{vm.id}: {str(e)[:200]}"
             vm.dead = True
-            stop_vm(vm.id)
+            if self.mine(vm.id):
+                stop_vm(vm.id)
             self._release([vm.id])
+
+    def mine(self, vm_id: str) -> bool:
+        """Whether the registry still has the VM leased to this batch (a late thread of a batch that has ended must
+        not touch a VM another batch leased since)."""
+        l = self.reg.read()["vms"].get(vm_id, {}).get("lease") or {}
+        return l.get("batch") == self.batch and not self.stop.is_set()
 
     def enough(self, without=None) -> bool:
         """Whether the run under way has slots for all it still has to start (no more VMs worth starting), counting
@@ -930,6 +946,8 @@ class Session:
 
     # -- preparing
     def _prepare(self, vm: VM):
+        if not self.mine(vm.id):
+            raise RuntimeError("no longer this batch's (it ended, or let the VM go)")
         with self.cv:
             seed = self.seed_vm is None and self.wanted > 2
             if seed:
@@ -1035,7 +1053,7 @@ class Session:
         lock = threading.Lock()
         left = {"n": len(items)}
         self._enough = lambda without=None: len(queue) <= sum(v.slots for v in list(self.vms.values()) if not v.dead and not v.released and v is not without)
-        started_threads = set()
+        started_threads, active = set(), set()
         all_done = threading.Event()
         t_start = time.time()
         if not items:
@@ -1076,16 +1094,34 @@ class Session:
                         all_done.set()
 
         def lose(it: dict, reason: str):
-            """Once more on another VM (under a name of its own there), then on_lost."""
+            """To on_lost (Modal) when there is one; else once more on another VM, under a name of its own there. With no worker left to take it
+            (the others finished and let their VMs go), one comes back on a VM the batch still holds, else a VM is
+            leased or started for it."""
             k = it.get("try", 0) + 1
-            if k <= 1:
+            if k <= 1 and on_lost is None:  # (with a fallback, Modal takes it at once: boat is never retried in a loop)
                 with lock:
                     queue.insert(0, {**it, "try": k, "orig": it.get("orig", it["name"]), "name": f"{it.get('orig', it['name'])}~r{k}"})
                 log(f"{it.get('orig', it['name'])}: {reason}; once more on boat")
+                held = [v for v in list(self.vms.values()) if not v.dead and not v.released]
+                if not any(v.id in active for v in held):
+                    back = [v for v in self.ready if v in held]
+                    with self.cv:
+                        if back:
+                            started_threads.discard(back[0].id)
+                            self.cv.notify_all()
+                    if not back:
+                        self._go(self.ensure, len(held) + 1)
             else:
                 finish(it, None, reason)
 
         def worker(vm: VM):
+            active.add(vm.id)
+            try:
+                work(vm)
+            finally:
+                active.discard(vm.id)
+
+        def work(vm: VM):
             running: dict[str, tuple[dict, float]] = {}
             unsent: list[dict] = []  # starts whose tick got no answer: sent again (the agent ignores one it has)
             acks: list[str] = []
@@ -1142,7 +1178,7 @@ class Session:
             while not all_done.is_set() and not self.stop.is_set():
                 with self.cv:
                     for vm in self.ready:
-                        if vm.id not in started_threads:
+                        if vm.id not in started_threads and not vm.released and not vm.dead:
                             started_threads.add(vm.id)
                             threading.Thread(target=worker, args=(vm,), daemon=True).start()
                     self.cv.wait(2)
@@ -1301,6 +1337,9 @@ class Session:
             if self.creating == 0:
                 break
             time.sleep(1)
+        end = time.time() + 120  # (bring-ups in flight end first: none may prepare a VM after the batch let it go)
+        for t in list(self.threads):
+            t.join(timeout=max(0.0, end - time.time()))
         vms = [v for v in list(self.vms.values()) if not v.skipped]
         keep = [v for v in vms if not v.released]  # (those let go early are the pool's already)
         idle = self.idle if self.idle is not None else IDLE
@@ -1338,9 +1377,11 @@ class Session:
                 "tree_from_seed": sum(1 for v in vms if v.src == "seed"), "types": sorted({v.type for v in vms}), "held_s": round(held, 1), "ready_held_s": round(ready_held, 1),
                 "busy_s": round(busy, 1), "idle_vm_s": round(ready_held - busy, 1), "bring_up_s": round(held - ready_held, 1),
                 "idle_tail_s": 0 if self.teardown else sum(max(0, ttl.get(v.id, idle)) for v in vms if not v.dead), "idle_s": idle,
-                "starts": self.counts["created"] + self.counts["resumed"], "kept_for_demand": len(ttl), "let_go_early": sum(1 for v in vms if v.released)}
+                "starts": self.counts["created"] + self.counts["resumed"], "kept_for_demand": len(ttl), "let_go_early": sum(1 for v in vms if v.released),
+                "unused": sum(1 for v in vms if v.t_running and not v.busy)}
         ledger(batch=self.batch, label=self.label, starts=s["starts"], created=s["created"], resumed=s["resumed"], warm=s["leased_running"], vms=len(vms),
-               slots=sum(v.slots for v in vms if v.t_ready), types=s["types"], kept=len(ttl), early=s["let_go_early"], wall_s=round(time.time() - self.t0, 1))
+               slots=sum(v.slots for v in vms if v.t_ready), types=s["types"], kept=len(ttl), early=s["let_go_early"], unused=s["unused"],
+               failed=self.counts["failed"], wall_s=round(time.time() - self.t0, 1))
         return s
 
     def warm_ttls(self, vms: list, held: int = 0) -> dict:
@@ -1431,7 +1472,9 @@ def plan_vms(items: list[dict], slots_per_vm: int, override: int = 0, cap: int =
         return 0
     W = sum(it["weight"] * it.get("est", 60) for it in items)
     L = max(it.get("est", 60) for it in items)
-    useful = max(1, math.ceil(W / (slots_per_vm * L)))
+    # (and a started VM must have work for a few times its bring-up, BRING_UP: the bar's TIP baseline on boat asked 50
+    # VMs for 150 s of work each, brought up in 159 s on average, and 40% of their ready time was idle)
+    useful = max(1, math.ceil(W / (slots_per_vm * max(L, 3 * BRING_UP))))
     useful = min(useful, sum(it["weight"] for it in items) // max(1, slots_per_vm) + 1, len(items))
     try:
         lim = limits()

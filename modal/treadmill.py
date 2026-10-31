@@ -150,6 +150,19 @@ class Batch:
             return 0 if self.done else self.vms
         return sum(1 for v in list(s.vms.values()) if not v.dead and not v.released and v.t_end is None) or (0 if self.done else 1)
 
+    def unpacked(self) -> pathlib.Path:
+        """A submission's tree as a directory (for Modal), with this checkout's modal/ (the tree as shipped has none)."""
+        d = TM / "unpacked" / tree_key(self.tar)
+        if not (d / ".ready").exists():
+            d.mkdir(parents=True, exist_ok=True)
+            with tarfile.open(fileobj=io.BytesIO(self.tar)) as tf:
+                tf.extractall(d, filter="tar")
+            (d / "modal").mkdir(exist_ok=True)
+            for f in ("run.py", "fanout.py", "agent.py", "boat.py", "runpod.py"):
+                (d / "modal" / f).write_bytes((HERE / f).read_bytes())
+            (d / ".ready").write_text("")
+        return d
+
     def backlog(self) -> bool:
         """More queued than its VMs' slots: more VMs would help it."""
         s = self.sess
@@ -163,25 +176,48 @@ class Batch:
         threading.Thread(target=self.sess.ensure, args=(live + k,), daemon=True).start()
 
     def go(self):
-        summary = {}
+        """The items on boat; those boat loses (a VM gone, no VM within --max-wait, boat failing) on Modal; then
+        `after` with every item's logs."""
+        summary, logs, lost, got = {}, {}, {}, set()
+
+        def row(it, r):
+            got.add(it["name"])
+            self.on_row(it, r)
         try:
+            if os.environ.get("GDPW_TREADMILL_NO_BOAT"):  # (the fallback test: boat refuses the batch at once)
+                raise boat.Unavailable("boat off (GDPW_TREADMILL_NO_BOAT)")
             sess = boat.Session(f"treadmill {self.label}", build=False, oleans=self.oleans, root=self.root or MAIN, tar=self.tar)
             sess.cap = self.vms
             self.sess = sess
             sess.ensure(self.vms)
-            self.sess.run(self.items, lambda it, row: self.on_row(it, row), on_lost=lambda it, why: self.on_row(it, {"code": -1, "error": why, "lost": True}), max_wait=900)
-            logs = self.sess.collect()
-            if self.after:
-                self.after(logs)
+            sess.run(self.items, row, on_lost=lambda it, why: lost.__setitem__(it["name"], why), max_wait=self.tm.max_wait)
+            logs = sess.collect()
         except Exception as e:
-            log(f"{self.label}: {str(e)[:300]}")
-            self.failed = True
-            for it in self.items:
-                with contextlib.suppress(Exception):
-                    self.on_row(it, {"code": -1, "error": str(e)[:300], "lost": True, "batch_failed": True})
+            log(f"{self.label}: boat: {str(e)[:300]}")
         finally:
             if self.sess:
                 summary = self.sess.close()
+        todo = [it for it in self.items if it["name"] not in got]
+        if todo and not self.tm.modal:
+            self.failed = True
+            for it in todo:
+                self.on_row(it, {"code": -1, "error": lost.get(it["name"], "boat couldn't run it"), "lost": True})
+        elif todo:
+            why = sorted(set(lost.values()))[:3] or ["boat couldn't run them"]
+            log(f"{self.label}: {len(todo)} items on Modal ({'; '.join(w[:120] for w in why)})")
+            append(TM / "modal.jsonl", {"t": time.time(), "label": self.label, "items": len(todo), "why": why})
+            try:
+                logs.update(on_modal(todo, self.root or self.unpacked(), row))
+            except Exception as e:
+                log(f"{self.label}: Modal too: {str(e)[:300]}")
+                self.failed = True
+                for it in [it for it in todo if it["name"] not in got]:
+                    self.on_row(it, {"code": -1, "error": f"boat and Modal failed: {str(e)[:200]}", "lost": True})
+        try:
+            if self.after:
+                self.after(logs)
+        finally:
+            if summary:
                 mult = boat.TYPES[boat.VM_TYPE][0] / boat.TYPES["default"][0]
                 append(TM / "vmh.jsonl", {"t": time.time(), "day": today(), "label": self.label, "chain": self.chain, "vmh": round(summary["held_s"] * mult / 3600, 3),
                                          "busy_vmh": round(summary["busy_s"] * mult / 3600, 3), "ready_vmh": round(summary["ready_held_s"] * mult / 3600, 3),
@@ -200,6 +236,46 @@ def py_item(name: str, module: str, fn: str, args: list, limit: int, est: float,
     cfg = _boat_cfg[(root, module)]
     return {"name": name, "kind": "py", "module": module, "fn": fn, "args": args, "limit": limit, "est": est,
             "weight": max(weight, int(cfg.get("weight", 1))), **{k: v for k, v in cfg.items() if k in ("mounts", "path", "overlays", "env")}}
+
+
+def import_real(path: pathlib.Path):
+    """A module of a tree (a runner, modal/run.py) under the real Modal client: its app, functions and image."""
+    import importlib.util
+    name = "tm_" + hashlib.sha256(str(path).encode()).hexdigest()[:10]
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def on_modal(items: list[dict], root: pathlib.Path, on_row) -> dict:
+    """Items boat couldn't run, on Modal: a runner's function through the runner's own app, shell items through
+    the tree's modal/run.py; each row to on_row, and the shell items' logs back."""
+    import fanout
+    logs: dict = {}
+    for module in sorted({it["module"] for it in items if it["kind"] == "py"}):
+        mod = import_real(root / module)
+        group = [it for it in items if it["kind"] == "py" and it["module"] == module]
+        with fanout.ModalCtx(mod.app):
+            for fn in sorted({it["fn"] for it in group}):
+                its = [it for it in group if it["fn"] == fn]
+                for it, res in zip(its, getattr(mod, fn).starmap([tuple(it["args"]) for it in its], return_exceptions=True, order_outputs=True)):
+                    on_row(it, {"code": -1, "error": repr(res)[:400]} if isinstance(res, BaseException) else {"code": 0, "result": res, "where": "modal"})
+    sh = [it for it in items if it["kind"] == "sh"]
+    if sh:
+        run = import_real(root / "modal" / "run.py")
+        by = {it["name"]: it for it in sh}
+        spec = [{"name": it["name"], "cmd": it["cmd"], "cwd": it.get("cwd", "."), "cpu": 2.0 * it.get("weight", 1), "memory": 4096 * it.get("weight", 1), "timeout": int(it["limit"]) + 30} for it in sh]
+
+        def done(name, r):
+            logs[name] = {"out": r.get("out", ""), "err": r.get("err", "")}
+            on_row(by[name], {"code": r.get("code", -1), "seconds": r.get("seconds", -1), "where": "modal"})
+        with fanout.ModalCtx(run.app):
+            run.modal_jobs(spec, "", lambda c: c, done)
+    return logs
 
 
 def sh_item(name: str, cmd: str, cwd: str, limit: int, est: float, weight: int = 1) -> dict:
@@ -276,6 +352,8 @@ class Sweep:
         if isinstance(got, Batch):
             return got
         ids = self.task_ids(got)
+        if self.tm.sample:  # (a test: the first few tasks)
+            ids = ids[:self.tm.sample]
         solved, refused, seen = self.tm.cache.solved(self.commit, self.bench), self.tm.cache.refused(self.commit, self.bench), self.tm.cache.seen(self.commit, self.bench, config)
         rdir = self.dir / f"{budget}-{variant}"
         rdir.mkdir(parents=True, exist_ok=True)
@@ -514,9 +592,11 @@ class Submission:
 
 # ---------------------------------------------------------------------------------------------- the controller
 class Treadmill:
-    def __init__(self, vms: int, budget_vmh: float, quiet: int, nogain: int):
+    def __init__(self, vms: int, budget_vmh: float, quiet: int, nogain: int, benches: str = "", sample: int = 0, sound: bool = True, modal: bool = True, max_wait: int = 900):
         TM.mkdir(parents=True, exist_ok=True)
         self.vms, self.budget_vmh, self.quiet, self.nogain = vms, budget_vmh, quiet, nogain
+        self.benches = [b for b in benches.split(",") if b] or list(BENCHES)
+        self.sample, self.sound_on, self.modal, self.max_wait = sample, sound, modal, max_wait
         self.cache = Cache()
         self.state = json.loads((TM / "state.json").read_text()) if (TM / "state.json").exists() else {}
         self.batches: list[Batch] = []
@@ -556,7 +636,7 @@ class Treadmill:
     def step(self):
         self.batches = [b for b in self.batches if not b.done]
         head = git("rev-parse", "main")
-        if head != self.head:  # soundness work follows main at once
+        if head != self.head and self.sound_on:  # soundness work follows main at once
             log(f"main is {head[:12]}: soundness work at it")
             self.head = head
             self.sound = Soundness(self, head, self.tree_of(head))
@@ -573,7 +653,7 @@ class Treadmill:
                 sw = head
                 log(f"sweeps at {head[:12]}")
             self.commit, self.tree = sw, self.tree_of(sw)
-            self.sweeps = {b: Sweep(self, sw, self.tree, b) for b in BENCHES}
+            self.sweeps = {b: Sweep(self, sw, self.tree, b) for b in self.benches}
         for sw in self.sweeps.values():
             sw.poll()
         for d in sorted((TM / "subs").glob("*/meta.json")) if (TM / "subs").exists() else []:
@@ -583,7 +663,7 @@ class Treadmill:
         free = self.vms - self.held()
         want = lambda c: [b for b in self.batches if b.chain == c and not b.done]
         if not over:
-            if free > 0 and not want("b"):  # (b)'s floor: one VM
+            if free > 0 and not want("b") and self.sound_on:  # (b)'s floor: one VM
                 self.batches.append(self.sound.batch(1))
                 free -= 1
             waiting = [s for s in self.subs.values() if s.meta["status"] == "queued"]
@@ -615,7 +695,7 @@ class Treadmill:
                 k = min(free, max(1, self.vms // 4))
                 b.grow(k)
                 free -= k
-            if free > 0 and len(want("b")) < 1 + self.vms // 2:  # (b) fills the rest
+            if free > 0 and self.sound_on and len(want("b")) < 1 + self.vms // 2:  # (b) fills the rest
                 self.batches.append(self.sound.batch(min(free, 2)))
         busy = bool([b for b in self.batches if not b.done])
         if busy:
@@ -732,6 +812,8 @@ def digest(day: str, quiet: bool = False) -> str:
 
 
 if __name__ == "__main__":
+    import fanout
+    fanout.reexec_with_modal()  # (Modal runs what boat can't: the interpreter that has its client)
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run")
@@ -740,6 +822,11 @@ if __name__ == "__main__":
     r.add_argument("--budget-vmh", type=float, default=384)
     r.add_argument("--quiet", type=int, default=1500)
     r.add_argument("--nogain", type=int, default=3)
+    r.add_argument("--benches", default="", help="these benchmarks only (default: all)")
+    r.add_argument("--sample", type=int, default=0, help="a test: each benchmark's first N tasks")
+    r.add_argument("--no-soundness", action="store_true")
+    r.add_argument("--no-modal", action="store_true", help="what boat can't run waits for boat (default: Modal runs it)")
+    r.add_argument("--max-wait", type=int, default=900, help="seconds a batch waits for a boat VM before Modal")
     s = sub.add_parser("submit")
     s.add_argument("jobs")
     s.add_argument("--tree", default=".")
@@ -751,7 +838,7 @@ if __name__ == "__main__":
     s.add_argument("--day", default="")
     a = ap.parse_args()
     if a.cmd == "run":
-        Treadmill(a.vms, a.budget_vmh, a.quiet, a.nogain).run(a.hours)
+        Treadmill(a.vms, a.budget_vmh, a.quiet, a.nogain, a.benches, a.sample, not a.no_soundness, not a.no_modal, a.max_wait).run(a.hours)
     elif a.cmd == "submit":
         submit(a.jobs, a.tree, a.name)
     elif a.cmd == "results":

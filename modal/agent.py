@@ -169,13 +169,10 @@ def oleanin(key: str, path: str):
 
 def prep(batch: str, source: str, key: str, olean_src: str = "-", names: str = ""):
     t0 = time.time()
+    # older batches' trees go, but never one with an item still running: two batches overlap on a VM only by a race
+    # (a batch let it go, another leased it, a late call of the first came), and the running one keeps its tree
     for old in (ROOT / "b").glob("*") if (ROOT / "b").exists() else []:
-        if old.name != batch:
-            for j in old.glob("jobs/*/pid"):
-                try:
-                    kill_tree(int(j.read_text()))
-                except Exception:
-                    pass
+        if old.name != batch and not any(alive(int(j.read_text())) for j in old.glob("jobs/*/pid") if j.read_text().strip().isdigit() and not (j.parent / "done.json").exists()):
             sudo("rm", "-rf", str(old), check=False)
     d = batch_dir(batch)
     tree = d / "tree"
@@ -327,6 +324,9 @@ def run(batch: str, name: str):
     work = j / "work"
     work.mkdir()
     row: dict = {"name": name}
+    if not (tree / ".").exists() or not (d / "ready").exists():  # (the batch's tree gone from this VM: the item runs elsewhere)
+        write_json(j / "done.json", {"name": name, "code": -1, "seconds": -1, "lost": True, "err": f"the batch's tree isn't on {os.uname().nodename}"})
+        return
     try:
         if spec["kind"] == "sh":
             subprocess.run(["cp", "-a", str(tree), str(work / "gdp-wired")], check=True)
