@@ -376,3 +376,83 @@ test('key templates: disjoint where their fixed parts differ', () => {
 // The adversarial round (research/langs/adversarial): no false checked proof; what reaches the rule's state, refused.
 import {cases as advCases, judge, ADV} from '../research/langs/adversarial/cases.test-lib.ts'
 for (const c of advCases('Python')) t(`adversarial ${c.id}: ${c.attack}`, () => judge(c, extractPython(`${ADV}${c.file}`, {...(c.discover ? {} : {entry: 'Meter'}), check: {runs: 30, depth: 6, states: 60}})))
+
+// A record store over a Redis-like client (an idempotency layer's shape): the
+// client's set by name= with nx (a conditional set, its result whether it set), JSON records whose keys are a
+// constructor default's, a module's constant map, a class of the module made by its __init__ with a property,
+// super().__init__(), datetime.now(), and a @contextmanager lock around a write.
+const CLAIMS = `
+import datetime as dt
+import json
+from contextlib import contextmanager
+from typing import Protocol
+
+STATUS = {"OPEN": "OPEN", "DONE": "DONE"}
+
+class Client(Protocol):
+    def get(self, name: str) -> str | None: ...
+    def set(self, name: str, value: str, ex: int | None = None, nx: bool = False) -> bool | None: ...
+
+class Base:
+    def __init__(self):
+        self.ttl = 60
+
+class Record:
+    def __init__(self, key: str, status: str = ""):
+        self.key = key
+        self._status = status
+
+    @property
+    def status(self) -> str:
+        if self._status in STATUS.values():
+            return self._status
+        raise ValueError(self._status)
+
+class Claims(Base):
+    def __init__(self, client: Client | None = None, status_attr: str = "status"):
+        self.client = client
+        self.status_attr = status_attr
+        super().__init__()
+
+    @contextmanager
+    def _lock(self, name: str):
+        if self.client.set(name=f"{name}:lock", value="1", nx=True):
+            yield
+        else:
+            raise KeyError(name)
+
+    def claim(self, key: str) -> bool:
+        rec = Record(key, STATUS["OPEN"])
+        item = {self.status_attr: rec.status, "until": int(dt.datetime.now().timestamp()) + self.ttl}
+        if self.client.set(name=key, value=json.dumps(item), ex=self.ttl, nx=True):
+            return True
+        raw = self.client.get(key)
+        if raw is None:
+            return False
+        if json.loads(raw)[self.status_attr] == STATUS["DONE"]:
+            return False
+        with self._lock(key):
+            self.client.set(name=key, value=json.dumps(item), ex=self.ttl)
+        return True
+
+    def finish(self, key: str) -> None:
+        self.client.set(name=key, value=json.dumps({self.status_attr: STATUS["DONE"], "until": 0}))
+`
+const claims = (o: Partial<PyOptions> = {}) => py(CLAIMS, {entry: 'Claims', methods: ['claim', 'finish'], failures: 'kept', defaults: ['status_attr'],
+  stores: {client: {get: ['get'], set: ['set'], apart: true, values: {'{}': {json: {status: ['OPEN', 'DONE'], until: 'int'}}, '{}:lock': ['1']}}}, ...o})
+t('a store of JSON records over a client of name= and nx: the conditional set, the lock by @contextmanager, a record made by its class', () => {
+  const x = ok(claims())
+  expect(x.notes.join('\n')).toMatch(/a @contextmanager generator, run around the with's body/)
+  expect(x.notes.join('\n')).toMatch(/Record\(\.\.\.\) .*made by its __init__, read/)
+  expect(x.notes.join('\n')).toMatch(/its ex \(the key's expiry\) left out/)
+  // a claim never takes a key over from a DONE record; it takes one over only by the lock (a second lock refused)
+  expect(step(x, 'a DONE record stays DONE through a claim', (_b, a) => a['client_'].at(_b.claim_key.id).status.is('DONE'),
+    b => b.method.is('claim').and(b['client_'].at(b.claim_key.id).has).and(b['client_'].at(b.claim_key.id).status.is('DONE'))).proven).toBe(true)
+  expect(step(x, 'a claim of a held OPEN record whose lock is held fails', (_b, a) => a.failed,
+    b => b.method.is('claim').and(b['client_'].at(b.claim_key.id).has).and(b['client_'].at(b.claim_key.id).status.is('OPEN')).and(b.client_lock.at(b.claim_key.id).has)).proven).toBe(true)
+  // the nx set read as conditional: a claim of a free key is the one that writes it
+  expect(step(x, 'a claim always writes the record (refuted: a DONE one is kept)', (_b, a) => a['client_'].at(_b.claim_key.id).status.is('OPEN'), b => b.method.is('claim')).proven).toBe(false)
+})
+t('a store key template that may name another\'s is refused unless stated apart', () => {
+  refused(claims({stores: {client: {get: ['get'], set: ['set'], values: {'{}': {json: {status: ['OPEN', 'DONE'], until: 'int'}}, '{}:lock': ['1']}}}}), /the key templates "\{\}" and "\{\}:lock" may name one key/)
+})

@@ -1,7 +1,7 @@
 // The bar: a candidate against a base on every benchmark, in one command, and one report.
 //
 //   bun gates/bar.ts [--cand <rev | dir>] [--base <rev>] [--only chc,its,...] [--quick] [--together]
-//                    [--runs 3] [--reruns 3] [--backend modal|boat|auto] [--rivals] [--budget <$>] [--name <out>]
+//                    [--runs 3] [--reruns 3] [--backend boat|modal|auto (default boat: its baseline is boat's)] [--rivals] [--budget <$>] [--name <out>]
 //   bun gates/bar.ts baseline --base <rev> [--runs 3] [--only ...]     the shared baseline alone
 //   bun gates/bar.ts devset [--from <base key>] [--write]             the quick mode's dev sets from a baseline
 //   bun gates/bar.ts read <view> <run dir>...                         a run directory's headline, as the bar reads it
@@ -35,7 +35,7 @@ const sub = argv[0] && !argv[0].startsWith('--') ? argv.shift()! : 'run'
 const opt = (k: string, d = '') => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1] ?? d }
 const flag = (k: string) => argv.includes(`--${k}`)
 // --smoke: the bar itself end to end on each group's pilot tasks, the base launched together (nothing cached)
-const smoke = flag('smoke'), quick = flag('quick'), together = flag('together') || smoke, rivals = flag('rivals'), backend = opt('backend', 'modal')
+const smoke = flag('smoke'), quick = flag('quick'), together = flag('together') || smoke, rivals = flag('rivals'), backend = opt('backend', 'boat')
 const nRuns = Number(opt('runs', '3')), nReruns = Number(opt('reruns', '3')), maxProcs = Number(opt('procs', '24'))
 const budget = Number(opt('budget', quick ? '6' : '25'))
 if (!['modal', 'boat', 'auto'].includes(backend)) throw new Error('--backend modal | boat | auto')

@@ -961,7 +961,7 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   const keyed = laws.filter(l => l.forall)
   if (!keyed.length && !qs.length) return undefined
   // (the maps a request carries read as maps too: a quantified flag over one, wo's ∀k. Q has k → Votes[src, k])
-  const fns = Object.keys(pm.fns ?? {}), mm: Machine = {...pm, fns: undefined, maps: {...(pm.maps ?? {}), ...Object.fromEntries([...fns, ...(pm.inputMaps ?? [])].map(f => [f, 0]))}}
+  const fns = Object.keys(pm.fns ?? {}), mm: Machine = {...pm, fns: undefined, maps: {...(pm.maps ?? {}), ...Object.fromEntries([...fns, ...(pm.inputMaps ?? []), ...Object.keys(pm.counts ?? {})].map(f => [f, 0]))}}
   const maps: Record<string, Map<number, number>> = Object.fromEntries(Object.keys(mm.maps!).map(mp => [mp, new Map<number, number>()]))
   for (const [cell, value] of Object.entries(w)) {
     const br = cell.indexOf('[')

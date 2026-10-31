@@ -4,7 +4,8 @@
 # one that keeps what is set, the clock read as the request's time. Line events count the branch arms reached.
 #
 #   python3 core/py/harness.py <in-fifo> <out-fifo>
-import asyncio, dataclasses, importlib, inspect, json, os, sys, types
+import asyncio, dataclasses, datetime, importlib, inspect, json, os, sys, types
+import time as time_module
 
 NOW = [0]
 CUR = {}
@@ -49,16 +50,20 @@ class FakeStore:
       setattr(o, parts[-1], v)
     asyncs = decl.get('async') or {}
     def mk(kind, name):
-      def get(*a, **k): return self.data.get(k.get('key', a[0] if a else None))
+      # (the key by position, or as key= or name=, redis-py's; nx and xx as redis-py's: True where it set, else None)
+      kk = lambda a, k: k.get('key', k.get('name', a[0] if a else None))
+      def get(*a, **k): return self.data.get(kk(a, k))
       def set_(*a, **k):
-        key = k.get('key', a[0] if a else None); val = k.get('value', a[1] if len(a) > 1 else None)
+        key = kk(a, k); val = k.get('value', a[1] if len(a) > 1 else None)
+        if (k.get('nx') and key in self.data) or (k.get('xx') and key not in self.data): return None
         self.data[key] = val
-      def delete(*a, **k): self.data.pop(k.get('key', a[0] if a else None), None)
+        if k.get('nx') or k.get('xx'): return True
+      def delete(*a, **k): self.data.pop(kk(a, k), None)
       f0, key = {'get': get, 'set': set_, 'delete': delete}[kind], f"{self.name}.{name}"
       # (where the request says the operation raises, inside a try that catches it)
       def f(*a, **k):
         r = (CUR.get(key) or {}).get('raise')
-        if r is not None: raise raised(r)
+        if r is not None and raises_here(key): raise raised(r)
         return f0(*a, **k)
       if asyncs.get(name):
         async def af(*a, **k): return f(*a, **k)
@@ -79,7 +84,7 @@ def build(spec, stores):
     v = spec['in']
     return float(v) if spec.get('float') and isinstance(v, int) and not isinstance(v, bool) else v
   if spec.get('none'): return None
-  if spec.get('inert'): return Inert()
+  if spec.get('inert'): return {} if spec.get('dict') else Inert()
   if 'store' in spec: return stores.setdefault(spec['store'], FakeStore(S['stores'].get(spec['store'], {}), spec['store']))
   if 'list' in spec: return [build(x, stores) for x in spec['list']]
   if 'rec' in spec:
@@ -134,6 +139,15 @@ def tpl_match(tpl, key):
   if not isinstance(key, str) or not key.startswith(pre) or not key.endswith(post) or len(key) < len(pre) + len(post): return None
   return key[len(pre): len(key) - len(post)] if '{}' in tpl else ('' if key == tpl else None)
 
+def owns(l, key):
+  """The part of a store's key a leaf's template takes, where no more specific template of the store takes it (the
+  templates name distinct keys: "{}:lock" keys aren't "{}" ones)."""
+  h = tpl_match(l['tpl'], key)
+  if h is None: return None
+  for m in S['leaves']:
+    if m.get('store') == l['store'] and m is not l and len(m['tpl']) > len(l['tpl']) and tpl_match(m['tpl'], key) is not None: return None
+  return h
+
 def state_of(obj, stores):
   s = {}
   for l in S['leaves']:
@@ -143,9 +157,18 @@ def state_of(obj, stores):
       st = stores.get(l['store'])
       cells = {}
       for key, v in (st.data.items() if st else []):
-        h = tpl_match(l['tpl'], key)
+        h = owns(l, key)
         if h is None: continue
-        cells[h] = {'value': enc_num(v)}
+        if l.get('json'):
+          # (a JSON record: its fields kept, an optional one beside whether the key holds a value; strings left out)
+          d, c = json.loads(v), {}
+          for f in l['json']:
+            if f.get('out'): continue
+            x = d.get(f['name']) if f.get('opt') else d[f['name']]
+            if f.get('opt'): c[f['name'] + '_has'] = x is not None
+            c[f['name']] = (x if x is not None else (f['vals'][0] if f.get('choice') else 0)) if f.get('choice') else enc_num(0 if x is None else x)
+          cells[h] = c
+        else: cells[h] = {'value': v if l.get('choice') else enc_num(v)}
       s[l['name']] = cells
       continue
     v = walk(obj, l['path'])
@@ -178,8 +201,11 @@ def set_state(obj, stores, state):
     if l.get('store'):
       st = stores[l['store']]
       pre, _, post = l['tpl'].partition('{}')
-      for key in [kk for kk in st.data if tpl_match(l['tpl'], kk) is not None]: del st.data[key]
-      for h, c in (v or {}).items(): st.data[pre + h + post if '{}' in l['tpl'] else l['tpl']] = num_in(c['value'], l.get('float'))
+      for key in [kk for kk in st.data if owns(l, kk) is not None]: del st.data[key]
+      for h, c in (v or {}).items():
+        at = pre + h + post if '{}' in l['tpl'] else l['tpl']
+        if l.get('json'): st.data[at] = json.dumps({f['name']: (c[f['name']] if f.get('choice') else num_in(c[f['name']], False)) for f in l['json'] if not f.get('out') and (not f.get('opt') or c.get(f['name'] + '_has'))})
+        else: st.data[at] = c['value'] if l.get('choice') else num_in(c['value'], l.get('float'))
       continue
     if k == 'num': put(obj, l['path'], num_in(v, l.get('float')))
     elif k in ('str', 'choice', 'bool'): put(obj, l['path'], v)
@@ -223,6 +249,39 @@ class Clock:
   def perf_counter(self): return float(NOW[0])
   def __getattr__(self, n): return getattr(self.real, n)
 
+class _Now(datetime.datetime):
+  """datetime.datetime with now() the request's time (local, naive, as the code's own now())."""
+  @classmethod
+  def now(cls, tz=None): return datetime.datetime.fromtimestamp(NOW[0], tz)
+
+def pin_clocks(root):
+  """The clock the repository's modules read (time.time(), datetime.now()) made the request's time."""
+  root = os.path.realpath(root)
+  dtm = types.SimpleNamespace(**{k: getattr(datetime, k) for k in dir(datetime) if not k.startswith('__')})
+  dtm.datetime = _Now
+  for m in list(sys.modules.values()):
+    f = getattr(m, '__file__', None)
+    if not f or not os.path.realpath(f).startswith(root + os.sep): continue
+    for n, v in list(vars(m).items()):
+      if v is time_module: setattr(m, n, Clock(v))
+      elif v is datetime: setattr(m, n, dtm)
+      elif v is datetime.datetime: setattr(m, n, _Now)
+
+def raises_here(key):
+  """Whether a call left out raises here, as the request says: only at the sites the rule read it may raise (a call of
+  the same callee elsewhere, outside a try that catches it, runs as it is)."""
+  a = next((x for x in S.get('answers') or [] if x['key'] == key), None)
+  if not a or not a.get('pass') or not a.get('at'): return True
+  f = sys._getframe(1)
+  while f is not None and os.path.realpath(f.f_code.co_filename) == os.path.realpath(__file__): f = f.f_back
+  if f is None: return True
+  here, line = os.path.basename(f.f_code.co_filename), f.f_lineno
+  for site in a['at']:
+    file, l0 = site['p'].split(':')[0], int(site['p'].split(':')[1])
+    l1 = int(site['end'].split(':')[0]) if site.get('end') and site['end'].split(':')[0].isdigit() else l0
+    if file == here and l0 <= line <= l1: return True
+  return False
+
 def raised(r):
   """The exception a stub raises where the request says: the class a handler names, made without its arguments."""
   cls = eval(r[1], vars(importlib.import_module(r[0])))
@@ -234,7 +293,7 @@ def stub(key, is_async, orig=None):
   # (orig: a call left out, run as it is unless the request says it raises)
   def value(a_, k_):
     a = CUR.get(key)
-    if a is not None and a.get('raise') is not None: raise raised(a['raise'])
+    if a is not None and a.get('raise') is not None and raises_here(key): raise raised(a['raise'])
     if orig is not None: return orig(*a_, **k_)
     if a is None or a.get('none'): return None
     return build(a, {})
@@ -258,7 +317,7 @@ def hello(req):
   sys.path.insert(0, req['root'])
   S['mod'] = importlib.import_module(req['module'])
   mod = S['mod']
-  if isinstance(getattr(mod, 'time', None), types.ModuleType): mod.time = Clock(mod.time)
+  pin_clocks(req['root'])
   S['self_stubs'] = []
   for a in req['answers']:
     p = a['patch']
@@ -308,6 +367,10 @@ def call(req):
     err = None
   except Exception as e:
     out, err = None, f"{type(e).__name__}: {e}"[:300]
+    # (GDP_HARNESS_LOG: each exception the code raised, with its traceback, appended there)
+    if os.environ.get('GDP_HARNESS_LOG'):
+      import traceback
+      with open(os.environ['GDP_HARNESS_LOG'], 'a') as f: f.write(f"{req['m']} {json.dumps(req.get('answers'))}\n{traceback.format_exc()}\n")
   finally:
     sys.settrace(None)
   if err is not None and snap is not None: set_state(obj, stores, snap)

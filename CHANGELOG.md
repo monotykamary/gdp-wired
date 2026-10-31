@@ -3,6 +3,36 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.40.0
+
+Big goals decided by asking for a model first: sixteen of IC3Syn's 29 protocols at 60 s, eighteen at 300 s.
+- **Model first, then instances**: a counting proof's step goal is first asked for a model; if one comes back, the
+  instances it breaks are added and the goal asked again, so goals stay small (consensus_wo_decide's from 547–886
+  hypotheses to 110). Most "hard" big goals had models: the blanket instances had missed the ones the proof needed.
+- **IC3Syn, 16 of 29 at 60 s with nothing written** (from 15) and **18 at 300 s** (from 16): majorityset's leader
+  election new at 60 s (13–15 s), consensus without decide new at 300 s (all 43 laws); each checked again by Lean, the
+  kernel checking each set in under a second; no broken variant proven.
+- **Fixed: the bar's 332 step goals** were not found after 0.38's rename of `modal/` to `supercomputer/`, so that group
+  ran none; it runs all 332 again, the same search on every goal.
+- **The bar**: none wrong in any group; both suites pass; the library build passes.
+
+## 0.39.0
+
+The Python reader closer to real services, and a fifteenth IC3Syn protocol; nothing trusted changed.
+- **Fixed: a conditional store write read as a plain one.** `set(..., nx=True)` on a Redis-like client was read as an
+  unconditional set, and the check's stand-in store ignored `nx` too, so a rule that differed from the code could pass
+  its check. `nx`/`xx` are now conditional writes (their result whether they wrote), expiry options are noted, and
+  anything else is refused; the stand-in behaves as redis-py does.
+- **More of real Python read as it ships**: store values stated per key form (JSON records or literals), dict literals
+  as records, `json.dumps`/`loads`, datetimes, `super()` and bases from other modules, classes built through their own
+  `__init__`, constructor defaults and stated fields, `@contextmanager`, `and`/`or` over mixed kinds, an unset local as
+  that path's `UnboundLocalError`. Four fixes in the shared executor and check, each found by the check on real code
+  (failure paths kept at a join, an object one path left untouched at a merge, a callee's raise with its own locals,
+  the check's stub raising only inside a `try`).
+- **IC3Syn, 15 of 29 at 60 s with nothing written** (16 at 300 s): Simple's correctness, a top-level ∃, proven through
+  a ghost variable the search picks; checked again by Lean.
+- **The bar**: none wrong in any group (CHC-COMP +3); both suites pass; the library build passes.
+
 ## 0.38.0
 
 Solidity, re-entrancy and 256-bit arithmetic; liveness refutations by longer cycles; nothing trusted changed.

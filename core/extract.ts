@@ -227,6 +227,8 @@ function moduleOf(m: Model, body: string, file: string): string {
 function builderOf(m: Model, sorts: Sorts): string {
   const P: Printer = {sorts, m, hoisted: new Map(), choiceVars: new Map()}
   for (const v of [...m.state, ...m.inputs, ...m.params]) if (v.sort.k === 'choice' && !P.choiceVars.has(v.sort.values.join('\u0000'))) P.choiceVars.set(v.sort.values.join('\u0000'), v.name)
+  // (a choice only a map's records hold: named through a cell of the map, its value unread, `m.at(0).f.of('x')`)
+  for (const d of m.maps) for (const f of d.fields) if (f.sort.k === 'choice' && !P.choiceVars.has(f.sort.values.join('\u0000'))) P.choiceVars.set(f.sort.values.join('\u0000'), `${d.name}.at(${d.key === 'str' ? "intern('')" : '0'}).${f.name}`)
   const ctx = (): Ctx => ({m, sorts, atoms: []})
   const lines = [`rule(${JSON.stringify(m.name)})`]
   const kinds = (vs: Var[]) => vs.map(v => `${v.name}: ${kindOf(v, sorts)}`).join(', ')
@@ -339,7 +341,7 @@ const isBool = (x: object, m?: Model): boolean => {
 // The env's names: those the terms read, the choices a literal is printed through, and the maps written.
 function withChoices(env: string, text: string, P: Printer, extra: string[] = []): string {
   const names = new Set(env.slice(1, -1).split(', ').filter(Boolean))
-  for (const w of P.choiceVars.values()) if (new RegExp(`\\b${w}\\.of\\(`).test(text)) names.add(w)
+  for (const w of P.choiceVars.values()) if (/^\w+$/.test(w) ? new RegExp(`\\b${w}\\.of\\(`).test(text) : text.includes(`${w}.of(`)) names.add(w.replace(/\.at\(.*$/, ''))
   for (const n of P.hoisted.values()) names.delete(n)
   for (const n of extra) names.add(n)
   return `{${[...names].join(', ')}}`
