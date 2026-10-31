@@ -2813,8 +2813,7 @@ function someCone(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws0: Law[],
   const plain = (law: Law, ls: Law[], ms2: number): Tried<true> => {
     try { const o = withDeadline(Math.min(until, clock() + ms2), () => proveLaw(m, ls, ls.indexOf(law))); return o.proven ? {proof: true} : {stuck: o.stuck} } catch { return {stuck: ''} }
   }
-  // (the cone within two thirds of what is left, the rest the whole set's proof)
-  const proven = cone(m, set, set, plain, until - (until - clock()) / 3, 1_000, 10_000), kept = set.filter(c => proven.has(c.name))
+  const proven = cone(m, set, plain, until), kept = set.filter(c => proven.has(c.name))
   if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: cone ${kept.length} of ${set.length} kept: ${kept.map(l => l.name).join('; ').slice(0, 2000)}`)
   if (clock() > until) return undefined
   const v = verdictOf(proveSome(m, [...laws, ...kept.filter(c => !laws.some(l => l.name === c.name))]))
