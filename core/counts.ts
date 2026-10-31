@@ -11,7 +11,7 @@
 //     at a.
 //   - Each map's cells at most what the small instances reach.
 import {type C, type E, type Law, type Machine, type Request, type State, carriedView, evalC, interpret} from './machine.ts'
-import {type CountCert, type CountInst, type Instances, type MapRead, checkCountedLaws, countedObligations, mcGoal, postName, substC, substE} from '../kernel/kernel.ts'
+import {type CountCert, type CountInst, type Instances, type MapRead, checkCountedLaws, countedObligations, mcGoal, substC} from '../kernel/kernel.ts'
 import {clock, grow} from '../kernel/prove.ts'
 
 const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})

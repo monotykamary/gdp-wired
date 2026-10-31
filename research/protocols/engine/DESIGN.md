@@ -43,7 +43,35 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
-## gen/laneK2: counts in a machine's laws and steps, proven in Lean (step 1 done; the search not wired)
+## gen/laneK2, step 2: the search over counts (untrusted; core/counts.ts)
+
+**Built (general: nothing reads a protocol's name):**
+- **Runtime** (core/machine.ts's `carriedView`, with the params): each count map at a request's view, a cell computed
+  when read (`CountCells`): CountMachine.lean's CReach is what the interpreter runs. watch.ts's `allowed` and dsl.ts's
+  cross-check pass the params.
+- **DSL** (`.counts({c: env => ({below, body: (x, k) => …})})`): a map the flags, assumption and step read at the view, a
+  law at the state; `Machine.counts` built from it (j `c$x`, key `c$k`).
+- **Ports** (research/protocols/ic3syn): `majority()` is TLA+'s own `Cardinality(Q) * 2 > Cardinality(Node)`, Q within
+  the nodes and its size the count `members` (no injective rank, no witness inputs); majorityset's row `voters[n]` a
+  state count. Re-checked by BFS against TLC's states: quorum 94, toy forall 41, naive 55, simple election 66, toy epr
+  41, toy 41, majorityset 400, each equal; consensus wo/forall/epr ran past the BFS's 60 s cap (as before).
+- **The search** (`searchCounted`, proveRule's path for a rule with counts):
+  - *the guard's shape*: a write P[t] under a quantified flag "every member of a set the request counts satisfies
+    R(member, t)", with the assumption comparing that count with a bound, declares the state count
+    c(x) = |{k < bound: R(k, x)}| and proposes P[a] ⇒ the same comparison with c[a]; a guard comparing a state count at
+    the written key proposes P[a] ⇒ that comparison at a;
+  - *supports*: each map's cells at most what the small instances reach; a relation over pairs at most one second key
+    per first; one relation (pairs, or one key) inside another, same or swapped pair; every candidate kept only if true
+    on every reachable state of the small instances (each param 2 and 3, inputs and sets below 3);
+  - *each goal's certificate*: the count cells the goal reads (the conclusion's first, then each post-step read's twin
+    before it, then reads at a constant or the law's own names; six at most), Count.lean instances over pairs with one
+    bound (a count after the step at least each other one; two counts before it that meet), ten at most, each with a
+    fresh witness; the laws over one key and the quantified flags at the witnesses and the request's inputs, the laws
+    over two keys at pairs of the law's own names and inputs; the tree grown (10 s a goal);
+  - *Houdini*: a candidate whose goal finds no tree is dropped, the set tried again; the kernel's checkCountedLaws
+    checks the final set (the proof, not the search, is trusted).
+
+
 
 **The ask:** win IC3Syn's counting (11) and ∀∃ (6) classes with nothing written: (1) a machine-level counting statement
 in the trusted Lean kernel, ever so cautiously; (2) counts and ghost maps in the search. **Step 1 is built, proven,
