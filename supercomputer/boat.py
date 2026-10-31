@@ -411,6 +411,7 @@ def build_layer(name: str, snap: str, script: str, parent: str | None):
             vm = vm or json.loads(line).get("id")
     if not vm:
         raise RuntimeError("no VM for the build")
+    note_starts(1)  # (a build's VM is a start of ours too)
     ticket = LIVE / f"boat-build-{vm}.json"
     LIVE.mkdir(parents=True, exist_ok=True)
     ticket.write_text(json.dumps({"vm": vm, "pid": os.getpid(), "host": socket.gethostname(), "snapshot": snap}))
