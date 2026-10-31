@@ -149,8 +149,9 @@ def state_of(obj, stores):
     elif k == 'bool': s[l['name']] = False if v is None else v
     elif k == 'map':
       cells = {}
-      for key, x in (v or {}).items():
-        if l.get('fields'): cells[str(key)] = {f['name']: (enc_num(x[f['name']] if isinstance(x, dict) else getattr(x, f['name']))) for f in l['fields']}
+      # (a list: its items by their places, 0 first)
+      for key, x in (enumerate(v or []) if l.get('ordered') else (v or {}).items()):
+        if l.get('fields'): cells[str(key)] = {f['name']: (lambda y: y if f.get('choice') else enc_num(y))(x[f['name']] if isinstance(x, dict) else getattr(x, f['name'])) for f in l['fields']}
         else: cells[str(key)] = {'value': enc_num(x)}
       s[l['name']] = cells
   # A store's key no template names: the code keeps state the rule has no place for.
@@ -181,9 +182,9 @@ def set_state(obj, stores, state):
       for key, c in (v or {}).items():
         kk = int(key) if l.get('key') == 'num' else key
         if l.get('fields'):
-          d[kk] = make_rec(resolve(l['cls']), {f['name']: (num_in(c[f['name']], f.get('float')) if isinstance(c[f['name']], str) else c[f['name']]) for f in l['fields']})
+          d[kk] = make_rec(resolve(l['cls']), {f['name']: (num_in(c[f['name']], f.get('float')) if isinstance(c[f['name']], str) and not f.get('choice') else c[f['name']]) for f in l['fields']})
         else: d[kk] = num_in(c['value'], l.get('float')) if isinstance(c['value'], str) else c['value']
-      put(obj, l['path'], d)
+      put(obj, l['path'], [d[kk] for kk in sorted(d)] if l.get('ordered') else d)
   for l in S['leaves']:
     if l['kind'] == 'none' and state.get(l['name']) is True: put(obj, l['path'], None)
 

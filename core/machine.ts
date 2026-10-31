@@ -69,7 +69,14 @@ export type Machine = {
   // What is given about the functions: laws over the params and the functions alone (at every key, with `forall`),
   // assumed in every goal and never proven here. The Lean export states them as the hypothesis they are.
   facts?: Law[]
+  // Ordered collections: inputs the runtimes find in the state before the step, each the key where `where` holds that
+  // is least by `by` (lexicographically, a part with `desc` the greatest first; the smaller key where all tie), and its
+  // `some` 1 where there is such a key (else 0, the key 0). `key` is the key `where` and `by` are read at. To the
+  // kernel each is an input like any other: what makes it the least is the rule's assumption (core/dsl.ts's least).
+  leasts?: Record<string, Least>
 }
+// (a part with `neg` is the integer e − neg, as Int keeps one: two naturals)
+export type Least = {some: string, key: string, where: C, by: {e: E, neg?: E, desc?: boolean}[]}
 // A function from a key to a natural. `js`: its JavaScript source (k => ...), what the runtimes call; `lean`: a Lean term
 // of type Nat → Nat, for an export that proves the facts of this function in Lean.
 // A function of several arguments is read at their pairing (core/dsl.ts's argsKey, left-nested (a + b)² + b), which the
@@ -410,8 +417,28 @@ function runnable(m: Machine) {
   const h = m.history
   const plain = h ? historyMachine(m).machine : sumRuntime(m)
   if (!h) scope(plain)
-  const queries = h ? Object.keys(h.queries) : []
-  return {h, plain, queries, carried: m.inputs.filter(i => !queries.includes(i))}
+  const queries = h ? Object.keys(h.queries) : [], found = Object.entries(m.leasts ?? {}).flatMap(([n, l]) => [n, l.some])
+  return {h, plain, queries, carried: m.inputs.filter(i => !queries.includes(i) && !found.includes(i))}
+}
+// The least keys (Machine.leasts) in a state: the candidates are the keys the maps `where` and `by` read hold a cell at;
+// where `where` holds past them all too (at every key no map holds), there is no least, and the request is refused.
+export function leastsIn(m: Machine, env: Env, st: State): Env {
+  const out: Env = {}
+  for (const [name, l] of Object.entries(m.leasts ?? {})) {
+    const keys = keysAt(st, mapsIn({op: 'and', xs: [l.where, ...l.by.flatMap(b => [b.e, ...(b.neg ? [b.neg] : [])].map(e => ({op: '=', a: e, b: e}) as C))]}).filter(mp => !m.fns?.[mp])), past = keys.pop()!
+    const at = (key: number): Env => ({...env, ...out, [l.key]: key})
+    if (evalC(l.where, at(past), st, m)) throw new RangeError(`${m.name}: ${name} has no least (its condition holds at every key past the cells)`)
+    let best: {key: number, by: number[]} | undefined
+    for (const key of keys.sort((a, b) => a - b)) {
+      if (!evalC(l.where, at(key), st, m)) continue
+      const by = l.by.map(b => evalE(b.e, at(key), st, m) - (b.neg ? evalE(b.neg, at(key), st, m) : 0))
+      const first = best && by.findIndex((x, i) => x !== best!.by[i])
+      if (!best || (first !== -1 && (l.by[first!]!.desc ? by[first!]! > best.by[first!]! : by[first!]! < best.by[first!]!))) best = {key, by}
+    }
+    out[name] = best?.key ?? 0
+    out[l.some] = best ? 1 : 0
+  }
+  return out
 }
 const empty: State = {scalars: {}, maps: {}}
 
@@ -476,15 +503,17 @@ export function interpret(m: Machine) {
     },
     // The queries a request would read (none without a history).
     queries: (params: Env, st: State, input: Request): Env => {
-      if (!h) return {}
       const env = args(params, input)
+      if (!h) return m.leasts ? leastsIn(m, env, viewed(st, input)) : {}
       ordered(env, st)
-      return queriesOf(env, live(env, st))
+      const qs = queriesOf(env, live(env, st))
+      return m.leasts ? {...qs, ...leastsIn(m, {...env, ...qs}, viewed(st, input))} : qs
     },
     step: (params: Env, given: State, input: Request): State => {
       const env = args(params, input), st = viewed(given, input)
       let records: Env[] = []
       if (h) { ordered(env, st); records = live(env, st); Object.assign(env, queriesOf(env, records)) }
+      if (m.leasts) Object.assign(env, leastsIn(m, env, st))
       for (const [name, c] of Object.entries(plain.step.flags ?? {})) env[`?${name}`] = evalC(c, env, st, plain) ? 1 : 0
       if (m.assume && !evalC(m.assume, env, st, plain)) throw new RangeError(refused(m))
       const scalars = {...st.scalars}
@@ -627,6 +656,16 @@ export function compileJs(m: Machine): string {
     lines.push(`let ${queries.map((_, i) => `q${i} = 0`).join(', ')};`,
       `for (let i = head; i < records.length; i++) { const r = records[i]; ${queries.map((q, i) => `q${i} = $x(q${i} + ${ex(h.queries[q]!)});`).join(' ')} }`,
       ...queries.map((q, i) => `env[${id(q)}] = q${i};`))
+  }
+  // The least keys (leastsIn): a scan of the keys the maps read hold, smaller keys first.
+  for (const [name, l] of Object.entries(m.leasts ?? {})) {
+    const outer = bound
+    bound = {...bound, [l.key]: 'lk'}
+    const where = cx(l.where), by = l.by.map(b => (b.neg ? `(${ex(b.e)} - ${ex(b.neg)})` : ex(b.e)))
+    bound = outer
+    const ms = mapsIn({op: 'and', xs: [l.where, ...l.by.flatMap(b => [b.e, ...(b.neg ? [b.neg] : [])].map(e => ({op: '=', a: e, b: e}) as C))]}).filter(mp => !fns.includes(mp))
+    const better = l.by.map((b, i) => `by[${i}] !== bb[${i}] ? by[${i}] ${b.desc ? '>' : '<'} bb[${i}] : `).join('') + 'false'
+    lines.push(`{ const ks = $keys(maps, ${JSON.stringify(ms)}), past = ks.pop(); let lk = past; if (${where}) throw new RangeError(${id(`${m.name}: ${name} has no least (its condition holds at every key past the cells)`)}); let bk, bb; for (lk of ks.sort((a, b) => a - b)) { if (!(${where})) continue; const by = [${by.join(', ')}]; if (bk === undefined || (${better})) { bk = lk; bb = by; } } env[${id(name)}] = bk ?? 0; env[${id(l.some)}] = bk === undefined ? 0 : 1; }`)
   }
   lines.push(...flags.map((name, i) => `const flag${i} = ${cx(plain.step.flags![name]!)};`),
     // The rule's own assumption, as `allowed` (core/watch.ts) reads it (a history's machine assumes more: its relations).

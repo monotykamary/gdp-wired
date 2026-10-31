@@ -232,9 +232,10 @@ export function ruleSnap(r: Rule, m: Model, st: State, sorts: Sorts): Snap {
   for (const v of m.state) if (!m.outputs.includes(v.name)) leaves[v.name] = d[v.name] as Raw
   for (const md of m.maps) {
     const cells: Cells = {}
-    for (const [k, c] of Object.entries((d[md.name] ?? {}) as Record<string, Record<string, Raw>>)) {
-      if (!c.has) continue
-      const key = md.key === 'str' ? idText(Number(k)) ?? `#${k}` : k
+    // (a list: its items by their places in its order, 0 first, as the code's list holds them)
+    const held = Object.entries((d[md.name] ?? {}) as Record<string, Record<string, Raw>>).filter(([, c]) => c.has).sort(([a], [b]) => Number(a) - Number(b))
+    for (const [i, [k, c]] of held.entries()) {
+      const key = md.ordered ? String(i) : md.key === 'str' ? idText(Number(k)) ?? `#${k}` : k
       cells[key] = Object.fromEntries(md.fields.map(f => [f.name, c[f.name]!]))
     }
     maps[md.name] = cells

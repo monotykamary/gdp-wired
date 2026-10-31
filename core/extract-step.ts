@@ -26,7 +26,7 @@
 // it in the code.
 import * as I from './extract-ir.ts'
 import type {B, K, L, N} from './extract-ir.ts'
-import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, mergeOps, mergeWrites} from './extract-read.ts'
+import {type Arg, type Event, type Layout, type LeastRead, type MapDecl, type Model, Refusal, type Term, type Var, mergeOps, mergeWrites} from './extract-read.ts'
 import {type Extraction, type Name, fromModel} from './extract.ts'
 import type {Rule} from './dsl.ts'
 import {type Sorts, nonneg} from './extract-print.ts'
@@ -115,7 +115,7 @@ type Path = {pc: B[], locals: Map<string, V>, heap: Map<string, Obj>, called: st
 type Flow = {live?: Path, rets: [Path, V][], brk?: Path[], ft?: Path}
 export type {V as StepValue, Path as StepPath, Obj as StepObj, Ptr as StepPtr}
 // What the harness is told: where each leaf of the state is, how each argument is made, what each stub answers.
-export type Leaf = {t?: SType, name: string, path: string[], kind: 'num' | 'bool' | 'str' | 'choice' | 'none' | 'map' | 'frame', float?: boolean, cls?: string, fields?: {name: string, float?: boolean}[], key?: 'num' | 'str', store?: string, tpl?: string}
+export type Leaf = {t?: SType, name: string, path: string[], kind: 'num' | 'bool' | 'str' | 'choice' | 'none' | 'map' | 'frame', float?: boolean, cls?: string, fields?: {name: string, float?: boolean, choice?: boolean}[], key?: 'num' | 'str', store?: string, tpl?: string, ordered?: boolean}
 export type PArg = {k: 'in', name: string, float?: boolean, sym?: boolean, z?: Raw} | {k: 'opt', none: string, v: PArg} | {k: 'rec', cls: string, f: [string, PArg][]} | {k: 'inert'} | {k: 'store', name: string} | {k: 'dflt'}
 // (how: 'inferred' from the callee's declared type, or 'tagged' by a gdp: comment; stated where absent)
 // (at: the calls answered, each from its position to its end, `line:col`; ty: the call's type in the code's language)
@@ -130,6 +130,8 @@ const keyV = (v: V | Obj): string => JSON.stringify(v, (_, x) => (x instanceof M
 const LANG: Record<string, string> = {go: 'Go', rust: 'Rust', python: 'Python', c: 'C', cpp: 'C++', ruby: 'Ruby', elixir: 'Elixir', java: 'Java', kotlin: 'Kotlin'}
 const tyName = (ty?: IntTy) => (ty ? (ty.bits ? `${ty.signed ? 'i' : 'u'}${ty.bits}` : ty.signed ? 'an Instant' : 'a Duration') : 'the number')
 const constOf = (v: V): number | undefined => (v.t === 'num' && v.e.op === 'const' ? v.e.v : undefined)
+// The key a least key's where and by are read at (the printed rule's `.least`'s argument).
+const LEAST_KEY = 'kl$'
 
 // The sorts a type string names (an answer's): int, float, bool, str, a choice of quoted strings, each `| None`.
 function sortOfText(s: string, at: string): {t: SType} {
@@ -186,6 +188,8 @@ export class Stepper {
   readonly lazy = new Map<string, {prefix: string, ty: string, args: [string, PArg][], vals: Map<string, V>}>()
   readonly initHeap = new Map<string, Obj>()
   readonly storeMaps = new Map<string, {store: string, tpl: string, id: string, decl: MapDecl}>()
+  // The least keys the step reads (an ordered collection's first or last item, its min or max by a key), each once.
+  readonly leasts: LeastRead[] = []
   frames: string[] = []
   fieldNames = new Set<string>()
   readonly frozen = new Set<string>()
@@ -421,6 +425,8 @@ export class Stepper {
         const o = (p?.heap ?? this.initHeap).get(v.id)
         if (o?.k === 'store') return I.T
         if (o?.k === 'rec' && this.plainTruth(o.ty)) return I.T
+        // (a list or a dict of the state: whether it holds an item, its least key's)
+        if (o?.k === 'map' && o.origin === 'state') return p ? this.least(o, at as SX, k => this.baseCell(o.decl, k).has, () => []).some : refuse(at, `${(at as SX).text ?? ''}: the truth of a collection read with no step around it`)
         return refuse(at, `${(at as SX).text ?? ''}: the truth of ${o?.k === 'map' ? 'a dict (whether it is empty)' : 'an object whose class may define __bool__ or __len__'}`)
       }
       case 'cell': case 'fmt': case 'fn': case 'cls': case 'lock': return I.T
@@ -640,6 +646,7 @@ export class Stepper {
   // A value as a cell's field holds it (a string literal of a choice field as the choice).
   fit(v: V, f: Var, at: SX): V {
     if (f.sort.k === 'choice' && v.t === 'str' && v.e.op === 'slit') { if (!f.sort.values.includes(v.e.value)) refuse(at, `${JSON.stringify(v.e.value)} is not one of ${f.name}'s literals`); return {t: 'choice', e: I.llit(v.e.value, f.sort.values)} }
+    if (f.sort.k === 'choice' && v.t !== 'choice') return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t} set where one of ${f.sort.values.map(x => JSON.stringify(x)).join(', ')} is held`)
     if (f.sort.k === 'num' && v.t !== 'num') return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t} set where a number is held`)
     if (f.sort.k === 'bool' && v.t !== 'bool') return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t} set where a boolean is held`)
     return v
@@ -695,12 +702,172 @@ export class Stepper {
     const key = t.key.k === 'int' ? 'num' : t.key.k === 'str' ? 'str' : refuse(at, `${name}: a dict keyed by ${this.why(t.key)} (keys are integers or strings)`)
     const cell = (n: string, ft: SType): Var => { const s = this.scalar(ft); if (!s || s.k === 'str') return refuse(at, `${name}: a dict of ${s?.k === 'str' ? 'strings' : this.why(ft)} (a cell holds integers, booleans and literals)`); return {name: n, sort: s, role: 'state'} }
     let fields: Var[], scalar = true
-    if (t.val.k === 'rec') { const r = this.rec(t.val.name, at); fields = r.fields.map(f => cell(f.name, f.t)); scalar = false }
+    // (a record's string field the module only ever sets to literals: a choice of them, said in the notes)
+    const lits = (r: SRec, f: {name: string, t: SType}): SType => {
+      if (f.t.k !== 'str') return f.t
+      const vs = this.literalsOf(r, f.name)
+      if (!vs) return f.t
+      this.notes.add(`${r.short}.${f.name}: a string the module only sets to ${vs.map(x => JSON.stringify(x)).join(' or ')} (read as a choice of those)`)
+      return {k: 'choice', values: vs}
+    }
+    if (t.val.k === 'rec') { const r = this.rec(t.val.name, at); fields = r.fields.map(f => cell(f.name, lits(r, f))); scalar = false }
     else fields = [cell('value', t.val)]
     const v = this.newVar(name, {k: 'num'}, 'state')
     const d: MapDecl = {name: v.name, key, fields, scalar, js: 'Map'}
     this.maps.push(d)
     return d
+  }
+
+  // The literals a record's field is made with, where every construction of it in the module gives one (its default
+  // too); undefined where one gives another value, or none is made.
+  literalsOf(r: SRec, field: string): string[] | undefined {
+    const i = r.fields.findIndex(f => f.name === field), out = new Set<string>()
+    let ok = true, made = 0
+    const lit = (x: SX | undefined) => { if (x?.e === 'str') out.add(String(x.v)); else ok = false }
+    const visit = (o: unknown): void => {
+      if (!ok || !o || typeof o !== 'object') return
+      if (Array.isArray(o)) { o.forEach(visit); return }
+      const x = o as SX
+      if (x.e === 'call' && (x.f as SX | undefined)?.e === 'cls' && (x.f as SX).rec === Object.keys(this.mod.recs).find(k => this.mod.recs[k] === r)) {
+        made++
+        const args = x.args as SX[], kw = x.kw as [string, SX][]
+        lit(i < args.length ? args[i] : kw.find(([n]) => n === field)?.[1] ?? r.fields[i]!.dflt)
+      }
+      for (const v of Object.values(o)) visit(v)
+    }
+    visit(this.mod.funcs)
+    return ok && made && out.size ? [...out].sort() : undefined
+  }
+  // --- ordered collections (core/dsl.ts's least) -----------------------------------------------------------------------
+  // The least key of a map of the state where `where` holds, least by `by` and then by the key itself (a list's order:
+  // the first of those that tie), as the rule's least key (Model.leasts): the rule's runtimes find it in the state
+  // before the step, so one read after the step wrote the map is refused. Each least read once, however often.
+  // (`held`: whether there is one, with `where` at its key, which it implies: what a path that takes it knows)
+  least(o: Extract<Obj, {k: 'map'}>, at: SX, where: (k: K) => B, by: (k: K) => {e: N, desc?: boolean}[]): {key: N, some: B, held: B, where: (k: K) => B} {
+    if (o.w) return refuse(at, `${at.text}: the first, last, least or greatest item of a collection the step has written (the rule reads it in the state before the step)`)
+    const kk: K = {op: 'num', e: I.nvar(LEAST_KEY)}, w = where(kk), b = [...by(kk), {e: I.nvar(LEAST_KEY)}], sig = I.keyOf({map: o.decl.name, w, b})
+    let l = this.leasts.find(x => I.keyOf({map: x.map, w: x.where, b: x.by}) === sig)
+    if (!l) {
+      let name = `${o.decl.name}_least${this.leasts.length + 1}`
+      while (this.vars.has(name)) name = `${name}_`
+      // (whether there is one is the same for every order over the same keys: one condition, so a path that took one
+      // knows the others)
+      const same = this.leasts.find(x => x.map === o.decl.name && I.keyOf(x.where) === I.keyOf(w))
+      l = {name, some: same?.some ?? `${name}$some`, map: o.decl.name, key: LEAST_KEY, where: w, by: b}
+      this.leasts.push(l)
+    }
+    const key = I.nvar(l.name), some = I.bvar(l.some)
+    return {key, some, held: I.and(some, where({op: 'num', e: key})), where}
+  }
+  // Whether the path already takes c: each of its conjuncts one of the path's conditions (or decided). A failure
+  // where c doesn't hold then never happens there (a least key's item is held where the path took it).
+  holds(p: Path, c: B): boolean {
+    if (c.op === 'not' && c.x.op === 'and') return c.x.xs.some(x => this.holds(p, I.not(x)))
+    if (c.op === 'or') return c.xs.some(x => this.holds(p, x))
+    const have = new Set(p.pc.flatMap(x => (x.op === 'and' ? x.xs : [x])).map(I.keyOf))
+    const parts = (x: B): B[] => (x.op === 'and' ? x.xs.flatMap(parts) : x.op === 'not' && x.x.op === 'or' ? x.x.xs.map(I.not).flatMap(parts) : [x])
+    return parts(c).every(x => (x.op === 'const' && x.v) || have.has(I.keyOf(x)))
+  }
+  orderedObj(m: V, p: Path): [string, Extract<Obj, {k: 'map'}>] | undefined {
+    const o = m.t === 'ref' ? p.heap.get(m.id) : undefined
+    return o?.k === 'map' && o.decl.ordered && o.origin === 'state' ? [(m as {id: string}).id, o] : undefined
+  }
+  // A list of the state's item at its first or last place (xs[0], xs[-1], xs.pop(0), max(xs) and the like): the cell,
+  // and whether there is one.
+  item(id: string, o: Extract<Obj, {k: 'map'}>, at: SX, last: boolean, by: (k: K) => {e: N, desc?: boolean}[] = () => []): {key: K, some: B, held: B, v: V} {
+    const l = this.least(o, at, k => this.baseCell(o.decl, k).has, k => [...by(k), ...(last ? [{e: (k as {e: N}).e, desc: true}] : [])])
+    const key: K = {op: 'num', e: l.key}
+    return {key, some: l.some, held: l.held, v: o.decl.scalar ? this.cellOf(o, key, undefined as never, at).vals.get('value')! : {t: 'cell', map: id, key}}
+  }
+  // A list of the state's methods: append (at a place past every item), remove (the first item equal to the value),
+  // pop (the last, or the first), each a write of one place.
+  listCall(id: string, o0: Extract<Obj, {k: 'map'}>, name: string, x: SX, p: Path): [V, Path] {
+    let o = o0
+    return this.evArgs(x, p, (args, kw, q) => {
+      const m: V = {t: 'ref', id}
+      // (the list as evaluating the arguments left it: a write there is one the least keys see, and refuse)
+      o = q.heap.get(id) as Extract<Obj, {k: 'map'}>
+      if (kw.length) return refuse(x, `${x.text}: a list's method given keywords`)
+      if (name === 'append' && args.length === 1) {
+        const last = this.least(o, x, k => this.baseCell(o.decl, k).has, k => [{e: (k as {e: N}).e, desc: true}])
+        return [{t: 'none'}, this.mapSet(m, {op: 'num', e: I.nite(last.some, I.add(last.key, I.num(1)), I.num(0))}, args[0]!, x, q)]
+      }
+      if (name === 'remove' && args.length === 1) {
+        const r = o.decl.scalar ? undefined : this.recOf(o.decl, x)
+        if (r && (!r.kinds.includes('dataclass') || r.kinds.includes('eq-identity') || r.methods.__eq__)) return refuse(x, `${x.text}: a list's remove of ${r.short}, whose equality isn't its fields' (a dataclass's)`)
+        const v = args[0]!, field = (f: string): V => (o.decl.scalar ? v : this.fieldOf(v, f, x, q))
+        const hit = this.least(o, x, k => { const c = this.cellOf(o, k, q, x); return I.and(c.has, ...o.decl.fields.map(f => this.equal(c.vals.get(f.name)!, field(f.name), x, q))) }, () => [])
+        // (an item of this list itself: none equal to it only where it isn't held either)
+        // (an item of this list itself, at a least key the path took: equal to itself, so never missing)
+        const own = v.t === 'cell' && v.map === id ? this.leasts.find(l => l.map === o.decl.name && v.key.op === 'num' && v.key.e.op === 'var' && v.key.e.name === l.name) : undefined
+        const none = I.and(I.not(hit.some), ...(v.t === 'cell' && v.map === id ? [I.not(this.baseCell(o.decl, v.key).has)] : []))
+        if (!this.holds(q, I.not(none)) && !(own && this.holds(q, I.bvar(own.some)))) this.fail(q, none, x, `${x.text}: no item equal to it (a ValueError)`)
+        return [{t: 'none'}, this.listDel(id, o, {op: 'num', e: hit.key}, x, this.assume(q, hit.held))]
+      }
+      if (name === 'pop' && args.length <= 1) {
+        const i = args[0] ? constOf(args[0]) : -1
+        if (i !== 0 && i !== -1) return refuse(x, `${x.text}: a list's pop at a place other than the first or the last`)
+        const it = this.item(id, o, x, i === -1)
+        if (!this.holds(q, it.some)) this.fail(q, I.not(it.some), x, `${x.text}: pop from an empty list (an IndexError)`)
+        return [it.v, this.listDel(id, o, it.key, x, this.assume(q, it.held))]
+      }
+      return refuse(x, `${x.text}: list.${name} (the subset reads append, remove, pop() and pop(0), xs[0] and xs[-1], min and max with a key, and whether it is empty)`)
+    })
+  }
+  // An item taken out of a list: its place no longer held, its fields kept (a value read from it before is still the
+  // object the code holds; a place past every item is where the next one goes).
+  listDel(id: string, o: Extract<Obj, {k: 'map'}>, key: K, at: SX, p: Path): Path {
+    const c = this.cellOf(o, key, p, at)
+    return this.writeCell(id, o, key, I.F, c.vals, at, p)
+  }
+  recOf(d: MapDecl, at: SX): SRec {
+    const id = [...this.initHeap].find(([, x]) => x.k === 'map' && x.decl === d)?.[1] as Extract<Obj, {k: 'map'}> | undefined
+    const t = id?.val
+    return t?.k === 'rec' ? this.rec(t.name, at) : refuse(at, `${at.text}: a list of other than records`)
+  }
+  // A field of a record value: a cell's, a fresh record's.
+  fieldOf(v: V, f: string, at: SX, p: Path): V {
+    if (v.t === 'cell') { const o = p.heap.get(v.map); if (o?.k === 'map') return this.cellOf(o, v.key, p, at).vals.get(f) ?? refuse(at, `${at.text}: no field ${f}`) }
+    if (v.t === 'ref') { const o = p.heap.get(v.id); if (o?.k === 'rec') return o.f.get(f) ?? refuse(at, `${at.text}: no field ${f}`) }
+    return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t} compared with a list's items`)
+  }
+  // min or max of a list of the state (by a key function over its items, of one argument), or of a dict's keys.
+  minMax(n: 'min' | 'max', x: SX, p: Path): [V, Path] | undefined {
+    const args = x.args as SX[], kw = x.kw as [string, SX][]
+    if (args.length !== 1 || kw.some(([k]) => k !== 'key' && k !== 'default')) return undefined
+    const [m, q] = this.ev(args[0]!, p), ord = this.orderedObj(m, q)
+    const dict = !ord && m.t === 'ref' ? q.heap.get(m.id) : undefined
+    if (!ord && !(dict?.k === 'map' && dict.origin === 'state' && dict.decl.key === 'num')) return undefined
+    const keyFn = kw.find(([k]) => k === 'key')?.[1], dflt = kw.find(([k]) => k === 'default')?.[1]
+    let q2 = q, d: V | undefined
+    if (dflt) { [d, q2] = this.ev(dflt, q2) }
+    // (the collection as evaluating the default left it: a write there refuses the least key)
+    const now = m.t === 'ref' ? q2.heap.get(m.id) : undefined
+    const desc = n === 'max'
+    const partsOf = (v: V, at: SX): N[] => (v.t === 'tuple' ? v.xs.flatMap(y => partsOf(y, at)) : v.t === 'num' ? [v.e] : refuse(at, `${at.text}: a key of ${v.t === 'opaque' ? v.why : `a ${v.t}`} (the subset orders by numbers and tuples of them)`))
+    // (a part negated: the part itself, ordered the other way)
+    const signed = (e: N, d: boolean): {e: N, desc?: boolean} => (e.op === 'neg' ? signed(e.a, !d) : e.op === 'mulk' && e.k === -1 ? signed(e.a, !d) : {e, ...(d ? {desc: true} : {})})
+    if (dict) {
+      // (min(d), max(d): the least or greatest key the dict holds)
+      if (keyFn) return refuse(x, `${x.text}: ${n} of a dict's keys by a key function`)
+      const o = now as Extract<Obj, {k: 'map'}>, l = this.least(o, x, k => this.baseCell(o.decl, k).has, k => [{e: (k as {e: N}).e, desc}])
+      return this.emptyOr(n, {t: 'num', e: l.key}, l, d, x, q2)
+    }
+    const [id] = ord!, o = now as Extract<Obj, {k: 'map'}>
+    let by: (k: K) => {e: N, desc?: boolean}[]
+    if (keyFn) {
+      if (keyFn.e !== 'lambda') return refuse(x, `${x.text}: ${n}'s key other than a lambda of one argument`)
+      const param = (keyFn.params as string[])[0]!
+      by = k => { const [v] = this.ev(keyFn.x as SX, {...q2, locals: new Map(q2.locals).set(param, o.decl.scalar ? this.cellOf(o, k, q2, x).vals.get('value')! : {t: 'cell', map: id, key: k})}); return partsOf(v, keyFn.x as SX).map(e => signed(e, desc)) }
+    } else if (o.decl.scalar) by = k => [{e: (this.cellOf(o, k, q2, x).vals.get('value') as {e: N}).e, desc}]
+    else return refuse(x, `${x.text}: ${n} of records with no key (a TypeError: records aren't ordered)`)
+    const l = this.least(o, x, k => this.baseCell(o.decl, k).has, by), key: K = {op: 'num', e: l.key}
+    return this.emptyOr(n, o.decl.scalar ? this.cellOf(o, key, q2, x).vals.get('value')! : {t: 'cell', map: id, key}, l, d, x, q2)
+  }
+  emptyOr(n: string, v: V, l: {some: B, held: B}, d: V | undefined, x: SX, p: Path): [V, Path] {
+    if (d) return [d.t === 'none' ? {t: 'opt', has: l.held, v} : this.ite(l.held, v, d, x), p]
+    if (!this.holds(p, l.some)) this.fail(p, I.not(l.some), x, `${x.text}: ${n}() of an empty collection (a ValueError)`)
+    return [v, this.assume(p, l.held)]
   }
 
   // --- stores ---------------------------------------------------------------------------------------------------------
@@ -1163,6 +1330,14 @@ export class Stepper {
       case 'idx': {
         const [m, q] = this.ev(x.x as SX, p), [k, q2] = this.ev(x.i as SX, q)
         if (m.t === 'opaque') return [m, q2]
+        const ord = this.orderedObj(m, q2)
+        if (ord) {
+          const i = constOf(k)
+          if (i !== 0 && i !== -1) return refuse(x, `${x.text}: a list's item at a place other than the first or the last (xs[0], xs[-1])`)
+          const it = this.item(ord[0], ord[1], x, i === -1)
+          if (!this.holds(q2, it.some)) this.fail(q2, I.not(it.some), x, `${x.text}: an item of an empty list (an IndexError)`)
+          return [it.v, this.assume(q2, it.held)]
+        }
         return this.mapGet(m, this.keyOf(k, x.i as SX), x, q2, 'fail')
       }
       case 'neg': { const [v, q] = this.ev(x.x as SX, p); if (v.t === 'opaque') return [v, q]; return [{t: 'num', e: I.neg(this.numOf(v, x, q))}, q] }
@@ -1189,7 +1364,9 @@ export class Stepper {
         if ((x.keys as SX[]).length) return refuse(x, `${x.text ?? 'a dict literal'}: a dict literal with items (a record is made by its class)`)
         return [{t: 'opaque', why: '{} (an empty dict, a map only where a field declares its type)'}, p]
       }
-      case 'list': return refuse(x, 'a list literal (lists are outside the Python subset)')
+      // (an empty list: an ordered collection where a field of the state declares a list of records or numbers)
+      case 'list': return (x.xs as SX[]).length ? refuse(x, 'a list literal with items (the subset keeps a list of the state, made empty)') : [{t: 'opaque', why: '[] (an empty list, a collection only where a field declares its type)'}, p]
+      case 'lambda': return refuse(x, `${x.text}: a lambda (a closure; read only as min's or max's key over a collection of the state)`)
       case 'call': return this.call(x, p, awaited)
     }
     return refuse(x, `${x.text ?? x.e}: an expression the subset doesn't read`)
@@ -1308,8 +1485,12 @@ export class Stepper {
   bin(x: SX, p: Path): [V, Path] {
     const op = String(x.op)
     if (x.ovf) return this.fixed(x, p)
-    if (op === '/') return refuse(x, `${x.text}: a true division (a float; the subset reads math.floor or math.ceil of x / k, int(x / k), or x // k)`)
     const [a, q] = this.ev(x.x as SX, p), [b, q2] = this.ev(x.y as SX, q)
+    // A true division: a float, kept only where nothing the rule keeps reads it (refused there); its divisor 0 fails.
+    if (op === '/') {
+      if (b.t === 'num' || b.t === 'bool') { const nb = this.numOf(b, x, q2); this.fail(q2, I.cmp('=', nb, I.num(0)), x, `${x.text}: a division by zero (a ZeroDivisionError)`); return [{t: 'opaque', why: `${x.text}: a true division (a float; the subset reads math.floor or math.ceil of x / k, int(x / k), or x // k)`}, this.assume(q2, I.not(I.cmp('=', nb, I.num(0))))] }
+      return [{t: 'opaque', why: `${x.text}: a true division (a float; the subset reads math.floor or math.ceil of x / k, int(x / k), or x // k)`}, q2]
+    }
     if (a.t === 'opaque' || b.t === 'opaque') return [a.t === 'opaque' ? a : b, q2]
     if ((a.t === 'str' || a.t === 'fmt') && op === '+') return [{t: 'opaque', why: `${x.text}: strings joined`}, q2]
     if (a.t === 'str' && op === '%') return [{t: 'opaque', why: `${x.text}: a string formatted`}, q2]
@@ -1479,6 +1660,8 @@ export class Stepper {
     if (fx.e === 'get') {
       const [o, q1] = this.ev(fx.x as SX, q)
       q = q1
+      const ord = this.orderedObj(o, q)
+      if (ord) return this.listCall(ord[0], ord[1], String(fx.f), x, q)
       if (o.t === 'ref' && q.heap.get(o.id)?.k === 'map') return this.dictCall(o, String(fx.f), x, q)
       if (o.t === 'ref' && q.heap.get(o.id)?.k === 'store') return this.evArgs(x, q, (args, kw, q2) => this.storeCall((q.heap.get(o.id) as {name: string}).name, String(fx.f), args, kw, x, q2, awaited))
       if (o.t === 'sattr') return refuse(x, `${x.text}: a method of the store's ${o.path} (not stated)`)
@@ -1561,8 +1744,11 @@ export class Stepper {
   }
   builtin(n: string, x: SX, p: Path): [V, Path] {
     const a0 = (x.args as SX[])[0]
-    // int(x / k): truncated toward zero.
+    // min or max of a collection of the state (a list's items by a key, a dict's keys): its least key.
+    if ((n === 'min' || n === 'max') && (a0?.e === 'get' || a0?.e === 'var')) { const r = this.minMax(n, x, p); if (r) return r }
+    // int(x / k): truncated toward zero; round(x / k): to the nearest, a half to the even one (Python's round).
     if (n === 'int' && a0?.e === 'bin' && a0.op === '/') return this.quotient(a0, p, 'trunc')
+    if (n === 'round' && a0?.e === 'bin' && a0.op === '/' && (x.args as SX[]).length === 1 && !(x.kw as unknown[]).length) return this.quotient(a0, p, 'even')
     return this.evArgs(x, p, (args, kw, q) => {
       if (kw.length) return refuse(x, `${x.text}: ${n} given keywords`)
       if (args.some(a => a.t === 'opaque') && ['str', 'repr', 'len', 'isinstance', 'round', 'int', 'float', 'bool'].includes(n)) { const ask = args.find(a => a.t === 'opaque' && a.ask) as {why: string, ask: string} | undefined; return [{t: 'opaque', why: `${x.text}: of a value outside the subset${ask ? ` (${ask.why})` : ''}`, ...(ask ? {ask: ask.ask} : {})}, q] }
@@ -1575,23 +1761,32 @@ export class Stepper {
           return [{t: 'num', e: ns.slice(1).reduce((acc, y) => (n === 'min' ? I.nmin(acc, y) : I.nmax(acc, y)), ns[0]!), ...(ty ? {ty} : {})}, q]
         }
         case 'abs': { const e = this.numOf(v!, x, q); return [{t: 'num', e: I.nite(I.cmp('<', e, I.num(0)), I.neg(e), e)}, q] }
+        // (round of a whole number, an int or a float at a whole value: itself)
+        case 'round': if (args.length === 1 && v?.t === 'num') return [v, q]; break
         case 'int': case 'float':
           if (v?.t === 'str') return refuse(x, `${x.text}: a string parsed`)
           if (v?.t === 'bool') return [{t: 'num', e: I.nite(v.e, I.num(1), I.num(0))}, q]
           return [{t: 'num', e: this.numOf(v ?? {t: 'num', e: I.num(0)}, x, q)}, q]
-        case 'bool': return [{t: 'bool', e: v ? this.truthy(v, x) : I.F}, q]
+        case 'bool': return [{t: 'bool', e: v ? this.truthy(v, x, q) : I.F}, q]
         case 'str': if (v?.t === 'str') return [v, q]; return [{t: 'opaque', why: `${x.text}: a value made a string`}, q]
         case 'repr': return [{t: 'opaque', why: `${x.text}: a repr`}, q]
       }
       return refuse(x, `${x.text}: ${n}() (a builtin outside the subset)`)
     })
   }
-  quotient(d: SX, p: Path, round: 'floor' | 'ceil' | 'trunc'): [V, Path] {
+  // (even: Python's round(a / k), the nearest whole number, a half to the even one: exact for |a| below 2^53, where the
+  // float a / k is within half its last place of a / k, so it lands on a half only where a / k is one)
+  quotient(d: SX, p: Path, round: 'floor' | 'ceil' | 'trunc' | 'even'): [V, Path] {
     const [a, q] = this.ev(d.x as SX, p), [b, q2] = this.ev(d.y as SX, q), k = constOf(b)
     if (k === undefined) return refuse(d, `${d.text}: a division by a value that isn't a constant`)
     if (k === 0) { this.fail(q2, I.T, d, `${d.text}: a division by zero (a ZeroDivisionError)`); return [{t: 'num', e: I.num(0)}, {...q2, pc: [...q2.pc, I.F]}] }
     const n = this.numOf(a, d, q2), fl = this.floorDiv(n, k), ce = I.neg(this.floorDiv(I.neg(n), k))
     const lt = k > 0 ? I.cmp('<', n, I.num(0)) : I.cmp('<', I.num(0), n)
+    if (round === 'even') {
+      // (r = a − k·⌊a/k⌋: below half of k the floor, past it one more, at it the even of the two)
+      const r2 = I.mulk(2, I.sub(n, I.mulk(k, fl))), half = I.num(k), below = k > 0 ? I.cmp('<', r2, half) : I.cmp('<', half, r2), above = k > 0 ? I.cmp('<', half, r2) : I.cmp('<', r2, half)
+      return [{t: 'num', e: I.nite(below, fl, I.nite(above, I.add(fl, I.num(1)), I.add(fl, I.sub(fl, I.mulk(2, I.divk(2, fl))))))}, q2]
+    }
     return [{t: 'num', e: round === 'floor' ? fl : round === 'ceil' ? ce : I.nite(lt, ce, fl)}, q2]
   }
   lib(q0: string, x: SX, p: Path): [V, Path] {
@@ -2391,11 +2586,22 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
           return
         }
       }
+      // A list of records or numbers the constructor makes empty: an ordered collection, a map keyed by each item's place
+      // in the list's order (MapDecl.ordered).
+      if (v.t === 'opaque' && decl?.k === 'list' && /\[\]/.test(v.why) && (decl.of.k === 'rec' || g.scalar(decl.of)?.k === 'num')) {
+        const vt = decl.of, d = g.mapDeclOf(name, {k: 'map', key: {k: 'int'}, val: vt}, at), id = `state:${path.join('.')}`
+        d.ordered = true
+        heap.set(id, {k: 'map', decl: d, val: vt, origin: 'state'})
+        leaves.push({name: d.name, path, kind: 'map', key: 'num', ordered: true, ...(vt.k === 'rec' ? {cls: vt.name, fields: d.fields.map(x => ({name: x.name, ...(g.mod.recs[vt.name]!.fields.find(y => y.name === x.name)?.t.k === 'float' ? {float: true} : {}), ...(x.sort.k === 'choice' ? {choice: true} : {})}))} : vt.k === 'float' ? {float: true} : {})})
+        into.set(f, {t: 'ref', id})
+        g.notes.add(`${path.join('.')}: a list, read as its items in order (each item's place a key that only grows as items are added)`)
+        return
+      }
       if (v.t === 'opaque' && decl?.k === 'map' && /\{\}/.test(v.why)) {
         const d = g.mapDeclOf(name, decl, at), id = `state:${path.join('.')}`
         const vt = decl.val
         heap.set(id, {k: 'map', decl: d, val: vt, origin: 'state'})
-        leaves.push({name: d.name, path, kind: 'map', key: d.key, ...(vt.k === 'rec' ? {cls: vt.name, fields: d.fields.map(x => ({name: x.name, ...(g.mod.recs[vt.name]!.fields.find(y => y.name === x.name)?.t.k === 'float' ? {float: true} : {})}))} : vt.k === 'float' ? {float: true} : {})})
+        leaves.push({name: d.name, path, kind: 'map', key: d.key, ...(vt.k === 'rec' ? {cls: vt.name, fields: d.fields.map(x => ({name: x.name, ...(g.mod.recs[vt.name]!.fields.find(y => y.name === x.name)?.t.k === 'float' ? {float: true} : {}), ...(x.sort.k === 'choice' ? {choice: true} : {})}))} : vt.k === 'float' ? {float: true} : {})})
         into.set(f, {t: 'ref', id})
         return
       }
@@ -2616,6 +2822,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     name: cls ? g.rec(cls, at).short : names.length === 1 ? names[0]! : mod.module.split('.').pop()!, shape: 'class', file: mod.file, entry: cls ? g.rec(cls, at).short : names.join(', '),
     params: g.params, inputs, state, maps, init, writes, mapWrites, outputs,
     refuse: refuseB, pre, layout, events, notes: [...g.notes], hints: g.hints, ...(ev ? {event: ev.name} : {}), results, laws,
+    ...(g.leasts.length ? {leasts: g.leasts} : {}),
   }
   return {ints: Object.fromEntries(g.ints), ...(g.madeAt ? {madeAt: g.madeAt.name} : {}), model, leaves, args: argsOf, answers: [...g.answers.values()], ctor, kept, arms: [...g.arms].map(a => { const i = a.lastIndexOf(':'); return [a.slice(0, i), Number(a.slice(i + 1))] }), ...(cls ? {cls} : {}), stores, results: resultKinds, ...(g.injectedFields.length ? {inject: g.injectedFields} : {})}
 }
@@ -2809,7 +3016,7 @@ export function stepNames(read: StepRead): Name[] {
   const out: Name[] = [], m = read.model, at = (code: string) => out.find(n => n.code === code && n.role === 'state')
   for (const l of read.leaves) {
     const code = l.path.join('.')
-    if (l.kind === 'map') out.push({code: l.store ?? code, rule: l.name, role: 'state', map: {fields: m.maps.find(d => d.name === l.name)?.fields.map(f => f.name) ?? [], ...(l.store ? {store: l.store, tpl: l.tpl ?? '{}'} : {})}})
+    if (l.kind === 'map') out.push({code: l.store ?? code, rule: l.name, role: 'state', map: {fields: m.maps.find(d => d.name === l.name)?.fields.map(f => f.name) ?? [], ...(l.store ? {store: l.store, tpl: l.tpl ?? '{}'} : {}), ...(l.ordered ? {ordered: true} : {})}})
     else if (l.kind === 'none') { const n = at(code); if (n) n.none = l.name; else out.push({code, rule: '', role: 'state', none: l.name}) }
     else if (l.kind !== 'frame') out.push({code, rule: l.name, role: 'state'})
   }

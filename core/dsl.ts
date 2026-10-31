@@ -15,7 +15,7 @@
 //
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
-import {type C, type E, type Fn, argsKey, type Law, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
+import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {someHolds, substVars, substVarsE} from './exists.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations, substC, sumMachine} from '../kernel/kernel.ts'
@@ -738,6 +738,10 @@ export const everyKey = (f: (key: Term, key2: Term, key3: Term) => Cond): Cond =
   const ok = (picked: Term[]): boolean | undefined => (picked.length === names.length ? g(...picked).ok : everyOk(scope?.keys, k => ok([...picked, keyTerm(k)])))
   return new Cond({op: 'all', key: names[0]!, ...(names.length > 1 ? {keys: names.slice(1)} : {}), c: g(...names.map(v)).c}, ok([]))
 }
+// A least key's definition (Rule.least): the keys it ranges over, and what it is least by, part by part.
+export type LeastDef = {where: (key: Term) => Cond, by: (key: Term) => (IntLike | {desc: IntLike})[]}
+// A part of a least key's order compared the other way (the greatest first).
+export const desc = (t: IntLike): {desc: IntLike} => ({desc: t})
 // Some key where f holds, in a law or a step law's conclusion (¬∀k. ¬f(k)): proven through a witness, a term naming the
 // key, given here or found by the prover among a few candidates (kernel/prove.ts).
 export const someKey = (f: (key: Term) => Cond, witness?: TermLike): Cond => {
@@ -1548,6 +1552,8 @@ type Spec = {
   record?: string[]
   sums: [string, (r: never, p: never) => TermLike][]
   queries: [string, (r: never, v: never) => TermLike][]
+  // Least keys the runtimes find in the state (Rule.least): each an input of kind maybe(nat).
+  leasts?: [string, (env: never) => LeastDef][]
   keep?: (env: never) => Cond
   relations?: (env: never) => Relation[]
   prune?: {order: string, after: (p: never) => TermLike}
@@ -1706,6 +1712,16 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // the request's other inputs.
   queries<T extends Record<string, (r: R, v: P & I) => TermLike>>(queries: T): Rule<P, I, S, M, F, R, Su, Q & {[k in keyof T]: Term}> {
     return this.with({queries: [...this.spec.queries, ...Object.entries(queries) as [string, (r: never, v: never) => TermLike][]]})
+  }
+  // Ordered collections, as a keyed map and the least key the step reads: `name`, a Maybe (none where no key meets
+  // `where`), the key where `where` holds that is least by `by`, compared part by part (`desc(t)`: the greatest first).
+  // The runtimes find it in the state before the step (the smaller key where all tie); the kernel knows it only by the
+  // assumption it adds: where some, `where` holds there and it is at most every key `where` holds at, by `by`; where
+  // none, `where` holds nowhere. A priority queue, a sorted map's first entry, a list's first item by insertion:
+  //   .least({best: ({Asks}) => ({where: k => Asks.at(k).has, by: k => [Asks.at(k).price, Asks.at(k).seq]})})
+  //   .step(({best, Asks}) => ({Asks: Asks.set(best.inner, ...)}))     (best.isSome, best.inner)
+  least<T extends Record<string, (env: P & I & S & M & Su & Q) => LeastDef>>(defs: T): Rule<P, I, S, M, F, R, Su, Q & {[k in keyof T]: Maybe<Term>}> {
+    return this.with({leasts: [...(this.spec.leasts ?? []), ...Object.entries(defs) as [string, (env: never) => LeastDef][]]})
   }
   keep(f: (env: P & I & S & M & F & Su & Q) => Cond): Rule<P, I, S, M, F, R, Su, Q> { return this.with({keep: f as (env: never) => Cond}) }
   relations(f: (env: P & I & Su & Q) => Relation[]): Rule<P, I, S, M, F, R, Su, Q> { return this.with({relations: f as (env: never) => Relation[]}) }
@@ -1902,6 +1918,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       for (const n of this.spec.seqTables ?? []) { for (const part of [`${n}_base`, `${n}_len`, `${n}_rows`]) delete out[part]; out[n] = new SeqTable(n, v(`${n}_rows`)) }
       const ps = Object.fromEntries(this.spec.params.map(([n]) => [n, out[n]]))
       for (const [n, k, fs, ls] of this.spec.lists2 ?? []) { const l = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), ls, ps, this.spec.params); for (const part of l.maps) delete out[part]; out[n] = l }
+      for (const [n] of this.spec.leasts ?? []) out[n] = maybe(nat).value(n)
     }
     if (parts.state !== false) {
       for (const [n] of this.spec.state) out[n] = v(n)
@@ -1937,7 +1954,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   private names(): [string, string][] {
     const s = this.spec
     return [...s.params.map(([n]) => [n, 'a param']), ...(s.fns ?? []).map(([n]) => [n, 'a function']), ...s.inputs.map(([n]) => [n, 'an input']), ...(s.carried ?? []).map(n => [n, 'a carried map']),
-      ...s.state.map(([n]) => [n, 'a state variable']), ...s.maps.map(([n]) => [n, 'a map']), ...s.sums.map(([n]) => [n, 'a sum']), ...s.queries.map(([n]) => [n, 'a query']),
+      ...s.state.map(([n]) => [n, 'a state variable']), ...s.maps.map(([n]) => [n, 'a map']), ...s.sums.map(([n]) => [n, 'a sum']), ...s.queries.map(([n]) => [n, 'a query']), ...(s.leasts ?? []).map(([n]) => [n, 'a least key']),
       ...[...(s.cells ?? []), ...(s.items ?? [])].filter(([n, k]) => !k.vars(n).includes(n)).map(([n]) => [n, 'a map of a kind']),
       ...(s.nodes ?? []).map(([n]) => [n, 'a table of nodes']),
     ] as [string, string][]
@@ -1995,7 +2012,20 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     skolemsOf.set(this, {params: pre0.bodies, inputs: as0.bodies})
     params.push(...pre0.vars); inputs.push(...as0.vars)
     const pre = [...this.kindAssumptions('params'), ...pre0.cs]
-    const assume = [...this.kindAssumptions('inputs'), ...(s.lists2 ?? []).flatMap(([n]) => (env[n] as CarriedList<unknown>).equations().map(c => hoist.cond(c.c))), ...as0.cs.map(c => hoist.cond(c))]
+    // The least keys: inputs the runtimes find, assumed least.
+    const leasts: Record<string, Least> = {}, leastAssume: Cond[] = []
+    for (const [n, f] of s.leasts ?? []) {
+      const d = (f as (env: never) => LeastDef)(env as never), key = `k$${++boundCounter}`, best = (env[n] as Maybe<Term>)
+      const parts = (k: Term) => d.by(k).map(b => (typeof b === 'object' && !(b instanceof Term) && !(b instanceof Int) && 'desc' in b ? {t: Int.of(b.desc), desc: true} : {t: Int.of(b as IntLike), desc: false}))
+      const zero = (e: E) => e.op === 'const' && e.value === 0
+      leasts[n] = {some: `${n}$some`, key, where: d.where(v(key)).c, by: parts(v(key)).map(b => ({e: b.t.pos.e, ...(zero(b.t.neg.e) ? {} : {neg: b.t.neg.e}), ...(b.desc ? {desc: true} : {})}))}
+      inputs.push(`${n}$some`, n)
+      const atMost = (a: {t: Int, desc: boolean}[], b: {t: Int, desc: boolean}[]): Cond => (a.length === 0 ? yes
+        : ((x: Int, y: Int) => (a.length === 1 ? x.atMost(y) : x.lt(y).or(x.eq(y).and(atMost(a.slice(1), b.slice(1))))))(a[0]!.desc ? b[0]!.t : a[0]!.t, a[0]!.desc ? a[0]!.t : b[0]!.t))
+      leastAssume.push(best.present.atMost(1), best.isSome.implies(d.where(best.inner)), best.isNone.implies(everyKey(k => d.where(k).not())),
+        best.isSome.implies(everyKey(k => d.where(k).implies(atMost(parts(best.inner), parts(k))))))
+    }
+    const assume = [...this.kindAssumptions('inputs'), ...leastAssume.map(c => hoist.cond(c.c)), ...(s.lists2 ?? []).flatMap(([n]) => (env[n] as CarriedList<unknown>).equations().map(c => hoist.cond(c.c))), ...as0.cs.map(c => hoist.cond(c))]
     placed()
     // Functions, and their facts: each function's own (named after it), then the rule's.
     // The functions a function reads come first, each named <function>.<use>.
@@ -2015,6 +2045,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       ...(assume.length ? {assume: assume.length === 1 ? assume[0]! : {op: 'and', xs: assume}} : {}),
       ...(Object.keys(fns).length ? {fns} : {}),
       ...(facts.length ? {facts} : {}),
+      ...(Object.keys(leasts).length ? {leasts} : {}),
     }
     if (s.record) {
       const kinds = new Map(s.inputs)
