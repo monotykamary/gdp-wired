@@ -486,3 +486,91 @@ export function buildTwoRuns(x: Extraction, l: LawText, others: Record<string, E
   }
   throw new LawError('not a law about two runs')
 }
+
+// --- liveness: "whenever <from>, later <to>" ---------------------------------------------------------------------------
+// `<from> leads to <to> by <rank>[, <rank>...] via <helpful>[; <helpful>...] [strongly]`, each helpful request
+// `[<cond> ->] <method>(<arg> = <value>, ...)`: in every run that takes each helpful request (where its condition holds)
+// infinitely often, a state where `from` holds is followed by one where `to` does (core/dsl.ts's leadsTo, proven by
+// proveLeadsTo: no step raises the rank (in order) while `from` holds and `to` doesn't, except into `to`, and each helpful
+// request lowers it or reaches `to`). `strongly`: strong fairness (a request taken wherever, infinitely often, it is
+// allowed). The conditions and the rank read the state and the params; a helpful request's values are literals (true,
+// false, a number, one of a choice's values) or terms of the state.
+const LEADS = /^(.*?)\s+leads\s+to\s+(.*?)(?:\s+by\s+(.*?))?\s+via\s+(.*?)(\s+strongly)?\s*$/s
+export const isLeadsTo = (expr: string): boolean => LEADS.test(expr.trim())
+export function buildLeadsTo(x: Extraction, l: LawText, opts: {clock?: number} = {}): unknown {
+  const m = LEADS.exec(l.expr.trim())
+  if (!m) throw new LawError(`${l.name}: <from> leads to <to> [by <rank>] via <method>(<arg> = <value>, ...)`)
+  const names = namesWithClock(x), r = x.rule as unknown as {leadsTo: (n: string, spec: unknown) => unknown}
+  const model = x.model as unknown as {inputs: {name: string, sort: {k: string, values?: string[]}}[]} | undefined
+  const sorts = (x as unknown as {sorts?: Map<string, string>}).sorts
+  const ctxOf = (env: Record<string, unknown>): Ctx => ({b: env, a: env, step: false, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock})
+  const stateOnly = (text: string, what: string) => {
+    const e = parse(text), probe = ctxOf({})
+    if (e.k === 'forall') read(e, probe, names, true); else val(e, probe, names, true)  // (what it reads: a bare yes/no field reads as one)
+    if ([...probe.roles].some(k => ['input', 'answer', 'result', 'failed', 'old', 'method'].includes(k))) throw new LawError(`${what} reads the request or the step: it reads the state and the params`)
+    return e
+  }
+  const from = stateOnly(m[1]!, 'its from'), to = stateOnly(m[2]!, 'its to')
+  const ranks = (m[3] ? split(m[3], ',') : []).map(t => { const e = parse(t); val(e, ctxOf({}), names, true); return e })
+  const mname = names.find(n => n.role === 'method')?.rule
+  const helpful = split(m[4]!, ';').map(h => {
+    const arrow = topIndex(h, '->')
+    const when = arrow >= 0 ? stateOnly(h.slice(0, arrow), 'a helpful request\'s condition') : undefined
+    const call = /^\s*(\w+)\s*\((.*)\)\s*$/s.exec(arrow >= 0 ? h.slice(arrow + 2) : h)
+    if (!call) throw new LawError(`a helpful request is <method>(<arg> = <value>, ...): ${h.trim()}`)
+    const method = call[1]!, args = call[2]!.trim() ? split(call[2]!, ',').map(a => { const eq = a.indexOf('='); if (eq < 0) throw new LawError(`${method}(${a.trim()}): <arg> = <value>`); return [a.slice(0, eq).trim(), a.slice(eq + 1).trim()] as [string, string] }) : []
+    const ins = names.filter(n => n.role === 'input' && (n.method === method || !n.method))
+    if (mname && !names.some(n => n.method === method)) {
+      const ev = model?.inputs.find(v => v.name === mname)
+      if (!ev?.sort.values?.includes(method)) throw new LawError(`no method ${method} (its methods: ${ev?.sort.values?.join(', ') ?? 'none'})`)
+    }
+    const vals = args.map(([a, v]) => {
+      const n = ins.find(y => y.code === a) ?? (() => { throw new LawError(`${method}(${a}): no such argument (its arguments: ${ins.filter(y => y.method === method).map(y => y.code).join(', ')})`) })()
+      if (!n.rule) throw new LawError(`${method}(${a}): an argument the rule doesn't keep`)
+      return [n.rule, v, model?.inputs.find(y => y.name === n.rule)?.sort, sorts?.get(n.rule)] as const
+    })
+    return {when, method, vals}
+  })
+  const strongly = !!m[5]
+  const term = (e: X, env: Record<string, unknown>): Term => { const v = val(e, ctxOf(env), names, false); const n = num(v); return n.clamped }
+  const request = (h: (typeof helpful)[number]) => (env: Record<string, unknown>): Record<string, unknown> => {
+    const out: Record<string, unknown> = {}
+    if (mname) { const ev = model!.inputs.find(v => v.name === mname)!; out[mname] = ev.sort.values!.indexOf(h.method) }
+    for (const [rule, text, sort, dom] of h.vals) {
+      const lit = text.replace(/^["']|["']$/g, '')
+      if (sort?.k === 'bool') { if (!['true', 'false', 'True', 'False'].includes(text)) throw new LawError(`${h.method}: ${rule} is a yes/no: true or false`); out[rule] = /^t/i.test(text) ? 1 : 0 }
+      else if (sort?.k === 'choice') { const i = sort.values!.indexOf(lit); if (i < 0) throw new LawError(`${text} isn't one of ${sort.values!.join(', ')}`); out[rule] = i }
+      else if (sort?.k === 'num' && dom !== 'int') out[rule] = /^\d+$/.test(text) ? Number(text) : term(parse(text), env)
+      // (an integer: its two parts, the natural above 0 and the one below)
+      else if (sort?.k === 'num') { const n = num(val(parse(text), ctxOf(env), names, false)); out[rule] = n.pos; out[`${rule}$neg`] = n.neg }
+      else throw new LawError(`${h.method}: ${rule}, a ${sort?.k ?? 'value'}, isn't given in a helpful request (numbers, yes/no and choices are)`)
+    }
+    return out
+  }
+  return r.leadsTo(l.name, {
+    from: (env: Record<string, unknown>) => read(from, ctxOf(env), names, false),
+    to: (env: Record<string, unknown>) => read(to, ctxOf(env), names, false),
+    ...(ranks.length ? {rank: (env: Record<string, unknown>) => ranks.map(e => term(e, env))} : {}),
+    helpful: helpful.map(h => ({...(h.when ? {when: (env: Record<string, unknown>) => read(h.when!, ctxOf(env), names, false)} : {}), request: request(h)})),
+    ...(strongly ? {fairness: 'strong'} : {}),
+  })
+}
+// (the index of `tok` outside parentheses and quotes, or -1; a text split there)
+function topIndex(s: string, tok: string): number {
+  let depth = 0, q = ''
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]!
+    if (q) { if (ch === q) q = ''; continue }
+    if (ch === '"' || ch === "'") q = ch
+    else if (ch === '(' || ch === '[') depth++
+    else if (ch === ')' || ch === ']') depth--
+    else if (depth === 0 && s.startsWith(tok, i)) return i
+  }
+  return -1
+}
+function split(s: string, sep: string): string[] {
+  const out: string[] = []
+  let rest = s
+  for (let i = topIndex(rest, sep); i >= 0; i = topIndex(rest, sep)) { out.push(rest.slice(0, i)); rest = rest.slice(i + sep.length) }
+  return [...out, rest].map(t => t.trim()).filter(Boolean)
+}

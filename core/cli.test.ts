@@ -526,3 +526,43 @@ ${helper ? '    # gdp: law a within 3: a <= 3\n' : ''}
   const b = await check([`${dir}/mirror.py`], {ms: 5000, propose: false})
   expect(b.rules[0]!.laws.map(l => [l.verdict, l.from])).toEqual([['proven', 'any'], ['proven', 'any']])
 })
+
+// Laws of "eventually" in the code's comments: `<from> leads to <to> by <rank> via [<cond> ->] <method>(<arg> = <value>)`,
+// an episode of the class (a subclass whose requests gdp.toml names) where other requests would undo the progress.
+;(TOOLS.python!() ? test : test.skip)('the CLI on laws of "eventually": proven with their rank and helpful requests, not where a step undoes it', async () => {
+  const dir = files({'retry.py': `
+from typing import Literal
+
+
+class Retry:
+    # gdp: law a waiting job ends: state == "waiting" leads to state != "waiting" by tries - fails via fail(boat = true)
+
+    def __init__(self, tries: int):
+        if tries < 1:
+            raise ValueError("tries")
+        self.tries = tries
+        self.fails = 0
+        self.state: Literal["waiting", "done", "gave_up"] = "waiting"
+
+    def fail(self, boat: bool) -> None:
+        if self.state != "waiting" or not boat:
+            return
+        self.fails += 1
+        if self.fails >= self.tries:
+            self.state = "gave_up"
+
+    def finish(self) -> None:
+        if self.state == "waiting":
+            self.state = "done"
+
+
+class Resettable(Retry):
+    # gdp: law a job of a resettable kind ends: state == "waiting" leads to state != "waiting" by tries - fails via fail(boat = true)
+    def reset(self) -> None:
+        self.fails = 0
+`})
+  const {rules} = await check([`${dir}/retry.py`], {ms: 5000, propose: false})
+  const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [`${r.entry}: ${l.name}`, l.verdict])))
+  expect(v['Retry: a waiting job ends']).toBe('proven')
+  expect(v['Resettable: a job of a resettable kind ends']).toBe('unknown')
+})
