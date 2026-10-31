@@ -360,7 +360,7 @@ def call(req):
     except RpcError as x: return {'bad': f'the time {req["now"]}: {x}'}
   data, value, bad = calldata(o, m, req['a'], W)
   if bad: return {'err': bad}
-  bad = havoc(o, req.get('answers') or {}, W)
+  bad = havoc(o, req.get('answers') or {}, W, m)
   if bad: return {'err': bad}
   frm = addr_hex(sender)
   fund(frm, value)
@@ -395,8 +395,13 @@ def calldata(o, m, args, W):
 
 
 # The answers of the mappings of mappings read (the rule's inputs): each set in the code's cells.
-def havoc(o, answers, W):
+def havoc(o, answers, W, m):
+  # (a value below 0 is no natural: the rule's input kind refuses it at every request)
   for label in S.get('havoc') or []:
+    a = answers.get(label)
+    if a is not None and isinstance(a.get('in'), (int, float)) and not isinstance(a.get('in'), bool) and a['in'] < 0: return f'{label} answers {a["in"]}, below 0'
+  for label in (S.get('havocBy') or {}).get(m, []):
+    if label not in (S.get('havoc') or []): continue
     a = answers.get(label)
     if a is None: continue
     v = a.get('in', 0)
@@ -454,7 +459,7 @@ def replay(req):
       rpc('anvil_setBalance', [addr_hex(sender), hex(min(value + (1 << 128), TWO256 - 1))])
       if e.get('answers'):
         if len(g) > 1: return {'error': 'a mapping of mappings read inside a call of another (the replay sets its cells before a transaction)'}
-        bad = havoc(o, e['answers'], W)
+        bad = havoc(o, e['answers'], W, e['m'])
         if bad: return {'error': bad}
       kinds.append(0); froms.append(addr_of(sender)); values.append(value); rets.append(False); datas.append(data)
     frm = '0x' + format(0xBEEF << 140, '040x')

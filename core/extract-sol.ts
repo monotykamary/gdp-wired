@@ -641,7 +641,7 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
     const kinds = Object.fromEntries(meta.fields.map(f => [f.name, kindOf(f.t, f.sol)]))
     const mapKeys = Object.fromEntries(meta.fields.filter(f => f.sol.startsWith('mapping(')).map(f => [f.name, keyKinds(f.sol)]))
     return {cmd: opts.python ?? 'python3', args: [new URL('./sol/harness.py', import.meta.url).pathname], env: {...(opts.anvil ? {GDP_ANVIL: opts.anvil} : {})},
-      hello: {sol: {creation: out.evm.bytecode.object, abi: out.abi, ids: out.evm.methodIdentifiers, slots, kinds, mapKeys, havoc: meta.nested, mod: MOD, minW: meta.minW, addrBits: meta.addrBits, entries: meta.entries, ctor: meta.ctor, ether: meta.ether}}}
+      hello: {sol: {creation: out.evm.bytecode.object, abi: out.abi, ids: out.evm.methodIdentifiers, slots, kinds, mapKeys, havoc: meta.nested, havocBy: havocBy(mod), mod: MOD, minW: meta.minW, addrBits: meta.addrBits, entries: meta.entries, ctor: meta.ctor, ether: meta.ether}}}
   }
   // (methods: the external functions that may write the state, unless named)
   const methods = opts.methods ?? Object.keys(meta.entries)
@@ -817,6 +817,28 @@ function sameState(leaves: StepRead['leaves'], rule: Record<string, unknown>, co
     if (String(rule[l.name]) !== String(code[l.name])) return `${l.path.join('.')} is ${String(code[l.name])} in the code, ${String(rule[l.name])} in the rule`
   }
   return undefined
+}
+// The mappings of mappings each entry reads (through the functions it calls): the check sets only those.
+function havocBy(mod: SModule): Record<string, string[]> {
+  const memo = new Map<string, Set<string>>()
+  const of = (id: string): Set<string> => {
+    const hit = memo.get(id)
+    if (hit) return hit
+    const out = new Set<string>()
+    memo.set(id, out)
+    const walk = (x: unknown) => {
+      if (Array.isArray(x)) { x.forEach(walk); return }
+      if (!x || typeof x !== 'object') return
+      const n = x as SX
+      if (n.e === 'ext' && typeof n.q === 'string') out.add(n.q)
+      if (n.e === 'fn' && typeof n.id === 'string' && mod.funcs[n.id]) for (const f of of(n.id)) out.add(f)
+      for (const v of Object.values(n)) walk(v)
+    }
+    walk(mod.funcs[id]?.body)
+    return out
+  }
+  const r = Object.values(mod.recs).find(x => x.methods.__init__)!
+  return Object.fromEntries(Object.entries(r.methods).filter(([, id]) => id).map(([m, id]) => [m, [...of(id!)]]))
 }
 const kindOf = (t: SType, sol = ''): string => (t.k === 'map' ? `map:${kindOf((t as {val: SType}).val, valueSol(sol))}` : sol.startsWith('address') ? 'addr' : t.k === 'int' ? (t.mod ? 'u256' : `${t.signed ? 'i' : 'u'}${t.bits ?? 0}`) : t.k === 'choice' ? `choice:${t.values.join('|')}` : t.k)
 const valueSol = (sol: string): string => { if (!sol.startsWith('mapping(')) return sol; const inner = sol.slice('mapping('.length, -1); return valueSol(inner.slice(topArrow(inner) + 2).trim()) }
