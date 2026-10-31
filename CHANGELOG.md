@@ -3,6 +3,19 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.42.0
+
+Faster IMC for CHC-COMP; the experiment runner moved out into its own tool; nothing trusted changed.
+- **IMC faster**: compress asks a target that already held again only when a dropped clause was in its last core, and
+  an IMC session keeps its interpolant parts across queries. On the 25 CHC tasks IMC answers past 60 s, compress time
+  fell from 720 s to 311 s and search from 1,266 s to 961 s. The full CHC-COMP LIA-Lin bar: 1,181 solved against a base
+  mean of 1,165, none wrong. compare/SPEED.md has the profile of the tasks we solve only past 60 s.
+- **The runner is its own tool**: `supercomputer/` is now a thin layer over a standalone job runner (one scheduler with
+  priority classes, warm VMs that sync trees by hash, timing jobs alone on a VM, an elastic experiment pool, GPU work
+  sent to RunPod first). The bar runs on boat by default; every runner still in use (the step goals, TLC, the
+  environment checks, Swift) runs there too.
+- **The bar**: none wrong in any group (CHC-COMP dev set +7); both suites pass; the library build passes.
+
 ## 0.41.1
 
 - **Fixed: the TypeScript kernel could accept false laws through names that collide with the names it generates.** A
