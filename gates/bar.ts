@@ -142,7 +142,7 @@ function treeOf(rev: string): Tree {
   if (!existsSync(join(path, '.bar-ready'))) {
     log(`making the tree of ${sha.slice(0, 12)} at ${path}`)
     if (!existsSync(path)) out0(['git', 'worktree', 'add', '--detach', path, sha], MAIN)
-    out0(['git', 'submodule', 'update', '--init'], path)
+    out0(['git', '-c', 'protocol.file.allow=always', 'submodule', 'update', '--init'], path) // the main checkout's submodules may be local paths (a worktree's clone): allowed here only
     out0(['bun', 'install', '--frozen-lockfile'], path)
     writeFileSync(join(path, '.bar-ready'), sha + '\n')
   }
