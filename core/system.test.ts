@@ -3,8 +3,8 @@
 // Time: the clock within a skew, keys that expire at their time, a lease (research/distributed/time.ts), and an outbox's
 // liveness over every row. (The prover's tests get 30 s each: on one vCPU some pass 5 s.)
 import {describe, expect, test} from 'bun:test'
-import {forall, keyed, nat, proveLeadsTo, proveRule, proveSteps, rule, when} from './dsl.ts'
-import {type Request, evalC, interpret, seeded} from './machine.ts'
+import {forall, keyed, nat, proveLeadsTo, proveRule, proveSteps, refuteLeadsTo, rule, when} from './dsl.ts'
+import {type Request, evalC, evalE, interpret, seeded} from './machine.ts'
 import {asRule, client, clocked, delivery, expires, expiry, isolation, lift, modelsOf, system, time} from './system.ts'
 import {refutedBy} from './live.ts'
 import {handled, lease, leaseInvariant, leaseLaw, marked, outbox, published} from '../research/distributed/time.ts'
@@ -94,9 +94,13 @@ describe('system', () => {
     expect(er.step({}, {...s0, scalars: {now: 5}}, {k: 1}).maps.Owner!.get(1) ?? 0).toBe(0)
     expect(modelsOf(skewed).map(m => m.name)).toEqual(['clock skew ≤ E'])
   })
-  test('a lease under skew ≤ E and a margin of 2E: proven with its invariant; the skew unbounded, or a margin of E: refuted by a run', () => {
+  test('a lease under skew ≤ E and a margin of 2E: proven with its invariant, and with nothing written; the skew unbounded, or a margin of E: refuted by a run', () => {
     const r = lease('bounded', 'twice the skew')
     expect(verdict(proveSteps(r, [leaseInvariant(r)], [leaseLaw(r)], {search: false}))).toBe('proven')
+    // the search's laws: a time a key was written against the clock or the expiry, a param apart (until[k] + E <= now)
+    const found = proveSteps(r, [], [leaseLaw(r)], {search: {ms: 40_000}})
+    expect(verdict(found)).toBe('proven')
+    expect(found.found!.laws!.map(f => f.text).join('; ')).toContain('k = owner or E + until[k] <= now')
     for (const [skew, margin] of [['unbounded', 'twice the skew'], ['bounded', 'the skew']] as const) {
       const b = lease(skew, margin), v = proveSteps(b, [], [leaseLaw(b)], {search: {ms: 5000}})
       expect(verdict(v)).toBe('refuted')
@@ -110,11 +114,24 @@ describe('system', () => {
       }
       expect(broken).toBe(true)
     }
-  }, 30_000)
-  test('an outbox: every row eventually published (weak fairness), its rank and laws found; eventually marked: a fair ring under weak fairness, none under strong', () => {
+  }, 60_000)
+  test('an outbox: every row eventually published (weak fairness), its rank and laws found; eventually marked: a fair ring under weak fairness, found, none under strong', () => {
     const r = outbox()
     expect(verdict(proveLeadsTo(r, [], published(r), {ms: 15_000}))).toBe('proven')
     void handled
+    // the search finds the cycle of two steps itself (publish, crash), the run fair weakly; replayed on the interpreter
+    const lw = marked(r, 'weak'), f = refuteLeadsTo(r, [], lw, {ms: 15_000}), km = keyed(r, lw).machine, run = interpret(km)
+    expect(f?.verdict).toEqual({refuted: true, fair: ['weak']})
+    expect(f!.ring.sets.length).toBeGreaterThanOrEqual(2)
+    const ps = f!.ring.params
+    let st = run.init(ps)
+    for (const q of f!.ring.stem) st = run.step(ps, st, q)
+    for (let lap = 0; lap < 3; lap++) for (const set of f!.ring.sets) {
+      expect(evalC(set.holds, {...ps, ...st.scalars}, st, km)).toBe(true)
+      const q = Object.fromEntries(km.inputs.map(i => [i, set.request[i] ? evalE(set.request[i]!, {...ps, ...st.scalars}, st, km) : 0]))
+      st = run.step(ps, st, q)
+      expect([evalC(lw.from, ps, st, km), evalC(lw.to, ps, st, km)]).toEqual([true, false])
+    }
     for (const fairness of ['weak', 'strong'] as const) {
       const l = marked(r, fairness), kr = keyed(r, l), K = {op: 'var', name: l.forall!} as const
       const at = (map: string, value: number) => ({op: '=', a: {op: 'get', map, key: K}, b: {op: 'const', value}}) as const
