@@ -9,7 +9,7 @@ import ast, builtins, json, os, sys
 
 BUILTINS = {'min', 'max', 'abs', 'len', 'int', 'float', 'bool', 'str', 'isinstance', 'round', 'sum', 'any', 'all', 'print', 'repr', 'getattr', 'setattr', 'hasattr', 'type', 'list', 'dict', 'set', 'tuple', 'sorted', 'range', 'zip', 'enumerate'}
 # Library functions the executor knows (their meaning, not their code).
-KNOWN = {'time.time', 'time.monotonic', 'time.perf_counter', 'math.floor', 'math.ceil', 'math.isfinite', 'math.isnan', 'math.isinf', 'threading.Lock', 'threading.RLock', 'asyncio.Lock'}
+KNOWN = {'time.time', 'time.monotonic', 'time.perf_counter', 'datetime.datetime.now', 'datetime.timedelta', 'math.floor', 'math.ceil', 'math.isfinite', 'math.isnan', 'math.isinf', 'threading.Lock', 'threading.RLock', 'asyncio.Lock'}
 TRANSPARENT = {'staticmethod', 'classmethod', 'property', 'dataclass', 'dataclasses.dataclass', 'override', 'typing.override', 'abstractmethod'}
 
 def where(file, n):
@@ -97,6 +97,7 @@ class Reader:
     self.recs, self.funcs = {}, {}
     self.local_stack = []
     self.caught = []  # (the names the handlers being read bind their exceptions to)
+    self.based, self.supers, self.defs, self.local_imps = set(), [], {}, []  # (the bases read as bases; the bases of the class whose method is read)
 
   # --- types -------------------------------------------------------------------------------------------------------
   def find_class(self, mod, name, depth=0):
@@ -112,6 +113,23 @@ class Reader:
     if name in mod.consts and isinstance(mod.consts[name], ast.Name):  # an alias: X = Y
       return self.find_class(mod, mod.consts[name].id, depth + 1)
     return None
+  def const_map(self, v, mod, p):
+    """A module's constant mapping of string keys to constants (a dict literal, or MappingProxyType of one): the dict
+    literal itself, made where it is read (a write to it is a write to no variable, refused)."""
+    if isinstance(v, ast.Call) and (dotted(v.func) or '').split('.')[-1] == 'MappingProxyType' and len(v.args) == 1 and not v.keywords: v = v.args[0]
+    if not isinstance(v, ast.Dict) or not v.keys: return None
+    if not all(isinstance(k, ast.Constant) and isinstance(k.value, str) for k in v.keys): return None
+    if not all(isinstance(x, ast.Constant) and isinstance(x.value, (str, int, bool)) for x in v.values): return None
+    return {'e': 'dict', 'keys': [self.expr(k, mod) for k in v.keys], 'vals': [self.expr(x, mod) for x in v.values], 'const': True, 'p': p}
+  def find_const(self, mod, name, p, depth=0):
+    """A constant mapping another module of the repository defines, through its imports (re-exports too)."""
+    imp = mod.imports.get(name)
+    if depth > 6 or not imp or imp[0] != 'name': return None
+    path = self.repo.path_of(imp[1])
+    if not path: return None
+    sub = Module(self.repo, path) if path != mod.path else mod
+    if imp[2] in sub.consts: return self.const_map(sub.consts[imp[2]], sub, p)
+    return self.find_const(sub, imp[2], p, depth + 1)
   def ret_of(self, modname, name, depth=0):
     """The declared result type of a function a module of the repository defines (through its re-exports), or None."""
     p = self.repo.path_of(modname) if modname else None
@@ -122,10 +140,14 @@ class Reader:
     imp = m.imports.get(name)
     if imp and imp[0] == 'name': return self.ret_of(imp[1], imp[2], depth + 1)
     return None
-  def rec_of(self, mod, cdef):
-    """A class as a record type: its fields (annotations, its bases' first), its methods (to resolve calls)."""
+  def rec_of(self, mod, cdef, base=False):
+    """A class as a record type: its fields (annotations, its bases' first), its methods (to resolve calls). A class
+    of the file, or a base of one (another module's too: its methods are the class's own), has its methods read."""
     q = f"{mod.name}.{cdef.name}"
-    if q in self.recs: return q
+    if q in self.recs and not (base and self.recs[q] and None in self.recs[q]['methods'].values() and q not in self.based):
+      return q
+    if base: self.based.add(q)
+    self.defs[q] = (mod, cdef)
     self.recs[q] = None  # (being read)
     fields, methods, bases, kinds, rets = [], {}, [], set(), {}
     for b in cdef.bases:
@@ -136,7 +158,7 @@ class Reader:
       if bn in ('Generic', 'object', 'Exception'): continue
       hit = self.find_class(mod, bn.split('.')[-1]) if bn else None
       if hit:
-        bq = self.rec_of(*hit)
+        bq = self.rec_of(*hit, base=base or mod.path == self.file)
         if bq and self.recs.get(bq):
           br = self.recs[bq]
           bases.append(bq)
@@ -178,9 +200,12 @@ class Reader:
       elif isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
         if n.returns is not None: rets[n.name] = self.ty(n.returns, mod)
         else: rets.pop(n.name, None)
-        if mod.path == self.file:
+        if mod.path == self.file or base:
           fid = f"{cdef.name}.{n.name}"
-          self.funcs[fid] = self.func(n, mod, cdef.name, fid)
+          # (a base's method read where its module is: its positions in its own file, super() its own bases')
+          file, self.file, sup, self.supers = self.file, mod.path, self.supers, bases
+          try: self.funcs[fid] = self.func(n, mod, cdef.name, fid)
+          finally: self.file, self.supers = file, sup
           methods[n.name] = fid
         else: methods[n.name] = None  # another module's method: not read
     r = {'name': q, 'short': cdef.name, 'fields': fields, 'methods': methods, 'bases': bases, 'p': where(mod.path, cdef),
@@ -240,6 +265,13 @@ class Reader:
   # --- functions ---------------------------------------------------------------------------------------------------
   def func(self, n, mod, cls, fid):
     self.local_stack.append(set(self.locals_of(n)))
+    # (the names the function imports in its body: an exception class raised there resolves through them)
+    imps = {}
+    for x in ast.walk(n):
+      if isinstance(x, ast.ImportFrom):
+        m = resolve_from(mod.name, mod.is_pkg, x)
+        for a in x.names: imps[a.asname or a.name] = ('name', m, a.name)
+    self.local_imps.append(imps)
     try:
       a = n.args
       params = []
@@ -259,6 +291,7 @@ class Reader:
               'params': params, 'ret': self.ty(n.returns, mod), 'body': body, 'async': isinstance(n, ast.AsyncFunctionDef), 'decorators': decs, 'static': static}
     finally:
       self.local_stack.pop()
+      self.local_imps.pop()
   def decorator(self, d):
     f = d.func if isinstance(d, ast.Call) else d
     return {'name': dotted(f) or text(f), 'text': text(d), 'p': where(self.file, d)}
@@ -283,7 +316,9 @@ class Reader:
     p = where(self.file, s)
     E = lambda x: self.expr(x, mod)
     if isinstance(s, ast.Expr):
-      if isinstance(s.value, ast.Constant) and isinstance(s.value.value, str): return []  # a docstring
+      if isinstance(s.value, ast.Constant) and (isinstance(s.value.value, str) or s.value.value is Ellipsis): return []  # a docstring, or `...`
+      # (a bare yield: where a context manager made by @contextmanager runs the body of the with)
+      if isinstance(s.value, ast.Yield) and s.value.value is None: return [{'s': 'yield', 'p': p}]
       return [{'s': 'expr', 'p': p, 'x': E(s.value)}]
     if isinstance(s, ast.Pass): return []
     if isinstance(s, (ast.Assign, ast.AnnAssign)):
@@ -350,11 +385,12 @@ class Reader:
     d = dotted(x)
     if d is None or depth > 8: return [text(x)], True
     head, *rest = d.split('.')
-    if not rest and head not in mod.imports and head not in mod.classes:
+    local = self.local_imps[-1].get(head) if self.local_imps and depth == 0 and head not in mod.imports else None
+    if not rest and head not in mod.imports and head not in mod.classes and not local:
       b = getattr(builtins, head, None)
       if isinstance(b, type) and issubclass(b, BaseException): return [f"builtins.{c.__name__}" for c in b.__mro__ if c is not object], False
     hit = self.find_class(mod, head) if not rest else None
-    imp = mod.imports.get(head)
+    imp = mod.imports.get(head) or local
     if hit is None and imp:
       q = f"{imp[1]}.{imp[2]}" if imp[0] == 'name' else imp[1]
       q = '.'.join([q, *rest])
@@ -391,11 +427,18 @@ class Reader:
       if imp[0] == 'module': return {'e': 'ext', 'q': imp[1], 'text': n, 'patch': {'mod': mod.name, 'path': [n]}, 'p': p}
       hit = self.find_class(mod, n)
       if hit: return {'e': 'cls', 'rec': self.rec_of(*hit), 'q': f"{imp[1]}.{imp[2]}", 'patch': {'mod': mod.name, 'path': [n]}, 'p': p}
+      cm = self.find_const(mod, n, p)
+      if cm: return cm
       ret = self.ret_of(imp[1], imp[2])
       return {'e': 'ext', 'q': f"{imp[1]}.{imp[2]}", 'text': n, 'patch': {'mod': mod.name, 'path': [n]}, 'p': p, **({'ret': ret} if ret else {})}
     if n in mod.consts:
       v = mod.consts[n]
       if isinstance(v, ast.Constant) or (isinstance(v, ast.UnaryOp) and isinstance(v.operand, ast.Constant)): return self.expr(v, mod)
+      cm = self.const_map(v, mod, p)
+      if cm: return cm
+      # (a logger, logging.getLogger(...): its calls never raise, logging handles its handlers' errors itself)
+      if isinstance(v, ast.Call) and (dotted(v.func) or '') in ('logging.getLogger', 'getLogger'):
+        return {'e': 'ext', 'q': f"{mod.name}.{n}", 'text': n, 'patch': {'mod': mod.name, 'path': [n]}, 'global': True, 'nothrow': True, 'p': p}
       return {'e': 'ext', 'q': f"{mod.name}.{n}", 'text': n, 'patch': {'mod': mod.name, 'path': [n]}, 'global': True, 'p': p}
     if n in ('True', 'False', 'None'): return self.expr(ast.Constant({'True': True, 'False': False, 'None': None}[n]), mod)
     if n in BUILTINS: return {'e': 'builtin', 'n': n, 'p': p}
@@ -447,8 +490,21 @@ class Reader:
     if isinstance(x, ast.IfExp): return {'e': 'ite', 'c': E(x.test), 'a': E(x.body), 'b': E(x.orelse), 'p': p}
     if isinstance(x, ast.Await): return {'e': 'await', 'x': E(x.value), 'p': p}
     if isinstance(x, ast.Call):
+      # super().m(...): the first base (in the order its bases are listed, theirs after) whose m is read, on self;
+      # super().__init__() where no base has one: object's, nothing
+      fx = x.func
+      if isinstance(fx, ast.Attribute) and isinstance(fx.value, ast.Call) and isinstance(fx.value.func, ast.Name) and fx.value.func.id == 'super' and not fx.value.args:
+        mid = next((self.recs[b]['methods'][fx.attr] for b in self.supers if self.recs.get(b) and fx.attr in self.recs[b]['methods']), False)
+        if mid is False and fx.attr == '__init__' and not x.args and not x.keywords: return {'e': 'none', 'p': p}
+        if not mid: return {'e': 'no', 'why': f"{text(x)}: a base's method not read", 'p': p}
+        return {'e': 'call', 'f': {'e': 'get', 'x': {'e': 'var', 'n': 'self', 'p': p}, 'f': fx.attr, 'sup': mid, 'p': p, 'text': text(fx)},
+                'args': [E(a) for a in x.args], 'kw': [[k.arg, E(k.value)] if k.arg else ['**', {'e': 'no', 'why': f"**{text(k.value)}", 'p': p}] for k in x.keywords], 'p': p, 'text': text(x)}
       f = E(x.func)
       if f.get('e') == 'ext' and f.get('q') in KNOWN: f = {'e': 'lib', 'q': f['q'], 'p': f['p']}
+      # (a class of the repository made here: its methods read, its __init__ the code that makes it)
+      if f.get('e') == 'cls' and f['rec'] in self.defs and self.recs.get(f['rec']) and not self.recs[f['rec']]['own']:
+        r0 = self.recs[f['rec']]
+        if not any(k.startswith('outside-base') or k in ('pydantic', 'typeddict', 'protocol') for k in r0['kinds']): self.rec_of(*self.defs[f['rec']], base=True)
       # any, all or sum of one generator: a loop over its collection (a fold), its value the accumulator's
       g = x.args[0] if len(x.args) == 1 and not x.keywords and isinstance(x.args[0], (ast.GeneratorExp, ast.ListComp)) else None
       if g and f.get('e') == 'builtin' and f.get('n') in ('any', 'all', 'sum') and len(g.generators) == 1 and not g.generators[0].is_async:
@@ -500,7 +556,7 @@ def main():
     if n not in r.funcs: r.funcs[n] = r.func(f, mod, None, n)
   out['recs'] = {k: v for k, v in r.recs.items() if v}
   # The executor's own failures' bases, and the class a stub raises for a handler of every exception.
-  out['kinds'] = {n: [f"builtins.{c.__name__}" for c in getattr(builtins, n).__mro__ if c is not object] for n in ('KeyError', 'TypeError', 'AttributeError', 'ZeroDivisionError', 'ValueError')}
+  out['kinds'] = {n: [f"builtins.{c.__name__}" for c in getattr(builtins, n).__mro__ if c is not object] for n in ('KeyError', 'TypeError', 'AttributeError', 'ZeroDivisionError', 'ValueError', 'UnboundLocalError', 'RuntimeError', 'OverflowError')}
   out['exc'] = {'mro': ['builtins.Exception', 'builtins.BaseException'], 'raise': ['builtins', 'Exception']}
   out['lists'] = True
   out['funcs'] = r.funcs

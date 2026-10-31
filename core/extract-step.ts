@@ -67,10 +67,22 @@ export type SModule = {lang: string, file: string, path: string, module: string,
 export type Handler = {p?: string, any?: boolean, names: string[], mro?: string[], open?: boolean, raise?: unknown, as?: string, body: SS[]}
 // A raise's kind: its class and bases (open: not all known); null: a panic or a trap, which no handler catches.
 type Kind = {mro: string[], open?: boolean} | null | undefined
-type Try = {hs: Handler[], to: [Path, number, Kind][], ws: B[]}
+// (depth: the frames inlined when it opened; a raise from deeper reaches its handler with that frame's locals)
+type Try = {hs: Handler[], to: [Path, number, Kind][], ws: B[], depth: number}
 
 // (skip: methods left out, which the check's store does nothing for; any method it isn't told of fails there)
-export type StoreDecl = {get?: string[], set?: string[], delete?: string[], skip?: string[], value?: 'int' | 'float' | 'str', attrs?: Record<string, null | boolean | number | string>, async?: Record<string, boolean>}
+// values: what a key template's keys hold, where it isn't the store's `value`: a choice of string literals, or a JSON text
+// of a record (json.dumps of a dict), its fields' types (int, bool, a choice, each `| None` for a key it may lack; str
+// fields are left out, read as values outside the subset). apart: the templates name distinct keys (stated: a key of
+// one never has the form of another's, as "{}" and "{}:lock" might).
+export type StoreVal = 'int' | 'float' | string[] | {json: Record<string, string | string[]>}
+export type StoreDecl = {get?: string[], set?: string[], delete?: string[], skip?: string[], value?: 'int' | 'float' | 'str', attrs?: Record<string, null | boolean | number | string>, async?: Record<string, boolean>,
+  values?: Record<string, StoreVal>, apart?: boolean,
+  // nothrow: its calls taken not to raise inside a try (stated: the store's failures left to the system's environment
+  // model, core/system.ts's STORE_FAILS, not each call's input)
+  nothrow?: boolean}
+// A stored record's field: its name, whether it may be absent (or None), its literals, whether it is left out (a str).
+type JField = {name: string, opt?: boolean, choice?: boolean, vals?: string[], out?: boolean}
 export type StepOptions = {
   // The class, or the functions (each a request), and the methods read (by default the public ones). With no entry,
   // the module's one class whose public methods write its state, and those methods.
@@ -83,6 +95,12 @@ export type StepOptions = {
   failures?: 'refuse' | 'kept',
   onError?: 'refuse' | 'discard',
   domains?: Record<string, 'nat' | 'int'>,
+  // Constructor arguments taken at their defaults (the claim is for objects made so): the fields the constructor sets
+  // to them, which no method read writes, are constants of the rule, not its state.
+  defaults?: string[],
+  // Fields of the object held at these values after its constructor (stated: the claim is for objects so configured,
+  // as other code may configure them): constants of the rule, a method writing one refused.
+  fields?: Record<string, null | boolean | number | string>,
   check?: {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean | 'writes'}
 }
 
@@ -103,9 +121,13 @@ type V =
   // (ask: the value of a call of other code left out by inference, answered by the next run where it is read)
   | {t: 'opaque', why: string, firm?: boolean, ask?: string, sattr?: {store: string, path: string}}
   // (ret: the callee's declared result type; recv: the object its method is called on)
-  | {t: 'ext', q: string, text: string, patch?: Patch, ret?: SType, recv?: V}
+  | {t: 'ext', q: string, text: string, patch?: Patch, ret?: SType, recv?: V, nothrow?: boolean}
   | {t: 'fn', id: string, self?: V, caps?: Map<string, V>} | {t: 'cls', rec: string, patch?: Patch} | {t: 'builtin', n: string} | {t: 'lib', q: string}
   | {t: 'sattr', store: string, path: string}
+  // A value read by its fields (Python's, by value): a dict literal of string keys ('$dict', a key maybe absent an opt
+  // whose has is its presence), its JSON text ('$json'), a datetime ('$dt': f.ms, milliseconds since the epoch), a
+  // timedelta ('$td': f.ms), a timestamp ('$ts': f.ms, its seconds times 1000).
+  | {t: 'val', ty: string, f: Map<string, V>}
   | {t: 'tuple', xs: V[]} | {t: 'lock'}
   // A Result: Ok(v) where ok holds, Err(e) where it doesn't.
   | {t: 'res', ok: B, v: V, e: V}
@@ -132,9 +154,11 @@ type Path = {pc: B[], locals: Map<string, V>, heap: Map<string, Obj>, called: st
 type Flow = {live?: Path, rets: [Path, V][], brk?: Path[], ft?: Path}
 export type {V as StepValue, Path as StepPath, Obj as StepObj, Ptr as StepPtr}
 // What the harness is told: where each leaf of the state is, how each argument is made, what each stub answers.
-export type Leaf = {t?: SType, name: string, path: string[], kind: 'num' | 'bool' | 'str' | 'choice' | 'none' | 'map' | 'frame', float?: boolean, cls?: string, fields?: {name: string, float?: boolean, choice?: boolean}[], key?: 'num' | 'str', store?: string, tpl?: string, ordered?: boolean}
+export type Leaf = {t?: SType, name: string, path: string[], kind: 'num' | 'bool' | 'str' | 'choice' | 'none' | 'map' | 'frame', float?: boolean, cls?: string, fields?: {name: string, float?: boolean, choice?: boolean}[], key?: 'num' | 'str', store?: string, tpl?: string, ordered?: boolean,
+  // (a store's JSON records, or its choice of literals: what the harness decodes and encodes)
+  json?: JField[], choice?: boolean}
 // (list: a list the request carries, its items made by `item` (a record's fields, as read; or its one value))
-export type PArg = {k: 'in', name: string, float?: boolean, sym?: boolean, z?: Raw} | {k: 'opt', none: string, v: PArg} | {k: 'rec', cls: string, f: [string, PArg][]} | {k: 'inert'} | {k: 'store', name: string} | {k: 'dflt'}
+export type PArg = {k: 'in', name: string, float?: boolean, sym?: boolean, z?: Raw} | {k: 'opt', none: string, v: PArg} | {k: 'rec', cls: string, f: [string, PArg][]} | {k: 'inert', dict?: boolean} | {k: 'store', name: string} | {k: 'dflt'}
   | {k: 'list', name: string, item: PArg}
 // (how: 'inferred' from the callee's declared type, or 'tagged' by a gdp: comment; stated where absent)
 // (at: the calls answered, each from its position to its end, `line:col`; ty: the call's type in the code's language)
@@ -216,12 +240,14 @@ export class Stepper {
   hidden = 0
   inFold = 0
   readonly initHeap = new Map<string, Obj>()
-  readonly storeMaps = new Map<string, {store: string, tpl: string, id: string, decl: MapDecl}>()
+  readonly storeMaps = new Map<string, {store: string, tpl: string, id: string, decl: MapDecl, json?: JField[], choice?: boolean}>()
   // The least keys the step reads (an ordered collection's first or last item, its min or max by a key), each once.
   readonly leasts: LeastRead[] = []
   frames: string[] = []
   fieldNames = new Set<string>()
   readonly frozen = new Set<string>()
+  // (the values of constructor arguments taken at their defaults: a field holding one is a constant)
+  readonly atDefault = new Set<V>()
   // Each fixed-width variable's type (a number read from it overflows as the type does), and its range.
   readonly ints = new Map<string, IntTy>()
   readonly paramsOut: B[] = []
@@ -300,7 +326,8 @@ export class Stepper {
       return [{t: 'ref', id}, {k: 'rec', cls: t.name, f: args}]
     }
     // A value of another type: kept only where nothing the rule keeps reads it (the harness gives an inert one).
-    return [{t: 'opaque', why: `${name}: ${this.why(t)}`}, {k: 'inert'}]
+    // (a dict of no stated types: an empty one, as JSON takes it, where the code serializes it)
+    return [{t: 'opaque', why: `${name}: ${this.why(t)}`}, t.k === 'opaque' && /^dict\b/.test(t.why) ? {k: 'inert', dict: true} : {k: 'inert'}]
   }
   // A fixed-width integer variable: its type, and (for a request) a value outside it refused: the claim is for the
   // type's values.
@@ -323,7 +350,8 @@ export class Stepper {
   sel: B = I.T
   // The clock: one input a step.
   clock(at: {p: string}, p: Path): [V, Path] {
-    if (p.called.includes('$now')) return refuse(at, 'the clock read twice in one step (the subset reads it once a step)')
+    // (read again in the step: the same time, as the check's clock gives it; the step taken to run within one tick)
+    if (p.called.includes('$now')) this.notes.add(`the clock read more than once in a step (${at.p}): each read is the request's one time (assumes a step runs within one tick of the clock)`)
     // (in the constructor, the time the object is made: a param)
     if (this.init) { this.madeAt ??= this.newVar('made_at', {k: 'num'}, 'param', 'Date.now() (here time.time()): the time the object is made'); return [{t: 'num', e: I.nvar(this.madeAt.name)}, {...p, called: [...p.called, '$now']}] }
     this.now ??= this.newVar('now', {k: 'num'}, 'input', 'Date.now() (here the clock, time.time()): the time of the request, an input')
@@ -383,9 +411,13 @@ export class Stepper {
   // (through a context manager of other code taken as transparent, which may suppress it: refused)
   raise(p: Path, c: B, w: B, [t, i]: [Try, number], k: Kind, at: {p: string}) {
     if (this.cms.some(b => this.tries.indexOf(t) < b)) refuse(at, 'a raise through a context manager of other code (which may suppress it) to a handler around it')
-    t.to.push([{...this.assume(p, c), pc: [...p.pc, ...this.tries.flatMap(x => x.ws.map(I.not)), c]}, i, k]); t.ws.push(w) }
+    // (raised in a function the try's frame called: the handler runs in that frame, with its locals at the call)
+    const locals = this.frameLocals.length > t.depth ? this.frameLocals[t.depth]! : p.locals
+    t.to.push([{...this.assume(p, c), locals, pc: [...p.pc, ...this.tries.flatMap(x => x.ws.map(I.not)), c]}, i, k]); t.ws.push(w) }
+  // (each inlined frame's caller's locals at its call, outermost first)
+  readonly frameLocals: Map<string, V>[] = []
   tryStmt(s: SS, p: Path): Flow {
-    const hs = s.handlers as Handler[], fin = (s.fin as SS[] | undefined) ?? [], t: Try = {hs, to: [], ws: []}, f0 = this.fails.length, outer = this.tries.map(x => x.ws.length)
+    const hs = s.handlers as Handler[], fin = (s.fin as SS[] | undefined) ?? [], t: Try = {hs, to: [], ws: [], depth: this.frameLocals.length}, f0 = this.fails.length, outer = this.tries.map(x => x.ws.length)
     this.tries.push(t)
     let body: Flow
     try { body = this.block(s.body as SS[], p) } finally { this.tries.pop() }
@@ -589,9 +621,10 @@ export class Stepper {
     if (a.locks.join() !== b.locks.join()) refuse(at, 'a mutex locked on one path and not on another')
     const locals = new Map<string, V>()
     for (const [n, x] of a.locals) { const y = b.locals.get(n); if (y) { try { locals.set(n, this.ite(c, x, y, at)) } catch (e) { if (!(e instanceof Refusal) || firm(x) || firm(y)) throw e; locals.set(n, {t: 'opaque', why: e.what}) } } }
+    // (an object one path has not touched yet, a store's map made where first used: as it starts, on that path)
     const heap = new Map<string, Obj>()
-    for (const [id, x] of a.heap) { const y = b.heap.get(id); heap.set(id, y ? this.mergeObj(c, x, y, at) : x) }
-    for (const [id, y] of b.heap) if (!heap.has(id)) heap.set(id, y)
+    for (const [id, x] of a.heap) { const y = b.heap.get(id) ?? this.initHeap.get(id); heap.set(id, y ? this.mergeObj(c, x, y, at) : x) }
+    for (const [id, y] of b.heap) if (!heap.has(id)) { const x = this.initHeap.get(id); heap.set(id, x ? this.mergeObj(c, x, y, at) : y) }
     return {pc, locals, heap, called: [...new Set([...a.called, ...b.called])], locks: a.locks, defers: [...new Set([...a.defers, ...b.defers])]}
   }
   mergeObj(c: B, a: Obj, b: Obj, at: {p: string}): Obj {
@@ -643,6 +676,13 @@ export class Stepper {
       return {t: 'res', ok: I.bite(c, a.ok, b.ok), v: no(a.ok) ? b.v : no(b.ok) ? a.v : this.ite(c, a.v, b.v, at), e: yes(a.ok) ? b.e : yes(b.ok) ? a.e : this.ite(c, a.e, b.e, at)}
     }
     if (a.t === 'tuple' && b.t === 'tuple' && a.xs.length === b.xs.length) return {t: 'tuple', xs: a.xs.map((x, i) => this.ite(c, x, b.xs[i]!, at))}
+    if (a.t === 'val' && b.t === 'val' && a.ty === b.ty) {
+      // (a key on one path only: present where that path is taken)
+      const f = new Map<string, V>(), absent = (x: V, has: B): V => (x.t === 'opt' ? {t: 'opt', has: I.and(has, x.has), v: x.v} : {t: 'opt', has, v: x})
+      for (const [n, x] of a.f) { const y = b.f.get(n); f.set(n, y ? this.ite(c, x, y, at) : absent(x, c)) }
+      for (const [n, y] of b.f) if (!a.f.has(n)) f.set(n, absent(y, I.not(c)))
+      return {t: 'val', ty: a.ty, f}
+    }
     // (a list the request carries on one path, another value on another: kept only where nothing reads it)
     if ([a, b].some(x => x.t === 'ref' && this.seqs.some(d => x.id === `in:${d.name}`))) return {t: 'opaque', why: 'a list the request carries on one path, another value on another'}
     if (a.t === 'ref' && b.t === 'ref') return refuse(at, 'one of two objects by a condition')
@@ -684,6 +724,8 @@ export class Stepper {
       case 'choice': return lvalues(v.e).includes('') ? I.not(I.is(v.e, '')) : I.T
       case 'none': return I.F
       case 'opt': return I.and(v.has, this.truthy(v.v, at, p))
+      // (a JSON text is never empty; a dict literal is as its keys)
+      case 'val': return v.ty === '$dict' ? (v.f.size ? I.T : I.F) : v.ty === '$json' || v.ty === '$dt' ? I.T : refuse(at, `${(at as SX).text ?? ''}: the truth of a ${v.ty.slice(1)}`)
       case 'ref': {
         // (a list the request carries: whether it has an item)
         const cl = p && this.listOf(v, p, at as SX, true)
@@ -753,12 +795,12 @@ export class Stepper {
       return refuse(at, `${f.name}: more arguments than it takes`)
     }
     const saved = q.locals
-    this.frames.push(f.id)
+    this.frames.push(f.id); this.frameLocals.push(saved)
     let flow: Flow
     try { flow = this.block(f.body, {...q, locals}) } catch (e) {
       if (e instanceof Refusal && this.inf) ((e as Framed).frames ??= []).push({id: f.id, roots: [...locals].filter(([, v]) => this.stateRef(v, q)).map(([n]) => n)})
       throw e
-    } finally { this.frames.pop() }
+    } finally { this.frames.pop(); this.frameLocals.pop() }
     const rets: [Path, V][] = [...flow.rets, ...(flow.live ? [[flow.live, {t: 'none'} as V] as [Path, V]] : [])]
     if (!rets.length) return [{t: 'none'}, {...q, pc: [...q.pc, I.F], locals: saved}]
     const joined = this.join(rets.map(([r, v]) => ({...r, locals: new Map([['$ret', v]])})), at)!, out = joined.locals.get('$ret')!
@@ -777,6 +819,8 @@ export class Stepper {
     const rets: [Path, V][] = [], brk: Path[] = []
     for (const s of ss) {
       if (!live) break
+      // (a path a failure ended inside an expression: nothing after it runs)
+      if (dead(live)) { live = undefined; break }
       if (s.s === 'fallthrough') { ft = live; live = undefined; break }
       const f = this.stmt(s, live)
       rets.push(...f.rets)
@@ -796,12 +840,14 @@ export class Stepper {
         return {live: this.assign(s.to as SX, r[0], s, r[1], s.t as SType | undefined), rets: []}
       }
       case 'if': {
-        const [cv, q] = this.ev(s.c as SX, p)
-        const c = s.strict ? (cv.t === 'bool' ? cv.e : refuse({p: s.cp as string}, s.strict as string)) : this.truthy(cv, s.c as SX, q)
+        const sc = s.c as SX, both = !s.strict && (sc.e === 'and' || sc.e === 'or')
+        const [cv, q] = both ? [undefined, p] : this.ev(sc, p)
+        const [c0, q0] = both ? this.truth(sc, p) : [undefined, q]
+        const c = c0 ?? (s.strict ? (cv!.t === 'bool' ? cv!.e : refuse({p: s.cp as string}, s.strict as string)) : this.truthy(cv!, sc, q))
         if (!(c.op === 'const' && !c.v)) this.arm(s.then as SS[])
         if (!(c.op === 'const' && c.v)) this.arm(s.else as SS[])
-        const t = c.op === 'const' && !c.v ? undefined : this.block(s.then as SS[], this.assume(q, c))
-        const e = c.op === 'const' && c.v ? undefined : this.block(s.else as SS[], this.assume(q, I.not(c)))
+        const t = c.op === 'const' && !c.v ? undefined : this.block(s.then as SS[], this.assume(q0, c))
+        const e = c.op === 'const' && c.v ? undefined : this.block(s.else as SS[], this.assume(q0, I.not(c)))
         const lives = [t?.live, e?.live].filter((x): x is Path => !!x)
         const live = this.join(lives, s), brk = [...(t?.brk ?? []), ...(e?.brk ?? [])]
         return {...(live ? {live} : {}), rets: [...(t?.rets ?? []), ...(e?.rets ?? [])], ...(brk.length ? {brk} : {})}
@@ -834,7 +880,20 @@ export class Stepper {
         this.fail(q, I.T, s, String(s.why), k); return {rets: []}
       }
       case 'try': return this.tryStmt(s, p)
+      case 'yield': {
+        // (where a @contextmanager generator yields: the with's body, run in the frame of the with)
+        const w = this.withBodies.at(-1)
+        if (!w) return refuse(s, 'a yield (a generator, read only as a @contextmanager\'s)')
+        this.withBodies.pop()
+        let flow: Flow
+        this.frameLocals.push(p.locals)
+        try { flow = this.block(w.body, {...p, locals: w.locals}) } finally { this.withBodies.push(w); this.frameLocals.pop() }
+        if (!flow.live) return {rets: []}
+        return {live: {...flow.live, locals: p.locals, heap: new Map(flow.live.heap).set('$yielded', {k: 'rec', ty: '$yielded', f: new Map([['n', {t: 'bool', e: I.T}]]), origin: 'fresh'})}, rets: []}
+      }
       case 'with': {
+        const cm = this.generatorCM(s, p)
+        if (cm) return cm
         // (a context manager of other code, taken as transparent: a raise inside it may be suppressed by it, so none
         // goes through it to a handler around it)
         let q = p, other = false
@@ -905,6 +964,13 @@ export class Stepper {
       }
       case 'idx': {
         const [m, q] = this.ev(to.x as SX, p), [k, q2] = this.ev(to.i as SX, q)
+        if (m.t === 'val') {
+          // (a record by value held in a local, or in one of its fields: the local made anew; a dict's key added)
+          const ks = strLit(k)
+          if (m.ty !== '$dict' || ks === undefined) return refuse(at, `${to.text}: a key set in ${m.ty === '$dict' ? 'a dict by a key not known here' : 'a value that is no dict'}`)
+          if (!deep(to.x, o => o.e !== 'var' && o.e !== 'idx' && o.e !== 'str' && o.e !== 'get')) return this.assign(to.x as SX, {...m, f: new Map(m.f).set(ks, v)}, at, q2, undefined)
+          return refuse(at, `${to.text}: a key set in a dict reached through a call`)
+        }
         return this.mapSet(m, this.keyOf(k, to.i as SX), v, to, q2)
       }
     }
@@ -926,7 +992,7 @@ export class Stepper {
     if (obj.origin === 'state' && !this.init && !obj.f.has(f)) return refuse(at, `${at.text}: a field the constructor doesn't set (the state's fields are the constructor's)`)
     const old = obj.f.get(f)
     if (old?.t === 'opaque' && obj.origin === 'state' && !this.init) return refuse(at, `${at.text}: writes ${old.why}`)
-    if (o.id === 'this' && this.frozen.has(f) && !this.init) return refuse(at, `${at.text}: writes a field the constructor sets to None (of no type the code states)`)
+    if (o.id === 'this' && this.frozen.has(f) && !this.init) return refuse(at, `${at.text}: writes a field the constructor sets to a constant (None of no type the code states, or other code's function)`)
     if (this.init && t) this.declared.set(`${o.id}.${f}`, t)
     // (a literal written to a field of a choice is the choice's)
     const ft = this.declared.get(`${o.id}.${f}`) ?? this.mod.recs[obj.ty]?.fields.find(x => x.name === f)?.t, ct = ft?.k === 'opt' ? ft.of : ft
@@ -938,6 +1004,8 @@ export class Stepper {
   // A value as a cell's field holds it (a string literal of a choice field as the choice).
   fit(v: V, f: Var, at: SX): V {
     if (f.sort.k === 'choice' && v.t === 'str' && v.e.op === 'slit') { if (!f.sort.values.includes(v.e.value)) refuse(at, `${JSON.stringify(v.e.value)} is not one of ${f.name}'s literals`); return {t: 'choice', e: I.llit(v.e.value, f.sort.values)} }
+    // (a string that is a literal of the choice on every path)
+    if (f.sort.k === 'choice' && v.t === 'str') { const vs = f.sort.values, conv = (k: K): L | undefined => { if (k.op === 'slit') return vs.includes(k.value) ? I.llit(k.value, vs) : undefined; if (k.op !== 'kite') return undefined; const a = conv(k.a), b = conv(k.b); return a && b ? I.lite(k.c, a, b) : undefined }; const l = conv(v.e); if (l) return {t: 'choice', e: l} }
     if (f.sort.k === 'choice' && v.t !== 'choice') return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t} set where one of ${f.sort.values.map(x => JSON.stringify(x)).join(', ')} is held`)
     if (f.sort.k === 'num' && v.t !== 'num') return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t} set where a number is held`)
     if (f.sort.k === 'bool' && v.t !== 'bool') return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t} set where a boolean is held`)
@@ -1172,13 +1240,31 @@ export class Stepper {
     const key = `${store}\u0000${tpl}`
     let sm = this.storeMaps.get(key)
     if (!sm) {
-      for (const other of [...this.storeMaps.values()].filter(x => x.store === store)) if (!disjoint(other.tpl, tpl)) refuse(at, `${store}: the key templates ${JSON.stringify(other.tpl)} and ${JSON.stringify(tpl)} may name one key`)
       const decl = this.storeDecl(store)
-      const val: SType = decl.value === 'int' ? {k: 'int'} : decl.value === 'str' ? {k: 'str'} : {k: 'float'}
+      if (decl.apart) this.notes.add(`${store}: its key templates name distinct keys (stated: apart)`)
+      else for (const other of [...this.storeMaps.values()].filter(x => x.store === store)) if (!disjoint(other.tpl, tpl)) refuse(at, `${store}: the key templates ${JSON.stringify(other.tpl)} and ${JSON.stringify(tpl)} may name one key`)
+      const sv = decl.values?.[tpl]
+      const val: SType = Array.isArray(sv) ? {k: 'choice', values: sv} : sv === 'int' || (!sv && decl.value === 'int') ? {k: 'int'} : !sv && decl.value === 'str' ? {k: 'str'} : {k: 'float'}
       const name = `${store}_${tpl.replace(/\{\}/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '')}`
-      const d = this.mapDeclOf(name, {k: 'map', key: {k: kn ? 'int' : 'str'}, val}, at)
+      let d: MapDecl, json: JField[] | undefined
+      if (sv && typeof sv === 'object' && !Array.isArray(sv)) {
+        // (a JSON record: a cell of its fields, an optional one beside whether the key holds a value, a str one left out)
+        json = []
+        const fields: Var[] = []
+        for (const [f, t] of Object.entries(sv.json)) {
+          if (t === 'str' || t === 'str | None') { json.push({name: f, out: true}); continue }
+          const st = Array.isArray(t) ? {t: {k: 'choice', values: t} as SType} : sortOfText(t, at.p), opt = st.t.k === 'opt', inner = st.t.k === 'opt' ? st.t.of : st.t
+          fields.push({name: f, sort: this.scalar(inner)!, role: 'state'})
+          if (opt) fields.push({name: `${f}_has`, sort: {k: 'bool'}, role: 'state'})
+          json.push({name: f, ...(opt ? {opt} : {}), ...(inner.k === 'choice' ? {choice: true, vals: inner.values} : {})})
+        }
+        const v = this.newVar(name, {k: 'num'}, 'state')
+        d = {name: v.name, key: kn ? 'num' : 'str', fields, scalar: false, js: 'Map'}
+        this.maps.push(d)
+        this.notes.add(`${store}: ${JSON.stringify(tpl)} keys hold JSON records (stated): ${json.map(f => `${f.name}${f.out ? ' (a string, left out)' : f.opt ? ' (maybe absent)' : ''}`).join(', ')}`)
+      } else d = this.mapDeclOf(name, {k: 'map', key: {k: kn ? 'int' : 'str'}, val}, at)
       const id = `store:${key}`
-      sm = {store, tpl, id, decl: d}
+      sm = {store, tpl, id, decl: d, ...(json ? {json} : {}), ...(Array.isArray(sv) ? {choice: true} : {})}
       this.storeMaps.set(key, sm)
       this.initHeap.set(id, {k: 'map', decl: d, val, origin: 'state'})
       this.notes.add(`${store}: a store (${this.opts.stores?.[store] ? 'stated' : 'inferred: an injected dependency, read and written by a key'}): ${JSON.stringify(tpl)} keys held as ${d.name}, its expiry and eviction left out`)
@@ -1202,11 +1288,12 @@ export class Stepper {
   // (the injected dependencies and stores: their type, whether the rule holds keys of theirs, whether the caller stated them)
   readonly deps: {name: string, ty?: string, keyed: boolean, stated: boolean}[] = []
   // A constructor argument held as an injected dependency (a store): one its reader marks so, or one of no scalar type
-  // (another module's class, a protocol, none stated) the class keeps in a field and calls methods on.
+  // (another module's class, a protocol, none stated) the class keeps in a field and calls methods on; one defaulting
+  // to None too (the check gives one: the claim is for objects given one, the code's fallback for None not read).
   injected(pa: SParam, init: SFunc, r: SRec): {keyed: boolean, ty?: string} | undefined {
     if (!this.inf) return undefined
     const t = pa.t.k === 'opt' ? pa.t.of : pa.t
-    if (!pa.inject && (this.scalar(t) || ['lock', 'none', 'map', 'list'].includes(t.k) || (t.k === 'rec' && this.mod.recs[t.name]?.own && !this.mod.recs[t.name]!.kinds.includes('protocol')) || pa.dflt)) return undefined
+    if (!pa.inject && (this.scalar(t) || ['lock', 'none', 'map', 'list'].includes(t.k) || (t.k === 'rec' && this.mod.recs[t.name]?.own && !this.mod.recs[t.name]!.kinds.includes('protocol')) || (pa.dflt && !(pa.t.k === 'opt' && pa.dflt.e === 'none')))) return undefined
     const fields: string[] = []
     deep(init.body, st => { const to = st.to as SX | undefined, v = st.x as SX | undefined; if (st.s === 'set' && to?.e === 'get' && (to.x as SX).e === 'var' && (to.x as SX).n === 'self' && v?.e === 'var' && v.n === pa.name) fields.push(String(to.f)) })
     const ms = this.callsOn(r, fields)
@@ -1230,15 +1317,16 @@ export class Stepper {
     return d
   }
   storeCall(store: string, m: string, args: V[], kw: [string, V][], at: SX, p: Path, awaited: boolean): [V, Path] {
+    if (dead(p)) return [{t: 'opaque', why: 'unreachable'}, p]
     const d = this.storeDecl(store), all = [...args, ...kw.map(([, v]) => v)]
     // (other code given the rule's state may change it: refused unless the caller states it, the tag on its line)
     const given = (vs: V[]) => { if (!this.tagAt(at.p) && vs.some(v => this.stateRef(v, p))) refuse(at, `${at.text}: ${store}.${m} is given the rule's state, which other code may change (if it doesn't, a \`gdp: skip\` comment on its line says so)`) }
-    const arg = (n: string, i: number) => kw.find(([k]) => k === n)?.[1] ?? args[i] ?? refuse(at, `${at.text}: the store's ${n} not given`)
+    const arg = (n: string, i: number) => kw.find(([k]) => k === n || (n === 'key' && k === 'name'))?.[1] ?? args[i] ?? refuse(at, `${at.text}: the store's ${n} not given`)
     const has = (n: string, i: number) => kw.some(([k]) => k === n) || args.length > i
     let kind: 'get' | 'set' | 'delete' | undefined = (d.get ?? ['get', 'async_get_cache', 'get_cache']).includes(m) ? 'get' : (d.set ?? ['set', 'async_set_cache', 'set_cache']).includes(m) ? 'set' : (d.delete ?? ['delete', 'delete_cache', 'async_delete_cache']).includes(m) ? 'delete' : undefined
     if (!kind && this.inf) {
       // (inferred: a method named as a key's get, set or delete, given a key that is a string or a format)
-      const k = keyShape(m), key = kw.find(([n]) => n === 'key')?.[1] ?? args[0]
+      const k = keyShape(m), key = kw.find(([n]) => n === 'key' || n === 'name')?.[1] ?? args[0]
       if (k && key && (key.t === 'str' || key.t === 'fmt') && (k !== 'set' || has('value', 1))) { kind = k; (d[k] ??= []).push(m); this.notes.add(`${store}.${m}: read as the store's ${k} by a key (inferred from its name)`) }
       else {
         // (another method: an answer, or left out; of a store, one that may change what it holds, unless stated)
@@ -1257,17 +1345,157 @@ export class Stepper {
     this.storeAsync[store]![m] = awaited
     // (a key's operation takes its key, and a set its value: any other argument given the rule's state is refused)
     const keyV = arg('key', 0), valV = kind === 'set' ? arg('value', 1) : undefined
+    // (a set's options: nx and xx make it conditional, its result whether it set (True, else None, as redis-py's); its
+    // expiry is left out, as every store's is; any other option is refused)
+    const TTL = ['ex', 'px', 'exat', 'pxat', 'ttl', 'timeout', 'expire', 'expiry']
+    let only: 'nx' | 'xx' | undefined
+    for (const [n, v] of kw) {
+      if (n === 'key' || n === 'name' || n === 'value') continue
+      if (kind === 'set' && TTL.includes(n)) { this.notes.add(`${store}.${m}: its ${n} (the key's expiry) left out, as the store's expiry is`); continue }
+      if (kind === 'set' && (n === 'nx' || n === 'xx')) {
+        if (v.t !== 'bool' || v.e.op !== 'const') return refuse(at, `${at.text}: ${n} given a value not known here`)
+        if (v.e.v) { if (only) return refuse(at, `${at.text}: nx and xx both`); only = n }
+        continue
+      }
+      return refuse(at, `${at.text}: the store's ${m} given ${n} (the subset reads a key, a value, nx, xx and the expiry)`)
+    }
     given(all.filter(v => v !== keyV && v !== valV))
+    if (args.length > (kind === 'set' ? 2 : 1)) return refuse(at, `${at.text}: the store's ${m} given more than its key${kind === 'set' ? ' and value' : ''}`)
     const {tpl, k, kn} = this.storeKey(keyV, at)
-    const [id, o] = this.storeMap(store, tpl, kn, at, p)
+    const [id, o] = this.storeMap(store, tpl, kn, at, p), sm = [...this.storeMaps.values()].find(x => x.id === id)!
     // (inside a try that may catch it: the store's operation may raise, as other code's may, before it acts)
-    if (this.tries.length) p = this.passing(`${store}.${m}`, `${store}.${m}`, {store, path: [m]}, at, p, awaited)
-    if (kind === 'get') return this.mapGet({t: 'ref', id}, k, at, p, 'none')
+    if (this.tries.length && !d.nothrow) p = this.passing(`${store}.${m}`, `${store}.${m}`, {store, path: [m]}, at, p, awaited)
+    if (kind === 'get') {
+      if (!sm.json) return this.mapGet({t: 'ref', id}, k, at, p, 'none')
+      const c = this.cellOf(o, k, p, at), f = new Map<string, V>()
+      for (const jf of sm.json) {
+        if (jf.out) { f.set(jf.name, {t: 'opaque', why: `${at.text}: ${jf.name}, a string of a stored record (left out)`}); continue }
+        const x = c.vals.get(jf.name)!
+        f.set(jf.name, jf.opt ? {t: 'opt', has: (c.vals.get(`${jf.name}_has`) as {e: B}).e, v: x} : x)
+      }
+      return [{t: 'opt', has: c.has, v: {t: 'val', ty: '$json', f}}, p]
+    }
     if (kind === 'delete') return [{t: 'none'}, this.mapDel({t: 'ref', id}, k, at, p, false)]
     const v = arg('value', 1)
-    if (o.val!.k === 'str' ? v.t !== 'str' : v.t !== 'num') return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t} set in a store of ${o.val!.k === 'float' ? 'numbers' : o.val!.k}`)
-    if (o.val!.k === 'str') return refuse(at, `${at.text}: a store of strings (its cells hold numbers)`)
-    return [{t: 'none'}, this.mapSet({t: 'ref', id}, k, v, at, p)]
+    let vals: Map<string, V>
+    if (sm.json) {
+      if (v.t !== 'val' || v.ty !== '$json') return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t === 'val' ? v.ty.slice(1) : v.t} set where JSON records are held (stated)`)
+      for (const n of v.f.keys()) if (!sm.json.some(jf => jf.name === n)) return refuse(at, `${at.text}: ${n}, a field the stated record doesn't have`)
+      vals = new Map()
+      for (const jf of sm.json) {
+        if (jf.out) continue
+        const fv = o.decl.fields.find(x => x.name === jf.name)!, x = v.f.get(jf.name)
+        if (!jf.opt && (!x || x.t === 'opt' || x.t === 'none')) return refuse(at, `${at.text}: ${jf.name}, a field the stated record always holds, ${x ? 'maybe None' : 'not set'}`)
+        const has: B = !x || x.t === 'none' ? I.F : x.t === 'opt' ? x.has : I.T, inner = x?.t === 'opt' ? x.v : x
+        const zero: V = fv.sort.k === 'choice' ? {t: 'choice', e: I.llit(fv.sort.values[0]!, fv.sort.values)} : fv.sort.k === 'bool' ? {t: 'bool', e: I.F} : {t: 'num', e: I.num(0)}
+        // (absent, or None: the default, as the text holds nothing there)
+        vals.set(jf.name, inner && inner.t !== 'none' ? this.ite(has, this.fit(inner, fv, at), zero, at) : zero)
+        if (jf.opt) vals.set(`${jf.name}_has`, {t: 'bool', e: has})
+      }
+    } else {
+      const v2 = sm.choice ? this.fit(v, o.decl.fields[0]!, at) : v
+      if (sm.choice ? v2.t !== 'choice' : o.val!.k === 'str' ? v.t !== 'str' : v.t !== 'num') return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t} set in a store of ${o.val!.k === 'float' ? 'numbers' : o.val!.k}`)
+      if (!sm.choice && o.val!.k === 'str') return refuse(at, `${at.text}: a store of strings (its cells hold numbers)`)
+      vals = new Map([['value', v2]])
+    }
+    if (!only) return [{t: 'none'}, this.writeCell(id, o, k, I.T, vals, at, p)]
+    // (nx: where the key holds nothing; xx: where it holds a value)
+    const c = this.cellOf(o, k, p, at), when = only === 'nx' ? I.not(c.has) : c.has
+    const merged = new Map([...vals].map(([n, x]) => [n, this.ite(when, x, c.vals.get(n)!, at)]))
+    return [{t: 'opt', has: when, v: {t: 'bool', e: I.T}}, this.writeCell(id, o, k, I.bite(when, I.T, c.has), merged, at, p)]
+  }
+
+  // --- context managers of the module's, made by @contextmanager ---------------------------------------------------------
+  // with self.cm(...): body, where cm is a generator the module reads, decorated @contextmanager: the generator run,
+  // the with's body where it yields (in the with's frame), so a raise in the body goes through the generator's
+  // handlers and finally first, as contextmanager throws it there. The body may not return, break or set a local (not
+  // read here); the generator yields once (a path that ends without yielding fails, as contextmanager's RuntimeError).
+  readonly withBodies: {body: SS[], locals: Map<string, V>}[] = []
+  generatorCM(s: SS, p: Path): Flow | undefined {
+    const items = s.items as {x: SX, as?: SX}[]
+    if (items.length !== 1 || items[0]!.x.e !== 'call') return undefined
+    const it = items[0]!, fx = it.x.f as SX
+    let f: V, q = p
+    try { [f, q] = fx.e === 'get' ? this.get(fx, p) : this.ev(fx, p) } catch { return undefined }
+    if (f.t !== 'fn') return undefined
+    const fn = this.mod.funcs[f.id]
+    if (!fn?.decorators.some(d => /(?:^|\.)contextmanager$/.test(d.name))) return undefined
+    if (it.as) return refuse(s, `with ${it.x.text} as ...: a generator context manager's value`)
+    const yields: SS[] = []
+    let bad = ''
+    deep(fn.body, o => { if (o.s === 'yield') yields.push(o); if (o.s === 'ret' || o.s === 'for') bad ||= o.s === 'ret' ? 'returns' : 'loops'; return false })
+    if (bad || yields.length !== 1) return refuse(s, `${fn.name}: a @contextmanager generator that ${bad || `yields ${yields.length} times`} (the subset reads one that yields once)`)
+    if (deep(s.body, o => ['ret', 'break', 'continue'].includes(o.s) || (o.s === 'set' && (o.to as SX | undefined)?.e === 'var'))) return refuse(s, `with ${it.x.text}: a body that returns, breaks or sets a local, inside a generator context manager (not read)`)
+    this.notes.add(`with ${it.x.text} (${it.x.p}): ${fn.name}, a @contextmanager generator, run around the with's body`)
+    this.withBodies.push({body: s.body as SS[], locals: q.locals})
+    const start = {...q, heap: new Map(q.heap).set('$yielded', {k: 'rec', ty: '$yielded', f: new Map([['n', {t: 'bool', e: I.F}]]), origin: 'fresh'} as Obj)}
+    let out: Path
+    try { out = this.evArgs(it.x, start, (args, kw, q2) => this.callFunc(fn, f.self, args, kw, it.x, q2, false))[1] } finally { this.withBodies.pop() }
+    const y = (out.heap.get('$yielded') as Extract<Obj, {k: 'rec'}> | undefined)?.f.get('n')
+    const did = y?.t === 'bool' ? y.e : I.T, heap = new Map(out.heap)
+    heap.delete('$yielded')
+    this.fail(out, I.not(did), s, `${fn.name}: the generator didn't yield (a RuntimeError)`)
+    return {live: this.assume({...out, heap}, did), rets: []}
+  }
+
+  // --- values by their fields: dict literals, JSON, datetimes ----------------------------------------------------------
+  // d[k]: a key the dict holds (one it may not hold is read with get); a timestamp has no items.
+  valItem(m: Extract<V, {t: 'val'}>, k: V, x: SX, p: Path): [V, Path] {
+    const ks = strLit(k)
+    if (m.ty !== '$dict' || ks === undefined) return refuse(x, `${x.text}: an item of a ${m.ty.slice(1)}${m.ty === '$dict' ? ' by a key not known here' : ''}`)
+    const v = m.f.get(ks)
+    if (!v) { this.fail(p, I.T, x, `${x.text}: a key the dict doesn't hold (a KeyError)`); return [{t: 'opaque', why: 'unreachable'}, {...p, pc: [...p.pc, I.F]}] }
+    // (a key on some paths only, or a stored record's optional field: absent and None are one there, read by get)
+    if (v.t === 'opt' && !(v.has.op === 'const' && v.has.v)) return refuse(x, `${x.text}: a key the dict may not hold, read by [] (the subset reads it with get)`)
+    return [v, p]
+  }
+  valCall(o: Extract<V, {t: 'val'}>, m: string, args: V[], kw: [string, V][], x: SX, p: Path): [V, Path] {
+    if (o.ty === '$dt' && m === 'timestamp' && !args.length && !kw.length) return [{t: 'val', ty: '$ts', f: o.f}, p]
+    if (o.ty === '$dict' && m === 'get' && !kw.length && args.length >= 1 && args.length <= 2) {
+      const ks = strLit(args[0]!), d: V = args[1] ?? {t: 'none'}
+      if (ks === undefined) return refuse(x, `${x.text}: a dict's get by a key not known here`)
+      const v = o.f.get(ks)
+      if (!v) return [d, p]
+      return [v.t === 'opt' ? this.ite(v.has, v.v, d, x) : v, p]
+    }
+    if (o.ty === '$dict' && (m === 'values' || m === 'keys') && !args.length && !kw.length) {
+      if ([...o.f.values()].some(v => v.t === 'opt')) return refuse(x, `${x.text}: the ${m} of a dict whose keys depend on the path`)
+      return [{t: 'tuple', xs: m === 'values' ? [...o.f.values()] : [...o.f.keys()].map(k => ({t: 'str', e: {op: 'slit', value: k}}))}, p]
+    }
+    return refuse(x, `${x.text}: ${m} of a ${o.ty.slice(1)}`)
+  }
+  // json.dumps of a dict literal: its text, kept by its fields (json.loads gives the dict back); of anything else, a
+  // text outside the subset. Only keyword options that change no key or value (sort_keys, separators, indent).
+  json(q0: string, args: V[], kw: [string, V][], x: SX, p: Path): [V, Path] {
+    const v = args[0]
+    if (args.length !== 1 || kw.some(([n]) => !['sort_keys', 'separators', 'indent', 'cls', 'ensure_ascii'].includes(n))) return refuse(x, `${x.text}: ${q0} given more than its value`)
+    if (q0 === 'json.dumps') {
+      if (v?.t === 'val' && v.ty === '$dict' && !kw.some(([n]) => n === 'cls')) {
+        for (const [k, y] of v.f) { const z = y.t === 'opt' ? y.v : y; if (!['num', 'bool', 'str', 'choice', 'none', 'opaque'].includes(z.t)) return refuse(x, `${x.text}: ${k}, a ${z.t === 'val' ? z.ty.slice(1) : z.t} put in a JSON text (the subset reads one of scalars)`) }
+        this.notes.add(`${x.text} (${x.p}): JSON of a dict of scalars, read back by json.loads as the same dict`)
+        return [{t: 'val', ty: '$json', f: v.f}, p]
+      }
+      return [{t: 'opaque', why: `${x.text}: a JSON text of a value outside the subset`}, p]
+    }
+    if (v?.t === 'val' && v.ty === '$json') return [{t: 'val', ty: '$dict', f: v.f}, p]
+    if (v?.t === 'opaque') return [v, p]
+    return refuse(x, `${x.text}: json.loads of a ${v?.t === 'val' ? v.ty.slice(1) : v?.t ?? 'nothing'} (the subset reads back a text json.dumps made)`)
+  }
+  // A datetime plus or minus a timedelta, two datetimes apart, a timestamp in milliseconds (ts * 1000).
+  valBin(op: string, a: V, b: V, x: SX, p: Path): V {
+    const ms = (v: V): N => this.numOf((v as Extract<V, {t: 'val'}>).f.get('ms')!, x, p), ty = (v: V) => (v.t === 'val' ? v.ty : v.t)
+    // (a datetime past year 9999 or before year 1: Python's OverflowError, the step's failure there)
+    const mk = (t: string, e: N): V => {
+      if (t === '$dt') this.fail(p, I.or(I.cmp('<', e, I.num(-62_135_596_800_000)), I.cmp('<', I.num(253_402_300_799_999), e)), x, `${x.text}: a datetime out of its range (an OverflowError)`)
+      return {t: 'val', ty: t, f: new Map([['ms', {t: 'num', e}]])}
+    }
+    if (op === '+' && ty(a) === '$dt' && ty(b) === '$td') return mk('$dt', I.add(ms(a), ms(b)))
+    if (op === '+' && ty(a) === '$td' && ty(b) === '$dt') return mk('$dt', I.add(ms(a), ms(b)))
+    if (op === '-' && ty(a) === '$dt' && ty(b) === '$td') return mk('$dt', I.sub(ms(a), ms(b)))
+    if (op === '-' && ty(a) === '$dt' && ty(b) === '$dt') return mk('$td', I.sub(ms(a), ms(b)))
+    if ((op === '+' || op === '-') && ty(a) === '$td' && ty(b) === '$td') return mk('$td', op === '+' ? I.add(ms(a), ms(b)) : I.sub(ms(a), ms(b)))
+    if (op === '*' && ty(a) === '$ts' && constOf(b) === 1000) return {t: 'num', e: ms(a)}
+    return refuse(x, `${x.text}: ${ty(a).replace('$', '')} ${op} ${ty(b).replace('$', '')}`)
   }
 
   // --- the boundary the caller states ---------------------------------------------------------------------------------
@@ -1317,14 +1545,19 @@ export class Stepper {
   }
   // A call left out inside a try (its value unread): stubbed only to raise where the request says, else run as it is.
   passing(key: string, name: string, patch: Patch | undefined, at: SX, p: Path, awaited: boolean): Path {
-    if (this.hidden) return refuse(at, `${at.text ?? name}: other code called in a loop inside a try (whether it raises would be one input a pass)`)
     if (!this.tries.length) return p
+    // (a logger's call: it never raises, logging handles its own errors)
+    const fx = at.f as SX | undefined
+    if (fx?.e === 'get' && (fx.x as SX | undefined)?.nothrow) { this.notes.add(`${at.text ?? name} (${at.p}): a logger's call, which never raises (logging handles its handlers' errors)`); return p }
+    if (this.hidden) return refuse(at, `${at.text ?? name}: other code called in a loop inside a try (whether it raises would be one input a pass)`)
     if (!patch && !at.end) return refuse(at, `${at.text ?? name}: other code left out inside a try that may catch what it raises, and the check can't stub it`)
     let a = this.answers.get(key)
     if (!a) this.answers.set(key, a = {key, patch: patch ?? {}, async: awaited, inputs: {name: ''}, sort: '', pass: true, at: []})
     if (!a.pass) return refuse(at, `${at.text ?? name}: ${key} answered at one call and left out at another`)
-    if (!a.at!.some(x => x.p === at.p)) a.at!.push({p: at.p, ...(at.end ? {end: at.end as string} : {}), ...(at.span ? {span: at.span as [number, number]} : {})})
-    return this.mayRaise(a, name, at, p)
+    // (the sites where it may raise, which the check's stub raises at: those inside a try with a handler for it)
+    const q = this.mayRaise(a, name, at, p)
+    if (q !== p && !a.at!.some(x => x.p === at.p)) a.at!.push({p: at.p, ...(at.end ? {end: at.end as string} : {}), ...(at.span ? {span: at.span as [number, number]} : {})})
+    return q
   }
 
   // --- the boundary inferred ---------------------------------------------------------------------------------------
@@ -1547,12 +1780,19 @@ export class Stepper {
       case 'bool': return [{t: 'bool', e: x.v ? I.T : I.F}, p]
       case 'str': return [{t: 'str', e: {op: 'slit', value: String(x.v)}}, p]
       case 'none': return [{t: 'none'}, p]
-      case 'var': { const v = p.locals.get(String(x.n)); if (!v) return refuse(x, (x.why as string | undefined) ?? `${String(x.n)}: a variable read before it is set`); return [this.narrow(v, p), p] }
+      case 'var': {
+        const v = p.locals.get(String(x.n))
+        // (Python's local read on a path that never set it, past a raise caught before its assignment: an
+        // UnboundLocalError on that path)
+        if (!v && !x.why && this.mod.lang === 'python') { this.fail(p, I.T, x, `${String(x.n)}: a local read before it is set (an UnboundLocalError)`); return [{t: 'opaque', why: 'unreachable'}, {...p, pc: [...p.pc, I.F]}] }
+        if (!v) return refuse(x, (x.why as string | undefined) ?? `${String(x.n)}: a variable read before it is set`)
+        return [this.narrow(v, p), p]
+      }
       case 'fn': return [{t: 'fn', id: String(x.id)}, p]
       case 'cls': return [{t: 'cls', rec: String(x.rec), ...(x.patch ? {patch: x.patch as Patch} : {})}, p]
       case 'builtin': return [{t: 'builtin', n: String(x.n)}, p]
       case 'lib': return [{t: 'lib', q: String(x.q)}, p]
-      case 'ext': return [{t: 'ext', q: String(x.q), text: String(x.text), ...(x.patch ? {patch: x.patch as Patch} : {}), ...(x.ret ? {ret: x.ret as SType} : {})}, p]
+      case 'ext': return [{t: 'ext', q: String(x.q), text: String(x.text), ...(x.patch ? {patch: x.patch as Patch} : {}), ...(x.ret ? {ret: x.ret as SType} : {}), ...(x.nothrow ? {nothrow: true} : {})}, p]
       case 'no': {
         // (a call of other code a reader doesn't lower, `ext` its name: at the boundary, where it is inferred)
         if (x.ext && !x.pre && !x.prepl) {
@@ -1652,6 +1892,7 @@ export class Stepper {
       case 'idx': {
         const [m, q] = this.ev(x.x as SX, p), [k, q2] = this.ev(x.i as SX, q)
         if (m.t === 'opaque') return [m, q2]
+        if (m.t === 'val') return this.valItem(m, k, x, q2)
         const ord = this.orderedObj(m, q2)
         if (ord) {
           const i = constOf(k)
@@ -1683,8 +1924,17 @@ export class Stepper {
       }
       case 'fstr': return this.fstr(x, p)
       case 'dict': {
-        if ((x.keys as SX[]).length) return refuse(x, `${x.text ?? 'a dict literal'}: a dict literal with items (a record is made by its class)`)
-        return [{t: 'opaque', why: '{} (an empty dict, a map only where a field declares its type)'}, p]
+        if (!(x.keys as SX[]).length) return [{t: 'opaque', why: '{} (an empty dict, a map only where a field declares its type)'}, p]
+        // (string keys known here, a record by value: its keys its fields)
+        let q = p
+        const f = new Map<string, V>()
+        for (const [i, kx] of (x.keys as SX[]).entries()) {
+          const [k, q1] = this.ev(kx, q), ks = strLit(k)
+          if (ks === undefined) return refuse(x, `${x.text ?? 'a dict literal'}: a dict literal whose keys aren't strings known where it is made (a record is made by its class)`)
+          const [v, q2] = this.ev((x.vals as SX[])[i]!, q1)
+          f.set(ks, v); q = q2
+        }
+        return [{t: 'val', ty: '$dict', f}, q]
       }
       // (an empty list: an ordered collection where a field of the state declares a list of records or numbers)
       case 'list': return (x.xs as SX[]).length ? refuse(x, 'a list literal with items (the subset keeps a list of the state, made empty)') : [{t: 'opaque', why: '[] (an empty list, a collection only where a field declares its type)'}, p]
@@ -1751,7 +2001,7 @@ export class Stepper {
     const [o, q] = this.ev(x.x as SX, p), f = String(x.f)
     switch (o.t) {
       case 'opaque': if (o.sattr) return this.storeAttr(o.sattr.store, `${o.sattr.path}.${f}`, x, q); return [{t: 'opaque', why: o.why, ...(o.ask ? {ask: o.ask} : {})}, q]
-      case 'ext': return [{t: 'ext', q: `${o.q}.${f}`, text: `${o.text}.${f}`, ...(o.patch?.path ? {patch: {...o.patch, path: [...o.patch.path, f]}} : {})}, q]
+      case 'ext': return [{t: 'ext', q: `${o.q}.${f}`, text: `${o.text}.${f}`, ...(o.patch?.path ? {patch: {...o.patch, path: [...o.patch.path, f]}} : {}), ...(o.nothrow ? {nothrow: true} : {})}, q]
       case 'none': this.fail(q, I.T, x, `${x.text}: a field of None (an AttributeError)`); return [{t: 'opaque', why: 'unreachable'}, {...q, pc: [...q.pc, I.F]}]
       case 'opt': { this.fail(q, I.not(o.has), x, `${x.text}: a field of None (an AttributeError)`); const [v2, q3] = this.get({...x, x: {e: 'var', n: '$v', p: x.p}}, {...this.assume(q, o.has), locals: new Map(q.locals).set('$v', o.v)}); return [v2, {...q3, locals: q.locals}] }
       case 'sattr': case 'ref': break
@@ -1764,13 +2014,15 @@ export class Stepper {
         if (mid) return [{t: 'fn', id: mid}, q]
         return [{t: 'ext', q: `${o.rec}.${f}`, text: x.text ?? f, ...(o.patch?.path ? {patch: {...o.patch, path: [...o.patch.path, f]}} : {}), ...(r.rets?.[f] ? {ret: r.rets[f]} : {})}, q]
       }
-      case 'bool': case 'builtin': case 'choice': case 'fmt': case 'fn': case 'lib': case 'lock': case 'num': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': return refuse(x, `${x.text}: a field of a ${o.t}`)
+      case 'bool': case 'builtin': case 'choice': case 'fmt': case 'fn': case 'lib': case 'lock': case 'num': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': case 'val': return refuse(x, `${x.text}: a field of a ${o.t === 'val' ? o.ty.slice(1) : o.t}`)
     }
     if (o.t === 'sattr') return this.storeAttr(o.store, o.path ? `${o.path}.${f}` : f, x, q)
     const obj = q.heap.get(o.id)
     if (obj?.k === 'store') return this.storeAttr(obj.name, f, x, q)
     if (obj?.k !== 'rec') return refuse(x, `${x.text}: a field of other than an object`)
     const r = this.rec(obj.ty, x)
+    // (super().f: the base's method the reader resolved, on this object)
+    if (typeof x.sup === 'string') return [{t: 'fn', id: x.sup, self: o}, q]
     const v = obj.f.get(f)
     if (v) return [v, q]
     const mid = r.methods[f]
@@ -1809,6 +2061,7 @@ export class Stepper {
     const op = String(x.op)
     if (x.ovf) return this.fixed(x, p)
     const [a, q] = this.ev(x.x as SX, p), [b, q2] = this.ev(x.y as SX, q)
+    if (a.t === 'val' || b.t === 'val') return [this.valBin(op, a, b, x, q2), q2]
     // A true division: a float, kept only where nothing the rule keeps reads it (refused there); its divisor 0 fails.
     if (op === '/') {
       if (b.t === 'num' || b.t === 'bool') { const nb = this.numOf(b, x, q2); this.fail(q2, I.cmp('=', nb, I.num(0)), x, `${x.text}: a division by zero (a ZeroDivisionError)`); return [{t: 'opaque', why: `${x.text}: a true division (a float; the subset reads math.floor or math.ceil of x / k, int(x / k), or x // k)`}, this.assume(q2, I.not(I.cmp('=', nb, I.num(0))))] }
@@ -1935,6 +2188,27 @@ export class Stepper {
     if ((a.t === 'num' && b.t === 'str') || (a.t === 'str' && b.t === 'num')) return I.F
     return refuse(at, `${at.text}: ${a.t} == ${b.t}`)
   }
+  // The truth of a condition: of and / or, its operands' truths (short-circuited), whatever kinds their values are
+  // (bool(n and t > n), where `and`'s value would be a number on one path and a boolean on another).
+  truth(x: SX, p: Path): [B, Path] {
+    if (x.e === 'and' || x.e === 'or') {
+      const xs = x.xs as SX[], isAnd = x.e === 'and'
+      const go = (i: number, q: Path): [B, Path] => {
+        const [c, q1] = this.truth(xs[i]!, q)
+        if (i === xs.length - 1) return [c, q1]
+        const stop = isAnd ? I.not(c) : c
+        if (stop.op === 'const' && stop.v) return [isAnd ? I.F : I.T, q1]
+        const [rest, q2] = go(i + 1, this.assume(q1, I.not(stop)))
+        if (stop.op === 'const') return [rest, q2]
+        return [isAnd ? I.and(c, rest) : I.or(c, rest), this.merge(this.assume(q1, stop), q2, x)]
+      }
+      return go(0, p)
+    }
+    if (x.e === 'not' && !x.strict) { const [c, q] = this.truth(x.x as SX, p); return [I.not(c), q] }
+    const [v, q] = this.ev(x, p)
+    if (v.t === 'opaque') return refuse(x, `${x.text ?? ''}: the truth of ${v.why}`)
+    return [this.truthy(v, x, q), q]
+  }
   // and / or: Python's give one of their operands (the first falsy, or the last; the first truthy, or the last).
   boolOp(x: SX, p: Path): [V, Path] {
     const xs = x.xs as SX[], isAnd = x.e === 'and'
@@ -1972,6 +2246,7 @@ export class Stepper {
     return [{t: 'fmt', tpl, k: hole}, q]
   }
   call(x: SX, p: Path, awaited: boolean): [V, Path] {
+    if (dead(p)) return [{t: 'opaque', why: 'unreachable'}, p]
     const fx = x.f as SX, names = this.calleeNames(x), args0 = x.args as SX[], kw0 = x.kw as [string, SX][]
     // The boundary first: an answered call, then a skipped one (neither's arguments read).
     const ans = this.match(Object.keys(this.opts.answers ?? {}), names), skip = !ans && this.skipped(names)
@@ -1995,6 +2270,7 @@ export class Stepper {
     if (fx.e === 'get') {
       const [o, q1] = this.ev(fx.x as SX, q)
       q = q1
+      if (o.t === 'val') return this.evArgs(x, q, (args, kw, q2) => this.valCall(o, String(fx.f), args, kw, x, q2))
       const ord = this.orderedObj(o, q)
       if (ord) return this.listCall(ord[0], ord[1], String(fx.f), x, q)
       if (o.t === 'ref' && q.heap.get(o.id)?.k === 'map') return this.dictCall(o, String(fx.f), x, q)
@@ -2018,17 +2294,18 @@ export class Stepper {
       case 'cls': {
         // (another module's class made: other code, at the boundary)
         const r = this.inf ? this.mod.recs[f.rec] : undefined
-        if (r && !r.own) return this.boundary(x, {key: f.rec, name: names[0] ?? r.short, ...(f.patch ? {patch: f.patch} : {}), ret: {k: 'rec', name: f.rec}, refusal: `${x.text}: ${r.short} made (the subset makes the module's own dataclasses)`}, q, awaited)
+        if (r && !r.own && !madeByInit(r)) return this.boundary(x, {key: f.rec, name: names[0] ?? r.short, ...(f.patch ? {patch: f.patch} : {}), ret: {k: 'rec', name: f.rec}, refusal: `${x.text}: ${r.short} made (the subset makes the module's own dataclasses)`}, q, awaited)
         return this.evArgs(x, q, (args, kw, q2) => this.construct(f.rec, args, kw, x, q2))
       }
       case 'builtin': return this.builtin(f.n, x, q)
       case 'lib': return this.lib(f.q, x, q)
       case 'ext': {
+        if (f.q === 'json.dumps' || f.q === 'json.loads') return this.evArgs(x, q, (args, kw, q2) => this.json(f.q, args, kw, x, q2))
         const refusal = `${x.text}: ${f.q}, other code (answer it, skip it, or read that module)`
         return this.inf ? this.boundary(x, {key: f.q, name: /\s/.test(names[0] ?? ' ') ? f.q : names[0]!, ...(f.patch ? {patch: f.patch} : {}), ...(f.ret ? {ret: f.ret} : {}), ...(f.recv ? {recv: f.recv} : {}), refusal}, q, awaited) : refuse(x, refusal)
       }
       case 'opaque': return this.inf ? this.boundary(x, {key: names[0] ?? String(x.text), name: names[0] ?? String(x.text), refusal: `${x.text}: a call of ${f.why}`}, q, awaited) : refuse(x, `${x.text}: a call of ${f.why}`)
-      case 'bool': case 'cell': case 'choice': case 'fmt': case 'lock': case 'none': case 'num': case 'opt': case 'ref': case 'sattr': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': break
+      case 'bool': case 'cell': case 'choice': case 'fmt': case 'lock': case 'none': case 'num': case 'opt': case 'ref': case 'sattr': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': case 'val': break
     }
     void args0; void kw0
     return refuse(x, `${x.text}: a call of a ${f.t}`)
@@ -2063,6 +2340,12 @@ export class Stepper {
   }
   construct(rec: string, args: V[], kw: [string, V][], x: SX, p: Path): [V, Path] {
     const r = this.rec(rec, x)
+    // (a plain class of the repository whose __init__ the reader read: made by running it on a fresh object)
+    if (madeByInit(r)) {
+      const id = `fresh:${this.fresh++}`, q1: Path = {...p, heap: new Map(p.heap).set(id, {k: 'rec', ty: rec, f: new Map(), origin: 'fresh'})}
+      this.notes.add(`${r.short}(...) (${x.p}): made by its __init__, read`)
+      return [{t: 'ref', id}, this.callFunc(this.func(r.methods.__init__!, x), {t: 'ref', id}, args, kw, x, q1, false)[1]]
+    }
     if (!r.kinds.includes('dataclass') || !r.own) return refuse(x, `${x.text}: ${r.short} made (the subset makes the module's own dataclasses)`)
     if (r.methods.__init__ || r.methods.__post_init__) return refuse(x, `${x.text}: ${r.short} has its own __init__ or __post_init__`)
     const f = new Map<string, V>()
@@ -2084,8 +2367,11 @@ export class Stepper {
     // int(x / k): truncated toward zero; round(x / k): to the nearest, a half to the even one (Python's round).
     if (n === 'int' && a0?.e === 'bin' && a0.op === '/') return this.quotient(a0, p, 'trunc')
     if (n === 'round' && a0?.e === 'bin' && a0.op === '/' && (x.args as SX[]).length === 1 && !(x.kw as unknown[]).length) return this.quotient(a0, p, 'even')
+    if (n === 'bool' && (a0?.e === 'and' || a0?.e === 'or') && (x.args as SX[]).length === 1) { const [c, q] = this.truth(a0, p); return [{t: 'bool', e: c}, q] }
     return this.evArgs(x, p, (args, kw, q) => {
       if (kw.length) return refuse(x, `${x.text}: ${n} given keywords`)
+      // (int of a timestamp: its whole seconds)
+      if (n === 'int' && args[0]?.t === 'val') return args[0].ty === '$ts' ? [{t: 'num', e: I.divk(1000, this.numOf(args[0].f.get('ms')!, x, q))}, q] : refuse(x, `${x.text}: int of a ${args[0].ty.slice(1)}`)
       if (args.some(a => a.t === 'opaque') && ['str', 'repr', 'len', 'isinstance', 'round', 'int', 'float', 'bool'].includes(n)) { const ask = args.find(a => a.t === 'opaque' && a.ask) as {why: string, ask: string} | undefined; return [{t: 'opaque', why: `${x.text}: of a value outside the subset${ask ? ` (${ask.why})` : ''}`, ...(ask ? {ask: ask.ask} : {})}, q] }
       const v = args[0]
       // (a list the request carries: its length, an input)
@@ -2132,6 +2418,21 @@ export class Stepper {
     if ((q0 === 'math.floor' || q0 === 'math.ceil') && a0?.e === 'bin' && a0.op === '/') return this.quotient(a0, p, q0 === 'math.floor' ? 'floor' : 'ceil')
     if (q0 === 'time.time' || q0 === 'time.monotonic' || q0 === 'time.perf_counter') { this.notes.add(`${q0}() is the request's time (an input, read once a step, at whole seconds: the claim is for those)`); return this.clock(x, p) }
     if (q0 === 'threading.Lock' || q0 === 'threading.RLock' || q0 === 'asyncio.Lock') return [{t: 'lock'}, p]
+    // A datetime: the request's time (in whole seconds, as time.time()), in milliseconds; a timedelta by its parts.
+    if (q0 === 'datetime.datetime.now') {
+      if ((x.args as SX[]).length || (x.kw as unknown[]).length) return refuse(x, `${x.text}: now() given a time zone`)
+      this.notes.add(`${q0}() is the request's time (an input, at whole seconds: the claim is for those)`)
+      const [t, q] = this.clock(x, p)
+      return [{t: 'val', ty: '$dt', f: new Map([['ms', {t: 'num', e: I.mulk(1000, (t as {e: N}).e)}]])}, q]
+    }
+    if (q0 === 'datetime.timedelta') return this.evArgs(x, p, (args, kw, q) => {
+      const unit: Record<string, number> = {days: 86_400_000, seconds: 1000, milliseconds: 1, minutes: 60_000, hours: 3_600_000, weeks: 604_800_000}
+      if (args.length > 1) return refuse(x, `${x.text}: a timedelta of positional parts past its days`)
+      const parts: [string, V][] = [...(args.length ? [['days', args[0]!] as [string, V]] : []), ...kw]
+      let ms: N = I.num(0)
+      for (const [n, v] of parts) { if (!(n in unit)) return refuse(x, `${x.text}: a timedelta's ${n}`); ms = I.add(ms, I.mulk(unit[n]!, this.numOf(v, x, q))) }
+      return [{t: 'val', ty: '$td', f: new Map([['ms', {t: 'num', e: ms}]])}, q]
+    })
     return this.evArgs(x, p, (args, _kw, q) => {
       const v = args[0]
       if (v?.t === 'opaque') return [v, q]
@@ -2708,6 +3009,13 @@ const assigned = (ss: SS[]): Set<string> => {
 // A pointer by a condition (one case where both are the same).
 export const phiP = (c: B, a: Ptr, b: Ptr): Ptr => (c.op === 'const' ? (c.v ? a : b) : JSON.stringify(a) === JSON.stringify(b) ? a : {k: 'phi', c, a, b})
 // The values a merge keeps exact (Go's): refused, not made opaque, where two paths make them different.
+// A path a failure ended (its condition false): what follows on it is never run.
+const dead = (p: Path): boolean => p.pc.some(c => c.op === 'const' && !c.v)
+// A string known where it is read (a literal; a choice's one value).
+const strLit = (v: V): string | undefined => (v.t === 'str' && v.e.op === 'slit' ? v.e.value : v.t === 'choice' && v.e.op === 'lit' ? v.e.value : undefined)
+// A class made by running its __init__: one the reader read (a class of the file, or of the repository the code makes),
+// not a dataclass, a model or a protocol, every base known.
+const madeByInit = (r: SRec): boolean => typeof r.methods.__init__ === 'string' && !r.kinds.some(k => ['dataclass', 'pydantic', 'typeddict', 'protocol'].includes(k) || k.startsWith('outside-base'))
 const firm = (v: V): boolean => ['ptr', 'struct', 'err', 'nil', 'map', 'list', 'push', 'pop'].includes(v.t) || (v.t === 'opaque' && !!v.firm)
 // An expression that calls nothing (so evaluating it changes nothing).
 // Whether some node of an IR tree (an object, depth first) is one f says yes to.
@@ -2872,9 +3180,11 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
           g.deps.push({name: pa.name, ...(pt.k === 'rec' ? {ty: pt.name} : {}), keyed: !dep || dep.keyed, stated: !dep})
           if (dep?.ty) g.storeTypes.set(pa.name, dep.ty)
           if (dep) g.notes.add(`${r.short}(${pa.name}): an injected dependency (inferred: ${pa.inject ? 'marked so' : `of ${dep.ty ? g.mod.recs[dep.ty]?.short ?? dep.ty : 'no stated type'}, its methods called`}), the check giving one that ${dep.keyed ? 'keeps what is set' : 'answers its calls'}`)
+          if (pa.dflt?.e === 'none') g.notes.add(`${r.short}(${pa.name}): given one, never its default None (the claim is for objects made with one)`)
           continue
         }
         if (pa.dflt && !g.scalar(pa.t.k === 'opt' ? pa.t.of : pa.t)) { ctor.push([pa.name, {k: 'dflt'}]); const [d, p2] = g.ev(pa.dflt, p); give(pa, d); p = p2; continue }
+        if (pa.dflt && opts.defaults?.includes(pa.name)) { ctor.push([pa.name, {k: 'dflt'}]); const [d, p2] = g.ev(pa.dflt, p); give(pa, d); p = p2; g.atDefault.add(d); g.notes.add(`${r.short}(${pa.name}): at its default (stated: defaults), the fields set to it constants`); continue }
         const [v, a] = g.input(pa.name, pa.t, fn, p, 'param')
         if (a.k === 'inert') refuse(fn, `${r.short}(${pa.name}): a constructor argument of ${g.why(pa.t)} (state it as a store, or give it a default)`)
         give(pa, v); ctor.push([pa.name, a])
@@ -2917,6 +3227,12 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     }
     if (g.deps.length > 1) g.notes.add(`${r.short}: assumes its injected dependencies ${g.deps.map(d => d.name).join(', ')} are distinct objects (each with what it holds)`)
     const self = made.heap.get('this') as Extract<Obj, {k: 'rec'}>
+    for (const [f, c] of Object.entries(opts.fields ?? {})) {
+      if (!self.f.has(f)) refuse(r, `${r.short}.${f}: a field stated (fields) that the constructor doesn't set`)
+      const v: V = c === null ? {t: 'none'} : typeof c === 'boolean' ? {t: 'bool', e: c ? I.T : I.F} : typeof c === 'number' ? {t: 'num', e: I.num(c)} : {t: 'str', e: {op: 'slit', value: c}}
+      self.f.set(f, v); g.atDefault.add(v)
+      g.notes.add(`${r.short}.${f}: held at ${JSON.stringify(c)} (stated: fields; the claim is for objects so configured)`)
+    }
     for (const [f, v] of self.f) { const t = g.declared.get(`this.${f}`) ?? r.fields.find(x => x.name === f)?.t; tree.push({path: [f], v, ...(t && t.k !== 'any' ? {t} : {})}) }
     for (const fd of r.fields) if (!self.f.has(fd.name) && !r.kinds.includes('dataclass')) g.notes.add(`${r.short}.${fd.name}: declared on the class but not set by its constructor (left out)`)
     // Each field a leaf: a variable (two for an optional one), a nested object's own, a map, a store, or left out.
@@ -2927,9 +3243,12 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
       const scalarT = decl && decl.k !== 'opt' ? decl : undefined
       const leaf = (kind: Leaf['kind'], vr: Var, float?: boolean) => { leaves.push({name: vr.name, path, kind, ...(float ? {float: true} : {})}); return vr }
       const isFloat = (decl?.k === 'float') || (decl?.k === 'opt' && decl.of.k === 'float')
-      if (v.t === 'num' || v.t === 'bool' || v.t === 'str' || v.t === 'choice' || (v.t === 'none' && decl?.k === 'opt') || v.t === 'opt') {
-        const inner: SType | undefined = decl?.k === 'opt' ? decl.of : scalarT
-        const sort: Var['sort'] = inner && g.scalar(inner) ? g.scalar(inner)! : v.t === 'num' ? {k: 'num'} : v.t === 'bool' ? {k: 'bool'} : v.t === 'str' ? {k: 'str'} : v.t === 'choice' ? {k: 'choice', values: lvalues(v.e)} : v.t === 'opt' && g.scalar({k: v.v.t === 'num' ? 'int' : v.v.t === 'bool' ? 'bool' : 'str'} as SType) ? (v.v.t === 'num' ? {k: 'num'} : v.v.t === 'bool' ? {k: 'bool'} : {k: 'str'}) : refuse(at, `${path.join('.')}: a field of no scalar type`)
+      if (g.atDefault.has(v)) { into.set(f, v); g.frozen.add(path.join('.')); leaves.push({name: '', path, kind: 'frame'}); return }
+      const inner: SType | undefined = decl?.k === 'opt' ? decl.of : scalarT
+      // (None, of an optional type of no scalar inside, a dict's or another class's: as a field set to None, below)
+      const sort0: Var['sort'] | undefined = inner && g.scalar(inner) ? g.scalar(inner)! : v.t === 'num' ? {k: 'num'} : v.t === 'bool' ? {k: 'bool'} : v.t === 'str' ? {k: 'str'} : v.t === 'choice' ? {k: 'choice', values: lvalues(v.e)} : v.t === 'opt' && g.scalar({k: v.v.t === 'num' ? 'int' : v.v.t === 'bool' ? 'bool' : 'str'} as SType) ? (v.v.t === 'num' ? {k: 'num'} : v.v.t === 'bool' ? {k: 'bool'} : {k: 'str'}) : undefined
+      if (v.t === 'num' || v.t === 'bool' || v.t === 'str' || v.t === 'choice' || (v.t === 'none' && decl?.k === 'opt' && sort0) || v.t === 'opt') {
+        const sort: Var['sort'] = sort0 ?? refuse(at, `${path.join('.')}: a field of no scalar type`)
         if (v.t === 'str' && sort.k === 'choice' && v.e.op === 'slit') v = {t: 'choice', e: I.llit(v.e.value, sort.values)}
         const optional = v.t === 'none' || v.t === 'opt' || decl?.k === 'opt'
         const vr = leaf(sort.k === 'num' ? 'num' : sort.k, g.newVar(name, sort, 'state'), isFloat)
@@ -2978,6 +3297,8 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
         return
       }
       if (v.t === 'lock') { into.set(f, v); return }
+      // (a function of other code, json.dumps: a constant of the object, its calls other code's; a method rebinding it refused)
+      if (v.t === 'ext' && !v.recv) { into.set(f, v); g.frozen.add(path.join('.')); leaves.push({name: '', path, kind: 'frame'}); return }
       // A field the constructor sets to None, of no declared type: a constant (a method setting it is refused).
       if (v.t === 'none') { into.set(f, v); g.frozen.add(path.join('.')); leaves.push({name: '', path, kind: 'frame'}); return }
       into.set(f, {t: 'opaque', why: `${path.join('.')}: ${v.t === 'opaque' ? v.why : `a ${v.t}`}, a field outside the subset (left out of the rule)`})
@@ -3017,7 +3338,9 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     let [out, q] = g.callFunc(fn, cls ? {t: 'ref', id: 'this'} : undefined, args, [], {e: 'call', p: fn.p, text: fn.name}, p, fn.async ?? false)
     // A Result returned: its Err is the step's failure (Rust's error results, later Go's and Elixir's), its Ok the value.
     if (out.t === 'res') { g.fail(q, I.not(out.ok), fn, `${fn.name} returns an Err`); q = g.assume(q, out.ok); out = out.v }
-    p = g.failPaths.length ? g.join([q, ...g.failPaths], fn)! : q
+    // (the failures first, the step's end the else: its conditions may be only what its returns share, which a merge
+    // would read as holding on every path)
+    p = g.failPaths.length ? g.join([...g.failPaths, q], fn)! : q
     finals.push({sel, path: p, out, fails: g.fails})
     argsOf[fn.name] = pargs
   }
@@ -3143,7 +3466,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
   // Inputs no term reads are still the request's (the check builds the arguments from them).
   const maps = g.maps.filter(d => [...g.initHeap.values()].some(o => o.k === 'map' && o.decl === d))
   const stores: StepRead['stores'] = Object.fromEntries([...new Set([...Object.keys(opts.stores ?? {}), ...g.storeDecls.keys()])].map(n => [n, {...g.storeDecl(n), async: g.storeAsync[n] ?? {}}]))
-  for (const sm of g.storeMaps.values()) leaves.push({name: sm.decl.name, path: [], kind: 'map', key: sm.decl.key, store: sm.store, tpl: sm.tpl, ...(stores[sm.store]?.value !== 'int' ? {float: true} : {})})
+  for (const sm of g.storeMaps.values()) leaves.push({name: sm.decl.name, path: [], kind: 'map', key: sm.decl.key, store: sm.store, tpl: sm.tpl, ...(stores[sm.store]?.value !== 'int' && stores[sm.store]?.values?.[sm.tpl] !== 'int' && !sm.json && !sm.choice ? {float: true} : {}), ...(sm.json ? {json: sm.json} : {}), ...(sm.choice ? {choice: true} : {})})
   const layout: Layout = {k: 'rec', fields: state.filter(v => !outputs.includes(v.name)).map(v => [v.name, {k: 'scalar', name: v.name}] as [string, Layout])}
   for (const fn of chosen) {
     const used = new Set<string>()
@@ -3157,6 +3480,11 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
   // A fixed-width field within its type's range (every state of the code is).
   laws.push(...rangeLaws(state, g.ints))
   for (const l of leaves) if (l.kind === 'none') { const base = l.name.replace(/_none$/, ''); if (g.vars.get(base)?.sort.k === 'num') laws.push(`r.law(${JSON.stringify(`${base}: a None one holds 0`)}, ({${base}, ${l.name}}) => any(${l.name}.not(), ${base}.eq(0)))`) }
+  // (a stored JSON record's optional field: absent, its cell holds the default, as the text holds nothing there)
+  for (const sm of g.storeMaps.values()) {
+    const opts = (sm.json ?? []).filter(f => f.opt), n = sm.decl.name
+    if (opts.length) laws.push(`r.law(${JSON.stringify(`${n}: a field a record lacks holds the default`)}, ({${n}}) => forall(k => all(${opts.map(f => `any(${n}.at(k).${f.name}_has, ${n}.at(k).${f.name}${f.choice ? `.is(${JSON.stringify(f.vals![0])})` : '.eq(0)'})`).join(', ')})))`)
+  }
   if (g.now) {
     const n = g.vars.get(g.now.name)!
     n.note = 'Date.now() (here time.time()): the time of the request, an input'
@@ -3309,7 +3637,7 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
     }
     const j = (x: Raw) => (typeof x === 'number' ? String(x) : x)
     const snapJson = (s: Snap): Record<string, unknown> => ({...Object.fromEntries(Object.entries(s.leaves).map(([k, v]) => [k, j(v)])), ...Object.fromEntries(Object.entries(s.maps).map(([k, cells]) => [k, Object.fromEntries(Object.entries(cells).map(([key, c]) => [key, Object.fromEntries(Object.entries(c).map(([f, x]) => [f, j(x)]))]))]))})
-    const build = (a: PArg, inputs: Record<string, Raw>): unknown => (a.k === 'in' ? {in: inputs[a.name] ?? a.z ?? 0, ...(a.float ? {float: true} : {}), ...(a.sym ? {sym: true} : {})} : a.k === 'opt' ? (inputs[a.none] === true ? {none: true} : build(a.v, inputs)) : a.k === 'rec' ? (a.f.length ? {rec: a.cls, f: Object.fromEntries(a.f.map(([f, x]) => [f, build(x, inputs)]))} : {inert: true}) : a.k === 'inert' ? {inert: true} : a.k === 'store' ? {store: a.name}
+    const build = (a: PArg, inputs: Record<string, Raw>): unknown => (a.k === 'in' ? {in: inputs[a.name] ?? a.z ?? 0, ...(a.float ? {float: true} : {}), ...(a.sym ? {sym: true} : {})} : a.k === 'opt' ? (inputs[a.none] === true ? {none: true} : build(a.v, inputs)) : a.k === 'rec' ? (a.f.length ? {rec: a.cls, f: Object.fromEntries(a.f.map(([f, x]) => [f, build(x, inputs)]))} : {inert: true}) : a.k === 'inert' ? {inert: true, ...(a.dict ? {dict: true} : {})} : a.k === 'store' ? {store: a.name}
       : a.k === 'list' ? {list: ((inputs[a.name] ?? []) as unknown as Record<string, Raw>[]).map(it => build(a.item, it))} : {dflt: true})
     const ctorArgs = (params: Record<string, Raw>) => read.ctor.map(([n, a]) => [n, build(a, params)])
     let now = 0, inputsNow: Record<string, Raw> = {}
@@ -3365,6 +3693,9 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
           for (let i = rand(4); i > 0; i--) {
             const key = d.key === 'str' ? strs[rand(3)]! : String(rand(4))
             cells[key] = Object.fromEntries(d.fields.map(f => { let x = draw(f.sort, sorts, `${d.name}.${f.name}`, rand, consts, bound, strs); if (typeof x === 'number' && sorts.get(`${d.name}.${f.name}`) === 'nat') x = Math.abs(x); return [f.name, x] }))
+            // (a stored JSON record's absent optional field: its default, as the text holds nothing there)
+            const jl = read.leaves.find(l => l.name === d.name)?.json
+            for (const f of jl ?? []) if (f.opt && cells[key]![`${f.name}_has`] === false) cells[key]![f.name] = f.choice ? f.vals![0]! : 0
           }
           maps[d.name] = cells
         }
