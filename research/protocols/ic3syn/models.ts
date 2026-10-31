@@ -496,11 +496,13 @@ const phaseStep = (starts: any, rows: any, size: Term, pa: Term, sw0: Term, sw1:
   return {busy: when(starts, 1, when(last, 0, busy)), row: when(rows.and(last.not()), row.plus(1), when(last, 0, row)),
     rpa: when(starts, pa, when(last, 0, rpa)), rsw0: when(starts, sw0, when(last, 0, rsw0)), rsw1: when(starts, sw1, when(last, 0, rsw1))}
 }
-// The table's safety law (both switches' Safety): reflexive, transitive, antisymmetric, and the successors of x a chain.
-const tableSafe = (T: any, size: Term, idle: any) => forall((t, x, y, z) => idle.and(below(size, t, x, y, z)).implies(all(
-  tab(T, t, x, y).and(tab(T, t, y, z)).implies(tab(T, t, x, z)),
-  tab(T, t, x, y).and(tab(T, t, y, x)).implies(x.eq(y)),
-  tab(T, t, x, y).and(tab(T, t, x, z)).implies(tab(T, t, y, z).or(tab(T, t, z, y))))))
+// The table's safety laws (both switches' Safety; reflexive by the encoding): transitive, antisymmetric, the successors of
+// x a chain, as three laws.
+const tableSafe = (r: any, what: string, idle: (env: any) => any) => [
+  r.law(`${what} transitive`, (env: any) => forall((t, x, y, z) => idle(env).and(below(env.size, t, x, y, z), tab(env.T, t, x, y), tab(env.T, t, y, z)).implies(tab(env.T, t, x, z)))),
+  r.law(`${what} antisymmetric`, (env: any) => forall((t, x, y) => idle(env).and(below(env.size, t, x, y), tab(env.T, t, x, y), tab(env.T, t, y, x)).implies(x.eq(y)))),
+  r.law(`${what} a chain above each node`, (env: any) => forall((t, x, y, z) => idle(env).and(below(env.size, t, x, y, z), tab(env.T, t, x, y), tab(env.T, t, x, z)).implies(tab(env.T, t, y, z).or(tab(env.T, t, z, y))))),
+]
 const tableBad = (r: Read, n: number) => {
   const t3 = (t: number, x: number, y: number) => x === y || r.cell('T', t * N * N + x * N + y) === 1, P = range(n)
   return P.some(t => P.some(x => P.some(y => P.some(z => (t3(t, x, y) && t3(t, y, z) && !t3(t, x, z)) || (x !== y && t3(t, x, y) && t3(t, y, x))
@@ -906,7 +908,7 @@ export const protocols: Protocol[] = [
       tlc: tlc('consensus_epr', `${consts({Node: nodes(3), Value: nodes(2, 'v')})}  Quorum = {{n1, n2}, {n2, n3}, {n1, n3}, {n1, n2, n3}}\n`, 'Safety')}},
   {id: 'learning_switch', ic3syn: 'pyv-learning-switch', file: 'learning_switch.tla', source: 'Endive benchmarks/learning_switch.tla (mypyvy\'s)',
     safety: 'table(t, ·, ·) reflexive, transitive, antisymmetric, its successors a chain', make: learningSwitch, bug: 'forward learns without the no-route check',
-    laws: r => [r.law('the table is a forest', ({size, busy, T}: any) => tableSafe(T, size, busy.eq(0)))],
+    laws: r => tableSafe(r, 'the table is', ({busy}: any) => busy.eq(0)),
     bad: r => r.scalar('busy') === 0 && tableBad(r, 3),
     check: {params: {size: 3}, inputs: {op: range(3), ps: N3, pd: N3, sw0: N3, sw1: N3, nondet: N3}, uses: [['ps', 'pd'], ['ps', 'pd', 'sw0', 'sw1', 'nondet'], []],
       keep: r => r.scalar('busy') === 1 || N3.flatMap(a => triples(N3, N3, N3).map(k => r.cell('P', a * N * N * N + k))).filter(Boolean).length < 5,
@@ -914,7 +916,7 @@ export const protocols: Protocol[] = [
       tlc: tlc('learning_switch', consts({Node: nodes(3)}), 'Safety', 'CONSTRAINT StateConstraint\n')}},
   {id: 'learning_switch_i4', ic3syn: 'i4-learning-switch', file: 'learning_switch_i4.tla', source: 'Endive benchmarks/learning_switch_i4.tla (I4\'s)',
     safety: 'route_tc(n, ·, ·) reflexive, transitive, antisymmetric, its successors a chain', make: learningSwitchI4, bug: 'a route learned both ways',
-    laws: r => [r.law('the routes are a forest', ({size, started, busy, T}: any) => tableSafe(T, size, started.eq(1).and(busy.eq(0))))],
+    laws: r => tableSafe(r, 'route_tc is', ({started, busy}: any) => started.eq(1).and(busy.eq(0))),
     bad: r => r.scalar('started') === 1 && r.scalar('busy') === 0 && tableBad(r, 4),
     check: {params: {size: 4, packets: 1}, inputs: {op: range(8), p: [0], sw0: N4, sw1: N4, sw2: N4},
       uses: [['p', 'sw0'], ['p', 'sw0'], ['sw0', 'sw1'], [], ['p'], ['p', 'sw0', 'sw1'], ['p', 'sw0', 'sw1', 'sw2'], []],
