@@ -3,6 +3,39 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.43.0
+
+The CLI on real code, Effect's retries and transactions, protocols checked against TLC step by step, and the soundness
+fuzz made exact. One trusted change, a narrowing: the kernel refuses a count read at a bound key.
+- **The CLI on real code** (dogfooded on our own job scheduler: 344 laws proven from any state, 52 broken variants
+  refuted): Python sets, `set()`/`dict()`/`list()`, `Literal` aliases and module constants; `from = "any"` proves the
+  laws from every state they allow, with the largest inductive set of the stated laws found (Houdini); "eventually" laws
+  in comments; a constructor whose arithmetic may pass 2^53 is read, those starts left out. No stated law goes
+  unaccounted: a law no rule takes is reported, exit 2. A law belongs to the definition it sits on, in every language.
+- **Effect: Schedule and STM** (`gdp-wired/effect`, 3.x and 4.x): a retry or repeat policy is read into one state
+  machine (30 combinators on 3.x, 31 on 4.x; exponential by `recur`, fibonacci by induction, jitter an input in its
+  range), and `Effect.retry`/`repeat` inside a method are part of its step. A transaction (`STM.commit`, `Effect.tx`)
+  is one atomic step, a wait a guard, and concurrent fibers an interleaving of their steps. examples/effect-retry.ts
+  and examples/effect-stm.ts: an uncapped backoff and a transfer split in two are refuted with their runs. Loaded only
+  when imported.
+- **Protocols**: the counted search and the ∃ cone are one pipeline (nineteen `GDP_K_*` settings retired); IC3Syn's
+  ports match TLC in states and steps (three corrected: majorityset, client_server_db_ae, mldr); the counted search runs
+  on the counted clock, so a verdict no longer depends on the machine's speed; views take a mode's four literals;
+  equation-fixed keys are instantiated at their value; a verdict names the goal that ran out. IC3Syn: 20 of 29 within a
+  60-second counted budget (32–70 s of wall time on our VMs), 19–20 within 300; no broken variant proven. Measured on
+  our VMs, not under IC3Syn's own setup.
+- **Soundness**:
+  - the kernel refuses a count map read at a bound key (a runtime decided such a flag on the cells computed so far);
+  - a number past 2^53 goes to Lean as the exact integer JavaScript holds;
+  - the compiled runtime's empty `and`/`or` are true/false;
+  - the step-law key case of 0.41.1 is settled and pinned on both sides (Lean had checked a different, true claim);
+  - the soundness fuzz's generator is exact: it ran in floating point and fell into six short cycles, so most seeds
+    replayed the same goals. 6,000 fresh seeds pass; the treadmill files a failure as soundness, coverage or
+    infrastructure, and only soundness is an alert.
+- **The bar** (quick, against main before these merges): none wrong in any group, nothing solid lost; both
+  suites 243 of 243; the library build passes. Size: core/ and kernel/ +128,391 bytes, about 90 KB of it the Effect
+  module.
+
 ## 0.42.0
 
 Faster IMC for CHC-COMP; the experiment runner moved out into its own tool; nothing trusted changed.
