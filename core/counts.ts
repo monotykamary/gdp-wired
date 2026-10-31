@@ -10,14 +10,14 @@
 //      comparison at a; one key a row; the engine's minimal ∀ cubes of at most two literals (core/infer.ts's), their
 //      guards loosened where a caller reads the key unbounded;
 //   3. a goal's instances (`attempt`): the quantified flags at the law's own terms, then only what each model of the
-//      goal asks (kernel/prove.ts's modelInstances, MBQI, within the kernel's own share of time for later rounds); a
+//      goal asks (kernel/prove.ts's modelInstances, MBQI, while the attempt's time lasts, a second at least); a
 //      goal the CDCL search refutes cut to the instances its core reads, its core's tree widened to it;
 //   4. the cone (`cone`): each candidate kept where it is proven from the kept ones and itself (IC3's relative
 //      induction), the proof the caller's (the counted goals here, the kernel's for an ∃ law's cubes), in two thirds of
 //      what is left; then, for the counted search, Houdini over the rest; the kernel checks the set (checkCountedLaws).
 import {type C, type E, type Law, type Machine} from './machine.ts'
 import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, substC} from '../kernel/kernel.ts'
-import {clock, grow, modelInstances, modelShare, widen} from '../kernel/prove.ts'
+import {clock, grow, modelInstances, widen} from '../kernel/prove.ts'
 import {REFUTED, type Refuted, cdclStats, growCdcl} from '../kernel/cdcl.ts'
 import {inferLaws} from './infer.ts'
 import {smallOf, trueSmall} from './exists.ts'
@@ -267,16 +267,16 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
     let at: Instances = Object.fromEntries(Object.entries(m.step.flags ?? {}).flatMap(([f, q]) => (q.op === 'all' && !q.keys?.length ? [[`?${f}`, ts]] : [])))
     const obligations = (i: Instances) => ptime('encode', () => countedObligations(m, ls, {[law.name]: i}, ls.indexOf(law)))
     const build = () => obligations(at).map(({goal, decls}) => { const c = pass ? certFor(goal, decls) : none; return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c))} })
-    let built = build(), first = 0
-    const t0 = clock(), more = () => clock() - t0 - first <= Math.max(1_000, modelShare * first)
+    let built = build()
+    const t0 = clock(), more = () => clock() - t0 <= Math.max(ms, 1_000)
     // The step goal decided first by the CDCL search for a model (its phases the simplex's point: a model is met where the
     // tree search would split on), within 2·ms (5 s at most):
     //   - refuted: the law's instances cut to those its core reads, and the core's hypotheses grown on their own first,
     //     the tree widened to the goal;
     //   - a model: the instances it asks for (kernel/prove.ts's modelInstances, MBQI: a law or quantified flag broken at a
     //     tuple of the goal's own keys), the goals made again with them; none asked, the goal has a model and is given
-    //     up at once (no tree to grow); the later rounds within the kernel's own share of the first's time (withModels:
-    //     modelShare times it, a second at least), past which the goal is unknown;
+    //     up at once (no tree to grow); the rounds within the attempt's time (a second at least, as the kernel's
+    //     withModels gives its later rounds), past which the goal is unknown;
     //   - unknown: the goals grown as they are.
     for (;;) {
       let part: {gg: Goal, core: Goal} | undefined
@@ -284,7 +284,6 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
         const step = built.at(-1)
         if (!step?.gg) break
         const q = ptime('decide', () => growCdcl(step.gg!, new Map(), {nodes: 0, until: Math.min(until, clock() + Math.min(2 * ms, 5_000))}, {model: true, core: true}) as Refuted)
-        first ||= Math.max(1, clock() - t0)
         if (!('tree' in q) && q.why === REFUTED && q.core) {
           const gg = step.gg, last = gg.hyps.length - 1, used = new Set(q.core.map(h => json(gg.hyps[h]))), cut: Instances = {}
           for (const [name, ts2] of Object.entries(at)) {

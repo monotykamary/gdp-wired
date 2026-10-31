@@ -518,8 +518,8 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
   const rounds = opts.rounds ?? 24
   // (a law about every key with no witness term: the next ghost map past `from` that keeps its law and the ghost's own
   // on every state of the small instances, each param 2 and 3)
-  // (a ghost map named apart from the machine's names and from the maps the other laws' plans chose)
-  const apart = (p: Plan) => new Set([...takenOf(m), ...[...plans.values()].flatMap(q => (q !== p && q.pick.mode === 'map' ? [q.maps[q.pick.at]!.name] : []))])
+  // (a ghost map named apart from the machine's names and from the other laws' plans' maps)
+  const apart = (p: Plan) => new Set([...takenOf(m), ...[...plans.values()].flatMap(q => (q !== p ? q.maps.map(g => g.name) : []))])
   const toMap = (p: Plan, from: number): boolean => {
     const others = [...plans.values()].filter(q => q !== p && q.pick.mode === 'map')
     if (from < 0) p.maps = mapGhostsOf(m, p.law, apart(p))
