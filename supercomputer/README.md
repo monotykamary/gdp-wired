@@ -1,15 +1,25 @@
-# gdp-wired modal: experiments in parallel
+# gdp-wired on the supercomputer: experiments in parallel
+
+The job runner is the `supercomputer` tool (`~/.local/share/supercomputer`, on the PATH as `supercomputer`): boat.dev
+VMs first (a warm pool shared by every repo on this machine), RunPod for GPU work, Modal as the fallback of both. This
+directory is gdp-wired's side of it: its Modal app, its hooks, its treadmill's chains and its job lists; the tool reads
+`../supercomputer.toml` for the rest (the tree's ignore patterns, the Lean library's build cache, the runner image's
+PATH on boat, the GPU pods' setup).
 
 | File | What |
 | --- | --- |
-| `run.py` | A job list fanned out on Modal, one container per job (bun and Lean 4.34.0 in the image, gdp-wired mounted fresh each run). Logs land in `<out>/<name>.log`, `summary.tsv` has exit codes and seconds (and, 4th, the backend that ran the job) |
+| `../supercomputer.toml` | What a job here needs: the tree, the boat image's prefixes, PATH and mount points, the Lean library as a build cache (keyed by every library source and the toolchain), the `runner` image on boat, this Modal app, the treadmill, the GPU pods' Dawn and Vulkan setup |
+| `hooks.py` | The boat image's layers: bun and Lean, each compare runner's `BOAT_SETUP`, the languages (the names hash as before: `sc-f0d8daeee6c3`) |
+| `run.py` | A job list fanned out on Modal, one container per job (bun and Lean 4.34.0 in the image, gdp-wired mounted fresh each run), or on boat (`--backend auto`, the default from `python3`, through the tool). Logs land in `<out>/<name>.log`, `summary.tsv` has exit codes and seconds (and, 4th, the backend that ran the job) |
 | `suite.json` | Every runner and probe, plus the soundness fuzz as 32 seeds (`FUZZ_SEED`), about 10 minutes of wall time for over 3 hours of job time |
-| (cache) | The Lean twin's library is compiled once per version of its sources: `run.py` keeps the `.olean` files on the `gdp-wired-olean` volume under a hash of every library source and the toolchain, copies them into a job before it runs and saves the ones it compiled; the suite's commands skip a library compile whose file is there (`[ -f X.olean ] ||`), except the compiles whose output a job checks |
-| `reap.sh` | Stops apps whose client died (each run registers its app id and client pid in `.live/`); live runs and other apps are only listed. Then the same for boat VMs and RunPod pods |
-| `fanout.py` | One interface over three providers (`--backend`): boat.dev VMs for CPU work, RunPod pods for GPU work, Modal for the rest and as the fallback of both |
-| `boat.py` | The boat backend: the image, the pool, a batch's VMs, the scheduler; `python3 supercomputer/boat.py status \| reap \| teardown \| image [--build] \| usage <since>` |
-| `agent.py` | What runs on each boat VM (stdlib Python): unpacks a batch's tree, runs items in mount namespaces of their own, reports, kills |
-| `runpod.py` | The RunPod backend: one pod per batch, prepared once, deleted however the batch ends; `python3 supercomputer/runpod.py batch \| reap \| status` |
+| (cache) | The Lean twin's library is compiled once per version of its sources: on Modal, `run.py` keeps the `.olean` files on the `gdp-wired-olean` volume under a hash of every library source and the toolchain; on boat, the tool keeps them on each VM and in its shared directory (`olean/<key>`) and ships them to a VM that lacks them. The suite's commands skip a library compile whose file is there (`[ -f X.olean ] ||`), except the compiles whose output a job checks |
+| `treadmill.py` | The treadmill's chains (the benchmarks' sweeps, the soundness fuzz and mutants) on the tool's generic treadmill (its batches, cache, queue and digest) |
+| `boat.py`, `fanout.py`, `agent.py`, `runpod.py`, `store.py` | Doors to the tool's modules of the same names: `import boat` here is the tool's boat, configured for this repo, and `python3 supercomputer/boat.py status` is `supercomputer status` |
+| `reap.sh` | Stops this tree's orphaned Modal apps (a worktree's runners register in its own `.live`), then `supercomputer reap`: dead clients' Modal apps, boat leases and pods, VMs left up past their time |
+
+The shared state (the pool's registry, the starts ledger, Modal and RunPod tickets, the build caches, the store's
+manifests) is the tool's `~/.local/share/supercomputer/live`; the main checkout's `supercomputer/.live` (and `modal/.live`)
+links there, so a lane still on the code before the tool shares the same registry and lock.
 
 GPU runs have their own runners: `../research/modal-gpu/run_gpu.py` (the Handwired searches) and `../research/synth/run_gpu.py`
 (invariant and rank synthesis), both through Dawn on NVIDIA's Vulkan driver.
@@ -27,6 +37,7 @@ batch `reap.sh` (or `modal app list`) confirms nothing is left running. Never st
 ## Backends: boat, RunPod, Modal
 
 ```sh
+supercomputer run --jobs supercomputer/suite.json --out runs/backends/suite                                     # the same through the tool
 python3 supercomputer/run.py --backend auto --jobs supercomputer/suite.json --out runs/backends/suite          # CPU: boat, else Modal
 python3 compare/chc/modal_chc.py --backend auto --out runs/backends/chc --tools gdp            # the same for a runner
 python3 research/hw/run_gpu.py --backend auto --out runs/backends/hw.json --args=--hand        # GPU: RunPod, else Modal
@@ -43,12 +54,12 @@ jobs, 0 failed, ... ; 4 on modal (fallback: 4 jobs: no boat starts left this hou
 and, for a GPU runner, in `<out>.backend.json`; the results are the same files in the same format whichever ran them.
 From plain `python3` the scripts run again under the interpreter of the `modal` CLI, so Modal can take over.
 
-**boat** (CPU). A pool of VMs that lives across batches and across worktrees (its registry is the main checkout's
-`supercomputer/.live/boat-pool.json`, under a lock): a batch leases free VMs (its pid on each), resumes the stopped ones,
+**boat** (CPU). A pool of VMs that lives across batches, worktrees and repos (its registry is the tool's
+`~/.local/share/supercomputer/live/boat-pool.json`, under a lock): a batch leases free VMs (its pid on each), resumes the stopped ones,
 creates the rest from the image within the plan's limits (`boat limits`, read at every batch), and releases them at
 the end; boat stops a released VM after `--idle` seconds (60) unless another batch takes it, so back-to-back batches
 reuse running VMs, and stopped VMs bill no compute. `--teardown` deletes the batch's VMs instead;
-`python3 supercomputer/boat.py teardown [--all | --type large]` deletes free ones. Each VM is 4 vCPU and 8 GB: two slots of
+`supercomputer teardown [--all | --type large]` deletes free ones. Each VM is 4 vCPU and 8 GB: two slots of
 2 vCPU and 4 GB (Modal's container), a job of 4 vCPU or 8 GB a whole VM, the one job that asks for 8 vCPU and 16 GB a
 `large` VM. Jobs start longest first by the last run's times (`--durations`: a `summary.tsv`, or a runner's
 `results.jsonl`; for `run.py` else the newest `summary.tsv` with the same jobs), each in a mount namespace of its own: a private `/tmp`, a fresh copy of the
@@ -57,14 +68,17 @@ its share), under `timeout -s KILL`.
 
 - The image is one named snapshot, `gdpw-<hash>`, built in layers (bun and Lean 4.34.0 as `run.py`'s image, then each
   compare runner's `BOAT_SETUP`: TIP's tools and solvers, CHC's, the ITS', SV-COMP's), each a snapshot of its own, so a
-  changed layer rebuilds only itself and those above it (`python3 supercomputer/boat.py image --build`; under `--backend boat`
+  changed layer rebuilds only itself and those above it (`supercomputer image --build`; under `--backend boat`
   a missing image is built first, under `auto` its batch goes to Modal). The current image and the one before are kept;
   older snapshots, and the free VMs made from them, are deleted.
 - A batch's tree is what git sees (tracked and untracked files that aren't ignored, the submodules' too, minus the
-  paths `run.py` leaves out): one VM gets it, serves it to the others through a token-gated boat URL, and every VM
-  unpacks it fresh, so no job sees an earlier batch's tree. The Lean library's `.olean` files stay on each VM's disk
-  under the library's key; one VM's set comes back here after a batch (`.live/olean/<key>/`) and goes to the VMs that
-  lack it next time.
+  paths `supercomputer.toml` leaves out). A VM that is up with its warm agent gets it by hash (only the files it has
+  never seen move) over the agent's token-gated URL, with no boat API call but the TTL's; tiny batches there take a few
+  seconds (two trivial jobs: 2.4 to 2.8 s, against 36 to 39 s before). A VM resumed or created gets it as a tarball:
+  one VM gets it, serves it to the others through a token-gated boat URL, and each unpacks it fresh, so no job sees an
+  earlier batch's tree; then its warm agent starts. The Lean library's `.olean` files stay on each VM's disk under the
+  library's key; one VM's set comes back after a batch (the tool's `live/olean/<key>/`) and goes to the VMs that lack
+  it next time.
 - boat keeps a stopped VM's disk 14 days: a VM whose disk expired, or that stopped without a snapshot, is deleted and
   replaced from the image; a VM stopped for 12 days is resumed and stopped again when a batch runs.
 - Starts: boat counts a creation **and a resume** as a start (its 429: "create, fork and resume each count as one
@@ -93,12 +107,14 @@ its share), under `timeout -s KILL`.
   stops by itself; Ctrl-C, SIGTERM and SIGHUP kill the batch's jobs and release its VMs; `reap.sh` releases leases of
   dead clients, kills what they left running and stops VMs left up past their idle time.
 
-**RunPod** (GPU). One pod per batch (the GPU types in order: `--gpus`, `$GDPW_RUNPOD_GPUS`, else 4090, L4, A5000, 3090,
-...), `runpod-ubuntu-2404` with Dawn's node bindings, bun and NVIDIA's Vulkan driver through its EGL library (the stock
-ICD, `libGLX_nvidia`, needs an X server); `vulkaninfo --summary` must list an NVIDIA device before anything runs. The
-runner's own function runs on the pod in the Modal image's paths, so its output is the Modal run's. The pod is deleted
-in a finally; `supercomputer/.live/runpod-<name>.json` holds its name and the client's pid meanwhile, and `reap.sh` deletes a
-pod whose client is gone and any `gdpw-` pod with no ticket.
+**RunPod** (GPU). One pod per batch (the GPU types in order: `--gpus`, `$SUPERCOMPUTER_RUNPOD_GPUS`, else 4090, L4,
+A5000, 3090, ...), `runpod-ubuntu-2404` with `supercomputer.toml`'s `[gpu]` setup: Dawn's node bindings, bun and NVIDIA's
+Vulkan driver through its EGL library (the stock ICD, `libGLX_nvidia`, needs an X server); `vulkaninfo --summary` must
+list an NVIDIA device before anything runs. The runner's own function runs on the pod in the Modal image's paths, so its
+output is the Modal run's. A jobs file's job that says `"gpu"` runs the same way (`supercomputer run`), Modal's GPU
+taking it when RunPod can't. The pod is deleted in a finally; the tool's `live/runpod-<name>.json` holds its name and
+the client's pid meanwhile, and `supercomputer reap` deletes a pod whose client is gone and any `gdpw-`/`sc-` pod with no
+ticket.
 
 Measured (each figure from the run named; boat's dollars from `boat usage`, Modal's from `modal billing report` for the
 run's app):
