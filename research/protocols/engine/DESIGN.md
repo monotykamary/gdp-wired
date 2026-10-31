@@ -115,7 +115,50 @@ decisions 16–31 s, the trees 7–16 s; the same job's small instances take 7.4
 wo stays proven at 300 s (boat, 45–47 s) and at 60 s on boat; on Modal's 2-vCPU containers it needs about a third less
 work, which none of the above gives.
 
-**Gates**: (filled in below as they finish)
+**Gates** (before: main cf00792; after: 5f26d5a, then a7d4b16 = 5f26d5a with main b6a23b0 merged, which only makes boat the
+bar's default; `runs/laneG2/`; mid-lane the execution moved to boat: the numbers say where they ran)
+- **IC3Syn at 300 s, boat**, two runs a side, broken variants in both (`i300-before`, `i300-after`): **18 → 19 of 29**,
+  consensus_epr new (177.5 / 177.0 s). The after batch's twophase ran 534 s on a VM mldr starved (counted clock 88 s of
+  532 s real; twophase never reaches counts.ts) and is unknown there; alone again (`tp300`) it is proven in 253 / 258 s,
+  as before (205 / 206 s). Everything else as before; wo 45.7 / 47.1 before, 65.6 / 60.5 after (its candidates the same 43;
+  the batch's load). No broken variant proven.
+- **IC3Syn at 60 s, boat** (`boat2-before`, `boat2-after`: the three that always run out of memory or their wall, mldr,
+  client_server_db_ae and sharded_kv_no_lost_keys, left out, as they starved their VMs' other slots in the first boat
+  batch `boat-*`, which isn't read): before 17 of 26 ported in both runs, after 16. The one difference is
+  consensus_wo_decide, at the wall on both sides (before proven 59.3 / 60.6, after unknown 60.1 / 60.1); its candidates and
+  path are main's (no row law, no loosened guard applies to it), so this reads as the shared pool's load, not a change
+  (untouched protocols moved as much: two_phase_commit 7.7 → 21.5 s, lockserv 5.5 → 18.5 s). No broken variant proven.
+  On Modal 2-vCPU, before any of this moved (`i60-before`, `i60-after`): 16 and 16 of 29, the same set, none broken proven.
+- **The ten at 60 s, boat**, 200 a side (`boat2-*`, the gauntlet's g-pilot and g1–g4): before 199 of 200 (ring 19/20),
+  after 199 of 200 (wo 19/20); none of the ten reaches counts.ts or the Solidity reader, so these are their main paths
+  (medians/max after: wo 42.2 / 64.5, decentralized 20.7 / 34.1, distributed 24.7 / 57.4, async 27.1 / 37.6, sync 5.6 /
+  9.4, ring 31.5 / 58.4, sharded 19.0 / 32.6, ticket 30.4 / 60.7, toy forall 12.9 / 25.2, 2PC 15.5 / 30.9; the misses at
+  64.5 s and before's at 60.3 s, the wall on a busy pool). On Modal (`ten-pilot`, `ten190`, 5f26d5a): **200 of 200**.
+- **Lean** (`lean1`): counted-lean.ts (GDP_LEAN_MS=300000) on consensus_epr, consensus_wo_decide, majorityset: 35, 43 and
+  19 laws exported (CountedIC3.lean, 1.83 MB), Lean 4.34.0: lean-exit 0, no sorry, `ic0_laws`–`ic2_laws` on [propext,
+  Classical.choice, Quot.sound].
+- **The quick bar, boat** (a7d4b16 against ae36917's boat baseline; <main>/runs/bar/runs/a7d4b16bea56-vs-ae369178e65d-quick-2026-10-310935/REPORT.md):
+  wrong 0 in every group, nothing solid lost (CHC gained 4 lost 4, ITS gained 2 lost 2, f2 lost 1, none solid); onecpu
+  no failure; Lean's 6 recurrent sets checked. (On Modal first, 5f26d5a: wrong 0, nothing solid lost.)
+- **The suites, boat** (`--only suite,suite-usual`, …-quick-2026-10-310951): 243 of 243 in each mode, none failed.
+- **tsc and oxlint** (the suite's form, boat): no tsc error in core/ or the new research files (the tree's research/enum
+  and research/audit errors are the vendor checkouts it lacks); oxlint 0 warnings, 0 errors on the touched files.
+- **ERC-20, boat** (`boat-before`, `boat-after`): the sum law unknown before, **proven** after (and on Modal twice).
+
+**Bytes** (against main): core/ +4,992 (counts.ts +3,685, extract-step.ts +1,280, extract-sol.ts +27); kernel/ 0. No
+trusted file changed, so no Lean-first change and no terra review.
+
+**Spend:** Modal billed $3.93 for this lane's 63 run.py apps through the 10:00 UTC hour, plus the first quick bar's
+estimated $2.8 (its own apps); boat 27 starts for this lane's batches, about $1.26 by their reports, plus the two boat
+bars. Nothing of this lane's is left running.
+
+**Verified, not**
+- **Verified:** consensus_epr proven with nothing written at 300 s (four runs: two boat grid, one boat and one Modal
+  probe), its set checked by the kernel (checkCountedLaws) and by Lean; the ERC-20 sum law proven on the whole contract
+  (four runs) and checked against the bytecode by the drive; no broken variant proven anywhere; the bars and suites.
+- **Not verified:** that the loosened guards and row laws never cost a counted protocol time inside 60 s (the boat 60 s
+  grids are noisy: the shared pool moved untouched protocols by 2–3x); forall's remaining model (not diagnosed past
+  "one leader"); firewall's model at 646 hypotheses; wo inside 60 s on Modal (0 of 8).
 
 ## gen/laneG: big goals: counted goals decided by a model first, their instances asked by models (MBQI); majorityset and wo proven (untrusted; nothing trusted changed)
 
