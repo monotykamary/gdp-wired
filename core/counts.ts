@@ -16,15 +16,22 @@
 // instances the CDCL search's refutation reads before its tree is grown.
 import {type C, type E, type Law, type Machine, type State} from './machine.ts'
 import {type CountCert, type CountDecl, type CountInst, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, substC} from '../kernel/kernel.ts'
-import {clock, grow} from '../kernel/prove.ts'
-import {REFUTED, type Refuted, growCdcl} from '../kernel/cdcl.ts'
+import {clock, grow, modelInstances} from '../kernel/prove.ts'
+import {REFUTED, type Refuted, cdclStats, growCdcl} from '../kernel/cdcl.ts'
 import {inferLaws} from './infer.ts'
 import {holdsAt, small} from './exists.ts'
 import {env} from './solver.ts'
+import {appendFileSync} from 'node:fs'
+
+// (GDP_COUNTS_PROF: where a counted search's time goes, by phase, on stderr at the end; GDP_COUNTS_DUMP=<file>: each goal
+// left unknown past 300 hypotheses written there as a JSON line, the first 3: research's profiles)
+export const cprof: Record<string, number> = {}
+const ptime = <T>(k: string, f: () => T): T => { const t = performance.now(); try { return f() } finally { cprof[k] = (cprof[k] ?? 0) + performance.now() - t } }
+let dumped = 0
 
 const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
 const json = (t: unknown) => JSON.stringify(t)
-const knob = {pairs: env.GDP_K_PAIRS === '1', rounds: Number(env.GDP_K_ROUNDS ?? 2), cap: Number(env.GDP_K_CAP ?? 24), ts: env.GDP_K_TS !== '0', keyed: env.GDP_K_KEYED !== '0', flagTs: env.GDP_K_FLAGTS !== '0', shrink: Number(env.GDP_K_SHRINK ?? 150), walks: Number(env.GDP_K_WALKS ?? 100_000), alone: Number(env.GDP_K_ALONE ?? 300), hops: Number(env.GDP_K_HOPS ?? 16)}
+const knob = {pairs: env.GDP_K_PAIRS === '1', rounds: Number(env.GDP_K_ROUNDS ?? 2), cap: Number(env.GDP_K_CAP ?? 24), ts: env.GDP_K_TS !== '0', keyed: env.GDP_K_KEYED !== '0', flagTs: env.GDP_K_FLAGTS !== '0', shrink: Number(env.GDP_K_SHRINK ?? 150), walks: Number(env.GDP_K_WALKS ?? 100_000), alone: Number(env.GDP_K_ALONE ?? 300), hops: Number(env.GDP_K_HOPS ?? 16), first: env.GDP_K_FIRST !== '0', decide: Number(env.GDP_K_DECIDE ?? 0), mbqi: Number(env.GDP_K_MBQI ?? 4), once: env.GDP_K_ONCE !== '0', reads: Number(env.GDP_K_READS ?? 6)}
 const one = k(1), zero = k(0)
 type Env = Record<string, number>
 
@@ -103,7 +110,7 @@ export function guardLaws(m: Machine): {counts: Machine['counts'], laws: Law[]} 
 // The count cells the goal reads (each before the step with its post name's twin), instances over pairs of them with one
 // bound (a count that doesn't drop, +1 and −1; two that meet, +1, +1 and −1), each with a fresh witness; and the laws and
 // quantified flags at the witnesses (returned, for the goal's law's instances).
-export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E}[]): {reads: MapRead[], insts: CountInst[], wits: string[]} {
+export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: string, body: E}[]): {reads: MapRead[], insts: CountInst[], wits: string[]} {
   const byMap = new Map(decls.map(d => [d.map, d])), last = goal.hyps.at(-1)
   // (the conclusion's reads first, then those at a constant or the law's own names, then the rest)
   const own = (t: E) => t.op === 'const' || (t.op === 'var' && json(last).includes(`"name":${json(t.name)}`))
@@ -112,7 +119,10 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E}[]): {r
   const rs = all0.sort((x, y) => rank(x) - rank(y))
   // (each read after the step beside its twin before it, when the goal declares both)
   for (const [mp, t] of [...rs]) if (mp.endsWith('#') && byMap.has(mp.slice(0, -1)) && !rs.some(([m2, t2]) => m2 === mp.slice(0, -1) && json(t2) === json(t))) rs.push([mp.slice(0, -1), t])
-  const named: MapRead[] = rs.slice(0, 6).map(([mp, t], i) => [`r$${i}`, mp, t])
+  // (a count whose bound and body don't read its key is one number at every key: read once, at its first-ranked key)
+  const once = new Set<string>(), keyless = (mp: string) => { const d = byMap.get(mp)!; return knob.once && !mentions([d.below, d.body], d.j) }
+  const rs1 = rs.filter(([mp]) => !keyless(mp) || (!once.has(mp) && !!once.add(mp)))
+  const named: MapRead[] = rs1.slice(0, knob.reads).map(([mp, t], i) => [`r$${i}`, mp, t])
   const bound = (r: MapRead) => json(byMap.get(r[1])!.below)
   const insts: CountInst[] = [], wits: string[] = []
   const add = (terms: [number, string][], unit: number, below: E) => { const w = `w$${insts.length}`; wits.push(w); insts.push({wit: w, below, terms, unit}) }
@@ -169,11 +179,18 @@ export function matched(names: string[], body: C, cells: [string, E][], cap = kn
 // --- Houdini ------------------------------------------------------------------------------------------------------------
 export type Counted = {proven: boolean, laws: Law[], m: Machine, proof?: {instances: Record<string, Instances>, certs: Record<string, CountCert>}, why?: string}
 export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted {
+  if (!env.GDP_COUNTS_PROF) return searchCounted0(m0, caller, ms)
+  cdclStats.on = true
+  const t = performance.now(), out = searchCounted0(m0, caller, ms)
+  console.error(`counts: prof total ${Math.round(performance.now() - t)} ms; ${Object.entries(cprof).map(([k2, x]) => `${k2} ${Math.round(x)}`).join(', ')}; cdcl runs ${cdclStats.runs} conflicts ${cdclStats.conflicts} decisions ${cdclStats.decisions} solveMs ${Math.round(cdclStats.solveMs)} rowsMs ${Math.round(cdclStats.rowsMs)} coreMs ${Math.round(cdclStats.coreMs)} unfoldMs ${Math.round(cdclStats.unfoldMs)} lpMs ${Math.round(cdclStats.lpMs)} boundMs ${Math.round(cdclStats.boundMs)} orderMs ${Math.round(cdclStats.orderMs)}`)
+  return out
+}
+function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
   const until = clock() + ms, g = guardLaws(m0), m: Machine = {...m0, counts: {...m0.counts, ...g.counts}}
   // The small instances: each param 2 and 3 (where the precondition allows), inputs and sets below 3.
   const insts = [2, 3].map(x => Object.fromEntries(m.params.map(p => [p, x])) as Env)
   const states = insts.map(p => {
-    try { return {p, sts: small(m, p, 3, 3000, 300_000, knob.walks)} } catch { return {p, sts: [] as State[]} }
+    try { return {p, sts: ptime('small', () => small(m, p, 3, 3000, 300_000, knob.walks))} } catch { return {p, sts: [] as State[]} }
   })
   const kinds: Law[] = Object.keys(m.maps ?? {}).map(mp => {
     const most = Math.max(0, ...states.flatMap(({sts}) => sts.flatMap(st => [...(st.maps[mp]?.values() ?? [])])))
@@ -183,10 +200,10 @@ export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted 
   if (!caller.every(trueAll)) return {proven: false, laws: caller, m, why: clock() < until ? 'a law fails on the small instances' : 'time'}
   // (the engine's minimal ∀ cubes on its own small instances and data filter, core/infer.ts's: the supports no guard reads)
   const t1 = clock(), rows = states.flatMap(({p, sts}) => sts.map(st => ({params: p, st})))
-  const cubes = inferLaws(m0, caller, [], {cubes: 2, ms: Math.min(15_000, ms / 4), first: {proven: false, checked: false}, rows}).found.map(f => f.law)
+  const cubes = ptime('cubes', () => inferLaws(m0, caller, [], {cubes: 2, ms: Math.min(15_000, ms / 4), first: {proven: false, checked: false}, rows}).found.map(f => f.law))
   if (env.GDP_COUNTS_TRACE) console.error(`counts: small ${states.map(({sts}) => sts.length).join('/')}; declared ${Object.keys(g.counts ?? {}).join(', ')}`)
   if (env.GDP_COUNTS_TRACE) console.error(`counts: cubes ${cubes.length} in ${Math.round(clock() - t1)} ms: ${cubes.map(l => l.name).join('; ')}`)
-  let set = [...caller, ...[...kinds, ...g.laws, ...cubes].filter(trueAll)]
+  let set = [...caller, ...ptime('filter', () => [...kinds, ...g.laws, ...cubes].filter(trueAll))]
   if (env.GDP_COUNTS_TRACE) console.error(`counts: candidates at ${Math.round(clock() - t1)} ms: ${set.map(l => l.name).join('; ')}`)
   // (the law's own names and the request's values that key a map: an action's value keys none)
   const keys0 = [...[...reads([m.step, m.assume ?? null], () => true).values()].map(([, key]) => key), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [] : [w.key]))]
@@ -207,8 +224,9 @@ export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted 
     }
     for (const [f, q] of Object.entries(m.step.flags ?? {})) if (q.op === 'all' && !q.keys?.length) inst[`?${f}`] = knob.flagTs ? ts : m.inputs.map(v)
     // (more instances where the goal's reads meet a law's: each keyed law and quantified flag, matched; at most twice)
-    const more = (at: Instances, hyps: C[][]): boolean => {
-      const cells = [...ground(hyps).values()]
+    // (the cells the goals' conclusions read first: a law's instances at the conclusion's own keys come before the cap)
+    const more = (at: Instances, hyps: C[][], concl: C[]): boolean => {
+      const cells = [...ground(hyps, knob.first ? ground(concl) : new Map()).values()]
       let grew = false
       const add = (name: string, ts2: E[][]) => {
         const have = new Set<string>(), cur = at[name] ?? [], n = ts2[0]?.length ?? 1
@@ -219,22 +237,29 @@ export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted 
       for (const [f, q] of Object.entries(m.step.flags ?? {})) if (q.op === 'all' && !q.keys?.length) add(`?${f}`, matched([q.key], q.c, cells))
       return grew
     }
-    const obligations = (at: Instances) => countedObligations(m, ls, {[law.name]: at}, ls.indexOf(law))
+    const obligations = (at: Instances) => ptime('encode', () => countedObligations(m, ls, {[law.name]: at}, ls.indexOf(law)))
     let built: {goal: {name: string, hyps: C[]}, decls: CountDecl[], c: Pick<CountCert, 'reads' | 'insts'>, gg: ReturnType<typeof mcGoal>}[] = []
     let at = inst
     for (let r = 0; r <= knob.rounds; r++) {
       built = obligations(at).map(({goal, decls}) => {
         const c = pass ? certFor(goal, decls) : {reads: [] as MapRead[], insts: [] as CountInst[]}
-        return {goal, decls, c, gg: mcGoal(goal.hyps, decls, c)}
+        return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c))}
       })
-      if (r === knob.rounds || !more(at, built.map(b => b.gg?.hyps ?? b.goal.hyps))) break
+      if (r === knob.rounds || !ptime('match', () => more(at, built.map(b => b.gg?.hyps ?? b.goal.hyps), built.map(b => b.goal.hyps.at(-1)!)))) break
     }
-    // (a step goal past a few hundred hypotheses: the CDCL search's refutation first, its core naming the law instances
-    // it read; the law's instances cut to those, and its goals grown with them, the certificate's reads kept)
-    const step = built.at(-1)
-    if (step?.gg && step.gg.hyps.length > knob.shrink) {
-      const q = growCdcl(step.gg, new Map(), {nodes: 0, until: Math.min(until, clock() + Math.min(2 * ms, 5_000))}, {model: true, core: true}) as Refuted
+    // The step goal decided first by the CDCL search for a model (its phases the simplex's point: a model is met where the
+    // tree search would split on), within 2·ms (5 s at most):
+    //   - refuted, past `shrink` hypotheses: the law's instances cut to those its core reads, the goals grown with them;
+    //   - a model: the instances it asks for (kernel/prove.ts's modelInstances, MBQI: a law or quantified flag broken at a
+    //     tuple of the goal's own keys), the goals made again with them, `mbqi` rounds at most; none asked, the goal has a
+    //     model and is given up at once (no tree to grow);
+    //   - unknown: the goals grown as they are.
+    for (let round = 0; ; round++) {
+      const step = built.at(-1)
+      if (!step?.gg || step.gg.hyps.length < knob.decide) break
+      const q = ptime('decide', () => growCdcl(step.gg!, new Map(), {nodes: 0, until: Math.min(until, clock() + Math.min(2 * ms, 5_000))}, {model: true, core: true}) as Refuted)
       if (!('tree' in q) && q.why === REFUTED && q.core) {
+        if (step.gg.hyps.length <= knob.shrink) break
         const used = new Set(q.core.map(h => json(step.gg!.hyps[h]))), cut: Instances = {}
         for (const [name, ts2] of Object.entries(at)) {
           const l = ls.find(x => x.name === name), n = l ? 1 + (l.keys?.length ?? 0) : 0
@@ -242,13 +267,28 @@ export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted 
         }
         at = cut
         built = obligations(at).map(({goal, decls}, j) => ({goal, decls, c: built[j]!.c, gg: mcGoal(goal.hyps, decls, built[j]!.c)}))
+        break
       }
+      if ('tree' in q || q.stuck !== 'sat' || !q.witness) break
+      const asked = round < knob.mbqi ? ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!)) : undefined
+      if (!asked) {
+        stuck = 'sat'
+        if (env.GDP_COUNTS_DUMP && pass && ls.length >= Number(env.GDP_COUNTS_DUMP_LS ?? 0) && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; appendFileSync(env.GDP_COUNTS_DUMP, json({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps}) + '\n') }
+        if (env.GDP_COUNTS_TRACE === '2') console.error(`counts: ${ls.length === 1 ? 'alone' : `kept${ls.length}`} ${pass} ${step.goal.name}: sat by its model, round ${round}, ${step.gg.hyps.length} hyps`)
+        return undefined
+      }
+      at = asked
+      built = obligations(at).map(({goal, decls}) => {
+        const c = pass ? certFor(goal, decls) : {reads: [] as MapRead[], insts: [] as CountInst[]}
+        return {goal, decls, c, gg: mcGoal(goal.hyps, decls, c)}
+      })
     }
     // (whether a goal reads a count: if none does, pass 1's goals are pass 0's)
     if (!pass) counted = built.some(b => certFor(b.goal, b.decls).reads.length)
     const certs: Record<string, CountCert> = {}
     for (const {goal, c, gg} of built) {
-      const t0 = clock(), o = gg && grow(gg, new Map(), {nodes: 0, until: Math.min(until, clock() + ms)})
+      const t0 = clock(), o = gg && ptime(`grow${(gg.hyps.length > 300 ? '>300' : '')}`, () => grow(gg, new Map(), {nodes: 0, until: Math.min(until, clock() + ms)}))
+      if (env.GDP_COUNTS_DUMP && gg && o && !('tree' in o) && gg.hyps.length > Number(env.GDP_COUNTS_DUMP_MIN ?? 300) && ls.length >= Number(env.GDP_COUNTS_DUMP_LS ?? 0) && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; appendFileSync(env.GDP_COUNTS_DUMP, json({law: law.name, goal: goal.name, ls: ls.map(l => l.name), stuck: (o as {stuck?: string}).stuck, hyps: gg.hyps}) + '\n') }
       if (env.GDP_COUNTS_TRACE === '2') console.error(`counts: ${ls.length === 1 ? 'alone' : ls.length < set.length ? `kept${ls.length}` : 'all'} ${pass} ${goal.name}: ${o && 'tree' in o ? 'proven' : gg ? (o as {stuck?: string}).stuck : 'no read'} ${gg?.hyps.length ?? 0} hyps ${Math.round(clock() - t0)} ms`)
       if (!o || !('tree' in o)) {
         stuck = gg ? (o as {stuck?: string}).stuck ?? '' : ''
@@ -319,7 +359,7 @@ export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted 
   }
   if (env.GDP_COUNTS_TRACE) console.error(`counts: kept ${kept.size} of ${set.length} in ${Math.round(clock() - t1)} ms`)
   const finish = (ls: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}): Counted =>
-    (checkCountedLaws(m, ls, proof) ? {proven: true, laws: ls, m, proof} : {proven: false, laws: ls, m, why: 'the kernel refused the set'})
+    (ptime('kernel', () => checkCountedLaws(m, ls, proof)) ? {proven: true, laws: ls, m, proof} : {proven: false, laws: ls, m, why: 'the kernel refused the set'})
   const keptProof = () => ({instances: Object.fromEntries([...kept].map(([n, pr]) => [n, pr.instances])), certs: Object.assign({}, ...[...kept.values()].map(pr => pr.certs))})
   if (caller.every(cone)) return finish(set.filter(cone), keptProof())
   for (let round = 0; clock() < until; round++) {
