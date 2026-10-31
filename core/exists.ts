@@ -339,7 +339,12 @@ function mapGhostsOf(m: Machine, law: Law, taken: Set<string>): MapGhost[] {
     const set = substC({op: '<=', a: k(1), b: w.value}, {vars: {}, maps: {[mp]: () => k(0)}, flags: Object.fromEntries(Object.keys(m.step.flags ?? {}).map(f => [f, {op: 'flag', name: f} as C]))})
     // (each write key's input at a different one of the law's keys)
     const injections = kv.reduce<string[][]>((acc) => acc.flatMap(a => names.filter(n => !a.includes(n)).map(n => [...a, n])), [[]])
-    for (const inj of injections) for (const val of m.inputs.filter(i => !kv.includes(i))) {
+    // (a value an action selects, compared with constants alone, is no witness)
+    const keyed = new Set<string>()
+    walk([m.step, m.assume ?? null], o => { if (o.op === 'get') for (const n of namesOf(o.key as E)) keyed.add(n) })
+    for (const w2 of Object.values(m.step.maps ?? {})) if (!('each' in w2)) for (const n of namesOf(w2.key)) keyed.add(n)
+    const action = (i: string) => !keyed.has(i)
+    for (const inj of injections) for (const val of m.inputs.filter(i => !kv.includes(i) && !action(i))) {
       let name = `${mp}$w`
       for (let j = 2; taken.has(name); j++) name = `${mp}$w${j}`
       const at = substVarsE(w.key, Object.fromEntries(kv.map((n, j) => [n, v(inj[j]!)]))), atW: E = {op: 'get', map: name, key: at}
@@ -444,7 +449,7 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
   const rounds = opts.rounds ?? 24
   // (a law about every key with no witness term: the next ghost map past `from` that keeps its law and the ghost's own
   // on every state of the small instances, each param 2 and 3)
-  const smallOk = (mm: Machine, ls: Law[]) => [2, 3].every(x => { const ps = Object.fromEntries(m.params.map(q => [q, x])); return small(mm, ps, 2, 3000).every(st => ls.every(l => holdsAt(mm, l, ps, st, 2))) })
+  const smallOk = (mm: Machine, ls: Law[]) => [2, 3].every(x => { const ps = Object.fromEntries(m.params.map(q => [q, x])); return small(mm, ps, 2, 1500, 100_000).every(st => ls.every(l => holdsAt(mm, l, ps, st, 2))) })
   const toMap = (p: Plan, from: number): boolean => {
     if (from < 0) p.maps = mapGhostsOf(m, p.law, takenOf(m))
     const others = [...plans.values()].filter(q => q !== p && q.pick.mode === 'map')
@@ -480,8 +485,8 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
     }
     for (let round = 0; ; round++) {
       const now = current(), t0 = performance.now(), r: ReturnType<typeof proveLaw> = round === 0 && first ? {proven: false, ...first}
-        // (a ghost map's goals within 5 s: a search asks them with every candidate set, and one without its supports can take minutes)
-        : p.pick.mode === 'map' ? withDeadline(clock() + 5_000, () => proveLaw(now.machine, now.laws, i)) : proveLaw(now.machine, now.laws, i)
+        // (a ghost map's goals within 2 s: a search asks them with every candidate set, and one without its supports can take minutes)
+        : p.pick.mode === 'map' ? withDeadline(clock() + 2_000, () => proveLaw(now.machine, now.laws, i)) : proveLaw(now.machine, now.laws, i)
       if (log) console.error(`exists: pass ${pass} round ${round} "${p.law.name}" ${p.pick.mode} ${describe(p, cases).slice(0, 160)}: ${r.proven ? 'proven' : `${r.goal} ${r.stuck}`} (${Math.round(performance.now() - t0)} ms)`)
       if (r.proven) return undefined
       const fail = (stuck: string): SomeReport => ({proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: r.goal, stuck, ...(r.witness ? {witness: r.witness} : {})}})
