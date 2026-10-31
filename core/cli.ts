@@ -6,7 +6,7 @@
 //
 //   gdp-wired check <file|dir>... [--entry X] [--methods a,b] [--failures kept] [--json] [--ms 10000] [--no-propose]
 //
-// The language is the file's (.py .rb .ex .java .kt .go .rs .swift .c .h .cpp .cc .hpp .ts .js; a directory with go.mod
+// The language is the file's (.py .rb .ex .java .kt .go .rs .swift .c .h .cpp .cc .hpp .ts .js .sol; a directory with go.mod
 // or .go files is a Go package, with Cargo.toml a Rust crate, with Package.swift a Swift package); the options a rule needs (failures, onError, methods,
 // answers, skip, stores) from the flags or from gdp.toml (configFor, below). Exit code: 0 when no law stated in
 // the code is broken, 1 when one is, 2 when one couldn't be checked (the rule refused, or the law not read).
@@ -52,11 +52,11 @@ function args(argv: string[]): {cmd: string, targets: string[], o: Opts} {
 }
 
 // --- the languages -------------------------------------------------------------------------------------------------------
-export type Lang = 'python' | 'ruby' | 'elixir' | 'java' | 'kotlin' | 'go' | 'rust' | 'swift' | 'c' | 'cpp' | 'ts'
+export type Lang = 'python' | 'ruby' | 'elixir' | 'java' | 'kotlin' | 'go' | 'rust' | 'swift' | 'c' | 'cpp' | 'ts' | 'solidity'
 const EXT: Record<string, Lang> = {'.py': 'python', '.rb': 'ruby', '.ex': 'elixir', '.exs': 'elixir', '.java': 'java', '.kt': 'kotlin', '.go': 'go', '.rs': 'rust', '.swift': 'swift', '.c': 'c', '.h': 'c',
-  '.cpp': 'cpp', '.cc': 'cpp', '.cxx': 'cpp', '.hpp': 'cpp', '.ts': 'ts', '.mts': 'ts', '.tsx': 'ts', '.js': 'ts', '.mjs': 'ts'}
-const COMMENT: Record<Lang, string> = {python: '#', ruby: '#', elixir: '#', java: '//', kotlin: '//', go: '//', rust: '//', swift: '//', c: '//', cpp: '//', ts: '//'}
-export const LANG_NAME: Record<Lang, string> = {python: 'Python', ruby: 'Ruby', elixir: 'Elixir', java: 'Java', kotlin: 'Kotlin', go: 'Go', rust: 'Rust', swift: 'Swift', c: 'C', cpp: 'C++', ts: 'TypeScript'}
+  '.cpp': 'cpp', '.cc': 'cpp', '.cxx': 'cpp', '.hpp': 'cpp', '.ts': 'ts', '.mts': 'ts', '.tsx': 'ts', '.js': 'ts', '.mjs': 'ts', '.sol': 'solidity'}
+const COMMENT: Record<Lang, string> = {python: '#', ruby: '#', elixir: '#', java: '//', kotlin: '//', go: '//', rust: '//', swift: '//', c: '//', cpp: '//', ts: '//', solidity: '//'}
+export const LANG_NAME: Record<Lang, string> = {python: 'Python', ruby: 'Ruby', elixir: 'Elixir', java: 'Java', kotlin: 'Kotlin', go: 'Go', rust: 'Rust', swift: 'Swift', c: 'C', cpp: 'C++', ts: 'TypeScript', solidity: 'Solidity'}
 // A target: the path a front end reads (a file, a Go package, a Rust crate), its language and the files its laws are in.
 type Target = {lang: Lang, at: string, files: string[]}
 function targetsOf(p: string): Target[] {
@@ -109,6 +109,7 @@ async function extractWith(t: Target, o: Record<string, unknown>): Promise<Extra
     case 'rust': { const {extractRust} = await import('./extract-rs.ts'); return extractRust(f, o) }
     case 'swift': { const {extractSwift} = await import('./extract-swift.ts'); return extractSwift(f, o) }
     case 'c': case 'cpp': { const {extractC} = await import('./extract-c.ts'); return extractC(f, o, t.lang === 'cpp') }
+    case 'solidity': { const {extractSolidity} = await import('./extract-sol.ts'); return extractSolidity(f, {root: up(dir, d => ['foundry.toml', 'hardhat.config.js', 'hardhat.config.ts', 'package.json'].some(m => fs.existsSync(path.join(d, m)))) ?? dir, ...o}) }
     case 'ts': {
       // (Effect and XState run on the package the file's own project has, imported here as the code imports it)
       const code = fs.readFileSync(f, 'utf8'), file = path.relative(proc.cwd(), f) || f, {createRequire} = proc.getBuiltinModule('node:module') as {createRequire: (p: string) => {resolve: (s: string) => string}}
@@ -198,7 +199,7 @@ const merge = (a: Record<string, unknown>, b: Record<string, unknown>): Record<s
 }
 
 // --- one target: its rules, their laws -------------------------------------------------------------------------------------
-type LawOut = {name: string, expr: string, where?: string, kind?: 'law' | 'step' | 'two runs', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], why?: string, assumes?: string[], found?: string[], cites?: string[], cert?: string, ms: number}
+type LawOut = {name: string, expr: string, where?: string, kind?: 'law' | 'step' | 'two runs', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], replayed?: string, why?: string, assumes?: string[], found?: string[], cites?: string[], cert?: string, ms: number}
 export type RuleOut = {file: string, lang: string, entry?: string, ok: boolean, refusals: {where: string, what: string}[], notes: string[], names: Name[], checked?: string,
   laws: LawOut[], proposed: LawOut[], brokenProposed?: number, source?: string}
 
@@ -232,6 +233,8 @@ async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: str
   // (refused with no entry named: the rules gdp.toml names that the code has, each with its options)
   const named = Object.keys(cfg.rules).filter(k => t.files.some(f => new RegExp(`\\b${k.replace(/[^\w]/g, '\\$&')}\\b`).test(fs.readFileSync(f, 'utf8'))))
   if (named.length) return Promise.all(named.map(k => one(k)))
+  // (a contract's file names its contracts: refused with none named, the refusal is the rule's)
+  if (t.lang === 'solidity') return [first]
   // (else each class the refusal names, and each function outside a class a law is stated on)
   const what = first.x.refusals[0]?.what ?? ''
   const several = /several (?:classes|structs) (?:write their state|written by the file's functions) \(([^)]*)\)/.exec(what)?.[1]!.split(', ') ?? []
@@ -245,7 +248,7 @@ function scoped(file: string): Scoped[] {
   const text = fs.readFileSync(file, 'utf8'), lines = text.split('\n')
   return lawsIn(text, path.basename(file)).map(l => {
     let cls: string | undefined, fn: string | undefined
-    for (let i = l.line! - 1; i >= 0 && !cls; i--) { const m = /\b(?:class|struct|actor|defmodule|module|object|impl|record|interface)\s+([\w.:]+)|\btype\s+(\w+)\s+struct\b/.exec(lines[i]!.replace(/(#|\/\/).*$/, '')); if (m) cls = (m[1] ?? m[2])!.split(/[.:]/).pop() }
+    for (let i = l.line! - 1; i >= 0 && !cls; i--) { const m = /\b(?:class|struct|actor|defmodule|module|object|impl|record|interface|contract)\s+([\w.:]+)|\btype\s+(\w+)\s+struct\b/.exec(lines[i]!.replace(/(#|\/\/).*$/, '')); if (m) cls = (m[1] ?? m[2])!.split(/[.:]/).pop() }
     for (let i = l.line! - 1; i < lines.length && !fn; i++) { const code = i === l.line! - 1 ? lines[i]!.replace(/(#|\/\/|--).*$/, '') : lines[i]!; const m = /\b(?:def|defp|fn|fun|func|function)\s+(?:\([^)]*\)\s*)?(?:self\.)?(\w+)|^\s*(?:(?:public|private|protected|static|final|synchronized|async|override|open|suspend|inline|virtual|const|[\w<>[\],?]+)\s+)*(\w+)\s*\(/.exec(code); if (m && !/^(if|for|while|switch|return|catch|new)$/.test(m[1] ?? m[2]!)) fn = m[1] ?? m[2] }
     // (a Python function at the module's top level is in no class, whatever precedes it)
     if (fn && file.endsWith('.py') && lines.slice(l.line! - 1).some(x => new RegExp(`^(?:async\\s+)?def\\s+${fn}\\b`).test(x))) cls = undefined
@@ -307,7 +310,9 @@ function prove(x: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: C
   let v: Verdict & {given?: Law[]}
   try { v = two ? proveTwoRuns(two, {...search, invariants: [two.sides[0] === x.rule ? inv : (ctx?.others && Object.values(ctx.others).find(o => o.rule === two!.sides[0])?.invariants) ?? [], inv]}) : b!.kind === 'law' ? proveRule(x.rule!, [...inv, b!.law], search) : proveSteps(x.rule!, [...inv, ...proven] as never, [b!.law], search) }
   catch (e) { return {...base, kind, verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
-  const verdict = v.proven && v.checked ? 'proven' : v.run ? 'broken' : 'unknown'
+  let verdict: LawOut['verdict'] = v.proven && v.checked ? 'proven' : v.run ? 'broken' : 'unknown', replayed: string | undefined
+  // (a run the front end replays on the code: broken only where the code runs it so)
+  if (verdict === 'broken' && x.replay && v.run && !two) { const r = x.replay(v.run, b!.law); if (r.ok) replayed = r.what; else { verdict = 'unknown'; v.why = `a run breaks it in the rule, not on the code: ${r.what}` } }
   // (a state the laws allow from which a step breaks the law, no run from the start reaching it: shown, not a break)
   const at = !v.run && v.witness && !two ? (x.names ?? []).filter(n => n.rule && n.rule in v.witness! && n.role !== 'const').map(n => `${label(n)} = ${shownValue(x, n.rule, v.witness!, n.none)}`) : []
   if (verdict === 'proven' && b?.kind === 'law') proven.push(b.law)
@@ -320,7 +325,7 @@ function prove(x: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: C
       : b!.kind === 'law' ? certify(x.rule!, [...inv, ...more, b!.law], [], meta) : certify(x.rule!, [...inv, ...proven as Law[], ...more], [b!.law], meta)
     if (doc) { fs.mkdirSync(ctx.cert, {recursive: true}); cert = path.join(ctx.cert, `${[ctx.entry ?? path.basename(ctx.file), l.name].join('.').replace(/[^\w.-]+/g, '-')}.json`); fs.writeFileSync(cert, JSON.stringify(doc)) }
   }
-  return {...base, kind, verdict, ...(v.run ? {run: two ? pairRunOf(x, v.run, two) : runOf(x, v.run)} : {}), ...(verdict === 'unknown' ? {why: [v.why ?? v.stuck ?? 'not proven', ...(at.length ? [`a state the laws allow where a step breaks it, no run from the start found reaching it: ${at.join(', ')}`] : [])].join('; ')} : {}),
+  return {...base, kind, verdict, ...(replayed ? {replayed} : {}), ...(v.run && verdict === 'broken' ? {run: two ? pairRunOf(x, v.run, two) : runOf(x, v.run)} : {}), ...(verdict === 'unknown' ? {why: [v.why ?? v.stuck ?? 'not proven', ...(at.length ? [`a state the laws allow where a step breaks it, no run from the start found reaching it: ${at.join(', ')}`] : [])].join('; ')} : {}),
     ...(v.run && !two ? {assumes: assumedOf(x, v.run)} : {}), ...(found?.length ? {found} : {}), ...(cert ? {cert} : {}), ms: Date.now() - t0}
 }
 // Two runs as calls of the code: each request once, the values the two runs take apart as `a | b`, and the run b leaves
@@ -450,6 +455,7 @@ function printRule(r: RuleOut, o: Opts) {
     for (const c of l.cites ?? []) out(`             cites: ${c}`)
     if (l.cert) out(`             ${paint('dim', `certificate: ${l.cert}`)}`)
     if (l.run) for (const [i, s] of l.run.entries()) out(`             ${i === 0 ? 'run: ' : '     '}${paint('red', s)}`)
+    if (l.replayed) out(`             ${l.replayed}`)
     for (const a of l.assumes ?? []) out(`             ${a}`)
     if (l.found) out(`             proven with what the search found: ${l.found.join('; ')}`)
     if (l.why && l.verdict !== 'proven') out(`             ${l.why}`)

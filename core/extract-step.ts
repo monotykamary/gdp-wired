@@ -34,7 +34,9 @@ import {type CodeSide, type Coverage, type Evidence, type Snap, Outside, constan
 
 // --- the IR (what a reader emits) -----------------------------------------------------------------------------------
 export type SType =
-  | {k: 'int', bits?: number, signed?: boolean, unit?: string, atomic?: string, lock?: string, rs?: string} | {k: 'float' | 'bool' | 'str' | 'none' | 'any' | 'lock', atomic?: string, lock?: string}
+  // (mod: a width past the rule's numbers, 2^256 say, as a variable of the state the step never writes, any value at
+  // least 2: an unsigned value is below it, and a law proven for every value is proven for the width's own)
+  | {k: 'int', bits?: number, signed?: boolean, unit?: string, atomic?: string, lock?: string, rs?: string, mod?: string} | {k: 'float' | 'bool' | 'str' | 'none' | 'any' | 'lock', atomic?: string, lock?: string}
   | {k: 'choice', values: string[], discs?: number[], enum?: string, sym?: boolean} | {k: 'opt', of: SType} | {k: 'res', of: SType}
   | {k: 'rec', name: string} | {k: 'map', key: SType, val: SType} | {k: 'list', of: SType} | {k: 'opaque', why: string}
 // (store: a method of an injected dependency, stubbed on the object the check gives)
@@ -81,14 +83,15 @@ export type StepOptions = {
   failures?: 'refuse' | 'kept',
   onError?: 'refuse' | 'discard',
   domains?: Record<string, 'nat' | 'int'>,
-  check?: {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean}
+  check?: {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean | 'writes'}
 }
 
 // --- values ---------------------------------------------------------------------------------------------------------
 // An integer type's width (0: unbounded) and sign: where a number is one, its operations' overflow is the type's.
 // (`name`: the type's name in the code, for the notes; `t`: the reader's own index of it)
 // (`ub`: past its range is undefined behavior, C's and C++'s signed overflow: refused where it may be, never wrapped)
-export type IntTy = {bits: number, signed: boolean, name?: string, t?: number, ub?: boolean}
+// (`mod`: an unsigned width past the rule's numbers, its 2^bits the state variable named: the type's values below it)
+export type IntTy = {bits: number, signed: boolean, name?: string, t?: number, ub?: boolean, mod?: string}
 // A number (with the comparison it is the sign of, x.Cmp(y); with the string it is the length of, read only against 0).
 type V =
   | {t: 'num', e: N, ty?: IntTy, cmp?: [N, N], slen?: K} | {t: 'bool', e: B} | {t: 'str', e: K} | {t: 'choice', e: L}
@@ -110,6 +113,7 @@ type V =
   // item pushed or popped (put back only in its own place).
   | {t: 'ptr', to: Ptr} | {t: 'struct', ty: string, f: Map<string, V>} | {t: 'err', is: B} | {t: 'nil'}
   | {t: 'map', id: string} | {t: 'list', id: string} | {t: 'push', id: string, x: V} | {t: 'pop', id: string}
+type CellWrite = {key: K, has: B, vals: Map<string, V>}
 type Ptr = {k: 'nil'} | {k: 'obj', id: string, path: string[]} | {k: 'phi', c: B, a: Ptr, b: Ptr}
 type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: V, when: B}
 type Place = {k: 'local', id: string, path: string[]} | {k: 'heap', ptr: V, path: string[]} | {k: 'blank'}
@@ -118,7 +122,8 @@ export type Recipe = {k: 'num' | 'bool' | 'str', ty?: IntTy} | {k: 'big'} | {k: 
 type Origin = 'state' | 'input' | 'fresh'
 type Obj =
   | {k: 'rec', ty: string, f: Map<string, V>, origin: Origin, lazy?: string, moved?: boolean}
-  | {k: 'map', decl: MapDecl, val?: SType, nil?: B, w?: {key: K, has: B, vals: Map<string, V>}, origin: Origin}
+  // (w: the step's last write; pre: the writes at other keys before it, in order: a scalar map's, keyed by numbers)
+  | {k: 'map', decl: MapDecl, val?: SType, nil?: B, w?: CellWrite, pre?: CellWrite[], origin: Origin}
   | {k: 'store', name: string}
   | {k: 'big', v: N, origin: Origin} | {k: 'list', decl: MapDecl, ops: ListOp[], origin: Origin}
 // (locks held, and those deferred to the return)
@@ -299,7 +304,7 @@ export class Stepper {
   }
   // A fixed-width integer variable: its type, and (for a request) a value outside it refused: the claim is for the
   // type's values.
-  intTy(t: SType): IntTy | undefined { return t.k === 'int' && t.bits !== undefined ? {bits: t.bits, signed: t.signed ?? true} : undefined }
+  intTy(t: SType): IntTy | undefined { return t.k === 'int' && t.bits !== undefined ? {bits: t.bits, signed: t.signed ?? true, ...(t.mod ? {mod: t.mod} : {})} : undefined }
   typed(v: Var, t: SType | IntTy, role: Var['role'], sel = this.sel) {
     const ty = 'k' in t ? this.intTy(t) : t
     if (!ty) return
@@ -307,6 +312,8 @@ export class Stepper {
     const [lo, hi] = rangeOf(ty)
     if (role === 'state') return
     const x = I.nvar(v.name)
+    // (a value of a symbolic width: an input at or past it refused, a param's the precondition's)
+    if (ty.mod) { const out = I.or(I.cmp('<', x, I.num(0)), I.cmp('<=', I.nvar(ty.mod), x)); if (role === 'param') this.paramsOut.push(out); else this.refusals.push(I.and(sel, out)); return }
     // (a constructor's argument outside its type: no object is made with one, the rule's precondition says so)
     if (role === 'param') { const out = I.or(...(Number.isFinite(lo) ? [I.cmp('<', x, I.num(lo))] : []), ...(Number.isFinite(hi) ? [I.cmp('<', I.num(hi), x)] : [])); if (!(out.op === 'const' && !out.v)) this.paramsOut.push(out); return }
     if (Number.isFinite(hi)) this.refusals.push(I.and(sel, I.cmp('<', I.num(hi), x)))
@@ -597,7 +604,11 @@ export class Stepper {
       return {...a, f, moved: a.moved || b.moved}
     }
     if (a.k === 'map' && b.k === 'map') {
-      const w = mergeWrites(c, a.w, b.w, key => this.baseCell(a.decl, key), (c2, x, y) => this.ite(c2, x, y, at))
+      const base = (key: K) => this.baseCell(a.decl, key), ite = (c2: B, x: V, y: V) => this.ite(c2, x, y, at)
+      // (several keys written: both paths' writes padded to one length, each place by the condition)
+      const [la, lb] = padWrites([[...(a.pre ?? []), ...(a.w ? [a.w] : [])], [...(b.pre ?? []), ...(b.w ? [b.w] : [])]], base) as [CellWrite[], CellWrite[]]
+      if (la.length > 1) { const ws = la.map((x, i) => mergeWrites(c, x, lb[i], base, ite)!); return {...a, ...(a.nil ? {nil: I.bite(c, a.nil, b.nil!)} : {}), w: ws.at(-1)!, pre: ws.slice(0, -1)} }
+      const w = mergeWrites(c, a.w, b.w, base, ite)
       return {...a, ...(a.nil ? {nil: I.bite(c, a.nil, b.nil!)} : {}), ...(w ? {w} : {})}
     }
     if (a.k === 'list' && b.k === 'list') return {...a, ops: mergeOps(c, a.ops, b.ops)}
@@ -942,13 +953,17 @@ export class Stepper {
     return [m.id, o]
   }
   cellOf(o: Extract<Obj, {k: 'map'}>, key: K, _p: Path, _at: SX): {has: B, vals: Map<string, V>} {
-    const base = this.baseCell(o.decl, key)
-    if (!o.w) return base
-    const same = I.keq(key, o.w.key)
-    return {has: I.bite(same, o.w.has, base.has), vals: new Map([...base.vals].map(([f, v]) => [f, this.ite(same, o.w!.vals.get(f)!, v, _at)]))}
+    let acc = this.baseCell(o.decl, key)
+    for (const w of [...(o.pre ?? []), ...(o.w ? [o.w] : [])]) { const same = I.keq(key, w.key), a = acc; acc = {has: I.bite(same, w.has, a.has), vals: new Map([...a.vals].map(([f, v]) => [f, this.ite(same, w.vals.get(f)!, v, _at)]))} }
+    return acc
   }
+  // A cell written: a second key of a scalar map keyed by numbers (a transfer's two accounts) after the first, any
+  // earlier write of the same key dropped (this one is read through it).
   writeCell(id: string, o: Extract<Obj, {k: 'map'}>, key: K, has: B, vals: Map<string, V>, at: SX, p: Path): Path {
-    if (o.w && !I.same(o.w.key, key)) return refuse(at, `${at.text}: a second key of one map written in one step (the subset writes one a step)`)
+    if (o.w && !I.same(o.w.key, key)) {
+      if (!o.decl.scalar || o.decl.key !== 'num') return refuse(at, `${at.text}: a second key of one map written in one step (the subset writes one a step, or several of a map of numbers or booleans keyed by numbers)`)
+      return {...p, heap: new Map(p.heap).set(id, {...o, pre: [...(o.pre ?? []).filter(x => !I.same(x.key, key)), o.w], w: {key, has, vals}})}
+    }
     return {...p, heap: new Map(p.heap).set(id, {...o, w: {key, has, vals}})}
   }
   mapGet(m: V, k: K, at: SX, p: Path, missing: 'fail' | 'none' | V): [V, Path] {
@@ -962,7 +977,8 @@ export class Stepper {
   }
   mapSet(m: V, k: K, v: V, at: SX, p: Path): Path {
     const [id, o] = this.mapObj(m, at, p)
-    if (o.decl.scalar) return this.writeCell(id, o, k, I.T, new Map([['value', this.fit(v, o.decl.fields[0]!, at)]]), at, p)
+    // (nz: a cell is held where it isn't zero, Solidity's mapping: a zero written is no cell)
+    if (o.decl.scalar) { const x = this.fit(v, o.decl.fields[0]!, at); return this.writeCell(id, o, k, !at.nz ? I.T : x.t === 'num' ? I.not(I.cmp('=', x.e, I.num(0))) : x.t === 'bool' ? x.e : refuse(at, `${at.text}: a zero of a ${x.t}`), new Map([['value', x]]), at, p) }
     // A record put in: a fresh one (made here), its fields copied into the cell, the object no longer written apart.
     if (v.t === 'cell' && v.map === id && I.same(v.key, k)) return p
     if (v.t !== 'ref') return refuse(at, `${at.text}: a ${v.t === 'opaque' ? v.why : v.t} put in a dict of records`)
@@ -1824,7 +1840,7 @@ export class Stepper {
     const [a, q] = this.ev(x.x as SX, p), [b, q2] = this.ev(x.y as SX, q)
     if (a.t === 'opaque' || b.t === 'opaque') return [a.t === 'opaque' ? a : b, q2]
     const na = this.numOf(a, x, q2), nb = this.numOf(b, x, q2)
-    const ty = (a.t === 'num' ? a.ty : undefined) ?? (b.t === 'num' ? b.ty : undefined) ?? (ovf === 'sat0' || ovf === 'checked0' ? {bits: 0, signed: false} : undefined)
+    const ty = (x.ity as IntTy | undefined) ?? (a.t === 'num' ? a.ty : undefined) ?? (b.t === 'num' ? b.ty : undefined) ?? (ovf === 'sat0' || ovf === 'checked0' ? {bits: 0, signed: false} : undefined)
     let e: N
     if (op === '+') e = I.add(na, nb)
     else if (op === '-') e = I.sub(na, nb)
@@ -1836,7 +1852,11 @@ export class Stepper {
       e = op === '/' ? (k < 0 ? I.neg(this.quot(na, -k)) : this.quot(na, k)) : this.rem(na, Math.abs(k))
     } else return refuse(x, `${x.text}: ${op}`)
     const out = (n: N): V => ({t: 'num', e: n, ...(ty ? {ty} : {})})
-    const [lo, hi] = ty ? rangeOf(ty) : [-Infinity, Infinity], [below, above] = this.past(e, lo, hi, q2)
+    const [lo, hi] = ty ? rangeOf(ty) : [-Infinity, Infinity], [below0, above0] = this.past(e, lo, hi, q2)
+    // (a symbolic width: past it where the result may be at least its 2^bits; of two values below it, a difference is
+    // never at or past it and a sum or a product never below 0)
+    const above = ty?.mod ? (op === '-' ? I.F : this.pastMod(e, ty.mod)) : above0, below = ty?.mod && op !== '-' ? I.F : below0
+    if (ty?.mod && ovf !== 'trap' && ovf !== 'checked' && ovf !== 'wrap') return refuse(x, `${x.text}: ${ovf} at ${tyName(ty)}`)
     switch (ovf) {
       case 'trap': this.fail(q2, I.or(below, above), x, `${x.text}: past ${tyName(ty)}'s range (${typeof x.trap === 'string' ? x.trap : `a panic: attempt to ${op === '+' ? 'add' : op === '-' ? 'subtract' : op === '*' ? 'multiply' : 'divide'} with overflow`})`); return [out(e), this.assume(q2, I.not(I.or(below, above)))]
       case 'sat': return [out(Number.isFinite(lo) || Number.isFinite(hi) ? I.nite(below, I.num(lo), I.nite(above, I.num(hi), e)) : e), q2]
@@ -2373,6 +2393,16 @@ export class Stepper {
   // path's facts keep it within); at 64 bits the rule's numbers stop at ±2^53, and an unsigned one below 0 is refused.
   wrap(e: N, ty: IntTy, x: {p: string}, p: Path): N {
     if (ty.bits === 0) return e
+    if (ty.mod) {
+      // Modulo a symbolic 2^bits: a sum or a difference of two values below it is at most once past it, by cases (a
+      // product may be many times past: refused).
+      if (hasProduct(e)) return refuse(x, `${(x as SX).text ? `${(x as SX).text}: ` : ''}a product wrapped modulo 2^${ty.bits} (the subset wraps sums and differences at that width)`)
+      // (two values below 2^n: a sum is never below 0, a difference never at or past 2^n)
+      const below = e.op === 'add' ? I.F : this.past(e, 0, Infinity, p)[0], above = e.op === 'sub' ? I.F : this.pastMod(e, ty.mod), m = I.nvar(ty.mod)
+      this.notes.add(`${ty.name ?? tyName(ty)}: a result past its range wraps modulo 2^${ty.bits} (${ty.mod}, any width at least 2 in the rule: a law proven is proven at 2^${ty.bits})`)
+      // (a − b below 0 is (2^n − b) + a: each part a natural, b being below 2^n)
+      return I.nite(below, e.op === 'sub' ? I.add(I.sub(m, e.b), e.a) : I.add(e, m), I.nite(above, I.sub(e, m), e))
+    }
     if (ty.ub) {
       const out = I.or(...this.past(e, ...rangeOf(ty), p))
       if (!(out.op === 'const' && !out.v)) { this.refuseWhere(p, out, x, `${(x as SX).text ? `${(x as SX).text}: ` : ''}past ${ty.name ?? tyName(ty)}'s range (signed overflow: undefined behavior)`); this.notes.add(`${ty.name ?? tyName(ty)}: a result past its range is refused (signed overflow is undefined behavior in ${LANG[this.mod.lang] ?? this.mod.lang})`) }
@@ -2399,6 +2429,8 @@ export class Stepper {
     // Many times over (a conversion from a wider type, a product): e − 2^n·⌊(e − lo)/2^n⌋.
     return I.sub(e, I.mulk(m, I.divk(m, I.add(e, I.num(-lo)))))
   }
+  // Where e may be at or past a symbolic 2^bits (false where e is a constant below 2, the least width).
+  pastMod(e: N, mod: string): B { return e.op === 'const' && e.v < 2 ? I.F : I.cmp('<=', I.nvar(mod), e) }
   // Where e may be past [lo, hi] on the path: below and above, each false where the term's bounds or the path's facts
   // keep it within.
   past(e: N, lo: number, hi: number, p: Path): [B, B] {
@@ -3042,10 +3074,16 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
   for (const d of g.maps) {
     const id = [...g.initHeap].find(([, o]) => o.k === 'map' && o.decl === d)?.[0]
     if (!id) continue
-    const ws = finals.map(f => { const w0 = (f.path.heap.get(id) as Extract<Obj, {k: 'map'}> | undefined)?.w; return w0 && {key: w0.key, has: w0.has, vals: Object.fromEntries([...w0.vals].map(([f2, v]) => [f2, termOf(v, at)]))} })
+    const cw = (w0: CellWrite): CellW => ({key: w0.key, has: w0.has, vals: Object.fromEntries([...w0.vals].map(([f2, v]) => [f2, termOf(v, at)]))})
+    const lists = finals.map(f => { const o = f.path.heap.get(id) as Extract<Obj, {k: 'map'}> | undefined; return [...(o?.pre ?? []), ...(o?.w ? [o.w] : [])].map(cw) })
     // (a failure kept, the cell as it was there)
-    const w = mapWritesOf(g, d, finals.map(f => f.sel), ws, (i, w2, base) => { if (!kept || carried) return w2; const fl = failedOf(finals[i]!), b = base(w2.key); return {key: w2.key, has: I.bite(fl, b.has, w2.has), vals: Object.fromEntries(Object.entries(w2.vals).map(([f, t]) => [f, iteTerm(fl, b.vals[f]!, t)]))} })
-    if (w) mapWrites[d.name] = w
+    const fix = (i: number, w2: CellW, base: (k: K) => CellW): CellW => { if (!kept || carried) return w2; const fl = failedOf(finals[i]!), b = base(w2.key); return {key: w2.key, has: I.bite(fl, b.has, w2.has), vals: Object.fromEntries(Object.entries(w2.vals).map(([f, t]) => [f, iteTerm(fl, b.vals[f]!, t)]))} }
+    // (several keys written by some method: each method's writes under its own selector, so a key compared is the
+    // request's, never one of two by the method)
+    const base = (k: K): CellW => { const c = g.baseCell(d, k); return {key: k, has: c.has, vals: Object.fromEntries([...c.vals].map(([f2, v]) => [f2, termOf(v, at)]))} }
+    const ws: (CellW & {when?: B})[] = lists.some(l => l.length > 1) ? finals.flatMap((f, i) => lists[i]!.map(w2 => ({...fix(i, w2, base), when: f.sel}))) : []
+    const w = ws.length ? ws.at(-1) : mapWritesOf(g, d, finals.map(f => f.sel), lists.map(l => l[0]), fix)
+    if (w) mapWrites[d.name] = ws.length > 1 ? {...w, pre: ws.slice(0, -1)} : w
   }
   // What each method returns, and whether it failed: the step's result.
   const results: Model['results'] = {}, resultKinds: StepRead['results'] = {}
@@ -3129,7 +3167,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
   const read = new Set<string>()
   const mention = (t: object) => { for (const n of I.varsOf(t as N).vars) read.add(n) }
   for (const t of [...Object.values(writes), ...Object.values(init)]) mention(t.e)
-  for (const w of Object.values(mapWrites)) { mention(w.has); mention(w.key); for (const t of Object.values(w.vals)) mention(t.e) }
+  for (const w of Object.values(mapWrites).flatMap(x => [x, ...(x.pre ?? [])])) { mention(w.has); mention(w.key); if (w.when) mention(w.when); for (const t of Object.values(w.vals)) mention(t.e) }
   mention(refuseB); mention(pre)
   for (const fd of g.folds) for (const t of [...Object.values(fd.init), ...Object.values(fd.step)]) mention(t.e)
   const unread = g.inputs.filter(v => !read.has(v.name) && v.name !== ev?.name)
@@ -3189,6 +3227,12 @@ const zeroRaw = (s: Var['sort']): Raw => (s.k === 'num' ? 0 : s.k === 'bool' ? f
 const zeroOf = (s: Var['sort']): V => (s.k === 'num' ? {t: 'num', e: I.num(0)} : s.k === 'bool' ? {t: 'bool', e: I.F} : s.k === 'choice' ? {t: 'choice', e: I.llit(s.values[0]!, s.values)} : {t: 'str', e: {op: 'slit', value: ''}})
 // A map's writes, the methods' together: each by the method called (where one writes none, the cell as it was).
 type CellW = {key: K, has: B, vals: Record<string, Term>}
+// Lists of writes of one map made one length: the shorter ones led by writes that change nothing (a cell as it is,
+// at the key the longest list writes there), so place by place they merge as one write each.
+export function padWrites<W extends {key: K}>(lists: W[][], base: (k: K) => Omit<W, 'key'>): W[][] {
+  const n = Math.max(0, ...lists.map(l => l.length)), long = lists.find(l => l.length === n) ?? []
+  return lists.map(l => [...long.slice(0, n - l.length).map(w => ({key: w.key, ...base(w.key)}) as W), ...l])
+}
 export function mapWritesOf(g: Stepper, d: MapDecl, sels: B[], ws: (CellW | undefined)[], fix: (i: number, w: CellW, base: (k: K) => CellW) => CellW = (_, w) => w): CellW | undefined {
   if (!ws.some(Boolean)) return undefined
   const key0 = ws.find(Boolean)!.key, base = (k: K): CellW => { const c = g.baseCell(d, k); return {key: k, has: c.has, vals: Object.fromEntries([...c.vals].map(([f, v]) => [f, {s: v.t === 'num' ? 'num' : v.t === 'choice' ? 'choice' : 'bool', e: (v as {e: N}).e} as Term]))} }
@@ -3203,9 +3247,12 @@ export function mapWritesOf(g: Stepper, d: MapDecl, sels: B[], ws: (CellW | unde
 export const rangeLaws = (state: Var[], ints: Map<string, IntTy>): string[] => state.flatMap(v => {
   const ty = ints.get(v.name), law = (b: string) => [`r.law(${JSON.stringify(`${v.name} within its type's range`)}, ({${v.name}}) => ${v.name}.${b})`]
   if (!ty || v.sort.k !== 'num') return []
+  if (ty.mod) return [`r.law(${JSON.stringify(`${v.name} within its type's range`)}, ({${v.name}, ${ty.mod}}) => ${v.name}.lt(${ty.mod}))`]
   const [lo, hi] = rangeOf(ty)
   return Number.isFinite(hi) ? law(`atMost(${hi}).and(${v.name}.atLeast(${lo}))`) : lo === 0 ? law('atLeast(0)') : []
 })
+// Whether a term multiplies (by a variable, or by a constant other than 0 and ±1): past a width more than once.
+const hasProduct = (e: N): boolean => e.op === 'mul' || (e.op === 'mulk' && Math.abs(e.k) > 1) || ((e.op === 'add' || e.op === 'sub' || e.op === 'min' || e.op === 'max' || e.op === 'ite') && (hasProduct(e.a) || hasProduct(e.b))) || ((e.op === 'neg' || e.op === 'mulk') && hasProduct(e.a))
 export const varTerm = (v: Var): Term => (v.sort.k === 'num' ? {s: 'num', e: I.nvar(v.name)} : v.sort.k === 'bool' ? {s: 'bool', e: I.bvar(v.name)} : v.sort.k === 'choice' ? {s: 'choice', e: {op: 'var', name: v.name, values: v.sort.values}} : {s: 'str', e: {op: 'svar', name: v.name}})
 export function iteTerm(c: B, a: Term, b: Term): Term {
   if (a.s === 'num' && b.s === 'num') return {s: 'num', e: I.nite(c, a.e, b.e)}
