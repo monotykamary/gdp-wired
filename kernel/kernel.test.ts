@@ -11,7 +11,15 @@ import {grow} from './prove.ts'
 let seed = Number(process.env.FUZZ_SEED ?? 12345)
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
 const timed = <T>(what: string, goal: unknown, f: () => T): T => { if (process.env.FUZZ_TRACE) require("node:fs").writeFileSync(process.env.FUZZ_TRACE, JSON.stringify(goal)); const t0 = performance.now(), r = f(), ms = performance.now() - t0; if (ms > 2000) console.log(`SLOW ${Math.round(ms)} ms ${what}: ${JSON.stringify(goal)}`); return r }
-const rand = (n: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * n) } // high bits: the low ones of this generator barely change
+// x' = (1103515245 x + 12345) mod 2^31, exactly (high bits: the low ones of this generator barely change). In doubles
+// the product passes 2^53 and rounds, which folded every seed into one of six short cycles (61 to 10,466 steps; 98.8%
+// of seeds 1000..12999 into the same one): a seed meant fresh drew its cycle's goals again, a short cycle's all one way.
+const rand = (n: number) => { seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff; return Math.floor(seed / 2 ** 31 * n) }
+// A test's draws: n, then more while a count it expects is short (a seed whose goals all fell one way tests nothing
+// about the other), up to `most`. A count still short fails as COVERAGE: the harness's failure, not the kernel's (the
+// treadmill files it apart from a soundness failure).
+const draws = function* (n: number, most: number, short: () => boolean) { for (let t = 0; t < most && (t < n || short()); t++) yield t }
+const covered = (what: string, count: number, least = 1) => expect(count, `COVERAGE: ${what}: ${count}, under ${least}`).toBeGreaterThanOrEqual(least)
 const term = (d: number): E => {
   const r = rand(d <= 0 ? 2 : 10)
   if (r === 0) return {op: 'var', name: ['x', 'y', 'z'][rand(3)]!}
@@ -55,7 +63,7 @@ const models = function* (): Generator<Env> {
 
 test('the kernel never accepts a refutation of something with a model', () => {
   let accepted = 0, total = 0, stuck = 0; const noSmall: string[] = []
-  for (let t = 0; t < 600 * scale; t++) {
+  for (const _ of draws(600 * scale, 2400 * scale, () => accepted <= 50 * scale || !stuck)) {
     const goal: Goal = {name: 'random', hyps: [cmp(2), cmp(2), cmp(1)]}
     total++
     const out = timed('linear', goal, () => grow(goal))
@@ -67,7 +75,8 @@ test('the kernel never accepts a refutation of something with a model', () => {
     expect(check(goal, emptied)).toBe(false)
   }
   console.log(`${accepted} refutations accepted and confirmed by brute force, ${stuck} with a candidate model (${noSmall.length} of them with no model in the small range), of ${total}`)
-  expect(accepted).toBeGreaterThan(50 * scale)
+  covered('refutations accepted', accepted, 50 * scale + 1)
+  covered('goals with a candidate model', stuck)
   expect(noSmall.filter(why => why === 'unknown')).toEqual([]) // every linear goal left open has an integer witness
 }, 1200000) // the slowest shards take up to ~860 s on a busy Modal machine
 
@@ -80,7 +89,7 @@ const mono = (v: E, w: E, [a, b, c]: number[]): E => {
 }
 test('products of products stay sound', () => {
   let proven = 0, falseSeen = 0, randomAccepted = 0, deep = 0
-  for (let t = 0; t < 300 * scale; t++) {
+  for (const _ of draws(300 * scale, 1200 * scale, () => proven <= 30 * scale || falseSeen <= 50 * scale || !randomAccepted)) {
     const co = [rand(3), rand(3), 1 + rand(2)], w: E = rand(2) ? {op: 'var', name: 'z'} : {op: 'var', name: 'x'}
     const X: E = {op: 'var', name: 'x'}, Y: E = {op: 'var', name: 'y'}
     const slack = rand(3) // x <= y + slack: true only at slack 0
@@ -107,9 +116,9 @@ test('products of products stay sound', () => {
     }
   }
   console.log(`degree three: ${proven} monotonicity laws proven, ${falseSeen} false variants (none accepted), ${randomAccepted} random-product leaves accepted (${deep} needing a product of a product), all with no model`)
-  expect(proven).toBeGreaterThan(30 * scale) // every true one is proven (checked above); how many are true varies by seed
-  expect(falseSeen).toBeGreaterThan(50 * scale)
-  expect(randomAccepted).toBeGreaterThan(0) // products of products: a few per shard, summed over supercomputer/suite.json's 32 shards
+  covered('monotonicity laws proven', proven, 30 * scale + 1) // every true one is proven (checked above); how many are true varies by seed
+  covered('false variants', falseSeen, 50 * scale + 1)
+  covered('random-product leaves accepted', randomAccepted) // products of products: a few per shard, summed over supercomputer/suite.json's 32 shards
 }, 600000)
 
 // Squares and cells as factors: random hypotheses whose products multiply a map's cell or any two terms, leaves at the
@@ -128,7 +137,7 @@ const ncmp = (d: number): C => {
 }
 test('squares and cells as factors stay sound', () => {
   let accepted = 0, grown = 0, withSquares = 0
-  for (let t = 0; t < 300 * scale; t++) {
+  for (const _ of draws(300 * scale, 1200 * scale, () => !accepted)) {
     const goal: Goal = {name: 'squares', hyps: [ncmp(2), ncmp(1), ncmp(1)]}
     const sat = [...models()].some(env => goal.hyps.every(h => evC(h, env)))
     const out = timed('squares', goal, () => grow(goal))
@@ -154,5 +163,5 @@ test('squares and cells as factors stay sound', () => {
     }
   }
   console.log(`squares: ${grown} goals grown, ${accepted} random-square leaves accepted (${withSquares} reading a square), all with no model`)
-  expect(accepted).toBeGreaterThan(0)
+  covered('random-square leaves accepted', accepted)
 }, 600000)

@@ -16,7 +16,11 @@ import {type Goal, type Tree, check, obligations} from './kernel.ts'
 import {grow, proveLaws} from './prove.ts'
 
 let seed = Number(process.env.FUZZ_SEED ?? 99)
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+// x' = (1103515245 x + 12345) mod 2^31, exactly (in doubles the product passes 2^53 and rounds, which folded every seed
+// into one of six short cycles, as kernel.test.ts says). A count a test expects fails as COVERAGE: the harness's, not
+// the kernel's (the treadmill files it apart from a soundness failure).
+const rand = (k: number) => { seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff; return Math.floor(seed / 2 ** 31 * k) }
+const covered = (what: string, count: number, least = 1) => expect(count, `COVERAGE: ${what}: ${count}, under ${least}`).toBeGreaterThanOrEqual(least)
 
 const strong: Law = {name: 's + 50p <= b + 150', holds: {op: '<=', a: {op: 'add', a: {op: 'var', name: 's'}, b: {op: 'mul', k: 50, a: {op: 'var', name: 'p'}}}, b: {op: 'add', a: {op: 'var', name: 'b'}, b: {op: 'const', value: 150}}}}
 const subjects: [Machine, Law[]][] = [[loss(), [boundedLoss]], [inflight, [inflightLoss, strong]], [admitFlagged(), capLaws], [windowLimit(), [windowCeiling]]]
@@ -64,8 +68,8 @@ test('nonlinear proofs: squares are read, and a changed square breaks them', () 
     }
   }
   console.log(`tamper: ${squared} proofs with squares, ${changed} changed squares rejected`)
-  expect(squared).toBeGreaterThanOrEqual(3)
-  expect(changed).toBeGreaterThan(0)
+  covered('proofs with squares', squared, 3)
+  covered('changed squares rejected', changed)
 })
 
 type Leaf = Extract<Tree, {leaf: Step[]}>
@@ -108,7 +112,7 @@ test('structurally broken derivations are rejected', () => {
     }
   }
   console.log(`tamper: ${proofs.length} real goals, ${tried} structurally broken trees, all rejected`)
-  expect(tried).toBeGreaterThan(100)
+  covered('structurally broken trees', tried, 101)
 })
 
 // Weakened goals: random sampling (variables and map cells over a small range) for a model; when one is found, the
@@ -179,7 +183,7 @@ test('a proof offered for a weakened goal with a model is rejected', () => {
     }
   }
   console.log(`tamper: ${weakened} weakened goals, ${withModel} with a model found, every proof offered for them rejected`)
-  expect(withModel).toBeGreaterThan(30)
+  covered('weakened goals with a model found', withModel, 31)
 }, 600_000)
 
 test('derivations that only an unsound checker would accept, and witnesses', () => {
