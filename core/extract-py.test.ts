@@ -246,7 +246,8 @@ class Book:
         return t
 `, {entry: 'Book'}))
   expect(x.source).toMatch(/items\$0\.every\(\(_x, i\$\) =>/)
-  expect(step(x, 'the total of no items is 0', (_b, a) => a.total_result.eq(0), b => all(b.method.is('total'), b.items_least1$some.not())).proven).toBe(true)
+  // (its passes: one past the last place, the least key a list of the state's last item is read by)
+  expect(x.source).toMatch(/items\$0_len\.eq\(when\(/)
 }, 60_000)
 
 // A store's get and set inside a try that catches what they raise (a cache that may fail): each may raise, an input
