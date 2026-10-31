@@ -31,7 +31,7 @@ let dumped = 0
 
 const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
 const json = (t: unknown) => JSON.stringify(t)
-const knob = {pairs: env.GDP_K_PAIRS === '1', rounds: Number(env.GDP_K_ROUNDS ?? 2), cap: Number(env.GDP_K_CAP ?? 24), ts: env.GDP_K_TS !== '0', keyed: env.GDP_K_KEYED !== '0', flagTs: env.GDP_K_FLAGTS !== '0', shrink: Number(env.GDP_K_SHRINK ?? 150), walks: Number(env.GDP_K_WALKS ?? 100_000), alone: Number(env.GDP_K_ALONE ?? 300), hops: Number(env.GDP_K_HOPS ?? 16), first: env.GDP_K_FIRST !== '0', decide: Number(env.GDP_K_DECIDE ?? 0), mbqi: Number(env.GDP_K_MBQI ?? 4), once: env.GDP_K_ONCE !== '0', reads: Number(env.GDP_K_READS ?? 6)}
+const knob = {pairs: env.GDP_K_PAIRS === '1', rounds: Number(env.GDP_K_ROUNDS ?? 0), cap: Number(env.GDP_K_CAP ?? 24), ts: env.GDP_K_TS === '1', keyed: env.GDP_K_KEYED !== '0', flagTs: env.GDP_K_FLAGTS !== '0', shrink: Number(env.GDP_K_SHRINK ?? 150), walks: Number(env.GDP_K_WALKS ?? 100_000), alone: Number(env.GDP_K_ALONE ?? 300), hops: Number(env.GDP_K_HOPS ?? 16), first: env.GDP_K_FIRST !== '0', decide: Number(env.GDP_K_DECIDE ?? 0), mbqi: Number(env.GDP_K_MBQI ?? 12), once: env.GDP_K_ONCE !== '0', reads: Number(env.GDP_K_READS ?? 6), memo: env.GDP_K_MEMO !== '0'}
 const one = k(1), zero = k(0)
 type Env = Record<string, number>
 
@@ -254,6 +254,9 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
     //     tuple of the goal's own keys), the goals made again with them, `mbqi` rounds at most; none asked, the goal has a
     //     model and is given up at once (no tree to grow);
     //   - unknown: the goals grown as they are.
+    // (a long attempt, the hard stage's or Houdini's, three times the rounds; past them, the goal is unknown, not a model)
+    let esc = 0
+    const rounds = ms >= 5_000 ? 3 * knob.mbqi : knob.mbqi
     for (let round = 0; ; round++) {
       const step = built.at(-1)
       if (!step?.gg || step.gg.hyps.length < knob.decide) break
@@ -270,7 +273,16 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
         break
       }
       if ('tree' in q || q.stuck !== 'sat' || !q.witness) break
-      const asked = round < knob.mbqi ? ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!)) : undefined
+      if (round >= rounds) { stuck = 'unknown'; return undefined }
+      let asked = round < rounds ? ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!)) : undefined
+      // (no instance asked: the blanket ones next, in turn, before the model is taken as one: the goals' reads matched,
+      // then the every-key laws at the law's own names and the request's values)
+      for (; !asked && esc < 2; esc++) {
+        const at2: Instances = Object.fromEntries(Object.entries(at).map(([n, t]) => [n, [...t]]))
+        const grew = esc === 0 ? ptime('match', () => more(at2, built.map(b => b.gg?.hyps ?? b.goal.hyps), built.map(b => b.goal.hyps.at(-1)!)))
+          : ls.filter(l => !l.keys?.length && l.forall).map(l => ts.filter(t => { const had = at2[l.name] ?? []; if (had.some(x => json(x) === json(t))) return false; at2[l.name] = [...had, t]; return true }).length).some(n => n > 0)
+        if (grew) asked = at2
+      }
       if (!asked) {
         stuck = 'sat'
         if (env.GDP_COUNTS_DUMP && pass && ls.length >= Number(env.GDP_COUNTS_DUMP_LS ?? 0) && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; appendFileSync(env.GDP_COUNTS_DUMP, json({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps}) + '\n') }
@@ -324,7 +336,7 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
   // (in tiers, each to its fixpoint before the next: the law alone, once; with the kept laws that read one of its maps;
   // with every kept law, a larger goal, the nearer tier again after each kept)
   // (the whole cone's goal at most twice a law here: the hard stage below takes the rest)
-  const times = new Map<string, number>()
+  const times = new Map<string, number>(), askedLs = new Set<string>()
   const tier = (t: 0 | 1 | 2): boolean => {
     let any = false
     for (let grew = true; grew && clock() < stopAt;) {
@@ -337,6 +349,10 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
         const ls = t === 0 ? [law] : t === 1 ? near(law) : set.filter(l => l === law || cone(l))
         // (a tier whose goal is a nearer tier's, tried at this cone already, is skipped)
         if ((t === 1 && ls.length === 1) || (t === 2 && tried.get(`1 ${law.name}`) === kept.size && near(law).length === ls.length)) continue
+        // (the same law over the same laws, asked before in any tier, failed then: its goals are those again)
+        const same = `${law.name}\n${ls.map(l => l.name).join('\n')}`
+        if (knob.memo && askedLs.has(same)) continue
+        askedLs.add(same)
         if (keep(law, attempt(law, ls, 1, knob.alone))) grew = any = true
       }
       if (t === 2) break
