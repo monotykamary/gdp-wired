@@ -1261,6 +1261,13 @@
 "timeout": 600
 },
 {
+"name": "trading",
+"cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && cd core && bun test orderbook.test.ts ordered.test.ts rounding.test.ts 2>&1 && cd .. && bun examples/orderbook.ts 2>&1",
+"cwd": ".",
+"cpu": 2.0,
+"timeout": 900
+},
+{
 "name": "extract-rs",
 "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/rust/rust-setup.sh && cd core && bun test --timeout 600000 extract-rs.test.ts 2>&1",
 "cwd": ".",
