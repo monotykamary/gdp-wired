@@ -184,7 +184,16 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
   }
   const cubes = cubes0.map(loosened)
   if (env.GDP_COUNTS_TRACE) console.error(`counts: small ${states.map(({sts}) => sts.length).join('/')}; cubes ${cubes.length} in ${Math.round(clock() - t1)} ms: ${cubes.map(l => l.name).join('; ')}`)
-  return ptime('filter', () => [...kinds, ...guarded, ...rowLaws, ...cubes].filter(trueAll))
+  // (a candidate whose every conjunct a law before it states, its keys named apart by place, is not proposed again: a
+  // cell's maximum its kind's law states, a cube a guard's)
+  const said = new Set<string>(), parts = (l: Law): string[] => {
+    const ks = [l.forall, ...(l.keys ?? [])].filter((x): x is string => !!x), named = substC(l.holds, {vars: Object.fromEntries(ks.map((x, i) => [x, v(`$${i}`)])), maps: {}, flags: {}})
+    return (named.op === 'and' ? named.xs : [named]).map(json)
+  }
+  for (const l of caller) for (const q of parts(l)) said.add(q)
+  const out = ptime('filter', () => [...kinds, ...guarded, ...rowLaws, ...cubes].filter(l => { const ps = parts(l); if (ps.every(q => said.has(q)) || !trueAll(l)) return false; for (const q of ps) said.add(q); return true }))
+  if (env.GDP_COUNTS_TRACE) console.error(`counts: ${kinds.length + guarded.length + rowLaws.length + cubes.length - out.length} candidates said before or false on the small instances`)
+  return out
 }
 
 // --- the cone ----------------------------------------------------------------------------------------------------------
