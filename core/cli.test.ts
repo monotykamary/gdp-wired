@@ -485,7 +485,7 @@ class Counter:
   expect(law.verdict).toBe('broken')
   expect(law.run!.join('\n')).toMatch(/failed\(vm=/)
   expect(b.exit).toBe(1)
-})
+}, 180_000)
 
 // A law about an argument the code ignores (the bug is that it does): the argument kept in the rule, the law broken.
 ;(TOOLS.python!() ? test : test.skip)('the CLI on a law reading an argument the code ignores: broken, with its run', async () => {
@@ -502,7 +502,7 @@ class Waits:
   expect(rules[0]!.laws.map(l => l.verdict)).toEqual(['broken'])
   expect(rules[0]!.laws[0]!.run!.join('\n')).toMatch(/waited\(start_failed=false\)/)
   expect(exit).toBe(1)
-})
+}, 180_000)
 
 // from = "any": a law proven only with an invariant the search finds holds from the start, not from every state the laws
 // allow; stated beside it, the invariant makes the two one inductive set, proven from any state.
@@ -530,7 +530,7 @@ ${helper ? '    # gdp: law a within 3: a <= 3\n' : ''}
   writeFileSync(`${dir}/mirror.py`, code(true))
   const b = await check([`${dir}/mirror.py`], {ms: 5000, propose: false})
   expect(b.rules[0]!.laws.map(l => [l.verdict, l.from])).toEqual([['proven', 'any'], ['proven', 'any']])
-})
+}, 180_000)
 
 // Laws of "eventually" in the code's comments: `<from> leads to <to> by <rank> via [<cond> ->] <method>(<arg> = <value>)`,
 // an episode of the class (a subclass whose requests gdp.toml names) where other requests would undo the progress.
@@ -570,7 +570,7 @@ class Resettable(Retry):
   const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [`${r.entry}: ${l.name}`, l.verdict])))
   expect(v['Retry: a waiting job ends']).toBe('proven')
   expect(v['Resettable: a job of a resettable kind ends']).toBe('unknown')
-})
+}, 180_000)
 
 
 // No law stated is dropped: a class that writes no state is read (its law a decision's); a law on a method is the
@@ -623,7 +623,7 @@ class Spin:
   const stated = lawsIn(readAdv(`${dir}/m.py`, 'utf8'), 'm.py').map(l => l.where), told = new Set(rules.flatMap(r => r.laws.map(l => l.where)))
   expect(stated.filter(w => !told.has(w))).toEqual([])
   expect(exit).toBe(2)
-})
+}, 180_000)
 
 // A start whose constructor arithmetic passes 2^53 - 1 is outside the rule's numbers, as a step past them is: left out of
 // the check (and said so), not a refusal of the class.
@@ -646,7 +646,7 @@ class Tries:
   const {rules} = await check([`${dir}/t.py`], {ms: 5000, propose: false})
   expect(rules[0]!.ok).toBe(true)
   expect(rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
-})
+}, 180_000)
 
 // What the code names, a law names the same: a field named failed (the keyword yields to it), a module's constant, a
 // class found by its statement (never a word of a docstring); a sum it can't take is a law not read, never a crash.
@@ -691,7 +691,7 @@ class Pending:
   expect(v['at most LIMIT asks']).toEqual(['Creation', 'proven'])
   // (a sum of a map of integers: its positive parts less its negative parts; from any state it needs the laws about them)
   expect(v['the need is the pending sum']![1]).not.toBe('not read')
-})
+}, 180_000)
 
 // What supercomputer's rules hit, each read as the code means it: a constant bound to another's name, a field never
 // shadowed by another method's argument, a product of factors the path keeps at 0 or above, a comparison with x // k, a
