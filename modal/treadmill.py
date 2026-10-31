@@ -73,6 +73,7 @@ FUZZ = {"kernel": ("kernel", "FUZZ_SEED={s} bun test kernel.test.ts 2>&1"),
 REFUSED = ("unsupported", "refused")
 SWEEP_HOURS = 24  # a sweep's commit is replaced by main's at the latest after this long
 YIELD = 200  # the treadmill starts a VM only while more than this many free starts are left this hour (else warm ones)
+MODAL_MAX = 64  # a batch boat refuses whole goes to Modal only when it is this small (a submission, a short round)
 
 
 def log(*a):
@@ -201,6 +202,14 @@ class Batch:
             if self.sess:
                 summary = self.sess.close()
         todo = [it for it in self.items if it["name"] not in got]
+        if todo and len(todo) > MODAL_MAX and not lost:
+            # (boat refused the whole batch, its image not built or its API down: a sweep isn't urgent, so it waits for
+            # boat rather than send hundreds of items to Modal; a few items lost on the way do go to Modal)
+            log(f"{self.label}: boat can't run it now; again later ({len(todo)} items, past MODAL_MAX for Modal)")
+            self.failed = True
+            for it in todo:
+                self.on_row(it, {"code": -1, "error": "boat couldn't run it now", "lost": True, "retry": True})
+            todo = []
         if todo and not self.tm.modal:
             self.failed = True
             for it in todo:
@@ -217,7 +226,7 @@ class Batch:
                 for it in [it for it in todo if it["name"] not in got]:
                     self.on_row(it, {"code": -1, "error": f"boat and Modal failed: {str(e)[:200]}", "lost": True})
         try:
-            if self.after:
+            if self.after and not self.failed:  # (a batch to run again later records nothing now)
                 self.after(logs)
         finally:
             if summary:
@@ -244,6 +253,9 @@ def py_item(name: str, module: str, fn: str, args: list, limit: int, est: float,
 def import_real(path: pathlib.Path):
     """A module of a tree (a runner, modal/run.py) under the real Modal client: its app, functions and image."""
     import importlib.util
+    if getattr(sys.modules.get("modal"), "__gdpw_stub__", False):  # (agent.import_runner's stub, for BOAT configs: not here)
+        del sys.modules["modal"]
+    import modal  # noqa: F401
     name = "tm_" + hashlib.sha256(str(path).encode()).hexdigest()[:10]
     if name in sys.modules:
         return sys.modules[name]
@@ -675,6 +687,10 @@ class Treadmill:
             self.sweeps = {b: Sweep(self, sw, self.tree, b) for b in self.benches}
         for sw in self.sweeps.values():
             sw.poll()
+        for s in self.subs.values():  # (a submission boat couldn't take: queued again)
+            if s.batch and s.batch.done and s.batch.failed:
+                s.batch, s.meta["status"] = None, "queued"
+                s.save()
         for d in sorted((TM / "subs").glob("*/meta.json")) if (TM / "subs").exists() else []:
             if d.parent.name not in self.subs and json.loads(d.read_text())["status"] in ("queued", "running"):
                 self.subs[d.parent.name] = Submission(self, d.parent)
