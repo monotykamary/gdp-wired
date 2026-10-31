@@ -22,7 +22,7 @@ type Any = any
 type Env = Record<string, Any>
 // What a name is in the code: `Schedule.spaced`, `Duration.millis` (the module and the member), or undefined.
 export type Api = (e: ts.Expression) => string | undefined
-export type ReadCtx = {api: Api, checker: ts.TypeChecker, v4: boolean, params: Map<ts.Node, string>, sf: ts.SourceFile, bound?: Map<ts.Node, Frag>, outer?: (at: ts.Node) => never}
+export type ReadCtx = {api: Api, checker: ts.TypeChecker, v4: boolean, params: Map<ts.Node, string>, sf: ts.SourceFile, bound?: Map<ts.Node, Frag>, outer?: (at: ts.Node) => never, underMin?: boolean}
 
 // --- the machine's parts ---------------------------------------------------------------------------------------------
 // A fragment's step, given the rule's env, a reader of its state (its start, for a schedule entered fresh) and its
@@ -89,7 +89,9 @@ function sched(e0: ts.Expression, rc: ReadCtx, P: Parts): Frag {
     case 'min': case 'max': if (rc.v4) {
       const xs = a0 && ts.isArrayLiteralExpression(strip(a0)) ? (strip(a0) as ts.ArrayLiteralExpression).elements : refuse(c, `Schedule.${op} of other than an array written here`)
       if (!xs.length) return refuse(c, `Schedule.${op}([])`)
-      return xs.slice(1).reduce((f, x) => both(op === 'min' ? 'union' : 'intersect', f, sched(x, rc, P), P), sched(xs[0]!, rc, P))
+      // (min steps every schedule again after it stopped: a combinator inside counts its own metadata, see own())
+      const rc2 = op === 'min' ? {...rc, underMin: true} : rc
+      return xs.slice(1).reduce((f, x) => both(op === 'min' ? 'union' : 'intersect', f, sched(x, rc2, P), P), sched(xs[0]!, rc2, P))
     } break
   }
   // A combinator given its schedule first (data-first): Schedule.union(a, b), Schedule.upTo(s, d).
@@ -128,7 +130,7 @@ function combinator(a: ts.Expression, self: Frag, rc: ReadCtx, P: Parts, skip = 
       if (x && ts.isObjectLiteralExpression(strip(x))) {
         const o = strip(x) as ts.ObjectLiteralExpression, get = (k: string) => (o.properties.find(p => ts.isPropertyAssignment(p) && memberName(p.name) === k) as ts.PropertyAssignment | undefined)?.initializer
         for (const p of o.properties) if (!ts.isPropertyAssignment(p) || !['duration', 'times'].includes(memberName(p.name))) refuse(p, `Schedule.upTo's ${text(p)} (duration and times are read)`)
-        return upToFrag(self, P, get('duration') && dur(get('duration'), a, rc), get('times') && count(get('times'), a, rc), false)
+        return upToFrag(self, P, get('duration') && dur(get('duration'), a, rc), get('times') && count(get('times'), a, rc), false, rc)
       }
       return refuse(a, 'Schedule.upTo of other than {duration, times} written here')
     case 'whileInput': case 'untilInput': case 'whileOutput': case 'untilOutput': if (!rc.v4) return whileFrag(self, P, x, rc, op); break
@@ -193,6 +195,19 @@ const ratio = (x: ts.Expression): [number, number] => {
 }
 
 // --- the fragments ---------------------------------------------------------------------------------------------------
+// 4.x's combinators each count their own metadata (attempt, elapsed from their first step), and only on a step where the
+// schedule inside them went on. Within one run that is every step until it stops, so the context's counts are theirs;
+// inside Schedule.min, which steps a schedule again after it stopped, they lag: there a combinator keeps its own.
+type Own = {ctx: (env: Env, get: (n: string) => Any, c: Ctx) => Ctx, next: (env: Env, get: (n: string) => Any, inner: Res) => Record<string, Any>, names: string[]}
+function own(P: Parts, rc: ReadCtx): Own | undefined {
+  if (!rc.v4 || !rc.underMin) return undefined
+  const n = nat0(P, 'meta_n'), start = nat0(P, 'meta_start'), on = flag(P, 'meta_on')
+  return {
+    names: [n, start, on],
+    ctx: (env, get) => { const now = env.$now as Term; return {attempt: get(n), elapsed: when(get(on), now.minus(get(start)), 0), first: get(n).eq(0)} },
+    next: (env, get, x) => { const now = env.$now as Term, on0: Cond = get(on); return {[n]: when(x.cont, get(n).plus(1), get(n)), [start]: when(on0.not().and(x.cont), now, get(start)), [on]: on0.or(x.cont)} },
+  }
+}
 const nat0 = (P: Parts, stem: string) => { const n = P.fresh(stem); P.state.set(n, {kind: 'nat', init: 0}); return n }
 const flag = (P: Parts, stem: string, init = false) => { const n = P.fresh(stem); P.state.set(n, {kind: 'bool', init}); return n }
 const leaf = (step: Frag['step']): Frag => ({step, names: []})
@@ -263,12 +278,12 @@ function andThenFrag(l: Frag, r: Frag, P: Parts): Frag {
 }
 // upTo: goes on while the elapsed time is within the duration (3.x: below it; 4.x: at most it) and, in 4.x, while it has
 // been stepped fewer than `times` times.
-function upToFrag(self: Frag, P: Parts, d: Num | undefined, times: Num | undefined, strict: boolean): Frag {
-  void P
-  return {...self, step: (env, get, c) => {
-    const x = self.step(env, get, c)
+function upToFrag(self: Frag, P: Parts, d: Num | undefined, times: Num | undefined, strict: boolean, rc?: ReadCtx): Frag {
+  const o = rc && own(P, rc)
+  return {...self, names: [...self.names, ...o?.names ?? []], step: (env, get, c0) => {
+    const x = self.step(env, get, c0), c = o ? o.ctx(env, get, c0) : c0
     const within = d ? (strict ? c.elapsed.lt(term(d, env)) : c.elapsed.atMost(term(d, env))) : yes, few = times ? c.attempt.lt(term(times, env)) : yes
-    return {...x, cont: all(x.cont, within, few)}
+    return {...x, cont: all(x.cont, within, few), next: {...x.next, ...o?.next(env, get, x)}}
   }}
 }
 // jittered: the delay drawn between lo and hi times the delay (Effect's Random); in the rule an input of each step,
@@ -291,11 +306,12 @@ function jitterFrag(self: Frag, P: Parts, lo: [number, number], hi: [number, num
 function whileFrag(self: Frag, P: Parts, f: ts.Expression | undefined, rc: ReadCtx, op: string): Frag {
   const fn = f && strip(f)
   if (!fn || !(ts.isArrowFunction(fn) || ts.isFunctionExpression(fn))) return refuse(f ?? fn!, `Schedule.${op} of other than a function written here`)
-  return {...self, step: (env, get, c) => {
-    const x = self.step(env, get, c)
+  const o = own(P, rc)
+  return {...self, names: [...self.names, ...o?.names ?? []], step: (env, get, c0) => {
+    const x = self.step(env, get, c0), c = o ? o.ctx(env, get, c0) : c0
     const ctx = callbackCtx(fn, rc, P, env, c, x, op)
     const v = body(fn, ctx), ok = asCond(v, fn)
-    return {...x, cont: x.cont.and(/^until/.test(op) ? ok.not() : ok)}
+    return {...x, cont: x.cont.and(/^until/.test(op) ? ok.not() : ok), next: {...x.next, ...o?.next(env, get, x)}}
   }}
 }
 // addDelay / modifyDelay: the delay the function gives (3.x: of the output and the delay; 4.x: of the metadata, as an
@@ -303,10 +319,11 @@ function whileFrag(self: Frag, P: Parts, f: ts.Expression | undefined, rc: ReadC
 function delayFrag(self: Frag, P: Parts, f: ts.Expression | undefined, rc: ReadCtx, op: string): Frag {
   const fn = f && strip(f)
   if (!fn || !(ts.isArrowFunction(fn) || ts.isFunctionExpression(fn))) return refuse(f ?? fn!, `Schedule.${op} of other than a function written here`)
-  return {...self, step: (env, get, c) => {
-    const x = self.step(env, get, c)
+  const o = own(P, rc)
+  return {...self, names: [...self.names, ...o?.names ?? []], step: (env, get, c0) => {
+    const x = self.step(env, get, c0), c = o ? o.ctx(env, get, c0) : c0
     const v = asDur(body(fn, callbackCtx(fn, rc, P, env, c, x, op)), fn)
-    return {...x, delay: when(x.cont, op === 'addDelay' ? x.delay.plus(v) : v, x.delay)}
+    return {...x, delay: when(x.cont, op === 'addDelay' ? x.delay.plus(v) : v, x.delay), next: {...x.next, ...o?.next(env, get, x)}}
   }}
 }
 

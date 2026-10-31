@@ -485,23 +485,65 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
   const yields = (n: ts.Node): ts.YieldExpression[] => { const out: ts.YieldExpression[] = []; const go = (x: ts.Node) => { if (ts.isYieldExpression(x)) out.push(x); if (!ts.isFunctionLike(x)) ts.forEachChild(x, go) }; ts.forEachChild(n, go); if (ts.isYieldExpression(n)) out.unshift(n); return out }
   const quiet = (y: ts.YieldExpression) => { const x = y.expression && strip(y.expression); return !x || ts.isNewExpression(x) || QUIET.has((ts.isCallExpression(x) ? callOf(s, x) : apiOf(s, x)) ?? '') }
   const failing = (y: ts.YieldExpression) => { const x = y.expression && strip(y.expression); return !!x && (ts.isNewExpression(x) || /^(Effect|STM)\.(fail|failSync|die|dieMessage)$/.test((ts.isCallExpression(x) ? callOf(s, x) : '') ?? '')) }
+  // How many effects on the state a piece of a method runs one after another, each a point another fiber's step may
+  // come between: a Ref or TRef operation, a transaction or a lock's body one each; an Effect.gen's or a helper's body
+  // counted through; a branch its larger side; a repeat several; a failure, a log, a sleep or a wait none.
+  const TXS = new Set(['Effect.tx', 'STM.gen', 'STM.commit'])
+  const units = (n: ts.Node): number => {
+    if (ts.isFunctionLike(n)) return 0
+    if (ts.isIfStatement(n)) return units(n.expression) + Math.max(units(n.thenStatement), n.elseStatement ? units(n.elseStatement) : 0)
+    if (ts.isConditionalExpression(n)) return units(n.condition) + Math.max(units(n.whenTrue), units(n.whenFalse))
+    if (ts.isYieldExpression(n)) return n.expression ? ran(n.expression) : 0
+    let t = 0
+    ts.forEachChild(n, c => { t += units(c) })
+    return t
+  }
+  const helper = (x: ts.Expression): ts.FunctionLikeDeclaration | undefined => { const d = ts.isIdentifier(x) ? s.checker.getSymbolAtLocation(x)?.valueDeclaration : undefined; return d && ts.isVariableDeclaration(d) && d.initializer ? fnOf(s, d.initializer) ?? (genOf(s, d.initializer) as ts.FunctionLikeDeclaration | undefined) : undefined }
+  const bodyUnits = (fn: ts.FunctionLikeDeclaration): number => (!fn.body ? 0 : ts.isBlock(fn.body) ? units(fn.body) : ran(fn.body as ts.Expression))
+  const ran = (e0: ts.Expression): number => {
+    const e = strip(e0)
+    if (ts.isNewExpression(e)) return 0
+    const api = (ts.isCallExpression(e) ? callOf(s, e) : apiOf(s, e)) ?? ''
+    if (QUIET.has(api)) return 0
+    if (TXS.has(api)) return 1
+    if (ts.isCallExpression(e)) {
+      const callee = strip(e.expression)
+      if (ts.isPropertyAccessExpression(callee) && memberName(callee.name) === 'pipe' && !api) {
+        const fs = e.arguments.map(a => callOf(s, a) ?? apiOf(s, a) ?? ''), head = ran(callee.expression)
+        return fs.includes('STM.commit') ? 1 : fs.includes('Effect.repeat') && head ? 2 : head
+      }
+      // (a lock's body: one at a time)
+      if (ts.isCallExpression(callee) && ts.isPropertyAccessExpression(strip(callee.expression)) && /^withPermits?$/.test(memberName((strip(callee.expression) as ts.PropertyAccessExpression).name))) return e.arguments[0] && ran(e.arguments[0]) ? 1 : 0
+      if (api === 'Effect.gen') { const g = genOf(s, e); return g ? bodyUnits(g) : 1 }
+      if (api === 'Effect.retry') return ran(e.arguments[0]!)
+      if (api === 'Effect.repeat') return ran(e.arguments[0]!) ? 2 : 0
+      const h = helper(callee)
+      if (h) return bodyUnits(h)
+    }
+    if (ts.isIdentifier(e)) { const d = s.checker.getSymbolAtLocation(e)?.valueDeclaration; if (d && ts.isVariableDeclaration(d) && d.initializer && !fnOf(s, d.initializer)) return ran(d.initializer) }
+    return 1
+  }
   // The methods: each property of the returned object, its function where the make effect writes it.
   type M = {name: string, fn: ts.FunctionExpression, at: ts.Expression, units: number[], stmts: readonly ts.Statement[]}
-  const methods: M[] = []
+  const methods: M[] = [], several: [string, ts.Node, number][] = []
   for (const pr of f.obj.properties) {
     const name = pr.name ? memberName(pr.name) : ''
     let init: ts.Expression | undefined = ts.isPropertyAssignment(pr) ? pr.initializer : ts.isShorthandPropertyAssignment(pr) ? pr.name : undefined
     if (init && ts.isIdentifier(strip(init))) { const d = (ts.isShorthandPropertyAssignment(pr) ? s.checker.getShorthandAssignmentValueSymbol(pr) : s.checker.getSymbolAtLocation(strip(init)))?.valueDeclaration; init = d && ts.isVariableDeclaration(d) ? d.initializer : init }
     const fn = init && fnOf(s, init)
-    if (!fn || !ts.isFunctionExpression(fn) || !fn.asteriskToken || !fn.body) continue
-    const stmts = fn.body.statements, units = stmts.flatMap((st, i) => (yields(st).some(y => !quiet(y)) ? [i] : []))
-    methods.push({name, fn, at: init!, units, stmts})
+    if (!fn?.body) continue
+    if (!ts.isFunctionExpression(fn) || !fn.asteriskToken || !ts.isBlock(fn.body)) { const n = bodyUnits(fn); if (n >= 2) several.push([name, fn, n]); continue }
+    const stmts = fn.body.statements, per = stmts.map(units), units0 = stmts.flatMap((_, i) => (per[i]! > 0 ? [i] : []))
+    if (per.reduce((a, b) => a + b, 0) >= 2) for (const [i, n] of per.entries()) if (n >= 2) several.push([name, stmts[i]!, n])
+    methods.push({name, fn, at: init!, units: units0, stmts})
   }
-  const split = methods.filter(mt => mt.units.length >= 2)
-  if (!split.length || (opts.fibers === undefined && !TX.test(code))) {
-    if (split.length) s.notes.add(`${split.map(mt => mt.name).join(', ')} run several Ref operations one after another: each method is read as one step, which holds where calls don't interleave (fibers: true reads them as interleaving steps)`)
+  const split = methods.filter(mt => mt.units.length >= 2 || several.some(([n]) => n === mt.name))
+  if ((!split.length && !several.length) || (opts.fibers === undefined && !TX.test(code))) {
+    if (split.length || several.length) s.notes.add(`${[...new Set([...split.map(mt => mt.name), ...several.map(([n]) => n)])].join(', ')} run several Ref operations one after another: each method is read as one step, which holds where calls don't interleave (fibers: true reads them as interleaving steps)`)
     return undefined
   }
+  // (each step of a method read for many fibers is one statement of its body, with one effect on the state at most)
+  for (const [name, at, n] of several) refuse(at, `${name}: ${text(at)} runs ${n} effects on the state one after another${ts.isStatement(at) ? ' in one statement' : ''}, and another fiber's step may come between them: write the method as Effect.fn('${name}')(function* ...) with each in a statement of its own (each a step), or in one transaction`)
   // Each split method's segments, the names each carries on, and the service written again.
   const edits: [number, number, string][] = [], decls: string[] = [], resumes: string[] = []
   const tyOf = (n: ts.Node) => { const t = s.checker.getTypeAtLocation(n), str = s.checker.typeToString(s.checker.getBaseTypeOfLiteralType(t)); return t.flags & ts.TypeFlags.BooleanLike ? ['boolean', 'false'] : t.flags & ts.TypeFlags.NumberLike ? ['number', '0'] : t.isUnion() && t.types.every(u => u.isStringLiteral()) ? [s.checker.typeToString(t), JSON.stringify((t.types[0] as ts.StringLiteralType).value)] : t.flags & ts.TypeFlags.StringLike ? ['string', "''"] : refuse(n, `${text(n)} is carried from one step to the next, and is a ${str} (a number, a boolean or a string is carried)`) }
@@ -509,8 +551,6 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
     const base = (mi + 1) * 100, K = mt.units.length, segs: ts.Statement[][] = []
     mt.units.forEach((u, k) => segs.push([...mt.stmts.slice(k === 0 ? 0 : mt.units[k - 1]! + 1, u + 1), ...(k === K - 1 ? mt.stmts.slice(u + 1) : [])]))
     for (const [k, seg] of segs.entries()) for (const st of seg) {
-      const ys = yields(st).filter(y => !quiet(y))
-      if (ys.length > 1) refuse(st, `${mt.name}: ${text(st)} runs ${ys.length} effects on the state in one statement (write each in a statement of its own: each is a step)`)
       // (a later step's failing transaction: the call would end with the earlier steps' writes kept and this one's rolled
       // back, which a refusal of this step leaves the fiber waiting on instead)
       if (k > 0) { const go = (x: ts.Node, inner: boolean) => { if (ts.isYieldExpression(x) && inner && failing(x)) refuse(x, `${mt.name}: a transaction that fails in a step after the first (the call ends there, its earlier steps' writes kept): fail in the first step, or wait (STM.check, Effect.txRetry) instead`); ts.forEachChild(x, c => go(c, inner || ts.isFunctionLike(x))) }; go(st, false) }

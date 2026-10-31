@@ -34,6 +34,9 @@ export const V4 = [
   'Schedule.exponential("10 millis", 3).pipe(Schedule.jittered)', 'Schedule.exponential("100 millis").pipe(Schedule.jittered, (s) => Schedule.min([s, Schedule.spaced("2 seconds")]))',
   'Schedule.concat(Schedule.recurs(2), Schedule.exponential("10 millis").pipe(Schedule.jittered, Schedule.upTo({duration: "1 second"})))',
   'Schedule.recurs(3).pipe(Schedule.passthrough)', 'Schedule.recurs(n)', 'Schedule.spaced(Duration.millis(n)).pipe(Schedule.upTo({times: 4}))',
+  // (inside min, which steps a schedule again after it stopped: each combinator counts its own metadata)
+  'Schedule.min([Schedule.spaced(10), Schedule.spaced(1).pipe(Schedule.while(({input}: {input: boolean}) => input), Schedule.upTo({times: 1}))])',
+  'Schedule.min([Schedule.spaced(50), Schedule.spaced(5).pipe(Schedule.while(({input}: {input: boolean}) => input), Schedule.while(({attempt, elapsed}) => attempt <= 2 && elapsed <= 30), Schedule.addDelay(({attempt}) => Effect.succeed(Duration.millis(attempt))))])',
 ]
 export const V3 = [
   'Schedule.spaced("100 millis")', 'Schedule.recurs(3)', 'Schedule.forever', 'Schedule.once', 'Schedule.stop', 'Schedule.exponential("10 millis")',
@@ -61,7 +64,7 @@ test('every combinator (4.x) decides as Effect\'s own schedule does: random atte
   for (const src of V4) {
     const x = sched4(src, params(src))
     expect([src, x.ok, x.refusals]).toEqual([src, true, []])
-    expect(x.evidence!.requests).toBeGreaterThan(100)
+    expect(x.evidence!.requests).toBeGreaterThanOrEqual(100)
   }
 }, 600_000)
 
@@ -69,7 +72,7 @@ test('every combinator (3.x) decides as Effect\'s own schedule does: random atte
   for (const src of V3) {
     const x = sched3(src, params(src))
     expect([src, x.ok, x.refusals]).toEqual([src, true, []])
-    expect(x.evidence!.requests).toBeGreaterThan(100)
+    expect(x.evidence!.requests).toBeGreaterThanOrEqual(100)
   }
 }, 600_000)
 

@@ -6,6 +6,7 @@
 // STM; and what isn't read refused with why.
 import {expect, test} from 'bun:test'
 import * as effect from 'effect'
+import {join} from 'node:path'
 import {proveRule} from './dsl.ts'
 import {extractEffect, fiberRun} from './effect.ts'
 import {check} from './cli.ts'
@@ -133,9 +134,13 @@ test('what the transaction reader doesn\'t take is refused where it is, with the
     [4, `  const go = Effect.fn('go')(function* (n: number) { yield* TxRef.set(a, n); yield* Effect.tx(Effect.gen(function* () { const x = yield* TxRef.get(b); if (x > 3) return yield* new No(); yield* TxRef.set(b, x + 1) })) })\n  return {go}`, /a transaction that fails in a step after the first/],
     [4, `  const go = Effect.fn('go')(function* (n: number) { yield* Effect.tx(Effect.gen(function* () { yield* TxRef.set(a, n) })); if (n > 3) return yield* new No() })\n  return {go}`, /fails after writing a/],
     [3, `  const go = (n: number) => STM.gen(function* () { yield* STM.check(n > 0) }).pipe(STM.commit)\n  return {go}`, /STM.check of other than \(\) => condition/],
-    [3, `  const go = (n: number) => STM.all([TRef.get(a), TRef.get(b)]).pipe(STM.commit)\n  return {go}`, /STM.all \(of STM: gen, commit/],
+    [3, `  const go = (n: number) => STM.commit(STM.flatMap(TRef.get(a), x => TRef.set(b, x + n)))\n  return {go}`, /STM.flatMap \(of STM: gen, commit/],
     [4, `  const go = Effect.fn('go')(function* () { return yield* Effect.txRetry })\n  return {go}`, /Effect.txRetry outside a transaction/],
     [4, `  const go = Effect.fn('go')(function* () { const {x} = {x: yield* TxRef.get(a)}; yield* Effect.tx(TxRef.set(b, x)) })\n  return {go}`, /a name is carried, not a pattern/],
+    // (several effects on the state where a step can't be cut: in one branch, in an Effect.gen, in an arrow)
+    [4, `  const go = Effect.fn('go')(function* () { if (true) { const x = yield* TxRef.get(a); yield* Effect.yieldNow; yield* TxRef.set(a, x + 1); yield* TxRef.update(b, t => t + 1) } })\n  return {go}`, /runs 3 effects on the state one after another in one statement, and another fiber's step may come between them/],
+    [4, `  const go = Effect.fn('go')(function* () { yield* Effect.gen(function* () { const x = yield* TxRef.get(a); yield* TxRef.set(a, x + 1) }) })\n  return {go}`, /runs 2 effects on the state one after another in one statement/],
+    [3, `  const go = () => Effect.gen(function* () { const x = yield* TRef.get(a); yield* TRef.set(b, x) })\n  return {go}`, /runs 2 effects on the state one after another, and another fiber's step may come between them: write the method as Effect.fn/],
   ]
   for (const [v, body, why] of cases) {
     const x = extractEffect(inProject(v, 'bad.ts', v === 3 ? svc3(body) : svc4(body)), {entry: 'make'})
@@ -145,7 +150,7 @@ test('what the transaction reader doesn\'t take is refused where it is, with the
 }, 300_000)
 
 test('the CLI on a file using Schedule and STM (4.x, examples/effect-bank.ts; 3.x in a project of its own): laws as comments', async () => {
-  const {rules, exit} = await check(['examples/effect-bank.ts'], {ms: 8000, propose: false})
+  const {rules, exit} = await check([join(import.meta.dir, '../examples/effect-bank.ts')], {ms: 8000, propose: false})
   expect(exit).toBe(0)
   expect(rules.map(r => [r.entry, r.laws.map(l => `${l.name}: ${l.verdict}`)])).toEqual([
     ['backoff', ['the delay never exceeds the cap: proven', 'never more than 5 retries: proven', 'it stops after the deadline: proven']],
