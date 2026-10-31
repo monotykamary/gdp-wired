@@ -145,6 +145,37 @@ the step read as before it; an instance's unit 0). Lean 4.34.0, lean-exit 0, eve
    not among the names a witness or a count's j and key must avoid: mismatch with Lean's skFresh, not shown unsound;
    fixed, tested.
 
+**Gates** (Modal; nothing run on the laptop past git):
+- **Lean:** the suite's `lean-count` job (CountMachine.lean compiled, its `#print axioms` and the exported toy consensus
+  checked): lean-exit 0, every theorem on [propext, Classical.choice, Quot.sound], no sorry.
+- **Tests:** countmachine.test.ts 20 of 20; count, kernel, refusals, tamper, sets, steplaw and history test files pass.
+- **The quick bar** (c40136b against ae36917's baseline;
+  <main>/runs/bar/runs/c40136ba76a9-vs-ae369178e65d-quick-2026-10-310115/REPORT.md, 365 s, estimated $2.8): wrong 0 and
+  nothing solid lost in any group (CHC 518 against 518.3; ITS 362 against 361.7; SV, TIP, f1, f2, rw, g332 as the base;
+  onecpu no failure; Lean's 6 recurrent sets checked).
+- **The suites** (`--only suite,suite-usual`, 6321887; <main>/runs/bar/runs/63218877b230-vs-ae369178e65d-full-2026-10-310122):
+  one loss in each, `check` (oxlint: two unused imports, emit.ts's MapRead and the test's `times`), fixed in the next
+  commit; tsc clean there. The fixed `check` rerun on this worktree's mount: no error in a file this lane touched (the
+  errors left are vendor/ imports, absent from the worktree).
+- **The ten** (6321887; the gauntlet's jobs-g-pilot and jobs-g1–4, 60 s, Modal's containers; job seconds, a container's
+  start included): 200 of 200 proven: consensus_wo_decide 20/20 (median 41.7, max 47.4), decentralized 20/20 (16.6, 19.4),
+  distributed 20/20 (33.1, 37.0), lock_server_async 20/20 (22.8, 27.2), lock_server_sync 20/20 (8.9, 11.6), ring 20/20
+  (41.5, 48.9), sharded 20/20 (28.2, 34.9), ticket 20/20 (33.2, 42.4), toy_consensus_forall 20/20 (12.0, 13.7),
+  two_phase_commit 20/20 (18.0, 21.3). (The search is unchanged; the kernel's `#` reservation is the one change every
+  machine meets.)
+- **IC3Syn:** not rerun: nothing on the search side changed, so its table is gen/laneA's (7 of 29 at 60 s, 8 at 300 s).
+
+**Bytes:** core/ +666 (machine.ts's `counts`), kernel/ +13,306 (kernel.ts: the counted section, `#` reserved, the
+scope lines); lean-kernel/CountMachine.lean 97.6 KB (new), emit.ts's cmachineToLean, count-examples.ts's toy.
+
+**Verified, not**
+- **Verified:** cmachine_sound, mc_sound, counts_exist in Lean 4.34.0 (three axioms, no sorry); the toy consensus end to
+  end (TS accepts, Lean checks, three tampers false in both); the TS twin's refusals and the fuzz; 121 of 126 mutants;
+  terra's findings each reproduced in the code and fixed; the bar, the suites (after the lint fix), the ten 200/200.
+- **Not verified:** any search use of counts (none built: no IC3Syn protocol gains); the runtime for counts (not built:
+  CReach is the meaning a runtime must implement); the 5 surviving mutants are argued equivalent, not shown; terra's
+  reviews read the code, they don't prove its absence of bugs.
+
 **Step 2, not built: why, and what it needs.** Step 1's review found two real issues to fix first (one a kernel bug on
 main), and the search side is larger than a lane's remainder: (1) the runtime (core/machine.ts's interpret, the
 engine's compiled rows, compileJs) computing each count map at a request's view, and `Machine.counts` in the DSL
