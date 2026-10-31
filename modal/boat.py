@@ -321,6 +321,7 @@ sudo chown "$(id -un)" /smt /vamp /sv /opt/gdpw
 # "image": "runner" jobs run on boat too. Each setup script then finds its tool and installs nothing.
 LANGS = r"""
 export DEBIAN_FRONTEND=noninteractive
+get() { curl -fsSL --retry 6 --retry-all-errors --retry-delay 5 -o "$2" "$1"; }  # (a large download whole, or again)
 sudo apt-get update -y -q
 sudo -E apt-get install -y -q ruby ruby-dev build-essential elixir clang-18 clang g++-14 libstdc++-14-dev libc6-dev unzip pkg-config binutils \
   libcurl4-openssl-dev libedit2 libncurses-dev libpython3-dev libsqlite3-0 libxml2-dev libz3-dev zlib1g-dev tzdata python3-venv
@@ -335,22 +336,23 @@ sudo ln -sf /usr/bin/clang-19 /usr/local/bin/clang && sudo ln -sf /usr/bin/clang
 clang --version | head -1; /usr/lib/llvm-18/bin/clang --version | head -1
 # JDK 21 and kotlinc 2.4.21 (jvm-setup.sh's), Temurin 17 (the runner image's)
 sudo mkdir -p /opt/jdk /usr/lib/jvm/temurin-17 && sudo chown "$(id -un)" /opt/jdk /usr/lib/jvm/temurin-17
-curl -fsSL "https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jdk/hotspot/normal/eclipse" | tar xz -C /opt/jdk --strip-components=1
-curl -fsSL "https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse" | tar xz -C /usr/lib/jvm/temurin-17 --strip-components=1
-curl -fsSL -o /tmp/kotlinc.zip https://github.com/JetBrains/kotlin/releases/download/v2.4.21/kotlin-compiler-2.4.21.zip && sudo unzip -q -o /tmp/kotlinc.zip -d /opt && rm /tmp/kotlinc.zip
+get "https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jdk/hotspot/normal/eclipse" /tmp/jdk21.tgz && tar xzf /tmp/jdk21.tgz -C /opt/jdk --strip-components=1
+get "https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse" /tmp/jdk17.tgz && tar xzf /tmp/jdk17.tgz -C /usr/lib/jvm/temurin-17 --strip-components=1
+get https://github.com/JetBrains/kotlin/releases/download/v2.4.21/kotlin-compiler-2.4.21.zip /tmp/kotlinc.zip && sudo unzip -q -o /tmp/kotlinc.zip -d /opt
+rm -f /tmp/jdk21.tgz /tmp/jdk17.tgz /tmp/kotlinc.zip
 sudo ln -sf /opt/kotlinc/bin/kotlinc /usr/local/bin/kotlinc
 /opt/jdk/bin/javac -version; /usr/lib/jvm/temurin-17/bin/javac -version
 # Swift 6.3.3 for this Ubuntu (swift-setup.sh's, which names Debian 12's)
 sudo mkdir -p /opt/swift && sudo chown "$(id -un)" /opt/swift
-curl -fsSL "https://download.swift.org/swift-6.3.3-release/ubuntu2404/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE-ubuntu24.04.tar.gz" | tar xz -C /opt/swift --strip-components=1
+get "https://download.swift.org/swift-6.3.3-release/ubuntu2404/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE-ubuntu24.04.tar.gz" /tmp/swift.tgz && tar xzf /tmp/swift.tgz -C /opt/swift --strip-components=1 && rm /tmp/swift.tgz
 /opt/swift/usr/bin/swift --version 2>&1 | head -1
 # Rust, minimal stable, under the user's home (rust-setup.sh's)
 curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
 ~/.cargo/bin/cargo --version
 # solc 0.8.28 and anvil (research/sol/sol-setup.sh's)
 sudo mkdir -p /opt/sol /opt/foundry && sudo chown "$(id -un)" /opt/sol /opt/foundry
-curl -fsSL -o /opt/sol/solc https://github.com/ethereum/solidity/releases/download/v0.8.28/solc-static-linux && chmod +x /opt/sol/solc
-curl -fsSL https://github.com/foundry-rs/foundry/releases/download/stable/foundry_stable_linux_amd64.tar.gz | tar xz -C /opt/foundry
+get https://github.com/ethereum/solidity/releases/download/v0.8.28/solc-static-linux /opt/sol/solc && chmod +x /opt/sol/solc
+get https://github.com/foundry-rs/foundry/releases/download/stable/foundry_stable_linux_amd64.tar.gz /tmp/foundry.tgz && tar xzf /tmp/foundry.tgz -C /opt/foundry && rm /tmp/foundry.tgz
 /opt/sol/solc --version | tail -1; /opt/foundry/anvil --version | head -1
 # LiteLLM's Python: uv, its pinned dependencies, and the system site directory the user installs into (uv pip install --system)
 sudo pip install --break-system-packages -q uv
