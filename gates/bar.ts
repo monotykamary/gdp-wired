@@ -310,12 +310,13 @@ async function pass(g: Group, p: Pass): Promise<Meta> {
   let code: number
   try { code = await g.launch(p) } catch (e) { writeFileSync(`${p.dir}.log`, `\n${String(e)}\n`, {flag: 'a'}); code = -1 }
   // A task the backend failed (a VM or container lost, a mount error, a call that raised, a row or a job missing) is
-  // not the prover's answer: it runs once more on Modal and its row replaces the failed one.
+  // not the prover's answer: it runs once more, on boat first (auto: Modal only if boat fails again), and its row
+  // replaces the failed one.
   const failed = code === 130 || stopping ? [] : backendFailed(p.dir)
   let retried: string[] | undefined
   if (failed.length && failed.length <= 400) {
-    log(`${g.key} ${p.side} ${p.dir.split('/').at(-1)}: ${failed.length} task(s) failed on the backend; once more on Modal`)
-    const r: Pass = {...p, dir: `${p.dir}-retry`, tasks: failed, backend: 'modal'}
+    log(`${g.key} ${p.side} ${p.dir.split('/').at(-1)}: ${failed.length} task(s) failed on the backend; once more (boat, then Modal)`)
+    const r: Pass = {...p, dir: `${p.dir}-retry`, tasks: failed, backend: 'auto'}
     try { await g.launch(r) } catch (e) { writeFileSync(`${r.dir}.log`, `\n${String(e)}\n`, {flag: 'a'}) }
     mergeRetry(p.dir, r.dir)
     retried = failed
@@ -551,7 +552,7 @@ function report(results: Result[], cand: Tree, base: Tree, outDir: string, t0: n
   for (const r of results) {
     const g = GROUPS.find(x => x.key === r.group)!
     if (r.error) p(`**${g.key}: ${r.error}**\n`)
-    for (const m of r.metas.filter(x => x.retried?.length)) p(`- ${g.key}, a ${m.side} launch: ${m.retried!.length} task(s) failed on the backend and ran once more on Modal (${m.retried!.slice(0, 5).join(', ')}${m.retried!.length > 5 ? ', ...' : ''}).\n`)
+    for (const m of r.metas.filter(x => x.retried?.length)) p(`- ${g.key}, a ${m.side} launch: ${m.retried!.length} task(s) failed on the backend and ran once more (${m.retried!.slice(0, 5).join(', ')}${m.retried!.length > 5 ? ', ...' : ''}).\n`)
     for (const m of r.metas.filter(x => x.code !== 0)) p(`**${g.key}: a ${m.side} launch exited ${m.code} after ${m.wall_s} s (${m.tasks === 'all' ? 'every task' : `${m.tasks} tasks`}); its log is beside its directory.**\n`)
     if (!r.cand) continue
     if (g.key === 'onecpu') { onecpu(r, p); continue }
