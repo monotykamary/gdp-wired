@@ -97,7 +97,28 @@ conditions only (`check.probes: 'writes'`, core/extract-check.ts), 30 of them th
 
 ## Measured
 
-(filled below by the runs)
+On Modal (modal/run.py's image with research/sol/sol-setup.sh: solc 0.8.28, foundry's anvil 1.5.1-stable), 2026-10-31.
+Each law below is a `/// gdp: law` comment, nothing else written; `gdp-wired check <file> --ms 60000`.
+
+| Contract (source, licence, pin) | Checked against the bytecode | Laws |
+| --- | --- | --- |
+| OpenZeppelin Contracts v5.1.0 `ERC20Mock` with its `ERC20` (MIT, 69c8def5f222ff96f2b5beff05dfba996368aa79; research/sol/oz-erc20.sh) | 1,548 requests from the start, 400 from drawn states, 30 from the prover's witnesses | **proven**: transfer never mints, transferFrom never mints (`method == "transfer" implies _totalSupply == old(_totalSupply)`). **unknown**: the balances sum to the supply (`sum(_balances) == _totalSupply`), no balance exceeds the supply: the kernel's case budget runs out at 47 case splits with transfer and transferFrom both read (each a two-cell write); with mint, burn, transfer and approve it is proven in 6.5 s, with mint and transferFrom in 1 s (research/sol/pilot/laws.ts, METHODS=...) |
+| Solidity by Example's `EtherStore` (the DAO's shape; MIT, solidity-by-example.github.io 5bcdca0239409d7336a07b66a6fca8d0bcc710e6; research/sol/etherstore.sh) | 1,500 / 400 / 7, and the re-entrant rule's 40 random runs replayed | **broken** as it is: `balance >= sum(balances)`, a run of 10 steps (two users deposit, one withdraws and re-enters twice), replayed on the code: 3 transactions, 4 calls made from inside another, the state after each the rule's, the law broken there. **proven** with the balance cleared before the call (checks-effects-interactions). **unknown** with the page's own ReEntrancyGuard on withdraw (`pending$ >= 1 implies locked` is the invariant it needs; the search doesn't find it) |
+| research/sol/contracts: Token, Vault, VaultFixed, Counter | each checked as above | Token: both laws proven (a transfer's two cells, unchecked); Vault broken by a re-entrant run (replayed: 4 transactions, 6 nested calls), VaultFixed proven; Counter (`unchecked { count -= 1; }`, `count <= 100`) broken by a run at width 102, replayed at 2^52 and on the code (count = 2^256 − 1) |
+
+core/extract-sol.test.ts (5 tests: a ledger proven; the DAO's shape broken, replayed, and its fix proven; a guarded
+vault not broken; a wrap broken where unchecked and proven where checked; four refusals), 5 of 5 on Modal.
+
+**What the check caught on the way** (each a model error the runs found before any law was proven): a wrap below 0
+printed as `count.minus(1).plus(W)`, a natural's minus clamping at 0 (now `(W − b) + a`); a comparison of a natural by
+cases with an integer that didn't build; a mapping's zero cell (Solidity has none); an account funded past what it can
+receive near 2^256.
+
+**Sizes** (against cd97c61): core/extract-sol.ts 67 KB (the reader, the harness's driver, the re-entrant split and its
+replay), core/sol/harness.py 21 KB and core/sol/Replay.sol 2 KB; the shared files +9.5 KB (core/extract-step.ts: the
+symbolic width, several keys a step; core/extract.ts: the each write, `quiet`, `replay`; core/laws.ts: `sum`, quiet
+laws; core/cli.ts: `.sol`, a broken run replayed; core/extract-check.ts: probes of the branches; core/machine.ts: the
+compiled every-key write; core/extract-print.ts: a comparison's natural by cases). kernel/ unchanged.
 
 ## Not yet
 
