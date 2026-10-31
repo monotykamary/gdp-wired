@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type CountedGoal, type CountInst, type Ghosted, countedGoal, countHyps, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+import {type CountCert, type CountedGoal, type CountInst, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {chooseLevels, clock, grow, minimal, proveBuilt, proveLaws, proveSetFast, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
@@ -305,6 +305,72 @@ theorem ${id} : ∀ ρ M, (∀ cn ∈ ${id}_goal.counts, cn.Holds ρ M) → ¬ �
   counted_sound ${id}_goal ${id}_insts ${id}_tab ${id}_tree (by ${checkBy})${tampered.map(t => `
 -- TAMPERED: ${t.what}. Lean computes the check to false, as kernel.ts refuses it.
 example : checkCounted ${id}_goal ${instsLit(t.insts)} ${id}_tab ${id}_tree = false := by ${checkBy}`).join('')}`
+}
+
+// A machine with counts through CountMachine.lean's cmachine_sound: Lean builds the goals and the counts they declare;
+// each certificate names the kernel's goal's hypotheses (each one Lean builds), the cells it reads, Count.lean's
+// instances and the tree. The count maps go to Lean as maps the request carries, each with its post name. `tampers`:
+// certificates kernel.ts refuses, which Lean computes to false.
+export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>},
+    tampers: {what: string, certs: Record<string, CountCert>}[] = []): string {
+  const obl = countedObligations(m, laws, proof.instances), counts = Object.entries(m.counts ?? {})
+  const sm: Machine = {...m, counts: undefined, inputMaps: [...(m.inputMaps ?? []), ...counts.map(([cn]) => cn)]}
+  const named = machineNames(sm, laws, [], [], {})
+  const allCerts = [proof.certs, ...tampers.map(t => t.certs)]
+  const goals = obl.map(o => { const g = mcGoal(o.goal.hyps, o.decls, proof.certs[o.goal.name]!); if (!g) throw new Error(`${id}: ${o.goal.name}: a read of no count`); return g })
+  const certVars = allCerts.flatMap(cs => Object.values(cs).flatMap(k => [...k.reads.flatMap(r => [r[0], ...varsOfE(r[2])]), ...k.insts.flatMap(i => [i.wit, ...varsOfE(i.below)])]))
+  const vars = [...new Set([...named.vars, ...counts.flatMap(([, d]) => [d.j, d.key, ...varsOfE(d.below), ...varsOfE(d.body)]), ...laws.map(l => (l.forall ? `${l.forall}#` : '#')),
+    ...goals.flatMap(g => g.hyps.flatMap(varsOf)), ...certVars])]
+  const maps = [...new Set([...named.maps, ...counts.flatMap(([cn]) => [cn, postName(cn)]), ...goals.flatMap(g => g.hyps.flatMap(mapsOf)),
+    ...allCerts.flatMap(cs => Object.values(cs).flatMap(k => k.reads.map(r => r[1])))])]
+  const {e, c} = leanTerms(vars, maps, id)
+  const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
+  const mx = (name: string) => { const j = maps.indexOf(name); if (j < 0) throw new Error(`${id}: no map for ${name}`); return j }
+  const lawIx = (name: string) => laws.findIndex(l => l.name === name)
+  const facts = m.facts ?? [], facts1 = facts.filter(f => !f.keys?.length), factsN = facts.filter(f => f.keys?.length)
+  const tuples = (keys: E[], n2: number) => Array.from({length: Math.floor(keys.length / n2)}, (_, t) => keys.slice(t * n2, t * n2 + n2))
+  const insts = (inst: Instances) => Object.entries(inst).filter(([name]) => lawIx(name) >= 0 && !laws[lawIx(name)]!.keys?.length).flatMap(([name, keys]) => keys.map(key => `(${lawIx(name)}, ${e(key)})`))
+  const pinsts = (inst: Instances) => Object.entries(inst).filter(([name]) => lawIx(name) >= 0 && laws[lawIx(name)]!.keys?.length)
+    .flatMap(([name, keys]) => tuples(keys, laws[lawIx(name)]!.keys!.length + 1).map(t => `(${lawIx(name)}, ${e(t[0]!)}, ${list(t.slice(1).map(e))})`))
+  const finsts = (inst: Instances) => Object.entries(inst).flatMap(([name, keys]) => { const j = facts1.findIndex(f => f.name === name); return j < 0 ? [] : keys.map(key => `(${j}, ${e(key)})`) })
+  const pfinsts = (inst: Instances) => Object.entries(inst).flatMap(([name, keys]) => {
+    const j = factsN.findIndex(f => f.name === name)
+    return j < 0 ? [] : tuples(keys, factsN[j]!.keys!.length + 1).map(t => `(${j}, ${e(t[0]!)}, ${list(t.slice(1).map(e))})`)
+  })
+  const qinsts = (inst: Instances) => Object.entries(inst).filter(([name]) => name.startsWith('?')).flatMap(([f, keys]) => {
+    const q = m.step.flags?.[f.slice(1)], n2 = q?.op === 'all' ? boundOf(q).length : 1
+    return tuples(keys, n2).map(t => `(${ix(f)}, ${list(t.map(e))})`)
+  })
+  // A certificate: the kernel's goal's hypotheses (Lean checks each is one it builds), the reads, the instances, the
+  // table and tree of the goal with the reads' and instances' hypotheses after them.
+  const certLit = (name: string, certs: Record<string, CountCert>) => {
+    // (a tampered certificate keeps the table and tree of the one it tampers with)
+    const o = obl.find(o2 => o2.goal.name === name)!, k = certs[name]!, k0 = proof.certs[name]!
+    const tt = encode({name: `${id}: ${name}`, goal: mcGoal(o.goal.hyps, o.decls, k0)!, tree: k0.tree}, false, true, vars, maps)
+    return `⟨${list(o.goal.hyps.map(c))},
+  ${list(k.reads.map(r => `(${ix(r[0])}, ${mx(r[1])}, ${e(r[2])})`))},
+  ${list(k.insts.map(i => `⟨${ix(i.wit)}, ${e(i.below)}, ${list(i.terms.map(([z, v2]) => `(${int(z)}, ${ix(v2)})`))}, ${int(i.unit)}⟩`))},
+  ${tt.tab},
+  ${tt.tree}⟩`
+  }
+  const entries = (certs: Record<string, CountCert>) => laws.map(law => {
+    const inst = proof.instances[law.name] ?? {}
+    return `⟨⟨⟨${c(law.holds)}, ${law.forall ? `some ${ix(law.forall)}` : 'none'}⟩, ${ix(law.forall ? `${law.forall}#` : '#')}, ${list((law.keys ?? []).map(key => String(ix(key))))}, ${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))}, ${list(pfinsts(inst))},
+  ([], [], .leaf [] [] [] []), ([], [], .leaf [] [] [] [])⟩,
+  ${certLit(`${law.name} @start`, certs)},
+  ${certLit(`${law.name} @step`, certs)}⟩`
+  })
+  return `-- ${m.name}: ${laws.map(l => l.name).join('; ')}, with counts ${counts.map(([cn]) => cn).join(', ')}
+--   (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')}; maps ${maps.map((v2, j) => `${j} ${v2}`).join(', ')})
+def ${id}_machine : SMachine := ${machineLit(sm, {e, c}, ix, mx)}
+def ${id}_decls : List CDecl := ${list(counts.map(([cn, d]) => `⟨${mx(cn)}, ${mx(postName(cn))}, ${ix(d.j)}, ${ix(d.key)}, ${e(d.below)}, ${e(d.body)}⟩`))}
+def ${id}_proof : List CEntry := ${list(entries(proof.certs))}
+theorem ${id}_check : checkCMachine ${id}_machine ${id}_decls ${id}_proof = true := by ${checkBy}
+/-- ${laws.map(l => l.name).join('; ')}: each holds in every reachable state, each count map read as the state's count. -/
+theorem ${id}_laws : ∀ ρ M, CReach ${id}_machine ${id}_decls ρ M → ∀ ce ∈ ${id}_proof, ce.e.Holds ρ (withCnt ${id}_decls ρ M) :=
+  cmachine_sound ${id}_machine ${id}_decls ${id}_proof ${id}_check${tampers.map(t => `
+-- TAMPERED: ${t.what}. Lean computes the check to false, as kernel.ts refuses it.
+example : checkCMachine ${id}_machine ${id}_decls ${list(entries(t.certs))} = false := by ${checkBy}`).join('')}`
 }
 
 // Whole machines through Kern.machine_sound: Lean builds the goals from the machine; the trees are the kernel's.

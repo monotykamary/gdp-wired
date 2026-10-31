@@ -15,6 +15,7 @@
 //
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
+import {searchCounted} from './counts.ts'
 import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {someHolds, substVars, substVarsE} from './exists.ts'
@@ -1529,6 +1530,7 @@ type Spec = {
   // State variables declared by a kind: each a value over the kind's variables (in `state`, one entry each).
   kinded?: [string, Kind<unknown>][]
   carried?: string[]
+  counts?: [string, (env: never) => {below: TermLike, body: (x: Term, k: Term) => Cond | TermLike}][]
   // Sequences a request carries (in `carried`, each length an input <name>_len), and tables of them (in `carried` with
   // <name>_base and <name>_len, the number of rows an input <name>_rows).
   seqs?: string[]
@@ -1661,6 +1663,12 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   facts(f: (p: P) => Record<string, Cond | Forall>): Rule<P, I, S, M, F, R, Su, Q> { return this.with({facts: [...(this.spec.facts ?? []), f as (env: never) => Record<string, Cond | Forall>]}) }
   // Maps each request carries whole (a set of names, say: cells 0 or 1), every cell past them 0; read like any map.
   carries<const N extends string>(...names: N[]): Rule<P, I & {[k in N]: MapRef}, S, M, F, R, Su, Q> { return this.with({carried: [...(this.spec.carried ?? []), ...names]}) }
+  // Counts (Machine.counts): `.counts({votes: env => ({below: env.size, body: (x, k) => env.Vote.at(k).eq(x.plus(1))})})`;
+  // each a map no step writes, at x the number of keys k below the bound where the body holds (or its sum), read by the
+  // flags, the assumption and the step at the request's view, and by a law at the state.
+  counts<T extends Record<string, (env: P & I & S & M) => {below: TermLike, body: (x: Term, k: Term) => Cond | TermLike}>>(cs: T): Rule<P, I & {[k in keyof T]: MapRef}, S, M, F, R, Su, Q> {
+    return this.with({counts: [...(this.spec.counts ?? []), ...Object.entries(cs)] as never})
+  }
   // Sequences each request carries (SeqRef): `.carriesSeq('Path')`, then `Path.at(i)`, `Path.len`, `A.prefixOf(B)`; the
   // request gives each as an array of naturals.
   carriesSeq<const N extends string>(...names: N[]): Rule<P, I & {[k in N]: SeqRef}, S, M, F, R, Su, Q> {
@@ -1914,6 +1922,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     if (parts.inputs !== false) {
       for (const [n, k] of this.spec.inputs) out[n] = k.value(n)
       for (const n of this.spec.carried ?? []) out[n] = new MapRef(n, 0)
+      for (const [n] of this.spec.counts ?? []) out[n] = new MapRef(n, 0)
       for (const n of this.spec.seqs ?? []) { delete out[`${n}_len`]; out[n] = new SeqRef(new MapRef(n, 0), v(`${n}_len`)) }
       for (const n of this.spec.seqTables ?? []) { for (const part of [`${n}_base`, `${n}_len`, `${n}_rows`]) delete out[part]; out[n] = new SeqTable(n, v(`${n}_rows`)) }
       const ps = Object.fromEntries(this.spec.params.map(([n]) => [n, out[n]]))
@@ -2040,6 +2049,10 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       state: Object.fromEntries(s.state.map(([n, init]) => [n, typeof init === 'number' ? termOf(init) : termOf(init(pEnv as never))])),
       ...(s.maps.length ? {maps: Object.fromEntries(s.maps)} : {}),
       ...(s.carried?.length ? {inputMaps: s.carried} : {}),
+      ...(s.counts?.length ? {counts: Object.fromEntries(s.counts.map(([n, f]) => {
+        const c = f(env as never), j = `${n}$x`, key = `${n}$k`, b = c.body(v(j), v(key))
+        return [n, {j, key, below: termOf(c.below), body: b instanceof Cond ? {op: 'if', c: b.c, then: {op: 'const', value: 1}, else: {op: 'const', value: 0}} as E : termOf(b)}]
+      }))} : {}),
       step: {...(Object.keys(flags).length ? {flags} : {}), ...(Object.keys(state).length ? {state} : {}), ...(Object.keys(maps).length ? {maps} : {})},
       ...(pre.length ? {pre: pre.length === 1 ? pre[0]! : {op: 'and', xs: pre}} : {}),
       ...(assume.length ? {assume: assume.length === 1 ? assume[0]! : {op: 'and', xs: assume}} : {}),
@@ -2118,7 +2131,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   }
   // One step: the flags, the updates and the step laws, each against what the interpreter computed.
   private crossStep(params: Record<string, number>, st: State, input: Request, next: State, stepLaws: StepLaw[], bound: number, count: () => void): string | undefined {
-    const s = this.spec, m = this.machine, run = interpret(m), seen = carriedView(m, st, input), req = requestEnv(m, run, params, st, input)
+    const s = this.spec, m = this.machine, run = interpret(m), seen = carriedView(m, st, input, undefined, params), req = requestEnv(m, run, params, st, input)
     const keys = keysOf(bound, seen, next), vars = {...params, ...st.scalars, ...req}
     const sc: Scope = {vars, maps: Object.fromEntries(Object.entries(seen.maps).map(([n, cells]) => [n, {cells, dflt: seen.defaults?.[n] ?? m.maps?.[n] ?? 0}])), keys: exactKeys(keys, vars, seen, next), flags: {}}
     // Flags: every callback in order, each name's last definition winning, until the values settle (a name defined
@@ -2643,6 +2656,11 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
   // at), is a counterexample to induction: the laws may still hold, so the search goes on from it, as from the kernel's.
   // (A step law broken so is refused, proveSteps below: it holds from every state the laws allow, reached or not.)
   if (refuted) return refuted.run ? refutedVerdict(refuted) : searched(r, laws, [], refutedVerdict(refuted), opts)
+  // A rule with counts: its goals are the counted ones (core/counts.ts searches them; the kernel checks the set).
+  if (r.machine.counts && Object.keys(r.machine.counts).length) {
+    const c = searchCounted(r.machine, withKinds(r, laws), typeof opts.search === 'object' ? opts.search.ms ?? 60_000 : 60_000)
+    return {proven: c.proven, checked: c.proven, ...(c.why ? {why: c.why} : {}), found: {laws: c.laws.map(l => ({text: l.name}))}} as unknown as Verdict
+  }
   const out = (opts.fast ? proveSetFast : proveLaws)(r.machine, withKinds(r, laws)) as ReturnType<typeof proveLaws>
   const v: Verdict = {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   return searched(r, laws, [], v, opts)

@@ -43,6 +43,231 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneK2, step 2: the search over counts (untrusted; core/counts.ts)
+
+**Built (general: nothing reads a protocol's name):**
+- **Runtime** (core/machine.ts's `carriedView`, with the params): each count map at a request's view, a cell computed
+  when read (`CountCells`): CountMachine.lean's CReach is what the interpreter runs. watch.ts's `allowed` and dsl.ts's
+  cross-check pass the params.
+- **DSL** (`.counts({c: env => ({below, body: (x, k) => …})})`): a map the flags, assumption and step read at the view, a
+  law at the state; `Machine.counts` built from it (j `c$x`, key `c$k`).
+- **Ports** (research/protocols/ic3syn): `majority()` is TLA+'s own `Cardinality(Q) * 2 > Cardinality(Node)`, Q within
+  the nodes and its size the count `members` (no injective rank, no witness inputs); majorityset's row `voters[n]` a
+  state count. Re-checked by BFS against TLC's states: quorum 94, toy forall 41, naive 55, simple election 66, toy epr
+  41, toy 41, majorityset 400, each equal; consensus wo/forall/epr ran past the BFS's 60 s cap (as before).
+- **The search** (`searchCounted`, proveRule's path for a rule with counts):
+  - *the guard's shape*: a write P[t] under a quantified flag "every member of a set the request counts satisfies
+    R(member, t)", with the assumption comparing that count with a bound, declares the state count
+    c(x) = |{k < bound: R(k, x)}| and proposes P[a] ⇒ the same comparison with c[a]; a guard comparing a state count at
+    the written key proposes P[a] ⇒ that comparison at a;
+  - *supports*: each map's cells at most what the small instances reach; a relation over pairs at most one second key
+    per first; one relation (pairs, or one key) inside another, same or swapped pair; every candidate kept only if true
+    on every reachable state of the small instances (each param 2 and 3, inputs and sets below 3);
+  - *each goal's certificate*: the count cells the goal reads (the conclusion's first, then each post-step read's twin
+    before it, then reads at a constant or the law's own names; six at most), Count.lean instances over pairs with one
+    bound (a count after the step at least each other one; two counts before it that meet), ten at most, each with a
+    fresh witness; the laws over one key and the quantified flags at the witnesses and the request's inputs, the laws
+    over two keys at pairs of the law's own names and inputs; the tree grown (10 s a goal);
+  - *Houdini*: a candidate whose goal finds no tree is dropped, the set tried again; the kernel's checkCountedLaws
+    checks the final set (the proof, not the search, is trusted).
+
+
+
+**IC3Syn, the counting class, nothing written** (75ce118 and 0c39b23; one run each at 60 s and 300 s, Modal's 2-vCPU
+containers; before: gen/laneA's table, main ae36917, two runs, the ports' majorities as injective ranks; seconds)
+
+| # | protocol | before 60 s | before 300 s | after 60 s | after 300 s |
+| --- | --- | --- | --- | --- | --- |
+| 4 | quorum_leader_election | unknown | unknown | **proven 2.0** | **proven 2.4** |
+| 5 | toy_consensus_forall | unknown | unknown | **proven 3.1** | **proven 3.3** |
+| 23 | toy_consensus | unknown | unknown | **proven 2.0** | **proven 2.4** |
+| 22 | toy_consensus_epr | unknown | unknown | unknown 16.4 | unknown 22.7 |
+| 19 | naive_consensus | unknown | unknown | unknown 9.9 | unknown 11.2 |
+| 21 | simple_election | unknown | unknown | unknown 36.3 | unknown 29.3 |
+| 26 | majorityset_leader_election | unknown | unknown | unknown 60.0 | unknown 64.8 |
+| 27 | consensus_epr | unknown | unknown | unknown 60.1 | unknown 300.0 |
+| 15 | consensus_wo_decide | unknown | unknown | not run (unknown at 300 s) | unknown 200.4 |
+| 16 | consensus_forall | unknown | unknown | not run (unknown at 300 s) | unknown 300.2 |
+| 28 | mldr | killed | killed | killed (not ported to counts) | not run |
+
+The suite's others at 60 s take the path they took before (no counts): consensus 0.3, tcommit 0.5, i4 lock server 8.3,
+lockserv automaton 11.7, lockserv 10.4, simple decentralized 8.2, i4 two-phase commit 14.5 proven; the ∀∃ class and the
+rest as gen/laneA's. **10 of 29 proven at 60 s** (gen/laneA: 7; 8 at 300 s with twophase, not rerun). The pilot's broken
+variants: none proven.
+
+**Why the others don't prove** (GDP_COUNTS_TRACE): toy epr, naive and simple election need supports no template states (a
+relation over three keys, a message-to-state implication with a value); majorityset spends its budget on the
+three-key "one per row" law's instances; the consensus ports' law sets outgrow the budget. core/infer.ts's enumeration
+finds such ∀ laws: joining it to the counted goals (its EPR oracle given Count.lean's instances) is the next step. The
+∀∃ class's ghost maps are not built.
+
+**Gates (step 2):** the ten 200 of 200 at 60 s (pilot 10, then 190; median/max s: wo 39.5/51.1, decentralized 15.1/25.0,
+distributed 32.5/37.8, async 23.4/28.3, sync 8.3/11.2, ring 37.4/43.2, sharded 29.0/38.6, ticket 31.9/38.8, toy forall
+11.5/21.1, 2PC 16.0/20.4); the quick bar (75ce118; <main>/runs/bar/runs/75ce118b7b5c-vs-ae369178e65d-quick-2026-10-310213):
+wrong 0 everywhere, one ITS task lost "solid" at the time limit (the base answers it at 50–60 s of 60; ITS reads no
+count and no carried map), nothing else solid lost; tsc and oxlint (the suite's form) clean on the touched files; the
+ports' state counts equal TLC's; the suites (`--only suite,suite-usual`, 75ce118): 240 of 240 in each, nothing lost.
+Bytes (against cd97c61, both steps): core/ +20,038 (counts.ts 16,455, machine.ts 1,868, dsl.ts 1,696, watch.ts 19),
+kernel/ +13,313.
+
+**After the rebase onto main 078bd1d (0.34.0):**
+- **Lean:** the three new proofs (toy_consensus 4 laws, quorum_leader_election 4, toy_consensus_forall 8, found with
+  nothing written) exported by research/protocols/ic3syn/counted-lean.ts through cmachineToLean and checked: lean-exit 0,
+  no sorry, each `ic*_laws` on [propext, Classical.choice, Quot.sound].
+- **The ITS loss** (elmhes.c.i.elmhes.pl.t2.fixed.t2.ari), three runs a side on Modal: main 078bd1d terminates 58.5 s,
+  terminates 58.7 s, unknown 58.2 s; this branch unknown 58.2, timeout 60.0, unknown 58.2. Every answer either side
+  gives is in the last 2.5% of the 60 s limit: a time-limit flip, as other lanes saw on elmhes. The path is untouched
+  by reading: an ITS machine has no carried map and no count, so carriedView returns as before, countsScope returns at
+  once, proveRule's counted branch is never taken; timing equality itself is not shown.
+- **A second run** of every counting protocol at 60 s, broken variants included: the same verdicts (proven: toy 2.3 s,
+  quorum 2.1, toy forall 3.1; the rest unknown); every broken variant unknown, none proven.
+
+## gen/laneK2, step 1: counts in a machine's laws and steps, proven in Lean
+
+**The ask:** win IC3Syn's counting (11) and ∀∃ (6) classes with nothing written: (1) a machine-level counting statement
+in the trusted Lean kernel, ever so cautiously; (2) counts and ghost maps in the search. **Step 1 is built, proven,
+twinned, tested, exported end to end and reviewed twice by terra; step 2 is not built** (below: why, and the plan).
+
+**The statement (lean-kernel/CountMachine.lean, 97.6 KB, on Sets.lean and Count.lean, neither changed).**
+- **Count declarations on SMachine, not a count term.** A count term `E.count key below body` would add a binder to E:
+  every function and lemma over E in Kernel.lean, Sets.lean, Sums.lean and the rest (evalE, substE, substRE, occE,
+  occME, inlineE, beqE, congrE, …: dozens, with capture-avoiding substitution under the binder) would change, and every
+  trusted proof built on them with it. A declaration changes none of them: `CDecl ⟨mp, post, j, key, below, body⟩` names
+  a map `mp` whose cell at x is Σ_{k < below} body(k), j at x and key at k; the machine stays an `SMachine`, with `mp`
+  among the maps a request carries.
+- **Semantics.** `CReach` is `SReach` with each request carrying each count map at its count at the request's view
+  (`GHolds` at the inputs-set state over the state's and the carried maps; a count reads no flag, quantified flag or
+  witness, so the view's flags don't change it). `creach_sreach`: every CReach state is an SReach state.
+  `counts_exist`: at every state and request the count maps can be set to their counts, the other carried maps kept,
+  so CReach is the rule's own runs (the runtime computes exactly cntOf). A law reads a count of the state
+  (`stateOnly`: its bound and body read no request, flag or carried map), whose value at a state is `withCnt`.
+- **Goals.** Sets.lean's own (`cStartGoal`/`cStepGoal` are sStartGoal/sStepGoal), the law proven read with each count map
+  renamed to its post name (`renLaw`); each goal declares the counts it reads: at the start each state count read
+  across the start, at a step each count as the request carries it and each state count read across the step
+  (`afterDecl`: substituted by the step as the law is, j and key kept).
+- **Certificate** (`CCert`, `checkMC`): the goal's hypotheses it names (each one Lean builds), the cells it reads (a
+  fresh variable, a count map, a key term), Count.lean's instances, table and tree. It becomes Count.lean's counted
+  goal (named hypotheses, each read variable equal to its cell, a count per read with j at the key term), checked as
+  Count.lean checks it but with each instance's witness fresh for the counts and the instances' bounds only
+  (`checkCountedW`): a machine goal must read the witness in its instances of laws and quantified flags (the voter of Q
+  at the key two majorities share). `countedW_sound` asks the hypotheses at every value of the witnesses, and the
+  machine supplies that: witnesses are variables no part of the machine or a law reads (`witsOk`), so the frame holds
+  wherever they are (`setAll`, `sNext_setAll`, `sReq_setAll`).
+- **Theorems** (each `#print axioms` = [propext, Classical.choice, Quot.sound], no sorry): `mc_sound` (an accepted
+  goal's hypotheses don't hold at every witness value where each declared map is its count), `cmachine_sound` (every
+  entry of an accepted proof holds in every CReach state, its laws reading each count map as the state's count, a law
+  about several keys at every value of its further keys), `counts_exist`. The proof is smachine_sound's, with the post
+  names set at the counts after the step in the goal's maps (`atPosts`; the machine reads them nowhere: `sNext_posts`).
+
+**The TypeScript twin (kernel/kernel.ts, "counts in a machine"; core/machine.ts's `Machine.counts`).**
+
+| Lean (CountMachine.lean) | kernel.ts | How they correspond |
+| --- | --- | --- |
+| `CDecl ⟨mp, post, j, key, below, body⟩` | `Machine.counts[mp] = {j, key, below, body}`, `CountDecl` | post = `postName(mp)` = `mp#`; the exporter numbers both |
+| `cntOf`, `GHolds`, `withCnt`, `CReach` | (meaning; the runtime is not built) | |
+| `toCount`, `toCounts`, `readHyp` | `toCount`, `toCounts`, `readHyp` | `substE(body, {vars: {[j]: t}})` is Lean's `substE [(j, t)]` |
+| `readFresh`, `readsOk` | `readFresh`, `readsOk` (+ `readsTyped`, `safeTerm`: names are strings, terms over safe naturals) | same conjuncts; TS stricter |
+| `witFreshW`, `countedOkW`, `checkCountedW` | same names | `typed` (safe-integer coefficients) as Count.lean's twin |
+| `checkMC` | `checkMC` (+ instance bounds `safeTerm`) | Lean names the hypotheses (`namedIn`); TS reads its own goal whole |
+| `stateOnly` | `stateOnly` | Lean: avoids extVars ++ flagVars, carried maps; TS: a count reads only params, inputs, state, j, key and declared maps (countsScope), so it avoids no input and no carried map |
+| `renLaw` (`substRC [] (frameRd cren getRd)`) | `ren` in countedObligations (`get C k` ↦ `get C# k`) | the same renaming |
+| `afterDecl σ rd` | `after(at)`: `substE(d.below / d.body, start.at / turn.at)` | the run's substitution, j and key unassigned |
+| `cStartGoal`, `cStepGoal` | `countedObligations` (obligations' with the proven law renamed) | the exporter names TS's hypotheses; Lean checks each is one it builds |
+| `cStartDecls`, `cStepDecls` | `after(start.at)`, `[...all, ...after(turn.at)]` | same order |
+| `cDeclOk` (carried, j ≠ key, mFresh j and key, below avoids key, no flag/quantified flag/witness, no count or post map, no entry's skolem, key or further key) | `countsScope`: j, key plain, distinct, none of the machine's names, bound keys, quantified flags, witnesses, any law's or fact's key or `k#`; bound reads params, inputs, state, j; body those and key; maps, carried, functions only; naturals | TS stricter (reads only declared names) |
+| `cApart` (post names read by nothing, none of the machine's maps) | posts `mp#`; `#` is reserved in every name (`plainName`) | nothing declared can be `mp#` |
+| `cEntryOk` (law avoids carried but state counts, and posts) | `scope`: a law reads `[...maps, ...fns, ...stateCounts(m)]` | |
+| `witsOk` | `witsOk` (+ fact keys) | TS stricter |
+| `checkCMachine` | `checkCountedLaws` | every goal a certificate, witnesses fresh, each `checkMC` |
+
+**Tests (kernel/countmachine.test.ts, 19 tests).** The hand-built toy consensus with its counts as TLA+ states them
+(op 0 casts once; op 1 decides `val` with a request's set Q, `2·|Q| > size` its count `quorum`, all of Q having voted
+`val`; laws: a decided value has `2·votes[a] > size`, `votes[a] = |{n < size: Vote[n] = a + 1}|`, and one value is
+decided): accepted, and true by brute force on every reachable state at size 2 and 3 (count maps computed at the
+view), false without the quorum guard. Refusals: obligations refuse a machine with counts; a law reading a request's
+count; each declaration condition; each certificate guard on its own (pointed: a certificate whose regrown tree
+checks against the goal mcGoal builds, the kernel refusing it), including a witness at a param (`size`: the instance
+then claims the sum is not positive, an unsound acceptance the guard stops); a stale read (votes for votes#) of a
+false law whose stale goal is a tautology; every term constructor of a certificate over safe naturals, edges accepted.
+A fuzz: 60 mutated laws and certificates, trees regrown, 15 accepted, each true on the small instances.
+
+**Mutation tests** (kernel/mutants.ts, `MUTANT_BATTERY=countmachine`, on Modal; the counted section, its scope lines and
+`plainName`): **121 of 126 killed.** The first run left 45: the refusal tests failed for more than one reason, so a
+weakened guard went unnoticed; the pointed tests (a certificate only that guard refuses, its tree regrown) kill them.
+(A run while the battery's own file failed reported every mutant killed; it was discarded and rerun from a passing
+baseline.) The 5 left are each a guard another check duplicates, in Lean as in TS: an instance's bound reading a
+witness, or one not over the naturals (an instance's bound must equal its counts' bound, which reads neither:
+`resolve`), a read named as a witness or reading one in its key term (`witFreshW`'s `c.v ≠ w` and its body check, with
+the key term substituted in), a law about a request (`scope`: a law reads no input).
+
+**End to end** (`lean-kernel/count-examples.ts`, the suite's `lean-count` job, which now compiles CountMachine.lean too):
+the toy consensus exported by `emit.ts`'s `cmachineToLean` (the machine with its count maps carried, the declarations,
+each law's entry with its two certificates), `checkCMachine … = true` by `decide +kernel`, `toyc_laws` by
+`cmachine_sound`, and three tampered certificates Lean computes to false (a witness the law's skolem; the count after
+the step read as before it; an instance's unit 0). Lean 4.34.0, lean-exit 0, every `#print axioms` the three.
+
+**terra's two reviews (narrow prompts; each claim checked against the code).**
+1. *Does cmachine_sound mean what the header claims?* (a) A count could read a plain flag variable in Lean (cDeclOk
+   avoided quantified flags and witnesses only), so CReach's count (at the inputs-set state) could differ from the view
+   sView decides: **real** (the header's "at the view" was false for such a count). TS already refused it (counts read
+   no flag). Fixed in Lean: cDeclOk avoids flagVars; the header now says so. (b) A count could read a law's own key,
+   which withCnt freezes at the state while MLaw.Holds varies it: **real as a qualification**, TS refused it. Fixed:
+   cDeclOk avoids every entry's key. (c) counts_exist alone doesn't prove the runtime's runs are CReach's: true; the
+   runtime that computes cntOf at the view is CReach by definition, and with (a) fixed the view and CReach's state read
+   a count alike. Not built in this lane (no runtime yet). (d) keys2, post clashes, key in the bound: protected.
+2. *Can checkCountedLaws accept what checkCMachine refuses, making a false law look proven?* (a) **A real kernel bug, on
+   main too:** a law is proven at its key's fresh name `k#`, and nothing reserved `#`, so a further key named `k#`
+   (∀ k, k#. k = k# read as k# = k#) or a state named `k#` captured it, and `checkLaws` (not only the counted path)
+   accepted a false law. Lean refuses (key2Ok, skFresh). Fixed: `plainName` reserves `#` in every machine name and every
+   law and fact key; tests show both captures refused. (b) A read's key term (and an instance's bound) was any object,
+   0.5 accepted: TS-only mismatch, not shown unsound; fixed (`safeTerm`), tested per constructor. (c) Fact keys were
+   not among the names a witness or a count's j and key must avoid: mismatch with Lean's skFresh, not shown unsound;
+   fixed, tested.
+
+**Gates** (Modal; nothing run on the laptop past git):
+- **Lean:** the suite's `lean-count` job (CountMachine.lean compiled, its `#print axioms` and the exported toy consensus
+  checked): lean-exit 0, every theorem on [propext, Classical.choice, Quot.sound], no sorry.
+- **Tests:** countmachine.test.ts 20 of 20; count, kernel, refusals, tamper, sets, steplaw and history test files pass.
+- **The quick bar** (c40136b against ae36917's baseline;
+  <main>/runs/bar/runs/c40136ba76a9-vs-ae369178e65d-quick-2026-10-310115/REPORT.md, 365 s, estimated $2.8): wrong 0 and
+  nothing solid lost in any group (CHC 518 against 518.3; ITS 362 against 361.7; SV, TIP, f1, f2, rw, g332 as the base;
+  onecpu no failure; Lean's 6 recurrent sets checked).
+- **The suites** (`--only suite,suite-usual`, 6321887; <main>/runs/bar/runs/63218877b230-vs-ae369178e65d-full-2026-10-310122):
+  one loss in each, `check` (oxlint: two unused imports, emit.ts's MapRead and the test's `times`), fixed in the next
+  commit; tsc clean there. The fixed `check` rerun on this worktree's mount: no error in a file this lane touched (the
+  errors left are vendor/ imports, absent from the worktree).
+- **The ten** (6321887; the gauntlet's jobs-g-pilot and jobs-g1–4, 60 s, Modal's containers; job seconds, a container's
+  start included): 200 of 200 proven: consensus_wo_decide 20/20 (median 41.7, max 47.4), decentralized 20/20 (16.6, 19.4),
+  distributed 20/20 (33.1, 37.0), lock_server_async 20/20 (22.8, 27.2), lock_server_sync 20/20 (8.9, 11.6), ring 20/20
+  (41.5, 48.9), sharded 20/20 (28.2, 34.9), ticket 20/20 (33.2, 42.4), toy_consensus_forall 20/20 (12.0, 13.7),
+  two_phase_commit 20/20 (18.0, 21.3). (The search is unchanged; the kernel's `#` reservation is the one change every
+  machine meets.)
+- **IC3Syn:** not rerun: nothing on the search side changed, so its table is gen/laneA's (7 of 29 at 60 s, 8 at 300 s).
+
+**Bytes:** core/ +666 (machine.ts's `counts`), kernel/ +13,306 (kernel.ts: the counted section, `#` reserved, the
+scope lines); lean-kernel/CountMachine.lean 97.6 KB (new), emit.ts's cmachineToLean, count-examples.ts's toy.
+
+**Verified, not**
+- **Verified:** cmachine_sound, mc_sound, counts_exist in Lean 4.34.0 (three axioms, no sorry); the toy consensus end to
+  end (TS accepts, Lean checks, three tampers false in both); the TS twin's refusals and the fuzz; 121 of 126 mutants;
+  terra's findings each reproduced in the code and fixed; the bar, the suites (after the lint fix), the ten 200/200.
+- **Not verified:** any search use of counts (none built: no IC3Syn protocol gains); the runtime for counts (not built:
+  CReach is the meaning a runtime must implement); the 5 surviving mutants are argued equivalent, not shown; terra's
+  reviews read the code, they don't prove its absence of bugs.
+
+**Step 2, not built: why, and what it needs.** Step 1's review found two real issues to fix first (one a kernel bug on
+main), and the search side is larger than a lane's remainder: (1) the runtime (core/machine.ts's interpret, the
+engine's compiled rows, compileJs) computing each count map at a request's view, and `Machine.counts` in the DSL
+(`.counts(...)`); (2) the ports' majorities as counts (`Cardinality(Q) * 2 > Cardinality(Node)`, today common.ts's
+injective rank) with check.ts's TLC agreement re-run; (3) a counted prover: for a goal, the cells it reads (each count
+map read before and after the step) and Count.lean instances over pairs of cells with one bound, coefficients from
+two shapes (+1, −1 for a count that doesn't drop; +1, +1 and unit −1 for two that meet), each witness fresh with the
+laws and quantified flags instantiated there, then the EPR path decides the goal; (4) the engine's candidates: a
+write `P[t] := 1` guarded by `2·C[_] > B` with C a set's count and a quantified flag `∀k ∈ set. R(k, t)` proposes the
+state count `c_R(x) = |{n < B: R(n, x)}|` and the law `P[a] = 1 ⇒ B < 2·c_R(a)` (every counting protocol in the class
+has this guard shape), and the ∀∃ class its ghost map (checkGhostedLaws exists; the choice of W is exists.ts's). The
+toy consensus above is exactly the proof (3)–(4) would have to find.
+
 ## gen/laneA2: one incremental EPR encoder a sort of goal; the join counted; the ten 20 of 20 (branch gen/laneA2 from dd752f0)
 
 **The ask:** "10 of 10, each inside 60 s" guaranteed: 20 of 20 for every protocol on Modal's 2-vCPU containers, ring with

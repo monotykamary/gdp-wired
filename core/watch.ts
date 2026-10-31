@@ -28,7 +28,7 @@ export function requestEnv(m: Machine, run: Runtime, params: Env, st: State, inp
 export const allowed = (m: Machine, run: Runtime, params: Env, st: State, input: Request): boolean => {
   const order = m.history?.prune?.order
   if (order !== undefined && st.last !== undefined && (input[order] as number) < st.last) return false
-  return !m.assume || evalC(m.assume, requestEnv(m, run, params, st, input), carriedView(m, st, input), m)
+  return !m.assume || evalC(m.assume, requestEnv(m, run, params, st, input), carriedView(m, st, input, undefined, params), m)
 }
 
 // The keys a law about every key is read at: 0 to bound + 1, and every key a map holds.
