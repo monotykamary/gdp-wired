@@ -202,9 +202,10 @@ class Batch:
             if self.sess:
                 summary = self.sess.close()
         todo = [it for it in self.items if it["name"] not in got]
-        if todo and len(todo) > MODAL_MAX and not lost:
-            # (boat refused the whole batch, its image not built or its API down: a sweep isn't urgent, so it waits for
-            # boat rather than send hundreds of items to Modal; a few items lost on the way do go to Modal)
+        if todo and len(todo) > MODAL_MAX:
+            # (boat refused the batch, gave it no VM within --max-wait, its image not built or its API down: a sweep isn't
+            # urgent, so it waits for boat rather than send hundreds of items to Modal; a few items lost do go to Modal.
+            # 10-31: with the warm pool emptied by an image change and the free starts paced, 1,200 items went to Modal)
             log(f"{self.label}: boat can't run it now; again later ({len(todo)} items, past MODAL_MAX for Modal)")
             self.failed = True
             for it in todo:
