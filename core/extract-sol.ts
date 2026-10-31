@@ -51,9 +51,7 @@ type PathM = {resolve: (...p: string[]) => string, dirname: (p: string) => strin
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Ast = {nodeType: string, id: number, src: string, [k: string]: any}
 
-// (addresses: naturals below 2^19, a mapping of mappings pairing two of them into one key, a·2^19 + b; the rule's
-// runtimes write a map at every key, a transfer's two cells, only below a million)
-export const MOD = 'W256$', PAIR_BITS = 19
+export const MOD = 'W256$'
 // (the width the check runs the rule at: past 2^256's half the code's values are the rule's near W)
 const CHECK_W = 2 ** 52
 const U256: SType = {k: 'int', bits: 256, signed: false, mod: MOD}
@@ -86,7 +84,7 @@ export function compile(file: string, o: SolOptions): Compiled {
 
 // --- the lowering -------------------------------------------------------------------------------------------------------
 type Field = {name: string, t: SType, decl: Ast, sol: string}
-export type SolMeta = {calls: boolean, resumes: string[], addrBits: number, contract: string, source: string, fields: Field[], fns: Record<string, Ast>, payable: string[], minW: number, nested: string[], entries: Record<string, {sig: string, inputs: string[], payable: boolean, out?: string}>, ctor: {inputs: string[], payable: boolean}, ether: boolean}
+export type SolMeta = {leftOut: string[], calls: boolean, resumes: string[], addrBits: number, contract: string, source: string, fields: Field[], fns: Record<string, Ast>, payable: string[], minW: number, nested: string[], entries: Record<string, {sig: string, inputs: string[], payable: boolean, out?: string}>, ctor: {inputs: string[], payable: boolean}, ether: boolean}
 
 class Lower {
   readonly defs = new Map<number, Ast>()
@@ -94,7 +92,7 @@ class Lower {
   readonly fields: Field[] = []
   readonly consts = new Map<number, SX>()
   minW = 2
-  addrBits = PAIR_BITS
+  addrBits = 0
   get ADDR(): SType { return {k: 'int', bits: this.addrBits, signed: false} }
   unchecked = false
   ether = false
@@ -144,12 +142,10 @@ class Lower {
   mapTy(s: string, n: Ast): SType {
     const inner = s.slice('mapping('.length, -1), arrow = topArrow(inner)
     const k = this.ty(inner.slice(0, arrow).trim(), n), v = inner.slice(arrow + 2).trim()
-    const small = (t: SType) => t.k === 'int' && t.bits !== undefined && t.bits > 0 && t.bits <= PAIR_BITS && !t.signed
     if (!(k.k === 'int' && !k.signed)) return {k: 'opaque', why: `a mapping keyed by ${inner.slice(0, arrow).trim()}`}
     if (v.startsWith('mapping(')) {
       const vv = v.slice('mapping('.length, -1), a2 = topArrow(vv), k2 = this.ty(vv.slice(0, a2).trim(), n), val = this.ty(vv.slice(a2 + 2).trim(), n)
-      if (!small(k) || !small(k2)) return {k: 'opaque', why: 'a mapping of mappings not keyed by two addresses (or two small numbers)'}
-      if (!scalarT(val)) return {k: 'opaque', why: `a mapping of mappings of ${vv.slice(a2 + 2).trim()}`}
+      if (!(k2.k === 'int' && !k2.signed) || !scalarT(val)) return {k: 'opaque', why: `a mapping of mappings of ${vv.slice(a2 + 2).trim()}`}
       return {k: 'map', key: {k: 'int'}, val, nested: true} as SType
     }
     const val = this.ty(v, n)
@@ -200,12 +196,12 @@ class Lower {
     // The constructor: every base's state initializers and constructor, base first, with the arguments given to it.
     const init = this.ctor(k)
     for (const fr of this.frames) { const n = fr.name.slice('Frame$'.length); methods[`${n}$resume`] = `entry:${Object.keys(fns).find(i => methods[n] === `entry:${i}`)}$resume` }
-    const rec: SRec = {name: k.name, short: k.name, fields: [...this.fields.map(f => ({name: f.name, t: f.t})), {name: MOD, t: {k: 'int'}}, ...(this.ether ? [{name: 'balance', t: U256}] : []),
+    const rec: SRec = {name: k.name, short: k.name, fields: [...this.fields.filter(f => !(f.t as {nested?: boolean}).nested).map(f => ({name: f.name, t: f.t})), {name: MOD, t: {k: 'int'}}, ...(this.ether ? [{name: 'balance', t: U256}] : []),
       ...this.frames.map(fr => ({name: `frames$${fr.name.slice('Frame$'.length)}`, t: {k: 'map', key: {k: 'int'}, val: {k: 'rec', name: fr.name}} as SType})), ...(this.frames.length ? [{name: 'pending$', t: {k: 'int'} as SType}] : [])],
       methods: {__init__: '__init__', ...methods}, kinds: [], own: true, module: k.name, p: this.at(k)}
     this.funcs.__init__ = init
     const ctorDef = this.lin[0]!.nodes.find((n: Ast) => n.nodeType === 'FunctionDefinition' && n.kind === 'constructor') as Ast | undefined
-    const meta: SolMeta = {calls: this.calls, resumes: this.frames.map(fr => `${fr.name.slice('Frame$'.length)}$resume`), addrBits: this.addrBits, contract: k.name, source: this.c.paths.get(Number(String(k.src).split(':')[2]))!, fields: this.fields, fns, payable: Object.entries(entries).filter(([, e]) => e.payable).map(([n]) => n), minW: this.minW, nested: [...this.nested], entries,
+    const meta: SolMeta = {leftOut: [...this.leftOut], calls: this.calls, resumes: this.frames.map(fr => `${fr.name.slice('Frame$'.length)}$resume`), addrBits: this.addrBits, contract: k.name, source: this.c.paths.get(Number(String(k.src).split(':')[2]))!, fields: this.fields, fns, payable: Object.entries(entries).filter(([, e]) => e.payable).map(([n]) => n), minW: this.minW, nested: [...this.nested], entries,
       ctor: {inputs: ctorDef ? (ctorDef.parameters.parameters as Ast[]).map(x => x.typeDescriptions.typeString as string) : [], payable: ctorDef?.stateMutability === 'payable'}, ether: this.ether}
     const mod: SModule = {lang: 'solidity', file: this.file.split('/').pop()!, path: this.file, module: k.name, root: '', entries: [{k: 'class', rec: k.name}], recs: {[k.name]: rec, ...Object.fromEntries(this.frames.map(fr => [fr.name, fr]))}, funcs: this.funcs}
     return {mod, meta}
@@ -322,7 +318,7 @@ class Lower {
       for (const n of c.nodes as Ast[]) {
         if (n.nodeType !== 'VariableDeclaration' || n.constant) continue
         const f = this.fields.find(x => x.decl === n)!
-        if (f.t.k === 'opaque') continue
+        if (f.t.k === 'opaque' || (f.t as {nested?: boolean}).nested) continue
         body.push({s: 'set', p: this.at(n), to: self(f.name, this.at(n)), x: n.value ? this.ex(n.value) : f.t.k === 'map' ? {e: 'dict', keys: [], p: this.at(n), text: '{}'} : zero(f.t, this.at(n))})
       }
       const cf = ctorOf(c)
@@ -430,18 +426,32 @@ class Lower {
       if (f) return f.t.k === 'opaque' ? (/string|bytes/.test(f.sol) ? undefined : this.no(n, f.t.why)) : self(f.name, p)
       return {e: 'var', n: n.name, p}
     }
-    if (n.nodeType === 'IndexAccess') { const [m, k] = this.cell(n); return {e: 'idx', p, text: this.text(n), x: m, i: k, nz: true} }
+    if (n.nodeType === 'IndexAccess') {
+      if (this.nestedOf(n)) { this.leftOut.add(`${this.text(n)} (${p}): a write to a mapping of mappings, left out`); return undefined }
+      const [m, k] = this.cell(n); return {e: 'idx', p, text: this.text(n), x: m, i: k, nz: true}
+    }
     if (n.nodeType === 'TupleExpression' && n.components.length === 1) return this.place(n.components[0])
     return this.no(n, 'an assignment to other than a variable or a mapping\'s cell')
   }
-  // A mapping's cell: the map and its key (two keys of a mapping of mappings as one).
+  // A mapping of mappings' field, where a node is one of its cells (m[a][b]).
+  nestedOf(n: Ast): Field | undefined {
+    const b = n.baseExpression as Ast
+    if (b?.nodeType !== 'IndexAccess') return undefined
+    const f = b.baseExpression?.nodeType === 'Identifier' ? this.fieldOf(b.baseExpression) : undefined
+    return f && (f.t as {nested?: boolean}).nested ? f : undefined
+  }
+  // A cell of a mapping of mappings read: any value of its type, an input of the request (one a step: a second read in
+  // one step is refused), its writes left out; the check sets the code's cells to it before the call. (A key of two
+  // numbers, a·K + b, is linear but the kernel's maps take it slowly; the laws read no such map.)
+  readonly leftOut = new Set<string>()
+  havocRead(n: Ast, f: Field): SX {
+    const p = this.at(n), val = (f.t as {val: SType}).val
+    this.nested.add(f.name)
+    return {e: 'call', p, text: this.text(n), f: {e: 'ext', p, q: f.name, text: f.name, patch: {mod: this.lin[0]!.name, path: [f.name]}}, args: [], kw: [], ...(val.k === 'int' && val.bits !== undefined ? {ity: {bits: val.bits, signed: !!val.signed, ...(val.mod ? {mod: val.mod} : {})}} : {})}
+  }
+  // A mapping's cell: the map and its key.
   cell(n: Ast): [SX, SX] {
     const p = this.at(n), b = n.baseExpression as Ast
-    if (b.nodeType === 'IndexAccess' && b.typeDescriptions.typeString.startsWith('mapping(')) {
-      const [m, k1] = this.cell(b), k2 = this.ex(n.indexExpression)
-      this.nested.add(String(m.f))
-      return [m, {e: 'bin', op: '+', p, text: `a·2^${PAIR_BITS} + b`, x: {e: 'bin', op: '*', p, text: `a·2^${PAIR_BITS}`, x: k1, y: {e: 'int', v: 2 ** PAIR_BITS, p}}, y: k2}]
-    }
     if (b.nodeType === 'Identifier') {
       const f = this.fieldOf(b)
       if (!f || f.t.k !== 'map') return this.no(n, f?.t.k === 'opaque' ? f.t.why : 'an index of other than a state mapping')
@@ -487,6 +497,8 @@ class Lower {
       }
       case 'Conditional': return {e: 'ite', p, text, c: this.ex(n.condition), a: this.ex(n.trueExpression), b: this.ex(n.falseExpression)}
       case 'IndexAccess': {
+        const nf = this.nestedOf(n)
+        if (nf) return this.havocRead(n, nf)
         const [m, k] = this.cell(n), vt = this.ty(ts, n)
         return {e: 'call', p, text, f: {e: 'get', p, text, x: m, f: 'get'}, args: [k, zero(vt, p)], kw: []}
       }
@@ -627,15 +639,16 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
     const types = out.storageLayout.types
     const slots = Object.fromEntries(out.storageLayout.storage.map(s => [s.label, {slot: s.slot, offset: s.offset, bytes: Number(types[s.type]?.numberOfBytes ?? 32), map: types[s.type]?.encoding === 'mapping', nested: meta.nested.includes(s.label), type: s.type}]))
     const kinds = Object.fromEntries(meta.fields.map(f => [f.name, kindOf(f.t, f.sol)]))
-    const mapKeys = Object.fromEntries(meta.fields.filter(f => f.t.k === 'map').map(f => [f.name, keyKinds(f.sol)]))
+    const mapKeys = Object.fromEntries(meta.fields.filter(f => f.sol.startsWith('mapping(')).map(f => [f.name, keyKinds(f.sol)]))
     return {cmd: opts.python ?? 'python3', args: [new URL('./sol/harness.py', import.meta.url).pathname], env: {...(opts.anvil ? {GDP_ANVIL: opts.anvil} : {})},
-      hello: {sol: {creation: out.evm.bytecode.object, abi: out.abi, ids: out.evm.methodIdentifiers, slots, kinds, mapKeys, mod: MOD, minW: meta.minW, addrBits: meta.addrBits, pairBits: PAIR_BITS, entries: meta.entries, ctor: meta.ctor, ether: meta.ether}}}
+      hello: {sol: {creation: out.evm.bytecode.object, abi: out.abi, ids: out.evm.methodIdentifiers, slots, kinds, mapKeys, havoc: meta.nested, mod: MOD, minW: meta.minW, addrBits: meta.addrBits, entries: meta.entries, ctor: meta.ctor, ether: meta.ether}}}
   }
   // (methods: the external functions that may write the state, unless named)
   const methods = opts.methods ?? Object.keys(meta.entries)
   // (the check's probes: the branches' conditions, each a state and request the prover finds; a revert's condition
   // holds at no step the rule takes, and a contract's rule is large)
-  const o: StepOptions = {...opts, methods, strict: true, onError: 'discard', entry: meta.contract, check: {probes: 'writes', ...opts.check}}
+  const havoc = Object.fromEntries(meta.fields.filter(f => meta.nested.includes(f.name)).map(f => [f.name, (f.t as {val: SType}).val.k === 'bool' ? 'bool' : 'int']))
+  const o: StepOptions = {...opts, methods, strict: true, onError: 'discard', entry: meta.contract, check: {probes: 'writes', ...opts.check}, answers: {...havoc, ...opts.answers}}
   // extractStep's run, the width's param fixed for the check's own draws (2^52: the proof is for every width)
   const notes: string[] = []
   let read: StepRead
@@ -742,7 +755,7 @@ function replayer(c: ReplayCtx) {
     let st = it.init(ps)
     const watcher = law ? watch(m, it, law as never, ps, 8) : undefined
     let broke = watcher ? (watcher.start(st) ? -1 : 0) : -1
-    const ev = c.model.event, steps: {method: string, args: [string, unknown][], ok?: boolean, depth: number, before: number}[] = []
+    const ev = c.model.event, steps: {method: string, args: [string, unknown][], answers: [string, unknown][], ok?: boolean, depth: number, before: number}[] = []
     const decodeIn = (req: Record<string, unknown>, name: string): unknown => { const v = c.model.inputs.find(x => x.name === name)!; const k = kindOfVar(v, c.sorts); return k.decode(name, Object.fromEntries(k.vars(name).map(part => [part, Number(req[part] ?? 0)]))) }
     const states: Record<string, unknown>[] = []
     for (const [i, req0] of run.trace.entries()) {
@@ -754,21 +767,22 @@ function replayer(c: ReplayCtx) {
       st = next
       const method = ev ? String(decodeIn(req0, ev)) : c.model.events[0]!.call
       const args = c.names.filter(n => n.role === 'input' && n.method === method && n.rule).map(n => [n.code, decodeIn(req0, n.rule)] as [string, unknown])
-      steps.push({method, args, depth: Number(R.decode(st)['pending$'] ?? 0), before})
+      const answers = c.names.filter(n => n.role === 'answer' && n.rule && n.rule in req0).map(n => [n.code, decodeIn(req0, n.rule)] as [string, unknown])
+      steps.push({method, args, answers, depth: Number(R.decode(st)['pending$'] ?? 0), before})
       states.push(R.decode(st) as Record<string, unknown>)
       if (broke > 0 && steps.at(-1)!.depth === 0) break
     }
     if (law && broke < 0) return no('the law holds on this run at the width 2^52 (it breaks only at a narrower one)')
     if (steps.at(-1)?.depth) return no('the run ends with a call pending (no state of the code between transactions)')
     // The transactions: each from a call at depth 0 to the depth back at 0.
-    const groups: {kind: 'call' | 'ret', m?: string, a?: [string, {in: unknown}][], ok?: boolean}[][] = []
+    const groups: {kind: 'call' | 'ret', m?: string, a?: [string, {in: unknown}][], ok?: boolean, answers?: Record<string, {in: unknown}>}[][] = []
     const after: Record<string, unknown>[] = []
     let nested = 0
     for (const [i, s] of steps.entries()) {
       if (s.before === 0) groups.push([])
       const g = groups.at(-1)!
       if (s.method.endsWith('$resume')) g.push({kind: 'ret', ok: s.args.find(([n]) => n === '$ok')?.[1] === true})
-      else { if (s.before > 0) nested++; g.push({kind: 'call', m: s.method, a: s.args.map(([n, v]) => [n, {in: v}])}) }
+      else { if (s.before > 0) nested++; g.push({kind: 'call', m: s.method, a: s.args.map(([n, v]) => [n, {in: v}]), ...(s.answers.length ? {answers: Object.fromEntries(s.answers.map(([n, v]) => [n, {in: v}]))} : {})}) }
       if (s.depth === 0) after.push(states[i]!)
     }
     const fs = node<FS & {writeFileSync: (p: string, s: string) => void, mkdtempSync: (p: string) => string, rmSync: (p: string, o?: unknown) => void}>('node:fs'), os = node<{tmpdir: () => string}>('node:os'), cp = node<CP>('node:child_process')
@@ -816,7 +830,9 @@ function boundaryNotes(m: SolMeta): string[] {
   return [
     `Solidity: ${m.contract} read from solc's AST; checked against its bytecode (the same solc) on anvil`,
     `uint256: exact past 2^53 by the width ${MOD} (any value above ${m.minW - 1} in the rule, 2^256 in the code): a law proven for every width is proven for 2^256`,
-    `addresses: naturals below 2^${m.addrBits} compared by equality (address(0) is 0; a mapping of mappings is keyed by two as one number): the claim is for runs among fewer than 2^${m.addrBits} accounts`,
+    'addresses: naturals compared by equality (address(0) is 0, and no request comes from it)',
+    ...m.nested.map(f => `${f}: a mapping of mappings, each cell read any value of its type (an input of the request, one a step), its writes left out: a law reads none of it`),
+    ...m.leftOut,
     'a revert is the step\'s refusal (nothing it wrote stays); a mapping\'s cell is held where it isn\'t 0',
     ...(m.ether ? ['balance: the contract\'s ether; an address sent a value is an account without code (it calls nothing back)'] : []),
   ]

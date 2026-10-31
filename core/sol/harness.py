@@ -161,11 +161,18 @@ def cell_slot(label, key, W):
   s = slot_of(label)
   base = int(s['slot'])
   kk = S['keys'][label]
-  if s.get('nested'):
-    a, b = key >> S['pairBits'], key & ((1 << S['pairBits']) - 1)
-    inner = keccak(key_word(kk[0], a, W) + word(base))
-    return int(keccak(key_word(kk[1], b, W) + inner), 16)
   return int(keccak(key_word(kk[0], key, W) + word(base)), 16)
+
+
+# A mapping of mappings the rule reads as any value (an input of the request): every cell of the addresses the object
+# has seen set to it before the call, as the code then reads it.
+def set_havoc(o, label, v, W):
+  kk, base, cs = S['keys'][label], word(int(slot_of(label)['slot'])), sorted(c for c in o['cands'] if c >= 0)
+  outer = [key_word(kk[0], a, W) + base for a in cs if fits(kk[0], a, W)]
+  keccak_many(outer)
+  inner = [key_word(kk[1], b, W) + keccak(h) for h in outer for b in cs if fits(kk[1], b, W)]
+  keccak_many(inner)
+  rpc_batch([('anvil_setStorageAt', [o['addr'], '0x' + keccak(h), '0x' + word(v)]) for h in inner])
 
 
 def read_slot(addr, slot):
@@ -306,24 +313,9 @@ def at(args, state):
   return i
 
 
-def key_fits(label, key, W):
-  kk = S['keys'][label]
-  if S['slots'][label].get('nested'):
-    return fits(kk[0], key >> S['pairBits'], W) and fits(kk[1], key & ((1 << S['pairBits']) - 1), W)
-  return fits(kk[0], key, W)
-
-
-def note_key(o, label, key):
-  if S['slots'][label].get('nested'):
-    o['cands'].add(key >> S['pairBits']); o['cands'].add(key & ((1 << S['pairBits']) - 1))
-  else: o['cands'].add(key)
-
-
-def keys_of(o, label, W):
-  cs = sorted(c for c in o['cands'] if c >= 0)
-  if S['slots'][label].get('nested'):
-    return [(a << S['pairBits']) | b for a in cs for b in cs if key_fits(label, (a << S['pairBits']) | b, W)]
-  return [c for c in cs if key_fits(label, c, W)]
+def key_fits(label, key, W): return fits(S['keys'][label][0], key, W)
+def note_key(o, label, key): o['cands'].add(key)
+def keys_of(o, label, W): return [c for c in sorted(o['cands']) if c >= 0 and key_fits(label, c, W)]
 
 
 def state_of(i):
@@ -332,13 +324,7 @@ def state_of(i):
   s = {}
   # (every slot the state reads, hashed and read in two batches)
   cells = [(l, key) for l in S['leaves'] if l['kind'] == 'map' for key in keys_of(o, l['path'][0], W)]
-  pre = []
-  for l, key in cells:
-    label = l['path'][0]; kk = S['keys'][label]; base = word(int(slot_of(label)['slot']))
-    if S['slots'][label].get('nested'): pre.append(key_word(kk[0], key >> S['pairBits'], W) + base)
-    else: pre.append(key_word(kk[0], key, W) + base)
-  keccak_many(pre)
-  keccak_many([key_word(S['keys'][l['path'][0]][1], key & ((1 << S['pairBits']) - 1), W) + keccak(key_word(S['keys'][l['path'][0]][0], key >> S['pairBits'], W) + word(int(slot_of(l['path'][0])['slot']))) for l, key in cells if S['slots'][l['path'][0]].get('nested')])
+  keccak_many([key_word(S['keys'][l['path'][0]][0], key, W) + word(int(slot_of(l['path'][0])['slot'])) for l, key in cells])
   slots = [cell_slot(l['path'][0], key, W) for l, key in cells]
   vals = dict(zip([(l['name'], key) for l, key in cells], [int(x, 16) for x in rpc_batch([('eth_getStorageAt', [o['addr'], hex(sl), 'latest']) for sl in slots])]))
   for l in S['leaves']:
@@ -374,6 +360,8 @@ def call(req):
     except RpcError as x: return {'bad': f'the time {req["now"]}: {x}'}
   data, value, bad = calldata(o, m, req['a'], W)
   if bad: return {'err': bad}
+  bad = havoc(o, req.get('answers') or {}, W)
+  if bad: return {'err': bad}
   frm = addr_hex(sender)
   fund(frm, value)
   tx = {'from': frm, 'to': o['addr'], 'data': '0x' + data, 'value': hex(value), 'gas': hex(30_000_000), 'gasPrice': '0x0'}
@@ -404,6 +392,18 @@ def calldata(o, m, args, W):
   if not fits('u256', a.get('msg.value', 0), W): return None, None, 'msg.value outside its type'
   data = '' if m in ('receive', 'fallback') else S['ids'][e['sig']] + abi_args(e['inputs'], [a[n] for n in params], W)
   return data, to_code(int(a.get('msg.value', 0)), W), None
+
+
+# The answers of the mappings of mappings read (the rule's inputs): each set in the code's cells.
+def havoc(o, answers, W):
+  for label in S.get('havoc') or []:
+    a = answers.get(label)
+    if a is None: continue
+    v = a.get('in', 0)
+    kind = S['kinds'][label][4:]
+    if not fits(kind, v, W): return f'{label} answers {v}, outside its type'
+    set_havoc(o, label, enc(kind, v, W), W)
+  return None
 
 
 # --- re-entrant runs replayed: an Agent at every address, a Director with the run's script --------------------------------
@@ -452,6 +452,10 @@ def replay(req):
         rpc('anvil_setCode', [addr_hex(sender), '0x' + req['agent']])
         agents.add(sender)
       rpc('anvil_setBalance', [addr_hex(sender), hex(min(value + (1 << 128), TWO256 - 1))])
+      if e.get('answers'):
+        if len(g) > 1: return {'error': 'a mapping of mappings read inside a call of another (the replay sets its cells before a transaction)'}
+        bad = havoc(o, e['answers'], W)
+        if bad: return {'error': bad}
       kinds.append(0); froms.append(addr_of(sender)); values.append(value); rets.append(False); datas.append(data)
     frm = '0x' + format(0xBEEF << 140, '040x')
     r, err = send(frm, d, run_sel + abi_dyn(int(o['addr'], 16), kinds, froms, values, rets, datas), 0)
