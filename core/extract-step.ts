@@ -1441,6 +1441,12 @@ export class Stepper {
     if (why) this.notes.add(`${fn.name}: the module's own code, outside the subset (${why}), and writing none of the rule's state: taken as other code where it is called (inferred)`)
     return {key: fn.id, name: fn.name, patch: this.ownPatch(fn, self), ret: fn.ret, own: fn.id, recv: self, tag, refusal: `${x.text}: ${fn.name}`}
   }
+  // The module's own function that returned other code's value (the innermost), where it may be cut: not cut yet, not
+  // an entry, not strict, writing none of the state its call gave it.
+  cuttable(why: string): SFunc | undefined {
+    const own = this.returnedBy.get(why), fn = own ? this.mod.funcs[own.id] : undefined
+    return fn && !this.inf!.cut.has(fn.id) && !this.entryIds.has(fn.id) && this.fnTag(fn)?.k !== 'strict' && !this.writesState(fn.id, new Set(own!.roots)) ? fn : undefined
+  }
   // A refused run: what the next one infers, or the refusal (with the statement that would accept it). A value of
   // other code read is answered by its declared type (where the check can stub it); else the module's own function the
   // refusal is in (the innermost but the entries) is cut where it writes none of the rule's state.
@@ -1462,8 +1468,8 @@ export class Stepper {
     }
     // (last: a value returned by the module's own function, writing none of the state: that function cut, answered by
     // its declared type)
-    const own = best && this.returnedBy.get(best.why), fn = own ? this.mod.funcs[own.id] : undefined
-    if (fn && !this.inf!.cut.has(fn.id) && !this.entryIds.has(fn.id) && this.fnTag(fn)?.k !== 'strict' && !this.writesState(fn.id, new Set(own!.roots))) { this.inf!.cut.set(fn.id, `${e.where}: ${e.what}`); return undefined }
+    const fn = best && this.cuttable(best.why)
+    if (fn) { this.inf!.cut.set(fn.id, `${e.where}: ${e.what}`); return undefined }
     return hint ? new Refusal(e.where, `${e.what}; ${hint}`) : e
   }
 
@@ -3049,10 +3055,10 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     let kind: 'none' | 'scalar' | 'maybe' = 'none', rv: Var | undefined, rn: Var | undefined
     // (a result of other code left out by inference: the step's result is kept, so its value is read)
     const asked = out.t === 'opaque' ? out : out.t === 'opt' && out.v.t === 'opaque' ? out.v : undefined
-    // (other code's value returned: answered by the next reading where its type takes an answer; else, an object of
-    // other code, not kept, as any other value of no scalar kind)
+    // (other code's value returned: answered or cut by the next reading where it can be; an object of other code's
+    // class, not kept, as any other value of no scalar kind)
     const pd = asked?.ask ? [...g.pend.values()].find(x => x.why === asked.why) : undefined
-    if (pd?.ret && answerable(pd.ret) && (pd.patch || pd.end) && mod.stubs !== false) refuse(fn, `${fn.name} returns ${asked!.why} (a result the rule keeps)`)
+    if (asked?.ask && (pd?.ret?.k !== 'rec' || g.cuttable(asked.why))) refuse(fn, `${fn.name} returns ${asked.why} (a result the rule keeps)`)
     if (out.t === 'num' || out.t === 'bool' || out.t === 'str' || out.t === 'choice' || out.t === 'opt') {
       const inner = out.t === 'opt' ? out.v : out
       if (inner.t === 'num' || inner.t === 'bool' || inner.t === 'str' || inner.t === 'choice') {
