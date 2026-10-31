@@ -1,0 +1,56 @@
+# gdp-wired on the supercomputer (`supercomputer`, ~/.local/share/supercomputer): what a job here needs on boat,
+# RunPod and Modal. supercomputer/ holds the hooks, the Modal app (run.py), the treadmill's chains and the job lists.
+name = "gdp-wired"
+hooks = "supercomputer/hooks.py"
+
+[run]
+pre = "export GDP_CYCLIC_LOG=1; "
+
+[boat]
+prefix = "gdpw"
+final_prefix = "sc"
+image_salt = "gdpw-image-v1"
+vm_type = "large"
+path = ["~/.bun/bin", "~/.elan/bin"]
+mounts = ["/bench", "/smt", "/vamp", "/sv"]
+ignore = ["vendor/handwired/lab/recovery-*/**", "**/*.olean", "**/*.ilean", "**/*.c", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal",
+          "private/**", "vendor/handwired/lab/ui-exploration/**", "vendor/handwired/lab/knuth-plass/**", "vendor/handwired/assets/**", "vendor/handwired/tests/**",
+          "vendor/gdp-ts/examples/**", "**/__pycache__/**"]
+
+# "image": "runner" (GitHub's ubuntu-24.04 runner on Modal): on boat, the langs layer's clang 18 and Temurin 17 first
+[boat.images.runner]
+path = ["/usr/lib/llvm-18/bin", "/usr/lib/jvm/temurin-17/bin"]
+env = { JAVA_HOME = "/usr/lib/jvm/temurin-17" }
+
+# The Lean twin's library, compiled once per version of its sources (the key hashes the toolchain and every source)
+[[cache]]
+name = "olean"
+dir = "lean-kernel"
+modules = ["Cert", "Kernel", "Cyclic", "Progress", "StepLaw", "Steps", "Sets", "History", "Live", "NonTerm", "Ghost", "Sums", "Refine", "Bridge", "BridgeRules", "Data"]
+inputs = "{m}.lean"
+outputs = "{m}.olean"
+salt = "leanprover/lean4:v4.34.0\n"
+modal_volume = "gdp-wired-olean"
+
+[modal]
+module = "supercomputer/run.py"
+
+[treadmill]
+module = "supercomputer/treadmill.py"
+dir = "runs/treadmill"
+
+# The GPU runners (research/hw, research/synth): Dawn's node bindings and NVIDIA's Vulkan driver through its EGL ICD
+# (the stock ICD, libGLX_nvidia, needs an X server); the check must list an NVIDIA device before anything runs.
+[gpu]
+pod_prefix = "gdpw"
+modal_gpu = "L4"
+setup = '''
+apt-get install -y -q libvulkan1 vulkan-tools libxext6 libx11-6 libglvnd0 libegl1 > /dev/null
+[ -x /root/.bun/bin/bun ] || curl -fsSL https://bun.sh/install | bash -s bun-v1.4.3 > /dev/null 2>&1
+mkdir -p /opt/dawn && cd /opt/dawn && [ -d node_modules/webgpu ] || { /root/.bun/bin/bun init -y > /dev/null && /root/.bun/bin/bun add webgpu@0.6.2 > /dev/null; }
+mkdir -p /etc/gdpw && echo '{"file_format_version": "1.0.1", "ICD": {"library_path": "libEGL_nvidia.so.0", "api_version": "1.4.329"}}' > /etc/gdpw/nvidia_egl_icd.json
+'''
+env = { VK_ICD_FILENAMES = "/etc/gdpw/nvidia_egl_icd.json" }
+check = "vulkaninfo --summary 2>&1 | grep -E 'deviceName|driverName|apiVersion' | head -8"
+check_expect = "NVIDIA"
+image = { apt = ["libvulkan1", "vulkan-tools", "libegl1", "libglvnd0"], run = ["curl -fsSL https://bun.sh/install | bash -s bun-v1.4.3"] }

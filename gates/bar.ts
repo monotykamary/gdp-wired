@@ -73,7 +73,7 @@ async function run(args: string[], o: {cwd: string, log: string, stdout?: string
   const fd = openSync(o.log, 'a'), sfd = o.stdout ? openSync(o.stdout, 'w') : fd
   treesUsed.add(o.cwd)
   try {
-    const p = Bun.spawn(args, {cwd: o.cwd, stdout: sfd, stderr: fd, env: {...process.env, GDPW_BOAT_CLIENT: CLIENT, ...o.env}})
+    const p = Bun.spawn(args, {cwd: o.cwd, stdout: sfd, stderr: fd, env: {...process.env, GDPW_BOAT_CLIENT: CLIENT, ...SC_CONFIG, ...o.env}})
     const c: Child = {pid: p.pid, kill: s => p.kill(s), what: args.slice(0, 3).join(' '), cwd: o.cwd}
     live.set(p.pid, c)
     const timer = setTimeout(() => { log(`cap of ${o.cap} s reached: stopping ${c.what} (pid ${c.pid})`); void stop(c) }, o.cap * 1000)
@@ -112,15 +112,18 @@ function reap() {
 }
 for (const s of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) process.on(s, () => { void stopAll(s).then(() => process.exit(130)) })
 process.on('exit', () => { for (const c of live.values()) try { c.kill('SIGINT') } catch { /* gone */ } declare(true) })
-// On boat, the bar declares the work it still has to launch (supercomputer/boat.py's demand): while it runs, the VMs its
+// On boat, the bar declares the work it still has to launch (the supercomputer's demand): while it runs, the VMs its
 // launches release stay up for its next group (at most as many as it held at once lately, 10 minutes at most), and they
-// stop a minute after it ends. A tree whose supercomputer/boat.py predates the starts ledger gets this checkout's boat.py,
-// fanout.py and agent.py (they ship the tree and run its jobs, which never read them: modal/ isn't uploaded), so every
-// launch spends starts under one policy, with its reserve for the account's other project, and is in the ledger.
+// stop a minute after it ends. A tree whose supercomputer/boat.py isn't yet the door to the supercomputer tool gets this
+// checkout's boat.py, fanout.py and agent.py (they ship the tree and run its jobs, which never read them: modal/ isn't
+// uploaded), and every launch reads this checkout's supercomputer.toml (SUPERCOMPUTER_CONFIG), so every launch spends
+// starts under one policy, reaches warm VMs by their agents, and is in the ledger.
 const CLIENT = `bar-${process.pid}`
+// (and every launch is the supercomputer scheduler's class 2, a gate: it takes the treadmill's slots first)
+const SC_CONFIG: Record<string, string> = {SUPERCOMPUTER_CLASS: 'gate', ...(existsSync(join(HERE, '..', 'supercomputer.toml')) ? {SUPERCOMPUTER_CONFIG: resolve(HERE, '..', 'supercomputer.toml')} : {})}
 function declare(done = false) {
   if (backend === 'modal') return
-  Bun.spawnSync(['python3', join(HERE, '..', 'supercomputer', 'boat.py'), 'demand', CLIENT, ...(done ? ['--done'] : ['--for', '300', '--pid', String(process.pid)])], {stdout: 'ignore', stderr: 'ignore'})
+  Bun.spawnSync(['python3', join(HERE, '..', 'supercomputer', 'boat.py'), 'demand', CLIENT, ...(done ? ['--done'] : ['--for', '300', '--pid', String(process.pid)])], {stdout: 'ignore', stderr: 'ignore', env: {...process.env, ...SC_CONFIG}})
 }
 declare()
 if (backend !== 'modal') setInterval(declare, 120_000).unref()
@@ -128,7 +131,7 @@ const overlaid = new Set<string>()
 const backendOf = (p: Pass) => {
   const b = p.backend ?? backend, d = join(p.tree.path, 'modal')
   if (b !== 'modal' && !overlaid.has(d) && resolve(d) !== resolve(HERE, '..', 'modal')) {
-    if (!readFileSync(join(d, 'boat.py'), 'utf8').includes('boat-starts.jsonl') || existsSync(join(d, '.bar-orchestration')))
+    if (!readFileSync(join(d, 'boat.py'), 'utf8').includes('from supercomputer import') || existsSync(join(d, '.bar-orchestration')))
       for (const f of ['boat.py', 'fanout.py', 'agent.py']) if (readFileSync(join(HERE, '..', 'modal', f), 'utf8') !== readFileSync(join(d, f), 'utf8')) { cpSync(join(HERE, '..', 'modal', f), join(d, f)); writeFileSync(join(d, '.bar-orchestration'), '') }
     overlaid.add(d)
   }
@@ -176,7 +179,8 @@ function treeOf(rev: string): Tree {
 // -------------------------------------------------------------------------------------------------------- the groups
 type Side = 'cand' | 'base'
 type Pass = {group: string, side: Side, tree: Tree, dir: string, tasks?: string[], quickSize?: boolean, backend?: string}
-type Job = {name: string, cmd: string, cwd?: string, cpu?: number, memory?: number, timeout?: number}
+// (timing: alone on its VM while it runs, the supercomputer scheduler's placement for a job whose seconds are compared)
+type Job = {name: string, cmd: string, cwd?: string, cpu?: number, memory?: number, timeout?: number, timing?: boolean}
 type Group = {key: string, views: string[], cap: number, launch: (p: Pass) => Promise<number>, pairAlways?: boolean, noRerun?: boolean, candOnly?: boolean, after?: string, inQuick: boolean}
 
 const py = (p: Pass, script: string, args: string[], cap: number) => run(['python3', script, '--backend', backendOf(p), '--out', p.dir, ...args], {cwd: p.tree.path, log: `${p.dir}.log`, cap})
@@ -223,7 +227,7 @@ const GROUPS: Group[] = [
   {key: 'suite-usual', views: ['suite-usual'], cap: 2400, inQuick: false, after: 'suite', launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, sc(p.tree.path), 'suite.json')), j => j.name, 2400, ['--usual'])},
   {key: 'onecpu', views: [], cap: 1500, inQuick: true, pairAlways: true, noRerun: true, launch: p => {
     const n = smoke ? 1 : p.quickSize ? 3 : 10, jobs: Job[] = []
-    for (let i = 0; i < n; i++) for (const t of ['data', 'infer']) jobs.push({name: `${p.side}-${t}-${i}`, cmd: `bun install --frozen-lockfile >/dev/null 2>&1; bun test core/${t}.test.ts 2>&1`, cpu: 1.0, timeout: 600})
+    for (let i = 0; i < n; i++) for (const t of ['data', 'infer']) jobs.push({name: `${p.side}-${t}-${i}`, cmd: `bun install --frozen-lockfile >/dev/null 2>&1; bun test core/${t}.test.ts 2>&1`, cpu: 1.0, timeout: 600, timing: true})
     return jobsPass(p, jobs, j => j.name, 1500)
   }},
   {key: 'lean', views: ['lean'], cap: 3600, inQuick: true, candOnly: true, noRerun: true, after: 'its', launch: leanPass},

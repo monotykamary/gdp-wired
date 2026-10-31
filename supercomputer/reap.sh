@@ -1,22 +1,18 @@
 #!/bin/sh
-# Stop Modal apps whose local client died: supercomputer/run.py writes supercomputer/.live/<app id> holding its client pid and removes
-# it when done, so a ticket whose pid is gone marks an orphan. Apps of live clients, and apps this runner didn't start,
-# are listed but never stopped. With an app id, stop exactly that one.
-# Then the same for the other backends (supercomputer/fanout.py): boat VMs leased by a client that's gone are released (what
-# they ran killed) and stopped, as are free VMs left up past their idle time (supercomputer/boat.py reap); RunPod pods whose
-# client is gone, and gdpw- pods with no ticket, are deleted (supercomputer/runpod.py reap).
+# Stop what a dead client left running. First the Modal apps whose tickets are in this tree's own .live (a worktree's
+# compare runners register there; a main checkout's .live is the supercomputer's shared directory): a ticket whose pid
+# is gone marks an orphan; apps of live clients are only listed. With an app id, stop exactly that one. Then
+# `supercomputer reap` (~/.local/share/supercomputer): every Modal app of a dead client in the shared directory, boat
+# leases of dead clients released (what they ran killed) and VMs left up past their idle time stopped, RunPod pods
+# whose client is gone deleted. Live clients' apps, VMs and pods are never touched.
 cd "$(dirname "$0")"
 if [ -n "$1" ]; then modal app stop -y "$1"; exit; fi
-mkdir -p .live
-for t in .live/ap-*; do
-  [ -e "$t" ] || continue
-  id=$(basename "$t"); pid=$(cat "$t")
-  if kill -0 "$pid" 2>/dev/null; then echo "live: $id (client $pid)"; else modal app stop -y "$id" >/dev/null 2>&1; rm -f "$t"; echo "stopped orphan $id"; fi
-done
-modal app list --json 2>/dev/null | python3 -c '
-import json, sys
-up = [a for a in json.load(sys.stdin) if a["state"] not in ("stopped", "stopping...")]
-print(len(up), "apps up")
-for a in up: print(" ", a["app_id"], a["description"], a["state"], "tasks=" + str(a["tasks"]))'
-if [ -x "${BOAT_BIN:-$HOME/.ascii/bin/boat}" ] || command -v boat >/dev/null 2>&1; then python3 boat.py reap; fi
-if command -v runpodctl >/dev/null 2>&1; then python3 runpod.py reap; fi
+if [ -d .live ] && [ ! -L .live ]; then
+  for t in .live/ap-*; do
+    [ -e "$t" ] || continue
+    id=$(basename "$t"); pid=$(cat "$t")
+    if kill -0 "$pid" 2>/dev/null; then echo "live: $id (client $pid)"; else modal app stop -y "$id" >/dev/null 2>&1; rm -f "$t"; echo "stopped orphan $id"; fi
+  done
+fi
+if command -v supercomputer >/dev/null 2>&1; then exec supercomputer --repo .. reap; fi
+python3 boat.py reap

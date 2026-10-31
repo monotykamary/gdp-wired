@@ -1,11 +1,11 @@
 #!/bin/bash
 # The fallback paths, each forced (research/boat-starts/fakeboat.py) on a small batch with --backend auto: what boat
-# can't run must end on Modal, and finish (40 jobs of 20 s: not a tiny batch, which goes to Modal anyway). Each case's results in runs/laneP/fallback/<case>/ (summary.tsv's 4th column,
+# can't run must end on Modal (through the supercomputer tool: supercomputer/run.py's doors), and finish (40 jobs of 20 s: not a tiny batch, which goes to Modal anyway). Each case's results in runs/laneP/fallback/<case>/ (summary.tsv's 4th column,
 # backends.json's fallbacks); an empty registry (GDPW_LIVE) where warm VMs would hide the failure.
 #   research/boat-starts/fallback.sh [nostarts api create lose image]
 set -u
 cd "$(dirname "$0")/../.."
-out=runs/laneP/fallback; mkdir -p "$out"
+out=${FALLBACK_OUT:-runs/laneP/fallback}; mkdir -p "$out"
 jobs() { python3 -c "
 import json,sys
 n,s=int(sys.argv[1]),int(sys.argv[2])
@@ -17,7 +17,7 @@ for c in ${@:-nostarts api create lose image}; do
   live=$(mktemp -d); jobs 40 20 $([ $c = lose ] && echo own) > "$out/$c.json"
   case $c in
     nostarts|api|create) env=(GDPW_FAKE_BOAT=$c GDPW_LIVE=$live) ;;
-    lose) env=(GDPW_FAKE_BOAT=lose) ;;
+    lose) env=(GDPW_FAKE_BOAT=lose SUPERCOMPUTER_WARM=0) ;;  # (the loss is faked on boat exec's ticks: no warm agents)
     image) env=(GDPW_BOAT_IMAGE=gdpw-missing GDPW_LIVE=$live) ;;
   esac
   echo "=== $c (${env[*]})"

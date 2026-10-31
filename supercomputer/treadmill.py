@@ -1,39 +1,33 @@
-"""The treadmill: a long-lived client of the boat pool (supercomputer/boat.py) that keeps a base pool of VMs busy with a queue
-of experiments, caches every result by (commit, benchmark, task, config) so nothing unchanged runs twice, and writes a
-daily digest.
+"""gdp-wired's treadmill: the supercomputer's treadmill (~/.local/share/supercomputer, its generic batches, cache,
+queue and digest) with this repo's chains: a base pool of VMs kept busy with sweeps of the benchmarks, soundness work
+and the queue, every result cached by (commit, benchmark, task, config) so nothing unchanged runs twice, and a daily
+digest.
 
-    python3 supercomputer/treadmill.py run [--vms 8] [--hours 0] [--budget-vmh 384] [--quiet 1500] [--nogain 3]
+    python3 supercomputer/treadmill.py run [--vms 8] [--max-vms 32] [--step-vms 4] [--backlog-hours 2] [--budget-vmh auto] [--quiet 1500] [--nogain 3]
     python3 supercomputer/treadmill.py submit <jobs.json> [--tree DIR] [--name NAME]     a lane's (or terra's) batch
     python3 supercomputer/treadmill.py results <name> | status | digest [--day YYYY-MM-DD]
+    (the same as `supercomputer treadmill run ...`, `supercomputer queue add|ls|results`, `supercomputer digest`)
 
 The base pool: `--vms` large VMs (4 slots each) held by the treadmill's batches, which a scheduler keeps full every
 15 s, in this order:
   (b) a floor of one VM of soundness work: the kernel fuzz, the CDCL fuzz and the randomized tamper test at fresh seeds,
       and at a commit that changes kernel/kernel.ts or core/check.ts, its mutants (kernel/mutants.ts ids, one each);
-  (c) submissions (`submit`: a jobs.json and its tree as it is), up to two VMs while any wait;
+  (c) submissions (the queue: a jobs.json and its tree as it is), up to two VMs while any wait;
   (a) at each new main commit, per benchmark (CHC-COMP, TermComp ITS, SV-COMP, TIP, IC3Syn): the whole set at 60 s (the
       bar's baseline of that commit when there is one), then rounds over the tasks no round has solved, at 300 s and
       900 s, each budget with the search's variants (VARIANTS: knobs the prover reads); a benchmark stops after
       `--nogain` rounds in a row that solve nothing new;
   then more of (b) and (c) in what's left.
-Bars and lane batches don't wait on it: they lease or start VMs of their own (elastic, extra starts allowed).
+Bars and lane batches don't wait on it: they lease or start VMs of their own.
 
-Every batch is the pool's (a Session): it leases warm VMs first, starts what's missing, and lets each VM go the moment
-it has nothing left to take (boat.py's early release), so the next batch, the treadmill's or anyone's, leases it
-without a start. While it has work running or queued the treadmill declares it (boat.py's demand), so a released VM
-stays up for its next batch; with nothing queued for --quiet seconds it declares the end and its VMs stop a minute
-later (TOS-6: VMs kept for queued work, never parked). It stops launching once the day's VM-hours reach
---budget-vmh (default-VM hours, as the plan counts them: a large VM is 2).
-
-Under <main checkout>/runs/treadmill: cache.jsonl (every task's verdict), commits/<sha>/ (each benchmark's rounds and
-state, the fuzz and mutants' results), subs/<name>/ (submissions), trees/<sha> (worktrees of main's commits),
-vmh.jsonl (each batch's VM-hours), digest/<day>.md, status.json, treadmill.log.
+How it spends the pool (warm VMs first, early release, demand declared while work is queued, --budget-vmh a day) is
+the generic treadmill's. Under <main checkout>/runs/treadmill: cache.jsonl (every task's verdict), commits/<sha>/ (each
+benchmark's rounds and state, the fuzz and mutants' results), subs/<name>/ (submissions), trees/<sha> (worktrees of
+main's commits), vmh.jsonl, digest/<day>.md, status.json, treadmill.log.
 """
 import argparse
 import contextlib
-import datetime
 import hashlib
-import io
 import json
 import math
 import os
@@ -41,17 +35,19 @@ import pathlib
 import re
 import subprocess
 import sys
-import tarfile
 import threading
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import boat  # noqa: E402
+import boat  # noqa: E402  (the tool's, configured for this repo)
+from supercomputer import config  # noqa: E402
+from supercomputer import treadmill as T  # noqa: E402
+from supercomputer.treadmill import Batch, append, append_many, jl, log, py_item, sh_item, today  # noqa: E402,F401
 
-MAIN = boat.main_checkout()
-TM = pathlib.Path(os.environ.get("GDPW_TREADMILL") or MAIN / "runs" / "treadmill")
-CLIENT = "treadmill"
+TM = T.use()
+MAIN = config.main_checkout(HERE.parent)
+CLIENT = os.environ.get("SUPERCOMPUTER_TREADMILL_CLIENT", "treadmill")  # (a test treadmill beside the real one: a name of its own)
 SLOTS = boat.TYPES[boat.VM_TYPE][0] // boat.SLOT_CPU
 # the search's variants: knobs the prover already reads (core/infer.ts, core/interp.ts, core/cyclic.ts, kernel/prove.ts)
 VARIANTS = {"base": {}, "cyclic": {"GDP_CYCLIC": "1"}, "td": {"GDP_TD": "1"}, "clausal": {"GDP_ITP_CLAUSAL": "1"},
@@ -72,246 +68,10 @@ FUZZ = {"kernel": ("kernel", "FUZZ_SEED={s} bun test kernel.test.ts 2>&1"),
         "tamper": ("kernel", "FUZZ_SEED={s} bun test tamper.test.ts 2>&1")}
 REFUSED = ("unsupported", "refused")
 SWEEP_HOURS = 24  # a sweep's commit is replaced by main's at the latest after this long
-YIELD = 60  # the treadmill starts a VM only while more than this many free starts are left this hour (else warm ones): 200 starved it after an image change emptied the warm pool
-MODAL_MAX = 64  # a batch boat refuses whole goes to Modal only when it is this small (a submission, a short round)
-
-
-def log(*a):
-    line = f"[treadmill {time.strftime('%H:%M:%S')}] " + " ".join(map(str, a))
-    print(line, file=sys.stderr, flush=True)
-    with contextlib.suppress(Exception):
-        with open(TM / "treadmill.log", "a") as f:
-            f.write(line + "\n")
-
-
-def jl(path: pathlib.Path) -> list[dict]:
-    return [json.loads(l) for l in path.read_text().splitlines() if l.strip()] if path.exists() else []
-
-
-def append(path: pathlib.Path, row: dict):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "a") as f:
-        f.write(json.dumps(row) + "\n")
-
-
-def append_many(path: pathlib.Path, rows: list):
-    with open(path, "a") as f:
-        f.write("".join(json.dumps(r) + "\n" for r in rows))
 
 
 def git(*a, cwd=MAIN) -> str:
     return subprocess.run(["git", "-C", str(cwd), *a], capture_output=True, text=True, check=True).stdout.strip()
-
-
-def today() -> str:
-    return time.strftime("%Y-%m-%d", time.gmtime())
-
-
-# ------------------------------------------------------------------------------------------------------- the cache
-class Cache:
-    """Every verdict, by (commit, benchmark, task, config); appended to cache.jsonl as it comes."""
-
-    def __init__(self):
-        self.path = TM / "cache.jsonl"
-        self.d = {(r["commit"], r["bench"], r["task"], r["config"]): r for r in jl(self.path)}
-        self.lock = threading.Lock()
-
-    def put(self, row: dict):
-        with self.lock:
-            self.d[(row["commit"], row["bench"], row["task"], row["config"])] = row
-            append(self.path, row)
-
-    def solved(self, commit: str, bench: str) -> dict[str, str]:
-        """The tasks some round of this commit solved, each with the first config that did."""
-        out = {}
-        for (c, b, t, cfg), r in sorted(self.d.items(), key=lambda x: x[1]["t"]):
-            if c == commit and b == bench and r["solved"] and t not in out:
-                out[t] = cfg
-        return out
-
-    def seen(self, commit: str, bench: str, config: str) -> set[str]:
-        return {t for (c, b, t, cfg) in self.d if c == commit and b == bench and cfg == config}
-
-    def refused(self, commit: str, bench: str) -> set[str]:
-        return {t for (c, b, t, cfg), r in self.d.items() if c == commit and b == bench and r["answer"] in REFUSED}
-
-
-# ------------------------------------------------------------------------------------------------------ the batches
-class Batch:
-    """One Session's worth of items in a thread: `vms` asked for, the session's live VMs counted while it runs."""
-
-    def __init__(self, tm, label: str, chain: str, items: list[dict], vms: int, on_row, root=None, tar=None, after=None, oleans=False):
-        self.tm, self.label, self.chain, self.items, self.vms = tm, label, chain, items, vms
-        self.on_row, self.root, self.tar, self.after, self.oleans = on_row, root, tar, after, oleans
-        self.sess, self.done, self.failed, self.t0 = None, False, False, time.time()
-        self.thread = threading.Thread(target=self.go, daemon=True)
-        self.thread.start()
-
-    def held(self) -> int:
-        s = self.sess
-        if s is None:
-            return 0 if self.done else self.vms
-        return sum(1 for v in list(s.vms.values()) if not v.dead and not v.released and v.t_end is None) or (0 if self.done else 1)
-
-    def unpacked(self) -> pathlib.Path:
-        """A submission's tree as a directory (for Modal), with this checkout's modal/ (the tree as shipped has none)."""
-        d = TM / "unpacked" / tree_key(self.tar)
-        if not (d / ".ready").exists():
-            d.mkdir(parents=True, exist_ok=True)
-            with tarfile.open(fileobj=io.BytesIO(self.tar)) as tf:
-                tf.extractall(d, filter="tar")
-            (d / "supercomputer").mkdir(exist_ok=True)
-            for f in ("run.py", "fanout.py", "agent.py", "boat.py", "runpod.py"):
-                (d / "supercomputer" / f).write_bytes((HERE / f).read_bytes())
-            (d / ".ready").write_text("")
-        return d
-
-    def backlog(self) -> bool:
-        """More queued than its VMs' slots: more VMs would help it."""
-        s = self.sess
-        return bool(s and not self.done and s.ready and getattr(s, "_enough", None) and not s.enough())
-
-    def grow(self, k: int):
-        """k VMs more for it (warm ones first, else started)."""
-        self.vms += k
-        self.sess.cap = self.vms
-        live = sum(1 for v in list(self.sess.vms.values()) if not v.dead and not v.released and v.t_end is None)
-        threading.Thread(target=self.sess.ensure, args=(live + k,), daemon=True).start()
-
-    def go(self):
-        """The items on boat; those boat loses (a VM gone, no VM within --max-wait, boat failing) on Modal; then
-        `after` with every item's logs."""
-        summary, logs, lost, got = {}, {}, {}, set()
-
-        def row(it, r):
-            got.add(it["name"])
-            self.on_row(it, r)
-        try:
-            if os.environ.get("GDPW_TREADMILL_NO_BOAT"):  # (the fallback test: boat refuses the batch at once)
-                raise boat.Unavailable("boat off (GDPW_TREADMILL_NO_BOAT)")
-            sess = boat.Session(f"treadmill {self.label}", build=False, oleans=self.oleans, root=self.root or MAIN, tar=self.tar)
-            sess.cap = self.vms
-            sess.min_left = YIELD  # (bars and lanes come first: the treadmill starts VMs only while the hour has plenty)
-            self.sess = sess
-            sess.ensure(self.vms)
-            sess.run(self.items, row, on_lost=lambda it, why: lost.__setitem__(it["name"], why), max_wait=self.tm.max_wait)
-            logs = sess.collect()
-        except Exception as e:
-            log(f"{self.label}: boat: {str(e)[:300]}")
-        finally:
-            if self.sess:
-                summary = self.sess.close()
-        todo = [it for it in self.items if it["name"] not in got]
-        if todo and len(todo) > MODAL_MAX:
-            # (boat refused the batch, gave it no VM within --max-wait, its image not built or its API down: a sweep isn't
-            # urgent, so it waits for boat rather than send hundreds of items to Modal; a few items lost do go to Modal.
-            # 10-31: with the warm pool emptied by an image change and the free starts paced, 1,200 items went to Modal)
-            log(f"{self.label}: boat can't run it now; again later ({len(todo)} items, past MODAL_MAX for Modal)")
-            self.failed = True
-            for it in todo:
-                self.on_row(it, {"code": -1, "error": "boat couldn't run it now", "lost": True, "retry": True})
-            todo = []
-        if todo and not self.tm.modal:
-            self.failed = True
-            for it in todo:
-                self.on_row(it, {"code": -1, "error": lost.get(it["name"], "boat couldn't run it"), "lost": True})
-        elif todo:
-            why = sorted(set(lost.values()))[:3] or ["boat couldn't run them"]
-            log(f"{self.label}: {len(todo)} items on Modal ({'; '.join(w[:120] for w in why)})")
-            append(TM / "modal.jsonl", {"t": time.time(), "label": self.label, "items": len(todo), "why": why})
-            try:
-                logs.update(on_modal(todo, self.root or self.unpacked(), row))
-            except Exception as e:
-                log(f"{self.label}: Modal too: {str(e)[:300]}")
-                self.failed = True
-                for it in [it for it in todo if it["name"] not in got]:
-                    self.on_row(it, {"code": -1, "error": f"boat and Modal failed: {str(e)[:200]}", "lost": True})
-        try:
-            if self.after and not self.failed:  # (a batch to run again later records nothing now)
-                self.after(logs)
-        finally:
-            if summary:
-                mult = boat.TYPES[boat.VM_TYPE][0] / boat.TYPES["default"][0]
-                append(TM / "vmh.jsonl", {"t": time.time(), "day": today(), "label": self.label, "chain": self.chain, "vmh": round(summary["held_s"] * mult / 3600, 3),
-                                         "busy_vmh": round(summary["busy_s"] * mult / 3600, 3), "ready_vmh": round(summary["ready_held_s"] * mult / 3600, 3),
-                                         "starts": summary["starts"], "vms": summary["vms"], "items": len(self.items)})
-            self.done = True
-
-
-_boat_cfg: dict = {}
-
-
-def py_item(name: str, module: str, fn: str, args: list, limit: int, est: float, root: pathlib.Path, weight: int = 1) -> dict:
-    """A runner's function as an item (as fanout.BoatEx's), in the runner's boat setting (its mounts, PATH, overlays)."""
-    if (root, module) not in _boat_cfg:
-        import agent
-        _boat_cfg[(root, module)] = getattr(agent.import_runner(str(root / module)), "BOAT", {})
-    cfg = _boat_cfg[(root, module)]
-    return {"name": name, "kind": "py", "module": module, "fn": fn, "args": args, "limit": limit, "est": est,
-            "weight": max(weight, int(cfg.get("weight", 1))), **{k: v for k, v in cfg.items() if k in ("mounts", "path", "overlays", "env")}}
-
-
-def import_real(path: pathlib.Path):
-    """A module of a tree (a runner, supercomputer/run.py) under the real Modal client: its app, functions and image."""
-    import importlib.util
-    if getattr(sys.modules.get("modal"), "__gdpw_stub__", False):  # (agent.import_runner's stub, for BOAT configs: not here)
-        del sys.modules["modal"]
-    import modal  # noqa: F401
-    name = "tm_" + hashlib.sha256(str(path).encode()).hexdigest()[:10]
-    if name in sys.modules:
-        return sys.modules[name]
-    spec = importlib.util.spec_from_file_location(name, path)
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules[name] = mod
-    spec.loader.exec_module(mod)
-    return mod
-
-
-_modal_lock = threading.Lock()
-
-
-@contextlib.contextmanager
-def modal_app(app):
-    """A tree's Modal app running for one fallback (one at a time: the client is not for threads at once), its id and
-    this client's pid in supercomputer/.live/ meanwhile (supercomputer/reap.sh stops it if this client dies)."""
-    with _modal_lock, app.run():
-        t = HERE / ".live" / app.app_id
-        t.parent.mkdir(exist_ok=True)
-        t.write_text(str(os.getpid()))
-        try:
-            yield
-        finally:
-            t.unlink(missing_ok=True)
-
-
-def on_modal(items: list[dict], root: pathlib.Path, on_row) -> dict:
-    """Items boat couldn't run, on Modal: a runner's function through the runner's own app, shell items through
-    the tree's supercomputer/run.py; each row to on_row, and the shell items' logs back."""
-    logs: dict = {}
-    for module in sorted({it["module"] for it in items if it["kind"] == "py"}):
-        mod = import_real(root / module)
-        group = [it for it in items if it["kind"] == "py" and it["module"] == module]
-        with modal_app(mod.app):
-            for fn in sorted({it["fn"] for it in group}):
-                its = [it for it in group if it["fn"] == fn]
-                for it, res in zip(its, list(getattr(mod, fn).starmap([tuple(it["args"]) for it in its], return_exceptions=True, order_outputs=True))):
-                    on_row(it, {"code": -1, "error": repr(res)[:400]} if isinstance(res, BaseException) else {"code": 0, "result": res, "where": "modal"})
-    sh = [it for it in items if it["kind"] == "sh"]
-    if sh:
-        run = import_real(root / ("supercomputer" if (root / "supercomputer" / "run.py").exists() else "modal") / "run.py")  # (a tree from before the rename)
-        by = {it["name"]: it for it in sh}
-        spec = [{"name": it["name"], "cmd": it["cmd"], "cwd": it.get("cwd", "."), "cpu": 2.0 * it.get("weight", 1), "memory": 4096 * it.get("weight", 1), "timeout": int(it["limit"]) + 30} for it in sh]
-
-        def done(name, r):
-            logs[name] = {"out": r.get("out", ""), "err": r.get("err", "")}
-            on_row(by[name], {"code": r.get("code", -1), "seconds": r.get("seconds", -1), "where": "modal"})
-        with modal_app(run.app):
-            run.modal_jobs(spec, "", lambda c: c, done)
-    return logs
-
-
-def sh_item(name: str, cmd: str, cwd: str, limit: int, est: float, weight: int = 1) -> dict:
-    return {"name": name, "kind": "sh", "cmd": cmd, "cwd": cwd, "limit": limit, "est": est, "weight": weight}
 
 
 # -------------------------------------------------------------------------------------------- (a) the sweeps
@@ -540,105 +300,20 @@ class Soundness:
         return Batch(self.tm, f"{self.commit[:12]} soundness", "b", items, vms, on_row, root=self.tree, after=after)
 
 
-# --------------------------------------------------------------------------------------- (c) submissions
-def tree_key(tar: bytes) -> str:
-    return hashlib.sha256(tar).hexdigest()[:16]
-
-
-def job_key(tk: str, j: dict) -> str:
-    return hashlib.sha256((tk + json.dumps({k: j.get(k) for k in ("cmd", "cwd", "cpu", "memory", "timeout")}, sort_keys=True)).encode()).hexdigest()[:24]
-
-
-def submit(jobs: str, tree: str, name: str):
-    spec = json.loads(pathlib.Path(jobs).read_text())
-    if any(j.get("image") or j.get("backend") == "modal" for j in spec):
-        raise SystemExit("a job on Modal's own image doesn't belong on the treadmill: run it with supercomputer/run.py")
-    root = pathlib.Path(git("rev-parse", "--show-toplevel", cwd=pathlib.Path(tree).resolve()))
-    tar = boat.tree_tarball(root)
-    name = name or f"{root.name}-{pathlib.Path(jobs).stem}-{time.strftime('%m%d-%H%M%S')}"
-    d = TM / "subs" / name
-    if d.exists():
-        raise SystemExit(f"{d} exists: another --name")
-    d.mkdir(parents=True)
-    (d / "tree.tar.gz").write_bytes(tar)
-    (d / "jobs.json").write_text(json.dumps(spec, indent=1))
-    (d / "meta.json").write_text(json.dumps({"name": name, "tree": str(root), "sha": git("rev-parse", "HEAD", cwd=root), "tree_key": tree_key(tar), "jobs": len(spec),
-                                             "t": time.time(), "status": "queued"}, indent=1))
-    print(f"queued {name}: {len(spec)} jobs from {root} (tree {tree_key(tar)}); results: python3 supercomputer/treadmill.py results {name}")
-
-
-def results(name: str):
-    d = TM / "subs" / name
-    meta = json.loads((d / "meta.json").read_text())
-    print(f"{name}: {meta['status']}, {meta['jobs']} jobs" + (f", done in {round(meta['wall_s'])} s" if meta.get("wall_s") else ""))
-    if (d / "out" / "summary.tsv").exists():
-        print((d / "out" / "summary.tsv").read_text(), end="")
-        print(f"(logs: {d / 'out'})")
-
-
-class Submission:
-    def __init__(self, tm, d: pathlib.Path):
-        self.tm, self.d = tm, d
-        self.meta = json.loads((d / "meta.json").read_text())
-        self.batch: Batch | None = None
-
-    def start(self, vms: int) -> Batch | None:
-        spec = json.loads((self.d / "jobs.json").read_text())
-        tar = (self.d / "tree.tar.gz").read_bytes()
-        cache = TM / "subs" / ".cache"
-        cache.mkdir(parents=True, exist_ok=True)
-        keys = {j["name"]: job_key(self.meta["tree_key"], j) for j in spec}
-        rows = {n: json.loads((cache / f"{k}.json").read_text()) for n, k in keys.items() if (cache / f"{k}.json").exists()}
-        todo = [j for j in spec if j["name"] not in rows]
-        items, _ = boat.job_items(todo, "", lambda c: c, boat.VM_TYPE, {})
-        self.meta["status"], self.meta["started"] = "running", time.time()
-        self.save()
-
-        def on_row(it, row):
-            rows[it["name"]] = {k: row.get(k) for k in ("code", "seconds", "error")} | {"where": row.get("where", "boat")}
-
-        def after(logs):
-            out = self.d / "out"
-            out.mkdir(exist_ok=True)
-            for j in spec:
-                n, r = j["name"], rows.get(j["name"], {"code": -1, "seconds": -1, "error": "never ran"})
-                lg = logs.get(n, {})
-                for k in range(1, 3):
-                    lg = logs.get(f"{n}~r{k}", lg)
-                if "out" in lg or "err" in lg:
-                    (out / f"{n}.log").write_text(lg.get("out", "") + ("\n--- stderr ---\n" + lg["err"] + (f"\n{r['error']}" if r.get("error") else "") if lg.get("err", "").strip() else ""))
-                    if r.get("code") == 0 or not r.get("error"):
-                        (cache / f"{keys[n]}.json").write_text(json.dumps({**r, "log": str(out / f"{n}.log")}))
-            (out / "summary.tsv").write_text("".join(f"{j['name']}\t{rows.get(j['name'], {}).get('code', -1)}\t{rows.get(j['name'], {}).get('seconds', -1)}\t{rows.get(j['name'], {}).get('where', '-')}\n" for j in spec))
-            self.meta["status"], self.meta["wall_s"] = "done", time.time() - self.meta["started"]
-            self.save()
-        if not todo:
-            after({})
-            return None
-        self.batch = Batch(self.tm, f"sub {self.meta['name']}", "c", items, vms, on_row, tar=tar, after=after, oleans=True)
-        return self.batch
-
-    def save(self):
-        (self.d / "meta.json").write_text(json.dumps(self.meta, indent=1))
-
-
 # ---------------------------------------------------------------------------------------------- the controller
-class Treadmill:
-    def __init__(self, vms: int, budget_vmh: float, quiet: int, nogain: int, benches: str = "", sample: int = 0, sound: bool = True, modal: bool = True, max_wait: int = 900):
-        TM.mkdir(parents=True, exist_ok=True)
-        self.vms, self.budget_vmh, self.quiet, self.nogain = vms, budget_vmh, quiet, nogain
-        self.benches = [b for b in benches.split(",") if b] or list(BENCHES)
-        self.sample, self.sound_on, self.modal, self.max_wait = sample, sound, modal, max_wait
-        self.cache = Cache()
-        self.state = json.loads((TM / "state.json").read_text()) if (TM / "state.json").exists() else {}
-        self.batches: list[Batch] = []
-        self.commit, self.tree, self.sweeps, self.sound, self.head = None, None, {}, None, None
-        self.subs: dict[str, Submission] = {}
-        self.last_work = time.time()
-        self.declared, self.declared_t = False, 0.0
+class Treadmill(T.Treadmill):
+    """The generic loop (T.Treadmill.step: the floor, the queue, the main chains, the queue again, backlogs, the
+    fill) with this repo's chains: (b) soundness as the floor and the fill, (a) the sweeps as the main chains."""
 
-    def save_state(self):
-        (TM / "state.json").write_text(json.dumps(self.state, indent=1))
+    CLIENT = CLIENT
+
+    def __init__(self, vms: int, budget_vmh, quiet: int, nogain: int, benches: str = "", sample: int = 0, sound: bool = True, modal: bool = True, max_wait: int = 900,
+                 max_vms: int = 0, step_vms: int = 4, backlog_hours: float = 2.0):
+        super().__init__(vms, budget_vmh, quiet, modal, max_wait, max_vms, step_vms, backlog_hours)
+        self.nogain = nogain
+        self.benches = [b for b in benches.split(",") if b] or list(BENCHES)
+        self.sample, self.sound_on = sample, sound
+        self.commit, self.tree, self.sweeps, self.sound, self.head = None, None, {}, None, None
 
     def tree_of(self, sha: str) -> pathlib.Path:
         """A worktree of main's commit (with its submodules); of the others, those of the sweeps' commit and the two
@@ -659,14 +334,7 @@ class Treadmill:
                 git("worktree", "remove", "--force", str(old))
         return path
 
-    def held(self) -> int:
-        return sum(b.held() for b in self.batches if not b.done)
-
-    def vmh_today(self) -> float:
-        return sum(r["vmh"] for r in jl(TM / "vmh.jsonl") if r["day"] == today())
-
-    def step(self):
-        self.batches = [b for b in self.batches if not b.done]
+    def poll(self):
         head = git("rev-parse", "main")
         if head != self.head and self.sound_on:  # soundness work follows main at once
             log(f"main is {head[:12]}: soundness work at it")
@@ -686,109 +354,44 @@ class Treadmill:
                 log(f"sweeps at {head[:12]}")
             self.commit, self.tree = sw, self.tree_of(sw)
             self.sweeps = {b: Sweep(self, sw, self.tree, b) for b in self.benches}
-        for sw in self.sweeps.values():
-            sw.poll()
-        for s in self.subs.values():  # (a submission boat couldn't take: queued again)
-            if s.batch and s.batch.done and s.batch.failed:
-                s.batch, s.meta["status"] = None, "queued"
-                s.save()
-        for d in sorted((TM / "subs").glob("*/meta.json")) if (TM / "subs").exists() else []:
-            if d.parent.name not in self.subs and json.loads(d.read_text())["status"] in ("queued", "running"):
-                self.subs[d.parent.name] = Submission(self, d.parent)
-        over = self.vmh_today() >= self.budget_vmh
-        free = self.vms - self.held()
-        want = lambda c: [b for b in self.batches if b.chain == c and not b.done]
-        if not over:
-            if free > 0 and not want("b") and self.sound_on:  # (b)'s floor: one VM
-                self.batches.append(self.sound.batch(1))
-                free -= 1
-            waiting = [s for s in self.subs.values() if s.meta["status"] == "queued"]
-            for s in waiting:  # (c): up to two VMs while submissions wait
-                k = min(free, 2 - sum(b.held() for b in want("c")))
-                if k <= 0:
-                    break
-                b = s.start(k)
-                if b:
-                    self.batches.append(b)
-                    free -= k
-            live = max(1, sum(1 for sw in self.sweeps.values() if not sw.state["done"]))
-            for sw in self.sweeps.values():  # (a): the next round of each benchmark, a fair share of the pool to start with
-                if free <= 0:
-                    break
-                b = sw.next_round(min(free, max(1, (self.vms - 1) // live)))
-                if b:
-                    self.batches.append(b)
-                    free -= b.vms
-            for s in [s for s in self.subs.values() if s.meta["status"] == "queued"]:  # (c) in what's left
-                if free <= 0:
-                    break
-                b = s.start(min(free, 4))
-                if b:
-                    self.batches.append(b)
-                    free -= b.vms
-            for b in sorted([b for b in self.batches if b.chain in ("c", "a") and b.backlog()], key=lambda b: b.chain):  # (a) and (c) grow into what's left
-                if free <= 0:
-                    break
-                k = min(free, max(1, self.vms // 4))
-                b.grow(k)
-                free -= k
-            if free > 0 and self.sound_on and len(want("b")) < 1 + self.vms // 2:  # (b) fills the rest
-                self.batches.append(self.sound.batch(min(free, 2)))
-        busy = bool([b for b in self.batches if not b.done])
-        if busy:
-            self.last_work = time.time()
-        if busy or time.time() - self.last_work < self.quiet:
-            if not self.declared or time.time() - self.declared_t > 60:
-                boat.demand(CLIENT, 300, os.getpid(), "treadmill")
-                self.declared, self.declared_t = True, time.time()
-        elif self.declared:
-            log(f"nothing queued for {self.quiet} s: the pool's VMs stop")
-            boat.undeclare(CLIENT)
-            self.declared = False
-        (TM / "status.json").write_text(json.dumps({"t": time.time(), "pid": os.getpid(), "commit": self.commit, "vms": self.vms, "held": self.held(), "vmh_today": round(self.vmh_today(), 2),
-                                                    "budget_vmh": self.budget_vmh, "over_budget": over,
-                                                    "batches": [{"label": b.label, "chain": b.chain, "held": b.held(), "items": len(b.items), "since": round(time.time() - b.t0)} for b in self.batches if not b.done],
-                                                    "sweeps": {k: s.state for k, s in self.sweeps.items()}, "queued_subs": [n for n, s in self.subs.items() if s.meta["status"] == "queued"]}, indent=1))
+        for s in self.sweeps.values():
+            s.poll()
 
-    def run(self, hours: float):
-        os.environ["GDPW_BOAT_CLIENT"] = CLIENT
-        (TM / "treadmill.pid").write_text(str(os.getpid()))
-        t_end = time.time() + hours * 3600 if hours else None
-        last_digest = 0.0
-        log(f"running: {self.vms} {boat.VM_TYPE} VMs, {self.budget_vmh} VM-hours a day, quiet {self.quiet} s" + (f", for {hours} h" if hours else ""))
-        try:
-            with boat.signals_as_interrupt():
-                while not t_end or time.time() < t_end:
-                    try:
-                        self.step()
-                    except Exception as e:
-                        log(f"step: {str(e)[:400]}")
-                    if time.time() - last_digest > 3600:
-                        last_digest = time.time()
-                        with contextlib.suppress(Exception):
-                            digest(today(), quiet=True)
-                    time.sleep(15)
-        except KeyboardInterrupt:
-            log("stopping: the batches running end (their VMs released)")
-        finally:
-            for b in self.batches:
-                if b.sess:
-                    b.sess.stop.set()
-            for b in self.batches:
-                b.thread.join(timeout=600)
-            boat.undeclare(CLIENT)
-            digest(today(), quiet=True)
-            (TM / "treadmill.pid").unlink(missing_ok=True)
-            log("stopped")
+    def floor(self, free: int) -> int:
+        if free > 0 and not self.want("b") and self.sound_on:  # (b)'s floor: one VM
+            self.batches.append(self.sound.batch(1))
+            free -= 1
+        return free
+
+    def main_chains(self, free: int) -> int:
+        live = max(1, sum(1 for sw in self.sweeps.values() if not sw.state["done"]))
+        for sw in self.sweeps.values():  # (a): the next round of each benchmark, a fair share of the pool to start with
+            if free <= 0:
+                break
+            b = sw.next_round(min(free, max(1, (self.vms - 1) // live)))
+            if b:
+                self.batches.append(b)
+                free -= b.vms
+        return free
+
+    def fill(self, free: int) -> int:
+        if free > 0 and self.sound_on and len(self.want("b")) < 1 + self.floor_vms // 2:  # (b) fills the rest (the floor busy)
+            b = self.sound.batch(min(free, 2))
+            self.batches.append(b)
+            free -= b.vms
+        return free
+
+    def status_extra(self) -> dict:
+        return {"commit": self.commit, "sweeps": {k: s.state for k, s in self.sweeps.items()}}
 
 
 # ------------------------------------------------------------------------------------------------- the digest
-def digest(day: str, quiet: bool = False) -> str:
+def sections(day: str) -> list[str]:
     """The day's new solves (and the config that solved each), regressions against the commit before, wrong answers,
-    the soundness work, submissions, VM-hours, busy share, starts and extra-start dollars."""
+    and the soundness work (the generic digest adds the queue and the pool)."""
     rows = [r for r in jl(TM / "cache.jsonl") if time.strftime("%Y-%m-%d", time.gmtime(r["t"])) == day]
     allrows = jl(TM / "cache.jsonl")
-    out = [f"# Treadmill digest, {day}", ""]
+    out = []
     commits = sorted({r["commit"] for r in rows}, key=lambda c: min(r["t"] for r in rows if r["commit"] == c))
     for c in commits:
         out.append(f"## {c[:12]}")
@@ -828,36 +431,23 @@ def digest(day: str, quiet: bool = False) -> str:
     out += ["", "## Soundness", f"- fuzz: {len(fz)} seeds ({', '.join(f'{k} {sum(1 for r in fz if r["kind"] == k)}' for k in FUZZ)}), "
             + (f"**{len(unsound)} UNSOUND**; " if unsound else "") + (f"{len(bad)} failed (" + ("none unsound: " if not unsound else "") + "a count a test expects at its own seeds, e.g. accepted > 0): " + ", ".join(f"{r['kind']} seed {r['seed']} (exit {r['code']}: {next((l.strip() for l in r.get('tail', '').splitlines() if l.strip().startswith(('error', '(fail)'))), '')[:120]})" for r in bad[:10]) if bad else "none failed"),
             f"- mutants: {len(mt)} run, {sum(1 for r in mt if not r.get('killedBy'))} survived" + "".join(f"\n  - survived: {r['id']} {r['where']} {r['change']}" for r in mt if not r.get("killedBy"))]
-    subs = [json.loads(p.read_text()) for p in (TM / "subs").glob("*/meta.json")] if (TM / "subs").exists() else []
-    subs = [s for s in subs if time.strftime("%Y-%m-%d", time.gmtime(s["t"])) == day]
-    out += ["", "## Submissions", *(f"- {s['name']}: {s['status']}, {s['jobs']} jobs" for s in subs)] if subs else []
-    v = [r for r in jl(TM / "vmh.jsonl") if r["day"] == day]
-    vmh, busy, ready = sum(r["vmh"] for r in v), sum(r["busy_vmh"] for r in v), sum(r["ready_vmh"] for r in v)
-    led = [r for r in jl(boat.LEDGER) if r["utc"][:10] == day]
-    ours = sum(r.get("starts", 0) for r in led if r.get("client") == CLIENT)
-    allst = sum(r.get("starts", 0) for r in led)
-    out += ["", "## The pool",
-            f"- treadmill batches: {len(v)}, {vmh:.1f} default-VM hours (busy {100 * busy / max(ready, 1e-9):.0f}% of the hours they held VMs ready), {sum(r['starts'] for r in v)} starts",
-            f"- starts today (the ledger): {ours} the treadmill's, {allst} every client's"]
-    with contextlib.suppress(Exception):
-        out.append(f"- {boat.extra_starts()}")
-    text = "\n".join(out) + "\n"
-    (TM / "digest").mkdir(parents=True, exist_ok=True)
-    (TM / "digest" / f"{day}.md").write_text(text)
-    if not quiet:
-        print(text)
-    return text
+    return out
 
 
-if __name__ == "__main__":
-    import fanout
-    fanout.reexec_with_modal()  # (Modal runs what boat can't: the interpreter that has its client)
+def digest(day: str, quiet: bool = False) -> str:
+    return T.digest(day, quiet, sections=sections)
+
+
+def main(argv: list[str]):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run")
-    r.add_argument("--vms", type=int, default=8)
+    r.add_argument("--vms", type=int, default=8, help="the floor: VMs kept busy (the soundness fill keeping them so)")
+    r.add_argument("--max-vms", type=int, default=0, help="the ceiling of its growth on a backlog (default 4x the floor)")
+    r.add_argument("--step-vms", type=int, default=4, help="VMs added a step (one step per 5 minutes while the backlog lasts)")
+    r.add_argument("--backlog-hours", type=float, default=2.0, help="grow while the sweeps' and the queue's work would take longer on the floor")
     r.add_argument("--hours", type=float, default=0)
-    r.add_argument("--budget-vmh", type=float, default=384)
+    r.add_argument("--budget-vmh", default="auto", help="default-VM hours a day (a large VM counts 2); auto: the plan's prepaid hours left over the days to its period's end")
     r.add_argument("--quiet", type=int, default=1500)
     r.add_argument("--nogain", type=int, default=3)
     r.add_argument("--benches", default="", help="these benchmarks only (default: all)")
@@ -874,14 +464,20 @@ if __name__ == "__main__":
     sub.add_parser("status")
     s = sub.add_parser("digest")
     s.add_argument("--day", default="")
-    a = ap.parse_args()
+    a = ap.parse_args(argv)
     if a.cmd == "run":
-        Treadmill(a.vms, a.budget_vmh, a.quiet, a.nogain, a.benches, a.sample, not a.no_soundness, not a.no_modal, a.max_wait).run(a.hours)
+        Treadmill(a.vms, a.budget_vmh, a.quiet, a.nogain, a.benches, a.sample, not a.no_soundness, not a.no_modal, a.max_wait, a.max_vms, a.step_vms, a.backlog_hours).run(a.hours, digest)
     elif a.cmd == "submit":
-        submit(a.jobs, a.tree, a.name)
+        T.submit(a.jobs, a.tree, a.name)
     elif a.cmd == "results":
-        results(a.name)
+        T.results(a.name)
     elif a.cmd == "status":
         print((TM / "status.json").read_text() if (TM / "status.json").exists() else "not running")
     elif a.cmd == "digest":
         digest(a.day or today())
+
+
+if __name__ == "__main__":
+    import fanout
+    fanout.reexec_with_modal()  # (Modal runs what boat can't: the interpreter that has its client)
+    main(sys.argv[1:])
