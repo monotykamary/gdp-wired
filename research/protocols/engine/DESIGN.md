@@ -112,8 +112,8 @@ decisions 16–31 s, the trees 7–16 s; the same job's small instances take 7.4
   runs each: proven 1 of 2 at 40 and at 80 (50.7, 56.8 s), then **0 of 8**;
 - the interpreter: copy-on-write maps and quantified flags that only other flags read inlined (so `and` stops at the
   action's literal): the small instances 14.9 → 13.4 s on one container, within the containers' spread; taken out.
-wo stays proven at 300 s (boat, 45–47 s) and at 60 s on boat; on Modal's 2-vCPU containers it needs about a third less
-work, which none of the above gives.
+wo stays proven at 300 s (boat, 45–66 s); at 60 s on boat it sits at the wall (before 59.3 / 60.6 proven, after 60.1 /
+60.1 unknown, its path unchanged); on Modal's 2-vCPU containers it needs about a third less work, which none of the above gives.
 
 **Gates** (before: main cf00792; after: 5f26d5a, then a7d4b16 = 5f26d5a with main b6a23b0 merged, which only makes boat the
 bar's default; `runs/laneG2/`; mid-lane the execution moved to boat: the numbers say where they ran)
