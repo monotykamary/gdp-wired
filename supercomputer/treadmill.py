@@ -12,7 +12,9 @@ unchanged runs twice; a chain whose inputs (INPUTS: the files its runs read) are
 The chains, each at main's newest commit whose inputs changed (a commit main passed meanwhile is skipped), highest
 first:
   speed   (b) each benchmark's solved set at 60 s, timing placement (alone on its VM), against the previous run: a
-          task 1.5x slower (and 1 s more) or lost is flagged. These runs are the commit's 60 s round for those tasks.
+          task 1.5x slower (and 1 s more) or lost is flagged, run once more (timed) at both commits, and reported only
+          if both runs agree (the search's own spread on identical code reaches 3x). These runs are the commit's 60 s
+          round for those tasks. At most SPEED_PER_DAY (12) runs a day.
   ic3syn  (c) IC3Syn's 29 protocols and their broken variants at 60 s (timing placement) and 300 s: a broken variant
           proven is a SOUNDNESS ALERT. These are the sweep's IC3Syn rounds at 60 and 300 s.
   rw      (d) the real-world corpus (the bar's rw group: research/realworld/jobs.ts), verdict changes flagged.
@@ -26,7 +28,10 @@ first:
   sound   the floor and the fill: kernel, CDCL and tamper fuzz at fresh seeds, the extractor correspondence fuzz (each
           reader's own check harness, core/<lang>, at a fresh seed: the extracted rule against the real code on random
           requests), and at a commit that changes kernel/kernel.ts or core/check.ts its mutants. A NEW survivor (not
-          killed, not listed equivalent in kernel/MUTANTS.md, never a survivor before) is an alert.
+          killed, not listed equivalent in kernel/MUTANTS.md, never a survivor before) is an alert. The fill stops for
+          the day at FUZZ_PER_DAY seeds a kind (3,000) and XFUZZ_PER_DAY a reader (48).
+  (the knobs: GDPW_TM_<NAME> in the environment: SPEED_PER_DAY, SLOWER, FLOOR_S, TEN_RUNS, FUZZ_PER_DAY,
+  XFUZZ_PER_DAY, XFUZZ_EVERY, PAIR_TOP, PAIRS_MAX, REVISIT, STAGES, PLAN_MAX)
   ideas   a lane's or terra's "knobs K on tasks S at budget B" (`idea`), the submission class, cached like the rest.
 
 Under <main checkout>/runs/treadmill (the controller's: ~/sc/treadmill): cache.jsonl, commits/<sha>/ (rounds, runs),
