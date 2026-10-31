@@ -72,7 +72,7 @@ export type StepOptions = {
   failures?: 'refuse' | 'kept',
   onError?: 'refuse' | 'discard',
   domains?: Record<string, 'nat' | 'int'>,
-  check?: {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean}
+  check?: {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean | 'writes'}
 }
 
 // --- values ---------------------------------------------------------------------------------------------------------
@@ -1545,9 +1545,10 @@ export class Stepper {
       e = op === '/' ? (k < 0 ? I.neg(this.quot(na, -k)) : this.quot(na, k)) : this.rem(na, Math.abs(k))
     } else return refuse(x, `${x.text}: ${op}`)
     const out = (n: N): V => ({t: 'num', e: n, ...(ty ? {ty} : {})})
-    const [lo, hi] = ty ? rangeOf(ty) : [-Infinity, Infinity], [below, above0] = this.past(e, lo, hi, q2)
-    // (a symbolic width: past it where the result may be at least its 2^bits)
-    const above = ty?.mod ? this.pastMod(e, ty.mod) : above0
+    const [lo, hi] = ty ? rangeOf(ty) : [-Infinity, Infinity], [below0, above0] = this.past(e, lo, hi, q2)
+    // (a symbolic width: past it where the result may be at least its 2^bits; of two values below it, a difference is
+    // never at or past it and a sum or a product never below 0)
+    const above = ty?.mod ? (op === '-' ? I.F : this.pastMod(e, ty.mod)) : above0, below = ty?.mod && op !== '-' ? I.F : below0
     if (ty?.mod && ovf !== 'trap' && ovf !== 'checked' && ovf !== 'wrap') return refuse(x, `${x.text}: ${ovf} at ${tyName(ty)}`)
     switch (ovf) {
       case 'trap': this.fail(q2, I.or(below, above), x, `${x.text}: past ${tyName(ty)}'s range (${typeof x.trap === 'string' ? x.trap : `a panic: attempt to ${op === '+' ? 'add' : op === '-' ? 'subtract' : op === '*' ? 'multiply' : 'divide'} with overflow`})`); return [out(e), this.assume(q2, I.not(I.or(below, above)))]
@@ -2078,7 +2079,8 @@ export class Stepper {
       // Modulo a symbolic 2^bits: a sum or a difference of two values below it is at most once past it, by cases (a
       // product may be many times past: refused).
       if (hasProduct(e)) return refuse(x, `${(x as SX).text ? `${(x as SX).text}: ` : ''}a product wrapped modulo 2^${ty.bits} (the subset wraps sums and differences at that width)`)
-      const [below] = this.past(e, 0, Infinity, p), above = this.pastMod(e, ty.mod), m = I.nvar(ty.mod)
+      // (two values below 2^n: a sum is never below 0, a difference never at or past 2^n)
+      const below = e.op === 'add' ? I.F : this.past(e, 0, Infinity, p)[0], above = e.op === 'sub' ? I.F : this.pastMod(e, ty.mod), m = I.nvar(ty.mod)
       this.notes.add(`${ty.name ?? tyName(ty)}: a result past its range wraps modulo 2^${ty.bits} (${ty.mod}, any width at least 2 in the rule: a law proven is proven at 2^${ty.bits})`)
       // (a − b below 0 is (2^n − b) + a: each part a natural, b being below 2^n)
       return I.nite(below, e.op === 'sub' ? I.add(I.sub(m, e.b), e.a) : I.add(e, m), I.nite(above, I.sub(e, m), e))

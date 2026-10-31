@@ -633,7 +633,9 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
   }
   // (methods: the external functions that may write the state, unless named)
   const methods = opts.methods ?? Object.keys(meta.entries)
-  const o: StepOptions = {...opts, methods, strict: true, onError: 'discard', entry: meta.contract}
+  // (the check's probes: the branches' conditions, each a state and request the prover finds; a revert's condition
+  // holds at no step the rule takes, and a contract's rule is large)
+  const o: StepOptions = {...opts, methods, strict: true, onError: 'discard', entry: meta.contract, check: {probes: 'writes', ...opts.check}}
   // extractStep's run, the width's param fixed for the check's own draws (2^52: the proof is for every width)
   const notes: string[] = []
   let read: StepRead

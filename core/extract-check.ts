@@ -293,7 +293,7 @@ export function draw(sort: Var['sort'], sorts: Sorts, name: string, rand: Rand, 
 }
 
 // --- the check ------------------------------------------------------------------------------------------------------
-export type CheckOptions = {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean, probeMs?: number, modules?: Record<string, unknown>, files?: Record<string, string>}
+export type CheckOptions = {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean | 'writes', probeMs?: number, modules?: Record<string, unknown>, files?: Record<string, string>}
 type Ev = Model['events'][number]
 // The code's side of the check: how its object is made, set to a state, read and stepped. The TypeScript code runs in
 // a VM (below); the Go code in a harness built with its package (core/extract-go-check.ts). Everything else, the
@@ -579,7 +579,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
   }
   // Steps from the prover's counterexamples: each condition of the step, refuted as "never holds".
   if (opts.probes !== false) {
-    const conds = conditionsOf(m)
+    const conds = conditionsOf(m, opts.probes === 'writes')
     for (const [i, c] of conds.entries()) {
       ev.probes.conditions++
       let law: StepLaw
@@ -608,11 +608,13 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
 const mapReplacer = (_: string, v: unknown) => (isMap(v) ? {$map: [...v.entries()]} : v)
 
 // The conditions a step reads (each branch's, each refusal's), as a probe asks the prover to reach.
-export function conditionsOf(m: Model): B[] {
+// ('writes': the branches' only; a refusal's condition holds at no step the rule takes, so where the rule is large its
+// probe is a proof the kernel may take long over)
+export function conditionsOf(m: Model, writes = false): B[] {
   const out: B[] = [], seen = new Set<string>()
   const add = (c: B) => { if (c.op === 'const') return; const k = I.keyOf(c); if (!seen.has(k) && !hasCell(c)) { seen.add(k); out.push(c, I.not(c)) } }
   walk([m.writes, m.mapWrites], o => { if ((o.op === 'ite' || o.op === 'kite') && o.c) add(o.c as B) })
-  for (const d of m.refuse.op === 'or' ? m.refuse.xs : [m.refuse]) add(d)
+  if (!writes) for (const d of m.refuse.op === 'or' ? m.refuse.xs : [m.refuse]) add(d)
   return out.slice(0, 48)
 }
 const hasCell = (c: B) => I.varsOf(c).maps.size > 0
