@@ -24,8 +24,11 @@ and the count maps it declares (`GHolds`: each map at its count, at every key).
 **The certificate** (`CCert`, checked by `checkMC`) names the goal's hypotheses it uses (each one Lean builds), the
 cells it reads (`reads`: a fresh variable for a count map's cell at a key term), and Count.lean's instances and tree.
 `checkMC` turns it into Count.lean's counted goal: the named hypotheses, each read variable equal to its cell, and a
-count per read (its declaration with `j` at the key term), and asks `checkCounted`. `mc_sound`: an accepted goal's
-hypotheses hold at no naturals and maps where each declared map is its count.
+count per read (its declaration with `j` at the key term), and checks it as Count.lean does, but with each instance's
+witness fresh for the counts and the instances' bounds only (`checkCountedW`): a goal's hypotheses may read a witness
+in their instances of the laws, facts and quantified flags (the voters of Q at the key two majorities share), which
+hold at every value of a variable the machine never reads (`witsOk`). `mc_sound`: an accepted goal's hypotheses do not
+hold at every value of the witnesses, at naturals and maps where each declared map is its count.
 
 **Soundness.** `cmachine_sound`: every entry of an accepted proof holds in every reachable state, its laws reading
 each count map as the state's count (`withCnt`). The proof is `Sets.lean`'s `smachine_sound` with the counted goals in
@@ -85,12 +88,114 @@ def readFresh (hyps : List C) (ds : List CDecl) (rs : List (Nat × Nat × E)) (v
 def readsOk (hyps : List C) (ds : List CDecl) (rs : List (Nat × Nat × E)) : Bool :=
   cDistinct (rs.map (·.1)) && rs.all (fun r => readFresh hyps ds rs r.1 && ds.all (fun d => !occE d.key r.2.2))
 
--- The check: the named hypotheses are the goal's, each declaration's j and key differ, the reads are fresh, and
--- Count.lean accepts the counted goal they make.
+-- Count.lean's check with the witnesses fresh for the counts and the instances' bounds only: a machine's goal may read
+-- a witness in its instances of laws and flags, which hold at every value of a variable the machine never reads, so the
+-- goal's hypotheses are asked to hold at every value of the witnesses (`countedW_sound`).
+def witFreshW (cs : List Count) (is : List CInst) (w : Nat) : Bool :=
+  cs.all (fun c => c.v != w && !occE w c.below && !occE w c.body) && is.all (fun j => !occE w j.below)
+
+def countedOkW (cs : List Count) (is : List CInst) : Bool :=
+  cDistinct (is.map (·.wit)) && is.all (fun i => witFreshW cs is i.wit)
+
+def checkCountedW (hyps : List C) (cs : List Count) (is : List CInst) (tab : List VDef) (t : Tree) : Bool :=
+  countedOkW cs is && match countHyps cs is with
+    | some hs => checkGoal ⟨tab, hyps ++ hs⟩ t
+    | none => false
+
+theorem countedW_sound (hyps : List C) (cs : List Count) (is : List CInst) (tab : List VDef) (t : Tree) (hck : checkCountedW hyps cs is tab t = true)
+    (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hc : ∀ c ∈ cs, c.Holds ρ M)
+    (hH : ∀ ρw : Nat → Nat, (∀ j, (∀ i ∈ is, i.wit ≠ j) → ρw j = ρ j) → ∀ h ∈ hyps, evalC ρw M h = true) : False := by
+  simp only [checkCountedW, Bool.and_eq_true] at hck
+  obtain ⟨hok, hgoal⟩ := hck
+  simp only [countedOkW, Bool.and_eq_true, List.all_eq_true] at hok
+  obtain ⟨hdist, hfresh⟩ := hok
+  have hfr : ∀ i ∈ is, (∀ c ∈ cs, c.v ≠ i.wit ∧ occE i.wit c.below = false ∧ occE i.wit c.body = false) ∧ (∀ j ∈ is, occE i.wit j.below = false) := by
+    intro i hi
+    have := hfresh i hi
+    simp only [witFreshW, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq] at this
+    exact ⟨fun c hc => ⟨(this.1 c hc).1.1, (this.1 c hc).1.2, (this.1 c hc).2⟩, this.2⟩
+  cases hhs : countHyps cs is with
+  | none => simp [hhs] at hgoal
+  | some hs =>
+  simp only [hhs] at hgoal
+  have hx : ∀ i : CInst, ∃ x : Nat, ∀ rs, resolve cs i.below i.terms = some rs →
+      sumBelow (fun k => ptSide posP ρ M rs k + posP i.unit) (evalE ρ M i.below) ≤ sumBelow (fun k => ptSide negP ρ M rs k + negP i.unit) (evalE ρ M i.below)
+      ∨ (x < evalE ρ M i.below ∧ ptSide negP ρ M rs x + negP i.unit < ptSide posP ρ M rs x + posP i.unit) := by
+    intro i
+    cases hr : resolve cs i.below i.terms with
+    | none => exact ⟨0, fun rs h => by simp at h⟩
+    | some rs =>
+      by_cases hlt : sumBelow (fun k => ptSide negP ρ M rs k + negP i.unit) (evalE ρ M i.below) < sumBelow (fun k => ptSide posP ρ M rs k + posP i.unit) (evalE ρ M i.below)
+      · obtain ⟨k, hk, hk'⟩ := exists_lt_of_sumBelow_lt hlt
+        exact ⟨k, fun rs' h => by simp only [Option.some.injEq] at h; subst h; exact Or.inr ⟨hk, hk'⟩⟩
+      · exact ⟨0, fun rs' h => by simp only [Option.some.injEq] at h; subst h; exact Or.inl (Nat.le_of_not_lt hlt)⟩
+  obtain ⟨xs, hxs⟩ : ∃ xs : CInst → Nat, ∀ i rs, resolve cs i.below i.terms = some rs →
+      sumBelow (fun k => ptSide posP ρ M rs k + posP i.unit) (evalE ρ M i.below) ≤ sumBelow (fun k => ptSide negP ρ M rs k + negP i.unit) (evalE ρ M i.below)
+      ∨ (xs i < evalE ρ M i.below ∧ ptSide negP ρ M rs (xs i) + negP i.unit < ptSide posP ρ M rs (xs i) + posP i.unit) :=
+    ⟨fun i => Classical.choose (hx i), fun i => Classical.choose_spec (hx i)⟩
+  obtain ⟨ρs, hother, hat⟩ : ∃ ρs : Nat → Nat, (∀ j, (∀ i ∈ is, i.wit ≠ j) → ρs j = ρ j) ∧ (∀ i ∈ is, ρs i.wit = xs i) := by
+    have hws : (is.map fun i => (i.wit, xs i)).map (·.1) = is.map (·.wit) := by induction is <;> simp_all
+    refine ⟨setWits ρ (is.map fun i => (i.wit, xs i)), fun j hj => setWits_other ?_, fun i hi => ?_⟩
+    · rw [hws]; intro hm; obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hm; exact hj i hi rfl
+    · exact setWits_at (ρ := ρ) (ws := is.map fun i => (i.wit, xs i)) (by rw [hws]; exact hdist) (p := (i.wit, xs i)) (List.mem_map.mpr ⟨i, hi, rfl⟩)
+  have hvar : ∀ c ∈ cs, ρs c.v = ρ c.v := fun c hc => hother c.v (fun i hi he => ((hfr i hi).1 c hc).1 he.symm)
+  have hbound : ∀ e : E, (∀ i ∈ is, occE i.wit e = false) → evalE ρs M e = evalE ρ M e := fun e he =>
+    congrE ρs ρ M e (fun j hj => hother j (fun i hi hij => by have := he i hi; rw [hij] at this; simp [this] at hj))
+  have hbody : ∀ c ∈ cs, ∀ k, evalE (upd ρs c.key k) M c.body = evalE (upd ρ c.key k) M c.body := fun c hc k =>
+    congrE _ _ M c.body (fun j hj => by
+      simp only [upd]; split
+      · rfl
+      · exact hother j (fun i hi hij => by
+          have := ((hfr i hi).1 c hc).2.2; rw [hij] at this; simp [this] at hj))
+  have hpt : ∀ (part : Int → Nat) (rs : List (Int × Count)), (∀ r ∈ rs, r.2 ∈ cs) → ∀ k, ptSide part ρs M rs k = ptSide part ρ M rs k := by
+    intro part rs hrs k
+    induction rs with
+    | nil => rfl
+    | cons r rs ih =>
+      simp only [ptSide, hbody r.2 (hrs r List.mem_cons_self) k, ih (fun r' hr' => hrs r' (List.mem_cons_of_mem _ hr'))]
+  have hinst : ∀ i ∈ is, ∀ h, countHyp cs i = some h → evalC ρs M h = true := by
+    intro i hi h hh
+    simp only [countHyp, Option.map_eq_some_iff] at hh
+    obtain ⟨rs, hr, rfl⟩ := hh
+    have hrm := resolve_mem hr
+    have hB : evalE ρs M i.below = evalE ρ M i.below := hbound i.below (fun j hj => (hfr j hj).2 i hi)
+    have hcnt : ∀ r ∈ rs, ρs r.2.v = sumBelow (fun k => evalE (upd ρs r.2.key k) M r.2.body) (evalE ρ M i.below) := by
+      intro r hr'
+      obtain ⟨hcm, hcb⟩ := hrm r hr'
+      have h1 : ρ r.2.v = sumBelow (fun k => evalE (upd ρ r.2.key k) M r.2.body) (evalE ρ M r.2.below) := hc r.2 hcm
+      rw [hvar r.2 hcm, h1, hcb]
+      exact sumBelow_congr _ (fun k _ => (hbody r.2 hcm k).symm)
+    have hS : ∀ part, evalE ρs M (side part atCount i.below i.unit rs)
+        = sumBelow (fun k => ptSide part ρ M rs k + part i.unit) (evalE ρ M i.below) := by
+      intro part
+      have e1 : evalE ρs M (side part atCount i.below i.unit rs) = sumSide part ρs rs + part i.unit * evalE ρ M i.below := by
+        simp only [side, evalE, eval_sumE_count, hB]
+      have e2 : sumBelow (fun k => ptSide part ρ M rs k + part i.unit) (evalE ρ M i.below)
+          = sumBelow (ptSide part ρ M rs) (evalE ρ M i.below) + part i.unit * evalE ρ M i.below := by
+        rw [sumBelow_add (ptSide part ρ M rs) (fun _ => part i.unit), sumBelow_const]
+      have e3 : sumSide part ρs rs = sumBelow (ptSide part ρ M rs) (evalE ρ M i.below) := by
+        rw [sumSide_eq part ρs M _ rs hcnt]
+        exact sumBelow_congr _ (fun k _ => hpt part rs (fun r hr' => (hrm r hr').1) k)
+      rw [e1, e2, e3]
+    have hW : ∀ part, evalE ρs M (side part (atWit i.wit) (.const 1) i.unit rs) = ptSide part ρ M rs (xs i) + part i.unit := by
+      intro part
+      simp only [side, evalE, eval_sumE_wit, hat i hi, hpt part rs (fun r hr' => (hrm r hr').1), Nat.mul_one]
+    have hv := hxs i rs hr
+    simp only [evalC, hS, hW, evalE, hat i hi, hB, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+    exact hv
+  exact sound ⟨tab, hyps ++ hs⟩ t hgoal ρs M (fun h hm => by
+    rcases List.mem_append.mp hm with hm | hm
+    · exact hH ρs hother h hm
+    · obtain ⟨i, hi, hh⟩ := countHyps_mem hhs h hm
+      exact hinst i hi h hh)
+
+-- The check: the named hypotheses are the goal's, each declaration's j and key differ, the reads are fresh and their
+-- key terms read no witness, and Count.lean's check (witnesses fresh for the counts) accepts the counted goal they make.
 def checkMC (hyps : List C) (ds : List CDecl) (k : CCert) : Bool :=
   namedIn hyps k.hyps hyps && ds.all (fun d => d.j != d.key) && readsOk k.hyps ds k.reads
+    && k.reads.all (fun r => k.insts.all (fun i => i.wit != r.1 && !occE i.wit r.2.2))
     && match toCounts ds k.reads with
-      | some cs => checkCounted ⟨k.hyps ++ k.reads.map readHyp, cs⟩ k.insts k.tab k.tree
+      | some cs => checkCountedW (k.hyps ++ k.reads.map readHyp) cs k.insts k.tab k.tree
       | none => false
 
 /-! The counted goal's soundness -/
@@ -118,10 +223,15 @@ def setReads (ρ : Nat → Nat) (M : Nat → Nat → Nat) (rs : List (Nat × Nat
   setWits ρ (rs.map fun r => (r.1, M r.2.1 (evalE ρ M r.2.2)))
 
 theorem mc_sound (hyps : List C) (ds : List CDecl) (k : CCert) (hck : checkMC hyps ds k = true)
-    (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hd : GHolds ds ρ M) : ¬ ∀ h ∈ hyps, evalC ρ M h = true := by
-  intro hH
+    (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hd : GHolds ds ρ M)
+    (hH : ∀ ρw : Nat → Nat, (∀ j, (∀ i ∈ k.insts, i.wit ≠ j) → ρw j = ρ j) → ∀ h ∈ hyps, evalC ρw M h = true) : False := by
   simp only [checkMC, Bool.and_eq_true] at hck
-  obtain ⟨⟨⟨hnamed, hjk⟩, hrok⟩, hcc⟩ := hck
+  obtain ⟨⟨⟨⟨hnamed, hjk⟩, hrok⟩, hrw⟩, hcc⟩ := hck
+  have hrw' : ∀ r ∈ k.reads, ∀ i ∈ k.insts, i.wit ≠ r.1 ∧ occE i.wit r.2.2 = false := by
+    intro r hr i hi
+    have := List.all_eq_true.mp (List.all_eq_true.mp hrw r hr) i hi
+    simp only [Bool.and_eq_true, bne_iff_ne, ne_eq, Bool.not_eq_true'] at this
+    exact this
   cases hcs : toCounts ds k.reads with
   | none => simp [hcs] at hcc
   | some cs =>
@@ -149,7 +259,7 @@ theorem mc_sound (hyps : List C) (ds : List CDecl) (k : CCert) (hck : checkMC hy
   -- A term no read's variable occurs in reads alike at ρ' and ρ.
   have hcong : ∀ e : E, (∀ r ∈ k.reads, occE r.1 e = false) → evalE ρ' M e = evalE ρ M e := fun e he =>
     congrE ρ' ρ M e (fun i hi => hother i (fun r hr hri => by have := he r hr; rw [hri] at this; simp [this] at hi))
-  refine counted_sound _ _ _ _ hcc ρ' M ?_ ?_
+  refine countedW_sound _ _ _ _ _ hcc ρ' M ?_ ?_
   · -- every count is its sum at ρ'
     intro c hc
     obtain ⟨r, hr, hrc⟩ := toCounts_mem hcs c hc
@@ -188,15 +298,33 @@ theorem mc_sound (hyps : List C) (ds : List CDecl) (k : CCert) (hck : checkMC hy
         · simp [h1, h2, Ne.symm hjk']
         · simp only [h1, h2, ite_false]
           exact (hother i (fun r' hr' hri => by have := ((hfr' r' hr').2.1 d hdm).2.1; rw [hri] at this; simp [this] at hi)).symm)
-  · intro h hm
+  · intro ρw hρw h hm
     rcases List.mem_append.mp hm with hm | hm
-    · rw [congrC ρ' ρ M h (fun i hi => hother i (fun r hr hri => by
-        have := (hfr' r hr).1 h hm; rw [hri] at this; simp [this] at hi))]
-      exact hH h (namedIn_sound hyps k.hyps hyps (fun _ hx => hx) hnamed h hm)
+    · -- a named hypothesis: it reads no read variable, and holds where the witnesses are anything
+      let ρw2 : Nat → Nat := fun j => if (k.reads.map (·.1)).contains j then ρ j else ρw j
+      have h2 := hH ρw2 (fun j hj => by
+        simp only [ρw2]
+        split
+        · rfl
+        · rename_i hn
+          rw [hρw j hj]
+          exact hother j (fun r hr hrj => hn (List.contains_iff_mem.mpr (List.mem_map.mpr ⟨r, hr, hrj⟩))))
+        h (namedIn_sound hyps k.hyps hyps (fun _ hx => hx) hnamed h hm)
+      rw [congrC ρw ρw2 M h (fun i hi => by
+        simp only [ρw2]
+        split
+        · rename_i hc
+          obtain ⟨r, hr, hri⟩ := List.mem_map.mp (List.contains_iff_mem.mp hc)
+          have := (hfr' r hr).1 h hm; rw [hri] at this; simp [this] at hi
+        · rfl)]
+      exact h2
     · obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hm
+      have hw1 : ρw r.1 = ρ' r.1 := hρw r.1 (fun i hi he => (hrw' r hr i hi).1 he)
+      have hw2 : evalE ρw M r.2.2 = evalE ρ' M r.2.2 :=
+        congrE _ _ M r.2.2 (fun j hj => hρw j (fun i hi he => by have := (hrw' r hr i hi).2; rw [he] at this; simp [this] at hj))
       have h1 := hat r hr
       have h2 := hcong r.2.2 (fun r' hr' => (hfr' r' hr').2.2 r hr)
-      simp only [readHyp, evalC, evalE, decide_eq_true_eq, h1, h2]
+      simp only [readHyp, evalC, evalE, decide_eq_true_eq, hw1, hw2, h1, h2]
 
 /-! Counts in a machine -/
 
@@ -278,6 +406,12 @@ def cEntryOk (s : SMachine) (ds : List CDecl) (ps : List SEntry) (e : SEntry) : 
     && ps.all (fun e' => !occC e.sk e'.law.holds) && !occC e.sk s.f.m.pre && s.f.m.init.all (fun p => !occE e.sk p.2)
     && skFresh s e.sk && key2Ok s ps e
 
+-- A certificate's witnesses: variables no part of the machine or law reads (a goal reads them only in its instances,
+-- which hold at every value), none an entry's skolem or further key.
+def witsOk (s : SMachine) (ps : List SEntry) (k : CCert) : Bool :=
+  k.insts.all fun i => mFresh s i.wit && !occC i.wit s.f.m.pre
+    && ps.all (fun e => !occC i.wit e.law.holds && e.sk != i.wit && !e.keys2.contains i.wit)
+
 structure CEntry where
   e : SEntry      -- the law, its skolem and further keys, and where its goals assume the laws and facts (its certs unused)
   start : CCert
@@ -287,7 +421,7 @@ def checkCMachine (s : SMachine) (ds : List CDecl) (ps : List CEntry) : Bool :=
   sOk s && avoids (s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)) s.f.m.pre && !readsC s.f.m.pre
     && sTermsOk s (flagVars s.f.flags) && factsOk s
     && cDistinct (cMaps ds ++ cPosts ds) && cApart s ds && ds.all (cDeclOk s ds (ps.map (·.e)))
-    && ps.all (fun ce => cEntryOk s ds (ps.map (·.e)) ce.e
+    && ps.all (fun ce => cEntryOk s ds (ps.map (·.e)) ce.e && witsOk s (ps.map (·.e)) ce.start && witsOk s (ps.map (·.e)) ce.step
       && checkMC (cStartGoal s ds ce.e) (cStartDecls s ds) ce.start
       && checkMC (cStepGoal s ds (ps.map (·.e)) ce.e) (cStepDecls s ds) ce.step)
 
@@ -457,11 +591,13 @@ structure CParts (s : SMachine) (ds : List CDecl) (ps : List CEntry) : Prop wher
   decls : ∀ d ∈ ds, cDeclOk s ds (ps.map (·.e)) d = true
   entries : ∀ ce ∈ ps, cEntryOk s ds (ps.map (·.e)) ce.e = true ∧ checkMC (cStartGoal s ds ce.e) (cStartDecls s ds) ce.start = true
     ∧ checkMC (cStepGoal s ds (ps.map (·.e)) ce.e) (cStepDecls s ds) ce.step = true
+  wits : ∀ ce ∈ ps, witsOk s (ps.map (·.e)) ce.start = true ∧ witsOk s (ps.map (·.e)) ce.step = true
 
 theorem cparts {s : SMachine} {ds : List CDecl} {ps : List CEntry} (h : checkCMachine s ds ps = true) : CParts s ds ps := by
   simp only [checkCMachine, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true'] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩ := h
-  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, fun ce hce => ⟨(h9 ce hce).1.1, (h9 ce hce).1.2, (h9 ce hce).2⟩⟩
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, fun ce hce => ⟨(h9 ce hce).1.1.1.1, (h9 ce hce).1.2, (h9 ce hce).2⟩,
+    fun ce hce => ⟨(h9 ce hce).1.1.1.2, (h9 ce hce).1.1.2⟩⟩
 
 structure ApartParts (s : SMachine) (ds : List CDecl) : Prop where
   flags : ∀ p ∈ s.f.flags, avoidsMaps (cPosts ds) p.2 = true
@@ -542,6 +678,94 @@ theorem key2_parts {s : SMachine} {ds : List CDecl} {ps : List SEntry} (hk : ∀
   simp only [key2Ok, List.all_eq_true, Bool.and_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq, Bool.or_eq_true, List.contains_iff_mem] at hk'
   obtain ⟨⟨⟨⟨⟨hkey, hf⟩, hc⟩, hp⟩, hi⟩, hall⟩ := hk' g hg
   exact ⟨hf, by simpa [List.contains_iff_mem] using hc, hp, hi, fun e' he' => (by have := (hall e' he').1; simpa using this), hkey⟩
+
+/-! Variables set at once: a certificate's witnesses -/
+
+def setAll (X : Nat → Nat) : List Nat → (Nat → Nat) → Nat → Nat
+  | [], _ => X
+  | v :: vs, f => upd (setAll X vs f) v (f v)
+
+theorem setAll_at (X : Nat → Nat) (f : Nat → Nat) : ∀ (vs : List Nat) (i : Nat), setAll X vs f i = if i ∈ vs then f i else X i
+  | [], i => by simp [setAll]
+  | v :: vs, i => by
+    simp only [setAll, upd, List.mem_cons]
+    by_cases h : i = v
+    · subst h; simp
+    · rw [setAll_at X f vs i]; simp [h]
+
+-- A state that agrees with X off vs is X with vs set at its values.
+theorem setAll_self {X Y : Nat → Nat} {vs : List Nat} (h : ∀ i, i ∉ vs → Y i = X i) : setAll X vs Y = Y := by
+  funext i; rw [setAll_at]; split
+  · rfl
+  · rename_i hi; exact (h i hi).symm
+
+structure WitParts (s : SMachine) (ps : List SEntry) (w : Nat) : Prop where
+  fr : FreshParts s w
+  pre : occC w s.f.m.pre = false
+  laws : ∀ e ∈ ps, occC w e.law.holds = false ∧ e.sk ≠ w ∧ w ∉ e.keys2
+
+theorem wits_parts {s : SMachine} {ps : List SEntry} {k : CCert} (h : witsOk s ps k = true) : ∀ i ∈ k.insts, WitParts s ps i.wit := by
+  intro i hi
+  have := List.all_eq_true.mp h i hi
+  simp only [Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq] at this
+  exact ⟨mfresh_parts this.1.1, this.1.2, fun e he => ⟨(this.2 e he).1.1, (this.2 e he).1.2, by simpa [List.contains_iff_mem] using (this.2 e he).2⟩⟩
+
+theorem sNext_setAll {s : SMachine} {vs : List Nat} (hv : ∀ v ∈ vs, FreshParts s v) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (ι : Nat → Nat)
+    (κ : Nat → Nat → Nat) (f : Nat → Nat) :
+    sNext s (setAll ρ vs f) M ι κ = (setAll (sNext s ρ M ι κ).1 vs f, (sNext s ρ M ι κ).2)
+      ∧ sView s (setAll ρ vs f) M ι κ = (setAll (sView s ρ M ι κ).1 vs f, (sView s ρ M ι κ).2) := by
+  induction vs with
+  | nil => simp [setAll]
+  | cons v vs ih =>
+    obtain ⟨h1, h2⟩ := ih (fun v' hv' => hv v' (List.mem_cons_of_mem _ hv'))
+    have F := hv v List.mem_cons_self
+    obtain ⟨hN, hV, _⟩ := fresh_parts F.sk F.out (setAll ρ vs f) M ι κ (f v)
+    simp only [setAll]
+    rw [hN, hV, h1, h2]
+    exact ⟨rfl, rfl⟩
+
+theorem sReq_setAll {s : SMachine} {vs : List Nat} (hv : ∀ v ∈ vs, FreshParts s v) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (ι : Nat → Nat)
+    (κ : Nat → Nat → Nat) (f : Nat → Nat) : sReq s (setAll ρ vs f) M ι κ = sReq s ρ M ι κ := by
+  induction vs with
+  | nil => rfl
+  | cons v vs ih =>
+    have F := hv v List.mem_cons_self
+    have o := fresh_out F.out
+    simp only [setAll]
+    rw [sReq_upd o.2.2.2.2.1 o.2.2.2.2.2.1 (skFresh_parts F.sk).2.1, ih (fun v' hv' => hv v' (List.mem_cons_of_mem _ hv'))]
+
+theorem withExt_upd {s : SMachine} {g : Nat} (hg : g ∉ s.extVars) (ρ R : Nat → Nat) (w : Nat) : withExt s (upd ρ g w) R = upd (withExt s ρ R) g w := by
+  funext i
+  simp only [withExt, upd]
+  by_cases h : i = g
+  · subst h; simp [List.contains_iff_mem, hg]
+  · simp [h]
+
+theorem withExt_setAll {s : SMachine} {vs : List Nat} (hv : ∀ v ∈ vs, v ∉ s.extVars) (ρ R : Nat → Nat) (f : Nat → Nat) :
+    withExt s (setAll ρ vs f) R = setAll (withExt s ρ R) vs f := by
+  induction vs with
+  | nil => rfl
+  | cons v vs ih =>
+    simp only [setAll]
+    rw [withExt_upd (hv v List.mem_cons_self), ih (fun v' hv' => hv v' (List.mem_cons_of_mem _ hv'))]
+
+theorem applyS_setAll {σ : List (Nat × E)} {vs : List Nat} (hv : ∀ v ∈ vs, v ∉ σ.map (·.1) ∧ ∀ p ∈ σ, occE v p.2 = false)
+    (ρ : Nat → Nat) (M : Nat → Nat → Nat) (f : Nat → Nat) : applyS σ (setAll ρ vs f) M = setAll (applyS σ ρ M) vs f := by
+  induction vs with
+  | nil => rfl
+  | cons v vs ih =>
+    simp only [setAll]
+    rw [applyS_upd (hv v List.mem_cons_self).1 (by simpa [List.all_eq_true] using (hv v List.mem_cons_self).2),
+      ih (fun v' hv' => hv v' (List.mem_cons_of_mem _ hv'))]
+
+theorem sentry_setAll {e : SEntry} {vs : List Nat} (hv : ∀ v ∈ vs, occC v e.law.holds = false) {ρ : Nat → Nat} {M : Nat → Nat → Nat} (f : Nat → Nat) :
+    e.Holds ρ M → e.Holds (setAll ρ vs f) M := by
+  induction vs with
+  | nil => exact id
+  | cons v vs ih =>
+    intro h
+    simp only [setAll]
+    exact sentry_upd (Or.inl (hv v List.mem_cons_self)) (f v) (ih (fun v' hv' => hv v' (List.mem_cons_of_mem _ hv')) h)
 
 /-! Maps read off a list's names -/
 
@@ -670,8 +894,8 @@ theorem cstart_case (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : che
       simp only [beq_iff_eq] at hq
       simp only [evalE]; rw [← hq, hM p hm]
     · simp only [evalE]; rw [hM2 mp hmp]
-  have hrd2 : ∀ mp k, evalE (upd ρ ce.e.sk v) M2 (rdStart s.f.m mp k) = M2 mp (evalE (upd ρ ce.e.sk v) M2 k) := by
-    intro mp k
+  have hrd2 : ∀ (Y : Nat → Nat) mp k, evalE Y M2 (rdStart s.f.m mp k) = M2 mp (evalE Y M2 k) := by
+    intro Y mp k
     simp only [rdStart]
     split
     · rename_i p hp
@@ -729,21 +953,50 @@ theorem cstart_case (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : che
     refine sumBelow_congr _ (fun k _ => ?_)
     exact (hacross (upd (upd (upd ρ ce.e.sk v) d.j x) d.key k) (upd (upd X0 d.j x) d.key k) d.body hpD hskD
       (fun i h1 h2 => by simp [upd, h1, h2]) (by simp [upd, D.jk]) (by simp [upd]) (fun i h1 h2 => by simp [upd, h1, h2])).symm
-  · intro c hc
+  · -- The goal's hypotheses, wherever the witnesses are.
+    have Wt := wits_parts (P.wits ce hce).1
+    intro ρw hρw c hc
+    have hw : ∀ i, (∀ i' ∈ ce.start.insts, i'.wit ≠ i) → i ≠ ce.e.sk → ρw i = ρ i := fun i hi hik => by
+      rw [hρw i hi]; simp [upd, hik]
+    have hwsk : ρw ce.e.sk = v := by
+      rw [hρw ce.e.sk (fun i hi he => (Wt i hi).laws ce.e (List.mem_map_of_mem hce) |>.2.1 he.symm)]; simp [upd]
     simp only [cStartGoal, sStartGoal, List.mem_append, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hc
     rcases hc with (rfl | hc) | rfl
-    · rw [noReadsC _ M2 M s.f.m.pre P.preR, congrC _ ρ M s.f.m.pre (fun i hi => by
-        simp only [upd]; split
-        · rename_i hik; subst hik; simp [E'.spre] at hi
-        · rfl)]
+    · rw [noReadsC _ M2 M s.f.m.pre P.preR, congrC _ ρ M s.f.m.pre (fun i hi => hw i
+        (fun i' hi' he => by rw [← he, (Wt i' hi').pre] at hi; cases hi)
+        (fun h' => by rw [h', E'.spre] at hi; cases hi))]
       exact h0
     · exact facthyps_true s ce.e.finsts ce.e.pfinsts _ M2 (fun f hf => (pfactsOk_parts P.facts f hf).2.2)
-        (facts_frame s P.facts [ce.e.sk] (cPosts ds) (fun l hl => by simp [avoids, (skFresh_parts E'.skf).2.2.2.2.2.2 l hl]) A.facts
-          (fun i _ hik => by simp only [upd]; rw [if_neg (by simpa using hik)]) (fun mp _ hmp => hM2 mp hmp) hfa)
-        (pfacts_frame s P.facts [ce.e.sk] (cPosts ds) (fun f hf => by simp [avoids, skFresh_pfacts E'.skf f hf]) A.pfacts
-          (fun i _ hik => by simp only [upd]; rw [if_neg (by simpa using hik)]) (fun mp _ hmp => hM2 mp hmp) hpf) c hc
-    · simp only [evalC, substR_evalC _ _ _ M2 M2 hrd2]
-      rw [applyS_upd hskI (by simpa [List.all_eq_true] using E'.sinit), hX0]
+        (facts_frame s P.facts (ce.e.sk :: ce.start.insts.map (·.wit)) (cPosts ds)
+          (fun l hl => by
+            simp only [avoids, List.all_cons, List.all_map, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true']
+            exact ⟨(skFresh_parts E'.skf).2.2.2.2.2.2 l hl, fun i hi => by simp [(skFresh_parts (Wt i hi).fr.sk).2.2.2.2.2.2 l hl]⟩) A.facts
+          (fun i _ hik => hw i (fun i' hi' he => hik (List.mem_cons_of_mem _ (List.mem_map.mpr ⟨i', hi', he⟩))) (fun h' => hik (h' ▸ List.mem_cons_self)))
+          (fun mp _ hmp => hM2 mp hmp) hfa)
+        (pfacts_frame s P.facts (ce.e.sk :: ce.start.insts.map (·.wit)) (cPosts ds)
+          (fun f hf => by
+            simp only [avoids, List.all_cons, List.all_map, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true']
+            exact ⟨skFresh_pfacts E'.skf f hf, fun i hi => by simp [skFresh_pfacts (Wt i hi).fr.sk f hf]⟩) A.pfacts
+          (fun i _ hik => hw i (fun i' hi' he => hik (List.mem_cons_of_mem _ (List.mem_map.mpr ⟨i', hi', he⟩))) (fun h' => hik (h' ▸ List.mem_cons_self)))
+          (fun mp _ hmp => hM2 mp hmp) hpf) c hc
+    · simp only [evalC, substR_evalC _ _ _ M2 M2 (hrd2 ρw)]
+      have hρw' : ρw = setAll (upd ρ ce.e.sk v) (ce.start.insts.map (·.wit)) ρw := (setAll_self (fun i hi => by
+        rw [hρw i (fun i' hi' he => hi (List.mem_map.mpr ⟨i', hi', he⟩))])).symm
+      rw [hρw', applyS_setAll (fun w hw' => by
+          obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hw'
+          exact ⟨(fresh_out (Wt i hi).fr.out).2.2.1, (Wt i hi).fr.init⟩),
+        applyS_upd hskI (by simpa [List.all_eq_true] using E'.sinit), hX0]
+      rw [goalOf_agree (renLaw ds ce.e.law) ce.e.sk M2 (X' := upd X0 ce.e.sk v)
+        (by rw [setAll_at]; split
+            · rename_i hm; obtain ⟨i, hi, he⟩ := List.mem_map.mp hm
+              exact absurd he.symm ((Wt i hi).laws ce.e (List.mem_map_of_mem hce)).2.1
+            · rfl)
+        (fun i hi => by
+          rw [setAll_at]; split
+          · rename_i hm; obtain ⟨i', hi', he⟩ := List.mem_map.mp hm
+            have := ((Wt i' hi').laws ce.e (List.mem_map_of_mem hce)).1
+            simp only [renLaw, occ_renC] at hi; rw [← he, this] at hi; cases hi
+          · rfl)]
       simpa using hn
 
 /-! A state with the post names set: the machine reads them nowhere -/
@@ -868,13 +1121,6 @@ theorem cframe {s : SMachine} (hs : sOk s = true) (hterms : sTermsOk s (flagVars
     hstp (fun w hw => (hwr w hw).1) hev (fun _ _ => by simp [avoidsMapsE]) (fun _ _ => by simp [avoidsMapsE]) (fun _ _ => by simp [avoidsMapsE])⟩
 
 /-! Terms across a step that keeps j and key -/
-
-theorem withExt_upd {s : SMachine} {g : Nat} (hg : g ∉ s.extVars) (ρ R : Nat → Nat) (w : Nat) : withExt s (upd ρ g w) R = upd (withExt s ρ R) g w := by
-  funext i
-  simp only [withExt, upd]
-  by_cases h : i = g
-  · subst h; simp [List.contains_iff_mem, hg]
-  · simp [h]
 
 -- A term of the state read across the step, j and key kept: its value at the state after the step, where the frame
 -- reads j and key as the state after it does.
@@ -1117,60 +1363,87 @@ theorem cstep_case (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : chec
       exact congrE _ _ _ _ (fun i hi => by
           have hik : i ≠ ce.e.sk := fun h' => by rw [h', hskD] at hi; cases hi
           simp only [upd]; split <;> simp_all)
-  · -- The goal's hypotheses hold where the frame is read.
+  · -- The goal's hypotheses hold where the frame is read, wherever the witnesses are: the state with them set.
     obtain ⟨hfav, hstp, hwr, hev⟩ := sTermsOk_parts P.terms
-    intro c hc
+    have Wt := wits_parts (P.wits ce hce).2
+    let ws := ce.step.insts.map (·.wit)
+    have hwsF : ∀ w ∈ ws, FreshParts s w := fun w hw => by obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hw; exact (Wt i hi).fr
+    have hwsL : ∀ w ∈ ws, ∀ e ∈ ps.map (·.e), occC w e.law.holds = false ∧ e.sk ≠ w := fun w hw e he => by
+      obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hw; exact ⟨((Wt i hi).laws e he).1, ((Wt i hi).laws e he).2.1⟩
+    have hwsP : ∀ w ∈ ws, occC w s.f.m.pre = false := fun w hw => by obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hw; exact (Wt i hi).pre
+    have hskw : ce.e.sk ∉ ws := fun h' => (hwsL _ h' ce.e (List.mem_map_of_mem hce)).2 rfl
+    intro ρw hρw c hc
+    have hρw' : ∀ i, i ∉ ws → ρw i = W i := fun i hi => hρw i (fun i' hi' he => hi (List.mem_map.mpr ⟨i', hi', he⟩))
+    let ρ'' := setAll ρ' ws ρw
+    have hext : ∀ w ∈ ws, w ∉ s.extVars := fun w hw => (fresh_out (hwsF w hw).out).1
+    have hWw : withExt s ρ'' (sReq s ρ'' M' ι κ) = ρw := by
+      rw [sReq_setAll hwsF, withExt_setAll hext]; exact setAll_self hρw'
+    obtain ⟨hNw, hVw⟩ := sNext_setAll hwsF ρ' M' ι κ ρw
+    obtain ⟨hH2, hD2⟩ := cframe hs P.terms ρ'' M' ι κ
+    rw [hWw] at hH2 hD2
+    have hρ'' : ∀ i, i ∉ ws → i ≠ ce.e.sk → ρ'' i = ρ i := fun i hi hik => by
+      simp only [ρ'']; rw [setAll_at, if_neg hi]; simp [ρ', upd, hik]
+    -- (ρw off the request's variables is ρ'')
+    have hwx : ∀ i, i ∉ s.extVars → ρw i = ρ'' i := fun i hi => by
+      rw [← hWw]; simp only [withExt]; rw [if_neg (by simpa [List.contains_iff_mem] using hi)]
     simp only [cStepGoal, sStepGoal, List.mem_append, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false, List.mem_map] at hc
     rcases hc with ((rfl | hc) | ⟨c', hc', rfl⟩) | rfl
-    · rw [noReadsC W M0 M s.f.m.pre P.preR, congrC W ρ M s.f.m.pre (fun i hi => ?_)]
+    · rw [noReadsC ρw M0 M s.f.m.pre P.preR, congrC ρw ρ M s.f.m.pre (fun i hi => ?_)]
       · exact hp0
       · have hi1 := avoids_occ P.pre hi
         have hik : i ≠ ce.e.sk := fun h' => by rw [h'] at hi; simp [E'.spre] at hi
-        simp only [W, withExt]
-        rw [if_neg (fun h' => hi1 (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.contains_iff_mem.mp h')))))]
-        simp only [ρ', upd, if_neg hik]
-    · exact facthyps_true s ce.e.finsts ce.e.pfinsts W M0 (fun f hf => (pfactsOk_parts P.facts f hf).2.2)
-        (facts_frame s P.facts [ce.e.sk] (cPosts ds) (fun l hl => by simp [avoids, (skFresh_parts E'.skf).2.2.2.2.2.2 l hl]) A.facts
-          (fun i hie hik => by
-            simp only [W, withExt]; rw [if_neg (by simpa [List.contains_iff_mem] using hie)]; simp only [ρ', upd]; rw [if_neg (by simpa using hik)])
-          (fun mp hmc hmp => by rw [hM0 mp hmp]; simp only [withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmc)]) hfa)
-        (pfacts_frame s P.facts [ce.e.sk] (cPosts ds) (fun f hf => by simp [avoids, skFresh_pfacts E'.skf f hf]) A.pfacts
-          (fun i hie hik => by
-            simp only [W, withExt]; rw [if_neg (by simpa [List.contains_iff_mem] using hie)]; simp only [ρ', upd]; rw [if_neg (by simpa using hik)])
-          (fun mp hmc hmp => by rw [hM0 mp hmp]; simp only [withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmc)]) hpf) c hc
-    · have hA : evalC (sView s ρ' M' ι κ).1 (sView s ρ' M' ι κ).2 s.f.m.assume = true := by
-        rw [hView]; dsimp only
+        have hiw : i ∉ ws := fun h' => by rw [hwsP i h'] at hi; cases hi
+        rw [hwx i (fun h' => hi1 (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ h')))), hρ'' i hiw hik]
+    · have hX : ∀ i, i ∉ s.extVars → i ∉ ce.e.sk :: ws → ρw i = ρ i := fun i hie hik => by
+        rw [hwx i hie, hρ'' i (fun h' => hik (List.mem_cons_of_mem _ h')) (fun h' => hik (h' ▸ List.mem_cons_self))]
+      exact facthyps_true s ce.e.finsts ce.e.pfinsts ρw M0 (fun f hf => (pfactsOk_parts P.facts f hf).2.2)
+        (facts_frame s P.facts (ce.e.sk :: ws) (cPosts ds)
+          (fun l hl => by
+            simp only [avoids, List.all_cons, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true']
+            exact ⟨(skFresh_parts E'.skf).2.2.2.2.2.2 l hl, fun w hw => (skFresh_parts (hwsF w hw).sk).2.2.2.2.2.2 l hl⟩) A.facts
+          hX (fun mp hmc hmp => by rw [hM0 mp hmp]; simp only [withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmc)]) hfa)
+        (pfacts_frame s P.facts (ce.e.sk :: ws) (cPosts ds)
+          (fun f hf => by
+            simp only [avoids, List.all_cons, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true']
+            exact ⟨skFresh_pfacts E'.skf f hf, fun w hw => skFresh_pfacts (hwsF w hw).sk f hf⟩) A.pfacts
+          hX (fun mp hmc hmp => by rw [hM0 mp hmp]; simp only [withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmc)]) hpf) c hc
+    · have hA : evalC (sView s ρ'' M' ι κ).1 (sView s ρ'' M' ι κ).2 s.f.m.assume = true := by
+        rw [hVw, hView]; dsimp only
         rw [sView_posts A F ρ M ι κ]; dsimp only
         rw [posts_evalC A.assume]
         rw [congrC _ (sView s ρ M ι κ).1 _ _ (fun i hi => by
           have hik : i ≠ ce.e.sk := fun h' => by rw [h', (skFresh_parts E'.skf).2.2.1] at hi; cases hi
-          simp only [upd, if_neg hik])]
+          have hiw : i ∉ ws := fun h' => by rw [(skFresh_parts (hwsF i h').sk).2.2.1] at hi; cases hi
+          rw [setAll_at, if_neg hiw]; simp only [upd, if_neg hik])]
         exact ha
-      have hallY : ∀ e' ∈ ps.map (·.e), e'.Holds W M0 := fun e' he' => by
+      have hallY : ∀ e' ∈ ps.map (·.e), e'.Holds ρw M0 := fun e' he' => by
         obtain ⟨ce', hce', rfl⟩ := List.mem_map.mp he'
         have E2 := entry_parts (P.entries ce' hce').1
-        refine sentry_transfer (V := s.extVars) (MS := MS) (avoids_left E2.lx) E2.lm (fun i hi => ?_) (fun mp hmp => ?_)
-          (sentry_upd (Or.inl (E'.slaw ce'.e (List.mem_map_of_mem hce'))) v (ih ce' hce'))
-        · simp only [W, withExt]; rw [if_neg (by simpa [List.contains_iff_mem] using hi)]
-        · rw [hM0 mp (hnotP mp hmp)]
-          by_cases hc : mp ∈ s.carried
-          · obtain ⟨d, hd, hdmp, hso⟩ := hMS mp hmp hc
-            subst hdmp
-            rw [withCnt_at hdm hd]
-            funext x
-            simp only [withCarried, List.contains_iff_mem.mpr hc, ite_true]
-            exact hview d hd hso x
-          · rw [withCnt_other (fun h' => by
-              obtain ⟨d, hd, hdmp⟩ := List.mem_map.mp h'
-              exact hc (by rw [← hdmp]; exact (decl_parts (P.decls d hd)).carried))]
-            simp [withCarried, List.contains_iff_mem, hc]
-      exact sframe_hyps s [] [] W M0 hs (sLaws (ps.map (·.e)) ce.e.pinsts) (sInsts (ps.map (·.e)) ce.e.insts ce.e.pinsts) ce.e.qinsts
+        refine sentry_transfer (V := s.extVars) (MS := MS) (ρ' := ρ'') (avoids_left E2.lx) E2.lm (fun i hi => hwx i hi) (fun mp hmp => ?_)
+          (sentry_setAll (fun w hw => (hwsL w hw ce'.e (List.mem_map_of_mem hce')).1) ρw
+            (sentry_upd (Or.inl (E'.slaw ce'.e (List.mem_map_of_mem hce'))) v (ih ce' hce')))
+        rw [hM0 mp (hnotP mp hmp)]
+        by_cases hc : mp ∈ s.carried
+        · obtain ⟨d, hd, hdmp, hso⟩ := hMS mp hmp hc
+          subst hdmp
+          rw [withCnt_at hdm hd]
+          funext x
+          simp only [withCarried, List.contains_iff_mem.mpr hc, ite_true]
+          exact hview d hd hso x
+        · rw [withCnt_other (fun h' => by
+            obtain ⟨d, hd, hdmp⟩ := List.mem_map.mp h'
+            exact hc (by rw [← hdmp]; exact (decl_parts (P.decls d hd)).carried))]
+          simp [withCarried, List.contains_iff_mem, hc]
+      have hfr := sframe_hyps s [] [] ρw M0 hs (sLaws (ps.map (·.e)) ce.e.pinsts) (sInsts (ps.map (·.e)) ce.e.insts ce.e.pinsts) ce.e.qinsts
+        (ρ := ρ'') (M := M') (ι := ι) (κ := κ) (σ := []) (rd := getRd) (r := []) (mr := []) (w := trueC)
         (fun l hl => by
+          rw [hWw]
           rcases List.mem_append.mp hl with hl | hl
           · obtain ⟨e', he', rfl⟩ := List.mem_map.mp hl; exact SEntry.holds_law (hallY e' he')
           · exact pairLaws_hold _ ce.e.pinsts hkk hallY l hl)
-        (hH []) (fun _ _ => by simp [avoids]) (fun _ _ => by simp [avoids]) (fun _ _ => by simp [avoidsMaps]) hA (by simp [trueC, evalC, evalE]) c' hc'
-    · have hrd' : ∀ mp k, evalE W M0 (stepRdS s (frameSub [] []) (frameRd [] getRd) mp k) = Mq mp (evalE W M0 k) := by
+        (hH2 []) (fun _ _ => by simp [avoids]) (fun _ _ => by simp [avoids]) (fun _ _ => by simp [avoidsMaps]) hA rfl
+      exact hfr c' hc'
+    · have hrd' : ∀ mp k, evalE ρw M0 (stepRdS s (frameSub [] []) (frameRd [] getRd) mp k) = Mq mp (evalE ρw M0 k) := by
         intro mp k
         by_cases hmp : mp ∈ s.carried
         · have hne : lookup (fun w => w.1 == mp) s.every = none := lookup_none (fun w hw => by
@@ -1179,15 +1452,19 @@ theorem cstep_case (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : chec
             simp only [beq_eq_false_iff_ne]; intro h'; exact (hwr w hw).2 (by rw [h']; exact hmp))
           simp only [stepRdS, hne, stepRd, hnw]
           simp [frameRd, getRd, lookup, evalE, M0, Mq, withCarried, hmp]
-        · rw [hD'.2 mp k hmp (by simp), hNext]; dsimp only; rw [hNx']
+        · rw [hD2.2 mp k hmp (by simp), hNw, hNext]; dsimp only; rw [hNx']
           simp only [Mq, withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmp)]
       simp only [evalC]
-      rw [substR_evalC _ _ W M0 _ hrd', goalOf_agree (renLaw ds ce.e.law) ce.e.sk _ (X' := upd Nx.1 ce.e.sk v)
-        (by rw [hD'.1 ce.e.sk hsk.1 hsk.2.1, hNext]; simp [hNx', upd]) (fun i hi => ?_)]
+      have hpost : ∀ i, i ∉ ws → i ∉ s.extVars → i ∉ flagVars s.f.flags →
+          applyS (stepSub s.f (frameSub [] []) (frameRd [] getRd)) ρw M0 i = upd Nx.1 ce.e.sk v i := fun i hiw hie hif => by
+        rw [hD2.1 i hie hif, hNw, hNext]; dsimp only; rw [hNx', setAll_at, if_neg hiw]
+      rw [substR_evalC _ _ ρw M0 _ hrd', goalOf_agree (renLaw ds ce.e.law) ce.e.sk _ (X' := upd Nx.1 ce.e.sk v)
+        (hpost ce.e.sk hskw hsk.1 hsk.2.1) (fun i hi => ?_)]
       · simpa using hn
-      · have hi1 := avoids_occ E'.lx (by simpa [renLaw, occ_renC] using hi)
-        rw [hD'.1 i (fun h' => hi1 (List.mem_append_left _ h')) (fun h' => hi1 (List.mem_append_right _ h')), hNext]
-        simp [hNx']
+      · have hi' : occC i ce.e.law.holds = true := by simpa [renLaw, occ_renC] using hi
+        have hi1 := avoids_occ E'.lx hi'
+        exact hpost i (fun h' => by rw [(hwsL i h' ce.e (List.mem_map_of_mem hce)).1] at hi'; cases hi')
+          (fun h' => hi1 (List.mem_append_left _ h')) (fun h' => hi1 (List.mem_append_right _ h'))
 
 /-! Soundness -/
 
