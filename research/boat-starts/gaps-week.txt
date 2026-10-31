@@ -1,0 +1,30 @@
+all: 2637 launches; at 2433 of their ends another launch was running
+  next launch, any track    2635 gaps  p10 0  p25 3  median 58  p75 187  p90 554 s;  covered by idle 60s 51%  120s 64%  300s 83%  600s 90%  900s 92%  1800s 94%
+  next launch, same track   1829 gaps  p10 0  p25 1  median 24  p75 116  p90 276 s;  covered by idle 60s 63%  120s 76%  300s 91%  600s 98%  900s 99%  1800s 99%
+bar: 2506 launches; at 2355 of their ends another launch was running
+  next launch, any track    2505 gaps  p10 0  p25 3  median 64  p75 193  p90 725 s;  covered by idle 60s 49%  120s 62%  300s 82%  600s 89%  900s 91%  1800s 94%
+  next launch, same track   1717 gaps  p10 0  p25 1  median 20  p75 114  p90 240 s;  covered by idle 60s 64%  120s 76%  300s 92%  600s 99%  900s 99%  1800s 100%
+lane: 64 launches; at 35 of their ends another launch was running
+  next launch, any track      60 gaps  p10 11  p25 25  median 39  p75 151  p90 2536 s;  covered by idle 60s 65%  120s 75%  300s 78%  600s 85%  900s 85%  1800s 90%
+  next launch, same track     52 gaps  p10 21  p25 36  median 58  p75 304  p90 1285 s;  covered by idle 60s 52%  120s 73%  300s 75%  600s 85%  900s 88%  1800s 92%
+boatday: 67 launches; at 26 of their ends another launch was running
+  next launch, any track      66 gaps  p10 10  p25 24  median 67  p75 128  p90 398 s;  covered by idle 60s 48%  120s 73%  300s 89%  600s 94%  900s 94%  1800s 98%
+  next launch, same track     60 gaps  p10 10  p25 24  median 74  p75 450  p90 1216 s;  covered by idle 60s 45%  120s 58%  300s 73%  600s 85%  900s 88%  1800s 95%
+  chc          any     443 gaps  p10 2  p25 20  median 500  p75 2212  p90 4999 s;  covered by idle 60s 28%  120s 32%  300s 44%  600s 55%  900s 64%  1800s 72%
+  f1           any     147 gaps  p10 0  p25 0  median 591  p75 3240  p90 7587 s;  covered by idle 60s 36%  120s 37%  300s 43%  600s 50%  900s 55%  1800s 68%
+  f2           any     249 gaps  p10 0  p25 15  median 760  p75 4392  p90 6717 s;  covered by idle 60s 26%  120s 27%  300s 43%  600s 48%  900s 53%  1800s 61%
+  g332         any     120 gaps  p10 271  p25 574  median 2368  p75 5262  p90 9758 s;  covered by idle 60s 3%  120s 5%  300s 13%  600s 28%  900s 32%  1800s 48%
+  its          any     249 gaps  p10 1  p25 61  median 1134  p75 4601  p90 8079 s;  covered by idle 60s 25%  120s 28%  300s 39%  600s 46%  900s 50%  1800s 57%
+  lean         any      28 gaps  p10 268  p25 1904  median 3879  p75 7972  p90 14423 s;  covered by idle 60s 4%  120s 7%  300s 11%  600s 21%  900s 25%  1800s 25%
+  onecpu       any     156 gaps  p10 318  p25 590  median 1506  p75 3647  p90 8415 s;  covered by idle 60s 1%  120s 4%  300s 9%  600s 26%  900s 35%  1800s 56%
+  rw           any     350 gaps  p10 0  p25 45  median 529  p75 2119  p90 4655 s;  covered by idle 60s 26%  120s 29%  300s 41%  600s 52%  900s 59%  1800s 71%
+  suite        any     237 gaps  p10 0  p25 34  median 216  p75 1563  p90 4670 s;  covered by idle 60s 28%  120s 36%  300s 53%  600s 58%  900s 61%  1800s 76%
+  suite-usual  any     115 gaps  p10 0  p25 0  median 484  p75 1911  p90 7025 s;  covered by idle 60s 37%  120s 40%  300s 46%  600s 53%  900s 61%  1800s 75%
+  sv           any     163 gaps  p10 0  p25 4  median 1070  p75 5042  p90 8347 s;  covered by idle 60s 32%  120s 33%  300s 37%  600s 43%  900s 47%  1800s 56%
+  tip          any     171 gaps  p10 0  p25 10  median 1510  p75 5615  p90 8958 s;  covered by idle 60s 31%  120s 32%  300s 40%  600s 43%  900s 46%  1800s 53%
+sizes: 3031 launches with jobs; jobs median 6 p90 332; <=4 jobs 1378; slot-min median 5 p90 122; <10 slot-min 1952
+  10-22:   67 launches,  18028 jobs,  192.5 slot-h  bar 0, suite 0, lane 0, boatday 67
+  10-28:  636 launches,  78970 jobs,  461.3 slot-h  bar 617, suite 0, lane 19, boatday 0
+  10-29: 1129 launches, 179107 jobs,  931.4 slot-h  bar 1129, suite 0, lane 0, boatday 0
+  10-30:  718 launches,  84628 jobs,  352.9 slot-h  bar 716, suite 0, lane 2, boatday 0
+  10-31:   87 launches,   3398 jobs,   21.4 slot-h  bar 44, suite 0, lane 43, boatday 0

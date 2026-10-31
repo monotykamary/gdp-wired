@@ -1200,7 +1200,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 2400,
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets History; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; lean $f.lean 2>&1 | grep -A20 error | head -60; exit 1; }; done; bun ../examples/steps.ts --lean > KSteps.lean && grep -c '^theorem' KSteps.lean && lean KSteps.lean 2>&1 | grep -v -e linter -e Hint -e unused | tail -20; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; lean $f.lean 2>&1 | grep -A20 error | head -60; exit 1; }; done; bun ../examples/steps.ts --lean > KSteps.lean && grep -c '^theorem' KSteps.lean && lean KSteps.lean 2>&1 | grep -v -e linter -e Hint -e unused | tail -20; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
 },
 {
 "name": "kinduction",
@@ -1311,7 +1311,7 @@
 },
 {
 "name": "extract-jvm",
-"cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && . research/langs/jvm/jvm-setup.sh && cd core && bun test extract-jvm.test.ts 2>&1",
+"cmd": "bun install --frozen-lockfile > /tmp/bun-install.log 2>&1 || { echo bun install failed; tail -20 /tmp/bun-install.log; exit 1; }; . research/langs/jvm/jvm-setup.sh && cd core && bun test extract-jvm.test.ts 2>&1",
 "cwd": ".",
 "cpu": 1.0,
 "timeout": 900

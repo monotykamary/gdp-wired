@@ -4,6 +4,8 @@ time after it, and deleted only on teardown or when the image changes.
 
     python3 modal/run.py --backend boat --jobs modal/suite.json --out runs/backends/suite [--vms N] [--idle 60]
     python3 modal/boat.py status | reap | cold | teardown [--all] | image [--build] | usage <since ISO>
+    python3 modal/boat.py starts [--since 24h|7d|ISO]          the starts ledger: ours by day and client, and now
+    python3 modal/boat.py demand <client> [--for 300] [--pid P] [--done]   declare (or end) work about to be launched
 
 The image is one named snapshot, `gdpw-<hash>`, built in layers (bun and Lean, then each compare runner's solvers and
 benchmarks: its BOAT_SETUP), each layer a snapshot of its own, so changing a layer rebuilds it and the ones above only.
@@ -13,12 +15,22 @@ limits (`boat limits`: active VMs, starts per minute, hour and day), and release
 holds has a TTL renewed while the client lives (a VM whose client died stops by itself within 15 minutes); a released
 VM's TTL is the idle time, after which boat stops it.
 
-Starts are what the plan rations (a resume is one): a batch spends at most a share of those left (budget()), a VM is
-resumed only while the batch still needs it, a batch with more work than slots takes VMs other batches release while
-they're still up (no start), and with no start left a batch waits for those within --max-wait, then goes to Modal.
-A released VM stays up 60 s, for a back-to-back batch, and never longer to save starts (boat's terms, TOS-6: no
-parking idle compute). The plan's limits are read from `boat limits` at every batch. GDPW_BOAT_POLICY=old: the policy
-before.
+Starts are what the plan rations (a resume is one), and the account shares them with another project: we spend at
+most CEIL of the plan's FREE starts (a quarter of its day, a fifth of its hour, 15 a minute; extra starts stay off),
+never the reserve (60 a day, 15 an hour, or twice what the other project used in the last day and hour, if more), and
+a batch at most a share of what's left (budget()). VMs are large (4 slots a start). A tiny batch (TINY) runs on a VM
+that's already up, else on Modal. With no start left a batch waits for released VMs within --max-wait, then goes to
+Modal. Every start is noted in the registry and every batch in the ledger (LIVE/boat-starts.jsonl; `starts`).
+
+How long a released VM stays up (boat's terms: TOS-6 forbids parking idle compute and bypassing rate limits, TOS-10
+evading usage limits). A released VM stops IDLE (60 s) later: a back-to-back batch reuses it. Longer only while a live
+client has declared work it is about to launch (`demand`: the bar between its groups, a controller with a queue): then
+up to LONG (10 min), as many VMs as that client held at once in its last 10 minutes, and a minute after it declares
+the end (or its process dies: reap) they stop. That is ordinary reuse: a VM kept for queued work of the job that
+used it, sized to that work, never a standing pool held to save starts, and never more starts than the plan's own
+limits allow (the ceiling sits well inside them). A fixed long idle for everyone, or a fleet kept up through quiet
+hours, would be idle compute parked to save starts: left out (research/boat-starts/sim.py measures both). The plan's
+limits are read from `boat limits` at every batch. GDPW_BOAT_POLICY=old: the sizing before (the ceiling stays).
 
 A batch: the worktree as git sees it (tracked and untracked files that aren't ignored, with the submodules', minus the
 same paths modal/run.py leaves out) goes to one VM, which serves it to the others through a token-gated boat URL, and
@@ -49,13 +61,20 @@ GDP = HERE.parent
 BOAT = os.environ.get("BOAT_BIN") or next((p for p in [str(pathlib.Path.home() / ".ascii/bin/boat")] if os.path.exists(p)), "boat")
 ENV = {**os.environ, "BOAT_NO_UPDATE": "1", "NO_COLOR": "1"}
 SLOT_CPU, SLOT_MEM = 2, 4096  # a slot: Modal's default container
-TYPES = {"small": (2, 4096), "default": (4, 8192), "large": (8, 16384)}  # vCPU, MB
+TYPES = {"small": (2, 4096), "default": (4, 8192), "large": (8, 16384), "xlarge": (16, 32768)}  # vCPU, MB
+VM_TYPE = os.environ.get("GDPW_BOAT_VM", "large")  # a batch's VMs: large ones, so a start brings 4 slots, not 2
 LIBRARY = ["Cert", "Kernel", "Cyclic", "Progress", "StepLaw", "Steps", "Sets", "History", "Live", "NonTerm", "Ghost", "Sums", "Refine", "Bridge", "BridgeRules", "Data"]
 BACKSTOP = 900  # the TTL a held VM keeps renewing: a VM whose client is gone stops within this
 # The account's starts are shared with another project's pool (its setup takes a few to a few dozen a day): this pool
-# never spends the last RESERVE_DAY of the rolling day nor the last RESERVE_HOUR of the hour (under either policy).
+# never spends the last RESERVE_DAY of the rolling day nor the last RESERVE_HOUR of the hour, nor what the other
+# project may need, twice what it used in the last day (hour): the account's used starts less ours (the registry's).
 RESERVE_DAY = int(os.environ.get("GDPW_BOAT_RESERVE_DAY", "60"))
 RESERVE_HOUR = int(os.environ.get("GDPW_BOAT_RESERVE_HOUR", "15"))
+# and our own ceiling on the plan's FREE starts (extra starts stay off): a share of its day and of its hour, and so
+# many a minute (research/boat-starts/sim.py: the week of 10-28 asks more than any ceiling, so we spend exactly it;
+# at a quarter of the day, large VMs, the bar's declared reuse and tiny batches on Modal do 86% of the work they do at
+# half of it, for 3% more Modal)
+CEIL = [float(x) for x in os.environ.get("GDPW_BOAT_CEIL", "0.25,0.2,15").split(",")]
 # How a batch spends the plan's starts (research/boat-starts: the simulation of today's mix and the runs that chose
 # it). GDPW_BOAT_POLICY=old restores the policy before, to compare: as many VMs as speed a batch up, no waiting for a
 # released VM when no start is left.
@@ -64,6 +83,9 @@ SHARE = float(os.environ.get("GDPW_BOAT_SHARE", "0.25"))  # a batch starts at mo
 MIN_STARTS = 2  # (but this many, while any are left)
 MAX_STARTS = int(os.environ.get("GDPW_BOAT_MAX_STARTS", "50"))  # and at most this many a batch (0: no cap; --max-vms sets it for a run)
 IDLE = 60  # a released VM stays up this long, for a back-to-back batch; never longer to save starts (boat's TOS-6)
+LONG = 600  # unless its client declared more work (demand()): this long at most, while the declaration lives
+TINY = (4, 10)  # a batch of this many jobs or fewer, or under this many slot-minutes: a VM already up, else Modal
+LEDGER = None  # (set below: LIVE / "boat-starts.jsonl", one line per batch)
 
 
 class Unavailable(RuntimeError):
@@ -83,6 +105,7 @@ def main_checkout() -> pathlib.Path:
 
 
 LIVE = pathlib.Path(os.environ.get("GDPW_LIVE") or main_checkout() / "modal" / ".live")
+LEDGER = LIVE / "boat-starts.jsonl"
 
 
 # ------------------------------------------------------------------------------------------------------------- the CLI
@@ -143,10 +166,51 @@ def limits() -> dict:
     return bj("limits")
 
 
-def starts_left(lim: dict) -> int:
-    """The starts the plan has left this hour and day, minus what's kept for the account's other users."""
-    st = lim["starts"]
-    return min(st["hour"]["remaining"] - RESERVE_HOUR, st["day"]["remaining"] - RESERVE_DAY)
+def starts_left(lim: dict, mine: dict | None = None) -> int:
+    """The starts we may spend now: the plan's left this hour and day less the reserve for the account's other users
+    (at least twice their last day's and hour's), and our ceiling's left (CEIL)."""
+    st, m = lim["starts"], mine or ours()
+    rd = max(RESERVE_DAY, 2 * max(0, st["day"]["used"] - m[86400]))
+    rh = max(RESERVE_HOUR, 2 * max(0, st["hour"]["used"] - m[3600]))
+    return min(st["hour"]["remaining"] - rh, st["day"]["remaining"] - rd, int(CEIL[0] * st["day"]["limit"]) - m[86400], int(CEIL[1] * st["hour"]["limit"]) - m[3600])
+
+
+def ours(d: dict | None = None) -> dict:
+    """Our starts in the last minute, hour and day (the registry's `starts`: every start a client of this pool made)."""
+    ts = (d or Registry().read()).get("starts", [])
+    now = time.time()
+    return {w: sum(1 for t in ts if t > now - w) for w in (60, 3600, 86400)}
+
+
+def note_starts(k: int, d: dict | None = None):
+    """k starts made now, into the registry (within a locked registry `d`, or locking it)."""
+    if k <= 0:
+        return
+    if d is None:
+        with Registry().locked() as d:
+            return note_starts(k, d)
+    now = time.time()
+    d["starts"] = [t for t in d.get("starts", []) if t > now - 86400] + [round(now, 1)] * k
+
+
+def ledger(**row):
+    """One line of the starts ledger (LIVE/boat-starts.jsonl): a batch's starts, VMs and slots, its client, and our
+    and the account's starts of the hour and day after it; a batch that went to Modal says why, with no start."""
+    with contextlib.suppress(Exception):
+        m = ours()
+        acct = {}
+        with contextlib.suppress(Exception):
+            st = limits()["starts"]
+            acct = {"acct_hour": st["hour"]["used"], "acct_day": st["day"]["used"]}
+        row = {"t": round(time.time(), 1), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "client": client(), **row, "our_hour": m[3600], "our_day": m[86400], **acct}
+        LIVE.mkdir(parents=True, exist_ok=True)
+        with open(LEDGER, "a") as f:
+            f.write(json.dumps(row) + "\n")
+
+
+def client() -> str:
+    """Who runs this batch: $GDPW_BOAT_CLIENT (the bar: bar-<pid>), else the worktree's name (a lane)."""
+    return os.environ.get("GDPW_BOAT_CLIENT") or GDP.name
 
 
 def budget(left: int, cap: int = 0) -> int:
@@ -402,8 +466,12 @@ REFRESH_DAYS = 12  # a VM stopped this long is resumed and stopped again when a 
 
 
 def refresh_old(d: dict, image: str):
-    """Free VMs stopped for REFRESH_DAYS: resumed and stopped again (in the background), which restarts boat's clock."""
-    old = [i for i, v in d["vms"].items() if lease_free(v) and v.get("state") == "stopped" and time.time() - v.get("last_used", time.time()) > REFRESH_DAYS * 86400]
+    """Free VMs of the pool's type stopped for REFRESH_DAYS: resumed and stopped again (in the background, a start each,
+    within the starts left), which restarts boat's clock; others boat drops after 14 days."""
+    old = [i for i, v in d["vms"].items() if lease_free(v) and v.get("state") == "stopped" and v["type"] == VM_TYPE and time.time() - v.get("last_used", time.time()) > REFRESH_DAYS * 86400]
+    with contextlib.suppress(Exception):
+        old = old[:max(0, min(4, starts_left(limits(), ours(d))))]
+    note_starts(len(old), d)
 
     def one(i):
         boat("resume", i, "--json", check=False, timeout=300)
@@ -418,6 +486,36 @@ def refresh_old(d: dict, image: str):
 def lease_free(v: dict) -> bool:
     l = v.get("lease")
     return not l or not pid_alive(l["pid"], l.get("host", ""))
+
+
+def demand(name: str, ttl: int = 300, pid: int = 0, label: str = ""):
+    """A client declares work it is about to launch (the bar between its groups, a controller with a queue): until
+    `ttl` s from now, while its pid lives, the VMs its batches release stay up LONG s, not IDLE (warm_ttls)."""
+    with Registry().locked() as d:
+        dm = d.setdefault("demand", {})
+        dm[name] = {**dm.get(name, {}), "pid": pid or os.getppid(), "host": socket.gethostname(), "until": time.time() + ttl, "label": label}
+
+
+def undeclare(name: str, d: dict | None = None) -> list[str]:
+    """The client's work is done (or it died): its declaration goes, and the VMs kept up for it stop IDLE s from now."""
+    if d is None:
+        with Registry().locked() as d:
+            ids = undeclare(name, d)
+        for i in ids:
+            threading.Thread(target=boat, args=("extend", i, "--ttl", str(IDLE), "--json"), kwargs={"check": False}).start()
+        return ids
+    d.get("demand", {}).pop(name, None)
+    now, ids = time.time(), []
+    for i, v in d["vms"].items():
+        if v.get("owner") == name and lease_free(v) and v.get("until", 0) > now + IDLE:
+            v["until"], v["owner"] = now + IDLE, None
+            ids.append(i)
+    return ids
+
+
+def declared(d: dict, name: str) -> dict | None:
+    dm = d.get("demand", {}).get(name)
+    return dm if dm and dm["until"] > time.time() and pid_alive(dm["pid"], dm.get("host", "")) else None
 
 
 # ---------------------------------------------------------------------------------------------------------- the tree
@@ -470,6 +568,26 @@ def olean_tarball(key: str) -> tuple[bytes | None, list[str]]:
     return buf.getvalue(), [f.stem for f in files]
 
 
+def olean_from_modal(key: str):
+    """The Lean library for this key from Modal's olean volume (modal/run.py's jobs keep it there) when this client has
+    less of it: a boat batch on a new key would otherwise compile it in every job, which slows the jobs that time a
+    kernel check (core/data.test.ts's 5 s limit) and fails one that imports a module it doesn't build (lean-ksteps)."""
+    cache = LIVE / "olean" / key
+    if cache.exists() and len(list(cache.glob("*.olean"))) >= len(LIBRARY):
+        return
+    import shutil
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp, contextlib.suppress(Exception):
+        subprocess.run(["modal", "volume", "get", "gdp-wired-olean", f"/{key}", tmp, "--force"], capture_output=True, timeout=120)
+        got = [f for f in pathlib.Path(tmp).rglob("*.olean") if f.stem in LIBRARY and not f.name.startswith(".")]
+        if len(got) > (len(list(cache.glob("*.olean"))) if cache.exists() else 0):
+            cache.mkdir(parents=True, exist_ok=True)
+            for f in got:
+                shutil.copy2(f, cache / f".{f.name}.in")
+                (cache / f".{f.name}.in").rename(cache / f.name)
+            log(f"{len(got)} .olean files of library {key[:12]} from Modal's volume")
+
+
 def library_key(lean_dir: pathlib.Path = GDP / "lean-kernel") -> str:
     h = hashlib.sha256(b"leanprover/lean4:v4.34.0\n")
     for mod in LIBRARY:
@@ -497,12 +615,14 @@ class StartGate:
                     except Exception:
                         pass
                 if self.st:
-                    left = starts_left({"starts": self.st}) - self.used
+                    mine = ours()
+                    left = starts_left({"starts": self.st}, mine) - self.used
                     if left <= 0:
                         return 0
-                    k = min(n, left, self.st["minute"]["remaining"] - self.used)
+                    k = min(n, left, self.st["minute"]["remaining"] - self.used, int(CEIL[2]) - mine[60])
                     if k > 0:
                         self.used += k
+                        note_starts(k)
                         return k
             time.sleep(3)
         return 0
@@ -526,12 +646,14 @@ class VM:
 class Session:
     """The VMs a batch holds: leased from the pool, resumed, or created, each prepared with the batch's tree."""
 
-    def __init__(self, label: str, idle: int | None = None, teardown: bool = False, vm_type: str = "default", build: bool = True, oleans: bool = True):
+    def __init__(self, label: str, idle: int | None = None, teardown: bool = False, vm_type: str = VM_TYPE, build: bool = True, oleans: bool = True):
         self.batch = time.strftime("%Y%m%d-%H%M%S") + "-" + "".join(random.choice("abcdefghijklmnopqrstuvwxyz0123456789") for _ in range(6))
         self.label, self.idle, self.teardown, self.vm_type = label, idle, teardown, vm_type
         self.reg = Registry()
         self.image = ensure_image(build)  # (raises Unavailable when it's missing and build is off)
         self.key = library_key()
+        if oleans:
+            olean_from_modal(self.key)
         self.tar = tree_tarball()
         self.olean, self.olean_names = olean_tarball(self.key) if oleans else (None, [])
         self.olean_url = None
@@ -552,6 +674,7 @@ class Session:
         self.last_error = ""
         self.max_starts = 0  # this batch's cap on its starts (--max-vms), else MAX_STARTS
         self.short = False  # no start was to be had for VMs the batch wanted: run() waits longer for released ones
+        self.warm_only = False  # a tiny batch: VMs already up only, never a start
         try:
             self.day0 = limits()["starts"]["day"]["used"]  # the account's starts of the day, before (and after, in close)
         except Exception:
@@ -584,7 +707,9 @@ class Session:
                 starts = max(0, starts_left(limits()))
             except Exception:
                 starts = need
-            if need > len(up) and starts <= 0:
+            if self.warm_only:
+                starts = 0
+            elif need > len(up) and starts <= 0:
                 self.short = True
             free = up + [i for i in free if i not in up][:budget(starts, self.max_starts)]
             for i in free[:need]:
@@ -1134,6 +1259,7 @@ class Session:
         vms = [v for v in list(self.vms.values()) if not v.skipped]
         idle = self.idle if self.idle is not None else IDLE
         self.idle_used = idle
+        ttl = self.warm_ttls([v for v in vms if not v.dead]) if self.idle is None and not self.teardown else {}
 
         def wind(vm: VM):
             if kill and vm.t_ready and not vm.dead:
@@ -1145,14 +1271,14 @@ class Session:
             vm.t_end = time.time()
             if self.teardown:
                 boat("delete", vm.id, "--yes", "--json", check=False, timeout=180)
-            elif idle <= 0:
+            elif ttl.get(vm.id, idle) <= 0:
                 stop_vm(vm.id)
             else:
-                boat("extend", vm.id, "--ttl", str(idle), "--json", check=False)
+                boat("extend", vm.id, "--ttl", str(ttl.get(vm.id, idle)), "--json", check=False)
         ts = [threading.Thread(target=wind, args=(vm,)) for vm in vms]
         [t.start() for t in ts]
         [t.join(timeout=400) for t in ts]
-        self._release([v.id for v in vms], deleted=self.teardown, idle=idle, up={v.id for v in vms if not v.dead})
+        self._release([v.id for v in vms], deleted=self.teardown, idle=idle, up={v.id for v in vms if not v.dead}, ttl=ttl)
         held = sum((v.t_end or time.time()) - v.t_request for v in vms if v.t_running)  # (a VM that never ran bills nothing)
         busy = sum(union(v.busy) for v in vms)
         ready_held = sum((v.t_end or time.time()) - v.t_ready for v in vms if v.t_ready)
@@ -1161,14 +1287,30 @@ class Session:
         day = None
         with contextlib.suppress(Exception):  # (every client's starts of the day, before and after; a rolling day can drop some meanwhile)
             day = f"{self.day0} to {limits()['starts']['day']['used']}" if self.day0 is not None else None
-        return {"vms": len(vms), **self.counts, "account_day": day, "to_running_s": [round(min(up), 1), round(sorted(up)[len(up) // 2], 1), round(max(up), 1)] if up else None,
+        s = {"vms": len(vms), **self.counts, "account_day": day, "to_running_s": [round(min(up), 1), round(sorted(up)[len(up) // 2], 1), round(max(up), 1)] if up else None,
                 "prep_s": [round(min(prep), 1), round(sorted(prep)[len(prep) // 2], 1), round(max(prep), 1)] if prep else None,
                 "tree_from_seed": sum(1 for v in vms if v.src == "seed"), "types": sorted({v.type for v in vms}), "held_s": round(held, 1), "ready_held_s": round(ready_held, 1),
                 "busy_s": round(busy, 1), "idle_vm_s": round(ready_held - busy, 1), "bring_up_s": round(held - ready_held, 1),
-                "idle_tail_s": 0 if self.teardown or idle <= 0 else idle * len([v for v in vms if not v.dead]), "idle_s": idle,
-                "starts": self.counts["created"] + self.counts["resumed"]}
+                "idle_tail_s": 0 if self.teardown else sum(max(0, ttl.get(v.id, idle)) for v in vms if not v.dead), "idle_s": idle,
+                "starts": self.counts["created"] + self.counts["resumed"], "kept_for_demand": len(ttl)}
+        ledger(batch=self.batch, label=self.label, starts=s["starts"], created=s["created"], resumed=s["resumed"], warm=s["leased_running"], vms=len(vms),
+               slots=sum(v.slots for v in vms if v.t_ready), types=s["types"], kept=len(ttl), wall_s=round(time.time() - self.t0, 1))
+        return s
 
-    def _release(self, ids: list[str], deleted: bool = False, idle: int = 0, up: set | None = None):
+    def warm_ttls(self, vms: list) -> dict:
+        """For a client that declared more work (demand()): how long each released VM stays up, LONG for as many as
+        it held at once in the last LONG s (its recent demand) less those already kept up for it; the rest IDLE."""
+        name, now = client(), time.time()
+        with self.reg.locked() as d:
+            dm = declared(d, name)
+            if not dm:
+                return {}
+            dm["recent"] = [r for r in dm.get("recent", []) if r[0] > now - LONG] + [[round(now), len(vms)]]
+            kept = sum(1 for v in d["vms"].values() if v.get("owner") == name and lease_free(v) and v.get("until", 0) > now + IDLE)
+            k = max(0, max(n for _, n in dm["recent"]) - kept)
+            return {v.id: LONG for v in vms[:k]}
+
+    def _release(self, ids: list[str], deleted: bool = False, idle: int = 0, up: set | None = None, ttl: dict | None = None):
         """Lets go of the batch's VMs (only those still leased to it: one it gave back early may be another's now);
         `until` is when boat stops one left up, so another batch may lease it without a start before then."""
         now = time.time()
@@ -1182,7 +1324,11 @@ class Session:
                 else:
                     v["lease"] = None
                     v["last_used"] = now
-                    v["until"] = now + idle if up and i in up and idle > 0 else 0
+                    t = (ttl or {}).get(i, idle)
+                    v["until"] = now + t if up and i in up and t > 0 else 0
+                    v["owner"] = client() if i in (ttl or {}) else None
+                    if up and i in up:
+                        v["state"] = "running"
 
     def dollars(self, ids: list[str] | None = None) -> float:
         """What boat bills for this batch's VMs since it began (`boat usage`, every VM at once)."""
@@ -1282,7 +1428,7 @@ def last_durations(out: pathlib.Path, names: set[str], explicit: str = "") -> di
 
 
 # ------------------------------------------------------------------------------------------------- modal/run.py's jobs
-def preflight(want: int = 1, vm_type: str = "default") -> tuple[str | None, dict]:
+def preflight(want: int = 1, vm_type: str = VM_TYPE) -> tuple[str | None, dict]:
     """Can boat serve a batch now? None and what it can give, or the reason it can't: its API, the account's billing,
     the image, or no VM to be had (the pool's free VMs, and what the plan lets this batch start)."""
     try:
@@ -1329,6 +1475,12 @@ def preflight(want: int = 1, vm_type: str = "default") -> tuple[str | None, dict
     return None, info
 
 
+def warm_up(vm_type: str = VM_TYPE) -> int:
+    """The pool's VMs of a type that are up, free and not about to stop (a batch leases them without a start)."""
+    now = time.time()
+    return sum(1 for v in Registry().read()["vms"].values() if v["type"] == vm_type and lease_free(v) and v.get("state") in RUNNING and v.get("until", 0) > now + 20)
+
+
 def job_items(spec: list[dict], pre: str, cmd, vm_type: str, past: dict) -> tuple[list[dict], list[str]]:
     """modal/run.py's jobs as items, in its summary's order (its resource groups, in the order they first appear)."""
     med = sorted(past.values())[len(past) // 2] if past else 60
@@ -1351,7 +1503,7 @@ def job_items(spec: list[dict], pre: str, cmd, vm_type: str, past: dict) -> tupl
     return items, order
 
 
-def boat_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int | None = None, teardown: bool = False, durations: str = "", vm_type: str = "default",
+def boat_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int | None = None, teardown: bool = False, durations: str = "", vm_type: str = VM_TYPE,
               max_vms: int = 0, on_lost=None, max_wait: int = 0, on_done=None) -> tuple[dict, dict]:
     """modal/run.py's jobs on the pool: {name: {code, seconds, out, err}} for those that ran, and the batch's figures.
     A job lost twice (its VM died) goes to on_lost(name, reason), as does every job when boat can't serve the batch."""
@@ -1362,10 +1514,16 @@ def boat_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int
     rows: dict[str, dict] = {}
     sess = None
     summary = {}
+    # a tiny batch (auto only): on a VM already up, else on Modal; a start for it would buy little
+    tiny = on_lost is not None and (len(items) <= TINY[0] or sum(it["weight"] * it["est"] for it in items) < TINY[1] * 60)
     try:
+        if tiny and not warm_up(vm_type):
+            ledger(batch=None, label=f"run.py {outdir.name}", starts=0, vms=0, slots=0, jobs=len(items), to="modal", why="tiny, no VM up")
+            raise Unavailable(f"a tiny batch ({len(items)} jobs): no boat VM up, and a start isn't worth it")
         with signals_as_interrupt():
             sess = Session(f"run.py {outdir.name}", idle=idle, teardown=teardown, vm_type=vm_type, build=on_lost is None)
             sess.max_starts = max_vms
+            sess.warm_only = tiny
             plain = [it for it in items if not it.get("vm_type")]
             bigs: dict[str, int] = {}
             for it in items:
@@ -1456,6 +1614,10 @@ def reap():
             past = now > v["until"] + 60 if v.get("until") else now - v.get("last_used", 0) > 120
             if not v.get("lease") and v.get("state") in RUNNING and past:
                 stop.append(i)
+        for name in [n for n in d.get("demand", {}) if not declared(d, n)]:  # a client gone: what it kept up stops soon
+            for i in undeclare(name, d):
+                threading.Thread(target=boat, args=("extend", i, "--ttl", str(IDLE), "--json"), kwargs={"check": False}).start()
+                print(f"{i}: kept for {name}, which declares no more work: stops in {IDLE} s")
     for i, b in kill:
         exec_(i, ["bash", "-c", f"python3 ~/.gdpw/agent.py kill {b} 2>/dev/null || true"], 60)
         print(f"released {i} (client gone), killed batch {b}")
@@ -1506,6 +1668,32 @@ def teardown(everything: bool = False, vm_type: str = ""):
     print(f"deleted {len(gone)} VMs")
 
 
+def starts_summary(since: str = "24h"):
+    """The ledger since a time (ISO 8601 UTC, or 24h, 7d): our starts by day and by client, the batches that went to
+    Modal for want of a start, and now: ours this hour and day against the ceiling, the account's, the other's."""
+    import datetime
+    t = time.time() - float(since[:-1]) * {"h": 3600, "d": 86400}[since[-1]] if since[-1] in "hd" else datetime.datetime.fromisoformat(since.replace("Z", "+00:00")).timestamp()
+    rows = [r for r in (json.loads(l) for l in LEDGER.read_text().splitlines() if l.strip()) if r["t"] >= t] if LEDGER.exists() else []
+    by_day, by_client = {}, {}
+    for r in rows:
+        for k, key in ((by_day, r["utc"][:10]), (by_client, r.get("client", "?"))):
+            e = k.setdefault(key, [0, 0, 0, 0])
+            e[0] += 1
+            e[1] += r.get("starts", 0)
+            e[2] += r.get("vms", 0) - r.get("starts", 0) if r.get("to") != "modal" else 0
+            e[3] += r.get("to") == "modal"
+    print(f"{len(rows)} batches since {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(t))}, {sum(r.get('starts', 0) for r in rows)} starts ({LEDGER})")
+    for name, k in (("day", by_day), ("client", by_client)):
+        for key, (n, st, warm, modal) in sorted(k.items()):
+            print(f"  {name} {key:28} {n:4} batches {st:5} starts {warm:5} VMs without one {modal:4} to Modal")
+    m = ours()
+    with contextlib.suppress(Exception):
+        st = limits()["starts"]
+        print(f"now: ours {m[60]} this minute, {m[3600]} this hour (ceiling {int(CEIL[1] * st['hour']['limit'])}), {m[86400]} today (ceiling {int(CEIL[0] * st['day']['limit'])});"
+              f" the account {st['hour']['used']} / {st['hour']['limit']} this hour, {st['day']['used']} / {st['day']['limit']} today; others {st['day']['used'] - m[86400]} today;"
+              f" we may start {max(0, starts_left({'starts': st}, m))} now")
+
+
 if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
@@ -1515,14 +1703,25 @@ if __name__ == "__main__":
     sub.add_parser("cold")
     t = sub.add_parser("teardown")
     t.add_argument("--all", action="store_true")
-    t.add_argument("--type", default="", choices=["", "small", "default", "large"])
+    t.add_argument("--type", default="", choices=["", *TYPES])
     i = sub.add_parser("image")
     i.add_argument("--build", action="store_true")
     u = sub.add_parser("usage")
     u.add_argument("since")
+    g = sub.add_parser("starts")
+    g.add_argument("--since", default="24h")
+    m = sub.add_parser("demand")
+    m.add_argument("name")
+    m.add_argument("--for", dest="ttl", type=int, default=300)
+    m.add_argument("--pid", type=int, default=0)
+    m.add_argument("--done", action="store_true")
     a = ap.parse_args()
     if a.cmd == "status":
         status()
+    elif a.cmd == "starts":
+        starts_summary(a.since)
+    elif a.cmd == "demand":  # (the bar every 2 min while it runs; --done at its end)
+        print(f"{a.name}: {len(undeclare(a.name))} VMs kept for it stop in {IDLE} s" if a.done else demand(a.name, a.ttl, a.pid) or f"{a.name}: declared for {a.ttl} s")
     elif a.cmd == "reap":
         reap()
     elif a.cmd == "cold":

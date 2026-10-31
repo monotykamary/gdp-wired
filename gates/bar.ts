@@ -71,7 +71,7 @@ async function run(args: string[], o: {cwd: string, log: string, stdout?: string
   const fd = openSync(o.log, 'a'), sfd = o.stdout ? openSync(o.stdout, 'w') : fd
   treesUsed.add(o.cwd)
   try {
-    const p = Bun.spawn(args, {cwd: o.cwd, stdout: sfd, stderr: fd, env: {...process.env, ...o.env}})
+    const p = Bun.spawn(args, {cwd: o.cwd, stdout: sfd, stderr: fd, env: {...process.env, GDPW_BOAT_CLIENT: CLIENT, ...o.env}})
     const c: Child = {pid: p.pid, kill: s => p.kill(s), what: args.slice(0, 3).join(' '), cwd: o.cwd}
     live.set(p.pid, c)
     const timer = setTimeout(() => { log(`cap of ${o.cap} s reached: stopping ${c.what} (pid ${c.pid})`); void stop(c) }, o.cap * 1000)
@@ -109,7 +109,24 @@ function reap() {
   }
 }
 for (const s of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) process.on(s, () => { void stopAll(s).then(() => process.exit(130)) })
-process.on('exit', () => { for (const c of live.values()) try { c.kill('SIGINT') } catch { /* gone */ } })
+process.on('exit', () => { for (const c of live.values()) try { c.kill('SIGINT') } catch { /* gone */ } declare(true) })
+// On boat, the bar declares the work it still has to launch (modal/boat.py's demand): while it runs, the VMs its
+// launches release stay up for its next group (at most as many as it held at once lately, 10 minutes at most), and they
+// stop a minute after it ends. A tree whose modal/boat.py predates the starts ledger (no ceiling, no reserve for the
+// account's other project) runs on Modal instead.
+const CLIENT = `bar-${process.pid}`
+function declare(done = false) {
+  if (backend === 'modal') return
+  Bun.spawnSync(['python3', join(HERE, '..', 'modal', 'boat.py'), 'demand', CLIENT, ...(done ? ['--done'] : ['--for', '300', '--pid', String(process.pid)])], {stdout: 'ignore', stderr: 'ignore'})
+}
+declare()
+if (backend !== 'modal') setInterval(declare, 120_000).unref()
+const frugal = new Map<string, boolean>()
+const backendOf = (p: Pass) => {
+  const b = p.backend ?? backend, f = join(p.tree.path, 'modal', 'boat.py')
+  if (!frugal.has(f)) frugal.set(f, existsSync(f) && readFileSync(f, 'utf8').includes('boat-starts.jsonl'))
+  return b !== 'modal' && !frugal.get(f) ? 'modal' : b
+}
 
 // ------------------------------------------------------------------------------------------------------- the trees
 type Tree = {path: string, sha: string, key: string, clean: boolean, label: string}
@@ -155,14 +172,14 @@ type Pass = {group: string, side: Side, tree: Tree, dir: string, tasks?: string[
 type Job = {name: string, cmd: string, cwd?: string, cpu?: number, memory?: number, timeout?: number}
 type Group = {key: string, views: string[], cap: number, launch: (p: Pass) => Promise<number>, pairAlways?: boolean, noRerun?: boolean, candOnly?: boolean, after?: string, inQuick: boolean}
 
-const py = (p: Pass, script: string, args: string[], cap: number) => run(['python3', script, '--backend', p.backend ?? backend, '--out', p.dir, ...args], {cwd: p.tree.path, log: `${p.dir}.log`, cap})
+const py = (p: Pass, script: string, args: string[], cap: number) => run(['python3', script, '--backend', backendOf(p), '--out', p.dir, ...args], {cwd: p.tree.path, log: `${p.dir}.log`, cap})
 const listFile = (p: Pass, sep: string) => { const f = `${p.dir}.tasks`; writeFileSync(f, p.tasks!.join(sep)); return f }
 async function jobsPass(p: Pass, jobs: Job[], keyOf: (j: Job) => string, cap: number, extra: string[] = []) {
   const keep = p.tasks ? new Set(p.tasks) : undefined, js = keep ? jobs.filter(j => keep.has(keyOf(j))) : jobs
   writeJson(`${p.dir}.jobs.json`, js)
   writeJson(`${p.dir}.keys.json`, Object.fromEntries(js.map(j => [j.name, keyOf(j)])))
   if (!js.length) { mkdir(p.dir); return 0 }
-  return run(['python3', 'modal/run.py', '--backend', p.backend ?? backend, '--jobs', `${p.dir}.jobs.json`, '--out', p.dir, ...extra], {cwd: p.tree.path, log: `${p.dir}.log`, cap})
+  return run(['python3', 'modal/run.py', '--backend', backendOf(p), '--jobs', `${p.dir}.jobs.json`, '--out', p.dir, ...extra], {cwd: p.tree.path, log: `${p.dir}.log`, cap})
 }
 async function jobsOf(p: Pass, args: string[]): Promise<Job[]> {
   const f = `${p.dir}.all-jobs.json`

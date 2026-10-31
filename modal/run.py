@@ -5,12 +5,14 @@ on every run (so edits need no rebuild).
     python3 modal/run.py --backend auto|boat|modal --jobs jobs.json --out runs/backends/<name> [--vms N] [--idle 60]
 
 `--backend auto` runs the same jobs, with the same flags and outputs, on boat.dev VMs (modal/boat.py: a pool kept
-stopped between batches, 2 vCPU and 4 GB a slot) and moves to Modal what boat can't serve (modal/fanout.py); summary.tsv
+stopped between batches, 2 vCPU and 4 GB a slot, large VMs of 4 slots) and moves to Modal what boat can't serve, or
+shouldn't (a tiny batch with no VM up, our ceiling of starts reached: modal/fanout.py, modal/boat.py); summary.tsv
 gets a 4th column, the backend each job ran on, and the final line says where they ran, why any moved and what the VMs
 cost. `auto` is the default from `python3`; `--backend boat` forces boat; `modal` (and `modal run`) is Modal as before.
 
-jobs.json is a list of {"name", "cmd", "cwd"?, "cpu"?, "memory"?, "timeout"?, "image"?}; cmd runs under bash in gdp-wired/<cwd>
-("image": "runner": a container like GitHub's ubuntu-24.04 runner, on Modal whatever the backend).
+jobs.json is a list of {"name", "cmd", "cwd"?, "cpu"?, "memory"?, "timeout"?, "image"?, "backend"?}; cmd runs under bash in
+gdp-wired/<cwd> ("image": "runner": a container like GitHub's ubuntu-24.04 runner, and "backend": "modal": on Modal
+whatever the backend).
 Each job's output lands in <out>/<name>.log, and <out>/summary.tsv has name, exit code and seconds.
 
 Cost hygiene: the default timeout is 15 minutes (set "timeout" per job for longer ones); a job's command is also killed
@@ -150,7 +152,7 @@ def flags(native: bool, cyclic: bool, usual: bool):
 
 @app.local_entrypoint()
 def main(jobs: str, out: str, native: bool = False, cyclic: bool = False, usual: bool = False, backend: str = "modal",
-         vms: int = 0, idle: int = -1, teardown: bool = False, vm_type: str = "default", durations: str = "", max_vms: int = 0, max_wait: int = 120):
+         vms: int = 0, idle: int = -1, teardown: bool = False, vm_type: str = "large", durations: str = "", max_vms: int = 0, max_wait: int = 120):
     import sys
     sys.path.insert(0, str(HERE))
     import fanout
@@ -204,8 +206,8 @@ if __name__ == "__main__":
     ap.add_argument("--backend", default="auto", choices=["modal", "auto", "boat"])
     ap.add_argument("--vms", type=int, default=0, help="boat VMs for the batch (default: by the jobs' last times and the plan's limits)")
     ap.add_argument("--max-vms", type=int, default=0, help="at most this many VMs, and the batch's cap on its starts (default 50: GDPW_BOAT_MAX_STARTS)")
-    ap.add_argument("--idle", type=int, default=-1, help="seconds a released VM stays up before boat stops it (0: stop at once; default 60)")
-    ap.add_argument("--vm-type", default="default", choices=["small", "default", "large"])
+    ap.add_argument("--idle", type=int, default=-1, help="seconds a released VM stays up before boat stops it (0: stop at once; default 60, 600 while the client declares more work)")
+    ap.add_argument("--vm-type", default="large", choices=["small", "default", "large", "xlarge"])
     ap.add_argument("--durations", default="", help="a summary.tsv whose times order the jobs (default: the last run's)")
     ap.add_argument("--max-wait", type=int, default=120, help="auto: seconds to wait for a boat VM before Modal takes the batch")
     a = ap.parse_args()
