@@ -670,37 +670,34 @@ Safety == \\A r1, r2 \\in Round, v1, v2 \\in Value : (<<r1, v1>> \\in decision /
 // state St[s] (Secondary 0, Primary 1), configVersion CV[s] (1 at first), configTerm CfgT[s], s2 \in config[s]
 // Config[s·N + s2]; InitTerm is 0. Init's `\E initConfig # {}: config = [i |-> initConfig]`: `pick` stores a nonempty
 // set (S, its member j) as C0, `copy` gives it to server i, `start` once every server has it. A request names its sets
-// whole (S: BecomeLeader's voteQuorum, Reconfig's newConfig, pick's initConfig; Q2: ConfigIsCommitted's quorum; X:
-// config[i], equal to it at every key), and the sizes the guards read are counts of the request (the servers below size
-// in each set):
-//   - Q \in Quorums(config[i]): Q ⊆ config[i] and 2·|Q| + |Server \ X| > size, i.e. Cardinality(Q) * 2 > Cardinality(X), one
-//     count (a guard that compares two of a request's counts gave the engine's stored-count laws a request count: core/counts.ts);
+// whole (S: BecomeLeader's voteQuorum, Reconfig's newConfig, pick's initConfig; Q2: ConfigIsCommitted's quorum), and the
+// sizes the guards read are counts of the request (the servers below size in each set, X = config[i], row i of Config):
+//   - Q \in Quorums(config[i]): Q ⊆ X and Cardinality(Q) * 2 > Cardinality(X);
 //   - QuorumsOverlap(X, Y) (Y = S): with dx = |X \ Y|, dy = |Y \ X|, m = |X ∩ Y| and hx, hy (inputs) the halves of |X| =
 //     dx + m and |Y| = dy + m rounded down, two disjoint majorities need hx + 1 − dx (at least 0) of X ∩ Y and hy + 1 − dy
 //     of it, so the quorums overlap iff (hx + 1 ∸ dx) + (hy + 1 ∸ dy) > m.
 const mldr = (bug?: Bug) => rule('mongo logless dynamic raft')
   .params({size: nat}).pre(({size}) => size.atLeast(1).and(size.atMost(N)))
   .inputs({op: oneOf('pick', 'copy', 'start', 'update_terms', 'become_leader', 'reconfig', 'send_config'), i: nat, j: nat, hx: nat, hy: nat})
-  .carries('S', 'Q2', 'X')
+  .carries('S', 'Q2')
   .state({started: 0, picked: 0})
   .maps({C0: rel, Copied: rel, Config: rel, CT: 0, St: few(1), CV: 1, CfgT: 0})
   .counts({
-    // 2·|Q| + |Server \ X|, more than size iff 2·|Q| > |X| (Q ⊆ X): one count a guard compares, a majority of X
-    majS: ({S, X, size}: any) => ({below: size, body: (_x: Term, k: Term) => when(S.has(k), 2, when(X.has(k), 0, 1))}),
-    majQ2: ({Q2, X, size}: any) => ({below: size, body: (_x: Term, k: Term) => when(Q2.has(k), 2, when(X.has(k), 0, 1))}),
-    xNotS: ({S, X, size}: any) => ({below: size, body: (_x: Term, k: Term) => X.has(k).and(S.has(k).not())}),
-    sNotX: ({S, X, size}: any) => ({below: size, body: (_x: Term, k: Term) => S.has(k).and(X.has(k).not())}),
-    xAndS: ({S, X, size}: any) => ({below: size, body: (_x: Term, k: Term) => X.has(k).and(S.has(k))}),
+    inS: ({S, size}: any) => ({below: size, body: (_x: Term, k: Term) => S.has(k)}),
+    inQ2: ({Q2, size}: any) => ({below: size, body: (_x: Term, k: Term) => Q2.has(k)}),
+    inX: ({i, Config, size}: any) => ({below: size, body: (_x: Term, k: Term) => Config.at(pk(i, k))}),
+    xNotS: ({i, S, Config, size}: any) => ({below: size, body: (_x: Term, k: Term) => Config.at(pk(i, k)).and(S.has(k).not())}),
+    sNotX: ({i, S, Config, size}: any) => ({below: size, body: (_x: Term, k: Term) => S.has(k).and(Config.at(pk(i, k)).not())}),
+    xAndS: ({i, S, Config, size}: any) => ({below: size, body: (_x: Term, k: Term) => Config.at(pk(i, k)).and(S.has(k))}),
   })
-  .assume(({op, i, j, hx, hy, size, S, Q2, X: Xs, Config, majS, majQ2, xNotS, sNotX, xAndS}: any) => {
+  .assume(({op, i, j, hx, hy, size, S, Q2, Config, inS, inQ2, inX, xNotS, sNotX, xAndS}: any) => {
     const X = (k: Term) => Config.at(pk(i, k))
-    const majorityOf = (Q: any, maj: Term) => all(everyKey(k => Q.has(k).implies(X(k))), bug ? yes : size.lt(maj))
+    const majorityOf = (Q: any, q: Term) => all(everyKey(k => Q.has(k).implies(X(k))), bug ? yes : inX.at(0).lt(q.times(2)))
     const dx = xNotS.at(0), dy = sNotX.at(0), m = xAndS.at(0)
     return all(i.lt(size), j.lt(size), everyKey(k => S.at(k).atMost(1).and(Q2.at(k).atMost(1), S.has(k).implies(k.lt(size)), Q2.has(k).implies(k.lt(size)))),
-      everyKey(k => Xs.at(k).atMost(1).and(Xs.has(k).implies(k.lt(size).and(X(k))), k.lt(size).and(X(k)).implies(Xs.has(k)))),
       op.is('pick').implies(S.has(j)),
-      op.is('become_leader').implies(majorityOf(S, majS.at(0))),
-      op.is('reconfig').implies(all(majorityOf(Q2, majQ2.at(0)),
+      op.is('become_leader').implies(majorityOf(S, inS.at(0))),
+      op.is('reconfig').implies(all(majorityOf(Q2, inQ2.at(0)),
         hx.times(2).atMost(dx.plus(m)), dx.plus(m).lt(hx.times(2).plus(2)), hy.times(2).atMost(dy.plus(m)), dy.plus(m).lt(hy.times(2).plus(2)))))
   })
   .flags(({i, size, S, Q2, Copied, CT, CV, CfgT}) => {
@@ -747,7 +744,7 @@ const mldrRequests = (inp: any, r?: Read) => {
   const {op, i, j, sm, qm} = inp, uses: Record<number, string> = {0: 'jS', 1: 'i', 2: '', 3: 'ij', 4: 'iS', 5: 'iSQ', 6: 'ij'}, u = uses[op]!
   if ((!u.includes('i') && i) || (!u.includes('j') && j) || (!u.includes('S') && sm) || (!u.includes('Q') && qm)) return []
   const X = range(3).filter(k => r!.cell('Config', i * N + k)), S = bits(sm)
-  const base = {op, i, j, hx: 0, hy: 0, S: setOf(S), Q2: setOf(bits(qm)), X: setOf(X)}
+  const base = {op, i, j, hx: 0, hy: 0, S: setOf(S), Q2: setOf(bits(qm))}
   return op === 5 ? [{...base, hx: Math.floor(X.length / 2), hy: Math.floor(S.length / 2)}] : [base]
 }
 

@@ -43,6 +43,163 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneI: K5's two count bugs are one, fixed (mldr natural again); the ten unknowns triaged; a program counter's four phases read by the cubes (simple_regular proven, twophase at 60 s); the laws as given within the search's budget; a refuted law's model read again (untrusted; nothing trusted changed)
+
+Branch gen/laneI from main be279a9. kernel/, lean-kernel/ and core/check.ts untouched; nothing reads a protocol's name.
+Everything ran on boat (the grids and the ten as `gate` items once the pool's submission class had backed up past
+11,000 items); runs in `runs/laneI/` of the worktree.
+
+**1. K5's two count bugs are one: a candidate reading a count of the request (core/counts.ts, 25ade61).** guardLaws
+stores a request's counted set at the keys a step marks (`inS$CT`) and restates each guard comparison over the stored
+count; a guard comparing two request counts (|X \ S| < |S|) left the second, a count of the request, in a law of the
+state. Read at a small state (trueSmall's holdsAt, an empty request) its body's input had no value ("no value for i",
+K5's (a)); with the row carried as X it read 0, passed, and the kernel's scope refused the set ("reads the map xNotS,
+which it doesn't declare", K5's (b)), the error escaping the whole search. **Fix:** a candidate is proposed only where
+the kernel's own scope accepts it as a law of the machine (`scope(m, [law])`: params, state, maps, functions and the
+state's counts), before it is read on the small instances; every candidate source passes there. **Test**
+(core/exists.test.ts, "the counted search proposes no law reading a count of the request"): a two-count guard on a
+minimal machine in both forms (the row read through the input; carried); before the fix it throws "no value for i",
+after it the law is not proposed and the machine is proven. terra (one question): no other candidate source reads the
+request inside scope; a caller law out of scope still throws in trueSmall (the caller's error; the kernel refuses it
+too); a generated count out of scope would drop every candidate silently (none is: guardLaws' counts read the stored map
+and their key).
+**mldr in its natural form** (93b89cc): Q ⊆ config[i] and |Q|·2 > |config[i]| (counts inS, inQ2, inX), the overlap's
+counts reading row i of Config through the input i; no carried X. TLC (`tlc-mldr`): 5,362 = 5,362 states, 18,327 =
+18,327 steps, the broken variant 5 bad states. Its search: unknown as before (below).
+
+**2. The ten unknown at 300 s** (`triage`: GDP_INFER_TRACE=2, GDP_COUNTS_TRACE=3, 60 and 300 s, after change 1; `wall`:
+the killed four again after change 4)
+
+| protocol | stuck goal | why | class | lever |
+| --- | --- | --- | --- | --- |
+| simple_regular | the ∃ law's step (someCone), the cone keeping the three kind laws and no cube | Pc (a1, a2, b, Done) takes four values on the small instance; a view's cell was a literal only at three or fewer, so no cube read Pc | candidate missing | change 3: proven |
+| twophase (60 s only) | the join's rounds at the wall | the engine, which proves it in 15 s once Rm's four values are literals, ran after the join's share | candidate missing | change 3: proven at 60 s |
+| learning_switch | the table law's step goal (376 to 630 hypotheses, 0.8 MB), reported as its start goal | the laws as given ran with each goal's own budget, so the search never started (killed at 2.5x); then the engine holds 31,880 forms and its proof goal is unknown at 186 s | query cost, machine shape (the phase's mid-states) | change 4 (a verdict); kernel design below |
+| learning_switch_i4 | the same, 2,749 hypotheses (6.5 MB); its kind law's step goal 1,643 | the same | query cost, machine shape | change 4; design below |
+| sharded_kv_no_lost_keys | the ∀∃ law's step | the laws as given unbounded (step goal 319 hypotheses), killed; then the witness choice runs out ("the deadline passed choosing a witness") | ∀∃ witness, query cost | change 4 (a verdict) |
+| client_server_db_ae | the ∀∃ law's step | no ghost map holds on the small instances: the witness is a ghost of a ghost (DbResponseSent's response, then the request); the search past its wall (131 to 153 s at 60 s) | ∀∃ witness | a ghost reading a ghost (exists.ts), not built |
+| firewall | the ∀∃ law's step, unknown | the ghost found (AllowedIn$w), the ghosted step goal at 460 to 646 hypotheses (gen/laneG2) unknown | ∀∃, query cost | not built |
+| sharded_kv | "one value per key" @step, a model; the search finds nothing (pool 42 cubes, Houdini 0 of 7) | a law over five keys whose two value keys a cell fixes (Table[a·N + k] = v + 1); 93 to 178 hypotheses a step goal | query cost | a key fixed by an equation substituted before instances (one-point), not built |
+| consensus_forall | the cone keeps 39 of 51; Houdini's round on "one value decided" | each retry an even share (13 s), taken twice over (decide within 2·share, then grow within share): 20 retries end unknown, 186 of 300 s | query cost (cone) | change 5 (refutations 118 → 81 s); not won |
+| paxos_epr | the cone keeps 14 of 119 to 135 in 150 to 190 s | 446 of 521 attempts are retries ending with a model again, 0.35 s each | query cost (cone) | change 5 (106 of 469 refutations without a solve); not won |
+| mldr | Houdini drops all but the kind laws; "one primary per term" fails at 46 to 106 s, inside the budget | the engine's cubes run out of their 15 s reading views over 1,504 small states (`pool made 0`), so 8 candidates (27 where they don't) | candidate missing | views read once a state (incremental), not built |
+
+**Groups.** Candidate missing: simple_regular, twophase at 60 s, mldr. Query cost: the switches, sharded_kv, forall,
+paxos, firewall. ∀∃ witness: db_ae, no-lost-keys, firewall. The largest shared cause the code outside the kernel could
+reach was the laws-as-given attempt ignoring the search's budget (the switches and no-lost-keys never reached the search):
+change 4. The general lever that won proofs was the literal cap (change 3).
+
+**The switches' start goal is not the stall** (K5's guess, "the machine's shape", diagnosed). Grown alone, each of
+their start goals proves in 1 to 4 ms (2 hypotheses). In proveLaws the thinned instances' step goal is grown first and
+takes the time (above); the retry with every instance then starts with the start goal past the wall, which is left
+unknown at once, and the report names it. The minimal machine with the same law proves because its step goal is small.
+
+**3. A program counter's four phases (core/infer.ts, 7925825).** A view's cell gave literals only where it took at most
+three values; the engine's own modes (a yes/no, a choice, or a natural no run took past a few values) allow four, each
+at most 8. One predicate (`few`) for both, and a view's cell reads its values where it is a mode as well as where it
+takes three. simple_regular: the cone keeps 16 of 16 and proves; Lean below. twophase at 60 s: proven by the engine's
+32 cubes in 15.8 / 19.4 s (main: unknown at the join's wall).
+
+**4. The laws as given within the search's budget (core/dsl.ts, 4be7001).** proveRule tried the laws as given before
+the search with each goal's own budget (a second a hypothesis, 20 s at least), unbounded by `search.ms`: a step goal of
+hundreds of hypotheses took the whole job. With a search budget that attempt is now within it on the wall
+(kernel/prove.ts's withWall), and the search has its budget after it as before. Both switches and no-lost-keys end with
+a verdict (unknown at 122 to 129 s at 60 s, 605 to 617 s at 300 s) where every run on main was killed.
+
+**5. A refuted law's model read again (core/counts.ts, 0e4a2fa).** The cone retries a law each time the kept set grows,
+Houdini each round; most retries end with a model again. Each law's last counterexample (goal, model, instances) is kept;
+a retry over more laws first reads it with modelInstances, the attempt's own test of a model (no law broken at a tuple of
+the goal's keys): none broken, it is refuted without a solve (not where a law added reads a count). Side by side at 300 s
+(`cti`, `cti-base`): paxos 106 of 469 refutations without a solve (their time 153 → 124 s), consensus_forall 18 of 90
+(118 → 81 s), consensus_epr 37 of 139; the verdicts as main's.
+
+**Kernel design (not built: kernel/prove.ts).** (a) `thinned`: a law whose thinned attempt ended past the wall reports
+the goal it ran out on and skips the full-instance retry (today the retry's first goal, the start, is named). (b) The
+instances of a law over three keys or more seeded by its models' tuples (MBQI first, as the counted pipeline does), not
+every tuple of the machine's key terms: the switches' step goals are 376 and 2,749 hypotheses before any model asks for
+one. Bounded quantified flags (K5's) are another lane's.
+
+**IC3Syn, boat, two runs a side, the broken variant in r1** (before: main be279a9, `grid-base`, submission class; after:
+755aa07 = 0e4a2fa plus the README, `grid-cand`, gate class; seconds; killed: no verdict at 2.5x the budget plus 60 s, twice
+that in r1)
+
+| protocol | 60 s before | 60 s after | 300 s before | 300 s after | broken, r1 (60 / 300 before; 60 / 300 after) |
+| --- | --- | --- | --- | --- | --- |
+| client_server_ae | proven 7.5 / proven 6.3 | proven 7.3 / proven 6.2 | proven 261.2 / proven 4.3 | proven 4.1 / proven 7.1 | unknown / unknown / unknown / unknown |
+| client_server_db_ae | unknown 150.3 / unknown 131.7 | unknown 153.5 / unknown 144.6 | unknown 419.0 / unknown 434.2 | unknown 417.7 / unknown 376.3 | unknown / unknown / unknown / unknown |
+| consensus | proven 0.4 / proven 0.2 | proven 0.4 / proven 0.3 | proven 0.3 / proven 0.6 | proven 0.4 / proven 0.3 | refuted / refuted / refuted / refuted |
+| consensus_epr | unknown 60.2 / unknown 60.1 | unknown 60.3 / unknown 60.2 | proven 116.3 / proven 134.7 | proven 65.4 / proven 88.4 | unknown / unknown / unknown / unknown |
+| consensus_forall | unknown 71.4 / unknown 60.2 | unknown 60.1 / unknown 60.1 | unknown 87.8 / unknown 300.2 | unknown 300.7 / unknown 300.6 | unknown / unknown / unknown / unknown |
+| consensus_wo_decide | proven 29.6 / proven 41.8 | unknown 60.1 / proven 32.3 | proven 27.9 / proven 95.4 | proven 42.5 / proven 47.8 | unknown / unknown / unknown / unknown |
+| firewall | unknown 93.9 / unknown 110.3 | unknown 67.8 / unknown 57.1 | unknown 90.0 / unknown 69.2 | unknown 60.4 / unknown 63.5 | unknown / unknown / unknown / unknown |
+| learning_switch | killed / killed | unknown 124.5 / unknown 122.2 | killed / killed | unknown 607.9 / unknown 616.9 | - / - / unknown / unknown |
+| learning_switch_i4 | killed / killed | unknown 123.7 / unknown 128.9 | killed / killed | killed / unknown 611.7 | - / - / unknown / - |
+| lock_server | proven 5.6 / proven 5.2 | proven 8.6 / proven 9.0 | proven 8.6 / proven 5.5 | proven 8.3 / proven 5.4 | refuted / refuted / refuted / refuted |
+| lockserv | proven 12.2 / proven 12.1 | proven 7.2 / proven 8.3 | proven 23.2 / proven 11.4 | proven 7.6 / proven 8.4 | refuted / refuted / refuted / refuted |
+| lockserv_automaton | proven 13.0 / proven 19.2 | proven 25.5 / proven 12.1 | proven 11.4 / proven 9.5 | proven 17.3 / proven 6.2 | refuted / refuted / refuted / refuted |
+| majorityset_leader_election | proven 22.0 / proven 12.7 | proven 11.9 / proven 16.0 | proven 14.4 / proven 22.4 | proven 9.0 / proven 19.5 | unknown / unknown / unknown / unknown |
+| mldr | unknown 61.6 / unknown 60.2 | unknown 60.1 / unknown 40.5 | unknown 121.5 / unknown 79.1 | unknown 64.0 / unknown 54.3 | unknown / unknown / unknown / unknown |
+| naive_consensus | proven 10.2 / proven 20.1 | proven 8.6 / proven 13.4 | proven 16.0 / proven 25.5 | proven 17.8 / proven 9.3 | unknown / unknown / unknown / unknown |
+| paxos_epr | unknown 70.2 / unknown 60.1 | unknown 60.1 / unknown 60.6 | unknown 300.2 / unknown 70.8 | unknown 300.2 / unknown 57.0 | unknown / unknown / unknown / unknown |
+| quorum_leader_election | proven 7.3 / proven 6.2 | proven 15.7 / proven 6.3 | proven 12.4 / proven 7.1 | proven 5.0 / proven 3.1 | unknown / unknown / unknown / unknown |
+| sharded_kv | unknown 71.9 / unknown 71.0 | unknown 69.6 / unknown 77.0 | unknown 110.0 / unknown 65.1 | unknown 123.6 / unknown 56.5 | refuted / refuted / refuted / refuted |
+| sharded_kv_no_lost_keys | killed / killed | unknown 123.3 / unknown 123.0 | killed / killed | unknown 605.5 / unknown 607.0 | - / - / unknown / unknown |
+| simple | proven 21.8 / proven 11.2 | proven 12.7 / proven 10.9 | proven 10.8 / proven 16.5 | proven 10.7 / proven 14.1 | refuted / refuted / refuted / refuted |
+| simple_decentralized_lock | proven 6.2 / proven 8.9 | proven 4.5 / proven 7.1 | proven 11.6 / proven 19.8 | proven 11.2 / proven 7.3 | refuted / refuted / refuted / refuted |
+| simple_election | proven 15.8 / proven 22.4 | proven 10.4 / proven 8.4 | proven 25.8 / proven 25.4 | proven 8.4 / proven 11.2 | unknown / unknown / unknown / unknown |
+| simple_regular | unknown 11.1 / unknown 8.6 | proven 13.9 / proven 12.8 | unknown 23.7 / unknown 9.0 | proven 12.8 / proven 14.3 | refuted / refuted / refuted / refuted |
+| tcommit | proven 0.8 / proven 1.3 | proven 0.5 / proven 1.4 | proven 0.3 / proven 0.4 | proven 0.3 / proven 0.6 | refuted / refuted / refuted / refuted |
+| toy_consensus | proven 11.1 / proven 5.1 | proven 2.6 / proven 3.4 | proven 10.9 / proven 6.0 | proven 5.6 / proven 5.0 | unknown / unknown / unknown / unknown |
+| toy_consensus_epr | proven 6.5 / proven 7.1 | proven 15.6 / proven 13.2 | proven 11.3 / proven 17.9 | proven 17.3 / proven 8.9 | unknown / unknown / unknown / unknown |
+| toy_consensus_forall | proven 8.6 / proven 10.8 | proven 5.0 / proven 6.1 | proven 8.2 / proven 7.1 | proven 5.2 / proven 3.8 | unknown / unknown / unknown / unknown |
+| two_phase_commit | proven 14.2 / proven 10.1 | proven 11.5 / proven 18.3 | proven 24.8 / proven 19.2 | proven 39.4 / proven 28.2 | refuted / refuted / refuted / refuted |
+| twophase | unknown 22.7 / unknown 28.1 | proven 15.8 / proven 19.4 | proven 178.4 / proven 216.6 | unknown 303.8 / unknown 301.2 | refuted / refuted / refuted / refuted |
+
+- **60 s: 17 → 18 of 29 proven in both runs** (new: simple_regular, twophase; consensus_wo_decide 1 of 2, unknown at 60.1 s
+  in r1). **300 s: 19 → 19** (new: simple_regular; twophase unknown at the wall in both, 303.8 / 301.2 s, the join's 113 of
+  187 rounds on a shared gate VM). No broken variant proven.
+- **The two at the wall, alone on their VMs** (`--timing`): twophase at 300 s, before 2 of 3 (159.1, 170.2 s; unknown
+  304.9), after 3 of 3 (116.5, 135.4, 162.8 s); consensus_wo_decide at 60 s, before 12 of 12 (median 32.8 s), after 11 of 12
+  (median 27.0 s; the miss's candidates took 16.3 s where every other run of either side took 5.7 to 10.5: the cubes'
+  15 s cap on a slow VM; wo's views and pool are the same on both sides, 233 cubes).
+
+**Gates**
+- **The quick bar** (0e4a2fa against be279a9's boat baseline, <main>/runs/bar/runs/laneI-0e4a2fa-quick/REPORT.md, 651 s):
+  wrong 0 in every group, nothing solid lost: CHC +6 (gained 2, lost 2, none solid), ITS −0.67 (gained 2, lost 3, none
+  solid), ITS per component +1.33 (lost 2, none solid), SV and SV per component no task differs, TIP +1.33 (none differs;
+  its unknown-to-timeout shift, 11.67, is the pool's load: the nine tasks side by side, `tip-base`, `tip-cand`, answer 6 of
+  18 on each side), f1 0, f2 −2 (lost 1, not solid), rw −0.33 (none differs); g332 332 of 332, the same search on every
+  goal, per goal p50 0.996 (sum 384.5 against 359.2 s); onecpu no failure; Lean 6 of 6.
+- **The suites** (<main>/runs/bar/runs/laneI-0e4a2fa-suites/REPORT.md, the pool loaded by other lanes' bars): by default
+  240 of 243 in the first pass, the three (infer, extract-rb, countmachine: each a test past bun's 5 s cap, 5.7 to 12.8 s)
+  passing in all three reruns (lost 0, noise 3); --usual 242 of 243, the one infer's same test, which the base fails in
+  2 of its 3 runs there too. Alone on their VMs (`flaky`, `--timing`), the four jobs 3 of 3 each: **243 of 243 in each mode**.
+- **The ten at 60 s**, 20 runs each, side by side (`ten-base`, `ten-cand`, gate class): before 196 of 200 (wo 16 of 20),
+  after **200 of 200**; medians after (before): wo 37.2 (40.9), decentralized 15.9 (14.3), distributed 25.1 (33.5), async
+  16.9 (23.4), sync 5.1 (7.0), ring 35.9 (32.7), sharded 19.3 (21.6), ticket 37.3 (48.9), toy forall 8.9 (9.3), 2PC 14.7
+  (17.8).
+- **Core tests** (`tests`, boat): `bun run test` exit 0 (every file 0 fail); core/exists.test.ts 12 of 12;
+  kernel/count.test.ts and countmachine.test.ts 56 of 56. tsc: no error in core/, kernel/ or research/protocols/; oxlint
+  0 / 0 on the touched files.
+- **Lean** (Lean 4.34.0, boat): some-lean.ts on simple_regular (17 laws) and on twophase's 60 s proof (35 laws): lean-exit
+  0, no sorry, `simple_regular_laws`, `simple_regular.some0` and `twophase_laws` on [propext, Classical.choice,
+  Quot.sound]; counted-lean.ts again on consensus_epr (29 laws), consensus_wo_decide (37), majorityset (16), the cone's
+  retries changed: CountedIC3.lean 1.42 MB, lean-exit 0, no sorry, `ic0_laws` to `ic2_laws` on the same three axioms.
+
+**Bytes** (against be279a9): core/counts.ts +1,592, core/dsl.ts +340, core/infer.ts +285 (core/ and kernel/ without tests
++2,217, the bar's count); core/exists.test.ts +2,240; research/protocols/ic3syn/models.ts −357.
+
+**Spend:** boat: 0 starts charged to this lane's 27 batches; the bar's Modal apps $0 billed (estimated $3.24 from its task
+seconds, all on boat). Nothing of this lane's is left running.
+
+**Verified, not**
+- **Verified:** the two bugs one, its test failing before and passing after; mldr natural equal to TLC in states and steps;
+  simple_regular proven in every run since change 3 (grid 4 of 4, local), its broken variant refuted, Lean-checked;
+  twophase at 60 s proven in both grid runs, Lean-checked; the killed four ending with verdicts; the gates above.
+- **Not verified:** that change 5 ever turns a verdict (it didn't here); wo's one miss in twelve alone as noise rather than
+  change 3 or 5 (its views and pool are identical on both sides; the miss is the cubes' wall-clocked cap); the kernel
+  design (not built).
+
 ## gen/laneK5: the three composed-key ports with nothing trusted added; a count read at a bound key refused (trusted, a narrowing); quantifiers past their sort found in four ports (steps checked against TLC); mldr counted and verified
 
 Branch gen/laneK5 from main a496507 (0.41.1). Not touched: core/counts.ts, exists.ts, infer.ts, dsl.ts (Lane C's), and

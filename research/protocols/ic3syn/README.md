@@ -199,7 +199,9 @@ start to each spec state it ends in). `runs/laneK5/tlc-main` (main a496507) and 
   majority) reaching two primaries in a term. gen/laneA's port with injections reached 1,596 (the cause not found: its
   requests' witnesses or the two-key injectivity flags' decisions refused BecomeLeader and Reconfig steps the spec takes).
   TLC counts no state past the constraint (5,362 inside it here, beside 10,536 past it), so the earlier reading of the
-  gap was wrong too.
+  gap was wrong too. gen/laneI put it back in its natural form (Q ⊆ config[i] and |Q|·2 > |config[i]|, the overlap's
+  counts reading row i of Config; no carried X), once core/counts.ts stopped proposing laws that read a request's count:
+  5,362 states and 18,327 steps, TLC's (`runs/laneI/tlc-mldr`), its broken variant 5 bad states.
 - **learning_switch_i4's broken variant.** With link a perfect matching (Init's constraints), a packet goes one hop and
   each source learns one route, so no single-step bug of the learning rule breaks the table's laws on any instance this
   spec allows; the broken variant writes <<pa, sw0, sw1>> beside <<pa, sw1, sw0>> (a route both ways).

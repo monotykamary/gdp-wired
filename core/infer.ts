@@ -188,6 +188,9 @@ type Pairing = {n: number, c: number, frame: C}
 type View = {vars: string[], names: string[], places: E[], covers: number[][], frame: C, need: number, rowsOf: (params: Env, st: State, full?: boolean) => Env[], atoms: number[], rows: Env[], printable: boolean}
 // A key's linear form over the names `ok` admits, into `out` (`1` the constant); false where it is none.
 const conj = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(conj) : [c])
+// A few values: at most four, none past 8: a mode's, and a view's cell reads each of them as a literal (as it does any
+// three: a program counter's four phases are a mode, and were no literal of a view)
+const few = (vals: number[]) => vals.length <= 4 && vals.every(x => x <= 8)
 function pairingOf(m: Machine): Pairing | undefined {
   const inputs = new Set(m.inputs), input = (v: string) => inputs.has(v)
   let found: Pairing | undefined
@@ -677,7 +680,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   for (const s of samples) { if (rowsK.length > 6000) break; rowsK.push(...cellRows(s.params, s.st)) }
   const valsS = atoms.map(a => Float64Array.from(rowsS, r => valueOf(a, r))), valsK = atoms.map(a => Float64Array.from(rowsK, r => valueOf(a, r)))
   const kindOf = new Map(kinds.map(([name, k]) => [name, k]))
-  // Modes: a yes/no, a choice, or a state natural (or cell) no run took past a few values.
+  // Modes: a yes/no, a choice, or a state natural (or cell) no run took past a few values (`few`, a view's literals too).
   type Mode = {atom: number, values: number[], choice?: readonly string[], bool?: boolean}
   const modes: Mode[] = []
   atoms.forEach((a, i) => {
@@ -687,7 +690,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const values = (k as unknown as {values?: readonly string[]} | undefined)?.values
     if (typeof decoded === 'boolean') modes.push({atom: i, values: [0, 1], bool: true})
     else if (typeof decoded === 'string' && values) modes.push({atom: i, values: values.map((_, j) => j), choice: values})
-    else if (!k && seenValues.length && seenValues.length <= 4 && seenValues.every(v => v <= 8)) modes.push({atom: i, values: seenValues})
+    else if (!k && seenValues.length && few(seenValues)) modes.push({atom: i, values: seenValues})
   })
   const modeOf = (i: number) => modes.find(mo => mo.atom === i)
 
@@ -2094,7 +2097,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         for (const i of [...v.atoms.filter(j => !atoms[j]!.int && !atoms[j]!.term), ...modes.filter(mo => !atoms[mo.atom]!.cell && !atoms[mo.atom]!.param).map(mo => mo.atom)]) {
           const vals = [...new Set(R.map(r => r[i]!))].sort((a, b) => a - b)
           // (a value of a key's sort: 0 alone, an order literal below)
-          for (const value of valued(i) ? vals.filter(q => q === 0) : vals.length <= 3 ? vals : []) {
+          for (const value of valued(i) ? vals.filter(q => q === 0) : vals.length <= 3 || few(vals) ? vals : []) {
             const top = value > 0 && value === vals.at(-1)
             add(top ? {lin: {coef: [[i, -1]], d: -value}} : {at: {atom: i, value}}, `${i}`, ren => `${term(i, ren)}=${value}`, reads(i), r => (top ? r[i]! >= value : r[i] === value))
           }

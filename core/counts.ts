@@ -16,7 +16,7 @@
 //      induction), the proof the caller's (the counted goals here, the kernel's for an ∃ law's cubes), in two thirds of
 //      what is left; then, for the counted search, Houdini over the rest; the kernel checks the set (checkCountedLaws).
 import {type C, type E, type Law, type Machine} from './machine.ts'
-import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, substC} from '../kernel/kernel.ts'
+import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, scope, substC} from '../kernel/kernel.ts'
 import {clock, grow, modelInstances, widen} from '../kernel/prove.ts'
 import {REFUTED, type Refuted, cdclStats, growCdcl} from '../kernel/cdcl.ts'
 import {inferLaws} from './infer.ts'
@@ -143,7 +143,10 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
 // budget `ms`, 15 s at most), its template `shapes` (the caller's laws, or an ∃ law's frame), each guard `u < param` loosened where a caller reads u with no param bound.
 export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, caller: Law[], shapes: Law[], guarded: Law[], ms: number, until: number): Law[] {
   const states = ptime('small', () => smallOf(m))
-  const trueAll = (l: Law) => clock() < until && trueSmall(m, [l])
+  // (a law of the state only: one the kernel's scope refuses, reading an input or a count of the request (a guard's
+  // comparison with a second request count), has no value at a state, and is not proposed)
+  const ofState = (l: Law) => { try { scope(m, [l]); return true } catch { return false } }
+  const trueAll = (l: Law) => clock() < until && ofState(l) && trueSmall(m, [l])
   const kinds: Law[] = Object.keys(m.maps ?? {}).map(mp => {
     const most = Math.max(0, ...states.flatMap(({sts}) => sts.flatMap(st => [...(st.maps[mp]?.values() ?? [])])))
     return {name: `${mp} at most ${most}`, forall: 'a$c', holds: {op: '<=', a: {op: 'get', map: mp, key: v('a$c')}, b: k(most)}} as Law
@@ -262,8 +265,18 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
   // One law's goals and their certificates, the laws `ls` assumed (a subsequence of the set): pass 0 with no instances of
   // the lemma, pass 1 with the cells' (one set of witnesses a law); a tree each within `ms`. The instances: the
   // quantified flags at the law's own terms, then what the goals' models ask.
+  // A law's last model (a counterexample to its induction, CTI) is kept: tried again over more laws (the cone's next
+  // tier, Houdini's round), the model is first read against them as the attempt reads a model (modelInstances: a law
+  // broken at a tuple of the goal's keys); none broken, it is still a model, and the law is refuted again without a
+  // solve. (Not where a law added reads a count: its goal's count instances aren't read here.)
+  const models = new Map<string, {gg: Goal, w: Record<string, number>, at: Instances, ls: Set<string>}>(), isCount = (mp: string) => !!m.counts?.[mp]
   const attempt = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Tried<Proof> => {
-    const ts = terms(law)
+    const ts = terms(law), id = `${pass} ${law.name}`, cti = models.get(id)
+    if (cti && !ls.some(l => !cti.ls.has(l.name) && reads(l.holds, isCount).size)) {
+      const at0 = Object.fromEntries(Object.entries(cti.at).filter(([n]) => n.startsWith('?') || ls.some(l => l.name === n)))
+      if (!ptime('mbqi', () => modelInstances(m, ls, at0, cti.gg, cti.w))) return {stuck: 'sat'}
+    }
+    const refuted = (gg: Goal, w: Record<string, number>): Tried<Proof> => { models.set(id, {gg, w, at, ls: new Set(ls.map(l => l.name))}); return {stuck: 'sat'} }
     let at: Instances = Object.fromEntries(Object.entries(m.step.flags ?? {}).flatMap(([f, q]) => (q.op === 'all' && !q.keys?.length ? [[`?${f}`, ts]] : [])))
     const obligations = (i: Instances) => ptime('encode', () => countedObligations(m, ls, {[law.name]: i}, ls.indexOf(law)))
     const build = () => obligations(at).map(({goal, decls}) => { const c = pass ? certFor(goal, decls) : none; return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c))} })
@@ -300,7 +313,7 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
         const asked = ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!))
         if (!asked) {
           if (countsDump.on && pass && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps}) }
-          return {stuck: 'sat'}
+          return refuted(step.gg, q.witness)
         }
         at = asked
         built = build()
@@ -322,6 +335,7 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
           const asked = ptime('mbqi', () => modelInstances(m, ls, at, gg, o.witness!))
           if (asked) { at = asked; built = build(); again = true; break }
         }
+        if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) return refuted(gg, o.witness)
         if (!o || !('tree' in o)) return {stuck: gg ? (o as {stuck?: string}).stuck ?? '' : ''}
         certs[goal.name] = {reads: c.reads, insts: c.insts, tree: o.tree}
       }
