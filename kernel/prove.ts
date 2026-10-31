@@ -1547,7 +1547,7 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
   const law = laws[i]!, byName = new Map(laws.map(l => [l.name, l]))
   // (decideLaw's and the fast set proof's: each law's keys of its sort alone, `bySort`; proveLaw's and the join's as they
   // were. The fast set proof is checked over the tuples its proofs read, and the usual proof follows where it fails)
-  let inst = prev && laws.every(l => !l.forall || l.name in prev.inst) ? prev.inst : bySort(m, laws, lawInstances(m, laws, i))
+  let inst = prev && laws.every(l => !l.forall || l.name in prev.inst) ? prev.inst : bySort(m, laws, lawInstances0(m, laws, i))
   // (GDP_DLTRIG=1: decideLaw's first instances only those a goal's reads trigger (proveOne's `triggered`), the model
   // rounds adding the instances a model breaks (MBQI's))
   if (!prev && !usual && env.GDP_DLTRIG === '1') inst = triggered(plainOf(m), laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
@@ -1772,7 +1772,15 @@ function bySort(m: Machine, laws: Law[], inst: Instances): Instances {
   }))
 }
 // The instances law i's goals are read at (proveLaw's; core/infer.ts's join asks one goal at a time).
+// (`sorted.on`: every law's instances of its keys' sorts alone, bySort's, here too: the ∃ path's goals, core/exists.ts's
+// proveSome, where a ghost map's goals read every key the machine reads, wrong sorts among them: firewall's 799–1,308
+// hypotheses with Internal at 64·s + d)
+export const sorted = {on: false}
 export function lawInstances(m: Machine, laws: Law[], i: number): Instances {
+  const out = lawInstances0(m, laws, i)
+  return sorted.on ? bySort(m, laws, out) : out
+}
+function lawInstances0(m: Machine, laws: Law[], i: number): Instances {
   // (a machine with sums: its plain machine's instances, as proveLawsAsGiven's)
   const law = laws[i]!, pm = plainOf(m), keys = [...readKeys(pm, laws), ...witnesses(pm)]
   return instancesFor(pm, laws, inst => obligations(m, laws, {[law.name]: inst}, i), {
@@ -1793,6 +1801,7 @@ function proveLawsAsGiven(m: Machine, laws: Law[], defer?: (finish: () => void) 
       seed: [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : []), ...(law.keys ?? []).map((name): E => ({op: 'var', name}))],
       focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
     })
+    if (sorted.on) instances[law.name] = bySort(m, laws, instances[law.name]!)
   })
   // (by default a covered machine's certificate is its cyclic proof, core/cyclic.ts's certCyclic, the usual trees its
   // input, not checked again; where none is made, the usual trees are checked and the proof counted uncovered)

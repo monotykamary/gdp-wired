@@ -15,7 +15,7 @@
 // counterexample so far, per case of the step (the conditions its updates split on: the request's clause, say).
 // A law under a `forall` key takes witness terms only (a ghost per key would be a map).
 import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, evalC, evalE, interpret, n as k, walk, x as v} from './machine.ts'
-import {type Report, clock, proveLaw, proveLaws, withDeadline, withinDeadline} from '../kernel/prove.ts'
+import {type Report, clock, proveLaw, proveLaws, sorted, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {env} from './solver.ts'
 import {type Ghosted, ghostedMachine, ghostedOk, substC} from '../kernel/kernel.ts'
 
@@ -473,7 +473,13 @@ export type SomeReport = Report & {laws?: Law[], machine?: Machine, ghosts?: str
 // whole set proven as plain laws of the machine with its ghosts.
 // (`whole`: the whole set's prover over the ghosted machine, proveLaws by default; a search's trial proof passes
 // kernel/prove.ts's proveSetFast, which reuses the decisions made over that machine and checks its trees with checkLaws)
-export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole?: (m: Machine, laws: Law[]) => Report & {laws?: Law[]}} = {}): SomeReport {
+export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, mapMs?: number, termMs?: number, whole?: (m: Machine, laws: Law[]) => Report & {laws?: Law[]}} = {}): SomeReport {
+  // (its goals' instances of the laws' sorts alone, kernel/prove.ts's `sorted`; GDP_SOME_SORTED=0 every one)
+  if (sorted.on || env.GDP_SOME_SORTED === '0') return proveSome0(m, laws, opts)
+  sorted.on = true
+  try { return proveSome0(m, laws, opts) } finally { sorted.on = false }
+}
+function proveSome0(m: Machine, laws: Law[], opts: {rounds?: number, mapMs?: number, termMs?: number, whole?: (m: Machine, laws: Law[]) => Report & {laws?: Law[]}}): SomeReport {
   const cases = casesOf(m), mapsRead = (l: Law) => readsMaps(l.holds) || !!m.maps || !!m.inputMaps
   // Each law's bound naturals named apart from the machine's names and from each other's (each may become a ghost).
   const taken = new Set([...m.params, ...m.inputs, ...Object.keys(m.state)])
@@ -532,8 +538,9 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
     }
     for (let round = 0; ; round++) {
       const now = current(), t0 = performance.now(), r: ReturnType<typeof proveLaw> = round === 0 && first ? {proven: false, ...first}
-        // (a ghost map's goals within 2 s: a search asks them with every candidate set, and one without its supports can take minutes)
-        : p.pick.mode === 'map' ? withDeadline(clock() + 2_000, () => proveLaw(now.machine, now.laws, i)) : proveLaw(now.machine, now.laws, i)
+        // (a ghost map's goals within 2 s, or `mapMs`: a search asks them with every candidate set, and one without its
+        // supports can take minutes; a term's within `termMs` where given)
+        : p.pick.mode === 'map' ? withDeadline(clock() + (opts.mapMs ?? 2_000), () => proveLaw(now.machine, now.laws, i)) : opts.termMs ? withDeadline(clock() + opts.termMs, () => proveLaw(now.machine, now.laws, i)) : proveLaw(now.machine, now.laws, i)
       if (log) console.error(`exists: pass ${pass} round ${round} "${p.law.name}" ${p.pick.mode} ${describe(p, cases).slice(0, 160)}: ${r.proven ? 'proven' : `${r.goal} ${r.stuck}`} (${Math.round(performance.now() - t0)} ms)`)
       if (r.proven) return undefined
       const fail = (stuck: string): SomeReport => ({proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: r.goal, stuck, ...(r.witness ? {witness: r.witness} : {})}})

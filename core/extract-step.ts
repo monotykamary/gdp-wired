@@ -101,6 +101,9 @@ export type StepOptions = {
   // Fields of the object held at these values after its constructor (stated: the claim is for objects so configured,
   // as other code may configure them): constants of the rule, a method writing one refused.
   fields?: Record<string, null | boolean | number | string>,
+  // The methods' scalar arguments one input a type and place (the k-th of a type in every method), not one a method: a
+  // law over a map the methods key by them reads fewer keys (ERC-20's sum, 3 not 6).
+  share?: boolean,
   check?: {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean | 'writes'}
 }
 
@@ -348,6 +351,8 @@ export class Stepper {
     else if (!ty.signed) this.refusals.push(I.and(sel, I.cmp('<', x, I.num(0))))
   }
   sel: B = I.T
+  // (StepOptions.share: each shared input by its type and place, made at its first method)
+  shared = new Map<string, [V, PArg]>()
   // The clock: one input a step.
   clock(at: {p: string}, p: Path): [V, Path] {
     // (read again in the step: the same time, as the check's clock gives it; the step taken to run within one tick)
@@ -3330,8 +3335,18 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     const args: V[] = [], pargs: [string, PArg][] = []
     if ((fn as {recv?: string}).recv === 'value') refuse(fn, `${fn.name}: a method that takes self by value (it consumes the object)`)
     if ((fn as {generic?: boolean}).generic) refuse(fn, `${fn.name}: a generic method`)
+    const kth = new Map<string, number>()
     for (const pa of fn.params.filter(x => !x.self && !x.star)) {
-      const [v, a] = g.input(`${names.length > 1 ? `${fn.name}_` : ''}${pa.name}`, pa.t, fn, p)
+      const s = opts.share && names.length > 1 ? g.scalar(pa.t) : undefined, ty = JSON.stringify(pa.t), k = kth.get(ty) ?? 0
+      kth.set(ty, k + 1)
+      // (shared: named by the argument where every method names its k-th of the type alike, else by the type and k)
+      const at = s && chosen.map(f => f.params.filter(x => !x.self && !x.star && JSON.stringify(x.t) === ty)[k]?.name).filter(Boolean)
+      const it = pa.t as {k: string, bits?: number, signed?: boolean}
+      const nm = at ? (at.every(x => x === pa.name) ? pa.name : `${it.k === 'int' ? `${it.signed ? '' : 'u'}int${it.bits || ''}` : it.k}_${k}`) : `${names.length > 1 ? `${fn.name}_` : ''}${pa.name}`
+      const had = at ? g.shared.get(`${ty} ${k}`) : undefined
+      if (had && had[1].k === 'in') { g.typed(g.vars.get(had[1].name)!, pa.t, 'input'); args.push(had[0]); pargs.push([pa.name, had[1]]); continue }
+      const [v, a] = g.input(nm, pa.t, fn, p)
+      if (at) g.shared.set(`${ty} ${k}`, [v, a])
       args.push(v); pargs.push([pa.name, a])
     }
     g.fails = []; g.failPaths = []
