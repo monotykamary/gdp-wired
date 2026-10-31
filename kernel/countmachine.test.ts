@@ -228,8 +228,8 @@ describe('pointed', () => {
   })
   test('a read: its variable fresh for the hypotheses, the counts\' bounds and bodies, their j and key, the other reads', () => {
     const one = 'one value decided @step'
-    // (b only the hypotheses read; op a count after the step reads too, as the step reads it)
-    refusedOnly(wide, toy.laws, toy.instances, addRead(one, ['b', 'votes', x('a#')]))
+    // (?chosen only the hypotheses read; op a count after the step reads too, as the step reads it)
+    refusedOnly(wide, toy.laws, toy.instances, addRead(one, ['?chosen', 'votes', x('a#')]))
     refusedOnly(wide, toy.laws, toy.instances, addRead(one, ['op', 'votes', b]))
     refusedOnly(wide, toy.laws, toy.instances, addRead(one, ['lim', 'votes', b]))
     refusedOnly(wide, toy.laws, toy.instances, addRead(one, ['lim2', 'votes', b]))

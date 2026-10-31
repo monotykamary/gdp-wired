@@ -113,7 +113,13 @@ false law whose stale goal is a tautology; every term constructor of a certifica
 A fuzz: 60 mutated laws and certificates, trees regrown, 15 accepted, each true on the small instances.
 
 **Mutation tests** (kernel/mutants.ts, `MUTANT_BATTERY=countmachine`, on Modal; the counted section, its scope lines and
-`plainName`): see the results paragraph below.
+`plainName`): **121 of 126 killed.** The first run left 45: the refusal tests failed for more than one reason, so a
+weakened guard went unnoticed; the pointed tests (a certificate only that guard refuses, its tree regrown) kill them.
+(A run while the battery's own file failed reported every mutant killed; it was discarded and rerun from a passing
+baseline.) The 5 left are each a guard another check duplicates, in Lean as in TS: an instance's bound reading a
+witness, or one not over the naturals (an instance's bound must equal its counts' bound, which reads neither:
+`resolve`), a read named as a witness or reading one in its key term (`witFreshW`'s `c.v ≠ w` and its body check, with
+the key term substituted in), a law about a request (`scope`: a law reads no input).
 
 **End to end** (`lean-kernel/count-examples.ts`, the suite's `lean-count` job, which now compiles CountMachine.lean too):
 the toy consensus exported by `emit.ts`'s `cmachineToLean` (the machine with its count maps carried, the declarations,
