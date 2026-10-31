@@ -16,7 +16,7 @@ holds has a TTL renewed while the client lives (a VM whose client died stops by 
 VM's TTL is the idle time, after which boat stops it.
 
 Starts are what the plan rations (a resume is one), and the account shares them with another project: we spend at
-most CEIL of the plan's FREE starts (a quarter of its day, a fifth of its hour, 15 a minute; extra starts stay off),
+most CEIL of the plan's FREE starts (half of its day, 40% of its hour, 25 a minute; extra starts stay off),
 never the reserve (60 a day, 15 an hour, or twice what the other project used in the last day and hour, if more), and
 a batch at most a share of what's left (budget()). VMs are large (4 slots a start). A tiny batch (TINY) runs on a VM
 that's already up, else on Modal. With no start left a batch waits for released VMs within --max-wait, then goes to
@@ -71,10 +71,10 @@ BACKSTOP = 900  # the TTL a held VM keeps renewing: a VM whose client is gone st
 RESERVE_DAY = int(os.environ.get("GDPW_BOAT_RESERVE_DAY", "60"))
 RESERVE_HOUR = int(os.environ.get("GDPW_BOAT_RESERVE_HOUR", "15"))
 # and our own ceiling on the plan's FREE starts (extra starts stay off): a share of its day and of its hour, and so
-# many a minute (research/boat-starts/sim.py: the week of 10-28 asks more than any ceiling, so we spend exactly it;
-# at a quarter of the day, large VMs, the bar's declared reuse and tiny batches on Modal do 86% of the work they do at
-# half of it, for 3% more Modal)
-CEIL = [float(x) for x in os.environ.get("GDPW_BOAT_CEIL", "0.25,0.2,15").split(",")]
+# many a minute. research/boat-starts/week-500.txt: the week of 10-28 asks more than any ceiling, so we spend exactly
+# it; at half the day (840) the pool does more of that work on boat than today's policy at 1,600, for less Modal; a
+# quarter (GDPW_BOAT_CEIL=0.25,0.2,15) does 86% of it, for 16% more Modal and slower big fan-outs
+CEIL = [float(x) for x in os.environ.get("GDPW_BOAT_CEIL", "0.5,0.4,25").split(",")]
 # How a batch spends the plan's starts (research/boat-starts: the simulation of today's mix and the runs that chose
 # it). GDPW_BOAT_POLICY=old restores the policy before, to compare: as many VMs as speed a batch up, no waiting for a
 # released VM when no start is left.
