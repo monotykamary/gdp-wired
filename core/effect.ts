@@ -482,8 +482,6 @@ const QUIET = new Set(['Effect.fail', 'Effect.failSync', 'Effect.die', 'Effect.d
 const TX = /\b(TRef|TxRef|STM)\.|Effect\.tx\b/, WAITS = new Set(['Effect.txRetry', 'STM.retry'])
 function fibered(code: string, file: string, entry: string, E: Mod, opts: EffectOptions): Extraction | undefined {
   const s = setupOf(code, placed(file), {}, opts.files), f = factoryOf(s, entry)
-  const yields = (n: ts.Node): ts.YieldExpression[] => { const out: ts.YieldExpression[] = []; const go = (x: ts.Node) => { if (ts.isYieldExpression(x)) out.push(x); if (!ts.isFunctionLike(x)) ts.forEachChild(x, go) }; ts.forEachChild(n, go); if (ts.isYieldExpression(n)) out.unshift(n); return out }
-  const quiet = (y: ts.YieldExpression) => { const x = y.expression && strip(y.expression); return !x || ts.isNewExpression(x) || QUIET.has((ts.isCallExpression(x) ? callOf(s, x) : apiOf(s, x)) ?? '') }
   const failing = (y: ts.YieldExpression) => { const x = y.expression && strip(y.expression); return !!x && (ts.isNewExpression(x) || /^(Effect|STM)\.(fail|failSync|die|dieMessage)$/.test((ts.isCallExpression(x) ? callOf(s, x) : '') ?? '')) }
   // How many effects on the state a piece of a method runs one after another, each a point another fiber's step may
   // come between: a Ref or TRef operation, a transaction or a lock's body one each; an Effect.gen's or a helper's body
