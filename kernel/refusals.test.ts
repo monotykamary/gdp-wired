@@ -6,7 +6,7 @@
 import {expect, test} from 'bun:test'
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {checkRefutation, checkWitness} from '../core/check.ts'
-import {type Fold, type Goal, type Loop, type RecurCases, check, checkLaws, checkRecur, foldObligations, historyMachine, loopObligations, obligations, progressObligations, scope} from './kernel.ts'
+import {type Fold, type Goal, type Loop, type QE, type QGoal, type RecurCases, type StepLaw, type Tree, check, checkQTree, checkLaws, checkRecur, checkStepLaws, foldObligations, historyMachine, loopObligations, obligations, progressObligations, scope, stepLawObligations} from './kernel.ts'
 import {grow, proveLaws} from './prove.ts'
 
 const x = (name: string): E => ({op: 'var', name}), n = (value: number): E => ({op: 'const', value})
@@ -226,4 +226,82 @@ test('a law is proven at k#: no further key and no name of the machine may be k#
   const tree = {leaf: [{kind: 'input' as const, index: 0}]}
   expect(() => checkLaws(plain, [capture], {instances: {}, trees: {'every two naturals equal @start': tree, 'every two naturals equal @step': tree}})).toThrow(/reserved/)
   expect(() => obligations({...plain, state: {'k#': n(0)}}, [{name: 'all zero', forall: 'k', holds: {op: '=', a: x('k'), b: n(0)}}])).toThrow(/reserved/)
+})
+
+// The names the kernel makes (a flag's ?f and witness w?f, a state after a step s~1, the state after the step s', a
+// term's column ⟦n⟧) are reserved, a later step's (a@2, I@2) kept apart from the machine's, and a fold's children's
+// copies (l_n, r_n) are no names of the fold: before, a name of the machine or a step law's key spelled like one was
+// read as the kernel's own, and each certificate below was accepted of something false. Lean's twin refuses the ?f
+// param, I@2, s~1 and l_size ones (checkSMachine, checkSKStep, checkFold compute false); it reads a step law's key ?f
+// as the flag's value.
+const get = (map: string, key: E): E => ({op: 'get', map, key})
+// A flag f at every key, 1 while no cell of M passes 3 (none ever does): s is 1 after any step.
+const flagged: Machine = {name: 'flagged', params: [], inputs: [], state: {s: n(0)}, maps: {M: 0},
+  step: {flags: {f: {op: 'all', key: 'k', c: le(get('M', x('k')), n(3))}}, state: {s: {op: 'if', c: {op: 'flag', name: 'f'}, then: n(1), else: n(0)}}}}
+
+test('reserved names: ?, a param ?f read as the flag f\'s variable', () => {
+  // s <= ?f is false at ?f = 0 after one step (s = 1); the param was the flag's 0/1 variable, which is 1 where s is.
+  const m: Machine = {...flagged, params: ['?f']}, laws: Law[] = [{name: 's <= ?f', holds: le(x('s'), x('?f'))}]
+  const proof = {instances: {'s <= ?f': {'?f': [x('w?f')]}}, trees: {
+    's <= ?f @start': {leaf: [{kind: 'input', index: 0}, {kind: 'input', index: 1}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]},
+    's <= ?f @step': {split: {1: -1, '?f': 1}, yes: {split: {1: 1, '?f': -1}, yes: {leaf: [{kind: 'input', index: 5}]},
+      no: {leaf: [{kind: 'input', index: 5}, {kind: 'input', index: 6}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]}},
+    no: {leaf: [{kind: 'input', index: 0}, {kind: 'input', index: 4}, {kind: 'combine', a: 1, b: 0, ma: 1, mb: 1}]}},
+  }} as {instances: Record<string, Record<string, E[]>>, trees: Record<string, Tree>}
+  expect(() => checkLaws(m, laws, proof)).toThrow(/reserved/)
+  for (const name of ['?f', 'w?f', 'w2?f']) expect(() => scope({...flagged, params: [name]}), name).toThrow(/reserved/)
+  // A step law's key ?f: "every natural is at most 1" read as the flag's variable, which is.
+  expect(() => stepLawObligations(flagged, [], {}, {name: 'every natural is at most 1', forall: '?f', then: le(x('?f'), n(1))})).toThrow(/reserved/)
+  // A progress law reads its machine as obligations does: when ?f = 0 (the param) met ?f = 1 (the flag, whose body
+  // always holds), so any `then` followed, 1 <= 0 too.
+  expect(() => progressObligations({...flagged, params: ['?f']}, [], {}, {name: 'p', when: {op: '=', a: x('?f'), b: n(0)}, then: le(n(1), n(0)), request: {}})).toThrow(/reserved/)
+})
+
+test('later steps\' names (a@2, I@2, ?f@2): a function I@2 read as the second request\'s carried map', () => {
+  // Two steps add I[0] of the first request and I[0] of the second; the second's map is I@2, so a function I@2 at 0
+  // made "two steps add the first request's I[0] only" provable.
+  const m: Machine = {name: 'carried', params: [], inputs: [], inputMaps: ['I'], state: {s: n(0)}, fns: {'I@2': {js: 'x => 0', lean: 'fun _ => 0'}},
+    facts: [{name: 'zero', forall: 'k', holds: le(get('I@2', x('k')), n(0))}], step: {state: {s: plus(x('s'), get('I', n(0)))}}}
+  const sl: StepLaw = {name: 'two steps add the first only', then: le(x('s\''), plus(x('s'), get('I', n(0)))), steps: 2}
+  expect(() => stepLawObligations(m, [], {zero: [n(0)]}, sl)).toThrow(/a name a step law reads/)
+  // '@' is not reserved (compose's steps names inputs x@s1): a later step's names are kept apart from each name instead,
+  // a flag's variable too (a flag f@2 beside f: ?f@2 is both).
+  const two: Machine = {...flagged, step: {...flagged.step, flags: {...flagged.step.flags, 'f@2': le(x('s'), n(1))}}}
+  expect(() => stepLawObligations(two, [], {}, {name: 'two', then: le(n(0), n(0)), steps: 2})).toThrow(/a name a step law reads/)
+  expect(() => stepLawObligations({...counter, params: ['cap', 'k@s1']}, [], {}, {name: 'two', then: le(n(0), n(0)), steps: 2})).not.toThrow()
+})
+
+test('reserved names: ~, a step law\'s key s~1 read as the state after the first step', () => {
+  // s is 0 after every step; a key named s~1 was that state, so "every natural is 0" was accepted over two steps.
+  const m: Machine = {name: 'zero', params: [], inputs: [], state: {s: n(0)}, step: {state: {s: n(0)}}}
+  const sl: StepLaw = {name: 'every natural is 0', forall: 's~1', then: le(x('s~1'), n(0)), steps: 2}
+  const trees: Record<string, Tree> = {'every natural is 0 @2 steps': {leaf: [{kind: 'input', index: 0}, {kind: 'input', index: 2}, {kind: 'combine', a: 1, b: 0, ma: 1, mb: 1}]}}
+  expect(() => checkStepLaws(m, [], [sl], {laws: {instances: {}, trees: {}}, instances: {}, trees})).toThrow(/reserved/)
+  expect(() => scope({...counter, params: ['cap', 's~1']})).toThrow(/reserved/)
+})
+
+test('reserved names: \', the state and maps after the step (s\', M\')', () => {
+  // s' is s after the step in a step law, a progress law and liveness: a state named s' beside s reads either way.
+  expect(() => scope({...counter, state: {s: n(0), 's\'': n(0)}})).toThrow(/reserved/)
+  expect(() => scope({...counter, maps: {'M\'': 0}})).toThrow(/reserved/)
+  // And a term's column: a map named ⟦0⟧ made a cell the leaf took for a column.
+  expect(() => scope({...counter, maps: {'⟦0⟧': 0}})).toThrow(/reserved/)
+})
+
+test('rationals: a variable spelled like a row is no variable (x:1,y would be read as x + y)', () => {
+  // x = y = 0, v = 10, min(v, 5) <= 5 hold together. A row's key is its canonical text, and v named x:1,y has the text
+  // of x + y: a split on x + y <= 5 decided min(v, 5) as v, so v <= 5 met v = 10, and the other side met x = y = 0.
+  const qv = (name: string): QE => ({op: 'var', name}), qn = (num: number): QE => ({op: 'const', q: {num: BigInt(num), den: 1n}})
+  const v = qv('x:1,y'), goal: QGoal = {name: 'a row named', hyps: [{op: '=', a: qv('x'), b: qn(0)}, {op: '=', a: qv('y'), b: qn(0)}, {op: '=', a: v, b: qn(10)}, {op: '<=', a: {op: 'min', a: v, b: qn(5)}, b: qn(5)}]}
+  const tree: Tree = {split: {x: 1, y: 1, 1: -5},
+    yes: {leaf: [{kind: 'input', index: 6}, {kind: 'input', index: 7}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]},
+    no: {leaf: [{kind: 'input', index: 0}, {kind: 'input', index: 1}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}, {kind: 'input', index: 3}, {kind: 'combine', a: 2, b: 3, ma: 1, mb: 1}]}}
+  expect(checkQTree(goal, tree)).toBe(false)
+})
+
+test('a fold\'s names are not its children\'s copies: a param l_size read as the left child\'s size', () => {
+  // The node's size is the param l_size (5, say); read as the left child's size (at most 1), size <= 1 was accepted.
+  const fold: Fold = {name: 'capped', params: ['l_size'], inputs: [], leaf: {size: n(0)}, node: {size: x('l_size')}}
+  expect(() => foldObligations(fold, [{name: 'size <= 1', holds: le(x('size'), n(1))}])).toThrow(/copy/)
+  expect(() => foldObligations({...fold, params: ['p']}, [{name: 'size <= 1', holds: le(x('size'), n(1))}])).not.toThrow()
 })

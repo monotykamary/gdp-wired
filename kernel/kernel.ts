@@ -629,7 +629,13 @@ function inScope(what: string, ts: (E | C)[], vars: string[], maps: string[] = [
 // A name the kernel's linear forms would read as something else: '1' is the constant, and '*', '[', ']', ',' and ':'
 // build monomials and cells; '#' marks the fresh name a law is proven at (k#, its key's), which a name of the machine or
 // another key of the law would capture. Such a name could never be proven about; refused instead, with its name.
-const plainName = (what: string, name: string) => { if (name === '1' || /[*[\],:#]/.test(name)) throw new Error(`${what}: the name ${name} is reserved (1, or * [ ] , : #)`) }
+// The names the kernel makes are kept apart the same way: '?' a flag's variable ?f and its witnesses w?f, w2?f; '~' a
+// state named after a step (s~1); ''' the state and maps after the step (s', M'); '⟦' and '⟧' a term's column (⟦n⟧).
+// ('@', a later step's a@2, ?f@2, I@2, is not reserved: compose's steps names its inputs x@s1; stepLawObligations
+// keeps a later step's names apart from every name of the machine instead.) A name of the machine, a law's or step
+// law's key with one of them would be read as the kernel's own (a param ?f as the flag f's 0/1 variable: "s <= ?f" was
+// accepted, false at ?f = 0; Lean refuses it).
+const plainName = (what: string, name: string) => { if (name === '1' || /[*[\],:#?~'⟦⟧]/.test(name)) throw new Error(`${what}: the name ${name} is reserved (1, or * [ ] , : # ? ~ ' ⟦ ⟧)`) }
 const distinct = (what: string, names: string[]) => { const seen = new Set<string>(); for (const name of names) { if (seen.has(name)) throw new Error(`${what} declares ${name} twice`); seen.add(name) } }
 
 // A machine (without its history: historyMachine checks that and scopes the plain machine it makes) and its laws. The
@@ -1204,6 +1210,7 @@ export function checkRecurCases(l: Loop, r: RecurCases): boolean {
 // hold of every request where the sums are exact: Sums.lean's sum_allowed).
 export function progressObligations(m0: Machine, laws: Law[], instances: Instances, p: {name: string, when: C, then: C, request: Record<string, E>}): Goal[] {
   const m = plainOf(m0), own = m0.sums && Object.keys(m0.sums).length ? m0.assume : m.assume
+  scope(m, laws) // (as obligations scopes it: a param ?f would be read as the flag f's variable here too)
   if (!m.inputs.every(i => i in p.request) || !Object.values(p.request).every(natural) || mentions(p.when, m.inputs)) throw new Error('outside the kernel')
   for (const e of Object.values(p.request)) if (mentions({op: '=', a: e, b: e}, m.inputs)) throw new Error('a request is named from the state and params')
   const req: Subst = {vars: p.request, maps: {}, flags: {}}
@@ -1315,8 +1322,12 @@ export function stepLawObligations(machine: Machine, laws: Law[], instances: Ins
   const later = laters.flatMap(l => Object.values(l.vars).map(e => (e as {name: string}).name)), laterMaps = laters.flatMap(l => Object.values(l.maps))
   const names = Array.from({length: k - 1}, (_, i) => state.map(n => stateName(n, i + 1))).flat()
   const taken = [...m.params, ...m.inputs, ...state, ...maps, ...carried]
-  for (const p of [...primes, ...later, ...laterMaps, ...names]) if (taken.includes(p)) throw new Error(`${m.name}: ${p} is a name of the machine and a name a step law reads`)
-  for (const key of [sl.forall, ...(sl.keys ?? [])]) if (key && [...taken, ...primes, ...later].includes(key)) throw new Error(`step law ${sl.name}'s key ${key} is already a name of ${m.name}`)
+  // (and every name the run reads besides: the functions, each flag's variable ?f and its witnesses, which a later
+  // step's names, a@2, I@2, ?f@2, must not be: a function I@2 was read as the second request's carried map)
+  const own = [...taken, ...Object.keys(m.fns ?? {}), ...flagNames.map(f => `?${f}`), ...quantified(m).flatMap(([f, q]) => witnessesOf(f, q))]
+  for (const p of [...primes, ...later, ...laterMaps, ...names]) if (own.includes(p)) throw new Error(`${m.name}: ${p} is a name of the machine and a name a step law reads`)
+  for (const key of [sl.forall, ...(sl.keys ?? [])]) if (key) plainName(`step law ${sl.name}'s key`, key)
+  for (const key of [sl.forall, ...(sl.keys ?? [])]) if (key && [...own, ...primes, ...later, ...names].includes(key)) throw new Error(`step law ${sl.name}'s key ${key} is already a name of ${m.name}`)
   if (sl.keys?.length && (!sl.forall || new Set([sl.forall, ...sl.keys]).size !== sl.keys.length + 1)) throw new Error(`step law ${sl.name}: further keys come with a first, each a different name`)
   unquantified(`step law ${sl.name}`, sl.then)
   inScope(`step law ${sl.name}`, [sl.then], [...taken, ...state.map(n => `${n}'`), ...later, ...(sl.forall ? [sl.forall] : []), ...(sl.keys ?? [])], [...maps, ...carried, ...maps.map(n => `${n}'`), ...laterMaps], flagNames)
@@ -1404,6 +1415,10 @@ export function foldObligations(f: Fold, laws: Law[]): Goal[] {
   if (![...Object.values(f.leaf), ...Object.values(f.node)].every(natural) || !laws.every(law => !law.forall && !law.keys?.length && naturalC(law.holds) && !mentions(law.holds, f.inputs))) throw new Error('outside the kernel')
   const names = Object.keys(f.leaf)
   distinct(f.name, [...f.params, ...f.inputs, ...names])
+  // The children's copies (l_n, r_n) are names of their own (Lean's copiesOk): a param l_size would be read as the left
+  // child's size at a node.
+  const copies = names.flatMap(n => [`l_${n}`, `r_${n}`])
+  for (const name of [...f.params, ...f.inputs, ...names]) if (copies.includes(name)) throw new Error(`${f.name}: ${name} is a name of the fold and a child's copy (l_<name>, r_<name>)`)
   if (Object.keys(f.node).sort().join() !== [...names].sort().join()) throw new Error(`${f.name}'s leaf and node set the same names`)
   inScope(`${f.name}'s leaf`, [...Object.values(f.leaf), ...(f.assume ? [f.assume] : [])], [...f.params, ...f.inputs])
   inScope(`${f.name}'s node`, Object.values(f.node), [...f.params, ...f.inputs, ...names.flatMap(n => [`l_${n}`, `r_${n}`])])
@@ -1473,7 +1488,7 @@ export function qdec(path: Path, r: QRow): boolean | undefined {
 }
 export function qlinear(e: QE, path: Path): LF | undefined {
   switch (e.op) {
-    case 'var': return e.name === '1' ? undefined : {row: {cs: new Map([[e.name, 1n]]), c: 0n}, den: 1n}
+    case 'var': return e.name === '1' || /[*[\],:⟦]/.test(e.name) ? undefined : {row: {cs: new Map([[e.name, 1n]]), c: 0n}, den: 1n} // (a row's key is its canonical text: a variable x:1,y read as x + y's)
     case 'const': { const q = ratNorm(e.q); return {row: {cs: new Map(), c: q.num}, den: q.den} }
     case 'add': case 'sub': {
       const a = qlinear(e.a, path), b = qlinear(e.b, path)
