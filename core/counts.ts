@@ -13,6 +13,7 @@
 import {type C, type E, type Law, type Machine, type Request, type State, carriedView, evalC, interpret} from './machine.ts'
 import {type CountCert, type CountInst, type Instances, type MapRead, checkCountedLaws, countedObligations, mcGoal, substC} from '../kernel/kernel.ts'
 import {clock, grow} from '../kernel/prove.ts'
+import {env} from './solver.ts'
 
 const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
 const json = (t: unknown) => JSON.stringify(t)
@@ -161,7 +162,7 @@ export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted 
   const trueAll = (l: Law) => states.every(({p, sts}) => sts.every(st => holdsAt(m, l, p, st, 4)))
   if (!caller.every(trueAll)) return {proven: false, laws: caller, m, why: 'a law fails on the small instances'}
   let set = [...caller, ...[...kinds, ...pairLaws(m), ...g.laws].filter(trueAll)]
-  if (process.env.GDP_COUNTS_TRACE) console.error(`counts: candidates ${set.map(l => l.name).join('; ')}`)
+  if (env.GDP_COUNTS_TRACE) console.error(`counts: candidates ${set.map(l => l.name).join('; ')}`)
   for (let round = 0; clock() < until; round++) {
     const terms = (l: Law): E[] => [...(l.forall ? [v(`${l.forall}#`)] : []), ...(l.keys ?? []).map(v), ...m.inputs.map(v)]
     const instances: Record<string, Instances> = {}, certs: Record<string, CountCert> = {}, failed = new Set<string>()
@@ -190,7 +191,7 @@ export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted 
           const o = gg && grow(gg, new Map(), {nodes: 0, until: Math.min(until, clock() + 10_000)})
           if (!o || !('tree' in o)) {
             ok = false
-            if (process.env.GDP_COUNTS_TRACE && pass) console.error(`counts: ${goal.name}: ${gg ? json(o).slice(0, 300) : 'a read of no count'} (reads ${c.reads.map(r => `${r[1]}[${json(r[2])}]`).join(' ')})`)
+            if (env.GDP_COUNTS_TRACE && pass) console.error(`counts: ${goal.name}: ${gg ? json(o).slice(0, 300) : 'a read of no count'} (reads ${c.reads.map(r => `${r[1]}[${json(r[2])}]`).join(' ')})`)
             break
           }
           certs[goal.name] = {reads: c.reads, insts: c.insts, tree: o.tree}
