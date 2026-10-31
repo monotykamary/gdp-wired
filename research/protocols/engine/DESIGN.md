@@ -170,7 +170,10 @@ that in r1)
   its unknown-to-timeout shift, 11.67, is the pool's load: the nine tasks side by side, `tip-base`, `tip-cand`, answer 6 of
   18 on each side), f1 0, f2 −2 (lost 1, not solid), rw −0.33 (none differs); g332 332 of 332, the same search on every
   goal, per goal p50 0.996 (sum 384.5 against 359.2 s); onecpu no failure; Lean 6 of 6.
-- **The suites**: SUITES
+- **The suites** (<main>/runs/bar/runs/laneI-0e4a2fa-suites/REPORT.md, the pool loaded by other lanes' bars): by default
+  240 of 243 in the first pass, the three (infer, extract-rb, countmachine: each a test past bun's 5 s cap, 5.7 to 12.8 s)
+  passing in all three reruns (lost 0, noise 3); --usual 242 of 243, the one infer's same test, which the base fails in
+  2 of its 3 runs there too. Alone on their VMs (`flaky`, `--timing`), the four jobs 3 of 3 each: **243 of 243 in each mode**.
 - **The ten at 60 s**, 20 runs each, side by side (`ten-base`, `ten-cand`, gate class): before 196 of 200 (wo 16 of 20),
   after **200 of 200**; medians after (before): wo 37.2 (40.9), decentralized 15.9 (14.3), distributed 25.1 (33.5), async
   16.9 (23.4), sync 5.1 (7.0), ring 35.9 (32.7), sharded 19.3 (21.6), ticket 37.3 (48.9), toy forall 8.9 (9.3), 2PC 14.7
