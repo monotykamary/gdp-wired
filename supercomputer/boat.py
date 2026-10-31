@@ -353,13 +353,13 @@ sudo ln -sf /opt/kotlinc/bin/kotlinc /usr/local/bin/kotlinc
 sudo mkdir -p /opt/swift && sudo chown "$(id -un)" /opt/swift
 get "https://download.swift.org/swift-6.3.3-release/ubuntu2404/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE-ubuntu24.04.tar.gz" /tmp/swift.tgz && tar xzf /tmp/swift.tgz -C /opt/swift --strip-components=1 && rm /tmp/swift.tgz
 /opt/swift/usr/bin/swift --version 2>&1 | head -1
-# Rust, minimal stable, for every user (/opt/rustup, /opt/cargo; an item's HOME has no ~/.rustup of its own), its
-# commands in /usr/local/bin through wrappers that name those homes (rust-setup.sh then finds cargo)
+# Rust, minimal stable, for every user: the toolchain's own cargo, rustc and rustdoc linked into /usr/local/bin (rustup's
+# proxies answered as rustup outside the installing user's home); rust-setup.sh then finds cargo
 sudo mkdir -p /opt/rustup /opt/cargo && sudo chown "$(id -un)" /opt/rustup /opt/cargo
 curl -sSf https://sh.rustup.rs | RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable
-for b in cargo rustc rustup rustdoc; do printf '#!/bin/sh\nexport RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo\nexec /opt/cargo/bin/%s "$@"\n' "$b" | sudo tee /usr/local/bin/$b > /dev/null; sudo chmod +x /usr/local/bin/$b; done
+for b in cargo rustc rustdoc; do sudo ln -sf "$(ls -d /opt/rustup/toolchains/stable-*/bin)/$b" /usr/local/bin/$b; done
 rm -rf ~/.cargo ~/.rustup
-env -i HOME=/tmp PATH=/usr/local/bin:/usr/bin:/bin cargo --version | grep '^cargo '  # (a proxy outside its CARGO_HOME answers as rustup)
+env -i HOME=/tmp PATH=/usr/local/bin:/usr/bin:/bin cargo --version | grep '^cargo '
 # solc 0.8.28 and anvil (research/sol/sol-setup.sh's)
 sudo mkdir -p /opt/sol /opt/foundry && sudo chown "$(id -un)" /opt/sol /opt/foundry
 get https://github.com/ethereum/solidity/releases/download/v0.8.28/solc-static-linux /opt/sol/solc && chmod +x /opt/sol/solc
