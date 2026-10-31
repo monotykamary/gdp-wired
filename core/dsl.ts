@@ -2766,7 +2766,8 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   if (ms < 500) return v
   // (a law with "there exists": its ghost chosen with the engine's cubes kept, within half of it)
   if (!stepLaws.length && laws.some(l => l.some?.length)) {
-    const c = withWall(performance.now() + ms / 2, () => withDeadline(clock() + ms / 2, () => someCone(rule, laws, ms / 2)))
+    let c: Verdict | undefined
+    try { c = withWall(performance.now() + ms / 2, () => withDeadline(clock() + ms / 2, () => someCone(rule, laws, ms / 2))) } catch (e) { if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: cone failed: ${String((e as Error).stack ?? e).slice(0, 600)}`) }
     if (c) return {...c, found: {...c.found, ...(lemmas ? {lemmas} : {})}}
     if ((ms = until - clock() - tail) < 500) return v
   }
@@ -2818,7 +2819,7 @@ function someCone(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws0: Law[],
   }
   if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: cone ${kept.length} of ${cubes.length} kept: ${kept.map(l => l.name).join('; ').slice(0, 2000)}`)
   if (clock() > until) return undefined
-  const v = verdictOf(proveSome(m, [...laws, ...kept.filter(c => !laws.some(l => l.name === c.name))], {mapMs: Math.max(2_000, (until - clock()) / 3)}))
+  const v = verdictOf(proveSome(m, [...laws, ...kept.filter(c => !laws.some(l => l.name === c.name))], {mapMs: Math.max(2_000, (until - clock()) / 3), termMs: 2_000}))
   return v.proven && v.checked ? {...v, found: {laws: kept.map(l => ({law: l, text: l.name}))}, ...withAssumes(kept.map(l => ({text: l.name})))} : undefined
 }
 // What a verdict proven with these found laws rests on: the states reachable from init (each found law is proven so).

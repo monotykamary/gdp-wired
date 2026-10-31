@@ -24,7 +24,7 @@ import {env} from './solver.ts'
 
 const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
 const json = (t: unknown) => JSON.stringify(t)
-const knob = {pairs: env.GDP_K_PAIRS === '1', rounds: Number(env.GDP_K_ROUNDS ?? 2), cap: Number(env.GDP_K_CAP ?? 24), ts: env.GDP_K_TS !== '0', keyed: env.GDP_K_KEYED !== '0', flagTs: env.GDP_K_FLAGTS !== '0', shrink: Number(env.GDP_K_SHRINK ?? 150), walks: Number(env.GDP_K_WALKS ?? 100_000), alone: Number(env.GDP_K_ALONE ?? 600)}
+const knob = {pairs: env.GDP_K_PAIRS === '1', rounds: Number(env.GDP_K_ROUNDS ?? 2), cap: Number(env.GDP_K_CAP ?? 24), ts: env.GDP_K_TS !== '0', keyed: env.GDP_K_KEYED !== '0', flagTs: env.GDP_K_FLAGTS !== '0', shrink: Number(env.GDP_K_SHRINK ?? 150), walks: Number(env.GDP_K_WALKS ?? 100_000), alone: Number(env.GDP_K_ALONE ?? 300), hops: Number(env.GDP_K_HOPS ?? 16)}
 const one = k(1), zero = k(0)
 type Env = Record<string, number>
 
@@ -233,7 +233,7 @@ export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted 
     // it read; the law's instances cut to those, and its goals grown with them, the certificate's reads kept)
     const step = built.at(-1)
     if (step?.gg && step.gg.hyps.length > knob.shrink) {
-      const q = growCdcl(step.gg, new Map(), {nodes: 0, until: Math.min(until, clock() + Math.min(ms, 5_000))}, {model: true, core: true}) as Refuted
+      const q = growCdcl(step.gg, new Map(), {nodes: 0, until: Math.min(until, clock() + Math.min(2 * ms, 5_000))}, {model: true, core: true}) as Refuted
       if (!('tree' in q) && q.why === REFUTED && q.core) {
         const used = new Set(q.core.map(h => json(step.gg!.hyps[h]))), cut: Instances = {}
         for (const [name, ts2] of Object.entries(at)) {
@@ -270,28 +270,52 @@ export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted 
   // (the maps a law reads, a count's through its body)
   const mapsOf = (l: Law) => new Set([...reads(l.holds, () => true).values()].flatMap(([mp]) => [mp, ...(m.counts?.[mp] ? [...reads(m.counts[mp]!.body, () => true).values()].map(([q]) => q) : [])]))
   const near = (law: Law) => { const ms0 = mapsOf(law); return set.filter(l => l === law || (cone(l) && [...mapsOf(l)].some(q => ms0.has(q)))) }
-  const sweep = () => {
-    for (let grew = true; grew && clock() < until;) {
+  // (the kept laws by the maps they share, a hop at a time from the law's own, the fewest keys first, until `most`)
+  const hops = (law: Law, most: number): Law[] => {
+    const seen = new Set(mapsOf(law)), out = new Set<Law>([law])
+    for (let grew = true; grew && out.size < most;) {
+      grew = false
+      const layer = set.filter(l => cone(l) && !out.has(l) && [...mapsOf(l)].some(q => seen.has(q))).sort((a, b) => (a.keys?.length ?? 0) - (b.keys?.length ?? 0))
+      for (const l of layer) { if (out.size >= most) break; out.add(l); grew = true }
+      for (const l of layer) if (out.has(l)) for (const q of mapsOf(l)) seen.add(q)
+    }
+    return set.filter(l => out.has(l))
+  }
+  // (in tiers, each to its fixpoint before the next: the law alone, once; with the kept laws that read one of its maps;
+  // with every kept law, a larger goal, the nearer tier again after each kept)
+  // (the whole cone's goal at most twice a law here: the hard stage below takes the rest)
+  const times = new Map<string, number>()
+  const tier = (t: 0 | 1 | 2): boolean => {
+    let any = false
+    for (let grew = true; grew && clock() < stopAt;) {
       grew = false
       for (const law of set) {
-        if (kept.has(law.name) || tried.get(law.name) === kept.size || clock() > until) continue
-        // (the first time alone, then with the kept laws that read one of its maps, then with every kept law: a goal over
-        // the whole cone is larger; again later, with every kept law)
-        const first = !tried.has(law.name), nearby = first ? near(law) : [], all = set.filter(l => l === law || cone(l))
-        const pr = (first && kept.size ? attempt(law, [law], 1, knob.alone) : undefined) ?? (nearby.length > 1 && nearby.length < all.length ? attempt(law, nearby, 1, knob.alone) : undefined) ?? attempt(law, all, 1, knob.alone)
-        tried.set(law.name, kept.size)
-        if (keep(law, pr)) grew = true
+        const id = `${t} ${law.name}`
+        if (kept.has(law.name) || tried.get(id) === kept.size || (t === 0 && tried.has(id)) || (t === 2 && (times.get(law.name) ?? 0) >= 2) || clock() > stopAt) continue
+        tried.set(id, kept.size)
+        if (t === 2) times.set(law.name, (times.get(law.name) ?? 0) + 1)
+        const ls = t === 0 ? [law] : t === 1 ? near(law) : set.filter(l => l === law || cone(l))
+        // (a tier whose goal is a nearer tier's, tried at this cone already, is skipped)
+        if ((t === 1 && ls.length === 1) || (t === 2 && tried.get(`1 ${law.name}`) === kept.size && near(law).length === ls.length)) continue
+        if (keep(law, attempt(law, ls, 1, knob.alone))) grew = any = true
       }
+      if (t === 2) break
     }
+    return any
   }
+  // (the sweeps stop with a third of what is left after the candidates, which the hard stage keeps)
+  let stopAt = until - (until - clock()) / 3
+  const sweep = () => { tier(0); do tier(1); while (tier(2) && clock() < stopAt) }
   // (the callers first, then the laws that read a count, a pigeonhole's; each again once more laws are kept)
   const readsCount = (l: Law) => reads(l.holds, mp => !!m.counts?.[mp]).size > 0
   const order = [...set.filter(l => caller.includes(l)), ...set.filter(l => !caller.includes(l) && readsCount(l)), ...set.filter(l => !caller.includes(l) && !readsCount(l))]
-  if (set.every(l => l.forall)) for (sweep(); clock() < until;) {
+  if (set.every(l => l.forall)) for (sweep(), stopAt = until; clock() < until;) {
     const next = order.find(l => !kept.has(l.name) && hard.get(l.name) !== kept.size && late.get(l.name) === 'unknown')
     if (!next) break
     hard.set(next.name, kept.size)
-    if (keep(next, attempt(next, set.filter(l => l === next || cone(l)), 1, 10_000))) sweep()
+    // (the kept laws a few hops from the law's maps first, a smaller goal, then every kept law)
+    const few = hops(next, knob.hops), all = set.filter(l => l === next || cone(l))
+    if (keep(next, (few.length < all.length ? attempt(next, few, 1, 10_000) : undefined) ?? attempt(next, all, 1, 10_000))) sweep()
   }
   if (env.GDP_COUNTS_TRACE) console.error(`counts: kept ${kept.size} of ${set.length} in ${Math.round(clock() - t1)} ms`)
   const finish = (ls: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}): Counted =>
