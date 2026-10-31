@@ -10,6 +10,7 @@ import {mkdtempSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {forceRule} from '../items/quotaflag-flags.ts'
+import {lcg} from '../../../core/machine.ts'
 
 const dir = mkdtempSync(join(tmpdir(), 'conform-growthbook-'))
 execSync('npm init -y && npm install --ignore-scripts --no-audit --no-fund @growthbook/growthbook@1.7.0', {cwd: dir, stdio: 'ignore'})
@@ -18,7 +19,7 @@ const {GrowthBook, evalCondition} = await import(join(pkg, 'index.mjs'))
 const {hash, inRange} = await import(join(pkg, 'util.mjs'))
 
 let seed = 11
-const rand = (n: number) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n }
+const rand = (n: number) => { seed = lcg(seed); return seed % n }
 const pick = <T>(xs: T[]) => xs[rand(xs.length)]!
 const f = forceRule()
 let checked = 0, served = 0

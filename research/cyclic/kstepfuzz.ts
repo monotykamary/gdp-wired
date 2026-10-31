@@ -1,13 +1,13 @@
 // The k-step fuzz's laws (kernel/steplaw.test.ts's 'k steps', the same seed and generator) proven again, each timed,
 // with its certificate's `cyclic:` line under GDP_CYCLIC_LOG=1: `FUZZ_SCALE=10 bun research/cyclic/kstepfuzz.ts
 // [trial.form ...]` (only those laws, where given: GDP_CYCLIC_DEBUG=1 then shows each goal grown).
-import type {C, E, Machine} from '../../core/machine.ts'
+import {type C, type E, type Machine, lcg} from '../../core/machine.ts'
 import type {StepLaw} from '../../kernel/kernel.ts'
 import {proveStepLaws} from '../../kernel/prove.ts'
 
 let seed = Number(process.env.FUZZ_SEED ?? 31)
 const scale = Number(process.env.FUZZ_SCALE ?? 1), only = new Set(process.argv.slice(2))
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
 const pick = <T>(xs: readonly T[]): T => xs[rand(xs.length)]!
 const vv = (name: string): E => ({op: 'var', name}), cc = (value: number): E => ({op: 'const', value})
 const term = (d: number): E => {

@@ -16,6 +16,7 @@
 // Uses compare/tip/tip.ts (its reader and evaluator) and nothing of gdp-wired.
 import {readFileSync} from 'node:fs'
 import {type Sx, type Tip, type Ty, type V, BOOL, INT, OutOfFuel, Unsupported, evaluate, parseTip, parseSx, prenex, sameV, show, showTy, showV, substTy, tyOf} from '../../compare/tip/tip.ts'
+import {seeded} from '../../core/machine.ts'
 
 const args = process.argv.slice(2), file = args[0]!
 const opt = (k: string, d: string) => { const i = args.indexOf(k); return i < 0 ? d : args[i + 1]! }
@@ -99,8 +100,7 @@ const nVars = (t: Ty) => (goalTypes.has(key(t)) || needs3.has(key(t)) ? 3 : 2)
 const vars: {name: string, ty: Ty}[] = []
 varTypes.forEach((t, i) => { for (let j = 0; j < nVars(t); j++) vars.push({name: `$v${i}_${j}`, ty: t}) })
 out.vars = varTypes.map(t => `${key(t)}×${nVars(t)}`)
-let seed = 12345
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = seeded(12345)
 function gen(t: Ty, size: number): V {
   if (t.k !== 'con') throw new Unsupported(`a value of ${showTy(t)}`)
   if (t.name === 'Int') return BigInt(rand(7))

@@ -18,6 +18,7 @@ import {spawnSync} from 'node:child_process'
 import {parseAri, isVar, ruleVars, evalInt, evalBool, type Ari, type Sx as ASx} from '../../compare/term/ari.ts'
 import {Z3, show, sym, getValues, type Sx} from './z3.ts'
 import {grammar, observe, equalities, bounds, boundRels, ranks, differences, smtTerm, type Lin, type Pair, type Row, type Ranking} from './table.ts'
+import {seeded} from '../../core/machine.ts'
 
 const args = process.argv.slice(2), task = args[0]!, sv = args.includes('--sv')
 const opt = (k: string, d: string) => { const i = args.indexOf(k); return i < 0 ? d : args[i + 1]! }
@@ -181,8 +182,7 @@ function columnsOf(comp: Set<string>, ruleIdx: number[]): Map<string, number[]> 
 type Turn = {rule: number, pre: bigint[], post: bigint[]}
 const turns: Turn[][] = rules.map(() => [])
 const states = new Map<string, Map<string, bigint[]>>([...A.funs.keys()].map(l => [l, new Map()]))
-let rx = 23
-const rand = (k: number) => { rx = (rx * 1103515245 + 12345) % 2 ** 31; return Math.floor(rx / 2 ** 31 * k) }
+const rand = seeded(23)
 const S = new Z3(1000)
 S.send(declText)
 let steps = 0, unknown = 0, trials = 0

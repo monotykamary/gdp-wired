@@ -1,6 +1,6 @@
 // Beyond step machines, through the same kernel: loops that halt (a rank found from templates), laws of every tree (a
 // fold's structural induction), and integer systems that elimination alone can't decide.
-import {type C, type E, type Law, type Machine, all, atMost, ite, less, min, max, minus, n, not, plus, prod, same, times, x} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, all, atMost, ite, less, min, max, minus, n, not, plus, prod, same, times, x, lcg} from '../core/machine.ts'
 import {type Goal, type Fold, type Loop, check, foldObligations, loopMachine, loopObligations, obligations} from './kernel.ts'
 import {concretize, countLeaves, grow} from './prove.ts'
 
@@ -101,7 +101,7 @@ for (const [what, hyp] of [['x <= x·x (a product of two rows)', atMost(x('x'), 
 // and the kernel must accept every refutation.
 console.log('Integer completeness on bounded systems')
 let seed = 7
-const rand = (lo: number, hi: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return lo + (seed % (hi - lo + 1)) }
+const rand = (lo: number, hi: number) => { seed = lcg(seed); return lo + (seed % (hi - lo + 1)) }
 let agree = 0, refuted = 0, split = 0
 const trials = 400
 for (let t = 0; t < trials; t++) {

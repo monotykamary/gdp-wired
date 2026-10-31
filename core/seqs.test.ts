@@ -3,6 +3,7 @@
 import {expect, test} from 'bun:test'
 import {everyBelow, nat, proveDecision, rule, when} from './dsl.ts'
 import {comparePatterns, patternLaws} from '../examples/scopes.ts'
+import {lcg} from './machine.ts'
 
 const seqs = rule('seqs').inputs({n: nat, x: nat}).carriesSeq('A', 'B', 'C').carriesSeqs('T')
 const proven = (d: ReturnType<typeof seqs.decide>) => { const v = proveDecision(d); return v.proven && v.checked }
@@ -30,7 +31,7 @@ test('the encoding and the compiled rule against plain arrays', () => {
   expect([...(enc.T_base as Map<number, number>)]).toEqual([[1, 1], [2, 5]])
   const gen = r.compiled(), ps = r.encodeParams({})
   let x = 3
-  const draw = (k: number) => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) }
+  const draw = (k: number) => { x = lcg(x); return Math.floor(x / 2 ** 31 * k) }
   const arr = () => Array.from({length: draw(4)}, () => draw(3))
   const starts = (a: number[], b: number[]) => a.length <= b.length && a.every((y, i) => b[i] === y)
   for (let t = 0; t < 3000; t++) {

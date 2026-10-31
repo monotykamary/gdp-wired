@@ -2,13 +2,13 @@
 // guarded by the query); whenever the kernel accepts a law's proof, no run of the interpreter (which keeps the history) from
 // the start may break it, nor the relations the proof assumed. FUZZ_SEED and FUZZ_SCALE shard it as kernel.test.ts.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Law, type Machine, evalC, interpret} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, evalC, interpret, lcg} from '../core/machine.ts'
 import {historyMachine} from './kernel.ts'
 import {proveLaws} from './prove.ts'
 
 let seed = Number(process.env.FUZZ_SEED ?? 777)
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
-const rand = (n: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * n) }
+const rand = (n: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * n) }
 const x = (name: string): E => ({op: 'var', name}), n = (value: number): E => ({op: 'const', value})
 const pick = <T>(xs: T[]): T => xs[rand(xs.length)]!
 const term = (names: string[], d: number): E => {

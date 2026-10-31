@@ -8,18 +8,16 @@
 //     anything the prover grows for it.
 // This is what the mutation run (mutants.ts) leans on to see whether a change to kernel.ts or check.ts goes unnoticed.
 import {expect, test} from 'bun:test'
-import type {C, E, Law, Machine} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, seeded} from '../core/machine.ts'
 import {admitFlagged, boundedLoss, capLaws, inflight, inflightLoss, loss, windowCeiling, windowLimit} from '../core/models.ts'
 import type {Constraint, Step} from '../core/solver.ts'
 import {checkRefutation, checkWitness} from '../core/check.ts'
 import {type Goal, type Tree, check, obligations} from './kernel.ts'
 import {grow, proveLaws} from './prove.ts'
 
-let seed = Number(process.env.FUZZ_SEED ?? 99)
-// x' = (1103515245 x + 12345) mod 2^31, exactly (in doubles the product passes 2^53 and rounds, which folded every seed
-// into one of six short cycles, as kernel.test.ts says). A count a test expects fails as COVERAGE: the harness's, not
-// the kernel's (the treadmill files it apart from a soundness failure).
-const rand = (k: number) => { seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff; return Math.floor(seed / 2 ** 31 * k) }
+// A count a test expects fails as COVERAGE: the harness's, not the kernel's (the treadmill files it apart from a
+// soundness failure).
+const rand = seeded(Number(process.env.FUZZ_SEED ?? 99))
 const covered = (what: string, count: number, least = 1) => expect(count, `COVERAGE: ${what}: ${count}, under ${least}`).toBeGreaterThanOrEqual(least)
 
 const strong: Law = {name: 's + 50p <= b + 150', holds: {op: '<=', a: {op: 'add', a: {op: 'var', name: 's'}, b: {op: 'mul', k: 50, a: {op: 'var', name: 'p'}}}, b: {op: 'add', a: {op: 'var', name: 'b'}, b: {op: 'const', value: 150}}}}

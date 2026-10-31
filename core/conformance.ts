@@ -1,7 +1,7 @@
 // The conformance generator: random terms and conditions over every operation of E and C (the op lists must name every
 // op, or this file doesn't type-check), concrete inputs and map cells, and the reference value from evalE and evalC.
 // core/conformance.test.ts holds every consumer of terms to it; lean-kernel/conformance.ts writes its cases for Lean.
-import {type C, type E, type Law, type Machine, type State, evalC, evalE, interpret, n as k, x as v} from './machine.ts'
+import {type C, type E, type Law, type Machine, type State, evalC, evalE, interpret, n as k, x as v, lcg} from './machine.ts'
 import {type Goal, type KInduction, type Loop, type QC, type QE, type QGoal, type QMachine, type Recur, type RecurCases, type Tree, type Liveness, caseGoals, check, checkKInduction, checkLaws, checkStepLaws, coverGoal, kInductionStart, kInductionSteps, livenessParts, recurGoal, stepLawObligations, sumCovers, sumMachine, trueC} from '../kernel/kernel.ts'
 import {type KindProof, proveKInduction} from './kind.ts'
 import type {Step} from './solver.ts'
@@ -19,7 +19,7 @@ export const coverage: [Covers<E['op'], typeof E_OPS>, Covers<Exclude<C['op'], '
 
 let seed = Number(process.env.FUZZ_SEED ?? 777)
 export const reseed = (s: number) => { seed = s }
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
 const pick = <T>(xs: readonly T[]): T => xs[rand(xs.length)]!
 export const VARS = ['a', 'b', 'c'] as const, CELLS = 4, INIT = 2
 

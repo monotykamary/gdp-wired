@@ -10,6 +10,7 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {createRequire} from 'node:module'
 import {flexibleRollout} from '../items/quotaflag-flags.ts'
+import {lcg} from '../../../core/machine.ts'
 
 const dir = mkdtempSync(join(tmpdir(), 'conform-unleash-'))
 execSync('npm init -y && npm install --ignore-scripts --no-audit --no-fund unleash-client@6.12.2', {cwd: dir, stdio: 'ignore'})
@@ -20,7 +21,7 @@ const {normalizedStrategyValue} = req('unleash-client/lib/strategy/util.js')
 const {Strategy} = req('unleash-client/lib/strategy/strategy.js')
 
 let seed = 7
-const rand = (n: number) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n }
+const rand = (n: number) => { seed = lcg(seed); return seed % n }
 const f = flexibleRollout()
 const checker = new Strategy('x')
 let checked = 0

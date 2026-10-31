@@ -11,6 +11,7 @@
 //   - broken variants, each refused with a run that breaks a law: pairs on the diagonal only, the last left effect
 //     skipped, the first right effect only, and one group against itself
 import {type StepLaw, all, bool, everyKey, forall, nat, proveSteps, record, rule, when} from '../core/dsl.ts'
+import {seeded} from '../core/machine.ts'
 
 export const Effect = record({effect: bool, ordered: bool, exact: bool})
 export const Row = record({item: nat, name: nat})
@@ -85,8 +86,7 @@ if (import.meta.main) {
     results.push([`resource groups${bug ? ` (${bug})` : ''}`, v.proven && v.checked, !bug])
   }
   // The group rule against every pair, on drawn groups of up to four effects over four names.
-  let seed = 7
-  const draw = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+  const draw = seeded(7)
   const held = (): Held => ({effect: draw(4) > 0, ordered: draw(2) === 1, scope: draw(5) === 0 ? {exact: false, names: []} : {exact: true, names: [...new Set(Array.from({length: draw(3) + 1}, () => 2 + draw(4)))]}})
   let agree = true, conflicts = 0
   for (let n = 0; n < 2000; n++) {

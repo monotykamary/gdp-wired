@@ -6,7 +6,7 @@
 //   3. Lean: lean-kernel/export-kernel.ts --examples <domain> sends the same trees to the Lean twin (checked on Modal).
 // Decisions are sampled (given ⇒ then on every draw, a counterexample draw for a broken one); loops are run to the end,
 // their invariants checked every turn and their rank seen to drop.
-import {type C, type E, type Law, type Machine, type Request, type State, evalC, evalE, interpret, loadJs, numbersOf} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type State, evalC, evalE, interpret, loadJs, numbersOf, lcg} from '../core/machine.ts'
 import {allowed, watch} from '../core/watch.ts'
 import {type Decision, type LoopRule, type Rule, type StepLaw, type Verdict, crossCheckDecision, proveDecision, proveLoop, proveRule, proveSteps} from '../core/dsl.ts'
 
@@ -29,7 +29,7 @@ export const loopCase = (name: string, about: string, loop: AnyLoop, laws: Law[]
 export type Finding = {case: string, item: string, check: 'kernel' | 'runs' | 'counterexample' | 'builders', ok: boolean, detail: string}
 
 let seed = 1
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
 const empty: State = {scalars: {}, maps: {}}
 const verdictText = (v: Verdict) => (v.proven ? (v.checked ? 'proven, kernel accepts' : 'proven, KERNEL REJECTS') : `not proven (${v.goal}: ${v.stuck})`)
 

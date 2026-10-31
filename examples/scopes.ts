@@ -12,6 +12,7 @@
 //     nothing a scope allows, both ways, with the normalizer's bookkeeping as data the rule checks at every key: where
 //     each grant went, and where each merged action came from; the broken variant drops an action when merging
 import {type Cond, type Decision, type SeqRef, type Term, all, bool, everyBelow, nat, oneOf, record, rule, when} from '../core/dsl.ts'
+import {lcg} from '../core/machine.ts'
 
 export const Pattern = record({ns: nat, all: bool, abs: bool, w: oneOf('none', 'one', 'any')})
 type P = ReturnType<typeof Pattern.value>
@@ -113,7 +114,7 @@ export function comparePatterns(trials = 20000, seed = 7): {checked: number, fai
     .step(({ab, bc, mA}) => ({z: when(ab, 1, 0).plus(when(bc, 2, 0)).plus(when(mA, 4, 0))}))
   const gen = r.compiled(), ps = r.encodeParams({})
   let x = seed
-  const draw = (k: number) => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) }
+  const draw = (k: number) => { x = lcg(x); return Math.floor(x / 2 ** 31 * k) }
   const ws = ['none', 'one', 'any'] as const, name = (g: string) => 1 + 'xyz'.indexOf(g)
   const parsed = (): Parsed => { const every = draw(6) === 0; return {ns: 'ab'[draw(2)]!, all: every, absolute: draw(2) === 1, segments: every ? [] : Array.from({length: draw(4)}, () => 'xyz'[draw(3)]!), wildcard: every ? 'none' : ws[draw(3)]!} }
   const fields = (p: Parsed) => ({ns: Number(p.ns === 'b'), all: p.all, abs: p.absolute, w: p.wildcard})

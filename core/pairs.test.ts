@@ -4,7 +4,7 @@
 // its broken variants refused, what the kernel refuses, and a fuzz: every law over two keys the kernel accepts holds on
 // every run.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Law, type Machine, type Request, compileJs, interpret, loadJs} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, compileJs, interpret, loadJs, lcg} from './machine.ts'
 import {watch} from './watch.ts'
 import {proveLaws} from '../kernel/prove.ts'
 import {everyKey, nat, proveSteps, rule, when} from './dsl.ts'
@@ -13,7 +13,7 @@ import {distinctNames, distinctNamesLaws, sortedList, sortedListLaws} from '../e
 import {decide, groupLaws, groups, type Held} from '../examples/groups.ts'
 
 let seed = 23
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
 const v = (name: string): E => ({op: 'var', name}), c = (value: number): E => ({op: 'const', value})
 const pick = <T>(xs: T[]): T => xs[rand(xs.length)]!
 // A key term over one of the keys, with an offset from the request or a constant (plainly, the key alone).
@@ -163,7 +163,7 @@ test('two groups of effects: every pair at once, proven, and the same as checkin
     expect(v.run?.trace.length).toBeGreaterThan(0)
   }
   let seed = 3
-  const draw = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+  const draw = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
   const held = (): Held => ({effect: draw(4) > 0, ordered: draw(2) === 1, scope: draw(5) === 0 ? {exact: false, names: []} : {exact: true, names: [...new Set(Array.from({length: draw(3) + 1}, () => 2 + draw(4)))]}})
   for (let n = 0; n < 1000; n++) {
     const d = decide(Array.from({length: draw(5)}, held), Array.from({length: draw(5)}, held))
@@ -187,7 +187,7 @@ test('a join on equal values decides a condition at every two keys as every pair
     .step(({all}) => ({ok: when(all, 1, 0)}))
   const c = r.compiled(), m = r.interpreter()
   let seed = 9
-  const draw = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+  const draw = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
   const cells = () => new Map(Array.from({length: draw(8)}, () => [draw(10), draw(4)] as [number, number]))
   let ones = 0
   for (let t = 0; t < 2000; t++) {

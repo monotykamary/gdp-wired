@@ -12,14 +12,14 @@ import {mkdtempSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {memoryStore} from '../items/ratelimit-express.ts'
+import {seeded} from '../../../core/machine.ts'
 
 const dir = mkdtempSync(join(tmpdir(), 'erl-conform-'))
 execFileSync('npm', ['install', '--prefix', dir, '--no-audit', '--no-fund', '--silent', 'express-rate-limit@8.7.1'], {stdio: 'inherit'})
 const {MemoryStore} = await import(join(dir, 'node_modules/express-rate-limit/dist/index.mjs')) as {MemoryStore: new () => any}
 
 const r = memoryStore(), m = r.compiled()
-let seed = 5
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = seeded(5)
 let clock = 0
 Date.now = () => clock
 let calls = 0

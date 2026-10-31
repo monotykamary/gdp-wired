@@ -12,6 +12,7 @@ import {existsSync, mkdtempSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {effectorStream} from '../items/authz-casbin.ts'
+import {lcg} from '../../../core/machine.ts'
 
 let dir = process.argv[2]
 if (!dir || !existsSync(join(dir, 'node_modules/casbin'))) {
@@ -29,7 +30,7 @@ const eftText = {none: '', allow: 'allow', deny: 'deny', other: 'maybe'} as cons
 
 const r = effectorStream(), run = r.interpreter()
 let seed = 5
-const rand = (n: number) => ((seed = (seed * 1103515245 + 12345) % 2 ** 31), seed % n)
+const rand = (n: number) => ((seed = lcg(seed)), seed % n)
 let failure: string | undefined, runs = 0
 for (; runs < 1500 && !failure; runs++) {
   const expr = (Object.keys(exprs) as (keyof typeof exprs)[])[rand(4)]!

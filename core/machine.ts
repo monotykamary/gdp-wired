@@ -8,9 +8,13 @@
 import {boundOf, crossFree, historyMachine, keyTerm, plainKey, scope, sumRuntime} from '../kernel/kernel.ts'
 import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
 
-// The searches' random draws: the high bits of a linear congruence (the low ones repeat with a short period).
+// The one generator of the repo's random draws: x' = (1103515245 x + 12345) mod 2^31, exact (Math.imul). In doubles
+// the product passes 2^53 and rounds, which folded every seed into one of six short cycles (61 to 10,466 steps; 98.8% of
+// seeds into the same one): every search drew one shared stream of 10,466 values over and over. Its period is 2^31
+// (core/rand.test.ts). Draws are its high bits (the low ones repeat with a short period).
+export const lcg = (x: number): number => (Math.imul(x, 1103515245) + 12345) & 0x7fffffff
 export type Rand = (k: number) => number
-export const seeded = (seed: number): Rand => { let x = seed; return k => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) } }
+export const seeded = (seed: number): Rand => { let x = seed; return k => { x = lcg(x); return Math.floor(x / 2 ** 31 * k) } }
 // Every object in a term, the term first.
 export const walk = (t: unknown, f: (o: Record<string, unknown>) => void): void => {
   if (Array.isArray(t)) { for (const x of t) walk(x, f); return }

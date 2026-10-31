@@ -11,6 +11,7 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {createActor} from 'xstate'
 import {uploader, events} from '../items/xstate-vef.ts'
+import {seeded} from '../../../core/machine.ts'
 
 const commit = '82b2a9e063a378f7b7da1c5c88633493beb2fbae'
 const dir = mkdtempSync(join(tmpdir(), 'vef-'))
@@ -20,8 +21,7 @@ writeFileSync(join(dir, 'uploader-machine.ts'), (await res.text()).replaceAll(`f
 const {createUploaderMachine} = await import(join(dir, 'uploader-machine.ts'))
 
 type Phase = 'prepare' | 'parts' | 'complete' | 'abort'
-let x = 1
-const rand = (k: number) => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) }
+const rand = seeded(1)
 const flush = () => new Promise(r => setTimeout(r, 0))
 const c = uploader(), r = c.rule, g = r.compiled(), ps = r.encodeParams({} as never)
 let checked = 0

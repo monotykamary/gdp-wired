@@ -10,6 +10,7 @@ import {mkdtempSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {pRetry as rule} from '../items/queuebreaker-queue.ts'
+import {lcg} from '../../../core/machine.ts'
 
 const dir = mkdtempSync(join(tmpdir(), 'p-retry-'))
 execSync('npm init -y >/dev/null && npm install --silent p-retry@8.0.1', {cwd: dir, stdio: 'inherit'})
@@ -22,7 +23,7 @@ const realSetTimeout = globalThis.setTimeout
 globalThis.setTimeout = ((f: () => void, ms: number) => { waits.push(ms); clock += ms; queueMicrotask(f); return {unref() {}} }) as never
 globalThis.clearTimeout = (() => {}) as never
 let seed = 11
-const rand = (n: number) => { seed = (seed * 1103515245 + 12345) % 2147483648; return Math.floor(seed / 65536) % n }
+const rand = (n: number) => { seed = lcg(seed); return Math.floor(seed / 65536) % n }
 
 const r = rule(), x = r.compiled()
 const runs = Number(process.argv[2] ?? 500)

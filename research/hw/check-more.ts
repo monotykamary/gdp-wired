@@ -7,10 +7,11 @@ import {audit} from '../next/rebac/fast.ts'
 import {derive, generate} from '../next/rebac/model.ts'
 import {buildEnum, evaluate, lanes, laws} from './enum.ts'
 import {CELLS, buildRebac, userCells} from './rebac.ts'
+import {lcg} from '../../core/machine.ts'
 
 // lanes == the laws atom by atom.
 let seed = 9
-const rand = () => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return seed }
+const rand = () => { seed = lcg(seed); return seed }
 let worlds = 0, wrong = 0
 for (let k = 11; k <= 31; k++) {
   const {reachable, violation} = laws(k)

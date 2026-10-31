@@ -1,12 +1,11 @@
 // fitsU32: a space it accepts never computes a value past 2^32 - 1 (random machines, random candidates from the space,
 // replayed by the interpreter, every scalar, map cell and term checked), and spaces that would are refused.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Law, type Machine, type State, evalE, interpret, n, plus, times, x} from '../../core/machine.ts'
+import {type C, type E, type Law, type Machine, type State, evalE, interpret, n, plus, times, x, seeded} from '../../core/machine.ts'
 import {admit, capLaws} from '../../core/models.ts'
 import {fitsU32} from './compile.ts'
 
-let seed = Number(process.env.FUZZ_SEED ?? 777)
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = seeded(Number(process.env.FUZZ_SEED ?? 777))
 const pick = <T>(xs: T[]): T => xs[rand(xs.length)]!
 const term = (d: number): E => {
   const r = rand(d <= 0 ? 2 : 8)

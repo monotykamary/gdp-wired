@@ -3,14 +3,14 @@
 // JavaScript against the interpreter; and pruning, which may drop records only where the kernel proves they add nothing
 // to any query: then a pruned run computes what an unpruned one does, step by step. FUZZ_SEED and FUZZ_SCALE shard it.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Machine, type State, all, atMost, compileJs, get, interpret, loadJs, ite, less, n, plus, same, times, x} from './machine.ts'
+import {type C, type E, type Machine, type State, all, atMost, compileJs, get, interpret, loadJs, ite, less, n, plus, same, times, x, lcg} from './machine.ts'
 import {windowCeiling, windowLimit} from './models.ts'
 import {obligations, scope} from '../kernel/kernel.ts'
 import {proveLaws} from '../kernel/prove.ts'
 
 let seed = Number(process.env.FUZZ_SEED ?? 777)
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
-const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+const rand = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
 const pick = <T>(xs: T[]): T => xs[rand(xs.length)]!
 const load = (m: Machine) => loadJs(m)
 

@@ -3,7 +3,7 @@
 // rest of the check accepts: the goal a guard's absence would check, grown by the search), and a soundness fuzz: every
 // counted goal the kernel accepts has no model where each count is its sum, by brute force.
 import {describe, expect, test} from 'bun:test'
-import {type C, type E, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, times, x} from '../core/machine.ts'
+import {type C, type E, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, times, x, lcg} from '../core/machine.ts'
 import {type Count, type CountedGoal, type CountInst, type Ghosted, type Goal, type Tree, check, checkCounted, checkGhostedLaws, countedGoal, countHyp, countHyps, ghostedMachine, ghostedOk} from './kernel.ts'
 import {clock, grow, proveLaws} from './prove.ts'
 import {byzantineStep, countTree, grants, majorityStep, thresholdStep} from '../lean-kernel/count-examples.ts'
@@ -163,7 +163,7 @@ describe('counts', () => {
   // N, random instances; every goal the kernel accepts has no model (N ≤ 3, x, y ≤ 2, any votes ≤ 2).
   test('fuzz: every accepted counted goal has no model where each count is its sum', () => {
     let seed = Number(process.env.FUZZ_SEED ?? 7)
-    const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+    const rand = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
     const counts: Count[] = [
       {v: 'cX', key: 'n', below: x('N'), body: ite(same(get('vote', x('n')), plus(x('x'), n(1))), n(1), n(0))},
       {v: 'cY', key: 'n', below: x('N'), body: ite(same(get('vote', x('n')), plus(x('y'), n(1))), n(1), n(0))},
@@ -209,7 +209,7 @@ describe('ghost maps', () => {
 
   test('grants: on random runs of the original, every grant has some valid ticket (the law read ∀∃)', () => {
     let seed = 11
-    const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+    const rand = (k: number) => { seed = lcg(seed); return Math.floor(seed / 2 ** 31 * k) }
     for (let run = 0; run < 50; run++) {
       const T = 1 + rand(3), valid = new Map<number, number>(), granted = new Map<number, number>()
       for (let s = 0; s < 20; s++) {

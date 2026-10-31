@@ -5,10 +5,11 @@ import {createLoopRunner} from '../../vendor/handwired/src/json-search/loop-prog
 import {js, size} from '../search/compile.ts'
 import {searches} from '../search/models.ts'
 import {compile, decodeBest, setRange} from './compile.ts'
+import {lcg} from '../../core/machine.ts'
 
 const chunk = 32
 let seed = 3
-const rand = (n: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor((seed / 2 ** 31) * n) }
+const rand = (n: number) => { seed = lcg(seed); return Math.floor((seed / 2 ** 31) * n) }
 for (const s of searches) {
   const loop = compile(s.m, s.law, s.space, chunk)
   const total = size(s.m, s.space), docs = Math.ceil(total / chunk)

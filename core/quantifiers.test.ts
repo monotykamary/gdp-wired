@@ -4,7 +4,7 @@
 // random states; what has no one-key reading (two keys at once) is refused; and some key (a quantifier under a not in a
 // law) is proven through a witness the prover finds among a few candidates, or the one the law names.
 import {expect, test} from 'bun:test'
-import {type C, type Machine, type State, evalC} from './machine.ts'
+import {type C, type Machine, type State, evalC, seeded} from './machine.ts'
 import {everyKey, nat, rule, someKey, when} from './dsl.ts'
 import {childUse, childUseLaws, childUseSteps, inlineAuthority, inlineLaws, inlineSteps, memberLaws, memberSteps, members, normalForm, normalFormLaws, normalFormSteps} from '../examples/quantifiers.ts'
 import {proveLaws, proveStepLaws} from '../kernel/prove.ts'
@@ -26,8 +26,7 @@ test('quantifiers inside flags, the assumption and laws: named as flags and keys
 // Random states: a named flag's value (each read in order, as a step decides them) gives each condition the value the
 // condition has read directly, with quantifiers over the keys at hand.
 test('named flags agree with the conditions they replace', () => {
-  let seed = 5
-  const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+  const rand = seeded(5)
   const r = rule('shapes').inputs({a: nat}).state({s: 0}).maps({A: 0, B: 0})
     .flags(({a, s, A, B}) => ({
       p: a.atMost(s),

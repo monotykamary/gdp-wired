@@ -303,7 +303,7 @@
 },
 {
 "name": "core-solver-test",
-"cmd": "bun test solver.test.ts 2>&1",
+"cmd": "bun test solver.test.ts rand.test.ts 2>&1",
 "cwd": "core"
 },
 {

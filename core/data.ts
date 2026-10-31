@@ -26,7 +26,7 @@
 // using the others at the fields of their datatypes (mutual induction). Lemmas the law needs are found by the values
 // (theory exploration: equations between terms the random values agree on, then the shapes of a predicate kept), proven
 // the same way at lower levels, and used at the terms of the law they match.
-import {type C, type E, argsKey, atMost as leC, get, n as k, same as eqC, walk, x as ev} from './machine.ts'
+import {type C, type E, argsKey, atMost as leC, get, n as k, same as eqC, walk, x as ev, lcg} from './machine.ts'
 import {type Fact} from '../kernel/cyclic.ts'
 import {substC, substE} from '../kernel/kernel.ts'
 import {type CyclicVerdict, type NodeSpec, and as andC, implies, proveCyclic} from './cyclic.ts'
@@ -998,7 +998,7 @@ export const showValue = (d: Sort, v: Value): string => {
 // Random values: small naturals (so that comparisons and equalities between them happen), values of up to `size`
 // constructors of fields of the datatype.
 type Rand = () => number
-export const rng = (seed: number): Rand => () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648 }
+export const rng = (seed: number): Rand => () => (seed = lcg(seed)) / 2147483648
 // `full`: a value that fills its size (a constructor with a field of the group, unless the size is spent, or at 1 in 8),
 // where the plain draw mostly stops at a leaf (a list of length 0 or 1, most often).
 export function randomValue(s: Sort, rand: Rand, size: number, natMax = 5, full = false): Value {

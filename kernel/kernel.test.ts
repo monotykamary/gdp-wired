@@ -2,19 +2,17 @@
 // accepts a refutation, no concrete model (x, y, z in 0..3, the map M any function from 0..3 to 0..3, 0 elsewhere)
 // may satisfy them. Also: every proof the kernel accepts stops being accepted when its derivations are emptied.
 import {expect, test} from 'bun:test'
-import type {C, E} from '../core/machine.ts'
+import {type C, type E, seeded} from '../core/machine.ts'
 import {type Goal, check, leafConstraints, withProducts} from './kernel.ts'
 import {solve} from '../core/solver.ts'
 import {grow} from './prove.ts'
 
 // FUZZ_SEED and FUZZ_SCALE shard the fuzz (supercomputer/fuzz.json runs many seeds in parallel); slow goals are reported.
-let seed = Number(process.env.FUZZ_SEED ?? 12345)
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
 const timed = <T>(what: string, goal: unknown, f: () => T): T => { if (process.env.FUZZ_TRACE) require("node:fs").writeFileSync(process.env.FUZZ_TRACE, JSON.stringify(goal)); const t0 = performance.now(), r = f(), ms = performance.now() - t0; if (ms > 2000) console.log(`SLOW ${Math.round(ms)} ms ${what}: ${JSON.stringify(goal)}`); return r }
-// x' = (1103515245 x + 12345) mod 2^31, exactly (high bits: the low ones of this generator barely change). In doubles
-// the product passes 2^53 and rounds, which folded every seed into one of six short cycles (61 to 10,466 steps; 98.8%
-// of seeds 1000..12999 into the same one): a seed meant fresh drew its cycle's goals again, a short cycle's all one way.
-const rand = (n: number) => { seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff; return Math.floor(seed / 2 ** 31 * n) }
+// (core/machine.ts's generator: exact since its float form folded every seed into a few short cycles, a seed on a short
+// one drawing a handful of goals, all one way)
+const rand = seeded(Number(process.env.FUZZ_SEED ?? 12345))
 // A test's draws: n, then more while a count it expects is short (a seed whose goals all fell one way tests nothing
 // about the other), up to `most`. A count still short fails as COVERAGE: the harness's failure, not the kernel's (the
 // treadmill files it apart from a soundness failure).

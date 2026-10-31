@@ -13,6 +13,7 @@ import {readFileSync} from 'node:fs'
 import {parseChc, Unsupported, type Sx as CSx, type Sort} from '../../compare/chc/chc.ts'
 import {Z3, parseSx, show, sym, getValues, type Sx} from './z3.ts'
 import {type Lin, type Rel, type Term, type Row, type Atom, grammar, observe, equalities, bounds, boundRels, split, atomsOf, holes, holds, equalColumns, smtTerm} from './table.ts'
+import {seeded} from '../../core/machine.ts'
 
 const args = process.argv.slice(2), file = args[0]!
 const opt = (k: string, d: string) => { const i = args.indexOf(k); return i < 0 ? d : args[i + 1]! }
@@ -50,8 +51,7 @@ const declText = clauses.flatMap(c => c.decls).join('\n')
 // --- sampling ----------------------------------------------------------------------------------------------------------
 type St = {pred: string, vals: (bigint | boolean)[]}
 const seen = new Map(predNames.map(p => [p, new Map<string, St>()]))
-let rx = 7
-const rand = (k: number) => { rx = (rx * 1103515245 + 12345) % 2 ** 31; return Math.floor(rx / 2 ** 31 * k) }
+const rand = seeded(7)
 const lit = (v: bigint | boolean) => (typeof v === 'boolean' ? String(v) : v < 0n ? `(- ${-v})` : `${v}`)
 const S = new Z3(1000)
 S.send(declText)

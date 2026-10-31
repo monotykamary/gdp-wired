@@ -5,6 +5,7 @@ import {expect, test} from 'bun:test'
 import {book, bookLaws, bookSteps} from '../examples/orderbook.ts'
 import {desc, nat, proveSteps, rule} from './dsl.ts'
 import {allowed} from './watch.ts'
+import {lcg} from './machine.ts'
 
 test('price-time priority and a book that never crosses: proven; each broken variant refuted', () => {
   const r = book()
@@ -17,7 +18,7 @@ test('price-time priority and a book that never crosses: proven; each broken var
 
 test('the least keys: found as a scan of the book finds them, by the interpreter and the compiled code alike', () => {
   let x = 11
-  const rand = (k: number) => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) }
+  const rand = (k: number) => { x = lcg(x); return Math.floor(x / 2 ** 31 * k) }
   const r = book(), m = r.machine, run = r.interpreter(), gen = r.compiled(), ps = r.encodeParams({})
   expect(Object.keys(m.leasts!)).toEqual(['bestBid', 'bestAsk'])
   let trades = 0
