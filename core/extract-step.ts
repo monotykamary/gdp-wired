@@ -632,6 +632,8 @@ export class Stepper {
       return {t: 'res', ok: I.bite(c, a.ok, b.ok), v: no(a.ok) ? b.v : no(b.ok) ? a.v : this.ite(c, a.v, b.v, at), e: yes(a.ok) ? b.e : yes(b.ok) ? a.e : this.ite(c, a.e, b.e, at)}
     }
     if (a.t === 'tuple' && b.t === 'tuple' && a.xs.length === b.xs.length) return {t: 'tuple', xs: a.xs.map((x, i) => this.ite(c, x, b.xs[i]!, at))}
+    // (a list the request carries on one path, another value on another: kept only where nothing reads it)
+    if ([a, b].some(x => x.t === 'ref' && this.seqs.some(d => x.id === `in:${d.name}`))) return {t: 'opaque', why: 'a list the request carries on one path, another value on another'}
     if (a.t === 'ref' && b.t === 'ref') return refuse(at, 'one of two objects by a condition')
     return refuse(at, `a value that is a ${a.t} on one path and a ${b.t} on another`)
   }
