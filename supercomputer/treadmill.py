@@ -291,7 +291,7 @@ class Soundness:
                     with contextlib.suppress(Exception):
                         r = json.loads(out.strip().splitlines()[-1])
                         append(TM / "mutants.jsonl", {"t": time.time(), "commit": self.commit, "hash": self.hash, "id": s, "killedBy": r.get("killedBy"), "where": f"{r.get('file')}:{r.get('line')}",
-                                                      "change": f"{r.get('from')} -> {r.get('to')}"})
+                                                      "change": f"{r.get('from')} -> {r.get('to')}", **({"equivalent": r["equivalent"]} if r.get("equivalent") else {})})
                     continue
                 append(TM / "fuzz.jsonl", {"t": time.time(), "commit": self.commit, "kind": k, "seed": s, "code": codes.get(it["name"], -1),
                                            **({"tail": out[-1500:]} if codes.get(it["name"], -1) != 0 else {})})
@@ -430,7 +430,9 @@ def sections(day: str) -> list[str]:
     unsound = [r for r in bad if re.search(r"^\s*(error: )?(Error: )?UNSOUND", r.get("tail", ""), re.M)]  # (thrown, not quoted from the source)
     out += ["", "## Soundness", f"- fuzz: {len(fz)} seeds ({', '.join(f'{k} {sum(1 for r in fz if r["kind"] == k)}' for k in FUZZ)}), "
             + (f"**{len(unsound)} UNSOUND**; " if unsound else "") + (f"{len(bad)} failed (" + ("none unsound: " if not unsound else "") + "a count a test expects at its own seeds, e.g. accepted > 0): " + ", ".join(f"{r['kind']} seed {r['seed']} (exit {r['code']}: {next((l.strip() for l in r.get('tail', '').splitlines() if l.strip().startswith(('error', '(fail)'))), '')[:120]})" for r in bad[:10]) if bad else "none failed"),
-            f"- mutants: {len(mt)} run, {sum(1 for r in mt if not r.get('killedBy'))} survived" + "".join(f"\n  - survived: {r['id']} {r['where']} {r['change']}" for r in mt if not r.get("killedBy"))]
+            # (a survivor kernel/MUTANTS.md lists as equivalent, which kernel/mutants.ts marks, is counted, not listed)
+            f"- mutants: {len(mt)} run, {sum(1 for r in mt if not r.get('killedBy'))} survived, {sum(1 for r in mt if not r.get('killedBy') and r.get('equivalent'))} of them listed equivalent in kernel/MUTANTS.md"
+            + "".join(f"\n  - survived: {r['id']} {r['where']} {r['change']}" for r in mt if not r.get("killedBy") and not r.get("equivalent"))]
     return out
 
 

@@ -42,3 +42,26 @@ parts, the nesting) are caught by Lean: each export states `countHyps … = some
 
 `kernel/refusals.test.ts` and `kernel/tamper.test.ts` hold the tests the run asked for (and `kernel/steplaw.test.ts` the step-law ones: the 8 mutants of `stepLawObligations` and `checkStepLaws`, 7 caught); the run's logs are in
 `runs/modal/mutants-all2/`, `runs/modal/mutants-surv/`, for the run algebra `runs/modal/relations-mut/` for sets `runs/modal/mut-sets/`, and for functions, two keys, key terms and liveness `runs/modal/mut-all/` (local).
+
+```equivalent
+kernel/kernel.ts | choiceFree | "if (out !== undefined) return out" | " !== " -> " === " | a memo's guard: choiceFree then answers no for every term, so each term is read through the per-path memo, which reads it alike (a choice-free term reads no decision)
+kernel/kernel.ts | choiceFree | "case 'var': case 'const': out = true" | "true" -> "false" | as above: no term counts as choice-free, every one is read through the per-path memo, alike
+kernel/kernel.ts | termId | "x < y ? -1" | " < " -> " <= " | the sort compares an object's keys, never two equal ones
+kernel/kernel.ts | termId | "x > y ? 1" | " > " -> " >= " | the same sort: no two keys are equal
+kernel/kernel.ts | comparison | "if (!free && reuse)" | " && " -> " || " | every comparison with a choice is read through reusing, in the kernel's check too: a value found there is used only when every decision it read is the path's (as with let reuse = true)
+kernel/kernel.ts | facts | "!atoms.some(lin => decide(lin, path) === false)" | ".some(" -> ".every(" | comparisonOf's alternatives (unless) have one atom each, where some and every agree
+kernel/kernel.ts | remember | "(seen.size ?? 0) + 1) > reuseKeep" | " > " -> " >= " | the reuse trie starts afresh one value sooner: what is kept, not what is answered (reusing checks every decision a kept value read)
+kernel/kernel.ts | remember | "(seen.size ?? 0) + 1)" | " + 1" -> "" | the reuse trie never starts afresh: memory, not answers
+kernel/kernel.ts | remember | "reads[j]?.[0] !== d[0]" | " !== " -> " === " | where the trie branches: a value filed under the wrong branch is found by no path, or found and checked against its decisions (reusing's every)
+kernel/kernel.ts | remember | "reads[j]![1] !== d[1]" | " !== " -> " === " | as above: the trie's shape, never an answer reusing hasn't checked
+kernel/kernel.ts | remember | "if (i < 0 ||" | " < " -> " <= " | a value that parts from the trie at its first decision is not kept: fewer hits
+kernel/kernel.ts | remember | "reads[i]?.[0] !== node.reads[i]![0]" | " !== " -> " === " | the trie's shape again: reusing checks every decision of the value it finds
+kernel/kernel.ts | remember | "i < 0 || reads[i]" | " || " -> " && " | i < 0 never happens (a value whose decisions extend a kept one's is a hit, not remembered); otherwise the trie's shape, checked as above
+kernel/kernel.ts | reusing | "reuse = true" | "true" -> "false" | inside reusing the parts are read afresh on a copy of the path, with every decision recorded: slower, alike
+kernel/kernel.ts | reuse | "let reuse = false" | "false" -> "true" | the kernel's check reads through reusing too: a value found is used only when every decision it read is the path's
+kernel/kernel.ts | keyOf | "if (i > start)" | " > " -> " >= " | an empty part reads as the key '' with coefficient 0, which the difference of two keys drops
+kernel/kernel.ts | substE | "s.maps[e.map]!(key)" | "!(" -> "(" | a TypeScript non-null assertion, nothing at run time
+kernel/kernel.ts | step | "at.maps[map]!(key)" | "!(" -> "(" | a TypeScript non-null assertion, nothing at run time
+kernel/kernel.ts | across | "r.at.maps[map]!(key)" | "!(" -> "(" | a TypeScript non-null assertion, nothing at run time
+kernel/kernel.ts | witnessesOf | "`w${i + 1}?${f}`" | " + 1" -> "" | the witnesses are w?f, w1?f, w2?f: still apart, and fresh (? is reserved in every declared name)
+```
