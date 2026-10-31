@@ -259,9 +259,10 @@ function builderOf(m: Model, sorts: Sorts): string {
     const cell = (i: N, f: Var) => ({op: 'cell', map: d.run, key: {op: 'num', e: i}, field: f.name, ...(f.sort.k === 'choice' ? {values: f.sort.values} : {})}) as never
     const eq = (i: N, f: Var, t: Term): B => (t.s === 'num' ? I.cmp('=', cell(i, f), t.e) : t.s === 'bool' ? I.and(I.or(I.not(cell(i, f)), t.e), I.or(cell(i, f), I.not(t.e))) : t.s === 'str' ? I.keq(cell(i, f), t.e) : I.leq(cell(i, f), t.e as I.L))
     const start = I.and(...d.fields.map(f => eq(I.num(0), f, d.init[f.name]!))), step = I.and(...d.fields.map(f => eq(I.add(I.nvar(PASS), I.num(1)), f, d.step[f.name]!)))
-    const text = `all(${d.run}_len.eq(${d.list}_len.plus(1)), ${pb(start, P, ctx())}, ${d.list}.every((_x, ${PASS}) => ${pb(step, P, ctx())}))`
-    const env = envOf(start, step).slice(1, -1).split(', ').filter(Boolean)
-    lines.push(`  .assume((${withChoices(`{${[...new Set([...env, d.list, d.run, `${d.list}_len`, `${d.run}_len`])].join(', ')}}`, text, P)}) => ${text})`)
+    // (the passes over the run's places: one past the list's length, a carried list's or one of the state's)
+    const len = I.add(d.len, I.num(1)), text = `all(${d.run}_len.eq(${pnum(len, P, ctx())}), ${pb(start, P, ctx())}, ${d.run}.every((_x, ${PASS}) => ${PASS}.lt(${pnum(d.len, P, ctx())}).implies(${pb(step, P, ctx())})))`
+    const env = envOf(start, step, d.len).slice(1, -1).split(', ').filter(Boolean)
+    lines.push(`  .assume((${withChoices(`{${[...new Set([...env, d.run, `${d.run}_len`])].join(', ')}}`, text, P)}) => ${text})`)
   }
   if (!(m.pre.op === 'const' && m.pre.v)) lines.push(`  .pre((${envOf(m.pre)}) => ${pb(m.pre, P, ctx())})`)
   const allowed = I.not(m.refuse)

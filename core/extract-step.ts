@@ -110,8 +110,6 @@ type V =
   // item pushed or popped (put back only in its own place).
   | {t: 'ptr', to: Ptr} | {t: 'struct', ty: string, f: Map<string, V>} | {t: 'err', is: B} | {t: 'nil'}
   | {t: 'map', id: string} | {t: 'list', id: string} | {t: 'push', id: string, x: V} | {t: 'pop', id: string}
-  // A list the request carries (of any length): read only by a loop over it, a fold.
-  | {t: 'seq', id: string}
 type Ptr = {k: 'nil'} | {k: 'obj', id: string, path: string[]} | {k: 'phi', c: B, a: Ptr, b: Ptr}
 type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: V, when: B}
 type Place = {k: 'local', id: string, path: string[]} | {k: 'heap', ptr: V, path: string[]} | {k: 'blank'}
@@ -204,9 +202,10 @@ export class Stepper {
   readonly answers = new Map<string, Answer>()
   readonly arms = new Set<string>()
   readonly hints = new WeakMap<object, string>()
-  readonly lazy = new Map<string, {prefix: string, ty: string, args: [string, PArg][], vals: Map<string, V>, seq?: string}>()
-  // The lists the request carries (by their value's id), and the loops over them read as folds.
-  readonly seqs = new Map<string, {name: string, of: SType, fields: Map<string, Var>, f: [string, PArg][], used?: boolean}>()
+  readonly lazy = new Map<string, {prefix: string, ty: string, args: [string, PArg][], vals: Map<string, V>}>()
+  // The lists the request carries (maps by place), those a step reads, and the loops over lists read as folds.
+  readonly seqs: MapDecl[] = []
+  readonly used = new Set<string>()
   readonly folds: Fold[] = []
   // (inside a fold's pass: the tries outside it, hidden, and how deep)
   hidden = 0
@@ -276,13 +275,17 @@ export class Stepper {
       return [{t: 'opt', has: I.not(I.bvar(none.name)), v: this.valueOf(v)}, {k: 'opt', none: none.name, v: {k: 'in', name: v.name, z: zeroRaw(inner), ...(t.of.k === 'float' ? {float: true} : {})}}]
     }
     if (t.k === 'none') return [{t: 'none'}, {k: 'dflt'}]
-    // A list the request carries, of any length: its items' fields read (by a loop over it) are carried maps.
+    // A list the request carries, of any length: a map by place (as a list of the state is), each place below its
+    // length holding an item, of the scalar fields of its records (or its one value).
     if (t.k === 'list' && role === 'input' && this.mod.lists && (this.scalar(t.of) || t.of.k === 'rec')) {
-      const id = `seq:${name}:${this.fresh++}`, n = this.newVar(name, {k: 'num'}, 'input', undefined, false).name, f: [string, PArg][] = []
+      const n = this.newVar(name, {k: 'num'}, 'input', undefined, false).name, id = `in:${n}`, sc = this.scalar(t.of)
       this.newVar(`${n}_len`, {k: 'num'}, 'input', `the length of ${name}`, false)
-      const item: PArg = t.of.k === 'rec' ? {k: 'rec', cls: t.of.name, f} : {k: 'in', name: 'value', ...(t.of.k === 'float' ? {float: true} : {})}
-      this.seqs.set(id, {name: n, of: t.of, fields: new Map(), f})
-      return [{t: 'seq', id}, {k: 'list', name: n, item}]
+      const fs = sc ? [{name: 'value', t: t.of}] : this.rec((t.of as {name: string}).name, at).fields.filter(x => this.scalar(x.t))
+      const decl: MapDecl = {name: n, key: 'num', fields: fs.map(x => ({name: x.name, sort: this.scalar(x.t)!, role: 'input' as const})), scalar: !!sc, js: 'Map', carried: true}
+      this.seqs.push(decl)
+      p.heap.set(id, {k: 'map', decl, val: t.of, origin: 'input'})
+      const arg = (x: {name: string, t: SType}): PArg => ({k: 'in', name: x.name, ...(x.t.k === 'float' ? {float: true} : {})})
+      return [{t: 'ref', id}, {k: 'list', name: n, item: sc ? arg(fs[0]!) : {k: 'rec', cls: (t.of as {name: string}).name, f: fs.map(x => [x.name, arg(x)])}}]
     }
     if (t.k === 'rec' && role === 'input') {
       // An object the caller gives: its fields read are inputs, each made where it is first read.
@@ -413,22 +416,25 @@ export class Stepper {
   // (Model's folds: the start at 0, the step at every i$ below the length), so after the loop each one is its cell at
   // the length: exact for every length, no pass unrolled. A pass that writes the state, reads an answer (one a pass) or
   // raises out of the loop to a try around it is refused.
-  itemField(seq: string, f: string, t: SType, at: SX): V {
-    const sq = this.seqs.get(seq)!, srt = this.scalar(t)
-    if (!srt) return {t: 'opaque', why: `${at.text ?? f}: ${this.why(t)}, of an item of ${sq.name} (the subset reads an item's numbers, booleans, strings and choices)`}
-    if (!sq.fields.has(f)) { sq.fields.set(f, {name: f, sort: srt, role: 'input'}); sq.f.push([f, {k: 'in', name: f, ...(t.k === 'float' ? {float: true} : {})}]) }
-    return cellV(sq.name, I.nvar(PASS), f, srt, this.intTy(t))
+  carriedOf(v: V, p: Path): MapDecl | undefined { const o = v.t === 'ref' ? p.heap.get(v.id) : undefined; if (o?.k !== 'map' || !o.decl.carried) return undefined; this.used.add(o.decl.name); return o.decl }
+  // A list a loop may run over: one the request carries (every place below its length held) or one of the state (its
+  // places up to its last, each where it holds an item: its least key's, read in the state before the step).
+  listOf(v: V, p: Path, at: SX): {id: string, o: Extract<Obj, {k: 'map'}>, len: N, held: (k: K) => B} | undefined {
+    const o = v.t === 'ref' ? p.heap.get(v.id) : undefined
+    if (o?.k !== 'map' || !(o.decl.carried || (o.decl.ordered && o.origin === 'state'))) return undefined
+    this.used.add(o.decl.name)
+    if (o.decl.carried) return {id: (v as {id: string}).id, o, len: I.nvar(`${o.decl.name}_len`), held: () => I.T}
+    const last = this.least(o, at, k => this.baseCell(o.decl, k).has, k => [{e: (k as {e: N}).e, desc: true}])
+    return {id: (v as {id: string}).id, o, len: I.nite(last.some, I.add(last.key, I.num(1)), I.num(0)), held: k => this.baseCell(o.decl, k).has}
   }
   forStmt(s: SS, p: Path): Flow {
     const why = (w: string) => refuse(s, `a loop over ${(s.over as SX).text ?? 'a value'}: ${w} (the subset reads a loop over a list the request carries, as a fold)`)
     let ov: V, q0: Path
     try { [ov, q0] = this.ev(s.over as SX, p) } catch (e) { if (e instanceof Refusal) { try { why(`${e.where}: ${e.what}`) } catch (r) { (r as Framed).frames = (e as Framed).frames; throw r } } throw e }
-    if (ov.t !== 'seq') return why(ov.t === 'opaque' ? ov.why : `a ${ov.t}`)
+    const ls = this.listOf(ov, q0!, s.over as SX) ?? why(ov.t === 'opaque' ? ov.why : `a ${ov.t}`)
     if ((s.els as SS[] | undefined)?.length) return refuse(s, 'a loop\'s else')
     if (this.inFold) return refuse(s, 'a loop inside a loop\'s pass (one fold at a time)')
-    const sq = this.seqs.get(ov.id)!
-    sq.used = true
-    const run = this.newVar(`${sq.name}$${this.folds.length}`, {k: 'num'}, 'input', undefined, false).name, i = I.nvar(PASS)
+    const d = ls.o.decl, run = this.newVar(`${d.name}$${this.folds.length}`, {k: 'num'}, 'input', undefined, false).name, i = I.nvar(PASS), ik: K = {op: 'num', e: i}
     const own = assigned(s.body as SS[]), tv = s.to as SX
     if (deep(tv, o => o.e === 'var' && q0.locals.has(String(o.n)))) return refuse(s, 'a loop whose variable is a local set before it (after the loop it would hold the last item)')
     // The running values: the locals the body sets that are set before it.
@@ -439,16 +445,10 @@ export class Stepper {
       fields.push({name: n, sort: srt, role: 'state'}); init[n] = termOfV(v0, s)
       locals.set(n, cellV(run, i, n, srt, v0.t === 'num' ? v0.ty : undefined))
     }
-    // The item at the pass: a record's fields made where they are read, or its one value.
-    let b0: Path = {...q0, pc: [], locals, cont: undefined}
-    let item: V
-    if (sq.of.k === 'rec') {
-      const id = `item:${run}`
-      b0 = {...b0, heap: new Map(b0.heap).set(id, {k: 'rec', ty: sq.of.name, f: new Map(), origin: 'input', lazy: sq.name})}
-      this.lazy.set(id, {prefix: sq.name, ty: sq.of.name, args: sq.f, vals: new Map(), seq: ov.id})
-      item = {t: 'ref', id}
-    } else item = this.itemField(ov.id, 'value', sq.of, s.over as SX)
-    b0 = this.assign(tv, item, s, b0)
+    // The item at the pass: its place's cell (its one value, for a list of scalars), where the place holds one.
+    const held = ls.held(ik)
+    let b0: Path = {...q0, pc: held.op === 'const' ? [] : [held], locals, cont: undefined}
+    b0 = this.assign(tv, d.scalar ? this.baseCell(d, ik).vals.get('value')! : {t: 'cell', map: ls.id, key: ik}, s, b0)
     // One pass: the tries around the loop hidden (a raise out of a pass is the loop's), its failures and refusals its own.
     const saved = {tries: this.tries, fails: this.fails, failPaths: this.failPaths, refusals: this.refusals.length, edges: this.edges.length}
     this.hidden += this.tries.length; this.tries = []; this.fails = []; this.failPaths = []; this.inFold++
@@ -464,34 +464,34 @@ export class Stepper {
     const at = (n: string, x: N = i) => cellV(run, x, n, fields.find(v => v.name === n)!.sort) as V & {e: B}
     const flag = (n: string, c: B) => { fields.push({name: n, sort: {k: 'bool'}, role: 'state'}); init[n] = {s: 'bool', e: I.F}; return c }
     const step: Record<string, Term> = {}, done: B = ends ? flag('__done', I.or(R, Br, F, Rf)) : I.F
-    const doneAt: B = ends ? at('__done').e : I.F
+    const doneAt: B = ends ? at('__done').e : I.F, idle = I.or(doneAt, I.not(held))
     for (const v of fields.filter(x => !FLAGS.includes(x.name))) {
       const val = (x?: Path) => x?.locals.get(v.name)
       const nx = brk && on ? this.ite(Br, val(brk)!, val(on)!, s) : val(brk) ?? val(on) ?? locals.get(v.name)!
       if (sortOfV(nx)?.k !== v.sort.k) refuse(s, `${v.name}: ${nx.t === 'opaque' ? nx.why : `a ${nx.t}`} after a pass of the loop`)
-      step[v.name] = iteTerm(doneAt, termOfV(locals.get(v.name)!, s), termOfV(nx, s))
+      step[v.name] = iteTerm(idle, termOfV(locals.get(v.name)!, s), termOfV(nx, s))
     }
-    if (ends) step.__done = {s: 'bool', e: I.or(doneAt, done)}
+    if (ends) step.__done = {s: 'bool', e: I.or(doneAt, I.and(held, done))}
     // (what a pass returned, where one did: kept, and the loop's value after it)
     let retV: V | undefined
     if (!no(R)) {
       retV = this.join(f.rets.map(([r, v]) => ({...r, locals: new Map([['__ret', v]])})), s)!.locals.get('__ret')!
       const srt = sortOfV(retV) ?? refuse(s, `a loop that returns ${retV.t === 'opaque' ? retV.why : `a ${retV.t}`} (the subset reads a loop's return of a number, a boolean or a choice)`)
       flag('__returned', R)
-      step.__returned = {s: 'bool', e: I.or(at('__returned').e, I.and(I.not(doneAt), R))}
+      step.__returned = {s: 'bool', e: I.or(at('__returned').e, I.and(I.not(idle), R))}
       fields.push({name: '__ret', sort: srt, role: 'state'}); init.__ret = termOfV(zeroOf(srt), s)
-      step.__ret = iteTerm(I.and(I.not(doneAt), R), termOfV(retV, s), termOfV(at('__ret'), s))
+      step.__ret = iteTerm(I.and(I.not(idle), R), termOfV(retV, s), termOfV(at('__ret'), s))
     }
-    if (!no(F)) { flag('__failed', F); step.__failed = {s: 'bool', e: I.or(at('__failed').e, I.and(I.not(doneAt), F))} }
-    if (!no(Rf)) { flag('__refused', Rf); step.__refused = {s: 'bool', e: I.or(at('__refused').e, I.and(I.not(doneAt), Rf))} }
-    this.folds.push({list: sq.name, run, fields, init, step})
+    if (!no(F)) { flag('__failed', F); step.__failed = {s: 'bool', e: I.or(at('__failed').e, I.and(I.not(idle), F))} }
+    if (!no(Rf)) { flag('__refused', Rf); step.__refused = {s: 'bool', e: I.or(at('__refused').e, I.and(I.not(idle), Rf))} }
+    this.folds.push({list: d.name, run, fields, init, step, len: ls.len, ...(d.carried ? {} : {state: true as const})})
     // After the loop: each running value its cell at the length.
-    const len = I.nvar(`${sq.name}_len`), end = (n: string) => at(n, len)
+    const end = (n: string) => at(n, ls.len)
     let q: Path = {...q0, locals: new Map(q0.locals), called: [...new Set([q0.called, ...f.rets.map(r => r[0].called), ...(on ? [on.called] : []), ...(brk ? [brk.called] : [])].flat())]}
     for (const v of fields) if (!FLAGS.includes(v.name)) q.locals.set(v.name, end(v.name))
     // (a pass that failed or refused: the loop's, and no path goes on past it)
-    if (!no(F)) { if (this.tries.length) refuse(s, 'a failure in a loop inside a try'); this.fail(q, end('__failed').e, s, `a failure in a pass of the loop over ${sq.name}`, null); q = this.assume(q, I.not(end('__failed').e)) }
-    if (!no(Rf)) { this.refuseWhere(q, end('__refused').e, s, `a refusal in a pass of the loop over ${sq.name}`); q = this.assume(q, I.not(end('__refused').e)) }
+    if (!no(F)) { if (this.tries.length) refuse(s, 'a failure in a loop inside a try'); this.fail(q, end('__failed').e, s, `a failure in a pass of the loop over ${d.name}`, null); q = this.assume(q, I.not(end('__failed').e)) }
+    if (!no(Rf)) { this.refuseWhere(q, end('__refused').e, s, `a refusal in a pass of the loop over ${d.name}`); q = this.assume(q, I.not(end('__refused').e)) }
     if (no(R)) return {live: q, rets: []}
     const ret = q
     q = this.assume(q, I.not(end('__returned').e))
@@ -633,8 +633,6 @@ export class Stepper {
     }
     if (a.t === 'tuple' && b.t === 'tuple' && a.xs.length === b.xs.length) return {t: 'tuple', xs: a.xs.map((x, i) => this.ite(c, x, b.xs[i]!, at))}
     if (a.t === 'ref' && b.t === 'ref') return refuse(at, 'one of two objects by a condition')
-    // (a list the request carries on one path, another value on another: kept only where nothing reads it)
-    if (a.t === 'seq' || b.t === 'seq') return {t: 'opaque', why: 'a list the request carries on one path, another value on another'}
     return refuse(at, `a value that is a ${a.t} on one path and a ${b.t} on another`)
   }
   // Pointers, records by value, error values, nil, maps and lists: Go's merge (a firm value with another refused).
@@ -650,7 +648,7 @@ export class Stepper {
     return refuse(at, `a value that is a ${a.t} on one path and a ${b.t} on another`)
   }
   baseCell(d: MapDecl, key: K): {has: B, vals: Map<string, V>} {
-    const vals = new Map<string, V>(d.fields.map(f => [f.name, f.sort.k === 'num' ? {t: 'num', e: {op: 'cell', map: d.name, key, field: f.name}} : f.sort.k === 'choice' ? {t: 'choice', e: {op: 'cell', map: d.name, key, field: f.name, values: f.sort.values}} : {t: 'bool', e: {op: 'cell', map: d.name, key, field: f.name}}]))
+    const vals = new Map<string, V>(d.fields.map(f => [f.name, f.sort.k === 'num' ? {t: 'num', e: {op: 'cell', map: d.name, key, field: f.name}} : f.sort.k === 'str' ? {t: 'str', e: {op: 'cell', map: d.name, key, field: f.name}} : f.sort.k === 'choice' ? {t: 'choice', e: {op: 'cell', map: d.name, key, field: f.name, values: f.sort.values}} : {t: 'bool', e: {op: 'cell', map: d.name, key, field: f.name}}]))
     return {has: {op: 'cell', map: d.name, key, field: 'has'}, vals}
   }
 
@@ -674,6 +672,9 @@ export class Stepper {
       case 'none': return I.F
       case 'opt': return I.and(v.has, this.truthy(v.v, at, p))
       case 'ref': {
+        // (a list the request carries: whether it has an item)
+        const cl = p && this.carriedOf(v, p)
+        if (cl) return I.cmp('<', I.num(0), I.nvar(`${cl.name}_len`))
         // An object is true unless its class (or a base) defines __bool__ or __len__; a dict's truth is whether it is
         // empty, which the subset doesn't read.
         const o = (p?.heap ?? this.initHeap).get(v.id)
@@ -684,8 +685,6 @@ export class Stepper {
         return refuse(at, `${(at as SX).text ?? ''}: the truth of ${o?.k === 'map' ? 'a dict (whether it is empty)' : 'an object whose class may define __bool__ or __len__'}`)
       }
       case 'cell': case 'fmt': case 'fn': case 'cls': case 'lock': return I.T
-      // (a list the request carries: whether it has an item)
-      case 'seq': { const sq = this.seqs.get(v.id)!; sq.used = true; return I.cmp('<', I.num(0), I.nvar(`${sq.name}_len`)) }
       case 'builtin': case 'ext': case 'lib': case 'opaque': case 'sattr': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': break
     }
     return refuse(at, `${(at as SX).text ?? ''}: the truth of ${v.t === 'opaque' ? v.why : `a ${v.t}`}`)
@@ -1741,7 +1740,7 @@ export class Stepper {
         if (mid) return [{t: 'fn', id: mid}, q]
         return [{t: 'ext', q: `${o.rec}.${f}`, text: x.text ?? f, ...(o.patch?.path ? {patch: {...o.patch, path: [...o.patch.path, f]}} : {}), ...(r.rets?.[f] ? {ret: r.rets[f]} : {})}, q]
       }
-      case 'bool': case 'builtin': case 'choice': case 'fmt': case 'fn': case 'lib': case 'lock': case 'num': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': case 'seq': return refuse(x, `${x.text}: a field of a ${o.t}`)
+      case 'bool': case 'builtin': case 'choice': case 'fmt': case 'fn': case 'lib': case 'lock': case 'num': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': return refuse(x, `${x.text}: a field of a ${o.t}`)
     }
     if (o.t === 'sattr') return this.storeAttr(o.store, o.path ? `${o.path}.${f}` : f, x, q)
     const obj = q.heap.get(o.id)
@@ -1767,8 +1766,6 @@ export class Stepper {
     const li = this.lazy.get(id)!
     const had = li.vals.get(f)
     if (had) { p.heap.set(id, {...obj, f: new Map(obj.f).set(f, had)}); return [had, p] }
-    // (an item of a list the request carries: its field at the pass)
-    if (li.seq) { const v = this.itemField(li.seq, f, fd.t, x); li.vals.set(f, v); p.heap.set(id, {...obj, f: new Map(obj.f).set(f, v)}); return [v, p] }
     const [v, a] = this.input(`${li.prefix}_${f}`, fd.t, x, p)
     li.args.push([f, a]); li.vals.set(f, v)
     p.heap.set(id, {...obj, f: new Map(obj.f).set(f, v)})
@@ -1877,8 +1874,8 @@ export class Stepper {
       const e = b.t === 'none' ? isNone(a) : isNone(b)
       return out(op === 'is' ? e : I.not(e))
     }
-    if ((op === 'in' || op === 'not in') && b.t === 'seq') {
-      // (an item of a list the request carries: any(item == a for item in it), the fold)
+    if ((op === 'in' || op === 'not in') && this.listOf(b, q2, x)) {
+      // (an item of a list, the request's or the state's: any(item == a for item in it), the fold)
       if (!callFree(x.y)) return refuse(x, `${x.text}: in a list made by a call`)
       const tmp = `__in${this.fresh++}`, it = `__item${this.fresh++}`, at = x.p, vr = (n: string): SX => ({e: 'var', n, p: at})
       const [v, q3] = this.foldExpr({e: 'fold', f: 'any', p: at, text: x.text, to: vr(it), over: x.y, x: {e: 'cmp', op: '==', x: vr(it), y: vr(tmp), p: at, text: x.text}, ifs: []}, {...q2, locals: new Map(q2.locals).set(tmp, a)})
@@ -2003,7 +2000,7 @@ export class Stepper {
         return this.inf ? this.boundary(x, {key: f.q, name: /\s/.test(names[0] ?? ' ') ? f.q : names[0]!, ...(f.patch ? {patch: f.patch} : {}), ...(f.ret ? {ret: f.ret} : {}), ...(f.recv ? {recv: f.recv} : {}), refusal}, q, awaited) : refuse(x, refusal)
       }
       case 'opaque': return this.inf ? this.boundary(x, {key: names[0] ?? String(x.text), name: names[0] ?? String(x.text), refusal: `${x.text}: a call of ${f.why}`}, q, awaited) : refuse(x, `${x.text}: a call of ${f.why}`)
-      case 'bool': case 'cell': case 'choice': case 'fmt': case 'lock': case 'none': case 'num': case 'opt': case 'ref': case 'sattr': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': case 'seq': break
+      case 'bool': case 'cell': case 'choice': case 'fmt': case 'lock': case 'none': case 'num': case 'opt': case 'ref': case 'sattr': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': break
     }
     void args0; void kw0
     return refuse(x, `${x.text}: a call of a ${f.t}`)
@@ -2064,7 +2061,7 @@ export class Stepper {
       if (args.some(a => a.t === 'opaque') && ['str', 'repr', 'len', 'isinstance', 'round', 'int', 'float', 'bool'].includes(n)) { const ask = args.find(a => a.t === 'opaque' && a.ask) as {why: string, ask: string} | undefined; return [{t: 'opaque', why: `${x.text}: of a value outside the subset${ask ? ` (${ask.why})` : ''}`, ...(ask ? {ask: ask.ask} : {})}, q] }
       const v = args[0]
       // (a list the request carries: its length, an input)
-      if (n === 'len' && v?.t === 'seq') { const sq = this.seqs.get(v.id)!; sq.used = true; return [{t: 'num', e: I.nvar(`${sq.name}_len`)}, q] }
+      if (n === 'len' && v?.t === 'ref' && this.carriedOf(v, q)) return [{t: 'num', e: I.nvar(`${this.carriedOf(v, q)!.name}_len`)}, q]
       switch (n) {
         case 'min': case 'max': {
           if (args.length < 2) return refuse(x, `${x.text}: ${n} of an iterable`)
@@ -3158,7 +3155,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     params: g.params, inputs, state, maps, init, writes, mapWrites, outputs,
     refuse: refuseB, pre, layout, events, notes: [...g.notes], hints: g.hints, ...(ev ? {event: ev.name} : {}), results, laws,
     ...(g.leasts.length ? {leasts: g.leasts} : {}),
-    ...([...g.seqs.values()].some(q => q.used) ? {seqs: [...g.seqs.values()].filter(q => q.used).map(q => ({name: q.name, fields: q.fields.size ? [...q.fields.values()] : [{name: 'value', sort: {k: 'num'}, role: 'input'} as Var]})), folds: g.folds} : {}),
+    ...(g.used.size ? {seqs: g.seqs.filter(d => g.used.has(d.name)), folds: g.folds} : {}),
   }
   return {ints: Object.fromEntries(g.ints), ...(g.madeAt ? {madeAt: g.madeAt.name} : {}), model, leaves, args: argsOf, answers: [...g.answers.values()], ctor, kept, arms: [...g.arms].map(a => { const i = a.lastIndexOf(':'); return [a.slice(0, i), Number(a.slice(i + 1))] }), ...(cls ? {cls} : {}), stores, results: resultKinds, ...(g.injectedFields.length ? {inject: g.injectedFields} : {})}
 }

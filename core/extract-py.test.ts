@@ -216,6 +216,39 @@ t('a loop over a list the request carries: a fold, exact for every length', () =
   expect(step(x, 'has_big is never true', (_b, a) => a.has_big_result.not(), b => b.method.is('has_big')).proven).toBe(false)
 }, 60_000)
 
+// A loop over a list of the state (an ordered collection, a map by place): the same fold, its passes the places up to
+// the last, each where it holds an item.
+t('a loop over a list of the state: the fold over its places', () => {
+  const x = ok(py(`from dataclasses import dataclass
+
+
+@dataclass
+class Item:
+    amount: int
+
+
+class Book:
+    def __init__(self):
+        self.items: list[Item] = []
+
+    def add(self, a: int) -> None:
+        if a > 0:
+            self.items.append(Item(amount=a))
+
+    def drop_first(self) -> None:
+        if self.items:
+            self.items.pop(0)
+
+    def total(self) -> int:
+        t = 0
+        for it in self.items:
+            t += it.amount
+        return t
+`, {entry: 'Book'}))
+  expect(x.source).toMatch(/items\$0\.every\(\(_x, i\$\) =>/)
+  expect(step(x, 'the total of no items is 0', (_b, a) => a.total_result.eq(0), b => all(b.method.is('total'), b.items_least1$some.not())).proven).toBe(true)
+}, 60_000)
+
 // A store's get and set inside a try that catches what they raise (a cache that may fail): each may raise, an input
 // says which, the check's store raising there; and terra's two cases: a finally an outer handler's raise goes out
 // through (refused), and a raise whose argument fails first (that failure is what is raised).

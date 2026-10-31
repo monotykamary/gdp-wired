@@ -27,7 +27,8 @@ export type Var = {name: string, sort: Sort, role: 'param' | 'input' | 'state', 
 // (`len`: a list of that many items, its length fixed: a C array's)
 // (ordered: a list of the state as a map keyed by each item's place in the list's order, a natural that only grows as
 // items are added, so removing an item leaves the others' keys and order as they were; core/extract-step.ts)
-export type MapDecl = {name: string, key: 'num' | 'str', fields: Var[], scalar: boolean, js: 'Map' | 'record' | 'Set', untyped?: boolean, len?: number, ordered?: true}
+// (carried: a list the request carries, a map by place 0 to its length <name>_len, every place held)
+export type MapDecl = {name: string, key: 'num' | 'str', fields: Var[], scalar: boolean, js: 'Map' | 'record' | 'Set', untyped?: boolean, len?: number, ordered?: true, carried?: true}
 // A least key the step reads (core/dsl.ts's least): `name` the key, `some` whether there is one, over the keys of `map`
 // where `where` holds, least by `by` (each a term of the cells at the key `key`).
 export type LeastRead = {name: string, some: string, map: string, key: string, where: B, by: {e: N, desc?: boolean}[]}
@@ -78,9 +79,10 @@ export type Model = {
   // Lists a request carries (each its items' fields, its length the input <name>_len), and the loops over them read as
   // folds: each loop's running values a list of its own (<run>, one longer), its start and its step at a pass i$ (the
   // item and the running values there): every request assumed to carry the running values the passes compute.
-  seqs?: {name: string, fields: Var[]}[], folds?: Fold[],
+  seqs?: MapDecl[], folds?: Fold[],
 }
-export type Fold = {list: string, run: string, fields: Var[], init: Record<string, Term>, step: Record<string, Term>}
+// (len: the passes, a carried list's length or one past a list of the state's last place; held: a place holds an item)
+export type Fold = {list: string, run: string, fields: Var[], init: Record<string, Term>, step: Record<string, Term>, len: N, state?: true}
 
 // --- values ---------------------------------------------------------------------------------------------------------
 type V =

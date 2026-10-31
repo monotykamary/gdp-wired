@@ -680,11 +680,13 @@ function carry(m: Model, raw: Record<string, unknown>, inputs: Record<string, un
   const dflt = (map: string, field: string): Raw => { const f = m.maps.find(d => d.name === map)?.fields.find(x => x.name === field); return field === 'has' || f?.sort.k === 'bool' ? false : f?.sort.k === 'choice' ? f.sort.values[0]! : 0 }
   const cell = (map: string, key: Raw, field: string): Raw => (lists[map] ? lists[map]![key as number]![field]! : st.maps[map]?.[String(key)]?.[field] ?? (field === 'has' ? map in st.maps && String(key) in st.maps[map]! : dflt(map, field)))
   for (const d of m.folds ?? []) {
-    const items = lists[d.list]!, env: Record<string, Raw> = {...params, ...st.leaves, ...raw as Record<string, Raw>}, runs: Record<string, Raw>[] = []
+    // (the passes: a carried list's length, or one past a list of the state's last place)
+    const env: Record<string, Raw> = {...params, ...st.leaves, ...raw as Record<string, Raw>}, runs: Record<string, Raw>[] = []
+    const n = d.state ? Math.max(-1, ...Object.keys(st.maps[d.list] ?? {}).map(Number)) + 1 : (lists[d.list] ?? []).length
     const at = (t: Model["init"][string], i?: number) => evalTerm(t.e as N, i === undefined ? env : {...env, [I.PASS]: i}, cell)
     runs.push(Object.fromEntries(d.fields.map(f => [f.name, at(d.init[f.name]!)])))
     lists[d.run] = runs
-    for (let i = 0; i < items.length; i++) runs.push(Object.fromEntries(d.fields.map(f => [f.name, at(d.step[f.name]!, i)])))
+    for (let i = 0; i < n; i++) runs.push(Object.fromEntries(d.fields.map(f => [f.name, at(d.step[f.name]!, i)])))
     raw[d.run] = runs
   }
 }
