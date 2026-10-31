@@ -1,7 +1,7 @@
 // core/system.ts against runs of its parts, and the patterns it was built for on toy handlers: a charge under
 // at-least-once delivery (with and without a dedupe table, at each isolation level), a read-modify-write, an outbox.
 // Time: the clock within a skew, keys that expire at their time, a lease (research/distributed/time.ts), and an outbox's
-// liveness over every row.
+// liveness over every row. (The prover's tests get 30 s each: on one vCPU some pass 5 s.)
 import {describe, expect, test} from 'bun:test'
 import {forall, keyed, nat, proveLeadsTo, proveRule, proveSteps, rule, when} from './dsl.ts'
 import {type Request, evalC, interpret, seeded} from './machine.ts'
@@ -50,13 +50,13 @@ describe('system', () => {
     expect(verdict(proveRule(e, [once(e)], {search: {ms: 10_000}}))).toBe('proven')
     const r = payments(false, 'atomic', 'at-least-once')
     expect(verdict(proveRule(r, [once(r)], {search: {ms: 5000}}))).toBe('refuted')
-  })
+  }, 30_000)
   test('a dedupe in one step holds under at-least-once; split by read committed it does not; snapshot refuses the second commit', () => {
     for (const [level, want] of [['atomic', 'proven'], ['read committed', 'refuted'], ['snapshot', 'proven']] as const) {
       const r = payments(true, level, 'at-least-once')
       expect([level, verdict(proveRule(r, [once(r)], {search: {ms: 10_000}}))]).toEqual([level, want])
     }
-  })
+  }, 30_000)
   test('a read-modify-write loses an update at read committed, not at snapshot', () => {
     const deposit = rule('deposit').inputs({acct: nat, amount: nat}).maps({Bal: 0}).step(({acct, amount, Bal}) => ({Bal: Bal.set(acct, Bal.at(acct).plus(amount))}))
     for (const [level, want] of [['read committed', 'refuted'], ['snapshot', 'proven']] as const) {
@@ -67,7 +67,7 @@ describe('system', () => {
       ({t, pc$}: any) => pc$.at(t).eq(1 + (level === 'snapshot' ? 0 : 1)))
       expect([level, verdict(proveSteps(r, [], [law], {search: {ms: 5000}}))]).toEqual([level, want])
     }
-  })
+  }, 30_000)
   test('client: a message at a fresh id', () => {
     const run = interpret(client('Q', ['amount']))
     let st = run.init({})
@@ -110,7 +110,7 @@ describe('system', () => {
       }
       expect(broken).toBe(true)
     }
-  })
+  }, 30_000)
   test('an outbox: every row eventually published (weak fairness), its rank and laws found; eventually marked: a fair ring under weak fairness, none under strong', () => {
     const r = outbox()
     expect(verdict(proveLeadsTo(r, [], published(r), {ms: 15_000}))).toBe('proven')
@@ -125,5 +125,5 @@ describe('system', () => {
         {holds: {op: 'and', xs: [at('Outbox', 1), at('InFlight', 1)]}, request: req(3)}]} as never
       expect(refutedBy(kr.machine, [], l, ring)).toEqual(fairness === 'weak' ? {refuted: true, fair: ['weak']} : {refuted: false, fair: ['weak'], why: 'the run is not strongly fair'})
     }
-  })
+  }, 30_000)
 })

@@ -1117,7 +1117,7 @@
 "name": "system",
 "cmd": "bun test system.test.ts 2>&1",
 "cwd": "core",
-"cpu": 1.0,
+"cpu": 2.0,
 "timeout": 900
 },
 {
