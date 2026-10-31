@@ -15,7 +15,7 @@
 // counterexample so far, per case of the step (the conditions its updates split on: the request's clause, say).
 // A law under a `forall` key takes witness terms only (a ghost per key would be a map).
 import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, evalC, evalE, interpret, n as k, walk, x as v} from './machine.ts'
-import {type Report, clock, proveLaw, proveLaws, withinDeadline} from '../kernel/prove.ts'
+import {type Report, clock, proveLaw, proveLaws, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {env} from './solver.ts'
 import {type Ghosted, ghostedMachine, ghostedOk, substC} from '../kernel/kernel.ts'
 
@@ -479,7 +479,9 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
       firstPicks.set(key([m.step, m.assume ?? null, m.maps ?? null, p.law.holds]), (p.pick as Pick).mode === 'map' ? {mode: 'map', at: (p.pick as {at: number}).at} : {mode: 'term', at: [...(p.pick as {at: number[]}).at]})
     }
     for (let round = 0; ; round++) {
-      const now = current(), t0 = performance.now(), r: ReturnType<typeof proveLaw> = round === 0 && first ? {proven: false, ...first} : proveLaw(now.machine, now.laws, i)
+      const now = current(), t0 = performance.now(), r: ReturnType<typeof proveLaw> = round === 0 && first ? {proven: false, ...first}
+        // (a ghost map's goals within 5 s: a search asks them with every candidate set, and one without its supports can take minutes)
+        : p.pick.mode === 'map' ? withDeadline(clock() + 5_000, () => proveLaw(now.machine, now.laws, i)) : proveLaw(now.machine, now.laws, i)
       if (log) console.error(`exists: pass ${pass} round ${round} "${p.law.name}" ${p.pick.mode} ${describe(p, cases).slice(0, 160)}: ${r.proven ? 'proven' : `${r.goal} ${r.stuck}`} (${Math.round(performance.now() - t0)} ms)`)
       if (r.proven) return undefined
       const fail = (stuck: string): SomeReport => ({proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: r.goal, stuck, ...(r.witness ? {witness: r.witness} : {})}})
