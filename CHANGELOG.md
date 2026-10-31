@@ -3,6 +3,26 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.34.0
+
+Liveness over every key, time between nodes, and ordered collections; nothing trusted changed.
+- **Liveness over every key**: a `leadsTo` law may take the key as a second parameter ("every pending order is
+  eventually settled"). The key becomes a parameter no step reads, so the one-machine proof holds at every key with
+  fairness per key; Lean checks the keyed proofs. A liveness law can now be refuted by a run: a start and a cycle the
+  kernel proves allowed that never reaches the goal, classified against weak and strong fairness.
+- **Time in `system()`**: `time()` (the true time, rising by any amount), `clocked(m, at, ε)` (a node's clock within ε
+  of it) and `expires(cells, at)` (a key vanishes only after its expiry), each environment claim checked on Redis 7.
+  research/distributed/: RFC 3261's transactions (the non-INVITE client's termination proven with nothing written; the
+  other three refuted by the states with no timer, and proven once the final response is assumed), an outbox's
+  delivery under weak and strong fairness, and a lease under bounded skew (refuted with a replayed run when the bound
+  is dropped).
+- **Ordered collections**: a heap's top, a sorted map's first entry or a list's first item is a keyed map and its
+  least key under an order (`.least({...})`, `desc`): an assumption the kernel already decides, so no new kind. Python
+  lists are read as maps by place (`append`, `remove`, `pop`, `xs[0]`, `min`/`max` with a key), comment laws quantify
+  over two or three items, and `round(a / k)` rounds to a tick exactly. research/trading/: Mesa's double-auction book
+  read from its code, price-time priority proven, arrival order and self-trades broken by runs replayed in the code.
+- **The bar** (quick, against ae36917): none wrong in any group; both suites 242 of 242.
+
 ## 0.33.1
 
 - **Fixed: the TypeScript kernel could accept a false law through a key named `k#`.** A law over keys is proven at a
