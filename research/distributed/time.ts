@@ -1,19 +1,17 @@
 // Clocks, leases and liveness over keys on core/system.ts (research/distributed/DESIGN.md, section 6):
 //   a lease in a store (SET NX PX): "a process uses the lease only while the store holds it for that process, unexpired",
-//     under clock skew ≤ E and a margin M ≥ 2E: proven; with the skew bound dropped, or a margin of E: refuted, the run
-//     replayed;
+//     under clock skew ≤ E and a margin M ≥ 2E: proven, its invariants found (nothing written; the search's budget 40 s,
+//     --lease-ms); with the skew bound dropped, or a margin of E: refuted, the run replayed;
 //   a transactional outbox: "every outbox row is eventually published", "... eventually handled by the consumer" (at
 //     least once, under weak fairness of each row's relay and delivery), and "... eventually marked published", refuted
-//     under weak fairness by a fair run that never gets there (the relay crashing between publish and mark), proven
-//     under strong fairness.
-//   bun research/distributed/time.ts [--ms 20000] [--only lease|outbox]
-import {type KeyedLiveness, forall, keyed, nat, proveLeadsTo, proveSteps, refuteLeadsTo, rule, when} from '../../core/dsl.ts'
+//     under weak fairness by a fair run that never gets there, found (the relay crashing between publish and mark: a
+//     cycle of two steps), proven under strong fairness.
+//   bun research/distributed/time.ts [--ms 20000] [--lease-ms 40000] [--only lease|outbox]
+import {type KeyedLiveness, forall, nat, proveLeadsTo, proveSteps, refuteLeadsTo, rule, when} from '../../core/dsl.ts'
 import {type Model, assuming, client, clocked, delivery, expires, modelsOf, system, time} from '../../core/system.ts'
-import {refutedBy} from '../../core/live.ts'
-import {type Request} from '../../core/machine.ts'
 
 const arg = (n: string) => { const i = process.argv.indexOf(`--${n}`); return i < 0 ? undefined : process.argv[i + 1] }
-const ms = Number(arg('ms') ?? 20_000), only = arg('only')
+const ms = Number(arg('ms') ?? 20_000), leaseMs = Number(arg('lease-ms') ?? 40_000), only = arg('only')
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Env = any
 const show = (v: {proven: boolean, checked: boolean, run?: unknown}) => (v.proven && v.checked ? 'proven' : v.run ? 'refuted' : 'unknown')
@@ -38,8 +36,11 @@ export const lease = (skew: 'bounded' | 'unbounded', margin: 'twice the skew' | 
     acquire: {rule: c(acquire.machine), id: 'p', shared}, use: {rule: c(use.machine), id: 'p', shared},
   })
 }
-// The invariant the proof needs: every process holds no lease (until 0), or its lease is past by any reading its clock
-// may give (its until + E is not after the time), or it is the store's owner and its until + E not after the expiry.
+// An invariant the proof needs, written (the search finds another, as three laws at every key: a lease written and not
+// the owner's is past by any reading of its clock, until + E <= now; so is every lease written while the key is free;
+// while it is taken, every lease written ends by its expiry, until + E <= at): every process holds no lease (until 0),
+// or its lease is past by any reading its clock may give (its until + E is not after the time), or it is the store's
+// owner and its until + E not after the expiry.
 export const leaseInvariant = (r: ReturnType<typeof lease>) => r.law('a lease a process may still count valid is the store\'s, for that process',
   ({until, now, E, taken, owner, at}: Env) => forall(q => until.at(q).eq(0).or(until.at(q).plus(E).atMost(now)).or(taken.eq(1).and(owner.eq(q)).and(until.at(q).plus(E).atMost(at)))))
 export const leaseLaw = (r: ReturnType<typeof lease>) => r.stepLaw('a process uses the lease only while the store holds it for that process, unexpired',
@@ -74,7 +75,7 @@ export const marked = (r: ReturnType<typeof outbox>, fairness: 'weak' | 'strong'
 if (import.meta.main) {
   if (only !== 'outbox') for (const [skew, margin] of [['bounded', 'twice the skew'], ['unbounded', 'twice the skew'], ['bounded', 'the skew']] as const) {
     const r = lease(skew, margin), law = leaseLaw(r)
-    const [v, t] = timed(() => proveSteps(r, [], [law], {search: {ms}}))
+    const [v, t] = timed(() => proveSteps(r, [], [law], {search: {ms: leaseMs}}))
     console.log(`lease | skew ${skew}, margin ${margin} | assumes ${modelsOf(r).map(m => m.name).join(', ')} | ${show(v)} | ${t} ms${v.found?.laws?.length ? ` | found: ${v.found.laws.map(f => f.text).join('; ')}` : ''}`)
     if (v.run) for (const s of v.run.trace) console.log(`    ${JSON.stringify(s)}`)
     if (!(v.proven && v.checked) && !v.run) {
@@ -90,27 +91,10 @@ if (import.meta.main) {
       console.log(`outbox | ${l.name} (${l.fairness ?? 'weak'} fairness) | assumes ${modelsOf(r).map(m => m.name).join(', ')} | ${show(v)} | ${t} ms${v.found?.rank ? ` | rank ${v.found.rank}` : ''}${v.found?.laws?.length ? ` | laws: ${v.found.laws.map(f => f.text).join('; ')}` : ''}`)
       if (!(v.proven && v.checked)) {
         console.log(`    ${v.goal ?? ''} ${v.stuck ?? ''} ${v.why ?? ''}`)
-        const f = refuteLeadsTo(r, [], l, {ms})
-        console.log(`    a ring of one set from the runs: ${f ? (f.verdict.refuted ? `refuted, fair: ${f.verdict.fair!.join(', ')}` : `not shown (${f.verdict.why})`) : 'none found'}`)
+        const [f, ft] = timed(() => refuteLeadsTo(r, [], l, {ms}))
+        console.log(`    a fair run that never gets there, found: ${f ? (f.verdict.refuted ? `refuted, the run fair: ${f.verdict.fair!.join(', ')}` : `not shown (${f.verdict.why})`) : 'none found'} | ${ft} ms`)
+        if (f) console.log(`      stem ${JSON.stringify(f.ring.stem)} at ${JSON.stringify(f.ring.params)}; ring: ${f.ring.sets.map(x => `${JSON.stringify(x.request)} from ${JSON.stringify(x.holds)}`).join(' ; ')}`)
       }
-    }
-    // "eventually marked" under weak fairness: a fair run that never gets there. The app sends row 0; then round a ring of
-    // two sets: the relay publishes it (InFlight 0 to 1), the relay crashes (1 to 0). Mark is never allowed in the
-    // first set, so the run is fair to it under weak fairness (it is not allowed throughout), not under strong.
-    const ringFor = (l: KeyedLiveness) => {
-      const key = l.forall!, K = {op: 'var', name: key} as const, kr = keyed(r, l)
-      const at = (map: string, value: number) => ({op: '=', a: {op: 'get', map, key: K}, b: {op: 'const', value}}) as const
-      const req = (act: number) => ({act: {op: 'const', value: act}, msg: K}) as never
-      const zero = Object.fromEntries(kr.machine.inputs.map(i => [i, 0])) as Request
-      return {m: kr.machine, ring: {params: {[key]: 0}, stem: [{...zero, act: ACT.app, msg: 0}], sets: [
-        {holds: {op: 'and', xs: [at('Outbox', 1), at('InFlight', 0)]}, request: req(ACT.relay)},
-        {holds: {op: 'and', xs: [at('Outbox', 1), at('InFlight', 1)]}, request: req(ACT.crash)},
-      ]} as never}
-    }
-    for (const fairness of ['weak', 'strong'] as const) {
-      const l = marked(r, fairness), {m, ring} = ringFor(l)
-      const [rv, rt] = timed(() => refutedBy(m, [], l, ring))
-      console.log(`outbox | ${l.name} (${fairness} fairness) | the ring publish, crash: ${rv.refuted ? 'refuted' : `no counterexample (${rv.why})`}, the run fair: ${(rv.fair ?? []).join(', ') || 'none'} | ${rt} ms`)
     }
   }
 }

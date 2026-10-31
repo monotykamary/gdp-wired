@@ -6,8 +6,8 @@
 //     together), up to three terms with small coefficients and the rule's own constants, each d the largest value the
 //     runs reached (and the rule's constants just above it); the same forms where a yes/no, a choice or a small natural
 //     holds one value (locked is 0 → …), and a choice's value no run reached as unreachable; and laws about every key
-//     of the maps: forms over the cells at one key (and a scalar), at every key or every key but a scalar's (k = owner
-//     or …), and where a cell holds one value
+//     of the maps: forms over the cells at one key (and a scalar, or a scalar and a param: until[k] + E <= now), at every
+//     key or every key but a scalar's (k = owner or …), where a cell holds one value, and where it was written (off 0)
 //   - Houdini on the runs' neighbors: a reached state moved a little that every candidate alive and every law allows,
 //     stepped; a candidate its step breaks is in no inductive set of them, so it is dropped
 //   - the join, over the rule's own vocabulary: per control state the samples' affine hull (its equalities, exact) and
@@ -724,7 +724,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const all = atoms.flatMap((_, i) => (modeOf(i)?.choice ? [] : [i])), cellOk = (acc: [number, number][]) => acc.some(([i]) => atoms[i]!.cell) && acc.filter(([i]) => !atoms[i]!.cell).length <= 1 && sortedCells(acc)
     pick(1, [1], cellAtoms, () => true, true)
     pick(2, [1], all, cellOk, true)
-    if (choose(3, A) * 8 <= maxCandidates / 4) pick(3, [1], all, acc => cellOk(acc) && acc.filter(([i]) => atoms[i]!.cell).length >= 2, true)
+    // (and a cell against a scalar a param apart: a time a key holds and a window against the clock, until[k] + E <= now)
+    const apart = (acc: [number, number][]) => { const c = acc.filter(([i]) => atoms[i]!.cell), p = acc.filter(([i]) => atoms[i]!.param), s = acc.filter(([i]) => !atoms[i]!.cell && !atoms[i]!.param); return c.length === 1 && p.length === 1 && s.length === 1 && c[0]![1] === -s[0]![1] }
+    if (choose(3, A) * 8 <= maxCandidates / 4) pick(3, [1], all, acc => sortedCells(acc) && (cellOk(acc) && acc.filter(([i]) => atoms[i]!.cell).length >= 2 || apart(acc)), true)
   }
   const sizeOf = (coef: [number, number][]) => coef.length * 100 + coef.reduce((s, [, c]) => s + Math.abs(c), 0)
   const forms: Form[] = []
@@ -746,17 +748,36 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     forms.push({coef, d, cells, size: sizeOf(coef) + (cells ? 10 : 0)})
     // The rule's constants just above the largest value reached, a bound a run may not have hit.
     for (const b of bounds.filter(b => b > d).slice(0, 2)) forms.push({coef, d: b, cells, size: sizeOf(coef) + 1 + (cells ? 10 : 0)})
-    if (coef.length > 2) continue
+    // (a cell form's one cell, a natural that starts at 0 and takes many values, bounded above: each guard also where it
+    // was written, off 0; a cell of a few values has a guard at each already)
+    const one = cells ? coef.filter(([i]) => atoms[i]!.cell) : [], c1 = one[0]?.[0] ?? -1
+    const w = one.length === 1 && one[0]![1] > 0 && !atoms[c1]!.int && !modeOf(c1) && m.maps?.[atoms[c1]!.parts[0]![0]] === 0 ? c1 : -1
+    if (coef.length > 2 && w < 0) continue
+    used.rows += coef.length > 2 ? Math.ceil(N / strideK) : 0
     const here = guards.filter(mode => !coef.some(([i]) => i === mode.atom) && (cells ? !atoms[mode.atom]!.cell || sortedCells([...coef, [mode.atom, 1]]) : !atoms[mode.atom]!.cell))
     const most = here.map(() => new Map<number, number>()), away = cells ? keyNots.map(() => -Infinity) : []
+    const mostW = here.map(() => new Map<number, number>()), awayW = keyNots.map(() => -Infinity)
+    let written = -Infinity
     for (let j = 0; j < N; j += cells ? strideK : strideS) {
-      const value = at(coef, vals, j)
-      here.forEach((mode, g) => { const v = vals[mode.atom]![j]!, b = most[g]!; b.set(v, Math.max(b.get(v) ?? -Infinity, value)) })
+      const value = at(coef, vals, j), wj = w >= 0 && vals[w]![j]! >= 1
+      if (wj) written = Math.max(written, value)
+      here.forEach((mode, g) => { const v = vals[mode.atom]![j]!; for (const b of wj ? [most[g]!, mostW[g]!] : [most[g]!]) b.set(v, Math.max(b.get(v) ?? -Infinity, value)) })
       // At every key but a scalar's: the largest value away from that key.
-      if (cells) keyNots.forEach((s, g) => { if (rows[j]![K] !== valsK[s]![j]) away[g] = Math.max(away[g]!, value) })
+      if (cells) keyNots.forEach((s, g) => { if (rows[j]![K] !== valsK[s]![j]) { away[g] = Math.max(away[g]!, value); if (wj) awayW[g] = Math.max(awayW[g]!, value) } })
     }
-    here.forEach((mode, g) => { for (const [value, dv] of most[g]!) if (mode.values.includes(value) && dv < d) forms.push({coef, d: dv, cells, guard: {atom: mode.atom, value}, size: sizeOf(coef) + 50}) })
-    keyNots.forEach((s, g) => { if (cells && Number.isFinite(away[g]!) && away[g]! < d) forms.push({coef, d: away[g]!, cells, guard: {keyNot: s}, size: sizeOf(coef) + 60}) })
+    // (a cell a param apart from a scalar: its guards only where it was written, below)
+    if (coef.length <= 2) {
+      here.forEach((mode, g) => { for (const [value, dv] of most[g]!) if (mode.values.includes(value) && dv < d) forms.push({coef, d: dv, cells, guard: {atom: mode.atom, value}, size: sizeOf(coef) + 50}) })
+      keyNots.forEach((s, g) => { if (cells && Number.isFinite(away[g]!) && away[g]! < d) forms.push({coef, d: away[g]!, cells, guard: {keyNot: s}, size: sizeOf(coef) + 60}) })
+    }
+    // Where the cell was written (a key no step wrote holds its start: until[k] is 0, or ...), alone and beside each
+    // guard, where that bounds it lower; at the largest value there and the constant above it, or, below 0, at 0 (a run
+    // seldom meets a bound between two times: until[k] + E <= now, reached at the instant its lease ends).
+    if (w < 0 || !Number.isFinite(written)) continue
+    const wr: At = {atom: w, value: 1, hi: Infinity}, near = (dv: number) => (dv < 0 ? [0] : [dv, ...bounds.filter(b => b > dv).slice(0, 1)])
+    if (written < d) for (const dv of near(written)) if (dv < d) forms.push({coef, d: dv, cells, guard: wr, size: sizeOf(coef) + 55})
+    here.forEach((mode, g) => { for (const [value, dv] of mostW[g]!) if (mode.values.includes(value) && dv < Math.min(written, most[g]!.get(value)!)) for (const e of near(dv)) forms.push({coef, d: e, cells, guard: {atom: mode.atom, value}, also: [wr], size: sizeOf(coef) + 65}) })
+    keyNots.forEach((s, g) => { if (Number.isFinite(awayW[g]!) && awayW[g]! < Math.min(written, away[g]!)) for (const e of near(awayW[g]!)) forms.push({coef, d: e, cells, guard: {keyNot: s}, also: [wr], size: sizeOf(coef) + 70}) })
   }
   for (const mode of modes) if (!atoms[mode.atom]!.cell) for (const value of mode.values) if (NS && !valsS[mode.atom]!.includes(value)) forms.push({coef: [], d: 0, cells: false, unreachable: {atom: mode.atom, value}, size: 1})
   // Remainders: a value, or the sum or difference of two, at one remainder by k in every run (or in every run where a

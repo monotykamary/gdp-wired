@@ -286,40 +286,121 @@ export function refutedBy(m: Machine, laws: Law[], l: Liveness, ring: Ring): Rin
   return {refuted: fair.has(want), fair: out, ...(fair.has(want) ? {} : {why: `the run is not ${want}ly fair`})}
 }
 
-// A ring of one set, found: a state the runs reach where `from` holds and `to` doesn't and the helpful requests taken in
-// turn keep it so; the set, the literals of the rule's comparisons (its guards and steps, also as each helpful request
-// meets them, `from`, `to`, the regions) true there, the ring's requests the helpful requests allowed there. Literals a
-// request doesn't keep are dropped (each kept literal proven by the kernel after each request, as Houdini drops them)
-// until the rest are kept; then refutedBy checks the ring. Undefined where none is found.
+// A lasso, found: a stem from the start, then a cycle of k steps the runs take, each from a state where `from` holds and
+// `to` doesn't. The runs: from each state a random stem reaches, a walk of up to 3,000 steps, each a helpful request
+// allowed there (in turn: the time passing in them, every deadline small params allow passed) or, in every other walk,
+// half of them any request (drawn as the runs draw them, each input a helpful request names at its value there with odds
+// of a half: the environment acting on the same key, a crash between two helpful steps). A state's abstraction is the
+// literals of the rule's comparisons (its guards and steps, also as each helpful request meets them, `from`, `to`, the
+// regions) true there; a step back to an abstraction the walk had (in its last 64 steps) closes a cycle, taken where the
+// walk since then is fair to each helpful request as the law asks (weakly: taken, or not allowed at a state of it;
+// strongly: taken in its region, or allowed there at none), the shortest, and where it runs again for 3,000 steps through
+// the same abstractions (a cycle a deadline ends is none). Its sets R_0..R_{k-1} are the abstractions of
+// its states, its requests the walk's (an input a helpful request's term where it has that value, else its value); a
+// literal of R_{j+1} that R_j's request isn't proven to keep is dropped (Houdini, round the cycle) until each is kept;
+// then refutedBy checks the ring. The first ring refuted; else the first checked; undefined where no cycle is found.
 export function findRing(m: Machine, laws: Law[], l: Liveness, draws: Draws, opts: {ms?: number} = {}): {ring: Ring, verdict: RingVerdict} | undefined {
-  const until = clock() + (opts.ms ?? 10_000), rand = seeded(17), run = interpret(m), helpful = livenessHelpful(l)
+  const until = clock() + (opts.ms ?? 10_000), rand = seeded(17), run = interpret(m), helpful = livenessHelpful(l), H = helpful.length
   const env = (ps: Env, st: State): Env => ({...ps, ...st.scalars})
   const holds = (c: C, ps: Env, st: State) => { try { return evalC(c, env(ps, st), st, m) } catch { return undefined } }
+  const value = (e: E, ps: Env, st: State) => { try { return evalE(e, env(ps, st), st, m) } catch { return NaN } }
   const pending = (ps: Env, st: State) => holds(l.from, ps, st) === true && holds(l.to, ps, st) === false
   const full = (r: Record<string, E>) => Object.fromEntries(m.inputs.map(i => [i, r[i] ?? k(0)]))
   const concrete = (r: Record<string, E>, ps: Env, st: State): Request => Object.fromEntries(Object.entries(full(r)).map(([i, t]) => [i, evalE(t, env(ps, st), st, m)]))
-  // A state where `from` holds and `to` doesn't, then the helpful requests allowed taken in turn, up to 3,000 steps (the
-  // time passing in them, every deadline small params allow passed), never reaching `to`: the state they end at.
-  let found: {ps: Env, stem: Request[], st: State, hs: number[]} | undefined
-  const allowedAt = (ps: Env, st: State) => helpful.flatMap((h, i) => { try { return allowed(m, run, ps, st, concrete(h.request, ps, st)) ? [i] : [] } catch { return [] } })
-  for (let trial = 0; trial < 400 && !found && clock() < until; trial++) {
+  const atoms = new Map<string, C>()
+  const add = (t: unknown) => walk(t, o => { if ((o.op === '<' || o.op === '<=' || o.op === '=') && typeof o.a === 'object' && typeof o.b === 'object') { const c = o as unknown as C; if (!readsC(c, m.inputs) && !constant(c as never) && !id(c).includes('"op":"flag"')) atoms.set(id(c), c) } })
+  add([l.from, l.to, helpful.map(h => h.when), m.assume, m.step])
+  for (const h of helpful) { const sb = {vars: full(h.request), maps: {}, flags: {}}; if (m.assume) add(substC(m.assume, sb)); for (const e of Object.values(m.step.state ?? {})) add(substE(e, sb)) }
+  const lits = [...atoms.values()], litsAt = (ps: Env, st: State) => lits.flatMap(c => { const b = holds(c, ps, st); return b === undefined ? [] : [b ? c : {op: 'not', x: c} as C] })
+  const keyAt = (ps: Env, st: State) => lits.map(c => { const b = holds(c, ps, st); return b === undefined ? 2 : +b }).join('')
+  const after: Subst = {vars: Object.fromEntries(Object.keys(m.state).map(x => [x, v(`${x}'`)])), maps: Object.fromEntries(Object.keys(m.maps ?? {}).map(map => [map, (key: E): E => ({op: 'get', map: `${map}'`, key})])), flags: {}}
+  type At = {st: State, req: Request, key: string, taken: boolean[], allows: boolean[], region: boolean[]}
+  const fair = (cyc: At[]) => helpful.every((_, h) => (l.fairness === 'strong'
+    ? cyc.some(a => a.taken[h] && a.region[h]) || cyc.every(a => !(a.allows[h] && a.region[h]))
+    : cyc.some(a => a.taken[h] || !a.allows[h])))
+  // a request as terms at a state
+  const termsOf = (req: Request, ps: Env, st: State): Record<string, E> => Object.fromEntries(m.inputs.map(i => [i, helpful.map(h => h.request[i]).find(t => t && value(t, ps, st) === req[i]) ?? k(req[i] as number)]))
+  const kept = (when: C[], then: C[], request: Record<string, E>) => {
+    const p = withDeadline(Math.min(until, clock() + 2000), () => proveProgress(m, laws, {name: 'kept', when: {op: 'and', xs: when}, then: {op: 'and', xs: then.map(c => substC(c, after))}, request: full(request)}))
+    return p.proven && p.checked
+  }
+  const check = (ps: Env, stem: Request[], cyc: At[], reqs: Record<string, E>[]): {ring: Ring, verdict: RingVerdict} | undefined => {
+    const sets = cyc.map(a => litsAt(ps, a.st))
+    for (let round = 0, changed = true; changed && round < 8 && clock() < until; round++) {
+      changed = false
+      for (let j = 0; j < sets.length; j++) {
+        const u = (j + 1) % sets.length
+        if (kept(sets[j]!, sets[u]!, reqs[j]!)) continue
+        const keep = sets[u]!.filter(c => kept(sets[j]!, [c], reqs[j]!))
+        if (!keep.length) return undefined
+        sets[u] = keep; changed = true
+      }
+    }
+    const ring: Ring = {params: ps, stem, sets: sets.map((s, j) => ({holds: {op: 'and', xs: s}, request: reqs[j]!}))}
+    return {ring, verdict: refutedBy(m, laws, l, ring)}
+  }
+  // the cycle run again from where it closed, its requests as terms, for 3,000 steps: each allowed, pending after, at
+  // the abstraction it had (so the time passes every deadline small params allow: a cycle a deadline ends is none)
+  const repeats = (ps: Env, st: State, cyc: At[], reqs: Record<string, E>[]) => {
+    try {
+      for (let n = 0; n < 3000;) for (const [j, a] of cyc.entries()) {
+        const q = concrete(reqs[j]!, ps, st)
+        if (keyAt(ps, st) !== a.key || !allowed(m, run, ps, st, q)) return false
+        st = run.step(ps, st, q); n++
+        if (!pending(ps, st)) return false
+      }
+      return true
+    } catch { return false }
+  }
+  const tried = new Set<string>()
+  let first: {ring: Ring, verdict: RingVerdict} | undefined
+  const walkFrom = (ps: Env, st: State, noisy: boolean, stem: Request[]) => {
+    const path: At[] = [], seen = new Map<string, number[]>()
+    let key = keyAt(ps, st)
+    for (let n = 0, turn = 0; n < 3000 && clock() < until; n++) {
+      const allows = helpful.map(h => { try { return allowed(m, run, ps, st, concrete(h.request, ps, st)) } catch { return false } })
+      let req: Request | undefined
+      if (allows.some(Boolean) && (!noisy || rand(2))) {
+        const i = [...allows.keys()].find(i => i >= turn && allows[i]) ?? allows.indexOf(true)
+        turn = (i + 1) % H; req = concrete(helpful[i]!.request, ps, st)
+      } else for (let tries = 0; tries < 20 && !req; tries++) {
+        try {
+          const r = draws.input(rand, 4, ps), h = helpful[rand(H)]
+          if (h) for (const [x, t] of Object.entries(h.request)) if (rand(2)) r[x] = evalE(t, env(ps, st), st, m)
+          if (allowed(m, run, ps, st, r)) req = r
+        } catch { /* refused: another */ }
+      }
+      if (!req) return undefined
+      const r = req, at: At = {st, req: r, key, allows,
+        taken: helpful.map(h => Object.entries(h.request).every(([x, t]) => value(t, ps, st) === r[x])), region: helpful.map(h => holds(h.when, ps, st) === true)}
+      let next: State
+      try { next = run.step(ps, st, r) } catch { return undefined }
+      if (!pending(ps, next)) return undefined
+      seen.set(at.key, [...(seen.get(at.key) ?? []), path.length]); path.push(at); st = next
+      key = keyAt(ps, st)
+      for (const i of [...(seen.get(key) ?? [])].reverse()) {
+        if (path.length - i > 64) break
+        const cyc = path.slice(i)
+        if (!fair(cyc)) continue
+        const reqs = cyc.map(a => termsOf(a.req, ps, a.st)), shape = id([cyc.map(a => a.key), reqs])
+        if (!tried.has(shape)) {
+          tried.add(shape)
+          if (!repeats(ps, st, cyc, reqs)) break
+          const out = check(ps, [...stem, ...path.slice(0, i).map(a => a.req)], cyc, reqs)
+          if (out?.verdict.refuted) return out
+          first ??= out
+        }
+        break
+      }
+    }
+    return undefined
+  }
+  for (let trial = 0; trial < 400 && clock() < until; trial++) {
     let ps: Env, st: State
     try { ps = draws.params(rand, 2 + (trial % 3) * 2); if (m.pre && !evalC(m.pre, ps, {scalars: {}, maps: {}}, m)) continue; st = run.init(ps) } catch { continue }
     const stem: Request[] = []
-    for (let turn = 0; turn < 40; turn++) {
-      if (turn > 0 && pending(ps, st)) {
-        let s2: State | undefined = st
-        const laps: Request[] = []
-        for (let lap = 0; lap < 1000 && s2 && laps.length < 3000; lap++) for (const i of allowedAt(ps, s2)) {
-          if (!s2) break
-          const req = concrete(helpful[i]!.request, ps, s2)
-          if (!allowed(m, run, ps, s2, req)) continue
-          s2 = run.step(ps, s2, req); laps.push(req)
-          if (!pending(ps, s2)) s2 = undefined
-        }
-        const hs = s2 ? allowedAt(ps, s2) : []
-        if (s2 && hs.length) { found = {ps, stem: [...stem, ...laps], st: s2, hs}; break }
-      }
+    for (let turn = 0; turn < 40 && clock() < until; turn++) {
+      if (turn > 0 && pending(ps, st)) { const out = walkFrom(ps, st, trial % 2 === 1, stem); if (out) return out }
       try {
         const req = draws.input(rand, 4, ps)
         if (!allowed(m, run, ps, st, req)) continue
@@ -327,21 +408,6 @@ export function findRing(m: Machine, laws: Law[], l: Liveness, draws: Draws, opt
       } catch { /* refused: another */ }
     }
   }
-  if (!found) return undefined
-  // the literals there
-  const atoms = new Map<string, C>()
-  const add = (t: unknown) => walk(t, o => { if ((o.op === '<' || o.op === '<=' || o.op === '=') && typeof o.a === 'object' && typeof o.b === 'object') { const c = o as unknown as C; if (!readsC(c, m.inputs) && !id(c).includes('"op":"flag"')) atoms.set(id(c), c) } })
-  add([l.from, l.to, helpful.map(h => h.when), m.assume, m.step])
-  for (const h of helpful) { const sb = {vars: full(h.request), maps: {}, flags: {}}; if (m.assume) add(substC(m.assume, sb)); for (const e of Object.values(m.step.state ?? {})) add(substE(e, sb)) }
-  let lits = [...atoms.values()].flatMap(c => { const b = holds(c, found!.ps, found!.st); return b === undefined ? [] : [b ? c : {op: 'not', x: c} as C] })
-  const after: Subst = {vars: Object.fromEntries(Object.keys(m.state).map(x => [x, v(`${x}'`)])), maps: Object.fromEntries(Object.keys(m.maps ?? {}).map(map => [map, (key: E): E => ({op: 'get', map: `${map}'`, key})])), flags: {}}
-  for (let round = 0; round < 8 && clock() < until; round++) {
-    const R: C = {op: 'and', xs: lits}
-    const kept = lits.filter(c => found!.hs.every(i => { const p = withDeadline(Math.min(until, clock() + 2000), () => proveProgress(m, laws, {name: 'kept', when: R, then: substC(c, after), request: full(helpful[i]!.request)})); return p.proven && p.checked }))
-    if (kept.length === lits.length) break
-    lits = kept
-  }
-  const ring: Ring = {params: found.ps, stem: found.stem, sets: found.hs.map(i => ({holds: {op: 'and', xs: lits}, request: helpful[i]!.request}))}
-  return {ring, verdict: refutedBy(m, laws, l, ring)}
+  return first
 }
 const readsC = (c: C, names: string[]): boolean => { let hit = false; walk(c, o => { if (o.op === 'var' && names.includes(o.name as string)) hit = true }); return hit }
