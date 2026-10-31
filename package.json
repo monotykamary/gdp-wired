@@ -1,6 +1,6 @@
 {
   "name": "gdp-wired",
-  "version": "0.34.0",
+  "version": "0.35.0",
   "description": "An automatic prover for stateful rules (budgets, caps, windows, workflows, policies): laws proven with no proof to write, checked again in Lean, counterexamples found on the GPU, the rule shipped as code",
   "keywords": [
     "verification",
