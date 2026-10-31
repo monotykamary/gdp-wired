@@ -219,6 +219,8 @@ export function withWall<T>(end: number, f: () => T): T {
   wallEnd = Math.min(outer, end)
   try { return f() } finally { wallEnd = outer }
 }
+// Past the wall or the deadline in force: a goal grown now is left unknown at once.
+const ranOut = (): boolean => pastWall() || withinDeadline(Infinity) <= clock()
 // (the wall's end in force, Infinity where none: a search inside that stops itself there)
 export const wallAt = (): number => wallEnd
 export const late = (until: number): boolean => clock() > until || (workCap !== Infinity && fullWork() > workCap) || pastWall()
@@ -1683,7 +1685,18 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
 function proveOne(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram} {
   const law = laws[i]!, pm = plainOf(m), inst = lawInstances(m, laws, i)
   const few = triggered(pm, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
-  if (!sameInstances(few, inst) && obligations(m, laws, {[law.name]: few}, i).every(goal => 'tree' in grow(goal))) return {proven: true}
+  if (!sameInstances(few, inst)) {
+    let proven = true
+    for (const goal of obligations(m, laws, {[law.name]: few}, i)) {
+      const o = grow(goal)
+      if ('tree' in o) continue
+      proven = false
+      // (a goal that ran out past the deadline: the next instances can't be tried, and it is the verdict's goal)
+      if (o.stuck === 'unknown' && ranOut()) return {proven: false, goal: goal.name, stuck: 'unknown'}
+      break
+    }
+    if (proven) return {proven: true}
+  }
   // (a model breaking a law at a tuple of the goal's keys: those added, the law asked again)
   const {result: a} = withModels(m, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), growAll, grownModel, grownSettled)
   return a.out ? {proven: false, goal: a.goal!.name, stuck: a.out.stuck, ...(a.out.witness ? {witness: a.out.witness} : {}), ...(a.out.diagram ? {diagram: a.out.diagram} : {})} : {proven: true}
@@ -1893,7 +1906,7 @@ function thinned(m: Machine, laws: Law[], instances: Record<string, Instances>):
       if (inst === full) fulls[law.name] = at
       // (one that ran out past the wall: the next instances can't be tried, and the goal that ran out is the verdict's, not
       // the next one's first goal)
-      if (a.out && inst !== full && !(a.out.stuck === 'unknown' && pastWall())) continue
+      if (a.out && inst !== full && !(a.out.stuck === 'unknown' && ranOut())) continue
       if (a.out) return stuckAt(a.goal!, a.out, nodes, leaves)
       Object.assign(trees, a.done); nodes += a.n; leaves += a.lv
       break

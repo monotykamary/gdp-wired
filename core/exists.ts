@@ -432,9 +432,9 @@ function mapGhostsOf(m: Machine, law: Law, taken: Set<string>): MapGhost[] {
       if (mp2 === mp || 'each' in w2) continue
       const kv2 = namesOf(w2.key)
       if (!kv2.length || !kv2.every(n => m.inputs.includes(n) && keyed.has(n))) continue
-      const set2 = substC({op: '<=', a: k(1), b: w2.value}, {vars: {}, maps: {[mp2]: () => k(0)}, flags: {}})
+      const set2 = substC({op: '<=', a: k(1), b: w2.value}, {vars: {}, maps: {[mp2]: () => k(0)}, flags: Object.fromEntries(Object.keys(m.step.flags ?? {}).map(f => [f, {op: 'flag', name: f} as C]))})
       const conj = (c: C, depth = 0): C[] => (c.op === 'and' ? c.xs.flatMap(y => conj(y, depth)) : c.op === 'flag' && depth < 3 && m.step.flags?.[c.name] && m.step.flags[c.name]!.op !== 'all' ? conj(m.step.flags[c.name]!, depth + 1) : [c])
-      const lits = conj(set2)
+      const lits = [...new Set([...JSON.stringify(w2.value).matchAll(/"op":"flag","name":"([^"]+)"/g)].map(x => x[1]!))].flatMap(f => conj({op: 'flag', name: f}))
       for (const val2 of m.inputs.filter(i => !kv2.includes(i) && !action(i))) {
         let gname = `${mp2}$g`
         for (let j = 2; taken.has(gname); j++) gname = `${mp2}$g${j}`
