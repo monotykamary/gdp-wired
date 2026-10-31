@@ -70,6 +70,7 @@ FUZZ = {"kernel": ("kernel", "FUZZ_SEED={s} bun test kernel.test.ts 2>&1"),
         "cdcl": ("kernel", "FUZZ_SEED={s} FUZZ_SCALE=4 GDP_CDCL_VERIFY=1 bun test cdcl.test.ts 2>&1"),
         "tamper": ("kernel", "FUZZ_SEED={s} bun test tamper.test.ts 2>&1")}
 REFUSED = ("unsupported", "refused")
+SWEEP_HOURS = 24  # a sweep's commit is replaced by main's at the latest after this long
 
 
 def log(*a):
@@ -88,6 +89,11 @@ def append(path: pathlib.Path, row: dict):
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a") as f:
         f.write(json.dumps(row) + "\n")
+
+
+def append_many(path: pathlib.Path, rows: list):
+    with open(path, "a") as f:
+        f.write("".join(json.dumps(r) + "\n" for r in rows))
 
 
 def git(*a, cwd=MAIN) -> str:
@@ -271,12 +277,17 @@ class Sweep:
             return got
         ids = self.task_ids(got)
         solved, refused, seen = self.tm.cache.solved(self.commit, self.bench), self.tm.cache.refused(self.commit, self.bench), self.tm.cache.seen(self.commit, self.bench, config)
-        todo = [t for t in ids if t not in solved and t not in refused and t not in seen]
-        if not todo:
-            return self.finish_round(config, 0)
-        env = VARIANTS[variant]
         rdir = self.dir / f"{budget}-{variant}"
         rdir.mkdir(parents=True, exist_ok=True)
+        # (a round cut short, the treadmill stopped: its rows so far are kept, and only the rest run again)
+        had = [r for r in jl(rdir / "results.jsonl") if r.get("answer") != "error"]
+        done_ = {r.get("task") for r in had}
+        todo = [t for t in ids if t not in solved and t not in refused and t not in seen and t not in done_]
+        if not todo:
+            if had:
+                self.verdicts(rdir, config, "")
+            return self.finish_round(config, 0)
+        env = VARIANTS[variant]
         by = {t if isinstance(t, str) else t["task"]: t for t in (got if isinstance(got, list) else got.get("tasks", []))}
         items = []
         for k, t in enumerate(todo):
@@ -289,15 +300,18 @@ class Sweep:
             args = {"chc": lambda: ["gdp", [by[t]], budget, envs], "its": lambda: ["gdp", [by[t]], budget, envs],
                     "sv": lambda: ["gdp", by[t], budget], "tip": lambda: ["gdp", [t], budget, {}]}[self.bench]()
             items.append(py_item(name, self.spec["module"], "shard", args, budget + 600, budget, self.tree))
-        rows: list = []
+        rows: list = list(had)
         lock = threading.Lock()
+        (rdir / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in had))
 
         def on_row(it, row):
             with lock:
                 res = row.get("result")
                 if isinstance(res, dict):
                     res = [res]
-                rows.extend(res or [{"tool": "gdp", "task": todo[int(it["name"].rsplit("-", 1)[1])], "answer": "error", "seconds": -1, "err": str(row.get("error", ""))[:300]}])
+                res = res or [{"tool": "gdp", "task": todo[int(it["name"].rsplit("-", 1)[1])], "answer": "error", "seconds": -1, "err": str(row.get("error", ""))[:300]}]
+                rows.extend(res)
+                append_many(rdir / "results.jsonl", res)
 
         def after(logs):
             if self.spec.get("sh"):  # IC3Syn: each item's last line, run.ts's JSON
@@ -383,7 +397,7 @@ class Soundness:
     def batch(self, vms: int) -> Batch:
         st = self.tm.state
         items, kinds = [], []
-        n = vms * SLOTS * 4
+        n = vms * SLOTS * 8
         while self.mutants and len(items) < vms * SLOTS:
             m = self.mutants.pop(0)
             items.append(sh_item(f"mutant-{m}", f"bun mutants.ts ids {m} 2>&1 | tail -1", "kernel", 3600, 600))
@@ -506,7 +520,7 @@ class Treadmill:
         self.cache = Cache()
         self.state = json.loads((TM / "state.json").read_text()) if (TM / "state.json").exists() else {}
         self.batches: list[Batch] = []
-        self.commit, self.tree, self.sweeps, self.sound = None, None, {}, None
+        self.commit, self.tree, self.sweeps, self.sound, self.head = None, None, {}, None, None
         self.subs: dict[str, Submission] = {}
         self.last_work = time.time()
         self.declared, self.declared_t = False, 0.0
@@ -515,7 +529,8 @@ class Treadmill:
         (TM / "state.json").write_text(json.dumps(self.state, indent=1))
 
     def tree_of(self, sha: str) -> pathlib.Path:
-        """A worktree of main's commit (with its submodules), the last three kept."""
+        """A worktree of main's commit (with its submodules); of the others, those of the sweeps' commit and the two
+        newest are kept."""
         path = TM / "trees" / sha[:12]
         if not (path / ".treadmill-ready").exists():
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -526,7 +541,8 @@ class Treadmill:
                     git("config", f"submodule.{m}.url", str(MAIN / m), cwd=path)
             subprocess.run(["git", "-C", str(path), "-c", "protocol.file.allow=always", "submodule", "update", "--init"], capture_output=True, timeout=600)
             (path / ".treadmill-ready").write_text(sha)
-        for old in sorted((TM / "trees").iterdir(), key=lambda p: p.stat().st_mtime)[:-3]:
+        keep = {sha[:12], (self.state.get("sweep") or "")[:12]}
+        for old in [p for p in sorted((TM / "trees").iterdir(), key=lambda p: p.stat().st_mtime)[:-2] if p.name not in keep]:
             with contextlib.suppress(Exception):
                 git("worktree", "remove", "--force", str(old))
         return path
@@ -540,11 +556,24 @@ class Treadmill:
     def step(self):
         self.batches = [b for b in self.batches if not b.done]
         head = git("rev-parse", "main")
-        if head != self.commit:
-            log(f"main is {head[:12]}: sweeps and soundness work at it")
-            self.commit, self.tree = head, self.tree_of(head)
-            self.sweeps = {b: Sweep(self, head, self.tree, b) for b in BENCHES}
-            self.sound = Soundness(self, head, self.tree)
+        if head != self.head:  # soundness work follows main at once
+            log(f"main is {head[:12]}: soundness work at it")
+            self.head = head
+            self.sound = Soundness(self, head, self.tree_of(head))
+        # the sweeps keep their commit until every benchmark's chain is done (or SWEEP_HOURS pass), then take main's:
+        # main moves several times an hour, and a chain restarted at each commit would never get past its first round
+        sw = self.state.get("sweep")
+        stale = not sw or (all(s.state["done"] for s in self.sweeps.values()) and self.sweeps) or time.time() - self.state.get("sweep_t", 0) > SWEEP_HOURS * 3600
+        if stale and sw != head and not any(b.chain == "a" and not b.done for b in self.batches):
+            sw = None
+        if not sw or not self.sweeps:
+            if not sw:
+                self.state.update(sweep=head, sweep_t=time.time())
+                self.save_state()
+                sw = head
+                log(f"sweeps at {head[:12]}")
+            self.commit, self.tree = sw, self.tree_of(sw)
+            self.sweeps = {b: Sweep(self, sw, self.tree, b) for b in BENCHES}
         for sw in self.sweeps.values():
             sw.poll()
         for d in sorted((TM / "subs").glob("*/meta.json")) if (TM / "subs").exists() else []:
@@ -679,7 +708,7 @@ def digest(day: str, quiet: bool = False) -> str:
     mt = [r for r in jl(TM / "mutants.jsonl") if time.strftime("%Y-%m-%d", time.gmtime(r["t"])) == day]
     bad = [r for r in fz if r["code"] != 0]
     out += ["", "## Soundness", f"- fuzz: {len(fz)} seeds ({', '.join(f'{k} {sum(1 for r in fz if r["kind"] == k)}' for k in FUZZ)}), "
-            + (f"**{len(bad)} failed**: " + ", ".join(f"{r['kind']} seed {r['seed']} (exit {r['code']})" for r in bad[:10]) if bad else "none failed"),
+            + (f"**{len(bad)} failed**: " + ", ".join(f"{r['kind']} seed {r['seed']} (exit {r['code']}: {next((l.strip() for l in r.get('tail', '').splitlines() if l.strip().startswith(('error', '(fail)'))), '')[:120]})" for r in bad[:10]) if bad else "none failed"),
             f"- mutants: {len(mt)} run, {sum(1 for r in mt if not r.get('killedBy'))} survived" + "".join(f"\n  - survived: {r['id']} {r['where']} {r['change']}" for r in mt if not r.get("killedBy"))]
     subs = [json.loads(p.read_text()) for p in (TM / "subs").glob("*/meta.json")] if (TM / "subs").exists() else []
     subs = [s for s in subs if time.strftime("%Y-%m-%d", time.gmtime(s["t"])) == day]
