@@ -40,7 +40,8 @@ for p in sorted(root.rglob('*'), reverse=True):
     elif p.is_dir() and not any(p.iterdir()):
         p.rmdir()
 """
-GOALS = MAIN / "runs" / "supercomputer" / "dag" / "goals"
+# (the main checkout's dumped goals: under runs/supercomputer since the folder's rename, else where they were made, runs/modal)
+GOALS = next((g for g in (MAIN / "runs" / d / "dag" / "goals" for d in ("supercomputer", "modal")) if g.exists()), MAIN / "runs" / "supercomputer" / "dag" / "goals")
 BASE = pathlib.Path(os.environ.get("GDP_QUERY_BASE", "/tmp/gdp-query-base"))
 IGNORE = ["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal", "private/**", "vendor/**",
           "compare/**/*.js", "compare/**/out/**", "research/enum/**", "research/perf/bend-enum/**", "research/hw/**", "research/modal-gpu/**",
