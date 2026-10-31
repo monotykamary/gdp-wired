@@ -481,7 +481,8 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
       if (log) console.error(`exists: first term on the small instances: ${at < 0 ? 'none' : describe({...p, pick: {mode: 'term', at: [at]}}, cases)}`)
       if (at >= 0) p.pick = {mode: 'term', at: [at]}
       else if (!toMap(p, -1)) return {proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: `${p.law.name} @step`, stuck: 'unknown', why: `no witness for "${p.law.name}" holds on the small instances`}}
-      firstPicks.set(key([m.step, m.assume ?? null, m.maps ?? null, p.law.holds]), (p.pick as Pick).mode === 'map' ? {mode: 'map', at: (p.pick as {at: number}).at} : {mode: 'term', at: [...(p.pick as {at: number[]}).at]})
+      const pk = p.pick as Pick
+      firstPicks.set(key([m.step, m.assume ?? null, m.maps ?? null, p.law.holds]), pk.mode === 'map' ? {mode: 'map', at: pk.at} : {mode: 'term', at: [...(pk as {at: number[]}).at]})
     }
     for (let round = 0; ; round++) {
       const now = current(), t0 = performance.now(), r: ReturnType<typeof proveLaw> = round === 0 && first ? {proven: false, ...first}
