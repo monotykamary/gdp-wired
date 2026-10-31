@@ -15,7 +15,7 @@
 //
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
-import {searchCounted} from './counts.ts'
+import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {env as knobs} from './solver.ts'
 import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
@@ -2792,36 +2792,30 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   return {...verdict, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}
 }
 // A law with "there exists" about no key, which the join can't take as its goal: its witness core/exists.ts's ghostOf;
-// the engine's minimal ∀ cubes of two literals (core/infer.ts's `cubes`, its template two keys at the bound value's
-// places, framed by the law's conjuncts that read the value and no map), each kept where it is proven from the kept ones
-// and itself (IC3's relative induction, its cone), again while more are kept; then the laws with those kept. (A law about
-// every key goes the usual way: its ghost maps' goals ran past the search's wall here, firewall's, and won nothing.)
+// then core/counts.ts's pipeline: the candidates, the engine's template two keys at the bound value's places, framed by
+// the law's conjuncts that read the value and no map, kept by the cone (each proven from the kept ones and itself), the
+// kernel's proveLaw their proof; then the laws with those kept. (A law about every key goes the usual way: its ghost
+// maps' goals ran past the search's wall here, firewall's, and won nothing.)
 function someCone(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws0: Law[], ms: number): Verdict | undefined {
   const until = clock() + ms, m = r.machine, yes: C = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
   const laws = laws0.map(l => (l.some?.length && !l.forall && !l.witness ? {...l, witness: ghostOf(m, l)} : l))
   if (laws.some(l => l.some?.length && !l.forall && !l.witness)) return undefined
   const named = (d: C, l: Law) => l.some!.some(x => JSON.stringify(d).includes(`"name":${JSON.stringify(x)}`))
-  const shape = (l: Law): Law => (l.some?.length ? shapeOf(l) : l)
   // (two keys at the bound value's places, the law's conjuncts that read the value and no map their frame)
-  function shapeOf(l: Law): Law {
+  const shapeOf = (l: Law): Law => {
     const x = l.some![0]!, at = (c: C, k: string) => substVars(c, {[x]: {op: 'var', name: k}}), ks = ['k$some', 'k2$some']
     const cs = l.holds.op === 'and' ? l.holds.xs : [l.holds], frame = cs.filter(c => named(c, l) && !JSON.stringify(c).includes('"op":"get"')), rest = cs.filter(c => !frame.includes(c))
     return {name: l.name, forall: ks[0], keys: [ks[1]!], holds: {op: 'or', xs: [{op: 'not', x: {op: 'and', xs: ks.flatMap(k => frame.map(c => at(c, k)))}}, ...ks.flatMap(k => rest.map(c => at(c, k))), yes]}}
   }
-  const cubes = [...withKinds(r, []), ...inferLaws(r, laws.map(shape), [], {cubes: 2, ms: Math.min(10_000, ms / 3), first: {proven: false, checked: false}}).found.map(f => f.law)]
-  const kept: Law[] = [], tried = new Map<string, number>()
-  for (let grew = true; grew && clock() < until;) {
-    grew = false
-    for (const c of cubes) {
-      if (kept.includes(c) || tried.get(c.name) === kept.length || clock() > until) continue
-      tried.set(c.name, kept.length)
-      // (a cube the kernel refuses to state, one past its key rules, is never kept)
-      let ok = false
-      try { ok = withDeadline(Math.min(until, clock() + 1000), () => proveLaw(m, [...kept, c], kept.length)).proven } catch { /* not kept */ }
-      if (ok) { kept.push(c); grew = true }
-    }
+  const shapes = laws.map(l => (l.some?.length ? shapeOf(l) : l))
+  const set = [...withKinds(r, []), ...candidates(r, m, shapes, shapes, [], until - clock())]
+  // (a cube the kernel refuses to state, one past its key rules, is never kept)
+  const plain = (law: Law, ls: Law[], ms2: number): Tried<true> => {
+    try { const o = withDeadline(Math.min(until, clock() + ms2), () => proveLaw(m, ls, ls.indexOf(law))); return o.proven ? {proof: true} : {stuck: o.stuck} } catch { return {stuck: ''} }
   }
-  if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: cone ${kept.length} of ${cubes.length} kept: ${kept.map(l => l.name).join('; ').slice(0, 2000)}`)
+  // (the cone within two thirds of what is left, the rest the whole set's proof)
+  const proven = cone(m, set, set, plain, until - (until - clock()) / 3, 1_000, 10_000), kept = set.filter(c => proven.has(c.name))
+  if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: cone ${kept.length} of ${set.length} kept: ${kept.map(l => l.name).join('; ').slice(0, 2000)}`)
   if (clock() > until) return undefined
   const v = verdictOf(proveSome(m, [...laws, ...kept.filter(c => !laws.some(l => l.name === c.name))]))
   return v.proven && v.checked ? {...v, found: {laws: kept.map(l => ({law: l, text: l.name}))}, ...withAssumes(kept.map(l => ({text: l.name})))} : undefined

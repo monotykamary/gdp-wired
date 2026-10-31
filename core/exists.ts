@@ -196,11 +196,21 @@ export function ghostOf(m: Machine, law: Law): SomeWitness | undefined {
   const starts = [k(0), ...m.params.flatMap(q => [v(q), sub(v(q), k(1))])]
   for (const t of ts.values()) for (const start of starts) {
     const step: E = {op: 'if', c: keep, then: v(x), else: t}, gm: Machine = {...m, state: {...m.state, [x]: start}, step: {...m.step, state: {...m.step.state, [x]: step}}}
-    const ok = [2, 3].every(q => { const ps = Object.fromEntries(m.params.map(p => [p, q])); try { return small(gm, ps, 3, 3000, 100_000).every(st => holdsAt(gm, {...law, some: undefined}, ps, st, 3)) } catch { return false } })
-    if (ok) return {ghost: {[x]: {start, step}}}
+    if (trueSmall(gm, [{...law, some: undefined}])) return {ghost: {[x]: {start, step}}}
   }
   return undefined
 }
+// The small instances, the one filter of every candidate (core/counts.ts's laws, the witnesses and ghost maps here):
+// each param 2 and 3, every input and carried set below 3, every state the BFS reaches and the walks past it; an
+// instance whose params the machine refuses has no states. Read once a machine.
+const smalls = new WeakMap<Machine, {p: Env, sts: State[]}[]>()
+export function smallOf(m: Machine): {p: Env, sts: State[]}[] {
+  let out = smalls.get(m)
+  if (!out) smalls.set(m, (out = [2, 3].map(x => { const p = Object.fromEntries(m.params.map(q => [q, x])); try { return {p, sts: small(m, p, 3, 3000, 300_000, 100_000)} } catch { return {p, sts: []} } })))
+  return out
+}
+// Laws true at every state of the small instances, at every key below one past their values.
+export const trueSmall = (m: Machine, laws: Law[]): boolean => smallOf(m).every(({p, sts}) => sts.every(st => laws.every(l => holdsAt(m, l, p, st, 4))))
 // A law at a state, its counts the state's, at every key below b.
 // (a state's view once: a law is read at every state, and every law at each)
 const views = new WeakMap<State, State>()
@@ -498,7 +508,6 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
   const rounds = opts.rounds ?? 24
   // (a law about every key with no witness term: the next ghost map past `from` that keeps its law and the ghost's own
   // on every state of the small instances, each param 2 and 3)
-  const smallOk = (mm: Machine, ls: Law[]) => [2, 3].every(x => { const ps = Object.fromEntries(m.params.map(q => [q, x])); return small(mm, ps, 2, 1500, 100_000).every(st => ls.every(l => holdsAt(mm, l, ps, st, 2))) })
   const toMap = (p: Plan, from: number): boolean => {
     if (from < 0) p.maps = mapGhostsOf(m, p.law, takenOf(m))
     const others = [...plans.values()].filter(q => q !== p && q.pick.mode === 'map')
@@ -506,7 +515,7 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
       const g = p.maps[j]!
       try {
         const mm = withMap(others.reduce((acc, q) => withMap(acc, q.maps[(q.pick as {at: number}).at]!), m), g)
-        const ok = smallOk(mm, [g.inv, {...p.law, holds: g.holds, some: undefined}])
+        const ok = trueSmall(mm, [g.inv, {...p.law, holds: g.holds, some: undefined}])
         if (log) console.error(`exists: map ${g.name} at ${showE(g.at)} := ${showE(g.write.value)}: ${ok ? 'kept' : 'false on the small instances'}`)
         if (ok) { p.pick = {mode: 'map', at: j}; return true }
       } catch (e) { if (log) console.error(`exists: map ${g.name}: ${String(e).slice(0, 120)}`) }
@@ -526,7 +535,7 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
       else if (had) p.pick = {mode: 'term', at: [...had.at]}
     }
     if (p.law.forall && !p.given && p.groups.length === 1 && p.groups[0]!.length === 1 && mapsRead(p.law) && p.pick.mode === 'term' && !first && !firstPicks.has(key([m.step, m.assume ?? null, m.maps ?? null, p.law.holds]))) {
-      const x = p.groups[0]![0]!, at = p.terms[0]!.findIndex(t => { try { return smallOk(m, [{...p.law, holds: substVars(p.law.holds, {[x]: t[0]!}), some: undefined}]) } catch { return false } })
+      const x = p.groups[0]![0]!, at = p.terms[0]!.findIndex(t => { try { return trueSmall(m, [{...p.law, holds: substVars(p.law.holds, {[x]: t[0]!}), some: undefined}]) } catch { return false } })
       if (log) console.error(`exists: first term on the small instances: ${at < 0 ? 'none' : describe({...p, pick: {mode: 'term', at: [at]}}, cases)}`)
       if (at >= 0) p.pick = {mode: 'term', at: [at]}
       else if (!toMap(p, -1)) return {proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: `${p.law.name} @step`, stuck: 'unknown', why: `no witness for "${p.law.name}" holds on the small instances`}}
