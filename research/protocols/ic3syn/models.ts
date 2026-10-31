@@ -23,7 +23,7 @@ const triples = (a: number[], b: number[], c: number[]) => a.flatMap(x => b.flat
 // A majority's request: Q from a bitmask over 0 .. size − 1, with its witness (none for other requests).
 const withMajority = (size: number) => (i: Record<string, any>) => {
   const q = range(size).filter(k => i.qm >> k & 1), rest = Object.fromEntries(Object.entries(i).filter(([k]) => k !== 'qm'))
-  return [{...rest, ...majorityWitness(q, size)}]
+  return [{...rest, ...majorityWitness(q)}]
 }
 const twoDistinct = (r: Read, map: string, keys: number[]) => keys.filter(k => r.cell(map, k)).length > 1
 
@@ -66,10 +66,12 @@ const lockServer = (bug?: Bug) => rule('lock server')
     Semaphore: Semaphore.set(s, when(connects, no, when(disconnects, yes, Semaphore.at(s)))),
   }))
 
-// A rule over nodes 0 .. size − 1 whose request carries a majority Q (with its witness Out, c) for the actions in `acts`.
+// A rule over nodes 0 .. size − 1 whose request carries a majority Q for the actions in `acts`: Q within the nodes, its
+// size the count `members` (TLA+'s Cardinality(Q) * 2 > Cardinality(Node), as it reads).
 const overMajority = (r: any, inputs: Record<string, unknown>, acts: string[], ok: (env: any) => any): any =>
-  r.params({size: nat}).pre(({size}: any) => size.atMost(N)).inputs({...inputs, c: nat}).carries('Q', 'Out')
-    .assume((env: any) => all(ok(env), any(...acts.map(a => env.op.is(a))).implies(majority(env.Q, env.Out, env.c, env.size))))
+  r.params({size: nat}).pre(({size}: any) => size.atMost(N)).inputs(inputs).carries('Q')
+    .counts({members: ({Q, size}: any) => ({below: size, body: (_x: Term, k: Term) => Q.has(k)})})
+    .assume((env: any) => all(ok(env), any(...acts.map(a => env.op.is(a))).implies(majority(env.Q, env.members, env.size))))
 
 // --- ex-quorum-leader-election: quorum_leader_election.tla. voted[i] is Voted[i] (j + 1; 0 is Nil). Node is 0 .. size − 1.
 // BecomeLeader(i, Q) for a majority Q.
@@ -419,10 +421,10 @@ const firewall = (bug?: Bug) => rule('firewall')
 // voters[n], so neither carries it; BecomeLeader's vs \in Majority is majority() of the row voters[n].
 const majoritySet = (bug?: Bug) => rule('majorityset leader election')
   .params({size: nat}).pre(({size}) => size.atMost(N))
-  .inputs({op: oneOf('voting', 'receive_vote', 'become_leader'), n: nat, m: nat, c: nat}).carries('Out')
+  .inputs({op: oneOf('voting', 'receive_vote', 'become_leader'), n: nat, m: nat})
   .maps({Vote: rel, Voters: rel, Leader: rel})
-  .assume(({op, n, m, c, size, Out, Voters}) => n.lt(size).and(m.lt(size), op.is('become_leader')
-    .implies(majority({at: (k: Term) => Voters.at(pk(n, k)).n, has: (k: Term) => Voters.at(pk(n, k))}, Out, c, size))))
+  .counts({voters: ({Voters, size}: any) => ({below: size, body: (x: Term, k: Term) => Voters.at(pk(x, k))})})
+  .assume(({op, n, m, size, voters}: any) => n.lt(size).and(m.lt(size), op.is('become_leader').implies(size.lt(voters.at(n).times(2)))))
   .flags(({n, Vote}) => ({didNotVote: everyKey(x => Vote.at(pk(n, x)).not())}))
   .flags(({op, n, m, didNotVote, Vote, Voters}) => ({
     // Voting(n1, n2) is (n, m); ReceiveVote(voter, n, vs) is (m, n)
@@ -697,8 +699,6 @@ export const protocols: Protocol[] = [
     laws: r => [r.law('one leader', ({size, Leader}: any) => forall((a, b) => a.lt(size).and(b.lt(size), Leader.at(a), Leader.at(b)).implies(a.eq(b))))],
     bad: r => twoDistinct(r, 'Leader', N3),
     check: {params: {size: 3}, inputs: {op: range(3), n: N3, m: N3},
-      // (a majority of three leaves one node out at most: c = 0, or c = 1 and every rank 0)
-      expand: (i: any) => [{...i, Out: new Map(), c: 0}, {...i, c: 1, Out: new Map(N3.map(k => [k, 0] as [number, number]))}],
       project: r => [cells(r, 'Vote', pairs(N3, N3)), cells(r, 'Voters', pairs(N3, N3)), cells(r, 'Leader', N3)],
       tlc: tlc('majorityset_leader_election', consts({Node: nodes(3)}), 'Safety')}})),
   {id: 'consensus_epr', ic3syn: 'pyv-consensus-epr', file: 'consensus_epr.tla', source: 'Endive benchmarks/consensus_epr.tla (mypyvy\'s)', safety: 'v1 \\in decided[n1] /\\ v2 \\in decided[n2] => v1 = v2',

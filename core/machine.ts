@@ -450,15 +450,36 @@ export function leastsIn(m: Machine, env: Env, st: State): Env {
 const empty: State = {scalars: {}, maps: {}}
 
 // The state as a step reads it: with the maps the request carries (cells past them read 0), each checked natural.
-export function carriedView(m: Machine, st: State, input: Request, rename: (map: string) => string = map => map): State {
-  if (!m.inputMaps?.length) return st
+// A request's counts (Machine.counts) are read at this view too: each count map's cell at x, computed when read, the sum
+// of its body over the keys below its bound, j at x (CountMachine.lean's cntOf at CReach's view: the params, the request's
+// numbers, the state, the maps it carries).
+class CountCells extends Map<number, number> {
+  constructor(private readonly at: (x: number) => number) { super() }
+  override get(x: number): number { let v = super.get(x); if (v === undefined) { v = this.at(x); super.set(x, v) } return v }
+}
+export function carriedView(m: Machine, st: State, input: Request, rename: (map: string) => string = map => map, params?: Env): State {
+  const counts = Object.entries(m.counts ?? {})
+  if (!m.inputMaps?.length && !counts.length) return st
   const maps = {...st.maps}, defaults = {...st.defaults}
-  for (const map of m.inputMaps) {
+  for (const map of m.inputMaps ?? []) {
     const cells = input[map]
     if (!(cells instanceof Map)) throw new RangeError(`input ${map} must be a Map of naturals`)
     for (const [key, v] of cells) { naturalIn(key, `a key of ${map}`); naturalIn(v, `a cell of ${map}`) }
     maps[rename(map)] = cells as Map<number, number>
     defaults[rename(map)] = 0
+  }
+  if (counts.length) {
+    if (!params) throw new Error(`${m.name}: a request's counts read the params`)
+    const view: State = {...st, maps, defaults}, env0: Env = {...params, ...numbersOf(input)}
+    for (const [c, d] of counts) {
+      maps[rename(c)] = new CountCells(x => {
+        const e1 = {...env0, [d.j]: x}, n = evalE(d.below, e1, view, m)
+        let sum = 0
+        for (let k = 0; k < n; k++) sum = exact(sum + evalE(d.body, {...e1, [d.key]: k}, view, m))
+        return sum
+      })
+      defaults[rename(c)] = 0
+    }
   }
   return {...st, maps, defaults}
 }
@@ -477,7 +498,7 @@ export function interpret(m: Machine) {
     if (input) for (const i of carried) env[i] = naturalIn(input[i], `input ${i}`)
     return env
   }
-  const viewed = (st: State, input: Request): State => carriedView(m, st, input)
+  const viewed = (st: State, input: Request, params?: Env): State => carriedView(m, st, input, undefined, params)
   // The records a request's queries read: with pruning, those not yet spent at its order.
   const live = (env: Env, st: State): Env[] => {
     const records = st.history!
@@ -517,7 +538,7 @@ export function interpret(m: Machine) {
       return m.leasts ? {...qs, ...leastsIn(m, {...env, ...qs}, viewed(st, input))} : qs
     },
     step: (params: Env, given: State, input: Request): State => {
-      const env = args(params, input), st = viewed(given, input)
+      const env = args(params, input), st = viewed(given, input, params)
       let records: Env[] = []
       if (h) { ordered(env, st); records = live(env, st); Object.assign(env, queriesOf(env, records)) }
       if (m.leasts) Object.assign(env, leastsIn(m, env, st))
