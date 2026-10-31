@@ -3,6 +3,22 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.35.0
+
+Counts in a machine's laws, proven in Lean first, and the search that finds them: three more distributed protocols
+proven with nothing written.
+- **Counts in a machine** (lean-kernel/CountMachine.lean; `.counts({...})`): a count names the size of a set below a
+  bound ("the votes for v"), carried by each request at its true value, so a guard and a law can say "a majority".
+  `cmachine_sound`: every accepted law holds in every reachable state. The TypeScript twin (`checkCountedLaws`)
+  matches it line for line, with refusal and mutation tests and end-to-end exports Lean checks.
+- **The search finds count invariants**: from a guard of the form "every member of the counted set satisfies R and the
+  count is a majority", it proposes the invariant two majorities need (they share a member), builds each goal's
+  counting certificate, and the kernel checks the set (core/counts.ts, untrusted, nothing per protocol).
+- **IC3Syn, 10 of 29 at 60 s with nothing written** (from 7): quorum leader election, toy consensus and toy consensus
+  (forall) proven in 2–3 s, two runs each, each proof checked again by Lean; no broken variant proven. The ten core
+  protocols stay 200 of 200 inside 60 s. research/protocols/engine/DESIGN.md.
+- **The bar**: none wrong in any group; both suites pass.
+
 ## 0.34.0
 
 Liveness over every key, time between nodes, and ordered collections; nothing trusted changed.
