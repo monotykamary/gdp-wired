@@ -473,7 +473,7 @@ const consensusEpr = (bug?: Bug) => overMajority(rule('consensus epr'),
 // radix key: MAXR·N + V below r·N is every MAXR below r); where a higher coordinate ranges, the action is a phase:
 // steps in a fixed order, one value of that coordinate a step, nothing else between them (`busy`), so the steps
 // together are the TLA+ action, and a state inside a phase is no state of the spec (it projects to none).
-export const pk4 = (a: Term, b: Term, c: Term, d: Term) => a.times(N * N * N).plus(pk3(b, c, d))
+export const pk4 = (a: Term, b: Term, c: Term, d: Term | number) => a.times(N * N * N).plus(b.times(N * N)).plus(c.times(N)).plus(d)
 // <<t, x, y>> \in table (route_tc) is x = y or T[t·N² + x·N + y]: Init puts the diagonal in, and both switches only add
 // to a row (route_tc \ row ∪ a superset of the row), so T holds the rest and its diagonal stays 0.
 const tab = (T: any, t: Term, x: Term, y: Term) => x.eq(y).or(T.at(pk3(t, x, y)))
@@ -483,9 +483,9 @@ const tab = (T: any, t: Term, x: Term, y: Term) => x.eq(y).or(T.at(pk3(t, x, y))
 // (row sw0 ∪ row sw0), and row x's cell <<pa, x, sw1>> is read at row x's own step, before it is written, so each step
 // reads the table as TLA+'s single step does.
 const rowWrite = (T: any, k: Term, on: any, size: Term, {row, rpa, rsw0, rsw1}: any, back = false) => {
-  const base = pk3(rpa, row, 0)
+  const base = rpa.times(N * N).plus(row.times(N))
   const inRow = k.atLeast(base).and(k.lt(base.plus(size)), k.eq(base.plus(row)).not())
-  const fromSw0 = k.eq(base.plus(rsw0)).or(when(row.atLeast(rsw0), T.at(k.minus(row.minus(rsw0).times(N))), T.at(k.plus(rsw0.minus(row).times(N)))))
+  const fromSw0 = k.eq(base.plus(rsw0)).or(when(row.atLeast(rsw0), T.at(k.minus(row.minus(rsw0).times(N))), T.at(k.plus(rsw0.minus(row).times(N)))) as any)
   // (back: a broken variant's, <<pa, sw0, sw1>> learned too, the route both ways)
   return when(on.and(inRow, tab(T, rpa, row, rsw1).and(fromSw0).or(back ? row.eq(rsw0).and(k.eq(base.plus(rsw1))) : no)), yes, T.at(k))
 }
@@ -527,10 +527,10 @@ const learningSwitch = (bug?: Bug) => rule('learning switch')
   })
   .step(({ps, pd, sw0, sw1, nondet, size, news, forwards, learns, rows, T, P, ...s}: any) => ({
     ...phaseStep(learns, rows, size, ps, sw0, sw1, s),
-    T: T.each(k => rowWrite(T, k, rows, size, s)),
-    P: P.each(k => {
+    T: T.each((k: Term) => rowWrite(T, k, rows, size, s)),
+    P: P.each((k: Term) => {
       const kept = k.atLeast(nondet.times(N * N * N)).and(k.lt(nondet.times(N * N * N).plus(N * N * N)), P.at(k)), b = pk4(ps, pd, sw1, 0)
-      return when(news.and(k.eq(pk4(ps, pd, ps, ps))), yes, when(forwards, kept.or(k.atLeast(b).and(k.lt(b.plus(size)))), P.at(k)))
+      return when(news.and(k.eq(pk4(ps, pd, ps, ps))), yes, when(forwards, kept.or(k.atLeast(b).and(k.lt(b.plus(size)))), P.at(k)) as any)
     }),
   }))
 
@@ -565,17 +565,17 @@ const learningSwitchI4 = (bug?: Bug) => rule('learning switch i4')
     }
   })
   .step(({op, p, sw0, sw1, sw2, size, setup, starts, news, floods, routes, learns, cond2, rows, started, Src, Dst, Link, Pend, Dom, T, ...s}: any) => {
-    const src = Src.at(p).minus(1), pb = pk3(p, sw1, 0)
+    const src = Src.at(p).minus(1), pb = p.times(N * N).plus(sw1.times(N))
     return {
       started: when(starts, 1, started),
       ...phaseStep(learns, rows, size, src, sw0, sw1, s),
       Src: Src.set(p, when(setup.and(op.is('src')), sw0.plus(1), Src.at(p))),
       Dst: Dst.set(p, when(setup.and(op.is('dst')), sw0.plus(1), Dst.at(p))),
       // link[sw0] = sw1 and link[sw1] = sw0 at once, both unset before: a total link is then symmetric with no self-loop
-      Link: Link.each(k => when(setup.and(op.is('link'), sw0.eq(sw1).not(), Link.at(sw0).eq(0), Link.at(sw1).eq(0)), when(k.eq(sw0), sw1.plus(1), when(k.eq(sw1), sw0.plus(1), Link.at(k))), Link.at(k))),
+      Link: Link.each((k: Term) => when(setup.and(op.is('link'), sw0.eq(sw1).not(), Link.at(sw0).eq(0), Link.at(sw1).eq(0)), when(k.eq(sw0), sw1.plus(1), when(k.eq(sw1), sw0.plus(1), Link.at(k))), Link.at(k))),
       Dom: Dom.set(pk(src, sw1), when(learns, yes, Dom.at(pk(src, sw1)))),
-      T: T.each(k => rowWrite(T, k, rows, size, s, !!bug)),
-      Pend: Pend.each(k => when(news.and(k.eq(pk3(p, src, src))), yes,
+      T: T.each((k: Term) => rowWrite(T, k, rows, size, s, !!bug)),
+      Pend: Pend.each((k: Term) => when(news.and(k.eq(pk3(p, src, src))), yes,
         when(floods.and(cond2, k.atLeast(pb), k.lt(pb.plus(size))), k.eq(pb.plus(Link.at(sw1).minus(1))).and(k.eq(pb.plus(sw0)).not()),
           when(routes.and(cond2, k.eq(pk3(p, sw1, sw2))), yes, Pend.at(k))))),
     }
@@ -618,10 +618,10 @@ const paxos = (bug?: Bug) => overMajority(rule('paxos epr').params({none: nat}).
     return {
       busy: when(proposes, 1, when(ends, 0, busy)), cnt: when(checks.and(ends.not()), cnt.plus(1), when(ends, 0, cnt)),
       pr: when(proposes, r, when(ends, 0, pr)), pmaxr: when(proposes, maxr, when(ends, 0, pmaxr)), pv: when(proposes, v, when(ends, 0, pv)),
-      Qs: Qs.each(k => when(proposes, Q.has(k), when(ends, no, Qs.at(k)))),
+      Qs: Qs.each((k: Term) => when(proposes, Q.has(k), when(ends, no, Qs.at(k)))),
       OneA: OneA.set(r, when(sends, yes, OneA.at(r))),
       OneB: OneB.set(pk(r, n), when(joins, yes, OneB.at(pk(r, n)))),
-      Left: Left.each(k => when(joins.and(k.atLeast(pk(n, 0)), k.lt(pk(n, r))), yes, Left.at(k))),
+      Left: Left.each((k: Term) => when(joins.and(k.atLeast(n.times(N)), k.lt(pk(n, r))), yes, Left.at(k))),
       Proposal: Proposal.set(pk(pr, pv), when(commits, yes, Proposal.at(pk(pr, pv)))),
       Vote: Vote.set(pk3(n, r, v), when(casts, yes, Vote.at(pk3(n, r, v)))),
       Decision: Decision.set(pk(r, v), when(decides, yes, Decision.at(pk(r, v)))),
