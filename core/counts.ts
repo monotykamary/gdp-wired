@@ -166,7 +166,8 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
     })
   })
   const t1 = clock(), rows = states.flatMap(({p, sts}) => sts.map(st => ({params: p, st})))
-  const cubes0 = ptime('cubes', () => inferLaws(src, shapes, [], {cubes: 2, ms: Math.min(15_000, ms / 4), first: {proven: false, checked: false}, rows}).found.map(f => f.law))
+  // (the cubes' budget counted, their wall stop the search's own end: a slow machine finds the same cubes, later)
+  const cubes0 = ptime('cubes', () => inferLaws(src, shapes, [], {cubes: 2, ms: Math.min(15_000, ms / 4), wall: performance.now() + Math.max(0, until - clock()), first: {proven: false, checked: false}, rows}).found.map(f => f.law))
   // (a cube's guard `u < param` dropped where u sits at a map's place that a caller reads with no param bound, the
   // decided value below N and not below size, if the small instances still hold it: the engine's template reads every
   // key of a composed map as one sort)
