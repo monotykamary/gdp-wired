@@ -67,6 +67,12 @@ export type ExtractOptions = Omit<ReadOptions, 'entry' | 'functions'> & {
 }
 export type Extraction = {
   ok: boolean,
+  // (a state variable that is 0 where the state is between two of the code's calls: a law about the state is about
+  // those states; Solidity's pending calls into other code)
+  quiet?: string,
+  // (a run that breaks a law, replayed on the code: a front end whose rule has runs the code may not, Solidity's at a
+  // narrower width; ok false where the code doesn't run it so)
+  replay?: (run: {params: Record<string, number>, trace: Record<string, unknown>[]}, law?: unknown) => {ok: boolean, what: string},
   // The rule (when ok), and its source, also printed when the check refused it (to read why).
   rule?: Rule,
   // What every state of the code is in the rule's terms (a map's key the code doesn't hold holds the defaults): the

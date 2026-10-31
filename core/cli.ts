@@ -199,7 +199,7 @@ const merge = (a: Record<string, unknown>, b: Record<string, unknown>): Record<s
 }
 
 // --- one target: its rules, their laws -------------------------------------------------------------------------------------
-type LawOut = {name: string, expr: string, where?: string, kind?: 'law' | 'step' | 'two runs', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], why?: string, assumes?: string[], found?: string[], cites?: string[], cert?: string, ms: number}
+type LawOut = {name: string, expr: string, where?: string, kind?: 'law' | 'step' | 'two runs', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], replayed?: string, why?: string, assumes?: string[], found?: string[], cites?: string[], cert?: string, ms: number}
 export type RuleOut = {file: string, lang: string, entry?: string, ok: boolean, refusals: {where: string, what: string}[], notes: string[], names: Name[], checked?: string,
   laws: LawOut[], proposed: LawOut[], brokenProposed?: number, source?: string}
 
@@ -308,7 +308,9 @@ function prove(x: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: C
   let v: Verdict & {given?: Law[]}
   try { v = two ? proveTwoRuns(two, {...search, invariants: [two.sides[0] === x.rule ? inv : (ctx?.others && Object.values(ctx.others).find(o => o.rule === two!.sides[0])?.invariants) ?? [], inv]}) : b!.kind === 'law' ? proveRule(x.rule!, [...inv, b!.law], search) : proveSteps(x.rule!, [...inv, ...proven] as never, [b!.law], search) }
   catch (e) { return {...base, kind, verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
-  const verdict = v.proven && v.checked ? 'proven' : v.run ? 'broken' : 'unknown'
+  let verdict: LawOut['verdict'] = v.proven && v.checked ? 'proven' : v.run ? 'broken' : 'unknown', replayed: string | undefined
+  // (a run the front end replays on the code: broken only where the code runs it so)
+  if (verdict === 'broken' && x.replay && v.run && !two) { const r = x.replay(v.run, b!.law); if (r.ok) replayed = r.what; else { verdict = 'unknown'; v.why = `a run breaks it in the rule, not on the code: ${r.what}` } }
   // (a state the laws allow from which a step breaks the law, no run from the start reaching it: shown, not a break)
   const at = !v.run && v.witness && !two ? (x.names ?? []).filter(n => n.rule && n.rule in v.witness! && n.role !== 'const').map(n => `${label(n)} = ${shownValue(x, n.rule, v.witness!, n.none)}`) : []
   if (verdict === 'proven' && b?.kind === 'law') proven.push(b.law)
@@ -321,7 +323,7 @@ function prove(x: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: C
       : b!.kind === 'law' ? certify(x.rule!, [...inv, ...more, b!.law], [], meta) : certify(x.rule!, [...inv, ...proven as Law[], ...more], [b!.law], meta)
     if (doc) { fs.mkdirSync(ctx.cert, {recursive: true}); cert = path.join(ctx.cert, `${[ctx.entry ?? path.basename(ctx.file), l.name].join('.').replace(/[^\w.-]+/g, '-')}.json`); fs.writeFileSync(cert, JSON.stringify(doc)) }
   }
-  return {...base, kind, verdict, ...(v.run ? {run: two ? pairRunOf(x, v.run, two) : runOf(x, v.run)} : {}), ...(verdict === 'unknown' ? {why: [v.why ?? v.stuck ?? 'not proven', ...(at.length ? [`a state the laws allow where a step breaks it, no run from the start found reaching it: ${at.join(', ')}`] : [])].join('; ')} : {}),
+  return {...base, kind, verdict, ...(replayed ? {replayed} : {}), ...(v.run && verdict === 'broken' ? {run: two ? pairRunOf(x, v.run, two) : runOf(x, v.run)} : {}), ...(verdict === 'unknown' ? {why: [v.why ?? v.stuck ?? 'not proven', ...(at.length ? [`a state the laws allow where a step breaks it, no run from the start found reaching it: ${at.join(', ')}`] : [])].join('; ')} : {}),
     ...(v.run && !two ? {assumes: assumedOf(x, v.run)} : {}), ...(found?.length ? {found} : {}), ...(cert ? {cert} : {}), ms: Date.now() - t0}
 }
 // Two runs as calls of the code: each request once, the values the two runs take apart as `a | b`, and the run b leaves
@@ -451,6 +453,7 @@ function printRule(r: RuleOut, o: Opts) {
     for (const c of l.cites ?? []) out(`             cites: ${c}`)
     if (l.cert) out(`             ${paint('dim', `certificate: ${l.cert}`)}`)
     if (l.run) for (const [i, s] of l.run.entries()) out(`             ${i === 0 ? 'run: ' : '     '}${paint('red', s)}`)
+    if (l.replayed) out(`             ${l.replayed}`)
     for (const a of l.assumes ?? []) out(`             ${a}`)
     if (l.found) out(`             proven with what the search found: ${l.found.join('; ')}`)
     if (l.why && l.verdict !== 'proven') out(`             ${l.why}`)

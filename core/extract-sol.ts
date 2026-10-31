@@ -23,8 +23,15 @@
 //   code (it accepts and calls nothing back): `reentrant: true` (core/extract-reenter.ts) makes it any code instead.
 // - Left out, each where it is read with why: strings and bytes (their state too), loops, arrays, structs past a
 //   mapping's value, calls of other contracts, inline assembly, try/catch, constants past 2^53, signed widths past 48.
-import {type Extraction, fromModel} from './extract.ts'
+import {type Extraction, type Name, fromModel} from './extract.ts'
+import type {Rule} from './dsl.ts'
+import {type Request, evalC, interpret, seeded} from './machine.ts'
+import {allowed, watch} from './watch.ts'
+import {kindOfVar} from './extract-check.ts'
+import type {Sorts} from './extract-print.ts'
+import type {Model} from './extract-read.ts'
 import {Refusal, pathOf, type FileURL} from './extract-read.ts'
+const refuse = (where: string, what: string): never => { throw new Refusal(where, what) }
 import {type Harness, type SFunc, type SModule, type SParam, type SRec, type SS, type SType, type SX, type StepOptions, type StepRead, checkStep, node, readStep, stepNames} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
@@ -32,6 +39,9 @@ export type SolOptions = StepOptions & {
   // The project root solc resolves imports from (by default the file's directory), and remappings
   // (`@openzeppelin/=lib/openzeppelin-contracts/`).
   root?: string, remappings?: string[],
+  // false: an address called is an account without code (the rule's steps are whole calls); by default it is any code,
+  // which may call back before the call returns (core's re-entrancy: each such entry split at its call).
+  reentrant?: boolean,
   // solc, anvil and python3 (by default on the PATH; $GDP_SOLC, $GDP_ANVIL).
   solc?: string, anvil?: string, python?: string,
 }
@@ -77,7 +87,7 @@ export function compile(file: string, o: SolOptions): Compiled {
 // --- the lowering -------------------------------------------------------------------------------------------------------
 type Fn = {def: Ast, contract: Ast}
 type Field = {name: string, t: SType, decl: Ast, sol: string}
-export type SolMeta = {addrBits: number, contract: string, source: string, fields: Field[], fns: Record<string, Ast>, payable: string[], minW: number, nested: string[], entries: Record<string, {sig: string, inputs: string[], payable: boolean, out?: string}>, ctor: {inputs: string[], payable: boolean}, ether: boolean}
+export type SolMeta = {calls: boolean, resumes: string[], addrBits: number, contract: string, source: string, fields: Field[], fns: Record<string, Ast>, payable: string[], minW: number, nested: string[], entries: Record<string, {sig: string, inputs: string[], payable: boolean, out?: string}>, ctor: {inputs: string[], payable: boolean}, ether: boolean}
 
 class Lower {
   readonly defs = new Map<number, Ast>()
@@ -93,7 +103,9 @@ class Lower {
   lin: Ast[] = []
   // (the function being lowered: whether it is an entry, payable; its return locals)
   cur: {entry: boolean, payable: boolean, rets: string[], tmp: number} = {entry: false, payable: false, rets: [], tmp: 0}
-  constructor(readonly c: Compiled, readonly file: string) {
+  // (reenter: an address called is any code, which may call back into the contract before the call returns)
+  readonly frames: SRec[] = []
+  constructor(readonly c: Compiled, readonly file: string, readonly reenter = false) {
     const walk = (n: unknown) => {
       if (Array.isArray(n)) { n.forEach(walk); return }
       if (!n || typeof n !== 'object') return
@@ -188,13 +200,15 @@ class Lower {
     for (const [id, f] of Object.entries(fns)) if (Object.values(methods).includes(`entry:${id}`)) this.funcs[`entry:${id}`] = this.fn(f, `entry:${id}`, true)
     // The constructor: every base's state initializers and constructor, base first, with the arguments given to it.
     const init = this.ctor(k)
-    const rec: SRec = {name: k.name, short: k.name, fields: [...this.fields.map(f => ({name: f.name, t: f.t})), {name: MOD, t: {k: 'int'}}, ...(this.ether ? [{name: 'balance', t: U256}] : [])],
+    for (const fr of this.frames) { const n = fr.name.slice('Frame$'.length); methods[`${n}$resume`] = `entry:${Object.keys(fns).find(i => methods[n] === `entry:${i}`)}$resume` }
+    const rec: SRec = {name: k.name, short: k.name, fields: [...this.fields.map(f => ({name: f.name, t: f.t})), {name: MOD, t: {k: 'int'}}, ...(this.ether ? [{name: 'balance', t: U256}] : []),
+      ...this.frames.map(fr => ({name: `frames$${fr.name.slice('Frame$'.length)}`, t: {k: 'map', key: {k: 'int'}, val: {k: 'rec', name: fr.name}} as SType})), ...(this.frames.length ? [{name: 'pending$', t: {k: 'int'} as SType}] : [])],
       methods: {__init__: '__init__', ...methods}, kinds: [], own: true, module: k.name, p: this.at(k)}
     this.funcs.__init__ = init
     const ctorDef = this.lin[0]!.nodes.find((n: Ast) => n.nodeType === 'FunctionDefinition' && n.kind === 'constructor') as Ast | undefined
-    const meta: SolMeta = {addrBits: this.addrBits, contract: k.name, source: this.c.paths.get(Number(String(k.src).split(':')[2]))!, fields: this.fields, fns, payable: Object.entries(entries).filter(([, e]) => e.payable).map(([n]) => n), minW: this.minW, nested: [...this.nested], entries,
+    const meta: SolMeta = {calls: this.calls, resumes: this.frames.map(fr => `${fr.name.slice('Frame$'.length)}$resume`), addrBits: this.addrBits, contract: k.name, source: this.c.paths.get(Number(String(k.src).split(':')[2]))!, fields: this.fields, fns, payable: Object.entries(entries).filter(([, e]) => e.payable).map(([n]) => n), minW: this.minW, nested: [...this.nested], entries,
       ctor: {inputs: ctorDef ? (ctorDef.parameters.parameters as Ast[]).map(x => x.typeDescriptions.typeString as string) : [], payable: ctorDef?.stateMutability === 'payable'}, ether: this.ether}
-    const mod: SModule = {lang: 'solidity', file: this.file.split('/').pop()!, path: this.file, module: k.name, root: '', entries: [{k: 'class', rec: k.name}], recs: {[k.name]: rec}, funcs: this.funcs}
+    const mod: SModule = {lang: 'solidity', file: this.file.split('/').pop()!, path: this.file, module: k.name, root: '', entries: [{k: 'class', rec: k.name}], recs: {[k.name]: rec, ...Object.fromEntries(this.frames.map(fr => [fr.name, fr]))}, funcs: this.funcs}
     return {mod, meta}
   }
   // A function's id: the most derived override of its name and parameter types.
@@ -222,7 +236,57 @@ class Lower {
     for (const r of rets) if (r.name) { this.cur.rets.push(r.name); body.push({s: 'set', p, to: {e: 'var', n: r.name, p}, x: zero(this.ty(r.typeDescriptions.typeString, r), p)}) }
     body.push(...this.withModifiers(f, f.modifiers as Ast[], 0))
     if (this.cur.rets.length) body.push({s: 'ret', p, x: {e: 'var', n: this.cur.rets[0]!, p}})
-    return {id, name: f.kind === 'receive' ? 'receive' : f.kind === 'fallback' ? 'fallback' : f.name, p, span: [p, 0, 0], params, ret, body, decorators: []}
+    const name = f.kind === 'receive' ? 'receive' : f.kind === 'fallback' ? 'fallback' : f.name as string
+    if (this.reenter && callsOut(body)) {
+      if (!entry) this.no(f, `${name}: a call into other code inside a function an entry calls (the subset splits an entry's own body at it)`)
+      return this.split(name, id, params, ret, body, p)
+    }
+    return {id, name, p, span: [p, 0, 0], params, ret, body, decorators: []}
+  }
+  // An entry that calls into other code, as two steps: up to the call (the value moved, the call pending: its locals in
+  // a frame of the state, `frames$<fn>`, at its depth), and from it (`<fn>$resume`: the frame on top given back, ok
+  // whether the callee returned or reverted). Between them any step may run: other code called back. `pending$` is the
+  // depth: the calls pending, the last resumed first (as the code's return).
+  split(name: string, id: string, params: SParam[], ret: SType, body: SS[], p: string): SFunc {
+    const i = body.findIndex(x => x.s === 'callout')
+    if (i < 0) return refuse(p, `${name}: a call into other code inside a branch (the subset splits a body at a call at its top)`)
+    const mk = body[i]!, pre = body.slice(0, i), rest = body.slice(i + 1)
+    if (callsOut(rest)) refuse(p, `${name}: two calls into other code (the subset splits at one)`)
+    // The locals the rest may read: the parameters, and every local the part before sets.
+    const locals = new Map<string, SType>()
+    for (const pa of params) if (!pa.self) locals.set(pa.name, pa.t)
+    const scan = (ss: SS[]) => { for (const x of ss) { const to = x.to as SX | undefined; if (x.s === 'set' && to?.e === 'var') { if (!x.t && !locals.has(String(to.n))) refuse(x.p, `${String(to.n)}: a local of no stated type before a call into other code`); if (x.t) locals.set(String(to.n), x.t as SType) } if (x.s === 'if') { scan(x.then as SS[]); scan(x.else as SS[]) } } }
+    scan(pre)
+    const fld = (n: string) => n.replace(/[^\w]/g, '_')
+    const rec: SRec = {name: `Frame$${name}`, short: `Frame$${name}`, fields: [...locals].map(([n, t]) => ({name: fld(n), t})), methods: {}, kinds: ['dataclass'], own: true, module: this.lin[0]!.name, p}
+    this.frames.push(rec)
+    const M = self(`frames$${name}`, p), D = self('pending$', p), amount = String(mk.amount), ok = String(mk.ok), how = String(mk.how)
+    const v = (n: string): SX => ({e: 'var', n, p}), int = (k: number): SX => ({e: 'int', v: k, p})
+    const fail = (why: string): SS => ({s: 'fail', p, why})
+    const bal = (op: '+' | '-'): SS => ({s: 'set', p, to: self('balance', p), x: {e: 'bin', op, p, text: `balance ${op} value`, x: self('balance', p), y: v(amount)}})
+    const begin: SS[] = [...pre, {s: 'if', p, c: {e: 'cmp', op: '<', p, text: 'balance < value', x: self('balance', p), y: v(amount)},
+      // (the contract holds less: the call fails at once, and no code runs)
+      then: [{s: 'set', p, to: v(ok), x: {e: 'bool', v: false, p}, t: {k: 'bool'}}, ...(how === 'transfer' ? [fail(String(mk.why))] : []), ...rest],
+      else: [
+        bal('-'),
+        {s: 'set', p, to: D, x: {e: 'bin', op: '+', p, text: 'pending$ + 1', x: D, y: int(1)}},
+        {s: 'set', p, to: {e: 'idx', p, text: 'frames[pending$]', x: M, i: D}, x: {e: 'new', p, text: rec.name, rec: rec.name, fields: [...locals.keys()].map(n => [fld(n), v(n)])}},
+        {s: 'ret', p},
+      ]}]
+    const f = '$f'
+    const resume: SS[] = [
+      // (the call on top, this one's: else this is no request, the code returns from the last call first)
+      {s: 'if', p, c: {e: 'cmp', op: '<', p, text: 'pending$ < 1', x: D, y: int(1)}, then: [fail('no call pending')], else: []},
+      {s: 'set', p, to: v(f), x: {e: 'idx', p, text: 'frames[pending$]', x: M, i: D}},
+      ...[...locals.keys()].map((n): SS => ({s: 'set', p, to: v(n), x: {e: 'get', p, text: `$f.${fld(n)}`, x: v(f), f: fld(n)}})),
+      {s: 'del', p, x: {e: 'idx', p, text: 'frames[pending$]', x: M, i: D}},
+      {s: 'set', p, to: D, x: {e: 'bin', op: '-', p, text: 'pending$ - 1', x: D, y: int(1)}},
+      {s: 'set', p, to: v(ok), x: v('$ok'), t: {k: 'bool'}},
+      // (the callee reverted: the value is the contract's again; what the callee's own calls did stays, in the rule)
+      {s: 'if', p, c: {e: 'not', p, strict: true, text: '!ok', x: v('$ok')}, then: [bal('+'), ...(how === 'transfer' ? [fail(String(mk.why))] : [])], else: []},
+      ...rest]
+    this.funcs[`${id}$resume`] = {id: `${id}$resume`, name: `${name}$resume`, p, span: [p, 0, 0], params: [{name: 'self', t: {k: 'rec', name: this.lin[0]!.name}, self: true}, {name: '$ok', t: {k: 'bool'}}], ret, body: resume, decorators: []}
+    return {id, name, p, span: [p, 0, 0], params, ret, body: begin, decorators: []}
   }
   // A function's body inside its modifiers: each modifier's body, `_;` the next one's (or the function's own).
   withModifiers(f: Ast, mods: Ast[], i: number): SS[] {
@@ -268,6 +332,9 @@ class Lower {
       body.push(...this.withModifiers(cf, ((cf.modifiers ?? []) as Ast[]).filter(m => this.defs.get(m.modifierName.referencedDeclaration)?.nodeType === 'ModifierDefinition'), 0))
     }
     if (this.ether) body.splice(1, 0, {s: 'set', p, to: self('balance', p), x: this.cur.payable ? {e: 'var', n: 'msg.value', p} : {e: 'int', v: 0, p}})
+    // (no call pending at the start)
+    for (const fr of this.frames) body.push({s: 'set', p, to: self(`frames$${fr.name.slice('Frame$'.length)}`, p), x: {e: 'dict', keys: [], p, text: '{}'}})
+    if (this.frames.length) body.push({s: 'set', p, to: self('pending$', p), x: {e: 'int', v: 0, p}})
     // (the width above every constant the code reads: a constant is below it, as the type's are)
     body.unshift({s: 'if', p, c: {e: 'cmp', op: '<', p, text: `${MOD} >= ${this.minW}`, x: W, y: {e: 'int', v: this.minW, p}}, then: [{s: 'fail', p, why: `the width ${MOD} (2^256) is at least ${this.minW}`}], else: []})
     const params: SParam[] = [{name: 'self', t: {k: 'rec', name: k.name}, self: true}, {name: MOD, t: {k: 'int'}}, {name: 'msg.sender', t: this.ADDR}, ...(this.cur.payable ? [{name: 'msg.value', t: U256}] : [])]
@@ -319,9 +386,11 @@ class Lower {
   }
   // A value sent to an address: `(bool ok, ) = a.call{value: v}("")`, `a.send(v)`, `payable(a).transfer(v)`. The
   // address called is an account without code: the value moves where the contract holds it (ok), else nothing does.
+  calls = false
   valueCall(e: Ast, ds: (Ast | null)[], how: 'call' | 'send' | 'transfer' = 'call'): SS[] {
     const p = this.at(e)
     this.ether = true
+    this.calls = true
     const target = e.expression.nodeType === 'FunctionCallOptions' ? e.expression.expression : e.expression
     let value: Ast | undefined
     if (e.expression.nodeType === 'FunctionCallOptions') value = (e.expression.options as Ast[])[(e.expression.names as string[]).indexOf('value')]
@@ -331,11 +400,16 @@ class Lower {
     const okName = ds[0]?.name ?? `$ok${this.cur.tmp++}`
     if (ds.slice(1).some(Boolean)) this.no(e, 'the data a call returns (the subset reads its ok)')
     const amount = `$amount${this.cur.tmp++}`, has: SX = {e: 'cmp', op: '<=', p, text: 'balance >= value', x: {e: 'var', n: amount, p}, y: self('balance', p)}
+    if (this.reenter) return [
+      {s: 'set', p, to: {e: 'var', n: amount, p}, x: v, t: U256},
+      {s: 'expr', p, x: this.ex(target.expression)},
+      {s: 'callout', p, amount, ok: okName, how, why: `${this.text(e)}: the call failed (transfer reverts)`},
+    ]
     const out: SS[] = [
       {s: 'set', p, to: {e: 'var', n: amount, p}, x: v},
       // (the address is evaluated: what it reads is read; an account without code accepts the value)
       {s: 'expr', p, x: this.ex(target.expression)},
-      {s: 'set', p, to: {e: 'var', n: okName, p}, x: has, t: {k: 'bool'}, ...{call: {to: this.ex(target.expression), value: amount}}},
+      {s: 'set', p, to: {e: 'var', n: okName, p}, x: has, t: {k: 'bool'}},
       {s: 'if', p, c: {e: 'var', n: okName, p}, then: [{s: 'set', p, to: self('balance', p), x: {e: 'bin', op: '-', p, text: 'balance - value', x: self('balance', p), y: {e: 'var', n: amount, p}}}], else: how === 'transfer' ? [{s: 'fail', p, why: `${this.text(e)}: the contract holds less than the value (transfer reverts)`}] : []},
     ]
     return out
@@ -524,14 +598,15 @@ const zero = (t: SType, p: string): SX => (t.k === 'bool' ? {e: 'bool', v: false
 const scalarT = (t: SType) => t.k === 'int' || t.k === 'bool' || t.k === 'choice'
 const topArrow = (s: string) => { let d = 0; for (let i = 0; i < s.length; i++) { if (s[i] === '(') d++; else if (s[i] === ')') d--; else if (d === 0 && s.startsWith('=>', i)) return i } return -1 }
 const isValueCall = (e: Ast): boolean => e.nodeType === 'FunctionCall' && ((e.expression.nodeType === 'FunctionCallOptions' && e.expression.expression.nodeType === 'MemberAccess' && e.expression.expression.memberName === 'call') || (e.expression.nodeType === 'MemberAccess' && e.expression.memberName === 'send' && /^address/.test(e.expression.expression.typeDescriptions.typeString)))
+const callsOut = (ss: SS[]): boolean => ss.some(s => s.s === 'callout' || (s.s === 'if' && (callsOut(s.then as SS[]) || callsOut(s.else as SS[]))))
 const hasReturn = (ss: SS[]): boolean => ss.some(s => s.s === 'ret' || (s.s === 'if' && (hasReturn(s.then as SS[]) || hasReturn(s.else as SS[]))))
 // The ABI's name of a type.
 const abiType = (ts: string) => (ts.startsWith('address') ? 'address' : ts.startsWith('enum ') ? 'uint8' : ts.startsWith('contract ') ? 'address' : ts.replace(/ (storage|memory|calldata).*$/, ''))
 
 // --- the front end ---------------------------------------------------------------------------------------------------
-export function readSolidity(file: string, o: SolOptions = {}): {mod: SModule, meta: SolMeta, c: Compiled} {
-  const c = compile(file, o)
-  const L = new Lower(c, file)
+export function readSolidity(file: string, o: SolOptions = {}, reenter = false, compiled?: Compiled): {mod: SModule, meta: SolMeta, c: Compiled} {
+  const c = compiled ?? compile(file, o)
+  const L = new Lower(c, file, reenter)
   const entry = typeof o.entry === 'string' ? o.entry : undefined
   const {mod, meta} = L.module(entry)
   return {mod, meta, c}
@@ -573,7 +648,156 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
   if (w) (w as {derived?: unknown}).derived = {op: 'const', v: CHECK_W}
   const unsigned = Object.fromEntries([...read.model.inputs, ...read.model.params].filter(v => read.ints[v.name] && !read.ints[v.name]!.signed).map(v => [v.name, 'nat' as const]))
   const x = fromModel(read.model, mod.file, {...unsigned, ...o.domains}, notes, (rule, sorts) => checkStep(harness(read), read, rule, sorts, o))
-  return {...x, read, names: stepNames(read)}
+  if (!x.ok) return {...x, read, names: stepNames(read)}
+  // (a run that breaks a law, from the prover at any width: replayed on the code at the check's before it is shown)
+  if (!meta.calls || opts.reentrant === false) {
+    const rp = replayer({rule: x.rule!, sorts: x.sorts!, model: read.model, names: stepNames(read), leaves: read.leaves, hello: (harness(read).hello as {sol: unknown}).sol, ctor: read.ctor, replay: compileReplay(opts), opts})
+    return {...x, read, names: stepNames(read), replay: (run: Run, law?: unknown) => rp(run, law)}
+  }
+  // The rule the laws are proven of: every call into other code a point where any of the contract's calls may run.
+  let re: ReturnType<typeof readSolidity>, rread: StepRead
+  try {
+    re = readSolidity(file, opts, true, c)
+    rread = readStep(re.mod, {...o, methods: [...methods, ...re.meta.resumes]})
+  } catch (e) {
+    if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: `re-entrancy: ${e.what}`}], notes: [...x.notes]}
+    throw e
+  }
+  const rw = rread.model.params.find(v => v.name.startsWith(MOD))
+  if (rw) (rw as {derived?: unknown}).derived = {op: 'const', v: CHECK_W}
+  rread.model.notes.push(...boundaryNotes(meta), `re-entrancy: each call into other code (${re.meta.resumes.map(r => r.replace(/\$resume$/, '')).join(', ')}) is two steps, any of the contract's calls between them (a callee that calls back); a law about the state holds where no call is pending (pending$ == 0)`)
+  const rnotes: string[] = []
+  // The check of the re-entrant rule: its own random runs (calls inside calls, by any address) replayed on the code,
+  // every address an Agent that makes the run's calls from inside the call it receives.
+  let replays: ReturnType<typeof replayer> | undefined
+  const runs = {runs: 0, txs: 0, nested: 0, steps: 0}
+  const rx = fromModel(rread.model, mod.file, {...unsigned, ...o.domains, 'pending$': 'nat'}, rnotes, (rule, sorts) => {
+    replays = replayer({rule, sorts, model: rread.model, names: stepNames(rread), leaves: read.leaves, hello: (harness(read).hello as {sol: unknown}).sol, ctor: read.ctor, replay: compileReplay(opts), opts})
+    const ev = {...x.evidence!}
+    const n = opts.check?.runs === undefined ? 40 : Math.max(4, Math.round(opts.check.runs / 5)), rand = seeded((opts.check?.seed ?? 11) >>> 0 || 1)
+    for (let i = 0; i < n; i++) {
+      const run = randomRun(rule, rread.model, rand)
+      if (!run.trace.length) continue
+      const r = replays(run)
+      if (!r.ok) return {...ev, mismatch: `re-entrancy: a run of the rule replayed on the code: ${r.what}`}
+      runs.runs++; runs.txs += r.txs; runs.nested += r.nested; runs.steps += run.trace.length
+    }
+    return ev
+  })
+  if (rx.ok) rx.notes.push(`re-entrancy: checked by ${runs.runs} runs of the rule replayed on the code (${runs.txs} transactions, ${runs.nested} calls made from inside another, ${runs.steps} steps), an Agent at every address making each call from inside the one it receives`)
+  return {...rx, read: rread, names: stepNames(rread), quiet: 'pending$', ...(replays ? {replay: (run: Run, law?: unknown) => replays!(run, law)} : {})}
+}
+
+// --- re-entrant runs replayed on the code ---------------------------------------------------------------------------------
+type Run = {params: Record<string, number>, trace: Record<string, unknown>[]}
+function compileReplay(o: SolOptions): {agent: string, director: string} {
+  const c = compile(new URL('./sol/Replay.sol', import.meta.url).pathname, {...o, root: new URL('./sol/', import.meta.url).pathname})
+  const k = c.contracts[c.paths.get(c.main)!]!
+  return {agent: k.Agent!.evm.deployedBytecode.object, director: k.Director!.evm.deployedBytecode.object}
+}
+// A random run of the re-entrant rule: requests the rule allows, then every pending call resumed (ok), at the width the
+// check runs at.
+function randomRun(rule: Rule, model: Model, rand: (k: number) => number): Run {
+  const m = rule.machine, it = interpret(m), w = model.params.find(v => v.name.startsWith(MOD))
+  const params = rule.randomParams(rand, 6)
+  if (w) params[w.name] = CHECK_W
+  for (const v of model.params) if (v.name !== w?.name && params[v.name] === 0 && /sender/.test(v.name)) params[v.name] = 1
+  if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) return {params, trace: []}
+  const ev = model.inputs.find(v => v.name === model.event), names = ev?.sort.k === 'choice' ? ev.sort.values : []
+  const resumes = names.flatMap((n, i) => (n.endsWith('$resume') ? [i] : []))
+  let st = it.init(params)
+  const trace: Record<string, unknown>[] = []
+  const take = (input: Request): boolean => {
+    try { if (!allowed(m, it, params, st, input)) return false; st = it.step(params, st, input); trace.push({...input}); return true } catch { return false }
+  }
+  const depth = 2 + rand(10)
+  for (let tries = 0; trace.length < depth && tries < 200; tries++) take(rule.randomInput(rand, 6, params))
+  // (the calls pending returned, the last first: a request of a resume, its ok true)
+  for (let tries = 0; Number(rule.decode(st)['pending$'] ?? 0) > 0 && tries < 400; tries++) {
+    const input = rule.randomInput(rand, 6, params) as Record<string, number>
+    if (!ev || !resumes.length) break
+    input[ev.name] = resumes[rand(resumes.length)]!
+    for (const k of Object.keys(input)) if (k.endsWith('$ok')) input[k] = 1
+    take(input as Request)
+  }
+  return Number(rule.decode(st)['pending$'] ?? 0) > 0 ? {params, trace: []} : {params, trace}
+}
+type ReplayCtx = {rule: Rule, sorts: Sorts, model: Model, names: Name[], leaves: StepRead['leaves'], hello: unknown, ctor: StepRead['ctor'], replay: {agent: string, director: string}, opts: SolOptions}
+// A run replayed: the rule's steps at the check's width, cut into the code's transactions (a call made at no depth up to
+// the depth back at 0), each call by its Agent, each resume an Agent's return; the state after each transaction the
+// rule's, every call made. With a law, the law broken by the run at that width too.
+function replayer(c: ReplayCtx) {
+  return (run: Run, law?: unknown): {ok: boolean, what: string, txs: number, nested: number} => {
+    const no = (what: string) => ({ok: false, what, txs: 0, nested: 0})
+    const isLaw = !!law && typeof law === 'object' && 'holds' in law
+    let R: Rule = c.rule
+    try { if (isLaw) R = (c.rule as unknown as {withSumsOf: (l: unknown) => Rule}).withSumsOf(law) } catch { R = c.rule }
+    const m = R.machine, it = interpret(m), w = c.model.params.find(v => v.name.startsWith(MOD))
+    const ps: Record<string, number> = {...run.params, ...(w ? {[w.name]: CHECK_W} : {})}
+    if (m.pre && !evalC(m.pre, ps, {scalars: {}, maps: {}}, m)) return no(`made at the width 2^52, the precondition refuses it`)
+    let st = it.init(ps)
+    const watcher = law ? watch(m, it, law as never, ps, 8) : undefined
+    let broke = watcher ? (watcher.start(st) ? -1 : 0) : -1
+    const ev = c.model.event, steps: {method: string, args: [string, unknown][], ok?: boolean, depth: number, before: number}[] = []
+    const decodeIn = (req: Record<string, unknown>, name: string): unknown => { const v = c.model.inputs.find(x => x.name === name)!; const k = kindOfVar(v, c.sorts); return k.decode(name, Object.fromEntries(k.vars(name).map(part => [part, Number(req[part] ?? 0)]))) }
+    const states: Record<string, unknown>[] = []
+    for (const [i, req0] of run.trace.entries()) {
+      const req = req0 as Request
+      const before = Number(R.decode(st)['pending$'] ?? 0)
+      if (!allowed(m, it, ps, st, req)) return no(`step ${i + 1} is refused at the width 2^52 (the run is the rule's at a narrower one)`)
+      const next = it.step(ps, st, req)
+      if (watcher && broke < 0 && !watcher.step(st, req, next)) broke = i + 1
+      st = next
+      const method = ev ? String(decodeIn(req0, ev)) : c.model.events[0]!.call
+      const args = c.names.filter(n => n.role === 'input' && n.method === method && n.rule).map(n => [n.code, decodeIn(req0, n.rule)] as [string, unknown])
+      steps.push({method, args, depth: Number(R.decode(st)['pending$'] ?? 0), before})
+      states.push(R.decode(st) as Record<string, unknown>)
+      if (broke > 0 && steps.at(-1)!.depth === 0) break
+    }
+    if (law && broke < 0) return no('the law holds on this run at the width 2^52 (it breaks only at a narrower one)')
+    if (steps.at(-1)?.depth) return no('the run ends with a call pending (no state of the code between transactions)')
+    // The transactions: each from a call at depth 0 to the depth back at 0.
+    const groups: {kind: 'call' | 'ret', m?: string, a?: [string, {in: unknown}][], ok?: boolean}[][] = []
+    const after: Record<string, unknown>[] = []
+    let nested = 0
+    for (const [i, s] of steps.entries()) {
+      if (s.before === 0) groups.push([])
+      const g = groups.at(-1)!
+      if (s.method.endsWith('$resume')) g.push({kind: 'ret', ok: s.args.find(([n]) => n === '$ok')?.[1] === true})
+      else { if (s.before > 0) nested++; g.push({kind: 'call', m: s.method, a: s.args.map(([n, v]) => [n, {in: v}])}) }
+      if (s.depth === 0) after.push(states[i]!)
+    }
+    const fs = node<FS & {writeFileSync: (p: string, s: string) => void, mkdtempSync: (p: string) => string, rmSync: (p: string, o?: unknown) => void}>('node:fs'), os = node<{tmpdir: () => string}>('node:os'), cp = node<CP>('node:child_process')
+    const dir = fs.mkdtempSync(`${os.tmpdir()}/gdp-solreplay-`)
+    const ctorArgs = c.ctor.map(([n, a]) => [n, a.k === 'in' ? {in: n === MOD || n.startsWith(MOD) ? CHECK_W : ps[a.name] ?? 0} : {dflt: true}])
+    let out: {error?: string, states?: Record<string, unknown>[], oks?: boolean[][]}
+    try {
+      fs.writeFileSync(`${dir}/run.json`, JSON.stringify({sol: c.hello, leaves: c.leaves, ctorSpec: c.ctor, ctor: ctorArgs, agent: c.replay.agent, director: c.replay.director, groups}))
+      out = JSON.parse(cp.execFileSync(c.opts.python ?? 'python3', [new URL('./sol/harness.py', import.meta.url).pathname, '--replay', `${dir}/run.json`], {encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'pipe'], env: {...env(), ...(c.opts.anvil ? {GDP_ANVIL: c.opts.anvil} : {})}}))
+    } catch (e) { return no(`the replay didn't run (${String((e as Error).message).slice(0, 300)})`) } finally { fs.rmSync(dir, {recursive: true, force: true}) }
+    if (out.error) return no(`the code: ${out.error}`)
+    const shown = (g: number) => groups[g]!.map(e => (e.kind === 'ret' ? `return(${e.ok})` : `${e.m}(${e.a!.map(([n, v]) => `${n}=${String(v.in)}`).join(', ')})`)).join(' ')
+    for (const [g, ok] of (out.oks ?? []).entries()) if (ok.some(x => !x)) return no(`transaction ${g + 1} (${shown(g)}): a call the rule takes reverts in the code`)
+    for (const [g, code] of (out.states ?? []).entries()) {
+      const d = sameState(c.leaves, after[g]!, code)
+      if (d) return no(`after transaction ${g + 1} (${shown(g)}): ${d}`)
+    }
+    return {ok: true, what: `replayed on the code (anvil, the contract's bytecode): ${groups.length} transactions, ${nested} calls made from inside another, the state after each the rule's${law ? ', the law broken there' : ''}`, txs: groups.length, nested}
+  }
+}
+// The rule's state (decoded) against the code's (the harness's), leaf by leaf: undefined where they agree.
+function sameState(leaves: StepRead['leaves'], rule: Record<string, unknown>, code: Record<string, unknown>): string | undefined {
+  for (const l of leaves) {
+    if (l.kind === 'frame' || l.kind === 'none') continue
+    if (l.kind === 'map') {
+      const r = Object.fromEntries(Object.entries((rule[l.name] ?? {}) as Record<string, Record<string, unknown>>).filter(([, c]) => c.has).map(([k, c]) => [k, String(c.value)]))
+      const k = Object.fromEntries(Object.entries((code[l.name] ?? {}) as Record<string, {value: unknown}>).map(([key, c]) => [key, String(c.value)]))
+      if (JSON.stringify(Object.entries(r).sort()) !== JSON.stringify(Object.entries(k).sort())) return `${l.path.join('.')} is ${JSON.stringify(k)} in the code, ${JSON.stringify(r)} in the rule`
+      continue
+    }
+    if (String(rule[l.name]) !== String(code[l.name])) return `${l.path.join('.')} is ${String(code[l.name])} in the code, ${String(rule[l.name])} in the rule`
+  }
+  return undefined
 }
 const kindOf = (t: SType, sol = ''): string => (t.k === 'map' ? `map:${kindOf((t as {val: SType}).val, valueSol(sol))}` : sol.startsWith('address') ? 'addr' : t.k === 'int' ? (t.mod ? 'u256' : `${t.signed ? 'i' : 'u'}${t.bits ?? 0}`) : t.k === 'choice' ? `choice:${t.values.join('|')}` : t.k)
 const valueSol = (sol: string): string => { if (!sol.startsWith('mapping(')) return sol; const inner = sol.slice('mapping('.length, -1); return valueSol(inner.slice(topArrow(inner) + 2).trim()) }

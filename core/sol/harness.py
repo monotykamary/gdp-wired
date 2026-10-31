@@ -338,14 +338,8 @@ def call(req):
   if req.get('now'):
     try: rpc('evm_setNextBlockTimestamp', [int(req['now'])])
     except RpcError as x: return {'bad': f'the time {req["now"]}: {x}'}
-  params = [n for n, _ in req['a'] if n not in ('msg.sender', 'msg.value')]
-  for n, t in zip(params, e['inputs']):
-    if not fits(kind_of_type(t), a[n], W): return {'err': f'{n} outside its type'}
-    if kind_of_type(t) in ('addr', 'u256'): o['cands'].add(int(a[n]))
-  o['cands'].add(sender)
-  data = '' if m in ('receive', 'fallback') else S['ids'][e['sig']] + abi_args(e['inputs'], [a[n] for n in params], W)
-  if not fits('u256', a.get('msg.value', 0), W): return {'err': 'msg.value outside its type'}
-  value = to_code(int(a.get('msg.value', 0)), W)
+  data, value, bad = calldata(o, m, req['a'], W)
+  if bad: return {'err': bad}
   frm = addr_hex(sender)
   fund(frm, value)
   tx = {'from': frm, 'to': o['addr'], 'data': '0x' + data, 'value': hex(value), 'gas': hex(30_000_000), 'gasPrice': '0x0'}
@@ -364,7 +358,85 @@ def call(req):
   return {'out': out}
 
 
+# A call's data and value (the rule's arguments as the code's), or why it can't be made.
+def calldata(o, m, args, W):
+  e = S['entries'][m]
+  a = dict((n, arg_value(s)) for n, s in args)
+  params = [n for n, _ in args if n not in ('msg.sender', 'msg.value')]
+  for n, t in zip(params, e['inputs']):
+    if not fits(kind_of_type(t), a[n], W): return None, None, f'{n} outside its type'
+    if kind_of_type(t) in ('addr', 'u256'): o['cands'].add(int(a[n]))
+  o['cands'].add(int(a.get('msg.sender', 0)))
+  if not fits('u256', a.get('msg.value', 0), W): return None, None, 'msg.value outside its type'
+  data = '' if m in ('receive', 'fallback') else S['ids'][e['sig']] + abi_args(e['inputs'], [a[n] for n in params], W)
+  return data, to_code(int(a.get('msg.value', 0)), W), None
+
+
+# --- re-entrant runs replayed: an Agent at every address, a Director with the run's script --------------------------------
+DIRECTOR = 0xD1EC70
+
+
+def abi_dyn(t, kinds, froms, values, rets, datas):
+  def arr(xs): return word(len(xs)) + ''.join(word(x) for x in xs)
+  def barr(bs):
+    heads, tails, off = [], [], 32 * len(bs)
+    for b in bs:
+      raw = bytes.fromhex(b)
+      body = word(len(raw)) + raw.hex() + '00' * ((32 - len(raw) % 32) % 32)
+      heads.append(word(off)); tails.append(body); off += len(body) // 2
+    return word(len(bs)) + ''.join(heads) + ''.join(tails)
+  parts = [arr(kinds), arr(froms), arr(values), arr([1 if r else 0 for r in rets]), barr(datas)]
+  head, off, tail = word(t), 32 * 6, ''
+  for p in parts:
+    head += word(off); tail += p; off += len(p) // 2
+  return head + tail
+
+
+def replay(req):
+  hello({'sol': req['sol'], 'leaves': req['leaves'], 'ctor': req['ctorSpec']})
+  i = make(req['ctor'])
+  o = OBJS[i]
+  W = o['W']
+  d = '0x' + format(DIRECTOR, '040x')
+  rpc('anvil_setCode', [d, '0x' + req['director']])
+  run_sel = keccak('run(address,uint8[],address[],uint256[],bool[],bytes[])'.encode().hex())[:8]
+  oks_sel, count_sel = keccak('oks(uint256)'.encode().hex())[:8], keccak('count()'.encode().hex())[:8]
+  agents = set()
+  out = {'states': [], 'oks': []}
+  for g in req['groups']:
+    kinds, froms, values, rets, datas = [], [], [], [], []
+    for e in g:
+      if e['kind'] == 'ret':
+        kinds.append(1); froms.append(0); values.append(0); rets.append(bool(e['ok'])); datas.append('')
+        continue
+      a = dict((n, arg_value(s)) for n, s in e['a'])
+      data, value, bad = calldata(o, e['m'], e['a'], W)
+      if bad: return {'error': f'a call the code can\'t be given: {bad}'}
+      sender = int(a.get('msg.sender', 0))
+      if not 0 < sender < addr_limit(): return {'error': 'msg.sender outside the addresses'}
+      if sender not in agents:
+        rpc('anvil_setCode', [addr_hex(sender), '0x' + req['agent']])
+        agents.add(sender)
+      rpc('anvil_setBalance', [addr_hex(sender), hex(min(value + (1 << 128), TWO256 - 1))])
+      kinds.append(0); froms.append(addr_of(sender)); values.append(value); rets.append(False); datas.append(data)
+    frm = '0x' + format(0xBEEF << 140, '040x')
+    r, err = send(frm, d, run_sel + abi_dyn(int(o['addr'], 16), kinds, froms, values, rets, datas), 0)
+    if err: return {'error': f'transaction {len(out["states"]) + 1} reverts: {err}', **out}
+    n = int(rpc('eth_call', [{'to': d, 'data': '0x' + count_sel}, 'latest']), 16)
+    out['oks'].append([int(rpc('eth_call', [{'to': d, 'data': '0x' + oks_sel + word(k)}, 'latest']), 16) == 1 for k in range(n)])
+    out['states'].append(state_of(i))
+  return out
+
+
 def main():
+  if sys.argv[1] == '--replay':
+    req = json.load(open(sys.argv[2]))
+    try: res = replay(req)
+    except Exception as e: res = {'error': f'{type(e).__name__}: {e}'[:500]}
+    finally:
+      if S.get('anvil'): S['anvil'].kill()
+    print(json.dumps(res))
+    return
   fin = open(sys.argv[1], 'r'); fout = open(sys.argv[2], 'w')
   try:
     for line in fin:
