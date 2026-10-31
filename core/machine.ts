@@ -5,7 +5,7 @@
 // Arithmetic is linear: +, −, × by a constant, min, max, if. Maps are naturals indexed by naturals, every cell starting
 // at the same value; a law about a map holds for every key x, and is proven at one arbitrary x (with the law assumed at
 // every other key the step reads).
-import {boundOf, crossFree, historyMachine, keyTerm, plainKey, scope, substC, sumRuntime} from '../kernel/kernel.ts'
+import {boundOf, crossFree, historyMachine, keyTerm, plainKey, scope, sumRuntime} from '../kernel/kernel.ts'
 import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
 
 // The searches' random draws: the high bits of a linear congruence (the low ones repeat with a short period).
@@ -491,14 +491,6 @@ const refused = (m: Machine) => `${m.name}: the request fails the rule's assumpt
 // The interpreter: persistent (a step leaves the state it was given as it was), so searches can branch from any state.
 export function interpret(m: Machine) {
   const {h, plain, carried} = runnable(m)
-  // (a quantified flag that only other flags read, no write, state, assumption or record: inlined into them, so `and`
-  // stops before it at a request of another action: the same values, fewer reads; wo's quorum flags read at every request)
-  const fl = (t: unknown) => new Set([...JSON.stringify(t ?? null).matchAll(/"op":"flag","name":"([^"]+)"/g)].map(x => x[1]!))
-  const direct = fl([plain.step.state, plain.step.maps, m.assume, h?.keep]), all0 = Object.entries(plain.step.flags ?? {})
-  const inl: Record<string, C> = Object.fromEntries(all0.filter(([n, c]) => c.op === 'all' && !direct.has(n)))
-  const self: Record<string, C> = Object.fromEntries(all0.map(([n]) => [n, {op: 'flag', name: n}]))
-  const inline = (c: C): C => { let x = c; for (let i = 0; i < 8 && [...fl(x)].some(n => n in inl); i++) x = substC(x, {vars: {}, maps: {}, flags: {...self, ...inl}}); return x }
-  const flags = all0.filter(([n]) => !(n in inl)).map(([n, c]) => [`?${n}`, Object.keys(inl).length ? inline(c) : c] as const)
   const args = (params: Env, input?: Request): Env => {
     const env: Env = {}
     for (const p of m.params) env[p] = naturalIn(params[p], `param ${p}`)
@@ -549,16 +541,14 @@ export function interpret(m: Machine) {
       let records: Env[] = []
       if (h) { ordered(env, st); records = live(env, st); Object.assign(env, queriesOf(env, records)) }
       if (m.leasts) Object.assign(env, leastsIn(m, env, st))
-      for (const [name, c] of flags) env[name] = evalC(c, env, st, plain) ? 1 : 0
+      for (const [name, c] of Object.entries(plain.step.flags ?? {})) env[`?${name}`] = evalC(c, env, st, plain) ? 1 : 0
       if (m.assume && !evalC(m.assume, env, st, plain)) throw new RangeError(refused(m))
       const scalars = {...st.scalars}
       for (const [name, e] of Object.entries(plain.step.state ?? {})) scalars[name] = evalE(e, env, st, plain)
       const writes = Object.entries(plain.step.maps ?? {}).map(([name, w]) => [name, 'each' in w ? writeEvery(w, env, st, plain) : {key: evalE(w.key, env, st, plain), value: evalE(w.value, env, st, plain)}] as const)
-      // (a map no write changes is shared with the state given, which no step changes: a cell written with the value it
-      // holds changes nothing; the maps the step would have copied, at every request of a search's instance)
-      const maps = {...given.maps}
+      const maps = Object.fromEntries(Object.entries(given.maps).map(([name, cells]) => [name, new Map(cells)]))
       const defaults = {...given.defaults}
-      for (const [name, w] of writes) if ('cells' in w) { maps[name] = w.cells; defaults[name] = w.default } else if (maps[name]!.get(w.key) !== w.value || !maps[name]!.has(w.key)) (maps[name] = new Map(maps[name])).set(w.key, w.value)
+      for (const [name, w] of writes) if ('cells' in w) { maps[name] = w.cells; defaults[name] = w.default } else maps[name]!.set(w.key, w.value)
       const withDefaults = Object.keys(defaults).length ? {defaults} : {}
       if (!h) return {scalars, maps, ...withDefaults}
       const kept = evalC(h.keep, env, st, plain)
