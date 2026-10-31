@@ -13,8 +13,8 @@
 // chosen in order, each one no step raises that lowers the most of those left. The rank is then the kernel's
 // (proveLiveness), with the invariants inferLaws finds where its goals need some. Nothing new is trusted.
 import {type C, type E, type Law, type Machine, type Rand, type Request, type State, evalC, evalE, interpret, seeded, walk} from './machine.ts'
-import {type Liveness, livenessHelpful, livenessParts, substE} from '../kernel/kernel.ts'
-import {clock, proveLiveness, withDeadline} from '../kernel/prove.ts'
+import {type Liveness, type Subst, falseC, livenessHelpful, livenessParts, substC, substE} from '../kernel/kernel.ts'
+import {clock, proveLiveness, proveProgress, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {allowed, watch} from './watch.ts'
 import {type LeadsVerdict, showE} from './cycles.ts'
 import {inferLaws} from './infer.ts'
@@ -57,11 +57,11 @@ function distances(m: Machine, l: Liveness): E[] {
 
 // A variable's values ranked by the steps between them: each strongly connected set one level, a level above every one
 // a step goes to from it (Tarjan's components, then the longest path down).
-function controlRank(x: string, steps: Step[]): E | undefined {
+function controlRank(x: E, value: (e: E, st: Step, after: boolean) => number, steps: Step[]): E | undefined {
   const graph = new Map<number, Set<number>>()
   const node = (a: number) => graph.get(a) ?? (graph.set(a, new Set()), graph.get(a)!)
-  for (const st of steps) { const a = st.s.scalars[x]!, b = st.t.scalars[x]!; node(b); if (a !== b) node(a).add(b) }
-  if (graph.size < 2) return undefined
+  for (const st of steps) { const a = value(x, st, false), b = value(x, st, true); if (Number.isNaN(a) || Number.isNaN(b)) return undefined; node(b); if (a !== b) node(a).add(b) }
+  if (graph.size < 2 || graph.size > 16) return undefined
   const index = new Map<number, number>(), low = new Map<number, number>(), comp = new Map<number, number>(), stack: number[] = []
   let n = 0, c = 0
   const visit = (a: number): void => {
@@ -82,7 +82,7 @@ function controlRank(x: string, steps: Step[]): E | undefined {
   }
   const values = [...graph.keys()].sort((p, q) => p - q).map(a => [a, level.get(comp.get(a)!)!] as const)
   if (values.every(([, lv]) => lv === 0)) return undefined
-  return values.slice(0, -1).reduceRight<E>((rest, [a, lv]) => ({op: 'if', c: {op: '=', a: v(x), b: k(a)}, then: k(lv), else: rest}), k(values.at(-1)![1]))
+  return values.slice(0, -1).reduceRight<E>((rest, [a, lv]) => ({op: 'if', c: {op: '=', a: x, b: k(a)}, then: k(lv), else: rest}), k(values.at(-1)![1]))
 }
 
 // The variables a kind law bounds by a small constant (x < c, x <= c).
@@ -166,14 +166,19 @@ export function leadsByTerms(m: Machine, laws: Law[], l: Liveness, draws: Draws,
   // The components, then the ranks: each component the one no step raises that lowers the most steps left to lower.
   const value = (e: E, ps: Env, st: State) => { try { return evalE(e, env(ps, st), st, m) } catch { return NaN } }
   const fixed = distances(m, l), text = (rank: E[]) => `(${rank.map(showE).join(', ')})`, tried = new Set<string>()
+  // the control: the variables a kind law bounds, and the cells `from` and `to` read at a key of the params (a liveness
+  // about every key reads its key's cells: a status per key)
+  const cells = new Map<string, E>()
+  walk([l.from, l.to], o => { if (o.op === 'get' && !reads(o.key as E, [...m.inputs, ...Object.keys(m.state)]) && !id(o.key).includes('"op":"get"')) cells.set(id(o), o as unknown as E) })
+  const controls = [...bounded(m, laws).map(v), ...cells.values()]
   let last: ReturnType<typeof proveLiveness> | undefined, best: E[] | undefined
   for (let round = 0; round < 6 && until - clock() > 200; round++) {
-    const cands = [...bounded(m, laws).map(x => controlRank(x, steps)).filter((e): e is E => !!e), ...fixed]
+    const cands = [...controls.map(x => controlRank(x, (e, st, after) => value(e, st.ps, after ? st.t : st.s), steps)).filter((e): e is E => !!e), ...fixed]
     const vals = cands.map(e => steps.map(st => [value(e, st.ps, st.s), value(e, st.ps, st.t)] as const))
     const build = (banned: Set<number>): E[] | undefined => {
       let left = steps.map((_, i) => i)
       const rank: number[] = []
-      for (let turn = 0; turn < 3 && left.some(i => steps[i]!.lower); turn++) {
+      for (let turn = 0; turn < 4 && left.some(i => steps[i]!.lower); turn++) {
         let pick = -1, most = 0
         for (let c = 0; c < cands.length; c++) {
           if (banned.has(c) || rank.includes(c)) continue
@@ -214,7 +219,7 @@ export function leadsByTerms(m: Machine, laws: Law[], l: Liveness, draws: Draws,
   const rank = best, lv: Liveness = {...l, rank}, ms = until - clock()
   if (ms > 300) {
     const {stay, cover, helps} = livenessParts(m, lv), inf = inferLaws(draws.rule ?? m, laws, [stay, cover, ...helps], {ms})
-    const kept = inf.found.filter(f => !f.law.forall && !f.law.keys?.length), more = kept.map(f => f.law)
+    const kept = inf.found.filter(f => !f.law.some?.length), more = kept.map(f => f.law)
     if (inf.proven && more.length) {
       const again = withDeadline(until + 5000, () => proveLiveness(m, [...laws, ...more], lv))
       if (again.proven && again.checked) return {proven: true, checked: true, rank, laws: more, found: {rank: text(rank), laws: kept.map(f => f.text)}}
@@ -223,3 +228,108 @@ export function leadsByTerms(m: Machine, laws: Law[], l: Liveness, draws: Draws,
   const failed = last?.failed ? {goal: last.failed.goal, stuck: last.failed.stuck, ...(last.failed.witness ? {witness: last.failed.witness} : {})} : {}
   return {proven: false, checked: false, rank, found: {rank: text(rank), laws: []}, ...failed, why: `rank ${text(rank)} of the rule's terms, from ${steps.length} steps sampled; the kernel's goals not proven with it`}
 }
+
+// --- a run that never gets there ------------------------------------------------------------------------------------
+
+// A leads-to refuted by a run: a stem (requests from the start, at `params`) to a state of the first of a ring of sets
+// where `from` holds and `to` doesn't; then round the ring forever: from each set R_j its request (a term per input over
+// the state and params; inputs left out are 0), which the kernel proves allowed in every state of R_j that is reachable
+// and taking it into R_{j+1} (R_n = R_0) with `from` kept and `to` not reached (kernel.ts's progressObligations). The run
+// is fair to a helpful request it takes in the ring (each named input the helpful one's term): so taken infinitely
+// often. One it never takes must be allowed nowhere in some set (weak fairness: never allowed throughout) or in every
+// set (strong: allowed only finitely often), each proven by the kernel as a step law with `then` false. The verdict
+// says which fairness the run keeps: 'every' (each helpful request taken infinitely often: a run of every notion),
+// 'strong' or 'weak'; the law is refuted where that covers the law's own (weak unless it says strong). Nothing is
+// trusted beyond the kernel's goals; the stem runs on the interpreter. Untrusted, as the rest of this file.
+export type Ring = {params: Env, stem: Request[], sets: {holds: C, request: Record<string, E>}[]}
+export type RingVerdict = {refuted: boolean, fairness?: 'every' | 'strong' | 'weak', why?: string}
+export function refutedBy(m: Machine, laws: Law[], l: Liveness, ring: Ring): RingVerdict {
+  const run = interpret(m), helpful = livenessHelpful(l), n = ring.sets.length
+  if (!n) return {refuted: false, why: 'no set'}
+  let st = run.init(ring.params)
+  for (const [i, req] of ring.stem.entries()) {
+    if (!allowed(m, run, ring.params, st, req)) return {refuted: false, why: `the stem's request ${i + 1} is not allowed`}
+    st = run.step(ring.params, st, req)
+  }
+  const at = (c: C) => evalC(c, {...ring.params, ...st.scalars}, st, m)
+  if (!at(l.from) || at(l.to) || !at(ring.sets[0]!.holds)) return {refuted: false, why: 'the stem ends where `from` doesn\'t hold, `to` does, or outside the first set'}
+  const after: Subst = {vars: Object.fromEntries(Object.keys(m.state).map(x => [x, v(`${x}'`)])), maps: Object.fromEntries(Object.keys(m.maps ?? {}).map(map => [map, (key: E): E => ({op: 'get', map: `${map}'`, key})])), flags: {}}
+  const full = (r: Record<string, E>) => Object.fromEntries(m.inputs.map(i => [i, r[i] ?? k(0)]))
+  for (const [j, set] of ring.sets.entries()) {
+    const next = ring.sets[(j + 1) % n]!.holds, then: C = {op: 'and', xs: [substC(next, after), substC(l.from, after), {op: 'not', x: substC(l.to, after)}]}
+    const p = proveProgress(m, laws, {name: `${l.name}: ring ${j + 1}`, when: set.holds, then, request: full(set.request)})
+    if (!p.proven || !p.checked) return {refuted: false, why: `ring ${j + 1}: its request not proven allowed and into the next set${p.failed ? ` (${p.failed.goal})` : ''}`}
+  }
+  // each helpful request: taken in the ring, else where it is never allowed
+  const same = (a: unknown, b: unknown) => id(a) === id(b)
+  let fair: 'every' | 'strong' | 'weak' = 'every'
+  for (const [i, h] of helpful.entries()) {
+    if (ring.sets.some(set => Object.entries(h.request).every(([x, t]) => same(full(set.request)[x], t)))) continue
+    const off = ring.sets.map(set => { const r = proveStepLaws(m, laws, [{name: `${l.name}: helpful request ${i + 1} not allowed`, when: {op: 'and', xs: [set.holds, ...Object.entries(h.request).map(([x, t]): C => ({op: '=', a: v(x), b: t}))]}, then: falseC}]); return r.proven && r.checked })
+    if (off.every(Boolean)) fair = fair === 'every' ? 'strong' : fair
+    else if (off.some(Boolean)) fair = 'weak'
+    else return {refuted: false, why: `helpful request ${i + 1} is not taken in the ring and not shown never allowed in any set`}
+  }
+  const refuted = l.fairness === 'strong' ? fair !== 'weak' : true
+  return {refuted, fairness: fair, ...(refuted ? {} : {why: 'the run is fair only weakly; the law is under strong fairness'})}
+}
+
+// A ring of one set, found: a state the runs reach where `from` holds and `to` doesn't and the helpful requests taken in
+// turn keep it so; the set, the literals of the rule's comparisons (its guards and steps, also as each helpful request
+// meets them, `from`, `to`, the regions) true there, the ring's requests the helpful requests allowed there. Literals a
+// request doesn't keep are dropped (each kept literal proven by the kernel after each request, as Houdini drops them)
+// until the rest are kept; then refutedBy checks the ring. Undefined where none is found.
+export function findRing(m: Machine, laws: Law[], l: Liveness, draws: Draws, opts: {ms?: number} = {}): {ring: Ring, verdict: RingVerdict} | undefined {
+  const until = clock() + (opts.ms ?? 10_000), rand = seeded(17), run = interpret(m), helpful = livenessHelpful(l)
+  const env = (ps: Env, st: State): Env => ({...ps, ...st.scalars})
+  const holds = (c: C, ps: Env, st: State) => { try { return evalC(c, env(ps, st), st, m) } catch { return undefined } }
+  const pending = (ps: Env, st: State) => holds(l.from, ps, st) === true && holds(l.to, ps, st) === false
+  const full = (r: Record<string, E>) => Object.fromEntries(m.inputs.map(i => [i, r[i] ?? k(0)]))
+  const concrete = (r: Record<string, E>, ps: Env, st: State): Request => Object.fromEntries(Object.entries(full(r)).map(([i, t]) => [i, evalE(t, env(ps, st), st, m)]))
+  // A state where `from` holds and `to` doesn't, then the helpful requests allowed taken in turn, a hundred laps (the
+  // time passing them, every deadline the params allow passed), never reaching `to`: the state the laps end at.
+  let found: {ps: Env, stem: Request[], st: State, hs: number[]} | undefined
+  const allowedAt = (ps: Env, st: State) => helpful.flatMap((h, i) => { try { return allowed(m, run, ps, st, concrete(h.request, ps, st)) ? [i] : [] } catch { return [] } })
+  for (let trial = 0; trial < 400 && !found && clock() < until; trial++) {
+    let ps: Env, st: State
+    try { ps = draws.params(rand, 2 + (trial % 3) * 2); if (m.pre && !evalC(m.pre, ps, {scalars: {}, maps: {}}, m)) continue; st = run.init(ps) } catch { continue }
+    const stem: Request[] = []
+    for (let turn = 0; turn < 40; turn++) {
+      if (turn > 0 && pending(ps, st)) {
+        let s2: State | undefined = st
+        const laps: Request[] = []
+        for (let lap = 0; lap < 100 && s2; lap++) for (const i of allowedAt(ps, s2)) {
+          if (!s2) break
+          const req = concrete(helpful[i]!.request, ps, s2)
+          if (!allowed(m, run, ps, s2, req)) continue
+          s2 = run.step(ps, s2, req); laps.push(req)
+          if (!pending(ps, s2)) s2 = undefined
+        }
+        const hs = s2 ? allowedAt(ps, s2) : []
+        if (s2 && hs.length) { found = {ps, stem: [...stem, ...laps], st: s2, hs}; break }
+      }
+      try {
+        const req = draws.input(rand, 4, ps)
+        if (!allowed(m, run, ps, st, req)) continue
+        st = run.step(ps, st, req); stem.push(req)
+      } catch { /* refused: another */ }
+    }
+  }
+  if (!found) return undefined
+  // the literals there
+  const atoms = new Map<string, C>()
+  const add = (t: unknown) => walk(t, o => { if ((o.op === '<' || o.op === '<=' || o.op === '=') && typeof o.a === 'object' && typeof o.b === 'object') { const c = o as unknown as C; if (!readsC(c, m.inputs) && !id(c).includes('"op":"flag"')) atoms.set(id(c), c) } })
+  add([l.from, l.to, helpful.map(h => h.when), m.assume, m.step])
+  for (const h of helpful) { const sb = {vars: full(h.request), maps: {}, flags: {}}; if (m.assume) add(substC(m.assume, sb)); for (const e of Object.values(m.step.state ?? {})) add(substE(e, sb)) }
+  let lits = [...atoms.values()].flatMap(c => { const b = holds(c, found!.ps, found!.st); return b === undefined ? [] : [b ? c : {op: 'not', x: c} as C] })
+  const after: Subst = {vars: Object.fromEntries(Object.keys(m.state).map(x => [x, v(`${x}'`)])), maps: Object.fromEntries(Object.keys(m.maps ?? {}).map(map => [map, (key: E): E => ({op: 'get', map: `${map}'`, key})])), flags: {}}
+  for (let round = 0; round < 8 && clock() < until; round++) {
+    const R: C = {op: 'and', xs: lits}
+    const kept = lits.filter(c => found!.hs.every(i => { const p = withDeadline(Math.min(until, clock() + 2000), () => proveProgress(m, laws, {name: 'kept', when: R, then: substC(c, after), request: full(helpful[i]!.request)})); return p.proven && p.checked }))
+    if (kept.length === lits.length) break
+    lits = kept
+  }
+  const ring: Ring = {params: found.ps, stem: found.stem, sets: found.hs.map(i => ({holds: {op: 'and', xs: lits}, request: helpful[i]!.request}))}
+  return {ring, verdict: refutedBy(m, laws, l, ring)}
+}
+const readsC = (c: C, names: string[]): boolean => { let hit = false; walk(c, o => { if (o.op === 'var' && names.includes(o.name as string)) hit = true }); return hit }

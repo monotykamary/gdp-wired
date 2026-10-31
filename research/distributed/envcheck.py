@@ -117,6 +117,30 @@ def redis_checks(url):
     r.set("lease", "a", nx=True, ex=1)
     time.sleep(1.3)
     check("SET NX EX: the key is gone once its TTL passes", "keys expire", r.get("lease") is None, "GET after 1.3 s of a 1 s TTL")
+    # Keys expire at their time (TTL): a key set with PX is there before its time and gone after; under noeviction a
+    # write past maxmemory is refused (OOM) and the key with a TTL kept.
+    r.flushdb()
+    r.set("lease", "a", nx=True, px=1500)
+    time.sleep(1.0)
+    before = r.get("lease") == b"a" and not r.set("lease", "b", nx=True, px=1500)
+    time.sleep(0.8)
+    check("SET NX PX: the key is there before its time (and refuses a second SET NX), gone after", "keys expire at their time", before and r.get("lease") is None,
+          f"at 1.0 s of 1.5 s: {'there' if before else 'gone'}; at 1.8 s: {'gone' if r.get('lease') is None else 'there'}")
+    r.flushdb()
+    r.config_set("maxmemory-policy", "noeviction")
+    r.config_set("maxmemory", str(int(r.info("memory")["used_memory"]) + 2_000_000))
+    r.set("inflight", "token", nx=True, px=30_000)
+    refused = None
+    try:
+        for i in range(6000):
+            r.set(f"pad:{i}", "x" * 1000, ex=600)
+    except redis_py.exceptions.ResponseError as e:
+        refused = str(e).split("\n")[0][:60]
+    kept = r.get("inflight") == b"token"
+    r.config_set("maxmemory", "0")
+    r.config_set("maxmemory-policy", "noeviction")
+    check("noeviction: a write past maxmemory is refused, the key with a TTL kept", "keys expire at their time", bool(refused) and kept,
+          f"refused: {refused or 'no'}; in-flight key {'kept' if kept else 'gone'}")
     # Eviction under volatile-lru: a key with a 30 s TTL evicted long before it.
     r.flushdb()
     r.config_set("maxmemory-policy", "volatile-lru")
@@ -200,13 +224,15 @@ def http_retry():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--pg", required=True)
+    ap.add_argument("--pg")
     ap.add_argument("--redis", required=True)
     ap.add_argument("--json")
     a = ap.parse_args()
-    postgres(a.pg)
+    if a.pg:
+        postgres(a.pg)
     redis_checks(a.redis)
-    http_retry()
+    if a.pg:
+        http_retry()
     bad = [x for x in RESULTS if not x["ok"]]
     print(f"env checks: {len(RESULTS) - len(bad)} of {len(RESULTS)} as the models say")
     if a.json:

@@ -27,7 +27,7 @@ import {findBoundedRun} from './bmc.ts'
 import {conjunction, proveKInduction} from './kind.ts'
 import {cycleLemmas, findLeadsTo, findRank} from './cycles.ts'
 import {findNeverEnds} from './nonterm.ts'
-import {leadsByTerms} from './live.ts'
+import {findRing, leadsByTerms} from './live.ts'
 import {type FreshLaw, freshLaws} from './fresh.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
@@ -1821,14 +1821,21 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // infinitely often (an event that keeps coming back is taken). Its regions need not stay; a helpful request may move to
   // the region of one of a higher `levels` (found where left out) instead of reaching `to` or lowering the rank:
   //   job.leadsTo('every job ends', {..., fairness: 'strong', helpful: [{when: waiting, request: fetch}, {when: active, request: fail}]})
-  leadsTo(name: string, spec: {from: (env: P & S & M & Su) => Cond, to: (env: P & S & M & Su) => Cond, rank?: (env: P & S & M & Su) => TermLike | TermLike[],
-    helpful: ((env: P & S & M & Su) => Record<string, TermLike>) | {when?: (env: P & S & M & Su) => Cond, request: (env: P & S & M & Su) => Record<string, TermLike>}[],
-    fairness?: 'weak' | 'strong', levels?: number[]}): Liveness {
+  // About every key: callbacks that take a second parameter, the key (one for every key, the same in every callback):
+  //   outbox.leadsTo('every row is published', {from: ({Rows}, k) => Rows.at(k).eq(1), to: ({Pub}, k) => Pub.at(k).eq(1), helpful: (_, k) => ({act: 1, row: k})})
+  // The key is a fresh param no step reads (`forall`), which proveLeadsTo adds to the rule (`keyed`): a run of the rule
+  // with it is a run of the rule without it, at every value of the key, so the one-machine argument at that param is
+  // the law at every key, each key's helpful requests fair on their own (fairness per key).
+  leadsTo(name: string, spec: {from: (env: P & S & M & Su, key: Term) => Cond, to: (env: P & S & M & Su, key: Term) => Cond, rank?: (env: P & S & M & Su, key: Term) => TermLike | TermLike[],
+    helpful: ((env: P & S & M & Su, key: Term) => Record<string, TermLike>) | {when?: (env: P & S & M & Su, key: Term) => Cond, request: (env: P & S & M & Su, key: Term) => Record<string, TermLike>}[],
+    fairness?: 'weak' | 'strong', levels?: number[]}): KeyedLiveness {
     const env = this.env({flags: false, inputs: false, queries: false}) as never
-    const req = (f: (env: never) => Record<string, TermLike>) => Object.fromEntries(Object.entries(f(env)).map(([n, t]) => [n, termOf(t)]))
-    const r = spec.rank ? spec.rank(env) : [], rank = Array.isArray(r) ? r.map(termOf) : termOf(r)
-    const base = {name, from: spec.from(env).c, to: spec.to(env).c, rank, ...(spec.fairness === 'strong' ? {fairness: 'strong' as const} : {}), ...(spec.levels ? {levels: spec.levels} : {})}
-    return this.divides(typeof spec.helpful === 'function' ? {...base, request: req(spec.helpful)} : {...base, helpful: spec.helpful.map(h => ({...(h.when ? {when: h.when(env).c} : {}), request: req(h.request)}))})
+    const fs = [spec.from, spec.to, spec.rank, ...(typeof spec.helpful === 'function' ? [spec.helpful] : spec.helpful.flatMap(h => [h.when, h.request]))]
+    const forall = fs.some(f => f && f.length > 1) ? `key$${++keyCounter}` : undefined, key = (forall ? v(forall) : undefined) as Term
+    const req = (f: (env: never, key: Term) => Record<string, TermLike>) => Object.fromEntries(Object.entries(f(env, key)).map(([n, t]) => [n, termOf(t)]))
+    const r = spec.rank ? spec.rank(env, key) : [], rank = Array.isArray(r) ? r.map(termOf) : termOf(r)
+    const base = {name, from: spec.from(env, key).c, to: spec.to(env, key).c, rank, ...(spec.fairness === 'strong' ? {fairness: 'strong' as const} : {}), ...(spec.levels ? {levels: spec.levels} : {}), ...(forall ? {forall} : {})}
+    return this.divides(typeof spec.helpful === 'function' ? {...base, request: req(spec.helpful)} : {...base, helpful: spec.helpful.map(h => ({...(h.when ? {when: h.when(env, key).c} : {}), request: req(h.request)}))})
   }
 
   // A decision: whenever the params and the request meet `given`, `then` holds. Decisions don't read the state; the
@@ -2732,8 +2739,12 @@ const reachableBy = (found: {text: string}[]): Assumes => ({states: 'reachable',
 const withAssumes = (found: {text: string}[]): {assumes?: Assumes} => (found.length ? {assumes: reachableBy(found)} : {})
 export type {StepLaw}
 export type {Liveness}
-export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: Liveness, opts: {ms?: number} = {}): Verdict {
-  r = r.withSumsOf(laws, l)
+// A liveness about every key: its key a param of the rule's (leadsTo's `forall`), which no step reads.
+export type KeyedLiveness = Liveness & {forall?: string}
+// The rule a keyed liveness is proven on: the rule with its key as one more param (a natural), any other rule as it is.
+export const keyed = <R extends Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>>(r: R, l: KeyedLiveness): R => (l.forall ? r.params({[l.forall]: nat}) as unknown as R : r)
+export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: KeyedLiveness, opts: {ms?: number} = {}): Verdict {
+  r = keyed(r, l).withSumsOf(laws, l)
   noting(r, laws, l)
   if (laws.some(law => law.some?.length)) throw new Error(`${r.machine.name}: a law with "there exists" goes to proveRule or proveSteps; a liveness takes plain laws (the ones its proof printed, Verdict.witnesses)`)
   if (Array.isArray(l.rank) && !l.rank.length) {
@@ -2766,6 +2777,13 @@ export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, la
   }
   const out = proveLiveness(r.machine, withKinds(r, laws), l)
   return verdictOf(out)
+}
+// A leads-to refuted by a fair run that never gets there (core/live.ts's findRing, checked by refutedBy): a stem from
+// the start, then round a ring of sets each request of which the kernel proves allowed and into the next set, fair to
+// each helpful request (taken in the ring, or never allowed in a set). Undefined where none is found within `ms`.
+export function refuteLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: KeyedLiveness, opts: {ms?: number} = {}): ReturnType<typeof findRing> {
+  const k = keyed(r, l)
+  return findRing(k.machine, withKinds(k, laws), l, {params: (rand, bound) => k.randomParams(rand, bound), input: (rand, bound, ps) => k.randomInput(rand, bound, ps)}, opts)
 }
 // `ms`: the budget (the prover's own per goal, 20 s or a second a hypothesis, where none is given), on the clock the
 // prover reads (the counted one inside a counted search): past it the verdict is unknown.
