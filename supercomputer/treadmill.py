@@ -833,8 +833,8 @@ class Speed(Follow):
         def after(logs):
             (rdir / "tasks.json").write_text(json.dumps({"limit": 60, **got} if isinstance(got, dict) else got))
             obs = read_obs(rdir, bench, tree)
-            cpu = {x.get("task"): x.get("placement", {}).get("cpu") for x in rows}
-            obs = {t: {**o, "cpu": cpu.get(t)} for t, o in obs.items()}
+            cpu, full = {x.get("task"): x.get("placement", {}).get("cpu") for x in rows}, {x.get("task"): counted_work(x) for x in rows}
+            obs = {t: {**o, "cpu": cpu.get(t), "full": full.get(t)} for t, o in obs.items()}
             (rdir / "obs.json").write_text(json.dumps(obs))
             if side:
                 self.st["runs"][c]["confirm"][bench][side] = "done"
@@ -893,11 +893,23 @@ class Speed(Follow):
                 slower, lost, noise = [], [], []
                 for t in flagged:
                     runs_now, runs_was = [now[t], cn.get(t, now[t])], [was[t], cp.get(t, was[t])]
+                    # (by the work the runs took where their runner counts it, else by their wall time; the wall time
+                    # kept beside it either way, as information)
+                    work_was, work_now = [o.get("full") for o in runs_was if o.get("solved")], [o.get("full") for o in runs_now]
                     if not any(o.get("solved") for o in runs_now):
-                        lost.append((t, now[t].get("answer")))
+                        w = by_work(work_was, work_now, False)
+                        (lost.append((t, now[t].get("answer"), min(x for x in work_was if x is not None) if w != "unmeasured" else None, max((x for x in work_now if x is not None), default=None)))
+                         if w in ("lost", "unmeasured") else noise.append(t))
                     elif all(o.get("solved") for o in runs_now) and min(o["secs"] for o in runs_now) > self.SLOWER * max(o["secs"] for o in runs_was) \
                             and min(o["secs"] for o in runs_now) - max(o["secs"] for o in runs_was) >= self.FLOOR_S:
-                        slower.append((t, max(o["secs"] for o in runs_was), min(o["secs"] for o in runs_now), now[t].get("cpu") != was[t].get("cpu")))
+                        w = by_work(work_was, work_now, True)
+                        entry = (t, max(o["secs"] for o in runs_was), min(o["secs"] for o in runs_now), now[t].get("cpu") != was[t].get("cpu"))
+                        if w == "slower":
+                            slower.append((*entry, min(x for x in work_was if x is not None), min(x for x in work_now if x is not None)))
+                        elif w == "unmeasured":
+                            slower.append(entry)
+                        else:
+                            noise.append(t)
                     else:
                         noise.append(t)
                 faster = [t for t in both if now[t].get("solved") and was[t]["secs"] > self.SLOWER * now[t]["secs"] and was[t]["secs"] - now[t]["secs"] >= self.FLOOR_S]
@@ -981,10 +993,16 @@ class IC3(Follow):
                 now = {x.get("id"): x.get("search") or {} for x in out}
                 both = [p for p in now if was.get(p, {}).get("verdict") == "proven"]
                 secs = lambda s: (s.get("ms") or 0) / 1000  # noqa: E731
-                slower = [(p, secs(was[p]), secs(now[p]), False) for p in both if now[p].get("verdict") == "proven" and secs(now[p]) > Speed.SLOWER * secs(was[p])
-                          and secs(now[p]) - secs(was[p]) >= Speed.FLOOR_S]
+                # (slower by the work the search took, where run.ts counts it; by the wall time else: `noise` the rest)
+                flagged = [p for p in both if now[p].get("verdict") == "proven" and secs(now[p]) > Speed.SLOWER * secs(was[p]) and secs(now[p]) - secs(was[p]) >= Speed.FLOOR_S]
+                verdict = {p: by_work([was[p].get("full")], [now[p].get("full")], True) for p in flagged}
+                slower = [(p, secs(was[p]), secs(now[p]), False, *((was[p]["full"], now[p]["full"]) if verdict[p] == "slower" else ())) for p in flagged if verdict[p] in ("slower", "unmeasured")]
+                noise = [p for p in flagged if verdict[p] == "noise"]
+                gone = [p for p in both if now[p].get("verdict") != "proven"]
+                lost = [(p, now[p].get("verdict")) for p in gone if by_work([was[p].get("full")], [now[p].get("full")], False) in ("lost", "unmeasured")]
+                noise += [p for p in gone if p not in {q for q, _ in lost}]
                 append(TM / "speed.jsonl", {"t": time.time(), "commit": c, "bench": "ic3syn", "prev": prev, "tasks": len(now), "solved": sum(1 for s in now.values() if s.get("verdict") == "proven"),
-                                            "compared": len(both), "slower": slower, "lost": [(p, now[p].get("verdict")) for p in both if now[p].get("verdict") != "proven"],
+                                            "compared": len(both), "slower": slower, "lost": lost, "noise": noise,
                                             "faster": sum(1 for p in both if now[p].get("verdict") == "proven" and secs(was[p]) > Speed.SLOWER * secs(now[p]) and secs(was[p]) - secs(now[p]) >= Speed.FLOOR_S),
                                             "total_s": round(sum(secs(now[p]) for p in both if now[p].get("verdict") == "proven"), 1),
                                             "prev_total_s": round(sum(secs(was[p]) for p in both if now[p].get("verdict") == "proven"), 1)})
@@ -1027,7 +1045,7 @@ class RealWorld(Follow):
                     r = json.loads(ls[-1])
                 except Exception:
                     r = {"outcome": "timeout", "ms": 150_000}
-                obs[key] = {"answer": r.get("outcome"), "solved": r.get("outcome") == "proven", "secs": (r.get("ms") or 0) / 1000}
+                obs[key] = {"answer": r.get("outcome"), "solved": r.get("outcome") == "proven", "secs": (r.get("ms") or 0) / 1000, "full": r.get("full")}
             for k, o in obs.items():
                 put(self.tm, c, "rw", k, "60:base", o)
             d = TM / "commits" / c[:12] / "rw"
@@ -1039,7 +1057,9 @@ class RealWorld(Follow):
             pf = TM / "commits" / (prev or "")[:12] / "rw" / "obs.json"
             if prev and pf.exists():
                 was = json.loads(pf.read_text())
-                row["changes"] = [(k, was[k]["answer"], o["answer"]) for k, o in obs.items() if k in was and was[k]["answer"] != o["answer"]]
+                # (each with the work at both commits, where score.ts counts it: a proven law lost is the code's only if
+                # this commit spent at least the work the one before needed, by_work)
+                row["changes"] = [(k, was[k]["answer"], o["answer"], was[k].get("full"), o.get("full")) for k, o in obs.items() if k in was and was[k]["answer"] != o["answer"]]
             append(TM / "rw.jsonl", row)
             self.st["runs"][c]["rw"] = "done"
             self.save()
@@ -1105,6 +1125,42 @@ FUZZ = {"kernel": ("kernel", "FUZZ_SEED={s} bun test kernel.test.ts 2>&1"),
 # not the kernel's); infra, no test failed (killed, timed out, its VM lost, bun crashed, or a log that isn't the run's:
 # boat's logs of a retried item can come back as the first, lost attempt's). Anything else is soundness: a failure is
 # never filed lower than it might be. An infra failure runs once more at its seed.
+# Work, not wall time: a task slower or lost against the commit before is the code's only where the prover's counted
+# work (fullWork, which each runner reports beside its wall time) says so; equal work in a different wall time is the VM.
+# Lane I's eight "regressions" of 31 Oct (four IC3Syn slowdowns, four real-world losses) did the same work at both
+# commits, their 2x inside one commit's own run-to-run spread. A row without counters (a runner before them) is judged
+# by its wall time as before.
+WORK_SLOWER, FULL_PER_MS = knob("WORK_SLOWER", 1.2), 250  # (kernel/prove.ts fullRate: the counted clock's work a millisecond)
+
+
+def rw_lost(work: list) -> bool:
+    """A real-world law proven before and not now, from its (work before, work now) where score.ts counted them: lost
+    unless the work says load (by_work); a change row from before the counters is a loss, as it was read then."""
+    return not work or by_work([work[0]], [work[1]], False) != "noise"
+
+
+def counted_work(row: dict) -> float | None:
+    """The prover's counted work a result row reports: its own `full`, or its stages' last."""
+    if isinstance(row.get("full"), (int, float)):
+        return row["full"]
+    return next((st["full"] for st in reversed(row.get("stages") or []) if isinstance(st, dict) and isinstance(st.get("full"), (int, float))), None)
+
+
+def by_work(was: list, now: list, now_solved: bool, budget_ms: int = 60_000) -> str:
+    """A flagged task's verdict from the work its runs took: `was`, the commit before's solved runs' work; `now`, this
+    commit's runs' (solved, or spent before they stopped; None where a run was killed and printed nothing). Solved here:
+    'slower' with more than WORK_SLOWER times the least the commit before needed, else 'noise' (the same work in more
+    wall time: the VM). Not solved here: 'lost' when a run spent its whole budget (`budget_ms` at the cost model's rate,
+    kernel/prove.ts fullRate) and still had no answer, the code's; 'noise' when every run stopped before that (a wall
+    stop under load, a kill), the VM's. 'unmeasured': no counters to judge by."""
+    was_w, now_w = [w for w in was if w is not None], [w for w in now if w is not None]
+    if not was_w:
+        return "unmeasured"
+    if now_solved:
+        return "unmeasured" if not now_w else "slower" if min(now_w) > WORK_SLOWER * max(1.0, min(was_w)) else "noise"
+    return "lost" if now_w and max(now_w) >= budget_ms * FULL_PER_MS else "noise"
+
+
 FUZZ_LOG = {"soundness": "FUZZ UNSOUND", "coverage": "FUZZ COVERAGE (a harness bug)", "infra": "FUZZ CRASH (infrastructure)"}
 
 
@@ -1696,17 +1752,18 @@ def report(day: str) -> dict:
     # regressions: the speed chain, 60 s losses, the corpus, the ten, IC3Syn
     speed = [r for r in jl(TM / "speed.jsonl") if on(day, r["t"])]
     for r in speed:
-        for t, was, now, cpu in r.get("slower", [])[:5]:
-            alerts.append({"kind": "regression", "what": f"slower: {r['bench']} {t} {was:.1f} s -> {now:.1f} s ({now / max(0.01, was):.1f}x) at {r['commit'][:12]}{' (another CPU model)' if cpu else ''}"})
+        for t, was, now, cpu, *work in r.get("slower", [])[:5]:
+            alerts.append({"kind": "regression", "what": f"slower: {r['bench']} {t} {was:.1f} s -> {now:.1f} s ({now / max(0.01, was):.1f}x)"
+                           + (f", work {work[0]:.0f} -> {work[1]:.0f} ({work[1] / max(1, work[0]):.1f}x)" if work else " (wall time: no work counters)") + f" at {r['commit'][:12]}{' (another CPU model)' if cpu else ''}"})
         if len(r.get("slower", [])) > 5:
             alerts.append({"kind": "regression", "what": f"slower: {r['bench']}: {len(r['slower']) - 5} more at {r['commit'][:12]} (digest.json)"})
-        for t, ans in r.get("lost", []):
-            alerts.append({"kind": "regression", "what": f"lost at 60 s: {r['bench']} {t} ({ans}) at {r['commit'][:12]}"})
+        for t, ans, *work in r.get("lost", []):
+            alerts.append({"kind": "regression", "what": f"lost at 60 s: {r['bench']} {t} ({ans}) at {r['commit'][:12]}" + (f", work {work[1]} spent against the {work[0]} it needed" if work and work[0] is not None else "")})
     rw = [r for r in jl(TM / "rw.jsonl") if on(day, r["t"])]
     for r in rw:
-        for k, was, now in r.get("changes", []):
+        for k, was, now, *work in r.get("changes", []):
             flip = {was, now} == {"proven", "refuted"}
-            if flip or was == "proven":
+            if flip or (was == "proven" and rw_lost(work)):
                 alerts.append({"kind": "soundness" if flip else "regression", "what": f"real-world: {k}: {was} -> {now} at {r['commit'][:12]}"})
     ten = ten_summary(day)
     for c, ps in ten.items():

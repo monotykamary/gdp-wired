@@ -28,10 +28,12 @@ import {proveRule} from '../../core/dsl.ts'
 import {houdini} from './houdini.ts'
 import {inferLaws} from '../../core/infer.ts'
 import {findBoundedRun} from '../../core/bmc.ts'
-import {type C, type E, type Law, type State, lcgFloat} from '../../core/machine.ts'
+import {type C, type E, type Law, type State, lcg} from '../../core/machine.ts'
 import {grow} from '../../kernel/prove.ts'
 import {substC} from '../../kernel/kernel.ts'
 import {type Composed, expand, invOf, liftProven, prepare} from './compose.ts'
+import {work as solverWork} from '../../core/solver.ts'
+import {fullWork} from '../../kernel/prove.ts'
 
 // GDP_CHC_ARGS: more flags, read before the command line's (a run's knobs, through modal_chc.py's --env).
 const args = [process.argv[2]!, ...(process.env.GDP_CHC_ARGS ?? '').split(' ').filter(Boolean), ...process.argv.slice(3)], file = args[0]!
@@ -43,7 +45,8 @@ process.env.GDP_CERT ??= 'usual'
 const liftMs = opt('--lift-ms', 8000), bmcMs = opt('--bmc-ms', 15000), runsMs = opt('--runs-ms', 5000), guideMs = opt('--guide-ms', 8000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini'), oldHoudini = args.includes('--old-houdini')
 const t0 = performance.now(), ms = () => Math.round(performance.now() - t0)
 let unpin = () => {}
-const say = (o: object) => { unpin(); console.log(JSON.stringify({task: file, ms: ms(), ...o})) }
+// (each line with the prover's counted work beside the wall time: the treadmill tells the code from the VM by it)
+const say = (o: object) => { unpin(); console.log(JSON.stringify({task: file, ms: ms(), work: solverWork.n, full: Math.round(fullWork()), ...o})) }
 const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer, ...o}); process.exit(0) }
 
 // `--compose 1`: the chains composed away first (compose.ts); every search here then reads the composed rule, its
@@ -131,7 +134,7 @@ const seen: State[] = []
 {
   // dsl.ts's generator: the high bits of a linear congruence (the low ones repeat with a short period)
   let x = 7
-  const rand = (k: number) => { x = lcgFloat(x); return Math.floor(x / 2 ** 31 * k) }
+  const rand = (k: number) => { x = lcg(x); return Math.floor(x / 2 ** 31 * k) }
   const at = b!.plans.map(p => (p.clause.body[0] ? b!.loc[b!.predNames.indexOf(p.clause.body[0].pred)]! : 'start'))
   const until = performance.now() + runsMs
   let trials = 0
@@ -173,7 +176,7 @@ const seen: State[] = []
   const at = b!.plans.map(p => (p.clause.body[0] ? b!.loc[b!.predNames.indexOf(p.clause.body[0].pred)]! : 'start'))
   const k = (value: number): E => ({op: 'const', value})
   let x = 11
-  const rand = (n: number) => { x = lcgFloat(x); return Math.floor(x / 2 ** 31 * n) }
+  const rand = (n: number) => { x = lcg(x); return Math.floor(x / 2 ** 31 * n) }
   const modelFor = (st: State, j: number, fix: Record<string, number>): Record<string, number | boolean | string> | undefined => {
     const vars: Record<string, E> = {c: k(j)}
     for (const [n, v] of Object.entries(st.scalars)) vars[n] = k(v)

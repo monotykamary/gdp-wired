@@ -30,17 +30,20 @@ import type {Law} from '../../core/machine.ts'
 import {type Built, build, stepOf} from './translate.ts'
 import {components} from './scc.ts'
 import {findRank, showE} from '../../core/cycles.ts'
-import {interpret, searchSeeded} from '../../core/machine.ts'
+import {interpret, seeded} from '../../core/machine.ts'
 import {type Tree, check, loopMachine, loopObligations} from '../../kernel/kernel.ts'
 import {certLoop, proveLaws, withDeadline} from '../../kernel/prove.ts'
 import {findNeverEnds} from '../../core/nonterm.ts'
+import {work as solverWork} from '../../core/solver.ts'
+import {fullWork} from '../../kernel/prove.ts'
 
 const args = process.argv.slice(2), file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
 const limit = opt('--limit', 60), lassoMs = opt('--lasso-ms', 2000), margin = opt('--margin', 9), scc = args.includes('--scc'), ntMs = opt('--recur-ms', 4000)
 const want = args.includes('--want') ? args[args.indexOf('--want') + 1] : ''
 const t0 = performance.now(), ms = () => Math.round(performance.now() - t0)
-const say = (o: object) => console.log(JSON.stringify({ms: ms(), ...o}))
+// (each line with the prover's counted work beside the wall time: the treadmill tells the code from the VM by it)
+const say = (o: object) => console.log(JSON.stringify({ms: ms(), work: solverWork.n, full: Math.round(fullWork()), ...o}))
 const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer, ...o}); process.exit(0) }
 
 let task0: Ari, b0: Built
@@ -82,7 +85,7 @@ const replayed = (w: Lasso): string | undefined => {
 // --- lassos -------------------------------------------------------------------------------------------------------------
 // (the task's own loop's runs, as main's: a lasso is the task's, replayed by ari.ts's evaluator)
 const run = interpret(loopMachine(b0!.loop))
-const rand = searchSeeded(7)
+const rand = seeded(7)
 const out = new Map<number, number>()
 for (const p of b0!.plans) out.set(p.from, (out.get(p.from) ?? 0) + 1)
 const pair = (x: number) => [Math.max(x, 0), Math.max(-x, 0)] as const
