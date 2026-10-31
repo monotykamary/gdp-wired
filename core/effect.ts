@@ -20,7 +20,7 @@ import type {Kind, Rule} from './dsl.ts'
 import {type Rand, interpret, seeded} from './machine.ts'
 import {allowed} from './watch.ts'
 import * as I from './extract-ir.ts'
-import {type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, impure, memberName, placed, refuse, shapeOf, sourceOf, text, where} from './extract-read.ts'
+import {type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, impure, memberName, normalize, placed, refuse, shapeOf, sourceOf, text, where} from './extract-read.ts'
 import {type FactoryOf, readFactory, setupOf} from './extract-shapes.ts'
 import {type ExtractOptions, type Extraction, fromModel, namesOf} from './extract.ts'
 import {check, sandbox} from './extract-check.ts'
@@ -475,7 +475,7 @@ export function extractEffect(at: Source, opts: EffectOptions = {}): Extraction 
 // A method's atomic units: the statements of its body that run an effect on the service's state (a transaction, a Ref
 // operation, a helper's), each a step another fiber's may come between. A failure, a log, a sleep or a wait runs no
 // such effect. A method of two or more is read as its steps: the service written again with one fiber's place in it
-// (`__pc`) and what it carries from one step to the next (its arguments, its locals) in Refs of its own, read and
+// (`__gdp_pc`) and what it carries from one step to the next (its arguments, its locals) in Refs of its own, read and
 // checked as any service; then lift (core/system.ts) makes those Refs every fiber's at once (maps keyed by `fiber`, an
 // input), the service's own Refs shared, and each request one fiber's next step.
 const QUIET = new Set(['Effect.fail', 'Effect.failSync', 'Effect.die', 'Effect.dieMessage', 'Effect.void', 'Effect.sleep', 'Effect.yieldNow', 'Effect.txRetry', 'STM.fail', 'STM.die', 'STM.retry', ...[...LOGS].map(l => `Effect.${l}`)])
@@ -545,7 +545,8 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
   // (each step of a method read for many fibers is one statement of its body, with one effect on the state at most)
   for (const [name, at, n] of several) refuse(at, `${name}: ${text(at)} runs ${n} effects on the state one after another${ts.isStatement(at) ? ' in one statement' : ''}, and another fiber's step may come between them: write the method as Effect.fn('${name}')(function* ...) with each in a statement of its own (each a step), or in one transaction`)
   // Each split method's segments, the names each carries on, and the service written again.
-  const edits: [number, number, string][] = [], decls: string[] = [], resumes: string[] = []
+  if (/\b__gdp_/.test(code)) return refuse(s.sf.statements[0] ?? s.sf, 'a name of the code starts with __gdp_ (the names the fibers\' places and carried values are given)')
+  const edits: [number, number, string][] = [], decls: string[] = [], resumes: string[] = [], made = new Set(['__gdp_pc'])
   const tyOf = (n: ts.Node) => { const t = s.checker.getTypeAtLocation(n), str = s.checker.typeToString(s.checker.getBaseTypeOfLiteralType(t)); return t.flags & ts.TypeFlags.BooleanLike ? ['boolean', 'false'] : t.flags & ts.TypeFlags.NumberLike ? ['number', '0'] : t.isUnion() && t.types.every(u => u.isStringLiteral()) ? [s.checker.typeToString(t), JSON.stringify((t.types[0] as ts.StringLiteralType).value)] : t.flags & ts.TypeFlags.StringLike ? ['string', "''"] : refuse(n, `${text(n)} is carried from one step to the next, and is a ${str} (a number, a boolean or a string is carried)`) }
   split.forEach((mt, mi) => {
     const base = (mi + 1) * 100, K = mt.units.length, segs: ts.Statement[][] = []
@@ -561,44 +562,51 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
     segs.forEach(seg => seg.forEach(st => { if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) carried.set(d, ts.isIdentifier(d.name) ? d.name.text : refuse(d, `${mt.name}: ${text(d)} (a name is carried, not a pattern)`)) }))
     const usedIn = (seg: ts.Statement[]) => { const u = new Set<ts.Node>(); const go = (x: ts.Node) => { if (ts.isIdentifier(x)) { const d = s.checker.getSymbolAtLocation(x)?.valueDeclaration; if (d && carried.has(d)) u.add(d) } ts.forEachChild(x, go) }; seg.forEach(go); return u }
     const later = segs.map((_, k) => { const u = new Set<ts.Node>(); segs.slice(k + 1).forEach(sg => usedIn(sg).forEach(d => u.add(d))); return u })
-    const ref = (d: ts.Node) => `__${mt.name}_${carried.get(d)}`
+    const ref = (d: ts.Node) => `__gdp_${mt.name}_${carried.get(d)}`
     const kept = new Set<ts.Node>(); later.forEach(u => u.forEach(d => kept.add(d)))
-    for (const d of kept) { const [t, zero] = tyOf(d); decls.push(`const ${ref(d)} = yield* __Ref.make<${t}>(${zero})`) }
+    for (const d of kept) { const [t, zero] = tyOf(d); decls.push(`const ${ref(d)} = yield* __gdp_Ref.make<${t}>(${zero})`); made.add(ref(d)) }
     // (where each carried name is defined: a parameter, or the segment that declares it)
     const defined = (d: ts.Node, k: number) => (ts.isParameter(d) ? k === 0 : segs[k]!.some(st => st.pos <= d.pos && d.end <= st.end))
     const body = (seg: ts.Statement[], k: number) => {
-      const loads = k === 0 ? '' : [...usedIn(seg)].filter(d => !defined(d, k)).map(d => `const ${carried.get(d)} = yield* __Ref.get(${ref(d)})\n`).join('')
-      const stores = [...later[k]!].filter(d => defined(d, k) || ts.isParameter(d) && k === 0).map(d => `yield* __Ref.set(${ref(d)}, ${carried.get(d)})\n`).join('')
-      // (in a later step, a return ends the call: the fiber goes back to where it starts; a failure outside a transaction
-      // too, as a return (the earlier steps' writes kept, as Effect keeps them); a wait leaves it where it is)
+      // (what it reads of earlier steps loaded first; what a later step reads stored last: defined here, or loaded here
+      // and perhaps assigned again)
+      const used = usedIn(seg)
+      const loads = k === 0 ? '' : [...used].filter(d => !defined(d, k)).map(d => `let ${carried.get(d)} = yield* __gdp_Ref.get(${ref(d)})\n`).join('')
+      const stores = [...later[k]!].filter(d => defined(d, k) || used.has(d) || ts.isParameter(d) && k === 0).map(d => `yield* __gdp_Ref.set(${ref(d)}, ${carried.get(d)})\n`).join('')
+      // (a return ends the call, its value left out (under fibers a step's result is no part of the rule): what it
+      // returns is run, then the fiber goes back to where it starts. In a later step a failure outside a transaction ends
+      // the call too, as a return (the earlier steps' writes kept, as Effect keeps them); a wait, or a failure in the
+      // first step, leaves the fiber where it is)
       const textOf = (st: ts.Statement): string => {
-        if (k === 0) return st.getText()
         let t = st.getText(); const rs: ts.Node[] = []
-        const go = (x: ts.Node) => { if (ts.isReturnStatement(x) || ts.isExpressionStatement(x) && ts.isYieldExpression(strip(x.expression)) && failing(strip(x.expression) as ts.YieldExpression)) rs.push(x); if (!ts.isFunctionLike(x)) ts.forEachChild(x, go) }
+        const go = (x: ts.Node) => { if (ts.isReturnStatement(x) || k > 0 && ts.isExpressionStatement(x) && ts.isYieldExpression(strip(x.expression)) && failing(strip(x.expression) as ts.YieldExpression)) rs.push(x); if (!ts.isFunctionLike(x)) ts.forEachChild(x, go) }
         go(st)
         for (const r of rs.reverse()) {
           const y = ts.isReturnStatement(r) ? r.expression && strip(r.expression) : strip((r as ts.ExpressionStatement).expression), fails = !!y && ts.isYieldExpression(y) && failing(y)
-          if (y && ts.isYieldExpression(y) && quiet(y) && !fails) continue
-          t = t.slice(0, r.getStart() - st.getStart()) + `{ yield* __Ref.set(__pc, 0); ${fails ? 'return' : r.getText()} }` + t.slice(r.end - st.getStart())
+          if (y && ts.isYieldExpression(y) && quiet(y) && !(fails && k > 0)) continue
+          const run = fails || !y ? '' : `${ts.isYieldExpression(y) ? '' : 'void '}(${y.getText()}); `
+          t = t.slice(0, r.getStart() - st.getStart()) + `{ ${run}${k > 0 ? 'yield* __gdp_Ref.set(__gdp_pc, 0); ' : ''}return }` + t.slice(r.end - st.getStart())
         }
         return t
       }
-      return `${loads}${seg.map(textOf).join('\n')}\n${stores}yield* __Ref.set(__pc, ${k === K - 1 ? 0 : base + k + 2})`
+      return `${loads}${seg.map(textOf).join('\n')}\n${stores}yield* __gdp_Ref.set(__gdp_pc, ${k === K - 1 ? 0 : base + k + 2})`
     }
-    resumes.push(...segs.slice(1).map((seg, j) => `if (__p === ${base + j + 2}) {\n${body(seg, j + 1)}\n}`))
+    resumes.push(...segs.slice(1).map((seg, j) => `if (__gdp_p === ${base + j + 2}) {\n${body(seg, j + 1)}\n}`))
     const params = mt.fn.parameters.map(p => p.getText()).join(', ')
-    edits.push([mt.fn.getStart(), mt.fn.end, `function* (${params}) {\nconst __p = yield* __Ref.get(__pc)\nif (__p !== 0) return yield* __resume()\n${body(segs[0]!, 0)}\n}`])
+    edits.push([mt.fn.getStart(), mt.fn.end, `function* (${params}) {\nconst __gdp_p = yield* __gdp_Ref.get(__gdp_pc)\nif (__gdp_p !== 0) return yield* __gdp_resume()\n${body(segs[0]!, 0)}\n}`])
   })
   const ret = (f.fn.body as ts.Block).statements.at(-1)!
-  edits.push([ret.getStart(), ret.getStart(), `const __pc = yield* __Ref.make<number>(0)\n${decls.join('\n')}\nconst __resume = __Effect.fn('__resume')(function* () {\nconst __p = yield* __Ref.get(__pc)\n${resumes.join(' else ')}\n})\n`])
+  edits.push([ret.getStart(), ret.getStart(), `const __gdp_pc = yield* __gdp_Ref.make<number>(0)\n${decls.join('\n')}\nconst __gdp_resume = __gdp_Effect.fn('__gdp_resume')(function* () {\nconst __gdp_p = yield* __gdp_Ref.get(__gdp_pc)\n${resumes.join(' else ')}\n})\n`])
   let out = code
   for (const [a, b, t] of edits.sort((x, y) => y[0] - x[0])) out = out.slice(0, a) + t + out.slice(b)
-  out = `import {Effect as __Effect, Ref as __Ref} from 'effect'\n${out}`
+  out = `import {Effect as __gdp_Effect, Ref as __gdp_Ref} from 'effect'\n${out}`
   // One fiber: the service written again, read and checked as any.
-  const one = extractEffect(out, {...opts, file, entry, effect: E, fibers: false})
+  // (by its absolute path, `..` resolved: the checker reads the code written again there, not the file on disk)
+  const one = extractEffect(out, {...opts, file: normalize(placed(file)), entry, effect: E, fibers: false})
   if (!one.ok || !one.rule) return {...one, notes: [`read as one fiber's steps (${split.map(mt => `${mt.name}: ${mt.units.length}`).join(', ')}), the service written again:`, out, ...one.notes]}
   const m0 = one.rule.machine, model = one.model!
-  const local = (n: string) => n.startsWith('__') || model.outputs.some(o => n === o || n.startsWith(`${o}_`)) || n === 'failed'
+  // (an integer is two naturals, x and x$neg)
+  const local = (n0: string) => { const n = n0.replace(/\$neg$/, ''); return made.has(n) || model.outputs.some(o => n === o || n.startsWith(`${o}_`)) || n === 'failed' }
   const shared = Object.keys(m0.state).filter(n => !local(n))
   if (m0.inputs.includes('fiber')) return {ok: false, refusals: [{where: file, what: 'a method takes an argument named fiber (the name the fibers are told apart by)'}], notes: []}
   const lifted = lift(m0, 'fiber', shared)
@@ -606,11 +614,11 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
   // (the kinds of the requests' choices kept; an integer is its two naturals, x and x$neg, as the machine has it)
   const named = new Set([...lifted.params, ...lifted.inputs]), whole = ([n]: [string, unknown]) => named.has(n) && !named.has(`${n}$neg`)
   const rule = asRule({...lifted, name: `${m0.name}, every fiber`}, Object.fromEntries([...parts.params, ...parts.inputs].filter(whole)))
-  const names = (one.names ?? []).filter(n => !(n.role === 'state' && local(n.rule)) && n.role !== 'result' && !n.code.startsWith('__'))
-  const inv = (one.invariants ?? []).filter(l => !JSON.stringify(l.holds).match(/"name":"(__[^"]*|[^"]*_result[^"]*)"/))
+  const names = (one.names ?? []).filter(n => !(n.role === 'state' && local(n.rule)) && n.role !== 'result' && !made.has(n.code))
+  const inv = (one.invariants ?? []).filter(l => ![...JSON.stringify(l.holds).matchAll(/"name":"([^"]*)"/g)].some(m => local(m[1]!)))
   const steps = split.map((mt, mi) => ({name: mt.name, steps: mt.units.length, base: (mi + 1) * 100}))
   return {...one, rule, names: [...names, {code: 'fiber', rule: 'fiber', role: 'input'}], invariants: inv, fibers: steps, replay: undefined,
-    notes: [`calls from many fibers at once: ${split.map(mt => `${mt.name} is ${mt.units.length} steps`).join(', ')} (each transaction or Ref operation one), the fibers interleaving them: the rule is every fiber's (lift: each fiber's place and what it carries a map keyed by the input fiber, the service's Refs (${shared.join(', ')}) shared); each other method is one step. A request is one fiber's next step: a fiber in the middle of a call takes its next step whatever method the request names. A failure in a later step ends the call as a return does. A law reads the service's Refs`, ...one.notes],
+    notes: [`calls from many fibers at once: ${split.map(mt => `${mt.name} is ${mt.units.length} steps`).join(', ')} (each transaction or Ref operation one), the fibers interleaving them: the rule is every fiber's (lift: each fiber's place and what it carries a map keyed by the input fiber, the service's Refs (${shared.filter(n => !n.endsWith('$neg')).join(', ')}) shared); each other method is one step. A request is one fiber's next step: a fiber in the middle of a call takes its next step whatever method the request names. A failure in a later step ends the call as a return does. A law reads the service's Refs`, ...one.notes],
     source: out}
 }
 
@@ -621,7 +629,7 @@ export function fiberRun(x: Extraction, run: {params: Record<string, number>, tr
   const go = interpret(r.machine), ps = r.encodeParams(run.params), method = new Map(r.parts.inputs).get('method') as {decode: (n: string, v: unknown) => string} | undefined
   let st = go.init(ps)
   return run.trace.map(q => {
-    const f = Number(q.fiber), pc = st.maps.__pc?.get(f) ?? 0, m = method ? method.decode('method', q) : x.model?.events[0]?.call ?? 'step'
+    const f = Number(q.fiber), pc = st.maps.__gdp_pc?.get(f) ?? 0, m = method ? method.decode('method', q) : x.model?.events[0]?.call ?? 'step'
     st = go.step(ps, st, q as never)
     if (pc === 0) {
       const sp = fibers.find(s2 => s2.name === m), args = (x.names ?? []).filter(n => n.role === 'input' && n.method === m && n.rule in q).map(n => `${n.code.split('.').pop()} = ${String(q[n.rule])}`)

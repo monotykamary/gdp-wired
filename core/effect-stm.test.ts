@@ -129,6 +129,39 @@ export const make = Effect.gen(function* () {
   expect(fiberRun(many, v.run!).filter(s => /add\(k = [1-9]/.test(s)).length).toBeGreaterThanOrEqual(1)
 }, 120_000)
 
+test('what a method carries from one step to the next is what the code has there, a let assigned again included', () => {
+  // (one fiber at a time, its steps back to back, is the method as written: each conforms on the runtime)
+  const code = svc4(`  const go = Effect.fn('go')(function* (k: number) {
+    let x = yield* TxRef.get(a)
+    x = x + Math.max(0, k)
+    yield* Effect.tx(TxRef.set(b, x))
+    x = x + 1
+    yield* Effect.tx(TxRef.update(a, y => y + x - x))
+    return yield* Effect.tx(TxRef.modify(b, y => [x, y] as const))
+  })
+  return {go}`)
+  const x = extractEffect(inProject(4, 'let.ts', code), {entry: 'make'}) as Any
+  expect([x.ok, x.refusals, x.rule.machine.name]).toEqual([true, [], 'make, every fiber'])
+  expect(x.source).toMatch(/let x = yield\* __gdp_Ref.get\(__gdp_go_x\)/)
+  expect(x.source.match(/yield\* __gdp_Ref.set\(__gdp_go_x, x\)/g).length).toBe(3)
+}, 120_000)
+
+test('a Ref of the service\'s is shared among the fibers whatever its name (a review\'s __gate): the waiting fiber sees it open', () => {
+  const code = svc4(`  const __gate = yield* TxRef.make(0)
+  const bad = yield* TxRef.make(0)
+  const open = Effect.fn('open')(function* () { yield* TxRef.set(__gate, 1); yield* TxRef.get(__gate) })
+  const act = Effect.fn('act')(function* () {
+    const x = yield* TxRef.get(__gate)
+    yield* Effect.tx(Effect.gen(function* () { const g = yield* TxRef.get(__gate); if (x !== 0 || g !== 1) return yield* Effect.txRetry; yield* TxRef.set(bad, 1) }))
+  })
+  return {open, act}`)
+  const x = extractEffect(inProject(4, 'gate.ts', code), {entry: 'make'}), r = x.rule as Any
+  expect([x.ok, r.machine.name, '__gate' in r.machine.state, 'bad' in r.machine.state]).toEqual([true, 'make, every fiber', true, true])
+  const v = proveRule(r, [...x.invariants ?? [], r.law('nothing bad', ({bad}: Any) => bad.eq(0))])
+  expect(v.proven).toBe(false)
+  expect(fiberRun(x, v.run!).join('; ')).toMatch(/act.*open.*act, its step 2 of 2/)
+}, 120_000)
+
 test('what the transaction reader doesn\'t take is refused where it is, with the reason', () => {
   const cases: [3 | 4, string, RegExp][] = [
     [4, `  const go = Effect.fn('go')(function* (n: number) { yield* TxRef.set(a, n); yield* Effect.tx(Effect.gen(function* () { const x = yield* TxRef.get(b); if (x > 3) return yield* new No(); yield* TxRef.set(b, x + 1) })) })\n  return {go}`, /a transaction that fails in a step after the first/],
@@ -141,6 +174,7 @@ test('what the transaction reader doesn\'t take is refused where it is, with the
     [4, `  const go = Effect.fn('go')(function* () { if (true) { const x = yield* TxRef.get(a); yield* Effect.yieldNow; yield* TxRef.set(a, x + 1); yield* TxRef.update(b, t => t + 1) } })\n  return {go}`, /runs 3 effects on the state one after another in one statement, and another fiber's step may come between them/],
     [4, `  const go = Effect.fn('go')(function* () { yield* Effect.gen(function* () { const x = yield* TxRef.get(a); yield* TxRef.set(a, x + 1) }) })\n  return {go}`, /runs 2 effects on the state one after another in one statement/],
     [3, `  const go = () => Effect.gen(function* () { const x = yield* TRef.get(a); yield* TRef.set(b, x) })\n  return {go}`, /runs 2 effects on the state one after another, and another fiber's step may come between them: write the method as Effect.fn/],
+    [4, `  const __gdp_gate = yield* TxRef.make(0)\n  const go = Effect.fn('go')(function* () { const x = yield* TxRef.get(a); yield* Effect.tx(TxRef.set(__gdp_gate, x)) })\n  return {go}`, /a name of the code starts with __gdp_/],
   ]
   for (const [v, body, why] of cases) {
     const x = extractEffect(inProject(v, 'bad.ts', v === 3 ? svc3(body) : svc4(body)), {entry: 'make'})
@@ -163,8 +197,9 @@ test('the CLI on a file using Schedule and STM (4.x, examples/effect-bank.ts; 3.
   expect(r3.exit).toBe(0)
   expect(r3.rules.flatMap(r => r.laws.map(l => `${r.entry}: ${l.name}: ${l.verdict}`))).toEqual(['backoff: the delay never exceeds the cap: proven', 'make: the money is conserved: proven'])
   for (const [v, code] of [[4, bank4('two transactions')], [3, bank3('two transactions')]] as const) {
-    const file = inProject(v, 'broken.ts', code.replace('export const make', `${laws}export const make`))
-    const b = await check([file], {ms: 8000, propose: false}), law = b.rules.find(r => r.entry === 'make')!.laws[0]!
+    // (the 4.x bank file states the law above its make already)
+    const file = inProject(v, 'broken.ts', v === 4 ? code : code.replace('export const make', `${laws}export const make`))
+    const b = await check([file], {ms: 8000, propose: false}), law = b.rules.find(r => r.entry === 'make')!.laws.find(l => l.name === 'the money is conserved')!
     expect([v, b.exit, law.verdict]).toEqual([v, 1, 'broken'])
     expect(law.run!.length).toBeGreaterThanOrEqual(4)
   }
