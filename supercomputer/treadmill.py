@@ -30,7 +30,8 @@ first:
           requests), and at a commit that changes kernel/kernel.ts or core/check.ts its mutants. A NEW survivor (one
           surviving at the newest commit that ran it, not listed equivalent in kernel/MUTANTS.md as it is now, never a
           survivor before) is an alert. The fill stops for
-          the day at FUZZ_PER_DAY seeds a kind (3,000) and XFUZZ_PER_DAY a reader (48). A failed fuzz run is filed as
+          the day at FUZZ_PER_DAY seeds a kind (3,000) and XFUZZ_PER_DAY a reader (48) on the floor; the fill of the pool
+          past the floor yields them (its VMs run filler through their hold, never idle). A failed fuzz run is filed as
           soundness (an alert), coverage (a harness bug) or infra (no test failed; run once more): fuzz_class.
   (the knobs: GDPW_TM_<NAME> in the environment: SPEED_PER_DAY, IC3_PER_DAY, RW_PER_DAY, TEN_PER_DAY, SLOWER, FLOOR_S, TEN_RUNS, FUZZ_PER_DAY,
   XFUZZ_PER_DAY, XFUZZ_EVERY, PAIR_TOP, PAIRS_MAX, REVISIT, STAGES, PLAN_MAX)
@@ -1148,8 +1149,10 @@ XFUZZ = {  # lang: (setup, test file, weight, limit)
     "typescript": ("true", "extract.test.ts", 1, 900),
 }
 XFUZZ_EVERY = knob("XFUZZ_EVERY", 6)  # one correspondence item for every 6 fuzz items
-# (the stop rule, with no VM-hour budget: seeds a day per fuzz kind, about 3x the rate before, and per language; past
-# them the fill launches nothing and its VMs go back to the pool until the next day)
+# (seeds a day per fuzz kind and per language: the floor's share; past them the fuzz yields, never stops: the fill of the
+# VMs above the floor runs fresh seeds whatever the day's count (every fresh seed is coverage since the generator is
+# exact), so a VM held 25 min after its last real work runs filler, never sits idle and is released (11-01 04:24: the
+# caps reached at 00:10, the filler ran dry, 84 VMs drained, 32 resumed for the next wave))
 FUZZ_PER_DAY, XFUZZ_PER_DAY = knob("FUZZ_PER_DAY", 3000), knob("XFUZZ_PER_DAY", 48)
 DIFFER = re.compile(r"the rule and the code differ: (?!the code doesn't load|the check's harness)(.{0,300})")
 
@@ -1247,7 +1250,9 @@ class Soundness:
                     c[k] = c.get(k, 0) + 1
         return c
 
-    def batch(self, vms: int) -> Batch | None:
+    def batch(self, vms: int, uncapped: bool = False) -> Batch | None:
+        """Fuzz and mutants for `vms` VMs; `uncapped` (the fill of the pool's VMs above the floor): the day's caps
+        yield, every kind and language open."""
         st = self.tm.state
         items, kinds = [], []
         n = vms * SLOTS * 8
@@ -1258,8 +1263,9 @@ class Soundness:
                     k = it["name"].split("-")[0]
                     k = "x:" + it["name"].split("-")[1] if k == "xfuzz" else k
                     counts[k] = counts.get(k, 0) + 1
-        open_kinds = [k for k in FUZZ if counts.get(k, 0) < FUZZ_PER_DAY]
-        open_langs = [l for l in XFUZZ for _ in range(XFUZZ[l][2]) if counts.get("x:" + l, 0) < XFUZZ_PER_DAY] if "xfuzz" in self.tm.chains else []
+        cap_k, cap_l = (float("inf"), float("inf")) if uncapped else (FUZZ_PER_DAY, XFUZZ_PER_DAY)
+        open_kinds = [k for k in FUZZ if counts.get(k, 0) < cap_k]
+        open_langs = [l for l in XFUZZ for _ in range(XFUZZ[l][2]) if counts.get("x:" + l, 0) < cap_l] if "xfuzz" in self.tm.chains else []
         while self.mutants and "mutants" in self.tm.chains and len(items) < vms * SLOTS:
             m = self.mutants.pop(0)
             items.append(sh_item(f"mutant-{m}", f"bun mutants.ts ids {m} 2>&1 | tail -1", "kernel", 3600, 600))
@@ -1275,7 +1281,7 @@ class Soundness:
             if open_langs and (s % XFUZZ_EVERY == 0 or not open_kinds):
                 lang = open_langs[(s // XFUZZ_EVERY) % len(open_langs)]
                 counts["x:" + lang] = counts.get("x:" + lang, 0) + 1
-                if counts["x:" + lang] >= XFUZZ_PER_DAY:
+                if counts["x:" + lang] >= cap_l:
                     open_langs = [l for l in open_langs if l != lang]
                 items.append(sh_item(f"xfuzz-{lang}-{s}", xfuzz_cmd(lang, s), ".", XFUZZ[lang][3], XFUZZ[lang][3] / 3, weight=2 if lang == "swift" else 1))
                 kinds.append(("x:" + lang, s))
@@ -1284,7 +1290,7 @@ class Soundness:
                 continue
             k = open_kinds[s % len(open_kinds)]
             counts[k] = counts.get(k, 0) + 1
-            if counts[k] >= FUZZ_PER_DAY:
+            if counts[k] >= cap_k:
                 open_kinds = [x for x in open_kinds if x != k]
             cwd, cmd = FUZZ[k]
             items.append(sh_item(f"{k}-fuzz-{s}", cmd.format(s=s), cwd, 900, 60))
@@ -1627,8 +1633,9 @@ class Treadmill(T.Treadmill):
         if free > 0 and "ten" in self.chains:  # (f) at the filler class, before the fuzz
             free = self.ten.launch(free)
         while free > 0 and self.sound_on and self.sound:  # the fuzz fills the rest of the pool (filler: preempted at once)
-            b = self.sound.batch(min(free, 4))
-            if not b:  # (the day's seeds all run: nothing more)
+            # (the day's caps yield here: the pool's VMs above the floor run filler through their hold, never idle)
+            b = self.sound.batch(min(free, 4)) or self.sound.batch(min(free, 4), uncapped=True)
+            if not b:  # (no fuzz kind at all: nothing more)
                 break
             self.batches.append(b)
             free -= b.vms
