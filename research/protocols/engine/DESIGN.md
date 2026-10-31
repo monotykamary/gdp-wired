@@ -73,6 +73,43 @@ quick bar against 5d4da3f's baseline; one full bar at the end.
 
 
 
+**IC3Syn, the counting class, nothing written** (75ce118 and 0c39b23; one run each at 60 s and 300 s, Modal's 2-vCPU
+containers; before: gen/laneA's table, main ae36917, two runs, the ports' majorities as injective ranks; seconds)
+
+| # | protocol | before 60 s | before 300 s | after 60 s | after 300 s |
+| --- | --- | --- | --- | --- | --- |
+| 4 | quorum_leader_election | unknown | unknown | **proven 2.0** | **proven 2.4** |
+| 5 | toy_consensus_forall | unknown | unknown | **proven 3.1** | **proven 3.3** |
+| 23 | toy_consensus | unknown | unknown | **proven 2.0** | **proven 2.4** |
+| 22 | toy_consensus_epr | unknown | unknown | unknown 16.4 | unknown 22.7 |
+| 19 | naive_consensus | unknown | unknown | unknown 9.9 | unknown 11.2 |
+| 21 | simple_election | unknown | unknown | unknown 36.3 | unknown 29.3 |
+| 26 | majorityset_leader_election | unknown | unknown | unknown 60.0 | unknown 64.8 |
+| 27 | consensus_epr | unknown | unknown | unknown 60.1 | unknown 300.0 |
+| 15 | consensus_wo_decide | unknown | unknown | not run (unknown at 300 s) | unknown 200.4 |
+| 16 | consensus_forall | unknown | unknown | not run (unknown at 300 s) | unknown 300.2 |
+| 28 | mldr | killed | killed | killed (not ported to counts) | not run |
+
+The suite's others at 60 s take the path they took before (no counts): consensus 0.3, tcommit 0.5, i4 lock server 8.3,
+lockserv automaton 11.7, lockserv 10.4, simple decentralized 8.2, i4 two-phase commit 14.5 proven; the ∀∃ class and the
+rest as gen/laneA's. **10 of 29 proven at 60 s** (gen/laneA: 7; 8 at 300 s with twophase, not rerun). The pilot's broken
+variants: none proven.
+
+**Why the others don't prove** (GDP_COUNTS_TRACE): toy epr, naive and simple election need supports no template states (a
+relation over three keys, a message-to-state implication with a value); majorityset spends its budget on the
+three-key "one per row" law's instances; the consensus ports' law sets outgrow the budget. core/infer.ts's enumeration
+finds such ∀ laws: joining it to the counted goals (its EPR oracle given Count.lean's instances) is the next step. The
+∀∃ class's ghost maps are not built.
+
+**Gates (step 2):** the ten 200 of 200 at 60 s (pilot 10, then 190; median/max s: wo 39.5/51.1, decentralized 15.1/25.0,
+distributed 32.5/37.8, async 23.4/28.3, sync 8.3/11.2, ring 37.4/43.2, sharded 29.0/38.6, ticket 31.9/38.8, toy forall
+11.5/21.1, 2PC 16.0/20.4); the quick bar (75ce118; <main>/runs/bar/runs/75ce118b7b5c-vs-ae369178e65d-quick-2026-10-310213):
+wrong 0 everywhere, one ITS task lost "solid" at the time limit (the base answers it at 50–60 s of 60; ITS reads no
+count and no carried map), nothing else solid lost; tsc and oxlint (the suite's form) clean on the touched files; the
+ports' state counts equal TLC's.
+
+## gen/laneK2, step 1: counts in a machine's laws and steps, proven in Lean
+
 **The ask:** win IC3Syn's counting (11) and ∀∃ (6) classes with nothing written: (1) a machine-level counting statement
 in the trusted Lean kernel, ever so cautiously; (2) counts and ghost maps in the search. **Step 1 is built, proven,
 twinned, tested, exported end to end and reviewed twice by terra; step 2 is not built** (below: why, and the plan).
