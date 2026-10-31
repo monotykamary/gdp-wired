@@ -635,11 +635,13 @@ Quorum == {Q \\in SUBSET Node : Cardinality(Q) * 2 > Cardinality(Node)}
 VARIABLES one_a, one_b, left_round, proposal, vote, decision
 Init == one_a = {} /\\ one_b = {} /\\ left_round = {} /\\ proposal = {} /\\ vote = {} /\\ decision = {}
 Send1a(r) == r # None /\\ one_a' = one_a \\cup {r} /\\ UNCHANGED <<one_b, left_round, proposal, vote, decision>>
-JoinRound(n, r) == /\\ r # None /\\ r \\in one_a /\\ <<n, r>> \\notin left_round
+JoinRound(n, r) ==
+  /\\ r # None /\\ r \\in one_a /\\ <<n, r>> \\notin left_round
   /\\ one_b' = one_b \\cup {<<n, r>>}
   /\\ left_round' = left_round \\cup {<<n, R>> : R \\in {R2 \\in Round : R2 < r}}
   /\\ UNCHANGED <<one_a, proposal, vote, decision>>
-Propose(r, q, maxr, v) == /\\ r # None
+Propose(r, q, maxr, v) ==
+  /\\ r # None
   /\\ \\A x \\in Value : <<r, x>> \\notin proposal
   /\\ \\A m \\in q : <<m, r>> \\in one_b
   /\\ \\/ maxr = None /\\ \\A m \\in q, MAXR \\in Round, x \\in Value : ~(MAXR < r /\\ <<m, MAXR, x>> \\in vote)
@@ -647,9 +649,11 @@ Propose(r, q, maxr, v) == /\\ r # None
         /\\ \\A m \\in q, MAXR \\in Round, x \\in Value : (MAXR < r /\\ <<m, MAXR, x>> \\in vote) => MAXR <= maxr
   /\\ proposal' = proposal \\cup {<<r, v>>}
   /\\ UNCHANGED <<one_a, one_b, left_round, vote, decision>>
-CastVote(n, v, r) == /\\ r # None /\\ <<n, r>> \\notin left_round /\\ <<r, v>> \\in proposal
+CastVote(n, v, r) ==
+  /\\ r # None /\\ <<n, r>> \\notin left_round /\\ <<r, v>> \\in proposal
   /\\ vote' = vote \\cup {<<n, r, v>>} /\\ UNCHANGED <<one_a, one_b, left_round, proposal, decision>>
-Decide(r, v, q) == /\\ r # None /\\ \\A m \\in q : <<m, r, v>> \\in vote
+Decide(r, v, q) ==
+  /\\ r # None /\\ \\A m \\in q : <<m, r, v>> \\in vote
   /\\ decision' = decision \\cup {<<r, v>>} /\\ UNCHANGED <<one_a, one_b, left_round, proposal, vote>>
 Next == \\/ \\E r \\in Round : Send1a(r)
         \\/ \\E n \\in Node, r \\in Round : JoinRound(n, r)

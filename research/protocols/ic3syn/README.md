@@ -169,17 +169,21 @@ vacuous there). `runs/ic3syn/check*.jsonl` in ../gdp-wired-laneA.
 | consensus_wo_decide (all four majorities) | 102,912 | 135,872 | |
 | consensus_wo_decide (the config's three) | 102,912 | 102,912 | |
 | consensus_forall (the config's three) | 112,128 | 112,128 | |
-| mldr | 5,362 | 1,596 inside the constraint, 2,966 past it | **no**: not verified (below) |
+| mldr (counted, gen/laneK5) | 5,362 | 5,362 (10,536 past the constraint) | yes |
+| learning_switch_i4 (Node 4, Packet 1) | 240 | 240 | yes (its own bug: a route learned both ways; below) |
 
 - consensus_wo_decide stores the quorum it chose; its config lists the three 2-sets and not the full set, a majority too,
   so the port with every majority has states the config doesn't (a stored full set). At the config's three it is
   checked again.
-- **mldr is not verified.** TLC's 5,362 against the port's 1,596 states within `StateConstraint` and 2,966 past it
-  (4,562; TLC counts a state past the constraint as found and explores none), and its broken variant (BecomeLeader
-  without a majority) reaches no state with two primaries in one term on the instance, which the spec's does: the port
-  likely enables too few BecomeLeader steps (its counting witnesses, or the copied initial configs). Its measured
-  verdict (no verdict: its first proof never finishes building instances) doesn't rest on it, but no claim about mldr's
-  semantics does either.
+- **mldr, counted (gen/laneK5): verified.** Its majorities and QuorumsOverlap are now counts of the request (common.ts's
+  counting, as the other majorities: `.counts`), no injection witnesses: 5,362 states, TLC's, its broken variant (no
+  majority) reaching two primaries in a term. gen/laneA's port with injections reached 1,596 (the cause not found: its
+  requests' witnesses or the two-key injectivity flags' decisions refused BecomeLeader and Reconfig steps the spec takes).
+  TLC counts no state past the constraint (5,362 inside it here, beside 10,536 past it), so the earlier reading of the
+  gap was wrong too.
+- **learning_switch_i4's broken variant.** With link a perfect matching (Init's constraints), a packet goes one hop and
+  each source learns one route, so no single-step bug of the learning rule breaks the table's laws on any instance this
+  spec allows; the broken variant writes <<pa, sw0, sw1>> beside <<pa, sw1, sw0>> (a route both ways).
 - consensus_epr's `SendVote` write was later rewritten as one write of the relation (`requests or votes with nondet` to
   1, `votes` without it to 0): the same cells, not checked again.
 - The depths differ by one (TLC counts the initial state as level 1) and by a setup phase's length where the port has
