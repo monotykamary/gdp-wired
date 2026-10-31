@@ -3,6 +3,15 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.33.1
+
+- **Fixed: the TypeScript kernel could accept a false law through a key named `k#`.** A law over keys is proven at a
+  fresh name, its key's `k#`, and nothing kept `#` out of the names a machine or a law declares: a further key `k#`
+  (or a state named so) was captured, and `checkLaws` accepted "every two naturals are equal". `#` is now reserved in
+  every name and law key, as `*`, `[`, `]`, `,` and `:` already were (kernel/refusals.test.ts). Lean's checks were never
+  affected; a name with `#` in it is now refused with its name. Found by an adversarial review of the machine-level
+  counting kind (in progress). The bar: none wrong in any group; both suites 239 of 239.
+
 ## 0.33.0
 
 A soundness fix in the kernel, the ten protocols proven every time inside 60 s, two new certificate kinds proven in
