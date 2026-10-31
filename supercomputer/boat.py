@@ -392,7 +392,9 @@ def layers() -> list[tuple[str, str, str]]:
         h.update(name.encode() + b"\0" + script.encode() + b"\0")
         out.append((name, f"gdpw-{name}-{h.hexdigest()[:10]}", script))
         _ALIAS[out[-1][1]] = f"gdpw-{h.hexdigest()[:12]}"  # (the name it had when it was the top layer: the same snapshot)
-    final = f"gdpw-{h.hexdigest()[:12]}"
+    # (the image's own name starts sc-: a client on main's code before the langs layer prunes every gdpw- name it doesn't
+    # use, and took this image away twice while the treadmill ran on it)
+    final = f"sc-{h.hexdigest()[:12]}"
     out[-1] = (out[-1][0], final, out[-1][2])
     return out
 
@@ -485,7 +487,7 @@ def prune_snapshots(keep: set[str], current: str):
             young = {i for i, t in seen.items() if time.time() - t < 86400}
         keep = keep | set(imgs[-2:]) | young
         for n in named_snapshots():
-            if n.startswith("gdpw-") and n not in keep and n != "gdpw-base":
+            if n.startswith(("gdpw-", "sc-")) and n not in keep and n != "gdpw-base":
                 boat("snapshot", "rm", n, "--json", check=False)
                 log(f"removed superseded snapshot {n}")
     except Exception as e:
