@@ -171,8 +171,12 @@ def limits() -> dict:
 def effective(lim: dict) -> dict:
     """The starts' limits in force: the free ones, or the wallet's while extra starts are on and under their cap."""
     st, kg, w = lim["starts"], lim.get("keepGoing") or {}, lim.get("startLimitsWithWallet")
-    if not (w and kg.get("enabled") and not kg.get("capReached")):
+    if not (kg.get("enabled") and not kg.get("capReached")):
         return st
+    if not w:  # (boat drops startLimitsWithWallet once the wallet is empty; extra starts still go to the invoice)
+        op, sl = lim.get("overagePrices") or {}, lim.get("startLimits") or {"perDay": st["day"]["limit"], "perHour": st["hour"]["limit"], "perMinute": st["minute"]["limit"]}
+        m, mm = op.get("startLimitMultiplier", 6), op.get("startMinuteLimitMultiplier", 3)
+        w = {"perDay": sl["perDay"] * m, "perHour": sl["perHour"] * m, "perMinute": sl["perMinute"] * mm}
     return {k: {"limit": w[p], "used": st[k]["used"], "remaining": w[p] - st[k]["used"]} for k, p in (("day", "perDay"), ("hour", "perHour"), ("minute", "perMinute"))}
 
 

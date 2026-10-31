@@ -21,6 +21,7 @@ checked as it lands; the destination gets links to the cache. Modal and RunPod j
 standard library), so boat is their mirror.
 """
 import argparse
+import base64
 import contextlib
 import hashlib
 import json
@@ -112,7 +113,10 @@ def push(name: str, src: str, form: str = "snapshot", max_gb: float = 4.0):
         tar.wait()
         if p.returncode != 0:
             raise RuntimeError(f"upload: {p.stderr.decode()[-300:]}")
-        r = boat.exec_(vm, ["python3", "-c", CHECK, f"/store/{name}"], 1800)
+        b64 = base64.b64encode(CHECK.encode()).decode()
+        r = boat.exec_(vm, ["bash", "-c", f"echo {b64} | base64 -d > /tmp/check.py && python3 /tmp/check.py /store/{name}"], 1800)
+        if not r.get("stdout", "").strip():
+            raise RuntimeError(f"the check on the VM said nothing: {r.get('stderr', '')[-300:]}")
         check = json.loads(r["stdout"].strip().splitlines()[-1])
         if check["nbad"] or check["files"] != len(m):
             raise RuntimeError(f"the VM's copy differs: {check}")
