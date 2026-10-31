@@ -6,7 +6,7 @@
 //
 //   gdp-wired check <file|dir>... [--entry X] [--methods a,b] [--failures kept] [--json] [--ms 10000] [--no-propose]
 //
-// The language is the file's (.py .rb .ex .java .kt .go .rs .swift .c .h .cpp .cc .hpp .ts .js; a directory with go.mod
+// The language is the file's (.py .rb .ex .java .kt .go .rs .swift .c .h .cpp .cc .hpp .ts .js .sol; a directory with go.mod
 // or .go files is a Go package, with Cargo.toml a Rust crate, with Package.swift a Swift package); the options a rule needs (failures, onError, methods,
 // answers, skip, stores) from the flags or from gdp.toml (configFor, below). Exit code: 0 when no law stated in
 // the code is broken, 1 when one is, 2 when one couldn't be checked (the rule refused, or the law not read).
@@ -52,11 +52,11 @@ function args(argv: string[]): {cmd: string, targets: string[], o: Opts} {
 }
 
 // --- the languages -------------------------------------------------------------------------------------------------------
-export type Lang = 'python' | 'ruby' | 'elixir' | 'java' | 'kotlin' | 'go' | 'rust' | 'swift' | 'c' | 'cpp' | 'ts'
+export type Lang = 'python' | 'ruby' | 'elixir' | 'java' | 'kotlin' | 'go' | 'rust' | 'swift' | 'c' | 'cpp' | 'ts' | 'solidity'
 const EXT: Record<string, Lang> = {'.py': 'python', '.rb': 'ruby', '.ex': 'elixir', '.exs': 'elixir', '.java': 'java', '.kt': 'kotlin', '.go': 'go', '.rs': 'rust', '.swift': 'swift', '.c': 'c', '.h': 'c',
-  '.cpp': 'cpp', '.cc': 'cpp', '.cxx': 'cpp', '.hpp': 'cpp', '.ts': 'ts', '.mts': 'ts', '.tsx': 'ts', '.js': 'ts', '.mjs': 'ts'}
-const COMMENT: Record<Lang, string> = {python: '#', ruby: '#', elixir: '#', java: '//', kotlin: '//', go: '//', rust: '//', swift: '//', c: '//', cpp: '//', ts: '//'}
-export const LANG_NAME: Record<Lang, string> = {python: 'Python', ruby: 'Ruby', elixir: 'Elixir', java: 'Java', kotlin: 'Kotlin', go: 'Go', rust: 'Rust', swift: 'Swift', c: 'C', cpp: 'C++', ts: 'TypeScript'}
+  '.cpp': 'cpp', '.cc': 'cpp', '.cxx': 'cpp', '.hpp': 'cpp', '.ts': 'ts', '.mts': 'ts', '.tsx': 'ts', '.js': 'ts', '.mjs': 'ts', '.sol': 'solidity'}
+const COMMENT: Record<Lang, string> = {python: '#', ruby: '#', elixir: '#', java: '//', kotlin: '//', go: '//', rust: '//', swift: '//', c: '//', cpp: '//', ts: '//', solidity: '//'}
+export const LANG_NAME: Record<Lang, string> = {python: 'Python', ruby: 'Ruby', elixir: 'Elixir', java: 'Java', kotlin: 'Kotlin', go: 'Go', rust: 'Rust', swift: 'Swift', c: 'C', cpp: 'C++', ts: 'TypeScript', solidity: 'Solidity'}
 // A target: the path a front end reads (a file, a Go package, a Rust crate), its language and the files its laws are in.
 type Target = {lang: Lang, at: string, files: string[]}
 function targetsOf(p: string): Target[] {
@@ -109,6 +109,7 @@ async function extractWith(t: Target, o: Record<string, unknown>): Promise<Extra
     case 'rust': { const {extractRust} = await import('./extract-rs.ts'); return extractRust(f, o) }
     case 'swift': { const {extractSwift} = await import('./extract-swift.ts'); return extractSwift(f, o) }
     case 'c': case 'cpp': { const {extractC} = await import('./extract-c.ts'); return extractC(f, o, t.lang === 'cpp') }
+    case 'solidity': { const {extractSolidity} = await import('./extract-sol.ts'); return extractSolidity(f, {root: up(dir, d => ['foundry.toml', 'hardhat.config.js', 'hardhat.config.ts', 'package.json'].some(m => fs.existsSync(path.join(d, m)))) ?? dir, ...o}) }
     case 'ts': {
       // (Effect and XState run on the package the file's own project has, imported here as the code imports it)
       const code = fs.readFileSync(f, 'utf8'), file = path.relative(proc.cwd(), f) || f, {createRequire} = proc.getBuiltinModule('node:module') as {createRequire: (p: string) => {resolve: (s: string) => string}}
@@ -245,7 +246,7 @@ function scoped(file: string): Scoped[] {
   const text = fs.readFileSync(file, 'utf8'), lines = text.split('\n')
   return lawsIn(text, path.basename(file)).map(l => {
     let cls: string | undefined, fn: string | undefined
-    for (let i = l.line! - 1; i >= 0 && !cls; i--) { const m = /\b(?:class|struct|actor|defmodule|module|object|impl|record|interface)\s+([\w.:]+)|\btype\s+(\w+)\s+struct\b/.exec(lines[i]!.replace(/(#|\/\/).*$/, '')); if (m) cls = (m[1] ?? m[2])!.split(/[.:]/).pop() }
+    for (let i = l.line! - 1; i >= 0 && !cls; i--) { const m = /\b(?:class|struct|actor|defmodule|module|object|impl|record|interface|contract)\s+([\w.:]+)|\btype\s+(\w+)\s+struct\b/.exec(lines[i]!.replace(/(#|\/\/).*$/, '')); if (m) cls = (m[1] ?? m[2])!.split(/[.:]/).pop() }
     for (let i = l.line! - 1; i < lines.length && !fn; i++) { const code = i === l.line! - 1 ? lines[i]!.replace(/(#|\/\/|--).*$/, '') : lines[i]!; const m = /\b(?:def|defp|fn|fun|func|function)\s+(?:\([^)]*\)\s*)?(?:self\.)?(\w+)|^\s*(?:(?:public|private|protected|static|final|synchronized|async|override|open|suspend|inline|virtual|const|[\w<>[\],?]+)\s+)*(\w+)\s*\(/.exec(code); if (m && !/^(if|for|while|switch|return|catch|new)$/.test(m[1] ?? m[2]!)) fn = m[1] ?? m[2] }
     // (a Python function at the module's top level is in no class, whatever precedes it)
     if (fn && file.endsWith('.py') && lines.slice(l.line! - 1).some(x => new RegExp(`^(?:async\\s+)?def\\s+${fn}\\b`).test(x))) cls = undefined

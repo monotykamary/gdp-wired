@@ -191,9 +191,9 @@ export function sortsOf(m: Model, given: Record<string, 'nat' | 'int'> = {}): {s
       if ((init && init.s === 'num' && !natOK(init.e, ctx0())) || (w && w.s === 'num' && !natOK(w.e, ctx0()))) { sorts.set(v.name, 'int'); changed = true }
     }
     for (const d of m.maps) for (const f of d.fields) {
-      const n = `${d.name}.${f.name}`, w = m.mapWrites[d.name]?.vals[f.name]
+      const n = `${d.name}.${f.name}`, mw = m.mapWrites[d.name]
       if (f.sort.k !== 'num' || sorts.get(n) === 'int' || given[n]) continue
-      if (w && w.s === 'num' && !natOK(w.e, withAtom(ctx0(), m.mapWrites[d.name]!.has))) { sorts.set(n, 'int'); changed = true }
+      if (mw && [...(mw.pre ?? []), mw].some(x => { const w = x.vals[f.name]; return w && w.s === 'num' && !natOK(w.e, withAtom(ctx0(), x.has)) })) { sorts.set(n, 'int'); changed = true }
     }
     for (const d of m.lists ?? []) {
       const n = `${d.name}.$item`

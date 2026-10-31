@@ -42,8 +42,8 @@ import {compileFunction, walk} from './machine.ts'
 import type {Rule} from './dsl.ts'
 import type {Law} from './machine.ts'
 import * as I from './extract-ir.ts'
-import type {B, N} from './extract-ir.ts'
-import {type Arg, type Layout, type MapDecl, type Model, Refusal, type Source, type Term, type Var, placed, sourceOf} from './extract-read.ts'
+import type {B, K, N} from './extract-ir.ts'
+import {type Arg, type Layout, type MapDecl, type MapWrite, type Model, Refusal, type Source, type Term, type Var, placed, sourceOf} from './extract-read.ts'
 import {type ReadOptions, isFactory, isSlice, readClass, readFactory, readFunctions, readSlice} from './extract-shapes.ts'
 import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pidx, pk, pnum, pterm, sortsOf} from './extract-print.ts'
 import {type CheckOptions, type Evidence, check} from './extract-check.ts'
@@ -261,7 +261,8 @@ function builderOf(m: Model, sorts: Sorts): string {
   // The step: a const for each term written more than once (by the code's own local's name where it has one).
   const outs: [string, string][] = []
   const writes = Object.entries(m.writes), mw = Object.entries(m.mapWrites)
-  hoist(m, P, [...writes.map(([, t]) => t.e), ...mw.flatMap(([, w]) => [w.has, ...Object.values(w.vals).map(t => t.e), w.key])])
+  const allW = (w: MapWrite) => [...(w.pre ?? []), w]
+  hoist(m, P, [...writes.map(([, t]) => t.e), ...mw.flatMap(([, w0]) => allW(w0).flatMap(w => [w.has, ...Object.values(w.vals).map(t => t.e), w.key]))])
   const consts = [...P.hoisted.entries()]
   P.hoisted = new Map()
   const defs: string[] = []
@@ -273,6 +274,20 @@ function builderOf(m: Model, sorts: Sorts): string {
   for (const [n, t] of writes) outs.push([n, pterm(t, P, ctx(), n)])
   for (const [n, w] of mw) {
     const d = m.maps.find(x => x.name === n)!
+    if (w.pre) {
+      // Several keys written: every key at once, each cell the last write at it (k$, the key, a natural).
+      const k: K = {op: 'num', e: I.nvar('k$')}, ws = allW(w)
+      sorts.set('k$', 'nat')
+      const has = ws.reduce<B>((acc, x) => I.bite(I.keq(k, x.key), x.has, acc), {op: 'cell', map: n, key: k, field: 'has'})
+      const vals = d.fields.map(f => {
+        const base: Term = f.sort.k === 'num' ? {s: 'num', e: {op: 'cell', map: n, key: k, field: f.name}} : f.sort.k === 'choice' ? {s: 'choice', e: {op: 'cell', map: n, key: k, field: f.name, values: f.sort.values}} : {s: 'bool', e: {op: 'cell', map: n, key: k, field: f.name}}
+        const t = ws.reduce<Term>((acc, x) => { const c = I.keq(k, x.key), v = x.vals[f.name]!; return acc.s === 'num' && v.s === 'num' ? {s: 'num', e: I.nite(c, v.e, acc.e)} : acc.s === 'bool' && v.s === 'bool' ? {s: 'bool', e: I.bite(c, v.e, acc.e)} : acc.s === 'choice' && v.s === 'choice' ? {s: 'choice', e: I.lite(c, v.e, acc.e)} : acc }, base)
+        return `${f.name}: ${pterm(t, P, ctx(), `${n}.${f.name}`)}`
+      })
+      outs.push([n, `${n}.each(k$ => ({${[`has: ${pb(has, P, ctx())}`, ...vals].join(', ')}}))`])
+      sorts.delete('k$')
+      continue
+    }
     const vals = d.fields.map(f => `${f.name}: ${pterm(w.vals[f.name]!, P, {m, sorts, atoms: [w.has]}, `${n}.${f.name}`)}`)
     outs.push([n, `${n}.set(${pk(w.key, P, ctx())}, {${[`has: ${pb(w.has, P, ctx())}`, ...vals].join(', ')}})`])
   }
@@ -287,7 +302,7 @@ function builderOf(m: Model, sorts: Sorts): string {
   }
   const all = [...defs, ...outs.map(([, x]) => x)].join('\n')
   const lterms = lw.flatMap(([, ops]) => ops.flatMap(o => [o.when, ...(o.op === 'pop' ? [] : [o.x.e]), ...(o.op === 'set' ? [o.i] : [])]))
-  const env = withChoices(envOf(...writes.map(([, t]) => t.e), ...mw.flatMap(([, w]) => [w.has, w.key, ...Object.values(w.vals).map(t => t.e)]), ...lterms), all, P, [...mw.map(([n]) => n), ...lw.map(([n]) => n)])
+  const env = withChoices(envOf(...writes.map(([, t]) => t.e), ...mw.flatMap(([, w0]) => allW(w0).flatMap(w => [w.has, w.key, ...Object.values(w.vals).map(t => t.e)])), ...lterms), all, P, [...mw.map(([n]) => n), ...lw.map(([n]) => n)])
   const ret = `{${outs.map(([n, x]) => (n.startsWith('...') ? `...${x}` : `${n}: ${x}`)).join(', ')}}`
   lines.push(defs.length ? `  .step((${env}) => {\n${defs.map(d => `    ${d}`).join('\n')}\n    return ${ret}\n  })` : `  .step((${env}) => (${ret}))`)
   return lines.join('\n')
