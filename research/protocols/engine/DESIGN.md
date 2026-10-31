@@ -43,6 +43,167 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneK4: a top-level ∃ law through the search (someCone, ghostOf); the counted class tried in tiers, not kept
+
+**Built (untrusted; kernel/, lean-kernel/ and core/check.ts untouched; nothing reads a protocol's name):**
+- **someCone** (core/dsl.ts, the search's path for a law with "there exists" about no key, which the join refuses as
+  its goal: `law ... reads some$1, which it doesn't declare`): the witness is ghostOf's (below); the engine's minimal ∀
+  cubes of two literals (infer.ts's `cubes`) read off a template of two keys at the bound value's places, framed by the
+  law's conjuncts that read the value and no map (`x < n`); each cube kept where proveLaw proves it from the kept ones and
+  itself (IC3's relative induction: its cone), again while more are kept, a second a goal; then proveSome over the laws
+  and the kept cubes. Within half of the search's budget; the usual search after it with what is left. The verdict is
+  proveSome's (the kernel's proof over the ghosted machine), the kept cubes its found laws. A law about every key (∀∃)
+  goes the usual way: the same cone with its ghost map (the law's keys and guards as the template) was built and won
+  nothing (firewall, below), and at 300 s one firewall run went past its wall (killed at 811 s, `runs/laneK4/i300-after`
+  on 9124673), so it was taken out (f93004c).
+- **ghostOf** (core/exists.ts): for a law about no key with one bound value over maps, a ghost that starts at 0 or a
+  param (or one less) and after each step keeps its value while the law's body still holds there after the step (the
+  body read through the step's writes), else moves to a term the step reads a map at (Simple's `(self − 1) % N`); the
+  first whose body holds at every state of the small instances (each param 2 and 3) is given as the law's witness.
+- **Lean export** (research/protocols/ic3syn/some-lean.ts): the verdict's laws, the ∃ law with ghostOf's witness, through
+  toLean (Ghost.lean's some_of_ghost).
+
+**IC3Syn at 60 s, nothing written** (Modal 2-vCPU, `modal run modal/run.py`, two runs a side, broken variants included in
+both; before: main b7a2d85, `runs/laneK4/i60-before`; after: 9124673, `runs/laneK4/i60-after`, and the final f93004c for the
+six with "there exists", the only ones its gate changes, `runs/laneK4/f60`; seconds of search; "killed": no verdict at 210 s)
+
+| protocol | before | after | broken, after |
+| --- | --- | --- | --- |
+| consensus | **proven 0.3** / **proven 0.2** | **proven 0.3** / **proven 0.3** | refuted / refuted |
+| tcommit | **proven 0.4** / **proven 0.4** | **proven 0.6** / **proven 0.6** | refuted / refuted |
+| lock_server | **proven 7.5** / **proven 7.8** | **proven 11.7** / **proven 9.6** | refuted / refuted |
+| quorum_leader_election | **proven 6.4** / **proven 9.0** | **proven 8.8** / **proven 7.3** | unknown / unknown |
+| toy_consensus_forall | **proven 9.7** / **proven 6.3** | **proven 9.7** / **proven 10.2** | unknown / unknown |
+| simple (f93004c) | unknown 10.7 / unknown 6.6 | **proven 12.7** / **proven 10.9** | refuted / refuted |
+| simple_regular (f93004c) | unknown 9.5 / unknown 9.4 | unknown 10.4 / unknown 11.0 | refuted / refuted |
+| lockserv_automaton | **proven 10.8** / **proven 10.2** | **proven 13.5** / **proven 12.1** | refuted / refuted |
+| sharded_kv | unknown 71.5 / unknown 74.4 | unknown 71.4 / unknown 71.4 | refuted / refuted |
+| sharded_kv_no_lost_keys (f93004c) | killed / killed | killed / killed | killed / killed |
+| lockserv | **proven 8.6** / **proven 13.5** | **proven 18.2** / **proven 12.5** | refuted / refuted |
+| twophase | unknown 20.7 / unknown 42.0 | unknown 34.6 / unknown 21.2 | refuted / refuted |
+| simple_decentralized_lock | **proven 8.5** / **proven 5.8** | **proven 9.3** / **proven 9.1** | refuted / refuted |
+| two_phase_commit | **proven 15.1** / **proven 11.7** | **proven 10.8** / **proven 17.0** | refuted / refuted |
+| consensus_wo_decide | unknown 29.6 / unknown 20.4 | unknown 33.2 / unknown 27.7 | unknown / unknown |
+| consensus_forall | unknown 39.2 / unknown 30.5 | unknown 42.4 / unknown 39.6 | unknown / unknown |
+| naive_consensus | **proven 16.5** / **proven 16.4** | **proven 13.5** / **proven 15.8** | unknown / unknown |
+| client_server_ae (f93004c) | **proven 5.7** / **proven 4.3** | **proven 7.9** / **proven 7.5** | unknown / unknown |
+| client_server_db_ae (f93004c) | killed / killed | killed / killed | killed / killed |
+| simple_election | **proven 18.5** / **proven 16.4** | **proven 11.4** / **proven 17.4** | unknown / unknown |
+| toy_consensus_epr | **proven 12.6** / **proven 13.2** | **proven 11.9** / **proven 12.5** | unknown / unknown |
+| toy_consensus | **proven 8.7** / **proven 8.0** | **proven 7.9** / **proven 10.6** | unknown / unknown |
+| firewall (f93004c) | unknown 93.3 / unknown 89.8 | unknown 94.5 / unknown 90.2 | unknown / unknown |
+| majorityset_leader_election | unknown 60.2 / unknown 60.2 | unknown 60.1 / unknown 60.2 | unknown / unknown |
+| consensus_epr | unknown 60.3 / unknown 60.1 | unknown 60.5 / unknown 60.3 | unknown / unknown |
+| mldr | killed / killed | killed / killed | killed / killed |
+
+**15 of 29 proven at 60 s in both runs (before: 14).** New: simple (Simple.tla's PCorrect, the top-level ∃) in 10.9–12.7 s: ghostOf's
+ghost `w := (w < n ∧ (Pc'[w] ≠ Done ∨ Y'[w] = 1)) ? w : (self = 0 ? n − 1 : self − 1)` from 0, and six kept cubes
+(`x < n: never X[x] is 0 and Pc[x] is 1`, ... : a process past `a` has x = 1). No broken variant proven.
+
+**IC3Syn at 300 s** (boat's VMs, `python3 modal/run.py --backend auto|boat`, two runs a side, broken variants included;
+before: b7a2d85, `runs/laneK4/i300-before`; after: 9124673, `runs/laneK4/i300-after`, the six marked f93004c, `runs/laneK4/fb`;
+"killed": no verdict at 810 s, or mldr out of the VM's 4 GB early)
+
+| protocol | before | after | broken, after |
+| --- | --- | --- | --- |
+| consensus | **proven 0.1** / **proven 0.2** | **proven 0.2** / **proven 0.2** | refuted / refuted |
+| tcommit | **proven 0.3** / **proven 0.4** | **proven 0.2** / **proven 0.3** | refuted / refuted |
+| lock_server | **proven 3.0** / **proven 3.2** | **proven 3.0** / **proven 3.1** | refuted / refuted |
+| quorum_leader_election | **proven 3.3** / **proven 2.8** | **proven 3.4** / **proven 3.3** | unknown / unknown |
+| toy_consensus_forall | **proven 4.7** / **proven 3.6** | **proven 4.2** / **proven 4.6** | unknown / unknown |
+| simple (f93004c) | unknown 5.3 / unknown 4.2 | **proven 10.9** / **proven 10.8** | refuted / refuted |
+| simple_regular (f93004c) | unknown 3.8 / unknown 3.6 | unknown 14.7 / unknown 14.2 | refuted / refuted |
+| lockserv_automaton | **proven 4.7** / **proven 5.4** | **proven 4.7** / **proven 4.7** | refuted / refuted |
+| sharded_kv | unknown 52.3 / unknown 51.4 | unknown 64.6 / unknown 53.7 | refuted / refuted |
+| sharded_kv_no_lost_keys (f93004c) | killed 810 / killed 810 | killed 810 / killed 810 | killed / killed |
+| lockserv | **proven 4.9** / **proven 5.5** | **proven 4.8** / **proven 5.6** | refuted / refuted |
+| twophase | **proven 114.6** / **proven 110.2** | **proven 115.6** / **proven 191.6** | refuted / refuted |
+| simple_decentralized_lock | **proven 3.8** / **proven 3.3** | **proven 3.9** / **proven 4.0** | refuted / refuted |
+| two_phase_commit | **proven 10.6** / **proven 16.3** | **proven 11.6** / **proven 12.4** | refuted / refuted |
+| consensus_wo_decide | unknown 21.4 / unknown 20.6 | unknown 29.7 / unknown 27.2 | unknown / unknown |
+| consensus_forall | unknown 26.6 / unknown 26.7 | unknown 33.5 / unknown 33.3 | unknown / unknown |
+| naive_consensus | **proven 10.2** / **proven 6.3** | **proven 6.5** / **proven 6.4** | unknown / unknown |
+| client_server_ae (f93004c) | **proven 3.9** / **proven 4.5** | **proven 3.8** / **proven 3.8** | unknown / unknown |
+| client_server_db_ae (f93004c) | killed 810 / killed 810 | killed 810 / killed 810 | killed / killed |
+| simple_election | **proven 11.1** / **proven 10.4** | **proven 7.7** / **proven 7.9** | unknown / unknown |
+| toy_consensus_epr | **proven 5.1** / **proven 4.9** | **proven 4.9** / **proven 5.4** | unknown / unknown |
+| toy_consensus | **proven 3.0** / **proven 2.8** | **proven 2.7** / **proven 2.9** | unknown / unknown |
+| firewall (f93004c) | unknown 71.3 / unknown 56.5 | unknown 56.7 / unknown 56.5 | unknown / unknown |
+| majorityset_leader_election | unknown 125.4 / unknown 123.1 | unknown 112.0 / unknown 112.0 | unknown / unknown |
+| consensus_epr | unknown 115.8 / unknown 116.7 | unknown 99.7 / unknown 99.8 | unknown / unknown |
+| mldr | killed 289 / killed 52 | killed 812 / killed 96 | killed / killed |
+
+**16 of 29 at 300 s (before: 15).** No broken variant proven. (On 9124673, the ∀∃ path then still on, one firewall run
+went past its wall, killed at 811 s, the other unknown at 114 s; with it off, f93004c, firewall is main's again, 56.5–56.7 s.)
+
+**What wasn't won, and why** (`runs/laneK4/t1`–`t15`, boat, GDP_COUNTS_TRACE=2):
+- **The counting class (wo, forall, epr, majorityset): the right candidates, then goals the prover can't close.** Built
+  and measured, then reverted (kept on branch `gen/laneK4-counted-wip`, 1a07ed4), as none was won:
+  - *stored sets' counts* (counts.ts guardLaws): an each-write that copies a request's counted set (VotingQuorum := Q)
+    gets a state count (`members$VotingQuorum`), its guard comparison proposed under the set's members and each scalar
+    literal the flags read (`started = 1 ⇒ size < 2·|VotingQuorum|`), and that comparison a guard the quantified flags
+    read, so `Leader[a] ⇒ size < 2·|{k: Votes[a·N + k]}|` is proposed. Both proven (alone, 77–91 hypotheses, ≤ 0.2 s).
+  - *deep states*: exists.ts's `small` with random walks past its BFS, each step a change of a kind (the variables it
+    writes) chosen alike among 48 random requests; the states passed to the engine as rows (infer.ts `rows`, only those
+    whose cells stay in the engine's own value range: rows with Vote at 3 changed the literals and lost toy forall's
+    supports). The walks reach leaders and decisions (consensus_epr's "Leader at most 0" gone); the cubes about
+    Votes, Leader and Decided are then enumerated (wo: 27 → 43 candidates).
+  - *the kept cone*: each law proven from the kept laws and itself, in tiers (alone; the kept laws sharing a map;
+    every kept law), each goal briefly (0.3–1.5 s), then a hard stage (10 s a goal, callers first, a hop-limited cone
+    first). Of wo's 43 candidates 35–40 are kept, every support the proof needs among them (Votes ⇒ VoteMsg, one
+    VoteMsg per voter, the leader's count law, the stored set's), each kept goal 34–150 hypotheses.
+  - *what stays out*: the pigeonhole goal ("one leader", or the cube `Leader[x] ∧ Leader[y]`), over the kept cone, is
+    500–750 hypotheses, unknown at 10 s a goal and at 300 s overall (wo at 300 s: 38 of 40 kept, the caller unknown at
+    724 hypotheses); the hop-limited cone (5–16 laws) is sat (a support two hops away missing). majorityset's
+    `Vote[x·N + y] ∧ Vote[x·N + z] ⇒ y = z` (its quantified flag over a composed row: the step's key equality needs
+    64·x + y = 64·n + m ⇒ x = n, digits below 64) is unknown alone, with its near laws and at 10 s. The sweep itself
+    costs 40–50 s of 60 (its failing goals), so the counted protocols were slower, not won.
+  - *next*: a cone chosen by the counterexample (the kept laws a sat model's state breaks, IC3's generalization), not
+    by maps; and the count instances (certFor's up to 10 witnesses) cut to the pairs the pigeonhole reads.
+- **simple_regular**: ghostOf finds the same ghost (true on the small instances), but the engine's cubes for its shape
+  are three wrong ones (`never X[x] is 0 and X[y] is 0`, no cube reads Pc), so no support is kept; the needed
+  `Pc[x] ≥ 2 ⇒ X[x] = 2` is a two-literal cube the enumeration doesn't give here (not diagnosed past that).
+- **firewall**: someCone keeps 6 (two literals) or 18 (three) cubes, the ghost map AllowedIn$w[d] := s is kept on the
+  small instances, but its goals are unknown at 10 s (the start goal included); a probe with two hand-picked supports
+  (nothing before start is sent or allowed) proves the map's goals in 5.9 s and its whole set ran past 300 s.
+- **client_server_db_ae, sharded_kv_no_lost_keys, mldr, the three composed-key ports**: not attempted (ghost
+  composition, two bound values, the encoding, and a trusted key-rule extension with its Lean proof: each a lane).
+
+**The ten at 60 s** (bbb14d5, whose search differs from the final f93004c only in someCone, which none of the ten's laws reaches:
+none has "there exists"; the gauntlet's jobs-g-pilot and jobs-g1–4, Modal 2-vCPU, job seconds): **200 of 200 proven**,
+median / max: consensus_wo_decide 20/20 (38.9 / 52.7), decentralized 20/20 (15.9 / 18.7), distributed 20/20 (33.0 / 40.0),
+lock_server_async 20/20 (23.1 / 32.2), lock_server_sync 20/20 (9.5 / 11.2), ring 20/20 (41.4 / 49.4), sharded 20/20
+(27.1 / 37.1), ticket 20/20 (31.8 / 38.0), toy_consensus_forall 20/20 (11.2 / 13.8), two_phase_commit 20/20 (17.2 / 20.6).
+
+**Gates**
+- **Lean:** some-lean.ts on simple (9124673, and f93004c again, boat): the ∃ law with its ghost and six kept laws, P_simple.lean, Lean
+  4.34.0: lean-exit 0, no sorry, `simple_laws` and `simple.some0` on [propext, Classical.choice, Quot.sound]. (Before the
+  frame of the shape law, the found cubes read `¬True ∨ ...` and their restatements failed to typecheck while the
+  proofs checked; fixed in 9124673.)
+- **tsc and oxlint** (the suite's form, boat, 9124673 and f93004c): no tsc error in core/, kernel/ or research/protocols/ic3syn/;
+  oxlint 0 warnings, 0 errors on the touched files.
+- **The quick bar** (9124673 against ae36917's Modal baseline; <main>/runs/bar/runs/91246734ff97-vs-ae369178e65d-quick-2026-10-310608/REPORT.md,
+  340 s, estimated $2.77): wrong 0 in every group, nothing solid lost: CHC +2.67 (gained 1, lost 3, none solid: all at
+  the 60 s limit), ITS +0.33 (lost 2, none solid: elmhes and traverse_twice, every answer in the last 3% of the limit, as
+  other lanes saw), ITS per component +0.67, SV both ways, TIP, f1, f2, rw and g332 as the base; Lean's 6 recurrent sets
+  checked. onecpu: one run of data.test's "agrees with + on small values only" timed out at 5,033 ms on the candidate
+  (its own search is given 5 s; no ∃ law on its path); onecpu again alone (…-quick-2026-10-310637): no failure on either side.
+- **The suites** (`--only suite,suite-usual`; 9124673: …-quick-2026-10-310617; the final f93004c:
+  <main>/runs/bar/runs/f93004cb9343-vs-ae369178e65d-quick-2026-10-310642/REPORT.md): 243 of 243 in each mode, nothing
+  lost, nothing failed. (The quick bar's other groups ran on 9124673; f93004c only narrows someCone's gate.)
+
+**Bytes** (against b7a2d85): core/ +5,760 (dsl.ts +3,821, exists.ts +1,939); kernel/ 0.
+
+**Spend:** Modal billed $4.93 for this lane's 46 apps through the 06:00 UTC hour (the IC3Syn 60 s grids, the ten's 200, the
+bars' candidates; the last hour still filling in, the four bars estimated $4.2 from their task seconds); boat 50 starts
+for this lane's client, $0.24 (the probes, the 300 s grids, the checks, Lean). Nothing of this lane's is left running.
+
+**Verified, not**
+- **Verified:** simple proven in both 60 s runs, the kernel's proof over the ghosted machine and Lean's of it; no broken
+  variant proven; the ten 200 of 200; the counting class's measurements above (the traces in `runs/laneK4/t*`).
+- **Not verified:** that ghostOf's or someCone's choices reach other ∃ laws (one protocol won); the reverted counting
+  work's claims rest on traces, not on a proof that the pigeonhole goals are out of the prover's reach.
+
 ## gen/laneK3: the engine's ∀ cubes joined to the counted goals; ghost maps for ∀∃ (untrusted; nothing trusted changed)
 
 **Built (general: nothing reads a protocol's name; kernel/, lean-kernel/ and core/check.ts untouched):**
