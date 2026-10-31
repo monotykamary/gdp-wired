@@ -3,6 +3,23 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.38.0
+
+Solidity, re-entrancy and 256-bit arithmetic; liveness refutations by longer cycles; nothing trusted changed.
+- **A Solidity front end** (`gdp-wired/extract-sol`, `.sol` in the CLI): solc's AST read onto the same steps as the
+  other languages (inheritance, modifiers, internal and virtual calls; a revert is the step's refusal; mappings as
+  keyed maps), checked against the contract's own bytecode on anvil.
+- **uint256 without 2^256 as a constant**: the width is a parameter no step writes, so a law proven for every width
+  holds at 2^256; a run that breaks a law is replayed at 2^52 and on the code before it is called broken.
+- **Re-entrancy**: an entry that sends value is two steps, and any of the contract's calls may run between them, from
+  any address; every such run is replayed by real re-entrant execution. Solidity by Example's EtherStore (the DAO's
+  shape) is broken by a re-entrant run replayed on anvil, and proven with the balance cleared first; OpenZeppelin's
+  ERC-20 never mints in a transfer. research/sol/DESIGN.md.
+- **Liveness refutations by cycles of several steps**: the search finds lassos the kernel checks, fair weakly or
+  strongly as Live.lean states it (an outbox's crash-and-publish ring, found with nothing written), and the invariant
+  a lease under bounded skew needs (proven with nothing written at a 40 s budget).
+- **The bar**: none wrong in any group (CHC-COMP +2); both suites pass; the library build passes.
+
 ## 0.37.0
 
 Fourteen of IC3Syn's 29 protocols proven with nothing written, the first through a ghost map; nothing trusted changed.
