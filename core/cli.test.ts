@@ -499,3 +499,30 @@ class Waits:
   expect(rules[0]!.laws[0]!.run!.join('\n')).toMatch(/waited\(start_failed=false\)/)
   expect(exit).toBe(1)
 })
+
+// from = "any": a law proven only with an invariant the search finds holds from the start, not from every state the laws
+// allow; stated beside it, the invariant makes the two one inductive set, proven from any state.
+;(TOOLS.python!() ? test : test.skip)('the CLI from any state: a law needing an invariant refuted from a state alone, proven with it stated', async () => {
+  const code = (helper: boolean) => `
+class Mirror:
+    # gdp: law b within 3: b <= 3
+${helper ? '    # gdp: law a within 3: a <= 3\n' : ''}
+    def __init__(self):
+        self.a = 0
+        self.b = 0
+
+    def hit(self) -> None:
+        if self.a < 3:
+            self.a += 1
+        self.b = self.a
+`
+  const dir = files({'mirror.py': code(false), 'gdp.toml': 'from = "any"\n'})
+  const a = await check([`${dir}/mirror.py`], {ms: 5000, propose: false})
+  expect(a.rules[0]!.laws.map(l => l.verdict)).toEqual(['broken'])
+  expect(a.rules[0]!.laws[0]!.run).toBeUndefined()
+  const reach = await check([`${dir}/mirror.py`], {ms: 5000, propose: false, from: 'reachable'})
+  expect(reach.rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
+  writeFileSync(`${dir}/mirror.py`, code(true))
+  const b = await check([`${dir}/mirror.py`], {ms: 5000, propose: false})
+  expect(b.rules[0]!.laws.map(l => [l.verdict, l.from])).toEqual([['proven', 'any'], ['proven', 'any']])
+})
