@@ -43,6 +43,131 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneI2: the counted search on the counted clock (wo 20 of 20 on shared VMs; IC3Syn 60 s 17 → 20); equation-fixed keys in the prover; the ran-out goal named; a ghost of a ghost; seeded instances measured and out (untrusted; nothing trusted changed)
+
+Branch gen/laneI2 from main ad88d36. kernel/kernel.ts, core/check.ts and lean-kernel/ untouched; kernel/prove.ts is the
+untrusted prover (kernel/README.md: "prove.ts | Untrusted"), so (b) and (3) are built there. Nothing reads a protocol's
+name. Everything on boat (gate class); runs in `runs/laneI2/` of the worktree.
+
+**1. The wo flake: the counted search's clock (77127c0, afd8666).** The cubes' 15 s cap was a wall-clock stop (infer's
+`ms` is a counted budget and its own wall stop); on a slow or shared VM the cubes ended with none (wo 0 or 24 cubes where
+27 is the rest), and the cone and Houdini, also on the wall clock, ran short. Now: infer takes a `wall` (the caller's
+own stop), the cubes stop at the search's wall (prove.ts's `wallAt`), and the whole counted search runs on the counted
+clock (kernel/prove.ts's `counted`, the cost model's work at fullRate, 250 a ms: the engine's and the datatype search's
+convention), the wall a stop only at twice its budget. Its choices (cubes, cone shares, Houdini) are then the same on any
+VM; a slow one takes longer. **wo at 60 s, 20 runs on shared VMs** (`wo-base`, `wo-cand2`, gate class, the pool loaded
+by other lanes' bars): before 15 of 20 (cubes 27 in 18, 24 in 1, 0 in 1), after **20 of 20** (27 cubes and 35 of 37 kept in
+all 20; wall median 48.0 s, 29.7 to 113.4). Cost: on boat the counted clock runs slower than the wall (the cost model's
+work 31 to 195 units a ms by protocol, `rate`), so a counted search that ends unknown now takes up to twice its budget
+(forall 120 s at 60, paxos 600 s at 300).
+
+**2a. Equation-fixed keys (1f752a9, prove.ts).** A key a law's hypothesis fixes by an equation (x + c = t, t reading no
+other fixed key) is instantiated at t ∸ c, the law's tuples made over the other keys (`fixedOut`: the law without them, c
+≤ t a further hypothesis, `back` the full tuple). sharded_kv's "one value per key" (a, b, k, v, u, with Table[a·N + k] = v +
+1): instances over three keys; its first attempt's step goals 93 → 26 and 178 → 120 hypotheses (2.9 → 1.5 s). The search
+is as before: "a model; the search found nothing" (the engine's 42 cubes, none of the supports): not won.
+
+**2b. Seeded instances: built, measured, taken out (dbd08c2, f21d8ad).** In `thinned` a law about three keys or more was
+first assumed at no tuple, its goal's models asking for the tuples (withModels), before the thinned and full instances.
+The switch's table law: 28 to 32 hypotheses a round, 0.3 s a model, where the thinned goal has 376; the rounds' cap ends it
+before a confirmed model, so the switches stay unknown. And it cost the ten: with it, decentralized, distributed and
+ticket lost 4, 4 and 5 of 40 runs against 1, 0 and 2 (`ten-cand`, `ten-cand2` against `ten-base`, `ten-base2`); locally
+decentralized's sums proof (the join's last round) took 17.9 s where it took 3.1, unknown, the weaker goal grown to its
+own budget before the thinned one. Out again; the switches' design note stands (their phases' mid-states need an
+invariant first; then the instances).
+
+**2c. mldr's cubes within the engine's time** (change 1): 27 candidates in every run (20 cubes; main 8 or 27 by the VM),
+22 of 27 kept by the cone; Houdini drops "one primary per term" at both budgets: unknown, as before.
+
+**2d. A ghost of a ghost (1912765, 48b1022, exists.ts).** mapGhostsOf also proposes, after the plain candidates, a ghost
+map whose value is another write's ghost read at that write's key in this step's request (W[n·N + p] := T$g[i·N + n],
+T$g[i·N + n] := r at server_process_request), the inner ghost's law what its write's flags say of r at its cell. Kernel
+and Lean allow it: kernel.ts's ghostedOk and GhostMap.lean's smghostOk ask only that the original reads no ghost, and the
+∀∃ law reads W alone (forall_some_of_ghostmap). client_server_db_ae: the first witness that holds on the small instances
+(none before), then its ghost rounds' step goal unknown within their 2 s (30 s tried locally: unknown too): not won.
+
+**3. The ran-out goal named (dbd08c2, 48b1022, prove.ts).** In `thinned` and `proveOne`, a thinned or seeded attempt
+whose goal ran out past the wall or the deadline is the verdict's goal (`ranOut`); the full-instance retry, whose first
+goal (the start) could only be unknown at once, isn't started. The switches: "the table is transitive @step ... ran out at
+178 hypotheses" (was "@start ... at 2 hypotheses"); db_ae's ghost rounds: "@step unknown" (was "@start").
+
+**IC3Syn, boat, two runs a side, broken variants in r1** (before: ad88d36, `grid-base`; after: f21d8ad, `grid-cand3`;
+gate class; seconds of wall)
+
+| protocol | 60 s before | 60 s after | 300 s before | 300 s after | broken, r1 (60 / 300 before; 60 / 300 after) |
+| --- | --- | --- | --- | --- | --- |
+| client_server_ae | proven 5.2 / proven 4.6 | proven 11.4 / proven 5.1 | proven 9.1 / proven 5.2 | proven 10.7 / proven 9.6 | unknown / unknown / unknown / unknown |
+| client_server_db_ae | unknown 128.1 / unknown 137.7 | unknown 141.3 / unknown 165.4 | unknown 427.4 / unknown 445.4 | unknown 582.1 / unknown 490.0 | unknown / unknown / unknown / unknown |
+| consensus | proven 0.2 / proven 0.3 | proven 0.2 / proven 0.2 | proven 0.3 / proven 0.2 | proven 0.2 / proven 0.3 | refuted / refuted / refuted / refuted |
+| consensus_epr | unknown 60.2 / unknown 60.1 | proven 56.4 / proven 70.1 | proven 104.4 / proven 88.5 | proven 57.2 / proven 94.3 | unknown / unknown / unknown / unknown |
+| consensus_forall | unknown 60.1 / unknown 60.2 | unknown 120.3 / unknown 120.2 | unknown 300.3 / unknown 300.2 | unknown 444.1 / unknown 403.3 | unknown / unknown / unknown / unknown |
+| consensus_wo_decide | unknown 60.2 / unknown 60.2 | proven 32.4 / proven 35.2 | proven 85.9 / proven 21.1 | proven 34.9 / proven 76.2 | unknown / unknown / unknown / unknown |
+| firewall | unknown 97.8 / unknown 56.3 | unknown 71.7 / unknown 74.1 | unknown 123.9 / unknown 93.6 | unknown 135.9 / unknown 110.7 | unknown / unknown / unknown / unknown |
+| learning_switch | unknown 122.6 / killed | unknown 125.3 / unknown 125.7 | unknown 602.7 / unknown 606.3 | unknown 605.8 / unknown 620.0 | unknown / unknown / unknown / unknown |
+| learning_switch_i4 | unknown 129.2 / unknown 125.8 | unknown 129.5 / unknown 125.2 | unknown 616.7 / unknown 611.2 | killed / killed | unknown / unknown / unknown / - |
+| lock_server | proven 5.6 / proven 5.3 | proven 5.8 / proven 5.0 | proven 10.1 / proven 4.8 | proven 6.1 / proven 9.2 | refuted / refuted / refuted / refuted |
+| lockserv | proven 12.7 / proven 7.7 | proven 13.4 / proven 17.1 | proven 12.8 / proven 7.8 | proven 8.3 / proven 17.3 | refuted / refuted / refuted / refuted |
+| lockserv_automaton | proven 12.6 / proven 15.2 | proven 13.5 / proven 17.9 | proven 8.8 / proven 16.3 | proven 13.1 / proven 6.4 | refuted / refuted / refuted / refuted |
+| majorityset_leader_election | proven 11.8 / proven 8.2 | proven 11.0 / proven 7.3 | proven 18.4 / proven 15.1 | proven 14.9 / proven 13.7 | unknown / unknown / unknown / unknown |
+| mldr | unknown 44.3 / unknown 72.7 | unknown 122.4 / unknown 94.6 | unknown 79.1 / unknown 46.0 | unknown 264.4 / unknown 88.9 | unknown / unknown / unknown / unknown |
+| naive_consensus | proven 21.9 / proven 20.0 | proven 9.3 / proven 10.8 | proven 26.3 / proven 19.3 | proven 23.3 / proven 21.3 | unknown / unknown / unknown / unknown |
+| paxos_epr | unknown 60.1 / unknown 60.2 | unknown 118.2 / unknown 120.9 | unknown 300.1 / unknown 300.1 | unknown 601.3 / unknown 637.0 | unknown / unknown / unknown / unknown |
+| quorum_leader_election | proven 9.0 / proven 4.3 | proven 9.8 / proven 4.7 | proven 10.3 / proven 10.0 | proven 4.0 / proven 10.1 | unknown / unknown / unknown / unknown |
+| sharded_kv | unknown 66.9 / unknown 68.5 | unknown 70.0 / unknown 67.0 | unknown 69.8 / unknown 101.1 | unknown 91.7 / unknown 129.3 | refuted / refuted / refuted / refuted |
+| sharded_kv_no_lost_keys | unknown 124.7 / unknown 130.2 | unknown 123.1 / unknown 128.1 | unknown 602.7 / unknown 604.3 | unknown 607.7 / unknown 609.3 | unknown / unknown / unknown / unknown |
+| simple | proven 14.4 / proven 11.1 | proven 14.4 / proven 11.3 | proven 43.0 / proven 13.3 | proven 11.8 / proven 13.7 | refuted / refuted / refuted / refuted |
+| simple_decentralized_lock | proven 5.2 / proven 14.7 | proven 13.0 / proven 5.0 | proven 5.2 / proven 11.2 | proven 11.8 / proven 7.1 | refuted / refuted / refuted / refuted |
+| simple_election | proven 15.3 / proven 16.3 | proven 20.0 / proven 8.4 | proven 21.3 / proven 16.4 | proven 19.0 / proven 20.3 | unknown / unknown / unknown / unknown |
+| simple_regular | proven 13.2 / proven 20.9 | proven 16.6 / proven 17.0 | proven 15.8 / proven 17.7 | proven 14.2 / proven 16.9 | refuted / refuted / refuted / refuted |
+| tcommit | proven 0.5 / proven 0.9 | proven 0.4 / proven 0.7 | proven 0.6 / proven 0.7 | proven 0.8 / proven 1.0 | refuted / refuted / refuted / refuted |
+| toy_consensus | proven 9.3 / proven 5.7 | proven 5.8 / proven 7.9 | proven 7.1 / proven 3.7 | proven 4.3 / proven 11.2 | unknown / unknown / unknown / unknown |
+| toy_consensus_epr | proven 34.8 / proven 7.8 | proven 15.7 / proven 6.0 | proven 12.0 / proven 13.0 | proven 16.5 / proven 12.0 | unknown / unknown / unknown / unknown |
+| toy_consensus_forall | proven 4.5 / proven 15.3 | proven 5.2 / proven 5.9 | proven 29.5 / proven 5.7 | proven 4.1 / proven 4.9 | unknown / unknown / unknown / unknown |
+| two_phase_commit | proven 16.8 / proven 22.1 | proven 13.5 / proven 9.1 | proven 63.8 / proven 27.9 | proven 32.6 / proven 19.8 | refuted / refuted / refuted / refuted |
+| twophase | unknown 60.6 / proven 31.1 | proven 18.0 / proven 53.2 | proven 131.3 / proven 148.3 | unknown 301.7 / proven 257.8 | refuted / refuted / refuted / refuted |
+
+- **60 s: 17 → 20 of 29 in both runs** (new: consensus_epr 56.4 / 70.1, consensus_wo_decide 32.4 / 35.2, twophase 18.0 /
+  53.2); **300 s: 20 → 19** (twophase unknown at the wall in r1, 301.7 s, the join's path, as in gen/laneI's grid; alone on
+  their VMs: before 2 of 3 (107.1, 183.2 s; unknown 305.6), after (3fd0188, `tp-final`) 3 of 3 (117.0, 183.3, 222.2 s)). No broken variant proven. The 60 s gains are
+  the counted clock's: epr and wo use 60 counted seconds, 32 to 70 s of boat's wall. (A first grid on 1f752a9, with the
+  seeded attempt, `grid-cand`: the same 20 and 19.)
+
+**Gates**
+- **The ten at 60 s**, 20 runs each, side by side on a loaded pool (`ten-base3`, `ten-cand3`, f21d8ad): before 182 of 200,
+  after **187**; misses before / after: wo 7 / 5, distributed 5 / 2, ring 6 / 5, ticket 0 / 1, the rest 20 of 20 on both.
+  (With the seeded attempt, two pairs: 192 / 191 and 188 / 188, decentralized, distributed and ticket worse: change 2b out.)
+- **The quick bar** (f21d8ad against ad88d36, <main>/runs/bar/runs/laneI2-f21d8ad-quick/REPORT.md): wrong 0 in every
+  group, nothing solid lost: CHC −6.67 (gained 2, lost 10, none solid, all at the 60 s limit), ITS 0 (gained 4, lost 4,
+  none solid), ITS per component −0.67 (lost 1, not solid), SV and SV per component no task differs, TIP +0.67 (lost 1,
+  not solid), f1 and f2 0, rw +0.33 (lost 1, not solid), onecpu no failure, Lean 6 of 6; g332 332 of 332, the same search
+  on every goal, per goal p50 1.205. Again on 3fd0188 (the reduction memoized; `--only chc,g332,onecpu`,
+  laneI2-final-chc): CHC −1.67 (gained 1, lost 8, none solid), g332 the same search, p50 1.206; onecpu no failure (the
+  base's data job failed once).
+  The g332 ratio is the pool's: an A/A bar (ad88d36 against itself) p50 0.939, 77127c0 (no prover change) 1.129, 1f752a9
+  0.921, the same search on every goal in each.
+- **The suites** (3fd0188, <main>/runs/bar/runs/laneI2-3fd0188-suites/REPORT.md, the pool loaded): by default 242 of 243
+  in the first pass (dsl: a test at 6.0 s past bun's 5 s), --usual 241 (infer and extract-rb, each a test at 5.1 to 5.4 s;
+  the base fails 1 a run there too), lost 0 and noise 2 in each after the reruns; alone on their VMs (`flaky`, `--timing`)
+  the three jobs pass 3 of 3: **243 of 243 in each mode**.
+- **Core tests** (`tests3`, f21d8ad): `bun run test` 0 fail in every file but search.test.ts's "an invariant nobody wrote
+  is found and proven" (7.8 s past bun's 5 s, the pool loaded); infer.test.ts and search.test.ts alone (`infer-cand`,
+  three runs): 12 of 12 each, that test 1.0 to 2.2 s; core/exists.test.ts 12 of 12, kernel's count and countmachine 56 of
+  56; tsc no error in core/, kernel/, research/protocols/; oxlint 0 / 0.
+- **Lean** (Lean 4.34.0, f21d8ad): counted-lean.ts at 60 s on consensus_epr (29 laws), consensus_wo_decide (37),
+  majorityset (16): CountedIC3.lean lean-exit 0 in 89 s, no sorry, `ic0_laws` to `ic2_laws` on [propext,
+  Classical.choice, Quot.sound]; some-lean.ts at 60 s on twophase (35 laws, 638 s) and simple_regular (17 laws, 11 s):
+  lean-exit 0, no sorry, the same three axioms.
+
+**Bytes** (against ad88d36, 3fd0188): core/counts.ts +524, core/infer.ts +270, core/exists.ts +2,587, kernel/prove.ts +3,659
+(core/ and kernel/ without tests +7,040).
+
+**Verified, not**
+- **Verified:** wo 20 of 20 at 60 s on shared VMs (afd8666), the same 27 cubes and 35 kept in each; the IC3Syn grid; twophase
+  alone; the Lean exports; the reports naming the step goal (the switches, db_ae); the seeded attempt's cost, and its revert.
+- **Not won:** sharded_kv, the switches, mldr, db_ae, firewall, paxos, forall, no-lost-keys still unknown. **Not verified:**
+  the fixed keys' effect beyond the bar and the ten; a counted search's wall past its budget on boat (up to twice) as the
+  right trade for its determinism (the alternative, a rate fitted to boat's VMs, would be a constant per pool).
+
 ## gen/laneI: K5's two count bugs are one, fixed (mldr natural again); the ten unknowns triaged; a program counter's four phases read by the cubes (simple_regular proven, twophase at 60 s); the laws as given within the search's budget; a refuted law's model read again (untrusted; nothing trusted changed)
 
 Branch gen/laneI from main be279a9. kernel/, lean-kernel/ and core/check.ts untouched; nothing reads a protocol's name.

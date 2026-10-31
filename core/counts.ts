@@ -17,7 +17,7 @@
 //      what is left; then, for the counted search, Houdini over the rest; the kernel checks the set (checkCountedLaws).
 import {type C, type E, type Law, type Machine} from './machine.ts'
 import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, scope, substC} from '../kernel/kernel.ts'
-import {clock, grow, modelInstances, widen} from '../kernel/prove.ts'
+import {clock, counted, fullRate, grow, modelInstances, wallAt, widen, withWall} from '../kernel/prove.ts'
 import {REFUTED, type Refuted, cdclStats, growCdcl} from '../kernel/cdcl.ts'
 import {inferLaws} from './infer.ts'
 import {smallOf, trueSmall} from './exists.ts'
@@ -166,7 +166,8 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
     })
   })
   const t1 = clock(), rows = states.flatMap(({p, sts}) => sts.map(st => ({params: p, st})))
-  const cubes0 = ptime('cubes', () => inferLaws(src, shapes, [], {cubes: 2, ms: Math.min(15_000, ms / 4), first: {proven: false, checked: false}, rows}).found.map(f => f.law))
+  // (the cubes' budget counted, their wall stop the search's own: a slow machine finds the same cubes, later)
+  const cubes0 = ptime('cubes', () => inferLaws(src, shapes, [], {cubes: 2, ms: Math.min(15_000, ms / 4), wall: wallAt(), first: {proven: false, checked: false}, rows}).found.map(f => f.law))
   // (a cube's guard `u < param` dropped where u sits at a map's place that a caller reads with no param bound, the
   // decided value below N and not below size, if the small instances still hold it: the engine's template reads every
   // key of a composed map as one sort)
@@ -242,10 +243,14 @@ export function cone<P>(m: Machine, set: Law[], attempt: (law: Law, ls: Law[], m
 
 // --- the counted search ----------------------------------------------------------------------------------------------
 export type Counted = {proven: boolean, laws: Law[], m: Machine, proof?: {instances: Record<string, Instances>, certs: Record<string, CountCert>}, why?: string}
+// On the counted clock (kernel/prove.ts's `counted`, the cost model's work at fullRate a millisecond), as the engine's
+// search is: what a budget lets it try, and so its verdict, is the same on a slow or shared machine as on a fast one; the
+// wall a stop only at twice the budget.
 export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted {
-  if (!env.GDP_COUNTS_PROF) return searchCounted0(m0, caller, ms)
+  const run = () => withWall(performance.now() + 2 * ms, () => counted(fullRate, () => searchCounted0(m0, caller, ms), true))
+  if (!env.GDP_COUNTS_PROF) return run()
   cdclStats.on = true
-  const t = performance.now(), out = searchCounted0(m0, caller, ms)
+  const t = performance.now(), out = run()
   console.error(`counts: prof total ${Math.round(performance.now() - t)} ms; ${Object.entries(cprof).map(([k2, x]) => `${k2} ${Math.round(x)}`).join(', ')}; cdcl runs ${cdclStats.runs} conflicts ${cdclStats.conflicts} decisions ${cdclStats.decisions} solveMs ${Math.round(cdclStats.solveMs)} rowsMs ${Math.round(cdclStats.rowsMs)} coreMs ${Math.round(cdclStats.coreMs)} unfoldMs ${Math.round(cdclStats.unfoldMs)} lpMs ${Math.round(cdclStats.lpMs)} boundMs ${Math.round(cdclStats.boundMs)} orderMs ${Math.round(cdclStats.orderMs)}`)
   return out
 }

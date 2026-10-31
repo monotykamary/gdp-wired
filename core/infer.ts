@@ -69,6 +69,7 @@ export type InferOptions = {
   join?: number // the join's share of what is left of the search after the candidates (0.6)
   cubes?: number // the engine's minimal ∀ cubes of at most this many literals alone, as found laws, nothing proven (core/counts.ts's)
   rows?: {params: Record<string, number>, st: State}[] // more reachable states the engine's cubes are read off, beside its small instance's (core/counts.ts's)
+  wall?: number // the wall stop at this performance.now() in place of `ms` past the start: a caller's own end, so a slow machine reads the same counted budget, later (core/counts.ts's)
 }
 // What was found: each law as a Law (pass it with the rule's laws), how it reads, and for a rule, the builder call
 // that states it (`r.law(...)`), to paste.
@@ -515,12 +516,12 @@ function comparisons(m: Machine, laws: Law[], atoms: Atom[], coords: number[], m
 }
 
 export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
-  return quietly(() => withDeadline(clock() + (opts.ms ?? 20000), () => inferLawsSearch(target, laws, stepLaws, opts)))
+  return quietly(() => withDeadline(clock() + (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - performance.now())), () => inferLawsSearch(target, laws, stepLaws, opts)))
 }
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
   // (GDP_INFER_TRACE=2: each phase's progress too, to stderr)
   if (env.GDP_INFER_TRACE === '2' && !opts.progress) opts = {...opts, progress: (phase, info) => (globalThis as unknown as {process: {stderr: {write: (s: string) => void}}}).process.stderr.write(`[infer ${phase}] ${JSON.stringify(info)}\n`)}
-  const t0 = performance.now(), ms = opts.ms ?? 20000, wallUntil = t0 + ms, rule = isRule(target) ? target.withSumsOf(laws, stepLaws) : undefined
+  const t0 = performance.now(), ms = opts.ms ?? 20000, wallUntil = opts.wall ?? t0 + ms, rule = isRule(target) ? target.withSumsOf(laws, stepLaws) : undefined
   // The clock the budgets read (counted milliseconds since the start, or wall time where `timed`), and the stop.
   const timed = !!opts.timed, w0 = work.n, used = {tries: 0, rows: 0, evals: 0, watched: 0, erows: 0, etries: 0}
   const now = (): number => (timed ? performance.now() - t0

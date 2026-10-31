@@ -219,6 +219,10 @@ export function withWall<T>(end: number, f: () => T): T {
   wallEnd = Math.min(outer, end)
   try { return f() } finally { wallEnd = outer }
 }
+// Past the wall or the deadline in force: a goal grown now is left unknown at once.
+const ranOut = (): boolean => pastWall() || withinDeadline(Infinity) <= clock()
+// (the wall's end in force, Infinity where none: a search inside that stops itself there)
+export const wallAt = (): number => wallEnd
 export const late = (until: number): boolean => clock() > until || (workCap !== Infinity && fullWork() > workCap) || pastWall()
 // A budget's end, within the deadline (a translation's own bound, core/cyclic.ts's, kept by the export's GDP_CERT_MS).
 export const withinDeadline = (until: number): number => Math.min(until, deadline)
@@ -1067,14 +1071,49 @@ const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[], byM
   return {...inst, ...Object.fromEntries(laws.filter(l => l.forall).map(l => {
   const had = inst[l.name] ?? []
   if (l.keys?.length) {
-    const n = l.keys.length + 1, out = new Map<string, E[]>(), sorted = byMap ? keySorted(l, byMap, fns) : undefined
+    const n = l.keys.length + 1, out = new Map<string, E[]>()
     for (let i = 0; i + n <= had.length; i += n) out.set(JSON.stringify(had.slice(i, i + n)), had.slice(i, i + n))
-    for (const tuple of [...related(keys, focus, n, sorted, most), ...matched(l, keys, most)]) if (!sorted || sorted(tuple)) out.set(JSON.stringify(tuple), tuple)
+    // (a key the law's hypothesis fixes by an equation, x + c = t: the tuples of the others, x at t ∸ c in each)
+    const {law: lr, back} = fixedOut(l), m2 = lr.keys?.length ?? 0, sorted = byMap ? keySorted(lr, byMap, fns) : undefined
+    const tuples = m2 ? [...related(keys, focus, m2 + 1, sorted, most), ...matched(lr, keys, most)] : related(keys, focus, 1, sorted, most)
+    for (const t0 of tuples) if (!sorted || sorted(t0)) { const tuple = back(t0); out.set(JSON.stringify(tuple), tuple) }
     return [l.name, [...out.values()].flat()]
   }
   const seen = new Set(had.map(e => JSON.stringify(e)))
   return [l.name, [...had, ...keys.filter(e => { const id = JSON.stringify(e); return seen.has(id) ? false : (seen.add(id), true) })]]
   }))}
+}
+// A law's keys that its hypothesis fixes by an equation (x + c = t, or t = x, t reading no fixed key): the law without
+// them (each read at t ∸ c, c ≤ t a further hypothesis: the same law over the naturals), and `back`, a tuple of its keys
+// made a tuple of the law's (each fixed key at its t). A law with five keys of which two a cell fixes (Table[a·N + k] =
+// v + 1) has its instances over three. Untrusted: it chooses instances only.
+const fixedMemo = new WeakMap<Law, {law: Law, back: (t: E[]) => E[]}>()
+function fixedOut(l: Law): {law: Law, back: (t: E[]) => E[]} {
+  let out = fixedMemo.get(l)
+  if (!out) fixedMemo.set(l, (out = fixedOut0(l)))
+  return out
+}
+function fixedOut0(l: Law): {law: Law, back: (t: E[]) => E[]} {
+  const all = [l.forall!, ...(l.keys ?? [])], same = {law: l, back: (t: E[]) => t}
+  const hyps = l.holds.op === 'or' ? l.holds.xs.flatMap(d => (d.op === 'not' ? (d.x.op === 'and' ? d.x.xs : [d.x]) : [])) : []
+  const named = (e: E, x: string) => JSON.stringify(e).includes(`"name":${JSON.stringify(x)}`)
+  const offset = (e: E): [string, number] | undefined => (e.op === 'var' && all.includes(e.name) ? [e.name, 0] : e.op === 'add' && e.a.op === 'var' && all.includes(e.a.name) && e.b.op === 'const' ? [e.a.name, e.b.value] : undefined)
+  const fixed = new Map<string, {t: E, c: number}>()
+  for (const h of hyps) {
+    if (h.op !== '=') continue
+    for (const [x, t] of [[h.a, h.b], [h.b, h.a]] as const) {
+      const o = offset(x)
+      if (!o || o[0] === l.forall || fixed.has(o[0]) || named(t, o[0]) || [...fixed.keys()].some(f => named(t, f)) || [...fixed.values()].some(f => named(f.t, o[0]))) continue
+      fixed.set(o[0], {t, c: o[1]}); break
+    }
+  }
+  if (!fixed.size) return same
+  const at = (x: string): E => { const {t, c} = fixed.get(x)!; return c ? {op: 'sub', a: t, b: {op: 'const', value: c}} : t }
+  const sub0 = {vars: Object.fromEntries([...fixed.keys()].map(x => [x, at(x)])), maps: {}, flags: {}}
+  const guards: C[] = [...fixed.values()].flatMap(({t, c}) => (c ? [{op: '<=', a: {op: 'const', value: c}, b: t} as C] : []))
+  const kept = all.filter(x => !fixed.has(x)), holds = substC(guards.length ? {op: 'or', xs: [{op: 'not', x: {op: 'and', xs: guards}}, l.holds]} : l.holds, sub0)
+  const law: Law = {...l, holds, keys: kept.slice(1)}
+  return {law, back: t => { const s2 = {vars: Object.fromEntries(kept.map((x, i) => [x, t[i]!])), maps: {}, flags: {}}; return all.map(x => (fixed.has(x) ? substE(at(x), s2) : t[kept.indexOf(x)]!)) }}
 }
 // A tuple of the key's sort: each of a law's keys read at a map (M[x], M[x·N + y]) takes only the terms its read matches
 // against the keys the goals read that map at (the key's sort, as the goal holds it: Link[c1·N + s] against
@@ -1652,7 +1691,18 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
 function proveOne(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram} {
   const law = laws[i]!, pm = plainOf(m), inst = lawInstances(m, laws, i)
   const few = triggered(pm, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
-  if (!sameInstances(few, inst) && obligations(m, laws, {[law.name]: few}, i).every(goal => 'tree' in grow(goal))) return {proven: true}
+  if (!sameInstances(few, inst)) {
+    let proven = true
+    for (const goal of obligations(m, laws, {[law.name]: few}, i)) {
+      const o = grow(goal)
+      if ('tree' in o) continue
+      proven = false
+      // (a goal that ran out past the deadline: the next instances can't be tried, and it is the verdict's goal)
+      if (o.stuck === 'unknown' && ranOut()) return {proven: false, goal: goal.name, stuck: 'unknown'}
+      break
+    }
+    if (proven) return {proven: true}
+  }
   // (a model breaking a law at a tuple of the goal's keys: those added, the law asked again)
   const {result: a} = withModels(m, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), growAll, grownModel, grownSettled)
   return a.out ? {proven: false, goal: a.goal!.name, stuck: a.out.stuck, ...(a.out.witness ? {witness: a.out.witness} : {}), ...(a.out.diagram ? {diagram: a.out.diagram} : {})} : {proven: true}
@@ -1850,14 +1900,16 @@ function thinned(m: Machine, laws: Law[], instances: Record<string, Instances>):
   const trees: Record<string, Tree> = {}, fulls = {...instances}
   let nodes = 0, leaves = 0
   for (const [i, law] of laws.entries()) {
-    const full = instances[law.name]!
-    const few = triggered(plainOf(m), laws, full, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), law.forall ? [`${law.forall}#`] : [])
+    const full = instances[law.name]!, focus = law.forall ? [`${law.forall}#`] : []
+    const few = triggered(plainOf(m), laws, full, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), focus)
     // (thinned instances first, then the full ones; each asked again at the tuples its models ask for)
     for (const inst of sameInstances(few, full) ? [full] : [few, full]) {
       const {result: a, inst: at} = withModels(m, laws, inst, i2 => obligations(m, laws, {...instances, [law.name]: i2}, i), growAll, grownModel, grownSettled)
       instances[law.name] = at
       if (inst === full) fulls[law.name] = at
-      if (a.out && inst !== full) continue
+      // (one that ran out past the wall: the next instances can't be tried, and the goal that ran out is the verdict's, not
+      // the next one's first goal)
+      if (a.out && inst !== full && !(a.out.stuck === 'unknown' && ranOut())) continue
       if (a.out) return stuckAt(a.goal!, a.out, nodes, leaves)
       Object.assign(trees, a.done); nodes += a.n; leaves += a.lv
       break

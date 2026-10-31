@@ -394,7 +394,7 @@ function planOf(m: Machine, law: Law): Plan {
 // key's places, beside the ghost's own law: where the written map's cell is set (and the law's guards hold), P at W[k].
 // Every such place and value is a candidate; those false on the small instances' states are never tried
 // (core/counts.ts's), the rest in turn by the kernel's goals.
-type MapGhost = {name: string, write: {key: E, value: E}, at: E, inv: Law, holds: C}
+type MapGhost = {name: string, write: {key: E, value: E}, at: E, inv: Law, holds: C, inner?: {name: string, write: {key: E, value: E}, inv: Law}}
 function mapGhostsOf(m: Machine, law: Law, taken: Set<string>): MapGhost[] {
   const x = law.some![0]!, names = [law.forall!, ...(law.keys ?? [])]
   const xs = law.holds.op === 'or' ? law.holds.xs : [law.holds], P = xs.filter(d => namesOf(d).includes(x)), rest = xs.filter(d => !namesOf(d).includes(x))
@@ -413,14 +413,37 @@ function mapGhostsOf(m: Machine, law: Law, taken: Set<string>): MapGhost[] {
     walk([m.step, m.assume ?? null], o => { if (o.op === 'get') for (const n of namesOf(o.key as E)) keyed.add(n) })
     for (const w2 of Object.values(m.step.maps ?? {})) if (!('each' in w2)) for (const n of namesOf(w2.key)) keyed.add(n)
     const action = (i: string) => !keyed.has(i)
-    for (const inj of injections) for (const val of m.inputs.filter(i => !kv.includes(i) && !action(i))) {
-      let name = `${mp}$w`
-      for (let j = 2; taken.has(name); j++) name = `${mp}$w${j}`
-      const at = substVarsE(w.key, Object.fromEntries(kv.map((n, j) => [n, v(inj[j]!)]))), atW: E = {op: 'get', map: name, key: at}
-      const Pw = substVars(P.length === 1 ? P[0]! : {op: 'or', xs: P}, {[x]: atW}), has: C = {op: '<=', a: k(1), b: {op: 'get', map: mp, key: at}}
-      out.push({name, write: {key: w.key, value: {op: 'if', c: set, then: v(val), else: {op: 'get', map: name, key: w.key}}}, at,
-        holds: substVars(law.holds, {[x]: atW}),
-        inv: {name: `${law.name}: ${name} where ${mp} is set`, forall: law.forall!, ...(law.keys ? {keys: law.keys} : {}), holds: {op: 'or', xs: [{op: 'not', x: {op: 'and', xs: [...guards, has]}}, Pw]}}})
+    const ghost = (val: E, inner?: MapGhost['inner']) => {
+      for (const inj of injections) {
+        let name = `${mp}$w`
+        for (let j = 2; taken.has(name) || name === inner?.name; j++) name = `${mp}$w${j}`
+        const at = substVarsE(w.key, Object.fromEntries(kv.map((n, j) => [n, v(inj[j]!)]))), atW: E = {op: 'get', map: name, key: at}
+        const Pw = substVars(P.length === 1 ? P[0]! : {op: 'or', xs: P}, {[x]: atW}), has: C = {op: '<=', a: k(1), b: {op: 'get', map: mp, key: at}}
+        out.push({name, write: {key: w.key, value: {op: 'if', c: set, then: val, else: {op: 'get', map: name, key: w.key}}}, at,
+          holds: substVars(law.holds, {[x]: atW}), ...(inner ? {inner} : {}),
+          inv: {name: `${law.name}: ${name} where ${mp} is set`, forall: law.forall!, ...(law.keys ? {keys: law.keys} : {}), holds: {op: 'or', xs: [{op: 'not', x: {op: 'and', xs: [...guards, has]}}, Pw]}}})
+      }
+    }
+    for (const val of m.inputs.filter(i => !kv.includes(i) && !action(i))) ghost(v(val))
+    // (a ghost of a ghost, after those: the value another write's ghost holds, read at that write's key in this step's
+    // request: G[i·N + p] := r where DbResponseSent[i·N + p] is set, W[n·N + p] := G[i·N + p] where ResponseSent is.
+    // G's own law: where its write's cell is set, what the write's guard says of r, at G's cell)
+    for (const [mp2, w2] of Object.entries(m.step.maps ?? {})) {
+      if (mp2 === mp || 'each' in w2) continue
+      const kv2 = namesOf(w2.key)
+      if (!kv2.length || !kv2.every(n => m.inputs.includes(n) && keyed.has(n))) continue
+      const set2 = substC({op: '<=', a: k(1), b: w2.value}, {vars: {}, maps: {[mp2]: () => k(0)}, flags: Object.fromEntries(Object.keys(m.step.flags ?? {}).map(f => [f, {op: 'flag', name: f} as C]))})
+      const conj = (c: C, depth = 0): C[] => (c.op === 'and' ? c.xs.flatMap(y => conj(y, depth)) : c.op === 'flag' && depth < 3 && m.step.flags?.[c.name] && m.step.flags[c.name]!.op !== 'all' ? conj(m.step.flags[c.name]!, depth + 1) : [c])
+      const lits = [...new Set([...JSON.stringify(w2.value).matchAll(/"op":"flag","name":"([^"]+)"/g)].map(x => x[1]!))].flatMap(f => conj({op: 'flag', name: f}))
+      for (const val2 of m.inputs.filter(i => !kv2.includes(i) && !action(i))) {
+        let gname = `${mp2}$g`
+        for (let j = 2; taken.has(gname); j++) gname = `${mp2}$g${j}`
+        const ks = kv2.map((_, j) => `g${j}$key`), G = (t: E): E => ({op: 'get', map: gname, key: t}), K2 = substVarsE(w2.key, Object.fromEntries(kv2.map((n, j) => [n, v(ks[j]!)])))
+        const says = lits.filter(c => c.op !== 'flag' && namesOf(c).includes(val2) && namesOf(c).every(n => n === val2 || kv2.includes(n))).map(c => substVars(c, {[val2]: G(K2), ...Object.fromEntries(kv2.map((n, j) => [n, v(ks[j]!)]))}))
+        if (!says.length) continue
+        const inv: Law = {name: `${gname} where ${mp2} is set`, forall: ks[0]!, ...(ks.length > 1 ? {keys: ks.slice(1)} : {}), holds: {op: 'or', xs: [{op: 'not', x: {op: '<=', a: k(1), b: {op: 'get', map: mp2, key: K2}}}, says.length === 1 ? says[0]! : {op: 'and', xs: says}]}}
+        ghost(G(w2.key), {name: gname, write: {key: w2.key, value: {op: 'if', c: set2, then: v(val2), else: G(w2.key)}}, inv})
+      }
     }
   }
   return out
@@ -429,7 +452,7 @@ const takenOf = (m: Machine) => new Set([...Object.keys(m.maps ?? {}), ...(m.inp
 const firstPicks = new Map<string, {mode: 'term', at: number[]} | {mode: 'map', at: number}>()
 // The machine with a ghost map (kernel.ts's ghostedMachine of Ghosted, whose ghostedOk it must pass).
 const withMap = (m: Machine, g: MapGhost): Machine => {
-  const o: Ghosted = {orig: m, vars: {}, maps: {[g.name]: {start: 0, write: g.write}}}
+  const o: Ghosted = {orig: m, vars: {}, maps: {...(g.inner ? {[g.inner.name]: {start: 0, write: g.inner.write}} : {}), [g.name]: {start: 0, write: g.write}}}
   if (!ghostedOk(o)) throw new Error(`${g.name}: not a ghost of ${m.name}`)
   return ghostedMachine(o)
 }
@@ -437,7 +460,7 @@ const withMap = (m: Machine, g: MapGhost): Machine => {
 function built(m0: Machine, plans: Plan[], cases: C[]): {machine: Machine, laws: Law[], ghosts: string[], invs: Law[]} {
   let m = m0
   const invs: Law[] = []
-  for (const p of plans) if (p.pick.mode === 'map') { const g = p.maps[p.pick.at]!; m = withMap(m, g); invs.push(g.inv) }
+  for (const p of plans) if (p.pick.mode === 'map') { const g = p.maps[p.pick.at]!; m = withMap(m, g); invs.push(...(g.inner ? [g.inner.inv] : []), g.inv) }
   const state = {...m.state}, step = {...m.step.state}, ghosts: string[] = []
   const laws = plans.map(p => {
     const {law} = p, ex: SomeProof = {vars: law.some!, body: law.holds}
@@ -527,7 +550,7 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
       const g = p.maps[j]!
       try {
         const mm = withMap(others.reduce((acc, q) => withMap(acc, q.maps[(q.pick as {at: number}).at]!), m), g)
-        const ok = trueSmall(m, [g.inv, {...p.law, holds: g.holds, some: undefined}], mm)
+        const ok = trueSmall(m, [...(g.inner ? [g.inner.inv] : []), g.inv, {...p.law, holds: g.holds, some: undefined}], mm)
         if (log) console.error(`exists: map ${g.name} at ${showE(g.at)} := ${showE(g.write.value)}: ${ok ? 'kept' : 'false on the small instances'}`)
         if (ok) { p.pick = {mode: 'map', at: j}; return true }
       } catch (e) { if (log) console.error(`exists: map ${g.name}: ${String(e).slice(0, 120)}`) }
