@@ -124,7 +124,7 @@ def run_jobs(app, spec: list[dict], out: str, pre: str, cmd, modal_jobs, backend
 
     todo = list(spec)
     # (a job on an image of its own, the runner-like one, or one that says "backend": "modal": Modal's, whatever the backend)
-    own = [j for j in spec if j.get("image") or j.get("backend") == "modal"]
+    own = [j for j in spec if (j.get("image") and j["image"] != "runner") or j.get("backend") == "modal"]  # (boat's langs layer has the runner image's)
     if own:
         moved.update({j["name"]: f"its image ({j['image']}) is Modal's" if j.get("image") else "it asks for Modal" for j in own})
     if backend in ("auto", "boat") and len(own) < len(spec):

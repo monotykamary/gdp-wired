@@ -307,6 +307,50 @@ curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh 
 sudo mkdir -p /work /src/gdp-wired /bench /smt /vamp /sv /opt/gdpw
 sudo chown "$(id -un)" /smt /vamp /sv /opt/gdpw
 """
+# The toolchains the lanes' jobs install at their start on Modal (as root, which a boat item isn't): the language
+# sweep's (research/langs/*/*-setup.sh: Ruby and Prism, Elixir, clang 19, a JDK 21 and kotlinc 2.4.21, Swift, Rust),
+# LiteLLM's Python (uv, its pinned dependencies, a site directory the user installs into), Solidity's solc and anvil
+# (research/sol), and the runner image's own (modal/run.py's runner_image: clang 18, GCC 14's libstdc++, Temurin 17), so
+# "image": "runner" jobs run on boat too. Each setup script then finds its tool and installs nothing.
+LANGS = r"""
+export DEBIAN_FRONTEND=noninteractive
+sudo apt-get update -y -q
+sudo -E apt-get install -y -q ruby ruby-dev build-essential elixir clang-18 clang g++-14 libstdc++-14-dev libc6-dev unzip pkg-config binutils \
+  libcurl4-openssl-dev libedit2 libncurses-dev libpython3-dev libsqlite3-0 libxml2-dev libz3-dev zlib1g-dev tzdata python3-venv
+sudo gem install -q --no-document prism
+ruby -e 'require "prism"; puts Prism::VERSION'
+# clang 19 for the C and C++ front ends (clang-setup.sh's), first on the PATH; the runner image's clang 18 in /usr/lib/llvm-18/bin
+. /etc/os-release
+curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null
+echo "deb http://apt.llvm.org/$VERSION_CODENAME/ llvm-toolchain-$VERSION_CODENAME-19 main" | sudo tee /etc/apt/sources.list.d/llvm.list
+sudo apt-get update -y -q && sudo -E apt-get install -y -q clang-19
+sudo ln -sf /usr/bin/clang-19 /usr/local/bin/clang && sudo ln -sf /usr/bin/clang++-19 /usr/local/bin/clang++
+clang --version | head -1; /usr/lib/llvm-18/bin/clang --version | head -1
+# JDK 21 and kotlinc 2.4.21 (jvm-setup.sh's), Temurin 17 (the runner image's)
+sudo mkdir -p /opt/jdk /usr/lib/jvm/temurin-17 && sudo chown "$(id -un)" /opt/jdk /usr/lib/jvm/temurin-17
+curl -fsSL "https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jdk/hotspot/normal/eclipse" | tar xz -C /opt/jdk --strip-components=1
+curl -fsSL "https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse" | tar xz -C /usr/lib/jvm/temurin-17 --strip-components=1
+curl -fsSL -o /tmp/kotlinc.zip https://github.com/JetBrains/kotlin/releases/download/v2.4.21/kotlin-compiler-2.4.21.zip && sudo unzip -q -o /tmp/kotlinc.zip -d /opt && rm /tmp/kotlinc.zip
+sudo ln -sf /opt/kotlinc/bin/kotlinc /usr/local/bin/kotlinc
+/opt/jdk/bin/javac -version; /usr/lib/jvm/temurin-17/bin/javac -version
+# Swift 6.3.3 for this Ubuntu (swift-setup.sh's, which names Debian 12's)
+sudo mkdir -p /opt/swift && sudo chown "$(id -un)" /opt/swift
+curl -fsSL "https://download.swift.org/swift-6.3.3-release/ubuntu2404/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE-ubuntu24.04.tar.gz" | tar xz -C /opt/swift --strip-components=1
+/opt/swift/usr/bin/swift --version 2>&1 | head -1
+# Rust, minimal stable, under the user's home (rust-setup.sh's)
+curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+~/.cargo/bin/cargo --version
+# solc 0.8.28 and anvil (research/sol/sol-setup.sh's)
+sudo mkdir -p /opt/sol /opt/foundry && sudo chown "$(id -un)" /opt/sol /opt/foundry
+curl -fsSL -o /opt/sol/solc https://github.com/ethereum/solidity/releases/download/v0.8.28/solc-static-linux && chmod +x /opt/sol/solc
+curl -fsSL https://github.com/foundry-rs/foundry/releases/download/stable/foundry_stable_linux_amd64.tar.gz | tar xz -C /opt/foundry
+/opt/sol/solc --version | tail -1; /opt/foundry/anvil --version | head -1
+# LiteLLM's Python: uv, its pinned dependencies, and the system site directory the user installs into (uv pip install --system)
+sudo pip install --break-system-packages -q uv
+for d in $(python3 -c 'import site; print(" ".join(site.getsitepackages()))') /usr/local/bin; do sudo mkdir -p "$d"; sudo chown -R "$(id -un)" "$d"; done
+uv pip install --system --break-system-packages -q 'litellm[proxy]==1.106.6'
+python3 -c 'import litellm.proxy.auth.auth_checks; print("litellm deps ok")'
+"""
 # the compare runners' solvers, a layer each (their BOAT_SETUP, next to their Modal image), the slowest to build first
 RUNNERS = ["compare/tip/modal_tip.py", "compare/chc/modal_chc.py", "compare/term/modal_term.py", "compare/term/modal_sv.py"]
 
@@ -318,12 +362,16 @@ def runner_boat(path: str) -> dict:
     return {"setup": getattr(mod, "BOAT_SETUP", ""), **getattr(mod, "BOAT", {})}
 
 
+_ALIAS: dict = {}
+
+
 def layers() -> list[tuple[str, str, str]]:
     """(layer, its snapshot's name, its script), each name hashing every script below it too."""
     out, h = [], hashlib.sha256(b"gdpw-image-v1\n")
-    for name, script in [("tools", TOOLS), *[(pathlib.Path(r).stem.removeprefix("modal_"), runner_boat(r)["setup"]) for r in RUNNERS]]:
+    for name, script in [("tools", TOOLS), *[(pathlib.Path(r).stem.removeprefix("modal_"), runner_boat(r)["setup"]) for r in RUNNERS], ("langs", LANGS)]:
         h.update(name.encode() + b"\0" + script.encode() + b"\0")
         out.append((name, f"gdpw-{name}-{h.hexdigest()[:10]}", script))
+        _ALIAS[out[-1][1]] = f"gdpw-{h.hexdigest()[:12]}"  # (the name it had when it was the top layer: the same snapshot)
     final = f"gdpw-{h.hexdigest()[:12]}"
     out[-1] = (out[-1][0], final, out[-1][2])
     return out
@@ -391,12 +439,14 @@ def ensure_image(build: bool = True) -> str:
     chain = layers()
     parent = None
     for name, snap, script in chain:
+        if have.get(_ALIAS.get(snap), {}).get("status") == "ready" and snap not in have:
+            snap = _ALIAS[snap]  # (a layer that was the image's top before another went on it)
         if snap not in have or have[snap].get("status") != "ready":
             if not build:
                 raise Unavailable(f"boat image {chain[-1][1]} isn't built (layer {snap} missing): python3 modal/boat.py image --build")
             build_layer(name, snap, script, parent)
         parent = snap
-    prune_snapshots({s for _, s, _ in chain}, chain[-1][1])
+    prune_snapshots({s for _, s, _ in chain} | {_ALIAS[s] for _, s, _ in chain if s in _ALIAS}, chain[-1][1])
     return chain[-1][1]
 
 
@@ -1601,6 +1651,8 @@ def job_items(spec: list[dict], pre: str, cmd, vm_type: str, past: dict) -> tupl
         for j in js:
             w = max(math.ceil(cpu / SLOT_CPU), math.ceil(memory / SLOT_MEM), 1)
             it = {"name": j["name"], "kind": "sh", "cmd": pre + cmd(j["cmd"]), "cwd": j.get("cwd", "."), "limit": timeout - 30, "weight": w, "est": past.get(j["name"], med)}
+            if j.get("image") == "runner":  # (the langs layer has the runner image's toolchain: clang 18 and Temurin 17 first)
+                it.update(path=["/usr/lib/llvm-18/bin", "/usr/lib/jvm/temurin-17/bin"], env={"JAVA_HOME": "/usr/lib/jvm/temurin-17"})
             if w > cap_slots:
                 big = next((t for t, (c, m) in TYPES.items() if c // SLOT_CPU >= w and m >= memory), None)
                 if not big:
