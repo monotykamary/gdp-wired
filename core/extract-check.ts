@@ -20,7 +20,7 @@ type VM = {createContext: (o: Context) => Context, runInContext: (code: string, 
 const proc = (globalThis as {process?: {getBuiltinModule?: (id: string) => unknown}}).process
 const vmOf = (): VM => { const m = proc?.getBuiltinModule?.('node:vm'); if (!m) throw new Error('the check runs the code in node:vm (Node 20.16 or later, or Bun)'); return m as VM }
 import {Int, Term, bool, int, intern, interned, nat, no, oneOf, str, type Kind, type Rule, type StepLaw, proveSteps} from './dsl.ts'
-import {type Rand, type Request, type State, searchSeeded, walk} from './machine.ts'
+import {type Rand, type Request, type State, seeded, walk} from './machine.ts'
 import {allowed} from './watch.ts'
 import {type Arg, type Layout, type MapDecl, type Model, type Var, normalize, resolveIn, scriptKind} from './extract-read.ts'
 import * as I from './extract-ir.ts'
@@ -384,7 +384,7 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
 // The check: requests from the start, from drawn states and from the prover's witnesses, each made of the code
 // (through its side) and of the rule, and compared.
 export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: CheckOptions & {given?: Record<string, 'nat' | 'int'>} = {}): Evidence {
-  const t0 = performance.now(), rand = searchSeeded((opts.seed ?? 7) >>> 0 || 1), bound = opts.bound ?? 12
+  const t0 = performance.now(), rand = seeded((opts.seed ?? 7) >>> 0 || 1), bound = opts.bound ?? 12
   const isClass = m.shape === 'class'
   const interp = r.interpreter(), gen = r.compiled(), machine = r.machine
   const ev: Evidence = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0}

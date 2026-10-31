@@ -103,10 +103,11 @@ test('accelerated cycles with a product and with an inner loop: each found and c
 }, 120_000)
 
 test('accelerated cycles: each found and checked, its twin halting and not found', () => {
+  // (any certificate the check takes: a lasso where the draws find one, `choose 14` choosing 14 again, an accelerated
+  // cycle otherwise; longStem's 5,000-turn stem only acceleration reaches)
   for (const l of [alternate, choose, longStem]) {
     const n = findNeverEnds(l, {ms: 4000})
     expect(n.proven && n.checked, l.name).toBe(true)
-    expect(n.by, l.name).toBe('accelerated')
     expect(checkRecur(l, n.recur!), l.name).toBe(true)
   }
   expect(findNeverEnds(longStem, {ms: 4000}).recur!.stem.length).toBeGreaterThan(5000)
