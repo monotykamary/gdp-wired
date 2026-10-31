@@ -8,7 +8,7 @@ it. Golem reads no datatypes.
 | --- | --- |
 | `horn.ts` | The task read: compare/chc's clause reader (`parseHorn`) and TIP's datatypes (tip.ts). Then the model guessed, each clause made a TIP goal over it (`lawOf`), and a derivation found and checked (`deriveQuery`, `checkDerivation`) |
 | `solve.ts` | One task: every law through compare/tip/translate.ts and proveData; answers sat, unsat, unknown or unsupported |
-| `modal_adt.py` | The track on Modal: each task in its own container (2 vCPU, 4 GB), each tool under the same 60 s limit, as compare/chc/modal_chc.py does |
+| `modal_adt.py` | The track on Modal: each task in its own container (2 vCPU, 4 GB), each tool under the same 60 s limit, as compare/chc/modal_chc.py does (Modal-only and historical, the pilot's; the bar group below would port it) |
 | `pilot.json` | The fixed pilot: 48 tasks, stratified by family and verdict, drawn by the SHA-1 of the task's path from the tasks some CHC-COMP'26 entrant decided |
 
     modal run compare/chc-adt/modal_adt.py --out runs/adt/<name> [--tools gdp,z3,eldarica] [--tasks pilot|all]

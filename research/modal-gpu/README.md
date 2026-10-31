@@ -7,7 +7,7 @@
 | `gpu-page.ts`, `gpu-page.html`, `driver.ts` | The same suite in headless Chrome, with a Linux driver instead of Handwired's macOS-only `runPage` |
 | `run_gpu.py` | Modal: debian + NVIDIA Vulkan loader libs (libvulkan1, libxext6, libx11-6, libglvnd0, libegl1) + Chrome + bun + `webgpu`; `--gpu L4/A10G/H100`, `--mode dawn/chrome`; 15-minute timeout; the call is cancelled if the client stops |
 | `suite.json`, `suite-big.json` | The searches of `search/models.ts`, depth 9, and larger spaces (depth 10–12, bound 3) |
-| `probe.py`, `probe2.py`, `probe-chrome.ts`, `probe-dawn.ts` | How the setup was found: Vulkan on the container, Chrome flag sets, Dawn |
+| `probe.py`, `probe2.py`, `probe-chrome.ts`, `probe-dawn.ts` | How the setup was found: Vulkan on the container, Chrome flag sets, Dawn (the probes Modal-only and historical) |
 
 Findings: Modal mounts NVIDIA's Vulkan ICD (`/etc/vulkan/icd.d/nvidia_icd.json`), which needs libXext to load. Dawn then
 gets the real GPU. Chrome 155 on the same container only ever offers SwiftShader (7 flag sets tried), so Dawn is the path.

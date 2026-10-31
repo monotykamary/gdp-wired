@@ -1,27 +1,39 @@
-"""research/query on Modal: where a kernel query's time goes. One job a container (2 vCPU, 4 GB), every job at once.
+"""research/query: where a kernel query's time goes. One job a 2 vCPU, 4 GB slot (a boat item, or a Modal container),
+every job at once.
 
-    modal run research/query/modal_query.py --jobs <jobs.json> --out runs/query/<name>
+    python3 research/query/modal_query.py --jobs <jobs.json> --out runs/query/<name> [--backend boat|auto|modal]
+    modal run research/query/modal_query.py --jobs <jobs.json> --out runs/query/<name>          (Modal, as before)
 
-jobs.json is a list of {"name", "cmd", "limit"?, "prof"?, "base"?}: cmd runs under bash in /work/gdp-wired (this tree,
-mounted fresh), or in /work/base (main with research/query's instrumentation, made outside the tree by `jobs.py base`
-and mounted) with "base": true, killed at `limit` seconds
-(default 120) by `timeout -s KILL`. Every bun process it starts loads research/query/log.ts (each root query a line of
-<out>/<name>/q.jsonl); with "prof": true each also writes a CPU profile, summarized in the container by top.py
-(<out>/<name>/prof-<n>.json). Mounted: the CHC-COMP'26 LIA-Lin benchmarks at compare/chc's pinned commit (/chc),
+--backend boat (the default) runs each job as a boat item (supercomputer/fanout.py), auto falls back to Modal when boat
+can't take a batch or loses a job, modal is `modal run`'s. jobs.json is a list of {"name", "cmd", "limit"?, "prof"?,
+"base"?}: cmd runs under bash in /work/gdp-wired (this tree, copied fresh), or in /work/base (main with research/query's
+instrumentation, made outside the tree by `jobs.py base` and mounted; Modal only) with "base": true, killed at `limit`
+seconds (default 120) by `timeout -s KILL`. Every bun process it starts loads research/query/log.ts (each root query a
+line of <out>/<name>/q.jsonl); with "prof": true each also writes a CPU profile, summarized by top.py
+(<out>/<name>/prof-<n>.json). The data: the CHC-COMP'26 LIA-Lin benchmarks at compare/chc's pinned commit (/chc),
 TermComp's ITS at compare/term's (/its), research/dag's 332 dumped step goals (/goals, from the main checkout's
-runs/modal/dag/goals). <out>/<name>.log has the exit code, seconds, stdout and stderr; <out>/summary.tsv one row a job.
-The app id and client pid are registered in supercomputer/.live/ (supercomputer/reap.sh stops an orphan); every call is cancelled when
-this entrypoint exits.
+runs/modal/dag/goals). On Modal they are in the image; on boat /chc and /its are the image's chc and term layers
+(/opt/gdpw/chc/bench, /opt/gdpw/term/bench) and the goals the jobs read go with the batch's tree (packed into
+research/query/.goals-<pid>.tar.zst for the run), so a command's /chc/, /its/ and /goals/ paths are read there. <out>/<name>.log has the exit code, seconds, stdout and stderr; <out>/summary.tsv one row
+a job. Every call is cancelled when the client exits (supercomputer/reap.sh stops an orphan app or VM lease).
 """
 import json
 import os
 import pathlib
+import re
 import time
-
-import modal
 
 HERE = pathlib.Path(__file__).resolve().parent
 GDP = HERE.parent.parent
+# the pool's code: supercomputer/, or modal/ in a tree from before the rename (the bar runs this runner in old trees too)
+SC = next((GDP / d for d in ("supercomputer", "modal") if (GDP / d / "fanout.py").exists()), GDP / "supercomputer")
+try:
+    import modal
+except ImportError:  # plain python3, --backend boat: the job function runs on boat VMs (supercomputer/fanout.py)
+    import sys
+    sys.path.insert(0, str(SC))
+    from agent import modal_stub
+    modal = modal_stub()
 MAIN = GDP.parent / "gdp-wired"
 BENCH_COMMIT = "b4fa7a708e5863bbcdb5de50d692ead3a67cbedc"
 ARI_COMMIT = "183f29db5ec7702215c6aabe12732bf3e836fced"
@@ -64,12 +76,36 @@ if BASE.exists():
     image = image.add_local_dir(BASE, "/src/base", ignore=IGNORE)
 app = modal.App("gdp-wired-query", image=image)
 
+# On boat (a VM of the pool's image): the benchmarks the chc and term layers hold, and the goals the jobs read packed
+# into this tree for the batch (a batch's tree is what git sees, as Modal's image carries /goals), each job's unpacked
+# into its own /work. A command's /chc/, /its/ and /goals/ paths are read there; nothing else in it changes.
+ON_BOAT = {"/chc/": "/opt/gdpw/chc/bench/", "/its/": "/opt/gdpw/term/bench/", "/goals/": "/work/data/goals/"}
+PATHS = re.compile(r"(?<![\w./-])/(chc|its|goals)/")
+GOAL = re.compile(r"(?<![\w./-])/goals/([^\s'\"]+)")
+
+
+def pack(jobs: str) -> str:
+    """The goal files a jobs file reads, from the main checkout's dump, as research/query/.goals-<pid>.tar.zst in this
+    tree (untracked, so the batch's tree has it; removed when the run ends). Its path in the tree, or "" for none."""
+    import subprocess
+    files = sorted({f"goals/{g}" for j in json.loads(pathlib.Path(jobs).read_text()) for g in GOAL.findall(j["cmd"])})
+    if not files:
+        return ""
+    rel = f"research/query/.goals-{os.getpid()}.tar.zst"
+    subprocess.run(f"tar -C {GOALS.parent} -cf - {' '.join(files)} | zstd -q -10 -o {GDP / rel}", shell=True, check=True)
+    return rel
+
 
 @app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=2400)
-def job(name: str, cmd: str, limit: int, prof: bool, base: bool) -> dict:
+def job(name: str, cmd: str, limit: int, prof: bool, base: bool, goals: str = "") -> dict:
     import shutil
     import subprocess
 
+    if not pathlib.Path("/goals").exists():  # a boat VM: the image's benchmarks, this job's goals from the tree's pack
+        if goals:
+            pathlib.Path("/work/data").mkdir(parents=True, exist_ok=True)
+            subprocess.run(["tar", "--zstd", "-xf", f"/src/gdp-wired/{goals}", "-C", "/work/data", *(f"goals/{g}" for g in GOAL.findall(cmd))], check=True)
+        cmd = PATHS.sub(lambda m: ON_BOAT[m.group(0)], cmd)
     work = pathlib.Path("/work/gdp-wired")
     if not work.exists():
         shutil.copytree("/src/gdp-wired", work)
@@ -100,20 +136,27 @@ def job(name: str, cmd: str, limit: int, prof: bool, base: bool) -> dict:
 
 @app.local_entrypoint()
 def main(jobs: str, out: str):
-    live = GDP / "supercomputer" / ".live"
-    live.mkdir(exist_ok=True)
-    ticket = live / f"{app.app_id}"
-    ticket.write_text(str(os.getpid()))
+    import sys
+    sys.path.insert(0, str(SC))
+    import fanout
+    run(fanout.ModalEx(app), jobs, out)
+
+
+def run(ex, jobs: str, out: str):
     outdir = pathlib.Path(out)
     outdir.mkdir(parents=True, exist_ok=True)
     spec = json.loads(pathlib.Path(jobs).read_text())
     (outdir / "jobs.json").write_text(json.dumps(spec, indent=0))
     t0 = time.time()
     rows = []
+    boat = getattr(ex, "backend", "modal") != "modal"
+    if boat and any(j.get("base") for j in spec):
+        raise SystemExit("jobs on main's instrumented tree (\"base\": true, jobs.py --base) need its mount: --backend modal")
     try:
-        args = [(j["name"], j["cmd"], j.get("limit", 120), bool(j.get("prof")), bool(j.get("base"))) for j in spec]
+        goals = os.environ.get("GDP_QUERY_PACK", "") if boat else ""
+        args = [(j["name"], j["cmd"], j.get("limit", 120), bool(j.get("prof")), bool(j.get("base")), *([goals] if goals else [])) for j in spec]
         print(f"{len(args)} jobs", flush=True)
-        for r in job.starmap(args, order_outputs=False, return_exceptions=True):
+        for r in ex.starmap(job, args):
             if isinstance(r, BaseException):
                 r = {"name": f"?{len(rows)}", "code": -1, "seconds": -1, "out": "", "err": repr(r)[:2000], "files": {}}
             safe = r["name"].replace("/", "__")
@@ -127,5 +170,23 @@ def main(jobs: str, out: str):
                 print(f"{len(rows)}/{len(args)} done, {round(time.time() - t0)} s", flush=True)
     finally:
         (outdir / "summary.tsv").write_text("".join(f"{r['name']}\t{r['code']}\t{r['seconds']}\n" for r in rows))
-        ticket.unlink(missing_ok=True)
+        ex.close()
     print(f"{len(rows)} jobs, {sum(r['code'] != 0 for r in rows)} nonzero, {round(time.time() - t0, 1)} s wall", flush=True)
+
+
+if __name__ == "__main__":
+    import sys
+    sys.path.insert(0, str(SC))
+    import fanout
+    if not any(a == "--backend" or a.startswith("--backend=") for a in sys.argv[1:]):
+        sys.argv[1:1] = ["--backend", "boat"]  # (boat by default; auto and modal on request)
+    # (the goals packed before the batch takes its tree; the same run again under the Modal client's interpreter finds
+    # the pack already made)
+    backend = sys.argv[sys.argv.index("--backend") + 1] if "--backend" in sys.argv else ""
+    if "GDP_QUERY_PACK" not in os.environ and "--jobs" in sys.argv and backend != "modal":
+        os.environ["GDP_QUERY_PACK"] = pack(sys.argv[sys.argv.index("--jobs") + 1])
+    try:
+        fanout.cli(run, __file__, __doc__)
+    finally:
+        if os.environ.get("GDP_QUERY_PACK"):
+            (GDP / os.environ["GDP_QUERY_PACK"]).unlink(missing_ok=True)

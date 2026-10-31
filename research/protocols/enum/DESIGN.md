@@ -7,7 +7,7 @@ Nothing is built into the library here. The probe is `probe.ts` beside this note
 candidate sets. Figures come from `runs/enum/` in this worktree (gitignored) unless they cite another round.
 
     bun research/protocols/enum/probe.ts <protocol> [--check houdini] [--weaken 1] [--plus] [--held] [--depth 200]
-    modal run research/protocols/enum/duoai_checks.py --out runs/enum/duoai
+    modal run research/protocols/enum/duoai_checks.py --out runs/enum/duoai          # (Modal-only and historical: DuoAI's image)
     modal run supercomputer/run.py --jobs research/protocols/enum/jobs-p4.json --out runs/enum/p4    # (p1: toy, p2–p4: the rest)
 
 ## The answer in short

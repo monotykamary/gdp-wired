@@ -209,7 +209,7 @@ A rule's run is a fold over the requests, each step needing the state the one be
 work for a GPU. To check that anyway, [`bench/gpu.ts`](bench/gpu.ts) hands each rule's run to the GPU (`run!(...)` in
 place of `run(...)` in the bench's entry point, the rule and its proofs unchanged), builds it with CUDA 12 and clang 19,
 and times it beside the plain CPU binary and beside the same binary with its GPU off (`--gpu off`, which runs the `!`
-call on the CPU lanes). [`bench/modal_gpu.py`](bench/modal_gpu.py) runs it on a Modal L4 (`runs/modal/compare-bench/gpu/`):
+call on the CPU lanes). [`bench/modal_gpu.py`](bench/modal_gpu.py) (Modal-only and historical) runs it on a Modal L4 (`runs/modal/compare-bench/gpu/`):
 
 | rule | N | CPU binary ms | `run!` binary, `--gpu off` ms | `run!` binary, GPU on |
 | --- | --- | --- | --- | --- |
@@ -274,7 +274,7 @@ what the `!` costs a serial fold on the CPU: about 10 ms more startup, otherwise
 
 ## Running it
 
-[`modal_compare.py`](modal_compare.py) is modeled on `supercomputer/run.py`. It mounts gdp-wired and the Bend repo's `bend2/`
+[`modal_compare.py`](modal_compare.py) (Modal-only and historical) is modeled on `supercomputer/run.py`. It mounts gdp-wired and the Bend repo's `bend2/`
 (from `$BEND_REPO`, default `../bend`, read-only), registers its app in `supercomputer/.live/`, and cancels its calls on exit.
 [`jobs.json`](jobs.json) has three jobs: `run.ts` (the table), the Lean twin, and the typecheck.
 

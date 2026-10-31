@@ -9,7 +9,7 @@ sourced from the IC3PO repository" (pyv-paxos-epr).
     models.ts   the ports (each with its correspondence, a broken variant, its instance and TLC cfg)
     common.ts   what they share: majority() by counting, the check's types
     check.ts    a port's reachable states on a small instance, by BFS, as the spec's variables
-    tlc.py      Modal: TLC on the Endive spec beside check.ts's BFS, per protocol
+    tlc.py      TLC on the Endive spec beside check.ts's BFS, per protocol (boat, Modal on request)
     run.ts      the search with nothing written, per protocol (jobs.ts: its Modal jobs)
     probe.ts    a port's law through proveRule with the search off, within a wall
 
@@ -25,7 +25,7 @@ The measurements, the failure classes and what was built are in ../engine/DESIGN
 | IC3PO's ivybench submodule (checked, not used) | github.com/aman-goel/ivybench | 5db7eccb5c3bc2dd14dfb58eddb859b036d699f5 (as pinned); master d2c9298 | none stated |
 
 Nothing of these sources is copied here: the ports are written from them by hand, and tlc.py fetches Endive at the
-commit above in its container. IC3PO's repository (and its ivybench, at the pinned commit and at master) has no
+commit above in its container or VM. IC3PO's repository (and its ivybench, at the pinned commit and at master) has no
 paxos_epr in any form; Endive's `benchmarks/paxos_epr.tla` is the suite's only TLA+ of it, and its header cites SWISS's
 `paxos_epr_missing1.ivy` and mypyvy's `paxos_epr.pyv` (commit above) as its model. That TLA+ has two faults, read off
 the file: `Next` calls `Decide(n, v, r, Q)` but the action is `Decide(n, r, v, Q)`, so Decide reads `<<m, v, r>> \in

@@ -1,4 +1,5 @@
 """research/step on Modal: one job a container (2 vCPU, 4 GB), every job at once (research/dag/modal_dag.py's runner).
+Modal-only and historical (g332, its goals332 kind, runs on boat through research/query).
 
     modal run research/step/modal_step.py --jobs <jobs.json> --out runs/step/<name>
 
