@@ -3224,7 +3224,8 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
         // keep it, and are refused wherever the rule would read it, as a method's argument of that type is; the check
         // gives an inert one)
         if (a.k === 'inert') g.notes.add(`${r.short}(${pa.name}): ${g.why(pa.t)}, read nowhere the rule keeps (the check gives an inert one)`)
-        give(pa, v); ctor.push([pa.name, a])
+        // (where the rule would read it, refused there, saying how: a store, or a default)
+        give(pa, a.k === 'inert' && v.t === 'opaque' ? {...v, why: `${v.why} (a constructor argument: state it as a store, or give it a default)`} : v); ctor.push([pa.name, a])
       }
       const [, p2] = g.callFunc(fn, {t: 'ref', id: 'this'}, args, kw, {e: 'call', p: fn.p, text: `${r.short}()`}, p, false)
       made = p2
