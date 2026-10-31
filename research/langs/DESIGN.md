@@ -1114,21 +1114,25 @@ harnesses raise); the JVM, Swift and C++ readers still refuse a try (their stubs
 raise yet). Rust, Go and C have none.
 
 **A loop over a list the request carries: a fold, exact for every length.** `{s: 'for', to, over, body}`, `continue`,
-`break`; Python's `for` and `any`/`all`/`sum` of a generator (the same loop with an accumulator), Rust's `for` and
-`while let Some(x) = it.next()`; `x in xs` is `any(item == x for item in xs)`, `len(xs)` the length, the truth of
-`xs` an item. A list the request carries (Python's `list[T]`/`Sequence[T]` argument, T a scalar or a
-record of scalars and strings, where the harness makes one: `lists`) is a carried list of the rule (`carriesList`),
-each field of its items a carried map, its length the input `<list>_len`. The body runs once, at a pass `i$`: the item
+`break`; Python's `for` and `any`/`all`/`sum` of a generator (the same loop with an accumulator); `x in xs` is `any(item == x for item in xs)`, `len(xs)` the length, the truth of
+`xs` an item. A list is one representation, Lane O's map by place:
+a list of the state (an ordered collection: each item at a place that only grows) or a list the request carries
+(Python's `list[T]`/`Sequence[T]` argument, T a scalar or a record of scalars and strings, where the harness makes
+one: `lists`), a map by place 0 to its length `<list>_len` with every place held, printed as a carried list
+(`carriesList`). An item is its place's cell either way (`{t: 'cell', map, key}`, its fields read as any map's
+record's), and a loop runs over either: the passes a carried list's length, or one past a list of the state's last
+place (its least key's, read in the state before the step) with a place that holds no item a pass that changes
+nothing. The body runs once, at a pass `i$`: the item
 there (its fields cells at `i$`), and each local the body sets that is set before it a running value, a cell of the
 loop's own carried list `<list>$<k>` (one longer). What the pass makes of them is the fold's step: each running value
 at `i$ + 1`, and whether the pass ended the loop (`__done`: a return, a break, a failure or a refusal), what it returned
 (`__returned`, `__ret`), whether it failed or refused. The rule assumes every request carries the running values its
-items make: `.assume(... <run>.at(0) = start, <list>.every((_x, i$) => <run>.at(i$ + 1) = step))`; after the loop each
+items make: `.assume(... <run>.at(0) = start, <run>.every((_x, i$) => i$ < len implies <run>.at(i$ + 1) = step))`; after the loop each
 running value is its cell at the length, a return the cell `__ret` where `__returned`, a failure the step's where
 `__failed`. The step reads anything the body reads (the state before the step, the request, the params, other folds'
 ends), since an assumption may: every request of the code has exactly one sequence of running values meeting it, so the
 assumption excludes none. The check draws lists of 0 to 12 items and computes the running values the same way
-(extract-check.ts `carry`), so a step that misreads the body is a request the rule refuses and the code doesn't.
+(extract-check.ts `carry`; a list of the state's from the rule's own places), so a step that misreads the body is a request the rule refuses and the code doesn't.
 Refused, each where it is: a pass that writes the state, reads an answer (it would be one a pass), calls other code
 inside a try around the loop, raises out of the loop to a try around it, or holds a loop itself; a loop over anything
 but a list the request carries (a map or a list of the state, a literal, a range), and a loop's `else`.
