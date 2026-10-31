@@ -252,7 +252,8 @@ async function rulesOf0(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: st
   const first = await one()
   if (first.x.ok) return [first]
   // (refused with no entry named: the rules gdp.toml names that the code has, each with its options)
-  const named = Object.keys(cfg.rules).filter(k => t.files.some(f => new RegExp(`\\b${k.replace(/[^\w]/g, '\\$&')}\\b`).test(fs.readFileSync(f, 'utf8'))))
+  // (a rule gdp.toml names, where the file defines a class, struct or function of that name: never a word of its prose)
+  const named = Object.keys(cfg.rules).filter(k => t.files.some(f => new RegExp(`\\b(?:class|struct|def|defp|defmodule|module|fn|fun|func|function|interface|contract|object|impl|type|record|enum)\\s+(?:\\([^)]*\\)\\s*)?${k.replace(/[^\w]/g, '\\$&')}\\b`).test(fs.readFileSync(f, 'utf8'))))
   // (and each class the refusal names: gdp.toml's rules beside the file's others, not instead of them)
   const many = /several (?:classes|structs) (?:write their state|written by the file's functions) \(([^)]*)\)/.exec(first.x.refusals[0]?.what ?? '')?.[1]!.split(', ') ?? []
   const fns0 = [...new Set(laws.filter(l => !l.cls && l.fn).map(l => l.fn!))]
@@ -286,7 +287,12 @@ function scoped(file: string): Scoped[] {
     // (likewise in every language where a definition at the line's start is outside any class: Ruby's, Elixir's, a
     // TypeScript, Kotlin, Swift or Rust free function; a Go func is its receiver's type's, or none)
     const at0 = fn && fnLine >= 0 ? lines[fnLine]! : ''
-    if (fn && fnLine >= 0 && /\.(py|rb|ex|exs|ts|mts|tsx|js|mjs|kt|swift|rs)$/.test(file) && /^\S/.test(at0) && !/^\s*(?:class|struct|impl|module|defmodule|object|interface)\b/.test(at0)) cls = undefined
+    // (a law indented inside a class's body, the class's last line, is the class's: a free function after the class
+    // isn't what it sits on)
+    if (fn && fnLine >= 0 && /\.(py|rb|ex|exs|ts|mts|tsx|js|mjs|kt|swift|rs)$/.test(file) && /^\S/.test(at0) && !/^\s*(?:class|struct|impl|module|defmodule|object|interface)\b/.test(at0)) {
+      if (/^\S/.test(lines[l.line! - 1]!)) cls = undefined
+      else if (cls) fn = undefined
+    }
     if (fn && fnLine >= 0 && file.endsWith('.go')) { const rv = /^func\s+\(\s*\w*\s*\*?\s*(\w+)/.exec(at0); cls = rv ? rv[1] : /^func\s/.test(at0) ? undefined : cls }
     return {...l, ...(cls ? {cls} : {}), ...(fn ? {fn} : {})}
   })
@@ -310,7 +316,10 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     // outside every class and function)
     const ms0 = new Set((x.names ?? []).map(n => n.method))
     // (a law in a class is that class's alone, an entry named or not)
-    const mine = rules.length === 1 ? laws.filter(l => !l.cls || !name || l.cls === name) : laws.filter(l => (!l.cls && !l.fn) || (l.cls ? l.cls === name : l.fn === name || ms0.has(l.fn)))
+    // (a law on a function outside any class is that function's, where the file has a rule of its name, never a method
+    // of another rule that shares the name)
+    const fnRules = new Set(rules.map(r => r.entry ?? r.x.model?.name).filter(Boolean))
+    const mine = rules.length === 1 ? laws.filter(l => !name || (l.cls ? l.cls === name : !l.fn || l.fn === name || ms0.has(l.fn))) : laws.filter(l => (!l.cls && !l.fn) || (l.cls ? l.cls === name : l.fn === name || (ms0.has(l.fn) && !fnRules.has(l.fn))))
     if (!x.ok || !x.rule) { r.laws = mine.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read', why: 'the rule was refused', ms: 0})); continue }
     const ev = x.evidence
     if (ev) r.checked = `checked against ${'probes' in ev ? `the code: ${ev.requests} requests from the start, ${ev.fromStates} from drawn states, ${ev.probes.steps} from the prover's witnesses` : `XState's own actor: ${(ev as unknown as {events: number}).events} events`}${ev.coverage.arms ? `, ${ev.coverage.hit} of ${ev.coverage.arms} branch arms` : ''}${'startsOutside' in ev && ev.startsOutside ? `; ${ev.startsOutside} starts whose constructor passes 2^53 - 1 left out (outside the rule's numbers: the claim is for starts within them)` : ''}`
@@ -329,11 +338,14 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     const kindOf = (l: LawText): string => { if (isTwoRuns(l.expr)) return 'two'; if (isLeadsTo(l.expr)) return 'leads'; try { return buildLaw(x, l, {clock: ctx.clock}).kind } catch { return 'bad' } }
     const rank = (l: LawText) => ({law: 0, leads: 2}[kindOf(l)] ?? 1)
     const order = [...stated.keys()].sort((a, b) => rank(stated[a]!) - rank(stated[b]!))
+    // (from any state, the laws about states as one inductive set: the largest the stated ones make, each law the
+    // kernel's step breaks taken out in turn (Houdini), the others proven together; one taken out is judged alone)
+    const inductive = from && x.rule ? houdini(x, stated.filter(m => twice(m).length === 1 && kindOf(m) === 'law'), o.ms, ctx.clock) : undefined
     const outsOf: LawOut[] = []
     for (const i of order) {
       const l = stated[i]!
       outsOf[i] = twice(l).length > 1 ? {name: l.name, expr: l.expr, where: l.where, verdict: 'not read' as const, why: `a law of this name is stated twice (${twice(l).join(', ')}): a law is known by its name`, ms: 0}
-        : prove(x, l, o.ms, proven, {...ctx, entry: name, ...(from ? {from, together: stated.filter(m => twice(m).length === 1 && kindOf(m) === 'law')} : {})})
+        : prove(x, l, o.ms, proven, {...ctx, entry: name, ...(from ? {from, inductive, together: stated.filter(m => twice(m).length === 1 && kindOf(m) === 'law' && inductive!.has(m.name))} : {})})
     }
     r.laws = outsOf
     if (o.propose && x.model) { const p = propose(x, t.lang, o, proven, new Set(stated.map(l => l.expr.replace(/\s+/g, '')))); r.proposed = p.shown; r.brokenProposed = p.broken }
@@ -352,13 +364,37 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
 // The unit of each language's clock (Date.now() and a Clock's millis count milliseconds; time.time(), DateTime.diff in
 // seconds and Instant's as_secs count seconds); the others say it in gdp.toml (clock = "s" or "ms").
 const CLOCK: Partial<Record<Lang, string>> = {python: 's', elixir: 's', rust: 's', ts: 'ms', java: 'ms', kotlin: 'ms'}
-type Ctx = {ms: number, clock?: number, others: Record<string, Extraction>, cites: Cite[], cert?: string, file: string, entry?: string, from?: 'any', together?: LawText[]}
+type Ctx = {ms: number, clock?: number, others: Record<string, Extraction>, cites: Cite[], cert?: string, file: string, entry?: string, from?: 'any', together?: LawText[], inductive?: Set<string>}
+// The largest set of these laws that is inductive from every state they allow together: each law whose step the
+// kernel breaks taken out, the rest tried again.
+function houdini(x: Extraction, ls: LawText[], ms: number, clock?: number): Set<string> {
+  let set = ls.flatMap(l => { try { const b = buildLaw(x, l, {clock}); return b.kind === 'law' ? [{l, law: b.law as Law}] : [] } catch { return [] } })
+  for (let i = 0; i <= ls.length && set.length; i++) {
+    let v: Verdict
+    try { v = proveRule(x.rule!, [...(x.invariants ?? []), ...set.map(s => s.law)], {search: {ms}, from: 'any'}) } catch { return new Set() }
+    if (v.proven && v.checked && !v.assumes) return new Set(set.map(s => s.l.name))
+    const bad = set.find(s => v.goal === s.l.name || v.goal?.startsWith(`${s.l.name} @`))
+    if (!bad) return new Set()
+    set = set.filter(s => s !== bad)
+  }
+  return new Set()
+}
 
 // A law proven: an invariant with the rule's own invariants beside it, a step law with them and the invariants proven
 // so far (each holds in every reachable state, so the step laws may assume them); a law about two runs with the rule's
 // invariants holding of each run (core/relational.ts). Its citations go beside it, and with --cert <dir> the proof, as
 // an interchange document whose meta holds them.
-function prove(x: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: Ctx): LawOut {
+// The rule a law is proven on: the extraction's, declaring the divisors the law reads that the code doesn't (x // k,
+// x % k: floor division and remainder by a constant, known by their facts), its machine made again with them.
+function ruleFor(x: Extraction, expr: string): Extraction {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const r = x.rule as any as {spec?: {arith?: Set<number>}, withDivisors: (...ks: number[]) => unknown} | undefined
+  if (!r) return x
+  const ks = [...expr.matchAll(/(?:\/\/|%)\s*(\d+)/g)].map(m => Number(m[1])).filter(k => k >= 1)
+  return ks.length ? {...x, rule: r.withDivisors(...ks) as never} : x
+}
+function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: Ctx): LawOut {
+  const x = ruleFor(x0, l.expr)
   const t0 = Date.now(), cites = ctx?.cites.filter(c => c.law === l.name).map(c => c.text) ?? []
   const base = {name: l.name, expr: l.expr, ...(l.where ? {where: l.where} : {}), ...(cites.length ? {cites} : {})}
   const inv = x.invariants ?? [], search = {search: {ms}, ...(ctx?.from ? {from: ctx.from} : {})}
@@ -375,6 +411,14 @@ function prove(x: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: C
   try { if (isTwoRuns(l.expr)) two = buildTwoRuns(x, l, ctx?.others); else b = buildLaw(x, l, {clock: ctx?.clock}) } catch (e) { return {...base, verdict: 'not read', why: (e as Error).message, ms: 0} }
   const kind = two ? 'two runs' as const : b!.kind
   let v: Verdict & {given?: Law[]}
+  // (from any state, a law about states outside the inductive set: false from the start (a run), or true there and
+  // needing a law beside it to hold from every state the laws allow)
+  if (ctx?.from && ctx.inductive && b?.kind === 'law' && !ctx.inductive.has(l.name)) {
+    let r: Verdict
+    try { r = proveRule(x.rule!, [...inv, b.law], {search: {ms}}) } catch (e) { return {...base, kind: 'law', verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
+    if (r.run) return {...base, kind: 'law', verdict: 'broken', run: runOf(x, r.run), ms: Date.now() - t0}
+    return {...base, kind: 'law', verdict: 'unknown', why: r.proven && r.checked ? `true in every state a run from the start reaches, not inductive from every state the laws allow (from = "any"): state the law it needs beside it${r.found?.laws?.length ? `: ${r.found.laws.map(f => f.text).join('; ')}` : ''}` : r.why ?? r.stuck ?? 'not proven', ...(r.found?.laws?.length ? {found: r.found.laws.map(f => f.text)} : {}), ms: Date.now() - t0}
+  }
   // (from any state: a law about states proven with the others stated beside it, as one inductive set)
   const beside = (): Law[] => (ctx?.together ?? []).filter(m => m.name !== l.name).flatMap(m => { try { const y = buildLaw(x, m, {clock: ctx?.clock}); return y.kind === 'law' ? [y.law] : [] } catch { return [] } })
   try { v = two ? proveTwoRuns(two, {...search, invariants: [two.sides[0] === x.rule ? inv : (ctx?.others && Object.values(ctx.others).find(o => o.rule === two!.sides[0])?.invariants) ?? [], inv]}) : b!.kind === 'law' ? proveRule(x.rule!, [...inv, ...(ctx?.from ? beside() : []), b!.law], search) : proveSteps(x.rule!, [...inv, ...proven] as never, [b!.law], search) }

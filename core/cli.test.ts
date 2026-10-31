@@ -522,8 +522,9 @@ ${helper ? '    # gdp: law a within 3: a <= 3\n' : ''}
 `
   const dir = files({'mirror.py': code(false), 'gdp.toml': 'from = "any"\n'})
   const a = await check([`${dir}/mirror.py`], {ms: 5000, propose: false})
-  expect(a.rules[0]!.laws.map(l => l.verdict)).toEqual(['broken'])
-  expect(a.rules[0]!.laws[0]!.run).toBeUndefined()
+  // (true from the start, not inductive alone: unknown, the law it needs said)
+  expect(a.rules[0]!.laws.map(l => l.verdict)).toEqual(['unknown'])
+  expect(a.rules[0]!.laws[0]!.why).toMatch(/not inductive from every state the laws allow/)
   const reach = await check([`${dir}/mirror.py`], {ms: 5000, propose: false, from: 'reachable'})
   expect(reach.rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
   writeFileSync(`${dir}/mirror.py`, code(true))
@@ -649,7 +650,7 @@ class Tries:
 
 // What the code names, a law names the same: a field named failed (the keyword yields to it), a module's constant, a
 // class found by its statement (never a word of a docstring); a sum it can't take is a law not read, never a crash.
-;(TOOLS.python!() ? test : test.skip)('the CLI reads laws in the code\'s names: a field named failed, a module constant, a class not taken from prose; an integer sum not read', async () => {
+;(TOOLS.python!() ? test : test.skip)('the CLI reads laws in the code\'s names: a field named failed, a module constant, a class not taken from prose; an integer sum read', async () => {
   const dir = files({'n.py': `
 LIMIT = 3
 
@@ -688,5 +689,132 @@ class Pending:
   const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
   expect(v['every start boat made no VM for is given back']).toEqual(['Creation', 'proven'])
   expect(v['at most LIMIT asks']).toEqual(['Creation', 'proven'])
-  expect(v['the need is the pending sum']).toEqual(['Pending', 'not read'])
+  // (a sum of a map of integers: its positive parts less its negative parts; from any state it needs the laws about them)
+  expect(v['the need is the pending sum']![1]).not.toBe('not read')
 })
+
+// What supercomputer's rules hit, each read as the code means it: a constant bound to another's name, a field never
+// shadowed by another method's argument, a product of factors the path keeps at 0 or above, a comparison with x // k, a
+// sum of a map of integers after a step, a function's law never a same-named method's, a class's last law its own, a
+// gdp.toml rule only where the file defines it; and from any state, the largest inductive set of laws proven, a law
+// outside it said to need one beside it.
+;(TOOLS.python!() ? test : test.skip)('the CLI on supercomputer\'s shapes: aliases, shadowing, guarded products, floor division, integer sums, scoping, Houdini', async () => {
+  const dir = files({'s.py': `
+IDLE = 60
+LONG = IDLE
+
+
+# gdp: law a demand keeps a VM no longer than the idle time: not declared or result <= 60
+def release_ttl(declared: bool) -> int:
+    if declared:
+        return LONG
+    return IDLE
+
+
+# gdp: law a share of a count never exceeds the count: share_pct > 100 or limit <= 0 or result <= limit
+def ceiling(share_pct: int, limit: int) -> int:
+    if share_pct <= 0 or limit <= 0:
+        return 0
+    return share_pct * limit // 100
+
+
+class Entry:
+    def __init__(self):
+        self.up = True
+        self.lease = "none"
+        self.until = 0
+
+    # gdp: law a warm lease never takes a VM about to stop: lease == old(lease) or (up and until > now + 8)
+    def lease_warm(self, now: int) -> None:
+        if self.up and self.until > now + 8:
+            self.lease = "ours"
+
+    def release(self, now: int, up: bool) -> None:
+        self.lease = "none"
+        self.up = up
+
+
+class Grow:
+    def __init__(self, vms: int):
+        self.vms = vms
+        self.free = vms
+
+    # gdp: law a step grows by a quarter of the pool at most: result <= 1 or result <= vms // 4
+    def grow(self) -> int:
+        if self.free <= 0:
+            return 0
+        k = min(self.free, max(1, self.vms // 4))
+        self.free -= k
+        return k
+
+
+class Pending:
+    def __init__(self):
+        self.pending: dict[str, int] = {}
+        self.need = 0
+
+    def add(self, name: str, slots: int) -> None:
+        if slots < 0 or name in self.pending:
+            return
+        self.pending[name] = slots
+        self.need += slots
+
+    # gdp: law a row back keeps the need the pending sum: need == sum(pending)
+    def back(self, name: str) -> None:
+        if name not in self.pending:
+            return
+        self.need -= self.pending.pop(name)
+
+
+class Item:
+    # gdp: law finished at most once: finishes <= 1
+    # gdp: law taken at most once more than lost: runs <= tries + 1
+
+    def __init__(self):
+        self.queued = True
+        self.runs = 0
+        self.tries = 0
+        self.finishes = 0
+
+    def take(self) -> None:
+        if self.queued:
+            self.queued = False
+            self.runs += 1
+
+    def lose(self) -> None:
+        if not self.queued and self.tries == 0:
+            self.tries = 1
+            self.queued = True
+        elif not self.queued and self.finishes == 0:
+            self.finishes = 1
+
+
+class Holder:
+    """Holds the time budget."""
+
+    def __init__(self):
+        self.n = 0
+
+    def hit(self) -> None:
+        self.n += 1
+
+    # gdp: law at most one hold a call: n <= old(n) + 1
+
+
+def hit(x: int) -> int:
+    return x
+`, 'gdp.toml': 'from = "any"\n[rules.budget]\n'})
+  const {rules} = await check([`${dir}/s.py`], {ms: 8000, propose: false})
+  const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
+  expect(v['a demand keeps a VM no longer than the idle time']).toEqual(['release_ttl', 'proven'])
+  expect(v['a share of a count never exceeds the count']).toEqual(['ceiling', 'proven'])
+  expect(v['a warm lease never takes a VM about to stop']).toEqual(['Entry', 'proven'])
+  expect(v['a step grows by a quarter of the pool at most']).toEqual(['Grow', 'proven'])
+  expect(v['finished at most once']).toEqual(['Item', 'proven'])
+  expect(v['taken at most once more than lost']).toEqual(['Item', 'unknown'])
+  expect(v['at most one hold a call']).toEqual(['Holder', 'proven'])
+  expect(rules.some(r => r.entry === 'budget')).toBe(false)
+  // (a sum of integers after a step: from the start, the search finds the sums' laws; from any state it needs them)
+  const reach = await check([`${dir}/s.py`], {ms: 8000, propose: false, from: 'reachable', entry: 'Pending'})
+  expect(reach.rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
+}, 300_000)

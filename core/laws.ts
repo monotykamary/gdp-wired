@@ -261,7 +261,18 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
         if (fs.length !== 1) throw new LawError(`sum(${m.n.code}): its cells have ${fs.join(', ')} (the sum is of a map of numbers)`)
         if (dry) return DRY
         const map = ((m.env ?? c.a)[m.n.rule] ?? c.b[m.n.rule]) as {sum: (of: (cell: Record<string, unknown>) => unknown) => unknown}
-        try { return {t: 'num', v: Int.of(map.sum(cell => cell[fs[0]!]) as Term)} } catch (x) {
+        try {
+          // (a map of integers: the sum of its cells' positive parts less the sum of their negative parts, each a sum of
+          // naturals the kernel keeps exact)
+          const one = (map as unknown as {at: (k: Term) => Record<string, unknown>}).at(new Term({op: 'const', value: 0}))[fs[0]!]
+          if (one instanceof Int) {
+            // (after the step: the sums over the map before it, as the state after it holds them, primed)
+            const after = (m.env ?? c.a) === c.a && c.step && c.a !== c.b, src = (after ? c.b[m.n.rule] : map) as typeof map
+            const sumOf = (part: 'pos' | 'neg') => { const t = src.sum(cell => (cell[fs[0]!] as Int)[part]) as Term; return after && t.e.op === 'var' ? new Term({op: 'var', name: `${t.e.name}'`}) : t }
+            return {t: 'num', v: new Int(sumOf('pos'), sumOf('neg'))}
+          }
+          return {t: 'num', v: Int.of(map.sum(cell => cell[fs[0]!]) as Term)}
+        } catch (x) {
           if (x instanceof TypeError) throw new LawError(`sum(${m.n.code}): a sum is of naturals, and ${m.n.code}'s cells are integers (a cell the code may set below 0): state them as naturals (domains, in gdp.toml) where the code never does`)
           throw x
         }
@@ -273,6 +284,20 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
     }
     case 'un': { const v = go(e.x); if (dry) return v.t === 'cond' ? v : DRY; return e.op === '-' ? {t: 'num', v: num(v).negate()} : {t: 'cond', v: not(cond(v))} }
     case 'bin': {
+      // (a comparison with x // k on one side, k a positive constant: the same comparison without the division, exact
+      // over the integers (a <= x // k is k·a <= x; a < x // k is k·(a + 1) <= x), so it needs no function, which a law
+      // of one step can't read)
+      const flip: Record<string, string> = {'<': '>', '<=': '>=', '>': '<', '>=': '<=', '==': '==', '!=': '!='}
+      const divk = (x: X) => (x.k === 'bin' && x.op === '//' && (constOf(x.b) ?? 0) >= 1 ? x as X & {k: 'bin'} : undefined)
+      if (flip[e.op] && (divk(e.b) || divk(e.a))) {
+        const [op, lhs, d] = divk(e.b) ? [e.op, e.a, divk(e.b)!] : [flip[e.op]!, e.b, divk(e.a)!]
+        const k = constOf(d.b)!, ka: X = {k: 'bin', op: '*', a: {k: 'num', v: k}, b: lhs}, ka1: X = {k: 'bin', op: '*', a: {k: 'num', v: k}, b: {k: 'bin', op: '+', a: lhs, b: {k: 'num', v: 1}}}
+        const le = (a: X, b: X): X => ({k: 'bin', op: '<=', a, b}), lt = (a: X, b: X): X => ({k: 'bin', op: '<', a, b})
+        // a ⋈ ⌊x/k⌋:  <= : k·a <= x;  < : k·(a+1) <= x;  >= : x < k·(a+1);  > : x < k·a;  == : both;  != : not both
+        const x = d.a, eq: X = {k: 'bin', op: '&&', a: le(ka, x), b: lt(x, ka1)}
+        const out: X = op === '<=' ? le(ka, x) : op === '<' ? le(ka1, x) : op === '>=' ? lt(x, ka1) : op === '>' ? lt(x, ka) : op === '==' ? eq : {k: 'un', op: 'not', x: eq}
+        return go(out)
+      }
       if (e.op === 'in') { const m = go(e.b); if (m.t !== 'map') throw new LawError('x in m: m a map'); const k = go(e.a); return dry ? {t: 'cond', v: yes} : {t: 'cond', v: cellOf(m, key(k), c).rec.has as Cond} }
       // (a name the rule doesn't have, compared with a choice: the choice's value, Outcome.SLOW_ERROR)
       const lit = (x: X): V => { try { return go(x) } catch (err) { if (x.k !== 'path' || !(err instanceof LawError) || !['==', '!='].includes(e.op)) throw err; return {t: 'lit', v: lastName(x) ?? '', err} } }
@@ -380,6 +405,9 @@ function find(code: string, names: Name[], c: Ctx, stateOnly: boolean, called: b
   if (!stateOnly && !called && inputs.length) {
     const here = inputs.filter(n => n.method === c.method)
     if (here.length) return here[0]
+    // (a field of that name: the field, never another method's argument)
+    const field = names.find(n => n.role === 'state' && at(n))
+    if (field) return field
     if (new Set(inputs.map(n => n.method)).size === 1) return inputs[0]
     throw new LawError(`${code} is an argument of ${inputs.map(n => n.method).join(', ')}: write the law on the method it is about (the line above it), or as <method>.${code}`)
   }

@@ -260,6 +260,12 @@ class Reader:
         if q: return {'k': 'rec', 'name': q}
       return {'k': 'opaque', 'why': f"{n}, a type outside the files read"}
     return {'k': 'opaque', 'why': text(a)}
+  def const_value(self, mod, v):
+    """A constant's value, through constants bound to other constants' names (LONG = IDLE)."""
+    for _ in range(6):
+      if isinstance(v, ast.Name) and v.id in mod.consts and v.id not in mod.classes and v.id not in mod.funcs: v = mod.consts[v.id]
+      else: break
+    return v
   def module_const(self, mod, x):
     """`m.NAME` where m is a module of the repository (imported whole, or `from pkg import m`) and NAME one of its
     constants bound to a literal (a number, a string, a bool, None): that literal, else None."""
@@ -268,7 +274,8 @@ class Reader:
     q = imp[1] if imp[0] == 'module' else f"{imp[1]}.{imp[2]}"
     path = self.repo.path_of(q)
     if not path or path == mod.path: return None
-    v = Module(self.repo, path).consts.get(x.attr)
+    sub = Module(self.repo, path)
+    v = self.const_value(sub, sub.consts.get(x.attr))
     lit = isinstance(v, ast.Constant) or (isinstance(v, ast.UnaryOp) and isinstance(v.op, ast.USub) and isinstance(v.operand, ast.Constant))
     return self.expr(v, mod) if lit and not isinstance(getattr(v, 'value', getattr(getattr(v, 'operand', None), 'value', None)), bytes) else None
   def alias_of(self, mod, name, depth=0):
@@ -466,6 +473,10 @@ class Reader:
       return {'e': 'ext', 'q': f"{imp[1]}.{imp[2]}", 'text': n, 'patch': {'mod': mod.name, 'path': [n]}, 'p': p, **({'ret': ret} if ret else {})}
     if n in mod.consts:
       v = mod.consts[n]
+      # (a constant bound to another constant's name, LONG = IDLE: that one's value, a few deep)
+      for _ in range(6):
+        if isinstance(v, ast.Name) and v.id in mod.consts and v.id != n and v.id not in mod.classes and v.id not in mod.funcs: v = mod.consts[v.id]
+        else: break
       if isinstance(v, ast.Constant) or (isinstance(v, ast.UnaryOp) and isinstance(v.operand, ast.Constant)): return self.expr(v, mod)
       cm = self.const_map(v, mod, p)
       if cm: return cm
@@ -582,7 +593,7 @@ def main():
     print(json.dumps({'error': f"{req['file']} doesn't parse"})); return
   out = {'lang': 'python', 'file': os.path.basename(r.file), 'path': r.file, 'module': mod.name, 'root': os.path.abspath(req['root']), 'entries': [],
          # (the module's constants bound to literals, as the code reads them: a law may name them too)
-         'consts': {k: v.value for k, v in mod.consts.items() if isinstance(v, ast.Constant) and isinstance(v.value, (int, float, str, bool)) and not (isinstance(v.value, float) and not v.value.is_integer())}}
+         'consts': {k: v.value for k, v in ((k, r.const_value(mod, v)) for k, v in mod.consts.items()) if isinstance(v, ast.Constant) and isinstance(v.value, (int, float, str, bool)) and not (isinstance(v.value, float) and not v.value.is_integer())}}
   for n in req['names'] or list(mod.classes):
     if n in mod.classes: out['entries'].append({'k': 'class', 'rec': r.rec_of(mod, mod.classes[n])})
     elif n in mod.funcs:
