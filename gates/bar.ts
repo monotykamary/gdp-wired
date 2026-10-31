@@ -310,20 +310,23 @@ async function pass(g: Group, p: Pass): Promise<Meta> {
   let code: number
   try { code = await g.launch(p) } catch (e) { writeFileSync(`${p.dir}.log`, `\n${String(e)}\n`, {flag: 'a'}); code = -1 }
   // A task the backend failed (a VM or container lost, a mount error, a call that raised, a row or a job missing) is
-  // not the prover's answer: it runs once more, on boat first (auto: Modal only if boat fails again), and its row
-  // replaces the failed one.
-  const failed = code === 130 || stopping ? [] : backendFailed(p.dir)
+  // not the prover's answer: it runs again on boat until boat has failed it 3 times (this launch counts when it ran on
+  // boat), then once on Modal; each retry's rows replace the failed ones.
   let retried: string[] | undefined
-  if (failed.length && failed.length <= 400) {
-    log(`${g.key} ${p.side} ${p.dir.split('/').at(-1)}: ${failed.length} task(s) failed on the backend; once more (boat, then Modal)`)
-    const r: Pass = {...p, dir: `${p.dir}-retry`, tasks: failed, backend: 'auto'}
+  const onBoat = (p.backend ?? backend) !== 'modal'
+  for (let attempt = onBoat ? 2 : 4; attempt <= 4 && code !== 130 && !stopping; attempt++) {  // a Modal launch retries on Modal only
+    const failed = backendFailed(p.dir)
+    if (!failed.length || failed.length > 400) break
+    const via = onBoat && attempt <= 3 ? 'boat' : 'modal'
+    log(`${g.key} ${p.side} ${p.dir.split('/').at(-1)}: ${failed.length} task(s) failed on the backend; again on ${via} (attempt ${attempt})`)
+    const r: Pass = {...p, dir: `${p.dir}-retry${attempt}`, tasks: failed, backend: via}
     try { await g.launch(r) } catch (e) { writeFileSync(`${r.dir}.log`, `\n${String(e)}\n`, {flag: 'a'}) }
     mergeRetry(p.dir, r.dir)
-    retried = failed
+    retried = [...new Set([...(retried ?? []), ...failed])]
   }
   const where = existsSync(join(p.dir, 'backends.json')) ? readJson<{where?: unknown}>(join(p.dir, 'backends.json')).where : undefined
   const m: Meta = {group: g.key, side: p.side, tree: p.tree.label, sha: p.tree.sha, backend, started, wall_s: Math.round((Date.now() - t0) / 100) / 10, code, apps: appsIn(`${p.dir}.log`), tasks: p.tasks?.length ?? 'all', where, retried}
-  if (retried) m.apps.push(...appsIn(`${p.dir}-retry.log`))
+  if (retried) for (const k of [2, 3, 4]) if (existsSync(`${p.dir}-retry${k}.log`)) m.apps.push(...appsIn(`${p.dir}-retry${k}.log`))
   writeJson(`${p.dir}.meta.json`, m)
   log(`${g.key} ${p.side} ${p.dir.split('/').at(-1)}: exit ${code}, ${m.wall_s} s${m.apps.length ? `, ${m.apps.join(' ')}` : ''}`)
   return m
@@ -338,7 +341,9 @@ function backendFailed(dir: string): string[] {
     const given = existsSync(`${dir}.given.json`) ? readJson<string[]>(`${dir}.given.json`) : undefined
     const all = given ?? (existsSync(join(dir, 'tasks.json')) ? ((t: unknown) => (Array.isArray(t) ? t as {task: string}[] : (t as {tasks: string[]}).tasks.map(task => ({task}))).map(x => x.task))(readJson<unknown>(join(dir, 'tasks.json'))) : [])
     const tools = [...new Set(rows.map(r => r.tool).filter(t => t !== '?'))]
-    for (const r of rows) if (r.tool !== '?' && r.answer === 'error' && INFRA.test(r.err ?? '')) out.add(r.task)
+    const last = new Map<string, {tool: string, task: string, answer: string, err?: string}>()  // a retry's row replaces the one before it
+    for (const r of rows) last.set(`${r.tool}\u0000${r.task}`, r)
+    for (const r of last.values()) if (r.tool !== '?' && r.answer === 'error' && INFRA.test(r.err ?? '')) out.add(r.task)
     for (const tool of tools) { const has = new Set(rows.filter(r => r.tool === tool).map(r => r.task)); for (const t of all) if (!has.has(t)) out.add(t) }
     if (!tools.length && rows.some(r => r.tool === '?')) for (const t of all) out.add(t)
   } else if (existsSync(`${dir}.keys.json`)) {
@@ -552,7 +557,7 @@ function report(results: Result[], cand: Tree, base: Tree, outDir: string, t0: n
   for (const r of results) {
     const g = GROUPS.find(x => x.key === r.group)!
     if (r.error) p(`**${g.key}: ${r.error}**\n`)
-    for (const m of r.metas.filter(x => x.retried?.length)) p(`- ${g.key}, a ${m.side} launch: ${m.retried!.length} task(s) failed on the backend and ran once more (${m.retried!.slice(0, 5).join(', ')}${m.retried!.length > 5 ? ', ...' : ''}).\n`)
+    for (const m of r.metas.filter(x => x.retried?.length)) p(`- ${g.key}, a ${m.side} launch: ${m.retried!.length} task(s) failed on the backend and ran again, boat then Modal (${m.retried!.slice(0, 5).join(', ')}${m.retried!.length > 5 ? ', ...' : ''}).\n`)
     for (const m of r.metas.filter(x => x.code !== 0)) p(`**${g.key}: a ${m.side} launch exited ${m.code} after ${m.wall_s} s (${m.tasks === 'all' ? 'every task' : `${m.tasks} tasks`}); its log is beside its directory.**\n`)
     if (!r.cand) continue
     if (g.key === 'onecpu') { onecpu(r, p); continue }
