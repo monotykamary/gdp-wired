@@ -301,11 +301,11 @@ def wrap(j: pathlib.Path, spec: dict, work: pathlib.Path, tree: pathlib.Path, cw
     binds += [(src, dst) for dst, src in spec.get("mounts", {}).items()]
     lines = ["set -e"] + [f"mount --bind {json.dumps(s)} {json.dumps(t)}" for s, t in binds]
     # a directory a tool writes into (as root on Modal, each in its own container): a private overlay per item
+    # (its upper and work dirs on a tmpfs: a VM whose root is itself an overlay refuses an upper dir there)
     for k, o in enumerate(spec.get("overlays", [])):
-        up, wk = j / f"ov{k}" / "up", j / f"ov{k}" / "work"
-        up.mkdir(parents=True, exist_ok=True)
-        wk.mkdir(parents=True, exist_ok=True)
-        lines.append(f"mount -t overlay overlay -o lowerdir={o},upperdir={up},workdir={wk} {o}")
+        ov = j / f"ov{k}"
+        ov.mkdir(parents=True, exist_ok=True)
+        lines += [f"mount -t tmpfs tmpfs {ov}", f"mkdir -p {ov}/up {ov}/work", f"mount -t overlay overlay -o lowerdir={o},upperdir={ov}/up,workdir={ov}/work {o}"]
     lines.append(f"mount -o remount,bind,ro /src/gdp-wired")
     lines.append(f"cd {json.dumps(cwd)}")
     lines.append('exec "$@"')

@@ -703,6 +703,7 @@ class Session:
         self.short = False  # no start was to be had for VMs the batch wanted: run() waits longer for released ones
         self.warm_only = False  # a tiny batch: VMs already up only, never a start
         self.early = not teardown  # a VM with nothing left to take goes back to the pool at once, its logs collected
+        self.cap = 0  # at most this many VMs at once (a client that shares a fixed pool among its batches: the treadmill)
         self.logs: dict[str, dict] = {}
         self.collected: set[str] = set()
         try:
@@ -717,7 +718,7 @@ class Session:
     def ensure(self, n: int, vm_type: str | None = None):
         """Asks for n VMs of a type in all (leased, resumed or created); returns at once, VMs join as they're ready."""
         vm_type = vm_type or self.vm_type
-        have = sum(1 for v in list(self.vms.values()) if v.type == vm_type and not v.dead)
+        have = sum(1 for v in list(self.vms.values()) if v.type == vm_type and not v.dead and not v.released)
         need = n - have
         if need <= 0:
             return
@@ -1166,7 +1167,10 @@ class Session:
                 if short <= 0:
                     continue
                 per = TYPES[self.vm_type][0] // SLOT_CPU
-                got = self.lease_up(math.ceil(short / per), self.vm_type)
+                want = math.ceil(short / per) if not self.cap else min(math.ceil(short / per), self.cap - len(alive))
+                if want <= 0:
+                    continue
+                got = self.lease_up(want, self.vm_type)
                 if not got and self.short and time.time() - asked > 60:
                     asked = time.time()
                     with contextlib.suppress(Exception):

@@ -144,11 +144,25 @@ class Batch:
             return 0 if self.done else self.vms
         return sum(1 for v in list(s.vms.values()) if not v.dead and not v.released and v.t_end is None) or (0 if self.done else 1)
 
+    def backlog(self) -> bool:
+        """More queued than its VMs' slots: more VMs would help it."""
+        s = self.sess
+        return bool(s and not self.done and s.ready and getattr(s, "_enough", None) and not s.enough())
+
+    def grow(self, k: int):
+        """k VMs more for it (warm ones first, else started)."""
+        self.vms += k
+        self.sess.cap = self.vms
+        live = sum(1 for v in list(self.sess.vms.values()) if not v.dead and not v.released and v.t_end is None)
+        threading.Thread(target=self.sess.ensure, args=(live + k,), daemon=True).start()
+
     def go(self):
         summary = {}
         try:
-            self.sess = boat.Session(f"treadmill {self.label}", build=False, oleans=self.oleans, root=self.root or MAIN, tar=self.tar)
-            self.sess.ensure(self.vms)
+            sess = boat.Session(f"treadmill {self.label}", build=False, oleans=self.oleans, root=self.root or MAIN, tar=self.tar)
+            sess.cap = self.vms
+            self.sess = sess
+            sess.ensure(self.vms)
             self.sess.run(self.items, lambda it, row: self.on_row(it, row), on_lost=lambda it, why: self.on_row(it, {"code": -1, "error": why, "lost": True}), max_wait=900)
             logs = self.sess.collect()
             if self.after:
@@ -566,6 +580,12 @@ class Treadmill:
                 if b:
                     self.batches.append(b)
                     free -= b.vms
+            for b in sorted([b for b in self.batches if b.chain in ("c", "a") and b.backlog()], key=lambda b: b.chain):  # (a) and (c) grow into what's left
+                if free <= 0:
+                    break
+                k = min(free, max(1, self.vms // 4))
+                b.grow(k)
+                free -= k
             if free > 0 and len(want("b")) < 1 + self.vms // 2:  # (b) fills the rest
                 self.batches.append(self.sound.batch(min(free, 2)))
         busy = bool([b for b in self.batches if not b.done])
