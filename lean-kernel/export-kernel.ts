@@ -94,6 +94,43 @@ ${theorems.map(t => `#print axioms ${t}`).join('\n')}`)
   process.exit(0)
 }
 
+// A step law's key ?f (lean-kernel/README.md, "A step law's key named like the kernel's own"): the text the export made
+// before 0.41.1 for refusals.test.ts's `flagged` and "∀ ?f, ?f ≤ 1", the key numbered as the flag f's variable (2).
+// Pinned: Lean accepts it and what it proves is true (`then` reads the flag's 0/1 value at the step); the law as written,
+// its key at a variable of its own (6), is refused and false. kernel.ts refuses the key, so no export states it now.
+const keyfPin = `
+/-! A step law's key ?f, as the export before 0.41.1 numbered it: the flag f's variable (2). -/
+def keyf_machine : SMachine := ⟨⟨⟨[], [(0, .const 0)], [(0, 0)], [(0, .ite (.eq (.var 2) (.const 1)) (.const 1) (.const 0))], [],
+  .le (.const 0) (.const 0), .le (.const 0) (.const 0)⟩, []⟩, [], [], [(2, [4], .le (.get 0 (.var 4)) (.const 3))], [(2, [3])], [], []⟩
+def keyf_proof : List SEntry := []
+theorem keyf_check : checkSMachine keyf_machine keyf_proof = true := by decide +kernel
+def keyf_step : SKStep := ⟨⟨[.le (.const 0) (.const 0)], .le (.var 2) (.const 1), [[]], [(0, 5)], [(0, 1)], [],
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .cell 0 (sp [(2, 1)] 0), .cell 0 (sp [(3, 1)] 0)],
+   .leafAt [((sp [(2, 1)] (-1)), .fact 0), ((sp [(2, (-1))] 2), .fact 3)] [.input 0, .input 1, .combine 0 1 1 1] [] [])⟩,
+  [[]], [(2, [.var 2])], [], [], [],
+  [.le (.var 2) (.const 1), .or (.eq (.var 2) (.const 0)) (.le (.get 0 (.var 2)) (.const 3)),
+   .or (.eq (.var 2) (.const 1)) (.not (.le (.get 0 (.var 3)) (.const 3))), .not (.le (.var 2) (.const 1))], []⟩
+-- Accepted, and true: \`then\` reads var 2, a quantified flag's variable, which SKStepHolds reads from the request (sReq).
+theorem keyf_step_holds : SKStepHolds keyf_machine keyf_step :=
+  skstep_sound keyf_machine keyf_proof keyf_step keyf_check (by decide +kernel)
+example : keyf_step.k.then_ = .le (.var 2) (.const 1) := rfl
+example : keyf_machine.qVars = [2] ∧ keyf_machine.extVars.contains 2 = true := by decide
+-- The law as written, ∀ k, k ≤ 1, its key at a variable of its own: refused, and false (from the start with the key at 2,
+-- one allowed step, 2 ≤ 1).
+def keyf_faithful : SKStep := { keyf_step with k := { keyf_step.k with then_ := .le (.var 6) (.const 1) } }
+example : checkSKStep keyf_machine keyf_proof keyf_faithful = false := by decide +kernel
+theorem keyf_faithful_false : ¬ SKStepHolds keyf_machine keyf_faithful := by
+  intro h
+  have hr : SReach keyf_machine (applyS keyf_machine.f.m.init (fun _ => 2) (fun _ _ => 0)) (fun _ _ => 0) :=
+    SReach.start _ _ (by intro p hp key; simp [keyf_machine] at hp; subst hp; rfl) rfl
+      (by intro l hl; simp [keyf_machine] at hl) (by intro p hp; simp [keyf_machine] at hp)
+  have hc := h _ _ hr ((fun _ => 0), (fun _ _ => 0)) [] rfl ⟨rfl, rfl, trivial⟩
+  revert hc
+  simp [keyf_faithful, keyf_step, evalC, evalE, primed, renEnv, sExts, withExt, SMachine.extVars, SMachine.qVars,
+    SMachine.wVars, keyf_machine, applyS, assoc, lookup]
+#print axioms keyf_step_holds
+#print axioms keyf_faithful_false`
+
 // Sets (examples/sets.ts): the derived authority's laws, step laws and two-step laws through Kern.smachine_sound and Kern.skstep_sound,
 // and its proof offered for the variant that keeps the child on a refused derivation. Usage: bun export-kernel.ts --sets
 if (process.argv.includes('--sets')) {
@@ -111,7 +148,8 @@ trees. -/
 ${text}
 
 #print axioms authority_laws
-${steps.map((_, j) => `#print axioms authority_step${j}_holds`).join('\n')}`)
+${steps.map((_, j) => `#print axioms authority_step${j}_holds`).join('\n')}
+${keyfPin}`)
   process.exit(0)
 }
 

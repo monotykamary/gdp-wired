@@ -159,6 +159,24 @@ k-step laws (not translated), and the liveness (36) and loop (79) claims along i
 every turn sends w = x + 1. kernel.ts now refuses such ranks, and a `while` that reads the turn's input; `Trees.lean`
 writes `forever`'s halting out as a liveness by hand, and `sliveOk` rejects it because its `to` and its rank read an input.
 
+**A step law's key named like the kernel's own (0.41.1): Lean was right, the statement was not the law.** Before
+0.41.1 kernel.ts accepted "∀ ?f, ?f ≤ 1" as a step law of a machine with a quantified flag `f` (refusals.test.ts's
+`flagged`): the key was read as the flag's 0/1 variable `?f`. Lean accepted the export too, and soundly. In Lean a name
+is a number, and the export numbers names by spelling (`machineNames`, one number per name), so the key and the flag's
+variable got the same number, 2 (the file's comment lists `2 ?f` once). `then` became `.le (.var 2) (.const 1)`.
+`SKStepHolds` reads a variable of the extended request (`extVars`: inputs, quantified flags, witnesses) from the
+request (`sReq`: the flag decided at the step), so the theorem says that at every allowed step the flag's value is at
+most 1. That is true, and `skstep_sound` proves it (axioms `propext`, `Classical.choice`, `Quot.sound`). It is not the
+law. With its key at a number of its own (6), the law is refused (`checkSKStep … = false`) and false: from the start
+state with the key at 2, one allowed step gives 2 ≤ 1. So Lean's verdict is a theorem about the statement it was sent,
+and the gap was in the export's numbering. kernel.ts closes it upstream of the export: `? ~ ' ⟦ ⟧` are reserved, and a
+step law's key may not be a name of the machine, a flag's variable or a witness. toLean proves through kernel.ts, so
+it throws before any text is written. Lean gets no check for this. Its `SKStep` has no keys (a key is any variable
+that `then` reads and the run leaves free), and a `then` that reads the extended request is meant: a step law reads its
+first request's inputs by their plain names. Pinned both ways: refusals.test.ts (kernel.ts and toLean refuse the key),
+and `bun export-kernel.ts --sets` (the pre-0.41.1 text as `keyf_*`: `keyf_step_holds` accepted, `keyf_faithful`
+refused, and `keyf_faithful_false`).
+
 ```sh
 TC=~/.elan/toolchains/leanprover--lean4---v4.34.0; export LEAN_PATH=$PWD:$TC/lib/lean
 $TC/bin/lean -o Cert.olean Cert.lean && $TC/bin/lean -o Kernel.olean Kernel.lean   # 8–17 s
