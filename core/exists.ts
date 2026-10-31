@@ -14,11 +14,10 @@
 // value before, shifts of it, the request's values and the state before; each is chosen to satisfy P at every
 // counterexample so far, per case of the step (the conditions its updates split on: the request's clause, say).
 // A law under a `forall` key takes witness terms only (a ghost per key would be a map).
-import {type C, type E, type Law, type Machine, type SomeProof, type SomeWitness, type State, evalC, evalE, n as k, walk, x as v} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, evalC, evalE, interpret, n as k, walk, x as v} from './machine.ts'
 import {type Report, clock, proveLaw, proveLaws, withinDeadline} from '../kernel/prove.ts'
 import {env} from './solver.ts'
 import {type Ghosted, ghostedMachine, ghostedOk, substC} from '../kernel/kernel.ts'
-import {holdsAt, small} from './counts.ts'
 
 type Env = Record<string, number>
 // A bound value's naturals: [x], or an integer's [x, x$neg].
@@ -126,6 +125,43 @@ function solved(atoms: Atom[], g: Group): Cand[] {
     else out.push([sub(hi, lo)], [add(sub(hi, lo), k(1))], [sub(sub(hi, lo), k(1))])
   }
   return out
+}
+
+const atomsOf2 = (c: C): C[] => (c.op === 'and' || c.op === 'or' ? c.xs.flatMap(atomsOf2) : c.op === 'not' ? atomsOf2(c.x) : [c])
+// --- the small instances (core/counts.ts's filter and the ghost maps' below) --------------------------------------------------------------------------------------------------
+// Every state reached from the start with the params at `p`, each input below `b`, each carried map a subset of 0 .. b − 1.
+// (at most `cap` states, and `work` steps tried: a wide request space ends the BFS early, its states still reachable)
+export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000): State[] {
+  const run = interpret(m), start = run.init(p)
+  const subsets = Array.from({length: 1 << b}, (_, s) => new Map(Array.from({length: b}, (_, i) => i).filter(i => (s >> i) & 1).map(i => [i, 1] as [number, number])))
+  // (an input the assumption keeps below a few values, an action's, over all of them; the rest below b)
+  const below = (i: string) => Math.max(b, ...(m.assume ? atomsOf2(m.assume) : []).flatMap(c => (c.op === '<' && c.a.op === 'var' && c.a.name === i && c.b.op === 'const' && c.b.value <= 8 ? [c.b.value] : [])))
+  let reqs: Request[] = [{}]
+  for (const i of m.inputs) reqs = reqs.flatMap(r => Array.from({length: below(i)}, (_, x) => ({...r, [i]: x})))
+  for (const c of m.inputMaps ?? []) reqs = reqs.flatMap(r => subsets.map(s => ({...r, [c]: s})))
+  const seen = new Map<string, State>([[key(start), start]]), queue = [start]
+  while (queue.length && seen.size < cap && work > 0) {
+    const st = queue.shift()!
+    for (const r of reqs) {
+      if (--work < 0) break
+      let next: State
+      try { next = run.step(p, st, r) } catch { continue }
+      const id = key([next.scalars, Object.entries(next.maps).map(([n, cs]) => [n, [...cs].filter(([, x]) => x).sort((a, c) => a[0] - c[0])])])
+      if (!seen.has(id)) { seen.set(id, next); queue.push(next) }
+    }
+  }
+  return [...seen.values()]
+}
+// A law at a state, its counts the state's, at every key below b.
+// (a state's view once: a law is read at every state, and every law at each)
+const views = new WeakMap<State, State>()
+export function holdsAt(m: Machine, law: Law, p: Env, st: State, b: number): boolean {
+  const empty: Request = Object.fromEntries((m.inputMaps ?? []).map(c => [c, new Map()]))
+  let view = views.get(st)
+  if (!view) views.set(st, (view = carriedView(m, st, empty, undefined, p)))
+  const keys = [law.forall, ...(law.keys ?? [])].filter((x): x is string => !!x)
+  const go = (env: Env, ks: string[]): boolean => (ks.length ? Array.from({length: b}, (_, x) => x).every(x => go({...env, [ks[0]!]: x}, ks.slice(1))) : evalC(law.holds, {...env, ...st.scalars}, view, m))
+  return go({...p}, keys)
 }
 
 // --- evaluating ∃ on a state ----------------------------------------------------------------------------------------

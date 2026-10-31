@@ -10,11 +10,16 @@
 //   - A guard comparing a state count at the written key (2·voters[n] > size, Leader[n] := 1): P[a] ⇒ that comparison
 //     at a.
 //   - Each map's cells at most what the small instances reach.
-import {type C, type E, type Law, type Machine, type Request, type State, carriedView, evalC, interpret} from './machine.ts'
+//   - The supports no guard reads (one vote per node, a vote only from a node that voted, ...): core/infer.ts's engine's
+//     minimal ∀ cubes of at most two literals, read off its small instance and data filter (its `cubes` option).
+// Each law over keys is assumed where its reads meet the goal's cells (E-matching), and a large step goal is cut to the
+// instances the CDCL search's refutation reads before its tree is grown.
+import {type C, type E, type Law, type Machine, type State} from './machine.ts'
 import {type CountCert, type CountInst, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, substC} from '../kernel/kernel.ts'
 import {clock, grow} from '../kernel/prove.ts'
 import {REFUTED, type Refuted, growCdcl} from '../kernel/cdcl.ts'
 import {inferLaws} from './infer.ts'
+import {holdsAt, small} from './exists.ts'
 
 const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
 const json = (t: unknown) => JSON.stringify(t)
@@ -73,59 +78,6 @@ export function guardLaws(m: Machine): {counts: Machine['counts'], laws: Law[]} 
   return {counts, laws}
 }
 
-// --- relations over pairs: one value per first key, and one relation inside another ---------------------------------
-// A map written at x·N + y (a relation, x's row) is a candidate for "at most one y in a row", and each two such maps for
-// "one holds where the other does", at the same pair or the swapped one; the small instances keep the true ones.
-export function pairLaws(m: Machine): Law[] {
-  const widths = new Map<string, number>()
-  for (const [mp, w] of Object.entries(m.step.maps ?? {})) if (!('each' in w) && w.key.op === 'add' && w.key.a.op === 'mul' && w.key.a.a.op === 'var' && w.key.b.op === 'var') widths.set(mp, w.key.a.k)
-  const at = (mp: string, x: string, y: string, n: number): E => ({op: 'get', map: mp, key: {op: 'add', a: {op: 'mul', k: n, a: v(x)}, b: v(y)}})
-  const has = (e: E): C => ({op: '<=', a: one, b: e}), lt = (x: string, n: number): C => ({op: '<', a: v(x), b: k(n)})
-  const out: Law[] = []
-  for (const [mp, n] of widths) out.push({name: `${mp}: one per row`, forall: 'p$c', keys: ['q$c', 'r$c'], holds: {op: 'or', xs: [{op: 'not', x: {op: 'and', xs: [lt('q$c', n), lt('r$c', n), has(at(mp, 'p$c', 'q$c', n)), has(at(mp, 'p$c', 'r$c', n))]}}, {op: '=', a: v('q$c'), b: v('r$c')}]}})
-  for (const [a, n] of widths) for (const [b, n2] of widths) if (a !== b && n === n2) for (const swap of [false, true])
-    out.push({name: `${a} inside ${b}${swap ? ', swapped' : ''}`, forall: 'p$c', keys: ['q$c'], holds: {op: 'or', xs: [{op: 'not', x: {op: 'and', xs: [lt('q$c', n), lt('p$c', n), has(at(a, 'p$c', 'q$c', n))]}}, has(swap ? at(b, 'q$c', 'p$c', n) : at(b, 'p$c', 'q$c', n))]}})
-  // (and over one key: where one map's cell is set, another's is)
-  const singles = Object.entries(m.step.maps ?? {}).filter(([, w]) => !('each' in w) && w.key.op === 'var').map(([mp]) => mp)
-  for (const a of singles) for (const b of singles) if (a !== b)
-    out.push({name: `${a} inside ${b}`, forall: 'p$c', holds: {op: 'or', xs: [{op: 'not', x: has({op: 'get', map: a, key: v('p$c')})}, has({op: 'get', map: b, key: v('p$c')})]}})
-  return out
-}
-
-// --- the small instances --------------------------------------------------------------------------------------------------
-// Every state reached from the start with the params at `p`, each input below `b`, each carried map a subset of 0 .. b − 1.
-export function small(m: Machine, p: Env, b: number, cap = 3000): State[] {
-  const run = interpret(m), start = run.init(p)
-  const subsets = Array.from({length: 1 << b}, (_, s) => new Map(Array.from({length: b}, (_, i) => i).filter(i => (s >> i) & 1).map(i => [i, 1] as [number, number])))
-  // (an input the assumption keeps below a few values, an action's, over all of them; the rest below b)
-  const below = (i: string) => Math.max(b, ...(m.assume ? atoms(m.assume) : []).flatMap(c => (c.op === '<' && c.a.op === 'var' && c.a.name === i && c.b.op === 'const' && c.b.value <= 8 ? [c.b.value] : [])))
-  let reqs: Request[] = [{}]
-  for (const i of m.inputs) reqs = reqs.flatMap(r => Array.from({length: below(i)}, (_, x) => ({...r, [i]: x})))
-  for (const c of m.inputMaps ?? []) reqs = reqs.flatMap(r => subsets.map(s => ({...r, [c]: s})))
-  const seen = new Map<string, State>([[json(start), start]]), queue = [start]
-  while (queue.length && seen.size < cap) {
-    const st = queue.shift()!
-    for (const r of reqs) {
-      let next: State
-      try { next = run.step(p, st, r) } catch { continue }
-      const key = json([next.scalars, Object.entries(next.maps).map(([n, cs]) => [n, [...cs].filter(([, x]) => x).sort((a, c) => a[0] - c[0])])])
-      if (!seen.has(key)) { seen.set(key, next); queue.push(next) }
-    }
-  }
-  return [...seen.values()]
-}
-// A law at a state, its counts the state's, at every key below b.
-// (a state's view once: a law is read at every state, and every law at each)
-const views = new WeakMap<State, State>()
-export function holdsAt(m: Machine, law: Law, p: Env, st: State, b: number): boolean {
-  const empty: Request = Object.fromEntries((m.inputMaps ?? []).map(c => [c, new Map()]))
-  let view = views.get(st)
-  if (!view) views.set(st, (view = carriedView(m, st, empty, undefined, p)))
-  const keys = [law.forall, ...(law.keys ?? [])].filter((x): x is string => !!x)
-  const go = (env: Env, ks: string[]): boolean => (ks.length ? Array.from({length: b}, (_, x) => x).every(x => go({...env, [ks[0]!]: x}, ks.slice(1))) : evalC(law.holds, {...env, ...st.scalars}, view, m))
-  return go({...p}, keys)
-}
-
 // --- a goal's certificate -------------------------------------------------------------------------------------------------
 // The count cells the goal reads (each before the step with its post name's twin), instances over pairs of them with one
 // bound (a count that doesn't drop, +1 and −1; two that meet, +1, +1 and −1), each with a fresh witness; and the laws and
@@ -178,7 +130,7 @@ function bindKey(p: E, g: E, names: string[], b: Record<string, E>, alt?: Record
   switch (p.op) {
     case 'add': case 'sub': case 'min': case 'max': case 'prod': return bindKey(p.a, (q as typeof p).a, names, b, alt) && bindKey(p.b, (q as typeof p).b, names, b, alt)
     case 'mul': return p.k === (q as typeof p).k && bindKey(p.a, (q as typeof p).a, names, b, alt)
-    default: return json(p) === json(g)
+    case 'var': case 'const': case 'get': case 'if': return json(p) === json(g)
   }
 }
 export function matched(names: string[], body: C, cells: [string, E][], cap = knob.cap): E[][] {
