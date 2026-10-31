@@ -130,8 +130,11 @@ function solved(atoms: Atom[], g: Group): Cand[] {
 const atomsOf2 = (c: C): C[] => (c.op === 'and' || c.op === 'or' ? c.xs.flatMap(atomsOf2) : c.op === 'not' ? atomsOf2(c.x) : [c])
 // --- the small instances (core/counts.ts's filter and the ghost maps' below) --------------------------------------------------------------------------------------------------
 // Every state reached from the start with the params at `p`, each input below `b`, each carried map a subset of 0 .. b − 1.
-// (at most `cap` states, and `work` steps tried: a wide request space ends the BFS early, its states still reachable)
-export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000): State[] {
+// (at most `cap` states, and `work` steps tried: a wide request space ends the BFS early, its states still reachable;
+// then, with `walks` steps more, random walks past it, each step a change of a kind (the variables it writes) chosen
+// alike among those a few requests make: an action the BFS's levels never reach, a leader past a majority's votes, is
+// taken as often as any other)
+export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000, walks = 0): State[] {
   const run = interpret(m), start = run.init(p)
   const subsets = Array.from({length: 1 << b}, (_, s) => new Map(Array.from({length: b}, (_, i) => i).filter(i => (s >> i) & 1).map(i => [i, 1] as [number, number])))
   // (an input the assumption keeps below a few values, an action's, over all of them; the rest below b)
@@ -139,18 +142,61 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000)
   let reqs: Request[] = [{}]
   for (const i of m.inputs) reqs = reqs.flatMap(r => Array.from({length: below(i)}, (_, x) => ({...r, [i]: x})))
   for (const c of m.inputMaps ?? []) reqs = reqs.flatMap(r => subsets.map(s => ({...r, [c]: s})))
-  const seen = new Map<string, State>([[key(start), start]]), queue = [start]
+  const idOf = (s: State) => key([s.scalars, Object.entries(s.maps).map(([n, cs]) => [n, [...cs].filter(([, x]) => x).sort((a, c) => a[0] - c[0])])])
+  const seen = new Map<string, State>([[idOf(start), start]]), queue = [start]
   while (queue.length && seen.size < cap && work > 0) {
     const st = queue.shift()!
     for (const r of reqs) {
       if (--work < 0) break
       let next: State
       try { next = run.step(p, st, r) } catch { continue }
-      const id = key([next.scalars, Object.entries(next.maps).map(([n, cs]) => [n, [...cs].filter(([, x]) => x).sort((a, c) => a[0] - c[0])])])
+      const id = idOf(next)
       if (!seen.has(id)) { seen.set(id, next); queue.push(next) }
     }
   }
+  if (!queue.length) return [...seen.values()]
+  const cell = (s: State, n: string, x: number) => s.maps[n]?.get(x) ?? s.defaults?.[n] ?? 0
+  const kindOf = (a: State, c: State) => [...Object.keys(c.scalars).filter(n => a.scalars[n] !== c.scalars[n]),
+    ...Object.keys(c.maps).filter(n => a.defaults?.[n] !== c.defaults?.[n] || [...a.maps[n]?.keys() ?? [], ...c.maps[n]!.keys()].some(x => cell(a, n, x) !== cell(c, n, x)))].join()
+  let seed = 7
+  const rnd = (n: number) => { seed = (seed * 48271) % 2147483647; return seed % n }
+  for (let t = 0; walks > 0 && seen.size < 2 * cap; t++) {
+    let st = t % 2 ? start : [...seen.values()][rnd(seen.size)]!
+    for (let d = 0; d < 40 && walks > 0; d++) {
+      const by = new Map<string, State[]>()
+      for (let i = 0; i < 48; i++, walks--) {
+        let next: State
+        try { next = run.step(p, st, reqs[rnd(reqs.length)]!) } catch { continue }
+        const kd = kindOf(st, next)
+        if (kd) by.set(kd, [...by.get(kd) ?? [], next])
+      }
+      if (!by.size) break
+      const ks = [...by.values()], at = ks[rnd(ks.length)]!
+      st = at[rnd(at.length)]!
+      const id = idOf(st)
+      if (!seen.has(id)) seen.set(id, st)
+    }
+  }
   return [...seen.values()]
+}
+// A ghost for a law about no key with one value ∃x. P over maps (PCorrect's "some process not done, or its y is 1"): x a
+// state variable that starts at 0 or a param (or one less) and after each step keeps its value while P still holds there
+// after the step, else moves to a term the step reads a map at (the process before the one that stepped); the first
+// whose P holds at every state of the small instances (each param 2 and 3), given as the law's witness, or none.
+export function ghostOf(m: Machine, law: Law): SomeWitness | undefined {
+  const x = law.some?.[0]
+  if (!x || law.forall || law.some!.length !== 1 || x.endsWith('$neg') || !readsMaps(law.holds) || x in m.state) return undefined
+  const after = {vars: Object.fromEntries(Object.keys(m.state).map(n => [n, m.step.state?.[n] ?? v(n)])), flags: {},
+    maps: Object.fromEntries(Object.entries(m.step.maps ?? {}).map(([mp, w]) => [mp, (at: E): E => ('each' in w ? substVarsE(w.value, {[w.each]: at}) : {op: 'if', c: {op: '=', a: at, b: w.key}, then: w.value, else: {op: 'get', map: mp, key: at}})]))}
+  const keep = substC(law.holds, after), ts = new Map<string, E>(m.inputs.map(i => [key(v(i)), v(i)]))
+  walk([m.step, m.assume ?? null], o => { if (o.op === 'get' && namesOf(o.key as E).some(n => m.inputs.includes(n))) ts.set(key(o.key), o.key as E) })
+  const starts = [k(0), ...m.params.flatMap(q => [v(q), sub(v(q), k(1))])]
+  for (const t of ts.values()) for (const start of starts) {
+    const step: E = {op: 'if', c: keep, then: v(x), else: t}, gm: Machine = {...m, state: {...m.state, [x]: start}, step: {...m.step, state: {...m.step.state, [x]: step}}}
+    const ok = [2, 3].every(q => { const ps = Object.fromEntries(m.params.map(p => [p, q])); try { return small(gm, ps, 3, 3000, 100_000).every(st => holdsAt(gm, {...law, some: undefined}, ps, st, 3)) } catch { return false } })
+    if (ok) return {ghost: {[x]: {start, step}}}
+  }
+  return undefined
 }
 // A law at a state, its counts the state's, at every key below b.
 // (a state's view once: a law is read at every state, and every law at each)
@@ -427,7 +473,7 @@ export type SomeReport = Report & {laws?: Law[], machine?: Machine, ghosts?: str
 // whole set proven as plain laws of the machine with its ghosts.
 // (`whole`: the whole set's prover over the ghosted machine, proveLaws by default; a search's trial proof passes
 // kernel/prove.ts's proveSetFast, which reuses the decisions made over that machine and checks its trees with checkLaws)
-export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole?: (m: Machine, laws: Law[]) => Report & {laws?: Law[]}} = {}): SomeReport {
+export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, mapMs?: number, whole?: (m: Machine, laws: Law[]) => Report & {laws?: Law[]}} = {}): SomeReport {
   const cases = casesOf(m), mapsRead = (l: Law) => readsMaps(l.holds) || !!m.maps || !!m.inputMaps
   // Each law's bound naturals named apart from the machine's names and from each other's (each may become a ghost).
   const taken = new Set([...m.params, ...m.inputs, ...Object.keys(m.state)])
@@ -487,7 +533,7 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
     for (let round = 0; ; round++) {
       const now = current(), t0 = performance.now(), r: ReturnType<typeof proveLaw> = round === 0 && first ? {proven: false, ...first}
         // (a ghost map's goals within 2 s: a search asks them with every candidate set, and one without its supports can take minutes)
-        : p.pick.mode === 'map' ? withDeadline(clock() + 2_000, () => proveLaw(now.machine, now.laws, i)) : proveLaw(now.machine, now.laws, i)
+        : p.pick.mode === 'map' ? withDeadline(clock() + (opts.mapMs ?? 2_000), () => proveLaw(now.machine, now.laws, i)) : proveLaw(now.machine, now.laws, i)
       if (log) console.error(`exists: pass ${pass} round ${round} "${p.law.name}" ${p.pick.mode} ${describe(p, cases).slice(0, 160)}: ${r.proven ? 'proven' : `${r.goal} ${r.stuck}`} (${Math.round(performance.now() - t0)} ms)`)
       if (r.proven) return undefined
       const fail = (stuck: string): SomeReport => ({proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: r.goal, stuck, ...(r.witness ? {witness: r.witness} : {})}})

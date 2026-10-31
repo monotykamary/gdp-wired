@@ -16,11 +16,12 @@
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
 import {searchCounted} from './counts.ts'
+import {env as knobs} from './solver.ts'
 import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
-import {someHolds, substVars, substVarsE} from './exists.ts'
+import {ghostOf, proveSome, someHolds, substVars, substVarsE} from './exists.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations, substC, sumMachine} from '../kernel/kernel.ts'
-import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
+import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
@@ -2761,8 +2762,14 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
       if (out.proven && out.checked) return {proven: true, checked: true, found: {laws: fresh, ...(lemmas ? {lemmas} : {})}, assumes: reachableBy(fresh)}
     }
   }
-  const ms = until - clock() - tail
+  let ms = until - clock() - tail
   if (ms < 500) return v
+  // (a law with "there exists": its ghost chosen with the engine's cubes kept, within half of it)
+  if (!stepLaws.length && laws.some(l => l.some?.length)) {
+    const c = withWall(performance.now() + ms / 2, () => withDeadline(clock() + ms / 2, () => someCone(rule, laws, ms / 2)))
+    if (c) return {...c, found: {...c.found, ...(lemmas ? {lemmas} : {})}}
+    if ((ms = until - clock() - tail) < 500) return v
+  }
   // (the search's own wall ends where the tail begins: the last bounded runs keep it)
   const tailAt = () => performance.now() + Math.max(0, until - tail - clock())
   const inf = withWall(tailAt(), () => inferLaws(rule, [...fresh.map(f => f.law), ...laws], stepLaws, {ms, ...(rule === r && !fresh.length ? {first: v} : {})}))
@@ -2782,6 +2789,37 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   const {found, stats: _stats, ...verdict} = inf
   void _stats
   return {...verdict, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}
+}
+// A law with "there exists", which the join can't take as its goal (core/exists.ts's witnesses: a ghost map for a law
+// about every key, `ghostOf`'s ghost for one about no key): the engine's minimal ∀ cubes of three literals at most (core/infer.ts's
+// `cubes`, its template read off the law's keys and guards with the ∃ part read as true, or off two keys at the bound
+// value's places), each kept where it is proven from the kept ones and itself (the cone, as core/counts.ts keeps its
+// laws), again while more are kept; then the laws with those kept, their witnesses chosen with them as support.
+function someCone(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws0: Law[], ms: number): Verdict | undefined {
+  const until = clock() + ms, m = r.machine, yes: C = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
+  const laws = laws0.map(l => (l.some?.length && !l.forall && !l.witness ? {...l, witness: ghostOf(m, l)} : l))
+  if (laws.some(l => l.some?.length && !l.forall && !l.witness)) return undefined
+  const named = (d: C, l: Law) => l.some!.some(x => JSON.stringify(d).includes(`"name":${JSON.stringify(x)}`))
+  const shape = (l: Law): Law => (!l.some?.length ? l : l.forall
+    ? {name: l.name, forall: l.forall, ...(l.keys ? {keys: l.keys} : {}), holds: {op: 'or', xs: [...(l.holds.op === 'or' ? l.holds.xs : [l.holds]).filter(d => !named(d, l)), yes]}}
+    : {name: l.name, forall: 'k$some', keys: ['k2$some'], holds: {op: 'or', xs: ['k$some', 'k2$some'].map(k => substVars(l.holds, {[l.some![0]!]: {op: 'var', name: k}})).concat(yes)}})
+  const cubes = [...withKinds(r, []), ...inferLaws(r, laws.map(shape), [], {cubes: 3, ms: Math.min(10_000, ms / 3), first: {proven: false, checked: false}}).found.map(f => f.law)]
+  const kept: Law[] = [], tried = new Map<string, number>()
+  for (let grew = true; grew && clock() < until;) {
+    grew = false
+    for (const c of cubes) {
+      if (kept.includes(c) || tried.get(c.name) === kept.length || clock() > until) continue
+      tried.set(c.name, kept.length)
+      // (a cube the kernel refuses to state, one past its key rules, is never kept)
+      let ok = false
+      try { ok = withDeadline(Math.min(until, clock() + 1000), () => proveLaw(m, [...kept, c], kept.length)).proven } catch { /* not kept */ }
+      if (ok) { kept.push(c); grew = true }
+    }
+  }
+  if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: cone ${kept.length} of ${cubes.length} kept: ${kept.map(l => l.name).join('; ').slice(0, 2000)}`)
+  if (clock() > until) return undefined
+  const v = verdictOf(proveSome(m, [...laws, ...kept.filter(c => !laws.some(l => l.name === c.name))], {mapMs: Math.max(2_000, (until - clock()) / 3)}))
+  return v.proven && v.checked ? {...v, found: {laws: kept.map(l => ({law: l, text: l.name}))}, ...withAssumes(kept.map(l => ({text: l.name})))} : undefined
 }
 // What a verdict proven with these found laws rests on: the states reachable from init (each found law is proven so).
 const reachableBy = (found: {text: string}[]): Assumes => ({states: 'reachable', laws: found.map(f => f.text)})
