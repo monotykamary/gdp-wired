@@ -12,7 +12,7 @@
 // lower the rank, and so must any other that leaves a region it was in; the rest must not raise it. Components are
 // chosen in order, each one no step raises that lowers the most of those left. The rank is then the kernel's
 // (proveLiveness), with the invariants inferLaws finds where its goals need some. Nothing new is trusted.
-import {type C, type E, type Law, type Machine, type Rand, type Request, type State, evalC, evalE, interpret, seeded, walk} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Rand, type Request, type State, evalC, evalE, interpret, searchSeeded, walk} from './machine.ts'
 import {type Liveness, type Subst, falseC, livenessHelpful, livenessParts, substC, substE} from '../kernel/kernel.ts'
 import {clock, proveLiveness, proveProgress, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {allowed, watch} from './watch.ts'
@@ -96,7 +96,7 @@ const bounded = (m: Machine, laws: Law[]): string[] => {
 }
 
 export function leadsByTerms(m: Machine, laws: Law[], l: Liveness, draws: Draws, opts: {ms?: number} = {}): LeadsVerdict {
-  const t0 = clock(), until = t0 + (opts.ms ?? 10_000), rand = seeded(31), run = interpret(m), helpful = livenessHelpful(l)
+  const t0 = clock(), until = t0 + (opts.ms ?? 10_000), rand = searchSeeded(31), run = interpret(m), helpful = livenessHelpful(l)
   const env = (ps: Env, st: State): Env => ({...ps, ...st.scalars})
   const holds = (c: C, ps: Env, st: State) => { try { return evalC(c, env(ps, st), st, m) } catch { return undefined } }
   const pending = (ps: Env, st: State) => holds(l.from, ps, st) === true && holds(l.to, ps, st) === false
@@ -300,7 +300,7 @@ export function refutedBy(m: Machine, laws: Law[], l: Liveness, ring: Ring): Rin
 // literal of R_{j+1} that R_j's request isn't proven to keep is dropped (Houdini, round the cycle) until each is kept;
 // then refutedBy checks the ring. The first ring refuted; else the first checked; undefined where no cycle is found.
 export function findRing(m: Machine, laws: Law[], l: Liveness, draws: Draws, opts: {ms?: number} = {}): {ring: Ring, verdict: RingVerdict} | undefined {
-  const until = clock() + (opts.ms ?? 10_000), rand = seeded(17), run = interpret(m), helpful = livenessHelpful(l), H = helpful.length
+  const until = clock() + (opts.ms ?? 10_000), rand = searchSeeded(17), run = interpret(m), helpful = livenessHelpful(l), H = helpful.length
   const env = (ps: Env, st: State): Env => ({...ps, ...st.scalars})
   const holds = (c: C, ps: Env, st: State) => { try { return evalC(c, env(ps, st), st, m) } catch { return undefined } }
   const value = (e: E, ps: Env, st: State) => { try { return evalE(e, env(ps, st), st, m) } catch { return NaN } }

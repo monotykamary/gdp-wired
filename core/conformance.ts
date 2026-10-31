@@ -38,8 +38,10 @@ export function term(d: number, flag = true): E {
     case 'get': return {op, map: 'M', key: {op: 'min', a: term(d - 1, flag), b: {op: 'const', value: CELLS - 1}}}
   }
 }
+// (at depth 0 a comparison or the flag: and, or and not below it once recursed without end, rarely in the float form of
+// the generator's few short cycles, but often enough in the exact one to inline a flag dozens of levels deep, out of memory)
 export function cond(d: number, flag = true): C {
-  const op = pick(flag ? C_OPS : C_OPS.filter(o => o !== 'flag'))
+  const op = pick((d <= 0 ? C_OPS.filter(o => o !== 'and' && o !== 'or' && o !== 'not') : C_OPS).filter(o => flag || o !== 'flag'))
   seen[op] = (seen[op] ?? 0) + 1
   switch (op) {
     case '<': case '<=': case '=': return {op, a: term(d, flag), b: term(d, flag)}
@@ -323,7 +325,7 @@ export function qterm(d: number): QE {
   }
 }
 export function qcond(d: number): QC {
-  const op = pick(QC_OPS)
+  const op = pick(d <= 0 ? QC_OPS.filter(o => o !== 'and' && o !== 'or' && o !== 'not') : QC_OPS) // (bounded as cond is)
   seen[`q${op}`] = (seen[`q${op}`] ?? 0) + 1
   switch (op) {
     case '<': case '<=': case '=': return {op, a: qterm(d), b: qterm(d)}

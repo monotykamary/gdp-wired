@@ -17,7 +17,7 @@
 import ts from 'typescript'
 import * as dsl from './dsl.ts'
 import type {Kind, Rule} from './dsl.ts'
-import {type Rand, interpret, seeded} from './machine.ts'
+import {type Rand, interpret, searchSeeded} from './machine.ts'
 import {allowed} from './watch.ts'
 import * as I from './extract-ir.ts'
 import {type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, impure, memberName, normalize, placed, refuse, shapeOf, sourceOf, text, where} from './extract-read.ts'
@@ -734,7 +734,7 @@ export type Service<S> = {
   now?: string,
 }
 export function conforms<S>(r: Rule, svc: Service<S>, opts: {draw: (rand: Rand) => Record<string, unknown>, params?: (rand: Rand) => Record<string, unknown>, runs?: number, depth?: number, seed?: number}): {checked: number, failure?: string} {
-  const R = runner(svc.effect), rand = seeded(opts.seed ?? 1), g = r.compiled(), interp = interpret(r.machine), isEffect = (x: unknown) => svc.effect.Effect.isEffect(x) as boolean
+  const R = runner(svc.effect), rand = searchSeeded(opts.seed ?? 1), g = r.compiled(), interp = interpret(r.machine), isEffect = (x: unknown) => svc.effect.Effect.isEffect(x) as boolean
   let checked = 0
   for (let run = 0; run < (opts.runs ?? 100); run++) {
     const params = opts.params?.(rand) ?? {}, ps = r.encodeParams(params as never), m0 = svc.make(params), made = isEffect(m0) ? R.exit(m0, 0) : {ok: true as const, value: m0}
