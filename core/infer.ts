@@ -578,9 +578,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const randomInput = (params: Env, bound: number, r: Rand = rand): Request => (rule ? rule.randomInput(r, bound, params)
     : {...Object.fromEntries(m.inputs.map(i => [i, r(bound + 1)])), ...Object.fromEntries((m.inputMaps ?? []).map(i => [i, new Map<number, number>()]))})
   type Sample = {params: Env, st: State}
-  // (each state kept once: the runs of a machine with no requests walk one path, its few states again and again, and kept
-  // again they pushed out the caller's (opts.seen: CHC's s_split_22, i0 to 1999), which the float stream's cycle had left
-  // in the slots its draws never reached)
+  // (each state once: a machine with no requests walks one path, and its copies pushed out the caller's states (opts.seen))
   const samples: Sample[] = [], cap = 3000, keys: string[] = [], held = new Set<string>()
   const mapsText = (st: State) => JSON.stringify(Object.values(st.maps).map(c => [...c]))
   let offered = 0
@@ -603,9 +601,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const skolems = m.inputs.some(i => i.startsWith('some$a'))
   for (let trial = 0, bound = 2, stuck = false; moreRuns(trial); trial++, bound = trial % 20 === 0 || stuck ? (bound >= 1024 ? 2 : bound * 2) : bound) {
     stuck = false; trials++
-    // (every other trial's params at a bound of their own, one in twenty's at 0: at the requests' bound alone the runs never
-    // met a small budget with large costs (s + 50·p up to b + 150 at b = 1, the in-flight bound), and all-0 params (a lease
-    // taken for 0 at time 0) once in 27 trials at bound 2; each held at some seeds only)
+    // (params at a bound of their own every other trial, at 0 one in twenty: a small budget with large costs, all-0 params)
     const params = randomParams(trial % 20 === 1 ? 0 : trial % 2 ? bound : 2 ** rand(11))
     if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) continue
     let st: State
@@ -792,8 +788,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // guard, where that bounds it lower; at the largest value there and the constant above it, or, below 0, at 0 (a run
     // seldom meets a bound between two times: until[k] + E <= now, reached at the instant its lease ends).
     if (w < 0 || !Number.isFinite(written)) continue
-    // (each beside its guard's own form, where it bounds lower: a shape of three has none, so the lease's until[k] + E <= at
-    // where taken is 1 came only where a run's largest value under the guard was at a key never written)
+    // (only where it bounds lower than the guard's own form, which a shape of three has none of)
     const wr: At = {atom: w, value: 1, hi: Infinity}, near = (dv: number) => (dv < 0 ? [0] : [dv, ...bounds.filter(b => b > dv).slice(0, 1)]), alone = (v: number) => (coef.length > 2 ? Infinity : v)
     if (written < d) for (const dv of near(written)) if (dv < d) forms.push({coef, d: dv, cells, guard: wr, size: sizeOf(coef) + 55})
     here.forEach((mode, g) => { for (const [value, dv] of mostW[g]!) if (mode.values.includes(value) && dv < Math.min(written, alone(most[g]!.get(value)!))) for (const e of near(dv)) forms.push({coef, d: e, cells, guard: {atom: mode.atom, value}, also: [wr], size: sizeOf(coef) + 65}) })

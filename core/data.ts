@@ -2615,9 +2615,8 @@ function caseJoins(fs: Facts, from: unknown[], insts: NodeSpec['insts'], hyps: C
 }
 const holdsAt = (fs: Facts, q: {fact: number, at: E[]}) => { const f = fs.facts[q.fact]!; return substShared(f.holds, Object.fromEntries(f.keys.map((key, i) => [key, q.at[i]!]))) }
 
-// The models a search compares terms in: n distinct random values of the law's variables (from 20n draws at most; with
-// params, each draw's functions its own). Draws repeat (a leaf, an empty list): 240 of them held 46 distinct trees, and
-// at some seeds no xs ⊆ ys with xs not empty, the case an implication's proof reads (core/hypothesis.test.ts).
+// The models a search compares terms in: n distinct random values of the law's variables (of 20n draws at most; with
+// params, every draw): 240 draws held some 70 (a leaf, an empty list again and again).
 function modelsFor(p: Program, l: DataLaw, n: number, seed: number) {
   const seen = new Set<string>(), fresh = (s: Sample) => p.params.length > 0 || (k => !seen.has(k) && !!seen.add(k))(JSON.stringify(l.vars.map(v => s.env.get(v.name))))
   return samples(l.vars, p.params, p.params.length ? n : 20 * n, seed).filter(fresh).slice(0, n).map(s => {
