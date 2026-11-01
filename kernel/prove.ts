@@ -835,7 +835,10 @@ function topAtoms(c: C, path: Path): Lin[] {
 // it the goal is left unknown whatever the cuts find: the search after them stops at its first node).
 function growFocused(goal: Goal, path: Path, focus: Lin[], budget: {nodes: number, until?: number}, near: Lin[] = focus): Outcome {
   if (++budget.nodes > 64 || late(budget.until ?? Infinity)) return {stuck: 'unknown', path}
-  const verdict = solveNear(leafConstraints(goal, path), [...near, ...[...path.values()].slice(-1).map(a => a.lin)])
+  // (each node reads its whole leaf, counted as growPlain counts a node's rows)
+  const leaf = leafConstraints(goal, path)
+  work.n += 1 + leaf.length; costs.plainRows += leaf.length
+  const verdict = solveNear(leaf, [...near, ...[...path.values()].slice(-1).map(a => a.lin)])
   if (verdict.kind === 'refuted') return {tree: {leaf: verdict.steps}, nodes: budget.nodes}
   const split = focus.find(l => !path.has(canon(l)) && !path.has(canonFlip(l)))
   if (!split) return {stuck: verdict.kind === 'sat' ? 'sat' : 'unknown', path}
