@@ -23,8 +23,8 @@
 // the law; the definitions that don't terminate (a merge that calls itself on the same lists, an interleave that only
 // swaps them, an add3acc that doesn't lower y, a merge whose stated measure a call doesn't lower; and `adversarial`'s
 // twelve: rings that pass a value round, lower and raise it, swap two, step past a guard the runs don't reach, a call
-// on a helper no longer than its argument up to 9 items only, a nested call, an integer's; a remove and a take whose
-// guarded size laws hold where the runs reach only) are refused, with the
+// on a helper no longer than its argument up to 9 items only, a nested call, an integer's; and `guardedAdversarial`'s
+// remove and take whose guarded size laws hold where the runs reach only) are refused, with the
 // reason, before any law about them is read. `wellFounded`: a ring of two functions (a measure each) and a merge sort
 // whose call's decrease needs a size law about the function of its argument.
 import {type Bool, type DataLaw, type Integer, type Nat, type Val, data, define, fnParam, integer, law, mutual, natural, boolean, no, programOf, self, when, yes, proveData} from '../core/data.ts'
@@ -232,6 +232,22 @@ const loops = {
   nearTail: () => { const f: ReturnType<typeof define> = define('nearTailLoop', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: () => N(f(nearTail(xs)))})); return f },
   // the same through a ring
   nearTailRing: () => { const f: ReturnType<typeof define> = define('nearRingA', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: () => N(g(nearTail(xs)))})), g: ReturnType<typeof define> = define('nearRingB', {xs: List}, natural, ({xs}) => N(f(xs))); return f },
+  // 0 calls 1 and 1 calls 0
+  upDown: () => { const f: ReturnType<typeof define> = define('upDown', {n: natural}, natural, ({n}) => N(n).match({zero: () => N(f(1)), succ: ({pred}) => N(f(pred))})); return f },
+  // a sum of two that stays: (x + 1, y) to (x, y + 1), (0, y + 1) to (y + 1, y)
+  sumStays: () => { const f: ReturnType<typeof define> = define('sumStays', {x: natural, y: natural}, natural, ({x, y}) => N(x).match({zero: () => N(y).match({zero: () => 0, succ: ({pred}) => N(f(N(pred).plus(1), pred))}), succ: ({pred}) => N(f(pred, N(y).plus(1)))})); return f },
+  // nested and never ending: f(n) = f(f(n))
+  nested: () => { const f: ReturnType<typeof define> = define('nestedLoop', {n: natural}, natural, ({n}) => N(f(f(n)))); return f },
+  // on an integer (no measure reads one): below 0 it never ends
+  intDown: () => { const f: ReturnType<typeof define> = define('intDown', {i: integer}, natural, ({i}) => when(I(i).eq(0), 0 as number, N(f(I(i).minus(1))) as never)); return f },
+  // a ring whose measures are given and don't fall: (size xs) at both, the call passing xs round
+  ringStatedWrong: () => { const f: ReturnType<typeof define> = define('statedA', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: ({tail}) => N(g(tail))}), {measure: ['xs']}), g: ReturnType<typeof define> = define('statedB', {xs: List}, natural, ({xs}) => N(f(List.cons(1, xs))), {measure: ['xs']}); return f },
+}
+const asLaws = <T extends Record<string, () => ReturnType<typeof define>>>(fs: T) => Object.fromEntries(Object.entries(fs).map(([name, mk]) => [name, () => { const f = mk(); return law(`${name} is 0`, Object.fromEntries(f.fn.params.map(p => [p.name, p.sort])) as never, vs => { const r = f(...f.fn.params.map(p => vs[p.name])) as Nat | Bool; return 'y' in r ? r : N(r).eq(0) }) }])) as Record<keyof T, () => DataLaw>
+export const adversarial = asLaws(loops)
+// Calls shorter only under a guard, the guard false past the runs' values (core/guarded.test.ts, beside the sorts the
+// guards admit): each refused, its guarded size law or its guard at the call not proven.
+const nearGuards = {
   // a selection sort through a remove that takes the item out only where fewer than 9 follow it: where the item is
   // found so, the list loses one (true), but the item at the call is found so only in the runs' short lists
   removeNear: () => {
@@ -246,18 +262,8 @@ const loops = {
     const f: ReturnType<typeof define> = define('msortNear', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: ({tail}) => L(tail).match({nil: () => 0, cons: () => N(f(tk(N(len(xs)).divBy(2), xs)))})}))
     return f
   },
-  // 0 calls 1 and 1 calls 0
-  upDown: () => { const f: ReturnType<typeof define> = define('upDown', {n: natural}, natural, ({n}) => N(n).match({zero: () => N(f(1)), succ: ({pred}) => N(f(pred))})); return f },
-  // a sum of two that stays: (x + 1, y) to (x, y + 1), (0, y + 1) to (y + 1, y)
-  sumStays: () => { const f: ReturnType<typeof define> = define('sumStays', {x: natural, y: natural}, natural, ({x, y}) => N(x).match({zero: () => N(y).match({zero: () => 0, succ: ({pred}) => N(f(N(pred).plus(1), pred))}), succ: ({pred}) => N(f(pred, N(y).plus(1)))})); return f },
-  // nested and never ending: f(n) = f(f(n))
-  nested: () => { const f: ReturnType<typeof define> = define('nestedLoop', {n: natural}, natural, ({n}) => N(f(f(n)))); return f },
-  // on an integer (no measure reads one): below 0 it never ends
-  intDown: () => { const f: ReturnType<typeof define> = define('intDown', {i: integer}, natural, ({i}) => when(I(i).eq(0), 0 as number, N(f(I(i).minus(1))) as never)); return f },
-  // a ring whose measures are given and don't fall: (size xs) at both, the call passing xs round
-  ringStatedWrong: () => { const f: ReturnType<typeof define> = define('statedA', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: ({tail}) => N(g(tail))}), {measure: ['xs']}), g: ReturnType<typeof define> = define('statedB', {xs: List}, natural, ({xs}) => N(f(List.cons(1, xs))), {measure: ['xs']}); return f },
 }
-export const adversarial = Object.fromEntries(Object.entries(loops).map(([name, mk]) => [name, () => { const f = mk(); return law(`${name} is 0`, Object.fromEntries(f.fn.params.map(p => [p.name, p.sort])) as never, vs => { const r = f(...f.fn.params.map(p => vs[p.name])) as Nat | Bool; return 'y' in r ? r : N(r).eq(0) }) }])) as Record<keyof typeof loops, () => DataLaw>
+export const guardedAdversarial = asLaws(nearGuards)
 
 // A user's own arithmetic on the naturals, by recursion (as a library ported from a proof assistant writes it): ≤, +,
 // an equality, a count by it, and a definition that isn't recursive over them (≥ as ≤ the other way). proveData proves
@@ -371,7 +377,7 @@ if (import.meta.main) {
     console.log(`${ok ? 'ok  ' : 'FAIL'} ${v.law}: ${v.proven ? `proven, ${v.ms} ms (${v.scheme})` : `not proven (${v.goal}: ${v.stuck})`}`)
     failed ||= !ok
   }
-  for (const [name, mk] of [...Object.entries(nonterminating), ...Object.entries(adversarial)]) {
+  for (const [name, mk] of [...Object.entries(nonterminating), ...Object.entries(adversarial), ...Object.entries(guardedAdversarial)]) {
     if (skip(name)) continue
     const why = refusal(mk)
     console.log(`${why ? 'ok  ' : 'FAIL'} ${name} (doesn't terminate): ${why ? `refused: ${why}` : 'taken'}`)

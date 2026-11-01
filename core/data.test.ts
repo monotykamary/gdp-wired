@@ -6,7 +6,7 @@ import {expect, test} from 'bun:test'
 import {type Bool, type Nat, type Val, EvalLimit, boolean, checkMeasures, conjectures, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, when} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
 import {transferPlan} from './transfer.ts'
-import {Bag, Forest, List, Rose, Tree, a3, adversarial, msortTD, ssort, app, broken, drp, ilv, laws, leq, len, merge, mergeRuns, mir, mrg, nonterminating, paren, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken, tokens, wellFounded} from '../examples/data.ts'
+import {Bag, Forest, List, Rose, Tree, a3, adversarial, app, broken, drp, ilv, laws, leq, len, merge, mergeRuns, mir, mrg, nonterminating, paren, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken, tokens, wellFounded} from '../examples/data.ts'
 
 const list = (...xs: number[]): {c: number, f: unknown[]} => xs.reduceRight<{c: number, f: unknown[]}>((t, h) => ({c: 1, f: [h, t]}), {c: 0, f: []})
 const run = (call: {x: unknown}, env: Record<string, unknown>) => evalX(call.x as never, new Map(Object.entries(env)) as never, {})
@@ -122,25 +122,10 @@ test('a ring of functions that is not structural recursion: a measure each (one 
   for (const mk of Object.values(wellFounded)) { const v = proveData(mk()); expect(v.proven && v.checked && v.proof?.proven && checkCyclic(v.proof.proof)).toBe(true) }
 }, 60_000)
 
-test('a call shorter only under a guard: a selection sort (the item removed is in the list) and a merge sort by halves (two items or more), each decrease through a guarded size law and the guard at the call, every one checked by the kernel', () => {
-  for (const [f, guarded] of [[ssort, /^size law under reach_remove_\d\(y0, xs1\): size\(remove\(y0, xs1\)\) \+ 1 <= size\(xs1\)/], [msortTD, /^size law under .*size\((take|drop)\(n0, xs1\)\) \+ 1 <= size\(xs1\)/]] as const) {
-    const t = f.fn.termination!
-    expect(t.text).toBe('size(xs)')
-    for (const o of t.obligations) {
-      expect(o.proof?.proven && checkCyclic(o.proof.proof)).toBe(true)
-      // the guarded law, and the guard at the call (a law over the call's path), each a lemma the proof reads
-      expect(o.lemmas.some(n => guarded.test(n)), o.law.name).toBe(true)
-      expect(o.lemmaLaws!.map(q => q.name)).toEqual(expect.arrayContaining(o.lemmas))
-    }
-  }
-  expect(showValue(List, run({x: {op: 'call', fn: 'ssort', args: [{op: 'var', name: 'xs'}]}}, {xs: list(3, 1, 2, 1)}) as never)).toBe('cons(1, cons(1, cons(2, cons(3, nil))))')
-  expect(showValue(List, run({x: {op: 'call', fn: 'msortTD', args: [{op: 'var', name: 'xs'}]}}, {xs: list(3, 1, 2, 1)}) as never)).toBe('cons(1, cons(1, cons(2, cons(3, nil))))')
-}, 120_000)
-
 test('definitions that do not terminate, made to look as if they do (rings, a size law true of short lists only, a guard past the runs\' values), are refused with the measures tried', () => {
   for (const [name, mk] of Object.entries(adversarial)) expect(refusal(mk), name).toMatch(/no measure is proven to fall at every call|nested recursion isn't taken|no parameter a measure reads/)
   // a measure each was tried and refused, by a call of the runs or its obligation
-  for (const name of ['passRound', 'lowerRaise', 'swapRing', 'lateRing', 'stepUp', 'nearTail', 'nearTailRing', 'ringStatedWrong', 'removeNear', 'takeNear'] as const) expect(refusal(adversarial[name]), name).toMatch(/(doesn't lower it|not proven to lower it)/)
+  for (const name of ['passRound', 'lowerRaise', 'swapRing', 'lateRing', 'stepUp', 'nearTail', 'nearTailRing', 'ringStatedWrong'] as const) expect(refusal(adversarial[name]), name).toMatch(/(doesn't lower it|not proven to lower it)/)
 }, 240_000)
 
 test('a definition that does not terminate is refused with its reason, and no law about it is read', () => {
