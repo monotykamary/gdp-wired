@@ -1,21 +1,38 @@
 // The ∀∃ class's proofs, found with nothing written (core/exists.ts's ghost maps, core/infer.ts's search for the laws
 // beside them), exported to Lean through GhostMap.lean (lean-kernel/emit.ts's smachineToLean with `ghosted`): the
 // ghosted machine's laws by smachine_sound, the original's by smghost_laws, and the law with "there exists" by
-// forall_some_of_ghostmap. `bun ghosted-lean.ts <dir> id,id` writes GhostedIC3.lean.
+// forall_some_of_ghostmap. With `subst` (`bun ghosted-lean.ts <dir> id,id subst`), the route core/dsl.ts's verdict takes:
+// exists.ts's skolemOf ghosts, the plain laws and the search's found laws proven of the ghosted machine, each law with
+// "there exists" admitted by kernel.ts's someOfGhostsOk and read by forall_some_of_ghostsubst. Writes GhostedIC3.lean.
 import {writeFileSync} from 'node:fs'
 import {join} from 'node:path'
-import {proveSome} from '../../../core/exists.ts'
+import {proveSome, skolemOf} from '../../../core/exists.ts'
 import {inferLaws} from '../../../core/infer.ts'
 import {proveRule} from '../../../core/dsl.ts'
 import {type Law} from '../../../core/machine.ts'
-import {type Ghosted, checkGhostedLaws} from '../../../kernel/kernel.ts'
+import {type Ghosted, checkGhostedLaws, ghostedMachine, someOfGhostsOk} from '../../../kernel/kernel.ts'
+import {proveLaws} from '../../../kernel/prove.ts'
 import {smachineToLean} from '../../../lean-kernel/emit.ts'
 import {protocols} from './models.ts'
 
-const [dir = '.', only = 'client_server_ae'] = process.argv.slice(2)
+const [dir = '.', only = 'client_server_ae', route] = process.argv.slice(2)
 const parts: string[] = [], ids: string[] = []
 for (const [j, id] of only.split(',').entries()) {
   const p = protocols.find(q => q.id === id)!, r: any = p.make(), m = r.machine, laws: Law[] = [...r.kindLaws(), ...p.laws(r)]
+  if (route === 'subst') {
+    const stated: Law[] = p.laws(r), sk = skolemOf(m, stated)
+    if (!sk) throw new Error(`${id}: no plain form`)
+    const G: Ghosted = {orig: m, vars: {}, maps: sk.maps}, gm = ghostedMachine(G), found = (proveRule(r, stated, {search: {ms: 60_000}}).found?.laws ?? []) as {law: Law}[]
+    const ls = [...r.kindLaws() as Law[], ...sk.laws, ...found.map(f => f.law)], out = proveLaws(gm, ls)
+    if (!out.proven || !out.proof || !checkGhostedLaws(G, ls, out.proof as never)) throw new Error(`${id}: the plain laws not proven of the ghosted machine`)
+    const exs = stated.filter(l => l.some?.length)
+    if (!exs.every(l => someOfGhostsOk(G, l, sk.plains[l.name]!.plain, sk.plains[l.name]!.sub))) throw new Error(`${id}: someOfGhostsOk refuses`)
+    parts.push(smachineToLean(`gh${j}`, gm, ls, {ghosted: G, ghostSubst: exs.map(l => ({law: sk.plains[l.name]!.plain.name, body: l.holds, sub: sk.plains[l.name]!.sub})),
+      free: exs.flatMap(l => l.some!), noFacts: !(gm.facts ?? []).length}))
+    ids.push(`gh${j}_orig_laws`, `gh${j}_skolem`, ...exs.map((_, i) => `gh${j}_ex${i}`))
+    console.log(`${id}: ${ls.length} laws, ghosts ${Object.keys(sk.maps).join(', ')}`)
+    continue
+  }
   // (the laws the search adds, where the ∃ law with its ghost map alone isn't inductive)
   let out = proveSome(m, laws)
   // (or proveRule's search: a law with "there exists" about keys searched in its plain form over its ghost map)
