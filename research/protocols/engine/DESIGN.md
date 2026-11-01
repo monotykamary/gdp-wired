@@ -535,6 +535,17 @@ model's cells (its body summed over the keys below its bound, the picks' reading
 here, the law broken at (1, key$3), and its instance asked with its counts, whose picks C3's 855bfbe then supplies.
 Sent to C3 through the coordinator.
 
+### gen/laneY6 on C3's 26a3440 (counts from their definitions in modelInstances): the probe again
+
+Still refused, every law (537 s; pass 1 now runs out at 73-93 s on three of the laws). The instances are asked now: the
+pass-1 model for one primary per term reads old, cfgSize and low at the leader's config and the other primary. It is
+still not a state of the protocol, by two counts the picks should pin: become_leader by i = 2, S[0] = S[2] = 1 (the
+read S[w$12] with w$12 = 0, and S[key$2#] with key$2# = 2) yet inS = 1; config[1] = {0, 2} (Config[64·1 + w$12],
+Config[64·1 + key$2#]), CT[0] = 0 and CT[2] = 1 both below CfgT[3] = 2, yet low[64·1 + 3] = 1. Each count is 1 where
+the two distinct keys its body holds at would make it 2: no pick at (w$12, key$2#) in this goal, though both are read as
+the body's map's keys (S at both, Config[64·1 + ·] at both). Sent to C3 through the coordinator: whether w$12 (a witness)
+is among the key terms certFor picks at.
+
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
 
 Held: the lazy hypotheses (kernel/prove.ts) cost the step goals time (g332 391 s against 354) and read 18 against 20 at
