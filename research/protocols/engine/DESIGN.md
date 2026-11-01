@@ -43,6 +43,73 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (proofs only); a retried counted attempt seeded by its last model's instances (untrusted; nothing trusted changed)
+
+Branch gen/laneJ from main e86df1b. kernel/kernel.ts, core/check.ts and lean-kernel/ untouched; nothing reads a protocol's
+name. Everything ran on boat (gate class, `--timing`: each job alone on its VM, 2 pinned vCPUs); runs in `runs/laneJ/`
+of the worktree. WALL is the process's own wall time around bun (proveRule's ms plus ~0.1 s).
+
+**1. The honest numbers (main e86df1b, `grid-base`; two runs, broken variants once a budget).** 60 s counted: 20 of 29
+in both runs. **Strict 60 s of wall: 19 of 29** in both runs (consensus_epr proven at 65.8 / 70.1 s). 300 s: 20 of 29
+counted and wall. No broken variant proven. Near the wall the count is the VM's: in a later batch on the same code
+(`ab`, `GDP_SLICE=0`) consensus_epr took 30.6 / 52.5 s and wo 32.0 / 36.4 s (20 of 29 at strict 60 s).
+
+**2. Where the time goes (`slice`: research/query/slice.ts, each root query's size, time and outcome, and the hypotheses
+its tree read).** The switches: 3 grow queries of 1,294 to 16,480 hypotheses unknown in 90 s of a 128 s run (i4: 47 s and
+48 s on two); their kind laws' step goals (608 to 1,643 hypotheses) proven in 1.2 to 6.8 s with a tree reading 1 or 2.
+no_lost_keys: two queries of 319 hypotheses take 117 s. firewall and db_ae: queries of 96 to 229 hypotheses, 2 to 4 s
+each; most of db_ae's 144 s is outside queries. forall, epr, paxos: hundreds of model-only queries of 40 to 149
+hypotheses (forall 196 in 65 s), the cone's. mldr: the engine's cubes take 41.7 of its 67 s (`prof`). A cone of shared
+names is no slice: every hypothesis shares a name with the conclusion (one hop keeps 611 of 623, 1,294 of 1,294).
+
+**3. Lazy hypotheses (kernel/prove.ts, growSliced).** A root goal of 128 hypotheses or more is grown first over a part:
+its conclusion, then each hypothesis a model of the part breaks (the model read as a state), each part within the share
+of the goal's budget it is of the goal (half in all); a tree of at most 64 leaves is widened to the goal (`widen`), which
+the kernel checks; anything else leaves the goal as before. On dumped goals (research/query/dump.ts, slice-lab.ts): the
+switches' transitive step goal is a 44-hypothesis part unknown on its own (the instances at composed terms; still
+unknown); firewall's goals reach a model in 49 to 580 ms (one unknown at 60 s), sharded_kv's 2,062-hypothesis goal in
+0.6 s, no_lost_keys' in 29 ms (39 s), twophase's in 8 of 155.
+- **Tried and taken out:** (a) the part's model returned as the goal's (no hypothesis broken): its names outside the part
+  read 0, which the searches' judges take for a reachable state: the engine's join on toy consensus (the ten's) went
+  from 4 rounds in 4 s to 7 in 38 s (`tcf2`), and the IC3Syn gains came from it (no_lost_keys 123 → 35 s and firewall 60
+  → 42 s, both still unknown); (b) the same for model-only CDCL queries (kernel/cdcl.ts): the engine's small-budget
+  queries lost two-phase commit, 0 of 20 in the ten (`ten3`, `tpc2`); (c) widening any tree: g332's HOLA_45 proven over 3
+  of 133 hypotheses, 1,213 leaves, widened in 9 s where the goal alone takes 5 (`g4`); (d) half the budget for every
+  part: HOLA_12's 3-hypothesis part took 10.9 s (`g4b`).
+**4. A retried counted attempt seeded (core/counts.ts).** A law's last model broken by the laws added since: the attempt
+starts at the instances modelInstances asks for (where its rounds would lead it again), not at the flags alone. Decide
+calls (`seed`, 60 s, counted, the same on every VM): consensus_epr 576 → 462, wo 273 → 226, forall 523 → 452, mldr 244
+→ 169, majorityset 128 → 110, paxos 1,189 → 1,139; cone time forall 31.0 → 29.4 s, wo 12.8 → 12.0, mldr 8.9 → 7.2. No
+verdict changed.
+
+**IC3Syn, one batch, both sides on 5d206b5 (`ab`: before `GDP_SLICE=0 GDP_COUNTS_SEED=0`, i.e. main's search; seconds of
+wall, r1, r2):** 60 s, strict wall: before 20 of 29 in both runs, after 18 (consensus_epr 31.3 / 78.5, wo 38.7 / 71.7;
+20 in r1); counted 20 and 20. 300 s: 20 and 20. Proven runs' median 6.2 → 4.9 s (60), 10.0 → 5.4 s (300); sums 411 →
+450 s (60), 804 → 719 s (300). Every proven run of both sides is a proof on both; no broken variant proven (the after
+grid `grid-c5`, and 07250a7's `fin`: 20 of 29 at strict 60 s and at 300 s).
+
+**Gates** (5d206b5; 07250a7 is it without the trace, the lab's hook and the seed's knob)
+- **Quick bar** (<main>/runs/bar/runs/laneJ-5d206b5-quick): wrong 0, nothing solid lost: CHC +10 (gained 8, lost 4, none
+  solid), ITS +3.33 (lost 1, not solid), ITS-scc +2.33, SV +0.67, SV-scc +0.67, TIP +1, f1 0, f2 −0.67 (lost 1, not
+  solid), rw −0.33 (lost 1, not solid); g332 332 of 332, the same search on 328, p50 1.003, sum 391 against 354 s (the
+  four of 128 hypotheses or more; `g4c`: HOLA_45 and HOLA_12 2 to 5 s slower, HOLA_36 and count_by_2 level); onecpu no
+  failure; Lean 6 of 6. **Suites** (laneJ-5d206b5-suites): 243 of 243 by default and --usual.
+- **The ten at 60 s**, 20 runs a side, one batch (`ten5`): before 196, after **197** (wo 16 → 18, ring 20 → 19).
+- **Core tests** (`tests2` on 5d206b5, `tests3` on 07250a7): `bun run test` exit 0, exists 12 of 12, count, countmachine,
+  cdcl 58 of 58; tsc no error in core/, kernel/, research/; oxlint 0 / 0.
+- **Lean** (Lean 4.34.0, `lean2`): CountedIC3.lean (consensus_epr 29 laws, wo 37, majorityset 16) lean-exit 0 in 184 s;
+  P_twophase.lean (35 laws) and P_simple_regular.lean (17) lean-exit 0; no sorry; [propext, Classical.choice, Quot.sound].
+  Again on 07250a7 (`lean3`, `lean4`): twophase and simple_regular lean-exit 0; CountedIC3.lean lean-exit 0 in both runs
+  alone on their VMs (151 s, 61 s); on a shared VM (`lean3`) one of the three wasn't proven within GDP_LEAN_MS = 60 s,
+  the counted search's wall stop on a loaded VM (consensus_epr's proof sits near its 60 counted seconds).
+
+**Bytes** (07250a7 against e86df1b): kernel/prove.ts +3,511, core/counts.ts +287; research/query/ +3 files (slice.ts,
+dump.ts, slice-lab.ts).
+
+**Not won:** every unproven protocol is still unproven. The switches' hard goal is its 44-hypothesis core, not its size;
+the counted protocols' cost is the cone's count of genuine CTIs (paxos 380 of 409 attempts end with a model, each a new
+one), not per-query cost; mldr's is the engine's cubes (41.7 of 67 s).
+
 ## gen/laneI2: the counted search on the counted clock (wo 20 of 20 on shared VMs; IC3Syn 60 s 17 → 20); equation-fixed keys in the prover; the ran-out goal named; a ghost of a ghost; seeded instances measured and out (untrusted; nothing trusted changed)
 
 Branch gen/laneI2 from main ad88d36. kernel/kernel.ts, core/check.ts and lean-kernel/ untouched; kernel/prove.ts is the
