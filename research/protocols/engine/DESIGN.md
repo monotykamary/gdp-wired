@@ -102,7 +102,7 @@ refused, and grow finds no tree. Mutants over every line of kernel.ts this lane 
 
 **The search's use of them**: a goal's model the narrow count instances leave asks, in the rounds over the whole set
 (Houdini) and for a caller's law or a read no instance names, for the instances widened once and each count picked at
-the key terms the goal reads its body's maps at (every two, and all of up to four); and modelInstances (kernel/prove.ts,
+the key terms the goal reads its body's maps at and at its own instances' witnesses (every two, and all of up to six); and modelInstances (kernel/prove.ts,
 untrusted) reads a count's cell the model has not from its definition over the model's cells, so a law over a count the
 goal doesn't read is broken where the model breaks it (Lane Y's "every quorum at a config term, or disabled"). Widening
 inside the cone cost the counted protocols (simple_election 5 → 19 s, wo 30 → 57 s), so the cone keeps the narrow
@@ -117,10 +117,12 @@ uniqueness and the phase's row law left sat or unknown; with the widened instanc
 (16 laws), 21 of 37 kept, left: one value decided, proposals unique, choosable, the checked rows. The search's pieces
 are in place (the decision law kept, the choosable law proposed); the propose phase's invariants are not.
 
-**Gates** (26a3440 and f6fb4ff against 35ed7e0, IC3Syn with jobs.ts as main's cb90788: boat large, 4 vCPU, 14 GB, each
+**Gates** (26a3440 to e5d9f38 against 35ed7e0, IC3Syn with jobs.ts as main's cb90788: boat large, 4 vCPU, 14 GB, each
 alone, strict 60 s, two runs; broken variants once; DuoAI ten three runs): IC3Syn runs within 60 s 45 of 58 both,
 protocols within 60 s in every run 22 both, no broken variant proven either side, DuoAI ten 30 of 30 both (the counted
-protocols run again on the final code; the others' code paths unchanged since gate round 2). Quick bar (25b63cd, before
+protocols run again on the final code; the others' code paths unchanged since gate round 2). The counted protocols on
+e5d9f38 once more: consensus_epr 42.5/52.3 s (main 21.9/51.4), consensus_forall 44.7/48.8 (main 65.6/93.6, past 60),
+consensus_wo_decide 52.9/78.8 (main 39.4/109.3), the ten's wo 24.6/36.4/68.4 (main 30.4-33.6): near the wall either way. Quick bar (25b63cd, before
 picks; the counted search's paths only since) against the shared baseline: wrong 0 everywhere, nothing lost solid
 (CHC +11.9 predicted, ITS gdp −11.3 and gdp-scc −6.6 predicted, every loss at the limit, none solid; no code
 those groups run changed), 6 of 6 Lean recurrent sets. Tests on a 16 GB VM: 401 of 403 (exports.test.ts' build: the DSL's spec type for a
