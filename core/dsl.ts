@@ -2784,7 +2784,9 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // (the search's own wall ends where the tail begins: the last bounded runs keep it)
   const tailAt = () => performance.now() + Math.max(0, until - tail - clock())
   // (a law about every key with "there exists": the search over its plain form, the value at its ghost map's cell, the
-  // ghosts' own laws beside it, on the rule with the ghosts (exists.ts's skolemOf), its verdict `back`'s)
+  // ghosts' own laws beside it, on the rule with the ghosts (exists.ts's skolemOf), its verdict `back`'s; the join's convex
+  // forms, which can't state a cell read at a key a ghost holds, a twentieth of the budget, the engine the rest: the join's
+  // whole-set query on db_ae's plain laws took the counted budget, 234 s of it, before the engine)
   const sk = !stepLaws.length && laws.some(l => l.some?.length && l.forall) ? skolemOf(rule.machine, laws) : undefined
   const target = sk ? rule.withGhosts(sk.ghost) : rule, sought = sk?.laws ?? laws
   // (the set the search proved, as it proved it, over the rule with the ghosts (its goals settled again where they stand),
@@ -2800,7 +2802,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
     const out = proveSome(rule.machine, [...withKinds(rule, laws), ...fresh.map(f => f.law), ...found.map(f => f.law)], {mapMs: Math.max(5_000, (until - clock()) / 2)})
     return {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   }
-  const inf = withWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), }))
+  const inf = withWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {join: 0.05} : {})}))
   if (!(inf.proven && inf.checked)) {
     // The sum of each map the step writes (withMapSums): the search again over the rule with them, within half of what
     // is left (at most 20 s), where a law of cells against a total needs one (no ERC20 balance past the supply).
