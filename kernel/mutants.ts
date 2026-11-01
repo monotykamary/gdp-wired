@@ -1,4 +1,4 @@
-// Mutation testing for the trusted base (kernel.ts, core/check.ts): each mutant changes one operator, constant or
+// Mutation testing for the trusted base (kernel.ts, core/check.ts, cyclic.ts): each mutant changes one operator, constant or
 // quantifier at one place; the battery (fast tests first, the kernel fuzz last) must fail on it. A mutant that survives
 // is a change nothing notices: a blind spot in the tests (or an equivalent mutant, which the report lets a reader judge).
 //   bun mutants.ts list                 the mutants, numbered
@@ -16,7 +16,8 @@ const root = resolve(import.meta.dir, '..')
 // only kernel-checked proofs taken), the rest of that file being the search, which a mutant would change in speed alone.
 const targets: {file: string, only?: string[]}[] = [{file: 'kernel/kernel.ts'}, {file: 'core/check.ts'}, {file: 'core/data.ts', only: [
   'callsIn', 'recursion', 'measurable', 'sized', 'measureOf', 'sizeX', 'measureX', 'readsInt', 'iMax0', 'measureI', 'lexY', 'isIntX', 'padded',
-  'callSites', 'sitesOf', 'shapedBy', 'ownArgs', 'obligation', 'directly', 'proveMeasures', 'proveMeasuresIn', 'ringSites', 'checkMeasures', 'termination']}]
+  'callSites', 'sitesOf', 'shapedBy', 'ownArgs', 'obligation', 'directly', 'proveMeasures', 'proveMeasuresIn', 'ringSites', 'checkMeasures', 'termination']},
+  {file: 'kernel/cyclic.ts'}]
 // [pattern, replacement]: binary operators keep their spaces, so generics and arrows aren't touched.
 const operators: [RegExp, string][] = [
   [/ <= /g, ' < '], [/ < /g, ' <= '], [/ >= /g, ' > '], [/ > /g, ' >= '],
@@ -25,6 +26,17 @@ const operators: [RegExp, string][] = [
   [/ \+ 1\b/g, ''], [/ - 1\b/g, ''], [/\bk\(1\)/g, 'k(0)'], [/\bk\(0\)/g, 'k(1)'], [/ > 0\b/g, ' >= 0'],
   [/Math\.ceil/g, 'Math.floor'], [/!\(/g, '('], [/\.\.\.pre, /g, ''], [/\.slice\(0, -1\)/g, ''],
 ]
+// cyclic.ts builds its goals as object literals, which the operators above barely reach: its own, after them (so the
+// other files' mutants keep their numbers). A comparison's kind, a negation made true, a part of a goal's hypotheses
+// dropped, a guard or a tree check skipped, a fact's keys past its terms, a language check widened.
+const own: Record<string, [RegExp, string][]> = {
+  'kernel/cyclic.ts': [
+    [/op: '<'/g, "op: '<='"], [/op: '='/g, "op: '<='"], [/op: 'not', x: /g, "op: 'and', xs: [], x: "], [/if \(/g, 'if (false && '],
+    [/!check\(/g, 'check('], [/!plain\(/g, 'plain('], [/!factsAvoid\(/g, 'factsAvoid('], [/\.slice\(0, at\.length\)/g, ''],
+    [/\.\.\.n\.hyps, /g, ''], [/\.\.\.instHyps\(facts, n\.insts\)/g, ''], [/\.\.\.baseHyps\(facts, n\), /g, ''],
+    [/\.\.\.useHyps\(nodes, n\.uses\), /g, ''], [/u\.guard, /g, ''], [/\|all/g, ''], [/\.slice\(1\)/g, ''],
+  ],
+}
 type Mutant = {id: number, file: string, line: number, from: string, to: string, at: number, length: number}
 
 export function mutants(): Mutant[] {
@@ -35,7 +47,7 @@ export function mutants(): Mutant[] {
     for (const [i, line] of text.split('\n').entries()) {
       const code = line.replace(/\/\/.*$/, '') // comments aren't code
       inside = declared.exec(line)?.[1] ?? (/^\S/.test(line) && !line.startsWith('//') && !line.startsWith('}') ? undefined : inside)
-      if (!code.trim().startsWith('import ') && (!only || (inside && only.includes(inside)))) for (const [pattern, to] of operators) {
+      if (!code.trim().startsWith('import ') && (!only || (inside && only.includes(inside)))) for (const [pattern, to] of [...operators, ...own[file] ?? []]) {
         for (const m of code.matchAll(pattern)) out.push({id: out.length, file, line: i + 1, from: m[0], to, at: offset + m.index, length: m[0].length})
       }
       offset += line.length + 1
@@ -72,6 +84,7 @@ const battery: {name: string, cwd: string, cmd: string[], env?: Record<string, s
   {name: 'countmachine', cwd: 'kernel', cmd: ['bun', 'test', 'countmachine.test.ts'], ms: 180_000},
   {name: 'refusals', cwd: 'kernel', cmd: ['bun', 'test', 'refusals.test.ts'], ms: 60_000},
   {name: 'tamper', cwd: 'kernel', cmd: ['bun', 'test', 'tamper.test.ts'], ms: 120_000},
+  {name: 'cyclic', cwd: 'core', cmd: ['bun', 'test', 'cyclic.test.ts'], ms: 120_000},
   {name: 'dsl', cwd: 'core', cmd: ['bun', 'test', 'dsl.test.ts'], ms: 120_000},
   {name: 'conformance', cwd: 'core', cmd: ['bun', 'test', 'conformance.test.ts'], env: {FUZZ_SEED: '1'}, ms: 180_000},
   {name: 'examples', cwd: 'examples', cmd: ['bun', 'test', 'examples.test.ts'], env: {DOMAIN: 'finance'}, ms: 180_000},
@@ -92,6 +105,7 @@ const battery: {name: string, cwd: string, cmd: string[], env?: Record<string, s
   // (core/data.ts's admission: definitions taken or refused, the obligations checked; MUTANT_BATTERY=termination,conformance
   // for its mutants alone)
   {name: 'termination', cwd: 'core', cmd: ['bun', 'test', 'data.test.ts', '-t', 'terminat|structural|well-founded|ring|measure|weighted|paths'], ms: 400_000},
+  {name: 'cycles', cwd: 'core', cmd: ['bun', 'test', 'cycles.test.ts'], ms: 400_000},
   {name: 'kernel fuzz', cwd: 'kernel', cmd: ['bun', 'test', 'kernel.test.ts'], env: {FUZZ_SCALE: '0.5'}, ms: 400_000},
 ]
 // MUTANT_BATTERY=a,b: only those tests (by name), for a run over one check's mutants.
