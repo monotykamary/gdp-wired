@@ -1832,8 +1832,11 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     return undefined
   }
   const shape = (t: E, d?: Data) => { const dd = d ?? dataOfTerm(t); if (dd) { inst(`shape ${dd.name}`, [t]); ctors(note(reads(holdsAt(`shape ${dd.name}`, [t])))) } }
-  // (eta first: a value a case makes a constructor is one in its models' classes, where the reads at it unfold below)
-  for (const t of w.etaAt) { const d = typeOfVar(p, t) ?? dataOfTerm(t); if (d) { inst(`eta ${d.name}`, [t]); shape(t, d); ctors(note(reads(holdsAt(`eta ${d.name}`, [t])))) } }
+  // (eta first, outside a termination's proofs: a value a case makes a constructor is one in its models' classes, where
+  // the reads at it unfold below; count(x, xs) at xs's fields where xs is a cons. A size law's nodes grow past their time
+  // with it.)
+  const etas = () => { for (const t of w.etaAt) { const d = typeOfVar(p, t) ?? dataOfTerm(t); if (d) { inst(`eta ${d.name}`, [t]); shape(t, d); ctors(note(reads(holdsAt(`eta ${d.name}`, [t])))) } } }
+  if (!inTermination.on) etas()
   // A function read whose decreasing argument a model's classes make a constructor's value (the argument itself, or a
   // term of its class) unfolds there too: where the definition's match is decided. Each such instance stands for the
   // reads it was unfolded for (`reached` keeps it in a case where it is one of them).
@@ -1873,6 +1876,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   }
   lap(`by constructors, ${insts.length} instances, ${all.length} reads`)
   for (const t of w.shapesAt) shape(t, typeOfVar(p, t))
+  if (inTermination.on) etas()
   // A size the goal reads (a measure's, in a well-founded call's obligation): the shape of its value, which gives the
   // size from the fields.
   for (const r of reads([w.roots, w.others])) for (const d of p.datas) if (r.map === sizeMap(d.name)) shape(r.key, d)
@@ -3187,9 +3191,11 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   // conjectures are costly to make. One out of its time is tried again below, with more.
   if (!Array.isArray(opts.lemmas)) { const two = ok(proveWith(p, fs, l, base, lv + 1, opts, until, 3000, [2]), base); if (two) return two }
   // The steps the law's inductions leave (lemma calculation), then the conjectures from the values.
-  const tc = performance.now(), calc = Array.isArray(opts.lemmas) ? [] : calculated(p, l, 2, 6)
+  // (a conjecture that is the law at some of its values, or the law said as an equation with a constant, p(x) = true,
+  // is proven only by proving the law: none is tried)
+  const tc = performance.now(), calc = Array.isArray(opts.lemmas) ? [] : calculated(p, l, 2, 6).filter(c => !lawAgain(l, c))
   if (dataTrace) console.error(`[data] ${l.name}: ${calc.length} calculated in ${Math.round(performance.now() - tc)} ms`)
-  const cands = Array.isArray(opts.lemmas) ? opts.lemmas : [...calc, ...conjectures(p, l)]
+  const cands = Array.isArray(opts.lemmas) ? opts.lemmas : [...calc, ...conjectures(p, l).filter(c => !lawAgain(l, c))]
   if (dataTrace) for (const c of calc) console.error(`[data]   calculated ${c.name.slice(0, 200)}`)
   const p2 = ctx ? p : programOf([l, ...cands]), fs2 = ctx ? fs : factsOf(p2)
   // Each scheme's goals: the law's, and each companion's (a lemma may be what only a companion's goal reads).
@@ -3208,7 +3214,14 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   // Those the goal matches first, of those the ones of the law's shape (an implication for an implication) first, then
   // the fusions.
   const implication = (y: Y) => y.op === 'or' && y.xs.length === 2 && y.xs[0]!.op === 'not'
-  const score = (c: DataLaw, hit: boolean) => (hit ? 4 : 0) + (implication(c.holds) === implication(l.holds) ? 2 : 0) + (fusion(c.holds) ? 1 : 0)
+  // (and of those, the ones that take a function the law reads at its top through a function the law doesn't read, which
+  // its definitions reach: count through insert, ordered through merge; the law's step reads them where an induction
+  // unfolds the law's functions)
+  const fnsIn = (y: unknown) => { const out = new Set<string>(); walk(y, o => { if (o.op === 'call') out.add(o.fn as string) }); return out }
+  const inLaw = fnsIn(l.holds), lawY = implication(l.holds) ? (l.holds as {xs: Y[]}).xs[1]! : l.holds
+  const tops = new Set([...(lawY.op === '=' ? [lawY.a, lawY.b] : lawY.op === 'holds' ? [lawY.x] : [])].flatMap(x => (x.op === 'call' ? [x.fn] : [])))
+  const under = (c: DataLaw) => { const fs2 = fnsIn(c.holds); return [...fs2].some(f => tops.has(f)) && [...fs2].some(f => !inLaw.has(f)) }
+  const score = (c: DataLaw, hit: boolean) => (hit ? 8 : 0) + (under(c) ? 4 : 0) + (implication(c.holds) === implication(l.holds) ? 2 : 0) + (fusion(c.holds) ? 1 : 0)
   if (dataTrace) console.error(`[data] ${l.name}: ${cands.length} conjectures at ${Math.round(clock())} of ${Math.round(until)}${cands.map(c => `\n[data]   conjecture ${c.name.slice(0, 160)}`).join('')}`)
   // (the calculated steps first, in their order: each before the one it was calculated from)
   const calcSet = new Set(calc)
@@ -3297,6 +3310,22 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
     () => ok(proveWith(p2, fs2, l, proven, level(), opts, until, 12000, [1, 2], 'first'), proven, p2))
   for (const [i, step] of steps.entries()) { if (clock() > until) break; if (dataTrace) console.error(`[data] ${l.name}: step ${i} at ${Math.round(clock())} of ${Math.round(until)}`); const r = step(); if (r) return r }
   return done({proven: false, checked: false, lemmas: [], tried, ...stuckOf(first?.last)})
+}
+// Whether a conjecture is the law again: the law at some values of its variables (count(0, sort(xs)) = count(0, xs)),
+// either way round, or a Bool law said as an equation with a side that is true at every value (ordered(sort(xs)) =
+// ordered([])).
+function lawAgain(l: DataLaw, c: DataLaw): boolean {
+  const free = new Set(l.vars.map(v => v.name)), at = (pat: unknown, t: unknown) => matchX(pat, t, free, new Map())
+  const y = c.holds, ly = l.holds
+  if (at(ly, y)) return true
+  if (y.op !== '=') return false
+  // (a law of two Bool values equal, read as the two implications: p(a) = p(b))
+  const iff = ly.op === 'and' && ly.xs.length === 2 && ly.xs.every(z => z.op === 'or' && z.xs.length === 2 && z.xs[0]!.op === 'not' && z.xs[0]!.x.op === 'holds' && z.xs[1]!.op === 'holds')
+    ? ((ly.xs[0] as {xs: [{x: {x: X}}, {x: X}]}).xs) : undefined
+  const sides = ly.op === '=' ? [ly.a, ly.b] : iff ? [iff[0].x.x, iff[1].x] : undefined
+  if (sides && (at(sides, [y.a, y.b]) || at(sides, [y.b, y.a]))) return true
+  const truth = (x: X) => { if (JSON.stringify(x).includes('"op":"var"')) return undefined; try { return evalX(x, new Map(), {}) } catch { return undefined } }
+  return ly.op === 'holds' && [[y.a, y.b], [y.b, y.a]].some(([t, k2]) => truth(k2!) === 1 && at(ly.x, t))
 }
 // A fusion: an equation one side of which nests a call of the program's functions in another's argument, the other side
 // calls on its variables alone (length(x ++ y) = length(x) + length(y), drop(n + m, xs) = drop(n, drop(m, xs)),
