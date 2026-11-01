@@ -304,3 +304,39 @@ tk('Kotlin: refused where it leaves the subset, each with why', () => {
 // The adversarial round (research/langs/adversarial): no false checked proof; what reaches the rule's state, refused.
 import {cases as advCases, judge, ADV} from '../research/langs/adversarial/cases.test-lib.ts'
 for (const c of advCases('Java')) (hasJdk ? test : test.skip)(`adversarial ${c.id}: ${c.attack}`, () => judge(c, extractJava(`${ADV}${c.file}`, {entry: 'Meter', root: `${ADV}${c.id}`, check: {runs: 30, depth: 6, states: 60}})), 120_000)
+
+// The reader fuzz's misreads (core/extract-fuzz.ts): a data class's copy runs its primary constructor, init blocks too.
+tk('Kotlin: copy runs the init block again: a copy its check refuses fails as the constructor does', () => {
+  ok(kotlin(`
+data class Budget(val limit: Int, val spent: Int = 0) {
+  init { limit.takeIf { it >= 256 }.let { requireNotNull(it) { "limit" } } }
+  fun spend(n: Int): Budget = if (n < 0 || spent + n > limit) this else copy(spent = spent + n)
+  fun left(): Int = limit - spent
+}`, 'Budget', {methods: ['spend', 'left']}))
+  const y = kotlin(`
+data class Budget(val limit: Int, val spent: Int = 0) {
+  val room = limit - spent
+  fun spend(n: Int): Budget = copy(spent = spent + n)
+}`, 'Budget', {methods: ['spend']})
+  expect(y.ok).toBe(false)
+  expect(y.refusals.map(r => r.what).join('; ')).toMatch(/property room is computed from its constructor \(copy computes it again\)/)
+})
+
+tj('Java: a null unboxed is a NullPointerException, the step\'s failure', () => {
+  const x = ok(java(`
+public class Counter {
+  @Autowired private Repo repo;
+  private int total;
+  public boolean hit(String key) {
+    Integer n = repo.get(key);
+    int cur = n != null ? 0 : n;
+    repo.put(key, cur + 1);
+    total++;
+    return true;
+  }
+}`, 'Counter', {entry: undefined}, {
+    'Repo.java': 'public interface Repo { Integer get(String key); void put(String key, Integer v); }',
+    'Autowired.java': 'public @interface Autowired {}',
+  }))
+  expect(x.source).toMatch(/\.assume\(/)
+})

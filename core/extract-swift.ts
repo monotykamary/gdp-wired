@@ -233,9 +233,12 @@ function harnessCode(g: Gen, mod: SModule, read: StepRead, cls: Rec): {entry: st
   // the request; those left out doing nothing; any other one a crash, which the check reports).
   const fakes: string[] = [], fakeOf = new Map<string, string>()
   const init = mod.funcs[cls.methods.__init__ ?? ''], ctorParams = init?.params.filter(p => !p.self) ?? []
+  // (an argument of a protocol of the files read that nothing the rule keeps reads: a fake as a store's, doing nothing)
+  const protoOf = (n: string) => { const pa = ctorParams.find(p => p.name === n), pt = pa?.t.k === 'opt' ? pa.t.of : pa?.t; return pt?.k === 'rec' ? mod.recs[pt.name] as Rec | undefined : undefined }
+  const faked = (n: string, a: PArg | undefined) => a?.k === 'store' || (a?.k === 'inert' && !!protoOf(n)?.swift?.reqs)
   for (const [name, a] of read.ctor) {
-    if (a.k !== 'store') continue
-    const pa = ctorParams.find(p => p.name === name), pt = pa?.t.k === 'opt' ? pa.t.of : pa?.t, pr = pt?.k === 'rec' ? mod.recs[pt.name] as Rec : undefined
+    if (!faked(name, a)) continue
+    const pr = protoOf(name)
     if (!pr?.swift?.reqs) throw new Refusal(cls.p, `${cls.short}(${name}): an injected dependency of a protocol outside the files read (the check can't make one)`)
     if (pr.swift.assoc) throw new Refusal(cls.p, `${cls.short}(${name}): a protocol with associated types (the check can't make one)`)
     // (the executor's names where the reading states none: get, set and delete)
@@ -264,7 +267,7 @@ function harnessCode(g: Gen, mod: SModule, read: StepRead, cls: Rec): {entry: st
   const ctor = sw.ctor ?? {labels: [], throws: false, types: []}
   const made = ctorParams.map((pa, i) => {
     const a = read.ctor.find(([n]) => n === pa.name)?.[1], lab = ctor.labels[i] ?? '_', arg = (x: string) => (lab === '_' ? x : `${lab}: ${x}`)
-    if (a?.k === 'store') return arg(`${fakeOf.get(pa.name)}({ let __s = __GdpStore(); __gdpS.cur[${JSON.stringify(pa.name)}] = __s; return __s }())`)
+    if (faked(pa.name, a)) return arg(`${fakeOf.get(pa.name)}({ let __s = __GdpStore(); __gdpS.cur[${JSON.stringify(pa.name)}] = __s; return __s }())`)
     return arg(conv(pa.t, `a?[${i}]?[1]`, mod))
   })
   if (sw.refused) throw new Refusal(cls.p, sw.refused)

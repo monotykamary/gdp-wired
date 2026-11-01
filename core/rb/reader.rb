@@ -18,8 +18,10 @@ class Reader
   def initialize(req)
     @root, @file, @clocks = File.expand_path(req['root']), File.expand_path(req['file']), req['clocks'] || []
     @base = File.basename(@file)
-    @consts = {}
-    Dir.glob(File.join(@root, '**', '*.rb')).each { |f| index_consts(f) rescue nil }
+    @consts, @defined, @mods = {}, [], {}
+    # (open: a constant may come from what the code requires, a gem's, or a Gemfile's bundle, or be made as it runs)
+    @open = %w[Gemfile gems.rb].any? { |g| File.exist?(File.join(@root, g)) } || !Dir.glob(File.join(@root, '*.gemspec')).empty?
+    ([@file] | Dir.glob(File.join(@root, '**', '*.rb'))).each { |f| index_consts(f) rescue nil }
     @recs, @funcs, @loads = {}, {}, []
     @caught = []
   end
@@ -28,8 +30,25 @@ class Reader
   def index_consts(f)
     walk = lambda do |n, nest|
       case n
-      when Prism::ModuleNode, Prism::ClassNode then n.body&.body&.each { |m| walk.(m, nest + [n.constant_path.slice]) }
+      when Prism::ModuleNode, Prism::ClassNode
+        q = (nest + [n.constant_path.slice]).join('::')
+        @defined << q
+        # (its singleton methods and the names each one's body calls on it; open where its body may add others)
+        md = (@mods[q] ||= {defs: {}, open: false, cls: n.is_a?(Prism::ClassNode)})
+        md[:open] = true if n.is_a?(Prism::ClassNode) && n.superclass
+        (n.body&.body || []).each do |m|
+          if m.is_a?(Prism::DefNode) && m.receiver.is_a?(Prism::SelfNode)
+            calls = []
+            each_node(m) { |c| calls << c.name.to_s if c.is_a?(Prism::CallNode) && !c.receiver }
+            md[:defs][m.name.to_s] = calls
+          elsif m.is_a?(Prism::SingletonClassNode) || (m.is_a?(Prism::CallNode) && !%i[attr_reader attr_writer attr_accessor private public protected].include?(m.name))
+            md[:open] = true
+          end
+        end
+        n.body&.body&.each { |m| walk.(m, nest + [n.constant_path.slice]) }
+      when Prism::ConstantPathWriteNode then @defined << (nest + [n.target.slice]).join('::')
       when Prism::ConstantWriteNode
+        @defined << (nest + [n.name.to_s]).join('::')
         v = n.value
         lit = case v
               when Prism::SymbolNode then {'e' => 'str', 'v' => v.unescaped, 'sym' => true}
@@ -40,7 +59,29 @@ class Reader
         @consts[(nest + [n.name.to_s]).join('::')] = lit.merge('file' => f) if lit
       end
     end
-    Prism.parse_file(f).value.statements.body.each { |n| walk.(n, []) }
+    tree = Prism.parse_file(f).value
+    tree.statements.body.each { |n| walk.(n, []) }
+    each_node(tree) { |n| @open = true if !@open && n.is_a?(Prism::CallNode) && %i[require load autoload const_set const_missing eval instance_eval class_eval module_eval].include?(n.name) }
+  end
+  # Why Mod.m fails where it runs, a module or class under the root whose singleton methods the reader sees all of: no
+  # such method, or its body calls a name nothing defines; else nil.
+  def no_method(r, n, nest)
+    return nil if @open
+    full = r.slice.sub(/\A::/, '')
+    q = nest.length.downto(0).map { |i| (nest[0, i] + [full]).join('::') }.find { |k| @mods.key?(k) }
+    md = q && @mods[q]
+    return nil if !md || md[:open]
+    known = ->(m) { md[:defs].key?(m) || (md[:cls] ? Class.new : Module.new).respond_to?(m, true) }
+    return "#{full} defines no #{n} (a NoMethodError where it runs)" unless known.(n.to_s)
+    gone = md[:defs][n.to_s].reject { |m| known.(m) }
+    gone.empty? ? nil : "#{full}.#{n} calls #{gone.first}, which nothing defines (a NameError where it runs)"
+  end
+  # Whether a constant is defined: under the root (a class, a module, a constant), by Ruby itself, or maybe by what the
+  # code requires.
+  def defined_const?(n, nest)
+    full = n.slice.sub(/\A::/, '')
+    @open || nest.length.downto(0).any? { |i| @defined.include?((nest[0, i] + [full]).join('::')) } || @defined.any? { |k| k.end_with?("::#{full}") } ||
+      (Object.const_defined?(full) rescue true)
   end
   # A constant's literal, and the file defining it kept (the check loads it before the file read).
   def const(n, nest)
@@ -395,7 +436,13 @@ class Reader
     else
       return no(x, "#{text(x)}: a method of an array") if r.is_a?(Prism::ArrayNode)
       # (another class's code: at the boundary where it is inferred, with the names its arguments mention)
-      return no(x, "#{text(x)}: #{r.slice}, another class's code").merge('ext' => "#{r.slice}.#{n}", 'names' => mentioned(args), 'patch' => {'mod' => r.slice, 'path' => [n.to_s]}) if r.is_a?(Prism::ConstantReadNode) || r.is_a?(Prism::ConstantPathNode)
+      return no(x, "#{text(x)}: #{r.slice}, a constant nothing under the root defines (a NameError where it runs)").merge('raises' => true) if (r.is_a?(Prism::ConstantReadNode) || r.is_a?(Prism::ConstantPathNode)) && !defined_const?(r, @nest)
+      if r.is_a?(Prism::ConstantReadNode) || r.is_a?(Prism::ConstantPathNode)
+        why = no_method(r, n, @nest)
+        return no(x, "#{text(x)}: #{why}").merge('raises' => true) if why
+        # (its arguments evaluated, as the code does: what fails there fails the step)
+        return no(x, "#{text(x)}: #{r.slice}, another class's code").merge('ext' => "#{r.slice}.#{n}", 'names' => mentioned(args), 'args' => args.map { |a| expr(a) }, 'patch' => {'mod' => r.slice, 'path' => [n.to_s]})
+      end
       call({'e' => 'get', 'x' => rv, 'f' => n.to_s, 'p' => p, 'text' => text(x)}, args.map { |a| expr(a) }, x)
     end
   end

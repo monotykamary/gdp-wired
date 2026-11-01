@@ -142,6 +142,8 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
     } else if (l.kind === 'bool') { get.push(`gdp_putf("%s\\"%s\\":%s", sep, ${k}, ${a} ? "true" : "false"); sep = ",";`); set.push(`if ((v = gdp_key(st, ${k}))) { if (!strncmp(v, "true", 4)) ${a} = 1; else if (!strncmp(v, "false", 5)) ${a} = 0; else return "${l.name}: not a boolean"; }`) }
   }
   const frames = read.leaves.filter(l => l.kind === 'frame' && !T(l.t).mutex)
+  // (the longest method name the request names, its buffer: a name of any length is called)
+  const M = Math.max(256, ...read.methods.map(x => x.name.length + 1))
   const calls = read.methods.map(meth => {
     const lines: string[] = [], args: string[] = ['o'], outs: [string, string, number][] = []
     meth.params.forEach((pa, i) => {
@@ -312,8 +314,8 @@ int main(int argc, char **argv) {
     }
     else if (op && !strncmp(op, "\\"get\\"", 5)) { gdp_putf("{\\"state\\":"); gdp_get(objs[k - 1]); gdp_putf("}"); }
     else if (op && !strncmp(op, "\\"call\\"", 6)) {
-      const char *mv = gdp_key(line, "m"), *av = gdp_key(line, "a"); char m[256] = {0};
-      if (mv && *mv == '"') { const char *e = strchr(mv + 1, '"'); size_t n = e ? (size_t)(e - mv - 1) : 0; if (n > 255) n = 255; memcpy(m, mv + 1, n); }
+      const char *mv = gdp_key(line, "m"), *av = gdp_key(line, "a"); char m[${M}] = {0};
+      if (mv && *mv == '"') { const char *e = strchr(mv + 1, '"'); size_t n = e ? (size_t)(e - mv - 1) : 0; if (n > ${M - 1}) n = ${M - 1}; memcpy(m, mv + 1, n); }
       gdp_putf("{\\"ok\\":true");${read.answers?.length ? `
       gdp_answers = gdp_key(line, "answers");` : ''}
       const char *bad = gdp_call(objs[k - 1], m, av ? av : "[]");

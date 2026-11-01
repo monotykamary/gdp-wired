@@ -1247,6 +1247,8 @@ RFAIL = re.compile(r"^reader-fuzz: FAIL (crash|no reason|hang)(.*)$", re.M)
 # caps reached at 00:10, the filler ran dry, 84 VMs drained, 32 resumed for the next wave))
 FUZZ_PER_DAY, XFUZZ_PER_DAY = knob("FUZZ_PER_DAY", 3000), knob("XFUZZ_PER_DAY", 48)
 DIFFER = re.compile(r"the rule and the code differ: (?!the code doesn't load|the check's harness)(.{0,300})")
+# (the check's own failure, twice: a request past its time, anvil's transport; no verdict on the code, infrastructure)
+HARNESS = re.compile(r"the check's harness failed, twice \(.*?\): (.{0,200})")
 
 
 def xfuzz_cmd(lang: str, seed: int) -> str:
@@ -1452,11 +1454,11 @@ class Soundness:
                         log(f"RFUZZ: {k[2:]} seed {s} at {self.commit[:12]}: {kind}: {what[:200]}")
                     continue
                 if k.startswith("x:"):
-                    m = DIFFER.search(out)
+                    m, hf = DIFFER.search(out), HARNESS.search(out)
                     # (the tests' own counts, kept every time: a seed whose tests all skipped, a toolchain missing, ran nothing)
                     counts = {w: int(x.group(1)) for w in ("pass", "skip", "fail") for x in [re.search(rf"^\s*(\d+) {w}$", out, re.M)] if x}
                     append(TM / "xfuzz.jsonl", {"t": time.time(), "commit": self.commit, "lang": k[2:], "seed": s, "code": code, **counts,
-                                                **({"differ": m.group(1)} if m else {}), **({"tail": out[-1500:]} if code != 0 else {})})
+                                                **({"differ": m.group(1)} if m else {}), **({"harness": hf.group(1)} if hf else {}), **({"tail": out[-1500:]} if code != 0 else {})})
                     if m:
                         log(f"XFUZZ: {k[2:]} seed {s} at {self.commit[:12]}: the rule and the code differ: {m.group(1)[:200]}")
                     continue
@@ -1931,7 +1933,7 @@ def report(day: str) -> dict:
     ideas = [m for m in ideas if m.get("config") and on(day, m.get("t_done", m["t"]))]
     sound = {"fuzz": {k: sum(1 for r in fz if r["kind"] == k) for k in FUZZ}, "fuzz_failed": {c: [(r["kind"], r["seed"], r["code"], first_error(r)) for r in rs] for c, rs in by_class.items()},
              "unsound": len(unsound), "fuzz_fixed": fixed, "xfuzz": {l: sum(1 for r in xz if r["lang"] == l) for l in XFUZZ}, "xfuzz_tests": sum(r.get("pass", 0) for r in xz),
-             "xfuzz_idle": sorted({r["lang"] for r in xz if r["code"] == 0 and "pass" in r and not r["pass"]}), "xfuzz_failed": [(r["lang"], r["seed"], r["code"], first_error(r)) for r in xz if r["code"] != 0],
+             "xfuzz_idle": sorted({r["lang"] for r in xz if r["code"] == 0 and "pass" in r and not r["pass"]}), "xfuzz_failed": [(r["lang"], r["seed"], r["code"], first_error(r)) for r in xz if r["code"] != 0], "xfuzz_harness": [(r["lang"], r["seed"], r["harness"]) for r in xz if r.get("harness")],
              "rfuzz": {l: sum(1 for r in rz if r["lang"] == l) for l in XFUZZ}, "rfuzz_mutants": sum(r.get("mutants", 0) for r in rz), "rfuzz_caught": sum(r.get("caught", 0) for r in rz),
              "rfuzz_failed": [(r["lang"], r["seed"], kind, what[:120]) for r in rz for kind, what in (r.get("fails") or ([] if r["code"] == 0 else [("exit " + str(r["code"]), "")]))],
              "mutants": len(mt), "survived": len(surv), "equivalent": sum(1 for r in surv if r["equivalent_now"]), "new_survivors": len(new_surv),

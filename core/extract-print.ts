@@ -277,6 +277,8 @@ function pn(e: N, P: Printer, ctx: Ctx, mode: 'nat' | 'int', recv = false): stri
     case 'ite': {
       const d = decided(e.c, ctx)
       if (d !== undefined) return pn(d ? e.a : e.b, P, ctx, mode, recv)
+      // (a natural by cases read as an integer's receiver: its when(...) a natural's, made an integer, or minus stops at 0)
+      if (!nat && recv && natOK(e, ctx)) return `Int.of(${pn(e, P, ctx, 'nat')})`
       const ca = withAtom(ctx, e.c), cb = withAtom(ctx, I.not(e.c))
       const side = (x: N, c: Ctx) => pn(x, P, c, nat ? 'nat' : natOK(x, c) ? 'nat' : 'int')
       return `when(${pb(e.c, P, ctx)}, ${side(e.a, ca)}, ${side(e.b, cb)})`

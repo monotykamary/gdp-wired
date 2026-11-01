@@ -228,3 +228,20 @@ int meter_take(struct meter *m, unsigned n) {
   expect(notes).toMatch(/quota_bonus .*answered by the request \(inferred: its value is read; assumes quota_bonus may return any int\)/)
   step(x, 'never past its cap', (_b, a) => a.used.atMost(a.cap), b => b.used.atMost(b.cap))
 })
+
+// The reader fuzz's misreads (core/extract-fuzz.ts): a literal past 2^53 converted exactly.
+t('a literal past 2^53 stored in a narrower unsigned: its value there exactly (2^53 + 1 is 1 in 32 bits)', () => {
+  const x = ok(c(`
+struct cb { unsigned fails; unsigned limit; };
+void fail(struct cb *b) { if (b->fails < b->limit) b->fails++; }
+void ok(struct cb *b) { b->fails = 9007199254740993; }
+`, 'cb'))
+  step(x, 'ok sets it to 1', (_b, a) => a.fails.eq(1), b => b.method.is('ok'))
+}, 60_000)
+
+t('a function of any name\'s length called; a natural by cases made an integer before it wraps', () => {
+  const long = `g${'a'.repeat(400)}`
+  ok(c(`struct acc { int n; int hits; };\nvoid ${long}(struct acc *a) { if (a->hits < 1000) a->hits = a->hits + 1; }\n`, 'acc'))
+  const x = ok(cpp(`class Meter {\n public:\n  explicit Meter(int start) : used_(start > 0 ? 0 : 2147483648) {}\n  bool use() { if (used_ >= cap_) return false; used_++; return true; }\n private:\n  int used_;\n  int cap_ = 3;\n};\n`, 'Meter'))
+  expect(x.source).toContain('Int.of(when(')
+}, 60_000)

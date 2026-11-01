@@ -705,6 +705,8 @@ function attempt(code: string, file: string, opts: ReadOptions, written: Set<str
   // The methods: each public one an event (the nearest of each name, through the classes it extends), run from the
   // state as variables.
   const seenNames = new Set<string>(), methods: ts.MethodDeclaration[] = []
+  // (two bodies of one name in one class: JavaScript keeps the last, TypeScript refuses it)
+  for (const c of chain) { const bodies = new Set<string>(); for (const m of c.members) if (ts.isMethodDeclaration(m) && m.body) { const k = `${has(m, ts.SyntaxKind.StaticKeyword) ? 'static ' : ''}${memberName(m.name)}`; if (bodies.has(k)) refuse(m, `${memberName(m.name)}: a second body of it in one class (JavaScript keeps the last; TypeScript refuses it)`); bodies.add(k) } }
   for (const c of chain) for (const m of c.members) {
     if (!ts.isMethodDeclaration(m) || seenNames.has(memberName(m.name))) continue
     if (!m.body && has(m, ts.SyntaxKind.AbstractKeyword)) continue
@@ -943,6 +945,9 @@ function factoryAttempt(code: string, file: string, opts: ReadOptions, written: 
   // The object's functions: each an event.
   type Fn = {name: string, decl: ts.FunctionLikeDeclaration}
   const strip0 = (e: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) ? strip0(e.expression) : e)
+  // (two members of one name: JavaScript keeps the last, TypeScript refuses it)
+  const names = new Set<string>()
+  for (const p of obj.properties) if (p.name && !ts.isComputedPropertyName(p.name)) { const n = memberName(p.name as ts.PropertyName); if (names.has(n)) refuse(p, `${n}: a second member of it in the object returned (JavaScript keeps the last; TypeScript refuses it)`); names.add(n) }
   const fns: Fn[] = obj.properties.map(p => {
     if (ts.isMethodDeclaration(p)) return {name: memberName(p.name), decl: p}
     const fnOf = (x: ts.Expression) => fx?.fnOf(x) ?? (ts.isArrowFunction(x) || ts.isFunctionExpression(x) ? x : undefined)
