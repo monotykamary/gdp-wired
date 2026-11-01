@@ -557,16 +557,18 @@ export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Mach
       const c = binderGhostsOf(m, l, taken).find(c2 => { try { return trueSmall(m, [{...plain, holds: holdsOf(c2.sub)}], ghost(m, Object.entries(c2.maps).map(([name, w]) => ({name, write: w.write as Part['write']})))) } catch { return false } })
       if (!c) return undefined
       for (const [name, w] of Object.entries(c.maps)) { parts.push({name, write: w.write as Part['write']}); taken.add(name) }
-      out.push({...plain, holds: holdsOf(c.sub)})
-      plains[l.name] = {plain: {...plain, holds: holdsOf(c.sub)}, sub: c.sub}
+      const pl: Law = {...plain, holds: holdsOf(c.sub)}
+      out.push(pl)
+      plains[l.name] = {plain: pl, sub: c.sub}
       witnesses[l.name] = [...l.some.map(x => `${x} = ${showE(c.sub[x]!)}`), ...Object.entries(c.maps).map(([name, w]) => { const u = w.write as Part['write']; return `${name}[${showE(u.key)}] := ${showE(u.value)}` })].join(', ')
       continue
     }
     const g = mapGhostsOf(m, l, taken).find(c => { try { return trueSmall(m, [...(c.inner ? [c.inner.inv] : []), c.inv, {...l, holds: c.holds, some: undefined}], ghost(m, own(c))) } catch { return false } })
     if (!g) return undefined
     gs.push(g); parts.push(...own(g)); for (const q of own(g)) taken.add(q.name)
-    out.push({...plain, holds: g.holds}, ...(g.inner ? [g.inner.inv] : []), g.inv)
-    plains[l.name] = {plain: {...plain, holds: g.holds}, sub: {[l.some[0]!]: {op: 'get', map: g.name, key: g.at}}}
+    const pl: Law = {...plain, holds: g.holds}
+    out.push(pl, ...(g.inner ? [g.inner.inv] : []), g.inv)
+    plains[l.name] = {plain: pl, sub: {[l.some[0]!]: {op: 'get', map: g.name, key: g.at}}}
     witnesses[l.name] = `w = ${g.name}[${showE(g.at)}], ${g.name}[${showE(g.write.key)}] := ${showE(g.write.value)}`
   }
   // (each ghost one of the machine it is added to, as kernel.ts's ghostedOk reads it)
