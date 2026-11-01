@@ -293,7 +293,11 @@ export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machi
   // (first the points without the cells: P's guard false at a tuple, as at most of a law's, holds at 0 at once; a witness
   // there is one; then every point, as before, its verdict and cap the same)
   const none = new Set<number>()
-  if (reads) { lists = groups.map(g => points(g, none)); const quick = go(0, {}); if (quick) return {holds: true, witness: quick} }
+  if (reads) {
+    const w0 = Object.assign({}, ...groups.map(g => at(g, 0))) as Env
+    if (test(w0)) return {holds: true, witness: w0}
+    lists = groups.map(g => points(g, none)); const quick = go(0, {}); if (quick) return {holds: true, witness: quick}
+  }
   const cells = new Set<number>()
   if (reads) for (const c of Object.values(st.maps)) for (const key of c.keys()) cells.add(key)
   lists = groups.map(g => points(g, cells)); tried = 0; unknown = false
@@ -481,7 +485,7 @@ const trim = (l: Law): Law => {
   void _f; void _k
   return {...rest, ...(used.length ? {forall: used[0]!} : {}), ...(used.length > 1 ? {keys: used.slice(1)} : {})}
 }
-export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Machine, laws: Law[]} | undefined {
+export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Machine, laws: Law[], names: string[]} | undefined {
   const taken = takenOf(m), out: Law[] = [], gs: MapGhost[] = []
   const add = (m2: Machine, g: MapGhost) => ghostedMachine({orig: m2, vars: {}, maps: {...(g.inner ? {[g.inner.name]: {start: 0, write: g.inner.write}} : {}), [g.name]: {start: 0, write: g.write}}})
   const ghost = (m2: Machine) => gs.reduce(add, m2)
@@ -495,7 +499,7 @@ export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Mach
     void _s
     out.push(...[{...plain, holds: g.holds}, ...(g.inner ? [g.inner.inv] : []), g.inv].map(trim))
   }
-  return gs.length ? {ghost, laws: out} : undefined
+  return gs.length ? {ghost, laws: out, names: gs.flatMap(g => [g.name, ...(g.inner ? [g.inner.name] : [])])} : undefined
 }
 const firstPicks = new Map<string, {mode: 'term', at: number[]} | {mode: 'map', at: number}>()
 // The machine with a ghost map (kernel.ts's ghostedMachine of Ghosted, whose ghostedOk it must pass).
@@ -567,7 +571,7 @@ export type SomeReport = Report & {laws?: Law[], machine?: Machine, ghosts?: str
 // whole set proven as plain laws of the machine with its ghosts.
 // (`whole`: the whole set's prover over the ghosted machine, proveLaws by default; a search's trial proof passes
 // kernel/prove.ts's proveSetFast, which reuses the decisions made over that machine and checks its trees with checkLaws)
-export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole?: (m: Machine, laws: Law[]) => Report & {laws?: Law[]}} = {}): SomeReport {
+export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole?: (m: Machine, laws: Law[]) => Report & {laws?: Law[]}, mapMs?: number} = {}): SomeReport {
   const cases = casesOf(m), mapsRead = (l: Law) => readsMaps(l.holds) || !!m.maps || !!m.inputMaps
   // Each law's bound naturals named apart from the machine's names and from each other's (each may become a ghost).
   const taken = new Set([...m.params, ...m.inputs, ...Object.keys(m.state)])
@@ -628,8 +632,9 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
     }
     for (let round = 0; ; round++) {
       const now = current(), t0 = performance.now(), r: ReturnType<typeof proveLaw> = round === 0 && first ? {proven: false, ...first}
-        // (a ghost map's goals within 2 s: a search asks them with every candidate set, and one without its supports can take minutes)
-        : p.pick.mode === 'map' ? withDeadline(clock() + 2_000, () => proveLaw(now.machine, now.laws, i)) : proveLaw(now.machine, now.laws, i)
+        // (a ghost map's goals within 2 s: a search asks them with every candidate set, and one without its supports can take
+        // minutes; `mapMs` where the supports are the search's, found over the same map)
+        : p.pick.mode === 'map' ? withDeadline(clock() + (opts.mapMs ?? 2_000), () => proveLaw(now.machine, now.laws, i)) : proveLaw(now.machine, now.laws, i)
       if (log) console.error(`exists: pass ${pass} round ${round} "${p.law.name}" ${p.pick.mode} ${describe(p, cases).slice(0, 160)}: ${r.proven ? 'proven' : `${r.goal} ${r.stuck}`} (${Math.round(performance.now() - t0)} ms)`)
       if (r.proven) return undefined
       const fail = (stuck: string): SomeReport => ({proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: r.goal, stuck, ...(r.witness ? {witness: r.witness} : {})}})
