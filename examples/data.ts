@@ -231,6 +231,9 @@ export const wellFounded = {
   reachesZero: () => law('every integer counts down to 0', {x: integer}, ({x}) => B(reachesZero(x))),
   tokensPositive: () => law('an expression has a token', {e: Expr}, ({e}) => N(tokens(e)).atLeast(1)),
   mergeRunsOne: () => law('one run merged is itself', {xs: List}, ({xs}) => L(mergeRuns(Runs.run(xs, Runs.none))).eq(L(xs))),
+} satisfies Record<string, () => DataLaw>
+// Laws over the sorts guarded size laws admit (core/guarded.test.ts).
+export const guardedSorts = {
   ssortOne: () => law('a selection sort of one item is itself', {x: natural}, ({x}) => L(ssort(List.cons(x, List.nil))).eq(List.cons(x, List.nil))),
   msortTDOne: () => law('a merge sort of one item is itself', {x: natural}, ({x}) => L(msortTD(List.cons(x, List.nil))).eq(List.cons(x, List.nil))),
 } satisfies Record<string, () => DataLaw>
@@ -453,7 +456,7 @@ if (import.meta.main) {
     console.log(`${!v.proven ? 'ok  ' : 'FAIL'} ${v.law} (broken): ${v.proven ? 'proven' : `refused${v.counterexample ? `, broken at ${JSON.stringify(v.counterexample)}` : ''}`}`)
     failed ||= v.proven
   }
-  for (const [name, mk] of Object.entries(wellFounded)) {
+  for (const [name, mk] of [...Object.entries(wellFounded), ...Object.entries(guardedSorts)]) {
     if (skip(name)) continue
     const v = proveData(mk()), ok = v.proven && v.checked
     console.log(`${ok ? 'ok  ' : 'FAIL'} ${v.law}: ${v.proven ? `proven, ${v.ms} ms (${v.scheme})` : `not proven (${v.goal}: ${v.stuck})`}`)
