@@ -161,6 +161,19 @@ consensus_epr's counted search is main's (the same candidates and cone); the wal
   +0.33, SV-scc +0.33, TIP −0.33 (lost 1, not solid, at the limit), f1 0, f2 −0.33 (none lost), rw −0.67 (lost 1, not
   solid: TimelockController#6 2/4 against 6/6, at the limit); g332 the same search on 332 of 332, per goal p50 0.892;
   onecpu no failure; Lean 6 of 6. Size: core/ and kernel/ +9,293 bytes.
+- **Quick bar again on the head's code** (98a3add; <main>/runs/bar/runs/laneY-98a3add-quick/REPORT.md): wrong 0 in every
+  group; CHC −3 (gained 3, lost 4, one by the rule solid: ctigar/gulv_simp.c 0/4 against 6/6, every candidate run unknown at
+  58 s, the limit; in the first bar 2/4 against 4/6), ITS +4 (gained 3, lost 2, none solid), ITS-scc +1.33 (gained 2), SV
+  +0.33, SV-scc −1.67 (none lost), TIP −0.33 (lost 2, not solid, at the limit), f1 0, f2 +0.67, rw +0.33 (none differs);
+  g332 the same search on 332 of 332 (per goal p50 1.179; 0.892 in the first bar: the pool's load); onecpu no failure; Lean
+  6 of 6; core/ and kernel/ +10,723 bytes. CHC's tasks reach none of the changed code (no ∃ law about keys, no map, so no
+  view, no EPR goal and no small instance); gulv_simp by hand on a VM holding the benchmark, one run a side: sat in 36.2 s
+  against 31.3 s.
+- **Tests**: `bun run test` is killed (137, out of the VM's 4 GB) in data.test.ts on both sides (`tests2`, and main's
+  `testsb`); file by file (`tfiles`, 49 jobs): 474 pass, 1 fail, search.test.ts's "an invariant nobody wrote is found and
+  proven" at 5.17 s past bun's 5 s (a known slow test); alone, three runs a side (`searchc`, `searchb`): 7 of 7 each run,
+  that test 1.7–3.8 s against 1.6–1.8 s; the examples exit 0. core/exists.test.ts 12 of 12, kernel count and
+  countmachine 56 of 56; tsc no error in core/, kernel/, research/protocols/; oxlint 0 / 0 on the touched files.
 - **terra's review** (gpt-6.1-terra via pi, read-only; `runs/laneY/terra-review.txt`), each finding acted on: (1) a binder
   inside the law could capture the ghost's key in the substitution, and the bound value wasn't named apart from the
   machine's names as proveSome names it: skolemOf now makes no plain form in either case (the DSL's fresh names never
