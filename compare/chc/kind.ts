@@ -19,14 +19,31 @@ import {type KindResult, proveKInduction} from '../../core/kind.ts'
 import {boundedSearch} from '../../core/bmc.ts'
 import {compress, imcSearch} from '../../core/interp.ts'
 import {proveRule} from '../../core/dsl.ts'
-import {clock, counted, fullRate, withDeadline} from '../../kernel/prove.ts'
+import {clock, counted, fullRate, fullWork, withDeadline} from '../../kernel/prove.ts'
 import {expand, invOf, liftProven, prepare} from './compose.ts'
 
 const args = process.argv.slice(2), file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
+// `--counted w` (w > 0): each turn's budget on the counted clock alone, its wall stop at w times the slice (and the
+// task's end), so a turn does the same work on any machine and at any load, and the searches take the same path; the
+// forced run counted in its steps. 0: the slices are wall time, as before.
+const countedW = opt('--counted', 0)
+// (interpolation's turn, counted: the cost model's work it does a wall ms at its median on the fair setup's CPUs, 140; its
+// p10 and p90 72 and 300, runs/flip; so a counted turn takes about the slice it is given)
+const imcRate = opt('--imc-rate', 140)
 const t0 = performance.now(), budget = opt('--ms', 50_000), parent = opt('--parent', 0), withBmc = opt('--bmc', 1) !== 0, withImc = opt('--imc', 0) !== 0, withKind = opt('--kind', 1) !== 0
 const end = t0 + budget, ms = () => Math.round(performance.now() - t0)
-const say = (o: object) => console.log(JSON.stringify({task: file, ms: ms(), ...o}))
+const say = (o: object) => console.log(JSON.stringify({task: file, ms: ms(), ...o, ...((o as {stage?: string}).stage === 'answer' ? {used: used()} : {})}))
+// (each search's turns: their wall ms and the cost model's work, and how many ended at the wall stop)
+const use: Record<string, [number, number, number, number]> = {}
+const turn = <T>(name: string, slice: number, f: (wall: number) => T): T => {
+  const w0 = performance.now(), u0 = fullWork(), wall = Math.min(end, w0 + (countedW > 0 ? countedW : 1) * slice)
+  try { return f(wall) } finally {
+    const u = (use[name] ??= [0, 0, 0, 0]), now = performance.now()
+    u[0] += now - w0; u[1] += fullWork() - u0; u[2]++; if (now >= wall) u[3]++
+  }
+}
+const used = () => Object.fromEntries(Object.entries(use).map(([k, [w, n, t, c]]) => [k, {ms: Math.round(w), work: Math.round(n), turns: t, walled: c}]))
 // `--compose 1`: the bounded runs and interpolation read the composed rule (compose.ts), their runs expanded and their
 // invariants lifted to the original rule, each checked there; k-induction reads the original (its proof has no
 // invariant to lift).
@@ -49,8 +66,7 @@ const stop = () => { if (parent) { try { process.kill(parent, 'SIGKILL') } catch
 const kindDepths: KindResult['depths'] = []
 let kindFrom = 2, kindLive = withKind, kindWhy = ''
 const kindTurn = (slice: number) => {
-  const wall = Math.min(end, performance.now() + slice)
-  const kd = proveKInduction(mo, bo.rule.kindLaws(), bo.law, {ms: 20 * slice, wall, from: kindFrom})
+  const [wall, kd] = turn('kind', slice, w => [w, proveKInduction(mo, bo.rule.kindLaws(), bo.law, {ms: 20 * slice, wall: w, from: kindFrom})] as const)
   kindDepths.push(...kd.depths)
   if (kd.proven && kd.checked) {
     stop()
@@ -72,11 +88,11 @@ const kindTurn = (slice: number) => {
 const bmcDepths: [number, string, number, number][] = []
 let w0 = performance.now()
 // (`--bmc-depth d`: the k-step goals up to d alone; 0, the forced run alone, the session's queries from the start the rest)
-const bs = withBmc ? boundedSearch(m, [b.law], {forcedMs: 4500, depth: opt('--bmc-depth', 64), progress: (k, o, c) => { bmcDepths.push([k, o[0]!, c, Math.round(performance.now() - w0)]); w0 = performance.now() }}) : undefined
+const bs = withBmc ? boundedSearch(m, [b.law], {forcedMs: countedW > 0 ? Infinity : 4500, ...(countedW > 0 ? {forcedSteps: 1_000_000} : {}), depth: opt('--bmc-depth', 64), progress: (k, o, c) => { bmcDepths.push([k, o[0]!, c, Math.round(performance.now() - w0)]); w0 = performance.now() }}) : undefined
 let bmcLive = !!bs
 const bmcTurn = (slice: number) => {
   w0 = performance.now()
-  const out = bs!.run(slice, Math.min(end, performance.now() + slice))
+  const out = turn('bmc', slice, w => bs!.run(slice, w))
   if (out === 'paused') return
   bmcLive = false
   say({stage: 'bmc', depth: bmcDepths.at(-1)?.[0] ?? 0, found: typeof out === 'object', depths: bmcDepths, by: 'second'})
@@ -96,8 +112,7 @@ const ind0 = opt('--induction', -1), induction = !cc && (ind0 < 0 ? !withKind : 
 const is = withImc ? imcSearch(m, b.law, {kinds: b.rule.kindLaws().map(l => l.holds), induction, progress: (k, what) => { imcDepths.push([k, what[0]!]) }}) : undefined
 let imcLive = !!is
 const imcTurn = (slice: number) => {
-  const wall = Math.min(end, performance.now() + slice)
-  const out = counted(fullRate, () => is!.run(clock() + 20 * slice, wall), true)
+  const out = turn('imc', slice, w => counted(fullRate, () => is!.run(clock() + (countedW > 0 ? imcRate / fullRate : 20) * slice, w), true))
   if (out === 'paused') return
   imcLive = false
   say({stage: 'imc', depths: imcDepths, k: out.k, ...('why' in out ? {why: out.why.slice(0, 80)} : {}), by: 'second'})
@@ -146,6 +161,7 @@ for (let slice = 2000; performance.now() < end && (kindLive || bmcLive || imcLiv
   if (bmcLive && performance.now() < end) bmcTurn(share(kindLive || imcLive))
   if (!imcFirst && imcLive && performance.now() < end) imcTurn(share(kindLive || bmcLive, imcPart))
 }
+say({stage: 'turns', used: used()})
 if (withKind) say({stage: 'kind', proven: false, checked: false, depths: kindDepths, ...(kindWhy ? {why: kindWhy.slice(0, 120)} : {})})
 if (bmcLive) say({stage: 'bmc', depth: bmcDepths.at(-1)?.[0] ?? 0, found: false, depths: bmcDepths, by: 'second'})
 if (imcLive) say({stage: 'imc', depths: imcDepths, found: false, by: 'second'})
