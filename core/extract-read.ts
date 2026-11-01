@@ -188,6 +188,15 @@ export function beside<T>(file: string, spec: string): T | undefined {
 export function syntaxError(code: string, file: string): string | undefined {
   const sf = ts.createSourceFile(file, code, ts.ScriptTarget.ES2022, true, scriptKind(file))
   const d = (sf as unknown as {parseDiagnostics?: ts.Diagnostic[]}).parseDiagnostics?.[0]
+  // (two declarations of one name at the module's top level: TypeScript refuses it, JavaScript keeps the last)
+  const seen = new Set<string>()
+  for (const st of sf.statements) {
+    const names = (ts.isFunctionDeclaration(st) && st.body) || ts.isClassDeclaration(st) ? (st.name ? [st.name.text] : []) : ts.isVariableStatement(st) && st.declarationList.flags & ts.NodeFlags.BlockScoped ? st.declarationList.declarations.flatMap(x => (ts.isIdentifier(x.name) ? [x.name.text] : [])) : []
+    for (const n of names) {
+      if (seen.has(n)) { const {line, character} = sf.getLineAndCharacterOfPosition(st.getStart()); return `the source declares ${n} twice at its top level: ${line + 1}:${character + 1} (TypeScript refuses it; JavaScript keeps the last)` }
+      seen.add(n)
+    }
+  }
   if (!d) return undefined
   const {line, character} = sf.getLineAndCharacterOfPosition(d.start ?? 0)
   return `the source doesn't parse: ${line + 1}:${character + 1}: ${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`
@@ -674,6 +683,9 @@ export class Exec {
     if (decl && ts.isVariableDeclaration(decl) && decl.initializer && this.s.ours(decl.getSourceFile()) && ts.isVariableStatement(decl.parent.parent) && ts.isSourceFile(decl.parent.parent.parent)) {
       if (!(decl.parent.flags & ts.NodeFlags.Const)) return refuse(e, `${e.text}: a module-level let (state outside the step)`)
       if (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer)) return refuse(e, `${e.text}: a function used as a value`)
+      // (the clock read where the module loads: that time, once, never a request's)
+      const clock = (n: ts.Node): boolean => ((ts.isCallExpression(n) && /^(Date\.now|performance\.now)$/.test(n.expression.getText())) || (ts.isNewExpression(n) && n.expression.getText() === 'Date' && !n.arguments?.length)) || ts.forEachChild(n, x => clock(x) || undefined) === true
+      if (clock(decl.initializer)) return refuse(e, `${e.text}: a module-level const that reads the clock (the time the module loaded, not the request's)`)
       // A module-level const: its value, an object read-only (every call shares it).
       const id = `shared.${decl.getSourceFile().fileName}:${e.text}`
       if (p.heap.has(id)) return [{t: 'ref', id}, p]

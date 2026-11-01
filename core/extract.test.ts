@@ -890,3 +890,28 @@ test('a property its type doesn\'t have where it is read (a union member without
 test('a second body of one method in one class: refused (JavaScript keeps the last, TypeScript refuses it)', () => {
   refused(ts(`export class A { b = 0; wrap(): void { this.b = this.b - 1 } wrap(): void { this.b = this.b % 3 } }`, 'A'), /wrap: a second body of it in one class/)
 })
+
+// A request past the check's time (the machine shared, say) is the check's failure, not the code's: the check runs once
+// more, and a second failure is its own outcome, never a difference nor a pass.
+import {HarnessFailure, noEvidence, retried, sandbox} from './extract-check.ts'
+test('a request past the check\'s time: the check\'s harness failed, retried once, never "the rule and the code differ"', () => {
+  const box = sandbox('export function spin(): number { for (;;) {} }', 'spin.ts', ['spin'])
+  expect(() => box.call('spin', undefined, [])).toThrow(HarnessFailure)
+  let n = 0
+  expect(retried(() => { n++; throw new HarnessFailure('a request ran past the check\'s 1000 ms') }, noEvidence).harness).toMatch(/1000 ms/)
+  expect(n).toBe(2)
+  let m = 0
+  expect(retried(() => { if (m++ === 0) throw new HarnessFailure('once'); return noEvidence() }, noEvidence).harness).toBeUndefined()
+})
+
+test('a second member of one name in the object a factory returns: refused (it crashed the reader)', () => {
+  refused(ts(`export function counter(limit: number) {\n  let n = 0\n  return {\n    inc(by: number): boolean { if (n + by > limit) return false; n += by; return true },\n    get: (): number => n,\n    get: (): number => n,\n  }\n}`, 'counter'), /get: a second member of it in the object returned/)
+})
+
+test('a module-level const that reads the clock: refused (the time the module loaded, not the request\'s)', () => {
+  refused(ts(`const now = Date.now()\nexport class L {\n  last = 0\n  hit(): void { this.last = now }\n}`, 'L'), /now: a module-level const that reads the clock/)
+})
+
+test('two declarations of one name at the module\'s top level: refused before reading', () => {
+  refused(extract(`export default function count(state = 0, action) { return action.type === 'add' ? state + 1 : state }\nexport function count(x: number): boolean { return x > 3 }\n`, {file: 'c.js', entry: 'default', check: budget}), /declares count twice at its top level/)
+})

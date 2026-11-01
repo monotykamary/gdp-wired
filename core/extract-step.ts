@@ -30,7 +30,7 @@ import {type Arg, type Event, type Layout, type Fold, type LeastRead, type MapDe
 import {type Extraction, type Name, fromModel} from './extract.ts'
 import type {Rule} from './dsl.ts'
 import {type Sorts, nonneg} from './extract-print.ts'
-import {type CodeSide, type Coverage, type Evidence, type Snap, Outside, constantsOf, draw, drive} from './extract-check.ts'
+import {type CodeSide, type Coverage, type Evidence, type Snap, HarnessFailure, Outside, constantsOf, draw, drive, noEvidence, retried} from './extract-check.ts'
 
 // --- the IR (what a reader emits) -----------------------------------------------------------------------------------
 export type SType =
@@ -3706,7 +3706,8 @@ export function asset(rel: string): string {
 // reads here block, so the harness runs within GDP_CHECK_HARNESS_S seconds (120, all its requests): past them sh kills
 // it and answers `stopped` (a step of the code that doesn't end: a loop a reader read as one that does).
 export const harnessLimit = (): number => Number(proc?.env?.GDP_CHECK_HARNESS_S ?? 120)
-export const stopped = (res: Record<string, unknown>): Record<string, unknown> => { if (res.stopped) throw new Error(String(res.error)); return res }
+// (the harness past its time, or its transport failing, `transport` set: the check's failure, not the code's)
+export const stopped = (res: Record<string, unknown>): Record<string, unknown> => { if (res.stopped || res.transport) throw new HarnessFailure(String(res.error)); return res }
 const GUARD = 'i=$1 o=$2 l=$3; shift 3; trap \'kill $p $w 2>/dev/null; exit 143\' TERM; "$@" "$i" "$o" & p=$!; (trap \'kill $s 2>/dev/null; exit 0\' TERM; sleep "$l" & s=$!; wait $s; kill -9 $p) 2>/dev/null & w=$!; wait $p; e=$?; kill $w 2>/dev/null; [ "$e" = 0 ] && exit 0; trap - TERM; if [ "$e" = 137 ]; then exec 4>"$o"; printf \'{"error": "the code did not answer within %s s (a request that does not end)", "stopped": true}\\n\' "$l" >&4; exit 1; fi; exec 3<"$i" 4>"$o"; read -r _ <&3; printf \'{"error": "the harness exited (status %s) before it answered"}\\n\' "$e" >&4'
 export function openHarness(work: string, cmd: string, args: string[], o: Record<string, unknown>): {child: {kill: () => void}, wi: number, ro: number} {
   const fs = node<FS>('node:fs'), cp = node<{execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string, spawn: (f: string, a: string[], o: Record<string, unknown>) => {kill: () => void}}>('node:child_process')
@@ -3719,6 +3720,9 @@ export function openHarness(work: string, cmd: string, args: string[], o: Record
 export type Harness = {cmd: string, args: string[], env?: Record<string, string>, hello: Record<string, unknown>, error?: string}
 export type StepEvidence = Evidence & {runMs: number}
 export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: StepOptions): StepEvidence {
+  return retried(() => checkStepOnce(h, read, r, sorts, opts), () => ({...noEvidence(), runMs: 0}))
+}
+function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: StepOptions): StepEvidence {
   const o = opts.check ?? {}, m = read.model, bound = o.bound ?? 12
   const fs = node<FS>('node:fs'), os = node<{tmpdir: () => string}>('node:os')
   const work = fs.mkdtempSync(`${os.tmpdir()}/gdp-stepcheck-`)
@@ -3741,7 +3745,7 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
     const ask = (cmd: Record<string, unknown>): Record<string, unknown> => {
       fs.writeSync(wi, `${JSON.stringify(cmd)}\n`)
       const l = line()
-      if (l === undefined) throw new Error('the harness stopped')
+      if (l === undefined) throw new HarnessFailure('the harness stopped before it answered')
       return stopped(JSON.parse(l) as Record<string, unknown>)
     }
     const hi = ask({op: 'hello', ...h.hello, leaves: read.leaves, ctor: read.ctor, answers: read.answers, kept: read.kept, cls: read.cls ?? null, stores: read.stores, arms: read.arms, discard: opts.onError === 'discard', ...(read.inject ? {inject: read.inject} : {})})
@@ -3778,6 +3782,8 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
         if (res.outside !== undefined) return {ok: false, outside: true, error: res.outside}
         if (res.frame) throw new Error(`the code changes ${res.frame}, a field the rule leaves out`)
         if (res.bad !== undefined) return {ok: false, error: `the code can't be given it (${res.bad})`}
+        // (the harness failed making the call: no step of the code, neither a refusal nor one taken)
+        if ((res as {error?: unknown}).error !== undefined) throw new HarnessFailure(`the harness failed on a call: ${String((res as {error?: unknown}).error)}`)
         const kind = read.results[e.call] ?? 'none', failed = res.err !== undefined
         if (failed && !read.kept) return {ok: false, error: `raised: ${res.err}`}
         const value = (x: unknown): unknown => { const t = x as {n?: string, s?: string, o?: string} | null; if (t && typeof t === 'object') { if (t.n !== undefined) return num(t.n, `${e.call}'s result`); if (t.s !== undefined) return t.s; return `<${t.o}>` } return x }
@@ -3832,6 +3838,7 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
     const ev = drive(m, r, sorts, side, o)
     return {...ev, runMs: Math.round(performance.now() - r0)}
   } catch (x) {
+    if (x instanceof HarnessFailure) throw x
     return {...empty, mismatch: `the check's harness: ${(x as Error).message}`}
   } finally {
     if (wi >= 0) try { fs.closeSync(wi) } catch { /* closed */ }

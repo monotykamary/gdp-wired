@@ -233,7 +233,7 @@ def send(frm, to, data, value, deploy=False):
     r = rpc('eth_getTransactionReceipt', [h])
     if r is not None: break
     time.sleep(0.002 * (i + 1))
-  if r is None: return None, 'no receipt'
+  if r is None: raise TimeoutError('no receipt for a transaction anvil was sent')
   if int(r['status'], 16) != 1: return None, 'reverted'
   return r, None
 
@@ -475,7 +475,7 @@ def main():
   if sys.argv[1] == '--replay':
     req = json.load(open(sys.argv[2]))
     try: res = replay(req)
-    except Exception as e: res = {'error': f'{type(e).__name__}: {e}'[:500]}
+    except Exception as e: res = {'error': f'{type(e).__name__}: {e}'[:500], **({'transport': True} if isinstance(e, OSError) else {})}
     finally:
       if S.get('anvil'): S['anvil'].kill()
     print(json.dumps(res))
@@ -489,16 +489,19 @@ def main():
         if op == 'hello': res = hello(req)
         elif op == 'new':
           try: res = {'id': make(req['a'])}
+          except OSError: raise
           except Exception as e: res = {'err': f'{type(e).__name__}: {e}'[:300]}
         elif op == 'at':
           try: res = {'id': at(req['a'], req['state'])}
+          except OSError: raise
           except Exception as e: res = {'bad': f'{type(e).__name__}: {e}'[:300]}
         elif op == 'get': res = {'state': state_of(req['id'])}
         elif op == 'call': res = call(req)
         elif op == 'coverage': res = {'hit': []}
         else: res = {'error': f'no op {op}'}
       except Exception as e:
-        res = {'error': f'{type(e).__name__}: {e}'[:500]}
+        # (anvil's transport failing, a request past its time: the check's failure, never the code's)
+        res = {'error': f'{type(e).__name__}: {e}'[:500], **({'transport': True} if isinstance(e, OSError) else {})}
       fout.write(json.dumps(res) + '\n'); fout.flush()
   finally:
     if S.get('anvil'): S['anvil'].kill()
