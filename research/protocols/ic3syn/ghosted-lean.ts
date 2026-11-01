@@ -6,6 +6,7 @@ import {writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {proveSome} from '../../../core/exists.ts'
 import {inferLaws} from '../../../core/infer.ts'
+import {proveRule} from '../../../core/dsl.ts'
 import {type Law} from '../../../core/machine.ts'
 import {type Ghosted, checkGhostedLaws} from '../../../kernel/kernel.ts'
 import {smachineToLean} from '../../../lean-kernel/emit.ts'
@@ -17,6 +18,8 @@ for (const [j, id] of only.split(',').entries()) {
   const p = protocols.find(q => q.id === id)!, r: any = p.make(), m = r.machine, laws: Law[] = [...r.kindLaws(), ...p.laws(r)]
   // (the laws the search adds, where the ∃ law with its ghost map alone isn't inductive)
   let out = proveSome(m, laws)
+  // (or proveRule's search: a law with "there exists" about keys searched in its plain form over its ghost map)
+  if (!out.proven) out = proveSome(m, [...laws, ...((proveRule(r, p.laws(r), {search: {ms: 60_000}}).found?.laws ?? []) as {law: Law}[]).map(f => f.law)])
   if (!out.proven) out = proveSome(m, [...laws, ...inferLaws(r, laws, [], {ms: 120_000}).found.map(f => f.law)])
   const exLaw = out.laws?.find(l => l.ex?.map)
   if (!out.proven || !out.machine || !out.laws || !out.proof || !exLaw) throw new Error(`${id}: not proven with a ghost map (${out.failed?.why ?? out.failed?.stuck})`)

@@ -225,13 +225,13 @@ function pairingOf(m: Machine): Pairing | undefined {
 // key's key is of its map's, and two keys compared (k = src) are of one sort. Union-find over those places; a law's own
 // keys are named apart (`L:law:key`). What a view of a law needs of it: its keys' sorts, the composed keys its reads
 // name, its guards on its keys alone, the maps read at a plain key of a sort, and the keys a state holds of a sort.
-function keySorts(m: Machine, laws: Law[], pairing?: Pairing) {
+function keySorts(m: Machine, laws: Law[], pairing?: Pairing, fine = false) {
   const parent = new Map<string, string>()
   const find = (a: string): string => { const p2 = parent.get(a); if (p2 === undefined || p2 === a) return a; const r = find(p2); parent.set(a, r); return r }
   const union = (a: string, b: string) => { const ra = find(a), rb = find(b); if (ra !== rb) parent.set(ra, rb) }
   const composed = new Set<string>(), plainRead = new Set<string>()
   const split = (key: E, name: (v: string) => string | undefined): [string, string] | undefined => {
-    if (!pairing?.n) return undefined
+    if (!pairing?.n || fine) return undefined
     const lin = new Map<string, number>()
     if (!linKey(key, () => true, 1, lin)) return undefined
     const vs = [...lin].filter(([v, c]) => v !== '1' && c)
@@ -240,14 +240,15 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing) {
     const a = hi && name(hi[0]), b = lo && name(lo[0])
     return a && b ? [a, b] : undefined
   }
-  // (a key of three or more parts, N²·a + N·b + c: its parts, each a place of its own, `${k}:${i}`)
+  // (a key of three or more parts, N²·a + N·b + c: its parts, each a place of its own, `${k}:${i}`; `fine`, the engine's:
+  // of two parts too, so a map's row and column are sorts of their own unless a key read in both unites them)
   const arity = new Map<string, number>()
   const parts = (key: E, name: (v: string) => string | undefined): string[] | undefined => {
     if (!pairing?.n) return undefined
     const lin = new Map<string, number>()
     if (!linKey(key, () => true, 1, lin) || (lin.get('1') ?? 0) !== pairing.c) return undefined
     const vs = [...lin].filter(([v, c]) => v !== '1' && c).sort((a, b) => b[1] - a[1]), ns = vs.map(([v]) => name(v))
-    return vs.length >= 3 && vs.every(([, c], i) => c === pairing.n ** (vs.length - 1 - i)) && ns.every(Boolean) ? ns as string[] : undefined
+    return vs.length >= (fine ? 2 : 3) && vs.every(([, c], i) => c === pairing.n ** (vs.length - 1 - i)) && ns.every(Boolean) ? ns as string[] : undefined
   }
   const kids = (t: E | C, f: (y: E | C) => void) => { for (const v of Object.values(t)) if (v && typeof v === 'object') (Array.isArray(v) ? v : [v]).forEach(y => { if (y && typeof y === 'object' && 'op' in y) f(y as E | C) }) }
   const walk = (t: E | C, name: (v: string) => string | undefined): void => {
@@ -266,6 +267,11 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing) {
     }
     if (t.op === 'all') { const own = new Set([t.key, ...(t.keys ?? [])]); walk(t.c, v => (own.has(v) ? `Q:${JSON.stringify(t).length}:${v}` : name(v))); return }
     if (t.op === '=' && t.a.op === 'var' && t.b.op === 'var') { const a = name(t.a.name), b = name(t.b.name); if (a && b) union(a, b); return }
+    // (`fine`: a key compared with a cell, as a value it holds (Table[a·N + k] = v + 1), is of the cells' values' sort)
+    if (fine && t.op === '=') for (const [c, e] of [[t.a, t.b], [t.b, t.a]] as [E, E][]) {
+      const vr = e.op === 'var' ? e : e.op === 'add' && e.a.op === 'var' && e.b.op === 'const' ? e.a : undefined
+      if (c.op === 'get' && c.map in (m.maps ?? {}) && vr && name(vr.name)) union(name(vr.name)!, `V:${c.map}`)
+    }
     // (a write at every key of k parts at one: z = N²·n + N·k + v)
     if (t.op === '=' && t.a.op === 'var' && name(t.a.name)?.startsWith('M:')) { const mp = name(t.a.name)!.slice(2), ps = parts(t.b, name); if (ps) { arity.set(mp, ps.length); ps.forEach((q, i) => union(q, `${mp}:${i}`)) } }
     kids(t, y => walk(y, name))
@@ -274,6 +280,8 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing) {
   for (const [mp, w] of Object.entries(m.step.maps ?? {})) {
     if ('each' in w) walk(w.value, v => (v === w.each ? `M:${mp}` : rule(v)))
     else { walk({op: 'get', map: mp, key: w.key}, rule); walk(w.value, rule) }
+    // (`fine`: a value written to a cell, an input or one past it, of the cells' values' sort)
+    if (fine) { const leaves = (e: E): E[] => (e.op === 'if' ? [...leaves(e.then), ...leaves(e.else)] : [e]); for (const l of leaves(w.value)) { const vr = l.op === 'var' ? l : l.op === 'add' && l.a.op === 'var' && l.b.op === 'const' ? l.a : undefined; if (vr && rule(vr.name)) union(vr.name, `V:${mp}`) } }
   }
   for (const e of Object.values(m.step.state ?? {})) walk(e, rule)
   for (const c of Object.values(m.step.flags ?? {})) walk(c, rule)
@@ -1863,7 +1871,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       try { return f() } finally { for (const [k, fn] of saved) m.fns[k] = fn }
     }
     const enumerated = (): Form[] => {
-      const ks = sorts!, comp = ks.composedMaps.length && pairing?.n ? [ks.find('hi'), ks.find('lo')] : undefined
+      const ks = keySorts(m, callerLaws, pairing, true), comp = ks.composedMaps.length && pairing?.n ? [ks.find('hi'), ks.find('lo')] : undefined
       const multi = [...ks.arity].map(([mp, k]) => ({mp, slots: Array.from({length: k}, (_, i) => ks.find(`${mp}:${i}`))}))
       const ss = [...new Set([...ks.plainRead.map(mp => ks.find(`M:${mp}`)), ...(comp ?? []), ...multi.flatMap(q => q.slots)])]
       // (a map's values of a key's sort, and the sorts an order compares: e < Ep[a] makes Ep's values epochs, ordered)
@@ -1886,7 +1894,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // (a function of a key whose values are a composed map's rows: Pending[idn(x)·N + y])
       const fnHi = Object.keys(m.fns ?? {}).filter(f => comp && ss.includes(ks.find(`F:${f}`)) && vf(`V:${f}`) === vf(comp[0]!))
       const placesOf = (s: string) => (comp ? comp.filter(c => c === s).length + fnHi.filter(f => ks.find(`F:${f}`) === s).length : 0)
-      const width = ss.map(s => Math.min(3, Math.max(ordered(s) ? 2 : 0, ks.plainMaps(s).length ? 1 : 0, placesOf(s) + (placesOf(s) >= 2 ? 1 : 0), ...multi.map(q => q.slots.filter(c => c === s).length), ...callerLaws.map(l => [l.forall, ...(l.keys ?? [])].filter(b => b && ks.sortOf(l, b) === s).length))))
+      // (a two-part map whose row is a function's value: the function's argument and the column, places of their sorts)
+      const fnRows = Object.keys(m.fns ?? {}).flatMap(f => multi.filter(q => q.slots.length === 2 && ss.includes(ks.find(`F:${f}`)) && vf(`V:${f}`) === vf(q.slots[0]!)).map(q => ({f, q})))
+      const rowPlaces = (s: string) => fnRows.filter(({f}) => ks.find(`F:${f}`) === s).length + fnRows.filter(({q}) => q.slots[1] === s).length
+      const width = ss.map(s => Math.min(3, Math.max(ordered(s) ? 2 : 0, ks.plainMaps(s).length ? 1 : 0, placesOf(s) + (placesOf(s) >= 2 ? 1 : 0), ...multi.map(q => { const c = q.slots.filter(c2 => c2 === s).length; return c + (c >= 2 ? 1 : 0) }), rowPlaces(s) + (rowPlaces(s) >= 2 ? 1 : 0), ...callerLaws.map(l => [l.forall, ...(l.keys ?? [])].filter(b => b && ks.sortOf(l, b) === s).length))))
       // (a key's own bounds and domain: a caller's law's guards on one key of the sort, k < 64, k < size)
       const bounds = new Map<string, C[]>()
       for (const l of callerLaws) {
@@ -2069,9 +2080,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (comp) keys.forEach((a, i) => keys.forEach((b, j) => { if (a === comp[0] && b === comp[1]) { places.push(ks.compose(x(vars[i]!), x(vars[j]!))); mapsAt.push(ks.composedMaps); covers.push(i === j ? [i] : [i, j]) } }))
         for (const q of multi) for (const t of q.slots.reduce<number[][]>((acc, s) => acc.flatMap(p => keys.flatMap((k2, j) => (k2 === s ? [[...p, j]] : []))), [[]])) { places.push(ks.composeAll(t.map(j => x(vars[j]!)))); mapsAt.push([q.mp]); covers.push([...new Set(t)]) }
         for (const f of fnHi) keys.forEach((a, i) => keys.forEach((b, j) => { if (a === ks.find(`F:${f}`) && b === comp![1]) { places.push(ks.compose(get(f, x(vars[i]!)), x(vars[j]!))); mapsAt.push(ks.composedMaps); covers.push(i === j ? [i] : [i, j]) } }))
+        // (and a two-part map's row a function of a key, as a composed map's: Pending[idn(x)·N + y])
+        for (const {f, q} of fnRows)
+          keys.forEach((a, i) => keys.forEach((b, j) => { if (a === ks.find(`F:${f}`) && b === q.slots[1]) { places.push(ks.composeAll([get(f, x(vars[i]!)), x(vars[j]!)])); mapsAt.push([q.mp]); covers.push(i === j ? [i] : [i, j]) } }))
         const names = ['x', 'y', 'z', 'w', 'u'].slice(0, keys.length), fns = Object.keys(m.fns ?? {}).filter(f => ordered(`V:${f}`) && ss.includes(ks.find(`F:${f}`)))
         const extra = [...keys.flatMap((q, i) => (ordered(q) ? [{name: names[i]!, term: x(vars[i]!)}] : [])), ...fns.flatMap(f => keys.flatMap((q, i) => (q === ks.find(`F:${f}`) ? [{name: `${f}(${names[i]})`, term: get(f, x(vars[i]!))}] : [])))]
-        const frame = all(...keys.flatMap((s, i) => [...(comp && s === comp[1] && !bounds.has(s) ? [atMost(x(vars[i]!), n(pairing!.n - 1))] : []), ...[...new Set((bounds.get(s) ?? []).map(g => JSON.stringify(substC(g, {vars: {[KEY]: x(vars[i]!)}, maps: {}, flags: {}}))))].map(t => JSON.parse(t) as C), ...keys.slice(0, i).flatMap((t, j) => (t === s ? [not(same(x(vars[j]!), x(vars[i]!)))] : []))]))
+        const frame = all(...keys.flatMap((s, i) => [...(((comp && s === comp[1]) || multi.some(q => q.slots.slice(1).includes(s))) && !bounds.has(s) ? [atMost(x(vars[i]!), n(pairing!.n - 1))] : []), ...[...new Set((bounds.get(s) ?? []).map(g => JSON.stringify(substC(g, {vars: {[KEY]: x(vars[i]!)}, maps: {}, flags: {}}))))].map(t => JSON.parse(t) as C), ...keys.slice(0, i).flatMap((t, j) => (t === s ? [not(same(x(vars[j]!), x(vars[i]!)))] : []))]))
         const vi = views.length
         addView({vars, names, places, covers, frame, need: keys.length, printable: false}, mapsAt, st => keys.map(s => ks.valuesAt(st, s)), Math.max(2, Math.floor(64 ** (1 / keys.length))), extra, true)
         // (the rows: every small state's, distinct, at most 20,000; the view's own rows stop at its first states, the shallow
@@ -2790,7 +2804,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // (the cubes alone: the engine's enumeration on the small instance and the data filter, then out)
     if (opts.cubes) { engine(); return {...first, proven: false, found: (cubesOut ?? []).filter(f => f.cube!.length <= opts.cubes!).map(f => ({law: lawFor(f), text: textOf(f)})), stats: stats(0, 0, 0)} }
     for (;;) {
-      if (now() > jUntil || stop()) { why = 'time'; break }
+      // (`join` 0: no round, the engine's alone)
+      if (now() > jUntil || opts.join === 0 || stop()) { why = 'time'; break }
       rounds++
       set = [...formsNow(), ...extras].filter(f => !blocked.has(textOf(f)))
       const byText = new Map(set.map(f => [textOf(f), f]))

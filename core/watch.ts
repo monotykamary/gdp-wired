@@ -82,7 +82,7 @@ export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: 
   if (!isStepLaw(w)) {
     // A law with "there exists" (core/exists.ts): broken only where no value can be a witness, as far as that is decided
     // (one natural or integer read linearly); undecided, it is kept.
-    const at = (env: Env, st: State) => (w.some?.length ? someHolds(w.holds, w.some, {...env}, st, m)?.holds ?? true : evalC(w.holds, env, st, m))
+    const at = (env: Env, st: State) => (w.some?.length ? someHolds(w.holds, w.some, {...env}, st, m, true)?.holds ?? true : evalC(w.holds, env, st, m))
     const holds = (st: State) => atKeys(per(bound, st, () => keysOf(bound, st)), {...params}, env => at(env, st))
     return {start: holds, step: (_before: State, _input: Request, after: State) => holds(after)}
   }
