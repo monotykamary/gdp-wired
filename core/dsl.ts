@@ -2784,16 +2784,16 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // (the search's own wall ends where the tail begins: the last bounded runs keep it)
   const tailAt = () => performance.now() + Math.max(0, until - tail - clock())
   // (a law about every key with "there exists": the search over its plain form, the value at its ghost map's cell, the
-  // ghosts' own laws beside it, on the rule with the ghosts (exists.ts's skolemOf); a set found there is proven again with
-  // the ∃ laws in their place, proveSome's ghost maps the same; the join's convex forms, which can't state a cell read at a
-  // key a ghost holds, a twentieth of it, the engine's diagrams the rest)
+  // ghosts' own laws beside it, on the rule with the ghosts (exists.ts's skolemOf), its verdict `back`'s; the join's convex
+  // forms, which can't state a cell read at a key a ghost holds, a twentieth of it, the engine's diagrams the rest)
   const sk = !stepLaws.length && laws.some(l => l.some?.length && l.forall) ? skolemOf(rule.machine, laws) : undefined
   const target = sk ? rule.withGhosts(sk.ghost) : rule, sought = sk?.laws ?? laws
   // (the set the search proved, as it proved it, over the rule with the ghosts (its goals settled again where they stand),
   // the ghosts checked to be the original's (kernel.ts's ghostedOk): each law with "there exists" holds, its value at its
   // ghost map's cell (GhostMap.lean's forall_some_of_ghostmap); else proveSome's own proof of the laws as stated)
-  const back = (over: typeof rule, found: {law: Law}[]): Verdict => {
-    if (!sk) return {proven: true, checked: true}
+  // (the trees of the search's verdict are the ghosted machine's: no part of the ∃ verdict)
+  const back = (over: typeof rule, found: {law: Law}[]): Partial<Verdict> => {
+    if (!sk) return {}
     // (a machine with sums or a history takes no ghost map (GhostMap.lean's SGhostedM is over SMachine): proveSome there)
     const ls = [...fresh.map(f => f.law), ...sought, ...found.map(f => f.law)], pm = over.withSumsOf(ls).machine
     const plain = over === target && !pm.history && !Object.keys(pm.sums ?? {}).length ? proveRule(over, ls, {search: false, fast: true}) : undefined
@@ -2808,7 +2808,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
     const summed = target.withMapSums()
     if (summed && until - clock() - tail > 1000) {
       const inf2 = withWall(tailAt(), () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2), ...(sk ? {ghosts: sk.names} : {})}))
-      if (inf2.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; const b = back(summed, found); if (b.proven && b.checked) return {...verdict, ...b, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])} }
+      if (inf2.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; const b = back(summed, found); if (!sk || (b.proven && b.checked)) return {...(sk ? {} : verdict), ...b, ...(sk ? {proven: true, checked: true} : {}), found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])} }
     }
     // (a step law's ghost: at most 10 s of it, as its goals cost more than the laws')
     const deep = bounded(Math.max(0, Math.min(until - clock(), ghosted && !laws.length ? 10_000 : Infinity)), Math.max(1, reached), true)
@@ -2818,8 +2818,8 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   const {found, stats: _stats, ...verdict} = inf
   void _stats
   const b = back(target, found)
-  if (!(b.proven && b.checked)) return {...v, ...b, why: [v.why, 'the set found over the ghost maps is not proven with the laws as stated'].filter(Boolean).join('; ')}
-  return {...verdict, ...b, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}
+  if (sk && !(b.proven && b.checked)) return {...v, ...b, why: [v.why, 'the set found over the ghost maps is not proven with the laws as stated'].filter(Boolean).join('; ')}
+  return {...(sk ? {proven: true, checked: true} : verdict), ...b, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}
 }
 // A law with "there exists" about no key, which the join can't take as its goal: its witness core/exists.ts's ghostOf;
 // then core/counts.ts's pipeline: the candidates, the engine's template two keys at the bound value's places, framed by
