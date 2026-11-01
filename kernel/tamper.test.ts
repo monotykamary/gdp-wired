@@ -8,6 +8,7 @@
 //     anything the prover grows for it.
 // This is what the mutation run (mutants.ts) leans on to see whether a change to kernel.ts or check.ts goes unnoticed.
 import {expect, test} from 'bun:test'
+import {substE} from './kernel.ts'
 import {type C, type E, type Law, type Machine, seeded} from '../core/machine.ts'
 import {admitFlagged, boundedLoss, capLaws, inflight, inflightLoss, loss, windowCeiling, windowLimit} from '../core/models.ts'
 import type {Constraint, Step} from '../core/solver.ts'
@@ -210,4 +211,14 @@ test('derivations that only an unsound checker would accept, and witnesses', () 
   const {goal, tree} = proofs.find(p => 'leaf' in p.tree) ?? proofs[0]!
   const withBad = (t: Tree): Tree => ('leaf' in t ? {...t, products: [...(t.products ?? []), [10_000, 0], [0, 10_000]]} : {...t, yes: withBad(t.yes), no: withBad(t.no)})
   expect(check(goal, withBad(tree))).toBe(check(goal, tree))
+})
+
+// A name that is a property of every object ({}'s constructor, toString, __proto__) is read as itself by a substitution,
+// never as that property (terra's review of gen/laneC3's picks: through the prototype, a pick could refute a goal that
+// holds).
+test('a map or variable named constructor, toString or __proto__ is read as itself', () => {
+  for (const name of ['constructor', 'toString', '__proto__', 'hasOwnProperty', 'valueOf']) {
+    const e: E = {op: 'get', map: name, key: {op: 'var', name}}
+    expect(substE(e, {vars: {}, maps: {}, flags: {}})).toEqual(e)
+  }
 })

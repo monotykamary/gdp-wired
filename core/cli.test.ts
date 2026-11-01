@@ -376,6 +376,86 @@ class SessionLimit:
   expect(rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
 })
 
+// The environment (core/system.ts's inEnv): a `gdp: env` comment over the class, or env in gdp.toml, runs every call at
+// once at its isolation level; the same law proven atomic, broken under read committed by two calls' lost update.
+test('gdp: env and gdp.toml\'s env: the law of every call at once', async () => {
+  const code = (env: string) => `
+${env}class SessionLimit:
+    def __init__(self, cache, limit: int):
+        self.cache = cache
+        self.limit = limit
+
+    # gdp: law each hit counts one: cache["hits:" + session] == old(cache["hits:" + session]) + 1
+    async def hit(self, session: str) -> None:
+        key = f"hits:{session}"
+        n = await self.cache.get(key)
+        n = (n or 0) + 1
+        await self.cache.set(key, n)
+        if n > self.limit:
+            raise RuntimeError("over the limit")
+`
+  if (!TOOLS.python!()) return
+  const tagged = files({'s.py': code('# gdp: env read committed, keys expire\n'), 'gdp.toml': '[rules.SessionLimit]\nfailures = "kept"\n'})
+  const a = (await check([`${tagged}/s.py`], {ms: 5000, propose: false})).rules[0]!
+  expect(a.env!.map(e => e.split(':')[0])).toEqual(['read committed', 'keys expire'])
+  expect(a.laws[0]!.verdict).toBe('broken')
+  expect(a.laws[0]!.run!.filter(l => /begins hit/.test(l)).length).toBe(2)
+  expect(a.laws[0]!.run!.at(-1)).toMatch(/commits/)
+  const toml = files({'s.py': code(''), 'gdp.toml': '[rules.SessionLimit]\nfailures = "kept"\nenv = "serializable"\n'})
+  const b = (await check([`${toml}/s.py`], {ms: 5000, propose: false})).rules[0]!
+  expect([b.env!.length, b.laws[0]!.verdict]).toEqual([1, 'proven'])
+  const bad = (await check([`${toml}/s.py`], {ms: 5000, propose: false, env: 'eventual'})).rules[0]!
+  expect(bad.laws[0]!.verdict).toBe('not read')
+})
+
+// A call's flow and its leases (core/system.ts's inEnv): "at most one call between acquire and release" over a lock
+// whose release checks no owner, refuted by the run where a lease runs out (keys expire) and is proven without
+// expiry; an effect (a charge, gdp: effect) at most once per key, under each isolation level.
+test('flows, leases and effects: at most one call between, keys that expire, a charge made once', async () => {
+  if (!TOOLS.python!()) return
+  const lock = files({'pkg/__init__.py': '', 'pkg/store.py': 'cache = None\n', 'pkg/lock.py': `from pkg.store import cache
+
+
+class Locked(Exception):
+    pass
+
+
+# gdp: env keys expire, acquire then release
+class Lock:
+    # gdp: law one holder at a time: at most one call between acquire and release
+    def __init__(self, key, timeout=32):
+        self.key = f"lock:{key}"
+        self.timeout = timeout
+
+    def acquire(self):
+        if not cache.set(self.key, value=True, timeout=self.timeout, nx=True):
+            raise Locked
+
+    def release(self):
+        return cache.delete(self.key)
+`, 'pkg/gdp.toml': '[rules.Lock]\nfailures = "kept"\nstores.cache = {}\ntypes = {key = "str"}\n', 'pyproject.toml': '[project]\nname = "x"\n'})
+  const a = (await check([`${lock}/pkg/lock.py`], {ms: 8000, propose: false})).rules[0]!
+  expect(a.laws[0]!.verdict).toBe('broken')
+  expect(a.laws[0]!.run!.join('\n')).toMatch(/call 1: acquire\(\)\n.*expires.*\ncall 2: acquire\(\)\ncall 1: release\(\)\ncall 3: acquire\(\)/)
+  const b = (await check([`${lock}/pkg/lock.py`], {ms: 8000, propose: false, env: 'acquire then release'})).rules[0]!
+  expect(b.laws[0]!.verdict).toBe('proven')
+  const pay = files({'pay.py': `class Payments:
+    def __init__(self, cache, gateway):
+        self.cache = cache
+        self.gateway = gateway
+
+    # gdp: law an order is charged at most once: at most one call between pay and pay
+    def pay(self, order: str, amount: int) -> None:
+        if self.cache.get(f"paid:{order}") is not None:
+            return
+        self.gateway.charge(order, amount)  # gdp: effect
+        self.cache.set(f"paid:{order}", 1)
+`, 'gdp.toml': '[rules.Payments]\nfailures = "kept"\nstores = {cache = {}, gateway = {}}\n'})
+  const got: string[] = []
+  for (const env of ['atomic', 'read committed', 'keys expire']) got.push((await check([`${pay}/pay.py`], {ms: 8000, propose: false, env})).rules[0]!.laws[0]!.verdict)
+  expect(got).toEqual(['proven', 'broken', 'broken'])
+})
+
 // The adversarial round's Java shapes (research/langs/adversarial: j01, j03, j04, a dependency handed `this`): the CLI
 // reports each rule refused and its law not read, never proven.
 ;(TOOLS.java!() ? test : test.skip)('the CLI refuses a dependency given the rule\'s state (the adversarial j01, j03, j04)', async () => {

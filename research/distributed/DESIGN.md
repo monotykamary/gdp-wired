@@ -3,7 +3,11 @@
 ROADMAP.md, section 3, gaps 1 and 2: the nodes, their handlers and the message pool as one rule built from per-process
 steps, and a small library of environment models, each checked against the stack it describes.
 
-**Where it stands (gen/laneB, 2026-10-31):**
+**Where it stands (gen/laneB2, 2026-11-02):** the layer is reached through the path users take: `npx gdp-wired-cli
+check` with `gdp: law` comments and one `gdp: env` tag (or `env` in gdp.toml). Section 8: a call's flow, leases that
+run out, effects counted, and a corpus of real services (`corpus/`), each refutation run again on the service's code.
+
+**Before (gen/laneB, 2026-10-31):**
 - **The layer.** `core/system.ts` (new, 24 KB) has `system`, `lift`, `isolation`, `delivery`, `client`, `expiry`,
   `asRule` and nine environment models. Its tests are in `core/system.test.ts` (8 pass). No existing file changed.
 - **The environment checked.** 11 of 11 claims hold on PostgreSQL 15, Redis 7 and urllib3 (`envcheck.py`).
@@ -340,3 +344,83 @@ stem replayed; core/system.test.ts replays the outbox ring's laps on the interpr
 kernel's proof. **Not verified:** that findRing finds every lasso (a heuristic search: walks of 3,000 steps, cycles of at
 most 64, the requests it draws); the lease at the default budget (section 7.3); no Lean export of the lease's proof or
 of the rings (a refutation is a run, not a certificate Lean reads).
+
+## 8. Through the CLI: a project states its environment, the laws are its code's (gen/laneB2)
+
+Sections 1 to 7 built systems by hand in TypeScript (`litellm.ts`, `time.ts`). Here the same layer is what the CLI does
+when the code says where it runs. Nothing new is trusted: kernel/ and lean-kernel/ are unchanged; every proof is the
+kernel's on the system rule built, every refutation a run of it (shortened, replayed on the interpreter).
+
+### 8.1 What the user writes
+
+```python
+# gdp: env keys expire, acquire then release            (or env = "..." in gdp.toml, or --env)
+class Lock:
+    # gdp: law one holder at a time: at most one call between acquire and release
+```
+
+The words (core/system.ts's `envOf`): an isolation level (`atomic`, `serializable`, `read committed`, `snapshot`,
+`repeatable read`), `keys expire`, `retries`, `an object per call`, and a flow `a then b`. Unknown words are refused.
+
+### 8.2 The general pieces
+
+| Piece | Where | What it does |
+| --- | --- | --- |
+| `inEnv(rule, env)` | core/system.ts | The extracted rule as every call at once: `isolation` at the level, `lift` by call (a call's result and failure its own, the object's fields shared, or its own with `an object per call`), one `expiry` part per store template. Laws lifted: a law of one step holds at each call's commit (the request as the call began, the store as the commit finds it); a law about the state holds of every call's locals. A field a call writes is refused at a split level (it would be read at the commit). |
+| Flows | core/system.ts | `acquire then release`: a call's methods in order, each a step or a transaction; its arguments of one name kept equal; it goes on only past a method that did it (not failed; a boolean result true; its effect made). A call holds from its first method's success to its last method; an expiring key ends the leases of the calls holding by it. |
+| `at most one call between a and b` | core/system.ts's `between`, core/cli.ts | Mutual exclusion per key. Atomic: each key's holders counted in the step that takes or gives it up (`done$[k] <= 1`, whose invariant the search finds: `done$[k] <= lock.has[k]`); split levels: no two calls hold one key. `between a and a`: a's work done at most once per key (a flow of one method, done work never undone). The flow is inferred from the law. |
+| Effects | core/extract-step.ts, core/py/harness.py | `# gdp: effect` on a call's line (or `effects`): a call of other code each step says it made (`<name>.called`), the check stubbing the callee and reporting its calls. A charge, a published message, a handler's work. `stubs`: calls the check replaces by nothing (a client made from a URL in the constructor). |
+| Stores, widened | core/extract-step.ts, core/py/harness.py | `add` (SET NX, memcached's add, `put_if_empty`, with the path forked: a failure where it didn't set is no failure after a write) and `incr`; string values (inferred from a set); `%` formats and a constructor's key template; a store that is a field the constructor makes, or a module's object (Django's `cache`); class constants; `types` for arguments and fields the code doesn't declare; an attribute of a store a left-out call is made on (a registry) inert in the check. |
+| Runs | core/system.ts's `shrinkRun`, `contend`; core/cli.ts's `sysRunOf` | A run shortened by dropping steps while it still breaks the law; printed as calls (begins, reads, commits, a key expiring). Where the prover finds no run, a breadth-first search of calls contending with one request (three calls, their methods, the expiring key). |
+
+Two fixes on the way, both bugs on main:
+- **The printer** (core/extract.ts): a map write's fields were printed as if the key were held (`atoms: [has]`), so a
+  delete left a value at an absent key and the extraction's own invariant ("a key it doesn't hold holds the defaults")
+  was not inductive (a dict `put`/`del` shows it). Printed apart where that reading differs from the term.
+- **The harness** (`fields`): the option says "the claim is for objects so configured", and the check now configures them.
+
+### 8.3 The corpus (research/distributed/corpus/)
+
+`run.ts` reads `services/<id>.json` (repository, pinned commit, licence, files, the comment lines and gdp.toml a user
+writes), applies them to a checkout and runs the CLI; `--jobs` makes one boat job per service, `--collect` the table
+(`results.md`); `--repro` a run of each refutation on the service's own code, its script kept out of the tree
+(`GDP_REPRO_DIR`). 
+
+Final run (boat, 2 vCPU, 60 s a law, f6f873a; `results.md`): **3 proven, 7 refuted, 0 unknown, 1 not read**, every
+refutation of a lock or lease run again on the service's code (each reproduced).
+
+| Service (licence, pin) | Pattern | What the user wrote | Law | Verdict |
+| --- | --- | --- | --- | --- |
+| huey (MIT, d18fd54) TaskLock | lease with expiry | 2 lines, 5 in gdp.toml | at most one call between acquire and clear | refuted, 0.4 s: 1 acquires; its key expires; 2 acquires; 1 clears; 3 acquires |
+| celery-singleton (MIT, 4ee1618) RedisBackend | lease with expiry, duplicate tasks | 2, 6 | at most one call between lock and unlock | refuted, 21 s (the contention search) |
+| CARE (MIT, 67a4618) Lock | lease with expiry | 2, 5 | at most one call between acquire and release | refuted, 0.3 s |
+| OpenCEX (Apache-2.0, 927b333) AutoLock | lease with expiry | 2, 8 | at most one call between acquire and release (an object per call) | refuted, 2.4 s |
+| Membrane (Apache-2.0, 25e3562) AcmeMemoryStorageEngine | lease | 2, 3 | an expired lease can be taken again; a lease is prolonged only while it runs | refuted, 0.0 s; proven, 0.1 s |
+| LiteLLM (MIT, v1.106.6) session limiter, atomic | read-modify-write | 2, 5 | admitted only below max_iterations; every call counts one | proven, proven (0.6, 0.3 s) |
+| LiteLLM, read committed | read-modify-write | 2, 5 | the same | refuted, refuted: two calls read, both commit |
+| tork (MIT, d574128) InMemoryLocker | lock | 2, 2 | at most one call between AcquireLock and releaseLock | not read: the Go reader refuses a method returning an interface value |
+
+What the user writes is the law lines and the tag; gdp.toml holds the boundary the reader can't infer (a store's
+name, an untyped argument's type, `failures = "kept"`, a stub for a client built from a URL). The idempotency
+pattern (`between pay and pay` with `# gdp: effect` on the charge) is proven atomic and refuted at read committed
+and with keys that expire (core/cli.test.ts); no permissive service's handler of that shape was in the readers'
+subset (PostHog's are module functions over ORM queries).
+
+**Gates.** The quick bar (f6f873a against 35ed7e0's shared baseline, boat): wrong 0 in every group, nothing solid lost
+(CHC +16 on the dev set, gained 8; ITS +5.33, gained 7; the rest within noise); onecpu: no candidate failure; Lean 6 of
+6; g332's 332 tasks failed on the backend for both sides (an infrastructure failure, the same in an earlier bar). Tests
+on 16 GB VMs: system, extract, extract-py/-go/-jvm/-c/-rs/-rb/-ex/-swift, cli, runner-cli-c-jvm and the extractor
+corpus jobs (extract-tests, -ours, -realworld, -verdicts): 16 of 16 pass. **Bytes** against 35ed7e0 (tests excluded):
+core/system.ts +17,728, core/extract-step.ts +11,320, core/cli.ts +7,582, core/py/harness.py +3,270, core/extract.ts
++530, core/py/reader.py +441, core/extract-go.ts +247; kernel/ and lean-kernel/ unchanged.
+
+### 8.4 What is verified and what is not
+
+**Verified:** every proof is the kernel's on the system built; every refutation is a run of it, and each refuted lock
+or lease law was run on the service's code at its pin (boat VMs, Redis 7.4 in Docker, the JDK for Membrane): each run
+reproduced. **Not verified:** that the environment stated is the deployment's (the tag is the user's claim, and the
+verdict names the models it assumed); that an extracted rule is the code beyond the check's runs; LiteLLM's read
+committed refutation is about a store whose calls suspend, which its code's (in-memory asyncio, Redis Lua INCR) are not,
+so there is no run of it on LiteLLM. Not reached: outbox and saga code in the readers' subset (none found among
+permissive services), Go and TypeScript services (tork's locker returns an interface, refused; the TypeScript reader
+refuses async code, which every service candidate was).

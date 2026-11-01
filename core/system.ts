@@ -16,9 +16,11 @@
 // The handlers are any rules: extracted by the readers (a step of one process, its maps the stores it reads and writes)
 // or written; a handler that awaits other services between its reads and writes is several steps (a `pc` scalar), the
 // form `isolation` gives an atomic one.
-import {type C, type E, type Machine, type MapUpdate, all, any, atMost, get, ite, n, not, plus, same, x} from './machine.ts'
-import {type Subst, substC, substE} from '../kernel/kernel.ts'
+import {type C, type E, type Law, type Machine, type MapUpdate, all, any, atMost, get, ite, n, not, plus, same, x} from './machine.ts'
+import {type StepLaw, type Subst, substC, substE} from '../kernel/kernel.ts'
 import {Cond, type Kind, type Rule, Term, nat, oneOf, rule} from './dsl.ts'
+import {interpret, type Request} from './machine.ts'
+import {allowed, watch} from './watch.ts'
 
 // An environment model: what it assumes, and the stack's behaviour it was checked against (research/distributed/
 // DESIGN.md, section 2: the documentation quoted; research/distributed/envcheck.py: each claim run on the stack).
@@ -186,7 +188,7 @@ function writesWhen(v: E, cell: E): C | true | false {
   return xs.length ? any(...xs) : false
 }
 // m's one step (a request's) as a transaction of several: `pc$` 0 begins it (the request's inputs kept as in$<input>),
-// then the reads (read committed: each store read site at its own step, inner ones first, as rd$<i>; snapshot: all at
+// then the reads (read committed: each store read site at its own step, inner ones first, as rd$<i>, a record's parts at one key one step; snapshot: all at
 // the begin), then the commit, which computes m's step from what was read and writes it (snapshot: unless a cell it
 // writes moved since the begin, aborted$ then 1), then done. m's scalars are the request's own (a result, a flag); its
 // maps are the stores. 'atomic' is m itself. Each step reads only its own process's state and the stores, so
@@ -235,7 +237,9 @@ export function isolation(m: Machine, level: Level): Machine {
     if (c.op === 'flag' || c.op === 'all') return c
     return {...c, a: sigma(c.a), b: sigma(c.b)}
   }
-  const r = sites.length, snap = level === 'snapshot'
+  // (a record's parts at one key are one read: one GET returns the record)
+  const groupOf = (st: {map: string, key: E}) => `${st.map.replace(/\.[^.]*$/, '')}|${JSON.stringify(st.key)}`, groups = [...new Set(sites.map(groupOf))], gi = (j: number) => groups.indexOf(groupOf(sites[j]!))
+  const r = groups.length, snap = level === 'snapshot'
   const commit = snap ? 1 : r + 1, done = commit + 1
   const at = (k: number): C => same(x('pc$'), n(k))
   const valid = snap ? all(...pointWrites.map(w => { const on = writesWhen(w.value, get(w.map, w.key)); const cell = get(w.map, sigma(w.key)), was = sigma(get(w.map, w.key)); return on === false ? same(n(0), n(0)) : any(...(on === true ? [] : [not(sigmaC(on))]), same(cell, was)) })) : undefined
@@ -244,7 +248,7 @@ export function isolation(m: Machine, level: Level): Machine {
   const state: Record<string, E> = {
     'pc$': ite(at(0), n(snap || !r ? commit : 1), ite(at(commit), n(done), reads)),
     ...Object.fromEntries(m.inputs.map(i => [inp(i), ite(at(0), x(i), x(inp(i)))])),
-    ...Object.fromEntries(sites.map((s, j) => [rd(j), ite(at(snap ? 0 : j + 1), snap ? s.e : get(s.map, sigma(s.key)), x(rd(j)))])),
+    ...Object.fromEntries(sites.map((s, j) => [rd(j), ite(at(snap ? 0 : gi(j) + 1), snap ? s.e : get(s.map, sigma(s.key)), x(rd(j)))])),
     ...mapValues(m.step.state, (e, s) => ite(commits, sigma(e), x(s))),
     ...(snap ? {'aborted$': ite(at(commit), valid!.op === 'and' && !valid!.xs.length ? n(0) : ite(valid!, n(0), n(1)), x('aborted$'))} : {}),
   }
@@ -262,8 +266,11 @@ export function isolation(m: Machine, level: Level): Machine {
     ...(m.assume ? {assume: any(not(at(0)), m.assume)} : {}),
     ...(m.pre ? {pre: m.pre} : {}),
   }
+  readsOf.set(out, groups.map(g => g.slice(0, g.indexOf('|'))))
   return from(out, m, ISOLATION[level])
 }
+// The stores a transaction reads, one per read step (read committed's; snapshot's are all at its begin).
+export const readsOf = new WeakMap<Machine, string[]>()
 
 // --- delivery -------------------------------------------------------------------------------------------------------
 
@@ -381,4 +388,220 @@ export function expires(cells: Record<string, number>, at: string, opts: {key?: 
       step: {state: mapValues(all0, v => n(v))}, assume: atMost(x(at), x(now))}
   sharedOf.set(m, [now])
   return modelled(m, TTL)
+}
+
+// --- a rule in its environment --------------------------------------------------------------------------------------
+
+// What a project states of where its code runs (gdp.toml's `env`, or a `gdp: env` comment over the class), in words:
+// an isolation level (atomic, serializable, read committed, snapshot, repeatable read), "keys expire", "retries" or
+// "at-least-once". Unknown words are refused, never dropped.
+export type Env = {isolation?: Level, expiry?: boolean, retries?: boolean, flow?: string[], apart?: boolean}
+const WORDS: [RegExp, (e: Env) => void][] = [
+  [/^(atomic|serializable|lua|one step|locked|for update)$/, e => { e.isolation = 'atomic' }],
+  [/^read committed$/, e => { e.isolation = 'read committed' }],
+  [/^(snapshot|repeatable read)$/, e => { e.isolation = 'snapshot' }],
+  [/^(keys expire|expiry|ttl|eviction|keys evicted)$/, e => { e.expiry = true }],
+  [/^(retries|retried|at-least-once|at least once|redelivery|duplicates)$/, e => { e.retries = true }],
+  [/^(an object per call|objects apart|a process per call|one object per call)$/, e => { e.apart = true }],
+]
+export function envOf(text: string | string[]): Env {
+  const e: Env = {}
+  for (const w of (Array.isArray(text) ? text : [text]).flatMap(t => t.split(/\s*[,;]\s*|\s+and\s+/)).map(w => w.trim().replace(/\s+/g, ' ')).filter(Boolean)) {
+    // (a call's flow: its methods in order, `acquire then release`)
+    if (/^[\w.]+( then [\w.]+)+$/.test(w)) { e.flow = w.split(' then '); continue }
+    const f = WORDS.find(([re]) => re.test(w.toLowerCase()))
+    if (!f) throw new Error(`env: ${JSON.stringify(w)} is not an environment gdp-wired models (atomic, read committed, snapshot, keys expire, retries, a flow: <method> then <method>)`)
+    f[1](e)
+  }
+  return e
+}
+export const envText = (e: Env): string => [e.isolation, e.expiry && 'keys expire', e.retries && 'retries', e.apart && 'an object per call', e.flow?.join(' then ')].filter(Boolean).join(', ')
+
+// A rule (one handler: an extracted class's step, its maps the stores it reads and writes) as every call of it at once
+// in its environment: each call a transaction at the isolation level (its locals the call's own), the stores' keys
+// vanishing where they expire, retries any call again (a retried call is another call with the same request, which
+// every call at once already has). The rule's laws are lifted with it: a law about the state holds of every call's
+// locals; a law of one step holds of each call's commit, the state before it the store as the commit finds it (what
+// the call read may be older), the request the one the call began with. `stores`: the maps that are a store's (the
+// expiry's), each with its parts (a record's); `own`: the scalars that are a call's own (its result, its failure), the
+// others the object's fields, which every call on it shares.
+// A flow (env.flow: acquire then release) is what one call does: its methods in that order, each a step (or a
+// transaction) of its own, the call ending where one fails (`failed`, the rule's failure kept). A call holds from its
+// first method's success to its last method; where a key its first method wrote expires, every call holding by that
+// key stops holding (its lease ran out), and `between` is the law that at most one call holds at once.
+export type InEnv = {rule: Rule, models: Model[], reads: string[], part: string, act: string, id?: string, commit?: number, level: Level, flow?: string[], method?: string, methods?: number,
+  law: (l: Law) => Law, step: (s: StepLaw) => StepLaw, between: (name: string, a: string, b: string) => Law}
+// `oks`: the methods whose result says whether they did it (a lock's True), by their result's variable; `args`: each
+// method's arguments by the code's name (a flow's call passes the same value to each of its methods that
+// takes an argument of one name: the lock it acquires is the one it releases).
+export type EnvOpts = {stores?: string[][], own?: string[], method?: {name: string, values: string[]}, failed?: string, args?: {method: string, code: string, rule: string}[], oks?: {method: string, rule: string}[]}
+export function inEnv(r: Rule | Machine, env: Env, o: EnvOpts = {}): InEnv {
+  let m = machineOf(r)
+  const level = env.isolation ?? 'atomic', split = level !== 'atomic', flow = env.flow, lifted = split || !!flow, P = 'calls', act = 'act$', id = 'p$'
+  const stores = o.stores ?? [], own = [...(o.own ?? [])], hk: Record<string, string> = {}
+  if (flow) {
+    const k = flow.length
+    const is = (f: string): C => {
+      if (!o.method) { if (k > 1) throw new Error(`a flow of ${k} methods, and the rule has one`); return same(n(0), n(0)) }
+      const i = o.method.values.indexOf(f)
+      if (i < 0) throw new Error(`${f} is no method of ${m.name} (${o.method.values.join(', ')})`)
+      return same(x(o.method.name), n(i))
+    }
+    // (a method done: not failed, and where its result says whether it did it, that result true)
+    const failedOk = o.failed && m.step.state?.[o.failed] ? [same(m.step.state[o.failed]!, n(0))] : []
+    const oks = (o.oks ?? []).filter(r => flow.includes(r.method) && m.step.state?.[r.rule]).map(r => any(not(is(r.method)), not(same(m.step.state![r.rule]!, n(0)))))
+    const done = failedOk.length || oks.length ? all(...failedOk, ...oks) : undefined, stage = x('stage$')
+    for (const [map, w] of Object.entries(m.step.maps ?? {})) if ('key' in w) hk[map] = `hk$${map}`
+    m = {...m, state: {...m.state, 'stage$': n(0), 'held$': n(0), ...Object.fromEntries(Object.values(hk).map(h => [h, n(0)]))},
+      step: {...m.step, state: {...m.step.state,
+        'stage$': done ? ite(done, plus(stage, n(1)), n(k)) : plus(stage, n(1)),
+        'held$': ite(all(is(flow[0]!), ...(done ? [done] : [])), n(1), ite(is(flow[k - 1]!), n(0), x('held$'))),
+        ...Object.fromEntries(Object.entries(hk).map(([map, h]) => [h, ite(is(flow[0]!), (m.step.maps![map] as {key: E}).key, x(h))]))}},
+      assume: all(...(m.assume ? [m.assume] : []), atMost(plus(stage, n(1)), n(k)), any(...flow.map((f, j) => all(same(stage, n(j)), is(f)))))}
+    // (an argument of one name, kept from the first method of the flow that takes it, its later methods given the same)
+    const named = new Map<string, {method: string, rule: string}[]>()
+    for (const a of o.args ?? []) if (flow.includes(a.method) && m.inputs.includes(a.rule)) named.set(a.code, [...(named.get(a.code) ?? []), a])
+    const keeps: string[] = []
+    for (const [code, as] of named) {
+      const sorted = [...as].sort((a, b) => flow.indexOf(a.method) - flow.indexOf(b.method)), first = sorted[0]!, kept = `arg$${code}`
+      if (sorted.length < 2 || kept in m.state) continue
+      keeps.push(kept)
+      m = {...m, state: {...m.state, [kept]: n(0)}, step: {...m.step, state: {...m.step.state, [kept]: ite(is(first.method), x(first.rule), x(kept))}},
+        assume: all(m.assume!, ...sorted.slice(1).map(a => any(not(is(a.method)), same(x(a.rule), x(kept)))))}
+    }
+    own.push('stage$', 'held$', ...Object.values(hk), ...keeps)
+    // (atomic: the calls holding each key, counted in the step that takes or gives it up, so the law is about every key)
+    const rk = Object.values(m.step.maps ?? {}).find((w): w is {key: E, value: E} => 'key' in w)?.key
+    if (!split && rk) {
+      const d = get('done$', rk), took = all(is(flow[0]!), ...(done ? [done] : [])), gave = k > 1 ? all(is(flow[k - 1]!), same(x('held$'), n(1))) : same(n(0), n(1))
+      m = {...m, maps: {...m.maps, 'done$': 0}, step: {...m.step, maps: {...m.step.maps, 'done$': {key: rk, value: ite(took, plus(d, n(1)), ite(gave, {op: 'sub', a: d, b: n(1)} as E, d))}}}}
+    }
+  }
+  // (an object per call: the fields its methods write are the call's own, those it only reads the object's as made)
+  if (env.apart) own.push(...Object.keys(m.state).filter(s => !own.includes(s) && m.step.state?.[s] && JSON.stringify(m.step.state[s]) !== JSON.stringify(x(s))))
+  // (a field a call writes is read where the call commits, not where the code reads it: refused at a split level)
+  const fields = Object.keys(m.state).filter(s => !own.includes(s)), written = fields.filter(s => m.step.state?.[s] && JSON.stringify(m.step.state[s]) !== JSON.stringify(x(s)))
+  if (split && written.length) throw new Error(`a call writes the object's ${written.join(', ')}, which it reads at its commit only here: not modelled at ${level}`)
+  const h = isolation(m, level)
+  const commit = split ? (level === 'snapshot' ? 1 : readsOf.get(h)!.length + 1) : undefined
+  // (a flow's call begins its next method after a commit)
+  if (flow && split) h.step.state!['pc$'] = ite(same(x('pc$'), n(commit!)), n(0), h.step.state!['pc$']!)
+  const parts: Record<string, Part> = {[P]: lifted ? {rule: h, id, shared: fields} : h}
+  if (env.expiry) stores.forEach((cells, i) => {
+    const e = expiry(Object.fromEntries(cells.map(c => [c, m.maps![c]!])), 'key$'), mine = cells.filter(c => hk[c])
+    // (a lease runs out: the calls holding by the key expired hold no longer; a call's done work, a flow of one method, stays done)
+    if (mine.length && flow!.length > 1) {
+      e.maps = {...e.maps, 'held$': 0, ...Object.fromEntries(mine.map(c => [hk[c]!, 0]))}; e.step.maps!['held$'] = {each: 'q$', value: ite(any(...mine.map(c => same(get(hk[c]!, x('q$')), x('key$')))), n(0), get('held$', x('q$')))}
+      if ('done$' in (m.maps ?? {})) { e.maps['done$'] = 0; e.step.maps!['done$'] = {key: x('key$'), value: n(0)} }
+    }
+    parts[`expiry${stores.length > 1 ? i : ''}`] = e
+  })
+  const sys = system(`${machineOf(r).name} (${envText(env) || 'atomic'})`, parts, {act})
+  const ms = [...modelsOf(sys), ...(env.retries ? [RETRIES] : [])]
+  models.set(sys, ms)
+  const locals = Object.keys(m.state).filter(s => own.includes(s)), on = same(x(act), n(0))
+  const flags = () => Object.fromEntries(Object.keys(m.step.flags ?? {}).map(g => [g, {op: 'flag', name: `${P}$${g}`} as C]))
+  // (a call's own: its locals at its process `at`, before and after; its request as the call kept it)
+  const mine = (at: E, before: boolean): Subst => {
+    const vs: [string, E][] = [...locals.flatMap((s): [string, E][] => [[s, get(s, at)], [`${s}'`, get(`${s}'`, at)]]), ...(before && split ? m.inputs.map((i): [string, E] => [i, get(`in$${i}`, at)]) : [])]
+    return {vars: lifted ? Object.fromEntries(vs) : {}, maps: {}, flags: flags()}
+  }
+  const law = (l: Law): Law => {
+    if (!lifted || !locals.some(s => JSON.stringify(l.holds).includes(`"name":"${s}"`))) return l
+    const k = 'p$k', holds = substC(l.holds, mine(x(k), false))
+    return l.forall ? {...l, holds, keys: [...(l.keys ?? []), k]} : {...l, holds, forall: k}
+  }
+  const step = (s: StepLaw): StepLaw => {
+    if ((s.steps ?? 1) !== 1) throw new Error(`env: a law of ${s.steps} steps is not lifted to every call at once`)
+    const sub = mine(x(id), true), whens = s.when === undefined ? [] : Array.isArray(s.when) ? s.when : [s.when]
+    const then = substC(s.then, sub)
+    return {...s, then: level === 'snapshot' ? any(same(get("aborted$'", x(id)), n(1)), then) : then,
+      when: all(on, ...(split ? [same(get('pc$', x(id)), n(commit!))] : []), ...whens.map(w => substC(w, sub)))}
+  }
+  const between = (name: string, a: string, b: string): Law => {
+    if (!flow || flow[0] !== a || flow.at(-1) !== b) throw new Error(`between ${a} and ${b}: the call's flow is ${flow ? flow.join(' then ') : 'not stated'} (env: ${a} then ${b})`)
+    if (!split && 'done$' in (m.maps ?? {})) return {name, holds: atMost(get('done$', x('k$d')), n(1)), forall: 'k$d'}
+    const held = (p: string) => same(get('held$', x(p)), n(1))
+    // (per lock: two calls holding by different keys hold different things)
+    return {name, holds: any(not(held('p$a')), not(held('p$b')), same(x('p$a'), x('p$b')), ...Object.values(hk).map(k => not(same(get(k, x('p$a')), get(k, x('p$b')))))), forall: 'p$a', keys: ['p$b']}
+  }
+  return {rule: sys, models: ms, reads: split && level !== 'snapshot' ? readsOf.get(h)! : [], part: P, act, ...(lifted ? {id} : {}), ...(split ? {commit} : {}), level, ...(flow ? {flow} : {}), ...(o.method ? {method: o.method.name, methods: o.method.values.length} : {}), law, step, between}
+}
+
+// A run that breaks a law, shortened: steps dropped one at a time while the rest still breaks it (replayed on the
+// interpreter, each request allowed where it is taken, the law read as the search reads it), cut at the first break.
+export function shrinkRun<T extends {params: Record<string, number>, trace: Record<string, unknown>[]}>(r: Rule | Machine, w: Law | StepLaw, run: T): T {
+  const m = machineOf(r), rt = interpret(m), params = run.params
+  const bound = 2 + Math.max(0, ...[...Object.values(params), ...run.trace.flatMap(q => Object.values(q))].filter((v): v is number => typeof v === 'number'))
+  // (the length of the prefix that breaks it, or 0)
+  const breaks = (trace: Record<string, unknown>[]): number => {
+    try {
+      const on = watch(m, rt, w, params, bound)
+      let st = rt.init(params)
+      if (!on.start(st)) return 0
+      for (const [i, q] of trace.entries()) {
+        if (!allowed(m, rt, params, st, q as Request)) return 0
+        const nx = rt.step(params, st, q as Request)
+        if (!on.step(st, q as Request, nx)) return i + 1
+        st = nx
+      }
+    } catch { return 0 }
+    return 0
+  }
+  let trace = run.trace, at = breaks(trace)
+  if (!at) return run
+  trace = trace.slice(0, at)
+  for (let changed = true; changed;) {
+    changed = false
+    for (let i = 0; i < trace.length; i++) {
+      const t = [...trace.slice(0, i), ...trace.slice(i + 1)], b = breaks(t)
+      if (b) { trace = t.slice(0, b); changed = true; i-- }
+    }
+  }
+  return {...run, trace}
+}
+
+// Contention: runs of a system where every call passes one request, so the calls contend for one key; only which
+// part steps, which of three calls, its method and the expiring key vary, searched breadth first (states seen once) to
+// a depth, for each of a few requests drawn. A run found breaks the law on the interpreter, as the search's do. (The
+// search's own runs draw each request apart: three calls on one lock are rare among them.)
+export function contend(e: InEnv, w: Law | StepLaw, opts: {bases?: number, depth?: number, bound?: number, seed?: number, ms?: number, calls?: number} = {}) {
+  const m = e.rule.machine, rt = interpret(m), bound = opts.bound ?? 2, until = performance.now() + (opts.ms ?? 3000), calls = opts.calls ?? 3
+  let seed = opts.seed ?? 7
+  const rand = (k: number) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % k }
+  const free = new Set([e.act, ...(e.id ? [e.id] : []), ...(e.method ? [e.method] : []), 'key$'])
+  const acts = ((e.rule as unknown as {parts?: {inputs: [string, {values?: string[]}][]}}).parts?.inputs.find(([i]) => i === e.act)?.[1].values ?? ['calls']).length
+  const choices: Record<string, number>[] = []
+  for (let a = 0; a < acts; a++) {
+    if (a > 0) { for (let k = 0; k <= bound; k++) choices.push({[e.act]: a, 'key$': k}); continue }
+    for (let p = 1; p <= (e.id ? calls : 1); p++) for (let mt = 0; mt < (e.method ? e.methods ?? 1 : 1); mt++) choices.push({[e.act]: 0, ...(e.id ? {[e.id]: p} : {}), ...(e.method ? {[e.method]: mt} : {})})
+  }
+  const key = (st: {scalars: Record<string, number>, maps: Record<string, Map<number, number>>}) => JSON.stringify([st.scalars, Object.entries(st.maps).map(([k, v]) => [k, [...v].filter(([, x]) => x !== 0).sort((a, b) => a[0] - b[0])])])
+  for (let b = 0, tried = 0; b < (opts.bases ?? 12) && tried < 400 && performance.now() < until; tried++) {
+    const params: Record<string, number> = Object.fromEntries(m.params.map(p => [p, rand(bound + 1)]))
+    // (the request's values from 0 and 1: two arguments a flow keeps equal, two strings of one length, agree often)
+    const base: Record<string, number> = Object.fromEntries(m.inputs.filter(i => !free.has(i)).map(i => [i, rand(2)]))
+    let st0: ReturnType<typeof rt.init>
+    try { st0 = rt.init(params) } catch { continue }
+    const req = (c: Record<string, number>) => ({...base, ...Object.fromEntries(m.inputs.filter(i => !(i in base)).map(i => [i, 0])), ...c}) as Request
+    if (!choices.some(c => { try { return allowed(m, rt, params, st0, req(c)) } catch { return false } })) continue
+    b++
+    const seen = new Set([key(st0)])
+    let frontier = [{st: st0, trace: [] as Record<string, unknown>[]}]
+    for (let d = 0; d < (opts.depth ?? 7) && frontier.length && performance.now() < until; d++) {
+      const next: typeof frontier = []
+      for (const {st, trace} of frontier) for (const c of choices) {
+        const q = req(c)
+        let nx: typeof st
+        try { if (!allowed(m, rt, params, st, q)) continue; nx = rt.step(params, st, q) } catch { continue }
+        if (!watch(m, rt, w, params, bound + 2).step(st, q, nx)) return {params, trace: [...trace, q]}
+        const k = key(nx)
+        if (seen.has(k) || seen.size > 200_000) continue
+        seen.add(k)
+        next.push({st: nx, trace: [...trace, q]})
+      }
+      frontier = next
+    }
+  }
+  return undefined
 }

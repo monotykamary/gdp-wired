@@ -1,0 +1,34 @@
+{
+ "id": "membrane",
+ "repo": "https://github.com/membrane/api-gateway",
+ "commit": "25e3562fb9227f843367b66558ebef7d7344eb7c",
+ "licence": "Apache-2.0",
+ "lang": "Java",
+ "patterns": [
+  "lease with expiry"
+ ],
+ "about": "Membrane API Gateway's in-memory ACME storage: the renewal lease (acquireLease, prolongLease, releaseLease) over lockedUntil and the clock",
+ "check": [
+  "core/src/main/java/com/predic8/membrane/core/transport/ssl/acme/AcmeMemoryStorageEngine.java"
+ ],
+ "toml": "[rules.AcmeMemoryStorageEngine]\nfailures = \"kept\"\nmethods = [\"acquireLease\", \"prolongLease\", \"releaseLease\"]\n",
+ "edits": [
+  {
+   "file": "core/src/main/java/com/predic8/membrane/core/transport/ssl/acme/AcmeMemoryStorageEngine.java",
+   "before": "^    public synchronized boolean acquireLease",
+   "lines": [
+    "// gdp: law an expired lease can be taken again: durationMillis > 0 and old(lockedUntil) < now implies result"
+   ]
+  },
+  {
+   "file": "core/src/main/java/com/predic8/membrane/core/transport/ssl/acme/AcmeMemoryStorageEngine.java",
+   "before": "^    public synchronized boolean prolongLease",
+   "lines": [
+    "// gdp: law a lease is prolonged only while it runs: result implies now <= old(lockedUntil)"
+   ]
+  }
+ ],
+ "repro": {
+  "script": "repro/membrane.sh"
+ }
+}

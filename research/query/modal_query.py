@@ -34,7 +34,14 @@ except ImportError:  # plain python3, --backend boat: the job function runs on b
     sys.path.insert(0, str(SC))
     from agent import modal_stub
     modal = modal_stub()
-MAIN = GDP.parent / "gdp-wired"
+# (the main checkout: the worktree git calls common, so a bar tree under runs/bar/trees or a lane's sibling checkout both find it; else the sibling named gdp-wired)
+def _main(gdp):
+    try:
+        out = __import__("subprocess").check_output(["git", "-C", str(gdp), "rev-parse", "--path-format=absolute", "--git-common-dir"], text=True, stderr=__import__("subprocess").DEVNULL)
+        return pathlib.Path(out.strip()).parent
+    except Exception:
+        return gdp.parent / "gdp-wired"
+MAIN = _main(GDP)
 BENCH_COMMIT = "b4fa7a708e5863bbcdb5de50d692ead3a67cbedc"
 ARI_COMMIT = "183f29db5ec7702215c6aabe12732bf3e836fced"
 KEEP = r"""

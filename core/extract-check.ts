@@ -35,6 +35,8 @@ export type Evidence = {
   refusedBoth: number, outside: number, startsOutside?: number, edge: number, edgeSample?: string, compiledAgreed: number, coverage: Coverage, ms: number, mismatch?: string,
   // (the check's harness failed, twice: a request past its time, its transport; no verdict on the code)
   harness?: string,
+  // (the code itself refused before any request: its compiler rejects it, with the compiler's message)
+  source?: string,
 }
 // The check's own failure, not the code's: a request past its time, the harness's transport (anvil's JSON-RPC) failing,
 // the harness gone. Never a difference and never a pass: the whole check runs once more, from a fresh harness, and a

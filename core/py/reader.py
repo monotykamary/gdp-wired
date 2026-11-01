@@ -229,7 +229,11 @@ class Reader:
             name, t = n.targets[0].attr, self.ty(anns[v.values[0].id], mod)
             if t['k'] == 'opt': t = t['of']
         if t is not None and not any(g['name'] == name for g in fields): fields.append({'name': name, 't': t, 'init': True})
+    cattrs = {}
     for n in cdef.body:
+      # (a class attribute set to a constant, PREFIX = None, LOCK_PERIOD = 5: read through self as that constant)
+      if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name) and isinstance(n.value, ast.Constant) and isinstance(n.value.value, (int, float, str, bool, type(None))) and not isinstance(n.value.value, bytes):
+        cattrs[n.targets[0].id] = n.value.value
       if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name):
         ann = n.annotation
         if dotted(ann.value if isinstance(ann, ast.Subscript) else ann) in ('ClassVar', 'typing.ClassVar'): continue
@@ -247,7 +251,7 @@ class Reader:
           finally: self.file, self.supers = file, sup
           methods[n.name] = fid
         else: methods[n.name] = None  # another module's method: not read
-    r = {'name': q, 'short': cdef.name, 'fields': fields, 'methods': methods, 'bases': bases, 'p': where(mod.path, cdef),
+    r = {'name': q, 'short': cdef.name, 'fields': fields, 'methods': methods, 'bases': bases, 'p': where(mod.path, cdef), 'cattrs': cattrs,
          'kinds': sorted(kinds | ({'dataclass'} if dataclass else set()) | ({'frozen'} if frozen else set()) | (set() if total else {'partial'})),
          'own': mod.path == self.file, 'module': mod.name, **({'rets': rets} if rets else {})}
     self.recs[q] = r
