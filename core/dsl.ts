@@ -2810,6 +2810,23 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
     const out = proveSome(rule.machine, [...withKinds(rule, laws), ...fresh.map(f => f.law), ...found.map(f => f.law)], {mapMs: Math.max(5_000, (until - clock()) / 2)})
     return {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   }
+  // (the plain law's candidate supports, exists.ts's ghostSupports: Houdini within a quarter of what is left, each with the
+  // rest assumed, the failing dropped, until none fails; then the set through `back`, the ∃ verdict as the search's)
+  if (sk?.cands.length) {
+    const tm = target.machine, hUntil = clock() + (until - clock()) / 4
+    let keep = [...sk.cands]
+    for (let round = 0; round < 8 && clock() < hUntil; round++) {
+      const ls = withKinds(target, [...fresh.map(f => f.law), ...sought, ...keep])
+      const drop = keep.filter(c => clock() >= hUntil || !withDeadline(Math.min(hUntil, clock() + 3_000), () => proveLaw(tm, ls, ls.indexOf(c))).proven)
+      if (clock() >= hUntil) break
+      if (!drop.length) {
+        const b = back(target, keep.map(law => ({law})))
+        if (b.proven && b.checked) { const found = keep.map(law => ({law, text: law.name})); return {...b, proven: true, checked: true, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])} }
+        break
+      }
+      keep = keep.filter(c => !drop.includes(c))
+    }
+  }
   const inf = withWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {join: 0} : {})}))
   if (!(inf.proven && inf.checked)) {
     // The sum of each map the step writes (withMapSums): the search again over the rule with them, within half of what
