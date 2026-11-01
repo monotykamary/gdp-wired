@@ -478,10 +478,10 @@ const takenOf = (m: Machine) => new Set([...Object.keys(m.maps ?? {}), ...(m.inp
 // The laws about every key with one value ∃x. P made plain by their ghost maps (Skolem functions the step keeps): for
 // each, the first ghost map whose laws hold on the small instances, as proveSome's toMap picks it (the same names), and
 // the law with x at W[k] beside the ghosts' own laws. What the ∀ search takes: a set it proves over the machine with the
-// ghosts is, with the ∃ laws in place of their plain forms, proveSome's to prove again (the kernel's), its maps the same.
-// (`ghost`: the ghosts added to a machine the search derives from the rule's (its sums, its divisors), unchecked: the
-// search is untrusted, and proveSome checks the ghosts it proves with; the laws as proveSome states them, so that the
-// goals the search settled are its again)
+// ghosts, the ghosts the original's (`ok`, kernel.ts's ghostedOk), proves each ∃ law, x at its ghost's cell (GhostMap.lean's
+// forall_some_of_ghostmap); proveSome's ghost maps are the same, for a proof again of the laws as stated.
+// (`ghost`: the ghosts added to a machine the search derives from the rule's (its sums, its divisors), unchecked: `ok`
+// checks them against the original; the laws as proveSome states them, so that the goals the search settled are its again)
 export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Machine, laws: Law[], names: string[], ok: (m2: Machine) => boolean, witnesses: Record<string, string>} | undefined {
   const taken = takenOf(m), out: Law[] = [], gs: MapGhost[] = []
   const add = (m2: Machine, g: MapGhost) => ghostedMachine({orig: m2, vars: {}, maps: {...(g.inner ? {[g.inner.name]: {start: 0, write: g.inner.write}} : {}), [g.name]: {start: 0, write: g.write}}})
