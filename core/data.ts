@@ -1196,8 +1196,14 @@ function proveMeasuresIn(ring: Fn[], sites: Site[], ms: Measure[], until0: numbe
     if (cex) return {failed: `${text}: its ${call} doesn't ${what} at ${JSON.stringify(cex)}`}
     const direct = directly(law, Math.min(2000, left()))
     if (direct) { obligations[from]!.push({law, proof: direct, lemmas: []}); continue }
-    // (where the call's path gives a guarded size law: it, its guard at the call and the size laws, proven in order)
-    const guarded = site ? guardedLaws(law, site, names) : []
+    // (the size laws first, each proven once and used, within 60% of the time left; then proveData without conjectured
+    // lemmas, whose making isn't counted in the budget: by induction and the built-ins, then the definitions unfolded
+    // alone)
+    const lemmas = sizeLaws(law, names)
+    if (dataTrace && lemmas.length) console.error(`[data]   ${law.name}: ${lemmas.map(c => c.name).join('; ')}`)
+    let v: DataVerdict | undefined = lemmas.length ? proveData(law, {lemmas, lemmasFirst: true, ms: Math.min(8000, 0.6 * left())}) : undefined
+    // (then, where the call's path gives a guarded size law: it, its guard at the call and the size laws, proven in order)
+    const guarded = v?.proven || v?.counterexample || !site ? [] : guardedLaws(law, site, names)
     if (guarded.length) {
       // (at most `guardedMs` more for a ring's every measure tried: a refusal isn't slowed past it)
       const more = Math.min(guardedLeft.ms, Math.max(0, clock() + guardedMs.ms - until))
@@ -1205,17 +1211,10 @@ function proveMeasuresIn(ring: Fn[], sites: Site[], ms: Measure[], until0: numbe
       until += more
       // (each guard at the call after the guarded laws its arguments' sizes read there: half of a length from 2 items on)
       const groups = [{laws: sizeLaws(law, names, true), then: false}, ...guarded.flatMap(g => [...guardedLaws(g.laws.at(-2)!, site!, names, true).map(h => ({laws: h.laws, then: false})), {laws: g.laws, then: g.outer}])]
-      const lemmas = groups.flatMap(g => g.laws)
-      if (dataTrace) console.error(`[data]   ${law.name}: ${lemmas.map(c => c.name).join('; ')}`)
-      const v = throughLemmas(law, groups, until)
-      if (v) { obligations[from]!.push({law, proof: v.proof, scheme: v.scheme, lemmas: v.lemmas, lemmaLaws: lemmas.filter(c => v.lemmas.includes(c.name))}); continue }
+      if (dataTrace) console.error(`[data]   ${law.name}: ${groups.flatMap(q => q.laws).map(c => c.name).join('; ')}`)
+      const g = throughLemmas(law, groups, until)
+      if (g) { obligations[from]!.push({law, proof: g.proof, scheme: g.scheme, lemmas: g.lemmas, lemmaLaws: groups.flatMap(q => q.laws).filter(c => g.lemmas.includes(c.name))}); continue }
     }
-    // (the size laws first, each proven once and used, within 60% of the time left; then proveData without conjectured
-    // lemmas, whose making isn't counted in the budget: by induction and the built-ins, then the definitions unfolded
-    // alone)
-    const lemmas = sizeLaws(law, names)
-    if (dataTrace && lemmas.length) console.error(`[data]   ${law.name}: ${lemmas.map(c => c.name).join('; ')}`)
-    let v: DataVerdict | undefined = lemmas.length ? proveData(law, {lemmas, lemmasFirst: true, ms: Math.min(8000, 0.6 * left())}) : undefined
     if (!v?.proven && !v?.counterexample && clock() < until) v = proveData(law, {ms: Math.min(12_000, left()), lemmas: false})
     if (!v?.proven && !v?.counterexample && clock() < until) v = proveData(law, {induction: false, ms: Math.min(4000, left())})
     if (!v || !(v.proven && v.checked)) return {failed: `${text}: its ${call} ${v?.counterexample ? `doesn't ${what} at ${JSON.stringify(v.counterexample)}` : `not proven to ${what}`}`}
