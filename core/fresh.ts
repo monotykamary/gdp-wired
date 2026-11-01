@@ -9,7 +9,7 @@
 // (Houdini: a candidate whose goal fails is dropped, the rest proven again). Nothing new is trusted: what is kept is
 // laws the kernel proves.
 import {type C, type E, type Law, type Machine, type State, evalC, interpret, seeded} from './machine.ts'
-import {clock, counted, fullRate, proveSetFast} from '../kernel/prove.ts'
+import {clock, counted, fullRate, proveSetFast, withDeadline} from '../kernel/prove.ts'
 import {allowed, watch} from './watch.ts'
 import type {Draws} from './live.ts'
 
@@ -17,7 +17,9 @@ const v = (name: string): E => ({op: 'var', name}), get = (map: string, key: E):
 export type FreshLaw = {law: Law, text: string}
 // The budget is counted (kernel/prove.ts's cost model), as the invariant search's is: what is found is the same on any
 // machine. Houdini's set proofs are proveSetFast's, each round reusing the goals the last one settled.
-export const freshLaws = (m: Machine, kinds: Law[], draws: Draws, opts: {ms?: number} = {}): FreshLaw[] => counted(fullRate, () => fresh(m, kinds, draws, opts), true)
+// (the deadline too, so a round's goals stop at the budget's end)
+export const freshLaws = (m: Machine, kinds: Law[], draws: Draws, opts: {ms?: number} = {}): FreshLaw[] =>
+  counted(fullRate, () => withDeadline(clock() + (opts.ms ?? 5000), () => fresh(m, kinds, draws, opts)), true)
 function fresh(m: Machine, kinds: Law[], draws: Draws, opts: {ms?: number}): FreshLaw[] {
   const maps = Object.entries(m.maps ?? {}).filter(([n]) => !(m.inputMaps ?? []).includes(n))
   if (!maps.length || m.history) return []
