@@ -38,6 +38,37 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### A ring's measure, a size across it first (gen/laneK2, with gen/laneN)
+
+The bar on boat, 60 s, `--only tip` (`runs/bar/runs/laneK2-tip-1..3` in the main checkout: this branch at a371468, gen/laneN
+merged with main 35ed7e0, against main 35ed7e0's shared baseline of 3 runs):
+
+| theorems (492) | proven, by run | refused (unsupported) | wrong |
+| --- | --- | --- | --- |
+| gdp-wired, this branch | 212, 210, 208 | 90, 90, 90 | 0 |
+| gdp-wired, main 35ed7e0 | 211, 208, 210 | 95, 95, 95 | 0 |
+
+- The 21 refused as "a ring of functions that isn't structural recursion", by cause: every one has a call of its ring
+  in another's argument (nested recursion: gen/laneN's admission, merged here, the first need of all 21); `models` 5
+  (`propositional_*`), then a weighted size across a ring: `Not (r :&: q)` read again as `r :&: Not q`, no size falls,
+  `Not` weighing its formula twice does; the Stooge sorts 16, then a size and a phase (the sort above its thirds from 3
+  items on, below them under 3) and lemmas about the thirds (below).
+- Closed: the 5 `models` (unsupported to translated: 4 out of time, `propositional_Okay` unknown; none proven, gained 0
+  by the noise rule; lost 0 solid, the 4 lost after reruns, `prod/prop_12`, `isaplanner/prop_60`, `prod/prop_25`,
+  `list_Select`, each solved in some candidate run). Their measure, found: (a fold of the formula, `Not` weighing
+  twice, then the lists' sizes the runs rank), at `models3`, `models2` and `models` each its own parameters.
+- What it took (core/data.ts, the measure's search only, untrusted): `ringFolds`, a ring's first candidates: one
+  datatype's size (plain, then each weighting, the lightest first) at each function's first parameter of it, 0 at one
+  with none, no call of the runs raising it; the calls it leaves equal ranked after it by the LP over the runs
+  (`runsRank`). Each candidate is admitted as before: every call's obligation kernel-checked (Data.lean's
+  `wf_fix_unique_ring`, with a nested call `wf_fix_inv_unique_ring`). Lean's export of such a ring
+  (research/termination/lean-termination.ts's `evRing`: a `mutual` block, `termination_by` a fold then a phase, the inner
+  call's value an atom of the decrease) is checked by Lean 4.34.0, axioms propext, Classical.choice, Quot.sound.
+- Still refused: the Stooge sorts 16. The search finds their measure now (`(size x, 2·size x)` at the sort,
+  `(size x, 7)` at the thirds, or a phase of 6 and 1), and the kernel doesn't prove the first call's decrease: it needs
+  `drop k y` below `y` where k ≥ 1 and y isn't empty (a conditional size law), `length` (an integer) tied to the size so
+  that `div (length x) 3 ≥ 1` from 3 items on, and for the invariant `size(take k y) + size(drop k y) = size(y) + 1`.
+
 ### Nested recursion admitted with an invariant (gen/laneN)
 
 The bar on boat, 60 s, `--only tip` (`runs/bar/runs/laneN-m-tip-1..4` in the main checkout: this branch merged with
