@@ -196,6 +196,67 @@ points, the request prefilter; core/dsl.ts +2,659: the plain search and its verd
 search off, and through the EPR path).
 
 
+### gen/laneY, round 2: main d783ef9 merged; the engine's template with each map's parts sorts of their own (sharded_kv and consensus_forall proven); the ghosts back in the views (firewall); gulv_simp and the three treadmill flags noise
+
+d783ef9 merged into gen/laneY (f69c72a). Everything on boat, gate class, `--timing`; runs in `runs/laneY/`.
+
+- **gulv_simp** (CHC, alone per VM, 5 runs a side in one window, candidate against 6b96a0f): sat 31.7 / 31.5 / 27.0 / 28.7 /
+  unknown 59.5 against sat 29.4 / 36.9 / 35.9 / 30.1 / 27.6. The answer is IMC's at 15-30 s on both sides, and the task
+  reaches no changed code (no ∃ law, no engine view, no EPR goal): noise.
+- **The three treadmill flags** (alone per VM, 3 runs each, at the flagged commit's parent, the commit, 6b96a0f, d783ef9
+  and the head): the counted work is the same everywhere, the walls overlap. simple_decentralized_lock work 251153 / full
+  444702 at every commit (a00fcee 6.1/3.3/4.0, 75c1171 6.6/4.4/3.9, 6b96a0f, d783ef9 and head 3.2-4.1); client_server_ae
+  work 385023 / full 358828 everywhere (029b9ea 3.0/2.8/3.3, 2bbb3a7 3.4/2.8/3.7, 6b96a0f 3.3/2.9/3.2, d783ef9 3.5/3.0/2.7,
+  head 5.2/4.2/2.8); toy_consensus_epr (counted, no work printed): 2bbb3a7 7.3/6.1/5.1, a5ef5c8 7.1/4.3/4.2, 6b96a0f
+  6.0/4.1/6.9, d783ef9 5.6/4.1/4.9, head 5.1/4.3/5.7. Machine noise, no cost to fix.
+- **Fine sorts** (infer.ts keySorts(..., fine), the engine's template only): each map's key parts a sort of their own
+  (`M:map:i`) instead of all composed parts in one hi/lo pair, linked by the step's and the laws' reads as before, and a
+  cell's value linked to the keys it is compared with (`V:map`); a k-part map's slot widths count its multi places (`c +
+  1` from 2); a key at a lower part bounded below N in the frame; a two-part map whose row is a function's value
+  (ring's Pending[idn(x)·N + y]) placed through that function. The cause shared by sharded_kv and consensus_forall: node
+  and key one sort, so "two transfers of one key" and "a vote and a decision at one value" were in no view. sharded_kv
+  proven 10.3-14.0 s (7 of 8 runs; one VM whose bun install took 265 s: 66.8 s, the same counted work); consensus_forall
+  proven in every run, 49.9-79.5 s with the same counted work in each (work 39583911): within 60 s in 3 of 6.
+- **firewall's regression on the merged head and its fix** (931998e): the merge's `ghosts` option kept the search's ghost
+  maps out of the engine's views and composed places (for db_ae's junk cubes); firewall's plain law reads its ghost
+  (Sent[64·AllowedIn$w[d] + d]), so the caller's cube never formed (unknown 42.7 s, coarse and fine alike). Ghosts back in
+  the views: firewall 18.6-28.8 s; db_ae's run ends in time either way now (join 0), unknown at 61-76 s with or without.
+- **Slimmed**: the request prefilter, the literal values, the join's twentieth and its share out (ablations: firewall
+  18-25 s without each); the `ghosts` option out (931998e); the provenance supports out (632cdc0: db_ae unknown at 62-70 s
+  with them, 79-88 s without; firewall's counted work identical). Two type errors the build's tsc refused fixed (d1d8473).
+
+| protocol (60 s, alone per VM) | main d783ef9 (r1 / r2) | gen/laneY head (r1 / r2, + reruns) | what closed it |
+| --- | --- | --- | --- |
+| firewall | unknown 106.6 / 49.4 | proven 22.9 / 28.8 | the ∃ law's plain search over its ghost (round 1); ghosts in the views |
+| sharded_kv | unknown 69.3 / 69.9 | proven 13.4 / (66.8 slow VM), 14.0 / 10.3 / 13.4 | fine sorts |
+| consensus_forall | unknown 153.9 / 61.5 | (VM stall, no output) / proven 51.6, 49.9 / 79.5 / 62.2 | fine sorts (inside 60 s half the time) |
+| consensus_epr | proven 89.6 / 39.6 | proven 34.8 / 34.2 | |
+| consensus_wo_decide | proven 50.5 / 37.9 | proven 26.3 / 26.0 | |
+| client_server_db_ae | unknown 132.5 / 137.2 | unknown 68.7 / 62.6 | open: no diagram from the engine |
+| mldr | unknown 150.8 / 108.8 | unknown 69.7 / 69.2 | open: term-order laws between cells |
+| paxos_epr | unknown 147.1 / 166.0 | unknown 114.6 / 83.3 | open: the choosable-quorum ∀∃ law |
+| sharded_kv_no_lost_keys | unknown 124.0 / 122.6 | unknown 120.3 / 124.1 | open: ∃ owner ∨ ∃ transfer, two binders |
+| learning_switch, learning_switch_i4 | unknown 122-125 | unknown 122-146 (i4 on 4 GB: killed, as on 6b96a0f; peak 6.5-13.1 GB against main's 7.8-11.2 GB) | open |
+
+Every run within 60 s: 21 of 29 (main d783ef9: 19); in some run: 23 (main 20). The other 18 proven on both sides
+at like walls; every broken variant refused or unknown on both sides. DuoAI ten, 3 runs each: 30 of 30 proven, 3.0-42.2 s
+(wo 19.3-42.2, ring 19.7-22.6, ticket 18.9-31.2).
+
+- **Quick bar** 931998e against d783ef9 (<main>/runs/bar/runs/laneY-931998e-quick/REPORT.md; c4bd425's too): wrong 0
+  everywhere, nothing lost solid in any benchmark; the losses are flips at the time limit (answers past 45 s). TIP's
+  unknowns as timeouts (+14.67): the 12 tasks that flipped, run on base and head together (`tipb`, `tipc`), time out
+  alike on both (base 5 of 12, head 4 of 12; head's unknowns sooner): the shared baseline's load, not the code. dag: the
+  same search on 331 of 332, the one other the base's wall stop (55 s against the candidate's 12 s). 632cdc0 differs
+  from 931998e by the type fixes and code removed from the ∃ path only.
+- **Tests** (`bun run test`, 16 GB VM): c4bd425 396 of 397, the one the packed-tarball test, whose build's tsc refused two
+  type errors (fixed in d1d8473: core/exports.test.ts 19 of 19 there, as on d783ef9). 632cdc0: 395 of 397 on a slow VM (the
+  suite 2,726 s against 1,199 s), the pool test at 454 s and weak fairness at 6.1 s past bun's 5 s; alone, two runs a side:
+  both pass on both, the pool test 53-58 s against d783ef9's 91-95 s, weak fairness 3.9-4.6 s against 2.6-4.3 s.
+- **Nothing trusted changed**: kernel/kernel.ts, core/check.ts, kernel/cyclic.ts, lean-kernel/ untouched; no Lean step.
+
+**Bytes** (core/ and kernel/ .ts without tests, against d783ef9): +12,018 (core/exists.ts +5,383, core/dsl.ts +2,771,
+core/infer.ts +2,089, kernel/epr.ts +1,769, core/watch.ts +6).
+
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
 
 Held: the lazy hypotheses (kernel/prove.ts) cost the step goals time (g332 391 s against 354) and read 18 against 20 at
