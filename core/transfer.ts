@@ -177,6 +177,7 @@ function rewriter(bridges: Map<string, Op>, copies: Map<string, string>, unfold:
 const valueOf = (s: Sort, x: X): Nat | Bool | Val | Integer => (s === 'nat' ? new Nat(x) : s === 'bool' ? new Bool(x.op === 'bool' ? x.c : {op: 'holds', x}) : s === 'int' ? new Integer(x) : new Val(s, x))
 // The copies made, by function and bridges (a law proven again reads the same copies).
 const made = new WeakMap<Fn, Map<string, string>>()
+const refused = new Set<string>()
 const freshName = (base: string) => { let n = base; for (let i = 2; fnNamed(n); i++) n = `${base}${i}`; return n }
 
 type Built = {p: Program, lstar: DataLaw, bridges: {fn: Fn, op: Op, law: DataLaw}[], equivs: {fn: Fn, law: DataLaw}[], copies: Map<string, string>, unfolded: boolean}
@@ -189,7 +190,7 @@ function build(l: DataLaw, bridged: Map<string, Op>, unfold: boolean): Built | u
   for (let changed = true; changed;) { changed = false; for (const f of p0.fns) if (!bridged.has(f.name) && !unfolded(f.name) && !reach.has(f.name) && callsOf(f.body()).some(g => bridged.has(g) || unfolded(g) || reach.has(g))) { reach.add(f.name); changed = true } }
   if ([...reach].some(n => fnOf(n).ring.length > 1)) return undefined
   const key = `${unfold}|${[...bridged].map(([f, op]) => `${f}:${op.name}`).sort().join(',')}`, copies = new Map<string, string>()
-  for (const n of reach) { const f = fnOf(n), had = made.get(f)?.get(key); if (had && fnNamed(had)) copies.set(n, had) }
+  for (const n of reach) { const f = fnOf(n), had = made.get(f)?.get(key); if (had && refused.has(had)) return undefined; if (had && fnNamed(had)) copies.set(n, had) }
   for (const n of reach) {
     if (copies.has(n)) continue
     const f = fnOf(n), name = freshName(`${n}_bi`)
@@ -205,6 +206,9 @@ function build(l: DataLaw, bridged: Map<string, Op>, unfold: boolean): Built | u
     try { body = rewriter(bridged, copies, unfold, ren).rx(f.body()) } catch (e) { if (e instanceof RangeError) return undefined; throw e }
     define(name, Object.fromEntries(f.params.map(q => [q.name, q.sort])), f.ret, () => valueOf(f.ret, body))
   }
+  // (a copy whose recursion isn't taken where the original's is, a well-founded call left nested in the match of an
+  // unfolded definition, bmerge's in stitch's: no copies of these)
+  for (const n of reach) { const name = copies.get(n)!; try { void fnOf(name).ring } catch { refused.add(name); return undefined } }
   let holds: Y
   try { holds = rewriter(bridged, copies, unfold).ry(l.holds) } catch (e) { if (e instanceof RangeError) return undefined; throw e }
   const lstar: DataLaw = {name: `${l.name}, said through ${[...bridged.keys()].length ? 'the built-ins' : 'its definitions'}`, vars: l.vars, holds, params: l.params}
