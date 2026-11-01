@@ -8,7 +8,7 @@
 import {readFileSync} from 'node:fs'
 import {join} from 'node:path'
 
-type Job = {name: string, cmd: string, cwd?: string, cpu?: number, memory?: number, timeout?: number}
+type Job = {name: string, cmd: string, cwd?: string, cpu?: number, memory?: number, timeout?: number, image?: string}
 // The checker's builds: the bundle and the WebAssembly module (interchange/tools.sh's Javy and Wasmtime), the compiled
 // executable, and the npm package's dist (scripts/build.ts: the bin a user runs, compiled by tsc)
 const setup = [
@@ -28,7 +28,7 @@ if (process.argv[2] === '--corpus') {
 const jobs = [...JSON.parse(readFileSync(join(import.meta.dir, '..', 'supercomputer', 'suite.json'), 'utf8')) as Job[], {name: 'examples-rest', cmd: 'bun examples/guide.ts 2>&1 && bun examples/wide.ts 2>&1', cwd: '.', timeout: 900}]
 const only = process.argv[2] ? new RegExp(process.argv[2]) : undefined
 const wrap = (j: Job): Job => ({
-  name: `ix-${j.name}`, cwd: '.', ...(j.cpu ? {cpu: j.cpu} : {}), ...(j.memory ? {memory: j.memory} : {}), timeout: (j.timeout ?? 900) + 1200,
+  name: `ix-${j.name}`, cwd: '.', ...(j.cpu ? {cpu: j.cpu} : {}), ...(j.image ? {image: j.image} : {}), ...(j.memory ? {memory: j.memory} : {}), timeout: (j.timeout ?? 900) + 1200,
   cmd: [
     ...setup,
     // every bun the command starts (a script or a test run) with the capture preloaded
