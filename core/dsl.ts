@@ -2785,27 +2785,28 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   const tailAt = () => performance.now() + Math.max(0, until - tail - clock())
   // (a law about every key with "there exists": the search over its plain form, the value at its ghost map's cell, the
   // ghosts' own laws beside it, on the rule with the ghosts (exists.ts's skolemOf); a set found there is proven again with
-  // the ∃ laws in their place, proveSome's ghost maps the same)
+  // the ∃ laws in their place, proveSome's ghost maps the same; the join's convex forms, which can't state a cell read at a
+  // key a ghost holds, a twentieth of it, the engine's diagrams the rest)
   const sk = !stepLaws.length && laws.some(l => l.some?.length && l.forall) ? skolemOf(rule.machine, laws) : undefined
   const target = sk ? rule.withGhosts(sk.ghost) : rule, sought = sk?.laws ?? laws
-  const back = (found: {law: Law}[]): Verdict => {
+  // (the set the search proved, as it proved it, over the rule with the ghosts (its goals settled again where they stand),
+  // the ghosts checked to be the original's (kernel.ts's ghostedOk): each law with "there exists" holds, its value at its
+  // ghost map's cell (GhostMap.lean's forall_some_of_ghostmap); else proveSome's own proof of the laws as stated)
+  const back = (over: typeof rule, found: {law: Law}[]): Verdict => {
     if (!sk) return {proven: true, checked: true}
-    // (the set's goals settled over the same ghosted machine as the search settled them: kernel/prove.ts's proveSetFast)
-    // (else the usual proof: the fast one reads each law's instances by sort, which a key read from a map can leave short)
-    const ls = [...withKinds(rule, laws), ...found.map(f => f.law)], mapMs = Math.max(5_000, (until - clock()) / 2)
-    let out = proveSome(rule.machine, ls, {whole: proveSetFast, mapMs})
-    if (!out.proven) out = proveSome(rule.machine, ls, {mapMs})
-    if (knobs.GDP_Y && !out.proven) console.error(`[Y back] ${JSON.stringify(out.failed)?.slice(0, 600)} FOUND ${JSON.stringify(found.map(f => f.law))}`)
+    const plain = over === target ? proveRule(over, [...fresh.map(f => f.law), ...sought, ...found.map(f => f.law)], {search: false, fast: true}) : undefined
+    if (plain?.proven && plain.checked && sk.ok(rule.machine)) return {proven: true, checked: true, witnesses: sk.witnesses}
+    const out = proveSome(rule.machine, [...withKinds(rule, laws), ...fresh.map(f => f.law), ...found.map(f => f.law)], {mapMs: Math.max(5_000, (until - clock()) / 2)})
     return {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   }
-  const inf = withWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {ghosts: sk.names} : {})}))
+  const inf = withWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {ghosts: sk.names, join: 0.05} : {})}))
   if (!(inf.proven && inf.checked)) {
     // The sum of each map the step writes (withMapSums): the search again over the rule with them, within half of what
     // is left (at most 20 s), where a law of cells against a total needs one (no ERC20 balance past the supply).
     const summed = target.withMapSums()
     if (summed && until - clock() - tail > 1000) {
       const inf2 = withWall(tailAt(), () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2), ...(sk ? {ghosts: sk.names} : {})}))
-      if (inf2.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; const b = back([...fresh, ...found]); if (b.proven && b.checked) return {...verdict, ...b, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])} }
+      if (inf2.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; const b = back(summed, found); if (b.proven && b.checked) return {...verdict, ...b, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])} }
     }
     // (a step law's ghost: at most 10 s of it, as its goals cost more than the laws')
     const deep = bounded(Math.max(0, Math.min(until - clock(), ghosted && !laws.length ? 10_000 : Infinity)), Math.max(1, reached), true)
@@ -2814,7 +2815,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   }
   const {found, stats: _stats, ...verdict} = inf
   void _stats
-  const b = back([...fresh, ...found])
+  const b = back(target, found)
   if (!(b.proven && b.checked)) return {...v, ...b, why: [v.why, 'the set found over the ghost maps is not proven with the laws as stated'].filter(Boolean).join('; ')}
   return {...verdict, ...b, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}
 }

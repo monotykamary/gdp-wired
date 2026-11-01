@@ -479,7 +479,7 @@ const takenOf = (m: Machine) => new Set([...Object.keys(m.maps ?? {}), ...(m.inp
 // (`ghost`: the ghosts added to a machine the search derives from the rule's (its sums, its divisors), unchecked: the
 // search is untrusted, and proveSome checks the ghosts it proves with; the laws as proveSome states them, so that the
 // goals the search settled are its again)
-export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Machine, laws: Law[], names: string[]} | undefined {
+export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Machine, laws: Law[], names: string[], ok: (m2: Machine) => boolean, witnesses: Record<string, string>} | undefined {
   const taken = takenOf(m), out: Law[] = [], gs: MapGhost[] = []
   const add = (m2: Machine, g: MapGhost) => ghostedMachine({orig: m2, vars: {}, maps: {...(g.inner ? {[g.inner.name]: {start: 0, write: g.inner.write}} : {}), [g.name]: {start: 0, write: g.write}}})
   const ghost = (m2: Machine) => gs.reduce(add, m2)
@@ -493,7 +493,11 @@ export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Mach
     void _s
     out.push({...plain, holds: g.holds}, ...(g.inner ? [g.inner.inv] : []), g.inv)
   }
-  return gs.length ? {ghost, laws: out, names: gs.flatMap(g => [g.name, ...(g.inner ? [g.inner.name] : [])])} : undefined
+  const witnesses: Record<string, string> = {}
+  laws.filter(l => l.some?.length).forEach((l, i) => { const g = gs[i]!; witnesses[l.name] = `w = ${g.name}[${showE(g.at)}], ${g.name}[${showE(g.write.key)}] := ${showE(g.write.value)}` })
+  // (each ghost one of the machine it is added to, as kernel.ts's ghostedOk reads it)
+  const ok = (m2: Machine) => { let at = m2; for (const g of gs) { const o: Ghosted = {orig: at, vars: {}, maps: {...(g.inner ? {[g.inner.name]: {start: 0, write: g.inner.write}} : {}), [g.name]: {start: 0, write: g.write}}}; if (!ghostedOk(o)) return false; at = ghostedMachine(o) } return true }
+  return gs.length ? {ghost, laws: out, names: gs.flatMap(g => [g.name, ...(g.inner ? [g.inner.name] : [])]), ok, witnesses} : undefined
 }
 const firstPicks = new Map<string, {mode: 'term', at: number[]} | {mode: 'map', at: number}>()
 // The machine with a ghost map (kernel.ts's ghostedMachine of Ghosted, whose ghostedOk it must pass).
