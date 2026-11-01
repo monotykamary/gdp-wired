@@ -4,7 +4,7 @@
 // request's view, a law's at the state), by brute force.
 import {describe, expect, test} from 'bun:test'
 import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, seeded, times, x} from '../core/machine.ts'
-import {type CountCert, type CountInst, type MapRead, type Tree, check, checkCountedLaws, checkMC, countedObligations, mcGoal, obligations} from './kernel.ts'
+import {type CountCert, type CountInst, type MapRead, type Tree, substE, check, checkCountedLaws, checkMC, countedObligations, mcGoal, obligations} from './kernel.ts'
 import {clock, grow} from './prove.ts'
 import {countedProof, pickExample, toyCounted, toyRounds} from '../lean-kernel/count-examples.ts'
 import {searchCounted} from '../core/counts.ts'
@@ -416,6 +416,18 @@ describe('picks: a count at least its body at distinct keys', () => {
     const c = searchCounted(pe.m, pe.laws, 10_000)
     expect(c.proven).toBe(true)
   }, 120_000)
+})
+describe('names that are an object\'s own properties (terra\'s review, gen/laneC3)', () => {
+  test('a map or variable named constructor, toString or __proto__ is read as itself, not as a property of {}', () => {
+    for (const name of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+      const e: E = {op: 'get', map: name, key: x(name)}
+      expect(substE(e, {vars: {}, maps: {}, flags: {}})).toEqual(e)
+      const ds = [{map: 'c', j: 'x', key: 'k', below: n(2), body: get(name, x('k'))}]
+      const hyps: C[] = [same(get('c', n(0)), n(0))], k = {reads: [['r0', 'c', n(0)]] as MapRead[], insts: [] as CountInst[], picks: [['r0', [n(1)]]] as [string, E[]][]}
+      const g = mcGoal(hyps, ds, k)!, o = grow(g, new Map(), {nodes: 0, until: clock() + 3_000})
+      expect('tree' in o && checkMC(hyps, ds, {...k, tree: (o as {tree: Tree}).tree})).toBe(false)
+    }
+  })
 })
 const one1 = n(1)
 const refusedRounds = (named: Named) => {
