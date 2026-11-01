@@ -19,6 +19,15 @@ const hm: ReturnType<typeof define> = define('thmerge', {x: Heap, y: Heap}, Heap
   node: ({l: z, v: x2, r: x3}) => L(y).match({node: ({l: x4, v: x5, r: x6}) => when(N(x2).atMost(x5), Heap.node(hm(x3, y), x2, z), Heap.node(hm(x, x6), x5, x4)), nil: () => L(x)}),
   nil: () => L(y)}))
 const toList: ReturnType<typeof define> = define('ttoList', {x: Heap}, Nats, ({x}) => L(x).match({node: ({l, v, r}) => Nats.cons(v, toList(hm(l, r))), nil: () => Nats.nil}))
+// A ring weighted across its functions, with a call in another's argument (TIP's propositional models): ¬(l ∧ r) read
+// again as l ∧ ¬r, its measure (a fold of the formula, Not weighing twice, then 1 at tboth and 0 at tev), Lean's
+// `mutual` block, `termination_by` each, the nested call's value an atom of the decrease.
+const Form = data('TForm', {and: {l: self, r: self}, not: {f: self}, atom: {}})
+const ev: ReturnType<typeof define> = define('tev', {f: Form, k: natural}, natural, ({f, k}) => L(f).match({
+  and: ({l, r}) => N(both(r, ev(l, k))),
+  not: ({f: g}) => L(g).match({and: ({l, r}) => N(ev(Form.and(l, Form.not(r)), k)), not: ({f: h}) => N(ev(h, k)), atom: () => N(k)}),
+  atom: () => N(k).plus(2)}))
+const both: ReturnType<typeof define> = define('tboth', {f: Form, k: natural}, natural, ({f, k}) => N(ev(f, N(k).plus(1))))
 // Bitonic sort's halves (examples/data.ts): bmerge's and bsort's calls on evens and odds, below by the halves' size law
 // (2·size(evens(x)) <= size(x) + 2 and 2·size(odds(x)) <= size(x) + 1, one law proven by induction on both at once);
 // a skew heap over the user's ≤ read off, its merge's size law proven by cases on that ≤.
@@ -29,6 +38,7 @@ export const laws: Record<string, () => DataLaw> = {
   // export gap outside termination)
   bsortNil: () => law('bitonic sort of the empty list', {}, () => L(bsort(List.nil)).eq(List.nil)),
   heapListOne: () => law('one node read off a heap over the user\'s ≤', {v: natural}, ({v}) => L(heapList(UHeap.node(UHeap.nil, v, UHeap.nil))).eq(List.cons(v, List.nil))),
+  evRing: () => law('an atom under two nots, read by both', {k: natural}, ({k}) => N(both(Form.not(Form.not(Form.atom)), k)).eq(N(k).plus(3))),
 }
 if (import.meta.main) {
   const only = process.env.ONLY?.split(',')

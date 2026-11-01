@@ -1016,6 +1016,13 @@
 "timeout": 1800
 },
 {
+"name": "guarded",
+"cmd": "bun test guarded.test.ts 2>&1",
+"cwd": "core",
+"cpu": 2.0,
+"timeout": 900
+},
+{
 "name": "hypothesis",
 "cmd": "bun test hypothesis.test.ts 2>&1",
 "cwd": "core",

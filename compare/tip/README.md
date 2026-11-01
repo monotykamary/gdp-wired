@@ -38,6 +38,116 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### Termination through guarded size laws (gen/laneZ)
+
+The bar on boat, 60 s, `--only tip` (`runs/bar/runs/laneZ-23c27f0-tip1..3` in the main checkout: this branch at 23c27f0
+against main 35ed7e0's shared baseline of 3 runs):
+
+| theorems (492) | proven | refused (unsupported) | wrong |
+| --- | --- | --- | --- |
+| gdp-wired, this branch | 210, 210, 213 | 83, 83, 83 | 0 |
+| gdp-wired, main 35ed7e0 | 211, 208, 210 | 95, 95, 95 | 0 |
+
+- Admitted now, 12: the selection sorts `sort_SSort*` and `sort_nat_SSort*` (8: `ssort`'s call on the list without its
+  minimum) and the merge sorts by halves over Peano naturals `sort_nat_NMSortTD*` (4: take and drop at half the
+  length). None is proven within 60 s yet (timeout or unknown: their laws need the sorts' own lemmas, a count through a
+  delete under the same guard); gained 0 by the noise rule (the branch's lowest run below main's highest), lost 0 solid
+  (`isaplanner/prop_50`, `prod/lemma_05` at the limit, solved in reruns), wrong 0 in every run.
+- What it took (core/data.ts, the termination's search only; the obligations and their check unchanged): where a
+  call's obligation isn't proven at one node, `guardedLaws` conjectures `guard ⇒ S(g(y…)) + a ≤ S(yᵢ) + b` for each
+  function g of the call's argument whose bound the guard lowers. The guard's atoms are what the call's path gives g's
+  arguments on its values: a size at least c, one argument's size at least another's plus d, and that g's run ends at a
+  leaf of its body (`reaches`: a predicate defined for it, structural as g is; delete's run finding the item is
+  membership). The atoms the lowered bound doesn't need are dropped. With it, the guard at the call (a law over the
+  call's path, its step at a constructor unfolded once before it) and, where the guard bounds a call below, guarded
+  lower bounds (`2 ≤ n ⇒ 1 ≤ half(n)`, `3 ≤ size(x) ⇒ 2 ≤ length(x)`, the equations' lower halves): all proven in order
+  by the kernel, each above the ones before (`throughLemmas`), then the obligation above them; `guardedMs` (12 s a ring
+  at most) beside the measure's budget. Search fix: a lemma's nodes are placed before its uses are read
+  (`attempt`), so a lemma proven above fewer lemmas is placed right.
+- Refused, as before: adversarial definitions in examples/data.ts, `removeNear` (a remove that takes the item out only
+  with fewer than 9 after it: its guarded law is true, its guard at the call holds only on the runs' short lists) and
+  `takeNear` (a take that keeps the list from n = 9 on: its guarded law holds on the runs' values only); both refused,
+  core/data.test.ts.
+- Still refused: the integer merge sorts `sort_MSortTD*` (4: take's count is an integer, which no guard atom reads,
+  and the kernel's integer arithmetic leaves take's own size law unknown at its time) and the Stooge sorts (16). With
+  gen/laneK2 merged (gen/laneN's nested recursion and K2's ring measures, (size x, 2·size x) at the sort and
+  (size x, 6) at the thirds), a guard where a lexicographic measure's rest stays and the helpers unfolded
+  (gen/laneZ-stooge, not merged): the chain proves the size laws of ++, reverse, length and third, `4 ≤ n ⇒ 1 ≤
+  third(n)` and the reverse's and length's guarded lower bounds, but not the guard at the call, which at 3 items needs
+  n ≤ 3·third(n) + 2 (a third's lower bound); over Int, the guard reads an integer. The Lean export doesn't replay a
+  chain of lemmas yet (each lemma by its own tactic, the obligation's instances at its variables only): the new laws are
+  checked by the TS kernel, not in Lean.
+
+### A ring's measure, a size across it first (gen/laneK2, with gen/laneN)
+
+The bar on boat, 60 s, `--only tip` (`runs/bar/runs/laneK2-tip-1..3` in the main checkout: this branch at a371468, gen/laneN
+merged with main 35ed7e0, against main 35ed7e0's shared baseline of 3 runs):
+
+| theorems (492) | proven, by run | refused (unsupported) | wrong |
+| --- | --- | --- | --- |
+| gdp-wired, this branch | 212, 210, 208 | 90, 90, 90 | 0 |
+| gdp-wired, main 35ed7e0 | 211, 208, 210 | 95, 95, 95 | 0 |
+
+- The 21 refused as "a ring of functions that isn't structural recursion", by cause: every one has a call of its ring
+  in another's argument (nested recursion: gen/laneN's admission, merged here, the first need of all 21); `models` 5
+  (`propositional_*`), then a weighted size across a ring: `Not (r :&: q)` read again as `r :&: Not q`, no size falls,
+  `Not` weighing its formula twice does; the Stooge sorts 16, then a size and a phase (the sort above its thirds from 3
+  items on, below them under 3) and lemmas about the thirds (below).
+- Closed: the 5 `models` (unsupported to translated: 4 out of time, `propositional_Okay` unknown; none proven, gained 0
+  by the noise rule; lost 0 solid, the 4 lost after reruns, `prod/prop_12`, `isaplanner/prop_60`, `prod/prop_25`,
+  `list_Select`, each solved in some candidate run). Their measure, found: (a fold of the formula, `Not` weighing
+  twice, then the lists' sizes the runs rank), at `models3`, `models2` and `models` each its own parameters.
+- What it took (core/data.ts, the measure's search only, untrusted): `ringFolds`, a ring's first candidates: one
+  datatype's size (plain, then each weighting, the lightest first) at each function's first parameter of it, 0 at one
+  with none, no call of the runs raising it; the calls it leaves equal ranked after it by the LP over the runs
+  (`runsRank`). Each candidate is admitted as before: every call's obligation kernel-checked (Data.lean's
+  `wf_fix_unique_ring`, with a nested call `wf_fix_inv_unique_ring`). Lean's export of such a ring
+  (research/termination/lean-termination.ts's `evRing`: a `mutual` block, `termination_by` a fold then a phase, the inner
+  call's value an atom of the decrease) is checked by Lean 4.34.0, axioms propext, Classical.choice, Quot.sound.
+- The quick bar against main 35ed7e0 (`runs/bar/runs/laneK2-quick`): wrong 0 everywhere, nothing lost solid, CHC +7,
+  ITS +1.3, SV +1.3, the rest level, the 1-vCPU tests level; the suites (`laneK2-suite2`) 240 of 243 and 241 of 243
+  against main's 240 and 240, lost 0 solid. core/data.ts +2,966 bytes over gen/laneN's (lean-kernel/data.ts +342).
+- Still refused: the Stooge sorts 16. The search finds their measure now (`(size x, 2·size x)` at the sort,
+  `(size x, 7)` at the thirds, or a phase of 6 and 1), and the kernel doesn't prove the first call's decrease: it needs
+  `drop k y` below `y` where k ≥ 1 and y isn't empty (a conditional size law), `length` (an integer) tied to the size so
+  that `div (length x) 3 ≥ 1` from 3 items on, and for the invariant `size(take k y) + size(drop k y) = size(y) + 1`.
+
+### Nested recursion admitted with an invariant (gen/laneN)
+
+The bar on boat, 60 s, `--only tip` (`runs/bar/runs/laneN-m-tip-1..4` in the main checkout: this branch merged with
+main 55eafec, against its shared baseline of 3 runs; runs 1 and 2 beside a 235-job mutant and test batch on boat,
+run 4 alone):
+
+| theorems (492) | proven | refused (unsupported) | wrong |
+| --- | --- | --- | --- |
+| gdp-wired, this branch | 211, 203, 208, 209 | 93, 95, 95, 95 | 0 |
+| gdp-wired, main 55eafec | 210, 210, 209 | 95, 95, 95 | 0 |
+
+- Gained 0 by the noise rule (the branch's lowest run below main's highest), lost 0 solid: the losses after reruns
+  (`list_PairOdds`, `list_nat_PairOdds`, `prod/lemma_05` in run 2, one in run 3) each solved in some candidate run,
+  under the batch's load (the change runs only in a non-structural definition's termination); run 4 alone gained 1
+  and lost 0. Wrong 0 in every run. Before the merge, against main 6b96a0f: 213,
+  212, 213 against 209, 213, 212, refused 94-95 on both sides.
+- What it took (trusted, core/data.ts and lean-kernel/Data.lean): a call of the ring in another's argument or condition
+  is no longer refused. Data.lean's `wf_fix_inv_unique_ring` (and `wf_fix_inv_unique`, its ring of one): a functional
+  that, wherever g and h agree below x's measure and g keeps an invariant I there, gives F g x = F h x and keeps I at x,
+  has exactly one fixpoint, which keeps I; the decrease and the invariant by one well-founded induction (Lean 4.34.0,
+  axioms propext, Classical.choice, Quot.sound). The TS check line for line: each call's obligation (`obligation`) and
+  each value a body ends at keeping its function's invariant (`keeps`, the body's `leaves`), every call of the ring in
+  the law read as a new variable r under `lexLt(μ_callee(a), μ_caller(x)) ⇒ I_callee(a, r)` (`lifted`), which holds at
+  r = g(a) whatever a is; a call under a match's case with no condition to put its hypothesis at is refused. Invariants
+  (untrusted search, `invariantsOf`): none first, then how a function's value's size relates to an argument's, as its
+  values give it. research/termination/Nested.lean defines `nz` (nz(n + 1) = nz(nz(n)), its value at most its argument)
+  and `nest` (nest(x :: xs) = x :: nest(nest(xs)), its length kept) through the theorem from the same obligations.
+- Still refused, all 25, now by their measures, not by the nesting: the Stooge sorts (16, `StoogeSort*` and
+  `nat_NStoogeSort*`: no measure the search tries falls, the ring's call from a list of 2 items to the sort at the same
+  list; given by hand the measure (size, a phase falling to 0 from 4 items on) and the invariant `size(f(x)) =
+  size(x)`, the kernel doesn't prove the first call's decrease, `size(drop(len(x) / 3, reverse(x))) < size(x)` from 4
+  items on: it needs `reverse`'s and `drop`'s size laws with the count dropped, a conditional size law),
+  `models` 5 (a ring whose formula's measure weighs `Not` double, a weighted fold across a ring), `subst` 2 (its outer
+  call is on a renamed body as big as the argument: no size of the parameters falls), McCarthy's `m` 2 (over Int: its
+  measure 101 − x reads the integer below 0, where the measure's `toNat` stays 0).
+
 ### Termination through halves and the user's ≤ (gen/laneM)
 
 Three runs of this branch (6044b83, `runs/m/tipc1..3` in its worktree) against main 35ed7e0's shared baseline
