@@ -2790,7 +2790,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // (the cubes alone: the engine's enumeration on the small instance and the data filter, then out)
     if (opts.cubes) { engine(); return {...first, proven: false, found: (cubesOut ?? []).filter(f => f.cube!.length <= opts.cubes!).map(f => ({law: lawFor(f), text: textOf(f)})), stats: stats(0, 0, 0)} }
     for (;;) {
-      if (now() > jUntil || stop()) { why = 'time'; break }
+      // (`join` 0: no round, the engine's alone)
+      if (now() > jUntil || opts.join === 0 || stop()) { why = 'time'; break }
       rounds++
       set = [...formsNow(), ...extras].filter(f => !blocked.has(textOf(f)))
       const byText = new Map(set.map(f => [textOf(f), f]))
