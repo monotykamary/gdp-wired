@@ -18,7 +18,14 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 GDP = HERE.parent.parent
-MAIN = GDP.parent / "gdp-wired"
+# (the main checkout: the worktree git calls common, so a bar tree under runs/bar/trees or a lane's sibling checkout both find it; else the sibling named gdp-wired)
+def _main(gdp):
+    try:
+        out = __import__("subprocess").check_output(["git", "-C", str(gdp), "rev-parse", "--path-format=absolute", "--git-common-dir"], text=True, stderr=__import__("subprocess").DEVNULL)
+        return pathlib.Path(out.strip()).parent
+    except Exception:
+        return gdp.parent / "gdp-wired"
+MAIN = _main(GDP)
 SAT = ["DRAGON_4_000_001", "DRAGON_5_000_001", "DRAGON_11_000_001", "DRAGON_13_000_001", "DRAGON_12_e2_1618_000_001", "car_5_000_001", "car_6_000_001", "metros_2_000_001"]
 UNSAT = ["metros_2_e2_704_000", "metros_3_e3_1117_000", "metros_2_e3_112_000_001", "car_5_e3_11_000", "car_6_e2_893_000_001", "car_5_e2_405_e2_1083_000_001"]
 ITS = ["s1.t2", "s1.t2_fixed", "s1-striped.t2", "hqr.t2_fixed", "hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed"]
