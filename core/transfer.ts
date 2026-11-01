@@ -208,7 +208,7 @@ function build(l: DataLaw, bridged: Map<string, Op>, unfold: boolean): Built | u
   }
   // (a copy whose recursion isn't taken where the original's is, a well-founded call left nested in the match of an
   // unfolded definition, bmerge's in stitch's: no copies of these)
-  for (const n of reach) { const name = copies.get(n)!; try { void fnOf(name).ring } catch { refused.add(name); return undefined } }
+  for (const n of reach) { const name = copies.get(n)!; try { void fnOf(name).ring } catch (e) { if (!/not structural recursion/.test((e as Error).message)) throw e; refused.add(name); return undefined } }
   let holds: Y
   try { holds = rewriter(bridged, copies, unfold).ry(l.holds) } catch (e) { if (e instanceof RangeError) return undefined; throw e }
   const lstar: DataLaw = {name: `${l.name}, said through ${[...bridged.keys()].length ? 'the built-ins' : 'its definitions'}`, vars: l.vars, holds, params: l.params}
