@@ -1133,8 +1133,8 @@ def fuzz_row_class(r: dict) -> str:
 # replays read XFUZZ_SEED (patched in the item's own copy of the tree; refused if the patch finds nothing to patch).
 # A test that fails with "the rule and the code differ" is an extracted rule the code contradicts on a request the
 # default seed never drew: an alert.
-# (the pattern from `eeded((`: the generator is searchSeeded since 0af7520, seeded before; a pattern that named only
-# seeded(( found nothing from then on, and every item stopped at exit 3)
+# (the pattern from `eeded((`, so seeded(( and searchSeeded(( alike: from 0af7520 until gen/laneF3's merge the check drew
+# from searchSeeded, a pattern naming only seeded(( found nothing, and 10,809 of 11,289 items stopped at exit 3)
 XPATCH = ("sed -i 's/eeded((opts.seed ?? 7) >>> 0 || 1)/eeded((Number(process.env.XFUZZ_SEED) || (opts.seed ?? 7)) >>> 0 || 1)/' core/extract-check.ts && "
           "sed -i 's/eeded((opts.check?.seed ?? 11) >>> 0 || 1)/eeded((Number(process.env.XFUZZ_SEED) || (opts.check?.seed ?? 11)) >>> 0 || 1)/' core/extract-sol.ts && "
           "grep -q XFUZZ_SEED core/extract-check.ts && grep -q XFUZZ_SEED core/extract-sol.ts || { echo 'xfuzz: the seed patch found nothing to patch'; exit 3; }; ")
