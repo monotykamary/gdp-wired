@@ -747,6 +747,18 @@ export function compileFunction<F>(params: string[], body: string): F {
 // compileJs's module, loaded: init, fork and step.
 export type Compiled = {init: (params: object) => State & {head?: number}, fork: (st: State) => State, step: (params: object, st: State, input: object) => State & {head?: number}}
 export const loadJs = (m: Machine): Compiled => compileFunction<() => Compiled>([], `${compileJs(m).replace(/^export function/gm, 'function')}\nreturn {init, fork, step}`)()
+// The interpreter's step (persistent: a copy of the state each) through loadJs's, several times faster, a request's counts
+// given to it as maps the request carries (carriedView's, each cell its sum when read); none with a history, or where the
+// generator refuses the machine.
+export function fastStep(m: Machine): ((params: Env, st: State, input: Request) => State) | undefined {
+  const cs = Object.keys(m.counts ?? {})
+  let js: Compiled
+  try { if (m.history) return undefined; js = loadJs({...m, counts: undefined, inputMaps: [...m.inputMaps ?? [], ...cs]}) } catch { return undefined }
+  return (params, st, input) => {
+    const view = cs.length ? carriedView(m, st, input, undefined, params).maps : {}
+    return js.step(params, js.fork(st), cs.length ? {...input, ...Object.fromEntries(cs.map(c => [c, view[c]!]))} : input)
+  }
+}
 
 // --- symbolic: from expressions to cases of linear constraints -------------------------------------------------------
 
