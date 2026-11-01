@@ -17,7 +17,7 @@
 import ts from 'typescript'
 import * as dsl from './dsl.ts'
 import type {Kind, Rule} from './dsl.ts'
-import {type Rand, interpret, lcgFloat, searchSeeded} from './machine.ts'
+import {type Law, type Rand, interpret, lcgFloat, searchSeeded} from './machine.ts'
 import {allowed} from './watch.ts'
 import * as I from './extract-ir.ts'
 import {type Exec, type Path, Refusal, type Setup, type Source, type V, bare as strip, beside, impure, memberName, normalize, placed, refuse, shapeOf, sourceOf, text, where} from './extract-read.ts'
@@ -26,8 +26,10 @@ import {type ExtractOptions, type Extraction, fromModel, namesOf} from './extrac
 import {check, sandbox} from './extract-check.ts'
 import {Parts, type ScheduleRule, readSchedule, replaySchedule, scheduleConforms, scheduleRule} from './effect-schedule.ts'
 import {asRule, lift} from './system.ts'
+import {type Prim, rewritePrims} from './effect-prims.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 export {jitterRun, replaySchedule, scheduleConforms, stepper} from './effect-schedule.ts'
+export {primitiveConforms, primitiveLaws, primitiveRule} from './effect-prims.ts'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Mod = Record<string, any>
@@ -44,8 +46,15 @@ export type EffectOptions = Omit<ExtractOptions, 'entry'> & {
   // transaction, the fibers interleaving them (core/system.ts's lift: each fiber's place and locals its own, the Refs
   // shared). By default on where the service uses transactions (STM, TRef, TxRef, Effect.tx) and a method spans several.
   fibers?: boolean,
+  // (core/effect-prims.ts's: the Refs that are each fiber's own under many fibers, as a method's carried values are)
+  perFiber?: string[],
+  // (a queue's capacity given by a parameter of the make: the primitives' own rules, proven for every capacity)
+  capacityParam?: boolean,
 }
 const REFS = new Set(['Ref', 'SynchronizedRef', 'SubscriptionRef', 'TxRef', 'TRef']), MAKES = ['make', 'makeUnsafe', 'unsafeMake']
+// (Effect's RateLimiter: 3.x's gives its permits back on a fiber of its own, forked into the make effect's scope, on
+// timers; 4.x's (effect/persistence) keeps its counters in a store every user of it shares)
+const RATE = 'a RateLimiter (not modelled: 3.x\'s gives its permits back on timers of a fiber forked into the scope, 4.x\'s keeps its counters in a store shared by its every user): write the window in Refs read with Clock.currentTimeMillis, or a rule by hand beside it (conforms)'
 const STM = (api: string) => `${api} (of STM: gen, commit, succeed, sync, void, fail, die, check and retry are read)`, MATCH = (x: string) => `${x}: a matcher (write the dispatch as a switch on _tag, or ifs)`
 // The Effect line the file is read for (4.x unless the project's effect is 3.x), and the policies its methods retry or
 // repeat with, each read into its schedule's rule.
@@ -160,6 +169,7 @@ function factoryOf(s: Setup, entry: string): FactoryOf {
           return {shape: shapeOf(t, s.checker, d), init: start}
         }
         if (m === 'STM') return refuse(d, STM(api))
+        if (m === 'RateLimiter' || /\bRateLimiter\b/.test(call.getText())) return refuse(d, RATE)
         if (m === 'Semaphore' || /^Effect\.(unsafeM|m)akeSemaphore$/.test(api)) {
           const n = (call as ts.CallExpression).arguments[0]
           if (!n || !ts.isNumericLiteral(n) || n.text !== '1') return refuse(d, `${text(d)}: a Semaphore of other than 1 permit (one of 1 is read as a lock)`)
@@ -239,6 +249,7 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
       if (api === 'Effect.yieldNow') return [eff(q => [undef, q]), p]
       if (api === 'Clock.currentTimeMillis') return [eff(q => (q.heap.has(SLEPT) ? refuse(e, 'the clock read after a repeat that waits (the time has moved on by its delays)') : ex.now(e, q))), p]
       if (api?.startsWith('Clock.')) return refuse(e, `${api} (Clock.currentTimeMillis is read, as an input)`)
+      if (!api && ['_tag', 'value'].includes(memberName(e.name)) && /^Option<|^(Some|None)</.test(s.checker.typeToString(s.checker.getTypeAtLocation(e.expression)))) return refuse(e, `${text(e)}: an Option's ${memberName(e.name)} (Option.isSome, isNone, getOrElse and getOrUndefined are read)`)
       if (api && /^(Random|DateTime|Crypto|Console|Config|FileSystem)\./.test(api) && ts.isYieldExpression(e.parent)) return refuse(e, `${api}: an answer from outside the Refs read (Clock.currentTimeMillis is the one read, as an input)`)
       return undefined
     }
@@ -303,6 +314,9 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
       return refuse(e, op === 'fn' || op === 'fnUntraced' ? `Effect.${op} as a value inside a step (a method or a helper of the service is read)` : `Effect.${op} (Effect.gen, Effect.fn bodies, succeed, sync, fail, die, void and log are read; the effect of ${op} isn't)`)
     }
     if (m === 'Match') return refuse(e, MATCH(api!))
+    if (m === 'Option') return option(ex, e, op, p)
+    if (m === 'RateLimiter') return refuse(e, RATE)
+    if (m === 'Queue') return refuse(e, `${api}: a Queue other than one the service's make effect makes (yield* Queue.bounded(n), dropping, sliding, unbounded or make, read as its model)`)
     if (m === 'TRef') return refuse(e, `${api} (a TRef the service's make effect makes is read: get, set, update, modify and their variants)`)
     if (m === 'Semaphore') return refuse(e, `${api} (a Semaphore of 1 made by the service, as a lock, is read)`)
     return undefined
@@ -374,6 +388,22 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
     const own = Object.getOwnPropertyDescriptor(ex, 'now')
     Object.defineProperty(ex, 'now', {value: (n: ts.Node) => refuse(n, why), configurable: true, writable: true})
     try { return f() } finally { if (own) Object.defineProperty(ex, 'now', own); else delete (ex as {now?: unknown}).now }
+  }
+  // Option's constructors and reads, over a value that may be missing (Queue.poll's answer): some, none, isSome, isNone,
+  // getOrElse (of a default written here) and getOrUndefined.
+  function option(ex: Exec, e: ts.CallExpression, op: string, p: Path): [V, Path] {
+    const [a, b] = e.arguments, has = (v: V): I.B => (v.t === 'opt' ? v.has : v.t === 'undef' ? I.F : I.T), n = e.arguments.length
+    if (op === 'none' && !n) return [{t: 'undef'}, p]
+    if (op === 'some' && n === 1) { const [v, q] = ex.ev(a!, p); return [{t: 'opt', has: I.T, v}, q] }
+    if ((op === 'isSome' || op === 'isNone') && n === 1) { const [v, q] = ex.ev(a!, p); return [{t: 'bool', e: op === 'isSome' ? has(v) : I.not(has(v))}, q] }
+    if (op === 'getOrUndefined' && n === 1) return ex.ev(a!, p)
+    if (op === 'getOrElse' && n === 2) {
+      const f = fnOf(s, b!)
+      if (!f || f.parameters.length || ts.isBlock(f.body!) || impure(f.body!)) return refuse(b!, 'Option.getOrElse of other than () => a value written here')
+      const [v, q] = ex.ev(a!, p), [d, q2] = ex.ev(f.body as ts.Expression, q)
+      return [v.t === 'opt' ? ex.phiV(v.has, v.v, d, e) : v.t === 'undef' ? d : v, q2]
+    }
+    return refuse(e, `Option.${op} (some, none, isSome, isNone, getOrElse and getOrUndefined are read)`)
   }
   // Ref.op(ref, ...): the ref a Ref the service made (by its name), its value the state's field.
   function refOp(ex: Exec, e: ts.CallExpression, m: string, op: string, p: Path): [V, Path] {
@@ -459,6 +489,8 @@ export function extractEffect(at: Source, opts: EffectOptions = {}): Extraction 
     const sch = scheduleEntry(code, file, opts)
     if (sch) return fromScheduleEntry(code, file, sch, E, opts)
     const entry = opts.entry ?? serviceOf(code, file, opts)
+    const pr = modelled(code, file, entry, E, opts)
+    if (pr) return pr
     if (opts.fibers !== false) { const f = fibered(code, file, entry, E, opts); if (f) return f }
     m = readFactory(code, placed(file), {...opts, entry}, s => factoryOf(s, entry)); m.file = file
     if (!opts.entry) m.notes.unshift(`the entry inferred: ${entry}, the file's one make effect`)
@@ -471,6 +503,57 @@ export function extractEffect(at: Source, opts: EffectOptions = {}): Extraction 
   const schedules = found
   return {...fromModel(model, file, opts.domains, [], (rule, sorts) => check(code, file, model, rule, sorts, {...opts.check, modules, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})), names: namesOf(model), ...(schedules.length ? {schedules} : {})} as Extraction
 }
+// --- Effect's primitives: a Queue, a Semaphore (core/effect-prims.ts) ----------------------------------------------------
+// The service with its primitives written again as their model (TxRefs, or TRefs, in transactions), read as any: each
+// instance's fields beside the service's Refs, the laws that hold of every use its invariants, the one that depends on
+// the use a law to prove of the service (`primitives`).
+export type Primitive = Prim & {invariants: Law[], laws: Law[], lemmas?: Law[]}
+function modelled(code: string, file: string, entry: string, E: Mod, opts: EffectOptions): Extraction | undefined {
+  if (!/\b(Queue|Semaphore|makeSemaphore|unsafeMakeSemaphore)\b/.test(code)) return undefined
+  const s = setupOf(code, placed(file), {}, opts.files), w = rewritePrims(s, factoryOf(s, entry), x => apiOf(s, x), V4, {params: !!opts.capacityParam})
+  if (!w) return undefined
+  const x = extractEffect(w.code, {...opts, capacityParam: false, file: normalize(placed(file)), entry, effect: E, perFiber: w.prims.flatMap(p => (p.kind === 'semaphore' ? [`${p.name}_held`] : []))})
+  if (!x.ok || !x.rule) return {...x, notes: [...w.notes, ...x.notes]}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type St = Record<string, any>
+  const r = x.rule as never as {law: (name: string, f: (s: St) => unknown) => Law}
+  // (a field's value: under fibers an integer is the machine's two naturals, x and x$neg)
+  const maps = new Set(Object.keys(x.rule.machine.maps ?? {}))
+  const val = (st: St, n: string): dsl.Int => (st[n] instanceof dsl.Int ? st[n] : `${n}$neg` in st ? new dsl.Int(st[n], st[`${n}$neg`]) : dsl.Int.of(st[n]))
+  const prims: Primitive[] = w.prims.map(p => {
+    const f = (n: string) => `${p.name}_${n}`
+    if (p.kind === 'queue') return {...p, laws: [], invariants: [r.law(p.capacity === undefined ? `${p.name} never gives more than it was given` : `${p.name} holds at most ${p.capacity} items`, st => {
+      const h = val(st, f('head')), t = val(st, f('tail'))
+      return p.capacity === undefined ? h.atMost(t) : h.atMost(t).and(t.atMost(h.plus(typeof p.capacity === 'number' ? p.capacity : val(st, p.capacity))))
+    })]}
+    const total = (st: St) => (typeof p.permits === 'number' ? p.permits : val(st, p.permits))
+    // (what the fibers hold sums to what is taken: one fiber's own, or under many fibers the sum of each's)
+    const held = (st: St) => (maps.has(f('held')) ? new dsl.Int((st[f('held')] as dsl.MapRef).sum(), maps.has(`${f('held')}$neg`) ? (st[`${f('held')}$neg`] as dsl.MapRef).sum() : dsl.lit(0)) : val(st, f('held')))
+    // (under many fibers, the lemmas the use law rests on where each fiber gives back only what it took, withPermits':
+    // no fiber's own below nothing, and so not their sum)
+    const neg = `${f('held')}$neg`, lemmas = maps.has(neg) ? [r.law(`${p.name}: no fiber gives back more permits than it took`, st => dsl.forall(k => (st[neg] as dsl.MapRef).at(k).eq(0))),
+      r.law(`${p.name}: what its fibers hold is never below nothing`, st => (st[neg] as dsl.MapRef).sum().eq(0))] : []
+    return {...p, invariants: [r.law(`${p.name} never has more permits taken than ${typeof p.permits === 'number' ? `its ${p.permits}` : p.permits}`, st => val(st, f('taken')).atMost(total(st))), r.law(`${p.name}'s permits taken are those its fibers hold`, st => val(st, f('taken')).eq(held(st)))],
+      laws: [r.law(`${p.name} is never released past what was taken`, st => val(st, f('taken')).atLeast(0))], lemmas}
+  })
+  const lemmas = prims.flatMap(p => p.lemmas ?? [])
+  return {...x, invariants: [...x.invariants ?? [], ...prims.flatMap(p => p.invariants)], notes: [...w.notes, ...x.notes], primitives: prims, ...(lemmas.length ? {lemmas} : {})} as Extraction
+}
+// The extraction with its lemmas (laws that hold where the code uses its primitives as they are meant to be, a
+// semaphore's permits given back by the fiber that took them) proven first, each with the invariants and those proven
+// before it: the proven ones, with what their search found, join the invariants every law is proven beside; the others
+// are left out (a lemma is no claim: the laws stated are).
+export function withLemmas(x: Extraction, opts: {ms?: number} = {}): {x: Extraction, proven: string[], unproven: string[]} {
+  const lemmas = (x as {lemmas?: Law[]}).lemmas ?? [], inv = [...x.invariants ?? []], proven: string[] = [], unproven: string[] = []
+  if (!x.rule) return {x, proven, unproven}
+  for (const l of lemmas) {
+    let v: dsl.Verdict | undefined
+    try { v = dsl.proveRule(x.rule, [...inv, l], {search: {ms: opts.ms ?? 30_000}}) } catch { v = undefined }
+    if (v?.proven && v.checked) { inv.push(l, ...(v.found?.laws ?? []).map(f => f.law)); proven.push(l.name) } else unproven.push(l.name)
+  }
+  return {x: {...x, invariants: inv}, proven, unproven}
+}
+
 // --- many fibers: a method that is several steps ---------------------------------------------------------------------
 // A method's atomic units: the statements of its body that run an effect on the service's state (a transaction, a Ref
 // operation, a helper's), each a step another fiber's may come between. A failure, a log, a sleep or a wait runs no
@@ -606,14 +689,17 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
   if (!one.ok || !one.rule) return {...one, notes: [`read as one fiber's steps (${split.map(mt => `${mt.name}: ${mt.units.length}`).join(', ')}), the service written again:`, out, ...one.notes]}
   const m0 = one.rule.machine, model = one.model!
   // (an integer is two naturals, x and x$neg)
-  const local = (n0: string) => { const n = n0.replace(/\$neg$/, ''); return made.has(n) || model.outputs.some(o => n === o || n.startsWith(`${o}_`)) || n === 'failed' }
+  const local = (n0: string) => { const n = n0.replace(/\$neg$/, ''); return made.has(n) || !!opts.perFiber?.includes(n) || model.outputs.some(o => n === o || n.startsWith(`${o}_`)) || n === 'failed' }
   const shared = Object.keys(m0.state).filter(n => !local(n))
   if (m0.inputs.includes('fiber')) return {ok: false, refusals: [{where: file, what: 'a method takes an argument named fiber (the name the fibers are told apart by)'}], notes: []}
   const lifted = lift(m0, 'fiber', shared)
   const parts = (one.rule as never as {parts: {params: [string, dsl.Kind<unknown>][], inputs: [string, dsl.Kind<unknown>][]}}).parts
   // (the kinds of the requests' choices kept; an integer is its two naturals, x and x$neg, as the machine has it)
   const named = new Set([...lifted.params, ...lifted.inputs]), whole = ([n]: [string, unknown]) => named.has(n) && !named.has(`${n}$neg`)
-  const rule = asRule({...lifted, name: `${m0.name}, every fiber`}, Object.fromEntries([...parts.params, ...parts.inputs].filter(whole)))
+  // (and the shared integers' kinds: a law reads an integer of the service's as it does where the rule is one fiber's)
+  const one2 = one.rule as never as {kindsOfState: () => [string, dsl.Kind<unknown>][], kindsOfCells: () => [string, dsl.Kind<unknown>][]}
+  const ints = [...one2.kindsOfState().filter(([n]) => shared.includes(n) && shared.includes(`${n}$neg`)), ...one2.kindsOfCells().filter(([n, k]) => k.vars(n).every(p => !local(p)))]
+  const rule = asRule({...lifted, name: `${m0.name}, every fiber`}, Object.fromEntries([...parts.params, ...parts.inputs].filter(whole).concat(ints)))
   const names = (one.names ?? []).filter(n => !(n.role === 'state' && local(n.rule)) && n.role !== 'result' && !made.has(n.code))
   const inv = (one.invariants ?? []).filter(l => ![...JSON.stringify(l.holds).matchAll(/"name":"([^"]*)"/g)].some(m => local(m[1]!)))
   const steps = split.map((mt, mi) => ({name: mt.name, steps: mt.units.length, base: (mi + 1) * 100}))

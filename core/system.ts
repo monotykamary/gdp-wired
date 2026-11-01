@@ -145,8 +145,17 @@ export function asRule(m: Machine, kinds: Record<string, Kind<unknown>> = {}): R
   let r: any = rule(m.name)
   if (m.params.length) r = r.params(Object.fromEntries(m.params.map(p => [p, kindOf(p)])))
   if (m.inputs.length) r = r.inputs(Object.fromEntries(m.inputs.map(i => [i, kindOf(i)])))
-  r = r.state(mapValues(m.state, e => (e.op === 'const' ? e.value : () => new Term(e))))
-  if (m.maps && Object.keys(m.maps).length) r = r.maps(m.maps)
+  // (a state variable given an integer's kind, x beside x$neg as Int keeps one, is that integer to the laws: both start at
+  // constants)
+  const ints = Object.keys(m.state).filter(v => kinds[v] && `${v}$neg` in m.state && m.state[v]!.op === 'const' && m.state[`${v}$neg`]!.op === 'const')
+  const at = (v: string) => (m.state[v] as {value: number}).value
+  r = r.state({...mapValues(Object.fromEntries(Object.entries(m.state).filter(([v]) => !ints.some(i => v === i || v === `${i}$neg`))), e => (e.op === 'const' ? e.value : () => new Term(e))),
+    ...Object.fromEntries(ints.map(v => [v, kinds[v]!.from(at(v) - at(`${v}$neg`) as never)]))})
+  // (a map given a kind of cells, its parts as the machine has them (m.has, m.value), is those cells to the laws)
+  const cells = Object.entries(kinds).filter(([n, k]) => k.vars(n).length > 1 && k.vars(n).every(p => p in (m.maps ?? {})))
+  const parts = new Set(cells.flatMap(([n, k]) => k.vars(n)))
+  const plainMaps = Object.fromEntries(Object.entries(m.maps ?? {}).filter(([n]) => !parts.has(n)))
+  if (Object.keys(plainMaps).length || cells.length) r = r.maps({...plainMaps, ...Object.fromEntries(cells.map(([n, k]) => [n, k.from(k.decode(n, Object.fromEntries(k.vars(n).map(p => [p, m.maps![p]!]))) as never)]))})
   if (m.step.flags && Object.keys(m.step.flags).length) r = r.flags(() => mapValues(m.step.flags, c => new Cond(c)))
   r = r.step(() => ({...mapValues(m.step.state, e => new Term(e)), ...mapValues(m.step.maps, (w, map) => ({map, ...w}))}))
   if (m.pre) r = r.pre(() => new Cond(m.pre!))
