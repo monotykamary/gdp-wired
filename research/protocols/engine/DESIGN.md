@@ -146,8 +146,8 @@ consensus_epr's counted search is main's (the same candidates and cone); the wal
 - **consensus_forall, paxos_epr, mldr** (counted): their cones end with the caller unproven (forall: "one value decided"
   from 39 kept; paxos 15 of 135; mldr 22 of 27): a missing support, not time (gen/laneG2, laneI). The BFS share is
   smaller now (mldr's small instances 44 → 25 s).
-- **learning_switch, learning_switch_i4** (unknown at 122–143 s; i4 ended with a verdict in both runs, where main's
-  were killed): the phases' table goals (gen/laneI, laneJ).
+- **learning_switch, learning_switch_i4** (unknown at 122–143 s; i4 ended with a verdict in both runs where main's
+  were killed, not examined): the phases' table goals (gen/laneI, laneJ).
 
 **Gates**
 - **IC3Syn** (above): 21 of 29 within 60 s of wall in both runs, main 20; no broken variant proven.
