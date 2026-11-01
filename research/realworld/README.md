@@ -474,14 +474,14 @@ model's counted clock, as the invariant search's is; the proof with the found la
 oidc: 5.7 s counted to 1.2 s, the same 12 laws; oidc #0 and #1 proven in 20 of 20 traced runs (`runs/c2/trace2`).
 
 **The corpus, before and after** (the 440 laws, 60 s a law, boat): main 389, 391, 389, 389, 389 proven in five runs
-(`main-r1`, `main-r2`, the bar's baseline of 75c1171), 39 refuted in each, 10 to 12 unknown; this branch 391 and 391
-proven, 39 refuted, 10 unknown (`cand-r1`, `cand-r2`). Nothing lost; no false law proven. The laws that found ids from
-a counter (7) took 47 to 119 s together on main, 63 s in each run here. The 386 laws proven in every run took 1,128 to
-1,406 s on main and 1,386 and 1,420 s here, the laws under 1 s slower here too (a busier pool: the change doesn't
-reach them).
+(`main-r1`, `main-r2`, the bar's baseline of 75c1171), 39 refuted in each, 10 to 12 unknown; this branch 391 in each
+of three runs, 39 refuted, 10 unknown (`cand-r1` to `cand-r3`). Nothing lost; no false law proven. The laws that find
+ids from a counter (7) took 47 to 119 s together on main, 38 to 63 s here. The 386 laws proven in every run took 1,128
+to 1,406 s on main and 979 to 1,420 s here (the first two runs here beside the bar on a busy pool: the laws under 1 s,
+which the change doesn't reach, were slower in them too).
 
 **The distributed-systems items** (7 items, 27 laws, the `distributed` domain), each mirroring its code at a pinned
-commit, MIT or Apache-2.0: 21 proven in both runs, none refuted, 6 unknown.
+commit, MIT or Apache-2.0: 21 proven in each of three runs, none refuted, 6 unknown.
 
 | Item | Code | Proven | Not proven, and why |
 | --- | --- | --- | --- |
