@@ -78,6 +78,112 @@ against main 35ed7e0's shared baseline of 3 runs):
   chain of lemmas yet (each lemma by its own tactic, the obligation's instances at its variables only): the new laws are
   checked by the TS kernel, not in Lean.
 
+### A ring's measure, a size across it first (gen/laneK2, with gen/laneN)
+
+The bar on boat, 60 s, `--only tip` (`runs/bar/runs/laneK2-tip-1..3` in the main checkout: this branch at a371468, gen/laneN
+merged with main 35ed7e0, against main 35ed7e0's shared baseline of 3 runs):
+
+| theorems (492) | proven, by run | refused (unsupported) | wrong |
+| --- | --- | --- | --- |
+| gdp-wired, this branch | 212, 210, 208 | 90, 90, 90 | 0 |
+| gdp-wired, main 35ed7e0 | 211, 208, 210 | 95, 95, 95 | 0 |
+
+- The 21 refused as "a ring of functions that isn't structural recursion", by cause: every one has a call of its ring
+  in another's argument (nested recursion: gen/laneN's admission, merged here, the first need of all 21); `models` 5
+  (`propositional_*`), then a weighted size across a ring: `Not (r :&: q)` read again as `r :&: Not q`, no size falls,
+  `Not` weighing its formula twice does; the Stooge sorts 16, then a size and a phase (the sort above its thirds from 3
+  items on, below them under 3) and lemmas about the thirds (below).
+- Closed: the 5 `models` (unsupported to translated: 4 out of time, `propositional_Okay` unknown; none proven, gained 0
+  by the noise rule; lost 0 solid, the 4 lost after reruns, `prod/prop_12`, `isaplanner/prop_60`, `prod/prop_25`,
+  `list_Select`, each solved in some candidate run). Their measure, found: (a fold of the formula, `Not` weighing
+  twice, then the lists' sizes the runs rank), at `models3`, `models2` and `models` each its own parameters.
+- What it took (core/data.ts, the measure's search only, untrusted): `ringFolds`, a ring's first candidates: one
+  datatype's size (plain, then each weighting, the lightest first) at each function's first parameter of it, 0 at one
+  with none, no call of the runs raising it; the calls it leaves equal ranked after it by the LP over the runs
+  (`runsRank`). Each candidate is admitted as before: every call's obligation kernel-checked (Data.lean's
+  `wf_fix_unique_ring`, with a nested call `wf_fix_inv_unique_ring`). Lean's export of such a ring
+  (research/termination/lean-termination.ts's `evRing`: a `mutual` block, `termination_by` a fold then a phase, the inner
+  call's value an atom of the decrease) is checked by Lean 4.34.0, axioms propext, Classical.choice, Quot.sound.
+- The quick bar against main 35ed7e0 (`runs/bar/runs/laneK2-quick`): wrong 0 everywhere, nothing lost solid, CHC +7,
+  ITS +1.3, SV +1.3, the rest level, the 1-vCPU tests level; the suites (`laneK2-suite2`) 240 of 243 and 241 of 243
+  against main's 240 and 240, lost 0 solid. core/data.ts +2,966 bytes over gen/laneN's (lean-kernel/data.ts +342).
+- Still refused: the Stooge sorts 16. The search finds their measure now (`(size x, 2·size x)` at the sort,
+  `(size x, 7)` at the thirds, or a phase of 6 and 1), and the kernel doesn't prove the first call's decrease: it needs
+  `drop k y` below `y` where k ≥ 1 and y isn't empty (a conditional size law), `length` (an integer) tied to the size so
+  that `div (length x) 3 ≥ 1` from 3 items on, and for the invariant `size(take k y) + size(drop k y) = size(y) + 1`.
+
+### Nested recursion admitted with an invariant (gen/laneN)
+
+The bar on boat, 60 s, `--only tip` (`runs/bar/runs/laneN-m-tip-1..4` in the main checkout: this branch merged with
+main 55eafec, against its shared baseline of 3 runs; runs 1 and 2 beside a 235-job mutant and test batch on boat,
+run 4 alone):
+
+| theorems (492) | proven | refused (unsupported) | wrong |
+| --- | --- | --- | --- |
+| gdp-wired, this branch | 211, 203, 208, 209 | 93, 95, 95, 95 | 0 |
+| gdp-wired, main 55eafec | 210, 210, 209 | 95, 95, 95 | 0 |
+
+- Gained 0 by the noise rule (the branch's lowest run below main's highest), lost 0 solid: the losses after reruns
+  (`list_PairOdds`, `list_nat_PairOdds`, `prod/lemma_05` in run 2, one in run 3) each solved in some candidate run,
+  under the batch's load (the change runs only in a non-structural definition's termination); run 4 alone gained 1
+  and lost 0. Wrong 0 in every run. Before the merge, against main 6b96a0f: 213,
+  212, 213 against 209, 213, 212, refused 94-95 on both sides.
+- What it took (trusted, core/data.ts and lean-kernel/Data.lean): a call of the ring in another's argument or condition
+  is no longer refused. Data.lean's `wf_fix_inv_unique_ring` (and `wf_fix_inv_unique`, its ring of one): a functional
+  that, wherever g and h agree below x's measure and g keeps an invariant I there, gives F g x = F h x and keeps I at x,
+  has exactly one fixpoint, which keeps I; the decrease and the invariant by one well-founded induction (Lean 4.34.0,
+  axioms propext, Classical.choice, Quot.sound). The TS check line for line: each call's obligation (`obligation`) and
+  each value a body ends at keeping its function's invariant (`keeps`, the body's `leaves`), every call of the ring in
+  the law read as a new variable r under `lexLt(μ_callee(a), μ_caller(x)) ⇒ I_callee(a, r)` (`lifted`), which holds at
+  r = g(a) whatever a is; a call under a match's case with no condition to put its hypothesis at is refused. Invariants
+  (untrusted search, `invariantsOf`): none first, then how a function's value's size relates to an argument's, as its
+  values give it. research/termination/Nested.lean defines `nz` (nz(n + 1) = nz(nz(n)), its value at most its argument)
+  and `nest` (nest(x :: xs) = x :: nest(nest(xs)), its length kept) through the theorem from the same obligations.
+- Still refused, all 25, now by their measures, not by the nesting: the Stooge sorts (16, `StoogeSort*` and
+  `nat_NStoogeSort*`: no measure the search tries falls, the ring's call from a list of 2 items to the sort at the same
+  list; given by hand the measure (size, a phase falling to 0 from 4 items on) and the invariant `size(f(x)) =
+  size(x)`, the kernel doesn't prove the first call's decrease, `size(drop(len(x) / 3, reverse(x))) < size(x)` from 4
+  items on: it needs `reverse`'s and `drop`'s size laws with the count dropped, a conditional size law),
+  `models` 5 (a ring whose formula's measure weighs `Not` double, a weighted fold across a ring), `subst` 2 (its outer
+  call is on a renamed body as big as the argument: no size of the parameters falls), McCarthy's `m` 2 (over Int: its
+  measure 101 − x reads the integer below 0, where the measure's `toNat` stays 0).
+
+### Termination through halves and the user's ≤ (gen/laneM)
+
+Three runs of this branch (6044b83, `runs/m/tipc1..3` in its worktree) against main 35ed7e0's shared baseline
+of three (`runs/bar/base/35ed7e005bc2-boat-r1/tip`), boat, 60 s:
+
+| theorems (492) | proven, by run | refused (unsupported) | refuted | wrong |
+| --- | --- | --- | --- | --- |
+| gdp-wired, this branch | 212, 210, 212 | 79, 79, 79 | 7 | 0 |
+| gdp-wired, main 35ed7e0 | 211, 208, 210 | 95, 95, 95 | 7 | 0 |
+
+- Taken now, in every run, refused in every run on main (16): bitonic sort's `bmerge` and `bsort` (`sort_BSort*`,
+  `sort_nat_BSort*`, 8) and the heap sort's `toList` over Peano naturals (`sort_nat_HSort*`, `sort_nat_HSort2*`, 8).
+  None is proven within 60 s yet (timeouts, as the integer heap sorts on main). No gain is claimed (our lowest run, 210,
+  is below main's highest, 211); nothing lost in every run; the tasks proven in some runs and not others differ both
+  ways at the limit.
+- What it took (core/data.ts, the termination's search; the trusted part unchanged, each obligation and each size law
+  kernel-checked): a function of one value is conjectured a bound on twice its size too (`2·size(evens(x)) <=
+  size(x) + 2`), the functions of a ring calling each other over the same parameters their bounds as one law (evens'
+  step is odds' bound: neither alone is an induction's), proven by mutual induction (a call of another member the law
+  reads at the same arguments is a use of the law); an obligation tried without a scheme has the shapes at its variables
+  and at the values its call's path builds (`x :: y :: zs` is at least 3 in size); a case split may be on a predicate of
+  the program at the law's values (the user's ≤ the merge reads, in place of the fields' tags), first where models
+  split as evenly; the obligation's lemma pass has 80% of its time (the merge's size law, 8 cases); and transfer
+  (core/transfer.ts) doesn't copy a function whose copy's recursion is refused (bmerge's call left in the match of an
+  unfolded `stitch`: an error before). Lean's export (lean-kernel/data.ts) names in a decrease lemma only the functions
+  the definition reaches, each value its obligation names at least 1 in size, and tries omega after `simp_all`:
+  research/termination/lean-termination.ts re-checks the heap over the user's ≤ end to end (Lean 4.34.0, axioms propext,
+  Classical.choice, Quot.sound), and `ONLY=bsortNil` takes bmerge's and bsort's definitions, their decrease lemmas and
+  the halves' law by mutual induction, leaving the program's `facts_hold` unsolved at sort2's `if decide (y ≤ x)` (an
+  export gap outside termination).
+- Still refused for termination, 50: `bubsort` 8 (an inversion count: the count's invariance under a bubble pass, the
+  first lemma, unproven at 30 s and out of memory as the obligation's whole), `flatten1` 2 (a fold of a list weighted by
+  its trees' folds, tried: the decrease needs each tree's fold at least 1 at its grandchildren, four unfoldings deep,
+  and the kernel's search ran out of its nodes there), `ssort` 8, `msorttd` 4, `nmsorttd` 4 (conditional size laws,
+  gen/laneZ), the integer helpers below 0, correctly (24), and the nested rings and calls (as below).
+
 ### Termination through a merge's size law (gen/laneT)
 
 The bar on boat, 60 s (`runs/bar/runs/laneT-tip-full3` in the main checkout: this branch at 470bc13 merged with main

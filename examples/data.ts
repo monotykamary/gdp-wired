@@ -22,9 +22,10 @@
 // drop of one too many, a merge that drops an item, an add3acc that forgets one) are refused with a value that breaks
 // the law; the definitions that don't terminate (a merge that calls itself on the same lists, an interleave that only
 // swaps them, an add3acc that doesn't lower y, a merge whose stated measure a call doesn't lower; and `adversarial`'s
-// twelve: rings that pass a value round, lower and raise it, swap two, step past a guard the runs don't reach, a call
-// on a helper no longer than its argument up to 9 items only, a nested call, an integer's; and `guardedAdversarial`'s
-// remove and take whose guarded size laws hold where the runs reach only) are refused, with the
+// fourteen: rings that pass a value round, lower and raise it, swap two, step past a guard the runs don't reach, a call
+// on a helper no longer than its argument up to 9 items only, one that halves its argument up to 8 items only, a heap
+// read off through a merge that keeps both heaps where the user's ≤ fails, a nested call, an integer's; and
+// `guardedAdversarial`'s remove and take whose guarded size laws hold where the runs reach only) are refused, with the
 // reason, before any law about them is read. `wellFounded`: a ring of two functions (a measure each) and a merge sort
 // whose call's decrease needs a size law about the function of its argument.
 import {type Bool, type DataLaw, type Integer, type Nat, type Val, data, define, fnParam, integer, law, mutual, natural, boolean, no, programOf, self, when, yes, proveData} from '../core/data.ts'
@@ -176,7 +177,8 @@ export const qsort: ReturnType<typeof define> = define('qsort', {xs: List}, List
 
 // A ring of two functions that isn't structural recursion (lean-kernel/Data.lean's wf_fix_unique_ring): an expression's
 // tokens, a sum's read through `paren` at the same value, each of whose operands' read at a field. Their measures, one
-// a function, found from the calls' relation: size(e) + 1 at `tokens`, size(e) at `paren`.
+// a function: the size first at both, then 1 at `tokens` and 0 at `paren` (the call the size leaves equal, ranked by the
+// runs).
 export const Expr = data('Expr', {atom: {}, sum: {a: self, b: self}})
 export const tokens: ReturnType<typeof define> = define('tokens', {e: Expr}, natural, ({e}) => L(e).match({atom: () => 1, sum: () => N(paren(e)).plus(2)}))
 export const paren: ReturnType<typeof define> = define('paren', {e: Expr}, natural, ({e}) => L(e).match({atom: () => 1, sum: ({a, b}) => N(tokens(a)).plus(N(tokens(b))).plus(1)}))
@@ -201,13 +203,66 @@ export const ssort: ReturnType<typeof define> = define('ssort', {xs: List}, List
 // the length, shorter only from two items on: guarded size laws about take (n + 2 ≤ size xs) and drop (n ≥ 1 and two
 // items), the guard at the call from the path's two items.
 export const msortTD: ReturnType<typeof define> = define('msortTD', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({tail}) => L(tail).match({nil: () => L(xs), cons: () => L(mrg(msortTD(take(N(len(xs)).divBy(2), xs)), msortTD(drp(N(len(xs)).divBy(2), xs))))})}))
+// Bitonic sort's halves (TIP's sort_BSort*): evens and odds of a list, calling each other, and a merge of two sorted lists
+// by merging their evens and their odds. Its calls are on halves: each taken by the halves' size law, 2·size(evens(x))
+// <= size(x) + 2 and 2·size(odds(x)) <= size(x) + 1, conjectured as one law of the two (each the other's induction step)
+// and proven by induction on both at once.
+export const evens: ReturnType<typeof define> = define('evens', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => List.cons(head, odds(tail))}))
+export const odds: ReturnType<typeof define> = define('odds', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({tail}) => evens(tail)}))
+const sort2 = define('sort2', {x: natural, y: natural}, List, ({x, y}) => when(N(x).atMost(y), List.cons(x, List.cons(y, List.nil)), List.cons(y, List.cons(x, List.nil))))
+const pairs: ReturnType<typeof define> = define('pairs', {x: List, y: List}, List, ({x, y}) => L(x).match({nil: () => L(y), cons: ({head: z, tail: x2}) => L(y).match({nil: () => L(x), cons: ({head: x3, tail: x4}) => app(sort2(z, x3), pairs(x2, x4))})}))
+const stitch = define('stitch', {x: List, y: List}, List, ({x, y}) => L(x).match({nil: () => L(y), cons: ({head, tail}) => List.cons(head, pairs(tail, y))}))
+export const bmerge: ReturnType<typeof define> = define('bmerge', {x: List, y: List}, List, ({x, y}) => L(x).match({nil: () => List.nil, cons: ({head: z, tail: x2}) => L(y).match({nil: () => L(x), cons: ({head: x3, tail: x4}) => {
+  const halves = () => stitch(bmerge(evens(x), evens(y)), bmerge(odds(x), odds(y)))
+  return L(x2).match({nil: () => L(x4).match({nil: () => sort2(z, x3), cons: () => halves()}), cons: () => halves()})
+}})}))
+export const bsort: ReturnType<typeof define> = define('bsort', {x: List}, List, ({x}) => L(x).match({nil: () => List.nil, cons: ({head: y, tail: z}) => L(z).match({nil: () => List.cons(y, List.nil), cons: () => bmerge(bsort(evens(x)), bsort(odds(x)))})}))
+// A skew heap over the user's own ≤ (TIP's sort_nat_HSort*, Peano naturals): toList's call on the merge of its subheaps,
+// below the heap by the merge's size law, proven by the merge's recursion with its cases split on the user's ≤ the merge
+// reads, not on the fields' tags its unfolding would.
+export const Heap = data('Heap', {node: {l: self, v: natural, r: self}, nil: {}})
+export const hmerge: ReturnType<typeof define> = define('hmerge', {x: Heap, y: Heap}, Heap, ({x, y}) => L(x).match({
+  node: ({l: z, v: x2, r: x3}) => L(y).match({node: ({l: x4, v: x5, r: x6}) => when(B(leq(x2, x5)), Heap.node(hmerge(x3, y), x2, z), Heap.node(hmerge(x, x6), x5, x4)), nil: () => L(x)}),
+  nil: () => L(y)}))
+export const heapList: ReturnType<typeof define> = define('heapList', {x: Heap}, List, ({x}) => L(x).match({node: ({l, v, r}) => List.cons(v, heapList(hmerge(l, r))), nil: () => List.nil}))
 export const wellFounded = {
+  bsortOne: () => law('bitonic sort of one item', {x: natural}, ({x}) => L(bsort(List.cons(x, List.nil))).eq(List.cons(x, List.nil))),
   countDownNonneg: () => law('an integer counted down is never negative', {x: integer}, ({x}) => I(countDown(x)).atLeast(0)),
   reachesZero: () => law('every integer counts down to 0', {x: integer}, ({x}) => B(reachesZero(x))),
   tokensPositive: () => law('an expression has a token', {e: Expr}, ({e}) => N(tokens(e)).atLeast(1)),
   mergeRunsOne: () => law('one run merged is itself', {xs: List}, ({xs}) => L(mergeRuns(Runs.run(xs, Runs.none))).eq(L(xs))),
   ssortOne: () => law('a selection sort of one item is itself', {x: natural}, ({x}) => L(ssort(List.cons(x, List.nil))).eq(List.cons(x, List.nil))),
   msortTDOne: () => law('a merge sort of one item is itself', {x: natural}, ({x}) => L(msortTD(List.cons(x, List.nil))).eq(List.cons(x, List.nil))),
+} satisfies Record<string, () => DataLaw>
+
+// Nested recursion (a call of the function in another's argument): each taken with an invariant of its value, proven
+// with the decrease (Data.lean's wf_fix_inv_unique; research/termination/Nested.lean defines the first two in Lean from
+// the same obligations). nz 0 = 0, nz (n + 1) = nz (nz n): its value at most its argument (nz n = 0, Nested.lean's law,
+// isn't found by the search: its induction's use at nz(pred)). nest keeps a list's length
+// and reads itself at its own value of the tail. Ackermann's outer call lowers its first argument whatever the inner
+// call's value: no invariant.
+export const nz: ReturnType<typeof define> = define('nz', {n: natural}, natural, ({n}) => N(n).match({zero: () => 0, succ: ({pred}) => N(nz(nz(pred)))}))
+export const nest: ReturnType<typeof define> = define('nest', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => List.cons(head, nest(nest(tail)))}))
+export const ack: ReturnType<typeof define> = define('ack', {m: natural, n: natural}, natural, ({m, n}) => N(m).match({zero: () => N(n).plus(1), succ: ({pred: p}) => N(n).match({zero: () => N(ack(p, 1)), succ: ({pred: q}) => N(ack(p, ack(m, q)))})}))
+// A ring: nestA reads nestB at its own value of the tail, nestB reads nestA at its argument.
+export const nestA: ReturnType<typeof define> = define('nestA', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => List.cons(head, nestB(nestA(tail)))}))
+export const nestB: ReturnType<typeof define> = define('nestB', {xs: List}, List, ({xs}) => L(nestA(xs)))
+// A ring weighted across its functions (TIP's propositional `models`): a formula's value, `Not (And r q)` read again
+// as `And r (Not q)` (no size falls: both are 1 + 1 + size r + size q), `both` reading the right operand at the left's
+// value. Its measure: a fold of the formula, `Not` weighing its formula twice, the first component at both functions,
+// then 1 at `both` and 0 at `ev` (`both` reads `ev` at the same formula).
+export const Form = data('Form', {and: {l: self, r: self}, not: {f: self}, atom: {n: natural}})
+export const ev: ReturnType<typeof define> = define('ev', {f: Form, k: natural}, natural, ({f, k}) => L(f).match({
+  and: ({l, r}) => N(both(r, ev(l, k))),
+  not: ({f: g}) => L(g).match({and: ({l, r}) => N(ev(Form.and(l, Form.not(r)), k)), not: ({f: h}) => N(ev(h, k)), atom: () => N(k)}),
+  atom: ({n}) => N(n).plus(k),
+}))
+export const both: ReturnType<typeof define> = define('both', {f: Form, k: natural}, natural, ({f, k}) => N(ev(f, N(k).plus(1))))
+export const nested = {
+  nestSame: () => law('nest is the list', {xs: List}, ({xs}) => L(nest(xs)).eq(L(xs))),
+  nestRingSame: () => law('nestA is the list', {xs: List}, ({xs}) => L(nestA(xs)).eq(L(xs))),
+  ackAbove: () => law('ack is above its second argument', {m: natural, n: natural}, ({m, n}) => N(ack(m, n)).atLeast(N(n).plus(1))),
+  evNotNot: () => law('an atom under two nots, read by both', {n: natural, k: natural}, ({n, k}) => N(both(Form.not(Form.not(Form.atom(n))), k)).eq(N(n).plus(k).plus(1))),
 } satisfies Record<string, () => DataLaw>
 
 // Definitions that don't terminate, made to look as if they did (core/data.test.ts): each refused with the measures
@@ -232,12 +287,39 @@ const loops = {
   nearTail: () => { const f: ReturnType<typeof define> = define('nearTailLoop', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: () => N(f(nearTail(xs)))})); return f },
   // the same through a ring
   nearTailRing: () => { const f: ReturnType<typeof define> = define('nearRingA', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: () => N(g(nearTail(xs)))})), g: ReturnType<typeof define> = define('nearRingB', {xs: List}, natural, ({xs}) => N(f(xs))); return f },
+  // halves past the runs' sizes only: evens up to 8 items, the list itself from 9; a call on it is a halving's for the
+  // values the size law is conjectured from, and its induction fails
+  halvesTill9: () => { const h = define('halfTill9', {xs: List}, List, ({xs}) => when(N(len(xs)).atLeast(9), L(xs), L(evens(xs)))); const f: ReturnType<typeof define> = define('halvesTill9', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: ({tail}) => L(tail).match({nil: () => 0, cons: () => N(f(h(xs)))})})); return f },
+  // a merge over the user's ≤ that, where the ≤ fails, puts both heaps below a node: read off, the heap never shrinks
+  guardKeeps: () => { const m: ReturnType<typeof define> = define('mergeKeeps', {x: Heap, y: Heap}, Heap, ({x, y}) => L(x).match({node: ({l, v, r}) => L(y).match({node: ({v: w}) => when(B(leq(v, w)), Heap.node(m(r, y), v, l), Heap.node(L(x), w, L(y))), nil: () => L(x)}), nil: () => L(y)})); const f: ReturnType<typeof define> = define('readKeeps', {x: Heap}, natural, ({x}) => L(x).match({node: ({l, r}) => N(f(m(l, r))), nil: () => 0})); return f },
   // 0 calls 1 and 1 calls 0
   upDown: () => { const f: ReturnType<typeof define> = define('upDown', {n: natural}, natural, ({n}) => N(n).match({zero: () => N(f(1)), succ: ({pred}) => N(f(pred))})); return f },
   // a sum of two that stays: (x + 1, y) to (x, y + 1), (0, y + 1) to (y + 1, y)
   sumStays: () => { const f: ReturnType<typeof define> = define('sumStays', {x: natural, y: natural}, natural, ({x, y}) => N(x).match({zero: () => N(y).match({zero: () => 0, succ: ({pred}) => N(f(N(pred).plus(1), pred))}), succ: ({pred}) => N(f(pred, N(y).plus(1)))})); return f },
   // nested and never ending: f(n) = f(f(n))
   nested: () => { const f: ReturnType<typeof define> = define('nestedLoop', {n: natural}, natural, ({n}) => N(f(f(n)))); return f },
+  // nested, never ending at 1: f(n + 1) = f(f(n) + 1), f(1) = f(f(0) + 1) = f(1)
+  nestedBump: () => { const f: ReturnType<typeof define> = define('nestedBump', {n: natural}, natural, ({n}) => N(n).match({zero: () => 0, succ: ({pred}) => N(f(N(f(pred)).plus(1)))})); return f },
+  // nested, its value at most its argument up to 20 (0 there), then above it, and from 22 on it never ends: the
+  // invariant its runs suggest (value ≤ argument) lowers the outer call, and is false (a body doesn't keep it)
+  nestedLate: () => { const f: ReturnType<typeof define> = define('nestedLate', {n: natural}, natural, ({n}) => N(n).match({zero: () => 0, succ: ({pred}) => when(N(pred).atMost(19), N(f(f(pred))), N(f(f(pred))).plus(N(pred).times(2)))})); return f },
+  // a list's length kept up to 9 items, two more from 10 on (never ending at 11): the length its runs keep lowers the
+  // outer call, and the body past 9 items doesn't keep it
+  nestedGrow: () => { const f: ReturnType<typeof define> = define('nestedGrow', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(len(tail)).atMost(8), List.cons(head, f(f(tail))), List.cons(head, List.cons(head, f(f(tail)))))})); return f },
+  // the same through a ring: the outer call of the other
+  nestedGrowRing: () => { const f: ReturnType<typeof define> = define('nestedGrowA', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(len(tail)).atMost(8), List.cons(head, g(f(tail))), List.cons(head, List.cons(head, g(f(tail)))))})), g: ReturnType<typeof define> = define('nestedGrowB', {xs: List}, List, ({xs}) => L(f(xs))); return f },
+  // the weighted ring, but a Not of an And whose operands are both past 8 in size turned round (and never ending there):
+  // every weighting is equal across that call
+  foldSwapLate: () => {
+    const sz = define('formSize', {f: Form}, natural, ({f}) => L(f).match({and: ({l, r}) => N(sz(l)).plus(N(sz(r))).plus(1), not: ({f: g}) => N(sz(g)).plus(1), atom: () => 1}))
+    const f: ReturnType<typeof define> = define('evLate', {f: Form, k: natural}, natural, ({f: x, k}) => L(x).match({
+      and: ({l, r}) => N(g(r, f(l, k))),
+      not: ({f: y}) => L(y).match({and: ({l, r}) => when(N(sz(l)).atLeast(9).and(N(sz(r)).atLeast(9)), N(f(Form.not(Form.and(r, l)), k)), N(f(Form.and(l, Form.not(r)), k))), not: ({f: h}) => N(f(h, k)), atom: () => N(k)}),
+      atom: ({n}) => N(n).plus(k),
+    }))
+    const g: ReturnType<typeof define> = define('bothLate', {f: Form, k: natural}, natural, ({f: x, k}) => N(f(x, N(k).plus(1))))
+    return f
+  },
   // on an integer (no measure reads one): below 0 it never ends
   intDown: () => { const f: ReturnType<typeof define> = define('intDown', {i: integer}, natural, ({i}) => when(I(i).eq(0), 0 as number, N(f(I(i).minus(1))) as never)); return f },
   // a ring whose measures are given and don't fall: (size xs) at both, the call passing xs round
