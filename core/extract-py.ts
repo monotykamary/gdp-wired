@@ -39,7 +39,7 @@
 // constructor doesn't set, one object in two places of the state, two keys of one map written in one step, a write
 // before a failure (unless onError: 'discard').
 import {type Extraction} from './extract.ts'
-import {Refusal, pathOf, type FileURL} from './extract-read.ts'
+import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
 import {asset, type Harness, type SModule, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
@@ -57,8 +57,8 @@ export function readPython(file: string, names: string[], opts: {root?: string, 
   const cp = node<CP>('node:child_process'), path = node<{resolve: (...p: string[]) => string, dirname: (p: string) => string}>('node:path')
   const abs = path.resolve(file), root = path.resolve(opts.root ?? path.dirname(abs))
   let out: string
-  try { out = cp.execFileSync(opts.python ?? 'python3', ['-I', here('reader.py'), JSON.stringify({root, file: abs, names})], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']}) }
-  catch (e) { throw new Refusal(file, `the Python reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): python3 is needed to extract Python`) }
+  try { out = cp.execFileSync(opts.python ?? 'python3', ['-I', here('reader.py'), JSON.stringify({root, file: abs, names})], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()}) }
+  catch (e) { throw new Refusal(file, statedRefusal(e) ?? `the Python reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): python3 is needed to extract Python`) }
   return JSON.parse(out) as SModule
 }
 export function extractPython(at: string | FileURL, opts: PyOptions = {}): Extraction & {read?: StepRead} {

@@ -156,10 +156,15 @@ export function placed(file: string): string {
 export type FileURL = {readonly href: string, readonly protocol: string}
 export type Source = string | FileURL | {code: string, file?: string}
 const builtin = <T>(id: string): T => (globalThis as {process?: {getBuiltinModule?: (id: string) => unknown}}).process?.getBuiltinModule?.(id) as T
+// A reader process's time on one source: GDP_READER_S seconds (300), past which it is killed and the source refused (a
+// parser recovering from deep unclosed nesting, the Kotlin compiler's, took 23 minutes on one).
+export const readerRun = (): {timeout: number, killSignal: string} => ({timeout: Number((globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_READER_S ?? 300) * 1000, killSignal: 'SIGKILL'})
 // What a reader process that failed said it refuses: a line `gdp: refused: …` on its stderr (source it can't read: a
-// syntax error, nesting past its stack), or undefined where it said none (it didn't run: the tool is missing).
+// syntax error, nesting past its stack), or that it ran past its time; undefined where it said none (it didn't run:
+// the tool is missing).
 export const statedRefusal = (e: unknown): string | undefined => {
-  const err = (e as {stderr?: string | Uint8Array}).stderr, text = typeof err === 'string' ? err : err ? new TextDecoder().decode(err) : ''
+  const x = e as {stderr?: string | Uint8Array, code?: string, signal?: string}, text = typeof x.stderr === 'string' ? x.stderr : x.stderr ? new TextDecoder().decode(x.stderr) : ''
+  if (x.code === 'ETIMEDOUT' || x.signal === 'SIGKILL') return `the reader didn't finish within ${readerRun().timeout / 1000} s on this source`
   return /^gdp: refused: (.*)$/m.exec(text)?.[1]
 }
 // Source nested past what a reader's recursion holds (a stack overflow in TypeScript's parser): refused where it is.

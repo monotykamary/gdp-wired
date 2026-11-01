@@ -30,7 +30,7 @@ import {allowed, watch} from './watch.ts'
 import {kindOfVar} from './extract-check.ts'
 import type {Sorts} from './extract-print.ts'
 import type {Model} from './extract-read.ts'
-import {Refusal, pathOf, type FileURL} from './extract-read.ts'
+import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
 const refuse = (where: string, what: string): never => { throw new Refusal(where, what) }
 import {asset, type Harness, type SFunc, type SModule, type SParam, type SRec, type SS, type SType, type SX, type StepOptions, type StepRead, checkStep, node, readStep, stepNames} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
@@ -66,8 +66,8 @@ export function compile(file: string, o: SolOptions): Compiled {
     settings: {remappings: o.remappings ?? [], optimizer: {enabled: false}, outputSelection: {'*': {'': ['ast'], '*': ['abi', 'evm.bytecode.object', 'evm.deployedBytecode.object', 'evm.methodIdentifiers', 'storageLayout']}}}}
   let out: string
   const solc = o.solc ?? env().GDP_SOLC ?? 'solc'
-  try { out = cp.execFileSync(solc, ['--standard-json', '--base-path', root, '--include-path', `${root}/node_modules`, '--allow-paths', root], {input: JSON.stringify(input), encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['pipe', 'pipe', 'pipe']}) }
-  catch (e) { throw new Refusal(file, `solc didn't run (${String((e as Error).message).slice(0, 300)}): solc 0.8 is needed to extract Solidity (on the PATH, or $GDP_SOLC)`) }
+  try { out = cp.execFileSync(solc, ['--standard-json', '--base-path', root, '--include-path', `${root}/node_modules`, '--allow-paths', root], {input: JSON.stringify(input), encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['pipe', 'pipe', 'pipe'], ...readerRun()}) }
+  catch (e) { throw new Refusal(file, statedRefusal(e) ?? `solc didn't run (${String((e as Error).message).slice(0, 300)}): solc 0.8 is needed to extract Solidity (on the PATH, or $GDP_SOLC)`) }
   const j = JSON.parse(out) as {errors?: {severity: string, formattedMessage: string}[], sources: Record<string, {id: number, ast: Ast}>, contracts: Compiled['contracts']}
   const errs = (j.errors ?? []).filter(e => e.severity === 'error')
   if (errs.length) throw new Refusal(file, `solc: ${errs.map(e => e.formattedMessage.split('\n')[0]).join(' | ').slice(0, 600)}`)

@@ -36,7 +36,7 @@
 // or two writes of one list in one step.
 import * as I from './extract-ir.ts'
 import type {B, K, N} from './extract-ir.ts'
-import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, pathOf, statedRefusal, type FileURL} from './extract-read.ts'
+import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
 import {type Extraction, type Name, fromModel} from './extract.ts'
 import {asset, type Answer, type Inferred, type IntTy, type Recipe, type SType, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, iteTerm, mapWritesOf, phiP, rangeLaws, rangeOf, varTerm} from './extract-step.ts'
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
@@ -854,7 +854,7 @@ export function readerBinary(): string {
 export function readGoPackage(dir: string): GoPkg {
   const cp = node<ChildProcess>('node:child_process')
   let pkg: GoPkg
-  try { pkg = JSON.parse(cp.execFileSync(readerBinary(), [dir], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']})) as GoPkg }
+  try { pkg = JSON.parse(cp.execFileSync(readerBinary(), [dir], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()})) as GoPkg }
   catch (e) { throw new Refusal(dir, statedRefusal(e) ?? `the Go reader didn't run (${String((e as {stderr?: string}).stderr || (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): go is needed to extract Go`) }
   // (Go writes an empty slice as null: a file with no function, no type or no import)
   for (const k of ['files', 'funcs', 'types', 'consts', 'vars', 'errors', 'ttab'] as const) (pkg as Record<string, unknown>)[k] ??= []

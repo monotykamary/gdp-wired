@@ -17,7 +17,7 @@
 // Refused, each where it is with why: other modules' code (but Map's and the clock's), anonymous functions, lists,
 // float division, recursion, receive, and a state that isn't a map of scalars.
 import {type Extraction} from './extract.ts'
-import {Refusal, pathOf, type FileURL} from './extract-read.ts'
+import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
 import {asset, type Harness, type SModule, type StepOptions, type StepRead, extractStep, node} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
@@ -29,8 +29,8 @@ type ExModule = SModule & {shape?: string, msgs?: Record<string, unknown>, init?
 export function readElixir(file: string, module: string | undefined, elixir = 'elixir'): ExModule {
   const cp = node<CP>('node:child_process'), path = node<{resolve: (...p: string[]) => string}>('node:path')
   let out: string
-  try { out = cp.execFileSync(elixir, [here('reader.exs'), JSON.stringify({file: path.resolve(file), module: module ?? null})], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']}) }
-  catch (e) { throw new Refusal(file, `the Elixir reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(0, 2).join(' | ')}): elixir is needed to extract Elixir`) }
+  try { out = cp.execFileSync(elixir, [here('reader.exs'), JSON.stringify({file: path.resolve(file), module: module ?? null})], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()}) }
+  catch (e) { throw new Refusal(file, statedRefusal(e) ?? `the Elixir reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(0, 2).join(' | ')}): elixir is needed to extract Elixir`) }
   return JSON.parse(out) as ExModule
 }
 export function extractElixir(at: string | FileURL, opts: ExOptions = {}): Extraction & {read?: StepRead} {

@@ -70,6 +70,11 @@ public final class KtReader implements Jvm.Env {
   Map<String, Object> read(Map<?, ?> req) throws Exception {
     String path = (String) req.get("file"), root = (String) req.get("root");
     src = Files.readString(Path.of(path));
+    // (the PSI recovering from deep unclosed nesting took 23 minutes on one source: past MAX_DEPTH brackets it is refused
+    // before the parse, as the Rust reader refuses it)
+    int depth = 0, most = 0;
+    for (int i = 0; i < src.length(); i++) { char c = src.charAt(i); if (c == '(' || c == '[' || c == '{') most = Math.max(most, ++depth); else if (c == ')' || c == ']' || c == '}') depth--; }
+    if (most > 1000) Jvm.refuse(new File(path).getName() + ": the source nests " + most + " brackets deep (past 1000)");
     base = new File(path).getName();
     KtPsiFactory f = factory();
     file = f.createFile(base, src);
