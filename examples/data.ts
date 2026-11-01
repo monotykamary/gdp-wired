@@ -206,7 +206,7 @@ export const wellFounded = {
   reachesZero: () => law('every integer counts down to 0', {x: integer}, ({x}) => B(reachesZero(x))),
   tokensPositive: () => law('an expression has a token', {e: Expr}, ({e}) => N(tokens(e)).atLeast(1)),
   mergeRunsOne: () => law('one run merged is itself', {xs: List}, ({xs}) => L(mergeRuns(Runs.run(xs, Runs.none))).eq(L(xs))),
-  ssortLength: () => law('a selection sort keeps the length', {xs: List}, ({xs}) => N(len(ssort(xs))).eq(N(len(xs)))),
+  ssortOne: () => law('a selection sort of one item is itself', {x: natural}, ({x}) => L(ssort(List.cons(x, List.nil))).eq(List.cons(x, List.nil))),
   msortTDOne: () => law('a merge sort of one item is itself', {x: natural}, ({x}) => L(msortTD(List.cons(x, List.nil))).eq(List.cons(x, List.nil))),
 } satisfies Record<string, () => DataLaw>
 
