@@ -64,6 +64,9 @@ merged with main 35ed7e0, against main 35ed7e0's shared baseline of 3 runs):
   `wf_fix_unique_ring`, with a nested call `wf_fix_inv_unique_ring`). Lean's export of such a ring
   (research/termination/lean-termination.ts's `evRing`: a `mutual` block, `termination_by` a fold then a phase, the inner
   call's value an atom of the decrease) is checked by Lean 4.34.0, axioms propext, Classical.choice, Quot.sound.
+- The quick bar against main 35ed7e0 (`runs/bar/runs/laneK2-quick`): wrong 0 everywhere, nothing lost solid, CHC +7,
+  ITS +1.3, SV +1.3, the rest level, the 1-vCPU tests level; the suites (`laneK2-suite2`) 240 of 243 and 241 of 243
+  against main's 240 and 240, lost 0 solid. core/data.ts +2,966 bytes over gen/laneN's (lean-kernel/data.ts +342).
 - Still refused: the Stooge sorts 16. The search finds their measure now (`(size x, 2·size x)` at the sort,
   `(size x, 7)` at the thirds, or a phase of 6 and 1), and the kernel doesn't prove the first call's decrease: it needs
   `drop k y` below `y` where k ≥ 1 and y isn't empty (a conditional size law), `length` (an integer) tied to the size so
