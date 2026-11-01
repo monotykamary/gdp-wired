@@ -20,7 +20,7 @@
 import {type Constraint, type Lin, type Step, costs, env, refuteFast, solve, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isMonomial, leafConstraints} from './kernel.ts'
-import {atPoint, cellPair, late, leafRowsOf, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, type Outcome} from './prove.ts'
+import {atPoint, cellPair, growWide, late, leafRowsOf, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, wideFor, wideScope, type Outcome} from './prove.ts'
 import {Clausal, Reader, type Row, namesOf} from './reader.ts'
 import {Simplex} from './simplex.ts'
 
@@ -74,6 +74,8 @@ export const REFUTED = 'refuted, not unfolded'
 export type Refuted = Outcome & {core?: number[], dag?: Dag, assumed?: number[]}
 export type CdclOptions = {maxLeaves?: number, model?: boolean, core?: boolean, dag?: boolean, clausal?: boolean, sideOf?: (hyp: number) => number, quiet?: (name: string) => boolean}
 export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: CdclOptions & {wall?: number} = {}): Outcome {
+  // (a wide goal's model or refutation: over parts first, prove.ts's growWide)
+  if (opts.model && !opts.dag && !opts.clausal && !root.size && wideFor(goal)) { const out = growWide(goal, budget, (g, until) => growCdcl(g, root, {nodes: 0, until}, opts)); if (out) return out }
   const go = () => cdclSession(goal, root, opts).run(budget, opts.wall)
   return queryHook.on && !queryHook.depth ? logged(opts.model ? 'model' : 'cdcl', goal, go) : go()
 }
@@ -359,6 +361,12 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     const w: Record<string, number> = {}
     for (const r of rows) for (const n of namesOf(r.lin)) if (!(n in w)) { const j = lp.indexOf(n); if (j === undefined) return undefined; const x = lp.value(j), y = Math.round(x); if (Math.abs(x - y) > 1e-9) return undefined; w[n] = y }
     for (const r of rows) { let x = r.lin['1'] ?? 0; for (const n of namesOf(r.lin)) x += r.lin[n]! * w[n]!; if (x > 0) return undefined }
+    return w
+  }
+  // (the point rounded, each name the rows read; undefined where the simplex doesn't know one)
+  const roundedOf = (lp: Simplex, rows: Row[]): Record<string, number> | undefined => {
+    const w: Record<string, number> = {}
+    for (const r of rows) for (const n of namesOf(r.lin)) if (!(n in w)) { const j = lp.indexOf(n); if (j === undefined) return undefined; w[n] = Math.max(0, Math.round(lp.value(j))) }
     return w
   }
   let qhead = 0
@@ -692,7 +700,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
           if (timing) st.boundMs += performance.now() - tb
           if (forced) { st.boundRounds++; continue }
         }
-        let steps: Step[] | undefined, lpSat = false
+        let steps: Step[] | undefined, lpSat = false, judged = false
         let verdict: ReturnType<typeof solve> | undefined
         t(() => {
           // The simplex first (warm from the node before): a conflict's rows, refuted exactly, are the leaf. With a case
@@ -718,6 +726,9 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
               else st.lpMisses++
             }
             lpSat = lp.kind === 'sat'
+            // (a wide goal's part, prove.ts's growWide: the simplex's point, where it is integral and holds every hypothesis
+            // of the whole goal read as a state, is the whole's model, whatever atoms are still open)
+            if (open && lpSat && wideScope.judge) { const w = roundedOf(sx, rowsR); if (w && wideScope.judge(w)) { verdict = {kind: 'sat', witness: w}; judged = true; return } }
             if (steps || (open && lp.kind === 'sat')) return
             // (the clausal mode, every clause satisfied: the simplex's point, where it is integral, is a model)
             if (clausal && !open && lpSat) { const w = pointOf(sx, rowsR); if (w) { verdict = {kind: 'sat', witness: w}; return } }
@@ -731,6 +742,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
           }
           if (!steps && open && !columns && full.length > rows.length) { const k = korder(), fast = refuteFast(k.map(i => full[i]!)); if (fast?.kind === 'refuted') steps = fast.steps.map(s => (s.kind === 'input' ? {...s, index: k[s.index]!} : s)) }
         }, ms => { st.solveMs += ms })
+        if (judged && verdict?.kind === 'sat') return stuck('sat', 'a model', {witness: verdict.witness})
         if (steps) conflict = leafAt(rowsR, steps)
         else {
           // A decision: the open atom of highest activity (the first candidate among equals).

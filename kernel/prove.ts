@@ -15,7 +15,7 @@ import {allowNode, allowTranslated, certCyclic, certOn, certSearch, stepCertFloo
 import type {TStats} from '../core/translate.ts'
 import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
-import {growCdcl} from './cdcl.ts'
+import {REFUTED, growCdcl} from './cdcl.ts'
 import {type Diagram, type Patterns, decide, pastEprCap, patternsOf} from './epr.ts'
 import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
@@ -323,8 +323,91 @@ function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = t
     return tree ? {tree, nodes: out.nodes} : undefined
   } finally { eprScope.busy = false }
 }
+// Wide goals (GDP_WIDE hypotheses or more: a law at every tuple of a goal's keys, a step's every write): each node of the
+// search reads every hypothesis' rows, so a goal of a thousand reaches neither a tree nor a model within its budget,
+// though its refutation reads one or two and a model of a few is a model of all. Grown first over a part: the
+// conclusion, then the hypotheses a model of the part breaks (the model read as a state: each cell at its key's value,
+// any other name 0), at most as many as the part has a round, those sharing a cell with the part first. A model that
+// breaks none is the goal's (every hypothesis holds at it); a tree is widened to the goal (`widen`), which the kernel
+// checks as any. Within a share of the goal's budget; anything else leaves the goal as before. Untrusted.
+const wideAt = Number(env.GDP_WIDE ?? 256), wideShare = Number(env.GDP_WIDE_SHARE ?? 0.25), wideTrace = !!env.GDP_WIDE_TRACE
+let wideBusy = false
+// (while a part is grown: whether a point holds every hypothesis of the whole goal, read as a state; a node's point that
+// does is the whole's model, whatever atoms the part leaves open)
+export const wideScope: {judge?: (w: Record<string, number>) => boolean} = {}
+export const wideStats = {goals: 0, trees: 0, models: 0, rounds: 0}
+export const wideHook: {on?: (part: Goal, out: Outcome) => void} = {}
+const cellsIn = (c: unknown): Set<string> => { const out = new Set<string>(); walkOnce(c, o => { const x = o as {op?: string, map?: unknown, key?: unknown}; if (x.op === 'get') out.add(`${x.map}${JSON.stringify(x.key)}`) }); return out }
+// (the hypotheses a model breaks, the model read as a state)
+// (the hypotheses a model breaks among `ids` (all where none are given), the model read as a state, the conclusion first;
+// `first`: the first one broken alone)
+export const brokenOf = (goal: Goal): ((w: Record<string, number>, ids?: number[], first?: boolean) => number[]) => {
+  const maps = new Set<string>()
+  walkOnce(goal.hyps, o => { const x = o as {op?: string, map?: unknown}; if (x.op === 'get' && typeof x.map === 'string') maps.add(x.map) })
+  const mm = {maps: Object.fromEntries([...maps].map(mp => [mp, 0]))} as unknown as Machine
+  return (w0, ids = goal.hyps.map((_, i) => i), first = false) => {
+    // (a term column's value is its term's at the point, not the point's own where its choice is open: each cell is put
+    // at its key's value with the columns so read, twice, as a column's term may read a cell)
+    const w = {...w0}, at = new Proxy(w, {get: (t, q: string) => t[q] ?? 0}) as Record<string, number>, out: number[] = []
+    let st = {scalars: {}, maps: {} as Record<string, Map<number, number>>}
+    for (let pass = 0; pass < 3; pass++) {
+      if (pass) for (const n in w) { const e = n.startsWith('⟦') ? columnTerm(n) : undefined; if (e) try { w[n] = evalE(e, at, st, mm) } catch { /* left */ } }
+      st = {scalars: {}, maps: Object.fromEntries([...maps].map(mp => [mp, new Map<number, number>()]))}
+      for (const [cell, value] of Object.entries(w)) {
+        const br = cell.indexOf('['), key = br > 0 && cell.endsWith(']') && st.maps[cell.slice(0, br)] ? keyValue(cell, w) : undefined
+        if (key !== undefined) st.maps[cell.slice(0, br)]!.set(key, value)
+      }
+    }
+    for (let q = ids.length - 1; q >= 0 && !(first && out.length); q--) {
+      const i = ids[q]!
+      let ok = false
+      try { ok = evalC(goal.hyps[i]!, at, st, mm) } catch { /* broken */ }
+      if (!ok) out.push(i)
+    }
+    return out.reverse()
+  }
+}
+// (`ask`: how a part is asked, a tree wanted by default; kernel/cdcl.ts's model-only queries ask for a model or a
+// refutation, whose core is the part's hypotheses, the whole's by index)
+export const wideFor = (goal: Goal): boolean => !wideBusy && goal.hyps.length >= wideAt
+export function growWide(goal: Goal, budget: {nodes: number, until?: number}, ask = (g: Goal, until: number): Outcome & {core?: number[]} => grow(g, new Map(), {nodes: 0, until})): (Outcome & {core?: number[]}) | undefined {
+  const hyps = goal.hyps, last = hyps.length - 1, broken = brokenOf(goal), now = clock(), w = fullWork()
+  const end = withinDeadline(budget.until ?? Infinity), until = end === Infinity ? end : now + wideShare * (end - now), cap = workCap === Infinity ? Infinity : wideShare * (workCap - w)
+  const part = new Set<number>([last]), near = new Set(cellsIn(hyps[last])), cells = new Map<number, Set<string>>()
+  const cellsAt = (i: number) => { let c = cells.get(i); if (!c) cells.set(i, (c = cellsIn(hyps[i]))); return c }
+  wideBusy = true
+  wideStats.goals++
+  try {
+    return withWork(w + cap, () => {
+      while (!late(until)) {
+        wideStats.rounds++
+        const ids = [...part].sort((a, b) => a - b), g: Goal = {name: goal.name, hyps: ids.map(i => hyps[i]!)}
+        const t0 = performance.now()
+        wideScope.judge = w => !broken(w, ids, true).length
+        let out: Outcome & {core?: number[]}
+        try { out = ask(g, until) } finally { wideScope.judge = undefined }
+        wideHook.on?.(g, out)
+        if (wideTrace) console.error(`[wide] ${goal.name.slice(0, 40)}: part ${g.hyps.length} of ${hyps.length}, ${'tree' in out ? 'tree' : out.stuck} in ${Math.round(performance.now() - t0)} ms${'tree' in out ? '' : ` ${out.why?.slice(0, 50) ?? ''}`}`)
+        if ('tree' in out) { const tree = withDeadline(until, () => widen(g, goal, out.tree)); if (tree) wideStats.trees++; return tree && {tree, nodes: out.nodes} }
+        if (out.why === REFUTED) return {...out, ...(out.core ? {core: out.core.map(i => ids[i]!)} : {})}
+        if (out.stuck !== 'sat' || !out.witness) return undefined
+        const bad = broken(out.witness)
+        if (wideTrace) console.error(`[wide]   breaks ${bad.length}${bad.length ? `: ${bad.slice(0, 12).join(' ')}` : ''}`)
+        if (!bad.length) { wideStats.models++; return {...out, path: new Map()} }
+        const more = bad.filter(i => !part.has(i))
+        if (!more.length || part.size * 2 > hyps.length) return undefined
+        const shared = (i: number) => [...cellsAt(i)].some(x => near.has(x))
+        more.sort((a, b) => Number(shared(b)) - Number(shared(a)))
+        for (const i of more.slice(0, Math.max(16, part.size))) { part.add(i); for (const x of cellsAt(i)) near.add(x) }
+      }
+      return undefined
+    })
+  } finally { wideBusy = false }
+}
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
-  if (eprScope.patterns && !eprScope.busy && !path.size && !budget.nodes) { const out = eprFirst(goal, budget); if (out) return out }
+  if (!path.size && !budget.nodes && wideFor(goal)) { const out = growWide(goal, budget); if (out) return out }
+  // (not for a wide goal's part: its abstraction's search reads no judge, and the whole goal is decided by it after)
+  if (eprScope.patterns && !eprScope.busy && !wideBusy && !path.size && !budget.nodes) { const out = eprFirst(goal, budget); if (out) return out }
   // Past a few cases, CDCL over the atoms (kernel/cdcl.ts), with most of the budget: a linear goal's refutation there
   // is a resolution of short clauses, which the tree search would find again in every case that reaches one. Unknown
   // there, the plain search, the cuts and the plain search again have the rest. Not for a law over k steps in a row
@@ -394,6 +477,7 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
   }
   const verdict: ReturnType<typeof solve> = next && rows.length > 60 ? solveP(rows, 2 * rows.length) : solveP(rows)
   if (verdict.kind === 'refuted') return {tree: leafOf(verdict.steps), nodes: budget.nodes}
+  if (next && wideScope.judge && verdict.kind === 'sat' && wideScope.judge(verdict.witness)) return {stuck: 'sat', witness: verdict.witness, path}
   // Before a split, the rows the plain search sets aside (those reading a term column) by their Farkas rows: an open
   // choice's bounds (min(a, c) ≤ c) often refute the case whichever way the choice goes, so its cases need no split.
   if (next && !columns && full.length > rows.length) {
