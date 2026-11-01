@@ -12,11 +12,13 @@ import {resolve} from 'node:path'
 
 const root = resolve(import.meta.dir, '..')
 // Each target a whole file, or (`only`) the top-level declarations named: core/data.ts's admission of a definition
-// (its recursion structural, or well-founded: the calls' paths, each call's obligation and the measure it reads, and
-// only kernel-checked proofs taken), the rest of that file being the search, which a mutant would change in speed alone.
+// (its recursion structural, or well-founded: the calls' paths, each call's obligation and the measure it reads, a nested
+// call read as a value under its invariant and the bodies keeping it, and only kernel-checked proofs taken), the rest of
+// that file being the search, which a mutant would change in speed alone.
 const targets: {file: string, only?: string[]}[] = [{file: 'kernel/kernel.ts'}, {file: 'core/check.ts'}, {file: 'core/data.ts', only: [
   'callsIn', 'recursion', 'measurable', 'sized', 'measureOf', 'sizeX', 'measureX', 'readsInt', 'iMax0', 'measureI', 'lexY', 'isIntX', 'padded',
-  'callSites', 'sitesOf', 'shapedBy', 'ownArgs', 'obligation', 'directly', 'proveMeasures', 'proveMeasuresIn', 'ringSites', 'checkMeasures', 'termination']},
+  'callSites', 'sitesOf', 'shapedBy', 'ownArgs', 'lowerY', 'obligation', 'valueVar', 'invAt', 'checkInv', 'lifted', 'keeps', 'directly', 'proveMeasures',
+  'proveMeasuresIn', 'ringSites', 'checkMeasures', 'termination']},
   {file: 'kernel/cyclic.ts'}]
 // [pattern, replacement]: binary operators keep their spaces, so generics and arrows aren't touched.
 const operators: [RegExp, string][] = [
