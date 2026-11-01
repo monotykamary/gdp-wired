@@ -11,7 +11,12 @@ import {readFileSync, writeFileSync} from 'node:fs'
 import {resolve} from 'node:path'
 
 const root = resolve(import.meta.dir, '..')
-const targets = ['kernel/kernel.ts', 'core/check.ts']
+// Each target a whole file, or (`only`) the top-level declarations named: core/data.ts's admission of a definition
+// (its recursion structural, or well-founded: the calls' paths, each call's obligation and the measure it reads, and
+// only kernel-checked proofs taken), the rest of that file being the search, which a mutant would change in speed alone.
+const targets: {file: string, only?: string[]}[] = [{file: 'kernel/kernel.ts'}, {file: 'core/check.ts'}, {file: 'core/data.ts', only: [
+  'callsIn', 'recursion', 'measurable', 'sized', 'measureOf', 'sizeX', 'measureX', 'readsInt', 'iMax0', 'measureI', 'lexY', 'isIntX', 'padded',
+  'callSites', 'sitesOf', 'shapedBy', 'ownArgs', 'obligation', 'directly', 'proveMeasures', 'ringSites', 'checkMeasures', 'termination']}]
 // [pattern, replacement]: binary operators keep their spaces, so generics and arrows aren't touched.
 const operators: [RegExp, string][] = [
   [/ <= /g, ' < '], [/ < /g, ' <= '], [/ >= /g, ' > '], [/ > /g, ' >= '],
@@ -24,12 +29,13 @@ type Mutant = {id: number, file: string, line: number, from: string, to: string,
 
 export function mutants(): Mutant[] {
   const out: Mutant[] = []
-  for (const file of targets) {
+  for (const {file, only} of targets) {
     const text = readFileSync(resolve(root, file), 'utf8')
-    let offset = 0
+    let offset = 0, inside: string | undefined
     for (const [i, line] of text.split('\n').entries()) {
       const code = line.replace(/\/\/.*$/, '') // comments aren't code
-      if (!code.trim().startsWith('import ')) for (const [pattern, to] of operators) {
+      inside = declared.exec(line)?.[1] ?? (/^\S/.test(line) && !line.startsWith('//') && !line.startsWith('}') ? undefined : inside)
+      if (!code.trim().startsWith('import ') && (!only || (inside && only.includes(inside)))) for (const [pattern, to] of operators) {
         for (const m of code.matchAll(pattern)) out.push({id: out.length, file, line: i + 1, from: m[0], to, at: offset + m.index, length: m[0].length})
       }
       offset += line.length + 1
@@ -83,6 +89,9 @@ const battery: {name: string, cwd: string, cmd: string[], env?: Record<string, s
   {name: 'rationals', cwd: 'core', cmd: ['bun', 'test', 'rationals.test.ts'], ms: 120_000},
   {name: 'pairs', cwd: 'core', cmd: ['bun', 'test', 'pairs.test.ts'], ms: 120_000},
   {name: 'nonterm', cwd: 'core', cmd: ['bun', 'test', 'nonterm.test.ts'], ms: 300_000},
+  // (core/data.ts's admission: definitions taken or refused, the obligations checked; MUTANT_BATTERY=termination,conformance
+  // for its mutants alone)
+  {name: 'termination', cwd: 'core', cmd: ['bun', 'test', 'data.test.ts', '-t', 'terminat|structural|well-founded|ring|measure'], ms: 400_000},
   {name: 'kernel fuzz', cwd: 'kernel', cmd: ['bun', 'test', 'kernel.test.ts'], env: {FUZZ_SCALE: '0.5'}, ms: 400_000},
 ]
 // MUTANT_BATTERY=a,b: only those tests (by name), for a run over one check's mutants.

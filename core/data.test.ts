@@ -215,3 +215,20 @@ test('evaluation within bounds: a natural past 2^53 throws, a sample past the bo
   expect(programOf([l]).datas.map(d => d.name)).toContain('List')
   expect(proveData(l).proven).toBe(true)
 })
+
+// A weighted size of a parameter (core/data.ts's foldMeasures): a tree turned right at its root until its left is a
+// leaf, the left subtree weighing 2 (the only weights its runs' calls all lower). A function a user defined under the
+// fold's name is never read as the fold: there the turn is refused.
+test('a weighted size: a turned tree taken by a fold defined for it, never by a user\'s function of the same name', () => {
+  const turnOf = (D: ReturnType<typeof data>, name: string): ReturnType<typeof define> => {
+    const turn: ReturnType<typeof define> = define(name, {t: D}, natural, ({t}) => (t as Val).match({leaf: () => 0,
+      node: ({l, v, r}) => (l as Val).match({leaf: () => (turn(r) as Nat).plus(1), node: ({l: p, v: x, r: q}) => turn(D.node(p, x, D.node(q, v, r)))})}))
+    return turn
+  }
+  const TT = data('TT', {leaf: {}, node: {l: self, v: natural, r: self}}), turn = turnOf(TT, 'turnTT')
+  expect(() => programOf([law('turned', {t: TT}, ({t}) => (turn(t) as Nat).eq(turn(t)))])).not.toThrow()
+  expect(turn.fn.measure!.comps[0]!.fold?.fn).toBe('foldTT_201')
+  for (const o of turn.fn.termination!.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof)).toBe(true)
+  const TU = data('TU', {leaf: {}, node: {l: self, v: natural, r: self}}), mine = define('foldTU_201', {x: TU}, natural, () => 0), turn2 = turnOf(TU, 'turnTU')
+  expect(refusal(() => law('turned', {t: TU}, ({t}) => (turn2(t) as Nat).eq(mine(t) as Nat)))).toMatch(/no measure is proven to fall/)
+}, 60_000)

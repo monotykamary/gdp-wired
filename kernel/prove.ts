@@ -805,7 +805,9 @@ function withCuts(goal: Goal, path: Path, budget: {nodes: number, until?: number
   const chain: {split: Lin, no: Tree}[] = []
   let at: Path = new Map(path)
   for (const {n, e} of columns) {
-    if (pastWall()) return undefined
+    // (within the attempt's counted time, as every other growth: a goal of many term columns otherwise reads its leaf
+    // at each cut's nodes past any deadline, 218 s for a 12 s attempt)
+    if (late(budget.until ?? Infinity)) return undefined
     if (e.op !== 'if') continue
     const a = linear(e.then, at), b = linear(e.else, at), focus = topAtoms(e.c, at)
     if (!a || !b || !focus.length) continue
@@ -834,7 +836,10 @@ function topAtoms(c: C, path: Path): Lin[] {
 // A refutation that splits only on these atoms (a cut's failing side), within a small budget.
 function growFocused(goal: Goal, path: Path, focus: Lin[], budget: {nodes: number}, near: Lin[] = focus): Outcome {
   if (++budget.nodes > 64 || pastWall()) return {stuck: 'unknown', path}
-  const verdict = solveNear(leafConstraints(goal, path), [...near, ...[...path.values()].slice(-1).map(a => a.lin)])
+  // (each node reads the whole leaf, metered as growPlain meters its rows)
+  const leaf = leafConstraints(goal, path)
+  work.n += 1 + leaf.length; costs.plainRows += leaf.length
+  const verdict = solveNear(leaf, [...near, ...[...path.values()].slice(-1).map(a => a.lin)])
   if (verdict.kind === 'refuted') return {tree: {leaf: verdict.steps}, nodes: budget.nodes}
   const split = focus.find(l => !path.has(canon(l)) && !path.has(canonFlip(l)))
   if (!split) return {stuck: verdict.kind === 'sat' ? 'sat' : 'unknown', path}

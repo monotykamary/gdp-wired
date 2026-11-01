@@ -17,6 +17,8 @@
 import type {Cyclic} from '../kernel/cyclic.ts'
 import {type Ctor, type Data, type DataLaw, type FieldSort, type Fn, type Measure, type Program, type X, type Y, ctorMap, divMap, fieldMap, isDataField, modMap, negMap, posMap, sizeMap, tagMap, weakOrder, whenOf} from '../core/data.ts'
 
+// The folds a measure's components read (core/data.ts's weighted sizes).
+const foldsOf = (m: Measure): string[] => m.comps.flatMap(c => (c.fold ? [c.fold.fn] : []))
 const name = (s: string) => s.replace(/#(\d+)$/, '_$1').replace(/[^A-Za-z0-9_']/g, '_')
 // The function parameters a function reads, through those it calls.
 function paramsOf(p: Program): Map<string, string[]> {
@@ -188,10 +190,13 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
         // (an integer's size: Int.toNat, as core/data.ts's measureI reads it)
         const term = (i: number) => { const q = f.params[i]!, t = q.sort === 'nat' ? name(q.name) : q.sort === 'int' ? `(${name(q.name)}).toNat` : `(${(q.sort as Data).name}.size ${name(q.name)})`, k = Math.abs(c.coef[i]!); return k === 1 ? t : `${k} * ${t}` }
         const pos = [...c.coef.flatMap((k, i) => (k > 0 ? [term(i)] : [])), ...(c.c > 0 ? [String(c.c)] : [])], neg = [...c.coef.flatMap((k, i) => (k < 0 ? [term(i)] : [])), ...(c.c < 0 ? [String(-c.c)] : [])]
+        // (a fold's value, core/data.ts's weighted size: the function defined for it, before this one)
+        if (c.fold) pos.push(`(${c.fold.fn} ${name(f.params[c.fold.of]!.name)})`)
         const sum = (ts: string[]) => (ts.length ? ts.join(' + ') : '0')
         return neg.length ? `(${sum(pos)} - (${sum(neg)}))` : `(${sum(pos)})`
       }
-      const sizes = p.datas.map(d => `, ${d.name}.size`).join(''), lemmas = decLemmas(f)
+      // (the folds a measure reads unfolded with the sizes)
+      const sizes = [...p.datas.map(d => `, ${d.name}.size`), ...foldsOf(m).map(g => `, ${g}`)].join(''), lemmas = decLemmas(f)
       const withLemmas = lemmas.length ? ` | (${lemmas.map(l => `have := @${l.name}`).join('; ')}; simp_all [lexLt${sizes}] <;> omega)` : ''
       // each value of a datatype the body names (a parameter, a field a match binds) at least 1 in size, where it is in scope
       const named: [string, Data][] = [...f.params.flatMap(q => (typeof q.sort === 'object' ? [[name(q.name), q.sort as Data] as [string, Data]] : [])), ...bindsOf(f.body())]
@@ -218,7 +223,9 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
         walk(l.holds, t => { if (t.op === 'call' && !g) g = t.fn as string })
         const v0 = name(l.vars.find(v => typeof v.sort === 'object')?.name ?? l.vars[0]!.name), simp = `simp_all [${[g, ...fnSimp.split(', ')].filter(Boolean).join(', ')}, ${sizeSimp}]`
         const others = l.vars.filter(v => name(v.name) !== v0).map(v => lnames.get(v.name)!)
-        const tries = [`induction ${v0} using ${g}.induct`, `induction ${v0}`, ...(others.length ? [`induction ${v0} generalizing ${others.join(' ')}`] : [])]
+        // (a function of several arguments by its own recursion on all of them: a merge's, on both heaps)
+        const all = l.vars.map(v => lnames.get(v.name)!), joint = all.length > 1 ? [`induction ${all.join(', ')} using ${g}.induct`] : []
+        const tries = [`induction ${v0} using ${g}.induct`, ...joint, `induction ${v0}`, ...(others.length ? [`induction ${v0} generalizing ${others.join(' ')}`] : [])]
         // (an if the definition's case reads split, its sizes unfolded again)
         const text = `theorem ${id}${l.vars.map(v => ` (${lnames.get(v.name)} : ${sortLean(v.sort)})`).join('')} :\n    ${lp(l.holds, lnames)} := by\n  first ${tries.map(t => `| (${t} <;> ${simp} <;> (repeat' split) <;> (try simp_all [${sizeSimp}]) <;> omega)`).join(' ')}`
         // at every tuple of the obligation's variables of the law's sorts
@@ -229,10 +236,15 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
       return [...laws.map(l => ({name: l.id, text: l.text})), {name: `${f.name}_dec${i + 1}`, text: `theorem ${f.name}_dec${i + 1}${o.law.vars.map(v => ` (${name(v.name)} : ${sortLean(v.sort)})`).join('')} :\n    ${lp(o.law.holds, names)} := by\n  ${haves.length ? `${haves.join('; ')}; ` : ''}${on && names.has(on) ? `induction ${names.get(on)} <;> ` : ''}${close}`}]
     })
     const walk = (t: unknown, fn: (o: Record<string, unknown>) => void): void => { if (!t || typeof t !== 'object') return; if (Array.isArray(t)) { t.forEach(x => walk(x, fn)); return } fn(t as Record<string, unknown>); for (const v of Object.values(t)) walk(v, fn) }
-    for (const [i, f] of p.fns.entries()) {
-      const ring = p.fns.filter(g => f.ring.includes(g.name))
+    // (the folds a measure reads, and the folds they call, first: each is structural and calls only folds before it)
+    const folds = new Set<string>()
+    const addFold = (g: string) => { if (folds.has(g)) return; folds.add(g); walk(p.fns.find(h => h.name === g)?.body(), t => { if (t.op === 'call' && t.fn !== g) addFold(t.fn as string) }) }
+    for (const f of p.fns) if (f.decreases === undefined && f.measure) foldsOf(f.measure).forEach(addFold)
+    const fnsInOrder = [...p.fns.filter(f => folds.has(f.name)), ...p.fns.filter(f => !folds.has(f.name))]
+    for (const [i, f] of fnsInOrder.entries()) {
+      const ring = fnsInOrder.filter(g => f.ring.includes(g.name))
       if (ring.length < 2) { out.push(...lemmasBefore([f]), fnDef(f)); continue }
-      if (p.fns.slice(i + 1).some(g => f.ring.includes(g.name))) continue
+      if (fnsInOrder.slice(i + 1).some(g => f.ring.includes(g.name))) continue
       out.push(...lemmasBefore(ring), 'mutual', ...ring.map(fnDef), 'end')
     }
     out.push('')
