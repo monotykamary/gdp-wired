@@ -1888,3 +1888,23 @@ export function ghostedOk(g: Ghosted): boolean {
 // says (Lean: smghostOk and checkSMachine of SGhostedM.full).
 export const checkGhostedLaws = (g: Ghosted, laws: Law[], proof: {instances: Record<string, Instances>, trees: Record<string, Tree>}): boolean =>
   ghostedOk(g) && checkLaws(ghostedMachine(g), laws, proof)
+// GhostMap.lean's forall_some_of_ghostsubst, the ∃ reading: a law with "there exists" (`some`, its body c) holds of the
+// original (Lean's ExHolds: for every value of its keys, some natural for each bound name where c holds) where the
+// ghosted machine's law `plain` is c with each bound name x replaced by a term sub[x] (Lean's substC σ c: a term over
+// anything of the ghosted machine, a ghost map at a key, several, the law's keys). The caller has the plain law proven
+// of ghostedMachine(g) (checkLaws). What Lean takes: the ghosts smghostOk's (ghostedOk); the plain law exactly c with sub
+// in place, about the law's keys (e.law.key, e.keys2); c reading no ghost variable and no ghost map (avoids, avoidsMaps);
+// the bound names sub's (σ's names). And where the law's reading and Lean's statement would part: c in Lean's terms (no
+// quantified condition, no flag), each bound name once, none a key of the law (ExHolds writes the bound names over the
+// keys' values) nor a name of the original or of a ghost.
+export function someOfGhostsOk(g: Ghosted, law: Law, plain: Law, sub: Record<string, E>): boolean {
+  const xs = law.some ?? [], keys = [...(law.forall ? [law.forall] : []), ...(law.keys ?? [])], o = g.orig, r = reads(law.holds), text = JSON.stringify(law.holds)
+  const vs = Object.keys(g.vars), ms = Object.keys(g.maps)
+  const names = [...o.params, ...o.inputs, ...Object.keys(o.state), ...Object.keys(o.maps ?? {}), ...(o.inputMaps ?? []), ...Object.keys(o.fns ?? {}), ...vs, ...ms]
+  return ghostedOk(g) && xs.length > 0 && new Set(xs).size === xs.length && Object.keys(sub).length === xs.length && xs.every(x => Object.hasOwn(sub, x))
+    && !text.includes('"op":"all"') && !text.includes('"op":"flag"') && !plain.some?.length
+    && plain.forall === law.forall && JSON.stringify(plain.keys ?? []) === JSON.stringify(law.keys ?? [])
+    && JSON.stringify(plain.holds) === JSON.stringify(substC(law.holds, {vars: Object.assign(Object.create(null) as Record<string, E>, sub), maps: {}, flags: {}}))
+    && vs.every(v => !r.vars.has(v)) && ms.every(mp => !r.maps.has(mp))
+    && xs.every(x => !keys.includes(x) && !names.includes(x))
+}

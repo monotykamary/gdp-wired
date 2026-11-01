@@ -486,12 +486,13 @@ const takenOf = (m: Machine) => new Set([...Object.keys(m.maps ?? {}), ...(m.inp
 // forall_some_of_ghostmap); proveSome's ghost maps are the same, for a proof again of the laws as stated.
 // (`ghost`: the ghosts added to a machine the search derives from the rule's (its sums, its divisors), unchecked: `ok`
 // checks them against the original; the laws as proveSome states them, so that the goals the search settled are its again)
-export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Machine, laws: Law[], ok: (m2: Machine) => boolean, witnesses: Record<string, string>} | undefined {
+export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Machine, laws: Law[], ok: (m2: Machine) => boolean, witnesses: Record<string, string>, maps: Ghosted['maps'], plains: Record<string, {plain: Law, sub: Record<string, E>}>} | undefined {
   const taken = takenOf(m), out: Law[] = [], gs: MapGhost[] = []
   // (every ghost map in the order it is added: a ghost's inner one before it)
   type Part = {name: string, write: MapGhost['write']}
   const parts: Part[] = [], one = (m2: Machine, q: Part): Ghosted => ({orig: m2, vars: {}, maps: {[q.name]: {start: 0, write: q.write}}})
   const ghost = (m2: Machine, more: Part[] = []) => [...parts, ...more].reduce((acc, q) => ghostedMachine(one(acc, q)), m2)
+  const plains: Record<string, {plain: Law, sub: Record<string, E>}> = {}
   const own = (g: MapGhost): Part[] => [...(g.inner ? [g.inner] : []), g]
   for (const l of laws) {
     if (!l.some?.length) { out.push(l); continue }
@@ -506,13 +507,15 @@ export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Mach
     gs.push(g); parts.push(...own(g)); for (const q of own(g)) taken.add(q.name)
     const {some: _s, ...plain} = l
     void _s
-    out.push({...plain, holds: g.holds}, ...(g.inner ? [g.inner.inv] : []), g.inv)
+    const pl: Law = {...plain, holds: g.holds}
+    out.push(pl, ...(g.inner ? [g.inner.inv] : []), g.inv)
+    plains[l.name] = {plain: pl, sub: {[l.some[0]!]: {op: 'get', map: g.name, key: g.at}}}
   }
   const witnesses: Record<string, string> = {}
   laws.filter(l => l.some?.length).forEach((l, i) => { const g = gs[i]!; witnesses[l.name] = `w = ${g.name}[${showE(g.at)}], ${g.name}[${showE(g.write.key)}] := ${showE(g.write.value)}` })
   // (each ghost one of the machine it is added to, as kernel.ts's ghostedOk reads it)
   const ok = (m2: Machine) => { let at = m2; for (const q of parts) { const o = one(at, q); if (!ghostedOk(o)) return false; at = ghostedMachine(o) } return true }
-  return gs.length ? {ghost: m2 => ghost(m2), laws: out, ok, witnesses} : undefined
+  return gs.length ? {ghost: m2 => ghost(m2), laws: out, ok, witnesses, maps: Object.fromEntries(parts.map(q => [q.name, {start: 0, write: q.write}])), plains} : undefined
 }
 const firstPicks = new Map<string, {mode: 'term', at: number[]} | {mode: 'map', at: number}>()
 // The machine with a ghost map (kernel.ts's ghostedMachine of Ghosted, whose ghostedOk it must pass).

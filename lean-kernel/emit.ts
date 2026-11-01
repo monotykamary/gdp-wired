@@ -989,6 +989,9 @@ export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {s
     // (ghost maps: `given` is kernel.ts's ghostedMachine(ghosted), exported as GhostMap.lean's SGhostedM; `forallSome`, the
     // laws read ∀∃, each with the ghost map it reads, at the key term `at`, read as the variable `as`)
     ghosted?: Ghosted, forallSome?: {law: string, map: string, at: E, as: string}[],
+    // (`ghostSubst`: a law with "there exists" as kernel.ts's someOfGhostsOk admits it, read by forall_some_of_ghostsubst:
+    // the plain law `law` (proven) is `body` with each bound name at its term in `sub`; the bound names given in `free`)
+    ghostSubst?: {law: string, body: C, sub: Record<string, E>}[],
     refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}, loop?: {loop: Loop, tamper?: {what: string, loop: Loop}}, noFacts?: boolean,
     kind?: KindLean,
     // (core/conformance.ts's twins: a sums machine tampered, with kernel.ts's answer; the cover goals' trees as found; a
@@ -1184,6 +1187,15 @@ theorem ${id}_some${j} : ∀ ρ M, SReach ${id}_gm.orig ρ M → ∀ v, ∃ val,
     (by ${checkBy}) (by ${checkBy}) (by ${checkBy}) (by ${checkBy})
   have hr : substRC [] (rdW ${mx(fs.map)} ${ix(fs.as)}) ${id}_e${li}.law.holds = ${c(read)} := by ${checkBy}
   rw [hr] at h; exact h`
+    }).join('')}${(opts.ghostSubst ?? []).map((gs, j) => {
+      const li = laws.findIndex(l => l.name === gs.law), law = laws[li]
+      if (!law) throw new Error(`${id}: ${gs.law}: no such law`)
+      const sigma = list(Object.entries(gs.sub).map(([x, t]) => `(${ix(x)}, ${e(t)})`))
+      return `
+/-- ${law.name}, read ∃: for every value of its keys, some natural for each of ${Object.keys(gs.sub).join(', ')} (at the ghosts' terms) where its body holds; no ghost read. -/
+theorem ${id}_ex${j} : ∀ ρ M, SReach ${id}_gm.orig ρ M → ExHolds (${c(gs.body)}) ${id}_e${li}.law.key ${list(Object.keys(gs.sub).map(x => String(ix(x))))} M ${id}_e${li}.keys2 ρ :=
+  forall_some_of_ghostsubst ${id}_gm ${id}_gmOk ${id}_proof ${id}_check ${id}_e${li} (${memOf(li)}) ${sigma} (${c(gs.body)})
+    (by ${checkBy}) (by ${checkBy}) (by ${checkBy})`
     }).join('')}`
   }})
   // Ghosts (Ghost.lean's sghost_laws): the laws that read no ghost hold of the machine without its ghosts.

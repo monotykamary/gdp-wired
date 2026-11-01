@@ -350,8 +350,72 @@ theorem forall_some_of_ghostmap (g : SGhostedM) (hg : smghostOk g = true) (ps : 
     congrMC _ M Mg _ (fun mp hmp => (hmag mp (avoidsMaps_occ ham hmp)).symm)]
   exact h1
 
+/-! The ∃ reading of witness terms over the ghosts: any number of bound naturals, any number of keys -/
+
+-- An ∃ law at a state, read as MLaw.Holds and holdsOver read a law: each further key at every value, then its key at
+-- every value, then some natural for each of xs (written over the state) where c holds.
+def ExHolds (c : C) (key : Option Nat) (xs : List Nat) (M : Nat → Nat → Nat) : List Nat → (Nat → Nat) → Prop
+  | [], ρ => match key with
+    | none => ∃ f : Nat → Nat, evalC (updAll ρ (xs.map fun i => (i, f i))) M c = true
+    | some kv => ∀ v, ∃ f : Nat → Nat, evalC (updAll (upd ρ kv v) (xs.map fun i => (i, f i))) M c = true
+  | g :: gs, ρ => ∀ w, ExHolds c key xs M gs (upd ρ g w)
+
+theorem updAll_agree {V : List Nat} {X X' : Nat → Nat} (h : Agree V X X') : ∀ (l : List (Nat × Nat)), Agree V (updAll X l) (updAll X' l)
+  | [] => h
+  | p :: ps => updAll_agree (upd_agree h p.1 p.2) ps
+
+-- Witness terms σ in place, read over a ghosted state: the terms' values there, written over a state that agrees with
+-- it outside the ghosts, satisfy c where c reads no ghost.
+theorem some_of_subst_apart {V MS : List Nat} (σ : List (Nat × E)) (c : C) (hav : avoids V c = true) (ham : avoidsMaps MS c = true)
+    {ρg ρ : Nat → Nat} {Mg M : Nat → Nat → Nat} (hag : Agree V ρg ρ) (hmag : ∀ mp, mp ∉ MS → Mg mp = M mp)
+    (h : evalC ρg Mg (substC σ c) = true) :
+    ∃ f : Nat → Nat, evalC (updAll ρ ((σ.map (·.1)).map fun i => (i, f i))) M c = true := by
+  refine ⟨fun i => applyS σ ρg Mg i, ?_⟩
+  have h1 := some_of_subst σ c ρg Mg h
+  have hx := updAll_agree hag ((σ.map (·.1)).map fun i => (i, applyS σ ρg Mg i))
+  rw [congrC _ _ M _ (fun i hi => (hx i (avoids_occ hav hi)).symm),
+    congrMC _ M Mg _ (fun mp hmp => (hmag mp (avoidsMaps_occ ham hmp)).symm)]
+  exact h1
+
+/-- The ∀∃ reading of witness terms over ghosts: a law of the ghosted machine that is c with each bound natural x
+replaced by a term σ x (`substC σ c`), where c reads no ghost (variable or map), gives at every reachable state of the
+original, for every value of its keys, some natural for each bound name where c holds: a statement about the original
+alone. A term may read anything of the ghosted machine (ghost maps at any key, the state, the law's keys), so one
+ghost map per bound name (forall_some_of_ghostmap's), several of them, a disjunction of ∃s (their bound names together)
+and a witness built of ghost reads are all instances. -/
+theorem forall_some_of_ghostsubst (g : SGhostedM) (hg : smghostOk g = true) (ps : List SEntry) (hl : checkSMachine g.full ps = true)
+    (e : SEntry) (he : e ∈ ps) (σ : List (Nat × E)) (c : C) (hsub : e.law.holds = substC σ c)
+    (hav : avoids g.vars c = true) (ham : avoidsMaps g.maps c = true) :
+    ∀ ρ M, SReach g.orig ρ M → ExHolds c e.law.key (σ.map (·.1)) M e.keys2 ρ := by
+  intro ρ M hr
+  obtain ⟨ρg, Mg, hrg, hag, hmag⟩ := smghost_reach g hg hr
+  have hall := smachine_sound g.full ps hl ρg Mg hrg e he
+  simp only [SEntry.Holds] at hall
+  -- (along the further keys, each at the same value on both sides)
+  have go : ∀ (gs : List Nat) (ρg ρ : Nat → Nat), Agree g.vars ρg ρ → holdsOver e.law Mg gs ρg → ExHolds c e.law.key (σ.map (·.1)) M gs ρ := by
+    intro gs
+    induction gs with
+    | nil =>
+      intro ρg ρ hag h
+      simp only [holdsOver, MLaw.Holds] at h
+      cases hk : e.law.key with
+      | none =>
+        simp only [hk, hsub] at h
+        simp only [ExHolds]
+        exact some_of_subst_apart σ c hav ham hag hmag h
+      | some kv =>
+        simp only [hk, hsub] at h
+        simp only [ExHolds]
+        intro v
+        exact some_of_subst_apart σ c hav ham (upd_agree hag kv v) hmag (h v)
+    | cons k gs ih =>
+      intro ρg ρ hag h w
+      exact ih (upd ρg k w) (upd ρ k w) (upd_agree hag k w) (h w)
+  exact go e.keys2 ρg ρ hag hall
+
 end Kern
 
+#print axioms Kern.forall_some_of_ghostsubst
 #print axioms Kern.smghost_reach
 #print axioms Kern.smghost_laws
 #print axioms Kern.some_of_ghostmap

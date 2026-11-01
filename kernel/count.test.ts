@@ -3,8 +3,8 @@
 // rest of the check accepts: the goal a guard's absence would check, grown by the search), and a soundness fuzz: every
 // counted goal the kernel accepts has no model where each count is its sum, by brute force.
 import {describe, expect, test} from 'bun:test'
-import {type C, type E, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, times, x, lcg} from '../core/machine.ts'
-import {type Count, type CountedGoal, type CountInst, type Ghosted, type Goal, type Tree, check, checkCounted, checkGhostedLaws, countedGoal, countHyp, countHyps, ghostedMachine, ghostedOk} from './kernel.ts'
+import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, times, x, lcg} from '../core/machine.ts'
+import {type Count, type CountedGoal, type CountInst, type Ghosted, type Goal, type Tree, check, checkCounted, checkGhostedLaws, countedGoal, countHyp, countHyps, ghostedMachine, ghostedOk, someOfGhostsOk} from './kernel.ts'
 import {clock, grow, proveLaws} from './prove.ts'
 import {byzantineStep, countTree, grants, majorityStep, thresholdStep} from '../lean-kernel/count-examples.ts'
 
@@ -253,3 +253,76 @@ describe('ghost maps', () => {
     expect(checkGhostedLaws(bad, laws, p!)).toBe(false)
   })
 })
+
+// --- the ∃ reading (GhostMap.lean's forall_some_of_ghostsubst, kernel.ts's someOfGhostsOk) --------------------------------
+
+describe('the ∃ reading of witness terms over ghosts', () => {
+  const {g, laws} = grants(), one = n(1)
+  // "every grant names some valid ticket", its body over the bound tk; the ghosted machine's law is it with tk at W[j]
+  const body = (tk: E): C => any(not(same(get('granted', x('j')), one)), all(less(tk, x('T')), same(get('valid', tk), one)))
+  const some: Law = {name: 'a grant has a valid ticket', forall: 'j', some: ['tk'], holds: body(x('tk'))}
+  const sub = {tk: get('W', x('j'))}, plain = laws[0]!
+
+  test('accepted: the grants law, its plain form proven of the ghosted machine', () => {
+    expect(JSON.stringify(plain.holds)).toBe(JSON.stringify(body(get('W', x('j')))))
+    expect(someOfGhostsOk(g, some, plain, sub)).toBe(true)
+    expect(checkGhostedLaws(g, laws, proveLaws(ghostedMachine(g), laws).proof!)).toBe(true)
+  })
+
+  // Two bound names, a disjunction of two ∃s (their names together), witnesses built of ghost reads and the law's key.
+  test('accepted: two bound names (a disjunction of ∃s), each a term over the ghosts', () => {
+    const two: Law = {name: 'a ticket, or a grant not yet made', forall: 'j', some: ['a', 'b'],
+      holds: any(all(less(x('a'), x('T')), same(get('valid', x('a')), one)), all(same(get('granted', x('j')), n(0)), same(x('b'), x('j'))))}
+    const sub2 = {a: get('W', x('j')), b: plus(x('j'), n(0))}
+    const plain2: Law = {name: 'two, plain', forall: 'j', holds: any(all(less(get('W', x('j')), x('T')), same(get('valid', get('W', x('j'))), one)),
+      all(same(get('granted', x('j')), n(0)), same(plus(x('j'), n(0)), x('j'))))}
+    expect(someOfGhostsOk(g, two, plain2, sub2)).toBe(true)
+    const ls = [plain2, ...laws], out = proveLaws(ghostedMachine(g), ls)
+    expect(out.proven && checkGhostedLaws(g, ls, out.proof!)).toBe(true)
+  }, 60_000)
+
+  // Each guard refuses what only it refuses.
+  const cases: [string, Ghosted, Law, Law, Record<string, E>][] = [
+    ['the ghosts are not the original\'s (a ghost map is one of its maps)', {...g, maps: {...g.maps, valid: {start: 0, write: {key: x('k'), value: n(0)}}}}, some, plain, sub],
+    ['no bound name', g, {...some, some: []}, plain, sub],
+    ['a bound name twice', g, {...some, some: ['tk', 'tk']}, plain, sub],
+    ['a bound name with no term', g, some, {...plain, holds: body(x('tk'))}, {}],
+    ['a term for a name not bound', g, some, plain, {...sub, zz: n(0)}],
+    ['a term under another name (its own missing)', g, some, {...plain, holds: body(x('tk'))}, {zz: get('W', x('j'))}],
+    ['the body reads a quantified condition', g, {...some, holds: any(body(x('tk')), {op: 'all', key: 'q', c: same(get('valid', x('q')), one)})}, plain, sub],
+    ['the body reads a flag', g, {...some, holds: any(body(x('tk')), {op: 'flag', name: 'f'})}, plain, sub],
+    ['the plain law has bound names of its own', g, some, {...plain, some: ['tk']}, sub],
+    ['the plain law is about another key', g, some, {...plain, forall: 'k2'}, sub],
+    ['the plain law has further keys', g, some, {...plain, keys: ['k3']}, sub],
+    ['the plain law is not the body with the terms in place (W one past)', g, some, {...plain, holds: body(plus(get('W', x('j')), one))}, sub],
+    ['the body reads a ghost map', g, {...some, holds: any(body(x('tk')), same(get('W', x('j')), x('tk')))}, {...plain, holds: any(plain.holds, same(get('W', x('j')), get('W', x('j'))))}, sub],
+    ['the body reads a ghost variable', {...g, vars: {gz: {start: n(0), step: n(0)}}}, {...some, holds: any(body(x('tk')), same(x('gz'), x('tk')))}, {...plain, holds: any(plain.holds, same(x('gz'), get('W', x('j'))))}, sub],
+    ['a bound name is the law\'s key', g, {...some, some: ['j']}, {...plain, holds: put(body(x('tk')), 'j', get('W', x('j')))}, {j: get('W', x('j'))}],
+    ['a bound name is a further key of the law', g, {...some, keys: ['tk']}, {...plain, keys: ['tk']}, sub],
+    ['a bound name is a param of the original', g, {...some, some: ['T'], holds: body(x('T'))}, {...plain, holds: put(body(x('T')), 'T', get('W', x('j')))}, {T: get('W', x('j'))}],
+    ['a bound name is a ghost map', g, {...some, some: ['W'], holds: body(x('W'))}, plain, {W: get('W', x('j'))}],
+    // (mutation run: each guard over a list, refusing where one element of several fails it)
+    ['no bound name, the plain law the body itself', g, {...some, some: []}, {name: 'the body', forall: 'j', holds: some.holds}, {}],
+    ['one of two bound names with no term (a term for another name)', g, {...some, some: ['tk', 'b']}, plain, {tk: get('W', x('j')), zz: n(0)}],
+    ['the body reads one of two ghost maps', {...g, maps: {...g.maps, W2: {start: 0, write: {key: x('k'), value: n(0)}}}}, {...some, holds: any(body(x('tk')), same(get('W2', x('j')), x('tk')))},
+      {...plain, holds: any(plain.holds, same(get('W2', x('j')), get('W', x('j'))))}, sub],
+    ['one of two bound names a param of the original', g, {...some, some: ['tk', 'T']}, put(plain, 'T', n(5)), {tk: get('W', x('j')), T: n(5)}],
+  ]
+  // (c with every read of the name at e, as the kernel's substC puts a term)
+  function put<T>(c: T, name: string, e: E): T { return JSON.parse(JSON.stringify(c).replaceAll(JSON.stringify(x(name)), JSON.stringify(e))) as T }
+  for (const [what, gg, l, p, s] of cases) test(`refused: ${what}`, () => {
+    expect(someOfGhostsOk(gg, l, p, s)).toBe(false)
+  })
+
+  // Adversarial: a witness that agrees with the runs' check on small keys and moves past them, its plain law not proven
+  // of the ghosted machine (the kernel admits the ∃ law only with that proof).
+  test('refused: a witness that changes past the keys a run reaches (W[k] one past the ticket for k ≥ 3)', () => {
+    const write = g.maps.W!.write as {key: E, value: E}
+    const moved: Ghosted = {...g, maps: {W: {start: 0, write: {key: write.key, value: ite(less(x('k'), n(3)), write.value, plus(write.value, one))}}}}
+    expect(ghostedOk(moved)).toBe(true)
+    expect(someOfGhostsOk(moved, some, plain, sub)).toBe(true)
+    const out = proveLaws(ghostedMachine(moved), laws)
+    expect(out.proven).toBe(false)
+  }, 60_000)
+})
+
