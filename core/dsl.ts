@@ -2673,7 +2673,9 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined, given = () => (opts.fast ? proveSetFast : proveLaws)(r.machine, withKinds(r, laws)) as ReturnType<typeof proveLaws>
   // (a law with "there exists" about every key: half of it, as the plain search over its ghosts takes the law too; one
   // step goal of no_lost_keys' laws as given took 57 s of 60 choosing a witness term)
-  const out = ms === undefined ? given() : withWall(performance.now() + (laws.some(l => l.some?.length && l.forall) ? ms / 2 : ms), given)
+  // (an eighth where such a law binds several names: proveSome gives a ghost map to one bound name alone)
+  const share = laws.some(l => (l.some?.length ?? 0) > 1 && l.forall) ? 8 : laws.some(l => l.some?.length && l.forall) ? 2 : 1
+  const out = ms === undefined ? given() : withWall(performance.now() + ms / share, given)
   const v: Verdict = {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   return searched(r, laws, [], v, opts)
 }
@@ -2823,10 +2825,10 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
     const out = proveSome(rule.machine, [...withKinds(rule, laws), ...fresh.map(f => f.law), ...own.map(f => f.law)], {mapMs: Math.max(5_000, (until - clock()) / 2)})
     return {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   }
-  // (the plain law's candidate supports, exists.ts's ghostSupports: Houdini within a quarter of what is left, each with the
+  // (the plain law's candidate supports, exists.ts's ghostSupports: Houdini within half of what is left, each with the
   // rest assumed, the failing dropped, until none fails; then the set through `back`, the ∃ verdict as the search's)
   if (sk?.cands.length) {
-    const tm = target.machine, hUntil = clock() + (until - clock()) / 4
+    const tm = target.machine, hUntil = clock() + (until - clock()) / 2
     let keep = [...sk.cands]
     for (let round = 0; round < 8 && clock() < hUntil; round++) {
       const ls = withKinds(target, [...fresh.map(f => f.law), ...sought, ...keep])
