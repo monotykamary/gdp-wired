@@ -1,5 +1,5 @@
 // The definitions research/termination admits (a decrease through a size law the kernel proved, a weighted size of a
-// list of trees) checked again in Lean: each law's cyclic proof exported as lean-kernel/package-check.ts exports its
+// list of trees, halves' size laws, a merge's by cases on the user's ≤) checked again in Lean: each law's cyclic proof exported as lean-kernel/package-check.ts exports its
 // datatype items (lean-kernel/data.ts's dataLean: each well-founded function with `termination_by` its measure and
 // `decreasing_by` its decrease, the size laws it reads as theorems before it). `[ONLY=id,..] bun
 // research/termination/lean-termination.ts <empty folder>`, then `lean <folder>/Proofs.lean` with the library on
@@ -8,6 +8,7 @@ import {mkdirSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {type DataLaw, type Nat, type Val, data, define, law, natural, proveData, self, when} from '../../core/data.ts'
 import {dataLean} from '../../lean-kernel/data.ts'
+import {Heap as UHeap, List, heapList, wellFounded} from '../../examples/data.ts'
 import {leanProject, toLean} from '../../lean-kernel/emit.ts'
 
 const L = (v: unknown) => v as Val, N = (v: unknown) => v as Nat
@@ -18,8 +19,13 @@ const hm: ReturnType<typeof define> = define('thmerge', {x: Heap, y: Heap}, Heap
   node: ({l: z, v: x2, r: x3}) => L(y).match({node: ({l: x4, v: x5, r: x6}) => when(N(x2).atMost(x5), Heap.node(hm(x3, y), x2, z), Heap.node(hm(x, x6), x5, x4)), nil: () => L(x)}),
   nil: () => L(y)}))
 const toList: ReturnType<typeof define> = define('ttoList', {x: Heap}, Nats, ({x}) => L(x).match({node: ({l, v, r}) => Nats.cons(v, toList(hm(l, r))), nil: () => Nats.nil}))
+// Bitonic sort's halves (examples/data.ts): bmerge's and bsort's calls on evens and odds, below by the halves' size law
+// (2·size(evens(x)) <= size(x) + 2 and 2·size(odds(x)) <= size(x) + 1, one law proven by induction on both at once);
+// a skew heap over the user's ≤ read off, the merge's size law proven by cases on that ≤.
 export const laws: Record<string, () => DataLaw> = {
   toListOne: () => law('one node read off', {v: natural}, ({v}) => L(toList(Heap.node(Heap.nil, v, Heap.nil))).eq(Nats.cons(v, Nats.nil))),
+  bsortOne: () => wellFounded.bsortOne(),
+  heapListOne: () => law('one node read off a heap over the user\'s ≤', {v: natural}, ({v}) => L(heapList(UHeap.node(UHeap.nil, v, UHeap.nil))).eq(List.cons(v, List.nil))),
 }
 if (import.meta.main) {
   const only = process.env.ONLY?.split(',')
