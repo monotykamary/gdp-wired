@@ -39,7 +39,7 @@ public final class JavaReader implements Jvm.Env {
     try { out = json(r.read(req)); } catch (RuntimeException | Error e) {
       if (Jvm.overflowed(e)) Jvm.refuse("the source nests too deeply to read");
       // (javac's error recovery leaves trees the walk can't read: the errors it reported are the reason)
-      if (r.errs.isEmpty()) throw e;
+      if (r.errs.isEmpty()) Jvm.failed("Java", e);
       Jvm.refuse("the source doesn't compile: " + String.join(" | ", r.errs.subList(0, Math.min(3, r.errs.size()))));
     }
     System.out.println(out);

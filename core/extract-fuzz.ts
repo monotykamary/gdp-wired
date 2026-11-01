@@ -101,7 +101,7 @@ function target(arg: unknown): Target | undefined {
 // --- the judge -------------------------------------------------------------------------------------------------------
 type Out = {ok: boolean, refusals?: {where: string, what: string}[], evidence?: {mismatch?: string}}
 // (a reader process's own crash given as the reason: a stack trace, a panic, an uncaught exception, the stack overflowed)
-const crashLike = /Traceback \(most recent call last\)|panicked at|^panic:|goroutine \d+ \[|Exception in thread|\bat [\w.$]+\([\w]+\.(?:java|kt):\d+\)|Maximum call stack|SIGSEGV|stack overflow|Segmentation fault|\*\* \(\w+Error\) .*\n\s+\(/m
+const crashLike = /Traceback \(most recent call last\)|panicked at|^panic:|goroutine \d+ \[|Exception in thread|\bat [\w.$]+\([\w]+\.(?:java|kt):\d+\)|Maximum call stack|SIGSEGV|stack overflow|Segmentation fault|reader failed on this source|\*\* \(\w+Error\) .*\n\s+\(/m
 // (the check's own refusals: the code doesn't build or load, a difference on a request; what the code threw is the
 // code's, not the reader's)
 const CHECK = /^the rule and the code differ: /

@@ -52,7 +52,7 @@ public final class KtReader implements Jvm.Env {
     Map<?, ?> req = (Map<?, ?>) parse(argv[0]);
     Jvm.kotlin = true;
     String out = null;
-    try { out = json(new KtReader().read(req)); } catch (RuntimeException | Error e) { if (!Jvm.overflowed(e)) throw e; Jvm.refuse("the source nests too deeply to read"); }
+    try { out = json(new KtReader().read(req)); } catch (RuntimeException | Error e) { if (!Jvm.overflowed(e)) Jvm.failed("Kotlin", e); Jvm.refuse("the source nests too deeply to read"); }
     System.out.println(out);
   }
   static KtPsiFactory factory() throws Exception {
@@ -167,7 +167,7 @@ public final class KtReader implements Jvm.Env {
     }
     return null;
   }
-  static JT boxed(JT t) { String b = UNBOX.get(t.n); return b == null ? t : new JT(b, t.a, t.nul); }
+  static JT boxed(JT t) { if (t == null) return null; String b = UNBOX.get(t.n); return b == null ? t : new JT(b, t.a, t.nul); }
   // A JVM parameter's erased type, as the harness looks the method up.
   static String erased(JT t) { if (t == null) return "java.lang.Object"; if (t.nul) return UNBOX.getOrDefault(t.n, t.n); return t.n.equals("void") ? "java.lang.Object" : t.n; }
   @Override public List<String> enumValues(String fq) {
@@ -625,7 +625,7 @@ public final class KtReader implements Jvm.Env {
         JT ty = lng || v > Integer.MAX_VALUE || v < Integer.MIN_VALUE ? new JT("long") : want != null && integral(want) ? new JT(prim(want)) : new JT("int");
         return new X(lit(v, ty, p), ty);
       }
-      if (et == KtNodeTypes.FLOAT_CONSTANT) { double d = Double.parseDouble(s.replaceAll("[fF]$", "")); return d == Math.floor(d) && Math.abs(d) < 9.007199254740992E15 ? new X(x("int", p, "v", Long.toString((long) d), "float", true), new JT(s.endsWith("f") || s.endsWith("F") ? "float" : "double")) : no1(e, "a float that isn't whole (a binary fraction)"); }
+      if (et == KtNodeTypes.FLOAT_CONSTANT) { double d; try { d = Double.parseDouble(s.replaceAll("[fF]$", "")); } catch (NumberFormatException nfe) { return no1(k, "a float literal that isn't a number"); } return d == Math.floor(d) && Math.abs(d) < 9.007199254740992E15 ? new X(x("int", p, "v", Long.toString((long) d), "float", true), new JT(s.endsWith("f") || s.endsWith("F") ? "float" : "double")) : no1(e, "a float that isn't whole (a binary fraction)"); }
       if (et == KtNodeTypes.CHARACTER_CONSTANT) return no1(e, "a character literal");
     }
     if (e instanceof KtStringTemplateExpression st) {

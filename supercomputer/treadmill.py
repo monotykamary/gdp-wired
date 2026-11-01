@@ -1236,7 +1236,9 @@ TRUSTED = ("kernel/kernel.ts", "core/check.ts", "kernel/cyclic.ts")  # (kernel/m
 # a fresh seed. Every mutant is refused with its reason or read with the check holding; a line `reader-fuzz: FAIL <kind>`
 # is a throw, a reader's crash given as the reason, a refusal with no reason or a hang (listed in the digest); a mutant
 # the check refused for a difference on a request (`reader-fuzz: CAUGHT`: a misread, no law proven of it) is counted.
-# One item in two of the readers' slots, the other an xfuzz seed; RFUZZ_PER_DAY a reader on the floor.
+# The reader's own tests are xfuzz's to judge (one with its own time limit may pass it here, the machine shared): an
+# item passes on its totals line and no FAIL. One item in two of the readers' slots, the other an xfuzz seed;
+# RFUZZ_PER_DAY a reader on the floor.
 RFUZZ_N, RFUZZ_PER_DAY = knob("RFUZZ_N", 2), knob("RFUZZ_PER_DAY", 24)
 RFAIL = re.compile(r"^reader-fuzz: FAIL (crash|no reason|hang)(.*)$", re.M)
 # (seeds a day per fuzz kind and per language: the floor's share; past them the fuzz yields, never stops: the fill of the
@@ -1262,7 +1264,7 @@ def rfuzz_cmd(lang: str, seed: int) -> str:
     lim = limit * (RFUZZ_N + 1)
     return (f"bun install --frozen-lockfile >/dev/null 2>&1; {setup}; cd core && READER_FUZZ_SEED={seed} READER_FUZZ_N={RFUZZ_N} timeout -s INT {lim} "
             f"bun test --preload ./extract-fuzz.ts {test} > /tmp/rf.log 2>&1; s=$?; [ $s -eq 124 ] && echo \"reader-fuzz: FAIL hang $(cat /tmp/reader-fuzz-*.now 2>/dev/null)\"; "
-            f"grep -E '^reader-fuzz:|^ *[0-9]+ (pass|skip|fail)$|^\\(fail\\)' /tmp/rf.log | cut -c1-1500; echo rfuzz-exit $s; ! grep -q '^reader-fuzz: FAIL' /tmp/rf.log && [ $s -eq 0 ]")
+            f"grep -E '^reader-fuzz:|^ *[0-9]+ (pass|skip|fail)$|^\\(fail\\)' /tmp/rf.log | cut -c1-1500; echo rfuzz-exit $s; ! grep -q '^reader-fuzz: FAIL' /tmp/rf.log && grep -q '^reader-fuzz: [0-9]' /tmp/rf.log")
 
 
 def file_at(commit: str, f: str, _cache: dict = {}) -> list[str]:  # noqa: B006  (the files by commit, kept)

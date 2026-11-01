@@ -302,6 +302,9 @@ class Go {
   args(a: GX[], decl: GoFunc): SX[] { return a.map((y, i) => (decl.params[i] ? this.as(this.x(y), decl.params[i]!.t) : this.x(y))) }
   builtin(x: GX): SX {
     const b = x.builtin!, a = x.a ?? [], at = this.at(x)
+    // (fewer arguments than the builtin takes: a package the type checker refused, which the reader reads on)
+    const takes = ({len: 1, delete: 2, min: 1, max: 1, panic: 1} as Record<string, number>)[b] ?? 0
+    if (a.length < takes) return this.no(x, `${b} with ${a.length} argument${a.length === 1 ? '' : 's'} (it takes ${takes})`)
     switch (b) {
       case 'len': {
         const k = this.T(a[0]!.t).k

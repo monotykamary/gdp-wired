@@ -51,6 +51,16 @@ public final class Jvm {
   // A source a reader can't read, said so on stderr (core/extract-read.ts's statedRefusal): a syntax error, or nesting
   // past the reader's stack (javac's parser and the walk recurse on each level), found anywhere in a throw's causes.
   static void refuse(String why) { System.err.println("gdp: refused: " + why.replace('\n', ' ')); System.exit(3); }
+  // A reader's own failure on a source it parsed (javac's internal assertions on a tree it recovered, a type the walk
+  // couldn't resolve): refused, the reason naming the failure and where, so it is never read as a missing tool.
+  static void failed(String lang, Throwable e) {
+    Throwable r = e; while (r.getCause() != null) r = r.getCause();
+    StackTraceElement at = r.getStackTrace().length > 0 ? r.getStackTrace()[0] : null;
+    // (the compiler's own failure, javac's or Kotlin's, on what it recovered from the source: the source is past it)
+    if (at != null && (at.getClassName().startsWith("com.sun.tools.javac") || at.getClassName().startsWith("org.jetbrains.kotlin") || at.getClassName().startsWith("com.intellij")))
+      refuse("the " + lang + " compiler failed on this source (" + r.getClass().getSimpleName() + ")");
+    refuse("the " + lang + " reader failed on this source (" + r.getClass().getSimpleName() + (at != null ? " at " + at.getClassName() + "." + at.getMethodName() + ":" + at.getLineNumber() : "") + ")");
+  }
   static boolean overflowed(Throwable t) { for (; t != null; t = t.getCause()) if (t instanceof StackOverflowError) return true; return false; }
   static void json(Object o, StringBuilder b) {
     if (o == null) b.append("null");
@@ -110,7 +120,7 @@ public final class Jvm {
   static final Set<String> LOCKS = Set.of("java.util.concurrent.locks.ReentrantLock", "java.util.concurrent.locks.Lock", "java.util.concurrent.locks.ReentrantReadWriteLock", "java.util.concurrent.locks.ReadWriteLock", "java.util.concurrent.locks.StampedLock", "kotlinx.coroutines.sync.Mutex");
   static final List<String> UNITS = List.of("NANOSECONDS", "MICROSECONDS", "MILLISECONDS", "SECONDS", "MINUTES", "HOURS", "DAYS");
   static final long[] NANOS = {1L, 1_000L, 1_000_000L, 1_000_000_000L, 60_000_000_000L, 3_600_000_000_000L, 86_400_000_000_000L};
-  static String prim(JT t) { return PRIM.contains(t.n) ? t.n : BOX.get(t.n); }
+  static String prim(JT t) { return t == null ? null : PRIM.contains(t.n) ? t.n : BOX.get(t.n); } // (null: a type the reader could not resolve)
   static boolean num(JT t) { String q = prim(t); return q != null && !q.equals("boolean") && !q.equals("void"); }
   static boolean integral(JT t) { String q = prim(t); return q != null && Set.of("int", "long", "short", "byte", "char").contains(q); }
   static boolean floating(JT t) { String q = prim(t); return "float".equals(q) || "double".equals(q); }
