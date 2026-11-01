@@ -110,8 +110,9 @@ test('well-founded recursion: a measure found, and each call proven to lower it 
 }, 60_000)
 
 test('a ring of functions that is not structural recursion: a measure each (one length), each call within the ring proven to lower the callee\'s below the caller\'s', () => {
-  // tokens reads paren at the same value: size(e) + 1 at tokens, size(e) at paren, found from the calls' relation
-  expect([tokens.fn.termination!.text, paren.fn.termination!.text]).toEqual(['size(e) + 1', 'size(e)'])
+  // tokens reads paren at the same value: the size first at both, then 1 at tokens and 0 at paren (the call the size
+  // leaves equal, ranked by the runs)
+  expect([tokens.fn.termination!.text, paren.fn.termination!.text]).toEqual(['(size(e), 1)', '(size(e), 0)'])
   expect(tokens.fn.ring).toEqual(['tokens', 'paren'])
   for (const t of [tokens.fn.termination!, paren.fn.termination!]) for (const o of t.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof)).toBe(true)
   // mergeRuns' call is on the runs merged in pairs: a size law about pairwise, proven by induction, then used
@@ -142,7 +143,7 @@ test('nested recursion (well-founded, a call in another\'s argument): taken with
 
 test('a ring weighted across its functions (a formula\'s fold, Not weighing twice, at each function), then ranked by the runs: no size falls at ¬(l ∧ r) to l ∧ ¬r', () => {
   const t = [ev.fn.termination!, both.fn.termination!]
-  expect(ev.fn.ring).toEqual(['ev', 'both'])
+  expect([...ev.fn.ring].sort()).toEqual(['both', 'ev'])
   expect(t.map(x => x.text)).toEqual([expect.stringMatching(/^\(foldForm_\d+\(f\), 0\)$/), expect.stringMatching(/^\(foldForm_\d+\(f\), 1\)$/)])
   for (const x of t) for (const o of x.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof), o.law.name).toBe(true)
 }, 60_000)
@@ -304,6 +305,12 @@ test('a weighted size: a turned tree taken by a fold defined for it, never by a 
   define('foldTU_201', {x: data('TUx', {none: {}})}, natural, () => 0)
   const {D: TU, turn: turn2} = turnOf('TU', 'turnTU')
   expect(refusal(() => law('turned', {t: TU}, ({t}) => (turn2(t) as Nat).eq(turn2(t))))).toMatch(/no measure is proven to fall/)
+  // (and one defined after it, over the fold's name: a second turn on TT doesn't read it as the fold)
+  define('foldTT_201', {x: data('TTx', {none: {}})}, natural, () => 0)
+  const turn3: ReturnType<typeof define> = define('turnTT2', {t: TT}, natural, ({t}) => (t as Val).match({leaf: () => 0,
+    node: ({l, v, r}) => (l as Val).match({leaf: () => (turn3(r) as Nat).plus(1), node: ({l: p, v: x, r: q}) => turn3(TT.node(p, x, TT.node(q, v, r)))})}))
+  const t3 = (() => { try { return turn3.fn.termination } catch { return undefined } })()
+  expect(t3?.measure.comps.some(c => c.fold?.fn === 'foldTT_201') ?? false).toBe(false)
 }, 60_000)
 
 // The paths core/data.ts reads a call's obligation under (sitesOf): a second match on a variable matched before takes

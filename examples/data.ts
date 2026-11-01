@@ -174,7 +174,8 @@ export const qsort: ReturnType<typeof define> = define('qsort', {xs: List}, List
 
 // A ring of two functions that isn't structural recursion (lean-kernel/Data.lean's wf_fix_unique_ring): an expression's
 // tokens, a sum's read through `paren` at the same value, each of whose operands' read at a field. Their measures, one
-// a function, found from the calls' relation: size(e) + 1 at `tokens`, size(e) at `paren`.
+// a function: the size first at both, then 1 at `tokens` and 0 at `paren` (the call the size leaves equal, ranked by the
+// runs).
 export const Expr = data('Expr', {atom: {}, sum: {a: self, b: self}})
 export const tokens: ReturnType<typeof define> = define('tokens', {e: Expr}, natural, ({e}) => L(e).match({atom: () => 1, sum: () => N(paren(e)).plus(2)}))
 export const paren: ReturnType<typeof define> = define('paren', {e: Expr}, natural, ({e}) => L(e).match({atom: () => 1, sum: ({a, b}) => N(tokens(a)).plus(N(tokens(b))).plus(1)}))
@@ -223,7 +224,7 @@ export const nested = {
   nestSame: () => law('nest is the list', {xs: List}, ({xs}) => L(nest(xs)).eq(L(xs))),
   nestRingSame: () => law('nestA is the list', {xs: List}, ({xs}) => L(nestA(xs)).eq(L(xs))),
   ackAbove: () => law('ack is above its second argument', {m: natural, n: natural}, ({m, n}) => N(ack(m, n)).atLeast(N(n).plus(1))),
-  evAtLeast: () => law('a formula\'s value is at least k', {f: Form, k: natural}, ({f, k}) => N(ev(f, k)).atLeast(k)),
+  evNotNot: () => law('an atom under two nots, read by both', {n: natural, k: natural}, ({n, k}) => N(both(Form.not(Form.not(Form.atom(n))), k)).eq(N(n).plus(k).plus(1))),
 } satisfies Record<string, () => DataLaw>
 
 // Definitions that don't terminate, made to look as if they did (core/data.test.ts): each refused with the measures

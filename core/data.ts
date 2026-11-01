@@ -919,11 +919,11 @@ function ringFolds(ring: Fn[], edges: CallEdge[]): Measure[][] {
 }
 // The fold of those weights, defined once; none where its name is a function this didn't define (a user's own
 // `foldList_12`, of another sort, never read as the fold).
-const madeFolds = new Set<string>()
+// (by identity: a fold this defined, then a user's own of its name defined over it, is the user's, never read as the fold)
+const madeFolds = new Map<string, Fn>()
 function foldFn(d: Data, fields: {j: number, k: number, sort: Sort}[], ws: number[]): string | undefined {
   const name = `fold${d.name}_${ws.join('')}`
-  if (fns.has(name)) return madeFolds.has(name) ? name : undefined
-  madeFolds.add(name)
+  if (fns.has(name)) return madeFolds.get(name) === fns.get(name) ? name : undefined
   const at = new Map(fields.map((f, n) => [`${f.j}.${f.k}`, ws[n]!]))
   const self: Callable = define(name, {x: d}, natural, ({x}) => (x as Val).match(Object.fromEntries(d.ctors.map((c, j) => [c.name, (fs: Record<string, any>) => c.fields.reduce<Nat>((t, f, k) => {
     const w = at.get(`${j}.${k}`)!, s2 = fieldSort(f)
@@ -931,6 +931,7 @@ function foldFn(d: Data, fields: {j: number, k: number, sort: Sort}[], ws: numbe
     const part = s2 === d ? (self(fs[f.name]) as Nat) : (fs[f.name] as Val).size()
     return w === 1 ? t.plus(part) : t.plus(part.times(w))
   }, new Nat({op: 'nat', value: 1}))]))))
+  madeFolds.set(name, self.fn)
   return name
 }
 // An obligation as one node of a cyclic proof (no use, no models): its conclusion, each definition it reads unfolded

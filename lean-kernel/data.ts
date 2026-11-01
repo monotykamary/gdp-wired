@@ -157,6 +157,8 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
         const ihs = c.fields.flatMap((f, i) => (inG(d, f) ? [`have ih${i} := ${fieldT(f)}.dec_enc x${i}`] : []))
         return [`  | ${pat(d, j, i => `x${i}`)} => by`, `    rw [${d.name}.dec]`, ...ihs.map(h => `    ${h}`),
           `    have e1 : (${full} - ${z(d)}) / ${m(d)} = ${code} := by omega`, `    have e2 : (${full} - ${z(d)}) % ${m(d)} = ${j - z(d)} := by omega`,
+          // (normalized as the goal will be: a constructor of one field's code, tupk [a], is a itself there)
+          `    try simp only [tupk, tup, Nat.add_sub_cancel, Nat.add_sub_cancel_left] at e1 e2`,
           `    simp [${d.name}.enc, e1, e2, tupk, tup${c.fields.flatMap((f, i) => (inG(d, f) ? [`, ih${i}`] : [])).join('')}]`]
       })]))
       for (const d of ds) {
@@ -219,6 +221,7 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
       const names = new Map(o.law.vars.map(v => [v.name, name(v.name)]))
       const on = o.scheme?.match(/ on ([^,]+)/)?.[1], fnSimp = p.fns.filter(g => !f.ring.includes(g.name)).map(g => g.name).join(', ')
       const sizeSimp = p.datas.map(d => `${d.name}.size`).join(', ')
+      // (a decrease a later component gives, the first equal at a fold's value: omega alone, the fold not unfolded)
       const close = `(try simp only [${fnSimp}] at *) <;> (repeat' split) <;> (try simp only [${sizeSimp}] at *) <;> omega`
       const laws = (o.lemmaLaws ?? []).map((l, j) => {
         const lnames = new Map(l.vars.map(v => [v.name, name(v.name)])), id = `${f.name}_dec${i + 1}_law${j + 1}`
@@ -236,7 +239,7 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
         return {id, text, haves: at.map(as => `(have := ${id} ${as.join(' ')})`)}
       })
       const haves = laws.flatMap(l => l.haves)
-      return [...laws.map(l => ({name: l.id, text: l.text})), {name: `${f.name}_dec${i + 1}`, text: `theorem ${f.name}_dec${i + 1}${o.law.vars.map(v => ` (${name(v.name)} : ${sortLean(v.sort)})`).join('')} :\n    ${lp(o.law.holds, names)} := by\n  ${haves.length ? `${haves.join('; ')}; ` : ''}${on && names.has(on) ? `induction ${names.get(on)} <;> ` : ''}${close}`}]
+      return [...laws.map(l => ({name: l.id, text: l.text})), {name: `${f.name}_dec${i + 1}`, text: `theorem ${f.name}_dec${i + 1}${o.law.vars.map(v => ` (${name(v.name)} : ${sortLean(v.sort)})`).join('')} :\n    ${lp(o.law.holds, names)} := by\n  ${haves.length ? `${haves.join('; ')}; ` : ''}${on && names.has(on) ? `induction ${names.get(on)} <;> ` : ''}first | omega | (${close})`}]
     })
     const walk = (t: unknown, fn: (o: Record<string, unknown>) => void): void => { if (!t || typeof t !== 'object') return; if (Array.isArray(t)) { t.forEach(x => walk(x, fn)); return } fn(t as Record<string, unknown>); for (const v of Object.values(t)) walk(v, fn) }
     // (the folds a measure reads, and the folds they call, first: each is structural and calls only folds before it)
