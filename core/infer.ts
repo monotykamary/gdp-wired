@@ -590,8 +590,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const samples: Sample[] = [], cap = 3000, keys: string[] = [], held = new Set<string>()
   const mapsText = (st: State) => JSON.stringify(Object.values(st.maps).map(c => [...c]))
   let offered = 0
+  // (how many states offered held each value of each state variable: `rare`, below)
+  const stateVars = Object.keys(m.state), seenAt = stateVars.map(() => new Map<number, number>())
   const keep = (s: Sample) => {
     offered++
+    stateVars.forEach((v, i) => { const x2 = s.st.scalars[v] ?? 0; seenAt[i]!.set(x2, (seenAt[i]!.get(x2) ?? 0) + 1) })
     const k = JSON.stringify([s.params, s.st.scalars, s.st.defaults ?? 0]) + mapsText(s.st), i = held.has(k) ? -1 : samples.length < cap ? samples.length : rand(4) === 0 ? rand(cap) : -1
     if (i < 0) return
     if (i < samples.length) held.delete(keys[i]!)
@@ -609,16 +612,28 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const skolems = m.inputs.some(i => i.startsWith('some$a'))
   for (let trial = 0, bound = 2, stuck = false; moreRuns(trial); trial++, bound = trial % 20 === 0 || stuck ? (bound >= 1024 ? 2 : bound * 2) : bound) {
     stuck = false; trials++
-    // (params at a bound of their own every other trial, at 0 one in twenty: a small budget with large costs, all-0 params)
-    const params = randomParams(trial % 20 === 1 ? 0 : trial % 2 ? bound : 2 ** rand(11))
-    if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) continue
-    let st: State
-    try { st = run.init(params) } catch { continue }
-    keep({params, st})
+    // (one trial in four goes on from a sample, of 64 drawn, holding the value of a state variable the fewest states
+    // offered held, its requests at the smallest bound: the hull's bounds come from the states past the usual, which runs
+    // from the start seldom reach (a ticket lock's service at 2 in 2 to 9 of 3,000 samples, and the join dropped the
+    // forms they left too tight one at a time), and a thread or two at a time step on from them)
+    const rare = trial % 4 === 3 && stateVars.length > 0 && samples.length >= 64
+    let params: Env, st: State
+    if (rare) {
+      const v = rand(stateVars.length), seen = (q: Sample) => seenAt[v]!.get(q.st.scalars[stateVars[v]!] ?? 0) ?? 0
+      let q0 = samples[rand(samples.length)]!
+      for (let q = 1; q < 64; q++) { const o = samples[rand(samples.length)]!; if (seen(o) < seen(q0)) q0 = o }
+      ;({params, st} = q0)
+    } else {
+      // (params at a bound of their own every other trial, at 0 one in twenty: a small budget with large costs, all-0 params)
+      params = randomParams(trial % 20 === 1 ? 0 : trial % 2 ? bound : 2 ** rand(11))
+      if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) continue
+      try { st = run.init(params) } catch { continue }
+      keep({params, st})
+    }
     let took = 0
     for (let d = 0, tries = 0; d < 40 && tries < 200; tries++) {
       used.tries++
-      const input = randomInput(params, bound)
+      const input = randomInput(params, rare ? 2 : bound)
       let next: State
       try { if (!allowed(m, run, params, st, input)) continue; next = run.step(params, st, input) } catch { break }
       d++
@@ -2989,6 +3004,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (last.proven && last.checked) break
     if (!last.goal) break
     const name = goalName(last.goal), stuckOn = chosen.find(f => lawFor(f).name === name)
+    // (the join's control states no state reached, one law for all, unproven with every law of the set assumed (their
+    // instances shared among more laws: a model none of the join's proofs met): each its own law, as the join has them
+    // once one is broken)
+    if (stuckOn?.nevers && !last.run) { chosen = chosen.flatMap(f => (f === stuckOn ? f.nevers!.map(c => ({...f, nevers: undefined, ...(c.length > 1 ? {never: c} : {unreachable: c[0]!})})) : [f])); forget(); continue }
     if (last.run) {
       // A real run breaks it: a candidate is false (dropped); a law of the caller's is false (the answer).
       if (!stuckOn) break
