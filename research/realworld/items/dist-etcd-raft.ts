@@ -111,7 +111,7 @@ export const raftVote = () => voteBase()
     return {higher: d.higher, handled: d.handled, grants: d.grants, ticksOut: d.ticksOut, checks: d.checks, hups: d.hups, stepsDown: d.stepsDown, inLease: d.inLease, ignored: d.ignored}
   })
   .step(env => {
-    const {op, mt, mterm, from, rto, id, preVote, lead, st, elapsed, timeout} = env
+    const {op, mt, mterm, from, rto, id, preVote, elapsed, timeout} = env
     const {higher, handled, term1, vote1, lead1, st1, grants, ticksOut, checks, hups, stepsDown} = decide(env)
     // campaign (:1025-1073): pre-vote first where enabled (becomePreCandidate: term and vote kept, lead None), else
     // becomeCandidate (reset(term + 1): vote None, then Vote = id). A precandidate that wins campaigns for real.
@@ -216,7 +216,7 @@ export const items: RealItem[] = [{
   laws: [
     invariant(T, T.law('the grants and rejections never outnumber the voters', ({yes, no, n}) => yes.plus(no).atMost(n)), 'safety', 'inferred', 'tracker.go:265-271 RecordVote records a voter\'s first response only'),
     invariant(T, T.law('an election won and lost at once is impossible', ({yes, no, n}) => yes.times(2).gt(n).and(n.minus(no).times(2).atMost(n)).not()), 'safety', 'docs', 'majority.go:180-197 VoteResult: VoteWon at q grants, VoteLost when grants plus missing are below q'),
-    stepLaw(T, T.stepLaw('a recorded vote is never changed by a later response', ({V, id}, after) => forall(k => V.at(k).is('none').not().implies(after.V.at(k).eq(V.at(k)))), ({op}) => op.is('record')),
+    stepLaw(T, T.stepLaw('a recorded vote is never changed by a later response', ({V}, after) => forall(k => V.at(k).is('none').not().implies(after.V.at(k).eq(V.at(k)))), ({op}) => op.is('record')),
       'step', 'docs', 'tracker.go:266-270 "_, ok := p.Votes[id]; if !ok { p.Votes[id] = v }"'),
     stepLaw(T, T.stepLaw('a won election stays won as responses arrive', ({n}, after) => after.yes.times(2).gt(n), ({op, yes, n}) => op.is('record').and(yes.times(2).gt(n))),
       'step', 'inferred', 'majority.go:189-191 votedCnt >= q is VoteWon; a recorded vote never changes'),

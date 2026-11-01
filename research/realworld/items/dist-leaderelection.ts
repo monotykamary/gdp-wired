@@ -50,7 +50,7 @@ export const leaderElector = () => rule('client-go LeaderElector over a LeaseLoc
     const puts = op.is('put').and(Plan.at(c).is('none').not(), cas)
     return {fastWrites, creates, reads, changed, plans, plansRenew: plans.and(oh.eq(c)), puts, writes: fastWrites.or(creates, puts)}
   })
-  .step(({op, c, now, holder, trans, rv, exists, clock, wrote, OH, OT, OTime, Seen, Cache, Plan, fastWrites, creates, reads, changed, plans, plansRenew, puts, writes}) => {
+  .step(({op, c, now, holder, trans, rv, exists, clock, wrote, OH, OT, OTime, Seen, Cache, Plan, fastWrites, creates, reads, changed, plans, plansRenew, writes}) => {
     // The record written: the leader keeps AcquireTime and LeaderTransitions (fast: the observed record's; step 4:
     // the record just read); a new leader writes transitions + 1 (:812-818); a created lease 0.
     const newTrans = when(creates, 0, when(fastWrites, OT.at(c), when(Plan.at(c).is('renew'), trans, trans.plus(1))))
@@ -89,7 +89,7 @@ export const items: RealItem[] = [{
     {gap: 'scope', blocks: 'part', detail: 'release (ReleaseOnCancel), coordinated leader election and lease recovery left out; every candidate has the same LeaseDuration'},
   ],
   laws: [
-    stepLaw(r, r.stepLaw('the lease changes hands only after a full LeaseDuration without a write', ({now, wrote, D}, after) => wrote.plus(D).atMost(now),
+    stepLaw(r, r.stepLaw('the lease changes hands only after a full LeaseDuration without a write', ({now, wrote, D}) => wrote.plus(D).atMost(now),
       ({writes, exists, holder, c}) => writes.and(exists, holder.gt(0), holder.eq(c).not())),
     'safety', 'docs', 'leaderelection.go:137-142 "LeaseDuration is the duration that non-leader candidates will wait to force acquire leadership... A client needs to wait a full LeaseDuration without observing a change to the record before it can attempt to take over"'),
     stepLaw(r, r.stepLaw('LeaderTransitions grows by one exactly when the holder changes', ({holder, trans}, after) => after.trans.eq(when(after.holder.eq(holder), trans, trans.plus(1))),
