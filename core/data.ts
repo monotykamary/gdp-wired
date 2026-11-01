@@ -450,6 +450,7 @@ function recursion(fn: Fn): Rec {
 export type Measure = {comps: {coef: number[], c: number, fold?: {fn: string, of: number}}[]}
 export type Termination = {measure: Measure, text: string, obligations: {law: DataLaw, proof?: CyclicVerdict, scheme?: string, lemmas: string[], lemmaLaws?: DataLaw[]}[], ms: number}
 export const terminationMs = {ms: 10_000}, guardedMs = {ms: 12_000}
+const guardedLeft = {ms: 0}
 // (an integer's size is its value where it is positive, 0 below: Lean's Int.toNat; a measure that reads one is read in
 // the integers, its value the same, compare/chc-adt's naturals written as Int)
 const measurable = (s: Sort) => s === 'nat' || s === 'int' || s instanceof Data
@@ -1004,7 +1005,10 @@ function proveMeasuresIn(ring: Fn[], sites: Site[], ms: Measure[], until0: numbe
     // (where the call's path gives a guarded size law: it, its guard at the call and the size laws, proven in order)
     const guarded = guardedLaws(law, site, names)
     if (guarded.length) {
-      until = Math.max(until, clock() + guardedMs.ms)
+      // (at most `guardedMs` more for a ring's every measure tried: a refusal isn't slowed past it)
+      const more = Math.min(guardedLeft.ms, Math.max(0, clock() + guardedMs.ms - until))
+      guardedLeft.ms -= more
+      until += more
       // (each guard at the call after the guarded laws its arguments' sizes read there: half of a length from 2 items on)
       const groups = [{laws: sizeLaws(law, names, true), then: false}, ...guarded.flatMap(g => [...guardedLaws(g.at(-2)!, site, names, true).map(laws => ({laws, then: false})), {laws: g, then: true}])]
       const lemmas = groups.flatMap(g => g.laws)
@@ -1041,12 +1045,19 @@ function ringSites(ring: Fn[], why: string): Site[] {
 // proven by the kernel, within the counted budget; nothing is taken (core/conformance.ts: tampered measures refused).
 export function checkMeasures(fns: Fn[], ms: Measure[], budget = terminationMs.ms): {proven: true, obligations: Termination['obligations'][]} | {proven: false, why: string} {
   return counted(dataRate, () => {
-    const r = proveMeasures(fns, ringSites(fns, fns.map(f => f.name).join(', ')), padded(fns, ms), clock() + budget)
+    const had = guardedLeft.ms
+    guardedLeft.ms = guardedMs.ms
+    let r: ReturnType<typeof proveMeasures>
+    try { r = proveMeasures(fns, ringSites(fns, fns.map(f => f.name).join(', ')), padded(fns, ms), clock() + budget) } finally { guardedLeft.ms = had }
     return 'failed' in r ? {proven: false, why: r.failed} : {proven: true, obligations: r.obligations}
   })
 }
 // The ring's measures and each call's proof, or a refusal with the measures tried. A ring of one is a function.
 function termination(ring: Fn[], why: string): Termination[] {
+  const had = guardedLeft.ms
+  try { return terminationOf(ring, why) } finally { guardedLeft.ms = had }
+}
+function terminationOf(ring: Fn[], why: string): Termination[] {
   return counted(dataRate, () => {
     const names = ring.map(f => f.name)
     if (dataTrace) console.error(`[data] termination of ${names.join(', ')}`)
@@ -1055,6 +1066,7 @@ function termination(ring: Fn[], why: string): Termination[] {
     const sites = ringSites(ring, why)
     if (dataTrace) console.error(`[data]   ${sites.length} calls`)
     const edges = runEdges(ring), until = clock() + terminationMs.ms * ring.length, tried: string[] = [], seen = new Set<string>()
+    guardedLeft.ms = guardedMs.ms * ring.length
     if (dataTrace) console.error(`[data]   its runs: ${edges.length} calls at ${Math.round(performance.now() - t0)} ms`)
     for (const ms of candidates(ring, edges, sites, until)) {
       const text = ringText(ring, ms)

@@ -12,7 +12,8 @@
 //     sorted lists (one list shorter at each call, the other the same: the measure (size xs, size ys), found), lists
 //     interleaved (the two swapped at each call: size xs + size ys), a sum of three naturals with an accumulator
 //     (add3acc: (x, y)), the same merge with its measure stated, and a quicksort (each call on a filter of the tail:
-//     its decrease proven by induction on the filter)
+//     its decrease proven by induction on the filter), a selection sort and a merge sort by halves (each call's decrease
+//     through a size law under a guard: the item removed is in the list, two items or more)
 //   - a user's own ≤, +, = on the naturals by recursion, a wrapper over them that isn't recursive, a count by the own =:
 //     laws proven through the built-ins (core/transfer.ts), the bridges proven first
 // The broken variants (an append that drops the head, a reverse that repeats it, a mirror that adds 1, an insertion that
@@ -22,7 +23,8 @@
 // the law; the definitions that don't terminate (a merge that calls itself on the same lists, an interleave that only
 // swaps them, an add3acc that doesn't lower y, a merge whose stated measure a call doesn't lower; and `adversarial`'s
 // twelve: rings that pass a value round, lower and raise it, swap two, step past a guard the runs don't reach, a call
-// on a helper no longer than its argument up to 9 items only, a nested call, an integer's) are refused, with the
+// on a helper no longer than its argument up to 9 items only, a nested call, an integer's; a remove and a take whose
+// guarded size laws hold where the runs reach only) are refused, with the
 // reason, before any law about them is read. `wellFounded`: a ring of two functions (a measure each) and a merge sort
 // whose call's decrease needs a size law about the function of its argument.
 import {type Bool, type DataLaw, type Integer, type Nat, type Val, data, define, fnParam, integer, law, mutual, natural, boolean, no, programOf, self, when, yes, proveData} from '../core/data.ts'
@@ -189,11 +191,23 @@ export const mergeRuns: ReturnType<typeof define> = define('mergeRuns', {rs: Run
 // condition's choice on Bool).
 export const countDown: ReturnType<typeof define> = define('countDown', {x: integer}, integer, ({x}) => when(I(x).atLeast(1), I(countDown(I(x).minus(1))).plus(1), I(x).times(0)))
 export const reachesZero: ReturnType<typeof define> = define('reachesZero', {x: integer}, boolean, ({x}) => when(I(x).atLeast(1), B(reachesZero(I(x).minus(1))), yes))
+// A selection sort: the least item first, then the rest without it. Its call is on the list without its least item,
+// shorter only because that item is in it: a guarded size law about `remove` (where its run finds the item, the list
+// loses one), the item found in the list at the call, each proven by induction and used in the decrease's proof.
+export const minimum: ReturnType<typeof define> = define('minimum', {x: natural, xs: List}, natural, ({x, xs}) => L(xs).match({nil: () => N(x), cons: ({head, tail}) => when(N(head).atMost(x), N(minimum(head, tail)), N(minimum(x, tail)))}))
+export const remove: ReturnType<typeof define> = define('remove', {y: natural, xs: List}, List, ({y, xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(y).eq(head), L(tail), List.cons(head, remove(y, tail)))}))
+export const ssort: ReturnType<typeof define> = define('ssort', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => List.cons(minimum(head, tail) as Nat, ssort(remove(minimum(head, tail), xs)))}))
+// A merge sort from the top down: the first half and the rest, each sorted, merged. Each call is on take or drop at half
+// the length, shorter only from two items on: guarded size laws about take (n + 2 ≤ size xs) and drop (n ≥ 1 and two
+// items), the guard at the call from the path's two items.
+export const msortTD: ReturnType<typeof define> = define('msortTD', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({tail}) => L(tail).match({nil: () => L(xs), cons: () => L(mrg(msortTD(take(N(len(xs)).divBy(2), xs)), msortTD(drp(N(len(xs)).divBy(2), xs))))})}))
 export const wellFounded = {
   countDownNonneg: () => law('an integer counted down is never negative', {x: integer}, ({x}) => I(countDown(x)).atLeast(0)),
   reachesZero: () => law('every integer counts down to 0', {x: integer}, ({x}) => B(reachesZero(x))),
   tokensPositive: () => law('an expression has a token', {e: Expr}, ({e}) => N(tokens(e)).atLeast(1)),
   mergeRunsOne: () => law('one run merged is itself', {xs: List}, ({xs}) => L(mergeRuns(Runs.run(xs, Runs.none))).eq(L(xs))),
+  ssortLength: () => law('a selection sort keeps the length', {xs: List}, ({xs}) => N(len(ssort(xs))).eq(N(len(xs)))),
+  msortTDOne: () => law('a merge sort of one item is itself', {x: natural}, ({x}) => L(msortTD(List.cons(x, List.nil))).eq(List.cons(x, List.nil))),
 } satisfies Record<string, () => DataLaw>
 
 // Definitions that don't terminate, made to look as if they did (core/data.test.ts): each refused with the measures
@@ -218,6 +232,20 @@ const loops = {
   nearTail: () => { const f: ReturnType<typeof define> = define('nearTailLoop', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: () => N(f(nearTail(xs)))})); return f },
   // the same through a ring
   nearTailRing: () => { const f: ReturnType<typeof define> = define('nearRingA', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: () => N(g(nearTail(xs)))})), g: ReturnType<typeof define> = define('nearRingB', {xs: List}, natural, ({xs}) => N(f(xs))); return f },
+  // a selection sort through a remove that takes the item out only where fewer than 9 follow it: where the item is
+  // found so, the list loses one (true), but the item at the call is found so only in the runs' short lists
+  removeNear: () => {
+    const rm: ReturnType<typeof define> = define('removeNear', {y: natural, xs: List}, List, ({y, xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(y).eq(head).and(N(len(tail)).lt(9)), L(tail), List.cons(head, rm(y, tail)))}))
+    const f: ReturnType<typeof define> = define('ssortNear', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: ({head, tail}) => N(f(rm(minimum(head, tail), xs)))}))
+    return f
+  },
+  // a merge sort through a take that keeps the whole list from n = 9 on: shorter by its guard n + 2 ≤ size xs only on the
+  // runs' short lists, false past them
+  takeNear: () => {
+    const tk: ReturnType<typeof define> = define('takeNear', {n: natural, xs: List}, List, ({n, xs}) => when(N(n).atLeast(9), L(xs), N(n).match({zero: () => List.nil, succ: ({pred}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => List.cons(head, tk(pred, tail))})})))
+    const f: ReturnType<typeof define> = define('msortNear', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: ({tail}) => L(tail).match({nil: () => 0, cons: () => N(f(tk(N(len(xs)).divBy(2), xs)))})}))
+    return f
+  },
   // 0 calls 1 and 1 calls 0
   upDown: () => { const f: ReturnType<typeof define> = define('upDown', {n: natural}, natural, ({n}) => N(n).match({zero: () => N(f(1)), succ: ({pred}) => N(f(pred))})); return f },
   // a sum of two that stays: (x + 1, y) to (x, y + 1), (0, y + 1) to (y + 1, y)
