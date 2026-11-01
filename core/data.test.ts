@@ -3,7 +3,7 @@
 // structural recursion refused unless its termination is proven (a measure every call lowers, each call's obligation
 // proven by the kernel), and a tampered proof refused by the kernel.
 import {expect, test} from 'bun:test'
-import {type Bool, type Nat, type Val, EvalLimit, boolean, checkMeasures, conjectures, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, when} from './data.ts'
+import {type Bool, type Nat, type Val, type X, type Y, EvalLimit, boolean, checkMeasures, conjectures, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, valueVar, when} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
 import {transferPlan} from './transfer.ts'
 import {Bag, Forest, List, Rose, Tree, a3, ack, adversarial, app, broken, drp, ilv, laws, leq, len, merge, mergeRuns, mir, mrg, nest, nestA, nestB, nested, nonterminating, nz, paren, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken, tokens, wellFounded} from '../examples/data.ts'
@@ -150,6 +150,28 @@ test('nested recursion refused where a call\'s value has no place to be read (a 
   expect(refusal(() => law('stated2', {xs: L2}, ({xs}) => (a(xs) as Nat).eq(0)))).toBeUndefined()
   expect([a.fn.termination!.measure.comps.length, b.fn.termination!.measure.comps.length]).toEqual([2, 2])
 }, 60_000)
+
+test('invariants given with measures (nested recursion, well-founded): one reading anything but its function\'s parameters and value, binding, or calling the ring is refused; a call under a natural\'s match in an argument is refused', () => {
+  const v = (n: string): X => ({op: 'var', name: n}), size = (x: X): X => ({op: 'size', data: 'List', of: x})
+  const keeps = (f: typeof nest, other: X): Y => ({op: '=', a: size(v(valueVar(f.fn))), b: other})
+  const S = {comps: [{coef: [1], c: 0}]}
+  const bad: [string, Y][] = [
+    ['another variable', keeps(nest, size(v('zz')))],
+    ['a match', keeps(nest, {op: 'match', data: 'List', of: v('nest.xs'), cases: [{binds: [], body: size(v('nest.xs'))}, {binds: ['h9', 't9'], body: size(v('nest.xs'))}]})],
+    ['a natural\'s match', {op: '=', a: {op: 'natmatch', of: size(v('nest.xs')), zero: {op: 'nat', value: 0}, pred: 'p9', succ: {op: 'nat', value: 0}}, b: {op: 'nat', value: 0}}],
+    ['a function parameter', keeps(nest, {op: 'apply', param: 'fp', arg: size(v('nest.xs'))})],
+    ['a call of the function', keeps(nest, size({op: 'call', fn: 'nest', args: [v('nest.xs')]}))],
+  ]
+  for (const [what, y] of bad) expect(() => checkMeasures([nest.fn], [S], 10_000, [y]), what).toThrow(/an invariant reads its parameters and value alone/)
+  // a ring of two: an invariant of nestA calling nestB
+  expect(() => checkMeasures([nestA.fn, nestB.fn], [S, S], 10_000, [keeps(nestA, size({op: 'call', fn: 'nestB', args: [v('nestA.xs')]})), undefined])).toThrow(/an invariant reads its parameters and value alone/)
+  // one through a function taken before (len), and the size: proven
+  const r = checkMeasures([nest.fn], [S], 20_000, [{op: 'and', xs: [keeps(nest, size(v('nest.xs'))), {op: '=', a: {op: 'call', fn: 'len', args: [v(valueVar(nest.fn))]}, b: {op: 'call', fn: 'len', args: [v('nest.xs')]}}]}])
+  expect(r.proven).toBe(true)
+  // f(n + 1) = f(case n of 0 → 0, q + 1 → f(q)): the inner call under the natural's match, its predecessor bound there
+  const nm: ReturnType<typeof define> = define('underNat', {n: natural}, natural, ({n}) => (n as Nat).match({zero: () => 0, succ: ({pred}) => nm((pred as Nat).match({zero: () => 0, succ: ({pred: q}) => nm(q)}))}))
+  expect(refusal(() => law('underNat', {n: natural}, ({n}) => (nm(n) as Nat).eq(0)))).toMatch(/nested recursion isn't taken there/)
+}, 120_000)
 
 test('definitions that do not terminate, made to look as if they do (rings, a size law true of short lists only, a guard past the runs\' values), are refused with the measures tried', () => {
   const why = Object.fromEntries(Object.entries(adversarial).map(([name, mk]) => [name, refusal(mk)])) as Record<keyof typeof adversarial, string | undefined>
