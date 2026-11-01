@@ -1931,3 +1931,4 @@ end Kern
 #print axioms Kern.mc_sound
 #print axioms Kern.cmachine_sound
 #print axioms Kern.counts_exist
+#print axioms Kern.pickHyp_true
