@@ -38,6 +38,42 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### Termination through halves and the user's ≤ (gen/laneM)
+
+Three runs of this branch (6044b83, `runs/m/tipc1..3` in its worktree) against main 35ed7e0's shared baseline
+of three (`runs/bar/base/35ed7e005bc2-boat-r1/tip`), boat, 60 s:
+
+| theorems (492) | proven, by run | refused (unsupported) | refuted | wrong |
+| --- | --- | --- | --- | --- |
+| gdp-wired, this branch | 212, 210, 212 | 79, 79, 79 | 7 | 0 |
+| gdp-wired, main 35ed7e0 | 211, 208, 210 | 95, 95, 95 | 7 | 0 |
+
+- Taken now, in every run, refused in every run on main (16): bitonic sort's `bmerge` and `bsort` (`sort_BSort*`,
+  `sort_nat_BSort*`, 8) and the heap sort's `toList` over Peano naturals (`sort_nat_HSort*`, `sort_nat_HSort2*`, 8).
+  None is proven within 60 s yet (timeouts, as the integer heap sorts on main). No gain is claimed (our lowest run, 210,
+  is below main's highest, 211); nothing lost in every run; the tasks proven in some runs and not others differ both
+  ways at the limit.
+- What it took (core/data.ts, the termination's search; the trusted part unchanged, each obligation and each size law
+  kernel-checked): a function of one value is conjectured a bound on twice its size too (`2·size(evens(x)) <=
+  size(x) + 2`), the functions of a ring calling each other over the same parameters their bounds as one law (evens'
+  step is odds' bound: neither alone is an induction's), proven by mutual induction (a call of another member the law
+  reads at the same arguments is a use of the law); an obligation tried without a scheme has the shapes at its variables
+  and at the values its call's path builds (`x :: y :: zs` is at least 3 in size); a case split may be on a predicate of
+  the program at the law's values (the user's ≤ the merge reads, in place of the fields' tags), first where models
+  split as evenly; the obligation's lemma pass has 80% of its time (the merge's size law, 8 cases); and transfer
+  (core/transfer.ts) doesn't copy a function whose copy's recursion is refused (bmerge's call left in the match of an
+  unfolded `stitch`: an error before). Lean's export (lean-kernel/data.ts) names in a decrease lemma only the functions
+  the definition reaches, each value its obligation names at least 1 in size, and tries omega after `simp_all`:
+  research/termination/lean-termination.ts re-checks the heap over the user's ≤ end to end (Lean 4.34.0, axioms propext,
+  Classical.choice, Quot.sound), and `ONLY=bsortNil` takes bmerge's and bsort's definitions, their decrease lemmas and
+  the halves' law by mutual induction, leaving the program's `facts_hold` unsolved at sort2's `if decide (y ≤ x)` (an
+  export gap outside termination).
+- Still refused for termination, 50: `bubsort` 8 (an inversion count: the count's invariance under a bubble pass, the
+  first lemma, unproven at 30 s and out of memory as the obligation's whole), `flatten1` 2 (a fold of a list weighted by
+  its trees' folds, tried: the decrease needs each tree's fold at least 1 at its grandchildren, four unfoldings deep,
+  and the kernel's search ran out of its nodes there), `ssort` 8, `msorttd` 4, `nmsorttd` 4 (conditional size laws,
+  gen/laneZ), the integer helpers below 0, correctly (24), and the nested rings and calls (as below).
+
 ### Termination through a merge's size law (gen/laneT)
 
 The bar on boat, 60 s (`runs/bar/runs/laneT-tip-full3` in the main checkout: this branch at 470bc13 merged with main
