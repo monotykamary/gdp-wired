@@ -30,6 +30,7 @@ const laws = [
   r.law('busy no proposal', ({busy, Proposal, pr}: any) => forall(b => b.lt(N).and(busy.eq(1)).implies(Proposal.at(pk(pr, b)).not()))),
   r.law('busy round', ({busy, pr, pv, pmaxr, cnt, none, size}: any) => forall(_k => busy.eq(1).implies(pr.eq(none).not().and(pr.lt(N), pv.lt(N), pmaxr.lt(N), cnt.lt(size))))),
   r.law('busy quorum', ({busy, size}: any) => forall(_k => busy.eq(1).implies(size.lt(qs.at(0).times(2))))),
+  r.law('idle', ({busy, cnt}: any) => forall(_k => busy.atMost(1).and(busy.eq(0).implies(cnt.eq(0))))),
   r.law('Qs in size', ({Qs, size}: any) => forall(k => Qs.at(k).implies(k.lt(size)))),
   r.law('busy maxr', ({busy, pr, pv, pmaxr, none, Proposal}: any) => forall(_k => busy.eq(1).and(pmaxr.eq(none).not()).implies(pmaxr.lt(pr).and(Proposal.at(pk(pmaxr, pv)))))),
   r.law('busy rows', ({busy, pr, pmaxr, none, cnt, Qs, Vote}: any) => forall((c, a, b) => lt(c, a, b).and(busy.eq(1), c.lt(cnt), Qs.at(c), Vote.at(pk3(c, a, b)), a.lt(pr)).implies(pmaxr.eq(none).not().and(a.atMost(pmaxr))))),
