@@ -21,8 +21,9 @@
 // drop of one too many, a merge that drops an item, an add3acc that forgets one) are refused with a value that breaks
 // the law; the definitions that don't terminate (a merge that calls itself on the same lists, an interleave that only
 // swaps them, an add3acc that doesn't lower y, a merge whose stated measure a call doesn't lower; and `adversarial`'s
-// twelve: rings that pass a value round, lower and raise it, swap two, step past a guard the runs don't reach, a call
-// on a helper no longer than its argument up to 9 items only, a nested call, an integer's) are refused, with the
+// fourteen: rings that pass a value round, lower and raise it, swap two, step past a guard the runs don't reach, a call
+// on a helper no longer than its argument up to 9 items only, one that halves its argument up to 8 items only, a heap
+// read off through a merge that keeps both heaps where the user's ≤ fails, a nested call, an integer's) are refused, with the
 // reason, before any law about them is read. `wellFounded`: a ring of two functions (a measure each) and a merge sort
 // whose call's decrease needs a size law about the function of its argument.
 import {type Bool, type DataLaw, type Integer, type Nat, type Val, data, define, fnParam, integer, law, mutual, natural, boolean, no, programOf, self, when, yes, proveData} from '../core/data.ts'
@@ -190,7 +191,30 @@ export const mergeRuns: ReturnType<typeof define> = define('mergeRuns', {rs: Run
 // condition's choice on Bool).
 export const countDown: ReturnType<typeof define> = define('countDown', {x: integer}, integer, ({x}) => when(I(x).atLeast(1), I(countDown(I(x).minus(1))).plus(1), I(x).times(0)))
 export const reachesZero: ReturnType<typeof define> = define('reachesZero', {x: integer}, boolean, ({x}) => when(I(x).atLeast(1), B(reachesZero(I(x).minus(1))), yes))
+// Bitonic sort's halves (TIP's sort_BSort*): evens and odds of a list, calling each other, and a merge of two sorted lists
+// by merging their evens and their odds. Its calls are on halves: each taken by the halves' size law, 2·size(evens(x))
+// <= size(x) + 2 and 2·size(odds(x)) <= size(x) + 1, conjectured as one law of the two (each the other's induction step)
+// and proven by induction on both at once.
+export const evens: ReturnType<typeof define> = define('evens', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => List.cons(head, odds(tail))}))
+export const odds: ReturnType<typeof define> = define('odds', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({tail}) => evens(tail)}))
+const sort2 = define('sort2', {x: natural, y: natural}, List, ({x, y}) => when(N(x).atMost(y), List.cons(x, List.cons(y, List.nil)), List.cons(y, List.cons(x, List.nil))))
+const pairs: ReturnType<typeof define> = define('pairs', {x: List, y: List}, List, ({x, y}) => L(x).match({nil: () => L(y), cons: ({head: z, tail: x2}) => L(y).match({nil: () => L(x), cons: ({head: x3, tail: x4}) => app(sort2(z, x3), pairs(x2, x4))})}))
+const stitch = define('stitch', {x: List, y: List}, List, ({x, y}) => L(x).match({nil: () => L(y), cons: ({head, tail}) => List.cons(head, pairs(tail, y))}))
+export const bmerge: ReturnType<typeof define> = define('bmerge', {x: List, y: List}, List, ({x, y}) => L(x).match({nil: () => List.nil, cons: ({head: z, tail: x2}) => L(y).match({nil: () => L(x), cons: ({head: x3, tail: x4}) => {
+  const halves = () => stitch(bmerge(evens(x), evens(y)), bmerge(odds(x), odds(y)))
+  return L(x2).match({nil: () => L(x4).match({nil: () => sort2(z, x3), cons: () => halves()}), cons: () => halves()})
+}})}))
+export const bsort: ReturnType<typeof define> = define('bsort', {x: List}, List, ({x}) => L(x).match({nil: () => List.nil, cons: ({head: y, tail: z}) => L(z).match({nil: () => List.cons(y, List.nil), cons: () => bmerge(bsort(evens(x)), bsort(odds(x)))})}))
+// A skew heap over the user's own ≤ (TIP's sort_nat_HSort*, Peano naturals): toList's call on the merge of its subheaps,
+// below the heap by the merge's size law, proven by the merge's recursion with its cases split on the user's ≤ the merge
+// reads, not on the fields' tags its unfolding would.
+export const Heap = data('Heap', {node: {l: self, v: natural, r: self}, nil: {}})
+export const hmerge: ReturnType<typeof define> = define('hmerge', {x: Heap, y: Heap}, Heap, ({x, y}) => L(x).match({
+  node: ({l: z, v: x2, r: x3}) => L(y).match({node: ({l: x4, v: x5, r: x6}) => when(B(leq(x2, x5)), Heap.node(hmerge(x3, y), x2, z), Heap.node(hmerge(x, x6), x5, x4)), nil: () => L(x)}),
+  nil: () => L(y)}))
+export const heapList: ReturnType<typeof define> = define('heapList', {x: Heap}, List, ({x}) => L(x).match({node: ({l, v, r}) => List.cons(v, heapList(hmerge(l, r))), nil: () => List.nil}))
 export const wellFounded = {
+  bsortOne: () => law('bitonic sort of one item', {x: natural}, ({x}) => L(bsort(List.cons(x, List.nil))).eq(List.cons(x, List.nil))),
   countDownNonneg: () => law('an integer counted down is never negative', {x: integer}, ({x}) => I(countDown(x)).atLeast(0)),
   reachesZero: () => law('every integer counts down to 0', {x: integer}, ({x}) => B(reachesZero(x))),
   tokensPositive: () => law('an expression has a token', {e: Expr}, ({e}) => N(tokens(e)).atLeast(1)),
@@ -249,6 +273,11 @@ const loops = {
   nearTail: () => { const f: ReturnType<typeof define> = define('nearTailLoop', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: () => N(f(nearTail(xs)))})); return f },
   // the same through a ring
   nearTailRing: () => { const f: ReturnType<typeof define> = define('nearRingA', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: () => N(g(nearTail(xs)))})), g: ReturnType<typeof define> = define('nearRingB', {xs: List}, natural, ({xs}) => N(f(xs))); return f },
+  // halves past the runs' sizes only: evens up to 8 items, the list itself from 9; a call on it is a halving's for the
+  // values the size law is conjectured from, and its induction fails
+  halvesTill9: () => { const h = define('halfTill9', {xs: List}, List, ({xs}) => when(N(len(xs)).atLeast(9), L(xs), L(evens(xs)))); const f: ReturnType<typeof define> = define('halvesTill9', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: ({tail}) => L(tail).match({nil: () => 0, cons: () => N(f(h(xs)))})})); return f },
+  // a merge over the user's ≤ that, where the ≤ fails, puts both heaps below a node: read off, the heap never shrinks
+  guardKeeps: () => { const m: ReturnType<typeof define> = define('mergeKeeps', {x: Heap, y: Heap}, Heap, ({x, y}) => L(x).match({node: ({l, v, r}) => L(y).match({node: ({v: w}) => when(B(leq(v, w)), Heap.node(m(r, y), v, l), Heap.node(L(x), w, L(y))), nil: () => L(x)}), nil: () => L(y)})); const f: ReturnType<typeof define> = define('readKeeps', {x: Heap}, natural, ({x}) => L(x).match({node: ({l, r}) => N(f(m(l, r))), nil: () => 0})); return f },
   // 0 calls 1 and 1 calls 0
   upDown: () => { const f: ReturnType<typeof define> = define('upDown', {n: natural}, natural, ({n}) => N(n).match({zero: () => N(f(1)), succ: ({pred}) => N(f(pred))})); return f },
   // a sum of two that stays: (x + 1, y) to (x, y + 1), (0, y + 1) to (y + 1, y)

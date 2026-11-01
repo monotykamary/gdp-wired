@@ -17,12 +17,51 @@ The measurements, the failure classes and what was built are in ../engine/DESIGN
 
 ## The citable figure: wall time, as the competition measures it
 
-On main e86df1b, with nothing written (run.ts's search), each protocol alone on its boat VM (2 pinned vCPUs), two runs,
-the process's wall time around bun: **19–20 of 29 proven within 60 s of wall** (19 in both runs of one batch,
-consensus_epr at 65.8 and 70.1 s; 20 in another, at 30.6 and 52.5 s), **20 of 29 within 300 s**, **0 broken variants
-proven** (each run once at 60 s and once at 300 s). The search's budget is counted (the cost model's work); at 60 counted
-seconds it proves 20 of 29 in both runs, and its wall time on boat runs 32 to 70 s where the proof is near the budget.
-Batches and tables: ../engine/DESIGN.md, gen/laneJ.
+**Setup**, fixed as a competition fixes its machine and memory limit: each run alone on a boat VM of type `large` (8
+vCPUs, 16 GB, about 14 GB usable after the OS's 2 GB; the job asks for 4 vCPUs and 14 GB, and as a timing job the VM
+runs nothing else, its 8 vCPUs pinned to it), the scheduler holding every job to that type; the search's budget 60 s
+(counted: the cost model's work), the limit the process's **wall time around bun, 60 s strict**; nothing written
+(run.ts's search); three runs of each protocol, each broken variant once (jobs.ts makes the jobs).
+
+On main 81d51bf: **22 of 29 proven within 60 s of wall in all three runs, 24 in at least one; no broken variant
+proven** (the refuted ones by a run).
+
+| protocol | run 1 | run 2 | run 3 | broken variant |
+| --- | --- | --- | --- | --- |
+| client_server_ae | proven 4.2 s | proven 4.4 s | proven 64.8 s | unknown |
+| client_server_db_ae | unknown 77.9 s | unknown 92.0 s | unknown 78.7 s | unknown |
+| consensus | proven 0.3 s | proven 0.3 s | proven 0.1 s | refuted |
+| consensus_epr | proven 31.5 s | proven 41.2 s | proven 41.1 s | unknown |
+| consensus_forall | proven 34.1 s | proven 54.6 s | proven 52.2 s | unknown |
+| consensus_wo_decide | proven 41.4 s | proven 39.2 s | proven 54.9 s | unknown |
+| firewall | proven 24.0 s | proven 33.0 s | proven 42.8 s | unknown |
+| learning_switch | unknown 122.5 s | unknown 124.1 s | unknown 121.5 s | unknown |
+| learning_switch_i4 | unknown 130.5 s | unknown 130.6 s | unknown 127.8 s | unknown |
+| lock_server | proven 3.1 s | proven 4.0 s | proven 3.9 s | refuted |
+| lockserv | proven 7.4 s | proven 16.8 s | proven 8.5 s | refuted |
+| lockserv_automaton | proven 16.7 s | proven 11.7 s | proven 27.6 s | refuted |
+| majorityset_leader_election | proven 8.1 s | proven 17.5 s | proven 5.6 s | unknown |
+| mldr | unknown 60.0 s | unknown 48.8 s | unknown 75.1 s | unknown |
+| naive_consensus | proven 8.4 s | proven 24.1 s | proven 5.4 s | unknown |
+| paxos_epr | unknown 133.8 s | unknown 129.2 s | unknown 132.3 s | unknown |
+| quorum_leader_election | proven 3.9 s | proven 4.7 s | proven 2.7 s | unknown |
+| sharded_kv | proven 30.0 s | proven 31.1 s | proven 58.9 s | refuted |
+| sharded_kv_no_lost_keys | proven 40.5 s | proven 22.5 s | proven 39.9 s | unknown |
+| simple | proven 13.3 s | proven 11.8 s | proven 13.9 s | refuted |
+| simple_decentralized_lock | proven 5.3 s | proven 4.4 s | proven 7.7 s | refuted |
+| simple_election | proven 8.9 s | proven 4.9 s | proven 11.5 s | unknown |
+| simple_regular | proven 14.0 s | proven 16.5 s | proven 15.8 s | refuted |
+| tcommit | proven 0.8 s | proven 0.5 s | proven 0.5 s | refuted |
+| toy_consensus | proven 2.6 s | proven 4.7 s | proven 2.8 s | unknown |
+| toy_consensus_epr | proven 8.2 s | proven 3.0 s | proven 3.0 s | unknown |
+| toy_consensus_forall | proven 2.7 s | proven 5.8 s | proven 5.9 s | unknown |
+| two_phase_commit | proven 50.7 s | proven 9.0 s | proven 17.1 s | refuted |
+| twophase | proven 27.4 s | unknown 62.5 s | proven 59.5 s | refuted |
+
+Each cell: the verdict and the process's wall time. Over 60 s and proven counts as not proven within the limit
+(client_server_ae's run 3 at 64.8 s took the search's path, counted work 2.11M against the other runs' 0.39M: its laws
+as given are bounded on the wall; twophase's run 2 unknown at 62.5 s, its counted work 1.51M against the proven runs' 1.52M: stopped by the wall). learning_switch_i4 peaks at 6.5-13.1 GB, which this VM holds.
+Batches, tables and the earlier figures (mixed VM types): ../engine/DESIGN.md, gen/laneJ to gen/laneY7.
 
 ## Where each comes from
 

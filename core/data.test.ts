@@ -6,7 +6,7 @@ import {expect, test} from 'bun:test'
 import {type Bool, type Nat, type Val, type X, type Y, EvalLimit, boolean, checkMeasures, conjectures, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, valueVar, when} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
 import {transferPlan} from './transfer.ts'
-import {Bag, Forest, List, both, ev, Rose, Tree, a3, ack, adversarial, app, broken, drp, ilv, laws, leq, len, merge, mergeRuns, mir, mrg, nest, nestA, nestB, nested, nonterminating, nz, paren, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken, tokens, wellFounded} from '../examples/data.ts'
+import {Bag, Forest, List, both, ev, Rose, Tree, a3, ack, adversarial, app, bmerge, broken, bsort, heapList, drp, ilv, laws, leq, len, merge, mergeRuns, mir, mrg, nest, nestA, nestB, nested, nonterminating, nz, paren, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken, tokens, wellFounded} from '../examples/data.ts'
 
 const list = (...xs: number[]): {c: number, f: unknown[]} => xs.reduceRight<{c: number, f: unknown[]}>((t, h) => ({c: 1, f: [h, t]}), {c: 0, f: []})
 const run = (call: {x: unknown}, env: Record<string, unknown>) => evalX(call.x as never, new Map(Object.entries(env)) as never, {})
@@ -118,7 +118,7 @@ test('a ring of functions that is not structural recursion: a measure each (one 
   // mergeRuns' call is on the runs merged in pairs: a size law about pairwise, proven by induction, then used
   const o = mergeRuns.fn.termination!.obligations[0]!
   expect(mergeRuns.fn.termination!.text).toBe('size(rs)')
-  expect(o.lemmas).toEqual([expect.stringMatching(/^size law: size\(pairwise\(rs0\)\) <= size\(rs0\)/)])
+  expect(o.lemmas).toEqual([expect.stringMatching(/^size law: 2·size\(pairwise\(rs0\)\) <= size\(rs0\) \+ 2/)])
   expect(o.proof?.proven && checkCyclic(o.proof.proof)).toBe(true)
   for (const mk of Object.values(wellFounded)) { const v = proveData(mk()); expect(v.proven && v.checked && v.proof?.proven && checkCyclic(v.proof.proof)).toBe(true) }
 }, 60_000)
@@ -140,6 +140,14 @@ test('nested recursion (well-founded, a call in another\'s argument): taken with
   for (const f of [nz, nest, ack, nestA, nestB]) for (const o of f.fn.termination!.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof), o.law.name).toBe(true)
   for (const mk of Object.values(nested)) { const v = proveData(mk()); expect(v.proven && v.checked && v.proof?.proven && checkCyclic(v.proof.proof), v.goal).toBe(true) }
 }, 120_000)
+
+test('halves and a merge over the user\'s ≤: taken by size laws proven by induction on both halves at once, and by cases on the user\'s ≤', () => {
+  expect([bmerge, bsort, heapList].map(f => f.fn.termination!.text)).toEqual(['(size(x), size(y))', 'size(x)', 'size(x)'])
+  // the halves' law, one of evens and odds (each the other's induction step)
+  expect(bsort.fn.termination!.obligations[0]!.lemmas).toEqual([expect.stringMatching(/^size law: 2·size\(odds\(xs0\)\) <= size\(xs0\) \+ 1 and 2·size\(evens\(xs0\)\) <= size\(xs0\) \+ 2/)])
+  expect(heapList.fn.termination!.obligations[0]!.lemmas).toEqual([expect.stringMatching(/^size law: size\(hmerge\(x0, y1\)\) \+ 1 <= size\(x0\) \+ size\(y1\)/)])
+  for (const f of [bmerge, bsort, heapList]) for (const o of f.fn.termination!.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof)).toBe(true)
+}, 60_000)
 
 test('a ring weighted across its functions (a formula\'s fold, Not weighing twice, at each function), then ranked by the runs: no size falls at ¬(l ∧ r) to l ∧ ¬r', () => {
   const t = [ev.fn.termination!, both.fn.termination!]
@@ -194,7 +202,7 @@ test('definitions that do not terminate, made to look as if they do (rings, a si
   const why = Object.fromEntries(Object.entries(adversarial).map(([name, mk]) => [name, refusal(mk)])) as Record<keyof typeof adversarial, string | undefined>
   for (const [name, w] of Object.entries(why)) expect(w, name).toMatch(/no measure is proven to fall at every call|nested recursion isn't taken|no parameter a measure reads/)
   // a measure each was tried and refused, by a call of the runs or its obligation
-  for (const name of ['passRound', 'lowerRaise', 'swapRing', 'lateRing', 'stepUp', 'nearTail', 'nearTailRing', 'ringStatedWrong'] as const) expect(why[name], name).toMatch(/(doesn't lower it|not proven to lower it)/)
+  for (const name of ['passRound', 'lowerRaise', 'swapRing', 'lateRing', 'stepUp', 'nearTail', 'nearTailRing', 'ringStatedWrong', 'halvesTill9', 'guardKeeps'] as const) expect(why[name], name).toMatch(/(doesn't lower it|not proven to lower it)/)
   // nested: an invariant its runs suggest lowers the outer call, and a body past them doesn't keep it
   for (const name of ['nestedLate', 'nestedGrow', 'nestedGrowRing'] as const) expect(why[name], name).toMatch(/keeping .*(doesn't keep its invariant|not proven to keep its invariant)/)
 }, 240_000)
