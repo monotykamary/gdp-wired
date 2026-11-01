@@ -143,6 +143,19 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
   let reqs: Request[] = [{}]
   for (const i of m.inputs) reqs = reqs.flatMap(r => Array.from({length: below(i)}, (_, x) => ({...r, [i]: x})))
   for (const c of m.inputMaps ?? []) reqs = reqs.flatMap(r => subsets.map(s => ({...r, [c]: s})))
+  // (a request the assumption refuses by its conjuncts that read the params and the request alone is refused at every
+  // state: still tried, as before, but not stepped)
+  const ins = new Set([...m.params, ...m.inputs])
+  const mine = (c: C | E, bound: Set<string>): boolean => {
+    if (c.op === 'flag') return false
+    if (c.op === 'var') return ins.has(c.name) || bound.has(c.name)
+    if (c.op === 'get' && !(m.inputMaps ?? []).includes(c.map)) return false
+    if (c.op === 'all') { const b = new Set([...bound, c.key, ...(c.keys ?? [])]); return mine(c.c, b) }
+    return Object.values(c).every(y => !y || typeof y !== 'object' || (Array.isArray(y) ? y.every(z => mine(z, bound)) : mine(y as C, bound)))
+  }
+  const ownConj = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(ownConj) : [c]), own = m.assume ? ownConj(m.assume).filter(c => mine(c, new Set())) : []
+  const refusedBy = (r: Request): boolean => { try { const e: Env = {...p}; for (const i of m.inputs) if (typeof r[i] === 'number') e[i] = r[i] as number; const view = carriedView(m, start, r, undefined, p); return own.some(c => !evalC(c, e, view, m)) } catch { return false } }
+  const out = new Set(own.length ? reqs.filter(refusedBy) : [])
   const idOf = (s: State) => key([s.scalars, Object.entries(s.maps).map(([n, cs]) => [n, [...cs].filter(([, x]) => x).sort((a, c) => a[0] - c[0])])])
   const seen = new Map<string, State>([[idOf(start), start]]), queue = [start]
   const reached = (next: State, from: State, r: Request): State => { const id = idOf(next), had = seen.get(id); if (had) return had; seen.set(id, next); pathTo.set(next, [from, r]); return next }
@@ -150,6 +163,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
     const st = queue.shift()!
     for (const r of reqs) {
       if (--work < 0) break
+      if (out.has(r)) continue
       let next: State
       try { next = run.step(p, st, r) } catch { continue }
       const n0 = seen.size
@@ -168,6 +182,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
       const by = new Map<string, [State, Request][]>()
       for (let i = 0; i < 48; i++, walks--) {
         const r = reqs[rnd(reqs.length)]!
+        if (out.has(r)) continue
         let next: State
         try { next = run.step(p, st, r) } catch { continue }
         const kd = kindOf(st, next)
@@ -459,6 +474,13 @@ const takenOf = (m: Machine) => new Set([...Object.keys(m.maps ?? {}), ...(m.inp
 // ghosts is, with the ∃ laws in place of their plain forms, proveSome's to prove again (the kernel's), its maps the same.
 // (`ghost`: the ghosts added to a machine the search derives from the rule's (its sums, its divisors), unchecked: the
 // search is untrusted, and proveSome checks the ghosts it proves with)
+// (a law's keys it doesn't read left out: a ghost's own law is stated over every key of the law it serves)
+const trim = (l: Law): Law => {
+  const used = [l.forall, ...(l.keys ?? [])].filter((x): x is string => !!x && namesOf(l.holds).includes(x))
+  const {forall: _f, keys: _k, ...rest} = l
+  void _f; void _k
+  return {...rest, ...(used.length ? {forall: used[0]!} : {}), ...(used.length > 1 ? {keys: used.slice(1)} : {})}
+}
 export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Machine, laws: Law[]} | undefined {
   const taken = takenOf(m), out: Law[] = [], gs: MapGhost[] = []
   const add = (m2: Machine, g: MapGhost) => ghostedMachine({orig: m2, vars: {}, maps: {...(g.inner ? {[g.inner.name]: {start: 0, write: g.inner.write}} : {}), [g.name]: {start: 0, write: g.write}}})
@@ -471,7 +493,7 @@ export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Mach
     gs.push(g); taken.add(g.name); if (g.inner) taken.add(g.inner.name)
     const {some: _s, ...plain} = l
     void _s
-    out.push({...plain, holds: g.holds}, ...(g.inner ? [g.inner.inv] : []), g.inv)
+    out.push(...[{...plain, holds: g.holds}, ...(g.inner ? [g.inner.inv] : []), g.inv].map(trim))
   }
   return gs.length ? {ghost, laws: out} : undefined
 }
