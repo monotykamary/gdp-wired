@@ -19,7 +19,7 @@ import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {env as knobs} from './solver.ts'
 import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
-import {ghostOf, proveSome, someHolds, substVars, substVarsE} from './exists.ts'
+import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE} from './exists.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations, substC, sumMachine} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
@@ -1520,6 +1520,8 @@ const marked = (c: C): C => c.op === 'flag' ? c : c.op === 'all' ? {...c, c: mar
 
 type Spec = {
   name: string
+  // (the ∀ search's ghosts, exists.ts's skolemOf: added to the machine the rule builds)
+  ghost?: (m: Machine) => Machine
   params: [string, Kind<unknown>][]
   inputs: [string, Kind<unknown>][]
   state: [string, number | ((p: never) => TermLike)][]
@@ -2080,8 +2082,11 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     }
     // (each sum a state variable from 0 the step never sets: sumMachine sets it, exact)
     const sums = sumsIn(machineTerms(m), s.sumsRead ?? [])
-    return withArithmetic(sums ? {...m, state: {...m.state, ...Object.fromEntries(Object.keys(sums).map(n => [n, {op: 'const', value: 0} as E]))}, sums} : m, [], s.arith ?? [])
+    const out = withArithmetic(sums ? {...m, state: {...m.state, ...Object.fromEntries(Object.keys(sums).map(n => [n, {op: 'const', value: 0} as E]))}, sums} : m, [], s.arith ?? [])
+    return s.ghost ? s.ghost(out) : out
   }
+  // The same rule with ghosts its machine gains (the search's, over a law with "there exists" made plain: skolemOf).
+  withGhosts(ghost: (m: Machine) => Machine): this { return this.with({ghost}) }
 
   // --- the builders checked ------------------------------------------------------------------------------------------
   // The builders against what they built, on concrete runs: random params and requests by their kinds (`pre` and
@@ -2778,14 +2783,24 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   }
   // (the search's own wall ends where the tail begins: the last bounded runs keep it)
   const tailAt = () => performance.now() + Math.max(0, until - tail - clock())
-  const inf = withWall(tailAt(), () => inferLaws(rule, [...fresh.map(f => f.law), ...laws], stepLaws, {ms, ...(rule === r && !fresh.length ? {first: v} : {})}))
+  // (a law about every key with "there exists": the search over its plain form, the value at its ghost map's cell, the
+  // ghosts' own laws beside it, on the rule with the ghosts (exists.ts's skolemOf); a set found there is proven again with
+  // the ∃ laws in their place, proveSome's ghost maps the same)
+  const sk = !stepLaws.length && laws.some(l => l.some?.length && l.forall) ? skolemOf(rule.machine, laws) : undefined
+  const target = sk ? rule.withGhosts(sk.ghost) : rule, sought = sk?.laws ?? laws
+  const back = (found: {law: Law}[]): Verdict => {
+    if (!sk) return {proven: true, checked: true}
+    const out = proveSome(rule.machine, [...withKinds(rule, laws), ...found.map(f => f.law)])
+    return {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
+  }
+  const inf = withWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...(rule === r && !fresh.length && !sk ? {first: v} : {})}))
   if (!(inf.proven && inf.checked)) {
     // The sum of each map the step writes (withMapSums): the search again over the rule with them, within half of what
     // is left (at most 20 s), where a law of cells against a total needs one (no ERC20 balance past the supply).
-    const summed = rule.withMapSums()
+    const summed = target.withMapSums()
     if (summed && until - clock() - tail > 1000) {
-      const inf2 = withWall(tailAt(), () => inferLaws(summed, [...fresh.map(f => f.law), ...laws], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2)}))
-      if (inf2.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; return {...verdict, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])} }
+      const inf2 = withWall(tailAt(), () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2)}))
+      if (inf2.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; const b = back([...fresh, ...found]); if (b.proven && b.checked) return {...verdict, ...b, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])} }
     }
     // (a step law's ghost: at most 10 s of it, as its goals cost more than the laws')
     const deep = bounded(Math.max(0, Math.min(until - clock(), ghosted && !laws.length ? 10_000 : Infinity)), Math.max(1, reached), true)
@@ -2794,7 +2809,9 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   }
   const {found, stats: _stats, ...verdict} = inf
   void _stats
-  return {...verdict, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}
+  const b = back([...fresh, ...found])
+  if (!(b.proven && b.checked)) return {...v, ...b, why: [v.why, 'the set found over the ghost maps is not proven with the laws as stated'].filter(Boolean).join('; ')}
+  return {...verdict, ...b, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}
 }
 // A law with "there exists" about no key, which the join can't take as its goal: its witness core/exists.ts's ghostOf;
 // then core/counts.ts's pipeline: the candidates, the engine's template two keys at the bound value's places, framed by

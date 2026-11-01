@@ -449,6 +449,28 @@ function mapGhostsOf(m: Machine, law: Law, taken: Set<string>): MapGhost[] {
   return out
 }
 const takenOf = (m: Machine) => new Set([...Object.keys(m.maps ?? {}), ...(m.inputMaps ?? []), ...Object.keys(m.fns ?? {})])
+// The laws about every key with one value ∃x. P made plain by their ghost maps (Skolem functions the step keeps): for
+// each, the first ghost map whose laws hold on the small instances, as proveSome's toMap picks it (the same names), and
+// the law with x at W[k] beside the ghosts' own laws. What the ∀ search takes: a set it proves over the machine with the
+// ghosts is, with the ∃ laws in place of their plain forms, proveSome's to prove again (the kernel's), its maps the same.
+// (`ghost`: the ghosts added to a machine the search derives from the rule's (its sums, its divisors), unchecked: the
+// search is untrusted, and proveSome checks the ghosts it proves with)
+export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Machine, laws: Law[]} | undefined {
+  const taken = takenOf(m), out: Law[] = [], gs: MapGhost[] = []
+  const add = (m2: Machine, g: MapGhost) => ghostedMachine({orig: m2, vars: {}, maps: {...(g.inner ? {[g.inner.name]: {start: 0, write: g.inner.write}} : {}), [g.name]: {start: 0, write: g.write}}})
+  const ghost = (m2: Machine) => gs.reduce(add, m2)
+  for (const l of laws) {
+    if (!l.some?.length) { out.push(l); continue }
+    if (!l.forall || l.witness) return undefined
+    const g = mapGhostsOf(m, l, taken).find(c => { try { return trueSmall(m, [...(c.inner ? [c.inner.inv] : []), c.inv, {...l, holds: c.holds, some: undefined}], add(ghost(m), c)) } catch { return false } })
+    if (!g) return undefined
+    gs.push(g); taken.add(g.name); if (g.inner) taken.add(g.inner.name)
+    const {some: _s, ...plain} = l
+    void _s
+    out.push({...plain, holds: g.holds}, ...(g.inner ? [g.inner.inv] : []), g.inv)
+  }
+  return gs.length ? {ghost, laws: out} : undefined
+}
 const firstPicks = new Map<string, {mode: 'term', at: number[]} | {mode: 'map', at: number}>()
 // The machine with a ghost map (kernel.ts's ghostedMachine of Ghosted, whose ghostedOk it must pass).
 const withMap = (m: Machine, g: MapGhost): Machine => {
