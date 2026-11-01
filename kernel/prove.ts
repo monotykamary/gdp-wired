@@ -323,22 +323,23 @@ function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = t
     return tree ? {tree, nodes: out.nodes} : undefined
   } finally { eprScope.busy = false }
 }
-// Wide goals (GDP_WIDE hypotheses or more, GDP_WIDE_TERMS terms: a law at every tuple of a goal's keys, a step's every write): each node of the
-// search reads every hypothesis' rows, so a goal of a thousand reaches neither a tree nor a model within its budget,
-// though its refutation reads one or two and a model of a few is a model of all. Grown first over a part: the
-// conclusion, then the hypotheses a model of the part breaks (the model read as a state: each cell at its key's value,
-// any other name 0), at most as many as the part has a round, those sharing a cell with the part first. A model that
-// breaks none is the goal's (every hypothesis holds at it); a tree is widened to the goal (`widen`), which the kernel
-// checks as any. Within a share of the goal's budget; anything else leaves the goal as before. Untrusted.
+// Wide goals (GDP_WIDE hypotheses or more, a law at every tuple of a goal's keys, a step's every write, and
+// GDP_WIDE_TERMS terms): each node of the search reads every hypothesis' rows, so a goal of a thousand reaches neither a
+// tree nor a model within its budget, though its refutation reads one or two and a model of a few is often a model of
+// all. Grown first over a part: the conclusion, then the hypotheses a model of the part breaks (the model read as a
+// state: each cell at its key's value, any other name 0), those sharing a cell with the part first, the part doubled a
+// round. A model that breaks none is the goal's (every hypothesis holds at it); a tree is widened to the goal (`widen`),
+// which the kernel checks as any; a model-only query's refutation is the part's, its core the part's hypotheses. Within
+// a share of the goal's budget, each round within what the whole's search would spend on as many nodes; anything else
+// leaves the goal as before. Untrusted.
 const wideAt = Number(env.GDP_WIDE ?? 256), wideTerms = Number(env.GDP_WIDE_TERMS ?? 40_000), wideShare = Number(env.GDP_WIDE_SHARE ?? 0.25), wideTrace = !!env.GDP_WIDE_TRACE
 let wideBusy = false
-// (while a part is grown: whether a point holds every hypothesis of the whole goal, read as a state; a node's point that
-// does is the whole's model, whatever atoms the part leaves open)
+// (while a part is grown: whether a point holds every hypothesis of the part, read as a state; a node's point that does is
+// the part's model, whatever atoms are still open, and the whole's if it breaks none of the rest)
 export const wideScope: {judge?: (w: Record<string, number>) => boolean} = {}
 export const wideStats = {goals: 0, trees: 0, models: 0, rounds: 0}
 export const wideHook: {on?: (part: Goal, out: Outcome) => void} = {}
 const cellsIn = (c: unknown): Set<string> => { const out = new Set<string>(); walkOnce(c, o => { const x = o as {op?: string, map?: unknown, key?: unknown}; if (x.op === 'get') out.add(`${x.map}${JSON.stringify(x.key)}`) }); return out }
-// (the hypotheses a model breaks, the model read as a state)
 // (the hypotheses a model breaks among `ids` (all where none are given), the model read as a state, the conclusion first;
 // `first`: the first one broken alone)
 export const brokenOf = (goal: Goal): ((w: Record<string, number>, ids?: number[], first?: boolean) => number[]) => {

@@ -726,8 +726,8 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
               else st.lpMisses++
             }
             lpSat = lp.kind === 'sat'
-            // (a wide goal's part, prove.ts's growWide: the simplex's point, where it is integral and holds every hypothesis
-            // of the whole goal read as a state, is the whole's model, whatever atoms are still open)
+            // (a wide goal's part, prove.ts's growWide: the simplex's point rounded, where it holds every hypothesis of the part
+            // read as a state, is the part's model, whatever atoms are still open)
             if (open && lpSat && wideScope.judge) { const w = roundedOf(sx, rowsR); if (w && wideScope.judge(w)) { verdict = {kind: 'sat', witness: w}; judged = true; return } }
             if (steps || (open && lp.kind === 'sat')) return
             // (the clausal mode, every clause satisfied: the simplex's point, where it is integral, is a model)
