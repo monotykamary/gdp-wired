@@ -190,7 +190,7 @@ consensus_epr's counted search is main's (the same candidates and cone); the wal
   is its own header's "Untrusted" (a refutation's core is proven again by the kernel's search and widened; a model judged
   by the interpreter), so no Lean-first step applies.
 
-**Bytes** (core/ and kernel/ .ts without tests, against main): +10,358 (core/exists.ts +5,446: skolemOf, the ∃ watch's
+**Bytes** (core/ and kernel/ .ts without tests, against main, the bar's count at 98a3add): +10,723 (core/exists.ts +5,446: skolemOf, the ∃ watch's
 points, the request prefilter; core/dsl.ts +2,659: the plain search and its verdict; kernel/epr.ts +1,788; core/infer.ts
 +824; core/watch.ts +6). research/protocols/ic3syn/: skolemprobe.ts and skolemdecide.ts (the plain law's goals with the
 search off, and through the EPR path).
