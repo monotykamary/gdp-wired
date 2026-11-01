@@ -20,7 +20,7 @@ import {env as knobs} from './solver.ts'
 import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE} from './exists.ts'
-import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations, substC, sumMachine} from '../kernel/kernel.ts'
+import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
@@ -2798,7 +2798,12 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
     // (a machine with sums or a history takes no ghost map (GhostMap.lean's SGhostedM is over SMachine): proveSome there)
     const ls = [...fresh.map(f => f.law), ...sought, ...found.map(f => f.law)], pm = over.withSumsOf(ls).machine
     const plain = over === target && !pm.history && !Object.keys(pm.sums ?? {}).length ? proveRule(over, ls, {search: false, fast: true}) : undefined
-    if (plain?.proven && plain.checked && sk.ok(rule.machine)) return {proven: true, checked: true, witnesses: sk.witnesses}
+    // (the kernel's ∃ reading, GhostMap.lean's forall_some_of_ghostsubst: the plain laws proven of the original with all
+    // the ghosts, each ∃ law's body with its witness term in place)
+    const G: Ghosted = {orig: rule.machine, vars: {}, maps: sk.maps}
+    if (plain?.proven && plain.checked && JSON.stringify(over.machine) === JSON.stringify(ghostedMachine(G))
+      && laws.filter(l => l.some?.length).every(l => { const q = sk.plains[l.name]; return !!q && ls.some(x => x.name === q.plain.name && JSON.stringify(x.holds) === JSON.stringify(q.plain.holds)) && someOfGhostsOk(G, l, q.plain, q.sub) }))
+      return {proven: true, checked: true, witnesses: sk.witnesses}
     const out = proveSome(rule.machine, [...withKinds(rule, laws), ...fresh.map(f => f.law), ...found.map(f => f.law)], {mapMs: Math.max(5_000, (until - clock()) / 2)})
     return {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   }
