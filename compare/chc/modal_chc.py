@@ -141,9 +141,19 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
             except OSError:
                 pass
         return n
+    def speed() -> float:  # the CPU's single-thread speed just before the task (million loop steps a second, 0.2 s)
+        t1, n = time.time(), 0
+        while time.time() - t1 < 0.2:
+            for _ in range(10000):
+                n += 1
+        return round(n / (time.time() - t1) / 1e6, 1)
+    try:
+        model = next(l.split(":", 1)[1].strip() for l in open("/proc/cpuinfo") if l.startswith("model name"))
+    except (OSError, StopIteration):
+        model = "?"
     for t in tasks:
         path = f"/bench/{t['smt2']}"
-        on_vm = items()
+        on_vm, mloops = items(), speed()
         t0 = time.time()
         try:
             extra = dict(kv.split("=", 1) for kv in env.split(",") if kv)
@@ -175,7 +185,7 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
             # (the witness search's log, core/exists.ts, for profiling the given-invariant check)
             row["log"] = err[-6000:]
         row["expected"] = t["expected"]
-        row["cpus"], row["vm_items"] = len(pin or mine), on_vm
+        row["cpus"], row["vm_items"], row["speed"], row["cpu"] = len(pin or mine), on_vm, mloops, model
         rows.append(row)
     return rows
 
