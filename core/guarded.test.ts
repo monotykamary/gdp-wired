@@ -9,7 +9,7 @@ import {List, guardedAdversarial, msortTD, refusal, ssort} from '../examples/dat
 const list = (...xs: number[]): {c: number, f: unknown[]} => xs.reduceRight<{c: number, f: unknown[]}>((t, h) => ({c: 1, f: [h, t]}), {c: 0, f: []})
 const run = (call: {x: unknown}, env: Record<string, unknown>) => evalX(call.x as never, new Map(Object.entries(env)) as never, {})
 
-test('a call shorter only under a guard: a selection sort (the item removed is in the list) and a merge sort by halves (two items or more), each decrease through a guarded size law and the guard at the call, every one checked by the kernel', () => {
+test('a call shorter only under a guard: a selection sort (the item removed is in the list) and a merge sort by halves (two items or more), a decrease through a guarded size law and the guard at the call, every one checked by the kernel', () => {
   for (const [f, guarded] of [[ssort, /^size law under reach_remove_\d\(y0, xs1\): size\(remove\(y0, xs1\)\) \+ 1 <= size\(xs1\)/], [msortTD, /^size law under .*size\((take|drop)\(n0, xs1\)\) \+ 1 <= size\(xs1\)/]] as const) {
     const t = f.fn.termination!
     expect(t.text).toBe('size(xs)')
