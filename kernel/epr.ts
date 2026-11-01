@@ -143,10 +143,10 @@ const liftC = (c: C): C => {
   if (c.op === 'all') { const b = liftC(c.c); return b === c.c ? c : {...c, c: b} }
   if (c.op === 'flag') return c
   const a = liftE(c.a), b = liftE(c.b)
-  // (a comparison whose side holds an if, a key a ghost's write is read in (64·W'[k] + k = 64·s + d), as the if of the
-  // comparisons of its two sides: c ∧ (a₁ ⋈ b) ∨ ¬c ∧ (a₂ ⋈ b), equal to it; at most 8 leaves)
-  const ha = hoisted(a), hb = hoisted(b)
-  if ((ha.op === 'if' || hb.op === 'if') && keysOf(ha) * keysOf(hb) <= 8) {
+  // (a comparison whose side holds an if over a map's read, a key a ghost's write is read in (64·W'[k] + k = 64·s + d),
+  // as the if of the comparisons of its two sides: c ∧ (a₁ ⋈ b) ∨ ¬c ∧ (a₂ ⋈ b), equal to it; at most 8 leaves)
+  const ha = hoisted(a), hb = hoisted(b), reads = (e: E) => textOfE(e).includes('"op":"get"')
+  if (((ha.op === 'if' && reads(ha)) || (hb.op === 'if' && reads(hb))) && keysOf(ha) * keysOf(hb) <= 8) {
     const split = (x: E, y: E): C => (x.op === 'if' ? {op: 'or', xs: [{op: 'and', xs: [x.c, split(x.then, y)]}, {op: 'and', xs: [{op: 'not', x: x.c}, split(x.else, y)]}]}
       : y.op === 'if' ? {op: 'or', xs: [{op: 'and', xs: [y.c, split(x, y.then)]}, {op: 'and', xs: [{op: 'not', x: y.c}, split(x, y.else)]}]} : {...c, a: x, b: y} as C)
     return liftC(split(ha, hb))
