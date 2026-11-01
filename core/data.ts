@@ -1537,8 +1537,12 @@ function rankShapes(shapes: E[], rank: E[], uses: SchemeUse[]): E[] {
 function unfoldAt(f: Fn): number[] {
   if (f.decreases !== undefined) return f.params[f.decreases]!.sort instanceof Data ? [f.decreases] : []
   if (!f.measure) return []
-  const out = new Set<number>()
-  walk(f.body(), o => { if (o.op === 'match' && (o.of as X).op === 'var') { const i = f.params.findIndex(q => `${f.name}.${q.name}` === (o.of as {name: string}).name); if (i >= 0 && f.params[i]!.sort instanceof Data) out.add(i) } })
+  const out = new Set<number>(), at = (o: X) => f.params.findIndex(q => o.op === 'var' && `${f.name}.${q.name}` === o.name)
+  // (outside a termination's proofs, the parameter the body matches first only: a merge at a built second list and an
+  // undecided first is no decided case, and its recursion at the first's tail unfolds again, a chain to the cap)
+  const body = f.body()
+  if (!inTermination.on && body.op === 'match') { const i = at(body.of); return i >= 0 && f.params[i]!.sort instanceof Data ? [i] : [] }
+  walk(body, o => { if (o.op === 'match') { const i = at(o.of as X); if (i >= 0 && f.params[i]!.sort instanceof Data) out.add(i) } })
   return [...out]
 }
 // The inductions the search tries for a law (its schemes), for tests.
@@ -1847,6 +1851,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   // reads it was unfolded for (`reached` keeps it in a case where it is one of them).
   if (w.depth >= 1) {
     let extra = 0
+    const viaBody = new Set<string>()
     for (const model of w.models.length ? w.models : [undefined]) {
       if (late()) break
       const cl = closure(model)
@@ -1857,7 +1862,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
       for (const q of insts) { const name = fs.facts[q.fact]!.name; if (name.startsWith('fn ')) done.add(sigOf(name.slice(3), q.at)) }
       for (const r of [...all]) {
         const f = fnOfMap(r.map)
-        if (!f) continue
+        if (!f || viaBody.has(sid(r))) continue
         const as = argsOf(r.key, f.params.length)
         if (!as) continue
         for (const di of unfoldAt(f)) {
@@ -1878,7 +1883,11 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
           if (via) { inst(`eta ${d.name}`, [via]); ctors(note(reads(holdsAt(`eta ${d.name}`, [via])))) }
           inst(`fn ${f.name}`, as2)
           note([{map: f.name, key: keyOf(as2)}])
-          ctors(note(reads(holdsAt(`fn ${f.name}`, as2))))
+          const body = note(reads(holdsAt(`fn ${f.name}`, as2)))
+          ctors(body)
+          // (an eta's unfolding is one step: the reads its body makes unfold no further, a merge's recursion on the
+          // other list at the same constructor would chain to the cap)
+          if (via) for (const b of body) viaBody.add(sid(b))
         }
         }
       }
