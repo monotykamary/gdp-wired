@@ -200,6 +200,8 @@ public final class Jvm {
 
   // An operand at a type (Java's binary promotion made explicit: the executor computes at its operands' type).
   static Map<String, Object> at(Map<String, Object> v, JT from, JT to) {
+    // (a boxed value unboxed: null is a NullPointerException)
+    if (from != null && to != null && BOX.containsKey(from.n) && PRIM.contains(to.n) && !to.n.equals("void")) v = x("expect", (String) v.get("p"), "x", v, "text", String.valueOf(v.getOrDefault("text", from.n)), "npe", true);
     Map<String, Object> it = ity(to);
     if (it == null || (from != null && Objects.equals(prim(from), prim(to)))) return v;
     if ("int".equals(v.get("e"))) { Map<String, Object> c = new LinkedHashMap<>(v); c.put("ity", it); return c; }

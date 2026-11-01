@@ -119,6 +119,15 @@ export function judge(o: Out): {verdict: 'refused' | 'read' | 'crash' | 'no reas
 const tally: Record<string, number> = {}
 let restoreNow: (() => void) | undefined
 const short = (x: string, n = 400) => x.replace(/\s+/g, ' ').slice(0, n)
+// (the mutant's change: the line it starts on, the text taken out and put in; READER_FUZZ_SHOW=1 prints the whole
+// mutant beside, base64 JSON on a `reader-fuzz: SOURCE` line)
+function change(a: string, b: string): string {
+  let i = 0, j = 0
+  while (i < a.length && a[i] === b[i]) i++
+  while (j < a.length - i && j < b.length - i && a[a.length - 1 - j] === b[b.length - 1 - j]) j++
+  const q = (x: string) => JSON.stringify(x.length > 120 ? `${x.slice(0, 60)}…(${x.length})…${x.slice(-60)}` : x)
+  return `line ${a.slice(0, i).split('\n').length}: ${q(a.slice(i, a.length - j))} -> ${q(b.slice(i, b.length - j))}`
+}
 function fuzz(reader: string, call: (first: unknown) => unknown, first: unknown) {
   for (let i = 0; i < N; i++) {
     const t = target(first)
@@ -136,7 +145,8 @@ function fuzz(reader: string, call: (first: unknown) => unknown, first: unknown)
     tally.mutants = (tally.mutants ?? 0) + 1
     tally[j.verdict] = (tally[j.verdict] ?? 0) + 1
     if (j.verdict === 'crash' || j.verdict === 'no reason') console.log(`reader-fuzz: FAIL ${j.verdict} ${id} (${ms} ms): ${short(j.why ?? '')}`)
-    if (j.verdict === 'caught') console.log(`reader-fuzz: CAUGHT ${id} (${ms} ms): ${short(j.why ?? '')}`)
+    if (j.verdict === 'caught') console.log(`reader-fuzz: CAUGHT ${id} (${ms} ms): ${short(j.why ?? '')} [${change(t.code, code)}]`)
+    if (env.READER_FUZZ_SHOW && j.verdict !== 'refused' && j.verdict !== 'read') console.log(`reader-fuzz: SOURCE ${id} ${Buffer.from(JSON.stringify({code, orig: t.code})).toString('base64')}`)
   }
 }
 for (const sig of ['SIGINT', 'SIGTERM'] as const) process.on(sig, () => { restoreNow?.(); process.exit(130) })

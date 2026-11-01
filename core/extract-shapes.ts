@@ -705,6 +705,8 @@ function attempt(code: string, file: string, opts: ReadOptions, written: Set<str
   // The methods: each public one an event (the nearest of each name, through the classes it extends), run from the
   // state as variables.
   const seenNames = new Set<string>(), methods: ts.MethodDeclaration[] = []
+  // (two bodies of one name in one class: JavaScript keeps the last, TypeScript refuses it)
+  for (const c of chain) { const bodies = new Set<string>(); for (const m of c.members) if (ts.isMethodDeclaration(m) && m.body) { const k = `${has(m, ts.SyntaxKind.StaticKeyword) ? 'static ' : ''}${memberName(m.name)}`; if (bodies.has(k)) refuse(m, `${memberName(m.name)}: a second body of it in one class (JavaScript keeps the last; TypeScript refuses it)`); bodies.add(k) } }
   for (const c of chain) for (const m of c.members) {
     if (!ts.isMethodDeclaration(m) || seenNames.has(memberName(m.name))) continue
     if (!m.body && has(m, ts.SyntaxKind.AbstractKeyword)) continue

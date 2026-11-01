@@ -177,3 +177,78 @@ end
 // The adversarial round (research/langs/adversarial): no false checked proof; what reaches the rule's state, refused.
 import {cases as advCases, judge, ADV} from '../research/langs/adversarial/cases.test-lib.ts'
 for (const c of advCases('Ruby')) t(`adversarial ${c.id}: ${c.attack}`, () => judge(c, extractRuby(`${ADV}${c.file}`, {entry: 'Meter', root: ADV, check: {runs: 30, depth: 6, states: 60}})))
+
+// The reader fuzz's misreads (core/extract-fuzz.ts): a call of a constant nothing defines.
+t('a call of a constant nothing under the root defines: refused (a NameError where it runs)', () => {
+  const r = rb(`
+module Mextrics
+  def self.count(*) = nil
+end
+class Gate
+  def initialize(cap)
+    @cap = cap
+    @n = 0
+  end
+  def hit(user = "")
+    Metrics.count("hit", user)
+    @n += 1
+  end
+end
+`, 'Gate')
+  expect(r.ok).toBe(false)
+  expect(r.refusals[0]!.what).toMatch(/Metrics, a constant nothing under the root defines \(a NameError where it runs\)/)
+})
+
+t('arithmetic on other code\'s value left out (-nil raises): read, so refused where nothing states its type', () => {
+  const r = rb(`
+module Remote
+  def self.log(*) = nil
+end
+class Gate
+  def initialize(cap)
+    @cap = cap
+    @n = 0
+  end
+  def hit(k)
+    - Remote.log(k)
+    @n += 1
+  end
+end
+`, 'Gate')
+  expect(r.ok).toBe(false)
+  expect(r.refusals.map(x => x.what).join('; ')).toMatch(/Remote.log/)
+})
+
+t('a module of the files read: a method it doesn\'t define, or one whose body calls what nothing defines; a local read before it is set is nil; another class\'s arguments evaluated', () => {
+  const gate = (line: string, mod = 'def self.count(*) = nil') => rb(`
+module Metrics
+  ${mod}
+end
+class Gate
+  def initialize(cap)
+    @cap = cap
+    @n = 0
+  end
+  def hit(user = "")
+    ${line}
+    @n += 1
+  end
+end
+`, 'Gate')
+  expect(gate('Metrics.log(user)').refusals.map(x => x.what).join('; ')).toMatch(/Metrics defines no log \(a NoMethodError where it runs\)/)
+  expect(gate('Metrics.count(user)', 'def self.count(*) = nxil').refusals.map(x => x.what).join('; ')).toMatch(/Metrics.count calls nxil, which nothing defines/)
+  expect(gate('Metrics.count(initialize)').ok).toBe(false)
+  const x = ok(rb(`
+class Limiter
+  def initialize(limit)
+    @limit = limit
+    @count = 0
+  end
+  def hit
+    count += 1
+    @count += 1
+  end
+end
+`, 'Limiter', {failures: 'kept'}))
+  expect(x.source).toMatch(/failed/)
+})

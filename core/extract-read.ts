@@ -944,6 +944,7 @@ export class Exec {
         }
       }
       if (f === 'length') return refuse(e, 'length of a string (strings are compared and set in the subset)')
+      if (this.absent(e)) return refuse(e, `${text(e)}: ${f}, a property its type doesn't have there (undefined where it runs)`)
       return this.field(base, f, e, q)
     }
     const arg = e.argumentExpression
@@ -963,6 +964,17 @@ export class Exec {
     }
     if (ts.isStringLiteral(arg)) return this.field(base, arg.text, e, q)
     return refuse(e, 'an index into other than a record keyed by strings or numbers')
+  }
+  // (TypeScript's: a property the type of what it is read of, narrowed there, doesn't have, where the files read declare it)
+  private absent(e: ts.PropertyAccessExpression): boolean {
+    const c = this.s.checker, sf = e.getSourceFile()
+    if (!/\.[cm]?tsx?$/.test(sf.fileName) || sf.isDeclarationFile) return false
+    const t = c.getApparentType(c.getTypeAtLocation(e.expression))
+    // (only a type the files read declare: one of a library's declarations may not be what runs, another version's)
+    const own = (x: ts.Type) => !!(x.aliasSymbol ?? x.getSymbol())?.declarations?.some(d => !d.getSourceFile().isDeclarationFile)
+    if (!(t.isUnion() ? t.types : [t]).every(own)) return false
+    return !(t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown | ts.TypeFlags.Never)) && !!(t.flags & (ts.TypeFlags.Object | ts.TypeFlags.Union | ts.TypeFlags.Intersection)) &&
+      !c.getPropertyOfType(t, memberName(e.name)) && !c.getIndexInfosOfType(t).length
   }
   private mapGet(id: string, key: K, p: Path): V {
     const m = this.obj(p, id) as MapObj, cell = this.readCell(m, key)

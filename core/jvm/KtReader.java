@@ -403,6 +403,36 @@ public final class KtReader implements Jvm.Env {
     }
     return m("id", binOf(c) + "#<init>", "name", "__init__", "cls", selfName, "p", p, "span", List.of(base, 0, 0), "params", prepend(m("name", "self", "t", m("k", "any"), "self", true), params), "ret", m("k", "none"), "body", body, "decorators", List.of());
   }
+  // What a data class's copy runs that the subset doesn't read as an update with its init blocks after: a property
+  // its body computes from the constructor's parameters (computed again), an init block that sets one, an init block of
+  // another class than the one read.
+  String copyRuns(KtClassOrObject k) {
+    if (!(k instanceof KtClass kc)) return null;
+    Set<String> ps = new HashSet<>();
+    for (KtParameter pa : kc.getPrimaryConstructorParameters()) ps.add(pa.getName());
+    for (KtDeclaration d : body(k)) {
+      if (d instanceof KtProperty pr && !computed(pr) && pr.getInitializer() != null && com.intellij.psi.util.PsiTreeUtil.findChildrenOfType(pr.getInitializer(), KtNameReferenceExpression.class).stream().anyMatch(r -> ps.contains(r.getReferencedName())))
+        return "a copy of a data class whose property " + pr.getName() + " is computed from its constructor (copy computes it again)";
+      if (d instanceof KtAnonymousInitializer ai) {
+        if (k != self) return "a copy of another data class with an init block (copy runs it again)";
+        if (com.intellij.psi.util.PsiTreeUtil.findChildrenOfType(ai, KtBinaryExpression.class).stream().anyMatch(b -> KtTokens.ALL_ASSIGNMENTS.contains(b.getOperationToken())))
+          return "a copy of a data class whose init block sets a property (copy runs it again)";
+      }
+    }
+    return null;
+  }
+  // The init blocks run on a copy (self): the copy returned.
+  String copyCheck(KtClassOrObject k) {
+    String id = binOf(k) + "#<copy>";
+    if (!funcs.containsKey(id)) {
+      Ctx cx = new Ctx(new ArrayList<>(), new HashMap<>(), 0, false);
+      List<Object> b = new ArrayList<>();
+      for (KtDeclaration d : body(k)) if (d instanceof KtAnonymousInitializer ai && ai.getBody() instanceof KtBlockExpression bl) b.addAll(block(bl.getStatements(), cx, null));
+      b.add(s("ret", where(k), "x", self(where(k))));
+      funcs.put(id, fn(id, "copy", k, List.of(), new JT(binOf(k)), b, null));
+    }
+    return id;
+  }
   static List<Object> prepend(Object a, List<Object> xs) { List<Object> out = new ArrayList<>(); out.add(a); out.addAll(xs); return out; }
 
   // --- statements ------------------------------------------------------------------------------------------------------
@@ -906,7 +936,13 @@ public final class KtReader implements Jvm.Env {
       if (!args.isEmpty()) return no1(ce, "copy given arguments by position");
       List<Object> fs = new ArrayList<>();
       for (Object k0 : kw) fs.add(k0);
-      return new X(x("upd", p, "x", recv == null ? self(p) : recv.ir(), "fields", fs, "text", t), recv == null ? new JT(selfName) : recv.t());
+      Map<String, Object> u = x("upd", p, "x", recv == null ? self(p) : recv.ir(), "fields", fs, "text", t);
+      // (copy makes the object anew by its primary constructor: its init blocks run again, on the copy's fields)
+      KtClassOrObject of = recv == null ? self : classes.get(recv.t().n);
+      String why = copyRuns(of);
+      if (why != null) return no1(ce, why);
+      if (of != null && body(of).stream().anyMatch(d -> d instanceof KtAnonymousInitializer)) u = m("e", "call", "p", p, "text", t, "f", x("fn", p, "id", copyCheck(of)), "args", List.of(u), "kw", List.of());
+      return new X(u, recv == null ? new JT(selfName) : recv.t());
     }
     // a constructor: a class of the code's own (made from its fields), an atomic, a map, a lock
     String ctorOf = recv == null && Character.isUpperCase(n.charAt(0)) ? resolve(n) : null;

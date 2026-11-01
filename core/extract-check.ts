@@ -485,7 +485,8 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
     }
     if ('refused' in res && 'refused' in rule!) {
       // A refusal leaves the state as it was: the object the code threw from must be as it was too.
-      if (isClass) { try { const after = code.snapOf(side.self, params), d = sameSnap(after, side.snap); if (d) return `${where}: ${req} ${from}: the code throws (${res.refused}) after changing the object: ${d}` } catch (x) { return `${where}: ${req} ${from}: the code throws after changing the object (${(x as Error).message})` } }
+      // (what the code's object holds: a result the rule keeps beside, a call's, is no field of it)
+      if (isClass) { try { const after = code.snapOf(side.self, params), d = sameSnap(after, {...side.snap, leaves: Object.fromEntries(Object.entries(side.snap.leaves).filter(([k]) => k in after.leaves))}); if (d) return `${where}: ${req} ${from}: the code throws (${res.refused}) after changing the object: ${d}` } catch (x) { return `${where}: ${req} ${from}: the code throws after changing the object (${(x as Error).message})` } }
       ev.refusedBoth++
       return undefined
     }

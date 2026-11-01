@@ -1039,6 +1039,7 @@ export class Stepper {
     return [m.id, o]
   }
   cellOf(o: Extract<Obj, {k: 'map'}>, key: K, _p: Path, _at: SX): {has: B, vals: Map<string, V>} {
+    keyKind(o.decl, key, _at)
     let acc = this.baseCell(o.decl, key)
     for (const w of [...(o.pre ?? []), ...(o.w ? [o.w] : [])]) { const same = I.keq(key, w.key), a = acc; acc = {has: I.bite(same, w.has, a.has), vals: new Map([...a.vals].map(([f, v]) => [f, this.ite(same, w.vals.get(f)!, v, _at)]))} }
     return acc
@@ -1046,6 +1047,7 @@ export class Stepper {
   // A cell written: a second key of a scalar map keyed by numbers (a transfer's two accounts) after the first, any
   // earlier write of the same key dropped (this one is read through it).
   writeCell(id: string, o: Extract<Obj, {k: 'map'}>, key: K, has: B, vals: Map<string, V>, at: SX, p: Path): Path {
+    keyKind(o.decl, key, at)
     if (o.w && !I.same(o.w.key, key)) {
       if (!o.decl.scalar || o.decl.key !== 'num') return refuse(at, `${at.text}: a second key of one map written in one step (the subset writes one a step, or several of a map of numbers or booleans keyed by numbers)`)
       return {...p, heap: new Map(p.heap).set(id, {...o, pre: [...(o.pre ?? []).filter(x => !I.same(x.key, key)), o.w], w: {key, has, vals}})}
@@ -1772,7 +1774,7 @@ export class Stepper {
       case 'expect': {
         const [v, q] = this.ev(x.x as SX, p)
         const good = this.isOf(v, 'good', x)
-        this.fail(q, I.not(good), x, `${x.text}: unwrap of ${v.t === 'res' ? 'an Err' : 'None'} (a panic)`)
+        this.fail(q, I.not(good), x, x.npe ? `${x.text}: null unboxed (a NullPointerException)` : `${x.text}: unwrap of ${v.t === 'res' ? 'an Err' : 'None'} (a panic)`)
         return [this.inner(v, 'good', x), this.assume(q, good)]
       }
       case 'opt_or': {
@@ -1804,6 +1806,9 @@ export class Stepper {
       case 'upd': {
         const [o, q] = this.ev(x.x as SX, p)
         let [c, q2] = this.copy(o, q, x)
+        // (Elixir's %{m | k: v}, strict: a key the map doesn't hold is a KeyError)
+        const r = c.t === 'ref' && x.strict ? this.mod.recs[(q2.heap.get(c.id) as {ty?: string} | undefined)?.ty ?? ''] : undefined, gone = (x.fields as [string, SX][]).find(([f]) => r && !r.fields.some(y => y.name === f))
+        if (gone) { this.fail(q2, I.T, x, `${x.text}: ${gone[0]}, a key the map doesn't hold (a KeyError)`); return [{t: 'opaque', why: 'unreachable'}, {...q2, pc: [...q2.pc, I.F]}] }
         for (const [f, y] of x.fields as [string, SX][]) { const [v, q3] = this.ev(y, q2); q2 = this.setField(c, f, v, x, q3) }
         return [c, q2]
       }
@@ -1815,6 +1820,8 @@ export class Stepper {
         const v = p.locals.get(String(x.n))
         // (Python's local read on a path that never set it, past a raise caught before its assignment: an
         // UnboundLocalError on that path)
+        // (Ruby's local read before it is set: nil)
+        if (!v && !x.why && this.mod.lang === 'ruby') return [{t: 'none'}, p]
         if (!v && !x.why && this.mod.lang === 'python') { this.fail(p, I.T, x, `${String(x.n)}: a local read before it is set (an UnboundLocalError)`); return [{t: 'opaque', why: 'unreachable'}, {...p, pc: [...p.pc, I.F]}] }
         if (!v) return refuse(x, (x.why as string | undefined) ?? `${String(x.n)}: a variable read before it is set`)
         return [this.narrow(v, p), p]
@@ -1922,7 +1929,9 @@ export class Stepper {
       case 'get': return this.get(x, p)
       case 'idx': {
         const [m, q] = this.ev(x.x as SX, p), [k, q2] = this.ev(x.i as SX, q)
-        if (m.t === 'opaque') return [m, q2]
+        // (an item of a value outside the subset: whether it holds one, and what, is that value's)
+        if (m.t === 'opaque' && m.why === 'unreachable') return [m, q2]
+        if (m.t === 'opaque') return refuse(x, `${x.text}: an item of ${m.why} (whether it holds one is that value's)`)
         if (m.t === 'val') return this.valItem(m, k, x, q2)
         const ord = this.orderedObj(m, q2)
         if (ord) {
@@ -1934,7 +1943,7 @@ export class Stepper {
         }
         return this.mapGet(m, this.keyOf(k, x.i as SX), x, q2, 'fail')
       }
-      case 'neg': { const [v, q] = this.ev(x.x as SX, p); if (v.t === 'opaque') return [v, q]; return [{t: 'num', e: I.neg(this.numOf(v, x, q))}, q] }
+      case 'neg': { const [v, q] = this.ev(x.x as SX, p); if (v.t === 'opaque' && v.ask) return refuse(x, `${x.text ?? '-'}: arithmetic on ${v.why} (what it does depends on that value)`); if (v.t === 'opaque') return [v, q]; return [{t: 'num', e: I.neg(this.numOf(v, x, q))}, q] }
       case 'not': { const [v, q] = this.ev(x.x as SX, p); if (v.t === 'opaque') return [v, q]; if (x.strict && v.t !== 'bool') return refuse(x, `${x.text ?? '!'}: a bitwise not`); return [{t: 'bool', e: I.not(this.truthy(v, x, q))}, q] }
       case 'bin': return this.bin(x, p)
       case 'cmp': return this.compare(x, p)
@@ -2098,6 +2107,9 @@ export class Stepper {
       if (b.t === 'num' || b.t === 'bool') { const nb = this.numOf(b, x, q2); this.fail(q2, I.cmp('=', nb, I.num(0)), x, `${x.text}: a division by zero (a ZeroDivisionError)`); return [{t: 'opaque', why: `${x.text}: a true division (a float; the subset reads math.floor or math.ceil of x / k, int(x / k), or x // k)`}, this.assume(q2, I.not(I.cmp('=', nb, I.num(0))))] }
       return [{t: 'opaque', why: `${x.text}: a true division (a float; the subset reads math.floor or math.ceil of x / k, int(x / k), or x // k)`}, q2]
     }
+    // (other code's value left out, computed with: whether that raises is that value's, so it is read)
+    const asked = [a, b].find(v => v.t === 'opaque' && v.ask) as {why: string} | undefined
+    if (asked) return refuse(x, `${x.text}: arithmetic on ${asked.why} (what it does depends on that value)`)
     if (a.t === 'opaque' || b.t === 'opaque') return [a.t === 'opaque' ? a : b, q2]
     if ((a.t === 'str' || a.t === 'fmt') && op === '+') return [{t: 'opaque', why: `${x.text}: strings joined`}, q2]
     if (a.t === 'str' && op === '%') return [{t: 'opaque', why: `${x.text}: a string formatted`}, q2]
@@ -3069,8 +3081,16 @@ const firm = (v: V): boolean => ['ptr', 'struct', 'err', 'nil', 'map', 'list', '
 // Whether some node of an IR tree (an object, depth first) is one f says yes to.
 const deep = (x: unknown, f: (o: SX & SS) => unknown): boolean => !!x && typeof x === 'object' && (!!f(x as SX & SS) || Object.values(x).some(y => deep(y, f)))
 const callFree = (x: unknown): boolean => !deep(x, o => o.e === 'call' || o.e === 'await' || o.e === 'no')
-// An expression that reaches none of the module's own code and not `self`.
-const foreign = (x: unknown): boolean => !deep(x, o => o.e === 'fn' || (o.e === 'var' && o.n === 'self'))
+// A key of the other kind than its map's (a string into a map keyed by numbers): never held where keys are compared as
+// they are (a Map, a dict, a hash), so refused; an object's keys (a record's, JavaScript's) are strings both.
+const kindOf = (k: K): 'num' | 'str' | undefined => k.op === 'num' ? 'num' : k.op === 'svar' || k.op === 'slit' ? 'str' : k.op === 'kite' && kindOf(k.a) === kindOf(k.b) ? kindOf(k.a) : undefined
+function keyKind(d: MapDecl, k: K, at: SX): void {
+  const kk = kindOf(k)
+  if (kk && kk !== d.key && d.js !== 'record' && !d.untyped) refuse(at, `${at.text ?? ''}: a ${kk === 'num' ? 'number' : 'string'} key of a map keyed by ${d.key === 'num' ? 'numbers' : 'strings'} (never one it holds)`)
+}
+// An expression that reaches none of the module's own code and not `self`, nor what raises wherever it runs (a reader's
+// `raises`: a name nothing binds).
+const foreign = (x: unknown): boolean => !deep(x, o => o.e === 'fn' || (o.e === 'var' && o.n === 'self') || !!o.raises)
 // Two key templates name disjoint keys: they differ at some position of their fixed prefixes or of their fixed
 // suffixes (a hole's value can be any string, so only those parts tell keys apart).
 export function disjoint(a: string, b: string): boolean {
