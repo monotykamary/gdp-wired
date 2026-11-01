@@ -1,4 +1,4 @@
-// The interchange format, version 1.0 (interchange/schema.json, docs/interchange.md): a rule, its laws and a
+// The interchange format, version 1.1 (interchange/schema.json, docs/interchange.md): a rule, its laws and a
 // certificate as JSON any language can read, write and check. Untrusted: `toInterchange` writes a certificate, and
 // `fromInterchange` reads one back into the kernel's own objects, refusing whatever is outside the format. The checker
 // (interchange/check.ts) reads a document with `fromInterchange`, writes it again and refuses it unless the two agree,
@@ -18,7 +18,9 @@ import {canon, columnTerm, factorsOf, isCell, isMonomial, termColumn} from '../k
 import type {CNode, Cyclic, Fact, Use} from '../kernel/cyclic.ts'
 import type {Lin, Step} from '../core/solver.ts'
 
-export const FORMAT = 'gdp-wired-interchange', VERSION = '1.0'
+// 1.1 adds a liveness's fairness and levels (strong fairness, Live.lean's sleads_sound): a document is written at the
+// lowest version that holds it (1.0 unless a liveness is strong or has levels), and read at either.
+export const FORMAT = 'gdp-wired-interchange', VERSION = '1.1', VERSIONS = ['1.0', '1.1']
 
 // --- the certificates, as the kernel reads them -------------------------------------------------------------------------
 export type LawsProof = {instances: Record<string, Instances>, trees: Record<string, Tree>}
@@ -415,12 +417,15 @@ const encRank = (r: E | E[], at: string): Json => (Array.isArray(r) ? r.map((e, 
 const decRank = (x: unknown, at: string): E | E[] => (Array.isArray(x) ? x.map((e, i) => decE(e, `${at}[${i}]`)) : decE(x, at))
 const encHelpful = (h: Helpful, at: string): Json => clean({when: h.when && encC(h.when, `${at}.when`), request: pairs(h.request, encE, `${at}.request`)})
 const decHelpful = (x: unknown, at: string): Helpful => { const o = obj(x, at, ['request'], ['when']); return clean({when: opt(o, 'when', decC, at), request: record(o.request, decE, `${at}.request`)}) }
+const fairnessOf = (x: unknown, at: string): 'weak' | 'strong' => (x === 'weak' || x === 'strong' ? x : fail(at, '"weak" or "strong"'))
 const encLiveness = (l: Liveness, at: string): Json => clean({name: str(l.name, `${at}.name`), from: encC(l.from, `${at}.from`), to: encC(l.to, `${at}.to`), rank: encRank(l.rank, `${at}.rank`),
-  request: l.request && pairs(l.request, encE, `${at}.request`), helpful: l.helpful && l.helpful.map((h, i) => encHelpful(h, `${at}.helpful[${i}]`))})
+  request: l.request && pairs(l.request, encE, `${at}.request`), helpful: l.helpful && l.helpful.map((h, i) => encHelpful(h, `${at}.helpful[${i}]`)),
+  fairness: l.fairness && fairnessOf(l.fairness, `${at}.fairness`), levels: l.levels && l.levels.map((n, i) => nat(n, `${at}.levels[${i}]`))})
 const decLiveness = (x: unknown, at: string): Liveness => {
-  const o = obj(x, at, ['name', 'from', 'to', 'rank'], ['request', 'helpful'])
+  const o = obj(x, at, ['name', 'from', 'to', 'rank'], ['request', 'helpful', 'fairness', 'levels'])
   return clean({name: str(o.name, `${at}.name`), from: decC(o.from, `${at}.from`), to: decC(o.to, `${at}.to`), rank: decRank(o.rank, `${at}.rank`),
-    request: opt(o, 'request', (y, a) => record(y, decE, a), at), helpful: opt(o, 'helpful', (y, a) => arr(y, a).map((h, i) => decHelpful(h, `${a}[${i}]`)), at)})
+    request: opt(o, 'request', (y, a) => record(y, decE, a), at), helpful: opt(o, 'helpful', (y, a) => arr(y, a).map((h, i) => decHelpful(h, `${a}[${i}]`)), at),
+    fairness: opt(o, 'fairness', fairnessOf, at), levels: opt(o, 'levels', (y, a) => arr(y, a).map((n, i) => nat(n, `${a}[${i}]`)), at)})
 }
 const encLoop = (l: Loop, at: string): Json => clean({name: str(l.name, `${at}.name`), params: strs(l.params, `${at}.params`), inputs: strs(l.inputs, `${at}.inputs`), state: pairs(l.state, encE, `${at}.state`),
   while: encC(l.while, `${at}.while`), body: pairs(l.body, encE, `${at}.body`), pre: l.pre && encC(l.pre, `${at}.pre`), assume: l.assume && encC(l.assume, `${at}.assume`)})
@@ -529,14 +534,16 @@ export function toInterchange(c: Certificate, meta?: Json): Document {
       default: return fail('kind', `no kind ${JSON.stringify((c as {kind: unknown}).kind)}`)
     }
   })()
-  return clean({format: FORMAT, version: VERSION, kind: c.kind, meta, columns: 'terms' in cols && cols.terms.length ? cols.terms : undefined, ...body}) as Document
+  const v11 = c.kind === 'liveness' && (c.liveness.fairness !== undefined || c.liveness.levels !== undefined)
+  return clean({format: FORMAT, version: v11 ? '1.1' : '1.0', kind: c.kind, meta, columns: 'terms' in cols && cols.terms.length ? cols.terms : undefined, ...body}) as Document
 }
 
 // A document read back into the kernel's objects, or a FormatError saying where it leaves the format.
 export function fromInterchange(doc: unknown): Certificate {
   const head = isObj(doc) ? doc : fail('document', 'an object')
   if (head.format !== FORMAT) fail('format', `${JSON.stringify(FORMAT)}`)
-  if (head.version !== VERSION) fail('version', `${VERSION} (this reader's; a 1.0 reader reads 1.0 alone)`)
+  if (!VERSIONS.includes(head.version as string)) fail('version', `one of ${VERSIONS.join(', ')} (this reader's)`)
+  if (head.version === '1.0' && head.kind === 'liveness' && isObj(head.liveness) && ('fairness' in head.liveness || 'levels' in head.liveness)) fail('liveness', 'no fairness or levels in a 1.0 document (1.1\'s)')
   const kind = head.kind as Kind
   if (!KINDS.includes(kind)) fail('kind', `one of ${KINDS.join(', ')}`)
   const o = obj(head, 'document', ['format', 'version', 'kind', ...FIELDS[kind].required], ['meta', 'columns', ...(FIELDS[kind].optional ?? [])])

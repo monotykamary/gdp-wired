@@ -73,8 +73,9 @@ export function checkDocument(doc: unknown): Report {
   let c: Certificate
   try {
     c = fromInterchange(doc)
-    // The guard: the certificate read, written again, is the document (its columns in any order).
-    if (!sameJson(resolved(toInterchange(c, (doc as Document).meta)), resolved(doc as Document))) return {accepted: false, claims: [], malformed: 'read back, the document is not the same (a field the format drops, or a value it changes)'}
+    // The guard: the certificate read, written again, is the document (its columns in any order; at its version, which
+    // the reader checked holds what it read).
+    if (!sameJson({...resolved(toInterchange(c, (doc as Document).meta)) as Record<string, Json>, version: (doc as Document).version}, resolved(doc as Document))) return {accepted: false, claims: [], malformed: 'read back, the document is not the same (a field the format drops, or a value it changes)'}
   } catch (e) {
     return {accepted: false, claims: [], malformed: e instanceof FormatError ? e.message : `unreadable: ${e instanceof Error ? e.message : String(e)}`}
   }

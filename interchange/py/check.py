@@ -425,8 +425,8 @@ def read_tree(t, cols):
 
 
 def check_document(doc):
-    if doc.get("format") != "gdp-wired-interchange" or doc.get("version") != "1.0" or doc.get("kind") != "goals":
-        raise Refused("a goals document of format 1.0")
+    if doc.get("format") != "gdp-wired-interchange" or doc.get("version") not in ("1.0", "1.1") or doc.get("kind") != "goals":
+        raise Refused("a goals document of format 1.0 or 1.1")
     cols, out = doc.get("columns", []), []
     for g in doc["goals"]:
         try:
