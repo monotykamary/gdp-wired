@@ -195,14 +195,14 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
   // that meet, the first of the pair one the conclusion or the law's own names read; then the rest at most another
   const post = (r: MapRead) => r[1].endsWith('#'), ranked = (r: MapRead) => rank([r[1], r[2]]) <= 1
   for (const c of named) if (post(c)) for (const a of named) if (a !== c && !post(a) && bound(a) === bound(c)) add([[1, a[0]], [-1, c[0]]], 0, byMap.get(c[1])!.below)
-  // (a count after the step, the conclusion's, at least a request's count less another: a set's members all in it but
-  // those a guard's count of the rest finds, |Q| ≤ missing + votes)
-  for (const c of named) if (post(c) && rank([c[1], c[2]]) === 0) for (const a of named) for (const d of named)
-    if (a !== d && !post(a) && !post(d) && keyless(a[1]) && keyless(d[1]) && bound(a) === bound(c) && bound(d) === bound(c)) add([[1, a[0]], [-1, d[0]], [-1, c[0]]], 0, byMap.get(c[1])!.below)
   for (const [i, a] of named.entries()) for (const [j, c] of named.entries())
     if (i < j && (ranked(a) || ranked(c)) && bound(a) === bound(c) && !post(a) && !post(c)) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
   for (const [i, a] of named.entries()) for (const [j, c] of named.entries())
     if (i < j && !(ranked(a) || ranked(c)) && bound(a) === bound(c) && !post(a) && !post(c)) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
+  // (a count after the step, the conclusion's, at least a request's count less another: a set's members all in it but
+  // those a guard's count of the rest finds, |Q| ≤ missing + votes)
+  for (const c of named) if (post(c) && rank([c[1], c[2]]) === 0) for (const a of named) for (const d of named)
+    if (a !== d && !post(a) && !post(d) && keyless(a[1]) && keyless(d[1]) && bound(a) === bound(c) && bound(d) === bound(c)) add([[1, a[0]], [-1, d[0]], [-1, c[0]]], 0, byMap.get(c[1])!.below)
   // (wide, asked by a model the instances above leave: every count at most each other one of its bound, either way, and
   // each positive only where a key is in it; a count read with no partner is then tied to its cells at a witness)
   const cap = wide ? 24 : 10
@@ -363,7 +363,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
   const keyed = m.inputs.filter(i => keys0.some(key => mentions(key, i))).map(v)
   const terms = (l: Law): E[] => [...(l.forall ? [v(`${l.forall}#`)] : []), ...(l.keys ?? []).map(v), ...keyed]
   type Proof = {instances: Instances, certs: Record<string, CountCert>}
-  let counted = true
+  let counted = true, houdini = false // (houdini: the rounds over the whole set, after the cone; only they widen)
   const none = {reads: [] as MapRead[], insts: [] as CountInst[]}
   // One law's goals and their certificates, the laws `ls` assumed (a subsequence of the set): pass 0 with no instances of
   // the lemma, pass 1 with the cells' (one set of witnesses a law); a tree each within `ms`. The instances: the
@@ -388,7 +388,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     // (`wide`: the count instances widened once, where a model is left that the narrow ones and the laws don't refute, for
     // a caller's law or where a read is in none of them: the cone's many refuted candidates keep the narrow ones)
     let wide = false
-    const isCaller = caller.some(l => l.name === law.name)
+    const isCaller = houdini && caller.some(l => l.name === law.name)
     const build = () => obligations(at).map(({goal, decls}) => { const c = pass ? certFor(goal, decls, wide) : none; return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c))} })
     let built = build()
     const t0 = clock(), more = () => clock() - t0 <= Math.max(ms, 1_000)
@@ -423,7 +423,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
         const asked = ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!))
         if (!asked) {
           if (countsDump.on && pass && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps}) }
-          if (pass && !wide && 'loose' in step.c && (step.c.loose || isCaller) && more()) { wide = true; built = build(); continue }
+          if (pass && !wide && houdini && 'loose' in step.c && (step.c.loose || isCaller) && more()) { wide = true; built = build(); continue }
           return refuted(step.gg, q.witness)
         }
         at = asked
@@ -446,7 +446,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
           const asked = ptime('mbqi', () => modelInstances(m, ls, at, gg, o.witness!))
           if (asked) { at = asked; built = build(); again = true; break }
         }
-        if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; built = build(); again = true; break }
+        if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && houdini && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; built = build(); again = true; break }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) return refuted(gg, o.witness)
         if (!o || !('tree' in o)) return {stuck: gg ? (o as {stuck?: string}).stuck ?? '' : ''}
         certs[goal.name] = {reads: c.reads, insts: c.insts, tree: o.tree, ...('picks' in c && c.picks.length ? {picks: c.picks} : {})}
@@ -469,6 +469,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
   if (caller.every(l => kept.has(l.name))) return finish(set.filter(l => kept.has(l.name)), keptProof())
   // (each law not kept an even share of what is left a round)
   let carried = new Map<string, Proof>()
+  houdini = true
   for (let round = 0; clock() < until; round++) {
     const {instances, certs} = keptProof(), failed = new Set<string>(), proofs = new Map<string, Proof>(), share = (until - clock()) / Math.max(1, set.filter(l => !kept.has(l.name) && !carried.has(l.name)).length)
     // (the callers last, so they meet every support kept so far)
