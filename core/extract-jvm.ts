@@ -29,7 +29,7 @@
 // collections, instanceof, static fields that aren't constants, inner classes, generic classes and methods, other
 // code's calls not answered or skipped. Not yet: `stores`, branch coverage (the arms aren't counted).
 import {type Extraction} from './extract.ts'
-import {Refusal, pathOf, type FileURL} from './extract-read.ts'
+import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
 import {asset, type Harness, type SModule, type SX, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
@@ -126,8 +126,8 @@ export function readJvm(lang: 'java' | 'kotlin', file: string, names: string[], 
   const kt = lang === 'kotlin' ? kotlinLib(o) : undefined
   const t = tools(o), cpath = kt ? [t, tools(o, kt), `${kt}/kotlin-compiler.jar`, `${kt}/kotlin-stdlib.jar`, ...(o.classpath ?? [])].join(':') : t
   let out: string
-  try { out = cp.execFileSync(jdk(o).java, ['-cp', cpath, `gdp.jvm.${kt ? 'KtReader' : 'JavaReader'}`, JSON.stringify({root, file: abs, names, classpath: (o.classpath ?? []).join(':'), sources: o.sources ?? [], ctor: o.ctor ?? null})], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']}) }
-  catch (e) { throw new Refusal(file, `the ${kt ? 'Kotlin' : 'Java'} reader didn't run (${errText(e)}${kt ? `; found ${found(o, kt)}` : ''}): a JDK 17 or later${kt ? ` and kotlinc ${KOTLIN} (the compiler the Kotlin reader is built against)` : ''} is needed to extract ${kt ? 'Kotlin' : 'Java'}`) }
+  try { out = cp.execFileSync(jdk(o).java, ['-cp', cpath, `gdp.jvm.${kt ? 'KtReader' : 'JavaReader'}`, JSON.stringify({root, file: abs, names, classpath: (o.classpath ?? []).join(':'), sources: o.sources ?? [], ctor: o.ctor ?? null})], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()}) }
+  catch (e) { throw new Refusal(file, statedRefusal(e) ?? `the ${kt ? 'Kotlin' : 'Java'} reader didn't run (${errText(e)}${kt ? `; found ${found(o, kt)}` : ''}): a JDK 17 or later${kt ? ` and kotlinc ${KOTLIN} (the compiler the Kotlin reader is built against)` : ''} is needed to extract ${kt ? 'Kotlin' : 'Java'}`) }
   return JSON.parse(out) as SModule
 }
 

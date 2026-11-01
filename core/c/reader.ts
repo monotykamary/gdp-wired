@@ -12,7 +12,7 @@
 // The state is a struct of the file (`entry`, its typedef's name or its tag); each function whose first parameter
 // points to it is a method of it (the receiver), the others plain functions.
 import type {GS, GX, GoFunc, GoPkg, TT} from '../extract-go.ts'
-import {Refusal} from '../extract-read.ts'
+import {Refusal, readerRun, statedRefusal} from '../extract-read.ts'
 
 type CN = {id?: string, kind: string, name?: string, inner?: CN[], type?: {qualType: string, desugaredQualType?: string}, value?: string, opcode?: string, castKind?: string, isArrow?: boolean, isPostfix?: boolean,
   referencedDecl?: {id: string, kind: string, name: string, type?: {qualType: string}}, referencedMemberDecl?: string, storageClass?: string, isImplicit?: boolean, completeDefinition?: boolean, tagUsed?: string, hasElse?: boolean,
@@ -39,9 +39,11 @@ export const node = <T>(id: string): T => { const m = proc?.getBuiltinModule?.(i
 export function clangDump(file: string, flags: string[], clang = 'clang', cpp = false, filter?: string): {tu: CN, target: CTarget} {
   const cp = node<CP>('node:child_process'), lang = cpp ? ['-x', 'c++'] : ['-x', 'c']
   const run = (args: string[]) => {
-    try { return cp.execFileSync(clang, args, {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe']}) }
+    try { return cp.execFileSync(clang, args, {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()}) }
     catch (e) {
       const x = e as {code?: string, stderr?: string, message: string}
+      const stated = statedRefusal(e)
+      if (stated) throw new Refusal(file, stated)
       throw new Refusal(file, x.code === 'ENOENT' ? `no ${clang} to run: clang is needed to extract ${cpp ? 'C++' : 'C'}` : `clang doesn't compile it (${String(x.stderr ?? x.message).split('\n').filter(l => /error/.test(l)).slice(0, 3).join(' | ')})`)
     }
   }
@@ -139,19 +141,23 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     // (a method defined outside its class: its class by the declaration's context)
     else if (/^CXX(Method|Constructor|Destructor)Decl$/.test(n.kind) && n.inner?.some(c => c.kind === 'CompoundStmt')) { n.$rec = n.parentDeclContextId as string; n.$access = members.get(n.previousDecl as string)?.$access ?? 'public'; cxx.push(n) }
   }
+  // A literal's value exactly, through parentheses.
+  const exact = (n: CN): bigint | undefined => n.kind === 'IntegerLiteral' ? BigInt(String(n.value)) : n.kind === 'ParenExpr' ? exact(n.inner![0]!) : undefined
   // A constant's value, where the node is one (literals, enum constants, a const global's, folded).
   const fold = (n: CN): number | undefined => {
     switch (n.kind) {
-      case 'IntegerLiteral': case 'CharacterLiteral': return Number(n.value)
+      // (a literal a double can't hold exactly: NaN, past 2^53, unless a cast takes it exactly)
+      case 'IntegerLiteral': case 'CharacterLiteral': { const v = Number(n.value); return Number.isSafeInteger(v) ? v : NaN }
       case 'CXXBoolLiteralExpr': return n.value ? 1 : 0
       case 'CallExpr': { const m = /numeric_limits<\s*(.+?)\s*>::(max|min|lowest)\)?\s*\(\s*\)$/.exec(text(n)), it = m ? T(parseT(m[1]!)) : undefined; if (!it || it.k !== 'int') return undefined; const hi = it.signed ? 2 ** (it.bits! - 1) - 1 : 2 ** it.bits! - 1; return m![2] === 'max' ? hi : it.signed ? -hi - 1 : 0 }
       case 'ConstantExpr': return n.value !== undefined ? Number(n.value) : fold(n.inner![0]!)
       case 'ParenExpr': return fold(n.inner![0]!)
       case 'ImplicitCastExpr': case 'CStyleCastExpr': case 'CXXStaticCastExpr': case 'CXXFunctionalCastExpr': {
-        const v = fold(n.inner![0]!), t = n.type ? T(tyOf(n.type)) : undefined
+        const b = exact(n.inner![0]!), v = b !== undefined ? Number(b) : fold(n.inner![0]!), t = n.type ? T(tyOf(n.type)) : undefined
         if (v === undefined || t?.k !== 'int') return n.castKind === 'IntegralToBoolean' && v !== undefined ? +(v !== 0) : undefined
+        if (b === undefined && !Number.isFinite(v)) return NaN
         // (exactly: at 64 bits 2^64 + 1 is 2^64 in a double)
-        const m = 1n << BigInt(t.bits!), w = ((BigInt(Math.trunc(v)) % m) + m) % m
+        const m = 1n << BigInt(t.bits!), w = (((b ?? BigInt(Math.trunc(v))) % m) + m) % m
         return Number(t.signed && w >= m / 2n ? w - m : w)
       }
       case 'UnaryOperator': { const v = fold(n.inner![0]!); return v === undefined ? undefined : n.opcode === '-' ? -v : n.opcode === '+' ? v : n.opcode === '!' ? +(v === 0) : undefined }
@@ -537,7 +543,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       if (c.kind === 'CaseStmt') {
         if (c.inner!.length > 2) return void cases.push({p: pos(c), b: sno(c, 'a case range (a GNU extension)')}) as undefined
         const v = fold(c.inner![0]!)
-        cases.push({p: pos(c), list: [v === undefined ? no(c, 'a case that isn\'t a constant') : lit(c, v, tt)], b: []})
+        cases.push({p: pos(c), list: [v === undefined ? no(c, 'a case that isn\'t a constant') : !Number.isSafeInteger(v) ? no(c, 'a case past 2^53 (the rule\'s numbers stop there)') : lit(c, v, tt)], b: []})
         return c.inner![1]
       }
       if (c.kind === 'DefaultStmt') { cases.push({p: pos(c), default: true, b: []}); return c.inner![0] }

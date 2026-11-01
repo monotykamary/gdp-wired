@@ -536,8 +536,8 @@ t('a constructor given a dict of no stated types, read nowhere the rule keeps; a
     {entry: 'Gate', check: budget}))
   expect(x.notes.join('\n')).toMatch(/Gate\(msg\): dict with no key and value types, read nowhere the rule keeps/)
   expect(proveRule(x.rule!, [x.rule!.law('within the cap', ({n, cap}: A) => cap.atLeast(n).or(n.eq(0)))]).proven).toBe(true)
-  // (read by the constructor: refused, the check's inert dict holding no key)
-  refused(py(`class Gate:\n    def __init__(self, msg: dict):\n        self.cap = int(msg["cap"])\n        self.n = 0\n\n    def hit(self) -> None:\n        self.n += 1\n`, {entry: 'Gate', check: budget}), /KeyError: 'cap'/)
+  // (read by the constructor: refused, whether it holds the key is the dict's)
+  refused(py(`class Gate:\n    def __init__(self, msg: dict):\n        self.cap = int(msg["cap"])\n        self.n = 0\n\n    def hit(self) -> None:\n        self.n += 1\n`, {entry: 'Gate', check: budget}), /msg\['cap'\]: an item of msg: dict with no key and value types/)
 })
 
 t('another module\'s constant read as its value; bytes never equal to a str', () => {
@@ -659,4 +659,33 @@ class Hits:
   expect(x.notes.join('\n')).toMatch(/cache\.async_get_cache: its local_only \(true\) left out: the store read as one map whatever it says/)
   expect(x.notes.join('\n')).toMatch(/cache\.async_get_cache: its span \(None\) left out/)
   refused(py(code('fast'), {entry: 'Hits', stores: {cache: {}}, check: budget}), /given local_only, a value the request decides/)
+})
+
+// The reader fuzz's misreads (core/extract-fuzz.ts), each refused where it is or read as the code runs.
+t('a name nothing binds, an attribute Python\'s library lacks, the module object\'s own method: refused (they raise where they run)', () => {
+  const c = (line: string, head = 'import logging\n') => `${head}\nclass C:\n    def __init__(self):\n        self.n = 0\n\n    def bump(self) -> None:\n        ${line}\n        self.n += 1\n`
+  refused(py(c('logging.getLogger("c").info(self)  # gdp: skip', ''), {entry: 'C'}), /logging: a name the module doesn't define, import or bind \(a NameError where it runs\)/)
+  refused(py(c('logging.getLogger("c").info(selfdef)'), {entry: 'C'}), /selfdef: a name the module doesn't define/)
+  refused(py(c('logging.getLo'), {entry: 'C'}), /logging.getLo: logging has no getLo \(an AttributeError where it runs\)/)
+  refused(py(c('logging.getLo: skip', ''), {entry: 'C'}), /logging: a name the module doesn't define/)
+  refused(py(c('logging.__init__("c").info(self)  # gdp: skip'), {entry: 'C'}), /logging.__init__: the module object's own method/)
+  refused(py('def spend_of(key: str) -> float:\n    raise RuntimeError("not here")\n\ndef gate(key: str) -> None:\n    used = spend_of(here)\n', {entry: ['gate'], failures: 'kept', answers: {spend_of: 'float'}}), /here: a name the module doesn't define/)
+  refused(py('def f(x: int) -> int:\n    retu\n', {entry: ['f']}), /retu: a name the module doesn't define/)
+  // (a parameter of another function is no name here)
+  refused(py('def g(key: str) -> int:\n    return 0\n\ndef f(k: str) -> int:\n    return g(key)\n', {entry: ['f']}), /key: a name the module doesn't define/)
+  refused(py('class Seen:\n    def __init__(self):\n        self.ids: set[str] = remove()\n\n    def add(self, i: str) -> None:\n        self.ids.add(i)\n', {entry: 'Seen'}), /remove: a name the module doesn't define/)
+})
+
+t('a module variable a function rebinds (global) is no constant: refused where it is read', () => {
+  refused(py('value = 0\ndef bump() -> None:\n    global value\n    value = 1\nclass Meter:\n    def __init__(self):\n        self.n = 0\n    def tick(self) -> None:\n        bump()\n        self.n = value\n', {entry: 'Meter'}),
+    /value: a module variable a function rebinds \(global value\)/)
+})
+
+t('an injected dependency\'s call left out inside a try: the check\'s dependency raises where the request says', () => {
+  const x = ok(py('from typing import Protocol\nclass Source(Protocol):\n    def check(self) -> bool: ...\nclass Meter:\n    def __init__(self, source: Source):\n        self.source = source\n        self.n = 2\n    def tick(self) -> None:\n        try:\n            self.source.check()\n        except ValueError:\n            self.n = 1\n', {entry: 'Meter', check: budget}))
+  expect(x.source).toContain('when(check_raises, 1, n)')
+})
+
+t('a key of the other kind than its dict\'s (a str into a dict[int, int]): refused, never one it holds', () => {
+  refused(py('class A:\n    def __init__(self):\n        self.d: dict[int, int] = {}\n\n    def f(self, k: str) -> int:\n        return self.d.get(k, 0)\n', {entry: 'A'}), /a string key of a map keyed by numbers/)
 })

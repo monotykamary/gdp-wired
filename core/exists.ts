@@ -14,7 +14,7 @@
 // value before, shifts of it, the request's values and the state before; each is chosen to satisfy P at every
 // counterexample so far, per case of the step (the conditions its updates split on: the request's clause, say).
 // A law under a `forall` key takes witness terms only (a ghost per key would be a map).
-import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, evalC, evalE, interpret, n as k, walk, x as v} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, evalC, evalE, fastStep, interpret, n as k, walk, x as v} from './machine.ts'
 import {type Report, clock, proveLaw, proveLaws, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {env} from './solver.ts'
 import {type Ghosted, ghostedMachine, ghostedOk, substC} from '../kernel/kernel.ts'
@@ -136,7 +136,11 @@ const atomsOf2 = (c: C): C[] => (c.op === 'and' || c.op === 'or' ? c.xs.flatMap(
 // taken as often as any other. Each state's step from the state it was first reached from is kept: `pathTo`.)
 const pathTo = new WeakMap<State, [State, Request]>()
 export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000, walks = 0): State[] {
+  // (past a thousand steps, through the generated JavaScript, fastStep: the interpreter's states, as compile.test.ts holds
+  // them; a small machine's few steps cost less than its compiling)
   const run = interpret(m), start = run.init(p)
+  let steps = 0, fast = run.step
+  const step = (p2: Env, st: State, r: Request): State => { if (++steps === 1000) fast = fastStep(m) ?? run.step; return fast(p2, st, r) }
   const subsets = Array.from({length: 1 << b}, (_, s) => new Map(Array.from({length: b}, (_, i) => i).filter(i => (s >> i) & 1).map(i => [i, 1] as [number, number])))
   // (an input the assumption keeps below a few values, an action's, over all of them; the rest below b)
   const below = (i: string) => Math.max(b, ...(m.assume ? atomsOf2(m.assume) : []).flatMap(c => (c.op === '<' && c.a.op === 'var' && c.a.name === i && c.b.op === 'const' && c.b.value <= 8 ? [c.b.value] : [])))
@@ -151,7 +155,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
     for (const r of reqs) {
       if (--work < 0) break
       let next: State
-      try { next = run.step(p, st, r) } catch { continue }
+      try { next = step(p, st, r) } catch { continue }
       const n0 = seen.size
       if (reached(next, st, r) && seen.size > n0) queue.push(next)
     }
@@ -169,7 +173,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
       for (let i = 0; i < 48; i++, walks--) {
         const r = reqs[rnd(reqs.length)]!
         let next: State
-        try { next = run.step(p, st, r) } catch { continue }
+        try { next = step(p, st, r) } catch { continue }
         const kd = kindOf(st, next)
         if (kd) by.set(kd, [...by.get(kd) ?? [], [next, r]])
       }
@@ -250,13 +254,13 @@ const shapeOf = (body: C, vars: string[]) => {
   byVars.set(id, out)
   return out
 }
-export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machine): {holds: boolean, witness?: Env} | undefined {
+// (`quick`: a run's watch, which reads only whether it holds: first 0, then the points without the cells, a witness there
+// one; the verdict and its cap as without)
+export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machine, quick = false): {holds: boolean, witness?: Env} | undefined {
   const {groups, atoms, linearOnly, reads} = shapeOf(body, vars)
   const value = (e: E): number | undefined => { try { return evalE(e, env, st, m) } catch { return undefined } }
   // A bound natural read as a map's key: the cells the maps hold, and one past them, are every case a read gives.
-  const cells = new Set<number>()
-  if (reads) for (const c of Object.values(st.maps)) for (const key of c.keys()) cells.add(key)
-  const points = (g: Group): number[] => {
+  const points = (g: Group, cells: Set<number>): number[] => {
     const ps = new Set<number>([0, 1, ...cells, ...[...cells].map(c => c + 1)])
     for (const a of atoms) {
       const s = a.k[g[0]!] ?? 0, s2 = g.length === 2 ? (a.k[g[1]!] ?? 0) : 0
@@ -271,13 +275,23 @@ export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machi
   }
   const at = (g: Group, p: number): Env => (g.length === 2 ? {[g[0]!]: Math.max(p, 0), [g[1]!]: Math.max(-p, 0)} : {[g[0]!]: p})
   const test = (w: Env): boolean | undefined => { try { return evalC(body, {...env, ...w}, st, m) } catch { return undefined } }
-  const lists = groups.map(points)
-  let tried = 0, unknown = false
+  let tried = 0, unknown = false, lists: number[][] = []
   const go = (i: number, w: Env): Env | undefined => {
     if (i === groups.length) { tried++; const t = test(w); if (t === undefined) unknown = true; return t ? w : undefined }
     for (const p of lists[i]!) { if (tried > 4096) return undefined; const hit = go(i + 1, {...w, ...at(groups[i]!, p)}); if (hit) return hit }
     return undefined
   }
+  // (first the points without the cells: P's guard false at a tuple, as at most of a law's, holds at 0 at once; a witness
+  // there is one; then every point, as before, its verdict and cap the same)
+  const none = new Set<number>()
+  if (reads && quick) {
+    const w0 = Object.assign({}, ...groups.map(g => at(g, 0))) as Env
+    if (test(w0)) return {holds: true, witness: w0}
+    lists = groups.map(g => points(g, none)); const near = go(0, {}); if (near) return {holds: true, witness: near}
+  }
+  const cells = new Set<number>()
+  if (reads) for (const c of Object.values(st.maps)) for (const key of c.keys()) cells.add(key)
+  lists = groups.map(g => points(g, cells)); tried = 0; unknown = false
   const hit = go(0, {})
   if (hit) return {holds: true, witness: hit}
   return groups.length === 1 && linearOnly && !unknown && tried <= 4096 ? {holds: false} : undefined
@@ -394,6 +408,36 @@ function planOf(m: Machine, law: Law): Plan {
 // key's places, beside the ghost's own law: where the written map's cell is set (and the law's guards hold), P at W[k].
 // Every such place and value is a candidate; those false on the small instances' states are never tried
 // (core/counts.ts's), the rest in turn by the kernel's goals.
+// A write's provenance: where map M's cell is set by a write at a key of inputs, a ghost map G at that key holding another
+// input of the request, val, read at that key (G[i·N + p] := r where DbResponseSent[i·N + p] is set); G's own law, where
+// M's cell is set, what the write's guard says of val there, and the cells the same guard sets at keys val is in (T[i·N +
+// n] beside DbRequestSent[i·N + r]), at G's cell. None where the guard says nothing of val.
+const keyedOf = (m: Machine): Set<string> => {
+  const keyed = new Set<string>()
+  walk([m.step, m.assume ?? null], o => { if (o.op === 'get') for (const n of namesOf(o.key as E)) keyed.add(n) })
+  for (const w2 of Object.values(m.step.maps ?? {})) if (!('each' in w2)) for (const n of namesOf(w2.key)) keyed.add(n)
+  return keyed
+}
+function provenanceOf(m: Machine, mp2: string, val2: string, taken: Set<string>, keyed = keyedOf(m)): MapGhost['inner'] | undefined {
+  const w2 = m.step.maps?.[mp2]
+  if (!w2 || 'each' in w2) return undefined
+  const kv2 = namesOf(w2.key), flags = Object.fromEntries(Object.keys(m.step.flags ?? {}).map(f => [f, {op: 'flag', name: f} as C]))
+  if (!kv2.length || !kv2.every(n => m.inputs.includes(n) && keyed.has(n)) || kv2.includes(val2) || !keyed.has(val2)) return undefined
+  const setOf = (mp: string, w: {value: E}) => substC({op: '<=', a: k(1), b: w.value}, {vars: {}, maps: {[mp]: () => k(0)}, flags})
+  const set2 = setOf(mp2, w2)
+  const conj = (c: C, depth = 0): C[] => (c.op === 'and' ? c.xs.flatMap(y => conj(y, depth)) : c.op === 'flag' && depth < 3 && m.step.flags?.[c.name] && m.step.flags[c.name]!.op !== 'all' ? conj(m.step.flags[c.name]!, depth + 1) : [c])
+  const lits = [...new Set([...JSON.stringify(w2.value).matchAll(/"op":"flag","name":"([^"]+)"/g)].map(x => x[1]!))].flatMap(f => conj({op: 'flag', name: f}))
+  let gname = `${mp2}$g`
+  for (let j = 2; taken.has(gname); j++) gname = `${mp2}$g${j}`
+  const ks = kv2.map((_, j) => `g${j}$key`), G = (t: E): E => ({op: 'get', map: gname, key: t}), K2 = substVarsE(w2.key, Object.fromEntries(kv2.map((n, j) => [n, v(ks[j]!)])))
+  const sub = {[val2]: G(K2), ...Object.fromEntries(kv2.map((n, j) => [n, v(ks[j]!)]))}, mine = (ns: string[]) => ns.includes(val2) && ns.every(n => n === val2 || kv2.includes(n))
+  const says = lits.filter(c => c.op !== 'flag' && mine(namesOf(c))).map(c => substVars(c, sub))
+  // (the cells the same guard sets beside it)
+  for (const [mp3, w3] of Object.entries(m.step.maps ?? {})) if (mp3 !== mp2 && !('each' in w3) && mine(namesOf(w3.key)) && key(setOf(mp3, w3)) === key(set2)) says.push({op: '<=', a: k(1), b: {op: 'get', map: mp3, key: substVarsE(w3.key, sub)}})
+  if (!says.length) return undefined
+  const inv: Law = {name: `${gname} where ${mp2} is set`, forall: ks[0]!, ...(ks.length > 1 ? {keys: ks.slice(1)} : {}), holds: {op: 'or', xs: [{op: 'not', x: {op: '<=', a: k(1), b: {op: 'get', map: mp2, key: K2}}}, says.length === 1 ? says[0]! : {op: 'and', xs: says}]}}
+  return {name: gname, write: {key: w2.key, value: {op: 'if', c: set2, then: v(val2), else: G(w2.key)}}, inv}
+}
 type MapGhost = {name: string, write: {key: E, value: E}, at: E, inv: Law, holds: C, inner?: {name: string, write: {key: E, value: E}, inv: Law}}
 function mapGhostsOf(m: Machine, law: Law, taken: Set<string>): MapGhost[] {
   const x = law.some![0]!, names = [law.forall!, ...(law.keys ?? [])]
@@ -409,9 +453,7 @@ function mapGhostsOf(m: Machine, law: Law, taken: Set<string>): MapGhost[] {
     // (each write key's input at a different one of the law's keys)
     const injections = kv.reduce<string[][]>((acc) => acc.flatMap(a => names.filter(n => !a.includes(n)).map(n => [...a, n])), [[]])
     // (a value an action selects, compared with constants alone, is no witness)
-    const keyed = new Set<string>()
-    walk([m.step, m.assume ?? null], o => { if (o.op === 'get') for (const n of namesOf(o.key as E)) keyed.add(n) })
-    for (const w2 of Object.values(m.step.maps ?? {})) if (!('each' in w2)) for (const n of namesOf(w2.key)) keyed.add(n)
+    const keyed = keyedOf(m)
     const action = (i: string) => !keyed.has(i)
     const ghost = (val: E, inner?: MapGhost['inner']) => {
       for (const inj of injections) {
@@ -428,27 +470,50 @@ function mapGhostsOf(m: Machine, law: Law, taken: Set<string>): MapGhost[] {
     // (a ghost of a ghost, after those: the value another write's ghost holds, read at that write's key in this step's
     // request: G[i·N + p] := r where DbResponseSent[i·N + p] is set, W[n·N + p] := G[i·N + p] where ResponseSent is.
     // G's own law: where its write's cell is set, what the write's guard says of r, at G's cell)
-    for (const [mp2, w2] of Object.entries(m.step.maps ?? {})) {
-      if (mp2 === mp || 'each' in w2) continue
-      const kv2 = namesOf(w2.key)
-      if (!kv2.length || !kv2.every(n => m.inputs.includes(n) && keyed.has(n))) continue
-      const set2 = substC({op: '<=', a: k(1), b: w2.value}, {vars: {}, maps: {[mp2]: () => k(0)}, flags: Object.fromEntries(Object.keys(m.step.flags ?? {}).map(f => [f, {op: 'flag', name: f} as C]))})
-      const conj = (c: C, depth = 0): C[] => (c.op === 'and' ? c.xs.flatMap(y => conj(y, depth)) : c.op === 'flag' && depth < 3 && m.step.flags?.[c.name] && m.step.flags[c.name]!.op !== 'all' ? conj(m.step.flags[c.name]!, depth + 1) : [c])
-      const lits = [...new Set([...JSON.stringify(w2.value).matchAll(/"op":"flag","name":"([^"]+)"/g)].map(x => x[1]!))].flatMap(f => conj({op: 'flag', name: f}))
-      for (const val2 of m.inputs.filter(i => !kv2.includes(i) && !action(i))) {
-        let gname = `${mp2}$g`
-        for (let j = 2; taken.has(gname); j++) gname = `${mp2}$g${j}`
-        const ks = kv2.map((_, j) => `g${j}$key`), G = (t: E): E => ({op: 'get', map: gname, key: t}), K2 = substVarsE(w2.key, Object.fromEntries(kv2.map((n, j) => [n, v(ks[j]!)])))
-        const says = lits.filter(c => c.op !== 'flag' && namesOf(c).includes(val2) && namesOf(c).every(n => n === val2 || kv2.includes(n))).map(c => substVars(c, {[val2]: G(K2), ...Object.fromEntries(kv2.map((n, j) => [n, v(ks[j]!)]))}))
-        if (!says.length) continue
-        const inv: Law = {name: `${gname} where ${mp2} is set`, forall: ks[0]!, ...(ks.length > 1 ? {keys: ks.slice(1)} : {}), holds: {op: 'or', xs: [{op: 'not', x: {op: '<=', a: k(1), b: {op: 'get', map: mp2, key: K2}}}, says.length === 1 ? says[0]! : {op: 'and', xs: says}]}}
-        ghost(G(w2.key), {name: gname, write: {key: w2.key, value: {op: 'if', c: set2, then: v(val2), else: G(w2.key)}}, inv})
-      }
+    for (const mp2 of Object.keys(m.step.maps ?? {})) {
+      if (mp2 === mp) continue
+      const w2 = m.step.maps![mp2]!
+      if (!('each' in w2)) for (const val2 of m.inputs) { const g = provenanceOf(m, mp2, val2, taken, keyed); if (g) ghost({op: 'get', map: g.name, key: w2.key}, g) }
     }
   }
   return out
 }
 const takenOf = (m: Machine) => new Set([...Object.keys(m.maps ?? {}), ...(m.inputMaps ?? []), ...Object.keys(m.fns ?? {})])
+// The laws about every key with one value ∃x. P made plain by their ghost maps (Skolem functions the step keeps): for
+// each, the first ghost map whose laws hold on the small instances, as proveSome's toMap picks it (the same names), and
+// the law with x at W[k] beside the ghosts' own laws. What the ∀ search takes: a set it proves over the machine with the
+// ghosts, the ghosts the original's (`ok`, kernel.ts's ghostedOk), proves each ∃ law, x at its ghost's cell (GhostMap.lean's
+// forall_some_of_ghostmap); proveSome's ghost maps are the same, for a proof again of the laws as stated.
+// (`ghost`: the ghosts added to a machine the search derives from the rule's (its sums, its divisors), unchecked: `ok`
+// checks them against the original; the laws as proveSome states them, so that the goals the search settled are its again)
+export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Machine, laws: Law[], ok: (m2: Machine) => boolean, witnesses: Record<string, string>} | undefined {
+  const taken = takenOf(m), out: Law[] = [], gs: MapGhost[] = []
+  // (every ghost map in the order it is added: a ghost's inner one before it)
+  type Part = {name: string, write: MapGhost['write']}
+  const parts: Part[] = [], one = (m2: Machine, q: Part): Ghosted => ({orig: m2, vars: {}, maps: {[q.name]: {start: 0, write: q.write}}})
+  const ghost = (m2: Machine, more: Part[] = []) => [...parts, ...more].reduce((acc, q) => ghostedMachine(one(acc, q)), m2)
+  const own = (g: MapGhost): Part[] => [...(g.inner ? [g.inner] : []), g]
+  for (const l of laws) {
+    if (!l.some?.length) { out.push(l); continue }
+    if (!l.forall || l.witness) return undefined
+    // (the value named apart from the machine's names (proveSome renames it), and no binder inside the law that the ghost's
+    // cell, read at the law's keys, would be captured by: else no plain form)
+    const binders = new Set<string>()
+    walk(l.holds, o => { if (o.op === 'all') for (const b of [o.key, ...((o.keys as string[] | undefined) ?? [])] as string[]) binders.add(b) })
+    if (l.some.some(x => [...m.params, ...m.inputs, ...Object.keys(m.state)].includes(x)) || [l.forall, ...(l.keys ?? [])].some(x => binders.has(x))) return undefined
+    const g = mapGhostsOf(m, l, taken).find(c => { try { return trueSmall(m, [...(c.inner ? [c.inner.inv] : []), c.inv, {...l, holds: c.holds, some: undefined}], ghost(m, own(c))) } catch { return false } })
+    if (!g) return undefined
+    gs.push(g); parts.push(...own(g)); for (const q of own(g)) taken.add(q.name)
+    const {some: _s, ...plain} = l
+    void _s
+    out.push({...plain, holds: g.holds}, ...(g.inner ? [g.inner.inv] : []), g.inv)
+  }
+  const witnesses: Record<string, string> = {}
+  laws.filter(l => l.some?.length).forEach((l, i) => { const g = gs[i]!; witnesses[l.name] = `w = ${g.name}[${showE(g.at)}], ${g.name}[${showE(g.write.key)}] := ${showE(g.write.value)}` })
+  // (each ghost one of the machine it is added to, as kernel.ts's ghostedOk reads it)
+  const ok = (m2: Machine) => { let at = m2; for (const q of parts) { const o = one(at, q); if (!ghostedOk(o)) return false; at = ghostedMachine(o) } return true }
+  return gs.length ? {ghost: m2 => ghost(m2), laws: out, ok, witnesses} : undefined
+}
 const firstPicks = new Map<string, {mode: 'term', at: number[]} | {mode: 'map', at: number}>()
 // The machine with a ghost map (kernel.ts's ghostedMachine of Ghosted, whose ghostedOk it must pass).
 const withMap = (m: Machine, g: MapGhost): Machine => {
@@ -519,7 +584,7 @@ export type SomeReport = Report & {laws?: Law[], machine?: Machine, ghosts?: str
 // whole set proven as plain laws of the machine with its ghosts.
 // (`whole`: the whole set's prover over the ghosted machine, proveLaws by default; a search's trial proof passes
 // kernel/prove.ts's proveSetFast, which reuses the decisions made over that machine and checks its trees with checkLaws)
-export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole?: (m: Machine, laws: Law[]) => Report & {laws?: Law[]}} = {}): SomeReport {
+export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole?: (m: Machine, laws: Law[]) => Report & {laws?: Law[]}, mapMs?: number} = {}): SomeReport {
   const cases = casesOf(m), mapsRead = (l: Law) => readsMaps(l.holds) || !!m.maps || !!m.inputMaps
   // Each law's bound naturals named apart from the machine's names and from each other's (each may become a ghost).
   const taken = new Set([...m.params, ...m.inputs, ...Object.keys(m.state)])
@@ -580,8 +645,9 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number, whole
     }
     for (let round = 0; ; round++) {
       const now = current(), t0 = performance.now(), r: ReturnType<typeof proveLaw> = round === 0 && first ? {proven: false, ...first}
-        // (a ghost map's goals within 2 s: a search asks them with every candidate set, and one without its supports can take minutes)
-        : p.pick.mode === 'map' ? withDeadline(clock() + 2_000, () => proveLaw(now.machine, now.laws, i)) : proveLaw(now.machine, now.laws, i)
+        // (a ghost map's goals within 2 s: a search asks them with every candidate set, and one without its supports can take
+        // minutes; `mapMs` where the supports are the search's, found over the same map)
+        : p.pick.mode === 'map' ? withDeadline(clock() + (opts.mapMs ?? 2_000), () => proveLaw(now.machine, now.laws, i)) : proveLaw(now.machine, now.laws, i)
       if (log) console.error(`exists: pass ${pass} round ${round} "${p.law.name}" ${p.pick.mode} ${describe(p, cases).slice(0, 160)}: ${r.proven ? 'proven' : `${r.goal} ${r.stuck}`} (${Math.round(performance.now() - t0)} ms)`)
       if (r.proven) return undefined
       const fail = (stuck: string): SomeReport => ({proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: r.goal, stuck, ...(r.witness ? {witness: r.witness} : {})}})

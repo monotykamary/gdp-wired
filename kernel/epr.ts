@@ -33,6 +33,18 @@ export function patternsOf(m: Machine, laws: {name: string, holds: C}[]): Patter
   // (a function of one key: [0], its reads parts of the keys they're in, an uninterpreted function of a part)
   for (const f of Object.keys(m.fns ?? {})) out[f] = [0]
   for (const l of laws) if (!(l.name.startsWith('every ') && l.name.endsWith('of its kind'))) scan(l.holds)
+  // (a map read inside another read's key, a Skolem function a ghost map keeps (Sent[W[s]·N + s]): a function of its key
+  // too, its reads parts; the step's writes to it are substituted into the goal's reads, so within a goal it is one
+  // function)
+  const inKey = (o: unknown, under: boolean): void => {
+    if (!o || typeof o !== 'object') return
+    const x = o as {op?: string, map?: string, key?: E, args?: unknown}
+    if (x.op === 'get' && !x.args && under && !(m.fns && x.map! in m.fns)) out[x.map!] = [0]
+    if (x.op === 'get' && !x.args) { inKey(x.key, true); return }
+    for (const y of Object.values(o)) inKey(y, under)
+  }
+  inKey(m.step, false); inKey(m.assume, false)
+  for (const l of laws) inKey(l.holds, false)
   return out
 }
 
@@ -131,6 +143,16 @@ const liftC = (c: C): C => {
   if (c.op === 'all') { const b = liftC(c.c); return b === c.c ? c : {...c, c: b} }
   if (c.op === 'flag') return c
   const a = liftE(c.a), b = liftE(c.b)
+  // (a comparison whose side holds an if over a map's read, a key a ghost's write is read in (64·W'[k] + k = 64·s + d),
+  // as the if of the comparisons of its two sides: c ∧ (a₁ ⋈ b) ∨ ¬c ∧ (a₂ ⋈ b), equal to it; at most three ifs in all,
+  // counted before they are distributed, 8 leaves)
+  const ifs = (e: E) => textOfE(e).split('"op":"if"').length - 1, reads = (e: E) => textOfE(e).includes('"op":"get"')
+  const few = (hasIf(a) || hasIf(b)) && ifs(a) + ifs(b) <= 3, ha = few ? hoisted(a) : a, hb = few ? hoisted(b) : b
+  if (few && ((ha.op === 'if' && reads(ha)) || (hb.op === 'if' && reads(hb))) && keysOf(ha) * keysOf(hb) <= 8) {
+    const split = (x: E, y: E): C => (x.op === 'if' ? {op: 'or', xs: [{op: 'and', xs: [x.c, split(x.then, y)]}, {op: 'and', xs: [{op: 'not', x: x.c}, split(x.else, y)]}]}
+      : y.op === 'if' ? {op: 'or', xs: [{op: 'and', xs: [y.c, split(x, y.then)]}, {op: 'and', xs: [{op: 'not', x: y.c}, split(x, y.else)]}]} : {...c, a: x, b: y} as C)
+    return liftC(split(ha, hb))
+  }
   return a === c.a && b === c.b ? c : {...c, a, b}
 }
 const liftedKeys = (c: C): C => { let x = liftMemo.get(c); if (!x) liftMemo.set(c, (x = liftC(c))); return x }

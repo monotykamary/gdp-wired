@@ -207,8 +207,8 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
 // Within two thirds of what is left (the rest the caller's: Houdini, or the whole set's proof), each goal an even share
 // of that over the candidates. `attempt` is the caller's proof: the counted goals, or the kernel's for plain laws.
 export type Tried<P> = {proof: P} | {stuck: string}
-export function cone<P>(m: Machine, set: Law[], attempt: (law: Law, ls: Law[], ms: number) => Tried<P>, until: number): Map<string, P> {
-  const kept = new Map<string, P>(), inCone = (l: Law) => kept.has(l.name), tried = new Map<string, number>(), times = new Map<string, number>(), asked = new Set<string>()
+export function cone<P>(m: Machine, set: Law[], attempt: (law: Law, ls: Law[], ms: number) => Tried<P>, until: number, houdini = false): Map<string, P> {
+  const kept = new Map<string, P>(), inCone = (l: Law) => kept.has(l.name), tried = new Map<string, number>(), times = new Map<string, number>(), asked = new Set<string>(), slow = new Set<string>()
   const stopAt = until - (until - clock()) / 3, brief = (stopAt - clock()) / Math.max(1, set.length)
   // (the maps a law reads, a count's through its body)
   const mapsOf = (l: Law) => new Set([...reads(l.holds, () => true).values()].flatMap(([mp]) => [mp, ...(m.counts?.[mp] ? [...reads(m.counts[mp]!.body, () => true).values()].map(([q]) => q) : [])]))
@@ -219,7 +219,7 @@ export function cone<P>(m: Machine, set: Law[], attempt: (law: Law, ls: Law[], m
       grew = false
       for (const law of set) {
         const id = `${t} ${law.name}`
-        if (kept.has(law.name) || tried.get(id) === kept.size || (t === 0 && tried.has(id)) || (t === 2 && (times.get(law.name) ?? 0) >= 2) || clock() > stopAt) continue
+        if (kept.has(law.name) || tried.get(id) === kept.size || (t === 0 && tried.has(id)) || (t === 2 && ((times.get(law.name) ?? 0) >= 2 || slow.has(law.name))) || clock() > stopAt) continue
         tried.set(id, kept.size)
         if (t === 2) times.set(law.name, (times.get(law.name) ?? 0) + 1)
         const ls = t === 0 ? [law] : t === 1 ? near(law) : set.filter(l => l === law || inCone(l))
@@ -230,6 +230,9 @@ export function cone<P>(m: Machine, set: Law[], attempt: (law: Law, ls: Law[], m
         if (asked.has(same)) continue
         asked.add(same)
         const r = attempt(law, ls, brief)
+        // (a law out of time over every kept law: tried again over more, its goals only grow; where Houdini follows, its
+        // share is larger)
+        if (houdini && t === 2 && 'stuck' in r && r.stuck !== 'sat') slow.add(law.name)
         if ('proof' in r) { kept.set(law.name, r.proof); grew = any = true; if (env.GDP_COUNTS_TRACE === '3') console.error(`counts: keep ${law.name.slice(0, 50)} tier ${t}`) }
       }
       if (t === 2) break
@@ -245,17 +248,22 @@ export function cone<P>(m: Machine, set: Law[], attempt: (law: Law, ls: Law[], m
 export type Counted = {proven: boolean, laws: Law[], m: Machine, proof?: {instances: Record<string, Instances>, certs: Record<string, CountCert>}, why?: string}
 // On the counted clock (kernel/prove.ts's `counted`, the cost model's work at fullRate a millisecond), as the engine's
 // search is: what a budget lets it try, and so its verdict, is the same on a slow or shared machine as on a fast one; the
-// wall a stop only at twice the budget.
+// wall a stop only at twice the budget. The small instances (exists.ts's smallOf) are read before the wall starts: their
+// search is bounded by its own count of steps, on neither clock, and took 3.6 to 5.2 s of an 8 s budget's 16 s wall on
+// a boat VM (exists.test.ts's two counts), so a shared VM crossed the wall before the search began and left every goal
+// unknown (2 runs in 4 on main; 4 in 4 beside three busy loops).
 export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted {
-  const run = () => withWall(performance.now() + 2 * ms, () => counted(fullRate, () => searchCounted0(m0, caller, ms), true))
+  const g = guardLaws(m0), m: Machine = {...m0, counts: {...m0.counts, ...g.counts}}
+  ptime('small', () => smallOf(m))
+  const run = () => withWall(performance.now() + 2 * ms, () => counted(fullRate, () => searchCounted0(m0, g, m, caller, ms), true))
   if (!env.GDP_COUNTS_PROF) return run()
   cdclStats.on = true
   const t = performance.now(), out = run()
   console.error(`counts: prof total ${Math.round(performance.now() - t)} ms; ${Object.entries(cprof).map(([k2, x]) => `${k2} ${Math.round(x)}`).join(', ')}; cdcl runs ${cdclStats.runs} conflicts ${cdclStats.conflicts} decisions ${cdclStats.decisions} solveMs ${Math.round(cdclStats.solveMs)} rowsMs ${Math.round(cdclStats.rowsMs)} coreMs ${Math.round(cdclStats.coreMs)} unfoldMs ${Math.round(cdclStats.unfoldMs)} lpMs ${Math.round(cdclStats.lpMs)} boundMs ${Math.round(cdclStats.boundMs)} orderMs ${Math.round(cdclStats.orderMs)}`)
   return out
 }
-function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
-  const until = clock() + ms, g = guardLaws(m0), m: Machine = {...m0, counts: {...m0.counts, ...g.counts}}
+function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine, caller: Law[], ms: number): Counted {
+  const until = clock() + ms
   if (!caller.every(l => clock() < until && trueSmall(m, [l]))) return {proven: false, laws: caller, m, why: clock() < until ? 'a law fails on the small instances' : 'time'}
   const t1 = clock()
   let set = [...caller, ...candidates(m0, m, caller, caller, g.laws, ms, until)]
@@ -357,22 +365,25 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
   }
   // The cone (a law about no key is assumed in every goal, so with one in the set nothing is kept); with every caller
   // kept, the kept laws are the proof; else Houdini over the whole set, the kept laws' proofs reused.
-  const kept = set.every(l => l.forall) ? cone(m, set, (law, ls, ms2) => traced(law, ls, 1, ms2), until) : new Map<string, Proof>()
+  const kept = set.every(l => l.forall) ? cone(m, set, (law, ls, ms2) => traced(law, ls, 1, ms2), until, true) : new Map<string, Proof>()
   if (env.GDP_COUNTS_TRACE) console.error(`counts: kept ${kept.size} of ${set.length} in ${Math.round(clock() - t1)} ms`)
   const finish = (ls: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}): Counted =>
     (ptime('kernel', () => checkCountedLaws(m, ls, proof)) ? {proven: true, laws: ls, m, proof} : {proven: false, laws: ls, m, why: 'the kernel refused the set'})
   const keptProof = () => ({instances: Object.fromEntries([...kept].map(([n, pr]) => [n, pr.instances])), certs: Object.assign({}, ...[...kept.values()].map(pr => pr.certs))})
   if (caller.every(l => kept.has(l.name))) return finish(set.filter(l => kept.has(l.name)), keptProof())
   // (each law not kept an even share of what is left a round)
+  let carried = new Map<string, Proof>()
   for (let round = 0; clock() < until; round++) {
-    const {instances, certs} = keptProof(), failed = new Set<string>(), share = (until - clock()) / Math.max(1, set.filter(l => !kept.has(l.name)).length)
+    const {instances, certs} = keptProof(), failed = new Set<string>(), proofs = new Map<string, Proof>(), share = (until - clock()) / Math.max(1, set.filter(l => !kept.has(l.name) && !carried.has(l.name)).length)
     // (the callers last, so they meet every support kept so far)
     for (const law of [...set.filter(l => !caller.includes(l)), ...set.filter(l => caller.includes(l))]) {
       if (clock() > until) return {proven: false, laws: set, m, why: 'time'}
       if (kept.has(law.name)) continue
-      let r = traced(law, set, 0, share)
+      const was = carried.get(law.name)
+      let r: Tried<Proof> = was ? {proof: was} : traced(law, set, 0, share)
       if (!('proof' in r) && counted) r = traced(law, set, 1, share)
       if (!('proof' in r)) { failed.add(law.name); continue }
+      proofs.set(law.name, r.proof)
       instances[law.name] = r.proof.instances
       Object.assign(certs, r.proof.certs)
     }
@@ -381,6 +392,9 @@ function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
     const next = set.filter(l => !failed.has(l.name) || caller.includes(l))
     // (only callers fail: drop nothing more, give up)
     if (next.length === set.length) return {proven: false, laws: set, m, why: `not proven: ${[...failed].join(', ')}`}
+    // (a proof that assumes no law dropped at any key is one over the rest: its goals are the same; the kernel checks all)
+    const dropped = set.filter(l => !next.includes(l))
+    carried = new Map([...proofs].filter(([, pr]) => dropped.every(d => d.forall && !pr.instances[d.name]?.length)))
     set = next
   }
   return {proven: false, laws: set, m, why: 'time'}

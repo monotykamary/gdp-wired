@@ -89,17 +89,16 @@ The bar on boat, 60 s (`runs/bar/runs/laneT-tip-full3` in the main checkout: thi
 - What it took (core/data.ts, the termination's search only): a size law's or an obligation's attempt first without
   the shapes at fields' values (a split on each value's constructor that a descent rarely reads: hmerge's law, past
   20 s with them, 0.8 s without), within a termination's proofs only; the obligation, its lemmas proven, first at no
-  unfolding (1032 instances at one, past its time; 370 at none, 2.4 s); constant lower bounds (`1 <= fold(x)`) as size
-  laws, for the natural-valued functions the helpers call too; a weighted size whose field of another datatype weighs
-  that datatype's own fold (a list of trees); `directly` at one unfolding then two. The trusted part is unchanged: each
-  obligation is kernel-checked, Data.lean's `wf_fix_unique`; Lean's export now writes a fold in `termination_by` and
-  proves a two-argument size law by `induction x, y using g.induct` (research/termination/lean-termination.ts: toList
-  through hmerge's law, checked by Lean 4.34.0, axioms propext, Classical.choice, Quot.sound).
+  unfolding (1032 instances at one, past its time; 370 at none, 2.4 s). Tried and taken out, no task taking them and the
+  refusals' time doubled: a fold weighting a field by its datatype's own fold, constant lower bounds as size laws, two
+  direct unfoldings, larger lemma budgets. The trusted part is unchanged: each obligation is kernel-checked, Data.lean's
+  `wf_fix_unique`; Lean's export now writes a fold in `termination_by` and proves a two-argument size law by
+  `induction x, y using g.induct` (research/termination/lean-termination.ts: toList through hmerge's law, checked by
+  Lean 4.34.0, axioms propext, Classical.choice, Quot.sound).
 - Still refused, 66 for termination: `bubsort` 8 (a count of inversions), `ssort` 8 (a conditional size law, `elem m xs
   ⇒ size(delete m xs) < size xs`), the merge sorts by halves `msorttd` 4 and `nmsorttd` 4 (take and drop at a half of
   the length), `bmerge` 8 (evens and odds of both lists), `toList` over Peano naturals 8 (the merge's law, its cases split
-  on the tags of fields, not on the user's ≤, past its time), `flatten1` 2 (the fold's measure is found, its descent
-  needs the inner fold's lower bound at grandchildren the lemma's uses don't reach), and the integer helpers that don't
+  on the tags of fields, not on the user's ≤, past its time), `flatten1` 2 (a fold of a list weighted by its trees' folds), and the integer helpers that don't
   end below 0, correctly: `idiv` 12, `third` 4, `twoThirds` 4, `nmsorttd-half1` 4. Nested recursion and rings with a
   nested call (25: the Stooge sorts, `models`, McCarthy's `m`, `subst`) need more than a termination certificate: a
   Lean theorem for a functional that reads the function at its own value, `F g x` agreeing with `F h x` where g and h

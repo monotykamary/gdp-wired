@@ -43,6 +43,262 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneY: a law with "there exists" about keys searched in its plain form over its ghost map (firewall proven at 60 s); the EPR path reads a key a map holds; the ∃ watch and the small instances cheaper (untrusted; nothing trusted changed)
+
+Branch gen/laneY from main 6b96a0f. kernel/kernel.ts, core/check.ts, kernel/cyclic.ts and lean-kernel/ untouched; kernel/epr.ts
+is the untrusted decision (its refutations are proven again by the kernel's search and widened, its models judged by the
+interpreter). Nothing reads a protocol's name. Everything on boat, gate class, `--timing` (each job alone on its VM, 2
+pinned vCPUs); runs in `runs/laneY/` of the worktree. WALL: the process's wall time around bun.
+
+**1. Where the nine unknowns' wall time went (main 6b96a0f; `base`, `d1` full traces, `prof` CPU profiles).**
+
+| protocol | 60 s wall (r1 / r2) | where the time goes | what it lacks | group |
+| --- | --- | --- | --- | --- |
+| firewall | 64.9 / 57.8 | the laws as given 2 s, the deeper runs 34 s (someHolds: a ∃ law read at every tuple of every run state, 88% of db_ae's profile), the join throws at once ("reads some$1, which it doesn't declare") | the search never runs on a law about keys with ∃ | ∀∃ caller |
+| client_server_db_ae | 135.4 / 136.4 | as firewall: someHolds 88% of the profile; the search starts past its budget | as firewall, then a ∀∃ support (a db request has its T row) | ∀∃ caller |
+| sharded_kv_no_lost_keys | 124.2 / 124.5 | the laws as given 60 s (proveSome's term witnesses, one goal 34 s), the join throws | two values bound (∃ owner ∨ ∃ transfer): no ghost map | ∀∃ caller |
+| sharded_kv | 69.0 / 66.0 | the engine: 42 cubes, Houdini of the caller fails | node and key one sort, values width 1: "two transfers of one key" over two values is in no view | template width |
+| consensus_forall | 74.1 / 77.3 | smallOf 18 s, the engine's cubes 14 s, the cone 29 s, Houdini 30 s | "one value decided" not proven from the cone | counted cone |
+| paxos_epr | 121.0 / 121.7 | the cone 40 s (135 candidates, 15 kept) | the caller | counted cone |
+| mldr | 78.6 / 83.7 | smallOf's BFS 89% of the profile (36,288 requests a state, most refused) | the caller | counted cone |
+| learning_switch, learning_switch_i4 | 122.8 / killed; killed / killed | the phases' table goals (gen/laneI, laneJ) | | phases |
+
+The largest group with one cause is the ∀∃ callers (three): the join can't take a law with "there exists" about keys, and
+the runs' ∃ check eats the budget before the search starts.
+
+**2. What was built (core/exists.ts, core/dsl.ts, core/infer.ts, core/watch.ts, kernel/epr.ts; all untrusted).**
+- **A law with "there exists" about keys, searched in its plain form** (exists.ts `skolemOf`, dsl.ts `searchedUntil`): the
+  ghost map proveSome's toMap picks (the first of mapGhostsOf's whose laws hold on the small instances: a Skolem function
+  the step keeps, GhostMap.lean) makes the law plain, x read at W[k], beside the ghost's own law ("where the written map is
+  set, P at W[k]"); the invariant search then runs on the rule with the ghost (`Rule.withGhosts`), the ghost's maps in no
+  view (`ghosts`, infer.ts's keySorts), the join a twentieth of the budget (its hulls can't state a cell read at a key a
+  ghost holds; the engine's diagrams the rest). A set it proves is the verdict when its own set proof over the ghosted rule
+  stands again (proveRule with `fast`, the search's settled goals) and every ghost is the original's (kernel.ts's
+  ghostedOk); else proveSome proves the laws as stated with the found laws. No plain form where the value names a
+  machine's name or a binder inside the law would capture the ghost's key (terra's review).
+- **The EPR path reads a key a map holds** (epr.ts): a map read inside another read's key is a function of its key (its
+  reads parts, `W(s)`), and a comparison whose side holds an if over a map's read (64·W'[k] + k = 64·s + d, the step's
+  write substituted into the key) is the if of its two comparisons (at most three ifs, counted before they are
+  distributed). The plain firewall law's step goal: "1 comparisons outside the EPR shape" → unsat in 0.2 s locally (the
+  proof path took 1.4–5.6 s, the join's queries 11–29 s).
+- **The ∃ watch** (exists.ts `someHolds`, `quick` for watch.ts): 0 first, then the points the atoms solve for without the
+  map cells, then the old enumeration; the verdict and its cap as before. firewall's runs and Houdini 34 s → 3 s.
+- **The small instances** (exists.ts `small`): a request the assumption's conjuncts over the params and the request
+  refuse is refused at every state: still counted as tried, not stepped (none where the interpreter computes inputs: a
+  history, least keys). The same states on all 29 ports (`sc`: digests equal); mldr 44 → 25 s, consensus_epr 6.1 → 3.0 s,
+  paxos 18.6 → 13.8 s.
+- **A cell's literal values** (infer.ts's engine): its map's values over the small instance, so a value one place never
+  reaches is a literal there too (the one-literal pattern "no node sends to itself": Sent[x·N + x] is 0 in every row).
+
+**3. What each change bought, measured on firewall** (`d2`–`d17`, `c1`–`c3`; boat, seconds of wall):
+
+| state | firewall at 60 s | where it ended |
+| --- | --- | --- |
+| main | unknown 57.8–64.9 | the join throws at the ∃ law, past the deeper runs (34 s) |
+| + the plain search | unknown 122.2 | the runs 60 s, the plain laws "as given" first 58.7 s |
+| + someHolds' points without cells, the verdict as given passed on | unknown 65.6 | the engine's round 0 on 6 cubes, 4 of them the ghost's cells' order (junk), the caller unknown at 20 s |
+| + the ghosts in no view | unknown 71.2 | the caller's model at Sent[x·N + x] with nothing started: "no node sends to itself" in no view (no row has the value) |
+| + the map's values as literals | unknown 73.9 | the set proven at 65.7 s, proveSome's map goal capped at 2 s |
+| + the EPR path reading a key a map holds | unknown 64.6 → proven 63.3 | the set proven, the ∃ proof again 26 s |
+| + the join a twentieth | proven 47.7 / 52.9 / 62.0 | the ∃ proof again 20–30 s |
+| + the ∃ verdict from the search's own set proof | **proven 25.5 / 25.6 / 35.5** | |
+
+**IC3Syn, 60 s strict wall, each protocol alone on its VM (`--timing`), two runs, broken variants once** (main 6b96a0f:
+`base`; the branch head 98a3add: `g2`; bold: proven within 60 s of wall):
+
+| protocol | main 6b96a0f (r1 / r2) | gen/laneY 98a3add (r1 / r2) |
+| --- | --- | --- |
+| client_server_db_ae | unkn 135.4 / unkn 136.4 (broken unkn) | unkn 64.3 / unkn 57.7 (broken unkn) |
+| consensus_epr | **prov 40.5** / **prov 36.3** (broken unkn) | **prov 43.0** / **prov 47.2** (broken unkn) |
+| consensus_forall | unkn 74.1 / unkn 77.3 (broken unkn) | unkn 91.8 / unkn 62.8 (broken unkn) |
+| consensus_wo_decide | **prov 19.7** / **prov 25.0** (broken unkn) | **prov 31.3** / **prov 29.4** (broken unkn) |
+| firewall | unkn 64.9 / unkn 57.8 (broken unkn) | **prov 22.5** / **prov 50.5** (broken unkn) |
+| learning_switch | unkn 122.8 / ? 210.0 (broken unkn) | unkn 122.2 / unkn 122.0 (broken unkn) |
+| learning_switch_i4 | ? 88.7 / ? 210.0 (broken ?) | unkn 143.1 / unkn 125.0 (broken unkn) |
+| mldr | unkn 78.6 / unkn 83.7 (broken unkn) | unkn 120.3 / unkn 77.8 (broken unkn) |
+| paxos_epr | unkn 121.0 / unkn 121.7 (broken unkn) | unkn 105.9 / unkn 120.6 (broken unkn) |
+| sharded_kv | unkn 69.0 / unkn 66.0 (broken refu) | unkn 71.8 / unkn 70.8 (broken refu) |
+| sharded_kv_no_lost_keys | unkn 124.2 / unkn 124.5 (broken unkn) | unkn 122.1 / unkn 120.3 (broken unkn) |
+
+**21 of 29 within 60 s in both runs (main 20 of 29)**: firewall new. No broken variant proven. The other 18 proven as on main
+(their times within the runs' spread: a second batch on 88cfec8, `g1`, has consensus_epr at 70.6 s in one run on a slow VM,
+its counted search identical to the other runs': the same 41 candidates, 28 kept, 23,420 counted ms).
+
+**The two near the wall, six runs a side in one batch** (`eb` main, `e1` the branch; seconds of wall):
+
+| protocol | main 6b96a0f | gen/laneY |
+| --- | --- | --- |
+| firewall | unknown 53.4 / 54.2 / 55.9 / 59.2 / 60.1 / 62.1 | **proven 20.1 / 24.9 / 27.5 / 29.1 / 29.3 / 33.4** |
+| consensus_epr | proven 37.8 / 39.8 / 47.1 / 47.3 / 54.0 / 87.8 | proven 28.9 / 31.3 / 37.7 / 38.3 / 38.5 / 50.7 |
+
+consensus_epr's counted search is main's (the same candidates and cone); the wall it saves is the small instances' BFS.
+
+**What is still open, and why**
+- **client_server_db_ae** (unknown, 58–64 s, was 135 s: the ∃ watch's cost gone): its plain search starts, but the
+  serverRequests step needs a support with "there exists" of its own (a db request has its T row: ∀i, r. DbRequestSent[i,
+  r] → ∃n. T[i, n]), and the engine proposes ∀∃ supports only over one key (the join's ghostsOf); the next step is the
+  same Skolem made of a support: DuoAI's A(x) → ∃y. B(x, y) over a view of two keys, its ghost map from mapGhostsOf.
+- **sharded_kv_no_lost_keys** (unknown at 120 s): two values bound (∃ owner ∨ ∃ transfer), so no single ghost map; the
+  laws as given spend the budget on term witnesses (one goal 34 s).
+- **sharded_kv** (unknown 66–76 s): node and key are one sort (the hi/lo union of Table[n, k] and Owner[k, n]), the
+  value sort's width 1 (the caller's v, u are compared with Table's values v + 1, not read at a place), so "two transfers
+  of one key" over two values is in no view; and a 5-key view is past the 96-literal cap.
+- **consensus_forall, paxos_epr, mldr** (counted): their cones end with the caller unproven (forall: "one value decided"
+  from 39 kept; paxos 15 of 135; mldr 22 of 27): a missing support, not time (gen/laneG2, laneI). The BFS share is
+  smaller now (mldr's small instances 44 → 25 s).
+- **learning_switch, learning_switch_i4** (unknown at 122–143 s; i4 ended with a verdict in both runs where main's
+  were killed, not examined): the phases' table goals (gen/laneI, laneJ).
+
+**Gates**
+- **IC3Syn** (above): 21 of 29 within 60 s of wall in both runs, main 20; no broken variant proven.
+- **The ten (DuoAI's set) at 60 s**, three runs a side in one batch (`tenc`, `tenb` in the main checkout's runs), each
+  alone on its VM: 29 of 30 against 30 of 30, the miss consensus_wo_decide at 66.3 s (wall); wo again, ten runs a side
+  (`woc`, `wob`): 10 of 10 on both (medians 25.4 against 22.5 s, ranges 20.0–41.9 and 21.5–37.4). The ten read no law with
+  "there exists", no map at a key a map holds and no counts, so of these changes only the literal values reach them.
+- **Quick bar** (a82481b against 6b96a0f's boat baseline; <main>/runs/bar/runs/laneY-a82481b-quick/REPORT.md): wrong 0 in every
+  group, nothing solid lost: CHC −7 (gained 3, lost 7, none solid, all answered past 45 s; CHC's rules have no maps, ∃ law or
+  composed key, so none of these changes runs there), ITS +3 (gained 2, lost 5, none solid), ITS-scc +2.33 (gained 2), SV
+  +0.33, SV-scc +0.33, TIP −0.33 (lost 1, not solid, at the limit), f1 0, f2 −0.33 (none lost), rw −0.67 (lost 1, not
+  solid: TimelockController#6 2/4 against 6/6, at the limit); g332 the same search on 332 of 332, per goal p50 0.892;
+  onecpu no failure; Lean 6 of 6. Size: core/ and kernel/ +9,293 bytes.
+- **Quick bar again on the head's code** (98a3add; <main>/runs/bar/runs/laneY-98a3add-quick/REPORT.md): wrong 0 in every
+  group; CHC −3 (gained 3, lost 4, one by the rule solid: ctigar/gulv_simp.c 0/4 against 6/6, every candidate run unknown at
+  58 s, the limit; in the first bar 2/4 against 4/6), ITS +4 (gained 3, lost 2, none solid), ITS-scc +1.33 (gained 2), SV
+  +0.33, SV-scc −1.67 (none lost), TIP −0.33 (lost 2, not solid, at the limit), f1 0, f2 +0.67, rw +0.33 (none differs);
+  g332 the same search on 332 of 332 (per goal p50 1.179; 0.892 in the first bar: the pool's load); onecpu no failure; Lean
+  6 of 6; core/ and kernel/ +10,723 bytes. CHC's tasks reach none of the changed code (no ∃ law about keys, no map, so no
+  view, no EPR goal and no small instance); gulv_simp by hand on a VM holding the benchmark, one run a side: sat in 36.2 s
+  against 31.3 s.
+- **Tests**: `bun run test` is killed (137, out of the VM's 4 GB) in data.test.ts on both sides (`tests2`, and main's
+  `testsb`); file by file (`tfiles`, 49 jobs): 474 pass, 1 fail, search.test.ts's "an invariant nobody wrote is found and
+  proven" at 5.17 s past bun's 5 s (a known slow test); alone, three runs a side (`searchc`, `searchb`): 7 of 7 each run,
+  that test 1.7–3.8 s against 1.6–1.8 s; the examples exit 0. core/exists.test.ts 12 of 12, kernel count and
+  countmachine 56 of 56; tsc no error in core/, kernel/, research/protocols/; oxlint 0 / 0 on the touched files.
+- **terra's review** (gpt-6.1-terra via pi, read-only; `runs/laneY/terra-review.txt`), each finding acted on: (1) a binder
+  inside the law could capture the ghost's key in the substitution, and the bound value wasn't named apart from the
+  machine's names as proveSome names it: skolemOf now makes no plain form in either case (the DSL's fresh names never
+  meet it); (2) the request prefilter read every input as the request's, though a history's queries and the least keys are
+  the interpreter's own: off for such machines; (3) the if-lifting distributed ifs before its bound was checked: the ifs
+  are counted first (at most three); (4) the quick points could change the witness a request's existential is encoded
+  with (dsl.ts's withSkolems): they are a run's watch's alone now. Its answer to (a): with no capture, the plain proof
+  over the ghosted machine and ghostedOk give the ∃ law (GhostMap.lean's argument); the fast verdict is taken only over a
+  machine with no sums or history (ghostedOk refuses those), else proveSome.
+- **Lean** (Lean 4.34.0, `lean4`, a VM of 16 GB: on 4 GB the 2.7 MB export ran out of memory): ghosted-lean.ts (now with
+  the laws proveRule's search finds beside the ghost map) on firewall, 10 laws, AllowedIn$w at the sender: GhostedIC3.lean
+  lean-exit 0 in 289 s, no sorry, `gh0_orig_laws` and `gh0_skolem` on [propext, Classical.choice, Quot.sound].
+- **Nothing trusted changed**: kernel/kernel.ts, core/check.ts, kernel/cyclic.ts and lean-kernel/ untouched; kernel/epr.ts
+  is its own header's "Untrusted" (a refutation's core is proven again by the kernel's search and widened; a model judged
+  by the interpreter), so no Lean-first step applies.
+
+**Bytes** (core/ and kernel/ .ts without tests, against main, the bar's count at 98a3add): +10,723 (core/exists.ts +5,446: skolemOf, the ∃ watch's
+points, the request prefilter; core/dsl.ts +2,659: the plain search and its verdict; kernel/epr.ts +1,788; core/infer.ts
++824; core/watch.ts +6). research/protocols/ic3syn/: skolemprobe.ts and skolemdecide.ts (the plain law's goals with the
+search off, and through the EPR path).
+
+
+### gen/laneY, round 2: main d783ef9 merged; the engine's template with each map's parts sorts of their own (sharded_kv and consensus_forall proven); the ghosts back in the views (firewall); gulv_simp and the three treadmill flags noise
+
+d783ef9 merged into gen/laneY (f69c72a). Everything on boat, gate class, `--timing`; runs in `runs/laneY/`.
+
+- **gulv_simp** (CHC, alone per VM, 5 runs a side in one window, candidate against 6b96a0f): sat 31.7 / 31.5 / 27.0 / 28.7 /
+  unknown 59.5 against sat 29.4 / 36.9 / 35.9 / 30.1 / 27.6. The answer is IMC's at 15-30 s on both sides, and the task
+  reaches no changed code (no ∃ law, no engine view, no EPR goal): noise.
+- **The three treadmill flags** (alone per VM, 3 runs each, at the flagged commit's parent, the commit, 6b96a0f, d783ef9
+  and the head): the counted work is the same everywhere, the walls overlap. simple_decentralized_lock work 251153 / full
+  444702 at every commit (a00fcee 6.1/3.3/4.0, 75c1171 6.6/4.4/3.9, 6b96a0f, d783ef9 and head 3.2-4.1); client_server_ae
+  work 385023 / full 358828 everywhere (029b9ea 3.0/2.8/3.3, 2bbb3a7 3.4/2.8/3.7, 6b96a0f 3.3/2.9/3.2, d783ef9 3.5/3.0/2.7,
+  head 5.2/4.2/2.8); toy_consensus_epr (counted, no work printed): 2bbb3a7 7.3/6.1/5.1, a5ef5c8 7.1/4.3/4.2, 6b96a0f
+  6.0/4.1/6.9, d783ef9 5.6/4.1/4.9, head 5.1/4.3/5.7. Machine noise, no cost to fix.
+- **Fine sorts** (infer.ts keySorts(..., fine), the engine's template only): each map's key parts a sort of their own
+  (`M:map:i`) instead of all composed parts in one hi/lo pair, linked by the step's and the laws' reads as before, and a
+  cell's value linked to the keys it is compared with (`V:map`); a k-part map's slot widths count its multi places (`c +
+  1` from 2); a key at a lower part bounded below N in the frame; a two-part map whose row is a function's value
+  (ring's Pending[idn(x)·N + y]) placed through that function. The cause shared by sharded_kv and consensus_forall: node
+  and key one sort, so "two transfers of one key" and "a vote and a decision at one value" were in no view. sharded_kv
+  proven 10.3-14.0 s (7 of 8 runs; one VM whose bun install took 265 s: 66.8 s, the same counted work); consensus_forall
+  proven in every run, 49.9-79.5 s with the same counted work in each (work 39583911): within 60 s in 3 of 6.
+- **firewall's regression on the merged head and its fix** (931998e): the merge's `ghosts` option kept the search's ghost
+  maps out of the engine's views and composed places (for db_ae's junk cubes); firewall's plain law reads its ghost
+  (Sent[64·AllowedIn$w[d] + d]), so the caller's cube never formed (unknown 42.7 s, coarse and fine alike). Ghosts back in
+  the views: firewall 18.6-28.8 s; db_ae's run ends in time either way now (join 0), unknown at 61-76 s with or without.
+- **Slimmed**: the request prefilter, the literal values, the join's twentieth and its share out (ablations: firewall
+  18-25 s without each); the `ghosts` option out (931998e); the provenance supports out (632cdc0: db_ae unknown at 62-70 s
+  with them, 79-88 s without; firewall's counted work identical). Two type errors the build's tsc refused fixed (d1d8473).
+
+| protocol (60 s, alone per VM) | main d783ef9 (r1 / r2) | gen/laneY head (r1 / r2, + reruns) | what closed it |
+| --- | --- | --- | --- |
+| firewall | unknown 106.6 / 49.4 | proven 22.9 / 28.8 | the ∃ law's plain search over its ghost (round 1); ghosts in the views |
+| sharded_kv | unknown 69.3 / 69.9 | proven 13.4 / (66.8 slow VM), 14.0 / 10.3 / 13.4 | fine sorts |
+| consensus_forall | unknown 153.9 / 61.5 | (VM stall, no output) / proven 51.6, 49.9 / 79.5 / 62.2 | fine sorts (inside 60 s half the time) |
+| consensus_epr | proven 89.6 / 39.6 | proven 34.8 / 34.2 | |
+| consensus_wo_decide | proven 50.5 / 37.9 | proven 26.3 / 26.0 | |
+| client_server_db_ae | unknown 132.5 / 137.2 | unknown 68.7 / 62.6 | open: no diagram from the engine |
+| mldr | unknown 150.8 / 108.8 | unknown 69.7 / 69.2 | open: term-order laws between cells |
+| paxos_epr | unknown 147.1 / 166.0 | unknown 114.6 / 83.3 | open: the choosable-quorum ∀∃ law |
+| sharded_kv_no_lost_keys | unknown 124.0 / 122.6 | unknown 120.3 / 124.1 | open: ∃ owner ∨ ∃ transfer, two binders |
+| learning_switch, learning_switch_i4 | unknown 122-125 | unknown 122-146 (i4 on 4 GB: killed, as on 6b96a0f; peak 6.5-13.1 GB against main's 7.8-11.2 GB) | open |
+
+Every run within 60 s: 21 of 29 (main d783ef9: 19); in some run: 23 (main 20). The other 18 proven on both sides
+at like walls; every broken variant refused or unknown on both sides. DuoAI ten, 3 runs each: 30 of 30 proven, 3.0-42.2 s
+(wo 19.3-42.2, ring 19.7-22.6, ticket 18.9-31.2).
+
+- **Quick bar** 931998e against d783ef9 (<main>/runs/bar/runs/laneY-931998e-quick/REPORT.md; c4bd425's too): wrong 0
+  everywhere, nothing lost solid in any benchmark; the losses are flips at the time limit (answers past 45 s). TIP's
+  unknowns as timeouts (+14.67): the 12 tasks that flipped, run on base and head together (`tipb`, `tipc`), time out
+  alike on both (base 5 of 12, head 4 of 12; head's unknowns sooner): the shared baseline's load, not the code. dag: the
+  same search on 331 of 332, the one other the base's wall stop (55 s against the candidate's 12 s). 632cdc0 differs
+  from 931998e by the type fixes and code removed from the ∃ path only.
+- **Tests** (`bun run test`, 16 GB VM): c4bd425 396 of 397, the one the packed-tarball test, whose build's tsc refused two
+  type errors (fixed in d1d8473: core/exports.test.ts 19 of 19 there, as on d783ef9). 632cdc0: 395 of 397 on a slow VM (the
+  suite 2,726 s against 1,199 s), the pool test at 454 s and weak fairness at 6.1 s past bun's 5 s; alone, two runs a side:
+  both pass on both, the pool test 53-58 s against d783ef9's 91-95 s, weak fairness 3.9-4.6 s against 2.6-4.3 s.
+- **Nothing trusted changed**: kernel/kernel.ts, core/check.ts, kernel/cyclic.ts, lean-kernel/ untouched; no Lean step.
+
+**Bytes** (core/ and kernel/ .ts without tests, against d783ef9): +12,018 (core/exists.ts +5,383, core/dsl.ts +2,771,
+core/infer.ts +2,089, kernel/epr.ts +1,769, core/watch.ts +6).
+
+### gen/laneY3 (round 3, on main e196807): the counted Houdini step cheaper, the small instances through the generated JavaScript; sharded_kv back on main
+
+Everything on boat, gate class, `--timing`; runs in `runs/laneY/`. Wall times on boat swung 2-3x this round (a "large"
+VM, 2 of 8 vCPUs pinned, ran the same counted work 2-3x slower than a "default" one), so each change was measured by its
+counted work (deterministic) and by A/B in one job on one VM (an env switch, since removed).
+
+- **Where consensus_forall's time went** (CPU profile, 44 s run): the counted attempts' CDCL search 62%, the engine 23%,
+  the small instances (exists.ts small(), before the counted clock) 10 s of the first 11 s. In the cone, 14 attempts ran
+  out of their share at tier 2 (17.6 s counted of 29.9 s), half of them the second try of a law already out of time; the
+  Houdini round after a dropped law proved its 7 laws again (5.3 s counted).
+- **The cone** (counts.ts): where Houdini follows, a law out of time over every kept law isn't tried again over more
+  (its goals only grow; Houdini's share is larger). **Houdini**: a proof that assumes no dropped law at any key is
+  carried to the next round (its goals are the same; the kernel checks the whole set). forall's counted work 39.6M ->
+  24.9M, consensus_epr 12.2M -> 11.3M, consensus_wo_decide 26.1M -> 25.3M; every other port's the same.
+- **The small instances** (machine.ts fastStep): the interpreter's step through loadJs's generated JavaScript on a copy
+  of the state, a request's counts given to it as maps it carries (carriedView's, each cell its sum when read). The same
+  states for all 29 ports (hashed), 2-4x faster in one job on one VM: sharded_kv 5.8 -> 1.8 s, learning_switch 9.8 -> 2.7,
+  forall 6.4 -> 2.9, mldr 14.5 -> 4.8, paxos 11.0 -> 5.2; the engine's instance for a machine with counts through it too
+  (it was interpreted). small() switches to it past a thousand steps (a small machine's few steps cost less than
+  compiling it).
+- **Same-VM A/B, all three on vs off** (3 runs each, alternating): forall 54-64 s vs 80-107 s (a slow VM), consensus_epr
+  26-29 vs 32-63, simple_election 16-17 vs 24-25, naive_consensus 4.6-4.9 vs 7.4-7.9, the ten's wo 20-26 vs 29-57, ring
+  17-31 vs 19-34, ticket 23-29 vs 29-31; firewall, sharded_kv, two_phase_commit, twophase alike.
+- **consensus_forall at 60 s**: on default VMs 33-55 s in 8 of 10 runs (75, 87 the others), against 50-79 s (median 60)
+  before; on large VMs both sides run past 60.
+- **Tried and dropped**: the step's terms compiled to closures in the interpreter (compileC/compileE): the same states,
+  1.2-2x slower under JSC (the closure call sites go megamorphic); skipping the cone's every-law tier where Houdini
+  follows: forall -47% and epr -62% counted work, but consensus_wo_decide unknown (its caller proven only over the kept
+  set).
+- **sharded_kv on main e196807**: unknown at 60 s (Lane G's infer: 109 guarded forms over the samples; one `lawful`
+  check of five keys at ~40 values took the whole counted budget, 4.26 billion evaluations). A sample whose laws' tuples
+  cost more than a million evaluations is skipped: proven at 12.8-29 s.
+- **Open on main, not this branch's**: ticket_lock (DuoAI ten) unknown in every run on e196807 and on this branch, proven
+  on gen/laneY: the trace diverges at Lane G's samples (rows 431,815 -> 517,686, forms 227 -> 230).
+
+Gates (90faf39 against e196807, same window, 2 runs; the ten 3): IC3Syn within 60 s in every run 21 (main 20), in some
+run 23 (main 22): sharded_kv proven (main unknown); the rest alike within the noise. DuoAI ten 29/30 both (ticket_lock
+unknown on both; ring once unknown at 62.7 s on a large VM, proven in 6 of 6 same-VM A/B runs). Quick bar
+(<main>/runs/bar/runs/laneY3-90faf39-quick/REPORT.md): wrong 0, nothing lost solid; dag the same search on 332 of 332.
+Tests (16 GB): 402 of 403, the one data.test.ts's "agrees with + on small values only" at 5.1 s past bun's 5 s; alone,
+8 alternating pairs on one VM, median 4.16 s on, 4.04 s off. Nothing trusted changed.
+
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
 
 Held: the lazy hypotheses (kernel/prove.ts) cost the step goals time (g332 391 s against 354) and read 18 against 20 at

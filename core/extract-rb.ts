@@ -20,7 +20,7 @@
 // Refused, each where it is with why: loops and blocks (but synchronize's), begin/rescue, other classes' code, arrays
 // and hashes (for now), &., floats that aren't whole, a field the class writes with values of two types.
 import {type Extraction} from './extract.ts'
-import {Refusal, pathOf, type FileURL} from './extract-read.ts'
+import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
 import {asset, type Harness, type SModule, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
@@ -40,8 +40,8 @@ export function readRuby(file: string, names: string[], opts: {root?: string, ru
   const cp = node<CP>('node:child_process'), path = node<{resolve: (...p: string[]) => string, dirname: (p: string) => string}>('node:path')
   const abs = path.resolve(file), root = path.resolve(opts.root ?? path.dirname(abs))
   let out: string
-  try { out = cp.execFileSync(opts.ruby ?? 'ruby', [here('reader.rb'), JSON.stringify({root, file: abs, names, clocks: opts.clocks ?? []})], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']}) }
-  catch (e) { throw new Refusal(file, `the Ruby reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): ruby 3.3 or later (with Prism) is needed to extract Ruby`) }
+  try { out = cp.execFileSync(opts.ruby ?? 'ruby', [here('reader.rb'), JSON.stringify({root, file: abs, names, clocks: opts.clocks ?? []})], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()}) }
+  catch (e) { throw new Refusal(file, statedRefusal(e) ?? `the Ruby reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): ruby 3.3 or later (with Prism) is needed to extract Ruby`) }
   return JSON.parse(out) as SModule
 }
 export function extractRuby(at: string | FileURL, opts: RbOptions = {}): Extraction & {read?: StepRead} {

@@ -30,7 +30,7 @@ import {allowed, watch} from './watch.ts'
 import {kindOfVar} from './extract-check.ts'
 import type {Sorts} from './extract-print.ts'
 import type {Model} from './extract-read.ts'
-import {Refusal, pathOf, type FileURL} from './extract-read.ts'
+import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
 const refuse = (where: string, what: string): never => { throw new Refusal(where, what) }
 import {asset, type Harness, type SFunc, type SModule, type SParam, type SRec, type SS, type SType, type SX, type StepOptions, type StepRead, checkStep, node, readStep, stepNames} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
@@ -66,8 +66,8 @@ export function compile(file: string, o: SolOptions): Compiled {
     settings: {remappings: o.remappings ?? [], optimizer: {enabled: false}, outputSelection: {'*': {'': ['ast'], '*': ['abi', 'evm.bytecode.object', 'evm.deployedBytecode.object', 'evm.methodIdentifiers', 'storageLayout']}}}}
   let out: string
   const solc = o.solc ?? env().GDP_SOLC ?? 'solc'
-  try { out = cp.execFileSync(solc, ['--standard-json', '--base-path', root, '--include-path', `${root}/node_modules`, '--allow-paths', root], {input: JSON.stringify(input), encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['pipe', 'pipe', 'pipe']}) }
-  catch (e) { throw new Refusal(file, `solc didn't run (${String((e as Error).message).slice(0, 300)}): solc 0.8 is needed to extract Solidity (on the PATH, or $GDP_SOLC)`) }
+  try { out = cp.execFileSync(solc, ['--standard-json', '--base-path', root, '--include-path', `${root}/node_modules`, '--allow-paths', root], {input: JSON.stringify(input), encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['pipe', 'pipe', 'pipe'], ...readerRun()}) }
+  catch (e) { throw new Refusal(file, statedRefusal(e) ?? `solc didn't run (${String((e as Error).message).slice(0, 300)}): solc 0.8 is needed to extract Solidity (on the PATH, or $GDP_SOLC)`) }
   const j = JSON.parse(out) as {errors?: {severity: string, formattedMessage: string}[], sources: Record<string, {id: number, ast: Ast}>, contracts: Compiled['contracts']}
   const errs = (j.errors ?? []).filter(e => e.severity === 'error')
   if (errs.length) throw new Refusal(file, `solc: ${errs.map(e => e.formattedMessage.split('\n')[0]).join(' | ').slice(0, 600)}`)
@@ -247,6 +247,11 @@ class Lower {
     if (i < 0) return refuse(p, `${name}: a call into other code inside a branch (the subset splits a body at a call at its top)`)
     const mk = body[i]!, pre = body.slice(0, i), rest = body.slice(i + 1)
     if (callsOut(rest)) refuse(p, `${name}: two calls into other code (the subset splits at one)`)
+    // (a failed call must revert the caller, as transfer and require(ok) do: the EVM undoes what the callee did, the
+    // contract's calls back included, which the steps between the two the rule holds can't undo)
+    const okv = String(mk.ok), r0 = rest[0], x0 = r0?.c as SX | undefined
+    const reverts = mk.how === 'transfer' || (r0?.s === 'if' && x0?.e === 'not' && (x0.x as SX | undefined)?.e === 'var' && (x0.x as SX).n === okv && ((r0.then as SS[])[0]?.s === 'fail'))
+    if (!reverts) refuse(p, `${name}: a call into other code whose failure the function goes on past (the EVM undoes what the callee did, its calls back included; the subset reads a failed call that reverts the caller: require(ok) right after it)`)
     // The locals the rest may read: the parameters, and every local the part before sets.
     const locals = new Map<string, SType>()
     for (const pa of params) if (!pa.self) locals.set(pa.name, pa.t)
@@ -695,7 +700,10 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
     for (let i = 0; i < n; i++) {
       const run = randomRun(rule, rread.model, rand)
       if (!run.trace.length) continue
-      const r = replays(run)
+      // (the replay's harness failing: once more, then the check's failure, no verdict)
+      let r = replays(run)
+      if (!r.ok && r.harness) r = replays(run)
+      if (!r.ok && r.harness) return {...ev, harness: r.what}
       if (!r.ok) return {...ev, mismatch: `re-entrancy: a run of the rule replayed on the code: ${r.what}`}
       runs.runs++; runs.txs += r.txs; runs.nested += r.nested; runs.steps += run.trace.length
     }
@@ -744,8 +752,8 @@ type ReplayCtx = {rule: Rule, sorts: Sorts, model: Model, names: Name[], leaves:
 // the depth back at 0), each call by its Agent, each resume an Agent's return; the state after each transaction the
 // rule's, every call made. With a law, the law broken by the run at that width too.
 function replayer(c: ReplayCtx) {
-  return (run: Run, law?: unknown): {ok: boolean, what: string, txs: number, nested: number} => {
-    const no = (what: string) => ({ok: false, what, txs: 0, nested: 0})
+  return (run: Run, law?: unknown): {ok: boolean, what: string, txs: number, nested: number, harness?: true} => {
+    const no = (what: string, harness = false) => ({ok: false, what, txs: 0, nested: 0, ...(harness ? {harness: true as const} : {})})
     const isLaw = !!law && typeof law === 'object' && 'holds' in law
     let R: Rule = c.rule
     try { if (isLaw) R = (c.rule as unknown as {withSumsOf: (l: unknown) => Rule}).withSumsOf(law) } catch { R = c.rule }
@@ -788,13 +796,13 @@ function replayer(c: ReplayCtx) {
     const fs = node<FS & {writeFileSync: (p: string, s: string) => void, mkdtempSync: (p: string) => string, rmSync: (p: string, o?: unknown) => void}>('node:fs'), os = node<{tmpdir: () => string}>('node:os'), cp = node<CP>('node:child_process')
     const dir = fs.mkdtempSync(`${os.tmpdir()}/gdp-solreplay-`)
     const ctorArgs = c.ctor.map(([n, a]) => [n, a.k === 'in' ? {in: n === MOD || n.startsWith(MOD) ? CHECK_W : ps[a.name] ?? 0} : {dflt: true}])
-    let out: {error?: string, states?: Record<string, unknown>[], oks?: boolean[][]}
+    let out: {error?: string, transport?: boolean, states?: Record<string, unknown>[], oks?: boolean[][]}
     try {
       fs.writeFileSync(`${dir}/run.json`, JSON.stringify({sol: c.hello, leaves: c.leaves, ctorSpec: c.ctor, ctor: ctorArgs, agent: c.replay.agent, director: c.replay.director, groups}))
       out = JSON.parse(cp.execFileSync(c.opts.python ?? 'python3', [asset('sol/harness.py'), '--replay', `${dir}/run.json`], {encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'pipe'], env: {...env(), ...(c.opts.anvil ? {GDP_ANVIL: c.opts.anvil} : {})}}))
-    } catch (e) { return no(`the replay didn't run (${String((e as Error).message).slice(0, 300)})`) } finally { fs.rmSync(dir, {recursive: true, force: true}) }
-    if (out.error) return no(`the code: ${out.error}`)
+    } catch (e) { return no(`the replay didn't run (${String((e as Error).message).slice(0, 300)})`, true) } finally { fs.rmSync(dir, {recursive: true, force: true}) }
     const shown = (g: number) => groups[g]!.map(e => (e.kind === 'ret' ? `return(${e.ok})` : `${e.m}(${e.a!.map(([n, v]) => `${n}=${String(v.in)}`).join(', ')})`)).join(' ')
+    if (out.error) return no(out.transport ? `the replay's harness: ${out.error}` : `the code: ${out.error} (the run: ${groups.map((_, g) => shown(g)).join('; ')})`, !!out.transport)
     for (const [g, ok] of (out.oks ?? []).entries()) if (ok.some(x => !x)) return no(`transaction ${g + 1} (${shown(g)}): a call the rule takes reverts in the code`)
     for (const [g, code] of (out.states ?? []).entries()) {
       const d = sameState(c.leaves, after[g]!, code)

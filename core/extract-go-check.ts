@@ -12,7 +12,7 @@ import type {Arg, Model} from './extract-read.ts'
 import type {B} from './extract-ir.ts'
 import type {Sorts} from './extract-print.ts'
 import {type CodeSide, type Coverage, type Evidence, Outside, type Snap, constantsOf, draw, drive, evalTerm} from './extract-check.ts'
-import {openHarness, stubbed} from './extract-step.ts'
+import {openHarness, stopped, stubbed} from './extract-step.ts'
 import {type GoOptions, type GoPkg, type GoRead, type TT, node} from './extract-go.ts'
 
 export type GoLeaf = {name: string, path: string[], kind: 'int' | 'bool' | 'str' | 'big' | 'bignil' | 'map' | 'mapnil' | 'list' | 'frame', t: number, go: string}
@@ -383,7 +383,7 @@ export function speak(work: string, bin: string, env: Record<string, string | un
       fs.writeSync(wi, `${JSON.stringify(cmd)}\n`)
       const l = line()
       if (l === undefined) throw new Error('the harness stopped')
-      return JSON.parse(l) as Record<string, unknown>
+      return stopped(JSON.parse(l) as Record<string, unknown>)
     }
     // A state from the harness as a snapshot (a number past the safe integers: the code leaves the rule's numbers).
     const toSnap = (s: Record<string, unknown>): Snap => {
@@ -481,7 +481,13 @@ export function speak(work: string, bin: string, env: Record<string, string | un
       fs.closeSync(ro); ro = -1
       return count()
     }
-    const ev = drive(m, r, sorts, side, opts)
+    let ev: Evidence
+    // (the harness gone, or stopped at its time limit: the check refuses, as checkStep's does)
+    try { ev = drive(m, r, sorts, side, opts) } catch (e) {
+      if (!/^(the harness stopped|the code did not answer)/.test((e as Error)?.message ?? '')) throw e
+      ev = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0,
+        mismatch: `the check's harness: ${(e as Error).message}`}
+    }
     return {...ev, runMs: Math.round(performance.now() - r0)}
   } finally {
     if (wi >= 0) try { fs.closeSync(wi) } catch { /* closed */ }

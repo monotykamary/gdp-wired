@@ -61,6 +61,10 @@ impl Reader {
   }
   fn load_file(root: &Path, rel: &Path, module: &str, out: &mut Vec<File>) -> Result<(), String> {
     let src = std::fs::read_to_string(root.join(rel)).map_err(|e| format!("{}: {e}", rel.display()))?;
+    // (syn's parser and the lowering recurse on each level of nesting: past MAX_DEPTH brackets the source is refused, said
+    // so as core/extract-read.ts's statedRefusal reads it, before any recursion could pass the reader's stack)
+    let deep = src.chars().fold((0i64, 0i64), |(d, m), c| match c { '(' | '[' | '{' => (d + 1, m.max(d + 1)), ')' | ']' | '}' => (d - 1, m), _ => (d, m) }).1;
+    if deep > MAX_DEPTH { eprintln!("gdp: refused: {}: the source nests {deep} brackets deep (past {MAX_DEPTH})", rel.display()); std::process::exit(3) }
     let f = syn::parse_file(&src).map_err(|e| format!("{}: {e}", rel.display()))?;
     let dir: PathBuf = if rel.file_name().map(|n| n == "lib.rs" || n == "main.rs" || n == "mod.rs").unwrap_or(false) { rel.parent().unwrap().to_path_buf() } else { rel.with_extension("") };
     let mut items = vec![];
@@ -654,7 +658,13 @@ fn assigns(e: &Expr, n: &str) -> bool {
   false
 }
 
+const MAX_DEPTH: i64 = 1000;
+// The reader on a thread of 1 GiB of stack (reserved, not used): MAX_DEPTH levels of syn's recursion fit in it.
 fn main() {
+  let t = std::thread::Builder::new().stack_size(1 << 30).spawn(run).expect("a thread");
+  if t.join().is_err() { std::process::exit(101) }
+}
+fn run() {
   let req: Value = serde_json::from_str(&std::env::args().nth(1).expect("a request")).expect("JSON");
   let root = PathBuf::from(req["root"].as_str().unwrap());
   let files = match Reader::load(&root) { Ok(f) => f, Err(e) => { println!("{}", json!({"error": e})); return } };

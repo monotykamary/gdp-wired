@@ -1,6 +1,6 @@
 # Mutation testing of the trusted base
 
-`kernel/mutants.ts` changes `kernel/kernel.ts` and `core/check.ts` one operator, constant or quantifier at a time and runs
+`kernel/mutants.ts` changes `kernel/kernel.ts`, `core/check.ts`, `core/data.ts`'s admission and `kernel/cyclic.ts` one operator, constant or quantifier at a time (and in cyclic.ts, which builds its goals as object literals, a part of a goal) and runs
 a test battery on each mutant (refusals, tamper, builders, conformance, the finance examples, runtimes, histories, the
 kernel fuzz). Fanned out on boat or Modal (`bun mutants.ts ids <a,b,...>` per job, as the treadmill runs them):
 
@@ -15,14 +15,16 @@ kernel fuzz). Fanned out on boat or Modal (`bun mutants.ts ids <a,b,...>` per jo
 | counts and ghost maps (gen/laneK: `checkCounted`, `ghostedOk`, `checkGhostedLaws`, kernel.ts's lines 1582–1703), `count.test.ts` first in the battery (`MUTANT_BATTERY=counts`: that test alone) | 40 | 40 (100%) | 0 |
 | every operator of kernel.ts and check.ts (gen/laneM, 2026-10-31: the treadmill had run 280 of 959; the rest reaches loops, recurrent sets by cases, rationals, sums, k-induction, liveness, counts in a machine) | 959 | 758 (79%) | 201 |
 | plus `sums`, `rationals`, `pairs`, `nonterm` in the battery and the tests written for the 201 (refusals.test.ts, count.test.ts, countmachine.test.ts), the whole battery again on the final commit | 959 | 876 (91%) | 83, each listed equivalent below (86 listed: three, 295, 386, 505, failed a slow test under load in that run and survive it alone) |
-| core/data.ts's admission of a definition (gen/laneT, 2026-11-01: `recursion`, the measures' terms, `sitesOf`, `obligation`, `directly`, `proveMeasures`, `ringSites`, `checkMeasures`, `termination`; `MUTANT_BATTERY=termination,conformance`, the first the termination tests of core/data.test.ts) | 112 | 69 (62%) | 43, each listed equivalent below: messages, names, traces and types 12, search settings and deadlines 12, arithmetic that adds or multiplies by nothing 6, a route that only refuses, or moves a function from structural to a kernel-checked measure, or reads a case as a guard 7, an integer measure read at its code 2·v 2, guards backed by another check 4 |
+| core/data.ts's admission of a definition (gen/laneT, 2026-11-01: `recursion`, the measures' terms, `sitesOf`, `obligation`, `directly`, `proveMeasures`, `ringSites`, `checkMeasures`, `termination`; `MUTANT_BATTERY=termination,conformance`, the first the termination tests of core/data.test.ts) | 112 | 63 (56%) | 49, each listed equivalent below with its reason: messages, names, traces and types; search settings and deadlines; arithmetic by 0 or 1; a route that only refuses or moves a function to a kernel-checked measure; an integer measure read at its code 2·v; guards backed by another check (a run's kills vary by one or two with the battery's timing) |
 | core/data.ts's admission with nested recursion (gen/laneN, 2026-11-01: `lowerY`, `obligation`, `valueVar`, `invAt`, `checkInv`, `lifted`, `keeps` added to the targets, `sitesOf`'s leaves, `proveMeasures`'s one length, `termination`'s invariants; the same battery, its termination tests with the nested ones: taken, refused adversarial, invariants given refused) | 162 | 106 (65%) | 56, each listed equivalent below: the 34 of the run above still matching, 22 new: messages, names, a type annotation and a deadline 9, guards backed by another check or unreachable by construction 7 (a new variable's fresh name, measures padded to one length, no ring call left after `lifted`), the integer component's code read alike 3, the search's choice of rings to try invariants for 2, a natural's zero case binding nothing 1; the 9 `checkInv` and natural's-match mutants the first run left were killed by the tests written for them |
+| kernel/cyclic.ts (gen/laneH, 2026-11-01): the operators above and its own (a comparison's kind, a negation made true, a part of a goal's hypotheses dropped, a guard or a tree check skipped, a fact's keys past its terms, the language check widened); `cyclic`, `cycles` in the battery | 43 (1071–1113) | 30 (70%) | 13 |
+| plus four tests in core/cyclic.test.ts, the whole battery again | 43 | 41 (95%) | 2, listed equivalent below |
 
 `core/data.ts`'s admission of a definition is in the targets by its top-level declarations alone (mutants.ts's `only`):
 the rest of that file is the search, whose mutants change speed, never what is taken. Its first run left 50 of 111; the
 tests written for them (core/data.test.ts: the obligations' paths through a variable matched again, a term matched, a
 natural matched on n − 1, a flag beside, a ring with a flag-only function; checkMeasures proving a found measure again;
-a weighted size never read through a user's function of the fold's name) killed 7, and the 43 left are listed below.
+a weighted size never read through a user's function of the fold's name) killed 7; after the search was trimmed (the nested folds, lower bounds and second direct unfolding out) the 49 left are listed below.
 Two are guards whose mutant only a search bug would reach (`directly`'s `v.proven && v.checked`, kept as the kernel's
 check of a search proof, and Lean's export proves each taken definition's decrease again); two are rings mixing an
 integer measure with a natural one, compared as naturals at the integer's code 2·v, alike at every comparison of that
@@ -54,6 +56,15 @@ refuses (the tree the rest of the check accepts, grown for the goal the guard's 
 `ghostedOk`: the test's clashing ghost map was also read by the original, so the check of what it reads refused it too);
 the test now names a map the original declares and never reads. Their builders' mutations past these operators (the
 parts, the nesting) are caught by Lean: each export states `countHyps … = some` kernel.ts's hypotheses.
+
+cyclic.ts's 13 survivors of the first run: three accepted a false certificate that nothing in the battery refused, each
+now a test in core/cyclic.test.ts. With its premise check skipped (`if (` -> `if (false && ` at `!check(premiseGoal…)`), a
+use of a node whose hypothesis doesn't follow gave its conclusion anyway: a proof that every x is at least 1. With the
+check that a substitution avoids the facts' variables skipped, or read as `.some` over the facts, a use renaming x to y
+under the fact x = 0 proved y = 0. The other eight are refusals no test reached: a tie read as ≤ in the descent
+(lexLt; a tree grown for it is refused, and Lean's lexLtC reads =), a flag, a quantifier or a key twice in a fact no
+node reads, a use naming no node, a premise tree too many. The kernel itself refused every one of these: no change to
+cyclic.ts.
 
 `kernel/refusals.test.ts` and `kernel/tamper.test.ts` hold the tests the run asked for (and `kernel/steplaw.test.ts` the step-law ones: the 8 mutants of `stepLawObligations` and `checkStepLaws`, 7 caught); the run's logs are in
 `runs/modal/mutants-all2/`, `runs/modal/mutants-surv/`, for the run algebra `runs/modal/relations-mut/` for sets `runs/modal/mut-sets/`, and for functions, two keys, key terms and liveness `runs/modal/mut-all/` (local).
@@ -170,7 +181,7 @@ core/data.ts | directly | "(o.op === 'get' && ctors.has(o.map" | " && " -> " || 
 core/data.ts | directly | "if (clock() > until) return un" | " > " -> " >= " | a deadline's comparison
 core/data.ts | directly | "iredKeys.skip = true" | "true" -> "false" | pairedKeys.skip, a search setting
 core/data.ts | directly | ", concl, rank: [k(0)], insts, uses:" | "k(0)" -> "k(1)" | the rank of a node with no uses: no descent goal reads it
-core/data.ts | directly | "if (v.proven && v.checked) retur" | " && " -> " || " | proveCyclic's verdict is proven only after the kernel's check of the proof it made, checked its result; no search proof the kernel refuses is known, and each taken definition's decrease is proven again by Lean's export (decreasing_by)
+core/data.ts | directly | "return v.proven && v.checked ? v" | " && " -> " || " | proveCyclic's verdict is proven only after the kernel's check of the proof it made, checked its result; no search proof the kernel refuses is known, and each taken definition's decrease is proven again by Lean's export (decreasing_by)
 core/data.ts | proveMeasures | "ermination.on = true" | "true" -> "false" | the pass without the fields' shapes off: the search's instances, every proof checked by the kernel
 core/data.ts | proveMeasuresIn | "lter(r => r.from === s.from).length)" | " === " -> " !== " | the call's number in its obligation's name
 core/data.ts | proveMeasuresIn | "if (dataTrace && lemmas.length) c" | " && " -> " || " | a trace
@@ -183,8 +194,15 @@ core/data.ts | checkMeasures | "| {proven: false, why: strin" | "false" -> "true
 core/data.ts | termination | "nd ${ring.length === 1 ? 'it has' : '" | " === " -> " !== " | text in a refusal's message
 core/data.ts | termination | "if (clock() > until) { tried.p" | " > " -> " >= " | a deadline's comparison
 core/data.ts | termination | "(bad) { if (ring.some(f => f.stated) |" | ".some(" -> ".every(" | which measure's failure the refusal's message names
-core/data.ts | isIntX | "isIntX = (x: X) => x.op === 'if'" | " === " -> " !== " | an integer component (an if, iMax0's) then wrapped as a natural reads its code, 2·v for v ≥ 0, alike at every comparison of that component (as the entry above); a natural term reads x.else of no else and throws (refused)
-core/data.ts | isIntX | "x.op === 'if' && x.else" | " && " -> " || " | an if is read as an integer either way; a natural term (no if) reads x.else of no else and throws: refused, never taken
+core/data.ts | isIntX | "(x: X) => x.op === 'if'" | " === " -> " !== " | as isIntX's other mutants: an integer component wrapped as a natural reads its code 2·v (v ≥ 0), alike at every comparison of that function's component, a measure 2·μ; a natural term then reads no else and throws (refused)
+core/data.ts | isIntX | "x.op === 'if' && x.else" | " && " -> " || " | a natural term is never an if, so it reads no else and throws (refused); an integer component is an if either way
+core/data.ts | proveMeasuresIn | "call ${nth[i]! + 1}`" | " + 1" -> "" | the call's number in its obligation's name
+core/data.ts | proveMeasuresIn | "${ring.length > 1 ? `${names[site.from]}" | " > " -> " >= " | text in an obligation's name
+core/data.ts | proveMeasuresIn | "{ if (o.op === 'call' && names.includes(o.fn as string)) throw" | " === " -> " !== " | an obligation that reads the ring: lifted reads every call of the ring in a law as a value, or refuses, before (a call within a case of a match with no condition between)
+core/data.ts | termination | "${ring.length > 1 ? ' within t" | " > " -> " >= " | text in a refusal's message
+core/data.ts | termination | "${ring.length > 1 ? `, ${names" | " > " -> " >= " | text in a refusal's message
+kernel/cyclic.ts | lexLt | "as.length && bs.length" | " && " -> " || " | lexLt is read only on ranks of one length (refuseCyclic refuses a use whose ranks differ in length before it builds the descent goal), where both lists are empty or neither is
+kernel/cyclic.ts | keyed | ".slice(0, at.length)" | ".slice(0, at.length)" -> "" | a key past the terms is paired with undefined, which substE reads as no substitution (s.vars[name] ?? e), as the slice leaves it out: the same hypotheses
 core/data.ts | invAt | "(t as X).op === 'var' && m.has(" | " && " -> " || " | an invariant's every variable is its function's parameter or value (checkInv), all in m, and no node but a variable has a name: the same substitution
 core/data.ts | lifted | "{...o, of: go(o.of, bound), zero: go(o.zero, true)" | "true" -> "false" | a natural's match binds nothing in its zero case: a call there is at its level's scope, its hypothesis sound there
 core/data.ts | lifted | "walk([y, own], o => { if (o.op === 'var') taken" | " === " -> " !== " | a guard no law reaches: a new variable's name (the function's, letters and digits, then #r) is never a parameter's (a dot) or a field's binding (ending #digits)
@@ -194,13 +212,8 @@ core/data.ts | lifted | "a call to ${ring.length > 1 ? 'its ring' :" | " > " -> 
 core/data.ts | keeps | "s value ${i + 1} keeps" | " + 1" -> "" | an obligation's name
 core/data.ts | proveMeasures | "if (!ms[0]!.comps.length || ms.some(" | " || " -> " && " | a guard backed by another: padded (just above) makes every measure one length, and no measure has no component (measureOf refuses an empty one; the search's have one at least)
 core/data.ts | proveMeasures | "if (!ms[0]!.comps.length || ms.some(" | ".some(" -> ".every(" | the same guard: after padded every length is ms[0]'s, so some and every of a difference are both false
-core/data.ts | proveMeasuresIn | "call: `${ring.length > 1 ? `${names[site.from]}'s ` : ''}call ${nth[i]!" | " > " -> " >= " | text in a refusal's message
-core/data.ts | proveMeasuresIn | "}'s ` : ''}call ${nth[i]! + 1}`" | " + 1" -> "" | text in a refusal's message
 core/data.ts | proveMeasuresIn | "s value ${i + 1}`, what" | " + 1" -> "" | text in a refusal's message
-core/data.ts | proveMeasuresIn | "walk(law.holds, o => { if (o.op === 'call' && names" | " === " -> " !== " | a guard backed by another: lifted reads every call of the ring in a law as a value (or refuses), so no law reaches this with one
 core/data.ts | termination | "o => { if (o.op === 'call' && names.includes(o.fn as string)) n = true" | " && " -> " || " | which rings the search tries invariants for (more, then): an invariant is taken only with every body proven to keep it
 core/data.ts | termination | "const nested = sites.some(st => { let n = false" | "false" -> "true" | the same: invariants tried for every ring, and its candidates computed within the evaluation's bounds (speed only)
-core/data.ts | termination | "the parameters' sizes${ring.length > 1 ?" | " > " -> " >= " | text in a refusal's message
 core/data.ts | termination | "          if (clock() > until) break" | " > " -> " >= " | a deadline's comparison
-core/data.ts | termination | "every call${ring.length > 1 ? ' within the ring'" | " > " -> " >= " | text in a refusal's message
 ```
