@@ -40,17 +40,20 @@ Vampire; gdp-wired isn't given them.
 
 ### Nested recursion admitted with an invariant (gen/laneN)
 
-The bar on boat, 60 s, `--only tip` three times (`runs/bar/runs/laneN-tip-1..3` in the main checkout: this branch
-against main 6b96a0f's shared baseline of 3 runs):
+The bar on boat, 60 s, `--only tip` (`runs/bar/runs/laneN-m-tip-1..4` in the main checkout: this branch merged with
+main 55eafec, against its shared baseline of 3 runs; runs 1 and 2 beside a 235-job mutant and test batch on boat,
+run 4 alone):
 
 | theorems (492) | proven | refused (unsupported) | wrong |
 | --- | --- | --- | --- |
-| gdp-wired, this branch | 213, 212, 213 | 94, 95, 94 | 0 |
-| gdp-wired, main 6b96a0f | 209, 213, 212 | 94, 94, 94 | 0 |
+| gdp-wired, this branch | 211, 203, 208, 209 | 93, 95, 95, 95 | 0 |
+| gdp-wired, main 55eafec | 210, 210, 209 | 95, 95, 95 | 0 |
 
-- Gained 0, lost 0 (one first-pass difference in run 2, noise after its reruns); the refusals that differ are timing
-  at the termination budget (`tree_Flatten1List`, `MSortTDCount`, `NMSortTDCount`: refused in some runs, timeout in
-  others, on both sides).
+- Gained 0 by the noise rule (the branch's lowest run below main's highest), lost 0 solid: the losses after reruns
+  (`list_PairOdds`, `list_nat_PairOdds`, `prod/lemma_05` in run 2, one in run 3) each solved in some candidate run,
+  under the batch's load (the change runs only in a non-structural definition's termination); run 4 alone gained 1
+  and lost 0. Wrong 0 in every run. Before the merge, against main 6b96a0f: 213,
+  212, 213 against 209, 213, 212, refused 94-95 on both sides.
 - What it took (trusted, core/data.ts and lean-kernel/Data.lean): a call of the ring in another's argument or condition
   is no longer refused. Data.lean's `wf_fix_inv_unique_ring` (and `wf_fix_inv_unique`, its ring of one): a functional
   that, wherever g and h agree below x's measure and g keeps an invariant I there, gives F g x = F h x and keeps I at x,
