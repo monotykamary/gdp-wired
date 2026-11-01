@@ -2799,10 +2799,11 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
     const ls = [...fresh.map(f => f.law), ...sought, ...found.map(f => f.law)], pm = over.withSumsOf(ls).machine
     const plain = over === target && !pm.history && !Object.keys(pm.sums ?? {}).length ? proveRule(over, ls, {search: false, fast: true}) : undefined
     // (the kernel's ∃ reading, GhostMap.lean's forall_some_of_ghostsubst: the plain laws proven of the original with all
-    // the ghosts, each ∃ law's body with its witness term in place)
+    // the ghosts, each ∃ law's body with its witness term in place, the very law object proven (its keys with it: terra's
+    // review, a law alike in name and body but about no key would prove less))
     const G: Ghosted = {orig: rule.machine, vars: {}, maps: sk.maps}
     if (plain?.proven && plain.checked && JSON.stringify(over.machine) === JSON.stringify(ghostedMachine(G))
-      && laws.filter(l => l.some?.length).every(l => { const q = sk.plains[l.name]; return !!q && ls.some(x => x.name === q.plain.name && JSON.stringify(x.holds) === JSON.stringify(q.plain.holds)) && someOfGhostsOk(G, l, q.plain, q.sub) }))
+      && laws.filter(l => l.some?.length).every(l => { const q = sk.plains[l.name]; return !!q && ls.includes(q.plain) && someOfGhostsOk(G, l, q.plain, q.sub) }))
       return {proven: true, checked: true, witnesses: sk.witnesses}
     const out = proveSome(rule.machine, [...withKinds(rule, laws), ...fresh.map(f => f.law), ...found.map(f => f.law)], {mapMs: Math.max(5_000, (until - clock()) / 2)})
     return {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}

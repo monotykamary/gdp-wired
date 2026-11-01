@@ -507,8 +507,9 @@ export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Mach
     gs.push(g); parts.push(...own(g)); for (const q of own(g)) taken.add(q.name)
     const {some: _s, ...plain} = l
     void _s
-    out.push({...plain, holds: g.holds}, ...(g.inner ? [g.inner.inv] : []), g.inv)
-    plains[l.name] = {plain: {...plain, holds: g.holds}, sub: {[l.some[0]!]: {op: 'get', map: g.name, key: g.at}}}
+    const pl: Law = {...plain, holds: g.holds}
+    out.push(pl, ...(g.inner ? [g.inner.inv] : []), g.inv)
+    plains[l.name] = {plain: pl, sub: {[l.some[0]!]: {op: 'get', map: g.name, key: g.at}}}
   }
   const witnesses: Record<string, string> = {}
   laws.filter(l => l.some?.length).forEach((l, i) => { const g = gs[i]!; witnesses[l.name] = `w = ${g.name}[${showE(g.at)}], ${g.name}[${showE(g.write.key)}] := ${showE(g.write.value)}` })
