@@ -46,6 +46,8 @@ function reads(t0: unknown, map: (m: string) => boolean, out: Map<string, [strin
   return out
 }
 const mentions = (t: unknown, name: string) => json(t).includes(`"name":${json(name)}`)
+// Whether some object within t0 meets p (a condition nested in a term's `if` too).
+const some = (t0: unknown, p: (x: any) => boolean): boolean => !!t0 && typeof t0 === 'object' && (p(t0) || Object.values(t0).some(y => some(y, p)))
 const atoms = (c: C): C[] => (c.op === 'and' || c.op === 'or' ? c.xs.flatMap(atoms) : c.op === 'not' ? atoms(c.x) : [c])
 
 // --- candidates from the guard's shape -----------------------------------------------------------------------------------
@@ -76,29 +78,47 @@ export function guardLaws(m: Machine): {counts: Machine['counts'], laws: Law[]} 
     }
   }
   for (const [mp, w] of Object.entries(m.step.maps ?? {})) {
-    if ('each' in w || w.key.op !== 'var' || !m.inputs.includes(w.key.name)) continue
-    const t = w.key.name, written = inline({op: '<=', a: one, b: w.value} as C)
-    const law = (name: string, cmp: C): Law => when(name, {op: '<=', a: one, b: {op: 'get', map: mp, key: v('a$c')}}, cmp)
+    // (the written key: a request's value t, or two, t and u, composed N·t + u (a relation's cell): a count of two
+    // parameters, read at the law's N·a + b with b < N)
+    if ('each' in w) continue
+    const k0 = w.key, ps = k0.op === 'var' ? [k0.name] : k0.op === 'add' && k0.a.op === 'mul' && k0.a.k > 1 && k0.a.a.op === 'var' && k0.b.op === 'var' && k0.a.a.name !== k0.b.name ? [k0.a.a.name, k0.b.name] : []
+    if (!ps.length || !ps.every(i => m.inputs.includes(i))) continue
+    const t = ps[0]!, base = ps.length === 2 && k0.op === 'add' && k0.a.op === 'mul' ? k0.a.k : 0, written = inline({op: '<=', a: one, b: w.value} as C)
+    const at: E = base ? {op: 'add', a: {op: 'mul', k: base, a: v('a$c')}, b: v('b$c')} : v('a$c')
+    const law = (name: string, cmp: C): Law => (base
+      ? {name, forall: 'a$c', keys: ['b$c'], holds: {op: 'or', xs: [{op: 'not', x: {op: 'and', xs: [{op: '<=', a: one, b: {op: 'get', map: mp, key: at}}, {op: '<', a: v('b$c'), b: k(base)}]}}, cmp]}}
+      : when(name, {op: '<=', a: one, b: {op: 'get', map: mp, key: v('a$c')}}, cmp))
     // A comparison with a state count at the written key.
-    for (const g of guards) for (const [, [c, key]] of reads(g, isCount)) {
+    if (!base) for (const g of guards) for (const [, [c, key]] of reads(g, isCount)) {
       if (json(key) !== json(v(t)) || mentions(m.counts![c]!.body, t)) continue
       if (m.inputs.some(i => i !== t && mentions(g, i))) continue
       laws.push(law(`${mp} keeps ${c}'s bound`, substC(g, {vars: {[t]: v('a$c')}, maps: {}, flags: {}})))
     }
-    // A quantified flag the write reads: every member of a counted set satisfies R(member, t).
+    // What the write reads of every member of a counted set: R(member, t) by a quantified flag (∀ q. h(q) → R(q, t)),
+    // or by a request's count of the members without it read 0 (|{k: h(k) ∧ ¬R(k, t)}| = 0).
+    const said: {key: string, h: C, r: C}[] = []
     for (const [f, q] of Object.entries(flags)) {
       if (q.op !== 'all' || q.keys?.length || !mentions(written, `?${f}`) || q.c.op !== 'or' || q.c.xs.length !== 2) continue
       const [h, r] = q.c.xs[0]!.op === 'not' ? [q.c.xs[0]!.x, q.c.xs[1]!] : [q.c.xs[1]!.op === 'not' ? q.c.xs[1]!.x : undefined, q.c.xs[0]!]
-      if (!h || !r) continue
+      if (h && r) said.push({key: q.key, h, r})
+    }
+    for (const [c0, d0] of Object.entries(m.counts ?? {})) {
+      const zero0 = some(written, x => x.op === '=' && x.a?.op === 'get' && x.a.map === c0 && x.b?.op === 'const' && x.b.value === 0)
+      const b0 = d0.body.op === 'if' && d0.body.c.op === 'and' && d0.body.c.xs.length === 2 ? d0.body.c.xs : undefined
+      if (!zero0 || !b0 || mentions([d0.body, d0.below], d0.j)) continue
+      const [h, r] = b0[1]!.op === 'not' ? [b0[0]!, b0[1]!.x] : b0[0]!.op === 'not' ? [b0[1]!, b0[0]!.x] : []
+      if (h && r) said.push({key: d0.key, h, r})
+    }
+    for (const {key: qk, h, r} of said) {
       for (const [c, d] of Object.entries(all)) {
-        // the set: the count's body is the flag's hypothesis at its key
+        // the set: the count's body is the hypothesis at its key
         const body = d.body.op === 'if' ? d.body.c : undefined
-        if (!body || json(substC(body, {vars: {[d.key]: v(q.key)}, maps: {}, flags: {}})) !== json(h)) continue
-        if (m.inputs.some(i => i !== t && mentions(r, i))) continue
-        const name = `${c}$${mp}`, j = `${name}$x`, key = `${name}$k`
-        counts[name] = {j, key, below: d.below, body: {op: 'if', c: substC(r, {vars: {[q.key]: v(key), [t]: v(j)}, maps: {}, flags: {}}), then: one, else: zero}}
+        if (!body || json(substC(body, {vars: {[d.key]: v(qk)}, maps: {}, flags: {}})) !== json(h)) continue
+        if (m.inputs.some(i => !ps.includes(i) && mentions(r, i))) continue
+        const name = `${c}$${mp}`, j = `${name}$x`, key = `${name}$k`, lo = `${name}$y`
+        counts[name] = {j, key, below: d.below, body: {op: 'if', c: substC(r, {vars: {[qk]: v(key), [t]: v(j), ...(base ? {[ps[1]!]: v(lo)} : {})}, maps: {}, flags: {}}), then: one, else: zero}, ...(base ? {lo, base} : {})}
         for (const g of [...guards, ...more]) if (reads(g, x => x === c).size)
-          laws.push(law(`${mp} keeps ${c}'s bound through ${name}`, substC(g, {vars: {}, maps: {[c]: () => ({op: 'get', map: name, key: v('a$c')})}, flags: {}})))
+          laws.push(law(`${mp} keeps ${c}'s bound through ${name}`, substC(g, {vars: {}, maps: {[c]: () => ({op: 'get', map: name, key: at})}, flags: {}})))
       }
     }
   }

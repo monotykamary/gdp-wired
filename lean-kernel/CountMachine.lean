@@ -578,7 +578,11 @@ def cApart (s : SMachine) (ds : List CDecl) : Bool :=
     && (cPosts ds).all (fun mp => !s.carried.contains mp && !(s.f.m.maps0.map (·.1)).contains mp
         && !(s.every.map (·.1)).contains mp && !(s.f.m.writes.map (·.1)).contains mp)
 
--- Each declaration: its map carried, its j, lo and key fresh, j and lo not its key, its bound and body reading no flag,
+-- A declaration's parameters as the runtime reads them: one, lo = j and base 0; two, lo ≠ j (and base > 0).
+def canonOk (d : CDecl) : Bool := if d.base == 0 then d.lo == d.j else d.lo != d.j
+
+-- Each declaration: its map carried, its j, lo and key fresh, j and lo not its key, one parameter lo = j and base 0 and
+-- two lo ≠ j (what the runtime computes), its bound and body reading no flag,
 -- quantified flag, witness, count map or post name, and no entry's skolem, key or further key (nor having them as j or
 -- key): a law reads a count at the state, its own keys set after (withCnt).
 def cDeclOk (s : SMachine) (ds : List CDecl) (ps : List SEntry) (d : CDecl) : Bool :=
@@ -586,7 +590,7 @@ def cDeclOk (s : SMachine) (ds : List CDecl) (ps : List SEntry) (d : CDecl) : Bo
     && avoidsE (s.qVars ++ s.wVars ++ flagVars s.f.flags) d.below && avoidsE (s.qVars ++ s.wVars ++ flagVars s.f.flags) d.body
     && avoidsMapsE (cMaps ds ++ cPosts ds) d.below && avoidsMapsE (cMaps ds ++ cPosts ds) d.body
     && ps.all (fun e => (e.sk :: (e.keys2 ++ e.law.key.toList)).all (fun g => !occE g d.below && !occE g d.body && g != d.j && g != d.key))
-    && d.lo != d.key && mFresh s d.lo
+    && d.lo != d.key && mFresh s d.lo && canonOk d
 
 -- The entries' own conditions (Sets.lean's checkSMachine's), a law reading count maps of the state only, and no post name.
 def cEntryOk (s : SMachine) (ds : List CDecl) (ps : List SEntry) (e : SEntry) : Bool :=
@@ -836,12 +840,13 @@ structure DeclParts (s : SMachine) (ds : List CDecl) (ps : List SEntry) (d : CDe
   ent : ∀ e ∈ ps, ∀ g ∈ e.sk :: (e.keys2 ++ e.law.key.toList), occE g d.below = false ∧ occE g d.body = false ∧ g ≠ d.j ∧ g ≠ d.key
   lk : d.lo ≠ d.key
   lf : FreshParts s d.lo
+  canon : canonOk d = true
 
 theorem decl_parts {s : SMachine} {ds : List CDecl} {ps : List SEntry} {d : CDecl} (h : cDeclOk s ds ps d = true) : DeclParts s ds ps d := by
   simp only [cDeclOk, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h0⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩ := h
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h0⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩, h12⟩ := h
   exact ⟨by simpa [List.contains_iff_mem] using h1, h2, mfresh_parts h3, mfresh_parts h4, h0, h5, h6, h7, h8,
-    fun e he g hg => ⟨(h9 e he g hg).1.1.1, (h9 e he g hg).1.1.2, (h9 e he g hg).1.2, (h9 e he g hg).2⟩, h10, mfresh_parts h11⟩
+    fun e he g hg => ⟨(h9 e he g hg).1.1.1, (h9 e he g hg).1.1.2, (h9 e he g hg).1.2, (h9 e he g hg).2⟩, h10, mfresh_parts h11, h12⟩
 
 structure EntryParts (s : SMachine) (ds : List CDecl) (ps : List SEntry) (e : SEntry) : Prop where
   lx : avoids (s.extVars ++ flagVars s.f.flags) e.law.holds = true
