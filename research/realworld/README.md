@@ -447,6 +447,52 @@ the widening had raised; the ctigar tasks' joins then ran out of time. Two chang
 only where its bound leaves the counterexample out, and it is added to the groups as they are. A constant direction is
 also skipped again where the hull says it, as before. The reruns of the differing tasks then answered as often as main.
 
+## Distributed-systems items, and the counter laws found the same on any machine (gen/laneC2)
+
+**The unknown laws on main 75c1171, by cause** (440 laws; runs `runs/c2/main-r1`, `main-r2` and the bar's baseline of
+75c1171, four full runs on boat, 2 vCPU, 60 s a law: 389 to 391 proven, 39 refuted, 10 to 12 unknown, no timeouts):
+
+| Cause | Laws |
+| --- | --- |
+| A candidate the search doesn't propose | Gitea reviews #0 (three two-row invariants per reviewer), TigerBeetle #4 and #6 (the runs never reach a set Status cell; the needed form loses to smaller ones), Medusa captureRefund #4 (the live refunds' total, then a rank), BullMQ jobRetry #6 (a rank of the rule's terms in order, strong fairness) |
+| The search's cost against the machine: proven on one VM, unknown on a slower one | node-oidc-provider refreshTokenRotation #0 and #1, Upstash slidingWindow #3, gapless.js track #2, LibreChat balanceReservation #4, Amplify forgotPassword #6, open-decision websocket #6 (each unknown in 1 to 6 of 14 runs) |
+| Beyond the fragment: a sum with a parameter | TigerBeetle #0 and #1 (per account, the open pending amounts with that account) |
+| A false law the search can't refute | opossum #7 (liveness, a real bug), resilience4j PartialAggregation #5 (the int wraps past 2^31), libtorrent #4 (the INT32 guard: a product the runs don't reach) |
+| The extractor refusing a construct | none (an extracted item is in the corpus only once its extractor takes it) |
+
+The two refutations no triage covered, swift-nio-http2 InboundWindowManager's "the buffered bytes are never negative"
+and HTTP2FlowControlWindow's "a settings change never fails but past the maximum", are laws stated over requests the
+code is never given (research/langs/DESIGN.md): triaged now as `law` (`triage/swift.json`), with libtorrent #4
+(`triage/c.json`).
+
+**The change: the ids-from-a-counter laws, counted.** core/fresh.ts finds the laws about ids a counter hands out (a
+row exists only at an id handed out), the ones the oidc token-rotation laws need. Its Houdini proved the whole candidate
+set again for every candidate dropped (13 rounds for oidc), on the wall clock, within a tenth of the search's budget:
+2.5 s on a laptop, 3 to 6 s on a boat VM, so a slow VM ran out and found nothing (oidc #0 unknown in 5 of 14 runs). Now
+each round is proveSetFast's (the goals settled by the last round kept where they stand) and the budget is the cost
+model's counted clock, as the invariant search's is; the proof with the found laws (core/dsl.ts) is counted too. For
+oidc: 5.7 s counted to 1.2 s, the same 12 laws; oidc #0 and #1 proven in 20 of 20 traced runs (`runs/c2/trace2`).
+
+**The corpus, before and after** (the 440 laws, 60 s a law, boat): main 389, 391, 389, 389, 389 proven in five runs
+(`main-r1`, `main-r2`, the bar's baseline of 75c1171), 39 refuted in each, 10 to 12 unknown; this branch 391 and 391
+proven, 39 refuted, 10 unknown (`cand-r1`, `cand-r2`). Nothing lost; no false law proven. The laws that found ids from
+a counter (7) took 47 to 119 s together on main, 63 s in each run here. The 386 laws proven in every run took 1,128 to
+1,406 s on main and 1,386 and 1,420 s here, the laws under 1 s slower here too (a busier pool: the change doesn't
+reach them).
+
+**The distributed-systems items** (7 items, 27 laws, the `distributed` domain), each mirroring its code at a pinned
+commit, MIT or Apache-2.0: 21 proven in both runs, none refuted, 6 unknown.
+
+| Item | Code | Proven | Not proven, and why |
+| --- | --- | --- | --- |
+| etcd raft raftLog | log.go maybeAppend, findConflict, commitTo, maybeCommit, appliedTo | 6 of 6 (the log matching check, a committed entry never overwritten, commit never down nor past the log) | |
+| etcd raft vote | raft.go Step's term and vote handling, ticks, role changes | 6 of 6 (one vote per term, the term never down, a pre-vote changes nothing, the CheckQuorum leader lease) | |
+| etcd raft tally | tracker.go RecordVote, quorum/majority.go VoteResult | 2 of 4 | #0, #1: the counts against n need a count of the map's cells over 1..n (a sum the rule doesn't state) |
+| client-go leader election | leaderelection.go tryAcquireOrRenew over a LeaseLock | 1 of 4 | #0 to #2 (the lease changes hands only after a full LeaseDuration without a write; LeaderTransitions; the optimistic renewal): per-candidate invariants tying each cached resourceVersion to the lease's, not proposed |
+| watermill Deduplicator | deduplicator.go Middleware, IsDuplicate, cleanOut | 2 of 3 | #0 needs the invariant #1's search found (a delivered key without a tag is past its window); not proposed for #0 |
+| GoVector vclock | vclock.go Tick, Merge; govec.go's GoLog | 4 of 4 | |
+
+
 ## Cost
 
 | Run | Jobs | Wall | Job time | Hardware |
