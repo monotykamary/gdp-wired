@@ -38,6 +38,42 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### Nested recursion admitted with an invariant (gen/laneN)
+
+The bar on boat, 60 s, `--only tip` (`runs/bar/runs/laneN-m-tip-1..4` in the main checkout: this branch merged with
+main 55eafec, against its shared baseline of 3 runs; runs 1 and 2 beside a 235-job mutant and test batch on boat,
+run 4 alone):
+
+| theorems (492) | proven | refused (unsupported) | wrong |
+| --- | --- | --- | --- |
+| gdp-wired, this branch | 211, 203, 208, 209 | 93, 95, 95, 95 | 0 |
+| gdp-wired, main 55eafec | 210, 210, 209 | 95, 95, 95 | 0 |
+
+- Gained 0 by the noise rule (the branch's lowest run below main's highest), lost 0 solid: the losses after reruns
+  (`list_PairOdds`, `list_nat_PairOdds`, `prod/lemma_05` in run 2, one in run 3) each solved in some candidate run,
+  under the batch's load (the change runs only in a non-structural definition's termination); run 4 alone gained 1
+  and lost 0. Wrong 0 in every run. Before the merge, against main 6b96a0f: 213,
+  212, 213 against 209, 213, 212, refused 94-95 on both sides.
+- What it took (trusted, core/data.ts and lean-kernel/Data.lean): a call of the ring in another's argument or condition
+  is no longer refused. Data.lean's `wf_fix_inv_unique_ring` (and `wf_fix_inv_unique`, its ring of one): a functional
+  that, wherever g and h agree below x's measure and g keeps an invariant I there, gives F g x = F h x and keeps I at x,
+  has exactly one fixpoint, which keeps I; the decrease and the invariant by one well-founded induction (Lean 4.34.0,
+  axioms propext, Classical.choice, Quot.sound). The TS check line for line: each call's obligation (`obligation`) and
+  each value a body ends at keeping its function's invariant (`keeps`, the body's `leaves`), every call of the ring in
+  the law read as a new variable r under `lexLt(μ_callee(a), μ_caller(x)) ⇒ I_callee(a, r)` (`lifted`), which holds at
+  r = g(a) whatever a is; a call under a match's case with no condition to put its hypothesis at is refused. Invariants
+  (untrusted search, `invariantsOf`): none first, then how a function's value's size relates to an argument's, as its
+  values give it. research/termination/Nested.lean defines `nz` (nz(n + 1) = nz(nz(n)), its value at most its argument)
+  and `nest` (nest(x :: xs) = x :: nest(nest(xs)), its length kept) through the theorem from the same obligations.
+- Still refused, all 25, now by their measures, not by the nesting: the Stooge sorts (16, `StoogeSort*` and
+  `nat_NStoogeSort*`: no measure the search tries falls, the ring's call from a list of 2 items to the sort at the same
+  list; given by hand the measure (size, a phase falling to 0 from 4 items on) and the invariant `size(f(x)) =
+  size(x)`, the kernel doesn't prove the first call's decrease, `size(drop(len(x) / 3, reverse(x))) < size(x)` from 4
+  items on: it needs `reverse`'s and `drop`'s size laws with the count dropped, a conditional size law),
+  `models` 5 (a ring whose formula's measure weighs `Not` double, a weighted fold across a ring), `subst` 2 (its outer
+  call is on a renamed body as big as the argument: no size of the parameters falls), McCarthy's `m` 2 (over Int: its
+  measure 101 − x reads the integer below 0, where the measure's `toNat` stays 0).
+
 ### Termination through a merge's size law (gen/laneT)
 
 The bar on boat, 60 s (`runs/bar/runs/laneT-tip-full3` in the main checkout: this branch at 470bc13 merged with main

@@ -180,6 +180,9 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
     const fnDef = (f: Fn) => {
       const names = new Map(f.params.map(q => [`${f.name}.${q.name}`, name(q.name)]))
       const m = f.decreases === undefined ? f.measure : undefined
+      // (nested recursion read through an invariant, Data.lean's wf_fix_inv_unique: `termination_by` can't read a call's
+      // value, research/termination/Nested.lean defines such a function through the theorem by hand)
+      if (f.decreases === undefined && p.fns.some(g => f.ring.includes(g.name) && g.decreases === undefined && g.termination?.invariant)) throw new Error(`${f.name}: nested recursion through an invariant isn't exported to Lean yet`)
       hyps = m && {n: 0}
       const body = lx(f.body(), names)
       hyps = undefined

@@ -196,6 +196,24 @@ export const wellFounded = {
   mergeRunsOne: () => law('one run merged is itself', {xs: List}, ({xs}) => L(mergeRuns(Runs.run(xs, Runs.none))).eq(L(xs))),
 } satisfies Record<string, () => DataLaw>
 
+// Nested recursion (a call of the function in another's argument): each taken with an invariant of its value, proven
+// with the decrease (Data.lean's wf_fix_inv_unique; research/termination/Nested.lean defines the first two in Lean from
+// the same obligations). nz 0 = 0, nz (n + 1) = nz (nz n): its value at most its argument (nz n = 0, Nested.lean's law,
+// isn't found by the search: its induction's use at nz(pred)). nest keeps a list's length
+// and reads itself at its own value of the tail. Ackermann's outer call lowers its first argument whatever the inner
+// call's value: no invariant.
+export const nz: ReturnType<typeof define> = define('nz', {n: natural}, natural, ({n}) => N(n).match({zero: () => 0, succ: ({pred}) => N(nz(nz(pred)))}))
+export const nest: ReturnType<typeof define> = define('nest', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => List.cons(head, nest(nest(tail)))}))
+export const ack: ReturnType<typeof define> = define('ack', {m: natural, n: natural}, natural, ({m, n}) => N(m).match({zero: () => N(n).plus(1), succ: ({pred: p}) => N(n).match({zero: () => N(ack(p, 1)), succ: ({pred: q}) => N(ack(p, ack(m, q)))})}))
+// A ring: nestA reads nestB at its own value of the tail, nestB reads nestA at its argument.
+export const nestA: ReturnType<typeof define> = define('nestA', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => List.cons(head, nestB(nestA(tail)))}))
+export const nestB: ReturnType<typeof define> = define('nestB', {xs: List}, List, ({xs}) => L(nestA(xs)))
+export const nested = {
+  nestSame: () => law('nest is the list', {xs: List}, ({xs}) => L(nest(xs)).eq(L(xs))),
+  nestRingSame: () => law('nestA is the list', {xs: List}, ({xs}) => L(nestA(xs)).eq(L(xs))),
+  ackAbove: () => law('ack is above its second argument', {m: natural, n: natural}, ({m, n}) => N(ack(m, n)).atLeast(N(n).plus(1))),
+} satisfies Record<string, () => DataLaw>
+
 // Definitions that don't terminate, made to look as if they did (core/data.test.ts): each refused with the measures
 // tried, before any law about it is read. Taken as an equation, any of them would let the kernel prove anything.
 const nearTail = define('nearTail', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(len(tail)).atLeast(9), List.cons(head, L(xs)), L(tail))}))
@@ -224,6 +242,16 @@ const loops = {
   sumStays: () => { const f: ReturnType<typeof define> = define('sumStays', {x: natural, y: natural}, natural, ({x, y}) => N(x).match({zero: () => N(y).match({zero: () => 0, succ: ({pred}) => N(f(N(pred).plus(1), pred))}), succ: ({pred}) => N(f(pred, N(y).plus(1)))})); return f },
   // nested and never ending: f(n) = f(f(n))
   nested: () => { const f: ReturnType<typeof define> = define('nestedLoop', {n: natural}, natural, ({n}) => N(f(f(n)))); return f },
+  // nested, never ending at 1: f(n + 1) = f(f(n) + 1), f(1) = f(f(0) + 1) = f(1)
+  nestedBump: () => { const f: ReturnType<typeof define> = define('nestedBump', {n: natural}, natural, ({n}) => N(n).match({zero: () => 0, succ: ({pred}) => N(f(N(f(pred)).plus(1)))})); return f },
+  // nested, its value at most its argument up to 20 (0 there), then above it, and from 22 on it never ends: the
+  // invariant its runs suggest (value ≤ argument) lowers the outer call, and is false (a body doesn't keep it)
+  nestedLate: () => { const f: ReturnType<typeof define> = define('nestedLate', {n: natural}, natural, ({n}) => N(n).match({zero: () => 0, succ: ({pred}) => when(N(pred).atMost(19), N(f(f(pred))), N(f(f(pred))).plus(N(pred).times(2)))})); return f },
+  // a list's length kept up to 9 items, two more from 10 on (never ending at 11): the length its runs keep lowers the
+  // outer call, and the body past 9 items doesn't keep it
+  nestedGrow: () => { const f: ReturnType<typeof define> = define('nestedGrow', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(len(tail)).atMost(8), List.cons(head, f(f(tail))), List.cons(head, List.cons(head, f(f(tail)))))})); return f },
+  // the same through a ring: the outer call of the other
+  nestedGrowRing: () => { const f: ReturnType<typeof define> = define('nestedGrowA', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(len(tail)).atMost(8), List.cons(head, g(f(tail))), List.cons(head, List.cons(head, g(f(tail)))))})), g: ReturnType<typeof define> = define('nestedGrowB', {xs: List}, List, ({xs}) => L(f(xs))); return f },
   // on an integer (no measure reads one): below 0 it never ends
   intDown: () => { const f: ReturnType<typeof define> = define('intDown', {i: integer}, natural, ({i}) => when(I(i).eq(0), 0 as number, N(f(I(i).minus(1))) as never)); return f },
   // a ring whose measures are given and don't fall: (size xs) at both, the call passing xs round
