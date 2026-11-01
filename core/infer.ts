@@ -591,7 +591,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const mapsText = (st: State) => JSON.stringify(Object.values(st.maps).map(c => [...c]))
   let offered = 0
   // (how many states offered held each value of each state variable: `rare`, below)
-  const stateVars = Object.keys(m.state), seenAt = stateVars.map(() => new Map<number, number>())
+  const stateVars = Object.keys(m.state), seenAt = stateVars.map(() => new Map<number, number>()), withMaps = Object.keys(m.maps ?? {}).length > 0
   const keep = (s: Sample) => {
     offered++
     stateVars.forEach((v, i) => { const x2 = s.st.scalars[v] ?? 0; seenAt[i]!.set(x2, (seenAt[i]!.get(x2) ?? 0) + 1) })
@@ -612,11 +612,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const skolems = m.inputs.some(i => i.startsWith('some$a'))
   for (let trial = 0, bound = 2, stuck = false; moreRuns(trial); trial++, bound = trial % 20 === 0 || stuck ? (bound >= 1024 ? 2 : bound * 2) : bound) {
     stuck = false; trials++
-    // (one trial in four goes on from a sample, of 64 drawn, holding the value of a state variable the fewest states
-    // offered held, its requests at the smallest bound: the hull's bounds come from the states past the usual, which runs
-    // from the start seldom reach (a ticket lock's service at 2 in 2 to 9 of 3,000 samples, and the join dropped the
-    // forms they left too tight one at a time), and a thread or two at a time step on from them)
-    const rare = !runsTimed && trial % 4 === 3 && stateVars.length > 0 && samples.length >= 64
+    // (a rule with maps: one trial in four goes on from a sample, of 64 drawn, holding the value of a state variable the
+    // fewest states offered held, its requests at the smallest bound. The hull's bounds come from the states past the
+    // usual, which runs from the start seldom reach (a ticket lock's service at 2 in 2 to 9 of 3,000 samples, the join
+    // then dropping the forms they left too tight one at a time), and a key or two at a time step on from them. On rules
+    // of scalars alone, CHC's and ITS's programs, measured, it cost more than it found: s_split_22 29 -> 7 of 40 seeds)
+    const rare = withMaps && trial % 4 === 3 && stateVars.length > 0 && samples.length >= 64
     let params: Env, st: State
     if (rare) {
       const v = rand(stateVars.length), seen = (q: Sample) => seenAt[v]!.get(q.st.scalars[stateVars[v]!] ?? 0) ?? 0
