@@ -144,8 +144,8 @@ const liftC = (c: C): C => {
   if (c.op === 'flag') return c
   const a = liftE(c.a), b = liftE(c.b)
   // (a comparison whose side holds an if over a map's read, a key a ghost's write is read in (64·W'[k] + k = 64·s + d),
-  // as the if of the comparisons of its two sides: c ∧ (a₁ ⋈ b) ∨ ¬c ∧ (a₂ ⋈ b), equal to it; at most 8 leaves)
-  // (at most three ifs in all, counted before they are distributed: 8 leaves)
+  // as the if of the comparisons of its two sides: c ∧ (a₁ ⋈ b) ∨ ¬c ∧ (a₂ ⋈ b), equal to it; at most three ifs in all,
+  // counted before they are distributed, 8 leaves)
   const ifs = (e: E) => textOfE(e).split('"op":"if"').length - 1, reads = (e: E) => textOfE(e).includes('"op":"get"')
   const few = (hasIf(a) || hasIf(b)) && ifs(a) + ifs(b) <= 3, ha = few ? hoisted(a) : a, hb = few ? hoisted(b) : b
   if (few && ((ha.op === 'if' && reads(ha)) || (hb.op === 'if' && reads(hb))) && keysOf(ha) * keysOf(hb) <= 8) {
