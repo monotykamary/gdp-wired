@@ -269,7 +269,21 @@ async function rulesOf0(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: st
 
 // A law with where it sits in the code: the class (or struct, module) it is in and the function after it.
 type Scoped = LawText & {cls?: string, fn?: string}
-function scoped(file: string): Scoped[] {
+// (a class statement's name: its keyword at the start of a line, after modifiers; never a word in a comment)
+const classAt = (line: string) => {
+  const m = /^\s*(?:(?:export|default|public|private|protected|internal|abstract|final|sealed|open|data|static|partial|pub(?:\([^)]*\))?|unsafe)\s+)*(?:class|struct|actor|defmodule|module|object|impl(?:<[^>]*>)?|record|interface|contract)\s+([\w.:]+)|^\s*type\s+(\w+)\s+struct\b/.exec(line.replace(/(#|\/\/).*$/, ''))
+  return m ? (m[1] ?? m[2])!.split(/[.:<]/).filter(Boolean).pop() : undefined
+}
+// (a type written like a call declares a value, never a function: `mapping(address => uint256) public balances;`, its
+// parentheses closed, then a name (after modifiers) and `;` or `=`; a function's qualifiers (const, override, ...) are no
+// name. A law on such a value is on no function, nor is one followed by another class's statement before any.)
+const declares = (code: string, open: number) => {
+  let d = 0, i = open
+  for (; i < code.length; i++) { if (code[i] === '(') d++; else if (code[i] === ')' && --d === 0) break }
+  const m = /^\s*(?:[A-Za-z_$][\w$]*\s+)*([A-Za-z_$][\w$]*)\s*(?:;|=(?![=>]))/.exec(code.slice(i + 1))
+  return !!m && !/^(const|override|final|noexcept|volatile|default|delete)$/.test(m[1]!)
+}
+export function scoped(file: string): Scoped[] {
   const text = fs.readFileSync(file, 'utf8'), lines = text.split('\n')
   return lawsIn(text, path.basename(file)).map(l => {
     let cls: string | undefined, fn: string | undefined
@@ -277,14 +291,20 @@ function scoped(file: string): Scoped[] {
     // docstring's or a comment's prose; in Python, at an indentation that encloses the law's)
     const indent = (x: string) => /^\s*/.exec(x)![0].length, lawIndent = indent(lines[l.line! - 1]!), py = file.endsWith('.py')
     for (let i = l.line! - 1; i >= 0 && !cls; i--) {
-      const m = /^\s*(?:(?:export|default|public|private|protected|internal|abstract|final|sealed|open|data|static|partial|pub(?:\([^)]*\))?|unsafe)\s+)*(?:class|struct|actor|defmodule|module|object|impl(?:<[^>]*>)?|record|interface|contract)\s+([\w.:]+)|^\s*type\s+(\w+)\s+struct\b/.exec(lines[i]!.replace(/(#|\/\/).*$/, ''))
-      if (m && (!py || indent(lines[i]!) < lawIndent)) cls = (m[1] ?? m[2])!.split(/[.:<]/).filter(Boolean).pop()
+      const m = classAt(lines[i]!)
+      if (m && (!py || indent(lines[i]!) < lawIndent)) cls = m
     }
+    // (a law right above a class statement, past comments, blank lines and annotations, is that class's: a contract's,
+    // a struct's, a class's, never its first member's; one indented inside a class above a class after it isn't)
+    let above: string | undefined
+    for (let i = l.line!; i < lines.length; i++) { if (/^\s*(\/\/|\/?\*|#|@|--|$)/.test(lines[i]!)) continue; above = indent(lines[i]!) >= lawIndent ? classAt(lines[i]!) : undefined; break }
+    if (above) return {...l, cls: above}
     // (in TypeScript, a law right above a declaration of a value, a schedule's say, is that value's)
     let top = false
     if (/\.[cm]?[jt]sx?$/.test(file)) { let i = l.line!; while (i < lines.length && /^\s*(\/\/|\/?\*|$)/.test(lines[i]!)) i++; const d = /^(\s*)(?:export\s+)?(?:const|let|var)\s+(\w+)\s*[=:]/.exec(lines[i] ?? ''); if (d) { fn = d[2]; top = d[1] === '' } }
     let fnLine = -1
-    for (let i = l.line! - 1; i < lines.length && !fn; i++) { const code = i === l.line! - 1 ? lines[i]!.replace(/(#|\/\/|--).*$/, '') : lines[i]!; const m = /\b(?:def|defp|fn|fun|func|function)\s+(?:\([^)]*\)\s*)?(?:self\.)?(\w+)|^\s*(?:(?:public|private|protected|static|final|synchronized|async|override|open|suspend|inline|virtual|const|[\w<>[\],?]+)\s+)*(\w+)\s*\(/.exec(code); if (m && !/^(if|for|while|switch|return|catch|new)$/.test(m[1] ?? m[2]!)) { fn = m[1] ?? m[2]; fnLine = i } }
+    let onValue = false
+    for (let i = l.line! - 1; i < lines.length && !fn && !onValue; i++) { const code = i === l.line! - 1 ? lines[i]!.replace(/(#|\/\/|--).*$/, '') : lines[i]!; if (i >= l.line! && classAt(code)) break; const m = /\b(?:def|defp|fn|fun|func|function)\s+(?:\([^)]*\)\s*)?(?:self\.)?(\w+)|^\s*(?:(?:public|private|protected|static|final|synchronized|async|override|open|suspend|inline|virtual|const|[\w<>[\],?]+)\s+)*(\w+)\s*\(/.exec(code); if (m && !m[1] && declares(code, m.index + m[0].length - 1)) onValue = true; else if (m && !/^(if|for|while|switch|return|catch|new)$/.test(m[1] ?? m[2]!)) { fn = m[1] ?? m[2]; fnLine = i } }
     // (a Python function at the module's top level is in no class, whatever precedes it: the def the law sits on, not a
     // later one of the same name)
     // (likewise in every language where a definition at the line's start is outside any class: Ruby's, Elixir's, a
