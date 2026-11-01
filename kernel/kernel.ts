@@ -448,20 +448,22 @@ const naturalC = (c: C): boolean => c.op === 'flag' ? true : c.op === 'all' ? na
 // Substitution: variables by terms, and each map read by what the map holds (the start's constant, or a write over the
 // map before the step).
 export type Subst = {vars: Record<string, E>, maps: Record<string, (key: E) => E>, flags: Record<string, C>}
+// (a substitution's own entries only: a name like `constructor` or `toString` is no entry of {}; terra's review)
+const own = <T>(r: Record<string, T>, k: string): T | undefined => (Object.hasOwn(r, k) ? r[k] : undefined)
 export function substE(e: E, s: Subst): E {
   switch (e.op) {
-    case 'var': return s.vars[e.name] ?? e
+    case 'var': return own(s.vars, e.name) ?? e
     case 'const': return e
     case 'mul': return {...e, a: substE(e.a, s)}
     case 'prod': return {...e, a: substE(e.a, s), b: substE(e.b, s)}
     case 'if': return {op: 'if', c: substC(e.c, s), then: substE(e.then, s), else: substE(e.else, s)}
-    case 'get': { const key = substE(e.key, s); return s.maps[e.map] ? s.maps[e.map]!(key) : {op: 'get', map: e.map, key} }
+    case 'get': { const key = substE(e.key, s), f = own(s.maps, e.map); return f ? f(key) : {op: 'get', map: e.map, key} }
     case 'add': case 'sub': case 'min': case 'max': return {...e, a: substE(e.a, s), b: substE(e.b, s)}
     default: return unreachable(e)
   }
 }
 export function substC(c: C, s: Subst): C {
-  if (c.op === 'flag') { const f = s.flags[c.name]; if (!f) throw new Error(`unknown flag ${c.name}`); return f }
+  if (c.op === 'flag') { const f = own(s.flags, c.name); if (!f) throw new Error(`unknown flag ${c.name}`); return f }
   if (c.op === 'not') return {op: 'not', x: substC(c.x, s)}
   if (c.op === 'all') { const keys = boundOf(c), vars = Object.fromEntries(Object.entries(s.vars).filter(([n]) => !keys.includes(n))); return {...c, c: substC(c.c, {...s, vars})} }
   if (c.op === 'and' || c.op === 'or') return {op: c.op, xs: c.xs.map(y => substC(y, s))}
