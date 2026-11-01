@@ -1534,7 +1534,7 @@ type Spec = {
   // State variables declared by a kind: each a value over the kind's variables (in `state`, one entry each).
   kinded?: [string, Kind<unknown>][]
   carried?: string[]
-  counts?: [string, (env: never) => {below: TermLike, body: (x: Term, k: Term) => Cond | TermLike}][]
+  counts?: [string, (env: never) => {below: TermLike, body: (x: Term, k: Term, y: Term) => Cond | TermLike, base?: number}][]
   // Sequences a request carries (in `carried`, each length an input <name>_len), and tables of them (in `carried` with
   // <name>_base and <name>_len, the number of rows an input <name>_rows).
   seqs?: string[]

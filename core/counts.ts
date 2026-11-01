@@ -175,7 +175,7 @@ export function guardLaws(m: Machine): {counts: Machine['counts'], laws: Law[]} 
 // The count cells the goal reads (each before the step with its post name's twin), instances over pairs of them with one
 // bound (a count that doesn't drop, +1 and −1; two that meet, +1, +1 and −1), each with a fresh witness; and the laws and
 // quantified flags at the witnesses (returned, for the goal's law's instances).
-export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: string, body: E}[]): {reads: MapRead[], insts: CountInst[], wits: string[]} {
+export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: string, body: E}[], wide = false): {reads: MapRead[], insts: CountInst[], wits: string[]} {
   const byMap = new Map(decls.map(d => [d.map, d])), last = goal.hyps.at(-1)
   // (the conclusion's reads first, then those at a constant or the law's own names, then the rest)
   const own = (t: E) => t.op === 'const' || (t.op === 'var' && json(last).includes(`"name":${json(t.name)}`))
@@ -203,7 +203,15 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
     if (i < j && (ranked(a) || ranked(c)) && bound(a) === bound(c) && !post(a) && !post(c)) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
   for (const [i, a] of named.entries()) for (const [j, c] of named.entries())
     if (i < j && !(ranked(a) || ranked(c)) && bound(a) === bound(c) && !post(a) && !post(c)) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
-  return {reads: named, insts: insts.slice(0, 10), wits: wits.slice(0, 10)}
+  // (wide, asked by a model the instances above leave: every count at most each other one of its bound, either way, and
+  // each positive only where a key is in it; a count read with no partner is then tied to its cells at a witness)
+  const cap = wide ? 24 : 10
+  if (wide) {
+    insts.splice(10), wits.splice(10)
+    for (const a of named) for (const c of named) if (a !== c && bound(a) === bound(c) && !(post(c) && !post(a))) add([[1, a[0]], [-1, c[0]]], 0, byMap.get(a[1])!.below)
+    for (const a of named) add([[1, a[0]]], 0, byMap.get(a[1])!.below)
+  }
+  return {reads: named, insts: insts.slice(0, cap), wits: wits.slice(0, cap)}
 }
 
 // --- the candidates --------------------------------------------------------------------------------------------------
@@ -365,7 +373,9 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     const refuted = (gg: Goal, w: Record<string, number>): Tried<Proof> => { models.set(id, {gg, w, at, ls: new Set(ls.map(l => l.name))}); return {stuck: 'sat'} }
     let at: Instances = seed ?? Object.fromEntries(Object.entries(m.step.flags ?? {}).flatMap(([f, q]) => (q.op === 'all' && !q.keys?.length ? [[`?${f}`, ts]] : [])))
     const obligations = (i: Instances) => ptime('encode', () => countedObligations(m, ls, {[law.name]: i}, ls.indexOf(law)))
-    const build = () => obligations(at).map(({goal, decls}) => { const c = pass ? certFor(goal, decls) : none; return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c))} })
+    // (`wide`: the count instances widened once, where a model is left that the narrow ones and the laws don't refute)
+    let wide = false
+    const build = () => obligations(at).map(({goal, decls}) => { const c = pass ? certFor(goal, decls, wide) : none; return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c))} })
     let built = build()
     const t0 = clock(), more = () => clock() - t0 <= Math.max(ms, 1_000)
     // The step goal decided first by the CDCL search for a model (its phases the simplex's point: a model is met where the
@@ -399,6 +409,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
         const asked = ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!))
         if (!asked) {
           if (countsDump.on && pass && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps}) }
+          if (pass && !wide && step.c.reads.length && more()) { wide = true; built = build(); continue }
           return refuted(step.gg, q.witness)
         }
         at = asked
@@ -421,6 +432,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
           const asked = ptime('mbqi', () => modelInstances(m, ls, at, gg, o.witness!))
           if (asked) { at = asked; built = build(); again = true; break }
         }
+        if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && c.reads.length && more()) { wide = true; built = build(); again = true; break }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) return refuted(gg, o.witness)
         if (!o || !('tree' in o)) return {stuck: gg ? (o as {stuck?: string}).stuck ?? '' : ''}
         certs[goal.name] = {reads: c.reads, insts: c.insts, tree: o.tree}
