@@ -1,4 +1,4 @@
-# The interchange format, version 1.0
+# The interchange format, version 1.1
 
 A rule, its laws and a certificate that they hold, as JSON that any language can read, write and check. gdp-wired
 writes it (`toInterchange`, `interchange/format.ts`), reads it back (`fromInterchange`), and checks it with
@@ -19,8 +19,11 @@ of a `goals` document and agrees with the kernel on every goal of the suite.
 
 One document is one certificate. `kind` says which fields follow and what they claim. `meta` is the producer's and is
 never read by a checker. `columns` is the table of term columns (below). A checker for version 1.m reads every 1.n with
-n ≤ m; a minor version only adds optional fields or kinds, a major one changes a meaning. A 1.0 checker refuses any
-field it doesn't know.
+n ≤ m; a minor version only adds optional fields or kinds, a major one changes a meaning. A checker refuses any
+field its version doesn't know. 1.1 adds a liveness's `fairness` (`"weak"`, the default, or `"strong"`) and `levels`;
+gdp-wired writes each document at the lowest version that holds it, so every document without them is still 1.0.
+(1.0's writer dropped the two fields, so a strong liveness was written as a weak one, which the kernel refuses: 65
+documents of the 0.43.0 suites, every one refused by every checker, none accepted wrongly.)
 
 | kind | fields | claim | decided by (kernel/kernel.ts, kernel/cyclic.ts) | Lean twin |
 | --- | --- | --- | --- | --- |
@@ -30,7 +33,7 @@ field it doesn't know.
 | `stepLaws` | machine, laws, stepLaws, proof | every allowed request (k in a row) does what each step law says | `checkStepLaws` | StepLaw.lean, Steps.lean, Sets.lean |
 | `kInduction` | machine, laws, kInduction {law, k}, proof | the law in every reachable state, by k-induction | `checkKInduction` | KInd.lean `kind_sound` |
 | `progress` | machine, laws, progress, instances, trees, lawsProof | where `when` holds, the named request is allowed and makes `then` hold | `checkLaws` on lawsProof, then `progressObligations`, a tree each | Progress.lean |
-| `liveness` | machine, laws, liveness, proof | `from` leads to `to` under fairness | `livenessParts`, then `checkStepLaws` | Live.lean `leads_sound`, `sleads_sound` |
+| `liveness` | machine, laws, liveness, proof | `from` leads to `to` under weak or strong fairness | `livenessParts`, then `checkStepLaws` | Live.lean `leads_sound`, `sleads_sound`, `sleads_sf_soundA` |
 | `loop` | loop, laws, rank, trees | the loop halts; its invariants hold | `loopObligations`, a tree each | Live.lean `loop_halts_of` |
 | `recur` | loop, recur | some run of the loop never ends | `checkRecur` | NonTerm.lean `never_ends_of` |
 | `fold` | fold, laws, trees | each law of every tree a fold computes | `foldObligations`, a tree each | Kernel.lean `fold_sound` |
@@ -150,10 +153,32 @@ objects is the identity on everything the kernel reads; JSON has no `-0` (read a
 ## Checking it
 
 ```sh
-bun interchange/build.ts --wasm                      # dist/gdp-wired-check.js and .wasm (JAVY=<javy 9.1.0>)
-node interchange/dist/gdp-wired-check.js doc.json    # accepted or refused, per claim; --json; exit 0 when all accepted
+npx -p gdp-wired gdp-wired-check doc.json            # the npm package's bin: accepted or refused, the kind and the
+                                                     # kernel entry point that decided it, each claim and why; --json
+bun interchange/build.ts --compile --wasm            # one-file builds: dist/gdp-wired-check.js (node or bun), the
+                                                     # executable dist/gdp-wired-check, and .wasm (JAVY=<javy 9.1.0>)
+node interchange/dist/gdp-wired-check.js doc.json    # exit 0 when every claim is accepted, 1 when one is refused
 wasmtime run interchange/dist/gdp-wired-check.wasm < doc.json
 python3 interchange/py/check.py goals.json           # the second checker, on a goals document
+```
+
+The certificate `gdp-wired check meter.py --cert certs` writes for scripts/smoke.sh's meter.py (a law of `take`, a step law, with
+the invariants the search found), then its twin with one combination's multiplier raised:
+
+```
+$ gdp-wired-check meter.json
+meter.json: accepted (stepLaws, by kernel.ts checkStepLaws)
+  accepted  take_result is a value of its kind
+  accepted  cap <= 0 → used <= 0
+  accepted  0 <= cap → used <= cap
+  accepted  take_result is no → 0 <= used
+  accepted  take_result is yes → 1 <= used
+  accepted  never past the cap
+$ gdp-wired-check tampered.json
+tampered.json: refused (stepLaws, by kernel.ts checkStepLaws)
+  refused   take_result is a value of its kind: take_result is a value of its kind @step: its tree doesn't refute it
+  ...
+  refused   never past the cap: take_result is a value of its kind @step: its tree doesn't refute it
 ```
 
 The conformance runs are in `interchange/` (capture.ts takes every certificate a suite run hands the kernel, verify.ts

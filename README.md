@@ -561,7 +561,7 @@ Proving and checking: a law over 64 steps proves in about 5 s, and Lean checks i
 | `kernel/` | The trusted kernel and the untrusted prover, with soundness fuzz (`kernel.test.ts`, `history.test.ts`) |
 | `lean-kernel/` | The kernel's Lean twin, its soundness proofs, and the exported trees |
 | `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `guide.ts` (the guide's code), `groups.ts` (two groups decided at every pair), `budget.ts`, `gdp.ts` (gdp-ts's example, its checks proven), `exists.ts` (laws with "there exists"), `datatypes.ts` (records and variants), `lemmas.ts` (recurrences and their lemmas), `invoices.ts` (lists a request carries), `folds.ts` (folds over trees), `trees.ts` (trees and lists of lists in the state), `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `arith.ts` (division and remainder by a constant, integers in rules and datatypes), `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 64 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
-| `docs/` | The comparison with Bend and Lean, and the full scope |
+| `docs/` | [ARCHITECTURE.md](docs/ARCHITECTURE.md) (the trust boundaries and what guards each), [FRONTENDS.md](docs/FRONTENDS.md) (how a language's reader plugs in), [interchange.md](docs/interchange.md) (certificates as JSON, for checkers in other languages), the comparison with Bend and Lean |
 | `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
 | `research/` | Everything around the library ([`research/README.md`](research/README.md)): the GPU searches (`search/`, `hw/`, `modal-gpu/`), invariant and rank synthesis (`synth/`), relational laws and guard synthesis (`next/`), bit-vector laws (`sat/`), the enumeration and benchmarks (`enum/`, `gpu/`, `perf/`), the first Lean checker (`lean/`) and the first prototype, the audit path (`audit/`) |
 | `supercomputer/` | Everything above as jobs on boat (a warm pool), Modal and RunPod: `suite.json` is the regression suite (`modal/` links here until every lane has merged the rename) |
@@ -578,7 +578,9 @@ The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-w
 `typescript` installed), Effect services (`gdp-wired/effect`, with `typescript` and `effect`), lemmas nobody stated (`gdp-wired/discover`), invariant
 inference (`gdp-wired/infer`), the
 Lean export (`gdp-wired/lean`), the kernel (`gdp-wired/kernel`), the prover (`gdp-wired/prove`), the derivation checker
-and solver (`gdp-wired/check`, `gdp-wired/solver`). Everything else here (examples, comparisons, the Lean twin, the GPU
+and solver (`gdp-wired/check`, `gdp-wired/solver`), and the interchange reader and checker (`gdp-wired/interchange`, with
+the `gdp-wired-check` bin: `npx -p gdp-wired gdp-wired-check cert.json` checks a certificate `gdp-wired check --cert`
+wrote with the kernel alone, no search). Everything else here (examples, comparisons, the Lean twin, the GPU
 searches) runs from a clone and needs [Bun](https://bun.sh); Lean 4.34.0 for `lean/` and `lean-kernel/`; a WebGPU
 runtime (Chrome, or Dawn's node bindings) for the GPU parts. Releases: bump `version` in `package.json` and push to
 main; `.github/workflows/publish.yml` publishes it with npm provenance.

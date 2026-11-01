@@ -152,10 +152,15 @@
       "types": "./dist/core/relational.d.ts",
       "default": "./dist/core/relational.js"
     },
+    "./interchange": {
+      "types": "./dist/interchange/check.d.ts",
+      "default": "./dist/interchange/check.js"
+    },
     "./package.json": "./package.json"
   },
   "bin": {
-    "gdp-wired": "dist/core/cli.js"
+    "gdp-wired": "dist/core/cli.js",
+    "gdp-wired-check": "dist/interchange/cli.js"
   },
   "files": [
     "dist",

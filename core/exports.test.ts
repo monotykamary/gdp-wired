@@ -55,3 +55,14 @@ test('the CLI is the package\'s bin, built from a file the build compiles', () =
   expect(readFileSync(`${root}core/cli.ts`, 'utf8').startsWith('#!/usr/bin/env node\n')).toBe(true)
   if (built) expect(readFileSync(`${root}dist/core/cli.js`, 'utf8').startsWith('#!/usr/bin/env node\n')).toBe(true)
 })
+
+test('the standalone checker is the package\'s second bin, and its reader and checker `gdp-wired/interchange`', async () => {
+  expect(pkg.bin?.['gdp-wired-check']).toBe('dist/interchange/cli.js')
+  expect(build.files).toContain('interchange/cli.ts')
+  expect(readFileSync(`${root}interchange/cli.ts`, 'utf8').startsWith('#!/usr/bin/env node\n')).toBe(true)
+  if (built) expect(readFileSync(`${root}dist/interchange/cli.js`, 'utf8').startsWith('#!/usr/bin/env node\n')).toBe(true)
+  const e = pkg.exports['./interchange']!
+  expect(e.default).toBe('./dist/interchange/check.js')
+  const mod = await import(built ? `${pkg.name}/interchange` : `${root}interchange/check.ts`) as Record<string, unknown>
+  for (const fn of ['checkDocument', 'goalsOf', 'toInterchange', 'fromInterchange']) expect(typeof mod[fn]).toBe('function')
+})

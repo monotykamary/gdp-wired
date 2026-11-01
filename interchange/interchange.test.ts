@@ -109,3 +109,21 @@ test('another process (the bundled CLI, or the source) gives the same answers, a
     expect((JSON.parse(out.stdout.toString()) as [string, boolean][]).map(p => p[1])).toEqual(g.goals.map(x => check(x.goal, x.tree)))
   }
 })
+
+test('1.1: a strong liveness keeps its fairness and levels (written at 1.1, accepted), its tampered levels refused, and a 1.0 document with them refused', async () => {
+  const {fairCases, fairAnswer} = await import('../core/conformance.ts')
+  reseed(11)
+  for (const f of fairCases(3)) {
+    const doc = toInterchange({kind: 'liveness', machine: f.m, laws: f.laws, liveness: f.l, proof: f.proof!})
+    expect(doc.version).toBe('1.1')
+    expect((doc.liveness as {fairness?: string}).fairness).toBe('strong')
+    expect(checkDocument(JSON.parse(JSON.stringify(doc))).accepted).toBe(fairAnswer(f.m, f.laws, f.l, f.proof))
+    for (const t of f.tampers) {
+      const twin = toInterchange({kind: 'liveness', machine: f.m, laws: f.laws, liveness: t.l, proof: f.proof!})
+      expect(checkDocument(JSON.parse(JSON.stringify(twin))).accepted, t.what).toBe(fairAnswer(f.m, f.laws, t.l, f.proof))
+    }
+    expect(checkDocument({...JSON.parse(JSON.stringify(doc)), version: '1.0'}).malformed).toContain('1.1')
+  }
+  // (every other document stays 1.0)
+  expect(docs.every(d => d.version === '1.0')).toBe(true)
+})
