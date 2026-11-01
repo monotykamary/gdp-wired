@@ -19,6 +19,7 @@ kernel fuzz). Fanned out on boat or Modal (`bun mutants.ts ids <a,b,...>` per jo
 | kernel/cyclic.ts (gen/laneH, 2026-11-01): the operators above and its own (a comparison's kind, a negation made true, a part of a goal's hypotheses dropped, a guard or a tree check skipped, a fact's keys past its terms, the language check widened); `cyclic`, `cycles` in the battery | 43 (1071–1113) | 30 (70%) | 13 |
 | plus four tests in core/cyclic.test.ts, the whole battery again | 43 | 41 (95%) | 2, listed equivalent below |
 | counts over two parameters (gen/laneC3, 2026-11-02: the lines of kernel.ts it changed, `declsOf`, `countsScope`'s lo and base, `keyParts`, `toCount`, `readHyp`, `readFresh`, `checkMC`, the `after` declarations; `MUTANT_BATTERY=countmachine,counts`, countmachine.test.ts's two-parameter tests in it) | 50 | 48 (96%) | 2, listed equivalent below (checkMC's j and lo apart from the key, which countsScope refuses first) |
+| plus the picks (gen/laneC3: `pickHyps`, `pickHyp`, `distinctBelow`, `allNe`, `picksTyped`, checkMC and mcGoal with them), every line of kernel.ts the lane changed again, and a test for picksTyped's two survivors | 64 | 62 (97%) | 2, the two above |
 
 `core/data.ts`'s admission of a definition is in the targets by its top-level declarations alone (mutants.ts's `only`):
 the rest of that file is the search, whose mutants change speed, never what is taken. Its first run left 50 of 111; the

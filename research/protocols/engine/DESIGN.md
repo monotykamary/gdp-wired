@@ -43,6 +43,93 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneC3: quorum counting over two parameters, proven in Lean; the counted search proposes the decision and choosable counts (paxos_epr not won)
+
+**Trusted (Lean first).** CountMachine.lean's count declaration takes a second parameter: `CDecl ⟨mp, post, j, key,
+below, body, lo, base⟩`, the map at x the count with j at x / base and lo at x % base (`atJ`); one parameter is lo = j,
+base 0, which is the old meaning exactly (`canonOk`: one parameter lo = j and base 0, two lo ≠ j, what the runtime
+computes). A certificate reads a two-parameter count at a key term written `base·a + b` (`keyParts`): Count.lean gets
+the declaration with j at a and lo at b, and the read's hypothesis is `base ≤ b ∨ v = cell` (`readHyp`), so a key past
+the base aliases nothing. mc_sound sets each read variable to its count's sum (`rval`) and proves the hypothesis from
+GHolds (`cnt_read`); afterDecl keeps j, lo and key (`keepJ`); cstart_case, cstep_case, cntOf_congr, cntOf_upd and
+counts_exist read `atJ` in place of `upd ρ j x`. mc_sound, cmachine_sound and counts_exist print propext,
+Classical.choice, Quot.sound; no sorry. CountExamples.lean adds the toy consensus by rounds (`toyr`: votes at B·round +
+value, a node voting once a round, one value decided a round) through cmachine_sound, and three tampered certificates
+Lean computes to false (a key b + 4·a, a key composed by 5, a read named as the count's lo).
+
+**The TS twin** (kernel.ts): `CountDecl` gains lo and base; countsScope (lo and base together, base a positive integer,
+j, lo and key three fresh names), keyParts, toCount, readHyp, readFresh, checkMC, declsOf and the after-declarations,
+line for line. The runtime (machine.ts's carriedView) and the DSL (`.counts({c: env => ({below, base, body: (a, k, b) =>
+…})})`) and emit.ts too. Mutants over the changed lines (MUTANT_BATTERY=countmachine,counts): 50, 48 killed, 2 listed
+equivalent (checkMC's j and lo apart from the key, which countsScope refuses first). terra (gpt-6.1-terra, read-only):
+no way found for an accepted proof to make a false law look proven; the one substantive point, that Lean accepted
+declaration shapes the TS path and runtime don't (base 0 with lo ≠ j), is closed by `canonOk`.
+
+**Adversarial** (countmachine.test.ts, "two parameters"): a key past the base (`B ≤ b`) aliases another count: a false
+law (no votes past the base) whose goals all have trees once the read's guard is dropped, refused with it; key terms the
+base does not compose (b + 4·a, 5·a + b, 4·a, b) refused; quorums off by one (size ≤ 2·|Q|) and quorums of one (|Q| ≥ 1):
+the safety law false by brute force and neither the hand certificates nor the search prove it; a count bound true only on
+the small instances (votes ≤ 3, sizes 2 and 3) not proven. With nothing written, the search declares the two-parameter
+count (`quorum$Decision`) and proves "one value a round" (20 s budget), kernel-checked.
+
+**The search (core/counts.ts, untrusted)**:
+- guardLaws: a write at a composed key N·t + u of two request values gets a count over two parameters, its law read at
+  the keyed N·a + b with b < N; and a guard's zero count of the set's members without R (paxos's decide: `missing = 0`)
+  reads as ∀ members R, as a quantified flag does. paxos_epr: `Decision keeps members's bound through members$Decision`
+  (∀ a, b: Decision[64a + b] ∧ b < 64 → size < 2·|{k: Vote[4096k + 64a + b]}|) proposed, and kept by the cone at 60 s.
+- Who did or still can write a relation: a write W[N²·n + N·t + u] by a request's node n under a flag whose literals
+  reading n are G(n, t, u) gets the count `can$W$set`(t, u) = |{k: G(k, t, u) ∨ W[N²·k + N·t + u]}|, bounded (the guard's
+  comparison negated) under each map P the flag reads at N·t + u alone: P[N·c + d] ∧ a < c (∧ b ≠ d, or a ≤ c ∧ b ≠ d) ⇒
+  2·can(a, b) ≤ size. For paxos it is mypyvy's choosable law in counting form (G = ¬left_rnd, W = vote, P = proposal);
+  quorum intersection is then Count.lean's lemma over the two counts, derived, not assumed.
+- certFor: a post count at least a request count less another (|Q| ≤ missing + votes), when both are read once; and a
+  model the count instances leave asks for them widened once (every count at most each other of its bound, either way;
+  each positive only where a key is in it), which ties a count read only in the assumption to its cells (Lane Y's mldr
+  report).
+
+**Picks: a count at least its body at distinct keys (trusted, Lean first; for Lane Y's mldr).** Count.lean's lemma only
+gives witnesses (a sum past another has a key where the body is past), never that a count is at least the number of
+members known; mldr's leader step (two voters of a two-member config, read as 1 and 1) needs it. CCert gains `picks`
+(a read's variable and key terms); each adds `pickHyp`: where the terms are pairwise distinct and below the count's
+bound, the count is at least the sum of its body at them. `pickHyp_true` proves it wherever the count is its sum (by
+`sum_le_sumBelow`), so a certificate may name any terms; mc_sound reads them with the reads' hypotheses at the
+witnesses' values (the count reads no witness, countedOkW). The TS twin (pickHyps, picksTyped, checkMC, mcGoal) and the
+exporter; CountExamples' `twom` (two members make the count at least 2) through cmachine_sound, with a pick at one key
+twice and no pick computed to false. Adversarial (countmachine.test.ts): terms equal but written apart (b, b + 0), a
+pick past the bound (a count below 1), the pick of the count before the step where the law reads the one after; each
+refused, and grow finds no tree. Mutants over every line of kernel.ts this lane changed: 64, 62 killed, 2 equivalent
+(above).
+
+**The search's use of them**: a goal's model the narrow count instances leave asks, in the rounds over the whole set
+(Houdini) and for a caller's law or a read no instance names, for the instances widened once and each count picked at
+the key terms the goal reads its body's maps at (every two, and all of up to four); and modelInstances (kernel/prove.ts,
+untrusted) reads a count's cell the model has not from its definition over the model's cells, so a law over a count the
+goal doesn't read is broken where the model breaks it (Lane Y's "every quorum at a config term, or disabled"). Widening
+inside the cone cost the counted protocols (simple_election 5 → 19 s, wo 30 → 57 s), so the cone keeps the narrow
+instances.
+
+**paxos_epr: not won.** The choosable law is proposed and true on the small instances, but its step goal at commit needs
+the propose phase's own invariants (Qs joined at pr, the checked rows below pmaxr, pmaxr's proposal), none of which the
+candidates hold; at 60 s and at 300 s the caller ends unproven (kept 13 of 58: the decision law, vote → proposal,
+OneB → OneA among them). The hand-written mypyvy invariant in this encoding with the phase laws (research/protocols/
+quorum/paxos-hand.ts, 15 laws) through the same counted goals: 16 of 33 kept in 1500 s, the choosable law, proposal
+uniqueness and the phase's row law left sat or unknown; with the widened instances and the idle phase's counter added
+(16 laws), 21 of 37 kept, left: one value decided, proposals unique, choosable, the checked rows. The search's pieces
+are in place (the decision law kept, the choosable law proposed); the propose phase's invariants are not.
+
+**Gates** (26a3440 and f6fb4ff against 35ed7e0, IC3Syn with jobs.ts as main's cb90788: boat large, 4 vCPU, 14 GB, each
+alone, strict 60 s, two runs; broken variants once; DuoAI ten three runs): IC3Syn runs within 60 s 45 of 58 both,
+protocols within 60 s in every run 22 both, no broken variant proven either side, DuoAI ten 30 of 30 both (the counted
+protocols run again on the final code; the others' code paths unchanged since gate round 2). Quick bar (25b63cd, before
+picks; the counted search's paths only since) against the shared baseline: wrong 0 everywhere, nothing lost solid
+(CHC +11.9 predicted, ITS gdp −11.3 and gdp-scc −6.6 predicted, every loss at the limit, none solid; no code
+those groups run changed), 6 of 6 Lean recurrent sets. Tests on a 16 GB VM: 401 of 403 (exports.test.ts' build: the DSL's spec type for a
+count's base, fixed; infer.test.ts' 5 s test, passes alone and fails on main's VMs too); countmachine 30/30, count
+61/61, exists 12/12, kernel's refusals/tamper/sets/cdcl/count 120/120 on the final head. Lean, after the 02:40 tree fix
+(sha256 of the shipped files checked): mc_sound, cmachine_sound, counts_exist, pickHyp_true, toyc_laws, toyr_laws,
+twom_laws print propext, Classical.choice, Quot.sound; no sorry. Bytes against 35ed7e0: CountMachine.lean +18.5k,
+kernel.ts +2.9k, counts.ts +9.1k, prove.ts +0.7k, machine.ts +0.3k, dsl.ts +0.2k, emit.ts +0.2k.
+
 ## gen/laneY: a law with "there exists" about keys searched in its plain form over its ghost map (firewall proven at 60 s); the EPR path reads a key a map holds; the ∃ watch and the small instances cheaper (untrusted; nothing trusted changed)
 
 Branch gen/laneY from main 6b96a0f. kernel/kernel.ts, core/check.ts, kernel/cyclic.ts and lean-kernel/ untouched; kernel/epr.ts
