@@ -38,7 +38,7 @@
 // before a failure (unless onError: 'discard').
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, type FileURL} from './extract-read.ts'
-import {type Harness, type SModule, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
+import {asset, type Harness, type SModule, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 export type PyOptions = StepOptions & {
@@ -48,7 +48,7 @@ export type PyOptions = StepOptions & {
   python?: string,
 }
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
-const here = (f: string) => new URL(`./py/${f}`, import.meta.url).pathname
+const here = (f: string) => asset(`py/${f}`)
 
 // The module as the reader lowers it (the names given and the module's functions).
 export function readPython(file: string, names: string[], opts: {root?: string, python?: string} = {}): SModule {

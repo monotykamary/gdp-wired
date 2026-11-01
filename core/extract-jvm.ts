@@ -30,7 +30,7 @@
 // code's calls not answered or skipped. Not yet: `stores`, branch coverage (the arms aren't counted).
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, type FileURL} from './extract-read.ts'
-import {type Harness, type SModule, type SX, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
+import {asset, type Harness, type SModule, type SX, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 export type JvmOptions = StepOptions & {
@@ -52,7 +52,7 @@ export type JvmOptions = StepOptions & {
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
 type FS = {existsSync: (p: string) => boolean, readFileSync: (p: string, e: string) => string, writeFileSync: (p: string, s: string) => void, mkdirSync: (p: string, o?: unknown) => void, mkdtempSync: (p: string) => string, realpathSync: (p: string) => string, renameSync: (a: string, b: string) => void, rmSync: (p: string, o?: unknown) => void}
 type Path = {resolve: (...p: string[]) => string, dirname: (p: string) => string, join: (...p: string[]) => string, delimiter: string}
-const here = (f: string) => new URL(`./jvm/${f}`, import.meta.url).pathname
+const here = (f: string) => asset(`jvm/${f}`)
 const TOOLS = ['Jvm.java', 'JavaReader.java', 'Harness.java', 'Rt.java']
 // (a JVM's stack trace: its exception's line first)
 const errText = (e: unknown) => { const ls = String((e as {stderr?: string}).stderr || (e as {stdout?: string}).stdout || (e as Error).message).split('\n').filter(l => l.trim() && !/^\s+at /.test(l)); return ls.slice(-3).join(' | ').slice(0, 600) }
@@ -148,14 +148,17 @@ function answerSites(mod: SModule, keys: string[]): {span: [number, number], key
   return out
 }
 const BOXES: Record<string, string> = {int: 'java.lang.Integer', long: 'java.lang.Long', short: 'java.lang.Short', byte: 'java.lang.Byte', char: 'java.lang.Character', boolean: 'java.lang.Boolean', float: 'java.lang.Float', double: 'java.lang.Double'}
+const STATED: Record<string, string> = {int: 'int', long: 'long', short: 'short', byte: 'byte', char: 'char', float: 'double', double: 'double', bool: 'boolean', boolean: 'boolean', str: 'java.lang.String', String: 'java.lang.String', i32: 'int', i64: 'long'}
 const KT: Record<string, string> = {int: 'Int', long: 'Long', short: 'Short', byte: 'Byte', char: 'Char', boolean: 'Boolean', float: 'Float', double: 'Double', 'java.lang.String': 'String'}
 
 // The code compiled for the check: a copy of the file with the clock's and the answered calls' sites rewritten.
 function compiled(lang: 'java' | 'kotlin', mod: SModule, read: StepRead, o: JvmOptions, made: string[]): {dirs: string[], error?: string} {
   const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process'), os = node<{tmpdir: () => string}>('node:os'), path = node<Path>('node:path')
   const j = jvmOf(mod), kotlin = lang === 'kotlin'
+  // (a call of a generic result, a type variable's: the answer given in the type it is stated in)
+  const sortOf = new Map(read.answers.map(a => [a.key, STATED[a.sort.replace(/\s*\|\s*None$|\?$/, '')]]))
   const sites = [...j.rewrites.map(r => ({span: r.span, text: 'gdp.Rt.now()'})), ...answerSites(mod, read.answers.filter(a => !a.patch.store).map(a => a.key)).map(s => {
-    const t = s.jt.replace(/\?$/, '').replace(/<.*$/, ''), box = BOXES[t] ?? t
+    const t0 = s.jt.replace(/\?$/, '').replace(/<.*$/, ''), t = (t0 === 'java.lang.Object' || !(t0 in BOXES || t0.includes('.'))) ? sortOf.get(s.key) ?? t0 : t0, box = BOXES[t] ?? t
     return {span: s.span, text: kotlin ? `(gdp.Rt.answer(${JSON.stringify(s.key)}, ${box}::class.java) as ${KT[t] ?? t.split('.').pop()}${s.jt.endsWith('?') ? '?' : ''})` : `((${box}) gdp.Rt.answer(${JSON.stringify(s.key)}, ${box}.class))`}
   })]
   if (o.prebuilt) return sites.length ? {dirs: [], error: 'prebuilt: the rule reads the clock or an answered call, which the shipped classes can\'t be given (compile the file instead)'} : {dirs: []}

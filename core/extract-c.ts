@@ -49,6 +49,9 @@ export type COptions = {
   root?: string,
   // A function's result that is its failure where it compares so: {take: '< 0'} (the step's refusal there).
   fails?: Record<string, string>,
+  // Calls of other code answered by the request (the callee's name: its result's type) or left out, as `gdp: answer`
+  // and `gdp: skip` comments say at one call.
+  answers?: Record<string, string>, skip?: string[],
   onError?: 'refuse' | 'discard', domains?: Record<string, 'nat' | 'int'>, check?: GoCheckOptions,
 }
 type FS = {readFileSync: (p: string, e: string) => string, mkdtempSync: (p: string) => string, writeFileSync: (p: string, s: string) => void, rmSync: (p: string, o?: unknown) => void, mkdirSync: (p: string, o?: unknown) => void}
@@ -80,7 +83,7 @@ export function extractC(at: string | FileURL, given: COptions = {}, cpp = false
   try {
     ;({c, flags} = readCFile(file, opts, cpp))
     c.pkg.dir = node<{resolve: (p: string) => string}>('node:path').resolve(file).replace(/\/[^/]*$/, '')
-    read = readGo(c.pkg, {entry: c.entry, methods: opts.functions?.map(f => f.split('/')[0]!) ?? c.methods, ...(opts.onError ? {onError: opts.onError} : {}), ...(opts.fails ? {fails: opts.fails} : {}), ...(opts.strict ? {strict: true} : {})} as GoOptions)
+    read = readGo(c.pkg, {entry: c.entry, methods: opts.functions?.map(f => f.split('/')[0]!) ?? c.methods, ...(opts.onError ? {onError: opts.onError} : {}), ...(opts.fails ? {fails: opts.fails} : {}), ...(opts.strict ? {strict: true} : {}), ...(opts.answers ? {answers: opts.answers} : {}), ...(opts.skip ? {skip: opts.skip} : {})} as GoOptions)
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
     throw e
@@ -346,14 +349,16 @@ export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r:
     if (opts.check?.keep) { fs.mkdirSync(opts.check.keep, {recursive: true}); fs.writeFileSync(`${opts.check.keep}/harness.${cpp ? 'cpp' : 'c'}`, code) }
     // The same flags; undefined behavior trapped (the rule refuses it, so the code must fail there too); another
     // file's functions linked as stubs that report themselves (the rule refuses their calls: one reached is the
-    // code's failure where the rule took the step, a difference).
+    // code's failure where the rule took the step, a difference), but those left out (skip, stated or inferred: they
+    // change nothing the rule keeps, and nothing reads their value), which do nothing.
     const clang = opts.clang ?? (cpp ? 'clang++' : 'clang'), stubs = `${work}/gdp_stubs.c`
     const link = (more: string[]) => cp.execFileSync(clang, [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', ...strictFlex(clang), h, ...(more.length ? ['-x', 'c', ...more] : []), '-o', `${work}/harness`, ], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26})
     const why = (x: unknown) => String((x as {stderr?: string}).stderr ?? (x as Error).message)
     try { link([]) } catch (x) {
       const names = [...new Set([...why(x).matchAll(/undefined (?:reference to [`']|symbol: )_?([A-Za-z_]\w*)|"_([A-Za-z_]\w*)", referenced from/g)].map(m => m[1] ?? m[2]!))]
       if (!names.length) return {...empty, mismatch: `the file doesn't build with the check's harness: ${why(x).split('\n').filter(l => /error/.test(l)).slice(0, 6).join(' | ')}`}
-      fs.writeFileSync(stubs, `void gdp_extern_called(const char *);\n${names.map(n => `void ${n}(void) { gdp_extern_called(${JSON.stringify(n)}); }`).join('\n')}\n`)
+      const out = new Set(read.leftOut ?? [])
+      fs.writeFileSync(stubs, `void gdp_extern_called(const char *);\n${names.map(n => (out.has(n) ? `void ${n}(void) {}` : `void ${n}(void) { gdp_extern_called(${JSON.stringify(n)}); }`)).join('\n')}\n`)
       try { link([stubs]) } catch (y) { return {...empty, mismatch: `the file doesn't build with the check's harness: ${why(y).split('\n').filter(l => /error/.test(l)).slice(0, 6).join(' | ')}`} }
     }
     // (a harness that doesn't start would leave the pipes unopened: asked to start and stop first)

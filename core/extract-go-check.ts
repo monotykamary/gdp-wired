@@ -12,7 +12,7 @@ import type {Arg, Model} from './extract-read.ts'
 import type {B} from './extract-ir.ts'
 import type {Sorts} from './extract-print.ts'
 import {type CodeSide, type Coverage, type Evidence, Outside, type Snap, constantsOf, draw, drive, evalTerm} from './extract-check.ts'
-import {stubbed} from './extract-step.ts'
+import {openHarness, stubbed} from './extract-step.ts'
 import {type GoOptions, type GoPkg, type GoRead, type TT, node} from './extract-go.ts'
 
 export type GoLeaf = {name: string, path: string[], kind: 'int' | 'bool' | 'str' | 'big' | 'bignil' | 'map' | 'mapnil' | 'list' | 'frame', t: number, go: string}
@@ -364,12 +364,10 @@ export function checkGo(dir: string, pkg: GoPkg, read: GoRead, r: Rule, sorts: S
 // it, call a method on it), every state compared; `count` reads the coverage after the harness exits.
 export function speak(work: string, bin: string, env: Record<string, string | undefined> | undefined, pkg: GoPkg, read: GoRead, r: Rule, sorts: Sorts, opts: GoCheckOptions, count: () => Coverage): Evidence & {runMs: number} {
   const m = read.model, bound = opts.bound ?? 12
-  const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process')
+  const fs = node<FS>('node:fs')
   let child: {kill: () => void} | undefined, wi = -1, ro = -1
   try {
-    cp.execFileSync('mkfifo', [`${work}/in`, `${work}/out`], {})
-    child = node<{spawn: (f: string, a: string[], o: Record<string, unknown>) => {kill: () => void}}>('node:child_process').spawn(bin, [`${work}/in`, `${work}/out`], {stdio: 'ignore', env})
-    wi = fs.openSync(`${work}/in`, 'w'); ro = fs.openSync(`${work}/out`, 'r')
+    ;({child, wi, ro} = openHarness(work, bin, [], {stdio: 'ignore', env}))
     const buf = new Uint8Array(1 << 20), dec = new TextDecoder()
     let pend = ''
     const line = (): string | undefined => {

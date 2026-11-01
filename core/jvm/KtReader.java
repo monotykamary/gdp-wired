@@ -863,6 +863,9 @@ public final class KtReader implements Jvm.Env {
       X body = inline(lam, null, recv, c, stmt && n.equals("let"), p);
       return n.equals("also") ? recv : body;
     }
+    // (any other call given a lambda: other code runs it, any number of times; repeat(n) { } a loop. require's and
+    // check's lambda is their failure's message, read as they are)
+    if (lam != null && !(recv == null && Set.of("require", "check", "requireNotNull", "checkNotNull").contains(n))) return no1(ce, recv == null && n.equals("repeat") ? "a loop (repeat)" : "a lambda given to " + n + " (a closure other code runs)");
     List<Map<String, Object>> args = new ArrayList<>();
     List<JT> argT = new ArrayList<>();
     List<Object> kw = new ArrayList<>();
