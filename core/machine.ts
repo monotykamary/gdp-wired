@@ -293,9 +293,11 @@ const exact = (v: number): number => {
   return v
 }
 
+// (a value is a number: a name like constructor or toString, read through an object's prototype, is no value of it)
+const num = (x: unknown): number | undefined => (typeof x === 'number' ? x : undefined)
 export function evalE(e: E, env: Env, st: State, m: Machine): number {
   switch (e.op) {
-    case 'var': { const v = env[e.name] ?? st.scalars[e.name]; if (v === undefined) throw new Error(`no value for ${e.name}`); return v }
+    case 'var': { const v = num(env[e.name]) ?? num(st.scalars[e.name]); if (v === undefined) throw new Error(`no value for ${e.name}`); return v }
     case 'const': return e.value
     case 'add': return exact(evalE(e.a, env, st, m) + evalE(e.b, env, st, m))
     case 'sub': return Math.max(0, evalE(e.a, env, st, m) - evalE(e.b, env, st, m))
@@ -305,10 +307,10 @@ export function evalE(e: E, env: Env, st: State, m: Machine): number {
     case 'max': return Math.max(evalE(e.a, env, st, m), evalE(e.b, env, st, m))
     case 'if': return evalC(e.c, env, st, m) ? evalE(e.then, env, st, m) : evalE(e.else, env, st, m)
     case 'get': {
-      const fn = m.fns?.[e.map], args = fn?.call ? pairedArgs(e.key, fn.arity!) : undefined
+      const fn = m.fns && Object.hasOwn(m.fns, e.map) ? m.fns[e.map] : undefined, args = fn?.call ? pairedArgs(e.key, fn.arity!) : undefined
       if (args) { const xs = args.map(a => evalE(a, env, st, m)); return naturalIn(callOf(fn!)(...xs), `${e.map}(${xs.join(', ')})`) }
       const key = evalE(e.key, env, st, m)
-      return fn ? naturalIn(fnOf(fn)(key), `${e.map}(${key})`) : st.maps[e.map]!.get(key) ?? st.defaults?.[e.map] ?? m.maps![e.map]!
+      return fn ? naturalIn(fnOf(fn)(key), `${e.map}(${key})`) : st.maps[e.map]!.get(key) ?? (st.defaults && Object.hasOwn(st.defaults, e.map) ? st.defaults[e.map] : undefined) ?? m.maps![e.map]!
     }
   }
 }
@@ -367,7 +369,7 @@ export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
 // a function of several arguments go through evalC and evalE). For a term read at many rows (the engine's views).
 export function compileE(e: E, m: Machine): (env: Env, st: State) => number {
   switch (e.op) {
-    case 'var': { const name = e.name; return (env, st) => { const v = env[name] ?? st.scalars[name]; if (v === undefined) throw new Error(`no value for ${name}`); return v } }
+    case 'var': { const name = e.name; return (env, st) => { const v = num(env[name]) ?? num(st.scalars[name]); if (v === undefined) throw new Error(`no value for ${name}`); return v } }
     case 'const': { const v = e.value; return () => v }
     case 'add': { const a = compileE(e.a, m), b = compileE(e.b, m); return (env, st) => exact(a(env, st) + b(env, st)) }
     case 'sub': { const a = compileE(e.a, m), b = compileE(e.b, m); return (env, st) => Math.max(0, a(env, st) - b(env, st)) }
@@ -621,7 +623,7 @@ export function compileJs(m: Machine): string {
       case 'max': return `Math.max(${ex(e.a)}, ${ex(e.b)})`
       case 'if': return `(${cx(e.c)} ? ${ex(e.then)} : ${ex(e.else)})`
       case 'get': {
-        const fn = m.fns?.[e.map], args = fn?.call ? pairedArgs(e.key, fn.arity!) : undefined
+        const fn = m.fns && Object.hasOwn(m.fns, e.map) ? m.fns[e.map] : undefined, args = fn?.call ? pairedArgs(e.key, fn.arity!) : undefined
         if (args) return `$n(fnc${fns.indexOf(e.map)}(${args.map(ex).join(', ')}), ${id(`${e.map}()`)})`
         return fns.includes(e.map) ? `$n(fn${fns.indexOf(e.map)}(${ex(e.key)}), ${id(`${e.map}()`)})` : `(maps[${id(e.map)}].get(${ex(e.key)}) ?? ${carriedMaps.includes(e.map) ? '0' : `dft[${id(e.map)}] ?? ${plain.maps![e.map]}`})`
       }

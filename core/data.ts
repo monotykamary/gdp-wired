@@ -213,6 +213,12 @@ export class Data {
   constructor(readonly name: string, decl: Record<string, Record<string, FieldSort>>, readonly group: string[] = [name]) {
     if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) throw new Error(`${name}: a datatype's name is letters and digits`)
     const all: Ctor[] = Object.entries(decl).map(([c, fs]) => ({name: c, fields: Object.entries(fs).map(([f, s]) => ({name: f, sort: s}))}))
+    // (a constructor is a member of its datatype, D.c, and its map D.c beside D.tag and D.size: none of the datatype's own
+    // members, constructor or toString included, nor tag or size; each name letters and digits, so no map is another's)
+    for (const c of all) {
+      if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(c.name) || c.name in this || ['ctors', 'tag', 'size'].includes(c.name)) throw new Error(`${name}.${c.name}: a constructor's name is letters and digits, and none of a datatype's own (tag, size, ${['name', 'make', 'constructor'].join(', ')}, ...)`)
+      for (const f of c.fields) if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(f.name)) throw new Error(`${name}.${c.name}.${f.name}: a field's name is letters and digits`)
+    }
     for (const c of all) for (const f of c.fields) if (isDataField(f.sort) && !group.includes(f.sort.data) && !declared.has(f.sort.data)) throw new Error(`${name}.${c.name}.${f.name}: no datatype ${f.sort.data}`)
     const rank = (c: Ctor) => (!c.fields.length ? 0 : c.fields.every(f => !(isDataField(f.sort) && group.includes(f.sort.data))) ? 1 : 2)
     this.ctors = [...all].sort((a, b) => rank(a) - rank(b))
@@ -337,8 +343,10 @@ export function define(name: string, params: Record<string, Sort>, ret: Sort, bo
   return Object.assign(call, {fn})
 }
 // An uninterpreted function of a natural (a law about every f): `const f = fnParam('f')`, `f(x)`.
-export const fnParam = (name: string): ((x: NatLike) => Nat) & {param: string} =>
-  Object.assign((x: NatLike) => new Nat({op: 'apply', param: name, arg: natX(x)}), {param: name})
+export const fnParam = (name: string): ((x: NatLike) => Nat) & {param: string} => {
+  if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) throw new Error(`${name}: a function parameter's name is letters and digits`)
+  return Object.assign((x: NatLike) => new Nat({op: 'apply', param: name, arg: natX(x)}), {param: name})
+}
 const paramsIn = (t: unknown): string[] => { const out: string[] = []; walk(t, o => { if (o.op === 'apply') out.push(o.param as string) }); return out }
 // Each object once, in walk's order (a term shared within another is visited where walk first reaches it).
 function walkOnce(t: unknown, f: (o: Record<string, unknown>) => void, seen = new WeakSet<object>()): void {
@@ -1086,6 +1094,8 @@ export function programOf(laws: DataLaw[], extra: Fn[] = []): Program {
   for (const f of order) { scan(f.body()); if (f.ret === 'int' || f.params.some(q => q.sort === 'int')) ints = true }
   for (const d of datas) if (d.ctors.some(c => c.fields.some(f => f.sort === 'int'))) ints = true
   if (ints) divs.add(2)
+  // (a function parameter is a map of its own name, as a function is: never one of theirs, which their equations fix)
+  for (const q of ps) if (fs.has(q)) throw new Error(`${q}: a function parameter named as a function the law reads`)
   return {datas, fns: order, params: [...ps], divisors: [...divs].sort((a, b) => a - b), ints}
 }
 

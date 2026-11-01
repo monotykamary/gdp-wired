@@ -26,20 +26,21 @@ export type RowSrc = {atom: number} | {fact: number} | {nat: string} | {pair: [s
 export const v = (name: string): Lin => ({[name]: 1})
 export const k = (value: number): Lin => (value === 0 ? {} : {1: value})
 // (Plain loops, no intermediate arrays: these run millions of times in a proof. Each keeps the keys in the order they
-// first appear, as a sum over the entries would.)
+// first appear, as a sum over the entries would. Each builds on an object with no prototype, so a variable
+// named __proto__ is a key like any other and one named constructor or toString reads 0 until set.)
 export function add(...xs: Lin[]): Lin {
-  const out: Lin = {}
+  const out: Lin = Object.create(null)
   for (const x of xs) for (const key in x) out[key] = (out[key] ?? 0) + x[key]!
   for (const key in out) if (out[key] === 0) delete out[key]
   return out
 }
 export const scale = (x: Lin, f: number): Lin => {
-  const out: Lin = {}
+  const out: Lin = Object.create(null)
   for (const key in x) { const value = x[key]! * f; if (value !== 0) out[key] = value }
   return out
 }
 export const sub = (a: Lin, b: Lin): Lin => {
-  const out: Lin = {}
+  const out: Lin = Object.create(null)
   for (const key in a) out[key] = a[key]!
   for (const key in b) out[key] = (out[key] ?? 0) - b[key]!
   for (const key in out) if (out[key] === 0) delete out[key]

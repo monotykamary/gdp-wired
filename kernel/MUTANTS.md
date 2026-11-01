@@ -1,6 +1,6 @@
 # Mutation testing of the trusted base
 
-`kernel/mutants.ts` changes `kernel/kernel.ts`, `core/check.ts`, `core/data.ts`'s admission and `kernel/cyclic.ts` one operator, constant or quantifier at a time (and in cyclic.ts, which builds its goals as object literals, a part of a goal) and runs
+`kernel/mutants.ts` changes `kernel/kernel.ts`, `core/check.ts`, `core/data.ts`'s admission, `kernel/cyclic.ts` and `core/solver.ts`'s rows one operator, constant or quantifier at a time (and in cyclic.ts, which builds its goals as object literals, a part of a goal) and runs
 a test battery on each mutant (refusals, tamper, builders, conformance, the finance examples, runtimes, histories, the
 kernel fuzz). Fanned out on boat or Modal (`bun mutants.ts ids <a,b,...>` per job, as the treadmill runs them):
 
@@ -18,6 +18,7 @@ kernel fuzz). Fanned out on boat or Modal (`bun mutants.ts ids <a,b,...>` per jo
 | core/data.ts's admission of a definition (gen/laneT, 2026-11-01: `recursion`, the measures' terms, `sitesOf`, `obligation`, `directly`, `proveMeasures`, `ringSites`, `checkMeasures`, `termination`; `MUTANT_BATTERY=termination,conformance`, the first the termination tests of core/data.test.ts) | 112 | 63 (56%) | 49, each listed equivalent below with its reason: messages, names, traces and types; search settings and deadlines; arithmetic by 0 or 1; a route that only refuses or moves a function to a kernel-checked measure; an integer measure read at its code 2·v; guards backed by another check (a run's kills vary by one or two with the battery's timing) |
 | kernel/cyclic.ts (gen/laneH, 2026-11-01): the operators above and its own (a comparison's kind, a negation made true, a part of a goal's hypotheses dropped, a guard or a tree check skipped, a fact's keys past its terms, the language check widened); `cyclic`, `cycles` in the battery | 43 (1071–1113) | 30 (70%) | 13 |
 | plus four tests in core/cyclic.test.ts, the whole battery again | 43 | 41 (95%) | 2, listed equivalent below |
+| a name every object has (gen/laneH3, 2026-11-02: a record read or built through the prototype; two operators in every target, `Object.hasOwn(` to `Reflect.has(` and `Object.create(null)` to `{}`, and core/solver.ts's `v`, `k`, `add`, `scale`, `sub` a target), each mutant on a line the lane changed and every one of the two operators: the whole battery, the baseline passing | 62 | 58 (94%) | 4: three listed equivalent below (times', the sums' flags', checkWitness's), and sumMachine's carried-or-function test, its entry's snippet moved |
 
 `core/data.ts`'s admission of a definition is in the targets by its top-level declarations alone (mutants.ts's `only`):
 the rest of that file is the search, whose mutants change speed, never what is taken. Its first run left 50 of 111; the
@@ -85,9 +86,6 @@ kernel/kernel.ts | remember | "i < 0 || reads[i]" | " || " -> " && " | i < 0 nev
 kernel/kernel.ts | reusing | "reuse = true" | "true" -> "false" | inside reusing the parts are read afresh on a copy of the path, with every decision recorded: slower, alike
 kernel/kernel.ts | reuse | "let reuse = false" | "false" -> "true" | the kernel's check reads through reusing too: a value found is used only when every decision it read is the path's
 kernel/kernel.ts | keyOf | "if (i > start)" | " > " -> " >= " | an empty part reads as the key '' with coefficient 0, which the difference of two keys drops
-kernel/kernel.ts | substE | "s.maps[e.map]!(key)" | "!(" -> "(" | a TypeScript non-null assertion, nothing at run time
-kernel/kernel.ts | step | "at.maps[map]!(key)" | "!(" -> "(" | a TypeScript non-null assertion, nothing at run time
-kernel/kernel.ts | across | "r.at.maps[map]!(key)" | "!(" -> "(" | a TypeScript non-null assertion, nothing at run time
 kernel/kernel.ts | witnessesOf | "`w${i + 1}?${f}`" | " + 1" -> "" | the witnesses are w?f, w1?f, w2?f: still apart, and fresh (? is reserved in every declared name)
 kernel/kernel.ts | apart | "& (other(u.a) || other(u.b))) " | " || " -> " && " | apart: the check of the other key, or keyOnly, refuses every comparison this one would (a key term on one side that reads the other key is the other key's key term, or reads it outside one)
 kernel/kernel.ts | apart | " j, i <= j, i " | " <= " -> " < " | text in an error message
@@ -98,8 +96,7 @@ kernel/kernel.ts | historyMachine | "n ${i + 1} @re" | " + 1" -> "" | a goal's o
 kernel/kernel.ts | sumCondOk | "c.op === 'flag' || c.op === 'all' " | " || " -> " && " | a flag or quantifier in a sum's condition throws either way (sumTermOk of a missing side)
 kernel/kernel.ts | sumCondOk | "l' ? false : c" | "false" -> "true" | a sum term reading a flag is refused anyway: its start value (natE) reads no flag
 kernel/kernel.ts | sumMachine | "ag}`) || names" | " || " -> " && " | ?cells$S and w?cells$S are names of the machine only if the flag cells$S is, which the loop just before refuses
-kernel/kernel.ts | sumMachine | "(map) || (m.fn" | " || " -> " && " | a map both carried and a function is refused by scope's distinct names (obligations scopes the plain machine)
-kernel/kernel.ts | sumMachine | "[map] || !(map" | " || " -> " && " | an undeclared map has no start value: natE of it throws
+kernel/kernel.ts | sumMachine | "(map) || Object.hasOwn(m.fn" | " || " -> " && " | a map both carried and a function is refused by scope's distinct names (obligations scopes the plain machine)
 kernel/kernel.ts | sumMachine | " key) || reads" | " || " -> " && " | a cover key is a machine term: it reads the sum's key or x$S only if the machine names them, which the loop before refuses
 kernel/kernel.ts | sumRuntime | "ms!).some(s =>" | ".some(" -> ".every(" | sumRuntime: the runtime evaluates the sums' bound flags too, which nothing reads
 kernel/kernel.ts | loopObligations | "anks.some(r =>" | ".some(" -> ".every(" | the ranks are scoped first (inScope of params and state): a rank reading an input is refused there
@@ -205,4 +202,7 @@ core/data.ts | termination | "${ring.length > 1 ? ' within t" | " > " -> " >= " 
 core/data.ts | termination | "${ring.length > 1 ? `, ${names" | " > " -> " >= " | text in a refusal's message
 kernel/cyclic.ts | lexLt | "as.length && bs.length" | " && " -> " || " | lexLt is read only on ranks of one length (refuseCyclic refuses a use whose ranks differ in length before it builds the descent goal), where both lists are empty or neither is
 kernel/cyclic.ts | keyed | ".slice(0, at.length)" | ".slice(0, at.length)" -> "" | a key past the terms is paired with undefined, which substE reads as no substitution (s.vars[name] ?? e), as the slice leaves it out: the same hypotheses
+kernel/kernel.ts | sumMachine | "qflags: Record<string, C> = Object.create(null)" | "Object.create(null)" -> "{}" | its keys are cells$S, never a name an object has (the $ is no part of one)
+core/check.ts | checkWitness | "Object.hasOwn(witness, key)" | "Object.hasOwn(" -> "Reflect.has(" | a value read through the prototype is a function or an object, never a safe integer: refused alike
+kernel/kernel.ts | times | "const out: Lin = Object.create(null)" | "Object.create(null)" -> "{}" | each product first reads out[key] into a safe-integer check, and an inherited value (a function, or {}'s prototype for __proto__) is none: no product, as with no prototype the row is right; never a row missing the name
 ```

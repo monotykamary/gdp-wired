@@ -5,7 +5,7 @@
 // loops (loopObligations), folds (foldObligations), progress (progressObligations), liveness (livenessParts, then
 // checkStepLaws). Around them, untrusted: reading the document (format.ts) and the guard that it was read faithfully
 // (written again, it must be the document read).
-import {check, checkKInduction, checkLaws, checkQMachine, checkQTree, checkRecur, checkStepLaws, foldObligations, kInductionStart, kInductionSteps, livenessParts, loopObligations, obligations, progressObligations, qObligations, recurGoal, stepLawObligations} from '../kernel/kernel.ts'
+import {check, checkKInduction, checkLaws, checkQMachine, checkQTree, checkRecur, checkStepLaws, foldObligations, kInductionStart, kInductionSteps, livenessParts, loopObligations, obligations, own, progressObligations, qObligations, recurGoal, stepLawObligations} from '../kernel/kernel.ts'
 import type {Goal, Tree} from '../kernel/kernel.ts'
 import {descentGoal, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
 import type {Cyclic} from '../kernel/cyclic.ts'
@@ -16,11 +16,11 @@ export type Claim = {name: string, accepted: boolean, why?: string}
 export type Report = {kind?: string, accepted: boolean, claims: Claim[], malformed?: string}
 
 const attempt = (f: () => boolean): {ok: boolean, why?: string} => { try { return {ok: f()} } catch (e) { return {ok: false, why: e instanceof Error ? e.message : String(e)} } }
-const treeOk = (g: Goal, trees: Record<string, Tree>) => trees[g.name] !== undefined && check(g, trees[g.name]!)
+const treeOk = (g: Goal, trees: Record<string, Tree>) => { const t = own(trees, g.name); return t !== undefined && check(g, t) }
 // Each goal's own answer, for a refusal's why (never the verdict: that is the kernel's entry point's).
 const failing = (goals: () => Goal[], trees: Record<string, Tree>): string | undefined => {
   try {
-    const bad = goals().filter(g => !treeOk(g, trees)).map(g => (trees[g.name] ? `${g.name}: its tree doesn't refute it` : `${g.name}: no tree`))
+    const bad = goals().filter(g => !treeOk(g, trees)).map(g => (own(trees, g.name) ? `${g.name}: its tree doesn't refute it` : `${g.name}: no tree`))
     return bad.length ? bad.slice(0, 3).join('; ') + (bad.length > 3 ? `; and ${bad.length - 3} more` : '') : undefined
   } catch (e) { return e instanceof Error ? e.message : String(e) }
 }
@@ -41,14 +41,14 @@ export function checkCertificate(c: Certificate): Claim[] {
     // A set of laws is proven together (each step assumes them all), so each is accepted exactly when the set is.
     case 'laws': return all(c.laws.map(l => l.name), attempt(() => checkLaws(c.machine, c.laws, c.proof)), () => failing(() => obligations(c.machine, c.laws, c.proof.instances), c.proof.trees))
     case 'stepLaws': return all([...c.laws.map(l => l.name), ...c.stepLaws.map(s => s.name)], attempt(() => checkStepLaws(c.machine, c.laws, c.stepLaws, c.proof)),
-      () => failing(() => [...obligations(c.machine, c.laws, c.proof.laws.instances), ...c.stepLaws.flatMap(s => stepLawObligations(c.machine, c.laws, c.proof.perStep?.[s.name] ?? c.proof.instances, s))], {...c.proof.laws.trees, ...c.proof.trees})
+      () => failing(() => [...obligations(c.machine, c.laws, c.proof.laws.instances), ...c.stepLaws.flatMap(s => stepLawObligations(c.machine, c.laws, own(c.proof.perStep ?? {}, s.name) ?? c.proof.instances, s))], {...c.proof.laws.trees, ...c.proof.trees})
         ?? 'a later step\'s names read before it (the zone condition)')
     case 'kInduction': return all([c.kInduction.law.name], attempt(() => checkKInduction(c.machine, c.laws, c.kInduction, c.proof)),
-      () => failing(() => [kInductionStart(c.machine, c.kInduction, c.proof.perStep?.[`${c.kInduction.law.name} @start`] ?? c.proof.instances), ...kInductionSteps(c.machine, c.kInduction).flatMap(s => stepLawObligations(c.machine, c.laws, c.proof.perStep?.[s.name] ?? c.proof.instances, s))], c.proof.trees)
+      () => failing(() => [kInductionStart(c.machine, c.kInduction, own(c.proof.perStep ?? {}, `${c.kInduction.law.name} @start`) ?? c.proof.instances), ...kInductionSteps(c.machine, c.kInduction).flatMap(s => stepLawObligations(c.machine, c.laws, own(c.proof.perStep ?? {}, s.name) ?? c.proof.instances, s))], c.proof.trees)
         ?? failing(() => obligations(c.machine, c.laws, c.proof.laws.instances), c.proof.laws.trees))
     case 'liveness': {
       const r = attempt(() => { const {stay, cover, helps} = livenessParts(c.machine, c.liveness); return checkStepLaws(c.machine, c.laws, [stay, cover, ...helps], c.proof) })
-      return all([c.liveness.name], r, () => failing(() => { const {stay, cover, helps} = livenessParts(c.machine, c.liveness); return [stay, cover, ...helps].flatMap(s => stepLawObligations(c.machine, c.laws, c.proof.perStep?.[s.name] ?? c.proof.instances, s)) }, c.proof.trees))
+      return all([c.liveness.name], r, () => failing(() => { const {stay, cover, helps} = livenessParts(c.machine, c.liveness); return [stay, cover, ...helps].flatMap(s => stepLawObligations(c.machine, c.laws, own(c.proof.perStep ?? {}, s.name) ?? c.proof.instances, s)) }, c.proof.trees))
     }
     // Progress assumes the laws: proven here by their own trees where the document has them, else not accepted.
     case 'progress': {
@@ -87,21 +87,21 @@ export function checkDocument(doc: unknown): Report {
 // check, as a `goals` (or `qgoals`) certificate a second checker reads (interchange/py/check.py checks trees alone).
 // (The checks past trees stay the kernel's: a stem evaluated, a cyclic proof's ranks of one length, the step laws' zone.)
 export function goalsOf(c: Certificate): Certificate {
-  const pick = (goals: Goal[], trees: Record<string, Tree>) => goals.flatMap(goal => (trees[goal.name] ? [{goal, tree: trees[goal.name]!}] : []))
+  const pick = (goals: Goal[], trees: Record<string, Tree>) => goals.flatMap(goal => { const tree = own(trees, goal.name); return tree ? [{goal, tree}] : [] })
   const cyclic = (p: Cyclic) => p.nodes.flatMap(n => [{goal: mainGoal(p.facts, p.nodes, n), tree: n.main}, ...n.uses.flatMap(u => {
     const m = p.nodes[u.node]
     return m ? [...m.hyps.flatMap((h, i) => (u.premises[i] ? [{goal: premiseGoal(p.facts, n, u, h, i), tree: u.premises[i]!}] : [])), ...(m.rank.length === n.rank.length ? [{goal: descentGoal(p.facts, n, u, m), tree: u.descent}] : [])] : []
   })])
   const steps = (m: Certificate & {kind: 'stepLaws' | 'liveness' | 'kInduction'}, sls: Parameters<typeof stepLawObligations>[3][]) =>
-    [...pick(obligations(m.machine, m.laws, m.proof.laws.instances), m.proof.laws.trees), ...pick(sls.flatMap(s => stepLawObligations(m.machine, m.laws, m.proof.perStep?.[s.name] ?? m.proof.instances, s)), m.proof.trees)]
+    [...pick(obligations(m.machine, m.laws, m.proof.laws.instances), m.proof.laws.trees), ...pick(sls.flatMap(s => stepLawObligations(m.machine, m.laws, own(m.proof.perStep ?? {}, s.name) ?? m.proof.instances, s)), m.proof.trees)]
   switch (c.kind) {
     case 'goals': case 'qgoals': return c
-    case 'qmachine': return {kind: 'qgoals', goals: c.laws.flatMap(l => { const g = qObligations(c.machine, c.laws, l), t = c.trees[l.name]; return t ? [{goal: g.start, tree: t.start}, {goal: g.step, tree: t.step}] : [] })}
+    case 'qmachine': return {kind: 'qgoals', goals: c.laws.flatMap(l => { const g = qObligations(c.machine, c.laws, l), t = own(c.trees, l.name); return t ? [{goal: g.start, tree: t.start}, {goal: g.step, tree: t.step}] : [] })}
     case 'laws': return {kind: 'goals', goals: pick(obligations(c.machine, c.laws, c.proof.instances), c.proof.trees)}
     case 'stepLaws': return {kind: 'goals', goals: steps(c, c.stepLaws)}
     case 'liveness': { const {stay, cover, helps} = livenessParts(c.machine, c.liveness); return {kind: 'goals', goals: steps(c, [stay, cover, ...helps])} }
     case 'kInduction': {
-      const start = kInductionStart(c.machine, c.kInduction, c.proof.perStep?.[`${c.kInduction.law.name} @start`] ?? c.proof.instances)
+      const start = kInductionStart(c.machine, c.kInduction, own(c.proof.perStep ?? {}, `${c.kInduction.law.name} @start`) ?? c.proof.instances)
       return {kind: 'goals', goals: [...pick([start], c.proof.trees), ...steps(c, kInductionSteps(c.machine, c.kInduction))]}
     }
     case 'progress': return {kind: 'goals', goals: [...(c.lawsProof ? pick(obligations(c.machine, c.laws, c.lawsProof.instances), c.lawsProof.trees) : []), ...pick(progressObligations(c.machine, c.laws, c.instances, c.progress), c.trees)]}
