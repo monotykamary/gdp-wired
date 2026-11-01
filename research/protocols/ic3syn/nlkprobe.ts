@@ -21,3 +21,11 @@ const S: Law[] = [
 const want = process.argv[2] === 'all' ? S : S.slice(0, Number(process.argv[2] ?? 5))
 const t = performance.now(), out = proveLaws(gm, [...r.kindLaws(), ...sk.laws, ...want])
 console.log(JSON.stringify({ms: Math.round(performance.now() - t), proven: out.proven, checked: out.checked, failed: out.failed}).slice(0, 800))
+{
+  const a = r.withGhosts(sk.ghost).machine, b = ghostedMachine(G)
+  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) if (JSON.stringify((a as any)[k]) !== JSON.stringify((b as any)[k])) {
+    console.log('differs', k)
+    const x = (a as any)[k], y = (b as any)[k]
+    if (x && typeof x === 'object') for (const k2 of new Set([...Object.keys(x), ...Object.keys(y ?? {})])) if (JSON.stringify(x[k2]) !== JSON.stringify(y?.[k2])) console.log('  ', k2, JSON.stringify(x[k2]).slice(0, 200), '|', JSON.stringify(y?.[k2]).slice(0, 200))
+  }
+}

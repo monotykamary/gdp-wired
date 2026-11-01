@@ -468,7 +468,7 @@ function ghostSupports(m: Machine, law: Law, c: {maps: Ghosted['maps'], sub: Rec
     ...Object.entries(m.step.maps ?? {}).flatMap(([mp, w]) => ('each' in w || w.key.op !== 'var' ? [] : [0, 1].map(x => cmp('=', {op: 'get', map: mp, key: v(L)}, k(x)))))]
   const ds = (law.holds.op === 'or' ? law.holds.xs : [law.holds]).flatMap(d => (d.op === 'or' ? d.xs : [d])).filter(d => law.some!.some(x => namesOf(d).includes(x)))
   const holds = (g: C[], d: C): C => ({op: 'or', xs: [{op: 'not', x: g.length === 1 ? g[0]! : {op: 'and', xs: g}}, d]})
-  for (const d of ds) for (const [j, f] of facts.entries()) for (const g of [[f], ...facts.slice(j + 1).map(f2 => [f, f2])]) out.push({name: `${showC(holds(g, d)).slice(0, 80)} (${out.length})`, forall: L, holds: holds(g, substC(d, {vars: c.sub, maps: {}, flags: {}}))})
+  for (const d of ds) for (const [j, f] of facts.entries()) for (const g of [[f], ...facts.slice(j + 1).filter(f2 => key((f2 as {a: E}).a) !== key((f as {a: E}).a)).map(f2 => [f, f2])]) out.push({name: `${showC(holds(g, d)).slice(0, 80)} (${out.length})`, forall: L, holds: holds(g, substC(d, {vars: c.sub, maps: {}, flags: {}}))})
   for (const f of facts.filter(f2 => !readsMaps(f2))) for (const mp of Object.keys(m.maps ?? {})) out.push({name: `${mp} empty where ${showC(f)} (${out.length})`, forall: L, holds: holds([f], cmp('=', {op: 'get', map: mp, key: v(L)}, k(0)))})
   return out.filter(l2 => { try { return trueSmall(m, [l2], gm) } catch { return false } }).slice(0, 24)
 }
