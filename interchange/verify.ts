@@ -2,13 +2,15 @@
 // with the kernel's answer there (each document's meta.capture.kernel):
 //   - the checker in this process (checkDocument, which reads the document back and guards the reading);
 //   - the bundled CLI (interchange/dist/gdp-wired-check.js, built by interchange/build.ts), in batches;
+//   - any other build of the CLI (--also <name>=<command>, repeated: the compiled executable, the npm package's bin under
+//     node), in batches the same way, each counted as <name>Agree;
 //   - the WebAssembly module (--wasm "<runner>": e.g. "wasmtime run" or "wasmer run", reading the document on stdin);
 //   - the second checker (--python <python3>: interchange/py/check.py) on each certificate's goals and trees, against
 //     the kernel's check of each goal here.
 // With --tamper, each accepted document is also tampered three ways (a leaf's last step dropped, a multiplier raised, a
 // split's constant moved), and each twin checked by all of them. Prints a summary; --out writes it as JSON.
 // With --schema <python3> (with the jsonschema package), every document, twin and goals document against schema.json.
-//   bun interchange/verify.ts <dir>... [--tamper] [--wasm "<runner>"] [--python python3] [--schema python3] [--out summary.json] [--keep <dir>]
+//   bun interchange/verify.ts <dir>... [--tamper] [--wasm "<runner>"] [--python python3] [--schema python3] [--also name=cmd]... [--out summary.json] [--keep <dir>]
 import {mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync} from 'node:fs'
 import {cpus, tmpdir} from 'node:os'
 import {join} from 'node:path'
@@ -17,14 +19,15 @@ import {checkDocument, goalsOf} from './check.ts'
 import {type Document, type Json, fromInterchange, toInterchange} from './format.ts'
 
 const argv = process.argv.slice(2), flag = (f: string) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : undefined }
-const valued = new Set(['--wasm', '--python', '--out', '--keep', '--schema'])
+const valued = new Set(['--wasm', '--python', '--out', '--keep', '--schema', '--also'])
 const dirs = argv.filter((a, i) => !a.startsWith('--') && !valued.has(argv[i - 1] ?? ''))
+const also = argv.flatMap((a, i) => (a === '--also' && argv[i + 1]?.includes('=') ? [argv[i + 1]!.split(/=(.*)/s).slice(0, 2) as [string, string]] : []))
 const tamper = argv.includes('--tamper'), wasm = flag('--wasm'), python = flag('--python'), outFile = flag('--out'), schemaPy = flag('--schema')
 const here = import.meta.dir, bundle = join(here, 'dist', 'gdp-wired-check.js'), wasmModule = join(here, 'dist', 'gdp-wired-check.wasm')
 const work = flag('--keep') ?? mkdtempSync(join(tmpdir(), 'gdp-verify-'))
 mkdirSync(join(work, 'goals'), {recursive: true}); mkdirSync(join(work, 'tampered'), {recursive: true})
 
-type Item = {file: string, kind: string, kernel: boolean | string | undefined, tampered?: string, ts?: boolean, malformed?: string, cli?: boolean, wasm?: boolean,
+type Item = {file: string, kind: string, kernel: boolean | string | undefined, tampered?: string, ts?: boolean, malformed?: string, cli?: boolean, wasm?: boolean, also?: Record<string, boolean | undefined>,
   goals?: {file: string, expect: boolean[]}, py?: boolean[]}
 const items: Item[] = []
 const asAnswer = (k: unknown): boolean | undefined => (k === true ? true : k === false || (typeof k === 'string' && k.startsWith('throws')) ? false : undefined)
@@ -60,7 +63,9 @@ const expand = (it: Item, doc: unknown) => {
 }
 for (const file of files) {
   const doc = JSON.parse(readFileSync(file, 'utf8')) as Document
-  const it: Item = {file, kind: String(doc.kind), kernel: (doc.meta as {capture?: {kernel?: boolean | string}} | undefined)?.capture?.kernel}
+  // (the kernel's answer where the document was made: the capture's, or lean.ts write's)
+  const m = doc.meta as {capture?: {kernel?: boolean | string}, kernel?: boolean} | undefined
+  const it: Item = {file, kind: String(doc.kind), kernel: m?.capture ? m.capture.kernel : m?.kernel}
   const r = checkDocument(doc)
   it.ts = r.accepted
   if (r.malformed) it.malformed = r.malformed
@@ -90,6 +95,13 @@ for (let i = 0; i < items.length; i += 100) {
   const out = JSON.parse(r.stdout.toString()) as {file: string, report: {accepted: boolean}}[] | {accepted: boolean}
   const reports = Array.isArray(out) ? out.map(o => o.report) : [out]
   batch.forEach((b, j) => { b.cli = reports[j]?.accepted })
+}
+for (const [name, cmd] of also) for (let i = 0; i < items.length; i += 100) {
+  const batch = items.slice(i, i + 100)
+  const r = Bun.spawnSync(['sh', '-c', `${cmd} --json ${batch.map(b => JSON.stringify(b.file)).join(' ')}`], {stdout: 'pipe', stderr: 'pipe'})
+  let reports: {accepted: boolean}[] = []
+  try { const o = JSON.parse(r.stdout.toString()) as {file: string, report: {accepted: boolean}}[] | {accepted: boolean}; reports = Array.isArray(o) ? o.map(x => x.report) : [o] } catch { /* counted as not agreeing */ }
+  batch.forEach((b, j) => { (b.also ??= {})[name] = reports[j]?.accepted })
 }
 const tCli = performance.now() - t1
 
@@ -135,8 +147,8 @@ if (schemaPy) {
 }
 
 // --- the summary ------------------------------------------------------------------------------------------------------------
-type Row = {docs: number, kernelAccepted: number, kernelRefused: number, tsAgree: number, malformed: number, cliAgree: number, wasmRun: number, wasmAgree: number, goals: number, pyRun: number, pyAgree: number}
-const row = (): Row => ({docs: 0, kernelAccepted: 0, kernelRefused: 0, tsAgree: 0, malformed: 0, cliAgree: 0, wasmRun: 0, wasmAgree: 0, goals: 0, pyRun: 0, pyAgree: 0})
+type Row = {docs: number, kernelAccepted: number, kernelRefused: number, tsAgree: number, malformed: number, cliAgree: number, wasmRun: number, wasmAgree: number, goals: number, pyRun: number, pyAgree: number, [also: `${string}Agree`]: number}
+const row = (): Row => ({docs: 0, kernelAccepted: 0, kernelRefused: 0, tsAgree: 0, malformed: 0, cliAgree: 0, ...Object.fromEntries(also.map(([n]) => [`${n}Agree`, 0])), wasmRun: 0, wasmAgree: 0, goals: 0, pyRun: 0, pyAgree: 0})
 const byKind: Record<string, Row> = {}, tampered: Record<string, Row & {tsRefused: number}> = {}
 const disagree: string[] = [], acceptedTampers: string[] = []
 for (const it of items) {
@@ -150,12 +162,13 @@ for (const it of items) {
   if (it.tampered && it.ts === false) (r as Row & {tsRefused: number}).tsRefused++
   if (it.tampered && it.ts === true) acceptedTampers.push(`${it.file} (${it.tampered})`)
   if (it.cli === ref) r.cliAgree++
+  for (const [n] of also) if (it.also?.[n] === ref) r[`${n}Agree`] = (r[`${n}Agree`] ?? 0) + 1
   if (wasm && it.wasm !== undefined) { r.wasmRun++; if (it.wasm === ref) r.wasmAgree++ }
   if (it.goals) {
     r.goals += it.goals.expect.length
     if (it.py) { r.pyRun += it.py.length; r.pyAgree += it.py.filter((x, j) => x === it.goals!.expect[j]).length }
   }
-  const bad = [!it.tampered && it.ts !== ref && 'ts', it.cli !== ref && 'cli', wasm && it.wasm !== undefined && it.wasm !== ref && 'wasm', it.py && it.py.some((x, j) => x !== it.goals!.expect[j]) && 'python'].filter(Boolean)
+  const bad = [!it.tampered && it.ts !== ref && 'ts', it.cli !== ref && 'cli', ...also.map(([n]) => it.also?.[n] !== ref && n), wasm && it.wasm !== undefined && it.wasm !== ref && 'wasm', it.py && it.py.some((x, j) => x !== it.goals!.expect[j]) && 'python'].filter(Boolean)
   if (bad.length && disagree.length < 40) disagree.push(`${it.file}: ${bad.join(', ')} (reference ${ref}${it.malformed ? `, malformed: ${it.malformed}` : ''})`)
 }
 // The capture's own summaries: what it took, what it couldn't write (outside the format) and its identity checks.
@@ -168,12 +181,12 @@ const summary = {
   schema: schemaPy ? {...schema, first: schema.first.slice(0, 8)} : undefined,
   ms: {ts: Math.round(tTs), cli: Math.round(tCli), wasm: Math.round(tWasm), python: Math.round(tPy)},
 }
-const cols = ['docs', 'kernelAccepted', 'kernelRefused', 'tsAgree', 'malformed', 'cliAgree', 'wasmRun', 'wasmAgree', 'goals', 'pyRun', 'pyAgree'] as const
+const cols = ['docs', 'kernelAccepted', 'kernelRefused', 'tsAgree', 'malformed', 'cliAgree', ...also.map(([n]) => `${n}Agree` as const), 'wasmRun', 'wasmAgree', 'goals', 'pyRun', 'pyAgree'] as const
 console.log(`kind          ${cols.join('  ')}`)
-for (const [k, r] of [...Object.entries(byKind), ['TOTAL', Object.values(byKind).reduce((acc, r) => { for (const c of cols) acc[c] += r[c]; return acc }, row())] as const]) console.log(`${k.padEnd(13)} ${cols.map(c => String(r[c]).padStart(c.length)).join('  ')}`)
+for (const [k, r] of [...Object.entries(byKind), ['TOTAL', Object.values(byKind).reduce((acc, r) => { for (const c of cols) acc[c] = (acc[c] ?? 0) + (r[c] ?? 0); return acc }, row())] as const]) console.log(`${k.padEnd(13)} ${cols.map(c => String(r[c]).padStart(c.length)).join('  ')}`)
 if (tamper) {
-  console.log(`\ntampered (reference: the checker here)   docs  tsRefused  cliAgree  wasmRun  wasmAgree  goals  pyRun  pyAgree`)
-  for (const [w, r] of Object.entries(tampered)) console.log(`${w.padEnd(40)} ${[r.docs, r.tsRefused, r.cliAgree, r.wasmRun, r.wasmAgree, r.goals, r.pyRun, r.pyAgree].map(String).join('  ')}`)
+  console.log(`\ntampered (reference: the checker here)   docs  tsRefused  cliAgree  ${also.map(([n]) => `${n}Agree  `).join('')}wasmRun  wasmAgree  goals  pyRun  pyAgree`)
+  for (const [w, r] of Object.entries(tampered)) console.log(`${w.padEnd(40)} ${[r.docs, r.tsRefused, r.cliAgree, ...also.map(([n]) => r[`${n}Agree`] ?? 0), r.wasmRun, r.wasmAgree, r.goals, r.pyRun, r.pyAgree].map(String).join('  ')}`)
   console.log(`tampered twins the checker accepts (the tamper left a proof): ${acceptedTampers.length}`)
 }
 console.log(`\ncapture: ${caps.length} processes, identity ${summary.capture.identityOk} ok, ${summary.capture.identityFailed} failed; outside the format: ${JSON.stringify(summary.capture.outside)}`)

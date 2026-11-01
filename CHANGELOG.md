@@ -3,6 +3,53 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.44.0
+
+A standalone checker anyone can run, Effect's queues and semaphores, a faster CDCL search, CHC-COMP measured fairly, an
+exact random generator under every test, and fixes for 0.43.0's package. Nothing trusted changed.
+- **`gdp-wired-check`**, the trusted kernel alone, with no search: the package's second bin (`npx -p gdp-wired
+  gdp-wired-check doc.json`), also a 139 KB single file and a WebAssembly build. Over 71,246 suite certificates and
+  125,856 tampered twins it agrees with the TypeScript kernel, Lean and an independent Python reader, with no
+  disagreement. The interchange format is 1.1: a liveness certificate keeps its fairness (1.0 dropped it, so strong
+  fairness was refused). docs/ARCHITECTURE.md sets out each trust boundary and its guard; docs/FRONTENDS.md, how a
+  language's reader plugs in and is held to the code it reads.
+- **Effect: Queue and Semaphore** (3.x and 4.x): bounded, dropping, sliding and unbounded queues and semaphores are
+  modelled once, with their own laws proven for every capacity and number of permits (never past capacity, oldest out
+  first, nothing lost or made up; never more permits taken than exist). examples/effect-queue.ts: a worker pool whose
+  cancel releases a permit it never took is refused with its run. `RateLimiter` is refused, saying why.
+- **CDCL faster, the same search**: the clausal mode's hot path (`kernel/cdcl.ts`, untrusted) does the identical work
+  in 0.70 of the time on the same machines; CHC-COMP's Lustre and ctigar tasks solved within 60 s go from 28 to 40.
+- **CHC-COMP measured fairly**: with each tool alone on 4 dedicated vCPUs (`CHC_BOAT_WEIGHT=4 CHC_CPUS=4`), gdp-wired
+  solves 1,159–1,169 of 1,406 against Golem's up to 1,163 and Spacer's about 1,156, three runs each: level with Golem
+  by our rule. A VM-paired design (`--paired 1`, compare/chc/paired.py) runs each task's tools on one machine and
+  tests the per-task difference, removing most of the run-to-run spread.
+- **An exact generator**: the tests' and fuzzers' random numbers came from a floating-point generator that fell into six
+  short cycles, so most seeds replayed the same cases. One exact generator now serves every test, fuzzer and most
+  searches; 6,000 fresh soundness seeds pass. A drift between the CDCL search's incremental reading and the kernel's,
+  found by it, is fixed; the kernel checked every tree throughout, so no answer was affected.
+- **IC3Syn, measured by wall clock**: 19–20 of 29 within 60 s, 20 within 300 s, each protocol alone on its machine, two
+  runs; no broken variant proven.
+
+Fixes for the released 0.43.0 package, found by running the CLI on 53 real cases across 14 languages and on LiteLLM:
+- **Packaging**: the tarball lacked `dist/core/sol/harness.py` and `Replay.sol`, so a `.sol` check that reached the
+  bytecode check waited forever. The build now copies every file a front end runs beside its module (each
+  `core/<lang>/`), and a test packs the tarball and checks every asset the code names. `gdp-wired/extract-sol` is
+  exported, as 0.38.0 said. A check never waits on a harness: a missing asset is a clear error, and a harness that
+  exits before it answers is reported.
+- **LiteLLM** (v1.106.6, its 21 laws as comments): 19 of 21 proven again, the same 2 refuted as at 0.32; 0.43.0 proved
+  3. Python's clock is pinned only while the code runs and never in a module that a call first imports (FastAPI saw
+  `_Now | None` in LiteLLM's routes). A store's option given a constant (`litellm_parent_otel_span=None`,
+  `local_only=True`) is read with a note; refusing them was new in 0.33.
+- **Every refusal's suggested fix works**: tested as printed (gdp.toml at the top, under the rule, and the comment) in
+  Python, Ruby, Elixir, Java, Rust, C and Go.
+  - C and Go: `answers` and `skip` from gdp.toml reach the reader, and a skipped call into another file is a no-op in
+    the C check.
+  - Elixir: `# gdp: answer` on a remote call.
+  - Rust: an answered `let` needs no written type, and `answers` in gdp.toml builds.
+  - Java: a generic result answered in its stated type.
+  - Kotlin: `repeat(n) { }` is refused as a loop, not a reader crash.
+  - Python: a constructor argument typed by a Protocol (or assigned in a tuple) is an injected dependency.
+
 ## 0.43.0
 
 The CLI on real code, Effect's retries and transactions, protocols checked against TLC step by step, and the soundness

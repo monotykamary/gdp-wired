@@ -564,3 +564,99 @@ t('an argument the code ignores, kept where a law reads it (keep): the law about
   const x = ok(py(code, {entry: 'Fate', keep: ['start_failed'], check: budget}))
   expect(step(x, 'a wait counts only where a start failed', (b, a) => a.fails.gt(b.fails).implies(b.start_failed), () => yes).proven).toBe(false)
 })
+
+// The clock pinned only while the code runs, and never in what a module imported then copies: a framework's module
+// first imported by a call (FastAPI's routes, pydantic's models) that reads the types the code's modules hold sees the
+// real datetime (it raised `_Now | None is not a valid Pydantic field type` on LiteLLM's auth checks).
+t('the clock pinned only in the code\'s run: a module a call first imports reads the real datetime', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-pyclock-`)
+  writeFileSync(`${dir}/win.py`, `import datetime as dt
+
+
+class Window:
+    def __init__(self, limit: int):
+        self.limit = limit
+        self.start = 0
+        self.count = 0
+
+    def hit(self) -> bool:
+        from views import record
+        now = int(dt.datetime.now().timestamp())
+        if now - self.start >= 60:
+            self.start = now
+            self.count = 0
+        if self.count >= self.limit:
+            return False
+        self.count += 1
+        record()
+        return True
+`)
+  writeFileSync(`${dir}/views.py`, `import datetime
+from win import *
+
+if dt is not datetime or dt.datetime is not datetime.datetime:
+    raise TypeError(f"{dt.datetime!r} is not a valid field type")
+
+
+def record():
+    pass
+`)
+  const x = ok(extractPython(`${dir}/win.py`, {entry: 'Window', check: budget}))
+  expect(step(x, 'a hit counts at most one', (b, a) => a.count.atMost(b.count.plus(1)), () => yes).proven).toBe(true)
+})
+
+// A constructor argument typed by a Protocol (or by nothing) is an injected dependency, kept in a field however the
+// constructor assigns it (one place of a tuple's too): its methods' declared results answered by the request.
+t('a Protocol-typed constructor argument, assigned in a tuple: an injected dependency whose calls are answered', () => {
+  const code = (ret: string) => `from typing import Protocol
+
+
+class Pricing(Protocol):
+    def cost(self, model: str)${ret}: ...
+
+
+class Limiter:
+    def __init__(self, limit: int, pricing: Pricing):
+        self.limit, self.used, self.pricing = limit, 0, pricing
+
+    def hit(self, model: str) -> bool:
+        cost = self.pricing.cost(model)
+        if cost <= 0 or self.used + cost > self.limit:
+            return False
+        self.used += cost
+        return True
+`
+  const x = ok(py(code(' -> int'), {entry: 'Limiter', check: budget}))
+  expect(x.notes.join('\n')).toMatch(/Limiter\(pricing\): an injected dependency \(inferred: of Pricing/)
+  expect(x.notes.join('\n')).toMatch(/pricing\.cost .*answered by the request \(inferred/)
+  expect(step(x, 'a counted hit stays within the limit', (_b, a) => a.used.atMost(a.limit_ ?? a.limit), b => b.used.atMost(b.limit_ ?? b.limit)).proven).toBe(true)
+  // (its result declared nowhere: refused saying what states it, and the answer stated reads it)
+  refused(py(code(''), {entry: 'Limiter', check: budget}), /state what it returns \(answers: \{"cost": 'int'\}/)
+  ok(py(code(''), {entry: 'Limiter', answers: {cost: 'int'}, check: budget}))
+})
+
+// A store's get and set given options of a constant (a tracing span of None, which tier to use): the store read as one
+// map whatever they say, noted (LiteLLM's limiters, refused since 0.33); an option the request decides is refused.
+t('a store\'s options given a constant read as one map, noted; one the request decides refused', () => {
+  const code = (opt: string) => `class Cache:
+    async def async_get_cache(self, key, span=None, local_only=False): ...
+    async def async_set_cache(self, key, value, ttl=None, span=None, local_only=False): ...
+
+
+class Hits:
+    def __init__(self, cache: Cache, limit: int):
+        self.cache = cache
+        self.limit = limit
+
+    async def hit(self, session: str, fast: bool) -> bool:
+        key = f"hits:{session}"
+        n = await self.cache.async_get_cache(key=key, span=None, local_only=${opt})
+        n = (n or 0) + 1
+        await self.cache.async_set_cache(key=key, value=n, ttl=60, span=None, local_only=${opt})
+        return n <= self.limit
+`
+  const x = ok(py(code('True'), {entry: 'Hits', stores: {cache: {}}, check: budget}))
+  expect(x.notes.join('\n')).toMatch(/cache\.async_get_cache: its local_only \(true\) left out: the store read as one map whatever it says/)
+  expect(x.notes.join('\n')).toMatch(/cache\.async_get_cache: its span \(None\) left out/)
+  refused(py(code('fast'), {entry: 'Hits', stores: {cache: {}}, check: budget}), /given local_only, a value the request decides/)
+})

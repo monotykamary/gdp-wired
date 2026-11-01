@@ -1315,7 +1315,9 @@ export class Stepper {
     const t = pa.t.k === 'opt' ? pa.t.of : pa.t
     if (!pa.inject && (this.scalar(t) || ['lock', 'none', 'map', 'list'].includes(t.k) || (t.k === 'rec' && this.mod.recs[t.name]?.own && !this.mod.recs[t.name]!.kinds.includes('protocol')) || (pa.dflt && !(pa.t.k === 'opt' && pa.dflt.e === 'none')))) return undefined
     const fields: string[] = []
-    deep(init.body, st => { const to = st.to as SX | undefined, v = st.x as SX | undefined; if (st.s === 'set' && to?.e === 'get' && (to.x as SX).e === 'var' && (to.x as SX).n === 'self' && v?.e === 'var' && v.n === pa.name) fields.push(String(to.f)) })
+    // (self.f = arg, or one place of a tuple's, self.a, self.f = a, arg)
+    const pairs = (to?: SX, v?: SX): [SX | undefined, SX | undefined][] => (to?.e === 'tuple' && v?.e === 'tuple' && (to.xs as SX[]).length === (v.xs as SX[]).length ? (to.xs as SX[]).flatMap((t, i) => pairs(t, (v.xs as SX[])[i])) : [[to, v]])
+    deep(init.body, st => { if (st.s === 'set') for (const [to, v] of pairs(st.to as SX | undefined, st.x as SX | undefined)) if (to?.e === 'get' && (to.x as SX).e === 'var' && (to.x as SX).n === 'self' && v?.e === 'var' && v.n === pa.name) fields.push(String(to.f)) })
     const ms = this.callsOn(r, fields)
     if (!pa.inject && !ms.length) return undefined
     return {keyed: ms.some(m => !!keyShape(m)), ...(t.k === 'rec' ? {ty: t.name} : {})}
@@ -1377,7 +1379,13 @@ export class Stepper {
         if (v.e.v) { if (only) return refuse(at, `${at.text}: nx and xx both`); only = n }
         continue
       }
-      return refuse(at, `${at.text}: the store's ${m} given ${n} (the subset reads a key, a value, nx, xx and the expiry)`)
+      // (another option given a constant, None or a flag, as a tracing span or which tier to use: the store is read as
+      // one map whatever it says, the check's too, and the note says so; one given a value of the request is refused)
+      if (v.t === 'none' || (v.t === 'bool' && v.e.op === 'const') || (v.t === 'num' && v.e.op === 'const') || (v.t === 'str' && v.e.op === 'slit')) {
+        this.notes.add(`${store}.${m}: its ${n} (${v.t === 'none' ? 'None' : v.t === 'str' ? JSON.stringify((v.e as {value: string}).value) : String((v.e as {v: unknown}).v)}) left out: the store read as one map whatever it says`)
+        continue
+      }
+      return refuse(at, `${at.text}: the store's ${m} given ${n}, a value the request decides (the subset reads a key, a value, nx, xx, the expiry and options given a constant)`)
     }
     given(all.filter(v => v !== keyV && v !== valV))
     if (args.length > (kind === 'set' ? 2 : 1)) return refuse(at, `${at.text}: the store's ${m} given more than its key${kind === 'set' ? ' and value' : ''}`)
@@ -1586,6 +1594,8 @@ export class Stepper {
   // other code may change it: refused unless the caller states it. Its value read (a run refused where it is): the next
   // run answers it by the request, over its declared type; else it is left out, kept only where nothing reads it.
   readonly pend = new Map<string, Pend>()
+  // (the calls of other code left out, by the callee's names: a check that can't run them, C's, makes them no-ops)
+  readonly leftOut = new Set<string>()
   readonly returnedBy = new Map<string, {id: string, roots: string[]}>()
   readonly entryIds = new Set<string>()
   boundary(x: SX, b: Bound, p: Path, awaited: boolean): [V, Path] {
@@ -1600,6 +1610,7 @@ export class Stepper {
     if (t) return this.answer(b.key, [b.name], b.patch, x, q, awaited, t, tag ? 'tagged' : 'inferred')
     const why = `${x.text ?? b.name}: the value of ${b.name}, other code left out`
     this.pend.set(why, {...b, why, at: x.p, ...(x.end ? {end: x.end as string} : {})})
+    this.leftOut.add(b.name).add(b.key)
     this.notes.add(`${b.name} (${x.p}): left out (${tag ? 'tagged: gdp: skip' : 'inferred: nothing the rule keeps reads its value'}), run as it is by the check`)
     return [{t: 'opaque', why, ask: b.key}, this.passing(b.key, b.name, b.patch, x, q, awaited)]
   }
@@ -1818,7 +1829,7 @@ export class Stepper {
         if (x.ext && !x.pre && !x.prepl) {
           const names = [x.ext as string], ans = this.match(Object.keys(this.opts.answers ?? {}), names), patch = x.patch as Patch | undefined
           if (ans) return this.answer(ans, names, patch, x, x.args ? this.argsRead(x, p) : p, false)
-          if (this.skipped(names)) { this.notes.add(`${names[0]} (${x.p}): left out (stated: skip), run as it is by the check`); return [{t: 'opaque', why: `${names[0]}: the value of a call left out (skip)`}, this.passing(names[0]!, names[0]!, patch, x, x.args ? this.argsRead(x, p) : p, false)] }
+          if (this.skipped(names)) { for (const n of names) this.leftOut.add(n); this.notes.add(`${names[0]} (${x.p}): left out (stated: skip), run as it is by the check`); return [{t: 'opaque', why: `${names[0]}: the value of a call left out (skip)`}, this.passing(names[0]!, names[0]!, patch, x, x.args ? this.argsRead(x, p) : p, false)] }
           let q = p, recv: V | undefined
           if (x.recv && this.inf) [recv, q] = this.ev(x.recv as SX, q)
           if (this.inf) return this.boundary(x, {key: names[0]!, name: names[0]!, refusal: String(x.why), ...(x.args ? {} : {args: false}), ...(recv ? {recv} : {}), ...(x.ret ? {ret: x.ret as SType} : {}), ...(patch ? {patch} : {})}, q, false)
@@ -2279,9 +2290,12 @@ export class Stepper {
         // A method of an object the caller gives, of another module's class: the class's method stubbed.
         const [o] = this.ev(fx.x as SX, p), obj = o.t === 'ref' ? p.heap.get(o.id) : undefined
         if (obj?.k === 'rec') { const r = this.rec(obj.ty, x); patch = {mod: r.module, path: [r.short, String(fx.f)]} }
+        // (a method of a store or an injected dependency: stubbed on the one the check gives)
+        else if (obj?.k === 'store') patch = {store: (obj as {name: string}).name, path: [String(fx.f)]}
         else { const [v] = this.ev(fx, p); if (v.t === 'ext' || v.t === 'cls') patch = v.patch }
       } else { const [o] = this.ev(fx, p); if (o.t === 'ext' || o.t === 'cls') patch = o.patch }
       if (ans) return this.answer(ans, names, patch, x, this.argsRead(x, p), awaited)
+      for (const n of names) this.leftOut.add(n)
       this.notes.add(`${names[0]} (${x.p}): left out (stated: skip), run as it is by the check`)
       return [{t: 'opaque', why: `${x.text}: the value of a call left out (skip)`}, this.passing(names[0]!, names[0]!, patch, x, this.argsRead(x, p), awaited)]
     }
@@ -3352,7 +3366,8 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
   // --- the requests: each method (or function) one -------------------------------------------------------------------
   const r = cls ? g.rec(cls, at) : undefined
   const chosen: SFunc[] = cls
-    ? (opts.methods ?? writing ?? Object.keys(r!.methods).filter(m => !m.startsWith('_') && r!.methods[m])).map(m => (r!.methods[m] ? g.func(r!.methods[m]!, at) : refuse(at, `no method ${r!.short}.${m} in ${mod.file}`)))
+    // (by default its public methods but the one it is made by, Rust's new, which takes no object)
+    ? (opts.methods ?? writing ?? Object.keys(r!.methods).filter(m => !m.startsWith('_') && r!.methods[m] && !(mod.lang === 'rust' && m === 'new'))).map(m => (r!.methods[m] ? g.func(r!.methods[m]!, at) : refuse(at, `no method ${r!.short}.${m} in ${mod.file}`)))
     : entries.map(e => g.func((e as {id: string}).id, at))
   if (!chosen.length) refuse(at, `${cls ? r!.short : 'the entry'} has no methods to read`)
   for (const f of chosen) g.entryIds.add(f.id)
@@ -3654,20 +3669,36 @@ type Raw = number | boolean | string
 type FS = {mkdtempSync: (p: string) => string, rmSync: (p: string, o?: unknown) => void, openSync: (p: string, f: string) => number, closeSync: (fd: number) => void, readSync: (fd: number, b: Uint8Array, o: number, n: number, at: null) => number, writeSync: (fd: number, s: string) => number}
 const proc = (globalThis as {process?: {getBuiltinModule?: (id: string) => unknown, env?: Record<string, string | undefined>}}).process
 export const node = <T>(id: string): T => { const m = proc?.getBuiltinModule?.(id); if (!m) throw new Error(`the extractor runs the code's toolchain through ${id} (Node 20.16 or later, or Bun)`); return m as T }
+// A file gdp-wired runs beside its modules (a front end's reader or harness, core/<lang>/...): its path, or a clear
+// error when the install lacks it.
+export function asset(rel: string): string {
+  const p = node<{fileURLToPath: (u: URL) => string}>('node:url').fileURLToPath(new URL(`./${rel}`, import.meta.url))
+  if (!node<{existsSync: (p: string) => boolean}>('node:fs').existsSync(p)) throw new Error(`gdp-wired's ${rel} is missing from its install (${p}): reinstall gdp-wired`)
+  return p
+}
+// A harness started on the two named pipes in `work` and both opened. It runs under sh, which, if the harness exits
+// before it answered (it couldn't start: a file missing, an interpreter absent, the code not loading), opens the
+// pipes itself and answers the first request with the error, so nothing here waits on a harness that is gone.
+const GUARD = 'i=$1 o=$2; shift 2; trap \'kill $p 2>/dev/null; exit 143\' TERM; "$@" "$i" "$o" & p=$!; wait $p; e=$?; [ "$e" = 0 ] && exit 0; trap - TERM; exec 3<"$i" 4>"$o"; read -r _ <&3; printf \'{"error": "the harness exited (status %s) before it answered"}\\n\' "$e" >&4'
+export function openHarness(work: string, cmd: string, args: string[], o: Record<string, unknown>): {child: {kill: () => void}, wi: number, ro: number} {
+  const fs = node<FS>('node:fs'), cp = node<{execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string, spawn: (f: string, a: string[], o: Record<string, unknown>) => {kill: () => void}}>('node:child_process')
+  cp.execFileSync('mkfifo', [`${work}/in`, `${work}/out`], {})
+  const child = cp.spawn('sh', ['-c', GUARD, 'gdp-harness', `${work}/in`, `${work}/out`, cmd, ...args], o)
+  const wi = fs.openSync(`${work}/in`, 'w'), ro = fs.openSync(`${work}/out`, 'r')
+  return {child, wi, ro}
+}
 // A harness: the command that starts it (it opens the two named pipes it is given) and what it is told first.
 export type Harness = {cmd: string, args: string[], env?: Record<string, string>, hello: Record<string, unknown>, error?: string}
 export type StepEvidence = Evidence & {runMs: number}
 export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: StepOptions): StepEvidence {
   const o = opts.check ?? {}, m = read.model, bound = o.bound ?? 12
-  const fs = node<FS>('node:fs'), cp = node<{execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string, spawn: (f: string, a: string[], o: Record<string, unknown>) => {kill: () => void}}>('node:child_process'), os = node<{tmpdir: () => string}>('node:os')
+  const fs = node<FS>('node:fs'), os = node<{tmpdir: () => string}>('node:os')
   const work = fs.mkdtempSync(`${os.tmpdir()}/gdp-stepcheck-`)
   let child: {kill: () => void} | undefined, wi = -1, ro = -1
   const empty = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0, runMs: 0}
   try {
     if (h.error) return {...empty, mismatch: h.error}
-    cp.execFileSync('mkfifo', [`${work}/in`, `${work}/out`], {})
-    child = cp.spawn(h.cmd, [...h.args, `${work}/in`, `${work}/out`], {stdio: ['ignore', 'ignore', 'inherit'], env: {...proc?.env, ...h.env}})
-    wi = fs.openSync(`${work}/in`, 'w'); ro = fs.openSync(`${work}/out`, 'r')
+    ;({child, wi, ro} = openHarness(work, h.cmd, h.args, {stdio: ['ignore', 'ignore', 'inherit'], env: {...proc?.env, ...h.env}}))
     const buf = new Uint8Array(1 << 20), dec = new TextDecoder()
     let pend = ''
     const line = (): string | undefined => {
@@ -3715,7 +3746,8 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
       at: (s, params) => { const res = ask({op: 'at', a: ctorArgs(params), now: read.madeAt ? params[read.madeAt] : 0, state: snapJson(s)}); return res.bad ? undefined : res.id },
       snapOf: self => { const res = ask({op: 'get', id: self}); if (res.error) throw new Error(JSON.stringify(res.error)); return toSnap(res.state as Record<string, unknown>) },
       call: (self, e, args) => {
-        const res = ask({op: 'call', id: self, m: e.call, a: args, now, answers: answersOf(e.call)}) as {out?: unknown, err?: string, frame?: string, bad?: string}
+        const res = ask({op: 'call', id: self, m: e.call, a: args, now, answers: answersOf(e.call)}) as {out?: unknown, err?: string, frame?: string, bad?: string, outside?: string}
+        if (res.outside !== undefined) return {ok: false, outside: true, error: res.outside}
         if (res.frame) throw new Error(`the code changes ${res.frame}, a field the rule leaves out`)
         if (res.bad !== undefined) return {ok: false, error: `the code can't be given it (${res.bad})`}
         const kind = read.results[e.call] ?? 'none', failed = res.err !== undefined

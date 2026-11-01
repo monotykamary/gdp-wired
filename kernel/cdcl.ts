@@ -56,7 +56,7 @@ export type Dag = {nodes: DagNode[], top: number, clausal?: boolean}
 // (the clausal mode's: `id` its index, a pair (x, v) coded 2·id + v; `hp` its place in the heap; `cond` whether a
 // decision may take it)
 type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, quiet?: boolean, id: number, hp?: number, cond?: boolean, val?: boolean | undefined, level: number, reason?: number | undefined, at: number, act: number, phase: boolean,
-  bj?: number[], bjAt?: number, bsig?: number, bver?: number, sj?: (number | undefined)[], sx?: Simplex, pair?: boolean, fs?: number, aq?: number}
+  bj?: number[], bjAt?: number, bsig?: number, bver?: number, sj?: (number | undefined)[], sx?: Simplex, pair?: boolean, fs?: number, aq?: number, an?: number}
 type Clause = {lits: Map<string, boolean>, node: number, input?: boolean}
 // GDP_CDCL_LP=0: each node solved by elimination alone (no simplex); GDP_CDCL_FILL (8): the simplex's tableau begun
 // again past this many entries a row the node reads (research/step's comparisons).
@@ -140,7 +140,8 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     const key = keyOf(lin)
     if (!vars.has(key)) {
       const flip = key !== canon(lin), stored = flip ? atomOf(lin, false).lin : lin, terms = Object.entries(stored).filter(([x0]) => x0 !== '1')
-      const x: Var = {name: key, lin: stored, terms, col: terms.some(([x0]) => x0.startsWith('⟦')), id: byId.length, level: -1, at: -1, act: 0, phase: !flip}
+      const x: Var = {name: key, lin: stored, terms, col: terms.some(([x0]) => x0.startsWith('⟦')), quiet: undefined, id: byId.length, hp: undefined, cond: undefined, val: undefined, level: -1, reason: undefined, at: -1, act: 0, phase: !flip,
+        bj: undefined, bjAt: undefined, bsig: undefined, bver: undefined, sj: undefined, sx: undefined, pair: undefined, fs: undefined, aq: undefined, an: undefined}
       byId.push(x); vals.push(0); rel.push(-1)
       if (opts.model && terms.length === 1 && (opts.quiet?.(terms[0]![0]) || (clausal && terms[0]![0].startsWith('τ')))) x.quiet = true
       vars.set(key, x)
@@ -245,8 +246,10 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     rel[id] = levels.length; relStack.push(id); heapIn(byId[id]!)
     if (vals[id]) activate(id)
   }
+  // (its stack kept between calls: an assignment of a relevant variable calls it, and an array a call cost every one)
+  const todo: number[] = []
   const activate = (id0: number) => {
-    for (const todo = [id0]; todo.length;) {
+    for (todo.push(id0); todo.length;) {
       const id = todo.pop()!, own = ownBy[2 * id + (vals[id] === 1 ? 1 : 0)]
       if (!own) continue
       for (let i = 0; i < own.length; i++) {
@@ -268,8 +271,10 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     lowAt = Math.min(lowAt, trail.length)
     levels.length = l
   }
+  const undone: Var[] = []
   const undoClausal = (l: number) => {
-    const keep = levels[l] ?? trail.length, undone: Var[] = []
+    const keep = levels[l] ?? trail.length
+    undone.length = 0
     while (trail.length > keep) {
       trail.pop(); const x = tv.pop()!, q = x.aq
       vals[x.id] = 0; undone.push(x)
@@ -380,22 +385,25 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   // is unit, its other watched pair's variable flipped, or, that pair holding too, a conflict.
   const propagateClausal = (): number | undefined => {
     // (each watch a clause and a blocker, a pair of it that, where it doesn't hold, satisfies the clause untouched)
+    // (holds and opposed read inline: vals[c >> 1] is 2 − (c & 1) where pair c holds, 1 + (c & 1) where it's opposed)
     while (qhead < trail.length) {
       const x = tv[qhead++]!, code = 2 * x.id + (x.val ? 1 : 0), ws = wl[code]
       if (!ws) continue
       let n = 0
       for (let i = 0; i < ws.length;) {
-        if (opposed(ws[i + 1]!)) { i += 2; continue }
+        const blocker = ws[i + 1]!
+        if (vals[blocker >> 1] === 1 + (blocker & 1)) { i += 2; continue }
         const ci = ws[i]!, c = cls[ci]!
         n++
         if (retired[ci]) { ws[i] = ws[ws.length - 2]!; ws[i + 1] = ws[ws.length - 1]!; ws.length -= 2; continue }
         if (c[0] === code) { c[0] = c[1]!; c[1] = code }
         const o = c[0]!
-        if (opposed(o)) { ws[i + 1] = o; i += 2; continue }
+        if (vals[o >> 1] === 1 + (o & 1)) { ws[i + 1] = o; i += 2; continue }
         let j = 2
-        while (j < c.length && holds(c[j]!)) j++
-        if (j < c.length) { const z = c[j]!; c[j] = code; c[1] = z; (wl[z] ??= []).push(ci, o); ws[i] = ws[ws.length - 2]!; ws[i + 1] = ws[ws.length - 1]!; ws.length -= 2; continue }
-        if (!vals[o >> 1]) { assignVar(byId[o >> 1]!, !(o & 1), ci); i += 2; continue }
+        const len = c.length
+        while (j < len) { const z = c[j]!; if (vals[z >> 1] !== 2 - (z & 1)) break; j++ }
+        if (j < len) { const z = c[j]!; c[j] = code; c[1] = z; (wl[z] ??= []).push(ci, o); ws[i] = ws[ws.length - 2]!; ws[i + 1] = ws[ws.length - 1]!; ws.length -= 2; continue }
+        if (!vals[o >> 1]) { assignClausal(byId[o >> 1]!, !(o & 1), ci); i += 2; continue }
         costs.scan += n
         return ci
       }
@@ -453,21 +461,25 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   }, ms => { st.coreMs += ms })
   // The clausal mode's conflict analysis: the same resolutions, in one pass down the trail (the clause kept as it is
   // resolved, its literals at its latest level counted, each step the latest of them on the trail).
+  // (whether a variable is in the clause being resolved: its stamp `an` this call's, so the walk down the trail reads
+  // each variable once, not the clause's map by its name)
+  let anN = 0
   const analyzeClausal = (c: Clause): Clause => {
-    const lits = new Map(c.lits)
+    const lits = new Map(c.lits), an = ++anN
+    for (const name of lits.keys()) vars.get(name)!.an = an
     let node = c.node, {top, here} = levelsOf(c), p = trail.length - 1
     if (top < level()) { undoTo(top); qhead = trail.length; p = trail.length - 1 }
     while (lits.size && !(top > 0 && here === 1)) {
-      while (p >= 0 && !(lits.has(trail[p]!) && vars.get(trail[p]!)!.level === top)) p--
-      const name = trail[p]!, x = vars.get(name)!
+      while (p >= 0 && !(tv[p]!.an === an && tv[p]!.level === top)) p--
+      const name = trail[p]!, x = tv[p]!
       if (top > 0 && x.reason === undefined) break
       const r = clauses[x.reason!]!
       if (r.node < 0) materialize(x.reason!)
       nodes.push({res: lits.get(name)! ? [node, r.node] : [r.node, node], on: x.lin})
       st.resolved++
       node = nodes.length - 1
-      lits.delete(name); here--
-      for (const [w, q] of r.lits) if (w !== name && !lits.has(w)) { lits.set(w, q); if (vars.get(w)!.level === top) here++ }
+      lits.delete(name); x.an = 0; here--
+      for (const [w, q] of r.lits) if (w !== name && !lits.has(w)) { const y = vars.get(w)!; lits.set(w, q); y.an = an; if (y.level === top) here++ }
     }
     return {lits, node}
   }

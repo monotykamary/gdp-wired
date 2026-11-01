@@ -11,7 +11,7 @@
 //   out.verdict          // the laws, proven of out.rule: r with its functions and lists made again with the lemmas
 //   out.found            // per function or list, the lemmas found, as source to paste into recur(...) or carriesList(...)
 import {quietly} from './cyclic.ts'
-import {type C, type E, type Law, type Machine, type Recurrence, type State, any, atMost, compileFunction, evalC, evalE, n, plus, prod, same, searchSeeded, times, x} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Recurrence, type State, any, atMost, compileFunction, evalC, evalE, n, plus, prod, same, seeded, times, x} from './machine.ts'
 import {type FnDef, type Kind, type ListFold, type ListLemma, type StepLaw, type Verdict, Cond, Rule, Term, Unproven, lit, proveFold, proveSteps, recur, recurOf} from './dsl.ts'
 import {type Fold} from '../kernel/kernel.ts'
 import {gcd, plus as addLin} from './solver.ts'
@@ -217,7 +217,7 @@ function houdiniRecur(d: FnDef, lemmas: Cand[], between: Cand[]): Made | undefin
 type ListPart = [string, Kind<unknown>, Record<string, ListFold<unknown>>, Record<string, ListLemma>]
 const natParams = (params: [string, Kind<unknown>][]) => params.filter(([n, k]) => { const vs = k.vars(n); return vs.length === 1 && vs[0] === n }).map(([n]) => n)
 function listSamples([name, kind, folds]: ListPart, params: [string, Kind<unknown>][]): Record<string, number>[] {
-  const rand = searchSeeded(7), out: Record<string, number>[] = []
+  const rand = seeded(7), out: Record<string, number>[] = []
   for (let trial = 0; trial < 300; trial++) {
     const pv: Record<string, number> = Object.assign({}, ...params.map(([n, k]) => k.random(n, rand, 12)))
     const p = Object.fromEntries(params.map(([n, k]) => [n, k.build(n, part => lit(pv[part]!))]))
@@ -367,7 +367,7 @@ function discoverSearch(r: AnyRule, laws: Law[], stepLaws: StepLaw[], first: Ver
 type TreeFold = {fold: Fold, lemmas?: Law[], name: string}
 export type FoldDiscovery = {verdict: Verdict, lemmas: Law[], found: string[]}
 function foldSamples(f: Fold): Record<string, number>[] {
-  const rand = searchSeeded(11), none: Machine = {name: f.name, params: [], inputs: [], state: {}, step: {}}, st: State = {scalars: {}, maps: {}}
+  const rand = seeded(11), none: Machine = {name: f.name, params: [], inputs: [], state: {}, step: {}}, st: State = {scalars: {}, maps: {}}
   const out: Record<string, number>[] = []
   const draw = (names: string[], ok: C | undefined, env: Record<string, number>) => {
     for (let tries = 0; tries < 50; tries++) {

@@ -109,6 +109,9 @@ counted from where the second schedule starts), and the rule steps them all once
 | Effect.retry / Effect.repeat inside a method (a schedule, or {times, schedule, while, until}) | tested | tested |
 | TxRef in Effect.tx, Effect.txRetry / TRef in STM.gen, STM.commit, STM.check, STM.retry, STM.fail | tested | tested |
 | a method of several transactions as every fiber's steps (`lift`) | tested | tested |
+| Queue (bounded, dropping, sliding, unbounded; 4.x `make`): offer, take, poll, shutdown; size and isFull (4.x), isShutdown and capacity (3.x); modelled, its laws proven, beside Effect's own on random operations and fibers | tested | tested (size refused) |
+| Semaphore of any permits: take, release, releaseAll, withPermits, withPermit; modelled with each fiber's permits held | tested | tested |
+| Option: some, none, isSome, isNone, getOrElse, getOrUndefined | tested | tested |
 
 The check steps Effect's own schedule (4.x `Schedule.toStep` read through `Pull.matchEffect`; 3.x `schedule.step` and
 `ScheduleIntervals.start`), Effect's Random answered so each jitter draws the rule's delay (4.x `Random.Random`'s
@@ -116,6 +119,26 @@ The check steps Effect's own schedule (4.x `Schedule.toStep` read through `Pull.
 on by the duration), so a retry's or repeat's waits run synchronously; a transaction left waiting is interrupted (4.x
 `interruptUnsafe` on the AsyncFiberError's fiber; 3.x run on a SyncScheduler of its own, flushed until the fiber is done
 or interrupted), since it would otherwise wake and commit inside a later request.
+
+**Queues and semaphores (2026-11-01).** Effect 4.0.7's Queue (src/Queue.ts) holds its messages in a MutableList and a
+state Open, Closing or Done; an offer to a full suspend queue waits in `offers`, a take on an empty one in `takers`, and
+`size` is the messages' count. 3.22.4's (src/internal/queue.ts) keeps a backing queue, takers and a strategy's putters,
+hands an offered item straight to a waiting taker, and its `size` subtracts the takers and adds the putters, so it
+counts fibers the rule doesn't hold (refused). A shut-down 4.x queue answers false to an offer, none to a poll, 0 to
+size and fails a take; a 3.x one interrupts every operation. Both Semaphores keep `taken` against `permits`, a take
+waiting until enough are free (4.x lets no newcomer pass an eligible waiter), a release unchecked. core/effect-prims.ts
+writes each primitive again as transactions over TxRefs (TRefs on 3.x), one atomic step an operation and a wait its
+guard, so the service is read as any, every fiber's steps where a method runs several. The model allows a little more
+than Effect does (a newcomer taking before a waiter, an offered item taken by another fiber than the one waiting; an
+interrupt on a shut-down queue read as a wait that never ends), never less. Each primitive's canonical rule (one method
+an operation, every capacity or number of permits) proves its laws and runs beside Effect's own: each operation forked
+on a fiber of its own, the runtime run until nothing moves, every completion a step of the rule in an order it allows
+with its answer, every waiting one refused by it, and the queue's size (its items in order at the end of a run) or the
+semaphore's taken compared; 60 runs of 16 on each line pass, and the rule of one strategy beside the queue of another
+fails at once. A semaphore's use law, never released past what was taken, is no law of Effect's (Effect's own refutes it
+at once); under many fibers it is proven of a service from each fiber's permits held (the taken are their sum), on the
+lemma that no fiber gives back more than it took. Effect's RateLimiter is refused: 3.x's gives its permits back on
+timers of a fiber forked into the make effect's scope, 4.x's keeps its counters in a store every user shares.
 
 Refused, with the reason where it is: a factor that isn't a whole number, a duration of a fraction of a millisecond,
 cron, fixed, windowed, map, tap, a subtraction in a schedule's function, the output of a combination read, the metadata's

@@ -33,6 +33,8 @@ first:
           the day at FUZZ_PER_DAY seeds a kind (3,000) and XFUZZ_PER_DAY a reader (48) on the floor; the fill of the pool
           past the floor yields them (its VMs run filler through their hold, never idle). A failed fuzz run is filed as
           soundness (an alert), coverage (a harness bug) or infra (no test failed; run once more): fuzz_class.
+          A soundness failure runs again at the newest main and stays an alert only if it fails there too; else it is
+          listed as fixed at that commit: fuzz_status.
   (the knobs: GDPW_TM_<NAME> in the environment: SPEED_PER_DAY, IC3_PER_DAY, RW_PER_DAY, TEN_PER_DAY, SLOWER, FLOOR_S, TEN_RUNS, FUZZ_PER_DAY,
   XFUZZ_PER_DAY, XFUZZ_EVERY, PAIR_TOP, PAIRS_MAX, REVISIT, STAGES, PLAN_MAX)
   ideas   a lane's or terra's "knobs K on tasks S at budget B" (`idea`), the submission class, cached like the rest.
@@ -833,8 +835,8 @@ class Speed(Follow):
         def after(logs):
             (rdir / "tasks.json").write_text(json.dumps({"limit": 60, **got} if isinstance(got, dict) else got))
             obs = read_obs(rdir, bench, tree)
-            cpu = {x.get("task"): x.get("placement", {}).get("cpu") for x in rows}
-            obs = {t: {**o, "cpu": cpu.get(t)} for t, o in obs.items()}
+            cpu, full = {x.get("task"): x.get("placement", {}).get("cpu") for x in rows}, {x.get("task"): counted_work(x) for x in rows}
+            obs = {t: {**o, "cpu": cpu.get(t), "full": full.get(t)} for t, o in obs.items()}
             (rdir / "obs.json").write_text(json.dumps(obs))
             if side:
                 self.st["runs"][c]["confirm"][bench][side] = "done"
@@ -893,11 +895,23 @@ class Speed(Follow):
                 slower, lost, noise = [], [], []
                 for t in flagged:
                     runs_now, runs_was = [now[t], cn.get(t, now[t])], [was[t], cp.get(t, was[t])]
+                    # (by the work the runs took where their runner counts it, else by their wall time; the wall time
+                    # kept beside it either way, as information)
+                    work_was, work_now = [o.get("full") for o in runs_was if o.get("solved")], [o.get("full") for o in runs_now]
                     if not any(o.get("solved") for o in runs_now):
-                        lost.append((t, now[t].get("answer")))
+                        w = by_work(work_was, work_now, False)
+                        (lost.append((t, now[t].get("answer"), min(x for x in work_was if x is not None) if w != "unmeasured" else None, max((x for x in work_now if x is not None), default=None)))
+                         if w in ("lost", "unmeasured") else noise.append(t))
                     elif all(o.get("solved") for o in runs_now) and min(o["secs"] for o in runs_now) > self.SLOWER * max(o["secs"] for o in runs_was) \
                             and min(o["secs"] for o in runs_now) - max(o["secs"] for o in runs_was) >= self.FLOOR_S:
-                        slower.append((t, max(o["secs"] for o in runs_was), min(o["secs"] for o in runs_now), now[t].get("cpu") != was[t].get("cpu")))
+                        w = by_work(work_was, work_now, True)
+                        entry = (t, max(o["secs"] for o in runs_was), min(o["secs"] for o in runs_now), now[t].get("cpu") != was[t].get("cpu"))
+                        if w == "slower":
+                            slower.append((*entry, min(x for x in work_was if x is not None), min(x for x in work_now if x is not None)))
+                        elif w == "unmeasured":
+                            slower.append(entry)
+                        else:
+                            noise.append(t)
                     else:
                         noise.append(t)
                 faster = [t for t in both if now[t].get("solved") and was[t]["secs"] > self.SLOWER * now[t]["secs"] and was[t]["secs"] - now[t]["secs"] >= self.FLOOR_S]
@@ -981,10 +995,16 @@ class IC3(Follow):
                 now = {x.get("id"): x.get("search") or {} for x in out}
                 both = [p for p in now if was.get(p, {}).get("verdict") == "proven"]
                 secs = lambda s: (s.get("ms") or 0) / 1000  # noqa: E731
-                slower = [(p, secs(was[p]), secs(now[p]), False) for p in both if now[p].get("verdict") == "proven" and secs(now[p]) > Speed.SLOWER * secs(was[p])
-                          and secs(now[p]) - secs(was[p]) >= Speed.FLOOR_S]
+                # (slower by the work the search took, where run.ts counts it; by the wall time else: `noise` the rest)
+                flagged = [p for p in both if now[p].get("verdict") == "proven" and secs(now[p]) > Speed.SLOWER * secs(was[p]) and secs(now[p]) - secs(was[p]) >= Speed.FLOOR_S]
+                verdict = {p: by_work([was[p].get("full")], [now[p].get("full")], True) for p in flagged}
+                slower = [(p, secs(was[p]), secs(now[p]), False, *((was[p]["full"], now[p]["full"]) if verdict[p] == "slower" else ())) for p in flagged if verdict[p] in ("slower", "unmeasured")]
+                noise = [p for p in flagged if verdict[p] == "noise"]
+                gone = [p for p in both if now[p].get("verdict") != "proven"]
+                lost = [(p, now[p].get("verdict")) for p in gone if by_work([was[p].get("full")], [now[p].get("full")], False) in ("lost", "unmeasured")]
+                noise += [p for p in gone if p not in {q for q, _ in lost}]
                 append(TM / "speed.jsonl", {"t": time.time(), "commit": c, "bench": "ic3syn", "prev": prev, "tasks": len(now), "solved": sum(1 for s in now.values() if s.get("verdict") == "proven"),
-                                            "compared": len(both), "slower": slower, "lost": [(p, now[p].get("verdict")) for p in both if now[p].get("verdict") != "proven"],
+                                            "compared": len(both), "slower": slower, "lost": lost, "noise": noise,
                                             "faster": sum(1 for p in both if now[p].get("verdict") == "proven" and secs(was[p]) > Speed.SLOWER * secs(now[p]) and secs(was[p]) - secs(now[p]) >= Speed.FLOOR_S),
                                             "total_s": round(sum(secs(now[p]) for p in both if now[p].get("verdict") == "proven"), 1),
                                             "prev_total_s": round(sum(secs(was[p]) for p in both if now[p].get("verdict") == "proven"), 1)})
@@ -1027,7 +1047,7 @@ class RealWorld(Follow):
                     r = json.loads(ls[-1])
                 except Exception:
                     r = {"outcome": "timeout", "ms": 150_000}
-                obs[key] = {"answer": r.get("outcome"), "solved": r.get("outcome") == "proven", "secs": (r.get("ms") or 0) / 1000}
+                obs[key] = {"answer": r.get("outcome"), "solved": r.get("outcome") == "proven", "secs": (r.get("ms") or 0) / 1000, "full": r.get("full")}
             for k, o in obs.items():
                 put(self.tm, c, "rw", k, "60:base", o)
             d = TM / "commits" / c[:12] / "rw"
@@ -1039,7 +1059,9 @@ class RealWorld(Follow):
             pf = TM / "commits" / (prev or "")[:12] / "rw" / "obs.json"
             if prev and pf.exists():
                 was = json.loads(pf.read_text())
-                row["changes"] = [(k, was[k]["answer"], o["answer"]) for k, o in obs.items() if k in was and was[k]["answer"] != o["answer"]]
+                # (each with the work at both commits, where score.ts counts it: a proven law lost is the code's only if
+                # this commit spent at least the work the one before needed, by_work)
+                row["changes"] = [(k, was[k]["answer"], o["answer"], was[k].get("full"), o.get("full")) for k, o in obs.items() if k in was and was[k]["answer"] != o["answer"]]
             append(TM / "rw.jsonl", row)
             self.st["runs"][c]["rw"] = "done"
             self.save()
@@ -1105,6 +1127,42 @@ FUZZ = {"kernel": ("kernel", "FUZZ_SEED={s} bun test kernel.test.ts 2>&1"),
 # not the kernel's); infra, no test failed (killed, timed out, its VM lost, bun crashed, or a log that isn't the run's:
 # boat's logs of a retried item can come back as the first, lost attempt's). Anything else is soundness: a failure is
 # never filed lower than it might be. An infra failure runs once more at its seed.
+# Work, not wall time: a task slower or lost against the commit before is the code's only where the prover's counted
+# work (fullWork, which each runner reports beside its wall time) says so; equal work in a different wall time is the VM.
+# Lane I's eight "regressions" of 31 Oct (four IC3Syn slowdowns, four real-world losses) did the same work at both
+# commits, their 2x inside one commit's own run-to-run spread. A row without counters (a runner before them) is judged
+# by its wall time as before.
+WORK_SLOWER, FULL_PER_MS = knob("WORK_SLOWER", 1.2), 250  # (kernel/prove.ts fullRate: the counted clock's work a millisecond)
+
+
+def rw_lost(work: list) -> bool:
+    """A real-world law proven before and not now, from its (work before, work now) where score.ts counted them: lost
+    unless the work says load (by_work); a change row from before the counters is a loss, as it was read then."""
+    return not work or by_work([work[0]], [work[1]], False) != "noise"
+
+
+def counted_work(row: dict) -> float | None:
+    """The prover's counted work a result row reports: its own `full`, or its stages' last."""
+    if isinstance(row.get("full"), (int, float)):
+        return row["full"]
+    return next((st["full"] for st in reversed(row.get("stages") or []) if isinstance(st, dict) and isinstance(st.get("full"), (int, float))), None)
+
+
+def by_work(was: list, now: list, now_solved: bool, budget_ms: int = 60_000) -> str:
+    """A flagged task's verdict from the work its runs took: `was`, the commit before's solved runs' work; `now`, this
+    commit's runs' (solved, or spent before they stopped; None where a run was killed and printed nothing). Solved here:
+    'slower' with more than WORK_SLOWER times the least the commit before needed, else 'noise' (the same work in more
+    wall time: the VM). Not solved here: 'lost' when a run spent its whole budget (`budget_ms` at the cost model's rate,
+    kernel/prove.ts fullRate) and still had no answer, the code's; 'noise' when every run stopped before that (a wall
+    stop under load, a kill), the VM's. 'unmeasured': no counters to judge by."""
+    was_w, now_w = [w for w in was if w is not None], [w for w in now if w is not None]
+    if not was_w:
+        return "unmeasured"
+    if now_solved:
+        return "unmeasured" if not now_w else "slower" if min(now_w) > WORK_SLOWER * max(1.0, min(was_w)) else "noise"
+    return "lost" if now_w and max(now_w) >= budget_ms * FULL_PER_MS else "noise"
+
+
 FUZZ_LOG = {"soundness": "FUZZ UNSOUND", "coverage": "FUZZ COVERAGE (a harness bug)", "infra": "FUZZ CRASH (infrastructure)"}
 
 
@@ -1116,6 +1174,25 @@ def fuzz_class(code: int, out: str) -> str:
     if not errs:
         return "infra"
     return "coverage" if all(e.startswith("COVERAGE") for e in errs) else "soundness"
+
+
+def fuzz_status(rows: list[dict], failed: set) -> dict:
+    """For each (kind, seed) of `failed` (a day's soundness failures), its standing from every run of that seed:
+    'fixed' when its latest run passes at another commit than its failures' (re-run there at the newest main), else
+    'unsound' (its latest run fails) or 'pending' (no run since but the failing ones). Each with the latest failing
+    row, or for 'fixed' the passing one, and `first`: the commit it first failed at."""
+    out = {}
+    for key in failed:
+        runs = sorted((r for r in rows if (r["kind"], r["seed"]) == key), key=lambda r: r["t"])
+        bad = [r for r in runs if r["code"] != 0 and fuzz_row_class(r) == "soundness"]
+        if not bad:
+            continue
+        last, first = runs[-1], bad[0]["commit"]
+        if last["code"] == 0 and last["commit"] not in {r["commit"] for r in bad}:
+            out[key] = ("fixed", {**last, "first": first})
+        else:  # (failing again at a later main is unsound; failing only where it first did, its re-run pending)
+            out[key] = ("unsound" if any(r.get("recheck") for r in bad) else "pending", {**bad[-1], "first": first})
+    return out
 
 
 def fuzz_row_class(r: dict) -> str:
@@ -1133,8 +1210,10 @@ def fuzz_row_class(r: dict) -> str:
 # replays read XFUZZ_SEED (patched in the item's own copy of the tree; refused if the patch finds nothing to patch).
 # A test that fails with "the rule and the code differ" is an extracted rule the code contradicts on a request the
 # default seed never drew: an alert.
-XPATCH = ("sed -i 's/seeded((opts.seed ?? 7) >>> 0 || 1)/seeded((Number(process.env.XFUZZ_SEED) || (opts.seed ?? 7)) >>> 0 || 1)/' core/extract-check.ts && "
-          "sed -i 's/seeded((opts.check?.seed ?? 11) >>> 0 || 1)/seeded((Number(process.env.XFUZZ_SEED) || (opts.check?.seed ?? 11)) >>> 0 || 1)/' core/extract-sol.ts && "
+# (the pattern from `eeded((`, so seeded(( and searchSeeded(( alike: from 0af7520 until gen/laneF3's merge the check drew
+# from searchSeeded, a pattern naming only seeded(( found nothing, and 10,809 of 11,289 items stopped at exit 3)
+XPATCH = ("sed -i 's/eeded((opts.seed ?? 7) >>> 0 || 1)/eeded((Number(process.env.XFUZZ_SEED) || (opts.seed ?? 7)) >>> 0 || 1)/' core/extract-check.ts && "
+          "sed -i 's/eeded((opts.check?.seed ?? 11) >>> 0 || 1)/eeded((Number(process.env.XFUZZ_SEED) || (opts.check?.seed ?? 11)) >>> 0 || 1)/' core/extract-sol.ts && "
           "grep -q XFUZZ_SEED core/extract-check.ts && grep -q XFUZZ_SEED core/extract-sol.ts || { echo 'xfuzz: the seed patch found nothing to patch'; exit 3; }; ")
 XFUZZ = {  # lang: (setup, test file, weight, limit)
     "python": ("(python3 -m pip install -q fastapi >/dev/null 2>&1 || true)", "extract-py.test.ts", 1, 600),
@@ -1276,6 +1355,21 @@ class Soundness:
             cwd, cmd = FUZZ[k]
             items.append(sh_item(f"{k}-fuzz-{s}-again", cmd.format(s=s), cwd, 900, 60))
             kinds.append((k, s))
+        # (a soundness failure run again at the newest main, this commit, once it is past the failing one: fuzz_status)
+        recheck = st.setdefault("fuzz_recheck", [])
+        if not st.get("fuzz_recheck_seeded"):  # (once: the failures recorded before the re-runs, still standing)
+            rows = jl(TM / "fuzz.jsonl")
+            for (k, sd), (st_, r) in fuzz_status(rows, {(r["kind"], r["seed"]) for r in rows if r["code"] != 0 and fuzz_row_class(r) == "soundness"}).items():
+                if st_ != "fixed" and [k, sd, r["commit"]] not in recheck:
+                    recheck.append([k, sd, r["commit"]])
+            st["fuzz_recheck_seeded"] = True
+        for k, s, failed in [x for x in recheck if x[2] != self.commit]:
+            if len(items) >= n:
+                break
+            recheck.remove([k, s, failed])
+            cwd, cmd = FUZZ[k]
+            items.append(sh_item(f"{k}-fuzz-{s}-recheck", cmd.format(s=s), cwd, 900, 60))
+            kinds.append((k, s))
         while len(items) < n and (open_kinds or open_langs):
             s = st["seed"] = st.get("seed", 1000) + 1
             if open_langs and (s % XFUZZ_EVERY == 0 or not open_kinds):
@@ -1323,13 +1417,17 @@ class Soundness:
                     if m:
                         log(f"XFUZZ: {k[2:]} seed {s} at {self.commit[:12]}: the rule and the code differ: {m.group(1)[:200]}")
                     continue
-                cls, rerun = fuzz_class(code, out), it["name"].endswith("-again")
+                cls, rerun, recheck = fuzz_class(code, out), it["name"].endswith("-again"), it["name"].endswith("-recheck")
                 append(TM / "fuzz.jsonl", {"t": time.time(), "commit": self.commit, "kind": k, "seed": s, "code": code,
-                                           **({"class": cls, "tail": out[-1500:]} if code != 0 else {}), **({"again": True} if rerun else {})})
+                                           **({"class": cls, "tail": out[-1500:]} if code != 0 else {}), **({"again": True} if rerun else {}), **({"recheck": True} if recheck else {})})
                 if code != 0:
-                    log(f"{FUZZ_LOG[cls]}: {k} seed {s} at {self.commit[:12]} (exit {code})" + (" (its second run)" if rerun else ""))
+                    log(f"{FUZZ_LOG[cls]}: {k} seed {s} at {self.commit[:12]} (exit {code})" + (" (its second run)" if rerun else " (run again at the newest main)" if recheck else ""))
+                elif recheck:
+                    log(f"FUZZ FIXED: {k} seed {s} passes at {self.commit[:12]}")
                 if cls == "infra" and not rerun:
                     self.tm.state.setdefault("fuzz_again", []).append([k, s])
+                if cls == "soundness" and [k, s, self.commit] not in self.tm.state.setdefault("fuzz_recheck", []):
+                    self.tm.state["fuzz_recheck"].append([k, s, self.commit])
         label = f"sound {self.commit[:12]}"
         return Batch(self.tm, label, "b", items, vms, tracked(self.tm, "sound", label, on_row), root=self.tree, after=after)
 
@@ -1668,9 +1766,14 @@ def report(day: str) -> dict:
     fz = [r for r in jl(TM / "fuzz.jsonl") if on(day, r["t"])]
     bad = [r for r in fz if r["code"] != 0]
     by_class = {c: [r for r in bad if fuzz_row_class(r) == c] for c in ("soundness", "coverage", "infra")}
-    unsound = by_class["soundness"]  # (only these are alerts: coverage and infra are the harness's and boat's)
+    # (only soundness failures are alerts, coverage and infra are the harness's and boat's; and of those only the ones
+    # that still fail where the seed ran last: one that passes at a later main is listed as fixed there)
+    status = fuzz_status(jl(TM / "fuzz.jsonl"), {(r["kind"], r["seed"]) for r in by_class["soundness"]})
+    unsound = [r for (k, sd), (st_, r) in status.items() if st_ != "fixed"]
+    fixed = [(k, sd, r["first"], r["commit"]) for (k, sd), (st_, r) in status.items() if st_ == "fixed"]
     for r in unsound:
-        alerts.append({"kind": "soundness", "what": f"UNSOUND: {r['kind']} fuzz seed {r['seed']} at {r['commit'][:12]}: {first_error(r) or 'exit ' + str(r['code'])}"})
+        alerts.append({"kind": "soundness", "what": f"UNSOUND: {r['kind']} fuzz seed {r['seed']} at {r['commit'][:12]}" + (f" (first at {r['first'][:12]})" if r["first"] != r["commit"] else "")
+                       + (" (a run at the newest main pending)" if status[(r["kind"], r["seed"])][0] == "pending" else "") + f": {first_error(r) or 'exit ' + str(r['code'])}"})
     xz = [r for r in jl(TM / "xfuzz.jsonl") if on(day, r["t"])]
     for r in [r for r in xz if r.get("differ")]:
         alerts.append({"kind": "soundness", "what": f"extractor correspondence: {r['lang']} seed {r['seed']} at {r['commit'][:12]}: the rule and the code differ: {r['differ'][:160]}"})
@@ -1696,17 +1799,18 @@ def report(day: str) -> dict:
     # regressions: the speed chain, 60 s losses, the corpus, the ten, IC3Syn
     speed = [r for r in jl(TM / "speed.jsonl") if on(day, r["t"])]
     for r in speed:
-        for t, was, now, cpu in r.get("slower", [])[:5]:
-            alerts.append({"kind": "regression", "what": f"slower: {r['bench']} {t} {was:.1f} s -> {now:.1f} s ({now / max(0.01, was):.1f}x) at {r['commit'][:12]}{' (another CPU model)' if cpu else ''}"})
+        for t, was, now, cpu, *work in r.get("slower", [])[:5]:
+            alerts.append({"kind": "regression", "what": f"slower: {r['bench']} {t} {was:.1f} s -> {now:.1f} s ({now / max(0.01, was):.1f}x)"
+                           + (f", work {work[0]:.0f} -> {work[1]:.0f} ({work[1] / max(1, work[0]):.1f}x)" if work else " (wall time: no work counters)") + f" at {r['commit'][:12]}{' (another CPU model)' if cpu else ''}"})
         if len(r.get("slower", [])) > 5:
             alerts.append({"kind": "regression", "what": f"slower: {r['bench']}: {len(r['slower']) - 5} more at {r['commit'][:12]} (digest.json)"})
-        for t, ans in r.get("lost", []):
-            alerts.append({"kind": "regression", "what": f"lost at 60 s: {r['bench']} {t} ({ans}) at {r['commit'][:12]}"})
+        for t, ans, *work in r.get("lost", []):
+            alerts.append({"kind": "regression", "what": f"lost at 60 s: {r['bench']} {t} ({ans}) at {r['commit'][:12]}" + (f", work {work[1]} spent against the {work[0]} it needed" if work and work[0] is not None else "")})
     rw = [r for r in jl(TM / "rw.jsonl") if on(day, r["t"])]
     for r in rw:
-        for k, was, now in r.get("changes", []):
+        for k, was, now, *work in r.get("changes", []):
             flip = {was, now} == {"proven", "refuted"}
-            if flip or was == "proven":
+            if flip or (was == "proven" and rw_lost(work)):
                 alerts.append({"kind": "soundness" if flip else "regression", "what": f"real-world: {k}: {was} -> {now} at {r['commit'][:12]}"})
     ten = ten_summary(day)
     for c, ps in ten.items():
@@ -1782,7 +1886,7 @@ def report(day: str) -> dict:
     ideas = [json.loads(p.read_text()) for p in (TM / "subs").glob("*/meta.json")] if (TM / "subs").exists() else []
     ideas = [m for m in ideas if m.get("config") and on(day, m.get("t_done", m["t"]))]
     sound = {"fuzz": {k: sum(1 for r in fz if r["kind"] == k) for k in FUZZ}, "fuzz_failed": {c: [(r["kind"], r["seed"], r["code"], first_error(r)) for r in rs] for c, rs in by_class.items()},
-             "unsound": len(unsound), "xfuzz": {l: sum(1 for r in xz if r["lang"] == l) for l in XFUZZ}, "xfuzz_tests": sum(r.get("pass", 0) for r in xz),
+             "unsound": len(unsound), "fuzz_fixed": fixed, "xfuzz": {l: sum(1 for r in xz if r["lang"] == l) for l in XFUZZ}, "xfuzz_tests": sum(r.get("pass", 0) for r in xz),
              "xfuzz_idle": sorted({r["lang"] for r in xz if r["code"] == 0 and "pass" in r and not r["pass"]}), "xfuzz_failed": [(r["lang"], r["seed"], r["code"], first_error(r)) for r in xz if r["code"] != 0],
              "mutants": len(mt), "survived": len(surv), "equivalent": sum(1 for r in surv if r["equivalent_now"]), "new_survivors": len(new_surv),
              "stale_survivors": sum(1 for r in surv if not r["equivalent_now"] and r["sig"] not in standing),
@@ -1879,7 +1983,8 @@ def sections(day: str) -> list[str]:
     s = R["soundness"]
     out += ["", "## Soundness",
             f"- fuzz: {sum(s['fuzz'].values())} seeds ({', '.join(f'{k} {v}' for k, v in s['fuzz'].items())}), {s['unsound']} unsound (alerts), "
-            f"{len(s['fuzz_failed']['coverage'])} coverage failures (a harness bug: a count a test expects at its seed), {len(s['fuzz_failed']['infra'])} infrastructure crashes (no test failed)"]
+            f"{len(s['fuzz_failed']['coverage'])} coverage failures (a harness bug: a count a test expects at its seed), {len(s['fuzz_failed']['infra'])} infrastructure crashes (no test failed)"
+            + (", fixed: " + "; ".join(f"{k} {sd} (failed at {a[:12]}, passes at {b[:12]})" for k, sd, a, b in s["fuzz_fixed"]) if s.get("fuzz_fixed") else "")]
     for c, what in (("coverage", "coverage"), ("infra", "infrastructure")):
         if s["fuzz_failed"][c]:
             out.append(f"  - {what}: " + "; ".join(f"{k} {sd} ({e or 'exit ' + str(code)})" for k, sd, code, e in s["fuzz_failed"][c][:4]) + (f"; ... {len(s['fuzz_failed'][c]) - 4} more" if len(s["fuzz_failed"][c]) > 4 else ""))

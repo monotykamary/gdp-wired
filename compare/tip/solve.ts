@@ -22,13 +22,16 @@ import {readFileSync} from 'node:fs'
 import {OutOfFuel, type Sx, type Tip, type V, Unsupported, evaluate, parseSx, parseTip, prenex, sameV, showV} from './tip.ts'
 import {type Translation, translate} from './translate.ts'
 import {type DataLaw, type Value, conjectures, evalX, evalY, programOf, proveData, randomFn, randomValue, rng, samples, showY} from '../../core/data.ts'
+import {work as solverWork} from '../../core/solver.ts'
+import {fullWork} from '../../kernel/prove.ts'
 
 const args = process.argv.slice(2), file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
 const ms = opt('--ms', 57000), translateOnly = args.includes('--translate-only'), conjSize = opt('--conj-size', 0), conjMax = opt('--conj-max', 48)
 const lemmaSx: Sx[] = args.flatMap((a, i) => (a === '--lemma' ? parseSx(args[i + 1]!) : []))
 const t0 = performance.now(), now = () => Math.round(performance.now() - t0)
-const say = (o: object) => console.log(JSON.stringify({ms: now(), ...o}))
+// (each line with the prover's counted work beside the wall time: the treadmill tells the code from the VM by it)
+const say = (o: object) => console.log(JSON.stringify({ms: now(), work: solverWork.n, full: Math.round(fullWork()), ...o}))
 const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer, ...o}); process.exit(0) }
 
 let tip: Tip, tr: Translation

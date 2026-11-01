@@ -25,14 +25,14 @@
 //   mapping's value, calls of other contracts, inline assembly, try/catch, constants past 2^53, signed widths past 48.
 import {type Extraction, type Name, fromModel} from './extract.ts'
 import type {Rule} from './dsl.ts'
-import {type Request, evalC, interpret, searchSeeded} from './machine.ts'
+import {type Request, evalC, interpret, seeded} from './machine.ts'
 import {allowed, watch} from './watch.ts'
 import {kindOfVar} from './extract-check.ts'
 import type {Sorts} from './extract-print.ts'
 import type {Model} from './extract-read.ts'
 import {Refusal, pathOf, type FileURL} from './extract-read.ts'
 const refuse = (where: string, what: string): never => { throw new Refusal(where, what) }
-import {type Harness, type SFunc, type SModule, type SParam, type SRec, type SS, type SType, type SX, type StepOptions, type StepRead, checkStep, node, readStep, stepNames} from './extract-step.ts'
+import {asset, type Harness, type SFunc, type SModule, type SParam, type SRec, type SS, type SType, type SX, type StepOptions, type StepRead, checkStep, node, readStep, stepNames} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 export type SolOptions = StepOptions & {
@@ -640,7 +640,7 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
     const slots = Object.fromEntries(out.storageLayout.storage.map(s => [s.label, {slot: s.slot, offset: s.offset, bytes: Number(types[s.type]?.numberOfBytes ?? 32), map: types[s.type]?.encoding === 'mapping', nested: meta.nested.includes(s.label), type: s.type}]))
     const kinds = Object.fromEntries(meta.fields.map(f => [f.name, kindOf(f.t, f.sol)]))
     const mapKeys = Object.fromEntries(meta.fields.filter(f => f.sol.startsWith('mapping(')).map(f => [f.name, keyKinds(f.sol)]))
-    return {cmd: opts.python ?? 'python3', args: [new URL('./sol/harness.py', import.meta.url).pathname], env: {...(opts.anvil ? {GDP_ANVIL: opts.anvil} : {})},
+    return {cmd: opts.python ?? 'python3', args: [asset('sol/harness.py')], env: {...(opts.anvil ? {GDP_ANVIL: opts.anvil} : {})},
       hello: {sol: {creation: out.evm.bytecode.object, abi: out.abi, ids: out.evm.methodIdentifiers, slots, kinds, mapKeys, havoc: meta.nested, havocBy: havocBy(mod), mod: MOD, minW: meta.minW, addrBits: meta.addrBits, entries: meta.entries, ctor: meta.ctor, ether: meta.ether}}}
   }
   // (methods: the external functions that may write the state, unless named)
@@ -691,7 +691,7 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
   const rx = fromModel(rread.model, mod.file, {...unsigned, ...nats(rread), ...opts.domains, 'pending$': 'nat'}, rnotes, (rule, sorts) => {
     replays = replayer({rule, sorts, model: rread.model, names: stepNames(rread), leaves: read.leaves, hello: (harness(read).hello as {sol: unknown}).sol, ctor: read.ctor, replay: compileReplay(opts), opts})
     const ev = {...x.evidence!}
-    const n = opts.check?.runs === undefined ? 40 : Math.max(4, Math.round(opts.check.runs / 5)), rand = searchSeeded((opts.check?.seed ?? 11) >>> 0 || 1)
+    const n = opts.check?.runs === undefined ? 40 : Math.max(4, Math.round(opts.check.runs / 5)), rand = seeded((opts.check?.seed ?? 11) >>> 0 || 1)
     for (let i = 0; i < n; i++) {
       const run = randomRun(rule, rread.model, rand)
       if (!run.trace.length) continue
@@ -708,7 +708,7 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
 // --- re-entrant runs replayed on the code ---------------------------------------------------------------------------------
 type Run = {params: Record<string, number>, trace: Record<string, unknown>[]}
 function compileReplay(o: SolOptions): {agent: string, director: string} {
-  const c = compile(new URL('./sol/Replay.sol', import.meta.url).pathname, {...o, root: new URL('./sol/', import.meta.url).pathname})
+  const c = compile(asset('sol/Replay.sol'), {...o, root: asset('sol/')})
   const k = c.contracts[c.paths.get(c.main)!]!
   return {agent: k.Agent!.evm.deployedBytecode.object, director: k.Director!.evm.deployedBytecode.object}
 }
@@ -791,7 +791,7 @@ function replayer(c: ReplayCtx) {
     let out: {error?: string, states?: Record<string, unknown>[], oks?: boolean[][]}
     try {
       fs.writeFileSync(`${dir}/run.json`, JSON.stringify({sol: c.hello, leaves: c.leaves, ctorSpec: c.ctor, ctor: ctorArgs, agent: c.replay.agent, director: c.replay.director, groups}))
-      out = JSON.parse(cp.execFileSync(c.opts.python ?? 'python3', [new URL('./sol/harness.py', import.meta.url).pathname, '--replay', `${dir}/run.json`], {encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'pipe'], env: {...env(), ...(c.opts.anvil ? {GDP_ANVIL: c.opts.anvil} : {})}}))
+      out = JSON.parse(cp.execFileSync(c.opts.python ?? 'python3', [asset('sol/harness.py'), '--replay', `${dir}/run.json`], {encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'pipe'], env: {...env(), ...(c.opts.anvil ? {GDP_ANVIL: c.opts.anvil} : {})}}))
     } catch (e) { return no(`the replay didn't run (${String((e as Error).message).slice(0, 300)})`) } finally { fs.rmSync(dir, {recursive: true, force: true}) }
     if (out.error) return no(`the code: ${out.error}`)
     const shown = (g: number) => groups[g]!.map(e => (e.kind === 'ret' ? `return(${e.ok})` : `${e.m}(${e.a!.map(([n, v]) => `${n}=${String(v.in)}`).join(', ')})`)).join(' ')

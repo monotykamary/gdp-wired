@@ -18,12 +18,12 @@
 // float division, recursion, receive, and a state that isn't a map of scalars.
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, type FileURL} from './extract-read.ts'
-import {type Harness, type SModule, type StepOptions, type StepRead, extractStep, node} from './extract-step.ts'
+import {asset, type Harness, type SModule, type StepOptions, type StepRead, extractStep, node} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 export type ExOptions = StepOptions & {elixir?: string}
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
-const here = (f: string) => new URL(`./ex/${f}`, import.meta.url).pathname
+const here = (f: string) => asset(`ex/${f}`)
 type ExModule = SModule & {shape?: string, msgs?: Record<string, unknown>, init?: unknown}
 
 export function readElixir(file: string, module: string | undefined, elixir = 'elixir'): ExModule {

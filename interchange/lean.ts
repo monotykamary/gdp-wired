@@ -4,24 +4,64 @@
 // checker's answer, for Lean to compute again:
 //   bun interchange/lean.ts write <dir> [nonterm kind rationals goals cyclic rings counts, e.g. --nonterm 40]
 //   bun interchange/lean.ts emit <dir> <lean dir>        (IxNonTerm.lean, IxKind.lean, IxRat.lean, IxGoals.lean, IxCyclic.lean, IxRings.lean)
+//   bun interchange/lean.ts pick <dir> <capture dir> <tampered dir> [--per N]
+// pick: the suites' certificates to Lean the same way: from a capture (interchange/capture.ts) and the twins
+// interchange/verify.ts --keep tampered from it, up to N documents of each kind Lean has a check for here (spread over
+// the capture), each with its twins, written into <dir> as `write` writes them (the twins' `of` their document), for emit.
+// A twin of a cyclic, recur or kInduction document is a tree tampered: those emitters write the trees kernel.ts accepts
+// (the original's, under a twin's changed nodes or stem), so such a twin goes to Lean as its goals (goalsOf, a `goals`
+// document: Kernel.lean's checkGoal on each goal's tree as the twin has it).
 // Each `example : check… = b := by decide +kernel` holds in Lean exactly when Lean's check computes the checker's b. The
 // kinds and the Lean check each is computed by:
 //   recur      NonTerm.lean's checkRecur (core/conformance.ts's recurCases: found, tampered, forged)
 //   kInduction KInd.lean's checkKInd (kindCases: found; each twin as KInd's literal, meta.lean, or a certificate of its own)
 //   qgoals     Rationals.lean's Q.checkGoal (randomQCase's goals, growQ's trees, qtampered's twins)
-//   goals      Kernel.lean's checkGoal, each goal of a machine's laws (examples' rules, usual trees; twins tampered in the JSON)
+//   goals      Kernel.lean's checkGoal, each goal of a machine's laws (examples' rules, usual trees; twins tampered in the JSON),
+//              and each goal of a `goals` document (the suites' trees checked alone, from pick)
 //   cyclic     Cyclic.lean's checkCyclic (the examples' rules' cyclic certificates; twins with a node changed in the JSON)
 //   termination Data.lean's termination_by under the measures the document holds (ringCase; the functions' Lean from
 //              the case, which the format doesn't carry), each obligation's cyclic proof the checker's
 import {mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
-import {checkDocument} from './check.ts'
+import {checkDocument, goalsOf} from './check.ts'
 import {type Certificate, type Document, type Json, fromInterchange, toInterchange} from './format.ts'
 
 const [mode, dir, leanDir] = process.argv.slice(2)
 const num = (f: string, d: number) => { const i = process.argv.indexOf(`--${f}`); return i >= 0 ? Number(process.argv[i + 1]) : d }
-if (!dir || (mode !== 'write' && mode !== 'emit') || (mode === 'emit' && !leanDir)) { console.error('usage: lean.ts write <dir> [--nonterm N --kind N --rationals N --goals N --cyclic N --rings N] | emit <dir> <lean dir>'); process.exit(2) }
+if (!dir || !['write', 'emit', 'pick'].includes(mode ?? '') || (mode !== 'write' && !leanDir) || (mode === 'pick' && !process.argv[5])) { console.error('usage: lean.ts write <dir> [--nonterm N --kind N --rationals N --goals N --cyclic N --rings N] | emit <dir> <lean dir> | pick <dir> <capture dir> <tampered dir> [--per N]'); process.exit(2) }
 mkdirSync(dir, {recursive: true})
+
+if (mode === 'pick') {
+  const per = num('per', 40), kinds = ['goals', 'laws', 'qgoals', 'recur', 'cyclic', 'kInduction'], counts: Record<string, number> = {}
+  const ls = (d: string) => { try { return readdirSync(d).filter(f => f.endsWith('.json')).sort() } catch { return [] } }
+  const twins = new Map<string, Document[]>()
+  for (const f of ls(process.argv[5]!)) {
+    const t = JSON.parse(readFileSync(join(process.argv[5]!, f), 'utf8')) as Document, of = String((t.meta as {of?: string} | undefined)?.of ?? '').split('/').at(-1)!
+    twins.set(of, [...twins.get(of) ?? [], t])
+  }
+  const byKind = new Map<string, string[]>()
+  for (const f of ls(leanDir!)) { const k = String((JSON.parse(readFileSync(join(leanDir!, f), 'utf8')) as Document).kind); if (kinds.includes(k)) byKind.set(k, [...byKind.get(k) ?? [], f]) }
+  for (const [k, fs] of byKind) {
+    // (spread over the capture: every step-th, so each job's certificates are sampled, not only the first job's)
+    const step = Math.max(1, Math.floor(fs.length / per))
+    fs.filter((_, i) => i % step === 0).slice(0, per).forEach((f, i) => {
+      const d = JSON.parse(readFileSync(join(leanDir!, f), 'utf8')) as Document, name = `${k}-${String(i).padStart(3, '0')}`
+      const kernelThere = (d.meta as {capture?: {kernel?: unknown}} | undefined)?.capture?.kernel
+      d.meta = {what: 'captured', from: f, ...(typeof kernelThere === 'boolean' ? {kernel: kernelThere} : {})}
+      writeFileSync(join(dir, `${name}.json`), JSON.stringify(d)); counts[`${k} captured`] = (counts[`${k} captured`] ?? 0) + 1
+      ;(twins.get(f) ?? []).forEach((t, j) => {
+        const meta = {what: String((t.meta as {tamper?: string} | undefined)?.tamper), of: `${name}.json`}
+        let out: Document = {...t, meta}
+        if (['cyclic', 'recur', 'kInduction'].includes(k)) {
+          try { out = toInterchange(goalsOf(fromInterchange(t)), meta) } catch { counts[`${k} twin unreadable`] = (counts[`${k} twin unreadable`] ?? 0) + 1; return }
+        }
+        writeFileSync(join(dir, `${name}-t${j}.json`), JSON.stringify(out)); counts[`${k} twin${out.kind === 'goals' && k !== 'goals' ? ' as goals' : ''}`] = (counts[`${k} twin${out.kind === 'goals' && k !== 'goals' ? ' as goals' : ''}`] ?? 0) + 1
+      })
+    })
+  }
+  console.log(JSON.stringify(counts))
+  process.exit(0)
+}
 const put = (name: string, c: Certificate, meta: Json) => { writeFileSync(join(dir, `${name}.json`), JSON.stringify(toInterchange(c, meta))); return `${name}.json` }
 
 if (mode === 'write') {
@@ -181,7 +221,7 @@ for (const [f, d] of docs) {
       case 'kInduction': {
         if (m.of) break // twins go with the certificate they are twins of
         const c = fromInterchange(d) as Extract<Certificate, {kind: 'kInduction'}>, ok = answer(f)
-        const twins = [...docs].filter(([, x]) => metaOf(x).of === f)
+        const twins = [...docs].filter(([, x]) => metaOf(x).of === f && x.kind === 'kInduction')
         const start = kernel.kInductionStart(c.machine, c.kInduction, {})
         emitter.seedStepProof(c.machine, c.laws, kernel.kInductionSteps(c.machine, c.kInduction), {proven: true, checked: true, nodes: 0, leaves: 0, proof: c.proof})
         const tampers = twins.flatMap(([tf, x]) => { const tm = metaOf(x); return tm.lean ? [{what: `${tf}: ${tm.what}`, ...tm.lean, expect: answer(tf)}] : [] })
@@ -216,12 +256,11 @@ for (const [f, d] of docs) {
         counted('qgoals', ok)
         break
       }
-      case 'laws': {
-        const c = fromInterchange(d) as Extract<Certificate, {kind: 'laws'}>, ok = answer(f)
-        const goals = kernel.obligations(c.machine, c.laws, c.proof.instances)
+      case 'laws': case 'goals': {
+        const c = fromInterchange(d) as Extract<Certificate, {kind: 'laws' | 'goals'}>, ok = answer(f)
+        const pairs = c.kind === 'goals' ? c.goals : kernel.obligations(c.machine, c.laws, c.proof.instances).map(goal => ({goal, tree: c.proof.trees[goal.name]}))
         let all = true
-        for (const [gi, g] of goals.entries()) {
-          const tree = c.proof.trees[g.name]
+        for (const [gi, {goal: g, tree}] of pairs.entries()) {
           if (!tree) { all = false; continue }
           let per: boolean
           try { per = kernel.check(g, tree) } catch { per = false }
@@ -239,7 +278,7 @@ for (const [f, d] of docs) {
         if (m.of) break
         const c = fromInterchange(d) as Extract<Certificate, {kind: 'cyclic'}>, ok = answer(f)
         if (!ok) { t('cyclic').notWritten++; break }
-        const twins = [...docs].filter(([, x]) => metaOf(x).of === f).map(([tf, x]) => ({tf, what: `${tf}: ${metaOf(x).what}`, proof: (fromInterchange(x) as Extract<Certificate, {kind: 'cyclic'}>).cyclic, ok: answer(tf)}))
+        const twins = [...docs].filter(([, x]) => metaOf(x).of === f && x.kind === 'cyclic').map(([tf, x]) => ({tf, what: `${tf}: ${metaOf(x).what}`, proof: (fromInterchange(x) as Extract<Certificate, {kind: 'cyclic'}>).cyclic, ok: answer(tf)}))
         // (cyclicToLean computes each twin's check to false: a twin the checker accepts goes as a proof of its own)
         // A twin refused only because its rows moved (its trees' rows all there, in another order) is one Lean's check
         // accepts: Lean finds a leaf's rows by value (the emitter claims them), kernel.ts by their place. Those go to
@@ -273,7 +312,7 @@ for (const [f, d] of docs) {
         counted('termination', ok)
         break
       }
-      case 'goals': case 'stepLaws': case 'progress': case 'liveness': case 'loop': case 'fold': case 'qmachine': break // (no conformance case of Lean's here)
+      case 'stepLaws': case 'progress': case 'liveness': case 'loop': case 'fold': case 'qmachine': break // (no conformance case of Lean's here)
     }
   } catch (e) {
     console.error(`${f}: ${e instanceof Error ? e.message : String(e)}`)

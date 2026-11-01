@@ -30,15 +30,17 @@
 // constructor argument of another module's class, a protocol or no type that the class calls methods on an injected
 // dependency (Depends(...) marks one too), with no entry the class whose public methods write its state.
 //
-// Refused, each where it is with why: loops and comprehensions, try/except, lambdas and closures, global and nonlocal,
-// lists, strings beyond set and compared (an f-string is kept only as a store's key or where nothing reads it), a
+// A for loop over a list is a fold (the request's list or the state's), try/except/finally reads the handlers whose
+// classes the reader knows. Refused, each where it is with why (core/py/reader.py's `no` nodes, the executor's
+// Refusals): while and async for, except*, match, comprehensions, lambdas but a key function, closures, global and
+// nonlocal, strings beyond set and compared (an f-string is kept only as a store's key or where nothing reads it), a
 // dict's truthiness, other code whose value is read and whose type isn't declared, other code given the object, a
 // write to an object the caller gave, a field the
 // constructor doesn't set, one object in two places of the state, two keys of one map written in one step, a write
 // before a failure (unless onError: 'discard').
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, type FileURL} from './extract-read.ts'
-import {type Harness, type SModule, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
+import {asset, type Harness, type SModule, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 export type PyOptions = StepOptions & {
@@ -48,7 +50,7 @@ export type PyOptions = StepOptions & {
   python?: string,
 }
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
-const here = (f: string) => new URL(`./py/${f}`, import.meta.url).pathname
+const here = (f: string) => asset(`py/${f}`)
 
 // The module as the reader lowers it (the names given and the module's functions).
 export function readPython(file: string, names: string[], opts: {root?: string, python?: string} = {}): SModule {

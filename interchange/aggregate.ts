@@ -33,7 +33,9 @@ for (const f of readdirSync(dir).filter(f => f.endsWith('.log')).sort()) {
   for (const d of s.disagreements) disagreements.push(`${job}: ${d}`)
   if (s.schema) { valid += s.schema.valid; invalid += s.schema.invalid; for (const x of s.schema.first) if (schemaFirst.length < 10) schemaFirst.push(`${job}: ${x}`) }
 }
-const cols = ['docs', 'kernelAccepted', 'kernelRefused', 'tsAgree', 'malformed', 'cliAgree', 'wasmRun', 'wasmAgree', 'goals', 'pyRun', 'pyAgree']
+// (and each other build of the CLI a run checked with, verify.ts's --also: <name>Agree)
+const others = [...new Set(Object.values(byKind).flatMap(r => Object.keys(r).filter(k => k.endsWith('Agree') && !['tsAgree', 'cliAgree', 'wasmAgree', 'pyAgree'].includes(k))))].sort()
+const cols = ['docs', 'kernelAccepted', 'kernelRefused', 'tsAgree', 'malformed', 'cliAgree', ...others, 'wasmRun', 'wasmAgree', 'goals', 'pyRun', 'pyAgree']
 const total: Row = {}
 for (const r of Object.values(byKind)) add(total, r)
 console.log(`${dir}\njobs with a summary: ${readdirSync(dir).filter(f => f.endsWith('.log')).length - missing.length}; without: ${missing.length ? missing.join(', ') : 'none'}`)
@@ -42,7 +44,7 @@ console.log(`jobs whose command failed under the capture: ${failedJobs.length ? 
 console.log(`kind          ${cols.join('  ')}`)
 for (const [k, r] of [...Object.entries(byKind).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)), ['TOTAL', total] as const]) console.log(`${k.padEnd(13)} ${cols.map(c => String(r[c] ?? 0).padStart(c.length)).join('  ')}`)
 console.log(`\ntampered twins: ${twins}`)
-const tcols = ['docs', 'tsRefused', 'cliAgree', 'wasmRun', 'wasmAgree', 'goals', 'pyRun', 'pyAgree']
+const tcols = ['docs', 'tsRefused', 'cliAgree', ...others, 'wasmRun', 'wasmAgree', 'goals', 'pyRun', 'pyAgree']
 console.log(`${'tamper'.padEnd(38)} ${tcols.join('  ')}`)
 for (const [k, r] of Object.entries(tampered)) console.log(`${k.padEnd(38)} ${tcols.map(c => String(r[c] ?? 0).padStart(c.length)).join('  ')}`)
 console.log(`twins the checker accepts (the tamper left a proof): ${acceptedTampers}`)

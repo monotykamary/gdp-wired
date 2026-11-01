@@ -60,6 +60,8 @@ defmodule GdpHarness do
     end
   end
   def arg(%{"none" => true}), do: nil
+  # (a value the rule never reads: any value, nil)
+  def arg(%{"inert" => true}), do: nil
   def state_of(st) do
     for l <- s("leaves"), l["kind"] not in ["frame", "map"], into: %{} do
       v = Map.get(st, String.to_atom(hd(l["path"])))

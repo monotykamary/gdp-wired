@@ -38,7 +38,7 @@ import * as I from './extract-ir.ts'
 import type {B, K, N} from './extract-ir.ts'
 import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, pathOf, type FileURL} from './extract-read.ts'
 import {type Extraction, type Name, fromModel} from './extract.ts'
-import {type Answer, type Inferred, type IntTy, type Recipe, type SType, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, iteTerm, mapWritesOf, phiP, rangeLaws, rangeOf, varTerm} from './extract-step.ts'
+import {asset, type Answer, type Inferred, type IntTy, type Recipe, type SType, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, iteTerm, mapWritesOf, phiP, rangeLaws, rangeOf, varTerm} from './extract-step.ts'
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
@@ -71,6 +71,8 @@ export type GoOptions = {
   fails?: Record<string, string>,
   // true: other packages' code refused where it is called, nothing inferred (core/extract-step.ts's strict)
   strict?: boolean,
+  // Calls of other code answered by the request (the callee's name: its result's type) or left out (core/extract-step.ts's).
+  answers?: Record<string, string>, skip?: string[],
 }
 const refuse = (x: {p: string} | string, what: string): never => { throw new Refusal(typeof x === 'string' ? x : x.p || '?', what) }
 type Path = StepPath
@@ -83,7 +85,7 @@ class Go {
   readonly funcs: Record<string, SFunc> = {}
   constructor(readonly pkg: GoPkg, readonly opts: GoOptions, inf?: Inferred) {
     const mod: SModule = {lang: pkg.lang ?? 'go', file: pkg.files[0]?.name ?? 'go', path: pkg.dir ? `${pkg.dir}/${pkg.files[0]?.name ?? ''}` : '', module: pkg.package, root: pkg.dir ?? '', entries: [], recs: {}, funcs: this.funcs, split: false}
-    this.g = new Stepper(mod, {entry: opts.entry, ...(opts.onError ? {onError: opts.onError} : {})}, inf)
+    this.g = new Stepper(mod, {entry: opts.entry, ...(opts.onError ? {onError: opts.onError} : {}), ...(opts.answers ? {answers: opts.answers} : {}), ...(opts.skip ? {skip: opts.skip} : {})}, inf)
     for (const f of pkg.funcs) this.funcs[`${f.recv?.type ?? ''}.${f.name}`] = this.fn(f)
   }
   T(t: number): TT { return this.pkg.ttab[t] ?? {k: 'invalid'} }
@@ -556,7 +558,7 @@ class Go {
 
 // --- the model --------------------------------------------------------------------------------------------------------
 // (answers: the calls answered, each request's values the last argument of its event; ranges: each one's type's)
-export type GoRead = {answers?: (Answer & {range?: [number, number]})[], ctor?: {name: string, t: number, arg: Arg}[], model: Model, edges: B[], unsigned: string[], leaves: GoLeaf[], spans: [string, number, number][], entry: string, methods: {name: string, ptr: boolean, params: {name: string, t: number, arg: Arg}[], results: number[], err: boolean}[]}
+export type GoRead = {answers?: (Answer & {range?: [number, number]})[], leftOut?: string[], ctor?: {name: string, t: number, arg: Arg}[], model: Model, edges: B[], unsigned: string[], leaves: GoLeaf[], spans: [string, number, number][], entry: string, methods: {name: string, ptr: boolean, params: {name: string, t: number, arg: Arg}[], results: number[], err: boolean}[]}
 type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: V, when: B}
 // Read with the boundary inferred unless strict (core/extract-step.ts's readStep: each refused run adds what the next
 // infers): Go's check can't stub a call, so a call of another package is left out where nothing reads its value.
@@ -773,7 +775,7 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
   // Unsigned inputs are naturals (the input's kind); a state variable's sort is the printer's to decide (a natural where
   // every write is proven one: a wrap by cases may not be, though it stays within the type, which its law says).
   const unsigned = [...g.ints].filter(([n, ty]) => { const [lo, hi] = rangeOf(ty); return lo === 0 && hi > 0 && (g.inputs.some(v => v.name === n) || cparams.some(v => v.name === n)) }).map(([n]) => n)
-  return {...(pkg.ctor ? {ctor: ctorArgs} : {}), model, edges: g.edges, unsigned, leaves: go.leaves.filter(l => l.kind === 'frame' || state.some(v => v.name === l.name) || maps.some(d => d.name === l.name) || lists.some(d => d.name === l.name)), spans: [...g.spans.values()], entry: opts.entry, methods, ...(answers.length ? {answers} : {})}
+  return {...(pkg.ctor ? {ctor: ctorArgs} : {}), ...(g.leftOut.size ? {leftOut: [...g.leftOut]} : {}), model, edges: g.edges, unsigned, leaves: go.leaves.filter(l => l.kind === 'frame' || state.some(v => v.name === l.name) || maps.some(d => d.name === l.name) || lists.some(d => d.name === l.name)), spans: [...g.spans.values()], entry: opts.entry, methods, ...(answers.length ? {answers} : {})}
 }
 function termOf(v: V, at: {p: string}): Term {
   if (v.t === 'num') return {s: 'num', e: v.e}
@@ -838,7 +840,7 @@ export const node = <T>(id: string): T => { const m = proc?.getBuiltinModule?.(i
 // The reader, built once per version of its source (into the system's temporary directory).
 export function readerBinary(): string {
   const fs = node<FS>('node:fs'), cp = node<ChildProcess>('node:child_process'), os = node<{tmpdir: () => string}>('node:os'), crypto = node<{createHash: (a: string) => {update: (s: string) => {digest: (e: string) => string}}}>('node:crypto')
-  const dir = new URL('./go/', import.meta.url).pathname
+  const dir = asset('go/')
   const src = fs.readFileSync(`${dir}reader.go`, 'utf8'), h = crypto.createHash('sha256').update(src).digest('hex').slice(0, 12)
   const bin = `${os.tmpdir()}/gdp-goreader-${h}`
   if (!fs.existsSync(bin)) cp.execFileSync('go', ['build', '-o', bin, '.'], {cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: {...proc?.env, GOFLAGS: '-mod=mod', GOTOOLCHAIN: 'local'}})

@@ -10,12 +10,14 @@ import {readFileSync, readdirSync, writeFileSync, existsSync} from 'node:fs'
 import {corpus} from './corpus.ts'
 import {GAPS, type RealItem} from './lib.ts'
 import type {Verdict} from '../../core/dsl.ts'
+import {work as solverWork} from '../../core/solver.ts'
+import {fullWork} from '../../kernel/prove.ts'
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i < 0 ? undefined : process.argv[i + 1] }
 const ms = Number(arg('--ms') ?? 60_000)
 
 type Outcome = 'proven' | 'refuted' | 'unknown' | 'timeout' | 'error'
-type Run = {item: string, law: number, name: string, outcome: Outcome, ms: number, goal?: string, stuck?: string, why?: string, run?: Verdict['run'], witness?: Record<string, number>, found?: string[], error?: string}
+type Run = {item: string, law: number, name: string, outcome: Outcome, ms: number, work?: number, full?: number, goal?: string, stuck?: string, why?: string, run?: Verdict['run'], witness?: Record<string, number>, found?: string[], error?: string}
 // A decision has no state: the request its `sat` comes with is a counterexample, as a run is for a rule.
 const outcome = (v: Verdict, decision: boolean): Outcome => (v.proven && v.checked ? 'proven' : v.run || (decision && v.stuck === 'sat' && v.witness) ? 'refuted' : 'unknown')
 function foundText(v: Verdict): string[] | undefined {
@@ -26,10 +28,11 @@ function foundText(v: Verdict): string[] | undefined {
 const runLaw = (it: RealItem, k: number): Run => {
   const l = it.laws[k]
   if (!l) throw new Error(`${it.id} has no law ${k}`)
-  const t = performance.now()
+  // (with the prover's counted work it took, beside the wall time: the treadmill tells the code from the VM by it)
+  const t = performance.now(), w0 = solverWork.n, f0 = fullWork(), counters = () => ({work: solverWork.n - w0, full: Math.round(fullWork() - f0)})
   try {
     const v = l.prove(ms), found = foundText(v)
-    return {item: it.id, law: k, name: l.name, outcome: outcome(v, l.form === 'decision'), ms: Math.round(performance.now() - t), goal: v.goal, stuck: v.stuck, ...(v.why ? {why: v.why.slice(0, 400)} : {}),
+    return {item: it.id, law: k, name: l.name, outcome: outcome(v, l.form === 'decision'), ms: Math.round(performance.now() - t), ...counters(), goal: v.goal, stuck: v.stuck, ...(v.why ? {why: v.why.slice(0, 400)} : {}),
       ...(v.run ? {run: v.run} : {}), ...(v.witness && !v.run ? {witness: v.witness} : {}), ...(found?.length ? {found} : {})}
   } catch (e) {
     return {item: it.id, law: k, name: l.name, outcome: 'error', ms: Math.round(performance.now() - t), error: String((e as Error).stack ?? e).slice(0, 600)}

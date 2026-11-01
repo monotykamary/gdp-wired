@@ -32,6 +32,8 @@ import {type C, type E, type Law, type State, lcgFloat} from '../../core/machine
 import {grow} from '../../kernel/prove.ts'
 import {substC} from '../../kernel/kernel.ts'
 import {type Composed, expand, invOf, liftProven, prepare} from './compose.ts'
+import {work as solverWork} from '../../core/solver.ts'
+import {fullWork} from '../../kernel/prove.ts'
 
 // GDP_CHC_ARGS: more flags, read before the command line's (a run's knobs, through modal_chc.py's --env).
 const args = [process.argv[2]!, ...(process.env.GDP_CHC_ARGS ?? '').split(' ').filter(Boolean), ...process.argv.slice(3)], file = args[0]!
@@ -43,7 +45,8 @@ process.env.GDP_CERT ??= 'usual'
 const liftMs = opt('--lift-ms', 8000), bmcMs = opt('--bmc-ms', 15000), runsMs = opt('--runs-ms', 5000), guideMs = opt('--guide-ms', 8000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini'), oldHoudini = args.includes('--old-houdini')
 const t0 = performance.now(), ms = () => Math.round(performance.now() - t0)
 let unpin = () => {}
-const say = (o: object) => { unpin(); console.log(JSON.stringify({task: file, ms: ms(), ...o})) }
+// (each line with the prover's counted work beside the wall time: the treadmill tells the code from the VM by it)
+const say = (o: object) => { unpin(); console.log(JSON.stringify({task: file, ms: ms(), work: solverWork.n, full: Math.round(fullWork()), ...o})) }
 const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer, ...o}); process.exit(0) }
 
 // `--compose 1`: the chains composed away first (compose.ts); every search here then reads the composed rule, its
@@ -77,7 +80,7 @@ const kindMs = opt('--kind-ms', Math.max(0, houdiniMs - 2000 - ms())), bmcThere 
 const pinMode = opt('--kind-pin', 0), cpus = pinMode === 0 ? [] : (() => { try { const m = /Cpus_allowed_list:\s*(\S+)/.exec(readFileSync('/proc/self/status', 'utf8')); return m ? m[1]!.split(',').flatMap(p => { const [a, z] = p.split('-').map(Number); return Array.from({length: (z ?? a!) - a! + 1}, (_, i) => a! + i) }) : [] } catch { return [] } })()
 const pin = kindMs > 0 && cpus.length >= 2
 if (pin && pinMode === 1) Bun.spawnSync(['taskset', '-a', '-p', '-c', String(cpus[0]), String(process.pid)], {stdout: 'ignore', stderr: 'ignore'})
-const kind = kindMs > 0 ? Bun.spawn([...(pin ? ['taskset', '-c', String(cpus.at(-1))] : []), 'nice', '-n', String(opt('--kind-nice', 19)), 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid), '--bmc', bmcThere ? '1' : '0', '--imc', String(opt('--imc', 1)), '--imc-x', String(opt('--imc-x', 1)), '--imc-first', String(opt('--imc-first', 1)), '--bmc-depth', String(opt('--bmc-depth', 0)), '--induction', String(opt('--induction', -1)), '--kind', String(opt('--kind', 0)), '--compose', String(opt('--compose', 1)), '--slice', String(opt('--slice', 0))], {stdout: 'inherit', stderr: 'ignore'}) : undefined
+const kind = kindMs > 0 ? Bun.spawn([...(pin ? ['taskset', '-c', String(cpus.at(-1))] : []), 'nice', '-n', String(opt('--kind-nice', 19)), 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid), '--bmc', bmcThere ? '1' : '0', '--imc', String(opt('--imc', 1)), '--imc-x', String(opt('--imc-x', 1)), '--imc-first', String(opt('--imc-first', 1)), '--bmc-depth', String(opt('--bmc-depth', 0)), '--induction', String(opt('--induction', -1)), '--kind', String(opt('--kind', 0)), '--compose', String(opt('--compose', 1)), '--slice', String(opt('--slice', 0)), '--counted', String(opt('--counted', 0)), '--imc-rate', String(opt('--imc-rate', 140))], {stdout: 'inherit', stderr: 'ignore'}) : undefined
 process.on('exit', () => { kind?.kill() })
 // (the second process done: this one takes the slot's CPUs back, looked at with each stage line this prints)
 let pinned = pin && pinMode === 1

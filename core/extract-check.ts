@@ -20,7 +20,7 @@ type VM = {createContext: (o: Context) => Context, runInContext: (code: string, 
 const proc = (globalThis as {process?: {getBuiltinModule?: (id: string) => unknown}}).process
 const vmOf = (): VM => { const m = proc?.getBuiltinModule?.('node:vm'); if (!m) throw new Error('the check runs the code in node:vm (Node 20.16 or later, or Bun)'); return m as VM }
 import {Int, Term, bool, int, intern, interned, nat, no, oneOf, str, type Kind, type Rule, type StepLaw, proveSteps} from './dsl.ts'
-import {type Rand, type Request, type State, searchSeeded, walk} from './machine.ts'
+import {type Rand, type Request, type State, seeded, walk} from './machine.ts'
 import {allowed} from './watch.ts'
 import {type Arg, type Layout, type MapDecl, type Model, type Var, normalize, resolveIn, scriptKind} from './extract-read.ts'
 import * as I from './extract-ir.ts'
@@ -309,7 +309,8 @@ export type CodeSide = {
   make: (params: Record<string, Raw>) => {ok: true, value: unknown} | {ok: false, error: string},
   at: (snap: Snap, params: Record<string, Raw>) => unknown,
   snapOf: (self: unknown, params: Record<string, Raw>) => Snap,
-  call: (self: unknown, e: Ev, args: unknown[]) => {ok: true, value: unknown} | {ok: false, error: string},
+  // (outside: the code can't be given the request, an answer outside the type of the call it answers: not compared)
+  call: (self: unknown, e: Ev, args: unknown[]) => {ok: true, value: unknown} | {ok: false, error: string, outside?: true},
   reduce?: (snap: Snap, e: Ev, args: unknown[], params: Record<string, Raw>) => {refused: string} | {snap: Snap} | {problem: string},
   // The request's arguments, the time it is made at, the code's own initial state (a problem where it differs).
   args: (inputs: Record<string, Raw>, e: Ev) => unknown[], setNow: (n: number) => void, init?: (snap: Snap, params: Record<string, Raw>) => string | undefined,
@@ -384,7 +385,7 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
 // The check: requests from the start, from drawn states and from the prover's witnesses, each made of the code
 // (through its side) and of the rule, and compared.
 export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: CheckOptions & {given?: Record<string, 'nat' | 'int'>} = {}): Evidence {
-  const t0 = performance.now(), rand = searchSeeded((opts.seed ?? 7) >>> 0 || 1), bound = opts.bound ?? 12
+  const t0 = performance.now(), rand = seeded((opts.seed ?? 7) >>> 0 || 1), bound = opts.bound ?? 12
   const isClass = m.shape === 'class'
   const interp = r.interpreter(), gen = r.compiled(), machine = r.machine
   const ev: Evidence = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0}
@@ -434,6 +435,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
     try {
       if (isClass) {
         const self = side.self!, c = code.call(self, e, args)
+        if (!c.ok && c.outside) { next.stop = true; ev.outside++; return undefined }
         if (!c.ok) res = {refused: c.error}
         else res = {snap: code.snapOf(self, params), out: c.value as Raw, self}
       } else {
@@ -508,7 +510,9 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
   // A class's object: made by its constructor, or set to a snapshot.
   // (a param the precondition fixes from the others, a start's quotient: computed from them)
   const drawParams = (): Record<string, Raw> => {
-    const ps: Record<string, Raw> = Object.fromEntries(m.params.filter(v => !(v as {derived?: unknown}).derived).map(v => [v.name, v.note?.startsWith('Date.now()') ? rand(10_000) : draw(v.sort, sorts, v.name, rand, consts, bound, strs)]))
+    // (a param given as a natural (domains) is drawn as one, as an input is)
+    const nat = (v: Var, x: Raw) => (opts.given?.[v.name] === 'nat' && typeof x === 'number' ? Math.abs(x) : x)
+    const ps: Record<string, Raw> = Object.fromEntries(m.params.filter(v => !(v as {derived?: unknown}).derived).map(v => [v.name, v.note?.startsWith('Date.now()') ? rand(10_000) : nat(v, draw(v.sort, sorts, v.name, rand, consts, bound, strs))]))
     for (const v of m.params) { const d = (v as {derived?: N}).derived; if (d) ps[v.name] = evalTerm(d, ps) }
     return ps
   }

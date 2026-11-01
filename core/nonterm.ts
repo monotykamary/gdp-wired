@@ -23,7 +23,7 @@
 //   run with its loops accelerated, checked as the rest are. A large closure goal (a program of many locations, whose
 //   body reads every rule) is closed by the set's parts (`cases`): each part's goal at its location, the location
 //   substituted and the constants folded, which leaves only that location's rules (kernel.ts's checkRecurCases).
-import {type C, type E, n as K, same as eq, searchSeeded, walkOnce, x as V} from './machine.ts'
+import {type C, type E, n as K, same as eq, seeded, walkOnce, x as V} from './machine.ts'
 import {type Loop, type Recur, type RecurCases, type Tree, caseGoals, checkRecur, checkRecurCases, coverGoal, loopMachine, recurGoal, substC, trueC} from '../kernel/kernel.ts'
 import {clock, counted, grow, realModels} from '../kernel/prove.ts'
 import {work} from './solver.ts'
@@ -224,7 +224,7 @@ export function findNeverEnds(l: Loop, opts: NeverEndsOptions = {}): NeverEndsVe
 }
 function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
   const wall0 = performance.now(), now = clock, t0 = now(), until = t0 + (opts.ms ?? 10_000), maxTurns = opts.maxTurns ?? 400
-  const rand = searchSeeded(opts.seed ?? 7)
+  const rand = seeded(opts.seed ?? 7)
   const stats = {runs: 0, turns: 0, policies: 0, rounds: 0, ms: 0, lassoTried: 0, goalSize: 0, accel: 0, accelClosed: 0}
   const done = (v: Omit<NeverEndsVerdict, 'stats'>): NeverEndsVerdict => ({...v, stats: {...stats, ms: Math.round(performance.now() - wall0)}})
   const stateNames = Object.keys(l.state), kept = [...l.params, ...stateNames]

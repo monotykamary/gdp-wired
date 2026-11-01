@@ -21,7 +21,7 @@
 // and hashes (for now), &., floats that aren't whole, a field the class writes with values of two types.
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, type FileURL} from './extract-read.ts'
-import {type Harness, type SModule, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
+import {asset, type Harness, type SModule, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 export type RbOptions = StepOptions & {
@@ -33,7 +33,7 @@ export type RbOptions = StepOptions & {
   clocks?: string[],
 }
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
-const here = (f: string) => new URL(`./rb/${f}`, import.meta.url).pathname
+const here = (f: string) => asset(`rb/${f}`)
 
 // The file as the reader lowers it (the class named).
 export function readRuby(file: string, names: string[], opts: {root?: string, ruby?: string, clocks?: string[]} = {}): SModule {
