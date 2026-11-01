@@ -339,7 +339,7 @@ let wideBusy = false
 export const wideScope: {judge?: (w: Record<string, number>) => boolean} = {}
 export const wideStats = {goals: 0, trees: 0, models: 0, rounds: 0}
 export const wideHook: {on?: (part: Goal, out: Outcome) => void} = {}
-const cellsIn = (c: unknown): Set<string> => { const out = new Set<string>(); walkOnce(c, o => { const x = o as {op?: string, map?: unknown, key?: unknown}; if (x.op === 'get') out.add(`${x.map}${JSON.stringify(x.key)}`) }); return out }
+const cellsIn = (c: unknown): Set<string> => { const out = new Set<string>(); walkOnce(c, o => { const x = o as {op?: string, map?: string, key?: unknown}; if (x.op === 'get') out.add(`${x.map}${JSON.stringify(x.key)}`) }); return out }
 // (the hypotheses a model breaks among `ids` (all where none are given), the model read as a state, the conclusion first;
 // `first`: the first one broken alone)
 export const brokenOf = (goal: Goal): ((w: Record<string, number>, ids?: number[], first?: boolean) => number[]) => {
