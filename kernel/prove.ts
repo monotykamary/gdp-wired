@@ -805,14 +805,14 @@ function withCuts(goal: Goal, path: Path, budget: {nodes: number, until?: number
   const chain: {split: Lin, no: Tree}[] = []
   let at: Path = new Map(path)
   for (const {n, e} of columns) {
-    if (pastWall()) return undefined
+    if (late(budget.until ?? Infinity)) return undefined
     if (e.op !== 'if') continue
     const a = linear(e.then, at), b = linear(e.else, at), focus = topAtoms(e.c, at)
     if (!a || !b || !focus.length) continue
     for (const lemma of [sub(v(n), a), sub(v(n), b), sub(a, v(n)), sub(b, v(n))]) {
       const id = canon(lemma)
       if (at.has(id) || Object.keys(lemma).every(key => key === '1')) continue
-      const no = growFocused(goal, new Map(at).set(id, {lin: lemma, holds: false}), focus, {nodes: 0})
+      const no = growFocused(goal, new Map(at).set(id, {lin: lemma, holds: false}), focus, {nodes: 0, until: budget.until})
       if ('tree' in no) { chain.push({split: lemma, no: no.tree}); at = new Map(at).set(id, {lin: lemma, holds: true}) }
     }
   }
@@ -831,9 +831,10 @@ function topAtoms(c: C, path: Path): Lin[] {
   const atoms = c.op === '<=' ? [sub(a, b)] : c.op === '<' ? [add(sub(a, b), k(1))] : [sub(a, b), sub(b, a)]
   return atoms.filter(l => Object.keys(l).some(key => key !== '1') && !path.has(canon(l)) && !path.has(canonFlip(l)))
 }
-// A refutation that splits only on these atoms (a cut's failing side), within a small budget.
-function growFocused(goal: Goal, path: Path, focus: Lin[], budget: {nodes: number}, near: Lin[] = focus): Outcome {
-  if (++budget.nodes > 64 || pastWall()) return {stuck: 'unknown', path}
+// A refutation that splits only on these atoms (a cut's failing side), within a small budget and the goal's end (past
+// it the goal is left unknown whatever the cuts find: the search after them stops at its first node).
+function growFocused(goal: Goal, path: Path, focus: Lin[], budget: {nodes: number, until?: number}, near: Lin[] = focus): Outcome {
+  if (++budget.nodes > 64 || late(budget.until ?? Infinity)) return {stuck: 'unknown', path}
   const verdict = solveNear(leafConstraints(goal, path), [...near, ...[...path.values()].slice(-1).map(a => a.lin)])
   if (verdict.kind === 'refuted') return {tree: {leaf: verdict.steps}, nodes: budget.nodes}
   const split = focus.find(l => !path.has(canon(l)) && !path.has(canonFlip(l)))
