@@ -301,9 +301,15 @@ describe('the ∃ reading of witness terms over ghosts', () => {
     ['a bound name is a further key of the law', g, {...some, keys: ['tk']}, {...plain, keys: ['tk']}, sub],
     ['a bound name is a param of the original', g, {...some, some: ['T'], holds: body(x('T'))}, {...plain, holds: put(body(x('T')), 'T', get('W', x('j')))}, {T: get('W', x('j'))}],
     ['a bound name is a ghost map', g, {...some, some: ['W'], holds: body(x('W'))}, plain, {W: get('W', x('j'))}],
+    // (mutation run: each guard over a list, refusing where one element of several fails it)
+    ['no bound name, the plain law the body itself', g, {...some, some: []}, {name: 'the body', forall: 'j', holds: some.holds}, {}],
+    ['one of two bound names with no term (a term for another name)', g, {...some, some: ['tk', 'b']}, plain, {tk: get('W', x('j')), zz: n(0)}],
+    ['the body reads one of two ghost maps', {...g, maps: {...g.maps, W2: {start: 0, write: {key: x('k'), value: n(0)}}}}, {...some, holds: any(body(x('tk')), same(get('W2', x('j')), x('tk')))},
+      {...plain, holds: any(plain.holds, same(get('W2', x('j')), get('W', x('j'))))}, sub],
+    ['one of two bound names a param of the original', g, {...some, some: ['tk', 'T']}, put(plain, 'T', n(5)), {tk: get('W', x('j')), T: n(5)}],
   ]
   // (c with every read of the name at e, as the kernel's substC puts a term)
-  function put(c: C, name: string, e: E): C { return JSON.parse(JSON.stringify(c).replaceAll(JSON.stringify(x(name)), JSON.stringify(e))) as C }
+  function put<T>(c: T, name: string, e: E): T { return JSON.parse(JSON.stringify(c).replaceAll(JSON.stringify(x(name)), JSON.stringify(e))) as T }
   for (const [what, gg, l, p, s] of cases) test(`refused: ${what}`, () => {
     expect(someOfGhostsOk(gg, l, p, s)).toBe(false)
   })
