@@ -1078,9 +1078,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const ctis: Point[] = []
   // (a law about keys is evaluated at every tuple of the state's keys, as watch does: counted as that many evaluations)
   const lawful = (params: Env, st: State) => {
+    const k = keysOf(4, st).length, cost = given.reduce((s, l) => s + (l.forall ? k ** (1 + (l.keys?.length ?? 0)) : 0), 0)
+    // (a state whose laws' tuples cost more than a million evaluations is no sample: one such check took sharded_kv's whole
+    // budget, five keys at 40 values)
+    if (cost > 1e6) return false
     used.watched += given.length
-    const k = keysOf(4, st).length
-    for (const l of given) if (l.forall) used.evals += k ** (1 + (l.keys?.length ?? 0))
+    used.evals += cost
     try { return given.every(l => watch(m, run, l, params, 4).start(st)) } catch { return false }
   }
   const houdiniUntil = opts.cubes ? 0 : Math.min(until, now() + Math.max(500, (until - now()) / 4))
