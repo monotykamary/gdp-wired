@@ -70,7 +70,6 @@ export type InferOptions = {
   cubes?: number // the engine's minimal ∀ cubes of at most this many literals alone, as found laws, nothing proven (core/counts.ts's)
   rows?: {params: Record<string, number>, st: State}[] // more reachable states the engine's cubes are read off, beside its small instance's (core/counts.ts's)
   wall?: number // the wall stop at this performance.now() in place of `ms` past the start: a caller's own end, so a slow machine reads the same counted budget, later (core/counts.ts's)
-  ghosts?: string[] // the maps of the search's own ghosts (core/exists.ts's skolemOf: Skolem functions the step keeps): in no view, values of no form
 }
 // What was found: each law as a Law (pass it with the rule's laws), how it reads, and for a rule, the builder call
 // that states it (`r.law(...)`), to paste.
@@ -226,7 +225,7 @@ function pairingOf(m: Machine): Pairing | undefined {
 // key's key is of its map's, and two keys compared (k = src) are of one sort. Union-find over those places; a law's own
 // keys are named apart (`L:law:key`). What a view of a law needs of it: its keys' sorts, the composed keys its reads
 // name, its guards on its keys alone, the maps read at a plain key of a sort, and the keys a state holds of a sort.
-function keySorts(m: Machine, laws: Law[], pairing?: Pairing, ghosts: string[] = []) {
+function keySorts(m: Machine, laws: Law[], pairing?: Pairing) {
   const parent = new Map<string, string>()
   const find = (a: string): string => { const p2 = parent.get(a); if (p2 === undefined || p2 === a) return a; const r = find(p2); parent.set(a, r); return r }
   const union = (a: string, b: string) => { const ra = find(a), rb = find(b); if (ra !== rb) parent.set(ra, rb) }
@@ -306,7 +305,7 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing, ghosts: string[] =
     // (a key of k parts at these key terms)
     composeAll: (ts: E[]): E => { const k = ts.reduce((acc: E, t) => plus(times(pairing!.n, acc), t)); return pairing!.c ? plus(k, n(pairing!.c)) : k },
     compose: (a: E, b: E): E => { const k = plus(times(pairing!.n, a), b); return pairing!.c ? plus(k, n(pairing!.c)) : k },
-    plainMaps: (sort: string) => [...plainRead].filter(mp => find(`M:${mp}`) === sort && !ghosts.includes(mp)),
+    plainMaps: (sort: string) => [...plainRead].filter(mp => find(`M:${mp}`) === sort),
     valuesAt: (st: State, sort: string): number[] => {
       const ks = new Set<number>()
       for (const [mp, cells] of Object.entries(st.maps)) for (const k of cells.keys()) {
@@ -1291,7 +1290,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // Where no key is composed but a caller's law is about several keys (two counted approvals by distinct reviewers, two
     // holders of one lock), the same space over two distinct keys x ≠ y: the cells at x and at y (`n` 0, no third place).
     const callerLaws = [...laws, ...stepLaws.map(sl => ({name: sl.name, holds: sl.then, ...(sl.forall ? {forall: sl.forall} : {}), ...(sl.keys ? {keys: sl.keys} : {})}) as Law)]
-    const sorts = mapNames.length ? keySorts(m, callerLaws, pairing, opts.ghosts) : undefined
+    const sorts = mapNames.length ? keySorts(m, callerLaws, pairing) : undefined
     if (pairing) {
       const P = pairing, composed = plus(times(P.n, x(KEY)), x(KEY2)), places = P.n ? [x(KEY), x(KEY2), P.c ? plus(composed, n(P.c)) : composed] : [x(KEY), x(KEY2)]
       // (by sort, where the rule composes: a row's maps at x, a column's at y, the composed maps at the composed key)
@@ -2053,12 +2052,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (base) opts.progress?.('join small instance', {states: small.length, bfs, params: pvs.size, symmetric: sym.slice(0, rens.length > 1 ? sym.length : 0).join(), ms: Math.round(vnow()), took: Math.round(vnow() - t3)})
         return {small, others, bfs, cut, params: pvs.size, ms: Math.round(vnow() - t3)}
       }
-      // (each map's cell values at the small instance's states)
-      const mapVals = new Map<string, Set<number>>()
       {
         const r0 = instance(() => 0, undefined, rand), own = [...r0.small, ...r0.others], most = new Map<string, number>()
         samples.unshift(...r0.small)
-        for (const q of own) for (const [mp, cs] of Object.entries(q.st.maps)) for (const c of cs.values()) { most.set(mp, Math.max(most.get(mp) ?? 0, c)); if (mapVals.get(mp)?.add(c) === undefined) mapVals.set(mp, new Set([0, c])) }
+        for (const q of own) for (const [mp, cs] of Object.entries(q.st.maps)) for (const c of cs.values()) most.set(mp, Math.max(most.get(mp) ?? 0, c))
         // (the rows given, where their cells take values the small instance's do (a yes/no's 1 at least): more states, not
         // more values, so the literals the cubes are made of are the instance's own)
         smallAll = [...(opts.rows ?? []).filter(q => Object.entries(q.st.maps).every(([mp, cs]) => [...cs.values()].every(c => c <= Math.max(1, most.get(mp) ?? 1)))), ...own]
@@ -2098,11 +2095,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           lits.push({lit, id, name, reads: rd, bits, ...(before ? {before} : {}), state: ('at' in lit ? [lit.at.atom] : lit.lin.coef.map(([a]) => a)).some(a => atoms[a]!.place !== undefined || (!atoms[a]!.term && !atoms[a]!.param))})
         }
         const valued = (i: number) => atoms[i]!.place !== undefined && !!valueSort(atoms[i]!.parts[0]![0].split(AT)[2]!)
-        // (a cell's values: what its map holds at any key of the small instance, so a value one place never reaches is a
-        // literal there too: the least bad pattern, one literal no row has, a node sending to itself)
-        const mapOf = (i: number) => (atoms[i]!.place !== undefined ? atoms[i]!.parts[0]![0].split(AT)[2] : undefined)
         for (const i of [...v.atoms.filter(j => !atoms[j]!.int && !atoms[j]!.term), ...modes.filter(mo => !atoms[mo.atom]!.cell && !atoms[mo.atom]!.param).map(mo => mo.atom)]) {
-          const vals = [...new Set([...R.map(r => r[i]!), ...(mapOf(i) !== undefined ? mapVals.get(mapOf(i)!) ?? [] : [])])].sort((a, b) => a - b)
+          const vals = [...new Set(R.map(r => r[i]!))].sort((a, b) => a - b)
           // (a value of a key's sort: 0 alone, an order literal below)
           for (const value of valued(i) ? vals.filter(q => q === 0) : vals.length <= 3 || few(vals) ? vals : []) {
             const top = value > 0 && value === vals.at(-1)

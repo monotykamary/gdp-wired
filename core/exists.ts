@@ -143,20 +143,6 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
   let reqs: Request[] = [{}]
   for (const i of m.inputs) reqs = reqs.flatMap(r => Array.from({length: below(i)}, (_, x) => ({...r, [i]: x})))
   for (const c of m.inputMaps ?? []) reqs = reqs.flatMap(r => subsets.map(s => ({...r, [c]: s})))
-  // (a request the assumption refuses by its conjuncts that read the params and the request alone is refused at every
-  // state: still tried, as before, but not stepped)
-  const ins = new Set([...m.params, ...m.inputs])
-  const mine = (c: C | E, bound: Set<string>): boolean => {
-    if (c.op === 'flag') return false
-    if (c.op === 'var') return ins.has(c.name) || bound.has(c.name)
-    if (c.op === 'get' && !(m.inputMaps ?? []).includes(c.map)) return false
-    if (c.op === 'all') { const b = new Set([...bound, c.key, ...(c.keys ?? [])]); return mine(c.c, b) }
-    return Object.values(c).every(y => !y || typeof y !== 'object' || (Array.isArray(y) ? y.every(z => mine(z, bound)) : mine(y as C, bound)))
-  }
-  const ownConj = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(ownConj) : [c]), own = m.assume ? ownConj(m.assume).filter(c => mine(c, new Set())) : []
-  const refusedBy = (r: Request): boolean => { try { const e: Env = {...p}; for (const i of m.inputs) if (typeof r[i] === 'number') e[i] = r[i] as number; const view = carriedView(m, start, r, undefined, p); return own.some(c => !evalC(c, e, view, m)) } catch { return false } }
-  // (none where the interpreter computes inputs of its own: a history's queries, the least keys)
-  const out = new Set(own.length && !m.history && !m.leasts ? reqs.filter(refusedBy) : [])
   const idOf = (s: State) => key([s.scalars, Object.entries(s.maps).map(([n, cs]) => [n, [...cs].filter(([, x]) => x).sort((a, c) => a[0] - c[0])])])
   const seen = new Map<string, State>([[idOf(start), start]]), queue = [start]
   const reached = (next: State, from: State, r: Request): State => { const id = idOf(next), had = seen.get(id); if (had) return had; seen.set(id, next); pathTo.set(next, [from, r]); return next }
@@ -164,7 +150,6 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
     const st = queue.shift()!
     for (const r of reqs) {
       if (--work < 0) break
-      if (out.has(r)) continue
       let next: State
       try { next = run.step(p, st, r) } catch { continue }
       const n0 = seen.size
@@ -183,7 +168,6 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
       const by = new Map<string, [State, Request][]>()
       for (let i = 0; i < 48; i++, walks--) {
         const r = reqs[rnd(reqs.length)]!
-        if (out.has(r)) continue
         let next: State
         try { next = run.step(p, st, r) } catch { continue }
         const kd = kindOf(st, next)
@@ -482,7 +466,7 @@ const takenOf = (m: Machine) => new Set([...Object.keys(m.maps ?? {}), ...(m.inp
 // forall_some_of_ghostmap); proveSome's ghost maps are the same, for a proof again of the laws as stated.
 // (`ghost`: the ghosts added to a machine the search derives from the rule's (its sums, its divisors), unchecked: `ok`
 // checks them against the original; the laws as proveSome states them, so that the goals the search settled are its again)
-export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Machine, laws: Law[], names: string[], ok: (m2: Machine) => boolean, witnesses: Record<string, string>} | undefined {
+export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Machine, laws: Law[], ok: (m2: Machine) => boolean, witnesses: Record<string, string>} | undefined {
   const taken = takenOf(m), out: Law[] = [], gs: MapGhost[] = []
   const add = (m2: Machine, g: MapGhost) => ghostedMachine({orig: m2, vars: {}, maps: {...(g.inner ? {[g.inner.name]: {start: 0, write: g.inner.write}} : {}), [g.name]: {start: 0, write: g.write}}})
   const ghost = (m2: Machine) => gs.reduce(add, m2)
@@ -505,7 +489,7 @@ export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Mach
   laws.filter(l => l.some?.length).forEach((l, i) => { const g = gs[i]!; witnesses[l.name] = `w = ${g.name}[${showE(g.at)}], ${g.name}[${showE(g.write.key)}] := ${showE(g.write.value)}` })
   // (each ghost one of the machine it is added to, as kernel.ts's ghostedOk reads it)
   const ok = (m2: Machine) => { let at = m2; for (const g of gs) { const o: Ghosted = {orig: at, vars: {}, maps: {...(g.inner ? {[g.inner.name]: {start: 0, write: g.inner.write}} : {}), [g.name]: {start: 0, write: g.write}}}; if (!ghostedOk(o)) return false; at = ghostedMachine(o) } return true }
-  return gs.length ? {ghost, laws: out, names: gs.flatMap(g => [g.name, ...(g.inner ? [g.inner.name] : [])]), ok, witnesses} : undefined
+  return gs.length ? {ghost, laws: out, ok, witnesses} : undefined
 }
 const firstPicks = new Map<string, {mode: 'term', at: number[]} | {mode: 'map', at: number}>()
 // The machine with a ghost map (kernel.ts's ghostedMachine of Ghosted, whose ghostedOk it must pass).

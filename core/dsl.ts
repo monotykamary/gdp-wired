@@ -2784,8 +2784,7 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // (the search's own wall ends where the tail begins: the last bounded runs keep it)
   const tailAt = () => performance.now() + Math.max(0, until - tail - clock())
   // (a law about every key with "there exists": the search over its plain form, the value at its ghost map's cell, the
-  // ghosts' own laws beside it, on the rule with the ghosts (exists.ts's skolemOf), its verdict `back`'s; the join's convex
-  // forms, which can't state a cell read at a key a ghost holds, a twentieth of it, the engine's diagrams the rest)
+  // ghosts' own laws beside it, on the rule with the ghosts (exists.ts's skolemOf), its verdict `back`'s)
   const sk = !stepLaws.length && laws.some(l => l.some?.length && l.forall) ? skolemOf(rule.machine, laws) : undefined
   const target = sk ? rule.withGhosts(sk.ghost) : rule, sought = sk?.laws ?? laws
   // (the set the search proved, as it proved it, over the rule with the ghosts (its goals settled again where they stand),
@@ -2801,13 +2800,13 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
     const out = proveSome(rule.machine, [...withKinds(rule, laws), ...fresh.map(f => f.law), ...found.map(f => f.law)], {mapMs: Math.max(5_000, (until - clock()) / 2)})
     return {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   }
-  const inf = withWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {ghosts: sk.names, join: 0.05} : {})}))
+  const inf = withWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), }))
   if (!(inf.proven && inf.checked)) {
     // The sum of each map the step writes (withMapSums): the search again over the rule with them, within half of what
     // is left (at most 20 s), where a law of cells against a total needs one (no ERC20 balance past the supply).
     const summed = target.withMapSums()
     if (summed && until - clock() - tail > 1000) {
-      const inf2 = withWall(tailAt(), () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2), ...(sk ? {ghosts: sk.names} : {})}))
+      const inf2 = withWall(tailAt(), () => inferLaws(summed, [...fresh.map(f => f.law), ...sought], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2)}))
       if (inf2.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; const b = back(summed, found); if (!sk || (b.proven && b.checked)) return {...(sk ? {} : verdict), ...b, ...(sk ? {proven: true, checked: true} : {}), found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])} }
     }
     // (a step law's ghost: at most 10 s of it, as its goals cost more than the laws')
