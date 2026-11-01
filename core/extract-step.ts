@@ -3717,7 +3717,9 @@ export function openHarness(work: string, cmd: string, args: string[], o: Record
   return {child, wi, ro}
 }
 // A harness: the command that starts it (it opens the two named pipes it is given) and what it is told first.
-export type Harness = {cmd: string, args: string[], env?: Record<string, string>, hello: Record<string, unknown>, error?: string}
+// (error: why there is no harness; kind 'source': the code's compiler rejects it (a refusal of the source, never a
+// difference), 'harness': the check's own tools failing (its outcome, after their retry))
+export type Harness = {cmd: string, args: string[], env?: Record<string, string>, hello: Record<string, unknown>, error?: string, kind?: 'source' | 'harness'}
 export type StepEvidence = Evidence & {runMs: number}
 export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: StepOptions): StepEvidence {
   return retried(() => checkStepOnce(h, read, r, sorts, opts), () => ({...noEvidence(), runMs: 0}))
@@ -3729,7 +3731,7 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
   let child: {kill: () => void} | undefined, wi = -1, ro = -1
   const empty = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0, runMs: 0}
   try {
-    if (h.error) return {...empty, mismatch: h.error}
+    if (h.error) return h.kind === 'harness' ? {...empty, harness: h.error} : h.kind === 'source' ? {...empty, source: h.error} : {...empty, mismatch: h.error}
     ;({child, wi, ro} = openHarness(work, h.cmd, h.args, {stdio: ['ignore', 'ignore', 'inherit'], env: {...proc?.env, ...h.env}}))
     const buf = new Uint8Array(1 << 20), dec = new TextDecoder()
     let pend = ''

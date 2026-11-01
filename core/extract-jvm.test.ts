@@ -309,7 +309,7 @@ for (const c of advCases('Java')) (hasJdk ? test : test.skip)(`adversarial ${c.i
 tk('Kotlin: copy runs the init block again: a copy its check refuses fails as the constructor does', () => {
   ok(kotlin(`
 data class Budget(val limit: Int, val spent: Int = 0) {
-  init { limit.takeIf { it >= 256 }.let { requireNotNull(it) { "limit" } } }
+  init { limit.takeIf { it >= 1 }.let { requireNotNull(it) { "limit" } } }
   fun spend(n: Int): Budget = if (n < 0 || spent + n > limit) this else copy(spent = spent + n)
   fun left(): Int = limit - spent
 }`, 'Budget', {methods: ['spend', 'left']}))
@@ -339,4 +339,34 @@ public class Counter {
     'Autowired.java': 'public @interface Autowired {}',
   }))
   expect(x.source).toMatch(/\.assume\(/)
+})
+
+// The check's compile of the code (treadmill jvm seed 420696: kotlinc killed on a loaded machine, read as "the rule and
+// the code differ"): a source the compiler rejects is refused with the compiler's message; the compiler failing with
+// nothing to say of the code (killed, crashed, past GDP_COMPILE_S) is retried once, then the check's harness failure.
+const BUDGET = `
+data class Budget(val limit: Int, val spent: Int = 0) {
+  fun spend(n: Int): Budget = if (n < 0 || spent + n > limit) this else copy(spent = spent + n)
+  fun left(): Int = limit - spent
+}`
+tk('Kotlin: a source kotlinc rejects is refused with its message; kotlinc failing on its own is the check\'s harness failure', () => {
+  const bad = kotlin(BUDGET.replace('fun left(): Int = limit - spent', 'fun left(): Int = limit - spent + undefinedHelper()'), 'Budget', {methods: ['spend', 'left']})
+  expect(bad.ok).toBe(false)
+  expect(bad.refusals.map(r => r.what).join('; ')).not.toMatch(/the rule and the code differ/)
+  expect(bad.refusals.map(r => r.what).join('; ')).toMatch(/^the source doesn't compile \(kotlinc\): .*undefinedHelper/)
+  const reassigned = kotlin(BUDGET.replace('fun left(): Int = limit - spent', 'fun left(): Int { limit = 0; return spent }'), 'Budget', {methods: ['spend', 'left']})
+  expect(reassigned.refusals.map(r => r.what).join('; ')).toMatch(/^the source doesn't compile \(kotlinc\): .*'val' cannot be reassigned/)
+  const old = process.env.GDP_COMPILE_S
+  process.env.GDP_COMPILE_S = '0.001'
+  try {
+    const killed = kotlin(BUDGET, 'Budget', {methods: ['spend', 'left']})
+    expect(killed.ok).toBe(false)
+    expect(killed.refusals[0]!.what).toMatch(/^the check's harness failed, twice .*kotlinc failed twice with nothing to say of the code/)
+  } finally { if (old === undefined) delete process.env.GDP_COMPILE_S; else process.env.GDP_COMPILE_S = old }
+})
+
+tk('Kotlin: a name past the class file\'s 65,535 bytes is refused up front (kotlinc throws on it: UTF8 string too large)', () => {
+  const x = kotlin(BUDGET.replace('fun left()', `fun x${'a'.repeat(100_000)}()`), 'Budget', {methods: ['spend']})
+  expect(x.ok).toBe(false)
+  expect(x.refusals[0]!.what).toMatch(/a name or a string of 100001 bytes, past the class file's 65,535/)
 })
