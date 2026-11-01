@@ -177,7 +177,7 @@ class Go {
         if (x.o !== 'var') return this.no(x, `${x.text}: a ${x.o} used as a value`)
         if (!x.id?.startsWith('pkg:')) return {e: 'var', ...at, n: x.id, why: `${x.n}: a variable the step doesn't set before reading`}
         const v = this.pkg.vars.find(y => `pkg:${y.name}` === x.id), f = v?.init?.f
-        if (v && this.T(v.t).k === 'error' && v.init?.e === 'call' && f?.e === 'sel' && ((f.pkg === 'errors' && f.n === 'New') || (f.pkg === 'fmt' && f.n === 'Errorf'))) return {e: 'errv', ...at, is: true, note: `${x.n}: an error the package makes once (errors.New): read as an error that isn't nil`}
+        if (v && this.T(v.t).k === 'error' && v.init?.e === 'call' && f?.e === 'sel' && ((f.pkg === 'errors' && f.n === 'New') || (f.pkg === 'fmt' && f.n === 'Errorf') || (f.pkg === 'github.com/pkg/errors' && (f.n === 'New' || f.n === 'Errorf')))) return {e: 'errv', ...at, is: true, note: `${x.n}: an error the package makes once (errors.New): read as an error that isn't nil`}
         return this.no(x, `${x.n}: a package variable (state every object shares)`)
       }
       case 'sel':
@@ -331,7 +331,8 @@ class Go {
   std(x: GX): SX {
     const f = x.f!, path = f.pkg ?? '', n = f.n!, at = this.at(x)
     if (f.why) return this.ext(x, f.why, n)
-    if ((path === 'errors' && n === 'New') || (path === 'fmt' && n === 'Errorf')) {
+    // (github.com/pkg/errors's New and Errorf too: always an error, as the standard library's)
+    if ((path === 'errors' && n === 'New') || (path === 'fmt' && n === 'Errorf') || (path === 'github.com/pkg/errors' && (n === 'New' || n === 'Errorf'))) {
       // An error: not nil. Its arguments are evaluated (they may panic), its text is not compared.
       const pre = (x.a ?? []).flatMap(a => (a.e === 'call' && a.f?.e === 'sel' && a.f.n === 'String' && a.f.k === 'method' && (this.isBigPtr(a.f.x!.t) || this.isBig(a.f.x!.t)) ? [this.x(a.f.x!)] : a.c ? [] : [this.x(a)]))
       return {e: 'errv', ...at, is: true, pre}

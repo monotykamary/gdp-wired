@@ -94,7 +94,13 @@ law with one comment in the code's language, over the code's names: `# gdp: law 
 C-family, Go, Rust, JVM and TypeScript; `@GdpLaw("...")`, `@gdp_law(...)`, `#[doc = "gdp: law ..."]` too). On the
 line above a method it is a law of that method's step: fields are the state after, `old(x)` before, arguments by
 name, `result`, `failed`, `f(...)` an answered call; elsewhere it holds in every state. Modelling choices
-(`failures = "kept"`, a store's attrs, an untyped result's type) go in `gdp.toml` under `[rules.<name>]`. Exit 1 is
+(`failures = "kept"`, a store's attrs, an untyped result's type) go in `gdp.toml` under `[rules.<name>]`.
+Where the code runs among others (a lock, a limiter, a consumer over Redis or a database), state its environment with
+one tag over the class, `# gdp: env read committed` (or `keys expire`, `atomic`, `snapshot`, `retries`, `an object
+per call`, `acquire then release`): the laws then hold of every call at once. `at most one call between acquire and
+release` is a lock's law (each key's leases expiring with their keys); `at most one call between pay and pay` with
+`# gdp: effect` on the charge's line says each key is charged once (refuted under retries at read committed, or once
+the dedupe mark expires). Exit 1 is
 a broken law, 2 one not checked: run it in CI (`uses: monotykamary/gdp-wired@main`). A refusal names the tag or
 option that fixes it; read it before changing the code.
 

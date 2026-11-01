@@ -15,6 +15,7 @@ import {type Verdict, proveLeadsTo, proveRule, proveSteps} from './dsl.ts'
 import type {Law} from './machine.ts'
 import {type Built, type Cite, LawError, type LawText, buildLaw, buildLeadsTo, buildTwoRuns, citesIn, isLeadsTo, isTwoRuns, lawsIn, namesWithClock} from './laws.ts'
 import {type TwoRunLaw, certify, proveTwoRuns} from './relational.ts'
+import {type InEnv, contend, envOf, inEnv, shrinkRun} from './system.ts'
 
 type FS = {existsSync: (p: string) => boolean, readFileSync: (p: string, e: string) => string, readdirSync: (p: string) => string[], statSync: (p: string) => {isDirectory: () => boolean},
   mkdirSync: (p: string, o: {recursive: boolean}) => unknown, writeFileSync: (p: string, s: string) => void}
@@ -200,7 +201,7 @@ const merge = (a: Record<string, unknown>, b: Record<string, unknown>): Record<s
 
 // --- one target: its rules, their laws -------------------------------------------------------------------------------------
 type LawOut = {name: string, expr: string, where?: string, kind?: 'law' | 'step' | 'two runs' | 'leads to', from?: 'any', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], replayed?: string, why?: string, assumes?: string[], found?: string[], cites?: string[], cert?: string, ms: number}
-export type RuleOut = {file: string, lang: string, entry?: string, ok: boolean, refusals: {where: string, what: string}[], notes: string[], names: Name[], checked?: string,
+export type RuleOut = {file: string, lang: string, entry?: string, ok: boolean, refusals: {where: string, what: string}[], notes: string[], names: Name[], checked?: string, env?: string[],
   laws: LawOut[], proposed: LawOut[], brokenProposed?: number, source?: string}
 
 // The entries to read: the one given, else the one inferred; where several classes or structs qualify, each of them; a
@@ -213,10 +214,10 @@ async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: str
   const have = new Set(got.flatMap(r => [r.entry, r.x.model?.name].filter((n): n is string => !!n)))
   const more = [...new Set(laws.map(l => l.cls ?? l.fn).filter((n): n is string => !!n && !have.has(n)))]
   if (!more.length) return got
-  const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, ...flags} = o
+  const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, env: _e, ...flags} = o
   void _j; void _m; void _p; void _c; void _t; void _fr
   const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
-  const {clock: _k, from: _f, ...shared} = cfg.all
+  const {clock: _k, from: _f, env: _v, ...shared} = cfg.all
   void _k; void _f
   const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*/g) ?? []))]
   const extra = await Promise.all(more.map(async entry => ({entry, x: await extractOne(t, {...merge(merge({...shared, keep}, cfg.rules[entry] || {}), flags), entry})})))
@@ -224,12 +225,12 @@ async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: str
   return [...got.filter(r => r.x.ok || r.entry || !extra.length), ...extra]
 }
 async function rulesOf0(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: string, x: Extraction}[]> {
-  const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, ...flags} = o
+  const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, env: _e, ...flags} = o
   void _j; void _m; void _p; void _c; void _t; void _fr
   // (the options: gdp.toml's for every rule, then the rule's own, then the flags; a rule found with no entry named is
   // read again where gdp.toml has options of its own for it)
   const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
-  const {clock: _k, from: _f, ...shared} = cfg.all
+  const {clock: _k, from: _f, env: _v, ...shared} = cfg.all
   void _f
   void _k
   // (the names the laws read, so an argument a law reads stays in the rule though the code ignores it)
@@ -355,6 +356,27 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     const methods = new Set([...(x.names ?? []).filter(n => n.method).map(n => n.method!), ...(evSort?.k === 'choice' ? evSort.values : [])])
     const stated = mine.map(l => ({...l, ...(l.fn && methods.has(l.fn) ? {method: l.fn} : {})}))
     const proven: unknown[] = []
+    // (the environment the code runs in: --env, gdp.toml's env for the rule or every rule, or a `gdp: env` comment in
+    // its class: every call at once at its isolation level, keys that expire, retries; its laws lifted to it)
+    const words = (o.env as string | undefined) ?? (name ? cfg.rules[name]?.env as string | string[] | undefined : undefined) ?? envTags(t.files, name) ?? cfg.all.env as string | string[] | undefined
+    let sys: InEnv | undefined
+    if (words) {
+      try {
+        const m = x.rule!.machine, stores = [...new Set((x.names ?? []).filter(n => n.map?.store && n.rule).map(n => n.rule))].map(b => Object.keys(m.maps ?? {}).filter(k => k === b || k.startsWith(`${b}.`))).filter(c => c.length)
+        const own = Object.keys(m.state).filter(k => (x.names ?? []).some(n => (n.role === 'failed' || n.role === 'result') && ((n.rule && (k === n.rule || k.startsWith(`${n.rule}$`))) || k === n.none)))
+        const ev = (x.names ?? []).find(n => n.role === 'method'), evSort = x.model?.inputs.find(v => v.name === x.model?.event)?.sort
+        const failedVar = (x.names ?? []).find(n => n.role === 'failed')?.rule
+        // (a flow the laws state where the env doesn't: at most one call between a and b is the flow a then b, a and a a
+        // call of a alone, holding once it did its work)
+        const env = envOf(words), bw = mine.map(l => /^at\s+most\s+one\s+call\s+between\s+([\w.]+)\s+and\s+([\w.]+)$/i.exec(l.expr.trim())).find(Boolean)
+        if (!env.flow && bw) env.flow = bw[1] === bw[2] ? [bw[1]!] : [bw[1]!, bw[2]!]
+        sys = inEnv(x.rule!, env, {stores, own, ...(ev && evSort?.k === 'choice' ? {method: {name: ev.rule, values: evSort.values}} : {}), ...(failedVar ? {failed: failedVar} : {}), args: (x.names ?? []).filter(n => n.role === 'input' && n.method && n.rule).map(n => ({method: n.method!, code: n.code, rule: n.rule})),
+          oks: [...(x.names ?? []).filter(n => n.role === 'result' && n.method && x.model?.state.find(v => v.name === n.rule)?.sort.k === 'bool').map(n => ({method: n.method!, rule: n.rule})),
+            // (a method that makes an effect did its work where it made it: a charge, a handled message)
+            ...Object.entries((x as {read?: {effectsOf?: Record<string, string[]>}}).read?.effectsOf ?? {}).flatMap(([method, vs]) => vs.map(rule => ({method, rule})))]})
+        r.env = sys.models.map(md => `${md.name}: ${md.assumes}`)
+      } catch (e) { r.laws = mine.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read', why: `the environment: ${(e as Error).message}`, ms: 0})); continue }
+    }
     // (a law is known by its name: a name stated twice in one rule is refused, both times)
     const twice = (l: LawText) => stated.filter(m => m.name === l.name).map(m => m.where)
     // (from = "any": every law proven from every state the laws allow, not only those a run from the start reaches, for
@@ -367,12 +389,12 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     const order = [...stated.keys()].sort((a, b) => rank(stated[a]!) - rank(stated[b]!))
     // (from any state, the laws about states as one inductive set: the largest the stated ones make, each law the
     // kernel's step breaks taken out in turn (Houdini), the others proven together; one taken out is judged alone)
-    const inductive = from && x.rule ? houdini(x, stated.filter(m => twice(m).length === 1 && kindOf(m) === 'law'), o.ms, ctx.clock) : undefined
+    const inductive = from && x.rule && !sys ? houdini(x, stated.filter(m => twice(m).length === 1 && kindOf(m) === 'law'), o.ms, ctx.clock) : undefined
     const outsOf: LawOut[] = []
     for (const i of order) {
       const l = stated[i]!
       outsOf[i] = twice(l).length > 1 ? {name: l.name, expr: l.expr, where: l.where, verdict: 'not read' as const, why: `a law of this name is stated twice (${twice(l).join(', ')}): a law is known by its name`, ms: 0}
-        : prove(x, l, o.ms, proven, {...ctx, entry: name, ...(from ? {from, inductive, together: stated.filter(m => twice(m).length === 1 && kindOf(m) === 'law' && inductive!.has(m.name))} : {})})
+        : sys ? proveInEnv(x, l, o.ms, proven as Law[], {...ctx, sys, entry: name}) : prove(x, l, o.ms, proven, {...ctx, entry: name, ...(from ? {from, inductive, together: stated.filter(m => twice(m).length === 1 && kindOf(m) === 'law' && inductive!.has(m.name))} : {})})
     }
     r.laws = outsOf
     if (o.propose && x.model) { const p = propose(x, t.lang, o, proven, new Set(stated.map(l => l.expr.replace(/\s+/g, '')))); r.proposed = p.shown; r.brokenProposed = p.broken }
@@ -391,7 +413,7 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
 // The unit of each language's clock (Date.now() and a Clock's millis count milliseconds; time.time(), DateTime.diff in
 // seconds and Instant's as_secs count seconds); the others say it in gdp.toml (clock = "s" or "ms").
 const CLOCK: Partial<Record<Lang, string>> = {python: 's', elixir: 's', rust: 's', ts: 'ms', java: 'ms', kotlin: 'ms'}
-type Ctx = {ms: number, clock?: number, others: Record<string, Extraction>, cites: Cite[], cert?: string, file: string, entry?: string, from?: 'any', together?: LawText[], inductive?: Set<string>}
+type Ctx = {sys?: InEnv, ms: number, clock?: number, others: Record<string, Extraction>, cites: Cite[], cert?: string, file: string, entry?: string, from?: 'any', together?: LawText[], inductive?: Set<string>}
 // The largest set of these laws that is inductive from every state they allow together: each law whose step the
 // kernel breaks taken out, the rest tried again.
 function houdini(x: Extraction, ls: LawText[], ms: number, clock?: number): Set<string> {
@@ -475,6 +497,65 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
   }
   return {...base, kind, verdict, ...(ctx?.from && verdict === 'proven' ? {from: 'any' as const} : {}), ...(replayed ? {replayed} : {}), ...(v.run && verdict === 'broken' ? {run: two ? pairRunOf(x, v.run, two) : runOf(x, v.run)} : {}), ...(verdict === 'unknown' || (verdict === 'broken' && !v.run) ? {why: [v.why ?? v.stuck ?? 'not proven', ...(at.length ? [`a state the laws allow where a step breaks it, no run from the start found reaching it: ${at.join(', ')}`] : [])].join('; ')} : {}),
     ...(v.run && !two ? {assumes: assumedOf(x, v.run)} : {}), ...(found?.length ? {found} : {}), ...(cert ? {cert} : {}), ms: Date.now() - t0}
+}
+// A law of a rule in its environment (core/system.ts's inEnv): built on the rule as the code's names read it, then
+// lifted to every call at once; proven of the system, a run shown as the calls' steps.
+function proveInEnv(x: Extraction, l: LawText, ms: number, proven: Law[], ctx: Ctx & {sys: InEnv}): LawOut {
+  const t0 = Date.now(), sys = ctx.sys, base = {name: l.name, expr: l.expr, ...(l.where ? {where: l.where} : {})}
+  if (isLeadsTo(l.expr) || isTwoRuns(l.expr)) return {...base, verdict: 'not read', why: `a ${isLeadsTo(l.expr) ? 'leads-to' : 'two-run'} law is not lifted to the environment (state it of the rule with no env)`, ms: 0}
+  // (at most one call between a and b: a flow's mutual exclusion, its leases running out where their keys expire)
+  const bw = /^at\s+most\s+one\s+call\s+between\s+([\w.]+)\s+and\s+([\w.]+)$/i.exec(l.expr.trim())
+  let b: Built
+  try { b = bw ? {kind: 'law', law: sys.between(l.name, bw[1]!, bw[2]!)} : buildLaw(x, l, {clock: ctx.clock}) } catch (e) { return {...base, verdict: 'not read', why: (e as Error).message, ms: 0} }
+  const inv = (x.invariants ?? []).map(sys.law)
+  let v: Verdict, law: Law | ReturnType<InEnv['step']>
+  try {
+    if (b.kind === 'law') { law = bw ? b.law as Law : sys.law(b.law as Law); v = proveRule(sys.rule, [...inv, law], {search: {ms}}) }
+    else { law = sys.step(b.law); v = proveSteps(sys.rule, [...inv, ...proven], [law as never], {search: {ms}}) }
+  } catch (e) { return {...base, kind: b.kind, verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
+  // (not proven and no run: calls contending with one request, a run the search's own draws seldom make)
+  if (!(v.proven && v.checked) && !v.run) { const run = contend(sys, law!, {ms: Math.min(ms, 10_000)}); if (run) v = {...v, run: run as never} }
+  const verdict: LawOut['verdict'] = v.proven && v.checked ? 'proven' : v.run ? 'broken' : 'unknown'
+  if (verdict === 'proven' && b.kind === 'law') proven.push(law as Law)
+  const found = v.found?.laws?.map(f => f.text)
+  return {...base, kind: b.kind, verdict, ...(v.run && verdict === 'broken' ? {run: sysRunOf(x, sys, shrinkRun(sys.rule, law!, v.run))} : {}), ...(verdict === 'unknown' ? {why: v.why ?? v.stuck ?? 'not proven'} : {}), ...(found?.length ? {found} : {}), ms: Date.now() - t0}
+}
+// A run of the system as each call's steps: a call begins with its request, reads, commits; a store's key expires.
+function sysRunOf(x: Extraction, sys: InEnv, run: NonNullable<Verdict['run']>): string[] {
+  const pcs = new Map<unknown, number>(), done = (sys.commit ?? 0) + 1, out: string[] = []
+  const params = Object.keys(run.params).length ? runOf(x, {params: run.params, trace: []}) : []
+  // (calls numbered in the order they begin; a store by the code's name)
+  const ids = new Map<unknown, number>(), n = (p: unknown) => { if (!ids.has(p)) ids.set(p, ids.size + 1); return ids.get(p)! }
+  const store = (map: string) => (x.names ?? []).find(m => m.rule === map)?.code ?? map
+  for (const q of run.trace as Record<string, unknown>[]) {
+    const a = q[sys.act]
+    if (!(a === 0 || a === sys.part)) { out.push(`a key of the store expires (key #${String(q['key$'])})`); continue }
+    const call = runOf(x, {params: {}, trace: [q]}).at(-1)!
+    if (!sys.id) { out.push(call); continue }
+    const p = q[sys.id], pc = pcs.get(p) ?? 0
+    if (!sys.commit) { out.push(`call ${n(p)}: ${call}`); continue }
+    if (pc >= done) continue
+    pcs.set(p, pc === 0 ? (sys.level === 'snapshot' || sys.commit === 1 ? sys.commit! : 1) : pc === sys.commit && sys.flow ? 0 : pc + 1)
+    out.push(pc === 0 ? `call ${n(p)} begins ${call}` : pc === sys.commit ? `call ${n(p)} commits` : `call ${n(p)} reads ${store(sys.reads[pc - 1]!)}`)
+  }
+  return [...params, ...out]
+}
+// The environment a `gdp: env <words>` comment states: one in the rule's class (or naming none, the file's).
+const ENV = /(?:#|\/\/|--|%|\/\*|^\s*\*)\s*gdp:\s*env\s+(.+?)\s*(?:\*\/)?\s*$/
+function envTags(files: string[], name?: string): string | undefined {
+  for (const f of files) {
+    const lines = fs.readFileSync(f, 'utf8').split('\n')
+    for (const [i, l] of lines.entries()) {
+      const m = ENV.exec(l)
+      if (!m) continue
+      // (a tag right above a class statement is that class's, else the class it is in)
+      let cls: string | undefined
+      for (let j = i + 1; j < lines.length; j++) { if (/^\s*(\/\/|\/?\*|#|@|$)/.test(lines[j]!)) continue; cls = classAt(lines[j]!); break }
+      for (let j = i; j >= 0 && !cls; j--) cls = classAt(lines[j]!)
+      if (!cls || !name || cls === name) return m[1]
+    }
+  }
+  return undefined
 }
 // Two runs as calls of the code: each request once, the values the two runs take apart as `a | b`, and the run b leaves
 // out (isolation's: the others' calls) marked.
@@ -591,6 +672,7 @@ function printRule(r: RuleOut, o: Opts) {
     for (const f of r.refusals) out(`  ${paint('yellow', `refused at ${f.where}:`)} ${f.what}`)
   } else {
     if (r.checked) out(`  ${paint('dim', r.checked)}`)
+    if (r.env) { out('  in its environment (every call at once; the laws below are about these runs):'); for (const e of r.env) out(`    ${e}`) }
     const inferred = r.notes.filter(n => /inferred|tagged|left out|answered|injected|the entry/.test(n))
     for (const n of inferred.slice(0, 12)) out(`  ${n}`)
     out(`  ${paint('dim', 'names (the code\'s, then the rule\'s):')}`)

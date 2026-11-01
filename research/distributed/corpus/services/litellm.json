@@ -1,0 +1,29 @@
+{
+ "id": "litellm",
+ "repo": "https://github.com/BerriAI/litellm",
+ "commit": "v1.106.6",
+ "licence": "MIT",
+ "lang": "Python",
+ "patterns": [
+  "read-modify-write"
+ ],
+ "check": [
+  "litellm/proxy/hooks/max_iterations_limiter.py"
+ ],
+ "setup": "python3 -m pip install --break-system-packages -q uv && timeout -s KILL 900 uv pip install --system --break-system-packages -q -e '.[proxy]'",
+ "about": "LiteLLM's per-session iteration limiter as it runs with Redis off: the in-memory get and set awaited with nothing suspending between them",
+ "toml": "failures = \"kept\"\n[rules._PROXY_MaxIterationsHandler]\nmethods = [\"async_pre_call_hook\"]\nstores.internal_usage_cache.attrs = {\"dual_cache.redis_cache\" = \"None\"}\nenv = \"atomic\"\n",
+ "edits": [
+  {
+   "file": "litellm/proxy/hooks/max_iterations_limiter.py",
+   "before": "^    async def async_pre_call_hook\\(",
+   "lines": [
+    "# gdp: law a call is admitted only while its session is below max_iterations: _get_session_id(...) is not None and _get_max_iterations(...) is not None and not failed implies old(internal_usage_cache[_get_session_id(...)]) < _get_max_iterations(...)",
+    "# gdp: law every call of a limited session counts one, refused or not: _get_session_id(...) is not None and _get_max_iterations(...) is not None implies internal_usage_cache[_get_session_id(...)] == old(internal_usage_cache[_get_session_id(...)]) + 1"
+   ]
+  }
+ ],
+ "env": {
+  "GDP_HARNESS_LOG": "/tmp/harness-litellm.log"
+ }
+}

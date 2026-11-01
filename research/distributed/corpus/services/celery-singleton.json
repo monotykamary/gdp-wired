@@ -1,0 +1,39 @@
+{
+ "id": "celery-singleton",
+ "repo": "https://github.com/steinitzu/celery-singleton",
+ "commit": "4ee161853d82f71d4565be2bd7d81fc6d8bcbded",
+ "licence": "MIT",
+ "lang": "Python",
+ "patterns": [
+  "lease with expiry",
+  "duplicate delivery"
+ ],
+ "about": "celery-singleton's Redis backend: lock (SET NX EX with the task id) and unlock",
+ "check": [
+  "celery_singleton/backends/redis.py"
+ ],
+ "setup": "python3 -m pip install --break-system-packages -q celery redis",
+ "toml": "[rules.RedisBackend]\nfailures = \"kept\"\nmethods = [\"lock\", \"unlock\"]\nstores.redis = {}\nstubs = [\"from_url\"]\ntypes = {lock = \"str\", task_id = \"str\"}\n",
+ "edits": [
+  {
+   "file": "celery_singleton/backends/redis.py",
+   "before": "^class RedisBackend",
+   "lines": [
+    "# gdp: env keys expire, lock then unlock"
+   ]
+  },
+  {
+   "file": "celery_singleton/backends/redis.py",
+   "before": "^    def __init__",
+   "lines": [
+    "# gdp: law one task at a time: at most one call between lock and unlock"
+   ]
+  }
+ ],
+ "repro": {
+  "script": "repro/celery-singleton.py",
+  "containers": [
+   "redis:7.4"
+  ]
+ }
+}

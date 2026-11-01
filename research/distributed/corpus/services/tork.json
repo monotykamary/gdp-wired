@@ -1,0 +1,33 @@
+{
+ "id": "tork",
+ "repo": "https://github.com/runabol/tork",
+ "commit": "d57412801097699cd3cc69e8d84e172ac792e341",
+ "licence": "MIT",
+ "lang": "Go",
+ "patterns": [
+  "lock"
+ ],
+ "about": "tork's in-memory locker: AcquireLock and releaseLock over a map of held keys",
+ "check": [
+  "locker"
+ ],
+ "setup": "go mod download",
+ "toml": "[rules.InMemoryLocker]\nmethods = [\"AcquireLock\", \"releaseLock\"]\n",
+ "tomlAt": "locker",
+ "edits": [
+  {
+   "file": "locker/inmemory.go",
+   "before": "^type InMemoryLocker struct",
+   "lines": [
+    "// gdp: env AcquireLock then releaseLock"
+   ]
+  },
+  {
+   "file": "locker/inmemory.go",
+   "before": "^func \\(m \\*InMemoryLocker\\) AcquireLock",
+   "lines": [
+    "// gdp: law one holder of a key at a time: at most one call between AcquireLock and releaseLock"
+   ]
+  }
+ ]
+}

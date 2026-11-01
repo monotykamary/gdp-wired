@@ -1,0 +1,41 @@
+{
+ "id": "opencex",
+ "repo": "https://github.com/Polygant/OpenCEX-backend",
+ "commit": "927b333d2c0e7ef961516e62a711c6d9629cd6aa",
+ "licence": "Apache-2.0",
+ "lang": "Python",
+ "patterns": [
+  "lease with expiry"
+ ],
+ "about": "OpenCEX's AutoLock: acquire (SET NX with a timeout) and release over the Redis cache",
+ "check": [
+  "lib/oneinstlock.py"
+ ],
+ "setup": "python3 -m pip install --break-system-packages -q django djangorestframework django-redis redis && printf 'SECRET_KEY = \"x\"\\nUSE_TZ = True\\nREDIS = {\"host\": \"127.0.0.1\", \"port\": 6379}\\nREDIS_CACHE_NAME = \"default\"\\nCACHES = {\"default\": {\"BACKEND\": \"django_redis.cache.RedisCache\", \"LOCATION\": \"redis://127.0.0.1:6379/2\"}}\\n' > gdp_settings.py",
+ "env": {
+  "DJANGO_SETTINGS_MODULE": "gdp_settings"
+ },
+ "toml": "[rules.AutoLock]\nfailures = \"kept\"\nmethods = [\"acquire\", \"release\"]\nstores.cache = {}\nstubs = [\"get_cache\", \"updater\"]\nanswers = {generate_random_string = \"str\"}\nfields = {value = \"v\"}\ntypes = {name = \"str\", work = \"str | None\"}\n",
+ "edits": [
+  {
+   "file": "lib/oneinstlock.py",
+   "before": "^class AutoLock",
+   "lines": [
+    "# gdp: env keys expire, an object per call, acquire then release"
+   ]
+  },
+  {
+   "file": "lib/oneinstlock.py",
+   "before": "^    def __init__\\(self, name\\)",
+   "lines": [
+    "# gdp: law one holder at a time: at most one call between acquire and release"
+   ]
+  }
+ ],
+ "repro": {
+  "script": "repro/opencex.py",
+  "containers": [
+   "redis:7.4"
+  ]
+ }
+}
