@@ -10,7 +10,7 @@ import {mkdirSync, mkdtempSync, readFileSync as readAdv, realpathSync, symlinkSy
 import {tmpdir} from 'node:os'
 import {dirname} from 'node:path'
 import {pathToFileURL} from 'node:url'
-import {check, colors} from './cli.ts'
+import {check, colors, scoped} from './cli.ts'
 import {lawsIn, parse} from './laws.ts'
 
 const has = (cmd: string, ...a: string[]) => { try { execFileSync(cmd, a, {stdio: 'ignore'}); return true } catch { return false } }
@@ -627,6 +627,51 @@ class Spin:
   expect(stated.filter(w => !told.has(w))).toEqual([])
   expect(exit).toBe(2)
 }, 180_000)
+
+// A law right above a class statement is the class's (a contract's, a struct's), never its first member's; a type written
+// like a call (Solidity's mapping(...)) declares a value, never a function, so it is never an entry; a function's own
+// prototype or qualifiers still read as the function. (No toolchain: where each law sits, as the CLI reads it.)
+test('a law above a class or contract is the class\'s; a type written like a call is never a function', () => {
+  const dir = files({
+    'Ledger.sol': `pragma solidity ^0.8.20;
+/// gdp: law supply: sum(balances) == totalSupply
+contract Ledger {
+    mapping(address => uint256) public balances;
+    /// gdp: law on a field: totalSupply >= 0
+    mapping(address => mapping(address => uint256)) public allowance;
+    uint256 public totalSupply;
+    /// gdp: law never mints: totalSupply == old(totalSupply)
+    function transfer(address to, uint256 amount) external { }
+}
+/// gdp: law down: count >= 0
+contract Counter {
+    uint256 public count;
+    function down() external { count -= 1; }
+}`,
+    'fate.py': `# gdp: law above: self.n >= 0
+@dataclass
+class Fate:
+    def hit(self) -> None:
+        self.n += 1
+    # gdp: law last of Fate: self.n <= 9
+class Other:
+    def go(self) -> None:
+        pass
+`,
+    'Gate.java': `// gdp: law cap: n <= cap
+public final class Gate {
+    private int n;
+    // gdp: law hit: n == old(n) + 1
+    Gate(int cap) { this.cap = cap; }
+    // gdp: law tick: n >= 0
+    int tick(int k) const;
+}`,
+  })
+  const at = (f: string) => scoped(`${dir}/${f}`).map(l => [l.name, l.cls ?? '', l.fn ?? ''])
+  expect(at('Ledger.sol')).toEqual([['supply', 'Ledger', ''], ['on a field', 'Ledger', ''], ['never mints', 'Ledger', 'transfer'], ['down', 'Counter', '']])
+  expect(at('fate.py')).toEqual([['above', 'Fate', ''], ['last of Fate', 'Fate', '']])
+  expect(at('Gate.java')).toEqual([['cap', 'Gate', ''], ['hit', 'Gate', 'Gate'], ['tick', 'Gate', 'tick']])
+})
 
 // A start whose constructor arithmetic passes 2^53 - 1 is outside the rule's numbers, as a step past them is: left out of
 // the check (and said so), not a refusal of the class.
