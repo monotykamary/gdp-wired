@@ -85,3 +85,12 @@ t('the check\'s build: a package swiftc rejects refused with its message; swift 
   const killed = killedBuild(() => extractSwift(file(src), {entry: 'Meter', check: budget}))
   expect(killed.refusals[0]!.what).toMatch(/^the check's harness failed, twice .*swift build failed twice with nothing to say of the code/)
 }, 900_000)
+
+// (no harness can be made for the code, a property of a type it can't name: the code refused, never a difference)
+t('a property whose type the harness can\'t name: refused with why, not "the rule and the code differ"', () => {
+  const d = mkdtempSync(`${tmpdir()}/gdp-swcase-`)
+  writeFileSync(`${d}/Meter.swift`, 'final class Meter {\n  var n = (((0)))\n  func tick() { n = n &+ 1 }\n}\n')
+  const x = extractSwift(`${d}/Meter.swift`, {entry: 'Meter', check: budget})
+  expect(x.ok).toBe(false)
+  expect(x.refusals.map(r => r.what).join('; ')).not.toMatch(/the rule and the code differ/)
+}, 900_000)

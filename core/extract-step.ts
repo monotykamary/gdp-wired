@@ -3738,8 +3738,9 @@ export function openHarness(work: string, cmd: string, args: string[], o: Record
   return {child, wi, ro}
 }
 // A harness: the command that starts it (it opens the two named pipes it is given) and what it is told first.
-// (error: why there is no harness; kind 'source': the code's compiler rejects it (a refusal of the source, never a
-// difference), 'harness': the check's own tools failing (its outcome, after their retry))
+// (error: why there is no harness, never a difference since no request ran; kind 'harness': the check's own tools
+// failing (its outcome, after their retry), else ('source', the default) the code refused with why: its compiler
+// rejects it, or the harness can't be made for it)
 export type Harness = {cmd: string, args: string[], env?: Record<string, string>, hello: Record<string, unknown>, error?: string, kind?: 'source' | 'harness'}
 export type StepEvidence = Evidence & {runMs: number}
 export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: StepOptions): StepEvidence {
@@ -3752,7 +3753,8 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
   let child: {kill: () => void} | undefined, wi = -1, ro = -1
   const empty = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0, runMs: 0}
   try {
-    if (h.error) return h.kind === 'harness' ? {...empty, harness: h.error} : h.kind === 'source' ? {...empty, source: h.error} : {...empty, mismatch: h.error}
+    // (no harness: no request ran, so never a difference: the check's own failure, or the code refused with why)
+    if (h.error) return h.kind === 'harness' ? {...empty, harness: h.error} : {...empty, source: h.error}
     ;({child, wi, ro} = openHarness(work, h.cmd, h.args, {stdio: ['ignore', 'ignore', 'inherit'], env: {...proc?.env, ...h.env}}))
     const buf = new Uint8Array(1 << 20), dec = new TextDecoder()
     let pend = ''

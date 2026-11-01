@@ -255,7 +255,7 @@ function harnessFor(dir: string, mod: SModule, read: StepRead, opts: RsOptions):
     if (!('ok' in built)) return {cmd: 'false', args: [], hello: {}, error: built.why, kind: built.kind}
     const msgs = built.ok
     const exe = msgs.split('\n').flatMap(l => { try { const j = JSON.parse(l) as {reason?: string, executable?: string, target?: {kind?: string[]}}; return j.reason === 'compiler-artifact' && j.executable && j.target?.kind?.includes('lib') ? [j.executable] : [] } catch { return [] } })[0]
-    if (!exe) return {cmd: 'false', args: [], hello: {}, error: 'the test build gave no executable'}
+    if (!exe) return {cmd: 'false', args: [], hello: {}, error: 'the test build gave no executable', kind: 'harness'}
     read.model.notes.push('Rust: the code is checked in a debug build (overflow checks on); its branch arms are not counted (no instrumentation yet)')
     read.arms.length = 0
     const test = `${modPath === 'crate' ? '' : `${modPath.replace(/^crate::/, '')}::`}__gdp_harness::__gdp_harness_main`
