@@ -177,8 +177,6 @@ core/data.ts | lowerY | "readsInt(g, c) || readsInt(fn, ms[" | " || " -> " && " 
 core/data.ts | obligation | "me = ring.length === 1 ? `${fn.name}'" | " === " -> " !== " | text in an obligation's name
 core/data.ts | obligation | "name}'s call ${i + 1} lowers ${showM" | " + 1" -> "" | text in an obligation's name
 core/data.ts | obligation | "name}'s call ${i + 1}, of ${to.name}" | " + 1" -> "" | text in an obligation's name
-core/data.ts | directly | "o => { if (o.op === 'get' && ctors.h" | " === " -> " !== " | which constructor values directly() adds shapes at: the search's instances, the proof checked by the kernel
-core/data.ts | directly | "(o.op === 'get' && ctors.has(o.map" | " && " -> " || " | which constructor values directly() adds shapes at: the search's instances, the proof checked by the kernel
 core/data.ts | directly | "if (clock() > until) return un" | " > " -> " >= " | a deadline's comparison
 core/data.ts | directly | "iredKeys.skip = true" | "true" -> "false" | pairedKeys.skip, a search setting
 core/data.ts | directly | ", concl, rank: [k(0)], insts, uses:" | "k(0)" -> "k(1)" | the rank of a node with no uses: no descent goal reads it

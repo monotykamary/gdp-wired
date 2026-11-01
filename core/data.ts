@@ -403,7 +403,7 @@ function recursion(fn: Fn): Rec {
   if (!got) {
     const why = `${fn.name}: not structural recursion (no parameter whose field every recursive call passes${members.length > 1 ? `, in its ring ${names.join(', ')}` : ''}${members.some(f => f.stated) ? '; a measure is given' : ''})`
     // (each of the ring given its own measure and proofs: Data.lean's wf_fix_unique_ring)
-    const ts = termination(members, why)
+    const ts = terminationKept(members, why)
     members.forEach((f, a) => { (f as Fn & {rec: unknown}).rec = {ring: names, measure: ts[a]!.measure, termination: ts[a]!} })
     return {ring: names, measure: ts[0]!.measure, termination: ts[0]!}
   }
@@ -854,17 +854,27 @@ function stepped(y: Y): Y {
 }
 // `lower`: of a guard at a call, guard ⇒ c ≤ S(g(y…)), the least size the values give under it above the least without
 // (from 2 on, half of a natural is at least 1).
-function guardedLaws(l: DataLaw, s: Site, ring: string[], lower = false): DataLaw[][] {
+function guardedLaws(l: DataLaw, s: Site, ring: string[], lower = false): {laws: DataLaw[], outer: boolean}[] {
   const cond = shapedBy(s)(s.wrap(no.y)) as Y, site = pathSamples(l.vars, l.params, e => !evalY(cond, e.env, e.params))
   if (site.length < 12) return []
   // (a lower bound of the calls a guard bounds below: those on the larger side of a comparison)
-  const calls = new Map<string, {g: Fn, args: X[]}>(), larger: unknown[] = []
+  const larger: unknown[] = []
   if (lower) walk(l.holds, o => { if (o.op === '<=' || o.op === '<') larger.push(o.b) })
-  walk(lower ? larger : l.holds, o => { if (o.op === 'call' && !ring.includes(o.fn as string)) { const g = fnOf(o.fn as string); if (sized(g.ret) && g.params.some(q => sized(q.sort))) calls.set(JSON.stringify(o), {g, args: o.args as X[]}) } })
-  const out: DataLaw[][] = []
+  // (each call at its depth among the helpers' calls: an inner call's guarded law is what an outer guard reads, so inner
+  // first, and only an outermost call's group is the decrease's)
+  const calls = new Map<string, {g: Fn, args: X[], depth: number}>()
+  const visit = (t: unknown, depth: number): void => {
+    if (!t || typeof t !== 'object') return
+    if (Array.isArray(t)) { t.forEach(u => visit(u, depth)); return }
+    const o = t as X
+    if (o.op === 'call' && !ring.includes(o.fn)) { const g = fnOf(o.fn); if (sized(g.ret) && g.params.some(q => sized(q.sort)) && !calls.has(JSON.stringify(o))) calls.set(JSON.stringify(o), {g, args: o.args, depth}); o.args.forEach(a => visit(a, depth + 1)); return }
+    Object.values(o).forEach(v => visit(v, depth))
+  }
+  visit(lower ? larger : l.holds, 0)
+  const out: {laws: DataLaw[], outer: boolean}[] = []
   const lawOf = (name: string, vars: DataLaw['vars'], holds: Y): DataLaw => ({name, vars, holds, params: [...new Set(paramsIn(holds))]})
   const tries = (f: () => boolean) => { try { return f() } catch { return false } }
-  for (const {g, args} of [...calls.values()].slice(0, 4)) {
+  for (const {g, args, depth} of [...calls.values()].slice(0, 4).sort((a, b) => b.depth - a.depth)) {
     const ix = g.params.flatMap((q, i) => (sized(q.sort) ? [i] : []))
     const sz = site.flatMap(e => { try { return [args.map((a, i) => (ix.includes(i) ? sizeOfValue(g.params[i]!.sort, evalX(a, e.env, e.params)) : 0))] } catch { return [] } })
     if (sz.length < 12) continue
@@ -881,9 +891,9 @@ function guardedLaws(l: DataLaw, s: Site, ring: string[], lower = false): DataLa
     const lawOfGuard = (guard: Atom[], bound: Y) => {
       const gy = allY(guard.map(a => atomY(g.params, a, vs))), at = guard.map(a => atomY(g.params, a, args)), step = at.map(stepped), shaped = shapedBy(s)
       // (the guard at the call first, its step before it, then the guarded law: a group's last is the guarded law)
-      out.push([...(JSON.stringify(step) !== JSON.stringify(at) ? [lawOf(`${l.name}: ${showY(allY(step))}`, l.vars, shaped(s.wrap(allY(step))) as Y)] : []),
+      out.push({outer: depth === 0, laws: [...(JSON.stringify(step) !== JSON.stringify(at) ? [lawOf(`${l.name}: ${showY(allY(step))}`, l.vars, shaped(s.wrap(allY(step))) as Y)] : []),
         lawOf(`${l.name}: ${showY(allY(at))}`, l.vars, shaped(s.wrap(allY(at))) as Y),
-        lawOf(`size law under ${showY(gy)}: ${showY(bound)}`, vars, {op: 'or', xs: [{op: 'not', x: gy}, bound]})])
+        lawOf(`size law under ${showY(gy)}: ${showY(bound)}`, vars, {op: 'or', xs: [{op: 'not', x: gy}, bound]})]})
     }
     if (lower) {
       const c = least(within(atoms))
@@ -912,20 +922,18 @@ function guardedLaws(l: DataLaw, s: Site, ring: string[], lower = false): DataLa
 function throughLemmas(l: DataLaw, groups: {laws: DataLaw[], then: boolean}[], until: number): DataVerdict | undefined {
   const p = programOf([l, ...groups.flatMap(g => g.laws)]), fs = factsOf(p), proven: Proven[] = []
   const ctx = (): SearchCtx => ({p, fs, base: [...proven], level: Math.max(0, ...proven.flatMap(q => q.nodes.map(n => (n.rank[0]?.op === 'const' ? n.rank[0].value : 0))))})
-  for (const {laws: group, then} of groups) {
-    let all = true
-    for (const [j, c] of group.entries()) {
-      if (clock() > until) return undefined
-      // (a guard at the call: by its step and the definitions unfolded, no induction; then alone, above none of the
-      // lemmas, whose instances are its proof's cost where it reads none; then above them)
-      const guardAt = j < group.length - 1, quick = guardAt && j ? searchIn(c, {lemmas: false, induction: false, samples: 200}, Math.min(until, clock() + 1500), ctx()) : undefined
-      const alone = quick?.out || !guardAt ? quick : searchIn(c, {lemmas: false, samples: 200}, Math.min(until, clock() + 1500), {...ctx(), base: []})
-      const r = alone?.out ? alone : searchIn(c, {lemmas: false, samples: 200}, Math.min(until, clock() + 3000), ctx())
-      if (dataTrace) console.error(`[data]   through ${c.name}: ${r.out ? 'proven' : 'not proven'}`)
-      if (r.out) proven.push(r.out)
-      else all = false
-    }
-    if (!then || !all || !proven.length) continue
+  const prove = (c: DataLaw, guardAt: boolean): boolean => {
+    // (a guard at the call: by its step and the definitions unfolded, no induction; then alone, above none of the
+    // lemmas, whose instances are its proof's cost where it reads none; then above them)
+    // (the lemmas' uses alone first, no definition unfolded, then at one unfolding)
+    const quick = guardAt && !refute(c, 200) ? proveWith(p, fs, c, proven, ctx().level + 1, {induction: false}, Math.min(until, clock() + 1500), 1500, [0, 1]) : undefined
+    const alone = quick?.out || !guardAt ? quick : searchIn(c, {lemmas: false, samples: 200}, Math.min(until, clock() + 1500), {...ctx(), base: []})
+    const r = alone?.out ? alone : searchIn(c, {lemmas: false, samples: 200}, Math.min(until, clock() + 3000), ctx())
+    if (dataTrace) console.error(`[data]   through ${c.name}: ${r.out ? 'proven' : 'not proven'}`)
+    if (r.out) proven.push(r.out)
+    return !!r.out
+  }
+  const decrease = (): DataVerdict | undefined => {
     // (first the lemmas' uses alone, no definition unfolded, then at one unfolding: the guarded law at the call and its
     // guard there are the decrease; then the search without conjectures)
     const r = proveWith(p, fs, l, proven, ctx().level + 1, {induction: false}, Math.min(until, clock() + 3000), 3000, [0, 1])
@@ -940,6 +948,26 @@ function throughLemmas(l: DataLaw, groups: {laws: DataLaw[], then: boolean}[], u
       if (v.proven && v.checked) return v
       if (v.counterexample) return undefined
     }
+    return undefined
+  }
+  // (a group's lemma not proven is tried once more after the groups after it: a guard at one call may read the guarded
+  // law another's group proves, half a length below the length from 2 items on)
+  const left: {failed: DataLaw[], laws: DataLaw[], then: boolean}[] = []
+  for (const {laws, then} of groups) {
+    const failed: DataLaw[] = []
+    for (const [j, c] of laws.entries()) {
+      if (clock() > until) return undefined
+      if (!prove(c, j < laws.length - 1)) failed.push(c)
+    }
+    if (failed.length) { left.push({failed, laws, then}); continue }
+    if (!then || !proven.length) continue
+    const v = decrease()
+    if (v) return v
+  }
+  for (const {failed, laws, then} of left) {
+    if (!failed.every(c => clock() < until && prove(c, laws.indexOf(c) < laws.length - 1)) || !then) continue
+    const v = decrease()
+    if (v) return v
   }
   return undefined
 }
@@ -1176,7 +1204,7 @@ function proveMeasuresIn(ring: Fn[], sites: Site[], ms: Measure[], until0: numbe
       guardedLeft.ms -= more
       until += more
       // (each guard at the call after the guarded laws its arguments' sizes read there: half of a length from 2 items on)
-      const groups = [{laws: sizeLaws(law, names, true), then: false}, ...guarded.flatMap(g => [...guardedLaws(g.at(-2)!, site!, names, true).map(laws => ({laws, then: false})), {laws: g, then: true}])]
+      const groups = [{laws: sizeLaws(law, names, true), then: false}, ...guarded.flatMap(g => [...guardedLaws(g.laws.at(-2)!, site!, names, true).map(h => ({laws: h.laws, then: false})), {laws: g.laws, then: g.outer}])]
       const lemmas = groups.flatMap(g => g.laws)
       if (dataTrace) console.error(`[data]   ${law.name}: ${lemmas.map(c => c.name).join('; ')}`)
       const v = throughLemmas(law, groups, until)
@@ -1235,11 +1263,12 @@ function invariantsOf(ring: Fn[]): Inv[] {
   return out.filter((inv, i) => (i === 0 || inv.some(y => y)) && out.findIndex(o => JSON.stringify(o) === JSON.stringify(inv)) === i)
 }
 // The ring's measures and each call's proof, or a refusal with the measures tried. A ring of one is a function.
-function termination(ring: Fn[], why: string): Termination[] {
+// (a ring's termination within another's: the outer's guarded time kept)
+function terminationKept(ring: Fn[], why: string): Termination[] {
   const had = guardedLeft.ms
-  try { return terminationOf(ring, why) } finally { guardedLeft.ms = had }
+  try { return termination(ring, why) } finally { guardedLeft.ms = had }
 }
-function terminationOf(ring: Fn[], why: string): Termination[] {
+function termination(ring: Fn[], why: string): Termination[] {
   return counted(dataRate, () => {
     const names = ring.map(f => f.name)
     if (dataTrace) console.error(`[data] termination of ${names.join(', ')}`)
