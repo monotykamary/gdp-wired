@@ -77,6 +77,99 @@ structure CCert where
   insts : List CInst
   tab : List VDef
   tree : Tree
+  picks : List (Nat × List E)
+
+/-! A count at least its body at distinct keys: a read's count picked at key terms (`picks`) gives the hypothesis that,
+where the terms are distinct and below the bound, the count is at least the sum of its body at them (`pickHyp`). It
+holds wherever the count is its sum (`pickHyp_true`), so a certificate may name any terms. -/
+
+def allNe (k : E) : List E → C
+  | [] => .le (.const 0) (.const 0)
+  | k' :: ks => .and (.not (.eq k k')) (allNe k ks)
+
+def distinctBelow (b : E) : List E → C
+  | [] => .le (.const 0) (.const 0)
+  | k :: ks => .and (.lt k b) (.and (allNe k ks) (distinctBelow b ks))
+
+def pickHyp (c : Count) (ks : List E) : C :=
+  .or (.not (distinctBelow c.below ks)) (.le (sumE (ks.map fun k => substE [(c.key, k)] c.body)) (.var c.v))
+
+theorem evalE_sumEs (X : Nat → Nat) (M : Nat → Nat → Nat) : ∀ es : List E, evalE X M (sumE es) = (es.map (evalE X M)).sum
+  | [] => by simp [sumE, evalE]
+  | e :: es => by simp [sumE, evalE, evalE_sumEs X M es]
+
+theorem allNe_ok (X : Nat → Nat) (M : Nat → Nat → Nat) (k : E) : ∀ ks : List E, evalC X M (allNe k ks) = true →
+    ∀ k' ∈ ks, evalE X M k ≠ evalE X M k'
+  | [], _ => by simp
+  | k' :: ks, h => by
+    simp only [allNe, evalC, Bool.and_eq_true, Bool.not_eq_true', decide_eq_false_iff_not] at h
+    intro k'' hk
+    rcases List.mem_cons.mp hk with rfl | hk
+    · exact h.1
+    · exact allNe_ok X M k ks h.2 k'' hk
+
+theorem distinctBelow_ok (X : Nat → Nat) (M : Nat → Nat → Nat) (b : E) : ∀ ks : List E, evalC X M (distinctBelow b ks) = true →
+    (ks.map (evalE X M)).Pairwise (· ≠ ·) ∧ ∀ k ∈ ks, evalE X M k < evalE X M b
+  | [], _ => by simp
+  | k :: ks, h => by
+    simp only [distinctBelow, evalC, Bool.and_eq_true, decide_eq_true_eq] at h
+    obtain ⟨hlt, hne, hrest⟩ := h
+    obtain ⟨hp, hb⟩ := distinctBelow_ok X M b ks hrest
+    refine ⟨?_, ?_⟩
+    · simp only [List.map_cons, List.pairwise_cons, List.mem_map]
+      exact ⟨fun a ⟨k', hk', he⟩ => he ▸ allNe_ok X M k ks hne k' hk', hp⟩
+    · intro k' hk'
+      rcases List.mem_cons.mp hk' with rfl | hk'
+      · exact hlt
+      · exact hb k' hk'
+
+theorem sum_split (f : Nat → Nat) (n : Nat) : ∀ ks : List Nat, ks.Pairwise (· ≠ ·) → n ∈ ks →
+    (ks.map f).sum = f n + ((ks.filter (· != n)).map f).sum
+  | [], _, h => by simp at h
+  | a :: t, hp, h => by
+    rw [List.pairwise_cons] at hp
+    by_cases ha : a = n
+    · subst ha
+      have ht : t.filter (· != a) = t := List.filter_eq_self.mpr (fun x hx => by simpa using (hp.1 x hx).symm)
+      rw [List.filter_cons_of_neg (by simp), ht]
+      simp
+    · have hn : n ∈ t := by rcases List.mem_cons.mp h with h | h; exact absurd h.symm ha; exact h
+      have ih := sum_split f n t hp.2 hn
+      simp only [List.map_cons, List.sum_cons, List.filter_cons, bne_iff_ne, ne_eq, ha, not_false_eq_true, ite_true]
+      rw [ih]; omega
+
+-- A sum below n is at least its terms at distinct keys below n.
+theorem sum_le_sumBelow (f : Nat → Nat) : ∀ (n : Nat) (ks : List Nat), ks.Pairwise (· ≠ ·) → (∀ k ∈ ks, k < n) →
+    (ks.map f).sum ≤ sumBelow f n
+  | 0, ks, _, hb => by
+    cases ks with
+    | nil => simp [sumBelow]
+    | cons k _ => exact absurd (hb k List.mem_cons_self) (Nat.not_lt_zero k)
+  | n + 1, ks, hp, hb => by
+    simp only [sumBelow]
+    by_cases hn : n ∈ ks
+    · rw [sum_split f n ks hp hn]
+      have := sum_le_sumBelow f n (ks.filter (· != n)) (hp.filter _) (fun k hk => by
+        obtain ⟨hk, hne⟩ := List.mem_filter.mp hk
+        have := hb k hk; simp only [bne_iff_ne, ne_eq, decide_eq_true_eq] at hne; omega)
+      omega
+    · have := sum_le_sumBelow f n ks hp (fun k hk => by have := hb k hk; have : k ≠ n := fun h => hn (h ▸ hk); omega)
+      omega
+
+theorem pickHyp_true (c : Count) (ks : List E) (X : Nat → Nat) (M : Nat → Nat → Nat) (h : c.Holds X M) :
+    evalC X M (pickHyp c ks) = true := by
+  simp only [pickHyp, evalC, Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq]
+  by_cases hg : evalC X M (distinctBelow c.below ks) = true
+  · right
+    obtain ⟨hp, hb⟩ := distinctBelow_ok X M c.below ks hg
+    rw [evalE_sumEs]
+    simp only [evalE]
+    rw [h, List.map_map]
+    have he : (ks.map ((evalE X M) ∘ fun k => substE [(c.key, k)] c.body)) = ((ks.map (evalE X M)).map fun k => evalE (upd X c.key k) M c.body) := by
+      rw [List.map_map]; congr 1; funext k; simp only [Function.comp, subst_evalE, applyS_one]
+    rw [he]
+    exact sum_le_sumBelow _ _ _ hp (fun k hk => by obtain ⟨k', hk', rfl⟩ := List.mem_map.mp hk; exact hb k' hk')
+  · left; simpa using hg
 
 -- A key term's parts, the terms the parameters take: one parameter, the term (j a constant 0); two, the term written
 -- base·a + b (j at a, lo at b), which is the count at (a, b) where b < base.
@@ -104,6 +197,12 @@ def readHyp (ds : List CDecl) (r : Nat × Nat × E) : C :=
     | some p => .or (.le (.const d.base) p.2) (.eq (.var r.1) (.get r.2.1 r.2.2))
     | none => .eq (.var r.1) (.get r.2.1 r.2.2)
   | none => .eq (.var r.1) (.get r.2.1 r.2.2)
+
+-- The picks' hypotheses: each pick of a read, at its count.
+def pickHyps (ds : List CDecl) (rs : List (Nat × Nat × E)) (ps : List (Nat × List E)) : List C :=
+  ps.filterMap fun p => match lookup (fun r => r.1 == p.1) rs with
+    | some r => (toCount ds r).map fun c => pickHyp c p.2
+    | none => none
 
 -- A read's variable is fresh: no named hypothesis, declaration or key term reads it, and it is no declaration's j, lo or
 -- key.
@@ -223,7 +322,7 @@ def checkMC (hyps : List C) (ds : List CDecl) (k : CCert) : Bool :=
   namedIn hyps k.hyps hyps && ds.all (fun d => d.j != d.key && d.lo != d.key) && readsOk k.hyps ds k.reads
     && k.reads.all (fun r => k.insts.all (fun i => i.wit != r.1 && !occE i.wit r.2.2))
     && match toCounts ds k.reads with
-      | some cs => checkCountedW (k.hyps ++ k.reads.map (readHyp ds)) cs k.insts k.tab k.tree
+      | some cs => checkCountedW (k.hyps ++ k.reads.map (readHyp ds) ++ pickHyps ds k.reads k.picks) cs k.insts k.tab k.tree
       | none => false
 
 /-! The counted goal's soundness -/
@@ -355,6 +454,22 @@ theorem toCounts_some {ds : List CDecl} : ∀ {rs : List (Nat × Nat × E)} {cs 
         · exact ⟨c1, e1⟩
         · exact toCounts_some e2 r' hr'
 
+theorem toCounts_in {ds : List CDecl} : ∀ {rs : List (Nat × Nat × E)} {cs : List Count}, toCounts ds rs = some cs →
+    ∀ {r c}, r ∈ rs → toCount ds r = some c → c ∈ cs
+  | [], _, _, _, _, h, _ => by simp at h
+  | r0 :: rs, cs, h, r, c, hr, hc => by
+    cases e1 : toCount ds r0 with
+    | none => simp [toCounts, e1] at h
+    | some c1 =>
+      cases e2 : toCounts ds rs with
+      | none => simp [toCounts, e1, e2] at h
+      | some cs' =>
+        simp only [toCounts, e1, e2, Option.map_some, Option.some.injEq] at h
+        subst h
+        rcases List.mem_cons.mp hr with rfl | hr
+        · rw [e1] at hc; cases hc; exact List.mem_cons_self
+        · exact List.mem_cons_of_mem _ (toCounts_in e2 hr hc)
+
 -- A read's value: its count at ρ.
 def rval (ds : List CDecl) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (r : Nat × Nat × E) : Nat :=
   match toCount ds r with
@@ -433,8 +548,8 @@ theorem mc_sound (hyps : List C) (ds : List CDecl) (k : CCert) (hck : checkMC hy
     · cases h1 : occE r'.1 p.2
       · rfl
       · rw [(keyParts_occ hp r'.1).2 h1] at h0; cases h0
-  refine countedW_sound _ _ _ _ _ hcc ρ' M ?_ ?_
-  · -- every count is its sum at ρ'
+  -- every count is its sum at ρ'
+  have hholds : ∀ c ∈ cs, c.Holds ρ' M := by
     intro c hc
     obtain ⟨r, hr, hrc⟩ := toCounts_mem hcs c hc
     obtain ⟨d, hdm, p, _, _, hp, rfl⟩ := hparts r hr c hrc
@@ -463,8 +578,17 @@ theorem mc_sound (hyps : List C) (ds : List CDecl) (k : CCert) (hck : checkMC hy
         simp only [upd]; split
         · rfl
         · exact (hother i (fun r' hr' he => by have := (hpr r hr d p hp r' hr').2; rw [he, hi] at this; cases this)).symm)
-  · intro ρw hρw h hm
-    rcases List.mem_append.mp hm with hm | hm
+  have hwf : ∀ c ∈ cs, ∀ i ∈ k.insts, c.v ≠ i.wit ∧ occE i.wit c.below = false ∧ occE i.wit c.body = false := by
+    have h1 := hcc
+    simp only [checkCountedW, countedOkW, Bool.and_eq_true, List.all_eq_true] at h1
+    intro c hc i hi
+    have := h1.1.2 i hi
+    simp only [witFreshW, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq] at this
+    exact ⟨fun he => (this.1 c hc).1.1 he, (this.1 c hc).1.2, (this.1 c hc).2⟩
+  refine countedW_sound _ _ _ _ _ hcc ρ' M hholds ?_
+  intro ρw hρw h hm
+  rcases List.mem_append.mp hm with hm | hm
+  · rcases List.mem_append.mp hm with hm | hm
     · -- a named hypothesis: it reads no read variable, and holds where the witnesses are anything
       let ρw2 : Nat → Nat := fun j => if (k.reads.map (·.1)).contains j then ρ j else ρw j
       have h2 := hH ρw2 (fun j hj => by
@@ -509,6 +633,25 @@ theorem mc_sound (hyps : List C) (ds : List CDecl) (k : CCert) (hck : checkMC hy
         by_cases hlt : evalE ρ M p.2 < d.base
         · exact Or.inr (decide_eq_true (hval (Or.inr hlt)))
         · exact Or.inl (decide_eq_true (by rw [hwk p.2 (fun i => (keyParts_occ hp i).2)]; omega))
+  · -- a pick: its count at ρw is its sum, as at ρ' (it reads no witness)
+    obtain ⟨p, _, hph⟩ := List.mem_filterMap.mp hm
+    split at hph
+    · rename_i r hl
+      obtain ⟨c, hc, rfl⟩ := Option.map_eq_some_iff.mp hph
+      have hcm : c ∈ cs := toCounts_in hcs (lookup_some hl).1 hc
+      have hc' := hholds c hcm
+      have hag : ∀ j, (∀ i ∈ k.insts, i.wit ≠ j) → ρw j = ρ' j := hρw
+      refine pickHyp_true c p.2 ρw M ?_
+      simp only [Count.Holds] at hc' ⊢
+      rw [hag c.v (fun i hi he => (hwf c hcm i hi).1 he.symm), hc']
+      have hB : evalE ρ' M c.below = evalE ρw M c.below := congrE _ _ M c.below (fun j hj => (hag j (fun i hi he => by
+        have := (hwf c hcm i hi).2.1; rw [he, hj] at this; cases this)).symm)
+      rw [hB]
+      exact sumBelow_congr _ (fun kk _ => congrE _ _ M c.body (fun j hj => by
+        simp only [upd]; split
+        · rfl
+        · exact (hag j (fun i hi he => by have := (hwf c hcm i hi).2.2; rw [he, hj] at this; cases this)).symm))
+    · cases hph
 
 /-! Counts in a machine -/
 

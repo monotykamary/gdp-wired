@@ -6,7 +6,7 @@ import {describe, expect, test} from 'bun:test'
 import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, seeded, times, x} from '../core/machine.ts'
 import {type CountCert, type CountInst, type MapRead, type Tree, check, checkCountedLaws, checkMC, countedObligations, mcGoal, obligations} from './kernel.ts'
 import {clock, grow} from './prove.ts'
-import {countedProof, toyCounted, toyRounds} from '../lean-kernel/count-examples.ts'
+import {countedProof, pickExample, toyCounted, toyRounds} from '../lean-kernel/count-examples.ts'
 import {searchCounted} from '../core/counts.ts'
 
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
@@ -369,6 +369,28 @@ describe('two parameters', () => {
     const small: Law = {name: 'votes at most 3', forall: 'a', holds: atMost(get('votes', x('a')), n(3))}
     expect(trulyRounds(rounds.m, [small])).toBe(true)
     expect(searchCounted(rounds.m, [small], 4_000).proven).toBe(false)
+  }, 120_000)
+})
+describe('picks: a count at least its body at distinct keys', () => {
+  const pe = pickExample(), stepName = 'two members count two @step'
+  test('two members make the count at least 2: accepted with the pick, no tree without it, refused at one key twice', () => {
+    const certs = countedProof(pe.m, pe.laws, pe.instances, pe.certs)
+    expect(checkCountedLaws(pe.m, pe.laws, {instances: pe.instances, certs})).toBe(true)
+    const g = countedObligations(pe.m, pe.laws, pe.instances).find(o => o.goal.name === stepName)!
+    for (const picks of [[], [['r0', [x('a#'), x('a#')]]], [['r0', [x('a#'), x('b'), x('a#')]]], [['zz', [x('a#'), x('b')]]]] as [string, E[]][][]) {
+      const k = {...pe.certs[stepName]!, picks}
+      expect(grow(mcGoal(g.goal.hyps, g.decls, k)!, new Map(), {nodes: 0, until: clock() + 5_000})).not.toHaveProperty('tree')
+      expect(checkCountedLaws(pe.m, pe.laws, {instances: pe.instances, certs: {...certs, [stepName]: {...certs[stepName]!, picks}}})).toBe(false)
+    }
+  }, 60_000)
+  test('a pick is typed: a read\'s name and terms over the naturals', () => {
+    const certs = countedProof(pe.m, pe.laws, pe.instances, pe.certs)
+    for (const picks of [[['r0', [n(-1), x('b')]]], [['r0', 'a#']], [[7, [x('b')]]], {}] as unknown as [string, E[]][][])
+      expect(checkCountedLaws(pe.m, pe.laws, {instances: pe.instances, certs: {...certs, [stepName]: {...certs[stepName]!, picks}}})).toBe(false)
+  })
+  test('the count picked at the keys the goal reads: a law over a count read once proven by the search', () => {
+    const c = searchCounted(pe.m, pe.laws, 10_000)
+    expect(c.proven).toBe(true)
   }, 120_000)
 })
 const one1 = n(1)

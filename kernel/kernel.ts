@@ -1711,7 +1711,7 @@ export function countedGoal(g: CountedGoal, insts: CountInst[]): Goal | undefine
 // and tree; checkMC is Lean's, line for line (DESIGN.md, gen/laneK2, has the table).
 export type CountDecl = {map: string, j: string, key: string, below: E, body: E, lo?: string, base?: number}
 export type MapRead = [string, string, E]
-export type CountCert = {reads: MapRead[], insts: CountInst[], tree: Tree}
+export type CountCert = {reads: MapRead[], insts: CountInst[], tree: Tree, picks?: [string, E[]][]}
 export const postName = (map: string) => `${map}#`
 const declsOf = (m: Machine): CountDecl[] => Object.entries(m.counts ?? {}).map(([map, c]) => ({map, j: c.j, key: c.key, below: c.below, body: c.body, ...(c.base ? {lo: c.lo, base: c.base} : {})}))
 // A declaration's second parameter (Lean's CDecl.lo, base): one parameter is lo = j, base 0.
@@ -1774,6 +1774,18 @@ const readHyp = (ds: CountDecl[], r: MapRead): C => {
   const eq: C = {op: '=', a: {op: 'var', name: r[0]}, b: {op: 'get', map: r[1], key: r[2]}}, d = ds.find(x => x.map === r[1]), p = d && baseOf(d) ? keyParts(d, r[2]) : undefined
   return p ? {op: 'or', xs: [{op: '<=', a: {op: 'const', value: baseOf(d!)}, b: p[1]}, eq]} : eq
 }
+// A count at least its body at distinct keys (Lean's pickHyp, pickHyps): a pick names a read and key terms; where the
+// terms are distinct and below the count's bound, the count is at least the sum of its body at them. It holds wherever
+// the count is its sum, so a certificate may name any terms; a pick of no read adds nothing.
+const allNe = (k: E, ks: E[]): C => (ks.length ? {op: 'and', xs: [{op: 'not', x: {op: '=', a: k, b: ks[0]!}}, allNe(k, ks.slice(1))]} : trueC)
+const distinctBelow = (b: E, ks: E[]): C => (ks.length ? {op: 'and', xs: [{op: '<', a: ks[0]!, b}, {op: 'and', xs: [allNe(ks[0]!, ks.slice(1)), distinctBelow(b, ks.slice(1))]}]} : trueC)
+const pickHyp = (c: Count, ks: E[]): C => ({op: 'or', xs: [{op: 'not', x: distinctBelow(c.below, ks)},
+  {op: '<=', a: sumE(ks.map(k => substE(c.body, {vars: {[c.key]: k}, maps: {}, flags: {}}))), b: {op: 'var', name: c.v}}]})
+const pickHyps = (ds: CountDecl[], rs: MapRead[], ps: [string, E[]][]): C[] => ps.flatMap(([v, ks]) => {
+  const r = rs.find(x => x[0] === v), c = r && toCount(ds, r)
+  return c ? [pickHyp(c, ks)] : []
+})
+const picksTyped = (ps: unknown): boolean => ps === undefined || (Array.isArray(ps) && ps.every(p => Array.isArray(p) && p.length === 2 && typeof p[0] === 'string' && Array.isArray(p[1]) && p[1].every(safeTerm)))
 // readFresh: no hypothesis, declaration or key term reads v, and v is no declaration's j, lo or key.
 const readFresh = (hyps: C[], ds: CountDecl[], rs: MapRead[], v: string): boolean =>
   hyps.every(h => !readsVar(h, v)) && ds.every(d => !readsVar(d.below, v) && !readsVar(d.body, v) && d.j !== v && loOf(d) !== v && d.key !== v) && rs.every(r => !readsVar(r[2], v))
@@ -1814,15 +1826,15 @@ function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree: 
 // its key term, and checkCountedW accepts the counted goal they make (the goal's hypotheses, each read variable equal to
 // its cell; Lean's names the hypotheses it uses, each the goal's).
 export function checkMC(hyps: C[], ds: CountDecl[], k: CountCert): boolean {
-  if (!(ds.every(d => d.j !== d.key && loOf(d) !== d.key) && readsTyped(k.reads) && Array.isArray(k.insts) && k.insts.every(i => !!i && safeTerm(i.below)) && readsOk(hyps, ds, k.reads))) return false
+  if (!(ds.every(d => d.j !== d.key && loOf(d) !== d.key) && picksTyped(k.picks) && readsTyped(k.reads) && Array.isArray(k.insts) && k.insts.every(i => !!i && safeTerm(i.below)) && readsOk(hyps, ds, k.reads))) return false
   if (!k.reads.every(r => k.insts.every(i => i.wit !== r[0] && !readsVar(r[2], i.wit)))) return false
   const cs = toCounts(ds, k.reads)
-  return cs !== undefined && checkCountedW([...hyps, ...k.reads.map(r => readHyp(ds, r))], cs, {insts: k.insts, tree: k.tree})
+  return cs !== undefined && checkCountedW([...hyps, ...k.reads.map(r => readHyp(ds, r)), ...pickHyps(ds, k.reads, k.picks ?? [])], cs, {insts: k.insts, tree: k.tree})
 }
 // The goal a certificate's tree refutes (what the search and the exporter read), or none.
-export function mcGoal(hyps: C[], ds: CountDecl[], k: Pick<CountCert, 'reads' | 'insts'>): Goal | undefined {
+export function mcGoal(hyps: C[], ds: CountDecl[], k: Pick<CountCert, 'reads' | 'insts' | 'picks'>): Goal | undefined {
   const cs = toCounts(ds, k.reads)
-  return cs && countedGoal({name: 'counted', hyps: [...hyps, ...k.reads.map(r => readHyp(ds, r))], counts: cs}, k.insts)
+  return cs && countedGoal({name: 'counted', hyps: [...hyps, ...k.reads.map(r => readHyp(ds, r)), ...pickHyps(ds, k.reads, k.picks ?? [])], counts: cs}, k.insts)
 }
 // The goals of a machine with counts: obligations', each law proven renamed (renLaw), with the counts each declares.
 export function countedObligations(m: Machine, laws: Law[], instances: Record<string, Instances> = {}, only?: number): {goal: Goal, decls: CountDecl[]}[] {

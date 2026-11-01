@@ -175,7 +175,7 @@ export function guardLaws(m: Machine): {counts: Machine['counts'], laws: Law[]} 
 // The count cells the goal reads (each before the step with its post name's twin), instances over pairs of them with one
 // bound (a count that doesn't drop, +1 and −1; two that meet, +1, +1 and −1), each with a fresh witness; and the laws and
 // quantified flags at the witnesses (returned, for the goal's law's instances).
-export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: string, body: E}[], wide = false): {reads: MapRead[], insts: CountInst[], wits: string[]} {
+export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: string, key: string, body: E}[], wide = false): {reads: MapRead[], insts: CountInst[], wits: string[], picks: [string, E[]][]} {
   const byMap = new Map(decls.map(d => [d.map, d])), last = goal.hyps.at(-1)
   // (the conclusion's reads first, then those at a constant or the law's own names, then the rest)
   const own = (t: E) => t.op === 'const' || (t.op === 'var' && json(last).includes(`"name":${json(t.name)}`))
@@ -211,7 +211,17 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
     for (const a of named) for (const c of named) if (a !== c && bound(a) === bound(c) && !(post(c) && !post(a))) add([[1, a[0]], [-1, c[0]]], 0, byMap.get(a[1])!.below)
     for (const a of named) add([[1, a[0]]], 0, byMap.get(a[1])!.below)
   }
-  return {reads: named, insts: insts.slice(0, cap), wits: wits.slice(0, cap)}
+  // (wide: each count picked at the keys the goal reads the maps its body reads at its key: at least its body there, at
+  // every two of them and at all of up to four)
+  const picks: [string, E[]][] = []
+  if (wide) for (const r of named) {
+    const d = byMap.get(r[1])!, at = [...reads(d.body, () => true).values()].filter(([, key]) => json(key) === json(v(d.key))).map(([mp]) => mp)
+    if (!at.length) continue
+    const ts = [...new Map([...reads(goal.hyps, mp => at.includes(mp)).values()].map(([, t]) => [json(t), t] as [string, E])).values()].filter(t => !mentions(t, d.key)).slice(0, 4)
+    for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++) picks.push([r[0], [ts[i]!, ts[j]!]])
+    if (ts.length > 2) picks.push([r[0], ts])
+  }
+  return {reads: named, insts: insts.slice(0, cap), wits: wits.slice(0, cap), picks}
 }
 
 // --- the candidates --------------------------------------------------------------------------------------------------
@@ -435,7 +445,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && c.reads.length && more()) { wide = true; built = build(); again = true; break }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) return refuted(gg, o.witness)
         if (!o || !('tree' in o)) return {stuck: gg ? (o as {stuck?: string}).stuck ?? '' : ''}
-        certs[goal.name] = {reads: c.reads, insts: c.insts, tree: o.tree}
+        certs[goal.name] = {reads: c.reads, insts: c.insts, tree: o.tree, ...('picks' in c && c.picks.length ? {picks: c.picks} : {})}
       }
       if (!again) return {proof: {instances: at, certs}}
     }

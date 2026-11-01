@@ -318,7 +318,7 @@ export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {inst
   const named = machineNames(sm, laws, [], [], {})
   const allCerts = [proof.certs, ...tampers.map(t => t.certs)]
   const goals = obl.map(o => { const g = mcGoal(o.goal.hyps, o.decls, proof.certs[o.goal.name]!); if (!g) throw new Error(`${id}: ${o.goal.name}: a read of no count`); return g })
-  const certVars = allCerts.flatMap(cs => Object.values(cs).flatMap(k => [...k.reads.flatMap(r => [r[0], ...varsOfE(r[2])]), ...k.insts.flatMap(i => [i.wit, ...varsOfE(i.below)])]))
+  const certVars = allCerts.flatMap(cs => Object.values(cs).flatMap(k => [...k.reads.flatMap(r => [r[0], ...varsOfE(r[2])]), ...k.insts.flatMap(i => [i.wit, ...varsOfE(i.below)]), ...(k.picks ?? []).flatMap(([v2, ks]) => [v2, ...ks.flatMap(varsOfE)])]))
   const vars = [...new Set([...named.vars, ...counts.flatMap(([, d]) => [d.j, d.lo ?? d.j, d.key, ...varsOfE(d.below), ...varsOfE(d.body)]), ...laws.map(l => (l.forall ? `${l.forall}#` : '#')),
     ...goals.flatMap(g => g.hyps.flatMap(varsOf)), ...certVars])]
   const maps = [...new Set([...named.maps, ...counts.flatMap(([cn]) => [cn, postName(cn)]), ...goals.flatMap(g => g.hyps.flatMap(mapsOf)),
@@ -351,7 +351,8 @@ export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {inst
   ${list(k.reads.map(r => `(${ix(r[0])}, ${mx(r[1])}, ${e(r[2])})`))},
   ${list(k.insts.map(i => `⟨${ix(i.wit)}, ${e(i.below)}, ${list(i.terms.map(([z, v2]) => `(${int(z)}, ${ix(v2)})`))}, ${int(i.unit)}⟩`))},
   ${tt.tab},
-  ${tt.tree}⟩`
+  ${tt.tree},
+  ${list((k.picks ?? []).map(([v2, ks]) => `(${ix(v2)}, ${list(ks.map(e))})`))}⟩`
   }
   const entries = (certs: Record<string, CountCert>) => laws.map(law => {
     const inst = proof.instances[law.name] ?? {}
