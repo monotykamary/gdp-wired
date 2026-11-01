@@ -3744,9 +3744,9 @@ function lawAgain(l: DataLaw, c: DataLaw): boolean {
   if (at(ly, y)) return true
   if (y.op !== '=') return false
   // (a law of two Bool values equal, read as the two implications: p(a) = p(b))
-  const iff = ly.op === 'and' && ly.xs.length === 2 && ly.xs.every(z => z.op === 'or' && z.xs.length === 2 && z.xs[0]!.op === 'not' && z.xs[0]!.x.op === 'holds' && z.xs[1]!.op === 'holds')
-    ? ((ly.xs[0] as {xs: [{x: {x: X}}, {x: X}]}).xs) : undefined
-  const sides = ly.op === '=' ? [ly.a, ly.b] : iff ? [iff[0].x.x, iff[1].x] : undefined
+  const held = (z: Y): X | undefined => (z.op === 'holds' ? z.x : undefined)
+  const half = ly.op === 'and' && ly.xs.length === 2 && ly.xs[0]!.op === 'or' && ly.xs[0]!.xs.length === 2 && ly.xs[0]!.xs[0]!.op === 'not' ? [held(ly.xs[0]!.xs[0]!.x), held(ly.xs[0]!.xs[1]!)] : undefined
+  const sides = ly.op === '=' ? [ly.a, ly.b] : half?.every(Boolean) ? half : undefined
   if (sides && (at(sides, [y.a, y.b]) || at(sides, [y.b, y.a]))) return true
   const truth = (x: X) => { if (JSON.stringify(x).includes('"op":"var"')) return undefined; try { return evalX(x, new Map(), {}) } catch { return undefined } }
   return ly.op === 'holds' && [[y.a, y.b], [y.b, y.a]].some(([t, k2]) => truth(k2!) === 1 && at(ly.x, t))
