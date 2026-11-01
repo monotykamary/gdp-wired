@@ -283,6 +283,7 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing, ghosts: string[] =
   for (const l of laws) walk(l.holds, lawName(l))
   // (a map read at a composed key is no plain read where a write at every key reads it at its own key)
   for (const mp of composed) plainRead.delete(mp)
+  for (const mp of ghosts) { composed.delete(mp); arity.delete(mp) }
   // (a map of keys of k parts read at a write at every key's own key is no plain read)
   for (const mp of arity.keys()) plainRead.delete(mp)
   return {
