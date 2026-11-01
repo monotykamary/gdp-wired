@@ -432,32 +432,48 @@ export function loopToLean(id: string, l: Loop, laws: Law[], rank: E | E[], tamp
 // Each tampered certificate's check is computed to false.
 export function neverEndsToLean(id: string, l: Loop, r: Recur, tampered: {what: string, recur: Recur}[] = []): string {
   if (!checkRecur(l, r)) throw new Error(`${id}: the certificate does not check`)
-  const {vars, loop, recur, defs} = recurLean(id, l, r)
+  const {vars, loop, recur, defs} = recurLean(id, l, r, true), d = dataDef()
   return `-- ${l.name}: a run that never ends  (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')})
-${defs ? `${defs}\n` : ''}def ${id}_loop : Loop := ${loop}
-def ${id}_recur : Recur := ${recur(r)}
+${defs ? `${defs}\n` : ''}${d} ${id}_loop : Loop := ${loop}
+${d} ${id}_recur : Recur := ${recur(r)}
 /-- ${l.name} never ends: for some params meeting its precondition, a run of turns from the start goes on forever. -/
 theorem ${id}_never_ends : NeverEnds ${id}_loop :=
-  never_ends_of ${id}_loop ${id}_recur (by ${checkBy})${tampered.map((t, j) => `
+  never_ends_of ${id}_loop ${id}_recur (by
+${checkInParts('checkRecur', [])})${tampered.map((t, j) => `
 -- TAMPERED: ${t.what}. Lean computes the check to false.
-def ${id}_tampered${j} : Recur := ${recur(t.recur)}
+${d} ${id}_tampered${j} : Recur := ${recur(t.recur)}
 example : checkRecur ${id}_loop ${id}_tampered${j} = false := by ${checkBy}`).join('')}`
 }
 // A loop with a run that never ends, its set closed by cases (NonTerm.lean's never_ends_of_cases): the cover's and each
 // case's table and tree, read against the goals Lean builds (the pins substituted, the constants folded).
 export function neverEndsCasesToLean(id: string, l: Loop, r: RecurCases): string {
   if (!checkRecurCases(l, r)) throw new Error(`${id}: the certificate does not check`)
-  const {vars, loop, recur, defs} = recurCasesLean(id, l)
+  const {vars, loop, recur, caseLit, defs} = recurCasesLean(id, l, true), d = dataDef()
+  const names = r.cases.map((_, j) => `${id}_case${j}`)
   return `-- ${l.name}: a run that never ends, closed by ${r.cases.length} cases  (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')})
-${defs ? `${defs}\n` : ''}def ${id}_loop : Loop := ${loop}
-def ${id}_recur : RecurCases := ${recur(r)}
+${defs ? `${defs}\n` : ''}${d} ${id}_loop : Loop := ${loop}
+${names.map((n, j) => `${d} ${n} : List (Nat × Nat) × C × Cert := ${caseLit(r, j)}\n`).join('')}${d} ${id}_recur : RecurCases := ${recur(r, names)}
 /-- ${l.name} never ends: for some params meeting its precondition, a run of turns from the start goes on forever. -/
 theorem ${id}_never_ends : NeverEnds ${id}_loop :=
-  never_ends_of_cases ${id}_loop ${id}_recur (by ${checkBy})`
+  never_ends_of_cases ${id}_loop ${id}_recur (by
+${checkInParts('checkRecurCases', [`show ${id}_recur.cases = ${list(names)} from rfl`])})`
+}
+// Definitions that are data: no compiled code for Lean to make (a large loop's terms take its compiler past its
+// recursion limit and many GB), unless native_decide runs them.
+const dataDef = () => checkBy === 'native_decide' ? 'def' : 'noncomputable def'
+// A certificate's check, one part at a time: its definition unfolded into its conjuncts (the cases' list into one per
+// case), each conjunct computed by the kernel on its own (an auxiliary lemma each, so the kernel's caches of one part
+// are gone before the next: a large program's stem and each case's goal, not all of them at once). The same check of
+// the same definitions, only its && split; Lean proves the split.
+function checkInParts(check: string, rws: string[]): string {
+  return `    rw [${[check, ...rws].join(', ')}]
+    simp only [List.all_cons, List.all_nil, Bool.and_true, Bool.and_eq_true]
+    repeat' apply And.intro
+    all_goals ${checkBy}`
 }
 // A certificate by cases as NonTerm.lean's RecurCases (each tree written against the goal it refutes, else none).
-export function recurCasesLean(id: string, l: Loop): {vars: string[], loop: string, recur: (r: RecurCases) => string, defs: string} {
-  const {vars, loop, defs} = recurLean(id, l, undefined)
+export function recurCasesLean(id: string, l: Loop, share = false): {vars: string[], loop: string, recur: (r: RecurCases, names?: string[]) => string, caseLit: (r: RecurCases, j: number) => string, defs: string} {
+  const {vars, loop, defs} = recurLean(id, l, undefined, share)
   const {e, c} = leanTerms(vars, [], id)
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
   const vals = (o: Record<string, number>) => list(Object.entries(o).map(([name, v2]) => `(${ix(name)}, ${v2})`))
@@ -467,33 +483,114 @@ export function recurCasesLean(id: string, l: Loop): {vars: string[], loop: stri
     const coded = fits ? encode({name: `${id}: ${goal.name}`, goal, tree}, false, true, vars, [], false, true) : {tab: '[]', tree: '.leafAt [] [] [] []'}
     return `(${coded.tab}, [], ${coded.tree})`
   }
-  const recur = (r: RecurCases) => `⟨${list(vars.map((_, j) => String(j)))},
-  ${vals(r.start)},
-  ${list(r.stem.map(vals))},
+  const caseLit = (r: RecurCases, j: number) => { const k2 = r.cases[j]!; return `(${list(k2.pins.map(([n2, x]) => `(${ix(n2)}, ${x})`))}, ${c(k2.cond)}, ${cert(goals(r)[j]!, k2.tree)})` }
+  // (the cases written in place, or as the names given, one per case)
+  const recur = (r: RecurCases, names?: string[]) => `⟨${domOrder(vars, l, r.set, r.start)},
+  ${vals(nonzero(r.start))},
+  ${list(r.stem.map(t => vals(nonzero(t))))},
   ${c(r.set)},
   ${list(Object.entries(r.wit).map(([name, t]) => `(${ix(name)}, ${e(t)})`))},
   ${cert(coverGoal(r), r.cover)},
-  ${list(r.cases.map((k2, j) => `(${list(k2.pins.map(([n2, x]) => `(${ix(n2)}, ${x})`))}, ${c(k2.cond)}, ${cert(goals(r)[j]!, k2.tree)})`))}⟩`
+  ${list(names ?? r.cases.map((_, j) => caseLit(r, j)))}⟩`
   const made = new WeakMap<RecurCases, Goal[]>(), goals = (r: RecurCases) => { let g = made.get(r); if (!g) made.set(r, (g = caseGoals(l, r, r.cases))); return g }
-  return {vars, loop, recur, defs}
+  return {vars, loop, recur, caseLit, defs}
 }
-// The loop and a certificate as NonTerm.lean's Loop and Recur (the domain every variable; a certificate whose tree
-// doesn't refute its own goal carries `fallback`'s table and tree, which refutes `fallback`'s). lean-kernel/conformance.ts prints its cases with it.
+// A stem's domain and values as Lean reads them fastest. Its values are each looked up in a list: a value 0 is left out
+// (valsEnv reads a value not listed as 0), and so is from the domain a variable no turn, the start or an input writes
+// whose start is 0 (a run's state off the domain is 0 there, as it is anyway: Lean's stem reads the same values). Then
+// the domain in the order the run reads it most: every rule's condition reads the location, so the variables the
+// conditions read come first (most read first, the rest in their order). NonTerm.lean's domOk reads the domain as a set.
+const nonzero = (o: Record<string, number>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== 0))
+function domOrder(vars: string[], l: Loop, set: C, start: Record<string, number>): string {
+  const reads = new Map<string, number>()
+  const walk = (t: unknown, inC: boolean): void => {
+    if (!t || typeof t !== 'object') return
+    const o = t as {op?: string, name?: string}
+    if (o.op === 'var' && inC) reads.set(o.name!, (reads.get(o.name!) ?? 0) + 1)
+    const c = inC || ['<=', '<', '=', 'and', 'or', 'not'].includes(o.op ?? '')
+    for (const v of Object.values(t)) if (v && typeof v === 'object') (Array.isArray(v) ? v : [v]).forEach(x => walk(x, c))
+  }
+  for (const t of [...Object.values(l.body), l.while, ...(l.assume ? [l.assume] : []), set]) walk(t, false)
+  const written = new Set([...l.inputs, ...Object.keys(l.state), ...Object.keys(l.body), ...Object.keys(nonzero(start))])
+  return list(vars.flatMap((name, j) => (written.has(name) ? [{j, n: reads.get(name) ?? 0}] : [])).sort((a, b) => b.n - a.n || a.j - b.j).map(x => String(x.j)))
+}
+// Terms written once each where they recur (recurLean's loops): `count` each term first, then `e` prints a term with
+// each condition or term that has no if in it and recurs (3 uses or more, 24 characters or more) as its name, s<k>,
+// and `defs` gives their definitions (`d`: def or noncomputable def), in the order they were named.
+function sharedTerms(vars: string[], where: string, plainE: (t: E) => string) {
+  const {c: plainC} = leanTerms(vars, [], where)
+  const counts = new Map<string, number>(), names = new Map<string, string>(), out: string[] = []
+  const ifFree = new WeakMap<object, boolean>()
+  const free = (t: E | C): boolean => {
+    const had = ifFree.get(t); if (had !== undefined) return had
+    const r = t.op === 'if' ? false : Object.values(t).every(v => typeof v !== 'object' || v === null || (Array.isArray(v) ? v.every(x => typeof x !== 'object' || free(x as E | C)) : free(v as E | C)))
+    ifFree.set(t, r); return r
+  }
+  const isC = (t: E | C): t is C => ['<=', '<', '=', 'and', 'or', 'not', 'flag', 'all'].includes(t.op)
+  const text = (t: E | C) => (isC(t) ? plainC(t) : plainE(t))
+  const atomic = (t: E | C) => t.op === 'var' || t.op === 'const'
+  const count = (t: E | C): void => {
+    if (atomic(t)) return
+    if (free(t)) { const k = text(t); counts.set(k, (counts.get(k) ?? 0) + 1); return }
+    for (const v of Object.values(t)) if (typeof v === 'object' && v !== null) (Array.isArray(v) ? v : [v]).forEach(x => typeof x === 'object' && count(x as E | C))
+  }
+  const named = (t: E | C, k: string) => {
+    if (k.length < 24 || (counts.get(k) ?? 0) < 3) return undefined
+    let name = names.get(k)
+    if (!name) { names.set(k, (name = `s${names.size}`)); out.push(`${isC(t) ? 'C' : 'E'}\u0000${name}\u0000${k}`) }
+    return name
+  }
+  const e = (t: E): string => {
+    if (atomic(t)) return plainE(t)
+    if (free(t)) { const k = plainE(t); return named(t, k) ?? k }
+    switch (t.op) {
+      case 'mul': return `.mul ${exactNat(t.k)} (${e(t.a)})`
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': return `.${t.op} (${e(t.a)}) (${e(t.b)})`
+      case 'if': return `.ite (${c(t.c)}) (${e(t.then)}) (${e(t.else)})`
+      default: return plainE(t)
+    }
+  }
+  const c = (t: C): string => {
+    if (free(t)) { const k = plainC(t); return named(t, k) ?? k }
+    switch (t.op) {
+      case '<=': return `.le (${e(t.a)}) (${e(t.b)})`
+      case '<': return `.lt (${e(t.a)}) (${e(t.b)})`
+      case '=': return `.eq (${e(t.a)}) (${e(t.b)})`
+      case 'not': return `.not (${c(t.x)})`
+      case 'and': case 'or': return t.xs.length === 0 ? plainC(t) : t.xs.map(c).reduceRight((acc, y) => `.${t.op} (${y}) (${acc})`)
+      default: return plainC(t)
+    }
+  }
+  const defs = (d: string) => out.map(x => { const [ty, name, k] = x.split('\u0000'); return `${d} ${name} : ${ty} := ${k}` })
+  return {count, e, c, defs}
+}
+// The loop and a certificate as NonTerm.lean's Loop and Recur (the domain and the values as domOrder and nonzero give
+// them; a certificate whose tree doesn't refute its own goal carries `fallback`'s table and tree, which refutes
+// `fallback`'s). lean-kernel/conformance.ts prints its cases with it. `share`: the loop's recurring terms named
+// (sharedTerms), for an export that writes `defs` out.
 // (a loop's start and body past 128 variables as definitions of 128 each, appended: Lean elaborates a list literal of
 // deep terms one level deeper per entry, and pgarch's 690 body terms, each 228 rules deep, pass its recursion limit)
-export function recurLean(id: string, l: Loop, fallback: Recur | undefined): {vars: string[], loop: string, recur: (r: Recur) => string, defs: string} {
+export function recurLean(id: string, l: Loop, fallback: Recur | undefined, share = false): {vars: string[], loop: string, recur: (r: Recur) => string, defs: string} {
   const vars = [...l.params, ...l.inputs, ...Object.keys(l.state)]
   const {e, c} = leanTerms(vars, [], id)
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
   const defs: string[] = []
+  // A large program's terms are each variable's rules as one chain of ifs, every chain over the same conditions (the
+  // locations) and much the same updates: each such term past a few uses written once, as a definition (s<k>, in the
+  // namespace <id>_s, with the chains' pieces), and named where it is used. The same terms, as Lean unfolds them.
+  const sh = sharedTerms(vars, id, e), ns = `${id}_s`, entries = (o: Record<string, E>) => Object.entries(o).map(([name, e2]) => `(${ix(name)}, ${sh.e(e2)})`)
+  if (share) for (const t of [...Object.values(l.state), ...Object.values(l.body)]) sh.count(t)
+  const init = entries(l.state), body = entries(l.body), shared = sh.defs(dataDef())
   const pieces = (what: string, xs: string[]) => {
-    if (xs.length <= 128) return list(xs)
-    const names = Array.from({length: Math.ceil(xs.length / 128)}, (_, k) => { defs.push(`def ${id}_${what}${k} : List (Nat × E) := ${list(xs.slice(k * 128, k * 128 + 128))}`); return `${id}_${what}${k}` })
-    return `(${names.join(' ++ ')})`
+    if (xs.length <= 128 && !shared.length) return list(xs)
+    const names = Array.from({length: Math.ceil(xs.length / 128)}, (_, k) => { defs.push(`${dataDef()} ${what}${k} : List (Nat × E) := ${list(xs.slice(k * 128, k * 128 + 128))}`); return `${ns}.${what}${k}` })
+    return names.length ? `(${names.join(' ++ ')})` : '[]'
   }
+  const loopInit = pieces('init', init), loopBody = pieces('body', body)
+  if (defs.length) defs.splice(0, 0, `namespace ${ns}`, ...shared), defs.push(`end ${ns}`)
   const loop = `⟨${list(l.inputs.map(name => String(ix(name))))},
-  ${pieces('init', Object.entries(l.state).map(([name, e2]) => `(${ix(name)}, ${e(e2)})`))},
-  ${pieces('body', Object.entries(l.body).map(([name, e2]) => `(${ix(name)}, ${e(e2)})`))},
+  ${loopInit},
+  ${loopBody},
   ${c(l.while)},
   ${l.pre ? c(l.pre) : TRUE},
   ${l.assume ? c(l.assume) : TRUE}⟩`
@@ -507,9 +604,9 @@ export function recurLean(id: string, l: Loop, fallback: Recur | undefined): {va
     // (neither refuting its goal, as a forged certificate's: a leaf with no step, the tree that refutes nothing)
     const by = fits(rr) ? rr : fallback && fits(fallback) ? fallback : undefined
     const coded = by ? enc(by) : {tab: '[]', tree: '.leafAt [] [] [] []'}
-    return `⟨${list(vars.map((_, j) => String(j)))},
-  ${vals(rr.start)},
-  ${list(rr.stem.map(vals))},
+    return `⟨${domOrder(vars, l, rr.set, rr.start)},
+  ${vals(nonzero(rr.start))},
+  ${list(rr.stem.map(t => vals(nonzero(t))))},
   ${c(rr.set)},
   ${list(Object.entries(rr.wit).map(([name, t]) => `(${ix(name)}, ${e(t)})`))},
   (${coded.tab}, [], ${coded.tree})⟩`
@@ -2102,8 +2199,7 @@ ${cycProofText(id, p, tampered, vars, maps)}${bridge ? `\n${cycBridgeLean(id, p,
 // node's membership, the check and cyclic_sound's theorem; each tampered proof's check computed to false.
 function cycProofText(id: string, p: Cyclic, tampered: {what: string, proof: Cyclic}[], vars: string[], maps: string[]): string {
   const {e, c} = leanTerms(vars, maps, id)
-  // (data, not code: no compiled code for Lean to make, unless native_decide runs it)
-  const d = checkBy === 'native_decide' ? 'def' : 'noncomputable def'
+  const d = dataDef()
   const ix = (name: string) => vars.indexOf(name)
   const facts = list(p.facts.map(f => `⟨${list(f.keys.map(key => String(ix(key))))}, ${c(f.holds)}⟩`))
   // A tampered proof keeps the proof's tables and trees (made for the proof's own goals) under its changed nodes.
