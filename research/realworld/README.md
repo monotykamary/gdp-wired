@@ -473,15 +473,16 @@ each round is proveSetFast's (the goals settled by the last round kept where the
 model's counted clock, as the invariant search's is; the proof with the found laws (core/dsl.ts) is counted too. For
 oidc: 5.7 s counted to 1.2 s, the same 12 laws; oidc #0 and #1 proven in 20 of 20 traced runs (`runs/c2/trace2`).
 
-**The corpus, before and after** (the 440 laws, 60 s a law, boat): main 389, 391, 389, 389, 389 proven in five runs
-(`main-r1`, `main-r2`, the bar's baseline of 75c1171), 39 refuted in each, 10 to 12 unknown; this branch 391 in each
-of three runs, 39 refuted, 10 unknown (`cand-r1` to `cand-r3`). Nothing lost; no false law proven. The laws that find
-ids from a counter (7) took 47 to 119 s together on main, 38 to 63 s here. The 386 laws proven in every run took 1,128
-to 1,406 s on main and 979 to 1,420 s here (the first two runs here beside the bar on a busy pool: the laws under 1 s,
-which the change doesn't reach, were slower in them too).
+**The corpus, before and after** (the 440 laws, 60 s a law, boat). On 75c1171: main 389, 391, 389, 389, 389 proven in
+five runs (`runs/c2/main-r1`, `main-r2`, the bar's baseline), this branch 391 in each of three (`cand-r1` to `cand-r3`);
+39 refuted in every run, no false law proven. Rebased on 029b9ea (main with the exact generator), main and this branch
+launched together, two runs a side (`pm-1`, `pm-2`, `pc-1`, `pc-2`): main 389 and 391 proven, this branch 390 and 390, 39
+refuted each; the 388 laws proven in all four took 1,391 and 1,463 s on main, 1,384 and 1,313 s here, the 440 jobs 2,146
+and 2,208 s against 2,102 and 2,076 s. The laws that differ between the sides are at the 60 s limit on both
+(TimelockController #6: 4 of 6 proven on main, 5 of 6 here when run alone; TigerBeetle #7; gapless.js #2).
 
 **The distributed-systems items** (7 items, 27 laws, the `distributed` domain), each mirroring its code at a pinned
-commit, MIT or Apache-2.0: 21 proven in each of three runs, none refuted, 6 unknown.
+commit, MIT or Apache-2.0: 21 proven in each of seven runs, none refuted, 6 unknown.
 
 | Item | Code | Proven | Not proven, and why |
 | --- | --- | --- | --- |
