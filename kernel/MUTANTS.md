@@ -1,6 +1,6 @@
 # Mutation testing of the trusted base
 
-`kernel/mutants.ts` changes `kernel/kernel.ts`, `core/check.ts` and `kernel/cyclic.ts` one operator, constant or quantifier at a time (and in cyclic.ts, which builds its goals as object literals, a part of a goal) and runs
+`kernel/mutants.ts` changes `kernel/kernel.ts`, `core/check.ts`, `core/data.ts`'s admission and `kernel/cyclic.ts` one operator, constant or quantifier at a time (and in cyclic.ts, which builds its goals as object literals, a part of a goal) and runs
 a test battery on each mutant (refusals, tamper, builders, conformance, the finance examples, runtimes, histories, the
 kernel fuzz). Fanned out on boat or Modal (`bun mutants.ts ids <a,b,...>` per job, as the treadmill runs them):
 
