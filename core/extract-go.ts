@@ -36,7 +36,7 @@
 // or two writes of one list in one step.
 import * as I from './extract-ir.ts'
 import type {B, K, N} from './extract-ir.ts'
-import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, pathOf, type FileURL} from './extract-read.ts'
+import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
 import {type Extraction, type Name, fromModel} from './extract.ts'
 import {asset, type Answer, type Inferred, type IntTy, type Recipe, type SType, type SFunc, type SModule, type SS, type SX, type StepObj, type StepPath, type StepPtr, type StepValue, Stepper, iteTerm, mapWritesOf, phiP, rangeLaws, rangeOf, varTerm} from './extract-step.ts'
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
@@ -302,6 +302,9 @@ class Go {
   args(a: GX[], decl: GoFunc): SX[] { return a.map((y, i) => (decl.params[i] ? this.as(this.x(y), decl.params[i]!.t) : this.x(y))) }
   builtin(x: GX): SX {
     const b = x.builtin!, a = x.a ?? [], at = this.at(x)
+    // (fewer arguments than the builtin takes: a package the type checker refused, which the reader reads on)
+    const takes = ({len: 1, delete: 2, min: 1, max: 1, panic: 1} as Record<string, number>)[b] ?? 0
+    if (a.length < takes) return this.no(x, `${b} with ${a.length} argument${a.length === 1 ? '' : 's'} (it takes ${takes})`)
     switch (b) {
       case 'len': {
         const k = this.T(a[0]!.t).k
@@ -777,7 +780,9 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
   const unsigned = [...g.ints].filter(([n, ty]) => { const [lo, hi] = rangeOf(ty); return lo === 0 && hi > 0 && (g.inputs.some(v => v.name === n) || cparams.some(v => v.name === n)) }).map(([n]) => n)
   return {...(pkg.ctor ? {ctor: ctorArgs} : {}), ...(g.leftOut.size ? {leftOut: [...g.leftOut]} : {}), model, edges: g.edges, unsigned, leaves: go.leaves.filter(l => l.kind === 'frame' || state.some(v => v.name === l.name) || maps.some(d => d.name === l.name) || lists.some(d => d.name === l.name)), spans: [...g.spans.values()], entry: opts.entry, methods, ...(answers.length ? {answers} : {})}
 }
-function termOf(v: V, at: {p: string}): Term {
+function termOf(v: V | undefined, at: {p: string}): Term {
+  // (none: a path that ends without the value, which a reader of malformed source may join in)
+  if (!v) return refuse(at, 'a path that returns no value')
   if (v.t === 'num') return {s: 'num', e: v.e}
   if (v.t === 'bool') return {s: 'bool', e: v.e}
   if (v.t === 'str') return {s: 'str', e: v.e}
@@ -848,8 +853,13 @@ export function readerBinary(): string {
 }
 export function readGoPackage(dir: string): GoPkg {
   const cp = node<ChildProcess>('node:child_process')
-  try { return JSON.parse(cp.execFileSync(readerBinary(), [dir], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']})) as GoPkg }
-  catch (e) { throw new Refusal(dir, `the Go reader didn't run (${String((e as {stderr?: string}).stderr || (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): go is needed to extract Go`) }
+  let pkg: GoPkg
+  try { pkg = JSON.parse(cp.execFileSync(readerBinary(), [dir], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()})) as GoPkg }
+  catch (e) { throw new Refusal(dir, statedRefusal(e) ?? `the Go reader didn't run (${String((e as {stderr?: string}).stderr || (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): go is needed to extract Go`) }
+  // (Go writes an empty slice as null: a file with no function, no type or no import)
+  for (const k of ['files', 'funcs', 'types', 'consts', 'vars', 'errors', 'ttab'] as const) (pkg as Record<string, unknown>)[k] ??= []
+  for (const f of pkg.files) f.imports ??= []
+  return pkg
 }
 
 // --- the front end ---------------------------------------------------------------------------------------------------

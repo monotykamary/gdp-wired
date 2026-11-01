@@ -1,0 +1,19 @@
+#!/bin/bash
+# lean, gated (scripts/lean-gate/gate.ts): the real lean runs as asked, its output passed through; a run of .lean files
+# then fails if a theorem rests on an axiom past propext, Classical.choice and Quot.sound, if a declaration uses sorry, or
+# if a `#print axioms` went unanswered. The Lean jobs put this directory first on their PATH; other calls (--version,
+# --print-prefix, no .lean file) go straight to lean.
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
+path=
+IFS=: read -ra dirs <<< "$PATH"
+for d in "${dirs[@]}"; do [ "$(cd "$d" 2>/dev/null && pwd -P)" = "$here" ] || path=${path:+$path:}$d; done
+real=$(PATH=$path command -v lean) || { echo "axiom-gate: no lean on the PATH past $here" >&2; exit 127; }
+srcs=()
+for a in "$@"; do case $a in *.lean) srcs+=("$a");; esac; done
+[ ${#srcs[@]} -eq 0 ] && exec "$real" "$@"
+log=$(mktemp)
+"$real" "$@" | tee "$log"; s=${PIPESTATUS[0]}
+bun "$here/gate.ts" "$log" "${srcs[@]}"; g=$?
+rm -f "$log"
+[ "$s" -ne 0 ] && exit "$s"
+exit $g

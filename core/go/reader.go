@@ -56,7 +56,7 @@ func main() {
 	for _, f := range files {
 		a, err := parser.ParseFile(fset, f, nil, parser.SkipObjectResolution)
 		if err != nil {
-			fail(err)
+			refuse("the source doesn't parse: " + strings.SplitN(err.Error(), "\n", 2)[0])
 		}
 		asts = append(asts, a)
 	}
@@ -281,6 +281,12 @@ func guessName(path string) string {
 func fail(err error) {
 	fmt.Fprintln(os.Stderr, err)
 	os.Exit(1)
+}
+
+// A source the reader can't read, said so (core/extract-read.ts's statedRefusal).
+func refuse(why string) {
+	fmt.Fprintln(os.Stderr, "gdp: refused: "+why)
+	os.Exit(3)
 }
 
 // --- positions ------------------------------------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 # Mutation testing of the trusted base
 
-`kernel/mutants.ts` changes `kernel/kernel.ts` and `core/check.ts` one operator, constant or quantifier at a time and runs
+`kernel/mutants.ts` changes `kernel/kernel.ts`, `core/check.ts`, `core/data.ts`'s admission and `kernel/cyclic.ts` one operator, constant or quantifier at a time (and in cyclic.ts, which builds its goals as object literals, a part of a goal) and runs
 a test battery on each mutant (refusals, tamper, builders, conformance, the finance examples, runtimes, histories, the
 kernel fuzz). Fanned out on boat or Modal (`bun mutants.ts ids <a,b,...>` per job, as the treadmill runs them):
 
@@ -16,6 +16,8 @@ kernel fuzz). Fanned out on boat or Modal (`bun mutants.ts ids <a,b,...>` per jo
 | every operator of kernel.ts and check.ts (gen/laneM, 2026-10-31: the treadmill had run 280 of 959; the rest reaches loops, recurrent sets by cases, rationals, sums, k-induction, liveness, counts in a machine) | 959 | 758 (79%) | 201 |
 | plus `sums`, `rationals`, `pairs`, `nonterm` in the battery and the tests written for the 201 (refusals.test.ts, count.test.ts, countmachine.test.ts), the whole battery again on the final commit | 959 | 876 (91%) | 83, each listed equivalent below (86 listed: three, 295, 386, 505, failed a slow test under load in that run and survive it alone) |
 | core/data.ts's admission of a definition (gen/laneT, 2026-11-01: `recursion`, the measures' terms, `sitesOf`, `obligation`, `directly`, `proveMeasures`, `ringSites`, `checkMeasures`, `termination`; `MUTANT_BATTERY=termination,conformance`, the first the termination tests of core/data.test.ts) | 112 | 63 (56%) | 49, each listed equivalent below with its reason: messages, names, traces and types; search settings and deadlines; arithmetic by 0 or 1; a route that only refuses or moves a function to a kernel-checked measure; an integer measure read at its code 2·v; guards backed by another check (a run's kills vary by one or two with the battery's timing) |
+| kernel/cyclic.ts (gen/laneH, 2026-11-01): the operators above and its own (a comparison's kind, a negation made true, a part of a goal's hypotheses dropped, a guard or a tree check skipped, a fact's keys past its terms, the language check widened); `cyclic`, `cycles` in the battery | 43 (1071–1113) | 30 (70%) | 13 |
+| plus four tests in core/cyclic.test.ts, the whole battery again | 43 | 41 (95%) | 2, listed equivalent below |
 
 `core/data.ts`'s admission of a definition is in the targets by its top-level declarations alone (mutants.ts's `only`):
 the rest of that file is the search, whose mutants change speed, never what is taken. Its first run left 50 of 111; the
@@ -53,6 +55,15 @@ refuses (the tree the rest of the check accepts, grown for the goal the guard's 
 `ghostedOk`: the test's clashing ghost map was also read by the original, so the check of what it reads refused it too);
 the test now names a map the original declares and never reads. Their builders' mutations past these operators (the
 parts, the nesting) are caught by Lean: each export states `countHyps … = some` kernel.ts's hypotheses.
+
+cyclic.ts's 13 survivors of the first run: three accepted a false certificate that nothing in the battery refused, each
+now a test in core/cyclic.test.ts. With its premise check skipped (`if (` -> `if (false && ` at `!check(premiseGoal…)`), a
+use of a node whose hypothesis doesn't follow gave its conclusion anyway: a proof that every x is at least 1. With the
+check that a substitution avoids the facts' variables skipped, or read as `.some` over the facts, a use renaming x to y
+under the fact x = 0 proved y = 0. The other eight are refusals no test reached: a tie read as ≤ in the descent
+(lexLt; a tree grown for it is refused, and Lean's lexLtC reads =), a flag, a quantifier or a key twice in a fact no
+node reads, a use naming no node, a premise tree too many. The kernel itself refused every one of these: no change to
+cyclic.ts.
 
 `kernel/refusals.test.ts` and `kernel/tamper.test.ts` hold the tests the run asked for (and `kernel/steplaw.test.ts` the step-law ones: the 8 mutants of `stepLawObligations` and `checkStepLaws`, 7 caught); the run's logs are in
 `runs/modal/mutants-all2/`, `runs/modal/mutants-surv/`, for the run algebra `runs/modal/relations-mut/` for sets `runs/modal/mut-sets/`, and for functions, two keys, key terms and liveness `runs/modal/mut-all/` (local).
@@ -192,4 +203,6 @@ core/data.ts | proveMeasuresIn | "${ring.length > 1 ? `${names[site.from]}" | " 
 core/data.ts | proveMeasuresIn | "{ if (o.op === 'call' && names.includes(o.fn as string)) throw" | " === " -> " !== " | an obligation that reads the ring is a nested call, which ringSites refuses before (a call within a call's argument or condition): the same refusal
 core/data.ts | termination | "${ring.length > 1 ? ' within t" | " > " -> " >= " | text in a refusal's message
 core/data.ts | termination | "${ring.length > 1 ? `, ${names" | " > " -> " >= " | text in a refusal's message
+kernel/cyclic.ts | lexLt | "as.length && bs.length" | " && " -> " || " | lexLt is read only on ranks of one length (refuseCyclic refuses a use whose ranks differ in length before it builds the descent goal), where both lists are empty or neither is
+kernel/cyclic.ts | keyed | ".slice(0, at.length)" | ".slice(0, at.length)" -> "" | a key past the terms is paired with undefined, which substE reads as no substitution (s.vars[name] ?? e), as the slice leaves it out: the same hypotheses
 ```

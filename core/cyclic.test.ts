@@ -2,8 +2,9 @@
 // instances (a recurrence, a machine, a fold) agree with the usual rules, and translate their proofs; nested and mutual
 // inductions no rule had.
 import {expect, test} from 'bun:test'
-import type {E, Law} from './machine.ts'
-import {type Cyclic, refuseCyclic} from '../kernel/cyclic.ts'
+import type {C, E, Law} from './machine.ts'
+import {type CNode, type Cyclic, type Fact, type Use, descentGoal, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
+import type {Goal, Tree} from '../kernel/kernel.ts'
 import {foldNodes, loopNodes, machineNodes, proveCyclic, recurNodes} from './cyclic.ts'
 import {grow, proveLaws} from '../kernel/prove.ts'
 import {foldObligations, loopObligations} from '../kernel/kernel.ts'
@@ -91,4 +92,56 @@ test('a loop\'s halting translated: its laws and its liveness\'s step laws one c
   expect(refuseCyclic(at(x => ({...x, uses: []})))).toMatch(/its goal/)
   // A rank that doesn't drop has no usual trees to translate, and none is made.
   expect(loopObligations(l, laws, [a]).every(g => 'tree' in grow(g))).toBe(false)
+})
+
+// The guards of kernel/cyclic.ts's refuseCyclic, each with a proof only it refuses (its mutants, kernel/mutants.ts, accept
+// each: kernel/MUTANTS.md). The small proofs are grown here: every tree by grow, on the goal the kernel builds.
+const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
+const yes: C = {op: '<=', a: k(0), b: k(0)}
+type Spec = Omit<CNode, 'main' | 'uses'> & {uses: Omit<Use, 'premises' | 'descent'>[]}
+const tree = (g: Goal): Tree => { const o = grow(g); if (!('tree' in o)) throw new Error(`${g.name}: no tree`); return o.tree }
+const build = (facts: Fact[], specs: Spec[], premise = (g: Goal) => tree(g)): Cyclic => ({facts, nodes: specs.map(n => ({...n, main: tree(mainGoal(facts, specs, n)),
+  uses: n.uses.map(u => ({...u, premises: specs[u.node]!.hyps.map((c, i) => premise(premiseGoal(facts, n, u, c, i))), descent: tree(descentGoal(facts, n, u, specs[u.node]!))}))}))})
+
+test('a use whose node\'s hypothesis doesn\'t follow is refused (else every x would be at least 1)', () => {
+  const x = v('x'), pos: C = {op: '<=', a: k(1), b: x}
+  const specs: Spec[] = [{name: 'pos', hyps: [pos], concl: pos, rank: [k(0)], insts: [], uses: []},
+    {name: 'every x', hyps: [], concl: pos, rank: [k(1)], insts: [], uses: [{node: 0, subst: {x}, guard: yes}]}]
+  // (the premise, 1 <= x at every x, has no tree: the first node's own tree stands in for it)
+  const p = build([], specs, () => tree(mainGoal([], specs, specs[0]!)))
+  expect(refuseCyclic(p)).toMatch(/hypothesis 0 of pos/)
+})
+
+test('a use may not assign a variable a fact reads, whatever the other facts read (else y = 0 from x = 0)', () => {
+  const [x, y, z] = ['x', 'y', 'z'].map(v) as [E, E, E]
+  const facts: Fact[] = [{name: 'x is 0', keys: [], holds: {op: '=', a: x, b: k(0)}}, {name: 'z', keys: [], holds: {op: '<=', a: k(0), b: z}}]
+  const specs: Spec[] = [{name: 'x0', hyps: [], concl: {op: '=', a: x, b: k(0)}, rank: [k(0)], insts: [{fact: 0, at: []}], uses: []},
+    {name: 'y0', hyps: [], concl: {op: '=', a: y, b: k(0)}, rank: [k(1)], insts: [], uses: [{node: 0, subst: {x: y}, guard: yes}]}]
+  expect(refuseCyclic(build(facts, specs))).toMatch(/assigns a variable a fact reads/)
+})
+
+test('a descent read with the tie as ≤ (Lean\'s lexLtC reads it as =) is refused', () => {
+  const [x, y, z] = ['x', 'y', 'z'].map(v) as [E, E, E], low: C = {op: '<=', a: k(0), b: x}
+  const specs: Spec[] = [{name: 'low', hyps: [], concl: low, rank: [y, x], insts: [], uses: []},
+    {name: 'high', hyps: [{op: '=', a: y, b: z}], concl: low, rank: [z, {op: 'add', a: x, b: k(1)}], insts: [], uses: [{node: 0, subst: {x, y}, guard: yes}]}]
+  const p = build([], specs)
+  expect(refuseCyclic(p)).toBeUndefined()
+  const tie = (c: C): C => (c.op === 'and' && c.xs[0]?.op === '=' ? {op: 'and', xs: [{...c.xs[0], op: '<='}, ...c.xs.slice(1).map(tie)]} : c.op === 'or' || c.op === 'and' ? {...c, xs: c.xs.map(tie)} : c.op === 'not' ? {op: 'not', x: tie(c.x)} : c)
+  const g = descentGoal([], specs[1]!, specs[1]!.uses[0]!, specs[0]!), le = tree({...g, hyps: g.hyps.map(tie)})
+  expect(refuseCyclic({...p, nodes: p.nodes.map((n, i) => (i === 1 ? {...n, uses: [{...n.uses[0]!, descent: le}]} : n))})).toMatch(/doesn't lower the rank/)
+})
+
+test('the language: a flag, a quantifier or a key twice in a fact read by no node is refused; a use names a node, its premises one a hypothesis', () => {
+  const p = proof(mccarthy()), with_ = (f: Fact): Cyclic => ({...p, facts: [...p.facts, f]})
+  expect(refuseCyclic(with_({name: 'a flag', keys: [], holds: {op: 'flag', name: 'f'}}))).toMatch(/a flag or a quantifier/)
+  expect(refuseCyclic(with_({name: 'all', keys: [], holds: {op: 'all', key: 'j', c: {op: '<=', a: k(0), b: v('j')}}}))).toMatch(/a flag or a quantifier/)
+  expect(refuseCyclic(with_({name: 'twice', keys: ['j', 'j'], holds: {op: '<=', a: k(0), b: v('j')}}))).toMatch(/a key twice/)
+  // (two nodes, the second's main goal refuted without its use, which reads the first: 0 <= x at every x)
+  const x = v('x'), low: C = {op: '<=', a: k(0), b: x}
+  const q = build([], [{name: 'low', hyps: [], concl: low, rank: [k(0)], insts: [], uses: []},
+    {name: 'again', hyps: [], concl: low, rank: [k(1)], insts: [], uses: [{node: 0, subst: {x}, guard: yes}]}])
+  const use = (f: (u: Use) => Use): Cyclic => ({...q, nodes: q.nodes.map((n, i) => (i === 1 ? {...n, uses: [f(n.uses[0]!)]} : n))})
+  expect(refuseCyclic(q)).toBeUndefined()
+  expect(refuseCyclic(use(u => ({...u, node: 2})))).toMatch(/names no node/)
+  expect(refuseCyclic(use(u => ({...u, premises: [u.descent]})))).toMatch(/1 premise trees for 0 hypotheses/)
 })

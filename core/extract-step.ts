@@ -3289,7 +3289,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     for (const fd of r.fields) if (!self.f.has(fd.name) && !r.kinds.includes('dataclass')) g.notes.add(`${r.short}.${fd.name}: declared on the class but not set by its constructor (left out)`)
     // Each field a leaf: a variable (two for an optional one), a nested object's own, a map, a store, or left out.
     const heap = new Map<string, Obj>()
-    const fields = new Map<string, V>()
+    const fields = new Map<string, V>(), holding = new Set<string>()
     const build = (path: string[], v: V, t: SType | undefined, into: Map<string, V>, initPath: Path) => {
       const name = path.join('_'), f = path.at(-1)!, decl = t ?? undefined
       const scalarT = decl && decl.k !== 'opt' ? decl : undefined
@@ -3321,8 +3321,12 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
         const o = initPath.heap.get(v.id)
         if (o?.k === 'store') { into.set(f, v); heap.set(v.id, o); return }
         if (o?.k === 'rec') {
+          // (an object that holds itself, by a field of its own or of one it holds: its leaves would never end)
+          if (holding.has(v.id)) refuse(at, `${path.join('.')}: an object that holds itself`)
+          holding.add(v.id)
           const sub = new Map<string, V>(), id = `state:${path.join('.')}`
           for (const [ff, vv] of o.f) build([...path, ff], vv, g.mod.recs[o.ty]?.fields.find(x => x.name === ff)?.t, sub, initPath)
+          holding.delete(v.id)
           heap.set(id, {k: 'rec', ty: o.ty, f: sub, origin: 'state'})
           leaves.push({name: '', path, kind: 'frame', cls: o.ty})
           into.set(f, {t: 'ref', id})
@@ -3678,12 +3682,16 @@ export function asset(rel: string): string {
 }
 // A harness started on the two named pipes in `work` and both opened. It runs under sh, which, if the harness exits
 // before it answered (it couldn't start: a file missing, an interpreter absent, the code not loading), opens the
-// pipes itself and answers the first request with the error, so nothing here waits on a harness that is gone.
-const GUARD = 'i=$1 o=$2; shift 2; trap \'kill $p 2>/dev/null; exit 143\' TERM; "$@" "$i" "$o" & p=$!; wait $p; e=$?; [ "$e" = 0 ] && exit 0; trap - TERM; exec 3<"$i" 4>"$o"; read -r _ <&3; printf \'{"error": "the harness exited (status %s) before it answered"}\\n\' "$e" >&4'
+// pipes itself and answers the first request with the error, so nothing here waits on a harness that is gone. The
+// reads here block, so the harness runs within GDP_CHECK_HARNESS_S seconds (120, all its requests): past them sh kills
+// it and answers `stopped` (a step of the code that doesn't end: a loop a reader read as one that does).
+export const harnessLimit = (): number => Number(proc?.env?.GDP_CHECK_HARNESS_S ?? 120)
+export const stopped = (res: Record<string, unknown>): Record<string, unknown> => { if (res.stopped) throw new Error(String(res.error)); return res }
+const GUARD = 'i=$1 o=$2 l=$3; shift 3; trap \'kill $p $w 2>/dev/null; exit 143\' TERM; "$@" "$i" "$o" & p=$!; (trap \'kill $s 2>/dev/null; exit 0\' TERM; sleep "$l" & s=$!; wait $s; kill -9 $p) 2>/dev/null & w=$!; wait $p; e=$?; kill $w 2>/dev/null; [ "$e" = 0 ] && exit 0; trap - TERM; if [ "$e" = 137 ]; then exec 4>"$o"; printf \'{"error": "the code did not answer within %s s (a request that does not end)", "stopped": true}\\n\' "$l" >&4; exit 1; fi; exec 3<"$i" 4>"$o"; read -r _ <&3; printf \'{"error": "the harness exited (status %s) before it answered"}\\n\' "$e" >&4'
 export function openHarness(work: string, cmd: string, args: string[], o: Record<string, unknown>): {child: {kill: () => void}, wi: number, ro: number} {
   const fs = node<FS>('node:fs'), cp = node<{execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string, spawn: (f: string, a: string[], o: Record<string, unknown>) => {kill: () => void}}>('node:child_process')
   cp.execFileSync('mkfifo', [`${work}/in`, `${work}/out`], {})
-  const child = cp.spawn('sh', ['-c', GUARD, 'gdp-harness', `${work}/in`, `${work}/out`, cmd, ...args], o)
+  const child = cp.spawn('sh', ['-c', GUARD, 'gdp-harness', `${work}/in`, `${work}/out`, String(harnessLimit()), cmd, ...args], o)
   const wi = fs.openSync(`${work}/in`, 'w'), ro = fs.openSync(`${work}/out`, 'r')
   return {child, wi, ro}
 }
@@ -3714,7 +3722,7 @@ export function checkStep(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opt
       fs.writeSync(wi, `${JSON.stringify(cmd)}\n`)
       const l = line()
       if (l === undefined) throw new Error('the harness stopped')
-      return JSON.parse(l) as Record<string, unknown>
+      return stopped(JSON.parse(l) as Record<string, unknown>)
     }
     const hi = ask({op: 'hello', ...h.hello, leaves: read.leaves, ctor: read.ctor, answers: read.answers, kept: read.kept, cls: read.cls ?? null, stores: read.stores, arms: read.arms, discard: opts.onError === 'discard', ...(read.inject ? {inject: read.inject} : {})})
     if (hi.error) return {...empty, mismatch: `the code doesn't load with the check's harness: ${JSON.stringify(hi.error)}`}

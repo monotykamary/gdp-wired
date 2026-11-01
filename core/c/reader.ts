@@ -12,7 +12,7 @@
 // The state is a struct of the file (`entry`, its typedef's name or its tag); each function whose first parameter
 // points to it is a method of it (the receiver), the others plain functions.
 import type {GS, GX, GoFunc, GoPkg, TT} from '../extract-go.ts'
-import {Refusal} from '../extract-read.ts'
+import {Refusal, readerRun, statedRefusal} from '../extract-read.ts'
 
 type CN = {id?: string, kind: string, name?: string, inner?: CN[], type?: {qualType: string, desugaredQualType?: string}, value?: string, opcode?: string, castKind?: string, isArrow?: boolean, isPostfix?: boolean,
   referencedDecl?: {id: string, kind: string, name: string, type?: {qualType: string}}, referencedMemberDecl?: string, storageClass?: string, isImplicit?: boolean, completeDefinition?: boolean, tagUsed?: string, hasElse?: boolean,
@@ -39,9 +39,11 @@ export const node = <T>(id: string): T => { const m = proc?.getBuiltinModule?.(i
 export function clangDump(file: string, flags: string[], clang = 'clang', cpp = false, filter?: string): {tu: CN, target: CTarget} {
   const cp = node<CP>('node:child_process'), lang = cpp ? ['-x', 'c++'] : ['-x', 'c']
   const run = (args: string[]) => {
-    try { return cp.execFileSync(clang, args, {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe']}) }
+    try { return cp.execFileSync(clang, args, {encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()}) }
     catch (e) {
       const x = e as {code?: string, stderr?: string, message: string}
+      const stated = statedRefusal(e)
+      if (stated) throw new Refusal(file, stated)
       throw new Refusal(file, x.code === 'ENOENT' ? `no ${clang} to run: clang is needed to extract ${cpp ? 'C++' : 'C'}` : `clang doesn't compile it (${String(x.stderr ?? x.message).split('\n').filter(l => /error/.test(l)).slice(0, 3).join(' | ')})`)
     }
   }

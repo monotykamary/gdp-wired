@@ -1,6 +1,6 @@
 // The Lean conformance through the interchange format as jobs (supercomputer run): each writes its kinds' documents
 // (interchange/lean.ts write), reads them back in another process, checks them and emits Lean (emit), and runs Lean on
-// each file, printing per file its exit code and the number of claims in it. A file elaborates exactly when Lean computes
+// each file (through the axiom gate, scripts/lean-gate), printing per file its exit code and the number of claims in it. A file elaborates exactly when Lean computes
 // the checker's answer on every claim.
 // The ix-lean-suite-* jobs do the same with the suites' own certificates: suite jobs run with interchange/capture.ts
 // preloaded (as interchange/suite-jobs.ts runs them), interchange/verify.ts tampers each accepted document three ways,
@@ -13,7 +13,7 @@ const lib = 'Cert Kernel Progress StepLaw Steps Sets Live KInd NonTerm Rationals
 const job = (name: string, produce: string[], files: string[]) => ({
   name: `ix-lean-${name}`, cwd: '.', cpu: 4.0, memory: 8192, timeout: 3600,
   cmd: [
-    'cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean',
+    'export PATH=$PWD/scripts/lean-gate:$PATH; cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean',
     `for f in ${lib}; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; cd ..`,
     'W=/tmp/ix-lean; rm -rf $W',
     ...produce,
