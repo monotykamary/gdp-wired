@@ -155,7 +155,8 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
   }
   const ownConj = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(ownConj) : [c]), own = m.assume ? ownConj(m.assume).filter(c => mine(c, new Set())) : []
   const refusedBy = (r: Request): boolean => { try { const e: Env = {...p}; for (const i of m.inputs) if (typeof r[i] === 'number') e[i] = r[i] as number; const view = carriedView(m, start, r, undefined, p); return own.some(c => !evalC(c, e, view, m)) } catch { return false } }
-  const out = new Set(own.length ? reqs.filter(refusedBy) : [])
+  // (none where the interpreter computes inputs of its own: a history's queries, the least keys)
+  const out = new Set(own.length && !m.history && !m.leasts ? reqs.filter(refusedBy) : [])
   const idOf = (s: State) => key([s.scalars, Object.entries(s.maps).map(([n, cs]) => [n, [...cs].filter(([, x]) => x).sort((a, c) => a[0] - c[0])])])
   const seen = new Map<string, State>([[idOf(start), start]]), queue = [start]
   const reached = (next: State, from: State, r: Request): State => { const id = idOf(next), had = seen.get(id); if (had) return had; seen.set(id, next); pathTo.set(next, [from, r]); return next }
@@ -265,7 +266,9 @@ const shapeOf = (body: C, vars: string[]) => {
   byVars.set(id, out)
   return out
 }
-export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machine): {holds: boolean, witness?: Env} | undefined {
+// (`quick`: a run's watch, which reads only whether it holds: first 0, then the points without the cells, a witness there
+// one; the verdict and its cap as without)
+export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machine, quick = false): {holds: boolean, witness?: Env} | undefined {
   const {groups, atoms, linearOnly, reads} = shapeOf(body, vars)
   const value = (e: E): number | undefined => { try { return evalE(e, env, st, m) } catch { return undefined } }
   // A bound natural read as a map's key: the cells the maps hold, and one past them, are every case a read gives.
@@ -293,7 +296,7 @@ export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machi
   // (first the points without the cells: P's guard false at a tuple, as at most of a law's, holds at 0 at once; a witness
   // there is one; then every point, as before, its verdict and cap the same)
   const none = new Set<number>()
-  if (reads) {
+  if (reads && quick) {
     const w0 = Object.assign({}, ...groups.map(g => at(g, 0))) as Env
     if (test(w0)) return {holds: true, witness: w0}
     lists = groups.map(g => points(g, none)); const quick = go(0, {}); if (quick) return {holds: true, witness: quick}
@@ -486,6 +489,11 @@ export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Mach
   for (const l of laws) {
     if (!l.some?.length) { out.push(l); continue }
     if (!l.forall || l.witness) return undefined
+    // (the value named apart from the machine's names (proveSome renames it), and no binder inside the law that the ghost's
+    // cell, read at the law's keys, would be captured by: else no plain form)
+    const binders = new Set<string>()
+    walk(l.holds, o => { if (o.op === 'all') for (const b of [o.key, ...((o.keys as string[] | undefined) ?? [])] as string[]) binders.add(b) })
+    if (l.some.some(x => [...m.params, ...m.inputs, ...Object.keys(m.state)].includes(x)) || [l.forall, ...(l.keys ?? [])].some(x => binders.has(x))) return undefined
     const g = mapGhostsOf(m, l, taken).find(c => { try { return trueSmall(m, [...(c.inner ? [c.inner.inv] : []), c.inv, {...l, holds: c.holds, some: undefined}], add(ghost(m), c)) } catch { return false } })
     if (!g) return undefined
     gs.push(g); taken.add(g.name); if (g.inner) taken.add(g.inner.name)
