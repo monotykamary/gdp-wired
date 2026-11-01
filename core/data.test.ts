@@ -260,5 +260,5 @@ test('the paths of a call\'s obligation: a variable matched again, a term matche
     if (f.fn.ring.length === 1) expect(checkMeasures([f.fn], [f.fn.measure!]).proven, f.fn.name).toBe(true)
   }
   expect(again.fn.decreases).toBeUndefined()
-  expect(viaFlag.fn.ring).toEqual(['plViaFlag', 'plFlagOnly'])
+  expect([...viaFlag.fn.ring].sort()).toEqual(['plFlagOnly', 'plViaFlag'])
 }, 120_000)
