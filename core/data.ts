@@ -1713,19 +1713,25 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     if (!f || !as || unfolded.has(rid)) continue
     unfolded.add(rid); inst(`fn ${f.name}`, as); ctors(note(reads(holdsAt(`fn ${f.name}`, as))))
   }
+  const unfoldOnce = (r: {map: string, key: E}): {map: string, key: E}[] => {
+    const f = fnOfMap(r.map), as = f && argsOf(r.key, f.params.length), rid = sid(r)
+    if (!f || !as || unfolded.has(rid)) return []
+    unfolded.add(rid)
+    inst(`fn ${f.name}`, as)
+    const body = reads(holdsAt(`fn ${f.name}`, as))
+    ctors(note(body))
+    return body
+  }
   for (let round = 0; round < w.depth && frontier.length; round++) {
     const next: {map: string, key: E}[] = []
-    for (const r of frontier) {
-      const f = fnOfMap(r.map), as = f && argsOf(r.key, f.params.length), rid = sid(r)
-      if (!f || !as || unfolded.has(rid)) continue
-      unfolded.add(rid)
-      inst(`fn ${f.name}`, as)
-      const body = reads(holdsAt(`fn ${f.name}`, as))
-      ctors(note(body))
-      for (const b of body) next.push(b)
-    }
+    for (const r of frontier) for (const b of unfoldOnce(r)) next.push(b)
     frontier = next
   }
+  // (at one unfolding, where the goal reads a function that looks two ahead (a match on a field of the value it matches:
+  // ordered, reading the tail's head), a call both an unfolded body and a use's conclusion read, once more:
+  // insert(y, tail xs), where insert(y, xs)'s body and the hypothesis at the tail meet, its constructor what ordered
+  // reads at insert(y, xs)'s tail)
+  if (w.depth === 1 && reads(w.roots).some(r => { const f = fnOfMap(r.map); return !!f && looksAhead(f) })) { const theirs = new Set(reads(w.others).map(r => sid(r))); for (const r of frontier) if (theirs.has(sid(r))) unfoldOnce(r) }
   // Euclid's fact at every key a remainder or quotient is read at (a read the facts bring is read too).
   const ariths = () => {
     for (let pass = 0; pass < 2; pass++) for (const r of [...all]) {
@@ -1876,7 +1882,6 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   }
   lap(`by constructors, ${insts.length} instances, ${all.length} reads`)
   for (const t of w.shapesAt) shape(t, typeOfVar(p, t))
-  if (inTermination.on) etas()
   // A size the goal reads (a measure's, in a well-founded call's obligation): the shape of its value, which gives the
   // size from the fields.
   for (const r of reads([w.roots, w.others])) for (const d of p.datas) if (r.map === sizeMap(d.name)) shape(r.key, d)
@@ -1897,6 +1902,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     }
   }
   if (w.depth >= 2) for (const r of [...all]) for (const d of p.datas) if (r.map === tagMap(d.name)) shape(r.key, d)
+  if (inTermination.on) etas()
   // A constant's tag is read where its tag is (the nullary facts).
   for (const d of p.datas) if (d.nullary && all.some(r => r.map === tagMap(d.name))) { inst(`nullary ${d.name}`, []); for (let j = 0; j < d.nullary; j++) all.push({map: tagMap(d.name), key: k(j)}) }
   // Congruences (a map is a function), in each model: every value the model reads explained against one of its class
@@ -1971,6 +1977,19 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   ariths()
   lap(`congruences, ${insts.length} instances, ${w.models.length} models`)
   return insts
+}
+// Whether a function looks two ahead: its body matches a field of a value it matched (ordered's tail, then its head).
+const looksAhead = (f: Fn): boolean => {
+  let yes = false
+  const go = (x: unknown, fields: Set<string>): void => {
+    if (yes || !x || typeof x !== 'object') return
+    if (Array.isArray(x)) { x.forEach(y => go(y, fields)); return }
+    const t = x as X
+    if (t.op === 'match') { if (t.of.op === 'var' && fields.has(t.of.name)) { yes = true; return } go(t.of, fields); for (const c of t.cases) go(c.body, new Set([...fields, ...c.binds])); return }
+    for (const v of Object.values(t)) go(v, fields)
+  }
+  go(f.body(), new Set())
+  return yes
 }
 let varSorts = new Map<string, Data>()
 // A term's id, once per object: equal exactly when the terms' texts (JSON.stringify) are, a leaf's id its text. A key's
