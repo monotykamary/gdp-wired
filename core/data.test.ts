@@ -220,17 +220,20 @@ test('evaluation within bounds: a natural past 2^53 throws, a sample past the bo
 // leaf, the left subtree weighing 2 (the only weights its runs' calls all lower). A function a user defined under the
 // fold's name is never read as the fold: there the turn is refused.
 test('a weighted size: a turned tree taken by a fold defined for it, never by a user\'s function of the same name', () => {
-  const turnOf = (D: ReturnType<typeof data>, name: string): ReturnType<typeof define> => {
+  const turnOf = (dname: string, name: string) => {
+    const D = data(dname, {leaf: {}, node: {l: self, v: natural, r: self}})
     const turn: ReturnType<typeof define> = define(name, {t: D}, natural, ({t}) => (t as Val).match({leaf: () => 0,
       node: ({l, v, r}) => (l as Val).match({leaf: () => (turn(r) as Nat).plus(1), node: ({l: p, v: x, r: q}) => turn(D.node(p, x, D.node(q, v, r)))})}))
-    return turn
+    return {D, turn}
   }
-  const TT = data('TT', {leaf: {}, node: {l: self, v: natural, r: self}}), turn = turnOf(TT, 'turnTT')
+  const {D: TT, turn} = turnOf('TT', 'turnTT')
   expect(() => programOf([law('turned', {t: TT}, ({t}) => (turn(t) as Nat).eq(turn(t)))])).not.toThrow()
   expect(turn.fn.measure!.comps[0]!.fold?.fn).toBe('foldTT_201')
   for (const o of turn.fn.termination!.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof)).toBe(true)
-  const TU = data('TU', {leaf: {}, node: {l: self, v: natural, r: self}}), mine = define('foldTU_201', {x: TU}, natural, () => 0), turn2 = turnOf(TU, 'turnTU')
-  expect(refusal(() => law('turned', {t: TU}, ({t}) => (turn2(t) as Nat).eq(mine(t) as Nat)))).toMatch(/no measure is proven to fall/)
+  // (a user's own foldTU_201, defined before the fold would be: the turn on TU is refused)
+  define('foldTU_201', {x: data('TUx', {none: {}})}, natural, () => 0)
+  const {D: TU, turn: turn2} = turnOf('TU', 'turnTU')
+  expect(refusal(() => law('turned', {t: TU}, ({t}) => (turn2(t) as Nat).eq(turn2(t))))).toMatch(/no measure is proven to fall/)
 }, 60_000)
 
 // The paths core/data.ts reads a call's obligation under (sitesOf): a second match on a variable matched before takes
@@ -252,7 +255,7 @@ test('the paths of a call\'s obligation: a variable matched again, a term matche
   const pred: ReturnType<typeof define> = define('plPred', {n: natural}, natural, ({n}) => ((n as Nat).minus(1)).match({zero: () => 0, succ: () => (pred((n as Nat).minus(1)) as Nat).plus(1)}))
   // (a ring one of whose functions reads a flag alone: its measure a constant, between its callers' and callees')
   const viaFlag: ReturnType<typeof define> = define('plViaFlag', {xs: PL}, natural, ({xs}) => (xs as Val).match({nil: () => 0, cons: () => (flagOnly(xs.ne(xs)) as Nat).plus(1)}))
-  const flagOnly: ReturnType<typeof define> = define('plFlagOnly', {b: boolean}, natural, ({b}) => when(b as Bool, 0, viaFlag(PL.nil) as Nat))
+  const flagOnly: ReturnType<typeof define> = define('plFlagOnly', {b: boolean}, natural, ({b}) => when(b as Bool, 0 as number, viaFlag(PL.nil) as never))
   for (const f of [again, onTail, flagged, pred, viaFlag]) {
     expect(refusal(() => law('taken', Object.fromEntries(f.fn.params.map(p => [p.name, p.sort])) as never, vs => (f(...f.fn.params.map(p => vs[p.name])) as Nat).eq(f(...f.fn.params.map(p => vs[p.name])) as Nat))), f.fn.name).toBeUndefined()
     if (f.fn.decreases !== undefined) continue
