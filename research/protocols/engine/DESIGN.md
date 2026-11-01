@@ -343,7 +343,10 @@ Gates (1e4f53f against 479a22a, same window, 2 runs; the ten 3): IC3Syn within 6
 run at 77.5 s), in some run 23 (23); the counted work of every proven port the same; no_lost_keys unknown at 76 s
 (main 120 s). DuoAI ten 27/30 both (ticket_lock unknown on both, Lane G's). Quick bar
 (<main>/runs/bar/runs/laneY4-1e4f53f-quick/REPORT.md): wrong 0, nothing lost solid; dag the same search on 332 of 332.
-Bytes against 479a22a: +7,900 (core/exists.ts +4,864, kernel/kernel.ts +2,165, core/dsl.ts +871).
+Tests (16 GB, both sides at once on boat's xlarge VMs, each suite 2,93x s): main 391 of 403, the branch 394 of 403, the
+failures on both the 5 s tests past their limit on these VMs (XState, the bridge, the invariant searches, weak fairness);
+kernel/count.test.ts 61 of 61 and core/exists.test.ts 12 of 12 on the final head. Bytes against 479a22a: +7,900
+(core/exists.ts +4,864, kernel/kernel.ts +2,165, core/dsl.ts +871).
 
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
 
