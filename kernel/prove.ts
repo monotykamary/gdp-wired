@@ -372,36 +372,40 @@ export const brokenOf = (goal: Goal): ((w: Record<string, number>, ids?: number[
 export const wideFor = (goal: Goal): boolean => !wideBusy && goal.hyps.length >= wideAt
 export function growWide(goal: Goal, budget: {nodes: number, until?: number}, ask = (g: Goal, until: number): Outcome & {core?: number[]} => grow(g, new Map(), {nodes: 0, until})): (Outcome & {core?: number[]}) | undefined {
   const hyps = goal.hyps, last = hyps.length - 1, broken = brokenOf(goal), now = clock(), w = fullWork()
-  const end = withinDeadline(budget.until ?? Infinity), until = end === Infinity ? end : now + wideShare * (end - now), cap = workCap === Infinity ? Infinity : wideShare * (workCap - w)
+  const end = withinDeadline(budget.until ?? Infinity), span = wideShare * (end - now), room = wideShare * (workCap - w), until = now + span
   const part = new Set<number>([last]), near = new Set(cellsIn(hyps[last])), cells = new Map<number, Set<string>>()
   const cellsAt = (i: number) => { let c = cells.get(i); if (!c) cells.set(i, (c = cellsIn(hyps[i]))); return c }
+  const take = (i: number) => { part.add(i); for (const x of cellsAt(i)) near.add(x) }
   wideBusy = true
   wideStats.goals++
   try {
-    return withWork(w + cap, () => {
-      while (!late(until)) {
-        wideStats.rounds++
-        const ids = [...part].sort((a, b) => a - b), g: Goal = {name: goal.name, hyps: ids.map(i => hyps[i]!)}
-        const t0 = performance.now()
-        wideScope.judge = w => !broken(w, ids, true).length
-        let out: Outcome & {core?: number[]}
-        try { out = ask(g, until) } finally { wideScope.judge = undefined }
-        wideHook.on?.(g, out)
-        if (wideTrace) console.error(`[wide] ${goal.name.slice(0, 40)}: part ${g.hyps.length} of ${hyps.length}, ${'tree' in out ? 'tree' : out.stuck} in ${Math.round(performance.now() - t0)} ms${'tree' in out ? '' : ` ${out.why?.slice(0, 50) ?? ''}`}`)
-        if ('tree' in out) { const tree = withDeadline(until, () => widen(g, goal, out.tree)); if (tree) wideStats.trees++; return tree && {tree, nodes: out.nodes} }
-        if (out.why === REFUTED) return {...out, ...(out.core ? {core: out.core.map(i => ids[i]!)} : {})}
-        if (out.stuck !== 'sat' || !out.witness) return undefined
-        const bad = broken(out.witness)
-        if (wideTrace) console.error(`[wide]   breaks ${bad.length}${bad.length ? `: ${bad.slice(0, 12).join(' ')}` : ''}`)
-        if (!bad.length) { wideStats.models++; return {...out, path: new Map()} }
-        const more = bad.filter(i => !part.has(i))
-        if (!more.length || part.size * 2 > hyps.length) return undefined
-        const shared = (i: number) => [...cellsAt(i)].some(x => near.has(x))
-        more.sort((a, b) => Number(shared(b)) - Number(shared(a)))
-        for (const i of more.slice(0, Math.max(16, part.size))) { part.add(i); for (const x of cellsAt(i)) near.add(x) }
-      }
-      return undefined
-    })
+    while (!late(until)) {
+      wideStats.rounds++
+      // (a part's own budget: what the whole's search spends on as many nodes, four times over (a node of the part reads
+      // that much less), at least a sixteenth of the share: a part that a small budget doesn't settle leaves the goal)
+      const ids = [...part].sort((a, b) => a - b), g: Goal = {name: goal.name, hyps: ids.map(i => hyps[i]!)}, f = Math.max(1 / 16, Math.min(1, 4 * part.size / hyps.length))
+      const t0 = performance.now(), at = clock()
+      wideScope.judge = w => !broken(w, ids, true).length
+      let out: Outcome & {core?: number[]}
+      try { out = withWork(Math.min(w + room, fullWork() + f * room), () => ask(g, Math.min(until, at + f * span))) } finally { wideScope.judge = undefined }
+      wideHook.on?.(g, out)
+      if (wideTrace) console.error(`[wide] ${goal.name.slice(0, 40)}: part ${g.hyps.length} of ${hyps.length}, ${'tree' in out ? 'tree' : out.stuck} in ${Math.round(performance.now() - t0)} ms${'tree' in out ? '' : ` ${out.why?.slice(0, 50) ?? ''}`}`)
+      if ('tree' in out) { const tree = withWork(w + room, () => withDeadline(until, () => widen(g, goal, out.tree))); if (tree) wideStats.trees++; return tree && {tree, nodes: out.nodes} }
+      if (out.why === REFUTED) return {...out, ...(out.core ? {core: out.core.map(i => ids[i]!)} : {})}
+      if (out.stuck !== 'sat' || !out.witness) return undefined
+      const bad = broken(out.witness)
+      if (wideTrace) console.error(`[wide]   breaks ${bad.length}${bad.length ? `: ${bad.slice(0, 12).join(' ')}` : ''}`)
+      if (!bad.length) { wideStats.models++; return {...out, path: new Map()} }
+      const more = bad.filter(i => !part.has(i)), size = part.size
+      if (!more.length || 2 * size > hyps.length) return undefined
+      // (what the model breaks, those sharing a cell with the part first; then, to twice the part, the hypotheses that share
+      // one, then any, in the goal's order: the rounds are as many as the doublings to the part that settles the goal)
+      const shared = (i: number) => [...cellsAt(i)].some(x => near.has(x))
+      more.sort((a, b) => Number(shared(b)) - Number(shared(a)))
+      for (const i of more.slice(0, Math.max(16, size))) take(i)
+      for (const any of [false, true]) for (let i = 0; i < last && part.size < 2 * size; i++) if (!part.has(i) && (any || shared(i))) take(i)
+    }
+    return undefined
   } finally { wideBusy = false }
 }
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {

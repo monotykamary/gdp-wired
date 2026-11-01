@@ -4,7 +4,7 @@
 // and busy = 1); outcome, time, counted work, and whether a model found holds every hypothesis. Research tooling.
 //   bun research/query/wide-lab.ts <file.json>...
 import {readFileSync, writeFileSync} from 'node:fs'
-import type {C, E} from '../../core/machine.ts'
+import {type C, type E, walkOnce} from '../../core/machine.ts'
 import {clock, counted, fullRate, fullWork, grow, usedHyps, wideHook, wideStats, withWall} from '../../kernel/prove.ts'
 import {check} from '../../kernel/kernel.ts'
 import {growCdcl} from '../../kernel/cdcl.ts'
@@ -31,7 +31,9 @@ for (const f of process.argv.slice(2)) {
     const took = Math.round(performance.now() - t), used = 'tree' in out ? usedHyps(goal, out.tree).size : undefined, ok = 'tree' in out ? check(goal, out.tree) : undefined, ws = {...wideStats}
     Object.assign(wideStats, {goals: 0, trees: 0, models: 0, rounds: 0})
     const holds = undefined
-    console.log(JSON.stringify({f: f.split('/').at(-1), part: p, mode, hyps: goal.hyps.length, was: `${d.kind} ${d.outcome} ${d.ms}`,
+    let size = 0
+    walkOnce(goal.hyps, () => { size++ })
+    console.log(JSON.stringify({f: f.split('/').at(-1), part: p, mode, hyps: goal.hyps.length, size, was: `${d.kind} ${d.outcome} ${d.ms}`,
       now: 'tree' in out ? 'tree' : `${out.stuck} ${out.why?.slice(0, 40) ?? ''}`, ms: took, work: Math.round(fullWork() - w), used, ok, ws, holds, of: d.goal.hyps.length}))
   }
 }
