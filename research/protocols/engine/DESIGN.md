@@ -183,6 +183,9 @@ consensus_epr's counted search is main's (the same candidates and cone); the wal
   with (dsl.ts's withSkolems): they are a run's watch's alone now. Its answer to (a): with no capture, the plain proof
   over the ghosted machine and ghostedOk give the ∃ law (GhostMap.lean's argument); the fast verdict is taken only over a
   machine with no sums or history (ghostedOk refuses those), else proveSome.
+- **Lean** (Lean 4.34.0, `lean4`, a VM of 16 GB: on 4 GB the 2.7 MB export ran out of memory): ghosted-lean.ts (now with
+  the laws proveRule's search finds beside the ghost map) on firewall, 10 laws, AllowedIn$w at the sender: GhostedIC3.lean
+  lean-exit 0 in 289 s, no sorry, `gh0_orig_laws` and `gh0_skolem` on [propext, Classical.choice, Quot.sound].
 - **Nothing trusted changed**: kernel/kernel.ts, core/check.ts, kernel/cyclic.ts and lean-kernel/ untouched; kernel/epr.ts
   is its own header's "Untrusted" (a refutation's core is proven again by the kernel's search and widened; a model judged
   by the interpreter), so no Lean-first step applies.
