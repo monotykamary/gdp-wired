@@ -508,6 +508,17 @@ branch where modelInstances asks for nothing at the model (pass 1), so inX's val
 Count.lean instance at the request's count read in the assumption was not traced further. That is core/counts.ts's (Lane C3's): with those instances asked, the probe says whether the
 invariant goes through. Nothing built in core/ on this branch.
 
+### gen/laneY6 on C3's f1e8559: the probe again
+
+With C3's widened count instances (f1e8559) the probe's laws are still all refused (searchCounted 1,190 s, every step
+goal "sat" or, for "every quorum at a config term", unknown at 99-111 s). The model it now gives up on for one primary
+per term (GDP_COUNTS_DUMP, the 'nothing asked' branch, full witness): become_leader with i = 2 and S = {1, 2} (S[1], S[2]
+set), config[2] = {1, 2} (Config[2·64 + 1], Config[2·64 + 2] set), while inS = 1 and inX = 1. Each count is now above 0
+where a key is in it (the fix's instance), but nothing makes it at least the number of distinct keys known to be in it,
+so 2·inS > inX holds with one count each and the majority check passes for a set of two out of two. What it lacks: a
+count at least the number of distinct keys its body holds at (count ≥ body(k1) + body(k2) for k1 ≠ k2, Count.lean's sum
+split at two keys). Sent to C3 through the coordinator. Nothing in core/ on this branch.
+
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
 
 Held: the lazy hypotheses (kernel/prove.ts) cost the step goals time (g332 391 s against 354) and read 18 against 20 at
