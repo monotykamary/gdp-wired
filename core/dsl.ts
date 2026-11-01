@@ -2794,7 +2794,9 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // ghost map's cell (GhostMap.lean's forall_some_of_ghostmap); else proveSome's own proof of the laws as stated)
   const back = (over: typeof rule, found: {law: Law}[]): Verdict => {
     if (!sk) return {proven: true, checked: true}
-    const plain = over === target ? proveRule(over, [...fresh.map(f => f.law), ...sought, ...found.map(f => f.law)], {search: false, fast: true}) : undefined
+    // (a machine with sums or a history takes no ghost map (GhostMap.lean's SGhostedM is over SMachine): proveSome there)
+    const ls = [...fresh.map(f => f.law), ...sought, ...found.map(f => f.law)], pm = over.withSumsOf(ls).machine
+    const plain = over === target && !pm.history && !Object.keys(pm.sums ?? {}).length ? proveRule(over, ls, {search: false, fast: true}) : undefined
     if (plain?.proven && plain.checked && sk.ok(rule.machine)) return {proven: true, checked: true, witnesses: sk.witnesses}
     const out = proveSome(rule.machine, [...withKinds(rule, laws), ...fresh.map(f => f.law), ...found.map(f => f.law)], {mapMs: Math.max(5_000, (until - clock()) / 2)})
     return {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
