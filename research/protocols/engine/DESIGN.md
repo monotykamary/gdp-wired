@@ -555,6 +555,23 @@ that branch carries the hypotheses, not the witness, so this run doesn't show it
 each step goal of this set costs 55-134 s of the counted budget, past a 60 s run for the whole search: mldr at 60 s
 needs these goals far cheaper as well as settled.
 
+### gen/laneY6: mldr shelved at 60 s (what was reached)
+
+- **The invariant over Lane C3's counts**: Endive's six conjuncts for MongoLoglessDynamicRaft (Inv866, Inv3915, Inv1758,
+  Inv2973, Inv3246, Safety) plus two pre-start laws (a copied config the one picked; version 1), written over one-
+  parameter counts (cfgSize, old: a cross-cell body) and C3's two-parameter counts at N·s + t (xm, xn, low):
+  research/protocols/ic3syn/mldrprobe.ts, all true on the small instances.
+- **What settles and what doesn't** (searchCounted with the laws as callers, the pinned setup, C3's fixes in turn: f1e8559
+  widened instances, 855bfbe picks, 26a3440 counts from their definitions in modelInstances, e5d9f38 picks at the
+  instances' witnesses): the pre-start laws and the per-server cross-cell law (a primary at its config term) kept; every
+  quorum at a config term, quorums overlap, and one version and term, one config now run out (56-134 s) where they were
+  refused by spurious models; one primary per term still refused by a model the tree search keeps.
+- **The cost**: each step goal of this set costs 55-134 s of the counted budget alone, against a 60 s budget for the whole
+  search. The next lever for mldr is the counted goals' cost (smaller goals: fewer hypotheses per step goal, the count
+  instances and picks a goal needs rather than all of them under the cap), not more counting theory: the theory C3
+  added (two parameters, picks, definitions in the model) now gives the instances the proof needs.
+- gen/laneY6 (the probe and these notes) is kept as a record, not for merging.
+
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
 
 Held: the lazy hypotheses (kernel/prove.ts) cost the step goals time (g332 391 s against 354) and read 18 against 20 at
