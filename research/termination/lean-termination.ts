@@ -21,7 +21,7 @@ const hm: ReturnType<typeof define> = define('thmerge', {x: Heap, y: Heap}, Heap
 const toList: ReturnType<typeof define> = define('ttoList', {x: Heap}, Nats, ({x}) => L(x).match({node: ({l, v, r}) => Nats.cons(v, toList(hm(l, r))), nil: () => Nats.nil}))
 // Bitonic sort's halves (examples/data.ts): bmerge's and bsort's calls on evens and odds, below by the halves' size law
 // (2·size(evens(x)) <= size(x) + 2 and 2·size(odds(x)) <= size(x) + 1, one law proven by induction on both at once);
-// a skew heap over the user's ≤ read off, the merge's size law proven by cases on that ≤.
+// a skew heap over the user's ≤ read off, its merge's size law proven by cases on that ≤.
 export const laws: Record<string, () => DataLaw> = {
   toListOne: () => law('one node read off', {v: natural}, ({v}) => L(toList(Heap.node(Heap.nil, v, Heap.nil))).eq(Nats.cons(v, Nats.nil))),
   bsortOne: () => wellFounded.bsortOne(),
