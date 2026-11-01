@@ -171,6 +171,8 @@ test('invariants given with measures (nested recursion, well-founded): one readi
   // an empty measure, and a measure folding the function itself, refused
   expect(() => checkMeasures([nest.fn], [{comps: []}], 10_000)).toThrow(/measures of one length/)
   expect(() => checkMeasures([nz.fn], [{comps: [{coef: [0], c: 0, fold: {fn: 'nz', of: 0}}]}], 10_000)).toThrow(/a measure reads the ring/)
+  // (in a ring, the second component of one function's measure folding the other)
+  expect(() => checkMeasures([nestA.fn, nestB.fn], [{comps: [S.comps[0]!, {coef: [0], c: 0, fold: {fn: 'nestB', of: 0}}]}, {comps: [S.comps[0]!, S.comps[0]!]}], 10_000)).toThrow(/a measure reads the ring/)
   // a call in a natural's zero case, itself in a case of a match within the argument (the field bound there)
   const L3 = data('Lst3', {none: {}, more: {item: natural, rest: self}})
   const zc: ReturnType<typeof define> = define('underZero', {xs: L3}, natural, ({xs}) => (xs as Val).match({none: () => 0, more: ({rest}) => zc((rest as Val).match({none: () => L3.none, more: ({item, rest: r2}) => (item as Nat).match({zero: () => L3.more(zc(r2), r2), succ: () => r2})}))}))
