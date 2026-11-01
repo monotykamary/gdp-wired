@@ -267,6 +267,11 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing, fine = false) {
     }
     if (t.op === 'all') { const own = new Set([t.key, ...(t.keys ?? [])]); walk(t.c, v => (own.has(v) ? `Q:${JSON.stringify(t).length}:${v}` : name(v))); return }
     if (t.op === '=' && t.a.op === 'var' && t.b.op === 'var') { const a = name(t.a.name), b = name(t.b.name); if (a && b) union(a, b); return }
+    // (`fine`: a key compared with a cell, as a value it holds (Table[a·N + k] = v + 1), is of the cells' values' sort)
+    if (fine && t.op === '=') for (const [c, e] of [[t.a, t.b], [t.b, t.a]] as [E, E][]) {
+      const vr = e.op === 'var' ? e : e.op === 'add' && e.a.op === 'var' && e.b.op === 'const' ? e.a : undefined
+      if (c.op === 'get' && c.map in (m.maps ?? {}) && vr && name(vr.name)) union(name(vr.name)!, `V:${c.map}`)
+    }
     // (a write at every key of k parts at one: z = N²·n + N·k + v)
     if (t.op === '=' && t.a.op === 'var' && name(t.a.name)?.startsWith('M:')) { const mp = name(t.a.name)!.slice(2), ps = parts(t.b, name); if (ps) { arity.set(mp, ps.length); ps.forEach((q, i) => union(q, `${mp}:${i}`)) } }
     kids(t, y => walk(y, name))
@@ -275,6 +280,8 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing, fine = false) {
   for (const [mp, w] of Object.entries(m.step.maps ?? {})) {
     if ('each' in w) walk(w.value, v => (v === w.each ? `M:${mp}` : rule(v)))
     else { walk({op: 'get', map: mp, key: w.key}, rule); walk(w.value, rule) }
+    // (`fine`: a value written to a cell, an input or one past it, of the cells' values' sort)
+    if (fine) { const leaves = (e: E): E[] => (e.op === 'if' ? [...leaves(e.then), ...leaves(e.else)] : [e]); for (const l of leaves(w.value)) { const vr = l.op === 'var' ? l : l.op === 'add' && l.a.op === 'var' && l.b.op === 'const' ? l.a : undefined; if (vr && rule(vr.name)) union(vr.name, `V:${mp}`) } }
   }
   for (const e of Object.values(m.step.state ?? {})) walk(e, rule)
   for (const c of Object.values(m.step.flags ?? {})) walk(c, rule)
