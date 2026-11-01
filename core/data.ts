@@ -1833,16 +1833,15 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     }
     return {find, terms, adj, truthOf}
   }
-  const dataOfTerm = (t: E): Data | undefined => {
-    if (t.op === 'get') { for (const d of p.datas) if (t.map === tagMap(d.name) || t.map === sizeMap(d.name)) return d; const f = fnOfMap(t.map); if (f && f.ret instanceof Data) return f.ret; for (const d of p.datas) for (const [j, c] of d.ctors.entries()) { if (c.fields.length && t.map === ctorMap(d, j)) return d; for (const [i, fl] of c.fields.entries()) if (isDataField(fl.sort) && t.map === fieldMap(d, j, i)) return dataNamed(fl.sort.data) } }
-    return undefined
+  // A value's eta at the constructor of fields a model gives it (its fact's side there), if one.
+  const etaAt = (d: Data, v: E, model: M): E[] => {
+    let j: number
+    try { j = model.m.evalE(get(tagMap(d.name), v), model.env) as number } catch { return [] }
+    if (!d.ctors[j]?.fields.length || !fs.at.has(`eta ${d.name}`)) return []
+    const parts = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(parts) : [c])
+    for (const c of parts(holdsAt(`eta ${d.name}`, [v]))) if (c.op === 'or' && c.xs.length === 2 && c.xs[0]!.op === 'not' && c.xs[0]!.x.op === '=' && c.xs[0]!.x.b.op === 'const' && c.xs[0]!.x.b.value === j && c.xs[1]!.op === '=') return [c.xs[1]!.b]
+    return []
   }
-  const shape = (t: E, d?: Data) => { const dd = d ?? dataOfTerm(t); if (dd) { inst(`shape ${dd.name}`, [t]); ctors(note(reads(holdsAt(`shape ${dd.name}`, [t])))) } }
-  // (eta first, outside a termination's proofs: a value a case makes a constructor is one in its models' classes, where
-  // the reads at it unfold below; count(x, xs) at xs's fields where xs is a cons. A size law's nodes grow past their time
-  // with it.)
-  const etas = () => { for (const t of w.etaAt) { const d = typeOfVar(p, t) ?? dataOfTerm(t); if (d) { inst(`eta ${d.name}`, [t]); shape(t, d); ctors(note(reads(holdsAt(`eta ${d.name}`, [t])))) } } }
-  if (!inTermination.on) etas()
   // A function read whose decreasing argument a model's classes make a constructor's value (the argument itself, or a
   // term of its class) unfolds there too: where the definition's match is decided. Each such instance stands for the
   // reads it was unfolded for (`reached` keeps it in a case where it is one of them).
@@ -1864,7 +1863,11 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
         for (const di of unfoldAt(f)) {
         const own = as[di]!, d = f.params[di]!.sort as Data, root = cl.find(tid(own))
         const built = (t: E) => (t.op === 'get' && d.ctors.some((c, j) => c.fields.length && t.map === ctorMap(d, j))) || (t.op === 'const' && t.value < d.nullary)
-        const cands = built(own) ? [own] : [...cl.terms.values()].filter(t => built(t) && cl.find(tid(t)) === root)
+        const cands0 = built(own) ? [own] : [...cl.terms.values()].filter(t => built(t) && cl.find(tid(t)) === root)
+        // (where none is built, the value an induction descends on, of its class, at the constructor this model gives
+        // it, eta's: count(x, xs) at xs's head and tail where xs is a cons, read through count(x, tail(y :: xs)))
+        // (not where the read is unfolded at the value as it stands already: ordered(xs) itself)
+        const via = cands0.length || !model || inTermination.on || done.has(sigOf(f.name, as)) ? undefined : w.shapesAt.find(v => cl.find(tid(v)) === root), cands = via ? etaAt(d, via, model!) : cands0
         for (const t of cands) {
           const as2 = as.map((a, i) => (i === di ? t : a)), rid = sid({map: f.name, key: keyOf(as2)}), key2 = sid([fs.at.get(`fn ${f.name}`), as2])
           const anchor = {read: tid(get(f.name, r.key)), arg: own, value: t}, had = anchoredAt.get(key2) ?? []
@@ -1872,6 +1875,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
           if (unfolded.has(rid) || extra >= 12 || done.has(sigOf(f.name, as2))) continue
           unfolded.add(rid); extra++; done.add(sigOf(f.name, as2))
           if (dataTrace) console.error(`[data]     unfold ${f.name} at ${brief(as2, 160)} for ${brief(r.key, 80)}`)
+          if (via) { inst(`eta ${d.name}`, [via]); ctors(note(reads(holdsAt(`eta ${d.name}`, [via])))) }
           inst(`fn ${f.name}`, as2)
           note([{map: f.name, key: keyOf(as2)}])
           ctors(note(reads(holdsAt(`fn ${f.name}`, as2))))
@@ -1881,6 +1885,11 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     }
   }
   lap(`by constructors, ${insts.length} instances, ${all.length} reads`)
+  const dataOfTerm = (t: E): Data | undefined => {
+    if (t.op === 'get') { for (const d of p.datas) if (t.map === tagMap(d.name) || t.map === sizeMap(d.name)) return d; const f = fnOfMap(t.map); if (f && f.ret instanceof Data) return f.ret; for (const d of p.datas) for (const [j, c] of d.ctors.entries()) { if (c.fields.length && t.map === ctorMap(d, j)) return d; for (const [i, fl] of c.fields.entries()) if (isDataField(fl.sort) && t.map === fieldMap(d, j, i)) return dataNamed(fl.sort.data) } }
+    return undefined
+  }
+  const shape = (t: E, d?: Data) => { const dd = d ?? dataOfTerm(t); if (dd) { inst(`shape ${dd.name}`, [t]); ctors(note(reads(holdsAt(`shape ${dd.name}`, [t])))) } }
   for (const t of w.shapesAt) shape(t, typeOfVar(p, t))
   // A size the goal reads (a measure's, in a well-founded call's obligation): the shape of its value, which gives the
   // size from the fields.
@@ -1902,7 +1911,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     }
   }
   if (w.depth >= 2) for (const r of [...all]) for (const d of p.datas) if (r.map === tagMap(d.name)) shape(r.key, d)
-  if (inTermination.on) etas()
+  for (const t of w.etaAt) { const d = typeOfVar(p, t) ?? dataOfTerm(t); if (d) { inst(`eta ${d.name}`, [t]); shape(t, d); ctors(note(reads(holdsAt(`eta ${d.name}`, [t])))) } }
   // A constant's tag is read where its tag is (the nullary facts).
   for (const d of p.datas) if (d.nullary && all.some(r => r.map === tagMap(d.name))) { inst(`nullary ${d.name}`, []); for (let j = 0; j < d.nullary; j++) all.push({map: tagMap(d.name), key: k(j)}) }
   // Congruences (a map is a function), in each model: every value the model reads explained against one of its class
@@ -1978,17 +1987,18 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   lap(`congruences, ${insts.length} instances, ${w.models.length} models`)
   return insts
 }
-// Whether a function looks two ahead: its body matches a field of a value it matched (ordered's tail, then its head).
+// Whether a function looks two ahead: its body matches a field of a value it matched, of the same datatype (ordered's
+// tail, then its head; not a pair in a list's head).
 const looksAhead = (f: Fn): boolean => {
   let yes = false
-  const go = (x: unknown, fields: Set<string>): void => {
+  const go = (x: unknown, fields: Map<string, string>): void => {
     if (yes || !x || typeof x !== 'object') return
     if (Array.isArray(x)) { x.forEach(y => go(y, fields)); return }
     const t = x as X
-    if (t.op === 'match') { if (t.of.op === 'var' && fields.has(t.of.name)) { yes = true; return } go(t.of, fields); for (const c of t.cases) go(c.body, new Set([...fields, ...c.binds])); return }
+    if (t.op === 'match') { if (t.of.op === 'var' && fields.get(t.of.name) === t.data) { yes = true; return } go(t.of, fields); for (const c of t.cases) go(c.body, new Map([...fields, ...c.binds.map(b => [b, t.data] as [string, string])])); return }
     for (const v of Object.values(t)) go(v, fields)
   }
-  go(f.body(), new Set())
+  go(f.body(), new Map())
   return yes
 }
 let varSorts = new Map<string, Data>()
@@ -2849,10 +2859,13 @@ export function conjectures(p: Program, l: DataLaw, max = 24, maxSize = 6): Data
     const reads = (as: X[]) => as.some(a2 => a2.op === 'var' && a2.name === dvar)
     for (const margs of argSets(mk.params, true).filter(reads)) for (const pargs of argSets(pr.params.filter((_, i) => i !== di))) {
       const pAt = (x: X): Y => { const as = [...pargs]; as.splice(di, 0, x); return {op: 'holds', x: {op: 'call', fn: pr.name, args: as}} }
-      const premise = pAt({op: 'var', name: dvar}), conclusion = pAt({op: 'call', fn: mk.name, args: margs})
+      const premise0 = pAt({op: 'var', name: dvar}), conclusion = pAt({op: 'call', fn: mk.name, args: margs})
       const conds: (Y | undefined)[] = [undefined, ...nats.flatMap(a2 => nats.filter(b2 => b2 !== a2).flatMap(b2 => [{op: '<', a: {op: 'var', name: a2}, b: {op: 'var', name: b2}} as Y, {op: '<=', a: {op: 'var', name: a2}, b: {op: 'var', name: b2}} as Y]))]
-      for (const c of conds) {
-        const hyp: Y = c ? {op: 'and', xs: [premise, c]} : premise
+      // (the premise at each argument of the datatype, where one alone isn't enough: a merge of two ordered lists)
+      const both = margs.filter(a2 => a2.op === 'var' && a2.name !== dvar && sortOfVar.get(a2.name) === mk.ret).map(pAt)
+      for (const c of [...conds, ...(both.length ? [undefined] : [])].map((c2, i) => ({c: c2, premise: i < conds.length ? premise0 : {op: 'and', xs: [premise0, ...both]} as Y}))) {
+        const {premise} = c
+        const hyp: Y = c.c ? {op: 'and', xs: [premise, c.c]} : premise
         const {t: cy, vs} = canon({op: 'or', xs: [{op: 'not', x: hyp}, conclusion]})
         const y = cy as Y, text = JSON.stringify(y)
         if (seen.has(text) || text === lawText) break
