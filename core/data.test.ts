@@ -248,11 +248,17 @@ test('the paths of a call\'s obligation: a variable matched again, a term matche
   // (a flag passed along, read by no measure)
   const flagged: ReturnType<typeof define> = define('plFlagged', {b: boolean, xs: PL, ys: PL}, natural, ({b, xs, ys}) => (xs as Val).match({nil: () => 0,
     cons: ({t}) => (ys as Val).match({nil: () => (flagged(b, t, ys) as Nat).plus(1), cons: ({t: u}) => (flagged(b, PL.cons(0, t), u) as Nat).plus(1)})}))
-  for (const f of [again, onTail, flagged]) {
+  // (a natural matched on a term, n − 1: the call at n − 1 below n where n − 1 is a successor)
+  const pred: ReturnType<typeof define> = define('plPred', {n: natural}, natural, ({n}) => ((n as Nat).minus(1)).match({zero: () => 0, succ: () => (pred((n as Nat).minus(1)) as Nat).plus(1)}))
+  // (a ring one of whose functions reads a flag alone: its measure a constant, between its callers' and callees')
+  const viaFlag: ReturnType<typeof define> = define('plViaFlag', {xs: PL}, natural, ({xs}) => (xs as Val).match({nil: () => 0, cons: () => (flagOnly(xs.ne(xs)) as Nat).plus(1)}))
+  const flagOnly: ReturnType<typeof define> = define('plFlagOnly', {b: boolean}, natural, ({b}) => when(b as Bool, 0, viaFlag(PL.nil) as Nat))
+  for (const f of [again, onTail, flagged, pred, viaFlag]) {
     expect(refusal(() => law('taken', Object.fromEntries(f.fn.params.map(p => [p.name, p.sort])) as never, vs => (f(...f.fn.params.map(p => vs[p.name])) as Nat).eq(f(...f.fn.params.map(p => vs[p.name])) as Nat))), f.fn.name).toBeUndefined()
     if (f.fn.decreases !== undefined) continue
     for (const o of f.fn.termination!.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof)).toBe(true)
-    expect(checkMeasures([f.fn], [f.fn.measure!]).proven, f.fn.name).toBe(true)
+    if (f.fn.ring.length === 1) expect(checkMeasures([f.fn], [f.fn.measure!]).proven, f.fn.name).toBe(true)
   }
   expect(again.fn.decreases).toBeUndefined()
+  expect(viaFlag.fn.ring).toEqual(['plViaFlag', 'plFlagOnly'])
 }, 120_000)
