@@ -14,7 +14,7 @@
 // value before, shifts of it, the request's values and the state before; each is chosen to satisfy P at every
 // counterexample so far, per case of the step (the conditions its updates split on: the request's clause, say).
 // A law under a `forall` key takes witness terms only (a ghost per key would be a map).
-import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, evalC, evalE, interpret, n as k, walk, x as v} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, evalC, evalE, interpret, loadJs, n as k, walk, x as v} from './machine.ts'
 import {type Report, clock, proveLaw, proveLaws, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {env} from './solver.ts'
 import {type Ghosted, ghostedMachine, ghostedOk, substC} from '../kernel/kernel.ts'
@@ -136,7 +136,12 @@ const atomsOf2 = (c: C): C[] => (c.op === 'and' || c.op === 'or' ? c.xs.flatMap(
 // taken as often as any other. Each state's step from the state it was first reached from is kept: `pathTo`.)
 const pathTo = new WeakMap<State, [State, Request]>()
 export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000, walks = 0): State[] {
-  const run = interpret(m), start = run.init(p)
+  // (the steps through the generated JavaScript, a copy of the state each: the interpreter's states, as compile.test.ts
+  // holds them, several times faster; a request's counts given to it as maps the request carries, the interpreter's
+  // view of them (carriedView: each cell the sum of its body over the state, read when asked))
+  const run = interpret(m), start = run.init(p), cs = Object.keys(m.counts ?? {})
+  const js = m.history ? undefined : (() => { try { return loadJs({...m, counts: undefined, inputMaps: [...m.inputMaps ?? [], ...cs]}) } catch { return undefined } })()
+  const step = js ? (p2: Env, st: State, r: Request) => { const view = cs.length ? carriedView(m, st, r, undefined, p2).maps : {}; return js.step(p2, js.fork(st), {...r, ...Object.fromEntries(cs.map(c => [c, view[c]!]))}) } : run.step
   const subsets = Array.from({length: 1 << b}, (_, s) => new Map(Array.from({length: b}, (_, i) => i).filter(i => (s >> i) & 1).map(i => [i, 1] as [number, number])))
   // (an input the assumption keeps below a few values, an action's, over all of them; the rest below b)
   const below = (i: string) => Math.max(b, ...(m.assume ? atomsOf2(m.assume) : []).flatMap(c => (c.op === '<' && c.a.op === 'var' && c.a.name === i && c.b.op === 'const' && c.b.value <= 8 ? [c.b.value] : [])))
@@ -151,7 +156,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
     for (const r of reqs) {
       if (--work < 0) break
       let next: State
-      try { next = run.step(p, st, r) } catch { continue }
+      try { next = step(p, st, r) } catch { continue }
       const n0 = seen.size
       if (reached(next, st, r) && seen.size > n0) queue.push(next)
     }
@@ -169,7 +174,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
       for (let i = 0; i < 48; i++, walks--) {
         const r = reqs[rnd(reqs.length)]!
         let next: State
-        try { next = run.step(p, st, r) } catch { continue }
+        try { next = step(p, st, r) } catch { continue }
         const kd = kindOf(st, next)
         if (kd) by.set(kd, [...by.get(kd) ?? [], [next, r]])
       }
