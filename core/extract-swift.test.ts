@@ -72,3 +72,25 @@ t('an injected protocol nothing the rule keeps reads: the check gives a fake tha
   writeFileSync(`${dir}/Meter.swift`, 'protocol Store {\n  func get(_ key: String) -> Int?\n  func set(_ key: String, value: Int)\n}\nfinal class Meter {\n  let a: Store\n  let b: Store\n  var n = 0\n  init(a: Store, b: Store) { self.a = a; self.b = b }\n  func tick() {\n    n = b.get("k") ?? 0\n  }\n}\n')
   ok(extractSwift(`${dir}/Meter.swift`, {entry: 'Meter', check: budget}))
 }, 900_000)
+
+// The check's build (the code with the harness): a compiler failing with nothing to say of the code (killed, past
+// GDP_COMPILE_S) is retried once, then the check's harness failure; its errors about the code, the source refused with
+// its message. Never "the rule and the code differ".
+const killedBuild = <X>(make: () => X): X => { const old = process.env.GDP_COMPILE_S; process.env.GDP_COMPILE_S = '0.001'; try { return make() } finally { if (old === undefined) delete process.env.GDP_COMPILE_S; else process.env.GDP_COMPILE_S = old } }
+t('the check\'s build: a package swiftc rejects refused with its message; swift build killed is the harness\'s failure, retried once', () => {
+  const file = (code: string) => { const d = mkdtempSync(`${tmpdir()}/gdp-swcase-`); writeFileSync(`${d}/Meter.swift`, code); return `${d}/Meter.swift` }
+  const src = 'final class Meter {\n  var used = 0\n  func take(_ n: Int) -> Bool { if n < 0 || n > 10 { return false }; used = used &+ n; return true }\n}\n'
+  const bad = extractSwift(file(src.replace('if n < 0', 'let s: Int = "x"; if n < 0')), {entry: 'Meter', check: budget})
+  expect(bad.refusals[0]!.what).toMatch(/^the source doesn't compile \(swift build\): .*cannot convert value of type 'String' to specified type 'Int'/)
+  const killed = killedBuild(() => extractSwift(file(src), {entry: 'Meter', check: budget}))
+  expect(killed.refusals[0]!.what).toMatch(/^the check's harness failed, twice .*swift build failed twice with nothing to say of the code/)
+}, 900_000)
+
+// (no harness can be made for the code, a property of a type it can't name: the code refused, never a difference)
+t('a property whose type the harness can\'t name: refused with why, not "the rule and the code differ"', () => {
+  const d = mkdtempSync(`${tmpdir()}/gdp-swcase-`)
+  writeFileSync(`${d}/Meter.swift`, 'final class Meter {\n  var n = (((0)))\n  func tick() { n = n &+ 1 }\n}\n')
+  const x = extractSwift(`${d}/Meter.swift`, {entry: 'Meter', check: budget})
+  expect(x.ok).toBe(false)
+  expect(x.refusals.map(r => r.what).join('; ')).not.toMatch(/the rule and the code differ/)
+}, 900_000)

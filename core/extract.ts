@@ -176,6 +176,7 @@ export function fromModel(model: Model, file: string, domains: Record<string, 'n
   try { rule = evaluate(body); invariants = evaluateLaws(rule, invariantsOf(model, sorts)) } catch (e) { return {ok: false, source, model, sorts, refusals: [{where: file, what: `the rule printed doesn't build: ${(e as Error).message}`}], notes} }
   if (invariants.length) source = `${source}\n// What every state of the code is: a law about every state is about the code's with these beside it.\nexport const ${identOf(model)}Invariants = [${invariantsOf(model, sorts).map(x => x.replace(/^r\./, `${identOf(model)}Rule.`)).join(', ')}]\n`
   const evidence = run(rule, sorts)
+  if (evidence.source) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: evidence.source}], notes}
   if (evidence.harness) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `${HARNESS_FAILED}${evidence.harness}`}], notes}
   if (evidence.mismatch) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `the rule and the code differ: ${evidence.mismatch}`}], notes}
   return {ok: true, rule, ...(invariants.length ? {invariants} : {}), source, model, sorts, evidence, refusals: [], notes}

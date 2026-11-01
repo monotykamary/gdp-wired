@@ -12,7 +12,7 @@ import type {Arg, Model} from './extract-read.ts'
 import type {B} from './extract-ir.ts'
 import type {Sorts} from './extract-print.ts'
 import {type CodeSide, type Coverage, type Evidence, Outside, type Snap, constantsOf, draw, drive, evalTerm} from './extract-check.ts'
-import {openHarness, stopped, stubbed} from './extract-step.ts'
+import {buildCheck, builtEvidence, compileLimit, openHarness, stopped, stubbed} from './extract-step.ts'
 import {type GoOptions, type GoPkg, type GoRead, type TT, node} from './extract-go.ts'
 
 export type GoLeaf = {name: string, path: string[], kind: 'int' | 'bool' | 'str' | 'big' | 'bignil' | 'map' | 'mapnil' | 'list' | 'frame', t: number, go: string}
@@ -325,14 +325,13 @@ export function checkGo(dir: string, pkg: GoPkg, read: GoRead, r: Rule, sorts: S
     const over: Record<string, string> = {}
     for (const [f, t] of stubbed(read as never, f => fs.readFileSync(`${dir}/${f}`, 'utf8'), (a, _i, t) => `gdpAnswer[${a.ty}](${JSON.stringify(a.key)}, ${t.slice(0, t.indexOf('('))}, ${t.slice(t.indexOf('(') + 1)}`)) { const o = node<{resolve: (...p: string[]) => string}>('node:path').resolve(dir, f); fs.writeFileSync(`${work}/${f}`, t); over[o] = over[node<{realpathSync: (p: string) => string}>('node:fs').realpathSync(o)] = `${work}/${f}` }
     if (Object.keys(over).length) fs.writeFileSync(`${work}/overlay.json`, JSON.stringify({Replace: over}))
-    try {
-      // The harness's own package in -coverpkg too: the counters are written only where main is instrumented.
-      // (a rewritten copy isn't instrumented with -cover, which reads the files as they are: no arms counted then)
-      cp.execFileSync('go', ['build', ...(fs.existsSync(`${work}/overlay.json`) ? [`-overlay=${work}/overlay.json`] : ['-cover', `-coverpkg=${importPath},${mod.module}/${mainDir.split('/').pop()}`]), '-o', `${work}/harness`, `./${mainDir.split('/').pop()}`], {cwd: mod.root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: goEnv(), maxBuffer: 1 << 26})
-    } catch (x) {
-      const err = String((x as {stderr?: string}).stderr ?? (x as Error).message)
-      return {...empty, mismatch: `the package doesn't build with the check's harness: ${err.split('\n').filter(Boolean).slice(0, 6).join(' | ')}`}
-    }
+    // The harness's own package in -coverpkg too: the counters are written only where main is instrumented.
+    // (a rewritten copy isn't instrumented with -cover, which reads the files as they are: no arms counted then)
+    // (go's errors, file:line:col: ..., the code's own files the source's; the harness's file and main the check's)
+    const built = buildCheck('go build', () => cp.execFileSync('go', ['build', ...(fs.existsSync(`${work}/overlay.json`) ? [`-overlay=${work}/overlay.json`] : ['-cover', `-coverpkg=${importPath},${mod.module}/${mainDir.split('/').pop()}`]), '-o', `${work}/harness`, `./${mainDir.split('/').pop()}`], {cwd: mod.root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: goEnv(), maxBuffer: 1 << 26, timeout: compileLimit(), killSignal: 'SIGKILL'}),
+      x => String((x as {stderr?: string}).stderr ?? '').split('\n').filter(l => /\.go:\d+(:\d+)?: /.test(l)),
+      l => !/zz_gdp_harness_gen\.go:|gdpharness_\w+\/main\.go:/.test(l))
+    if (!('ok' in built)) return {...empty, ...builtEvidence(built)}
     const buildMs = Math.round(performance.now() - b0)
     fs.mkdirSync(`${work}/cov`, {recursive: true})
     // The blocks of the code the step reads that the requests reached (the harness's counters, written as it exits).

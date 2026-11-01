@@ -450,3 +450,13 @@ func (q *Q) Left() int64 { return q.Cap - q.Used }`, undefined as never))
   const r = x.rule! as any
   expect(proveSteps(r, x.invariants ?? [], [r.stepLaw('never past its cap', (_b: any, a: any) => a.Used.atMost(a.Cap), (b: any) => b.Used.atMost(b.Cap))]).proven).toBe(true)
 }, 600_000)
+
+// The check's build (the code with the harness): a compiler failing with nothing to say of the code (killed, past
+// GDP_COMPILE_S) is retried once, then the check's harness failure; its errors about the code, the source refused with
+// its message. Never "the rule and the code differ".
+const killedBuild = <X>(make: () => X): X => { const old = process.env.GDP_COMPILE_S; process.env.GDP_COMPILE_S = '0.001'; try { return make() } finally { if (old === undefined) delete process.env.GDP_COMPILE_S; else process.env.GDP_COMPILE_S = old } }
+t('the check\'s build: go build killed is the harness\'s failure, retried once', () => {
+  const killed = killedBuild(() => go('type Meter struct{ used int }\n\nfunc (m *Meter) Take(n int) bool { if n < 0 { return false }; m.used += n; return true }\n', 'Meter'))
+  expect(killed.ok).toBe(false)
+  expect(killed.refusals[0]!.what).toMatch(/^the check's harness failed, twice .*go build failed twice with nothing to say of the code/)
+}, 120_000)
