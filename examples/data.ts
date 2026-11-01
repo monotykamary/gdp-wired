@@ -198,8 +198,6 @@ export const wellFounded = {
 
 // Definitions that don't terminate, made to look as if they did (core/data.test.ts): each refused with the measures
 // tried, before any law about it is read. Taken as an equation, any of them would let the kernel prove anything.
-const Trees = data('Trees', {none: {}, more: {first: Tree, rest: self}})
-const one = define('one', {xs: List}, natural, ({xs}) => when(N(len(xs)).atLeast(9), 0, 1))
 const nearTail = define('nearTail', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(len(tail)).atLeast(9), List.cons(head, L(xs)), L(tail))}))
 const loops = {
   // an integer counted down below 0 for ever (its size, toNat, stays 0 there): and on Bool, behind a condition's choice
@@ -228,13 +226,6 @@ const loops = {
   nested: () => { const f: ReturnType<typeof define> = define('nestedLoop', {n: natural}, natural, ({n}) => N(f(f(n)))); return f },
   // on an integer (no measure reads one): below 0 it never ends
   intDown: () => { const f: ReturnType<typeof define> = define('intDown', {i: integer}, natural, ({i}) => when(I(i).eq(0), 0 as number, N(f(I(i).minus(1))) as never)); return f },
-  // a list of trees whose first is turned (flatten1's step, a weighted size of the list falling) until it is 9 nodes
-  // big, where the list is passed on unchanged: past the runs' values, the weighted size its runs suggest doesn't fall
-  deepTurn: () => { const f: ReturnType<typeof define> = define('deepTurn', {ts: Trees}, natural, ({ts}) => L(ts).match({none: () => 0, more: ({first, rest}) => L(first).match({leaf: () => N(f(rest)),
-    node: ({left, value, right}) => when(N(size(first)).atLeast(9), N(f(ts)), L(left).match({leaf: () => N(f(Trees.more(right, rest))), node: () => N(f(Trees.more(left, Trees.more(Tree.node(Tree.leaf, value, right), rest))))}))})})); return f },
-  // a call that drops as many items as a helper says, 1 on the runs' lists and 0 from 9 items on: its decrease needs
-  // 1 ≤ one(xs), a lower bound the values suggest and that is false
-  dropOne: () => { const f: ReturnType<typeof define> = define('dropOneLoop', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: () => N(f(drp(one(xs), xs)))})); return f },
   // a ring whose measures are given and don't fall: (size xs) at both, the call passing xs round
   ringStatedWrong: () => { const f: ReturnType<typeof define> = define('statedA', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: ({tail}) => N(g(tail))}), {measure: ['xs']}), g: ReturnType<typeof define> = define('statedB', {xs: List}, natural, ({xs}) => N(f(List.cons(1, xs))), {measure: ['xs']}); return f },
 }

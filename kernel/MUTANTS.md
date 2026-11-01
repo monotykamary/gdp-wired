@@ -169,7 +169,7 @@ core/data.ts | directly | "(o.op === 'get' && ctors.has(o.map" | " && " -> " || 
 core/data.ts | directly | "if (clock() > until) return un" | " > " -> " >= " | a deadline's comparison
 core/data.ts | directly | "iredKeys.skip = true" | "true" -> "false" | pairedKeys.skip, a search setting
 core/data.ts | directly | ", concl, rank: [k(0)], insts, uses:" | "k(0)" -> "k(1)" | the rank of a node with no uses: no descent goal reads it
-core/data.ts | directly | "if (v.proven && v.checked) retur" | " && " -> " || " | proveCyclic's verdict is proven only after the kernel's check of the proof it made, checked its result; no search proof the kernel refuses is known, and each taken definition's decrease is proven again by Lean's export (decreasing_by)
+core/data.ts | directly | "return v.proven && v.checked ? v" | " && " -> " || " | proveCyclic's verdict is proven only after the kernel's check of the proof it made, checked its result; no search proof the kernel refuses is known, and each taken definition's decrease is proven again by Lean's export (decreasing_by)
 core/data.ts | proveMeasures | "ermination.on = true" | "true" -> "false" | the pass without the fields' shapes off: the search's instances, every proof checked by the kernel
 core/data.ts | proveMeasuresIn | "lter(r => r.from === s.from).length)" | " === " -> " !== " | the call's number in its obligation's name
 core/data.ts | proveMeasuresIn | "if (dataTrace && lemmas.length) c" | " && " -> " || " | a trace
