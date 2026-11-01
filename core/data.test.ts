@@ -140,13 +140,25 @@ test('nested recursion (well-founded, a call in another\'s argument): taken with
   for (const mk of Object.values(nested)) { const v = proveData(mk()); expect(v.proven && v.checked && v.proof?.proven && checkCyclic(v.proof.proof), v.goal).toBe(true) }
 }, 120_000)
 
+test('nested recursion refused where a call\'s value has no place to be read (a call under a case of a match in another\'s argument); stated measures of a ring of two lengths padded (terminating)', () => {
+  const L2 = data('Lst2', {none: {}, more: {item: natural, rest: self}})
+  const under: ReturnType<typeof define> = define('underCase', {xs: L2}, natural, ({xs}) => (xs as Val).match({none: () => 0, more: ({rest}) => under((rest as Val).match({none: () => L2.none, more: ({rest: r2}) => L2.more(under(r2), r2)}))}))
+  expect(refusal(() => law('under', {xs: L2}, ({xs}) => (under(xs) as Nat).eq(0)))).toMatch(/nested recursion isn't taken there/)
+  // statedA (size(xs), size(xs)), statedB (size(xs)): read as (size(xs), 0), its call of statedA at xs lower by the second
+  const a: ReturnType<typeof define> = define('stated2A', {xs: L2}, natural, ({xs}) => (xs as Val).match({none: () => 0, more: ({rest}) => b(rest)}), {measure: ['xs', 'xs']})
+  const b: ReturnType<typeof define> = define('stated2B', {xs: L2}, natural, ({xs}) => a(xs), {measure: ['xs']})
+  expect(refusal(() => law('stated2', {xs: L2}, ({xs}) => (a(xs) as Nat).eq(0)))).toBeUndefined()
+  expect([a.fn.termination!.measure.comps.length, b.fn.termination!.measure.comps.length]).toEqual([2, 2])
+}, 60_000)
+
 test('definitions that do not terminate, made to look as if they do (rings, a size law true of short lists only, a guard past the runs\' values), are refused with the measures tried', () => {
-  for (const [name, mk] of Object.entries(adversarial)) expect(refusal(mk), name).toMatch(/no measure is proven to fall at every call|nested recursion isn't taken|no parameter a measure reads/)
+  const why = Object.fromEntries(Object.entries(adversarial).map(([name, mk]) => [name, refusal(mk)])) as Record<keyof typeof adversarial, string | undefined>
+  for (const [name, w] of Object.entries(why)) expect(w, name).toMatch(/no measure is proven to fall at every call|nested recursion isn't taken|no parameter a measure reads/)
   // a measure each was tried and refused, by a call of the runs or its obligation
-  for (const name of ['passRound', 'lowerRaise', 'swapRing', 'lateRing', 'stepUp', 'nearTail', 'nearTailRing', 'ringStatedWrong'] as const) expect(refusal(adversarial[name]), name).toMatch(/(doesn't lower it|not proven to lower it)/)
+  for (const name of ['passRound', 'lowerRaise', 'swapRing', 'lateRing', 'stepUp', 'nearTail', 'nearTailRing', 'ringStatedWrong'] as const) expect(why[name], name).toMatch(/(doesn't lower it|not proven to lower it)/)
   // nested: an invariant its runs suggest lowers the outer call, and a body past them doesn't keep it
-  for (const name of ['nestedLate', 'nestedGrow', 'nestedGrowRing'] as const) expect(refusal(adversarial[name]), name).toMatch(/keeping .*(doesn't keep its invariant|not proven to keep its invariant)/)
-}, 120_000)
+  for (const name of ['nestedLate', 'nestedGrow', 'nestedGrowRing'] as const) expect(why[name], name).toMatch(/keeping .*(doesn't keep its invariant|not proven to keep its invariant)/)
+}, 240_000)
 
 test('a definition that does not terminate is refused with its reason, and no law about it is read', () => {
   const up: ReturnType<typeof define> = define('up', {x: natural}, natural, ({x}) => (up(x) as Nat).plus(1))

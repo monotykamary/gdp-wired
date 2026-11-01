@@ -646,7 +646,8 @@ function checkInv(ring: Fn[], inv: Inv): void {
 // bound), one variable for a call written twice at one place. A call under a case with no condition between (no place for
 // its hypothesis where its fields are bound) is refused. `own`: the caller's parameters, as the law reads them.
 function lifted(ring: Fn[], ms: Measure[], inv: Inv, from: number, own: X[], y: Y, vars: {name: string, sort: Sort}[]): Y {
-  const names = ring.map(f => f.name)
+  const names = ring.map(f => f.name), taken = new Set<string>()
+  walk([y, own], o => { if (o.op === 'var') taken.add(o.name as string) })
   const level = (z: Y): Y => {
     const hyps: Y[] = [], seen = new Map<string, X>()
     const go = (t: unknown, bound: boolean): unknown => {
@@ -662,6 +663,8 @@ function lifted(ring: Fn[], ms: Measure[], inv: Inv, from: number, own: X[], y: 
         let r = seen.get(key)
         if (!r) {
           const v = {name: `${ring[from]!.name}#r${vars.length}`, sort: ring[to]!.ret}
+          // (a name no variable of the law has: the function's name is letters and digits, a field's binding ends in digits)
+          if (vars.some(w => w.name === v.name) || taken.has(v.name)) throw new Error(`${v.name}: a variable of the law already`)
           vars.push(v)
           r = {op: 'var', name: v.name}
           seen.set(key, r)
@@ -803,7 +806,7 @@ function callRelation(ring: Fn[], sites: Site[]): Relation | undefined {
   return {paths, ints: new Map(), nats: [...nats], state, params: [], loc: '$fn', from, to, exact: false}
 }
 function candidates(ring: Fn[], edges: CallEdge[], sites: Site[], until: number): Measure[][] {
-  if (ring.some(f => f.stated)) return [ring.map(f => f.stated ?? {comps: [{coef: f.params.map(() => 0), c: 0}]})]
+  if (ring.some(f => f.stated)) return [padded(ring, ring.map(f => f.stated ?? {comps: [{coef: f.params.map(() => 0), c: 0}]}))]
   const out: Measure[][] = []
   if (ring.length === 1) {
     const fn = ring[0]!, ix = fn.params.flatMap((p, i) => (measurable(p.sort) ? [i] : []))
@@ -956,7 +959,10 @@ function directly(law: DataLaw, ms: number): CyclicVerdict | undefined {
 }
 // Each call's obligation under measures given, proven (`obligations`, each function's) or the first that isn't (`failed`);
 // with an invariant (`inv`, nested recursion), each value each body ends at keeping its function's after them.
-function proveMeasures(ring: Fn[], sites: Site[], ms: Measure[], until: number, inv: Inv = ring.map(() => undefined)): {obligations: Termination['obligations'][]} | {failed: string} {
+function proveMeasures(ring: Fn[], sites: Site[], ms0: Measure[], until: number, inv: Inv = ring.map(() => undefined)): {obligations: Termination['obligations'][]} | {failed: string} {
+  // (every measure of one length, at least one component: Data.lean's lexLt compares tuples of one length)
+  const ms = padded(ring, ms0)
+  if (!ms[0]!.comps.length || ms.some(m => m.comps.length !== ms[0]!.comps.length)) throw new Error(`${ring.map(f => f.name).join(', ')}: measures of one length`)
   const was = inTermination.on
   inTermination.on = true
   try { return proveMeasuresIn(ring, sites, ms, until, inv) } finally { inTermination.on = was }
