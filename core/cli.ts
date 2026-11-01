@@ -311,7 +311,8 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
   const others = Object.fromEntries(rules.filter(r => r.x.ok).map(r => [r.entry ?? r.x.model?.name ?? '', r.x]))
   const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
   const ctx: Ctx = {ms: o.ms, clock: unit === 's' ? 1 : unit === 'ms' ? 1000 : undefined, others, cites, cert: o.cert, file: path.relative(proc.cwd(), t.at) || t.at}
-  for (const {entry, x} of rules) {
+  for (const {entry, x: x0} of rules) {
+    let x = x0
     const name = entry ?? (x.model?.name || undefined)
     // (a target that is the working directory, a crate's or a package's: `.`)
     const r: RuleOut = {file: path.relative(proc.cwd(), t.at) || '.', lang: LANG_NAME[t.lang], ...(name ? {entry: name} : {}), ok: x.ok, refusals: x.refusals, notes: x.notes, names: x.names ?? [], laws: [], proposed: [], ...(x.source ? {source: x.source} : {})}
@@ -325,6 +326,8 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     const fnRules = new Set(rules.map(r => r.entry ?? r.x.model?.name).filter(Boolean))
     const mine = rules.length === 1 ? laws.filter(l => !name || (l.cls ? l.cls === name : !l.fn || l.fn === name || ms0.has(l.fn))) : laws.filter(l => (!l.cls && !l.fn) || (l.cls ? l.cls === name : l.fn === name || (ms0.has(l.fn) && !fnRules.has(l.fn))))
     if (!x.ok || !x.rule) { r.laws = mine.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read', why: 'the rule was refused', ms: 0})); continue }
+    // (an Effect service's primitives: the lemmas of their use proven first, each proven one beside every law)
+    if ((x as {lemmas?: unknown[]}).lemmas?.length) { const {withLemmas} = await import('./effect.ts'), w = withLemmas(x, {ms: Math.max(o.ms, 30_000)}); x = w.x; r.notes = [...r.notes, ...w.proven.map(n => `lemma proven, beside every law: ${n}`), ...w.unproven.map(n => `lemma not proven (left out): ${n}`)] }
     const ev = x.evidence
     if (ev) r.checked = `checked against ${'probes' in ev ? `the code: ${ev.requests} requests from the start, ${ev.fromStates} from drawn states, ${ev.probes.steps} from the prover's witnesses` : `XState's own actor: ${(ev as unknown as {events: number}).events} events`}${ev.coverage.arms ? `, ${ev.coverage.hit} of ${ev.coverage.arms} branch arms` : ''}${'startsOutside' in ev && ev.startsOutside ? `; ${ev.startsOutside} starts whose constructor passes 2^53 - 1 left out (outside the rule's numbers: the claim is for starts within them)` : ''}`
     // (the rule's methods: the choice of method where it has several, else the one each name says)

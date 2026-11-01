@@ -508,7 +508,9 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
   // A class's object: made by its constructor, or set to a snapshot.
   // (a param the precondition fixes from the others, a start's quotient: computed from them)
   const drawParams = (): Record<string, Raw> => {
-    const ps: Record<string, Raw> = Object.fromEntries(m.params.filter(v => !(v as {derived?: unknown}).derived).map(v => [v.name, v.note?.startsWith('Date.now()') ? rand(10_000) : draw(v.sort, sorts, v.name, rand, consts, bound, strs)]))
+    // (a param given as a natural (domains) is drawn as one, as an input is)
+    const nat = (v: Var, x: Raw) => (opts.given?.[v.name] === 'nat' && typeof x === 'number' ? Math.abs(x) : x)
+    const ps: Record<string, Raw> = Object.fromEntries(m.params.filter(v => !(v as {derived?: unknown}).derived).map(v => [v.name, v.note?.startsWith('Date.now()') ? rand(10_000) : nat(v, draw(v.sort, sorts, v.name, rand, consts, bound, strs))]))
     for (const v of m.params) { const d = (v as {derived?: N}).derived; if (d) ps[v.name] = evalTerm(d, ps) }
     return ps
   }

@@ -407,7 +407,8 @@ name the service and give the module where the file has several or none.
   of 1's `withPermits(1)` (one call at a time). The functions given to update and modify are the extractor's subset:
   copy a Map or a Set (`new Map(m)`, `new Set(s)`) and set it, spread records.
 - Each method is one step of the rule: true where calls don't interleave (one fiber at a time, or under the lock). A
-  method that reads a Ref and writes it in two `yield*`s, run by two fibers at once, is not one step.
+  method that reads a Ref and writes it in two `yield*`s, run by two fibers at once, is not one step. (A service with a
+  Queue, or a Semaphore other than a lock, is read as every fiber's steps: below.)
 - Refused, with the reason: a failure after a Ref changed on that path outside a transaction (the Ref keeps the write),
   combinators in pipes other than retry and repeat (catchTag, timeout, forks), Match (write a switch), Data.TaggedEnum or
   Schema unions of records as state, services or other effects yielded in a method (Random, DateTime), optional
@@ -435,9 +436,45 @@ const v = proveRule(x.rule!, [x.rule!.law('the money is conserved', ({checking, 
 fiberRun(x, v.run!) // fiber 1: save(amount = 1), its step 1 of 2; fiber 0: save(amount = 3), its step 1 of 2; fiber 0: save, its step 2 of 2; ...
 ```
 
-Under fibers a law reads the machine's naturals (an integer as `x` and `x$neg`; `domains` makes a Ref a natural). A
-failure in a later step ends the call as a return does (the earlier steps' writes kept); a transaction that fails in a
-later step, a name carried as a pattern, and two state effects in one statement are refused (`examples/effect-stm.ts`).
+Under fibers a law reads the service's integers as integers, and what each fiber carries as the machine's naturals (an
+integer as `x` and `x$neg`; `domains` makes a Ref a natural). A failure in a later step ends the call as a return does
+(the earlier steps' writes kept); a transaction that fails in a later step, a name carried as a pattern, and two state
+effects in one statement are refused (`examples/effect-stm.ts`).
+
+**Queues and semaphores.** A `Queue` (bounded, dropping, sliding, unbounded; 4.x `Queue.make({capacity, strategy})`)
+or a `Semaphore` of any number of permits (4.x `Semaphore.make`, 3.x `Effect.makeSemaphore`) the make effect makes is
+modelled (core/effect-prims.ts), written again as what Effect's own holds, in transactions, and read as any service: a
+queue `q` is `q_items` (position to item), `q_head`, `q_tail` and `q_open`, holding the items at `q_head .. q_tail - 1`
+oldest first; a semaphore `s` is `s_taken` (Effect's own field) and `s_held`, the permits the calling fiber holds. Each
+operation is one atomic step and a wait its guard: offer (a full bounded queue waits, a dropping one answers false, a
+sliding one lets its oldest go), take, poll (an `Option`: `Option.isSome`, `isNone`, `getOrElse`, `getOrUndefined`),
+size and isFull (4.x), isShutdown and capacity (3.x), shutdown (drops what the queue holds); a semaphore's take, release
+(unchecked, as Effect's), releaseAll, and `withPermits(n)(...)` / `withPermit`, yielded as a statement: the take, the
+body's statements as the method's own, the release (a failure in the body releasing first). A service with a queue or
+such a semaphore is read as every fiber's steps. The primitives' own laws are proven once on their canonical rules
+(`primitiveRule(spec, effect)`, `primitiveLaws`: a queue holds at most its capacity; what comes in comes by an offer at
+the tail, what leaves is the oldest, to the take or poll whose answer it is, a slide or a shutdown; what is held stays;
+at most the permits are taken) and run beside Effect's own on random operations and fibers (`primitiveConforms`);
+`x.primitives` gives each instance with its invariants (in `x.invariants`) and its use law (a semaphore never released
+past what was taken), and `withLemmas(x)` proves first the lemmas that law rests on where each fiber gives back what it
+took (the CLI does it before the laws in comments):
+
+```ts
+import {extractEffect, fiberRun, proveRule, withLemmas} from 'gdp-wired/effect'
+
+// jobs = yield* Queue.bounded<number>(4); workers = yield* Semaphore.make(2); work: yield* workers.withPermits(1)(...)
+const x = extractEffect('./pool.ts'), {x: y} = withLemmas(x)   // every fiber's steps; the lemmas proven
+proveRule(y.rule!, [...y.invariants!, x.primitives[1].laws[0]])  // workers is never released past what was taken: proven
+// broken (a cancel that releases a permit it never took): refuted, fiberRun(x, v.run!): fiber 0: cancel()
+```
+
+An operation that interrupts its fiber on a shut-down queue (every one on 3.x, take on 4.x) is read as a wait that never
+ends. Refused, with the reason: 3.x's `Queue.size`, `isEmpty` and `isFull` (they count the fibers waiting), takeAll,
+offerAll, takeN, peek and the rest, a primitive passed, kept or returned, a capacity or a permit count other than a whole
+number written here (permits may be a make's parameter), resize, withPermits other than yielded as a statement, a
+failure inside withPermits' body other than a statement of it (a helper's, a transaction's, a take from a queue the
+service shuts down: the release would be skipped), an Option's `_tag` or `value`, a queue of other than numbers or booleans. A law that counts the fibers inside a section (a user's own counter of the
+workers busy) isn't proven yet: the search doesn't count fibers.
 
 **Schedules.** A retry or repeat policy (`Schedule`, 3.x or 4.x) is a rule of its own, read from its source: each step
 one of its decisions (go on after a delay, or stop), at the time the attempt before it ended. Its state is `attempt`
