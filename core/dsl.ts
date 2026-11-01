@@ -2762,7 +2762,8 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
     const fm = rule.machine, share = (until - clock() - tail) / 10
     fresh = withDeadline(clock() + share, () => freshLaws(fm, rule.kindLaws(), {params: (rand, bound) => rule.randomParams(rand, bound), input: (rand, bound, ps) => rule.randomInput(rand, bound, ps)}, {ms: share}))
     if (fresh.length) {
-      const given = [...withKinds(rule, laws), ...fresh.map(f => f.law)], out = withDeadline(clock() + share, () => (stepLaws.length ? proveStepLaws(fm, given, stepLaws) : proveLaws(fm, given)))
+      // (counted, as the laws' own search: the same verdict on any machine)
+      const given = [...withKinds(rule, laws), ...fresh.map(f => f.law)], out = counted(fullRate, () => withDeadline(clock() + share, () => (stepLaws.length ? proveStepLaws(fm, given, stepLaws) : proveLaws(fm, given))), true)
       if (out.proven && out.checked) return {proven: true, checked: true, found: {laws: fresh, ...(lemmas ? {lemmas} : {})}, assumes: reachableBy(fresh)}
     }
   }

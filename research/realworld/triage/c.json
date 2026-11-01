@@ -1,0 +1,3 @@
+{
+ "rate limit/libtorrent/bandwidth_channel#an update keeps at most 3 seconds of quota": {"verdict": "law", "note": "The law leaves out update_quota's overflow guard: where the addition would pass INT32_MAX the quota is set to INT32_MAX, past 3·m_limit once m_limit is above about 715 MB/s (on the real code: throttle(714,396,227), update_quota(3000), then update_quota(7) leaves 2,147,483,647). The guard is intentional (its comment: \"may exceed <int>::max\"). Kept as a false law the prover must not prove (research/langs/DESIGN.md, the C items); its witness needs m_limit·dt, a product the runs do not reach.", "repro": "research/langs/c/run.ts"}
+}
