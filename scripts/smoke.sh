@@ -2,7 +2,7 @@
 # The published package as a user gets it: the tarball (bun pm pack, as CI packs it) installed with npm into an empty
 # project, the README's budget example run under plain Node, and a TypeScript consumer type-checked against the
 # declarations; then gdp-wired-cli (packages/cli) installed alone beside it, its `npx gdp-wired-cli check` on a Python
-# file. Usage: sh scripts/smoke.sh [tarball cli-tarball]  (packs both when none is given)
+# file, and the certificate it writes checked by `npx gdp-wired-check`. Usage: sh scripts/smoke.sh [tarball cli-tarball]  (packs both when none is given)
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
 work=$(mktemp -d)
@@ -175,3 +175,13 @@ sed 's|^    # gdp: law never past the cap.*|    # gdp: law a take always counts:
 if npx --no-install gdp-wired-cli check meter2.py --no-propose > cli.log; then cat cli.log; echo 'gdp-wired-cli check: a broken law exits 0'; exit 1; fi
 grep -q 'broken   a take always counts' cli.log || { cat cli.log; exit 1; }
 echo "gdp-wired-cli check: a proven law exits 0, a broken one 1"
+# gdp-wired-check, the standalone checker (gdp-wired's second bin): the proven law's certificate (--cert) accepted
+# under plain node, and refused once a derivation's multiplier is raised.
+npx --no-install gdp-wired-cli check meter.py --no-propose --cert certs > cli.log || { cat cli.log; exit 1; }
+cert=$(ls certs/*.json | head -1)
+npx --no-install gdp-wired-check "$cert" > check.log || { cat check.log; echo 'gdp-wired-check: the CLI'"'"'s certificate refused'; exit 1; }
+grep -q ': accepted (' check.log || { cat check.log; exit 1; }
+node -e 'const fs=require("fs"),d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const go=x=>Array.isArray(x)?x.some(go):x&&typeof x==="object"?(Array.isArray(x.leaf)&&x.leaf.some(s=>Array.isArray(s)&&s[0]==="combine"&&(s[3]++,true)))||Object.entries(x).some(([k,y])=>k!=="meta"&&go(y)):false;if(!go(d))process.exit(3);fs.writeFileSync("bad.json",JSON.stringify(d))' "$cert"
+if npx --no-install gdp-wired-check bad.json > check.log; then cat check.log; echo 'gdp-wired-check: a tampered certificate accepted'; exit 1; fi
+grep -q 'bad.json: refused' check.log || { cat check.log; exit 1; }
+echo "gdp-wired-check: the CLI's certificate accepted, its tampered twin refused"

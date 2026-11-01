@@ -30,8 +30,10 @@
 // constructor argument of another module's class, a protocol or no type that the class calls methods on an injected
 // dependency (Depends(...) marks one too), with no entry the class whose public methods write its state.
 //
-// Refused, each where it is with why: loops and comprehensions, try/except, lambdas and closures, global and nonlocal,
-// lists, strings beyond set and compared (an f-string is kept only as a store's key or where nothing reads it), a
+// A for loop over a list is a fold (the request's list or the state's), try/except/finally reads the handlers whose
+// classes the reader knows. Refused, each where it is with why (core/py/reader.py's `no` nodes, the executor's
+// Refusals): while and async for, except*, match, comprehensions, lambdas but a key function, closures, global and
+// nonlocal, strings beyond set and compared (an f-string is kept only as a store's key or where nothing reads it), a
 // dict's truthiness, other code whose value is read and whose type isn't declared, other code given the object, a
 // write to an object the caller gave, a field the
 // constructor doesn't set, one object in two places of the state, two keys of one map written in one step, a write

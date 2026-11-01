@@ -150,10 +150,32 @@ objects is the identity on everything the kernel reads; JSON has no `-0` (read a
 ## Checking it
 
 ```sh
-bun interchange/build.ts --wasm                      # dist/gdp-wired-check.js and .wasm (JAVY=<javy 9.1.0>)
-node interchange/dist/gdp-wired-check.js doc.json    # accepted or refused, per claim; --json; exit 0 when all accepted
+npx -p gdp-wired gdp-wired-check doc.json            # the npm package's bin: accepted or refused, the kind and the
+                                                     # kernel entry point that decided it, each claim and why; --json
+bun interchange/build.ts --compile --wasm            # one-file builds: dist/gdp-wired-check.js (node or bun), the
+                                                     # executable dist/gdp-wired-check, and .wasm (JAVY=<javy 9.1.0>)
+node interchange/dist/gdp-wired-check.js doc.json    # exit 0 when every claim is accepted, 1 when one is refused
 wasmtime run interchange/dist/gdp-wired-check.wasm < doc.json
 python3 interchange/py/check.py goals.json           # the second checker, on a goals document
+```
+
+The certificate `gdp-wired check meter.py --cert certs` writes for scripts/smoke.sh's meter.py (a law of `take`, a step law, with
+the invariants the search found), then its twin with one combination's multiplier raised:
+
+```
+$ gdp-wired-check meter.json
+meter.json: accepted (stepLaws, by kernel.ts checkStepLaws)
+  accepted  take_result is a value of its kind
+  accepted  cap <= 0 → used <= 0
+  accepted  0 <= cap → used <= cap
+  accepted  take_result is no → 0 <= used
+  accepted  take_result is yes → 1 <= used
+  accepted  never past the cap
+$ gdp-wired-check tampered.json
+tampered.json: refused (stepLaws, by kernel.ts checkStepLaws)
+  refused   take_result is a value of its kind: take_result is a value of its kind @step: its tree doesn't refute it
+  ...
+  refused   never past the cap: take_result is a value of its kind @step: its tree doesn't refute it
 ```
 
 The conformance runs are in `interchange/` (capture.ts takes every certificate a suite run hands the kernel, verify.ts

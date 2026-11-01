@@ -28,6 +28,11 @@ const failing = (goals: () => Goal[], trees: Record<string, Tree>): string | und
 const all = (names: string[], r: {ok: boolean, why?: string}, why?: () => string | undefined): Claim[] =>
   (names.length ? names : ['(no claims)']).map(name => ({name, accepted: r.ok, ...(r.ok ? {} : {why: r.why ?? why?.() ?? 'refused'})}))
 
+// The kernel's entry point that decides each kind (docs/interchange.md's table), named in the CLI's verdict.
+export const decidedBy = {goals: 'kernel.ts check', qgoals: 'kernel.ts checkQTree', laws: 'kernel.ts checkLaws', stepLaws: 'kernel.ts checkStepLaws', kInduction: 'kernel.ts checkKInduction',
+  progress: 'kernel.ts checkLaws, progressObligations', liveness: 'kernel.ts livenessParts, checkStepLaws', loop: 'kernel.ts loopObligations', recur: 'kernel.ts checkRecur',
+  fold: 'kernel.ts foldObligations', cyclic: 'cyclic.ts refuseCyclic', qmachine: 'kernel.ts checkQMachine', termination: 'cyclic.ts refuseCyclic'} satisfies Record<Certificate['kind'], string>
+
 // The kernel's verdict on a certificate, for each thing it claims.
 export function checkCertificate(c: Certificate): Claim[] {
   switch (c.kind) {
@@ -107,3 +112,6 @@ export function goalsOf(c: Certificate): Certificate {
   }
 }
 export type {Json}
+// (the format's reader and writer, beside the checker, for `gdp-wired/interchange`)
+export {fromInterchange, toInterchange}
+export type {Certificate, Document}
