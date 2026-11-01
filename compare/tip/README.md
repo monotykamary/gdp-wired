@@ -40,6 +40,13 @@ Vampire; gdp-wired isn't given them.
 
 ### Termination through guarded size laws (gen/laneZ)
 
+On gen/tip-int (gen/laneZ with gen/laneK2 c60d61c: main f84978d's gen/laneM, gen/laneN, K2's ring measures), 60 s,
+`--only tip --together` against c60d61c (`runs/bar/runs/tipint-9dbd29e-tip1..3` in the main checkout): proven 210, 210,
+208 against 210, 211, 207; refused 61, 62, 62 against 74, 73, 73; wrong 0; gained 0 and lost 0 solid. The admissions
+of all three lanes hold (`ssort` 8, `nat_NMSortTD` 4, `bmerge` and `bsort` 8, the Peano heap sorts 8, `models` 5:
+`solve.ts --translate-only`, each translated). Here the size laws' step runs first (M's halving law alone takes
+`bsort`'s call), the guarded route after it; an inner call's guarded law before the outer guard that reads it.
+
 The bar on boat, 60 s, `--only tip` (`runs/bar/runs/laneZ-23c27f0-tip1..3` in the main checkout: this branch at 23c27f0
 against main 35ed7e0's shared baseline of 3 runs):
 
