@@ -40,7 +40,7 @@ Vampire; gdp-wired isn't given them.
 
 ### Termination through halves and the user's ≤ (gen/laneM)
 
-Three runs of this branch (9eab167's search, `runs/m/tipc1..3` in its worktree) against main 35ed7e0's shared baseline
+Three runs of this branch (6044b83, `runs/m/tipc1..3` in its worktree) against main 35ed7e0's shared baseline
 of three (`runs/bar/base/35ed7e005bc2-boat-r1/tip`), boat, 60 s:
 
 | theorems (492) | proven, by run | refused (unsupported) | refuted | wrong |
