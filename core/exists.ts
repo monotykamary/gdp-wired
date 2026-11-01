@@ -438,6 +438,52 @@ function provenanceOf(m: Machine, mp2: string, val2: string, taken: Set<string>,
   const inv: Law = {name: `${gname} where ${mp2} is set`, forall: ks[0]!, ...(ks.length > 1 ? {keys: ks.slice(1)} : {}), holds: {op: 'or', xs: [{op: 'not', x: {op: '<=', a: k(1), b: {op: 'get', map: mp2, key: K2}}}, says.length === 1 ? says[0]! : {op: 'and', xs: says}]}}
   return {name: gname, write: {key: w2.key, value: {op: 'if', c: set2, then: v(val2), else: G(w2.key)}}, inv}
 }
+// The writes that set a map's cell from 0: the cell as a term of the request alone and the condition it is set under, a
+// write at one key (its key), or at every key where its value reads `each = τ`, τ over the request alone.
+function settersOf(m: Machine, mp: string): {at: E, set: C}[] {
+  const w = m.step.maps?.[mp]
+  if (!w) return []
+  const flags = Object.fromEntries(Object.keys(m.step.flags ?? {}).map(f => [f, {op: 'flag', name: f} as C]))
+  const setAt = (val: E): C => substC({op: '<=', a: k(1), b: val}, {vars: {}, maps: {[mp]: () => k(0)}, flags})
+  const reqOnly = (t: E) => !readsMaps(t) && namesOf(t).length > 0 && namesOf(t).every(n => m.inputs.includes(n))
+  if (!('each' in w)) return reqOnly(w.key) ? [{at: w.key, set: setAt(w.value)}] : []
+  const ats = new Map<string, E>()
+  walk(w.value, o => { if (o.op === '=') for (const [a, b] of [[o.a, o.b], [o.b, o.a]] as [E, E][]) if (a.op === 'var' && a.name === w.each && reqOnly(b)) ats.set(key(b), b) })
+  return [...ats.values()].map(at => ({at, set: setAt(substVarsE(w.value, {[w.each]: at}))}))
+}
+// Ghost maps for a law about one key with several bound names (a disjunction of ∃s, each name in its own disjuncts): for
+// each name, a write that sets a cell the law reads at a key holding the name: the name the request's value the write's
+// key holds there (Owner[N·k + x] set at N·k + n: x is n), or the cell itself (TransferMsg[z] set at τ: z is τ, the
+// law's key one input of τ and each other a ghost map at it: G[k] := n where the cell is set). Each name a term over the
+// ghosts (kernel.ts's someOfGhostsOk reads them so); every choice of one a name, at most 64.
+function binderGhostsOf(m: Machine, law: Law, taken: Set<string>): {maps: Ghosted['maps'], sub: Record<string, E>}[] {
+  const L = law.forall!, xs = law.some!
+  if (law.keys?.length || xs.some(x => x.endsWith('$neg'))) return []
+  const options = xs.map((x, jx) => {
+    const out: {maps: Ghosted['maps'], term: E}[] = [], reads: {mp: string, at: E}[] = []
+    walk(law.holds, o => { if (o.op === 'get' && namesOf(o.key as E).includes(x)) reads.push({mp: o.map as string, at: o.key as E}) })
+    for (const {mp, at: kappa} of reads) for (const {at: tau, set} of settersOf(m, mp)) for (const ki of namesOf(tau)) {
+      const ghostOf = (i: string): [string, Ghosted['maps'][string]] => {
+        let name = `${mp}$${i}${jx || ''}`
+        for (let j = 2; taken.has(name); j++) name = `${mp}$${i}${jx || ''}~${j}`
+        return [name, {start: 0, write: {key: v(ki), value: {op: 'if', c: set, then: v(i), else: {op: 'get', map: name, key: v(ki)}}}}]
+      }
+      const others = namesOf(tau).filter(i => i !== ki)
+      if (kappa.op === 'var' && kappa.name === x) {
+        const gs = others.map(i => [i, ghostOf(i)] as const)
+        out.push({maps: Object.fromEntries(gs.map(([, q]) => q)), term: substVarsE(tau, {[ki]: v(L), ...Object.fromEntries(gs.map(([i, q]) => [i, {op: 'get', map: q[0], key: v(L)} as E]))})})
+      } else for (const i of others) {
+        if (key(substVarsE(kappa, {[L]: v(ki), [x]: v(i)})) !== key(tau)) continue
+        const q = ghostOf(i)
+        out.push({maps: {[q[0]]: q[1]}, term: {op: 'get', map: q[0], key: v(L)}})
+      }
+    }
+    return out
+  })
+  let combos: {maps: Ghosted['maps'], sub: Record<string, E>}[] = [{maps: {}, sub: {}}]
+  xs.forEach((x, j) => { combos = combos.flatMap(c => options[j]!.map(o => ({maps: {...c.maps, ...o.maps}, sub: {...c.sub, [x]: o.term}}))).slice(0, 64) })
+  return combos
+}
 type MapGhost = {name: string, write: {key: E, value: E}, at: E, inv: Law, holds: C, inner?: {name: string, write: {key: E, value: E}, inv: Law}}
 function mapGhostsOf(m: Machine, law: Law, taken: Set<string>): MapGhost[] {
   const x = law.some![0]!, names = [law.forall!, ...(law.keys ?? [])]
@@ -492,7 +538,7 @@ export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Mach
   type Part = {name: string, write: MapGhost['write']}
   const parts: Part[] = [], one = (m2: Machine, q: Part): Ghosted => ({orig: m2, vars: {}, maps: {[q.name]: {start: 0, write: q.write}}})
   const ghost = (m2: Machine, more: Part[] = []) => [...parts, ...more].reduce((acc, q) => ghostedMachine(one(acc, q)), m2)
-  const plains: Record<string, {plain: Law, sub: Record<string, E>}> = {}
+  const plains: Record<string, {plain: Law, sub: Record<string, E>}> = {}, witnesses: Record<string, string> = {}
   const own = (g: MapGhost): Part[] => [...(g.inner ? [g.inner] : []), g]
   for (const l of laws) {
     if (!l.some?.length) { out.push(l); continue }
@@ -502,19 +548,30 @@ export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Mach
     const binders = new Set<string>()
     walk(l.holds, o => { if (o.op === 'all') for (const b of [o.key, ...((o.keys as string[] | undefined) ?? [])] as string[]) binders.add(b) })
     if (l.some.some(x => [...m.params, ...m.inputs, ...Object.keys(m.state)].includes(x)) || [l.forall, ...(l.keys ?? [])].some(x => binders.has(x))) return undefined
+    const {some: _s, ...plain} = l
+    void _s
+    // (several bound names (a disjunction of ∃s): each a term over ghost maps, binderGhostsOf's, the first whose plain law
+    // holds on the small instances)
+    if (l.some.length > 1) {
+      const holdsOf = (sub: Record<string, E>) => substC(l.holds, {vars: sub, maps: {}, flags: {}})
+      const c = binderGhostsOf(m, l, taken).find(c2 => { try { return trueSmall(m, [{...plain, holds: holdsOf(c2.sub)}], ghost(m, Object.entries(c2.maps).map(([name, w]) => ({name, write: w.write as Part['write']})))) } catch { return false } })
+      if (!c) return undefined
+      for (const [name, w] of Object.entries(c.maps)) { parts.push({name, write: w.write as Part['write']}); taken.add(name) }
+      out.push({...plain, holds: holdsOf(c.sub)})
+      plains[l.name] = {plain: {...plain, holds: holdsOf(c.sub)}, sub: c.sub}
+      witnesses[l.name] = [...l.some.map(x => `${x} = ${showE(c.sub[x]!)}`), ...Object.entries(c.maps).map(([name, w]) => { const u = w.write as Part['write']; return `${name}[${showE(u.key)}] := ${showE(u.value)}` })].join(', ')
+      continue
+    }
     const g = mapGhostsOf(m, l, taken).find(c => { try { return trueSmall(m, [...(c.inner ? [c.inner.inv] : []), c.inv, {...l, holds: c.holds, some: undefined}], ghost(m, own(c))) } catch { return false } })
     if (!g) return undefined
     gs.push(g); parts.push(...own(g)); for (const q of own(g)) taken.add(q.name)
-    const {some: _s, ...plain} = l
-    void _s
     out.push({...plain, holds: g.holds}, ...(g.inner ? [g.inner.inv] : []), g.inv)
     plains[l.name] = {plain: {...plain, holds: g.holds}, sub: {[l.some[0]!]: {op: 'get', map: g.name, key: g.at}}}
+    witnesses[l.name] = `w = ${g.name}[${showE(g.at)}], ${g.name}[${showE(g.write.key)}] := ${showE(g.write.value)}`
   }
-  const witnesses: Record<string, string> = {}
-  laws.filter(l => l.some?.length).forEach((l, i) => { const g = gs[i]!; witnesses[l.name] = `w = ${g.name}[${showE(g.at)}], ${g.name}[${showE(g.write.key)}] := ${showE(g.write.value)}` })
   // (each ghost one of the machine it is added to, as kernel.ts's ghostedOk reads it)
   const ok = (m2: Machine) => { let at = m2; for (const q of parts) { const o = one(at, q); if (!ghostedOk(o)) return false; at = ghostedMachine(o) } return true }
-  return gs.length ? {ghost: m2 => ghost(m2), laws: out, ok, witnesses, maps: Object.fromEntries(parts.map(q => [q.name, {start: 0, write: q.write}])), plains} : undefined
+  return parts.length ? {ghost: m2 => ghost(m2), laws: out, ok, witnesses, maps: Object.fromEntries(parts.map(q => [q.name, {start: 0, write: q.write}])), plains} : undefined
 }
 const firstPicks = new Map<string, {mode: 'term', at: number[]} | {mode: 'map', at: number}>()
 // The machine with a ghost map (kernel.ts's ghostedMachine of Ghosted, whose ghostedOk it must pass).
