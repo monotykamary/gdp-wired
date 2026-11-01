@@ -326,6 +326,34 @@ untrusted construction of the plain law from the ∃ law. Now:
   against 23; quick bar (<main>/runs/bar/runs/laneY4trust-de5982d-quick/REPORT.md) wrong 0, nothing lost solid, dag the
   same search on 332 of 332; +3,185 bytes in core/ and kernel/.
 
+### gen/laneY4, continued (on main 55eafec, gen/laneY4-trust merged): no_lost_keys proven
+
+- **The supports** (core/exists.ts `ghostSupports`, for a law made plain by binderGhostsOf): each ghost below the bound the
+  assumption puts on the input it holds (Owner$n[k] < 64); each disjunct with its names at their terms under one or two
+  control facts (a scalar at a value seen on the small instances, a cell at the law's key of a map written at one
+  input's key), the pairs of facts on one subject left out; each map empty while a scalar holds a value. Those the small
+  instances keep (no_lost_keys: 6 of them), then a Houdini before the engine (core/dsl.ts, within half of what is left:
+  each proven with the rest assumed, the failing dropped), the set through `back` with proveLaws (proveSetFast on this
+  set did not return in 10 minutes; proveLaws 2.7-4.3 s). research/protocols/ic3syn/nlkprobe.ts: the same five supports
+  written by hand, proven of the ghosted machine in 2.7 s.
+- **back()'s machine check up to bound names** (`sameMachine`): the rule makes fresh names for the keys its quantified
+  flags and writes at every key bind each time its machine is read (k$51 against k$57), so JSON equality refused
+  no_lost_keys's (firewall's machine has none). Each bound name is renamed by its place of first binding.
+- **The laws as given**: an eighth of the budget where a law with "there exists" binds several names (proveSome gives a
+  ghost map to one bound name alone), half where it binds one (a quarter cut client_server_ae's own proof on a slow VM).
+- **Lean end to end**: no_lost_keys's law, two bound names, `gh0_ex0` through forall_some_of_ghostsubst (ghosted-lean.ts
+  `subst`): lean-exit 0 in 30 s, no sorry, propext, Classical.choice, Quot.sound.
+- **db_ae**: the same supports on one-binder laws (behind a switch, since removed) gave db_ae bounds and empty maps only;
+  its set was not proven, and firewall took 20 s more: not kept. db_ae stays open (no diagram).
+- **Gates** (3500f51 against 55eafec, same window, 2 runs; then f56cd1d, no_lost_keys, client_server_ae and firewall 4
+  runs each): no_lost_keys proven in 5 of 6 (15.6-38.4 s; the one unknown before the eighth: its laws as given took 30 s
+  on a slow VM); IC3Syn within 60 s in every run 21 against 22 (consensus_forall once at 152 s and firewall at 47-50 s on
+  large VMs, the counted work the same as main's), in some run 24 against 22; DuoAI ten 27/30 both (ticket_lock);
+  firewall unknown once in 4 at 71 s (a large VM: the engine at 38 s against 12-20 s, then the tail past the wall).
+  Quick bar (<main>/runs/bar/runs/laneY4-3500f51-quick/REPORT.md): wrong 0, nothing lost solid, dag the same search on
+  332 of 332. count.test.ts 61/61, exists.test.ts 12/12. Bytes against 55eafec: +13,580 (core/exists.ts +7,597,
+  core/dsl.ts +3,818, kernel/kernel.ts +2,165), of which the trust branch's +3,185.
+
 ### gen/laneY4 (round 4, on main 479a22a): supports with "there exists", Lean first; no_lost_keys's ghosts found, its supports not yet
 
 - **Lean** (lean-kernel/GhostMap.lean, `forall_some_of_ghostsubst`; propext, Classical.choice, Quot.sound): a law of the
