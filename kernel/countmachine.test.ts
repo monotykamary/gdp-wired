@@ -388,6 +388,27 @@ describe('picks: a count at least its body at distinct keys', () => {
     for (const picks of [[['r0', [n(-1), x('b')]]], [['r0', 'a#']], [[7, [x('b')]]], {}] as unknown as [string, E[]][][])
       expect(checkCountedLaws(pe.m, pe.laws, {instances: pe.instances, certs: {...certs, [stepName]: {...certs[stepName]!, picks}}})).toBe(false)
   })
+  test('adversarial picks: terms equal but written apart, past the bound, of a count before the step', () => {
+    const certs = countedProof(pe.m, pe.laws, pe.instances, pe.certs), mem = (k: E) => same(get('S', k), n(1)), aa = x('a#'), bb = x('b')
+    const tryLaw = (m: Machine, law: Law, picks: [string, E[]][], reads: MapRead[] = [['r0', 'c#', n(0)]]) => {
+      const ls = [law], inst = {[law.name]: {}}, named = {[`${law.name} @start`]: {reads: [] as MapRead[], insts: [] as CountInst[]}, [`${law.name} @step`]: {reads, insts: [] as CountInst[], picks}}
+      const g = countedObligations(m, ls, inst).find(o => o.goal.name.endsWith('@step'))!
+      expect(grow(mcGoal(g.goal.hyps, g.decls, named[`${law.name} @step`]!)!, new Map(), {nodes: 0, until: clock() + 5_000})).not.toHaveProperty('tree')
+      expect(searchCounted(m, ls, 3_000).proven).toBe(false)
+    }
+    // one member, its key written twice (b and b + 0): the guard reads them equal, so no bound
+    const oneTwice: Law = {name: 'one member counts two', forall: 'a', keys: ['b'], holds: any(not(all(mem(x('a')), same(x('a'), plus(x('b'), n(0))), less(x('a'), x('size')))), atMost(n(2), get('c', n(0))))}
+    tryLaw(pe.m, oneTwice, [['r0', [aa, plus(bb, n(0))]], ['r0', [aa, bb]]])
+    // a count of the keys below 1: two members are past its bound
+    const m1: Machine = {...pe.m, counts: {...pe.m.counts, c1: {j: 'x1', key: 'n1', below: n(1), body: ite(mem(x('n1')), n(1), n(0))}}}
+    const past: Law = {name: 'two members count two below 1', forall: 'a', keys: ['b'], holds: any(not(all(mem(x('a')), mem(x('b')), not(same(x('a'), x('b'))), less(x('a'), x('size')), less(x('b'), x('size')))), atMost(n(2), get('c1', n(0))))}
+    tryLaw(m1, past, [['r0', [aa, bb]]], [['r0', 'c1#', n(0)]])
+    // the pick of the count before the step, where the law reads the count after it
+    const k = {...pe.certs[stepName]!, reads: [['r0', 'c#', n(0)], ['r1', 'c', n(0)]] as MapRead[], picks: [['r1', [aa, bb]]] as [string, E[]][]}
+    const g = countedObligations(pe.m, pe.laws, pe.instances).find(o => o.goal.name === stepName)!
+    expect(grow(mcGoal(g.goal.hyps, g.decls, k)!, new Map(), {nodes: 0, until: clock() + 5_000})).not.toHaveProperty('tree')
+    expect(checkCountedLaws(pe.m, pe.laws, {instances: pe.instances, certs: {...certs, [stepName]: {...certs[stepName]!, ...k}}})).toBe(false)
+  }, 120_000)
   test('the count picked at the keys the goal reads: a law over a count read once proven by the search', () => {
     const c = searchCounted(pe.m, pe.laws, 10_000)
     expect(c.proven).toBe(true)
