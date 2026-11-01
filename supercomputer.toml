@@ -11,7 +11,10 @@ prefix = "gdpw"
 final_prefix = "sc"
 image_salt = "gdpw-image-v1"
 vm_type = "large"
-path = ["~/.bun/bin", "~/.elan/bin"]
+# (the image's toolchains first: Temurin 17 before the system's javac 11, solc and anvil, swift; core/'s JVM tests
+# failed on boat (16, javac 11), its Solidity and Swift tests and cli's Java, Kotlin and Swift cases were skipped)
+path = ["~/.bun/bin", "~/.elan/bin", "/usr/lib/jvm/temurin-17/bin", "/opt/sol", "/opt/foundry", "/opt/swift/usr/bin"]
+env = { JAVA_HOME = "/usr/lib/jvm/temurin-17" }
 mounts = ["/bench", "/smt", "/vamp", "/sv"]
 ignore = ["vendor/handwired/lab/recovery-*/**", "**/*.olean", "**/*.ilean", "**/*.c", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal",
           "private/**", "vendor/handwired/lab/ui-exploration/**", "vendor/handwired/lab/knuth-plass/**", "vendor/handwired/assets/**", "vendor/handwired/tests/**",
