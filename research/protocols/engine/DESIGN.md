@@ -519,6 +519,22 @@ so 2·inS > inX holds with one count each and the majority check passes for a se
 count at least the number of distinct keys its body holds at (count ≥ body(k1) + body(k2) for k1 ≠ k2, Count.lean's sum
 split at two keys). Sent to C3 through the coordinator. Nothing in core/ on this branch.
 
+### gen/laneY6 on C3's 855bfbe (picks): the probe again
+
+Still refused, every law (1,249 s). The pass-1 model for one primary per term is now count-consistent where counts are
+read (size 5, inX = 4, inS = 3, the picks tying them to S's and config's cells): become_leader at term 2 by i = 1 with
+three voters of a four-member config, while another server (key$3) is primary at term 2 with config term 2. Endive's
+proof refutes this with "every quorum at a config term, or disabled" at (config of i, key$3): the voters all have
+CT <= 1 < 2, so low[1·N + key$3] >= 3 and 2·3 > |config[1]| = 4, and the config is not disabled (the voters are not
+newer than i's config, so old[1] >= 3). But the goal reads none of low, old, cfgSize, xm, xn: that law's instance at
+(1, key$3) is not in the goal. modelInstances asks for a law's instance where the model breaks it at a tuple of the
+goal's keys, and in this model the law holds there, because the counts it reads are no cells of the model and are read
+as 0: disabled(1) is 2·0 <= 0, true, so the law is satisfied and nothing is asked. What would put the keys there: when
+modelInstances evaluates a law at a tuple, a count the model has no cell for evaluated from its definition over the
+model's cells (its body summed over the keys below its bound, the picks' reading), not as 0; then "disabled" is false
+here, the law broken at (1, key$3), and its instance asked with its counts, whose picks C3's 855bfbe then supplies.
+Sent to C3 through the coordinator.
+
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
 
 Held: the lazy hypotheses (kernel/prove.ts) cost the step goals time (g332 391 s against 354) and read 18 against 20 at
