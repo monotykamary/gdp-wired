@@ -33,6 +33,8 @@ first:
           the day at FUZZ_PER_DAY seeds a kind (3,000) and XFUZZ_PER_DAY a reader (48) on the floor; the fill of the pool
           past the floor yields them (its VMs run filler through their hold, never idle). A failed fuzz run is filed as
           soundness (an alert), coverage (a harness bug) or infra (no test failed; run once more): fuzz_class.
+          A soundness failure runs again at the newest main and stays an alert only if it fails there too; else it is
+          listed as fixed at that commit: fuzz_status.
   (the knobs: GDPW_TM_<NAME> in the environment: SPEED_PER_DAY, IC3_PER_DAY, RW_PER_DAY, TEN_PER_DAY, SLOWER, FLOOR_S, TEN_RUNS, FUZZ_PER_DAY,
   XFUZZ_PER_DAY, XFUZZ_EVERY, PAIR_TOP, PAIRS_MAX, REVISIT, STAGES, PLAN_MAX)
   ideas   a lane's or terra's "knobs K on tasks S at budget B" (`idea`), the submission class, cached like the rest.
@@ -1174,6 +1176,25 @@ def fuzz_class(code: int, out: str) -> str:
     return "coverage" if all(e.startswith("COVERAGE") for e in errs) else "soundness"
 
 
+def fuzz_status(rows: list[dict], failed: set) -> dict:
+    """For each (kind, seed) of `failed` (a day's soundness failures), its standing from every run of that seed:
+    'fixed' when its latest run passes at another commit than its failures' (re-run there at the newest main), else
+    'unsound' (its latest run fails) or 'pending' (no run since but the failing ones). Each with the latest failing
+    row, or for 'fixed' the passing one, and `first`: the commit it first failed at."""
+    out = {}
+    for key in failed:
+        runs = sorted((r for r in rows if (r["kind"], r["seed"]) == key), key=lambda r: r["t"])
+        bad = [r for r in runs if r["code"] != 0 and fuzz_row_class(r) == "soundness"]
+        if not bad:
+            continue
+        last, first = runs[-1], bad[0]["commit"]
+        if last["code"] == 0 and last["commit"] not in {r["commit"] for r in bad}:
+            out[key] = ("fixed", {**last, "first": first})
+        else:  # (failing again at a later main is unsound; failing only where it first did, its re-run pending)
+            out[key] = ("unsound" if any(r.get("recheck") for r in bad) else "pending", {**bad[-1], "first": first})
+    return out
+
+
 def fuzz_row_class(r: dict) -> str:
     """A row's class; a row from before the classes (no "class", no COVERAGE label in its tests) by the reading the
     digest had then: UNSOUND thrown is soundness, no error is infra, any other a count a test expects (coverage)."""
@@ -1332,6 +1353,21 @@ class Soundness:
             cwd, cmd = FUZZ[k]
             items.append(sh_item(f"{k}-fuzz-{s}-again", cmd.format(s=s), cwd, 900, 60))
             kinds.append((k, s))
+        # (a soundness failure run again at the newest main, this commit, once it is past the failing one: fuzz_status)
+        recheck = st.setdefault("fuzz_recheck", [])
+        if not st.get("fuzz_recheck_seeded"):  # (once: the failures recorded before the re-runs, still standing)
+            rows = jl(TM / "fuzz.jsonl")
+            for (k, sd), (st_, r) in fuzz_status(rows, {(r["kind"], r["seed"]) for r in rows if r["code"] != 0 and fuzz_row_class(r) == "soundness"}).items():
+                if st_ != "fixed" and [k, sd, r["commit"]] not in recheck:
+                    recheck.append([k, sd, r["commit"]])
+            st["fuzz_recheck_seeded"] = True
+        for k, s, failed in [x for x in recheck if x[2] != self.commit]:
+            if len(items) >= n:
+                break
+            recheck.remove([k, s, failed])
+            cwd, cmd = FUZZ[k]
+            items.append(sh_item(f"{k}-fuzz-{s}-recheck", cmd.format(s=s), cwd, 900, 60))
+            kinds.append((k, s))
         while len(items) < n and (open_kinds or open_langs):
             s = st["seed"] = st.get("seed", 1000) + 1
             if open_langs and (s % XFUZZ_EVERY == 0 or not open_kinds):
@@ -1379,13 +1415,17 @@ class Soundness:
                     if m:
                         log(f"XFUZZ: {k[2:]} seed {s} at {self.commit[:12]}: the rule and the code differ: {m.group(1)[:200]}")
                     continue
-                cls, rerun = fuzz_class(code, out), it["name"].endswith("-again")
+                cls, rerun, recheck = fuzz_class(code, out), it["name"].endswith("-again"), it["name"].endswith("-recheck")
                 append(TM / "fuzz.jsonl", {"t": time.time(), "commit": self.commit, "kind": k, "seed": s, "code": code,
-                                           **({"class": cls, "tail": out[-1500:]} if code != 0 else {}), **({"again": True} if rerun else {})})
+                                           **({"class": cls, "tail": out[-1500:]} if code != 0 else {}), **({"again": True} if rerun else {}), **({"recheck": True} if recheck else {})})
                 if code != 0:
-                    log(f"{FUZZ_LOG[cls]}: {k} seed {s} at {self.commit[:12]} (exit {code})" + (" (its second run)" if rerun else ""))
+                    log(f"{FUZZ_LOG[cls]}: {k} seed {s} at {self.commit[:12]} (exit {code})" + (" (its second run)" if rerun else " (run again at the newest main)" if recheck else ""))
+                elif recheck:
+                    log(f"FUZZ FIXED: {k} seed {s} passes at {self.commit[:12]}")
                 if cls == "infra" and not rerun:
                     self.tm.state.setdefault("fuzz_again", []).append([k, s])
+                if cls == "soundness" and [k, s, self.commit] not in self.tm.state.setdefault("fuzz_recheck", []):
+                    self.tm.state["fuzz_recheck"].append([k, s, self.commit])
         label = f"sound {self.commit[:12]}"
         return Batch(self.tm, label, "b", items, vms, tracked(self.tm, "sound", label, on_row), root=self.tree, after=after)
 
@@ -1724,9 +1764,14 @@ def report(day: str) -> dict:
     fz = [r for r in jl(TM / "fuzz.jsonl") if on(day, r["t"])]
     bad = [r for r in fz if r["code"] != 0]
     by_class = {c: [r for r in bad if fuzz_row_class(r) == c] for c in ("soundness", "coverage", "infra")}
-    unsound = by_class["soundness"]  # (only these are alerts: coverage and infra are the harness's and boat's)
+    # (only soundness failures are alerts, coverage and infra are the harness's and boat's; and of those only the ones
+    # that still fail where the seed ran last: one that passes at a later main is listed as fixed there)
+    status = fuzz_status(jl(TM / "fuzz.jsonl"), {(r["kind"], r["seed"]) for r in by_class["soundness"]})
+    unsound = [r for (k, sd), (st_, r) in status.items() if st_ != "fixed"]
+    fixed = [(k, sd, r["first"], r["commit"]) for (k, sd), (st_, r) in status.items() if st_ == "fixed"]
     for r in unsound:
-        alerts.append({"kind": "soundness", "what": f"UNSOUND: {r['kind']} fuzz seed {r['seed']} at {r['commit'][:12]}: {first_error(r) or 'exit ' + str(r['code'])}"})
+        alerts.append({"kind": "soundness", "what": f"UNSOUND: {r['kind']} fuzz seed {r['seed']} at {r['commit'][:12]}" + (f" (first at {r['first'][:12]})" if r["first"] != r["commit"] else "")
+                       + (" (a run at the newest main pending)" if status[(r["kind"], r["seed"])][0] == "pending" else "") + f": {first_error(r) or 'exit ' + str(r['code'])}"})
     xz = [r for r in jl(TM / "xfuzz.jsonl") if on(day, r["t"])]
     for r in [r for r in xz if r.get("differ")]:
         alerts.append({"kind": "soundness", "what": f"extractor correspondence: {r['lang']} seed {r['seed']} at {r['commit'][:12]}: the rule and the code differ: {r['differ'][:160]}"})
@@ -1839,7 +1884,7 @@ def report(day: str) -> dict:
     ideas = [json.loads(p.read_text()) for p in (TM / "subs").glob("*/meta.json")] if (TM / "subs").exists() else []
     ideas = [m for m in ideas if m.get("config") and on(day, m.get("t_done", m["t"]))]
     sound = {"fuzz": {k: sum(1 for r in fz if r["kind"] == k) for k in FUZZ}, "fuzz_failed": {c: [(r["kind"], r["seed"], r["code"], first_error(r)) for r in rs] for c, rs in by_class.items()},
-             "unsound": len(unsound), "xfuzz": {l: sum(1 for r in xz if r["lang"] == l) for l in XFUZZ}, "xfuzz_tests": sum(r.get("pass", 0) for r in xz),
+             "unsound": len(unsound), "fuzz_fixed": fixed, "xfuzz": {l: sum(1 for r in xz if r["lang"] == l) for l in XFUZZ}, "xfuzz_tests": sum(r.get("pass", 0) for r in xz),
              "xfuzz_idle": sorted({r["lang"] for r in xz if r["code"] == 0 and "pass" in r and not r["pass"]}), "xfuzz_failed": [(r["lang"], r["seed"], r["code"], first_error(r)) for r in xz if r["code"] != 0],
              "mutants": len(mt), "survived": len(surv), "equivalent": sum(1 for r in surv if r["equivalent_now"]), "new_survivors": len(new_surv),
              "stale_survivors": sum(1 for r in surv if not r["equivalent_now"] and r["sig"] not in standing),
@@ -1936,7 +1981,8 @@ def sections(day: str) -> list[str]:
     s = R["soundness"]
     out += ["", "## Soundness",
             f"- fuzz: {sum(s['fuzz'].values())} seeds ({', '.join(f'{k} {v}' for k, v in s['fuzz'].items())}), {s['unsound']} unsound (alerts), "
-            f"{len(s['fuzz_failed']['coverage'])} coverage failures (a harness bug: a count a test expects at its seed), {len(s['fuzz_failed']['infra'])} infrastructure crashes (no test failed)"]
+            f"{len(s['fuzz_failed']['coverage'])} coverage failures (a harness bug: a count a test expects at its seed), {len(s['fuzz_failed']['infra'])} infrastructure crashes (no test failed)"
+            + (", fixed: " + "; ".join(f"{k} {sd} (failed at {a[:12]}, passes at {b[:12]})" for k, sd, a, b in s["fuzz_fixed"]) if s.get("fuzz_fixed") else "")]
     for c, what in (("coverage", "coverage"), ("infra", "infrastructure")):
         if s["fuzz_failed"][c]:
             out.append(f"  - {what}: " + "; ".join(f"{k} {sd} ({e or 'exit ' + str(code)})" for k, sd, code, e in s["fuzz_failed"][c][:4]) + (f"; ... {len(s['fuzz_failed'][c]) - 4} more" if len(s["fuzz_failed"][c]) > 4 else ""))

@@ -70,7 +70,8 @@ class FillYields(unittest.TestCase):
         s = object.__new__(tm.Soundness)
 
         class TM:
-            state, batches, chains = {}, [], {"fuzz", "xfuzz", "mutants"}
+            # (no soundness failure waiting for its re-run at the newest main: FuzzRecheck has those)
+            state, batches, chains = {"fuzz_recheck_seeded": True}, [], {"fuzz", "xfuzz", "mutants"}
 
             def save_state(self):
                 pass
@@ -122,6 +123,27 @@ class SpeedByWork(unittest.TestCase):
         self.assertEqual(tm.by_work([1000], [60_000 * tm.FULL_PER_MS], False), "lost")  # (its whole budget spent, no answer)
         self.assertEqual(tm.by_work([], [5], True), "unmeasured")
         self.assertTrue(tm.rw_lost([]))  # (a change row from before the counters: a loss, as it was read then)
+
+
+# The five UNSOUND cdcl seeds of 1 Nov's digest, all at a00fcee, before gen/laneD2's reader fix (main since 75c1171):
+# their rows as fuzz.jsonl holds them (the tails cut), and each seed run again at the newest main.
+A00, D2 = "a00fcee2960518d1b61f05f4a2283fc18966b652", "75c1171"
+FIVE = [{"t": t, "commit": A00, "kind": "cdcl", "seed": sd, "code": 1, "class": "soundness", "tail": "(fail) the CDCL search's trees check, and refutes only goals with no model"}
+        for t, sd in ((1793493727.47, 63373), (1793494151.15, 65377), (1793494585.63, 70621), (1793494593.05, 70990), (1793494595.57, 71551))]
+
+
+class FuzzRecheck(unittest.TestCase):
+    def test_fixed_at_the_newest_main(self):
+        again = [{"t": r["t"] + 7200, "commit": D2, "kind": "cdcl", "seed": r["seed"], "code": 0, "recheck": True} for r in FIVE]
+        status = tm.fuzz_status(FIVE + again, {("cdcl", r["seed"]) for r in FIVE})
+        self.assertEqual({k: v[0] for k, v in status.items()}, {("cdcl", r["seed"]): "fixed" for r in FIVE})
+        self.assertTrue(all(v[1]["first"] == A00 and v[1]["commit"] == D2 for v in status.values()))
+
+    def test_pending_then_still_failing(self):
+        keys = {("cdcl", r["seed"]) for r in FIVE}
+        self.assertEqual({v[0] for v in tm.fuzz_status(FIVE, keys).values()}, {"pending"})
+        still = [{**FIVE[0], "t": FIVE[0]["t"] + 7200, "commit": D2, "recheck": True}]
+        self.assertEqual(tm.fuzz_status(FIVE + still, keys)[("cdcl", 63373)][0], "unsound")
 
 
 if __name__ == "__main__":
