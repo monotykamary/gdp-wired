@@ -3246,12 +3246,12 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   // Those the goal matches first, of those the ones of the law's shape (an implication for an implication) first, then
   // the fusions.
   const implication = (y: Y) => y.op === 'or' && y.xs.length === 2 && y.xs[0]!.op === 'not'
-  // (and of those, the ones that take a function the law reads at its top through a function the law doesn't read, which
-  // its definitions reach: count through insert, ordered through merge; the law's step reads them where an induction
-  // unfolds the law's functions)
+  // (and of those, the ones that take an observer the law reads at its top, a function to a natural or a Bool, through a
+  // function the law doesn't read, which its definitions reach: count through insert, ordered through merge; the law's
+  // step reads them where an induction unfolds the law's functions)
   const fnsIn = (y: unknown) => { const out = new Set<string>(); walk(y, o => { if (o.op === 'call') out.add(o.fn as string) }); return out }
   const inLaw = fnsIn(l.holds), lawY = implication(l.holds) ? (l.holds as {xs: Y[]}).xs[1]! : l.holds
-  const tops = new Set([...(lawY.op === '=' ? [lawY.a, lawY.b] : lawY.op === 'holds' ? [lawY.x] : [])].flatMap(x => (x.op === 'call' ? [x.fn] : [])))
+  const tops = new Set([...(lawY.op === '=' ? [lawY.a, lawY.b] : lawY.op === 'holds' ? [lawY.x] : [])].flatMap(x => (x.op === 'call' && !(fnOf(x.fn).ret instanceof Data) ? [x.fn] : [])))
   const under = (c: DataLaw) => { const fs2 = fnsIn(c.holds); return [...fs2].some(f => tops.has(f)) && [...fs2].some(f => !inLaw.has(f)) }
   const score = (c: DataLaw, hit: boolean) => (hit ? 8 : 0) + (under(c) ? 4 : 0) + (implication(c.holds) === implication(l.holds) ? 2 : 0) + (fusion(c.holds) ? 1 : 0)
   if (dataTrace) console.error(`[data] ${l.name}: ${cands.length} conjectures at ${Math.round(clock())} of ${Math.round(until)}${cands.map(c => `\n[data]   conjecture ${c.name.slice(0, 160)}`).join('')}`)
