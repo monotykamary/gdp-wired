@@ -323,14 +323,14 @@ function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = t
     return tree ? {tree, nodes: out.nodes} : undefined
   } finally { eprScope.busy = false }
 }
-// Wide goals (GDP_WIDE hypotheses or more: a law at every tuple of a goal's keys, a step's every write): each node of the
+// Wide goals (GDP_WIDE hypotheses or more, GDP_WIDE_TERMS terms: a law at every tuple of a goal's keys, a step's every write): each node of the
 // search reads every hypothesis' rows, so a goal of a thousand reaches neither a tree nor a model within its budget,
 // though its refutation reads one or two and a model of a few is a model of all. Grown first over a part: the
 // conclusion, then the hypotheses a model of the part breaks (the model read as a state: each cell at its key's value,
 // any other name 0), at most as many as the part has a round, those sharing a cell with the part first. A model that
 // breaks none is the goal's (every hypothesis holds at it); a tree is widened to the goal (`widen`), which the kernel
 // checks as any. Within a share of the goal's budget; anything else leaves the goal as before. Untrusted.
-const wideAt = Number(env.GDP_WIDE ?? 256), wideShare = Number(env.GDP_WIDE_SHARE ?? 0.25), wideTrace = !!env.GDP_WIDE_TRACE
+const wideAt = Number(env.GDP_WIDE ?? 256), wideTerms = Number(env.GDP_WIDE_TERMS ?? 40_000), wideShare = Number(env.GDP_WIDE_SHARE ?? 0.25), wideTrace = !!env.GDP_WIDE_TRACE
 let wideBusy = false
 // (while a part is grown: whether a point holds every hypothesis of the whole goal, read as a state; a node's point that
 // does is the whole's model, whatever atoms the part leaves open)
@@ -369,7 +369,11 @@ export const brokenOf = (goal: Goal): ((w: Record<string, number>, ids?: number[
 }
 // (`ask`: how a part is asked, a tree wanted by default; kernel/cdcl.ts's model-only queries ask for a model or a
 // refutation, whose core is the part's hypotheses, the whole's by index)
-export const wideFor = (goal: Goal): boolean => !wideBusy && goal.hyps.length >= wideAt
+// (and its terms, each shared part once, past GDP_WIDE_TERMS: what each node of the whole goal's search reads, where the
+// search is costly; under it the whole is asked as before, its model the search's own, which the engine's join reads)
+const termsSeen = new WeakMap<Goal, number>()
+const termsOf = (goal: Goal): number => { let n = termsSeen.get(goal); if (n === undefined) { n = 0; walkOnce(goal.hyps, () => { n!++ }); termsSeen.set(goal, n) } return n }
+export const wideFor = (goal: Goal): boolean => !wideBusy && goal.hyps.length >= wideAt && termsOf(goal) >= wideTerms
 export function growWide(goal: Goal, budget: {nodes: number, until?: number}, ask = (g: Goal, until: number): Outcome & {core?: number[]} => grow(g, new Map(), {nodes: 0, until})): (Outcome & {core?: number[]}) | undefined {
   const hyps = goal.hyps, last = hyps.length - 1, broken = brokenOf(goal), now = clock(), w = fullWork()
   const end = withinDeadline(budget.until ?? Infinity), span = wideShare * (end - now), room = wideShare * (workCap - w), until = now + span
