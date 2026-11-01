@@ -144,9 +144,9 @@ test('nested recursion refused where a call\'s value has no place to be read (a 
   const L2 = data('Lst2', {none: {}, more: {item: natural, rest: self}})
   const under: ReturnType<typeof define> = define('underCase', {xs: L2}, natural, ({xs}) => (xs as Val).match({none: () => 0, more: ({rest}) => under((rest as Val).match({none: () => L2.none, more: ({rest: r2}) => L2.more(under(r2), r2)}))}))
   expect(refusal(() => law('under', {xs: L2}, ({xs}) => (under(xs) as Nat).eq(0)))).toMatch(/nested recursion isn't taken there/)
-  // statedA (size(xs), size(xs)), statedB (size(xs)): read as (size(xs), 0), its call of statedA at xs lower by the second
-  const a: ReturnType<typeof define> = define('stated2A', {xs: L2}, natural, ({xs}) => (xs as Val).match({none: () => 0, more: ({rest}) => b(rest)}), {measure: ['xs', 'xs']})
-  const b: ReturnType<typeof define> = define('stated2B', {xs: L2}, natural, ({xs}) => a(xs), {measure: ['xs']})
+  // stated2A (size(xs)), read as (size(xs), 0), stated2B (size(xs), size(xs)): its call of stated2A at xs lower by the second
+  const a: ReturnType<typeof define> = define('stated2A', {xs: L2}, natural, ({xs}) => (xs as Val).match({none: () => 0, more: ({rest}) => b(rest)}), {measure: ['xs']})
+  const b: ReturnType<typeof define> = define('stated2B', {xs: L2}, natural, ({xs}) => a(xs), {measure: ['xs', 'xs']})
   expect(refusal(() => law('stated2', {xs: L2}, ({xs}) => (a(xs) as Nat).eq(0)))).toBeUndefined()
   expect([a.fn.termination!.measure.comps.length, b.fn.termination!.measure.comps.length]).toEqual([2, 2])
 }, 60_000)
