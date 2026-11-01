@@ -156,6 +156,11 @@ export function placed(file: string): string {
 export type FileURL = {readonly href: string, readonly protocol: string}
 export type Source = string | FileURL | {code: string, file?: string}
 const builtin = <T>(id: string): T => (globalThis as {process?: {getBuiltinModule?: (id: string) => unknown}}).process?.getBuiltinModule?.(id) as T
+// What a reader process that failed said it refuses: a line `gdp: refused: …` on its stderr (source it can't read: a
+// syntax error, nesting past its stack), or undefined where it said none (it didn't run: the tool is missing).
+export const statedRefusal = (e: unknown): string | undefined => /^gdp: refused: (.*)$/m.exec(String((e as {stderr?: unknown}).stderr ?? ''))?.[1]
+// Source nested past what a reader's recursion holds (a stack overflow in TypeScript's parser): refused where it is.
+export const tooDeep = (e: unknown): boolean => e instanceof RangeError && /call stack/i.test(e.message)
 export const pathOf = (at: string | FileURL): string => (typeof at === 'string' ? at : builtin<{fileURLToPath: (u: string) => string}>('node:url').fileURLToPath(at.href))
 // A TypeScript front end's source. A string is the code where it can't be a path (a line break, or no script's
 // extension): the code-first call, as it was.
@@ -169,6 +174,15 @@ export function sourceOf(at: Source, file: string | undefined, dflt: string): {c
 // the code is written for; undefined where none resolves.
 export function beside<T>(file: string, spec: string): T | undefined {
   try { return builtin<{createRequire: (p: string) => (s: string) => unknown}>('node:module').createRequire(placed(file))(spec) as T } catch { return undefined }
+}
+// The first syntax error TypeScript's parser reports in a module, where it is, or undefined: its parser recovers from
+// each, and the tree it leaves is not the code that runs (which then doesn't load).
+export function syntaxError(code: string, file: string): string | undefined {
+  const sf = ts.createSourceFile(file, code, ts.ScriptTarget.ES2022, true, scriptKind(file))
+  const d = (sf as unknown as {parseDiagnostics?: ts.Diagnostic[]}).parseDiagnostics?.[0]
+  if (!d) return undefined
+  const {line, character} = sf.getLineAndCharacterOfPosition(d.start ?? 0)
+  return `the source doesn't parse: ${line + 1}:${character + 1}: ${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`
 }
 export const scriptKind = (file: string): ts.ScriptKind => (/\.jsx$/.test(file) ? ts.ScriptKind.JSX : /\.tsx$/.test(file) ? ts.ScriptKind.TSX : /\.[cm]?js$/.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.TS)
 // The shape a type has in the subset.

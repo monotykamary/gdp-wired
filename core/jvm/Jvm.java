@@ -48,6 +48,10 @@ public final class Jvm {
     return n.contains(".") || n.contains("e") || n.contains("E") ? (Object) Double.parseDouble(n) : (Object) Long.parseLong(n);
   }
   static String json(Object o) { StringBuilder b = new StringBuilder(); json(o, b); return b.toString(); }
+  // A source a reader can't read, said so on stderr (core/extract-read.ts's statedRefusal): a syntax error, or nesting
+  // past the reader's stack (javac's parser and the walk recurse on each level), found anywhere in a throw's causes.
+  static void refuse(String why) { System.err.println("gdp: refused: " + why.replace('\n', ' ')); System.exit(3); }
+  static boolean overflowed(Throwable t) { for (; t != null; t = t.getCause()) if (t instanceof StackOverflowError) return true; return false; }
   static void json(Object o, StringBuilder b) {
     if (o == null) b.append("null");
     else if (o instanceof String s) {

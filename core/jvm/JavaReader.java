@@ -35,8 +35,16 @@ public final class JavaReader implements Jvm.Env {
   public static void main(String[] argv) throws Exception {
     Map<?, ?> req = (Map<?, ?>) parse(argv[0]);
     JavaReader r = new JavaReader();
-    System.out.println(json(r.read(req)));
+    String out = null;
+    try { out = json(r.read(req)); } catch (RuntimeException | Error e) {
+      if (Jvm.overflowed(e)) Jvm.refuse("the source nests too deeply to read");
+      // (javac's error recovery leaves trees the walk can't read: the errors it reported are the reason)
+      if (r.errs.isEmpty()) throw e;
+      Jvm.refuse("the source doesn't compile: " + String.join(" | ", r.errs.subList(0, Math.min(3, r.errs.size()))));
+    }
+    System.out.println(out);
   }
+  final List<String> errs = new ArrayList<>();
 
   Map<String, Object> read(Map<?, ?> req) throws IOException {
     String root = (String) req.get("root"), file = (String) req.get("file"), cp = (String) req.get("classpath");
@@ -44,9 +52,9 @@ public final class JavaReader implements Jvm.Env {
     StandardJavaFileManager fm = jc.getStandardFileManager(null, null, StandardCharsets.UTF_8);
     List<String> opts = new ArrayList<>(List.of("-proc:none", "-Xlint:none", "-sourcepath", root));
     if (cp != null && !cp.isEmpty()) { opts.add("-cp"); opts.add(cp); }
-    List<String> errs = new ArrayList<>();
     JavacTask task = (JavacTask) jc.getTask(new StringWriter(), fm, d -> { if (d.getKind() == Diagnostic.Kind.ERROR) errs.add(d.getMessage(null)); }, opts, null, fm.getJavaFileObjects(file));
     Iterable<? extends CompilationUnitTree> cus = task.parse();
+    if (!errs.isEmpty()) Jvm.refuse("the source doesn't parse: " + String.join(" | ", errs.subList(0, Math.min(3, errs.size()))));
     task.analyze();
     trees = Trees.instance(task); els = task.getElements(); types = task.getTypes(); sp = trees.getSourcePositions();
     CompilationUnitTree cu = cus.iterator().next();

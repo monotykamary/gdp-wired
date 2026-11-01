@@ -51,7 +51,9 @@ public final class KtReader implements Jvm.Env {
   public static void main(String[] argv) throws Exception {
     Map<?, ?> req = (Map<?, ?>) parse(argv[0]);
     Jvm.kotlin = true;
-    System.out.println(json(new KtReader().read(req)));
+    String out = null;
+    try { out = json(new KtReader().read(req)); } catch (RuntimeException | Error e) { if (!Jvm.overflowed(e)) throw e; Jvm.refuse("the source nests too deeply to read"); }
+    System.out.println(out);
   }
   static KtPsiFactory factory() throws Exception {
     CompilerConfiguration cfg = new CompilerConfiguration();
@@ -71,6 +73,13 @@ public final class KtReader implements Jvm.Env {
     base = new File(path).getName();
     KtPsiFactory f = factory();
     file = f.createFile(base, src);
+    // (the PSI recovers from a syntax error and leaves an error element where it was: what the walk past it reads is
+    // not the code the compiler would refuse, so the source is refused there)
+    com.intellij.psi.PsiErrorElement bad = com.intellij.psi.util.PsiTreeUtil.findChildOfType(file, com.intellij.psi.PsiErrorElement.class);
+    if (bad != null) {
+      int at = bad.getTextRange().getStartOffset(), line = 1 + (int) src.substring(0, Math.min(at, src.length())).chars().filter(c -> c == '\n').count();
+      Jvm.refuse("the source doesn't parse: line " + line + ": " + bad.getErrorDescription());
+    }
     pkg = file.getPackageFqName().asString();
     List<Integer> ls = new ArrayList<>(List.of(0));
     for (int i = 0; i < src.length(); i++) if (src.charAt(i) == '\n') ls.add(i + 1);
@@ -610,7 +619,9 @@ public final class KtReader implements Jvm.Env {
       if (et == KtNodeTypes.INTEGER_CONSTANT) {
         boolean lng = s.endsWith("L") || s.endsWith("l");
         String d = s.replaceAll("[lLuU]+$", "");
-        long v = d.startsWith("0x") || d.startsWith("0X") ? Long.parseLong(d.substring(2), 16) : d.startsWith("0b") || d.startsWith("0B") ? Long.parseLong(d.substring(2), 2) : Long.parseLong(d);
+        long v;
+        try { v = d.startsWith("0x") || d.startsWith("0X") ? Long.parseLong(d.substring(2), 16) : d.startsWith("0b") || d.startsWith("0B") ? Long.parseLong(d.substring(2), 2) : Long.parseLong(d); }
+        catch (NumberFormatException nfe) { return no1(k, "an integer literal past 64 bits"); }
         JT ty = lng || v > Integer.MAX_VALUE || v < Integer.MIN_VALUE ? new JT("long") : want != null && integral(want) ? new JT(prim(want)) : new JT("int");
         return new X(lit(v, ty, p), ty);
       }

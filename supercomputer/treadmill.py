@@ -27,7 +27,9 @@ first:
   ten     (f) the ten core protocols (research/protocols) at 60 s, 20 runs each, timing placement, launched last.
   sound   the floor and the fill: kernel, CDCL and tamper fuzz at fresh seeds, the extractor correspondence fuzz (each
           reader's own check harness, core/<lang>, at a fresh seed: the extracted rule against the real code on random
-          requests), and at a commit that changes kernel/kernel.ts or core/check.ts its mutants. A NEW survivor (one
+          requests), the reader fuzz (each reader's tests with core/extract-fuzz.ts preloaded: mutants of every source they
+          read, malformed, truncated or adversarial, each refused with its reason or read with the check holding), and at
+          a commit that changes kernel/kernel.ts, core/check.ts or kernel/cyclic.ts its mutants. A NEW survivor (one
           surviving at the newest commit that ran it, not listed equivalent in kernel/MUTANTS.md as it is now, never a
           survivor before) is an alert. The fill stops for
           the day at FUZZ_PER_DAY seeds a kind (3,000) and XFUZZ_PER_DAY a reader (48) on the floor; the fill of the pool
@@ -36,11 +38,11 @@ first:
           A soundness failure runs again at the newest main and stays an alert only if it fails there too; else it is
           listed as fixed at that commit: fuzz_status.
   (the knobs: GDPW_TM_<NAME> in the environment: SPEED_PER_DAY, IC3_PER_DAY, RW_PER_DAY, TEN_PER_DAY, SLOWER, FLOOR_S, TEN_RUNS, FUZZ_PER_DAY,
-  XFUZZ_PER_DAY, XFUZZ_EVERY, PAIR_TOP, PAIRS_MAX, REVISIT, STAGES, PLAN_MAX)
+  XFUZZ_PER_DAY, XFUZZ_EVERY, RFUZZ_N, RFUZZ_PER_DAY, PAIR_TOP, PAIRS_MAX, REVISIT, STAGES, PLAN_MAX)
   ideas   a lane's or terra's "knobs K on tasks S at budget B" (`idea`), the submission class, cached like the rest.
 
 Under <main checkout>/runs/treadmill (the controller's: ~/sc/treadmill): cache.jsonl, commits/<sha>/ (rounds, runs),
-chains/<chain>.json, inputs.json, speed.jsonl, profiles.jsonl, ten.jsonl, fuzz.jsonl, xfuzz.jsonl, mutants.jsonl,
+chains/<chain>.json, inputs.json, speed.jsonl, profiles.jsonl, ten.jsonl, fuzz.jsonl, xfuzz.jsonl, rfuzz.jsonl, mutants.jsonl,
 spend.jsonl (VM-hours by chain), subs/ (submissions and ideas), digest/<day>.md and .json, status.json.
 """
 import argparse
@@ -1228,6 +1230,15 @@ XFUZZ = {  # lang: (setup, test file, weight, limit)
     "typescript": ("true", "extract.test.ts", 1, 900),
 }
 XFUZZ_EVERY = knob("XFUZZ_EVERY", 6)  # one correspondence item for every 6 fuzz items
+TRUSTED = ("kernel/kernel.ts", "core/check.ts", "kernel/cyclic.ts")  # (kernel/mutants.ts's targets)
+# The reader fuzz: each reader's tests (XFUZZ's file and setup) with core/extract-fuzz.ts preloaded, READER_FUZZ_N mutants
+# of each source an extraction reads (truncated, junk, deep nesting, odd bytes, a changed operator, number or name) from
+# a fresh seed. Every mutant is refused with its reason or read with the check holding; a line `reader-fuzz: FAIL <kind>`
+# is a throw, a reader's crash given as the reason, a refusal with no reason or a hang (listed in the digest); a mutant
+# the check refused for a difference on a request (`reader-fuzz: CAUGHT`: a misread, no law proven of it) is counted.
+# One item in two of the readers' slots, the other an xfuzz seed; RFUZZ_PER_DAY a reader on the floor.
+RFUZZ_N, RFUZZ_PER_DAY = knob("RFUZZ_N", 2), knob("RFUZZ_PER_DAY", 24)
+RFAIL = re.compile(r"^reader-fuzz: FAIL (crash|no reason|hang)(.*)$", re.M)
 # (seeds a day per fuzz kind and per language: the floor's share; past them the fuzz yields, never stops: the fill of the
 # VMs above the floor runs fresh seeds whatever the day's count (every fresh seed is coverage since the generator is
 # exact), so a VM held 25 min after its last real work runs filler, never sits idle and is released (11-01 04:24: the
@@ -1243,6 +1254,15 @@ def xfuzz_cmd(lang: str, seed: int) -> str:
     test = test if "--timeout" in test else f"--timeout 300000 {test}"
     return (f"bun install --frozen-lockfile >/dev/null 2>&1; {XPATCH}{setup}; cd core && XFUZZ_SEED={seed} bun test {test} 2>&1 | "
             f"grep -v '^(pass)' | tail -c 6000; s=${{PIPESTATUS[0]}}; echo xfuzz-exit $s; exit $s")
+
+
+def rfuzz_cmd(lang: str, seed: int) -> str:
+    setup, test, _, limit = XFUZZ[lang]
+    test = test if "--timeout" in test else f"--timeout 300000 {test}"
+    lim = limit * (RFUZZ_N + 1)
+    return (f"bun install --frozen-lockfile >/dev/null 2>&1; {setup}; cd core && READER_FUZZ_SEED={seed} READER_FUZZ_N={RFUZZ_N} timeout -s INT {lim} "
+            f"bun test --preload ./extract-fuzz.ts {test} > /tmp/rf.log 2>&1; s=$?; [ $s -eq 124 ] && echo \"reader-fuzz: FAIL hang $(cat /tmp/reader-fuzz-*.now 2>/dev/null)\"; "
+            f"grep -E '^reader-fuzz:|^ *[0-9]+ (pass|skip|fail)$|^\\(fail\\)' /tmp/rf.log | cut -c1-1500; echo rfuzz-exit $s; ! grep -q '^reader-fuzz: FAIL' /tmp/rf.log && [ $s -eq 0 ]")
 
 
 def file_at(commit: str, f: str, _cache: dict = {}) -> list[str]:  # noqa: B006  (the files by commit, kept)
@@ -1311,8 +1331,8 @@ class Soundness:
         self.mutants = self.mutant_ids()
 
     def mutant_ids(self) -> list[int]:
-        """The trusted base's mutants, once per version of kernel/kernel.ts and core/check.ts (their hash)."""
-        h = hashlib.sha256(b"".join((self.tree / f).read_bytes() for f in ("kernel/kernel.ts", "core/check.ts"))).hexdigest()[:16]
+        """The trusted base's mutants, once per version of kernel/kernel.ts, core/check.ts and kernel/cyclic.ts (their hash)."""
+        h = hashlib.sha256(b"".join((self.tree / f).read_bytes() for f in TRUSTED)).hexdigest()[:16]
         done = {r["id"] for r in jl(TM / "mutants.jsonl") if r["hash"] == h}
         self.hash = h
         with contextlib.suppress(Exception):
@@ -1322,10 +1342,10 @@ class Soundness:
 
     def today_counts(self) -> dict:
         c: dict = {}
-        for f, key in ((TM / "fuzz.jsonl", "kind"), (TM / "xfuzz.jsonl", "lang")):
+        for f, key, pre in ((TM / "fuzz.jsonl", "kind", ""), (TM / "xfuzz.jsonl", "lang", "x:"), (TM / "rfuzz.jsonl", "lang", "r:")):
             for r in jl(f):
                 if on(today(), r["t"]):
-                    k = r[key] if key == "kind" else "x:" + r[key]
+                    k = pre + r[key]
                     c[k] = c.get(k, 0) + 1
         return c
 
@@ -1340,11 +1360,13 @@ class Soundness:
             if not b.done and b.label.startswith("sound"):
                 for it in b.items:
                     k = it["name"].split("-")[0]
-                    k = "x:" + it["name"].split("-")[1] if k == "xfuzz" else k
+                    k = ("x:" if k == "xfuzz" else "r:") + it["name"].split("-")[1] if k in ("xfuzz", "rfuzz") else k
                     counts[k] = counts.get(k, 0) + 1
         cap_k, cap_l = (float("inf"), float("inf")) if uncapped else (FUZZ_PER_DAY, XFUZZ_PER_DAY)
         open_kinds = [k for k in FUZZ if counts.get(k, 0) < cap_k]
         open_langs = [l for l in XFUZZ for _ in range(XFUZZ[l][2]) if counts.get("x:" + l, 0) < cap_l] if "xfuzz" in self.tm.chains else []
+        cap_r = float("inf") if uncapped else RFUZZ_PER_DAY
+        open_r = [l for l in XFUZZ for _ in range(XFUZZ[l][2]) if counts.get("r:" + l, 0) < cap_r] if "rfuzz" in self.tm.chains else []
         while self.mutants and "mutants" in self.tm.chains and len(items) < vms * SLOTS:
             m = self.mutants.pop(0)
             items.append(sh_item(f"mutant-{m}", f"bun mutants.ts ids {m} 2>&1 | tail -1", "kernel", 3600, 600))
@@ -1370,8 +1392,18 @@ class Soundness:
             cwd, cmd = FUZZ[k]
             items.append(sh_item(f"{k}-fuzz-{s}-recheck", cmd.format(s=s), cwd, 900, 60))
             kinds.append((k, s))
-        while len(items) < n and (open_kinds or open_langs):
+        while len(items) < n and (open_kinds or open_langs or open_r):
             s = st["seed"] = st.get("seed", 1000) + 1
+            # (the readers' slots: an xfuzz seed and a reader fuzz seed in turn, either alone when the other is closed)
+            if open_r and (s % XFUZZ_EVERY == 0 or not open_kinds) and (not open_langs or (s // XFUZZ_EVERY) % 2):
+                lang = open_r[(s // XFUZZ_EVERY) % len(open_r)]
+                counts["r:" + lang] = counts.get("r:" + lang, 0) + 1
+                if counts["r:" + lang] >= cap_r:
+                    open_r = [l for l in open_r if l != lang]
+                lim = XFUZZ[lang][3] * (RFUZZ_N + 1) + 300
+                items.append(sh_item(f"rfuzz-{lang}-{s}", rfuzz_cmd(lang, s), ".", lim, lim / 3, weight=2 if lang == "swift" else 1))
+                kinds.append(("r:" + lang, s))
+                continue
             if open_langs and (s % XFUZZ_EVERY == 0 or not open_kinds):
                 lang = open_langs[(s // XFUZZ_EVERY) % len(open_langs)]
                 counts["x:" + lang] = counts.get("x:" + lang, 0) + 1
@@ -1408,6 +1440,15 @@ class Soundness:
                                                       "change": change, "sig": mutant_sig(self.commit, where, change), **({"equivalent": r["equivalent"]} if r.get("equivalent") else {})})
                     continue
                 code = codes.get(it["name"], -1)
+                if k.startswith("r:"):
+                    fails = [(m.group(1), m.group(2).strip()[:300]) for m in RFAIL.finditer(out)]
+                    tot = re.search(r"^reader-fuzz: (\d+) mutants .*?: (\d+) refused with a reason, (\d+) read and checked, (\d+) caught by the check", out, re.M)
+                    append(TM / "rfuzz.jsonl", {"t": time.time(), "commit": self.commit, "lang": k[2:], "seed": s, "code": code, "fails": fails,
+                                                **({"mutants": int(tot.group(1)), "refused": int(tot.group(2)), "read": int(tot.group(3)), "caught": int(tot.group(4))} if tot else {}),
+                                                **({"tail": out[-1500:]} if code != 0 else {})})
+                    for kind, what in fails:
+                        log(f"RFUZZ: {k[2:]} seed {s} at {self.commit[:12]}: {kind}: {what[:200]}")
+                    continue
                 if k.startswith("x:"):
                     m = DIFFER.search(out)
                     # (the tests' own counts, kept every time: a seed whose tests all skipped, a toolchain missing, ran nothing)
@@ -1590,7 +1631,7 @@ def idea_results(name: str, local: bool):
 
 
 # ---------------------------------------------------------------------------------------------- the controller
-ALL_CHAINS = ("speed", "ic3syn", "rw", "sweep", "ten", "sound", "xfuzz", "mutants", "ideas")
+ALL_CHAINS = ("speed", "ic3syn", "rw", "sweep", "ten", "sound", "xfuzz", "rfuzz", "mutants", "ideas")
 
 
 class Treadmill(T.Treadmill):
@@ -1605,7 +1646,7 @@ class Treadmill(T.Treadmill):
         super().__init__(vms, budget_vmh, quiet, modal, max_wait, max_vms, step_vms, backlog_hours)
         self.nogain = nogain
         self.benches = [b for b in benches.split(",") if b] or list(BENCHES)
-        self.chains = set([c for c in chains.split(",") if c] or ALL_CHAINS) - (set() if sound else {"sound", "xfuzz", "mutants"})
+        self.chains = set([c for c in chains.split(",") if c] or ALL_CHAINS) - (set() if sound else {"sound", "xfuzz", "rfuzz", "mutants"})
         self.sample, self.sound_on = sample, "sound" in self.chains
         self.commit, self.tree, self.sweeps, self.sound, self.head = None, None, {}, None, None
         self.lists = Lists(self)
@@ -1777,6 +1818,7 @@ def report(day: str) -> dict:
     xz = [r for r in jl(TM / "xfuzz.jsonl") if on(day, r["t"])]
     for r in [r for r in xz if r.get("differ")]:
         alerts.append({"kind": "soundness", "what": f"extractor correspondence: {r['lang']} seed {r['seed']} at {r['commit'][:12]}: the rule and the code differ: {r['differ'][:160]}"})
+    rz = [r for r in jl(TM / "rfuzz.jsonl") if on(day, r["t"])]
     mall = jl(TM / "mutants.jsonl")
     for r in mall:
         r.setdefault("sig", mutant_sig(r["commit"], r["where"], r["change"]))
@@ -1888,6 +1930,8 @@ def report(day: str) -> dict:
     sound = {"fuzz": {k: sum(1 for r in fz if r["kind"] == k) for k in FUZZ}, "fuzz_failed": {c: [(r["kind"], r["seed"], r["code"], first_error(r)) for r in rs] for c, rs in by_class.items()},
              "unsound": len(unsound), "fuzz_fixed": fixed, "xfuzz": {l: sum(1 for r in xz if r["lang"] == l) for l in XFUZZ}, "xfuzz_tests": sum(r.get("pass", 0) for r in xz),
              "xfuzz_idle": sorted({r["lang"] for r in xz if r["code"] == 0 and "pass" in r and not r["pass"]}), "xfuzz_failed": [(r["lang"], r["seed"], r["code"], first_error(r)) for r in xz if r["code"] != 0],
+             "rfuzz": {l: sum(1 for r in rz if r["lang"] == l) for l in XFUZZ}, "rfuzz_mutants": sum(r.get("mutants", 0) for r in rz), "rfuzz_caught": sum(r.get("caught", 0) for r in rz),
+             "rfuzz_failed": [(r["lang"], r["seed"], kind, what[:120]) for r in rz for kind, what in (r.get("fails") or ([] if r["code"] == 0 else [("exit " + str(r["code"]), "")]))],
              "mutants": len(mt), "survived": len(surv), "equivalent": sum(1 for r in surv if r["equivalent_now"]), "new_survivors": len(new_surv),
              "stale_survivors": sum(1 for r in surv if not r["equivalent_now"] and r["sig"] not in standing),
              "known_survivors": sorted({f"{r['where']} {r['change'].strip()}" for r in surv if not r["equivalent_now"] and r["sig"] in standing} - {f"{r['where']} {r['change'].strip()}" for r in new_surv})}
@@ -1991,6 +2035,8 @@ def sections(day: str) -> list[str]:
     out += [f"- extractor correspondence: {sum(s['xfuzz'].values())} seeds ({', '.join(f'{k} {v}' for k, v in s['xfuzz'].items() if v)}), {s['xfuzz_tests']} tests passed, {len(s['xfuzz_failed'])} failed"
             + (f"; ran no test (a toolchain missing?): {', '.join(s['xfuzz_idle'])}" if s["xfuzz_idle"] else "")
             + (": " + "; ".join(f"{k} {sd} ({e or 'exit ' + str(c)})" for k, sd, c, e in s["xfuzz_failed"][:4]) if s["xfuzz_failed"] else ""),
+            f"- reader fuzz: {sum(s.get('rfuzz', {}).values())} seeds ({', '.join(f'{k} {v}' for k, v in s.get('rfuzz', {}).items() if v)}), {s.get('rfuzz_mutants', 0)} mutants ({s.get('rfuzz_caught', 0)} caught by the check), {len(s.get('rfuzz_failed', []))} failed"
+            + (": " + "; ".join(f"{l} {sd} {kind} {what}" for l, sd, kind, what in s["rfuzz_failed"][:4]) if s.get("rfuzz_failed") else ""),
             f"- mutants: {s['mutants']} run, {s['survived']} survived ({s['equivalent']} listed equivalent, {s['stale_survivors']} killed or listed at a later commit, {s['new_survivors']} new, {len(s['known_survivors'])} known before)"]
     if R["ideas"]:
         out += ["", "## Ideas"] + [f"- {m['name']}: {m.get('config')} on {m.get('tasks')} tasks: {m.get('status')}, {m.get('gained', 0)} gained, {m.get('lost', 0)} lost" for m in R["ideas"][-8:]]
