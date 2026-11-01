@@ -322,7 +322,7 @@ export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {inst
   const vars = [...new Set([...named.vars, ...counts.flatMap(([, d]) => [d.j, d.lo ?? d.j, d.key, ...varsOfE(d.below), ...varsOfE(d.body)]), ...laws.map(l => (l.forall ? `${l.forall}#` : '#')),
     ...goals.flatMap(g => g.hyps.flatMap(varsOf)), ...certVars])]
   const maps = [...new Set([...named.maps, ...counts.flatMap(([cn]) => [cn, postName(cn)]), ...goals.flatMap(g => g.hyps.flatMap(mapsOf)),
-    ...allCerts.flatMap(cs => Object.values(cs).flatMap(k => k.reads.map(r => r[1])))])]
+    ...allCerts.flatMap(cs => Object.values(cs).flatMap(k => [...k.reads.map(r => r[1]), ...(k.picks ?? []).flatMap(([, ks]) => ks.flatMap(mapsOf))]))])]
   const {e, c} = leanTerms(vars, maps, id)
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
   const mx = (name: string) => { const j = maps.indexOf(name); if (j < 0) throw new Error(`${id}: no map for ${name}`); return j }

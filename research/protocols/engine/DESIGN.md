@@ -98,7 +98,12 @@ exporter; CountExamples' `twom` (two members make the count at least 2) through 
 twice and no pick computed to false. Adversarial (countmachine.test.ts): terms equal but written apart (b, b + 0), a
 pick past the bound (a count below 1), the pick of the count before the step where the law reads the one after; each
 refused, and grow finds no tree. Mutants over every line of kernel.ts this lane changed: 64, 62 killed, 2 equivalent
-(above).
+(above). terra's second review (read-only): no soundness problem in pickHyp_true or mc_sound's pick branch; one real
+TypeScript gap, older than the picks: kernel.ts's substE read a substitution's entries through the prototype, so a map
+named `constructor` was replaced by Object's constructor (a count's body `constructor[k]` read as `k`) and a pick could
+then refute a satisfiable goal; Lean was never fooled. Fixed (`own`: a substitution's own entries only, vars, maps and
+flags), with a test over constructor, toString, __proto__ and hasOwnProperty (its mutant killed); and emit.ts exports the
+maps a pick's terms read.
 
 **The search's use of them**: a goal's model the narrow count instances leave asks, in the rounds over the whole set
 (Houdini) and for a caller's law or a read no instance names, for the instances widened once and each count picked at
