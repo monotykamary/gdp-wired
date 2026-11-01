@@ -6,7 +6,7 @@ import {expect, test} from 'bun:test'
 import {type Bool, type Nat, type Val, EvalLimit, boolean, checkMeasures, conjectures, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, when} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
 import {transferPlan} from './transfer.ts'
-import {Bag, Forest, List, Rose, Tree, a3, adversarial, app, broken, drp, ilv, laws, leq, len, merge, mergeRuns, mir, mrg, nonterminating, paren, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken, tokens, wellFounded} from '../examples/data.ts'
+import {Bag, Forest, List, Rose, Tree, a3, ack, adversarial, app, broken, drp, ilv, laws, leq, len, merge, mergeRuns, mir, mrg, nest, nestA, nestB, nested, nonterminating, nz, paren, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken, tokens, wellFounded} from '../examples/data.ts'
 
 const list = (...xs: number[]): {c: number, f: unknown[]} => xs.reduceRight<{c: number, f: unknown[]}>((t, h) => ({c: 1, f: [h, t]}), {c: 0, f: []})
 const run = (call: {x: unknown}, env: Record<string, unknown>) => evalX(call.x as never, new Map(Object.entries(env)) as never, {})
@@ -122,10 +122,30 @@ test('a ring of functions that is not structural recursion: a measure each (one 
   for (const mk of Object.values(wellFounded)) { const v = proveData(mk()); expect(v.proven && v.checked && v.proof?.proven && checkCyclic(v.proof.proof)).toBe(true) }
 }, 60_000)
 
+test('nested recursion (well-founded, a call in another\'s argument): taken with an invariant of the function, proven with each decrease; its obligations as Nested.lean states them', () => {
+  // nz 0 = 0, nz (n + 1) = nz (nz n): the inner call's value read as r under lexLt([pred], [pred + 1]) ⇒ r ≤ pred
+  const t = nz.fn.termination!
+  expect([t.text, showY(t.invariant!)]).toEqual(['n', 'nz#value <= nz.n'])
+  expect(t.obligations.map(o => showY(o.law.holds))).toEqual([
+    'pred < pred + 1',
+    'not (not (pred < pred + 1) or nz#r1 <= pred) or nz#r1 < pred + 1',
+    '0 <= 0',
+    'not (not (pred < pred + 1) or nz#r1 <= pred) or not (not (nz#r1 < pred + 1) or nz#r2 <= nz#r1) or nz#r2 <= pred + 1',
+  ])
+  // nest keeps its list's size; Ackermann's outer call lowers m whatever the inner's value (no invariant); a ring
+  expect([nest.fn.termination!.text, showY(nest.fn.termination!.invariant!)]).toEqual(['size(xs)', 'size(nest#value) = size(nest.xs)'])
+  expect([ack.fn.termination!.text, ack.fn.termination!.invariant]).toEqual(['(m, n)', undefined])
+  expect(nestA.fn.ring).toEqual(['nestA', 'nestB'])
+  for (const f of [nz, nest, ack, nestA, nestB]) for (const o of f.fn.termination!.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof), o.law.name).toBe(true)
+  for (const mk of Object.values(nested)) { const v = proveData(mk()); expect(v.proven && v.checked && v.proof?.proven && checkCyclic(v.proof.proof), v.goal).toBe(true) }
+}, 120_000)
+
 test('definitions that do not terminate, made to look as if they do (rings, a size law true of short lists only, a guard past the runs\' values), are refused with the measures tried', () => {
   for (const [name, mk] of Object.entries(adversarial)) expect(refusal(mk), name).toMatch(/no measure is proven to fall at every call|nested recursion isn't taken|no parameter a measure reads/)
   // a measure each was tried and refused, by a call of the runs or its obligation
   for (const name of ['passRound', 'lowerRaise', 'swapRing', 'lateRing', 'stepUp', 'nearTail', 'nearTailRing', 'ringStatedWrong'] as const) expect(refusal(adversarial[name]), name).toMatch(/(doesn't lower it|not proven to lower it)/)
+  // nested: an invariant its runs suggest lowers the outer call, and a body past them doesn't keep it
+  for (const name of ['nestedLate', 'nestedGrow', 'nestedGrowRing'] as const) expect(refusal(adversarial[name]), name).toMatch(/keeping .*(doesn't keep its invariant|not proven to keep its invariant)/)
 }, 120_000)
 
 test('a definition that does not terminate is refused with its reason, and no law about it is read', () => {
