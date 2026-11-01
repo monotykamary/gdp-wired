@@ -1,5 +1,5 @@
 // The dumped root goals (research/query/dump.ts) asked again, each within $LAB_MS (60 s) of the wall: grow as it ships
-// (a tree, else a model), or the CDCL search for a model alone, on the goal or a part of it ($LAB_PARTS: all; few, its
+// (a tree, else a model), or the CDCL search for a model alone (`asked`: as the dump asked it), on the goal or a part of it ($LAB_PARTS: all; few, its
 // first two hypotheses and the conclusion; cells, the conclusion and the hypotheses sharing a cell with it; busy1, all
 // and busy = 1); outcome, time, counted work, and whether a model found holds every hypothesis. Research tooling.
 //   bun research/query/wide-lab.ts <file.json>...
@@ -25,7 +25,7 @@ for (const f of process.argv.slice(2)) {
   for (const p of parts) for (const mode of modes) {
     const goal = {name: d.goal.name, hyps: partOf(d.goal.hyps, p)}
     const t = performance.now(), w = fullWork()
-    const out = withWall(performance.now() + ms, () => counted(fullRate, () => mode === 'model'
+    const out = withWall(performance.now() + ms, () => counted(fullRate, () => mode === 'model' || (mode === 'asked' && d.kind === 'model')
       ? growCdcl(goal, new Map(), {nodes: 0, until: clock() + ms}, {model: true, core: true})
       : grow(goal, new Map(), {nodes: 0, until: clock() + ms}), true))
     const took = Math.round(performance.now() - t), used = 'tree' in out ? usedHyps(goal, out.tree).size : undefined, ok = 'tree' in out ? check(goal, out.tree) : undefined, ws = {...wideStats}
