@@ -20,8 +20,9 @@ of a `goals` document and agrees with the kernel on every goal of the suite.
 One document is one certificate. `kind` says which fields follow and what they claim. `meta` is the producer's and is
 never read by a checker. `columns` is the table of term columns (below). A checker for version 1.m reads every 1.n with
 n ≤ m; a minor version only adds optional fields or kinds, a major one changes a meaning. A checker refuses any
-field its version doesn't know. 1.1 adds a liveness's `fairness` (`"weak"`, the default, or `"strong"`) and `levels`;
-gdp-wired writes each document at the lowest version that holds it, so every document without them is still 1.0.
+field its version doesn't know. 1.1 adds a liveness's `fairness` (`"weak"`, the default, or `"strong"`) and `levels`,
+and a measure part's `fold` (`{fn, of}`: a fold function's value at a parameter); gdp-wired writes each document at the
+lowest version that holds it, so every document without them is still 1.0.
 (1.0's writer dropped the two fields, so a strong liveness was written as a weak one, which the kernel refuses: 65
 documents of the 0.43.0 suites, every one refused by every checker, none accepted wrongly.)
 

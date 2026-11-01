@@ -127,3 +127,14 @@ test('1.1: a strong liveness keeps its fairness and levels (written at 1.1, acce
   // (every other document stays 1.0)
   expect(docs.every(d => d.version === '1.0')).toBe(true)
 })
+
+test('1.1: a measure part reading a fold function keeps its fold (written at 1.1), and a 1.0 document with one is refused', () => {
+  const c: Certificate = {kind: 'termination', functions: ['size'], text: 'size(t) by sizeOf(t)', measures: [{comps: [{coef: [0], c: 1, fold: {fn: 'sizeOf', of: 0}}]}], obligations: []}
+  const doc = JSON.parse(JSON.stringify(toInterchange(c))) as Document
+  expect(doc.version).toBe('1.1')
+  expect(fromInterchange(doc)).toEqual(c)
+  expect(checkDocument(doc).malformed).toBeUndefined()
+  expect(checkDocument({...doc, version: '1.0'}).malformed).toContain('1.1')
+  const plain = JSON.parse(JSON.stringify(toInterchange({...c, measures: [{comps: [{coef: [1], c: 0}]}]}))) as Document
+  expect(plain.version).toBe('1.0')
+})

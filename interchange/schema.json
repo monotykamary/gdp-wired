@@ -7,7 +7,7 @@
   "required": ["format", "version", "kind"],
   "properties": {
     "format": {"const": "gdp-wired-interchange", "description": "Always this string."},
-    "version": {"enum": ["1.0", "1.1"], "description": "The format's version: major.minor (1.1 adds a liveness's fairness and levels; a document is written at the lowest version that holds it). A minor version adds optional fields or kinds; a major one changes a meaning."},
+    "version": {"enum": ["1.0", "1.1"], "description": "The format's version: major.minor (1.1 adds a liveness's fairness and levels and a measure part's fold; a document is written at the lowest version that holds it). A minor version adds optional fields or kinds; a major one changes a meaning."},
     "kind": {"enum": ["goals", "laws", "stepLaws", "kInduction", "progress", "liveness", "loop", "recur", "fold", "cyclic", "qgoals", "qmachine", "termination"], "description": "The certificate's kind: which fields follow and what they claim."},
     "meta": {"description": "Anything the producer keeps beside the certificate (its name and version, the run that made it, a capture's answer). Never read by a checker; kept by a round trip."},
     "columns": {"type": "array", "items": {"$ref": "#/$defs/E"}, "description": "The term columns: atom {\"col\": i} in any linear form of this document stands for the value of columns[i], a choice (a truncated subtraction, a min, a max or an if) that the path where it is read leaves open. Columns are named by their terms, so two equal terms are one column. Any order; present only where some atom reads one."}
@@ -201,6 +201,7 @@
         "step": {"type": "array", "items": {"type": "array", "minItems": 2, "maxItems": 2, "prefixItems": [{"$ref": "#/$defs/name"}, {"$ref": "#/$defs/QE"}]}, "description": "Values after a request (one left out keeps its value)."},
         "pre": {"$ref": "#/$defs/QC", "description": "Reads no input and no state."}, "assume": {"$ref": "#/$defs/QC"}}},
     "Measure": {"type": "object", "required": ["comps"], "additionalProperties": false, "description": "A measure on a function's parameters: a tuple compared in order, each part Σ coef_i·size(param_i) + c.",
-      "properties": {"comps": {"type": "array", "items": {"type": "object", "required": ["coef", "c"], "additionalProperties": false, "properties": {"coef": {"type": "array", "items": {"$ref": "#/$defs/int"}}, "c": {"$ref": "#/$defs/int"}}}}}}
+      "properties": {"comps": {"type": "array", "items": {"type": "object", "required": ["coef", "c"], "additionalProperties": false, "properties": {"coef": {"type": "array", "items": {"$ref": "#/$defs/int"}}, "c": {"$ref": "#/$defs/int"},
+        "fold": {"type": "object", "required": ["fn", "of"], "additionalProperties": false, "description": "1.1: the part adds fold function fn's value at parameter of.", "properties": {"fn": {"type": "string"}, "of": {"$ref": "#/$defs/nat"}}}}}}}}
   }
 }
