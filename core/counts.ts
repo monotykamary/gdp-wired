@@ -378,7 +378,8 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     // (the model broken: the attempt starts at the instances it asks for, its last attempt's and the tuples the new laws
     // break it at, where the rounds of models would lead it again)
     let seed: Instances | undefined
-    if (cti && !ls.some(l => !cti.ls.has(l.name) && reads(l.holds, isCount).size)) {
+    // (not where the attempt may widen: its narrow model is no model of the widened goal)
+    if (cti && !(houdini && caller.some(l => l.name === law.name)) && !ls.some(l => !cti.ls.has(l.name) && reads(l.holds, isCount).size)) {
       const at0 = Object.fromEntries(Object.entries(cti.at).filter(([n]) => n.startsWith('?') || ls.some(l => l.name === n)))
       if (!(seed = ptime('mbqi', () => modelInstances(m, ls, at0, cti.gg, cti.w)))) return {stuck: 'sat'}
     }
