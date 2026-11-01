@@ -503,9 +503,9 @@ config term or disabled (Inv3246: 2·low[t,s] <= cfgSize[t]); and before start, 
 version 1 (what the run showed missing). core/counts.ts's searchCounted with them as callers: all true on the small
 instances; every one of them refused in Houdini, each step goal "sat" with every other law assumed, at 0.2-1.8 s.
 The models it gives up on (GDP_COUNTS_DUMP) are not the protocol's: become_leader with S = {3} for config[3] = {1, 3}
-while the request's count inX (|config[i]|) is 0 (and inS 1), so majorityOf passes. The counted search's model
-instances (modelInstances) ask for no instance of Count.lean's lemma at a count the assumption reads at its key 0, so
-inX's value stays free. That is core/counts.ts's (Lane C3's): with those instances asked, the probe says whether the
+while the request's count inX (|config[i]|) is 0 (and inS 1), so majorityOf passes. The dump is attempt()'s
+branch where modelInstances asks for nothing at the model (pass 1), so inX's value stays free there; why it asks for no
+Count.lean instance at the request's count read in the assumption was not traced further. That is core/counts.ts's (Lane C3's): with those instances asked, the probe says whether the
 invariant goes through. Nothing built in core/ on this branch.
 
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
