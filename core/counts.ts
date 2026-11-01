@@ -211,13 +211,17 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
     for (const a of named) for (const c of named) if (a !== c && bound(a) === bound(c) && !(post(c) && !post(a))) add([[1, a[0]], [-1, c[0]]], 0, byMap.get(a[1])!.below)
     for (const a of named) add([[1, a[0]]], 0, byMap.get(a[1])!.below)
   }
-  // (wide: each count picked at the keys the goal reads the maps its body reads at its key: at least its body there, at
-  // every two of them and at all of up to four)
+  // (wide: each count picked at the keys the goal reads the maps its body reads at its key and its instances' witnesses:
+  // at least its body there, at every two of them and at all of them)
   const picks: [string, E[]][] = []
   if (wide) for (const r of named) {
     const d = byMap.get(r[1])!, at = [...reads(d.body, () => true).values()].filter(([, key]) => json(key) === json(v(d.key))).map(([mp]) => mp)
     if (!at.length) continue
-    const ts = [...new Map([...reads(goal.hyps, mp => at.includes(mp)).values()].map(([, t]) => [json(t), t] as [string, E])).values()].filter(t => !mentions(t, d.key)).slice(0, 4)
+    // (the key terms the goal reads those maps at, and the witnesses of the instances that name this count: a member the
+    // counting lemma found is a key too; three of each first, six at most)
+    const gs = [...new Map([...reads(goal.hyps, mp => at.includes(mp)).values()].map(([, t]) => [json(t), t] as [string, E])).values()].filter(t => !mentions(t, d.key))
+    const ws = insts.slice(0, cap).filter(i => i.terms.some(([, x]) => x === r[0])).map(i => v(i.wit)), ts0 = [...gs.slice(0, 3), ...ws.slice(0, 3), ...gs.slice(3), ...ws.slice(3)]
+    const ts = [...new Map(ts0.map(t => [json(t), t] as [string, E])).values()].slice(0, 6)
     for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++) picks.push([r[0], [ts[i]!, ts[j]!]])
     if (ts.length > 2) picks.push([r[0], ts])
   }
