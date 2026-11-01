@@ -103,14 +103,6 @@ the runs' ∃ check eats the budget before the search starts.
 | + the join a twentieth | proven 47.7 / 52.9 / 62.0 | the ∃ proof again 20–30 s |
 | + the ∃ verdict from the search's own set proof | **proven 25.5 / 25.6 / 35.5** | |
 
-**Gates**
-- **Quick bar** (a82481b against 6b96a0f's boat baseline; <main>/runs/bar/runs/laneY-a82481b-quick/REPORT.md): wrong 0 in every
-  group, nothing solid lost: CHC −7 (gained 3, lost 7, none solid, all answered past 45 s; CHC's rules have no maps, ∃ law or
-  composed key, so none of these changes runs there), ITS +3 (gained 2, lost 5, none solid), ITS-scc +2.33 (gained 2), SV
-  +0.33, SV-scc +0.33, TIP −0.33 (lost 1, not solid, at the limit), f1 0, f2 −0.33 (none lost), rw −0.67 (lost 1, not
-  solid: TimelockController#6 2/4 against 6/6, at the limit); g332 the same search on 332 of 332, per goal p50 0.892;
-  onecpu no failure; Lean 6 of 6. Size: core/ and kernel/ +9,293 bytes.
-
 **IC3Syn, 60 s strict wall, each protocol alone on its VM (`--timing`), two runs, broken variants once** (main 6b96a0f:
 `base`; the branch head 98a3add: `g2`; bold: proven within 60 s of wall):
 
@@ -128,7 +120,6 @@ the runs' ∃ check eats the budget before the search starts.
 | sharded_kv | unkn 69.0 / unkn 66.0 (broken refu) | unkn 71.8 / unkn 70.8 (broken refu) |
 | sharded_kv_no_lost_keys | unkn 124.2 / unkn 124.5 (broken unkn) | unkn 122.1 / unkn 120.3 (broken unkn) |
 
-
 **21 of 29 within 60 s in both runs (main 20 of 29)**: firewall new. No broken variant proven. The other 18 proven as on main
 (their times within the runs' spread: a second batch on 88cfec8, `g1`, has consensus_epr at 70.6 s in one run on a slow VM,
 its counted search identical to the other runs': the same 41 candidates, 28 kept, 23,420 counted ms).
@@ -141,6 +132,53 @@ its counted search identical to the other runs': the same 41 candidates, 28 kept
 | consensus_epr | proven 37.8 / 39.8 / 47.1 / 47.3 / 54.0 / 87.8 | proven 28.9 / 31.3 / 37.7 / 38.3 / 38.5 / 50.7 |
 
 consensus_epr's counted search is main's (the same candidates and cone); the wall it saves is the small instances' BFS.
+
+**What is still open, and why**
+- **client_server_db_ae** (unknown, 58–64 s, was 135 s: the ∃ watch's cost gone): its plain search starts, but the
+  serverRequests step needs a support with "there exists" of its own (a db request has its T row: ∀i, r. DbRequestSent[i,
+  r] → ∃n. T[i, n]), and the engine proposes ∀∃ supports only over one key (the join's ghostsOf); the next step is the
+  same Skolem made of a support: DuoAI's A(x) → ∃y. B(x, y) over a view of two keys, its ghost map from mapGhostsOf.
+- **sharded_kv_no_lost_keys** (unknown at 120 s): two values bound (∃ owner ∨ ∃ transfer), so no single ghost map; the
+  laws as given spend the budget on term witnesses (one goal 34 s).
+- **sharded_kv** (unknown 66–76 s): node and key are one sort (the hi/lo union of Table[n, k] and Owner[k, n]), the
+  value sort's width 1 (the caller's v, u are compared with Table's values v + 1, not read at a place), so "two transfers
+  of one key" over two values is in no view; and a 5-key view is past the 96-literal cap.
+- **consensus_forall, paxos_epr, mldr** (counted): their cones end with the caller unproven (forall: "one value decided"
+  from 39 kept; paxos 15 of 135; mldr 22 of 27): a missing support, not time (gen/laneG2, laneI). The BFS share is
+  smaller now (mldr's small instances 44 → 25 s).
+- **learning_switch, learning_switch_i4** (unknown at 122–143 s; i4 ended with a verdict in both runs, where main's
+  were killed): the phases' table goals (gen/laneI, laneJ).
+
+**Gates**
+- **IC3Syn** (above): 21 of 29 within 60 s of wall in both runs, main 20; no broken variant proven.
+- **The ten (DuoAI's set) at 60 s**, three runs a side in one batch (`tenc`, `tenb` in the main checkout's runs), each
+  alone on its VM: 29 of 30 against 30 of 30, the miss consensus_wo_decide at 66.3 s (wall); wo again, ten runs a side
+  (`woc`, `wob`): 10 of 10 on both (medians 25.4 against 22.5 s, ranges 20.0–41.9 and 21.5–37.4). The ten read no law with
+  "there exists", no map at a key a map holds and no counts, so of these changes only the literal values reach them.
+- **Quick bar** (a82481b against 6b96a0f's boat baseline; <main>/runs/bar/runs/laneY-a82481b-quick/REPORT.md): wrong 0 in every
+  group, nothing solid lost: CHC −7 (gained 3, lost 7, none solid, all answered past 45 s; CHC's rules have no maps, ∃ law or
+  composed key, so none of these changes runs there), ITS +3 (gained 2, lost 5, none solid), ITS-scc +2.33 (gained 2), SV
+  +0.33, SV-scc +0.33, TIP −0.33 (lost 1, not solid, at the limit), f1 0, f2 −0.33 (none lost), rw −0.67 (lost 1, not
+  solid: TimelockController#6 2/4 against 6/6, at the limit); g332 the same search on 332 of 332, per goal p50 0.892;
+  onecpu no failure; Lean 6 of 6. Size: core/ and kernel/ +9,293 bytes.
+- **terra's review** (gpt-6.1-terra via pi, read-only; `runs/laneY/terra-review.txt`), each finding acted on: (1) a binder
+  inside the law could capture the ghost's key in the substitution, and the bound value wasn't named apart from the
+  machine's names as proveSome names it: skolemOf now makes no plain form in either case (the DSL's fresh names never
+  meet it); (2) the request prefilter read every input as the request's, though a history's queries and the least keys are
+  the interpreter's own: off for such machines; (3) the if-lifting distributed ifs before its bound was checked: the ifs
+  are counted first (at most three); (4) the quick points could change the witness a request's existential is encoded
+  with (dsl.ts's withSkolems): they are a run's watch's alone now. Its answer to (a): with no capture, the plain proof
+  over the ghosted machine and ghostedOk give the ∃ law (GhostMap.lean's argument); the fast verdict is taken only over a
+  machine with no sums or history (ghostedOk refuses those), else proveSome.
+- **Nothing trusted changed**: kernel/kernel.ts, core/check.ts, kernel/cyclic.ts and lean-kernel/ untouched; kernel/epr.ts
+  is its own header's "Untrusted" (a refutation's core is proven again by the kernel's search and widened; a model judged
+  by the interpreter), so no Lean-first step applies.
+
+**Bytes** (core/ and kernel/ .ts without tests, against main): +10,358 (core/exists.ts +5,446: skolemOf, the ∃ watch's
+points, the request prefilter; core/dsl.ts +2,659: the plain search and its verdict; kernel/epr.ts +1,788; core/infer.ts
++824; core/watch.ts +6). research/protocols/ic3syn/: skolemprobe.ts and skolemdecide.ts (the plain law's goals with the
+search off, and through the EPR path).
+
 
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
 
