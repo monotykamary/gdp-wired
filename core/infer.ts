@@ -578,15 +578,25 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const randomInput = (params: Env, bound: number, r: Rand = rand): Request => (rule ? rule.randomInput(r, bound, params)
     : {...Object.fromEntries(m.inputs.map(i => [i, r(bound + 1)])), ...Object.fromEntries((m.inputMaps ?? []).map(i => [i, new Map<number, number>()]))})
   type Sample = {params: Env, st: State}
-  const samples: Sample[] = [], cap = 3000
-  const keep = (s: Sample) => { if (samples.length < cap) samples.push(s); else if (rand(4) === 0) samples[rand(cap)] = s }
+  // (each state kept once: the runs of a machine with no requests walk one path, its few states again and again, and kept
+  // again they pushed out the caller's (opts.seen: CHC's s_split_22, i0 to 1999), which the float stream's cycle had left
+  // in the slots its draws never reached)
+  const samples: Sample[] = [], cap = 3000, keys: string[] = [], held = new Set<string>()
+  const mapsText = (st: State) => JSON.stringify(Object.values(st.maps).map(c => [...c]))
+  let offered = 0
+  const keep = (s: Sample) => {
+    offered++
+    const k = JSON.stringify([s.params, s.st.scalars, s.st.defaults ?? 0]) + mapsText(s.st), i = held.has(k) ? -1 : samples.length < cap ? samples.length : rand(4) === 0 ? rand(cap) : -1
+    if (i < 0) return
+    if (i < samples.length) held.delete(keys[i]!)
+    samples[i] = s; keys[i] = k; held.add(k)
+  }
   for (const st of opts.seen ?? []) if (!m.params.length) keep({params: {}, st})
   trace('start')
-  const mapsText = (st: State) => JSON.stringify(Object.values(st.maps).map(c => [...c]))
-  // Counted: `runs` requests tried at least, and on until the samples are full (a trial keeps its start at least, so as
-  // many trials as they hold fill them), the trials at most `runs` or that many. Timed: `runsMs` of wall time.
+  // Counted: `runs` requests tried at least, and on until as many states as the samples hold were offered (a trial offers
+  // its start at least), the trials at most `runs` or that many. Timed: `runsMs` of wall time.
   const runsTimed = timed || opts.runsMs !== undefined, runsUntil = Math.min(wallUntil, performance.now() + (opts.runsMs ?? 500)), least = opts.runs ?? Math.min(inferRuns, Math.max(2000, 4 * ms))
-  const moreRuns = (trial: number) => (runsTimed ? performance.now() < runsUntil : trial < Math.max(cap, least) && (used.tries < least || samples.length < cap) && !stop())
+  const moreRuns = (trial: number) => (runsTimed ? performance.now() < runsUntil : trial < Math.max(cap, least) && (used.tries < least || offered < cap) && !stop())
   let trials = 0
   // (an assumption with "there exists", a value the request brings, may admit no request at a small bound, a multiple
   // of 5 but 0, say: a trial whose steps moved nothing doubles the bound at once)
