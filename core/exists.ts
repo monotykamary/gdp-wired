@@ -477,14 +477,8 @@ const takenOf = (m: Machine) => new Set([...Object.keys(m.maps ?? {}), ...(m.inp
 // the law with x at W[k] beside the ghosts' own laws. What the ∀ search takes: a set it proves over the machine with the
 // ghosts is, with the ∃ laws in place of their plain forms, proveSome's to prove again (the kernel's), its maps the same.
 // (`ghost`: the ghosts added to a machine the search derives from the rule's (its sums, its divisors), unchecked: the
-// search is untrusted, and proveSome checks the ghosts it proves with)
-// (a law's keys it doesn't read left out: a ghost's own law is stated over every key of the law it serves)
-const trim = (l: Law): Law => {
-  const used = [l.forall, ...(l.keys ?? [])].filter((x): x is string => !!x && namesOf(l.holds).includes(x))
-  const {forall: _f, keys: _k, ...rest} = l
-  void _f; void _k
-  return {...rest, ...(used.length ? {forall: used[0]!} : {}), ...(used.length > 1 ? {keys: used.slice(1)} : {})}
-}
+// search is untrusted, and proveSome checks the ghosts it proves with; the laws as proveSome states them, so that the
+// goals the search settled are its again)
 export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Machine, laws: Law[], names: string[]} | undefined {
   const taken = takenOf(m), out: Law[] = [], gs: MapGhost[] = []
   const add = (m2: Machine, g: MapGhost) => ghostedMachine({orig: m2, vars: {}, maps: {...(g.inner ? {[g.inner.name]: {start: 0, write: g.inner.write}} : {}), [g.name]: {start: 0, write: g.write}}})
@@ -497,7 +491,7 @@ export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Mach
     gs.push(g); taken.add(g.name); if (g.inner) taken.add(g.inner.name)
     const {some: _s, ...plain} = l
     void _s
-    out.push(...[{...plain, holds: g.holds}, ...(g.inner ? [g.inner.inv] : []), g.inv].map(trim))
+    out.push({...plain, holds: g.holds}, ...(g.inner ? [g.inner.inv] : []), g.inv)
   }
   return gs.length ? {ghost, laws: out, names: gs.flatMap(g => [g.name, ...(g.inner ? [g.inner.name] : [])])} : undefined
 }

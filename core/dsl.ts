@@ -2791,7 +2791,11 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   const back = (found: {law: Law}[]): Verdict => {
     if (!sk) return {proven: true, checked: true}
     // (the set's goals settled over the same ghosted machine as the search settled them: kernel/prove.ts's proveSetFast)
-    const out = proveSome(rule.machine, [...withKinds(rule, laws), ...found.map(f => f.law)], {whole: proveSetFast, mapMs: Math.max(5_000, (until - clock()) / 2)})
+    // (else the usual proof: the fast one reads each law's instances by sort, which a key read from a map can leave short)
+    const ls = [...withKinds(rule, laws), ...found.map(f => f.law)], mapMs = Math.max(5_000, (until - clock()) / 2)
+    let out = proveSome(rule.machine, ls, {whole: proveSetFast, mapMs})
+    if (!out.proven) out = proveSome(rule.machine, ls, {mapMs})
+    if (knobs.GDP_Y && !out.proven) console.error(`[Y back] ${JSON.stringify(out.failed)?.slice(0, 600)} FOUND ${JSON.stringify(found.map(f => f.law))}`)
     return {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   }
   const inf = withWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {ghosts: sk.names} : {})}))
