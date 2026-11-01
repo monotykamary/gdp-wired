@@ -16,7 +16,7 @@ const root = resolve(import.meta.dir, '..')
 // only kernel-checked proofs taken), the rest of that file being the search, which a mutant would change in speed alone.
 const targets: {file: string, only?: string[]}[] = [{file: 'kernel/kernel.ts'}, {file: 'core/check.ts'}, {file: 'core/data.ts', only: [
   'callsIn', 'recursion', 'measurable', 'sized', 'measureOf', 'sizeX', 'measureX', 'readsInt', 'iMax0', 'measureI', 'lexY', 'isIntX', 'padded',
-  'callSites', 'sitesOf', 'shapedBy', 'ownArgs', 'obligation', 'directly', 'proveMeasures', 'ringSites', 'checkMeasures', 'termination']}]
+  'callSites', 'sitesOf', 'shapedBy', 'ownArgs', 'obligation', 'directly', 'proveMeasures', 'proveMeasuresIn', 'ringSites', 'checkMeasures', 'termination']}]
 // [pattern, replacement]: binary operators keep their spaces, so generics and arrows aren't touched.
 const operators: [RegExp, string][] = [
   [/ <= /g, ' < '], [/ < /g, ' <= '], [/ >= /g, ' > '], [/ > /g, ' >= '],
@@ -91,7 +91,7 @@ const battery: {name: string, cwd: string, cmd: string[], env?: Record<string, s
   {name: 'nonterm', cwd: 'core', cmd: ['bun', 'test', 'nonterm.test.ts'], ms: 300_000},
   // (core/data.ts's admission: definitions taken or refused, the obligations checked; MUTANT_BATTERY=termination,conformance
   // for its mutants alone)
-  {name: 'termination', cwd: 'core', cmd: ['bun', 'test', 'data.test.ts', '-t', 'terminat|structural|well-founded|ring|measure'], ms: 400_000},
+  {name: 'termination', cwd: 'core', cmd: ['bun', 'test', 'data.test.ts', '-t', 'terminat|structural|well-founded|ring|measure|weighted|paths'], ms: 400_000},
   {name: 'kernel fuzz', cwd: 'kernel', cmd: ['bun', 'test', 'kernel.test.ts'], env: {FUZZ_SCALE: '0.5'}, ms: 400_000},
 ]
 // MUTANT_BATTERY=a,b: only those tests (by name), for a run over one check's mutants.

@@ -866,6 +866,11 @@ function directly(law: DataLaw, ms: number): CyclicVerdict | undefined {
 }
 // Each call's obligation under measures given, proven (`obligations`, each function's) or the first that isn't (`failed`).
 function proveMeasures(ring: Fn[], sites: Site[], ms: Measure[], until: number): {obligations: Termination['obligations'][]} | {failed: string} {
+  const was = inTermination.on
+  inTermination.on = true
+  try { return proveMeasuresIn(ring, sites, ms, until) } finally { inTermination.on = was }
+}
+function proveMeasuresIn(ring: Fn[], sites: Site[], ms: Measure[], until: number): {obligations: Termination['obligations'][]} | {failed: string} {
   const names = ring.map(f => f.name), text = ringText(ring, ms)
   const nth = sites.map((s, i) => sites.slice(0, i).filter(r => r.from === s.from).length)
   const obligations: Termination['obligations'][] = ring.map(() => [])
@@ -2298,11 +2303,12 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
   const was = pairedKeys.skip
   pairedKeys.skip = true
   try {
-    // First without the shapes at a field's value (a field of a variable, of a field, of a function's value), within a
-    // quarter of the attempt's time: each is a split on that value's constructor that a size's descent or a law
-    // rarely reads, and a node with a few of them grows past its time (hmerge's size law: past 20 s with them, 0.8 s
-    // without). Then the nodes as built.
-    const lean = specs.map((n, i) => (i < base ? n : {...n, insts: n.insts.filter(q => !(fs.facts[q.fact]!.name.startsWith('shape ') && fieldValue(q.at[0])))}))
+    // Within a termination's proof (its obligations and their size laws), first without the shapes at a field's value
+    // (a field of a variable, of a field, of a function's value): each is a split on that value's constructor that a
+    // size's descent rarely reads, and a node with a few of them grows past its time (hmerge's size law: past 20 s with
+    // them, 0.8 s without). Then the nodes as built. (Elsewhere the nodes as built alone: a law's proof often reads them,
+    // length of append's at one vCPU past its 5 s with this pass first.)
+    const lean = !inTermination.on ? specs : specs.map((n, i) => (i < base ? n : {...n, insts: n.insts.filter(q => !(fs.facts[q.fact]!.name.startsWith('shape ') && fieldValue(q.at[0])))}))
     if (lean.some((n, i) => n.insts.length < specs[i]!.insts.length)) {
       // (nine tenths for a law about naturals alone, a size law's or a decrease's, which reads no value's constructor)
       const v = withDeadline(clock() + (t0 + attemptMs.ms - clock()) * (aboutNaturals(l) ? 0.9 : 0.25), () => proveCyclic(fs.facts, lean))
@@ -2312,6 +2318,8 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
     return {verdict: withDeadline(t0 + attemptMs.ms, () => proveCyclic(fs.facts, specs)), specs, main: base}
   } finally { pairedKeys.skip = was }
 }
+// Whether a termination's obligations are being proven (core/data.ts's proveMeasures).
+const inTermination = {on: false}
 // A field's value: a read of a constructor's field map (`D.ctor.field`).
 const fieldValue = (e: E | undefined) => e?.op === 'get' && e.map.split('.').length === 3
 // A law that compares naturals alone (sizes, a function's natural values): no equation of values of a datatype, no
