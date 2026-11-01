@@ -483,8 +483,8 @@ const takenOf = (m: Machine) => new Set([...Object.keys(m.maps ?? {}), ...(m.inp
 // (`ghost`: the ghosts added to a machine the search derives from the rule's (its sums, its divisors), unchecked: `ok`
 // checks them against the original; the laws as proveSome states them, so that the goals the search settled are its again)
 export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Machine, laws: Law[], ok: (m2: Machine) => boolean, witnesses: Record<string, string>} | undefined {
-  const taken = takenOf(m), keyed = keyedOf(m), out: Law[] = [], gs: MapGhost[] = []
-  // (every ghost map in the order it is added: a ghost's inner one before it, the provenance after it)
+  const taken = takenOf(m), out: Law[] = [], gs: MapGhost[] = []
+  // (every ghost map in the order it is added: a ghost's inner one before it)
   type Part = {name: string, write: MapGhost['write']}
   const parts: Part[] = [], one = (m2: Machine, q: Part): Ghosted => ({orig: m2, vars: {}, maps: {[q.name]: {start: 0, write: q.write}}})
   const ghost = (m2: Machine, more: Part[] = []) => [...parts, ...more].reduce((acc, q) => ghostedMachine(one(acc, q)), m2)
@@ -503,23 +503,6 @@ export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Mach
     const {some: _s, ...plain} = l
     void _s
     out.push({...plain, holds: g.holds}, ...(g.inner ? [g.inner.inv] : []), g.inv)
-    // (the provenance of the cells the ghosts' laws and their write's guard read: the ∃ supports a ghost's law needs, each
-    // made plain the same way (provenanceOf), two levels, those whose laws hold on the small instances)
-    const mapsOf = (t: unknown) => [...new Set([...JSON.stringify(t).matchAll(/"op":"get","map":"([^"]+)"/g)].map(q => q[1]!))]
-    const lits = (w: E) => [...JSON.stringify(w).matchAll(/"op":"flag","name":"([^"]+)"/g)].map(q => m.step.flags?.[q[1]!])
-    let frontier = mapsOf([g.inv.holds, g.inner?.inv.holds ?? null, lits(g.write.value), g.inner ? lits(g.inner.write.value) : null])
-    // (a map once: the ghost's own map and its inner one's have theirs)
-    const done = new Set(own(g).map(q => q.name.replace(/\$[wg]\d*$/, '')))
-    for (let depth = 0; depth < (env.GDP_YA_NOPROV ? 0 : 2) && frontier.length; depth++) {
-      const next: string[] = []
-      for (const mp of frontier) for (const val of m.inputs) {
-        const pg = done.has(mp) ? undefined : provenanceOf(m, mp, val, taken, keyed)
-        if (!pg) continue
-        try { if (!trueSmall(m, [pg.inv], ghost(m, [pg]))) continue } catch { continue }
-        parts.push(pg); taken.add(pg.name); done.add(mp); out.push(pg.inv); next.push(...mapsOf(pg.inv.holds))
-      }
-      frontier = next
-    }
   }
   const witnesses: Record<string, string> = {}
   laws.filter(l => l.some?.length).forEach((l, i) => { const g = gs[i]!; witnesses[l.name] = `w = ${g.name}[${showE(g.at)}], ${g.name}[${showE(g.write.key)}] := ${showE(g.write.value)}` })
