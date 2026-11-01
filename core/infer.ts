@@ -616,7 +616,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // offered held, its requests at the smallest bound: the hull's bounds come from the states past the usual, which runs
     // from the start seldom reach (a ticket lock's service at 2 in 2 to 9 of 3,000 samples, and the join dropped the
     // forms they left too tight one at a time), and a thread or two at a time step on from them)
-    const rare = trial % 4 === 3 && stateVars.length > 0 && samples.length >= 64
+    const rare = !runsTimed && trial % 4 === 3 && stateVars.length > 0 && samples.length >= 64
     let params: Env, st: State
     if (rare) {
       const v = rand(stateVars.length), seen = (q: Sample) => seenAt[v]!.get(q.st.scalars[stateVars[v]!] ?? 0) ?? 0
