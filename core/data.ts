@@ -810,14 +810,7 @@ function candidates(ring: Fn[], edges: CallEdge[], sites: Site[], until: number)
   }
   // The LP's rank over the runs (coefficients and constants), a node per function, where the runs give edges; for a ring,
   // after the relation's.
-  const fromRuns = (): Measure[] | undefined => {
-    if (!edges.length) return undefined
-    const vars = ring.map((f, i) => f.params.flatMap((q, j) => (measurable(q.sort) ? [`p${i}_${j}`] : [])))
-    const env = (i: number, xs: number[]) => Object.fromEntries(vars[i]!.map(x => [x, xs[Number(x.split('_')[1])]!]))
-    const r = ranksOfCalls(vars, edges.flatMap(e => [{node: e.from, env: env(e.from, e.s)}, {node: e.to, env: env(e.to, e.t)}]), edges.map(e => ({from: e.from, to: e.to, s: env(e.from, e.s), t: env(e.to, e.t)})))
-    if (r.left || !r.comps.length) return undefined
-    return ring.map((f, i) => ({comps: r.comps.map(c => ({coef: f.params.map((_, j) => c[i]!.coef[`p${i}_${j}`] ?? 0), c: c[i]!.c}))}))
-  }
+  const fromRuns = () => runsRank(ring, edges, edges)
   // The relation's rank: per location (each function), its components' forms over the function's parameters' sizes.
   const fromRelation = (): Measure[] | undefined => {
     const rel = callRelation(ring, sites)
@@ -833,6 +826,8 @@ function candidates(ring: Fn[], edges: CallEdge[], sites: Site[], until: number)
   }
   const runs = ring.length === 1 ? fromRuns() : undefined
   if (runs) out.push(runs)
+  // (a ring's first: a size across it, the rest after it, below)
+  if (ring.length > 1) out.push(...ringFolds(ring, edges))
   const rel = fromRelation()
   if (rel) out.push(rel)
   const runs2 = ring.length > 1 ? fromRuns() : undefined
@@ -854,24 +849,69 @@ function foldMeasures(fn: Fn, edges: CallEdge[]): Measure[] {
   const out: Measure[] = []
   if (!edges.length) return out
   for (const [i, q] of fn.params.entries()) {
-    const d = q.sort
-    if (!(d instanceof Data) || d.group.length > 1 || d.abstract) continue
-    // each field's choices: of the datatype 1 or 2, of another datatype 0 or 1, else 0
-    const fields = d.ctors.flatMap((c, j) => c.fields.map((f, k) => ({j, k, sort: fieldSort(f)})))
-    const choices = fields.map(f => (f.sort === d ? [1, 2] : f.sort instanceof Data ? [0, 1] : [0]))
-    if (choices.reduce((n, c) => n * c.length, 1) > 64) continue
-    let combos: number[][] = [[]]
-    for (const c of choices) combos = combos.flatMap(a => c.map(w => [...a, w]))
-    // (the plain size is tried before: its weights are 1 on the datatype's fields, 0 on the others')
-    const size = fields.map(f => (f.sort === d ? 1 : 0))
-    combos = combos.filter(ws => ws.some((w, n) => w !== size[n])).sort((a, b) => a.reduce((x, y) => x + y, 0) - b.reduce((x, y) => x + y, 0))
-    const weight = (ws: number[]) => { const at = new Map(fields.map((f, n) => [`${f.j}.${f.k}`, ws[n]!])); const go = (v: Value): number => { const o = v as {c: number, f: Value[]}; return 1 + d.ctors[o.c]!.fields.reduce((t, f, k) => { const w = at.get(`${o.c}.${k}`)!, fs = fieldSort(f); return t + (!w ? 0 : fs === d ? w * go(o.f[k]!) : fs instanceof Data ? w * sizeOf(fs, o.f[k]!) : 0) }, 0) }; return go }
-    for (const ws of combos) {
-      const w = weight(ws)
+    const wt = q.sort instanceof Data ? weightings(q.sort) : undefined
+    if (!wt) continue
+    for (const ws of wt.combos) {
+      const w = wt.weight(ws)
       if (!edges.every(e => w(e.tv[i]!) < w(e.sv[i]!))) continue
-      const made = foldFn(d, fields, ws)
+      const made = foldFn(q.sort as Data, wt.fields, ws)
       if (!made) continue
       out.push({comps: [{coef: fn.params.map(() => 0), c: 0, fold: {fn: made, of: i}}]})
+      if (out.length >= 2) return out
+    }
+  }
+  return out
+}
+// A datatype's weightings (one datatype, not a group, not abstract): each field's choices, of the datatype 1 or 2, of
+// another datatype 0 or 1, else 0; every combination but the plain size's (tried before: 1 on the datatype's fields, 0 on
+// the others'), the lightest first, and the fold of each at a value.
+function weightings(d: Data) {
+  if (d.group.length > 1 || d.abstract) return undefined
+  const fields = d.ctors.flatMap((c, j) => c.fields.map((f, k) => ({j, k, sort: fieldSort(f)})))
+  const choices = fields.map(f => (f.sort === d ? [1, 2] : f.sort instanceof Data ? [0, 1] : [0]))
+  if (choices.reduce((n, c) => n * c.length, 1) > 64) return undefined
+  let combos: number[][] = [[]]
+  for (const c of choices) combos = combos.flatMap(a => c.map(w => [...a, w]))
+  const size = fields.map(f => (f.sort === d ? 1 : 0))
+  combos = combos.filter(ws => ws.some((w, n) => w !== size[n])).sort((a, b) => a.reduce((x, y) => x + y, 0) - b.reduce((x, y) => x + y, 0))
+  const weight = (ws: number[]) => { const at = new Map(fields.map((f, n) => [`${f.j}.${f.k}`, ws[n]!])); const go = (v: Value): number => { const o = v as {c: number, f: Value[]}; return 1 + d.ctors[o.c]!.fields.reduce((t, f, k) => { const w = at.get(`${o.c}.${k}`)!, fs = fieldSort(f); return t + (!w ? 0 : fs === d ? w * go(o.f[k]!) : fs instanceof Data ? w * sizeOf(fs, o.f[k]!) : 0) }, 0) }; return go }
+  return {fields, combos, weight, size}
+}
+// The LP's rank over the runs (core/cycles.ts's ranksOfCalls): a node per function of the ring, each its own coefficients
+// of its parameters' sizes and constant per component, every call of `edges` lowered (`points`: the calls whose ends the
+// rank is at least 0 at).
+function runsRank(ring: Fn[], edges: CallEdge[], points: CallEdge[]): Measure[] | undefined {
+  if (!edges.length) return undefined
+  const vars = ring.map((f, i) => f.params.flatMap((q, j) => (measurable(q.sort) ? [`p${i}_${j}`] : [])))
+  const env = (i: number, xs: number[]) => Object.fromEntries(vars[i]!.map(x => [x, xs[Number(x.split('_')[1])]!]))
+  const r = ranksOfCalls(vars, points.flatMap(e => [{node: e.from, env: env(e.from, e.s)}, {node: e.to, env: env(e.to, e.t)}]), edges.map(e => ({from: e.from, to: e.to, s: env(e.from, e.s), t: env(e.to, e.t)})))
+  if (r.left || !r.comps.length) return undefined
+  return ring.map((f, i) => ({comps: r.comps.map(c => ({coef: f.params.map((_, j) => c[i]!.coef[`p${i}_${j}`] ?? 0), c: c[i]!.c}))}))
+}
+// A size across a ring first, the rest after it: one weighting of a datatype, its fold at each function's first parameter
+// of it (0 at a function with none) the first component, which no call of the runs raises and some lower; the calls it
+// leaves equal ranked after it by the LP (`runsRank`). The plain size first (a Stooge sort's ring: the size, then a phase
+// the LP fits, the sort above its thirds' from 3 items on and below them under 3), then the weightings, the lightest first
+// (a formula's models through a ring of three, `Not` weighing its formula twice: ¬(p ∧ q) to p ∧ ¬q, no size falling).
+// The first two the runs don't contradict, by every datatype the ring's parameters have.
+function ringFolds(ring: Fn[], edges: CallEdge[]): Measure[][] {
+  const out: Measure[][] = []
+  if (!edges.length) return out
+  const ds = [...new Set(ring.flatMap(f => f.params.map(q => q.sort)))].filter((s): s is Data => s instanceof Data)
+  for (const d of ds) {
+    const wt = weightings(d)
+    if (!wt) continue
+    const at = ring.map(f => f.params.findIndex(q => q.sort === d))
+    for (const ws of [wt.size, ...wt.combos]) {
+      const w = wt.weight(ws), val = (i: number, vs: Value[]) => (at[i]! < 0 ? 0 : w(vs[at[i]!]!)), plain = ws === wt.size
+      const ts = edges.map(e => [val(e.to, e.tv), val(e.from, e.sv)] as const)
+      if (ts.some(([a, b]) => a > b) || !ts.some(([a, b]) => a < b)) continue
+      const rest = edges.filter((_, n) => ts[n]![0] === ts[n]![1]), tail = rest.length ? runsRank(ring, rest, edges) : ring.map(() => ({comps: []}))
+      if (!tail) continue
+      const made = plain ? '' : foldFn(d, wt.fields, ws)
+      if (made === undefined) continue
+      const first = (f: Fn, i: number): Measure['comps'][number] => (plain ? {coef: f.params.map((_, j) => (j === at[i] ? 1 : 0)), c: 0} : {coef: f.params.map(() => 0), c: 0, ...(at[i]! >= 0 ? {fold: {fn: made, of: at[i]!}} : {})})
+      out.push(ring.map((f, i) => ({comps: [first(f, i), ...tail[i]!.comps]})))
       if (out.length >= 2) return out
     }
   }

@@ -208,10 +208,22 @@ export const ack: ReturnType<typeof define> = define('ack', {m: natural, n: natu
 // A ring: nestA reads nestB at its own value of the tail, nestB reads nestA at its argument.
 export const nestA: ReturnType<typeof define> = define('nestA', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => List.cons(head, nestB(nestA(tail)))}))
 export const nestB: ReturnType<typeof define> = define('nestB', {xs: List}, List, ({xs}) => L(nestA(xs)))
+// A ring weighted across its functions (TIP's propositional `models`): a formula's value, `Not (And r q)` read again
+// as `And r (Not q)` (no size falls: both are 1 + 1 + size r + size q), `both` reading the right operand at the left's
+// value. Its measure: a fold of the formula, `Not` weighing its formula twice, the first component at both functions,
+// then 1 at `both` and 0 at `ev` (`both` reads `ev` at the same formula).
+export const Form = data('Form', {and: {l: self, r: self}, not: {f: self}, atom: {n: natural}})
+export const ev: ReturnType<typeof define> = define('ev', {f: Form, k: natural}, natural, ({f, k}) => L(f).match({
+  and: ({l, r}) => N(both(r, ev(l, k))),
+  not: ({f: g}) => L(g).match({and: ({l, r}) => N(ev(Form.and(l, Form.not(r)), k)), not: ({f: h}) => N(ev(h, k)), atom: () => N(k)}),
+  atom: ({n}) => N(n).plus(k),
+}))
+export const both: ReturnType<typeof define> = define('both', {f: Form, k: natural}, natural, ({f, k}) => N(ev(f, N(k).plus(1))))
 export const nested = {
   nestSame: () => law('nest is the list', {xs: List}, ({xs}) => L(nest(xs)).eq(L(xs))),
   nestRingSame: () => law('nestA is the list', {xs: List}, ({xs}) => L(nestA(xs)).eq(L(xs))),
   ackAbove: () => law('ack is above its second argument', {m: natural, n: natural}, ({m, n}) => N(ack(m, n)).atLeast(N(n).plus(1))),
+  evAtLeast: () => law('a formula\'s value is at least k', {f: Form, k: natural}, ({f, k}) => N(ev(f, k)).atLeast(k)),
 } satisfies Record<string, () => DataLaw>
 
 // Definitions that don't terminate, made to look as if they did (core/data.test.ts): each refused with the measures
@@ -252,6 +264,18 @@ const loops = {
   nestedGrow: () => { const f: ReturnType<typeof define> = define('nestedGrow', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(len(tail)).atMost(8), List.cons(head, f(f(tail))), List.cons(head, List.cons(head, f(f(tail)))))})); return f },
   // the same through a ring: the outer call of the other
   nestedGrowRing: () => { const f: ReturnType<typeof define> = define('nestedGrowA', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(len(tail)).atMost(8), List.cons(head, g(f(tail))), List.cons(head, List.cons(head, g(f(tail)))))})), g: ReturnType<typeof define> = define('nestedGrowB', {xs: List}, List, ({xs}) => L(f(xs))); return f },
+  // the weighted ring, but a Not of an And whose operands are both past 8 in size turned round (and never ending there):
+  // every weighting is equal across that call
+  foldSwapLate: () => {
+    const sz = define('formSize', {f: Form}, natural, ({f}) => L(f).match({and: ({l, r}) => N(sz(l)).plus(N(sz(r))).plus(1), not: ({f: g}) => N(sz(g)).plus(1), atom: () => 1}))
+    const f: ReturnType<typeof define> = define('evLate', {f: Form, k: natural}, natural, ({f: x, k}) => L(x).match({
+      and: ({l, r}) => N(g(r, f(l, k))),
+      not: ({f: y}) => L(y).match({and: ({l, r}) => when(N(sz(l)).atLeast(9).and(N(sz(r)).atLeast(9)), N(f(Form.not(Form.and(r, l)), k)), N(f(Form.and(l, Form.not(r)), k))), not: ({f: h}) => N(f(h, k)), atom: () => N(k)}),
+      atom: ({n}) => N(n).plus(k),
+    }))
+    const g: ReturnType<typeof define> = define('bothLate', {f: Form, k: natural}, natural, ({f: x, k}) => N(f(x, N(k).plus(1))))
+    return f
+  },
   // on an integer (no measure reads one): below 0 it never ends
   intDown: () => { const f: ReturnType<typeof define> = define('intDown', {i: integer}, natural, ({i}) => when(I(i).eq(0), 0 as number, N(f(I(i).minus(1))) as never)); return f },
   // a ring whose measures are given and don't fall: (size xs) at both, the call passing xs round

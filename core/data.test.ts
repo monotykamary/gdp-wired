@@ -6,7 +6,7 @@ import {expect, test} from 'bun:test'
 import {type Bool, type Nat, type Val, type X, type Y, EvalLimit, boolean, checkMeasures, conjectures, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, valueVar, when} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
 import {transferPlan} from './transfer.ts'
-import {Bag, Forest, List, Rose, Tree, a3, ack, adversarial, app, broken, drp, ilv, laws, leq, len, merge, mergeRuns, mir, mrg, nest, nestA, nestB, nested, nonterminating, nz, paren, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken, tokens, wellFounded} from '../examples/data.ts'
+import {Bag, Forest, List, both, ev, Rose, Tree, a3, ack, adversarial, app, broken, drp, ilv, laws, leq, len, merge, mergeRuns, mir, mrg, nest, nestA, nestB, nested, nonterminating, nz, paren, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken, tokens, wellFounded} from '../examples/data.ts'
 
 const list = (...xs: number[]): {c: number, f: unknown[]} => xs.reduceRight<{c: number, f: unknown[]}>((t, h) => ({c: 1, f: [h, t]}), {c: 0, f: []})
 const run = (call: {x: unknown}, env: Record<string, unknown>) => evalX(call.x as never, new Map(Object.entries(env)) as never, {})
@@ -139,6 +139,13 @@ test('nested recursion (well-founded, a call in another\'s argument): taken with
   for (const f of [nz, nest, ack, nestA, nestB]) for (const o of f.fn.termination!.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof), o.law.name).toBe(true)
   for (const mk of Object.values(nested)) { const v = proveData(mk()); expect(v.proven && v.checked && v.proof?.proven && checkCyclic(v.proof.proof), v.goal).toBe(true) }
 }, 120_000)
+
+test('a ring weighted across its functions (a formula\'s fold, Not weighing twice, at each function), then ranked by the runs: no size falls at ¬(l ∧ r) to l ∧ ¬r', () => {
+  const t = [ev.fn.termination!, both.fn.termination!]
+  expect(ev.fn.ring).toEqual(['ev', 'both'])
+  expect(t.map(x => x.text)).toEqual([expect.stringMatching(/^\(foldForm_\d+\(f\), 0\)$/), expect.stringMatching(/^\(foldForm_\d+\(f\), 1\)$/)])
+  for (const x of t) for (const o of x.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof), o.law.name).toBe(true)
+}, 60_000)
 
 test('nested recursion refused where a call\'s value has no place to be read (a call under a case of a match in another\'s argument); stated measures of a ring of two lengths padded (terminating)', () => {
   const L2 = data('Lst2', {none: {}, more: {item: natural, rest: self}})
