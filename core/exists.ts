@@ -468,7 +468,8 @@ function mapGhostsOf(m: Machine, law: Law, taken: Set<string>): MapGhost[] {
     // G's own law: where its write's cell is set, what the write's guard says of r, at G's cell)
     for (const mp2 of Object.keys(m.step.maps ?? {})) {
       if (mp2 === mp) continue
-      for (const val2 of m.inputs) { const g = provenanceOf(m, mp2, val2, taken, keyed); if (g) ghost({op: 'get', map: g.name, key: m.step.maps![mp2]!.key as E}, g) }
+      const w2 = m.step.maps![mp2]!
+      if (!('each' in w2)) for (const val2 of m.inputs) { const g = provenanceOf(m, mp2, val2, taken, keyed); if (g) ghost({op: 'get', map: g.name, key: w2.key}, g) }
     }
   }
   return out
@@ -509,7 +510,7 @@ export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Mach
     let frontier = mapsOf([g.inv.holds, g.inner?.inv.holds ?? null, lits(g.write.value), g.inner ? lits(g.inner.write.value) : null])
     // (a map once: the ghost's own map and its inner one's have theirs)
     const done = new Set(own(g).map(q => q.name.replace(/\$[wg]\d*$/, '')))
-    for (let depth = 0; depth < 2 && frontier.length; depth++) {
+    for (let depth = 0; depth < (env.GDP_YA_NOPROV ? 0 : 2) && frontier.length; depth++) {
       const next: string[] = []
       for (const mp of frontier) for (const val of m.inputs) {
         const pg = done.has(mp) ? undefined : provenanceOf(m, mp, val, taken, keyed)
