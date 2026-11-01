@@ -32,7 +32,7 @@
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
-import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, compileC, compileE, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, searchSeeded, times, walk, withArithmetic, x} from './machine.ts'
+import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, compileC, compileE, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
 import {clock, counted, fullWork, decideLaw, decideNote, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall, withWork} from '../kernel/prove.ts'
@@ -572,7 +572,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   if ((first.proven && first.checked) || first.run) return {...first, found: [], stats: stats(0, 0, 0)}
 
   // --- runs ------------------------------------------------------------------------------------------------------------
-  const run = interpret(m), rand = searchSeeded(17), kinds = rule ? rule.kindsOfState() : []
+  const run = interpret(m), rand = seeded(17), kinds = rule ? rule.kindsOfState() : []
   const given = rule ? [...rule.kindLaws().filter(k => !laws.some(l => l.name === k.name)), ...laws] : laws
   const randomParams = (bound: number, r: Rand = rand): Env => (rule ? rule.randomParams(r, bound) : Object.fromEntries(m.params.map(p => [p, r(bound + 1)])))
   const randomInput = (params: Env, bound: number, r: Rand = rand): Request => (rule ? rule.randomInput(r, bound, params)
@@ -593,7 +593,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const skolems = m.inputs.some(i => i.startsWith('some$a'))
   for (let trial = 0, bound = 2, stuck = false; moreRuns(trial); trial++, bound = trial % 20 === 0 || stuck ? (bound >= 1024 ? 2 : bound * 2) : bound) {
     stuck = false; trials++
-    const params = randomParams(bound)
+    // (every other trial's params at a bound of their own, one in twenty's at 0: at the requests' bound alone the runs never
+    // met a small budget with large costs (s + 50·p up to b + 150 at b = 1, the in-flight bound), and all-0 params (a lease
+    // taken for 0 at time 0) once in 27 trials at bound 2; each held at some seeds only)
+    const params = randomParams(trial % 20 === 1 ? 0 : trial % 2 ? bound : 2 ** rand(11))
     if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) continue
     let st: State
     try { st = run.init(params) } catch { continue }
@@ -779,10 +782,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // guard, where that bounds it lower; at the largest value there and the constant above it, or, below 0, at 0 (a run
     // seldom meets a bound between two times: until[k] + E <= now, reached at the instant its lease ends).
     if (w < 0 || !Number.isFinite(written)) continue
-    const wr: At = {atom: w, value: 1, hi: Infinity}, near = (dv: number) => (dv < 0 ? [0] : [dv, ...bounds.filter(b => b > dv).slice(0, 1)])
+    // (each beside its guard's own form, where it bounds lower: a shape of three has none, so the lease's until[k] + E <= at
+    // where taken is 1 came only where a run's largest value under the guard was at a key never written)
+    const wr: At = {atom: w, value: 1, hi: Infinity}, near = (dv: number) => (dv < 0 ? [0] : [dv, ...bounds.filter(b => b > dv).slice(0, 1)]), alone = (v: number) => (coef.length > 2 ? Infinity : v)
     if (written < d) for (const dv of near(written)) if (dv < d) forms.push({coef, d: dv, cells, guard: wr, size: sizeOf(coef) + 55})
-    here.forEach((mode, g) => { for (const [value, dv] of mostW[g]!) if (mode.values.includes(value) && dv < Math.min(written, most[g]!.get(value)!)) for (const e of near(dv)) forms.push({coef, d: e, cells, guard: {atom: mode.atom, value}, also: [wr], size: sizeOf(coef) + 65}) })
-    keyNots.forEach((s, g) => { if (Number.isFinite(awayW[g]!) && awayW[g]! < Math.min(written, away[g]!)) for (const e of near(awayW[g]!)) forms.push({coef, d: e, cells, guard: {keyNot: s}, also: [wr], size: sizeOf(coef) + 70}) })
+    here.forEach((mode, g) => { for (const [value, dv] of mostW[g]!) if (mode.values.includes(value) && dv < Math.min(written, alone(most[g]!.get(value)!))) for (const e of near(dv)) forms.push({coef, d: e, cells, guard: {atom: mode.atom, value}, also: [wr], size: sizeOf(coef) + 65}) })
+    keyNots.forEach((s, g) => { if (Number.isFinite(awayW[g]!) && awayW[g]! < Math.min(written, alone(away[g]!))) for (const e of near(awayW[g]!)) forms.push({coef, d: e, cells, guard: {keyNot: s}, also: [wr], size: sizeOf(coef) + 70}) })
   }
   for (const mode of modes) if (!atoms[mode.atom]!.cell) for (const value of mode.values) if (NS && !valsS[mode.atom]!.includes(value)) forms.push({coef: [], d: 0, cells: false, unreachable: {atom: mode.atom, value}, size: 1})
   // Remainders: a value, or the sum or difference of two, at one remainder by k in every run (or in every run where a
@@ -2178,7 +2183,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           const killed = new Set<Form>(), byView = new Map<number, Form[]>()
           for (const f of live) byView.set(f.view!, [...(byView.get(f.view!) ?? []), f])
           let read = 0, still = 0, lastKill = 0
-          const r = instance(grow, share, searchSeeded(29 + k), most5, q => {
+          const r = instance(grow, share, seeded(29 + k), most5, q => {
             if (read >= most5 || (read >= (k ? 0 : least5) && still >= quiet) || stop()) return false
             states++; read++
             const before = killed.size

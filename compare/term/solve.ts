@@ -30,7 +30,7 @@ import type {Law} from '../../core/machine.ts'
 import {type Built, build, stepOf} from './translate.ts'
 import {components} from './scc.ts'
 import {findRank, showE} from '../../core/cycles.ts'
-import {interpret, searchSeeded} from '../../core/machine.ts'
+import {interpret, seeded} from '../../core/machine.ts'
 import {type Tree, check, loopMachine, loopObligations} from '../../kernel/kernel.ts'
 import {certLoop, proveLaws, withDeadline} from '../../kernel/prove.ts'
 import {findNeverEnds} from '../../core/nonterm.ts'
@@ -85,7 +85,7 @@ const replayed = (w: Lasso): string | undefined => {
 // --- lassos -------------------------------------------------------------------------------------------------------------
 // (the task's own loop's runs, as main's: a lasso is the task's, replayed by ari.ts's evaluator)
 const run = interpret(loopMachine(b0!.loop))
-const rand = searchSeeded(7)
+const rand = seeded(7)
 const out = new Map<number, number>()
 for (const p of b0!.plans) out.set(p.from, (out.get(p.from) ?? 0) + 1)
 const pair = (x: number) => [Math.max(x, 0), Math.max(-x, 0)] as const

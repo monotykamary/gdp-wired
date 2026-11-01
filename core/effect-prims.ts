@@ -19,7 +19,7 @@
 import ts from 'typescript'
 import * as dsl from './dsl.ts'
 import type {StepLaw} from './dsl.ts'
-import {type Law, interpret, searchSeeded} from './machine.ts'
+import {type Law, interpret, seeded} from './machine.ts'
 import {allowed} from './watch.ts'
 import {type Setup, bare as strip, memberName, refuse, text} from './extract-read.ts'
 import type {Extraction} from './extract.ts'
@@ -412,7 +412,7 @@ type Any = any
 export async function primitiveConforms(spec: Spec, effect: Mod, opts: {runs?: number, depth?: number, seed?: number, x?: Extraction, file?: string} = {}): Promise<{checked: number, waited: number, blocked: number, interrupted: number, failure?: string}> {
   const E = effect, v4 = 'TxRef' in E, x = opts.x ?? primitiveRule(spec, E, opts.file ? {file: opts.file} : {})
   if (!x.ok || !x.rule) return {checked: 0, waited: 0, blocked: 0, interrupted: 0, failure: `the rule: ${x.refusals.map(f => f.what).join('; ')}`}
-  const r = x.rule, g = r.compiled(), interp = interpret(r.machine), rand = searchSeeded(opts.seed ?? 1)
+  const r = x.rule, g = r.compiled(), interp = interpret(r.machine), rand = seeded(opts.seed ?? 1)
   const inputs = (r as never as {parts: {inputs: [string, unknown][]}}).parts.inputs.map(([n]) => n).filter(n => n !== 'method')
   const ops = spec.kind === 'queue' ? QUEUE_OPS(v4) : SEM_OPS
   const tick = () => new Promise(res => setTimeout(res, 0))
