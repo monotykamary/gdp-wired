@@ -158,7 +158,10 @@ export type Source = string | FileURL | {code: string, file?: string}
 const builtin = <T>(id: string): T => (globalThis as {process?: {getBuiltinModule?: (id: string) => unknown}}).process?.getBuiltinModule?.(id) as T
 // What a reader process that failed said it refuses: a line `gdp: refused: …` on its stderr (source it can't read: a
 // syntax error, nesting past its stack), or undefined where it said none (it didn't run: the tool is missing).
-export const statedRefusal = (e: unknown): string | undefined => /^gdp: refused: (.*)$/m.exec(String((e as {stderr?: unknown}).stderr ?? ''))?.[1]
+export const statedRefusal = (e: unknown): string | undefined => {
+  const err = (e as {stderr?: string | Uint8Array}).stderr, text = typeof err === 'string' ? err : err ? new TextDecoder().decode(err) : ''
+  return /^gdp: refused: (.*)$/m.exec(text)?.[1]
+}
 // Source nested past what a reader's recursion holds (a stack overflow in TypeScript's parser): refused where it is.
 export const tooDeep = (e: unknown): boolean => e instanceof RangeError && /call stack/i.test(e.message)
 export const pathOf = (at: string | FileURL): string => (typeof at === 'string' ? at : builtin<{fileURLToPath: (u: string) => string}>('node:url').fileURLToPath(at.href))
