@@ -27,7 +27,7 @@
 // floats, enums with associated values, inout, a class's superclass of the code's own, other code given the state.
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, type FileURL} from './extract-read.ts'
-import {type Answer, type Harness, type Leaf, type PArg, type SModule, type SType, type StepOptions, type StepRead, entryNames, extractStep, node, stubbed} from './extract-step.ts'
+import {asset, type Answer, type Harness, type Leaf, type PArg, type SModule, type SType, type StepOptions, type StepRead, entryNames, extractStep, node, stubbed} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 export type SwiftOptions = StepOptions & {
@@ -56,7 +56,7 @@ const swiftOf = (o: SwiftOptions) => o.swift ?? env().GDP_SWIFT ?? 'swift'
 // Else the reader's package, swift-syntax pinned, built by SwiftPM: minutes, once.
 export function swiftReader(o: SwiftOptions = {}): string {
   const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process'), os = node<{tmpdir: () => string}>('node:os'), path = node<Path>('node:path')
-  const dir = new URL('./swift/', import.meta.url).pathname, main = `${dir}Sources/gdp-swiftreader/main.swift`
+  const dir = asset('swift/'), main = `${dir}Sources/gdp-swiftreader/main.swift`
   let version: string
   try { version = cp.execFileSync(swiftOf(o), ['--version'], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}) } catch { throw new Refusal('swift', 'a Swift toolchain (5.9 or later: swift on the PATH, or swift: / $GDP_SWIFT) is needed to extract Swift') }
   const out = `${os.tmpdir()}/gdp-swiftreader-${hash(fs.readFileSync(main, 'utf8') + fs.readFileSync(`${dir}Package.swift`, 'utf8') + version)}`, bin = `${out}/gdp-swiftreader`
@@ -141,7 +141,7 @@ export function extractSwift(where: string | FileURL, opts: SwiftOptions = {}): 
 
 // --- the harness: Swift beside the code, generated per reading ----------------------------------------------------------
 // (its fixed parts, Swift files shipped beside the reader)
-const resource = (f: string): string => node<FS>('node:fs').readFileSync(new URL(`./swift/${f}`, import.meta.url).pathname, 'utf8')
+const resource = (f: string): string => node<FS>('node:fs').readFileSync(asset(`swift/${f}`), 'utf8')
 // The Swift name of an integer type, and of an answer's type.
 const intName = (t: SType): string => { const x = t as {sw?: string, bits?: number, signed?: boolean}; return x.sw ?? (x.bits === 64 || !x.bits ? (x.signed === false ? 'UInt' : 'Int') : `${x.signed === false ? 'UInt' : 'Int'}${x.bits}`) }
 function answerType(a: Answer, read: StepRead): string {

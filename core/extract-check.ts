@@ -309,7 +309,8 @@ export type CodeSide = {
   make: (params: Record<string, Raw>) => {ok: true, value: unknown} | {ok: false, error: string},
   at: (snap: Snap, params: Record<string, Raw>) => unknown,
   snapOf: (self: unknown, params: Record<string, Raw>) => Snap,
-  call: (self: unknown, e: Ev, args: unknown[]) => {ok: true, value: unknown} | {ok: false, error: string},
+  // (outside: the code can't be given the request, an answer outside the type of the call it answers: not compared)
+  call: (self: unknown, e: Ev, args: unknown[]) => {ok: true, value: unknown} | {ok: false, error: string, outside?: true},
   reduce?: (snap: Snap, e: Ev, args: unknown[], params: Record<string, Raw>) => {refused: string} | {snap: Snap} | {problem: string},
   // The request's arguments, the time it is made at, the code's own initial state (a problem where it differs).
   args: (inputs: Record<string, Raw>, e: Ev) => unknown[], setNow: (n: number) => void, init?: (snap: Snap, params: Record<string, Raw>) => string | undefined,
@@ -434,6 +435,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
     try {
       if (isClass) {
         const self = side.self!, c = code.call(self, e, args)
+        if (!c.ok && c.outside) { next.stop = true; ev.outside++; return undefined }
         if (!c.ok) res = {refused: c.error}
         else res = {snap: code.snapOf(self, params), out: c.value as Raw, self}
       } else {

@@ -18,7 +18,7 @@
 // enums with data, references kept, maps and vectors (for now), floats, unsafe pointers, other crates' code.
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, type FileURL} from './extract-read.ts'
-import {type Harness, type Leaf, type SModule, type SType, type StepOptions, type StepRead, entryNames, extractStep, node, stubbed} from './extract-step.ts'
+import {asset, type Harness, type Leaf, type SModule, type SType, type StepOptions, type StepRead, entryNames, extractStep, node, stubbed} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 export type RsOptions = StepOptions & {cargo?: string}
@@ -29,7 +29,7 @@ const proc = (globalThis as {process?: {env?: Record<string, string | undefined>
 // The reader, built once per version of its source (into the system's temporary directory).
 export function rsReader(cargo = 'cargo'): string {
   const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process'), os = node<{tmpdir: () => string}>('node:os'), crypto = node<{createHash: (a: string) => {update: (s: string) => {digest: (e: string) => string}}}>('node:crypto')
-  const dir = new URL('./rs/', import.meta.url).pathname
+  const dir = asset('rs/')
   const h = crypto.createHash('sha256').update(fs.readFileSync(`${dir}src/main.rs`, 'utf8') + fs.readFileSync(`${dir}Cargo.toml`, 'utf8')).digest('hex').slice(0, 12)
   const target = `${os.tmpdir()}/gdp-rsreader-${h}`, bin = `${target}/release/gdp-rsreader`
   if (!fs.existsSync(bin)) cp.execFileSync(cargo, ['build', '--release', '--quiet', '--target-dir', target], {cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: {...proc?.env}})
@@ -156,12 +156,15 @@ pub(crate) mod __gdp_harness {
   // An answered call's value: the request's input for it (each answered call rewritten to crate::__gdp_answer).
   static ANS: std::sync::Mutex<Option<Value>> = std::sync::Mutex::new(None);
   pub(crate) trait GdpAns { fn of(v: &Value) -> Self; }
-  macro_rules! gdp_int { ($($t:ty),*) => { $(impl GdpAns for $t { fn of(v: &Value) -> Self { int(val(v)).ok().and_then(|n| <$t>::try_from(n).ok()).unwrap_or_default() } })* } }
+  // (an answer outside the call's type, a type stated wider than the code's: a request the code can't be given)
+  pub(crate) struct GdpOutside(pub(crate) String);
+  macro_rules! gdp_int { ($($t:ty),*) => { $(impl GdpAns for $t { fn of(v: &Value) -> Self { match int(val(v)) { Ok(n) => <$t>::try_from(n).unwrap_or_else(|_| std::panic::panic_any(GdpOutside(format!("{} outside {}", n, stringify!($t))))), Err(_) => Default::default() } } })* } }
   gdp_int!(i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize);
   impl GdpAns for bool { fn of(v: &Value) -> Self { val(v).as_bool().unwrap_or(false) } }
   impl GdpAns for String { fn of(v: &Value) -> Self { val(v).as_str().unwrap_or("").to_string() } }
   impl<T: GdpAns> GdpAns for Option<T> { fn of(v: &Value) -> Self { if v.get("none").and_then(|x| x.as_bool()) == Some(true) { None } else { Some(T::of(v)) } } }
-  pub(crate) fn answer<T: GdpAns>(k: &str) -> T { T::of(ANS.lock().unwrap().as_ref().and_then(|a| a.get(k)).unwrap_or(&Value::Null)) }
+  // (the value taken out of the lock first: an answer outside its type panics, which must leave the lock usable)
+  pub(crate) fn answer<T: GdpAns>(k: &str) -> T { let v = ANS.lock().unwrap_or_else(|e| e.into_inner()).as_ref().and_then(|a| a.get(k).cloned()).unwrap_or(Value::Null); T::of(&v) }
   fn base() -> std::time::Instant { *BASE.get_or_init(|| std::time::Instant::now() + std::time::Duration::from_secs(1u64 << 31)) }
   pub(crate) fn now() -> std::time::Instant { inst(NOW.load(std::sync::atomic::Ordering::SeqCst) as i128) }
   fn inst(n: i128) -> std::time::Instant { if n >= 0 { base() + std::time::Duration::from_nanos(n as u64) } else { base() - std::time::Duration::from_nanos((-n) as u64) } }
@@ -195,7 +198,7 @@ pub(crate) mod __gdp_harness {
           "call" => {
             let i = req["id"].as_u64().unwrap() as usize - 1;
             NOW.store(int(&req["now"]).unwrap_or(0) as i64, std::sync::atomic::Ordering::SeqCst);
-            *ANS.lock().unwrap() = Some(req["answers"].clone());
+            *ANS.lock().unwrap_or_else(|e| e.into_inner()) = Some(req["answers"].clone());
             let m = req["m"].as_str().unwrap().to_string();
             let a = req["a"].clone();
             let o = &mut objs[i];
@@ -203,6 +206,7 @@ pub(crate) mod __gdp_harness {
               Ok(Ok(Ok(v))) => json!({"out": v}),
               Ok(Ok(Err(e))) => json!({"out": null, "err": e}),
               Ok(Err(bad)) => json!({"out": null, "bad": bad}),
+              Err(p) if p.downcast_ref::<GdpOutside>().is_some() => json!({"out": null, "outside": p.downcast_ref::<GdpOutside>().unwrap().0}),
               Err(p) => json!({"out": null, "err": format!("panic: {}", p.downcast_ref::<String>().cloned().or_else(|| p.downcast_ref::<&str>().map(|s| s.to_string())).unwrap_or_default())}),
             }
           }
@@ -236,8 +240,9 @@ function harnessFor(dir: string, mod: SModule, read: StepRead, opts: RsOptions):
     // The clock: Instant::now() read through the harness (the request's time), the code's own calls rewritten first.
     const lib = fs.existsSync(`${work}/src/lib.rs`) ? 'src/lib.rs' : 'src/main.rs'
     const walk = (d: string): string[] => fs.readdirSync(d, {withFileTypes: true} as never).flatMap((e: unknown) => { const x = e as {name: string, isDirectory: () => boolean}; return x.isDirectory() ? walk(`${d}/${x.name}`) : x.name.endsWith('.rs') ? [`${d}/${x.name}`] : [] })
-    // (each answered call rewritten to the harness's answer, from the crate's own text, before the clock's)
-    for (const [f, t] of stubbed(read, f => fs.readFileSync(`${dir}/${f}`, 'utf8'), a => `crate::__gdp_answer(${JSON.stringify(a.key)})`)) fs.writeFileSync(`${work}/${f}`, t)
+    // (each answered call rewritten to the harness's answer, from the crate's own text, before the clock's; the call
+    // kept in a branch never taken, so the answer is of the type the call is, which a binding needn't write)
+    for (const [f, t] of stubbed(read, f => fs.readFileSync(`${dir}/${f}`, 'utf8'), (a, _, call) => `(if false { ${call} } else { crate::__gdp_answer(${JSON.stringify(a.key)}) })`)) fs.writeFileSync(`${work}/${f}`, t)
     for (const f of walk(`${work}/src`)) { const s = fs.readFileSync(f, 'utf8'); const t = s.replace(/\b(?:std::time::)?Instant::now\(\)/g, 'crate::__gdp_now()'); if (t !== s) fs.writeFileSync(f, t) }
     fs.writeFileSync(`${work}/${file}`, fs.readFileSync(`${work}/${file}`, 'utf8') + harnessCode(mod, read, cls))
     fs.writeFileSync(`${work}/${lib}`, `${fs.readFileSync(`${work}/${lib}`, 'utf8')}\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn __gdp_now() -> std::time::Instant { ${modPath}::__gdp_harness::now() }\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn __gdp_answer<T: ${modPath}::__gdp_harness::GdpAns>(k: &str) -> T { ${modPath}::__gdp_harness::answer(k) }\n`)

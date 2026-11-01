@@ -46,7 +46,7 @@ public final class Harness {
       if (dels.contains(n) && a != null && a.length >= 1) { st.data.remove(String.valueOf(a[0])); return m.getReturnType() == void.class || m.getReturnType().isPrimitive() ? conv(null, m.getReturnType(), null) : null; }
       for (Object a0 : list(S.get("answers"))) {
         Map<?, ?> an = (Map<?, ?>) a0, pt = (Map<?, ?>) an.get("patch");
-        if (pt != null && name.equals(pt.get("store")) && n.equals(list(pt.get("path")).get(list(pt.get("path")).size() - 1))) { Object v = CUR.get(an.get("key")); return v == null || ((Map<?, ?>) v).containsKey("none") ? conv(null, m.getReturnType(), m.getGenericReturnType()) : conv(((Map<?, ?>) v).get("in"), m.getReturnType(), m.getGenericReturnType()); }
+        if (pt != null && name.equals(pt.get("store")) && n.equals(list(pt.get("path")).get(list(pt.get("path")).size() - 1))) { Object v = CUR.get(an.get("key")); Class<?> rc = stated(m.getReturnType(), an.get("sort")); return v == null || ((Map<?, ?>) v).containsKey("none") ? conv(null, rc, m.getGenericReturnType()) : conv(((Map<?, ?>) v).get("in"), rc, m.getGenericReturnType()); }
       }
       // (a method the rule leaves out runs as nothing, as the rule takes it; any other fails: the check reports it)
       if (d == null || !list(d.get("skip")).contains(n)) throw new UnsupportedOperationException(name + "." + n + ": a method of the injected dependency the rule doesn't read");
@@ -119,6 +119,13 @@ public final class Harness {
   }
 
   // --- values ---------------------------------------------------------------------------------------------------------
+  // The class an answer is given as: the method's declared one, or where that is a type variable's erasure (a generic
+  // result, Object), the type the answer is stated in.
+  static Class<?> stated(Class<?> c, Object sort) {
+    if (c != Object.class || !(sort instanceof String s)) return c;
+    return switch (s.replaceAll("\\s*\\|\\s*None$|\\?$", "")) { case "int", "Integer", "Int", "i32" -> Integer.class; case "long", "Long", "i64" -> Long.class; case "short", "Short" -> Short.class; case "byte", "Byte" -> Byte.class;
+      case "float", "double", "Double" -> Double.class; case "Float" -> Float.class; case "bool", "boolean", "Boolean" -> Boolean.class; case "str", "String" -> String.class; default -> c; };
+  }
   static Object conv(Object v, Class<?> c, Type g) {
     if (c == Optional.class) return v == null ? Optional.empty() : Optional.of(conv(v, g instanceof ParameterizedType pt ? raw(pt.getActualTypeArguments()[0]) : Object.class, null));
     if (v == null) return c.isPrimitive() ? conv(0L, c, null) : null;

@@ -879,3 +879,190 @@ def hit(x: int) -> int:
   const reach = await check([`${dir}/s.py`], {ms: 8000, propose: false, from: 'reachable', entry: 'Pending'})
   expect(reach.rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
 }, 300_000)
+
+// Every refusal that suggests a fix names one that works: the fix it prints applied as it says (its gdp.toml form, at
+// the top and under the rule, and its comment on the line it names) and the check read again: the rule read and its
+// law proven. A call of other code whose value is read and whose type is declared nowhere (answers, gdp: answer), and
+// one given the rule's state (skip, gdp: skip), in each language that says so.
+const PRICED = (lang: string): Record<string, string> => {
+  const law = (c: string, e: string) => `${c} gdp: law a counted hit stays within the limit: ${e}`
+  switch (lang) {
+    case 'python': return {'limiter.py': `from pricing import cost_of
+
+
+class Limiter:
+    def __init__(self, limit: int):
+        self.limit, self.used = limit, 0
+
+    ${law('#', 'result implies used <= limit')}
+    def hit(self, model: str) -> bool:
+        cost = cost_of(model)
+        if cost <= 0 or self.used + cost > self.limit:
+            return False
+        self.used += cost
+        return True
+`, 'pricing.py': 'def cost_of(model):\n    return 5 if model == "large" else 1\n'}
+    case 'ruby': return {'limiter.rb': `class Limiter
+  def initialize(limit, pricing)
+    @limit = limit
+    @pricing = pricing
+    @used = 0
+  end
+
+  ${law('#', 'result implies @used <= @limit')}
+  def hit(model)
+    cost = @pricing.cost(model)
+    return false if cost <= 0 || @used + cost > @limit
+    @used += cost
+    true
+  end
+end
+`}
+    case 'elixir': return {'limiter.ex': `defmodule Limiter do
+  use GenServer
+  @type t :: %{used: non_neg_integer, limit: non_neg_integer}
+
+  def init({limit}), do: {:ok, %{used: 0, limit: limit}}
+
+  ${law('#', 'result == :ok implies used <= limit')}
+  def handle_call({:hit, model}, _from, %{used: u, limit: l} = s) do
+    cost = Pricing.cost(model)
+    if cost <= 0 or u + cost > l do
+      {:reply, :full, s}
+    else
+      {:reply, :ok, %{s | used: u + cost}}
+    end
+  end
+end
+`}
+    case 'java': return {'demo/Limiter.java': `package demo;
+
+interface Pricing { <T> T cost(String model); }
+
+public class Limiter {
+  private final int limit;
+  private final Pricing pricing;
+  private int used;
+
+  public Limiter(int limit, Pricing pricing) { this.limit = limit; this.pricing = pricing; }
+
+  ${law('//', 'result implies used <= limit')}
+  public boolean hit(String model) {
+    int cost = pricing.<Integer>cost(model);
+    if (cost <= 0 || used + cost > limit) return false;
+    used += cost;
+    return true;
+  }
+}
+`}
+    case 'rust': return {'Cargo.toml': '[package]\nname = "limiter"\nversion = "0.1.0"\nedition = "2021"\npublish = false\n', 'src/pricing.rs': 'pub fn cost(model: &str) -> u32 {\n    if model == "large" { 5 } else { 1 }\n}\n', 'src/lib.rs': `mod pricing;
+
+pub struct Limiter { used: u32, limit: u32 }
+
+impl Limiter {
+    pub fn new(limit: u32) -> Self { Self { used: 0, limit } }
+
+    ${law('//', 'result implies self.used <= self.limit')}
+    pub fn hit(&mut self, model: &str) -> bool {
+        let cost = pricing::cost(model);
+        if cost == 0 || self.used + cost > self.limit { return false; }
+        self.used += cost;
+        true
+    }
+}
+`}
+    case 'c': return {'limiter.c': `#include <stdbool.h>
+
+struct limiter { int used; int limit; };
+
+void audit(const struct limiter *l);
+
+void set_limit(struct limiter *l, int n) { if (n >= 0 && n <= 1000000) l->limit = n; }
+
+${law('//', 'result implies l->used <= l->limit')}
+bool hit(struct limiter *l, int cost) {
+  if (cost <= 0 || l->used + cost > l->limit) return false;
+  l->used += cost;
+  audit(l);
+  return true;
+}
+`}
+    default: return {'go.mod': 'module example.com/m\n\ngo 1.22\n', 'audit/audit.go': 'package audit\n\nimport "fmt"\n\n// Print reports a limiter\'s numbers.\nfunc Print(used, limit *int) { fmt.Sprint(*used, *limit) }\n', 'p/limiter.go': `package p
+
+import "example.com/m/audit"
+
+type Limiter struct{ used, limit int }
+
+func (l *Limiter) SetLimit(n int) {
+	if n >= 0 {
+		l.limit = n
+	}
+}
+
+${law('//', 'result implies l.used <= l.limit')}
+func (l *Limiter) Hit(cost int) bool {
+	if cost <= 0 || l.used+cost > l.limit {
+		return false
+	}
+	l.used += cost
+	audit.Print(&l.used, &l.limit)
+	return true
+}
+`}
+  }
+}
+const TARGET: Record<string, string> = {python: 'limiter.py', ruby: 'limiter.rb', elixir: 'limiter.ex', java: 'demo/Limiter.java', rust: '.', c: 'limiter.c', go: 'p'}
+const SAYS = /state (?:it|what it returns):? \(?(answers|skip): (\{[^}]*\}|\[[^\]]*\]), or a `(gdp: [^`]+)` comment on its line/
+for (const lang of Object.keys(TARGET)) {
+  (TOOLS[lang]!() ? test : test.skip)(`${lang}: the fix a refusal suggests, applied as it says, is read (gdp.toml at the top, under the rule, and the comment)`, async () => {
+    const o = {ms: 5000, propose: false, check: {runs: 30, depth: 6, states: 60}}
+    const at = (d: string) => `${d}/${TARGET[lang]}`
+    const d0 = files(PRICED(lang))
+    const {rules: r0} = await check([at(d0)], o)
+    const said = r0[0]!.refusals.map(r => `${r.where}: ${r.what}`).join('; '), m = SAYS.exec(said)
+    if (!m) throw new Error(`no fix suggested: ${said}`)
+    const [, key, lit, tag] = m, val = JSON.parse(lit!.replace(/'/g, '"')) as Record<string, string> | string[]
+    const tomlOf = (v: typeof val) => `${key} = ${Array.isArray(v) ? JSON.stringify(v) : `{${Object.entries(v).map(([k, t]) => `${JSON.stringify(k)} = ${JSON.stringify(t)}`).join(', ')}}`}\n`
+    // (the line it names: the call's, in parentheses before "whose value is read", else where it is refused)
+    const site = /\(([^()\s]+):(\d+):\d+\), whose value is read/.exec(said) ?? /^([^:\s]+):(\d+):\d+:/.exec(said)!
+    const file = Object.keys(PRICED(lang)).find(f => f === site[1] || f.endsWith(`/${site[1]}`))!
+    const comment = lang === 'python' || lang === 'ruby' || lang === 'elixir' ? '#' : '//'
+    const fixes: Record<string, Record<string, string>> = {
+      top: {'gdp.toml': tomlOf(val)},
+      rule: {'gdp.toml': `[rules.${r0[0]!.entry}]\n${tomlOf(val)}`},
+      comment: {[file]: PRICED(lang)[file]!.split('\n').map((l, i) => (i + 1 === Number(site[2]) ? `${l} ${comment} ${tag}` : l)).join('\n')},
+    }
+    for (const [how, fix] of Object.entries(fixes)) {
+      const d = files({...PRICED(lang), ...fix})
+      const {rules} = await check([at(d)], o)
+      if (!rules[0]!.ok) throw new Error(`${how}: still refused: ${JSON.stringify(rules[0]!.refusals)}`)
+      expect([how, rules[0]!.laws.map(l => l.verdict)]).toEqual([how, ['proven']])
+    }
+  }, 600_000)
+}
+
+// Kotlin: a call given a trailing lambda the reader doesn't inline is refused at its line (repeat(n) { } a loop), not
+// a crash of the reader (a call with no receiver and no declared result read Atomic of nothing: a NullPointerException);
+// require's lambda, its message, is read as before.
+;(TOOLS.kotlin!() ? test : test.skip)('kotlin: repeat(n) { } refused at its line as a loop; require(c) { msg } read', async () => {
+  const kt = (body: string) => files({'Limiter.kt': `package demo
+
+class Limiter(private val limit: Int) {
+    private var used = 0
+
+    // gdp: law a counted hit stays within the limit: result implies used <= limit
+    fun hit(cost: Int): Boolean {
+        require(limit >= 0) { "a negative limit" }
+        if (cost <= 0 || used + cost > limit) return false
+${body}
+        return true
+    }
+}
+`})
+  const o = {ms: 5000, propose: false, check: {runs: 30, depth: 6, states: 60}}
+  const {rules: r1} = await check([`${kt('        repeat(cost) { used += 1 }')}/Limiter.kt`], o)
+  expect(r1[0]!.ok).toBe(false)
+  expect(r1[0]!.refusals.map(r => `${r.where}: ${r.what}`).join('; ')).toMatch(/Limiter\.kt:10:\d+: repeat\(cost\) \{ used \+= 1 \}: a loop \(repeat\)/)
+  const {rules: r2} = await check([`${kt('        used += cost')}/Limiter.kt`], o)
+  expect(r2[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
+}, 600_000)

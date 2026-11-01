@@ -4,7 +4,7 @@
 # one that keeps what is set, the clock read as the request's time. Line events count the branch arms reached.
 #
 #   python3 core/py/harness.py <in-fifo> <out-fifo>
-import asyncio, dataclasses, datetime, importlib, inspect, json, os, sys, types
+import asyncio, builtins, dataclasses, datetime, importlib, inspect, json, os, sys, types
 import time as time_module
 
 NOW = [0]
@@ -260,19 +260,56 @@ class _Now(datetime.datetime):
   """datetime.datetime with now() the request's time (local, naive, as the code's own now())."""
   @classmethod
   def now(cls, tz=None): return datetime.datetime.fromtimestamp(NOW[0], tz)
+  # (where it is seen anyway, a type read while the clock is pinned, pydantic's: a datetime)
+  @classmethod
+  def __get_pydantic_core_schema__(cls, source, handler): return handler(datetime.datetime)
 
-def pin_clocks(root):
-  """The clock the repository's modules read (time.time(), datetime.now()) made the request's time."""
-  root = os.path.realpath(root)
-  dtm = types.SimpleNamespace(**{k: getattr(datetime, k) for k in dir(datetime) if not k.startswith('__')})
-  dtm.datetime = _Now
+# The clock the repository's modules read (time.time(), datetime.now()) made the request's time, only while the code
+# runs (making the object, a call): a module's names are its own again between, so a framework that reads them, an
+# annotation or a route's types, sees the real datetime; a module made while the clock was pinned put back too.
+CLOCKS = {'root': None, 'n': -1, 'pins': [], 'depth': 0}
+def scan_clocks():
+  if len(sys.modules) == CLOCKS['n']: return
+  CLOCKS['n'] = len(sys.modules)
+  dtm = CLOCKS.get('dtm')
+  if dtm is None:
+    dtm = CLOCKS['dtm'] = types.SimpleNamespace(**{k: getattr(datetime, k) for k in dir(datetime) if not k.startswith('__')})
+    dtm.datetime = _Now
+  pins = []
   for m in list(sys.modules.values()):
     f = getattr(m, '__file__', None)
-    if not f or not os.path.realpath(f).startswith(root + os.sep): continue
+    if not f or not os.path.realpath(f).startswith(CLOCKS['root'] + os.sep): continue
     for n, v in list(vars(m).items()):
-      if v is time_module: setattr(m, n, Clock(v))
-      elif v is datetime: setattr(m, n, dtm)
-      elif v is datetime.datetime: setattr(m, n, _Now)
+      if v is time_module or isinstance(v, Clock): pins.append((m, n, time_module, Clock(time_module)))
+      elif v is datetime or v is dtm: pins.append((m, n, datetime, dtm))
+      elif v is datetime.datetime or v is _Now: pins.append((m, n, datetime.datetime, _Now))
+  CLOCKS['pins'] = pins
+
+def put_clocks(fake):
+  for m, n, real, f in CLOCKS['pins']: setattr(m, n, f if fake else real)
+
+# (an import the code makes while it runs, a module of the repository first loaded then: run with the real clock, so
+# what it copies or builds from the module's names is the real datetime, imports inside it too; the clock pinned
+# again after the outermost, the new modules' names too)
+REAL_IMPORT = builtins.__import__
+def clock_import(*a, **k):
+  if CLOCKS['depth'] == 0: put_clocks(False)
+  CLOCKS['depth'] += 1
+  try: return REAL_IMPORT(*a, **k)
+  finally:
+    CLOCKS['depth'] -= 1
+    if CLOCKS['depth'] == 0: scan_clocks(); put_clocks(True)
+
+class pinned:
+  def __enter__(self):
+    scan_clocks(); put_clocks(True)
+    builtins.__import__ = clock_import
+  def __exit__(self, *a):
+    builtins.__import__ = REAL_IMPORT
+    put_clocks(False); scan_clocks(); put_clocks(False)
+
+def pin_clocks(root):
+  CLOCKS['root'] = os.path.realpath(root)
 
 def raises_here(key):
   """Whether a call left out raises here, as the request says: only at the sites the rule read it may raise (a call of
@@ -347,7 +384,8 @@ def make(args):
   else:
     kw = fixed_args(args, {})
     sys.settrace(tracer)
-    try: obj = run(S['cls'](**kw))
+    try:
+      with pinned(): obj = run(S['cls'](**kw))
     finally: sys.settrace(None)
   for name, a in S['self_stubs']: obj.__dict__[name] = stub(a['key'], a['async'], getattr(obj, name) if a.get('pass') else None)
   for name in S.get('inject') or []: setattr(obj, name, build({'store': name}, OBJ_STORES))
@@ -370,7 +408,7 @@ def call(req):
   snap = state_of(obj, stores) if S.get('discard') and S['cls'] is not None else None
   sys.settrace(tracer)
   try:
-    out = run(fn(**kwargs))
+    with pinned(): out = run(fn(**kwargs))
     err = None
   except Exception as e:
     out, err = None, f"{type(e).__name__}: {e}"[:300]
