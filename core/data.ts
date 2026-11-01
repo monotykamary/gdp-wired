@@ -1827,6 +1827,13 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     }
     return {find, terms, adj, truthOf}
   }
+  const dataOfTerm = (t: E): Data | undefined => {
+    if (t.op === 'get') { for (const d of p.datas) if (t.map === tagMap(d.name) || t.map === sizeMap(d.name)) return d; const f = fnOfMap(t.map); if (f && f.ret instanceof Data) return f.ret; for (const d of p.datas) for (const [j, c] of d.ctors.entries()) { if (c.fields.length && t.map === ctorMap(d, j)) return d; for (const [i, fl] of c.fields.entries()) if (isDataField(fl.sort) && t.map === fieldMap(d, j, i)) return dataNamed(fl.sort.data) } }
+    return undefined
+  }
+  const shape = (t: E, d?: Data) => { const dd = d ?? dataOfTerm(t); if (dd) { inst(`shape ${dd.name}`, [t]); ctors(note(reads(holdsAt(`shape ${dd.name}`, [t])))) } }
+  // (eta first: a value a case makes a constructor is one in its models' classes, where the reads at it unfold below)
+  for (const t of w.etaAt) { const d = typeOfVar(p, t) ?? dataOfTerm(t); if (d) { inst(`eta ${d.name}`, [t]); shape(t, d); ctors(note(reads(holdsAt(`eta ${d.name}`, [t])))) } }
   // A function read whose decreasing argument a model's classes make a constructor's value (the argument itself, or a
   // term of its class) unfolds there too: where the definition's match is decided. Each such instance stands for the
   // reads it was unfolded for (`reached` keeps it in a case where it is one of them).
@@ -1865,11 +1872,6 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     }
   }
   lap(`by constructors, ${insts.length} instances, ${all.length} reads`)
-  const dataOfTerm = (t: E): Data | undefined => {
-    if (t.op === 'get') { for (const d of p.datas) if (t.map === tagMap(d.name) || t.map === sizeMap(d.name)) return d; const f = fnOfMap(t.map); if (f && f.ret instanceof Data) return f.ret; for (const d of p.datas) for (const [j, c] of d.ctors.entries()) { if (c.fields.length && t.map === ctorMap(d, j)) return d; for (const [i, fl] of c.fields.entries()) if (isDataField(fl.sort) && t.map === fieldMap(d, j, i)) return dataNamed(fl.sort.data) } }
-    return undefined
-  }
-  const shape = (t: E, d?: Data) => { const dd = d ?? dataOfTerm(t); if (dd) { inst(`shape ${dd.name}`, [t]); ctors(note(reads(holdsAt(`shape ${dd.name}`, [t])))) } }
   for (const t of w.shapesAt) shape(t, typeOfVar(p, t))
   // A size the goal reads (a measure's, in a well-founded call's obligation): the shape of its value, which gives the
   // size from the fields.
@@ -1891,7 +1893,6 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     }
   }
   if (w.depth >= 2) for (const r of [...all]) for (const d of p.datas) if (r.map === tagMap(d.name)) shape(r.key, d)
-  for (const t of w.etaAt) { const d = typeOfVar(p, t) ?? dataOfTerm(t); if (d) { inst(`eta ${d.name}`, [t]); shape(t, d); ctors(note(reads(holdsAt(`eta ${d.name}`, [t])))) } }
   // A constant's tag is read where its tag is (the nullary facts).
   for (const d of p.datas) if (d.nullary && all.some(r => r.map === tagMap(d.name))) { inst(`nullary ${d.name}`, []); for (let j = 0; j < d.nullary; j++) all.push({map: tagMap(d.name), key: k(j)}) }
   // Congruences (a map is a function), in each model: every value the model reads explained against one of its class
