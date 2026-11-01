@@ -363,6 +363,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
   const keyed = m.inputs.filter(i => keys0.some(key => mentions(key, i))).map(v)
   const terms = (l: Law): E[] => [...(l.forall ? [v(`${l.forall}#`)] : []), ...(l.keys ?? []).map(v), ...keyed]
   type Proof = {instances: Instances, certs: Record<string, CountCert>}
+  const widened = new Set<string>()
   let counted = true, houdini = false // (houdini: the rounds over the whole set, after the cone; only they widen)
   const none = {reads: [] as MapRead[], insts: [] as CountInst[]}
   // One law's goals and their certificates, the laws `ls` assumed (a subsequence of the set): pass 0 with no instances of
@@ -379,7 +380,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     // break it at, where the rounds of models would lead it again)
     let seed: Instances | undefined
     // (not where the attempt may widen: its narrow model is no model of the widened goal)
-    if (cti && !(houdini && caller.some(l => l.name === law.name)) && !ls.some(l => !cti.ls.has(l.name) && reads(l.holds, isCount).size)) {
+    if (cti && !(houdini && caller.some(l => l.name === law.name) && !widened.has(law.name)) && !ls.some(l => !cti.ls.has(l.name) && reads(l.holds, isCount).size)) {
       const at0 = Object.fromEntries(Object.entries(cti.at).filter(([n]) => n.startsWith('?') || ls.some(l => l.name === n)))
       if (!(seed = ptime('mbqi', () => modelInstances(m, ls, at0, cti.gg, cti.w)))) return {stuck: 'sat'}
     }
@@ -424,7 +425,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
         const asked = ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!))
         if (!asked) {
           if (countsDump.on && pass && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps}) }
-          if (pass && !wide && houdini && 'loose' in step.c && (step.c.loose || isCaller) && more()) { wide = true; built = build(); continue }
+          if (pass && !wide && houdini && 'loose' in step.c && (step.c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); continue }
           return refuted(step.gg, q.witness)
         }
         at = asked
@@ -447,7 +448,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
           const asked = ptime('mbqi', () => modelInstances(m, ls, at, gg, o.witness!))
           if (asked) { at = asked; built = build(); again = true; break }
         }
-        if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && houdini && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; built = build(); again = true; break }
+        if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && houdini && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); again = true; break }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) return refuted(gg, o.witness)
         if (!o || !('tree' in o)) return {stuck: gg ? (o as {stuck?: string}).stuck ?? '' : ''}
         certs[goal.name] = {reads: c.reads, insts: c.insts, tree: o.tree, ...('picks' in c && c.picks.length ? {picks: c.picks} : {})}

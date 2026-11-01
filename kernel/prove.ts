@@ -978,6 +978,17 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
     if (key !== undefined) maps[cell.slice(0, br)]!.set(key, value)
   }
   const st = {scalars: {}, maps}, read = (at: Record<string, number>) => new Proxy(at, {get: (t, p: string) => (p in t ? t[p] : w[p] ?? 0), has: (t, p: string) => p in t || p in w}) as Record<string, number>
+  // (a count's cell the model has not: its definition, its body summed over the model's cells below its bound, so a law
+  // reading it is read as the model's state reads it, not at 0)
+  for (const [c, d] of Object.entries(pm.counts ?? {})) {
+    const had = maps[c]!, sum = (x: number): number => {
+      const e1 = read(d.base ? {[d.j]: Math.floor(x / d.base), [d.lo!]: x % d.base} : {[d.j]: x}), n = Math.min(256, evalE(d.below, e1, st, mm))
+      let t = 0
+      for (let k = 0; k < n; k++) t += evalE(d.body, read({...e1, [d.key]: k}), st, mm)
+      return t
+    }
+    maps[c] = new (class extends Map<number, number> { override get(x: number) { if (!super.has(x)) super.set(x, 0), super.set(x, sum(x)); return super.get(x) } })(had)
+  }
   const ev = (f: () => boolean): boolean | undefined => { try { return f() } catch { return undefined } }
   const valueOf = (e: E): number | undefined => { try { return evalE(e, read({}), st, mm) } catch { return undefined } }
   // Each bound key over its own sort as the model fills it: the terms its body's map reads bind matched against the
