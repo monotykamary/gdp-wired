@@ -345,7 +345,7 @@ untrusted construction of the plain law from the ∃ law. Now:
   `subst`): lean-exit 0 in 30 s, no sorry, propext, Classical.choice, Quot.sound.
 - **db_ae**: the same supports on one-binder laws (behind a switch, since removed) gave db_ae bounds and empty maps only;
   its set was not proven, and firewall took 20 s more: not kept. db_ae stays open (no diagram).
-- **Gates** (3500f51 against 55eafec, same window, 2 runs; then f56cd1d, no_lost_keys, client_server_ae and firewall 4
+- **Gates** (3500f51 against 55eafec, same window, 2 runs; then 18770c5, no_lost_keys, client_server_ae and firewall 4
   runs each): no_lost_keys proven in 5 of 6 (15.6-38.4 s; the one unknown before the eighth: its laws as given took 30 s
   on a slow VM); IC3Syn within 60 s in every run 21 against 22 (consensus_forall once at 152 s and firewall at 47-50 s on
   large VMs, the counted work the same as main's), in some run 24 against 22; DuoAI ten 27/30 both (ticket_lock);
