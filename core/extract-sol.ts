@@ -25,7 +25,7 @@
 //   mapping's value, calls of other contracts, inline assembly, try/catch, constants past 2^53, signed widths past 48.
 import {type Extraction, type Name, fromModel} from './extract.ts'
 import type {Rule} from './dsl.ts'
-import {type Request, evalC, interpret, searchSeeded} from './machine.ts'
+import {type Request, evalC, interpret, seeded} from './machine.ts'
 import {allowed, watch} from './watch.ts'
 import {kindOfVar} from './extract-check.ts'
 import type {Sorts} from './extract-print.ts'
@@ -691,7 +691,7 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
   const rx = fromModel(rread.model, mod.file, {...unsigned, ...nats(rread), ...opts.domains, 'pending$': 'nat'}, rnotes, (rule, sorts) => {
     replays = replayer({rule, sorts, model: rread.model, names: stepNames(rread), leaves: read.leaves, hello: (harness(read).hello as {sol: unknown}).sol, ctor: read.ctor, replay: compileReplay(opts), opts})
     const ev = {...x.evidence!}
-    const n = opts.check?.runs === undefined ? 40 : Math.max(4, Math.round(opts.check.runs / 5)), rand = searchSeeded((opts.check?.seed ?? 11) >>> 0 || 1)
+    const n = opts.check?.runs === undefined ? 40 : Math.max(4, Math.round(opts.check.runs / 5)), rand = seeded((opts.check?.seed ?? 11) >>> 0 || 1)
     for (let i = 0; i < n; i++) {
       const run = randomRun(rule, rread.model, rand)
       if (!run.trace.length) continue

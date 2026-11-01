@@ -25,7 +25,7 @@
 // values (a constant on a region, a line, bounds), proves them from the facts as cyclic claims (Houdini), and proves the
 // laws with them as facts.
 import type {C, E, Law, Machine, Request, State} from './machine.ts'
-import {argsKey, atMost as le, compileFunction, evalC as evalMC, evalE as evalME, fnValue, get, interpret, minus as sub, n as k, pairedArgs, plus as add, same as eqC, searchSeeded, walk, x as v} from './machine.ts'
+import {argsKey, atMost as le, compileFunction, evalC as evalMC, evalE as evalME, fnValue, get, interpret, minus as sub, n as k, pairedArgs, plus as add, same as eqC, seeded, walk, x as v} from './machine.ts'
 import type {Goal, Liveness, Loop, Tree} from '../kernel/kernel.ts'
 import {check, livenessHelpful, livenessParts, loopLiveness, loopMachine, loopObligations, strongly, substC, substE} from '../kernel/kernel.ts'
 import {type Cyclic, type Fact, checkCyclic, factsAvoid, lexLt} from '../kernel/cyclic.ts'
@@ -1158,7 +1158,7 @@ export function rankWithInvariants(l: Loop, laws: Law[], until: number): {rank: 
   }
   const withAtoms = values.map((_, n) => [...bounds[n]!, ...atoms.filter(a => Object.keys(a).every(x => x === '1' || at[n]!.includes(x))), ...copies[n]!.filter(a => Object.keys(a).every(x => x === '1' || at[n]!.includes(x)))])
   // the starts: random params (the precondition's), the state they begin in
-  const cx: Ctx = {eqs: new Map(), arity: new Map(), values: {}, memo: new Map(), fuel: Infinity, depth: 0}, rand = searchSeeded(31)
+  const cx: Ctx = {eqs: new Map(), arity: new Map(), values: {}, memo: new Map(), fuel: Infinity, depth: 0}, rand = seeded(31)
   const starts: [number, Env][] = []
   for (let s = 0; s < 400; s++) {
     const big = [2, 8, 64, 1000, 1_000_000][s % 5]!, ps = Object.fromEntries(l.params.map(p => [p, rand(big + 1)]))
@@ -1227,7 +1227,7 @@ const goalsProven = (goals: Goal[]): {trees: Record<string, Tree>} | {goal: stri
 // turn that stays in the loop an edge; then the kernel's halting goals, with invariants inferLaws finds for them where
 // the rank needs one.
 export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): RankVerdict {
-  const t0 = clock(), until = t0 + (opts.ms ?? 10_000), rand = searchSeeded(23)
+  const t0 = clock(), until = t0 + (opts.ms ?? 10_000), rand = seeded(23)
   const cx: Ctx = {eqs: new Map(), arity: new Map(), values: {}, memo: new Map(), fuel: Infinity, depth: 0}
   const state = Object.keys(l.state), names = [...state, ...l.params].sort()
   const node: Node = {name: l.name, hyps: [], concl: yes, vars: names, level: 0, given: true}
@@ -1352,7 +1352,7 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
 export type Sampler = {params: (rand: (n: number) => number, bound: number) => Record<string, number>, input: (rand: (n: number) => number, bound: number, ps: Record<string, number>) => Request, rule?: Parameters<typeof inferLaws>[0]}
 export type LeadsVerdict = {proven: boolean, checked: boolean, rank?: E[], laws?: Law[], found?: {rank: string, laws: string[]}, goal?: string, stuck?: string, witness?: Record<string, number>, why?: string}
 export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sampler, opts: {ms?: number} = {}): LeadsVerdict {
-  const t0 = clock(), until = t0 + (opts.ms ?? 10_000), rand = searchSeeded(29), run = interpret(m)
+  const t0 = clock(), until = t0 + (opts.ms ?? 10_000), rand = seeded(29), run = interpret(m)
   const names = [...Object.keys(m.state), ...m.params].sort(), helpful = livenessHelpful(l), fair = strongly(l)
   const node: Node = {name: l.name, hyps: [], concl: yes, vars: names, level: 0, given: true}
   const env = (ps: Env, st: State): Env => ({...ps, ...st.scalars})

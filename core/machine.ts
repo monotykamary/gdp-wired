@@ -15,12 +15,13 @@ import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, s
 export const lcg = (x: number): number => (Math.imul(x, 1103515245) + 12345) & 0x7fffffff
 export type Rand = (k: number) => number
 export const seeded = (seed: number): Rand => { let x = seed; return k => { x = lcg(x); return Math.floor(x / 2 ** 31 * k) } }
-// The searches' draws (core's searches, data.ts's rng, the CHC and ITS runners) still follow the float form: one
-// 10,466-step cycle whatever the seed. Exact draws move their results both ways (the quick bar: CHC-COMP +5/-3, ITS
-// +5/-2, SV +1, F1 -1 (bstInsert), F2 +1/-1, none wrong), and some tests pass only at this cycle's phase: over 20 seed
-// shifts, float against exact, bstInsert 6 and 9, system's lease 3 and 1, effect's caught run 9 and 3, infer's in-flight
-// bound 16 and 15, hypothesis 20 and 19, nonterm's accelerated `choose` 19 and 0 (exact draws find its lasso). A search
-// moves to `seeded` once it no longer passes by the phase.
+// The searches still on the float form's stream (one 10,466-step cycle whatever the seed): infer.ts's runs and
+// candidates, data.ts's rng, and the CHC and ITS runners' own runs (which feed infer). Under exact draws their results
+// hinge on the draw: over 20 seed shifts, the system test's lease 1, the infer test's in-flight bound 15, the CHC task
+// s_split_22 2, frontier2's break_safe 18, and bstInsert 9 (data.ts: which 240 random models its search compares terms
+// in decides it, 0 of 8 shifts with the models fixed, the same 01001101 with only the models shifted). The rest of the
+// searches (dsl's walks, nonterm, effect's runs, discover, live, cycles, fresh, xstate, the extractors' checks) draw
+// from `seeded`. One moves to `seeded` once its result no longer turns on the draw.
 export const lcgFloat = (x: number): number => (x * 1103515245 + 12345) % 2 ** 31
 export const searchSeeded = (seed: number): Rand => { let x = seed; return k => { x = lcgFloat(x); return Math.floor(x / 2 ** 31 * k) } }
 // Every object in a term, the term first.

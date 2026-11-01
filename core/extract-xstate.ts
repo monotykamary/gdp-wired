@@ -25,7 +25,7 @@
 //   runs them on the XState v4 given (opts.xstate).
 import ts from 'typescript'
 import * as dsl from './dsl.ts'
-import {compileFunction, searchSeeded} from './machine.ts'
+import {compileFunction, seeded} from './machine.ts'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
 import {Exec, type Model, type Path, Refusal, type Setup, type Shape, type Sort, type Source, type Term, type V, type Var, beside, memberName, normalize, placed, program, refuse, scriptKind, shapeOf, sourceOf, where} from './extract-read.ts'
@@ -607,7 +607,7 @@ function readXState(code: string, opts: XStateOptions & {file: string, entry: st
 
     // The check: XState's actor (its actors inert: their answers are events the run sends) and the chart's compiled
     // rule on the same events, payloads drawn for every input read; for a factory's context, a start drawn per batch.
-    const rand = searchSeeded(opts.check?.seed ?? 3)
+    const rand = seeded(opts.check?.seed ?? 3)
     const draw = (x: Var, name = x.name): unknown => (x.sort.k === 'bool' ? rand(2) === 1 : x.sort.k === 'choice' ? x.sort.values[rand(x.sort.values.length)] : x.sort.k === 'str' ? ['a', 'b', ''][rand(3)] : sorts.get(name) === 'nat' ? rand(12) : rand(25) - 12)
     const xs = opts.xstate as Obj
     const inert = (m: Obj): Obj => (v === 5

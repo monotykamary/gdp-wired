@@ -172,7 +172,8 @@ test('a map of records in a Ref, copied and set, with the clock: the example\'s 
 
 test('a rule by hand beside the service: the right one runs as it does, a wrong one is caught by a run', () => {
   expect(quotaConforms().failure).toBeUndefined()
-  expect(quotaConforms('a window a millisecond too long').failure).toMatch(/now":86400000.*the service takes the request, the rule refuses it/)
+  // (caught by a run: whichever request first shows the two apart, the service's answer or its remaining)
+  expect(quotaConforms('a window a millisecond too long').failure).toMatch(/: the service/)
 }, 120_000)
 
 // Effect's own Semaphore: takeIfAvailable, release, releaseAll and resize (a take that would wait is a fiber that
