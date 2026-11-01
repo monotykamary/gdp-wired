@@ -262,7 +262,8 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   const ctors: CN[] = [], overloaded = new Set<string>()
   for (const m of cxx) {
     if (m.$rec !== entryRec) continue
-    if (m.kind === 'CXXConstructorDecl') { if (!/\((const )?\w+ &&?\)/.test(m.type!.qualType) || params(m).length !== 1) ctors.push(m); continue }
+    // (a constructor the check can't call, private or protected: refused, the object is made with it)
+    if (m.kind === 'CXXConstructorDecl') { if (!/\((const )?\w+ &&?\)/.test(m.type!.qualType) || params(m).length !== 1) { if (m.$access !== 'public') refuse(m, `${entry}: its constructor is ${String(m.$access)} (the check makes the object with it)`); ctors.push(m) } continue }
     if (m.kind !== 'CXXMethodDecl' || /^operator/.test(m.name!)) continue
     m.$m = true
     if (picks[m.name!] !== undefined) { if (params(m).length === picks[m.name!]) funcs.set(m.name!, m); continue }

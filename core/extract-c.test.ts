@@ -259,3 +259,10 @@ t('the check\'s build: clang killed is the harness\'s failure, retried once; a s
   expect(bad.refusals.map(r => r.what).join('; ')).toMatch(/no member named 'nope'/)
   expect(bad.refusals.map(r => r.what).join('; ')).not.toMatch(/the rule and the code differ/)
 }, 120_000)
+
+t('a long function name with characters past ASCII called by its bytes; a C++ constructor the check can\'t call refused', () => {
+  ok(c(`struct acc { int n; int hits; };\nvoid g${'a'.repeat(300)}é(struct acc *a) { if (a->hits < 1000) a->hits = a->hits + 1; }\n`, 'acc'))
+  const x = cpp(`class Meter {\n public:\n  int used_;\n  bool use() { if (used_ >= 3) return false; used_++; return true; }\n private:\n  explicit Meter(int start) : used_(start > 0 ? 0 : 0) {}\n};\n`, 'Meter')
+  expect(x.ok).toBe(false)
+  expect(x.refusals[0]!.what).toMatch(/Meter: its constructor is private \(the check makes the object with it\)/)
+}, 120_000)

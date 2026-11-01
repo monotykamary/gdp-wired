@@ -142,8 +142,8 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
     } else if (l.kind === 'bool') { get.push(`gdp_putf("%s\\"%s\\":%s", sep, ${k}, ${a} ? "true" : "false"); sep = ",";`); set.push(`if ((v = gdp_key(st, ${k}))) { if (!strncmp(v, "true", 4)) ${a} = 1; else if (!strncmp(v, "false", 5)) ${a} = 0; else return "${l.name}: not a boolean"; }`) }
   }
   const frames = read.leaves.filter(l => l.kind === 'frame' && !T(l.t).mutex)
-  // (the longest method name the request names, its buffer: a name of any length is called)
-  const M = Math.max(256, ...read.methods.map(x => x.name.length + 1))
+  // (the longest method name the request names, in UTF-8 bytes, its buffer: a name of any length is called)
+  const M = Math.max(256, ...read.methods.map(x => new TextEncoder().encode(x.name).length + 1))
   const calls = read.methods.map(meth => {
     const lines: string[] = [], args: string[] = ['o'], outs: [string, string, number][] = []
     meth.params.forEach((pa, i) => {
