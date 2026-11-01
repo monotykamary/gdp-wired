@@ -60,7 +60,7 @@ proven** (the refuted ones by a run).
 
 Each cell: the verdict and the process's wall time. Over 60 s and proven counts as not proven within the limit
 (client_server_ae's run 3 at 64.8 s took the search's path, counted work 2.11M against the other runs' 0.39M: its laws
-as given are bounded on the wall; twophase's run 2 unknown at 62.5 s, the same counted work as its proven runs). learning_switch_i4 peaks at 6.5-13.1 GB, which this VM holds.
+as given are bounded on the wall; twophase's run 2 unknown at 62.5 s, its counted work 1.51M against the proven runs' 1.52M: stopped by the wall). learning_switch_i4 peaks at 6.5-13.1 GB, which this VM holds.
 Batches, tables and the earlier figures (mixed VM types): ../engine/DESIGN.md, gen/laneJ to gen/laneY7.
 
 ## Where each comes from
