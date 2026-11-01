@@ -326,6 +326,83 @@ untrusted construction of the plain law from the ∃ law. Now:
   against 23; quick bar (<main>/runs/bar/runs/laneY4trust-de5982d-quick/REPORT.md) wrong 0, nothing lost solid, dag the
   same search on 332 of 332; +3,185 bytes in core/ and kernel/.
 
+### gen/laneY4, continued (on main 55eafec, gen/laneY4-trust merged): no_lost_keys proven
+
+- **The supports** (core/exists.ts `ghostSupports`, for a law made plain by binderGhostsOf): each ghost below the bound the
+  assumption puts on the input it holds (Owner$n[k] < 64); each disjunct with its names at their terms under one or two
+  control facts (a scalar at a value seen on the small instances, a cell at the law's key of a map written at one
+  input's key), the pairs of facts on one subject left out; each map empty while a scalar holds a value. Those the small
+  instances keep (no_lost_keys: 6 of them), then a Houdini before the engine (core/dsl.ts, within half of what is left:
+  each proven with the rest assumed, the failing dropped), the set through `back` with proveLaws (proveSetFast on this
+  set did not return in 10 minutes; proveLaws 2.7-4.3 s). research/protocols/ic3syn/nlkprobe.ts: the same five supports
+  written by hand, proven of the ghosted machine in 2.7 s.
+- **back()'s machine check up to bound names** (`sameMachine`): the rule makes fresh names for the keys its quantified
+  flags and writes at every key bind each time its machine is read (k$51 against k$57), so JSON equality refused
+  no_lost_keys's (firewall's machine has none). Each bound name is renamed by its place of first binding.
+- **The laws as given**: an eighth of the budget where a law with "there exists" binds several names (proveSome gives a
+  ghost map to one bound name alone), half where it binds one (a quarter cut client_server_ae's own proof on a slow VM).
+- **Lean end to end**: no_lost_keys's law, two bound names, `gh0_ex0` through forall_some_of_ghostsubst (ghosted-lean.ts
+  `subst`): lean-exit 0 in 30 s, no sorry, propext, Classical.choice, Quot.sound.
+- **db_ae**: the same supports on one-binder laws (behind a switch, since removed) gave db_ae bounds and empty maps only;
+  its set was not proven, and firewall took 20 s more: not kept. db_ae stays open (no diagram).
+- **Gates** (3500f51 against 55eafec, same window, 2 runs; then 18770c5, no_lost_keys, client_server_ae and firewall 4
+  runs each): no_lost_keys proven in 5 of 6 (15.6-38.4 s; the one unknown before the eighth: its laws as given took 30 s
+  on a slow VM); IC3Syn within 60 s in every run 21 against 22 (consensus_forall once at 152 s and firewall at 47-50 s on
+  large VMs, the counted work the same as main's), in some run 24 against 22; DuoAI ten 27/30 both (ticket_lock);
+  firewall unknown once in 4 at 71 s (a large VM: the engine at 38 s against 12-20 s, then the tail past the wall).
+  Quick bar (<main>/runs/bar/runs/laneY4-3500f51-quick/REPORT.md): wrong 0, nothing lost solid, dag the same search on
+  332 of 332. count.test.ts 61/61, exists.test.ts 12/12. Bytes against 55eafec: +13,580 (core/exists.ts +7,597,
+  core/dsl.ts +3,818, kernel/kernel.ts +2,165), of which the trust branch's +3,185.
+
+### gen/laneY4 (round 4, on main 479a22a): supports with "there exists", Lean first; no_lost_keys's ghosts found, its supports not yet
+
+- **Lean** (lean-kernel/GhostMap.lean, `forall_some_of_ghostsubst`; propext, Classical.choice, Quot.sound): a law of the
+  ghosted machine that is a body c with each bound name x replaced by a term σ x (`substC σ c`), c reading no ghost
+  variable or map, gives at every reachable state of the original, for every value of its keys (its key and keys2),
+  some natural for each bound name where c holds (`ExHolds`). A term may read anything of the ghosted machine, so one
+  ghost map a name (forall_some_of_ghostmap's case), several names (a disjunction of ∃s, prenex: the DSL pulls them out),
+  a witness built of ghost reads and the law's keys, and laws about several keys are all instances. A two-binder ghost
+  or a tagged value is not needed: two ghost maps, one per name, each read in its own disjunct.
+- **The TS twin** (kernel/kernel.ts `someOfGhostsOk`): ghostedOk; the plain law exactly the kernel's substC of the body
+  with the terms in place, about the same keys, with no bound names of its own; the body reading no ghost variable or map,
+  no quantified condition and no flag (Lean's C); the bound names the terms' names, each once, none a key of the law nor
+  a name of the original or a ghost. core/dsl.ts's ∃ verdict over the plain search now takes it: the plain laws proven
+  (checkLaws) of exactly ghostedMachine(G), G every ghost map over the original, each plain law among the laws proven,
+  each ∃ law admitted by someOfGhostsOk (until now the verdict trusted exists.ts's construction of the plain law).
+- **Mutants** (kernel/mutants.ts over someOfGhostsOk, the counts battery): 25 of 25 killed, after four tests for the
+  list guards (one element of several failing). **Adversarial** (kernel/count.test.ts): one refusal per guard (18), a
+  witness that moves past the keys a run reaches (W[k] one past the ticket for k ≥ 3: ghostedOk and the shape accept it,
+  the plain law is not proven of the ghosted machine, so nothing is admitted); exists.test.ts's false ∃ laws and witness
+  refusals unchanged. **terra** (runs/laneY/terra-review4.txt, read-only): (1, high, fixed) back() matched the plain law in
+  the proven set by name and body alone, so a law alike but about no key would have passed: now the very law object
+  proven (`ls.includes`); (2) someOfGhostsOk alone proves nothing (Lean's premise is the plain law proven): as designed,
+  the caller's checkLaws over ghostedMachine(G) is that premise; (3, 4) the machine the plain laws are proven of and the
+  TS-to-Lean name and form correspondence are the existing twin's (emit.ts), not new here.
+- **The engine side** (core/exists.ts `binderGhostsOf`): a law about one key with several bound names made plain, each
+  name a term over ghost maps: the request's value at the cell's key (Owner[N·k + x] set at N·k + n: x is Owner$n[k],
+  Owner$n[k] := n where set), or the cell's whole key (TransferMsg[z] set at 4096·n2 + 64·k + v by an each-write: z is
+  4096·TransferMsg$n2[k] + 64·k + TransferMsg$v[k]); the first choice whose plain law holds on the small instances. On
+  no_lost_keys it finds exactly these. The laws as given take a quarter of the budget where such a law is (no_lost_keys's
+  took 57 of 60 s choosing a witness term, before the search).
+- **What no_lost_keys still lacks**: the engine runs on a law about two keys or more (`engineFollows`); let to run on this
+  one-key plain law (where no join runs) it reached the caller with no diagram in 16 GB (unknown at 81 s) and ran out of
+  8 GB on the gate's VM, so that change is not on the branch. The supports it needs: started = 0 ∧ Owned[k] →
+  Owner[64·k + Owner$n[k]] (a cell read at a ghost's value, no view of the template has it), and the digit bounds
+  TransferMsg$n2[k], TransferMsg$v[k], Owner$n[k] < 64 (receive at another key clears another message). Next: the
+  ghosts' own laws as candidates (mapGhostsOf's `inv`, for a write's value input: where the write's guard held, the cell
+  at the ghost's value is set), and the ghost values' bounds from the inputs' assumption.
+- **db_ae and paxos**: not reached this round (db_ae: the engine finds no diagram; paxos: the choosable law's witness is
+  a quorum, a set the request carries).
+
+Gates (1e4f53f against 479a22a, same window, 2 runs; the ten 3): IC3Syn within 60 s in every run 22 (main 23: epr's one
+run at 77.5 s), in some run 23 (23); the counted work of every proven port the same; no_lost_keys unknown at 76 s
+(main 120 s). DuoAI ten 27/30 both (ticket_lock unknown on both, Lane G's). Quick bar
+(<main>/runs/bar/runs/laneY4-1e4f53f-quick/REPORT.md): wrong 0, nothing lost solid; dag the same search on 332 of 332.
+Tests (16 GB, both sides at once on boat's xlarge VMs, each suite 2,93x s): main 391 of 403, the branch 394 of 403, the
+failures on both the 5 s tests past their limit on these VMs (XState, the bridge, the invariant searches, weak fairness);
+kernel/count.test.ts 61 of 61 and core/exists.test.ts 12 of 12 on the final head. Bytes against 479a22a: +7,900
+(core/exists.ts +4,864, kernel/kernel.ts +2,165, core/dsl.ts +871).
+
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
 
 Held: the lazy hypotheses (kernel/prove.ts) cost the step goals time (g332 391 s against 354) and read 18 against 20 at

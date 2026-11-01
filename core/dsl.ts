@@ -2671,7 +2671,11 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
   // (with a search budget, the laws as given within it on the wall: a step goal of hundreds of hypotheses has a second
   // each by its own budget, so the search would never start)
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined, given = () => (opts.fast ? proveSetFast : proveLaws)(r.machine, withKinds(r, laws)) as ReturnType<typeof proveLaws>
-  const out = ms === undefined ? given() : withWall(performance.now() + ms, given)
+  // (a law with "there exists" about every key: half of it, as the plain search over its ghosts takes the law too; one
+  // step goal of no_lost_keys' laws as given took 57 s of 60 choosing a witness term)
+  // (an eighth where such a law binds several names: proveSome gives a ghost map to one bound name alone)
+  const share = laws.some(l => (l.some?.length ?? 0) > 1 && l.forall) ? 8 : laws.some(l => l.some?.length && l.forall) ? 2 : 1
+  const out = ms === undefined ? given() : withWall(performance.now() + ms / share, given)
   const v: Verdict = {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   return searched(r, laws, [], v, opts)
 }
@@ -2721,6 +2725,16 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   const until = clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
   // (the search's end on the wall too: kernel/prove.ts's withWall, past which every goal is unknown)
   return withWall(performance.now() + Math.max(0, until - clock()), () => searchedUntil(r, laws, stepLaws, v, opts, until))
+}
+// Two machines alike up to the names of the keys their quantified flags and writes at every key bind (the rule builds
+// fresh ones each time it is read): each bound name by its place of first binding.
+const sameMachine = (a: Machine, b: Machine): boolean => {
+  const canon = (m: Machine) => {
+    const t = JSON.stringify(m), bs = [...new Set([...t.matchAll(/"(?:each|key)":"([^"]+)"|"keys":\[([^\]]*)\]/g)].flatMap(x => (x[1] ? [x[1]] : [...x[2]!.matchAll(/"([^"]+)"/g)].map(y => y[1]!))))]
+    const at = new Map(bs.map((x, i) => [x, `$b${i}`]))
+    return t.replace(/"(name|each|key)":"([^"]+)"/g, (all, f: string, x: string) => (at.has(x) ? `"${f}":"${at.get(x)}"` : all)).replace(/"keys":\[([^\]]*)\]/g, (_all, xs: string) => `"keys":[${xs.replace(/"([^"]+)"/g, (a2, x: string) => (at.has(x) ? `"${at.get(x)}"` : a2))}]`)
+  }
+  return canon(a) === canon(b)
 }
 function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions, until: number): Verdict {
   const any = opts.from === 'any'
@@ -2793,20 +2807,42 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // the ghosts checked to be the original's (kernel.ts's ghostedOk): each law with "there exists" holds, its value at its
   // ghost map's cell (GhostMap.lean's forall_some_of_ghostmap); else proveSome's own proof of the laws as stated)
   // (the trees of the search's verdict are the ghosted machine's: no part of the ∃ verdict)
-  const back = (over: typeof rule, found: {law: Law}[]): Partial<Verdict> => {
+  const back = (over: typeof rule, found: {law: Law}[], fast = true): Partial<Verdict> => {
     if (!sk) return {}
     // (a machine with sums or a history takes no ghost map (GhostMap.lean's SGhostedM is over SMachine): proveSome there)
     const ls = [...fresh.map(f => f.law), ...sought, ...found.map(f => f.law)], pm = over.withSumsOf(ls).machine
-    const plain = over === target && !pm.history && !Object.keys(pm.sums ?? {}).length ? proveRule(over, ls, {search: false, fast: true}) : undefined
+    const plain = over === target && !pm.history && !Object.keys(pm.sums ?? {}).length ? proveRule(over, ls, {search: false, fast}) : undefined
     // (the kernel's ∃ reading, GhostMap.lean's forall_some_of_ghostsubst: the plain laws proven of the original with all
     // the ghosts, each ∃ law's body with its witness term in place, the very law object proven (its keys with it: terra's
     // review, a law alike in name and body but about no key would prove less))
     const G: Ghosted = {orig: rule.machine, vars: {}, maps: sk.maps}
-    if (plain?.proven && plain.checked && JSON.stringify(over.machine) === JSON.stringify(ghostedMachine(G))
+    if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: back: plain ${plain ? `${plain.proven} ${plain.checked}` : 'none'}, machine ${sameMachine(over.machine, ghostedMachine(G))}`)
+    if (plain?.proven && plain.checked && sameMachine(over.machine, ghostedMachine(G))
       && laws.filter(l => l.some?.length).every(l => { const q = sk.plains[l.name]; return !!q && ls.includes(q.plain) && someOfGhostsOk(G, l, q.plain, q.sub) }))
       return {proven: true, checked: true, witnesses: sk.witnesses}
-    const out = proveSome(rule.machine, [...withKinds(rule, laws), ...fresh.map(f => f.law), ...found.map(f => f.law)], {mapMs: Math.max(5_000, (until - clock()) / 2)})
+    // (proveSome over the original: the found laws that read no ghost map)
+    const own = found.filter(f => Object.keys(sk.maps).every(mp => !JSON.stringify(f.law.holds).includes(`"map":${JSON.stringify(mp)}`)))
+    const out = proveSome(rule.machine, [...withKinds(rule, laws), ...fresh.map(f => f.law), ...own.map(f => f.law)], {mapMs: Math.max(5_000, (until - clock()) / 2)})
     return {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
+  }
+  // (the plain law's candidate supports, exists.ts's ghostSupports: Houdini within half of what is left, each with the
+  // rest assumed, the failing dropped, until none fails; then the set through `back`, the ∃ verdict as the search's)
+  if (sk?.cands.length) {
+    const tm = target.machine, hUntil = clock() + (until - clock()) / 2
+    let keep = [...sk.cands]
+    for (let round = 0; round < 8 && clock() < hUntil; round++) {
+      const ls = withKinds(target, [...fresh.map(f => f.law), ...sought, ...keep])
+      const drop = keep.filter(c => clock() >= hUntil || !withDeadline(Math.min(hUntil, clock() + 3_000), () => proveLaw(tm, ls, ls.indexOf(c))).proven)
+      if (clock() >= hUntil) break
+      if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: ghost supports round ${round}: ${keep.length} kept, ${drop.length} dropped: ${keep.map(c => c.name).join('; ').slice(0, 1500)}`)
+      if (!drop.length) {
+        const b = back(target, keep.map(law => ({law})), false)
+        if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: ghost supports set: ${b.proven ? 'proven' : `${b.goal} ${b.stuck} ${b.why ?? ''}`}`)
+        if (b.proven && b.checked) { const found = keep.map(law => ({law, text: law.name})); return {...b, proven: true, checked: true, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])} }
+        break
+      }
+      keep = keep.filter(c => !drop.includes(c))
+    }
   }
   const inf = withWall(tailAt(), () => inferLaws(target, [...fresh.map(f => f.law), ...sought], stepLaws, {ms, ...((rule === r && !fresh.length) || sk ? {first: v} : {}), ...(sk ? {join: 0} : {})}))
   if (!(inf.proven && inf.checked)) {
