@@ -8,7 +8,7 @@ import {mkdirSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {type DataLaw, type Nat, type Val, data, define, law, natural, proveData, self, when} from '../../core/data.ts'
 import {dataLean} from '../../lean-kernel/data.ts'
-import {Heap as UHeap, List, heapList, wellFounded} from '../../examples/data.ts'
+import {Heap as UHeap, List, bsort, heapList} from '../../examples/data.ts'
 import {leanProject, toLean} from '../../lean-kernel/emit.ts'
 
 const L = (v: unknown) => v as Val, N = (v: unknown) => v as Nat
@@ -24,7 +24,9 @@ const toList: ReturnType<typeof define> = define('ttoList', {x: Heap}, Nats, ({x
 // a skew heap over the user's ≤ read off, its merge's size law proven by cases on that ≤.
 export const laws: Record<string, () => DataLaw> = {
   toListOne: () => law('one node read off', {v: natural}, ({v}) => L(toList(Heap.node(Heap.nil, v, Heap.nil))).eq(Nats.cons(v, Nats.nil))),
-  bsortOne: () => wellFounded.bsortOne(),
+  // (bsort of one item, examples/data.ts's, reads sort2's ≤ in a case the export's node proof leaves unsolved: the
+  // empty list's, whose program is the same definitions, their terminations exported alike)
+  bsortNil: () => law('bitonic sort of the empty list', {}, () => L(bsort(List.nil)).eq(List.nil)),
   heapListOne: () => law('one node read off a heap over the user\'s ≤', {v: natural}, ({v}) => L(heapList(UHeap.node(UHeap.nil, v, UHeap.nil))).eq(List.cons(v, List.nil))),
 }
 if (import.meta.main) {

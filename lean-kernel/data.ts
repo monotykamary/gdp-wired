@@ -214,9 +214,13 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
     const decLemmas = (f: Fn): {name: string, text: string}[] => (f.termination?.obligations ?? []).flatMap((o, i) => {
       if (!JSON.stringify(o.law.holds).includes('"op":"call"')) return []
       const names = new Map(o.law.vars.map(v => [v.name, name(v.name)]))
-      const on = o.scheme?.match(/ on ([^,]+)/)?.[1], fnSimp = p.fns.filter(g => !f.ring.includes(g.name)).map(g => g.name).join(', ')
+      // (the functions f reaches outside its ring: those defined before it, a function after it not yet in scope)
+      const reach = new Set<string>(), go = (g: string) => { if (reach.has(g)) return; reach.add(g); walk(p.fns.find(h => h.name === g)?.body(), t => { if (t.op === 'call') go(t.fn as string) }) }
+      go(f.name)
+      const on = o.scheme?.match(/ on ([^,]+)/)?.[1], fnSimp = p.fns.filter(g => reach.has(g.name) && !f.ring.includes(g.name)).map(g => g.name).join(', ')
       const sizeSimp = p.datas.map(d => `${d.name}.size`).join(', ')
-      const close = `(try simp only [${fnSimp}] at *) <;> (repeat' split) <;> (try simp only [${sizeSimp}] at *) <;> omega`
+      // (omega, else the hypotheses simplified with the goal first: a lexicographic disjunction whose first part is decided)
+      const close = `(try simp only [${fnSimp}] at *) <;> (repeat' split) <;> (try simp only [${sizeSimp}] at *) <;> first | omega | (simp_all [${sizeSimp}] <;> omega)`
       const laws = (o.lemmaLaws ?? []).map((l, j) => {
         const lnames = new Map(l.vars.map(v => [v.name, name(v.name)])), id = `${f.name}_dec${i + 1}_law${j + 1}`
         let g: string | undefined
@@ -232,7 +236,8 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
         const at = l.vars.reduce<string[][]>((acc, v) => acc.flatMap(a => o.law.vars.filter(w => sortLean(w.sort) === sortLean(v.sort)).map(w => [...a, names.get(w.name)!])), [[]]).slice(0, 16)
         return {id, text, haves: at.map(as => `(have := ${id} ${as.join(' ')})`)}
       })
-      const haves = laws.flatMap(l => l.haves)
+      // (and each value of a datatype the obligation names at least 1 in size: a halving's bound reads it)
+      const haves = [...laws.flatMap(l => l.haves), ...(laws.length ? o.law.vars.flatMap(v => (typeof v.sort === 'object' ? [`(have := ${(v.sort as Data).name}.size_pos ${names.get(v.name)})`] : [])) : [])]
       return [...laws.map(l => ({name: l.id, text: l.text})), {name: `${f.name}_dec${i + 1}`, text: `theorem ${f.name}_dec${i + 1}${o.law.vars.map(v => ` (${name(v.name)} : ${sortLean(v.sort)})`).join('')} :\n    ${lp(o.law.holds, names)} := by\n  ${haves.length ? `${haves.join('; ')}; ` : ''}${on && names.has(on) ? `induction ${names.get(on)} <;> ` : ''}${close}`}]
     })
     const walk = (t: unknown, fn: (o: Record<string, unknown>) => void): void => { if (!t || typeof t !== 'object') return; if (Array.isArray(t)) { t.forEach(x => walk(x, fn)); return } fn(t as Record<string, unknown>); for (const v of Object.values(t)) walk(v, fn) }
