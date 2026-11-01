@@ -157,6 +157,8 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
         const ihs = c.fields.flatMap((f, i) => (inG(d, f) ? [`have ih${i} := ${fieldT(f)}.dec_enc x${i}`] : []))
         return [`  | ${pat(d, j, i => `x${i}`)} => by`, `    rw [${d.name}.dec]`, ...ihs.map(h => `    ${h}`),
           `    have e1 : (${full} - ${z(d)}) / ${m(d)} = ${code} := by omega`, `    have e2 : (${full} - ${z(d)}) % ${m(d)} = ${j - z(d)} := by omega`,
+          // (normalized as the goal will be: a constructor of one field's code, tupk [a], is a itself there)
+          `    try simp only [tupk, tup, Nat.add_sub_cancel, Nat.add_sub_cancel_left] at e1 e2`,
           `    simp [${d.name}.enc, e1, e2, tupk, tup${c.fields.flatMap((f, i) => (inG(d, f) ? [`, ih${i}`] : [])).join('')}]`]
       })]))
       for (const d of ds) {
@@ -180,6 +182,9 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
     const fnDef = (f: Fn) => {
       const names = new Map(f.params.map(q => [`${f.name}.${q.name}`, name(q.name)]))
       const m = f.decreases === undefined ? f.measure : undefined
+      // (nested recursion read through an invariant, Data.lean's wf_fix_inv_unique: `termination_by` can't read a call's
+      // value, research/termination/Nested.lean defines such a function through the theorem by hand)
+      if (f.decreases === undefined && p.fns.some(g => f.ring.includes(g.name) && g.decreases === undefined && g.termination?.invariant)) throw new Error(`${f.name}: nested recursion through an invariant isn't exported to Lean yet`)
       hyps = m && {n: 0}
       const body = lx(f.body(), names)
       hyps = undefined
@@ -214,9 +219,15 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
     const decLemmas = (f: Fn): {name: string, text: string}[] => (f.termination?.obligations ?? []).flatMap((o, i) => {
       if (!JSON.stringify(o.law.holds).includes('"op":"call"')) return []
       const names = new Map(o.law.vars.map(v => [v.name, name(v.name)]))
-      const on = o.scheme?.match(/ on ([^,]+)/)?.[1], fnSimp = p.fns.filter(g => !f.ring.includes(g.name)).map(g => g.name).join(', ')
+      // (the functions f reaches outside its ring, and the folds its measure reads: those defined before it, a function
+      // after it not yet in scope)
+      const reach = new Set<string>(), go = (g: string) => { if (reach.has(g)) return; reach.add(g); walk(p.fns.find(h => h.name === g)?.body(), t => { if (t.op === 'call') go(t.fn as string) }) }
+      go(f.name)
+      if (f.measure) foldsOf(f.measure).forEach(go)
+      const on = o.scheme?.match(/ on ([^,]+)/)?.[1], fnSimp = p.fns.filter(g => reach.has(g.name) && !f.ring.includes(g.name)).map(g => g.name).join(', ')
       const sizeSimp = p.datas.map(d => `${d.name}.size`).join(', ')
-      const close = `(try simp only [${fnSimp}] at *) <;> (repeat' split) <;> (try simp only [${sizeSimp}] at *) <;> omega`
+      // (omega, else the hypotheses simplified with the goal first: a lexicographic disjunction whose first part is decided)
+      const close = `(try simp only [${fnSimp}] at *) <;> (repeat' split) <;> (try simp only [${sizeSimp}] at *) <;> first | omega | (simp_all [${sizeSimp}] <;> omega)`
       const laws = (o.lemmaLaws ?? []).map((l, j) => {
         const lnames = new Map(l.vars.map(v => [v.name, name(v.name)])), id = `${f.name}_dec${i + 1}_law${j + 1}`
         let g: string | undefined
@@ -232,8 +243,9 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
         const at = l.vars.reduce<string[][]>((acc, v) => acc.flatMap(a => o.law.vars.filter(w => sortLean(w.sort) === sortLean(v.sort)).map(w => [...a, names.get(w.name)!])), [[]]).slice(0, 16)
         return {id, text, haves: at.map(as => `(have := ${id} ${as.join(' ')})`)}
       })
-      const haves = laws.flatMap(l => l.haves)
-      return [...laws.map(l => ({name: l.id, text: l.text})), {name: `${f.name}_dec${i + 1}`, text: `theorem ${f.name}_dec${i + 1}${o.law.vars.map(v => ` (${name(v.name)} : ${sortLean(v.sort)})`).join('')} :\n    ${lp(o.law.holds, names)} := by\n  ${haves.length ? `${haves.join('; ')}; ` : ''}${on && names.has(on) ? `induction ${names.get(on)} <;> ` : ''}${close}`}]
+      // (and each value of a datatype the obligation names at least 1 in size: a halving's bound reads it)
+      const haves = [...laws.flatMap(l => l.haves), ...(laws.length ? o.law.vars.flatMap(v => (typeof v.sort === 'object' ? [`(have := ${(v.sort as Data).name}.size_pos ${names.get(v.name)})`] : [])) : [])]
+      return [...laws.map(l => ({name: l.id, text: l.text})), {name: `${f.name}_dec${i + 1}`, text: `theorem ${f.name}_dec${i + 1}${o.law.vars.map(v => ` (${name(v.name)} : ${sortLean(v.sort)})`).join('')} :\n    ${lp(o.law.holds, names)} := by\n  ${haves.length ? `${haves.join('; ')}; ` : ''}${on && names.has(on) ? `induction ${names.get(on)} <;> ` : ''}first | omega | (${close})`}]
     })
     const walk = (t: unknown, fn: (o: Record<string, unknown>) => void): void => { if (!t || typeof t !== 'object') return; if (Array.isArray(t)) { t.forEach(x => walk(x, fn)); return } fn(t as Record<string, unknown>); for (const v of Object.values(t)) walk(v, fn) }
     // (the folds a measure reads, and the folds they call, first: each is structural and calls only folds before it)
