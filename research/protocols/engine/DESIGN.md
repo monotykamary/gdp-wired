@@ -110,6 +110,19 @@ grid `grid-c5`, and 07250a7's `fin`: 20 of 29 at strict 60 s and at 300 s).
 **Bytes** (07250a7 against e86df1b): kernel/prove.ts +3,511, core/counts.ts +287; research/query/ +3 files (slice.ts,
 dump.ts, slice-lab.ts).
 
+**gen/laneJ2's gates** (the seeded retries alone on main 9e05d77, 96a80be; core/ and kernel/ +243 bytes)
+- **Quick bar** (<main>/runs/bar/runs/laneJ2-96a80be-quick): wrong 0 in every group, nothing solid lost: CHC −2.33
+  (gained 2, lost 6, none solid), ITS +0.67 (lost 1, not solid), ITS-scc +0.67 (lost 1, not solid), SV and SV-scc 0, TIP
+  +1 (gained 1), f1 0, f2 −0.67 (lost 1, not solid), rw +1.67 (lost 1, not solid); g332 the same search on 332 of 332,
+  335 s against 338 s, p50 1.003; onecpu no failure; Lean 6 of 6.
+- **Suites** (laneJ2-96a80be-suites): --usual 243 of 243; by default 242 of 243, extract-c lost, not solid (the base
+  fails it in 2 of its 6 runs), alone on its VM 3 of 3 (12 of 12 each).
+- **The ten**, 20 runs a side, both sides at once, each alone on its VM: before 199, after 198 (wo 20 → 18: two unknown at
+  62.7 and 65.4 s; ring 19 → 20). wo again, 40 runs a side: 40 and 40 (median 30.4 → 29.7 s, within the 60 s wall 39 → 40).
+- **Core tests**: `bun run test` exit 1 on one test, liveness's "weak fairness" at 6.8 s past bun's 5 s on a loaded VM;
+  liveness.test.ts alone 3 of 3 on each side (8 of 8; 2.0 to 2.1 s, base 1.6 to 2.4 s); every other file 0 fail; tsc no
+  error in core/, kernel/, research/; oxlint 0 / 0 on core/counts.ts.
+
 **Not won:** every unproven protocol is still unproven. The switches' hard goal is its 44-hypothesis core, not its size;
 the counted protocols' cost is the cone's count of genuine CTIs (paxos 380 of 409 attempts end with a model, each a new
 one), not per-query cost; mldr's is the engine's cubes (41.7 of 67 s).
