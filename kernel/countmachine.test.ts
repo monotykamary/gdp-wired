@@ -351,6 +351,12 @@ describe('two parameters', () => {
     // (a read's variable is no declaration's lo)
     refusedRounds({...rounds.certs, 'one value a round @step': {...rounds.certs['one value a round @step']!, reads: [...rounds.certs['one value a round @step']!.reads, ['y', 'votes', pkB(x('a#'), x('b'))]]}})
   })
+  test('with nothing written: the search declares the count over two parameters and proves one value a round', () => {
+    const {votes: _v, ...rest} = rounds.m.counts!, m: Machine = {...rounds.m, counts: rest}
+    const one = rounds.laws.filter(l => l.name === 'one value a round'), c = searchCounted(m, one, 20_000)
+    expect(c.proven).toBe(true)
+    expect(Object.values(c.m.counts ?? {}).some(d => d.base === B)).toBe(true)
+  }, 120_000)
   test('quorums off by one, quorums of one, and a bound true only on small instances: none proven', () => {
     const offByOne: Machine = {...rounds.m, assume: all(less(x('i'), x('size')), less(x('r'), n(B)), less(x('val'), n(B)), any(not(same(x('op'), one1)), atMost(x('size'), times(2, get('quorum', n(0))))))}
     const ofOne: Machine = {...rounds.m, assume: all(less(x('i'), x('size')), less(x('r'), n(B)), less(x('val'), n(B)), any(not(same(x('op'), one1)), atMost(n(1), get('quorum', n(0)))))}

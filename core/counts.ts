@@ -16,7 +16,7 @@
 //      induction), the proof the caller's (the counted goals here, the kernel's for an ∃ law's cubes), in two thirds of
 //      what is left; then, for the counted search, Houdini over the rest; the kernel checks the set (checkCountedLaws).
 import {type C, type E, type Law, type Machine} from './machine.ts'
-import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, scope, substC} from '../kernel/kernel.ts'
+import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, scope, substC, substE} from '../kernel/kernel.ts'
 import {clock, counted, fullRate, grow, modelInstances, wallAt, widen, withWall} from '../kernel/prove.ts'
 import {REFUTED, type Refuted, cdclStats, growCdcl} from '../kernel/cdcl.ts'
 import {inferLaws} from './infer.ts'
@@ -119,6 +119,52 @@ export function guardLaws(m: Machine): {counts: Machine['counts'], laws: Law[]} 
         counts[name] = {j, key, below: d.below, body: {op: 'if', c: substC(r, {vars: {[qk]: v(key), [t]: v(j), ...(base ? {[ps[1]!]: v(lo)} : {})}, maps: {}, flags: {}}), then: one, else: zero}, ...(base ? {lo, base} : {})}
         for (const g of [...guards, ...more]) if (reads(g, x => x === c).size)
           laws.push(law(`${mp} keeps ${c}'s bound through ${name}`, substC(g, {vars: {}, maps: {[c]: () => ({op: 'get', map: name, key: at})}, flags: {}})))
+      }
+    }
+  }
+  // Who did or still can write a relation: a write W[N²·n + N·t + u] := 1 by a request's node n (below the bound of the
+  // set the guard counts) under a flag whose literals reading n are G(n, t, u). Its count over two parameters,
+  // c(t, u) = |{k: G(k, t, u) ∨ W[N²·k + N·t + u]}|, the keys that wrote it at (t, u) or may yet; a set the guard counts
+  // and every such k meet unless c is at most what the guard's comparison forbids. Proposed under each map P the flag
+  // reads at N·t + u alone (a cell the writes at (t, u) need), at another (c, d): P[N·c + d] ∧ a < c (∧ b ≠ d, or a ≤ c ∧
+  // b ≠ d) ⇒ ¬(the guard's comparison with c at (a, b)): no majority could write W at (a, b) once P holds further on.
+  const lin = (e: E): Map<string, number> | undefined => {
+    if (e.op === 'var') return new Map([[e.name, 1]])
+    if (e.op === 'mul' && e.a.op === 'var') return new Map([[e.a.name, e.k]])
+    if (e.op !== 'add') return undefined
+    const x = lin(e.a), y = lin(e.b)
+    if (!x || !y || [...x.keys()].some(q => y.has(q))) return undefined
+    return new Map([...x, ...y])
+  }
+  const conj = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(conj) : [c])
+  for (const [mp, w] of Object.entries(m.step.maps ?? {})) {
+    if ('each' in w) continue
+    const l = lin(w.key), es = l && [...l.entries()].sort((x, y) => y[1] - x[1])
+    if (!es || es.length !== 3 || !es.every(([q]) => m.inputs.includes(q))) continue
+    const [[nd, c0], [t, c1], [u, c2]] = es as [[string, number], [string, number], [string, number]]
+    if (c2 !== 1 || c1 < 2 || c0 !== c1 * c1) continue
+    const base = c1
+    for (const [f, fc] of Object.entries(flags)) {
+      if (fc.op === 'all' || !json(w.value).includes(`"op":"flag","name":${json(f)}`)) continue
+      const parts = conj(inline(fc)), dep = parts.filter(x => mentions(x, nd))
+      if (!dep.length || dep.some(x => m.inputs.some(i => ![nd, t, u].includes(i) && mentions(x, i)))) continue
+      const ps = parts.flatMap(x => (x.op === '=' && x.a.op === 'get' && x.b.op === 'const' && x.b.value === 1 ? [x.a] : x.op === '<=' && x.a.op === 'const' && x.a.value === 1 && x.b.op === 'get' ? [x.b] : []))
+        .filter(g => { const kl = lin(g.key); return !!kl && kl.size === 2 && kl.get(t) === base && kl.get(u) === 1 })
+      if (!ps.length) continue
+      for (const [c, d] of Object.entries(all)) {
+        if (d.body.op !== 'if' || !json(m.assume).includes(json({op: '<', a: v(nd), b: d.below}))) continue
+        const gs = guards.filter(g => reads(g, x => x === c).size)
+        if (!gs.length || mentions(d.body, d.j)) continue
+        const name = `can$${mp}$${c}`, j = `${name}$x`, key = `${name}$k`, lo = `${name}$y`, sub = {vars: {[nd]: v(key), [t]: v(j), [u]: v(lo)}, maps: {}, flags: {}}
+        const body: C = {op: 'or', xs: [{op: 'and', xs: dep.map(x => substC(x, sub))}, {op: '<=', a: one, b: {op: 'get', map: mp, key: substE(w.key, sub)}}]}
+        counts[name] = {j, key, lo, base, below: d.below, body: {op: 'if', c: body, then: one, else: zero}}
+        const pk2 = (a: string, b: string): E => ({op: 'add', a: {op: 'mul', k: base, a: v(a)}, b: v(b)})
+        for (const g of gs) for (const pg of ps) for (const [r1, r2] of [['<', true], ['<', false], ['<=', true]] as const) {
+          const hyp: C = {op: 'and', xs: [{op: '<=', a: one, b: {op: 'get', map: pg.map, key: pk2('c$c', 'd$c')}}, {op: r1, a: v('a$c'), b: v('c$c')} as C,
+            ...(r2 ? [{op: 'not', x: {op: '=', a: v('b$c'), b: v('d$c')}} as C] : []), {op: '<', a: v('b$c'), b: k(base)}, {op: '<', a: v('d$c'), b: k(base)}]}
+          laws.push({name: `${pg.map} at (c, d) bounds ${name} at (a, b): a ${r1} c${r2 ? ', b ≠ d' : ''}`, forall: 'a$c', keys: ['b$c', 'c$c', 'd$c'],
+            holds: {op: 'or', xs: [{op: 'not', x: hyp}, {op: 'not', x: substC(g, {vars: {}, maps: {[c]: () => ({op: 'get', map: name, key: pk2('a$c', 'b$c')})}, flags: {}})}]}})
+        }
       }
     }
   }
