@@ -2671,9 +2671,9 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
   // (with a search budget, the laws as given within it on the wall: a step goal of hundreds of hypotheses has a second
   // each by its own budget, so the search would never start)
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined, given = () => (opts.fast ? proveSetFast : proveLaws)(r.machine, withKinds(r, laws)) as ReturnType<typeof proveLaws>
-  // (a law with "there exists" about every key: a quarter of it, as the plain search over its ghosts takes the law too; one
+  // (a law with "there exists" about every key: half of it, as the plain search over its ghosts takes the law too; one
   // step goal of no_lost_keys' laws as given took 57 s of 60 choosing a witness term)
-  const out = ms === undefined ? given() : withWall(performance.now() + (laws.some(l => l.some?.length && l.forall) ? ms / 4 : ms), given)
+  const out = ms === undefined ? given() : withWall(performance.now() + (laws.some(l => l.some?.length && l.forall) ? ms / 2 : ms), given)
   const v: Verdict = {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   return searched(r, laws, [], v, opts)
 }
