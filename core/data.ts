@@ -918,6 +918,8 @@ function proveMeasures(ring: Fn[], sites: Site[], ms0: Measure[], until: number,
   // (every measure of one length, at least one component: Data.lean's lexLt compares tuples of one length)
   const ms = padded(ring, ms0)
   if (!ms[0]!.comps.length || ms.some(m => m.comps.length !== ms[0]!.comps.length)) throw new Error(`${ring.map(f => f.name).join(', ')}: measures of one length`)
+  // (a fold a measure reads is a function taken before, never one of the ring: checkMeasures' measures are given)
+  if (ms.some(m => m.comps.some(c => c.fold && ring.some(f => f.name === c.fold!.fn)))) throw new Error(`${ring.map(f => f.name).join(', ')}: a measure reads the ring`)
   const was = inTermination.on
   inTermination.on = true
   try { return proveMeasuresIn(ring, sites, ms, until, inv) } finally { inTermination.on = was }

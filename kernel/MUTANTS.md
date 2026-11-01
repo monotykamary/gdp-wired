@@ -198,19 +198,17 @@ core/data.ts | isIntX | "(x: X) => x.op === 'if'" | " === " -> " !== " | as isIn
 core/data.ts | isIntX | "x.op === 'if' && x.else" | " && " -> " || " | a natural term is never an if, so it reads no else and throws (refused); an integer component is an if either way
 core/data.ts | proveMeasuresIn | "call ${nth[i]! + 1}`" | " + 1" -> "" | the call's number in its obligation's name
 core/data.ts | proveMeasuresIn | "${ring.length > 1 ? `${names[site.from]}" | " > " -> " >= " | text in an obligation's name
-core/data.ts | proveMeasuresIn | "{ if (o.op === 'call' && names.includes(o.fn as string)) throw" | " === " -> " !== " | an obligation that reads the ring: lifted reads every call of the ring in a law as a value, or refuses, before (a call within a case of a match with no condition between)
+core/data.ts | proveMeasuresIn | "{ if (o.op === 'call' && names.includes(o.fn as string)) throw" | " === " -> " !== " | a guard backed by others: lifted reads every call of the ring in a law as a value or refuses, and the hypotheses it makes read the measures, whose folds proveMeasures refuses where they are of the ring
 core/data.ts | termination | "${ring.length > 1 ? ' within t" | " > " -> " >= " | text in a refusal's message
 core/data.ts | termination | "${ring.length > 1 ? `, ${names" | " > " -> " >= " | text in a refusal's message
 kernel/cyclic.ts | lexLt | "as.length && bs.length" | " && " -> " || " | lexLt is read only on ranks of one length (refuseCyclic refuses a use whose ranks differ in length before it builds the descent goal), where both lists are empty or neither is
 kernel/cyclic.ts | keyed | ".slice(0, at.length)" | ".slice(0, at.length)" -> "" | a key past the terms is paired with undefined, which substE reads as no substitution (s.vars[name] ?? e), as the slice leaves it out: the same hypotheses
 core/data.ts | invAt | "(t as X).op === 'var' && m.has(" | " && " -> " || " | an invariant's every variable is its function's parameter or value (checkInv), all in m, and no node but a variable has a name: the same substitution
-core/data.ts | lifted | "{...o, of: go(o.of, bound), zero: go(o.zero, true)" | "true" -> "false" | a natural's match binds nothing in its zero case: a call there is at its level's scope, its hypothesis sound there
 core/data.ts | lifted | "walk([y, own], o => { if (o.op === 'var') taken" | " === " -> " !== " | a guard no law reaches: a new variable's name (the function's, letters and digits, then #r) is never a parameter's (a dot) or a field's binding (ending #digits)
 core/data.ts | lifted | "if (vars.some(w => w.name === v.name) || taken" | " || " -> " && " | the same guard
 core/data.ts | lifted | "if (vars.some(w => w.name === v.name) || taken" | ".some(" -> ".every(" | the same guard (every on the law's variables: never empty where a call is lifted, the caller's parameters or the fields of its path; and none named so)
 core/data.ts | lifted | "a call to ${ring.length > 1 ? 'its ring' :" | " > " -> " >= " | text in a refusal's message
 core/data.ts | keeps | "s value ${i + 1} keeps" | " + 1" -> "" | an obligation's name
-core/data.ts | proveMeasures | "if (!ms[0]!.comps.length || ms.some(" | " || " -> " && " | a guard backed by another: padded (just above) makes every measure one length, and no measure has no component (measureOf refuses an empty one; the search's have one at least)
 core/data.ts | proveMeasures | "if (!ms[0]!.comps.length || ms.some(" | ".some(" -> ".every(" | the same guard: after padded every length is ms[0]'s, so some and every of a difference are both false
 core/data.ts | proveMeasuresIn | "s value ${i + 1}`, what" | " + 1" -> "" | text in a refusal's message
 core/data.ts | termination | "o => { if (o.op === 'call' && names.includes(o.fn as string)) n = true" | " && " -> " || " | which rings the search tries invariants for (more, then): an invariant is taken only with every body proven to keep it

@@ -168,6 +168,13 @@ test('invariants given with measures (nested recursion, well-founded): one readi
   // one through a function taken before (len), and the size: proven
   const r = checkMeasures([nest.fn], [S], 20_000, [{op: 'and', xs: [keeps(nest, size(v('nest.xs'))), {op: '=', a: {op: 'call', fn: 'len', args: [v(valueVar(nest.fn))]}, b: {op: 'call', fn: 'len', args: [v('nest.xs')]}}]}])
   expect(r.proven).toBe(true)
+  // an empty measure, and a measure folding the function itself, refused
+  expect(() => checkMeasures([nest.fn], [{comps: []}], 10_000)).toThrow(/measures of one length/)
+  expect(() => checkMeasures([nz.fn], [{comps: [{coef: [0], c: 0, fold: {fn: 'nz', of: 0}}]}], 10_000)).toThrow(/a measure reads the ring/)
+  // a call in a natural's zero case, itself in a case of a match within the argument (the field bound there)
+  const L3 = data('Lst3', {none: {}, more: {item: natural, rest: self}})
+  const zc: ReturnType<typeof define> = define('underZero', {xs: L3}, natural, ({xs}) => (xs as Val).match({none: () => 0, more: ({rest}) => zc((rest as Val).match({none: () => L3.none, more: ({item, rest: r2}) => (item as Nat).match({zero: () => L3.more(zc(r2), r2), succ: () => r2})}))}))
+  expect(refusal(() => law('underZero', {xs: L3}, ({xs}) => (zc(xs) as Nat).eq(0)))).toMatch(/nested recursion isn't taken there/)
   // f(n + 1) = f(case n of 0 → 0, q + 1 → f(q)): the inner call under the natural's match, its predecessor bound there
   const nm: ReturnType<typeof define> = define('underNat', {n: natural}, natural, ({n}) => (n as Nat).match({zero: () => 0, succ: ({pred}) => nm((pred as Nat).match({zero: () => 0, succ: ({pred: q}) => nm(q)}))}))
   expect(refusal(() => law('underNat', {n: natural}, ({n}) => (nm(n) as Nat).eq(0)))).toMatch(/nested recursion isn't taken there/)
