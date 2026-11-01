@@ -299,7 +299,7 @@ export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machi
   if (reads && quick) {
     const w0 = Object.assign({}, ...groups.map(g => at(g, 0))) as Env
     if (test(w0)) return {holds: true, witness: w0}
-    lists = groups.map(g => points(g, none)); const quick = go(0, {}); if (quick) return {holds: true, witness: quick}
+    lists = groups.map(g => points(g, none)); const near = go(0, {}); if (near) return {holds: true, witness: near}
   }
   const cells = new Set<number>()
   if (reads) for (const c of Object.values(st.maps)) for (const key of c.keys()) cells.add(key)
