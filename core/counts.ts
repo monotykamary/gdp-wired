@@ -175,7 +175,7 @@ export function guardLaws(m: Machine): {counts: Machine['counts'], laws: Law[]} 
 // The count cells the goal reads (each before the step with its post name's twin), instances over pairs of them with one
 // bound (a count that doesn't drop, +1 and −1; two that meet, +1, +1 and −1), each with a fresh witness; and the laws and
 // quantified flags at the witnesses (returned, for the goal's law's instances).
-export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: string, key: string, body: E}[], wide = false): {reads: MapRead[], insts: CountInst[], wits: string[], picks: [string, E[]][]} {
+export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: string, key: string, body: E}[], wide = false): {reads: MapRead[], insts: CountInst[], wits: string[], picks: [string, E[]][], loose: boolean} {
   const byMap = new Map(decls.map(d => [d.map, d])), last = goal.hyps.at(-1)
   // (the conclusion's reads first, then those at a constant or the law's own names, then the rest)
   const own = (t: E) => t.op === 'const' || (t.op === 'var' && json(last).includes(`"name":${json(t.name)}`))
@@ -221,7 +221,9 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
     for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++) picks.push([r[0], [ts[i]!, ts[j]!]])
     if (ts.length > 2) picks.push([r[0], ts])
   }
-  return {reads: named, insts: insts.slice(0, cap), wits: wits.slice(0, cap), picks}
+  // (loose: a read no instance among the first ten names, which only widening ties to its cells)
+  const loose = named.some(r => !insts.slice(0, 10).some(i => i.terms.some(([, x]) => x === r[0])))
+  return {reads: named, insts: insts.slice(0, cap), wits: wits.slice(0, cap), picks, loose}
 }
 
 // --- the candidates --------------------------------------------------------------------------------------------------
@@ -383,8 +385,10 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     const refuted = (gg: Goal, w: Record<string, number>): Tried<Proof> => { models.set(id, {gg, w, at, ls: new Set(ls.map(l => l.name))}); return {stuck: 'sat'} }
     let at: Instances = seed ?? Object.fromEntries(Object.entries(m.step.flags ?? {}).flatMap(([f, q]) => (q.op === 'all' && !q.keys?.length ? [[`?${f}`, ts]] : [])))
     const obligations = (i: Instances) => ptime('encode', () => countedObligations(m, ls, {[law.name]: i}, ls.indexOf(law)))
-    // (`wide`: the count instances widened once, where a model is left that the narrow ones and the laws don't refute)
+    // (`wide`: the count instances widened once, where a model is left that the narrow ones and the laws don't refute, for
+    // a caller's law or where a read is in none of them: the cone's many refuted candidates keep the narrow ones)
     let wide = false
+    const isCaller = caller.some(l => l.name === law.name)
     const build = () => obligations(at).map(({goal, decls}) => { const c = pass ? certFor(goal, decls, wide) : none; return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c))} })
     let built = build()
     const t0 = clock(), more = () => clock() - t0 <= Math.max(ms, 1_000)
@@ -419,7 +423,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
         const asked = ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!))
         if (!asked) {
           if (countsDump.on && pass && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps}) }
-          if (pass && !wide && step.c.reads.length && more()) { wide = true; built = build(); continue }
+          if (pass && !wide && 'loose' in step.c && (step.c.loose || isCaller) && more()) { wide = true; built = build(); continue }
           return refuted(step.gg, q.witness)
         }
         at = asked
@@ -442,7 +446,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
           const asked = ptime('mbqi', () => modelInstances(m, ls, at, gg, o.witness!))
           if (asked) { at = asked; built = build(); again = true; break }
         }
-        if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && c.reads.length && more()) { wide = true; built = build(); again = true; break }
+        if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; built = build(); again = true; break }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) return refuted(gg, o.witness)
         if (!o || !('tree' in o)) return {stuck: gg ? (o as {stuck?: string}).stuck ?? '' : ''}
         certs[goal.name] = {reads: c.reads, insts: c.insts, tree: o.tree, ...('picks' in c && c.picks.length ? {picks: c.picks} : {})}

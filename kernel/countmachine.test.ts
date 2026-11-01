@@ -385,7 +385,10 @@ describe('picks: a count at least its body at distinct keys', () => {
   }, 60_000)
   test('a pick is typed: a read\'s name and terms over the naturals', () => {
     const certs = countedProof(pe.m, pe.laws, pe.instances, pe.certs)
-    for (const picks of [[['r0', [n(-1), x('b')]]], [['r0', 'a#']], [[7, [x('b')]]], {}] as unknown as [string, E[]][][])
+    const good = certs[stepName]!.picks!
+    expect(checkCountedLaws(pe.m, pe.laws, {instances: pe.instances, certs})).toBe(true)
+    for (const picks of [[['r0', [n(-1), x('b')]]], [['r0', 'a#']], [[7, [x('b')]]], {}, [...good, ['r0', 'a#']], [...good, ['r0', [x('a#'), {op: 'bogus'}]]],
+      [...good, ['r0', [x('a#'), n(0.5)]]]] as unknown as [string, E[]][][])
       expect(checkCountedLaws(pe.m, pe.laws, {instances: pe.instances, certs: {...certs, [stepName]: {...certs[stepName]!, picks}}})).toBe(false)
   })
   test('adversarial picks: terms equal but written apart, past the bound, of a count before the step', () => {
