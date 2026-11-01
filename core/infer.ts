@@ -2594,7 +2594,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         // (DuoAI's: the Houdini fixpoint of the relevant candidates, once, with 40% of the engine's time left: the set, the pending cubes and every cube a
         // counterexample ranked in its top eight, a cube the fast proof fails at dropped (the usual proof where it fails at
         // a cube the rounds proved), until the whole proves or the time is out)
-        if (env.GDP_Y) console.error(`[Y round] ${round} v=${Math.round(vnow())} eUntil=${Math.round(eUntil)} start=${Math.round(engineStart)} real=${Math.round(performance.now() - t0)}`)
         if (!houdinied && !enumProof && vnow() > eUntil - 0.4 * (eUntil - engineStart)) {
           houdinied = true
           let hs = [...new Map([...cubes, ...pending, ...pool].filter(g => !dead.has(textOf(g)) && !atStart(g)).map(g => [textOf(g), g])).values()]
@@ -2656,7 +2655,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             if (vnow() > kUntil() || stop()) { complete = false; break }
             const f = typeof goal === 'string' ? undefined : goal, ls = lsAll, others = cubes.filter(g => g !== f)
             const idx = f ? given.length + at2.get(f)! : ls.findIndex(l => l.name === goal), mm = mmRound
-            if (f && !coneTried && env.GDP_IC3_CONE !== '0') { coneTried = true; const tc0 = performance.now(); const okc = tryCone(); if (env.GDP_Y) console.error(`[Y cone] ${okc} ${Math.round(performance.now() - tc0)}`); if (okc) { over = true; return } }
+            if (f && !coneTried && env.GDP_IC3_CONE !== '0') { coneTried = true; if (tryCone()) { over = true; return } }
             if (f) held = true
             if ((f && kept2.has(f)) || stands.has(ls[idx]!.name)) continue
             const was = settled.get(ls[idx]!.name)
@@ -2664,7 +2663,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             settled.delete(ls[idx]!.name)
             // (a goal decided by the EPR path alone first (a proof or a model, a cube's within a quarter of a join query, the
             // caller's within one); else a model or a refutation of the CDCL search alone, then the proof path's)
-            const tW = performance.now()
             if (f) { if (tGoal) cubeMs += vnow() - tGoal; tGoal = vnow(); asked++ } else tGoal = 0
             const tDl = vnow(), dlEnd = Math.min(kUntil(), vnow() + (f ? joinQueryMs / 8 : joinQueryMs)), dl = within(dlEnd, () => decideLaw(mm, ls, idx))
             // (the EPR path out of time on the caller's goal, or refuting it with a core the kernel's search didn't finish:
@@ -2700,7 +2698,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             const fresh = (g: Form) => !blocked2.some(h => textOf(h) === textOf(g)) && !!blocked2.push(g)
             const outside = (g: Form) => !ls.some(l => l.name === textOf(g))
             const ds = isReal && lastPre ? blockers(lastPre).filter(outside) : []
-            if (env.GDP_Y) console.error(`[Y goal] ${(f ? textOf(f) : String(goal)).slice(0, 90)} dl=${dl ? (dl.proven ? 'proven' : 'model ' + dl.goal) : 'none'} out=${outOfTime} real=${isReal} wit=${!!wit} ds=${ds.length} ms=${Math.round(performance.now() - tW)} pre=${lastPre ? JSON.stringify(lastPre.st.maps ? Object.fromEntries(Object.entries(lastPre.st.maps).map(([k, c]) => [k, [...c]])) : {}).slice(0, 300) + JSON.stringify(lastPre.st.scalars) : ''}`)
             ds.filter(fresh)
             // (the caller's: blocked at once, IC3's order, the caller asked again before the cubes)
             if (ds.length && !f && lastPre) pres.push(lastPre)
