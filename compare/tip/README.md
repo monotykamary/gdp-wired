@@ -38,6 +38,46 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### Termination through guarded size laws (gen/laneZ)
+
+The bar on boat, 60 s, `--only tip` (`runs/bar/runs/laneZ-23c27f0-tip1..3` in the main checkout: this branch at 23c27f0
+against main 35ed7e0's shared baseline of 3 runs):
+
+| theorems (492) | proven | refused (unsupported) | wrong |
+| --- | --- | --- | --- |
+| gdp-wired, this branch | 210, 210, 213 | 83, 83, 83 | 0 |
+| gdp-wired, main 35ed7e0 | 211, 208, 210 | 95, 95, 95 | 0 |
+
+- Admitted now, 12: the selection sorts `sort_SSort*` and `sort_nat_SSort*` (8: `ssort`'s call on the list without its
+  minimum) and the merge sorts by halves over Peano naturals `sort_nat_NMSortTD*` (4: take and drop at half the
+  length). None is proven within 60 s yet (timeout or unknown: their laws need the sorts' own lemmas, a count through a
+  delete under the same guard); gained 0 by the noise rule (the branch's lowest run below main's highest), lost 0 solid
+  (`isaplanner/prop_50`, `prod/lemma_05` at the limit, solved in reruns), wrong 0 in every run.
+- What it took (core/data.ts, the termination's search only; the obligations and their check unchanged): where a
+  call's obligation isn't proven at one node, `guardedLaws` conjectures `guard ⇒ S(g(y…)) + a ≤ S(yᵢ) + b` for each
+  function g of the call's argument whose bound the guard lowers. The guard's atoms are what the call's path gives g's
+  arguments on its values: a size at least c, one argument's size at least another's plus d, and that g's run ends at a
+  leaf of its body (`reaches`: a predicate defined for it, structural as g is; delete's run finding the item is
+  membership). The atoms the lowered bound doesn't need are dropped. With it, the guard at the call (a law over the
+  call's path, its step at a constructor unfolded once before it) and, where the guard bounds a call below, guarded
+  lower bounds (`2 ≤ n ⇒ 1 ≤ half(n)`, `3 ≤ size(x) ⇒ 2 ≤ length(x)`, the equations' lower halves): all proven in order
+  by the kernel, each above the ones before (`throughLemmas`), then the obligation above them; `guardedMs` (12 s a ring
+  at most) beside the measure's budget. Search fix: a lemma's nodes are placed before its uses are read
+  (`attempt`), so a lemma proven above fewer lemmas is placed right.
+- Refused, as before: adversarial definitions in examples/data.ts, `removeNear` (a remove that takes the item out only
+  with fewer than 9 after it: its guarded law is true, its guard at the call holds only on the runs' short lists) and
+  `takeNear` (a take that keeps the list from n = 9 on: its guarded law holds on the runs' values only); both refused,
+  core/data.test.ts.
+- Still refused: the integer merge sorts `sort_MSortTD*` (4: take's count is an integer, which no guard atom reads,
+  and the kernel's integer arithmetic leaves take's own size law unknown at its time) and the Stooge sorts (16). With
+  gen/laneK2 merged (gen/laneN's nested recursion and K2's ring measures, (size x, 2·size x) at the sort and
+  (size x, 6) at the thirds), a guard where a lexicographic measure's rest stays and the helpers unfolded
+  (gen/laneZ-stooge, not merged): the chain proves the size laws of ++, reverse, length and third, `4 ≤ n ⇒ 1 ≤
+  third(n)` and the reverse's and length's guarded lower bounds, but not the guard at the call, which at 3 items needs
+  n ≤ 3·third(n) + 2 (a third's lower bound); over Int, the guard reads an integer. The Lean export doesn't replay a
+  chain of lemmas yet (each lemma by its own tactic, the obligation's instances at its variables only): the new laws are
+  checked by the TS kernel, not in Lean.
+
 ### Termination through a merge's size law (gen/laneT)
 
 The bar on boat, 60 s (`runs/bar/runs/laneT-tip-full3` in the main checkout: this branch at 470bc13 merged with main
