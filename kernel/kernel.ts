@@ -1709,11 +1709,13 @@ export function countedGoal(g: CountedGoal, insts: CountInst[]): Goal | undefine
 // it; at a step, every count as the request carries it, then each state count read across the step (afterDecl). A
 // goal's certificate names the cells it reads (a fresh variable, a count map, a key term) and Count.lean's instances
 // and tree; checkMC is Lean's, line for line (DESIGN.md, gen/laneK2, has the table).
-export type CountDecl = {map: string, j: string, key: string, below: E, body: E}
+export type CountDecl = {map: string, j: string, key: string, below: E, body: E, lo?: string, base?: number}
 export type MapRead = [string, string, E]
 export type CountCert = {reads: MapRead[], insts: CountInst[], tree: Tree}
 export const postName = (map: string) => `${map}#`
-const declsOf = (m: Machine): CountDecl[] => Object.entries(m.counts ?? {}).map(([map, c]) => ({map, j: c.j, key: c.key, below: c.below, body: c.body}))
+const declsOf = (m: Machine): CountDecl[] => Object.entries(m.counts ?? {}).map(([map, c]) => ({map, j: c.j, key: c.key, below: c.below, body: c.body, ...(c.base ? {lo: c.lo, base: c.base} : {})}))
+// A declaration's second parameter (Lean's CDecl.lo, base): one parameter is lo = j, base 0.
+const loOf = (d: CountDecl): string => d.lo ?? d.j, baseOf = (d: CountDecl): number => d.base ?? 0
 // stateOnly: the bound and body read no input and no map a request carries (Lean: avoidsE (extVars ++ flagVars) and
 // avoidsMapsE carried; a count reads no flag, quantified flag or witness here, countsScope's).
 const stateOnly = (m: Machine, d: Counted): boolean => [d.below, d.body].every(t => {
@@ -1735,20 +1737,27 @@ function countsScope(m: Machine, laws: Law[]): void {
   for (const [c, d] of Object.entries(counts)) {
     const what = `${m.name}'s count ${c}`
     if (declared.includes(postName(c))) throw new Error(`${what}: its post name ${postName(c)} is already a name of ${m.name}`)
-    plainName(what, d.j); plainName(what, d.key)
-    if (d.j === d.key) throw new Error(`${what}: j and key are one name`)
-    for (const x of [d.j, d.key]) if ([...declared, ...bound, ...lawNames].includes(x)) throw new Error(`${what}: ${x} is already a name of ${m.name} or a law`)
+    // (two parameters: lo a plain name apart from j and key, base a positive integer; one: neither)
+    if ((d.lo === undefined) !== (d.base === undefined) || (d.base !== undefined && !(Number.isSafeInteger(d.base) && d.base > 0))) throw new Error(`${what}: lo and base go together, base a positive integer`)
+    const ps = d.lo === undefined ? [d.j] : [d.j, d.lo]
+    for (const x of [...ps, d.key]) plainName(what, x)
+    if (new Set([...ps, d.key]).size !== ps.length + 1) throw new Error(`${what}: j, lo and key are one name`)
+    for (const x of [...ps, d.key]) if ([...declared, ...bound, ...lawNames].includes(x)) throw new Error(`${what}: ${x} is already a name of ${m.name} or a law`)
     unquantified(what, d.below); unquantified(what, d.body)
-    inScope(`${what}'s bound`, [d.below], [...names, d.j], [...maps, ...carried, ...fns])
-    inScope(`${what}'s body`, [d.body], [...names, d.j, d.key], [...maps, ...carried, ...fns])
+    inScope(`${what}'s bound`, [d.below], [...names, ...ps], [...maps, ...carried, ...fns])
+    inScope(`${what}'s body`, [d.body], [...names, ...ps, d.key], [...maps, ...carried, ...fns])
     if (!natural(d.below) || !natural(d.body)) throw new Error(`${what}: a negative constant or factor is outside the kernel`)
   }
 }
-// toCount: a read cell as Count.lean's count (its variable, the declaration with j at the key term); toCounts: each.
+// keyParts: the terms a key term gives the parameters: one, the term (j a constant 0); two, the term written base·a + b
+// (j at a, lo at b). toCount: a read cell as Count.lean's count (its variable, the declaration with its parameters at
+// the parts); toCounts: each.
+const keyParts = (d: CountDecl, e: E): [E, E] | undefined =>
+  (!baseOf(d) ? [{op: 'const', value: 0}, e] : e.op === 'add' && e.a.op === 'mul' && e.a.k === baseOf(d) ? [e.a.a, e.b] : undefined)
 const toCount = (ds: CountDecl[], r: MapRead): Count | undefined => {
-  const d = ds.find(x => x.map === r[1])
-  if (!d) return undefined
-  const at: Subst = {vars: {[d.j]: r[2]}, maps: {}, flags: {}}
+  const d = ds.find(x => x.map === r[1]), p = d && keyParts(d, r[2])
+  if (!d || !p) return undefined
+  const at: Subst = {vars: {[d.j]: p[0], [loOf(d)]: p[1]}, maps: {}, flags: {}}
   return {v: r[0], key: d.key, below: substE(d.below, at), body: substE(d.body, at)}
 }
 function toCounts(ds: CountDecl[], rs: MapRead[]): Count[] | undefined {
@@ -1760,10 +1769,14 @@ function toCounts(ds: CountDecl[], rs: MapRead[]): Count[] | undefined {
   }
   return out
 }
-const readHyp = (r: MapRead): C => ({op: '=', a: {op: 'var', name: r[0]}, b: {op: 'get', map: r[1], key: r[2]}})
-// readFresh: no hypothesis, declaration or key term reads v, and v is no declaration's j or key.
+// readHyp: the read's variable is its cell; for two parameters, where the second part is below the base.
+const readHyp = (ds: CountDecl[], r: MapRead): C => {
+  const eq: C = {op: '=', a: {op: 'var', name: r[0]}, b: {op: 'get', map: r[1], key: r[2]}}, d = ds.find(x => x.map === r[1]), p = d && baseOf(d) ? keyParts(d, r[2]) : undefined
+  return p ? {op: 'or', xs: [{op: '<=', a: {op: 'const', value: baseOf(d!)}, b: p[1]}, eq]} : eq
+}
+// readFresh: no hypothesis, declaration or key term reads v, and v is no declaration's j, lo or key.
 const readFresh = (hyps: C[], ds: CountDecl[], rs: MapRead[], v: string): boolean =>
-  hyps.every(h => !readsVar(h, v)) && ds.every(d => !readsVar(d.below, v) && !readsVar(d.body, v) && d.j !== v && d.key !== v) && rs.every(r => !readsVar(r[2], v))
+  hyps.every(h => !readsVar(h, v)) && ds.every(d => !readsVar(d.below, v) && !readsVar(d.body, v) && d.j !== v && loOf(d) !== v && d.key !== v) && rs.every(r => !readsVar(r[2], v))
 // readsOk: the variables distinct (cDistinct), each fresh, each key term reading no declaration's key.
 const readsOk = (hyps: C[], ds: CountDecl[], rs: MapRead[]): boolean =>
   new Set(rs.map(r => r[0])).size === rs.length && rs.every(r => readFresh(hyps, ds, rs, r[0]) && ds.every(d => !readsVar(r[2], d.key)))
@@ -1797,19 +1810,19 @@ function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree: 
   const hs = countHyps(cs, cert.insts)
   return hs !== undefined && check({name: 'counted', hyps: [...hyps, ...hs]}, cert.tree)
 }
-// checkMC: each declaration's j and key differ, the reads are fresh, no read is a witness or reads one in its key
-// term, and checkCountedW accepts the counted goal they make (the goal's hypotheses, each read variable equal to its
-// cell; Lean's names the hypotheses it uses, each the goal's).
+// checkMC: each declaration's j and lo differ from its key, the reads are fresh, no read is a witness or reads one in
+// its key term, and checkCountedW accepts the counted goal they make (the goal's hypotheses, each read variable equal to
+// its cell; Lean's names the hypotheses it uses, each the goal's).
 export function checkMC(hyps: C[], ds: CountDecl[], k: CountCert): boolean {
-  if (!(ds.every(d => d.j !== d.key) && readsTyped(k.reads) && Array.isArray(k.insts) && k.insts.every(i => !!i && safeTerm(i.below)) && readsOk(hyps, ds, k.reads))) return false
+  if (!(ds.every(d => d.j !== d.key && loOf(d) !== d.key) && readsTyped(k.reads) && Array.isArray(k.insts) && k.insts.every(i => !!i && safeTerm(i.below)) && readsOk(hyps, ds, k.reads))) return false
   if (!k.reads.every(r => k.insts.every(i => i.wit !== r[0] && !readsVar(r[2], i.wit)))) return false
   const cs = toCounts(ds, k.reads)
-  return cs !== undefined && checkCountedW([...hyps, ...k.reads.map(readHyp)], cs, {insts: k.insts, tree: k.tree})
+  return cs !== undefined && checkCountedW([...hyps, ...k.reads.map(r => readHyp(ds, r))], cs, {insts: k.insts, tree: k.tree})
 }
 // The goal a certificate's tree refutes (what the search and the exporter read), or none.
 export function mcGoal(hyps: C[], ds: CountDecl[], k: Pick<CountCert, 'reads' | 'insts'>): Goal | undefined {
   const cs = toCounts(ds, k.reads)
-  return cs && countedGoal({name: 'counted', hyps: [...hyps, ...k.reads.map(readHyp)], counts: cs}, k.insts)
+  return cs && countedGoal({name: 'counted', hyps: [...hyps, ...k.reads.map(r => readHyp(ds, r))], counts: cs}, k.insts)
 }
 // The goals of a machine with counts: obligations', each law proven renamed (renLaw), with the counts each declares.
 export function countedObligations(m: Machine, laws: Law[], instances: Record<string, Instances> = {}, only?: number): {goal: Goal, decls: CountDecl[]}[] {
@@ -1821,7 +1834,7 @@ export function countedObligations(m: Machine, laws: Law[], instances: Record<st
   const ren: Subst = {vars: {}, maps: Object.fromEntries(Object.keys(m.counts ?? {}).map(c => [c, (key: E): E => ({op: 'get', map: postName(c), key})])), flags: {}}
   const proven = (law: Law) => { const h = substC(law.holds, ren); return law.forall ? substC(h, {vars: {[law.forall]: {op: 'var', name: `${law.forall}#`}}, maps: {}, flags: {}}) : h }
   const all = declsOf(m), st = all.filter(d => stateOnly(m, d))
-  const after = (at: Subst): CountDecl[] => st.map(d => ({map: postName(d.map), j: d.j, key: d.key, below: substE(d.below, at), body: substE(d.body, at)}))
+  const after = (at: Subst): CountDecl[] => st.map(d => ({...d, map: postName(d.map), below: substE(d.below, at), body: substE(d.body, at)}))
   const pre = preOf(m), u = updateOf(m), assume = m.assume ? [inlineFlags(m, m.assume)] : []
   return laws.flatMap((law, i) => {
     if (only !== undefined && i !== only) return []

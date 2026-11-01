@@ -42,8 +42,10 @@ open Classical
 
 /-! Counts of a map, and the counted goals over them -/
 
--- A count map: `mp` at x is Σ_{k < below} body(k), read with j at x and key at k; `post` the name a step's goal reads
--- it by after the step.
+-- A count map: `mp` at x is Σ_{k < below} body(k), read with its parameters at x and key at k; `post` the name a step's
+-- goal reads it by after the step. Its parameters: j at x / base and lo at x % base, so a count over two parameters
+-- (a, b) is read at the key base·a + b with b < base (a relation's composed key); one parameter is lo = j and base = 0
+-- (j at x).
 structure CDecl where
   mp : Nat
   post : Nat
@@ -51,10 +53,15 @@ structure CDecl where
   key : Nat
   below : E
   body : E
+  lo : Nat
+  base : Nat
+
+-- The environment with the parameters at x.
+def atJ (d : CDecl) (ρ : Nat → Nat) (x : Nat) : Nat → Nat := upd (upd ρ d.j (x / d.base)) d.lo (x % d.base)
 
 -- The count at x.
 def cntOf (d : CDecl) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (x : Nat) : Nat :=
-  sumBelow (fun k => evalE (upd (upd ρ d.j x) d.key k) M d.body) (evalE (upd ρ d.j x) M d.below)
+  sumBelow (fun k => evalE (upd (atJ d ρ x) d.key k) M d.body) (evalE (atJ d ρ x) M d.below)
 
 -- Each declared map is its count, at every key.
 def GHolds (ds : List CDecl) (ρ : Nat → Nat) (M : Nat → Nat → Nat) : Prop := ∀ d ∈ ds, ∀ x, M d.mp x = cntOf d ρ M x
@@ -68,9 +75,18 @@ structure CCert where
   tab : List VDef
   tree : Tree
 
--- A read cell as Count.lean's count: its variable, the declaration with j at the key term.
+-- A key term's parts, the terms the parameters take: one parameter, the term (j a constant 0); two, the term written
+-- base·a + b (j at a, lo at b), which is the count at (a, b) where b < base.
+def keyParts (d : CDecl) (e : E) : Option (E × E) :=
+  if d.base == 0 then some (.const 0, e) else match e with
+    | .add (.mul b a) c => if b == d.base then some (a, c) else none
+    | _ => none
+
+-- A read cell as Count.lean's count: its variable, the declaration with its parameters at the key term's parts.
 def toCount (ds : List CDecl) (r : Nat × Nat × E) : Option Count :=
-  (lookup (fun d => d.mp == r.2.1) ds).map fun d => ⟨r.1, d.key, substE [(d.j, r.2.2)] d.below, substE [(d.j, r.2.2)] d.body⟩
+  match lookup (fun d => d.mp == r.2.1) ds with
+  | some d => (keyParts d r.2.2).map fun p => ⟨r.1, d.key, substE [(d.lo, p.2), (d.j, p.1)] d.below, substE [(d.lo, p.2), (d.j, p.1)] d.body⟩
+  | none => none
 
 def toCounts (ds : List CDecl) : List (Nat × Nat × E) → Option (List Count)
   | [] => some []
@@ -78,11 +94,18 @@ def toCounts (ds : List CDecl) : List (Nat × Nat × E) → Option (List Count)
     | none => none
     | some c => (toCounts ds rs).map (c :: ·)
 
-def readHyp (r : Nat × Nat × E) : C := .eq (.var r.1) (.get r.2.1 r.2.2)
+-- A read's hypothesis: its variable is the cell; for two parameters, where the second part is below the base.
+def readHyp (ds : List CDecl) (r : Nat × Nat × E) : C :=
+  match lookup (fun d => d.mp == r.2.1) ds with
+  | some d => if d.base == 0 then .eq (.var r.1) (.get r.2.1 r.2.2) else match keyParts d r.2.2 with
+    | some p => .or (.le (.const d.base) p.2) (.eq (.var r.1) (.get r.2.1 r.2.2))
+    | none => .eq (.var r.1) (.get r.2.1 r.2.2)
+  | none => .eq (.var r.1) (.get r.2.1 r.2.2)
 
--- A read's variable is fresh: no named hypothesis, declaration or key term reads it, and it is no declaration's j or key.
+-- A read's variable is fresh: no named hypothesis, declaration or key term reads it, and it is no declaration's j, lo or
+-- key.
 def readFresh (hyps : List C) (ds : List CDecl) (rs : List (Nat × Nat × E)) (v : Nat) : Bool :=
-  hyps.all (fun h => !occC v h) && ds.all (fun d => !occE v d.below && !occE v d.body && d.j != v && d.key != v)
+  hyps.all (fun h => !occC v h) && ds.all (fun d => !occE v d.below && !occE v d.body && d.j != v && d.lo != v && d.key != v)
     && rs.all (fun r => !occE v r.2.2)
 
 -- The reads: distinct fresh variables, each key term reading no declaration's key.
@@ -190,13 +213,14 @@ theorem countedW_sound (hyps : List C) (cs : List Count) (is : List CInst) (tab 
     · obtain ⟨i, hi, hh⟩ := countHyps_mem hhs h hm
       exact hinst i hi h hh)
 
--- The check: the named hypotheses are the goal's, each declaration's j and key differ, the reads are fresh and their
--- key terms read no witness, and Count.lean's check (witnesses fresh for the counts) accepts the counted goal they make.
+-- The check: the named hypotheses are the goal's, each declaration's j and lo differ from its key, the reads are fresh
+-- and their key terms read no witness, and Count.lean's check (witnesses fresh for the counts) accepts the counted goal
+-- they make.
 def checkMC (hyps : List C) (ds : List CDecl) (k : CCert) : Bool :=
-  namedIn hyps k.hyps hyps && ds.all (fun d => d.j != d.key) && readsOk k.hyps ds k.reads
+  namedIn hyps k.hyps hyps && ds.all (fun d => d.j != d.key && d.lo != d.key) && readsOk k.hyps ds k.reads
     && k.reads.all (fun r => k.insts.all (fun i => i.wit != r.1 && !occE i.wit r.2.2))
     && match toCounts ds k.reads with
-      | some cs => checkCountedW (k.hyps ++ k.reads.map readHyp) cs k.insts k.tab k.tree
+      | some cs => checkCountedW (k.hyps ++ k.reads.map (readHyp ds)) cs k.insts k.tab k.tree
       | none => false
 
 /-! The counted goal's soundness -/
@@ -219,15 +243,132 @@ theorem toCounts_mem {ds : List CDecl} : ∀ {rs : List (Nat × Nat × E)} {cs :
         · obtain ⟨r', hr', h'⟩ := toCounts_mem e2 c hc
           exact ⟨r', List.mem_cons_of_mem _ hr', h'⟩
 
--- Each read's variable set to its cell's value, the rest of the environment kept.
-def setReads (ρ : Nat → Nat) (M : Nat → Nat → Nat) (rs : List (Nat × Nat × E)) : Nat → Nat :=
-  setWits ρ (rs.map fun r => (r.1, M r.2.1 (evalE ρ M r.2.2)))
+-- The environment with two parameters set at once by a substitution.
+theorem applyS_two (lo j : Nat) (a b : E) (ρ : Nat → Nat) (M : Nat → Nat → Nat) :
+    applyS [(lo, b), (j, a)] ρ M = upd (upd ρ j (evalE ρ M a)) lo (evalE ρ M b) := by
+  funext i
+  simp only [applyS, assoc, lookup, upd]
+  by_cases h1 : i = lo
+  · subst h1; simp
+  · by_cases h2 : i = j
+    · subst h2; simp [h1, Ne.symm h1]
+    · simp [h1, h2, Ne.symm h1, Ne.symm h2]
+
+theorem atJ_congr (d : CDecl) (x : Nat) {ρ ρ' : Nat → Nat} (i : Nat) (h : i ≠ d.j → i ≠ d.lo → ρ i = ρ' i) :
+    atJ d ρ x i = atJ d ρ' x i := by
+  simp only [atJ, upd]
+  by_cases h2 : i = d.lo
+  · simp [h2]
+  · by_cases h1 : i = d.j
+    · simp [h1, h2]
+    · simp only [if_neg h1, if_neg h2]; exact h h1 h2
+
+-- A key term's parts read the key term's variables only, and are the parameters where the second is below the base.
+theorem keyParts_occ {d : CDecl} {e : E} {p : E × E} (h : keyParts d e = some p) (i : Nat) :
+    (occE i p.1 = true → occE i e = true) ∧ (occE i p.2 = true → occE i e = true) := by
+  unfold keyParts at h
+  by_cases hb : d.base = 0
+  · simp only [hb, beq_self_eq_true, ite_true, Option.some.injEq] at h; subst h; simp [occE]
+  · rw [if_neg (by simp [hb])] at h
+    split at h
+    · split at h
+      · simp only [Option.some.injEq] at h; subst h; simp only [occE, Bool.or_eq_true]
+        exact ⟨fun h => Or.inl h, fun h => Or.inr h⟩
+      · cases h
+    · cases h
+
+theorem keyParts_eval {d : CDecl} {e : E} {p : E × E} (h : keyParts d e = some p) (ρ : Nat → Nat) (M : Nat → Nat → Nat)
+    (hg : d.base = 0 ∨ evalE ρ M p.2 < d.base) : evalE ρ M p.1 = evalE ρ M e / d.base ∧ evalE ρ M p.2 = evalE ρ M e % d.base := by
+  unfold keyParts at h
+  by_cases hb : d.base = 0
+  · simp only [hb, beq_self_eq_true, ite_true, Option.some.injEq] at h; subst h; simp [evalE, hb]
+  · have hpos : 0 < d.base := Nat.pos_of_ne_zero hb
+    have hg' : evalE ρ M p.2 < d.base := hg.resolve_left hb
+    rw [if_neg (by simp [hb])] at h
+    split at h
+    · split at h
+      · rename_i hbe
+        simp only [Option.some.injEq] at h; subst h
+        simp only [beq_iff_eq] at hbe
+        simp only [evalE, hbe] at hg' ⊢
+        constructor
+        · rw [Nat.add_comm, Nat.add_mul_div_left _ _ hpos, Nat.div_eq_of_lt hg', Nat.zero_add]
+        · rw [Nat.add_comm, Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt hg']
+      · cases h
+    · cases h
+
+-- A term read across the parameters' substitution, at two environments that agree where it matters.
+theorem subst2_congr {lo j : Nat} {a b : E} {X X' : Nat → Nat} {M : Nat → Nat → Nat} (t : E)
+    (ht : ∀ i, occE i t = true → i ≠ lo → i ≠ j → X i = X' i) (ha : evalE X M a = evalE X' M a) (hb : evalE X M b = evalE X' M b) :
+    evalE X M (substE [(lo, b), (j, a)] t) = evalE X' M (substE [(lo, b), (j, a)] t) := by
+  rw [subst_evalE, subst_evalE, applyS_two, applyS_two, ha, hb]
+  exact congrE _ _ M t (fun i hi => by
+    simp only [upd]
+    by_cases h1 : i = lo
+    · simp [h1]
+    · by_cases h2 : i = j
+      · simp [h1, h2]
+      · simp only [if_neg h1, if_neg h2]; exact ht i hi h1 h2)
+
+-- A read's count, its parameters at the key term's parts, is the declaration's count at the key term's value, where the
+-- second part is below the base.
+theorem cnt_read {d : CDecl} {e : E} {p : E × E} (hp : keyParts d e = some p) (hjk : d.j ≠ d.key) (hlk : d.lo ≠ d.key)
+    (hke : occE d.key e = false) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hg : d.base = 0 ∨ evalE ρ M p.2 < d.base) :
+    sumBelow (fun k => evalE (upd ρ d.key k) M (substE [(d.lo, p.2), (d.j, p.1)] d.body)) (evalE ρ M (substE [(d.lo, p.2), (d.j, p.1)] d.below))
+      = cntOf d ρ M (evalE ρ M e) := by
+  obtain ⟨h1, h2⟩ := keyParts_eval hp ρ M hg
+  simp only [cntOf]
+  have hB : evalE ρ M (substE [(d.lo, p.2), (d.j, p.1)] d.below) = evalE (atJ d ρ (evalE ρ M e)) M d.below := by
+    rw [subst_evalE, applyS_two, h1, h2]; rfl
+  rw [hB]
+  refine sumBelow_congr _ (fun k _ => ?_)
+  have hk : ∀ t : E, (occE d.key t = true → occE d.key e = true) → evalE (upd ρ d.key k) M t = evalE ρ M t := fun t ht =>
+    congrE _ _ M t (fun i hi => by
+      simp only [upd]
+      by_cases hi' : i = d.key
+      · subst hi'; rw [ht hi] at hke; cases hke
+      · simp [hi'])
+  rw [subst_evalE, applyS_two, hk p.1 (keyParts_occ hp d.key).1, hk p.2 (keyParts_occ hp d.key).2, h1, h2]
+  refine congrArg (fun f => evalE f M d.body) (funext fun i => ?_)
+  simp only [atJ, upd]
+  by_cases h3 : i = d.lo
+  · subst h3; simp [hlk]
+  · by_cases h4 : i = d.j
+    · subst h4; simp [h3, hjk]
+    · simp [h3, h4]
+
+theorem toCounts_some {ds : List CDecl} : ∀ {rs : List (Nat × Nat × E)} {cs : List Count}, toCounts ds rs = some cs →
+    ∀ r ∈ rs, ∃ c, toCount ds r = some c
+  | [], _, _ => by simp
+  | r :: rs, cs, h => by
+    cases e1 : toCount ds r with
+    | none => simp [toCounts, e1] at h
+    | some c1 =>
+      cases e2 : toCounts ds rs with
+      | none => simp [toCounts, e1, e2] at h
+      | some cs' =>
+        intro r' hr'
+        rcases List.mem_cons.mp hr' with rfl | hr'
+        · exact ⟨c1, e1⟩
+        · exact toCounts_some e2 r' hr'
+
+-- A read's value: its count at ρ.
+def rval (ds : List CDecl) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (r : Nat × Nat × E) : Nat :=
+  match toCount ds r with
+  | some c => sumBelow (fun k => evalE (upd ρ c.key k) M c.body) (evalE ρ M c.below)
+  | none => 0
+
+-- Each read's variable set to its count, the rest of the environment kept.
+def setReads (ds : List CDecl) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (rs : List (Nat × Nat × E)) : Nat → Nat :=
+  setWits ρ (rs.map fun r => (r.1, rval ds ρ M r))
 
 theorem mc_sound (hyps : List C) (ds : List CDecl) (k : CCert) (hck : checkMC hyps ds k = true)
     (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hd : GHolds ds ρ M)
     (hH : ∀ ρw : Nat → Nat, (∀ j, (∀ i ∈ k.insts, i.wit ≠ j) → ρw j = ρ j) → ∀ h ∈ hyps, evalC ρw M h = true) : False := by
   simp only [checkMC, Bool.and_eq_true] at hck
   obtain ⟨⟨⟨⟨hnamed, hjk⟩, hrok⟩, hrw⟩, hcc⟩ := hck
+  have hjk' : ∀ d ∈ ds, d.j ≠ d.key ∧ d.lo ≠ d.key := fun d hdm => by
+    have := List.all_eq_true.mp hjk d hdm; simpa using this
   have hrw' : ∀ r ∈ k.reads, ∀ i ∈ k.insts, i.wit ≠ r.1 ∧ occE i.wit r.2.2 = false := by
     intro r hr i hi
     have := List.all_eq_true.mp (List.all_eq_true.mp hrw r hr) i hi
@@ -239,66 +380,86 @@ theorem mc_sound (hyps : List C) (ds : List CDecl) (k : CCert) (hck : checkMC hy
   simp only [hcs] at hcc
   simp only [readsOk, Bool.and_eq_true, List.all_eq_true] at hrok
   obtain ⟨hdist, hrs⟩ := hrok
-  have hmap : (k.reads.map fun r => (r.1, M r.2.1 (evalE ρ M r.2.2))).map (·.1) = k.reads.map (·.1) := by
+  have hmap : (k.reads.map fun r => (r.1, rval ds ρ M r)).map (·.1) = k.reads.map (·.1) := by
     induction k.reads <;> simp_all
-  -- ρ' : ρ with each read's variable at its cell's value.
-  let ρ' := setReads ρ M k.reads
+  -- ρ' : ρ with each read's variable at its count.
+  let ρ' := setReads ds ρ M k.reads
   have hother : ∀ i, (∀ r ∈ k.reads, r.1 ≠ i) → ρ' i = ρ i := fun i hi => setWits_other (by
     rw [hmap]; intro hm; obtain ⟨r, hr, he⟩ := List.mem_map.mp hm; exact hi r hr he)
-  have hat : ∀ r ∈ k.reads, ρ' r.1 = M r.2.1 (evalE ρ M r.2.2) := by
+  have hat : ∀ r ∈ k.reads, ρ' r.1 = rval ds ρ M r := by
     intro r hr
-    have h := setWits_at (ρ := ρ) (ws := k.reads.map fun r => (r.1, M r.2.1 (evalE ρ M r.2.2))) (by rw [hmap]; exact hdist)
-      (p := (r.1, M r.2.1 (evalE ρ M r.2.2))) (List.mem_map.mpr ⟨r, hr, rfl⟩)
+    have h := setWits_at (ρ := ρ) (ws := k.reads.map fun r => (r.1, rval ds ρ M r)) (by rw [hmap]; exact hdist)
+      (p := (r.1, rval ds ρ M r)) (List.mem_map.mpr ⟨r, hr, rfl⟩)
     exact h
   have hfr : ∀ r ∈ k.reads, readFresh k.hyps ds k.reads r.1 = true := fun r hr => (hrs r hr).1
-  have hfr' : ∀ r ∈ k.reads, (∀ h ∈ k.hyps, occC r.1 h = false) ∧ (∀ d ∈ ds, occE r.1 d.below = false ∧ occE r.1 d.body = false ∧ d.j ≠ r.1 ∧ d.key ≠ r.1)
+  have hfr' : ∀ r ∈ k.reads, (∀ h ∈ k.hyps, occC r.1 h = false)
+      ∧ (∀ d ∈ ds, occE r.1 d.below = false ∧ occE r.1 d.body = false ∧ d.j ≠ r.1 ∧ d.lo ≠ r.1 ∧ d.key ≠ r.1)
       ∧ (∀ r' ∈ k.reads, occE r.1 r'.2.2 = false) := by
     intro r hr
     have := hfr r hr
     simp only [readFresh, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq] at this
-    exact ⟨this.1.1, fun d hd => ⟨(this.1.2 d hd).1.1.1, (this.1.2 d hd).1.1.2, (this.1.2 d hd).1.2, (this.1.2 d hd).2⟩, this.2⟩
+    exact ⟨this.1.1, fun d hd => ⟨(this.1.2 d hd).1.1.1.1, (this.1.2 d hd).1.1.1.2, (this.1.2 d hd).1.1.2, (this.1.2 d hd).1.2,
+      (this.1.2 d hd).2⟩, this.2⟩
   -- A term no read's variable occurs in reads alike at ρ' and ρ.
   have hcong : ∀ e : E, (∀ r ∈ k.reads, occE r.1 e = false) → evalE ρ' M e = evalE ρ M e := fun e he =>
     congrE ρ' ρ M e (fun i hi => hother i (fun r hr hri => by have := he r hr; rw [hri] at this; simp [this] at hi))
+  -- A read's parts: its declaration and the key term's parts.
+  have hparts : ∀ r ∈ k.reads, ∀ c, toCount ds r = some c → ∃ d ∈ ds, ∃ p, lookup (fun d => d.mp == r.2.1) ds = some d
+      ∧ d.mp = r.2.1 ∧ keyParts d r.2.2 = some p
+      ∧ c = ⟨r.1, d.key, substE [(d.lo, p.2), (d.j, p.1)] d.below, substE [(d.lo, p.2), (d.j, p.1)] d.body⟩ := by
+    intro r _ c hc
+    simp only [toCount] at hc
+    split at hc
+    · rename_i d hl
+      obtain ⟨hdm, hdq⟩ := lookup_some hl
+      simp only [beq_iff_eq] at hdq
+      cases hk : keyParts d r.2.2 with
+      | none => simp [hk] at hc
+      | some p =>
+        rw [hk] at hc
+        exact ⟨d, hdm, p, hl, hdq, hk, (Option.some.inj hc).symm⟩
+    · cases hc
+  -- The key term's parts read no read's variable, and a read's count reads none.
+  have hpr : ∀ r ∈ k.reads, ∀ d p, keyParts d r.2.2 = some p → ∀ r' ∈ k.reads, occE r'.1 p.1 = false ∧ occE r'.1 p.2 = false := by
+    intro r hr d p hp r' hr'
+    have h0 := (hfr' r' hr').2.2 r hr
+    refine ⟨?_, ?_⟩
+    · cases h1 : occE r'.1 p.1
+      · rfl
+      · rw [(keyParts_occ hp r'.1).1 h1] at h0; cases h0
+    · cases h1 : occE r'.1 p.2
+      · rfl
+      · rw [(keyParts_occ hp r'.1).2 h1] at h0; cases h0
   refine countedW_sound _ _ _ _ _ hcc ρ' M ?_ ?_
   · -- every count is its sum at ρ'
     intro c hc
     obtain ⟨r, hr, hrc⟩ := toCounts_mem hcs c hc
-    simp only [toCount, Option.map_eq_some_iff] at hrc
-    obtain ⟨d, hdl, rfl⟩ := hrc
-    obtain ⟨hdm, hdq⟩ := lookup_some hdl
-    simp only [beq_iff_eq] at hdq
-    have hjk' : d.j ≠ d.key := by have := List.all_eq_true.mp hjk d hdm; simpa using this
-    have hkey : occE d.key r.2.2 = false := by have := (hrs r hr).2 d hdm; simpa using this
-    have ⟨hfb, hfd, _⟩ := hfr' r hr
+    obtain ⟨d, hdm, p, _, _, hp, rfl⟩ := hparts r hr c hrc
+    have hvr : ∀ t : E, (t = d.below ∨ t = d.body) → ∀ i, occE i t = true → (∀ r' ∈ k.reads, r'.1 ≠ i) := by
+      intro t ht i hi r' hr' he
+      have := (hfr' r' hr').2.1 d hdm
+      rcases ht with rfl | rfl
+      · rw [he, hi] at this; exact absurd this.1 (by simp)
+      · rw [he, hi] at this; exact absurd this.2.1 (by simp)
     simp only [Count.Holds]
-    rw [hat r hr, ← hdq, hd d hdm]
-    have ht : evalE ρ' M r.2.2 = evalE ρ M r.2.2 := hcong r.2.2 (fun r' hr' => (hfr' r' hr').2.2 r hr)
-    simp only [cntOf]
-    -- the bound and the body, with j at the key term, read at ρ' as the declaration's at ρ with j at its value
-    have hB : evalE ρ' M (substE [(d.j, r.2.2)] d.below) = evalE (upd ρ d.j (evalE ρ M r.2.2)) M d.below := by
-      rw [subst_evalE, applyS_one, ht]
-      exact congrE _ _ M d.below (fun i hi => by
+    rw [hat r hr]
+    simp only [rval, hrc]
+    have hp1 : evalE ρ M p.1 = evalE ρ' M p.1 := (hcong p.1 (fun r' hr' => (hpr r hr d p hp r' hr').1)).symm
+    have hp2 : evalE ρ M p.2 = evalE ρ' M p.2 := (hcong p.2 (fun r' hr' => (hpr r hr d p hp r' hr').2)).symm
+    rw [subst2_congr d.below (fun i hi _ _ => (hother i (hvr d.below (Or.inl rfl) i hi)).symm) hp1 hp2]
+    refine sumBelow_congr _ (fun kk _ => ?_)
+    refine subst2_congr d.body (fun i hi _ _ => ?_) ?_ ?_
+    · simp only [upd]; split
+      · rfl
+      · exact (hother i (hvr d.body (Or.inr rfl) i hi)).symm
+    · exact congrE _ _ M p.1 (fun i hi => by
         simp only [upd]; split
         · rfl
-        · exact hother i (fun r' hr' hri => by have := ((hfr' r' hr').2.1 d hdm).1; rw [hri] at this; simp [this] at hi))
-    rw [hB]
-    refine sumBelow_congr _ (fun kk _ => ?_)
-    rw [subst_evalE, applyS_one]
-    have hk' : evalE (upd ρ' d.key kk) M r.2.2 = evalE ρ M r.2.2 := by
-      rw [← ht]; exact congrE _ _ M r.2.2 (fun i hi => by
+        · exact (hother i (fun r' hr' he => by have := (hpr r hr d p hp r' hr').1; rw [he, hi] at this; cases this)).symm)
+    · exact congrE _ _ M p.2 (fun i hi => by
         simp only [upd]; split
-        · rename_i h; subst h; simp [hkey] at hi
-        · rfl)
-    rw [hk']
-    exact congrE _ _ M d.body (fun i hi => by
-      simp only [upd]
-      by_cases h1 : i = d.j
-      · simp [h1, hjk']
-      · by_cases h2 : i = d.key
-        · simp [h1, h2, Ne.symm hjk']
-        · simp only [h1, h2, ite_false]
-          exact (hother i (fun r' hr' hri => by have := ((hfr' r' hr').2.1 d hdm).2.1; rw [hri] at this; simp [this] at hi)).symm)
+        · rfl
+        · exact (hother i (fun r' hr' he => by have := (hpr r hr d p hp r' hr').2; rw [he, hi] at this; cases this)).symm)
   · intro ρw hρw h hm
     rcases List.mem_append.mp hm with hm | hm
     · -- a named hypothesis: it reads no read variable, and holds where the witnesses are anything
@@ -321,11 +482,30 @@ theorem mc_sound (hyps : List C) (ds : List CDecl) (k : CCert) (hck : checkMC hy
       exact h2
     · obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hm
       have hw1 : ρw r.1 = ρ' r.1 := hρw r.1 (fun i hi he => (hrw' r hr i hi).1 he)
-      have hw2 : evalE ρw M r.2.2 = evalE ρ' M r.2.2 :=
-        congrE _ _ M r.2.2 (fun j hj => hρw j (fun i hi he => by have := (hrw' r hr i hi).2; rw [he] at this; simp [this] at hj))
-      have h1 := hat r hr
-      have h2 := hcong r.2.2 (fun r' hr' => (hfr' r' hr').2.2 r hr)
-      simp only [readHyp, evalC, evalE, decide_eq_true_eq, hw1, hw2, h1, h2]
+      -- a term inside the key term reads alike at ρw and ρ
+      have hwk : ∀ t : E, (∀ i, occE i t = true → occE i r.2.2 = true) → evalE ρw M t = evalE ρ M t := fun t ht => by
+        rw [← hcong t (fun r' hr' => by
+          cases h1 : occE r'.1 t
+          · rfl
+          · have := (hfr' r' hr').2.2 r hr; rw [ht _ h1] at this; cases this)]
+        exact congrE _ _ M t (fun j hj => hρw j (fun i hi he => by
+          have := (hrw' r hr i hi).2; rw [he, ht j hj] at this; cases this))
+      obtain ⟨c, hc⟩ := toCounts_some hcs r hr
+      obtain ⟨d, hdm, p, hl, hdq, hp, rfl⟩ := hparts r hr c hc
+      have hkey : occE d.key r.2.2 = false := by have := (hrs r hr).2 d hdm; simpa using this
+      have hval : ∀ hg : d.base = 0 ∨ evalE ρ M p.2 < d.base, ρw r.1 = M r.2.1 (evalE ρw M r.2.2) := fun hg => by
+        rw [hw1, hat r hr, hwk r.2.2 (fun _ h => h)]
+        simp only [rval, hc]
+        rw [cnt_read hp (hjk' d hdm).1 (hjk' d hdm).2 hkey ρ M hg, ← hd d hdm, hdq]
+      simp only [readHyp, hl]
+      by_cases hb : d.base = 0
+      · simp only [hb, beq_self_eq_true, ite_true, evalC, evalE]
+        exact decide_eq_true (hval (Or.inl hb))
+      · rw [if_neg (by simp [hb])]
+        simp only [hp, evalC, evalE, Bool.or_eq_true]
+        by_cases hlt : evalE ρ M p.2 < d.base
+        · exact Or.inr (decide_eq_true (hval (Or.inr hlt)))
+        · exact Or.inl (decide_eq_true (by rw [hwk p.2 (fun i => (keyParts_occ hp i).2)]; omega))
 
 /-! Counts in a machine -/
 
@@ -363,10 +543,16 @@ def stateMaps (s : SMachine) (ds : List CDecl) : List Nat := (ds.filter (stateOn
 -- A law with each count map read by its post name.
 def renLaw (ds : List CDecl) (l : MLaw) : MLaw := ⟨substRC [] (frameRd (cren ds) getRd) l.holds, l.key⟩
 
--- A count declared after σ, rd: its bound and body read across them, j and key kept.
+-- σ with the parameters and key kept.
+def keepJ (d : CDecl) (σ : List (Nat × E)) : List (Nat × E) := (d.j, .var d.j) :: (d.lo, .var d.lo) :: (d.key, .var d.key) :: σ
+
+-- A count declared after σ, rd: its bound and body read across them, its parameters and key kept.
 def afterDecl (σ : List (Nat × E)) (rd : Nat → E → E) (d : CDecl) : CDecl :=
-  ⟨d.post, d.post, d.j, d.key, substRE ((d.j, .var d.j) :: (d.key, .var d.key) :: σ) rd d.below,
-    substRE ((d.j, .var d.j) :: (d.key, .var d.key) :: σ) rd d.body⟩
+  ⟨d.post, d.post, d.j, d.key, substRE (keepJ d σ) rd d.below, substRE (keepJ d σ) rd d.body, d.lo, d.base⟩
+
+theorem cntOf_after (σ : List (Nat × E)) (rd : Nat → E → E) (d : CDecl) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (x : Nat) :
+    cntOf (afterDecl σ rd d) ρ M x = sumBelow (fun k => evalE (upd (atJ d ρ x) d.key k) M (substRE (keepJ d σ) rd d.body))
+      (evalE (atJ d ρ x) M (substRE (keepJ d σ) rd d.below)) := rfl
 
 -- The goals: Sets.lean's, the law proven read with its count maps renamed; the counts the goals declare: at the start,
 -- each state count after the start; at a step, each count as the request carries it, and each state count after it.
@@ -392,14 +578,15 @@ def cApart (s : SMachine) (ds : List CDecl) : Bool :=
     && (cPosts ds).all (fun mp => !s.carried.contains mp && !(s.f.m.maps0.map (·.1)).contains mp
         && !(s.every.map (·.1)).contains mp && !(s.f.m.writes.map (·.1)).contains mp)
 
--- Each declaration: its map carried, its j and key fresh and distinct, its bound and body reading no flag, quantified
--- flag, witness, count map or post name, and no entry's skolem, key or further key (nor having them as j or key): a law
--- reads a count at the state, its own keys set after (withCnt).
+-- Each declaration: its map carried, its j, lo and key fresh, j and lo not its key, its bound and body reading no flag,
+-- quantified flag, witness, count map or post name, and no entry's skolem, key or further key (nor having them as j or
+-- key): a law reads a count at the state, its own keys set after (withCnt).
 def cDeclOk (s : SMachine) (ds : List CDecl) (ps : List SEntry) (d : CDecl) : Bool :=
   s.carried.contains d.mp && d.j != d.key && mFresh s d.j && mFresh s d.key && !occE d.key d.below
     && avoidsE (s.qVars ++ s.wVars ++ flagVars s.f.flags) d.below && avoidsE (s.qVars ++ s.wVars ++ flagVars s.f.flags) d.body
     && avoidsMapsE (cMaps ds ++ cPosts ds) d.below && avoidsMapsE (cMaps ds ++ cPosts ds) d.body
     && ps.all (fun e => (e.sk :: (e.keys2 ++ e.law.key.toList)).all (fun g => !occE g d.below && !occE g d.body && g != d.j && g != d.key))
+    && d.lo != d.key && mFresh s d.lo
 
 -- The entries' own conditions (Sets.lean's checkSMachine's), a law reading count maps of the state only, and no post name.
 def cEntryOk (s : SMachine) (ds : List CDecl) (ps : List SEntry) (e : SEntry) : Bool :=
@@ -475,18 +662,16 @@ theorem renLaw_holds (ds : List CDecl) (l : MLaw) (X : Nat → Nat) (N : Nat →
 theorem cntOf_upd {d : CDecl} {g : Nat} (hb : occE g d.below = false) (hd : occE g d.body = false) (X : Nat → Nat) (N : Nat → Nat → Nat) (w x : Nat) :
     cntOf d (upd X g w) N x = cntOf d X N x := by
   simp only [cntOf]
-  have hB : evalE (upd (upd X g w) d.j x) N d.below = evalE (upd X d.j x) N d.below :=
-    congrE _ _ N d.below (fun i hi => by
+  have hB : evalE (atJ d (upd X g w) x) N d.below = evalE (atJ d X x) N d.below :=
+    congrE _ _ N d.below (fun i hi => atJ_congr d x i (fun _ _ => by
       have hig : i ≠ g := fun h => by rw [h, hb] at hi; cases hi
-      simp only [upd]; split <;> simp_all)
+      simp [upd, hig]))
   rw [hB]
   exact sumBelow_congr _ (fun k _ => congrE _ _ N d.body (fun i hi => by
       have hig : i ≠ g := fun h => by rw [h, hd] at hi; cases hi
       simp only [upd]; split
       · rfl
-      · split
-        · rfl
-        · simp [hig]))
+      · exact atJ_congr d x i (fun _ _ => by simp [upd, hig])))
 
 theorem withCnt_upd {ds : List CDecl} {g : Nat} (h : ∀ d ∈ ds, occE g d.below = false ∧ occE g d.body = false) (X : Nat → Nat) (N : Nat → Nat → Nat) (w : Nat) :
     withCnt ds (upd X g w) N = withCnt ds X N := by
@@ -649,12 +834,14 @@ structure DeclParts (s : SMachine) (ds : List CDecl) (ps : List SEntry) (d : CDe
   mB : avoidsMapsE (cMaps ds ++ cPosts ds) d.below = true
   mD : avoidsMapsE (cMaps ds ++ cPosts ds) d.body = true
   ent : ∀ e ∈ ps, ∀ g ∈ e.sk :: (e.keys2 ++ e.law.key.toList), occE g d.below = false ∧ occE g d.body = false ∧ g ≠ d.j ∧ g ≠ d.key
+  lk : d.lo ≠ d.key
+  lf : FreshParts s d.lo
 
 theorem decl_parts {s : SMachine} {ds : List CDecl} {ps : List SEntry} {d : CDecl} (h : cDeclOk s ds ps d = true) : DeclParts s ds ps d := by
   simp only [cDeclOk, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h0⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩ := h
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h0⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩ := h
   exact ⟨by simpa [List.contains_iff_mem] using h1, h2, mfresh_parts h3, mfresh_parts h4, h0, h5, h6, h7, h8,
-    fun e he g hg => ⟨(h9 e he g hg).1.1.1, (h9 e he g hg).1.1.2, (h9 e he g hg).1.2, (h9 e he g hg).2⟩⟩
+    fun e he g hg => ⟨(h9 e he g hg).1.1.1, (h9 e he g hg).1.1.2, (h9 e he g hg).1.2, (h9 e he g hg).2⟩, h10, mfresh_parts h11⟩
 
 structure EntryParts (s : SMachine) (ds : List CDecl) (ps : List SEntry) (e : SEntry) : Prop where
   lx : avoids (s.extVars ++ flagVars s.f.flags) e.law.holds = true
@@ -850,14 +1037,16 @@ theorem applyS_congrM {σ : List (Nat × E)} {X : List Nat} (h : ∀ p ∈ σ, a
   | none => rfl
   | some t => exact congrME ρ M M' t (fun mp hmp => hm mp (avoidsMapsE_occ (h _ (assoc_term ha)) hmp))
 
-theorem applyS_jk (j key : Nat) (σ : List (Nat × E)) (Y : Nat → Nat) (N : Nat → Nat → Nat) (i : Nat) :
-    applyS ((j, .var j) :: (key, .var key) :: σ) Y N i = if i = j then Y j else if i = key then Y key else applyS σ Y N i := by
-  simp only [applyS, assoc, lookup, beq_iff_eq]
-  by_cases h1 : j = i
+theorem applyS_keep (d : CDecl) (σ : List (Nat × E)) (Y : Nat → Nat) (N : Nat → Nat → Nat) (i : Nat) :
+    applyS (keepJ d σ) Y N i = if i = d.j ∨ i = d.lo ∨ i = d.key then Y i else applyS σ Y N i := by
+  simp only [keepJ, applyS, assoc, lookup, beq_iff_eq]
+  by_cases h1 : d.j = i
   · subst h1; simp [evalE]
-  · by_cases h2 : key = i
+  · by_cases h2 : d.lo = i
     · subst h2; simp [h1, Ne.symm h1, evalE]
-    · simp [h1, h2, Ne.symm h1, Ne.symm h2]
+    · by_cases h3 : d.key = i
+      · subst h3; simp [h1, h2, Ne.symm h1, Ne.symm h2, evalE]
+      · simp [h1, h2, h3, Ne.symm h1, Ne.symm h2, Ne.symm h3]
 
 theorem avoidsMaps_right {A B : List Nat} {c : C} (h : avoidsMaps (A ++ B) c = true) : avoidsMaps B c = true := by
   simp only [avoidsMaps, List.all_append, Bool.and_eq_true] at h; exact h.2
@@ -916,45 +1105,54 @@ theorem cstart_case (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : che
     obtain ⟨hskB, hskD, hskj, hskk⟩ := D.ent ce.e (List.mem_map_of_mem hce) ce.e.sk List.mem_cons_self
     have hpB : avoidsMapsE (cPosts ds) d.below = true := avoidsMapsE_right D.mB
     have hpD : avoidsMapsE (cPosts ds) d.body = true := avoidsMapsE_right D.mD
-    have hjI := (fresh_out D.jf.out).2.2.1
     have hkI := (fresh_out D.kf.out).2.2.1
-    simp only [afterDecl]
-    rw [show M2 d.post = cntOf d X0 M from atPosts_at hdp hd _ M]
+    show M2 d.post x = cntOf (afterDecl s.f.m.init (rdStart s.f.m) d) (upd ρ ce.e.sk v) M2 x
+    rw [cntOf_after, show M2 d.post = cntOf d X0 M from atPosts_at hdp hd _ M]
     simp only [cntOf]
-    -- reading across the start at Y (the goal's state with j, and key, set): the start state with them set
+    -- reading across the start at Y (the goal's state with the parameters, and key, set): the start state with them set
     have hacross : ∀ (Y T : Nat → Nat) (e : E), avoidsMapsE (cPosts ds) e = true → occE ce.e.sk e = false →
-        (∀ i, i ≠ d.j → i ≠ d.key → Y i = upd ρ ce.e.sk v i) → T d.j = Y d.j → T d.key = Y d.key → (∀ i, i ≠ d.j → i ≠ d.key → T i = X0 i) →
-        evalE Y M2 (substRE ((d.j, .var d.j) :: (d.key, .var d.key) :: s.f.m.init) (rdStart s.f.m) e) = evalE T M e := by
-      intro Y T e hpe hske hY hTj hTk hT
+        (∀ i, i ≠ d.j → i ≠ d.lo → i ≠ d.key → Y i = upd ρ ce.e.sk v i) → T d.j = Y d.j → T d.lo = Y d.lo → T d.key = Y d.key →
+        (∀ i, i ≠ d.j → i ≠ d.lo → i ≠ d.key → T i = X0 i) →
+        evalE Y M2 (substRE (keepJ d s.f.m.init) (rdStart s.f.m) e) = evalE T M e := by
+      intro Y T e hpe hske hY hTj hTl hTk hT
       rw [substR_evalE_on _ _ Y M2 M (cPosts ds) (fun mp k hmp => hrdS Y mp k hmp) e hpe]
       refine congrE _ _ M e (fun i hi => ?_)
-      rw [applyS_jk]
+      rw [applyS_keep]
       by_cases h1 : i = d.j
       · subst h1; simp [hTj]
-      · by_cases h2 : i = d.key
-        · subst h2; simp [h1, hTk]
-        · simp only [h1, h2, ite_false]
-          have hik : i ≠ ce.e.sk := fun h' => by rw [h', hske] at hi; cases hi
-          rw [hT i h1 h2, ← hX0]
-          simp only [applyS]
-          cases ha : assoc s.f.m.init i with
-          | none => simp [hY i h1 h2, upd, hik]
-          | some t =>
-            have hmem := assoc_term ha
-            refine congrE _ _ M2 t (fun i' hi' => ?_)
-            have hi'j : i' ≠ d.j := fun h' => by rw [h', D.jf.init _ hmem] at hi'; cases hi'
-            have hi'k : i' ≠ d.key := fun h' => by rw [h', D.kf.init _ hmem] at hi'; cases hi'
-            have hi's : i' ≠ ce.e.sk := fun h' => by rw [h', E'.sinit _ hmem] at hi'; cases hi'
-            rw [hY i' hi'j hi'k]; simp [upd, hi's]
-    have hB := hacross (upd (upd ρ ce.e.sk v) d.j x) (upd X0 d.j x) d.below hpB hskB
-      (fun i h1 _ => by simp [upd, h1]) (by simp [upd])
-      (by show upd X0 d.j x d.key = upd (upd ρ ce.e.sk v) d.j x d.key
-          simp only [upd, if_neg (Ne.symm D.jk), if_neg (Ne.symm hskk)]; exact applyS_other hkI ρ M)
-      (fun i h1 _ => by simp [upd, h1])
+      · by_cases h1' : i = d.lo
+        · subst h1'; simp [hTl]
+        · by_cases h2 : i = d.key
+          · subst h2; simp [hTk]
+          · rw [if_neg (by simp [h1, h1', h2])]
+            have hik : i ≠ ce.e.sk := fun h' => by rw [h', hske] at hi; cases hi
+            rw [hT i h1 h1' h2, ← hX0]
+            simp only [applyS]
+            cases ha : assoc s.f.m.init i with
+            | none => simp [hY i h1 h1' h2, upd, hik]
+            | some t =>
+              have hmem := assoc_term ha
+              refine congrE _ _ M2 t (fun i' hi' => ?_)
+              have hi'j : i' ≠ d.j := fun h' => by rw [h', D.jf.init _ hmem] at hi'; cases hi'
+              have hi'l : i' ≠ d.lo := fun h' => by rw [h', D.lf.init _ hmem] at hi'; cases hi'
+              have hi'k : i' ≠ d.key := fun h' => by rw [h', D.kf.init _ hmem] at hi'; cases hi'
+              have hi's : i' ≠ ce.e.sk := fun h' => by rw [h', E'.sinit _ hmem] at hi'; cases hi'
+              rw [hY i' hi'j hi'l hi'k]; simp [upd, hi's]
+    have hkey : X0 d.key = upd ρ ce.e.sk v d.key := by
+      show applyS s.f.m.init ρ M d.key = upd ρ ce.e.sk v d.key
+      simp only [upd, if_neg (Ne.symm hskk)]; exact applyS_other hkI ρ M
+    have hB := hacross (atJ d (upd ρ ce.e.sk v) x) (atJ d X0 x) d.below hpB hskB
+      (fun i h1 h2 _ => by simp [atJ, upd, h1, h2])
+      (atJ_congr d x d.j (fun h _ => absurd rfl h)) (atJ_congr d x d.lo (fun _ h => absurd rfl h))
+      (atJ_congr d x d.key (fun _ _ => hkey))
+      (fun i h1 h2 _ => by simp [atJ, upd, h1, h2])
     rw [hB]
     refine sumBelow_congr _ (fun k _ => ?_)
-    exact (hacross (upd (upd (upd ρ ce.e.sk v) d.j x) d.key k) (upd (upd X0 d.j x) d.key k) d.body hpD hskD
-      (fun i h1 h2 => by simp [upd, h1, h2]) (by simp [upd, D.jk]) (by simp [upd]) (fun i h1 h2 => by simp [upd, h1, h2])).symm
+    exact (hacross (upd (atJ d (upd ρ ce.e.sk v) x) d.key k) (upd (atJ d X0 x) d.key k) d.body hpD hskD
+      (fun i h1 h2 h3 => by simp [atJ, upd, h1, h2, h3])
+      (by simp only [upd, if_neg D.jk]; exact atJ_congr d x d.j (fun h _ => absurd rfl h))
+      (by simp only [upd, if_neg D.lk]; exact atJ_congr d x d.lo (fun _ h => absurd rfl h))
+      (by simp [upd]) (fun i h1 h2 h3 => by simp [atJ, upd, h1, h2, h3])).symm
   · -- The goal's hypotheses, wherever the witnesses are.
     have Wt := wits_parts (P.wits ce hce).1
     intro ρw hρw c hc
@@ -1122,51 +1320,50 @@ theorem cframe {s : SMachine} (hs : sOk s = true) (hterms : sTermsOk s (flagVars
   exact ⟨hH, sstep_denotes s (flagVars s.f.flags) [] W M0 hs (fun v hv => hv) hfav [] [] ι κ hD (hH _) (fun p hp => by simp at hp)
     hstp (fun w hw => (hwr w hw).1) hev (fun _ _ => by simp [avoidsMapsE]) (fun _ _ => by simp [avoidsMapsE]) (fun _ _ => by simp [avoidsMapsE])⟩
 
-/-! Terms across a step that keeps j and key -/
+/-! Terms across a step that keeps the parameters and key -/
 
--- A term of the state read across the step, j and key kept: its value at the state after the step, where the frame
--- reads j and key as the state after it does.
+-- A term of the state read across the step, the parameters and key kept: its value at the state after the step, where
+-- the frame reads them as the state after it does.
 theorem across_step {s : SMachine} (hs : sOk s = true) (hterms : sTermsOk s (flagVars s.f.flags) = true) (ρ : Nat → Nat) (M : Nat → Nat → Nat)
-    (ι : Nat → Nat) (κ : Nat → Nat → Nat) (j key : Nat) (e : E) (he : avoidsE (s.extVars ++ flagVars s.f.flags) e = true)
+    (ι : Nat → Nat) (κ : Nat → Nat → Nat) (d : CDecl) (e : E) (he : avoidsE (s.extVars ++ flagVars s.f.flags) e = true)
     (hem : avoidsMapsE s.carried e = true)
-    (hj : (sNext s ρ M ι κ).1 j = withExt s ρ (sReq s ρ M ι κ) j) (hk : (sNext s ρ M ι κ).1 key = withExt s ρ (sReq s ρ M ι κ) key) :
+    (hj : (sNext s ρ M ι κ).1 d.j = withExt s ρ (sReq s ρ M ι κ) d.j) (hl : (sNext s ρ M ι κ).1 d.lo = withExt s ρ (sReq s ρ M ι κ) d.lo)
+    (hk : (sNext s ρ M ι κ).1 d.key = withExt s ρ (sReq s ρ M ι κ) d.key) :
     evalE (withExt s ρ (sReq s ρ M ι κ)) (withCarried s M κ)
-      (substRE ((j, .var j) :: (key, .var key) :: stepSub s.f (frameSub [] []) (frameRd [] getRd)) (stepRdS s (frameSub [] []) (frameRd [] getRd)) e)
+      (substRE (keepJ d (stepSub s.f (frameSub [] []) (frameRd [] getRd))) (stepRdS s (frameSub [] []) (frameRd [] getRd)) e)
       = evalE (sNext s ρ M ι κ).1 (sNext s ρ M ι κ).2 e := by
   obtain ⟨_, hD⟩ := cframe hs hterms ρ M ι κ
   rw [substR_evalE_on _ _ _ _ (sNext s ρ M ι κ).2 s.carried (fun mp k hmp => hD.2 mp k hmp (by simp)) e hem]
   refine congrE _ _ _ e (fun i hi => ?_)
-  rw [applyS_jk]
-  by_cases h1 : i = j
+  rw [applyS_keep]
+  by_cases h1 : i = d.j
   · subst h1; simp [hj]
-  · by_cases h2 : i = key
-    · subst h2; simp [h1, hk]
-    · simp only [h1, h2, ite_false]
-      have hx := avoidsE_occ he hi
-      exact hD.1 i (fun h => hx (List.mem_append_left _ h)) (fun h => hx (List.mem_append_right _ h))
+  · by_cases h1' : i = d.lo
+    · subst h1'; simp [hl]
+    · by_cases h2 : i = d.key
+      · subst h2; simp [hk]
+      · rw [if_neg (by simp [h1, h1', h2])]
+        have hx := avoidsE_occ he hi
+        exact hD.1 i (fun h => hx (List.mem_append_left _ h)) (fun h => hx (List.mem_append_right _ h))
 
 -- Two reads of a count agree where its bound and body read alike.
 theorem cntOf_congr (d : CDecl) (hkB : occE d.key d.below = false) {X X' : Nat → Nat} {N N' : Nat → Nat → Nat}
-    (hv : ∀ i, i ≠ d.j → i ≠ d.key → occE i d.below = true ∨ occE i d.body = true → X i = X' i)
+    (hv : ∀ i, i ≠ d.j → i ≠ d.lo → i ≠ d.key → occE i d.below = true ∨ occE i d.body = true → X i = X' i)
     (hm : ∀ mp, occME mp d.below = true ∨ occME mp d.body = true → N mp = N' mp) (x : Nat) : cntOf d X N x = cntOf d X' N' x := by
   simp only [cntOf]
-  have hB : evalE (upd X d.j x) N d.below = evalE (upd X' d.j x) N' d.below := by
+  have hB : evalE (atJ d X x) N d.below = evalE (atJ d X' x) N' d.below := by
     rw [congrME _ N N' d.below (fun mp h => hm mp (Or.inl h))]
-    exact congrE _ _ _ d.below (fun i hi => by
-      simp only [upd]; split
-      · rfl
-      · rename_i h1
+    exact congrE _ _ _ d.below (fun i hi => atJ_congr d x i (fun h1 h1' => by
         have h2 : i ≠ d.key := fun h => by rw [h, hkB] at hi; cases hi
-        exact hv i h1 h2 (Or.inl hi))
+        exact hv i h1 h1' h2 (Or.inl hi)))
   rw [hB]
   exact sumBelow_congr _ (fun k _ => by
     rw [congrME _ N N' d.body (fun mp h => hm mp (Or.inr h))]
     exact congrE _ _ _ d.body (fun i hi => by
-      simp only [upd]; split
-      · rfl
-      · split
-        · rfl
-        · rename_i h1 h2; exact hv i h2 h1 (Or.inr hi)))
+      simp only [upd]
+      by_cases h2 : i = d.key
+      · simp [h2]
+      · simp only [if_neg h2]; exact atJ_congr d x i (fun h1 h1' => hv i h1 h1' h2 (Or.inr hi))))
 
 /-! One step -/
 
@@ -1226,7 +1423,7 @@ theorem cstep_case (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : chec
     rw [this]
     simp only [stateOnly, Bool.and_eq_true] at hso
     obtain ⟨⟨⟨hvB, hvD⟩, hmB⟩, hmD⟩ := hso
-    refine cntOf_congr d (decl_parts (P.decls d hd)).kB (fun i _ _ hi => ?_) (fun mp hm => ?_) x
+    refine cntOf_congr d (decl_parts (P.decls d hd)).kB (fun i _ _ _ hi => ?_) (fun mp hm => ?_) x
     · have hx : i ∉ s.extVars := fun h' => by
         rcases hi with hi | hi
         · exact avoidsE_occ hvB hi (List.mem_append_left _ h')
@@ -1269,7 +1466,7 @@ theorem cstep_case (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : chec
       have D := decl_parts (P.decls d' hd)
       obtain ⟨hskB, hskD, _, _⟩ := D.ent ce.e (List.mem_map_of_mem hce) ce.e.sk List.mem_cons_self
       rw [hM0 d'.mp (fun h' => hap d'.mp (List.mem_map_of_mem hd) h'), hG d' hd x]
-      refine cntOf_congr d' D.kB (fun i _ _ hi => ?_) (fun mp hm => ?_) x
+      refine cntOf_congr d' D.kB (fun i _ _ _ hi => ?_) (fun mp hm => ?_) x
       · show withInputs s.f.m.inputs ρ ι i = withExt s ρ' (sReq s ρ' M' ι κ) i
         have hq : i ∉ s.qVars ++ s.wVars := by
           rcases hi with hi | hi
@@ -1302,69 +1499,74 @@ theorem cstep_case (s : SMachine) (ds : List CDecl) (ps : List CEntry) (h : chec
       have hd := (List.mem_filter.mp hdf).1
       have hso := (List.mem_filter.mp hdf).2
       have D := decl_parts (P.decls d hd)
-      obtain ⟨hskB, hskD, hskj, hskk⟩ := D.ent ce.e (List.mem_map_of_mem hce) ce.e.sk List.mem_cons_self
+      obtain ⟨hskB, hskD, _, hskk⟩ := D.ent ce.e (List.mem_map_of_mem hce) ce.e.sk List.mem_cons_self
       simp only [stateOnly, Bool.and_eq_true] at hso
       obtain ⟨⟨⟨hvB, hvD⟩, hmB⟩, hmD⟩ := hso
       have hjo := fresh_out D.jf.out
+      have hlo := fresh_out D.lf.out
       have hko := fresh_out D.kf.out
       have hpB : avoidsMapsE (cPosts ds) d.below = true := avoidsMapsE_right D.mB
       have hpD : avoidsMapsE (cPosts ds) d.body = true := avoidsMapsE_right D.mD
       show M0 d.post x = cntOf (afterDecl _ _ d) W M0 x
-      rw [show M0 d.post = F d from by
+      rw [cntOf_after, show M0 d.post = F d from by
         show withCarried s M' κ d.post = F d
         rw [withCarried_posts hpc F M κ]; exact atPosts_at hdp hd F _]
-      simp only [cntOf, afterDecl]
-      -- the state with j at x and key at k, and its frame
-      have hstate : ∀ k, sReq s (upd (upd ρ' d.j x) d.key k) M' ι κ = sReq s ρ' M' ι κ := fun k => by
-        rw [sReq_upd hko.2.2.2.2.1 hko.2.2.2.2.2.1 (skFresh_parts D.kf.sk).2.1, sReq_upd hjo.2.2.2.2.1 hjo.2.2.2.2.2.1 (skFresh_parts D.jf.sk).2.1]
-      have hW : ∀ k, withExt s (upd (upd ρ' d.j x) d.key k) (sReq s (upd (upd ρ' d.j x) d.key k) M' ι κ) = upd (upd W d.j x) d.key k := fun k => by
-        rw [hstate k, withExt_upd hko.1, withExt_upd hjo.1]
-      have hN : ∀ k, sNext s (upd (upd ρ' d.j x) d.key k) M' ι κ = (upd (upd (upd Nx.1 ce.e.sk v) d.j x) d.key k, atPosts ds F Nx.2) := fun k => by
-        rw [(fresh_parts D.kf.sk D.kf.out _ M' ι κ k).1, (fresh_parts D.jf.sk D.jf.out _ M' ι κ x).1, hNext, hNx']
       -- reading a term of the state across the step at a state with fresh variables set: its value after the step there
       have hacross : ∀ (ρx : Nat → Nat) (Y : Nat → Nat) (e : E), avoidsE (s.extVars ++ flagVars s.f.flags) e = true → avoidsMapsE s.carried e = true →
-          avoidsMapsE (cPosts ds) e = true → occE ce.e.sk e = false →
-          withExt s ρx (sReq s ρx M' ι κ) = Y → (sNext s ρx M' ι κ).1 = upd Y ce.e.sk v ∨ True →
-          (sNext s ρx M' ι κ).1 d.j = Y d.j → (sNext s ρx M' ι κ).1 d.key = Y d.key → (sNext s ρx M' ι κ).2 = atPosts ds F Nx.2 →
-          evalE Y M0 (substRE ((d.j, .var d.j) :: (d.key, .var d.key) :: stepSub s.f (frameSub [] []) (frameRd [] getRd))
+          avoidsMapsE (cPosts ds) e = true →
+          withExt s ρx (sReq s ρx M' ι κ) = Y →
+          (sNext s ρx M' ι κ).1 d.j = Y d.j → (sNext s ρx M' ι κ).1 d.lo = Y d.lo → (sNext s ρx M' ι κ).1 d.key = Y d.key →
+          (sNext s ρx M' ι κ).2 = atPosts ds F Nx.2 →
+          evalE Y M0 (substRE (keepJ d (stepSub s.f (frameSub [] []) (frameRd [] getRd)))
             (stepRdS s (frameSub [] []) (frameRd [] getRd)) e) = evalE (sNext s ρx M' ι κ).1 Nx.2 e := by
-        intro ρx Y e he hem hpe _ hY _ hj hk hM
-        have := across_step hs P.terms ρx M' ι κ d.j d.key e he hem (by rw [hj, hY]) (by rw [hk, hY])
+        intro ρx Y e he hem hpe hY hj hl hk hM
+        have := across_step hs P.terms ρx M' ι κ d e he hem (by rw [hj, hY]) (by rw [hl, hY]) (by rw [hk, hY])
         rw [hY, hM] at this
         rw [this, posts_evalE hpe]
-      -- the state with j at x (the bound), and with key at k too (the body)
-      have hsj : sReq s (upd ρ' d.j x) M' ι κ = sReq s ρ' M' ι κ :=
-        sReq_upd hjo.2.2.2.2.1 hjo.2.2.2.2.2.1 (skFresh_parts D.jf.sk).2.1 ρ' M' ι κ x
-      have hsk : ∀ k, sReq s (upd (upd ρ' d.j x) d.key k) M' ι κ = sReq s ρ' M' ι κ := fun k => by
+      -- the state with the parameters at x (the bound), and with key at k too (the body)
+      have hsj : sReq s (atJ d ρ' x) M' ι κ = sReq s ρ' M' ι κ := by
+        simp only [atJ]
+        rw [sReq_upd hlo.2.2.2.2.1 hlo.2.2.2.2.2.1 (skFresh_parts D.lf.sk).2.1, sReq_upd hjo.2.2.2.2.1 hjo.2.2.2.2.2.1 (skFresh_parts D.jf.sk).2.1]
+      have hsk : ∀ k, sReq s (upd (atJ d ρ' x) d.key k) M' ι κ = sReq s ρ' M' ι κ := fun k => by
         rw [sReq_upd hko.2.2.2.2.1 hko.2.2.2.2.2.1 (skFresh_parts D.kf.sk).2.1, hsj]
-      have hNj : sNext s (upd ρ' d.j x) M' ι κ = (upd (upd Nx.1 ce.e.sk v) d.j x, atPosts ds F Nx.2) := by
-        rw [(fresh_parts D.jf.sk D.jf.out _ M' ι κ x).1, hNext, hNx']
-      have hNk : ∀ k, sNext s (upd (upd ρ' d.j x) d.key k) M' ι κ = (upd (upd (upd Nx.1 ce.e.sk v) d.j x) d.key k, atPosts ds F Nx.2) := fun k => by
+      have hWj : withExt s (atJ d ρ' x) (sReq s ρ' M' ι κ) = atJ d W x := by
+        simp only [atJ]; rw [withExt_upd hlo.1, withExt_upd hjo.1]
+      have hNj : sNext s (atJ d ρ' x) M' ι κ = (atJ d (upd Nx.1 ce.e.sk v) x, atPosts ds F Nx.2) := by
+        simp only [atJ]
+        rw [(fresh_parts D.lf.sk D.lf.out _ M' ι κ _).1, (fresh_parts D.jf.sk D.jf.out _ M' ι κ _).1, hNext, hNx']
+      have hNk : ∀ k, sNext s (upd (atJ d ρ' x) d.key k) M' ι κ = (upd (atJ d (upd Nx.1 ce.e.sk v) x) d.key k, atPosts ds F Nx.2) := fun k => by
         rw [(fresh_parts D.kf.sk D.kf.out _ M' ι κ k).1, hNj]
-      have hB := hacross (upd ρ' d.j x) (upd W d.j x) d.below hvB hmB hpB hskB
-        (by rw [hsj, withExt_upd hjo.1]) (Or.inr trivial)
-        (by rw [hNj]; simp [upd])
-        (by
-          have hkey : (sNext s ρ M ι κ).1 d.key = withExt s ρ' (sReq s ρ' M' ι κ) d.key := by
-            rw [sNext_other D.kf.out]; simp only [withExt]
-            rw [if_neg (by simpa [List.contains_iff_mem] using hko.1)]; simp [ρ', upd, Ne.symm hskk]
-          rw [hNj]; simp only [upd, if_neg (Ne.symm D.jk), if_neg (Ne.symm hskk)]; exact hkey)
+      have hkey : upd (sNext s ρ M ι κ).1 ce.e.sk v d.key = withExt s ρ' (sReq s ρ' M' ι κ) d.key := by
+        simp only [upd, if_neg (Ne.symm hskk)]
+        rw [sNext_other D.kf.out]; simp only [withExt]
+        rw [if_neg (by simpa [List.contains_iff_mem] using hko.1)]; simp [ρ', upd, Ne.symm hskk]
+      have hB := hacross (atJ d ρ' x) (atJ d W x) d.below hvB hmB hpB
+        (by rw [hsj, hWj])
+        (by rw [hNj]; exact atJ_congr d x d.j (fun h _ => absurd rfl h))
+        (by rw [hNj]; exact atJ_congr d x d.lo (fun _ h => absurd rfl h))
+        (by rw [hNj]; exact atJ_congr d x d.key (fun _ _ => hkey))
         (by rw [hNj])
       rw [hB, hNj]
-      have hB' : evalE (upd (upd Nx.1 ce.e.sk v) d.j x) Nx.2 d.below = evalE (upd Nx.1 d.j x) Nx.2 d.below :=
-        congrE _ _ _ _ (fun i hi => by
+      have hB' : evalE (atJ d (upd Nx.1 ce.e.sk v) x) Nx.2 d.below = evalE (atJ d Nx.1 x) Nx.2 d.below :=
+        congrE _ _ _ _ (fun i hi => atJ_congr d x i (fun _ _ => by
           have hik : i ≠ ce.e.sk := fun h' => by rw [h', hskB] at hi; cases hi
-          simp only [upd]; split <;> simp_all)
+          simp [upd, hik]))
       simp only [] at hB' ⊢
       rw [hB']
       refine sumBelow_congr _ (fun k _ => ?_)
-      have hD := hacross (upd (upd ρ' d.j x) d.key k) (upd (upd W d.j x) d.key k) d.body hvD hmD hpD hskD
-        (by rw [hsk k, withExt_upd hko.1, withExt_upd hjo.1]) (Or.inr trivial)
-        (by rw [hNk k]; simp [upd, D.jk]) (by rw [hNk k]; simp [upd]) (by rw [hNk k])
+      have hD := hacross (upd (atJ d ρ' x) d.key k) (upd (atJ d W x) d.key k) d.body hvD hmD hpD
+        (by rw [hsk k, withExt_upd hko.1, hWj])
+        (by rw [hNk k]; simp only [upd, if_neg D.jk]; exact atJ_congr d x d.j (fun h _ => absurd rfl h))
+        (by rw [hNk k]; simp only [upd, if_neg D.lk]; exact atJ_congr d x d.lo (fun _ h => absurd rfl h))
+        (by rw [hNk k]; simp [upd]) (by rw [hNk k])
       rw [hD, hNk k]
+      dsimp only
       exact congrE _ _ _ _ (fun i hi => by
           have hik : i ≠ ce.e.sk := fun h' => by rw [h', hskD] at hi; cases hi
-          simp only [upd]; split <;> simp_all)
+          simp only [upd]
+          by_cases h2 : i = d.key
+          · simp [h2]
+          · simp only [if_neg h2]; exact atJ_congr d x i (fun _ _ => by simp [upd, hik]))
   · -- The goal's hypotheses hold where the frame is read, wherever the witnesses are: the state with them set.
     obtain ⟨hfav, hstp, hwr, hev⟩ := sTermsOk_parts P.terms
     have Wt := wits_parts (P.wits ce hce).2
@@ -1568,7 +1770,7 @@ theorem counts_exist (s : SMachine) (ds : List CDecl) (hd : cDistinct (cMaps ds)
   show withCnt ds X (withCarried s M κ) d.mp x = _
   rw [withCnt_at hd hdm]
   unfold cntOf
-  have hB : evalE (upd X d.j x) (withCarried s M κ) d.below = evalE (upd X d.j x) (withCarried s M κ') d.below :=
+  have hB : evalE (atJ d X x) (withCarried s M κ) d.below = evalE (atJ d X x) (withCarried s M κ') d.below :=
     congrME _ _ _ d.below (fun mp hm => (hoff mp (avoidsMapsE_occ (hav d hdm).1 hm)).symm)
   rw [hB]
   exact sumBelow_congr _ (fun k _ => congrME _ _ _ d.body (fun mp hm => (hoff mp (avoidsMapsE_occ (hav d hdm).2 hm)).symm))

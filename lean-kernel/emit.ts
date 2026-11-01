@@ -319,7 +319,7 @@ export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {inst
   const allCerts = [proof.certs, ...tampers.map(t => t.certs)]
   const goals = obl.map(o => { const g = mcGoal(o.goal.hyps, o.decls, proof.certs[o.goal.name]!); if (!g) throw new Error(`${id}: ${o.goal.name}: a read of no count`); return g })
   const certVars = allCerts.flatMap(cs => Object.values(cs).flatMap(k => [...k.reads.flatMap(r => [r[0], ...varsOfE(r[2])]), ...k.insts.flatMap(i => [i.wit, ...varsOfE(i.below)])]))
-  const vars = [...new Set([...named.vars, ...counts.flatMap(([, d]) => [d.j, d.key, ...varsOfE(d.below), ...varsOfE(d.body)]), ...laws.map(l => (l.forall ? `${l.forall}#` : '#')),
+  const vars = [...new Set([...named.vars, ...counts.flatMap(([, d]) => [d.j, d.lo ?? d.j, d.key, ...varsOfE(d.below), ...varsOfE(d.body)]), ...laws.map(l => (l.forall ? `${l.forall}#` : '#')),
     ...goals.flatMap(g => g.hyps.flatMap(varsOf)), ...certVars])]
   const maps = [...new Set([...named.maps, ...counts.flatMap(([cn]) => [cn, postName(cn)]), ...goals.flatMap(g => g.hyps.flatMap(mapsOf)),
     ...allCerts.flatMap(cs => Object.values(cs).flatMap(k => k.reads.map(r => r[1])))])]
@@ -363,7 +363,7 @@ export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {inst
   return `-- ${m.name}: ${laws.map(l => l.name).join('; ')}, with counts ${counts.map(([cn]) => cn).join(', ')}
 --   (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')}; maps ${maps.map((v2, j) => `${j} ${v2}`).join(', ')})
 def ${id}_machine : SMachine := ${machineLit(sm, {e, c}, ix, mx)}
-def ${id}_decls : List CDecl := ${list(counts.map(([cn, d]) => `⟨${mx(cn)}, ${mx(postName(cn))}, ${ix(d.j)}, ${ix(d.key)}, ${e(d.below)}, ${e(d.body)}⟩`))}
+def ${id}_decls : List CDecl := ${list(counts.map(([cn, d]) => `⟨${mx(cn)}, ${mx(postName(cn))}, ${ix(d.j)}, ${ix(d.key)}, ${e(d.below)}, ${e(d.body)}, ${ix(d.lo ?? d.j)}, ${d.base ?? 0}⟩`))}
 def ${id}_proof : List CEntry := ${list(entries(proof.certs))}
 theorem ${id}_check : checkCMachine ${id}_machine ${id}_decls ${id}_proof = true := by ${checkBy}
 /-- ${laws.map(l => l.name).join('; ')}: each holds in every reachable state, each count map read as the state's count. -/
