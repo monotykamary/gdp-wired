@@ -622,7 +622,7 @@ function obligation(ring: Fn[], ms: Measure[], s: Site, i: number, inv: Inv): Da
 // make it keep the invariant (hF's conclusion), and the theorem gives the one fixpoint, keeping the invariant.
 export type Inv = (Y | undefined)[]
 // A function's value, in its invariant.
-const valueVar = (f: Fn) => `${f.name}#value`
+export const valueVar = (f: Pick<Fn, 'name'>) => `${f.name}#value`
 // An invariant at arguments and a value: its parameters and value put in at once.
 function invAt(f: Fn, y: Y, args: X[], r: X): Y {
   const m = new Map<string, X>([...f.params.map((q, i) => [`${f.name}.${q.name}`, args[i]!] as [string, X]), [valueVar(f), r]])
@@ -1006,10 +1006,11 @@ const invText = (ring: Fn[], inv: Inv) => (inv.some(y => y) ? `, keeping ${ring.
 const ringSites = (ring: Fn[]): Site[] => callSites(ring)
 // Measures given to a ring (or a function) checked as `termination` checks the one it takes: each call's obligation
 // proven by the kernel, within the counted budget; nothing is taken (core/conformance.ts: tampered measures refused).
-// (a call nested in another's argument read with no invariant: the decrease must hold whatever its value)
-export function checkMeasures(fns: Fn[], ms: Measure[], budget = terminationMs.ms): {proven: true, obligations: Termination['obligations'][]} | {proven: false, why: string} {
+// (a call nested in another's argument read under the invariants given, `inv`, each function's over its parameters and
+// `valueVar`; none: the decrease must hold whatever the call's value)
+export function checkMeasures(fns: Fn[], ms: Measure[], budget = terminationMs.ms, inv?: Inv): {proven: true, obligations: Termination['obligations'][]} | {proven: false, why: string} {
   return counted(dataRate, () => {
-    const r = proveMeasures(fns, ringSites(fns), padded(fns, ms), clock() + budget)
+    const r = proveMeasures(fns, ringSites(fns), padded(fns, ms), clock() + budget, inv)
     return 'failed' in r ? {proven: false, why: r.failed} : {proven: true, obligations: r.obligations}
   })
 }
