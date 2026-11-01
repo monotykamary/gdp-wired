@@ -257,6 +257,48 @@ at like walls; every broken variant refused or unknown on both sides. DuoAI ten,
 **Bytes** (core/ and kernel/ .ts without tests, against d783ef9): +12,018 (core/exists.ts +5,383, core/dsl.ts +2,771,
 core/infer.ts +2,089, kernel/epr.ts +1,769, core/watch.ts +6).
 
+### gen/laneY3 (round 3, on main e196807): the counted Houdini step cheaper, the small instances through the generated JavaScript; sharded_kv back on main
+
+Everything on boat, gate class, `--timing`; runs in `runs/laneY/`. Wall times on boat swung 2-3x this round (a "large"
+VM, 2 of 8 vCPUs pinned, ran the same counted work 2-3x slower than a "default" one), so each change was measured by its
+counted work (deterministic) and by A/B in one job on one VM (an env switch, since removed).
+
+- **Where consensus_forall's time went** (CPU profile, 44 s run): the counted attempts' CDCL search 62%, the engine 23%,
+  the small instances (exists.ts small(), before the counted clock) 10 s of the first 11 s. In the cone, 14 attempts ran
+  out of their share at tier 2 (17.6 s counted of 29.9 s), half of them the second try of a law already out of time; the
+  Houdini round after a dropped law proved its 7 laws again (5.3 s counted).
+- **The cone** (counts.ts): where Houdini follows, a law out of time over every kept law isn't tried again over more
+  (its goals only grow; Houdini's share is larger). **Houdini**: a proof that assumes no dropped law at any key is
+  carried to the next round (its goals are the same; the kernel checks the whole set). forall's counted work 39.6M ->
+  24.9M, consensus_epr 12.2M -> 11.3M, consensus_wo_decide 26.1M -> 25.3M; every other port's the same.
+- **The small instances** (machine.ts fastStep): the interpreter's step through loadJs's generated JavaScript on a copy
+  of the state, a request's counts given to it as maps it carries (carriedView's, each cell its sum when read). The same
+  states for all 29 ports (hashed), 2-4x faster in one job on one VM: sharded_kv 5.8 -> 1.8 s, learning_switch 9.8 -> 2.7,
+  forall 6.4 -> 2.9, mldr 14.5 -> 4.8, paxos 11.0 -> 5.2; the engine's instance for a machine with counts through it too
+  (it was interpreted). small() switches to it past a thousand steps (a small machine's few steps cost less than
+  compiling it).
+- **Same-VM A/B, all three on vs off** (3 runs each, alternating): forall 54-64 s vs 80-107 s (a slow VM), consensus_epr
+  26-29 vs 32-63, simple_election 16-17 vs 24-25, naive_consensus 4.6-4.9 vs 7.4-7.9, the ten's wo 20-26 vs 29-57, ring
+  17-31 vs 19-34, ticket 23-29 vs 29-31; firewall, sharded_kv, two_phase_commit, twophase alike.
+- **consensus_forall at 60 s**: on default VMs 33-55 s in 8 of 10 runs (75, 87 the others), against 50-79 s (median 60)
+  before; on large VMs both sides run past 60.
+- **Tried and dropped**: the step's terms compiled to closures in the interpreter (compileC/compileE): the same states,
+  1.2-2x slower under JSC (the closure call sites go megamorphic); skipping the cone's every-law tier where Houdini
+  follows: forall -47% and epr -62% counted work, but consensus_wo_decide unknown (its caller proven only over the kept
+  set).
+- **sharded_kv on main e196807**: unknown at 60 s (Lane G's infer: 109 guarded forms over the samples; one `lawful`
+  check of five keys at ~40 values took the whole counted budget, 4.26 billion evaluations). A sample whose laws' tuples
+  cost more than a million evaluations is skipped: proven at 12.8-29 s.
+- **Open on main, not this branch's**: ticket_lock (DuoAI ten) unknown in every run on e196807 and on this branch, proven
+  on gen/laneY: the trace diverges at Lane G's samples (rows 431,815 -> 517,686, forms 227 -> 230).
+
+Gates (90faf39 against e196807, same window, 2 runs; the ten 3): IC3Syn within 60 s in every run 21 (main 20), in some
+run 23 (main 22): sharded_kv proven (main unknown); the rest alike within the noise. DuoAI ten 29/30 both (ticket_lock
+unknown on both; ring once unknown at 62.7 s on a large VM, proven in 6 of 6 same-VM A/B runs). Quick bar
+(<main>/runs/bar/runs/laneY3-90faf39-quick/REPORT.md): wrong 0, nothing lost solid; dag the same search on 332 of 332.
+Tests (16 GB): 402 of 403, the one data.test.ts's "agrees with + on small values only" at 5.1 s past bun's 5 s; alone,
+8 alternating pairs on one VM, median 4.16 s on, 4.04 s off. Nothing trusted changed.
+
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
 
 Held: the lazy hypotheses (kernel/prove.ts) cost the step goals time (g332 391 s against 354) and read 18 against 20 at

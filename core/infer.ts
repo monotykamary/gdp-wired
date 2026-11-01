@@ -32,7 +32,7 @@
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
-import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, compileC, compileE, loadJs, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
+import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, compileC, compileE, fastStep, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
 import {clock, counted, fullWork, decideLaw, decideNote, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall, withWork} from '../kernel/prove.ts'
@@ -1078,9 +1078,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const ctis: Point[] = []
   // (a law about keys is evaluated at every tuple of the state's keys, as watch does: counted as that many evaluations)
   const lawful = (params: Env, st: State) => {
+    const k = keysOf(4, st).length, cost = given.reduce((s, l) => s + (l.forall ? k ** (1 + (l.keys?.length ?? 0)) : 0), 0)
+    // (a state whose laws' tuples cost more than a million evaluations is no sample: one such check took sharded_kv's whole
+    // budget, five keys at 40 values)
+    if (cost > 1e6) return false
     used.watched += given.length
-    const k = keysOf(4, st).length
-    for (const l of given) if (l.forall) used.evals += k ** (1 + (l.keys?.length ?? 0))
+    used.evals += cost
     try { return given.every(l => watch(m, run, l, params, 4).start(st)) } catch { return false }
   }
   const houdiniUntil = opts.cubes ? 0 : Math.min(until, now() + Math.max(500, (until - now()) / 4))
@@ -1988,7 +1991,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         // few others that keep its facts on the sort's keys (its values reversed, and each turned by one), each run as its
         // own machine; their states' rows read under their table. One table alone is a fact of it, not of the rule: ring's
         // ids, every node past another one's below it)
-        const tables: {m: Machine, run: typeof run, js: ReturnType<typeof loadJs> | undefined, fns: Record<string, Fn>}[] = [{m, run, js: m.history || m.counts ? undefined : loadJs(m), fns: {}}]
+        const tables: {m: Machine, run: typeof run, js: ReturnType<typeof fastStep>, fns: Record<string, Fn>}[] = [{m, run, js: fastStep(m), fns: {}}]
         for (const [f, fn] of Object.entries(m.fns ?? {})) {
           const arg = ks.find(`F:${f}`)
           if (fn.call || fn.recur || (fn.arity ?? 1) !== 1 || !ss.includes(arg) || m.history || m.counts) continue
@@ -1996,11 +1999,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           for (const vs of [[...vals].reverse(), turn(vals), turn([...vals].reverse())]) {
             const fn2: Fn = {...fn, js: `(k) => (${JSON.stringify(Object.fromEntries(dom.map((k, i) => [k, vs[i]])))})[k] ?? (${fn.js})(k)`}, m2: Machine = {...m, fns: {...m.fns, [f]: fn2}}
             const keeps = (m.facts ?? []).every(fc => { const b = [fc.forall, ...(fc.keys ?? [])].filter((q): q is string => !!q); return b.reduce<number[][]>(acc => acc.flatMap(t2 => dom.map(k => [...t2, k])), [[]]).every(t => { try { return evalC(fc.holds, Object.fromEntries(b.map((q, k) => [q, t[k]!])), {scalars: {}, maps: {}}, m2) } catch { return false } }) })
-            if (keeps && tables.length < 4) tables.push({m: m2, run: interpret(m2), js: loadJs(m2), fns: {[f]: fn2}})
+            if (keeps && tables.length < 4) tables.push({m: m2, run: interpret(m2), js: fastStep(m2), fns: {[f]: fn2}})
           }
         }
         const stepIn = (tb: typeof tables[number], params: Env, st: State, input: Request): State | undefined => {
-          try { if (tb.js) return tb.js.step(params, tb.js.fork(st), input); return allowed(tb.m, tb.run, params, st, input) ? tb.run.step(params, st, input) : undefined } catch { return undefined }
+          try { if (tb.js) return tb.js(params, st, input); return allowed(tb.m, tb.run, params, st, input) ? tb.run.step(params, st, input) : undefined } catch { return undefined }
         }
         const stepOf = (params: Env, st: State, input: Request) => stepIn(tables[0]!, params, st, input)
         const others: Sample[] = []
