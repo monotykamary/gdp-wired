@@ -254,9 +254,7 @@ export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machi
   const {groups, atoms, linearOnly, reads} = shapeOf(body, vars)
   const value = (e: E): number | undefined => { try { return evalE(e, env, st, m) } catch { return undefined } }
   // A bound natural read as a map's key: the cells the maps hold, and one past them, are every case a read gives.
-  const cells = new Set<number>()
-  if (reads) for (const c of Object.values(st.maps)) for (const key of c.keys()) cells.add(key)
-  const points = (g: Group): number[] => {
+  const points = (g: Group, cells: Set<number>): number[] => {
     const ps = new Set<number>([0, 1, ...cells, ...[...cells].map(c => c + 1)])
     for (const a of atoms) {
       const s = a.k[g[0]!] ?? 0, s2 = g.length === 2 ? (a.k[g[1]!] ?? 0) : 0
@@ -271,13 +269,19 @@ export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machi
   }
   const at = (g: Group, p: number): Env => (g.length === 2 ? {[g[0]!]: Math.max(p, 0), [g[1]!]: Math.max(-p, 0)} : {[g[0]!]: p})
   const test = (w: Env): boolean | undefined => { try { return evalC(body, {...env, ...w}, st, m) } catch { return undefined } }
-  const lists = groups.map(points)
-  let tried = 0, unknown = false
+  let tried = 0, unknown = false, lists: number[][] = []
   const go = (i: number, w: Env): Env | undefined => {
     if (i === groups.length) { tried++; const t = test(w); if (t === undefined) unknown = true; return t ? w : undefined }
     for (const p of lists[i]!) { if (tried > 4096) return undefined; const hit = go(i + 1, {...w, ...at(groups[i]!, p)}); if (hit) return hit }
     return undefined
   }
+  // (first the points without the cells: P's guard false at a tuple, as at most of a law's, holds at 0 at once; a witness
+  // there is one; then every point, as before, its verdict and cap the same)
+  const none = new Set<number>()
+  if (reads) { lists = groups.map(g => points(g, none)); const quick = go(0, {}); if (quick) return {holds: true, witness: quick} }
+  const cells = new Set<number>()
+  if (reads) for (const c of Object.values(st.maps)) for (const key of c.keys()) cells.add(key)
+  lists = groups.map(g => points(g, cells)); tried = 0; unknown = false
   const hit = go(0, {})
   if (hit) return {holds: true, witness: hit}
   return groups.length === 1 && linearOnly && !unknown && tried <= 4096 ? {holds: false} : undefined
