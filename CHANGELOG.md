@@ -3,6 +3,28 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.43.1
+
+Fixes for the released package, found by running the CLI on 53 real cases across 14 languages and on LiteLLM.
+- **Packaging**: the tarball lacked `dist/core/sol/harness.py` and `Replay.sol`, so a `.sol` check that reached the
+  bytecode check waited forever. The build now copies every file a front end runs beside its module (each
+  `core/<lang>/`), and a test packs the tarball and checks every asset the code names. `gdp-wired/extract-sol` is
+  exported, as 0.38.0 said. A check never waits on a harness: a missing asset is a clear error, and a harness that
+  exits before it answers is reported.
+- **LiteLLM** (v1.106.6, its 21 laws as comments): 19 of 21 proven again, the same 2 refuted as at 0.32; 0.43.0 proved
+  3. Python's clock is pinned only while the code runs and never in a module that a call first imports (FastAPI saw
+  `_Now | None` in LiteLLM's routes). A store's option given a constant (`litellm_parent_otel_span=None`,
+  `local_only=True`) is read with a note; refusing them was new in 0.33.
+- **Every refusal's suggested fix works**: tested as printed (gdp.toml at the top, under the rule, and the comment) in
+  Python, Ruby, Elixir, Java, Rust, C and Go.
+  - C and Go: `answers` and `skip` from gdp.toml reach the reader, and a skipped call into another file is a no-op in
+    the C check.
+  - Elixir: `# gdp: answer` on a remote call.
+  - Rust: an answered `let` needs no written type, and `answers` in gdp.toml builds.
+  - Java: a generic result answered in its stated type.
+  - Kotlin: `repeat(n) { }` is refused as a loop, not a reader crash.
+  - Python: a constructor argument typed by a Protocol (or assigned in a tuple) is an injected dependency.
+
 ## 0.43.0
 
 The CLI on real code, Effect's retries and transactions, protocols checked against TLC step by step, and the soundness
