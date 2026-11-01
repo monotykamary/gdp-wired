@@ -654,13 +654,9 @@ const pathSamples = (vars: {name: string, sort: Sort}[], params: string[], cond:
 function sizeLaws(l: DataLaw, ring: string[]): DataLaw[] {
   const seen = new Set<string>(), helpers: Fn[] = []
   walk(l.holds, o => { if (o.op === 'call' && !ring.includes(o.fn as string) && !seen.has(o.fn as string)) { seen.add(o.fn as string); const g = fnOf(o.fn as string); if (sized(g.ret)) helpers.push(g) } })
-  // (and the natural-valued functions they call, their lower bounds first: a fold of a list of trees calls the trees'
-  // fold, whose bound its unfoldings read)
-  const inner: Fn[] = []
-  for (const g of helpers) walk(g.body(), o => { if (o.op === 'call' && !ring.includes(o.fn as string) && !seen.has(o.fn as string)) { seen.add(o.fn as string); const h = fnOf(o.fn as string); if (h.ret === 'nat') inner.push(h) } })
-  const out: DataLaw[] = [], lows: DataLaw[] = []
+  const out: DataLaw[] = []
   const nat = (n: number): X => ({op: 'nat', value: n}), add = (a: X, b: X): X => (b.op === 'nat' && b.value === 0 ? a : {op: 'add', a, b})
-  for (const g of [...helpers.slice(0, 4), ...inner.slice(0, 2)]) {
+  for (const g of helpers.slice(0, 4)) {
     const vars = g.params.map((q, i) => ({name: `${q.name}${i}`, sort: q.sort}))
     if (!vars.some(v => sized(v.sort))) continue
     const call: X = {op: 'call', fn: g.name, args: vars.map(v => ({op: 'var', name: v.name}))}, envs = samples(vars, [], 160, 23)
@@ -673,15 +669,8 @@ function sizeLaws(l: DataLaw, ring: string[]): DataLaw[] {
       const holds: Y = {op: '<=', a: lhs, b: rhs}
       out.push({name: `size law: ${showY(holds)}`, vars, holds, params: []})
     }
-    // (a natural every value of which is at least 1, a fold's: that bound, which a weighted size's descent reads at the
-    // values its unfoldings reach, fold(l) ≥ 1 where l is a tree's left)
-    if (g.ret === 'nat') {
-      let least = Infinity
-      for (const e of envs) { try { least = Math.min(least, evalX(call, e.env, e.params) as number) } catch { /* past the bounds */ } }
-      if (least >= 1 && least < Infinity) { const holds: Y = {op: '<=', a: nat(least), b: call}; (inner.includes(g) ? lows : out).push({name: `size law: ${showY(holds)}`, vars, holds, params: []}) }
-    }
   }
-  return [...lows, ...out]
+  return out
 }
 // The calls' relation (core/relation.ts's form): a location per function of the ring, its parameters' sizes the state
 // (`s<i>_<k>`), a path per call: the caller's parameters' sizes and the callee's arguments' (`a<k>`, the turn's
@@ -762,42 +751,29 @@ function candidates(ring: Fn[], edges: CallEdge[], sites: Site[], until: number)
 }
 // A weighted size of a parameter, where no size of the parameters falls (a call on a value of the same size: a tree
 // turned, flatten3's Node(Node(p, x, q), y, r) to Node(p, x, Node(q, y, r)); a list of lists whose first shrinks,
-// weird_concat's; a list of trees whose first is turned, flatten1's): a structural fold of the parameter's datatype,
-// each constructor 1 plus each field's weight times its own fold (a field of the datatype, 1 or 2) or, a field of
-// another datatype, its size or its own such fold (0, its size, or a fold of its weights 1 or 2), the first few the runs'
-// calls all lower, the lightest first (at most two). Each is a function defined for it (`fold<datatype>_<weights>`),
-// taken structurally (an inner fold is defined first, and is a function it calls), so the obligations read it as any
-// function: the kernel proves each call lowers it, and Lean's `wf_fix_unique` is about any measure into the naturals.
-type FoldField = {j: number, k: number, sort: Sort}
-type Weight = number | {inner: Data, fields: FoldField[], ws: number[]}
-const foldFields = (d: Data): FoldField[] => d.ctors.flatMap((c, j) => c.fields.map((f, k) => ({j, k, sort: fieldSort(f)})))
-const foldable = (d: Sort): d is Data => d instanceof Data && d.group.length === 1 && !d.abstract
-// A datatype's own folds (its fields of itself 1 or 2, the others 0), the plain size left out, the lightest first.
-function ownFolds(d: Data): number[][] {
-  const fields = foldFields(d), size = fields.map(f => (f.sort === d ? 1 : 0))
-  let combos: number[][] = [[]]
-  for (const f of fields) combos = combos.flatMap(a => (f.sort === d ? [1, 2] : [0]).map(w => [...a, w]))
-  return combos.filter(ws => ws.some((w, n) => w !== size[n])).sort((a, b) => a.reduce((x, y) => x + y, 0) - b.reduce((x, y) => x + y, 0))
-}
-const heft = (w: Weight): number => (typeof w === 'number' ? w : 1 + w.ws.reduce((x, y) => x + y, 0))
+// weird_concat's): a structural fold of the parameter's datatype, each constructor 1 plus each field's weight times its
+// own fold (a field of the datatype, 1 or 2) or its size (another datatype's, 0 or 1), the first few the runs' calls
+// all lower, the lightest first (at most two). Each is a function defined for it (`fold<datatype>_<weights>`), taken
+// structurally, so the obligations read it as any function: the kernel proves each call lowers it, and Lean's
+// `wf_fix_unique` is about any measure into the naturals.
 function foldMeasures(fn: Fn, edges: CallEdge[]): Measure[] {
   const out: Measure[] = []
   if (!edges.length) return out
   for (const [i, q] of fn.params.entries()) {
     const d = q.sort
-    if (!foldable(d)) continue
-    // each field's choices: of the datatype 1 or 2, of another datatype 0, its size, or one of its own folds (the first
-    // three), else 0
-    const fields = foldFields(d)
-    const choices: Weight[][] = fields.map(f => (f.sort === d ? [1, 2] : f.sort instanceof Data ? [0, 1, ...(foldable(f.sort) ? ownFolds(f.sort).slice(0, 3).map(ws => ({inner: f.sort as Data, fields: foldFields(f.sort as Data), ws})) : [])] : [0]))
+    if (!(d instanceof Data) || d.group.length > 1 || d.abstract) continue
+    // each field's choices: of the datatype 1 or 2, of another datatype 0 or 1, else 0
+    const fields = d.ctors.flatMap((c, j) => c.fields.map((f, k) => ({j, k, sort: fieldSort(f)})))
+    const choices = fields.map(f => (f.sort === d ? [1, 2] : f.sort instanceof Data ? [0, 1] : [0]))
     if (choices.reduce((n, c) => n * c.length, 1) > 64) continue
-    let combos: Weight[][] = [[]]
+    let combos: number[][] = [[]]
     for (const c of choices) combos = combos.flatMap(a => c.map(w => [...a, w]))
     // (the plain size is tried before: its weights are 1 on the datatype's fields, 0 on the others')
     const size = fields.map(f => (f.sort === d ? 1 : 0))
-    combos = combos.filter(ws => ws.some((w, n) => w !== size[n])).sort((a, b) => a.reduce<number>((x, y) => x + heft(y), 0) - b.reduce<number>((x, y) => x + heft(y), 0))
+    combos = combos.filter(ws => ws.some((w, n) => w !== size[n])).sort((a, b) => a.reduce((x, y) => x + y, 0) - b.reduce((x, y) => x + y, 0))
+    const weight = (ws: number[]) => { const at = new Map(fields.map((f, n) => [`${f.j}.${f.k}`, ws[n]!])); const go = (v: Value): number => { const o = v as {c: number, f: Value[]}; return 1 + d.ctors[o.c]!.fields.reduce((t, f, k) => { const w = at.get(`${o.c}.${k}`)!, fs = fieldSort(f); return t + (!w ? 0 : fs === d ? w * go(o.f[k]!) : fs instanceof Data ? w * sizeOf(fs, o.f[k]!) : 0) }, 0) }; return go }
     for (const ws of combos) {
-      const w = weightOf(d, fields, ws)
+      const w = weight(ws)
       if (!edges.every(e => w(e.tv[i]!) < w(e.sv[i]!))) continue
       const made = foldFn(d, fields, ws)
       if (!made) continue
@@ -807,32 +783,16 @@ function foldMeasures(fn: Fn, edges: CallEdge[]): Measure[] {
   }
   return out
 }
-// A fold's value at a value of its datatype.
-function weightOf(d: Data, fields: FoldField[], ws: Weight[]): (v: Value) => number {
-  const at = new Map(fields.map((f, n) => [`${f.j}.${f.k}`, ws[n]!]))
-  const go = (v: Value): number => {
-    const o = v as {c: number, f: Value[]}
-    return 1 + d.ctors[o.c]!.fields.reduce((t, f, k) => {
-      const w = at.get(`${o.c}.${k}`)!, fs = fieldSort(f)
-      if (typeof w !== 'number') return t + weightOf(w.inner, w.fields, w.ws)(o.f[k]!)
-      return t + (!w ? 0 : fs === d ? w * go(o.f[k]!) : fs instanceof Data ? w * sizeOf(fs, o.f[k]!) : 0)
-    }, 0)
-  }
-  return go
-}
-// The fold of those weights, defined once (an inner fold first); none where its name is a function this didn't define
-// (a user's own `foldList_12`: reading it as the fold would read another function, of another sort).
+// The fold of those weights, defined once; none where its name is a function this didn't define (a user's own
+// `foldList_12`, of another sort, never read as the fold).
 const madeFolds = new Set<string>()
-function foldFn(d: Data, fields: FoldField[], ws: Weight[]): string | undefined {
-  const inner = ws.map(w => (typeof w === 'number' ? undefined : foldFn(w.inner, w.fields, w.ws)))
-  if (ws.some((w, n) => typeof w !== 'number' && !inner[n])) return undefined
-  const name = `fold${d.name}_${ws.map((w, n) => (typeof w === 'number' ? String(w) : `_${inner[n]}_`)).join('')}`
+function foldFn(d: Data, fields: {j: number, k: number, sort: Sort}[], ws: number[]): string | undefined {
+  const name = `fold${d.name}_${ws.join('')}`
   if (fns.has(name)) return madeFolds.has(name) ? name : undefined
   madeFolds.add(name)
-  const at = new Map(fields.map((f, n) => [`${f.j}.${f.k}`, n]))
+  const at = new Map(fields.map((f, n) => [`${f.j}.${f.k}`, ws[n]!]))
   const self: Callable = define(name, {x: d}, natural, ({x}) => (x as Val).match(Object.fromEntries(d.ctors.map((c, j) => [c.name, (fs: Record<string, any>) => c.fields.reduce<Nat>((t, f, k) => {
-    const n = at.get(`${j}.${k}`)!, w = ws[n]!, s2 = fieldSort(f)
-    if (typeof w !== 'number') return t.plus(new Nat({op: 'call', fn: inner[n]!, args: [(fs[f.name] as Val).x]}))
+    const w = at.get(`${j}.${k}`)!, s2 = fieldSort(f)
     if (!w) return t
     const part = s2 === d ? (self(fs[f.name]) as Nat) : (fs[f.name] as Val).size()
     return w === 1 ? t.plus(part) : t.plus(part.times(w))
@@ -842,8 +802,6 @@ function foldFn(d: Data, fields: FoldField[], ws: Weight[]): string | undefined 
 // An obligation as one node of a cyclic proof (no use, no models): its conclusion, each definition it reads unfolded
 // once, the constructors' facts at the values built, the shape at each size it reads and at its variables of a
 // datatype, the congruences 16 random models' explanations use. The kernel checks it as any cyclic proof; undefined where it isn't proven.
-// Where one unfolding doesn't prove it and time is left, two (a fold of a list of trees reads the trees' own fold at
-// the values the first unfolding builds).
 function directly(law: DataLaw, ms: number): CyclicVerdict | undefined {
   const p = programOf([law]), fs = factsOf(p), concl = encY(p, law.holds, new Map())
   varSorts = new Map(law.vars.flatMap(v => (v.sort instanceof Data ? [[v.name, v.sort] as [string, Data]] : [])))
@@ -851,18 +809,14 @@ function directly(law: DataLaw, ms: number): CyclicVerdict | undefined {
   // (and at each value of a datatype the conclusion builds: a fold reads its fields' sizes, size(x :: xs) = 1 + size(xs))
   const ctors = new Set(p.datas.flatMap(d => d.ctors.flatMap((c, j) => (c.fields.length ? [ctorMap(d, j)] : []))))
   const built = new Map<string, E>(); walk(concl, o => { if (o.op === 'get' && ctors.has(o.map as string)) built.set(tid(o as unknown as E), o as unknown as E) })
-  const models = modelsFor(p, law, 16, 3)
-  for (const depth of [1, 2]) {
-    const insts = instancesOf(p, fs, {roots: [concl], others: [], depth, shapesAt: [...[...varSorts.keys()].map(ev), ...built.values()], etaAt: [], models, until})
-    if (clock() > until) return undefined
-    const was = pairedKeys.skip
-    pairedKeys.skip = true
-    try {
-      const v = withDeadline(until, () => proveCyclic(fs.facts, [{name: law.name, hyps: [], concl, rank: [k(0)], insts, uses: []}]))
-      if (v.proven && v.checked) return v
-    } finally { pairedKeys.skip = was }
-  }
-  return undefined
+  const insts = instancesOf(p, fs, {roots: [concl], others: [], depth: 1, shapesAt: [...[...varSorts.keys()].map(ev), ...built.values()], etaAt: [], models: modelsFor(p, law, 16, 3), until})
+  if (clock() > until) return undefined
+  const was = pairedKeys.skip
+  pairedKeys.skip = true
+  try {
+    const v = withDeadline(until, () => proveCyclic(fs.facts, [{name: law.name, hyps: [], concl, rank: [k(0)], insts, uses: []}]))
+    return v.proven && v.checked ? v : undefined
+  } finally { pairedKeys.skip = was }
 }
 // Each call's obligation under measures given, proven (`obligations`, each function's) or the first that isn't (`failed`).
 function proveMeasures(ring: Fn[], sites: Site[], ms: Measure[], until: number): {obligations: Termination['obligations'][]} | {failed: string} {
@@ -892,7 +846,7 @@ function proveMeasuresIn(ring: Fn[], sites: Site[], ms: Measure[], until: number
     // alone)
     const lemmas = sizeLaws(law, names)
     if (dataTrace && lemmas.length) console.error(`[data]   ${law.name}: ${lemmas.map(c => c.name).join('; ')}`)
-    let v: DataVerdict | undefined = lemmas.length ? proveData(law, {lemmas, lemmasFirst: true, ms: Math.min(20_000, 0.7 * left())}) : undefined
+    let v: DataVerdict | undefined = lemmas.length ? proveData(law, {lemmas, lemmasFirst: true, ms: Math.min(8000, 0.6 * left())}) : undefined
     if (!v?.proven && !v?.counterexample && clock() < until) v = proveData(law, {ms: Math.min(12_000, left()), lemmas: false})
     if (!v?.proven && !v?.counterexample && clock() < until) v = proveData(law, {induction: false, ms: Math.min(4000, left())})
     if (!v || !(v.proven && v.checked)) return {failed: `${text}: its ${call} ${v?.counterexample ? `doesn't lower it at ${JSON.stringify(v.counterexample)}` : 'not proven to lower it'}`}
@@ -3239,9 +3193,8 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
     // (`extra`: the calculated steps' attempts and the second ones, at most `most`, beside the conjectures' 3·most)
     let n = 0, since = 0, tries = 0, extra = 0
     // (a termination's obligation, its lemmas given: first without induction at no unfolding (the lemma's use and the
-    // constructors' sizes: toList's call on a merge, 1032 instances at one unfolding and past its time), then at one and
-    // two, a decrease mostly read off the definitions at the values the call builds, a fold of a fold's)
-    const again = (how: 'first') => (opts.lemmasFirst ? ok(proveWith(p2, fs2, l, proven, level(), {...opts, induction: false}, until, cap, [0, 1, 2]), proven, p2) : undefined) ?? ok(proveWith(p2, fs2, l, proven, level(), opts, until, cap, depths, how), proven, p2)
+    // constructors' sizes: toList's call on a merge, 1032 instances at one unfolding and past its time), then at one)
+    const again = (how: 'first') => (opts.lemmasFirst ? ok(proveWith(p2, fs2, l, proven, level(), {...opts, induction: false}, until, cap, [0, 1]), proven, p2) : undefined) ?? ok(proveWith(p2, fs2, l, proven, level(), opts, until, cap, depths, how), proven, p2)
     // A conjecture of this pass that failed is tried once more after a lemma is proven (HipSpec's loop: bind over an
     // append needs ++ associative, proven after it); first those, then the next of the ranking.
     const queue = ranked.filter(r => (which === 'hits') === r.hit), retry: DataLaw[] = [], retried = new Set<DataLaw>()
@@ -3255,8 +3208,7 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
       if (again2 || calcSet.has(c)) extra++
       else tries++
       // (a calculated step half a conjecture's time: there are few, and one past its time is seldom the one)
-      // (a termination's size law, whose proof is the decrease's whole cost: more time, the obligations being few)
-      const r = proveWith(p2, fs2, c, proven, level(), opts, Math.min(end, clock() + (calcSet.has(c) ? 3000 : opts.lemmasFirst ? 16_000 : 8000) * (opts.patience ?? 1)), opts.lemmasFirst ? 12_000 : 5000, fusion(c.holds) ? [1, 2] : [1])
+      const r = proveWith(p2, fs2, c, proven, level(), opts, Math.min(end, clock() + (calcSet.has(c) ? 3000 : 8000) * (opts.patience ?? 1)), 5000, fusion(c.holds) ? [1, 2] : [1])
       tried += r.tried
       if (!r.out) { failed.add(c); continue }
       failed.delete(c)

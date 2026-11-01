@@ -43,7 +43,7 @@ import type {Rule} from './dsl.ts'
 import type {Law} from './machine.ts'
 import * as I from './extract-ir.ts'
 import {type B, type K, type N, PASS} from './extract-ir.ts'
-import {type Arg, type Layout, type MapDecl, type MapWrite, type Model, Refusal, type Source, type Term, type Var, placed, sourceOf} from './extract-read.ts'
+import {type Arg, type Layout, type MapDecl, type MapWrite, type Model, Refusal, type Source, type Term, type Var, placed, sourceOf, syntaxError, tooDeep} from './extract-read.ts'
 import {type ReadOptions, isFactory, isSlice, readClass, readFactory, readFunctions, readSlice} from './extract-shapes.ts'
 import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pidx, pk, pnum, pterm, sortsOf} from './extract-print.ts'
 import {type CheckOptions, type Evidence, check} from './extract-check.ts'
@@ -130,12 +130,15 @@ export function extract(at: Source, opts: ExtractOptions = {}): Extraction {
   let model: Model, code: string, file: string
   try {
     ;({code, file} = sourceOf(at, opts.file, 'input.ts'))
+    const bad = syntaxError(code, file)
+    if (bad) throw new Refusal(file, bad)
     const fns = Array.isArray(opts.entry) ? opts.entry : opts.functions
     const o: ReadOptions = {...opts, entry: (Array.isArray(opts.entry) ? opts.entry[0] : opts.entry) ?? fns?.[0] ?? '', ...(fns ? {functions: fns} : {})}
     model = o.entry ? readModel(code, file, o, opts.shape) : inferred(code, file, o, opts.shape)
     model.file = file
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
+    if (tooDeep(e)) return {ok: false, refusals: [{where: opts.file ?? (typeof at === 'string' && !at.includes('\n') ? at : 'input.ts'), what: 'the source nests too deeply to read'}], notes}
     throw e
   }
   return {...fromModel(model, file, opts.domains, notes, (rule, sorts) => check(code, file, model, rule, sorts, {...opts.check, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})), names: namesOf(model)}
@@ -173,9 +176,12 @@ export function fromModel(model: Model, file: string, domains: Record<string, 'n
   try { rule = evaluate(body); invariants = evaluateLaws(rule, invariantsOf(model, sorts)) } catch (e) { return {ok: false, source, model, sorts, refusals: [{where: file, what: `the rule printed doesn't build: ${(e as Error).message}`}], notes} }
   if (invariants.length) source = `${source}\n// What every state of the code is: a law about every state is about the code's with these beside it.\nexport const ${identOf(model)}Invariants = [${invariantsOf(model, sorts).map(x => x.replace(/^r\./, `${identOf(model)}Rule.`)).join(', ')}]\n`
   const evidence = run(rule, sorts)
+  if (evidence.harness) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `${HARNESS_FAILED}${evidence.harness}`}], notes}
   if (evidence.mismatch) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `the rule and the code differ: ${evidence.mismatch}`}], notes}
   return {ok: true, rule, ...(invariants.length ? {invariants} : {}), source, model, sorts, evidence, refusals: [], notes}
 }
+// The check's own failure (twice): no verdict on the code, neither a difference nor a pass.
+export const HARNESS_FAILED = 'the check\'s harness failed, twice (a request past its time or its transport, not the code): '
 // A Date holds a time within ±8.64e15 ms; past it the code's Date is invalid (NaN). The rule refuses a step that would
 // set one there (as it refuses a sum past 2^53), and a start there: its claim stops at the Date's range.
 const DATE_MAX = 8_640_000_000_000_000

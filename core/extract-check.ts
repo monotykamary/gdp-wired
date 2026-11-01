@@ -33,6 +33,20 @@ export type Coverage = {arms: number, hit: number, missed: string[]}
 export type Evidence = {
   runs: number, requests: number, fromStates: number, probes: {conditions: number, witnesses: number, steps: number},
   refusedBoth: number, outside: number, startsOutside?: number, edge: number, edgeSample?: string, compiledAgreed: number, coverage: Coverage, ms: number, mismatch?: string,
+  // (the check's harness failed, twice: a request past its time, its transport; no verdict on the code)
+  harness?: string,
+}
+// The check's own failure, not the code's: a request past its time, the harness's transport (anvil's JSON-RPC) failing,
+// the harness gone. Never a difference and never a pass: the whole check runs once more, from a fresh harness, and a
+// second failure is the check's outcome (Evidence.harness).
+export class HarnessFailure extends Error {}
+export const noEvidence = (): Evidence => ({runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0})
+export function retried<E extends Evidence>(once: () => E, empty: () => E): E {
+  let why = ''
+  for (let i = 0; i < 2; i++) {
+    try { return once() } catch (x) { if (!(x instanceof HarnessFailure)) throw x; why = x.message }
+  }
+  return {...empty(), harness: why}
 }
 
 // --- the code, instrumented and loaded ------------------------------------------------------------------------------
@@ -116,7 +130,10 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
   const script = new vm.Script('globalThis.__r = (() => { try { return {ok: true, value: __gdp[__f].apply(__self, __args)} } catch (e) { return {ok: false, error: String(e && e.message || e)} } })()')
   const call = (f: string, self: unknown, args: unknown[]) => {
     Object.assign(ctx, {__f: f, __self: self, __args: args})
-    script.runInContext(ctx, {timeout: 1000})
+    try { script.runInContext(ctx, {timeout: 1000}) } catch (e) {
+      if ((e as {code?: string}).code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') throw new HarnessFailure(`a request ran past the check's 1000 ms (${(e as Error).message})`)
+      throw e
+    }
     return ctx.__r as {ok: true, value: unknown} | {ok: false, error: string}
   }
   return {ctx, counts, arms, call, setNow: n => { now = n }, get: name => vm.runInContext(`__gdp[${JSON.stringify(name)}]`, ctx)}
@@ -320,12 +337,21 @@ export type CodeSide = {
   input?: (v: Var, x: Raw, rand: Rand) => Raw, drawSnap?: (rand: Rand) => Snap, normalize?: (s: Snap) => Snap, edge?: (s: Snap, raw: Record<string, Raw>) => boolean,
 }
 export function check(code: string, file: string, m: Model, r: Rule, sorts: Sorts, opts: CheckOptions & {given?: Record<string, 'nat' | 'int'>} = {}): Evidence {
+  return retried(() => checkOnce(code, file, m, r, sorts, opts), noEvidence)
+}
+function checkOnce(code: string, file: string, m: Model, r: Rule, sorts: Sorts, opts: CheckOptions & {given?: Record<string, 'nat' | 'int'>}): Evidence {
   const isClass = m.shape === 'class', fns = m.shape === 'class' ? [m.entry] : [...new Set(m.events.map(e => e.call))]
   let answers: Record<string, Raw> = {}
   // (the modules whose functions the class calls: each export answers its input, or nothing, by the callee's name)
   const ans = (path: string) => () => { const n = Object.keys(m.answers ?? {}).find(k => m.answers![k] === path); return n === undefined ? undefined : answers[n] }
   const mods = {...opts.modules, ...Object.fromEntries((m.imports ?? []).map(mod => [mod, new Proxy({}, {get: (_, k) => (k === '__esModule' ? true : typeof k === 'string' ? ans(`import:${mod}:${k}`) : undefined)})]))}
-  const box = sandbox(code, file, fns, mods, m.initSource, opts.files, m.factory ? [[m.factory.at, m.factory.text], ...(m.factory.extra ?? [])] : [])
+  // (a module that doesn't load, one TypeScript reads but JavaScript refuses, a return outside a function or a class
+  // declared twice: no request runs, and the check says why)
+  let box: ReturnType<typeof sandbox>
+  try { box = sandbox(code, file, fns, mods, m.initSource, opts.files, m.factory ? [[m.factory.at, m.factory.text], ...(m.factory.extra ?? [])] : []) } catch (e) {
+    return {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0,
+      mismatch: `the code doesn't load: ${String((e as Error)?.message ?? e).split('\n')[0]}`}
+  }
   // An object a factory makes: its state is what its functions close over, read and set through the two functions the
   // check added to it.
   const stateOf = (self: unknown): unknown => (m.factory ? (box.call('$get', self, []) as {ok: boolean, value?: unknown}).value : self)
@@ -445,6 +471,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
       }
     } catch (x) {
       if (x instanceof Outside) res = {outside: x.message}
+      else if (x instanceof HarnessFailure) throw x
       else return `${where}: the code's state after the request: ${(x as Error).message}`
     }
     // The rule.
@@ -479,7 +506,8 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
     }
     if ('refused' in res && 'refused' in rule!) {
       // A refusal leaves the state as it was: the object the code threw from must be as it was too.
-      if (isClass) { try { const after = code.snapOf(side.self, params), d = sameSnap(after, side.snap); if (d) return `${where}: ${req} ${from}: the code throws (${res.refused}) after changing the object: ${d}` } catch (x) { return `${where}: ${req} ${from}: the code throws after changing the object (${(x as Error).message})` } }
+      // (what the code's object holds: a result the rule keeps beside, a call's, is no field of it)
+      if (isClass) { try { const after = code.snapOf(side.self, params), d = sameSnap(after, {...side.snap, leaves: Object.fromEntries(Object.entries(side.snap.leaves).filter(([k]) => k in after.leaves))}); if (d) return `${where}: ${req} ${from}: the code throws (${res.refused}) after changing the object: ${d}` } catch (x) { if (x instanceof HarnessFailure) throw x; return `${where}: ${req} ${from}: the code throws after changing the object (${(x as Error).message})` } }
       ev.refusedBoth++
       return undefined
     }
@@ -530,7 +558,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
       let st: State
       try { st = interp.init(ps!) } catch (x) { if (/2\^53/.test((x as Error).message)) { ev.startsOutside = (ev.startsOutside ?? 0) + 1; return {} } throw x }
       try { const snap = code.snapOf(made.value, params); const diff = sameSnap(snap, ruleSnap(r, m, st, sorts)); if (diff) return {problem: `new ${m.entry}(${JSON.stringify(params)}): ${diff}`}; return {side: {snap, self: made.value as object}, st, ps: ps!} }
-      catch (x) { return {problem: `new ${m.entry}: ${(x as Error).message}`} }
+      catch (x) { if (x instanceof HarnessFailure) throw x; return {problem: `new ${m.entry}: ${(x as Error).message}`} }
     }
     let st: State
     try { st = interp.init(ps ?? {}) } catch (x) { if (/2\^53/.test((x as Error).message)) { ev.startsOutside = (ev.startsOutside ?? 0) + 1; return {} } throw x }

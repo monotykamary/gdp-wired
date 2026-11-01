@@ -95,3 +95,43 @@ end`, undefined as never))
   expect(notes).toMatch(/Quota.bonus .*answered by the request \(tagged/)
   step(x, 'never past its cap', (_b, a) => a.used.atMost(a.cap), b => b.used.atMost(b.cap))
 }, 60_000)
+
+// The reader fuzz's misreads (core/extract-fuzz.ts): a function a module of the file doesn't define, a map updated
+// with a key it doesn't hold.
+t('a module of the file that defines no such function: refused (an UndefinedFunctionError where it runs)', () => {
+  const r = ex(`
+defmodule Metrics do
+end
+defmodule Meter do
+  use GenServer
+  def init({cap}), do: {:ok, %{used: 0, cap: cap}}
+  def handle_call({:take, n}, _from, s) do
+    Metrics.count("take", n)
+    if s.used + n > s.cap, do: {:reply, :full, s}, else: {:reply, :ok, %{s | used: s.used + n}}
+  end
+end`, 'Meter')
+  expect(r.ok).toBe(false)
+  expect(r.refusals[0]!.what).toMatch(/Metrics defines no count\/2 \(an UndefinedFunctionError where it runs\)/)
+}, 60_000)
+
+t('%{s | k: v} of a key the state doesn\'t hold: a KeyError, the step\'s failure', () => {
+  const x = ok(ex(`
+defmodule Counter do
+  use GenServer
+  @type t :: %{count: non_neg_integer, limit: pos_integer}
+  def init({limit}), do: {:ok, %{count: 0, limit: limit}}
+  def handle_call(:hit, _from, %{count: c, limit: l} = s) when c >= l, do: {:reply, :full, s}
+  def handle_call(:hit, _from, s), do: {:reply, :ok, %{s | count: s.count + 1}}
+  def handle_call({:take, n}, _from, s), do: {:reply, s.count - n, %{s | too: s.count - n}}
+end`, 'Counter'))
+  expect(x.source).toMatch(/\.assume\(.*method\.is\('take'\)/)
+}, 60_000)
+
+t('a plain module with no struct for its state: refused (the check has none to make)', () => {
+  const r = ex(`
+defmodule Q do
+  def push(s, x), do: %{s | items: Enum.count([x])}
+end`, 'Q')
+  expect(r.ok).toBe(false)
+  expect(r.refusals[0]!.what).toMatch(/Q: a plain module with no struct \(defstruct\) for its state/)
+}, 60_000)
