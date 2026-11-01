@@ -298,7 +298,8 @@ for (const [f, d] of docs) {
       }
       case 'termination': {
         const c = fromInterchange(d) as Extract<Certificate, {kind: 'termination'}>, ok = answer(f)
-        if (!ok) { t('termination').notWritten++; break }
+        // (a measure reading a fold function is written by core/data.ts's own Lean, not here)
+        if (!ok || c.measures.some(x => x.comps.some(q => q.fold))) { t('termination').notWritten++; break }
         const params = (m.params ?? []) as string[][]
         // a measure as Lean reads it (as lean-kernel/conformance.ts --rings writes it): Lx where it has several parts
         const comp = (ps: string[], q: {coef: number[], c: number}) => {

@@ -18,15 +18,16 @@ import {canon, columnTerm, factorsOf, isCell, isMonomial, termColumn} from '../k
 import type {CNode, Cyclic, Fact, Use} from '../kernel/cyclic.ts'
 import type {Lin, Step} from '../core/solver.ts'
 
-// 1.1 adds a liveness's fairness and levels (strong fairness, Live.lean's sleads_sound): a document is written at the
-// lowest version that holds it (1.0 unless a liveness is strong or has levels), and read at either.
+// 1.1 adds a liveness's fairness and levels (strong fairness, Live.lean's sleads_sf_soundA) and a measure part's fold (a
+// fold function's value at a parameter, core/data.ts's Measure): a document is written at the lowest version that holds
+// it (1.0 unless it has one of these), and read at either.
 export const FORMAT = 'gdp-wired-interchange', VERSION = '1.1', VERSIONS = ['1.0', '1.1']
 
 // --- the certificates, as the kernel reads them -------------------------------------------------------------------------
 export type LawsProof = {instances: Record<string, Instances>, trees: Record<string, Tree>}
 export type StepProof = {laws: LawsProof, instances: Instances, perStep?: Record<string, Instances>, trees: Record<string, Tree>}
 export type Progress = {name: string, when: C, then: C, request: Record<string, E>}
-export type Measure = {comps: {coef: number[], c: number}[]}
+export type Measure = {comps: {coef: number[], c: number, fold?: {fn: string, of: number}}[]}
 export type Obligation = {function: string, law: string, cyclic: Cyclic}
 export type Certificate =
   | {kind: 'goals', goals: {goal: Goal, tree: Tree}[]}
@@ -493,10 +494,12 @@ const decRecur = (x: unknown, cols: Columns, at: string): Recur => {
   const o = obj(x, at, ['start', 'stem', 'set', 'wit', 'tree'])
   return {start: record(o.start, nat, `${at}.start`), stem: arr(o.stem, `${at}.stem`).map((t, i) => record(t, nat, `${at}.stem[${i}]`)), set: decC(o.set, `${at}.set`), wit: record(o.wit, decE, `${at}.wit`), tree: decTree(o.tree, cols, `${at}.tree`)}
 }
-const encMeasure = (m: Measure, at: string): Json => ({comps: arr(m.comps, `${at}.comps`).map((c, i) => { const q = c as Measure['comps'][number]; return {coef: arr(q.coef, `${at}.comps[${i}].coef`).map((k, j) => int(k, `${at}.comps[${i}].coef[${j}]`)), c: int(q.c, `${at}.comps[${i}].c`)} })})
+const encFoldPart = (f: {fn: string, of: number}, at: string): Json => ({fn: name(f.fn, `${at}.fn`), of: nat(f.of, `${at}.of`)})
+const encMeasure = (m: Measure, at: string): Json => ({comps: arr(m.comps, `${at}.comps`).map((c, i) => { const q = c as Measure['comps'][number]; return clean({coef: arr(q.coef, `${at}.comps[${i}].coef`).map((k, j) => int(k, `${at}.comps[${i}].coef[${j}]`)), c: int(q.c, `${at}.comps[${i}].c`), fold: q.fold && encFoldPart(q.fold, `${at}.comps[${i}].fold`)}) })})
 const decMeasure = (x: unknown, at: string): Measure => {
   const o = obj(x, at, ['comps'])
-  return {comps: arr(o.comps, `${at}.comps`).map((c, i) => { const q = obj(c, `${at}.comps[${i}]`, ['coef', 'c']); return {coef: arr(q.coef, `${at}.comps[${i}].coef`).map((k, j) => int(k, `${at}.comps[${i}].coef[${j}]`)), c: int(q.c, `${at}.comps[${i}].c`)} })}
+  return {comps: arr(o.comps, `${at}.comps`).map((c, i) => { const q = obj(c, `${at}.comps[${i}]`, ['coef', 'c'], ['fold']); return clean({coef: arr(q.coef, `${at}.comps[${i}].coef`).map((k, j) => int(k, `${at}.comps[${i}].coef[${j}]`)), c: int(q.c, `${at}.comps[${i}].c`),
+    fold: opt(q, 'fold', (y, a) => { const f = obj(y, a, ['fn', 'of']); return {fn: name(f.fn, `${a}.fn`), of: nat(f.of, `${a}.of`)} }, `${at}.comps[${i}]`)}) })}
 }
 
 // --- documents ---------------------------------------------------------------------------------------------------------------
@@ -534,7 +537,7 @@ export function toInterchange(c: Certificate, meta?: Json): Document {
       default: return fail('kind', `no kind ${JSON.stringify((c as {kind: unknown}).kind)}`)
     }
   })()
-  const v11 = c.kind === 'liveness' && (c.liveness.fairness !== undefined || c.liveness.levels !== undefined)
+  const v11 = (c.kind === 'liveness' && (c.liveness.fairness !== undefined || c.liveness.levels !== undefined)) || (c.kind === 'termination' && c.measures.some(m => m.comps.some(q => q.fold !== undefined)))
   return clean({format: FORMAT, version: v11 ? '1.1' : '1.0', kind: c.kind, meta, columns: 'terms' in cols && cols.terms.length ? cols.terms : undefined, ...body}) as Document
 }
 
@@ -544,6 +547,7 @@ export function fromInterchange(doc: unknown): Certificate {
   if (head.format !== FORMAT) fail('format', `${JSON.stringify(FORMAT)}`)
   if (!VERSIONS.includes(head.version as string)) fail('version', `one of ${VERSIONS.join(', ')} (this reader's)`)
   if (head.version === '1.0' && head.kind === 'liveness' && isObj(head.liveness) && ('fairness' in head.liveness || 'levels' in head.liveness)) fail('liveness', 'no fairness or levels in a 1.0 document (1.1\'s)')
+  if (head.version === '1.0' && head.kind === 'termination' && JSON.stringify(head.measures ?? []).includes('"fold"')) fail('measures', 'no fold in a 1.0 document (1.1\'s)')
   const kind = head.kind as Kind
   if (!KINDS.includes(kind)) fail('kind', `one of ${KINDS.join(', ')}`)
   const o = obj(head, 'document', ['format', 'version', 'kind', ...FIELDS[kind].required], ['meta', 'columns', ...(FIELDS[kind].optional ?? [])])
