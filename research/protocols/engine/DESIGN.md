@@ -546,6 +546,15 @@ the two distinct keys its body holds at would make it 2: no pick at (w$12, key$2
 the body's map's keys (S at both, Config[64·1 + ·] at both). Sent to C3 through the coordinator: whether w$12 (a witness)
 is among the key terms certFor picks at.
 
+### gen/laneY6 on C3's e5d9f38 (picks at the instances' witnesses too): the probe again
+
+Still refused (1,056 s). Changed: in the Houdini rounds "every quorum at a config term, or disabled" is no longer
+refused by a model but runs out (59-75 s), as do "quorums overlap" (56-72 s) and "one version and term, one config"
+(66-134 s); one primary per term is still refused (pass 1, 37 s), by a model the tree search keeps (counts.ts's dump for
+that branch carries the hypotheses, not the witness, so this run doesn't show it). Even were every law's goal settled,
+each step goal of this set costs 55-134 s of the counted budget, past a 60 s run for the whole search: mldr at 60 s
+needs these goals far cheaper as well as settled.
+
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
 
 Held: the lazy hypotheses (kernel/prove.ts) cost the step goals time (g332 391 s against 354) and read 18 against 20 at
