@@ -1669,8 +1669,9 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   carries<const N extends string>(...names: N[]): Rule<P, I & {[k in N]: MapRef}, S, M, F, R, Su, Q> { return this.with({carried: [...(this.spec.carried ?? []), ...names]}) }
   // Counts (Machine.counts): `.counts({votes: env => ({below: env.size, body: (x, k) => env.Vote.at(k).eq(x.plus(1))})})`;
   // each a map no step writes, at x the number of keys k below the bound where the body holds (or its sum), read by the
-  // flags, the assumption and the step at the request's view, and by a law at the state.
-  counts<T extends Record<string, (env: P & I & S & M) => {below: TermLike, body: (x: Term, k: Term) => Cond | TermLike}>>(cs: T): Rule<P, I & {[k in keyof T]: MapRef}, S, M, F, R, Su, Q> {
+  // flags, the assumption and the step at the request's view, and by a law at the state. With `base`, a count over two
+  // parameters, read at the key base·a + b (b < base): `body: (a, k, b) => …`.
+  counts<T extends Record<string, (env: P & I & S & M) => {below: TermLike, body: (x: Term, k: Term, y: Term) => Cond | TermLike, base?: number}>>(cs: T): Rule<P, I & {[k in keyof T]: MapRef}, S, M, F, R, Su, Q> {
     return this.with({counts: [...(this.spec.counts ?? []), ...Object.entries(cs)] as never})
   }
   // Sequences each request carries (SeqRef): `.carriesSeq('Path')`, then `Path.at(i)`, `Path.len`, `A.prefixOf(B)`; the
@@ -2054,8 +2055,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       ...(s.maps.length ? {maps: Object.fromEntries(s.maps)} : {}),
       ...(s.carried?.length ? {inputMaps: s.carried} : {}),
       ...(s.counts?.length ? {counts: Object.fromEntries(s.counts.map(([n, f]) => {
-        const c = f(env as never), j = `${n}$x`, key = `${n}$k`, b = c.body(v(j), v(key))
-        return [n, {j, key, below: termOf(c.below), body: b instanceof Cond ? {op: 'if', c: b.c, then: {op: 'const', value: 1}, else: {op: 'const', value: 0}} as E : termOf(b)}]
+        const c = f(env as never), j = `${n}$x`, key = `${n}$k`, lo = `${n}$y`, b = c.body(v(j), v(key), v(lo))
+        return [n, {j, key, below: termOf(c.below), body: b instanceof Cond ? {op: 'if', c: b.c, then: {op: 'const', value: 1}, else: {op: 'const', value: 0}} as E : termOf(b), ...(c.base ? {lo, base: c.base} : {})}]
       }))} : {}),
       step: {...(Object.keys(flags).length ? {flags} : {}), ...(Object.keys(state).length ? {state} : {}), ...(Object.keys(maps).length ? {maps} : {})},
       ...(pre.length ? {pre: pre.length === 1 ? pre[0]! : {op: 'and', xs: pre}} : {}),

@@ -129,6 +129,10 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
   // that meet, the first of the pair one the conclusion or the law's own names read; then the rest at most another
   const post = (r: MapRead) => r[1].endsWith('#'), ranked = (r: MapRead) => rank([r[1], r[2]]) <= 1
   for (const c of named) if (post(c)) for (const a of named) if (a !== c && !post(a) && bound(a) === bound(c)) add([[1, a[0]], [-1, c[0]]], 0, byMap.get(c[1])!.below)
+  // (a count after the step, the conclusion's, at least a request's count less another: a set's members all in it but
+  // those a guard's count of the rest finds, |Q| ≤ missing + votes)
+  for (const c of named) if (post(c) && rank([c[1], c[2]]) === 0) for (const a of named) for (const d of named)
+    if (a !== d && !post(a) && !post(d) && keyless(a[1]) && keyless(d[1]) && bound(a) === bound(c) && bound(d) === bound(c)) add([[1, a[0]], [-1, d[0]], [-1, c[0]]], 0, byMap.get(c[1])!.below)
   for (const [i, a] of named.entries()) for (const [j, c] of named.entries())
     if (i < j && (ranked(a) || ranked(c)) && bound(a) === bound(c) && !post(a) && !post(c)) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
   for (const [i, a] of named.entries()) for (const [j, c] of named.entries())

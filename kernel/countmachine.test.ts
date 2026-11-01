@@ -3,10 +3,11 @@
 // mutated, every accepted set of laws true on every reachable state of the small instances (count maps read at the
 // request's view, a law's at the state), by brute force.
 import {describe, expect, test} from 'bun:test'
-import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, seeded, x} from '../core/machine.ts'
-import {type CountCert, type CountInst, type MapRead, check, checkCountedLaws, checkMC, countedObligations, mcGoal, obligations} from './kernel.ts'
+import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, seeded, times, x} from '../core/machine.ts'
+import {type CountCert, type CountInst, type MapRead, type Tree, check, checkCountedLaws, checkMC, countedObligations, mcGoal, obligations} from './kernel.ts'
 import {clock, grow} from './prove.ts'
-import {countedProof, toyCounted} from '../lean-kernel/count-examples.ts'
+import {countedProof, toyCounted, toyRounds} from '../lean-kernel/count-examples.ts'
+import {searchCounted} from '../core/counts.ts'
 
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
 
@@ -41,7 +42,7 @@ const holds = (c: C, env: Env, maps: Maps, keys = 8): boolean => {
   }
 }
 const countAt = (m: Machine, name: string, env: Env, maps: Maps) => (x0: number): number => {
-  const d = m.counts![name]!, e1 = {...env, [d.j]: x0}
+  const d = m.counts![name]!, e1 = d.base ? {...env, [d.j]: Math.floor(x0 / d.base), [d.lo!]: x0 % d.base} : {...env, [d.j]: x0}
   let s = 0
   for (let k = 0; k < ev(d.below, e1, maps); k++) s += ev(d.body, {...e1, [d.key]: k}, maps)
   return s
@@ -291,6 +292,84 @@ describe('pointed', () => {
     expect(checkMC(g.goal.hyps, g.decls.map(d => (d.map === 'quorum' ? {...d, j: d.key} : d)), k)).toBe(false)
   })
 })
+
+// --- counts over two parameters (CountMachine.lean's atJ, keyParts, readHyp) ----------------------------------------------
+// The toy by rounds: votes at B·a + b is the count with j at a, lo at b; a read at a key term written B·a + b is the count
+// at (a, b) only where b < B, which its hypothesis says (B ≤ b ∨ the cell).
+const rounds = toyRounds(), B = 4, pkB = (a: E, b: E): E => plus(times(B, a), b)
+const roundStates = (m: Machine, size: number) => reach(m, {size}, [0, 1].flatMap(op => Array.from({length: size}, (_, i) => [0, 1].flatMap(r => [0, 1].map(val => ({op, i, r, val})))).flat()),
+  subsets(size).map(Q => ({Q})), 4 * B)
+const trulyRounds = (m: Machine, laws: Law[]): boolean => [2, 3].every(size => roundStates(m, size).every(st => laws.every(l => lawHolds(m, l, {size}, st, 4 * B))))
+const roundCerts = countedProof(rounds.m, rounds.laws, rounds.instances, rounds.certs)
+// (a goal with each read's guard dropped: what the kernel would read with no guard)
+const unguarded = (g: {hyps: C[]}): {name: string, hyps: C[]} => ({name: 'unguarded', hyps: g.hyps.map(h => (h.op === 'or' && h.xs.length === 2 && h.xs[0]!.op === '<=' && h.xs[0]!.a.op === 'const' && h.xs[1]!.op === '=' ? h.xs[1]! : h))})
+describe('two parameters', () => {
+  test('the toy by rounds: accepted, and true on its small instances', () => {
+    expect(checkCountedLaws(rounds.m, rounds.laws, {instances: rounds.instances, certs: roundCerts})).toBe(true)
+    expect(trulyRounds(rounds.m, rounds.laws)).toBe(true)
+    // (its reads at B·a + b are guarded: b < B is the law's)
+    const g = countedObligations(rounds.m, rounds.laws, rounds.instances).find(o => o.goal.name === 'one value a round @step')!
+    const hs = mcGoal(g.goal.hyps, g.decls, roundCerts['one value a round @step']!)!.hyps
+    expect(hs.some(h => h.op === 'or' && h.xs[0]!.op === '<=' && JSON.stringify(h.xs[0]!.a) === JSON.stringify(n(B)))).toBe(true)
+ }, 60_000)
+  test('a key past the base aliases another count: refused, where the read with no guard would prove a false law', () => {
+    const laws: Law[] = [
+      {name: 'a vote at most B', forall: 'a', holds: atMost(get('Vote', x('a')), n(B))},
+      {name: 'no votes past the base', forall: 'a', keys: ['b'], holds: any(less(x('b'), n(B)), same(get('votes', pkB(x('a'), x('b'))), n(0)))},
+    ]
+    expect(trulyRounds(rounds.m, laws)).toBe(false)
+    const a = x('a#'), bb = x('b'), instances = {'a vote at most B': {'a vote at most B': [a]}, 'no votes past the base': {'no votes past the base': [a, bb], 'a vote at most B': [pkB(a, x('w1')), pkB(a, x('w2'))]}}
+    const named: Named = {'a vote at most B @start': {reads: [], insts: []}, 'a vote at most B @step': {reads: [], insts: []},
+      'no votes past the base @start': {reads: [['cX', 'votes#', pkB(a, bb)]], insts: [{wit: 'w1', below: x('size'), terms: [[1, 'cX']], unit: 0}]},
+      'no votes past the base @step': {reads: [['cX', 'votes#', pkB(a, bb)], ['cY', 'votes', pkB(a, bb)]], insts: [{wit: 'w1', below: x('size'), terms: [[1, 'cX']], unit: 0}, {wit: 'w2', below: x('size'), terms: [[1, 'cY']], unit: 0}]}}
+    // with the guard dropped, every goal has a tree; the kernel refuses them
+    const certs2: Record<string, CountCert> = {}
+    for (const {goal: g, decls} of countedObligations(rounds.m, laws, instances)) {
+      const k = named[g.name]!, goal = unguarded(mcGoal(g.hyps, decls, k)!), o = grow(goal, new Map(), {nodes: 0, until: clock() + 20_000})
+      expect('tree' in o).toBe(true)
+      certs2[g.name] = {...k, tree: (o as {tree: Tree}).tree}
+      if (k.reads.length) expect(grow(mcGoal(g.hyps, decls, k)!, new Map(), {nodes: 0, until: clock() + 5_000})).not.toHaveProperty('tree')
+    }
+    expect(checkCountedLaws(rounds.m, laws, {instances, certs: certs2})).toBe(false)
+  }, 60_000)
+  test('a key term the base does not compose is no read of the count', () => {
+    const one = 'one value a round @step', k = roundCerts[one]!
+    for (const t of [plus(times(B + 1, x('a#')), x('b')), plus(x('b'), times(B, x('a#'))), times(B, x('a#')), x('b')]) {
+      const swapped = {...k, reads: k.reads.map((r, j) => (j === 0 ? [r[0], r[1], t] as MapRead : r))}
+      expect(checkCountedLaws(rounds.m, rounds.laws, {instances: rounds.instances, certs: {...roundCerts, [one]: swapped}})).toBe(false)
+    }
+  })
+  test('the declaration: lo and base together, lo apart from j and key and fresh, base positive', () => {
+    const with2 = (d: object) => ({...rounds.m, counts: {...rounds.m.counts, votes: {...rounds.m.counts!.votes!, ...d}}}) as Machine
+    expect(() => countedObligations(with2({lo: 'y', base: B}), rounds.laws)).not.toThrow()
+    for (const d of [{lo: 'x'}, {lo: 'n'}, {lo: 'size'}, {lo: 'r'}, {base: 0}, {base: -4}, {base: 2.5}, {lo: undefined}, {base: undefined}])
+      expect(() => countedObligations(with2(d), rounds.laws)).toThrow()
+    // (checkMC: lo apart from the key)
+    const g = countedObligations(rounds.m, rounds.laws, rounds.instances).find(o => o.goal.name === 'one value a round @step')!
+    expect(checkMC(g.goal.hyps, g.decls, roundCerts['one value a round @step']!)).toBe(true)
+    expect(checkMC(g.goal.hyps, g.decls.map(d => (d.map === 'votes' ? {...d, lo: d.key} : d)), roundCerts['one value a round @step']!)).toBe(false)
+    // (a read's variable is no declaration's lo)
+    refusedRounds({...rounds.certs, 'one value a round @step': {...rounds.certs['one value a round @step']!, reads: [...rounds.certs['one value a round @step']!.reads, ['y', 'votes', pkB(x('a#'), x('b'))]]}})
+  })
+  test('quorums off by one, quorums of one, and a bound true only on small instances: none proven', () => {
+    const offByOne: Machine = {...rounds.m, assume: all(less(x('i'), x('size')), less(x('r'), n(B)), less(x('val'), n(B)), any(not(same(x('op'), one1)), atMost(x('size'), times(2, get('quorum', n(0))))))}
+    const ofOne: Machine = {...rounds.m, assume: all(less(x('i'), x('size')), less(x('r'), n(B)), less(x('val'), n(B)), any(not(same(x('op'), one1)), atMost(n(1), get('quorum', n(0)))))}
+    for (const m of [offByOne, ofOne]) {
+      expect(trulyRounds(m, rounds.laws)).toBe(false)
+      const cs = regrow(m, rounds.laws, rounds.instances, rounds.certs)
+      if (cs) expect(checkCountedLaws(m, rounds.laws, {instances: rounds.instances, certs: cs})).toBe(false)
+      expect(searchCounted(m, rounds.laws, 4_000).proven).toBe(false)
+    }
+    const small: Law = {name: 'votes at most 3', forall: 'a', holds: atMost(get('votes', x('a')), n(3))}
+    expect(trulyRounds(rounds.m, [small])).toBe(true)
+    expect(searchCounted(rounds.m, [small], 4_000).proven).toBe(false)
+  }, 120_000)
+})
+const one1 = n(1)
+const refusedRounds = (named: Named) => {
+  const cs = regrow(rounds.m, rounds.laws, rounds.instances, named)
+  if (cs) expect(checkCountedLaws(rounds.m, rounds.laws, {instances: rounds.instances, certs: cs})).toBe(false)
+}
 
 // --- terra's review (gen/laneK2): a law's fresh name k# captured; certificate terms over the naturals; fact keys -----------
 describe('names a goal reads by', () => {
