@@ -136,8 +136,11 @@ const atomsOf2 = (c: C): C[] => (c.op === 'and' || c.op === 'or' ? c.xs.flatMap(
 // taken as often as any other. Each state's step from the state it was first reached from is kept: `pathTo`.)
 const pathTo = new WeakMap<State, [State, Request]>()
 export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000, walks = 0): State[] {
-  // (the steps through the generated JavaScript, fastStep: the interpreter's states, as compile.test.ts holds them)
-  const run = interpret(m), start = run.init(p), step = fastStep(m) ?? run.step
+  // (past a thousand steps, through the generated JavaScript, fastStep: the interpreter's states, as compile.test.ts holds
+  // them; a small machine's few steps cost less than its compiling)
+  const run = interpret(m), start = run.init(p)
+  let steps = 0, fast = run.step
+  const step = (p2: Env, st: State, r: Request): State => { if (++steps === 1000) fast = fastStep(m) ?? run.step; return fast(p2, st, r) }
   const subsets = Array.from({length: 1 << b}, (_, s) => new Map(Array.from({length: b}, (_, i) => i).filter(i => (s >> i) & 1).map(i => [i, 1] as [number, number])))
   // (an input the assumption keeps below a few values, an action's, over all of them; the rest below b)
   const below = (i: string) => Math.max(b, ...(m.assume ? atomsOf2(m.assume) : []).flatMap(c => (c.op === '<' && c.a.op === 'var' && c.a.name === i && c.b.op === 'const' && c.b.value <= 8 ? [c.b.value] : [])))
