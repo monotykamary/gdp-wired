@@ -38,6 +38,40 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### Termination through a merge's size law (gen/laneT)
+
+The bar on boat, 60 s (`runs/bar/runs/laneT-tip-full3` in the main checkout: this branch at 470bc13 merged with main
+2fbe138, against main's shared baseline of 3 runs; a second full run of the branch before the merge,
+`runs/laneT/tip-cand2` in its worktree):
+
+| theorems (492) | proven | refused (unsupported) | wrong |
+| --- | --- | --- | --- |
+| gdp-wired, this branch | 211 (212, 214 before the merge) | 95 | 0 |
+| gdp-wired, main 2fbe138 | 209, 209, 212 | 103 | 0 |
+
+- Taken now: the heap sort's `toList` over integers (`sort_HSort*`, 8): its call is on `hmerge(p, q)`, below the heap by
+  the size law `size(hmerge(x, y)) + 1 <= size(x) + size(y)`, proven by the merge's own recursion and then used. None of
+  the 8 is proven within 60 s yet (timeout); gained 0 and lost 0 solid, 2 lost at the limit and not solid
+  (`list_Select`), wrong 0.
+- What it took (core/data.ts, the termination's search only): a size law's or an obligation's attempt first without
+  the shapes at fields' values (a split on each value's constructor that a descent rarely reads: hmerge's law, past
+  20 s with them, 0.8 s without), within a termination's proofs only; the obligation, its lemmas proven, first at no
+  unfolding (1032 instances at one, past its time; 370 at none, 2.4 s); constant lower bounds (`1 <= fold(x)`) as size
+  laws, for the natural-valued functions the helpers call too; a weighted size whose field of another datatype weighs
+  that datatype's own fold (a list of trees); `directly` at one unfolding then two. The trusted part is unchanged: each
+  obligation is kernel-checked, Data.lean's `wf_fix_unique`; Lean's export now writes a fold in `termination_by` and
+  proves a two-argument size law by `induction x, y using g.induct` (research/termination/lean-termination.ts: toList
+  through hmerge's law, checked by Lean 4.34.0, axioms propext, Classical.choice, Quot.sound).
+- Still refused, 66 for termination: `bubsort` 8 (a count of inversions), `ssort` 8 (a conditional size law, `elem m xs
+  ⇒ size(delete m xs) < size xs`), the merge sorts by halves `msorttd` 4 and `nmsorttd` 4 (take and drop at a half of
+  the length), `bmerge` 8 (evens and odds of both lists), `toList` over Peano naturals 8 (the merge's law, its cases split
+  on the tags of fields, not on the user's ≤, past its time), `flatten1` 2 (the fold's measure is found, its descent
+  needs the inner fold's lower bound at grandchildren the lemma's uses don't reach), and the integer helpers that don't
+  end below 0, correctly: `idiv` 12, `third` 4, `twoThirds` 4, `nmsorttd-half1` 4. Nested recursion and rings with a
+  nested call (25: the Stooge sorts, `models`, McCarthy's `m`, `subst`) need more than a termination certificate: a
+  Lean theorem for a functional that reads the function at its own value, `F g x` agreeing with `F h x` where g and h
+  agree below μ(x) and satisfy an invariant there (Stooge: `length(f x) = length x`), proven together with the decrease.
+
 ### Fusions of two definitions, weighted sizes as measures (gen/tip3)
 
 Three runs a side of every tool in one batch on Modal, 60 s, 2 vCPU (`runs/tip3/final3` in the main checkout: this

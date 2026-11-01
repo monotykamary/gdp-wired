@@ -3,7 +3,7 @@
 // structural recursion refused unless its termination is proven (a measure every call lowers, each call's obligation
 // proven by the kernel), and a tampered proof refused by the kernel.
 import {expect, test} from 'bun:test'
-import {type Bool, type Nat, type Val, EvalLimit, conjectures, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, when} from './data.ts'
+import {type Bool, type Nat, type Val, EvalLimit, boolean, checkMeasures, conjectures, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, when} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
 import {transferPlan} from './transfer.ts'
 import {Bag, Forest, List, Rose, Tree, a3, adversarial, app, broken, drp, ilv, laws, leq, len, merge, mergeRuns, mir, mrg, nonterminating, paren, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken, tokens, wellFounded} from '../examples/data.ts'
@@ -215,3 +215,53 @@ test('evaluation within bounds: a natural past 2^53 throws, a sample past the bo
   expect(programOf([l]).datas.map(d => d.name)).toContain('List')
   expect(proveData(l).proven).toBe(true)
 })
+
+// A weighted size of a parameter (core/data.ts's foldMeasures): a tree turned right at its root until its left is a
+// leaf, the left subtree weighing 2 (the only weights its runs' calls all lower). A function a user defined under the
+// fold's name is never read as the fold: there the turn is refused.
+test('a weighted size: a turned tree taken by a fold defined for it, never by a user\'s function of the same name', () => {
+  const turnOf = (dname: string, name: string) => {
+    const D = data(dname, {leaf: {}, node: {l: self, v: natural, r: self}})
+    const turn: ReturnType<typeof define> = define(name, {t: D}, natural, ({t}) => (t as Val).match({leaf: () => 0,
+      node: ({l, v, r}) => (l as Val).match({leaf: () => (turn(r) as Nat).plus(1), node: ({l: p, v: x, r: q}) => turn(D.node(p, x, D.node(q, v, r)))})}))
+    return {D, turn}
+  }
+  const {D: TT, turn} = turnOf('TT', 'turnTT')
+  expect(() => programOf([law('turned', {t: TT}, ({t}) => (turn(t) as Nat).eq(turn(t)))])).not.toThrow()
+  expect(turn.fn.measure!.comps[0]!.fold?.fn).toBe('foldTT_201')
+  for (const o of turn.fn.termination!.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof)).toBe(true)
+  // (a user's own foldTU_201, defined before the fold would be: the turn on TU is refused)
+  define('foldTU_201', {x: data('TUx', {none: {}})}, natural, () => 0)
+  const {D: TU, turn: turn2} = turnOf('TU', 'turnTU')
+  expect(refusal(() => law('turned', {t: TU}, ({t}) => (turn2(t) as Nat).eq(turn2(t))))).toMatch(/no measure is proven to fall/)
+}, 60_000)
+
+// The paths core/data.ts reads a call's obligation under (sitesOf): a second match on a variable matched before takes
+// the case its first match took, its fields the first's, and never reaches the others (where a call that doesn't
+// descend may sit); a match on a term that is no variable wraps the obligation in that term's case. And a measure
+// found is one checkMeasures proves again; a parameter no measure reads (a flag) doesn't keep a function from one.
+test('the paths of a call\'s obligation: a variable matched again, a term matched, a flag beside', () => {
+  const PL = data('PL', {nil: {}, cons: {h: natural, t: self}})
+  const tl = define('plTail', {xs: PL}, PL, ({xs}) => (xs as Val).match({nil: () => PL.nil, cons: ({t}) => t as Val}))
+  // (the unreached case calls itself at the same list: read, it would be refused)
+  const again: ReturnType<typeof define> = define('plAgain', {xs: PL}, natural, ({xs}) => (xs as Val).match({nil: () => 0,
+    cons: () => (xs as Val).match({nil: () => again(xs), cons: ({t}) => (again(t) as Nat).plus(1)})}))
+  // (the call descends only where the tail of xs is a cons, so xs is one)
+  const onTail: ReturnType<typeof define> = define('plOnTail', {xs: PL}, natural, ({xs}) => (tl(xs) as Val).match({nil: () => 0, cons: () => (onTail(tl(xs)) as Nat).plus(1)}))
+  // (a flag passed along, read by no measure)
+  const flagged: ReturnType<typeof define> = define('plFlagged', {b: boolean, xs: PL, ys: PL}, natural, ({b, xs, ys}) => (xs as Val).match({nil: () => 0,
+    cons: ({t}) => (ys as Val).match({nil: () => (flagged(b, t, ys) as Nat).plus(1), cons: ({t: u}) => (flagged(b, PL.cons(0, t), u) as Nat).plus(1)})}))
+  // (a natural matched on a term, n − 1: the call at n − 1 below n where n − 1 is a successor)
+  const pred: ReturnType<typeof define> = define('plPred', {n: natural}, natural, ({n}) => ((n as Nat).minus(1)).match({zero: () => 0, succ: () => (pred((n as Nat).minus(1)) as Nat).plus(1)}))
+  // (a ring one of whose functions reads a flag alone: its measure a constant, between its callers' and callees')
+  const viaFlag: ReturnType<typeof define> = define('plViaFlag', {xs: PL}, natural, ({xs}) => (xs as Val).match({nil: () => 0, cons: () => (flagOnly(xs.ne(xs)) as Nat).plus(1)}))
+  const flagOnly: ReturnType<typeof define> = define('plFlagOnly', {b: boolean}, natural, ({b}) => when(b as Bool, 0 as number, viaFlag(PL.nil) as never))
+  for (const f of [again, onTail, flagged, pred, viaFlag]) {
+    expect(refusal(() => law('taken', Object.fromEntries(f.fn.params.map(p => [p.name, p.sort])) as never, vs => (f(...f.fn.params.map(p => vs[p.name])) as Nat).eq(f(...f.fn.params.map(p => vs[p.name])) as Nat))), f.fn.name).toBeUndefined()
+    if (f.fn.decreases !== undefined) continue
+    for (const o of f.fn.termination!.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof)).toBe(true)
+    if (f.fn.ring.length === 1) expect(checkMeasures([f.fn], [f.fn.measure!]).proven, f.fn.name).toBe(true)
+  }
+  expect(again.fn.decreases).toBeUndefined()
+  expect([...viaFlag.fn.ring].sort()).toEqual(['plFlagOnly', 'plViaFlag'])
+}, 120_000)

@@ -15,6 +15,17 @@ kernel fuzz). Fanned out on boat or Modal (`bun mutants.ts ids <a,b,...>` per jo
 | counts and ghost maps (gen/laneK: `checkCounted`, `ghostedOk`, `checkGhostedLaws`, kernel.ts's lines 1582–1703), `count.test.ts` first in the battery (`MUTANT_BATTERY=counts`: that test alone) | 40 | 40 (100%) | 0 |
 | every operator of kernel.ts and check.ts (gen/laneM, 2026-10-31: the treadmill had run 280 of 959; the rest reaches loops, recurrent sets by cases, rationals, sums, k-induction, liveness, counts in a machine) | 959 | 758 (79%) | 201 |
 | plus `sums`, `rationals`, `pairs`, `nonterm` in the battery and the tests written for the 201 (refusals.test.ts, count.test.ts, countmachine.test.ts), the whole battery again on the final commit | 959 | 876 (91%) | 83, each listed equivalent below (86 listed: three, 295, 386, 505, failed a slow test under load in that run and survive it alone) |
+| core/data.ts's admission of a definition (gen/laneT, 2026-11-01: `recursion`, the measures' terms, `sitesOf`, `obligation`, `directly`, `proveMeasures`, `ringSites`, `checkMeasures`, `termination`; `MUTANT_BATTERY=termination,conformance`, the first the termination tests of core/data.test.ts) | 112 | 69 (62%) | 43, each listed equivalent below: messages, names, traces and types 12, search settings and deadlines 12, arithmetic that adds or multiplies by nothing 6, a route that only refuses, or moves a function from structural to a kernel-checked measure, or reads a case as a guard 7, an integer measure read at its code 2·v 2, guards backed by another check 4 |
+
+`core/data.ts`'s admission of a definition is in the targets by its top-level declarations alone (mutants.ts's `only`):
+the rest of that file is the search, whose mutants change speed, never what is taken. Its first run left 50 of 111; the
+tests written for them (core/data.test.ts: the obligations' paths through a variable matched again, a term matched, a
+natural matched on n − 1, a flag beside, a ring with a flag-only function; checkMeasures proving a found measure again;
+a weighted size never read through a user's function of the fold's name) killed 7, and the 43 left are listed below.
+Two are guards whose mutant only a search bug would reach (`directly`'s `v.proven && v.checked`, kept as the kernel's
+check of a search proof, and Lean's export proves each taken definition's decrease again); two are rings mixing an
+integer measure with a natural one, compared as naturals at the integer's code 2·v, alike at every comparison of that
+function's component.
 
 The survivors that change nothing the kernel's soundness or answers rest on are in the `equivalent` block at the end,
 each anchored by the top-level declaration it sits in and a snippet of its line (not a line number, which edits move):
@@ -132,4 +143,46 @@ core/check.ts | checkRefutation | "& s.of < i && " | " < " -> " <= " | the row m
 core/check.ts | checkRefutation | "&& s.g > 0 && " | " > " -> " >= " | g = 0 passes only a row with no variable, whose ceiling is ±Infinity or NaN: positive only where the row was already a contradiction
 core/check.ts | checkRefutation | "& s.g > 0 && v" | " > 0" -> " >= 0" | g = 0 passes only a row with no variable, whose ceiling is ±Infinity or NaN: positive only where the row was already a contradiction
 kernel/kernel.ts | foldTerm | "=== 0 ? a : a.op === 'const' && b.op ===" | " === " -> " !== " | a fold not taken (caseGoals): the term or condition keeps its value, which the kernel's linear forms read alike; that the folds are Lean's own is the Lean conformance's (--nonterm), outside this battery
+core/data.ts | callsIn | "o.of.op === 'var' ? (fieldsOf.get(o.of.name) ?? o.of.name) : undefined, m = new Map" | " === " -> " !== " | structural recursion's search only: a match on a term that is no variable binds nothing either way; a variable's match losing its fields makes fewer functions structural, each then taken only by a measure whose obligations the kernel checks
+core/data.ts | recursion | "f Data || p.sort === 'nat' ? [i] : []" | " === " -> " !== " | which route takes a function only: a natural's parameter not tried as structural sends its function to a measure, kernel-checked; a parameter of no datatype is never a field's owner, so it never makes a call structural
+core/data.ts | recursion | "st got = members.some(f => f.stated) ?" | ".some(" -> ".every(" | a stated measure on some member of a ring only: structural recursion is then tried first, which needs no measure (wf_fix_unique is not read for it)
+core/data.ts | recursion | "${members.length > 1 ? `, in its ri" | " > " -> " >= " | text in a refusal's message
+core/data.ts | recursion | "` : ''}${members.some(f => f.stated) ?" | ".some(" -> ".every(" | text in a refusal's message
+core/data.ts | sized | "= (s: Sort) => s === 'nat' || s insta" | " === " -> " !== " | sizeLaws' choice of helpers (the search's conjectures), each law proven before it is used
+core/data.ts | measureOf | "=> p.name === n && measurable(p.sor" | " && " -> " || " | a stated measure naming a parameter no measure reads: its coefficient is on a value with no size map (the obligation fails to encode and is refused) or on no parameter (the obligations compare 0 with 0, refused)
+core/data.ts | measureOf | "ength), c: names.every(n => ps.some(p =" | ".every(" -> ".some(" | as above: a stated measure's names are only validated here; an invalid one is refused by its obligations
+core/data.ts | measureX | "t, args[i]!); (k > 0 ? pos : neg).p" | " > " -> " >= " | k is never 0 here (the loop returns at !k)
+core/data.ts | measureX | "t, args[i]!); (k > 0 ? pos : neg).pu" | " > 0" -> " >= 0" | k is never 0 here (the loop returns at !k)
+core/data.ts | measureX | "if (c.c > 0) pos.push({op:" | " > " -> " >= " | c.c = 0 then adds the natural 0 to the positive part
+core/data.ts | measureX | "if (c.c > 0) pos.push({op:" | " > 0" -> " >= 0" | c.c = 0 then adds the natural 0 to the positive part
+core/data.ts | measureX | "if (c.c < 0) neg.push({op:" | " < " -> " <= " | c.c = 0 then subtracts the natural 0
+core/data.ts | readsInt | "mber]) => c.coef.some((k, i) => k && f" | ".some(" -> ".every(" | a component reading an integer beside another parameter read as naturals: the integer's term has no size map, the obligation fails to encode and the measure is refused (never taken)
+core/data.ts | measureI | "terms.push(k === 1 ? t : {op: 'im" | " === " -> " !== " | an integer term times 1
+core/data.ts | isIntX | "if' && x.else.op === 'int'" | " === " -> " !== " | an integer component wrapped as a natural reads its code, 2·v for v ≥ 0 (Z.enc; iMax0 keeps v ≥ 0): every comparison of that function's component is doubled alike, a measure 2·μ as well-founded as μ; a natural term then reads no else and throws (refused)
+core/data.ts | sitesOf | "while (t && t.op === 'var' && sh.has(" | " === " -> " !== " | a variable bound to a variable is then not followed: its case is read through the guard form (a match's case as a condition), the same path
+core/data.ts | obligation | "readsInt(to, c) || readsInt(fn, ms[" | " || " -> " && " | a ring mixing an integer measure with a natural one compared as naturals: the integer's code is 2·v at v ≥ 0, alike in every comparison of that function's component (its own calls compare integers, 2a < 2b iff a < b), a measure 2·μ
+core/data.ts | obligation | "me = ring.length === 1 ? `${fn.name}'" | " === " -> " !== " | text in an obligation's name
+core/data.ts | obligation | "name}'s call ${i + 1} lowers ${showM" | " + 1" -> "" | text in an obligation's name
+core/data.ts | obligation | "name}'s call ${i + 1}, of ${to.name}" | " + 1" -> "" | text in an obligation's name
+core/data.ts | directly | "o => { if (o.op === 'get' && ctors.h" | " === " -> " !== " | which constructor values directly() adds shapes at: the search's instances, the proof checked by the kernel
+core/data.ts | directly | "(o.op === 'get' && ctors.has(o.map" | " && " -> " || " | which constructor values directly() adds shapes at: the search's instances, the proof checked by the kernel
+core/data.ts | directly | "if (clock() > until) return un" | " > " -> " >= " | a deadline's comparison
+core/data.ts | directly | "iredKeys.skip = true" | "true" -> "false" | pairedKeys.skip, a search setting
+core/data.ts | directly | ", concl, rank: [k(0)], insts, uses:" | "k(0)" -> "k(1)" | the rank of a node with no uses: no descent goal reads it
+core/data.ts | directly | "if (v.proven && v.checked) retur" | " && " -> " || " | proveCyclic's verdict is proven only after the kernel's check of the proof it made, checked its result; no search proof the kernel refuses is known, and each taken definition's decrease is proven again by Lean's export (decreasing_by)
+core/data.ts | proveMeasures | "ermination.on = true" | "true" -> "false" | the pass without the fields' shapes off: the search's instances, every proof checked by the kernel
+core/data.ts | proveMeasuresIn | "lter(r => r.from === s.from).length)" | " === " -> " !== " | the call's number in its obligation's name
+core/data.ts | proveMeasuresIn | "if (dataTrace && lemmas.length) c" | " && " -> " || " | a trace
+core/data.ts | proveMeasuresIn | "ample && clock() < until) v = prove" | " < " -> " <= " | a deadline's comparison
+core/data.ts | proveMeasuresIn | "eft()), lemmas: false})" | "false" -> "true" | a search option (conjectured lemmas in the plain attempt)
+core/data.ts | proveMeasuresIn | "aw, {induction: false, ms: Math.min(4" | "false" -> "true" | a search option (induction in the last attempt)
+core/data.ts | proveMeasuresIn | "!v || !(v.proven && v.checked)) retu" | " && " -> " || " | proveData's verdict is proven only with checked (data.ts: ok() sets both from a kernel-checked proof), so !(proven && checked) and !(proven || checked) agree
+core/data.ts | ringSites | "o => { if (o.op === 'call' && names." | " === " -> " !== " | nested recursion is then not refused here, and proveMeasuresIn refuses it (an obligation that reads the ring throws): the same refusal
+core/data.ts | ringSites | "ring)) nested = true })" | "true" -> "false" | nested recursion is then not refused here, and proveMeasuresIn refuses it (an obligation that reads the ring throws): the same refusal
+core/data.ts | ringSites | "to ${ring.length > 1 ? 'its ring' :" | " > " -> " >= " | text in a refusal's message
+core/data.ts | checkMeasures | "s.ms): {proven: true, obligations: T" | "true" -> "false" | a type annotation, nothing at run time
+core/data.ts | checkMeasures | "| {proven: false, why: strin" | "false" -> "true" | a type annotation, nothing at run time
+core/data.ts | termination | "nd ${ring.length === 1 ? 'it has' : '" | " === " -> " !== " | text in a refusal's message
+core/data.ts | termination | "if (clock() > until) { tried.p" | " > " -> " >= " | a deadline's comparison
+core/data.ts | termination | "(bad) { if (ring.some(f => f.stated) |" | ".some(" -> ".every(" | which measure's failure the refusal's message names
 ```
