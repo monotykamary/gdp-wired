@@ -9,13 +9,16 @@
 // (Houdini: a candidate whose goal fails is dropped, the rest proven again). Nothing new is trusted: what is kept is
 // laws the kernel proves.
 import {type C, type E, type Law, type Machine, type State, evalC, interpret, seeded} from './machine.ts'
-import {clock, proveLaws} from '../kernel/prove.ts'
+import {clock, counted, fullRate, proveSetFast} from '../kernel/prove.ts'
 import {allowed, watch} from './watch.ts'
 import type {Draws} from './live.ts'
 
 const v = (name: string): E => ({op: 'var', name}), get = (map: string, key: E): E => ({op: 'get', map, key})
 export type FreshLaw = {law: Law, text: string}
-export function freshLaws(m: Machine, kinds: Law[], draws: Draws, opts: {ms?: number} = {}): FreshLaw[] {
+// The budget is counted (kernel/prove.ts's cost model), as the invariant search's is: what is found is the same on any
+// machine. Houdini's set proofs are proveSetFast's, each round reusing the goals the last one settled.
+export const freshLaws = (m: Machine, kinds: Law[], draws: Draws, opts: {ms?: number} = {}): FreshLaw[] => counted(fullRate, () => fresh(m, kinds, draws, opts), true)
+function fresh(m: Machine, kinds: Law[], draws: Draws, opts: {ms?: number}): FreshLaw[] {
   const maps = Object.entries(m.maps ?? {}).filter(([n]) => !(m.inputMaps ?? []).includes(n))
   if (!maps.length || m.history) return []
   const until = clock() + (opts.ms ?? 5000), run = interpret(m), rand = seeded(53), bound = 4
@@ -66,8 +69,8 @@ export function freshLaws(m: Machine, kinds: Law[], draws: Draws, opts: {ms?: nu
   }
   let alive = cands.filter(f => states.every(({ps, st}) => { try { return watch(m, run, f.law, ps, bound).start(st) } catch { return false } }))
   while (alive.length && clock() < until) {
-    let out: ReturnType<typeof proveLaws>
-    try { out = proveLaws(m, [...kinds, ...alive.map(f => f.law)]) } catch { return [] }
+    let out: ReturnType<typeof proveSetFast>
+    try { out = proveSetFast(m, [...kinds, ...alive.map(f => f.law)]) } catch { return [] }
     if (out.proven && out.checked) return alive
     const failed = out.failed?.goal ?? '', drop = alive.findIndex(f => failed.startsWith(`${f.law.name} @`) || failed.startsWith(`${f.law.name}:`))
     if (drop < 0) return []
