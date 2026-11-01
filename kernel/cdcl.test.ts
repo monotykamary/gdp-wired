@@ -6,6 +6,7 @@
 // compares reader.ts's rows with kernel.ts's at every node of the search and every leaf of the unfolded tree.
 import {expect, test} from 'bun:test'
 import {type C, type E, seeded} from '../core/machine.ts'
+import type {Lin} from '../core/solver.ts'
 import {type Goal, type Path, canon, check, leafConstraints, termColumn} from './kernel.ts'
 import {clock, grow} from './prove.ts'
 import {REFUTED, growCdcl} from './cdcl.ts'
@@ -122,13 +123,13 @@ test("reader.ts keeps a disjunction's facts only while its closed parts' values 
     {op: '=', a: x, b: z},
   ]}
   // The search's trail: 1 ∸ y < x (its column), y < x, y ≤ 1, each decided true at a node of its own.
-  const steps = [{'1': 1, x: -1, [termColumn(cut())]: 1}, {'1': 1, x: -1, y: 1}, {'1': -1, y: 1}].map(lin => ({name: canon(lin), lin, holds: true}))
+  const steps = ([{'1': 1, x: -1, [termColumn(cut())]: 1}, {'1': 1, x: -1, y: 1}, {'1': -1, y: 1}] as Lin[]).map(lin => ({name: canon(lin), lin, holds: true}))
   const trail: typeof steps = [], stamps: number[] = []
   const reader = new Reader(goal, {
     get: name => { const at = trail.findIndex(a => a.name === name); return at < 0 ? undefined : {val: trail[at]!.holds, at} },
     stamp: at => stamps[at]!, size: () => trail.length, lin: at => trail[at]!,
   })
-  const texts = (lins: {lin: Record<string, number>}[]) => [...new Set(lins.map(r => canon(r.lin)))].sort()
+  const texts = (lins: {lin: Lin}[]) => [...new Set(lins.map(r => canon(r.lin)))].sort()
   for (let i = 0; ; i++) {
     reader.begin()
     reader.sync()
