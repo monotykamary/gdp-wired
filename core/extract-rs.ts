@@ -17,7 +17,7 @@
 // capture, panics and assertions (failures). Refused, each where it is with why: loops, generics and traits objects,
 // enums with data, references kept, maps and vectors (for now), floats, unsafe pointers, other crates' code.
 import {type Extraction} from './extract.ts'
-import {Refusal, pathOf, type FileURL} from './extract-read.ts'
+import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
 import {asset, type Harness, type Leaf, type SModule, type SType, type StepOptions, type StepRead, entryNames, extractStep, node, stubbed} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
@@ -38,8 +38,8 @@ export function rsReader(cargo = 'cargo'): string {
 export function readRust(dir: string, names: string[], cargo?: string): SModule {
   const cp = node<CP>('node:child_process')
   let out: string
-  try { out = cp.execFileSync(rsReader(cargo), [JSON.stringify({root: dir, names})], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']}) }
-  catch (e) { throw new Refusal(dir, `the Rust reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): cargo is needed to extract Rust`) }
+  try { out = cp.execFileSync(rsReader(cargo), [JSON.stringify({root: dir, names})], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()}) }
+  catch (e) { throw new Refusal(dir, statedRefusal(e) ?? `the Rust reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): cargo is needed to extract Rust`) }
   return JSON.parse(out) as SModule
 }
 

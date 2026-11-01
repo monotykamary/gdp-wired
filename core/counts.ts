@@ -245,17 +245,22 @@ export function cone<P>(m: Machine, set: Law[], attempt: (law: Law, ls: Law[], m
 export type Counted = {proven: boolean, laws: Law[], m: Machine, proof?: {instances: Record<string, Instances>, certs: Record<string, CountCert>}, why?: string}
 // On the counted clock (kernel/prove.ts's `counted`, the cost model's work at fullRate a millisecond), as the engine's
 // search is: what a budget lets it try, and so its verdict, is the same on a slow or shared machine as on a fast one; the
-// wall a stop only at twice the budget.
+// wall a stop only at twice the budget. The small instances (exists.ts's smallOf) are read before the wall starts: their
+// search is bounded by its own count of steps, on neither clock, and took 3.6 to 5.2 s of an 8 s budget's 16 s wall on
+// a boat VM (exists.test.ts's two counts), so a shared VM crossed the wall before the search began and left every goal
+// unknown (2 runs in 4 on main; 4 in 4 beside three busy loops).
 export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted {
-  const run = () => withWall(performance.now() + 2 * ms, () => counted(fullRate, () => searchCounted0(m0, caller, ms), true))
+  const g = guardLaws(m0), m: Machine = {...m0, counts: {...m0.counts, ...g.counts}}
+  ptime('small', () => smallOf(m))
+  const run = () => withWall(performance.now() + 2 * ms, () => counted(fullRate, () => searchCounted0(m0, g, m, caller, ms), true))
   if (!env.GDP_COUNTS_PROF) return run()
   cdclStats.on = true
   const t = performance.now(), out = run()
   console.error(`counts: prof total ${Math.round(performance.now() - t)} ms; ${Object.entries(cprof).map(([k2, x]) => `${k2} ${Math.round(x)}`).join(', ')}; cdcl runs ${cdclStats.runs} conflicts ${cdclStats.conflicts} decisions ${cdclStats.decisions} solveMs ${Math.round(cdclStats.solveMs)} rowsMs ${Math.round(cdclStats.rowsMs)} coreMs ${Math.round(cdclStats.coreMs)} unfoldMs ${Math.round(cdclStats.unfoldMs)} lpMs ${Math.round(cdclStats.lpMs)} boundMs ${Math.round(cdclStats.boundMs)} orderMs ${Math.round(cdclStats.orderMs)}`)
   return out
 }
-function searchCounted0(m0: Machine, caller: Law[], ms = 60_000): Counted {
-  const until = clock() + ms, g = guardLaws(m0), m: Machine = {...m0, counts: {...m0.counts, ...g.counts}}
+function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine, caller: Law[], ms: number): Counted {
+  const until = clock() + ms
   if (!caller.every(l => clock() < until && trueSmall(m, [l]))) return {proven: false, laws: caller, m, why: clock() < until ? 'a law fails on the small instances' : 'time'}
   const t1 = clock()
   let set = [...caller, ...candidates(m0, m, caller, caller, g.laws, ms, until)]

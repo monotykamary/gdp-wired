@@ -51,7 +51,9 @@ public final class KtReader implements Jvm.Env {
   public static void main(String[] argv) throws Exception {
     Map<?, ?> req = (Map<?, ?>) parse(argv[0]);
     Jvm.kotlin = true;
-    System.out.println(json(new KtReader().read(req)));
+    String out = null;
+    try { out = json(new KtReader().read(req)); } catch (RuntimeException | Error e) { if (!Jvm.overflowed(e)) Jvm.failed("Kotlin", e); Jvm.refuse("the source nests too deeply to read"); }
+    System.out.println(out);
   }
   static KtPsiFactory factory() throws Exception {
     CompilerConfiguration cfg = new CompilerConfiguration();
@@ -68,9 +70,21 @@ public final class KtReader implements Jvm.Env {
   Map<String, Object> read(Map<?, ?> req) throws Exception {
     String path = (String) req.get("file"), root = (String) req.get("root");
     src = Files.readString(Path.of(path));
+    // (the PSI recovering from deep unclosed nesting took 23 minutes on one source: past MAX_DEPTH brackets it is refused
+    // before the parse, as the Rust reader refuses it)
+    int depth = 0, most = 0;
+    for (int i = 0; i < src.length(); i++) { char c = src.charAt(i); if (c == '(' || c == '[' || c == '{') most = Math.max(most, ++depth); else if (c == ')' || c == ']' || c == '}') depth--; }
+    if (most > 1000) Jvm.refuse(new File(path).getName() + ": the source nests " + most + " brackets deep (past 1000)");
     base = new File(path).getName();
     KtPsiFactory f = factory();
     file = f.createFile(base, src);
+    // (the PSI recovers from a syntax error and leaves an error element where it was: what the walk past it reads is
+    // not the code the compiler would refuse, so the source is refused there)
+    com.intellij.psi.PsiErrorElement bad = com.intellij.psi.util.PsiTreeUtil.findChildOfType(file, com.intellij.psi.PsiErrorElement.class);
+    if (bad != null) {
+      int at = bad.getTextRange().getStartOffset(), line = 1 + (int) src.substring(0, Math.min(at, src.length())).chars().filter(c -> c == '\n').count();
+      Jvm.refuse("the source doesn't parse: line " + line + ": " + bad.getErrorDescription());
+    }
     pkg = file.getPackageFqName().asString();
     List<Integer> ls = new ArrayList<>(List.of(0));
     for (int i = 0; i < src.length(); i++) if (src.charAt(i) == '\n') ls.add(i + 1);
@@ -158,7 +172,7 @@ public final class KtReader implements Jvm.Env {
     }
     return null;
   }
-  static JT boxed(JT t) { String b = UNBOX.get(t.n); return b == null ? t : new JT(b, t.a, t.nul); }
+  static JT boxed(JT t) { if (t == null) return null; String b = UNBOX.get(t.n); return b == null ? t : new JT(b, t.a, t.nul); }
   // A JVM parameter's erased type, as the harness looks the method up.
   static String erased(JT t) { if (t == null) return "java.lang.Object"; if (t.nul) return UNBOX.getOrDefault(t.n, t.n); return t.n.equals("void") ? "java.lang.Object" : t.n; }
   @Override public List<String> enumValues(String fq) {
@@ -610,11 +624,13 @@ public final class KtReader implements Jvm.Env {
       if (et == KtNodeTypes.INTEGER_CONSTANT) {
         boolean lng = s.endsWith("L") || s.endsWith("l");
         String d = s.replaceAll("[lLuU]+$", "");
-        long v = d.startsWith("0x") || d.startsWith("0X") ? Long.parseLong(d.substring(2), 16) : d.startsWith("0b") || d.startsWith("0B") ? Long.parseLong(d.substring(2), 2) : Long.parseLong(d);
+        long v;
+        try { v = d.startsWith("0x") || d.startsWith("0X") ? Long.parseLong(d.substring(2), 16) : d.startsWith("0b") || d.startsWith("0B") ? Long.parseLong(d.substring(2), 2) : Long.parseLong(d); }
+        catch (NumberFormatException nfe) { return no1(k, "an integer literal past 64 bits"); }
         JT ty = lng || v > Integer.MAX_VALUE || v < Integer.MIN_VALUE ? new JT("long") : want != null && integral(want) ? new JT(prim(want)) : new JT("int");
         return new X(lit(v, ty, p), ty);
       }
-      if (et == KtNodeTypes.FLOAT_CONSTANT) { double d = Double.parseDouble(s.replaceAll("[fF]$", "")); return d == Math.floor(d) && Math.abs(d) < 9.007199254740992E15 ? new X(x("int", p, "v", Long.toString((long) d), "float", true), new JT(s.endsWith("f") || s.endsWith("F") ? "float" : "double")) : no1(e, "a float that isn't whole (a binary fraction)"); }
+      if (et == KtNodeTypes.FLOAT_CONSTANT) { double d; try { d = Double.parseDouble(s.replaceAll("[fF]$", "")); } catch (NumberFormatException nfe) { return no1(k, "a float literal that isn't a number"); } return d == Math.floor(d) && Math.abs(d) < 9.007199254740992E15 ? new X(x("int", p, "v", Long.toString((long) d), "float", true), new JT(s.endsWith("f") || s.endsWith("F") ? "float" : "double")) : no1(e, "a float that isn't whole (a binary fraction)"); }
       if (et == KtNodeTypes.CHARACTER_CONSTANT) return no1(e, "a character literal");
     }
     if (e instanceof KtStringTemplateExpression st) {

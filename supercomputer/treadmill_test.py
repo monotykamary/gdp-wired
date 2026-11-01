@@ -92,6 +92,30 @@ class FillYields(unittest.TestCase):
         self.assertGreaterEqual(len(b.items), 4 * tm.SLOTS)
 
 
+class ReaderFuzz(unittest.TestCase):
+    """The reader fuzz takes one of each two of the readers' slots, beside xfuzz; at its day's cap a reader yields."""
+
+    def soundness(self):
+        s = FillYields.soundness(self)
+        s.tm.chains = {"fuzz", "xfuzz", "rfuzz", "mutants"}
+        s.today_counts = lambda: {}
+        return s
+
+    def test_both_kinds_in_a_batch(self):
+        names = [it["name"] for it in self.soundness().batch(4).items]
+        self.assertTrue(any(n.startswith("rfuzz-") for n in names) and any(n.startswith("xfuzz-") for n in names))
+        rf = next(it for it in self.soundness().batch(4).items if it["name"].startswith("rfuzz-"))
+        self.assertIn("--preload ./extract-fuzz.ts", json.dumps(rf))
+
+    def test_capped(self):
+        s = self.soundness()
+        s.today_counts = lambda: {**{k: tm.FUZZ_PER_DAY for k in tm.FUZZ}, **{"x:" + l: tm.XFUZZ_PER_DAY for l in tm.XFUZZ}, **{"r:" + l: tm.RFUZZ_PER_DAY for l in tm.XFUZZ}}
+        self.assertIsNone(s.batch(4))
+
+    def test_the_hash_reads_cyclic(self):
+        self.assertIn("kernel/cyclic.ts", tm.TRUSTED)
+
+
 # The eight regressions of 31 Oct's digest, each run again at both commits with the prover's work counted (kernel/prove.ts
 # fullWork, read at exit; quiet, two runs a side; a lost one also as four copies at once on its two vCPUs, the load the
 # treadmill's VMs may carry): (task, commit, against, wall seconds before and at it, the work of the commit before's

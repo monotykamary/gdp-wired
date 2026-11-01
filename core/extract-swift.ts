@@ -26,7 +26,7 @@
 // Refused, each where it is with why: loops, closures, generics, await, do/catch and try?, optional chaining, arrays,
 // floats, enums with associated values, inout, a class's superclass of the code's own, other code given the state.
 import {type Extraction} from './extract.ts'
-import {Refusal, pathOf, type FileURL} from './extract-read.ts'
+import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
 import {asset, type Answer, type Harness, type Leaf, type PArg, type SModule, type SType, type StepOptions, type StepRead, entryNames, extractStep, node, stubbed} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
@@ -114,8 +114,8 @@ export function readSwift(at: string, names: string[], o: SwiftOptions = {}): {m
   const cp = node<CP>('node:child_process')
   const pkg = swiftPackage(at, o)
   let out: string
-  try { out = cp.execFileSync(swiftReader(o), [pkg.root, pkg.file ?? '-', names.length ? names.join(',') : '-', o.ctor === undefined ? '-' : String(o.ctor), ...pkg.files], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe']}) }
-  catch (e) { throw new Refusal(at, `the Swift reader didn't run (${errText(e)})`) }
+  try { out = cp.execFileSync(swiftReader(o), [pkg.root, pkg.file ?? '-', names.length ? names.join(',') : '-', o.ctor === undefined ? '-' : String(o.ctor), ...pkg.files], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()}) }
+  catch (e) { throw new Refusal(at, statedRefusal(e) ?? `the Swift reader didn't run (${errText(e)})`) }
   const mod = JSON.parse(out) as SModule
   mod.module = pkg.target
   return {mod, pkg}

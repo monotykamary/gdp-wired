@@ -325,7 +325,13 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
   // (the modules whose functions the class calls: each export answers its input, or nothing, by the callee's name)
   const ans = (path: string) => () => { const n = Object.keys(m.answers ?? {}).find(k => m.answers![k] === path); return n === undefined ? undefined : answers[n] }
   const mods = {...opts.modules, ...Object.fromEntries((m.imports ?? []).map(mod => [mod, new Proxy({}, {get: (_, k) => (k === '__esModule' ? true : typeof k === 'string' ? ans(`import:${mod}:${k}`) : undefined)})]))}
-  const box = sandbox(code, file, fns, mods, m.initSource, opts.files, m.factory ? [[m.factory.at, m.factory.text], ...(m.factory.extra ?? [])] : [])
+  // (a module that doesn't load, one TypeScript reads but JavaScript refuses, a return outside a function or a class
+  // declared twice: no request runs, and the check says why)
+  let box: ReturnType<typeof sandbox>
+  try { box = sandbox(code, file, fns, mods, m.initSource, opts.files, m.factory ? [[m.factory.at, m.factory.text], ...(m.factory.extra ?? [])] : []) } catch (e) {
+    return {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0,
+      mismatch: `the code doesn't load: ${String((e as Error)?.message ?? e).split('\n')[0]}`}
+  }
   // An object a factory makes: its state is what its functions close over, read and set through the two functions the
   // check added to it.
   const stateOf = (self: unknown): unknown => (m.factory ? (box.call('$get', self, []) as {ok: boolean, value?: unknown}).value : self)
