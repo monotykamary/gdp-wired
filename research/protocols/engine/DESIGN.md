@@ -43,7 +43,11 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
-## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (proofs only); a retried counted attempt seeded by its last model's instances (untrusted; nothing trusted changed)
+## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
+
+Held: the lazy hypotheses (kernel/prove.ts) cost the step goals time (g332 391 s against 354) and read 18 against 20 at
+strict 60 s on IC3Syn, a cost without a win. Merged: the seeded retries (core/counts.ts) alone, gen/laneJ2 from main
+9e05d77; its gates are below the original ones.
 
 Branch gen/laneJ from main e86df1b. kernel/kernel.ts, core/check.ts and lean-kernel/ untouched; nothing reads a protocol's
 name. Everything ran on boat (gate class, `--timing`: each job alone on its VM, 2 pinned vCPUs); runs in `runs/laneJ/`
