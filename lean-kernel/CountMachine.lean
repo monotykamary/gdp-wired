@@ -6,8 +6,11 @@ CountMachine: counts in a machine's laws and steps, proven sound. Lean 4.34.0, c
 machines with sets) and `Count.lean` (the counted goal and `counted_sound`), neither changed.
 
 **What a machine may count.** A count declaration (`CDecl`) names a map `mp` whose cell at x is the number Σ_{k < below}
-body(k), with the declaration's variable `j` at x and its key variable `key` at k (a 0/1 body is a set's size: the
-votes for x, the members of a request's set). The map is one the request carries (`mp ∈ s.carried`), so the machine
+body(k), with the declaration's parameters at x and its key variable `key` at k (a 0/1 body is a set's size: the
+votes for x, the members of a request's set). One parameter: `j` at x. Two (`atJ`): `j` at x / base and `lo` at
+x % base, so a count over a pair (a, b), the nodes that voted b at round a, is read at a relation's composed key base·a
++ b; a certificate's read of it at a key term written base·a + b gives Count.lean the count with j at a and lo at b,
+under the hypothesis `base ≤ b ∨ the cell` (`keyParts`, `readHyp`), so a key past the base reads nothing. The map is one the request carries (`mp ∈ s.carried`), so the machine
 itself is an `SMachine` as it was: its runs (`CReach`) are `SReach`'s with each request's count maps at their counts,
 read at the request's view (its inputs set, over the state's maps and the maps it carries; a count reads no flag,
 quantified flag or witness, so the view's flags don't change it). A guard (the assumption)
