@@ -219,9 +219,11 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
     const decLemmas = (f: Fn): {name: string, text: string}[] => (f.termination?.obligations ?? []).flatMap((o, i) => {
       if (!JSON.stringify(o.law.holds).includes('"op":"call"')) return []
       const names = new Map(o.law.vars.map(v => [v.name, name(v.name)]))
-      // (the functions f reaches outside its ring: those defined before it, a function after it not yet in scope)
+      // (the functions f reaches outside its ring, and the folds its measure reads: those defined before it, a function
+      // after it not yet in scope)
       const reach = new Set<string>(), go = (g: string) => { if (reach.has(g)) return; reach.add(g); walk(p.fns.find(h => h.name === g)?.body(), t => { if (t.op === 'call') go(t.fn as string) }) }
       go(f.name)
+      if (f.measure) foldsOf(f.measure).forEach(go)
       const on = o.scheme?.match(/ on ([^,]+)/)?.[1], fnSimp = p.fns.filter(g => reach.has(g.name) && !f.ring.includes(g.name)).map(g => g.name).join(', ')
       const sizeSimp = p.datas.map(d => `${d.name}.size`).join(', ')
       // (omega, else the hypotheses simplified with the goal first: a lexicographic disjunction whose first part is decided)
