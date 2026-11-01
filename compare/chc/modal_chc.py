@@ -5,6 +5,8 @@ same container size under the same wall-clock limit, one tool and a shard of tas
                                        [--per 1] [--sample 0] [--only <substring>|<substring>]
                                        [--env NAME=value,...] (set for each task's process)
                                        [--tasks-json <file of task names>]
+                                       [--paired 1 --rot r] (every tool on a task in turn on one VM, the same CPUs, their
+                                       order turned by r and the task's index: the VM-paired design; compare/chc/paired.py)
     --tools tmpl and --tools given aren't solvers: prof/template.ts and prof/given.ts, for prof/gap.py.
 
 The benchmarks are chc-comp/chc-comp26-benchmarks at a pinned commit, fetched into the image; the track's task list is
@@ -123,7 +125,10 @@ def command(tool: str, task: str, limit: int) -> list[str]:
 
 
 @app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=3600)
-def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]:
+def shard(tool: str, tasks: list[dict], limit: int, env: str = "", rot: int = 0) -> list[dict]:
+    """Each task through `tool`; with tools joined by + (`--paired 1`), each task through every one of them in turn on
+    this VM, each on the same CPUs, their order rotated by the task's index and `rot` (each run its own), so every tool
+    meets the same machine and each takes each place in turn."""
     import shutil
     import subprocess
 
@@ -151,7 +156,9 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
         model = next(l.split(":", 1)[1].strip() for l in open("/proc/cpuinfo") if l.startswith("model name"))
     except (OSError, StopIteration):
         model = "?"
-    for t in tasks:
+    tools = tool.split("+")
+    host = __import__("socket").gethostname()
+    for i, t, pos, tool in ((i, t, pos, tools[(i + rot + pos) % len(tools)]) for i, t in enumerate(tasks) for pos in range(len(tools))):
         path = f"/bench/{t['smt2']}"
         on_vm, mloops = items(), speed()
         t0 = time.time()
@@ -185,7 +192,9 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
             # (the witness search's log, core/exists.ts, for profiling the given-invariant check)
             row["log"] = err[-6000:]
         row["expected"] = t["expected"]
-        row["cpus"], row["vm_items"], row["speed"], row["cpu"] = len(pin or mine), on_vm, mloops, model
+        row["cpus"], row["vm_items"], row["speed"], row["cpu"], row["host"] = len(pin or mine), on_vm, mloops, model, host
+        if len(tools) > 1:
+            row["pos"] = pos
         rows.append(row)
     return rows
 
@@ -206,14 +215,14 @@ def tasks() -> list[dict]:
 
 
 @app.local_entrypoint()
-def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: int = 1, sample: int = 0, only: str = "", env: str = "", tasks_json: str = ""):
+def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: int = 1, sample: int = 0, only: str = "", env: str = "", tasks_json: str = "", paired: int = 0, rot: int = 0):
     import sys
     sys.path.insert(0, str(GDP / "supercomputer"))
     import fanout
-    run(fanout.ModalEx(app), out, tools, limit, per, sample, only, env, tasks_json)
+    run(fanout.ModalEx(app), out, tools, limit, per, sample, only, env, tasks_json, paired, rot)
 
 
-def run(ex, out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: int = 1, sample: int = 0, only: str = "", env: str = "", tasks_json: str = ""):
+def run(ex, out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: int = 1, sample: int = 0, only: str = "", env: str = "", tasks_json: str = "", paired: int = 0, rot: int = 0):
     outdir = pathlib.Path(out)
     outdir.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
@@ -227,7 +236,9 @@ def run(ex, out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per
         if sample:
             step = max(1, len(chosen) // sample)
             chosen = chosen[::step][:sample]
-        shards = [(tool, chosen[i:i + per], limit, env) for tool in tools.split(",") for i in range(0, len(chosen), per)]
+        # (`paired`: a shard a task, every tool on it in turn on one VM, `rot` turning their order: the VM-paired design)
+        shards = ([("+".join(tools.split(",")), chosen[i:i + per], limit, env, rot + i) for i in range(0, len(chosen), per)] if paired else
+                  [(tool, chosen[i:i + per], limit, env) for tool in tools.split(",") for i in range(0, len(chosen), per)])
         print(f"{len(chosen)} tasks, {len(shards)} shards", flush=True)
         n = 0
         # starmap sends the inputs in batches and yields each shard's rows as it finishes, every container at once.
