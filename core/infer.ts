@@ -748,9 +748,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const at = (coef: [number, number][], vals: Float64Array[], j: number) => { let s = 0; for (const [i, c] of coef) s += c * vals[i]![j]!; return s }
   const keyNots = plain.filter(i => !atoms[i]!.param && !atoms[i]!.int && !atoms[i]!.term)
   // The guards: the choices first, then yes/nos, then small naturals, at most eight; each shape's largest value per
-  // guard in one pass over (at most 1,500 of) the rows. Building candidates takes at most a quarter of the time.
+  // guard in one pass over (at most 3,000 of) the rows: with each state kept once a stride skips states, not copies, and a
+  // guard's bound past a skipped one is no law (break_safe's i1 + 1 <= i0 → 27 <= i0). Building candidates takes at most
+  // a quarter of the time.
   const guards = [...modes].sort((p, q) => Number(!!q.choice) - Number(!!p.choice) || Number(!!q.bool) - Number(!!p.bool)).slice(0, 8)
-  const strideS = Math.max(1, Math.ceil(NS / 1500)), strideK = Math.max(1, Math.ceil(NK / 1500))
+  const strideS = Math.max(1, Math.ceil(NS / 3000)), strideK = Math.max(1, Math.ceil(NK / 3000))
   const buildUntil = opts.cubes ? 0 : Math.min(until, now() + (until - now()) / 4)
   for (const [n_, {coef, cells}] of shapes.entries()) {
     if (forms.length > maxCandidates || (n_ % 256 === 0 && (now() > buildUntil || stop()))) break
