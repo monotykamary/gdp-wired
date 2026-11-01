@@ -38,6 +38,40 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### The sorts' proof stage: insertion's lemmas (gen/laneS5)
+
+Three runs of this branch (ad04b35: gen/tip-int 93602f8 with main d62c911, `runs/s5/d-r1..3` in its worktree) against
+three of that merge without it (6d84ec2), boat, 60 s:
+
+| theorems (492) | proven, by run | refused (unsupported) | refuted | wrong |
+| --- | --- | --- | --- | --- |
+| gdp-wired, this branch | 219, 221, 221 | 62, 62, 62 | 7 | 0 |
+| gdp-wired, gen/tip-int + main | 209, 210, 212 | 62, 62, 62 | 7 | 0 |
+
+- Gained (our lowest run above the base's highest): the insertion sorts' count and order (`sort_ISortCount`,
+  `sort_ISortSorts`, `sort_nat_ISortCount`, `sort_nat_ISortSorts`), `isaplanner/prop_53` and `prop_78` and
+  `prod/prop_14` (the same laws over isaplanner's insort), `prod/prop_50`, `isaplanner/prop_61` in every run; at the
+  limit `prop_50`, `prop_60`, `lemma_12`, `prod/prop_12`, `list_Select`. Lost in some run, none in every run (proven in 2
+  of 3 each, the same counted work as the base where measured): `list_PairOdds`, `list_nat_PairOdds`, `list_assoc`,
+  `list_nat_Select`.
+- What it took (core/data.ts, the search only; nothing trusted changed): count through insert, `count x (insert y xs) =
+  count x (y :: xs)`, closes at one unfolding once the hypothesis's `count(x, tail (y :: xs))` unfolds at xs's own
+  constructor where the case makes xs a cons (an eta of the value the induction descends on, for reads not unfolded at
+  it already, one step); `ordered (insert y xs) = ordered xs` once a call both an unfolded body and the hypothesis read,
+  `insert(y, tail xs)`, unfolds a round further where the goal reads a function that looks two ahead (ordered's tail's
+  head); a conjecture that is the law again (`count(0, sort xs) = count(0, xs)`, `ordered(sort xs) = ordered([])`) is
+  dropped, and those taking the law's observer (a function to a natural or Bool) through a function the law doesn't read
+  are tried first; a predicate kept under a premise at each argument of the datatype is conjectured too
+  (`ordered xs ∧ ordered ys ⇒ ordered (merge xs ys)`); a well-founded function unfolds by constructor at its first
+  match only, outside termination (a merge's chain of unfoldings at a built second list). Lean 4.34.0 re-checks the 10
+  proven TIP laws above exported by lean-kernel/data.ts (axioms propext, Classical.choice, Quot.sound).
+- Not yet, by cause: the merge sorts (`MSortBU*`, `MSortTD*`, `NMSortTD*`, bitonic `BSort*`) need `count x (merge xs
+  ys) = count x xs + count x ys`, whose 14 cases the kernel doesn't close in 96 s an attempt (a node of 38 instances
+  past its time), beyond a term of 7 symbols the conjectures don't make; the heap sorts and `MSortBU` need a count over
+  a heap or a list of lists, which no function of the program states; selection sort needs count through delete under
+  membership of the minimum (a conditional equation); `models` grows past 2,500 instances at two unfoldings; the
+  permutation laws (`isPermutation` through deleteBy) need a theory of several lemmas.
+
 ### Termination through guarded size laws (gen/laneZ)
 
 On gen/tip-int (gen/laneZ with gen/laneK2 c60d61c: main f84978d's gen/laneM, gen/laneN, K2's ring measures), 60 s,
