@@ -421,8 +421,9 @@ function recursion(fn: Fn): Rec {
 // over the caller's parameters: under the path to the call (the cases its matches take, the conditions of its ifs), the
 // callee's measure at the call's arguments is below the caller's at its parameters. Each obligation is proven by
 // proveData (a cyclic proof the kernel checks) in a program without the ring: its facts are those of the datatypes and of
-// the functions already taken, never the equation of a function being taken (nor one of a call nested in an argument or
-// a condition: that is refused). Only then are the ring's equations facts.
+// the functions already taken, never the equation of a function being taken (a call of the ring nested in an argument
+// or a condition is read as a value under an invariant: nested recursion, below). Only then are the ring's equations
+// facts.
 //
 // Why that is sound (lean-kernel/Data.lean's `wf_fix_unique`, and `wf_fix_unique_ring` for a ring): the bodies, read as
 // one functional F of the ring's tuple of functions, read each function only at the calls on the path the arguments

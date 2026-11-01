@@ -16,6 +16,7 @@ kernel fuzz). Fanned out on boat or Modal (`bun mutants.ts ids <a,b,...>` per jo
 | every operator of kernel.ts and check.ts (gen/laneM, 2026-10-31: the treadmill had run 280 of 959; the rest reaches loops, recurrent sets by cases, rationals, sums, k-induction, liveness, counts in a machine) | 959 | 758 (79%) | 201 |
 | plus `sums`, `rationals`, `pairs`, `nonterm` in the battery and the tests written for the 201 (refusals.test.ts, count.test.ts, countmachine.test.ts), the whole battery again on the final commit | 959 | 876 (91%) | 83, each listed equivalent below (86 listed: three, 295, 386, 505, failed a slow test under load in that run and survive it alone) |
 | core/data.ts's admission of a definition (gen/laneT, 2026-11-01: `recursion`, the measures' terms, `sitesOf`, `obligation`, `directly`, `proveMeasures`, `ringSites`, `checkMeasures`, `termination`; `MUTANT_BATTERY=termination,conformance`, the first the termination tests of core/data.test.ts) | 112 | 69 (62%) | 43, each listed equivalent below: messages, names, traces and types 12, search settings and deadlines 12, arithmetic that adds or multiplies by nothing 6, a route that only refuses, or moves a function from structural to a kernel-checked measure, or reads a case as a guard 7, an integer measure read at its code 2·v 2, guards backed by another check 4 |
+| core/data.ts's admission with nested recursion (gen/laneN, 2026-11-01: `lowerY`, `obligation`, `valueVar`, `invAt`, `checkInv`, `lifted`, `keeps` added to the targets, `sitesOf`'s leaves, `proveMeasures`'s one length, `termination`'s invariants; the same battery, its termination tests with the nested ones: taken, refused adversarial, invariants given refused) | 162 | 106 (65%) | 56, each listed equivalent below: the 34 of the run above still matching, 22 new: messages, names, a type annotation and a deadline 9, guards backed by another check or unreachable by construction 7 (a new variable's fresh name, measures padded to one length, no ring call left after `lifted`), the integer component's code read alike 3, the search's choice of rings to try invariants for 2, a natural's zero case binding nothing 1; the 9 `checkInv` and natural's-match mutants the first run left were killed by the tests written for them |
 
 `core/data.ts`'s admission of a definition is in the targets by its top-level declarations alone (mutants.ts's `only`):
 the rest of that file is the search, whose mutants change speed, never what is taken. Its first run left 50 of 111; the
@@ -160,7 +161,7 @@ core/data.ts | readsInt | "mber]) => c.coef.some((k, i) => k && f" | ".some(" ->
 core/data.ts | measureI | "terms.push(k === 1 ? t : {op: 'im" | " === " -> " !== " | an integer term times 1
 core/data.ts | isIntX | "if' && x.else.op === 'int'" | " === " -> " !== " | an integer component wrapped as a natural reads its code, 2·v for v ≥ 0 (Z.enc; iMax0 keeps v ≥ 0): every comparison of that function's component is doubled alike, a measure 2·μ as well-founded as μ; a natural term then reads no else and throws (refused)
 core/data.ts | sitesOf | "while (t && t.op === 'var' && sh.has(" | " === " -> " !== " | a variable bound to a variable is then not followed: its case is read through the guard form (a match's case as a condition), the same path
-core/data.ts | obligation | "readsInt(to, c) || readsInt(fn, ms[" | " || " -> " && " | a ring mixing an integer measure with a natural one compared as naturals: the integer's code is 2·v at v ≥ 0, alike in every comparison of that function's component (its own calls compare integers, 2a < 2b iff a < b), a measure 2·μ
+core/data.ts | lowerY | "readsInt(g, c) || readsInt(fn, ms[" | " || " -> " && " | a ring mixing an integer measure with a natural one compared as naturals: the integer's code is 2·v at v ≥ 0, alike in every comparison of that function's component (its own calls compare integers, 2a < 2b iff a < b), a measure 2·μ
 core/data.ts | obligation | "me = ring.length === 1 ? `${fn.name}'" | " === " -> " !== " | text in an obligation's name
 core/data.ts | obligation | "name}'s call ${i + 1} lowers ${showM" | " + 1" -> "" | text in an obligation's name
 core/data.ts | obligation | "name}'s call ${i + 1}, of ${to.name}" | " + 1" -> "" | text in an obligation's name
@@ -177,12 +178,29 @@ core/data.ts | proveMeasuresIn | "ample && clock() < until) v = prove" | " < " -
 core/data.ts | proveMeasuresIn | "eft()), lemmas: false})" | "false" -> "true" | a search option (conjectured lemmas in the plain attempt)
 core/data.ts | proveMeasuresIn | "aw, {induction: false, ms: Math.min(4" | "false" -> "true" | a search option (induction in the last attempt)
 core/data.ts | proveMeasuresIn | "!v || !(v.proven && v.checked)) retu" | " && " -> " || " | proveData's verdict is proven only with checked (data.ts: ok() sets both from a kernel-checked proof), so !(proven && checked) and !(proven || checked) agree
-core/data.ts | ringSites | "o => { if (o.op === 'call' && names." | " === " -> " !== " | nested recursion is then not refused here, and proveMeasuresIn refuses it (an obligation that reads the ring throws): the same refusal
-core/data.ts | ringSites | "ring)) nested = true })" | "true" -> "false" | nested recursion is then not refused here, and proveMeasuresIn refuses it (an obligation that reads the ring throws): the same refusal
-core/data.ts | ringSites | "to ${ring.length > 1 ? 'its ring' :" | " > " -> " >= " | text in a refusal's message
-core/data.ts | checkMeasures | "s.ms): {proven: true, obligations: T" | "true" -> "false" | a type annotation, nothing at run time
+core/data.ts | checkMeasures | "inv?: Inv): {proven: true, obligations: T" | "true" -> "false" | a type annotation, nothing at run time
 core/data.ts | checkMeasures | "| {proven: false, why: strin" | "false" -> "true" | a type annotation, nothing at run time
 core/data.ts | termination | "nd ${ring.length === 1 ? 'it has' : '" | " === " -> " !== " | text in a refusal's message
 core/data.ts | termination | "if (clock() > until) { tried.p" | " > " -> " >= " | a deadline's comparison
 core/data.ts | termination | "(bad) { if (ring.some(f => f.stated) |" | ".some(" -> ".every(" | which measure's failure the refusal's message names
+core/data.ts | isIntX | "isIntX = (x: X) => x.op === 'if'" | " === " -> " !== " | an integer component (an if, iMax0's) then wrapped as a natural reads its code, 2·v for v ≥ 0, alike at every comparison of that component (as the entry above); a natural term reads x.else of no else and throws (refused)
+core/data.ts | isIntX | "x.op === 'if' && x.else" | " && " -> " || " | an if is read as an integer either way; a natural term (no if) reads x.else of no else and throws: refused, never taken
+core/data.ts | invAt | "(t as X).op === 'var' && m.has(" | " && " -> " || " | an invariant's every variable is its function's parameter or value (checkInv), all in m, and no node but a variable has a name: the same substitution
+core/data.ts | lifted | "{...o, of: go(o.of, bound), zero: go(o.zero, true)" | "true" -> "false" | a natural's match binds nothing in its zero case: a call there is at its level's scope, its hypothesis sound there
+core/data.ts | lifted | "walk([y, own], o => { if (o.op === 'var') taken" | " === " -> " !== " | a guard no law reaches: a new variable's name (the function's, letters and digits, then #r) is never a parameter's (a dot) or a field's binding (ending #digits)
+core/data.ts | lifted | "if (vars.some(w => w.name === v.name) || taken" | " || " -> " && " | the same guard
+core/data.ts | lifted | "if (vars.some(w => w.name === v.name) || taken" | ".some(" -> ".every(" | the same guard (every on the law's variables: never empty where a call is lifted, the caller's parameters or the fields of its path; and none named so)
+core/data.ts | lifted | "a call to ${ring.length > 1 ? 'its ring' :" | " > " -> " >= " | text in a refusal's message
+core/data.ts | keeps | "s value ${i + 1} keeps" | " + 1" -> "" | an obligation's name
+core/data.ts | proveMeasures | "if (!ms[0]!.comps.length || ms.some(" | " || " -> " && " | a guard backed by another: padded (just above) makes every measure one length, and no measure has no component (measureOf refuses an empty one; the search's have one at least)
+core/data.ts | proveMeasures | "if (!ms[0]!.comps.length || ms.some(" | ".some(" -> ".every(" | the same guard: after padded every length is ms[0]'s, so some and every of a difference are both false
+core/data.ts | proveMeasuresIn | "call: `${ring.length > 1 ? `${names[site.from]}'s ` : ''}call ${nth[i]!" | " > " -> " >= " | text in a refusal's message
+core/data.ts | proveMeasuresIn | "}'s ` : ''}call ${nth[i]! + 1}`" | " + 1" -> "" | text in a refusal's message
+core/data.ts | proveMeasuresIn | "s value ${i + 1}`, what" | " + 1" -> "" | text in a refusal's message
+core/data.ts | proveMeasuresIn | "walk(law.holds, o => { if (o.op === 'call' && names" | " === " -> " !== " | a guard backed by another: lifted reads every call of the ring in a law as a value (or refuses), so no law reaches this with one
+core/data.ts | termination | "o => { if (o.op === 'call' && names.includes(o.fn as string)) n = true" | " && " -> " || " | which rings the search tries invariants for (more, then): an invariant is taken only with every body proven to keep it
+core/data.ts | termination | "const nested = sites.some(st => { let n = false" | "false" -> "true" | the same: invariants tried for every ring, and its candidates computed within the evaluation's bounds (speed only)
+core/data.ts | termination | "the parameters' sizes${ring.length > 1 ?" | " > " -> " >= " | text in a refusal's message
+core/data.ts | termination | "          if (clock() > until) break" | " > " -> " >= " | a deadline's comparison
+core/data.ts | termination | "every call${ring.length > 1 ? ' within the ring'" | " > " -> " >= " | text in a refusal's message
 ```
