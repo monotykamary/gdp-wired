@@ -490,6 +490,24 @@ failures on both the 5 s tests past their limit on these VMs (XState, the bridge
 kernel/count.test.ts 61 of 61 and core/exists.test.ts 12 of 12 on the final head. Bytes against 479a22a: +7,900
 (core/exists.ts +4,864, kernel/kernel.ts +2,165, core/dsl.ts +871).
 
+### gen/laneY6 (from gen/laneC3 819e0c6): mldr's invariant over Lane C3's counts, probed
+
+research/protocols/ic3syn/mldrprobe.ts writes Endive's inductive invariant for MongoLoglessDynamicRaft (benchmarks/
+MongoLoglessDynamicRaft_IndProofs.tla at 8b6f2ab: six conjuncts) over counts added to the port's machine:
+cfgSize[s] = |config[s]|, old[s] = |{k ∈ config[s] : ¬newer(k, s)}| (one parameter, a cross-cell body; ConfigDisabled(s)
+is 2·old[s] <= cfgSize[s]), and Lane C3's pair counts at N·s + t: xm = |config[s] \ config[t]|, xn = |config[s] ∩
+config[t]|, low = |{k ∈ config[s] : CT[k] < CfgT[t]}|. Laws: a primary at its config term; one config term, one primary
+newest (Inv3915); one version and term, one config (Inv1758, read as: equal (CV, CfgT) give equal configs); quorums
+overlap or a config disabled (Inv2973: ∀ u, w, 2u + xm[s,t] > xn and 2w + xm[t,s] > xn → u + w > xn); every quorum at a
+config term or disabled (Inv3246: 2·low[t,s] <= cfgSize[t]); and before start, a copied config the one picked and
+version 1 (what the run showed missing). core/counts.ts's searchCounted with them as callers: all true on the small
+instances; every one of them refused in Houdini, each step goal "sat" with every other law assumed, at 0.2-1.8 s.
+The models it gives up on (GDP_COUNTS_DUMP) are not the protocol's: become_leader with S = {3} for config[3] = {1, 3}
+while the request's count inX (|config[i]|) is 0 (and inS 1), so majorityOf passes. The counted search's model
+instances (modelInstances) ask for no instance of Count.lean's lemma at a count the assumption reads at its key 0, so
+inX's value stays free. That is core/counts.ts's (Lane C3's): with those instances asked, the probe says whether the
+invariant goes through. Nothing built in core/ on this branch.
+
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
 
 Held: the lazy hypotheses (kernel/prove.ts) cost the step goals time (g332 391 s against 354) and read 18 against 20 at
