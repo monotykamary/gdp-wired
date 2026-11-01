@@ -1894,7 +1894,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // (a function of a key whose values are a composed map's rows: Pending[idn(x)·N + y])
       const fnHi = Object.keys(m.fns ?? {}).filter(f => comp && ss.includes(ks.find(`F:${f}`)) && vf(`V:${f}`) === vf(comp[0]!))
       const placesOf = (s: string) => (comp ? comp.filter(c => c === s).length + fnHi.filter(f => ks.find(`F:${f}`) === s).length : 0)
-      const width = ss.map(s => Math.min(3, Math.max(ordered(s) ? 2 : 0, ks.plainMaps(s).length ? 1 : 0, placesOf(s) + (placesOf(s) >= 2 ? 1 : 0), ...multi.map(q => { const c = q.slots.filter(c2 => c2 === s).length; return c + (c >= 2 ? 1 : 0) }), ...callerLaws.map(l => [l.forall, ...(l.keys ?? [])].filter(b => b && ks.sortOf(l, b) === s).length))))
+      // (a two-part map whose row is a function's value: the function's argument and the column, places of their sorts)
+      const fnRows = Object.keys(m.fns ?? {}).flatMap(f => multi.filter(q => q.slots.length === 2 && ss.includes(ks.find(`F:${f}`)) && vf(`V:${f}`) === vf(q.slots[0]!)).map(q => ({f, q})))
+      const rowPlaces = (s: string) => fnRows.filter(({f}) => ks.find(`F:${f}`) === s).length + fnRows.filter(({q}) => q.slots[1] === s).length
+      const width = ss.map(s => Math.min(3, Math.max(ordered(s) ? 2 : 0, ks.plainMaps(s).length ? 1 : 0, placesOf(s) + (placesOf(s) >= 2 ? 1 : 0), ...multi.map(q => { const c = q.slots.filter(c2 => c2 === s).length; return c + (c >= 2 ? 1 : 0) }), rowPlaces(s) + (rowPlaces(s) >= 2 ? 1 : 0), ...callerLaws.map(l => [l.forall, ...(l.keys ?? [])].filter(b => b && ks.sortOf(l, b) === s).length))))
       // (a key's own bounds and domain: a caller's law's guards on one key of the sort, k < 64, k < size)
       const bounds = new Map<string, C[]>()
       for (const l of callerLaws) {
@@ -2078,7 +2081,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         for (const q of multi) for (const t of q.slots.reduce<number[][]>((acc, s) => acc.flatMap(p => keys.flatMap((k2, j) => (k2 === s ? [[...p, j]] : []))), [[]])) { places.push(ks.composeAll(t.map(j => x(vars[j]!)))); mapsAt.push([q.mp]); covers.push([...new Set(t)]) }
         for (const f of fnHi) keys.forEach((a, i) => keys.forEach((b, j) => { if (a === ks.find(`F:${f}`) && b === comp![1]) { places.push(ks.compose(get(f, x(vars[i]!)), x(vars[j]!))); mapsAt.push(ks.composedMaps); covers.push(i === j ? [i] : [i, j]) } }))
         // (and a two-part map's row a function of a key, as a composed map's: Pending[idn(x)·N + y])
-        for (const f of Object.keys(m.fns ?? {})) for (const q of multi) if (q.slots.length === 2 && ss.includes(ks.find(`F:${f}`)) && vf(`V:${f}`) === vf(q.slots[0]!))
+        for (const {f, q} of fnRows)
           keys.forEach((a, i) => keys.forEach((b, j) => { if (a === ks.find(`F:${f}`) && b === q.slots[1]) { places.push(ks.composeAll([get(f, x(vars[i]!)), x(vars[j]!)])); mapsAt.push([q.mp]); covers.push(i === j ? [i] : [i, j]) } }))
         const names = ['x', 'y', 'z', 'w', 'u'].slice(0, keys.length), fns = Object.keys(m.fns ?? {}).filter(f => ordered(`V:${f}`) && ss.includes(ks.find(`F:${f}`)))
         const extra = [...keys.flatMap((q, i) => (ordered(q) ? [{name: names[i]!, term: x(vars[i]!)}] : [])), ...fns.flatMap(f => keys.flatMap((q, i) => (q === ks.find(`F:${f}`) ? [{name: `${f}(${names[i]})`, term: get(f, x(vars[i]!))}] : [])))]
