@@ -15,6 +15,15 @@ sourced from the IC3PO repository" (pyv-paxos-epr).
 
 The measurements, the failure classes and what was built are in ../engine/DESIGN.md (gen/laneA).
 
+## The citable figure: wall time, as the competition measures it
+
+On main e86df1b, with nothing written (run.ts's search), each protocol alone on its boat VM (2 pinned vCPUs), two runs,
+the process's wall time around bun: **19–20 of 29 proven within 60 s of wall** (19 in both runs of one batch,
+consensus_epr at 65.8 and 70.1 s; 20 in another, at 30.6 and 52.5 s), **20 of 29 within 300 s**, **0 broken variants
+proven** (each run once at 60 s and once at 300 s). The search's budget is counted (the cost model's work); at 60 counted
+seconds it proves 20 of 29 in both runs, and its wall time on boat runs 32 to 70 s where the proof is near the budget.
+Batches and tables: ../engine/DESIGN.md, gen/laneJ.
+
 ## Where each comes from
 
 | Source | Repository | Commit | Licence |
