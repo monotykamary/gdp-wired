@@ -547,7 +547,7 @@ function sharedTerms(vars: string[], where: string, plainE: (t: E) => string) {
       case 'mul': return `.mul ${exactNat(t.k)} (${e(t.a)})`
       case 'add': case 'sub': case 'min': case 'max': case 'prod': return `.${t.op} (${e(t.a)}) (${e(t.b)})`
       case 'if': return `.ite (${c(t.c)}) (${e(t.then)}) (${e(t.else)})`
-      default: return plainE(t)
+      case 'var': case 'const': case 'get': return plainE(t)
     }
   }
   const c = (t: C): string => {
@@ -558,7 +558,7 @@ function sharedTerms(vars: string[], where: string, plainE: (t: E) => string) {
       case '=': return `.eq (${e(t.a)}) (${e(t.b)})`
       case 'not': return `.not (${c(t.x)})`
       case 'and': case 'or': return t.xs.length === 0 ? plainC(t) : t.xs.map(c).reduceRight((acc, y) => `.${t.op} (${y}) (${acc})`)
-      default: return plainC(t)
+      case 'flag': case 'all': return plainC(t)
     }
   }
   const defs = (d: string) => out.map(x => { const [ty, name, k] = x.split('\u0000'); return `${d} ${name} : ${ty} := ${k}` })
