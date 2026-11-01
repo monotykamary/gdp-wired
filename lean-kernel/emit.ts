@@ -547,7 +547,7 @@ function sharedTerms(vars: string[], where: string, plainE: (t: E) => string) {
       case 'mul': return `.mul ${exactNat(t.k)} (${e(t.a)})`
       case 'add': case 'sub': case 'min': case 'max': case 'prod': return `.${t.op} (${e(t.a)}) (${e(t.b)})`
       case 'if': return `.ite (${c(t.c)}) (${e(t.then)}) (${e(t.else)})`
-      case 'var': case 'const': case 'get': return plainE(t)
+      case 'get': return plainE(t)
     }
   }
   const c = (t: C): string => {
