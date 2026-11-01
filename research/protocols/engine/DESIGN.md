@@ -133,6 +133,15 @@ the runs' ∃ check eats the budget before the search starts.
 (their times within the runs' spread: a second batch on 88cfec8, `g1`, has consensus_epr at 70.6 s in one run on a slow VM,
 its counted search identical to the other runs': the same 41 candidates, 28 kept, 23,420 counted ms).
 
+**The two near the wall, six runs a side in one batch** (`eb` main, `e1` the branch; seconds of wall):
+
+| protocol | main 6b96a0f | gen/laneY |
+| --- | --- | --- |
+| firewall | unknown 53.4 / 54.2 / 55.9 / 59.2 / 60.1 / 62.1 | **proven 20.1 / 24.9 / 27.5 / 29.1 / 29.3 / 33.4** |
+| consensus_epr | proven 37.8 / 39.8 / 47.1 / 47.3 / 54.0 / 87.8 | proven 28.9 / 31.3 / 37.7 / 38.3 / 38.5 / 50.7 |
+
+consensus_epr's counted search is main's (the same candidates and cone); the wall it saves is the small instances' BFS.
+
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
 
 Held: the lazy hypotheses (kernel/prove.ts) cost the step goals time (g332 391 s against 354) and read 18 against 20 at
