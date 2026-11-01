@@ -123,8 +123,25 @@ the laws from its comments. The contract is the same in every language:
   as `not read`, with how to name its entry.
 - **Options** (`configFor`): the nearest `gdp.toml`, `pyproject.toml`'s `[tool.gdp]` table, or `package.json`'s `"gdp"`
   key. Top-level keys apply to every rule, and `[rules.<entry>]` to one. The keys are `failures`, `onError`,
-  `methods`, `answers`, `skip`, `stores`, `strict`, `root`, `python`, `entry`, `clock` and `from`. Flags override the
-  file.
+  `methods`, `answers`, `skip`, `stores`, `strict`, `root`, `python`, `entry`, `clock`, `from`, `env`, `effects`,
+  `stubs` and `types` (the type of an argument or field the code doesn't declare). Flags override the file.
+- **The environment** (`env` in `gdp.toml`, `--env`, or `# gdp: env <words>` over the class; core/system.ts's
+  `envOf` and `inEnv`): the rule becomes every call of it at once, and its laws are lifted to that system. The words:
+  an isolation level (`atomic`, `serializable`, `read committed`, `snapshot`, `repeatable read`), `keys expire` (any
+  store key may vanish), `retries`, `an object per call` (each call its own object: the fields its methods write), and
+  a call's flow, `acquire then release` (its methods in order, each a step or a transaction; a call ends where a method
+  fails or returns false). A law of one step holds at each call's commit, the store as the commit finds it. `at most
+  one call between a and b` is the flow's mutual exclusion per key: a call holds from a's success to b, and a key that
+  expires ends its holders' leases; `between a and a` is a's work done at most once per key (the flow is inferred from
+  the law). A step does its work where it makes its effect: a call of other code tagged `# gdp: effect` on its line
+  (or listed in `effects`), stubbed by the check, each step saying whether it made it (`<name>.called`). The verdict
+  names the environment models the system assumes; a broken law's run is the calls' steps (begins, reads, commits,
+  expiries), shortened, and found by a breadth-first search of calls contending with one request where the prover's
+  runs don't.
+- **Stores** (`stores`): a store may be an injected dependency, a field the constructor makes (a client from a URL), or
+  a module's object (Django's `cache`); its operations are get, set (with `nx`), delete, `add` (set where absent: SET
+  NX, memcached's add, `put_if_empty`) and `incr`, each by a key template (an f-string or a `%` format); a template's
+  values are numbers or strings.
 - **Verdicts and exit** (`check`): each stated law is `proven`, `broken` (with a run, replayed on the code), `unknown`
   or `not read`. The exit code is 1 when one is broken, else 2 when one is not read (a refused rule makes every law of
   it not read), else 0. `--from any` proves the laws from every state they allow; the largest inductive subset of the

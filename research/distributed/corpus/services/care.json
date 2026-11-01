@@ -1,0 +1,42 @@
+{
+ "id": "care",
+ "repo": "https://github.com/ohcnetwork/care",
+ "commit": "67a46185eb98ee4b79b38ecee84d8a69d173306e",
+ "licence": "MIT",
+ "lang": "Python",
+ "patterns": [
+  "lease with expiry"
+ ],
+ "about": "CARE's Lock: acquire (cache.set with nx and a timeout) and release over Django's cache",
+ "check": [
+  "care/utils/lock.py"
+ ],
+ "setup": "python3 -m pip install --break-system-packages -q django djangorestframework && printf 'SECRET_KEY = \"x\"\\nLOCK_TIMEOUT = 32\\n' > gdp_settings.py",
+ "env": {
+  "DJANGO_SETTINGS_MODULE": "gdp_settings"
+ },
+ "toml": "[rules.Lock]\nfailures = \"kept\"\nmethods = [\"acquire\", \"release\"]\nstores.cache = {}\ntypes = {key = \"str\"}\n",
+ "edits": [
+  {
+   "file": "care/utils/lock.py",
+   "before": "^class Lock:",
+   "lines": [
+    "# gdp: env keys expire, acquire then release"
+   ]
+  },
+  {
+   "file": "care/utils/lock.py",
+   "before": "^    def __init__\\(self, key, timeout",
+   "lines": [
+    "# gdp: law one holder at a time: at most one call between acquire and release"
+   ]
+  }
+ ],
+ "repro": {
+  "script": "repro/care.py",
+  "containers": [
+   "redis:7.4"
+  ],
+  "setup": "python3 -m pip install --break-system-packages -q django djangorestframework redis django-redis"
+ }
+}

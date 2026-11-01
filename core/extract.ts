@@ -323,7 +323,15 @@ function builderOf(m: Model, sorts: Sorts): string {
       sorts.delete('k$')
       continue
     }
-    const vals = d.fields.map(f => `${f.name}: ${pterm(w.vals[f.name]!, P, {m, sorts, atoms: [w.has]}, `${n}.${f.name}`)}`)
+    // (a field printed where the key is held; where that reading differs from the term itself, by cases, so a key the
+    // step leaves unheld holds what it writes there: a delete's defaults)
+    const vals = d.fields.map(f => {
+      const t = w.vals[f.name]!, at = `${n}.${f.name}`, yes = pterm(t, P, {m, sorts, atoms: [w.has]}, at)
+      if (w.has.op === 'const' || yes === pterm(t, P, ctx(), at)) return `${f.name}: ${yes}`
+      let no: string
+      try { no = pterm(t, P, {m, sorts, atoms: [I.not(w.has)]}, at) } catch { return `${f.name}: ${pterm(t, P, ctx(), at)}` }
+      return `${f.name}: when(${pb(w.has, P, ctx())}, ${yes}, ${no})`
+    })
     outs.push([n, `${n}.set(${pk(w.key, P, ctx())}, {${[`has: ${pb(w.has, P, ctx())}`, ...vals].join(', ')}})`])
   }
   // A list's write: its apply over the operations by cases (each under its condition).

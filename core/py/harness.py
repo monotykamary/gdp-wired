@@ -9,6 +9,7 @@ import time as time_module
 
 NOW = [0]
 CUR = {}
+EFF = {}
 HIT = set()
 S = {}
 
@@ -38,6 +39,13 @@ def resolve(q):
   mod, _, name = q.rpartition('.')
   return getattr(importlib.import_module(mod), name)
 
+class Inert:
+  """An attribute of a store the rule leaves out (a registry the constructor adds to): its calls do nothing."""
+  def __getattr__(self, name):
+    if name.startswith('__'): raise AttributeError(name)
+    return Inert()
+  def __call__(self, *a, **k): return None
+
 class FakeStore:
   """A store as the caller stated it: get, set and delete over a dict that keeps what is set (no expiry)."""
   def __init__(self, decl, name=None):
@@ -45,9 +53,17 @@ class FakeStore:
     for path, v in (decl.get('attrs') or {}).items():
       o, parts = self, path.split('.')
       for p in parts[:-1]:
-        if not hasattr(o, p): setattr(o, p, types.SimpleNamespace())
+        if p not in vars(o): setattr(o, p, types.SimpleNamespace())
         o = getattr(o, p)
       setattr(o, parts[-1], v)
+    # (an attribute the rule leaves out, a registry the constructor adds to: inert, its calls doing nothing)
+    for i in S.get('inert') or []:
+      if i['store'] != name: continue
+      o, parts = self, i['path'].split('.')
+      for p in parts[:-1]:
+        if p not in vars(o): setattr(o, p, types.SimpleNamespace())
+        o = getattr(o, p)
+      if parts[-1] not in vars(o): setattr(o, parts[-1], Inert())
     asyncs = decl.get('async') or {}
     def mk(kind, name):
       # (the key by position, or as key= or name=, redis-py's; nx and xx as redis-py's: True where it set, else None)
@@ -59,7 +75,16 @@ class FakeStore:
         self.data[key] = val
         if k.get('nx') or k.get('xx'): return True
       def delete(*a, **k): self.data.pop(kk(a, k), None)
-      f0, key = {'get': get, 'set': set_, 'delete': delete}[kind], f"{self.name}.{name}"
+      # (add: set where the key holds nothing, True where it set; incr: by amount, absent as 0, the new number)
+      def add(*a, **k):
+        key = kk(a, k)
+        if key in self.data: return False
+        self.data[key] = k.get('value', a[1] if len(a) > 1 else None)
+        return True
+      def incr(*a, **k):
+        key = kk(a, k); self.data[key] = (self.data.get(key) or 0) + k.get('amount', a[1] if len(a) > 1 else 1)
+        return self.data[key]
+      f0, key = {'get': get, 'set': set_, 'delete': delete, 'add': add, 'incr': incr}[kind], f"{self.name}.{name}"
       # (where the request says the operation raises, inside a try that catches it)
       def f(*a, **k):
         r = (CUR.get(key) or {}).get('raise')
@@ -70,7 +95,7 @@ class FakeStore:
         return af
       return f
     own = set()
-    for kind, dflt in (('get', ['get', 'async_get_cache', 'get_cache']), ('set', ['set', 'async_set_cache', 'set_cache']), ('delete', ['delete', 'delete_cache', 'async_delete_cache'])):
+    for kind, dflt in (('get', ['get', 'async_get_cache', 'get_cache']), ('set', ['set', 'async_set_cache', 'set_cache']), ('delete', ['delete', 'delete_cache', 'async_delete_cache']), ('add', []), ('incr', [])):
       for m in decl.get(kind) or dflt: setattr(self, m, mk(kind, m)); own.add(m)
     # (a method left out: nothing, as the rule takes it; any other is no method of this store, and fails)
     for m in decl.get('skip') or []:
@@ -79,8 +104,19 @@ class FakeStore:
     # (an injected dependency's other methods: each answered by the request's input; one left out does nothing, and
     # raises where the request says, as its get, set and delete do)
     for a in S.get('answers') or []:
+      if a['patch'].get('store') != name: continue
+      if not a['patch'].get('path'):
+        if os.environ.get('GDP_HARNESS_LOG'):
+          with open(os.environ['GDP_HARNESS_LOG'], 'a') as f: f.write(f"a store's answer with no method: {json.dumps(a)[:400]}\n")
+        continue
       m = a['patch']['path'][-1]
-      if a['patch'].get('store') == name and not (a.get('pass') and m in own): setattr(self, m, stub(a['key'], a['async'], (lambda *x, **k: None) if a.get('pass') else None))
+      if a['patch'].get('store') == name and a.get('effect'):
+        def rec(key, is_async):
+          def f(*x, **k): EFF[key] = True
+          async def af(*x, **k): EFF[key] = True
+          return af if is_async else f
+        setattr(self, m, rec(a['key'], a['async']))
+      elif a['patch'].get('store') == name and not (a.get('pass') and m in own): setattr(self, m, stub(a['key'], a['async'], (lambda *x, **k: None) if a.get('pass') else None))
 
 def build(spec, stores):
   if 'in' in spec:
@@ -172,7 +208,7 @@ def state_of(obj, stores):
             if f.get('opt'): c[f['name'] + '_has'] = x is not None
             c[f['name']] = (x if x is not None else (f['vals'][0] if f.get('choice') else 0)) if f.get('choice') else enc_num(0 if x is None else x)
           cells[h] = c
-        else: cells[h] = {'value': v if l.get('choice') else enc_num(v)}
+        else: cells[h] = {'value': v if l.get('choice') else (v.decode('latin-1') if isinstance(v, (bytes, bytearray)) else v) if l.get('str') else enc_num(int(v) if isinstance(v, bool) else v)}
       s[l['name']] = cells
       continue
     v = walk(obj, l['path'])
@@ -214,7 +250,7 @@ def set_state(obj, stores, state):
       for h, c in (v or {}).items():
         at = pre + h + post if '{}' in l['tpl'] else l['tpl']
         if l.get('json'): st.data[at] = json.dumps({f['name']: (c[f['name']] if f.get('choice') else num_in(c[f['name']], False)) for f in l['json'] if not f.get('out') and (not f.get('opt') or c.get(f['name'] + '_has'))})
-        else: st.data[at] = c['value'] if l.get('choice') else num_in(c['value'], l.get('float'))
+        else: st.data[at] = c['value'] if l.get('choice') or l.get('str') else num_in(c['value'], l.get('float'))
       continue
     if k == 'num': put(obj, l['path'], num_in(v, l.get('float')))
     elif k in ('str', 'choice', 'bool'): put(obj, l['path'], v.encode('latin-1') if k == 'str' and is_bytes(l) and isinstance(v, str) else v)
@@ -368,6 +404,19 @@ def hello(req):
   S['self_stubs'] = []
   for a in req['answers']:
     p = a['patch']
+    # (an effect: a call recorded, nothing run, None returned)
+    if a.get('effect'):
+      def rec(key, is_async):
+        def f(*x, **k): EFF[key] = True
+        async def af(*x, **k): EFF[key] = True
+        return af if is_async else f
+      f = rec(a['key'], a['async'])
+      if p.get('store'): continue
+      if p.get('self'): S['self_stubs'].append((p['self'], {**a, 'effect_fn': f})); continue
+      o, name = patch_target(p)
+      raw = inspect.getattr_static(o, name, None)
+      setattr(o, name, staticmethod(f) if isinstance(raw, staticmethod) else f)
+      continue
     if p.get('store'): continue
     if p.get('self'): S['self_stubs'].append((p['self'], a))
     else:
@@ -390,8 +439,13 @@ def make(args):
     try:
       with pinned(): obj = run(S['cls'](**kw))
     finally: sys.settrace(None)
-  for name, a in S['self_stubs']: obj.__dict__[name] = stub(a['key'], a['async'], getattr(obj, name) if a.get('pass') else None)
+  for name, a in S['self_stubs']: obj.__dict__[name] = a['effect_fn'] if a.get('effect_fn') else stub(a['key'], a['async'], getattr(obj, name) if a.get('pass') else None)
   for name in S.get('inject') or []: setattr(obj, name, build({'store': name}, OBJ_STORES))
+  # (fields stated: the object configured so after its constructor, as the claim says)
+  for f, v in (S.get('fields') or {}).items(): setattr(obj, f, v)
+  # (a module's object stated as a store: the store in its place, this object's while it runs)
+  for g in S.get('globals') or []: build({'store': g['name']}, OBJ_STORES)
+  set_globals(OBJ_STORES)
   i = len(OBJS) + 1
   OBJS[i] = (obj, OBJ_STORES)
   return i
@@ -399,12 +453,17 @@ def make(args):
 def run(x):
   return S['loop'].run_until_complete(x) if inspect.isawaitable(x) else x
 
+def set_globals(stores):
+  for g in S.get('globals') or []: setattr(importlib.import_module(g['mod']), g['name'], stores[g['name']])
+
 def call(req):
   obj, stores = OBJS[req['id']]
   global OBJ_STORES
   OBJ_STORES = stores
+  set_globals(stores)
   NOW[0] = int(req.get('now') or 0)
   CUR.clear(); CUR.update(req.get('answers') or {})
+  EFF.clear()
   fn = getattr(obj, req['m']) if S['cls'] is not None else getattr(S['mod'], req['m'])
   kwargs = fixed_args(req['a'], {})
   before = frames(obj if S['cls'] is not None else None)
@@ -425,7 +484,7 @@ def call(req):
   after = frames(obj if S['cls'] is not None else None)
   for k in before:
     if after.get(k) != before[k]: return {'frame': k}
-  return {'out': tag(out), **({'err': err} if err is not None else {})}
+  return {'out': tag(out), **({'err': err} if err is not None else {}), **({'effects': dict(EFF)} if EFF else {})}
 
 def main():
   fin = open(sys.argv[1], 'r'); fout = open(sys.argv[2], 'w')
@@ -437,7 +496,11 @@ def main():
       if op == 'hello': res = hello(req)
       elif op == 'new':
         try: res = {'id': make(req['a'])}
-        except Exception as e: res = {'err': f"{type(e).__name__}: {e}"[:300]}
+        except Exception as e:
+          res = {'err': f"{type(e).__name__}: {e}"[:300]}
+          if os.environ.get('GDP_HARNESS_LOG'):
+            import traceback
+            with open(os.environ['GDP_HARNESS_LOG'], 'a') as f: traceback.print_exc(file=f)
       elif op == 'at':
         try:
           i = make(req['a'])

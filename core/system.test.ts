@@ -5,7 +5,7 @@
 import {describe, expect, test} from 'bun:test'
 import {forall, keyed, nat, proveLeadsTo, proveRule, proveSteps, refuteLeadsTo, rule, when} from './dsl.ts'
 import {type Request, evalC, evalE, interpret, seeded} from './machine.ts'
-import {asRule, client, clocked, delivery, expires, expiry, isolation, lift, modelsOf, system, time} from './system.ts'
+import {asRule, client, clocked, delivery, envOf, expires, expiry, inEnv, isolation, lift, modelsOf, readsOf, shrinkRun, system, time} from './system.ts'
 import {refutedBy} from './live.ts'
 import {handled, lease, leaseInvariant, leaseLaw, marked, outbox, published} from '../research/distributed/time.ts'
 
@@ -142,5 +142,33 @@ describe('system', () => {
         {holds: {op: 'and', xs: [at('Outbox', 1), at('InFlight', 1)]}, request: req(3)}]} as never
       expect(refutedBy(kr.machine, [], l, ring)).toEqual(fairness === 'weak' ? {refuted: true, fair: ['weak']} : {refuted: false, fair: ['weak'], why: 'the run is not strongly fair'})
     }
+  }, 30_000)
+
+  // A rule in its environment (inEnv): a handler's own step law, lifted to every call's commit at once.
+  test('inEnv: a read-modify-write\'s step law, atomic and snapshot proven, read committed refuted by two calls', () => {
+    const r = rule('hit').inputs({s: nat}).state({failed: 0}).maps({C: 0, D: 0})
+      .step(({s, C, D}) => ({C: C.set(s, C.at(s).plus(1)), D: D.set(s, when(C.at(s).eq(0), 1, D.at(s)))}))
+    const law = r.stepLaw('each hit counts one', ({s, C}, a) => a.C.at(s).eq(C.at(s).plus(1)))
+    expect(envOf('Read Committed, keys expire, retries')).toEqual({isolation: 'read committed', expiry: true, retries: true})
+    expect(() => envOf('eventually consistent')).toThrow(/not an environment/)
+    const got = (['atomic', 'snapshot', 'read committed'] as const).map(level => {
+      const e = inEnv(r, {isolation: level}, {own: ['failed']})
+      const v = proveSteps(e.rule, [], [e.step(law)], {search: {ms: 5000}})
+      if (v.run) {
+        const short = shrinkRun(e.rule, e.step(law), v.run)
+        expect(short.trace.length).toBeLessThanOrEqual(v.run.trace.length)
+        expect(short.trace.length).toBeGreaterThanOrEqual(4)
+      }
+      return verdict(v)
+    })
+    expect(got).toEqual(['proven', 'proven', 'refuted'])
+    // (one read step per store key a call reads: C and D at s, each its own)
+    expect(readsOf.get(isolation(r.machine, 'read committed'))).toEqual(['C', 'D'])
+    const rec = rule('rec').inputs({s: nat}).maps({'C.has': 0, 'C.value': 0}).step(({s, ...m}) => ({'C.value': (m as any)['C.value'].set(s, when((m as any)['C.has'].at(s).eq(1), (m as any)['C.value'].at(s).plus(1), 1))}) as never)
+    expect(readsOf.get(isolation(rec.machine, 'read committed'))).toEqual(['C'])
+    // (a field a call writes is refused at a split level: read where the code reads it, not modelled)
+    const field = rule('f').inputs({s: nat}).state({n: 0}).step(({n}) => ({n: n.plus(1)}))
+    expect(() => inEnv(field, {isolation: 'read committed'})).toThrow(/writes the object's n/)
+    expect(modelsOf(inEnv(r, {expiry: true, retries: true}, {stores: [['C']]}).rule).map(m => m.name)).toEqual(['atomic', 'keys expire', 'a retrying client'])
   }, 30_000)
 })

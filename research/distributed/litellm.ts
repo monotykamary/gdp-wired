@@ -9,7 +9,7 @@
 //                   Lua INCR LiteLLM uses for Redis): a call reads, another reads, both write the same count
 //   bun research/distributed/litellm.ts [--ms 10000]
 import {all, proveSteps} from '../../core/dsl.ts'
-import {isolation, modelsOf, system} from '../../core/system.ts'
+import {isolation, modelsOf, readsOf, system} from '../../core/system.ts'
 import {_PROXY_MaxIterationsHandlerRule as hook} from '../langs/litellm/rules/MaxIterationsHandler.ts'
 
 const arg = (n: string) => { const i = process.argv.indexOf(`--${n}`); return i < 0 ? undefined : process.argv[i + 1] }
@@ -18,7 +18,7 @@ const ms = Number(arg('ms') ?? 10_000), COUNT = 'internal_usage_cache_session_it
 type Env = any
 for (const level of ['atomic', 'read committed'] as const) {
   const h = isolation(hook.machine, level), split = level !== 'atomic'
-  const commit = Object.keys(h.state).filter(s => s.startsWith('rd$')).length + 1
+  const commit = (readsOf.get(h)?.length ?? 0) + 1
   const r = system(`LiteLLM max iterations (${level})`, {hook: split ? {rule: h, id: 't'} : h})
   // (a request's own input: as it came, or as its transaction kept it)
   const own = (b: Env, i: string) => (split ? b[`in$${i}`].at(b.t) : b[i])
