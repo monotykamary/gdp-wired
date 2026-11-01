@@ -299,6 +299,33 @@ unknown on both; ring once unknown at 62.7 s on a large VM, proven in 6 of 6 sam
 Tests (16 GB): 402 of 403, the one data.test.ts's "agrees with + on small values only" at 5.1 s past bun's 5 s; alone,
 8 alternating pairs on one VM, median 4.16 s on, 4.04 s off. Nothing trusted changed.
 
+### gen/laneY4-trust (on main 55eafec): the ∃ verdict through the kernel, proven in Lean
+
+Until this branch the search's ∃ verdict over a plain-made law (core/dsl.ts's `back`, round 1) trusted core/exists.ts's
+untrusted construction of the plain law from the ∃ law. Now:
+- **Lean** (lean-kernel/GhostMap.lean `forall_some_of_ghostsubst`; propext, Classical.choice, Quot.sound): a law of the
+  ghosted machine that is a body c with each bound name x at a term σ x (`substC σ c`), c reading no ghost, gives at
+  every reachable state of the original, for every value of its keys (key and keys2), some natural for each bound name
+  where c holds (`ExHolds`). The terms may read anything of the ghosted machine; one ghost map a name, several names (a
+  disjunction of ∃s, prenex), witnesses built of ghost reads and laws about several keys are instances.
+- **Kernel** (kernel/kernel.ts `someOfGhostsOk`, its twin): ghostedOk; the plain law exactly the kernel's substC of the
+  body, about the same keys, with no bound names of its own; the body reading no ghost variable or map, no quantified
+  condition, no flag; each bound name once, none a key of the law, a name of the original or a ghost. dsl.ts's `back`
+  gives the ∃ verdict only with the plain laws proven (checkLaws) of exactly ghostedMachine(G), G every ghost over the
+  original, each plain law the very law object proven (terra: a law alike in name and body but about no key would have
+  passed), and each ∃ law admitted.
+- **Lean export** (lean-kernel/emit.ts `ghostSubst`; research/protocols/ic3syn/ghosted-lean.ts `subst`, dsl.ts's own
+  route): firewall's ∃ law re-checked in Lean end to end, `gh0_ex0` through forall_some_of_ghostsubst, lean-exit 0 in
+  88 s, no sorry, axioms propext, Classical.choice, Quot.sound.
+- **Mutants** (kernel/mutants.ts over someOfGhostsOk, the counts battery): 25 of 25 killed. **Tests** (kernel/count.test.ts):
+  accepted cases (one and two bound names), one refusal per guard (22), a witness that moves past the keys a run reaches
+  (refused: its plain law is not proven of the ghosted machine); count.test.ts 61/61, exists.test.ts 12/12; tsc clean in
+  core/ and kernel/ (emit.ts's line-550 error is main's, 390344b). **terra** (runs/laneY/terra-review4.txt): the one
+  finding acted on above; the rest by design (the kernel check needs the proven plain law, which back() supplies).
+- **Gates** (de5982d against 55eafec, same window, 2 runs): IC3Syn within 60 s in every run 22 against 22, in some run 23
+  against 23; quick bar (<main>/runs/bar/runs/laneY4trust-de5982d-quick/REPORT.md) wrong 0, nothing lost solid, dag the
+  same search on 332 of 332; +3,185 bytes in core/ and kernel/.
+
 ### gen/laneY4 (round 4, on main 479a22a): supports with "there exists", Lean first; no_lost_keys's ghosts found, its supports not yet
 
 - **Lean** (lean-kernel/GhostMap.lean, `forall_some_of_ghostsubst`; propext, Classical.choice, Quot.sound): a law of the
