@@ -69,15 +69,18 @@ class FakeStore:
         async def af(*a, **k): return f(*a, **k)
         return af
       return f
+    own = set()
     for kind, dflt in (('get', ['get', 'async_get_cache', 'get_cache']), ('set', ['set', 'async_set_cache', 'set_cache']), ('delete', ['delete', 'delete_cache', 'async_delete_cache'])):
-      for m in decl.get(kind) or dflt: setattr(self, m, mk(kind, m))
+      for m in decl.get(kind) or dflt: setattr(self, m, mk(kind, m)); own.add(m)
     # (a method left out: nothing, as the rule takes it; any other is no method of this store, and fails)
     for m in decl.get('skip') or []:
       async def anop(*a, **k): return None
       setattr(self, m, (lambda *a, **k: anop()) if asyncs.get(m) else (lambda *a, **k: None))
-    # (an injected dependency's other methods: each answered by the request's input)
+    # (an injected dependency's other methods: each answered by the request's input; one left out does nothing, and
+    # raises where the request says, as its get, set and delete do)
     for a in S.get('answers') or []:
-      if a['patch'].get('store') == name and not a.get('pass'): setattr(self, a['patch']['path'][-1], stub(a['key'], a['async']))
+      m = a['patch']['path'][-1]
+      if a['patch'].get('store') == name and not (a.get('pass') and m in own): setattr(self, m, stub(a['key'], a['async'], (lambda *x, **k: None) if a.get('pass') else None))
 
 def build(spec, stores):
   if 'in' in spec:

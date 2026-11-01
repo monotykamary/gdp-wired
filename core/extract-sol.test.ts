@@ -97,3 +97,58 @@ t('refused, each where it is with why', () => {
   expect(why('Other', 'interface T { function g() external; }\ncontract Other { uint256 x; function f(address t) external { T(t).g(); x = 1; } }')).toMatch(/another contract/)
   expect(why('Big', 'contract Big { uint256 x; function f() external { x = 1e18; } }')).toMatch(/past the rule's 2\^53/)
 }, 300_000)
+
+// The check's harness failing (anvil's transport: a transaction sent, its answer lost, as under a loaded machine) is
+// the check's outcome, never a difference nor a pass: the check runs once more from a fresh harness, and a second
+// failure says so. The transport broken here by a proxy in front of anvil (GDP_ANVIL), dropping the answer to the
+// FAULT_N-th transaction it forwards: in every harness, or only the first (FAULT_ONCE, a file it makes).
+const PROXY = `import http.server, json, os, socket, subprocess, sys, urllib.request
+args = sys.argv[1:]; port = int(args[args.index('--port') + 1])
+with socket.socket() as s: s.bind(('127.0.0.1', 0)); up = s.getsockname()[1]
+real = list(args); real[real.index('--port') + 1] = str(up)
+subprocess.Popen(['sh', '-c', 'anvil "$@" & a=$!; while kill -0 ' + str(os.getpid()) + ' 2>/dev/null; do sleep 0.5; done; kill $a', 'sh', *real])
+n, once = int(os.environ.get('FAULT_N', '0')), os.environ.get('FAULT_ONCE')
+seen = [0]
+class H(http.server.BaseHTTPRequestHandler):
+  def log_message(self, *a): pass
+  def do_POST(self):
+    body = self.rfile.read(int(self.headers['content-length']))
+    req = json.loads(body)
+    sends = sum(1 for x in (req if isinstance(req, list) else [req]) if x.get('method') == 'eth_sendTransaction')
+    out = urllib.request.urlopen(urllib.request.Request(f'http://127.0.0.1:{up}', data=body, headers={'content-type': 'application/json'}), timeout=60).read()
+    seen[0] += sends
+    if sends and seen[0] == n and not (once and os.path.exists(once)):
+      if once: open(once, 'w').close()
+      self.close_connection = True
+      self.connection.shutdown(socket.SHUT_RDWR)
+      return
+    self.send_response(200); self.send_header('content-type', 'application/json'); self.send_header('content-length', str(len(out))); self.end_headers(); self.wfile.write(out)
+http.server.ThreadingHTTPServer(('127.0.0.1', port), H).serve_forever()
+`
+t('the check\'s harness failing (anvil\'s transport) is retried once, then the check\'s own outcome: never a difference', () => {
+  const proxy = `${dir}/fault-anvil.py`
+  writeFileSync(proxy, PROXY)
+  writeFileSync(`${dir}/fault-anvil`, `#!/bin/sh\nexec python3 ${proxy} "$@"\n`)
+  execFileSync('chmod', ['+x', `${dir}/fault-anvil`])
+  const f = file('Mint', 'contract Mint {\n    uint256 public totalSupply;\n    function mint(uint256 amount) external { totalSupply += amount; }\n}')
+  const run = (env: Record<string, string>) => {
+    const old = {...process.env}
+    Object.assign(process.env, env)
+    try { return extractSolidity(f, {anvil: `${dir}/fault-anvil`, check: {runs: 6, depth: 4, states: 6}}) } finally { for (const k of Object.keys(env)) if (old[k] === undefined) delete process.env[k]; else process.env[k] = old[k] }
+  }
+  const twice = run({FAULT_N: '3'})
+  expect(twice.ok).toBe(false)
+  expect(twice.refusals[0]!.what).toMatch(/^the check's harness failed, twice \(a request past its time or its transport, not the code\): .*(RemoteDisconnected|Connection|closed)/)
+  expect(twice.refusals[0]!.what).not.toMatch(/the rule and the code differ/)
+  const once = run({FAULT_N: '3', FAULT_ONCE: `${dir}/fault-once`})
+  expect(once.refusals).toEqual([])
+  expect(once.ok).toBe(true)
+}, 600_000)
+
+// The reader fuzz's misread (core/extract-fuzz.ts): a call into other code whose failure the function goes on past
+// (no require(ok)): the EVM undoes what the callee did, its calls back included, which the re-entrant rule can't.
+t('a call into other code whose failure the function goes on past: refused (re-entrancy)', () => {
+  const x = extractSolidity(file('NoCheck', VAULT(false).replace('require(ok, "send failed");', '')))
+  expect(x.ok).toBe(false)
+  expect(x.refusals[0]!.what).toMatch(/re-entrancy: withdraw: a call into other code whose failure the function goes on past/)
+}, 600_000)

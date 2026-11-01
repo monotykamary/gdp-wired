@@ -19,7 +19,7 @@ const more: Law[] = extra === 'fw' ? [
 ] : []
 for (const l of [...sk.laws, ...more]) console.error('LAW', l.name, JSON.stringify(l).slice(0, 300))
 const all = [...kinds, ...sk.laws, ...more]
-for (let i = kinds.length; i < all.length; i++) { const t1 = performance.now(), o = withDeadline(clock() + 60000, () => proveLaw(m, all, i)); console.log(JSON.stringify({law: all[i]!.name.slice(0, 60), proven: o.proven, goal: o.goal, stuck: o.stuck, ms: Math.round(performance.now() - t1)})) }
+for (let i = kinds.length; i < all.length; i++) { const t1 = performance.now(), o = withDeadline(clock() + 60000, () => proveLaw(m, all, i)); console.log(JSON.stringify({law: all[i]!.name.slice(0, 60), proven: o.proven, goal: o.proven ? undefined : o.goal, stuck: o.proven ? undefined : o.stuck, ms: Math.round(performance.now() - t1)})) }
 const t = performance.now()
 const out = withDeadline(clock() + Number(ms0 ?? 60000), () => proveLaws(m, [...kinds, ...sk.laws, ...more]))
 console.log(JSON.stringify({id, proven: out.proven, failed: out.failed?.goal, stuck: out.failed?.stuck, ms: Math.round(performance.now() - t)}))

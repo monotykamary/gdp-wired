@@ -11,19 +11,10 @@ import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, s
 // The one generator of the repo's random draws: x' = (1103515245 x + 12345) mod 2^31, exact (Math.imul). In doubles
 // the product passes 2^53 and rounds, which folds every seed into one of six short cycles (61 to 10,466 steps; 98.8% of
 // seeds into the same one). Its period is 2^31 (core/rand.test.ts). Draws are its high bits (the low ones repeat with a
-// short period). Every test, harness and fuzz draws from it.
+// short period). Every search, test, harness and fuzz draws from it.
 export const lcg = (x: number): number => (Math.imul(x, 1103515245) + 12345) & 0x7fffffff
 export type Rand = (k: number) => number
 export const seeded = (seed: number): Rand => { let x = seed; return k => { x = lcg(x); return Math.floor(x / 2 ** 31 * k) } }
-// The searches still on the float form's stream (one 10,466-step cycle whatever the seed): infer.ts's runs and
-// candidates, data.ts's rng, and the CHC and ITS runners' own runs (which feed infer). Under exact draws their results
-// hinge on the draw: over 20 seed shifts, the system test's lease 1, the infer test's in-flight bound 15, the CHC task
-// s_split_22 2, frontier2's break_safe 18, and bstInsert 9 (data.ts: which 240 random models its search compares terms
-// in decides it, 0 of 8 shifts with the models fixed, the same 01001101 with only the models shifted). The rest of the
-// searches (dsl's walks, nonterm, effect's runs, discover, live, cycles, fresh, xstate, the extractors' checks) draw
-// from `seeded`. One moves to `seeded` once its result no longer turns on the draw.
-export const lcgFloat = (x: number): number => (x * 1103515245 + 12345) % 2 ** 31
-export const searchSeeded = (seed: number): Rand => { let x = seed; return k => { x = lcgFloat(x); return Math.floor(x / 2 ** 31 * k) } }
 // Every object in a term, the term first.
 export const walk = (t: unknown, f: (o: Record<string, unknown>) => void): void => {
   if (Array.isArray(t)) { for (const x of t) walk(x, f); return }

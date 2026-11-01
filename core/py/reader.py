@@ -5,7 +5,7 @@
 # arguments carry are read from the repository's own modules (their class annotations, never run).
 #
 #   python3 -I core/py/reader.py '{"root": <repo>, "file": <file>, "names": [<classes or functions>]}'
-import ast, builtins, json, os, sys
+import ast, builtins, contextlib, importlib, io, json, os, sys, types
 
 BUILTINS = {'min', 'max', 'abs', 'len', 'int', 'float', 'bool', 'str', 'isinstance', 'round', 'sum', 'any', 'all', 'print', 'repr', 'getattr', 'setattr', 'hasattr', 'type', 'list', 'dict', 'set', 'tuple', 'sorted', 'range', 'zip', 'enumerate'}
 # Library functions the executor knows (their meaning, not their code).
@@ -39,6 +39,25 @@ def injected(d):
   """A parameter's default that marks it an injected dependency: FastAPI's Depends(...), dependency-injector's Provide[...]."""
   f = d.func if isinstance(d, ast.Call) else d.value if isinstance(d, ast.Subscript) else None
   return (dotted(f) or '').split('.')[-1] in ('Depends', 'Provide', 'Inject') if f is not None else False
+
+def missing(q):
+  """Why the attribute path q (a module's, `logging.getLo`) fails where it runs, or None: the module object's own method
+  (`m.__init__`), or a name a module of Python's own library doesn't have (that module imported to look: the code
+  imports it too)."""
+  parts = q.split('.')
+  for i, n in enumerate(parts[1:], 1):
+    if n.startswith('__') and callable(getattr(types.ModuleType, n, None)): return f"{'.'.join(parts[:i + 1])}: the module object's own method (its machinery, outside the subset)"
+  if parts[0] not in getattr(sys, 'stdlib_module_names', ()) or parts[0] in ('this', 'antigravity', '__main__'): return None
+  try:
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()): o = importlib.import_module(parts[0])
+    for i, n in enumerate(parts[1:], 1):
+      if hasattr(o, n): o = getattr(o, n); continue
+      if not isinstance(o, types.ModuleType): return None
+      try:
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()): o = importlib.import_module('.'.join(parts[:i + 1]))
+      except ImportError: return f"{'.'.join(parts[:i + 1])}: {'.'.join(parts[:i])} has no {n} (an AttributeError where it runs)"
+  except Exception: return None
+  return None
 
 class Repo:
   """The repository's modules, parsed once each, for the classes an annotation names."""
@@ -76,6 +95,22 @@ class Module:
     self.imports, self.classes, self.funcs, self.consts = {}, {}, {}, {}
     for n in (self.tree.body if self.tree else []):
       self.scan(n)
+    # (the module's variables a function rebinds, `global x`: no constant, every call shares them; and the names the
+    # module binds at its top level and in its classes' bodies, or may through `from m import *`: past them and a
+    # function's own, a name is a NameError where it runs)
+    walk = list(ast.walk(self.tree)) if self.tree else []
+    self.rebound = {g for x in walk if isinstance(x, ast.Global) for g in x.names}
+    self.star = any(isinstance(x, ast.ImportFrom) and any(a.name == '*' for a in x.names) for x in walk)
+    self.bound, todo = set(self.rebound), list(self.tree.body if self.tree else [])
+    while todo:
+      x = todo.pop()
+      if isinstance(x, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)): self.bound.add(x.name)
+      if isinstance(x, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)): continue
+      if isinstance(x, ast.Name) and not isinstance(x.ctx, ast.Load): self.bound.add(x.id)
+      if isinstance(x, (ast.Import, ast.ImportFrom)): self.bound |= {(a.asname or a.name).split('.')[0] for a in x.names}
+      if isinstance(x, (ast.ExceptHandler, ast.MatchAs, ast.MatchStar)) and x.name: self.bound.add(x.name)
+      if isinstance(x, ast.MatchMapping) and x.rest: self.bound.add(x.rest)
+      todo.extend(x.body if isinstance(x, ast.ClassDef) else ast.iter_child_nodes(x))
   def scan(self, n):
     if isinstance(n, ast.Import):
       for a in n.names: self.imports[(a.asname or a.name).split('.')[0]] = ('module', a.name if a.asname else a.name.split('.')[0])
@@ -362,7 +397,8 @@ class Reader:
       return [{'s': 'expr', 'p': p, 'x': E(s.value)}]
     if isinstance(s, ast.Pass): return []
     if isinstance(s, (ast.Assign, ast.AnnAssign)):
-      if s.value is None: return []  # a declaration: `x: int`
+      # (a declaration, `x: int`; of a field or an item, `o.f: int`, its object evaluated, and the item's index)
+      if s.value is None: return [] if isinstance(s.target, ast.Name) else [{'s': 'expr', 'p': p, 'x': E(y)} for y in ([s.target.value] + ([s.target.slice] if isinstance(s.target, ast.Subscript) else []))]
       targets = s.targets if isinstance(s, ast.Assign) else [s.target]
       x = E(s.value)
       ann = self.ty(s.annotation, mod) if isinstance(s, ast.AnnAssign) else None
@@ -458,6 +494,7 @@ class Reader:
   def name(self, n, mod, p):
     """What a name is where it is read: a local, a constant, a function or class of the module, an import, a builtin."""
     if self.local_stack and n in self.local_stack[-1]: return {'e': 'var', 'n': n, 'p': p}
+    if n in mod.rebound: return {'e': 'no', 'why': f"{n}: a module variable a function rebinds (global {n}), shared by every call", 'p': p}
     if n in mod.funcs: return {'e': 'fn', 'id': n, 'p': p}
     if n in mod.classes:
       q = self.rec_of(mod, mod.classes[n])
@@ -486,7 +523,9 @@ class Reader:
       return {'e': 'ext', 'q': f"{mod.name}.{n}", 'text': n, 'patch': {'mod': mod.name, 'path': [n]}, 'global': True, 'p': p}
     if n in ('True', 'False', 'None'): return self.expr(ast.Constant({'True': True, 'False': False, 'None': None}[n]), mod)
     if n in BUILTINS: return {'e': 'builtin', 'n': n, 'p': p}
-    return {'e': 'ext', 'q': n, 'text': n, 'p': p, 'unbound': True}
+    if n not in mod.bound and not mod.star and not hasattr(builtins, n) and not (n.startswith('__') and n.endswith('__')):
+      return {'e': 'no', 'why': f"{n}: a name the module doesn't define, import or bind (a NameError where it runs)", 'raises': True, 'p': p}
+    return {'e': 'ext', 'q': n, 'text': n, 'p': p}
   def expr(self, x, mod):
     r = self.expr1(x, mod)
     if r.get('e') == 'no' and 'names' not in r: r['names'] = mentioned(x)
@@ -515,6 +554,8 @@ class Reader:
       if d and base in mod.imports and mod.imports[base][0] == 'module' and not (self.local_stack and base in self.local_stack[-1]):
         q = mod.imports[base][1] + d[len(base):]
         if q in KNOWN: return {'e': 'lib', 'q': q, 'p': p}
+        why = missing(q) if not self.repo.path_of(q.split('.')[0]) else None
+        if why: return {'e': 'no', 'why': why, 'raises': True, 'p': p}
         ret = self.ret_of(q.rpartition('.')[0], q.rpartition('.')[2])
         return {'e': 'ext', 'q': q, 'text': d, 'patch': {'mod': mod.name, 'path': d.split('.')}, 'p': p, **({'ret': ret} if ret else {})}
       return {'e': 'get', 'x': E(x.value), 'f': x.attr, 'p': p, 'text': text(x)}
@@ -593,7 +634,7 @@ def main():
     print(json.dumps({'error': f"{req['file']} doesn't parse"})); return
   out = {'lang': 'python', 'file': os.path.basename(r.file), 'path': r.file, 'module': mod.name, 'root': os.path.abspath(req['root']), 'entries': [],
          # (the module's constants bound to literals, as the code reads them: a law may name them too)
-         'consts': {k: v.value for k, v in ((k, r.const_value(mod, v)) for k, v in mod.consts.items()) if isinstance(v, ast.Constant) and isinstance(v.value, (int, float, str, bool)) and not (isinstance(v.value, float) and not v.value.is_integer())}}
+         'consts': {k: v.value for k, v in ((k, r.const_value(mod, v)) for k, v in mod.consts.items() if k not in mod.rebound) if isinstance(v, ast.Constant) and isinstance(v.value, (int, float, str, bool)) and not (isinstance(v.value, float) and not v.value.is_integer())}}
   for n in req['names'] or list(mod.classes):
     if n in mod.classes: out['entries'].append({'k': 'class', 'rec': r.rec_of(mod, mod.classes[n])})
     elif n in mod.funcs:

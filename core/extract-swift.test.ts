@@ -6,6 +6,8 @@
 // (research/langs/swift/modal_swift.py runs them with Swift 6.3.3 on boat, or in the official Linux image).
 import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
+import {mkdtempSync, writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
 import {extractSwift} from './extract-swift.ts'
 import {proveRule, proveSteps} from './dsl.ts'
 import {ADV, cases as advCases, judge} from '../research/langs/adversarial/cases.test-lib.ts'
@@ -63,3 +65,10 @@ t('refusals, each where it is with why', () => {
 // The adversarial round (research/langs/adversarial): what reaches the rule's state through an injected protocol,
 // refused; two of one protocol, refused; no false checked proof.
 for (const c of advCases('Swift')) t(`adversarial ${c.id}: ${c.attack}`, () => judge(c, extractSwift(`${ADV}${c.file}`, {entry: 'Meter', check: budget})), 900_000)
+
+// The reader fuzz's misreads (core/extract-fuzz.ts): a constructor argument of a protocol nothing reads, given a fake.
+t('an injected protocol nothing the rule keeps reads: the check gives a fake that does nothing', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-swcase-`)
+  writeFileSync(`${dir}/Meter.swift`, 'protocol Store {\n  func get(_ key: String) -> Int?\n  func set(_ key: String, value: Int)\n}\nfinal class Meter {\n  let a: Store\n  let b: Store\n  var n = 0\n  init(a: Store, b: Store) { self.a = a; self.b = b }\n  func tick() {\n    n = b.get("k") ?? 0\n  }\n}\n')
+  ok(extractSwift(`${dir}/Meter.swift`, {entry: 'Meter', check: budget}))
+}, 900_000)

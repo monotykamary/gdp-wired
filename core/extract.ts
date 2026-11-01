@@ -176,9 +176,12 @@ export function fromModel(model: Model, file: string, domains: Record<string, 'n
   try { rule = evaluate(body); invariants = evaluateLaws(rule, invariantsOf(model, sorts)) } catch (e) { return {ok: false, source, model, sorts, refusals: [{where: file, what: `the rule printed doesn't build: ${(e as Error).message}`}], notes} }
   if (invariants.length) source = `${source}\n// What every state of the code is: a law about every state is about the code's with these beside it.\nexport const ${identOf(model)}Invariants = [${invariantsOf(model, sorts).map(x => x.replace(/^r\./, `${identOf(model)}Rule.`)).join(', ')}]\n`
   const evidence = run(rule, sorts)
+  if (evidence.harness) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `${HARNESS_FAILED}${evidence.harness}`}], notes}
   if (evidence.mismatch) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `the rule and the code differ: ${evidence.mismatch}`}], notes}
   return {ok: true, rule, ...(invariants.length ? {invariants} : {}), source, model, sorts, evidence, refusals: [], notes}
 }
+// The check's own failure (twice): no verdict on the code, neither a difference nor a pass.
+export const HARNESS_FAILED = 'the check\'s harness failed, twice (a request past its time or its transport, not the code): '
 // A Date holds a time within ±8.64e15 ms; past it the code's Date is invalid (NaN). The rule refuses a step that would
 // set one there (as it refuses a sum past 2^53), and a start there: its claim stops at the Date's range.
 const DATE_MAX = 8_640_000_000_000_000

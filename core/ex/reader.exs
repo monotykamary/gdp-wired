@@ -22,6 +22,7 @@ defmodule GdpReader do
     base = Path.basename(file)
     Process.put(:base, base)
     mods = modules(ast, [])
+    Process.put(:mods, mods)
     # (no name: the file's one module, or its one GenServer or Agent: the entry inferred)
     name = req["module"] || (case Enum.filter(mods, fn {_, b} -> length(mods) == 1 or Enum.any?(b, &match?({:use, _, [{:__aliases__, _, [k]} | _]} when k in [:GenServer, :Agent], &1)) end) do [{n, _}] -> n; _ -> "" end)
     case Enum.find(mods, fn {n, _} -> n == name end) || Enum.find(mods, fn {n, _} -> String.ends_with?(n, "." <> name) end) do
@@ -105,6 +106,8 @@ defmodule GdpReader do
       _ -> {struct_fields(kw), struct_init(kw)}
     end
   end
+  # (a plain module's state is its struct: with no defstruct, none the check can make)
+  defp state_of(:pure, nil, _), do: {[], fn q -> fn_of("#{q}.__init__", "new", [], [%{"s" => "no", "p" => "#{Process.get(:base)}:1:1", "why" => "#{q}: a plain module with no struct (defstruct) for its state"}]) end}
   defp state_of(_, kw, _), do: {struct_fields(kw), struct_init(kw)}
   defp struct_fields(nil), do: []
   defp struct_fields(kw), do: Enum.map(kw, fn {k, v} -> {k, v}; k -> {k, nil} end)
@@ -310,7 +313,7 @@ defmodule GdpReader do
   def expr({:-, m, [a]}), do: %{"e" => "neg", "x" => expr(a), "p" => p(m)}
   def expr({:/, m, _} = x), do: %{"e" => "no", "why" => "#{text(x)}: a float division (the subset reads trunc(a / k), div and rem)", "p" => p(m)}
   def expr({:if, m, [c, kw]}), do: %{"e" => "ite", "c" => expr(c), "a" => expr(single(kw[:do], m)), "b" => expr(single(kw[:else], m)), "p" => p(m)}
-  def expr({:%{}, m, [{:|, _, [s, kv]}]}), do: upd(expr(s), kv, m)
+  def expr({:%{}, m, [{:|, _, [s, kv]}]}), do: upd(expr(s), kv, m) |> Map.put("strict", true)
   def expr({:%, m, [_, {:%{}, _, kv}]}), do: struct_new(kv, m)
   def expr({:%{}, m, _} = x), do: %{"e" => "no", "why" => "#{text(x)}: a map literal (a state is updated: %{s | f: v})", "p" => p(m)}
   def expr({{:., m, [v, f]}, km, []}) when is_atom(f) and not is_tuple(elem(v, 0)) and is_list(km), do: (if km[:no_parens], do: get(expr(v), f, m), else: call_expr(v, f, [], m))
@@ -345,9 +348,22 @@ defmodule GdpReader do
       key == [:Map] and f == :put and match?([_, k, _] when is_atom(k), args) -> upd(expr(Enum.at(args, 0)), [{Enum.at(args, 1), Enum.at(args, 2)}], m)
       key == [:Map] and f == :merge and match?([_, {:%{}, _, _}], args) -> upd(expr(Enum.at(args, 0)), elem(Enum.at(args, 1), 2), m)
       key == [:Map] and f == :get and match?([_, k] when is_atom(k), args) -> get(expr(Enum.at(args, 0)), Enum.at(args, 1), m)
+      # (a module of the file, all of whose functions the reader sees, that defines no f of this arity: an UndefinedFunctionError)
+      is_list(key) and undefined?(Enum.map_join(key, ".", &to_string/1), f, length(args)) -> %{"e" => "no", "why" => "#{text(x)}: #{text(mod)} defines no #{f}/#{length(args)} (an UndefinedFunctionError where it runs)", "raises" => true, "p" => p(m)}
       # (another module's code: at the boundary where it is inferred; its arguments are values, which it can't change)
       is_atom(mod) or is_tuple(mod) and elem(mod, 0) == :__aliases__ -> %{"e" => "no", "why" => "#{text(x)}: another module's code", "p" => p(m), "ext" => "#{text(mod)}.#{f}", "names" => [], "patch" => %{"mod" => text(mod), "path" => [to_string(f)]}}
       true -> %{"e" => "no", "why" => "#{text(x)}: a call outside the subset", "p" => p(m)}
+    end
+  end
+
+  defp undefined?(name, f, n) do
+    case List.keyfind(Process.get(:mods) || [], name, 0) do
+      {_, body} ->
+        # (only a module of plain definitions: use, defdelegate, a macro may define functions the reader doesn't see)
+        closed = Enum.all?(body, &match?({k, _, _} when k in [:def, :defp, :@, :defstruct, :defmodule, :alias, :require, :import, :defmacrop], &1))
+        arities = for {:def, _, [head | _]} <- body, {^f, args, _} <- [head_of(head)], do: {Enum.count(args, &(not match?({:\\, _, _}, &1))), length(args)}
+        closed and f not in [:module_info, :__info__, :__struct__] and not Enum.any?(arities, fn {lo, hi} -> n in lo..hi//1 end)
+      nil -> false
     end
   end
 

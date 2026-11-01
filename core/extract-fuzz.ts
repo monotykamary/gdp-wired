@@ -20,6 +20,7 @@ import {afterAll, mock} from 'bun:test'
 import {existsSync, readFileSync, readdirSync, statSync, utimesSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import * as ts from './extract.ts'
+import {HARNESS_FAILED} from './extract.ts'
 import * as py from './extract-py.ts'
 import * as rb from './extract-rb.ts'
 import * as ex from './extract-ex.ts'
@@ -106,10 +107,13 @@ const crashLike = /Traceback \(most recent call last\)|panicked at|^panic:|gorou
 // code's, not the reader's)
 const CHECK = /^the rule and the code differ: /
 const UNBUILT = /^the rule and the code differ: (the code doesn't load|the code doesn't compile|the (package|crate|file) doesn't build|the check's harness)/
-export function judge(o: Out): {verdict: 'refused' | 'read' | 'crash' | 'no reason' | 'caught', why?: string} {
+export function judge(o: Out): {verdict: 'refused' | 'read' | 'crash' | 'no reason' | 'caught' | 'harness', why?: string} {
   if (o.ok) return o.evidence?.mismatch ? {verdict: 'no reason', why: `read, yet the check found ${o.evidence.mismatch}`} : {verdict: 'read'}
   const rs = o.refusals ?? []
   if (!rs.length || rs.some(r => !r.what?.trim())) return {verdict: 'no reason'}
+  // (the check's harness failed twice: no verdict on the reader, counted apart)
+  const harness = rs.find(r => r.what.startsWith(HARNESS_FAILED))
+  if (harness) return {verdict: 'harness', why: harness.what}
   const crash = rs.find(r => !CHECK.test(r.what) && crashLike.test(r.what))
   if (crash) return {verdict: 'crash', why: crash.what}
   const caught = rs.find(r => CHECK.test(r.what) && !UNBUILT.test(r.what))
@@ -119,6 +123,15 @@ export function judge(o: Out): {verdict: 'refused' | 'read' | 'crash' | 'no reas
 const tally: Record<string, number> = {}
 let restoreNow: (() => void) | undefined
 const short = (x: string, n = 400) => x.replace(/\s+/g, ' ').slice(0, n)
+// (the mutant's change: the line it starts on, the text taken out and put in; READER_FUZZ_SHOW=1 prints the whole
+// mutant beside, base64 JSON on a `reader-fuzz: SOURCE` line)
+function change(a: string, b: string): string {
+  let i = 0, j = 0
+  while (i < a.length && a[i] === b[i]) i++
+  while (j < a.length - i && j < b.length - i && a[a.length - 1 - j] === b[b.length - 1 - j]) j++
+  const q = (x: string) => JSON.stringify(x.length > 120 ? `${x.slice(0, 60)}…(${x.length})…${x.slice(-60)}` : x)
+  return `line ${a.slice(0, i).split('\n').length}: ${q(a.slice(i, a.length - j))} -> ${q(b.slice(i, b.length - j))}`
+}
 function fuzz(reader: string, call: (first: unknown) => unknown, first: unknown) {
   for (let i = 0; i < N; i++) {
     const t = target(first)
@@ -136,7 +149,9 @@ function fuzz(reader: string, call: (first: unknown) => unknown, first: unknown)
     tally.mutants = (tally.mutants ?? 0) + 1
     tally[j.verdict] = (tally[j.verdict] ?? 0) + 1
     if (j.verdict === 'crash' || j.verdict === 'no reason') console.log(`reader-fuzz: FAIL ${j.verdict} ${id} (${ms} ms): ${short(j.why ?? '')}`)
-    if (j.verdict === 'caught') console.log(`reader-fuzz: CAUGHT ${id} (${ms} ms): ${short(j.why ?? '')}`)
+    if (j.verdict === 'harness') console.log(`reader-fuzz: HARNESS ${id} (${ms} ms): ${short(j.why ?? '')}`)
+    if (j.verdict === 'caught') console.log(`reader-fuzz: CAUGHT ${id} (${ms} ms): ${short(j.why ?? '')} [${change(t.code, code)}]`)
+    if (env.READER_FUZZ_SHOW && j.verdict !== 'refused' && j.verdict !== 'read') console.log(`reader-fuzz: SOURCE ${id} ${Buffer.from(JSON.stringify({code, orig: t.code})).toString('base64')}`)
   }
 }
 for (const sig of ['SIGINT', 'SIGTERM'] as const) process.on(sig, () => { restoreNow?.(); process.exit(130) })
@@ -145,7 +160,7 @@ const calls: {reader: string, call: (first: unknown) => unknown, first: unknown}
 afterAll(() => {
   for (const c of calls) fuzz(c.reader, c.call, c.first)
   const f = (tally.crash ?? 0) + (tally['no reason'] ?? 0)
-  console.log(`reader-fuzz: ${tally.mutants ?? 0} mutants (seed ${seed0}): ${tally.refused ?? 0} refused with a reason, ${tally.read ?? 0} read and checked, ${tally.caught ?? 0} caught by the check, ${f} failed (${tally.crash ?? 0} crash, ${tally['no reason'] ?? 0} no reason)`)
+  console.log(`reader-fuzz: ${tally.mutants ?? 0} mutants (seed ${seed0}): ${tally.refused ?? 0} refused with a reason, ${tally.read ?? 0} read and checked, ${tally.caught ?? 0} caught by the check, ${f} failed (${tally.crash ?? 0} crash, ${tally['no reason'] ?? 0} no reason)${tally.harness ? `, ${tally.harness} the check's harness failed` : ''}`)
 }, 24 * 3600_000)
 
 // Each reader's entry points, wrapped: the call as made, recorded for its mutants after the tests.

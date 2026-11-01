@@ -26,7 +26,7 @@
 // using the others at the fields of their datatypes (mutual induction). Lemmas the law needs are found by the values
 // (theory exploration: equations between terms the random values agree on, then the shapes of a predicate kept), proven
 // the same way at lower levels, and used at the terms of the law they match.
-import {type C, type E, argsKey, atMost as leC, get, n as k, same as eqC, walk, x as ev, lcgFloat} from './machine.ts'
+import {type C, type E, argsKey, atMost as leC, get, n as k, same as eqC, walk, x as ev, lcg} from './machine.ts'
 import {type Fact} from '../kernel/cyclic.ts'
 import {substC, substE} from '../kernel/kernel.ts'
 import {type CyclicVerdict, type NodeSpec, and as andC, implies, proveCyclic} from './cyclic.ts'
@@ -1008,7 +1008,7 @@ export const showValue = (d: Sort, v: Value): string => {
 // Random values: small naturals (so that comparisons and equalities between them happen), values of up to `size`
 // constructors of fields of the datatype.
 type Rand = () => number
-export const rng = (seed: number): Rand => () => (seed = lcgFloat(seed)) / 2147483648 // (a search's draws: machine.ts's lcgFloat)
+export const rng = (seed: number): Rand => () => (seed = lcg(seed)) / 2147483648 // (machine.ts's lcg)
 // `full`: a value that fills its size (a constructor with a field of the group, unless the size is spent, or at 1 in 8),
 // where the plain draw mostly stops at a leaf (a list of length 0 or 1, most often).
 export function randomValue(s: Sort, rand: Rand, size: number, natMax = 5, full = false): Value {
@@ -2569,9 +2569,11 @@ function caseJoins(fs: Facts, from: unknown[], insts: NodeSpec['insts'], hyps: C
 }
 const holdsAt = (fs: Facts, q: {fact: number, at: E[]}) => { const f = fs.facts[q.fact]!; return substShared(f.holds, Object.fromEntries(f.keys.map((key, i) => [key, q.at[i]!]))) }
 
-// The models a search compares terms in: random values of the law's variables.
+// The models a search compares terms in: n distinct random values of the law's variables (of 20n draws at most; with
+// params, every draw): 240 draws held some 70 (a leaf, an empty list again and again).
 function modelsFor(p: Program, l: DataLaw, n: number, seed: number) {
-  return samples(l.vars, p.params, n, seed).map(s => {
+  const seen = new Set<string>(), fresh = (s: Sample) => p.params.length > 0 || (k => !seen.has(k) && !!seen.add(k))(JSON.stringify(l.vars.map(v => s.env.get(v.name))))
+  return samples(l.vars, p.params, p.params.length ? n : 20 * n, seed).filter(fresh).slice(0, n).map(s => {
     const m = new Model(p, s.params)
     const env = Object.fromEntries(l.vars.map(v => [v.name, m.code(v.sort, s.env.get(v.name)!)]))
     return {m, env}
