@@ -245,3 +245,17 @@ t('a function of any name\'s length called; a natural by cases made an integer b
   const x = ok(cpp(`class Meter {\n public:\n  explicit Meter(int start) : used_(start > 0 ? 0 : 2147483648) {}\n  bool use() { if (used_ >= cap_) return false; used_++; return true; }\n private:\n  int used_;\n  int cap_ = 3;\n};\n`, 'Meter'))
   expect(x.source).toContain('Int.of(when(')
 }, 60_000)
+
+// The check's build (the code with the harness): a compiler failing with nothing to say of the code (killed, past
+// GDP_COMPILE_S) is retried once, then the check's harness failure; its errors about the code, the source refused with
+// its message. Never "the rule and the code differ".
+const killedBuild = <X>(make: () => X): X => { const old = process.env.GDP_COMPILE_S; process.env.GDP_COMPILE_S = '0.001'; try { return make() } finally { if (old === undefined) delete process.env.GDP_COMPILE_S; else process.env.GDP_COMPILE_S = old } }
+t('the check\'s build: clang killed is the harness\'s failure, retried once; a source clang rejects refused with its message', () => {
+  const src = 'struct acc { int n; int hits; };\nvoid bump(struct acc *a) { a->n++; }\n'
+  const killed = killedBuild(() => c(src, 'acc'))
+  expect(killed.ok).toBe(false)
+  expect(killed.refusals[0]!.what).toMatch(/^the check's harness failed, twice .*clang failed twice with nothing to say of the code/)
+  const bad = c(src + 'void bad(struct acc *a) { a->n = a->nope; }\n', 'acc')
+  expect(bad.refusals.map(r => r.what).join('; ')).toMatch(/no member named 'nope'/)
+  expect(bad.refusals.map(r => r.what).join('; ')).not.toMatch(/the rule and the code differ/)
+}, 120_000)

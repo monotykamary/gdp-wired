@@ -30,7 +30,7 @@
 // code's calls not answered or skipped. Not yet: `stores`, branch coverage (the arms aren't counted).
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
-import {asset, type Harness, type SModule, type SX, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
+import {asset, type Harness, type SModule, type SX, type StepOptions, type StepRead, compileLimit, entryNames, extractStep, node} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 export type JvmOptions = StepOptions & {
@@ -172,8 +172,8 @@ function compiled(lang: 'java' | 'kotlin', mod: SModule, read: StepRead, o: JvmO
   fs.mkdirSync(path.dirname(copy), {recursive: true})
   fs.writeFileSync(copy, text)
   const t = tools(o), extra = (o.classpath ?? []).join(':')
-  // (each compile within GDP_COMPILE_S seconds, 600: past them killed, the compiler's failure)
-  const limit = Number((globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_COMPILE_S ?? 600) * 1000
+  // (each compile within GDP_COMPILE_S seconds: past them killed, the compiler's failure)
+  const limit = compileLimit()
   const build = (file: string, out: string, srcDir: string): string[] => {
     if (kotlin) {
       const kt = kotlinLib(o)

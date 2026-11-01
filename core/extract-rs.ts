@@ -18,7 +18,7 @@
 // enums with data, references kept, maps and vectors (for now), floats, unsafe pointers, other crates' code.
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
-import {asset, type Harness, type Leaf, type SModule, type SType, type StepOptions, type StepRead, entryNames, extractStep, node, stubbed} from './extract-step.ts'
+import {asset, type Harness, type Leaf, type SModule, type SType, type StepOptions, type StepRead, buildCheck, compileLimit, entryNames, extractStep, node, stubbed} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 export type RsOptions = StepOptions & {cargo?: string}
@@ -244,16 +244,16 @@ function harnessFor(dir: string, mod: SModule, read: StepRead, opts: RsOptions):
     // kept in a branch never taken, so the answer is of the type the call is, which a binding needn't write)
     for (const [f, t] of stubbed(read, f => fs.readFileSync(`${dir}/${f}`, 'utf8'), (a, _, call) => `(if false { ${call} } else { crate::__gdp_answer(${JSON.stringify(a.key)}) })`)) fs.writeFileSync(`${work}/${f}`, t)
     for (const f of walk(`${work}/src`)) { const s = fs.readFileSync(f, 'utf8'); const t = s.replace(/\b(?:std::time::)?Instant::now\(\)/g, 'crate::__gdp_now()'); if (t !== s) fs.writeFileSync(f, t) }
+    // (the lines of the code itself in the files the harness is appended to: an error past them is the harness's)
+    const own = new Map([file, lib].map(f => [f, fs.readFileSync(`${work}/${f}`, 'utf8').split('\n').length]))
     fs.writeFileSync(`${work}/${file}`, fs.readFileSync(`${work}/${file}`, 'utf8') + harnessCode(mod, read, cls))
     fs.writeFileSync(`${work}/${lib}`, `${fs.readFileSync(`${work}/${lib}`, 'utf8')}\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn __gdp_now() -> std::time::Instant { ${modPath}::__gdp_harness::now() }\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn __gdp_answer<T: ${modPath}::__gdp_harness::GdpAns>(k: &str) -> T { ${modPath}::__gdp_harness::answer(k) }\n`)
     const target = `${os.tmpdir()}/gdp-rscheck-target`
-    let msgs: string
-    try { msgs = cp.execFileSync(opts.cargo ?? 'cargo', ['test', '--lib', '--no-run', '--message-format=json', '--target-dir', target], {cwd: work, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 28, env: {...proc?.env}}) }
-    catch (e) {
-      const out = String((e as {stdout?: string}).stdout ?? '')
-      const errs = out.split('\n').flatMap(l => { try { const j = JSON.parse(l) as {reason?: string, message?: {level?: string, rendered?: string}}; return j.reason === 'compiler-message' && j.message?.level === 'error' ? [j.message.rendered ?? ''] : [] } catch { return [] } })
-      return {cmd: 'false', args: [], hello: {}, error: `the crate doesn't build with the check's harness: ${(errs.join(' | ') || String((e as {stderr?: string}).stderr ?? '')).replace(/\s+/g, ' ').slice(0, 600)}`}
-    }
+    const built = buildCheck('cargo', () => cp.execFileSync(opts.cargo ?? 'cargo', ['test', '--lib', '--no-run', '--message-format=json', '--target-dir', target], {cwd: work, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 28, env: {...proc?.env}, timeout: compileLimit(), killSignal: 'SIGKILL'}),
+      e => String((e as {stdout?: string}).stdout ?? '').split('\n').flatMap(l => { try { const j = JSON.parse(l) as {reason?: string, message?: {level?: string, rendered?: string}}; return j.reason === 'compiler-message' && j.message?.level === 'error' ? [(j.message.rendered ?? '').replace(/\s+/g, ' ')] : [] } catch { return [] } }),
+      l => { const m = /--> ([^\s:]+\.rs):(\d+):\d+/.exec(l); if (!m) return false; const n = own.get(m[1]!); return n === undefined || Number(m[2]) <= n })
+    if (!('ok' in built)) return {cmd: 'false', args: [], hello: {}, error: built.why, kind: built.kind}
+    const msgs = built.ok
     const exe = msgs.split('\n').flatMap(l => { try { const j = JSON.parse(l) as {reason?: string, executable?: string, target?: {kind?: string[]}}; return j.reason === 'compiler-artifact' && j.executable && j.target?.kind?.includes('lib') ? [j.executable] : [] } catch { return [] } })[0]
     if (!exe) return {cmd: 'false', args: [], hello: {}, error: 'the test build gave no executable'}
     read.model.notes.push('Rust: the code is checked in a debug build (overflow checks on); its branch arms are not counted (no instrumentation yet)')

@@ -27,7 +27,7 @@
 // floats, enums with associated values, inout, a class's superclass of the code's own, other code given the state.
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
-import {asset, type Answer, type Harness, type Leaf, type PArg, type SModule, type SType, type StepOptions, type StepRead, entryNames, extractStep, node, stubbed} from './extract-step.ts'
+import {asset, type Answer, type Harness, type Leaf, type PArg, type SModule, type SType, type StepOptions, type StepRead, buildCheck, compileLimit, entryNames, extractStep, node, stubbed} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 export type SwiftOptions = StepOptions & {
@@ -352,6 +352,10 @@ function harnessFor(pkg: Pkg, mod: SModule, read: StepRead, opts: SwiftOptions):
     const ef = cls.swift.file!
     let et = changed.get(ef) ?? text(ef)!
     if (cls.swift.kind === 'actor') et = et.replace(new RegExp(`\\bactor(\\s+${cls.short}\\b)`), 'final class$1').replace(/\bnonisolated(\(unsafe\))?\s+/g, '')
+    // (the lines of the code itself in each file the check appends to: an error past them is the harness's)
+    const own = new Map<string, number>()
+    own.set(rel(ef), et.split('\n').length)
+    for (const f of g.edits.keys()) own.set(rel(f), (changed.get(f) ?? text(f)!).split('\n').length)
     changed.set(ef, `${et}\n${code.entry}`)
     for (const [f, exts] of g.edits) changed.set(f, `${changed.get(f) ?? text(f)!}\n${exts.join('\n')}\n`)
     for (const [f, t] of changed) want.set(rel(f), t)
@@ -368,8 +372,10 @@ function harnessFor(pkg: Pkg, mod: SModule, read: StepRead, opts: SwiftOptions):
     const walkW = (d: string): string[] => (fs.readdirSync(d, {withFileTypes: true}) as {name: string, isDirectory: () => boolean}[]).flatMap(e => (['.build', '.swiftpm'].includes(e.name) || links.has(path.relative(work, path.join(d, e.name))) ? [] : e.isDirectory() ? walkW(path.join(d, e.name)) : [path.join(d, e.name)]))
     for (const f of walkW(work)) if (!want.has(path.relative(work, f)) && !links.has(path.relative(work, f))) fs.rmSync(f)
     for (const [l, to] of links) if (!fs.existsSync(path.join(work, l))) { fs.mkdirSync(path.dirname(path.join(work, l)), {recursive: true}); node<{symlinkSync: (a: string, b: string) => void}>('node:fs').symlinkSync(to, path.join(work, l)) }
-    try { cp.execFileSync(swiftOf(opts), ['build', '--product', 'GdpHarness', '--package-path', work], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 28}) }
-    catch (e) { return {cmd: 'false', args: [], hello: {}, error: `the package doesn't build with the check's harness: ${errText(e)}`} }
+    const built = buildCheck('swift build', () => cp.execFileSync(swiftOf(opts), ['build', '--product', 'GdpHarness', '--package-path', work], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 28, timeout: compileLimit(), killSignal: 'SIGKILL'}),
+      e => `${(e as {stdout?: string}).stdout ?? ''}\n${(e as {stderr?: string}).stderr ?? ''}`.split('\n').filter(l => /\.swift:\d+:\d+: error:/.test(l)),
+      l => { const m = /([^\s]+\.swift):(\d+):\d+: error:/.exec(l); if (!m) return false; const r = path.relative(work, m[1]!); if (r.startsWith('GdpHarness/')) return false; const n = own.get(r); return n === undefined || Number(m[2]) <= n })
+    if (!('ok' in built)) return {cmd: 'false', args: [], hello: {}, error: built.why, kind: built.kind}
     const bin = cp.execFileSync(swiftOf(opts), ['build', '--package-path', work, '--show-bin-path'], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}).trim()
     return {cmd: `${bin}/GdpHarness`, args: [], hello: {}}
   } finally { try { fs.rmdirSync(lock) } catch { /* gone */ } }

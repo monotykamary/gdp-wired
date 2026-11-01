@@ -3706,6 +3706,27 @@ export function asset(rel: string): string {
 // reads here block, so the harness runs within GDP_CHECK_HARNESS_S seconds (120, all its requests): past them sh kills
 // it and answers `stopped` (a step of the code that doesn't end: a loop a reader read as one that does).
 export const harnessLimit = (): number => Number(proc?.env?.GDP_CHECK_HARNESS_S ?? 120)
+// The check's build of the code (its compiler, the code with the harness): each within GDP_COMPILE_S seconds (900).
+// The compiler's errors about the code's own files are the source's (a refusal, with its message), about the
+// harness's the check's own; a compiler that fails saying nothing of the code (killed, crashed, past its time) runs
+// once more (`first`: a failure already had), then fails the check's harness. Never "the rule and the code differ".
+export const compileLimit = (): number => Number(proc?.env?.GDP_COMPILE_S ?? 900) * 1000
+export type Built<T> = {ok: T} | {kind: 'source' | 'harness', why: string}
+export function buildCheck<T>(tool: string, run: () => T, errorsOf: (e: unknown) => string[], ofSource: (line: string) => boolean, first?: unknown): Built<T> {
+  let last = first
+  for (let i = 0; i < 2; i++) {
+    if (i > 0 || last === undefined) { try { return {ok: run()} } catch (e) { last = e } }
+    const errs = (last as {signal?: string}).signal ? [] : errorsOf(last)
+    if (errs.length) {
+      const src = errs.filter(ofSource)
+      return src.length ? {kind: 'source', why: `the source doesn't compile (${tool}): ${src.slice(0, 3).join(' | ').slice(0, 900)}`} : {kind: 'harness', why: `the check's harness for the code doesn't build (${tool}): ${errs.slice(0, 3).join(' | ').slice(0, 900)}`}
+    }
+  }
+  const said = String((last as {stderr?: string}).stderr || (last as Error)?.message || last).split('\n').filter(l => l.trim()).slice(-2).join(' | ').slice(0, 300)
+  return {kind: 'harness', why: `${tool} failed twice with nothing to say of the code (${(last as {signal?: string}).signal ? `killed: ${(last as {signal?: string}).signal}, ` : ''}${said})`}
+}
+// (a build's outcome as the check's evidence: the source refused, or the harness failed)
+export const builtEvidence = (b: {kind: 'source' | 'harness', why: string}): {source: string} | {harness: string} => (b.kind === 'source' ? {source: b.why} : {harness: b.why})
 // (the harness past its time, or its transport failing, `transport` set: the check's failure, not the code's)
 export const stopped = (res: Record<string, unknown>): Record<string, unknown> => { if (res.stopped || res.transport) throw new HarnessFailure(String(res.error)); return res }
 const GUARD = 'i=$1 o=$2 l=$3; shift 3; trap \'kill $p $w 2>/dev/null; exit 143\' TERM; "$@" "$i" "$o" & p=$!; (trap \'kill $s 2>/dev/null; exit 0\' TERM; sleep "$l" & s=$!; wait $s; kill -9 $p) 2>/dev/null & w=$!; wait $p; e=$?; kill $w 2>/dev/null; [ "$e" = 0 ] && exit 0; trap - TERM; if [ "$e" = 137 ]; then exec 4>"$o"; printf \'{"error": "the code did not answer within %s s (a request that does not end)", "stopped": true}\\n\' "$l" >&4; exit 1; fi; exec 3<"$i" 4>"$o"; read -r _ <&3; printf \'{"error": "the harness exited (status %s) before it answered"}\\n\' "$e" >&4'
