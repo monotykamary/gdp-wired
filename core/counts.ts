@@ -382,7 +382,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
   type Proof = {instances: Instances, certs: Record<string, CountCert>}
   const widened = new Set<string>()
   let counted = true, houdini = false // (houdini: the rounds over the whole set, after the cone; only they widen)
-  const none = {reads: [] as MapRead[], insts: [] as CountInst[]}
+  const none: ReturnType<typeof certFor> = {reads: [], insts: [], wits: [], picks: [], loose: false}
   // One law's goals and their certificates, the laws `ls` assumed (a subsequence of the set): pass 0 with no instances of
   // the lemma, pass 1 with the cells' (one set of witnesses a law); a tree each within `ms`. The instances: the
   // quantified flags at the law's own terms, then what the goals' models ask.
@@ -415,7 +415,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     type Pool = {fg: Goal, keys: string[], wits: (string | undefined)[]}
     const build = () => obligations(at).map(({goal, decls}) => {
       const full = pass ? certFor(goal, decls, wide, wide && lazyMode !== '0' ? pool : undefined) : none
-      if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide) || !('picks' in full)) return {goal, decls, c: full, gg: ptime('encode', () => mcGoal(goal.hyps, decls, full)), pool: undefined as Pool | undefined}
+      if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide)) return {goal, decls, c: full, gg: ptime('encode', () => mcGoal(goal.hyps, decls, full)), pool: undefined as Pool | undefined}
       const rd = new Map(full.reads.map(r => [r[0], json([r[1], r[2]])]))
       const keys = [...full.picks.map(q => `p${json([rd.get(q[0]), q[1]])}`), ...full.insts.map(i => `i${json([i.terms.map(([z, x]) => [z, rd.get(x)]), i.unit, i.below])}`)]
       if (lazyMode === 'wide') for (const q of keys.slice(full.picks.length, full.picks.length + 10)) chosen.add(q)
