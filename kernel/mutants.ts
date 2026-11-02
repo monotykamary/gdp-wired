@@ -48,13 +48,13 @@ const named: [RegExp, string][] = [[/Object\.hasOwn\(/g, 'Reflect.has('], [/Obje
 // tuple equality's right side read on its left), a tuple's rest whole (.slice(1)), the parts' lengths left unchecked,
 // a cell name's brackets not counted when its key is split, the names ⟨ ⟩ | no longer reserved, a pair claimed where the
 // keys differ, a tuple key's part read as a key term where it isn't.
-const tupleSites = {file: 'kernel/kernel.ts', only: ['linearOp', 'keyParts', 'truthOf', 'tupleEq', 'tupleAnd', 'facts', 'leafRows', 'cellParts', 'splitOuter', 'linOf', 'sameKey',
+const tupleSites = {file: 'kernel/kernel.ts', only: ['linearOp', 'keyParts', 'keyArity', 'truthOf', 'tupleEq', 'tupleAnd', 'facts', 'leafRows', 'cellParts', 'splitOuter', 'linOf', 'sameKey',
   'plainName', 'mapArities', 'eachParts', 'projected', 'projectedC', 'tupleSides', 'keyOnly', 'apart', 'plainKey', 'tuple', 'tupleParts', 'part']}
 const tupleOps: [RegExp, string][] = [
   [/ps\[0\]/g, 'ps[1]'], [/ps\[1\]/g, 'ps[0]'], [/parts\[0\]/g, 'parts[1]'], [/parts\[1\]/g, 'parts[0]'], [/a\.a : a\.b/g, 'a.b : a.a'],
   [/b: c\.b\.a/g, 'b: c.a.a'], [/b: c\.b\.b/g, 'b: c.a.b'], [/\.slice\(1\)/g, ''], [/p\.keys\.length === q\.keys\.length && /g, ''],
   [/ \|\| ch === '⟨'/g, ''], [/ \|\| ch === '⟩'/g, ''], [/⟨⟩\|\]/g, ']'], [/!sameKey\(/g, 'sameKey('], [/!keyTerm\(part, key\)/g, 'keyTerm(part, key)'],
-  [/keyTerm\(p, key\) && other\(p\)/g, 'keyTerm(p, key)'], [/e\.b\.op !== 'tup'/g, "e.b.op === 'proj'"],
+  [/keyTerm\(p, key\) && other\(p\)/g, 'keyTerm(p, key)'], [/e\.b\.op !== 'tup'/g, "e.b.op === 'proj'"], [/keyParts\(key, new Map\(\)\)\?\.length \?\? /g, ''],
 ]
 type Mutant = {id: number, file: string, line: number, from: string, to: string, at: number, length: number}
 

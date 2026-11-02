@@ -746,6 +746,24 @@ def parts (tab : List VDef) (path : Path) : E → Option (List Row)
   | _ => none
 end
 
+-- Arity used by the TypeScript scope/runtime boundary: read the same parts as a cell, including a projected tail.
+-- If no linear parts exist, retain the syntactic arity (scope can still reject the term for another reason).
+def tupleArity : E → Nat
+  | .tup _ b => 1 + tupleArity b
+  | _ => 1
+
+def keyArity (tab : List VDef) (path : Path) (e : E) : Nat :=
+  match parts tab path e with
+  | some ps => ps.length
+  | none => tupleArity e
+
+theorem keyArity_of_parts {tab : List VDef} {path : Path} {e : E} {ps : List Row}
+    (h : parts tab path e = some ps) : keyArity tab path e = ps.length := by
+  simp only [keyArity, h]
+
+example : keyArity [] [] (.proj 1 (.tup (.const 0) (.tup (.const 1) (.const 2)))) = 2 := by decide +kernel
+example : keyArity [] [] (.proj 1 (.tup (.const 0) (.const 1))) = 1 := by decide +kernel
+
 -- What a tree of linear forms says of a natural: a leaf's form is its value, a pair's parts are its parts'.
 def DenSh (x : List Int) : Sh → Nat → Prop
   | .leaf none, _ => True
@@ -2856,6 +2874,7 @@ theorem mmachine_sound (m : MMachine) (ps : List MEntry) (h : checkMMachine m ps
 
 end Kern
 
+#print axioms Kern.keyArity_of_parts
 #print axioms Kern.sound
 #print axioms Kern.machine_sound
 #print axioms Kern.fold_sound

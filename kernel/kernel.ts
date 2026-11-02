@@ -796,11 +796,13 @@ export function scope(m: Machine, laws: Law[] = []) {
 // Each map's number of parts (1 a plain key): every read and every write of a map is at keys of one shape, so a tuple
 // map's cells are its tuples alone (the runtimes keep them apart from a plain key's). A function, a count and a carried
 // map take plain keys.
+// Lean keyArity at an empty path: projected tuple tails have the arity of their linear parts.
+const keyArity = (key: E): number => keyParts(key, new Map())?.length ?? tupleParts(key).length
 export function mapArities(m: Machine, laws: Law[] = []): Record<string, number> {
   const out: Record<string, number> = Object.create(null)
   const plainOnly = new Set([...Object.keys(m.fns ?? {}), ...Object.keys(m.counts ?? {}), ...(m.inputMaps ?? [])])
   const note = (map: string, key: E) => {
-    const n = key.op === 'tup' ? tupleParts(key).length : 1, had = own(out, map)
+    const n = keyArity(key), had = own(out, map)
     if (had !== undefined && had !== n) throw new Error(`${m.name}: the map ${map} is read at keys of ${had} and of ${n} parts`)
     if (n > 1 && plainOnly.has(map)) throw new Error(`${m.name}: ${map} is a function, a count or a carried map, read at plain keys only`)
     out[map] = n
@@ -1909,13 +1911,13 @@ function countsScope(m: Machine, laws: Law[]): void {
     if (!natural(d.below) || !natural(d.body)) throw new Error(`${what}: a negative constant or factor is outside the kernel`)
   }
 }
-// keyParts: the terms a key term gives the parameters: one, the term (j a constant 0); two, the term written base·a + b
+// countKeyParts (CountMachine.lean): the terms a key term gives the parameters: one, the term (j a constant 0); two, the term written base·a + b
 // (j at a, lo at b). toCount: a read cell as Count.lean's count (its variable, the declaration with its parameters at
 // the parts); toCounts: each.
-const keyParts = (d: CountDecl, e: E): [E, E] | undefined =>
+const countKeyParts = (d: CountDecl, e: E): [E, E] | undefined =>
   (!baseOf(d) ? [{op: 'const', value: 0}, e] : e.op === 'add' && e.a.op === 'mul' && e.a.k === baseOf(d) ? [e.a.a, e.b] : undefined)
 const toCount = (ds: CountDecl[], r: MapRead): Count | undefined => {
-  const d = ds.find(x => x.map === r[1]), p = d && keyParts(d, r[2])
+  const d = ds.find(x => x.map === r[1]), p = d && countKeyParts(d, r[2])
   if (!d || !p) return undefined
   const at: Subst = {vars: {[d.j]: p[0], [loOf(d)]: p[1]}, maps: {}, flags: {}}
   return {v: r[0], key: d.key, below: substE(d.below, at), body: substE(d.body, at)}
@@ -1931,7 +1933,7 @@ function toCounts(ds: CountDecl[], rs: MapRead[]): Count[] | undefined {
 }
 // readHyp: the read's variable is its cell; for two parameters, where the second part is below the base.
 const readHyp = (ds: CountDecl[], r: MapRead): C => {
-  const eq: C = {op: '=', a: {op: 'var', name: r[0]}, b: {op: 'get', map: r[1], key: r[2]}}, d = ds.find(x => x.map === r[1]), p = d && baseOf(d) ? keyParts(d, r[2]) : undefined
+  const eq: C = {op: '=', a: {op: 'var', name: r[0]}, b: {op: 'get', map: r[1], key: r[2]}}, d = ds.find(x => x.map === r[1]), p = d && baseOf(d) ? countKeyParts(d, r[2]) : undefined
   return p ? {op: 'or', xs: [{op: '<=', a: {op: 'const', value: baseOf(d!)}, b: p[1]}, eq]} : eq
 }
 // A count at least its body at distinct keys (Lean's pickHyp, pickHyps): a pick names a read and key terms; where the

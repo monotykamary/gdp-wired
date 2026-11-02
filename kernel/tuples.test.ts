@@ -9,7 +9,7 @@ import {expect, test} from 'bun:test'
 import {type C, type E, type Law, type Machine, type State, cpair, cunpair, evalC, interpret, seeded} from '../core/machine.ts'
 import {type Lin, add, k, scale, solve, sub, v} from '../core/solver.ts'
 import {forall, nat, oneOf, rule} from '../core/dsl.ts'
-import {type Goal, type Path, type Tree, canon, cellParts, check, checkLaws, facts, leafConstraints, linear, mapArities, obligations, scope, sumMachine, truth, tuple} from './kernel.ts'
+import {type CountDecl, type Goal, type Path, type Tree, canon, cellParts, check, checkLaws, facts, leafConstraints, linear, mapArities, mcGoal, obligations, scope, sumMachine, truth, tuple} from './kernel.ts'
 import {proveLaws} from './prove.ts'
 
 const X = (name: string): E => ({op: 'var', name}), K = (value: number): E => ({op: 'const', value})
@@ -52,6 +52,17 @@ function proven(goal: Goal, splits: Lin[] = []) {
 }
 const pairRows = (goal: Goal, path: Path) => leafConstraints(goal, path).filter(r => r.src && 'pair' in r.src).map(r => (r.src as {pair: [string, string]}).pair)
 const [a, b, c, dd, u, w, x, y, kk] = ['a', 'b', 'c', 'd', 'u', 'w', 'x', 'y', 'k'].map(X) as [E, E, E, E, E, E, E, E, E]
+
+test('tuple linearization and counted radix decoding stay separate in one kernel', () => {
+  const decl: CountDecl = {map: 'C', j: 'round', lo: 'value', base: 8, key: 'member', below: plus(X('round'), X('value')), body: K(1)}
+  const key: E = plus({op: 'mul', k: 8, a: X('r')}, X('v'))
+  const goal = mcGoal([], [decl], {reads: [['count', 'C', key]], insts: []})
+  expect(goal?.hyps[0]).toEqual({op: 'or', xs: [le(K(8), X('v')), eq(X('count'), M(key, 'C'))]})
+  expect(mcGoal([], [decl], {reads: [['count', 'C', T(X('r'), X('v'))]], insts: []})).toBeUndefined()
+  expect(linear(M(T(X('r'), X('v'))), new Map())).toEqual({'M[⟨r:1|v:1⟩]': 1})
+  expect(linear(P(0, T(X('r'), X('v'))), new Map())).toEqual({r: 1})
+  expect(linear(P(1, T(X('r'), X('v'))), new Map())).toEqual({v: 1})
+})
 
 test('a tuple cell is another only when every part is decided equal, both ways', () => {
   // M[⟨a|b⟩] and M[⟨a|c⟩]: a = a, b and c apart.
@@ -120,6 +131,30 @@ test('a plain cell and a tuple cell of one map are never claimed equal', () => {
   expect(forge(zero, splits)).toBeUndefined()
   // A plain key equal to a tuple key's part, in either order of the cells.
   refused({name: 'M[⟨a|b⟩], M[k], k = a', hyps: [eq(M(T(a, b)), K(1)), eq(M(kk), K(0)), eq(kk, a)]}, splits, {k: 0, a: 0, b: 1}, {M: [[2, 1]]})
+})
+
+test('projected tuple arity agrees with the linear cell shape, including repeated tails', () => {
+  const vars = ['a', 'b', 'c', 'd', 'e']
+  for (let n = 2; n <= vars.length; n++) {
+    let key = T(...vars.slice(0, n).map(X))
+    for (let dropped = 0; dropped < n - 1; dropped++) {
+      const size = n - dropped, value = M(key)
+      const m: Machine = {name: 'projected arity', params: vars, inputs: [], state: {v: K(0)}, maps: {M: 0}, step: {state: {v: value}}}
+      expect(mapArities(m).M).toBe(size)
+      expect(() => scope(m)).not.toThrow()
+      const lin = linear(value, new Map())!
+      const cell = cellParts(Object.keys(lin)[0]!)!
+      expect(cell.keys?.length ?? 1).toBe(size)
+      const sameShape = {name: 'same shape', holds: eq(value, M(T(...vars.slice(dropped, n).map(X))))}
+      expect(mapArities(m, [sameShape]).M).toBe(size)
+      expect(() => mapArities(m, [{name: 'mixed', holds: eq(value, M(X('a')))}])).toThrow(/parts/)
+      expect(() => mapArities({...m, maps: {}, inputMaps: ['M']})).toThrow(/plain keys/)
+      key = P(1, key)
+    }
+    const m: Machine = {name: 'projected last', params: vars, inputs: [], state: {v: K(0)}, maps: {M: 0}, step: {state: {v: M(key)}}}
+    expect(mapArities(m).M).toBe(1)
+    expect(() => scope(m)).not.toThrow()
+  }
 })
 
 test('aliasing: a map read at two shapes is refused; two maps never share a cell', () => {
@@ -267,7 +302,12 @@ test('scope over tuple keys: what a key at every key may be read as', () => {
   // No sum's term is a tuple or a part of one.
   const tok: Machine = {name: 'tok', params: [], inputs: ['from', 'v'], state: {}, maps: {Bal: 0}, step: {maps: {Bal: {key: X('from'), value: plus(M(X('from'), 'Bal'), X('v'))}}}}
   expect(() => sumMachine({...tok, sums: {S: {key: 'k', term: M(kk, 'Bal')}}})).not.toThrow()
-  for (const term of [T(M(kk, 'Bal'), K(0)), P(0, M(kk, 'Bal')), P(1, T(M(kk, 'Bal'), M(kk, 'Bal')))]) expect(() => sumMachine({...tok, sums: {S: {key: 'k', term}}}), JSON.stringify(term)).toThrow()
+  for (const term of [T(M(kk, 'Bal'), K(0)), P(0, M(kk, 'Bal')), P(1, T(M(kk, 'Bal'), M(kk, 'Bal')))]) {
+    expect(() => sumMachine({...tok, sums: {S: {key: 'k', term}}}), JSON.stringify(term)).toThrow()
+    // Initially Bal is 0: natE skips this branch, so it is not a redundant guard (terra's review).
+    const latent = ite(eq(M(kk, 'Bal'), K(0)), K(0), term)
+    expect(() => sumMachine({...tok, sums: {S: {key: 'k', term: latent}}}), JSON.stringify(latent)).toThrow(/its term reads/)
+  }
 })
 
 // --- comprehensions: R' = {(x, y): R(y, x)}, with tuples added ------------------------------------------------------------
