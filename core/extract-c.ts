@@ -56,6 +56,9 @@ export type COptions = {
   // for other code (a database mirror, a CAN buffer, a report), which nothing the rule keeps reads; a read of one into
   // what it keeps is refused. (`answers` may name the file's own functions too: each call of one the request's value.)
   leave?: string[],
+  // The file's own functions read as other code's (a getter of another object's state, CANopen's CO_isError): each call
+  // the request's value, of its declared type, the check giving it in the copy of the file.
+  cut?: string[],
   onError?: 'refuse' | 'discard', domains?: Record<string, 'nat' | 'int'>, check?: GoCheckOptions,
 }
 type FS = {readFileSync: (p: string, e: string) => string, mkdtempSync: (p: string) => string, writeFileSync: (p: string, s: string) => void, rmSync: (p: string, o?: unknown) => void, mkdirSync: (p: string, o?: unknown) => void}
@@ -116,7 +119,7 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
     if (ok.length !== 1) throw new Refusal(file, ok.length ? `several structs written by the file's functions (${ok.join(', ')}): name one (entry)` : 'no struct the file\'s functions write: name the entry')
     return readCFile(file, {...opts, entry: ok[0]!}, cpp)
   }
-  return {c: readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])])), (opts.functions ?? opts.methods ?? []).map(f => f.split('/')[0]!), opts.leave ?? [], Object.keys(opts.answers ?? {})), flags}
+  return {c: readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])])), (opts.functions ?? opts.methods ?? []).map(f => f.split('/')[0]!), opts.leave ?? [], [...Object.keys(opts.answers ?? {}), ...(opts.cut ?? [])]), flags}
 }
 export function extractC(at: string | FileURL, given: COptions = {}, cpp = false): Extraction & {leaves?: GoLeaf[]} {
   const notes: string[] = [], file = pathOf(at), fns = given.methods ?? given.functions, opts: COptions = {...given, ...(fns ? {functions: fns} : {})}

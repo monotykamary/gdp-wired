@@ -603,6 +603,13 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     if (n.kind === 'ArraySubscriptExpr') return at0()
     return no(n, `${text(n)}: a place the subset doesn't write`)
   }
+  // Other code called with different constants (CO_isError(em, BUS_OFF), CO_isError(em, HB_CONSUMER)): a question per
+  // constant arguments, each its own answer, named by them (CO_isError_x_18: x where an argument isn't a constant).
+  const asked = new Map<string, Set<string>>()
+  const sig = (args: CN[]) => args.map(a => { const k = fold(a); return k === undefined || !Number.isSafeInteger(k) ? 'x' : String(k).replace('-', 'm') }).join('_')
+  const scanCalls = (n: CN) => { if (n.kind === 'CallExpr') { const nm = calleeName(n); if (nm && (!funcs.has(nm) || cut.includes(nm))) (asked.get(nm) ?? asked.set(nm, new Set()).get(nm)!).add(sig((n.inner ?? []).slice(1))) } for (const c of n.inner ?? []) scanCalls(c) }
+  for (const f of funcs.values()) scanCalls(f)
+  const keyed = (name: string, args: CN[]) => ((asked.get(name)?.size ?? 0) > 1 && /\d/.test(sig(args)) ? `${name}_${sig(args)}` : name)
   const call = (n: CN): GX => {
     const t = n.type ? tyOf(n.type) : -1, a = at(n, t), name = calleeName(n), args = (n.inner ?? []).slice(1)
     if (!name) return no(n, `${text(n)}: a call through a function pointer`)
@@ -615,7 +622,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     if (f?.$m) return no(n, `${name}: a static method`)
     // (another file's or a library's function: at the boundary where it is inferred, with its end, where the check
     // stubs an answered one in a copy of the file)
-    if (!f) return {e: 'call', ...a, f: {e: 'sel', ...at(n, -1), k: 'qual', pkg: '', n: name, why: `${name}: a function of another file or library (other code)`}, a: args.map(x), ...(n.$e && own(n) ? {end: `${n.$e.line}:${n.$e.col + n.$e.tok}`} : {})}
+    if (!f) return {e: 'call', ...a, f: {e: 'sel', ...at(n, -1), k: 'qual', pkg: '', n: keyed(name, args), why: `${name}: a function of another file or library (other code)`}, a: args.map(x), ...(n.$e && own(n) ? {end: `${n.$e.line}:${n.$e.col + n.$e.tok}`} : {})}
     if (gmode) return {e: 'call', ...a, f: {e: 'sel', ...at(n, -1), k: 'method', x: self0(n), n: name, mtype: entry, mptr: true}, a: args.map(x)}
     if (recvOf(f) && args.length) return {e: 'call', ...a, f: {e: 'sel', ...at(n, -1), k: 'method', x: x(args[0]!), n: name, mtype: entry, mptr: true}, a: args.slice(1).map(x)}
     return {e: 'call', ...a, f: {e: 'id', ...at(n, -1), o: 'func', n: name}, a: args.map(x)}

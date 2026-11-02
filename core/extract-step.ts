@@ -2787,7 +2787,18 @@ export class Stepper {
   bitop(op: string, a: Extract<V, {t: 'num'}>, b: Extract<V, {t: 'num'}>, x: {p: string}): V {
     const ty = a.ty?.name !== undefined ? a.ty : b.ty!, at = (x as SX).text ? `${(x as SX).text}: ` : ''
     const isK = (v: N) => v.op === 'const', bit01 = (v: N) => { const [lo, hi] = this.bounds(v); return lo >= 0 && hi <= 1 }
-    const [vv, wv] = isK(b.e) ? [a, b] : isK(a.e) ? [b, a] : bit01(b.e) ? [a, b] : bit01(a.e) ? [b, a] : refuse(x, `${at}${op} of two values neither of them a constant (bit-vectors are outside the subset)`)
+    // (two values at least 0 of few bits, a byte's flags masked by another's: bit by bit, each bit a case)
+    const width = (v: N) => { const [lo, hi] = this.bounds(v); if (lo < 0 || !Number.isFinite(hi)) return Infinity; let w = 0; while (2 ** w <= hi) w++; return w }
+    if (!isK(a.e) && !isK(b.e) && !bit01(a.e) && !bit01(b.e) && Math.max(width(a.e), width(b.e)) <= 16) {
+      const w = Math.max(width(a.e), width(b.e)), bit = (v: N, j: number) => I.cmp('=', I.modk(2, I.divk(2 ** j, v)), I.num(1))
+      let e: N = I.num(0)
+      for (let j = 0; j < w; j++) {
+        const x1 = bit(a.e, j), y1 = bit(b.e, j), on = op === '&' ? I.and(x1, y1) : op === '|' ? I.or(x1, y1) : op === '^' ? I.or(I.and(x1, I.not(y1)), I.and(I.not(x1), y1)) : I.and(x1, I.not(y1))
+        e = I.add(e, I.nite(on, I.num(2 ** j), I.num(0)))
+      }
+      return {t: 'num', e, ty}
+    }
+    const [vv, wv] = isK(b.e) ? [a, b] : isK(a.e) ? [b, a] : bit01(b.e) ? [a, b] : bit01(a.e) ? [b, a] : refuse(x, `${at}${op} of two values neither of them a constant nor of 16 bits or fewer (bit-vectors are outside the subset)`)
     const v = vv.e, w = wv.e, first = vv === a
     if (!isK(w)) {
       // (with a value that is 0 or 1: its low bit, where that value is 1)
@@ -2895,7 +2906,8 @@ export class Stepper {
       case 'var': return r(e.name)
       case 'cell': return r(`${e.map}.${e.field}`)
       case 'add': { const a = this.bounds(e.a), b = this.bounds(e.b); return [a[0] + b[0], a[1] + b[1]] }
-      case 'sub': { const a = this.bounds(e.a), b = this.bounds(e.b); return [a[0] - b[1], a[1] - b[0]] }
+      // (x − k·(x div k): x's floor remainder by k, a conversion's wrap)
+      case 'sub': { if (e.b.op === 'mulk' && e.b.a.op === 'divk' && e.b.a.k === e.b.k && I.same(e.b.a.a, e.a)) return [0, e.b.k - 1]; const a = this.bounds(e.a), b = this.bounds(e.b); return [a[0] - b[1], a[1] - b[0]] }
       case 'neg': { const a = this.bounds(e.a); return [-a[1], -a[0]] }
       case 'mulk': { const a = this.bounds(e.a); return e.k >= 0 ? [e.k * a[0], e.k * a[1]] : [e.k * a[1], e.k * a[0]] }
       case 'mul': { const a = this.bounds(e.a), b = this.bounds(e.b), xs = [a[0] * b[0], a[0] * b[1], a[1] * b[0], a[1] * b[1]].map(v => (Number.isNaN(v) ? 0 : v)); return [Math.min(...xs), Math.max(...xs)] }

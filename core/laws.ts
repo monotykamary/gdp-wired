@@ -423,7 +423,13 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
       if (hit) {
         c.roles.add(hit.role); if (hit.method) c.methods.add(hit.method)
         // (an answered call is one value a step, whatever its arguments: written f(...) or f())
-        if (hit.role === 'answer' && next && 'call' in next && next.args) throw new LawError(`${code}(${next.args}): an answered call's value is the request's, one a step: write it ${code}(...)`)
+        if (hit.role === 'answer' && next && 'call' in next && next.args) {
+          // (a call answered per constant arguments, C's: f(em, BUS_OFF) its answer f_x_18, by the code's constants)
+          const sig = splitArgs(next.args).map(a => { const k = /^-?\d+$/.test(a) ? Number(a) : /^[A-Za-z_]\w*$/.test(a) ? c.consts?.[a] : undefined; return typeof k === 'number' ? String(k).replace('-', 'm') : 'x' }).join('_')
+          const per = names.find(x => x.role === 'answer' && x.code === `${code}_${sig}`)
+          if (per) { c.roles.add(per.role); return rest(e.segs.slice(skip + n), leaf(per, c, dry), c, names, dry, e) }
+          throw new LawError(`${code}(${next.args}): an answered call's value is the request's, one a step: write it ${code}(...)`)
+        }
         const segs = e.segs.slice(skip + n - 1 + (hit.role === 'answer' && next && 'call' in next ? 1 : 0))
         // (a map read where it is named: old(m) is the map before the step wherever its cells are read, `k in old(m)`)
         return rest(segs, hit.map ? {t: 'map', n: hit, maps: names.filter(x => x.map && x.code === hit.code), env: c.a} : leaf(hit, c, dry), c, names, dry, e)
@@ -655,3 +661,6 @@ function split(s: string, sep: string): string[] {
   for (let i = topIndex(rest, sep); i >= 0; i = topIndex(rest, sep)) { out.push(rest.slice(0, i)); rest = rest.slice(i + sep.length) }
   return [...out, rest].map(t => t.trim()).filter(Boolean)
 }
+
+// (a call's arguments as written, split at the commas outside parentheses)
+function splitArgs(s: string): string[] { const out: string[] = []; let d = 0, cur = ''; for (const ch of s) { if (ch === '(' || ch === '[') d++; else if (ch === ')' || ch === ']') d--; if (ch === ',' && !d) { out.push(cur.trim()); cur = '' } else cur += ch } if (cur.trim()) out.push(cur.trim()); return out }
