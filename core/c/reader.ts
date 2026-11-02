@@ -20,7 +20,8 @@ type CN = {id?: string, kind: string, name?: string, inner?: CN[], type?: {qualT
 type L = {offset?: number, file?: string, line?: number, col?: number, tokLen?: number, spellingLoc?: L, expansionLoc?: L, includedFrom?: unknown}
 type At = {file: string, line: number, col: number, off: number, tok: number}
 export type CTarget = {int: number, long: number, short: number, llong: number, charUnsigned: boolean}
-export type CRead = {pkg: GoPkg, methods: string[], entry: string, cname: string}
+// (consts: the project's enum constants by name, one of a name only, for the laws' terms)
+export type CRead = {pkg: GoPkg, methods: string[], entry: string, cname: string, consts: Record<string, number>}
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
 // (consecutive JSON values in one string, each with where it ends)
 class JSONDecoder {
@@ -52,6 +53,32 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
   if (filter) for (let i = dump.indexOf('{'); i >= 0; i = dump.indexOf('{', i)) { const [o, e] = dec.decode(dump, i); inner.push(o as CN); i = e }
   const defs = run([...lang, ...flags, '-dM', '-E', '/dev/null']), def = (k: string) => Number(new RegExp(`#define ${k} (\\d+)`).exec(defs)?.[1] ?? 0)
   return {tu, target: {int: def('__SIZEOF_INT__') * 8, long: def('__SIZEOF_LONG__') * 8, short: def('__SIZEOF_SHORT__') * 8, llong: def('__SIZEOF_LONG_LONG__') * 8, charUnsigned: /#define __CHAR_UNSIGNED__/.test(defs)}}
+}
+// The values of names a law reads that the code defines as integer constants (a macro, an enum constant, a constexpr
+// variable), folded by clang itself: each the value of an enumerator of a probe that includes the file. A name that
+// isn't one (a field, a float, a string) doesn't compile there and is left out.
+export function constantsOf(file: string, flags: string[], clang: string, cpp: boolean, names: string[]): Record<string, number> {
+  const fs = node<{mkdtempSync: (p: string) => string, writeFileSync: (p: string, s: string) => void, rmSync: (p: string, o?: unknown) => void}>('node:fs'), os = node<{tmpdir: () => string}>('node:os'), path = node<{resolve: (p: string) => string}>('node:path'), cp = node<CP>('node:child_process')
+  let left = [...new Set(names)].filter(n => /^[A-Za-z_]\w*$/.test(n))
+  if (!left.length) return {}
+  const work = fs.mkdtempSync(`${os.tmpdir()}/gdp-cconst-`), probe = `${work}/probe.${cpp ? 'cpp' : 'c'}`, out: Record<string, number> = {}
+  try {
+    for (let round = 0; round < 3 && left.length; round++) {
+      fs.writeFileSync(probe, `#include ${JSON.stringify(path.resolve(file))}\n${left.map((n, i) => `enum gdp_k${i}_e ${cpp ? ': long long ' : ''}{ gdp_k${i} = (${n}) };`).join('\n')}\n`)
+      let dump = ''
+      try { dump = cp.execFileSync(clang, [...(cpp ? ['-x', 'c++'] : ['-x', 'c']), ...flags, '-w', '-ferror-limit=0', '-Xclang', '-ast-dump=json', '-Xclang', '-ast-dump-filter=gdp_k', '-fsyntax-only', probe], {encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()}) }
+      catch (e) {
+        // (the lines that don't compile: their names left out, the rest tried again)
+        const bad = new Set([...String((e as {stderr?: string}).stderr ?? '').matchAll(/probe\.c(?:pp)?:(\d+):\d+: error/g)].map(m => Number(m[1]) - 2))
+        if (!bad.size) return out
+        left = left.filter((_, i) => !bad.has(i))
+        continue
+      }
+      for (const m of dump.matchAll(/"kind":\s*"EnumConstantDecl"[^]*?"name":\s*"gdp_k(\d+)"[^]*?"value":\s*"(-?\d+)"/g)) { const v = Number(m[2]); if (Number.isSafeInteger(v)) out[left[Number(m[1])]!] = v }
+      break
+    }
+    return out
+  } finally { try { fs.rmSync(work, {recursive: true, force: true}) } catch { /* gone */ } }
 }
 // The project's flags for a file: from a compile_commands.json (its -I, -D, -std, -include and -f options), or given.
 export function flagsFor(file: string, compileCommands?: string): string[] {
@@ -86,7 +113,8 @@ function locate(root: CN) {
     for (const k of Object.keys(n)) {
       if (k === 'loc') n.$at = at(n.loc)
       else if (k === 'range') { n.$b = at(n.range!.begin); n.$e = at(n.range!.end) }
-      else if (k === 'inner') for (const c of n.inner!) walk(c)
+      // (doc comments, FullComment and its parts, are no code)
+      else if (k === 'inner') { n.inner = n.inner!.filter(c => !c.kind.endsWith('Comment')); for (const c of n.inner) walk(c) }
     }
     n.$at ??= n.$b
   }
@@ -113,12 +141,15 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
 
   // The declarations: typedefs, records and enums of every file (a header's types are the file's too), the globals.
   const typedefs = new Map<string, {qual: string, desug?: string, rec?: string}>(), records = new Map<string, CN>(), tags = new Map<string, string>(), anon = new Map<string, string>()
-  const members = new Map<string, CN>(), fieldNode = new Map<string, CN>(), enums = new Map<string, CN>(), cxx: CN[] = []
-  const enumConst = new Map<string, number>(), globals = new Map<string, CN>(), fields = new Map<string, {rec: string, i: number}>(), recName = new Map<string, string>()
+  const members = new Map<string, CN>(), fieldNode = new Map<string, CN>(), enums = new Map<string, CN>(), enumById = new Map<string, CN>(), cxx: CN[] = []
+  const enumConst = new Map<string, number>(), named = new Map<string, number>(), globals = new Map<string, CN>(), fields = new Map<string, {rec: string, i: number}>(), recName = new Map<string, string>()
   const declOf = (n: CN): {id: string, kind: string} | undefined => n.decl ?? (n.inner ?? []).map(declOf).find(Boolean)
   const visitDecl = (n: CN) => {
     if (n.kind === 'TypedefDecl' && n.name) {
       const d = declOf(n)
+      // (a typedef of an unnamed enum names it: clang 21 spells it `enum state_t`, desugared to the typedef's own name)
+      const en = d?.kind === 'EnumDecl' ? enumById.get(d.id) : undefined
+      if (en && !en.name) { for (const q of [n.name, `enum ${n.name}`]) enums.set(q, en); return }
       typedefs.set(n.name, {qual: n.type!.qualType, ...(n.type!.desugaredQualType ? {desug: n.type!.desugaredQualType} : {}), ...(d && (d.kind === 'RecordDecl' || d.kind === 'CXXRecordDecl') ? {rec: d.id} : {})})
       if (d && !recName.has(d.id)) recName.set(d.id, n.name)
     } else if ((n.kind === 'RecordDecl' || n.kind === 'CXXRecordDecl') && n.completeDefinition) {
@@ -133,9 +164,10 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         else { if (f.kind === 'EnumDecl' && n.name) f.$outer = n.name; visitDecl(f) }
       }
     } else if (n.kind === 'EnumDecl') {
+      enumById.set(n.id!, n)
       if (n.name) for (const q of [n.name, ...(n.$outer ? [`${n.$outer as string}::${n.name}`] : []), `enum ${n.name}`]) enums.set(q, n)
       let v = -1
-      for (const c of n.inner ?? []) if (c.kind === 'EnumConstantDecl') { const k = c.inner?.length ? fold(c.inner[0]!) : undefined; v = k ?? v + 1; enumConst.set(c.id!, v) }
+      for (const c of n.inner ?? []) if (c.kind === 'EnumConstantDecl') { const k = c.inner?.length ? fold(c.inner[0]!) : undefined; v = k ?? v + 1; enumConst.set(c.id!, v); if (c.name) named.set(c.name, named.has(c.name) && named.get(c.name) !== v ? NaN : v) }
     } else if (n.kind === 'VarDecl') globals.set(n.id!, n)
     else if (n.kind === 'LinkageSpecDecl' || n.kind === 'NamespaceDecl') for (const c of n.inner ?? []) visitDecl(c)
     // (a method defined outside its class: its class by the declaration's context)
@@ -247,6 +279,15 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   const enumT = (s: string): number => {
     const d = enums.get(s), vals = (d?.inner ?? []).filter(c => c.kind === 'EnumConstantDecl').map(c => enumConst.get(c.id!) ?? 0)
     const fixed = (d?.fixedUnderlyingType as {qualType: string} | undefined)?.qualType, ft = fixed ? T(parseT(fixed)) : undefined
+    // (C++, no fixed type: its values are those of the smallest bit-field holding every enumerator, another one
+    // undefined to make, the sanitizer's trap where it is read)
+    if (cpp && !ft) {
+      const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals)
+      let b = 1
+      if (lo < 0) while (-(2 ** (b - 1)) > lo || hi > 2 ** (b - 1) - 1) b++
+      else while (hi > 2 ** b - 1) b++
+      return add(`int:${s}`, {k: 'int', go: s, bits: b, signed: lo < 0, ub: true})
+    }
     return intT(s, ft?.bits ?? target.int, ft ? ft.signed! : vals.some(v => v < 0))
   }
   for (const n of top) if (!n.isImplicit) visitDecl(n)
@@ -604,7 +645,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   // (the class's qualified name, which the harness spells: `this`'s type, as clang prints it)
   const thisOf = (n: CN): string | undefined => (n.kind === 'CXXThisExpr' ? n.type!.qualType : (n.inner ?? []).map(thisOf).find(Boolean))
   const self = cpp ? cxx.filter(m => m.$rec === entryRec).map(thisOf).find(Boolean)?.replace(/^const /, '').replace(/ \*$/, '') : undefined
-  return {pkg, methods, entry, cname: self ?? T(entryT).go!}
+  return {pkg, methods, entry, cname: self ?? T(entryT).go!, consts: Object.fromEntries([...named].filter(([, v]) => Number.isSafeInteger(v)))}
 }
 // Where a function type's result ends: before its parameter list (the last parenthesized group).
 function retEnd(s: string): number {

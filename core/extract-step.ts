@@ -2729,11 +2729,11 @@ export class Stepper {
     return {...p, locals: new Map(p.locals).set(id, v)}
   }
   numv(v: V, at: SX | {p: string}): N {
-    if (v.t !== 'num') return refuse(at, `${(at as SX).text ?? ''}: a ${v.t} where a number is read`)
+    if (v.t !== 'num') return refuse(at, `${(at as SX).text ?? ''}: ${v.t === 'opaque' ? v.why : `a ${v.t}`} where a number is read`)
     if (v.slen) return refuse(at, 'len of a string read other than against 0 (strings are set and compared in the subset)')
     return v.e
   }
-  boolv(v: V, at: SX | {p: string}): B { if (v.t !== 'bool') return refuse(at, `${(at as SX).text ?? ''}: a ${v.t} where a condition is read`); return v.e }
+  boolv(v: V, at: SX | {p: string}): B { if (v.t !== 'bool') return refuse(at, `${(at as SX).text ?? ''}: ${v.t === 'opaque' ? v.why : `a ${v.t}`} where a condition is read`); return v.e }
   // A binary operation of the reader's language with fixed-width integers (Go's): comparisons, arithmetic wrapped.
   binop(op: string, a: V, b: V, x: {p: string}, p: Path): V {
     if (op === '==' || op === '!=') { const e = this.eq(a, b, x, p); return {t: 'bool', e: op === '==' ? e : I.not(e)} }
@@ -2778,11 +2778,12 @@ export class Stepper {
       return I.or(I.and(ca.nil, cb.nil), ...ca.objs.flatMap(o => cb.objs.filter(q => q.id === o.id && q.path.join() === o.path.join()).map(q => I.and(o.c, q.c))))
     }
     if ((a.t === 'list' || a.t === 'map') && b.t === 'nil') return refuse(x, `a ${a.t === 'list' ? 'slice' : 'map'} compared with nil (nil and empty are one ${a.t === 'list' ? 'list' : 'map'} in the subset)`)
-    return refuse(x, `${a.t === 'opaque' && a.ask ? a.why : `a ${a.t}`} compared with a ${b.t}`)
+    return refuse(x, `${a.t === 'opaque' && a.ask ? a.why : `a ${a.t}`} compared with ${b.t === 'opaque' && b.ask ? b.why : `a ${b.t}`}`)
   }
   // Integer arithmetic at the type's width: the exact result, wrapped as the type wraps it (or refused, at 64 bits).
   arith(op: string, a: V, b: V, x: {p: string}, p: Path): V {
-    if (a.t !== 'num' || b.t !== 'num') return refuse(x, `${op} of a ${a.t} and a ${b.t}`)
+    // (other code's value left out, computed with: named, so the next run answers it)
+    if (a.t !== 'num' || b.t !== 'num') { const o = [a, b].find(v => v.t === 'opaque') as {why: string} | undefined; return refuse(x, o ? `${(x as SX).text ?? op}: arithmetic on ${o.why}` : `${op} of a ${a.t} and a ${b.t}`) }
     this.numv(a, x); this.numv(b, x)
     const ty = a.ty?.name !== undefined ? a.ty : b.ty!
     let e: N

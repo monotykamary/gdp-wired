@@ -32,7 +32,7 @@ import type {Sorts} from './extract-print.ts'
 import type {Coverage} from './extract-check.ts'
 import {type GoOptions, type GoPkg, type GoRead, goNames, readGo, unsignedDomains} from './extract-go.ts'
 import {type GoCheckOptions, type GoEvidence, type GoLeaf, speak} from './extract-go-check.ts'
-import {type CRead, clangDump, flagsFor, node, readC} from './c/reader.ts'
+import {type CRead, clangDump, constantsOf, flagsFor, node, readC} from './c/reader.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 export type COptions = {
@@ -68,6 +68,15 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
     return ok[0]!
   }
   const flags0 = [...flagsFor(file, opts.compileCommands), ...(opts.flags ?? [])], flags = cpp && !flags0.some(f => f.startsWith('-std=')) ? [...flags0, '-std=c++17'] : flags0, {tu, target} = clangDump(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, cpp ? opts.entry : undefined)
+  // (C++, its dump filtered to the class: each variable outside it the class reads, a namespace's constant, dumped too)
+  if (cpp && opts.entry) {
+    const have = new Set<string>(), want = new Map<string, string>()
+    const walk = (n: {kind: string, id?: string, name?: string, inner?: unknown[], referencedDecl?: {id: string, kind: string, name: string}}) => { if (n.kind === 'VarDecl' && n.id) have.add(n.id); const d = n.referencedDecl; if (n.kind === 'DeclRefExpr' && d?.kind === 'VarDecl') want.set(d.id, d.name); for (const c of n.inner ?? []) walk(c as never) }
+    walk(tu as never)
+    for (const name of new Set([...want].filter(([id]) => !have.has(id)).map(([, n]) => n))) {
+      try { const more = clangDump(file, flags, opts.clang ?? 'clang++', cpp, name).tu.inner ?? []; const ids = [...want].filter(([id, n]) => n === name && !have.has(id)).map(([id]) => id); for (const m of more) if (m.kind === 'VarDecl' && m.name === name) for (const id of ids) tu.inner = [...(tu.inner ?? []), {...m, id}] } catch { /* read where it is, as before */ }
+    }
+  }
   // (no entry: the file's one struct its functions write, each struct of the dump tried)
   if (!opts.entry) {
     const names = [...new Set((tu.inner ?? []).filter(n => n.kind === 'RecordDecl' && n.name && n.completeDefinition).map(n => String(n.name)))]
@@ -91,8 +100,10 @@ export function extractC(at: string | FileURL, given: COptions = {}, cpp = false
   // (a signed leaf the caller states is a natural: its range law from 0, the claim for those states)
   for (const [n, d] of Object.entries(opts.domains ?? {})) if (d === 'nat') read.model.laws = read.model.laws?.map(l => (l.includes(`"${n} within its type's range"`) ? l.replace(/\.atLeast\(-\d+\)/, '.atLeast(0)') : l))
   if (!opts.entry) read.model.notes.unshift(`the entry inferred: ${c.entry}, ${cpp ? 'the class whose methods write its state' : 'the struct the file\'s functions write'}`)
+  // (the names the laws read that the code defines as constants: its enum constants, else clang's value of each)
+  const keep = ((given as {keep?: string[]}).keep ?? []).filter(n => !(n in c.consts)), consts = {...c.consts, ...(keep.length ? constantsOf(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, keep) : {})}
   const x = fromModel(read.model, `${c.entry}.${cpp ? 'cpp' : 'c'}`, {...unsignedDomains(read), ...signedDomains(c.pkg, read), ...opts.domains}, notes, (rule, sorts) => checkC(file, flags, c, read, rule, sorts, opts, cpp))
-  return {...x, leaves: read.leaves, names: goNames(read)}
+  return {...x, leaves: read.leaves, names: goNames(read), ...(Object.keys(consts).length ? {consts} : {})}
 }
 
 // A signed field (and a signed result) is an integer, never inferred a natural: its range law reads below 0.
@@ -179,7 +190,7 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
   // The object, made as the code makes it: C's zeroed; C++'s constructed (in zeroed memory) with the rule's parameters.
   const cps = read.ctor ?? [], make = `static gdp_T *gdp_make(const char *line, const char **bad) {
   const char *a = gdp_key(line, "a"), *v; (void)a; (void)v;
-  ${cps.map((pa, i) => `${T(pa.t).go} c${i} = 0; if (!(v = a ? gdp_idx(a, ${i}) : 0)) { *bad = "no argument ${i}"; return 0; } ${T(pa.t).k === 'int' ? intIn(`c${i}`, 'v', pa.t, `{ *bad = "argument ${i} outside its type"; return 0; }`) : `c${i} = !strncmp(v, "true", 4);`}`).join('\n  ')}
+  ${cps.map((pa, i) => `${T(pa.t).go} c${i}${cpp ? '{}' : ' = 0'}; if (!(v = a ? gdp_idx(a, ${i}) : 0)) { *bad = "no argument ${i}"; return 0; } ${T(pa.t).k === 'int' ? intIn(`c${i}`, 'v', pa.t, `{ *bad = "argument ${i} outside its type"; return 0; }`) : `c${i} = !strncmp(v, "true", 4);`}`).join('\n  ')}
   void *mem = calloc(1, sizeof(gdp_T));
   return ${cpp ? `new (mem) gdp_T(${cps.map((_, i) => `c${i}`).join(', ')})` : '(gdp_T *)mem'};
 }`
@@ -354,7 +365,9 @@ export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r:
     // code's failure where the rule took the step, a difference), but those left out (skip, stated or inferred: they
     // change nothing the rule keeps, and nothing reads their value), which do nothing.
     const clang = opts.clang ?? (cpp ? 'clang++' : 'clang'), stubs = `${work}/gdp_stubs.c`
-    const link = (more: string[]) => cp.execFileSync(clang, [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', ...strictFlex(clang), h, ...(more.length ? ['-x', 'c', ...more] : []), '-o', `${work}/harness`, ], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26, timeout: compileLimit(), killSignal: 'SIGKILL'})
+    const run = (cc: string, args: string[]) => cp.execFileSync(cc, args, {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26, timeout: compileLimit(), killSignal: 'SIGKILL'})
+    // (the stubs are C, compiled apart: the project's flags, a C++ -std among them, are the harness's)
+    const link = (more: string[]) => { for (const m of more) run(clang.replace(/\+\+$/, ''), ['-w', '-c', '-x', 'c', m, '-o', `${m}.o`]); return run(clang, [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', ...strictFlex(clang), h, ...(more.length ? ['-x', 'none', ...more.map(m => `${m}.o`)] : []), '-o', `${work}/harness`]) }
     const why = (x: unknown) => String((x as {stderr?: string}).stderr ?? (x as Error).message)
     // (the compiler's errors: where they are in the code's own files, the source's; the linker's alone say nothing of it)
     const base = path.resolve(file).split('/').pop()!, errorsOf = (x: unknown) => why(x).split('\n').filter(l => /\berror:/.test(l) && !/linker command failed|ld returned/.test(l))
