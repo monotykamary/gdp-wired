@@ -1127,7 +1127,7 @@ export const modelRounds = 4
 // (GDP_MODEL_CUTS=0: every tuple evaluated whole, for comparing)
 const modelCuts = env.GDP_MODEL_CUTS !== '0'
 const disjuncts = (c: C): C[] => (c.op === 'or' ? c.xs.flatMap(disjuncts) : c.op === 'not' && c.x.op === 'and' ? c.x.xs.flatMap(y => disjuncts({op: 'not', x: y})) : c.op === 'not' && c.x.op === 'not' ? disjuncts(c.x.x) : [c])
-export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: Goal, w: Record<string, number>, most = 64): Instances | undefined {
+export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: Goal, w: Record<string, number>, most = 64, sorted = false): Instances | undefined {
   const pm = plainOf(m), qs = Object.entries(pm.step.flags ?? {}).filter((e): e is [string, Extract<C, {op: 'all'}>] => e[1].op === 'all' && w[`?${e[0]}`] === 1)
   const keyed = laws.filter(l => l.forall)
   if (!keyed.length && !qs.length) return undefined
@@ -1182,7 +1182,7 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   const out: Instances = {...inst}
   // (the 20,000 evaluations shared: each law and flag at most an even share of what is left, so the laws about five keys
   // first don't leave none to those after: sharded KV's "a key in transfer has no owner", broken at the goal's own keys)
-  let added = 0, evals = 0, left = 0
+  let added = 0, evals = 0, left = 0, ineligible = false
   const each = (id: string, names: string[], body: C, atoms: boolean) => {
     if (pastWall()) return
     const until = evals + Math.max(256, Math.floor((20_000 - evals) / Math.max(1, left--)))
@@ -1203,6 +1203,8 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
         if (ev(() => evalC(body, read(at), st, mm)) !== false) return
         const id2 = JSON.stringify(terms)
         if (have.has(id2)) return
+        // Sort-aware consumers must not count tuples they would discard after this pass.
+        if (sorted && bySort(m, laws, {[id]: terms})[id]?.length !== terms.length) { ineligible = true; return }
         have.add(id2); out[id] = [...(out[id] ?? []), ...terms]; added++
         return
       }
@@ -1218,7 +1220,8 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
     for (const l of keyed) each(l.name, [l.forall!, ...(l.keys ?? [])], l.holds, atoms)
     for (const [f, q] of qs) each(`?${f}`, boundOf(q), q.c, atoms)
   }
-  return added ? out : undefined
+  // A rejected-only refinement is not evidence that the model satisfies every assumed law.
+  return added || ineligible ? out : undefined
 }
 // A goal (or a law's goals) asked at some instances, and again at those its model asks for (modelInstances), up to
 // modelRounds times. `ask` is the caller's own question; `modelOf` reads a model from its answer, `settled` says it is
@@ -1811,7 +1814,7 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
       last = {goal: g.name, stuck: 'sat', witness: o.witness, ...(o.diagram ? {diagram: o.diagram} : {}), why: 'a model'}
       // (strict, decideLaw's: a model is returned only where confirmed, no assumed law broken at it over its own domain;
       // one that breaks only instances of another sort, or that the rounds or the wall cut off, is no answer)
-      const capped = !(round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end)), raw = capped ? undefined : modelInstances(m, laws, inst, g, o.witness)
+      const capped = !(round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end)), raw = capped ? undefined : modelInstances(m, laws, inst, g, o.witness, undefined, true)
       if (!capped && !raw) return last
       more = raw && bySort(m, laws, raw)
       const count = (x: Instances) => Object.values(x).reduce((s2, ks) => s2 + ks.length, 0)
