@@ -2725,8 +2725,9 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
     const deeper = refuteByRuns(r, laws, stepLaws, {...b, until: runsUntil})
     if (deeper?.run) return refutedVerdict(deeper)
   }
-  // (then near it with its other values, where it holds some past the small ones)
-  const m0 = r.machine, pool = [...new Set(Object.entries(v.witness ?? {}).filter(([k, x]) => !m0.inputs.includes(k) && !m0.params.includes(k) && x > deeperBudget.bound).map(([, x]) => x))]
+  // (then, for a law of steps, near it with its other values, where it holds some past the small ones: a time the state
+  // keeps is one an earlier request gave)
+  const m0 = r.machine, pool = stepLaws.length ? [...new Set(Object.entries(v.witness ?? {}).filter(([k, x]) => !m0.inputs.includes(k) && !m0.params.includes(k) && x > deeperBudget.bound).map(([, x]) => x))] : []
   if (pool.length) { const deeper = refuteByRuns(r, laws, stepLaws, {...deeperBudget, trials: 300, seed: 43, states: false, mixed: true, near: v.witness, pool, until: runsUntil}); if (deeper?.run) return refutedVerdict(deeper) }
   const until = clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
   // (the search's end on the wall too: kernel/prove.ts's withWall, past which every goal is unknown)
