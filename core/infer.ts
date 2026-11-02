@@ -381,7 +381,7 @@ function preimages(m: Machine, laws: Law[], stepLaws: StepLaw[], atoms: Atom[], 
       case 'mul': return linE(e.a, post).map(l => new Map([...l].map(([v, c]) => [v, c * e.k])))
       case 'min': case 'max': return uniq([...linE(e.a, post), ...linE(e.b, post)])
       case 'if': return uniq([...linE(e.then, post), ...linE(e.else, post)])
-      case 'prod': return []
+      case 'prod': case 'tup': case 'proj': return []
       case 'get': {
         const name = e.map.endsWith("'") && maps.has(e.map.slice(0, -1)) ? e.map.slice(0, -1) : e.map
         if (!maps.has(name)) return []
@@ -665,13 +665,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   {
     const named = (n: string) => stateSet.has(n) || m.params.includes(n)
     const okE = (e: E): boolean => e.op === 'const' || (e.op === 'var' ? named(e.name) : e.op === 'mul' ? okE(e.a) : e.op === 'if' ? okC(e.c) && okE(e.then) && okE(e.else)
-      : e.op === 'get' ? !!m.fns?.[e.map] && okE(e.key) : okE(e.a) && okE(e.b))
+      : e.op === 'get' ? !!m.fns?.[e.map] && okE(e.key) : e.op === 'tup' || e.op === 'proj' ? false : okE(e.a) && okE(e.b))
     const okC = (c: C): boolean => (c.op === 'and' || c.op === 'or' ? c.xs.every(okC) : c.op === 'not' ? okC(c.x) : c.op === '<' || c.op === '<=' || c.op === '=' ? okE(c.a) && okE(c.b) : false)
     const seenT = new Set<string>()
     const visitE = (e: E): void => {
       if (e.op === 'var' || e.op === 'const') return
       if (e.op !== 'add' && e.op !== 'mul' && okE(e)) { const k = JSON.stringify(e); if (!seenT.has(k)) { seenT.add(k); atoms.push({name: showE(e), parts: [[`$t${seenT.size - 1}`, 1]], param: false, int: false, cell: false, term: e}) } return }
-      if (e.op === 'mul') visitE(e.a); else if (e.op === 'if') { visitC(e.c); visitE(e.then); visitE(e.else) } else if (e.op === 'get') visitE(e.key); else { visitE(e.a); visitE(e.b) }
+      if (e.op === 'mul') visitE(e.a); else if (e.op === 'if') { visitC(e.c); visitE(e.then); visitE(e.else) } else if (e.op === 'get') visitE(e.key); else { visitE(e.a); if ('b' in e) visitE(e.b) }
     }
     const visitC = (c: C): void => { if (c.op === 'and' || c.op === 'or') c.xs.forEach(visitC); else if (c.op === 'not') visitC(c.x); else if (c.op === '<' || c.op === '<=' || c.op === '=') { visitE(c.a); visitE(c.b) } }
     const lawConds = [...laws.map(l => l.holds), ...stepLaws.flatMap(sl => [sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])])]

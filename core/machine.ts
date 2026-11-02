@@ -863,6 +863,7 @@ function symE(e: E, s: Sym): Cases<Lin> {
     case 'add': return cross(symE(e.a, s), a => symE(e.b, s).map(b => ({path: b.path, value: add(a, b.value)})))
     case 'mul': return symE(e.a, s).map(a => ({path: a.path, value: scale(a.value, e.k)}))
     case 'prod': throw new Error('a product of two terms: kernel/prove.ts proves with products, this prover does not')
+    case 'tup': case 'proj': throw new Error('a tuple key: kernel/prove.ts proves with tuples, this prover does not')
     case 'sub': // truncated at 0, as on naturals
       return cross(symE(e.a, s), a => symE(e.b, s).flatMap(b => [
         {path: [...b.path, ...le(b.value, a)], value: sub(a, b.value)},

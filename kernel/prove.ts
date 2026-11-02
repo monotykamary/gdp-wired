@@ -1077,7 +1077,7 @@ export const keyValue = (cell: string, w: Record<string, number>): number | unde
   if (inner.startsWith('⟨')) {
     const parts = cellParts(cell).keys!.map(k => keyValue(`_[${canon(k)}]`, w))
     if (parts.some(x => x === undefined)) return undefined
-    try { return parts.slice(0, -1).reduceRight((b, a) => cpair(a!, b), parts.at(-1)!) } catch { return undefined }
+    try { return parts.slice(0, -1).reduceRight((b: number, a) => cpair(a!, b), parts.at(-1)!) } catch { return undefined }
   }
   // (its parts split at the commas outside brackets: a part may be a cell itself, Pending[idn[n:1]:64,n:1], valued as the
   // model values it)
@@ -1574,7 +1574,8 @@ function substVar(c: C, name: string, by: E): C {
       case 'mul': return {...t, a: e(t.a)}
       case 'if': return {op: 'if', c: substVar(t.c, name, by), then: e(t.then), else: e(t.else)}
       case 'get': return {...t, key: e(t.key)}
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...t, a: e(t.a), b: e(t.b)}
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {...t, a: e(t.a), b: e(t.b)}
+      case 'proj': return {...t, a: e(t.a)}
     }
   }
   return c.op === 'flag' ? c : c.op === 'all' ? {...c, c: substVar(c.c, name, by)} : c.op === 'not' ? {op: 'not', x: substVar(c.x, name, by)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(y => substVar(y, name, by))} : {...c, a: e(c.a), b: e(c.b)}
@@ -2393,7 +2394,7 @@ export function concretize(goal: Goal, bound = 12): Record<string, number> | und
       case 'mul': return e.k * ev(e.a, env)
       case 'prod': return ev(e.a, env) * ev(e.b, env)
       case 'if': return holds(e.c, env) ? ev(e.then, env) : ev(e.else, env)
-      case 'get': return NaN
+      case 'get': case 'tup': case 'proj': return NaN
     }
   }
   const holds = (c: C, env: Record<string, number>): boolean => c.op === 'not' ? !holds(c.x, env) : c.op === 'and' ? c.xs.every(y => holds(y, env)) : c.op === 'or' ? c.xs.some(y => holds(y, env))
