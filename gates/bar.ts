@@ -224,7 +224,10 @@ const GROUPS: Group[] = [
     writeJson(`${p.dir}.jobs.json`, jobs)
     writeJson(`${p.dir}.keys.json`, Object.fromEntries(jobs.map(j => [j.name, j.name])))
     const runner = join(p.tree.path, 'research/query/modal_query.py'), mine = join(HERE, '..', 'research/query/modal_query.py')
-    if (!readFileSync(runner, 'utf8').includes('fanout.cli') && resolve(runner) !== resolve(mine)) cpSync(mine, runner)
+    if (!readFileSync(runner, 'utf8').includes('fanout.cli') && resolve(runner) !== resolve(mine)) {
+      cpSync(mine, runner)
+      cpSync(join(HERE, '..', 'research/query/goalpack.py'), join(p.tree.path, 'research/query/goalpack.py'))
+    }
     return run(['python3', 'research/query/modal_query.py', '--backend', backendOf(p), '--jobs', `${p.dir}.jobs.json`, '--out', p.dir],
       {cwd: p.tree.path, log: `${p.dir}.log`, env: {GDP_QUERY_BASE: join(BAR, 'none'), SUPERCOMPUTER_CLASS: 'gate'}, cap: 1200})
   }},

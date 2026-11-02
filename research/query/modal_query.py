@@ -94,13 +94,9 @@ GOAL = re.compile(r"(?<![\w./-])/goals/([^\s'\"]+)")
 def pack(jobs: str) -> str:
     """The goal files a jobs file reads, from the main checkout's dump, as research/query/.goals-<pid>.tar.zst in this
     tree (untracked, so the batch's tree has it; removed when the run ends). Its path in the tree, or "" for none."""
-    import subprocess
+    from goalpack import pack_goal_files
     files = sorted({f"goals/{g}" for j in json.loads(pathlib.Path(jobs).read_text()) for g in GOAL.findall(j["cmd"])})
-    if not files:
-        return ""
-    rel = f"research/query/.goals-{os.getpid()}.tar.zst"
-    subprocess.run(f"tar -C {GOALS.parent} -cf - {' '.join(files)} | zstd -q -10 -o {GDP / rel}", shell=True, check=True)
-    return rel
+    return pack_goal_files(GDP, GOALS, files)
 
 
 @app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=2400)
