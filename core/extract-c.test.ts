@@ -4,7 +4,7 @@
 // a stated failure, assert and abort, a switch's fallthrough, ?: and an enum, and the refusals. Skipped without clang.
 import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
-import {mkdtempSync, writeFileSync} from 'node:fs'
+import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {proveRule, proveSteps} from './dsl.ts'
 import {type COptions, extractC, extractCpp} from './extract-c.ts'
@@ -360,3 +360,9 @@ class Dog {
 `, 'Dog'))
   expect(x.consts).toMatchObject({COUNT: 0, OFF: 1, ON: 2})
 }, 120_000)
+
+t('reader fuzz 693042: a wrapping initializer needing division is refused before kernel scope', () => {
+  const x = cpp(readFileSync(new URL('./reader-fixtures/c-693042.cpp', import.meta.url), 'utf8'), 'Meter')
+  expect(x.ok).toBe(false)
+  expect(x.refusals[0]!.what).toMatch(/division or remainder in an initializer.*outside the reader's start-expression subset/)
+}, 60_000)
