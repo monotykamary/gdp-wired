@@ -1534,7 +1534,7 @@ type Spec = {
   // State variables declared by a kind: each a value over the kind's variables (in `state`, one entry each).
   kinded?: [string, Kind<unknown>][]
   carried?: string[]
-  counts?: [string, (env: never) => {below: TermLike, body: (x: Term, k: Term) => Cond | TermLike}][]
+  counts?: [string, (env: never) => {below: TermLike, body: (x: Term, k: Term, y: Term) => Cond | TermLike, base?: number}][]
   // Sequences a request carries (in `carried`, each length an input <name>_len), and tables of them (in `carried` with
   // <name>_base and <name>_len, the number of rows an input <name>_rows).
   seqs?: string[]
@@ -1669,8 +1669,9 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   carries<const N extends string>(...names: N[]): Rule<P, I & {[k in N]: MapRef}, S, M, F, R, Su, Q> { return this.with({carried: [...(this.spec.carried ?? []), ...names]}) }
   // Counts (Machine.counts): `.counts({votes: env => ({below: env.size, body: (x, k) => env.Vote.at(k).eq(x.plus(1))})})`;
   // each a map no step writes, at x the number of keys k below the bound where the body holds (or its sum), read by the
-  // flags, the assumption and the step at the request's view, and by a law at the state.
-  counts<T extends Record<string, (env: P & I & S & M) => {below: TermLike, body: (x: Term, k: Term) => Cond | TermLike}>>(cs: T): Rule<P, I & {[k in keyof T]: MapRef}, S, M, F, R, Su, Q> {
+  // flags, the assumption and the step at the request's view, and by a law at the state. With `base`, a count over two
+  // parameters, read at the key base·a + b (b < base): `body: (a, k, b) => …`.
+  counts<T extends Record<string, (env: P & I & S & M) => {below: TermLike, body: (x: Term, k: Term, y: Term) => Cond | TermLike, base?: number}>>(cs: T): Rule<P, I & {[k in keyof T]: MapRef}, S, M, F, R, Su, Q> {
     return this.with({counts: [...(this.spec.counts ?? []), ...Object.entries(cs)] as never})
   }
   // Sequences each request carries (SeqRef): `.carriesSeq('Path')`, then `Path.at(i)`, `Path.len`, `A.prefixOf(B)`; the
@@ -2054,8 +2055,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       ...(s.maps.length ? {maps: Object.fromEntries(s.maps)} : {}),
       ...(s.carried?.length ? {inputMaps: s.carried} : {}),
       ...(s.counts?.length ? {counts: Object.fromEntries(s.counts.map(([n, f]) => {
-        const c = f(env as never), j = `${n}$x`, key = `${n}$k`, b = c.body(v(j), v(key))
-        return [n, {j, key, below: termOf(c.below), body: b instanceof Cond ? {op: 'if', c: b.c, then: {op: 'const', value: 1}, else: {op: 'const', value: 0}} as E : termOf(b)}]
+        const c = f(env as never), j = `${n}$x`, key = `${n}$k`, lo = `${n}$y`, b = c.body(v(j), v(key), v(lo))
+        return [n, {j, key, below: termOf(c.below), body: b instanceof Cond ? {op: 'if', c: b.c, then: {op: 'const', value: 1}, else: {op: 'const', value: 0}} as E : termOf(b), ...(c.base ? {lo, base: c.base} : {})}]
       }))} : {}),
       step: {...(Object.keys(flags).length ? {flags} : {}), ...(Object.keys(state).length ? {state} : {}), ...(Object.keys(maps).length ? {maps} : {})},
       ...(pre.length ? {pre: pre.length === 1 ? pre[0]! : {op: 'and', xs: pre}} : {}),
@@ -2570,7 +2571,9 @@ const deeperBudget = {trials: 600, depth: 24, bound: 8, seed: 29}
 // half the time. `states: false`: the runs alone.
 // (`until`: a wall, performance.now()'s, past which no more trials or steps are taken: the work cap counts a law's tuples,
 // not a request's assumption, which a rule carrying many maps decides at every try)
-type RunBudget = typeof refuteBudget & {seed?: number, mixed?: boolean, near?: Record<string, number>, states?: boolean, until?: number}
+// (`pool`: the counterexample's other values (a map's cell: the time a request was received), each input taken from
+// them a quarter of the time: a value the state holds is one an earlier request gave)
+type RunBudget = typeof refuteBudget & {seed?: number, mixed?: boolean, near?: Record<string, number>, pool?: number[], states?: boolean, until?: number}
 const conjuncts = (c: C | undefined): C[] => (!c ? [] : c.op === 'and' ? c.xs.flatMap(conjuncts) : [c])
 function guidesOf(m: Machine): ((env: Record<string, number>, st: State, rand: Rand, bound: number) => [string, number] | undefined)[] {
   const isInput = (e: E): e is {op: 'var', name: string} => e.op === 'var' && m.inputs.includes(e.name)
@@ -2617,6 +2620,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       for (let d = 0, tries = 0; d < budget.depth && tries < 40 && watchWork.n <= cap && !late(); tries++) {
         const input = r.randomInput(rand, bound, params)
         if (near) for (const x of m.inputs) if (near[x] !== undefined && typeof input[x] === 'number' && rand(2)) input[x] = near[x]!
+        if (near && budget.pool?.length) for (const x of m.inputs) if (typeof input[x] === 'number' && !rand(4)) input[x] = budget.pool[rand(budget.pool.length)]!
         for (const g of guided) { const set = g({...params, ...st.scalars}, st, rand, bound); if (set && typeof input[set[0]] === 'number') input[set[0]] = set[1] }
         if (!allowed(m, run, params, st, input)) continue
         d++
@@ -2722,6 +2726,11 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
     const deeper = refuteByRuns(r, laws, stepLaws, {...b, until: runsUntil})
     if (deeper?.run) return refutedVerdict(deeper)
   }
+  // (then, for a law of steps or one that divides by an hour or more (a clock's days), near it with its other values,
+  // where it holds some past the small ones: a time the state keeps is one an earlier request gave)
+  const m0 = r.machine, clocked = stepLaws.length > 0 || [...divisorsIn(laws.map(l => l.holds))].some(k => k >= 3600)
+  const pool = clocked ? [...new Set(Object.entries(v.witness ?? {}).filter(([k, x]) => !m0.inputs.includes(k) && !m0.params.includes(k) && x > deeperBudget.bound).map(([, x]) => x))] : []
+  if (pool.length) { const deeper = refuteByRuns(r, laws, stepLaws, {...deeperBudget, trials: 300, seed: 43, states: false, mixed: true, near: v.witness, pool, until: runsUntil}); if (deeper?.run) return refutedVerdict(deeper) }
   const until = clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
   // (the search's end on the wall too: kernel/prove.ts's withWall, past which every goal is unknown)
   return withWall(performance.now() + Math.max(0, until - clock()), () => searchedUntil(r, laws, stepLaws, v, opts, until))

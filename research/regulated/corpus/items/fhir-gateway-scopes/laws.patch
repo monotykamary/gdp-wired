@@ -1,0 +1,12 @@
+diff -ru a/plugins/src/main/java/com/google/fhir/gateway/plugin/SmartScopeChecker.java b/plugins/src/main/java/com/google/fhir/gateway/plugin/SmartScopeChecker.java
+--- a/plugins/src/main/java/com/google/fhir/gateway/plugin/SmartScopeChecker.java	2026-11-02 11:22:16
++++ b/plugins/src/main/java/com/google/fhir/gateway/plugin/SmartScopeChecker.java	2026-11-02 11:23:07
+@@ -39,6 +39,8 @@
+                         Collectors.toSet())));
+   }
+ 
++  // gdp: law no scope, no access: not (resourceType in permissionsByResourceType) and not ("*" in permissionsByResourceType) implies not result
++  // gdp: cite no scope, no access: 45 CFR 164.502(b)(1): "make reasonable efforts to limit protected health information to the minimum necessary to accomplish the intended purpose"
+   boolean hasPermission(String resourceType, Permission permission) {
+     return this.permissionsByResourceType
+             .getOrDefault(resourceType, Collections.emptySet())

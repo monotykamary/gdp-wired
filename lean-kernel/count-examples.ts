@@ -141,8 +141,67 @@ export function toyCounted(): {m: Machine, laws: Law[], instances: Record<string
   return {m, laws, instances, certs}
 }
 
+// A count at least its body at two distinct keys (CountMachine.lean's pickHyp): members are set one at a time, and two
+// distinct members make the count at least 2, which no witness of the counting lemma gives.
+export function pickExample(): {m: Machine, laws: Law[], instances: Record<string, Instances>, certs: Record<string, {reads: MapRead[], insts: CountInst[], picks?: [string, E[]][]}>} {
+  const m: Machine = {name: 'two members, counted', params: ['size'], inputs: ['i'], state: {}, maps: {S: 0},
+    counts: {c: {j: 'x', key: 'n', below: x('size'), body: ind(same(get('S', x('n')), one))}},
+    step: {maps: {S: {key: x('i'), value: one}}}, assume: less(x('i'), x('size'))}
+  const mem = (k: E) => same(get('S', k), one)
+  const laws: Law[] = [{name: 'two members count two', forall: 'a', keys: ['b'], holds: any(not(all(mem(x('a')), mem(x('b')), not(same(x('a'), x('b'))), less(x('a'), x('size')), less(x('b'), x('size')))), atMost(n(2), get('c', zero)))}]
+  const instances: Record<string, Instances> = {'two members count two': {}}
+  const certs = {'two members count two @start': {reads: [] as MapRead[], insts: [] as CountInst[]},
+    'two members count two @step': {reads: [['r0', 'c#', zero]] as MapRead[], insts: [] as CountInst[], picks: [['r0', [x('a#'), x('b')]]] as [string, E[]][]}}
+  return {m, laws, instances, certs}
+}
+
 // The untrusted search's trees for the hand-named reads and instances.
-export function countedProof(m: Machine, laws: Law[], instances: Record<string, Instances>, named: Record<string, {reads: MapRead[], insts: CountInst[]}>): Record<string, CountCert> {
+// The toy consensus by rounds: a count over two parameters (CountMachine.lean's atJ: votes at B·a + b, the nodes whose
+// vote at round a is b; Vote[B·round + node], the node last, as a quantified flag reads it), each node voting once a round, a value decided at a round where a majority Q voted it. Its laws:
+// a decided (round, value) has a majority of the votes, and one value is decided a round (two majorities meet).
+export function toyRounds(): ReturnType<typeof toyCounted> {
+  const B = 4, pk = (a: E, b: E): E => plus(times(B, a), b)
+  const m: Machine = {name: 'toy consensus by rounds, counted', params: ['size'], inputs: ['op', 'i', 'r', 'val'], state: {}, maps: {Vote: 0, Decision: 0}, inputMaps: ['Q'],
+    counts: {
+      votes: {j: 'x', lo: 'y', base: B, key: 'n', below: x('size'), body: ind(same(get('Vote', pk(x('x'), x('n'))), plus(x('y'), one)))},
+      quorum: {j: 'x2', key: 'n2', below: x('size'), body: ind(same(get('Q', x('n2')), one))},
+    },
+    step: {
+      flags: {
+        chosen: {op: 'all', key: 'q', c: any(not(same(get('Q', x('q')), one)), same(get('Vote', pk(x('r'), x('q'))), plus(x('val'), one)))},
+        casts: all(same(x('op'), zero), same(get('Vote', pk(x('r'), x('i'))), zero)),
+        decides: all(same(x('op'), one), {op: 'flag', name: 'chosen'}),
+      },
+      maps: {
+        Vote: {key: pk(x('r'), x('i')), value: ite({op: 'flag', name: 'casts'}, plus(x('val'), one), get('Vote', pk(x('r'), x('i'))))},
+        Decision: {key: pk(x('r'), x('val')), value: ite({op: 'flag', name: 'decides'}, one, get('Decision', pk(x('r'), x('val'))))},
+      },
+    },
+    assume: all(less(x('i'), x('size')), less(x('r'), n(B)), less(x('val'), n(B)), any(not(same(x('op'), one)), less(x('size'), times(2, get('quorum', zero)))))}
+  const decided = (a: E, b: E) => same(get('Decision', pk(a, b)), one), lt = (...ts: E[]) => ts.map(t => less(t, n(B)))
+  const laws: Law[] = [
+    {name: 'decided is 0 or 1', forall: 'a', holds: atMost(get('Decision', x('a')), one)},
+    {name: 'a decided round and value has a majority', forall: 'a', keys: ['b'], holds: any(not(all(...lt(x('a'), x('b')), decided(x('a'), x('b')))), less(x('size'), times(2, get('votes', pk(x('a'), x('b'))))))},
+    {name: 'one value a round', forall: 'a', keys: ['b', 'c'], holds: any(not(all(...lt(x('a'), x('b'), x('c')), decided(x('a'), x('b')), decided(x('a'), x('c')))), same(x('b'), x('c')))},
+  ]
+  const a = x('a#'), b = x('b'), c = x('c')
+  const instances: Record<string, Instances> = {
+    'decided is 0 or 1': {'decided is 0 or 1': [a]},
+    'a decided round and value has a majority': {'a decided round and value has a majority': [a, b], 'decided is 0 or 1': [pk(a, b)], '?chosen': [x('w1')]},
+    'one value a round': {'one value a round': [a, b, c], 'a decided round and value has a majority': [a, b, a, c], 'decided is 0 or 1': [pk(a, b), pk(a, c)], '?chosen': [x('w1'), x('w2')]},
+  }
+  const none = {reads: [] as MapRead[], insts: [] as CountInst[]}
+  const certs: Record<string, {reads: MapRead[], insts: CountInst[]}> = {
+    'decided is 0 or 1 @start': none, 'decided is 0 or 1 @step': none, 'a decided round and value has a majority @start': none, 'one value a round @start': none,
+    'a decided round and value has a majority @step': {reads: [['cQ', 'quorum', zero], ['cA', 'votes', pk(a, b)], ['cA1', 'votes#', pk(a, b)]],
+      insts: [{wit: 'w1', below: x('size'), terms: [[1, 'cQ'], [-1, 'cA1']], unit: 0}, {wit: 'w2', below: x('size'), terms: [[1, 'cA'], [-1, 'cA1']], unit: 0}]},
+    'one value a round @step': {reads: [['cB', 'votes', pk(a, b)], ['cC', 'votes', pk(a, c)], ['cQ', 'quorum', zero]],
+      insts: [{wit: 'w1', below: x('size'), terms: [[1, 'cB'], [1, 'cQ']], unit: -1}, {wit: 'w2', below: x('size'), terms: [[1, 'cC'], [1, 'cQ']], unit: -1}]},
+  }
+  return {m, laws, instances, certs}
+}
+
+export function countedProof(m: Machine, laws: Law[], instances: Record<string, Instances>, named: Record<string, {reads: MapRead[], insts: CountInst[], picks?: [string, E[]][]}>): Record<string, CountCert> {
   const out: Record<string, CountCert> = {}
   for (const {goal: g, decls} of countedObligations(m, laws, instances)) {
     const k = named[g.name]
@@ -186,6 +245,24 @@ example : smghostOk { grants_gm with orig := ${lit(tOrig)} } = false := by decid
     {what: 'the read after the step read before it (votes for votes#)', certs: {...tcerts, [stepMaj]: {...tcerts[stepMaj]!, reads: tcerts[stepMaj]!.reads.map(r => (r[0] === 'cA1' ? [r[0], 'votes', r[2]] as MapRead : r))}}},
     {what: 'an instance\'s unit coefficient 0', certs: {...tcerts, [stepOne]: {...tcerts[stepOne]!, insts: tcerts[stepOne]!.insts.map(i => ({...i, unit: 0}))}}},
   ]))
+  // The toy by rounds: a count over two parameters, read at B·a + b under the guard b < B (CountMachine.lean's readHyp).
+  const tr = toyRounds(), trcerts = countedProof(tr.m, tr.laws, tr.instances, tr.certs)
+  if (!checkCountedLaws(tr.m, tr.laws, {instances: tr.instances, certs: trcerts})) throw new Error('toy rounds: not proven')
+  const rOne = 'one value a round @step', rMaj = 'a decided round and value has a majority @step'
+  const rTampers = [
+    {what: 'a read\'s key term written b + 4·a, which the base does not compose', certs: {...trcerts, [rOne]: {...trcerts[rOne]!, reads: trcerts[rOne]!.reads.map(r => (r[0] === 'cB' ? [r[0], r[1], plus(x('b'), times(4, x('a#')))] as MapRead : r))}}},
+    {what: 'a read\'s key term composed by 5, not the base 4', certs: {...trcerts, [rMaj]: {...trcerts[rMaj]!, reads: trcerts[rMaj]!.reads.map(r => (r[0] === 'cA' ? [r[0], r[1], plus(times(5, x('a#')), x('b'))] as MapRead : r))}}},
+    {what: 'a read named as the count\'s second parameter', certs: {...trcerts, [rOne]: {...trcerts[rOne]!, reads: [...trcerts[rOne]!.reads, ['y', 'votes', plus(times(4, x('a#')), x('b'))] as MapRead]}}},
+  ]
+  for (const t of rTampers) if (checkCountedLaws(tr.m, tr.laws, {instances: tr.instances, certs: t.certs})) throw new Error(`toy rounds: kernel.ts accepts the tampered certificate (${t.what})`)
+  parts.push(cmachineToLean('toyr', tr.m, tr.laws, {instances: tr.instances, certs: trcerts}, rTampers))
+  // Two members: a pick (a count at least its body at distinct keys), and the pick at a key twice refused.
+  const pe = pickExample(), pcerts = countedProof(pe.m, pe.laws, pe.instances, pe.certs), pStep = 'two members count two @step'
+  if (!checkCountedLaws(pe.m, pe.laws, {instances: pe.instances, certs: pcerts})) throw new Error('two members: not proven')
+  const pTampers = [{what: 'the pick at one key twice', certs: {...pcerts, [pStep]: {...pcerts[pStep]!, picks: [['r0', [x('a#'), x('a#')]]] as [string, E[]][]}}},
+    {what: 'no pick', certs: {...pcerts, [pStep]: {...pcerts[pStep]!, picks: []}}}]
+  for (const t of pTampers) if (checkCountedLaws(pe.m, pe.laws, {instances: pe.instances, certs: t.certs})) throw new Error(`two members: kernel.ts accepts the tampered certificate (${t.what})`)
+  parts.push(cmachineToLean('twom', pe.m, pe.laws, {instances: pe.instances, certs: pcerts}, pTampers))
   return `import Count
 import CountMachine
 import GhostMap
@@ -203,6 +280,8 @@ ${parts.join('\n\n')}
 #print axioms grants_orig_laws
 #print axioms grants_skolem
 #print axioms grants_some0
+#print axioms toyr_laws
+#print axioms twom_laws
 #print axioms toyc_laws
 `
 }

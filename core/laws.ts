@@ -30,6 +30,8 @@
 import {type Cond, Choice, Int, Str, Term, all, any, forall, no, not, yes} from './dsl.ts'
 import type {Extraction, Name} from './extract.ts'
 import {type AnyRule, type TwoRunLaw, agreement, isolation, noninterference} from './relational.ts'
+import {type BusinessDays, type Calendar, CalendarError, businessDays} from './calendar.ts'
+export {businessDays, type Calendar} from './calendar.ts'
 
 export type LawText = {name: string, expr: string, where?: string, line?: number, method?: string}
 // A law read: an invariant (`law`) or a law of one step (`step`, for the method `method` where the rule has several).
@@ -65,7 +67,7 @@ type Seg = {f: string} | {i: X} | {call: true, args?: string}
 type X = {k: 'num', v: number} | {k: 'str', v: string, holes?: X[], parts?: string[]} | {k: 'bool', v: boolean} | {k: 'null'}
   | {k: 'path', head: string, segs: Seg[]} | {k: 'un', op: '-' | 'not', x: X}
   | {k: 'bin', op: string, a: X, b: X} | {k: 'old', x: X} | {k: 'fn', f: string, xs: X[]} | {k: 'forall', v: string, over: X, body: X}
-  | {k: 'dur', v: number, text: string}
+  | {k: 'dur', v: number, text: string} | {k: 'bdur', v: number, text: string}
 const WORDS: Record<string, string> = {'->': '.', '::': '.', and: '&&', or: '||', not: '!', implies: '=>', '∧': '&&', '∨': '||', '¬': '!', '→': '=>', '==>': '=>', '≤': '<=', '≥': '>=', '≠': '!=', '∀': 'forall', AND: '&&', OR: '||', NOT: '!'}
 function tokens(s: string): string[] {
   const out: string[] = [], re = /\s*(f?"(?:[^"\\]|\\.)*"|f?'(?:[^'\\]|\\.)*'|`[^`]*`|0[xX][0-9a-fA-F]+[uUlL]*|0[bB][01]+[uUlL]*|\d+(?:\.\d+)?[uUlL]*|@?[A-Za-z_][\w?]*|->|::|==>|=>|<=|>=|==|!=|&&|\|\||\/\/|[-+*%/<>()[\],.:!∧∨¬→≤≥≠∀&|])/y
@@ -75,14 +77,15 @@ function tokens(s: string): string[] {
   return out
 }
 // Durations, as many seconds: linear over the clock (a day is 86,400 s: the request's time counts seconds, with no
-// time zone, leap second or daylight saving). A month, a year, a business day or the end of a day isn't a fixed number
-// of seconds, so a law reading one is refused: state it in days.
+// time zone, leap second or daylight saving). A month, a year or the end of a day isn't a fixed number of seconds, so a
+// law reading one is refused: state it in days. Business days are counted over a calendar (core/calendar.ts): only as
+// elapsed between two times, `now - received <= 10 business days`.
 const SECONDS: Record<string, number> = {ms: 0.001, millisecond: 0.001, milliseconds: 0.001, second: 1, seconds: 1, sec: 1, secs: 1, minute: 60, minutes: 60, min: 60, mins: 60,
   hour: 3600, hours: 3600, day: 86_400, days: 86_400, week: 604_800, weeks: 604_800}
 const NOT_LINEAR = /^(months?|years?|quarters?|business|working|weekdays?|fortnights?)$/i
 function seconds(unit: string): number {
   const u = unit.toLowerCase()
-  if (NOT_LINEAR.test(u)) throw new LawError(`${unit}: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds`)
+  if (NOT_LINEAR.test(u)) throw new LawError(`${unit}: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds, or count business days over a calendar (businessDays; in a law, now - t <= 10 business days)`)
   return SECONDS[u]!
 }
 // A duration in the clock's units ('s': time.time(), 'ms': Date.now()): duration('30 days') is 2,592,000.
@@ -127,6 +130,7 @@ export function parse(s: string): X {
       if (x.includes('.') && !/\.0+$/.test(x)) throw new LawError(`${x}: a number that isn't whole`)
       // (a duration: 30 days, 15 minutes, in seconds until the clock's unit is known)
       const u = peek()?.toLowerCase(), calendar = u === 'calendar' && /^days?$/i.test(t[i + 1] ?? '')
+      if ((u === 'business' || u === 'working') && /^days?$/i.test(t[i + 1] ?? '')) { eat(); eat(); return {k: 'bdur', v: Number(x), text: `${x} ${u} days`} }
       if (u && (calendar || Object.hasOwn(SECONDS, u) || NOT_LINEAR.test(u))) { eat(); if (calendar) eat(); return {k: 'dur', v: Number(x) * seconds(calendar ? 'days' : u), text: `${x} ${u}${calendar ? ' days' : ''}`} }
       // (C's and the others' hexadecimal and binary literals, an unsigned or long suffix)
       return {k: 'num', v: Number(x.replace(/[uUlL]+$/, ''))}
@@ -176,6 +180,9 @@ type V = {t: 'num', v: Int} | {t: 'cond', v: Cond} | {t: 'str', v: Str} | {t: 'c
 // value of, with the facts that make them that run: ks the keys, used how many are taken, hyps the facts)
 type Bits = {ks: Term[], used: number, hyps: Cond[]}
 type Ctx = {consts?: Record<string, number | string | boolean>, b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>, clock?: number, bits?: Bits,
+  // (business days: the calendar, and in a law of one step each time's week, a key: `pins` collects the times on a
+  // first reading, then holds each one's pinned week and the guard on it)
+  cal?: BusinessDays, pins?: Pins,
   // (a key bound over a list: the item there, its map in the state it was read in)
   items?: Map<string, {map: Record<string, unknown>, fields: string[]}>}
 
@@ -186,33 +193,61 @@ export function namesWithClock(x: Extraction): Name[] {
   const ns = x.names ?? [], ins = (x.rule as {parts?: {inputs: [string, unknown][]}} | undefined)?.parts?.inputs.map(([n]) => n) ?? []
   return ns.some(n => n.role === 'clock') || !ins.includes('now') || ns.some(n => n.code === 'now') ? ns : [...ns, {code: 'now', rule: 'now', role: 'clock'}]
 }
-export function buildLaw(x: Extraction, l: LawText, opts: {clock?: number} = {}): Built {
+type Pins = {times: {id: string, nat: boolean}[], at?: Map<string, Int>, guards?: Cond[]}
+export type LawOpts = {clock?: number, calendar?: Calendar}
+const calendarOf = (opts: LawOpts): BusinessDays | undefined => {
+  if (!opts.calendar) return undefined
+  try { return businessDays(opts.calendar, opts.clock === 1000 ? 'ms' : 's') } catch (e) { throw e instanceof CalendarError ? new LawError(`the calendar: ${e.message}`) : e }
+}
+export function buildLaw(x: Extraction, l: LawText, opts: LawOpts = {}): Built {
   const names = namesWithClock(x), r = x.rule as unknown as {law: (n: string, f: (e: never) => unknown) => unknown, stepLaw: (n: string, f: (b: never, a: never) => unknown, w?: (b: never) => Cond) => unknown}
   if (!r) throw new LawError('the extraction has no rule')
   if (!l.expr) throw new LawError(`${l.name}: a law is stated as <name>: <expr>`)
   const e = parse(l.expr)
   // A first reading finds what the law reads: a request, a result, the failure or the state before make it a step law.
-  const probe: Ctx = {consts: x.consts, b: {}, a: {}, step: true, method: l.method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock}
+  const cal = opts.clock === undefined ? undefined : calendarOf(opts)
+  const probe: Ctx = {consts: x.consts, b: {}, a: {}, step: true, method: l.method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock, cal}
   read(e, probe, names, true)
   // (a law on a method, the line above it, is a law of its step: the state after it, old(x) before)
   const step = !!l.method || ['input', 'answer', 'result', 'failed', 'clock', 'method', 'old'].some(k => probe.roles.has(k))
   const method = probe.methods.size === 1 ? [...probe.methods][0] : l.method
   if (probe.methods.size > 1) throw new LawError(`it reads the arguments of ${[...probe.methods].join(' and ')}: a law of one step is about one method`)
   const gate = step && method && names.some(n => n.role === 'method') ? method : undefined
-  const body = (b: Record<string, unknown>, a: Record<string, unknown>, bits?: Bits) => read(e, {consts: x.consts, b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock, ...(bits ? {bits} : {})}, names, false) as Cond
+  const body0 = (b: Record<string, unknown>, a: Record<string, unknown>, pins?: Ctx['pins'], bits?: Bits) => read(e, {consts: x.consts, b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock, cal, pins, ...(bits ? {bits} : {})}, names, false) as Cond
   // (a step law's bit tests: read once to count the keys they take, then at every value of them, the facts implying it)
-  const stepBody = (b: Record<string, unknown>, a: Record<string, unknown>): Cond | ReturnType<typeof forall> => {
+  const bitBody = (b: Record<string, unknown>, a: Record<string, unknown>): Cond | ReturnType<typeof forall> => {
     const count: Bits = {ks: [], used: 0, hyps: []}
-    const plain = body(b, a, count)
+    const plain = body0(b, a, undefined, count)
     if (!count.used) return plain
     if (count.used > 6) throw new LawError(`its bit tests take ${count.used} keys in a law of one step (at most 6: two runs of bits at a place above bit 0, three at bit 0)`)
-    const at = (...ks: Term[]): Cond => { const bits: Bits = {ks, used: 0, hyps: []}; const out = body(b, a, bits); return all(...bits.hyps).implies(out) }
+    const at = (...ks: Term[]): Cond => { const bits: Bits = {ks, used: 0, hyps: []}; const out = body0(b, a, undefined, bits); return all(...bits.hyps).implies(out) }
     const n = count.used
     return n === 1 ? forall(k => at(k)) : n === 2 ? forall((k, j) => at(k, j)) : n === 3 ? forall((k, j, i) => at(k, j, i)) : n === 4 ? forall((k, j, i, h) => at(k, j, i, h)) : n === 5 ? forall((k, j, i, h, g) => at(k, j, i, h, g)) : forall((k, j, i, h, g, f) => at(k, j, i, h, g, f))
   }
-  if (!step) return {kind: 'law', law: r.law(l.name, (env: never) => (x.quiet ? ((env as Record<string, Int>)[x.quiet]!.eq(0) as Cond).implies(body(env, env)) : body(env, env)))}
+  // (a law of one step reads no function, so business days there pin each time's week to a key, ∀w. guard → law)
+  const body = (b: Record<string, unknown>, a: Record<string, unknown>) => (step && probe.roles.has('bdays') ? pinned(b, a, (bb, aa, p) => body0(bb, aa, p)) : bitBody(b, a))
+  if (!step) return {kind: 'law', law: r.law(l.name, (env: never) => (x.quiet ? ((env as Record<string, Int>)[x.quiet]!.eq(0) as Cond).implies(body0(env, env)) : body0(env, env)))}
   const mname = names.find(n => n.role === 'method')?.rule
-  return {kind: 'step', ...(gate ? {method: gate} : {}), law: r.stepLaw(l.name, (b: never, a: never) => stepBody(b, a) as Cond, gate ? (b: never) => ((b as Record<string, unknown>)[mname!] as Choice<string>).is(gate) : undefined)}
+  return {kind: 'step', ...(gate ? {method: gate} : {}), law: r.stepLaw(l.name, (b: never, a: never) => body(b, a) as never, gate ? (b: never) => ((b as Record<string, unknown>)[mname!] as Choice<string>).is(gate) : undefined)}
+}
+// A law of one step over business days: read once to find its times, then held at every week of each (a key, two for
+// a time that may be below 0), under the guards that only each time's own week meets.
+function pinned(b: Record<string, unknown>, a: Record<string, unknown>, f: (b: Record<string, unknown>, a: Record<string, unknown>, pins: Pins | undefined) => Cond): Cond | ReturnType<typeof forall> {
+  const pins: Pins = {times: []}
+  f(b, a, pins)
+  const n = pins.times.reduce((k, t) => k + (t.nat ? 1 : 2), 0)
+  if (n > 6) throw new LawError('business days at more than 6 weeks at once (a time that may be below 0 takes two)')
+  const g = (ks: Term[]): Cond => {
+    const at = new Map<string, Int>(), guards: Cond[] = []
+    let i = 0
+    for (const t of pins.times) at.set(t.id, t.nat ? Int.of(ks[i++]!) : new Int(ks[i++]!, ks[i++]!))
+    const out = f(b, a, {times: pins.times, at, guards})
+    if ('forall' in out) throw new LawError('business days in a law over every key: not yet (state it at one key)')
+    return all(...guards).implies(out)
+  }
+  const fs = [(k: Term) => g([k]), (k: Term, j: Term) => g([k, j]), (k: Term, j: Term, h: Term) => g([k, j, h]), (k: Term, j: Term, h: Term, m: Term) => g([k, j, h, m]),
+    (k: Term, j: Term, h: Term, m: Term, o: Term) => g([k, j, h, m, o]), (k: Term, j: Term, h: Term, m: Term, o: Term, p: Term) => g([k, j, h, m, o, p])]
+  return n ? forall(fs[n - 1] as never) : f(b, a, undefined)
 }
 
 // The expression read: its value (`dry`: only which names it reads, nothing built).
@@ -263,6 +298,7 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
   const go = (x: X) => val(x, c, names, dry)
   switch (e.k) {
     case 'num': return {t: 'num', v: Int.of(e.v)}
+    case 'bdur': throw new LawError(`${e.text}: business days are elapsed between two times, compared: now - received <= ${e.v} business days`)
     case 'dur': if (c.clock === undefined) throw new LawError(`${e.text}: the clock's unit isn't known here (clock = "s" or "ms" in gdp.toml)`); if (!Number.isInteger(e.v * c.clock)) throw new LawError(`${e.text}: not a whole number of the clock's units`); return {t: 'num', v: Int.of(e.v * c.clock)}
     case 'bool': return {t: 'cond', v: e.v ? yes : no}
     case 'null': return {t: 'null'}
@@ -304,6 +340,7 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
       // over the integers (a <= x // k is k·a <= x; a < x // k is k·(a + 1) <= x), so it needs no function, which a law
       // of one step can't read)
       const flip: Record<string, string> = {'<': '>', '<=': '>=', '>': '<', '>=': '<=', '==': '==', '!=': '!='}
+      if (flip[e.op] && (e.a.k === 'bdur' || e.b.k === 'bdur')) return {t: 'cond', v: businessCompare(e, flip, c, go, dry)}
       const divk = (x: X) => (x.k === 'bin' && x.op === '//' && (constOf(x.b) ?? 0) >= 1 ? x as X & {k: 'bin'} : undefined)
       if (flip[e.op] && (divk(e.b) || divk(e.a))) {
         const [op, lhs, d] = divk(e.b) ? [e.op, e.a, divk(e.b)!] : [flip[e.op]!, e.b, divk(e.a)!]
@@ -356,6 +393,29 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
     case 'forall': return fail('forall ... in ...: at the top of the law only')
   }
   return fail('an expression of no kind')
+}
+// `later - earlier ⋈ N business days`: the business days from earlier's day to later's (core/calendar.ts) ⋈ N. In a law
+// of one step each time's week is a key (pinned, its guard collected); elsewhere it is divided out.
+function businessCompare(e: X & {k: 'bin'}, flip: Record<string, string>, c: Ctx, go: (x: X) => V, dry: boolean): Cond {
+  const [op, diff, n] = e.b.k === 'bdur' ? [e.op, e.a, e.b] : [flip[e.op]!, e.b, e.a as X & {k: 'bdur'}]
+  if (diff.k !== 'bin' || diff.op !== '-') throw new LawError(`${n.text}: compared with the time elapsed between two times, later - earlier (now - received <= ${n.v} business days)`)
+  if (c.clock === undefined) throw new LawError(`${n.text}: the clock's unit isn't known here (clock = "s" or "ms" in gdp.toml)`)
+  if (!c.cal) throw new LawError(`${n.text}: business days need a calendar ([calendar] in gdp.toml: weekend = ["sat", "sun"], holidays = ["2026-12-25", ...], utc_offset = "-05:00")`)
+  c.roles.add('bdays')
+  const later = go(diff.a), earlier = go(diff.b)
+  if (dry) return yes
+  const cal = c.cal, at = (x: X, v: V) => {
+    const t = num(v), p = c.pins
+    if (!p || !c.step) return t
+    // (one key per time as it is read: the same text, in the state before or after the step)
+    const id = `${JSON.stringify(x)}${c.a === c.b ? '@before' : ''}`
+    if (!p.at) { if (!p.times.some(q => q.id === id)) p.times.push({id, nat: t.neg.e.op === 'const' && t.neg.e.value === 0}); return t }
+    const pin = cal.pin(t, p.at.get(id)!)
+    p.guards!.push(pin.guard)
+    return pin.at
+  }
+  const d = cal.between(at(diff.b, earlier), at(diff.a, later))
+  return op === '<' ? d.lt(n.v) : op === '<=' ? d.atMost(n.v) : op === '>' ? d.gt(n.v) : op === '>=' ? d.atLeast(n.v) : op === '==' ? d.eq(n.v) : d.ne(n.v)
 }
 // (a path's last name: a choice's value written as one, Outcome.SLOW_ERROR)
 const lastName = (x: X & {k: 'path'}): string | undefined => (x.segs.length ? (x.segs.at(-1) as {f?: string}).f : x.head)

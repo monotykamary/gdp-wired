@@ -8,6 +8,7 @@ import {execFileSync} from 'node:child_process'
 import {mkdirSync, mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {extractRust} from './extract-rs.ts'
+import {extractStep} from './extract-step.ts'
 import {proveRule, proveSteps} from './dsl.ts'
 
 const hasCargo = (() => { try { execFileSync('cargo', ['--version'], {stdio: 'ignore'}); return true } catch { return false } })()
@@ -83,3 +84,17 @@ t('the check\'s build: a crate rustc rejects refused with its message; cargo kil
   const killed = killedBuild(() => extractRust(crate(src), {entry: 'Meter', check: {runs: 6, depth: 4, states: 6}}))
   expect(killed.refusals[0]!.what).toMatch(/^the check's harness failed, twice .*cargo failed twice with nothing to say of the code/)
 }, 600_000)
+
+// The reader fuzz's crash (treadmill rust seed 675942: a span cut from src/lib.rs): the reader's own error, the source
+// not parsing, was read as a module and threw; refused with it, and any front end's reader that gives no module too.
+t('a crate that doesn\'t parse: refused with the reader\'s error, never a crash', () => {
+  const d = mkdtempSync(`${tmpdir()}/gdp-rscase-`)
+  mkdirSync(`${d}/src`)
+  writeFileSync(`${d}/Cargo.toml`, '[package]\nname = "meter"\nversion = "0.1.0"\nedition = "2021"\n\n[lib]\npath = "src/lib.rs"\n')
+  writeFileSync(`${d}/src/lib.rs`, 'pub struct Meter { used: u32 }\nimpl Meter {\n    pub fn take(&mut self, n: u32) -> bool { if n > 10 { return false; } self.used = \n')
+  const x = extractRust(d, {entry: 'Meter'})
+  expect(x.ok).toBe(false)
+  expect(x.refusals[0]!.what).toMatch(/^the crate doesn't parse: /)
+  const y = extractStep({error: 'src/lib.rs: expected an expression'} as never, () => ({cmd: 'false', args: [], hello: {}}), {})
+  expect(y.refusals[0]!.what).toMatch(/^the reader read nothing: src\/lib.rs: expected an expression/)
+}, 120_000)

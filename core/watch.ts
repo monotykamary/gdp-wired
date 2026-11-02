@@ -7,7 +7,7 @@
 // at every k steps in a row the run takes: each step's `when` read with the state it starts from, its request, queries
 // and flags; `then` with the state before the first step (plain names), the first request and its flags, the j-th
 // request as input@j, and the state and maps after the last step (primed names).
-import {type C, type E, type Law, type Machine, type Request, type State, carriedView, evalC, type interpret, numbersOf, walk} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type State, carriedView, evalC, evalE, type interpret, numbersOf, walk} from './machine.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
 import {someHolds} from './exists.ts'
 
@@ -64,6 +64,34 @@ function keysPer(c: C, names: string[]): (bound: number, st: State, all: () => n
   })
 }
 
+// A key no map reads, scaled and compared linearly with what the run holds (c·k ⋈ t, c >= 16: a time's week,
+// core/calendar.ts), is read
+// where that comparison turns too: ⌊t/c⌋ and the keys beside it, each later key 0 while it is solved. Untrusted: more
+// keys read is only more of the law checked.
+function turns(c: C, names: string[]): (i: number, env: Env, st: State, m: Machine) => number[] {
+  const atoms: {a: E, b: E, reads: Set<string>}[] = []
+  walk(c, o => {
+    if (o.op !== '<' && o.op !== '<=' && o.op !== '=') return
+    // (a key scaled past the small keys a run reads, k·x with k at least 16: its turn is far from 0 to bound + 1)
+    const t = JSON.stringify(o), reads = new Set(names.filter(x => [...t.matchAll(new RegExp(`"op":"mul","k":(\\d+),"a":\\{"op":"var","name":${JSON.stringify(x).replace(/[$]/g, '\\$&')}\\}`, 'g'))].some(m => Number(m[1]) >= 16)))
+    if (reads.size) atoms.push({a: o.a as E, b: o.b as E, reads})
+  })
+  return (i, env, st, m) => {
+    const x = names[i]!, out = new Set<number>(), saved = names.slice(i).map(y => env[y])
+    for (let j = i + 1; j < names.length; j++) env[names[j]!] = 0
+    for (const at of atoms) {
+      if (!at.reads.has(x)) continue
+      try {
+        const f = (v: number) => { env[x] = v; return evalE(at.a, env, st, m) - evalE(at.b, env, st, m) }
+        const f0 = f(0), slope = f(1) - f0
+        if (slope) { const k = Math.floor(-f0 / slope); for (const v of [k - 1, k, k + 1]) if (v >= 0 && Number.isSafeInteger(v)) out.add(v) }
+      } catch { /* (a value the run doesn't hold: no turn) */ }
+    }
+    names.slice(i).forEach((y, j) => { env[y] = saved[j]! })
+    return [...out]
+  }
+}
+
 // The tuples every watch has read a law at (core/dsl.ts's refuteByRuns counts its budget in them).
 export const watchWork = {n: 0}
 // Watches one law or step law along one run: `start` with the state at the start, `step` after each step the run takes
@@ -71,10 +99,15 @@ export const watchWork = {n: 0}
 export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: number) {
   // At every tuple of the keys (each name's own: keysPer), one key per name, in one environment set in place.
   const names = w.forall ? [w.forall, ...(w.keys ?? [])] : [], per = keysPer(isStepLaw(w) ? w.then : w.holds, names)
-  const atKeys = (keys: number[][], env: Env, f: (env: Env) => boolean): boolean => {
+  // (the keys no map reads, also where a comparison of theirs turns)
+  const mapRead = new Set<string>()
+  walk(isStepLaw(w) ? w.then : w.holds, o => { if (o.op === 'get') for (const x of names) if (JSON.stringify(o.key).includes(`"name":${JSON.stringify(x)}`)) mapRead.add(x) })
+  const turn = names.some(x => !mapRead.has(x)) ? turns(isStepLaw(w) ? w.then : w.holds, names) : undefined
+  const atKeys = (keys: number[][], env: Env, f: (env: Env) => boolean, st?: State, mm?: Machine): boolean => {
     const go = (i: number): boolean => {
       if (i === names.length) { watchWork.n++; return f(env) }
-      for (const key of keys[i]!) { env[names[i]!] = key; if (!go(i + 1)) return false }
+      const more = turn && st && mm && !mapRead.has(names[i]!) ? turn(i, env, st, mm).filter(k => !keys[i]!.includes(k)) : []
+      for (const key of more.length ? [...keys[i]!, ...more] : keys[i]!) { env[names[i]!] = key; if (!go(i + 1)) return false }
       return true
     }
     return go(0)
@@ -83,7 +116,7 @@ export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: 
     // A law with "there exists" (core/exists.ts): broken only where no value can be a witness, as far as that is decided
     // (one natural or integer read linearly); undecided, it is kept.
     const at = (env: Env, st: State) => (w.some?.length ? someHolds(w.holds, w.some, {...env}, st, m, true)?.holds ?? true : evalC(w.holds, env, st, m))
-    const holds = (st: State) => atKeys(per(bound, st, () => keysOf(bound, st)), {...params}, env => at(env, st))
+    const holds = (st: State) => atKeys(per(bound, st, () => keysOf(bound, st)), {...params}, env => at(env, st), st, m)
     return {start: holds, step: (_before: State, _input: Request, after: State) => holds(after)}
   }
   const k = w.steps ?? 1, whens = w.when === undefined ? [] : Array.isArray(w.when) ? w.when : [w.when]
@@ -108,7 +141,7 @@ export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: 
         maps: {...first.maps, ...Object.fromEntries(Object.entries(after.maps).map(([n, cells]) => [`${n}'`, cells]))},
         defaults: {...first.defaults, ...Object.fromEntries(Object.entries(after.defaults ?? {}).map(([n, d]) => [`${n}'`, d]))},
       }
-      return atKeys(per(bound, both, () => keysOf(bound, first, after)), {...env}, e => evalC(w.then, e, both, primedMaps))
+      return atKeys(per(bound, both, () => keysOf(bound, first, after)), {...env}, e => evalC(w.then, e, both, primedMaps), both, primedMaps)
     },
   }
 }

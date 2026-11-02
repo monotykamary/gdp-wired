@@ -1,0 +1,13 @@
+{
+ "repo": "https://github.com/hapifhir/hapi-fhir",
+ "commit": "247833421129d3e3333c86eee5bc92c3bab87947",
+ "licence": "Apache-2.0",
+ "language": "Java",
+ "domain": "FHIR consent votes",
+ "files": [
+  "hapi-fhir-server/src/main/java/ca/uhn/fhir/rest/server/interceptor/consent/IConsentVote.java",
+  "hapi-fhir-server/src/main/java/ca/uhn/fhir/rest/server/interceptor/consent/ConsentOperationStatusEnum.java"
+ ],
+ "target": "hapi-fhir-server/src/main/java/ca/uhn/fhir/rest/server/interceptor/consent/IConsentVote.java",
+ "what": "HAPI FHIR's consent service votes combined: parallel (any REJECT vetoes) and serial (the first decisive vote)."
+}

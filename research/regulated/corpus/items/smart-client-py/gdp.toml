@@ -1,0 +1,3 @@
+[rules.FHIROAuth2Auth]
+methods = ["reset", "can_sign_headers", "signed_headers"]
+types = {app_id = "str | None", aud = "str | None", auth_state = "str | None", app_secret = "str | None", access_token = "str | None", refresh_token = "str | None", jwt_token = "str | None", code_verifier = "str | None", expires_at = "datetime | None"}

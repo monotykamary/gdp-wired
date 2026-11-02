@@ -118,9 +118,14 @@ Laws about two runs read the same way: `diagnosis never reaches status, result` 
 secret keep what is named the same, and fail alike), `isolated by user_id` (what the caller whose `user_id` is B sees
 is the same whatever the others do), `agrees with LimiterV1` (a migration: another class of the target, the same state
 after every history). A duration is linear over the request's time: `now - received < 30 days` (seconds, minutes,
-hours, days, weeks; a month, a year or a business day is refused). `gdp: cite <law name>: <clause>` ties a law to the
-clause it answers: printed with the law, and with `--cert <dir>` kept in the meta of each proven law's certificate,
-never in what is checked (`research/regulated/DESIGN.md`).
+hours, days, weeks; a month or a year is refused). Business days are counted over a calendar stated once (`[calendar]`
+in gdp.toml: weekend days, holidays, a UTC offset): `now - received <= 10 business days`, decided in the same linear
+arithmetic, nothing trusted added. `gdp: cite <law name>: <clause>` ties a law to the clause it answers: printed with
+the law, and with `--cert <dir>` kept in the meta of each proven law's certificate, never in what is checked.
+`gdp-wired draft <file> --clause-file <f> --cite <ref> --llm <command>` asks a drafter (a model, by any command) for
+laws from the clause's text, reads each over the code's names and prints the comments to paste, each citation marked
+`[unreviewed: drafted by ...]` until a person signs it (`[reviewed-by: <name>, <date>]`); `check --require-review`
+refuses a law cited unreviewed (`research/regulated/DESIGN.md`, `research/regulated/DRAFTING.md`).
 
 ## Where it fits
 

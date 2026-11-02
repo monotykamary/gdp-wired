@@ -43,6 +43,149 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneQ: where a counted goal's time goes; lazy count instances (CEGAR) and the counted search's leaves by the simplex's point (paxos_epr and mldr not won; untrusted; nothing trusted changed)
+
+**Where the time went** (GDP_COUNTS_PROF, boat large, each alone; C3's code): mldr's probe at 300 s, 578 s of wall: the
+CDCL decision first 201 s and the tree search 182 s (149 s on goals past 300 hypotheses); encoding 1.3 s, MBQI 1.6 s,
+the kernel's check nothing. A widened Houdini step goal held 303 hypotheses, 176 of them picks and 24 count instances,
+and ran out at 31 s counted (36-116 s wall). paxos-hand's 600 s: the decision 477 s, its leaves' exact elimination
+(Fourier-Motzkin over every row, where every atom is decided) 228-314 s of it; one decision capped at 5 s counted ran
+176 s wall (the counted clock does not count the elimination's equality substitutions). paxos_epr at 60 s: 834 CDCL
+runs, 781 MBQI rounds, the decision 59 of 82 s; its 58 candidates each about 0.7 s, mostly unknown.
+
+**The mechanism (core/counts.ts, kernel/cdcl.ts, kernel/prove.ts; untrusted).**
+- Lazy count instances and picks: a widened goal carries the counting lemma's instances and picks some model broke, of a
+  pool certFor proposes (1000 at most, GDP_COUNTS_POOL; with each count at most its bound and every two that meet),
+  the narrow ten at once (GDP_COUNTS_LAZY=wide; `1` all lazily, `0` as before). A pool hypothesis is broken where no
+  completion of the model meets it (the cells it leaves out at their start, at 1, one map flipped from either; an
+  instance's witness at each value below 16: brokenOf's new `defaults`); where nothing else is broken or asked, read
+  strictly (left-out cells at their start alone), since a completion may meet an instance only at a witness some law
+  then breaks. The choice is kept by the reads it names, across the goal's rebuilds. Lazy everywhere (`1`) lost
+  consensus_wo_decide and consensus_forall (each round a fresh CDCL search); `wide` keeps the narrow goals as they were.
+- The counted search's models (CdclOptions.point): a leaf whose rows the simplex's point meets at integers is a model,
+  and at a fractional point a fractional name is split on (branch and bound), not the exact elimination over every
+  row. Everywhere, it lost chc/G/s_split_34 (frontier round 2, solid) and DuoAI's decentralized_lock (3 of 3): those
+  searches read the models; scoped to the counted search it loses neither.
+
+**Per goal, before (GDP_COUNTS_LAZY=0 GDP_CDCL_POINT=0) and after, same tree 07ef2f3, two runs each:** paxos-hand at 300
+s, the leaves' elimination 314/286 s → 1.8/1.3 s of wall; the cone the same 18 of 37, and Houdini now reaches its
+rounds within the wall (before, every goal after the cone was unknown at 2 ms: the wall had passed). The hand set alone
+(GDP_COUNTS_GIVEN=1): "decision proposed" kept (before refuted by a model the narrow instances left). mldr's probe:
+578-600 s → 256-295 s of wall over the same 34 laws; a widened Houdini goal 303 hypotheses (176 picks) → 135-230 (58-93
+instances and picks chosen of up to 1000 offered), each still unknown at its 31 s counted share. The wall per run varies
+2.7× between VMs of one type (paxos-hand's hand set: the same 802,489 decisions in 185 and 504 s), so the counted
+figures and the decisions are the comparison.
+
+**What blocks paxos_epr and mldr.** paxos_epr: the search proposes the decision and choosable counts but not the
+propose phase's invariants; and even the hand set leaves one value decided, decision has votes, choosable and busy
+rows unknown at 40 s counted each (busy rows reads no count: its goal needs rowOk at a composed key j = a·N + b, which
+modelInstances may never ask). mldr: Houdini's five quorum and term goals stay unknown at 31 s counted (790-2400
+hypotheses over their MBQI rounds, the tree search on goals past 300). NEXT.md lists the next steps.
+
+**Gates** (64af398, the final code but a type fix; against main 3000a12; IC3Syn with C3's jobs: boat large, 4 vCPU, 14
+GB, each alone, strict 60 s, three runs, broken variants once; DuoAI ten three runs): runs within 60 s 70 against 69;
+protocols within 60 s in every run 23 against 21 (consensus_wo_decide 24/31/43 against 48/58/109 s, a gain by the
+noise rule; firewall 26/32/50 against 22/45/unknown, not by it); consensus_forall 52/98/111 against 38/58/71 (no
+protocol lost by the noise rule); no broken variant proven either side; paxos_epr and mldr unknown both sides. DuoAI
+ten 30 of 30 against 29 of 30. Quick bar (`laneQ-quick2`): wrong 0 everywhere, lost 0 solid in every group (CHC +10.7,
+ITS +6.7, f2's term/Piecewise lost at the limit, not solid); g332 the same search on 331 of 332. Shards 10 of 10 on
+07ef2f3; build, oxlint on the changed files clean. Bytes (core/, kernel/ against 3000a12, all lanes merged): +21.1k, of
+which this lane's counts.ts +5.4k, cdcl.ts +1.8k (1.0k of it the profile's split of the solve), prove.ts +0.2k.
+
+## gen/laneC3: quorum counting over two parameters, proven in Lean; the counted search proposes the decision and choosable counts (paxos_epr not won)
+
+**Trusted (Lean first).** CountMachine.lean's count declaration takes a second parameter: `CDecl ⟨mp, post, j, key,
+below, body, lo, base⟩`, the map at x the count with j at x / base and lo at x % base (`atJ`); one parameter is lo = j,
+base 0, which is the old meaning exactly (`canonOk`: one parameter lo = j and base 0, two lo ≠ j, what the runtime
+computes). A certificate reads a two-parameter count at a key term written `base·a + b` (`keyParts`): Count.lean gets
+the declaration with j at a and lo at b, and the read's hypothesis is `base ≤ b ∨ v = cell` (`readHyp`), so a key past
+the base aliases nothing. mc_sound sets each read variable to its count's sum (`rval`) and proves the hypothesis from
+GHolds (`cnt_read`); afterDecl keeps j, lo and key (`keepJ`); cstart_case, cstep_case, cntOf_congr, cntOf_upd and
+counts_exist read `atJ` in place of `upd ρ j x`. mc_sound, cmachine_sound and counts_exist print propext,
+Classical.choice, Quot.sound; no sorry. CountExamples.lean adds the toy consensus by rounds (`toyr`: votes at B·round +
+value, a node voting once a round, one value decided a round) through cmachine_sound, and three tampered certificates
+Lean computes to false (a key b + 4·a, a key composed by 5, a read named as the count's lo).
+
+**The TS twin** (kernel.ts): `CountDecl` gains lo and base; countsScope (lo and base together, base a positive integer,
+j, lo and key three fresh names), keyParts, toCount, readHyp, readFresh, checkMC, declsOf and the after-declarations,
+line for line. The runtime (machine.ts's carriedView) and the DSL (`.counts({c: env => ({below, base, body: (a, k, b) =>
+…})})`) and emit.ts too. Mutants over the changed lines (MUTANT_BATTERY=countmachine,counts): 50, 48 killed, 2 listed
+equivalent (checkMC's j and lo apart from the key, which countsScope refuses first). terra (gpt-6.1-terra, read-only):
+no way found for an accepted proof to make a false law look proven; the one substantive point, that Lean accepted
+declaration shapes the TS path and runtime don't (base 0 with lo ≠ j), is closed by `canonOk`.
+
+**Adversarial** (countmachine.test.ts, "two parameters"): a key past the base (`B ≤ b`) aliases another count: a false
+law (no votes past the base) whose goals all have trees once the read's guard is dropped, refused with it; key terms the
+base does not compose (b + 4·a, 5·a + b, 4·a, b) refused; quorums off by one (size ≤ 2·|Q|) and quorums of one (|Q| ≥ 1):
+the safety law false by brute force and neither the hand certificates nor the search prove it; a count bound true only on
+the small instances (votes ≤ 3, sizes 2 and 3) not proven. With nothing written, the search declares the two-parameter
+count (`quorum$Decision`) and proves "one value a round" (20 s budget), kernel-checked.
+
+**The search (core/counts.ts, untrusted)**:
+- guardLaws: a write at a composed key N·t + u of two request values gets a count over two parameters, its law read at
+  the keyed N·a + b with b < N; and a guard's zero count of the set's members without R (paxos's decide: `missing = 0`)
+  reads as ∀ members R, as a quantified flag does. paxos_epr: `Decision keeps members's bound through members$Decision`
+  (∀ a, b: Decision[64a + b] ∧ b < 64 → size < 2·|{k: Vote[4096k + 64a + b]}|) proposed, and kept by the cone at 60 s.
+- Who did or still can write a relation: a write W[N²·n + N·t + u] by a request's node n under a flag whose literals
+  reading n are G(n, t, u) gets the count `can$W$set`(t, u) = |{k: G(k, t, u) ∨ W[N²·k + N·t + u]}|, bounded (the guard's
+  comparison negated) under each map P the flag reads at N·t + u alone: P[N·c + d] ∧ a < c (∧ b ≠ d, or a ≤ c ∧ b ≠ d) ⇒
+  2·can(a, b) ≤ size. For paxos it is mypyvy's choosable law in counting form (G = ¬left_rnd, W = vote, P = proposal);
+  quorum intersection is then Count.lean's lemma over the two counts, derived, not assumed.
+- certFor: a post count at least a request count less another (|Q| ≤ missing + votes), when both are read once; and a
+  model the count instances leave asks for them widened once (every count at most each other of its bound, either way;
+  each positive only where a key is in it), which ties a count read only in the assumption to its cells (Lane Y's mldr
+  report).
+
+**Picks: a count at least its body at distinct keys (trusted, Lean first; for Lane Y's mldr).** Count.lean's lemma only
+gives witnesses (a sum past another has a key where the body is past), never that a count is at least the number of
+members known; mldr's leader step (two voters of a two-member config, read as 1 and 1) needs it. CCert gains `picks`
+(a read's variable and key terms); each adds `pickHyp`: where the terms are pairwise distinct and below the count's
+bound, the count is at least the sum of its body at them. `pickHyp_true` proves it wherever the count is its sum (by
+`sum_le_sumBelow`), so a certificate may name any terms; mc_sound reads them with the reads' hypotheses at the
+witnesses' values (the count reads no witness, countedOkW). The TS twin (pickHyps, picksTyped, checkMC, mcGoal) and the
+exporter; CountExamples' `twom` (two members make the count at least 2) through cmachine_sound, with a pick at one key
+twice and no pick computed to false. Adversarial (countmachine.test.ts): terms equal but written apart (b, b + 0), a
+pick past the bound (a count below 1), the pick of the count before the step where the law reads the one after; each
+refused, and grow finds no tree. Mutants over every line of kernel.ts this lane changed: 64, 62 killed, 2 equivalent
+(above). terra's second review (read-only): no soundness problem in pickHyp_true or mc_sound's pick branch; one real
+TypeScript gap, older than the picks: kernel.ts's substE read a substitution's entries through the prototype, so a map
+named `constructor` was replaced by Object's constructor (a count's body `constructor[k]` read as `k`) and a pick could
+then refute a satisfiable goal; Lean was never fooled. Fixed (`own`: a substitution's own entries only, vars, maps and
+flags), with a test over constructor, toString, __proto__ and hasOwnProperty (its mutant killed); and emit.ts exports the
+maps a pick's terms read.
+
+**The search's use of them**: a goal's model the narrow count instances leave asks, in the rounds over the whole set
+(Houdini) and for a caller's law or a read no instance names, for the instances widened once and each count picked at
+the key terms the goal reads its body's maps at and at its own instances' witnesses (every two, and all of up to six); and modelInstances (kernel/prove.ts,
+untrusted) reads a count's cell the model has not from its definition over the model's cells, so a law over a count the
+goal doesn't read is broken where the model breaks it (Lane Y's "every quorum at a config term, or disabled"). Widening
+inside the cone cost the counted protocols (simple_election 5 → 19 s, wo 30 → 57 s), so the cone keeps the narrow
+instances.
+
+**paxos_epr: not won.** The choosable law is proposed and true on the small instances, but its step goal at commit needs
+the propose phase's own invariants (Qs joined at pr, the checked rows below pmaxr, pmaxr's proposal), none of which the
+candidates hold; at 60 s and at 300 s the caller ends unproven (kept 13 of 58: the decision law, vote → proposal,
+OneB → OneA among them). The hand-written mypyvy invariant in this encoding with the phase laws (research/protocols/
+quorum/paxos-hand.ts, 15 laws) through the same counted goals: 16 of 33 kept in 1500 s, the choosable law, proposal
+uniqueness and the phase's row law left sat or unknown; with the widened instances and the idle phase's counter added
+(16 laws), 21 of 37 kept, left: one value decided, proposals unique, choosable, the checked rows. The search's pieces
+are in place (the decision law kept, the choosable law proposed); the propose phase's invariants are not.
+
+**Gates** (26a3440 to e5d9f38 against 35ed7e0, IC3Syn with jobs.ts as main's cb90788: boat large, 4 vCPU, 14 GB, each
+alone, strict 60 s, two runs; broken variants once; DuoAI ten three runs): IC3Syn runs within 60 s 45 of 58 both,
+protocols within 60 s in every run 22 both, no broken variant proven either side, DuoAI ten 30 of 30 both (the counted
+protocols run again on the final code; the others' code paths unchanged since gate round 2). The counted protocols on
+e5d9f38 once more: consensus_epr 42.5/52.3 s (main 21.9/51.4), consensus_forall 44.7/48.8 (main 65.6/93.6, past 60),
+consensus_wo_decide 52.9/78.8 (main 39.4/109.3), the ten's wo 24.6/36.4/68.4 (main 30.4-33.6): near the wall either way. Quick bar (25b63cd, before
+picks; the counted search's paths only since) against the shared baseline: wrong 0 everywhere, nothing lost solid
+(CHC +11.9 predicted, ITS gdp −11.3 and gdp-scc −6.6 predicted, every loss at the limit, none solid; no code
+those groups run changed), 6 of 6 Lean recurrent sets. Tests on a 16 GB VM: 401 of 403 (exports.test.ts' build: the DSL's spec type for a
+count's base, fixed; infer.test.ts' 5 s test, passes alone and fails on main's VMs too); countmachine 30/30, count
+61/61, exists 12/12, kernel's refusals/tamper/sets/cdcl/count 120/120 on the final head. Lean, after the 02:40 tree fix
+(sha256 of the shipped files checked): mc_sound, cmachine_sound, counts_exist, pickHyp_true, toyc_laws, toyr_laws,
+twom_laws print propext, Classical.choice, Quot.sound; no sorry. Bytes against 35ed7e0: CountMachine.lean +18.5k,
+kernel.ts +2.9k, counts.ts +9.1k, prove.ts +0.7k, machine.ts +0.3k, dsl.ts +0.2k, emit.ts +0.2k.
+
 ## gen/laneY: a law with "there exists" about keys searched in its plain form over its ghost map (firewall proven at 60 s); the EPR path reads a key a map holds; the ∃ watch and the small instances cheaper (untrusted; nothing trusted changed)
 
 Branch gen/laneY from main 6b96a0f. kernel/kernel.ts, core/check.ts, kernel/cyclic.ts and lean-kernel/ untouched; kernel/epr.ts
@@ -402,6 +545,88 @@ Tests (16 GB, both sides at once on boat's xlarge VMs, each suite 2,93x s): main
 failures on both the 5 s tests past their limit on these VMs (XState, the bridge, the invariant searches, weak fairness);
 kernel/count.test.ts 61 of 61 and core/exists.test.ts 12 of 12 on the final head. Bytes against 479a22a: +7,900
 (core/exists.ts +4,864, kernel/kernel.ts +2,165, core/dsl.ts +871).
+
+### gen/laneY6 (from gen/laneC3 819e0c6): mldr's invariant over Lane C3's counts, probed
+
+research/protocols/ic3syn/mldrprobe.ts writes Endive's inductive invariant for MongoLoglessDynamicRaft (benchmarks/
+MongoLoglessDynamicRaft_IndProofs.tla at 8b6f2ab: six conjuncts) over counts added to the port's machine:
+cfgSize[s] = |config[s]|, old[s] = |{k ∈ config[s] : ¬newer(k, s)}| (one parameter, a cross-cell body; ConfigDisabled(s)
+is 2·old[s] <= cfgSize[s]), and Lane C3's pair counts at N·s + t: xm = |config[s] \ config[t]|, xn = |config[s] ∩
+config[t]|, low = |{k ∈ config[s] : CT[k] < CfgT[t]}|. Laws: a primary at its config term; one config term, one primary
+newest (Inv3915); one version and term, one config (Inv1758, read as: equal (CV, CfgT) give equal configs); quorums
+overlap or a config disabled (Inv2973: ∀ u, w, 2u + xm[s,t] > xn and 2w + xm[t,s] > xn → u + w > xn); every quorum at a
+config term or disabled (Inv3246: 2·low[t,s] <= cfgSize[t]); and before start, a copied config the one picked and
+version 1 (what the run showed missing). core/counts.ts's searchCounted with them as callers: all true on the small
+instances; every one of them refused in Houdini, each step goal "sat" with every other law assumed, at 0.2-1.8 s.
+The models it gives up on (GDP_COUNTS_DUMP) are not the protocol's: become_leader with S = {3} for config[3] = {1, 3}
+while the request's count inX (|config[i]|) is 0 (and inS 1), so majorityOf passes. The dump is attempt()'s
+branch where modelInstances asks for nothing at the model (pass 1), so inX's value stays free there; why it asks for no
+Count.lean instance at the request's count read in the assumption was not traced further. That is core/counts.ts's (Lane C3's): with those instances asked, the probe says whether the
+invariant goes through. Nothing built in core/ on this branch.
+
+### gen/laneY6 on C3's f1e8559: the probe again
+
+With C3's widened count instances (f1e8559) the probe's laws are still all refused (searchCounted 1,190 s, every step
+goal "sat" or, for "every quorum at a config term", unknown at 99-111 s). The model it now gives up on for one primary
+per term (GDP_COUNTS_DUMP, the 'nothing asked' branch, full witness): become_leader with i = 2 and S = {1, 2} (S[1], S[2]
+set), config[2] = {1, 2} (Config[2·64 + 1], Config[2·64 + 2] set), while inS = 1 and inX = 1. Each count is now above 0
+where a key is in it (the fix's instance), but nothing makes it at least the number of distinct keys known to be in it,
+so 2·inS > inX holds with one count each and the majority check passes for a set of two out of two. What it lacks: a
+count at least the number of distinct keys its body holds at (count ≥ body(k1) + body(k2) for k1 ≠ k2, Count.lean's sum
+split at two keys). Sent to C3 through the coordinator. Nothing in core/ on this branch.
+
+### gen/laneY6 on C3's 855bfbe (picks): the probe again
+
+Still refused, every law (1,249 s). The pass-1 model for one primary per term is now count-consistent where counts are
+read (size 5, inX = 4, inS = 3, the picks tying them to S's and config's cells): become_leader at term 2 by i = 1 with
+three voters of a four-member config, while another server (key$3) is primary at term 2 with config term 2. Endive's
+proof refutes this with "every quorum at a config term, or disabled" at (config of i, key$3): the voters all have
+CT <= 1 < 2, so low[1·N + key$3] >= 3 and 2·3 > |config[1]| = 4, and the config is not disabled (the voters are not
+newer than i's config, so old[1] >= 3). But the goal reads none of low, old, cfgSize, xm, xn: that law's instance at
+(1, key$3) is not in the goal. modelInstances asks for a law's instance where the model breaks it at a tuple of the
+goal's keys, and in this model the law holds there, because the counts it reads are no cells of the model and are read
+as 0: disabled(1) is 2·0 <= 0, true, so the law is satisfied and nothing is asked. What would put the keys there: when
+modelInstances evaluates a law at a tuple, a count the model has no cell for evaluated from its definition over the
+model's cells (its body summed over the keys below its bound, the picks' reading), not as 0; then "disabled" is false
+here, the law broken at (1, key$3), and its instance asked with its counts, whose picks C3's 855bfbe then supplies.
+Sent to C3 through the coordinator.
+
+### gen/laneY6 on C3's 26a3440 (counts from their definitions in modelInstances): the probe again
+
+Still refused, every law (537 s; pass 1 now runs out at 73-93 s on three of the laws). The instances are asked now: the
+pass-1 model for one primary per term reads old, cfgSize and low at the leader's config and the other primary. It is
+still not a state of the protocol, by two counts the picks should pin: become_leader by i = 2, S[0] = S[2] = 1 (the
+read S[w$12] with w$12 = 0, and S[key$2#] with key$2# = 2) yet inS = 1; config[1] = {0, 2} (Config[64·1 + w$12],
+Config[64·1 + key$2#]), CT[0] = 0 and CT[2] = 1 both below CfgT[3] = 2, yet low[64·1 + 3] = 1. Each count is 1 where
+the two distinct keys its body holds at would make it 2: no pick at (w$12, key$2#) in this goal, though both are read as
+the body's map's keys (S at both, Config[64·1 + ·] at both). Sent to C3 through the coordinator: whether w$12 (a witness)
+is among the key terms certFor picks at.
+
+### gen/laneY6 on C3's e5d9f38 (picks at the instances' witnesses too): the probe again
+
+Still refused (1,056 s). Changed: in the Houdini rounds "every quorum at a config term, or disabled" is no longer
+refused by a model but runs out (59-75 s), as do "quorums overlap" (56-72 s) and "one version and term, one config"
+(66-134 s); one primary per term is still refused (pass 1, 37 s), by a model the tree search keeps (counts.ts's dump for
+that branch carries the hypotheses, not the witness, so this run doesn't show it). Even were every law's goal settled,
+each step goal of this set costs 55-134 s of the counted budget, past a 60 s run for the whole search: mldr at 60 s
+needs these goals far cheaper as well as settled.
+
+### gen/laneY6: mldr shelved at 60 s (what was reached)
+
+- **The invariant over Lane C3's counts**: Endive's six conjuncts for MongoLoglessDynamicRaft (Inv866, Inv3915, Inv1758,
+  Inv2973, Inv3246, Safety) plus two pre-start laws (a copied config the one picked; version 1), written over one-
+  parameter counts (cfgSize, old: a cross-cell body) and C3's two-parameter counts at N·s + t (xm, xn, low):
+  research/protocols/ic3syn/mldrprobe.ts, all true on the small instances.
+- **What settles and what doesn't** (searchCounted with the laws as callers, the pinned setup, C3's fixes in turn: f1e8559
+  widened instances, 855bfbe picks, 26a3440 counts from their definitions in modelInstances, e5d9f38 picks at the
+  instances' witnesses): the pre-start laws and the per-server cross-cell law (a primary at its config term) kept; every
+  quorum at a config term, quorums overlap, and one version and term, one config now run out (56-134 s) where they were
+  refused by spurious models; one primary per term still refused by a model the tree search keeps.
+- **The cost**: each step goal of this set costs 55-134 s of the counted budget alone, against a 60 s budget for the whole
+  search. The next lever for mldr is the counted goals' cost (smaller goals: fewer hypotheses per step goal, the count
+  instances and picks a goal needs rather than all of them under the cap), not more counting theory: the theory C3
+  added (two parameters, picks, definitions in the model) now gives the instances the proof needs.
+- gen/laneY6 (the probe and these notes) is kept as a record, not for merging.
 
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
 

@@ -1,0 +1,18 @@
+diff -ru a/src/core/Manager.ts b/src/core/Manager.ts
+--- a/src/core/Manager.ts	2026-11-02 11:22:21
++++ b/src/core/Manager.ts	2026-11-02 11:23:07
+@@ -86,10 +86,14 @@
+ 		this.setConsents(acceptedConsents(this.#purposes));
+ 	}
+ 
++	// gdp: law declining withdraws every optional consent: forall p in consents: consents[p] == (p in mandatoryConsents)
++	// gdp: cite declining withdraws every optional consent: GDPR Art. 7(3): "It shall be as easy to withdraw as to give consent"
+ 	declineAll() {
+ 		this.setConsents(declinedConsents(this.#purposes));
+ 	}
+ 
++	// gdp: law a withdrawal takes effect: not state and not (id in mandatoryConsents) implies not consents[id]
++	// gdp: cite a withdrawal takes effect: GDPR Art. 7(3): "The data subject shall have the right to withdraw his or her consent at any time"
+ 	setConsent(id: Purpose['id'], state: boolean) {
+ 		this.setConsents({
+ 			[id]: state
