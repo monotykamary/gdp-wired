@@ -212,7 +212,8 @@ async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: str
   const got = await rulesOf0(t, o, laws)
   if (o.entry) return got
   // (a function that is a request of a rule read, a C file's globals', is read with it)
-  const have = new Set(got.flatMap(r => [r.entry, r.x.model?.name, ...(r.x.ok ? (r.x.names ?? []).map(n => n.method) : [])].filter((n): n is string => !!n)))
+  const evs = (x: Extraction) => { const s = (x.model as {inputs?: {name: string, sort: {k: string, values?: string[]}}[]} | undefined)?.inputs?.find(v => v.name === (x.names ?? []).find(n => n.role === 'method')?.rule)?.sort; return s?.k === 'choice' ? s.values ?? [] : [] }
+  const have = new Set(got.flatMap(r => [r.entry, r.x.model?.name, ...(r.x.ok ? [...(r.x.names ?? []).map(n => n.method), ...evs(r.x)] : [])].filter((n): n is string => !!n)))
   const more = [...new Set(laws.map(l => l.cls ?? l.fn).filter((n): n is string => !!n && !have.has(n)))]
   if (!more.length) return got
   const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, env: _e, ...flags} = o
@@ -343,7 +344,9 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     outs.push(r)
     // (the laws of this rule: all where it is the file's one, else those in its class or on it or its methods, and those
     // outside every class and function)
-    const ms0 = new Set((x.names ?? []).map(n => n.method))
+    // (and every request, one with no argument too: the method's choice)
+    const ev0 = (x.model as {inputs?: {name: string, sort: {k: string, values?: string[]}}[]} | undefined)?.inputs?.find(v => v.name === (x.names ?? []).find(n => n.role === 'method')?.rule)?.sort
+    const ms0 = new Set([...(x.names ?? []).map(n => n.method), ...(ev0?.k === 'choice' ? ev0.values ?? [] : [])])
     // (a law in a class is that class's alone, an entry named or not)
     // (a law on a function outside any class is that function's, where the file has a rule of its name, never a method
     // of another rule that shares the name)

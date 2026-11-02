@@ -85,7 +85,14 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
     const names = [...new Set((tu.inner ?? []).filter(n => n.kind === 'RecordDecl' && n.name && n.completeDefinition).map(n => String(n.name)))]
     const ok = names.filter(n => { try { const c = readC(file, n, tu, target, cpp, opts.root); readGo(c.pkg, {methods: c.methods}); return true } catch (e) { if (e instanceof Refusal) return false; throw e } })
     // (none: the file's globals, where its functions keep the state there)
-    if (!ok.length && !cpp) { const stem = file.replace(/^.*\//, '').replace(/\.[^.]*$/, ''); try { const c = readC(file, stem, tu, target, cpp, opts.root); readGo(c.pkg, {methods: c.methods}); return readCFile(file, {...opts, entry: stem}, cpp) } catch (e) { if (!(e instanceof Refusal)) throw e } }
+    if (!ok.length && !cpp) {
+      const stem = file.replace(/^.*\//, '').replace(/\.[^.]*$/, '')
+      try { const r = readCFile(file, {...opts, entry: stem}, cpp); readGo(r.c.pkg, {methods: r.c.methods, ...(opts.onError ? {onError: opts.onError} : {})} as GoOptions); return r } catch (e) {
+        if (!(e instanceof Refusal)) throw e
+        // (its globals are its state, and something in them is refused: that, not the structs)
+        if (!/^no global of /.test(e.what)) throw new Refusal(e.where, `${e.what} (the file's globals read as its state, ${stem}: no struct its functions write)`)
+      }
+    }
     if (ok.length !== 1) throw new Refusal(file, ok.length ? `several structs written by the file's functions (${ok.join(', ')}): name one (entry)` : 'no struct the file\'s functions write: name the entry')
     return readCFile(file, {...opts, entry: ok[0]!}, cpp)
   }
