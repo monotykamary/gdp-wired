@@ -24,9 +24,9 @@ export const ITEMS: Item[] = [
   // --- MakAir (a ventilator built in 2020; firmware public domain) ---------------------------------------------------------
   {
     id: 'makair-alarm', project: 'MakAir ventilator firmware', domain: 'medical', repo: 'makers-for-life/makair-firmware', commit: '042ad55e910953c0f13c5be0a26ae468253c0059',
-    licence: 'Unlicense (public domain)', author: 'Makers for Life', files: ['srcs/alarm.cpp', 'includes/alarm.h'], target: 'srcs/alarm.cpp',
+    licence: 'Unlicense (public domain)', author: 'Makers for Life', files: ['srcs/alarm.cpp', 'includes/alarm.h'], target: 'srcs/alarm.cpp', shims: 'makair',
     what: 'one alarm: detections counted once per breathing cycle up to its threshold, then triggered; reset when not detected',
-    toml: '', laws: [
+    toml: 'flags = ["-I{shim}"]', laws: [
       L('srcs/alarm.cpp', 'Alarm::Alarm(', 'proven', 'detections_capped: m_detectionNumber <= m_detectionThreshold'),
       L('srcs/alarm.cpp', 'Alarm::Alarm(', 'unknown', 'cycles_counted_only_when_triggered: m_cyclesSinceTrigger == 0 or m_detectionNumber == m_detectionThreshold',
         'false at a threshold of 255 (the uint8_t count wraps past it), 256 detections deep; MakAir sets thresholds of 1 to 3'),
@@ -80,7 +80,7 @@ export const ITEMS: Item[] = [
     id: 'canopen-nmt', project: 'CANopenNode', domain: 'industrial fieldbus', repo: 'CANopenNode/CANopenNode', commit: '9b8beed8367241e96ac03f916cd5a500bcb2cf23',
     licence: 'Apache-2.0', author: 'Janez Paternoster and contributors', files: ['301/CO_NMT_Heartbeat.c', '301/CO_NMT_Heartbeat.h', '301/CO_Emergency.h', '301/CO_ODinterface.h', '301/CO_config.h', '301/CO_driver.h', 'example/CO_driver_target.h'],
     target: '301/CO_NMT_Heartbeat.c', what: 'the network management state machine (CiA 301): boot, commands, and the error behaviour that leaves operational',
-    toml: 'flags = ["-I{repo}", "-I{repo}/example"]\n[rules.CO_NMT_t]\n# the node\'s configuration (NMTcontrol, the heartbeat period) is CO_NMT_init\'s: the laws hold of a step from any state\nfrom = "any"\nmethods = ["CO_NMT_process", "CO_NMT_sendInternalCommand"]\n# the heartbeat frame is written for the CAN driver and sent by it\nleave = ["HB_TXbuff", "HB_CANdevTx"]\n# the emergency object\'s error bits, another object\'s: the request\'s\ncut = ["CO_isError", "CO_getErrorRegister"]',
+    toml: 'entry = "CO_NMT_t"\nflags = ["-I{repo}", "-I{repo}/example"]\n[rules.CO_NMT_t]\n# the node\'s configuration (NMTcontrol, the heartbeat period) is CO_NMT_init\'s: the laws hold of a step from any state\nfrom = "any"\nmethods = ["CO_NMT_process", "CO_NMT_sendInternalCommand"]\n# the heartbeat frame is written for the CAN driver and sent by it\nleave = ["HB_TXbuff", "HB_CANdevTx"]\n# the emergency object\'s error bits, another object\'s: the request\'s\ncut = ["CO_isError", "CO_getErrorRegister"]',
     laws: [
       L('301/CO_NMT_Heartbeat.c', 'CO_NMT_reset_cmd_t\nCO_NMT_process(', 'proven', 'never_back_to_initializing: old(NMT->operatingState) == CO_NMT_INITIALIZING or NMT->operatingState != CO_NMT_INITIALIZING'),
       L('301/CO_NMT_Heartbeat.c', 'CO_NMT_reset_cmd_t\nCO_NMT_process(', 'proven', 'boot_ends_in_a_running_state: old(NMT->operatingState) != CO_NMT_INITIALIZING or NMT->operatingState == CO_NMT_PRE_OPERATIONAL or NMT->operatingState == CO_NMT_OPERATIONAL or NMT->operatingState == CO_NMT_STOPPED'),
@@ -93,7 +93,7 @@ export const ITEMS: Item[] = [
     id: 'canopen-node-guarding', project: 'CANopenNode', domain: 'industrial fieldbus', repo: 'CANopenNode/CANopenNode', commit: '9b8beed8367241e96ac03f916cd5a500bcb2cf23',
     licence: 'Apache-2.0', author: 'Janez Paternoster and contributors', files: ['301/CO_Node_Guarding.c', '301/CO_Node_Guarding.h', '301/CO_NMT_Heartbeat.h', '301/CO_Emergency.h', '301/CO_ODinterface.h', '301/CO_config.h', '301/CO_driver.h', 'example/CO_driver_target.h'],
     target: '301/CO_Node_Guarding.c', what: 'the node guarding slave\'s life guarding: a guard request rearms the life timer; without one for the life time, the error',
-    toml: 'flags = ["-I{repo}", "-I{repo}/example", "-DCO_CONFIG_NODE_GUARDING=0x01"]\n[rules.CO_nodeGuardingSlave_t]\n# the guard and life times are CO_nodeGuardingSlave_init\'s (the object dictionary\'s): the laws hold of a step from any state\nfrom = "any"\nmethods = ["CO_nodeGuardingSlave_process"]\n# the guarding response frame is written for the CAN driver and sent by it\nleave = ["CANtxBuff", "CANdevTx"]',
+    toml: 'entry = "CO_nodeGuardingSlave_t"\nflags = ["-I{repo}", "-I{repo}/example", "-DCO_CONFIG_NODE_GUARDING=0x01"]\n[rules.CO_nodeGuardingSlave_t]\n# the guard and life times are CO_nodeGuardingSlave_init\'s (the object dictionary\'s): the laws hold of a step from any state\nfrom = "any"\nmethods = ["CO_nodeGuardingSlave_process"]\n# the guarding response frame is written for the CAN driver and sent by it\nleave = ["CANtxBuff", "CANdevTx"]',
     laws: [
       L('301/CO_Node_Guarding.c', 'void\nCO_nodeGuardingSlave_process(', 'proven', 'timeout_when_life_expires: old(ngs->CANrxNew) or slaveDisable != 0 or old(ngs->lifeTimer) == 0 or timeDifference_us < old(ngs->lifeTimer) or ngs->lifeTimeTimeout != 0'),
       L('301/CO_Node_Guarding.c', 'void\nCO_nodeGuardingSlave_process(', 'proven', 'guard_request_rearms: not old(ngs->CANrxNew) or slaveDisable != 0 or (ngs->lifeTimer == ngs->lifeTime_us and ngs->lifeTimeTimeout == 0 and not ngs->CANrxNew)'),
@@ -110,7 +110,7 @@ export const ITEMS: Item[] = [
     files: ['src/app/driver/interlock/interlock.c', 'src/app/driver/interlock/interlock.h', 'src/app/driver/config/interlock_cfg.h', 'src/app/driver/io/io.h', 'src/app/engine/database/database.h',
       'src/app/engine/database/database_helper.h', 'src/app/engine/config/database_cfg.h', 'src/app/engine/diag/diag.h', 'src/app/engine/config/diag_cfg.h', 'src/app/task/os/os.h', 'src/app/main/include/fassert.h',
       'src/app/main/include/fstd_types.h', 'src/app/main/include/general.h', 'src/app/driver/mcu/mcu.h', 'src/app/application/config/battery_system_cfg_types.h', 'src/app/application/config/bms-slave_cfg.h',
-      'tests/unit/support/foxbms_config_rtos.h', 'tests/unit/app/application/config/battery_cell_cfg.h', 'tools/cmock/vendor/c_exception/lib/CException.h'],
+      'tests/unit/support/foxbms_config_rtos.h', 'tests/unit/app/application/config/battery_cell_cfg.h', 'tests/unit/app/application/config/battery_system_cfg.h', 'tools/cmock/vendor/c_exception/lib/CException.h'],
     // (the unit tests' battery configuration, its string enum the types header's: what the host build combines)
     derive: {'.gdp-shim/battery_system_cfg.h': {from: 'tests/unit/app/application/config/battery_system_cfg.h', drop: /#if[^\n]*TEST_BS_NR_OF_STRINGS[^\n]*\n(?:.*\n)*?#endif \/\* TEST_BS_NR_OF_STRINGS \*\/\n/}},
     what: 'the interlock driver\'s state machine: initialization only from uninitialized, a re-entrance guard, its timer',

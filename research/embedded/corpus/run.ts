@@ -22,7 +22,7 @@ export type ItemResult = {id: string, project: string, domain: string, ok: boole
 
 const raw = (it: Item, f: string) => `https://raw.githubusercontent.com/${it.repo}/${it.commit}/${f}`
 // The item's files at its commit, fetched once.
-function fetchItem(it: Item): string {
+export function fetchItem(it: Item): string {
   const dir = join(src, `${it.repo.replace('/', '__')}@${it.commit}`)
   for (const f of it.files) {
     const to = join(dir, f)
@@ -79,7 +79,7 @@ export function score(rs: ItemResult[]): string {
   return lines.join('\n')
 }
 
-if (argv.includes('--jobs')) {
+if (!import.meta.main) { /* imported: fetchItem and score only */ } else if (argv.includes('--jobs')) {
   process.stdout.write(`${JSON.stringify(ITEMS.map(it => ({name: it.id, cmd: `. research/langs/c/clang-setup.sh >/dev/null && bun install --frozen-lockfile >/dev/null 2>&1 && bun research/embedded/corpus/run.ts --only ${it.id} --ms ${ms} --json /tmp/r.json >/dev/null; cat /tmp/r.json`, timeout: 3600, cpu: 2})), null, 1)}\n`)
 } else if (opt('score')) {
   const dir = resolve(opt('score')), rs: ItemResult[] = ITEMS.flatMap(it => { const f = join(dir, `${it.id}.log`); if (!existsSync(f)) return []; const t = readFileSync(f, 'utf8'); const i = t.indexOf('['); try { return JSON.parse(t.slice(i)) as ItemResult[] } catch { return [] } })
