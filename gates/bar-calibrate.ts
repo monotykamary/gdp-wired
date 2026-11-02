@@ -6,7 +6,7 @@
 //   bun gates/bar-calibrate.ts [--dev gates/bar-dev.json] [--runs <main>/runs] [--json out.json]
 import {existsSync, readFileSync, readdirSync, statSync, writeFileSync} from 'node:fs'
 import {dirname, join} from 'node:path'
-import {type Dev, VIEWS, jobLogs, pearson, predict, solvedCount} from './bar-lib.ts'
+import {type Dev, VIEWS, asBroken, jobLogs, pearson, predict, solvedCount} from './bar-lib.ts'
 
 const arg = (k: string, d: string) => { const i = process.argv.indexOf(`--${k}`); return i < 0 ? d : process.argv[i + 1] ?? d }
 const HERE = dirname(import.meta.path)
@@ -40,7 +40,7 @@ function kinds(dir: string): string[] {
 }
 const parse = (view: string, dir: string) => {
   const rows = VIEWS[view]!.parse(dir, TREE)
-  if (view === 'f1' || view === 'f2') for (const [id, o] of rows) if (BROKEN.has(id)) rows.set(id, {...o, answer: `broken: ${o.answer}`, solved: o.answer !== 'proven', wrong: o.answer === 'proven'})
+  if (view === 'f1' || view === 'f2') for (const [id, o] of rows) if (BROKEN.has(id)) rows.set(id, asBroken(o))
   return rows
 }
 

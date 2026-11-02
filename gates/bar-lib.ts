@@ -5,7 +5,9 @@
 // research/*/score.ts --from), so a figure here is the figure those print.
 import {existsSync, readFileSync, readdirSync} from 'node:fs'
 
-export type Obs = {answer: string, solved: boolean, wrong?: boolean, disputed?: boolean, secs: number}
+// `decision` separates a successful logical outcome from its diagnostic label (a broken law can be refused
+// by exhausted search or by timeout; those are not contradictory decisions). Ordinary answers are their own key.
+export type Obs = {answer: string, decision?: string, solved: boolean, wrong?: boolean, disputed?: boolean, secs: number}
 export type Rows = Map<string, Obs>
 export type View = {key: string, title: string, limit: number, family: (task: string) => string, parse: (dir: string, tree: string) => Rows, headline: (rows: Rows) => Record<string, number>}
 
@@ -67,6 +69,13 @@ export function jobLogs(dir: string): {job: string, key: string, last: string, t
 export const keyOfCmd = (cmd: string) => /echo '((?:[^']|'\\'')*)';/.exec(cmd)?.[1]?.replace(/'\\''/g, "'")
 
 type FRun = {proven?: boolean, checked?: boolean, ms?: number, timeout?: boolean, error?: string}
+// Frontier scoring treats every failure to prove a broken law as a refusal. Calibration also reads
+// old runs without broken.json; normalize once, preserving already-marked wrong observations.
+export function asBroken(o: Obs): Obs {
+  if (o.answer.startsWith('broken: ')) return o
+  const won = o.answer === 'proven'
+  return {...o, answer: `broken: ${o.answer}`, decision: won ? 'proven' : 'refused', solved: !won, wrong: won}
+}
 const frontierRows = (dir: string): Rows => {
   const broken = new Set<string>(existsSync(`${dir}/broken.json`) ? JSON.parse(readFileSync(`${dir}/broken.json`, 'utf8')) as string[] : [])
   const items = new Map<string, FRun[]>()
@@ -80,7 +89,8 @@ const frontierRows = (dir: string): Rows => {
     const won = rs.some(r => r.proven && r.checked), timeout = rs.some(r => r.timeout), error = rs.some(r => r.error)
     const secs = Math.max(...rs.map(r => (r.ms ?? 0) / 1000)), b = broken.has(id)
     const answer = won ? 'proven' : timeout ? 'timeout' : error ? 'error' : b ? 'refused' : 'not proven'
-    out.set(id, {answer: b ? `broken: ${answer}` : answer, solved: b ? !won : won, wrong: b && won, secs})
+    const observation = {answer, solved: won, wrong: false, secs}
+    out.set(id, b ? asBroken(observation) : observation)
   }
   return out
 }
@@ -179,6 +189,7 @@ export const VIEWS: Record<string, View> = {
 export type Samples = {cand: Obs[], base: Obs[]}
 export type TaskCmp = {task: string, kind: 'gained' | 'lost' | 'noise' | 'wrong', solid: boolean, atLimit: boolean, inBand: boolean, cand: string, base: string, samples: Samples}
 
+const decisionOf = (o: Obs) => o.decision ?? o.answer
 const solvedOf = (os: Obs[]) => os.filter(o => o.solved).length
 const majority = (os: Obs[]) => os.length > 0 && solvedOf(os) * 2 > os.length
 // A task's base runs disagree, or one of them solved it in the last quarter of the limit: the noise band, where a flip
@@ -191,7 +202,7 @@ export function differing(cand: Rows, base: Rows[]): string[] {
   for (const [t, c] of cand) {
     const bs = base.map(b => b.get(t)).filter((o): o is Obs => !!o)
     if (!bs.length) continue
-    const decidedOther = bs.some(b => b.solved && c.solved && b.answer !== c.answer)
+    const decidedOther = bs.some(b => b.solved && c.solved && decisionOf(b) !== decisionOf(c))
     if (c.wrong || decidedOther || c.solved !== majority(bs)) out.push(t)
   }
   return out
@@ -200,7 +211,7 @@ const fmtSamples = (os: Obs[]) => `${solvedOf(os)}/${os.length}`
 export function compareTasks(tasks: string[], samples: Map<string, Samples>, limit: number): TaskCmp[] {
   return tasks.map(task => {
     const s = samples.get(task) ?? {cand: [], base: []}, rc = solvedOf(s.cand) / Math.max(1, s.cand.length), rb = solvedOf(s.base) / Math.max(1, s.base.length)
-    const decided = (os: Obs[]) => new Set(os.filter(o => o.solved).map(o => o.answer))
+    const decided = (os: Obs[]) => new Set(os.filter(o => o.solved).map(decisionOf))
     const both = new Set([...decided(s.cand), ...decided(s.base)])
     const wrong = s.cand.some(o => o.wrong) || both.size > 1
     const kind = wrong ? 'wrong' : majority(s.cand) && !majority(s.base) ? 'gained' : !majority(s.cand) && majority(s.base) ? 'lost' : 'noise'

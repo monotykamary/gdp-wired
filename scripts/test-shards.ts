@@ -38,6 +38,7 @@ const units: Unit[] = [
   ...runs(`examples/scopes.ts examples/lists.ts examples/sizes.ts examples/liveness.ts examples/sums.ts
     examples/nonterm.ts examples/rationals.ts examples/budget.ts examples/gdp.ts examples/steps.ts
     examples/jev-fabric/run.ts`),
+  ...tests('gates', 'bar-lib.test.ts'),
 ]
 
 const timingsFile = join(import.meta.dir, 'test-shards.json')
