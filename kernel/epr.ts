@@ -21,12 +21,12 @@ export type Patterns = Record<string, number[]>
 // The patterns of a rule: of each map's reads in the step, the assumption, the flags and the laws (not the kinds' laws,
 // whose key is a whole key), the one with the most parts. A read keyed by a write-at-every-key's own name is left out.
 export function patternsOf(m: Machine, laws: {name: string, holds: C}[]): Patterns {
-  const out: Patterns = {}
+  const out: Patterns = Object.create(null)
   const each = new Set(Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : [])))
   const scan = (o: unknown): void => {
     if (!o || typeof o !== 'object') return
     const x = o as {op?: string, map?: string, key?: E, args?: unknown}
-    if (x.op === 'get' && !x.args && !(x.key!.op === 'var' && each.has(x.key!.name)) && !(m.fns && x.map! in m.fns)) { const t = tupleOf(x.key!); if (t && t.coefs.length > (out[x.map!]?.length ?? 0)) out[x.map!] = t.coefs }
+    if (x.op === 'get' && !x.args && !(x.key!.op === 'var' && each.has(x.key!.name)) && !(m.fns && Object.hasOwn(m.fns, x.map!))) { const t = tupleOf(x.key!); if (t && t.coefs.length > (out[x.map!]?.length ?? 0)) out[x.map!] = t.coefs }
     for (const y of Object.values(o)) scan(y)
   }
   scan(m.step); scan(m.assume)
@@ -39,7 +39,7 @@ export function patternsOf(m: Machine, laws: {name: string, holds: C}[]): Patter
   const inKey = (o: unknown, under: boolean): void => {
     if (!o || typeof o !== 'object') return
     const x = o as {op?: string, map?: string, key?: E, args?: unknown}
-    if (x.op === 'get' && !x.args && under && !(m.fns && x.map! in m.fns)) out[x.map!] = [0]
+    if (x.op === 'get' && !x.args && under && !(m.fns && Object.hasOwn(m.fns, x.map!))) out[x.map!] = [0]
     if (x.op === 'get' && !x.args) { inKey(x.key, true); return }
     for (const y of Object.values(o)) inKey(y, under)
   }
@@ -879,7 +879,7 @@ function encoder(st: State, patterns: Patterns): Enc {
     // grouping, as without one)
     const finish = (model: boolean[], theoryVal: Map<string, number> | undefined): Decision => {
       const val = (l: number) => model[l] === true
-      const w: Record<string, number> = {}
+      const w: Record<string, number> = Object.create(null) // (a name __proto__ kept, constructor read as no value)
       for (const f of gFinsL) {
         let x = 0
         for (let val2 = 0; val2 <= f.cap; val2++) if (val(v(finAt(f, val2))!)) x = val2
@@ -961,14 +961,14 @@ function encoder(st: State, patterns: Patterns): Enc {
       for (const x of reads) allMaps.add(x.map)
       const st2 = {scalars: {}, maps: Object.fromEntries([...allMaps].map(mp => [mp, maps.get(mp) ?? new Map<number, number>()]))}
       const m = {name: goal.name, params: [], inputs: [], state: {}, step: {}, maps: Object.fromEntries([...allMaps].map(mp => [mp, 0]))} as unknown as Machine
-      const env = new Proxy({...w}, {get: (t, q: string) => t[q] ?? 0}) as Record<string, number>
+      const env = new Proxy({...w}, {get: (t, q: string) => (Object.hasOwn(t, q) ? t[q] : 0)}) as Record<string, number>
       for (const [i, f] of fs.entries()) { tick(); try { if (f.h && !evalC(f.h, env, st2, m)) { return {unknown: `the abstraction's model breaks hypothesis ${i}`} } } catch { return {unknown: 'the model could not be read'} } }
       // the kernel's witness: names, and each cell of the goal by its key's linear form
       const witness: Record<string, number> = {...w}
       for (const x of reads) { tick(); const l = linear(x.key, new Map()), kv = keyVal(x.key); if (l && kv !== undefined) witness[`${x.map}[${canon(l)}]`] = st2.maps[x.map]?.get(kv) ?? 0 }
       // the structure
       const values = [...new Set([...[...parts].map(x => w[x]), ...[...ordVal].filter(([t]) => !t.startsWith('k:') && !t.includes('#')).map(([, x]) => x)].filter((x): x is number => x !== undefined))].sort((a, b) => a - b), elem = new Map(values.map((x, i) => [x, i]))
-      const diagram: Diagram = {elements: values.length, parts: {}, scalars: {}, cells: {}, fns: {}}
+      const diagram: Diagram = {elements: values.length, parts: Object.create(null), scalars: Object.create(null), cells: Object.create(null), fns: Object.create(null)}
       for (const x of [...parts, ...ordScalars].sort()) if (w[x] !== undefined) diagram.parts[x] = elem.get(w[x]!)!
       for (const f of gFinsL) if (f.id.startsWith('s:')) diagram.scalars[f.id.slice(2)] = w[f.id.slice(2)] ?? 0
       for (const [mp, cs] of cells2) {

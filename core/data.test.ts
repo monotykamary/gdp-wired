@@ -3,7 +3,7 @@
 // structural recursion refused unless its termination is proven (a measure every call lowers, each call's obligation
 // proven by the kernel), and a tampered proof refused by the kernel.
 import {expect, test} from 'bun:test'
-import {type Bool, type Nat, type Val, type X, type Y, EvalLimit, boolean, checkMeasures, conjectures, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, valueVar, when} from './data.ts'
+import {type Bool, type Nat, type Val, type X, type Y, EvalLimit, boolean, checkMeasures, conjectures, data, define, evalX, fnParam, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, valueVar, when} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
 import {transferPlan} from './transfer.ts'
 import {Bag, Forest, List, both, ev, Rose, Tree, a3, ack, adversarial, app, bmerge, broken, bsort, heapList, drp, ilv, laws, leq, len, merge, mergeRuns, mir, mrg, nest, nestA, nestB, nested, nonterminating, nz, paren, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken, tokens, wellFounded} from '../examples/data.ts'
@@ -350,3 +350,24 @@ test('the paths of a call\'s obligation: a variable matched again, a term matche
   expect(again.fn.decreases).toBeUndefined()
   expect([...viaFlag.fn.ring].sort()).toEqual(['plFlagOnly', 'plViaFlag'])
 }, 120_000)
+
+// Names (gen/laneH3's audit): a constructor is a member of its datatype and a map beside its tag and size, so none of a
+// datatype's own names (constructor, toString, make, tag, size, ...) is one; and a function parameter is a map of its
+// own name, never a function's the law reads (f named g was g: "every f, f(n) <= g(n) + 1000" was proven with g(n) = n,
+// false at f(n) = n + 1001).
+test('a constructor, a field or a function parameter named as something else is refused', () => {
+  for (const c of ['constructor', 'toString', '__proto__', 'valueOf', 'hasOwnProperty', 'tag', 'size', 'make', 'name', 'ctors', 'a.b', 'ctor$'])
+    expect(() => data(`Names${c.replace(/\W/g, '')}`, {[c]: {}, other: {}}), c).toThrow()
+  expect(() => data('NamesField', {one: {'a.b': natural}})).toThrow()
+  expect(() => fnParam('f.size')).toThrow()
+  expect(() => define('namesDot', {'namesG.n': natural}, natural, () => 0)).toThrow()
+  expect(() => law('a variable named as a binding', {'head#1': natural}, () => undefined as never)).toThrow()
+  const g = define('namesG', {n: natural}, natural, ({n}) => n)
+  const f = fnParam('namesG'), h = fnParam('namesH')
+  const over = (p: typeof f) => law(`every f: f(n) <= namesG(n) + 1000`, {n: natural}, ({n}) => p(n).atMost(g(n).plus(1000)))
+  expect(() => proveData(over(f), {ms: 3000})).toThrow()
+  expect(proveData(over(h), {ms: 3000}).proven).toBe(false)
+  // (fields may be named so: a case reads them by name, its own)
+  const P = data('NamesFields', {pair: {constructor: natural, toString: natural}})
+  expect(P.ctors[0]!.fields.map(x => x.name)).toEqual(['constructor', 'toString'])
+})

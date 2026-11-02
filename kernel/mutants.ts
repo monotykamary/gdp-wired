@@ -1,6 +1,7 @@
-// Mutation testing for the trusted base (kernel.ts, core/check.ts, cyclic.ts): each mutant changes one operator, constant or
-// quantifier at one place; the battery (fast tests first, the kernel fuzz last) must fail on it. A mutant that survives
-// is a change nothing notices: a blind spot in the tests (or an equivalent mutant, which the report lets a reader judge).
+// Mutation testing for the trusted base (kernel.ts, core/check.ts, cyclic.ts, core/solver.ts's rows): each mutant changes
+// one operator, constant or quantifier at one place; the battery (fast tests first, the kernel fuzz last) must fail on
+// it. A mutant that survives is a change nothing notices: a blind spot in the tests (or an equivalent mutant, which the
+// report lets a reader judge).
 //   bun mutants.ts list                 the mutants, numbered
 //   bun mutants.ts run <from> <to>      runs the battery on mutants from..to-1 (in this checkout: run it in a container)
 //   bun mutants.ts ids <a,b,...>        runs the battery on those mutants
@@ -19,7 +20,7 @@ const targets: {file: string, only?: string[]}[] = [{file: 'kernel/kernel.ts'}, 
   'callsIn', 'recursion', 'measurable', 'sized', 'measureOf', 'sizeX', 'measureX', 'readsInt', 'iMax0', 'measureI', 'lexY', 'isIntX', 'padded',
   'callSites', 'sitesOf', 'shapedBy', 'ownArgs', 'lowerY', 'obligation', 'valueVar', 'invAt', 'checkInv', 'lifted', 'keeps', 'directly', 'proveMeasures',
   'proveMeasuresIn', 'ringSites', 'checkMeasures', 'termination']},
-  {file: 'kernel/cyclic.ts'}]
+  {file: 'kernel/cyclic.ts'}, {file: 'core/solver.ts', only: ['v', 'k', 'add', 'scale', 'sub']}]
 // [pattern, replacement]: binary operators keep their spaces, so generics and arrows aren't touched.
 const operators: [RegExp, string][] = [
   [/ <= /g, ' < '], [/ < /g, ' <= '], [/ >= /g, ' > '], [/ > /g, ' >= '],
@@ -39,6 +40,9 @@ const own: Record<string, [RegExp, string][]> = {
     [/\.\.\.useHyps\(nodes, n\.uses\), /g, ''], [/u\.guard, /g, ''], [/\|all/g, ''], [/\.slice\(1\)/g, ''],
   ],
 }
+// A record read or built through the object prototype, in every target: an own entry read as any property (a name like
+// constructor or toString then reads Object's), a row built on {} (a variable __proto__, assigned, is dropped).
+const named: [RegExp, string][] = [[/Object\.hasOwn\(/g, 'Reflect.has('], [/Object\.create\(null\)/g, '{}']]
 type Mutant = {id: number, file: string, line: number, from: string, to: string, at: number, length: number}
 
 export function mutants(): Mutant[] {
@@ -49,7 +53,7 @@ export function mutants(): Mutant[] {
     for (const [i, line] of text.split('\n').entries()) {
       const code = line.replace(/\/\/.*$/, '') // comments aren't code
       inside = declared.exec(line)?.[1] ?? (/^\S/.test(line) && !line.startsWith('//') && !line.startsWith('}') ? undefined : inside)
-      if (!code.trim().startsWith('import ') && (!only || (inside && only.includes(inside)))) for (const [pattern, to] of [...operators, ...own[file] ?? []]) {
+      if (!code.trim().startsWith('import ') && (!only || (inside && only.includes(inside)))) for (const [pattern, to] of [...operators, ...own[file] ?? [], ...named]) {
         for (const m of code.matchAll(pattern)) out.push({id: out.length, file, line: i + 1, from: m[0], to, at: offset + m.index, length: m[0].length})
       }
       offset += line.length + 1

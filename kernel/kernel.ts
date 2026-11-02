@@ -186,7 +186,7 @@ export function termRows(name: string, path: Path): Lin[] {
 // Every coefficient, product and partial sum a safe integer, else no product: a rounded product is past 2^53, but a
 // monomial's other products could bring its sum back under it (and a square's form is the prover's, any float).
 function times(a: Lin, b: Lin): Lin | undefined {
-  const out: Lin = {}
+  const out: Lin = Object.create(null)
   for (const [p, cp] of Object.entries(a)) for (const [q, cq] of Object.entries(b)) {
     if (p.includes('⟦') || q.includes('⟦')) return undefined
     const fs = [...(p === '1' ? [] : factorsOf(p)), ...(q === '1' ? [] : factorsOf(q))].sort(), key = fs.length ? fs.join('*') : '1', c = (out[key] ?? 0) + cp * cq
@@ -392,7 +392,7 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
 }
 const keyOf = (cell: string): Lin => {
   const inner = cell.slice(cell.indexOf('[') + 1, -1)
-  const out: Lin = {}
+  const out: Lin = Object.create(null)
   // Keys are canonical texts `name:coef` joined by ',' at the outer level; a name may itself be a cell with brackets.
   let depth = 0, start = 0
   const parts: string[] = []
@@ -448,8 +448,10 @@ const naturalC = (c: C): boolean => c.op === 'flag' ? true : c.op === 'all' ? na
 // Substitution: variables by terms, and each map read by what the map holds (the start's constant, or a write over the
 // map before the step).
 export type Subst = {vars: Record<string, E>, maps: Record<string, (key: E) => E>, flags: Record<string, C>}
-// (a substitution's own entries only: a name like `constructor` or `toString` is no entry of {}; terra's review)
-const own = <T>(r: Record<string, T>, k: string): T | undefined => (Object.hasOwn(r, k) ? r[k] : undefined)
+// (a substitution's own entries only: a name like `constructor` or `toString` is no entry of {}; terra's review. Every
+// record the kernel reads by a name of the rule or the certificate reads it so, and every Lin is built on no prototype,
+// where a name __proto__ is a key like any other.)
+export const own = <T>(r: Record<string, T>, k: string): T | undefined => (Object.hasOwn(r, k) ? r[k] : undefined)
 export function substE(e: E, s: Subst): E {
   switch (e.op) {
     case 'var': return own(s.vars, e.name) ?? e
@@ -501,7 +503,7 @@ const reading = (r: Run, vars: Record<string, E>, maps: Record<string, string> =
 // One step: each name the update sets is its term read where the run is; a map read after it is the written value at
 // the written key, and what the map held before elsewhere (or, written at every key, its value at the key read).
 const step = (r: Run, u: Update): Run => {
-  const at = r.at, before = (map: string, key: E): E => (at.maps[map] ? at.maps[map]!(key) : {op: 'get', map, key})
+  const at = r.at, before = (map: string, key: E): E => { const f = own(at.maps, map); return f ? f(key) : {op: 'get', map, key} }
   return {hyps: r.hyps, at: {
     vars: {...at.vars, ...Object.fromEntries(Object.entries(u.vars).map(([n, e]) => [n, substE(e, at)]))},
     maps: {...at.maps, ...Object.fromEntries(Object.entries(u.maps).map(([map, w]) => [map, 'each' in w
@@ -514,7 +516,7 @@ const step = (r: Run, u: Update): Run => {
 // so a run of k steps is k small frames rather than a term nesting each state in the next (which grows as 3^k when a
 // step reads its state thrice). The names are new to the goal; each equation holds of the run that took the steps.
 const nameState = (r: Run, state: string[], j: number): Run => ({
-  hyps: [...r.hyps, ...state.map(n => ({op: '=', a: {op: 'var', name: stateName(n, j)}, b: r.at.vars[n] ?? {op: 'var', name: n}}) as C)],
+  hyps: [...r.hyps, ...state.map(n => ({op: '=', a: {op: 'var', name: stateName(n, j)}, b: own(r.at.vars, n) ?? {op: 'var', name: n}}) as C)],
   at: {...r.at, vars: {...r.at.vars, ...Object.fromEntries(state.map(n => [n, {op: 'var', name: stateName(n, j)} as E]))}},
 })
 export const stateName = (n: string, j: number) => `${n}~${j}`
@@ -523,8 +525,8 @@ const atEnd = (r: Run, c: C): C => substC(c, r.at)
 // The conclusion read across the run: plain names at the first frame, primed names (s', and M'[k] as a read of the map
 // named M') at the last; the first step's inputs as it read them, and its flags, decided where it was taken.
 const across = (r: Run, c: C, state: string[], maps: string[], first: {inputs: Record<string, E>, flags: Record<string, C>}): C => substC(c, {
-  vars: {...first.inputs, ...Object.fromEntries(state.map(n => [`${n}'`, r.at.vars[n] ?? {op: 'var', name: n}]))},
-  maps: Object.fromEntries(maps.map(map => [`${map}'`, (key: E): E => (r.at.maps[map] ? r.at.maps[map]!(key) : {op: 'get', map, key})])),
+  vars: {...first.inputs, ...Object.fromEntries(state.map(n => [`${n}'`, own(r.at.vars, n) ?? {op: 'var', name: n}]))},
+  maps: Object.fromEntries(maps.map(map => [`${map}'`, (key: E): E => { const f = own(r.at.maps, map); return f ? f(key) : {op: 'get', map, key} }])),
   flags: first.flags,
 })
 const goal = (name: string, r: Run, conclusion: C): Goal => ({name, hyps: [...r.hyps, {op: 'not', x: conclusion}]})
@@ -532,7 +534,7 @@ const goal = (name: string, r: Run, conclusion: C): Goal => ({name, hyps: [...r.
 // condition (through the flags before it), a quantified flag (one whose condition holds at every key) its 0/1 variable
 // ?f, which `closing` ties to the condition.
 const flagsOf = (m: Machine): Record<string, C> => {
-  const out: Record<string, C> = {}
+  const out: Record<string, C> = Object.create(null)
   for (const [f, c] of Object.entries(m.step.flags ?? {})) out[f] = c.op === 'all' ? {op: '=', a: {op: 'var', name: `?${f}`}, b: {op: 'const', value: 1}} : substC(c, {vars: {}, maps: {}, flags: out})
   return out
 }
@@ -585,7 +587,7 @@ const laterNames = (m: Machine, j: number) => ({
 })
 // The laws assumed where the run is: each plain law, and each every-key law at the keys the proof names.
 export const assumed = (laws: Law[], instances: Instances): C[] => laws.flatMap(l => {
-  const keys = instances[l.name] ?? []
+  const keys = own(instances, l.name) ?? []
   if (l.keys?.length) {
     const names = [l.forall!, ...l.keys], n = names.length
     return Array.from({length: Math.floor(keys.length / n)}, (_, t) => substC(l.holds, {vars: Object.fromEntries(names.map((name, i) => [name, keys[t * n + i]!])), maps: {}, flags: {}}))
@@ -857,7 +859,7 @@ export function sumCovers(m: Machine): Record<string, E[]> {
   return Object.fromEntries(Object.entries(m.sums ?? {}).map(([s, sum]) => {
     const out = new Map<string, E>()
     for (const map of [...new Set([...JSON.stringify(sum.term).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!))]) {
-      const w = m.step.maps?.[map]
+      const w = own(m.step.maps ?? {}, map)
       if (!w) continue
       if ('each' in w) comparedKeys(w.value, w.each, out)
       else out.set(JSON.stringify(w.key), w.key)
@@ -880,33 +882,33 @@ export function sumMachine(m: Machine, given?: Record<string, E[]>, laws: Law[] 
   // (substitutions that leave each flag as it is: Lean reads a flag as its variable in the step's view)
   const same: Record<string, C> = Object.fromEntries(Object.keys(flags).map(f => [f, {op: 'flag', name: f} as C]))
   // (a sum may be declared in the state, at 0, which no step sets: a state variable the plain machine moves)
-  for (const [s] of sums) if (s in m.state && JSON.stringify(m.state[s]) !== JSON.stringify(ZERO) || s in (m.step.state ?? {})) throw new Error(`${m.name}: the sum ${s} starts at 0 and no step sets it`)
+  for (const [s] of sums) if (Object.hasOwn(m.state, s) && JSON.stringify(m.state[s]) !== JSON.stringify(ZERO) || Object.hasOwn(m.step.state ?? {}, s)) throw new Error(`${m.name}: the sum ${s} starts at 0 and no step sets it`)
   // (every name the machine has, as the Lean twin numbers them: a flag f's variable ?f, a quantified flag's witnesses,
   // the keys writes at every key and quantified flags bind)
-  const names = [...m.params, ...m.inputs, ...Object.keys(m.state).filter(n => !(n in m.sums!)), ...Object.keys(m.maps ?? {}), ...(m.inputMaps ?? []), ...Object.keys(m.fns ?? {}),
+  const names = [...m.params, ...m.inputs, ...Object.keys(m.state).filter(n => !Object.hasOwn(m.sums!, n)), ...Object.keys(m.maps ?? {}), ...(m.inputMaps ?? []), ...Object.keys(m.fns ?? {}),
     ...Object.keys(flags), ...Object.keys(flags).map(f => `?${f}`), ...Object.entries(flags).flatMap(([f, c]) => (c.op === 'all' ? [...witnessesOf(f, c), ...boundOf(c)] : [])),
     ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))]
-  const steps: Record<string, E> = {}, qflags: Record<string, C> = {}, facts: C[] = [], goals: Goal[] = []
+  const steps: Record<string, E> = Object.create(null), qflags: Record<string, C> = Object.create(null), facts: C[] = [], goals: Goal[] = []
   for (const [s, sum] of sums) {
-    const {term, key} = sum, {flag, x} = sumParts(s), cs = covers[s]!
+    const {term, key} = sum, {flag, x} = sumParts(s), cs = own(covers, s)!
     const read = [...new Set([...JSON.stringify(term).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!))]
     const bad = (why: string) => { throw new Error(`${m.name}: the sum ${s}: ${why}`) }
-    for (const name of [s, key, flag, x]) { plainName(m.name, name); if (names.includes(name) || name in (m.sums ?? {}) && name !== s) bad(`${name} is already a name of the machine`) }
+    for (const name of [s, key, flag, x]) { plainName(m.name, name); if (names.includes(name) || Object.hasOwn(m.sums ?? {}, name) && name !== s) bad(`${name} is already a name of the machine`) }
     if (new Set([s, key, flag, x, `?${flag}`, `w?${flag}`]).size !== 6 || names.includes(`?${flag}`) || names.includes(`w?${flag}`)) bad('its names collide')
     if (!natural(term) || !sumTermOk(term, key)) bad(`its term reads the maps at ${key} alone, and no other name`)
     for (const map of read) {
-      if ((m.inputMaps ?? []).includes(map) || (m.fns ?? {})[map] || !(map in (m.maps ?? {}))) bad(`${map} is not a map of the machine's state`)
+      if ((m.inputMaps ?? []).includes(map) || Object.hasOwn(m.fns ?? {}, map) || !Object.hasOwn(m.maps ?? {}, map)) bad(`${map} is not a map of the machine's state`)
     }
     // 0 where every map holds its start value (Sums.lean's startVal: the term with each read its map's start).
     const atStart = substE(term, {vars: {}, maps: Object.fromEntries(read.map(map => [map, () => ({op: 'const', value: m.maps![map]!} as E)])), flags: same})
     if (natE(atStart, {}) !== 0n) bad('its term is not 0 at the start')
     for (const c of cs) if (JSON.stringify(c).includes('"op":"flag"') || readsKey(c, key) || readsKey(c, x)) bad('a key a step writes it at reads a flag')
     // (Sums.lean's sumOk1: a map the term reads written at one key has that key among the cover keys)
-    for (const map of read) { const w = m.step.maps?.[map]; if (w && !('each' in w) && !cs.some(c => JSON.stringify(c) === JSON.stringify(w.key))) bad(`the key ${map} is written at is no cover key`) }
+    for (const map of read) { const w = own(m.step.maps ?? {}, map); if (w && !('each' in w) && !cs.some(c => JSON.stringify(c) === JSON.stringify(w.key))) bad(`the key ${map} is written at is no cover key`) }
     const here = (t: E): E => substE(term, {vars: {[key]: t}, maps: {}, flags: same})
     // A map read after the step, over the step's view (Sums.lean's postRd).
     const post = (map: string) => (k2: E): E => {
-      const w = m.step.maps?.[map]
+      const w = own(m.step.maps ?? {}, map)
       if (!w) return {op: 'get', map, key: k2}
       if ('each' in w) return substE(w.value, {vars: {[w.each]: k2}, maps: {}, flags: same})
       return {op: 'if', c: {op: '=', a: k2, b: w.key}, then: w.value, else: {op: 'get', map, key: k2}}
@@ -968,15 +970,16 @@ export function obligations(m: Machine, laws: Law[], instances: Record<string, I
     if (only !== undefined && i !== only) return []
     // At the start: the precondition, and no request. One step: from a state where the laws hold, a request allowed.
     // The facts hold throughout, read where the run begins (they read no state).
-    const start = given(m, holds(from(startOf(m)), pre), instances[law.name] ?? {})
-    const turn = step(holds(given(m, from(), instances[law.name] ?? {}), [...pre, ...assume, ...assumed(laws, instances[law.name] ?? {}), ...closing(m, instances[law.name] ?? {})]), u)
+    const inst = own(instances, law.name) ?? {}
+    const start = given(m, holds(from(startOf(m)), pre), inst)
+    const turn = step(holds(given(m, from(), inst), [...pre, ...assume, ...assumed(laws, inst), ...closing(m, inst)]), u)
     return [goal(`${law.name} @start`, start, atEnd(start, proven(law))), goal(`${law.name} @step`, turn, atEnd(turn, proven(law)))]
   })
 }
 
 // The whole set at once: every goal has a tree, and every tree checks.
 export function checkLaws(m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, trees: Record<string, Tree>}): boolean {
-  return obligations(m, laws, proof.instances).every(g => proof.trees[g.name] !== undefined && check(g, proof.trees[g.name]!))
+  return obligations(m, laws, proof.instances).every(g => { const t = own(proof.trees, g.name); return t !== undefined && check(g, t) })
 }
 
 // --- loops: termination ------------------------------------------------------------------------------------------------
@@ -1004,7 +1007,7 @@ export function loopObligations(l: Loop, laws: Law[], rank: E | E[]): Goal[] {
   const parts = [...Object.values(l.state), ...Object.values(l.body), ...ranks]
   const names = [...l.params, ...l.inputs, ...Object.keys(l.state)]
   distinct(l.name, names)
-  for (const name of Object.keys(l.body)) if (!(name in l.state)) throw new Error(`${l.name}'s body sets ${name}, which isn't in its state`)
+  for (const name of Object.keys(l.body)) if (!Object.hasOwn(l.state, name)) throw new Error(`${l.name}'s body sets ${name}, which isn't in its state`)
   inScope(`${l.name}'s start`, Object.values(l.state), l.params)
   inScope(l.name, [...Object.values(l.body), ...(l.assume ? [l.assume] : [])], names)
   inScope(`${l.name}'s while`, [l.while], [...l.params, ...Object.keys(l.state)])
@@ -1037,7 +1040,7 @@ export function recurGoal(l: Loop, r: Pick<Recur, 'set' | 'wit'>): Goal {
 // Lean's evalE and evalC over naturals with every map cell 0 (NonTerm.lean's noMaps): exact, never rounded.
 const natE = (e: E, env: Record<string, bigint>): bigint => {
   switch (e.op) {
-    case 'var': return env[e.name] ?? 0n
+    case 'var': return own(env, e.name) ?? 0n
     case 'const': return BigInt(e.value)
     case 'add': return natE(e.a, env) + natE(e.b, env)
     case 'sub': { const d = natE(e.a, env) - natE(e.b, env); return d > 0n ? d : 0n }
@@ -1070,7 +1073,7 @@ export function checkRecur(l: Loop, r: Recur | RecurCases): boolean { return 'ca
 function stemOk(l: Loop, r: Omit<Recur, 'tree'>): boolean {
   const names = [...l.params, ...l.inputs, ...Object.keys(l.state)], values = (o: Record<string, number>) => Object.values(o).every(x => Number.isSafeInteger(x) && x >= 0)
   distinct(l.name, names)
-  for (const name of Object.keys(l.body)) if (!(name in l.state)) throw new Error(`${l.name}'s body sets ${name}, which isn't in its state`)
+  for (const name of Object.keys(l.body)) if (!Object.hasOwn(l.state, name)) throw new Error(`${l.name}'s body sets ${name}, which isn't in its state`)
   inScope(`${l.name}'s start`, Object.values(l.state), l.params)
   inScope(l.name, [...Object.values(l.body), ...(l.assume ? [l.assume] : [])], names)
   inScope(`${l.name}'s while`, [l.while], [...l.params, ...Object.keys(l.state)])
@@ -1079,12 +1082,12 @@ function stemOk(l: Loop, r: Omit<Recur, 'tree'>): boolean {
   if (![...Object.values(l.state), ...Object.values(l.body), ...Object.values(r.wit)].every(natural) || ![l.while, r.set, ...(l.pre ? [l.pre] : []), ...(l.assume ? [l.assume] : [])].every(naturalC)) throw new Error('outside the kernel')
   if (!Object.keys(r.start).every(n => l.params.includes(n)) || !values(r.start) || !r.stem.every(t => Object.keys(t).every(n => l.inputs.includes(n)) && values(t))) throw new Error(`${l.name}: a start names params and a stem's turn inputs, each a natural`)
   if (!Object.keys(r.wit).every(n => l.inputs.includes(n))) return false
-  let env: Record<string, bigint> = Object.fromEntries(names.map(n => [n, BigInt(r.start[n] ?? 0)]))
+  let env: Record<string, bigint> = Object.fromEntries(names.map(n => [n, BigInt(own(r.start, n) ?? 0)]))
   if (!natC(l.pre ?? trueC, env)) return false
   const apply = (body: Record<string, E>, at: Record<string, bigint>) => ({...at, ...Object.fromEntries(Object.entries(body).map(([n, e]) => [n, natE(e, at)]))})
   env = apply(l.state, env)
   for (const turn of r.stem) {
-    const at = {...env, ...Object.fromEntries(l.inputs.map(n => [n, BigInt(turn[n] ?? 0)]))}
+    const at = {...env, ...Object.fromEntries(l.inputs.map(n => [n, BigInt(own(turn, n) ?? 0)]))}
     if (!natC(l.while, at) || !natC(l.assume ?? trueC, at)) return false
     env = apply(l.body, at)
   }
@@ -1153,7 +1156,7 @@ const substituter = (vars: Record<string, E>) => {
     if (had) return had
     let o: E
     switch (e.op) {
-      case 'var': o = vars[e.name] ?? e; break
+      case 'var': o = own(vars, e.name) ?? e; break
       case 'const': o = e; break
       case 'mul': o = {op: 'mul', k: e.k, a: se(e.a)}; break
       case 'if': o = {op: 'if', c: sc(e.c), then: se(e.then), else: se(e.else)}; break
@@ -1214,7 +1217,7 @@ export function checkRecurCases(l: Loop, r: RecurCases): boolean {
 export function progressObligations(m0: Machine, laws: Law[], instances: Instances, p: {name: string, when: C, then: C, request: Record<string, E>}): Goal[] {
   const m = plainOf(m0), own = m0.sums && Object.keys(m0.sums).length ? m0.assume : m.assume
   scope(m, laws) // (as obligations scopes it: a param ?f would be read as the flag f's variable here too)
-  if (!m.inputs.every(i => i in p.request) || !Object.values(p.request).every(natural) || mentions(p.when, m.inputs)) throw new Error('outside the kernel')
+  if (!m.inputs.every(i => Object.hasOwn(p.request, i)) || !Object.values(p.request).every(natural) || mentions(p.when, m.inputs)) throw new Error('outside the kernel')
   for (const e of Object.values(p.request)) if (mentions({op: '=', a: e, b: e}, m.inputs)) throw new Error('a request is named from the state and params')
   const req: Subst = {vars: p.request, maps: {}, flags: {}}
   const flags = Object.fromEntries(Object.entries(flagsOf(m)).map(([f, c]) => [f, substC(c, req)]))
@@ -1355,10 +1358,10 @@ export function stepLawObligations(machine: Machine, laws: Law[], instances: Ins
 const lawsOnly = (inst: Instances): Instances => Object.fromEntries(Object.entries(inst).filter(([n]) => !n.startsWith('?')))
 export function checkStepLaws(m: Machine, laws: Law[], stepLaws: StepLaw[], proof: {laws: {instances: Record<string, Instances>, trees: Record<string, Tree>}, instances: Instances, perStep?: Record<string, Instances>, trees: Record<string, Tree>}): boolean {
   return checkLaws(m, laws, proof.laws) && stepLaws.every(sl => {
-    const inst = proof.perStep?.[sl.name] ?? proof.instances, plain = plainOf(m)
+    const inst = own(proof.perStep ?? {}, sl.name) ?? proof.instances, plain = plainOf(m)
     const zone = stepZone(plain, sl.steps ?? 1)
     return [...assumed(laws, inst), ...assumed(plain.facts ?? [], inst), ...closing(plain, lawsOnly(inst))].every(c => !mentions(c, zone))
-      && stepLawObligations(m, laws, inst, sl).every(g => proof.trees[g.name] !== undefined && check(g, proof.trees[g.name]!))
+      && stepLawObligations(m, laws, inst, sl).every(g => { const t = own(proof.trees, g.name); return t !== undefined && check(g, t) })
   })
 }
 // The names a k-step law's run introduces past its first frame: each later step's inputs, quantified flags and their
@@ -1403,8 +1406,9 @@ export const kInductionStart = (machine: Machine, kl: KInduction, instances: Ins
 export function checkKInduction(m: Machine, laws: Law[], kl: KInduction, proof: {laws: {instances: Record<string, Instances>, trees: Record<string, Tree>}, instances: Instances, perStep?: Record<string, Instances>, trees: Record<string, Tree>}): boolean {
   const steps = kInductionSteps(m, kl), plain = plainOf(m)
   scope(plain, [...laws, kl.law])
-  const start = kInductionStart(m, kl, proof.perStep?.[`${kl.law.name} @start`] ?? proof.instances)
-  return proof.trees[start.name] !== undefined && check(start, proof.trees[start.name]!) && checkStepLaws(m, laws, steps, proof)
+  const start = kInductionStart(m, kl, own(proof.perStep ?? {}, `${kl.law.name} @start`) ?? proof.instances)
+  const t = own(proof.trees, start.name)
+  return t !== undefined && check(start, t) && checkStepLaws(m, laws, steps, proof)
 }
 
 // --- trees: structural induction ---------------------------------------------------------------------------------------
@@ -1472,7 +1476,7 @@ export const qdif = (a: LF, b: LF): QRow => radd(rscale(b.den, a.row), rscale(-a
 // A row as a Lin, its coefficients safe integers (else undefined: a row past 2^53 is not read, so the check is weaker,
 // never wrong); and its key, as `canon` writes a Lin (zero coefficients dropped: Lean's `same` compares by value).
 export const qLin = (r: QRow): Lin | undefined => {
-  const out: Lin = {}
+  const out: Lin = Object.create(null)
   for (const [x, c] of r.cs) { if (c < -(2n ** 53n) + 1n || c > 2n ** 53n - 1n) return undefined; out[x] = Number(c) }
   if (r.c !== 0n) { if (r.c < -(2n ** 53n) + 1n || r.c > 2n ** 53n - 1n) return undefined; out['1'] = Number(r.c) }
   return out
@@ -1616,7 +1620,7 @@ export function checkQMachine(m: QMachine, laws: QLaw[], trees: Record<string, {
   const assigned = [...m.inputs, ...Object.keys(m.state), ...Object.keys(m.step)]
   if (m.pre && qOccurs(m.pre, assigned)) return false
   return laws.every(law => {
-    const t = trees[law.name], goals = qObligations(m, laws, law)
+    const t = own(trees, law.name), goals = qObligations(m, laws, law)
     return !!t && !qOccurs(law.holds, m.inputs) && checkQTree(goals.start, t.start) && checkQTree(goals.step, t.step)
   })
 }
@@ -1827,8 +1831,9 @@ export function countedObligations(m: Machine, laws: Law[], instances: Record<st
   const pre = preOf(m), u = updateOf(m), assume = m.assume ? [inlineFlags(m, m.assume)] : []
   return laws.flatMap((law, i) => {
     if (only !== undefined && i !== only) return []
-    const start = given(m, holds(from(startOf(m)), pre), instances[law.name] ?? {})
-    const turn = step(holds(given(m, from(), instances[law.name] ?? {}), [...pre, ...assume, ...assumed(laws, instances[law.name] ?? {}), ...closing(m, instances[law.name] ?? {})]), u)
+    const inst = own(instances, law.name) ?? {}
+    const start = given(m, holds(from(startOf(m)), pre), inst)
+    const turn = step(holds(given(m, from(), inst), [...pre, ...assume, ...assumed(laws, inst), ...closing(m, inst)]), u)
     return [{goal: goal(`${law.name} @start`, start, atEnd(start, proven(law))), decls: after(start.at)},
       {goal: goal(`${law.name} @step`, turn, atEnd(turn, proven(law))), decls: [...all, ...after(turn.at)]}]
   })
@@ -1845,7 +1850,7 @@ function witsOk(m: Machine, laws: Law[], k: CountCert): boolean {
 }
 // Lean's checkCMachine: every goal has a certificate, its witnesses fresh, and every certificate checks.
 export function checkCountedLaws(m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}): boolean {
-  return countedObligations(m, laws, proof.instances).every(({goal: g, decls}) => { const k = proof.certs[g.name]; return k !== undefined && witsOk(m, laws, k) && checkMC(g.hyps, decls, k) })
+  return countedObligations(m, laws, proof.instances).every(({goal: g, decls}) => { const k = own(proof.certs, g.name); return k !== undefined && witsOk(m, laws, k) && checkMC(g.hyps, decls, k) })
 }
 
 // --- ghost maps (Lean twin: ../lean-kernel/GhostMap.lean) ----------------------------------------------------------------
