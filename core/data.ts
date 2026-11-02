@@ -2760,7 +2760,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
       const fnReads = (t: unknown) => new Set(readsOnce(t).filter(r => r.op === 'get' && p.fns.some(f => f.name === r.map)).map(r => sid(r)))
       const inConcl = fnReads(concl), common = new Set([...fnReads(us.map(useConcl))].filter(x => inConcl.has(x)))
       const lean = reached(p, fs, insts.filter(q => !atField(q)), from, ms, common)
-      if (lean.length < insts.length && !inTermination.on) leaner.set(`${name}, case ${i + 1}`, lean)
+      if (insts.some(atField) && !inTermination.on) leaner.set(`${name}, case ${i + 1}`, lean)
       plan.push({name: `${name}, case ${i + 1}`, hyps: c.lits, concl, sub: 0, insts, uses: us})
     }
     plans.push(plan)
