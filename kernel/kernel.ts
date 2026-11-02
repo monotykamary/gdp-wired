@@ -1966,6 +1966,9 @@ const safeTerm = (t: unknown): boolean => {
     case 'get': return typeof e.map === 'string' && safeTerm(e.key)
     case 'add': case 'sub': case 'min': case 'max': case 'prod': return safeTerm(e.a) && safeTerm(e.b)
     case 'if': return safeCond(e.c) && safeTerm(e.then) && safeTerm(e.else)
+    // Count certificates still use the scalar/packed-key language, not native tuple terms.
+    // These were refused by the default too; make that unchanged boundary explicit.
+    case 'tup': case 'proj': return false
     default: return false
   }
 }

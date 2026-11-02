@@ -148,14 +148,15 @@ const inferHalves = env.GDP_INFER_HALVES !== '0'
 const isRule = (t: AnyRule | Machine): t is AnyRule => typeof (t as AnyRule).kindsOfState === 'function'
 
 // The constants a machine's expressions hold, and the factors it multiplies by.
-function constantsOf(m: Machine, laws: Law[]): number[] {
+export function constantsOf(m: Machine, laws: Law[]): number[] {
   const out = new Set<number>()
   const e = (t: E): void => {
     switch (t.op) {
       case 'const': out.add(t.value); break
       case 'var': break
       case 'mul': out.add(t.k); e(t.a); break
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': e(t.a); e(t.b); break
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': e(t.a); e(t.b); break
+      case 'proj': e(t.a); break // the selector is not an arithmetic constant
       case 'if': c(t.c); e(t.then); e(t.else); break
       case 'get': e(t.key); break
     }

@@ -126,6 +126,15 @@ describe('counts in a machine', () => {
     expect(bad({c: {j: 'x', key: 'n', below: x('size'), body: get('Vote', x('a'))}})).toThrow(/doesn't declare/)
   })
 
+  test('count certificates keep refusing native tuples and projections at the scalar boundary', () => {
+    expect(checkCountedLaws(toy.m, toy.laws, proof)).toBe(true)
+    const tup: E = {op: 'tup', a: n(0), b: n(0)}, proj: E = {op: 'proj', k: 0, a: tup}
+    for (const term of [tup, proj]) {
+      expect(checkCountedLaws(toy.m, toy.laws, withCert(stepOne, k => ({...k, reads: k.reads.map((r, i) => i ? r : [r[0], r[1], term] as MapRead)})))).toBe(false)
+      expect(checkCountedLaws(toy.m, toy.laws, withCert(stepOne, k => ({...k, insts: k.insts.map((j, i) => i ? j : {...j, below: term})})))).toBe(false)
+    }
+  })
+
   test('each guard on a certificate refuses what only it refuses', () => {
     // The witness a law's skolem, a further key, an input: the goal's instances at it don't hold at every value of it.
     for (const w of ['a#', 'b', 'i', 'size'])

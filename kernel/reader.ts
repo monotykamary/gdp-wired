@@ -13,7 +13,7 @@
 // and each leaf's derivation is found again among kernel.ts's rows when the search's refutation is unfolded).
 import type {C, E} from '../core/machine.ts'
 import {type Lin, add, costs, env, k, scale, sub, v} from '../core/solver.ts'
-import {type Goal, atomOf, canon, canonFlip, cellParts, plainMap, columnTerm, factorsOf, isCell, termColumn, tupleAnd, tupleParts} from './kernel.ts'
+import {type Goal, atomOf, canon, canonFlip, cellParts, plainMap, columnTerm, factorsOf, isCell, termColumn, tupleAnd} from './kernel.ts'
 
 export type W = ReadonlySet<string>
 export const none: W = new Set<string>()

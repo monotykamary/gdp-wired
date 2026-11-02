@@ -42,9 +42,13 @@ if (process.env.CTI && id === 'learning_switch_i4') {
     const Src = new Map<number, number>(), Dst = new Map<number, number>(), Link = new Map<number, number>(), SS = new Map<number, number>(), DS = new Map<number, number>(), LS = new Map<number, number>()
     // (any value, in range or not, a loop or not, the laws reject what they don't allow)
     const V = [...R, size, size + 1]
-    if (started || rnd(2)) { Src.set(0, pick(V)); SS.set(0, 1) } else if (rnd(2)) Src.set(0, pick(V))
-    if (started || rnd(2)) { Dst.set(0, pick(V)); DS.set(0, 1) } else if (rnd(2)) Dst.set(0, pick(V))
-    for (const x of R) if (started || rnd(2)) { Link.set(x, pick(V)); LS.set(x, 1) } else if (rnd(2)) Link.set(x, pick(V))
+    // Each else-if makes a fresh random draw; it is not a repeated pure condition.
+    // Name the first decision so the two independent choices (marked / unmarked value) are explicit.
+    const srcMarked = started || rnd(2)
+    if (srcMarked) { Src.set(0, pick(V)); SS.set(0, 1) } else if (rnd(2)) Src.set(0, pick(V))
+    const dstMarked = started || rnd(2)
+    if (dstMarked) { Dst.set(0, pick(V)); DS.set(0, 1) } else if (rnd(2)) Dst.set(0, pick(V))
+    for (const x of R) { const linkMarked = started || rnd(2); if (linkMarked) { Link.set(x, pick(V)); LS.set(x, 1) } else if (rnd(2)) Link.set(x, pick(V)) }
     if (started) {
       for (const a of R) {
         const up = new Map<number, number>([[a, -1]])

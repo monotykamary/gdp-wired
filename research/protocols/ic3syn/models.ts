@@ -499,20 +499,6 @@ const phaseStep = (starts: any, rows: any, size: Term, pa: Term, sw0: Term, sw1:
   return {busy: when(starts, 1, when(last, 0, busy)), row: when(rows.and(last.not()), row.plus(1), when(last, 0, row)),
     rpa: when(starts, pa, when(last, 0, rpa)), rsw0: when(starts, sw0, when(last, 0, rsw0)), rsw1: when(starts, sw1, when(last, 0, rsw1))}
 }
-// The table's safety laws (both switches' Safety; reflexive by the encoding): transitive, antisymmetric, the successors of
-// x a chain, as three laws.
-const tableSafe = (r: any, what: string, idle: (env: any) => any) => [
-  r.law(`${what} transitive`, (env: any) => forall((t, x, y, z) => idle(env).and(below(env.size, t, x, y, z), tab(env.T, t, x, y), tab(env.T, t, y, z)).implies(tab(env.T, t, x, z)))),
-  r.law(`${what} antisymmetric`, (env: any) => forall((t, x, y) => idle(env).and(below(env.size, t, x, y), tab(env.T, t, x, y), tab(env.T, t, y, x)).implies(x.eq(y)))),
-  r.law(`${what} a chain above each node`, (env: any) => forall((t, x, y, z) => idle(env).and(below(env.size, t, x, y, z), tab(env.T, t, x, y), tab(env.T, t, x, z)).implies(tab(env.T, t, y, z).or(tab(env.T, t, z, y))))),
-]
-const tableBad = (r: Read, n: number) => {
-  const t3 = (t: number, x: number, y: number) => x === y || r.cell('T', t * N * N + x * N + y) === 1, P = range(n)
-  return P.some(t => P.some(x => P.some(y => P.some(z => (t3(t, x, y) && t3(t, y, z) && !t3(t, x, z)) || (x !== y && t3(t, x, y) && t3(t, y, x))
-    || (t3(t, x, y) && t3(t, x, z) && !t3(t, y, z) && !t3(t, z, y))))))
-}
-const tableCells = (r: Read, n: number) => triples(range(n), range(n), range(n)).map(k => (Math.floor(k / N) % N === k % N ? 1 : r.cell('T', k)))
-
 // --- pyv-learning-switch: learning_switch.tla. Node is 0 .. size − 1 (Forward reads \A w \in Node and every d \in Node);
 // the table as above; <<ps, pd, s, d>> \in pending is P[ps·N³ + pd·N² + s·N + d]. Forward(ps, pd, sw0, sw1, nondet) keeps
 // the pending tuples whose first is nondet (keys nondet·N³ .. nondet·N³ + N³ − 1) and adds <<ps, pd, sw1, d>> for every d;

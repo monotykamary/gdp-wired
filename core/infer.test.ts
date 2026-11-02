@@ -3,10 +3,18 @@
 // a false law is answered with the run that breaks it; a law already proven needs nothing found.
 import {expect, test} from 'bun:test'
 import {forall, proveRule} from './dsl.ts'
-import {inferLaws} from './infer.ts'
+import {constantsOf, inferLaws} from './infer.ts'
+import {type Machine, get, n, same} from './machine.ts'
 import {inflight, inflightLoss} from './models.ts'
 import {proveLaws} from '../kernel/prove.ts'
 import {accounts, accountsLaw, bucket, bucketLaw, lease, leaseLaw, pool, poolLaw} from '../examples/infer.ts'
+
+test('constants under tuple constructors and projections are sampled, not the selector', () => {
+  const m: Machine = {name: 'tuple constants', params: [], inputs: [], maps: {M: 0},
+    state: {v: {op: 'proj', k: 1, a: {op: 'tup', a: n(7), b: {op: 'mul', k: 5, a: n(13)}}}},
+    step: {state: {v: n(7)}}}
+  expect(constantsOf(m, [{name: 'tuple read', holds: same(get('M', {op: 'tup', a: n(23), b: n(31)}), n(0))}]).sort((a, b) => a - b)).toEqual([0, 5, 7, 13, 23, 31])
+})
 
 test('a law that needs an invariant: not proven alone, proven with what the search finds, and the set checks', () => {
   for (const [r, law] of [[pool(), poolLaw()], [bucket(), bucketLaw()], [lease(), leaseLaw()]] as const) {

@@ -1,5 +1,13 @@
 # Lane RL: native multi-place relations (`gen/laneRL`)
 
+## Priority interruption — CI repair on `gen/rl-lint`, 2026-11-02
+
+Base: main `1a1332322f5a313299c9eb03f3b5a844151ecaa6`. The i4 numeric-row optimization is parked in stash `f248ee59ec078563751feadd3349c160dc6a9ac4`; do not mix it into this repair. `runs/laneRL/i4-row-checks/summary.tsv` reports the completed row/type/test check (exit 0, 57.53 s); no i4 timing win or proof is claimed.
+
+Accepted on boat: `bun run check` (tsc + type-aware oxlint, deny warnings), tests of touched files including `kernel/tuples.test.ts`, unchanged seeded hand-law CTI behavior, relation-model parity, all 7 quick-suite shards. Jobs: `runs/rl-lint/jobs.json`; receipts: `runs/rl-lint/gates/`. Boat batch `20261102-175410-0vqxzi`, source tree `d877077904d4`: all 10 jobs passed; check has 0 warnings/errors, targeted tests 128 pass/0 fail, both model comparisons 12,000 steps each, all six seeded hand probes identical to 1a13323. All logs inspected; no owned tasks or fallback apps remain. The exact commit message passed strict conventional commitlint on boat with no warnings (`runs/rl-lint/commitlint-strict/`). The repair commit is the tip of `gen/rl-lint`; no push is authorized.
+
+Trusted change: `safeTerm` explicitly refuses `tup`/`proj`, exactly as its old `default: false`; it does not extend kernel acceptance, so no new Lean theorem. Interchange 1.1 explicitly refuses tuple ASTs and tuple-keyed cell rows. The hand sampler had independent RNG calls, not duplicate law guards; naming the first choice preserves order and number of draws. Report the `gen/rl-lint` tip to t1r for merge; do not push. Return to i4 on `gen/laneRL` with the repair integrated and the saved stash applied; keep its acceptance gates separate.
+
 ## Current state — merge gates accepted, 2026-11-02
 
 Worktree: `gdp-wired-laneRL`. The lane includes main `9df63a6` (NMT wall bound). All merge acceptance checks below are complete. **No owned boat batches remain running**: `runs/laneRL/restart-batches.json` records all 61 inventoried batches complete. Both final-bar Modal fallback apps are stopped, zero tasks (`runs/bar/modal-apps-after-merged.json`).

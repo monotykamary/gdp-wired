@@ -1947,7 +1947,7 @@ function sortsOf(m: Machine, laws: Law[]) {
   // (a map of one part read at a name, Src[p]: its value a sort too, F:Src, as a function's, what it is compared with and
   // the places it is read at: Src[Src[p]] is no key of Src where Src's values are nodes and its keys packets)
   // (GDP_SORT_PLACES=0: neither, for comparing)
-  const valued = (e: Extract<E, {op: 'get'}>): boolean => sortPlaces && !(pats[e.map]?.length! > 1) && e.key.op !== 'tup' && (e.key.op === 'var' || e.key.op === 'get')
+  const valued = (e: Extract<E, {op: 'get'}>): boolean => sortPlaces && !((pats[e.map]?.length ?? 0) > 1) && e.key.op !== 'tup' && (e.key.op === 'var' || e.key.op === 'get')
   const leaves = (e: E, k: number, out: [E, number][]): void => { if (e.op === 'add') { leaves(e.a, k, out); leaves(e.b, k, out) } else if (e.op === 'mul') leaves(e.a, k * e.k, out); else if (e.op !== 'const') out.push([e, k]) }
   const walkC = (c: C, name: (v: string) => string): void => {
     const node = (e: E): string | undefined => (e.op === 'var' ? name(e.name) : e.op === 'get' && (m.fns?.[e.map] || valued(e)) ? `F:${e.map}` : undefined)
