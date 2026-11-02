@@ -475,18 +475,24 @@ function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine
 function writeEveryTuple(t: {names: string[], value: E}, env: Env, st: State, m: Machine): {cells: Map<number, number>, default: number} {
   const n = t.names.length, body: C = {op: '=', a: t.value, b: {op: 'const', value: 0}}, free = crossFree(body, t.names)
   const bs = t.names.map(name => breaksOf(free, name))
-  const ks = spread(breakKeys({reads: bs.flatMap(b => b.reads), cmps: bs.flatMap(b => b.cmps)}, env, st, m), n), top = ks.at(-1)!
   const crossed = JSON.stringify(free) !== JSON.stringify(body)
+  // (parts compared with no other part: each on its own breakpoints; else all of them together, n keys after each)
+  const merged = crossed ? spread(breakKeys({reads: bs.flatMap(b => b.reads), cmps: bs.flatMap(b => b.cmps)}, env, st, m), n) : undefined
+  const kss = bs.map(b => merged ?? breakKeys(b, env, st, m))
   const at = (xs: number[]) => evalE(t.value, {...env, ...Object.fromEntries(t.names.map((name, i) => [name, xs[i]!]))}, st, m)
-  const fallback = at(t.names.map(() => top)), cells = new Map<number, number>()
-  // (each key of ks, and after each the stretch up to the next, at its first key: [key, end) with end the next or past)
-  const segs: [number, number][] = []
-  for (let i = 0; i < ks.length; i++) { segs.push([ks[i]!, ks[i]! + 1]); if (i + 1 < ks.length && ks[i + 1]! > ks[i]! + 1) segs.push([ks[i]! + 1, ks[i + 1]!]) }
+  const fallback = at(kss.map(ks => ks.at(-1)!)), cells = new Map<number, number>()
+  // (each key of a part's keys, and after each the stretch up to the next, at its first key: [key, end) with end the
+  // next; the last key stands for every key past it)
+  const segss = kss.map(ks => {
+    const segs: [number, number][] = []
+    for (let i = 0; i < ks.length; i++) { segs.push([ks[i]!, i + 1 < ks.length ? ks[i]! + 1 : Infinity]); if (i + 1 < ks.length && ks[i + 1]! > ks[i]! + 1) segs.push([ks[i]! + 1, ks[i + 1]!]) }
+    return segs
+  })
   const go = (i: number, picked: [number, number][]): void => {
-    if (i < n) { for (const g of segs) go(i + 1, [...picked, g]); return }
+    if (i < n) { for (const g of segss[i]!) go(i + 1, [...picked, g]); return }
     const v = at(picked.map(g => g[0]))
     if (v === fallback) return
-    if (picked.some(g => g[0] >= top)) throw new RangeError('a write at every tuple holds other than its default at tuples without end')
+    if (picked.some(g => g[1] === Infinity)) throw new RangeError('a write at every tuple holds other than its default at tuples without end')
     const wide = picked.filter(g => g[1] - g[0] > 1).length
     if (wide > 1 && crossed) throw new RangeError('a write at every tuple compares its parts along stretches of keys: its cells there are not one value')
     let size = 1
