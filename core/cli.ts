@@ -92,6 +92,23 @@ async function extractOne(t: Target, o: Record<string, unknown>): Promise<Extrac
     throw e
   }
 }
+// A TypeScript file's relative imports, read beside it as TypeScript resolves them (two deep, at most 12 files), by their
+// path from the file's directory: their classes and functions are the code's own, read and inlined, not another module's.
+function relativeImports(entry: string): Record<string, string> {
+  const out: Record<string, string> = {}, seen = new Set([entry]), queue: [string, number][] = [[entry, 1]], dir = path.dirname(entry)
+  while (queue.length && Object.keys(out).length < 12) {
+    const [from, depth] = queue.shift()!
+    for (const m of fs.readFileSync(from, 'utf8').matchAll(/(?:\bfrom\s+|\bimport\s*\(\s*|\brequire\(\s*|^\s*import\s+)['"](\.{1,2}\/[^'"]+)['"]/gm)) {
+      const base = path.join(path.dirname(from), m[1]!), bare = base.replace(/\.(js|jsx|mjs|cjs)$/, '')
+      const hit = [base, ...['.ts', '.tsx', '.js', '.jsx', '.mjs'].map(x => `${bare}${x}`), ...['/index.ts', '/index.tsx', '/index.js'].map(x => `${base}${x}`)].find(c => fs.existsSync(c) && !fs.statSync(c).isDirectory())
+      if (!hit || seen.has(hit) || Object.keys(out).length >= 12) continue
+      seen.add(hit)
+      out[path.relative(dir, hit)] = fs.readFileSync(hit, 'utf8')
+      if (depth < 2) queue.push([hit, depth + 1])
+    }
+  }
+  return out
+}
 async function extractWith(t: Target, o: Record<string, unknown>): Promise<Extraction> {
   const f = t.at, dir = path.dirname(f)
   switch (t.lang) {
@@ -118,8 +135,8 @@ async function extractWith(t: Target, o: Record<string, unknown>): Promise<Extra
       const own = async (spec: string) => { try { return await import(createRequire(f).resolve(spec)) as Record<string, unknown> } catch { return undefined } }
       if (/from\s+['"]effect(\/\w+)?['"]/.test(code)) { const {extractEffect} = await import('./effect.ts'), effect = await own('effect'); return extractEffect(file, {...(effect ? {effect} : {}), ...o} as never) }
       if (/from\s+['"]xstate['"]/.test(code) && /\bcreateMachine\b/.test(code)) { const {extractXState} = await import('./extract-xstate.ts'), xstate = await own('xstate'); return extractXState(file, {...(xstate ? {xstate} : {}), ...o} as never) as Extraction }
-      const {extract} = await import('./extract.ts')
-      return extract(file, o as never)
+      const {extract} = await import('./extract.ts'), files = relativeImports(f)
+      return extract(file, {...(Object.keys(files).length ? {files} : {}), ...o} as never)
     }
   }
 }
