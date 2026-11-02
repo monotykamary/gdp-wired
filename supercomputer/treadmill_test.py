@@ -8,6 +8,7 @@ commit, so none stands."""
 import json
 import pathlib
 import sys
+import time
 import unittest
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -168,6 +169,101 @@ class FuzzRecheck(unittest.TestCase):
         self.assertEqual({v[0] for v in tm.fuzz_status(FIVE, keys).values()}, {"pending"})
         still = [{**FIVE[0], "t": FIVE[0]["t"] + 7200, "commit": D2, "recheck": True}]
         self.assertEqual(tm.fuzz_status(FIVE + still, keys)[("cdcl", 63373)][0], "unsound")
+
+
+# The logs read as they grow (tm.Log): 11-01 to 11-02 the loop parsed fuzz.jsonl, xfuzz.jsonl and rfuzz.jsonl whole
+# (500k rows, 80 MB) at each fill step for the day's counts, a core of the laptop for minutes at a time. A Log's
+# tallies and day rows are the whole file's filtered, and a call parses only what was appended since the last.
+class Logs(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        self.dir = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(lambda: __import__("shutil").rmtree(self.dir, ignore_errors=True))
+
+    def rows(self, n, t0, step=97.3):
+        return [{"t": t0 + i * step, "kind": ("kernel", "cdcl", "tamper")[i % 3], "seed": i, "code": i % 7 == 0} for i in range(n)]
+
+    def write(self, p, rows, mode="a"):
+        with open(p, mode) as f:
+            f.write("".join(json.dumps(r) + "\n" for r in rows))
+
+    def naive(self, p, day):
+        rows = tm.jl(p)
+        c: dict = {}
+        for r in rows:
+            if time.strftime("%Y-%m-%d", time.gmtime(r["t"])) == day:
+                c[r["kind"]] = c.get(r["kind"], 0) + 1
+        return c, [r for r in rows if time.strftime("%Y-%m-%d", time.gmtime(r["t"])) == day]
+
+    def test_day_of_is_strftime(self):
+        import random
+        rnd = random.Random(7)
+        for t in [0, 86399.999, 86400, 1793491199.9999, 1793491200.0] + [rnd.uniform(0, 4e9) for _ in range(20000)]:
+            self.assertEqual(tm.day_of(t), time.strftime("%Y-%m-%d", time.gmtime(t)), t)
+
+    def test_tallies_and_day_rows_are_the_whole_files(self):
+        p = self.dir / "fuzz.jsonl"
+        log = tm.Log(p, *tm.LOGS["fuzz.jsonl"])
+        self.write(p, self.rows(5000, 1793300000))
+        for k in range(6):  # (appended between calls, a line cut in the middle of a write too)
+            day = tm.day_of(1793300000 + k * 90000)
+            counts, rows = self.naive(p, day)
+            self.assertEqual(log.tally(day), counts)
+            self.assertEqual(log.rows_on(day), rows)
+            self.write(p, self.rows(700, 1793300000 + 5000 * 97.3 + k * 70000))
+            with open(p, "a") as f:
+                f.write(json.dumps(self.rows(1, 1793900000)[0])[:20])
+            self.assertEqual(log.tally(day), counts)  # (the half line: not read yet)
+            with open(p, "a") as f:
+                f.write(json.dumps(self.rows(1, 1793900000)[0])[20:] + "\n")
+
+    def test_a_call_parses_only_what_was_appended(self):
+        p = self.dir / "fuzz.jsonl"
+        folded = []
+        _, fold = tm.LOGS["fuzz.jsonl"]
+        log = tm.Log(p, "t", lambda acc, r: folded.append(r) or fold(acc, r))
+        self.write(p, self.rows(20000, 1790000000))  # (the days before)
+        day = tm.day_of(time.time())
+        log.tally(day)
+        self.assertEqual(len(folded), 20000)
+        for _ in range(50):  # (a tick: ~35 rows appended, the counts asked a few times)
+            self.write(p, self.rows(35, time.time(), step=0.01))
+            for _ in range(4):
+                log.tally(day)
+        self.assertEqual(len(folded), 20000 + 50 * 35)
+        self.assertEqual(log.tally(day)["kernel"] + log.tally(day)["cdcl"] + log.tally(day)["tamper"], 50 * 35)
+
+    def test_a_file_replaced_or_cut_is_read_again(self):
+        p = self.dir / "fuzz.jsonl"
+        log = tm.Log(p, *tm.LOGS["fuzz.jsonl"])
+        self.write(p, self.rows(300, 1793300000))
+        day = tm.day_of(1793300000)
+        log.tally(day)
+        self.write(p, self.rows(10, 1793300000), mode="w")
+        self.assertEqual(log.tally(day), self.naive(p, day)[0])
+        p.unlink()
+        self.assertEqual(log.tally(day), {})
+
+    def test_sums_as_the_digest_summed(self):
+        p = self.dir / "vms.jsonl"
+        rows = [{"t": 1793300000 + i, "day": "2026-10-30", "vms": i % 13, "target": 8, "vmh": 0.1 * (i % 9) / 3} for i in range(3000)]
+        self.write(p, rows)
+        a = tm.Log(p, *tm.LOGS["vms.jsonl"]).tally("2026-10-30")
+        self.assertEqual((a["vms"], a["target"], sum(a["vmh"])), (max(r["vms"] for r in rows), 8, sum(r["vmh"] for r in rows)))
+        s = self.dir / "spend.jsonl"
+        rows = [{"day": "2026-10-30", "chain": ("sound", "sweep")[i % 2], "vmh": 0.0137 * (i % 11)} for i in range(3000)]
+        self.write(s, rows)
+        sp: dict = {}
+        for r in rows:
+            sp[r["chain"]] = sp.get(r["chain"], 0.0) + r["vmh"]
+        self.assertEqual(tm.Log(s, *tm.LOGS["spend.jsonl"]).tally("2026-10-30"), sp)
+
+    def test_rows_of_seeds(self):
+        p = self.dir / "fuzz.jsonl"
+        rows = self.rows(3000, 1793300000)
+        self.write(p, rows)
+        self.assertEqual(tm.rows_of(p, "seed", {5, 2999, 77777}), [r for r in rows if r["seed"] in (5, 2999)])
+        self.assertEqual(tm.rows_of(p, "seed", set()), [])
 
 
 if __name__ == "__main__":
