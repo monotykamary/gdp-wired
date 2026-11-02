@@ -60,7 +60,7 @@ no replacement ORM reader is introduced here.
 `cases.json` is a small transparent seed set, NOT a representative security benchmark.
 Every published item has an advisory URL, public fix SHA and its parent. Only these
 published targets and OWASP Juice Shop are fetched. `recall.ts <id>` checks unmodified,
-complete pinned checkouts, records source hashes, wall/check time and exact refusals.
+complete pinned checkouts, records original source bytes and hashes, wall/check time and exact refusals.
 Run it via supercomputer; all fetched code and receipts stay under `runs/`.
 
 A detection counts only after an intended law refutes the vulnerable original, its
@@ -70,6 +70,20 @@ dependencies, compilation failures and unsupported readers are NEVER counted as 
 Refusals remain in the in-scope denominator; also report extraction coverage separately.
 Do not call an unrefuted fixed version proven. The training source in core/security.test.ts
 is deliberately written for this lane and must be reported separately from upstream apps.
+
+## Measured coverage
+
+On foundation commit `cae3559` (main `6bdeb95`), the expanded seed contains **15 published fixed
+advisories plus one upstream Juice Shop target**. Strict CLI recall is **0/15 published and 0/1
+training**. All 31 original revisions were fetched and source-hash checked; all were refused.
+Extraction coverage is **0/15**, not a hidden success or evidence that the programs are secure.
+The 12 library-focused additions still need unsupported abstract contracts, mixins or inherited state.
+Thus the corpus count increased, but the intended reader-compatible coverage did not.
+
+See [RESULTS.md](RESULTS.md) for per-case blockers and `measurement.json` for exact source hashes.
+A separate original-code OAuthlib runtime replay succeeds only on the vulnerable revision. It is
+**not** a CLI/prover discovery and does not increase recall. `oauth-client-replay.py` retains that probe.
+No intended policy could be attached to a successfully extracted target in this run.
 
 Trust and measurement references: README.md; docs/ARCHITECTURE.md (frontends versus
 source); research/ROADMAP.md §5–6; compare/tip/README.md (translation and independent

@@ -1,6 +1,318 @@
 [
-  {"id":"authlib", "set":"published", "advisory":"https://github.com/advisories/GHSA-c73q-w75p-j82v", "cwes":["CWE-639","CWE-1188"], "severity":"high", "repo":"authlib/authlib", "before":"311da11e41ae44fac570ac5224a45e0fec993939", "after":"1bd2a313492ce0a4d0571c150730907aa3fc91ff", "path":"authlib/oauth2/rfc7592/endpoint.py", "entry":"ClientConfigurationEndpoint", "methods":["create_configuration_response"], "policy":"A registration token can read, update or delete only its own client configuration."},
-  {"id":"kubeflow", "set":"published", "advisory":"https://github.com/advisories/GHSA-wg5q-x4j9-qm54", "cwes":["CWE-862","CWE-200"], "severity":"high", "repo":"kubeflow/pipelines", "before":"8d7720ab80a545fd387917697abc10bf644c22da", "after":"be4723e33727c6dad71a95cba61e8f61562ab20f", "path":"backend/src/apiserver/server/run_log_server.go", "entry":"RunLogServer", "methods":["ReadRunLogV1"], "policy":"Streaming run logs requires caller authorization for that run and a pod belonging to it."},
-  {"id":"openwisp", "set":"published", "advisory":"https://github.com/advisories/GHSA-9gh4-xw24-9xh5", "cwes":["CWE-862"], "severity":"medium", "repo":"openwisp/openwisp-controller", "before":"71ea75d0830520d3209d7bb58b86f578d1da173e", "after":"90ded783267aa11b89768b0ec9ae69895cc3730c", "path":"openwisp_controller/pki/api/views.py", "entry":"CrlDownloadView", "methods":["retrieve"], "policy":"An organization operator can retrieve a CRL only from a managed organization or a shared CA."},
-  {"id":"juice-shop", "set":"training", "advisory":"https://owasp.org/www-project-juice-shop/", "repo":"juice-shop/juice-shop", "before":"717f5efa886b0417eeecb52378b03cf10567b7e2", "path":"routes/basketItems.ts", "entry":"addBasketItem", "policy":"A caller must not add items to another user's basket."}
+  {
+    "id": "authlib",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-c73q-w75p-j82v",
+    "cwes": [
+      "CWE-639",
+      "CWE-1188"
+    ],
+    "severity": "high",
+    "repo": "authlib/authlib",
+    "before": "311da11e41ae44fac570ac5224a45e0fec993939",
+    "after": "1bd2a313492ce0a4d0571c150730907aa3fc91ff",
+    "path": "authlib/oauth2/rfc7592/endpoint.py",
+    "entry": "ClientConfigurationEndpoint",
+    "methods": [
+      "create_configuration_response"
+    ],
+    "policy": "A registration token can read, update or delete only its own client configuration.",
+    "fixEvidence": "https://github.com/authlib/authlib/commit/1bd2a313492ce0a4d0571c150730907aa3fc91ff"
+  },
+  {
+    "id": "kubeflow",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-wg5q-x4j9-qm54",
+    "cwes": [
+      "CWE-862",
+      "CWE-200"
+    ],
+    "severity": "high",
+    "repo": "kubeflow/pipelines",
+    "before": "8d7720ab80a545fd387917697abc10bf644c22da",
+    "after": "be4723e33727c6dad71a95cba61e8f61562ab20f",
+    "path": "backend/src/apiserver/server/run_log_server.go",
+    "entry": "RunLogServer",
+    "methods": [
+      "ReadRunLogV1"
+    ],
+    "policy": "Streaming run logs requires caller authorization for that run and a pod belonging to it.",
+    "fixEvidence": "https://github.com/kubeflow/pipelines/commit/be4723e33727c6dad71a95cba61e8f61562ab20f"
+  },
+  {
+    "id": "openwisp",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-9gh4-xw24-9xh5",
+    "cwes": [
+      "CWE-862"
+    ],
+    "severity": "medium",
+    "repo": "openwisp/openwisp-controller",
+    "before": "71ea75d0830520d3209d7bb58b86f578d1da173e",
+    "after": "90ded783267aa11b89768b0ec9ae69895cc3730c",
+    "path": "openwisp_controller/pki/api/views.py",
+    "entry": "CrlDownloadView",
+    "methods": [
+      "retrieve"
+    ],
+    "policy": "An organization operator can retrieve a CRL only from a managed organization or a shared CA.",
+    "fixEvidence": "https://github.com/openwisp/openwisp-controller/commit/90ded783267aa11b89768b0ec9ae69895cc3730c"
+  },
+  {
+    "id": "juice-shop",
+    "set": "training",
+    "advisory": "https://owasp.org/www-project-juice-shop/",
+    "repo": "juice-shop/juice-shop",
+    "before": "717f5efa886b0417eeecb52378b03cf10567b7e2",
+    "path": "routes/basketItems.ts",
+    "entry": "addBasketItem",
+    "policy": "A caller must not add items to another user's basket."
+  },
+  {
+    "id": "oz-timelock",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-fg47-3c2x-m2wr",
+    "cve": "CVE-2021-39167",
+    "cwes": [
+      "CWE-269"
+    ],
+    "severity": "critical",
+    "repo": "OpenZeppelin/openzeppelin-contracts",
+    "before": "52188a21272c9863443ad33a4cd30d4871371642",
+    "after": "cec4f2ef57495d8b1742d62846da212515d99dd5",
+    "path": "contracts/governance/TimelockController.sol",
+    "entry": "TimelockController",
+    "methods": [
+      "executeBatch"
+    ],
+    "policy": "An operation may execute only after its scheduled delay; a batch must not make itself immediately ready.",
+    "fixEvidence": "https://github.com/OpenZeppelin/openzeppelin-contracts/commit/cec4f2ef57495d8b1742d62846da212515d99dd5",
+    "selection": "Stateful library authorization, workflow or ledger logic; reader refusal remains in the denominator."
+  },
+  {
+    "id": "oz-uups",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-5vp3-v4hc-gx76",
+    "cve": "CVE-2021-41264",
+    "cwes": [
+      "CWE-665"
+    ],
+    "severity": "critical",
+    "repo": "OpenZeppelin/openzeppelin-contracts",
+    "before": "6edb6dd1ca43d05a762d84c688116b3327f5e490",
+    "after": "024cc50df478d2e8f78539819749e94d6df60592",
+    "path": "contracts/proxy/utils/UUPSUpgradeable.sol",
+    "entry": "UUPSUpgradeable",
+    "methods": [
+      "upgradeTo",
+      "upgradeToAndCall"
+    ],
+    "policy": "Upgrades require the authorized proxy context; direct calls to an implementation must not take over the upgrade path.",
+    "fixEvidence": "https://github.com/OpenZeppelin/openzeppelin-contracts/commit/024cc50df478d2e8f78539819749e94d6df60592",
+    "selection": "Stateful library authorization, workflow or ledger logic; reader refusal remains in the denominator."
+  },
+  {
+    "id": "oz-initializer",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-9c22-pwxw-p6hx",
+    "cve": "CVE-2022-39384",
+    "cwes": [
+      "CWE-665"
+    ],
+    "severity": "medium",
+    "repo": "OpenZeppelin/openzeppelin-contracts",
+    "before": "0c858e20713d266c036692527e5de3ff87865213",
+    "after": "08840b9f8c21b235466b6d0c5a00a4d3a2de2682",
+    "path": "contracts/proxy/utils/Initializable.sol",
+    "entry": "Initializable",
+    "policy": "An initializer cannot be reentered before its initial execution has completed.",
+    "fixEvidence": "https://github.com/OpenZeppelin/openzeppelin-contracts/commit/08840b9f8c21b235466b6d0c5a00a4d3a2de2682",
+    "selection": "Stateful library authorization, workflow or ledger logic; reader refusal remains in the denominator."
+  },
+  {
+    "id": "oz-supply",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-wmpv-c2jp-j2xg",
+    "cve": null,
+    "cwes": [],
+    "severity": "low",
+    "repo": "OpenZeppelin/openzeppelin-contracts",
+    "before": "0c4de6721d9668d7b5b2c5a9400fd0b2a5e8de90",
+    "after": "c9acfb3c238e2d8bbd1bbfacc97c8322f65ab82a",
+    "path": "contracts/token/ERC1155/extensions/ERC1155Supply.sol",
+    "entry": "ERC1155Supply",
+    "policy": "The reported total supply must match minted balances even during an untrusted receiver callback.",
+    "fixEvidence": "https://github.com/OpenZeppelin/openzeppelin-contracts/commit/c9acfb3c238e2d8bbd1bbfacc97c8322f65ab82a",
+    "selection": "Stateful library authorization, workflow or ledger logic; reader refusal remains in the denominator."
+  },
+  {
+    "id": "oz-quorum",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-xrc4-737v-9q75",
+    "cve": "CVE-2022-31198",
+    "cwes": [
+      "CWE-682"
+    ],
+    "severity": "high",
+    "repo": "OpenZeppelin/openzeppelin-contracts",
+    "before": "0d91b620b7e63f07477d9191499e081f879a4929",
+    "after": "8ea1fc87c9686ce203a2fa38f7b789246e4e16f7",
+    "path": "contracts/governance/extensions/GovernorVotesQuorumFraction.sol",
+    "entry": "GovernorVotesQuorumFraction",
+    "methods": [
+      "quorum",
+      "updateQuorumNumerator"
+    ],
+    "policy": "Lowering the current quorum must not make a previously defeated proposal executable.",
+    "fixEvidence": "https://github.com/OpenZeppelin/openzeppelin-contracts/commit/8ea1fc87c9686ce203a2fa38f7b789246e4e16f7",
+    "selection": "Stateful library authorization, workflow or ledger logic; reader refusal remains in the denominator."
+  },
+  {
+    "id": "oz-crosschain",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-9j3m-g383-29qr",
+    "cve": "CVE-2022-35916",
+    "cwes": [
+      "CWE-669"
+    ],
+    "severity": "medium",
+    "repo": "OpenZeppelin/openzeppelin-contracts",
+    "before": "7ddbfe181ee84c56215401c2de4ddd5767b4974e",
+    "after": "81336aefb52d5777cd140cf2eac31fdf65d9bc95",
+    "path": "contracts/crosschain/arbitrum/LibArbitrumL2.sol",
+    "entry": "LibArbitrumL2",
+    "methods": [
+      "isCrossChain"
+    ],
+    "policy": "A direct EOA call must not acquire cross-chain caller privileges.",
+    "fixEvidence": "https://github.com/OpenZeppelin/openzeppelin-contracts/commit/81336aefb52d5777cd140cf2eac31fdf65d9bc95",
+    "selection": "Stateful library authorization, workflow or ledger logic; reader refusal remains in the denominator."
+  },
+  {
+    "id": "oz-multicall",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-699g-q6qh-q4v8",
+    "cve": "CVE-2023-49798",
+    "cwes": [
+      "CWE-670"
+    ],
+    "severity": "medium",
+    "repo": "OpenZeppelin/openzeppelin-contracts",
+    "before": "a83918df1491d9c6a642a16f8c9a8ff93bf042cc",
+    "after": "88ac712e06832bce73b41e8166cded2729e25205",
+    "path": "contracts/utils/Multicall.sol",
+    "entry": "Multicall",
+    "methods": [
+      "multicall"
+    ],
+    "policy": "Each requested subcall must be executed at most once.",
+    "fixEvidence": "https://github.com/OpenZeppelin/openzeppelin-contracts/commit/88ac712e06832bce73b41e8166cded2729e25205",
+    "selection": "Stateful library authorization, workflow or ledger logic; reader refusal remains in the denominator."
+  },
+  {
+    "id": "oauth-client",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-7984-qgvg-3j9c",
+    "cve": "CVE-2026-118669",
+    "cwes": [
+      "CWE-863"
+    ],
+    "severity": "high",
+    "repo": "oauthlib/oauthlib",
+    "before": "68b292affd4e45daeb5842c70e1092f025f234e1",
+    "after": "c951a1d09f99f14e3240973fa83c4f4287d4753d",
+    "path": "oauthlib/oauth2/rfc6749/grant_types/client_credentials.py",
+    "entry": "ClientCredentialsGrant",
+    "methods": [
+      "validate_token_request"
+    ],
+    "policy": "Grant and scope authorization must use the authenticated client identity, never another client_id supplied in the request body.",
+    "fixEvidence": "https://github.com/oauthlib/oauthlib/commit/c951a1d09f99f14e3240973fa83c4f4287d4753d",
+    "selection": "Stateful library authorization, workflow or ledger logic; reader refusal remains in the denominator."
+  },
+  {
+    "id": "dk-disclosure",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-j7vx-8mqj-cqp9",
+    "cve": "CVE-2020-10187",
+    "cwes": [
+      "CWE-862"
+    ],
+    "severity": "high",
+    "repo": "doorkeeper-gem/doorkeeper",
+    "before": "ca3b6441f039a8e4cdb5de5c2b3dd85822bc25bf",
+    "after": "25d038022c2fcad45af5b73f9d003cf38ff491f6",
+    "path": "lib/doorkeeper/orm/active_record/mixins/application.rb",
+    "entry": "Doorkeeper::Orm::ActiveRecord::Mixins::Application",
+    "methods": [
+      "as_json"
+    ],
+    "policy": "A non-owner must not receive an application secret among the serialized attributes.",
+    "fixEvidence": "https://github.com/doorkeeper-gem/doorkeeper/commit/25d038022c2fcad45af5b73f9d003cf38ff491f6",
+    "selection": "Stateful library authorization, workflow or ledger logic; reader refusal remains in the denominator."
+  },
+  {
+    "id": "dk-revocation",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-3m6r-39p3-jq25",
+    "cve": "CVE-2016-6582",
+    "cwes": [
+      "CWE-1254"
+    ],
+    "severity": "critical",
+    "repo": "doorkeeper-gem/doorkeeper",
+    "before": "fffe0ead4d22f839a417b8d2f893c17a3598f4b9",
+    "after": "fb938051777a3c9cb071e96fc66458f8f615bd53",
+    "path": "app/controllers/doorkeeper/tokens_controller.rb",
+    "entry": "Doorkeeper::TokensController",
+    "methods": [
+      "revoke"
+    ],
+    "policy": "A confidential client may revoke only its own tokens; an accepted revocation must prevent later token reuse.",
+    "fixEvidence": "https://github.com/doorkeeper-gem/doorkeeper/commit/fb938051777a3c9cb071e96fc66458f8f615bd53",
+    "selection": "Stateful library authorization, workflow or ledger logic; reader refusal remains in the denominator."
+  },
+  {
+    "id": "dk-public",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-694m-jhr9-pf77",
+    "cve": "CVE-2018-1000211",
+    "cwes": [
+      "CWE-732"
+    ],
+    "severity": "high",
+    "repo": "doorkeeper-gem/doorkeeper",
+    "before": "5ee46e32ce90d18c89526733340b9f69d2491eef",
+    "after": "66d8e180c99961c313290720db9fd565deccd862",
+    "path": "app/controllers/doorkeeper/tokens_controller.rb",
+    "entry": "Doorkeeper::TokensController",
+    "methods": [
+      "revoke",
+      "authorized?"
+    ],
+    "policy": "A public client can revoke its token without a confidential-client secret, while another client cannot revoke a confidential token.",
+    "fixEvidence": "https://github.com/doorkeeper-gem/doorkeeper/commit/66d8e180c99961c313290720db9fd565deccd862",
+    "selection": "Stateful library authorization, workflow or ledger logic; reader refusal remains in the denominator."
+  },
+  {
+    "id": "dk-consent",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-7w2c-w47h-789w",
+    "cve": "CVE-2023-34246",
+    "cwes": [
+      "CWE-287"
+    ],
+    "severity": "medium",
+    "repo": "doorkeeper-gem/doorkeeper",
+    "before": "cbaf02625c2292376c452e11f31c556caebfdcab",
+    "after": "313af27391d974d314c1869828ca80dc1ae2678c",
+    "path": "app/controllers/doorkeeper/authorizations_controller.rb",
+    "entry": "Doorkeeper::AuthorizationsController",
+    "methods": [
+      "render_success"
+    ],
+    "policy": "Prior approval alone must not skip user consent for an unauthenticated public client identity.",
+    "fixEvidence": "https://github.com/doorkeeper-gem/doorkeeper/commit/313af27391d974d314c1869828ca80dc1ae2678c",
+    "selection": "Stateful library authorization, workflow or ledger logic; reader refusal remains in the denominator."
+  }
 ]

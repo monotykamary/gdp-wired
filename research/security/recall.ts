@@ -35,7 +35,7 @@ for (const [version, sha] of versions) {
     const result = await check([path], {entry: c.entry, methods: c.methods, root: dir, propose: false, security: true, ms: 5000})
     // Candidate intent is not known. Even a broken candidate is not counted as recall without an accepted
     // policy and its concrete run replayed against this revision, and a corresponding fixed-side result.
-    results.push({version, sha, sourceSha256, checkMs: performance.now() - begin, wallMs: performance.now() - start,
+    results.push({version, sha, sourceSha256, source: bytes.toString('utf8'), checkMs: performance.now() - begin, wallMs: performance.now() - start,
       status: result.rules.some(r => !r.ok) ? 'refused' : 'needs-reviewed-policy-and-original-replay', result})
   } catch (e) { results.push({version, sha, status: 'error', why: String(e), wallMs: performance.now() - start}) }
 }
