@@ -91,7 +91,7 @@ if (noKt.ok || !/kotlinc .* is needed to extract Kotlin/.test(noKt.refusals[0]?.
 // The Go front end refuses, never throws, where no Go runs or the package isn't there (its reader is built beside it).
 const gox = await import('gdp-wired/extract-go')
 const noGo = gox.extractGo('absent-package', {})
-if (noGo.ok || !/Go reader didn't run|go is needed/.test(noGo.refusals[0]?.what ?? '')) throw new Error(`gdp-wired/extract-go: ${JSON.stringify(noGo)}`)
+if (noGo.ok || !/Go reader didn't run|go is needed|no such file or directory/.test(noGo.refusals[0]?.what ?? '')) throw new Error(`gdp-wired/extract-go: ${JSON.stringify(noGo)}`)
 const swx = await import('gdp-wired/extract-swift')
 const noSw = swx.extractSwift('absent.swift', {entry: 'X', swift: 'gdp-no-such-swift'})
 if (noSw.ok || !noSw.refusals.length) throw new Error(`gdp-wired/extract-swift without swift: ${JSON.stringify(noSw)}`)

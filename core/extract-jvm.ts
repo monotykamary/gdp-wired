@@ -219,7 +219,10 @@ export function extractJvm(lang: 'java' | 'kotlin', at: string | FileURL, opts: 
   try {
     if (opts.stores && Object.keys(opts.stores).length) throw new Refusal(file, `stores: not in the ${lang === 'java' ? 'Java' : 'Kotlin'} front end yet`)
     // (a name or a string past the class file's 65,535 bytes: no compiler makes a class of it, javac and kotlinc throw)
-    const big = /[\p{L}_$][\p{L}\p{N}_$]{21845,}|"[^"\n]{21845,}"/u.exec(node<FS>('node:fs').readFileSync(file, 'utf8'))
+    // (a missing file is the reader's to refuse, with its reason: no JDK, or the file)
+    let text = ''
+    try { text = node<FS>('node:fs').readFileSync(file, 'utf8') } catch { /* read by the reader, which says so */ }
+    const big = /[\p{L}_$][\p{L}\p{N}_$]{21845,}|"[^"\n]{21845,}"/u.exec(text)
     if (big && new TextEncoder().encode(big[0]).length > 65535) throw new Refusal(file, `${big[0].slice(0, 20)}…: a name or a string of ${new TextEncoder().encode(big[0]).length} bytes, past the class file's 65,535 (no class can hold it)`)
     mod = readJvm(lang, file, entryNames(opts), opts)
     // (the shipped classes can't be rewritten: an answer, other than an injected dependency's, can't be stubbed)
