@@ -3653,13 +3653,15 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   // Those the goal matches first, of those the ones of the law's shape (an implication for an implication) first, then
   // the fusions.
   const implication = (y: Y) => y.op === 'or' && y.xs.length === 2 && y.xs[0]!.op === 'not'
-  // (and of those, the ones that take an observer the law reads at its top, a function to a natural or a Bool, through a
-  // function the law doesn't read, which its definitions reach: count through insert, ordered through merge; the law's
-  // step reads them where an induction unfolds the law's functions)
+  // (and of those, the ones that take an observer, a function to a natural or a Bool the law reads at its top or that
+  // one's definition reaches, through a function returning a datatype, one of the two not the law's: count through
+  // insert, ordered through merge, a search tree's allBelow through its insertion; the law's step reads them where an
+  // induction unfolds the law's functions)
   const fnsIn = (y: unknown) => { const out = new Set<string>(); walk(y, o => { if (o.op === 'call') out.add(o.fn as string) }); return out }
   const inLaw = fnsIn(l.holds), lawY = implication(l.holds) ? (l.holds as {xs: Y[]}).xs[1]! : l.holds
-  const tops = new Set([...(lawY.op === '=' ? [lawY.a, lawY.b] : lawY.op === 'holds' ? [lawY.x] : [])].flatMap(x => (x.op === 'call' && !(fnOf(x.fn).ret instanceof Data) ? [x.fn] : [])))
-  const under = (c: DataLaw) => { const fs2 = fnsIn(c.holds); return [...fs2].some(f => tops.has(f)) && [...fs2].some(f => !inLaw.has(f)) }
+  const observers = new Set([...(lawY.op === '=' ? [lawY.a, lawY.b] : lawY.op === 'holds' ? [lawY.x] : [])].flatMap(x => (x.op === 'call' && !(fnOf(x.fn).ret instanceof Data) ? [x.fn] : [])))
+  for (const f of [...observers]) for (const g of fnsIn(fnOf(f).body())) if (!(fnOf(g).ret instanceof Data)) observers.add(g)
+  const under = (c: DataLaw) => { const fs2 = [...fnsIn(c.holds)], obs = fs2.filter(f => observers.has(f)), makers = fs2.filter(f => fnOf(f).ret instanceof Data); return obs.length > 0 && makers.length > 0 && [...obs, ...makers].some(f => !inLaw.has(f)) }
   const score = (c: DataLaw, hit: boolean) => (hit ? 8 : 0) + (under(c) ? 4 : 0) + (implication(c.holds) === implication(l.holds) ? 2 : 0) + (fusion(c.holds) ? 1 : 0)
   if (dataTrace) console.error(`[data] ${l.name}: ${cands.length} conjectures at ${Math.round(clock())} of ${Math.round(until)}${cands.map(c => `\n[data]   conjecture ${c.name.slice(0, 160)}`).join('')}`)
   // (the calculated steps first, in their order: each before the one it was calculated from)
