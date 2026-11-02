@@ -22,6 +22,7 @@ kernel fuzz). Fanned out on boat or Modal (`bun mutants.ts ids <a,b,...>` per jo
 | kernel/cyclic.ts (gen/laneH, 2026-11-01): the operators above and its own (a comparison's kind, a negation made true, a part of a goal's hypotheses dropped, a guard or a tree check skipped, a fact's keys past its terms, the language check widened); `cyclic`, `cycles` in the battery | 43 (1071–1113) | 30 (70%) | 13 |
 | plus four tests in core/cyclic.test.ts, the whole battery again | 43 | 41 (95%) | 2, listed equivalent below |
 | a name every object has (gen/laneH3, 2026-11-02: a record read or built through the prototype; two operators in every target, `Object.hasOwn(` to `Reflect.has(` and `Object.create(null)` to `{}`, and core/solver.ts's `v`, `k`, `add`, `scale`, `sub` a target), each mutant on a line the lane changed and every one of the two operators: the whole battery, the baseline passing | 62 | 58 (94%) | 4: three listed equivalent below (times', the sums' flags', checkWitness's), and sumMachine's carried-or-function test, its entry's snippet moved |
+| tuple keys (gen/laneRL, 2026-11-02): every operator on the lines the lane changed in kernel.ts (keyParts, linear of get/tup/proj, tupleEq in truth and facts, cellParts/splitOuter/linOf, sameKey, the reserved ⟨ ⟩ \|, mapArities, eachParts/projected, keyOnly/apart/tupleSides/plainKey, sumTermOk) and 19 tuple-site mutants of their own (numbered after all others: a part read for another, a rest whole, lengths unchecked, brackets not counted, names unreserved, a pair where keys differ); `MUTANT_BATTERY=tuples,refusals,tamper,sets,quantifiers,keyterms,dsl,conformance`, `kernel/tuples.test.ts` first, on boat; the survivors again on the whole battery | 177 | 170 (96%) | 7, each listed equivalent below; 13 of the first run's 20 killed by tests written for them in tuples.test.ts (what scope takes over tuple keys at every key) |
 
 `core/data.ts`'s admission of a definition is in the targets by its top-level declarations alone (mutants.ts's `only`):
 the rest of that file is the search, whose mutants change speed, never what is taken. Its first run left 50 of 111; the
@@ -72,7 +73,27 @@ cyclic.ts.
 `kernel/refusals.test.ts` and `kernel/tamper.test.ts` hold the tests the run asked for (and `kernel/steplaw.test.ts` the step-law ones: the 8 mutants of `stepLawObligations` and `checkStepLaws`, 7 caught); the run's logs are in
 `runs/modal/mutants-all2/`, `runs/modal/mutants-surv/`, for the run algebra `runs/modal/relations-mut/` for sets `runs/modal/mut-sets/`, and for functions, two keys, key terms and liveness `runs/modal/mut-all/` (local).
 
+`kernel/tuples.test.ts`, the tuple keys' gate (gen/laneRL): each case a goal with a model beside one without, a tree forged
+from the kernel's own rows (a leaf where the solver refutes them, else a split on the next atom given), so a kernel that
+gave a leaf a row it shouldn't (a cell pair, a part, a fact) has its forged tree accepted for a goal that has a model.
+Its first mutation run left 20 of 177; the 13 that changed what scope takes (tuples compared by order, parts of two
+lengths, two keys in a part's arithmetic, a comparison of two keys under proj, proj 2 or of a non-natural, a map named
+__proto__ at two shapes) are killed by its scope test; the 7 left are listed below. Three kills of the first runs (by
+sets, dsl, conformance) were those tests failing under load, the mutant surviving each alone. The run found one unsound
+acceptance, not in the tuple lines: a map's name is never checked where a read becomes a column (linearOp's get), so a
+map named with * [ ] , : ⟨ ⟩ | spells another read's column (a 2-tuple's cell and a 3-tuple's, or A[B[Q[w:1]:1] read as A
+and as A[B): a hand-built goal with a model is accepted at check. Machines are scoped (plainName), so no obligation
+reaches it, and Lean numbers its maps; tuples.test.ts holds it as a todo until linearOp's get refuses such a name.
+Logs: `runs/laneRL/mut1/` (the 177), `mut2/` (the 20 with the new tests), `mut3/` (the whole battery on the survivors).
+
 ```equivalent
+kernel/kernel.ts | cellParts | "inner.startsWith('⟨') && inner.endsWith('⟩')" | " && " -> " || " | a plain key's text neither starts with ⟨ nor ends with ⟩ (no scoped name starts with ⟨: a variable's is refused it, a cell's starts with its map's name, a term column's with ⟦; a canonical text ends in a coefficient), so either test alone reads the same keys
+kernel/kernel.ts | mapArities | "o.op === 'get' && typeof o.map === 'string'" | " && " -> " || " | in a machine's terms and its laws every object with a string map and a key is a read (no update names its map in a field), and every read has both
+kernel/kernel.ts | mapArities | "typeof o.map === 'string' && o.key" | " && " -> " || " | as above: every read has a string map and a key, and nothing else in the terms has a string map
+kernel/kernel.ts | eachParts | "`${w.each}$${i + 1}`" | " + 1" -> "" | the parts' names are each$0 … each$n−1: still apart, and scope's bound refuses any that is already a name of the machine
+kernel/kernel.ts | tupleSides | "u.a.op !== 'tup' || u.b.op !== 'tup'" | " || " -> " && " | an equality of a tuple and a non-tuple goes on, and then has parts of two lengths (a tuple has two or more, anything else one): undefined either way
+kernel/kernel.ts | keyOnly | "u.key.op === 'tup' && !fns.includes(u.map)" | " && " -> " || " | a plain key reads alike in either branch (its tupleParts is itself); a function or count read at a tuple key is refused by mapArities in the same scope call
+kernel/kernel.ts | sumTermOk | "case 'tup': case 'proj': return false" | "false" -> "true" | a sum's term with a tuple or a part of one is refused anyway: its start value (natE) is read over no tuple and throws
 kernel/kernel.ts | choiceFree | "if (out !== undefined) return out" | " !== " -> " === " | a memo's guard: choiceFree then answers no for every term, so each term is read through the per-path memo, which reads it alike (a choice-free term reads no decision)
 kernel/kernel.ts | choiceFree | "case 'var': case 'const': out = true" | "true" -> "false" | as above: no term counts as choice-free, every one is read through the per-path memo, alike
 kernel/kernel.ts | termId | "x < y ? -1" | " < " -> " <= " | the sort compares an object's keys, never two equal ones
@@ -88,9 +109,7 @@ kernel/kernel.ts | remember | "reads[i]?.[0] !== node.reads[i]![0]" | " !== " ->
 kernel/kernel.ts | remember | "i < 0 || reads[i]" | " || " -> " && " | i < 0 never happens (a value whose decisions extend a kept one's is a hit, not remembered); otherwise the trie's shape, checked as above
 kernel/kernel.ts | reusing | "reuse = true" | "true" -> "false" | inside reusing the parts are read afresh on a copy of the path, with every decision recorded: slower, alike
 kernel/kernel.ts | reuse | "let reuse = false" | "false" -> "true" | the kernel's check reads through reusing too: a value found is used only when every decision it read is the path's
-kernel/kernel.ts | keyOf | "if (i > start)" | " > " -> " >= " | an empty part reads as the key '' with coefficient 0, which the difference of two keys drops
 kernel/kernel.ts | witnessesOf | "`w${i + 1}?${f}`" | " + 1" -> "" | the witnesses are w?f, w1?f, w2?f: still apart, and fresh (? is reserved in every declared name)
-kernel/kernel.ts | apart | "& (other(u.a) || other(u.b))) " | " || " -> " && " | apart: the check of the other key, or keyOnly, refuses every comparison this one would (a key term on one side that reads the other key is the other key's key term, or reads it outside one)
 kernel/kernel.ts | apart | " j, i <= j, i " | " <= " -> " < " | text in an error message
 kernel/kernel.ts | apart | "nly (i < j, i <" | " < " -> " <= " | text in an error message
 kernel/kernel.ts | plainKey | "'var' && u.key" | " && " -> " || " | plainKey (the runtimes' and the prover's helper): a variable key answers what walking it would

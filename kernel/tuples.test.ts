@@ -9,7 +9,7 @@ import {expect, test} from 'bun:test'
 import {type C, type E, type Law, type Machine, type State, cpair, cunpair, evalC, interpret, seeded} from '../core/machine.ts'
 import {type Lin, add, k, scale, solve, sub, v} from '../core/solver.ts'
 import {forall, nat, oneOf, rule} from '../core/dsl.ts'
-import {type Goal, type Path, type Tree, canon, cellParts, check, checkLaws, facts, leafConstraints, linear, mapArities, scope, truth, tuple} from './kernel.ts'
+import {type Goal, type Path, type Tree, canon, cellParts, check, checkLaws, facts, leafConstraints, linear, mapArities, obligations, scope, sumMachine, truth, tuple} from './kernel.ts'
 import {proveLaws} from './prove.ts'
 
 const X = (name: string): E => ({op: 'var', name}), K = (value: number): E => ({op: 'const', value})
@@ -234,6 +234,40 @@ test('a tuple equality: its truth and facts are its parts\', positive and negate
   proven({name: '(a, b, c) ≠ (x, y, u), all equal', hyps: [not(t3), eq(a, x), eq(b, y), eq(c, u)]}, [...both('a', 'x'), ...both('b', 'y'), ...both('c', 'u')])
   refused({name: '(a, b, c) ≠ (x, y, u), the first two equal', hyps: [not(t3), eq(a, x), eq(b, y)]}, [...both('a', 'x'), ...both('b', 'y'), ...both('c', 'u')], {a: 0, b: 0, c: 0, x: 0, y: 0, u: 1})
   proven({name: '(a, b, c) = (x, y, u), c < u', hyps: [t3, le(plus(c, K(1)), u)]})
+})
+
+// What scope takes over tuple keys at every key (the mutation run's survivors): a key read in a tuple's part on its own,
+// compared part by part in a tuple equality, never in a comparison of tuples by order, nor in arithmetic with another
+// key in a part; a comparison of two keys set aside under proj as elsewhere; proj 0 or 1 of naturals alone; a map named
+// __proto__ at two shapes refused as any other; no sum's term a tuple.
+test('scope over tuple keys: what a key at every key may be read as', () => {
+  const [i, j] = [X('i'), X('j')]
+  const flag = (c: C, keys: string[] = []): Machine => ({name: 'every', params: [], inputs: ['a', 'b', 'c'], state: {}, maps: {M: 0}, step: {flags: {q: {op: 'all', key: 'i', ...(keys.length ? {keys} : {}), c}}}})
+  expect(() => scope(flag(le(M(T(i, a)), K(1))))).not.toThrow()
+  expect(() => scope(flag(le(M(X('i')), ite(eq(T(i, a), T(b, c)), K(1), K(0)))))).not.toThrow() // part by part
+  expect(() => scope(flag(le(M(X('i')), ite(eq(T(a, i, b), T(b, c, a)), K(1), K(0)))))).not.toThrow()
+  expect(() => scope(flag(le(M(X('i')), ite(le(T(i, a), T(b, c)), K(1), K(0)))))).toThrow() // tuples by order
+  expect(() => scope(flag(le(M(X('i')), ite({op: '<', a: T(i, a), b: T(b, c)}, K(1), K(0)))))).toThrow()
+  expect(() => scope(flag(le(M(X('i')), ite(eq(T(i, a), T(b, c, a)), K(1), K(0)))))).toThrow() // 2 and 3 parts
+  expect(() => scope(flag(le(M(T(plus(i, j), a)), K(1)), ['j']))).toThrow() // two keys in arithmetic in a part
+  expect(() => scope(flag(le(M(T(a, plus(j, i))), K(1)), ['j']))).toThrow()
+  expect(() => scope(flag(eq(T(plus(i, j), a), T(b, c)), ['j']))).toThrow()
+  expect(() => scope(flag(eq(T(a, b), T(c, plus(i, j))), ['j']))).toThrow()
+  expect(() => scope(flag(le(M(T(i, j)), K(1)), ['j']))).not.toThrow() // each part a key on its own
+  // i < j under proj: a plain comparison of two keys, set aside as anywhere else.
+  expect(() => scope(flag(le(M(i), P(0, ite({op: '<', a: i, b: j}, K(1), K(0)))), ['j']))).not.toThrow()
+  // proj 0 or 1, of naturals.
+  const counter: Machine = {name: 'counter', params: [], inputs: ['a', 'b'], state: {s: K(0)}, step: {state: {s: P(0, T(a, b))}}}
+  expect(() => obligations(counter, [])).not.toThrow()
+  for (const e of [{op: 'proj', k: 2, a: T(a, b)} as unknown as E, P(0, K(-1)), P(1, {op: 'mul', k: -1, a: a}), T(a, K(-1))])
+    expect(() => obligations({...counter, step: {state: {s: e}}}, []), JSON.stringify(e)).toThrow()
+  // A map named __proto__ (a name like any other) at two shapes.
+  const proto = flag(le(M(T(a, b), '__proto__'), K(1)))
+  expect(() => mapArities({...proto, step: {flags: {f0: le(M(T(a, b), '__proto__'), K(1)), f1: le(M(a, '__proto__'), K(1))}}})).toThrow()
+  // No sum's term is a tuple or a part of one.
+  const tok: Machine = {name: 'tok', params: [], inputs: ['from', 'v'], state: {}, maps: {Bal: 0}, step: {maps: {Bal: {key: X('from'), value: plus(M(X('from'), 'Bal'), X('v'))}}}}
+  expect(() => sumMachine({...tok, sums: {S: {key: 'k', term: M(kk, 'Bal')}}})).not.toThrow()
+  for (const term of [T(M(kk, 'Bal'), K(0)), P(0, M(kk, 'Bal')), P(1, T(M(kk, 'Bal'), M(kk, 'Bal')))]) expect(() => sumMachine({...tok, sums: {S: {key: 'k', term}}}), JSON.stringify(term)).toThrow()
 })
 
 // --- comprehensions: R' = {(x, y): R(y, x)}, with tuples added ------------------------------------------------------------
