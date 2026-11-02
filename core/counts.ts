@@ -374,7 +374,8 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
   const until = clock() + ms
   if (!caller.every(l => clock() < until && trueSmall(m, [l]))) return {proven: false, laws: caller, m, why: clock() < until ? 'a law fails on the small instances' : 'time'}
   const t1 = clock()
-  let set = [...caller, ...candidates(m0, m, caller, caller, g.laws, ms, until)]
+  // (GDP_COUNTS_GIVEN=1, research's: the callers alone, no candidate: whether a set written whole goes through)
+  let set = env.GDP_COUNTS_GIVEN === '1' ? [...caller] : [...caller, ...candidates(m0, m, caller, caller, g.laws, ms, until)]
   if (env.GDP_COUNTS_TRACE) console.error(`counts: candidates at ${Math.round(clock() - t1)} ms: ${set.map(l => l.name).join('; ')}`)
   // (the law's own names and the request's values that key a map: an action's value keys none)
   const keys0 = [...[...reads([m.step, m.assume ?? null], () => true).values()].map(([, key]) => key), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [] : [w.key]))]
