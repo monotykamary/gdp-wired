@@ -342,18 +342,19 @@ export const wideHook: {on?: (part: Goal, out: Outcome) => void} = {}
 const cellsIn = (c: unknown): Set<string> => { const out = new Set<string>(); walkOnce(c, o => { const x = o as {op?: string, map?: string, key?: unknown}; if (x.op === 'get') out.add(`${x.map}${JSON.stringify(x.key)}`) }); return out }
 // (the hypotheses a model breaks among `ids` (all where none are given), the model read as a state, the conclusion first;
 // `first`: the first one broken alone)
-export const brokenOf = (goal: Goal): ((w: Record<string, number>, ids?: number[], first?: boolean) => number[]) => {
+// (`defaults`: a map's cells the model leaves out read at that value, not the map's start)
+export const brokenOf = (goal: Goal): ((w: Record<string, number>, ids?: number[], first?: boolean, defaults?: Record<string, number>) => number[]) => {
   const maps = new Set<string>()
   walkOnce(goal.hyps, o => { const x = o as {op?: string, map?: unknown}; if (x.op === 'get' && typeof x.map === 'string') maps.add(x.map) })
   const mm = {maps: Object.fromEntries([...maps].map(mp => [mp, 0]))} as unknown as Machine
-  return (w0, ids = goal.hyps.map((_, i) => i), first = false) => {
+  return (w0, ids = goal.hyps.map((_, i) => i), first = false, defaults) => {
     // (a term column's value is its term's at the point, not the point's own where its choice is open: each cell is put
     // at its key's value with the columns so read, twice, as a column's term may read a cell)
     const w = {...w0}, at = new Proxy(w, {get: (t, q: string) => t[q] ?? 0}) as Record<string, number>, out: number[] = []
-    let st = {scalars: {}, maps: {} as Record<string, Map<number, number>>}
+    let st = {scalars: {}, maps: {} as Record<string, Map<number, number>>, ...(defaults ? {defaults} : {})}
     for (let pass = 0; pass < 3; pass++) {
       if (pass) for (const n in w) { const e = n.startsWith('⟦') ? columnTerm(n) : undefined; if (e) try { w[n] = evalE(e, at, st, mm) } catch { /* left */ } }
-      st = {scalars: {}, maps: Object.fromEntries([...maps].map(mp => [mp, new Map<number, number>()]))}
+      st = {scalars: {}, maps: Object.fromEntries([...maps].map(mp => [mp, new Map<number, number>()])), ...(defaults ? {defaults} : {})}
       for (const [cell, value] of Object.entries(w)) {
         const br = cell.indexOf('['), key = br > 0 && cell.endsWith(']') && st.maps[cell.slice(0, br)] ? keyValue(cell, w) : undefined
         if (key !== undefined) st.maps[cell.slice(0, br)]!.set(key, value)

@@ -428,12 +428,17 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     // (the pool's hypotheses a model breaks, chosen; whether there were any)
     const breaks = (b: ReturnType<typeof build>[number] | undefined, w: Record<string, number>): boolean => ptime('lazy', () => {
       if (!b?.pool) return false
-      // (an instance broken at every value of its witness below 16: the model can't choose one; a pick has none)
+      // (broken where no completion of the model meets it: the cells it leaves out at their start, at 1, or one map's
+      // flipped from either, and an instance's witness at each value below 16)
       const {fg, keys, wits} = b.pool, base = fg.hyps.length - keys.length, ids = keys.flatMap((q, j) => (chosen.has(q) ? [] : [base + j])), judge = brokenOf(fg)
       let bad = ids.length ? judge(w, ids) : []
-      for (let x = 1; x < 16 && bad.some(i => wits[i - base]); x++) {
-        const at = bad.filter(i => wits[i - base]), held = new Set(at.filter(i => !judge({...w, [wits[i - base]!]: x}, [i]).length))
-        bad = bad.filter(i => !held.has(i))
+      const mps = [...new Set(bad.flatMap(i => [...reads(fg.hyps[i], () => true).values()].map(([mp]) => mp)))], one1 = Object.fromEntries(mps.map(mp => [mp, 1]))
+      for (const d of [undefined, one1, ...mps.map(mp => ({[mp]: 1})), ...mps.map(mp => ({...one1, [mp]: 0}))]) for (let x = 0; x < 16 && bad.length; x++) {
+        if (x && !bad.some(i => wits[i - base])) break
+        const w2 = {...w}
+        for (const i of bad) if (wits[i - base]) w2[wits[i - base]!] = x
+        const still = new Set(judge(w2, bad, false, d))
+        bad = bad.filter(i => still.has(i))
       }
       for (const i of bad) chosen.add(keys[i - base]!)
       tally('#lazy', bad.length)
