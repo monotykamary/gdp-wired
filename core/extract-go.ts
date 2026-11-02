@@ -561,6 +561,11 @@ class Go {
         // package's function, it is that function's: both refused where they are).
         v = {t: 'opaque', why: `${pa.name ?? 'the context'}, a context.Context read (the subset only passes one on to the package's own functions)`, firm: true}; arg = {k: 'lit', value: 'context'}
         g.notes.add(`${fn.name}(${pa.name ?? '_'}): a context.Context, passed on to the package's own functions only (the claim is for any context, the step never reading it)`)
+      } else if (this.pkg.lang === 'c' || this.pkg.lang === 'cpp') {
+        // (C, C++: an argument outside the subset, a handle the code passes on to other code: the check gives a zeroed
+        // one; read here, it is refused where it is)
+        v = {t: 'opaque', why: `${fn.name}(${pa.name}): an argument of type ${pa.ts ?? this.tname(pa.t)} (${this.whyType(pa.t)}), only passed on`}; arg = {k: 'rec', fields: []}
+        g.notes.add(`${fn.name}(${pa.name ?? '_'}): a ${pa.ts ?? this.tname(pa.t)}, outside the subset, only passed on to other code (the check gives a zeroed one)`)
       } else return refuse(fn, `${fn.name}(${pa.name}): an argument of type ${pa.ts ?? this.tname(pa.t)} (${this.whyType(pa.t)})`)
       if (pa.id) p = g.bindLocal(pa.id, v, fn, p)
       args.push(arg); params.push({name: pa.name ?? '', t: pa.t, arg})

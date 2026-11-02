@@ -431,7 +431,9 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
     }
   }
   // A method's argument by its method's name (charge.user), where several methods take one of that name.
-  // A constant of the module bound to a literal, by its name.
+  // A constant of the module bound to a literal, by its name (a qualified one, C++'s A::K, by its path).
+  const dotted = e.segs.every(g => 'f' in g) ? [e.head, ...e.segs.map(g => (g as {f: string}).f)].join('.') : undefined
+  if (dotted && e.segs.length && c.consts?.[dotted] !== undefined) { const v = c.consts[dotted]!; return typeof v === 'number' ? {t: 'num', v: Int.of(v)} : typeof v === 'boolean' ? {t: 'cond', v: v ? yes : no} : {t: 'lit', v} }
   const k = c.consts?.[e.head]
   if (k !== undefined && !e.segs.length) return typeof k === 'number' ? {t: 'num', v: Int.of(k)} : typeof k === 'boolean' ? {t: 'cond', v: k ? yes : no} : {t: 'lit', v: k}
   const m = names.find(n => n.role === 'input' && n.method === e.head && e.segs[0] && 'f' in e.segs[0] && n.code === e.segs[0].f)

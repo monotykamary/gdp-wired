@@ -61,6 +61,14 @@ export type COptions = {
 type FS = {readFileSync: (p: string, e: string) => string, mkdtempSync: (p: string) => string, writeFileSync: (p: string, s: string) => void, rmSync: (p: string, o?: unknown) => void, mkdirSync: (p: string, o?: unknown) => void}
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
 
+// (C++ that includes little, embedded code's without the standard library: its whole dump is small, read whole; else
+// only the class's, its headers' being hundreds of MB)
+const smallTUs = new Map<string, boolean>()
+function smallTU(file: string, flags: string[], clang: string): boolean {
+  const k = `${clang} ${flags.join(' ')} ${file}`
+  if (!smallTUs.has(k)) { try { smallTUs.set(k, node<CP>('node:child_process').execFileSync(clang, ['-x', 'c++', ...flags, '-E', '-P', file], {encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore']}).length < 400_000) } catch { smallTUs.set(k, false) } }
+  return smallTUs.get(k)!
+}
 export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead, flags: string[]} {
   // (no entry, C++: each class the file declares tried, its dump read for its name only)
   if (!opts.entry && cpp) {
@@ -71,12 +79,19 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
     if (ok.length !== 1) throw new Refusal(file, ok.length ? `several classes write their state (${ok.map(r => r.c.entry).join(', ')}): name one (entry)` : `no class whose methods write its state${why.length ? ` (${why.join('; ')})` : ''}: name the entry`)
     return ok[0]!
   }
-  const flags0 = [...flagsFor(file, opts.compileCommands), ...(opts.flags ?? [])], flags = cpp && !flags0.some(f => f.startsWith('-std=')) ? [...flags0, '-std=c++17'] : flags0, {tu, target} = clangDump(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, cpp ? opts.entry : undefined)
+  const flags0 = [...flagsFor(file, opts.compileCommands), ...(opts.flags ?? [])], flags = cpp && !flags0.some(f => f.startsWith('-std=')) ? [...flags0, '-std=c++17'] : flags0, {tu, target} = clangDump(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, cpp && !smallTU(file, flags, opts.clang ?? 'clang++') ? opts.entry : undefined)
   // (C++, its dump filtered to the class: each variable outside it the class reads, a namespace's constant, dumped too)
-  if (cpp && opts.entry) {
+  if (cpp && opts.entry && !smallTU(file, flags, opts.clang ?? 'clang++')) {
     const have = new Set<string>(), want = new Map<string, string>()
     const walk = (n: {kind: string, id?: string, name?: string, inner?: unknown[], referencedDecl?: {id: string, kind: string, name: string}}) => { if (n.kind === 'VarDecl' && n.id) have.add(n.id); const d = n.referencedDecl; if (n.kind === 'DeclRefExpr' && d?.kind === 'VarDecl') want.set(d.id, d.name); for (const c of n.inner ?? []) walk(c as never) }
     walk(tu as never)
+    // (and each struct a method takes by reference or pointer, the caller's object: its fields read as inputs)
+    const recs = new Set<string>(), haveRec = new Set<string>()
+    const walkP = (n: {kind: string, name?: string, inner?: unknown[], type?: {qualType: string}}) => { if (/Record/.test(n.kind) && n.name) haveRec.add(n.name); if (n.kind === 'ParmVarDecl' && n.type) { const b = n.type.qualType.replace(/\b(const|volatile|struct|class)\b|[&*]/g, '').trim(); if (/^[A-Za-z_]\w*$/.test(b)) recs.add(b) } for (const c of n.inner ?? []) walkP(c as never) }
+    walkP(tu as never)
+    for (const name of [...recs].filter(r => !haveRec.has(r))) {
+      try { const more = clangDump(file, flags, opts.clang ?? 'clang++', cpp, name).tu.inner ?? []; tu.inner = [...(tu.inner ?? []), ...more.filter(m => /^(CXX)?RecordDecl$/.test(m.kind) && m.name === name && m.completeDefinition)] } catch { /* read where it is, as before */ }
+    }
     for (const name of new Set([...want].filter(([id]) => !have.has(id)).map(([, n]) => n))) {
       try { const more = clangDump(file, flags, opts.clang ?? 'clang++', cpp, name).tu.inner ?? []; const ids = [...want].filter(([id, n]) => n === name && !have.has(id)).map(([id]) => id); for (const m of more) if (m.kind === 'VarDecl' && m.name === name) for (const id of ids) tu.inner = [...(tu.inner ?? []), {...m, id}] } catch { /* read where it is, as before */ }
     }
@@ -118,7 +133,9 @@ export function extractC(at: string | FileURL, given: COptions = {}, cpp = false
   for (const [n, d] of Object.entries(opts.domains ?? {})) if (d === 'nat') read.model.laws = read.model.laws?.map(l => (l.includes(`"${n} within its type's range"`) ? l.replace(/\.atLeast\(-\d+\)/, '.atLeast(0)') : l))
   if (!opts.entry) read.model.notes.unshift(`the entry inferred: ${c.entry}, ${cpp ? 'the class whose methods write its state' : 'the struct the file\'s functions write'}`)
   // (the names the laws read that the code defines as constants: its enum constants, else clang's value of each)
-  const keep = ((given as {keep?: string[]}).keep ?? []).filter(n => !(n in c.consts)), consts = {...c.consts, ...(keep.length ? constantsOf(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, keep) : {})}
+  // (a qualified one, C++'s vehicle_status_s::ARMING_STATE_ARMED, by its law's spelling, vehicle_status_s.ARMING_STATE_ARMED)
+  const keep = ((given as {keep?: string[]}).keep ?? []).filter(n => !(n in c.consts)), found = keep.length ? constantsOf(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, keep) : {}
+  const consts = {...c.consts, ...Object.fromEntries(Object.entries(found).map(([k, v]) => [k.replaceAll('::', '.'), v]))}
   const x = fromModel(read.model, `${c.entry}.${cpp ? 'cpp' : 'c'}`, {...unsignedDomains(read), ...signedDomains(c.pkg, read), ...opts.domains}, notes, (rule, sorts) => checkC(file, flags, c, read, rule, sorts, opts, cpp))
   return {...x, leaves: read.leaves, names: goNames(read), ...(Object.keys(consts).length ? {consts} : {})}
 }
@@ -195,7 +212,7 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
           const ft = st.fields!.find(g => g.name === f)!.t
           lines.push(`if ((v = gdp_key(r${i}, ${q(f)}))) ${T(ft).k === 'int' ? intIn(`a${i}.${f}`, 'v', ft, `return "argument ${i}.${f} outside its type"`) : `a${i}.${f} = !strncmp(v, "true", 4);`}`)
         }
-        push(byValue ? `a${i}` : `&a${i}`)
+        push(byValue || t.go?.trim().endsWith('&') ? `a${i}` : `&a${i}`)
       } else lines.push(`return "an argument the harness can't make";`)
     })
     const rt = meth.results[0], fails = opts.fails?.[meth.name]?.trim()
@@ -376,6 +393,16 @@ function strictFlex(clang: string): string[] {
   if (!flexOK.has(clang)) { try { node<CP>('node:child_process').execFileSync(clang, ['-fstrict-flex-arrays=3', '-x', 'c', '-fsyntax-only', '/dev/null'], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}); flexOK.set(clang, true) } catch { flexOK.set(clang, false) } }
   return flexOK.get(clang) ? ['-fstrict-flex-arrays=3'] : []
 }
+// A demangled C++ function's own name: `void events::send<A, B>(unsigned int, ...)` is send, `A::f(int) const` f.
+function shortName(d: string): string | undefined {
+  let depth = 0, end = -1
+  for (let i = 0; i < d.length; i++) { const ch = d[i]; if (ch === '<') depth++; else if (ch === '>') depth--; else if (ch === '(' && depth === 0) { end = i; break } }
+  if (end < 0) return undefined
+  let head = d.slice(0, end), out = '', dd = 0
+  for (const ch of head) { if (ch === '<') dd++; else if (ch === '>') dd--; else if (dd === 0) out += ch }
+  head = out.trim().split(/\s+/).pop() ?? ''
+  return head.split('::').pop() || undefined
+}
 // --- the check ------------------------------------------------------------------------------------------------------------
 export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r: Rule, sorts: Sorts, opts: COptions, cpp: boolean): GoEvidence {
   const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process'), os = node<{tmpdir: () => string, platform: () => string}>('node:os'), path = node<{resolve: (p: string) => string}>('node:path')
@@ -404,10 +431,22 @@ export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r:
     const ofSource = (l: string) => !/(^|\/)(harness\.(c|cpp)|gdp_stubs\.c):/.test(l) && (l.includes(`${base}:`) || !l.includes(work))
     try { link([]) } catch (x) {
       const names = [...new Set([...why(x).matchAll(/undefined (?:reference to [`']|symbol: )_?([A-Za-z_]\w*)|"_([A-Za-z_]\w*)", referenced from/g)].map(m => m[1] ?? m[2]!))]
+      // (C++: the linker names other code's functions demangled, `A::f(int) const`: their own names from the object's
+      // undefined symbols, each matched by its demangled form; a stub is named so, `void _ZNK1A1fEi(void)`)
+      const demangled = new Set([...why(x).matchAll(/"([^"]+)", referenced from|undefined reference to [`']([^'`]+)'/g)].map(m => m[1] ?? m[2]!).filter(d => /[:(]/.test(d)))
+      const base = new Map<string, string>()
+      if (cpp && demangled.size) {
+        try {
+          run(clang, ['-x', 'c++', ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', ...strictFlex(clang), '-c', h, '-o', `${work}/harness.o`])
+          const und = run('nm', ['-u', `${work}/harness.o`]).split('\n').map(l => l.trim().replace(/^U\s+/, '')).filter(Boolean)
+          const out = cp.execFileSync('c++filt', [], {input: und.join('\n'), encoding: 'utf8'}).split('\n')
+          und.forEach((m, i) => { const d = out[i]?.trim() ?? ''; if (demangled.has(d) || demangled.has(d.replace(/^_/, ''))) { const n = m.replace(/^_(?=_Z)/, ''); if (/^\w+$/.test(n)) { names.push(n); base.set(n, shortName(d) ?? n) } } })
+        } catch { /* the names the linker gave */ }
+      }
       if (!names.length) { const b = buildCheck(clang, () => link([]), errorsOf, ofSource, x); if (!('ok' in b)) return {...empty, ...builtEvidence(b)} }
       else {
         const out = new Set(read.leftOut ?? [])
-        fs.writeFileSync(stubs, `void gdp_extern_called(const char *);\n${names.map(n => (out.has(n) ? `void ${n}(void) {}` : `void ${n}(void) { gdp_extern_called(${JSON.stringify(n)}); }`)).join('\n')}\n`)
+        fs.writeFileSync(stubs, `void gdp_extern_called(const char *);\n${names.map(n => (out.has(n) || out.has(base.get(n) ?? '') ? `void ${n}(void) {}` : `void ${n}(void) { gdp_extern_called(${JSON.stringify(base.get(n) ?? n)}); }`)).join('\n')}\n`)
         const b = buildCheck(clang, () => link([stubs]), errorsOf, ofSource)
         if (!('ok' in b)) return {...empty, ...builtEvidence(b)}
       }

@@ -221,7 +221,7 @@ async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: str
   const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
   const {clock: _k, from: _f, env: _v, ...shared} = cfg.all
   void _k; void _f
-  const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*/g) ?? []))]
+  const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*/g) ?? []).flatMap(k => (k.includes('::') ? [k, ...k.split('::')] : [k])))]
   const extra = await Promise.all(more.map(async entry => ({entry, x: await extractOne(t, {...merge(merge({...shared, keep}, cfg.rules[entry] || {}), flags), entry})})))
   // (the first rule, read with no entry named, kept only where it read something or nothing else was)
   return [...got.filter(r => r.x.ok || r.entry || !extra.length), ...extra]
@@ -236,7 +236,7 @@ async function rulesOf0(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: st
   void _f
   void _k
   // (the names the laws read, so an argument a law reads stays in the rule though the code ignores it)
-  const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*/g) ?? []))]
+  const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*/g) ?? []).flatMap(k => (k.includes('::') ? [k, ...k.split('::')] : [k])))]
   const optsFor = (entry?: string) => merge(merge({...shared, keep}, (entry && cfg.rules[entry]) || {}), flags)
   const one = async (entry?: string) => {
     const x = await extractOne(t, {...optsFor(entry), ...(entry ? {entry} : {})}), found = x.model?.name

@@ -61,7 +61,7 @@ export function clangDump(file: string, flags: string[], clang = 'clang', cpp = 
 // isn't one (a field, a float, a string) doesn't compile there and is left out.
 export function constantsOf(file: string, flags: string[], clang: string, cpp: boolean, names: string[]): Record<string, number> {
   const fs = node<{mkdtempSync: (p: string) => string, writeFileSync: (p: string, s: string) => void, rmSync: (p: string, o?: unknown) => void}>('node:fs'), os = node<{tmpdir: () => string}>('node:os'), path = node<{resolve: (p: string) => string}>('node:path'), cp = node<CP>('node:child_process')
-  let left = [...new Set(names)].filter(n => /^[A-Za-z_]\w*$/.test(n))
+  let left = [...new Set(names)].filter(n => /^[A-Za-z_]\w*(::[A-Za-z_]\w*)*$/.test(n) && (cpp || !n.includes('::')))
   if (!left.length) return {}
   const work = fs.mkdtempSync(`${os.tmpdir()}/gdp-cconst-`), probe = `${work}/probe.${cpp ? 'cpp' : 'c'}`, out: Record<string, number> = {}
   try {
@@ -354,11 +354,13 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   const ptrT = add(`ptr:${entryT}`, {k: 'ptr', go: `${entry} *`, elem: entryT}), self0 = (n: CN): GX => ({e: 'id', ...at(n, ptrT), o: 'var', id: 'this', n: 'this'})
   // An out-parameter (a pointer to an integer or a bool, not the receiver): a pointer to a box of one field, `value`,
   // *p its field.
-  const boxed = new Map<string, number>(), byValue = new Map<string, number>(), refs = new Set<string>()
+  const boxed = new Map<string, number>(), byValue = new Map<string, number>(), refs = new Set<string>(), structRefs = new Set<string>()
   const boxOf = (q: CN): number => {
     // (a const reference to an integer is its value: an input)
     if (/^const [^*&]*&$/.test(q.type!.qualType.trim())) { const v = parseT(q.type!.qualType.trim().slice(0, -1), q.type!.desugaredQualType?.trim().replace(/&$/, '')); byValue.set(q.id!, v); return v }
     const ref = /[^&]&$/.test(q.type!.qualType.trim()), t = ref ? parseT(q.type!.qualType.trim().slice(0, -1), q.type!.desugaredQualType?.trim().replace(/&$/, '')) : tyOf(q.type!), pt = ref ? {k: 'ptr', elem: t, go: q.type!.qualType} : T(t)
+    // (C++: a reference to a struct, the caller's object, read as a pointer to it)
+    if (ref && T(t).k === 'struct') { const r = add(`ref:${t}`, {k: 'ptr', go: q.type!.qualType, elem: t}); byValue.set(q.id!, r); structRefs.add(q.id!); return r }
     if (pt.k !== 'ptr' || !['int', 'bool'].includes(T(pt.elem!).k)) return tyOf(q.type!)
     if (ref) refs.add(q.id!)
     const e = pt.elem!, b = add(`box:${e}`, {k: 'struct', own: true, box: true, name: T(e).go, go: T(e).go, fields: [{name: 'value', t: e, embedded: false}]}), bp = add(`ptr:${b}`, {k: 'ptr', go: pt.go, elem: b})
@@ -426,6 +428,42 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   // (a float's value: left out, a value nothing the rule keeps may read; one read into an integer, a condition or a
   // comparison is refused there. Its operands are the code's measurements: an assignment or a call of the file's own
   // inside it is refused, its effect would be lost.)
+  // A constant table read at indices (a transition table, a lookup; a const or constexpr array, a class's static one):
+  // its entry by cases on the indices, each index outside its dimension undefined behavior, the step's failure (checked
+  // before the statement, so the index must be free of side effects and read where the statement surely reads it).
+  const table = (n: CN): GX | undefined => {
+    const idx: CN[] = []
+    let b: CN = n
+    while (b.kind === 'ArraySubscriptExpr') { idx.unshift(b.inner![1]!); b = strip(b.inner![0]!); if (CAST.has(b.kind) && b.castKind === 'ArrayToPointerDecay') b = strip(b.inner![0]!) }
+    const d = b.kind === 'DeclRefExpr' ? b.referencedDecl : undefined
+    if (d?.kind !== 'VarDecl' || !globals.has(d.id)) return undefined
+    const g0 = globals.get(d.id)!, g = g0.init ? g0 : [...globals.values()].find(v => v.name === g0.name && v.init) ?? g0, qt = g.type!.qualType
+    if (!/^(const |constexpr )|\bconst\b/.test(qt) || !g.init) return undefined
+    const init = (g.inner ?? []).find(c => !c.kind.endsWith('Attr'))
+    if (!init) return undefined
+    const t = n.type ? tyOf(n.type) : -1, a = at(n, t)
+    // (the table's values, nested by dimension; an entry not given is 0)
+    const dims: number[] = [...qt.matchAll(/\[(\d+)\]/g)].map(m => Number(m[1]))
+    if (dims.length !== idx.length || !['int', 'bool'].includes(T(t).k)) return no(n, `${text(n)}: a table read other than at every one of its dimensions`)
+    const val = (v: CN | undefined, path: number[], k: number): number => {
+      if (k === dims.length) { const f = v ? fold(v) : 0; return f ?? NaN }
+      const s0 = v ? strip(v) : undefined, kids = s0?.kind === 'InitListExpr' ? (s0.inner ?? []) : []
+      return val(kids[path[k]!], path, k + 1)
+    }
+    if (idx.some(effects)) return no(n, `${text(n)}: a table read at an index with a side effect`)
+    if (!pending || guarded) return no(n, `${text(n)}: a table read on some paths of an expression (the right of && or ||, a branch of ?:)`)
+    const ix = idx.map(i => x(i)), ty = (i: number) => (ix[i]!.t >= 0 ? ix[i]!.t : intT('int', target.int, true))
+    const inRange = ix.map((v, i): GX => ({e: 'bin', ...at(idx[i]!, boolT), op: '&&', x: {e: 'bin', ...at(idx[i]!, boolT), op: '<=', x: lit(idx[i]!, 0, ty(i)), y: v}, y: {e: 'bin', ...at(idx[i]!, boolT), op: '<', x: v, y: lit(idx[i]!, dims[i]!, ty(i))}}))
+    pending.push({s: 'if', p: pos(n), c: {e: 'un', ...at(n, boolT), op: '!', x: inRange.reduce((l, r) => ({e: 'bin', ...at(n, boolT), op: '&&', x: l, y: r}))}, then: [{s: 'expr', p: pos(n), x: {e: 'call', ...at(n, -1), builtin: 'panic', a: [], what: `${text(n)}: an index past the table (undefined behavior)`}}]})
+    // (by cases: each dimension's index against each of its values, the last value the rest)
+    const build = (k: number, path: number[]): GX => {
+      if (k === dims.length) { const v = val(init, path, 0); if (!Number.isSafeInteger(v)) return no(n, `${text(n)}: an entry that isn't a constant integer`); return T(t).k === 'bool' ? {e: 'lit', ...a, c: {bool: v !== 0}} : lit(n, v, t) }
+      let out = build(k + 1, [...path, dims[k]! - 1])
+      for (let j = dims[k]! - 2; j >= 0; j--) out = {e: 'ite', ...a, x: {e: 'bin', ...at(idx[k]!, boolT), op: '==', x: ix[k]!, y: lit(idx[k]!, j, ty(k))}, y: build(k + 1, [...path, j]), b: out}
+      return out
+    }
+    return build(0, [])
+  }
   let placing = false
   // (a place in a global left out, or its address)
   // (a field of the entry left out, `leave`, or anything reached through one: an object other code owns, a buffer the
@@ -454,6 +492,8 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       }
       case 'DeclRefExpr': {
         const d = n.referencedDecl!
+        // (a reference to the caller's struct: the object it points to)
+        if (d.kind === 'ParmVarDecl' && structRefs.has(d.id)) return {e: 'star', ...a, x: {e: 'id', ...a, t: byValue.get(d.id)!, o: 'var', id: d.id, n: d.name}}
         if (d.kind === 'ParmVarDecl') { const v: GX = {e: 'id', ...a, ...(boxed.has(d.id) ? {t: boxed.get(d.id)!} : {}), o: 'var', id: d.id, n: d.name}; return refs.has(d.id) ? {e: 'sel', ...a, k: 'field', x: v, path: [0]} : v }
         if (d.kind === 'VarDecl' && /&$/.test(d.type?.qualType ?? '')) return no(n, `${d.name}: a reference held in a local (a second name for a place)`)
         if (d.kind === 'VarDecl' && gfield.has(d.id)) return {e: 'sel', ...a, k: 'field', x: self0(n), path: [gfield.get(d.id)!]}
@@ -527,6 +567,8 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         return {e: 'comp', ...a, elts: kids.flatMap((k, i) => (k.kind === 'ImplicitValueInitExpr' ? [] : [{field: tt.fields![i]!.name, v: x(k)}]))}
       }
       case 'ArraySubscriptExpr': {
+        const tb = table(n)
+        if (tb) return tb
         // An index into an array of the state (its decay to a pointer undone); pointer arithmetic is outside.
         const b = strip(kids[0]!), arr = b.kind === 'ImplicitCastExpr' && b.castKind === 'ArrayToPointerDecay' ? b.inner![0]! : undefined
         return arr ? {e: 'index', ...a, x: place(arr), i: x(kids[1]!)} : no(n, `${text(n)}: an index into a pointer (pointer arithmetic)`)
@@ -568,6 +610,12 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     const me = strip(n.inner![0]!), m = members.get(me.referencedMemberDecl ?? ''), b = me.inner?.[0], t = n.type ? tyOf(n.type) : -1
     const bt = b?.type ? T(tyOf(b.type)) : undefined
     if (me.name === 'size' && bt?.fixed) return lit(n, bt.len!, t)
+    // (another class's method with no body here: other code at the boundary, as a function of another file, its value
+    // the request's where it is read; from where the call begins, so the check stubs the whole call)
+    if (b && (!m || m.$rec !== entryRec) && m?.name && (!own(m) || (!(m.inner ?? []).some(c => c.kind === 'CompoundStmt') && !cxx.some(k => k.previousDecl === m.id)))) {
+      const p0 = n.$b && own(n) ? `${path.basename(n.$b.file)}:${n.$b.line}:${n.$b.col}` : pos(n)
+      return {e: 'call', ...at(n, t), p: p0, f: {e: 'sel', ...at(n, -1), k: 'qual', pkg: '', n: m.name, why: `${text(n)}: a method of another class (other code)`}, a: (n.inner ?? []).slice(1).map(x), ...(n.$e && own(n) ? {end: `${n.$e.line}:${n.$e.col + n.$e.tok}`} : {})}
+    }
     if (!m || m.$rec !== entryRec || !b) return no(n, `${text(n)}: a method of another class (other code)`)
     if (overloaded.has(m.name!) || (picks[m.name!] !== undefined && params(m).length !== picks[m.name!])) return no(n, `${m.name}: an overloaded method`)
     if (members.get(me.referencedMemberDecl!)?.virtual || (funcs.get(m.name!) as CN | undefined)?.virtual) return no(n, `${m.name}: a virtual method (its dispatch)`)
@@ -594,7 +642,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       case 'CompoundStmt': return [{s: 'block', p, b: ss(kids)}]
       case 'NullStmt': return []
       case 'DeclStmt': return kids.flatMap((d): GS[] => {
-        if (d.kind !== 'VarDecl') return d.kind === 'RecordDecl' || d.kind === 'TypedefDecl' || d.kind === 'EnumDecl' ? [] : sno(d, `a ${d.kind} in a function`)
+        if (d.kind !== 'VarDecl') return ['RecordDecl', 'TypedefDecl', 'EnumDecl', 'StaticAssertDecl', 'TypeAliasDecl', 'UsingDecl'].includes(d.kind) ? [] : sno(d, `a ${d.kind} in a function`)
         if (d.storageClass === 'static') return sno(d, `${d.name}: a static local (state every call shares)`)
         // std::lock_guard, std::scoped_lock, std::unique_lock of one of the object's mutexes, in the function's own
         // block: Go's Lock with its deferred Unlock (the step atomic)
