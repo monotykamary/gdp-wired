@@ -1,0 +1,12 @@
+diff -ru a/clients/fides-js/src/lib/automated-consent.ts b/clients/fides-js/src/lib/automated-consent.ts
+--- a/clients/fides-js/src/lib/automated-consent.ts	2026-11-02 11:22:16
++++ b/clients/fides-js/src/lib/automated-consent.ts	2026-11-02 11:23:07
+@@ -29,6 +29,8 @@
+  * @param context - The automated consent context containing GPC, migrated consent, and notice consent strings
+  * @returns Object containing the calculated notice consent, consent method, and whether any automated consent was applied
+  */
++// gdp: law GPC is honoured where nothing was saved: context.globalPrivacyControl and not context.hasFidesCookie implies result.applied or not experience.privacy_notices
++// gdp: cite GPC is honoured where nothing was saved: Cal. Code Regs. tit. 11, § 7025(b): "process any opt-out preference signal that meets the following requirements as a valid request to opt-out of sale/sharing"
+ export const calculateAutomatedConsent = (
+   experience: PrivacyExperience,
+   savedConsent: NoticeConsent,

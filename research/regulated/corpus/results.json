@@ -1,0 +1,371 @@
+[
+ {
+  "item": "bluebutton-grants",
+  "repo": "https://github.com/CMSgov/bluebutton-web-server",
+  "commit": "7dd4642eb9060dd58270dea7521099a0f4eeea5d",
+  "licence": "Apache-2.0",
+  "language": "Python",
+  "domain": "patient data access grants",
+  "target": "apps/authorization/models.py",
+  "writes": {
+   "comments": 4,
+   "laws": 2,
+   "cites": 2,
+   "toml": 2
+  },
+  "exit": 2,
+  "wall": 801,
+  "rules": [
+   {
+    "entry": "DataAccessGrant",
+    "ok": false,
+    "refusals": [
+     {
+      "where": "models.py:53:12",
+      "what": "self.application: no field application (the object's fields are those its constructor sets)"
+     }
+    ],
+    "laws": [
+     {
+      "name": "the rolling window ends 90 days on",
+      "expr": "expiration_date == now + 90 days",
+      "where": "models.py:43",
+      "verdict": "not read",
+      "ms": 0,
+      "why": "the rule was refused",
+      "cites": [
+       "45 CFR 164.508(c)(1)(v): \"An expiration date or an expiration event\""
+      ]
+     },
+     {
+      "name": "a grant past its expiration date has expired",
+      "expr": "expiration_date is not None and expiration_date < now implies result",
+      "where": "models.py:50",
+      "verdict": "not read",
+      "ms": 0,
+      "why": "the rule was refused",
+      "cites": [
+       "45 CFR 164.508(c)(1)(v): \"An expiration date or an expiration event that relates to the individual or the purpose of the use or disclosure\""
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "item": "bluebutton-patient",
+  "repo": "https://github.com/CMSgov/bluebutton-web-server",
+  "commit": "7dd4642eb9060dd58270dea7521099a0f4eeea5d",
+  "licence": "Apache-2.0",
+  "language": "Python",
+  "domain": "patient data access",
+  "target": "apps/authorization/permissions.py",
+  "writes": {
+   "comments": 2,
+   "laws": 1,
+   "cites": 1,
+   "toml": 0
+  },
+  "exit": 2,
+  "wall": 333,
+  "rules": [
+   {
+    "entry": "is_resource_for_patient",
+    "ok": false,
+    "refusals": [
+     {
+      "where": "permissions.py:47:12",
+      "what": "obj['resourceType']: an item of obj: a value of no type the code states (whether it holds one is that value's)"
+     }
+    ],
+    "laws": [
+     {
+      "name": "another patient's record is never released",
+      "expr": "obj[\"resourceType\"] == \"Patient\" and obj[\"id\"] != patient_id implies failed or not result",
+      "where": "permissions.py:43",
+      "verdict": "not read",
+      "ms": 0,
+      "why": "the rule was refused",
+      "cites": [
+       "45 CFR 164.502(a): \"A covered entity or business associate may not use or disclose protected health information, except as permitted or required by this subpart\""
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "item": "django-session-timeout",
+  "repo": "https://github.com/labd/django-session-timeout",
+  "commit": "0fb35d012b7868d0c5e7f8ce72fa761fa54d5faa",
+  "licence": "MIT",
+  "language": "Python",
+  "domain": "automatic logoff",
+  "target": "src/django_session_timeout/middleware.py",
+  "writes": {
+   "comments": 2,
+   "laws": 1,
+   "cites": 1,
+   "toml": 0
+  },
+  "exit": 2,
+  "wall": 425,
+  "rules": [
+   {
+    "entry": "SessionTimeoutMiddleware",
+    "ok": false,
+    "refusals": [
+     {
+      "where": "middleware.py:15:16",
+      "what": "hasattr(request, 'session'): hasattr() (a builtin outside the subset)"
+     }
+    ],
+    "laws": [
+     {
+      "name": "a session past its time is ended",
+      "expr": "now - old(request.session[\"_session_init_timestamp_\"]) > settings.SESSION_EXPIRE_SECONDS implies result is not None",
+      "where": "middleware.py:12",
+      "verdict": "not read",
+      "ms": 0,
+      "why": "the rule was refused",
+      "cites": [
+       "45 CFR 164.312(a)(2)(iii): \"Implement electronic procedures that terminate an electronic session after a predetermined time of inactivity\""
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "item": "fhir-gateway-scopes",
+  "repo": "https://github.com/google/fhir-gateway",
+  "commit": "cac059dbec368c2839b7f93439a670ce8c391263",
+  "licence": "Apache-2.0",
+  "language": "Java",
+  "domain": "SMART scopes, minimum necessary",
+  "target": "plugins/src/main/java/com/google/fhir/gateway/plugin/SmartScopeChecker.java",
+  "writes": {
+   "comments": 2,
+   "laws": 1,
+   "cites": 1,
+   "toml": 0
+  },
+  "exit": 2,
+  "wall": 2647,
+  "rules": [
+   {
+    "entry": "SmartScopeChecker",
+    "ok": false,
+    "refusals": [
+     {
+      "where": "SmartScopeChecker.java:44:3",
+      "what": "hasPermission returns this.permissionsByResourceType .getOrDefault(resourceType...: the value of permissionsByResourceType.getOrDefault(resourceType, Collections.emptySet()).contains, other code left out (a result the rule keeps); this.permissionsByResourceType .getOrDefault(resourceType...: a call on this.permissionsByResourceType .getOrDefault(resourceType...: the value of this.permissionsByResourceType .getOrDefault(resourceType..., other code left out (SmartScopeChecker.java:45:12), whose value is read, and the check can't stub it: read its code, or keep its value unread"
+     }
+    ],
+    "laws": [
+     {
+      "name": "no scope, no access",
+      "expr": "not (resourceType in permissionsByResourceType) and not (\"*\" in permissionsByResourceType) implies not result",
+      "where": "SmartScopeChecker.java:42",
+      "verdict": "not read",
+      "ms": 0,
+      "why": "the rule was refused",
+      "cites": [
+       "45 CFR 164.502(b)(1): \"make reasonable efforts to limit protected health information to the minimum necessary to accomplish the intended purpose\""
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "item": "fides-gpc",
+  "repo": "https://github.com/ethyca/fides",
+  "commit": "e87f3ff835af368defc1ec42dc29ec545a288585",
+  "licence": "Apache-2.0",
+  "language": "TypeScript",
+  "domain": "opt-out preference signals",
+  "target": "clients/fides-js/src/lib/automated-consent.ts",
+  "writes": {
+   "comments": 2,
+   "laws": 1,
+   "cites": 1,
+   "toml": 0
+  },
+  "exit": 2,
+  "wall": 493,
+  "rules": [
+   {
+    "entry": "calculateAutomatedConsent",
+    "ok": false,
+    "refusals": [
+     {
+      "where": "automated-consent.ts:34:42",
+      "what": "calculateAutomatedConsent is not a step over a state (a step takes the state first and returns the next): it takes PrivacyExperience and returns { noticeConsent: NoticeConsent; consentMethod: ConsentMethod"
+     }
+    ],
+    "laws": [
+     {
+      "name": "GPC is honoured where nothing was saved",
+      "expr": "context.globalPrivacyControl and not context.hasFidesCookie implies result.applied or not experience.privacy_notices",
+      "where": "automated-consent.ts:32",
+      "verdict": "not read",
+      "ms": 0,
+      "why": "the rule was refused",
+      "cites": [
+       "Cal. Code Regs. tit. 11, § 7025(b): \"process any opt-out preference signal that meets the following requirements as a valid request to opt-out of sale/sharing\""
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "item": "hapi-consent",
+  "repo": "https://github.com/hapifhir/hapi-fhir",
+  "commit": "247833421129d3e3333c86eee5bc92c3bab87947",
+  "licence": "Apache-2.0",
+  "language": "Java",
+  "domain": "FHIR consent votes",
+  "target": "hapi-fhir-server/src/main/java/ca/uhn/fhir/rest/server/interceptor/consent/IConsentVote.java",
+  "writes": {
+   "comments": 2,
+   "laws": 1,
+   "cites": 1,
+   "toml": 0
+  },
+  "exit": 2,
+  "wall": 4943,
+  "rules": [
+   {
+    "entry": "IConsentVote",
+    "ok": false,
+    "refusals": [
+     {
+      "where": "IConsentVote.java",
+      "what": "no class or function IConsentVote in IConsentVote.java"
+     }
+    ],
+    "laws": [
+     {
+      "name": "a rejection always wins",
+      "expr": "theAccumulator.getStatus() == REJECT or theNextVoter.getStatus() == REJECT implies result.getStatus() == REJECT",
+      "where": "IConsentVote.java:54",
+      "verdict": "not read",
+      "ms": 0,
+      "why": "the rule was refused",
+      "cites": [
+       "45 CFR 164.508(b)(5): \"An individual may revoke an authorization provided under this section at any time\""
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "item": "orejime-consent",
+  "repo": "https://github.com/empreinte-digitale/orejime",
+  "commit": "70a42c4b4b1fe5e54f16b6ff61c70fa782db9f40",
+  "licence": "BSD-3-Clause",
+  "language": "TypeScript",
+  "domain": "consent withdrawal",
+  "target": "src/core/Manager.ts",
+  "writes": {
+   "comments": 4,
+   "laws": 2,
+   "cites": 2,
+   "toml": 0
+  },
+  "exit": 2,
+  "wall": 961,
+  "rules": [
+   {
+    "entry": "Manager",
+    "ok": false,
+    "refusals": [
+     {
+      "where": "EventEmitter.ts:6:2",
+      "what": "#listeners: a #private field (the check reads the object's fields; `private` is in the subset)"
+     }
+    ],
+    "laws": [
+     {
+      "name": "declining withdraws every optional consent",
+      "expr": "forall p in consents: consents[p] == (p in mandatoryConsents)",
+      "where": "Manager.ts:89",
+      "verdict": "not read",
+      "ms": 0,
+      "why": "the rule was refused",
+      "cites": [
+       "GDPR Art. 7(3): \"It shall be as easy to withdraw as to give consent\""
+      ]
+     },
+     {
+      "name": "a withdrawal takes effect",
+      "expr": "not state and not (id in mandatoryConsents) implies not consents[id]",
+      "where": "Manager.ts:95",
+      "verdict": "not read",
+      "ms": 0,
+      "why": "the rule was refused",
+      "cites": [
+       "GDPR Art. 7(3): \"The data subject shall have the right to withdraw his or her consent at any time\""
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "item": "smart-client-py",
+  "repo": "https://github.com/smart-on-fhir/client-py",
+  "commit": "ee5ea26774d52d5397ebb98a1d64819c279887c4",
+  "licence": "Apache-2.0",
+  "language": "Python",
+  "domain": "SMART on FHIR access tokens",
+  "target": "fhirclient/auth.py",
+  "writes": {
+   "comments": 4,
+   "laws": 2,
+   "cites": 2,
+   "toml": 3
+  },
+  "exit": 2,
+  "wall": 220,
+  "rules": [
+   {
+    "entry": "FHIROAuth2Auth",
+    "ok": false,
+    "refusals": [
+     {
+      "where": "auth.py:145:1",
+      "what": "the answer type \"datetime | None\" (int, float, bool, str or quoted strings, each with | None)"
+     }
+    ],
+    "laws": [
+     {
+      "name": "a reset token is gone",
+      "expr": "access_token is None",
+      "where": "auth.py:173",
+      "verdict": "not read",
+      "ms": 0,
+      "why": "the rule was refused",
+      "cites": [
+       "45 CFR 164.312(a)(1): \"allow access only to those persons or software programs that have been granted access rights\""
+      ]
+     },
+     {
+      "name": "an expired token never signs",
+      "expr": "not failed implies expires_at is None or now < expires_at",
+      "where": "auth.py:186",
+      "verdict": "not read",
+      "ms": 0,
+      "why": "the rule was refused",
+      "cites": [
+       "RFC 6749 section 5.1, expires_in: \"The lifetime in seconds of the access token\""
+      ]
+     }
+    ]
+   }
+  ]
+ }
+]

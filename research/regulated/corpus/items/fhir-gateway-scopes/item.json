@@ -1,0 +1,13 @@
+{
+ "repo": "https://github.com/google/fhir-gateway",
+ "commit": "cac059dbec368c2839b7f93439a670ce8c391263",
+ "licence": "Apache-2.0",
+ "language": "Java",
+ "domain": "SMART scopes, minimum necessary",
+ "files": [
+  "plugins/src/main/java/com/google/fhir/gateway/plugin/SmartScopeChecker.java",
+  "plugins/src/main/java/com/google/fhir/gateway/plugin/SmartFhirScope.java"
+ ],
+ "target": "plugins/src/main/java/com/google/fhir/gateway/plugin/SmartScopeChecker.java",
+ "what": "Google's FHIR access proxy: whether a token's SMART scopes allow an interaction on a resource type."
+}

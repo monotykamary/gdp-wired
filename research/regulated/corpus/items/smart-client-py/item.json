@@ -1,0 +1,20 @@
+{
+ "repo": "https://github.com/smart-on-fhir/client-py",
+ "commit": "ee5ea26774d52d5397ebb98a1d64819c279887c4",
+ "licence": "Apache-2.0",
+ "language": "Python",
+ "domain": "SMART on FHIR access tokens",
+ "files": [
+  "pyproject.toml",
+  "fhirclient/__init__.py",
+  "fhirclient/_utils.py",
+  "fhirclient/auth.py",
+  "fhirclient/client.py",
+  "fhirclient/server.py"
+ ],
+ "target": "fhirclient/auth.py",
+ "opts": {
+  "entry": "FHIROAuth2Auth"
+ },
+ "what": "The SMART on FHIR client's OAuth2 state: the access token, its expiry, reset."
+}
