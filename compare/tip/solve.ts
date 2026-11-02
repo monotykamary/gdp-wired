@@ -26,6 +26,8 @@ import {work as solverWork} from '../../core/solver.ts'
 import {fullWork} from '../../kernel/prove.ts'
 
 const args = process.argv.slice(2), file = args[0]!
+// (diagnostic: `--env K=V`, an environment flag set before the search reads it)
+args.forEach((a, i) => { if (a === '--env') { const [k2, v2] = args[i + 1]!.split('='); process.env[k2!] = v2 } })
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
 const ms = opt('--ms', 57000), translateOnly = args.includes('--translate-only'), conjSize = opt('--conj-size', 0), conjMax = opt('--conj-max', 48)
 const lemmaSx: Sx[] = args.flatMap((a, i) => (a === '--lemma' ? parseSx(args[i + 1]!) : []))

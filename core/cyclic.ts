@@ -323,7 +323,8 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
       // trees are)
       later = j ? (refuted ? 1_000 : 3_000) : spec.main || spec.carry ? 4_000 : undefined
       if (spec.uses.some(u => weak.has(u.node))) continue
-      const r = attempt(spec)
+      const tq = clock(), r = attempt(spec)
+      if (env.GDP_CYCLIC_TIME) console.error(`[ntime] ${spec.name.slice(-40)}: ${spec.insts.length} insts, ${spec.uses.length} uses, ${Math.round(clock() - tq)} ms, ${'proven' in r ? r.stuck : 'ok'} ${profOn() ? JSON.stringify(Object.fromEntries(Object.entries(cyclicProf).map(([k2, x]) => [k2, [Math.round(x.ms), x.n, x.hyps, Math.round(x.solveMs)]]))) : ''}`); if (profOn()) for (const k2 of Object.keys(cyclicProf)) delete cyclicProf[k2]
       if ('proven' in r) { failed ??= r; if (r.stuck === 'sat') refuted = true; continue }
       nodes[i] = r; shapes[i] = spec; failed = undefined
       if (spec.weak) weak.add(i)
