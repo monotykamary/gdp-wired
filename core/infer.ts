@@ -2295,6 +2295,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         // it that key (Link(x) = x, Src(q) = y), a 0 or a 1)
         if (Object.keys(m.relations ?? {}).length) keys0.forEach((s0, i) => { for (const mp of ks.plainMaps(s0)) { const sv = ks.find(`V:${mp}`); if (sv !== s0 && !ss.includes(sv)) continue; slot.forEach((s1, j) => { if (s1 === sv && (j !== keys0.length || der?.src !== i || der?.mp !== mp)) extra.push({name: `${mp}(${names[i]})=${names[j]}`, term: {op: 'if', c: same(get(mp, x(vars[i]!)), x(vars[j]!)), then: n(1), else: n(0)}, eq: [...new Set([i, j, ...(j === keys0.length && der ? [der.src] : [])])]}) }) } })
         let frame = all(...keys.flatMap((s, i) => [...(((comp && s === comp[1]) || multi.some(q => !ks.tupled.has(q.mp) && q.slots.slice(1).includes(s))) && !bounds.has(s) ? [atMost(x(vars[i]!), n(pairing!.n - 1))] : []), ...[...new Set((bounds.get(s) ?? []).map(g => JSON.stringify(substC(g, {vars: {[KEY]: x(vars[i]!)}, maps: {}, flags: {}}))))].map(t => JSON.parse(t) as C), ...keys.slice(0, i).flatMap((t, j) => (t === s ? [not(same(x(vars[j]!), x(vars[i]!)))] : []))]))
+        // (a view with more than 48 places of tuple maps has more than 96 literals of its tuples alone: split at once)
+        const tm0 = [...new Set(mapsAt.flat().filter(mp => ks.tupled.has(mp)))]
+        if (!only && tm0.length > 1 && mapsAt.filter(mps => mps.some(mp => ks.tupled.has(mp))).length > 48) { tries.push(...tm0.map(mp => ({only: new Set([mp]), der})), ...(tm0.length > 2 ? tm0.flatMap((a, i) => tm0.slice(i + 1).map(b => ({only: new Set([a, b]), der}))) : [])); continue }
         if (der) { covers.forEach(c => { if (c.includes(keys0.length) && !c.includes(der.src)) c.push(der.src) }); frame = all(frame, ...keys0.flatMap((s, i) => (s === der.sort ? [not(same(x(vars[keys0.length]!), x(vars0[i]!)))] : []))) }
         const vi = views.length
         addView({vars, names, places, covers, frame, need: keys.length, printable: false, ...(proj.length ? {proj} : {}), ...(der ? {defs: [...vars0.map(() => undefined), der.term]} : {})}, mapsAt, st => keys.map(s => ks.valuesAt(st, s)), Math.max(2, Math.floor(64 ** (1 / keys.length))), extra, true)
@@ -2834,8 +2837,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         // (DuoAI's: the Houdini fixpoint of the relevant candidates, once, with 40% of the engine's time left: the set, the pending cubes and every cube a
         // counterexample ranked in its top eight, a cube the fast proof fails at dropped (the usual proof where it fails at
         // a cube the rounds proved), until the whole proves or the time is out)
-        if (!houdinied && !enumProof && vnow() > eUntil - 0.4 * (eUntil - engineStart)) {
-          houdinied = true
+        // (on a rule of relations also at once, over round 0's cubes: each cube's own goal there runs to the EPR path's cap
+        // on a relation of four places, where the set's proof reads them together)
+        const early = round === 0 && !!Object.keys(m.relations ?? {}).length
+        if (!enumProof && (early || (!houdinied && vnow() > eUntil - 0.4 * (eUntil - engineStart)))) {
+          if (!early) houdinied = true
           let hs = [...new Map([...cubes, ...pending, ...pool].filter(g => !dead.has(textOf(g)) && !atStart(g)).map(g => [textOf(g), g])).values()]
           for (let k = 0; k < 200 && hs.length && vnow() < eUntil && !stop(); k++) {
             const t2 = vnow(), hl = [...laws, ...hs.map(lawFor), ...(ghost ? [ghost.some] : [])]
@@ -2961,6 +2967,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           }
         }
         opts.progress?.('join enumerated', {round, cubes: cubes.length, real: real.size, unsure: unsure.size, caller: caller ? 1 : 0, diagrams: blocked2.length, ms: Math.round(vnow())})
+        if (unsure.size) opts.progress?.('join unsure', {round, cubes: [...unsure].map(textOf).join(' | ')})
         // (optimistic Houdini: an unsure cube holds at every small state and every step from one (they are its rows), so
         // it stays; the set's proof decides, a cube it fails at dropped and the rounds go on)
         // (IC3's push: the pending cubes asked together, each with the set and every other pending one assumed (one frame),
