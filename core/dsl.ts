@@ -51,6 +51,9 @@ export const termOf = (t: TermLike): E => {
 // Each term and condition may also carry its value (`val`, `ok`), computed beside its expression by plain JavaScript
 // when every value it reads is known: what `crossCheck` compares with the expression the interpreter evaluates, so a
 // builder that writes a different expression than it means is caught on concrete runs.
+// How a value on no tick rounds to the nearest one where it is a half: to the even multiple (Python's round, banker's
+// rounding), up (toward +∞: JavaScript's and Java's Math.round), down (toward −∞), or away from 0 (Go's and Rust's round).
+export type Rounding = 'halfEven' | 'halfUp' | 'halfDown' | 'halfAway'
 export class Term {
   constructor(readonly e: E, readonly val?: number) {}
   plus(b: TermLike): Term { return new Term({op: 'add', a: this.e, b: termOf(b)}, both(this.val, valOf(b), (x, y) => x + y)) }
@@ -62,6 +65,20 @@ export class Term {
   // constant has no such fact in linear arithmetic (x = y·q + r is a product of two unknowns), so it isn't offered.
   modBy(k: number): Term { divisor(k, 'modBy'); return new Term({op: 'get', map: modName(k), key: this.e}, this.val === undefined ? undefined : this.val % k) }
   divBy(k: number): Term { divisor(k, 'divBy'); return new Term({op: 'get', map: divName(k), key: this.e}, this.val === undefined ? undefined : Math.floor(this.val / k)) }
+  // On a tick of k (a constant k >= 1, a price's tick, a lot size): the multiple of k below (floorTo), above (ceilTo) or
+  // nearest (roundTo, a half by the mode: 'halfEven' Python's round, 'halfUp' JavaScript's and Java's Math.round,
+  // 'halfDown', 'halfAway' Go's and Rust's round; a natural's halfAway is its halfUp), each from divBy and modBy, so the
+  // kernel knows them by the same facts; and whether it is on one (onTick).
+  floorTo(k: number): Term { return this.divBy(k).times(k) }
+  ceilTo(k: number): Term { divisor(k, 'ceilTo'); return this.plus(k - 1).divBy(k).times(k) }
+  roundTo(k: number, mode: Rounding = 'halfEven'): Term {
+    divisor(k, 'roundTo')
+    if (mode === 'halfUp' || mode === 'halfAway') return this.times(2).plus(k).divBy(2 * k).times(k)
+    if (mode === 'halfDown') return this.times(2).plus(k - 1).divBy(2 * k).times(k)
+    const q = this.divBy(k), r2 = this.modBy(k).times(2)
+    return when(r2.lt(k), q, when(lit(k).lt(r2), q.plus(1), q.plus(q.modBy(2)))).times(k)
+  }
+  onTick(k: number): Cond { return this.modBy(k).eq(0) }
   lt(b: TermLike): Cond { return new Cond({op: '<', a: this.e, b: termOf(b)}, both(this.val, valOf(b), (x, y) => x < y)) }
   atMost(b: TermLike): Cond { return new Cond({op: '<=', a: this.e, b: termOf(b)}, both(this.val, valOf(b), (x, y) => x <= y)) }
   gt(b: TermLike): Cond { return new Cond({op: '<', a: termOf(b), b: this.e}, both(this.val, valOf(b), (x, y) => x > y)) }
@@ -271,6 +288,21 @@ export class Int {
   // the same remainder, and its quotient is x div k + neg, so both are the natural division of that one natural.
   modBy(k: number): Term { divisor(k, 'modBy'); return add(this.pos, this.neg.times(k - 1)).modBy(k) }
   divBy(k: number): Int { divisor(k, 'divBy'); return new Int(add(this.pos, this.neg.times(k - 1)).divBy(k), this.neg) }
+  // On a tick of k, as a natural's (Term.floorTo, ceilTo, roundTo, onTick), below 0 too: halfAway rounds a half away
+  // from 0 (up above it, down below it), halfUp toward +∞, halfDown toward −∞.
+  floorTo(k: number): Int { return this.divBy(k).times(k) }
+  ceilTo(k: number): Int { return this.negate().floorTo(k).negate() }
+  roundTo(k: number, mode: Rounding = 'halfEven'): Int {
+    divisor(k, 'roundTo')
+    // (a half up: ⌊(2x + k) / 2k⌋·k; a half down: ⌈(2x − k) / 2k⌉·k, that is −⌊(k − 2x) / 2k⌋·k)
+    const up = (): Int => this.times(2).plus(k).divBy(2 * k).times(k), down = (): Int => Int.of(k).minus(this.times(2)).divBy(2 * k).times(k).negate()
+    if (mode === 'halfUp') return up()
+    if (mode === 'halfDown') return down()
+    if (mode === 'halfAway') return when(this.isNegative, down(), up())
+    const q = this.divBy(k), r2 = this.modBy(k).times(2)
+    return when(r2.lt(k), q, when(lit(k).lt(r2), q.plus(1), q.plus(q.modBy(2)))).times(k)
+  }
+  onTick(k: number): Cond { return this.modBy(k).eq(0) }
   // |value|, and the value where it is not negative (0 below).
   get abs(): Term { return this.pos.minus(this.neg).plus(this.neg.minus(this.pos)) }
   get clamped(): Term { return this.pos.minus(this.neg) }
@@ -314,6 +346,12 @@ export class Decimal {
   min(b: DecimalLike): Decimal { return this.with(this.int.min(this.lift(b))) }
   max(b: DecimalLike): Decimal { return this.with(this.int.max(this.lift(b))) }
   get isNegative(): Cond { return this.int.isNegative }
+  // On a tick written in the decimal's own units (0.05 at 2 places is 5 cents): Int's floorTo, ceilTo, roundTo, onTick.
+  private tick(t: number): number { const n = scaledOf(t, this.places, 'a tick'); if (n < 1) throw new RangeError(`a tick is positive, not ${t}`); return n }
+  floorTo(t: number): Decimal { return this.with(this.int.floorTo(this.tick(t))) }
+  ceilTo(t: number): Decimal { return this.with(this.int.ceilTo(this.tick(t))) }
+  roundTo(t: number, mode: Rounding = 'halfEven'): Decimal { return this.with(this.int.roundTo(this.tick(t), mode)) }
+  onTick(t: number): Cond { return this.int.onTick(this.tick(t)) }
 }
 const asNat = (name: string, raw: Raw): number => {
   if (typeof raw !== 'number' || !Number.isSafeInteger(raw) || raw < 0) throw new RangeError(`${name} must be a natural, not ${shown(raw)}`)
@@ -1568,7 +1606,7 @@ type Spec = {
   // State variables declared by a kind: each a value over the kind's variables (in `state`, one entry each).
   kinded?: [string, Kind<unknown>][]
   carried?: string[]
-  counts?: [string, (env: never) => {below: TermLike, body: (x: Term, k: Term) => Cond | TermLike}][]
+  counts?: [string, (env: never) => {below: TermLike, body: (x: Term, k: Term, y: Term) => Cond | TermLike, base?: number}][]
   // Sequences a request carries (in `carried`, each length an input <name>_len), and tables of them (in `carried` with
   // <name>_base and <name>_len, the number of rows an input <name>_rows).
   seqs?: string[]
@@ -1715,8 +1753,9 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   carries<const N extends string>(...names: N[]): Rule<P, I & {[k in N]: MapRef}, S, M, F, R, Su, Q> { return this.with({carried: [...(this.spec.carried ?? []), ...names]}) }
   // Counts (Machine.counts): `.counts({votes: env => ({below: env.size, body: (x, k) => env.Vote.at(k).eq(x.plus(1))})})`;
   // each a map no step writes, at x the number of keys k below the bound where the body holds (or its sum), read by the
-  // flags, the assumption and the step at the request's view, and by a law at the state.
-  counts<T extends Record<string, (env: P & I & S & M) => {below: TermLike, body: (x: Term, k: Term) => Cond | TermLike}>>(cs: T): Rule<P, I & {[k in keyof T]: MapRef}, S, M, F, R, Su, Q> {
+  // flags, the assumption and the step at the request's view, and by a law at the state. With `base`, a count over two
+  // parameters, read at the key base·a + b (b < base): `body: (a, k, b) => …`.
+  counts<T extends Record<string, (env: P & I & S & M) => {below: TermLike, body: (x: Term, k: Term, y: Term) => Cond | TermLike, base?: number}>>(cs: T): Rule<P, I & {[k in keyof T]: MapRef}, S, M, F, R, Su, Q> {
     return this.with({counts: [...(this.spec.counts ?? []), ...Object.entries(cs)] as never})
   }
   // Sequences each request carries (SeqRef): `.carriesSeq('Path')`, then `Path.at(i)`, `Path.len`, `A.prefixOf(B)`; the
@@ -2100,8 +2139,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       ...(s.maps.length ? {maps: Object.fromEntries(s.maps)} : {}),
       ...(s.carried?.length ? {inputMaps: s.carried} : {}),
       ...(s.counts?.length ? {counts: Object.fromEntries(s.counts.map(([n, f]) => {
-        const c = f(env as never), j = `${n}$x`, key = `${n}$k`, b = c.body(v(j), v(key))
-        return [n, {j, key, below: termOf(c.below), body: b instanceof Cond ? {op: 'if', c: b.c, then: {op: 'const', value: 1}, else: {op: 'const', value: 0}} as E : termOf(b)}]
+        const c = f(env as never), j = `${n}$x`, key = `${n}$k`, lo = `${n}$y`, b = c.body(v(j), v(key), v(lo))
+        return [n, {j, key, below: termOf(c.below), body: b instanceof Cond ? {op: 'if', c: b.c, then: {op: 'const', value: 1}, else: {op: 'const', value: 0}} as E : termOf(b), ...(c.base ? {lo, base: c.base} : {})}]
       }))} : {}),
       step: {...(Object.keys(flags).length ? {flags} : {}), ...(Object.keys(state).length ? {state} : {}), ...(Object.keys(maps).length ? {maps} : {})},
       ...(pre.length ? {pre: pre.length === 1 ? pre[0]! : {op: 'and', xs: pre}} : {}),
@@ -2617,7 +2656,9 @@ const deeperBudget = {trials: 600, depth: 24, bound: 8, seed: 29}
 // half the time. `states: false`: the runs alone.
 // (`until`: a wall, performance.now()'s, past which no more trials or steps are taken: the work cap counts a law's tuples,
 // not a request's assumption, which a rule carrying many maps decides at every try)
-type RunBudget = typeof refuteBudget & {seed?: number, mixed?: boolean, near?: Record<string, number>, states?: boolean, until?: number}
+// (`pool`: the counterexample's other values (a map's cell: the time a request was received), each input taken from
+// them a quarter of the time: a value the state holds is one an earlier request gave)
+type RunBudget = typeof refuteBudget & {seed?: number, mixed?: boolean, near?: Record<string, number>, pool?: number[], states?: boolean, until?: number}
 const conjuncts = (c: C | undefined): C[] => (!c ? [] : c.op === 'and' ? c.xs.flatMap(conjuncts) : [c])
 function guidesOf(m: Machine): ((env: Record<string, number>, st: State, rand: Rand, bound: number) => [string, number] | undefined)[] {
   const isInput = (e: E): e is {op: 'var', name: string} => e.op === 'var' && m.inputs.includes(e.name)
@@ -2664,6 +2705,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       for (let d = 0, tries = 0; d < budget.depth && tries < 40 && watchWork.n <= cap && !late(); tries++) {
         const input = r.randomInput(rand, bound, params)
         if (near) for (const x of m.inputs) if (near[x] !== undefined && typeof input[x] === 'number' && rand(2)) input[x] = near[x]!
+        if (near && budget.pool?.length) for (const x of m.inputs) if (typeof input[x] === 'number' && !rand(4)) input[x] = budget.pool[rand(budget.pool.length)]!
         for (const g of guided) { const set = g({...params, ...st.scalars}, st, rand, bound); if (set && typeof input[set[0]] === 'number') input[set[0]] = set[1] }
         if (!allowed(m, run, params, st, input)) continue
         d++
@@ -2769,6 +2811,11 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
     const deeper = refuteByRuns(r, laws, stepLaws, {...b, until: runsUntil})
     if (deeper?.run) return refutedVerdict(deeper)
   }
+  // (then, for a law of steps or one that divides by an hour or more (a clock's days), near it with its other values,
+  // where it holds some past the small ones: a time the state keeps is one an earlier request gave)
+  const m0 = r.machine, clocked = stepLaws.length > 0 || [...divisorsIn(laws.map(l => l.holds))].some(k => k >= 3600)
+  const pool = clocked ? [...new Set(Object.entries(v.witness ?? {}).filter(([k, x]) => !m0.inputs.includes(k) && !m0.params.includes(k) && x > deeperBudget.bound).map(([, x]) => x))] : []
+  if (pool.length) { const deeper = refuteByRuns(r, laws, stepLaws, {...deeperBudget, trials: 300, seed: 43, states: false, mixed: true, near: v.witness, pool, until: runsUntil}); if (deeper?.run) return refutedVerdict(deeper) }
   const until = clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
   // (the search's end on the wall too: kernel/prove.ts's withWall, past which every goal is unknown)
   return withWall(performance.now() + Math.max(0, until - clock()), () => searchedUntil(r, laws, stepLaws, v, opts, until))

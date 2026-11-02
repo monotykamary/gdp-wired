@@ -1,0 +1,12 @@
+diff -ru a/src/django_session_timeout/middleware.py b/src/django_session_timeout/middleware.py
+--- a/src/django_session_timeout/middleware.py	2026-11-02 11:22:15
++++ b/src/django_session_timeout/middleware.py	2026-11-02 11:23:07
+@@ -9,6 +9,8 @@
+ 
+ 
+ class SessionTimeoutMiddleware(MiddlewareMixin):
++    # gdp: law a session past its time is ended: now - old(request.session["_session_init_timestamp_"]) > settings.SESSION_EXPIRE_SECONDS implies result is not None
++    # gdp: cite a session past its time is ended: 45 CFR 164.312(a)(2)(iii): "Implement electronic procedures that terminate an electronic session after a predetermined time of inactivity"
+     def process_request(self, request):
+         if not hasattr(request, "session") or request.session.is_empty():
+             return

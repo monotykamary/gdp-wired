@@ -108,7 +108,8 @@ the laws from its comments. The contract is the same in every language:
   - `min`, `max`, `abs`, `sum(map)` and `forall k in m:`;
   - `old(x)` and `before.x`, the request's arguments by name, `result` and `failed`;
   - maps at a key as the code reads them, store keys by template, choices by value, and durations
-    (`30 days`; months are refused).
+    (`30 days`; months are refused), business days between two times over the calendar in gdp.toml
+    (`now - t <= 10 business days`, core/calendar.ts).
 
   Names resolve only through `Extraction.names`. A name the code doesn't have is refused, and the refusal lists the
   names it has.

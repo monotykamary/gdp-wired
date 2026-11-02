@@ -1,0 +1,22 @@
+{
+ "repo": "https://github.com/ethyca/fides",
+ "commit": "e87f3ff835af368defc1ec42dc29ec545a288585",
+ "licence": "Apache-2.0",
+ "language": "TypeScript",
+ "domain": "opt-out preference signals",
+ "files": [
+  "clients/fides-js/src/lib/automated-consent.ts",
+  "clients/fides-js/src/lib/consent-context.ts",
+  "clients/fides-js/src/lib/consent-types.ts",
+  "clients/fides-js/src/lib/consent-utils.ts",
+  "clients/fides-js/src/lib/fides-lifecycle-manager.ts",
+  "clients/fides-js/src/lib/i18n/index.ts",
+  "clients/fides-js/src/lib/preferences.ts",
+  "clients/fides-js/src/lib/shared-consent-utils.ts"
+ ],
+ "target": "clients/fides-js/src/lib/automated-consent.ts",
+ "opts": {
+  "entry": "calculateAutomatedConsent"
+ },
+ "what": "Fides.js: the consent applied automatically from Global Privacy Control, a migrated consent or a consent string."
+}

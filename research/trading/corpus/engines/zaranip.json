@@ -1,0 +1,30 @@
+{
+ "id": "zaranip",
+ "repo": "https://github.com/zaranip/trading-system",
+ "commit": "40030de13bf54b141d8eb7832e03c43fe127bc89",
+ "licence": "MIT",
+ "lang": "Python",
+ "kind": "matching engine",
+ "about": "a price-time order book: bids and asks as heapq heaps of Order objects ordered by __lt__, an index of orders by id, match a loop over both heaps, cancel by marking an order's quantity 0",
+ "check": [
+  "core/order_book.py"
+ ],
+ "toml": "[rules.OrderBook]\nmethods = [\"add_order\", \"cancel_order\", \"modify_order\", \"match\"]\n",
+ "edits": [
+  {
+   "file": "core/order_book.py",
+   "before": "^    def match\\(self\\)",
+   "lines": [
+    "# gdp: law the book no longer crosses: forall b in self.bids: forall a in self.asks: b.price < a.price",
+    "# gdp: law a fill takes no more than an order rests: forall o in old(self.bids): o not in self.bids or o.qty <= old(o.qty)"
+   ]
+  },
+  {
+   "file": "core/order_book.py",
+   "before": "^    def cancel_order\\(",
+   "lines": [
+    "# gdp: law a cancelled order rests no more: forall o in self.bids: o.order_id != order_id"
+   ]
+  }
+ ]
+}

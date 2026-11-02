@@ -15,7 +15,7 @@ import {type CodeSide, type Coverage, type Evidence, Outside, type Snap, constan
 import {buildCheck, builtEvidence, compileLimit, openHarness, stopped, stubbed} from './extract-step.ts'
 import {type GoOptions, type GoPkg, type GoRead, type TT, node} from './extract-go.ts'
 
-export type GoLeaf = {name: string, path: string[], kind: 'int' | 'bool' | 'str' | 'big' | 'bignil' | 'map' | 'mapnil' | 'list' | 'frame', t: number, go: string}
+export type GoLeaf = {name: string, path: string[], kind: 'int' | 'bool' | 'str' | 'big' | 'bignil' | 'map' | 'mapnil' | 'list' | 'frame' | 'sink', t: number, go: string}
 export type GoCheckOptions = {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean, keep?: string}
 export type GoEvidence = Evidence & {buildMs: number, runMs: number}
 type Raw = number | boolean | string

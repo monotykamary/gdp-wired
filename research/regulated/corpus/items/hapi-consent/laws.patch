@@ -1,0 +1,12 @@
+diff -ru a/hapi-fhir-server/src/main/java/ca/uhn/fhir/rest/server/interceptor/consent/IConsentVote.java b/hapi-fhir-server/src/main/java/ca/uhn/fhir/rest/server/interceptor/consent/IConsentVote.java
+--- a/hapi-fhir-server/src/main/java/ca/uhn/fhir/rest/server/interceptor/consent/IConsentVote.java	2026-11-02 11:22:20
++++ b/hapi-fhir-server/src/main/java/ca/uhn/fhir/rest/server/interceptor/consent/IConsentVote.java	2026-11-02 11:23:07
+@@ -51,6 +51,8 @@
+ 	 *
+ 	 * @return REJECT if either reject, AUTHORIZED if no REJECT and some AUTHORIZED, PROCEED otherwise
+ 	 */
++	// gdp: law a rejection always wins: theAccumulator.getStatus() == REJECT or theNextVoter.getStatus() == REJECT implies result.getStatus() == REJECT
++	// gdp: cite a rejection always wins: 45 CFR 164.508(b)(5): "An individual may revoke an authorization provided under this section at any time"
+ 	static <T extends IConsentVote> T parallelReduce(T theAccumulator, T theNextVoter) {
+ 		if (theNextVoter.getStatus().getPrecedence()
+ 				< theAccumulator.getStatus().getPrecedence()) {

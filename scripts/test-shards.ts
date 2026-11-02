@@ -25,7 +25,7 @@ const units: Unit[] = [
     gdp.test.ts datatypes.test.ts lemmas.test.ts discover.test.ts infer.test.ts cyclic.test.ts cycles.test.ts
     nonterm.test.ts data.test.ts hypothesis.test.ts seqs.test.ts abstract.test.ts search.test.ts invoices.test.ts
     folds.test.ts trees.test.ts pairs.test.ts chart.test.ts xstate.test.ts extract.test.ts effect.test.ts
-    effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts`),
+    effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts calendar.test.ts`),
   ...tests('kernel', 'tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts'),
   ...tests('examples', 'examples.test.ts'),
   ...tests('.', 'scripts/lean-gate/gate.test.ts'),

@@ -121,8 +121,10 @@ export type History = {keep: C, record: string[], sums: Record<string, E>, queri
 // it reads holds its start value. The kernel keeps the sum exact (each step moves it by the term's change at the keys
 // the step writes) and gives every goal that the term at any key, with the keys a step writes, is at most the sum.
 export type Sum = {key: string, term: E}
-// A count: `j` the map's key, `key` the counted key, both bound (`below` reads j, not key; `body` reads both).
-export type Counted = {j: string, key: string, below: E, body: E}
+// A count: `j` the map's key, `key` the counted key, both bound (`below` reads j, not key; `body` reads both). Over two
+// parameters (`lo` and `base`): the map at x is the count with j at x / base and lo at x % base, so a law reads it at the
+// composed key base·a + b (b < base) of a relation (CountMachine.lean's atJ).
+export type Counted = {j: string, key: string, below: E, body: E, lo?: string, base?: number}
 // A step writes a map at one key, or at every key at once: `each` names the key, read in `value` only as a map's key
 // (M[k]), so every key the maps hold nothing at reads alike.
 export type MapUpdate = {key: E, value: E} | {each: string, value: E}
@@ -587,7 +589,7 @@ export function carriedView(m: Machine, st: State, input: Request, rename: (map:
     const view: State = {...st, maps, defaults}, env0: Env = {...params, ...numbersOf(input)}
     for (const [c, d] of counts) {
       maps[rename(c)] = new CountCells(x => {
-        const e1 = {...env0, [d.j]: x}, n = evalE(d.below, e1, view, m)
+        const e1 = d.base ? {...env0, [d.j]: Math.floor(x / d.base), [d.lo!]: x % d.base} : {...env0, [d.j]: x}, n = evalE(d.below, e1, view, m)
         let sum = 0
         for (let k = 0; k < n; k++) sum = exact(sum + evalE(d.body, {...e1, [d.key]: k}, view, m))
         return sum

@@ -32,7 +32,7 @@ import type {Sorts} from './extract-print.ts'
 import type {Coverage} from './extract-check.ts'
 import {type GoOptions, type GoPkg, type GoRead, goNames, readGo, unsignedDomains} from './extract-go.ts'
 import {type GoCheckOptions, type GoEvidence, type GoLeaf, speak} from './extract-go-check.ts'
-import {type CRead, clangDump, flagsFor, node, readC} from './c/reader.ts'
+import {type CRead, clangDump, constantsOf, flagsFor, node, readC} from './c/reader.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 export type COptions = {
@@ -52,11 +52,26 @@ export type COptions = {
   // Calls of other code answered by the request (the callee's name: its result's type) or left out, as `gdp: answer`
   // and `gdp: skip` comments say at one call.
   answers?: Record<string, string>, skip?: string[],
+  // Globals the rule leaves out (a file keeping its state in globals), or the entry's fields: an output the code writes
+  // for other code (a database mirror, a CAN buffer, a report), which nothing the rule keeps reads; a read of one into
+  // what it keeps is refused. (`answers` may name the file's own functions too: each call of one the request's value.)
+  leave?: string[],
+  // The file's own functions read as other code's (a getter of another object's state, CANopen's CO_isError): each call
+  // the request's value, of its declared type, the check giving it in the copy of the file.
+  cut?: string[],
   onError?: 'refuse' | 'discard', domains?: Record<string, 'nat' | 'int'>, check?: GoCheckOptions,
 }
 type FS = {readFileSync: (p: string, e: string) => string, mkdtempSync: (p: string) => string, writeFileSync: (p: string, s: string) => void, rmSync: (p: string, o?: unknown) => void, mkdirSync: (p: string, o?: unknown) => void}
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
 
+// (C++ that includes little, embedded code's without the standard library: its whole dump is small, read whole; else
+// only the class's, its headers' being hundreds of MB)
+const smallTUs = new Map<string, boolean>()
+function smallTU(file: string, flags: string[], clang: string): boolean {
+  const k = `${clang} ${flags.join(' ')} ${file}`
+  if (!smallTUs.has(k)) { try { smallTUs.set(k, node<CP>('node:child_process').execFileSync(clang, ['-x', 'c++', ...flags, '-E', '-P', file], {encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore']}).length < 400_000) } catch { smallTUs.set(k, false) } }
+  return smallTUs.get(k)!
+}
 export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead, flags: string[]} {
   // (no entry, C++: each class the file declares tried, its dump read for its name only)
   if (!opts.entry && cpp) {
@@ -67,15 +82,44 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
     if (ok.length !== 1) throw new Refusal(file, ok.length ? `several classes write their state (${ok.map(r => r.c.entry).join(', ')}): name one (entry)` : `no class whose methods write its state${why.length ? ` (${why.join('; ')})` : ''}: name the entry`)
     return ok[0]!
   }
-  const flags0 = [...flagsFor(file, opts.compileCommands), ...(opts.flags ?? [])], flags = cpp && !flags0.some(f => f.startsWith('-std=')) ? [...flags0, '-std=c++17'] : flags0, {tu, target} = clangDump(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, cpp ? opts.entry : undefined)
+  const flags0 = [...flagsFor(file, opts.compileCommands), ...(opts.flags ?? [])], flags = cpp && !flags0.some(f => f.startsWith('-std=')) ? [...flags0, '-std=c++17'] : flags0, {tu, target} = clangDump(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, cpp && !smallTU(file, flags, opts.clang ?? 'clang++') ? opts.entry : undefined)
+  // (C++, its dump filtered to the class: each variable outside it the class reads, a namespace's constant, dumped too)
+  if (cpp && opts.entry && !smallTU(file, flags, opts.clang ?? 'clang++')) {
+    const have = new Set<string>(), want = new Map<string, string>()
+    const walk = (n: {kind: string, id?: string, name?: string, inner?: unknown[], referencedDecl?: {id: string, kind: string, name: string}}) => { if (n.kind === 'VarDecl' && n.id) have.add(n.id); const d = n.referencedDecl; if (n.kind === 'DeclRefExpr' && d?.kind === 'VarDecl') want.set(d.id, d.name); for (const c of n.inner ?? []) walk(c as never) }
+    walk(tu as never)
+    // (and each struct a method takes by reference or pointer, the caller's object: its fields read as inputs)
+    const recs = new Set<string>(), haveRec = new Set<string>()
+    const walkP = (n: {kind: string, name?: string, inner?: unknown[], type?: {qualType: string}}) => { if (/Record/.test(n.kind) && n.name) haveRec.add(n.name); if (n.kind === 'ParmVarDecl' && n.type) { const b = n.type.qualType.replace(/\b(const|volatile|struct|class)\b|[&*]/g, '').trim(); if (/^[A-Za-z_]\w*$/.test(b)) recs.add(b) } for (const c of n.inner ?? []) walkP(c as never) }
+    walkP(tu as never)
+    for (const name of [...recs].filter(r => !haveRec.has(r))) {
+      try { const more = clangDump(file, flags, opts.clang ?? 'clang++', cpp, name).tu.inner ?? []; tu.inner = [...(tu.inner ?? []), ...more.filter(m => /^(CXX)?RecordDecl$/.test(m.kind) && m.name === name && m.completeDefinition)] } catch { /* read where it is, as before */ }
+    }
+    for (const name of new Set([...want].filter(([id]) => !have.has(id)).map(([, n]) => n))) {
+      try { const more = clangDump(file, flags, opts.clang ?? 'clang++', cpp, name).tu.inner ?? []; const ids = [...want].filter(([id, n]) => n === name && !have.has(id)).map(([id]) => id); for (const m of more) if (m.kind === 'VarDecl' && m.name === name) for (const id of ids) tu.inner = [...(tu.inner ?? []), {...m, id}] } catch { /* read where it is, as before */ }
+    }
+  }
   // (no entry: the file's one struct its functions write, each struct of the dump tried)
   if (!opts.entry) {
-    const names = [...new Set((tu.inner ?? []).filter(n => n.kind === 'RecordDecl' && n.name && n.completeDefinition).map(n => String(n.name)))]
+    // (each struct by its tag or a typedef's name, an unnamed one's typedef too, that a function of the file takes a
+    // pointer to first)
+    const firsts = new Set((tu.inner ?? []).filter(n => n.kind === 'FunctionDecl' && n.inner?.some(c => c.kind === 'CompoundStmt')).map(n => n.inner!.find(c => c.kind === 'ParmVarDecl')?.type?.qualType.replace(/\b(const|volatile|struct)\b|\*/g, '').trim()).filter((t): t is string => !!t))
+    const typedefNames = (tu.inner ?? []).filter(n => n.kind === 'TypedefDecl' && (n.inner ?? []).some(c => /Record|Elaborated/.test(c.kind))).map(n => String(n.name))
+    const names = [...new Set([...(tu.inner ?? []).filter(n => n.kind === 'RecordDecl' && n.name && n.completeDefinition).map(n => String(n.name)), ...typedefNames])].filter(n => firsts.has(n))
     const ok = names.filter(n => { try { const c = readC(file, n, tu, target, cpp, opts.root); readGo(c.pkg, {methods: c.methods}); return true } catch (e) { if (e instanceof Refusal) return false; throw e } })
+    // (none: the file's globals, where its functions keep the state there)
+    if (!ok.length && !cpp) {
+      const stem = file.replace(/^.*\//, '').replace(/\.[^.]*$/, '')
+      try { const r = readCFile(file, {...opts, entry: stem}, cpp); readGo(r.c.pkg, {methods: r.c.methods, ...(opts.onError ? {onError: opts.onError} : {})} as GoOptions); return r } catch (e) {
+        if (!(e instanceof Refusal)) throw e
+        // (its globals are its state, and something in them is refused: that, not the structs)
+        if (!/^no global of /.test(e.what)) throw new Refusal(e.where, `${e.what} (the file's globals read as its state, ${stem}: no struct its functions write)`)
+      }
+    }
     if (ok.length !== 1) throw new Refusal(file, ok.length ? `several structs written by the file's functions (${ok.join(', ')}): name one (entry)` : 'no struct the file\'s functions write: name the entry')
     return readCFile(file, {...opts, entry: ok[0]!}, cpp)
   }
-  return {c: readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])]))), flags}
+  return {c: readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])])), (opts.functions ?? opts.methods ?? []).map(f => f.split('/')[0]!), opts.leave ?? [], [...Object.keys(opts.answers ?? {}), ...(opts.cut ?? [])]), flags}
 }
 export function extractC(at: string | FileURL, given: COptions = {}, cpp = false): Extraction & {leaves?: GoLeaf[]} {
   const notes: string[] = [], file = pathOf(at), fns = given.methods ?? given.functions, opts: COptions = {...given, ...(fns ? {functions: fns} : {})}
@@ -91,8 +135,12 @@ export function extractC(at: string | FileURL, given: COptions = {}, cpp = false
   // (a signed leaf the caller states is a natural: its range law from 0, the claim for those states)
   for (const [n, d] of Object.entries(opts.domains ?? {})) if (d === 'nat') read.model.laws = read.model.laws?.map(l => (l.includes(`"${n} within its type's range"`) ? l.replace(/\.atLeast\(-\d+\)/, '.atLeast(0)') : l))
   if (!opts.entry) read.model.notes.unshift(`the entry inferred: ${c.entry}, ${cpp ? 'the class whose methods write its state' : 'the struct the file\'s functions write'}`)
+  // (the names the laws read that the code defines as constants: its enum constants, else clang's value of each)
+  // (a qualified one, C++'s vehicle_status_s::ARMING_STATE_ARMED, by its law's spelling, vehicle_status_s.ARMING_STATE_ARMED)
+  const keep = ((given as {keep?: string[]}).keep ?? []).filter(n => !(n in c.consts)), found = keep.length ? constantsOf(file, flags, opts.clang ?? (cpp ? 'clang++' : 'clang'), cpp, keep) : {}
+  const consts = {...c.consts, ...Object.fromEntries(Object.entries(found).map(([k, v]) => [k.replaceAll('::', '.'), v]))}
   const x = fromModel(read.model, `${c.entry}.${cpp ? 'cpp' : 'c'}`, {...unsignedDomains(read), ...signedDomains(c.pkg, read), ...opts.domains}, notes, (rule, sorts) => checkC(file, flags, c, read, rule, sorts, opts, cpp))
-  return {...x, leaves: read.leaves, names: goNames(read)}
+  return {...x, leaves: read.leaves, names: goNames(read), ...(Object.keys(consts).length ? {consts} : {})}
 }
 
 // A signed field (and a signed result) is an integer, never inferred a natural: its range law reads below 0.
@@ -117,8 +165,9 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
   const pkg = c.pkg, T = (t: number) => ty(pkg, t), q = JSON.stringify, robs: string[] = []
   // A leaf's place: o->a.b in C; in C++ each member through a pointer to it the explicit instantiation of gdp_rob takes
   // (access isn't checked there), so private members are read and set as the class's own code does.
+  const G = c.globals
   const acc = (path: string[]) => {
-    if (!cpp) return `o->${path.join('.')}`
+    if (!cpp || G) return `o->${path.join('.')}`
     let e = '(*o)', t = pkg.types[0]!.t
     for (const f of path) {
       const r = T(t), k = `&${t === pkg.types[0]!.t ? c.cname : r.go}::${f}`
@@ -139,19 +188,24 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
       const at = T(l.t), n = at.len!, et = at.elem!, item = (e: string) => (T(et).k === 'int' ? intOut(e, et) : `gdp_putf("%s", ${e} ? "true" : "false")`)
       get.push(`gdp_putf("%s\\"%s\\":[", sep, ${k}); sep = ","; for (int i = 0; i < ${n}; i++) { if (i) gdp_putf(","); ${item(`${a}[i]`)}; } gdp_putf("]");`)
       set.push(`if ((v = gdp_key(st, ${k}))) { for (int i = 0; i < ${n}; i++) { const char *e = gdp_idx(v, i); if (!e) return "${l.name}: not ${n} items"; ${T(et).k === 'int' ? intIn(`${a}[i]`, 'e', et, `return "${l.name}: an item outside its type"`) : `${a}[i] = !strncmp(e, "true", 4);`} } if (gdp_idx(v, ${n})) return "${l.name}: not ${n} items"; }`)
-    } else if (l.kind === 'bool') { get.push(`gdp_putf("%s\\"%s\\":%s", sep, ${k}, ${a} ? "true" : "false"); sep = ",";`); set.push(`if ((v = gdp_key(st, ${k}))) { if (!strncmp(v, "true", 4)) ${a} = 1; else if (!strncmp(v, "false", 5)) ${a} = 0; else return "${l.name}: not a boolean"; }`) }
+    } else if (l.kind === 'bool') { get.push(`gdp_putf("%s\\"%s\\":%s", sep, ${k}, ${a} ? "true" : "false"); sep = ",";`); set.push(`if ((v = gdp_key(st, ${k}))) { if (!strncmp(v, "true", 4)) ${a} = ${T(l.t).nullflag ? '(void *)1' : '1'}; else if (!strncmp(v, "false", 5)) ${a} = 0; else return "${l.name}: not a boolean"; }`) }
   }
   const frames = read.leaves.filter(l => l.kind === 'frame' && !T(l.t).mutex)
+  // (a field left out that points to an object other code owns, a buffer: a zeroed one of its own, as the code's setup
+  // would give)
+  const et = T(pkg.types[0]!.t), leftPtrs = cpp || G ? [] : (opts.leave ?? []).filter(f => { const fd = et.fields?.find(g => g.name === f); return fd && T(fd.t).k === 'ptr' && ['struct', 'int', 'bool'].includes(T(T(fd.t).elem!).k) })
   // (the longest method name the request names, in UTF-8 bytes, its buffer: a name of any length is called)
   const M = Math.max(256, ...read.methods.map(x => new TextEncoder().encode(x.name).length + 1))
   const calls = read.methods.map(meth => {
-    const lines: string[] = [], args: string[] = ['o'], outs: [string, string, number][] = []
+    const lines: string[] = [], args: string[] = ['o'], outs: [string, string, number][] = [], given: [string, string][] = []
     meth.params.forEach((pa, i) => {
+      // (a global the request gives: set before the call, not passed)
+      const push = (a: string) => { if (G?.inputs.includes(pa.name) && i >= meth.params.length - G.inputs.filter(n => meth.params.some(q => q.name === n)).length) given.push([pa.name, a]); else args.push(a) }
       const t = T(pa.t), raw = `gdp_idx(a, ${i})`
       if (pa.arg.k === 'input') {
         lines.push(`${t.go} a${i}; memset(&a${i}, 0, sizeof a${i}); const char *r${i} = ${raw}; if (!r${i}) return "no argument ${i}";`)
         lines.push(t.k === 'int' ? intIn(`a${i}`, `r${i}`, pa.t, `return "argument ${i} outside its type"`) : `a${i} = !strncmp(r${i}, "true", 4);`)
-        args.push(`a${i}`)
+        push(`a${i}`)
       } else if (pa.arg.k === 'rec' && t.k === 'ptr' && T(t.elem!).box) {
         // (an out-parameter: a local of its type, its address given, what is left in it reported)
         const et = T(t.elem!).fields![0]!.t
@@ -164,23 +218,24 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
           const ft = st.fields!.find(g => g.name === f)!.t
           lines.push(`if ((v = gdp_key(r${i}, ${q(f)}))) ${T(ft).k === 'int' ? intIn(`a${i}.${f}`, 'v', ft, `return "argument ${i}.${f} outside its type"`) : `a${i}.${f} = !strncmp(v, "true", 4);`}`)
         }
-        args.push(byValue ? `a${i}` : `&a${i}`)
+        push(byValue || t.go?.trim().endsWith('&') ? `a${i}` : `&a${i}`)
       } else lines.push(`return "an argument the harness can't make";`)
     })
     const rt = meth.results[0], fails = opts.fails?.[meth.name]?.trim()
-    const callee = cpp ? `o->${meth.name}(${args.slice(1).join(', ')})` : `${meth.name}(${args.join(', ')})`
+    const callee = G ? `${meth.name}(${args.slice(1).join(', ')})` : cpp ? `o->${meth.name}(${args.slice(1).join(', ')})` : `${meth.name}(${args.join(', ')})`
     const invoke = rt === undefined ? `${callee};` : `${cpp ? 'auto' : T(rt).go} r0 = ${callee}; gdp_has = 1; ${T(rt).k === 'int' ? `gdp_outv = ${T(rt).signed === false ? '(long long)' : ''}r0; gdp_outu = ${T(rt).signed === false ? 1 : 0};` : 'gdp_outb = r0; gdp_isb = 1;'}`
     const failed = fails !== undefined && rt !== undefined ? `if (r0 ${fails.replace(/^(==|!=|<=|>=|<|>)\s*/, '$1 ')}) gdp_err = 1;` : ''
     // (with out-parameters, the result is a record: the value returned and what each holds)
     const rec = outs.length ? `gdp_rec = 1; gdp_putf(",\\"out\\":{"); ${[...(rt !== undefined ? [['result', 'r0', rt] as [string, string, number]] : []), ...outs].map(([n, v, et], j) => `gdp_putf("${j ? ',' : ''}\\"${n}\\":"); ${T(et).k === 'int' ? `gdp_putf(${T(et).signed === false ? '"%llu", (unsigned long long)' : '"%lld", (long long)'}(${v}))` : `gdp_putf("%s", ${v} ? "true" : "false")`};`).join(' ')} gdp_putf("},\\"hasOut\\":true");` : ''
-    return `if (!strcmp(m, ${q(meth.name)})) {\n    ${lines.join('\n    ')}\n    memcpy(gdp_pre, (void *)o, sizeof(gdp_T));\n    int sg = sigsetjmp(gdp_jb, 1);\n    if (!sg) { gdp_armed = 1; ${cpp ? 'try { ' : ''}${invoke} ${failed} gdp_armed = 0; ${rec}${cpp ? ' } catch (...) { gdp_armed = 0; gdp_sig = SIGUSR2; }' : ''} } else gdp_sig = sg;\n    return gdp_after(o);\n  }`
+    const load = G ? `gdp_load(o); ${given.map(([n, a]) => `memcpy((void *)&${n}, (const void *)&${a}, sizeof ${n});`).join(' ')}\n    ` : ''
+    return `if (!strcmp(m, ${q(meth.name)})) {\n    ${lines.join('\n    ')}\n    memcpy(gdp_pre, (void *)o, sizeof(gdp_T));\n    ${load}int sg = sigsetjmp(gdp_jb, 1);\n    if (!sg) { gdp_armed = 1; gdp_watch(1); ${cpp ? 'try { ' : ''}${invoke} ${failed} gdp_watch(0); gdp_armed = 0; ${rec}${cpp ? ' } catch (...) { gdp_watch(0); gdp_armed = 0; gdp_sig = SIGUSR2; }' : ''} } else { gdp_watch(0); gdp_sig = sg; }\n    ${G ? 'gdp_store(o);\n    ' : ''}return gdp_after(o);\n  }`
   })
   const frameLines = frames.map(l => { const e = acc(l.path); return `if (memcmp((char *)&${e}, (char *)gdp_pre + ((char *)&${e} - (char *)o), sizeof ${e})) return ${q(l.path.join('.'))};` })
   // The object, made as the code makes it: C's zeroed; C++'s constructed (in zeroed memory) with the rule's parameters.
   const cps = read.ctor ?? [], make = `static gdp_T *gdp_make(const char *line, const char **bad) {
   const char *a = gdp_key(line, "a"), *v; (void)a; (void)v;
-  ${cps.map((pa, i) => `${T(pa.t).go} c${i} = 0; if (!(v = a ? gdp_idx(a, ${i}) : 0)) { *bad = "no argument ${i}"; return 0; } ${T(pa.t).k === 'int' ? intIn(`c${i}`, 'v', pa.t, `{ *bad = "argument ${i} outside its type"; return 0; }`) : `c${i} = !strncmp(v, "true", 4);`}`).join('\n  ')}
-  void *mem = calloc(1, sizeof(gdp_T));
+  ${cps.map((pa, i) => `${T(pa.t).go} c${i}${cpp ? '{}' : ' = 0'}; if (!(v = a ? gdp_idx(a, ${i}) : 0)) { *bad = "no argument ${i}"; return 0; } ${T(pa.t).k === 'int' ? intIn(`c${i}`, 'v', pa.t, `{ *bad = "argument ${i} outside its type"; return 0; }`) : `c${i} = !strncmp(v, "true", 4);`}`).join('\n  ')}
+  void *mem = calloc(1, sizeof(gdp_T));${G ? '\n  memcpy(mem, &gdp_init, sizeof(gdp_T));' : ''}${leftPtrs.map(f => `\n  ((gdp_T *)mem)->${f} = calloc(1, sizeof *((gdp_T *)mem)->${f});`).join('')}
   return ${cpp ? `new (mem) gdp_T(${cps.map((_, i) => `c${i}`).join(', ')})` : '(gdp_T *)mem'};
 }`
   return `// Generated by gdp-wired's ${cpp ? 'C++' : 'C'} check (core/extract-c.ts): the file's code is called as it is.
@@ -205,8 +260,15 @@ static long long gdp_answer(const char *name) {
 #include <signal.h>
 #include <setjmp.h>
 #include <errno.h>
+#include <sys/time.h>
 ${cpp ? '#include <new>\n#include <type_traits>\n' : '#include <stdbool.h>\n'}
-typedef ${c.cname} gdp_T;
+${G ? `// The file's globals, the state: an object of them each request loads, and stores back after it.
+${G.externs.map(n => `__typeof__(${n}) ${n};`).join('\n')}
+typedef struct { ${G.state.map(n => `${cpp ? `std::remove_cv_t<decltype(${n})>` : `__typeof__(${n})`} ${n};`).join(' ')} } gdp_G;
+static void gdp_load(const gdp_G *o) { ${G.state.map(n => `memcpy((void *)&${n}, (const void *)&o->${n}, sizeof ${n});`).join(' ')} }
+static void gdp_store(gdp_G *o) { ${G.state.map(n => `memcpy((void *)&o->${n}, (const void *)&${n}, sizeof ${n});`).join(' ')} }
+static gdp_G gdp_init;
+` : ''}typedef ${c.cname} gdp_T;
 static unsigned char gdp_pre[sizeof(gdp_T)];
 ${robs.length ? `template <typename Tag, auto M> struct gdp_rob { friend auto gdp_ptr(Tag) { return M; } };\n${robs.map((k, i) => `struct gdp_tag${i} { friend auto gdp_ptr(gdp_tag${i}); };\ntemplate struct gdp_rob<gdp_tag${i}, ${k}>;`).join('\n')}` : ''}
 static char *gdp_buf; static size_t gdp_n, gdp_cap;
@@ -262,6 +324,8 @@ static const char *gdp_set(gdp_T *o, const char *st) {
 static sigjmp_buf gdp_jb; static volatile sig_atomic_t gdp_armed;
 static int gdp_sig, gdp_err, gdp_has, gdp_outu, gdp_isb, gdp_rec; static long long gdp_outv; static bool gdp_outb;
 static void gdp_on(int s) { if (gdp_armed) { gdp_armed = 0; siglongjmp(gdp_jb, s); } signal(s, SIG_DFL); raise(s); }
+// (a call that doesn't return within 2 s, an endless loop: the code's failure, as the rule's)
+static void gdp_watch(int on) { struct itimerval t; memset(&t, 0, sizeof t); t.it_value.tv_sec = on ? 2 : 0; setitimer(ITIMER_REAL, &t, 0); }
 static const char *gdp_frame(gdp_T *o) {
   (void)o;
   ${frameLines.join('\n  ')}
@@ -273,7 +337,7 @@ ${cpp ? 'extern "C" ' : ''}void gdp_extern_called(const char *n) { gdp_extern = 
 static const char *gdp_after(gdp_T *o) {
   const char *f = gdp_frame(o);
   if (f) { gdp_putf(",\\"frame\\":\\"%s\\"", f); }
-  if (gdp_sig) gdp_putf(",\\"panic\\":\\"%s\\"", gdp_sig == SIGABRT ? "SIGABRT (abort, or an assertion failing)" : gdp_sig == SIGTRAP || gdp_sig == SIGILL ? "undefined behavior (the sanitizer's trap)" : gdp_sig == SIGUSR1 ? "another file's function called" : gdp_sig == SIGUSR2 ? "an exception thrown" : "a signal");
+  if (gdp_sig) gdp_putf(",\\"panic\\":\\"%s\\"", gdp_sig == SIGABRT ? "SIGABRT (abort, or an assertion failing)" : gdp_sig == SIGTRAP || gdp_sig == SIGILL ? "undefined behavior (the sanitizer's trap)" : gdp_sig == SIGUSR1 ? "another file's function called" : gdp_sig == SIGUSR2 ? "an exception thrown" : gdp_sig == SIGALRM ? "the code didn't return (an endless loop)" : "a signal");
   else if (gdp_err) gdp_putf(",\\"err\\":\\"its result is its failure (%lld)\\"", gdp_outv);
   if (!gdp_sig && gdp_has && !gdp_rec) { if (gdp_isb) gdp_putf(",\\"out\\":%s,\\"hasOut\\":true", gdp_outb ? "true" : "false"); else if (gdp_outu) gdp_putf(",\\"out\\":\\"%llu\\",\\"hasOut\\":true", (unsigned long long)gdp_outv); else gdp_putf(",\\"out\\":\\"%lld\\",\\"hasOut\\":true", gdp_outv); }
   if (${opts.onError === 'discard' ? 1 : 0} && (gdp_sig || gdp_err)) memcpy((void *)o, gdp_pre, sizeof(gdp_T));
@@ -288,11 +352,11 @@ static const char *gdp_call(gdp_T *o, const char *m, const char *a) {
   return "no such function";
 }
 int main(int argc, char **argv) {
-  if (argc == 2 && !strcmp(argv[1], "--probe")) return 0;
+  ${G ? 'gdp_store(&gdp_init);\n  ' : ''}if (argc == 2 && !strcmp(argv[1], "--probe")) return 0;
   if (argc < 3) return 2;
   FILE *in = fopen(argv[1], "r"), *out = fopen(argv[2], "w");
   if (!in || !out) return 2;
-  int sigs[] = {SIGABRT, SIGTRAP, SIGILL, SIGFPE, SIGSEGV, SIGBUS};
+  int sigs[] = {SIGABRT, SIGTRAP, SIGILL, SIGFPE, SIGSEGV, SIGBUS, SIGALRM};
   for (unsigned i = 0; i < sizeof sigs / sizeof *sigs; i++) signal(sigs[i], gdp_on);
   gdp_T **objs = 0; size_t nobj = 0;
   char *line = 0; size_t lcap = 0;
@@ -335,6 +399,16 @@ function strictFlex(clang: string): string[] {
   if (!flexOK.has(clang)) { try { node<CP>('node:child_process').execFileSync(clang, ['-fstrict-flex-arrays=3', '-x', 'c', '-fsyntax-only', '/dev/null'], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}); flexOK.set(clang, true) } catch { flexOK.set(clang, false) } }
   return flexOK.get(clang) ? ['-fstrict-flex-arrays=3'] : []
 }
+// A demangled C++ function's own name: `void events::send<A, B>(unsigned int, ...)` is send, `A::f(int) const` f.
+function shortName(d: string): string | undefined {
+  let depth = 0, end = -1
+  for (let i = 0; i < d.length; i++) { const ch = d[i]; if (ch === '<') depth++; else if (ch === '>') depth--; else if (ch === '(' && depth === 0) { end = i; break } }
+  if (end < 0) return undefined
+  let head = d.slice(0, end), out = '', dd = 0
+  for (const ch of head) { if (ch === '<') dd++; else if (ch === '>') dd--; else if (dd === 0) out += ch }
+  head = out.trim().split(/\s+/).pop() ?? ''
+  return head.split('::').pop() || undefined
+}
 // --- the check ------------------------------------------------------------------------------------------------------------
 export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r: Rule, sorts: Sorts, opts: COptions, cpp: boolean): GoEvidence {
   const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process'), os = node<{tmpdir: () => string, platform: () => string}>('node:os'), path = node<{resolve: (p: string) => string}>('node:path')
@@ -354,17 +428,33 @@ export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r:
     // code's failure where the rule took the step, a difference), but those left out (skip, stated or inferred: they
     // change nothing the rule keeps, and nothing reads their value), which do nothing.
     const clang = opts.clang ?? (cpp ? 'clang++' : 'clang'), stubs = `${work}/gdp_stubs.c`
-    const link = (more: string[]) => cp.execFileSync(clang, [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', ...strictFlex(clang), h, ...(more.length ? ['-x', 'c', ...more] : []), '-o', `${work}/harness`, ], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26, timeout: compileLimit(), killSignal: 'SIGKILL'})
+    const run = (cc: string, args: string[]) => cp.execFileSync(cc, args, {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26, timeout: compileLimit(), killSignal: 'SIGKILL'})
+    // (the stubs are C, compiled apart: the project's flags, a C++ -std among them, are the harness's)
+    const link = (more: string[]) => { for (const m of more) run(clang.replace(/\+\+$/, ''), ['-w', '-c', '-x', 'c', m, '-o', `${m}.o`]); return run(clang, [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', ...strictFlex(clang), h, ...(more.length ? ['-x', 'none', ...more.map(m => `${m}.o`)] : []), '-o', `${work}/harness`]) }
     const why = (x: unknown) => String((x as {stderr?: string}).stderr ?? (x as Error).message)
     // (the compiler's errors: where they are in the code's own files, the source's; the linker's alone say nothing of it)
     const base = path.resolve(file).split('/').pop()!, errorsOf = (x: unknown) => why(x).split('\n').filter(l => /\berror:/.test(l) && !/linker command failed|ld returned/.test(l))
     const ofSource = (l: string) => !/(^|\/)(harness\.(c|cpp)|gdp_stubs\.c):/.test(l) && (l.includes(`${base}:`) || !l.includes(work))
     try { link([]) } catch (x) {
-      const names = [...new Set([...why(x).matchAll(/undefined (?:reference to [`']|symbol: )_?([A-Za-z_]\w*)|"_([A-Za-z_]\w*)", referenced from/g)].map(m => m[1] ?? m[2]!))]
+      // (C's names: a C++ one is demangled, `A::f(int)`, below)
+      const names = [...new Set([...why(x).matchAll(/undefined (?:reference to [`']|symbol: )_?([A-Za-z_]\w*)(?=['`]|$)|"_([A-Za-z_]\w*)", referenced from/gm)].map(m => m[1] ?? m[2]!))]
+      // (C++: the linker names other code's functions demangled, `A::f(int) const`: their own names from the object's
+      // undefined symbols, each matched by its demangled form; a stub is named so, `void _ZNK1A1fEi(void)`)
+      const demangled = new Set([...why(x).matchAll(/"([^"]+)", referenced from|undefined reference to [`']([^'`]+)'/g)].map(m => m[1] ?? m[2]!).filter(d => /[:(]/.test(d)))
+      const base = new Map<string, string>()
+      if (cpp && demangled.size) {
+        try {
+          run(clang, ['-x', 'c++', ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', ...strictFlex(clang), '-c', h, '-o', `${work}/harness.o`])
+          const und = run('nm', ['-u', `${work}/harness.o`]).split('\n').map(l => l.trim().replace(/^U\s+/, '')).filter(Boolean)
+          const out = cp.execFileSync('c++filt', [], {input: und.join('\n'), encoding: 'utf8'}).split('\n')
+          und.forEach((m, i) => { const d = out[i]?.trim() ?? ''; if (demangled.has(d) || demangled.has(d.replace(/^_/, ''))) { const n = m.replace(/^_(?=_Z)/, ''); if (/^\w+$/.test(n)) { names.push(n); base.set(n, shortName(d) ?? n) } } })
+        } catch { /* the names the linker gave */ }
+      }
       if (!names.length) { const b = buildCheck(clang, () => link([]), errorsOf, ofSource, x); if (!('ok' in b)) return {...empty, ...builtEvidence(b)} }
       else {
-        const out = new Set(read.leftOut ?? [])
-        fs.writeFileSync(stubs, `void gdp_extern_called(const char *);\n${names.map(n => (out.has(n) ? `void ${n}(void) {}` : `void ${n}(void) { gdp_extern_called(${JSON.stringify(n)}); }`)).join('\n')}\n`)
+        // (left out by its name, or by its name and constant arguments, CO_error_x_1_27: answered per arguments)
+        const left = new Set(read.leftOut ?? []), out = {has: (n: string) => left.has(n) || [...left].some(k => k.startsWith(`${n}_`) && /^[xm\d_]+$/.test(k.slice(n.length + 1)))}
+        fs.writeFileSync(stubs, `void gdp_extern_called(const char *);\n${names.map(n => (out.has(n) || out.has(base.get(n) ?? '') ? `void ${n}(void) {}` : `void ${n}(void) { gdp_extern_called(${JSON.stringify(base.get(n) ?? n)}); }`)).join('\n')}\n`)
         const b = buildCheck(clang, () => link([stubs]), errorsOf, ofSource)
         if (!('ok' in b)) return {...empty, ...builtEvidence(b)}
       }

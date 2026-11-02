@@ -1,0 +1,26 @@
+{
+ "id": "mesa",
+ "repo": "https://github.com/mesa/mesa-examples",
+ "commit": "5ab1c41db11bb36aa038824341e39110b15d1197",
+ "licence": "Apache-2.0",
+ "lang": "Python",
+ "kind": "order book (continuous double auction)",
+ "about": "Mesa's zero-intelligence double auction: bids and asks as lists of Order dataclasses, the best by max or min with a key, try_match one cross, clear_all_crosses a loop over try_match",
+ "check": [
+  "examples/zi_double_auction/model/order_book.py"
+ ],
+ "toml": "[rules.OrderBook]\nroot = \"examples/zi_double_auction/model\"\nmethods = [\"submit_bid\", \"submit_ask\", \"best_bid\", \"best_ask\", \"spread\", \"try_match\"]\n",
+ "edits": [
+  {
+   "file": "examples/zi_double_auction/model/order_book.py",
+   "before": "^    def try_match\\(",
+   "lines": [
+    "# gdp: law the best bid fills: forall o in old(self.bids): forall j in old(self.bids): o in self.bids or o.price > j.price or (o.price == j.price and o.timestamp <= j.timestamp)",
+    "# gdp: law the best ask fills: forall o in old(self.asks): forall j in old(self.asks): o in self.asks or o.price < j.price or (o.price == j.price and o.timestamp <= j.timestamp)",
+    "# gdp: law a fill crosses: forall b in old(self.bids): forall a in old(self.asks): b in self.bids or a in self.asks or a.price <= b.price",
+    "# gdp: law the earliest to arrive at the best price fills: forall o in old(self.asks): forall j in old(self.asks): o in self.asks or o.price < j.price or (o.price == j.price and o <= j)",
+    "# gdp: law no agent trades with itself: forall b in old(self.bids): forall a in old(self.asks): b in self.bids or a in self.asks or b.agent_id != a.agent_id"
+   ]
+  }
+ ]
+}

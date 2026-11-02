@@ -156,3 +156,16 @@ export function varsOf(x: N | B | L | K, out = new Set<string>(), maps = new Set
   go(x)
   return {vars: out, maps}
 }
+
+// A numeric variable (a bound name: a pass i$, a key k$ or kl$, which no boolean or choice shares) replaced by a term
+// everywhere in a term, structurally.
+export function substN<T extends N | B | L | K>(x: T, name: string, by: N): T {
+  const go = (o: unknown): unknown => {
+    if (Array.isArray(o)) return o.map(go)
+    if (!o || typeof o !== 'object') return o
+    const r = o as Record<string, unknown>
+    if (r.op === 'var' && r.name === name && !('values' in r)) return by
+    return Object.fromEntries(Object.entries(r).map(([k, v]) => [k, go(v)]))
+  }
+  return go(x) as T
+}
