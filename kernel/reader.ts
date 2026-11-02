@@ -196,7 +196,9 @@ export class Reader {
         // (a tuple key: its parts' forms, the cell M[⟨k1|k2|…⟩], kernel.ts's keyParts)
         if (e.key.op === 'tup' || e.key.op === 'proj') {
           const ps = this.tparts(e.key)
-          if (ps.lins) { r = ps.r; const ls = ps.lins; lin = same(0, e, 0, 0, 0, () => v(`${e.map}[⟨${ls.map(canon).join('|')}⟩]`)); break }
+          // (kept by the cell's name: the read's parts change with the path, Src[p] where a column stood, and a form kept
+          // by the read alone named the first path's cell at every later one, a cell kernel.ts doesn't read there)
+          if (ps.lins) { r = ps.r; const name = `${e.map}[⟨${ps.lins.map(canon).join('|')}⟩]`; lin = same(0, e, name, 0, 0, () => v(name)); break }
           if (e.key.op === 'tup') { lin = undefined; r = ps.r; break }
         }
         const key = this.linear(e.key); lin = key.lin && same(0, e, key.lin, 0, 0, () => v(`${e.map}[${canon(key.lin!)}]`)); r = key; break

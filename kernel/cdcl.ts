@@ -621,7 +621,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
         for (const id of reader.entered) { if (single(id)) { bxIn.add(id); bx.assert(id, full[reader.slotOf(id)]!.lin) } if (sx && !toRetract.delete(id)) toAssert.add(id) }
         if (verify && !clausal) {
           const mine = new Set(rowsR.map(r => canon(r.lin))), theirs = new Set(leafConstraints(goal, pathOf()).map(r => canon(r.lin)))
-          if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}`)
+          if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}: reader's alone ${[...mine].filter(x => !theirs.has(x)).slice(0, 4).join(' ; ')}; kernel's alone ${[...theirs].filter(x => !mine.has(x)).slice(0, 4).join(' ; ')}; path ${[...pathOf()].map(([k2, a]) => `${a.holds ? '' : '¬'}${k2}`).join(' ; ')}`)
         }
         work.n += 1 + full.length
         costs.cdclNodes++; costs.cdclRows += full.length
