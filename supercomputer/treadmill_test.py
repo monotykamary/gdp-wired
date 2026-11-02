@@ -3,8 +3,8 @@ kernel/MUTANTS.md as it stands).
 
 stale_mutants.jsonl: the 73 survivors of 31 Oct's commits up to 17:42 (078bd1d, b5ba56b, a5b5814, 42f78b3, b7a2d85,
 fdf3460, 0393f93, e4aef01, cf00792, b6a23b0, de6aa95), all stored without an equivalent flag, and the 85 later rows of
-their signatures. The digest called 47 of them NEW survivors; 43 are listed equivalent now and 30 were killed at a later
-commit, so none stands."""
+their signatures. The digest called 47 of them NEW survivors; 43 were listed equivalent on 31 Oct and 30 were killed at a later
+commit, so none stood then (three stand since 10da84d dropped their ledger entries)."""
 import json
 import pathlib
 import sys
@@ -32,12 +32,18 @@ def rank(r):
 
 class MutantAlerts(unittest.TestCase):
     def test_the_stale_rows_stand_no_more(self):
+        # (judged by kernel/MUTANTS.md as it stands, whose count moves: 43 listed on 31 Oct, 40 after 10da84d dropped
+        # three entries for code kernel.ts no longer has; so no fixed count, the rule's parts against the ledger now)
         stale = [r for r in ROWS if r["commit"].startswith(OLD) and not r.get("killedBy")]
         self.assertEqual(len(stale), 73)
         self.assertFalse(any(r.get("equivalent") for r in stale))  # (the flag they were stored with)
-        listed = [r for r in stale if tm.listed_equivalent(r, EQS, lines_of(r))]
-        self.assertEqual(len(listed), 43)
-        self.assertEqual(tm.standing_survivors(ROWS, EQS, lines_of, rank), set())
+        listed = {r["sig"] for r in stale if tm.listed_equivalent(r, EQS, lines_of(r))}
+        killed = {r["sig"] for r in ROWS if r.get("killedBy")}
+        self.assertTrue(listed)  # (the ledger, not the stored flag, says so)
+        standing = tm.standing_survivors(ROWS, EQS, lines_of, rank)
+        self.assertFalse(standing & listed)  # (listed equivalent now: stands no more)
+        self.assertFalse(standing & killed)  # (killed at a later commit: stands no more)
+        self.assertLessEqual(standing, {r["sig"] for r in stale} - listed - killed)
 
     def test_a_survivor_at_its_newest_commit_stands(self):
         # each killed-later signature, its later rows dropped: it survives where it ran last
