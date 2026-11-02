@@ -2760,7 +2760,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
       const fnReads = (t: unknown) => new Set(readsOnce(t).filter(r => r.op === 'get' && p.fns.some(f => f.name === r.map)).map(r => sid(r)))
       const inConcl = fnReads(concl), common = new Set([...fnReads(us.map(useConcl))].filter(x => inConcl.has(x)))
       const lean = reached(p, fs, insts.filter(q => !atField(q)), from, ms, common)
-      if (lean.length < insts.length) leaner.set(`${name}, case ${i + 1}`, lean)
+      if (lean.length < insts.length && !inTermination.on) leaner.set(`${name}, case ${i + 1}`, lean)
       plan.push({name: `${name}, case ${i + 1}`, hyps: c.lits, concl, sub: 0, insts, uses: us})
     }
     plans.push(plan)
@@ -3149,6 +3149,16 @@ function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: n
     last = verdict
     if (nodeTrace && !verdict.proven && new RegExp(nodeTrace).test(verdict.goal)) { const n = specs.find(x => x.name === verdict.goal); if (n) console.error(`[node] ${n.name}: ${verdict.stuck}\n hyps: ${n.hyps.map(showC).join(' ; ')}\n concl: ${showC(n.concl)}\n uses:\n   ${n.uses.map(u => `${specs[u.node]?.name.slice(0, 40)}: ${showC(substC(specs[u.node]!.concl, {vars: u.subst, maps: {}, flags: {}}))} if ${showC(u.guard)}`).join('\n   ')}\n instances:\n   ${n.insts.map(q => `${fs.facts[q.fact]!.name}: ${showC(holdsAt(fs, q))}`).join('\n   ')}`) }
     if (dataTrace) console.error(`[data]   -> ${verdict.proven ? (verdict.checked ? 'proven' : `not checked: ${verdict.why}`) : `${verdict.goal}: ${verdict.stuck}`}`)
+    if (env.DATA_MIN && !verdict.proven && new RegExp(env.DATA_MIN).test(verdict.goal)) {
+      const fi = specs.findIndex(x => x.name === (verdict as {goal: string}).goal), T = Number(env.DATA_MIN_T ?? 30000)
+      const tryWith = (insts: NodeSpec['insts'], t: number) => { const sp = specs.map((x, i) => (i === fi ? {...x, insts, within: undefined, variants: undefined} : x)); const t0 = clock(); const v = withDeadline(clock() + t, () => proveCyclic(fs.facts, sp)); return {v: v.proven ? 'proven' : `${v.goal}: ${v.stuck}`, ms: Math.round(clock() - t0)} }
+      const full = (specs[fi]!.variants?.at(-1) ?? specs[fi]!).insts
+      console.error(`[min] full ${full.length}: ${JSON.stringify(tryWith(full, 120000))}`)
+      let cur = [...full]
+      for (let i = cur.length - 1; i >= 0; i--) { const w2 = cur.filter((_, j) => j !== i), r = tryWith(w2, T), nm = fs.facts[cur[i]!.fact]!.name; if (r.v === 'proven') { cur = w2; console.error(`[min] drop ${nm} (${r.ms})`) } else console.error(`[min] keep ${nm}: ${showC(holdsAt(fs, cur[i]!)).slice(0, 220)} (${r.v.slice(-30)})`) }
+      for (const q of cur) console.error(`[min]   ${fs.facts[q.fact]!.name}: ${showC(holdsAt(fs, q)).slice(0, 400)}`)
+      console.error(`[min] ${cur.length} of ${full.length}: ${JSON.stringify(tryWith(cur, 60000))}`)
+    }
     if (!(verdict.proven && verdict.checked) && clock() <= t2 + attemptMs.ms) done.add(key)
     if (verdict.proven && verdict.checked) return {out: {law: l, spec: specs[main]!, nodes: specs}, verdict, scheme: s?.name ?? (without ? 'no induction' : undefined), tried}
   }
