@@ -1,0 +1,12 @@
+{
+ "repo": "https://github.com/CMSgov/bluebutton-web-server",
+ "commit": "7dd4642eb9060dd58270dea7521099a0f4eeea5d",
+ "licence": "Apache-2.0",
+ "language": "Python",
+ "domain": "patient data access",
+ "files": [
+  "apps/authorization/permissions.py"
+ ],
+ "target": "apps/authorization/permissions.py",
+ "what": "CMS Blue Button 2.0: whether a FHIR resource returned belongs to the token's patient."
+}

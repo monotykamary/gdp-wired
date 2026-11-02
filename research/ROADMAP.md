@@ -130,6 +130,12 @@ and workflows. What is missing is around it:
   next/relational.ts's isolation are the start; needed in the library, on extracted code.
 - **Audit:** a certificate checkable in Lean is the evidence an auditor can rerun.
 
+All four are built (research/regulated/DESIGN.md): laws about two runs, deadlines in days and business days over a
+stated calendar, citations drafted and signed (research/regulated/DRAFTING.md), certificates checked in Lean. The
+premise "the code has the shape of the reached workflows" didn't hold. Of 3,788 files in 40 healthcare and privacy
+repositories, the readers took 3 (research/regulated/corpus). That code is mostly decisions and state outside the
+object. Reaching it is reader work, ranked there.
+
 ## 5. The pieces across domains
 
 | Piece | Have | Missing | Unlocks |
@@ -149,7 +155,8 @@ Closest to what is reached first. Each step ends when its measure holds on main.
 1. **Protocols to 10/10** (section 2). Measure: 10 of 10, nothing written, 60 s, no protocol-specific code.
 2. **Distributed patterns in apps** (section 3, gaps 1 and 2). Measure: one service's pattern laws decided.
 3. **Regulated workflows:** two-run laws in the library, deadlines, law-to-clause traces. Measure: one open-source
-   workflow's privacy and deadline laws decided.
+   workflow's privacy and deadline laws decided. Built around the code. The measure is open: eight real targets and
+   their 11 laws are stated, all refused by the readers (research/regulated/corpus).
 4. **Smart contracts:** sat/ into the library, re-entrancy as an environment, a reader. Measure: a public contract's
    ledger laws decided, against a known exploit's refutation.
 5. **Trading:** fixed-point rounding, ordered collections. Measure: an open-source matching engine's priority law.

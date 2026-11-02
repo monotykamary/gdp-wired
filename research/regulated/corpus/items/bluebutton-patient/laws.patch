@@ -1,0 +1,12 @@
+diff -ru a/apps/authorization/permissions.py b/apps/authorization/permissions.py
+--- a/apps/authorization/permissions.py	2026-11-02 11:22:15
++++ b/apps/authorization/permissions.py	2026-11-02 11:23:07
+@@ -40,6 +40,8 @@
+             raise VersionNotMatched()
+ 
+ 
++# gdp: law another patient's record is never released: obj["resourceType"] == "Patient" and obj["id"] != patient_id implies failed or not result
++# gdp: cite another patient's record is never released: 45 CFR 164.502(a): "A covered entity or business associate may not use or disclose protected health information, except as permitted or required by this subpart"
+ def is_resource_for_patient(obj, patient_id):
+     try:
+         if obj['resourceType'] == 'Coverage':

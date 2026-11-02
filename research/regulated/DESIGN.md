@@ -202,11 +202,24 @@ including one that goes back. A law about two attempts in a row (the lockout bel
 - **Lean.** The CLI's two certificates of business-day laws (keys, guards and holidays) are checked by Lean 4.34.0
   against the twin: 4 theorems, `propext`, `Classical.choice` and `Quot.sound` only, 75 s on boat
   (`runs/regulated/lean1`).
+- **Mutants and review.** Nine mutants of calendar.ts are killed by the tests. Two survived the first tests: a
+  holiday read from the second after its midnight, and a week's guard one day wide. Both were killed once the tests
+  read each holiday's midnight and each guard at its week alone (`runs/regulated/mut2`). A read-only review by
+  gpt-6.1-terra found one more. A holiday before 1969-12-22 lost its weekday to JavaScript's negative `%`, making a
+  count one too many: fixed and tested.
 - **Drafting** (`DRAFTING.md`). One test covers the path:
   - an answer's laws are read over the code's names;
   - one naming a cell the code lacks is refused;
   - a kept law pasted with its citation is proven;
   - `--require-review` exits 2 until the citation is signed, then 0.
+
+**The measure on real code (corpus/README.md): not met.** Eight targets in seven codebases were taken through the
+CLI: SMART's client-py, CMS Blue Button (two), django-session-timeout, HAPI FHIR, Google's fhir-gateway, Fides and
+Orejime. Each has 1 to 2 laws with their clauses, 11 laws in all. The readers refuse every target, so none of the 11
+is decided. A scan of 40 healthcare and privacy repositories read 3 of 3,788 files, all trivial, and 1 of 1,108
+Python functions read as decisions. Most of that code is stateless functions or state kept in a database or a
+request. What would move it is the readers' reach, ranked in corpus/README.md: decisions beyond Python, state outside
+the object, untyped records, datetime fields.
 
 **Not verified, or not done:**
 - **Runs aren't shortened.** A refutation's run is the first the search found, not the shortest.

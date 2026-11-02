@@ -1,0 +1,16 @@
+{
+ "repo": "https://github.com/labd/django-session-timeout",
+ "commit": "0fb35d012b7868d0c5e7f8ce72fa761fa54d5faa",
+ "licence": "MIT",
+ "language": "Python",
+ "domain": "automatic logoff",
+ "files": [
+  "src/django_session_timeout/__init__.py",
+  "src/django_session_timeout/middleware.py"
+ ],
+ "target": "src/django_session_timeout/middleware.py",
+ "opts": {
+  "entry": "SessionTimeoutMiddleware"
+ },
+ "what": "A Django middleware that ends a session a fixed time after it began (or after its last activity)."
+}

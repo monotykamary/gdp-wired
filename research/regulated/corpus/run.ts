@@ -6,12 +6,12 @@
 import {cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync} from 'node:fs'
 import {spawnSync} from 'node:child_process'
 import {tmpdir} from 'node:os'
-import {dirname, join} from 'node:path'
+import {dirname, join, resolve} from 'node:path'
 import {cacheOf, fetchItem, itemsIn} from './fetch.ts'
 
 const here = import.meta.dir, root = join(here, '../../..')
 const argv = process.argv.slice(2), opt = (k: string, d: string) => (argv.includes(`--${k}`) ? argv[argv.indexOf(`--${k}`) + 1]! : d)
-const itemsDir = opt('items', join(here, 'items')), out = opt('out', join(root, 'runs/regulated/local')), ms = opt('ms', '60000')
+const itemsDir = resolve(opt('items', join(here, 'items'))), out = opt('out', join(root, 'runs/regulated/local')), ms = opt('ms', '60000')
 const name = argv[0]!, it = itemsIn(itemsDir).find(i => i.name === name)
 if (!it) throw new Error(`no item ${name} in ${itemsDir}`)
 if (!existsSync(cacheOf(it))) await fetchItem(it)
