@@ -43,6 +43,43 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneRL: native relations (maps keyed by tuples) in the kernel, Lean and the DSL; the gates
+
+Branch gen/laneRL from main 3000a12. Trusted: two terms, `tup(a, b)` (Cantor's pairing tri(a + b) + b; n-tuples nest
+right) and `proj(k, a)` (cun's parts), in core/machine.ts, kernel/kernel.ts and lean-kernel/Kernel.lean, line for line:
+a tuple has no linear form; its parts (`parts`/`keyParts`: a tup's parts' forms, proj 1 of one its rest while two or
+more are left) read a cell `M[⟨k1|…⟩]` (Lean `cellT m ks`, valued `maps m (tupk ks)`); proj 0 is the first part, proj 1
+the last of two; two tuples are equal exactly when their parts are (truth and facts as `and`); two tuple cells equal
+when every part is decided equal both ways (Lean `keysEq`). Lean's new statements: `parts_sound` (parts ⇒ ∃ values,
+tupk of them is the term's value), `shapeT_sound`, `eqSh_sound`, `factsSh_sound`, `cellT_col`, `cellEq_sound`;
+`linear_sound`, `truth_sound`, `facts_sound` and `sound` unchanged in statement; axioms propext, Classical.choice,
+Quot.sound. Untrusted around it: scope (one key shape per map, `mapArities`; writes at every tuple read part by part,
+`eachParts`; names reserve ⟨ ⟩ |; a map whose name holds a column's characters reads no column — a hole of the older
+naming, found by the lane's review, Lean refused it), the prover and the CDCL reader (tuple cells paired part by part),
+the EPR path (a tuple key a tuple of its parts), the interpreter (quantifiers and writes at every tuple on each part's
+breakpoints; a write the request leaves as it is copies the map), `.sorts`/`.relations` in the DSL.
+
+- **Ports.** learning_switch and learning_switch_i4 over relations (models.ts; the phased ones kept as `phased`): one step
+  an action. Faithful: relations/agree.ts (12,000 random steps each, the phased port's rows run out: no difference);
+  check.ts against TLC: learning_switch 43,672 states, i4 240 (TLC's), each broken variant reaching a bad state.
+- **The published invariants check** (relations/hand.ts, search off): learning_switch with mypyvy's help_3/help_4 in
+  3.0 s on boat (main's packed port: unknown at 300 s); i4 with I4's manual_1..4 and the setup laws in 12.7 s (two of
+  the written laws were not inductive as written: they held only after start; a CTI check found it).
+- **Lean end to end:** `bun lean-kernel/export-kernel.ts --switch` (997 KB): learning_switch's five laws, kernel.ts's
+  proof, checked through `Kern.smachine_sound` on boat in 155 s; `--tuples`: tuple goals, a tampered tuple-cell equality
+  refused, symmetric, ordered and rotated relations end to end.
+- **Soundness gates:** kernel/tuples.test.ts (adversarial: one part equal, lengths, plain vs tuple cells, aliasing, proj
+  of non-tuples, reserved names, tuple equality's facts, comprehensions that write what they read, the runtime against
+  set semantics); mutants over the changed kernel lines 170 of 177 killed, the 7 survivors equivalent (MUTANTS.md). The
+  pi reviews (sol, terra) could not run: pi's OpenAI login had expired (invalid_grant); a fresh-context review ran
+  instead and found the map-name hole.
+- **Gates (boat, large, --timing).** IC3Syn 29 × 3 at strict 60 s (runs/laneRL/gate-ic): **24 of 29 proven within 60 s
+  in all three runs** (main 22), 25 in at least one (main 24); learning_switch 18.7 / 16.4 / 18.0 s; no broken variant
+  proven. DuoAI's ten: 9 of 10 (distributed_lock unknown, as on main). Quick bar against main 9b62ecf: wrong 0 in every
+  group, nothing lost solid (CHC +9.33, gained 8; ITS -2, lost 4 none solid; TIP lost 1 none solid; rw gained 1, lost
+  1 none solid; f1, f2, SV level; g332 same searches, +3% time after a fix). Test shards: all 7 pass.
+- **Not closed:** learning_switch_i4 with nothing written (unknown at 60 s; below).
+
 ## gen/laneRL: the engine over relations keyed by tuples; learning_switch proven with nothing written (pinned, strict 60 s); i4 not yet (untrusted; nothing trusted changed by this part)
 
 Branch gen/laneRL (the lead's tuple keys: core/machine.ts `tup`/`proj`, kernel cells `M[⟨k1|…⟩]`, `.relations`). The
