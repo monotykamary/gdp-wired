@@ -13,7 +13,7 @@
 import type {Extraction, Name} from './extract.ts'
 import {type Verdict, proveLeadsTo, proveRule, proveSteps} from './dsl.ts'
 import type {Law} from './machine.ts'
-import {type Built, type Cite, LawError, type LawText, buildLaw, buildLeadsTo, buildTwoRuns, citesIn, isLeadsTo, isTwoRuns, lawsIn, namesWithClock} from './laws.ts'
+import {type Built, type Calendar, type Cite, LawError, type LawOpts, type LawText, buildLaw, buildLeadsTo, buildTwoRuns, citesIn, isLeadsTo, isTwoRuns, lawsIn, namesWithClock} from './laws.ts'
 import {type TwoRunLaw, certify, proveTwoRuns} from './relational.ts'
 import {type InEnv, contend, envOf, inEnv, shrinkRun} from './system.ts'
 
@@ -42,6 +42,7 @@ function args(argv: string[]): {cmd: string, targets: string[], o: Opts} {
     const a = argv[i]!
     if (a === '--json') o.json = true
     else if (a === '--no-propose') o.propose = false
+    else if (a === '--require-review') o.requireReview = true
     else if (a.startsWith('--')) {
       const [k, inline] = a.slice(2).split('=') as [string, string | undefined], v = inline ?? argv[++i] ?? ''
       const key = k.replace(/-(\w)/g, (_, c: string) => c.toUpperCase())
@@ -91,6 +92,23 @@ async function extractOne(t: Target, o: Record<string, unknown>): Promise<Extrac
     throw e
   }
 }
+// A TypeScript file's relative imports, read beside it as TypeScript resolves them (two deep, at most 12 files), by their
+// path from the file's directory: their classes and functions are the code's own, read and inlined, not another module's.
+function relativeImports(entry: string): Record<string, string> {
+  const out: Record<string, string> = {}, seen = new Set([entry]), queue: [string, number][] = [[entry, 1]], dir = path.dirname(entry)
+  while (queue.length && Object.keys(out).length < 12) {
+    const [from, depth] = queue.shift()!
+    for (const m of fs.readFileSync(from, 'utf8').matchAll(/(?:\bfrom\s+|\bimport\s*\(\s*|\brequire\(\s*|^\s*import\s+)['"](\.{1,2}\/[^'"]+)['"]/gm)) {
+      const base = path.join(path.dirname(from), m[1]!), bare = base.replace(/\.(js|jsx|mjs|cjs)$/, '')
+      const hit = [base, ...['.ts', '.tsx', '.js', '.jsx', '.mjs'].map(x => `${bare}${x}`), ...['/index.ts', '/index.tsx', '/index.js'].map(x => `${base}${x}`)].find(c => fs.existsSync(c) && !fs.statSync(c).isDirectory())
+      if (!hit || seen.has(hit) || Object.keys(out).length >= 12) continue
+      seen.add(hit)
+      out[path.relative(dir, hit)] = fs.readFileSync(hit, 'utf8')
+      if (depth < 2) queue.push([hit, depth + 1])
+    }
+  }
+  return out
+}
 async function extractWith(t: Target, o: Record<string, unknown>): Promise<Extraction> {
   const f = t.at, dir = path.dirname(f)
   switch (t.lang) {
@@ -117,8 +135,8 @@ async function extractWith(t: Target, o: Record<string, unknown>): Promise<Extra
       const own = async (spec: string) => { try { return await import(createRequire(f).resolve(spec)) as Record<string, unknown> } catch { return undefined } }
       if (/from\s+['"]effect(\/\w+)?['"]/.test(code)) { const {extractEffect} = await import('./effect.ts'), effect = await own('effect'); return extractEffect(file, {...(effect ? {effect} : {}), ...o} as never) }
       if (/from\s+['"]xstate['"]/.test(code) && /\bcreateMachine\b/.test(code)) { const {extractXState} = await import('./extract-xstate.ts'), xstate = await own('xstate'); return extractXState(file, {...(xstate ? {xstate} : {}), ...o} as never) as Extraction }
-      const {extract} = await import('./extract.ts')
-      return extract(file, o as never)
+      const {extract} = await import('./extract.ts'), files = relativeImports(f)
+      return extract(file, {...(Object.keys(files).length ? {files} : {}), ...o} as never)
     }
   }
 }
@@ -217,7 +235,7 @@ async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: str
   const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, env: _e, ...flags} = o
   void _j; void _m; void _p; void _c; void _t; void _fr
   const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
-  const {clock: _k, from: _f, env: _v, ...shared} = cfg.all
+  const {clock: _k, from: _f, env: _v, calendar: _cal, ...shared} = cfg.all
   void _k; void _f
   const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*/g) ?? []))]
   const extra = await Promise.all(more.map(async entry => ({entry, x: await extractOne(t, {...merge(merge({...shared, keep}, cfg.rules[entry] || {}), flags), entry})})))
@@ -230,7 +248,7 @@ async function rulesOf0(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: st
   // (the options: gdp.toml's for every rule, then the rule's own, then the flags; a rule found with no entry named is
   // read again where gdp.toml has options of its own for it)
   const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
-  const {clock: _k, from: _f, env: _v, ...shared} = cfg.all
+  const {clock: _k, from: _f, env: _v, calendar: _cal, ...shared} = cfg.all
   void _f
   void _k
   // (the names the laws read, so an argument a law reads stays in the rule though the code ignores it)
@@ -331,7 +349,7 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
   const unit = o.clock ?? configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at)).all.clock ?? CLOCK[t.lang]
   const others = Object.fromEntries(rules.filter(r => r.x.ok).map(r => [r.entry ?? r.x.model?.name ?? '', r.x]))
   const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
-  const ctx: Ctx = {ms: o.ms, clock: unit === 's' ? 1 : unit === 'ms' ? 1000 : undefined, others, cites, cert: o.cert, file: path.relative(proc.cwd(), t.at) || t.at}
+  const ctx: Ctx = {ms: o.ms, clock: unit === 's' ? 1 : unit === 'ms' ? 1000 : undefined, others, cites, cert: o.cert, file: path.relative(proc.cwd(), t.at) || t.at, ...(cfg.all.calendar ? {calendar: cfg.all.calendar as Calendar} : {})}
   for (const {entry, x: x0} of rules) {
     let x = x0
     const name = entry ?? (x.model?.name || undefined)
@@ -384,12 +402,12 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     // together as one inductive set, then each law of a step from every state they allow; none rests on what the
     // search found)
     const from = ((o.from as string | undefined) ?? (name ? cfg.rules[name]?.from as string | undefined : undefined) ?? cfg.all.from as string | undefined) === 'any' ? 'any' as const : undefined
-    const kindOf = (l: LawText): string => { if (isTwoRuns(l.expr)) return 'two'; if (isLeadsTo(l.expr)) return 'leads'; try { return buildLaw(x, l, {clock: ctx.clock}).kind } catch { return 'bad' } }
+    const kindOf = (l: LawText): string => { if (isTwoRuns(l.expr)) return 'two'; if (isLeadsTo(l.expr)) return 'leads'; try { return buildLaw(x, l, ctx).kind } catch { return 'bad' } }
     const rank = (l: LawText) => ({law: 0, leads: 2}[kindOf(l)] ?? 1)
     const order = [...stated.keys()].sort((a, b) => rank(stated[a]!) - rank(stated[b]!))
     // (from any state, the laws about states as one inductive set: the largest the stated ones make, each law the
     // kernel's step breaks taken out in turn (Houdini), the others proven together; one taken out is judged alone)
-    const inductive = from && x.rule && !sys ? houdini(x, stated.filter(m => twice(m).length === 1 && kindOf(m) === 'law'), o.ms, ctx.clock) : undefined
+    const inductive = from && x.rule && !sys ? houdini(x, stated.filter(m => twice(m).length === 1 && kindOf(m) === 'law'), o.ms, ctx) : undefined
     const outsOf: LawOut[] = []
     for (const i of order) {
       const l = stated[i]!
@@ -413,11 +431,11 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
 // The unit of each language's clock (Date.now() and a Clock's millis count milliseconds; time.time(), DateTime.diff in
 // seconds and Instant's as_secs count seconds); the others say it in gdp.toml (clock = "s" or "ms").
 const CLOCK: Partial<Record<Lang, string>> = {python: 's', elixir: 's', rust: 's', ts: 'ms', java: 'ms', kotlin: 'ms'}
-type Ctx = {sys?: InEnv, ms: number, clock?: number, others: Record<string, Extraction>, cites: Cite[], cert?: string, file: string, entry?: string, from?: 'any', together?: LawText[], inductive?: Set<string>}
+type Ctx = {sys?: InEnv, ms: number, clock?: number, calendar?: Calendar, others: Record<string, Extraction>, cites: Cite[], cert?: string, file: string, entry?: string, from?: 'any', together?: LawText[], inductive?: Set<string>}
 // The largest set of these laws that is inductive from every state they allow together: each law whose step the
 // kernel breaks taken out, the rest tried again.
-function houdini(x: Extraction, ls: LawText[], ms: number, clock?: number): Set<string> {
-  let set = ls.flatMap(l => { try { const b = buildLaw(x, l, {clock}); return b.kind === 'law' ? [{l, law: b.law as Law}] : [] } catch { return [] } })
+function houdini(x: Extraction, ls: LawText[], ms: number, opts: LawOpts): Set<string> {
+  let set = ls.flatMap(l => { try { const b = buildLaw(x, l, opts); return b.kind === 'law' ? [{l, law: b.law as Law}] : [] } catch { return [] } })
   for (let i = 0; i <= ls.length && set.length; i++) {
     let v: Verdict
     try { v = proveRule(x.rule!, [...(x.invariants ?? []), ...set.map(s => s.law)], {search: {ms}, from: 'any'}) } catch { return new Set() }
@@ -457,7 +475,7 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
   }
   let b: Built | undefined, two: TwoRunLaw | undefined
   // (a law that can't be built is not read, with why: never the whole check aborted)
-  try { if (isTwoRuns(l.expr)) two = buildTwoRuns(x, l, ctx?.others); else b = buildLaw(x, l, {clock: ctx?.clock}) } catch (e) { return {...base, verdict: 'not read', why: (e as Error).message, ms: 0} }
+  try { if (isTwoRuns(l.expr)) two = buildTwoRuns(x, l, ctx?.others); else b = buildLaw(x, l, ctx ?? {}) } catch (e) { return {...base, verdict: 'not read', why: (e as Error).message, ms: 0} }
   const kind = two ? 'two runs' as const : b!.kind
   let v: Verdict & {given?: Law[]}
   // (from any state, a law about states outside the inductive set: false from the start (a run), or true there and
@@ -469,7 +487,7 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
     return {...base, kind: 'law', verdict: 'unknown', why: r.proven && r.checked ? `true in every state a run from the start reaches, not inductive from every state the laws allow (from = "any"): state the law it needs beside it${r.found?.laws?.length ? `: ${r.found.laws.map(f => f.text).join('; ')}` : ''}` : r.why ?? r.stuck ?? 'not proven', ...(r.found?.laws?.length ? {found: r.found.laws.map(f => f.text)} : {}), ms: Date.now() - t0}
   }
   // (from any state: a law about states proven with the others stated beside it, as one inductive set)
-  const beside = (): Law[] => (ctx?.together ?? []).filter(m => m.name !== l.name).flatMap(m => { try { const y = buildLaw(x, m, {clock: ctx?.clock}); return y.kind === 'law' ? [y.law] : [] } catch { return [] } })
+  const beside = (): Law[] => (ctx?.together ?? []).filter(m => m.name !== l.name).flatMap(m => { try { const y = buildLaw(x, m, ctx ?? {}); return y.kind === 'law' ? [y.law] : [] } catch { return [] } })
   try { v = two ? proveTwoRuns(two, {...search, invariants: [two.sides[0] === x.rule ? inv : (ctx?.others && Object.values(ctx.others).find(o => o.rule === two!.sides[0])?.invariants) ?? [], inv]}) : b!.kind === 'law' ? proveRule(x.rule!, [...inv, ...(ctx?.from ? beside() : []), b!.law], search) : proveSteps(x.rule!, [...inv, ...proven] as never, [b!.law], search) }
   catch (e) { return {...base, kind, verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
   // (from any state: a step that breaks the law from a state the laws allow refutes it, reachable or not; the run that
@@ -506,7 +524,7 @@ function proveInEnv(x: Extraction, l: LawText, ms: number, proven: Law[], ctx: C
   // (at most one call between a and b: a flow's mutual exclusion, its leases running out where their keys expire)
   const bw = /^at\s+most\s+one\s+call\s+between\s+([\w.]+)\s+and\s+([\w.]+)$/i.exec(l.expr.trim())
   let b: Built
-  try { b = bw ? {kind: 'law', law: sys.between(l.name, bw[1]!, bw[2]!)} : buildLaw(x, l, {clock: ctx.clock}) } catch (e) { return {...base, verdict: 'not read', why: (e as Error).message, ms: 0} }
+  try { b = bw ? {kind: 'law', law: sys.between(l.name, bw[1]!, bw[2]!)} : buildLaw(x, l, ctx) } catch (e) { return {...base, verdict: 'not read', why: (e as Error).message, ms: 0} }
   const inv = (x.invariants ?? []).map(sys.law)
   let v: Verdict, law: Law | ReturnType<InEnv['step']>
   try {
@@ -703,12 +721,14 @@ function printRule(r: RuleOut, o: Opts) {
 }
 const label = (n: Name) => (n.role === 'answer' ? `${n.code.split('.').pop()}(...)` : n.role === 'input' && n.method ? `${n.method}(${n.code})` : n.role === 'result' && n.method ? `${n.method}() result` : n.code)
 
-const USAGE = `gdp-wired check <file|dir>... [--entry X] [--methods a,b] [--failures kept] [--on-error discard] [--json] [--ms 10000] [--no-propose] [--clock s|ms] [--cert <dir>] [--from any]
+const USAGE = `gdp-wired check <file|dir>... [--entry X] [--methods a,b] [--failures kept] [--on-error discard] [--json] [--ms 10000] [--no-propose] [--clock s|ms] [--cert <dir>] [--from any] [--require-review]
+gdp-wired draft <file> --clause <text> | --clause-file <file> --cite <ref> [--llm <command> | --answer <file>] [--by <who>]
 
 Reads the rule in each file (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, Swift, C, C++, TypeScript, Effect, XState), checks it
 against the code by running both, proves the laws stated in the code (\`# gdp: law <name>: <expr>\`, \`// gdp: law ...\`,
 @GdpLaw("<name>: <expr>")) and proposes others. Laws about two runs: \`<secret> never reaches <fields>\`, \`isolated by <argument>\`,
-\`agrees with <Class>\`; a duration over the clock: \`now - t < 30 days\`; the clause a law answers: \`gdp: cite <law name>: <clause>\`;
+\`agrees with <Class>\`; a duration over the clock: \`now - t < 30 days\`, \`now - t <= 10 business days\` (the calendar: [calendar] in gdp.toml);
+the clause a law answers: \`gdp: cite <law name>: <clause>\` (drafted from the clause's text by \`draft\`, marked unreviewed until a person signs it);
 --cert <dir> writes each proven law's certificate (its meta the citations); --from any (or from = "any" in gdp.toml, for every
 rule or one) proves every law from every state the laws allow, for code that steps the rule from states it is handed. Exit code: 1 when a stated law is broken, 2 when
 one couldn't be checked.`
@@ -720,14 +740,51 @@ export async function check(targets: string[], given: Partial<Opts> = {}, each?:
   const stated = all.flatMap(r => r.laws)
   return {rules: all, exit: stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') ? 2 : 0}
 }
+// --- draft: laws from a clause, for a person to review ----------------------------------------------------------------
+// gdp-wired draft <file> --clause <text> | --clause-file <f> --cite <ref> [--llm <command> | --answer <file>] [--by <who>]:
+// the question (core/draft.ts) printed, or asked of the command (on its stdin) or read from an answer, each law it
+// proposes read over the code's names, the comments to paste printed with where they go.
+async function draft(target: string, o: Opts): Promise<number> {
+  const {draftComments, draftPrompt, parseDraft, vetDrafts} = await import('./draft.ts')
+  const clause = (o.clause as string | undefined) ?? (o.clauseFile ? fs.readFileSync(o.clauseFile as string, 'utf8') : undefined), cite = (o.cite as string | undefined) ?? 'the clause'
+  if (!clause) { out('gdp-wired draft: --clause <text> or --clause-file <file>'); return 2 }
+  const t = targetsOf(target)[0]!, rules = await rulesOf(t, {...o, propose: false}, []), x = rules.find(r => r.x.ok)?.x
+  if (!x) { out(`gdp-wired draft: no rule read from ${target}: ${rules[0]?.x.refusals[0]?.what ?? ''}`); return 2 }
+  const prompt = draftPrompt(x, clause, cite)
+  let answer: string
+  if (o.answer) answer = fs.readFileSync(o.answer as string, 'utf8')
+  else if (o.llm) {
+    const {spawnSync} = proc.getBuiltinModule('node:child_process') as {spawnSync: (c: string, a: string[], o: object) => {stdout: string, status: number | null}}
+    const p = spawnSync('sh', ['-c', o.llm as string], {input: prompt, encoding: 'utf8', maxBuffer: 1 << 26})
+    if (p.status !== 0) { out(`gdp-wired draft: ${o.llm as string} exited ${p.status}`); return 2 }
+    answer = p.stdout
+  } else { out(prompt); return 0 }
+  const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at)), unit = o.clock ?? cfg.all.clock ?? CLOCK[t.lang]
+  const {kept, refused} = vetDrafts(x, parseDraft(answer), {clock: unit === 's' ? 1 : unit === 'ms' ? 1000 : undefined, ...(cfg.all.calendar ? {calendar: cfg.all.calendar as Calendar} : {})})
+  const by = (o.by as string | undefined) ?? (o.llm ? (o.llm as string).split(/\s+/)[0]! : 'an answer given'), c = COMMENT[t.lang]
+  out(`${kept.length} laws drafted from ${cite}, each to be reviewed by a person (then [reviewed-by: <name>, <date>] in place of [unreviewed ...]):`)
+  for (const d of kept) { out(`\n  ${d.method ? `on the line above ${d.method}` : 'in the class (a law of every state)'}:`); for (const l of draftComments(c, d, cite, by)) out(`    ${l}`) }
+  for (const r of refused) out(`\n  refused: ${r.d.name}: ${r.d.expr}\n    ${r.why}`)
+  return kept.length ? 0 : 2
+}
+
+// Every target's rules and their laws, and the exit code (1: a stated law broken; 2: one not checked, or with
+// --require-review, one cited unreviewed).
 export async function main(argv: string[]): Promise<number> {
   const {cmd, targets, o} = args(argv)
+  if (cmd === 'draft' && targets.length === 1) return draft(targets[0]!, o)
   if (cmd !== 'check' || !targets.length) { out(USAGE); return cmd === 'help' || cmd === '--help' || cmd === '-h' || !cmd ? 0 : 2 }
   tint = colors(proc.env, !!proc.stdout.isTTY, !!o.json)
-  const {rules: all, exit: code} = await check(targets, o, o.json ? undefined : r => printRule(r, o))
+  const {rules: all, exit: code0} = await check(targets, o, o.json ? undefined : r => printRule(r, o))
   const stated = all.flatMap(r => r.laws)
+  const {reviewOf} = await import('./draft.ts'), unreviewed = stated.filter(l => (l.cites ?? []).some(c => reviewOf(c) === 'unreviewed'))
+  const code = code0 === 0 && o.requireReview && unreviewed.length ? 2 : code0
   if (o.json) out(JSON.stringify({rules: all.map(({source: _s, ...r}) => r), exit: code}, null, 1))
-  else if (stated.length) { const n = (v: LawOut['verdict']) => stated.filter(l => l.verdict === v).length; out(`${paint('green', n('proven'))} of ${stated.length} stated laws proven, ${paint('red', n('broken'))} broken, ${paint('yellow', n('unknown'))} unknown, ${paint('yellow', n('not read'))} not read`) }
+  else if (stated.length) {
+    const n = (v: LawOut['verdict']) => stated.filter(l => l.verdict === v).length
+    out(`${paint('green', n('proven'))} of ${stated.length} stated laws proven, ${paint('red', n('broken'))} broken, ${paint('yellow', n('unknown'))} unknown, ${paint('yellow', n('not read'))} not read`)
+    if (unreviewed.length) out(`${paint('yellow', unreviewed.length)} cited unreviewed (drafted, no person's sign-off yet: [reviewed-by: <name>, <date>])${o.requireReview ? ': refused by --require-review' : ''}: ${unreviewed.map(l => l.name).join('; ')}`)
+  }
   return code
 }
 

@@ -1,0 +1,20 @@
+{
+ "repo": "https://github.com/empreinte-digitale/orejime",
+ "commit": "70a42c4b4b1fe5e54f16b6ff61c70fa782db9f40",
+ "licence": "BSD-3-Clause",
+ "language": "TypeScript",
+ "domain": "consent withdrawal",
+ "files": [
+  "src/core/Manager.ts",
+  "src/core/EventEmitter.ts",
+  "src/core/types.ts",
+  "src/core/utils/arrays.ts",
+  "src/core/utils/objects.ts",
+  "src/core/utils/purposes.ts"
+ ],
+ "target": "src/core/Manager.ts",
+ "opts": {
+  "entry": "Manager"
+ },
+ "what": "Orejime's consent manager: each purpose's consent, set, declined, cleared; mandatory purposes always on."
+}

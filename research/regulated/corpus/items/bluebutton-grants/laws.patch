@@ -1,0 +1,19 @@
+diff -ru a/apps/authorization/models.py b/apps/authorization/models.py
+--- a/apps/authorization/models.py	2026-11-02 11:22:14
++++ b/apps/authorization/models.py	2026-11-02 11:23:07
+@@ -40,11 +40,15 @@
+         self.expiration_date = datetime.now(timezone.utc) + relativedelta(hours=+1)
+         self.save()
+ 
++    # gdp: law the rolling window ends 90 days on: expiration_date == now + 90 days
++    # gdp: cite the rolling window ends 90 days on: 45 CFR 164.508(c)(1)(v): "An expiration date or an expiration event"
+     def update_90_day_rolling_window(self) -> None:
+         """Update the expiration_date to a new 90-day rolling window."""
+         self.expiration_date = datetime.now(timezone.utc) + relativedelta(days=+90)
+         self.save()
+ 
++    # gdp: law a grant past its expiration date has expired: expiration_date is not None and expiration_date < now implies result
++    # gdp: cite a grant past its expiration date has expired: 45 CFR 164.508(c)(1)(v): "An expiration date or an expiration event that relates to the individual or the purpose of the use or disclosure"
+     def has_expired(self):
+         if self.application.data_access_type == 'THIRTEEN_MONTH':
+             if self.expiration_date:
