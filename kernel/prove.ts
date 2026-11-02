@@ -1121,7 +1121,9 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   // Each bound key over its own sort as the model fills it: the terms its body's map reads bind matched against the
   // goal's keys (M[x·N + y] against M[a·N + b] binds x to a), one term a value; a key no read binds (or only a
   // function's), every key of the goal.
-  const keys = mapReads([goal]).keys, all = new Map<number, E>()
+  const {keys, byMap} = mapReads([goal]), all = new Map<number, E>()
+  // (a law's key read at a tuple's place is matched against that map's tuples: its sort is the place's)
+  const tupled = [...byMap.values()].some(ks => ks.some(k => k.op === 'tup'))
   for (const e of keys) { const v2 = valueOf(e); if (v2 !== undefined && !all.has(v2)) all.set(v2, e) }
   if (!all.size) return undefined
   // (each sort's witnesses first: an ∃ law's ghost, a quantified flag's witness, the terms a model most often breaks a
@@ -1135,7 +1137,7 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   // (a key no read binds is a value, an epoch say, over the naturals: 0, their least, is one of its terms too, as Ivy's
   // ordered sorts have their zero; a law before the start, nothing above 0, is assumed there)
   const zero: E = {op: 'const', value: 0}
-  const sortsOf = (body: C, names: string[], atoms: boolean): Map<number, E>[] => sortTerms(body, names, fns, () => keys).map(ts => {
+  const sortsOf = (body: C, names: string[], atoms: boolean): Map<number, E>[] => sortTerms(body, names, fns, mp => (tupled ? [...keys, ...(byMap.get(mp) ?? [])] : keys)).map(ts => {
     const p = new Map<number, E>()
     for (const e of ts ?? []) { const v2 = valueOf(e); if (v2 !== undefined && !p.has(v2) && (!atoms || e.op === 'var')) p.set(v2, e) }
     const q = p.size ? p : atoms ? new Map([...all].filter(([, e]) => e.op === 'var')) : all, r = witnessFirst(q.size ? q : all)

@@ -28,5 +28,22 @@ console.log(JSON.stringify({id, proven: v.proven, goal: v.goal, why: String(v.wh
 if (process.env.FAIL) {
   const {proveLaws} = await import('../../../kernel/prove.ts')
   const o: any = proveLaws(r.machine, laws.map((l: any) => l.law ?? l))
-  console.log(o.proven, JSON.stringify(o.failed).slice(0, 4000))
+  const w = o.failed?.witness ?? {}
+  console.log(o.proven, o.failed?.goal, JSON.stringify(Object.fromEntries(Object.entries(w).filter(([k, x]) => !k.includes('[') || x))))
+}
+// (FAIL=2: the failing model read as a concrete state, every law checked at every tuple below size, before and after
+// the model's step: a real counterexample to induction, or a model only of the instances the proof chose)
+if (process.env.FAIL === '2') {
+  const {proveLaws} = await import('../../../kernel/prove.ts')
+  const {cellParts} = await import('../../../kernel/kernel.ts')
+  const {interpret, evalC, cpair} = await import('../../../core/machine.ts')
+  const m = r.machine, ls = laws.map((l: any) => l.law ?? l), o: any = proveLaws(m, ls), w = o.failed?.witness ?? {}
+  const val = (lin: Record<string, number>) => Object.entries(lin).reduce((s2, [k, c]) => s2 + c * (k === '1' ? 1 : (w[k] ?? 0)), 0)
+  const maps: Record<string, Map<number, number>> = Object.fromEntries(Object.keys(m.maps).map(k => [k, new Map()]))
+  for (const [n, x] of Object.entries(w)) if (n.includes('[') && !n.startsWith('⟦')) { const cp = cellParts(n); if (!maps[cp.map]) continue; const key = cp.keys ? cp.keys.map(val).slice(0, -1).reduceRight((b: number, a) => cpair(a, b), val(cp.keys.at(-1)!)) : val(cp.key!); maps[cp.map]!.set(key, x as number) }
+  const params = Object.fromEntries(m.params.map((q: string) => [q, w[q] ?? 0])), size = params.size
+  const st = {scalars: Object.fromEntries(Object.keys(m.state).map(q => [q, w[q] ?? 0])), maps}
+  const req = Object.fromEntries(m.inputs.map((q: string) => [q, w[q] ?? 0]))
+  const broken = (s2: any) => { for (const l of ls) { const ks = [l.forall, ...(l.keys ?? [])].filter(Boolean); const go = (i: number, env: any): boolean => i === ks.length ? !evalC(l.holds, {...params, ...env}, s2, m) : [...Array(size).keys()].some(v => go(i + 1, {...env, [ks[i]]: v})); if (go(0, {})) return l.name } return undefined }
+  console.log('goal', o.failed?.goal, 'before:', broken(st) ?? 'all hold', 'after:', broken(interpret(m).step(params, st as any, req)) ?? 'all hold', JSON.stringify(req))
 }
