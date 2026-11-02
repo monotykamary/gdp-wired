@@ -5,8 +5,8 @@
 // capped above every constant they meet, so unsat here is unsat there. It answers unsat with its core (the hypotheses
 // its refutation read: prove.ts proves the goal over those and widens the tree to the whole, which kernel.ts checks), or
 // a model read back as the kernel's witness and judged on every hypothesis, or nothing.
-import {type C, type E, type Machine, evalC} from '../core/machine.ts'
-import {type Goal, canon, linear} from './kernel.ts'
+import {type C, type E, type Machine, cpair, evalC, tupleParts} from '../core/machine.ts'
+import {type Goal, canon, linear, projectedC} from './kernel.ts'
 import {type Constraint, type Lin, env, konst, plus, solve, times, v as tv} from '../core/solver.ts'
 import {Simplex} from './simplex.ts'
 
@@ -68,6 +68,9 @@ type Tuple = {coefs: number[], parts: string[], bounds: (number | undefined)[]}
 const tupleMemo = new WeakMap<E, Tuple | null>()
 function tupleOf(e: E): Tuple | undefined { let t = tupleMemo.get(e); if (t === undefined) tupleMemo.set(e, (t = tupleOf0(e) ?? null)); return t ?? undefined }
 function tupleOf0(e: E): Tuple | undefined {
+  // A tuple key (core/machine.ts's tup): its parts, each a name, compared part by part; its pattern n zeros (no radix
+  // pattern has a 0), no part bounded (the pairing is a bijection: equal keys, equal parts).
+  if (e.op === 'tup') { const ps = tupleParts(e).map(partName); return ps.every(p => p !== undefined) ? {coefs: ps.map(() => 0), parts: ps as string[], bounds: ps.map(() => undefined)} : undefined }
   const ts: [string, number][] = [], d = {c: 0}
   if (!linTerms(e, 1, ts, d) || d.c !== 0 || !ts.length) return undefined
   ts.sort((a, b) => b[1] - a[1])
@@ -90,6 +93,8 @@ export type Decision = {sat: false, core: number[]} | {sat: true, witness: Recor
 // (a probe's hook: each decision with its goal, ms and outcome)
 export const decideHook: {on?: (goal: Goal, d: Decision, ms: number, shaped?: boolean[]) => void} = {}
 let lastShaped: boolean[] | undefined
+const projectedMemo = new WeakMap<Goal, Goal>()
+const projectedOf = (g: Goal): Goal => { let o = projectedMemo.get(g); if (!o) projectedMemo.set(g, (o = {...g, hyps: g.hyps.map(projectedC)})); return o }
 export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
   if (!decideHook.on) return decide1(goal, patterns, opts)
   const t0 = performance.now(), d = decide1(goal, patterns, opts)
@@ -98,7 +103,8 @@ export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number
 }
 function decide1(goal0: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
   fnMaps = new Set(Object.entries(patterns).filter(([, c]) => c.length === 1 && c[0] === 0).map(([f]) => f))
-  const goal = goal0
+  // (a tuple's part read back, proj(tup(a, b)), as the part: the kernel's linear reads it so)
+  const goal = JSON.stringify(goal0.hyps).includes('"op":"proj"') ? projectedOf(goal0) : goal0
   // (a model whose order leaves no room between two near constants: again with the constants between them, below)
   // (a model the read-back breaks: once more without the other goals' theory lemmas, whose history chose that model)
   try {
@@ -945,7 +951,7 @@ function encoder(st: State, patterns: Patterns): Enc {
       }
       ;[...reads].reverse().forEach(fnOdd)
       for (const [mp, cs] of cells2) for (const c of cs) {
-        const key = c.parts.reduce((s, p, i) => s + w[p]! * (patterns[mp]![i] ?? 1), 0)
+        const key = patterns[mp]![0] === 0 ? c.parts.slice(0, -1).reduceRight((b, p) => cpair(w[p]!, b), w[c.parts.at(-1)!]!) : c.parts.reduce((s, p, i) => s + w[p]! * (patterns[mp]![i] ?? 1), 0)
         if (!maps.has(mp)) maps.set(mp, new Map())
         maps.get(mp)!.set(key, cellVal.get(c.id)!)
       }

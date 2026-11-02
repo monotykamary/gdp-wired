@@ -8,7 +8,7 @@
 //   - a refutation of a split's yes side that never reads the split refutes its parent (lift), and the no side is skipped;
 //   - a hypothesis' rows and open atoms, and every term inside them, are reused from an earlier path that decided the
 //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
-import {type C, type E, type Law, type Machine, evalC, evalE, walkOnce} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, cpair, evalC, evalE, walkOnce} from '../core/machine.ts'
 import {type Lin, type Step, add, costs, env, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {allowNode, allowTranslated, certCyclic, certOn, certSearch, stepCertFloor, translateMs, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, loopNodes, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
@@ -17,7 +17,8 @@ import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
 import {REFUTED, growCdcl} from './cdcl.ts'
 import {type Diagram, type Patterns, decide, pastEprCap, patternsOf} from './epr.ts'
-import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
+import {tupleParts} from './kernel.ts'
+import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, cellParts, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 function openE(e: E, path: Path, out: Lin[]): void {
@@ -26,6 +27,8 @@ function openE(e: E, path: Path, out: Lin[]): void {
     case 'mul': return openE(e.a, path, out)
     case 'prod': return (openE(e.a, path, out), openE(e.b, path, out))
     case 'get': return openE(e.key, path, out)
+    case 'tup': return (openE(e.a, path, out), openE(e.b, path, out))
+    case 'proj': return openE(e.a.op === 'tup' ? (e.k === 0 ? e.a.a : e.a.b) : e.a, path, out)
     case 'if': { const t = truth(e.c, path); if (t === undefined) openC(e.c, path, out); else openE(t ? e.then : e.else, path, out); return }
     case 'add': case 'sub': case 'min': case 'max': {
       openE(e.a, path, out), openE(e.b, path, out)
@@ -41,6 +44,8 @@ function openC(c: C, path: Path, out: Lin[]): void {
   if (c.op === 'flag' || c.op === 'all') return
   if (c.op === 'not') return openC(c.x, path, out)
   if (c.op === 'and' || c.op === 'or') return c.xs.forEach(y => openC(y, path, out))
+  // (two tuples equal: their parts' equalities, the kernel's reading)
+  if (c.op === '=' && c.a.op === 'tup' && c.b.op === 'tup') return [c.a.a, c.a.b].forEach((x, i) => openC({op: '=', a: x, b: i ? (c.b as {b: E}).b : (c.b as {a: E}).a}, path, out))
   const a = linear(c.a, path), b = linear(c.b, path), own: Lin[] = []
   if (a && b) {
     const d = sub(a, b)
@@ -65,6 +70,10 @@ function openH(c: C, path: Path, out: Lin[], positive = true): void {
     return
   }
   if (c.op === 'flag' || c.op === 'all') return
+  if (c.op === '=' && c.a.op === 'tup' && c.b.op === 'tup') {
+    const parts: C[] = [{op: '=', a: c.a.a, b: c.b.a}, {op: '=', a: c.a.b, b: c.b.b}]
+    return openH(positive ? {op: 'and', xs: parts} : {op: 'or', xs: parts.map((x): C => ({op: 'not', x}))}, path, out, true)
+  }
   const before = out.length
   openE(c.a, path, out), openE(c.b, path, out)
   if (out.length === before && !positive && c.op === '=' && truth(c, path) === undefined) openC(c, path, out)
@@ -77,7 +86,7 @@ export const pairedKeys = {skip: false}
 // (each cell's map and key, and each pair's difference both ways, made once: the pairs are quadratic in the names, and
 // the same forms at every node keep what is remembered per form)
 // (by the first cell, then the second: no key text made per lookup, the search's nodes ask for every pair again)
-const cellKeys = new Map<string, {map: string, key: Lin}>(), cellPairs = new Map<string, Map<string, {d: Lin, neg: Lin, q0?: Lin, q1?: Lin}>>()
+const cellKeys = new Map<string, {map: string, key?: Lin, keys?: Lin[]}>(), cellPairs = new Map<string, Map<string, {d: Lin, neg: Lin, q0?: Lin, q1?: Lin}>>()
 let cellPairsN = 0
 export const cellPair = (a: string, b: string): {d: Lin, neg: Lin, q0?: Lin, q1?: Lin} => {
   let row = cellPairs.get(a)
@@ -85,12 +94,34 @@ export const cellPair = (a: string, b: string): {d: Lin, neg: Lin, q0?: Lin, q1?
   let pair = row.get(b)
   if (!pair) {
     if (++cellPairsN > 200_000) { cellPairs.clear(); cellPairsN = 1; cellPairs.set(a, (row = new Map())) }
-    const d = sub(cellKey(a).key, cellKey(b).key)
+    const d = sub(cellKey(a).key ?? {}, cellKey(b).key ?? {})
     row.set(b, (pair = {d, neg: scale(d, -1)}))
   }
   return pair
 }
-const cellKey = (n: string) => { let c = cellKeys.get(n); if (!c) { if (cellKeys.size > 100_000) cellKeys.clear(); cellKeys.set(n, (c = {map: n.slice(0, n.indexOf('[')), key: parseKey(n.slice(n.indexOf('[') + 1, -1))})) } return c }
+const cellKey = (n: string) => { let c = cellKeys.get(n); if (!c) { if (cellKeys.size > 100_000) cellKeys.clear(); cellKeys.set(n, (c = cellParts(n))) } return c }
+// Two tuple cells of one map: their parts compared one at a time, the first the path leaves open (each way), none
+// once a part is decided apart. (Each part's difference made once per pair, as a plain key's.)
+const tuplePairs = new Map<string, Lin[][]>()
+// Two cells' parts as pairs of differences: [] for two keys of different shapes (never equal), undefined for plain keys.
+export const tupleCellPairs = (a: string, b: string): Lin[][] | undefined => {
+  const ka = cellKey(a).keys, kb = cellKey(b).keys
+  if (!ka && !kb) return undefined
+  if (!ka || !kb || ka.length !== kb.length) return []
+  const id = `${a} ${b}`
+  let ds = tuplePairs.get(id)
+  if (!ds) { if (tuplePairs.size > 200_000) tuplePairs.clear(); tuplePairs.set(id, (ds = ka.map((k, i) => { const d = sub(k, kb[i]!); return [d, scale(d, -1)] }))) }
+  return ds
+}
+const tupleOpen = (a: string, b: string, _ka: Lin[], _kb: Lin[], dec: (lin: Lin) => boolean | undefined): Lin | undefined => {
+  for (const [d, neg] of tupleCellPairs(a, b)!) {
+    const x = dec(d!), y = dec(neg!)
+    if (x === undefined) return d
+    if (x === true && y === undefined) return neg
+    if (!(x && y)) return undefined
+  }
+  return undefined
+}
 function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
   const seen = new Set<string>(), names: string[] = []
   for (const r of rows) for (const n in r.lin) if (!seen.has(n)) { seen.add(n); if (isCell(n)) names.push(n) }
@@ -99,6 +130,7 @@ function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
   const dec = (lin: Lin) => path.get(canon(lin))?.holds ?? (path.has(canonFlip(lin)) ? !path.get(canonFlip(lin))!.holds : undefined)
   for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
     if (cs[i]!.map !== cs[j]!.map) continue
+    if (cs[i]!.keys || cs[j]!.keys) { const t = cs[i]!.keys && cs[j]!.keys ? tupleOpen(names[i]!, names[j]!, cs[i]!.keys!, cs[j]!.keys!, dec) : undefined; if (t) out.push(t); continue }
     const pair = cellPair(names[i]!, names[j]!), d = pair.d
     if (pairedKeys.skip && Object.keys(d).some(isMonomial)) continue
     // Two cells of a run's map (core/cyclic.ts: time u and key k at u + k·Ω) at keys k·Ω and k'·Ω: k = k' first, a
@@ -997,7 +1029,7 @@ function fractional(point: Record<string, number> | undefined, path: Path): Lin 
 // The keys a proof assumes the every-key laws at: every key the step and the laws read, and the fresh key of the goal.
 // Each map read of a term (inE) or a condition (inC) given to f, outermost first, a quantified flag's body included.
 const eachRead = (f: (e: Extract<E, {op: 'get'}>) => void) => {
-  const inE = (e: E): void => { if (e.op === 'get') { f(e); inE(e.key) } else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul') inE(e.a); else if ('a' in e) (inE(e.a), inE(e.b)) }
+  const inE = (e: E): void => { if (e.op === 'get') { f(e); inE(e.key) } else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul' || e.op === 'proj') inE(e.a); else if ('b' in e) (inE(e.a), inE(e.b)) }
   const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
   return {inE, inC}
 }
@@ -1006,10 +1038,12 @@ function readKeys(m: Machine, laws: Law[]): E[] {
   const out = new Map<string, E>()
   const bound = new Set<string>([...Object.values(m.step.flags ?? {}).flatMap(c => (c.op === 'all' ? boundOf(c) : [])), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))])
   const free = (e: E) => !JSON.stringify(e).match(/"name":"([^"]+)"/g)?.some(n => bound.has(n.slice(8, -1)))
-  const {inE, inC} = eachRead(e => { if (free(e.key)) out.set(JSON.stringify(e.key), e.key) })
+  // (a tuple key's parts are the keys: a law about every tuple of keys is assumed at them)
+  const put = (key: E) => { for (const p of tupleParts(key)) if (free(p)) out.set(JSON.stringify(p), p) }
+  const {inE, inC} = eachRead(e => put(e.key))
   Object.values(m.step.state ?? {}).forEach(inE)
   Object.values(m.step.flags ?? {}).forEach(inC)
-  for (const w of Object.values(m.step.maps ?? {})) { if (!('each' in w)) { out.set(JSON.stringify(w.key), w.key); inE(w.key) } inE(w.value) }
+  for (const w of Object.values(m.step.maps ?? {})) { if (!('each' in w)) { for (const p of tupleParts(w.key)) out.set(JSON.stringify(p), p); inE(w.key) } inE(w.value) }
   for (const l of laws.filter(l => !l.forall)) inC(l.holds)
   return keysInlined(m, [...out.values()])
 }
@@ -1034,6 +1068,12 @@ function mapReads(goals: Goal[]): {keys: E[], byMap: Map<string, E[]>} {
 // where the names have these (a name left out is 0, as a model leaves it).
 export const keyValue = (cell: string, w: Record<string, number>): number | undefined => {
   const inner = cell.slice(cell.indexOf('[') + 1, -1)
+  // (a tuple's parts each valued so, the key their pairing)
+  if (inner.startsWith('⟨')) {
+    const parts = cellParts(cell).keys!.map(k => keyValue(`_[${canon(k)}]`, w))
+    if (parts.some(x => x === undefined)) return undefined
+    try { return parts.slice(0, -1).reduceRight((b, a) => cpair(a!, b), parts.at(-1)!) } catch { return undefined }
+  }
   // (its parts split at the commas outside brackets: a part may be a cell itself, Pending[idn[n:1]:64,n:1], valued as the
   // model values it)
   const parts: string[] = []
@@ -2319,7 +2359,7 @@ export function certLoop(l: Loop, laws: Law[], rank: E | E[], trees: Record<stri
 // The key terms a condition reads maps at; a primed map's key is a key of the map before the step too.
 function readKeysC(c: C): E[] {
   const out: E[] = []
-  const inE = (e: E): void => { if (e.op === 'get') (out.push(e.key), inE(e.key)); else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul') inE(e.a); else if ('a' in e) (inE(e.a), inE(e.b)) }
+  const inE = (e: E): void => { if (e.op === 'get') (out.push(...tupleParts(e.key)), inE(e.key)); else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul' || e.op === 'proj') inE(e.a); else if ('b' in e) (inE(e.a), inE(e.b)) }
   const inC = (x: C): void => (x.op === 'flag' || x.op === 'all' ? undefined : x.op === 'not' ? inC(x.x) : x.op === 'and' || x.op === 'or' ? x.xs.forEach(inC) : (inE(x.a), inE(x.b)))
   inC(c)
   return out

@@ -13,7 +13,7 @@
 // and each leaf's derivation is found again among kernel.ts's rows when the search's refutation is unfolded).
 import type {C, E} from '../core/machine.ts'
 import {type Lin, add, costs, env, k, scale, sub, v} from '../core/solver.ts'
-import {type Goal, atomOf, canon, canonFlip, columnTerm, factorsOf, isCell, termColumn} from './kernel.ts'
+import {type Goal, atomOf, canon, canonFlip, cellParts, columnTerm, factorsOf, isCell, termColumn, tupleAnd, tupleParts} from './kernel.ts'
 
 export type W = ReadonlySet<string>
 export const none: W = new Set<string>()
@@ -171,7 +171,7 @@ export class Reader {
   private linear0(e: E): LV {
     let lin: Lin | undefined, r: R = R0
     switch (e.op) {
-      case 'var': lin = e.name === '1' || /[*[\],:⟦]/.test(e.name) ? undefined : same(0, e, 0, 0, 0, () => v(e.name)); break
+      case 'var': lin = e.name === '1' || /[*[\],:⟦⟨⟩|]/.test(e.name) ? undefined : same(0, e, 0, 0, 0, () => v(e.name)); break
       case 'const': lin = same(0, e, 0, 0, 0, () => k(e.value)); break
       case 'mul': { const a = this.linear(e.a); lin = a.lin && same(0, e, a.lin, 0, 0, () => scale(a.lin!, e.k)); r = a; break }
       case 'prod': { const a = this.linear(e.a), b = this.linear(e.b); lin = a.lin && b.lin && same(0, e, a.lin, b.lin, 0, () => times(a.lin!, b.lin!)); r = both(a, b); break }
@@ -192,7 +192,18 @@ export class Reader {
         lin = x.lin; r = both(c, x)
         break
       }
-      case 'get': { const key = this.linear(e.key); lin = key.lin && same(0, e, key.lin, 0, 0, () => v(`${e.map}[${canon(key.lin!)}]`)); r = key; break }
+      case 'get': {
+        // (a tuple key: its parts' forms, the cell M[⟨k1|k2|…⟩], kernel.ts's keyParts)
+        if (e.key.op === 'tup') {
+          const parts = tupleParts(e.key).map(p => (p.op === 'tup' ? undefined : this.linear(p)))
+          r = parts.reduce<R>((acc, p) => (p ? both(acc, p) : acc), R0)
+          lin = parts.every(p => p?.lin) ? same(0, e, 0, 0, 0, () => v(`${e.map}[⟨${parts.map(p => canon(p!.lin!)).join('|')}⟩]`)) : undefined
+          break
+        }
+        const key = this.linear(e.key); lin = key.lin && same(0, e, key.lin, 0, 0, () => v(`${e.map}[${canon(key.lin!)}]`)); r = key; break
+      }
+      case 'tup': lin = undefined; break
+      case 'proj': { if (e.a.op !== 'tup') { lin = undefined; break } const x = this.linear(e.k === 0 ? e.a.a : e.a.b); lin = x.lin; r = x; break }
     }
     // (an open value's reason is what its decided parts need: only the column's own value is open)
     const out: LV = {lin, w: r.w, fin: r.fin, pos: r.pos, stamp: r.pos < 0 ? 0 : this.trail.stamp(r.pos), node: this.node}
@@ -201,6 +212,7 @@ export class Reader {
     return out
   }
   private atoms(c: Extract<C, {a: E}>): {when: Lin[], unless: Lin[][], r: R} | undefined {
+    if (c.a.op === 'tup' || c.b.op === 'tup') return undefined
     const a = this.linear(c.a), b = this.linear(c.b)
     if (!a.lin || !b.lin) return undefined
     const r = both(a, b), x = a.lin, y = b.lin
@@ -235,6 +247,8 @@ export class Reader {
         break
       }
       case '<': case '<=': case '=': {
+        const and = tupleAnd(c)
+        if (and) { const x = this.truth(and); t = x.t; r = x; break }
         const cmp = this.atoms(c)
         if (!cmp) { t = undefined; r = R1; break }
         const ds = cmp.when.map(lin => this.dec(lin))
@@ -276,6 +290,8 @@ export class Reader {
         return {w: x.w, pos: x.pos, fin: x.fin && last.t !== undefined}
       }
       case '<': case '<=': case '=': {
+        const and = tupleAnd(c)
+        if (and) return this.factsOf(and, positive, out)
         const cmp = this.atoms(c)
         if (!cmp) return R1
         if (positive) { for (const lin of cmp.when) out.push({lin, w: cmp.r.w, label: ''}); return cmp.r }
@@ -409,7 +425,7 @@ export class Reader {
   // The trail's atom rows, by position, kept while the position's stamp is.
   private trailRows: Row[] = []
   private trailStamps: number[] = []
-  private pairs = new Map<string, {d: Lin, neg: Lin, pq: Lin, qp: Lin}>()
+  private pairs = new Map<string, {parts?: [Lin, Lin][], pq: Lin, qp: Lin}>()
   // The rows in kernel.ts's order, copies kept (a leaf's derivation indexes these).
   // With `src`, each row's source beside it: the hypothesis whose facts it is, the pair of cells it equates, else -1.
   leafRows(src?: (number | [string, string])[]): Row[] {
@@ -435,8 +451,8 @@ export class Reader {
     const cells = names.filter(j => kind[j] === 2).map(j => cellOf(this.nameText[j]!))
     for (const [i, p] of cells.entries()) for (const q of cells.slice(i + 1)) {
       if (p.map !== q.map) continue
-      const f = this.pair(p, q), x = this.dec(f.d), y = this.dec(f.neg)
-      if (x.t === true && y.t === true) { const w = join(x.w, y.w); rows.push({lin: f.pq, w, label: ''}, {lin: f.qp, w, label: ''}); src?.push([p.name, q.name], [p.name, q.name]) }
+      const f = this.pair(p, q), w = this.equal(f)
+      if (w) { rows.push({lin: f.pq, w, label: ''}, {lin: f.qp, w, label: ''}); src?.push([p.name, q.name], [p.name, q.name]) }
     }
     const done = this.termSeen, todo = names.filter(j => kind[j] === 1)
     while (todo.length) {
@@ -549,10 +565,8 @@ export class Reader {
     if (had && this.clean.has(key)) return had
     const rows = this.within(key, (): Row[] => {
       if (key.kind === 1) return this.termRows(this.nameText[key.i]!)
-      const p = cellOf(this.nameText[key.i]!), q = cellOf(this.nameText[key.j]!), f = this.pair(p, q)
-      const x = this.dec(f.d), y = this.dec(f.neg)
-      if (x.t !== true || y.t !== true) return []
-      const w = join(x.w, y.w)
+      const p = cellOf(this.nameText[key.i]!), q = cellOf(this.nameText[key.j]!), f = this.pair(p, q), w = this.equal(f)
+      if (!w) return []
       return [{lin: f.pq, w, label: ''}, {lin: f.qp, w, label: ''}]
     })
     this.cached.set(key, rows)
@@ -560,11 +574,23 @@ export class Reader {
     return rows
   }
   // (each pair's forms made once: the same objects at every node, so what is kept per form is found again)
-  private pair(p: {name: string, key: Lin}, q: {name: string, key: Lin}) {
+  // (two tuples: each part's difference; a plain key and a tuple, or tuples of different lengths: none, never equal)
+  private pair(p: {name: string, key?: Lin, keys?: Lin[]}, q: {name: string, key?: Lin, keys?: Lin[]}) {
     const key = `${p.name}\u0000${q.name}`
     let f = this.pairs.get(key)
-    if (!f) { if (this.pairs.size > 200_000) this.pairs.clear(); const d = sub(p.key, q.key); this.pairs.set(key, (f = {d, neg: scale(d, -1), pq: sub(v(p.name), v(q.name)), qp: sub(v(q.name), v(p.name))})) }
+    if (!f) {
+      if (this.pairs.size > 200_000) this.pairs.clear()
+      const ds = p.key && q.key ? [sub(p.key, q.key)] : p.keys && q.keys && p.keys.length === q.keys.length ? p.keys.map((x, i) => sub(x, q.keys![i]!)) : undefined
+      this.pairs.set(key, (f = {parts: ds?.map(d => [d, scale(d, -1)] as [Lin, Lin]), pq: sub(v(p.name), v(q.name)), qp: sub(v(q.name), v(p.name))}))
+    }
     return f
+  }
+  // The reason the trail proves a pair's keys equal (every part's difference 0 both ways), or none.
+  private equal(f: {parts?: [Lin, Lin][]}): W | undefined {
+    if (!f.parts) return undefined
+    let w = none
+    for (const [d, neg] of f.parts) { const x = this.dec(d), y = this.dec(neg); if (x.t !== true || y.t !== true) return undefined; w = join(w, join(x.w, y.w)) }
+    return w
   }
   private mark(id: number, live: boolean) {
     if (this.markN[id] === this.syncN) return
@@ -674,6 +700,8 @@ export class Reader {
       case 'mul': return this.openE(e.a, out)
       case 'prod': return (this.openE(e.a, out), this.openE(e.b, out))
       case 'get': return this.openE(e.key, out)
+      case 'tup': return (this.openE(e.a, out), this.openE(e.b, out))
+      case 'proj': return this.openE(e.a.op === 'tup' ? (e.k === 0 ? e.a.a : e.a.b) : e.a, out)
       case 'if': { const t = this.truth(e.c); if (t.t === undefined) this.openC(e.c, out); else this.openE(t.t ? e.then : e.else, out); return }
       case 'add': case 'sub': case 'min': case 'max': {
         if (this.linear(e).fin) return
@@ -689,6 +717,8 @@ export class Reader {
     if (c.op === 'flag' || c.op === 'all') return
     if (c.op === 'not') return this.openC(c.x, out)
     if (c.op === 'and' || c.op === 'or') return c.xs.forEach(y => this.openC(y, out))
+    const and = tupleAnd(c)
+    if (and) return this.openC(and, out)
     const a = this.linear(c.a).lin, b = this.linear(c.b).lin
     const own: Lin[] = a && b ? same(7, c, a, b, 0, () => { const d = sub(a, b); return c.op === '<=' ? [d] : c.op === '<' ? [add(d, k(1))] : [d, scale(d, -1)] }) : []
     this.openE(c.a, out), this.openE(c.b, out)
@@ -705,6 +735,8 @@ export class Reader {
       return
     }
     if (c.op === 'flag' || c.op === 'all') return
+    const and = tupleAnd(c)
+    if (and) return this.openH(and, out, positive)
     const before = out.length
     this.openE(c.a, out), this.openE(c.b, out)
     if (out.length === before && !positive && c.op === '=' && this.truth(c).t === undefined) this.openC(c, out)
@@ -718,10 +750,10 @@ export const namesOf = (lin: Lin): string[] => {
   if (!out) nameMemo.set(lin, (out = Object.keys(lin).filter(key => key !== '1')))
   return out
 }
-const cellMemo = new Map<string, {name: string, map: string, key: Lin}>()
+const cellMemo = new Map<string, {name: string, map: string, key?: Lin, keys?: Lin[]}>()
 const cellOf = (name: string) => {
   let out = cellMemo.get(name)
-  if (!out) { if (cellMemo.size > 100_000) cellMemo.clear(); cellMemo.set(name, (out = {name, map: name.slice(0, name.indexOf('[')), key: keyLin(name)})) }
+  if (!out) { if (cellMemo.size > 100_000) cellMemo.clear(); cellMemo.set(name, (out = {name, ...cellParts(name)})) }
   return out
 }
 export const keyLin = (cell: string): Lin => {
@@ -884,7 +916,7 @@ export class Clausal {
     if (had) return had
     let out: Case[]
     switch (e.op) {
-      case 'var': if (e.name === '1' || /[*[\],:⟦]/.test(e.name)) throw new Unread(); out = [{g: [], lin: v(e.name)}]; break
+      case 'var': if (e.name === '1' || /[*[\],:⟦⟨⟩|]/.test(e.name)) throw new Unread(); out = [{g: [], lin: v(e.name)}]; break
       case 'const': out = [{g: [], lin: k(e.value)}]; break
       case 'add': out = this.cross(this.cases(e.a), this.cases(e.b), add); break
       case 'mul': out = this.cases(e.a).map(c => ({g: c.g, lin: scale(c.lin, e.k)})); break
@@ -920,7 +952,7 @@ export class Clausal {
         for (const [m2, x] of [[l, e.then], [notLit(l), e.else]] as const) for (const c of this.cases(x)) { const g = this.join(c.g, [m2]); if (g) out.push({g, lin: c.lin}) }
         break
       }
-      case 'prod': throw new Unread()
+      case 'prod': case 'tup': case 'proj': throw new Unread()
     }
     if (out.length > this.maxCases) {
       const col = v(this.fresh('ϰ'))
