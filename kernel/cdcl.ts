@@ -73,7 +73,7 @@ export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions
 // any value: the trail's atoms, the naturals, the term columns' definitions), as core/infer.ts's join reads it.
 export const REFUTED = 'refuted, not unfolded'
 export type Refuted = Outcome & {core?: number[], dag?: Dag, assumed?: number[]}
-export type CdclOptions = {maxLeaves?: number, model?: boolean, core?: boolean, dag?: boolean, clausal?: boolean, sideOf?: (hyp: number) => number, quiet?: (name: string) => boolean}
+export type CdclOptions = {maxLeaves?: number, model?: boolean, core?: boolean, dag?: boolean, clausal?: boolean, sideOf?: (hyp: number) => number, quiet?: (name: string) => boolean, point?: boolean}
 export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: CdclOptions & {wall?: number} = {}): Outcome {
   // (a wide goal's model or refutation: over parts first, prove.ts's growWide)
   if (opts.model && !opts.dag && !opts.clausal && !root.size && wideFor(goal)) { const out = growWide(goal, budget, (g, until) => growCdcl(g, root, {nodes: 0, until}, opts)); if (out) return out }
@@ -739,12 +739,13 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
             if (open && lpSat && wideScope.judge) { const w = roundedOf(sx, rowsR); if (w && wideScope.judge(w)) { verdict = {kind: 'sat', witness: w}; judged = true; return } }
             if (steps || (open && lp.kind === 'sat')) return
             // (the clausal mode, every clause satisfied: the simplex's point, where it is integral, is a model)
-            // (and the kernel's reading too (GDP_CDCL_POINT=0: not): a leaf whose rows the simplex's point meets at integers
-            // is met, and the exact elimination, which finds as much over every row, is not run there)
-            if ((clausal || pointLeaf) && !open && lpSat) { const w = pointOf(sx, rowsR); if (w) { verdict = {kind: 'sat', witness: w}; return } }
-            // (a model's search, at a leaf whose point is not integral: split on a fractional name of it (branch and bound)
-            // where one is not split on yet, not the exact elimination over every row)
-            if (pointLeaf && opts.model && !clausal && !open && lpSat) {
+            // (`point`, a model's search over the kernel's reading (GDP_CDCL_POINT=0: not): a leaf whose rows the simplex's
+            // point meets at integers is met, and at one whose point is not integral a fractional name of it is split on
+            // (branch and bound) where one is not split on yet, not the exact elimination over every row; the counted
+            // search's (its leaves' elimination took 228 of paxos-hand's 600 s); the others' models stay the elimination's)
+            const byPoint = pointLeaf && !!opts.point && !!opts.model
+            if ((clausal || byPoint) && !open && lpSat) { const w = pointOf(sx, rowsR); if (w) { verdict = {kind: 'sat', witness: w}; return } }
+            if (byPoint && !clausal && !open && lpSat) {
               const point = roundless(sx, rowsR)
               if (point && Object.entries(point).some(([x0, value]) => Math.abs(value - Math.round(value)) >= 1e-9 && !isMonomial(x0) && !decidedLin(Math.floor(value) === 0 ? {[x0]: 1} : {[x0]: 1, 1: -Math.floor(value)}))) { verdict = {kind: 'unknown', point}; return }
             }
