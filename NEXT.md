@@ -39,9 +39,12 @@ Goal: IC3Syn's learning_switch and learning_switch_i4 proven with nothing writte
 
 ## Next, in order
 1. tsc errors left in core/infer.ts (3), core/machine.ts (1), kernel/prove.ts (3) ('a' in e patterns: use 'b' in e).
-2. Engine (core/infer.ts): tuple atoms as candidates (R(t,y,t), R ⇒ S at a projection, 4-place with don't-care
-   places); IC3Syn run: runs/laneRL/sw1 both unknown (join rounds 0: time spent on laws as given; Lane MC owns the
-   laws-as-given budget share in proveRule — don't change it).
+2. Engine (core/infer.ts), done for learning_switch: tuple keys native, projected places P(x, _, y, _), a map's value as
+   a key, domainStep, early Houdini on relation rules (DESIGN.md gen/laneRL). learning_switch pinned: 16 runs, 15
+   proven, 14 within 60 s (17-56 s; 0.25M counted work). i4 open: rows and small-instance states cost 5-10x their
+   counted rate (rows as arrays, not objects), the 4-node BFS cuts in setup (2,100+ junk cubes), round-0 Houdini stops at
+   "route_tc is transitive @start" (no cube to blame) — look at that goal first. Rerun the 29 + ten when the
+   sharded_kv_no_lost_keys prover fix lands (unknown at HEAD with either infer.ts).
 3. agree.ts: native vs phased ports agree on random request sequences (phase rows run to the end).
 4. check.ts/TLC state counts for the native ports (43,672 and 240).
 5. kernel/mutants.ts over the new kernel lines; adversarial tests (kernel/tuples.test.ts, add to test shards);

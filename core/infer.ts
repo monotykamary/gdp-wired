@@ -2876,7 +2876,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
             // (or at a law the caller gave, a kind's: no cube to blame, so the usual proof's verdict)
             if (!(v.proven && v.checked) && (g0 ? at0.endsWith('@step') && stands.has(lawFor(g0).name) : true)) v = within(t0 + ms, () => prove(hl))
             const at = String(v.goal ?? ''), g = v.proven && v.checked ? undefined : hs.find(c => at.startsWith(`${textOf(c)} @`))
-            opts.progress?.('join houdini', {cubes: hs.length, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(vnow() - t2), at: at.slice(0, 100)})
+            opts.progress?.('join houdini', {cubes: hs.length, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(vnow() - t2), at: at.slice(0, 100), ...(g ? {} : {stuck: String(v.stuck ?? ''), why: String(v.why ?? '').slice(0, 160)})})
             if (v.proven && v.checked) { why = 'inductive'; cone = hs; enumProof = v; enumSome = ghost ? [ghost.some] : []; cubes = hs; break }
             if (!g) break
             hs = hs.filter(c => c !== g)
