@@ -30,7 +30,7 @@ import {type Arg, type Event, type Layout, type Fold, type LeastRead, type MapDe
 import {type Extraction, type Name, fromModel} from './extract.ts'
 import type {Rule} from './dsl.ts'
 import {type Sorts, nonneg} from './extract-print.ts'
-import {type CodeSide, type Coverage, type Evidence, type Snap, HarnessFailure, Outside, constantsOf, draw, drive, noEvidence, retried} from './extract-check.ts'
+import {type CodeSide, type Coverage, type Evidence, type Snap, HarnessFailure, Outside, constantsOf, draw, drive, evalTerm, noEvidence, retried} from './extract-check.ts'
 
 // --- the IR (what a reader emits) -----------------------------------------------------------------------------------
 export type SType =
@@ -184,7 +184,7 @@ export type PArg = {k: 'in', name: string, float?: boolean, sym?: boolean, bytes
 export type Answer = {key: string, patch: Patch, async: boolean, inputs: {name: string, none?: string, float?: boolean}, sort: string, how?: string, at?: {p: string, end?: string, span?: [number, number]}[], ty?: string, fit?: boolean,
   raises?: {name: string, cls: unknown[], m: string}[], pass?: boolean, effect?: boolean, quiet?: boolean}
 // (inject: the fields the harness sets to the store it gives, after the constructor: a field injected by a framework)
-export type StepRead = {ints: Record<string, IntTy>, madeAt?: string, model: Model, leaves: Leaf[], args: Record<string, [string, PArg][]>, answers: Answer[], ctor: [string, PArg][], kept: boolean, arms: [string, number][], cls?: string, stores: Record<string, StoreDecl>, results: Record<string, 'none' | 'scalar' | 'maybe'>, inject?: string[], globals?: {name: string, mod: string}[], effectsOf?: Record<string, string[]>, inert?: {store: string, path: string}[]}
+export type StepRead = {ints: Record<string, IntTy>, madeAt?: string, model: Model, leaves: Leaf[], args: Record<string, [string, PArg][]>, answers: Answer[], ctor: [string, PArg][], kept: boolean, arms: [string, number][], cls?: string, stores: Record<string, StoreDecl>, results: Record<string, 'none' | 'scalar' | 'maybe'>, inject?: string[], globals?: {name: string, mod: string}[], effectsOf?: Record<string, string[]>, inert?: {store: string, path: string}[], edges?: B[]}
 
 const where = (x: {p: string}) => x.p || '?'
 const refuse = (x: {p: string} | string, what: string): never => { throw new Refusal(typeof x === 'string' ? x : where(x), what) }
@@ -2031,6 +2031,14 @@ export class Stepper {
       case 'lambda': return refuse(x, `${x.text}: a lambda (a closure; read only as min's or max's key over a collection of the state)`)
       case 'call': return this.call(x, p, awaited)
       case 'fold': return this.foldExpr(x, p)
+      // (a / k rounded to a whole number, by a reader's own rounding: Math.round, math.Round, f64::round, floorDiv ...)
+      // (of a whole number, itself; of another float, a value outside the subset where it is read)
+      case 'rnd': {
+        const d = x.x as SX
+        if (d.e === 'bin' && d.op === '/') return this.quotient(d, p, x.mode as 'floor')
+        const [v, q] = this.ev(d, p)
+        return v.t === 'num' || v.t === 'opaque' ? [v, q] : refuse(x, `${x.text}: a rounding of a ${v.t}`)
+      }
     }
     return refuse(x, `${x.text ?? x.e}: an expression the subset doesn't read`)
   }
@@ -2157,6 +2165,8 @@ export class Stepper {
     if (a.t === 'val' || b.t === 'val') return [this.valBin(op, a, b, x, q2), q2]
     // A true division: a float, kept only where nothing the rule keeps reads it (refused there); its divisor 0 fails.
     if (op === '/') {
+      // (a float division of a reader's (Java's): no failure at 0, an infinity or NaN)
+      if (x.fdiv) return [{t: 'opaque', why: `${x.text}: a float division (read where it is rounded to a whole number: Math.round, floor, ceil, rint or a cast)`}, q2]
       if (b.t === 'num' || b.t === 'bool') { const nb = this.numOf(b, x, q2); this.fail(q2, I.cmp('=', nb, I.num(0)), x, `${x.text}: a division by zero (a ZeroDivisionError)`); return [{t: 'opaque', why: `${x.text}: a true division (a float; the subset reads math.floor or math.ceil of x / k, int(x / k), or x // k)`}, this.assume(q2, I.not(I.cmp('=', nb, I.num(0))))] }
       return [{t: 'opaque', why: `${x.text}: a true division (a float; the subset reads math.floor or math.ceil of x / k, int(x / k), or x // k)`}, q2]
     }
@@ -2535,20 +2545,29 @@ export class Stepper {
       return refuse(x, `${x.text}: ${n}() (a builtin outside the subset)`)
     })
   }
-  // (even: Python's round(a / k), the nearest whole number, a half to the even one: exact for |a| below 2^53, where the
-  // float a / k is within half its last place of a / k, so it lands on a half only where a / k is one)
-  quotient(d: SX, p: Path, round: 'floor' | 'ceil' | 'trunc' | 'even'): [V, Path] {
+  // a / k rounded to a whole number, for a constant k: floor, ceil and trunc (toward zero) exact for |a| below 2^53 (the
+  // float a / k is within half its last place of a / k, less than 1/k from it, so it never reaches the next whole
+  // number); to the nearest, a half to the even one (`even`: Python's round, Java's Math.rint), up (`up`: Java's and
+  // JavaScript's Math.round) or away from zero (`away`: Go's math.Round, Rust's round, C's round) exact for |a| below
+  // 2^52 only: a / k not a half is at least 1/(2k) from one, and the float is within |a / k|·2^-53 of it, less than
+  // 1/(2k) only there (3·2^51 + 2 over 3 lands on a half). Past it, an edge: the claim is for |a| below 2^52.
+  quotient(d: SX, p: Path, round: 'floor' | 'ceil' | 'trunc' | 'even' | 'up' | 'away'): [V, Path] {
     const [a, q] = this.ev(d.x as SX, p), [b, q2] = this.ev(d.y as SX, q), k = constOf(b)
     if (k === undefined) return refuse(d, `${d.text}: a division by a value that isn't a constant`)
+    if (k === 0 && d.fdiv) return refuse(d, `${d.text}: a float division by 0 rounded (an infinity or NaN)`)
     if (k === 0) { this.fail(q2, I.T, d, `${d.text}: a division by zero (a ZeroDivisionError)`); return [{t: 'num', e: I.num(0)}, {...q2, pc: [...q2.pc, I.F]}] }
+    if (!Number.isSafeInteger(k)) return refuse(d, `${d.text}: a division by a constant that isn't whole`)
     const n = this.numOf(a, d, q2), fl = this.floorDiv(n, k), ce = I.neg(this.floorDiv(I.neg(n), k))
     const lt = k > 0 ? I.cmp('<', n, I.num(0)) : I.cmp('<', I.num(0), n)
-    if (round === 'even') {
-      // (r = a − k·⌊a/k⌋: below half of k the floor, past it one more, at it the even of the two)
-      const r2 = I.mulk(2, I.sub(n, I.mulk(k, fl))), half = I.num(k), below = k > 0 ? I.cmp('<', r2, half) : I.cmp('<', half, r2), above = k > 0 ? I.cmp('<', half, r2) : I.cmp('<', r2, half)
-      return [{t: 'num', e: I.nite(below, fl, I.nite(above, I.add(fl, I.num(1)), I.add(fl, I.sub(fl, I.mulk(2, I.divk(2, fl))))))}, q2]
-    }
-    return [{t: 'num', e: round === 'floor' ? fl : round === 'ceil' ? ce : I.nite(lt, ce, fl)}, q2]
+    // (a float's precision: a double's 53 bits (Python's and the rule's own bound), a float's 24: past 2^bits, a / k and
+    // its operands aren't exact, an edge)
+    const bits = (d.prec as number | undefined) ?? 53, edge = (e: number, why: string) => { if (Math.abs(k) > 1 || bits < 53) this.refuseWhere(q2, I.or(I.cmp('<=', I.num(2 ** e), n), I.cmp('<=', n, I.num(-(2 ** e)))), d, `${d.text}: ${why}`, false) }
+    if (round === 'floor' || round === 'ceil' || round === 'trunc') { if (bits < 53) edge(bits, `rounded at |a| of 2^${bits} or more (past a float's precision)`); return [{t: 'num', e: round === 'floor' ? fl : round === 'ceil' ? ce : I.nite(lt, ce, fl)}, q2] }
+    // (a / k as m / j with j = |k| > 0: q = ⌊m/j⌋, r = m − j·q in [0, j); below half of j q, past it q + 1, at it the mode's)
+    const j = Math.abs(k), m = k > 0 ? n : I.neg(n), qq = I.divk(j, m), r2 = I.mulk(2, I.sub(m, I.mulk(j, qq))), half = I.num(j)
+    const tie = round === 'even' ? I.add(qq, I.sub(qq, I.mulk(2, I.divk(2, qq)))) : round === 'up' ? I.add(qq, I.num(1)) : I.nite(I.cmp('<', m, I.num(0)), qq, I.add(qq, I.num(1)))
+    edge(bits - 1, `rounded to the nearest at |a| of 2^${bits - 1} or more (the float a / k may land on a half there)`)
+    return [{t: 'num', e: I.nite(I.cmp('<', r2, half), qq, I.nite(I.cmp('<', half, r2), I.add(qq, I.num(1)), tie))}, q2]
   }
   lib(q0: string, x: SX, p: Path): [V, Path] {
     const a0 = (x.args as SX[])[0]
@@ -3722,7 +3741,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     ...(g.leasts.length ? {leasts: g.leasts} : {}),
     ...(g.used.size ? {seqs: g.seqs.filter(d => g.used.has(d.name)), folds: g.folds} : {}),
   }
-  return {ints: Object.fromEntries(g.ints), ...(g.madeAt ? {madeAt: g.madeAt.name} : {}), model, leaves, args: argsOf, answers: [...g.answers.values()], ctor, kept, arms: [...g.arms].map(a => { const i = a.lastIndexOf(':'); return [a.slice(0, i), Number(a.slice(i + 1))] }), ...(cls ? {cls} : {}), stores, results: resultKinds, ...(g.injectedFields.length ? {inject: g.injectedFields} : {}), ...(g.globalStores.length ? {globals: g.globalStores} : {}), ...(g.inertAttrs.length ? {inert: g.inertAttrs} : {}), ...(effectVars.length ? {effectsOf: Object.fromEntries(finals.map((f, i) => [chosen[i]!.name, effectVars.filter(e => f.path.eff?.has(e.key)).map(e => e.v.name)]))} : {})}
+  return {ints: Object.fromEntries(g.ints), ...(g.madeAt ? {madeAt: g.madeAt.name} : {}), model, leaves, args: argsOf, answers: [...g.answers.values()], ctor, kept, arms: [...g.arms].map(a => { const i = a.lastIndexOf(':'); return [a.slice(0, i), Number(a.slice(i + 1))] }), ...(cls ? {cls} : {}), stores, results: resultKinds, ...(g.injectedFields.length ? {inject: g.injectedFields} : {}), ...(g.globalStores.length ? {globals: g.globalStores} : {}), ...(g.inertAttrs.length ? {inert: g.inertAttrs} : {}), ...(g.edges.length ? {edges: g.edges} : {}), ...(effectVars.length ? {effectsOf: Object.fromEntries(finals.map((f, i) => [chosen[i]!.name, effectVars.filter(e => f.path.eff?.has(e.key)).map(e => e.v.name)]))} : {})}
 }
 // A type's range (64 bits and wider: the rule's numbers stop at ±2^53 before the type's do, and are refused there).
 export const rangeOf = (ty: IntTy): [number, number] => (ty.bits === 0 || ty.bits >= 64 ? (ty.signed ? [-Infinity, Infinity] : [0, Infinity]) : ty.signed ? [-(2 ** (ty.bits - 1)), 2 ** (ty.bits - 1) - 1] : [0, 2 ** ty.bits - 1])
@@ -3942,6 +3961,8 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
         return {leaves, maps}
       },
       normalize: s => { for (const l of read.leaves) if (l.kind === 'none' && s.leaves[l.name] === true) s.leaves[l.name.replace(/_none$/, '')] = g0(m, l.name.replace(/_none$/, '')); return s },
+      // (where the code goes on past what the rule's claim covers (a rounding past a float's exact range): an edge)
+      ...(read.edges?.length ? {edge: (s: Snap, raw: Record<string, Raw>) => read.edges!.some(c => evalTerm(c, {...s.leaves, ...raw}, (map, key, field) => (field === 'has' ? !!s.maps[map]?.[String(key)] : s.maps[map]?.[String(key)]?.[field] ?? 0)) === true)} : {}),
     }
     function closeAndCount(): Coverage {
       const res = ask({op: 'coverage'}) as {hit?: [string, number][]}

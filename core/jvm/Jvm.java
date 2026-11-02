@@ -227,6 +227,8 @@ public final class Jvm {
         case "negateExact": if (na == 1) return ex(arith("-", lit(0, c.out, p), c.out, a.get(0), a0, c.out, "trap", p, t)); break;
         case "toIntExact": if (na == 1) return ex(arith("+", x("as", p, "x", a.get(0), "ity", ity(new JT("int"))), c.out, lit(0, c.out, p), c.out, c.out, "trap", p, t)); break;
         case "floorDiv", "floorMod": if (na == 2) return ex(x("as", p, "x", x("bin", p, "op", n.equals("floorDiv") ? "//" : "%", "x", a.get(0), "y", a.get(1), "text", t), "ity", ity(c.out))); break;
+        // (a float division rounded to a whole number: round ties up, rint ties to the even one, floor, ceil)
+        case "round", "rint", "floor", "ceil": if (na == 1) return ex(x("rnd", p, "mode", switch (n) { case "round" -> o.equals("kotlin.math.MathKt") ? "even" : "up"; case "rint" -> "even"; default -> n; }, "x", a.get(0), "text", t)); break;
         case "clamp": if (na == 3) return ex(x("minmax", p, "op", "max", "xs", List.of(at(a.get(1), c.argT.get(1), c.out), x("minmax", p, "op", "min", "xs", List.of(at(a.get(0), a0, c.out), at(a.get(2), c.argT.get(2), c.out)), "ity", ity(c.out))), "ity", ity(c.out), "text", t)); break;
       }
       return null;

@@ -18,7 +18,7 @@
 // read the same way (`extractXState`, a machine or a function that makes one, its actors, timers and eventless
 // transitions included).
 //
-// The subset: numbers (integers: a literal that isn't one is refused; division only as Math.floor or Math.ceil of
+// The subset: numbers (integers: a literal that isn't one is refused; division only as Math.floor, ceil, round, trunc of
 // x / k for a constant k, a fraction being a binary float the code rounds; % by a constant of a natural), booleans,
 // string-literal unions, strings (set, compared, truthy where not empty), null and undefined where a value may be
 // missing, records and nested records (spreads, shorthand), Map and Record state keyed by numbers or strings (get,

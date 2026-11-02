@@ -675,6 +675,8 @@ public final class JavaReader implements Jvm.Env {
         JT from = ty(path, c.getExpression());
         Map<String, Object> v = ex(c.getExpression(), path);
         if (ity(type) == null || from == null) return v;
+        // (a float division into an integer: truncated toward zero, a whole number within the type's range)
+        if (floating(from) && "bin".equals(v.get("e")) && Boolean.TRUE.equals(v.get("fdiv"))) v = x("rnd", p, "mode", "trunc", "x", v, "text", t);
         // (a float's whole value into an integer: Java's saturates at the type's range)
         if (floating(from)) return x("bin", p, "op", "+", "x", x("as", p, "x", v, "ity", ity(type)), "y", lit(0, type, p), "ovf", "sat", "text", t);
         int fb = (int) ity(from).get("bits"), tb = (int) ity(type).get("bits");
@@ -712,7 +714,10 @@ public final class JavaReader implements Jvm.Env {
       case PLUS: case MINUS: case MULTIPLY: case DIVIDE: case REMAINDER: {
         if (type != null && type.is("java.lang.String")) return x("bin", p, "op", "+", "x", l, "y", r, "text", t);
         String op = switch (b.getKind()) { case PLUS -> "+"; case MINUS -> "-"; case MULTIPLY -> "*"; case DIVIDE -> "/"; default -> "%"; };
-        if (floating(type) && (op.equals("/") || op.equals("%"))) return no(p, t + ": a float division (the subset reads whole numbers)");
+        // (a float division: a true division, kept only where a rounding to a whole number reads it (Math.round, floor,
+        // ceil, rint, a cast); its precision, a double's 53 bits or a float's 24, bounds where that is exact)
+        if (floating(type) && op.equals("/")) return x("bin", p, "op", "/", "x", l, "y", r, "text", t, "fdiv", true, "prec", "float".equals(prim(type)) ? 24 : 53);
+        if (floating(type) && op.equals("%")) return no(p, t + ": a float remainder (the subset reads whole numbers)");
         return arith(op, l, ta, r, tb, type, "wrap", p, t);
       }
       case LEFT_SHIFT: case RIGHT_SHIFT: return x("binop", p, "op", b.getKind() == Tree.Kind.LEFT_SHIFT ? "<<" : ">>", "x", at(l, ta, type), "y", r, "text", t);

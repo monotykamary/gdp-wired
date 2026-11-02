@@ -758,7 +758,7 @@ export class Exec {
     if (op === S.PlusToken || op === S.MinusToken || op === S.AsteriskToken || op === S.PercentToken) return [this.arith(op, l, r, e, q2), q2]
     // A fraction is a binary float in the code: each operation on it rounds (0.1 + 0.2 is not 0.3), so a rule over ℚ
     // (gdp-wired/rationals) is the code only where nothing rounds, which no check shows; refused, with what is read.
-    if (op === S.SlashToken) return refuse(e, 'a division whose result may be a fraction (a binary float in the code: each operation on it rounds, where a rule over the rationals would not; Math.floor or Math.ceil of x / k for a constant k is in the subset)')
+    if (op === S.SlashToken) return refuse(e, 'a division whose result may be a fraction (a binary float in the code: each operation on it rounds, where a rule over the rationals would not; Math.floor, Math.ceil, Math.round or Math.trunc of x / k for a constant k is in the subset)')
     if (op === S.AsteriskAsteriskToken) return refuse(e, 'a power')
     if (op === S.CommaToken) return [r, q2]
     if (op === S.InKeyword || op === S.InstanceOfKeyword) return refuse(e, e.operatorToken.getText())
@@ -1299,7 +1299,7 @@ export class Exec {
     return undefined
   }
   private math(m: string, e: ts.CallExpression, p: Path): [V, Path] {
-    if (m === 'floor' || m === 'ceil') {
+    if (m === 'floor' || m === 'ceil' || m === 'round' || m === 'trunc') {
       const a = e.arguments[0]
       const strip = (x: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(x) ? strip(x.expression) : x)
       const d = a && strip(a)
@@ -1308,8 +1308,12 @@ export class Exec {
         const [x, q] = this.ev(d.left, p), [k, q2] = this.ev(d.right, q)
         const kn = this.num(k, d.right, q2)
         if (kn.op !== 'const' || kn.v < 1) return refuse(d.right, `Math.${m}(x / k) by other than a positive constant`)
-        const xn = this.num(x, d.left, q2)
-        return [{t: 'num', e: m === 'floor' ? I.divk(kn.v, xn) : I.neg(I.divk(kn.v, I.neg(xn)))}, q2]
+        const xn = this.num(x, d.left, q2), kv = kn.v, fl = I.divk(kv, xn), ce = I.neg(I.divk(kv, I.neg(xn)))
+        if (m !== 'round') return [{t: 'num', e: m === 'floor' ? fl : m === 'ceil' ? ce : I.nite(I.cmp('<', xn, I.num(0)), ce, fl)}, q2]
+        // Math.round: to the nearest, a half up (r = x − k·⌊x/k⌋: below half of k the floor, else one more); exact for
+        // |x| below 2^52, where the float x / k never lands on a half it isn't (past it, refused: the claim is for those)
+        if (kv > 1) { this.throws.push({pc: [...q2.pc, I.or(I.cmp('<=', I.num(2 ** 52), xn), I.cmp('<=', xn, I.num(-(2 ** 52))))]}); this.s.notes.add(`${text(e)}: rounded at |x| below 2^52 (past it the float x / k may land on a half; refused there)`) }
+        return [{t: 'num', e: I.nite(I.cmp('<', I.mulk(2, I.sub(xn, I.mulk(kv, fl))), I.num(kv)), fl, I.add(fl, I.num(1)))}, q2]
       }
       // Of an integer, its value.
       const [x, q] = this.ev(d, p)
@@ -1325,7 +1329,7 @@ export class Exec {
       return [{t: 'num', e: I.nite(I.cmp('<', x, I.num(0)), I.neg(x), x)}, q]
     }
     if (m === 'random') return refuse(e, 'Math.random (a step the code takes differently each time)')
-    return refuse(e, `Math.${m} (Math.min, Math.max, Math.abs, and Math.floor or Math.ceil of x / k are in the subset)`)
+    return refuse(e, `Math.${m} (Math.min, Math.max, Math.abs, and Math.floor, Math.ceil, Math.round or Math.trunc of x / k are in the subset)`)
   }
   now(e: ts.Node, p: Path): [V, Path] {
     if (p.nows > 0) return refuse(e, 'Date.now() read twice in one step (the two reads may differ: read it once into a local)')

@@ -51,6 +51,9 @@ export const termOf = (t: TermLike): E => {
 // Each term and condition may also carry its value (`val`, `ok`), computed beside its expression by plain JavaScript
 // when every value it reads is known: what `crossCheck` compares with the expression the interpreter evaluates, so a
 // builder that writes a different expression than it means is caught on concrete runs.
+// How a value on no tick rounds to the nearest one where it is a half: to the even multiple (Python's round, banker's
+// rounding), up (toward +∞: JavaScript's and Java's Math.round), down (toward −∞), or away from 0 (Go's and Rust's round).
+export type Rounding = 'halfEven' | 'halfUp' | 'halfDown' | 'halfAway'
 export class Term {
   constructor(readonly e: E, readonly val?: number) {}
   plus(b: TermLike): Term { return new Term({op: 'add', a: this.e, b: termOf(b)}, both(this.val, valOf(b), (x, y) => x + y)) }
@@ -62,6 +65,20 @@ export class Term {
   // constant has no such fact in linear arithmetic (x = y·q + r is a product of two unknowns), so it isn't offered.
   modBy(k: number): Term { divisor(k, 'modBy'); return new Term({op: 'get', map: modName(k), key: this.e}, this.val === undefined ? undefined : this.val % k) }
   divBy(k: number): Term { divisor(k, 'divBy'); return new Term({op: 'get', map: divName(k), key: this.e}, this.val === undefined ? undefined : Math.floor(this.val / k)) }
+  // On a tick of k (a constant k >= 1, a price's tick, a lot size): the multiple of k below (floorTo), above (ceilTo) or
+  // nearest (roundTo, a half by the mode: 'halfEven' Python's round, 'halfUp' JavaScript's and Java's Math.round,
+  // 'halfDown', 'halfAway' Go's and Rust's round; a natural's halfAway is its halfUp), each from divBy and modBy, so the
+  // kernel knows them by the same facts; and whether it is on one (onTick).
+  floorTo(k: number): Term { return this.divBy(k).times(k) }
+  ceilTo(k: number): Term { divisor(k, 'ceilTo'); return this.plus(k - 1).divBy(k).times(k) }
+  roundTo(k: number, mode: Rounding = 'halfEven'): Term {
+    divisor(k, 'roundTo')
+    if (mode === 'halfUp' || mode === 'halfAway') return this.times(2).plus(k).divBy(2 * k).times(k)
+    if (mode === 'halfDown') return this.times(2).plus(k - 1).divBy(2 * k).times(k)
+    const q = this.divBy(k), r2 = this.modBy(k).times(2)
+    return when(r2.lt(k), q, when(lit(k).lt(r2), q.plus(1), q.plus(q.modBy(2)))).times(k)
+  }
+  onTick(k: number): Cond { return this.modBy(k).eq(0) }
   lt(b: TermLike): Cond { return new Cond({op: '<', a: this.e, b: termOf(b)}, both(this.val, valOf(b), (x, y) => x < y)) }
   atMost(b: TermLike): Cond { return new Cond({op: '<=', a: this.e, b: termOf(b)}, both(this.val, valOf(b), (x, y) => x <= y)) }
   gt(b: TermLike): Cond { return new Cond({op: '<', a: termOf(b), b: this.e}, both(this.val, valOf(b), (x, y) => x > y)) }
@@ -271,6 +288,21 @@ export class Int {
   // the same remainder, and its quotient is x div k + neg, so both are the natural division of that one natural.
   modBy(k: number): Term { divisor(k, 'modBy'); return add(this.pos, this.neg.times(k - 1)).modBy(k) }
   divBy(k: number): Int { divisor(k, 'divBy'); return new Int(add(this.pos, this.neg.times(k - 1)).divBy(k), this.neg) }
+  // On a tick of k, as a natural's (Term.floorTo, ceilTo, roundTo, onTick), below 0 too: halfAway rounds a half away
+  // from 0 (up above it, down below it), halfUp toward +∞, halfDown toward −∞.
+  floorTo(k: number): Int { return this.divBy(k).times(k) }
+  ceilTo(k: number): Int { return this.negate().floorTo(k).negate() }
+  roundTo(k: number, mode: Rounding = 'halfEven'): Int {
+    divisor(k, 'roundTo')
+    // (a half up: ⌊(2x + k) / 2k⌋·k; a half down: ⌈(2x − k) / 2k⌉·k, that is −⌊(k − 2x) / 2k⌋·k)
+    const up = (): Int => this.times(2).plus(k).divBy(2 * k).times(k), down = (): Int => Int.of(k).minus(this.times(2)).divBy(2 * k).times(k).negate()
+    if (mode === 'halfUp') return up()
+    if (mode === 'halfDown') return down()
+    if (mode === 'halfAway') return when(this.isNegative, down(), up())
+    const q = this.divBy(k), r2 = this.modBy(k).times(2)
+    return when(r2.lt(k), q, when(lit(k).lt(r2), q.plus(1), q.plus(q.modBy(2)))).times(k)
+  }
+  onTick(k: number): Cond { return this.modBy(k).eq(0) }
   // |value|, and the value where it is not negative (0 below).
   get abs(): Term { return this.pos.minus(this.neg).plus(this.neg.minus(this.pos)) }
   get clamped(): Term { return this.pos.minus(this.neg) }
@@ -314,6 +346,12 @@ export class Decimal {
   min(b: DecimalLike): Decimal { return this.with(this.int.min(this.lift(b))) }
   max(b: DecimalLike): Decimal { return this.with(this.int.max(this.lift(b))) }
   get isNegative(): Cond { return this.int.isNegative }
+  // On a tick written in the decimal's own units (0.05 at 2 places is 5 cents): Int's floorTo, ceilTo, roundTo, onTick.
+  private tick(t: number): number { const n = scaledOf(t, this.places, 'a tick'); if (n < 1) throw new RangeError(`a tick is positive, not ${t}`); return n }
+  floorTo(t: number): Decimal { return this.with(this.int.floorTo(this.tick(t))) }
+  ceilTo(t: number): Decimal { return this.with(this.int.ceilTo(this.tick(t))) }
+  roundTo(t: number, mode: Rounding = 'halfEven'): Decimal { return this.with(this.int.roundTo(this.tick(t), mode)) }
+  onTick(t: number): Cond { return this.int.onTick(this.tick(t)) }
 }
 const asNat = (name: string, raw: Raw): number => {
   if (typeof raw !== 'number' || !Number.isSafeInteger(raw) || raw < 0) throw new RangeError(`${name} must be a natural, not ${shown(raw)}`)
