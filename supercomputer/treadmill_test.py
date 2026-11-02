@@ -100,6 +100,105 @@ class FillYields(unittest.TestCase):
         self.assertGreaterEqual(len(b.items), 4 * tm.SLOTS)
 
 
+class RequiredFuzz(unittest.TestCase):
+    """A changed kernel gets a bounded, non-preemptible share even under full gate load."""
+
+    def soundness(self):
+        s = FillYields.soundness(self)
+        s.fuzz_hash = 'kernel-v1'
+        s.mutants = [1, 2, 3]
+        tm.tracked = lambda _tm, chain, label, on_row: on_row
+        tm.Batch = lambda _tm, label, chain, items, vms, on_row, root=None, after=None, **kw: types.SimpleNamespace(
+            label=label, chain=chain, items=items, vms=vms, on_row=on_row, after=after, done=False)
+        real = tm.append, tm.log
+        self.rows = []
+        tm.append = lambda path, row: self.rows.append((path.name, row))
+        tm.log = lambda *_: None
+        self.addCleanup(lambda: (setattr(tm, 'append', real[0]), setattr(tm, 'log', real[1])))
+        return s
+
+    def test_exactly_three_despite_caps_and_backlogs(self):
+        s = self.soundness()
+        s.tm.state['fuzz_again'] = [['kernel', 5]]
+        b = s.batch(1, required=True)
+        self.assertEqual(b.chain, 'c')  # generic treadmill CHAIN_CLASS: submission, never a victim
+        self.assertEqual(b.vms, 1)
+        self.assertEqual(sorted(it['name'].split('-')[0] for it in b.items), sorted(tm.FUZZ))
+        self.assertEqual(s.mutants, [1, 2, 3])
+        self.assertEqual(s.tm.state['fuzz_again'], [['kernel', 5]])
+        self.assertEqual(s.required_kinds(), list(tm.FUZZ))  # queued is not fuzzed
+
+    def test_full_pool_and_new_mains_cannot_starve_or_duplicate_it(self):
+        s = self.soundness()
+        t = object.__new__(tm.Treadmill)
+        t.sound_on, t.sound, t.batches, t.vms = True, s, [], 8
+        self.assertEqual(t.floor(0), 0)
+        self.assertEqual(len(t.batches), 1)
+        first = t.batches[0]
+        s.commit, s.fuzz_hash = 'd' * 40, 'kernel-v2'
+        for _ in range(6):
+            self.assertEqual(t.floor(0), 0)
+        self.assertEqual(len(t.batches), 1)
+        first.done = True
+        self.assertEqual(t.floor(0), 0)
+        self.assertEqual(len(t.batches), 2)
+        self.assertEqual(t.vms, 8)  # no higher idle floor, no speculative VM growth
+        self.assertEqual(len(t.batches[1].items), 3)
+
+    def test_only_completed_non_infrastructure_runs_satisfy_the_share(self):
+        s = self.soundness()
+        b = s.batch(1, required=True)
+        logs = {}
+        for it in b.items:
+            kind = it['name'].split('-')[0]
+            if kind == 'cdcl':
+                b.on_row(it, {'code': -1, 'preempted': True})
+            else:
+                b.on_row(it, {'code': 0})
+                logs[it['name']] = {'out': 'bun test\n 12 pass\n'}
+        b.after(logs)
+        self.assertEqual(s.required_kinds(), ['cdcl'])
+        self.assertEqual(len([r for f, r in self.rows if f == 'fuzz.jsonl']), 2)
+        retry = s.batch(1, required=True)
+        self.assertEqual(len(retry.items), 1)
+        it = retry.items[0]
+        retry.on_row(it, {'code': 1})
+        retry.after({it['name']: {'out': 'bun test\nerror: UNSOUND: a model\n(fail) kernel'}})
+        self.assertFalse(s.required_kinds())  # a real finding is recorded, not retried forever
+        self.assertTrue(s.tm.state['fuzz_recheck'])  # existing soundness alert path kept
+        s.tm.state = json.loads(json.dumps(s.tm.state))  # restart
+        s.commit = 'e' * 40  # non-kernel main, same input fingerprint
+        self.assertIsNone(s.batch(1, required=True))
+        s.fuzz_hash = 'kernel-v2'
+        self.assertEqual(s.required_kinds(), list(tm.FUZZ))
+
+    def test_infrastructure_failure_is_still_due(self):
+        s = self.soundness()
+        b = s.batch(1, required=True)
+        logs = {}
+        for it in b.items:
+            b.on_row(it, {'code': 124})
+            logs[it['name']] = {'out': 'bun test\nerror: Test timed out after 600000ms'}
+        b.after(logs)
+        self.assertEqual(s.required_kinds(), list(tm.FUZZ))
+
+    def test_fingerprint_tracks_all_kernel_sources_and_checker_inputs(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            p = pathlib.Path(d)
+            (p / 'kernel').mkdir()
+            (p / 'core').mkdir()
+            for f in ('kernel/kernel.ts', 'kernel/cyclic.ts', 'kernel/cdcl.test.ts', 'core/check.ts', 'core/solver.ts'):
+                (p / f).write_text(f)
+            before = tm.Soundness.fuzz_fingerprint(p)
+            (p / 'kernel/MUTANTS.md').write_text('documentation only')
+            self.assertEqual(before, tm.Soundness.fuzz_fingerprint(p))
+            for f in ('kernel/cdcl.test.ts', 'core/check.ts', 'kernel/new-checker.ts'):
+                (p / f).write_text('changed')
+                after = tm.Soundness.fuzz_fingerprint(p)
+                self.assertNotEqual(before, after)
+                before = after
+
 class ReaderFuzz(unittest.TestCase):
     """The reader fuzz takes one of each two of the readers' slots, beside xfuzz; at its day's cap a reader yields."""
 
