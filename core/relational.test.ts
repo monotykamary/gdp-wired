@@ -188,6 +188,15 @@ test('business days: the count is the calendar walked day by day', () => {
         const x = bd.between(a * u, b * u), want = walked([...weekend], HOLIDAYS, secs, a, b)
         expect(x.pos.val! - x.neg.val!).toBe(want)
         expect(bd.count(a * u, b * u)).toBe(want)
+        // (a week's guard holds at that week alone)
+        const w = Math.floor((a * u + secs * u + 10 * 86_400 * u) / (7 * 86_400 * u))
+        expect([w - 1, w, w + 1].map(k => bd.pin(a * u, k).guard.ok)).toEqual([false, true, false])
+      }
+      // (at the turn of a day: a holiday's midnight, local time, and the second before it)
+      for (const h of HOLIDAYS) for (const d of [0, -1, 1]) {
+        const mid = Date.UTC(Number(h.slice(0, 4)), Number(h.slice(5, 7)) - 1, Number(h.slice(8, 10))) / 1000 - secs, a = mid - 3 * 86_400
+        const x = bd.between(a * u, (mid + d) * u)
+        expect(x.pos.val! - x.neg.val!).toBe(walked([...weekend], HOLIDAYS, secs, a, mid + d))
       }
     }
   }
