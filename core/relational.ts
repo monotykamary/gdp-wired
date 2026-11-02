@@ -250,10 +250,10 @@ export function lift(l: Law, r: AnyRule, prefix: 'a_' | 'b_', shared: string[]):
     switch (x.op) {
       case 'var': return {op: 'var', name: n(x.name)}
       case 'const': return x
-      case 'mul': return {...x, a: e(x.a)}
+      case 'mul': case 'proj': return {...x, a: e(x.a)}
       case 'if': return {op: 'if', c: c(x.c), then: e(x.then), else: e(x.else)}
       case 'get': return {op: 'get', map: n(x.map), key: e(x.key)}
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...x, a: e(x.a), b: e(x.b)}
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {...x, a: e(x.a), b: e(x.b)}
     }
   }
   const c = (x: C): C => {

@@ -18,7 +18,7 @@
 // read the same way (`extractXState`, a machine or a function that makes one, its actors, timers and eventless
 // transitions included).
 //
-// The subset: numbers (integers: a literal that isn't one is refused; division only as Math.floor or Math.ceil of
+// The subset: numbers (integers: a literal that isn't one is refused; division only as Math.floor, ceil or trunc of
 // x / k for a constant k, a fraction being a binary float the code rounds; % by a constant of a natural), booleans,
 // string-literal unions, strings (set, compared, truthy where not empty), null and undefined where a value may be
 // missing, records and nested records (spreads, shorthand), Map and Record state keyed by numbers or strings (get,
@@ -201,7 +201,7 @@ function datesInRange(m: Model, sorts: Sorts) {
 export const toSource = (x: Extraction): string => x.source ?? ''
 
 // The source is the rule: it is evaluated with the builders, so what is checked is what is printed.
-const NAMES = ['rule', 'nat', 'int', 'bool', 'oneOf', 'str', 'record', 'when', 'min', 'max', 'all', 'any', 'not', 'yes', 'no', 'lit', 'intern', 'Int', 'desc'] as const
+const NAMES = ['rule', 'nat', 'int', 'bool', 'oneOf', 'str', 'record', 'when', 'min', 'max', 'all', 'any', 'not', 'yes', 'no', 'lit', 'intern', 'Int', 'desc', 'everyKey'] as const
 function evaluate(body: string): Rule {
   const f = compileFunction<(...xs: unknown[]) => Rule>([...NAMES], `return ${body}`)
   const r = f(...NAMES.map(n => (dsl as Record<string, unknown>)[n]))
@@ -251,6 +251,9 @@ function builderOf(m: Model, sorts: Sorts): string {
   const params = (t: object) => [...I.varsOf(t as N).vars].filter(n => m.params.some(p => p.name === n))
   const start = (v: Var) => {
     const t = m.init[v.name]!, ps = params(t.e), fn = (x: string) => (ps.length ? `({${ps.join(', ')}}) => ${x}` : x)
+    // The kernel's start expressions read parameters only, not functions (including div/mod).
+    // A narrowing cast can introduce one even when the source spells no division.
+    walk(t.e, o => { if (o.op === 'divk' || o.op === 'modk') throw new Refusal(m.file ?? m.entry, `${v.name}: division or remainder in an initializer (including a wrapping conversion) is outside the reader's start-expression subset`) })
     const at = pterm(t, P, ctx(), v.name)
     if (v.sort.k === 'num') return sorts.get(v.name) === 'nat' ? (ps.length ? fn(at) : at) : `int.from(${ps.length ? fn(at) : at})`
     if (v.sort.k === 'bool') return `bool.from(${ps.length ? fn(at) : at === 'yes' ? 'true' : at === 'no' ? 'false' : at})`
@@ -265,7 +268,7 @@ function builderOf(m: Model, sorts: Sorts): string {
   const envOf = (...xs: object[]) => {
     const vars = new Set<string>(), maps = new Set<string>()
     for (const x of xs) I.varsOf(x as N, vars, maps)
-    return `{${[...new Set([...vars].filter(n => !m.leasts?.some(l => l.key === n)).map(leastOf)), ...maps].filter(n => n !== PASS).join(', ')}}`
+    return `{${[...new Set([...vars].filter(n => !m.leasts?.some(l => l.key === n)).map(leastOf)), ...maps].filter(n => n !== PASS && n !== 'kl$' && n !== 'k$' && n !== 'j$').join(', ')}}`
   }
   // The least keys: each where it holds, by what, read at the state before the step.
   if (m.leasts?.length) {
@@ -276,10 +279,52 @@ function builderOf(m: Model, sorts: Sorts): string {
   // fold's start at 0 and its step at every pass below the list's length (printed over the pass, i$).
   const rec = (name: string, fs: Var[]) => `record({${fs.map(f => `${f.name}: ${kindOf(f, sorts, `${name}.${f.name}`)}`).join(', ')}})`
   for (const q of [...(m.seqs ?? []), ...(m.folds ?? []).map(d => ({name: d.run, fields: d.fields}))]) lines.push(`  .carriesList(${JSON.stringify(q.name)}, ${rec(q.name, q.fields)})`)
+  // (a while loop's lists taken by an order: each one's held keys in it, and each key's place there)
+  for (const g of (m.folds ?? []).flatMap(d => d.loop?.drains ?? [])) lines.push(`  .carriesList(${JSON.stringify(g.ord)}, record({k: nat}))`, `  .carries(${JSON.stringify(g.rk)})`)
   for (const d of m.folds ?? []) {
     const cell = (i: N, f: Var) => ({op: 'cell', map: d.run, key: {op: 'num', e: i}, field: f.name, ...(f.sort.k === 'choice' ? {values: f.sort.values} : {})}) as never
     const eq = (i: N, f: Var, t: Term): B => (t.s === 'num' ? I.cmp('=', cell(i, f), t.e) : t.s === 'bool' ? I.and(I.or(I.not(cell(i, f)), t.e), I.or(cell(i, f), I.not(t.e))) : t.s === 'str' ? I.keq(cell(i, f), t.e) : I.leq(cell(i, f), t.e as I.L))
-    const start = I.and(...d.fields.map(f => eq(I.num(0), f, d.init[f.name]!))), step = I.and(...d.fields.map(f => eq(I.add(I.nvar(PASS), I.num(1)), f, d.step[f.name]!)))
+    const start = I.and(...d.fields.filter(f => d.init[f.name]).map(f => eq(I.num(0), f, d.init[f.name]!))), step = I.and(...d.fields.filter(f => d.step[f.name]).map(f => eq(I.add(I.nvar(PASS), I.num(1)), f, d.step[f.name]!)))
+    if (d.loop?.cond && d.loop.drains) {
+      // A while loop's over lists by an order: its passes, each where its condition holds and none ended the loop, then
+      // the first where not; each list's held keys in the order (increasing, each held, every held one at its place,
+      // tying it), and no two that tie where the loop runs.
+      const l = d.loop, cond = l.cond!, len = d.len, endC = I.substN(cond, PASS, len)
+      const text = `all(${d.run}_len.eq(${pnum(I.add(len, I.num(1)), P, ctx())}), ${pb(start, P, ctx())}, ${d.run}.every((_x, ${PASS}) => ${PASS}.lt(${pnum(len, P, ctx())}).implies(${pb(I.and(step, cond), P, ctx())})), ${pb(I.not(endC), P, ctx())})`
+      const env = envOf(start, step, cond, endC).slice(1, -1).split(', ').filter(Boolean)
+      lines.push(`  .assume((${withChoices(`{${[...new Set([...env, d.run, `${d.run}_len`])].join(', ')}}`, text, P)}) => ${text})`)
+      for (const g of l.drains!) {
+        const ordAt = (x: N): N => ({op: 'cell', map: g.ord, key: {op: 'num', e: x}, field: 'k'}), byAt = (x: N) => g.by.map(b => ({...b, e: I.substN(b.e, 'kl$', x)}))
+        const lt = (a: {e: N, desc?: boolean}[], b: {e: N, desc?: boolean}[]): B => a.reduceRight<B>((acc, x, j) => { const y = b[j]!; return I.or(x.desc ? I.cmp('<', y.e, x.e) : I.cmp('<', x.e, y.e), I.and(I.cmp('=', x.e, y.e), acc)) }, I.F)
+        const same = (a: {e: N}[], b: {e: N}[]): B => I.and(...a.map((x, j) => I.cmp('=', x.e, b[j]!.e)))
+        const iv = I.nvar('i$'), jv = I.nvar('j$'), kv = I.nvar('kl$'), cnt = I.nvar(`${g.ord}_len`), place: N = {op: 'cell', map: g.rk, key: {op: 'num', e: kv}, field: '$item'}
+        const heldAt = (x: N) => I.substN(g.held, 'kl$', x)
+        const inc = I.or(I.not(I.and(I.cmp('<', iv, jv), I.cmp('<', jv, cnt))), lt(byAt(ordAt(iv)), byAt(ordAt(jv))))
+        const held = I.or(I.not(I.cmp('<', iv, cnt)), heldAt(ordAt(iv)))
+        const all = I.or(I.not(g.held), I.and(I.cmp('<', place, cnt), same(byAt(ordAt(place)), g.by)))
+        sorts.set('j$', 'nat')
+        // (two held keys at one place are one: with the list increasing, every held key is at the place of its own, and
+        // two items that tie under the order have no list, so the rule refuses there, an edge the check counts apart)
+        const rkAt = (x: N): N => ({op: 'cell', map: g.rk, key: {op: 'num', e: x}, field: '$item'})
+        const one = I.or(I.not(I.and(g.held, heldAt(jv), I.cmp('=', rkAt(kv), rkAt(jv)))), I.cmp('=', kv, jv))
+        // (all of it only where the loop runs: the request its method's, on its branch)
+        const gate = l.entry && !(l.entry.op === 'const' && l.entry.v) ? l.entry : undefined
+        for (const [vs, c] of [['i$, j$', inc], ['i$', held], ['kl$', all], ['kl$, j$', one]] as const) {
+          const t0 = `everyKey((${vs}) => ${pb(c, P, ctx())})`, t = gate ? `any(${pb(I.not(gate), P, ctx())}, ${t0})` : t0
+          const e = envOf(c, ...(gate ? [gate] : [])).slice(1, -1).split(', ').filter(n => Boolean(n) && n !== 'j$')
+          lines.push(`  .assume((${withChoices(`{${[...new Set([...e, g.ord, `${g.ord}_len`])].join(', ')}}`, t, P)}) => ${t})`)
+        }
+      }
+      continue
+    }
+    if (d.back) {
+      // (from the last place down: the start at the length, each pass's output at its own place)
+      const step2 = I.and(...d.fields.filter(f => d.step[f.name]).map(f => eq(I.nvar(PASS), f, d.step[f.name]!))), start2 = I.and(...d.fields.filter(f => d.init[f.name]).map(f => eq(d.len, f, d.init[f.name]!)))
+      const text = `all(${d.run}_len.eq(${pnum(I.add(d.len, I.num(1)), P, ctx())}), ${pb(start2, P, ctx())}, ${d.run}.every((_x, ${PASS}) => ${PASS}.lt(${pnum(d.len, P, ctx())}).implies(${pb(step2, P, ctx())})))`
+      const env = envOf(start2, step2, d.len).slice(1, -1).split(', ').filter(Boolean)
+      lines.push(`  .assume((${withChoices(`{${[...new Set([...env, d.run, `${d.run}_len`])].join(', ')}}`, text, P)}) => ${text})`)
+      continue
+    }
     // (the passes over the run's places: one past the list's length, a carried list's or one of the state's)
     const len = I.add(d.len, I.num(1)), text = `all(${d.run}_len.eq(${pnum(len, P, ctx())}), ${pb(start, P, ctx())}, ${d.run}.every((_x, ${PASS}) => ${PASS}.lt(${pnum(d.len, P, ctx())}).implies(${pb(step, P, ctx())})))`
     const env = envOf(start, step, d.len).slice(1, -1).split(', ').filter(Boolean)
@@ -312,7 +357,7 @@ function builderOf(m: Model, sorts: Sorts): string {
       // Several keys written: every key at once, each cell the last write at it (k$, the key, a natural).
       const k: K = {op: 'num', e: I.nvar('k$')}, ws = allW(w)
       sorts.set('k$', 'nat')
-      const at = (x: MapWrite) => I.and(x.when ?? I.T, I.keq(k, x.key))
+      const at = (x: MapWrite) => I.and(x.when ?? I.T, x.each ? I.T : I.keq(k, x.key))
       const has = ws.reduce<B>((acc, x) => I.bite(at(x), x.has, acc), {op: 'cell', map: n, key: k, field: 'has'})
       const vals = d.fields.map(f => {
         const base: Term = f.sort.k === 'num' ? {s: 'num', e: {op: 'cell', map: n, key: k, field: f.name}} : f.sort.k === 'choice' ? {s: 'choice', e: {op: 'cell', map: n, key: k, field: f.name, values: f.sort.values}} : {s: 'bool', e: {op: 'cell', map: n, key: k, field: f.name}}
@@ -398,6 +443,8 @@ function hoist(m: Model, P: Printer, roots: object[]) {
   for (const k of order) {
     const node = hoistNodes.get(k)!, size = k.length
     if ((count.get(k) ?? 0) < 2 || size < 60 || isChoice(node)) continue
+    // (a term over a bound name (a key every key is written at, a pass) is printed where that name is bound)
+    if (/"name":"(k\$|kl\$|i\$)"/.test(k)) continue
     // (a product of integers kept at 0 or above only by the conditions the path is under: printed where it is read,
     // under them, never hoisted out of them)
     let guarded = false

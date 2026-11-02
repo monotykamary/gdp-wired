@@ -17,11 +17,11 @@
 // both runtimes do.
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {env as knobs} from './solver.ts'
-import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
+import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE} from './exists.ts'
-import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
-import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
+import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
+import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
@@ -51,6 +51,9 @@ export const termOf = (t: TermLike): E => {
 // Each term and condition may also carry its value (`val`, `ok`), computed beside its expression by plain JavaScript
 // when every value it reads is known: what `crossCheck` compares with the expression the interpreter evaluates, so a
 // builder that writes a different expression than it means is caught on concrete runs.
+// How a value on no tick rounds to the nearest one where it is a half: to the even multiple (Python's round, banker's
+// rounding), up (toward +∞: JavaScript's and Java's Math.round), down (toward −∞), or away from 0 (Go's and Rust's round).
+export type Rounding = 'halfEven' | 'halfUp' | 'halfDown' | 'halfAway'
 export class Term {
   constructor(readonly e: E, readonly val?: number) {}
   plus(b: TermLike): Term { return new Term({op: 'add', a: this.e, b: termOf(b)}, both(this.val, valOf(b), (x, y) => x + y)) }
@@ -62,6 +65,20 @@ export class Term {
   // constant has no such fact in linear arithmetic (x = y·q + r is a product of two unknowns), so it isn't offered.
   modBy(k: number): Term { divisor(k, 'modBy'); return new Term({op: 'get', map: modName(k), key: this.e}, this.val === undefined ? undefined : this.val % k) }
   divBy(k: number): Term { divisor(k, 'divBy'); return new Term({op: 'get', map: divName(k), key: this.e}, this.val === undefined ? undefined : Math.floor(this.val / k)) }
+  // On a tick of k (a constant k >= 1, a price's tick, a lot size): the multiple of k below (floorTo), above (ceilTo) or
+  // nearest (roundTo, a half by the mode: 'halfEven' Python's round, 'halfUp' JavaScript's and Java's Math.round,
+  // 'halfDown', 'halfAway' Go's and Rust's round; a natural's halfAway is its halfUp), each from divBy and modBy, so the
+  // kernel knows them by the same facts; and whether it is on one (onTick).
+  floorTo(k: number): Term { return this.divBy(k).times(k) }
+  ceilTo(k: number): Term { divisor(k, 'ceilTo'); return this.plus(k - 1).divBy(k).times(k) }
+  roundTo(k: number, mode: Rounding = 'halfEven'): Term {
+    divisor(k, 'roundTo')
+    if (mode === 'halfUp' || mode === 'halfAway') return this.times(2).plus(k).divBy(2 * k).times(k)
+    if (mode === 'halfDown') return this.times(2).plus(k - 1).divBy(2 * k).times(k)
+    const q = this.divBy(k), r2 = this.modBy(k).times(2)
+    return when(r2.lt(k), q, when(lit(k).lt(r2), q.plus(1), q.plus(q.modBy(2)))).times(k)
+  }
+  onTick(k: number): Cond { return this.modBy(k).eq(0) }
   lt(b: TermLike): Cond { return new Cond({op: '<', a: this.e, b: termOf(b)}, both(this.val, valOf(b), (x, y) => x < y)) }
   atMost(b: TermLike): Cond { return new Cond({op: '<=', a: this.e, b: termOf(b)}, both(this.val, valOf(b), (x, y) => x <= y)) }
   gt(b: TermLike): Cond { return new Cond({op: '<', a: termOf(b), b: this.e}, both(this.val, valOf(b), (x, y) => x > y)) }
@@ -271,6 +288,21 @@ export class Int {
   // the same remainder, and its quotient is x div k + neg, so both are the natural division of that one natural.
   modBy(k: number): Term { divisor(k, 'modBy'); return add(this.pos, this.neg.times(k - 1)).modBy(k) }
   divBy(k: number): Int { divisor(k, 'divBy'); return new Int(add(this.pos, this.neg.times(k - 1)).divBy(k), this.neg) }
+  // On a tick of k, as a natural's (Term.floorTo, ceilTo, roundTo, onTick), below 0 too: halfAway rounds a half away
+  // from 0 (up above it, down below it), halfUp toward +∞, halfDown toward −∞.
+  floorTo(k: number): Int { return this.divBy(k).times(k) }
+  ceilTo(k: number): Int { return this.negate().floorTo(k).negate() }
+  roundTo(k: number, mode: Rounding = 'halfEven'): Int {
+    divisor(k, 'roundTo')
+    // (a half up: ⌊(2x + k) / 2k⌋·k; a half down: ⌈(2x − k) / 2k⌉·k, that is −⌊(k − 2x) / 2k⌋·k)
+    const up = (): Int => this.times(2).plus(k).divBy(2 * k).times(k), down = (): Int => Int.of(k).minus(this.times(2)).divBy(2 * k).times(k).negate()
+    if (mode === 'halfUp') return up()
+    if (mode === 'halfDown') return down()
+    if (mode === 'halfAway') return when(this.isNegative, down(), up())
+    const q = this.divBy(k), r2 = this.modBy(k).times(2)
+    return when(r2.lt(k), q, when(lit(k).lt(r2), q.plus(1), q.plus(q.modBy(2)))).times(k)
+  }
+  onTick(k: number): Cond { return this.modBy(k).eq(0) }
   // |value|, and the value where it is not negative (0 below).
   get abs(): Term { return this.pos.minus(this.neg).plus(this.neg.minus(this.pos)) }
   get clamped(): Term { return this.pos.minus(this.neg) }
@@ -314,6 +346,12 @@ export class Decimal {
   min(b: DecimalLike): Decimal { return this.with(this.int.min(this.lift(b))) }
   max(b: DecimalLike): Decimal { return this.with(this.int.max(this.lift(b))) }
   get isNegative(): Cond { return this.int.isNegative }
+  // On a tick written in the decimal's own units (0.05 at 2 places is 5 cents): Int's floorTo, ceilTo, roundTo, onTick.
+  private tick(t: number): number { const n = scaledOf(t, this.places, 'a tick'); if (n < 1) throw new RangeError(`a tick is positive, not ${t}`); return n }
+  floorTo(t: number): Decimal { return this.with(this.int.floorTo(this.tick(t))) }
+  ceilTo(t: number): Decimal { return this.with(this.int.ceilTo(this.tick(t))) }
+  roundTo(t: number, mode: Rounding = 'halfEven'): Decimal { return this.with(this.int.roundTo(this.tick(t), mode)) }
+  onTick(t: number): Cond { return this.int.onTick(this.tick(t)) }
 }
 const asNat = (name: string, raw: Raw): number => {
   if (typeof raw !== 'number' || !Number.isSafeInteger(raw) || raw < 0) throw new RangeError(`${name} must be a natural, not ${shown(raw)}`)
@@ -835,6 +873,32 @@ export class MapRef {
   sum(of?: (cell: Term) => TermLike): Term { return sumOver(this.name, key => (of ? of(this.at(key)) : this.at(key)), !of) }
 }
 
+// A relation over sorts (`.relations({route: ['Node', 'Node', 'Node']})`): a set of tuples, a map keyed by tuples
+// (core/machine.ts's tup), each cell 0 or 1. The kernel compares two tuples part by part, never by arithmetic, so the
+// laws over relations are EPR's (the protocols' laws, as Ivy and mypyvy state them). One write per relation per step:
+// a tuple added or removed, or the relation after the step as a set comprehension (`each`, or `union`), which writes
+// many tuples at once.
+export class RelRef {
+  constructor(readonly name: string, readonly sorts: readonly string[]) {}
+  private key(xs: TermLike[]): E {
+    if (xs.length !== this.sorts.length) throw new Error(`${this.name} relates ${this.sorts.length} (${this.sorts.join(', ')}), not ${xs.length}`)
+    return xs.length === 1 ? termOf(xs[0]!) : tuple(xs.map(termOf))
+  }
+  // The cell at a tuple (0 or 1), and whether the tuple is in the relation.
+  at(...xs: TermLike[]): Term { return new Term({op: 'get', map: this.name, key: this.key(xs)}) }
+  has(...xs: TermLike[]): Cond { return this.at(...xs).atLeast(1) }
+  // The relation after the step: each tuple in it where f holds (its parts as f reads them).
+  each(f: (...xs: Term[]) => Cond): MapWrite {
+    const each = `k$${++boundCounter}`, n = this.sorts.length, k = v(each)
+    const parts = n === 1 ? [k] : Array.from({length: n}, (_, i) => new Term(part(k.e, i, n)))
+    return {map: this.name, each, value: when(f(...parts), 1, 0).e}
+  }
+  // The relation with the tuples where f holds added; with one tuple added or removed where c holds.
+  union(f: (...xs: Term[]) => Cond): MapWrite { return this.each((...xs) => this.has(...xs).or(f(...xs))) }
+  add(xs: TermLike[], c: Cond = yes): MapWrite { const key = this.key(xs); return {map: this.name, key, value: when(c, 1, new Term({op: 'get', map: this.name, key})).e} }
+  remove(xs: TermLike[], c: Cond = yes): MapWrite { const key = this.key(xs); return {map: this.name, key, value: when(c, 0, new Term({op: 'get', map: this.name, key})).e} }
+}
+
 // A list: a map's positions 0 .. len − 1 and its length (the state variable <name>_len), every cell past the end 0
 // (`within`, a law). An operation is a write at every key (positions shift: the key read at k ∸ 1 or k + 1, which the
 // runtimes decide on breakpoints) and a new length; `apply` takes several, the first whose condition holds.
@@ -1148,7 +1212,8 @@ function swapE(e: E, from: C, to: C): E {
     case 'mul': return {...e, a: swapE(e.a, from, to)}
     case 'if': return {op: 'if', c: swapC(e.c, from, to), then: swapE(e.then, from, to), else: swapE(e.else, from, to)}
     case 'get': return {...e, key: swapE(e.key, from, to)}
-    case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: swapE(e.a, from, to), b: swapE(e.b, from, to)}
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {...e, a: swapE(e.a, from, to), b: swapE(e.b, from, to)}
+    case 'proj': return {...e, a: swapE(e.a, from, to)}
   }
 }
 // The first per-step truth inside c not under a quantifier of its own: a flag, or a quantifier.
@@ -1167,7 +1232,8 @@ function perStepE(e: E): PerStep | undefined {
     case 'mul': return perStepE(e.a)
     case 'if': return perStep(e.c) ?? perStepE(e.then) ?? perStepE(e.else)
     case 'get': return perStepE(e.key)
-    case 'add': case 'sub': case 'min': case 'max': case 'prod': return perStepE(e.a) ?? perStepE(e.b)
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return perStepE(e.a) ?? perStepE(e.b)
+    case 'proj': return perStepE(e.a)
   }
 }
 class Hoister {
@@ -1190,7 +1256,8 @@ class Hoister {
       case 'mul': return {...e, a: this.term(e.a, bound)}
       case 'if': return {op: 'if', c: this.cond(e.c, bound), then: this.term(e.then, bound), else: this.term(e.else, bound)}
       case 'get': return {...e, key: this.term(e.key, bound)}
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: this.term(e.a, bound), b: this.term(e.b, bound)}
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {...e, a: this.term(e.a, bound), b: this.term(e.b, bound)}
+      case 'proj': return {...e, a: this.term(e.a, bound)}
     }
   }
   // A quantifier as a flag (or, with per-step truths inside, a condition over flags).
@@ -1439,6 +1506,7 @@ const recurJs = (name: string, args: string[], zero: E, next: E, uses: [string, 
       case 'min': return `Math.min(${js(e.a)}, ${js(e.b)})`
       case 'max': return `Math.max(${js(e.a)}, ${js(e.b)})`
       case 'if': return `(${jc(e.c)} ? ${js(e.then)} : ${js(e.else)})`
+      case 'tup': case 'proj': throw new Error('a recurrence takes no tuple key')
       case 'get': {
         const i = uses.findIndex(([u]) => u === e.map), args = uses[i]![1].arity > 1 ? pairedArgs(e.key, uses[i]![1].arity) : undefined
         return args ? `$g${i}(${args.map(js).join(', ')})` : `${fns.get(e.map)!}(${js(e.key)})`
@@ -1513,7 +1581,8 @@ const markedE = (e: E): E => {
     case 'mul': return {...e, a: markedE(e.a)}
     case 'if': return {op: 'if', c: marked(e.c), then: markedE(e.then), else: markedE(e.else)}
     case 'get': return {op: 'get', map: e.map, key: markedE(e.key)}
-    case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: markedE(e.a), b: markedE(e.b)}
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {...e, a: markedE(e.a), b: markedE(e.b)}
+    case 'proj': return {...e, a: markedE(e.a)}
   }
 }
 const marked = (c: C): C => c.op === 'flag' ? c : c.op === 'all' ? {...c, c: marked(c.c)} : c.op === 'not' ? {op: 'not', x: marked(c.x)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(marked)} : {...c, a: markedE(c.a), b: markedE(c.b)}
@@ -1526,6 +1595,9 @@ type Spec = {
   inputs: [string, Kind<unknown>][]
   state: [string, number | ((p: never) => TermLike)][]
   maps: [string, number][]
+  // Relations over sorts (in `maps`, each starting empty): each with the sort of each of its places.
+  rels?: [string, string[]][]
+  sorts?: string[]
   lists?: string[]
   // Maps and lists of a kind: their parts are in `maps` (and the length in `state`).
   cells?: [string, Kind<unknown>][]
@@ -1534,7 +1606,7 @@ type Spec = {
   // State variables declared by a kind: each a value over the kind's variables (in `state`, one entry each).
   kinded?: [string, Kind<unknown>][]
   carried?: string[]
-  counts?: [string, (env: never) => {below: TermLike, body: (x: Term, k: Term) => Cond | TermLike}][]
+  counts?: [string, (env: never) => {below: TermLike, body: (x: Term, k: Term, y: Term) => Cond | TermLike, base?: number}][]
   // Sequences a request carries (in `carried`, each length an input <name>_len), and tables of them (in `carried` with
   // <name>_base and <name>_len, the number of rows an input <name>_rows).
   seqs?: string[]
@@ -1591,9 +1663,10 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   withMapSums(): this | undefined {
     const m = this.machine
     if (m.history) return undefined
-    const have = new Set(Object.keys(m.sums ?? {})), more = new Set(this.spec.sumsRead ?? [])
+    const have = new Set(Object.keys(m.sums ?? {})), more = new Set(this.spec.sumsRead ?? []), arity = mapArities(m)
     for (const [map, init] of Object.entries(m.maps ?? {})) {
-      if (init !== 0 || !m.step.maps?.[map] || (m.inputMaps ?? []).includes(map)) continue
+      // (a map keyed by tuples has no sum read at one key: a sum's term reads its maps at the key alone)
+      if (init !== 0 || !m.step.maps?.[map] || (m.inputMaps ?? []).includes(map) || (arity[map] ?? 1) > 1) continue
       const name = (new MapRef(map, 0).sum().e as {name: string}).name
       if (have.has(name)) continue
       try { sumMachine({...m, sums: {...m.sums, ...sumsIn([], [name])}}); more.add(name) } catch { /* a sum the kernel takes no cover of */ }
@@ -1628,6 +1701,17 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       for (const part of kind.vars(n)) maps.push([part, enc[part]!])
     }
     return this.with({maps: [...this.spec.maps, ...maps], cells: [...(this.spec.cells ?? []), ...cells]})
+  }
+  // Sorts: names for sets of identities (nodes, packets, values), unbounded, read only by equality; a relation's places
+  // and a law's keys name theirs. Relations over them, each starting empty: `.relations({route: ['Node', 'Node']})`.
+  sorts(...names: string[]): Rule<P, I, S, M, F, R, Su, Q> { return this.with({sorts: [...(this.spec.sorts ?? []), ...names]}) }
+  // (`.relations(env => [...])`, a function, is a history's relations, below)
+  relations<T extends Record<string, readonly string[]>>(rels: T): Rule<P, I, S, M & {[k in keyof T]: RelRef}, F, R, Su, Q>
+  relations(f: (env: P & I & Su & Q) => Relation[]): Rule<P, I, S, M, F, R, Su, Q>
+  relations(x: Record<string, readonly string[]> | ((env: never) => Relation[])): never {
+    if (typeof x === 'function') return this.with({relations: x})
+    for (const [n, sorts] of Object.entries(x)) for (const so of sorts) if (!(this.spec.sorts ?? []).includes(so)) throw new Error(`relation ${n}: ${so} is no sort of ${this.spec.name} (.sorts(...) first)`)
+    return this.with({maps: [...this.spec.maps, ...Object.keys(x).map(n => [n, 0] as [string, number])], rels: [...(this.spec.rels ?? []), ...Object.entries(x).map(([n, so]) => [n, [...so]] as [string, string[]])]})
   }
   // Integers (Int), each starting at an integer or at one over the params; kept as two naturals, <name> and <name>$neg.
   ints<T extends Record<string, number | ((p: P) => IntLike)>>(init: T): Rule<P, I, S & {[k in keyof T]: Int}, M, F, R, Su, Q> {
@@ -1669,8 +1753,9 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   carries<const N extends string>(...names: N[]): Rule<P, I & {[k in N]: MapRef}, S, M, F, R, Su, Q> { return this.with({carried: [...(this.spec.carried ?? []), ...names]}) }
   // Counts (Machine.counts): `.counts({votes: env => ({below: env.size, body: (x, k) => env.Vote.at(k).eq(x.plus(1))})})`;
   // each a map no step writes, at x the number of keys k below the bound where the body holds (or its sum), read by the
-  // flags, the assumption and the step at the request's view, and by a law at the state.
-  counts<T extends Record<string, (env: P & I & S & M) => {below: TermLike, body: (x: Term, k: Term) => Cond | TermLike}>>(cs: T): Rule<P, I & {[k in keyof T]: MapRef}, S, M, F, R, Su, Q> {
+  // flags, the assumption and the step at the request's view, and by a law at the state. With `base`, a count over two
+  // parameters, read at the key base·a + b (b < base): `body: (a, k, b) => …`.
+  counts<T extends Record<string, (env: P & I & S & M) => {below: TermLike, body: (x: Term, k: Term, y: Term) => Cond | TermLike, base?: number}>>(cs: T): Rule<P, I & {[k in keyof T]: MapRef}, S, M, F, R, Su, Q> {
     return this.with({counts: [...(this.spec.counts ?? []), ...Object.entries(cs)] as never})
   }
   // Sequences each request carries (SeqRef): `.carriesSeq('Path')`, then `Path.at(i)`, `Path.len`, `A.prefixOf(B)`; the
@@ -1736,7 +1821,6 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     return this.with({leasts: [...(this.spec.leasts ?? []), ...Object.entries(defs) as [string, (env: never) => LeastDef][]]})
   }
   keep(f: (env: P & I & S & M & F & Su & Q) => Cond): Rule<P, I, S, M, F, R, Su, Q> { return this.with({keep: f as (env: never) => Cond}) }
-  relations(f: (env: P & I & Su & Q) => Relation[]): Rule<P, I, S, M, F, R, Su, Q> { return this.with({relations: f as (env: never) => Relation[]}) }
   // Requests come in nondecreasing `order`; a record whose order plus `after` is at most the request's is dropped
   // (the kernel proves it adds nothing to any query).
   prune(order: keyof R & string, after: (p: P) => TermLike): Rule<P, I, S, M, F, R, Su, Q> { return this.with({prune: {order, after: after as (p: never) => TermLike}}) }
@@ -1951,6 +2035,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // Maps and lists of a kind in place of their parts' maps (and a list's length), each part's map named by `at`.
   private composites(out: Record<string, unknown>, at: (part: string) => string, len: (name: string) => Term): void {
     const init = new Map(this.spec.maps)
+    for (const [n, sorts] of this.spec.rels ?? []) out[n] = new RelRef(at(n), sorts)
     for (const [n, k] of this.spec.cells ?? []) { for (const part of k.vars(n)) delete out[part]; out[n] = new CellsRef(n, k, part => new MapRef(at(part), init.get(part)!)) }
     for (const [n, k] of this.spec.items ?? []) { for (const part of k.vars(n)) delete out[part]; out[n] = new ItemsRef(n, k, len(n), part => new ListRef(at(part), len(n))) }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -2054,8 +2139,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       ...(s.maps.length ? {maps: Object.fromEntries(s.maps)} : {}),
       ...(s.carried?.length ? {inputMaps: s.carried} : {}),
       ...(s.counts?.length ? {counts: Object.fromEntries(s.counts.map(([n, f]) => {
-        const c = f(env as never), j = `${n}$x`, key = `${n}$k`, b = c.body(v(j), v(key))
-        return [n, {j, key, below: termOf(c.below), body: b instanceof Cond ? {op: 'if', c: b.c, then: {op: 'const', value: 1}, else: {op: 'const', value: 0}} as E : termOf(b)}]
+        const c = f(env as never), j = `${n}$x`, key = `${n}$k`, lo = `${n}$y`, b = c.body(v(j), v(key), v(lo))
+        return [n, {j, key, below: termOf(c.below), body: b instanceof Cond ? {op: 'if', c: b.c, then: {op: 'const', value: 1}, else: {op: 'const', value: 0}} as E : termOf(b), ...(c.base ? {lo, base: c.base} : {})}]
       }))} : {}),
       step: {...(Object.keys(flags).length ? {flags} : {}), ...(Object.keys(state).length ? {state} : {}), ...(Object.keys(maps).length ? {maps} : {})},
       ...(pre.length ? {pre: pre.length === 1 ? pre[0]! : {op: 'and', xs: pre}} : {}),
@@ -2063,6 +2148,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       ...(Object.keys(fns).length ? {fns} : {}),
       ...(facts.length ? {facts} : {}),
       ...(Object.keys(leasts).length ? {leasts} : {}),
+      ...(s.rels?.length ? {relations: Object.fromEntries(s.rels)} : {}),
     }
     if (s.record) {
       const kinds = new Map(s.inputs)
@@ -2570,7 +2656,9 @@ const deeperBudget = {trials: 600, depth: 24, bound: 8, seed: 29}
 // half the time. `states: false`: the runs alone.
 // (`until`: a wall, performance.now()'s, past which no more trials or steps are taken: the work cap counts a law's tuples,
 // not a request's assumption, which a rule carrying many maps decides at every try)
-type RunBudget = typeof refuteBudget & {seed?: number, mixed?: boolean, near?: Record<string, number>, states?: boolean, until?: number}
+// (`pool`: the counterexample's other values (a map's cell: the time a request was received), each input taken from
+// them a quarter of the time: a value the state holds is one an earlier request gave)
+type RunBudget = typeof refuteBudget & {seed?: number, mixed?: boolean, near?: Record<string, number>, pool?: number[], states?: boolean, until?: number}
 const conjuncts = (c: C | undefined): C[] => (!c ? [] : c.op === 'and' ? c.xs.flatMap(conjuncts) : [c])
 function guidesOf(m: Machine): ((env: Record<string, number>, st: State, rand: Rand, bound: number) => [string, number] | undefined)[] {
   const isInput = (e: E): e is {op: 'var', name: string} => e.op === 'var' && m.inputs.includes(e.name)
@@ -2600,7 +2688,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     && facts.filter(readsParams).every(f => holds(f, params))
   const cap = watchWork.n + perTrial * budget.trials
   try {
-    const late = () => budget.until !== undefined && performance.now() > budget.until
+    const late = () => pastWall() || budget.until !== undefined && performance.now() > budget.until
     for (let trial = 0; trial < budget.trials && watchWork.n <= cap && !late(); trial++) {
       // (`mixed`: the trials in turn at bounds 1 to 4, every fourth near)
       const bound = budget.mixed ? 1 + trial % 4 : budget.bound, guided = guides, near = budget.mixed && trial % 4 ? undefined : budget.near
@@ -2617,6 +2705,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       for (let d = 0, tries = 0; d < budget.depth && tries < 40 && watchWork.n <= cap && !late(); tries++) {
         const input = r.randomInput(rand, bound, params)
         if (near) for (const x of m.inputs) if (near[x] !== undefined && typeof input[x] === 'number' && rand(2)) input[x] = near[x]!
+        if (near && budget.pool?.length) for (const x of m.inputs) if (typeof input[x] === 'number' && !rand(4)) input[x] = budget.pool[rand(budget.pool.length)]!
         for (const g of guided) { const set = g({...params, ...st.scalars}, st, rand, bound); if (set && typeof input[set[0]] === 'number') input[set[0]] = set[1] }
         if (!allowed(m, run, params, st, input)) continue
         d++
@@ -2633,7 +2722,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     // variable of a kind is drawn as its kind draws (33 yes/nos drawn from 0..7 almost never make a lawful state).
     const steps1 = stepLaws.filter(sl => (sl.steps ?? 1) === 1), given = withKinds(r, laws)
     const wide = Object.keys(m.state).length + m.inputs.length >= 32, lawsHere = wide ? given : [], kinded = wide ? r.kindsOfState() : []
-    for (let trial = 0; budget.states !== false && !m.history && (steps1.length || lawsHere.length) && trial < budget.trials * 4 && watchWork.n <= cap; trial++) {
+    for (let trial = 0; budget.states !== false && !m.history && (steps1.length || lawsHere.length) && trial < budget.trials * 4 && watchWork.n <= cap && !late(); trial++) {
       const params = r.randomParams(rand, bound)
       if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m) || !factsHold(params)) continue
       const scalars: Record<string, number> = Object.fromEntries(Object.keys(m.state).map(n => [n, rand(8)]))
@@ -2680,6 +2769,13 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
   return searched(r, laws, [], v, opts)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
+  const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
+  // From any state, the caller's budget includes preflight runs and all initial
+  // goals, not a fresh budget per goal. Keep reachable-state search unchanged.
+  return opts.from !== 'any' || ms === undefined ? proveStepsIn(r, laws, stepLaws, opts)
+    : withWall(performance.now() + ms, () => proveStepsIn(r, laws, stepLaws, opts))
+}
+function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions): Verdict {
   r = r.withSumsOf(laws, stepLaws)
   noting(r, laws, stepLaws)
   const refuted = refuteByRuns(r, laws, stepLaws)
@@ -2722,6 +2818,11 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
     const deeper = refuteByRuns(r, laws, stepLaws, {...b, until: runsUntil})
     if (deeper?.run) return refutedVerdict(deeper)
   }
+  // (then, for a law of steps or one that divides by an hour or more (a clock's days), near it with its other values,
+  // where it holds some past the small ones: a time the state keeps is one an earlier request gave)
+  const m0 = r.machine, clocked = stepLaws.length > 0 || [...divisorsIn(laws.map(l => l.holds))].some(k => k >= 3600)
+  const pool = clocked ? [...new Set(Object.entries(v.witness ?? {}).filter(([k, x]) => !m0.inputs.includes(k) && !m0.params.includes(k) && x > deeperBudget.bound).map(([, x]) => x))] : []
+  if (pool.length) { const deeper = refuteByRuns(r, laws, stepLaws, {...deeperBudget, trials: 300, seed: 43, states: false, mixed: true, near: v.witness, pool, until: runsUntil}); if (deeper?.run) return refutedVerdict(deeper) }
   const until = clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
   // (the search's end on the wall too: kernel/prove.ts's withWall, past which every goal is unknown)
   return withWall(performance.now() + Math.max(0, until - clock()), () => searchedUntil(r, laws, stepLaws, v, opts, until))

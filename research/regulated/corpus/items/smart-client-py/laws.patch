@@ -1,0 +1,21 @@
+diff -ru a/fhirclient/auth.py b/fhirclient/auth.py
+--- a/fhirclient/auth.py	2026-11-02 11:22:24
++++ b/fhirclient/auth.py	2026-11-02 11:23:07
+@@ -170,6 +170,8 @@
+             self.reset()
+         return True if self.access_token else False
+ 
++    # gdp: law a reset token is gone: access_token is None
++    # gdp: cite a reset token is gone: 45 CFR 164.312(a)(1): "allow access only to those persons or software programs that have been granted access rights"
+     def reset(self):
+         super(FHIROAuth2Auth, self).reset()
+         self.access_token = None
+@@ -181,6 +183,8 @@
+     def can_sign_headers(self):
+         return True if self.access_token is not None else False
+ 
++    # gdp: law an expired token never signs: not failed implies expires_at is None or now < expires_at
++    # gdp: cite an expired token never signs: RFC 6749 section 5.1, expires_in: "The lifetime in seconds of the access token"
+     def signed_headers(self, headers):
+         """Returns updated HTTP request headers, if possible, raises if there
+         is no access_token.

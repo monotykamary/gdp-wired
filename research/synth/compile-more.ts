@@ -23,14 +23,14 @@ export function fromMapMachine(m: Machine): MapProblem {
   const sub = (e: E): E => {
     switch (e.op) {
       case 'var': case 'const': return e
-      case 'mul': return {...e, a: sub(e.a)}
+      case 'mul': case 'proj': return {...e, a: sub(e.a)}
       case 'if': return {op: 'if', c: subC(e.c), then: sub(e.then), else: sub(e.else)}
       case 'get': {
         if (JSON.stringify(e.key) === JSON.stringify(x('k'))) return x(`${e.map}_k`)
         if (keyOf(e.map) && JSON.stringify(e.key) === JSON.stringify(keyOf(e.map))) return x(`${e.map}_w`)
         throw new Error(`a read of ${e.map} at a key that is neither k nor the key the step writes`)
       }
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: sub(e.a), b: sub(e.b)}
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {...e, a: sub(e.a), b: sub(e.b)}
       default: return unreachable(e)
     }
   }

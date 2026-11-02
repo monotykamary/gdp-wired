@@ -20,7 +20,7 @@
 import {type Constraint, type Lin, type Step, costs, env, refuteFast, solve, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isMonomial, leafConstraints} from './kernel.ts'
-import {atPoint, cellPair, growWide, late, leafRowsOf, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, wideFor, wideScope, type Outcome} from './prove.ts'
+import {atPoint, cellPair, tupleCellPairs, growWide, late, leafRowsOf, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, wideFor, wideScope, type Outcome} from './prove.ts'
 import {Clausal, Reader, type Row, namesOf} from './reader.ts'
 import {Simplex} from './simplex.ts'
 
@@ -60,9 +60,10 @@ type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, qui
 type Clause = {lits: Map<string, boolean>, node: number, input?: boolean}
 // GDP_CDCL_LP=0: each node solved by elimination alone (no simplex); GDP_CDCL_FILL (8): the simplex's tableau begun
 // again past this many entries a row the node reads (research/step's comparisons).
+const pointLeaf = env.GDP_CDCL_POINT !== '0'
 const lpFill = Number(env.GDP_CDCL_FILL ?? 8), lpGrow = Number(env.GDP_CDCL_GROW ?? 4), lpBase = Number(env.GDP_CDCL_BASE ?? 500), lpGreedy = Number(env.GDP_CDCL_GREEDY ?? 200), useLp = env.GDP_CDCL_LP !== '0', verify = env.GDP_CDCL_VERIFY === '1'
 // Counters research/step reads (times only while `on`).
-export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0, nodes: 0, boundRounds: 0}
+export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0, nodes: 0, boundRounds: 0, fmLeafMs: 0, fmOpenMs: 0, fastMs: 0, missMs: 0}
 
 // `opts.model`: only whether the goal has a model is wanted (core/bmc.ts): a refutation isn't unfolded into a tree, its
 // outcome `unknown` with `why` REFUTED; each decision's phase is the simplex's point's (phaseAtPoint; in the tree search too
@@ -72,7 +73,7 @@ export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions
 // any value: the trail's atoms, the naturals, the term columns' definitions), as core/infer.ts's join reads it.
 export const REFUTED = 'refuted, not unfolded'
 export type Refuted = Outcome & {core?: number[], dag?: Dag, assumed?: number[]}
-export type CdclOptions = {maxLeaves?: number, model?: boolean, core?: boolean, dag?: boolean, clausal?: boolean, sideOf?: (hyp: number) => number, quiet?: (name: string) => boolean}
+export type CdclOptions = {maxLeaves?: number, model?: boolean, core?: boolean, dag?: boolean, clausal?: boolean, sideOf?: (hyp: number) => number, quiet?: (name: string) => boolean, point?: boolean}
 export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: CdclOptions & {wall?: number} = {}): Outcome {
   // (a wide goal's model or refutation: over parts first, prove.ts's growWide)
   if (opts.model && !opts.dag && !opts.clausal && !root.size && wideFor(goal)) { const out = growWide(goal, budget, (g, until) => growCdcl(g, root, {nodes: 0, until}, opts)); if (out) return out }
@@ -163,7 +164,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   // Each pair's two atoms read once a session: their variables and which way each stores its form (the same reading as
   // recOf and canon at every node, which this list's rebuilds, nearly every node, spent most of a wide goal's time on).
   type PairRec = {d: Lin, neg: Lin, mono: boolean, xd?: Var, sd?: boolean, xn?: Var, sn?: boolean, read?: boolean}
-  const pairRecs = new Map<string, Map<string, PairRec>>()
+  const pairRecs = new Map<string, Map<string, PairRec | PairRec[]>>()
   let flat: PairRec[] = [], flatAt = -1
   const valOf = (x: Var | undefined, same: boolean | undefined): boolean | undefined => (x?.val === undefined ? undefined : same ? x.val : !x.val)
   const openCellsLive = (): Lin[] => {
@@ -178,8 +179,14 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
           if (!row) pairRecs.set(ns[i]!, (row = new Map()))
           for (let j = i + 1; j < ns.length; j++) {
             let r = row.get(ns[j]!)
-            if (!r) { const pair = cellPair(ns[i]!, ns[j]!); row.set(ns[j]!, (r = {d: pair.d, neg: pair.neg, mono: Object.keys(pair.d).some(isMonomial)})) }
-            flat.push(r)
+            if (!r) {
+              // (two tuple cells: a pair for each part, each split on as a plain key's difference is)
+              const parts = tupleCellPairs(ns[i]!, ns[j]!)
+              if (parts) r = parts.map(([d, neg]) => ({d: d!, neg: neg!, mono: false}))
+              else { const pair = cellPair(ns[i]!, ns[j]!); r = {d: pair.d, neg: pair.neg, mono: Object.keys(pair.d).some(isMonomial)} }
+              row.set(ns[j]!, r)
+            }
+            if (Array.isArray(r)) flat.push(...r); else flat.push(r)
           }
         }
       }
@@ -361,6 +368,12 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     const w: Record<string, number> = {}
     for (const r of rows) for (const n of namesOf(r.lin)) if (!(n in w)) { const j = lp.indexOf(n); if (j === undefined) return undefined; const x = lp.value(j), y = Math.round(x); if (Math.abs(x - y) > 1e-9) return undefined; w[n] = y }
     for (const r of rows) { let x = r.lin['1'] ?? 0; for (const n of namesOf(r.lin)) x += r.lin[n]! * w[n]!; if (x > 0) return undefined }
+    return w
+  }
+  // (the point as it is, each name the rows read; undefined where the simplex doesn't know one)
+  const roundless = (lp: Simplex, rows: Row[]): Record<string, number> | undefined => {
+    const w: Record<string, number> = {}
+    for (const r of rows) for (const n of namesOf(r.lin)) if (!(n in w)) { const j = lp.indexOf(n); if (j === undefined) return undefined; w[n] = lp.value(j) }
     return w
   }
   // (the point rounded, each name the rows read; undefined where the simplex doesn't know one)
@@ -615,7 +628,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
         for (const id of reader.entered) { if (single(id)) { bxIn.add(id); bx.assert(id, full[reader.slotOf(id)]!.lin) } if (sx && !toRetract.delete(id)) toAssert.add(id) }
         if (verify && !clausal) {
           const mine = new Set(rowsR.map(r => canon(r.lin))), theirs = new Set(leafConstraints(goal, pathOf()).map(r => canon(r.lin)))
-          if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}`)
+          if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}: reader's alone ${[...mine].filter(x => !theirs.has(x)).slice(0, 4).join(' ; ')}; kernel's alone ${[...theirs].filter(x => !mine.has(x)).slice(0, 4).join(' ; ')}; path ${[...pathOf()].map(([k2, a]) => `${a.holds ? '' : '¬'}${k2}`).join(' ; ')}`)
         }
         work.n += 1 + full.length
         costs.cdclNodes++; costs.cdclRows += full.length
@@ -721,7 +734,8 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
             costs.pivots += sx.pivots - p0
             if (timing) { st.lpMs += performance.now() - t0; st.pivots += sx.pivots - p0; st.lpRows = sx.size; st.lpNnz = sx.nnz; st.lpVars = sx.vars; st.lpLoad = full.length; if (lp.kind === 'unknown') st.lpUnknown++ }
             if (lp.kind === 'conflict') {
-              const support = lp.rows.sort((x, y) => x - y), out = solve(support.map(i => full[i]!))
+              const tm = timing ? performance.now() : 0, support = lp.rows.sort((x, y) => x - y), out = solve(support.map(i => full[i]!))
+              if (timing) st.missMs += performance.now() - tm
               if (out.kind === 'refuted') steps = out.steps.map(s => (s.kind === 'input' ? {...s, index: support[s.index]!} : s))
               else st.lpMisses++
             }
@@ -731,15 +745,27 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
             if (open && lpSat && wideScope.judge) { const w = roundedOf(sx, rowsR); if (w && wideScope.judge(w)) { verdict = {kind: 'sat', witness: w}; judged = true; return } }
             if (steps || (open && lp.kind === 'sat')) return
             // (the clausal mode, every clause satisfied: the simplex's point, where it is integral, is a model)
-            if (clausal && !open && lpSat) { const w = pointOf(sx, rowsR); if (w) { verdict = {kind: 'sat', witness: w}; return } }
+            // (`point`, a model's search over the kernel's reading (GDP_CDCL_POINT=0: not): a leaf whose rows the simplex's
+            // point meets at integers is met, and at one whose point is not integral a fractional name of it is split on
+            // (branch and bound) where one is not split on yet, not the exact elimination over every row; the counted
+            // search's (its leaves' elimination took 228 of paxos-hand's 600 s); the others' models stay the elimination's)
+            const byPoint = pointLeaf && !!opts.point && !!opts.model
+            if ((clausal || byPoint) && !open && lpSat) { const w = pointOf(sx, rowsR); if (w) { verdict = {kind: 'sat', witness: w}; return } }
+            if (byPoint && !clausal && !open && lpSat) {
+              const point = roundless(sx, rowsR)
+              if (point && Object.entries(point).some(([x0, value]) => Math.abs(value - Math.round(value)) >= 1e-9 && !isMonomial(x0) && !decidedLin(Math.floor(value) === 0 ? {[x0]: 1} : {[x0]: 1, 1: -Math.floor(value)}))) { verdict = {kind: 'unknown', point}; return }
+            }
           }
           st.fmCalls++
-          const rows = plain()
+          const rows = plain(), tf = timing ? performance.now() : 0
           if (open && rows.length > 60) { const fast = refuteFast(rows); if (fast?.kind === 'refuted') steps = fast.steps.map(s => (s.kind === 'input' ? {...s, index: at(s.index)} : s)) }
+          const tf2 = timing ? performance.now() : 0
+          if (timing) st.fastMs += tf2 - tf
           if (!steps) {
             verdict = open && rows.length > 60 ? solve(rows, 2 * rows.length) : solve(rows)
             if (verdict.kind === 'refuted') steps = verdict.steps.map(s => (s.kind === 'input' ? {...s, index: at(s.index)} : s))
           }
+          if (timing) { if (open) st.fmOpenMs += performance.now() - tf2; else st.fmLeafMs += performance.now() - tf2 }
           if (!steps && open && !columns && full.length > rows.length) { const k = korder(), fast = refuteFast(k.map(i => full[i]!)); if (fast?.kind === 'refuted') steps = fast.steps.map(s => (s.kind === 'input' ? {...s, index: k[s.index]!} : s)) }
         }, ms => { st.solveMs += ms })
         if (judged && verdict?.kind === 'sat') return stuck('sat', 'a model', {witness: verdict.witness})

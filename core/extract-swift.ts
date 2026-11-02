@@ -372,10 +372,14 @@ function harnessFor(pkg: Pkg, mod: SModule, read: StepRead, opts: SwiftOptions):
     const walkW = (d: string): string[] => (fs.readdirSync(d, {withFileTypes: true}) as {name: string, isDirectory: () => boolean}[]).flatMap(e => (['.build', '.swiftpm'].includes(e.name) || links.has(path.relative(work, path.join(d, e.name))) ? [] : e.isDirectory() ? walkW(path.join(d, e.name)) : [path.join(d, e.name)]))
     for (const f of walkW(work)) if (!want.has(path.relative(work, f)) && !links.has(path.relative(work, f))) fs.rmSync(f)
     for (const [l, to] of links) if (!fs.existsSync(path.join(work, l))) { fs.mkdirSync(path.dirname(path.join(work, l)), {recursive: true}); node<{symlinkSync: (a: string, b: string) => void}>('node:fs').symlinkSync(to, path.join(work, l)) }
-    const built = buildCheck('swift build', () => cp.execFileSync(swiftOf(opts), ['build', '--product', 'GdpHarness', '--package-path', work], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 28, timeout: compileLimit(), killSignal: 'SIGKILL'}),
+    // A source the reader can parse can still send swiftc into expensive type checking.
+    // Two buildCheck attempts must leave ample room below the reader fuzz's 300 s line.
+    const limit = Math.min(compileLimit(), 60_000)
+    const built = buildCheck('swift build', () => cp.execFileSync(swiftOf(opts), ['build', '--product', 'GdpHarness', '--package-path', work], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 28, timeout: limit, killSignal: 'SIGKILL'}),
       e => `${(e as {stdout?: string}).stdout ?? ''}\n${(e as {stderr?: string}).stderr ?? ''}`.split('\n').filter(l => /\.swift:\d+:\d+: error:/.test(l)),
       l => { const m = /([^\s]+\.swift):(\d+):\d+: error:/.exec(l); if (!m) return false; const r = path.relative(work, m[1]!); if (r.startsWith('GdpHarness/')) return false; const n = own.get(r); return n === undefined || Number(m[2]) <= n })
-    if (!('ok' in built)) return {cmd: 'false', args: [], hello: {}, error: built.why, kind: built.kind}
+    if (!('ok' in built)) return {cmd: 'false', args: [], hello: {},
+      error: built.why + (built.kind === 'harness' ? `; Swift compiler build-check limit ${limit / 1000} s per attempt (source not verified)` : ''), kind: built.kind}
     const bin = cp.execFileSync(swiftOf(opts), ['build', '--package-path', work, '--show-bin-path'], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}).trim()
     return {cmd: `${bin}/GdpHarness`, args: [], hello: {}}
   } finally { try { fs.rmdirSync(lock) } catch { /* gone */ } }

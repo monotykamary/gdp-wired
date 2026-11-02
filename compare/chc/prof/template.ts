@@ -17,7 +17,8 @@ function constantsOf(m: Machine, laws: Law[]): number[] {
       case 'const': out.add(t.value); break
       case 'var': break
       case 'mul': out.add(t.k); e(t.a); break
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': e(t.a); e(t.b); break
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': e(t.a); e(t.b); break
+      case 'proj': e(t.a); break
       case 'if': c(t.c); e(t.then); e(t.else); break
       case 'get': e(t.key); break
     }

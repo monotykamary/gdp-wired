@@ -4,10 +4,11 @@
 // a stated failure, assert and abort, a switch's fallthrough, ?: and an enum, and the refusals. Skipped without clang.
 import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
-import {mkdtempSync, writeFileSync} from 'node:fs'
+import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {proveRule, proveSteps} from './dsl.ts'
 import {type COptions, extractC, extractCpp} from './extract-c.ts'
+import {buildLaw} from './laws.ts'
 
 const hasClang = (() => { try { execFileSync('clang', ['--version'], {stdio: 'ignore'}); return true } catch { return false } })()
 const t = hasClang ? test : test.skip
@@ -147,7 +148,7 @@ t('refused where it leaves the subset, each with why', () => {
   expect(why('int g;\nstruct q { int n; };\nvoid f(struct q *q) { q->n = g; }\n', 'q')).toMatch(/a global variable/)
   expect(why('#include <string.h>\nstruct q { unsigned n; };\nvoid f(struct q *q) { q->n = strlen("ab"); }\n', 'q')).toMatch(/another file or library|a string/)
   expect(why('struct q { unsigned n; };\nvoid f(struct q *q, unsigned k) { q->n = q->n / k; }\n', 'q')).toMatch(/other than a constant/)
-  expect(why('struct q { unsigned n; };\nvoid f(struct q *q, unsigned k) { q->n = q->n ^ k; }\n', 'q')).toMatch(/a bit operation/)
+  expect(why('struct q { unsigned n; };\nvoid f(struct q *q, unsigned k) { q->n = q->n ^ k; }\n', 'q')).toMatch(/a bit operation|bit-vectors are outside the subset/)
 }, 60_000)
 
 // --- C++ (extractCpp: the same reader and harness) ---------------------------------------------------------------------
@@ -266,3 +267,102 @@ t('a long function name with characters past ASCII called by its bytes; a C++ co
   expect(x.ok).toBe(false)
   expect(x.refusals[0]!.what).toMatch(/Meter: its constructor is private \(the check makes the object with it\)/)
 }, 120_000)
+
+// --- embedded idioms -------------------------------------------------------------------------------------------------------
+
+t('bit operations with a constant: flags set, cleared, toggled and tested, composed into one form', () => {
+  const x = ok(c(`
+#include <stdint.h>
+#define F_INIT 0x0001u
+#define F_OK 0x0010u
+#define F_ARMED 0x0100u
+struct io { uint16_t flags; uint8_t mode; };
+void tick(struct io *s, int ok) {
+  if (ok) s->flags |= F_OK; else s->flags &= ~F_OK;
+  if (s->flags & F_INIT) s->flags |= F_ARMED; else s->flags &= (uint16_t)~F_ARMED;
+  s->mode ^= 0x3u;
+}
+void init(struct io *s) { s->flags |= F_INIT; }
+`, 'io'))
+  // (a law's bit tests, as the CLI reads them: an invariant through the rule's functions, a step's through keys)
+  const law = (name: string, expr: string, method?: string) => buildLaw(x, {name, expr, ...(method ? {method} : {})}).law
+  expect(proveSteps(x.rule as A, x.invariants ?? [], [law('ok follows the request', '(flags & 0x10) != 0 or ok == 0', 'tick')]).proven).toBe(true)
+  expect(proveRule(x.rule as A, [...x.invariants!, law('init is never cleared once set', '(flags & 1) == 0 or (flags & 1) == 1')]).proven).toBe(true)
+}, 120_000)
+
+t('a bit operation of two values neither a constant nor 0 or 1 is refused', () => {
+  const x = c(`
+#include <stdint.h>
+struct m { uint32_t a; };
+void f(struct m *s, uint32_t b) { s->a = s->a & b; }
+`, 'm')
+  expect(x.ok).toBe(false)
+  expect(x.refusals[0]!.what).toMatch(/neither of them a constant.*\(bit-vectors are outside the subset\)/)
+}, 60_000)
+
+t('a file that keeps its state in globals: the globals one object, its functions requests, an extern volatile the request\'s', () => {
+  const x = ok(c(`
+#include <stdint.h>
+typedef enum { UNINIT, READY } st_e;
+static struct { uint16_t timer; st_e state; uint8_t entry; uint8_t err; } s = { .timer = 0, .state = UNINIT };
+extern volatile uint8_t pin;
+static uint8_t seen;
+void trigger(void) {
+  if (s.entry) return;
+  s.entry++;
+  if (s.timer > 0u) { if ((--s.timer) > 0u) { s.entry--; return; } }
+  switch (s.state) { case UNINIT: s.timer = 2; s.state = READY; break; case READY: seen = pin; break; }
+  s.entry--;
+}
+`, 'case'))
+  expect(x.names!.some(n => n.code === 'pin' && n.role === 'input')).toBe(true)
+  expect(proveRule(x.rule!, [...x.invariants!, x.rule!.law('the guard is released', ({s_entry}: A) => s_entry.eq(0)), x.rule!.law('the timer stays below 3', ({s_timer}: A) => s_timer.atMost(2))]).proven).toBe(true)
+}, 120_000)
+
+t('floats only written are left out; one read into a condition is refused', () => {
+  const x = ok(c(`
+#include <stdint.h>
+struct meter { uint8_t state; float volts; };
+void sample(struct meter *m, uint16_t raw) { m->volts = raw * 0.0125f; if (m->state < 3) m->state++; }
+`, 'meter'))
+  expect(x.notes.join('\n')).toMatch(/volts: a float, a float, left out/)
+  const y = c(`
+struct meter { int state; float volts; };
+void sample(struct meter *m) { if (m->volts > 3.0f) m->state = 1; }
+`, 'meter')
+  expect(y.ok).toBe(false)
+  expect(y.refusals[0]!.what).toMatch(/a float/)
+}, 120_000)
+
+t('an endless loop is the step\'s failure; do { } while (0) runs once; a side effect in a condition runs first', () => {
+  ok(c(`
+#include <stdint.h>
+#define CHECK(x) do { if (!(x)) { for (;;) { } } } while (0)
+struct q { uint8_t n; uint8_t used; };
+void take(struct q *s) { CHECK(s->n < 200); if ((s->used = s->n++) > 100) s->n = 0; }
+`, 'q', {onError: 'discard'}))
+}, 120_000)
+
+t('C++: an enum without a fixed type holds its enumerators\' range; the laws read the code\'s constants', () => {
+  const x = ok(cpp(`
+#include <stdint.h>
+const uint32_t LIMIT = 60;
+class Dog {
+ public:
+  Dog() : step(COUNT), left(LIMIT) {}
+  void tick() { if (step == COUNT) { if (--left <= 0) step = OFF; } else if (step == OFF) step = ON; }
+  void feed() { if (step == ON) step = COUNT; left = LIMIT; }
+ private:
+  enum Step { COUNT, OFF, ON };
+  Step step;
+  int32_t left;
+};
+`, 'Dog'))
+  expect(x.consts).toMatchObject({COUNT: 0, OFF: 1, ON: 2})
+}, 120_000)
+
+t('reader fuzz 693042: a wrapping initializer needing division is refused before kernel scope', () => {
+  const x = cpp(readFileSync(new URL('./reader-fixtures/c-693042.cpp', import.meta.url), 'utf8'), 'Meter')
+  expect(x.ok).toBe(false)
+  expect(x.refusals[0]!.what).toMatch(/division or remainder in an initializer.*outside the reader's start-expression subset/)
+}, 60_000)

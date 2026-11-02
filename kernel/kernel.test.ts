@@ -2,7 +2,7 @@
 // accepts a refutation, no concrete model (x, y, z in 0..3, the map M any function from 0..3 to 0..3, 0 elsewhere)
 // may satisfy them. Also: every proof the kernel accepts stops being accepted when its derivations are emptied.
 import {expect, test} from 'bun:test'
-import {type C, type E, seeded} from '../core/machine.ts'
+import {type C, type E, cpair, cunpair, seeded} from '../core/machine.ts'
 import {type Goal, check, leafConstraints, withProducts} from './kernel.ts'
 import {solve} from '../core/solver.ts'
 import {grow} from './prove.ts'
@@ -49,6 +49,8 @@ const ev = (e: E, env: Env): number => {
     case 'mul': return e.k * ev(e.a, env)
     case 'prod': return ev(e.a, env) * ev(e.b, env)
     case 'if': return evC(e.c, env) ? ev(e.then, env) : ev(e.else, env)
+    case 'tup': return cpair(ev(e.a, env), ev(e.b, env))
+    case 'proj': return cunpair(ev(e.a, env))[e.k]
     case 'get': return env.M[ev(e.key, env)] ?? 0
   }
 }

@@ -1,0 +1,22 @@
+{
+ "id": "manuelinfosec",
+ "repo": "https://github.com/manuelinfosec/limit-orderbook-go",
+ "commit": "f10ffe927697807b77f9d64bca79ffec231a29f9",
+ "licence": "MIT",
+ "lang": "Go",
+ "kind": "limit order book",
+ "about": "bids and asks as container/heap priority queues of orders by price (shopspring decimal prices), Match a loop popping both tops while they cross and pushing back partial fills",
+ "check": [
+  "entities"
+ ],
+ "setup": "go mod download >/dev/null 2>&1 || true",
+ "edits": [
+  {
+   "file": "entities/OrderBook.go",
+   "before": "^func \\(ob \\*OrderBook\\) Match\\(",
+   "lines": [
+    "// gdp: law the book no longer crosses: len(ob.Bids) == 0 or len(ob.Asks) == 0"
+   ]
+  }
+ ]
+}

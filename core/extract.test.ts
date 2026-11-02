@@ -5,7 +5,7 @@
 import {expect, test} from 'bun:test'
 import {extract, type Extraction} from './extract.ts'
 import {proveRule} from './dsl.ts'
-import {mkdtempSync, writeFileSync} from 'node:fs'
+import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {pathToFileURL} from 'node:url'
 
@@ -914,4 +914,8 @@ test('a module-level const that reads the clock: refused (the time the module lo
 
 test('two declarations of one name at the module\'s top level: refused before reading', () => {
   refused(extract(`export default function count(state = 0, action) { return action.type === 'add' ? state + 1 : state }\nexport function count(x: number): boolean { return x > 3 }\n`, {file: 'c.js', entry: 'default', check: budget}), /declares count twice at its top level/)
+})
+
+test('reader fuzz 673062: an empty extends clause is refused, not dereferenced', () => {
+  refused(ts(readFileSync(new URL('./reader-fixtures/typescript-673062.ts.txt', import.meta.url), 'utf8'), 'C'), /extends must name exactly one base class/)
 })

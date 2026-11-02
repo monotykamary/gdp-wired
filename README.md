@@ -118,9 +118,14 @@ Laws about two runs read the same way: `diagnosis never reaches status, result` 
 secret keep what is named the same, and fail alike), `isolated by user_id` (what the caller whose `user_id` is B sees
 is the same whatever the others do), `agrees with LimiterV1` (a migration: another class of the target, the same state
 after every history). A duration is linear over the request's time: `now - received < 30 days` (seconds, minutes,
-hours, days, weeks; a month, a year or a business day is refused). `gdp: cite <law name>: <clause>` ties a law to the
-clause it answers: printed with the law, and with `--cert <dir>` kept in the meta of each proven law's certificate,
-never in what is checked (`research/regulated/DESIGN.md`).
+hours, days, weeks; a month or a year is refused). Business days are counted over a calendar stated once (`[calendar]`
+in gdp.toml: weekend days, holidays, a UTC offset): `now - received <= 10 business days`, decided in the same linear
+arithmetic, nothing trusted added. `gdp: cite <law name>: <clause>` ties a law to the clause it answers: printed with
+the law, and with `--cert <dir>` kept in the meta of each proven law's certificate, never in what is checked.
+`gdp-wired draft <file> --clause-file <f> --cite <ref> --llm <command>` asks a drafter (a model, by any command) for
+laws from the clause's text, reads each over the code's names and prints the comments to paste, each citation marked
+`[unreviewed: drafted by ...]` until a person signs it (`[reviewed-by: <name>, <date>]`); `check --require-review`
+refuses a law cited unreviewed (`research/regulated/DESIGN.md`, `research/regulated/DRAFTING.md`).
 
 ## Where it fits
 
@@ -449,10 +454,11 @@ const soon = retry.law('the next try is at most 64 after the last request', ({ne
 - **Integers and decimals**: `int` and `decimal(places)` inputs, `.ints({...})` and `.decimals(places, {...})` state;
   `plus`, `minus`, `negate`, `times(k)` (k may be negative), `min`, `max`, `abs`, `isNegative`, comparisons with numbers
   (a decimal's literals are scaled: `price.atMost(19.99)`), and `modBy(k)`, `divBy(k)` by Euclid's rule (−7 div 2 is
-  −4, −7 mod 2 is 1, as SMT-LIB and Lean's `Int` read them). Each is two naturals underneath, so the kernel twin sees
-  nothing new; the Lean export states each law about integers again over `Int` (`law0_int`, proven from the law over
-  the naturals by `omega`), and `rule.decode(state)` reads them back as numbers. A natural's `minus` stays truncated:
-  an integer is a kind of its own, chosen where a value may go below 0 (`examples/arith.ts`).
+  −4, −7 mod 2 is 1, as SMT-LIB and Lean's `Int` read them); on a tick, `floorTo(k)`, `ceilTo(k)`, `roundTo(k, mode)`
+  (a half to the even one, up, down or away from 0) and `onTick(k)`, from those two. Each is two naturals underneath,
+  so the kernel twin sees nothing new; the Lean export states each law about integers again over `Int` (`law0_int`,
+  proven from the law over the naturals by `omega`), and `rule.decode(state)` reads them back as numbers. A natural's
+  `minus` stays truncated: an integer is a kind of its own, chosen where a value may go below 0 (`examples/arith.ts`).
 - **Strings**: `str({like: ['*.internal'], maxLength: 64})`. A string is its interned name, its length and a bit per
   declared pattern (Cedar's glob), all computed from the string itself when the input is encoded. `s.like(pattern)`,
   `s.eq('admin')` (which carries the literal's length and pattern bits, so laws reason from either), `s.isEmpty`,

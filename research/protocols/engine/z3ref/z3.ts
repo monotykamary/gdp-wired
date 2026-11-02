@@ -11,7 +11,7 @@
 // one key an if over the key read, a write at every key its value at the key read); the conclusion at fresh names (the
 // law's first key x#, its further keys by their own names).
 import {Worker} from 'node:worker_threads'
-import {type C, type E, type Law, type Machine} from '../../../../core/machine.ts'
+import {type C, type E, type Law, type Machine, cpair, cunpair} from '../../../../core/machine.ts'
 import {type Subst, substC, substE} from '../../../../kernel/kernel.ts'
 
 // --- the worker, called synchronously -------------------------------------------------------------------------------
@@ -227,6 +227,7 @@ function inferE(s: Sorts, e: E): string | number {
         else { const k = inferE(s, e.key); if (typeof k === 'string') s.mark(k, ARITH); for (let i = 0; i < (arity.get(e.map) ?? 1); i++) s.mark(`m:${e.map}:${i}`, ARITH) }
         return s.find(`m:${e.map}:v`)
       }
+      case 'tup': case 'proj': throw new Error('z3 takes no tuple key')
     }
   })()
   if (typeof r === 'string') s.slot.set(e, r)
@@ -301,6 +302,7 @@ function te(e: E): string {
     }
     case 'if': { const s = sortOfTerm(e); return `(ite ${tc(e.c)} ${teAs(e.then, s)} ${teAs(e.else, s)})` }
     case 'get': return `(${M(e.map)} ${keyArgs(e.map, e.key)})`
+    case 'tup': case 'proj': throw new Error('z3 takes no tuple key')
   }
 }
 const keyArgs = (map: string, key: E): string => {
@@ -535,6 +537,8 @@ function witnessOf(md: Model, p: Parts, declared: Iterable<string>, lawReads: Re
       case 'min': return Math.min(evalKey(e.a, env), evalKey(e.b, env))
       case 'max': return Math.max(evalKey(e.a, env), evalKey(e.b, env))
       case 'if': return evalCond(e.c, env) ? evalKey(e.then, env) : evalKey(e.else, env)
+      case 'tup': return cpair(evalKey(e.a, env), evalKey(e.b, env))
+      case 'proj': return cunpair(evalKey(e.a, env))[e.k]
       case 'get': return cell(e.map, evalKey(e.key, env))
     }
   }

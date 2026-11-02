@@ -262,6 +262,8 @@ def atKeyE (W : Nat) (t : E) : E → Bool
   | .prod a b => atKeyE W t a && atKeyE W t b
   | .ite c a b => atKeyC W t c && atKeyE W t a && atKeyE W t b
   | .get m key => if m == W then beqE key t else atKeyE W t key
+  | .tup a b => atKeyE W t a && atKeyE W t b
+  | .proj _ a => atKeyE W t a
 def atKeyC (W : Nat) (t : E) : C → Bool
   | .le a b => atKeyE W t a && atKeyE W t b
   | .lt a b => atKeyE W t a && atKeyE W t b
@@ -302,6 +304,8 @@ theorem atKey_evalE : (e : E) → atKeyE W t e = true → evalE ρ M e = evalE �
     · have hb : (m == W) = false := by simp [hm]
       simp only [hb, Bool.false_eq_true, ite_false] at h
       simp only [evalE, withConst, hb, Bool.false_eq_true, ite_false, ← atKey_evalE key h]
+  | .tup a b, h => by simp only [atKeyE, Bool.and_eq_true] at h; simp only [evalE, atKey_evalE a h.1, atKey_evalE b h.2]
+  | .proj _ a, h => by simp only [atKeyE] at h; simp only [evalE, atKey_evalE a h]
 theorem atKey_evalC : (c : C) → atKeyC W t c = true → evalC ρ M c = evalC ρ (withConst W (M W (evalE ρ M t)) M) c
   | .le a b, h => by simp only [atKeyC, Bool.and_eq_true] at h; simp only [evalC, atKey_evalE a h.1, atKey_evalE b h.2]
   | .lt a b, h => by simp only [atKeyC, Bool.and_eq_true] at h; simp only [evalC, atKey_evalE a h.1, atKey_evalE b h.2]

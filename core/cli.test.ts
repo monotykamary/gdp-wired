@@ -1146,3 +1146,18 @@ ${body}
   const {rules: r2} = await check([`${kt('        used += cost')}/Limiter.kt`], o)
   expect(r2[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
 }, 600_000)
+
+// Code across files as it ships: a TypeScript class whose base is in a file it imports (read beside it), and a Python
+// class calling its base's constructor the old way, super(C, self).
+test('a TypeScript base class in a relative import, and Python\'s super(C, self), read as the code\'s own', async () => {
+  const ts = files({'counter.ts': `import {Base} from './base'\n\n// gdp: law it never passes its cap: cap < 0 or n <= cap\nexport class Counter extends Base {\n  hit(): void { if (this.n < this.cap) this.n += 1 }\n}\n`,
+    'base.ts': `export class Base {\n  n = 0\n  constructor(readonly cap: number) {}\n}\n`})
+  const r = await check([`${ts}/counter.ts`], {ms: 5000, propose: false})
+  expect(r.rules[0]!.ok).toBe(true)
+  expect(r.rules[0]!.laws[0]!.verdict).toBe('proven')
+  if (!TOOLS.python!()) return
+  const py = files({'counter.py': `class Base:\n    def __init__(self, cap: int) -> None:\n        self.cap = cap\n        self.n = 0\n\n\n# gdp: law it never passes its cap: cap < 0 or n <= cap\nclass Counter(Base):\n    def __init__(self, cap: int) -> None:\n        super(Counter, self).__init__(cap)\n\n    def hit(self) -> None:\n        if self.n < self.cap:\n            self.n += 1\n`})
+  const p = await check([`${py}/counter.py`], {ms: 5000, propose: false, entry: 'Counter'})
+  expect(p.rules[0]!.ok).toBe(true)
+  expect(p.rules[0]!.laws[0]!.verdict).toBe('proven')
+}, 120_000)

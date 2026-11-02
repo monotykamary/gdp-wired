@@ -724,15 +724,57 @@ function carry(m: Model, raw: Record<string, unknown>, inputs: Record<string, un
   const dflt = (map: string, field: string): Raw => { const f = m.maps.find(d => d.name === map)?.fields.find(x => x.name === field); return field === 'has' || f?.sort.k === 'bool' ? false : f?.sort.k === 'choice' ? f.sort.values[0]! : 0 }
   const cell = (map: string, key: Raw, field: string): Raw => (lists[map] ? lists[map]![key as number]![field]! : dec[map]?.[String(key)]?.[field] ?? dflt(map, field))
   for (const d of m.folds ?? []) {
+    if (d.loop?.cond) { carryLoop(d, raw, st, params, lists, dec, cell); continue }
     // (the passes: a carried list's length, or one past a list of the state's last place)
     const env: Record<string, Raw> = {...params, ...st.leaves, ...raw as Record<string, Raw>}, runs: Record<string, Raw>[] = []
     const n = d.state ? Math.max(-1, ...Object.entries(dec[d.list] ?? {}).filter(([, c]) => c.has).map(([k]) => Number(k))) + 1 : (lists[d.list] ?? []).length
     const at = (t: Model["init"][string], i?: number) => evalTerm(t.e as N, i === undefined ? env : {...env, [I.PASS]: i}, cell)
     runs.push(Object.fromEntries(d.fields.map(f => [f.name, at(d.init[f.name]!)])))
     lists[d.run] = runs
+    // (from the last place down: the start at n, each pass's output at its own place)
+    if (d.back) { const out: Record<string, Raw>[] = Array.from({length: n + 1}); out[n] = runs[0]!; lists[d.run] = out; for (let i = n - 1; i >= 0; i--) out[i] = Object.fromEntries(d.fields.map(f => [f.name, at(d.step[f.name]!, i)])); raw[d.run] = out; continue }
     for (let i = 0; i < n; i++) runs.push(Object.fromEntries(d.fields.map(f => [f.name, at(d.step[f.name]!, i)])))
     raw[d.run] = runs
   }
+}
+// A while loop's run over lists by an order, as its passes compute it: each list's held keys sorted by the order (ties
+// in place order: the rule refuses there, an edge), then from the start each pass where the condition holds.
+function carryLoop(d: NonNullable<Model['folds']>[number], raw: Record<string, unknown>, st: Snap, params: Record<string, Raw>, lists: Record<string, Record<string, Raw>[]>,
+  dec: Record<string, Record<string, Record<string, Raw>>>, cell: (map: string, key: Raw, field: string) => Raw) {
+  const l = d.loop!, env: Record<string, Raw> = {...params, ...st.leaves, ...raw as Record<string, Raw>}, runs: Record<string, Raw>[] = []
+  const places = new Map<string, Map<number, number>>()
+  for (const g of l.drains ?? []) {
+    const keys = Object.keys(dec[g.map] ?? {}).map(Number).filter(k => evalTerm(g.held, {...env, kl$: k}, cell) === true).sort((a, b) => a - b)
+    const parts = (k: number) => g.by.map(b => ({v: evalTerm(b.e, {...env, kl$: k}, cell) as number, desc: b.desc}))
+    keys.sort((x, y) => { const a = parts(x), b = parts(y); for (let j = 0; j < a.length; j++) { const c = a[j]!.v - b[j]!.v; if (c) return a[j]!.desc ? -c : c } return x - y })
+    lists[g.ord] = keys.map(k => ({k})); raw[g.ord] = lists[g.ord]; raw[`${g.ord}_len`] = keys.length; env[`${g.ord}_len`] = keys.length
+    places.set(g.rk, new Map(keys.map((k, i) => [k, i]))); raw[g.rk] = places.get(g.rk)
+  }
+  const cell2 = (map: string, key: Raw, field: string): Raw => (places.has(map) ? places.get(map)!.get(key as number) ?? 0 : cell(map, key, field))
+  const at = (t: Model['init'][string], i: number) => evalTerm(t.e as N, {...env, [I.PASS]: i}, cell2)
+  lists[d.run] = runs
+  runs.push(Object.fromEntries(d.fields.filter(f => d.init[f.name]).map(f => [f.name, at(d.init[f.name]!, 0)])))
+  for (let i = 0; evalTerm(l.cond!, {...env, [I.PASS]: i}, cell2) === true && i < 100_000; i++) runs.push(Object.fromEntries(d.fields.filter(f => d.step[f.name]).map(f => [f.name, at(d.step[f.name]!, i)])))
+  raw[d.run] = runs
+  if (d.len.op === 'var') raw[d.len.name] = runs.length - 1
+}
+// Whether two held items of a list a while loop takes by an order tie under it (the rule's claim stops there).
+export function tiesIn(m: Model, s: Snap, raw: Record<string, Raw>): boolean {
+  for (const d of m.folds ?? []) for (const g of d.loop?.drains ?? []) {
+    // (only where the loop runs: the request its method's, on its branch)
+    const cell0 = (map: string, key: Raw, field: string): Raw => (field === 'has' ? !!s.maps[map]?.[String(key)] : s.maps[map]?.[String(key)]?.[field] ?? 0) as Raw
+    if (d.loop!.entry && evalTerm(d.loop!.entry, {...s.leaves, ...raw}, cell0) !== true) continue
+    const cells = s.maps[g.map] ?? {}, cell = (map: string, key: Raw, field: string): Raw => (field === 'has' ? !!s.maps[map]?.[String(key)] : s.maps[map]?.[String(key)]?.[field] ?? 0) as Raw
+    const seen = new Set<string>()
+    for (const k of Object.keys(cells).map(Number)) {
+      const env = {...s.leaves, ...raw, kl$: k}
+      if (evalTerm(g.held, env, cell) !== true) continue
+      const key = JSON.stringify(g.by.map(b => evalTerm(b.e, env, cell)))
+      if (seen.has(key)) return true
+      seen.add(key)
+    }
+  }
+  return false
 }
 // A term at concrete values (a constant field over the params, a start, the precondition; with `cell`, a state's
 // map cells and list items too).

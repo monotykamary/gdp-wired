@@ -3,7 +3,7 @@
 // rest of the check accepts: the goal a guard's absence would check, grown by the search), and a soundness fuzz: every
 // counted goal the kernel accepts has no model where each count is its sum, by brute force.
 import {describe, expect, test} from 'bun:test'
-import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, times, x, lcg} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, all, any, atMost, cpair, cunpair, get, ite, less, n, not, plus, same, times, x, lcg} from '../core/machine.ts'
 import {type Count, type CountedGoal, type CountInst, type Ghosted, type Goal, type Tree, check, checkCounted, checkGhostedLaws, countedGoal, countHyp, countHyps, ghostedMachine, ghostedOk, someOfGhostsOk} from './kernel.ts'
 import {clock, grow, proveLaws} from './prove.ts'
 import {byzantineStep, countTree, grants, majorityStep, thresholdStep} from '../lean-kernel/count-examples.ts'
@@ -29,6 +29,8 @@ const ev = (e: E, env: Env, maps: Maps): number => {
     case 'min': return Math.min(ev(e.a, env, maps), ev(e.b, env, maps))
     case 'max': return Math.max(ev(e.a, env, maps), ev(e.b, env, maps))
     case 'if': return holds(e.c, env, maps) ? ev(e.then, env, maps) : ev(e.else, env, maps)
+    case 'tup': return cpair(ev(e.a, env, maps), ev(e.b, env, maps))
+    case 'proj': return cunpair(ev(e.a, env, maps))[e.k]
     case 'get': return maps[e.map]?.[ev(e.key, env, maps)] ?? 0
   }
 }

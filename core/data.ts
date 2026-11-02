@@ -1808,6 +1808,8 @@ export class Model {
       case 'prod': return this.evalE(e.a, env) * this.evalE(e.b, env)
       case 'if': return this.evalC(e.c, env) ? this.evalE(e.then, env) : this.evalE(e.else, env)
       case 'get': return this.read(e.map, this.evalE(e.key, env))
+      case 'tup': return safe(cpair(this.evalE(e.a, env), this.evalE(e.b, env)))
+      case 'proj': return cun(this.evalE(e.a, env))[e.k]
     }
   }
   evalC(c: C, env: Record<string, number>): boolean {
@@ -2490,7 +2492,7 @@ function linearForm(e: E, at?: (t: E) => number | undefined, known?: (t: E) => n
         const cs = new Map(a.cs); for (const [x, k2] of b.cs) cs.set(x, (cs.get(x) ?? 0) - k2)
         return {cs, c: a.c - b.c}
       }
-      case 'if': case 'min': case 'max': case 'prod': return undefined
+      case 'if': case 'min': case 'max': case 'prod': case 'tup': case 'proj': return undefined
     }
   }
   const f = go(e)
@@ -2508,10 +2510,10 @@ function substShared(c: C, vars: Record<string, E>): C {
     switch (x.op) {
       case 'var': out = vars[x.name] ?? x; break
       case 'const': out = x; break
-      case 'mul': out = {...x, a: e(x.a)}; break
+      case 'mul': case 'proj': out = {...x, a: e(x.a)}; break
       case 'if': out = {op: 'if', c: cc(x.c), then: e(x.then), else: e(x.else)}; break
       case 'get': out = {op: 'get', map: x.map, key: e(x.key)}; break
-      case 'prod': case 'add': case 'sub': case 'min': case 'max': out = {...x, a: e(x.a), b: e(x.b)}; break
+      case 'prod': case 'add': case 'sub': case 'min': case 'max': case 'tup': out = {...x, a: e(x.a), b: e(x.b)}; break
       default: out = substE(x, {vars, maps: {}, flags: {}})
     }
     memo.set(x, out)

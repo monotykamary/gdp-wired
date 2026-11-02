@@ -168,6 +168,8 @@ export function sortsOf(m: Model, given: Record<string, 'nat' | 'int'> = {}): {s
   const nums = (vs: Var[]) => vs.filter(v => v.sort.k === 'num')
   const ctx0 = (): Ctx => ({m, sorts, atoms: []})
   for (const v of [...nums(m.params), ...nums(m.inputs)]) {
+    // (a while loop's passes: a count)
+    if (m.folds?.some(d => d.loop?.cond && d.len.op === 'var' && d.len.name === v.name)) { sorts.set(v.name, 'nat'); continue }
     if (given[v.name]) { sorts.set(v.name, given[v.name]!); notes.push(`${v.name}: ${given[v.name] === 'nat' ? 'a natural' : 'an integer'}, as given`); continue }
     if (/^now(0)?(_\d+)?$/.test(v.name) && v.note?.startsWith('Date.now()')) { sorts.set(v.name, 'nat'); continue }
     // Refused below 0: no case of the step (or no params, for a param) takes it negative.
@@ -188,11 +190,15 @@ export function sortsOf(m: Model, given: Record<string, 'nat' | 'int'> = {}): {s
   for (const q of m.seqs ?? []) { sorts.set(`${q.name}_len`, 'nat'); for (const f of q.fields) if (f.sort.k === 'num') sorts.set(`${q.name}.${f.name}`, given[`${q.name}.${f.name}`] ?? 'int') }
   for (const d of m.folds ?? []) { sorts.set(`${d.run}_len`, 'nat'); for (const f of d.fields) if (f.sort.k === 'num') sorts.set(`${d.run}.${f.name}`, 'nat') }
   if (m.folds?.length) sorts.set(I.PASS, 'nat')
+  for (const g of (m.folds ?? []).flatMap(d => d.loop?.drains ?? [])) { sorts.set('kl$', 'nat'); sorts.set('j$', 'nat'); sorts.set(`${g.ord}_len`, 'nat'); sorts.set(`${g.ord}.k`, 'nat'); sorts.set(`${g.rk}.$item`, 'nat') }
   for (let changed = true; changed;) {
     changed = false
     for (const d of m.folds ?? []) for (const f of d.fields) {
-      const n = `${d.run}.${f.name}`, a = d.init[f.name]!, b = d.step[f.name]!
-      if (f.sort.k === 'num' && sorts.get(n) === 'nat' && ((a.s === 'num' && !natOK(a.e, ctx0())) || (b.s === 'num' && !natOK(b.e, ctx0())))) { sorts.set(n, 'int'); changed = true }
+      const n = `${d.run}.${f.name}`, a = d.init[f.name], b = d.step[f.name]
+      if (f.sort.k === 'num' && sorts.get(n) === 'nat' && ((a?.s === 'num' && !natOK(a.e, ctx0())) || (b?.s === 'num' && !natOK(b.e, ctx0())))) { sorts.set(n, 'int'); changed = true }
+      // (an item's field the run holds: the collection's field's sort, both ways)
+      const lk = d.loop?.like.find(x => x[0] === f.name)?.[1]
+      if (lk && f.sort.k === 'num' && sorts.get(n) !== sorts.get(lk) && (sorts.get(n) === 'int' || sorts.get(lk) === 'int')) { sorts.set(n, 'int'); sorts.set(lk, 'int'); changed = true }
     }
     for (const v of nums(m.state)) {
       if (sorts.get(v.name) === 'int' || given[v.name]) continue

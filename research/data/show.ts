@@ -11,6 +11,8 @@ export const sE = (e: E): string => {
     case 'prod': return `${sE(e.a)}·${sE(e.b)}`
     case 'if': return `(if ${sC(e.c)} then ${sE(e.then)} else ${sE(e.else)})`
     case 'get': return `${e.map}[${sE(e.key)}]`
+    case 'tup': return `⟨${sE(e.a)}, ${sE(e.b)}⟩`
+    case 'proj': return `${e.k === 0 ? 'fst' : 'snd'}(${sE(e.a)})`
   }
 }
 export const sC = (c: C): string => {

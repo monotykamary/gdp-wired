@@ -176,6 +176,8 @@ theorem homog_sum {vs : List Nat} (M : Nat → Nat → Nat) (X : Nat → Nat) (F
   | .prod _ _, h => by simp [homog] at h
   | .ite _ _ _, h => by simp [homog] at h
   | .get _ _, h => by simp [homog] at h
+  | .tup _ _, h => by simp [homog] at h
+  | .proj _ _, h => by simp [homog] at h
 theorem homog_sumC {vs : List Nat} (_M : Nat → Nat → Nat) (X : Nat → Nat) (F : List (Nat → Nat))
     (_hX : ∀ v ∈ vs, X v = (F.map fun Y => Y v).sum) : (c : C) → homogC vs c = true → True
   | _, _ => trivial
@@ -519,6 +521,8 @@ theorem homog_noreads {vs : List Nat} : ∀ e : E, homog vs e = true → readsE 
   | .prod _ _, h => by simp [homog] at h
   | .ite _ _ _, h => by simp [homog] at h
   | .get _ _, h => by simp [homog] at h
+  | .tup _ _, h => by simp [homog] at h
+  | .proj _ _, h => by simp [homog] at h
 
 theorem relsC_noreads {h : HMachine} (ok : HOk h) : ∀ rs : List (C × E × E), (∀ r ∈ rs, r ∈ h.rels) → readsC (relsC rs) = false
   | [], _ => rfl

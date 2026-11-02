@@ -1,0 +1,22 @@
+{
+ "id": "tpmullee",
+ "repo": "https://github.com/tpmullee/financial-markets-studio",
+ "commit": "e5650967de859daffc69634d24e040ef92baa0ef",
+ "licence": "MIT",
+ "lang": "Python",
+ "kind": "matching engine",
+ "about": "a price-time order book with GTC, IOC and FOK: heaps of [price key, time, id, Order] lists, an index of entries by id, lazy cancels, market orders walking the opposite heap",
+ "check": [
+  "apps/api/exchange/engine.py"
+ ],
+ "toml": "[rules.OrderBook]\nmethods = [\"add_limit\", \"cancel\", \"submit\"]\n",
+ "edits": [
+  {
+   "file": "apps/api/exchange/engine.py",
+   "before": "^    def cancel\\(self",
+   "lines": [
+    "# gdp: law a cancelled order leaves the index: not result or oid not in self.idmap"
+   ]
+  }
+ ]
+}
