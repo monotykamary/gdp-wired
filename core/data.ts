@@ -30,7 +30,7 @@ import {type C, type E, argsKey, atMost as leC, get, n as k, same as eqC, walk, 
 import {type Fact} from '../kernel/cyclic.ts'
 import {substC, substE} from '../kernel/kernel.ts'
 import {type CyclicVerdict, type NodeSpec, and as andC, implies, proveCyclic} from './cyclic.ts'
-import {clock, counted, pairedKeys, withDeadline} from '../kernel/prove.ts'
+import {clock, counted, pairedKeys, wideLimits, withDeadline} from '../kernel/prove.ts'
 import {env, work} from './solver.ts'
 import {rankOfPaths, ranksOfCalls, showC} from './cycles.ts'
 import type {Path as RelPath, Relation} from './relation.ts'
@@ -2755,7 +2755,12 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
       const from = [c.lits, concl, us.map(u => [u.guard, useConcl(u)]), shapesAt, rankReads], insts = reached(p, fs, instsFor(ms, us, false, c.lits), from, ms)
       // (and leaner: without the shapes and etas at fields' values, and what only they reach)
       const atField = (q: NodeSpec['insts'][number]) => /^(shape|eta) /.test(fs.facts[q.fact]!.name) && fieldValue(q.at[0])
-      if (insts.some(atField)) leaner.set(`${name}, case ${i + 1}`, reached(p, fs, insts.filter(q => !atField(q)), from, ms))
+      // (and the function reads both the conclusion and a use's conclusion make, which cancel: count(x, xs) in the law and
+      // in its hypothesis at the tail of ys)
+      const fnReads = (t: unknown) => new Set(readsOnce(t).filter(r => r.op === 'get' && p.fns.some(f => f.name === r.map)).map(r => sid(r)))
+      const inConcl = fnReads(concl), common = new Set([...fnReads(us.map(useConcl))].filter(x => inConcl.has(x)))
+      const lean = reached(p, fs, insts.filter(q => !atField(q)), from, ms, common)
+      if (lean.length < insts.length) leaner.set(`${name}, case ${i + 1}`, lean)
       plan.push({name: `${name}, case ${i + 1}`, hyps: c.lits, concl, sub: 0, insts, uses: us})
     }
     plans.push(plan)
@@ -2766,14 +2771,20 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
     const mb = members[mi]!, size = !mb.on ? k(0) : mb.on.d === 'nat' ? ev(mb.on.v) : get(sizeMap(mb.on.d.name), ev(mb.on.v))
     // (level, the measure or the size, 0 or 1), the measure's place padded to the program's widest measure
     const comps = mb.rank ?? [size], mid = [...comps, ...Array.from({length: rankWidth(p) - comps.length}, () => k(0))]
-    for (const {sub, cases, ...n} of plan) specs.push({...n, rank: [k(level), ...mid, k(sub)], uses: cases ? cases.map((g, i) => ({node: offsets[mi]! + 1 + i, subst: {}, guard: g})) : n.uses.map(u => (u.node < 0 ? {...u, node: offsets[-1 - u.node]!} : u))})
+    for (const {sub, cases, ...n} of plan) {
+      const spec: NodeSpec = {...n, rank: [k(level), ...mid, k(sub)], uses: cases ? cases.map((g, i) => ({node: offsets[mi]! + 1 + i, subst: {}, guard: g})) : n.uses.map(u => (u.node < 0 ? {...u, node: offsets[-1 - u.node]!} : u))}
+      // (a case's leaner instances first, all of them where those don't prove it: the kernel's search on each node apart)
+      const lean = leaner.get(n.name)
+      specs.push(lean ? {...spec, insts: lean, within: attemptMs.ms / 3, variants: [{...spec, within: attemptMs.ms}]} : spec)
+    }
   }
   const name = title
   // Each attempt within its own time (a goal past it is left unknown, and the attempt fails).
   if (dataTrace) console.error(`[data] @${Math.round(performance.now())} ${l.name} (${scheme?.name}) depth ${depth}, ${lemmas.length} lemmas: built in ${Math.round(clock() - t0)} ms (counted), ${specs.length} nodes, ${specs.reduce((n, x) => n + x.insts.length, 0)} instances`)
   if (clock() > t0 + attemptMs.ms) return {verdict: {proven: false, checked: false, node: name, goal: name, stuck: 'unknown'}, specs, main: base}
-  const was = pairedKeys.skip
+  const was = pairedKeys.skip, wasWide = {...wideLimits}
   pairedKeys.skip = true
+  if (env.DATA_WIDE && !inTermination.on) Object.assign(wideLimits, {at: Number(env.DATA_WIDE), terms: 0})
   try {
     // Within a termination's proof (its obligations and their size laws), first without the shapes at a field's value
     // (a field of a variable, of a field, of a function's value): each is a split on that value's constructor that a
@@ -2781,7 +2792,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
     // them, 0.8 s without). Then the nodes as built. Elsewhere, the cases' nodes first without the shapes and etas at
     // fields' values and what only they reach (`leaner`): a merge's case node, past 11 s with all of its 33 instances,
     // is proven in 0.2 s with 8; a node none of them reads is the same in both passes, its tree kept.
-    const lean = !inTermination.on ? (leaner.size ? specs.map(n => (leaner.has(n.name) ? {...n, insts: leaner.get(n.name)!} : n)) : specs) : specs.map((n, i) => (i < base ? n : {...n, insts: n.insts.filter(q => !(fs.facts[q.fact]!.name.startsWith('shape ') && fieldValue(q.at[0])))}))
+    const lean = !inTermination.on ? specs : specs.map((n, i) => (i < base ? n : {...n, insts: n.insts.filter(q => !(fs.facts[q.fact]!.name.startsWith('shape ') && fieldValue(q.at[0])))}))
     if (lean.some((n, i) => n.insts.length < specs[i]!.insts.length)) {
       // (nine tenths for a law about naturals alone, a size law's or a decrease's, which reads no value's constructor)
       const v = withDeadline(clock() + (t0 + attemptMs.ms - clock()) * (aboutNaturals(l) ? 0.9 : 0.25), () => proveCyclic(fs.facts, lean))
@@ -2789,7 +2800,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
       if (v.proven && v.checked) return {verdict: v, specs: lean, main: base}
     }
     return {verdict: withDeadline(t0 + attemptMs.ms, () => proveCyclic(fs.facts, specs)), specs, main: base}
-  } finally { pairedKeys.skip = was }
+  } finally { pairedKeys.skip = was; Object.assign(wideLimits, wasWide) }
 }
 // Whether a termination's obligations are being proven (core/data.ts's proveMeasures).
 const inTermination = {on: false}
@@ -2813,7 +2824,7 @@ const dataRate = 300
 // through each instance at a read reached (a function's at its call, a constructor's at its cell, a shape or eta at a
 // value whose tag is read), the reads of what it gives where the models take it (an if's taken branch, an implication's
 // conclusion where its premise holds); a congruence where both its reads are reached.
-function reached(p: Program, fs: Facts, insts: NodeSpec['insts'], from: unknown[], ms: M[]): NodeSpec['insts'] {
+function reached(p: Program, fs: Facts, insts: NodeSpec['insts'], from: unknown[], ms: M[], opaque?: Set<string>): NodeSpec['insts'] {
   const reach = new Set<string>(), id = (t: E) => sid(t), done = new Map<object, WeakSet<object>>()
   // (an object once a model: what it reaches there is the same each time)
   const active = (t: unknown, m: Model, env: Record<string, number>): void => {
@@ -2831,7 +2842,8 @@ function reached(p: Program, fs: Facts, insts: NodeSpec['insts'], from: unknown[
   }
   const each = (t: unknown) => { for (const {m, env} of ms) active(t, m, env) }
   // The conclusion and the uses' are read whole: the goal is where the law fails, which no model is.
-  walkOnce(from, o => { if (o.op === 'get') reach.add(sid(o)) })
+  // (`opaque`: reads none is wanted at, unless another instance's reads reach them)
+  walkOnce(from, o => { if (o.op === 'get' && !opaque?.has(sid(o))) reach.add(sid(o)) })
   const anchor = (q: NodeSpec['insts'][number]): E[] => {
     const name = fs.facts[q.fact]!.name
     if (name.startsWith('fn ')) return [get(name.slice(3), keyOf(q.at))]

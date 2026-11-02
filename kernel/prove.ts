@@ -374,7 +374,9 @@ export const brokenOf = (goal: Goal): ((w: Record<string, number>, ids?: number[
 // search is costly; under it the whole is asked as before, its model the search's own, which the engine's join reads)
 const termsSeen = new WeakMap<Goal, number>()
 const termsOf = (goal: Goal): number => { let n = termsSeen.get(goal); if (n === undefined) { n = 0; walkOnce(goal.hyps, () => { n!++ }); termsSeen.set(goal, n) } return n }
-export const wideFor = (goal: Goal): boolean => !wideBusy && goal.hyps.length >= wideAt && termsOf(goal) >= wideTerms
+// (`wideLimits`: a caller's own, within its scope: core/data.ts's case nodes, few hypotheses each heavy with keys)
+export const wideLimits = {at: wideAt, terms: wideTerms}
+export const wideFor = (goal: Goal): boolean => !wideBusy && goal.hyps.length >= wideLimits.at && termsOf(goal) >= wideLimits.terms
 export function growWide(goal: Goal, budget: {nodes: number, until?: number}, ask = (g: Goal, until: number): Outcome & {core?: number[]} => grow(g, new Map(), {nodes: 0, until})): (Outcome & {core?: number[]}) | undefined {
   const hyps = goal.hyps, last = hyps.length - 1, broken = brokenOf(goal), now = clock(), w = fullWork()
   const end = withinDeadline(budget.until ?? Infinity), span = wideShare * (end - now), room = wideShare * (workCap - w), until = now + span

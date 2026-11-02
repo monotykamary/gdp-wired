@@ -68,7 +68,7 @@ import {env} from './solver.ts'
 // `main`: the node's tree already made (a usual proof's, translated: core/translate.ts), taken as it is, its goal not grown;
 // `carry`: its tree made by core/translate.ts's `carry` from its goal (grown as any other where that fails); `sliced`,
 // from its goal sliced first (`carried`).
-export type NodeSpec = Omit<CNode, 'uses' | 'main'> & {uses: Omit<Use, 'premises' | 'descent'>[], opaque?: E[], variants?: NodeSpec[], weak?: boolean, slice?: boolean, main?: Tree, carry?: boolean | 'sliced'}
+export type NodeSpec = Omit<CNode, 'uses' | 'main'> & {uses: Omit<Use, 'premises' | 'descent'>[], opaque?: E[], variants?: NodeSpec[], weak?: boolean, slice?: boolean, main?: Tree, carry?: boolean | 'sliced', within?: number}
 export type CyclicVerdict = {proven: true, checked: boolean, proof: Cyclic, why?: string} | {proven: false, checked: false, node: string, goal: string, stuck: string}
 
 const less1 = (a: E): E => ({op: 'sub', a, b: k(1)})
@@ -249,7 +249,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
   }
   // A node's goal grown; then the node keeps only the facts and uses its tree reads (the fewer, the fewer hypotheses its
   // goal has for the kernel to read at every leaf, and the fewer uses to prove below); then each use's goals.
-  const attempt = ({opaque, variants: _v, weak: _w, slice: sl, main: given0, carry: made, ...n0}: NodeSpec): CNode | Stuck => {
+  const attempt = ({opaque, variants: _v, weak: _w, slice: sl, main: given0, carry: made, within: _in, ...n0}: NodeSpec): CNode | Stuck => {
     hidden = opaque ?? []
     sliceNow = !!sl
     // A goal's own hypotheses: the node's, and those after its facts and uses.
@@ -321,9 +321,11 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
       // wasn't proven by is seldom needed, and seldom proves a node where another is refuted)
       // (a translated node's goals, its uses' among them, within four: past that its translation isn't kept, the usual
       // trees are)
-      later = j ? (refuted ? 1_000 : 3_000) : spec.main || spec.carry ? 4_000 : undefined
+      // (`within`: the spec's own, each of its goals: core/data.ts's case nodes, their leaner instances first)
+      later = spec.within ?? (j ? (refuted ? 1_000 : 3_000) : spec.main || spec.carry ? 4_000 : undefined)
       if (spec.uses.some(u => weak.has(u.node))) continue
-      const r = attempt(spec)
+      const tq = clock(), r = attempt(spec)
+      if (env.GDP_CYCLIC_TIME) console.error(`[ntime] ${spec.name.slice(-40)}: ${spec.insts.length} insts, ${spec.uses.length} uses, ${Math.round(clock() - tq)} ms, ${'proven' in r ? r.stuck : 'ok'}`)
       if ('proven' in r) { failed ??= r; if (r.stuck === 'sat') refuted = true; continue }
       nodes[i] = r; shapes[i] = spec; failed = undefined
       if (spec.weak) weak.add(i)
