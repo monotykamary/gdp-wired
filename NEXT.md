@@ -1,3 +1,11 @@
+# Active lane: EPR clock integration with main 9d6fda8
+
+`gen/epr-clock` integrates main `9d6fda8a19e31611203f653ef78611e4ece737e9` with `08fb0dd`. Both conflict resolutions retain native tuple EPR and inherited deadline accounting. Explicit tuple EPR regressions added; both tuples.test.ts and epr-clock.test.ts are registered. Both vendor submodules initialized.
+
+Accepted gates in `runs/merge-main/`: `bun run check` has zero warnings/errors; EPR and tuple tests 21/21; all seven shards pass; paired IC3Syn 22/22/24 both sides, DuoAI 10/10/10 both sides, no every-run loss; learning_switch proven 37.347/46.875/12.599 s in the candidate. No late proof accepted. Commit message passed commitlint. No push. Next: resume db_ae on a native tuple port in ../gdp-wired-db_ae, preserving its earlier receipts. Boat, non-interactive, one waiter per job, await/clean up all work. The earlier lane-RL handoff below is historical context, not instructions to resume its completed jobs.
+
+---
+
 # Lane RL: native multi-place relations (`gen/laneRL`)
 
 ## Priority interruption — CI repair on `gen/rl-lint`, 2026-11-02
