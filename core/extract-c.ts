@@ -26,7 +26,7 @@
 // operations but the mask above, the comma operator, an assignment or ++ inside an expression, and sizeof.
 import {type Extraction, fromModel} from './extract.ts'
 import {Refusal, pathOf, type FileURL} from './extract-read.ts'
-import {stubbed} from './extract-step.ts'
+import {buildCheck, builtEvidence, compileLimit, stubbed} from './extract-step.ts'
 import type {Rule} from './dsl.ts'
 import type {Sorts} from './extract-print.ts'
 import type {Coverage} from './extract-check.ts'
@@ -142,8 +142,8 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
     } else if (l.kind === 'bool') { get.push(`gdp_putf("%s\\"%s\\":%s", sep, ${k}, ${a} ? "true" : "false"); sep = ",";`); set.push(`if ((v = gdp_key(st, ${k}))) { if (!strncmp(v, "true", 4)) ${a} = 1; else if (!strncmp(v, "false", 5)) ${a} = 0; else return "${l.name}: not a boolean"; }`) }
   }
   const frames = read.leaves.filter(l => l.kind === 'frame' && !T(l.t).mutex)
-  // (the longest method name the request names, its buffer: a name of any length is called)
-  const M = Math.max(256, ...read.methods.map(x => x.name.length + 1))
+  // (the longest method name the request names, in UTF-8 bytes, its buffer: a name of any length is called)
+  const M = Math.max(256, ...read.methods.map(x => new TextEncoder().encode(x.name).length + 1))
   const calls = read.methods.map(meth => {
     const lines: string[] = [], args: string[] = ['o'], outs: [string, string, number][] = []
     meth.params.forEach((pa, i) => {
@@ -354,14 +354,20 @@ export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r:
     // code's failure where the rule took the step, a difference), but those left out (skip, stated or inferred: they
     // change nothing the rule keeps, and nothing reads their value), which do nothing.
     const clang = opts.clang ?? (cpp ? 'clang++' : 'clang'), stubs = `${work}/gdp_stubs.c`
-    const link = (more: string[]) => cp.execFileSync(clang, [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', ...strictFlex(clang), h, ...(more.length ? ['-x', 'c', ...more] : []), '-o', `${work}/harness`, ], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26})
+    const link = (more: string[]) => cp.execFileSync(clang, [...(cpp ? ['-x', 'c++'] : []), ...flags, '-w', '-O0', '-fsanitize=undefined', '-fsanitize-trap=undefined', '-fno-sanitize=vptr,function', ...strictFlex(clang), h, ...(more.length ? ['-x', 'c', ...more] : []), '-o', `${work}/harness`, ], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26, timeout: compileLimit(), killSignal: 'SIGKILL'})
     const why = (x: unknown) => String((x as {stderr?: string}).stderr ?? (x as Error).message)
+    // (the compiler's errors: where they are in the code's own files, the source's; the linker's alone say nothing of it)
+    const base = path.resolve(file).split('/').pop()!, errorsOf = (x: unknown) => why(x).split('\n').filter(l => /\berror:/.test(l) && !/linker command failed|ld returned/.test(l))
+    const ofSource = (l: string) => !/(^|\/)(harness\.(c|cpp)|gdp_stubs\.c):/.test(l) && (l.includes(`${base}:`) || !l.includes(work))
     try { link([]) } catch (x) {
       const names = [...new Set([...why(x).matchAll(/undefined (?:reference to [`']|symbol: )_?([A-Za-z_]\w*)|"_([A-Za-z_]\w*)", referenced from/g)].map(m => m[1] ?? m[2]!))]
-      if (!names.length) return {...empty, mismatch: `the file doesn't build with the check's harness: ${why(x).split('\n').filter(l => /error/.test(l)).slice(0, 6).join(' | ')}`}
-      const out = new Set(read.leftOut ?? [])
-      fs.writeFileSync(stubs, `void gdp_extern_called(const char *);\n${names.map(n => (out.has(n) ? `void ${n}(void) {}` : `void ${n}(void) { gdp_extern_called(${JSON.stringify(n)}); }`)).join('\n')}\n`)
-      try { link([stubs]) } catch (y) { return {...empty, mismatch: `the file doesn't build with the check's harness: ${why(y).split('\n').filter(l => /error/.test(l)).slice(0, 6).join(' | ')}`} }
+      if (!names.length) { const b = buildCheck(clang, () => link([]), errorsOf, ofSource, x); if (!('ok' in b)) return {...empty, ...builtEvidence(b)} }
+      else {
+        const out = new Set(read.leftOut ?? [])
+        fs.writeFileSync(stubs, `void gdp_extern_called(const char *);\n${names.map(n => (out.has(n) ? `void ${n}(void) {}` : `void ${n}(void) { gdp_extern_called(${JSON.stringify(n)}); }`)).join('\n')}\n`)
+        const b = buildCheck(clang, () => link([stubs]), errorsOf, ofSource)
+        if (!('ok' in b)) return {...empty, ...builtEvidence(b)}
+      }
     }
     // (a harness that doesn't start would leave the pipes unopened: asked to start and stop first)
     try { cp.execFileSync(`${work}/harness`, ['--probe'], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 20_000}) }

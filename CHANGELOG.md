@@ -3,6 +3,63 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.45.0
+
+A security fix in how the kernel reads names, more of TIP through termination, IC3Syn on pinned hardware, ∃ verdicts
+checked by the kernel, Lean on every sampled ITS certificate, sturdier readers and distributed apps through the CLI.
+Trusted changes: how the kernel and `gdp-wired-check` read names, the ∃ admission through ghost witnesses (Lean's
+`forall_some_of_ghostsubst`) and core/data.ts's termination admissions (Lean's `wf_fix_inv_unique_ring`).
+- **Security: names read through the JavaScript prototype.** 0.44.0's TypeScript kernel and its standalone
+  `gdp-wired-check` read some user-chosen names (`constructor`, `__proto__`, `toString`, `valueOf`, `hasOwnProperty`)
+  through the JavaScript object prototype, so a specially crafted certificate or rule using such a name could be
+  accepted although false: a map named `constructor` was read as its key before a step, or after it in a step law
+  (`constructor'[k] = k` accepted for a map no step writes); a linear row dropped a variable named `__proto__`, so a
+  false bound on it (`1 <= __proto__`) could be proven; a data-law parameter named like a function the law reads was
+  taken for that function. A substitution read such names the same way, so a certificate could refute a goal that holds.
+  Lean's re-check never accepted any of them, and no real-world input is known to have hit them. Every name a rule or
+  certificate gives is now read as its own entry (rows and maps on no prototype), and data-law names are restricted (no
+  parameter named like a function, no constructor named after a datatype's own members). kernel/tamper.test.ts renames
+  every proof to each such name, and a renaming fuzz runs on the treadmill. Upgrade to 0.45.0.
+- **TIP**: proven 209–212 → 219–221 of 492 in our harness (three runs a side, wrong 0), refused 103 → 62. Termination
+  reaches further: nested recursion is admitted with an invariant (Lean's `wf_fix_inv_unique_ring`), measures span a
+  ring of mutually recursive functions, and halving and guarded size laws take selection sort, merge sort by halves,
+  bitonic sort, the heap sorts and `models`. The insertion sorts' count and order laws and five isaplanner/prod lemmas
+  are proven; the 10 newly proven TIP laws are re-checked in Lean. core/data.ts's admission is under the mutant battery
+  (171 mutants, 116 killed).
+- **IC3Syn on pinned hardware**: 22 of 29 within 60 s in every run (0.44.0: 19–20), 24 in some, no broken variant
+  proven: each protocol alone on a boat `large` VM (4 vCPUs and 14 GB asked), a strict 60 s of wall time, three runs, in
+  our harness (research/protocols/ic3syn/README.md). The ∃ law searched in plain form over its ghost map (firewall);
+  candidate supports for ∃ laws over several bound names (sharded_kv_no_lost_keys, the first with two, re-checked in
+  Lean end to end); the counted Houdini step keeps proofs that never used a dropped law (consensus_forall's counted work
+  −37%); small instances step through the generated JS. jobs.ts pins the hardware by default.
+- **∃ verdicts checked by the kernel**: a law proven through ghost witnesses is admitted by the kernel
+  (`someOfGhostsOk`, line for line with Lean's `forall_some_of_ghostsubst`: any number of bound names, disjunctions,
+  terms over the ghosted machine). Before, the ∃ verdict rested on core/exists.ts's construction, which is untrusted.
+- **DuoAI's ten**: ticket_lock proven on 40 of 40 seeds (from 24; 38 within 60 s). Infer restarts one run in four from a
+  sample holding a state variable's rarest value, and a join's never-law is split per unreached state.
+- **The searches**: every search on the exact generator (CHC's and ITS's runs reused the floating-point stream's
+  10,466-step cycle 300–400 times). The cut search stops at the counted deadline and counts its leaf reads (a runaway
+  obligation 133–172 s → 19–24 s, the same verdict). A wide goal (256+ hypotheses, 40,000+ terms) is grown from a small
+  part, widened by the hypotheses a model breaks, and the part's proof widened to the whole goal, which the kernel
+  checks as usual (14 wide goals 155 → 74 s). A retried counted attempt starts from the instances its last model asks
+  for (4–31% fewer decide calls, no verdict changed).
+- **Lean on every sampled ITS certificate**: 48 of the bar's 48 (45 before), 56 of 56 with the largest outside it; peak
+  memory 29.4 GB → under 8.1 GB. Theorem statements unchanged, axioms propext, Classical.choice and Quot.sound only, and
+  an axiom gate on every Lean job. Interchange 1.1 keeps a measure part's fold (the writer dropped it).
+- **Readers**: code the compiler rejects is refused with the compiler's message (javac, kotlinc, clang, go, cargo,
+  swift), never "the rule and the code differ"; a harness that crashes silently or times out is a harness failure,
+  retried once, never a disagreement or a pass; one that can't be built is a refusal with its reason. The misreads the
+  reader fuzz found are read as the code runs or refused up front (Python, Elixir, Ruby, TypeScript, the JVM languages,
+  C, Swift, Solidity; 0 caught on 12,295 fresh mutants). Every reader process has a time limit (`GDP_READER_S`, 300 s),
+  and the reader fuzz runs across 10 readers on the treadmill. C's non-ASCII names and private constructors fixed.
+- **Distributed apps through the CLI**: one tag over the class, `# gdp: env <words>` (or `env` in gdp.toml), states
+  where the code runs: an isolation level, `keys expire`, `retries`, `an object per call`, a call's flow (`acquire then
+  release`); the laws then hold of every call at once. `at most one call between a and b` is mutual exclusion per key,
+  and a broken law's run is printed as the calls' steps. On seven open-source services
+  (research/distributed/corpus/results.md): 3 laws proven, 7 refuted, 1 not read. The real-world corpus is triaged by
+  cause (440 laws: 389–391 proven, 39 refuted, 10–12 unknown, no timeouts), and 8 distributed-systems rules from real
+  code (etcd-raft, client-go's leader election, a quorum tally, a vector clock) prove 21 of 27 laws.
+
 ## 0.44.0
 
 A standalone checker anyone can run, Effect's queues and semaphores, a faster CDCL search, CHC-COMP measured fairly, an

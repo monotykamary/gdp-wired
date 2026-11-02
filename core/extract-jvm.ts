@@ -30,7 +30,7 @@
 // code's calls not answered or skipped. Not yet: `stores`, branch coverage (the arms aren't counted).
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
-import {asset, type Harness, type SModule, type SX, type StepOptions, type StepRead, entryNames, extractStep, node} from './extract-step.ts'
+import {asset, type Harness, type SModule, type SX, type StepOptions, type StepRead, compileLimit, entryNames, extractStep, node} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 export type JvmOptions = StepOptions & {
@@ -152,7 +152,7 @@ const STATED: Record<string, string> = {int: 'int', long: 'long', short: 'short'
 const KT: Record<string, string> = {int: 'Int', long: 'Long', short: 'Short', byte: 'Byte', char: 'Char', boolean: 'Boolean', float: 'Float', double: 'Double', 'java.lang.String': 'String'}
 
 // The code compiled for the check: a copy of the file with the clock's and the answered calls' sites rewritten.
-function compiled(lang: 'java' | 'kotlin', mod: SModule, read: StepRead, o: JvmOptions, made: string[]): {dirs: string[], error?: string} {
+function compiled(lang: 'java' | 'kotlin', mod: SModule, read: StepRead, o: JvmOptions, made: string[]): {dirs: string[], error?: string, kind?: 'source' | 'harness'} {
   const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process'), os = node<{tmpdir: () => string}>('node:os'), path = node<Path>('node:path')
   const j = jvmOf(mod), kotlin = lang === 'kotlin'
   // (a call of a generic result, a type variable's: the answer given in the type it is stated in)
@@ -171,16 +171,46 @@ function compiled(lang: 'java' | 'kotlin', mod: SModule, read: StepRead, o: JvmO
   const copy = `${work}/src/${rel}`
   fs.mkdirSync(path.dirname(copy), {recursive: true})
   fs.writeFileSync(copy, text)
-  const out = `${work}/classes`, t = tools(o), extra = (o.classpath ?? []).join(':')
-  try {
+  const t = tools(o), extra = (o.classpath ?? []).join(':')
+  // (each compile within GDP_COMPILE_S seconds: past them killed, the compiler's failure)
+  const limit = compileLimit()
+  const build = (file: string, out: string, srcDir: string): string[] => {
     if (kotlin) {
       const kt = kotlinLib(o)
-      cp.execFileSync(jdk(o).java, ['-Xss8m', '-cp', `${kt}/kotlin-compiler.jar`, 'org.jetbrains.kotlin.cli.jvm.K2JVMCompiler', '-kotlin-home', path.dirname(kt), '-nowarn', '-no-reflect', '-d', out, '-cp', [t, extra].filter(Boolean).join(':'), copy, ...(o.sources ?? []).map(f => path.resolve(f))], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26})
-      return {dirs: [out, `${kt}/kotlin-stdlib.jar`]}
+      cp.execFileSync(jdk(o).java, ['-Xss8m', '-cp', `${kt}/kotlin-compiler.jar`, 'org.jetbrains.kotlin.cli.jvm.K2JVMCompiler', '-kotlin-home', path.dirname(kt), '-nowarn', '-no-reflect', '-d', out, '-cp', [t, extra].filter(Boolean).join(':'), file, ...(o.sources ?? []).map(f => path.resolve(f))], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26, timeout: limit, killSignal: 'SIGKILL'})
+      return [out, `${kt}/kotlin-stdlib.jar`]
     }
-    cp.execFileSync(jdk(o).javac, ['-nowarn', '-Xlint:none', '-proc:none', '-implicit:class', '-d', out, '-sourcepath', `${work}/src:${mod.root}`, '-cp', [t, extra].filter(Boolean).join(':'), copy], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26})
-    return {dirs: [out]}
-  } catch (e) { return {dirs: [], error: `the code doesn't compile for the check (${errText(e)})`} }
+    cp.execFileSync(jdk(o).javac, ['-nowarn', '-Xlint:none', '-proc:none', '-implicit:class', '-d', out, '-sourcepath', `${srcDir}:${mod.root}`, '-cp', [t, extra].filter(Boolean).join(':'), file], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26, timeout: limit, killSignal: 'SIGKILL'})
+    return [out]
+  }
+  // What the compiler says is wrong with the code (its error lines), none where it crashed, was killed or timed out.
+  const diag = (e: unknown): string => (e as {signal?: string}).signal ? '' : String((e as {stderr?: string}).stderr ?? '').split('\n').filter(l => /\berror:/.test(l) && !/exception|internal error|OutOfMemory/i.test(l)).slice(0, 3).join(' | ').slice(0, 900)
+  const tool = kotlin ? 'kotlinc' : 'javac'
+  // A compile: its classes, the compiler's errors about the code, or its own failure (nothing said of the code: once
+  // more, then the check's failure, not the code's).
+  const attempt = (file: string, out: string, srcDir: string): {dirs: string[]} | {diag: string} | {crash: string} => {
+    let last: unknown
+    for (let i = 0; i < 2; i++) {
+      try { return {dirs: build(file, out, srcDir)} } catch (e) { last = e; if (diag(e)) return {diag: diag(e)} }
+    }
+    return {crash: `${tool} failed twice with nothing to say of the code (${errText(last)})`}
+  }
+  const c = attempt(copy, `${work}/classes`, `${work}/src`)
+  if ('crash' in c) return {dirs: [], error: c.crash, kind: 'harness'}
+  // The source as it is, where the check's copy rewrote its answered calls (a call of nothing defined, rewritten, would
+  // compile): the compiler's errors in it are the source's, refused; the copy's alone, the check's rewrite's.
+  if (sites.length) {
+    const orig = `${work}/orig/${rel}`
+    fs.mkdirSync(path.dirname(orig), {recursive: true})
+    fs.writeFileSync(orig, src)
+    const o0 = attempt(orig, `${work}/orig-classes`, `${work}/orig`)
+    if ('crash' in o0) return {dirs: [], error: o0.crash, kind: 'harness'}
+    if ('diag' in o0) return {dirs: [], error: `the source doesn't compile (${tool}): ${o0.diag}`, kind: 'source'}
+    if ('diag' in c) return {dirs: [], error: `the check's copy of the code (its answered calls rewritten) doesn't compile (${tool}): ${c.diag}`, kind: 'harness'}
+    return {dirs: c.dirs}
+  }
+  if ('diag' in c) return {dirs: [], error: `the source doesn't compile (${tool}): ${c.diag}`, kind: 'source'}
+  return {dirs: c.dirs}
 }
 
 export function extractJvm(lang: 'java' | 'kotlin', at: string | FileURL, opts: JvmOptions = {}): Extraction & {read?: StepRead} {
@@ -188,6 +218,12 @@ export function extractJvm(lang: 'java' | 'kotlin', at: string | FileURL, opts: 
   let mod: SModule
   try {
     if (opts.stores && Object.keys(opts.stores).length) throw new Refusal(file, `stores: not in the ${lang === 'java' ? 'Java' : 'Kotlin'} front end yet`)
+    // (a name or a string past the class file's 65,535 bytes: no compiler makes a class of it, javac and kotlinc throw)
+    // (a missing file is the reader's to refuse, with its reason: no JDK, or the file)
+    let text = ''
+    try { text = node<FS>('node:fs').readFileSync(file, 'utf8') } catch { /* read by the reader, which says so */ }
+    const big = /[\p{L}_$][\p{L}\p{N}_$]{21845,}|"[^"\n]{21845,}"/u.exec(text)
+    if (big && new TextEncoder().encode(big[0]).length > 65535) throw new Refusal(file, `${big[0].slice(0, 20)}…: a name or a string of ${new TextEncoder().encode(big[0]).length} bytes, past the class file's 65,535 (no class can hold it)`)
     mod = readJvm(lang, file, entryNames(opts), opts)
     // (the shipped classes can't be rewritten: an answer, other than an injected dependency's, can't be stubbed)
     if (opts.prebuilt) mod.stubs = false
@@ -201,9 +237,9 @@ export function extractJvm(lang: 'java' | 'kotlin', at: string | FileURL, opts: 
     read.arms.length = 0
     read.model.notes.push(`${lang === 'java' ? 'Java' : 'Kotlin'}: the code is checked as ${opts.prebuilt ? 'its classes ship' : 'compiled from the file'}; its branch arms are not counted (no instrumentation yet)`)
     const j = classOf(mod, read)
-    let c: {dirs: string[], error?: string}
+    let c: {dirs: string[], error?: string, kind?: 'source' | 'harness'}
     try { c = compiled(lang, mod, read, opts, made) } catch (e) { if (e instanceof Refusal) return {cmd: 'false', args: [], hello: {}, error: e.what}; throw e }
-    if (c.error) return {cmd: 'false', args: [], hello: {}, error: c.error}
+    if (c.error) return {cmd: 'false', args: [], hello: {}, error: c.error, ...(c.kind ? {kind: c.kind} : {})}
     const t = tools(opts)
     return {cmd: jdk(opts).java, args: ['-cp', t, 'gdp.jvm.Harness'], hello: {jcls: j.cls, cp: [...c.dirs, ...(opts.classpath ?? [])], jctor: {params: j.ctor}, methods: j.methods, reducers: j.reducers}}
   }

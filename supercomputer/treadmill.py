@@ -60,6 +60,7 @@ import subprocess
 import sys
 import threading
 import time
+import types
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -254,6 +255,129 @@ def read_obs(rdir: pathlib.Path, bench: str, tree: pathlib.Path) -> dict:
     p = subprocess.run(["bun", str(HERE.parent / "gates" / "bar.ts"), "read", BENCHES[bench]["view"], str(rdir), "--tree", str(tree), "--tasks"],
                        capture_output=True, text=True, timeout=300)
     return json.loads(p.stdout.strip().split(" ", 1)[1]) if p.returncode == 0 and p.stdout.strip() else {}
+
+
+# ------------------------------------------------------------------------------- the logs, read as they grow
+# The treadmill's logs only grow (fuzz.jsonl gains ~200k rows a day, spend.jsonl ~250k), and the loop asked them every
+# tick for today's counts: each fill step parsed every row ever written and formatted each one's day (11-01: a core
+# of the laptop for minutes at a time, the main thread in json and strftime). A Log reads only what was appended
+# since it last looked, keeps each day's tallies and where each day's rows begin; a day's rows are read from there.
+_DAYS: dict = {}
+
+
+def day_of(t: float) -> str:
+    """The UTC day of a time: time.strftime("%Y-%m-%d", time.gmtime(t)), kept by its day number."""
+    n = math.floor(t) // 86400
+    d = _DAYS.get(n)
+    if d is None:
+        d = _DAYS[n] = time.strftime("%Y-%m-%d", time.gmtime(n * 86400))
+    return d
+
+
+def on(day: str, t: float) -> bool:
+    return day_of(t) == day
+
+
+def _count(key):
+    def f(acc: dict, r: dict):
+        k = key(r)
+        acc[k] = acc.get(k, 0) + 1
+    return f
+
+
+def _spend(acc: dict, r: dict):
+    acc[r["chain"]] = acc.get(r["chain"], 0.0) + r["vmh"]  # (added in the file's order, as the digest added them)
+
+
+def _samples(acc: dict, r: dict):
+    acc["vms"] = max(acc.get("vms", r["vms"]), r["vms"])
+    acc["target"] = max(acc.get("target", r["target"]), r["target"])
+    acc.setdefault("vmh", []).append(r.get("vmh", 0))  # (the values, summed by sum() when asked: its rounding, not a running total's)
+
+
+# file: (a row's day: "t", the day of its time, or "day", its own field; the fold of a day's rows into its tally)
+LOGS = {"fuzz.jsonl": ("t", _count(lambda r: r["kind"])), "xfuzz.jsonl": ("t", _count(lambda r: "x:" + r["lang"])),
+        "rfuzz.jsonl": ("t", _count(lambda r: "r:" + r["lang"])), "spend.jsonl": ("day", _spend), "vms.jsonl": ("day", _samples),
+        "vmh.jsonl": ("day", lambda acc, r: acc.setdefault("vmh", []).append(r["vmh"]))}
+
+
+class Log:
+    """An append-only jsonl file read as it grows: sync() parses the complete lines appended since it last read (a
+    file cut short or replaced: read again from its start), folds each into its day's tally and notes the offset of
+    each day's first row. tally(day) is the day's fold; rows_on(day) the day's rows, read from that offset on (no row
+    of a day comes before its first: the same rows, in the same order, as a filter of the whole file)."""
+    _of: dict = {}
+    CHUNK = 1 << 22
+
+    @classmethod
+    def of(cls, name: str) -> "Log":
+        p = TM / name
+        if p not in cls._of:
+            cls._of[p] = cls(p, *LOGS[name])
+        return cls._of[p]
+
+    def __init__(self, path: pathlib.Path, key: str, fold):
+        self.path, self.key, self.fold = path, key, fold
+        self.lock = threading.Lock()
+        self.off, self.ino, self.first, self.tallies = 0, None, {}, {}
+
+    def day(self, r: dict):
+        return day_of(r["t"]) if self.key == "t" else r.get("day")
+
+    def sync(self):
+        with self.lock:
+            try:
+                st = self.path.stat()
+            except FileNotFoundError:
+                self.off, self.ino, self.first, self.tallies = 0, None, {}, {}
+                return
+            if st.st_ino != self.ino or st.st_size < self.off:
+                self.off, self.ino, self.first, self.tallies = 0, st.st_ino, {}, {}
+            if st.st_size == self.off:
+                return
+            with open(self.path, "rb") as f:
+                size = self.CHUNK
+                while True:
+                    f.seek(self.off)
+                    buf = f.read(size)
+                    if b"\n" not in buf:  # (nothing complete past the offset: a line being written, or one longer than size)
+                        if len(buf) < size:
+                            return
+                        size *= 2
+                        continue
+                    size = self.CHUNK
+                    for line in buf[:buf.rfind(b"\n") + 1].split(b"\n")[:-1]:
+                        if line.strip():
+                            r = json.loads(line)  # (a line that isn't JSON raises, as jl() did, and stays unread)
+                            d = self.day(r)
+                            self.first.setdefault(d, self.off)
+                            self.fold(self.tallies.setdefault(d, {}), r)
+                        self.off += len(line) + 1
+
+    def tally(self, day: str) -> dict:
+        self.sync()
+        return self.tallies.get(day, {})
+
+    def rows_on(self, day: str) -> list[dict]:
+        self.sync()
+        if day not in self.first:
+            return []
+        with open(self.path, "rb") as f:
+            f.seek(self.first[day])
+            data = f.read(self.off - self.first[day])
+        return [r for r in (json.loads(l) for l in data.split(b"\n") if l.strip()) if self.day(r) == day]
+
+
+def rows_of(path: pathlib.Path, field: str, values: set) -> list[dict]:
+    """The rows whose `field` (an int) is one of `values`, in the file's order: only those lines parsed."""
+    if not values or not path.exists():
+        return []
+    pat, out = re.compile(rb'"' + field.encode() + rb'": (-?\d+)[,}]'), []
+    with open(path, "rb") as f:
+        for line in f:
+            if any(int(m.group(1)) in values for m in pat.finditer(line)):
+                out.append(json.loads(line))
+    return out
 
 
 def put(tm, commit: str, bench: str, task: str, cfg: str, o: dict, source: str = ""):
@@ -1346,11 +1470,9 @@ class Soundness:
 
     def today_counts(self) -> dict:
         c: dict = {}
-        for f, key, pre in ((TM / "fuzz.jsonl", "kind", ""), (TM / "xfuzz.jsonl", "lang", "x:"), (TM / "rfuzz.jsonl", "lang", "r:")):
-            for r in jl(f):
-                if on(today(), r["t"]):
-                    k = pre + r[key]
-                    c[k] = c.get(k, 0) + 1
+        for f in ("fuzz.jsonl", "xfuzz.jsonl", "rfuzz.jsonl"):  # (their tallies: only the rows appended since the last call read)
+            for k, n in Log.of(f).tally(today()).items():
+                c[k] = c.get(k, 0) + n
         return c
 
     def batch(self, vms: int, uncapped: bool = False) -> Batch | None:
@@ -1382,7 +1504,7 @@ class Soundness:
             items.append(sh_item(f"{k}-fuzz-{s}-again", cmd.format(s=s), cwd, 900, 60))
             kinds.append((k, s))
         # (a soundness failure run again at the newest main, this commit, once it is past the failing one: fuzz_status)
-        recheck = st.setdefault("fuzz_recheck", [])
+        recheck, rechecks = st.setdefault("fuzz_recheck", []), {}
         if not st.get("fuzz_recheck_seeded"):  # (once: the failures recorded before the re-runs, still standing)
             rows = jl(TM / "fuzz.jsonl")
             for (k, sd), (st_, r) in fuzz_status(rows, {(r["kind"], r["seed"]) for r in rows if r["code"] != 0 and fuzz_row_class(r) == "soundness"}).items():
@@ -1396,6 +1518,7 @@ class Soundness:
             cwd, cmd = FUZZ[k]
             items.append(sh_item(f"{k}-fuzz-{s}-recheck", cmd.format(s=s), cwd, 900, 60))
             kinds.append((k, s))
+            rechecks[items[-1]["name"]] = [k, s, failed]
         while len(items) < n and (open_kinds or open_langs or open_r):
             s = st["seed"] = st.get("seed", 1000) + 1
             # (the readers' slots: an xfuzz seed and a reader fuzz seed in turn, either alone when the other is closed)
@@ -1428,14 +1551,29 @@ class Soundness:
         self.tm.save_state()
         if not items:
             return None
-        codes = {}
+        codes, why = {}, {}
 
         def on_row(it, row):
             codes[it["name"]] = row.get("code", -1)
+            why[it["name"]] = str(row.get("error") or row.get("err") or ("preempted" if row.get("preempted") else "lost" if row.get("lost") else ""))[:120]
 
         def after(logs):
+            unrun = []
             for it, (k, s) in zip(items, kinds):
                 out = logs.get(it["name"], {}).get("out", "")
+                if codes.get(it["name"], -1) == -1 and not out.strip():
+                    # never ran: no row, or boat's give-back (exit -1, not a word of output; a run prints at least its
+                    # runner's header). No result and no crash: 11-01 to 11-02 2,275 such rows were filed as FUZZ CRASH
+                    # (infrastructure) and run again. A fresh seed takes a fuzz seed's place; a mutant, a recheck and a
+                    # crash's second run are put back, their seeds being the point.
+                    unrun.append(why.get(it["name"]) or "no row")
+                    if k == "mutant":
+                        self.mutants.append(s)
+                    elif it["name"] in rechecks:
+                        self.tm.state.setdefault("fuzz_recheck", []).append(rechecks[it["name"]])
+                    elif it["name"].endswith("-again"):
+                        self.tm.state.setdefault("fuzz_again", []).append([k, s])
+                    continue
                 if k == "mutant":
                     with contextlib.suppress(Exception):
                         r = json.loads(out.strip().splitlines()[-1])
@@ -1473,6 +1611,12 @@ class Soundness:
                     self.tm.state.setdefault("fuzz_again", []).append([k, s])
                 if cls == "soundness" and [k, s, self.commit] not in self.tm.state.setdefault("fuzz_recheck", []):
                     self.tm.state["fuzz_recheck"].append([k, s, self.commit])
+            if unrun:
+                c = {}
+                for w in unrun:
+                    c[w] = c.get(w, 0) + 1
+                log(f"{label}: {len(unrun)} of {len(items)} items never ran (exit -1, no output: {'; '.join(f'{w} ({n})' for w, n in sorted(c.items(), key=lambda x: -x[1])[:3])}): "
+                    "not results; mutants, rechecks and second runs put back, fresh seeds for the rest")
         label = f"sound {self.commit[:12]}"
         return Batch(self.tm, label, "b", items, vms, tracked(self.tm, "sound", label, on_row), root=self.tree, after=after)
 
@@ -1673,8 +1817,11 @@ class Treadmill(T.Treadmill):
                     git("config", f"submodule.{m}.url", str(MAIN / m), cwd=path)
             subprocess.run(["git", "-C", str(path), "-c", "protocol.file.allow=always", "submodule", "update", "--init"], capture_output=True, timeout=600)
             (path / ".treadmill-ready").write_text(sha)
+        # (and the soundness work's, main's head, and every live batch's tree: 11-02 08:26, a restart made main's tree
+        # for the fuzz, then the speed chain's two trees pushed it out as the oldest, and every fuzz batch failed on it)
         keep = {sha[:12], (self.state.get("sweep") or "")[:12], *(c[:12] for f in (self.speed, self.ic3, self.rw, self.ten) for c in f.active),
-                *((self.speed.prev_done(c) or "")[:12] for c in self.speed.active)}
+                *((self.speed.prev_done(c) or "")[:12] for c in self.speed.active), *([self.sound.commit[:12]] if self.sound else []),
+                *(pathlib.Path(b.root).name for b in self.batches if not b.done and b.root)}
         for old in [p for p in sorted((TM / "trees").iterdir(), key=lambda p: p.stat().st_mtime)[:-2] if p.name not in keep]:
             with contextlib.suppress(Exception):
                 git("worktree", "remove", "--force", str(old))
@@ -1789,13 +1936,15 @@ class Treadmill(T.Treadmill):
                 "follow": {f.name: {c[:12]: r["status"] for c, r in list(f.st["runs"].items())[-4:]} for f in (self.speed, self.ic3, self.rw, self.ten)},
                 "ideas": {n: i.meta["status"] for n, i in self.ideas.items() if not i.done}}
 
+    def vmh_today(self) -> float:
+        """(the generic one's sum, every tick, from the logs' tallies: not their whole history parsed again)"""
+        d = today()
+        return sum(Log.of("vmh.jsonl").tally(d).get("vmh", [])) + sum(Log.of("vms.jsonl").tally(d).get("vmh", []))
+
 
 # ------------------------------------------------------------------------------------------------- the digest
 LIMIT = 150  # the digest's lines, about (each list cut short past its share; digest.json has all)
-
-
-def on(day: str, t: float) -> bool:
-    return time.strftime("%Y-%m-%d", time.gmtime(t)) == day
+_COMMIT_T: dict = {}  # (a commit's time, git's, kept: it never changes)
 
 
 def report(day: str) -> dict:
@@ -1803,26 +1952,34 @@ def report(day: str) -> dict:
     spend and the pool."""
     allrows = jl(TM / "cache.jsonl")
     rows = [r for r in allrows if on(day, r["t"])]
+    by_cb: dict = {}  # (the rows by commit and benchmark, and each benchmark's commits' first 60 s row: once, not a pass each)
+    t60s: dict = {}
+    for r in allrows:
+        by_cb.setdefault((r["commit"], r["bench"]), []).append(r)
+        if r["config"] == "60:base" and not r["commit"].startswith("tree:"):
+            t60 = t60s.setdefault(r["bench"], {})
+            t60[r["commit"]] = min(t60.get(r["commit"], r["t"]), r["t"])
     alerts: list = []
     # soundness: wrong answers, IC3Syn's broken variants proven, fuzz UNSOUND, correspondence differences, new survivors
     for r in rows:
         if r.get("wrong"):
             alerts.append({"kind": "soundness", "what": f"{'IC3Syn broken variant PROVEN' if r['bench'] == 'ic3syn-broken' else 'WRONG answer'}: {r['bench']} {r['task']} at {r['config']} ({r['commit'][:12]}): {r['answer']}"})
-    fz = [r for r in jl(TM / "fuzz.jsonl") if on(day, r["t"])]
+    fz = Log.of("fuzz.jsonl").rows_on(day)
     bad = [r for r in fz if r["code"] != 0]
     by_class = {c: [r for r in bad if fuzz_row_class(r) == c] for c in ("soundness", "coverage", "infra")}
     # (only soundness failures are alerts, coverage and infra are the harness's and boat's; and of those only the ones
     # that still fail where the seed ran last: one that passes at a later main is listed as fixed there)
-    status = fuzz_status(jl(TM / "fuzz.jsonl"), {(r["kind"], r["seed"]) for r in by_class["soundness"]})
+    failed = {(r["kind"], r["seed"]) for r in by_class["soundness"]}
+    status = fuzz_status(rows_of(TM / "fuzz.jsonl", "seed", {sd for _, sd in failed}), failed)  # (those seeds' rows only)
     unsound = [r for (k, sd), (st_, r) in status.items() if st_ != "fixed"]
     fixed = [(k, sd, r["first"], r["commit"]) for (k, sd), (st_, r) in status.items() if st_ == "fixed"]
     for r in unsound:
         alerts.append({"kind": "soundness", "what": f"UNSOUND: {r['kind']} fuzz seed {r['seed']} at {r['commit'][:12]}" + (f" (first at {r['first'][:12]})" if r["first"] != r["commit"] else "")
                        + (" (a run at the newest main pending)" if status[(r["kind"], r["seed"])][0] == "pending" else "") + f": {first_error(r) or 'exit ' + str(r['code'])}"})
-    xz = [r for r in jl(TM / "xfuzz.jsonl") if on(day, r["t"])]
+    xz = Log.of("xfuzz.jsonl").rows_on(day)
     for r in [r for r in xz if r.get("differ")]:
         alerts.append({"kind": "soundness", "what": f"extractor correspondence: {r['lang']} seed {r['seed']} at {r['commit'][:12]}: the rule and the code differ: {r['differ'][:160]}"})
-    rz = [r for r in jl(TM / "rfuzz.jsonl") if on(day, r["t"])]
+    rz = Log.of("rfuzz.jsonl").rows_on(day)
     mall = jl(TM / "mutants.jsonl")
     for r in mall:
         r.setdefault("sig", mutant_sig(r["commit"], r["where"], r["change"]))
@@ -1832,8 +1989,7 @@ def report(day: str) -> dict:
     # kernel/MUTANTS.md as it is now, and is new: no survivor before today had its signature, its file, its line's text
     # and its change)
     eqs, lines_of = equivalents((MAIN / "kernel" / "MUTANTS.md").read_text()), lambda r: file_at(r["commit"], r["where"].rpartition(":")[0])
-    when: dict = {}
-    rank = lambda r: (when.setdefault(r["commit"], int(git("show", "-s", "--format=%ct", r["commit"]).strip() or 0) if r["commit"] else 0), r["t"])  # noqa: E731
+    rank = lambda r: (_COMMIT_T[r["commit"]] if r["commit"] in _COMMIT_T else _COMMIT_T.setdefault(r["commit"], int(git("show", "-s", "--format=%ct", r["commit"]).strip() or 0) if r["commit"] else 0), r["t"])  # noqa: E731
     standing = standing_survivors(mall, eqs, lines_of, rank)
     for r in surv:
         r["equivalent_now"] = listed_equivalent(r, eqs, lines_of(r))
@@ -1867,12 +2023,15 @@ def report(day: str) -> dict:
     for r in rows:
         if r["bench"] == "ic3syn" and r["config"] in ("60:base", "300:base"):
             ic3.setdefault(r["commit"], {}).setdefault(r["config"], {})[r["task"]] = r["solved"]
-    commits = sorted({r["commit"] for r in rows if not r["commit"].startswith("tree:")}, key=lambda c: min(r["t"] for r in rows if r["commit"] == c))
+    t_first: dict = {}
+    for r in rows:
+        t_first[r["commit"]] = min(t_first.get(r["commit"], r["t"]), r["t"])
+    commits = sorted({r["commit"] for r in rows if not r["commit"].startswith("tree:")}, key=lambda c: t_first[c])
     # new solves: per commit, each task solved past the 60 s base, by the config that solved it first, by family
     solves, sweeps = [], []
     for c in commits:
         for b in BENCHES:
-            mine = [r for r in allrows if r["commit"] == c and r["bench"] == b]
+            mine = by_cb.get((c, b), [])
             if not mine:
                 continue
             first = {}  # (each task's solving config with the least budget, the base first: chains land in any order)
@@ -1893,14 +2052,11 @@ def report(day: str) -> dict:
                 note = (f"candidate for a general change: {best[0]} wins {len(best[1])} of {n}" if variant_of(best[0]) != "base" and len(best[1]) >= 3 and len(best[1]) >= 0.6 * n else "")
                 solves.append({"commit": c, "bench": b, "family": f, "by": {k: v for k, v in by.items()}, "n": n, "note": note})
             # (the commit before: the newest whose first 60 s row came before this one's)
-            t60 = {}
-            for r in allrows:
-                if r["bench"] == b and r["config"] == "60:base" and not r["commit"].startswith("tree:"):
-                    t60[r["commit"]] = min(t60.get(r["commit"], r["t"]), r["t"])
+            t60 = t60s.get(b, {})
             prev = [x for x in t60 if x != c and c in t60 and t60[x] < t60[c]]
             if prev:
                 p = max(prev, key=lambda x: t60[x])
-                was = {r["task"] for r in allrows if r["commit"] == p and r["bench"] == b and r["config"] == "60:base" and r["solved"]}
+                was = {r["task"] for r in by_cb.get((p, b), []) if r["config"] == "60:base" and r["solved"]}
                 now_ = {r["task"] for r in mine if r["config"] == "60:base" and r["solved"]}
                 seen = {r["task"] for r in mine if r["config"] == "60:base"}
                 lost = sorted((was - now_) & seen)
@@ -1910,7 +2066,10 @@ def report(day: str) -> dict:
                         alerts.append({"kind": "regression", "what": f"lost at 60 s: {b} {t} against {p[:12]} at {c[:12]}"})
     # targets: the latest profile of each target against the one before
     targets = []
-    tg = targets_of(T.Cache())
+    full = types.SimpleNamespace(d={})  # (the cache as T.Cache() reads it, from the rows read above: its .d, all targets_of reads)
+    for r in sorted(allrows, key=lambda r: r.get("t", 0)):
+        full.d[(r["commit"], r["bench"], r["task"], r["config"])] = r
+    tg = targets_of(full)
     prof = jl(TM / "profiles.jsonl")
     for b, ts in tg.items():
         for t, p in ts.items():
@@ -1920,12 +2079,9 @@ def report(day: str) -> dict:
             targets.append({"bench": b, "task": t, "config": p["config"], "commit": p["commit"], "secs": p.get("secs"), "stages": (last or {}).get("stages", {}),
                             "timed": (last or {}).get("timed", False), **({"prev_secs": before.get("secs"), "prev_stages": before.get("stages"), "prev_commit": before["commit"]} if before else {})})
     # spend by chain (spend.jsonl), the pool (vms.jsonl), extra starts
-    sp: dict = {}
-    for r in jl(TM / "spend.jsonl"):
-        if r.get("day") == day:
-            sp[r["chain"]] = sp.get(r["chain"], 0.0) + r["vmh"]
-    samples = [r for r in jl(TM / "vms.jsonl") if r.get("day") == day]
-    pool = {"peak_vms": max([r["vms"] for r in samples] or [0]), "target_peak": max([r["target"] for r in samples] or [0]), "held_vmh": round(sum(r.get("vmh", 0) for r in samples), 1)}
+    sp = dict(Log.of("spend.jsonl").tally(day))
+    samples = Log.of("vms.jsonl").tally(day)
+    pool = {"peak_vms": samples.get("vms", 0), "target_peak": samples.get("target", 0), "held_vmh": round(sum(samples.get("vmh", [])), 1)}
     pool["busy_pct"] = round(100 * sum(sp.values()) / pool["held_vmh"]) if pool["held_vmh"] else None
     with contextlib.suppress(Exception):
         pool["extra_starts"] = boat.extra_starts()

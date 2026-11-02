@@ -138,3 +138,27 @@ test('1.1: a measure part reading a fold function keeps its fold (written at 1.1
   const plain = JSON.parse(JSON.stringify(toInterchange({...c, measures: [{comps: [{coef: [1], c: 0}]}]}))) as Document
   expect(plain.version).toBe('1.0')
 })
+
+// A document whose names every object has (constructor, toString, valueOf, hasOwnProperty; __proto__ is no name of the
+// format): the certificates the kernel accepted while it read a map's frame through the prototype (a map constructor
+// before a step was the key itself), each of a false claim (s <= constructor[s + 1] after a step, every cell 0;
+// constructor'[k] = k of a map no step writes), refused; a true one, its names all such, accepted and read back alike.
+test('names every object has: false claims refused, true ones accepted', () => {
+  const cell = {op: 'get', map: 'constructor', key: {op: 'add', a: {op: 'var', name: 's'}, b: {op: 'const', value: 1}}}
+  const counter = {format: 'gdp-wired-interchange', version: '1.0', kind: 'laws', machine: {name: 'counter', params: [], inputs: [], state: [['s', {op: 'const', value: 0}]], maps: [['constructor', 0]],
+    step: {state: [['s', {op: 'add', a: {op: 'var', name: 's'}, b: {op: 'const', value: 1}}]], maps: [['constructor', {key: {op: 'const', value: 0}, value: {op: 'const', value: 0}}]]}},
+  laws: [{name: 'L', holds: {op: '<=', a: {op: 'var', name: 's'}, b: cell}}],
+  proof: {instances: [['L', []]], trees: [['L @start', {leaf: [['input', 0]]}], ['L @step', {split: [2, [1, 's']], yes: {leaf: [['input', 0], ['input', 3], ['combine', 0, 1, 1, 1]]}, no: {leaf: [['input', 2]]}}]]}}
+  const still = {format: 'gdp-wired-interchange', version: '1.0', kind: 'stepLaws', machine: {name: 'still', params: [], inputs: [], state: [['s', {op: 'const', value: 0}]], maps: [['constructor', 0]], step: {state: [['s', {op: 'var', name: 's'}]]}},
+    laws: [], stepLaws: [{name: 'frame', then: {op: '=', a: {op: 'get', map: "constructor'", key: {op: 'var', name: 'k'}}, b: {op: 'var', name: 'k'}}, forall: 'k'}],
+    proof: {laws: {instances: [], trees: []}, instances: [], perStep: [['frame', []]], trees: [['frame @step law', {leaf: [['input', 0]]}]]}}
+  for (const doc of [counter, still]) { const r = checkDocument(doc); expect(r.malformed).toBeUndefined(); expect(r.accepted).toBe(false) }
+  // cap's laws, its params, inputs and state named so: accepted, and its goals' trees (goalsOf) too.
+  const names: Record<string, string> = {cap: 'constructor', amt: 'toString', k: 'valueOf', used: 'hasOwnProperty'}
+    const proven = proveLaws(cap, capLaws)
+  const doc = JSON.parse(JSON.stringify(toInterchange({kind: 'laws', machine: cap, laws: capLaws, proof: proven.proof!})), (key, val: unknown) => (typeof val === 'string' && Object.hasOwn(names, val) && key !== 'kind' ? names[val]! : val))
+  const r = checkDocument(doc)
+  expect(r.malformed).toBeUndefined()
+  expect(r.accepted).toBe(true)
+  expect(checkDocument(toInterchange(goalsOf(fromInterchange(doc)))).accepted).toBe(true)
+})

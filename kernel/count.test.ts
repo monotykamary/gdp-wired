@@ -281,6 +281,15 @@ describe('the ∃ reading of witness terms over ghosts', () => {
     expect(out.proven && checkGhostedLaws(g, ls, out.proof!)).toBe(true)
   }, 60_000)
 
+  // A bound name every object has is a name like any other: its term read as its own entry, never the prototype's.
+  test('a bound name every object has (constructor, __proto__, ...): accepted with its term, refused without', () => {
+    for (const P of ['constructor', '__proto__', 'toString', 'valueOf', 'hasOwnProperty']) {
+      const named: Law = {...some, some: [P], holds: body(x(P))}, own = Object.fromEntries([[P, get('W', x('j'))]]) as Record<string, E>
+      expect(someOfGhostsOk(g, named, plain, own), P).toBe(true)
+      expect(someOfGhostsOk(g, named, {...plain, holds: body(x(P))}, {zz: get('W', x('j'))}), P).toBe(false)
+    }
+  })
+
   // Each guard refuses what only it refuses.
   const cases: [string, Ghosted, Law, Law, Record<string, E>][] = [
     ['the ghosts are not the original\'s (a ghost map is one of its maps)', {...g, maps: {...g.maps, valid: {start: 0, write: {key: x('k'), value: n(0)}}}}, some, plain, sub],

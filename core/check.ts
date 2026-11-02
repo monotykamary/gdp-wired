@@ -28,7 +28,8 @@ export function checkRefutation(constraints: Constraint[], steps: Step[], integr
     } else if (s.kind === 'combine') {
       if (!(s.a < i && s.b < i && Number.isSafeInteger(s.ma) && Number.isSafeInteger(s.mb) && s.ma > 0 && s.mb > 0)) return false
       if (!integral && !(Number.isInteger(s.a) && Number.isInteger(s.b) && s.a >= 0 && s.b >= 0)) return false
-      const out: Lin = {}
+      // (on no prototype: a row's variable named __proto__ is summed like any other, never dropped)
+      const out: Lin = Object.create(null)
       // Each product safe too: a rounded one is past 2^53, but the other row's could bring the sum back under it.
       for (const [lin, m] of [[rows[s.a]!, s.ma], [rows[s.b]!, s.mb]] as const) for (const [key, c] of Object.entries(lin)) { if (!Number.isSafeInteger(m * c)) return false; out[key] = (out[key] ?? 0) + m * c }
       if (!exact(out)) return false
@@ -49,7 +50,7 @@ export function checkWitness(constraints: Constraint[], witness: Record<string, 
   return constraints.every(c => {
     let sum = 0
     for (const [key, a] of Object.entries(c.lin)) {
-      const value = key === '1' ? 1 : witness[key], term = a * value!
+      const value = key === '1' ? 1 : Object.hasOwn(witness, key) ? witness[key] : undefined, term = a * value!
       if (!(Number.isSafeInteger(a) && Number.isSafeInteger(value) && Number.isSafeInteger(term) && Number.isSafeInteger(sum + term))) return false
       sum += term
     }

@@ -1,7 +1,7 @@
 // probe: no_lost_keys's plain law with hand-written supports over skolemOf's ghosts, proven of the ghosted machine?
 import {protocols} from './models.ts'
 import {skolemOf} from '../../../core/exists.ts'
-import {type C, type E, type Law, all, any, atMost, get, less, n, not, plus, same, times, x} from '../../../core/machine.ts'
+import {type Law, all, any, get, less, n, not, plus, same, times, x} from '../../../core/machine.ts'
 import {type Ghosted, ghostedMachine} from '../../../kernel/kernel.ts'
 import {proveLaws} from '../../../kernel/prove.ts'
 const p = protocols.find(q => q.id === 'sharded_kv_no_lost_keys')!, r: any = p.make(), m = r.machine, stated: Law[] = p.laws(r)

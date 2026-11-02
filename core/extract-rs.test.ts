@@ -70,3 +70,16 @@ impl Meter {
   expect(notes).toMatch(/std::process::id .*answered by the request \(tagged/)
   expect(step(x, 'never past its cap', (_b, a) => a.used.atMost(a.cap), b => b.used.atMost(b.cap)).proven).toBe(true)
 }, 300_000)
+
+// The check's build (the code with the harness): a compiler failing with nothing to say of the code (killed, past
+// GDP_COMPILE_S) is retried once, then the check's harness failure; its errors about the code, the source refused with
+// its message. Never "the rule and the code differ".
+const killedBuild = <X>(make: () => X): X => { const old = process.env.GDP_COMPILE_S; process.env.GDP_COMPILE_S = '0.001'; try { return make() } finally { if (old === undefined) delete process.env.GDP_COMPILE_S; else process.env.GDP_COMPILE_S = old } }
+t('the check\'s build: a crate rustc rejects refused with its message; cargo killed is the harness\'s failure, retried once', () => {
+  const crate = (code: string) => { const d = mkdtempSync(`${tmpdir()}/gdp-rscase-`); mkdirSync(`${d}/src`); writeFileSync(`${d}/Cargo.toml`, '[package]\nname = "meter"\nversion = "0.1.0"\nedition = "2021"\n\n[lib]\npath = "src/lib.rs"\n'); writeFileSync(`${d}/src/lib.rs`, code); return d }
+  const src = 'pub struct Meter { used: u32 }\nimpl Meter {\n    pub fn new() -> Self { Meter { used: 0 } }\n    pub fn take(&mut self, n: u32) -> bool { if n > 10 { return false; } self.used = self.used.wrapping_add(n); true }\n}\n'
+  const bad = extractRust(crate(src.replace('if n > 10', 'let s: u32 = "x"; if n > 10')), {entry: 'Meter', check: {runs: 6, depth: 4, states: 6}})
+  expect(bad.refusals[0]!.what).toMatch(/^the source doesn't compile \(cargo\): error\[E0308\]: mismatched types/)
+  const killed = killedBuild(() => extractRust(crate(src), {entry: 'Meter', check: {runs: 6, depth: 4, states: 6}}))
+  expect(killed.refusals[0]!.what).toMatch(/^the check's harness failed, twice .*cargo failed twice with nothing to say of the code/)
+}, 600_000)

@@ -23,7 +23,7 @@
 // Cost hygiene: the runners' functions have scaledown_window=2 and their own timeouts; each launch here has a wall
 // cap and is stopped (SIGINT, then SIGTERM, then SIGKILL, by its exact pid) at it; on any exit the bar stops every
 // launch it started and runs supercomputer/reap.sh in every tree it used. Each tree's first launch of a group is a pilot of
-// one or two tasks, read before the fan-out. `--budget` (default $25 full, $6 quick) is checked against the real spend
+// one or two tasks, read before the fan-out. `--budget <$>` (none by default: spend is information) is checked against the real spend
 // of the bar's own apps (`modal billing report`) between phases and every five minutes.
 import {closeSync, cpSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync} from 'node:fs'
 import {dirname, join, resolve} from 'node:path'
@@ -37,7 +37,7 @@ const flag = (k: string) => argv.includes(`--${k}`)
 // --smoke: the bar itself end to end on each group's pilot tasks, the base launched together (nothing cached)
 const smoke = flag('smoke'), quick = flag('quick'), together = flag('together') || smoke, rivals = flag('rivals'), backend = opt('backend', 'boat')
 const nRuns = Number(opt('runs', '3')), nReruns = Number(opt('reruns', '3')), maxProcs = Number(opt('procs', '24'))
-const budget = Number(opt('budget', quick ? '6' : '25'))
+const budget = Number(opt('budget', 'Infinity'))  // (no cap unless asked: spend is reported, never a stop)
 if (!['modal', 'boat', 'auto'].includes(backend)) throw new Error('--backend modal | boat | auto')
 
 // ------------------------------------------------------------------------------------------------------- the shell

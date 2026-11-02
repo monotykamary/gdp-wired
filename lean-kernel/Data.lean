@@ -27,7 +27,13 @@ of that model, and concludes the law about the Lean definitions from `cyclic_sou
 - `wf_fix_unique_ring`: the same for a ring of functions calling each other (mutual recursion), each with its own
   measure (all of one length): one functional over the ring's tuple of functions, reading each only below the measure
   of the argument it is called at. An export defines the ring in one `mutual` block, each function with `termination_by`
-  its measure.
+  its measure;
+- `wf_fix_inv_unique_ring` (`wf_fix_inv_unique` its ring of one): nested recursion, a call of the ring in another's
+  argument, so a body reads the ring at its own values. An invariant of each function (core/data.ts: how its value's
+  size relates to an argument's) is proven with the decrease: each call lowers the measure and each body keeps the
+  invariant, wherever the calls the body reads below the measure keep it. The fixpoint is unique and keeps it.
+  research/termination/Nested.lean defines two such functions through it (Lean's `termination_by` can't read a call's
+  value: core/data.ts's Lean export doesn't write these yet).
 -/
 
 namespace Kern
@@ -247,6 +253,57 @@ theorem wf_fix_unique_ring {ι : Type} {α β : ι → Type} [∀ i, Inhabited (
       exact hF f' f p.1 p.2 (fun j y hy => ih ⟨j, y⟩ hy))
   funext i x
   exact key ⟨i, x⟩
+
+/-- Nested recursion: a ring whose calls may sit in the arguments (or conditions) of others, so a body reads the ring at
+values of the ring itself. A functional F such that, wherever g and h agree below x's measure and g keeps the invariant
+I there (`I j y (g j y)`), F g and F h agree at x and F g keeps I at x, has exactly one fixpoint, and it keeps I
+everywhere: the decrease and the invariant proven together, by well-founded induction on the measure. core/data.ts
+takes such a ring once the kernel has proven, for each call within it (under its path, each call of the ring in its
+argument or condition read as a value r with `lexLt (μ j a) (μ i x) → I j a r`), that it lowers the callee's measure
+below the caller's, and that each body, its calls read the same way, keeps its function's invariant: that is `hF`.
+`wf_fix_unique_ring` is the case I = True. -/
+theorem wf_fix_inv_unique_ring {ι : Type} {α β : ι → Type} [∀ i, Inhabited (β i)] (μ : (i : ι) → α i → List Nat)
+    (I : (i : ι) → α i → β i → Prop) (F : ((i : ι) → α i → β i) → (i : ι) → α i → β i)
+    (hF : ∀ (g h : (i : ι) → α i → β i) (i : ι) (x : α i),
+      (∀ (j : ι) (y : α j), lexLt (μ j y) (μ i x) → g j y = h j y ∧ I j y (g j y)) →
+      F g i x = F h i x ∧ I i x (F g i x)) :
+    ∃ f : (i : ι) → α i → β i, (∀ i x, f i x = F f i x ∧ I i x (f i x)) ∧
+      ∀ f' : (i : ι) → α i → β i, (∀ i x, f' i x = F f' i x) → f' = f := by
+  classical
+  let m : (Σ i, α i) → List Nat := fun p => μ p.1 p.2
+  have wf : WellFounded (InvImage lexLt m) := InvImage.wf m lexLt_wf
+  let G : (p : Σ i, α i) → ((q : Σ i, α i) → InvImage lexLt m q p → β q.1) → β p.1 :=
+    fun p rec => F (fun j y => if h : lexLt (μ j y) (μ p.1 p.2) then rec ⟨j, y⟩ h else default) p.1 p.2
+  let f : (i : ι) → α i → β i := fun i x => wf.fix G ⟨i, x⟩
+  -- the equation and the invariant at once, by induction on the measure
+  have hfix : ∀ p : Σ i, α i, f p.1 p.2 = F f p.1 p.2 ∧ I p.1 p.2 (f p.1 p.2) := fun p =>
+    wf.induction (C := fun p => f p.1 p.2 = F f p.1 p.2 ∧ I p.1 p.2 (f p.1 p.2)) p (fun p ih => by
+      have e : f p.1 p.2 = F (fun j y => if lexLt (μ j y) (μ p.1 p.2) then f j y else default) p.1 p.2 := by
+        show wf.fix G p = _
+        rw [wf.fix_eq G p]
+        rfl
+      have k := hF (fun j y => if lexLt (μ j y) (μ p.1 p.2) then f j y else default) f p.1 p.2
+        (fun j y hy => by rw [if_pos hy]; exact ⟨rfl, (ih ⟨j, y⟩ hy).2⟩)
+      rw [e]
+      exact ⟨k.1, k.2⟩)
+  refine ⟨f, fun i x => hfix ⟨i, x⟩, fun f' hf' => ?_⟩
+  have key : ∀ p : Σ i, α i, f' p.1 p.2 = f p.1 p.2 := fun p =>
+    wf.induction (C := fun p => f' p.1 p.2 = f p.1 p.2) p (fun p ih => by
+      rw [hf' p.1 p.2, (hfix p).1]
+      exact (hF f f' p.1 p.2 (fun j y hy => ⟨(ih ⟨j, y⟩ hy).symm, (hfix ⟨j, y⟩).2⟩)).1.symm)
+  funext i x
+  exact key ⟨i, x⟩
+
+/-- `wf_fix_inv_unique_ring`'s ring of one: a nested recursive function (McCarthy's `m(m(x + 11))`, a sort that sorts
+the result of sorting) with its invariant. -/
+theorem wf_fix_inv_unique {α β : Type} [Inhabited β] (μ : α → List Nat) (I : α → β → Prop) (F : (α → β) → α → β)
+    (hF : ∀ (g h : α → β) (x : α), (∀ y, lexLt (μ y) (μ x) → g y = h y ∧ I y (g y)) → F g x = F h x ∧ I x (F g x)) :
+    ∃ f : α → β, (∀ x, f x = F f x ∧ I x (f x)) ∧ ∀ f' : α → β, (∀ x, f' x = F f' x) → f' = f := by
+  obtain ⟨f, hf, hu⟩ := wf_fix_inv_unique_ring (ι := Unit) (α := fun _ => α) (β := fun _ => β) (fun _ => μ) (fun _ => I)
+    (fun g _ x => F (g ()) x) (fun g h _ x hy => hF (g ()) (h ()) x (fun y hy' => hy () y hy'))
+  refine ⟨f (), fun x => hf () x, fun f' hf' => ?_⟩
+  have := hu (fun _ => f') (fun _ x => hf' x)
+  exact congrFun this ()
 
 /-- A measure of several components for `termination_by`: the tuple, ordered by `lexLt` (an export's measures all have
 one length). -/

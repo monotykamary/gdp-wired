@@ -1,0 +1,38 @@
+{
+ "id": "huey",
+ "repo": "https://github.com/coleifer/huey",
+ "commit": "d18fd541ef9be412c6a60a5513a458d8b032efde",
+ "licence": "MIT",
+ "lang": "Python",
+ "patterns": [
+  "lease with expiry"
+ ],
+ "about": "huey's task lock (lock_task(name, ttl)): TaskLock.acquire and clear over the storage",
+ "check": [
+  "huey/api.py"
+ ],
+ "toml": "[rules.TaskLock]\nfailures = \"kept\"\nmethods = [\"acquire\", \"clear\"]\nstores.huey.attrs = {name = \"app\"}\ntypes = {name = \"str\"}\n",
+ "edits": [
+  {
+   "file": "huey/api.py",
+   "before": "^class TaskLock\\(",
+   "lines": [
+    "# gdp: env keys expire, acquire then clear"
+   ]
+  },
+  {
+   "file": "huey/api.py",
+   "before": "^    def __init__\\(self, huey, name, ttl=None\\)",
+   "lines": [
+    "# gdp: law one holder at a time: at most one call between acquire and clear"
+   ]
+  }
+ ],
+ "repro": {
+  "script": "repro/huey.py",
+  "containers": [
+   "redis:7.4"
+  ],
+  "setup": "python3 -m pip install --break-system-packages -q redis && python3 -m pip install --break-system-packages -q -e ."
+ }
+}
