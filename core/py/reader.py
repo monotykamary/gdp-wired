@@ -443,7 +443,9 @@ class Reader:
     if isinstance(s, ast.For): return [{'s': 'for', 'p': p, 'to': self.target(s.target, mod), 'over': E(s.iter), 'body': self.block(s.body, mod), 'els': self.block(s.orelse, mod)}]
     if isinstance(s, ast.Continue): return [{'s': 'continue', 'p': p}]
     if isinstance(s, ast.Break): return [{'s': 'break', 'p': p}]
-    if isinstance(s, (ast.AsyncFor, ast.While)): return [{'s': 'no', 'p': p, 'why': f"a loop ({type(s).__name__.lower().replace('async', 'async ')})"}]
+    # (a while loop: read where its passes take the first items of the state's ordered collections, as a fold)
+    if isinstance(s, ast.While): return [{'s': 'while', 'p': p, 'c': E(s.test), 'body': self.block(s.body, mod), 'els': self.block(s.orelse, mod)}]
+    if isinstance(s, ast.AsyncFor): return [{'s': 'no', 'p': p, 'why': "a loop (async for)"}]
     if type(s).__name__ == 'TryStar': return [{'s': 'no', 'p': p, 'why': 'try/except* (exception groups)'}]
     if isinstance(s, ast.Try):
       hs = []

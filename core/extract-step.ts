@@ -30,7 +30,7 @@ import {type Arg, type Event, type Layout, type Fold, type LeastRead, type MapDe
 import {type Extraction, type Name, fromModel} from './extract.ts'
 import type {Rule} from './dsl.ts'
 import {type Sorts, nonneg} from './extract-print.ts'
-import {type CodeSide, type Coverage, type Evidence, type Snap, HarnessFailure, Outside, constantsOf, draw, drive, evalTerm, noEvidence, retried} from './extract-check.ts'
+import {type CodeSide, type Coverage, type Evidence, type Snap, HarnessFailure, Outside, constantsOf, draw, drive, evalTerm, noEvidence, retried, tiesIn} from './extract-check.ts'
 
 // --- the IR (what a reader emits) -----------------------------------------------------------------------------------
 export type SType =
@@ -150,6 +150,15 @@ type V =
   | {t: 'ptr', to: Ptr} | {t: 'struct', ty: string, f: Map<string, V>} | {t: 'err', is: B} | {t: 'nil'}
   | {t: 'map', id: string} | {t: 'list', id: string} | {t: 'push', id: string, x: V} | {t: 'pop', id: string}
 type CellWrite = {key: K, has: B, vals: Map<string, V>, on?: B}
+// A collection a while loop's passes take items of by an order (Stepper.whileRank): the pass's item (K, held where
+// `exists`, its fields `view`), the run's cells at the pass (how many are out, whether the next is held and its
+// fields), its held keys in the order as a list the request carries (ord) and each one's place there (rk).
+type Ranking = {name: string, id: string, decl: MapDecl, K: {op: 'num', e: N}, exists: B, view: Map<string, V>, cur: Map<string, V>, a: N, ld: B, ord: string, rk: string,
+  order?: {by: (k: K) => {e: N, desc?: boolean}[], sig: string}}
+// (a while loop whose first item is read from the other end: its passes run back from the last)
+class Backward extends Error {}
+// (a while loop whose first item is read by an order other than the collection's places: its passes over that order)
+class Ranked extends Error {}
 type Ptr = {k: 'nil'} | {k: 'obj', id: string, path: string[]} | {k: 'phi', c: B, a: Ptr, b: Ptr}
 type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: V, when: B}
 type Place = {k: 'local', id: string, path: string[]} | {k: 'heap', ptr: V, path: string[]} | {k: 'blank'}
@@ -159,7 +168,8 @@ type Origin = 'state' | 'input' | 'fresh'
 type Obj =
   | {k: 'rec', ty: string, f: Map<string, V>, origin: Origin, lazy?: string, moved?: boolean}
   // (w: the step's last write; pre: the writes at other keys before it, in order: a scalar map's, keyed by numbers)
-  | {k: 'map', decl: MapDecl, val?: SType, nil?: B, w?: CellWrite, pre?: CellWrite[], origin: Origin}
+  // (ew: a write at every key, its terms over k$, before the others: a while loop's passes over the collection)
+  | {k: 'map', decl: MapDecl, val?: SType, nil?: B, w?: CellWrite, pre?: CellWrite[], ew?: CellWrite, origin: Origin}
   | {k: 'store', name: string}
   | {k: 'big', v: N, origin: Origin} | {k: 'list', decl: MapDecl, ops: ListOp[], origin: Origin}
 // (locks held, and those deferred to the return)
@@ -188,7 +198,7 @@ export type StepRead = {ints: Record<string, IntTy>, madeAt?: string, model: Mod
 
 const where = (x: {p: string}) => x.p || '?'
 const refuse = (x: {p: string} | string, what: string): never => { throw new Refusal(typeof x === 'string' ? x : where(x), what) }
-const RESERVED = new Set(['rule', 'nat', 'int', 'bool', 'when', 'min', 'max', 'all', 'any', 'not', 'yes', 'no', 'lit', 'str', 'record', 'oneOf', 'intern', 'Int', 'forall'])
+const RESERVED = new Set(['rule', 'nat', 'int', 'bool', 'when', 'min', 'max', 'all', 'any', 'not', 'yes', 'no', 'lit', 'str', 'record', 'oneOf', 'intern', 'Int', 'forall', 'everyKey'])
 const keyV = (v: V | Obj): string => JSON.stringify(v, (_, x) => (x instanceof Map ? [...x.entries()] : x))
 const LANG: Record<string, string> = {go: 'Go', rust: 'Rust', python: 'Python', c: 'C', cpp: 'C++', ruby: 'Ruby', elixir: 'Elixir', java: 'Java', kotlin: 'Kotlin'}
 const tyName = (ty?: IntTy) => (ty ? (ty.bits ? `${ty.signed ? 'i' : 'u'}${ty.bits}` : ty.signed ? 'an Instant' : 'a Duration') : 'the number')
@@ -261,6 +271,10 @@ export class Stepper {
   // (inside a fold's pass: the tries outside it, hidden, and how deep)
   hidden = 0
   inFold = 0
+  // (inside a while loop's pass: the collection it takes first items of, from which end; empty: the pass after they ran
+  // out; drainSetup: an order read over the state before the step)
+  drain?: {i: N, back: boolean, entry: Path, map?: {name: string, id: string}, dir?: boolean, empty?: string, rank?: Map<string, Ranking>, run?: string}
+  drainSetup = 0
   readonly initHeap = new Map<string, Obj>()
   readonly storeMaps = new Map<string, {store: string, tpl: string, id: string, decl: MapDecl, json?: JField[], choice?: boolean}>()
   // The least keys the step reads (an ordered collection's first or last item, its min or max by a key), each once.
@@ -564,6 +578,317 @@ export class Stepper {
     const ret = q
     q = this.assume(q, I.not(end('__returned').e))
     return {live: q, rets: [[{...ret, pc: [...q0.pc, end('__returned').e]}, end('__ret')]]}
+  }
+  // --- while loops over the state's ordered collections, read as folds ------------------------------------------------
+  // A while loop whose passes take the first item of one collection of the state in its own order (a list's places:
+  // xs[0], pop(0), popleft(); a dict's keys: min(d), or from the other end: xs[-1], pop(), max(d)), each pass that goes
+  // on taking it out, the last one (where the loop ends) free to keep it with its fields written. Then its passes are a
+  // fold over the collection's keys in that order, as a for loop over the list is (core/extract-step.ts's forStmt): the
+  // pass at a key holds its item, each pass where the condition holds runs the body, the first where it doesn't (or a
+  // break, a return, a failure) ends the loop, and every request carries the run the passes compute. After the loop
+  // each item the passes reached is as its pass left it (one write at every key); where the passes ran out of items
+  // the condition is read once more with the collection empty. Exact for every number of items; refused: a pass that
+  // keeps its item and goes on (the next would take it again), and any other write of the state in a pass.
+  whileStmt(s: SS, p: Path, back = false): Flow {
+    if ((s.els as SS[] | undefined)?.length) return refuse(s, 'a loop\'s else')
+    if (this.inFold) return refuse(s, 'a loop inside a loop\'s pass (one fold at a time)')
+    const q0 = p, i = I.nvar(PASS), body = s.body as SS[], own = assigned(body)
+    const run = this.newVar(`loop$${this.folds.length}`, {k: 'num'}, 'input', undefined, false).name
+    const cin: N = back ? I.add(i, I.num(1)) : i, cout: N = back ? i : I.add(i, I.num(1))
+    const fields: Var[] = [], init: Record<string, Term> = {}, locals = new Map(q0.locals)
+    for (const n of [...own].filter(x => q0.locals.has(x))) {
+      if (FLAGS.includes(n)) refuse(s, `${n}: a local the loop carries named as a fold's own values are`)
+      const v0 = q0.locals.get(n)!, srt = sortOfV(v0) ?? refuse(s, `${n}: ${v0.t === 'opaque' ? v0.why : `a ${v0.t}`}, carried by the loop (the subset reads a loop's numbers, booleans and choices)`)
+      fields.push({name: n, sort: srt, role: 'state'}); init[n] = termOfV(v0, s)
+      locals.set(n, cellV(run, cin, n, srt, v0.t === 'num' ? v0.ty : undefined))
+    }
+    const at = (n: string, x: N) => cellV(run, x, n, fields.find(v => v.name === n)!.sort) as V & {e: B}
+    const saved = {tries: this.tries, fails: this.fails, failPaths: this.failPaths, refusals: this.refusals.length, edges: this.edges.length}
+    this.hidden += this.tries.length; this.tries = []; this.fails = []; this.failPaths = []; this.inFold++
+    const dr: NonNullable<Stepper['drain']> = {i, back, entry: q0}
+    this.drain = dr
+    let f: Flow, c: B, b1: Path
+    try {
+      ;[c, b1] = this.truth(s.c as SX, {...q0, pc: [], locals, cont: undefined})
+      f = c.op === 'const' && !c.v ? {rets: []} : this.block(body, this.assume(b1, c))
+    } catch (e) {
+      if (e instanceof Backward || e instanceof Ranked) { this.vars.delete(run); this.tries = saved.tries; this.hidden -= saved.tries.length; this.inFold--; this.drain = undefined; this.fails = saved.fails; this.failPaths = saved.failPaths; this.refusals.splice(saved.refusals); return e instanceof Ranked ? this.whileRank(s, p) : this.whileStmt(s, p, true) }
+      throw e
+    } finally { if (this.drain === dr) { this.tries = saved.tries; this.hidden -= saved.tries.length; this.inFold--; this.drain = undefined } }
+    const d = dr.map ?? refuse(s, 'a while loop that takes no item of a collection of the state (the subset reads a loop over a list the request carries, or one whose passes take the first items of the state\'s list or dict)')
+    const o0 = q0.heap.get(d.id) as Extract<Obj, {k: 'map'}>, held = this.baseCell(o0.decl, {op: 'num', e: i}).has
+    // Each way out of a pass: what it wrote of its item (at the pass's key, nothing else of the state), and whether it
+    // took it out; a pass that goes on (to the next) must have.
+    const brks = (f.brk ?? []).filter(x => !x.cont), goes = [...(f.brk ?? []).filter(x => x.cont), ...(f.live ? [f.live] : [])]
+    const itemOf = (e: Path): {w: B, has: B, vals: Map<string, V>} => {
+      for (const [id, o] of e.heap) {
+        const b = q0.heap.get(id)
+        if (!b || b === o || !('origin' in o) || o.origin !== 'state' || keyV(o) === keyV(b)) continue
+        if (id !== d.id) refuse(s, 'a loop whose passes write the state other than the items they take (the subset reads a loop over the state as its passes over a collection\'s items, each taking its own)')
+      }
+      const o = e.heap.get(d.id) as Extract<Obj, {k: 'map'}>
+      if (o.pre?.length || (o.w && !I.same(o.w.key, {op: 'num', e: i}))) refuse(s, `a pass of the loop writes an item of ${d.name} other than the one it takes`)
+      const base = this.baseCell(o0.decl, {op: 'num', e: i})
+      return o.w ? {w: I.T, has: o.w.has, vals: o.w.vals} : {w: I.F, has: base.has, vals: base.vals}
+    }
+    // (a pass that keeps its item where the condition holds again: the code's next pass takes the same item, the rule's
+    // the next one; the rule refuses there, which the check sees where the code reaches it)
+    for (const e of goes) {
+      const it = itemOf(e)
+      if (it.has.op === 'const' && !it.has.v) continue
+      this.drain = dr
+      try { const [again] = this.truth(s.c as SX, e); const w = I.and(this.cond(e), it.has, again); if (!(w.op === 'const' && !w.v)) { this.refusals.push(w); this.notes.add(`${s.p}: a pass of the loop over ${d.name} that keeps its item where the condition holds again is refused (the next pass would take it again)`) } } finally { this.drain = undefined }
+    }
+    const F = I.or(...this.fails), Rf = I.or(...this.refusals.splice(saved.refusals))
+    this.fails = saved.fails; this.failPaths = saved.failPaths
+    if (this.edges.length > saved.edges) refuse(s, 'a loop whose passes reach the edge of a fixed-width type')
+    const on = this.join(goes, s), brk = this.join(brks, s), retJ = this.join(f.rets.map(r => r[0]), s)
+    const pc = (x: Path) => I.and(...x.pc), R = I.or(...f.rets.map(([x]) => pc(x))), Br = I.or(...brks.map(pc))
+    const no = (x: B) => x.op === 'const' && !x.v
+    const flag = (n: string) => { fields.push({name: n, sort: {k: 'bool'}, role: 'state'}); init[n] = {s: 'bool', e: I.F} }
+    flag('__done')
+    const doneIn = at('__done', cin).e, idle = I.or(doneIn, I.not(held)), runs = I.and(I.not(idle), c!)
+    const step: Record<string, Term> = {}
+    for (const v of fields.filter(x => !FLAGS.includes(x.name))) {
+      const val = (x?: Path) => x?.locals.get(v.name)
+      const nx = brk && on ? this.ite(Br, val(brk)!, val(on)!, s) : val(brk) ?? val(on) ?? locals.get(v.name)!
+      if (sortOfV(nx)?.k !== v.sort.k) refuse(s, `${v.name}: ${nx.t === 'opaque' ? nx.why : `a ${nx.t}`} after a pass of the loop`)
+      step[v.name] = iteTerm(runs, termOfV(nx, s), termOfV(locals.get(v.name)!, s))
+    }
+    step.__done = {s: 'bool', e: I.or(doneIn, I.and(I.not(idle), I.or(I.not(c!), R, Br, F, Rf)))}
+    // (the item each pass leaves: whether it wrote it, held or taken out, and its fields, at the pass's own place)
+    const ways = [...(brk ? [[Br, brk] as const] : []), ...(retJ ? [[R, retJ] as const] : [])], lastOn = on ? itemOf(on) : undefined
+    let item = lastOn ?? {w: I.F, has: I.F, vals: this.baseCell(o0.decl, {op: 'num', e: i}).vals}
+    for (const [w, e] of ways) { const it = itemOf(e); item = {w: I.bite(w, it.w, item.w), has: I.bite(w, it.has, item.has), vals: new Map([...item.vals].map(([fn, v]) => [fn, this.ite(w, it.vals.get(fn)!, v, s)]))} }
+    const wf = (n: string, srt: Var['sort'], t: Term) => { fields.push({name: n, sort: srt, role: 'state'}); init[n] = termOfV(zeroOf(srt), s); step[n] = t }
+    wf('__w', {k: 'bool'}, {s: 'bool', e: I.and(runs, item.w)}); wf('__h', {k: 'bool'}, {s: 'bool', e: item.has})
+    const like: [string, string][] = []
+    for (const fd of o0.decl.fields) { wf(`__f__${fd.name}`, fd.sort, termOfV(item.vals.get(fd.name)!, s)); like.push([`__f__${fd.name}`, `${d.name}.${fd.name}`]) }
+    let retV: V | undefined
+    if (!no(R)) {
+      retV = this.join(f.rets.map(([r, v]) => ({...r, locals: new Map([['__ret', v]])})), s)!.locals.get('__ret')!
+      const srt = sortOfV(retV) ?? refuse(s, `a loop that returns ${retV.t === 'opaque' ? retV.why : `a ${retV.t}`} (the subset reads a loop's return of a number, a boolean or a choice)`)
+      flag('__returned'); step.__returned = {s: 'bool', e: I.or(at('__returned', cin).e, I.and(runs, R))}
+      fields.push({name: '__ret', sort: srt, role: 'state'}); init.__ret = termOfV(zeroOf(srt), s)
+      step.__ret = iteTerm(I.and(runs, R), termOfV(retV, s), termOfV(at('__ret', cin), s))
+    }
+    if (!no(F)) { flag('__failed'); step.__failed = {s: 'bool', e: I.or(at('__failed', cin).e, I.and(runs, F))} }
+    if (!no(Rf)) { flag('__refused'); step.__refused = {s: 'bool', e: I.or(at('__refused', cin).e, I.and(runs, Rf))} }
+    // (the passes: the collection's places up to its last, as a for loop over it reads them)
+    const last = this.least(o0, s as unknown as SX, k => this.baseCell(o0.decl, k).has, k => [{e: (k as {e: N}).e, desc: true}])
+    const len = I.nite(last.some, I.add(last.key, I.num(1)), I.num(0)), end: N = back ? I.num(0) : len
+    this.folds.push({list: d.name, run, fields, init, step, len, state: true, ...(back ? {back: true as const} : {}), loop: {like}})
+    // After the loop: each running value its cell at the end, the collection as the passes left it.
+    let q: Path = {...q0, locals: new Map(q0.locals), heap: new Map(q0.heap), called: [...new Set([q0.called, ...f.rets.map(r => r[0].called), ...(on ? [on.called] : []), ...(brk ? [brk.called] : [])].flat())]}
+    for (const v of fields) if (!FLAGS.includes(v.name) && !v.name.startsWith('__')) q.locals.set(v.name, at(v.name, end))
+    const k: N = I.nvar('k$'), ko: N = back ? k : I.add(k, I.num(1)), base = this.baseCell(o0.decl, {op: 'num', e: k})
+    const wrote = (cellV(run, ko, '__w', {k: 'bool'}) as {e: B}).e
+    q.heap.set(d.id, {...o0, ew: {key: {op: 'num', e: k}, has: I.bite(wrote, (cellV(run, ko, '__h', {k: 'bool'}) as {e: B}).e, base.has), vals: new Map([...base.vals].map(([fn, v]) => [fn, this.ite(wrote, cellV(run, ko, `__f__${fn}`, o0.decl.fields.find(x => x.name === fn)!.sort), v, s)]))}})
+    const endDone = at('__done', end).e
+    if (!no(F)) { if (this.tries.length) refuse(s, 'a failure in a loop inside a try'); this.fail(q, at('__failed', end).e, s, `a failure in a pass of the loop over ${d.name}`, null); q = this.assume(q, I.not(at('__failed', end).e)) }
+    if (!no(Rf)) { this.refuseWhere(q, at('__refused', end).e, s, `a refusal in a pass of the loop over ${d.name}`); q = this.assume(q, I.not(at('__refused', end).e)) }
+    const rets: [Path, V][] = []
+    if (!no(R)) { rets.push([{...q, pc: [...q0.pc, at('__returned', end).e]}, at('__ret', end)]); q = this.assume(q, I.not(at('__returned', end).e)) }
+    // Where the passes ran out of items (none ended the loop): the condition once more, the collection empty.
+    const ranOut = this.assume(q, I.not(endDone)), stopped = this.assume(q, endDone)
+    this.drain = {i, back, entry: q0, empty: d.name}
+    let g: Flow, c2: B, q2: Path
+    try {
+      ;[c2, q2] = this.truth(s.c as SX, ranOut)
+      g = c2.op === 'const' && !c2.v ? {rets: []} : this.block(body, this.assume(q2, c2))
+    } finally { this.drain = undefined }
+    if (g.live || (g.brk ?? []).some(x => x.cont)) this.refuseWhere(g.live ?? (g.brk ?? []).find(x => x.cont)!, I.T, s, `the loop over ${d.name} goes on with it empty (it never ends)`)
+    const after = this.join([stopped, ...(c2.op === 'const' && c2.v ? [] : [this.assume(q2, I.not(c2))]), ...(g.brk ?? []).filter(x => !x.cont)], s)
+    return {...(after ? {live: after} : {}), rets: [...rets, ...g.rets]}
+  }
+  // A while loop whose passes take the first items of the state's lists by an order of their own (min or max by a
+  // key, a heap's top): its passes are a fold of an unknown length, each one's item the one at its count in the order.
+  // Every request carries the run (the locals, and for each list how many of its items the passes took out, whether
+  // they hold the next and its fields as they left it), each list's held keys in the order (`ord`: increasing, each
+  // held, and every held key at its place `rk`, the place's item tying it by the order), and the run is assumed to be
+  // the one the passes compute: each pass's start where the condition holds and none ended the loop, the length the
+  // first where not. After the loop, each list's items before the count are out and the one at it has the fields the
+  // passes left (one write at every key). Two items that tie under the order are outside the claim (which of them comes
+  // first is the code's: Python's list order, a heap's layout), an edge the check counts apart.
+  whileRank(s: SS, p: Path): Flow {
+    const q0 = p, run = this.newVar(`loop$${this.folds.length}`, {k: 'num'}, 'input', undefined, false).name, i = I.nvar(PASS)
+    const body = s.body as SS[], own = assigned(body)
+    const fields: Var[] = [], init: Record<string, Term> = {}, locals = new Map(q0.locals)
+    for (const n of [...own].filter(x => q0.locals.has(x))) {
+      if (FLAGS.includes(n)) refuse(s, `${n}: a local the loop carries named as a fold's own values are`)
+      const v0 = q0.locals.get(n)!, srt = sortOfV(v0) ?? refuse(s, `${n}: ${v0.t === 'opaque' ? v0.why : `a ${v0.t}`}, carried by the loop (the subset reads a loop's numbers, booleans and choices)`)
+      fields.push({name: n, sort: srt, role: 'state'}); init[n] = termOfV(v0, s)
+      locals.set(n, cellV(run, i, n, srt, v0.t === 'num' ? v0.ty : undefined))
+    }
+    const at = (n: string, x: N = i) => cellV(run, x, n, fields.find(v => v.name === n)!.sort) as V & {e: B}
+    const saved = {tries: this.tries, fails: this.fails, failPaths: this.failPaths, refusals: this.refusals.length, edges: this.edges.length}
+    this.hidden += this.tries.length; this.tries = []; this.fails = []; this.failPaths = []; this.inFold++
+    const dr: NonNullable<Stepper['drain']> = {i, back: false, entry: q0, rank: new Map(), run}
+    this.drain = dr
+    let f: Flow, c: B
+    try {
+      const [c0, b1] = this.truth(s.c as SX, {...q0, pc: [], locals, cont: undefined})
+      c = c0
+      f = c.op === 'const' && !c.v ? {rets: []} : this.block(body, this.assume(b1, c))
+    } finally { this.tries = saved.tries; this.hidden -= saved.tries.length; this.inFold--; this.drain = undefined }
+    const rk = dr.rank!
+    // What a pass leaves of each list (each way out of it): the item taken out, or held with its fields; one that goes
+    // on and keeps it where the condition holds again is refused (the code's next pass takes it again).
+    const ends = [...(f.brk ?? []), ...(f.live ? [f.live] : []), ...f.rets.map(r => r[0])], goes = [...(f.brk ?? []).filter(x => x.cont), ...(f.live ? [f.live] : [])]
+    for (const e of ends) {
+      for (const [id, o] of e.heap) {
+        const b = q0.heap.get(id)
+        if (!b || b === o || !('origin' in o) || o.origin !== 'state' || keyV(o) === keyV(b)) continue
+        const d = o.k === 'map' ? rk.get(o.decl.name) : undefined
+        if (!d) refuse(s, 'a loop whose passes write the state other than the items they take (the subset reads a loop over the state as its passes over a collection\'s items, each taking its own)')
+        if ((o as {pre?: unknown[]}).pre?.length) refuse(s, `a pass of the loop writes two items of ${d!.name}`)
+      }
+      for (const d of rk.values()) {
+        const o = e.heap.get(d.id) as Extract<Obj, {k: 'map'}>
+        if (o.w && !I.same(o.w.key, d.K)) refuse(s, `a pass of the loop writes an item of ${d.name} other than the first it takes`)
+        const has = o.w ? o.w.has : d.exists, vals = o.w ? o.w.vals : d.view
+        const out = I.and(d.exists, I.not(has)), held = I.and(d.exists, has), L = e.locals = new Map(e.locals)
+        // (an item kept must keep the fields its order reads, or the order the run carries is no longer its: refused
+        // where a pass changes one)
+        if (o.w && d.order) for (const fn of orderFields(d.order.by, d.decl)) {
+          const a = vals.get(fn)!, b = d.view.get(fn)!
+          if (keyV(a) === keyV(b) || !('e' in a) || !('e' in b)) continue
+          const w = I.and(this.cond(e), held, I.not(a.t === 'num' && b.t === 'num' ? I.cmp('=', a.e, b.e) : a.t === 'bool' && b.t === 'bool' ? I.bite(a.e, b.e, I.not(b.e)) : I.F))
+          if (!(w.op === 'const' && !w.v)) { this.refusals.push(w); this.notes.add(`${s.p}: a pass of the loop over ${d.name} that changes ${fn} (its order) of an item it keeps is refused`) }
+        }
+        L.set(`${d.name}__a`, {t: 'num', e: I.nite(out, I.add(d.a, I.num(1)), d.a)}); L.set(`${d.name}__ld`, {t: 'bool', e: held})
+        for (const fd of d.decl.fields) L.set(`${d.name}__f__${fd.name}`, this.ite(held, vals.get(fd.name)!, d.cur.get(fd.name)!, s))
+        if (goes.includes(e)) {
+          this.drain = dr
+          try { const [again] = this.truth(s.c as SX, e); const w = I.and(this.cond(e), held, again); if (!(w.op === 'const' && !w.v)) { this.refusals.push(w); this.notes.add(`${s.p}: a pass of the loop over ${d.name} that keeps its item where the condition holds again is refused (the next pass would take it again)`) } } finally { this.drain = undefined }
+        }
+      }
+    }
+    const F = I.or(...this.fails), Rf = I.or(...this.refusals.splice(saved.refusals))
+    this.fails = saved.fails; this.failPaths = saved.failPaths
+    if (this.edges.length > saved.edges) refuse(s, 'a loop whose passes reach the edge of a fixed-width type')
+    if (!rk.size) refuse(s, 'a while loop that takes no item of a collection of the state')
+    const like: [string, string][] = [], drains: NonNullable<NonNullable<Fold['loop']>['drains']> = [], kl: K = {op: 'num', e: I.nvar(LEAST_KEY)}
+    for (const d of rk.values()) {
+      const add = (n: string, srt: Var['sort'], t: Term) => { fields.push({name: n, sort: srt, role: 'state'}); init[n] = t }
+      add(`${d.name}__a`, {k: 'num'}, {s: 'num', e: I.num(0)}); add(`${d.name}__ld`, {k: 'bool'}, {s: 'bool', e: I.F})
+      for (const fd of d.decl.fields) { add(`${d.name}__f__${fd.name}`, fd.sort, termOfV(zeroOf(fd.sort), s)); like.push([`${d.name}__f__${fd.name}`, `${d.name}.${fd.name}`]) }
+      const by = d.order ? this.rankOrder(d)(kl) : refuse(s, `${d.name}: a loop that reads its first item by no order`)
+      drains.push({map: d.name, ord: d.ord, rk: d.rk, held: this.baseCell(d.decl, kl).has, by})
+    }
+    const brks = (f.brk ?? []).filter(x => !x.cont), on = this.join(goes, s), brk = this.join(brks, s)
+    const pc = (x: Path) => I.and(...x.pc), R = I.or(...f.rets.map(([x]) => pc(x))), Br = I.or(...brks.map(pc))
+    const no = (x: B) => x.op === 'const' && !x.v, stops = !(no(R) && no(Br) && no(F) && no(Rf))
+    const flag = (n: string, x: B) => { fields.push({name: n, sort: {k: 'bool'}, role: 'state'}); init[n] = {s: 'bool', e: I.F}; return x }
+    const step: Record<string, Term> = {}, done: B = stops ? flag('__done', I.or(R, Br, F, Rf)) : I.F
+    const doneAt = (x: N): B => (stops ? at('__done', x).e : I.F)
+    const retJ = this.join(f.rets.map(r => r[0]), s)
+    for (const v of fields.filter(x => !FLAGS.includes(x.name))) {
+      const val = (x?: Path) => x?.locals.get(v.name)
+      const ways: [B, V][] = [...(brk && val(brk) ? [[Br, val(brk)!] as [B, V]] : []), ...(v.name.includes('__') && retJ && val(retJ) ? [[R, val(retJ)!] as [B, V]] : [])]
+      let nx: V = val(on) ?? locals.get(v.name) ?? cellV(run, i, v.name, v.sort)
+      for (const [w, x] of ways) nx = this.ite(w, x, nx, s)
+      if (sortOfV(nx)?.k !== v.sort.k) refuse(s, `${v.name}: ${nx.t === 'opaque' ? nx.why : `a ${nx.t}`} after a pass of the loop`)
+      step[v.name] = termOfV(nx, s)
+    }
+    if (stops) step.__done = {s: 'bool', e: done}
+    if (!no(R)) {
+      const retV = this.join(f.rets.map(([r, v]) => ({...r, locals: new Map([['__ret', v]])})), s)!.locals.get('__ret')!
+      const srt = sortOfV(retV) ?? refuse(s, `a loop that returns ${retV.t === 'opaque' ? retV.why : `a ${retV.t}`} (the subset reads a loop's return of a number, a boolean or a choice)`)
+      flag('__returned', R); step.__returned = {s: 'bool', e: R}
+      fields.push({name: '__ret', sort: srt, role: 'state'}); init.__ret = termOfV(zeroOf(srt), s); step.__ret = termOfV(retV, s)
+    }
+    if (!no(F)) { flag('__failed', F); step.__failed = {s: 'bool', e: F} }
+    if (!no(Rf)) { flag('__refused', Rf); step.__refused = {s: 'bool', e: Rf} }
+    const len = I.nvar(this.newVar(`${run}_n`, {k: 'num'}, 'input', 'the passes of a loop (the run carries one more)').name)
+    this.folds.push({list: [...rk.keys()].join(','), run, fields, init, step, len, loop: {like, cond: I.and(c!, I.not(doneAt(i))), drains, entry: this.cond(q0)}})
+    // After the loop: each running value its cell at the length; each list written at every key.
+    let q: Path = {...q0, locals: new Map(q0.locals), heap: new Map(q0.heap), called: [...new Set([q0.called, ...f.rets.map(r => r[0].called), ...(on ? [on.called] : []), ...(brk ? [brk.called] : [])].flat())]}
+    for (const v of fields) if (!FLAGS.includes(v.name) && !v.name.includes('__')) q.locals.set(v.name, at(v.name, len))
+    for (const d of rk.values()) {
+      const k: K = {op: 'num', e: I.nvar('k$')}, base = this.baseCell(d.decl, k), aN = (at(`${d.name}__a`, len) as {e: N}).e
+      const place: N = {op: 'cell', map: d.rk, key: k, field: '$item'}
+      const out = I.and(base.has, I.cmp('<', place, aN)), cur = I.and(at(`${d.name}__ld`, len).e, base.has, I.cmp('=', place, aN))
+      const vals = new Map([...base.vals].map(([fn, v]) => [fn, this.ite(cur, at(`${d.name}__f__${fn}`, len), v, s)]))
+      const o0 = q0.heap.get(d.id) as Extract<Obj, {k: 'map'}>
+      q.heap.set(d.id, {...o0, ew: {key: k, has: I.and(base.has, I.not(out)), vals}})
+    }
+    if (!no(F)) { if (this.tries.length) refuse(s, 'a failure in a loop inside a try'); this.fail(q, at('__failed', len).e, s, 'a failure in a pass of the loop', null); q = this.assume(q, I.not(at('__failed', len).e)) }
+    if (!no(Rf)) { this.refuseWhere(q, at('__refused', len).e, s, 'a refusal in a pass of the loop'); q = this.assume(q, I.not(at('__refused', len).e)) }
+    if (no(R)) return {live: q, rets: []}
+    const ret = q
+    q = this.assume(q, I.not(at('__returned', len).e))
+    return {live: q, rets: [[{...ret, pc: [...q0.pc, at('__returned', len).e]}, at('__ret', len)]]}
+  }
+  // The order a list's passes take its items in: the order its first item is read by, part by part over the item's
+  // cells at a key (no tie-breaking: two items that tie are an edge).
+  rankOrder(d: Ranking): (k: K) => {e: N, desc?: boolean}[] {
+    return k => { this.drainSetup++; try { return d.order!.by(k) } finally { this.drainSetup-- } }
+  }
+  // A list a pass of a while loop takes items of by an order: its item at the count of those taken out (in the order
+  // the request carries its keys in), held where the count is below how many there are.
+  rankOf(o: Extract<Obj, {k: 'map'}>, at: SX): Ranking {
+    const dr = this.drain!, name = o.decl.name
+    let d = dr.rank!.get(name)
+    if (d) return d
+    const id = [...this.initHeap].find(([, x]) => x.k === 'map' && x.decl === o.decl)?.[0] ?? refuse(at, `${at.text}: a collection of the state the reader didn't find`)
+    const o0 = dr.entry.heap.get(id) as Extract<Obj, {k: 'map'}> | undefined
+    if (o0?.w || o0?.pre?.length || o0?.ew) refuse(at, `${at.text}: a loop over ${name} after the step wrote it (the passes take its items in the state before the step)`)
+    const ord = this.newVar(`${name}__ord`, {k: 'num'}, 'input', undefined, false).name, rk = this.newVar(`${name}__rk`, {k: 'num'}, 'input', undefined, false).name
+    const cell = (n: string): {op: 'cell', map: string, key: K, field: string} => ({op: 'cell', map: dr.run!, key: {op: 'num', e: dr.i}, field: `${name}__${n}`})
+    const a: N = cell('a'), ld: B = cell('ld'), K = {op: 'num' as const, e: {op: 'cell', map: ord, key: {op: 'num', e: a}, field: 'k'} as N}
+    const exists = I.cmp('<', a, I.nvar(`${ord}_len`)), base = this.baseCell(o.decl, K)
+    const cur = new Map(o.decl.fields.map(fd => [fd.name, cellV(dr.run!, dr.i, `${name}__f__${fd.name}`, fd.sort)]))
+    const view = new Map(o.decl.fields.map(fd => [fd.name, this.ite(ld, cur.get(fd.name)!, base.vals.get(fd.name)!, at)]))
+    d = {name, id, decl: o.decl, K, exists, view, cur, a, ld, ord, rk}
+    dr.rank!.set(name, d)
+    return d
+  }
+  // A least read of a list a while loop's passes take items of by an order: the pass's item; the order is the one the
+  // item's key is first read by (a read of whether it is empty reads only whether there is one).
+  rankLeast(o: Extract<Obj, {k: 'map'}>, at: SX, where: (k: K) => B, by: (k: K) => {e: N, desc?: boolean}[]): {key: N, some: B, held: B, where: (k: K) => B} {
+    if (!o.decl.ordered) return refuse(at, `${at.text}: a dict read in a loop that takes the first items of a list by an order`)
+    const d = this.rankOf(o, at), kk: K = {op: 'num', e: I.nvar(LEAST_KEY)}
+    let w: B, parts: {e: N, desc?: boolean}[]
+    this.drainSetup++
+    try { w = where(kk); parts = by(kk) } finally { this.drainSetup-- }
+    const sig = I.keyOf(parts)
+    if (!I.same(w, this.baseCell(o.decl, kk).has)) refuse(at, `${at.text}: an item of ${d.name} by a condition, in a loop that takes its first items`)
+    const empty = parts.length === 0
+    return {get key(): N {
+      if (empty && !d.order) return refuse(at, `${at.text}: ${d.name}'s first item by its places, in a loop that takes another list's items by an order`)
+      if (!d.order) d.order = {by, sig}
+      else if (d.order.sig !== sig) refuse(at, `${at.text}: ${d.name} read in two orders in a loop that takes its first items`)
+      return d.K.e
+    }, some: d.exists, held: d.exists, where}
+  }
+  // A least read of a collection a while loop's passes take items of: the pass's own item (its place or key), the
+  // collection's own order only (the first from either end); in the pass after the passes ran out, none.
+  drainLeast(o: Extract<Obj, {k: 'map'}>, at: SX, where: (k: K) => B, by: (k: K) => {e: N, desc?: boolean}[]): {key: N, some: B, held: B, where: (k: K) => B} {
+    if (this.drain!.rank) return this.rankLeast(o, at, where, by)
+    const dr = this.drain!, kk: K = {op: 'num', e: I.nvar(LEAST_KEY)}, name = o.decl.name
+    let w: B, parts: {e: N, desc?: boolean}[]
+    this.drainSetup++
+    try { w = where(kk); parts = by(kk) } finally { this.drainSetup-- }
+    const own = parts.length === 0 || (parts.length === 1 && I.same(parts[0]!.e, kk.e))
+    const desc = parts.length === 1 && !!parts[0]!.desc
+    if (dr.empty === name) return {get key(): N { return refuse(at, `${at.text}: the first item of ${name}, empty`) }, some: I.F, held: I.F, where}
+    if (dr.empty) return refuse(at, `${at.text}: a collection read after a loop over another ran out of items`)
+    if (!I.same(w, this.baseCell(o.decl, kk).has)) refuse(at, `${at.text}: an item of ${name} by a condition, in a loop whose passes take its first items`)
+    if (dr.map && dr.map.name !== name) refuse(at, `${at.text}: a loop whose passes take items of two collections (${dr.map.name} and ${name}): the subset reads one`)
+    if (!dr.map) {
+      const id = [...this.initHeap].find(([, x]) => x.k === 'map' && x.decl === o.decl)?.[0] ?? refuse(at, `${at.text}: a collection of the state the reader didn't find`)
+      const o0 = dr.entry.heap.get(id) as Extract<Obj, {k: 'map'}> | undefined
+      if (o0?.w || o0?.pre?.length || o0?.ew) refuse(at, `${at.text}: a loop over ${name} after the step wrote it (the passes take its items in the state before the step)`)
+      dr.map = {name, id}
+    }
+    const key = dr.i
+    return {get key(): N {
+      if (!own) { if (o.decl.ordered && !dr.dir) throw new Ranked(); return refuse(at, `${at.text}: a loop whose passes take ${name}'s items in an order other than its own (its places or keys) after reading them in it`) }
+      if (desc !== dr.back) { if (dr.dir === undefined) throw new Backward(); return refuse(at, `${at.text}: ${name} taken from both ends in one loop`) }
+      dr.dir = desc
+      return key
+    }, some: I.T, held: I.T, where}
   }
   // any, all or sum of a generator: the loop it is, its value an accumulator's (any: true at the first that is; all:
   // false at the first that isn't; sum: each added), the fold above.
@@ -970,6 +1295,7 @@ export class Stepper {
       case 'break': return {rets: [], brk: [p]}
       case 'continue': return {rets: [], brk: [{...p, cont: true}]}
       case 'for': return this.forStmt(s, p)
+      case 'while': return this.whileStmt(s, p)
       case 'defer': { const key = this.lockKey(s.pl as SX, p); if (!p.locks.includes(key)) refuse(s, `defer ${s.text as string} without its Lock first`); return {live: {...p, defers: [...p.defers, key]}, rets: []} }
     }
     return refuse(s, `a statement the subset doesn't read (${s.s})`)
@@ -1058,6 +1384,12 @@ export class Stepper {
   cellOf(o: Extract<Obj, {k: 'map'}>, key: K, _p: Path, _at: SX): {has: B, vals: Map<string, V>} {
     keyKind(o.decl, key, _at)
     let acc = this.baseCell(o.decl, key)
+    // (an order read over the state before the step; in a while loop's pass, the collection only at the pass's key)
+    if (this.drainSetup) return acc
+    const rd = this.drain?.rank?.get(o.decl.name)
+    if (rd && o.origin === 'state') { if (I.same(key, rd.K)) acc = {has: rd.exists, vals: rd.view}; else return refuse(_at, `${_at.text}: an item of ${o.decl.name} other than the first a pass of the loop takes (the subset reads a loop over the state as its passes' first items)`) }
+    if (this.drain?.map?.name === o.decl.name && o.origin === 'state' && !this.drain.empty && !I.same(key, {op: 'num', e: this.drain.i})) return refuse(_at, `${_at.text}: an item of ${o.decl.name} other than the one a pass of the loop takes (the subset reads a loop over the state as its passes over a collection's items, each taking its own)`)
+    if (o.ew) { const x = (key as {e?: N}).e ?? refuse(_at, `${_at.text}: a key of other than a number`), sub = (v: V): V => substV(v, 'k$', x); acc = {has: I.substN(o.ew.has, 'k$', x), vals: new Map([...o.ew.vals].map(([f, v]) => [f, sub(v)]))} }
     for (const w of [...(o.pre ?? []), ...(o.w ? [o.w] : [])]) { const same = I.keq(key, w.key), a = acc; acc = {has: I.bite(same, w.has, a.has), vals: new Map([...a.vals].map(([f, v]) => [f, this.ite(same, w.vals.get(f)!, v, _at)]))} }
     return acc
   }
@@ -1148,7 +1480,9 @@ export class Stepper {
   // before the step, so one read after the step wrote the map is refused. Each least read once, however often.
   // (`held`: whether there is one, with `where` at its key, which it implies: what a path that takes it knows)
   least(o: Extract<Obj, {k: 'map'}>, at: SX, where: (k: K) => B, by: (k: K) => {e: N, desc?: boolean}[]): {key: N, some: B, held: B, where: (k: K) => B} {
-    if (o.w) return refuse(at, `${at.text}: the first, last, least or greatest item of a collection the step has written (the rule reads it in the state before the step)`)
+    // (in a while loop's pass, a collection of the state it takes first items of: the pass's item)
+    if (this.drain && o.origin === 'state' && (o.decl.ordered || o.decl.key === 'num') && !this.drainSetup) return this.drainLeast(o, at, where, by)
+    if (o.w || o.ew) return refuse(at, `${at.text}: the first, last, least or greatest item of a collection the step has written (the rule reads it in the state before the step)`)
     const kk: K = {op: 'num', e: I.nvar(LEAST_KEY)}, w = where(kk), b = [...by(kk), {e: I.nvar(LEAST_KEY)}], sig = I.keyOf({map: o.decl.name, w, b})
     let l = this.leasts.find(x => I.keyOf({map: x.map, w: x.where, b: x.by}) === sig)
     if (!l) {
@@ -1192,6 +1526,14 @@ export class Stepper {
       // (the list as evaluating the arguments left it: a write there is one the least keys see, and refuse)
       o = q.heap.get(id) as Extract<Obj, {k: 'map'}>
       if (kw.length) return refuse(x, `${x.text}: a list's method given keywords`)
+      if (this.drain && o.decl.ordered) {
+        // (in a while loop's pass: the collection it takes items of only gives its item up)
+        if (name === 'append') return refuse(x, `${x.text}: an item put in ${o.decl.name} in a pass of a loop`)
+        const rd = this.drain.rank?.get(o.decl.name)
+        if (name === 'remove' && rd && args.length === 1 && args[0]!.t === 'cell' && args[0]!.map === id && I.same(args[0]!.key, rd.K)) return [{t: 'none'}, this.listDel(id, o, rd.K, x, this.assume(q, rd.exists))]
+        if (name === 'remove' && this.drain.map?.name === o.decl.name && args.length === 1 && args[0]!.t === 'cell' && args[0]!.map === id && I.same(args[0]!.key, {op: 'num', e: this.drain.i})) return [{t: 'none'}, this.listDel(id, o, args[0]!.key, x, q)]
+        if (name === 'remove') return refuse(x, `${x.text}: an item of ${o.decl.name} other than the one a pass of a loop takes, taken out`)
+      }
       if (name === 'append' && args.length === 1) {
         const last = this.least(o, x, k => this.baseCell(o.decl, k).has, k => [{e: (k as {e: N}).e, desc: true}])
         return [{t: 'none'}, this.mapSet(m, {op: 'num', e: I.nite(last.some, I.add(last.key, I.num(1)), I.num(0))}, args[0]!, x, q)]
@@ -3154,6 +3496,10 @@ const cellV = (map: string, i: N, f: string, s: Var['sort'], ty?: IntTy): V => {
   const c = {op: 'cell' as const, map, key: {op: 'num' as const, e: i}, field: f}
   return s.k === 'num' ? {t: 'num', e: c, ...(ty ? {ty} : {})} : s.k === 'bool' ? {t: 'bool', e: c} : s.k === 'str' ? {t: 'str', e: c} : {t: 'choice', e: {...c, values: s.k === 'choice' ? s.values : []}}
 }
+// The fields of a collection's items an order reads (its parts over an item at a key).
+const orderFields = (by: (k: K) => {e: N, desc?: boolean}[], d: MapDecl): string[] => { const out = new Set<string>(); JSON.stringify(by({op: 'num', e: I.nvar('kl$')}), (k, v) => { if (k === 'field' && typeof v === 'string' && d.fields.some(f => f.name === v)) out.add(v); return v }); return [...out] }
+// A value with a numeric bound name (k$) replaced by a term, in its terms.
+const substV = (v: V, name: string, by: N): V => (v.t === 'num' || v.t === 'bool' || v.t === 'choice' || v.t === 'str' ? {...v, e: I.substN(v.e as N, name, by)} as V : v)
 const sortOfV = (v: V): Var['sort'] | undefined => (v.t === 'num' ? {k: 'num'} : v.t === 'bool' ? {k: 'bool'} : v.t === 'choice' ? {k: 'choice', values: lvalues(v.e)} : v.t === 'str' ? {k: 'str'} : undefined)
 const termOfV = (v: V, at: {p: string}): Term => (v.t === 'num' ? {s: 'num', e: v.e} : v.t === 'bool' ? {s: 'bool', e: v.e} : v.t === 'choice' ? {s: 'choice', e: v.e} : v.t === 'str' ? {s: 'str', e: v.e} : refuse(at, `a ${v.t} where a fold keeps a number, a boolean, a string or a choice`))
 // The locals a body sets (each statement's targets), by name.
@@ -3588,16 +3934,16 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
   for (const d of g.maps) {
     const id = [...g.initHeap].find(([, o]) => o.k === 'map' && o.decl === d)?.[0]
     if (!id) continue
-    const cw = (w0: CellWrite): CellW => ({key: w0.key, has: w0.has, vals: Object.fromEntries([...w0.vals].map(([f2, v]) => [f2, termOf(v, at)]))})
-    const lists = finals.map(f => { const o = f.path.heap.get(id) as Extract<Obj, {k: 'map'}> | undefined; return [...(o?.pre ?? []), ...(o?.w ? [o.w] : [])].map(cw) })
+    const cw = (w0: CellWrite, each?: boolean): CellW => ({key: w0.key, has: w0.has, vals: Object.fromEntries([...w0.vals].map(([f2, v]) => [f2, termOf(v, at)])), ...(each ? {each: true as const} : {})})
+    const lists = finals.map(f => { const o = f.path.heap.get(id) as Extract<Obj, {k: 'map'}> | undefined; return [...(o?.ew ? [cw(o.ew, true)] : []), ...[...(o?.pre ?? []), ...(o?.w ? [o.w] : [])].map(w0 => cw(w0))] })
     // (a failure kept, the cell as it was there)
     const fix = (i: number, w2: CellW, base: (k: K) => CellW): CellW => { if (!kept || carried) return w2; const fl = failedOf(finals[i]!), b = base(w2.key); return {key: w2.key, has: I.bite(fl, b.has, w2.has), vals: Object.fromEntries(Object.entries(w2.vals).map(([f, t]) => [f, iteTerm(fl, b.vals[f]!, t)]))} }
     // (several keys written by some method: each method's writes under its own selector, so a key compared is the
     // request's, never one of two by the method)
     const base = (k: K): CellW => { const c = g.baseCell(d, k); return {key: k, has: c.has, vals: Object.fromEntries([...c.vals].map(([f2, v]) => [f2, termOf(v, at)]))} }
-    const ws: (CellW & {when?: B})[] = lists.some(l => l.length > 1) ? finals.flatMap((f, i) => lists[i]!.map(w2 => ({...fix(i, w2, base), when: f.sel}))) : []
+    const ws: (CellW & {when?: B})[] = lists.some(l => l.length > 1 || l.some(w0 => w0.each)) ? finals.flatMap((f, i) => lists[i]!.map(w2 => ({...fix(i, w2, base), when: f.sel}))) : []
     const w = ws.length ? ws.at(-1) : mapWritesOf(g, d, finals.map(f => f.sel), lists.map(l => l[0]), fix)
-    if (w) mapWrites[d.name] = ws.length > 1 ? {...w, pre: ws.slice(0, -1)} : w
+    if (w) mapWrites[d.name] = ws.length > 1 ? {...w, pre: ws.slice(0, -1)} : w.each ? {...w, pre: []} : w
   }
   // What each method returns, and whether it failed: the step's result.
   const results: Model['results'] = {}, resultKinds: StepRead['results'] = {}
@@ -3703,7 +4049,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
   for (const t of [...Object.values(writes), ...Object.values(init)]) mention(t.e)
   for (const w of Object.values(mapWrites).flatMap(x => [x, ...(x.pre ?? [])])) { mention(w.has); mention(w.key); if (w.when) mention(w.when); for (const t of Object.values(w.vals)) mention(t.e) }
   mention(refuseB); mention(pre)
-  for (const fd of g.folds) for (const t of [...Object.values(fd.init), ...Object.values(fd.step)]) mention(t.e)
+  for (const fd of g.folds) { for (const t of [...Object.values(fd.init), ...Object.values(fd.step)]) mention(t.e); mention(fd.len) }
   const unread = g.inputs.filter(v => !read.has(v.name) && v.name !== ev?.name && !g.kept.has(v.name))
   if (unread.length) g.notes.add(`read by the code but by no term of the rule (given their sort's zero, or None, by the check): ${unread.map(v => v.name).join(', ')}`)
   const inputs = g.inputs.filter(v => !unread.includes(v))
@@ -3739,7 +4085,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     params: g.params, inputs, state, maps, init, writes, mapWrites, outputs,
     refuse: refuseB, pre, layout, events, notes: [...g.notes], hints: g.hints, ...(ev ? {event: ev.name} : {}), results, laws,
     ...(g.leasts.length ? {leasts: g.leasts} : {}),
-    ...(g.used.size ? {seqs: g.seqs.filter(d => g.used.has(d.name)), folds: g.folds} : {}),
+    ...(g.used.size || g.folds.length ? {seqs: g.seqs.filter(d => g.used.has(d.name)), folds: g.folds} : {}),
   }
   return {ints: Object.fromEntries(g.ints), ...(g.madeAt ? {madeAt: g.madeAt.name} : {}), model, leaves, args: argsOf, answers: [...g.answers.values()], ctor, kept, arms: [...g.arms].map(a => { const i = a.lastIndexOf(':'); return [a.slice(0, i), Number(a.slice(i + 1))] }), ...(cls ? {cls} : {}), stores, results: resultKinds, ...(g.injectedFields.length ? {inject: g.injectedFields} : {}), ...(g.globalStores.length ? {globals: g.globalStores} : {}), ...(g.inertAttrs.length ? {inert: g.inertAttrs} : {}), ...(g.edges.length ? {edges: g.edges} : {}), ...(effectVars.length ? {effectsOf: Object.fromEntries(finals.map((f, i) => [chosen[i]!.name, effectVars.filter(e => f.path.eff?.has(e.key)).map(e => e.v.name)]))} : {})}
 }
@@ -3760,7 +4106,7 @@ const lvalues = (e: L): string[] => (e.op === 'ite' ? lvalues(e.a) : e.values)
 const zeroRaw = (s: Var['sort']): Raw => (s.k === 'num' ? 0 : s.k === 'bool' ? false : s.k === 'choice' ? s.values[0]! : '')
 const zeroOf = (s: Var['sort']): V => (s.k === 'num' ? {t: 'num', e: I.num(0)} : s.k === 'bool' ? {t: 'bool', e: I.F} : s.k === 'choice' ? {t: 'choice', e: I.llit(s.values[0]!, s.values)} : {t: 'str', e: {op: 'slit', value: ''}})
 // A map's writes, the methods' together: each by the method called (where one writes none, the cell as it was).
-type CellW = {key: K, has: B, vals: Record<string, Term>}
+type CellW = {key: K, has: B, vals: Record<string, Term>, each?: true}
 // Lists of writes of one map made one length: the shorter ones led by writes that change nothing (a cell as it is,
 // at the key the longest list writes there), so place by place they merge as one write each.
 export function padWrites<W extends {key: K}>(lists: W[][], base: (k: K) => Omit<W, 'key'>): W[][] {
@@ -3962,7 +4308,8 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
       },
       normalize: s => { for (const l of read.leaves) if (l.kind === 'none' && s.leaves[l.name] === true) s.leaves[l.name.replace(/_none$/, '')] = g0(m, l.name.replace(/_none$/, '')); return s },
       // (where the code goes on past what the rule's claim covers (a rounding past a float's exact range): an edge)
-      ...(read.edges?.length ? {edge: (s: Snap, raw: Record<string, Raw>) => read.edges!.some(c => evalTerm(c, {...s.leaves, ...raw}, (map, key, field) => (field === 'has' ? !!s.maps[map]?.[String(key)] : s.maps[map]?.[String(key)]?.[field] ?? 0)) === true)} : {}),
+      // (and where two items of a list a loop takes by an order tie under it)
+      ...(read.edges?.length || m.folds?.some(d => d.loop?.drains) ? {edge: (s: Snap, raw: Record<string, Raw>) => (read.edges ?? []).some(c => evalTerm(c, {...s.leaves, ...raw}, (map, key, field) => (field === 'has' ? !!s.maps[map]?.[String(key)] : s.maps[map]?.[String(key)]?.[field] ?? 0)) === true) || tiesIn(m, s, raw)} : {}),
     }
     function closeAndCount(): Coverage {
       const res = ask({op: 'coverage'}) as {hit?: [string, number][]}

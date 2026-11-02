@@ -41,7 +41,8 @@ export type Arg = {k: 'input', name: string} | {k: 'lit', value: string} | {k: '
 export type Event = {select: Record<string, string>, call: string, args: Arg[], names?: string[]}
 // (pre: writes at other keys before this one, in order, where a step writes several: the last one wins at its key)
 // (when: where the write is made at all, a method's own where several keys are written)
-export type MapWrite = {key: K, has: B, vals: Record<string, Term>, pre?: MapWrite[], when?: B}
+// (each: a write at every key at once, its terms over the bound key k$: a loop's passes over an ordered collection)
+export type MapWrite = {key: K, has: B, vals: Record<string, Term>, pre?: MapWrite[], when?: B, each?: true}
 // A list's write in a step (at most one, by cases): an item pushed, the last popped, or the item at i set (i within it).
 export type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: V, when: B}
 export type ListWrite = ({op: 'push', x: Term, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: Term, when: B})[]
@@ -84,7 +85,11 @@ export type Model = {
   seqs?: MapDecl[], folds?: Fold[],
 }
 // (len: the passes, a carried list's length or one past a list of the state's last place; held: a place holds an item)
-export type Fold = {list: string, run: string, fields: Var[], init: Record<string, Term>, step: Record<string, Term>, len: N, state?: true}
+// A while loop's (`loop`), over a collection of the state: its passes' items written back (the run's __w, __h and
+// __f__<field> at each pass's output), `like` a field and the sorts key it shares; `back`: its passes run from the last
+// place down (the run's start at the length, each pass's output at its own place).
+export type Fold = {list: string, run: string, fields: Var[], init: Record<string, Term>, step: Record<string, Term>, len: N, state?: true, back?: true,
+  loop?: {like: [string, string][], cond?: B, entry?: B, drains?: {map: string, ord: string, rk: string, held: B, by: {e: N, desc?: boolean}[]}[]}}
 
 // --- values ---------------------------------------------------------------------------------------------------------
 type V =
