@@ -1102,6 +1102,8 @@ export const keyValue = (cell: string, w: Record<string, number>): number | unde
 // the values the goal's keys take, and each tuple where one fails added, as the goal's terms with those values, to its
 // instances. None found: the model is one on every tuple of the goal's keys. Untrusted: it chooses instances only.
 export const modelRounds = 4
+// A condition as the disjuncts it is the or of (¬(a ∧ b) as ¬a, ¬b).
+const disjuncts = (c: C): C[] => (c.op === 'or' ? c.xs.flatMap(disjuncts) : c.op === 'not' && c.x.op === 'and' ? c.x.xs.flatMap(y => disjuncts({op: 'not', x: y})) : c.op === 'not' && c.x.op === 'not' ? disjuncts(c.x.x) : [c])
 export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: Goal, w: Record<string, number>, most = 64): Instances | undefined {
   const pm = plainOf(m), qs = Object.entries(pm.step.flags ?? {}).filter((e): e is [string, Extract<C, {op: 'all'}>] => e[1].op === 'all' && w[`?${e[0]}`] === 1)
   const keyed = laws.filter(l => l.forall)
@@ -1154,8 +1156,14 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
     // (a law at one key assumed at a term of every value its sort takes already: nothing to add)
     if (n === 1) { const covered = new Set(had.map(valueOf)); if ([...sorts[0]!.keys()].every(v2 => covered.has(v2))) return }
     for (let t = 0; t + n <= had.length; t += n) have.add(JSON.stringify(had.slice(t, t + n)))
+    // (the body's disjuncts, each checked as soon as the keys it reads are bound: one that holds there holds the body at
+    // every tuple below, so transitivity's T(t, x, y) false cuts its z; a law about four keys over ten values each, 10,000
+    // tuples, took the whole share before, its broken tuples never reached)
+    const ready: C[][] = Array.from({length: n + 1}, () => [])
+    for (const d of disjuncts(body)) { const t = JSON.stringify(d); ready[names.reduce((a, x, j) => (t.includes(`"name":${JSON.stringify(x)}`) ? j + 1 : a), 0)]!.push(d) }
     const go = (i: number, at: Record<string, number>, terms: E[]): void => {
       if (added >= most || evals > until || (evals % 512 === 0 && pastWall())) return
+      for (const d of ready[i]!) { evals++; if (ev(() => evalC(d, read(at), st, mm)) === true) return }
       if (i === n) {
         evals++
         if (ev(() => evalC(body, read(at), st, mm)) !== false) return
@@ -1167,6 +1175,7 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
       for (const [v2, e] of sorts[i]!) go(i + 1, {...at, [names[i]!]: v2}, [...terms, e])
     }
     go(0, {}, [])
+    if (modelsTrace) console.error(`[models]   ${atoms ? 'atoms' : 'all'} ${id.slice(0, 30)}: sorts ${sorts.map(x => x.size).join('x')}, evals ${evals} of ${until}, added ${added}`)
   }
   // the goal's own names first; every key it reads where they show nothing
   for (const atoms of [true, false]) {
@@ -1184,6 +1193,8 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
 // not the goal's usual budget again; a later round left unsettled gives back the first round's answer, so the verdict is
 // never one the model's tuples made worse. Untrusted.
 export const modelShare = 3
+// (GDP_MODELS_TRACE=1: each model round, its goal and the tuples a model adds, on stderr)
+const modelsTrace = !!env.GDP_MODELS_TRACE, modelFloor = Number(env.GDP_MODEL_FLOOR ?? 1_000)
 const costNow = (): number => (rate ? clock() : fullWork() / groundRate)
 const within = <T>(ms: number, f: () => T): T => (rate ? withDeadline(clock() + ms, f) : withWork(fullWork() + groundRate * ms, f))
 export function withModels<T>(m: Machine, laws: Law[], inst: Instances, goalOf: (i: Instances) => Goal[], ask: (gs: Goal[]) => T,
@@ -1195,11 +1206,12 @@ function modelsLoop<T>(m: Machine, laws: Law[], inst: Instances, goalOf: (i: Ins
   let at = inst, first: {result: T, inst: Instances} | undefined, cap = 0
   for (let round = 0; ; round++) {
     const c0 = costNow(), result = round ? within(Math.max(0, cap), () => ask(goalOf(at))) : ask(goalOf(at))
-    if (round) cap -= costNow() - c0; else cap = Math.max(1_000, modelShare * (costNow() - c0))
-    if (round && !settled(result)) return first!
+    if (round) cap -= costNow() - c0; else cap = Math.max(modelFloor, modelShare * (costNow() - c0))
+    if (round && !settled(result)) { if (modelsTrace) console.error(`[models] round ${round} unsettled in ${Math.round(costNow() - c0)} cost`); return first! }
     if (pastWall()) return first ?? {result, inst: at}
     first ??= {result, inst: at}
     const mw = modelOf(result), more = mw && round < modelRounds && cap > 0 ? modelInstances(m, laws, at, mw.goal, mw.w) : undefined
+    if (modelsTrace) console.error(`[models] round ${round} ${mw ? `model at ${mw.goal.name} (${mw.goal.hyps.length} hyps)` : settled(result) ? 'settled' : 'unsettled'} ${Math.round(costNow() - c0)} cost, cap ${Math.round(cap)}; ${more ? `+${Object.entries(more).map(([n, ks]) => `${n.slice(0, 24)}:${ks.length - (at[n]?.length ?? 0)}`).filter(x => !x.endsWith(':0')).join(' ')}` : 'no more'}`)
     if (!more) return {result, inst: at}
     at = more
   }
@@ -1891,14 +1903,19 @@ function sortsOf(m: Machine, laws: Law[]) {
   const par = new Map<string, string>(), find = (a: string): string => { const q = par.get(a); if (q === undefined || q === a) return a; const r = find(q); par.set(a, r); return r }
   const named = new Set<string>(), union = (a: string, b: string) => { named.add(a); named.add(b); const ra = find(a), rb = find(b); if (ra !== rb) par.set(ra, rb) }
   const pats = patternsOf(m, laws), whole = new Map<string, string>()
+  // (a map of one part read at a name, Src[p]: its value a sort too, F:Src, as a function's, what it is compared with and
+  // the places it is read at: Src[Src[p]] is no key of Src where Src's values are nodes and its keys packets)
+  const valued = (e: Extract<E, {op: 'get'}>): boolean => !(pats[e.map]?.length! > 1) && e.key.op !== 'tup' && (e.key.op === 'var' || e.key.op === 'get')
   const leaves = (e: E, k: number, out: [E, number][]): void => { if (e.op === 'add') { leaves(e.a, k, out); leaves(e.b, k, out) } else if (e.op === 'mul') leaves(e.a, k * e.k, out); else if (e.op !== 'const') out.push([e, k]) }
   const walkC = (c: C, name: (v: string) => string): void => {
-    const node = (e: E): string | undefined => (e.op === 'var' ? name(e.name) : e.op === 'get' && m.fns?.[e.map] ? `F:${e.map}` : undefined)
+    const node = (e: E): string | undefined => (e.op === 'var' ? name(e.name) : e.op === 'get' && (m.fns?.[e.map] || valued(e)) ? `F:${e.map}` : undefined)
     const visit = (o: unknown): void => {
       if (!o || typeof o !== 'object') return
       const x = o as {op?: string, map?: string, key?: E, a?: E, b?: E}
       if (x.op === 'get' && x.key) {
         if (m.fns?.[x.map!]) { const n = node(x.key); if (n) union(n, `A:${x.map}`) }
+        // (a tuple key: each part of its place's sort, M:map:i)
+        else if (x.key.op === 'tup') tupleParts(x.key).forEach((e, i) => { const n = node(e); if (n) union(n, `M:${x.map}:${i}`) })
         else {
           const ls: [E, number][] = []; leaves(x.key, 1, ls)
           const pat = pats[x.map!] ?? [1]
@@ -1938,7 +1955,7 @@ function sortsOf(m: Machine, laws: Law[]) {
     // never a part's sort)
     if (ls.length !== 1 || ls[0]![1] !== 1) { const cs = ls.map(([, c]) => c).sort((a, b) => b - a).join(','); const mp = Object.keys(pats).find(k2 => pats[k2]!.length > 1 && [...pats[k2]!].sort((a, b) => b - a).join(',') === cs); return mp ? `K:${mp}` : `K:?${cs}` }
     const x = ls[0]![0]
-    return x.op === 'var' ? (x.name.endsWith('#') ? undefined : `V:${x.name}`) : x.op === 'get' && m.fns?.[x.map] ? `F:${x.map}` : undefined
+    return x.op === 'var' ? (x.name.endsWith('#') ? undefined : `V:${x.name}`) : x.op === 'get' && (m.fns?.[x.map] || valued(x)) ? `F:${x.map}` : undefined
   }
   return {key: (law: string, k: string) => `L:${law}:${k}`, of, find, anchored: (a: string) => /^K:/.test(a) || !!anchorOf.get(find(a))}
 }
@@ -1975,6 +1992,14 @@ export function lawInstances(m: Machine, laws: Law[], i: number): Instances {
     focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
   })
 }
+// (GDP_SET_FIRST=0: the usual way alone, for comparing)
+const setFirstOn = env.GDP_SET_FIRST !== '0'
+const setFirst = (m: Machine, laws: Law[]): ReturnType<typeof proveSetFast> | undefined => {
+  if (!eprOn || !setFirstOn || pastWall() || !fastShape(m, laws) || !Object.values(patternsOf(plainOf(m), laws)).some(c => c.length > 1)) return undefined
+  const out = proveSetFast(m, laws)
+  if (modelsTrace) console.error(`[models] the set first: ${out.proven ? out.checked ? 'proven' : 'proven, not checked' : `not proven at ${out.failed?.goal}`}`)
+  return out.proven && out.checked && out.proof ? out : undefined
+}
 // `defer`: the usual trees now, their certificate and check given to it as `finish`, which proveStepLaws runs once every
 // step law is proven too: a verdict that fails needs neither (TigerBeetle's laws spent 50 s of 67 on the laws' certificate
 // and check before a step law failed). Deferred, a certificate not made leaves the check to checkStepLaws, which reads
@@ -1983,7 +2008,11 @@ function proveLawsAsGiven(m: Machine, laws: Law[], defer?: (finish: () => void) 
   // Each law's two goals (start and step) get their own instances, seeded with its own keys.
   // (a machine with sums: its instances are its plain machine's, whose flags hold each sum's facts at every key)
   const pm = plainOf(m), keys = [...readKeys(pm, laws), ...witnesses(pm)], instances: Record<string, Instances> = {}
-  laws.forEach((law, i) => {
+  // (an EPR-shaped machine's set proved first as proveSetFast proves it: each law settled by the EPR path, its instances
+  // sorted and only the tuples its proofs read, its cores widened to goals that small; i4's learning switch over relations
+  // 6 s there against 80 s here, whose check alone read goals of 1,200 hypotheses for 55 s. Not proven, the usual way)
+  const fast = defer ? undefined : setFirst(m, laws)
+  if (!fast) laws.forEach((law, i) => {
     instances[law.name] = instancesFor(pm, laws, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), {
       seed: [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : []), ...(law.keys ?? []).map((name): E => ({op: 'var', name}))],
       focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
@@ -1997,7 +2026,7 @@ function proveLawsAsGiven(m: Machine, laws: Law[], defer?: (finish: () => void) 
   const modes = cyclicOn() || certOn(), hist = modes && m.history ? historyMachine(m) : undefined, mc = hist ? hist.machine : m
   const why = modes ? (sumsWhy(m) ?? uncoveredWhy(mc, laws)) : undefined, cert = certOn() && !why
   usualCheck.on = !cert && !defer
-  const t0 = performance.now(), out = (() => { try { return proveThinned(m, laws, {...instances}) } finally { usualCheck.on = true } })(), usualMs = performance.now() - t0
+  const t0 = performance.now(), out = fast ?? (() => { try { return proveThinned(m, laws, {...instances}) } finally { usualCheck.on = true } })(), usualMs = performance.now() - t0
   if (out.proof) usualProof.last = {m, laws, proof: out.proof}
   const inst = out.proof?.instances ?? instances
   const searched = () => { const {facts, specs} = machineNodes(mc, laws, inst); return proveCyclic(facts, specs) }
@@ -2047,6 +2076,7 @@ function thinned(m: Machine, laws: Law[], instances: Record<string, Instances>):
   for (const [i, law] of laws.entries()) {
     const full = instances[law.name]!, focus = law.forall ? [`${law.forall}#`] : []
     const few = triggered(plainOf(m), laws, full, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), focus)
+    if (modelsTrace) console.error(`[models] law ${law.name}: ${Object.values(full).reduce((a, ks) => a + ks.length, 0)} keys, ${Object.values(few).reduce((a, ks) => a + ks.length, 0)} triggered`)
     // (thinned instances first, then the full ones; each asked again at the tuples its models ask for)
     for (const inst of sameInstances(few, full) ? [full] : [few, full]) {
       const {result: a, inst: at} = withModels(m, laws, inst, i2 => obligations(m, laws, {...instances, [law.name]: i2}, i), growAll, grownModel, grownSettled)
