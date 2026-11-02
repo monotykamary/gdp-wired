@@ -200,6 +200,12 @@ test('business days: the count is the calendar walked day by day', () => {
       }
     }
   }
+  // (a holiday before 1969-12-22, a day below 0: its weekday by the remainder at least 0)
+  const old = businessDays({holidays: ['1969-12-19', '1969-12-05']}), at = (d: string) => Date.UTC(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 1, Number(d.slice(8, 10))) / 1000 + 3600
+  for (const [a, b] of [['1969-12-18', '1969-12-19'], ['1969-12-01', '1969-12-23'], ['1969-11-30', '1970-01-05']]) {
+    const x = old.between(at(a!), at(b!))
+    expect(x.pos.val! - x.neg.val!).toBe(walked(['sat', 'sun'], ['1969-12-19', '1969-12-05'], 0, at(a!), at(b!)))
+  }
   for (const bad of [{weekend: ['sat', 'sun', 'mon', 'tue', 'wed', 'thu', 'fri']}, {weekend: ['caturday']}, {holidays: ['2026-02-30']}, {utc_offset: '+15:00'}, {utc_offset: 'EST'}]) expect(() => businessDays(bad)).toThrow()
   expect(() => parse('now - t <= 10 business days')).not.toThrow()
 })

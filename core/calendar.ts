@@ -43,7 +43,7 @@ export function businessDays(cal: Calendar, clock: 's' | 'ms' = 's') {
   if (!off || Number(off[2]) * 60 + Number(off[3]) > 14 * 60 || Number(off[3]) > 59) throw new CalendarError(`${cal.utc_offset}: an offset from UTC is ±HH:MM, at most 14 hours`)
   const offset = (off[1] === '-' ? -1 : 1) * (Number(off[2]) * 3600 + Number(off[3]) * 60) * unit
   // (the holidays that take a working day away, each once, in order)
-  const hols = [...new Set((cal.holidays ?? []).map(dayOf))].filter(h => work.includes(h % 7)).sort((a, b) => a - b)
+  const hols = [...new Set((cal.holidays ?? []).map(dayOf))].filter(h => work.includes(((h % 7) + 7) % 7)).sort((a, b) => a - b)
   const shift = (x: IntLike) => Int.of(x).plus(offset + 10 * D)
   // (the holidays on or before y's day, as a balanced choice: one path per count, never 2^n)
   const held = (y: Int, lo: number, hi: number): Int => {
