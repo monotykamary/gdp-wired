@@ -2426,8 +2426,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     }
     if (allCong) for (const es of adj.values()) for (const e of es) if (e.cong) { const k2 = sid([e.cong.map, e.cong.x, e.cong.y]), k3 = sid([e.cong.map, e.cong.y, e.cong.x]); if (!used.has(k2) && !used.has(k3)) used.set(k2, {map: e.cong.map, at: [...e.cong.x, ...e.cong.y], n: 1}) }
   }
-  const quorum = w.every ? w.models.length : w.hyps && env.DATA_EVERY ? Math.ceil(Number(env.DATA_EVERY) * w.models.length) : 1
-  for (const d of used.values()) if (d.n >= quorum) inst(`cong ${d.map}`, d.at)
+  for (const d of used.values()) if (!w.every || d.n >= w.models.length) inst(`cong ${d.map}`, d.at)
   for (const q of [...insts]) note(reads(holdsAt(fs.facts[q.fact]!.name, q.at)))
   ariths()
   lap(`congruences, ${insts.length} instances, ${w.models.length} models`)
@@ -2616,8 +2615,7 @@ function casesOf(p: Program, fs0: Facts, unfolded: C[], vars: Set<string>, model
   // (and a predicate of the program's at plain values: the guard the code reads, a user's ≤ on naturals, in place of the
   // tags of fields its unfolding would split on; the merge's size law over Peano naturals)
   const guard = (e: E, b: E): boolean => e.op === 'get' && b.op === 'const' && b.value === 1 && p.fns.some(f => f.name === e.map && f.ret === 'bool') && (argsOf(e.key, fs0.arity.get(e.map) ?? 1) ?? []).every(plain)
-  const noEq = (c: C) => !!env.DATA_NOEQ && c.op === '=' && c.a.op !== 'const' && c.b.op !== 'const' && !guard(c.a, c.b)
-  const plainC = (c: C): boolean => readsVar(c) && !noEq(c) && (c.op === '<' || c.op === '<=' || c.op === '=' ? (plain(c.a) && plain(c.b)) || (c.op === '=' && guard(c.a, c.b)) : c.op === 'not' ? plainC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.every(plainC) : false)
+  const plainC = (c: C): boolean => readsVar(c) && (c.op === '<' || c.op === '<=' || c.op === '=' ? (plain(c.a) && plain(c.b)) || (c.op === '=' && guard(c.a, c.b)) : c.op === 'not' ? plainC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.every(plainC) : false)
   // The functions' facts the goal unfolds.
   const roots: C[] = unfolded, preds = new Set<string>()
   const sigs = models.map(({m, env}) => {
@@ -2757,7 +2755,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
       const from = [c.lits, concl, us.map(u => [u.guard, useConcl(u)]), shapesAt, rankReads], insts = reached(p, fs, instsFor(ms, us, false, c.lits), from, ms)
       // (and leaner: without the shapes and etas at fields' values, and what only they reach)
       const atField = (q: NodeSpec['insts'][number]) => /^(shape|eta) /.test(fs.facts[q.fact]!.name) && fieldValue(q.at[0])
-      if (env.DATA_LEAN2 && insts.some(atField)) leaner.set(`${name}, case ${i + 1}`, reached(p, fs, insts.filter(q => !atField(q)), from, ms))
+      if (insts.some(atField)) leaner.set(`${name}, case ${i + 1}`, reached(p, fs, insts.filter(q => !atField(q)), from, ms))
       plan.push({name: `${name}, case ${i + 1}`, hyps: c.lits, concl, sub: 0, insts, uses: us})
     }
     plans.push(plan)
@@ -2768,7 +2766,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
     const mb = members[mi]!, size = !mb.on ? k(0) : mb.on.d === 'nat' ? ev(mb.on.v) : get(sizeMap(mb.on.d.name), ev(mb.on.v))
     // (level, the measure or the size, 0 or 1), the measure's place padded to the program's widest measure
     const comps = mb.rank ?? [size], mid = [...comps, ...Array.from({length: rankWidth(p) - comps.length}, () => k(0))]
-    for (const {sub, cases, ...n} of plan) specs.push({...n, ...(env.DATA_SLICE ? {slice: true} : {}), rank: [k(level), ...mid, k(sub)], uses: cases ? cases.map((g, i) => ({node: offsets[mi]! + 1 + i, subst: {}, guard: g})) : n.uses.map(u => (u.node < 0 ? {...u, node: offsets[-1 - u.node]!} : u))})
+    for (const {sub, cases, ...n} of plan) specs.push({...n, rank: [k(level), ...mid, k(sub)], uses: cases ? cases.map((g, i) => ({node: offsets[mi]! + 1 + i, subst: {}, guard: g})) : n.uses.map(u => (u.node < 0 ? {...u, node: offsets[-1 - u.node]!} : u))})
   }
   const name = title
   // Each attempt within its own time (a goal past it is left unknown, and the attempt fails).
@@ -2780,8 +2778,9 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
     // Within a termination's proof (its obligations and their size laws), first without the shapes at a field's value
     // (a field of a variable, of a field, of a function's value): each is a split on that value's constructor that a
     // size's descent rarely reads, and a node with a few of them grows past its time (hmerge's size law: past 20 s with
-    // them, 0.8 s without). Then the nodes as built. (Elsewhere the nodes as built alone: a law's proof often reads them,
-    // length of append's at one vCPU past its 5 s with this pass first.)
+    // them, 0.8 s without). Then the nodes as built. Elsewhere, the cases' nodes first without the shapes and etas at
+    // fields' values and what only they reach (`leaner`): a merge's case node, past 11 s with all of its 33 instances,
+    // is proven in 0.2 s with 8; a node none of them reads is the same in both passes, its tree kept.)
     const lean = !inTermination.on ? (leaner.size ? specs.map(n => (leaner.has(n.name) ? {...n, insts: leaner.get(n.name)!} : n)) : specs) : specs.map((n, i) => (i < base ? n : {...n, insts: n.insts.filter(q => !(fs.facts[q.fact]!.name.startsWith('shape ') && fieldValue(q.at[0])))}))
     if (lean.some((n, i) => n.insts.length < specs[i]!.insts.length)) {
       // (nine tenths for a law about naturals alone, a size law's or a decrease's, which reads no value's constructor)
@@ -3138,14 +3137,6 @@ function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: n
     last = verdict
     if (nodeTrace && !verdict.proven && new RegExp(nodeTrace).test(verdict.goal)) { const n = specs.find(x => x.name === verdict.goal); if (n) console.error(`[node] ${n.name}: ${verdict.stuck}\n hyps: ${n.hyps.map(showC).join(' ; ')}\n concl: ${showC(n.concl)}\n uses:\n   ${n.uses.map(u => `${specs[u.node]?.name.slice(0, 40)}: ${showC(substC(specs[u.node]!.concl, {vars: u.subst, maps: {}, flags: {}}))} if ${showC(u.guard)}`).join('\n   ')}\n instances:\n   ${n.insts.map(q => `${fs.facts[q.fact]!.name}: ${showC(holdsAt(fs, q))}`).join('\n   ')}`) }
     if (dataTrace) console.error(`[data]   -> ${verdict.proven ? (verdict.checked ? 'proven' : `not checked: ${verdict.why}`) : `${verdict.goal}: ${verdict.stuck}`}`)
-    if (env.DATA_MIN && specs.some(x => new RegExp(env.DATA_MIN!).test(x.name))) {
-      const fi = specs.findIndex(x => new RegExp(env.DATA_MIN!).test(x.name)), T = Number(env.DATA_MIN_T ?? 4000)
-      const tryWith = (insts: NodeSpec['insts'], t: number) => { const sp = specs.map((x, i) => (i === fi ? {...x, insts} : x)); const t0 = clock(); const v = withDeadline(clock() + t, () => proveCyclic(fs.facts, sp)); return {v: v.proven ? 'proven' : `${v.goal === specs[fi]!.name ? '' : v.goal + ': '}${v.stuck}`, ms: Math.round(clock() - t0)} }
-      let cur = [...specs[fi]!.insts]
-      for (let i = cur.length - 1; i >= 0; i--) { const without2 = cur.filter((_, j) => j !== i), r = tryWith(without2, T); const nm = fs.facts[cur[i]!.fact]!.name; if (r.v !== 'proven') console.error(`[min] keep ${nm}: ${showC(holdsAt(fs, cur[i]!)).slice(0, 200)} (${r.v})`); else { console.error(`[min] drop ${nm}: ${showC(holdsAt(fs, cur[i]!)).slice(0, 160)} (${r.v} ${r.ms})`); cur = without2 } }
-      for (const q of cur) console.error(`[min]   ${fs.facts[q.fact]!.name}: ${showC(holdsAt(fs, q)).slice(0, 300)}`)
-      console.error(`[min] ${cur.length} of ${specs[fi]!.insts.length}: ${JSON.stringify(tryWith(cur, 60000))}`)
-    }
     if (!(verdict.proven && verdict.checked) && clock() <= t2 + attemptMs.ms) done.add(key)
     if (verdict.proven && verdict.checked) return {out: {law: l, spec: specs[main]!, nodes: specs}, verdict, scheme: s?.name ?? (without ? 'no induction' : undefined), tried}
   }
@@ -3157,6 +3148,8 @@ function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: n
 // by every random value, smallest first, each named canonically (its variables in order of appearance), none ground,
 // none the law, none that follows by rewriting with smaller ones; and for each predicate the law reads, that a function
 // returning a datatype keeps it (p(x) implies p(f(x, ...)), under a comparison of two naturals where that is needed).
+// (the observers distributed over a builder, below: proven together before the law is tried again)
+const distributed = new WeakSet<DataLaw>()
 export function conjectures(p: Program, l: DataLaw, max = 24, maxSize = 6): DataLaw[] {
   const sortsOf = (s: Sort) => (s instanceof Data ? s.name : s)
   const vars: {name: string, sort: Sort}[] = [...p.datas.flatMap(d => [{name: `${d.name.toLowerCase()}1`, sort: d as Sort}, {name: `${d.name.toLowerCase()}2`, sort: d as Sort}]), {name: 'n1', sort: 'nat'}, {name: 'n2', sort: 'nat'}]
@@ -3335,7 +3328,8 @@ export function conjectures(p: Program, l: DataLaw, max = 24, maxSize = 6): Data
         const {t: ct, vs} = canon([lhs, rhs]), [ca, cb] = ct as [X, X], y: Y = {op: '=', a: ca, b: cb}, text = JSON.stringify(y)
         if (seen.has(text) || text === lawText || JSON.stringify({op: '=', a: cb, b: ca}) === lawText) continue
         seen.add(text)
-        homs.push(lawOf(y, vs, `${showX(ca)} = ${showX(cb)}`))
+        const h = lawOf(y, vs, `${showX(ca)} = ${showX(cb)}`)
+        distributed.add(h); homs.push(h)
       }
     }
   }
@@ -3736,7 +3730,11 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   // (every conjecture against each goal at once: a lemma's uses are found apart from the others')
   const goalHits = new Set<number>(), others = cands.slice(calc.length)
   for (const g of goals) lemmaUsesFor(p2, fs2, others.map((c, i) => ({law: c, node: i, concl: encY(p2, c.holds, new Map())})), g.from, g.insts, [], undefined, goalHits)
-  const matchesGoal = (c: DataLaw) => goalHits.has(others.indexOf(c))
+  // (an observer distributed over one builder the goal reads, over the others too: count through ++ leaves the counts of
+  // quicksort's two filters, which the filters' complement law then joins)
+  const observer = (c: DataLaw) => { const y = c.holds as {b?: X}; let f: string | undefined; walk(y.b, o => { if (!f && o.op === 'call') f = o.fn as string }); return f }
+  const hitObservers = new Set(others.flatMap((c, i) => (goalHits.has(i) && distributed.has(c) ? [observer(c)] : [])))
+  const matchesGoal = (c: DataLaw) => goalHits.has(others.indexOf(c)) || (distributed.has(c) && hitObservers.has(observer(c)))
   // Those the goal matches first, of those the ones of the law's shape (an implication for an implication) first, then
   // the fusions.
   const implication = (y: Y) => y.op === 'or' && y.xs.length === 2 && y.xs[0]!.op === 'not'
@@ -3753,7 +3751,7 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   if (dataTrace) console.error(`[data] ${l.name}: ${cands.length} conjectures at ${Math.round(clock())} of ${Math.round(until)}${cands.map(c => `\n[data]   conjecture ${c.name.slice(0, 160)}`).join('')}`)
   // (the calculated steps first, in their order: each before the one it was calculated from)
   const calcSet = new Set(calc)
-  const ranked = [...calc.map(c => ({c, hit: true})), ...cands.slice(calc.length).map(c => ({c, hit: matchesGoal(c)})).sort((a, b) => score(b.c, b.hit) - score(a.c, a.hit))]
+  const ranked = [...calc.map(c => ({c, hit: true})), ...cands.slice(calc.length).map(c => ({c, hit: matchesGoal(c)})).sort((a, b) => score(b.c, b.hit) - score(a.c, a.hit) || +distributed.has(b.c) - +distributed.has(a.c))]
   if (dataTrace) for (const r of ranked) console.error(`[data]   ranked ${r.hit ? "hit" : "   "} ${r.c.name.slice(0, 150)}`)
   // The lemmas proven: those given (`base`) and those found, each found one a level above the last.
   const proven: Proven[] = [...base], failed = new Set<DataLaw>(), level = () => lv + 1 + proven.length - base.length
@@ -3791,7 +3789,10 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
       for (const q of queue.slice(0, i)) if (failed.has(q.c) && !retried.has(q.c)) { retried.add(q.c); retry.push(q.c) }
       // (as before the passes: again after a lemma the goal reads, or one of the law's shape, an implication for one; a
       // calculated step's after the last of them, whose proofs read each other)
+      // (and one of an observer distributed over a builder before the next of them: quicksort's count needs both ++'s and
+      // the filters')
       if (calcSet.has(c) && !retry.length && i < queue.length && calcSet.has(queue[i]!.c)) continue
+      if (distributed.has(c) && i < queue.length && distributed.has(queue[i]!.c)) { for (const q of retry) retried.delete(q); retry.length = 0; continue }
       if (which === 'hits' || implication(c.holds) === implication(l.holds)) { since = 0; const r2 = again('first'); if (r2) return r2 }
     }
     return since ? again('first') : undefined
