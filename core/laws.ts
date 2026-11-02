@@ -411,7 +411,8 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
   // (self.x, this.x, state.x, @x: the state's x; a bare `state` or `s` is a name of the code's, a field named so)
   const explicit = (['self', 'this', 'state', 's'].includes(e.head) && e.segs.length > 0) || e.head.startsWith('@')
   const parts = [e.head.replace(/^@/, ''), ...e.segs.map(s => ('f' in s ? s.f : undefined))]
-  const heads = explicit && !e.head.startsWith('@') ? [parts.slice(1)] : [parts, ...(parts.length > 1 && parts[1] !== undefined ? [parts.slice(1)] : [])]
+  // (s.x and state.x: the state's x, else a state the code names s or state, a C global's field)
+  const heads = explicit && !e.head.startsWith('@') ? [parts.slice(1), ...(['s', 'state'].includes(e.head) ? [parts] : [])] : [parts, ...(parts.length > 1 && parts[1] !== undefined ? [parts.slice(1)] : [])]
   for (const [hi, p] of heads.entries()) {
     const fields: string[] = []
     for (const s of p) { if (s === undefined) break; fields.push(s) }

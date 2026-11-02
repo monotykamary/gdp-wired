@@ -81,10 +81,12 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
   if (!opts.entry) {
     const names = [...new Set((tu.inner ?? []).filter(n => n.kind === 'RecordDecl' && n.name && n.completeDefinition).map(n => String(n.name)))]
     const ok = names.filter(n => { try { const c = readC(file, n, tu, target, cpp, opts.root); readGo(c.pkg, {methods: c.methods}); return true } catch (e) { if (e instanceof Refusal) return false; throw e } })
+    // (none: the file's globals, where its functions keep the state there)
+    if (!ok.length && !cpp) { const stem = file.replace(/^.*\//, '').replace(/\.[^.]*$/, ''); try { const c = readC(file, stem, tu, target, cpp, opts.root); readGo(c.pkg, {methods: c.methods}); return readCFile(file, {...opts, entry: stem}, cpp) } catch (e) { if (!(e instanceof Refusal)) throw e } }
     if (ok.length !== 1) throw new Refusal(file, ok.length ? `several structs written by the file's functions (${ok.join(', ')}): name one (entry)` : 'no struct the file\'s functions write: name the entry')
     return readCFile(file, {...opts, entry: ok[0]!}, cpp)
   }
-  return {c: readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])]))), flags}
+  return {c: readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])])), (opts.functions ?? opts.methods ?? []).map(f => f.split('/')[0]!)), flags}
 }
 export function extractC(at: string | FileURL, given: COptions = {}, cpp = false): Extraction & {leaves?: GoLeaf[]} {
   const notes: string[] = [], file = pathOf(at), fns = given.methods ?? given.functions, opts: COptions = {...given, ...(fns ? {functions: fns} : {})}
@@ -128,8 +130,9 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
   const pkg = c.pkg, T = (t: number) => ty(pkg, t), q = JSON.stringify, robs: string[] = []
   // A leaf's place: o->a.b in C; in C++ each member through a pointer to it the explicit instantiation of gdp_rob takes
   // (access isn't checked there), so private members are read and set as the class's own code does.
+  const G = c.globals
   const acc = (path: string[]) => {
-    if (!cpp) return `o->${path.join('.')}`
+    if (!cpp || G) return `o->${path.join('.')}`
     let e = '(*o)', t = pkg.types[0]!.t
     for (const f of path) {
       const r = T(t), k = `&${t === pkg.types[0]!.t ? c.cname : r.go}::${f}`
@@ -156,13 +159,15 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
   // (the longest method name the request names, in UTF-8 bytes, its buffer: a name of any length is called)
   const M = Math.max(256, ...read.methods.map(x => new TextEncoder().encode(x.name).length + 1))
   const calls = read.methods.map(meth => {
-    const lines: string[] = [], args: string[] = ['o'], outs: [string, string, number][] = []
+    const lines: string[] = [], args: string[] = ['o'], outs: [string, string, number][] = [], given: [string, string][] = []
     meth.params.forEach((pa, i) => {
+      // (a global the request gives: set before the call, not passed)
+      const push = (a: string) => { if (G?.inputs.includes(pa.name) && i >= meth.params.length - G.inputs.filter(n => meth.params.some(q => q.name === n)).length) given.push([pa.name, a]); else args.push(a) }
       const t = T(pa.t), raw = `gdp_idx(a, ${i})`
       if (pa.arg.k === 'input') {
         lines.push(`${t.go} a${i}; memset(&a${i}, 0, sizeof a${i}); const char *r${i} = ${raw}; if (!r${i}) return "no argument ${i}";`)
         lines.push(t.k === 'int' ? intIn(`a${i}`, `r${i}`, pa.t, `return "argument ${i} outside its type"`) : `a${i} = !strncmp(r${i}, "true", 4);`)
-        args.push(`a${i}`)
+        push(`a${i}`)
       } else if (pa.arg.k === 'rec' && t.k === 'ptr' && T(t.elem!).box) {
         // (an out-parameter: a local of its type, its address given, what is left in it reported)
         const et = T(t.elem!).fields![0]!.t
@@ -175,23 +180,24 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
           const ft = st.fields!.find(g => g.name === f)!.t
           lines.push(`if ((v = gdp_key(r${i}, ${q(f)}))) ${T(ft).k === 'int' ? intIn(`a${i}.${f}`, 'v', ft, `return "argument ${i}.${f} outside its type"`) : `a${i}.${f} = !strncmp(v, "true", 4);`}`)
         }
-        args.push(byValue ? `a${i}` : `&a${i}`)
+        push(byValue ? `a${i}` : `&a${i}`)
       } else lines.push(`return "an argument the harness can't make";`)
     })
     const rt = meth.results[0], fails = opts.fails?.[meth.name]?.trim()
-    const callee = cpp ? `o->${meth.name}(${args.slice(1).join(', ')})` : `${meth.name}(${args.join(', ')})`
+    const callee = G ? `${meth.name}(${args.slice(1).join(', ')})` : cpp ? `o->${meth.name}(${args.slice(1).join(', ')})` : `${meth.name}(${args.join(', ')})`
     const invoke = rt === undefined ? `${callee};` : `${cpp ? 'auto' : T(rt).go} r0 = ${callee}; gdp_has = 1; ${T(rt).k === 'int' ? `gdp_outv = ${T(rt).signed === false ? '(long long)' : ''}r0; gdp_outu = ${T(rt).signed === false ? 1 : 0};` : 'gdp_outb = r0; gdp_isb = 1;'}`
     const failed = fails !== undefined && rt !== undefined ? `if (r0 ${fails.replace(/^(==|!=|<=|>=|<|>)\s*/, '$1 ')}) gdp_err = 1;` : ''
     // (with out-parameters, the result is a record: the value returned and what each holds)
     const rec = outs.length ? `gdp_rec = 1; gdp_putf(",\\"out\\":{"); ${[...(rt !== undefined ? [['result', 'r0', rt] as [string, string, number]] : []), ...outs].map(([n, v, et], j) => `gdp_putf("${j ? ',' : ''}\\"${n}\\":"); ${T(et).k === 'int' ? `gdp_putf(${T(et).signed === false ? '"%llu", (unsigned long long)' : '"%lld", (long long)'}(${v}))` : `gdp_putf("%s", ${v} ? "true" : "false")`};`).join(' ')} gdp_putf("},\\"hasOut\\":true");` : ''
-    return `if (!strcmp(m, ${q(meth.name)})) {\n    ${lines.join('\n    ')}\n    memcpy(gdp_pre, (void *)o, sizeof(gdp_T));\n    int sg = sigsetjmp(gdp_jb, 1);\n    if (!sg) { gdp_armed = 1; ${cpp ? 'try { ' : ''}${invoke} ${failed} gdp_armed = 0; ${rec}${cpp ? ' } catch (...) { gdp_armed = 0; gdp_sig = SIGUSR2; }' : ''} } else gdp_sig = sg;\n    return gdp_after(o);\n  }`
+    const load = G ? `gdp_load(o); ${given.map(([n, a]) => `memcpy((void *)&${n}, (const void *)&${a}, sizeof ${n});`).join(' ')}\n    ` : ''
+    return `if (!strcmp(m, ${q(meth.name)})) {\n    ${lines.join('\n    ')}\n    memcpy(gdp_pre, (void *)o, sizeof(gdp_T));\n    ${load}int sg = sigsetjmp(gdp_jb, 1);\n    if (!sg) { gdp_armed = 1; ${cpp ? 'try { ' : ''}${invoke} ${failed} gdp_armed = 0; ${rec}${cpp ? ' } catch (...) { gdp_armed = 0; gdp_sig = SIGUSR2; }' : ''} } else gdp_sig = sg;\n    ${G ? 'gdp_store(o);\n    ' : ''}return gdp_after(o);\n  }`
   })
   const frameLines = frames.map(l => { const e = acc(l.path); return `if (memcmp((char *)&${e}, (char *)gdp_pre + ((char *)&${e} - (char *)o), sizeof ${e})) return ${q(l.path.join('.'))};` })
   // The object, made as the code makes it: C's zeroed; C++'s constructed (in zeroed memory) with the rule's parameters.
   const cps = read.ctor ?? [], make = `static gdp_T *gdp_make(const char *line, const char **bad) {
   const char *a = gdp_key(line, "a"), *v; (void)a; (void)v;
   ${cps.map((pa, i) => `${T(pa.t).go} c${i}${cpp ? '{}' : ' = 0'}; if (!(v = a ? gdp_idx(a, ${i}) : 0)) { *bad = "no argument ${i}"; return 0; } ${T(pa.t).k === 'int' ? intIn(`c${i}`, 'v', pa.t, `{ *bad = "argument ${i} outside its type"; return 0; }`) : `c${i} = !strncmp(v, "true", 4);`}`).join('\n  ')}
-  void *mem = calloc(1, sizeof(gdp_T));
+  void *mem = calloc(1, sizeof(gdp_T));${G ? '\n  memcpy(mem, &gdp_init, sizeof(gdp_T));' : ''}
   return ${cpp ? `new (mem) gdp_T(${cps.map((_, i) => `c${i}`).join(', ')})` : '(gdp_T *)mem'};
 }`
   return `// Generated by gdp-wired's ${cpp ? 'C++' : 'C'} check (core/extract-c.ts): the file's code is called as it is.
@@ -217,7 +223,13 @@ static long long gdp_answer(const char *name) {
 #include <setjmp.h>
 #include <errno.h>
 ${cpp ? '#include <new>\n#include <type_traits>\n' : '#include <stdbool.h>\n'}
-typedef ${c.cname} gdp_T;
+${G ? `// The file's globals, the state: an object of them each request loads, and stores back after it.
+${G.externs.map(n => `__typeof__(${n}) ${n};`).join('\n')}
+typedef struct { ${G.state.map(n => `${cpp ? `std::remove_cv_t<decltype(${n})>` : `__typeof__(${n})`} ${n};`).join(' ')} } gdp_G;
+static void gdp_load(const gdp_G *o) { ${G.state.map(n => `memcpy((void *)&${n}, (const void *)&o->${n}, sizeof ${n});`).join(' ')} }
+static void gdp_store(gdp_G *o) { ${G.state.map(n => `memcpy((void *)&o->${n}, (const void *)&${n}, sizeof ${n});`).join(' ')} }
+static gdp_G gdp_init;
+` : ''}typedef ${c.cname} gdp_T;
 static unsigned char gdp_pre[sizeof(gdp_T)];
 ${robs.length ? `template <typename Tag, auto M> struct gdp_rob { friend auto gdp_ptr(Tag) { return M; } };\n${robs.map((k, i) => `struct gdp_tag${i} { friend auto gdp_ptr(gdp_tag${i}); };\ntemplate struct gdp_rob<gdp_tag${i}, ${k}>;`).join('\n')}` : ''}
 static char *gdp_buf; static size_t gdp_n, gdp_cap;
@@ -299,7 +311,7 @@ static const char *gdp_call(gdp_T *o, const char *m, const char *a) {
   return "no such function";
 }
 int main(int argc, char **argv) {
-  if (argc == 2 && !strcmp(argv[1], "--probe")) return 0;
+  ${G ? 'gdp_store(&gdp_init);\n  ' : ''}if (argc == 2 && !strcmp(argv[1], "--probe")) return 0;
   if (argc < 3) return 2;
   FILE *in = fopen(argv[1], "r"), *out = fopen(argv[2], "w");
   if (!in || !out) return 2;

@@ -211,7 +211,8 @@ export type RuleOut = {file: string, lang: string, entry?: string, ok: boolean, 
 async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: string, x: Extraction}[]> {
   const got = await rulesOf0(t, o, laws)
   if (o.entry) return got
-  const have = new Set(got.flatMap(r => [r.entry, r.x.model?.name].filter((n): n is string => !!n)))
+  // (a function that is a request of a rule read, a C file's globals', is read with it)
+  const have = new Set(got.flatMap(r => [r.entry, r.x.model?.name, ...(r.x.ok ? (r.x.names ?? []).map(n => n.method) : [])].filter((n): n is string => !!n)))
   const more = [...new Set(laws.map(l => l.cls ?? l.fn).filter((n): n is string => !!n && !have.has(n)))]
   if (!more.length) return got
   const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, env: _e, ...flags} = o
