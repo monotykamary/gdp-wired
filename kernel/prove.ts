@@ -17,7 +17,7 @@ import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
 import {REFUTED, growCdcl} from './cdcl.ts'
 import {type Diagram, type Patterns, decide, pastEprCap, patternsOf} from './epr.ts'
-import {tupleParts} from './kernel.ts'
+import {projected, tupleParts} from './kernel.ts'
 import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, cellParts, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
@@ -1060,7 +1060,12 @@ const shifts = (m: Machine) => Object.values(m.step.maps ?? {}).some(w => 'each'
 // The keys some goals read a map at, and at each map, in one walk.
 function mapReads(goals: Goal[]): {keys: E[], byMap: Map<string, E[]>} {
   const all = new Map<string, E>(), out = new Map<string, Map<string, E>>()
-  const {inC} = eachRead(e => { const id = JSON.stringify(e.key); all.set(id, e.key); if (!out.has(e.map)) out.set(e.map, new Map()); out.get(e.map)!.set(id, e.key) })
+  // (a tuple key: its parts are the keys, each part read back from a tuple as the part; the map's key the tuple of them)
+  const {inC} = eachRead(e0 => {
+    const key = e0.key.op === 'tup' || e0.key.op === 'proj' ? projected(e0.key) : e0.key, id = JSON.stringify(key)
+    for (const p of tupleParts(key)) all.set(JSON.stringify(p), p)
+    if (!out.has(e0.map)) out.set(e0.map, new Map()); out.get(e0.map)!.set(id, key)
+  })
   for (const g of goals) g.hyps.forEach(inC)
   return {keys: [...all.values()], byMap: new Map([...out].map(([mp, ks]) => [mp, [...ks.values()]]))}
 }

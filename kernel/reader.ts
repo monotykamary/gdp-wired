@@ -194,22 +194,31 @@ export class Reader {
       }
       case 'get': {
         // (a tuple key: its parts' forms, the cell M[⟨k1|k2|…⟩], kernel.ts's keyParts)
-        if (e.key.op === 'tup') {
-          const parts = tupleParts(e.key).map(p => (p.op === 'tup' ? undefined : this.linear(p)))
-          r = parts.reduce<R>((acc, p) => (p ? both(acc, p) : acc), R0)
-          lin = parts.every(p => p?.lin) ? same(0, e, 0, 0, 0, () => v(`${e.map}[⟨${parts.map(p => canon(p!.lin!)).join('|')}⟩]`)) : undefined
-          break
+        if (e.key.op === 'tup' || e.key.op === 'proj') {
+          const ps = this.tparts(e.key)
+          if (ps.lins) { r = ps.r; const ls = ps.lins; lin = same(0, e, 0, 0, 0, () => v(`${e.map}[⟨${ls.map(canon).join('|')}⟩]`)); break }
+          if (e.key.op === 'tup') { lin = undefined; r = ps.r; break }
         }
         const key = this.linear(e.key); lin = key.lin && same(0, e, key.lin, 0, 0, () => v(`${e.map}[${canon(key.lin!)}]`)); r = key; break
       }
       case 'tup': lin = undefined; break
-      case 'proj': { if (e.a.op !== 'tup') { lin = undefined; break } const x = this.linear(e.k === 0 ? e.a.a : e.a.b); lin = x.lin; r = x; break }
+      case 'proj': { const ps = this.tparts(e.a); r = ps.r; lin = !ps.lins ? undefined : e.k === 0 ? ps.lins[0] : ps.lins.length === 2 ? ps.lins[1] : undefined; break }
     }
     // (an open value's reason is what its decided parts need: only the column's own value is open)
     const out: LV = {lin, w: r.w, fin: r.fin, pos: r.pos, stamp: r.pos < 0 ? 0 : this.trail.stamp(r.pos), node: this.node}
     this.ls.set(e, out)
     this.clean.add(e)
     return out
+  }
+  // kernel.ts's keyParts: a tuple's parts' forms (proj 1 of one its rest, two or more), with their reason.
+  private tparts(e: E): {lins?: Lin[], r: R} {
+    if (e.op === 'proj') { if (e.k === 0) return {r: R0}; const ps = this.tparts(e.a); return ps.lins && ps.lins.length >= 3 ? {lins: ps.lins.slice(1), r: ps.r} : {r: ps.r} }
+    if (e.op !== 'tup') return {r: R0}
+    const a = this.linear(e.a)
+    if (!a.lin) return {r: a}
+    if (e.b.op !== 'tup') { const b = this.linear(e.b); return b.lin ? {lins: [a.lin, b.lin], r: both(a, b)} : {r: both(a, b)} }
+    const rest = this.tparts(e.b)
+    return rest.lins ? {lins: [a.lin, ...rest.lins], r: both(a, rest.r)} : {r: both(a, rest.r)}
   }
   private atoms(c: Extract<C, {a: E}>): {when: Lin[], unless: Lin[][], r: R} | undefined {
     if (c.a.op === 'tup' || c.b.op === 'tup') return undefined

@@ -6,7 +6,7 @@
 // its refutation read: prove.ts proves the goal over those and widens the tree to the whole, which kernel.ts checks), or
 // a model read back as the kernel's witness and judged on every hypothesis, or nothing.
 import {type C, type E, type Machine, cpair, evalC, tupleParts} from '../core/machine.ts'
-import {type Goal, canon, linear, projectedC} from './kernel.ts'
+import {type Goal, canon, linear, projected, projectedC} from './kernel.ts'
 import {type Constraint, type Lin, env, konst, plus, solve, times, v as tv} from '../core/solver.ts'
 import {Simplex} from './simplex.ts'
 
@@ -904,13 +904,14 @@ function encoder(st: State, patterns: Patterns): Enc {
         const groupOf = new Map<string, number>(); groups.forEach((g, i) => g.forEach(t => groupOf.set(t, i)))
         const tight = new Set(succList.filter(x => val(x.s)).map(x => `${groupOf.get(x.lo)}>${groupOf.get(x.hi)}`))
         const tied = (i: number) => tight.has(`${i}>${i + 1}`)
-        let prev = -1, far = 0
+        let prev = -1, far = 0; const tupled = Object.values(patterns).some(c => c.length > 1 && c[0] === 0)
         for (const [gi, g] of groups.entries()) {
           const c = constOf(g)
           if (Number.isNaN(c)) return {unknown: 'the model\'s order equates two constants'}
           let next = Infinity
           for (const h of groups.slice(gi + 1)) { const d = constOf(h); if (d !== undefined) { next = d; break } }
-          let x = c ?? (next === Infinity && prev > 0 ? (1 << 24) * ++far + 997 * far + prev + 13 : prev + 1)
+          // (a goal with tuple keys spaces its far values less: a tuple of them is their pairing, which must stay exact)
+          let x = c ?? (next === Infinity && prev > 0 ? (tupled ? 64 : 1 << 24) * ++far + (tupled ? 7 : 997) * far + prev + 13 : prev + 1)
           if (c === undefined && next !== Infinity && x % 2 === 0 && x + 1 < next) x++
           if (c === undefined && gi > 0 && tied(gi - 1)) x = prev + 1
           else if (c === undefined) { let k = gi; while (tied(k) && constOf(groups[k + 1]!) === undefined) k++; const d = tied(k) ? constOf(groups[k + 1]!) : undefined; if (d !== undefined) x = d - (k + 1 - gi) }
@@ -926,7 +927,9 @@ function encoder(st: State, patterns: Patterns): Enc {
       for (const [mp, cs] of ordCells) for (const c of cs) { cellVal.set(c.id, ordVal.get(c.id) ?? 0); if (!cells2.has(mp)) cells2.set(mp, []); cells2.get(mp)!.push(c) }
       for (const o of ordOdd) { cellVal.set(o.id, ordVal.get(o.id) ?? 0); odd2.push(o) }
       // every read of the goal, at its key's value under w: the abstraction's value where it has one, else 0
-      const keyVal = (e: E): number | undefined => { const ts: [string, number][] = [], d = {c: 0}; if (!linTerms(e, 1, ts, d)) return undefined; let s = d.c; for (const [x, c] of ts) { if (w[x] === undefined) return undefined; s += c * w[x]! } return s }
+      // (a tuple key's value its parts' pairing; a part read back from a tuple, the part)
+      const keyVal = (e: E): number | undefined => { if (e.op === 'tup') { const ps = tupleParts(e).map(keyVal); if (ps.some(x => x === undefined)) return undefined; try { return ps.slice(0, -1).reduceRight((b: number, a) => cpair(a!, b), ps.at(-1)!) } catch { return undefined } } return keyVal0(e) }
+      const keyVal0 = (e: E): number | undefined => { const ts: [string, number][] = [], d = {c: 0}; if (!linTerms(e, 1, ts, d)) return undefined; let s = d.c; for (const [x, c] of ts) { if (w[x] === undefined) return undefined; s += c * w[x]! } return s }
       // (each function's table at its parts' values)
       for (const {f, n, a} of fnParts) { if (!maps.has(f)) maps.set(f, new Map()); maps.get(f)!.set(w[a]!, w[n]!) }
       // (and at a key of the wrong sort, a value of its own past every value the model gives: an injective function's
@@ -951,7 +954,9 @@ function encoder(st: State, patterns: Patterns): Enc {
       }
       ;[...reads].reverse().forEach(fnOdd)
       for (const [mp, cs] of cells2) for (const c of cs) {
-        const key = patterns[mp]![0] === 0 ? c.parts.slice(0, -1).reduceRight((b, p) => cpair(w[p]!, b), w[c.parts.at(-1)!]!) : c.parts.reduce((s, p, i) => s + w[p]! * (patterns[mp]![i] ?? 1), 0)
+        let key: number
+        try { key = patterns[mp]![0] === 0 ? c.parts.slice(0, -1).reduceRight((b, p) => cpair(w[p]!, b), w[c.parts.at(-1)!]!) : c.parts.reduce((s, p, i) => s + w[p]! * (patterns[mp]![i] ?? 1), 0) }
+        catch { return {unknown: 'a tuple key of the model past 2^53'} }
         if (!maps.has(mp)) maps.set(mp, new Map())
         maps.get(mp)!.set(key, cellVal.get(c.id)!)
       }
@@ -971,7 +976,13 @@ function encoder(st: State, patterns: Patterns): Enc {
       for (const [i, f] of fs.entries()) { tick(); try { if (f.h && !evalC(f.h, env, st2, m)) { return {unknown: `the abstraction's model breaks hypothesis ${i}`} } } catch { return {unknown: 'the model could not be read'} } }
       // the kernel's witness: names, and each cell of the goal by its key's linear form
       const witness: Record<string, number> = {...w}
-      for (const x of reads) { tick(); const l = linear(x.key, new Map()), kv = keyVal(x.key); if (l && kv !== undefined) witness[`${x.map}[${canon(l)}]`] = st2.maps[x.map]?.get(kv) ?? 0 }
+      for (const x of reads) {
+        tick()
+        const key = x.key.op === 'tup' || x.key.op === 'proj' ? projected(x.key) : x.key, kv = keyVal(key)
+        if (kv === undefined) continue
+        if (key.op === 'tup') { const cell = linear({op: 'get', map: x.map, key}, new Map()); if (cell) witness[Object.keys(cell)[0]!] = st2.maps[x.map]?.get(kv) ?? 0; continue }
+        const l = linear(key, new Map()); if (l) witness[`${x.map}[${canon(l)}]`] = st2.maps[x.map]?.get(kv) ?? 0
+      }
       // the structure
       const values = [...new Set([...[...parts].map(x => w[x]), ...[...ordVal].filter(([t]) => !t.startsWith('k:') && !t.includes('#')).map(([, x]) => x)].filter((x): x is number => x !== undefined))].sort((a, b) => a - b), elem = new Map(values.map((x, i) => [x, i]))
       const diagram: Diagram = {elements: values.length, parts: Object.create(null), scalars: Object.create(null), cells: Object.create(null), fns: Object.create(null)}

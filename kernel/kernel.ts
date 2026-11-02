@@ -134,17 +134,20 @@ function linearOp(e: E, path: Path): Lin | undefined {
     }
     case 'if': { const c = truth(e.c, path); return c === undefined ? v(termColumn(e)) : linear(c ? e.then : e.else, path) }
     case 'get': {
-      if (e.key.op === 'tup') { const keys = keyParts(e.key, path); return keys && v(`${e.map}[⟨${keys.map(canon).join('|')}⟩]`) }
+      if (e.key.op === 'tup' || e.key.op === 'proj') { const keys = keyParts(e.key, path); if (keys) return v(`${e.map}[⟨${keys.map(canon).join('|')}⟩]`); if (e.key.op === 'tup') return undefined }
       const key = linear(e.key, path); return key && v(`${e.map}[${canon(key)}]`)
     }
     // A tuple is no linear form (its pairing is not linear); a part of one read back is the part (Lean's linear).
     case 'tup': return undefined
-    case 'proj': return e.a.op === 'tup' ? linear(e.k === 0 ? e.a.a : e.a.b, path) : undefined
+    case 'proj': { const ps = keyParts(e.a, path); return !ps ? undefined : e.k === 0 ? ps[0] : ps.length === 2 ? ps[1] : undefined }
   }
 }
 // A tuple key's parts as linear forms (Lean's `parts`): tup(a, b) is a's form, then b's parts if b is a tuple, else b's
 // form; so tup(tup(a, b), c) has none (its first part is a tuple). A read at it is the cell M[⟨k1|k2|…⟩].
-function keyParts(e: Extract<E, {op: 'tup'}>, path: Path): Lin[] | undefined {
+// A tuple's rest (proj 1 of it) is its parts after the first, while two or more are left (Lean's `parts`).
+function keyParts(e: E, path: Path): Lin[] | undefined {
+  if (e.op === 'proj') { const ps = e.k === 0 ? undefined : keyParts(e.a, path); return ps && ps.length >= 3 ? ps.slice(1) : undefined }
+  if (e.op !== 'tup') return undefined
   const a = linear(e.a, path)
   if (!a) return undefined
   if (e.b.op !== 'tup') { const b = linear(e.b, path); return b && [a, b] }
@@ -803,7 +806,9 @@ const machineTermsOf = (m: Machine): unknown[] => [m.state, m.step, m.pre, m.ass
 // the key the tuple of them and each part read back (proj of a tuple its part), so it reads the parts as bound keys.
 export function eachParts(w: {each: string, value: E}, n: number): {names: string[], value: E} {
   const names = Array.from({length: n}, (_, i) => `${w.each}$${i + 1}`)
-  const at = substE(w.value, {vars: {[w.each]: tuple(names.map((name): E => ({op: 'var', name})))}, maps: {}, flags: {}})
+  // (the flags it reads left as they are)
+  const flags: Record<string, C> = Object.fromEntries([...JSON.stringify(w.value).matchAll(/"op":"flag","name":"((?:[^"\\]|\\.)*)"/g)].map(m => [JSON.parse(`"${m[1]}"`), {op: 'flag', name: JSON.parse(`"${m[1]}"`)} as C]))
+  const at = substE(w.value, {vars: {[w.each]: tuple(names.map((name): E => ({op: 'var', name})))}, maps: {}, flags})
   return {names, value: projected(at)}
 }
 // proj of a tuple read as its part, throughout.

@@ -10,6 +10,7 @@
 // Each port has its correspondence beside it (`file`, and what differs), a broken variant (`bug`), `bad` (the safety
 // property broken, read on the check's instance) and `check` (the instance and its TLC cfg; check.ts, tlc.py).
 import {type Term, all, any, everyKey, exists, forall, nat, no, oneOf, rule, when, yes} from '../../../core/dsl.ts'
+import {cpair} from '../../../core/machine.ts'
 import {N, type Protocol, type Read, below, few, lt, majority, majorityWitness, pk, pk3, range, rel, relTrue} from './common.ts'
 
 type Bug = string | undefined
@@ -26,6 +27,8 @@ const withMajority = (size: number) => (i: Record<string, any>) => {
   return [{...rest, ...majorityWitness(q)}]
 }
 const twoDistinct = (r: Read, map: string, keys: number[]) => keys.filter(k => r.cell(map, k)).length > 1
+// pending's cells over n nodes, as the phased port lists them (ps, pd, s, d in that order)
+const quads = (r: Read, n: number) => range(n).flatMap(a => range(n).flatMap(b => range(n).flatMap(c => range(n).map(d => r.cell('P', tk(a, b, c, d))))))
 
 // --- tla-consensus: Consensus.tla. chosen ⊆ Value; Next: chosen = {} ∧ chosen' = {v}. Inv: Cardinality(chosen) <= 1,
 // which over a set is ∀ a, b ∈ chosen: a = b.
@@ -581,6 +584,85 @@ const learningSwitchI4 = (bug?: Bug) => rule('learning switch i4')
     }
   })
 
+// --- the switches over relations (gen/laneRL): each relation of the spec a relation of the rule (`.relations`, a map
+// keyed by tuples the kernel compares part by part, never by arithmetic), so each action is one step, no phase: the
+// table write row src := row src ∪ {<<src, x, y>> : <<src, x, sw1>> ∈ table ∧ <<src, sw0, y>> ∈ table} is one write at
+// every tuple, pending's writes too. Node is 0 .. size − 1 still (Forward reads \A w \in Node and adds a pending tuple for
+// every d \in Node), so a place the spec ranges over whole is compared with size; T holds the table off its diagonal (Init
+// puts the diagonal in and it stays: <<t, x, x>> is x = x), as the phased ports' T does. Each agrees with the phased port
+// on random requests (agree.ts), the phase's rows run to the end after each of its actions.
+export const tabR = (T: any, t: Term, x: Term, y: Term) => x.eq(y).or(T.has(t, x, y))
+// The table after src learns sw1 through sw0 (the bug: the route back too, <<src, sw0, sw1>>).
+const learnT = (T: any, learns: any, size: Term, src: Term, sw0: Term, sw1: Term, back = false) => T.union((t: Term, x: Term, y: Term) =>
+  learns.and(t.eq(src), x.eq(y).not(), x.lt(size), y.lt(size), tabR(T, src, x, sw1).and(tabR(T, src, sw0, y)).or(back ? x.eq(sw0).and(y.eq(sw1)) : no)))
+const learningSwitchR = (bug?: Bug) => rule('learning switch')
+  .params({size: nat}).pre(({size}) => size.atLeast(1).and(size.atMost(N)))
+  .sorts('Node').relations({T: ['Node', 'Node', 'Node'], P: ['Node', 'Node', 'Node', 'Node']})
+  .inputs({op: oneOf('new_packet', 'forward'), ps: nat, pd: nat, sw0: nat, sw1: nat, nondet: nat})
+  .assume(({ps, pd, sw0, sw1, nondet, size}) => below(size, ps, pd, sw0, sw1, nondet))
+  .flags(({ps, sw1, size, T}: any) => ({noRoute: everyKey(w => w.lt(size).implies(w.eq(sw1).or(T.has(ps, sw1, w).not())))}))
+  .flags(({op, ps, pd, sw0, sw1, noRoute, P}: any) => {
+    const forwards = op.is('forward').and(P.has(ps, pd, sw0, sw1))
+    return {news: op.is('new_packet'), forwards, learns: forwards.and(ps.eq(sw1).not(), bug ? yes : noRoute)}
+  })
+  .step(({ps, pd, sw0, sw1, nondet, size, news, forwards, learns, T, P}: any) => ({
+    T: learnT(T, learns, size, ps, sw0, sw1),
+    P: P.each((a: Term, b: Term, c: Term, d: Term) => when(news, P.has(a, b, c, d).or(a.eq(ps).and(b.eq(pd), c.eq(ps), d.eq(ps))),
+      when(forwards, a.eq(nondet).and(P.has(a, b, c, d)).or(a.eq(ps).and(b.eq(pd), c.eq(sw1), d.lt(size))), P.has(a, b, c, d)))),
+  }))
+const learningSwitchI4R = (bug?: Bug) => rule('learning switch i4')
+  .params({size: nat, packets: nat}).pre(({size, packets}) => size.atLeast(1).and(size.atMost(N), packets.atMost(N)))
+  .sorts('Packet', 'Node').relations({Pend: ['Packet', 'Node', 'Node'], Dom: ['Node', 'Node'], T: ['Node', 'Node', 'Node']})
+  .inputs({op: oneOf('src', 'dst', 'link', 'start', 'new_packet', 'flood', 'route'), p: nat, sw0: nat, sw1: nat, sw2: nat})
+  .assume(({p, sw0, sw1, sw2, size, packets}) => p.lt(packets).and(below(size, sw0, sw1, sw2)))
+  .state({started: 0})
+  .maps({Src: 0, Dst: 0, Link: 0})
+  .flags(({p, sw1, sw2, size, packets, Src, Dst, Link, T}: any) => {
+    const d = Dst.at(p).minus(1)
+    return {
+      total: everyKey(q => q.lt(packets).implies(Src.at(q).atLeast(1).and(Dst.at(q).atLeast(1)))),
+      linked: everyKey(x => x.lt(size).implies(Link.at(x).atLeast(1))),
+      below2: everyKey(z => z.lt(size).implies(z.eq(sw1).or(T.has(d, sw1, z).not(), tabR(T, d, sw2, z)))),
+    }
+  })
+  .flags(({op, p, sw0, sw1, sw2, started, total, linked, below2, Src, Dst, Pend, Dom, T}: any) => {
+    const s = Src.at(p).minus(1), d = Dst.at(p).minus(1), live = started.eq(1)
+    const floods = op.is('flood').and(live, Pend.has(p, sw0, sw1), Dom.has(d, sw1).not())
+    const routes = op.is('route').and(live, Pend.has(p, sw0, sw1), Dom.has(d, sw1), tabR(T, d, sw1, sw2), sw1.eq(sw2).not(), below2)
+    return {
+      setup: started.eq(0), starts: op.is('start').and(started.eq(0), total, linked), news: op.is('new_packet').and(live),
+      floods, routes, learns: floods.or(routes).and(Dom.has(s, sw1).not(), s.eq(sw1).not()), cond2: d.eq(sw1).not(),
+    }
+  })
+  .step(({op, p, sw0, sw1, sw2, size, setup, starts, news, floods, routes, learns, cond2, started, Src, Dst, Link, Pend, Dom, T}: any) => {
+    const src = Src.at(p).minus(1)
+    return {
+      started: when(starts, 1, started),
+      Src: Src.set(p, when(setup.and(op.is('src')), sw0.plus(1), Src.at(p))),
+      Dst: Dst.set(p, when(setup.and(op.is('dst')), sw0.plus(1), Dst.at(p))),
+      Link: Link.each((k: Term) => when(setup.and(op.is('link'), sw0.eq(sw1).not(), Link.at(sw0).eq(0), Link.at(sw1).eq(0)), when(k.eq(sw0), sw1.plus(1), when(k.eq(sw1), sw0.plus(1), Link.at(k))), Link.at(k))),
+      Dom: Dom.add([src, sw1], learns),
+      T: learnT(T, learns, size, src, sw0, sw1, !!bug),
+      Pend: Pend.each((q: Term, x: Term, y: Term) => when(news.and(q.eq(p), x.eq(src), y.eq(src)), yes,
+        when(floods.and(cond2, q.eq(p), x.eq(sw1), y.lt(size)), y.eq(Link.at(sw1).minus(1)).and(y.eq(sw0).not()),
+          when(routes.and(cond2, q.eq(p), x.eq(sw1), y.eq(sw2)), yes, Pend.has(q, x, y))))),
+    }
+  })
+// A tuple key's natural (core/machine.ts's cpair, nested to the right), for reading a relation's cells.
+export const tk = (...xs: number[]) => xs.slice(0, -1).reduceRight((b, a) => cpair(a, b), xs.at(-1)!)
+const tableBadR = (r: Read, n: number) => {
+  const t3 = (t: number, x: number, y: number) => x === y || r.cell('T', tk(t, x, y)) === 1, P = range(n)
+  return P.some(t => P.some(x => P.some(y => P.some(z => (t3(t, x, y) && t3(t, y, z) && !t3(t, x, z)) || (x !== y && t3(t, x, y) && t3(t, y, x))
+    || (t3(t, x, y) && t3(t, x, z) && !t3(t, y, z) && !t3(t, z, y))))))
+}
+const tableCellsR = (r: Read, n: number) => range(n).flatMap(t => range(n).flatMap(x => range(n).map(y => (x === y ? 1 : r.cell('T', tk(t, x, y))))))
+const tableSafeR = (r: any, what: string, idle: (env: any) => any) => [
+  r.law(`${what} transitive`, (env: any) => forall((t, x, y, z) => idle(env).and(below(env.size, t, x, y, z), tabR(env.T, t, x, y), tabR(env.T, t, y, z)).implies(tabR(env.T, t, x, z)))),
+  r.law(`${what} antisymmetric`, (env: any) => forall((t, x, y) => idle(env).and(below(env.size, t, x, y), tabR(env.T, t, x, y), tabR(env.T, t, y, x)).implies(x.eq(y)))),
+  r.law(`${what} a chain above each node`, (env: any) => forall((t, x, y, z) => idle(env).and(below(env.size, t, x, y, z), tabR(env.T, t, x, y), tabR(env.T, t, x, z)).implies(tabR(env.T, t, y, z).or(tabR(env.T, t, z, y))))),
+]
+export const phased = {learningSwitch, learningSwitchI4}
+
 // --- pyv-paxos-epr: mypyvy's paxos_epr.pyv (README.md: Endive's paxos_epr.tla is faulty), transcribed to TLA+ for TLC
 // below (paxosTla). Node is 0 .. size − 1, the quorums its majorities (the axiom's intersection by counting, as every
 // port's Quorum); rounds and values the naturals below N, `none` a round (a param), le the order. one_a(r) OneA[r];
@@ -904,21 +986,21 @@ export const protocols: Protocol[] = [
       project: r => [['VoteRequestMsg', 'VoteMsg', 'Votes'].map(m => cells(r, m, pairs(N3, N3))), cells(r, 'Voted', N3), cells(r, 'Leader', N3), cells(r, 'Decided', pairs(N3, N2))],
       tlc: tlc('consensus_epr', `${consts({Node: nodes(3), Value: nodes(2, 'v')})}  Quorum = {{n1, n2}, {n2, n3}, {n1, n3}, {n1, n2, n3}}\n`, 'Safety')}},
   {id: 'learning_switch', ic3syn: 'pyv-learning-switch', file: 'learning_switch.tla', source: 'Endive benchmarks/learning_switch.tla (mypyvy\'s)',
-    safety: 'table(t, ·, ·) reflexive, transitive, antisymmetric, its successors a chain', make: learningSwitch, bug: 'forward learns without the no-route check',
-    laws: r => tableSafe(r, 'the table is', ({busy}: any) => busy.eq(0)),
-    bad: r => r.scalar('busy') === 0 && tableBad(r, 3),
-    check: {params: {size: 3}, inputs: {op: range(3), ps: N3, pd: N3, sw0: N3, sw1: N3, nondet: N3}, uses: [['ps', 'pd'], ['ps', 'pd', 'sw0', 'sw1', 'nondet'], []],
-      keep: r => r.scalar('busy') === 1 || N3.flatMap(a => triples(N3, N3, N3).map(k => r.cell('P', a * N * N * N + k))).filter(Boolean).length < 5,
-      project: r => r.scalar('busy') ? undefined : [tableCells(r, 3), N3.flatMap(a => triples(N3, N3, N3).map(k => r.cell('P', a * N * N * N + k)))],
+    safety: 'table(t, ·, ·) reflexive, transitive, antisymmetric, its successors a chain', make: learningSwitchR, bug: 'forward learns without the no-route check',
+    laws: r => tableSafeR(r, 'the table is', () => yes),
+    bad: r => tableBadR(r, 3),
+    check: {params: {size: 3}, inputs: {op: range(2), ps: N3, pd: N3, sw0: N3, sw1: N3, nondet: N3}, uses: [['ps', 'pd'], ['ps', 'pd', 'sw0', 'sw1', 'nondet']],
+      keep: r => quads(r, 3).filter(Boolean).length < 5,
+      project: r => [tableCellsR(r, 3), quads(r, 3)],
       tlc: tlc('learning_switch', consts({Node: nodes(3)}), 'Safety', 'CONSTRAINT StateConstraint\n')}},
   {id: 'learning_switch_i4', ic3syn: 'i4-learning-switch', file: 'learning_switch_i4.tla', source: 'Endive benchmarks/learning_switch_i4.tla (I4\'s)',
-    safety: 'route_tc(n, ·, ·) reflexive, transitive, antisymmetric, its successors a chain', make: learningSwitchI4, bug: 'a route learned both ways',
-    laws: r => tableSafe(r, 'route_tc is', ({started, busy}: any) => started.eq(1).and(busy.eq(0))),
-    bad: r => r.scalar('started') === 1 && r.scalar('busy') === 0 && tableBad(r, 4),
-    check: {params: {size: 4, packets: 1}, inputs: {op: range(8), p: [0], sw0: N4, sw1: N4, sw2: N4},
-      uses: [['p', 'sw0'], ['p', 'sw0'], ['sw0', 'sw1'], [], ['p'], ['p', 'sw0', 'sw1'], ['p', 'sw0', 'sw1', 'sw2'], []],
-      project: r => r.scalar('started') && !r.scalar('busy') ? [cells(r, 'Src', [0]), cells(r, 'Dst', [0]), cells(r, 'Link', N4), cells(r, 'Dom', pairs(N4, N4)),
-        cells(r, 'Pend', triples([0], N4, N4)), tableCells(r, 4)] : undefined,
+    safety: 'route_tc(n, ·, ·) reflexive, transitive, antisymmetric, its successors a chain', make: learningSwitchI4R, bug: 'a route learned both ways',
+    laws: r => tableSafeR(r, 'route_tc is', ({started}: any) => started.eq(1)),
+    bad: r => r.scalar('started') === 1 && tableBadR(r, 4),
+    check: {params: {size: 4, packets: 1}, inputs: {op: range(7), p: [0], sw0: N4, sw1: N4, sw2: N4},
+      uses: [['p', 'sw0'], ['p', 'sw0'], ['sw0', 'sw1'], [], ['p'], ['p', 'sw0', 'sw1'], ['p', 'sw0', 'sw1', 'sw2']],
+      project: r => r.scalar('started') ? [cells(r, 'Src', [0]), cells(r, 'Dst', [0]), cells(r, 'Link', N4), N4.flatMap(x => N4.map(y => r.cell('Dom', tk(x, y)))),
+        N4.flatMap(x => N4.map(y => r.cell('Pend', tk(0, x, y)))), tableCellsR(r, 4)] : undefined,
       tlc: tlc('learning_switch_i4', consts({Node: nodes(4), Packet: ['p1']}), 'Safety')}},
   {id: 'paxos_epr', ic3syn: 'pyv-paxos-epr', file: 'paxos_epr.pyv', source: 'mypyvy examples/pd/paxos_epr.pyv (12a8f54; Endive benchmarks/paxos_epr.tla is faulty)',
     safety: 'decision(R1, V1) & decision(R2, V2) -> V1 = V2', make: paxos, bug: 'propose without the votes check',
