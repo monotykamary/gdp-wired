@@ -106,4 +106,10 @@ const JQUOTER = `public class Quoter {
   expect(v['a half never rounds up']!.verdict).toBe('broken')
   const p = Number(/p=(-?\d+)/.exec(v['a half never rounds up']!.run!.at(-1)!)![1])
   expect(Math.round(p / 10) * 10 - p).toBe(5)
+  // (Math.round of an integer, an integer division's say: javac's round(float), the argument a float of 24 bits first:
+  // itself below 2^24, an edge past it)
+  const g = `${dir}/Ten.java`
+  writeFileSync(g, 'public class Ten {\n    private long q = 0;\n\n    public void quote(long p) {\n        q = Math.round(p / 10) * 10;\n    }\n}\n')
+  const {rules: r2} = await check([g], {ms: 5_000, propose: false})
+  expect(r2[0]!.refusals).toEqual([])
 }, 300_000)

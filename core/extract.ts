@@ -18,7 +18,7 @@
 // read the same way (`extractXState`, a machine or a function that makes one, its actors, timers and eventless
 // transitions included).
 //
-// The subset: numbers (integers: a literal that isn't one is refused; division only as Math.floor, ceil, round, trunc of
+// The subset: numbers (integers: a literal that isn't one is refused; division only as Math.floor, ceil or trunc of
 // x / k for a constant k, a fraction being a binary float the code rounds; % by a constant of a natural), booleans,
 // string-literal unions, strings (set, compared, truthy where not empty), null and undefined where a value may be
 // missing, records and nested records (spreads, shorthand), Map and Record state keyed by numbers or strings (get,
@@ -300,10 +300,15 @@ function builderOf(m: Model, sorts: Sorts): string {
         const held = I.or(I.not(I.cmp('<', iv, cnt)), heldAt(ordAt(iv)))
         const all = I.or(I.not(g.held), I.and(I.cmp('<', place, cnt), same(byAt(ordAt(place)), g.by)))
         sorts.set('j$', 'nat')
-        // (two items that tie under the order: no list of keys is increasing, so the rule refuses there, an edge)
-        for (const [vs, c] of [['i$, j$', inc], ['i$', held], ['kl$', all]] as const) {
-          const t = `everyKey((${vs}) => ${pb(c, P, ctx())})`
-          const e = envOf(c).slice(1, -1).split(', ').filter(n => Boolean(n) && n !== 'j$')
+        // (two held keys at one place are one: with the list increasing, every held key is at the place of its own, and
+        // two items that tie under the order have no list, so the rule refuses there, an edge the check counts apart)
+        const rkAt = (x: N): N => ({op: 'cell', map: g.rk, key: {op: 'num', e: x}, field: '$item'})
+        const one = I.or(I.not(I.and(g.held, heldAt(jv), I.cmp('=', rkAt(kv), rkAt(jv)))), I.cmp('=', kv, jv))
+        // (all of it only where the loop runs: the request its method's, on its branch)
+        const gate = l.entry && !(l.entry.op === 'const' && l.entry.v) ? l.entry : undefined
+        for (const [vs, c] of [['i$, j$', inc], ['i$', held], ['kl$', all], ['kl$, j$', one]] as const) {
+          const t0 = `everyKey((${vs}) => ${pb(c, P, ctx())})`, t = gate ? `any(${pb(I.not(gate), P, ctx())}, ${t0})` : t0
+          const e = envOf(c, ...(gate ? [gate] : [])).slice(1, -1).split(', ').filter(n => Boolean(n) && n !== 'j$')
           lines.push(`  .assume((${withChoices(`{${[...new Set([...e, g.ord, `${g.ord}_len`])].join(', ')}}`, t, P)}) => ${t})`)
         }
       }

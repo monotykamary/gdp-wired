@@ -275,6 +275,7 @@ export class Stepper {
   // out; drainSetup: an order read over the state before the step)
   drain?: {i: N, back: boolean, entry: Path, map?: {name: string, id: string}, dir?: boolean, empty?: string, rank?: Map<string, Ranking>, run?: string}
   drainSetup = 0
+  drainAgain = false
   readonly initHeap = new Map<string, Obj>()
   readonly storeMaps = new Map<string, {store: string, tpl: string, id: string, decl: MapDecl, json?: JField[], choice?: boolean}>()
   // The least keys the step reads (an ordered collection's first or last item, its min or max by a key), each once.
@@ -633,11 +634,14 @@ export class Stepper {
     }
     // (a pass that keeps its item where the condition holds again: the code's next pass takes the same item, the rule's
     // the next one; the rule refuses there, which the check sees where the code reaches it)
+    // (and a pass that keeps its item ends the loop: the code's next condition reads that item again, false or refused)
+    let kept: B = I.F
     for (const e of goes) {
       const it = itemOf(e)
       if (it.has.op === 'const' && !it.has.v) continue
-      this.drain = dr
-      try { const [again] = this.truth(s.c as SX, e); const w = I.and(this.cond(e), it.has, again); if (!(w.op === 'const' && !w.v)) { this.refusals.push(w); this.notes.add(`${s.p}: a pass of the loop over ${d.name} that keeps its item where the condition holds again is refused (the next pass would take it again)`) } } finally { this.drain = undefined }
+      kept = I.or(kept, I.and(...e.pc, it.has))
+      this.drain = dr; this.drainAgain = true
+      try { const [again] = this.truth(s.c as SX, e); const w = I.and(this.cond(e), it.has, again); if (!(w.op === 'const' && !w.v)) { this.refusals.push(w); this.notes.add(`${s.p}: a pass of the loop over ${d.name} that keeps its item where the condition holds again is refused (the next pass would take it again)`) } } finally { this.drain = undefined; this.drainAgain = false }
     }
     const F = I.or(...this.fails), Rf = I.or(...this.refusals.splice(saved.refusals))
     this.fails = saved.fails; this.failPaths = saved.failPaths
@@ -655,7 +659,7 @@ export class Stepper {
       if (sortOfV(nx)?.k !== v.sort.k) refuse(s, `${v.name}: ${nx.t === 'opaque' ? nx.why : `a ${nx.t}`} after a pass of the loop`)
       step[v.name] = iteTerm(runs, termOfV(nx, s), termOfV(locals.get(v.name)!, s))
     }
-    step.__done = {s: 'bool', e: I.or(doneIn, I.and(I.not(idle), I.or(I.not(c!), R, Br, F, Rf)))}
+    step.__done = {s: 'bool', e: I.or(doneIn, I.and(I.not(idle), I.or(I.not(c!), R, Br, F, Rf, kept)))}
     // (the item each pass leaves: whether it wrote it, held or taken out, and its fields, at the pass's own place)
     const ways = [...(brk ? [[Br, brk] as const] : []), ...(retJ ? [[R, retJ] as const] : [])], lastOn = on ? itemOf(on) : undefined
     let item = lastOn ?? {w: I.F, has: I.F, vals: this.baseCell(o0.decl, {op: 'num', e: i}).vals}
@@ -686,7 +690,7 @@ export class Stepper {
     q.heap.set(d.id, {...o0, ew: {key: {op: 'num', e: k}, has: I.bite(wrote, (cellV(run, ko, '__h', {k: 'bool'}) as {e: B}).e, base.has), vals: new Map([...base.vals].map(([fn, v]) => [fn, this.ite(wrote, cellV(run, ko, `__f__${fn}`, o0.decl.fields.find(x => x.name === fn)!.sort), v, s)]))}})
     const endDone = at('__done', end).e
     if (!no(F)) { if (this.tries.length) refuse(s, 'a failure in a loop inside a try'); this.fail(q, at('__failed', end).e, s, `a failure in a pass of the loop over ${d.name}`, null); q = this.assume(q, I.not(at('__failed', end).e)) }
-    if (!no(Rf)) { this.refuseWhere(q, at('__refused', end).e, s, `a refusal in a pass of the loop over ${d.name}`); q = this.assume(q, I.not(at('__refused', end).e)) }
+    if (!no(Rf)) { this.refusals.push(I.and(this.cond(q), at('__refused', end).e)); q = this.assume(q, I.not(at('__refused', end).e)) }
     const rets: [Path, V][] = []
     if (!no(R)) { rets.push([{...q, pc: [...q0.pc, at('__returned', end).e]}, at('__ret', end)]); q = this.assume(q, I.not(at('__returned', end).e)) }
     // Where the passes ran out of items (none ended the loop): the condition once more, the collection empty.
@@ -753,14 +757,14 @@ export class Stepper {
         if (o.w && d.order) for (const fn of orderFields(d.order.by, d.decl)) {
           const a = vals.get(fn)!, b = d.view.get(fn)!
           if (keyV(a) === keyV(b) || !('e' in a) || !('e' in b)) continue
-          const w = I.and(this.cond(e), held, I.not(a.t === 'num' && b.t === 'num' ? I.cmp('=', a.e, b.e) : a.t === 'bool' && b.t === 'bool' ? I.bite(a.e, b.e, I.not(b.e)) : I.F))
-          if (!(w.op === 'const' && !w.v)) { this.refusals.push(w); this.notes.add(`${s.p}: a pass of the loop over ${d.name} that changes ${fn} (its order) of an item it keeps is refused`) }
+          const w = I.and(this.cond(e), d.exists, I.not(a.t === 'num' && b.t === 'num' ? I.cmp('=', a.e, b.e) : a.t === 'bool' && b.t === 'bool' ? I.bite(a.e, b.e, I.not(b.e)) : I.F))
+          if (!(w.op === 'const' && !w.v)) { this.refusals.push(w); this.notes.add(`${s.p}: a pass of the loop over ${d.name} that changes ${fn} (its order) of its item is refused`) }
         }
         L.set(`${d.name}__a`, {t: 'num', e: I.nite(out, I.add(d.a, I.num(1)), d.a)}); L.set(`${d.name}__ld`, {t: 'bool', e: held})
         for (const fd of d.decl.fields) L.set(`${d.name}__f__${fd.name}`, this.ite(held, vals.get(fd.name)!, d.cur.get(fd.name)!, s))
         if (goes.includes(e)) {
-          this.drain = dr
-          try { const [again] = this.truth(s.c as SX, e); const w = I.and(this.cond(e), held, again); if (!(w.op === 'const' && !w.v)) { this.refusals.push(w); this.notes.add(`${s.p}: a pass of the loop over ${d.name} that keeps its item where the condition holds again is refused (the next pass would take it again)`) } } finally { this.drain = undefined }
+          this.drain = dr; this.drainAgain = true
+          try { const [again] = this.truth(s.c as SX, e); const w = I.and(this.cond(e), held, again); if (!(w.op === 'const' && !w.v)) { this.refusals.push(w); this.notes.add(`${s.p}: a pass of the loop over ${d.name} that keeps its item where the condition holds again is refused (the next pass would take it again)`) } } finally { this.drain = undefined; this.drainAgain = false }
         }
       }
     }
@@ -801,7 +805,7 @@ export class Stepper {
     if (!no(F)) { flag('__failed', F); step.__failed = {s: 'bool', e: F} }
     if (!no(Rf)) { flag('__refused', Rf); step.__refused = {s: 'bool', e: Rf} }
     const len = I.nvar(this.newVar(`${run}_n`, {k: 'num'}, 'input', 'the passes of a loop (the run carries one more)').name)
-    this.folds.push({list: [...rk.keys()].join(','), run, fields, init, step, len, loop: {like, cond: I.and(c!, I.not(doneAt(i))), drains, entry: this.cond(q0)}})
+    this.folds.push({list: [...rk.keys()].join(','), run, fields, init, step, len, loop: {like, cond: I.and(c!, I.not(doneAt(i))), drains, entry: I.and(this.sel, this.cond(q0))}})
     // After the loop: each running value its cell at the length; each list written at every key.
     let q: Path = {...q0, locals: new Map(q0.locals), heap: new Map(q0.heap), called: [...new Set([q0.called, ...f.rets.map(r => r[0].called), ...(on ? [on.called] : []), ...(brk ? [brk.called] : [])].flat())]}
     for (const v of fields) if (!FLAGS.includes(v.name) && !v.name.includes('__')) q.locals.set(v.name, at(v.name, len))
@@ -814,7 +818,9 @@ export class Stepper {
       q.heap.set(d.id, {...o0, ew: {key: k, has: I.and(base.has, I.not(out)), vals}})
     }
     if (!no(F)) { if (this.tries.length) refuse(s, 'a failure in a loop inside a try'); this.fail(q, at('__failed', len).e, s, 'a failure in a pass of the loop', null); q = this.assume(q, I.not(at('__failed', len).e)) }
-    if (!no(Rf)) { this.refuseWhere(q, at('__refused', len).e, s, 'a refusal in a pass of the loop'); q = this.assume(q, I.not(at('__refused', len).e)) }
+    // (a pass the rule refuses: outside the claim (an item it keeps where the condition holds again, an order field it
+    // changes), whatever the passes wrote)
+    if (!no(Rf)) { this.refusals.push(I.and(this.cond(q), at('__refused', len).e)); q = this.assume(q, I.not(at('__refused', len).e)) }
     if (no(R)) return {live: q, rets: []}
     const ret = q
     q = this.assume(q, I.not(at('__returned', len).e))
@@ -865,6 +871,9 @@ export class Stepper {
   // A least read of a collection a while loop's passes take items of: the pass's own item (its place or key), the
   // collection's own order only (the first from either end); in the pass after the passes ran out, none.
   drainLeast(o: Extract<Obj, {k: 'map'}>, at: SX, where: (k: K) => B, by: (k: K) => {e: N, desc?: boolean}[]): {key: N, some: B, held: B, where: (k: K) => B} {
+    // (the list read again after the pass may have taken its item out: refused, the pass's item is the one it took; the
+    // condition read once more at the pass's end is the next pass's, on the same item)
+    if (!this.drainAgain && (o.pre?.length || (o.w && !(o.w.has.op === 'const' && o.w.has.v)))) return refuse(at, `${at.text}: ${o.decl.name} read again in a pass of the loop after the pass took its item out`)
     if (this.drain!.rank) return this.rankLeast(o, at, where, by)
     // (a dict's keys in order: the passes would run over every number up to the greatest key, refused)
     if (!o.decl.ordered) return refuse(at, `${at.text}: a dict's keys taken in order in a loop (the subset reads a loop over a list of the state)`)
@@ -960,7 +969,7 @@ export class Stepper {
       const i = this.initHeap.get(id)
       if (!i || ('origin' in o && o.origin !== 'state')) continue
       // (a write a condition makes, nx's, on a path where that condition is false: none)
-      if (o.k === 'map' ? (!!o.w && !(o.w.on && p.pc.some(c => I.same(c, I.not(o.w!.on!))))) || (!!o.nil && I.keyOf(o.nil) !== I.keyOf((i as typeof o).nil!)) : o.k === 'list' ? o.ops.length > 0 : keyV(o) !== keyV(i)) return true
+      if (o.k === 'map' ? !!o.ew || (!!o.w && !(o.w.on && p.pc.some(c => I.same(c, I.not(o.w!.on!))))) || (!!o.nil && I.keyOf(o.nil) !== I.keyOf((i as typeof o).nil!)) : o.k === 'list' ? o.ops.length > 0 : keyV(o) !== keyV(i)) return true
     }
     return false
   }
@@ -997,6 +1006,14 @@ export class Stepper {
     }
     if (a.k === 'map' && b.k === 'map') {
       const base = (key: K) => this.baseCell(a.decl, key), ite = (c2: B, x: V, y: V) => this.ite(c2, x, y, at)
+      // (a write at every key on one path or both: each key's cell by the condition, the other path's as it was)
+      if (a.ew || b.ew) {
+        const sig = (w?: CellWrite) => (w ? keyV({h: w.has, v: [...w.vals]} as never) : '')
+        if ((a.w || a.pre?.length || b.w || b.pre?.length) && sig(a.ew) !== sig(b.ew)) return refuse(at, 'a collection a loop wrote at every key on one path and at one key on another')
+        const k: K = {op: 'num', e: I.nvar('k$')}, ea: CellWrite = a.ew ?? {key: k, ...base(k)}, eb: CellWrite = b.ew ?? {key: k, ...base(k)}
+        if (sig(ea) !== sig(eb)) return {...a, ew: {key: k, has: I.bite(c, ea.has, eb.has), vals: new Map([...ea.vals].map(([f, v]) => [f, ite(c, v, eb.vals.get(f)!)]))}}
+        if (!a.w && !b.w) return {...a, ew: ea}
+      }
       // (several keys written: both paths' writes padded to one length, each place by the condition)
       const [la, lb] = padWrites([[...(a.pre ?? []), ...(a.w ? [a.w] : [])], [...(b.pre ?? []), ...(b.w ? [b.w] : [])]], base) as [CellWrite[], CellWrite[]]
       if (la.length > 1) { const ws = la.map((x, i) => mergeWrites(c, x, lb[i], base, ite)!); return {...a, ...(a.nil ? {nil: I.bite(c, a.nil, b.nil!)} : {}), w: ws.at(-1)!, pre: ws.slice(0, -1)} }
@@ -1531,6 +1548,8 @@ export class Stepper {
       if (this.drain && o.decl.ordered) {
         // (in a while loop's pass: the collection it takes items of only gives its item up)
         if (name === 'append') return refuse(x, `${x.text}: an item put in ${o.decl.name} in a pass of a loop`)
+        const rr = o.decl.scalar ? undefined : this.recOf(o.decl, x)
+        if (name === 'remove' && rr && (!rr.kinds.includes('dataclass') || rr.kinds.includes('eq-identity') || rr.methods.__eq__)) return refuse(x, `${x.text}: a list's remove of ${rr.short}, whose equality isn't its fields' (a dataclass's)`)
         const rd = this.drain.rank?.get(o.decl.name)
         if (name === 'remove' && rd && args.length === 1 && args[0]!.t === 'cell' && args[0]!.map === id && I.same(args[0]!.key, rd.K)) return [{t: 'none'}, this.listDel(id, o, rd.K, x, this.assume(q, rd.exists))]
         if (name === 'remove' && this.drain.map?.name === o.decl.name && args.length === 1 && args[0]!.t === 'cell' && args[0]!.map === id && I.same(args[0]!.key, {op: 'num', e: this.drain.i})) return [{t: 'none'}, this.listDel(id, o, args[0]!.key, x, q)]
@@ -2376,10 +2395,17 @@ export class Stepper {
       case 'call': return this.call(x, p, awaited)
       case 'fold': return this.foldExpr(x, p)
       // (a / k rounded to a whole number, by a reader's own rounding: Math.round, math.Round, f64::round, floorDiv ...)
+      // (an integer converted to a float of `bits` bits (Java's (float) p): itself below 2^bits, an edge past it)
+      case 'fbits': {
+        const [v, q] = this.ev(x.x as SX, p)
+        if (v.t !== 'num') return [v, q]
+        this.refuseWhere(q, I.or(I.cmp('<=', I.num(2 ** (x.bits as number)), v.e), I.cmp('<=', v.e, I.num(-(2 ** (x.bits as number))))), x, `${x.text}: converted to a float at |x| of 2^${x.bits as number} or more (past its precision)`, false)
+        return [v, q]
+      }
       // (of a whole number, itself; of another float, a value outside the subset where it is read)
       case 'rnd': {
         const d = x.x as SX
-        if (d.e === 'bin' && d.op === '/') return this.quotient(d, p, x.mode as 'floor')
+        if (d.e === 'bin' && d.op === '/' && !d.ovf) return this.quotient(d, p, x.mode as 'floor')
         const [v, q] = this.ev(d, p)
         return v.t === 'num' || v.t === 'opaque' ? [v, q] : refuse(x, `${x.text}: a rounding of a ${v.t}`)
       }

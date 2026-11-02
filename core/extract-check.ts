@@ -760,7 +760,10 @@ function carryLoop(d: NonNullable<Model['folds']>[number], raw: Record<string, u
 }
 // Whether two held items of a list a while loop takes by an order tie under it (the rule's claim stops there).
 export function tiesIn(m: Model, s: Snap, raw: Record<string, Raw>): boolean {
-  for (const g of (m.folds ?? []).flatMap(d => d.loop?.drains ?? [])) {
+  for (const d of m.folds ?? []) for (const g of d.loop?.drains ?? []) {
+    // (only where the loop runs: the request its method's, on its branch)
+    const cell0 = (map: string, key: Raw, field: string): Raw => (field === 'has' ? !!s.maps[map]?.[String(key)] : s.maps[map]?.[String(key)]?.[field] ?? 0) as Raw
+    if (d.loop!.entry && evalTerm(d.loop!.entry, {...s.leaves, ...raw}, cell0) !== true) continue
     const cells = s.maps[g.map] ?? {}, cell = (map: string, key: Raw, field: string): Raw => (field === 'has' ? !!s.maps[map]?.[String(key)] : s.maps[map]?.[String(key)]?.[field] ?? 0) as Raw
     const seen = new Set<string>()
     for (const k of Object.keys(cells).map(Number)) {

@@ -53,6 +53,33 @@ t('a queue drained from its front: the fold over its places; the tasks run were 
   expect(v['no task left is due']!.verdict).not.toBe('proven')
 }, 600_000)
 
+// A pass that keeps its item ends the loop: the code reads the same item again, where the condition fails (or the
+// rule refuses: the next pass would take it again), never the next item.
+t('a pass that keeps its item ends the loop, the next item untouched', () => {
+  const f = file('bump.py', `from dataclasses import dataclass
+
+
+@dataclass
+class Item:
+    qty: int
+
+
+class Q:
+    def __init__(self):
+        self.items: list[Item] = []
+
+    def add(self, q: int) -> None:
+        self.items.append(Item(q))
+
+    def bump(self, limit: int) -> None:
+        while self.items and self.items[0].qty < limit:
+            self.items[0].qty = limit
+`)
+  const x = extractPython(f, {check: {runs: 60, depth: 6, states: 80}})
+  if (!x.ok) throw new Error(JSON.stringify(x.refusals))
+  expect(x.evidence!.mismatch).toBeUndefined()
+}, 300_000)
+
 // A book's asks taken best first (the lowest price, the earliest at it), each fill as much as the order still needs.
 const BOOK = `from dataclasses import dataclass
 
@@ -108,4 +135,24 @@ t('refused, each where it is: a pass writing another item, a list taken by two o
   const head = 'from dataclasses import dataclass\n\n\n@dataclass\nclass O:\n    p: int\n    q: int\n\n\nclass B:\n    def __init__(self):\n        self.xs: list[O] = []\n        self.d: dict[int, int] = {}\n\n    def add(self, p: int, q: int) -> None:\n        self.xs.append(O(p, q))\n\n'
   expect(refusal(`${head}    def go(self) -> None:\n        while self.xs:\n            a = min(self.xs, key=lambda o: o.p)\n            b = max(self.xs, key=lambda o: o.p)\n            self.xs.remove(a)\n`)).toContain('read in two orders')
   expect(refusal(`${head}    def go(self) -> None:\n        while self.xs:\n            self.xs.pop(0)\n            self.xs.append(O(1, 1))\n`)).toContain('an item put in xs in a pass of a loop')
+  // (the list read again after the pass took its item out: the pass's item is the one it took)
+  expect(refusal(`${head}    def go(self) -> None:\n        while self.xs:\n            self.xs.pop(0)\n            self.xs.pop(0)\n`)).toContain('read again in a pass of the loop')
+  // (a failure after the loop wrote the list: the caller would see it changed)
+  expect(refusal(`${head}    def go(self, n: int) -> None:\n        while self.xs and self.xs[0].p <= n:\n            self.xs.pop(0)\n        if n > 5:\n            raise ValueError("late")\n`)).toContain('after the state is written')
 })
+
+// A loop on one branch only: the list is written at every key where the branch is taken, as it was elsewhere.
+t('a loop on one branch: the list as the passes left it there, as it was on the other', () => {
+  const body = QUEUE.slice(0, QUEUE.indexOf('    # gdp: law')) + `    def run_due(self, now: int, paused: bool) -> int:
+        spent = 0
+        if not paused:
+            while self.tasks and self.tasks[0].due <= now:
+                spent += self.tasks[0].cost
+                self.tasks.pop(0)
+        return spent
+`
+  const f = file('paused.py', body)
+  const x = extractPython(f, {check: {runs: 60, depth: 6, states: 80}})
+  if (!x.ok) throw new Error(JSON.stringify(x.refusals))
+  expect(x.evidence!.mismatch).toBeUndefined()
+}, 300_000)
