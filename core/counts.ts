@@ -30,8 +30,9 @@ export const countsDump: {on?: (goal: object) => void} = {}
 const tally = (k: string, n = 1) => { cprof[k] = (cprof[k] ?? 0) + n }
 const ptime = <T>(k: string, f: () => T): T => { const t = performance.now(); try { return f() } finally { cprof[k] = (cprof[k] ?? 0) + performance.now() - t } }
 let dumped = 0
-// (GDP_COUNTS_LAZY=0: every instance and pick certFor proposes in the goal at once, as before)
-const lazy = env.GDP_COUNTS_LAZY !== '0'
+// (GDP_COUNTS_LAZY=0: every instance and pick certFor proposes in the goal at once, as before; `wide`: the narrow
+// instances at once, the widened goal's further instances and picks lazily)
+const lazyMode = env.GDP_COUNTS_LAZY ?? '1'
 
 const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
 const json = (t: unknown) => JSON.stringify(t)
@@ -405,9 +406,10 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     type Pool = {fg: Goal, keys: string[]}
     const build = () => obligations(at).map(({goal, decls}) => {
       const full = pass ? certFor(goal, decls, wide) : none
-      if (!pass || !lazy || !('picks' in full)) return {goal, decls, c: full, gg: ptime('encode', () => mcGoal(goal.hyps, decls, full)), pool: undefined as Pool | undefined}
+      if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide) || !('picks' in full)) return {goal, decls, c: full, gg: ptime('encode', () => mcGoal(goal.hyps, decls, full)), pool: undefined as Pool | undefined}
       const rd = new Map(full.reads.map(r => [r[0], json([r[1], r[2]])]))
       const keys = [...full.picks.map(q => `p${json([rd.get(q[0]), q[1]])}`), ...full.insts.map(i => `i${json([i.terms.map(([z, x]) => [z, rd.get(x)]), i.unit, i.below])}`)]
+      if (lazyMode === 'wide') for (const q of keys.slice(full.picks.length, full.picks.length + 10)) chosen.add(q)
       const c = {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}
       const fg = ptime('encode', () => mcGoal(goal.hyps, decls, full))
       return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c)), pool: fg && keys.length ? {fg, keys} : undefined}

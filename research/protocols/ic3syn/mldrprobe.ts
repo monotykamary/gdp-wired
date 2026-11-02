@@ -34,7 +34,8 @@ const laws: Law[] = [
   {name: 'every quorum at a config term, or disabled', forall: 'a$', keys: ['b$'], holds: any(not(all(started, sz('a$'), sz('b$'))), disabled('b$'), atMost(times(2, pair('low', 'b$', 'a$')), get('cfgSize', x('b$'))))},
 ]
 let dumps = 0
-countsDump.on = (g: any) => { if (!/one primary per term/.test(g.law) || (g.ls?.length ?? 0) < 30 || dumps++ > 1) return; console.log('DUMP', g.law, '|', g.goal, '|', JSON.stringify(Object.fromEntries(Object.entries(g.witness ?? {}).filter(([k2, v2]) => (v2 as number) !== 0 && !k2.startsWith('Copied') && !k2.startsWith('w?')))).slice(0, 4000)) }
+const dumpLaw = new RegExp(process.env.MLDR_DUMP ?? 'one primary per term')
+countsDump.on = (g: any) => { if (!dumpLaw.test(g.law) || (g.ls?.length ?? 0) < 30 || dumps++ > 8) return; console.log('DUMP', g.law, '|', g.goal, '|', JSON.stringify(Object.fromEntries(Object.entries(g.witness ?? {}).filter(([k2, v2]) => (v2 as number) !== 0 && !k2.startsWith('Copied') && !k2.startsWith('w?')))).slice(0, 4000)) }
 const ms = Number(process.argv[2] ?? 300_000), t = performance.now()
 const out = searchCounted(m, [...r.kindLaws(), ...laws], ms)
 console.log(JSON.stringify({ms: Math.round(performance.now() - t), proven: out.proven, why: out.why}).slice(0, 600))
