@@ -2780,7 +2780,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
     // size's descent rarely reads, and a node with a few of them grows past its time (hmerge's size law: past 20 s with
     // them, 0.8 s without). Then the nodes as built. Elsewhere, the cases' nodes first without the shapes and etas at
     // fields' values and what only they reach (`leaner`): a merge's case node, past 11 s with all of its 33 instances,
-    // is proven in 0.2 s with 8; a node none of them reads is the same in both passes, its tree kept.)
+    // is proven in 0.2 s with 8; a node none of them reads is the same in both passes, its tree kept.
     const lean = !inTermination.on ? (leaner.size ? specs.map(n => (leaner.has(n.name) ? {...n, insts: leaner.get(n.name)!} : n)) : specs) : specs.map((n, i) => (i < base ? n : {...n, insts: n.insts.filter(q => !(fs.facts[q.fact]!.name.startsWith('shape ') && fieldValue(q.at[0])))}))
     if (lean.some((n, i) => n.insts.length < specs[i]!.insts.length)) {
       // (nine tenths for a law about naturals alone, a size law's or a decrease's, which reads no value's constructor)
