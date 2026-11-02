@@ -16,7 +16,7 @@ import type {TStats} from '../core/translate.ts'
 import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
 import {REFUTED, growCdcl} from './cdcl.ts'
-import {type Diagram, type Patterns, decide, pastEprCap, patternsOf} from './epr.ts'
+import {type Diagram, type Patterns, decide, eprMeter, pastEprCap, patternsOf} from './epr.ts'
 import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
@@ -175,7 +175,10 @@ export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', w
 // clock inside `counted` and in the cost model's work outside it (`withWork`); past either the goal is left `unknown`. A goal with many instances (a law about two keys at its pairs) has that many more rows per leaf.
 // A deadline every goal grown inside `withDeadline` keeps, beside its own budget: a search that proves many things (core/
 // infer.ts, core/discover.ts, the search proveRule falls back on) bounds them all; a goal past it is left `unknown`.
-let deadline = Infinity
+let deadline = Infinity, deadlineEpr = 0
+// EPR has its own work counter. Debit it from a counted deadline, not from clock(): the protocol engine already
+// accounts for EPR in its own clock. A scope's anchor charges all its queries, including nested and failed ones.
+const eprTimeSince = (start: number): number => rate ? (eprMeter.n - start) / rate : 0
 // The clock every budget here reads (grow's `until`, withDeadline's; core/cyclic.ts's and core/data.ts's searches): wall
 // time, or within `counted` the work the prover has done (the solver's rows read and made, each node's rows), `perMs`
 // units a millisecond, so that what a search's budget lets it try, and so its verdict, doesn't depend on the machine's
@@ -225,11 +228,11 @@ const ranOut = (): boolean => pastWall() || withinDeadline(Infinity) <= clock()
 export const wallAt = (): number => wallEnd
 export const late = (until: number): boolean => clock() > until || (workCap !== Infinity && fullWork() > workCap) || pastWall()
 // A budget's end, within the deadline (a translation's own bound, core/cyclic.ts's, kept by the export's GDP_CERT_MS).
-export const withinDeadline = (until: number): number => Math.min(until, deadline)
+export const withinDeadline = (until: number): number => Math.min(until, deadline - eprTimeSince(deadlineEpr))
 export function withDeadline<T>(until: number, f: () => T): T {
-  const outer = deadline
-  deadline = Math.min(outer, until)
-  try { return f() } finally { deadline = outer }
+  const outer = deadline, outerEpr = deadlineEpr
+  deadline = withinDeadline(until); deadlineEpr = eprMeter.n
+  try { return f() } finally { deadline = outer; deadlineEpr = outerEpr }
 }
 // `units: false`: the goal's own order, no units first (a caller after a model, not a proof: a run guided by the
 // prover's witnesses, say, whose models units would steer).
@@ -240,7 +243,8 @@ export function grow(goal: Goal, path: Path = new Map(), budget?: {nodes: number
     if (!rate) return withWork(fullWork() + groundRate * ms, () => grow(goal, path, {nodes: 0}))
     budget = {nodes: 0, until: clock() + ms}
   }
-  if (deadline < (budget.until ?? Infinity)) budget.until = deadline
+  const end = withinDeadline(budget.until ?? Infinity)
+  if (end < (budget.until ?? Infinity)) budget.until = end
   if (budget.units === false && unitsNow) { unitsNow = false; try { return grow(goal, path, budget) } finally { unitsNow = true } }
   if (proveDump && !path.size && !budget.nodes) { proveDump(goal); }
   if (proveTrace && !path.size && !budget.nodes) {
@@ -307,9 +311,12 @@ const withPatterns = <T>(m: Machine, laws: Law[], f: () => T): T => {
 // (`refuted`: the last decision refuted the goal and its core's proof didn't finish: a model from fewer instances, asked
 // before, is then no answer, as the abstraction refutes it at these)
 const eprLast = {refuted: false}
-function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = true, late = (): boolean => pastWall() || pastEprCap()): (Outcome & {part?: Goal, core?: number[]}) | undefined {
+function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = true, stop = (): boolean => pastWall() || pastEprCap()): (Outcome & {part?: Goal, core?: number[]}) | undefined {
   eprLast.refuted = false
-  const d = decide(goal, eprScope.patterns!, {exact: true, late})
+  const start = eprMeter.n, until = budget.until ?? Infinity
+  const d = decide(goal, eprScope.patterns!, {exact: true, late: () => stop() || late(withinDeadline(until - eprTimeSince(start)))})
+  // The local goal's remaining allowance also reaches the core proof or fallback search.
+  if (budget.until !== undefined) budget.until = until - eprTimeSince(start)
   if ('unknown' in d) return undefined
   if (d.sat) return {stuck: 'sat', witness: d.witness, diagram: d.diagram, path: new Map(), why: 'a model'}
   const last = goal.hyps.length - 1, core = d.core.includes(last) ? d.core : [...d.core, last], part: Goal = {name: goal.name, hyps: core.map(i => goal.hyps[i]!)}
