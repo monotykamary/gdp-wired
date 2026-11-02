@@ -14,7 +14,7 @@
 // value before, shifts of it, the request's values and the state before; each is chosen to satisfy P at every
 // counterexample so far, per case of the step (the conditions its updates split on: the request's clause, say).
 // A law under a `forall` key takes witness terms only (a ghost per key would be a map).
-import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, evalC, evalE, fastStep, interpret, n as k, walk, x as v} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, compileC, evalC, evalE, fastStep, interpret, n as k, walk, x as v} from './machine.ts'
 import {type Report, clock, proveLaw, proveLaws, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {env} from './solver.ts'
 import {type Ghosted, ghostedMachine, ghostedOk, substC} from '../kernel/kernel.ts'
@@ -228,13 +228,35 @@ export function trueSmall(m: Machine, laws: Law[], ghosted?: Machine): boolean {
 // A law at a state, its counts the state's, at every key below b.
 // (a state's view once: a law is read at every state, and every law at each)
 const views = new WeakMap<State, State>()
+const sampleTests = new WeakMap<Machine, WeakMap<C, ReturnType<typeof compileC>>>()
 export function holdsAt(m: Machine, law: Law, p: Env, st: State, b: number): boolean {
-  const empty: Request = Object.fromEntries((m.inputMaps ?? []).map(c => [c, new Map()]))
   let view = views.get(st)
-  if (!view) views.set(st, (view = carriedView(m, st, empty, undefined, p)))
+  if (!view) {
+    const empty: Request = Object.fromEntries((m.inputMaps ?? []).map(c => [c, new Map()]))
+    views.set(st, (view = carriedView(m, st, empty, undefined, p)))
+  }
+  let tests = sampleTests.get(m)
+  if (!tests) sampleTests.set(m, (tests = new WeakMap()))
+  let test = tests.get(law.holds)
+  if (!test) tests.set(law.holds, (test = compileC(law.holds, m)))
   const keys = [law.forall, ...(law.keys ?? [])].filter((x): x is string => !!x)
-  const go = (env: Env, ks: string[]): boolean => (ks.length ? Array.from({length: b}, (_, x) => x).every(x => go({...env, [ks[0]!]: x}, ks.slice(1))) : evalC(law.holds, {...env, ...st.scalars}, view, m))
-  return go({...p}, keys)
+  const env: Env = {...p, ...st.scalars}, fixed = new Set(Object.keys(st.scalars))
+  // One environment, not an object/array copy at every tuple prefix. Scalars still
+  // shadow binders, as in the interpreter path; restore duplicate binder names.
+  for (const name of keys) if (!fixed.has(name)) Object.defineProperty(env, name, {value: env[name], writable: true, enumerable: true, configurable: true})
+  const values = keys.length ? Array.from({length: b}, (_, x) => x) : []
+  const go = (depth: number): boolean => {
+    if (depth === keys.length) return test!(env, view!)
+    const name = keys[depth]!, was = env[name]
+    try {
+      for (const value of values) {
+        if (!fixed.has(name)) env[name] = value
+        if (!go(depth + 1)) return false
+      }
+      return true
+    } finally { if (!fixed.has(name)) env[name] = was! }
+  }
+  return go(0)
 }
 
 // --- evaluating ∃ on a state ----------------------------------------------------------------------------------------

@@ -718,7 +718,11 @@ function joinOf(c: C, k: string, k1: string): {x: E, y: E} | undefined {
   return undefined
 }
 
-export function compileJs(m: Machine): string {
+export function compileJs(m: Machine): string { return compileJsMode(m, false) }
+
+// fastStep keeps the input state persistent. Its fork can wait until every
+// precondition and right-hand side has been evaluated, just before the writes.
+function compileJsMode(m: Machine, persistent: boolean): string {
   const {h, plain, queries, carried} = runnable(m)
   // (a condition or a write at every key over a tuple key: the interpreter decides those, part by part)
   const atEvery = [...Object.values(plain.step.flags ?? {}).filter(c => c.op === 'all'), ...Object.values(plain.step.maps ?? {}).filter(w => 'each' in w)]
@@ -828,6 +832,7 @@ export function compileJs(m: Machine): string {
     `const scalars = {...s, ${Object.entries(plain.step.state ?? {}).map(([name, e]) => `${id(name)}: ${ex(e)}`).join(', ')}};`,
     ...writes.map(([, w], i) => ('each' in w ? `const write${i} = ${every(w)};` : `const key${i} = ${ex(w.key)}, value${i} = ${ex(w.value)};`)))
   if (h) lines.push(`const keep = ${cx(h.keep)};`)
+  if (persistent) lines.push('state = fork(state);')
   lines.push(...writes.map(([name, w], i) => ('each' in w ? `state.maps[${id(name)}] = write${i}.cells; dft[${id(name)}] = write${i}.d;` : `state.maps[${id(name)}].set(key${i}, value${i});`)))
   if (h) lines.push(`if (keep) records.push({${h.record.map(f => `${id(f)}: env[${id(f)}]`).join(', ')}});`,
     // Drop the spent prefix now and then, not every step: amortized, each record is moved a bounded number of times.
@@ -859,17 +864,18 @@ export function compileFunction<F>(params: string[], body: string): F {
 }
 // compileJs's module, loaded: init, fork and step.
 export type Compiled = {init: (params: object) => State & {head?: number}, fork: (st: State) => State, step: (params: object, st: State, input: object) => State & {head?: number}}
-export const loadJs = (m: Machine): Compiled => compileFunction<() => Compiled>([], `${compileJs(m).replace(/^export function/gm, 'function')}\nreturn {init, fork, step}`)()
+export const loadJs = (m: Machine): Compiled => loadJsMode(m, false)
+const loadJsMode = (m: Machine, persistent: boolean): Compiled => compileFunction<() => Compiled>([], `${compileJsMode(m, persistent).replace(/^export function/gm, 'function')}\nreturn {init, fork, step}`)()
 // The interpreter's step (persistent: a copy of the state each) through loadJs's, several times faster, a request's counts
 // given to it as maps the request carries (carriedView's, each cell its sum when read); none with a history, or where the
 // generator refuses the machine.
 export function fastStep(m: Machine): ((params: Env, st: State, input: Request) => State) | undefined {
   const cs = Object.keys(m.counts ?? {})
   let js: Compiled
-  try { if (m.history) return undefined; js = loadJs({...m, counts: undefined, inputMaps: [...m.inputMaps ?? [], ...cs]}) } catch { return undefined }
+  try { if (m.history) return undefined; js = loadJsMode({...m, counts: undefined, inputMaps: [...m.inputMaps ?? [], ...cs]}, true) } catch { return undefined }
   return (params, st, input) => {
     const view = cs.length ? carriedView(m, st, input, undefined, params).maps : {}
-    return js.step(params, js.fork(st), cs.length ? {...input, ...Object.fromEntries(cs.map(c => [c, view[c]!]))} : input)
+    return js.step(params, st, cs.length ? {...input, ...Object.fromEntries(cs.map(c => [c, view[c]!]))} : input)
   }
 }
 
