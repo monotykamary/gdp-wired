@@ -125,15 +125,24 @@ export type StepOptions = {
 // (`mod`: an unsigned width past the rule's numbers, its 2^bits the state variable named: the type's values below it)
 export type IntTy = {bits: number, signed: boolean, name?: string, t?: number, ub?: boolean, mod?: string}
 // A number (with the comparison it is the sign of, x.Cmp(y); with the string it is the length of, read only against 0).
+// (a value made of bit operations with constants on one value x: (x & A) ^ B, x at least 0 below 2^w; every such operation
+// composes into one form, so a bit of the result is a bit of x, never of a sum of x's bits)
+type Bits = {x: N, A: number, B: number, w: number}
+// Bitwise and, or and xor of two naturals below 2^53 (JavaScript's operators stop at 32 bits).
+const and = (a: number, b: number): number => { let out = 0; for (let p = 1; a > 0 && b > 0; p *= 2, a = Math.floor(a / 2), b = Math.floor(b / 2)) if (a % 2 && b % 2) out += p; return out }
+const or = (a: number, b: number): number => a + b - and(a, b)
+const xor = (a: number, b: number): number => a + b - 2 * and(a, b)
+
 type V =
-  | {t: 'num', e: N, ty?: IntTy, cmp?: [N, N], slen?: K} | {t: 'bool', e: B} | {t: 'str', e: K} | {t: 'choice', e: L}
+  | {t: 'num', e: N, ty?: IntTy, cmp?: [N, N], slen?: K, bits?: Bits} | {t: 'bool', e: B} | {t: 'str', e: K} | {t: 'choice', e: L}
   | {t: 'none'} | {t: 'opt', has: B, v: V}
   | {t: 'ref', id: string} | {t: 'cell', map: string, key: K}
   // A string made by a format with one hole (a store's key): its template and the hole's value.
   | {t: 'fmt', tpl: string, k: K}
   // (firm: a value merged only with itself, refused where a path would make it another; Go's)
   // (ask: the value of a call of other code left out by inference, answered by the next run where it is read)
-  | {t: 'opaque', why: string, firm?: boolean, ask?: string, sattr?: {store: string, path: string}}
+  // (sink: a field the rule leaves out that the code may write, a C float's: written as the code writes it, never kept)
+  | {t: 'opaque', why: string, firm?: boolean, ask?: string, sattr?: {store: string, path: string}, sink?: boolean}
   // (ret: the callee's declared result type; recv: the object its method is called on)
   | {t: 'ext', q: string, text: string, patch?: Patch, ret?: SType, recv?: V, nothrow?: boolean}
   | {t: 'fn', id: string, self?: V, caps?: Map<string, V>} | {t: 'cls', rec: string, patch?: Patch} | {t: 'builtin', n: string} | {t: 'lib', q: string}
@@ -646,7 +655,10 @@ export class Stepper {
   merge(a: Path, b: Path, at: {p: string}): Path {
     let k = 0
     while (k < a.pc.length && k < b.pc.length && I.same(a.pc[k]!, b.pc[k]!)) k++
-    const c = I.and(...a.pc.slice(k)), pc = a.pc.slice(0, k)
+    const c = I.and(...a.pc.slice(k)), cb = I.and(...b.pc.slice(k))
+    // (the two paths' own conditions: one or the other holds past the merge, which is no longer true where a path of
+    // either left before it, a return or a break in a branch)
+    const pc = [...a.pc.slice(0, k), ...(I.same(cb, I.not(c)) || I.same(c, I.not(cb)) || (c.op === 'const' && c.v) || (cb.op === 'const' && cb.v) ? [] : [I.or(c, cb)])]
     if (c.op === 'const') return c.v ? {...a, pc} : {...b, pc}
     if (a.locks.join() !== b.locks.join()) refuse(at, 'a mutex locked on one path and not on another')
     const locals = new Map<string, V>()
@@ -1798,7 +1810,7 @@ export class Stepper {
     switch (x.e) {
       case 'int': { const ty = (x.ity as IntTy | undefined) ?? (x.ty ? this.intTy(x.ty as SType) : undefined); return [{t: 'num', e: I.num(Number(x.v)), ...(ty ? {ty} : {})}, p] }
       case 'unit': return [{t: 'none'}, p]
-      case 'opaque': return [{t: 'opaque', why: String(x.why), ...(x.firm ? {firm: true} : {})}, p]
+      case 'opaque': return [{t: 'opaque', why: String(x.why), ...(x.firm ? {firm: true} : {}), ...(x.sink ? {sink: true} : {})}, p]
       case 'ref': case 'lock': return this.ev(x.x as SX, p)
       case 'copy': { const [v, q] = this.ev(x.x as SX, p); return this.copy(v, q, x) }
       case 'cast': return this.cast(x, p)
@@ -1899,7 +1911,11 @@ export class Stepper {
       case 'at': { const [pl, q] = this.place(x.pl as SX, p); if (pl.k === 'blank') return refuse(x, '_'); const [v, q2] = this.read(pl, x, q); if (v.t === 'opaque' && !x.raw) return refuse(x, v.why); return [v, q2] }
       case 'deref': { const [v, q] = this.ev(x.x as SX, p); return this.deref(v, [], x, q) }
       case 'as': { const [v, q] = this.ev(x.x as SX, p); if (v.t === 'num' && x.ity) return [{...v, ty: x.ity as IntTy}, q]; if (v.t === 'nil' && x.nil) return [x.nil === 'ptr' ? {t: 'ptr', to: {k: 'nil'}} : {t: 'err', is: I.F}, q]; return [v, q] }
-      case 'conv': { const [v, q] = this.ev(x.x as SX, p), ty = x.ity as IntTy | undefined; if (ty && v.t === 'num') return [{t: 'num', e: this.wrap(v.e, ty.ub ? {bits: ty.bits, signed: ty.signed, name: ty.name, t: ty.t} : ty, x, q), ty}, q]; return refuse(x, v.t === 'opaque' && v.ask ? `${String(x.why)}: of ${v.why}` : String(x.why)) }
+      case 'conv': {
+        const [v, q] = this.ev(x.x as SX, p), ty = x.ity as IntTy | undefined
+        // (a bit form to an unsigned type: its bits below the type's width, the same form)
+        if (ty && v.t === 'num' && v.bits && !ty.mod && ty.signed === false && ty.bits > 0 && ty.bits < 53) { const m = 2 ** ty.bits, f = {...v.bits, A: v.bits.A % m, B: v.bits.B % m}; return [{t: 'num', e: f.A === v.bits.A && f.B === v.bits.B ? v.e : this.ofBits(f, x), ty, bits: f}, q] }
+        if (ty && v.t === 'num') return [{t: 'num', e: this.wrap(v.e, ty.ub ? {bits: ty.bits, signed: ty.signed, name: ty.name, t: ty.t} : ty, x, q), ty}, q]; return refuse(x, v.t === 'opaque' && v.ask ? `${String(x.why)}: of ${v.why}` : String(x.why)) }
       case 'binop': { const [a, q] = this.ev(x.x as SX, p), [b, q2] = this.ev(x.y as SX, q); return [this.binop(String(x.op), a, b, x, q2), q2] }
       case 'andalso': {
         // The right side runs only where the left doesn't decide: its failures and effects only there.
@@ -1912,6 +1928,8 @@ export class Stepper {
         if (op === '!') return [{t: 'bool', e: I.not(this.boolv(a, x))}, q]
         if (op === '-') { if (a.t !== 'num') return refuse(x, `- of a ${a.t}`); return [{t: 'num', e: this.wrap(I.neg(a.e), a.ty!, x, q), ty: a.ty}, q] }
         if (op === '+') return [a, q]
+        // (~x: −x − 1 in two's complement, at x's width)
+        if (op === '^' && a.t === 'num') return [{t: 'num', e: this.wrap(I.sub(I.neg(a.e), I.num(1)), a.ty!, x, q), ty: a.ty}, q]
         return refuse(x, String(x.why))
       }
       case 'addr': {
@@ -2625,7 +2643,7 @@ export class Stepper {
     if (!path.length) { if (x.t !== 'struct') return refuse(at, 'a struct set to other than a struct'); return {...o, f: new Map(x.f)} }
     const set = (fs: Map<string, V>, segs: string[]): Map<string, V> => {
       const seg = segs[0]!, rest = segs.slice(1), out = new Map(fs)
-      if (!rest.length) { const old = fs.get(seg); if (old?.t === 'opaque') refuse(at, `writes ${old.why}`); out.set(seg, x); return out }
+      if (!rest.length) { const old = fs.get(seg); if (old?.t === 'opaque' && old.sink) { out.set(seg, old); return out } if (old?.t === 'opaque') refuse(at, `writes ${old.why}`); out.set(seg, x); return out }
       const inner = fs.get(seg)
       if (inner?.t !== 'struct') return refuse(at, `.${seg} of other than a struct`)
       out.set(seg, {...inner, f: set(inner.f, rest)})
@@ -2729,11 +2747,11 @@ export class Stepper {
     return {...p, locals: new Map(p.locals).set(id, v)}
   }
   numv(v: V, at: SX | {p: string}): N {
-    if (v.t !== 'num') return refuse(at, `${(at as SX).text ?? ''}: a ${v.t} where a number is read`)
+    if (v.t !== 'num') return refuse(at, `${(at as SX).text ?? ''}: ${v.t === 'opaque' ? v.why : `a ${v.t}`} where a number is read`)
     if (v.slen) return refuse(at, 'len of a string read other than against 0 (strings are set and compared in the subset)')
     return v.e
   }
-  boolv(v: V, at: SX | {p: string}): B { if (v.t !== 'bool') return refuse(at, `${(at as SX).text ?? ''}: a ${v.t} where a condition is read`); return v.e }
+  boolv(v: V, at: SX | {p: string}): B { if (v.t !== 'bool') return refuse(at, `${(at as SX).text ?? ''}: ${v.t === 'opaque' ? v.why : `a ${v.t}`} where a condition is read`); return v.e }
   // A binary operation of the reader's language with fixed-width integers (Go's): comparisons, arithmetic wrapped.
   binop(op: string, a: V, b: V, x: {p: string}, p: Path): V {
     if (op === '==' || op === '!=') { const e = this.eq(a, b, x, p); return {t: 'bool', e: op === '==' ? e : I.not(e)} }
@@ -2758,7 +2776,78 @@ export class Stepper {
       if (a.t === 'str') return refuse(x, 'strings joined (strings are set and compared in the subset)')
       return this.arith(op, a, b, x, p)
     }
+    if (['&', '|', '^', '&^'].includes(op) && a.t === 'num' && b.t === 'num') return this.bitop(op, a, b, x)
     return refuse(x, `${op}: a bit operation (outside the subset)`)
+  }
+  // A bit operation with a constant (a flag set, cleared, tested, toggled; a mask), or with a value that is 0 or 1: exact
+  // in linear terms, in two's complement of any width (floor division and remainder take a negative value's bits):
+  // x & K, K ≥ 0, is the sum over K's runs of ones [lo, lo + n) of ((x div 2^lo) mod 2^n)·2^lo; x & K, K < 0, is
+  // x − (x & ~K); x | K = x + K − (x & K); x ^ K = x + K − 2(x & K); x &^ K = x − (x & K). Of two values neither
+  // constant nor 0 or 1, refused (bit-vectors).
+  bitop(op: string, a: Extract<V, {t: 'num'}>, b: Extract<V, {t: 'num'}>, x: {p: string}): V {
+    const ty = a.ty?.name !== undefined ? a.ty : b.ty!, at = (x as SX).text ? `${(x as SX).text}: ` : ''
+    const isK = (v: N) => v.op === 'const', bit01 = (v: N) => { const [lo, hi] = this.bounds(v); return lo >= 0 && hi <= 1 }
+    // (two values at least 0 of few bits, a byte's flags masked by another's: bit by bit, each bit a case)
+    const width = (v: N) => { const [lo, hi] = this.bounds(v); if (lo < 0 || !Number.isFinite(hi)) return Infinity; let w = 0; while (2 ** w <= hi) w++; return w }
+    if (!isK(a.e) && !isK(b.e) && !bit01(a.e) && !bit01(b.e) && Math.max(width(a.e), width(b.e)) <= 16) {
+      const w = Math.max(width(a.e), width(b.e)), bit = (v: N, j: number) => I.cmp('=', I.modk(2, I.divk(2 ** j, v)), I.num(1))
+      let e: N = I.num(0)
+      for (let j = 0; j < w; j++) {
+        const x1 = bit(a.e, j), y1 = bit(b.e, j), on = op === '&' ? I.and(x1, y1) : op === '|' ? I.or(x1, y1) : op === '^' ? I.or(I.and(x1, I.not(y1)), I.and(I.not(x1), y1)) : I.and(x1, I.not(y1))
+        e = I.add(e, I.nite(on, I.num(2 ** j), I.num(0)))
+      }
+      return {t: 'num', e, ty}
+    }
+    const [vv, wv] = isK(b.e) ? [a, b] : isK(a.e) ? [b, a] : bit01(b.e) ? [a, b] : bit01(a.e) ? [b, a] : refuse(x, `${at}${op} of two values neither of them a constant nor of 16 bits or fewer (bit-vectors are outside the subset)`)
+    const v = vv.e, w = wv.e, first = vv === a
+    if (!isK(w)) {
+      // (with a value that is 0 or 1: its low bit, where that value is 1)
+      const k = I.nite(I.cmp('=', w, I.num(1)), I.modk(2, v), I.num(0))
+      return {t: 'num', e: op === '&' ? k : op === '|' ? I.sub(I.add(v, w), k) : op === '^' ? I.sub(I.add(v, w), I.mulk(2, k)) : first ? I.sub(v, k) : I.sub(w, k), ty}
+    }
+    const K = (w as {v: number}).v
+    // (x &^ K, Go's: x & ~K; K &^ x: K & ~x, read as K − (K & x))
+    if (op === '&^' && !first) { const k = this.bitop('&', vv, wv, x) as {e: N}; return {t: 'num', e: I.sub(I.num(K), k.e), ty} }
+    // A value at least 0 below 2^w: its form (x & A) ^ B composed with this one (K within its w bits).
+    const form = vv.bits ?? this.bitsOf(v)
+    if (form) {
+      const m = 2 ** form.w, k = ((K % m) + m) % m, f = op === '&' ? {...form, A: and(form.A, k), B: and(form.B, k)} : op === '|' ? {...form, A: and(form.A, m - 1 - k), B: or(form.B, k)} : op === '^' ? {...form, B: xor(form.B, k)} : {...form, A: and(form.A, m - 1 - k), B: and(form.B, m - 1 - k)}
+      // (K's bits past w: x | K and x ^ K keep them, past every bit x has)
+      const past = op === '|' || op === '^' ? K - k : 0
+      if (past && (K < 0 || ty.signed !== false)) return this.bitGeneric(op, v, w, first, ty, x)
+      const e = this.ofBits(f, x)
+      return {t: 'num', e: past ? I.add(e, I.num(past)) : e, ty, ...(past ? {} : {bits: f})}
+    }
+    return this.bitGeneric(op, v, w, first, ty, x)
+  }
+  // (x & A) ^ B as a term, a natural by its form: x's bits where A is set and B isn't, plus the complement of x's bits
+  // where both are (AB − (x & AB)), plus B's bits where A isn't; each x & K the sum over K's runs of ones [lo, lo + n) of
+  // ((x div 2^lo) mod 2^n)·2^lo.
+  ofBits(f: Bits, at: {p: string}): N {
+    const ab = and(f.A, f.B), kept = f.A - ab, set = f.B - ab
+    let e: N = kept ? this.andRuns(f.x, kept, at) : I.num(0)
+    if (ab) e = I.add(e, I.sub(I.num(ab), this.andRuns(f.x, ab, at)))
+    return set ? I.add(e, I.num(set)) : e
+  }
+  andRuns(v: N, k: number, at: {p: string}): N {
+    const runs: [number, number][] = []
+    for (let i = 0, r = k; r > 0; i++, r = Math.floor(r / 2)) if (r % 2) { const last = runs.at(-1); if (last && last[0] + last[1] === i) last[1]++; else runs.push([i, 1]) }
+    if (runs.length > 16) return refuse(at, `${(at as SX).text ? `${(at as SX).text}: ` : ''}a mask of more than 16 runs of ones`)
+    return runs.reduce<N>((s, [lo, n]) => I.add(s, I.mulk(2 ** lo, I.modk(2 ** n, I.divk(2 ** lo, v)))), I.num(0))
+  }
+  // (a value at least 0 with a finite bound: x itself, every bit of its w kept)
+  bitsOf(v: N): Bits | undefined {
+    const [lo, hi] = this.bounds(v)
+    if (!(lo >= 0 && Number.isFinite(hi) && hi < 2 ** 53)) return undefined
+    let w = 0
+    while (2 ** w <= hi) w++
+    return {x: v, A: 2 ** w - 1, B: 0, w}
+  }
+  // In two's complement of any width (floor division and remainder take a negative value's bits): x & K, K < 0, is
+  // x − (x & ~K); x | K = x + K − (x & K); x ^ K = x + K − 2(x & K); x &^ K = x − (x & K).
+  bitGeneric(op: string, v: N, w: N, first: boolean, ty: IntTy, x: {p: string}): V {
+    const K = (w as {v: number}).v, andK = (kk: number): N => (kk < 0 ? I.sub(v, andK(-kk - 1)) : this.andRuns(v, kk, x)), k = andK(K)
+    return {t: 'num', e: op === '&' ? k : op === '|' ? I.sub(I.add(v, w), k) : op === '^' ? I.sub(I.add(v, w), I.mulk(2, k)) : first ? I.sub(v, k) : I.sub(w, k), ty}
   }
   eq(a: V, b: V, x: {p: string}, p?: Path): B {
     if (a.t === 'map' && b.t === 'nil' && p) return this.mapAt(a, x as SX, p).nil!
@@ -2778,11 +2867,12 @@ export class Stepper {
       return I.or(I.and(ca.nil, cb.nil), ...ca.objs.flatMap(o => cb.objs.filter(q => q.id === o.id && q.path.join() === o.path.join()).map(q => I.and(o.c, q.c))))
     }
     if ((a.t === 'list' || a.t === 'map') && b.t === 'nil') return refuse(x, `a ${a.t === 'list' ? 'slice' : 'map'} compared with nil (nil and empty are one ${a.t === 'list' ? 'list' : 'map'} in the subset)`)
-    return refuse(x, `${a.t === 'opaque' && a.ask ? a.why : `a ${a.t}`} compared with a ${b.t}`)
+    return refuse(x, `${a.t === 'opaque' && a.ask ? a.why : `a ${a.t}`} compared with ${b.t === 'opaque' && b.ask ? b.why : `a ${b.t}`}`)
   }
   // Integer arithmetic at the type's width: the exact result, wrapped as the type wraps it (or refused, at 64 bits).
   arith(op: string, a: V, b: V, x: {p: string}, p: Path): V {
-    if (a.t !== 'num' || b.t !== 'num') return refuse(x, `${op} of a ${a.t} and a ${b.t}`)
+    // (other code's value left out, computed with: named, so the next run answers it)
+    if (a.t !== 'num' || b.t !== 'num') { const o = [a, b].find(v => v.t === 'opaque') as {why: string} | undefined; return refuse(x, o ? `${(x as SX).text ?? op}: arithmetic on ${o.why}` : `${op} of a ${a.t} and a ${b.t}`) }
     this.numv(a, x); this.numv(b, x)
     const ty = a.ty?.name !== undefined ? a.ty : b.ty!
     let e: N
@@ -2816,7 +2906,8 @@ export class Stepper {
       case 'var': return r(e.name)
       case 'cell': return r(`${e.map}.${e.field}`)
       case 'add': { const a = this.bounds(e.a), b = this.bounds(e.b); return [a[0] + b[0], a[1] + b[1]] }
-      case 'sub': { const a = this.bounds(e.a), b = this.bounds(e.b); return [a[0] - b[1], a[1] - b[0]] }
+      // (x − k·(x div k): x's floor remainder by k, a conversion's wrap)
+      case 'sub': { if (e.b.op === 'mulk' && e.b.a.op === 'divk' && e.b.a.k === e.b.k && I.same(e.b.a.a, e.a)) return [0, e.b.k - 1]; const a = this.bounds(e.a), b = this.bounds(e.b); return [a[0] - b[1], a[1] - b[0]] }
       case 'neg': { const a = this.bounds(e.a); return [-a[1], -a[0]] }
       case 'mulk': { const a = this.bounds(e.a); return e.k >= 0 ? [e.k * a[0], e.k * a[1]] : [e.k * a[1], e.k * a[0]] }
       case 'mul': { const a = this.bounds(e.a), b = this.bounds(e.b), xs = [a[0] * b[0], a[0] * b[1], a[1] * b[0], a[1] * b[1]].map(v => (Number.isNaN(v) ? 0 : v)); return [Math.min(...xs), Math.max(...xs)] }

@@ -43,7 +43,7 @@ import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 // --- the reader's JSON ----------------------------------------------------------------------------------------------
-export type TT = {k: string, go?: string, fixed?: boolean, box?: boolean, mutex?: boolean, generic?: boolean, name?: string, pkg?: string, own?: boolean, bits?: number, signed?: boolean, untyped?: boolean, ub?: boolean, elem?: number, key?: number,
+export type TT = {k: string, go?: string, nullflag?: boolean, fixed?: boolean, box?: boolean, mutex?: boolean, generic?: boolean, name?: string, pkg?: string, own?: boolean, bits?: number, signed?: boolean, untyped?: boolean, ub?: boolean, elem?: number, key?: number,
   fields?: {name: string, t: number, embedded: boolean}[], xfields?: {name: string, t: number, embedded: boolean, exported: boolean}[], methods?: {name: string, ptr: boolean}[], params?: number[], results?: number[], elems?: number[], iface?: boolean, args?: number[], len?: number}
 type GC = {int?: string, bool?: boolean, str?: string, float?: string, other?: string}
 export type GX = {e: string, p: string, t: number, text: string, c?: GC, why?: string, what?: string, b?: GX, n?: string, o?: string, id?: string, x?: GX, y?: GX, op?: string, f?: GX, a?: GX[], k?: string, lo?: GX, hi?: GX, three?: boolean,
@@ -152,13 +152,17 @@ class Go {
     if (tt.k === 'struct') {
       return {e: 'struct', p: at.p, ty: String(t), fields: (tt.fields ?? []).map(g => {
         const s = this.scalar(g.t)
-        return [g.name, typeof s === 'string' && !['ptr', 'struct', 'error'].includes(this.T(g.t).k) ? {e: 'opaque', p: at.p, why: `${g.name}: ${s}`, firm: true} : this.zero(g.t, at)]
+        return [g.name, typeof s === 'string' && !['ptr', 'struct', 'error'].includes(this.T(g.t).k) ? {e: 'opaque', p: at.p, why: `${g.name}: ${s}`, ...(this.floaty(g.t) ? {sink: true} : {firm: true})} : this.zero(g.t, at)]
       })}
     }
-    return {e: 'opaque', p: at.p, why: `a value of type ${this.tname(t)} (outside the subset)`, firm: true}
+    return {e: 'opaque', p: at.p, why: `a value of type ${this.tname(t)} (outside the subset)`, ...(this.floaty(t) ? {sink: true} : {firm: true})}
   }
+  // A float, or a fixed array of them: C's measurements, left out of the rule where they are only written (a value
+  // that is one, read into what the rule keeps, is refused there).
+  floaty(t: number): boolean { const x = this.T(t); return x.k === 'float' || (x.k === 'array' && !!x.fixed && this.T(x.elem!).k === 'float') }
   x(x: GX): SX {
     const at = this.at(x), c = x.c
+    if (x.e === 'opaque') return {e: 'opaque', ...at, why: x.why}
     if (c) {
       if (c.int !== undefined) {
         const ty = this.intTy(x.t)
@@ -478,6 +482,11 @@ class Go {
         this.leaves.push({name: decl.name, path: fp, kind: 'list', t: f.t, go: this.tname(f.t)})
         heap.set(id, {k: 'list', decl, ops: [], origin: 'state'})
         out.set(f.name, {t: 'list', id})
+      } else if (this.floaty(f.t)) {
+        // (a float field: left out, written as the code writes it, never compared; a read of it is a float's)
+        out.set(f.name, {t: 'opaque', why: `${fp.join('.')}: a ${this.tname(f.t)} (a float, left out of the rule: nothing it keeps may read one)`, sink: true})
+        this.leaves.push({name: '', path: fp, kind: 'sink', t: f.t, go: this.tname(f.t)})
+        g.notes.add(`${fp.join('.')}: a ${this.tname(f.t)}, a float, left out (the rule keeps nothing read from it; a float read into what it keeps is refused)`)
       } else {
         out.set(f.name, {t: 'opaque', why: `${fp.join('.')} is a ${this.tname(f.t)}, a field outside the subset (left out of the rule)`, firm: true})
         this.leaves.push({name: '', path: fp, kind: 'frame', t: f.t, go: this.tname(f.t)})
@@ -552,6 +561,11 @@ class Go {
         // package's function, it is that function's: both refused where they are).
         v = {t: 'opaque', why: `${pa.name ?? 'the context'}, a context.Context read (the subset only passes one on to the package's own functions)`, firm: true}; arg = {k: 'lit', value: 'context'}
         g.notes.add(`${fn.name}(${pa.name ?? '_'}): a context.Context, passed on to the package's own functions only (the claim is for any context, the step never reading it)`)
+      } else if (this.pkg.lang === 'c' || this.pkg.lang === 'cpp') {
+        // (C, C++: an argument outside the subset, a handle the code passes on to other code: the check gives a zeroed
+        // one; read here, it is refused where it is)
+        v = {t: 'opaque', why: `${fn.name}(${pa.name}): an argument of type ${pa.ts ?? this.tname(pa.t)} (${this.whyType(pa.t)}), only passed on`}; arg = {k: 'rec', fields: []}
+        g.notes.add(`${fn.name}(${pa.name ?? '_'}): a ${pa.ts ?? this.tname(pa.t)}, outside the subset, only passed on to other code (the check gives a zeroed one)`)
       } else return refuse(fn, `${fn.name}(${pa.name}): an argument of type ${pa.ts ?? this.tname(pa.t)} (${this.whyType(pa.t)})`)
       if (pa.id) p = g.bindLocal(pa.id, v, fn, p)
       args.push(arg); params.push({name: pa.name ?? '', t: pa.t, arg})
@@ -632,18 +646,23 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
   const outputs: string[] = [], results: NonNullable<Model['results']> = {}
   type Final = {sel: B, leaves: Map<string, Term>, maps: Map<string, {key: K, has: B, vals: Record<string, Term>}>, lists: Map<string, ListOp[]>, out?: [string, Term], more?: [string, Term][]}
   const finals: Final[] = [], events: Event[] = [], methods: GoRead['methods'] = []
+  const lowered0 = (fn: GoFunc) => go.funcs[`${fn.recv?.type ?? ''}.${fn.name}`]!
+  // (an out-parameter some path of the function returns without writing: not every statement writes *p)
+  const boxKept = (f: SFunc, id?: string): boolean => !!id && !writesAll(f.body as unknown[], id)
   for (const fn of chosen) {
     g.method = fn.name
     const sel = I.is(evL, fn.name)
     let p: Path = {pc: [sel], locals: new Map(), heap: new Map(heap), called: [], locks: [], defers: []}
     const bound = go.bindParams(fn, sel, p), args = bound.args, params = bound.params
     p = bound.p
+    // (an out-parameter a path leaves as the caller gave it: what the caller gave, an input, read at the start)
+    for (const pa of fn.params) { const pt = go.T(pa.t); if (pt.k === 'ptr' && go.T(pt.elem!).box && (go.T(pt.elem!).fields ?? []).length === 1 && boxKept(lowered0(fn), pa.id)) g.lazyFieldIn(`in:${fn.name}_${pa.name ?? 'arg'}`, 'value', p, fn) }
     // The receiver.
     if (fn.recv?.id) p = g.bindLocal(fn.recv.id, fn.recv.ptr ? {t: 'ptr', to: {k: 'obj', id: 'this', path: []}} : {t: 'struct', ty: String(td.t), f: fields}, fn, p)
     const errAt = fn.results.length && go.T(fn.results.at(-1)!.t).k === 'error' ? fn.results.length - 1 : -1
     const kept = fn.results.filter((_, i) => i !== errAt)
     if (kept.length > 1) refuse(fn, `${fn.name} returns ${kept.length} values (a result kept is one value)`)
-    const lowered = go.funcs[`${fn.recv?.type ?? ''}.${fn.name}`]!
+    const lowered = lowered0(fn)
     g.spans.set(`${opts.entry}.${fn.name}`, [fn.p.split(':')[0]!, fn.span[0], fn.span[1]])
     const flow = g.block(lowered.body, p)
     if (flow.brk?.length) refuse(fn, 'a break outside a switch')
@@ -796,7 +815,7 @@ function materialize(go: Go, p: Path, at: {p: string}): {leaves: Map<string, Ter
   const self = p.heap.get('this') as Extract<StepObj, {k: 'rec'}>
   const seen = new Map<string, string>()
   for (const l of go.leaves) {
-    if (l.kind === 'frame' || l.kind === 'bignil' || l.kind === 'mapnil') continue
+    if (l.kind === 'frame' || l.kind === 'sink' || l.kind === 'bignil' || l.kind === 'mapnil') continue
     let v: V | undefined = {t: 'struct', ty: self.ty, f: self.f}
     for (const s of l.path) v = v?.t === 'struct' ? v.f.get(s) : undefined
     if (!v) continue
@@ -951,4 +970,10 @@ function probe(pkg: GoPkg, name: string): {where: string, what: string} {
   }
   const writes = fn.params.some(x => go.T(x.t).k === 'ptr')
   return {where: fn.p, what: `${name}: a function of its arguments${writes ? ' (the objects its pointers give are the caller\'s)' : ''}, not a step of a state the subset reads (a struct and its methods)`}
+}
+
+// (whether a body's first statement sets *p, the out-parameter whose id is given: then no path leaves the caller's value)
+function writesAll(body: unknown[], id: string): boolean {
+  const first = body[0] as {s?: string, l?: {e?: string, x?: {id?: string}, pl?: {x?: {id?: string}}}[]} | undefined
+  return !!first && first.s === 'assign' && JSON.stringify(first.l ?? []).includes(JSON.stringify(id))
 }

@@ -70,7 +70,7 @@ type X = {k: 'num', v: number} | {k: 'str', v: string, holes?: X[], parts?: stri
   | {k: 'dur', v: number, text: string} | {k: 'bdur', v: number, text: string}
 const WORDS: Record<string, string> = {'->': '.', '::': '.', and: '&&', or: '||', not: '!', implies: '=>', '∧': '&&', '∨': '||', '¬': '!', '→': '=>', '==>': '=>', '≤': '<=', '≥': '>=', '≠': '!=', '∀': 'forall', AND: '&&', OR: '||', NOT: '!'}
 function tokens(s: string): string[] {
-  const out: string[] = [], re = /\s*(f?"(?:[^"\\]|\\.)*"|f?'(?:[^'\\]|\\.)*'|`[^`]*`|\d+(?:\.\d+)?|@?[A-Za-z_][\w?]*|->|::|==>|=>|<=|>=|==|!=|&&|\|\||\/\/|[-+*%/<>()[\],.:!∧∨¬→≤≥≠∀])/y
+  const out: string[] = [], re = /\s*(f?"(?:[^"\\]|\\.)*"|f?'(?:[^'\\]|\\.)*'|`[^`]*`|0[xX][0-9a-fA-F]+[uUlL]*|0[bB][01]+[uUlL]*|\d+(?:\.\d+)?[uUlL]*|@?[A-Za-z_][\w?]*|->|::|==>|=>|<=|>=|==|!=|&&|\|\||\/\/|[-+*%/<>()[\],.:!∧∨¬→≤≥≠∀&|])/y
   let m: RegExpExecArray | null, at = 0
   while ((m = re.exec(s))) { out.push(WORDS[m[1]!] ?? m[1]!); at = re.lastIndex }
   if (s.slice(at).trim()) throw new LawError(`can't read ${JSON.stringify(s.slice(at).trim())}`)
@@ -112,12 +112,14 @@ export function parse(s: string): X {
   const or = left(['||'], () => and()), and = left(['&&'], () => neg())
   const neg = (): X => (peek() === '!' ? (eat(), {k: 'un', op: 'not', x: neg()}) : cmp())
   const cmp = (): X => {
-    const a = sum(), op = peek()
+    const a = bor(), op = peek()
     if (op === 'is') { eat(); const n = peek() === '!' ? (eat(), true) : false; const b = sum(); return n ? {k: 'un', op: 'not', x: {k: 'bin', op: '==', a, b}} : {k: 'bin', op: '==', a, b} }
     if (op === '!' && t[i + 1] === 'in') { eat(); eat(); return {k: 'un', op: 'not', x: {k: 'bin', op: 'in', a, b: sum()}} }
-    if (op && ['<', '<=', '>', '>=', '==', '!=', 'in'].includes(op)) { eat(); return {k: 'bin', op, a, b: sum()} }
+    if (op && ['<', '<=', '>', '>=', '==', '!=', 'in'].includes(op)) { eat(); return {k: 'bin', op, a, b: bor()} }
     return a
   }
+  // (x & K and x | K, a flag tested or set by a constant: below the comparisons, as Python's, so flags & K != 0 is (flags & K) != 0)
+  const bor = left(['|'], () => band()), band = left(['&'], () => sum())
   const sum = left(['+', '-'], () => prod()), prod = left(['*', '//', '/', '%'], () => unary())
   const unary = (): X => (peek() === '-' ? (eat(), {k: 'un', op: '-', x: unary()}) : atom())
   const atom = (): X => {
@@ -130,7 +132,8 @@ export function parse(s: string): X {
       const u = peek()?.toLowerCase(), calendar = u === 'calendar' && /^days?$/i.test(t[i + 1] ?? '')
       if ((u === 'business' || u === 'working') && /^days?$/i.test(t[i + 1] ?? '')) { eat(); eat(); return {k: 'bdur', v: Number(x), text: `${x} ${u} days`} }
       if (u && (calendar || Object.hasOwn(SECONDS, u) || NOT_LINEAR.test(u))) { eat(); if (calendar) eat(); return {k: 'dur', v: Number(x) * seconds(calendar ? 'days' : u), text: `${x} ${u}${calendar ? ' days' : ''}`} }
-      return {k: 'num', v: Number(x)}
+      // (C's and the others' hexadecimal and binary literals, an unsigned or long suffix)
+      return {k: 'num', v: Number(x.replace(/[uUlL]+$/, ''))}
     }
     if (/^f?["'`]/.test(x)) return str(x)
     if (x === ':' && /^[A-Za-z_]/.test(peek() ?? '') && !operand(t[i - 2])) return {k: 'str', v: eat()}
@@ -173,7 +176,10 @@ export function parse(s: string): X {
 // cell, a value that may be None (its flag beside it), a map, a key.
 type V = {t: 'num', v: Int} | {t: 'cond', v: Cond} | {t: 'str', v: Str} | {t: 'choice', v: Choice<string>} | {t: 'lit', v: string, err?: LawError}
   | {t: 'null'} | {t: 'cell', rec: Record<string, unknown>, fields: string[]} | {t: 'opt', none: Cond, v?: V} | {t: 'map', n: Name, maps: Name[], env?: Record<string, unknown>} | {t: 'key', v: Term}
-type Ctx = {consts?: Record<string, number | string | boolean>, b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>, clock?: number,
+// (bits: in a law of one step, which reads no function, each run of a mask's bits named by keys the law holds at every
+// value of, with the facts that make them that run: ks the keys, used how many are taken, hyps the facts)
+type Bits = {ks: Term[], used: number, hyps: Cond[]}
+type Ctx = {consts?: Record<string, number | string | boolean>, b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>, clock?: number, bits?: Bits,
   // (business days: the calendar, and in a law of one step each time's week, a key: `pins` collects the times on a
   // first reading, then holds each one's pinned week and the guard on it)
   cal?: BusinessDays, pins?: Pins,
@@ -207,9 +213,19 @@ export function buildLaw(x: Extraction, l: LawText, opts: LawOpts = {}): Built {
   const method = probe.methods.size === 1 ? [...probe.methods][0] : l.method
   if (probe.methods.size > 1) throw new LawError(`it reads the arguments of ${[...probe.methods].join(' and ')}: a law of one step is about one method`)
   const gate = step && method && names.some(n => n.role === 'method') ? method : undefined
-  const body0 = (b: Record<string, unknown>, a: Record<string, unknown>, pins?: Ctx['pins']) => read(e, {consts: x.consts, b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock, cal, pins}, names, false) as Cond
+  const body0 = (b: Record<string, unknown>, a: Record<string, unknown>, pins?: Ctx['pins'], bits?: Bits) => read(e, {consts: x.consts, b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock, cal, pins, ...(bits ? {bits} : {})}, names, false) as Cond
+  // (a step law's bit tests: read once to count the keys they take, then at every value of them, the facts implying it)
+  const bitBody = (b: Record<string, unknown>, a: Record<string, unknown>): Cond | ReturnType<typeof forall> => {
+    const count: Bits = {ks: [], used: 0, hyps: []}
+    const plain = body0(b, a, undefined, count)
+    if (!count.used) return plain
+    if (count.used > 6) throw new LawError(`its bit tests take ${count.used} keys in a law of one step (at most 6: two runs of bits at a place above bit 0, three at bit 0)`)
+    const at = (...ks: Term[]): Cond => { const bits: Bits = {ks, used: 0, hyps: []}; const out = body0(b, a, undefined, bits); return all(...bits.hyps).implies(out) }
+    const n = count.used
+    return n === 1 ? forall(k => at(k)) : n === 2 ? forall((k, j) => at(k, j)) : n === 3 ? forall((k, j, i) => at(k, j, i)) : n === 4 ? forall((k, j, i, h) => at(k, j, i, h)) : n === 5 ? forall((k, j, i, h, g) => at(k, j, i, h, g)) : forall((k, j, i, h, g, f) => at(k, j, i, h, g, f))
+  }
   // (a law of one step reads no function, so business days there pin each time's week to a key, ∀w. guard → law)
-  const body = (b: Record<string, unknown>, a: Record<string, unknown>) => (step && probe.roles.has('bdays') ? pinned(b, a, (bb, aa, p) => body0(bb, aa, p)) : body0(b, a))
+  const body = (b: Record<string, unknown>, a: Record<string, unknown>) => (step && probe.roles.has('bdays') ? pinned(b, a, (bb, aa, p) => body0(bb, aa, p)) : bitBody(b, a))
   if (!step) return {kind: 'law', law: r.law(l.name, (env: never) => (x.quiet ? ((env as Record<string, Int>)[x.quiet]!.eq(0) as Cond).implies(body0(env, env)) : body0(env, env)))}
   const mname = names.find(n => n.role === 'method')?.rule
   return {kind: 'step', ...(gate ? {method: gate} : {}), law: r.stepLaw(l.name, (b: never, a: never) => body(b, a) as never, gate ? (b: never) => ((b as Record<string, unknown>)[mname!] as Choice<string>).is(gate) : undefined)}
@@ -341,7 +357,33 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
       const a = lit(e.a), b = lit(e.b)
       if (a.t === 'lit' && a.err && b.t === 'lit' && b.err) throw a.err
       if (['&&', '||', '=>'].includes(e.op)) return dry ? {t: 'cond', v: yes} : {t: 'cond', v: e.op === '&&' ? all(cond(a), cond(b)) : e.op === '||' ? any(cond(a), cond(b)) : cond(a).implies(cond(b))}
-      if (dry) return ['+', '-', '*', '//', '/', '%'].includes(e.op) ? DRY : {t: 'cond', v: yes}
+      if (dry) return ['+', '-', '*', '//', '/', '%', '&', '|'].includes(e.op) ? DRY : {t: 'cond', v: yes}
+      // x & K and x | K with K a constant (a literal or a constant of the code): K's runs of ones, ((x div 2^lo) mod 2^n)·2^lo
+      // each, as the extractor reads the code's (core/extract-step.ts's bitop); x | K is x + K − (x & K).
+      if (e.op === '&' || e.op === '|') {
+        const kOf = (v: V) => { if (v.t !== 'num') return undefined; const p = v.v.pos.e, n = v.v.neg.e; return p.op === 'const' && n.op === 'const' ? p.value - n.value : undefined }
+        const [xv, k] = kOf(b) !== undefined ? [a, kOf(b)!] : kOf(a) !== undefined ? [b, kOf(a)!] : [a, undefined]
+        if (k === undefined) throw new LawError(`${e.op} with a constant only (a bit operation of two values is outside linear arithmetic)`)
+        const x = num(xv), andK = (kk: number): Int => {
+          if (kk < 0) return x.minus(andK(-kk - 1))
+          let out = Int.of(0), lo = 0
+          for (let r = kk; r > 0;) { if (r % 2 === 0) { r /= 2; lo++; continue } let n = 0; while (r % 2 === 1) { r = (r - 1) / 2; n++ } out = out.plus(Int.of(run(lo, n)).times(2 ** lo)); lo += n }
+          return out
+        }
+        // ((x div 2^lo) mod 2^n): an invariant's by the rule's functions; a step law's (which reads none) by keys q, m,
+        // s at every value of which x ≡ q·2^(lo+n) + m·2^lo + s (mod 2^(lo+n), x's natural form pos + neg·(2^(lo+n) − 1)),
+        // m < 2^n, s < 2^lo: m is the run
+        function run(lo: number, n: number): Term {
+          if (!c.bits) return x.divBy(2 ** lo).modBy(2 ** n)
+          const take = () => c.bits!.ks[c.bits!.used++] ?? new Term({op: 'const', value: 0})
+          const q = take(), m = take(), s0 = lo ? take() : undefined, nat = x.pos.plus(x.neg.times(2 ** (lo + n) - 1))
+          let parts = q.times(2 ** (lo + n)).plus(m.times(2 ** lo))
+          if (s0) parts = parts.plus(s0)
+          c.bits!.hyps.push(nat.eq(parts), m.lt(2 ** n), ...(s0 ? [s0.lt(2 ** lo)] : []))
+          return m
+        }
+        return {t: 'num', v: e.op === '&' ? andK(k) : x.plus(k).minus(andK(k))}
+      }
       if (e.op === '+' || e.op === '-') return {t: 'num', v: e.op === '+' ? num(a).plus(num(b)) : num(a).minus(num(b))}
       if (e.op === '*') { const k = constOf(e.a) ?? constOf(e.b); if (k === undefined) throw new LawError('× by a constant only (a product of two values is outside linear arithmetic)'); return {t: 'num', v: num(constOf(e.a) === undefined ? a : b).times(k)} }
       if (e.op === '//' || e.op === '/' || e.op === '%') { const k = constOf(e.b); if (!k || k < 1) throw new LawError(`${e.op} by a positive constant only`); return e.op === '%' ? {t: 'num', v: Int.of(num(a).modBy(k))} : {t: 'num', v: num(a).divBy(k)} }
@@ -426,10 +468,20 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
     c.roles.add(n.role); if (n.method) c.methods.add(n.method)
     return rest(e.segs, leaf(n, c, dry), c, names, dry, e)
   }
+  // (a call answered per constant arguments, C's: f(em, BUS_OFF) its answer f_x_18, by the code's constants)
+  const call0 = e.segs[0]
+  if (call0 && 'call' in call0 && call0.args && names.some(x => x.role === 'answer' && x.code.startsWith(`${e.head}_`))) {
+    const sig = splitArgs(call0.args).map(a => { const k = /^-?\d+$/.test(a) ? Number(a) : /^[A-Za-z_]\w*$/.test(a) ? c.consts?.[a] : undefined; return typeof k === 'number' ? String(k).replace('-', 'm') : 'x' }).join('_')
+    const per = names.find(x => x.role === 'answer' && x.code === `${e.head}_${sig}`)
+    if (!per) throw new LawError(`${e.head}(${call0.args}): no answer of the code for these arguments (its answers: ${names.filter(x => x.role === 'answer' && x.code.startsWith(`${e.head}_`)).map(x => x.code).join(', ')})`)
+    c.roles.add(per.role)
+    return rest(e.segs.slice(1), leaf(per, c, dry), c, names, dry, e)
+  }
   // (self.x, this.x, state.x, @x: the state's x; a bare `state` or `s` is a name of the code's, a field named so)
   const explicit = (['self', 'this', 'state', 's'].includes(e.head) && e.segs.length > 0) || e.head.startsWith('@')
   const parts = [e.head.replace(/^@/, ''), ...e.segs.map(s => ('f' in s ? s.f : undefined))]
-  const heads = explicit && !e.head.startsWith('@') ? [parts.slice(1)] : [parts, ...(parts.length > 1 && parts[1] !== undefined ? [parts.slice(1)] : [])]
+  // (s.x and state.x: the state's x, else a state the code names s or state, a C global's field)
+  const heads = explicit && !e.head.startsWith('@') ? [parts.slice(1), ...(['s', 'state'].includes(e.head) ? [parts] : [])] : [parts, ...(parts.length > 1 && parts[1] !== undefined ? [parts.slice(1)] : [])]
   for (const [hi, p] of heads.entries()) {
     const fields: string[] = []
     for (const s of p) { if (s === undefined) break; fields.push(s) }
@@ -440,7 +492,13 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
       if (hit) {
         c.roles.add(hit.role); if (hit.method) c.methods.add(hit.method)
         // (an answered call is one value a step, whatever its arguments: written f(...) or f())
-        if (hit.role === 'answer' && next && 'call' in next && next.args) throw new LawError(`${code}(${next.args}): an answered call's value is the request's, one a step: write it ${code}(...)`)
+        if (hit.role === 'answer' && next && 'call' in next && next.args) {
+          // (a call answered per constant arguments, C's: f(em, BUS_OFF) its answer f_x_18, by the code's constants)
+          const sig = splitArgs(next.args).map(a => { const k = /^-?\d+$/.test(a) ? Number(a) : /^[A-Za-z_]\w*$/.test(a) ? c.consts?.[a] : undefined; return typeof k === 'number' ? String(k).replace('-', 'm') : 'x' }).join('_')
+          const per = names.find(x => x.role === 'answer' && x.code === `${code}_${sig}`)
+          if (per) { c.roles.add(per.role); return rest(e.segs.slice(skip + n), leaf(per, c, dry), c, names, dry, e) }
+          throw new LawError(`${code}(${next.args}): an answered call's value is the request's, one a step: write it ${code}(...)`)
+        }
         const segs = e.segs.slice(skip + n - 1 + (hit.role === 'answer' && next && 'call' in next ? 1 : 0))
         // (a map read where it is named: old(m) is the map before the step wherever its cells are read, `k in old(m)`)
         return rest(segs, hit.map ? {t: 'map', n: hit, maps: names.filter(x => x.map && x.code === hit.code), env: c.a} : leaf(hit, c, dry), c, names, dry, e)
@@ -448,7 +506,9 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
     }
   }
   // A method's argument by its method's name (charge.user), where several methods take one of that name.
-  // A constant of the module bound to a literal, by its name.
+  // A constant of the module bound to a literal, by its name (a qualified one, C++'s A::K, by its path).
+  const dotted = e.segs.every(g => 'f' in g) ? [e.head, ...e.segs.map(g => (g as {f: string}).f)].join('.') : undefined
+  if (dotted && e.segs.length && c.consts?.[dotted] !== undefined) { const v = c.consts[dotted]!; return typeof v === 'number' ? {t: 'num', v: Int.of(v)} : typeof v === 'boolean' ? {t: 'cond', v: v ? yes : no} : {t: 'lit', v} }
   const k = c.consts?.[e.head]
   if (k !== undefined && !e.segs.length) return typeof k === 'number' ? {t: 'num', v: Int.of(k)} : typeof k === 'boolean' ? {t: 'cond', v: k ? yes : no} : {t: 'lit', v: k}
   const m = names.find(n => n.role === 'input' && n.method === e.head && e.segs[0] && 'f' in e.segs[0] && n.code === e.segs[0].f)
@@ -670,3 +730,6 @@ function split(s: string, sep: string): string[] {
   for (let i = topIndex(rest, sep); i >= 0; i = topIndex(rest, sep)) { out.push(rest.slice(0, i)); rest = rest.slice(i + sep.length) }
   return [...out, rest].map(t => t.trim()).filter(Boolean)
 }
+
+// (a call's arguments as written, split at the commas outside parentheses)
+function splitArgs(s: string): string[] { const out: string[] = []; let d = 0, cur = ''; for (const ch of s) { if (ch === '(' || ch === '[') d++; else if (ch === ')' || ch === ']') d--; if (ch === ',' && !d) { out.push(cur.trim()); cur = '' } else cur += ch } if (cur.trim()) out.push(cur.trim()); return out }

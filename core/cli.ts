@@ -229,7 +229,9 @@ export type RuleOut = {file: string, lang: string, entry?: string, ok: boolean, 
 async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: string, x: Extraction}[]> {
   const got = await rulesOf0(t, o, laws)
   if (o.entry) return got
-  const have = new Set(got.flatMap(r => [r.entry, r.x.model?.name].filter((n): n is string => !!n)))
+  // (a function that is a request of a rule read, a C file's globals', is read with it)
+  const evs = (x: Extraction) => { const s = (x.model as {inputs?: {name: string, sort: {k: string, values?: string[]}}[]} | undefined)?.inputs?.find(v => v.name === (x.names ?? []).find(n => n.role === 'method')?.rule)?.sort; return s?.k === 'choice' ? s.values ?? [] : [] }
+  const have = new Set(got.flatMap(r => [r.entry, r.x.model?.name, ...(r.x.ok ? [...(r.x.names ?? []).map(n => n.method), ...evs(r.x)] : [])].filter((n): n is string => !!n)))
   const more = [...new Set(laws.map(l => l.cls ?? l.fn).filter((n): n is string => !!n && !have.has(n)))]
   if (!more.length) return got
   const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, env: _e, ...flags} = o
@@ -237,7 +239,7 @@ async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: str
   const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
   const {clock: _k, from: _f, env: _v, calendar: _cal, ...shared} = cfg.all
   void _k; void _f
-  const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*/g) ?? []))]
+  const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*/g) ?? []).flatMap(k => (k.includes('::') ? [k, ...k.split('::')] : [k])))]
   const extra = await Promise.all(more.map(async entry => ({entry, x: await extractOne(t, {...merge(merge({...shared, keep}, cfg.rules[entry] || {}), flags), entry})})))
   // (the first rule, read with no entry named, kept only where it read something or nothing else was)
   return [...got.filter(r => r.x.ok || r.entry || !extra.length), ...extra]
@@ -252,7 +254,7 @@ async function rulesOf0(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: st
   void _f
   void _k
   // (the names the laws read, so an argument a law reads stays in the rule though the code ignores it)
-  const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*/g) ?? []))]
+  const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*/g) ?? []).flatMap(k => (k.includes('::') ? [k, ...k.split('::')] : [k])))]
   const optsFor = (entry?: string) => merge(merge({...shared, keep}, (entry && cfg.rules[entry]) || {}), flags)
   const one = async (entry?: string) => {
     const x = await extractOne(t, {...optsFor(entry), ...(entry ? {entry} : {})}), found = x.model?.name
@@ -263,7 +265,9 @@ async function rulesOf0(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: st
   if (t.lang === 'ts' || t.lang === 'cpp') {
     const code = t.files.map(f => fs.readFileSync(f, 'utf8')).join('\n')
     const re = t.lang === 'cpp' ? /^\s*(?:class|struct)\s+(\w+)\s*(?::[^{]*)?\{/gm : /export\s+(?:default\s+)?(?:abstract\s+)?class\s+(\w+)|export\s+(?:const|function)\s+(\w+)/g
-    const cands = [...new Set([...code.matchAll(re)].map(m => m[1] ?? m[2]!))]
+    // (C++: a class its source file defines methods of, `Alarm::detected(...) {`, declared in its header)
+    const defs = t.lang === 'cpp' ? [...code.matchAll(/^[\w:<>*&\s]*?\b(\w+)::~?\w+\s*\([^;]*?\)\s*(?:const\s*)?(?::[^{;]*)?\{/gm)].map(m => m[1]!) : []
+    const cands = [...new Set([...[...code.matchAll(re)].map(m => m[1] ?? m[2]!), ...defs])]
     const all = await Promise.all(cands.map(c => one(c)))
     const good = all.filter(r => r.x.ok)
     return good.length ? good : all.length ? all : [{x: {ok: false, refusals: [{where: t.at, what: 'no class or exported function to read: name the entry (--entry)'}], notes: []}}]
@@ -323,7 +327,7 @@ export function scoped(file: string): Scoped[] {
     if (/\.[cm]?[jt]sx?$/.test(file)) { let i = l.line!; while (i < lines.length && /^\s*(\/\/|\/?\*|$)/.test(lines[i]!)) i++; const d = /^(\s*)(?:export\s+)?(?:const|let|var)\s+(\w+)\s*[=:]/.exec(lines[i] ?? ''); if (d) { fn = d[2]; top = d[1] === '' } }
     let fnLine = -1
     let onValue = false
-    for (let i = l.line! - 1; i < lines.length && !fn && !onValue; i++) { const code = i === l.line! - 1 ? lines[i]!.replace(/(#|\/\/|--).*$/, '') : lines[i]!; if (i >= l.line! && classAt(code)) break; const m = /\b(?:def|defp|fn|fun|func|function)\s+(?:\([^)]*\)\s*)?(?:self\.)?(\w+)|^\s*(?:(?:public|private|protected|static|final|synchronized|async|override|open|suspend|inline|virtual|const|[\w<>[\],?]+)\s+)*(\w+)\s*\(/.exec(code); if (m && !m[1] && declares(code, m.index + m[0].length - 1)) onValue = true; else if (m && !/^(if|for|while|switch|return|catch|new)$/.test(m[1] ?? m[2]!)) { fn = m[1] ?? m[2]; fnLine = i } }
+    for (let i = l.line! - 1; i < lines.length && !fn && !onValue; i++) { const code = i === l.line! - 1 ? lines[i]!.replace(/(#|\/\/|--).*$/, '') : lines[i]!; if (i >= l.line! && classAt(code)) break; const m = /\b(?:def|defp|fn|fun|func|function)\s+(?:\([^)]*\)\s*)?(?:self\.)?(\w+)|^\s*(?:(?:public|private|protected|static|final|synchronized|async|override|open|suspend|inline|virtual|const|[\w<>[\],?]+)\s+)*(?:(\w+)::)?(~?\w+)\s*\(/.exec(code); if (m && !m[1] && !m[2] && declares(code, m.index + m[0].length - 1)) onValue = true; else if (m && !/^(if|for|while|switch|return|catch|new)$/.test(m[1] ?? m[3]!)) { fn = m[1] ?? m[3]; fnLine = i; if (m[2]) { cls = m[2]; if (fn === m[2] || fn === `~${m[2]}`) { fn = undefined; break } } } }
     // (a Python function at the module's top level is in no class, whatever precedes it: the def the law sits on, not a
     // later one of the same name)
     // (likewise in every language where a definition at the line's start is outside any class: Ruby's, Elixir's, a
@@ -358,7 +362,9 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
     outs.push(r)
     // (the laws of this rule: all where it is the file's one, else those in its class or on it or its methods, and those
     // outside every class and function)
-    const ms0 = new Set((x.names ?? []).map(n => n.method))
+    // (and every request, one with no argument too: the method's choice)
+    const ev0 = (x.model as {inputs?: {name: string, sort: {k: string, values?: string[]}}[]} | undefined)?.inputs?.find(v => v.name === (x.names ?? []).find(n => n.role === 'method')?.rule)?.sort
+    const ms0 = new Set([...(x.names ?? []).map(n => n.method), ...(ev0?.k === 'choice' ? ev0.values ?? [] : [])])
     // (a law in a class is that class's alone, an entry named or not)
     // (a law on a function outside any class is that function's, where the file has a rule of its name, never a method
     // of another rule that shares the name)
