@@ -297,7 +297,7 @@ struct m { uint32_t a; };
 void f(struct m *s, uint32_t b) { s->a = s->a & b; }
 `, 'm')
   expect(x.ok).toBe(false)
-  expect(x.refusals[0]!.what).toMatch(/neither of them a constant \(bit-vectors are outside the subset\)/)
+  expect(x.refusals[0]!.what).toMatch(/neither of them a constant.*\(bit-vectors are outside the subset\)/)
 }, 60_000)
 
 t('a file that keeps its state in globals: the globals one object, its functions requests, an extern volatile the request\'s', () => {
