@@ -3,6 +3,7 @@
 //
 //   bun research/embedded/corpus/run.ts [--only <id>] [--ms 60000] [--src runs/embedded/src] [--json <out>] [--md <out>]
 //   bun research/embedded/corpus/run.ts --jobs > jobs.json        one boat job an item (clang set up first)
+//   bun research/embedded/corpus/run.ts --prepare [--only <id>]   the work trees only
 //   bun research/embedded/corpus/run.ts --score <dir> [--md <out>] [--json <out>]   the jobs' results, scored
 //
 // The sources are fetched into --src (not committed) and copied into a fresh work tree per run, where the laws are
@@ -81,6 +82,9 @@ export function score(rs: ItemResult[]): string {
 
 if (!import.meta.main) { /* imported: fetchItem and score only */ } else if (argv.includes('--jobs')) {
   process.stdout.write(`${JSON.stringify(ITEMS.map(it => ({name: it.id, cmd: `. research/langs/c/clang-setup.sh >/dev/null && bun install --frozen-lockfile >/dev/null 2>&1 && bun research/embedded/corpus/run.ts --only ${it.id} --ms ${ms} --json /tmp/r.json >/dev/null; cat /tmp/r.json`, timeout: 3600, cpu: 2})), null, 1)}\n`)
+} else if (argv.includes('--prepare')) {
+  // (the work trees only: the files, the laws, gdp.toml; nothing run)
+  for (const it of ITEMS.filter(i => !opt('only') || i.id === opt('only'))) process.stdout.write(`${prepare(it).target}\n`)
 } else if (opt('score')) {
   const dir = resolve(opt('score')), rs: ItemResult[] = ITEMS.flatMap(it => { const f = join(dir, `${it.id}.log`); if (!existsSync(f)) return []; const t = readFileSync(f, 'utf8').split('\n--- stderr')[0]!; const i = t.indexOf('['); try { return JSON.parse(t.slice(i)) as ItemResult[] } catch { return [] } })
   if (opt('json')) writeFileSync(opt('json'), `${JSON.stringify(rs, null, 1)}\n`)
