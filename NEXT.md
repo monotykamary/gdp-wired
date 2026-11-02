@@ -1,52 +1,35 @@
 # Lane RL: native multi-place relations (gen/laneRL) — where it stands
 
-Goal: IC3Syn's learning_switch and learning_switch_i4 proven with nothing written, over relations keyed by tuples
-(EPR, componentwise), not radix-packed keys. Scratch runs in runs/laneRL/ (gitignored; archive with tar -C <wt> runs).
+Scratch runs in runs/laneRL/ (gitignored; archive with `tar -C <wt> runs` before removing the worktree). Design and
+measurements: research/protocols/engine/DESIGN.md, the two gen/laneRL sections.
 
-## Done (committed)
-- Terms: core/machine.ts E has `tup(a, b)` (Cantor pairing cpair = tri(a+b)+b, right-nested n-tuples) and
-  `proj(k, a)` (cun's parts). Runtimes evaluate both exactly (cpair/cunpair; throws past 2^53).
-- Kernel (kernel/kernel.ts) mirrors Lean (lean-kernel/Kernel.lean): linear(tup) none; `keyParts` = Lean `parts`
-  (tup: parts' forms; proj 1: the rest when ≥ 2 left); linear(proj 0 e) head of parts, proj 1 the last of two; a read
-  at a key with parts is the cell `M[⟨k1|…⟩]` (Lean `cellT`); two tuples equal ⇔ parts equal (truth/facts as `and`);
-  cell equality part by part (`sameKey`, Lean `keysEq`). Names reserve ⟨ ⟩ |. `mapArities`: one key shape per map;
-  each-writes on n-part maps checked part by part (`eachParts`).
-- Lean: Kernel.lean +~700 lines, all modules build, axioms propext/Classical.choice/Quot.sound;
-  `bun lean-kernel/export-kernel.ts --tuples` (tuple goals, tampered cellT equality refused, two relation machines
-  end to end via smachine_sound). Runs: runs/laneRL/final1, lean-k5.
-- Untrusted: prove.ts (tuple cell pairs part by part, instances read tuple parts), kernel/reader.ts (CDCL reading),
-  cdcl.ts (pairs per part), epr.ts (tup keys as part tuples, pattern n zeros; witness names tuple cells).
-- Runtime: interpreter decides quantifiers and writes at every tuple on per-part breakpoints (writeEveryTuple);
-  compileJs refuses tuple keys at every key.
-- DSL: `.sorts('Node')`, `.relations({T: ['Node','Node','Node']})` → RelRef: at/has/add/remove/each/union.
-- Ports: research/protocols/ic3syn/models.ts learning_switch and learning_switch_i4 are native now (no phase);
-  the phased ones kept as `phased`. relations/hand.ts: published invariants. learning_switch + help_3/help_4
-  PROVEN in 5.5 s (main: unknown at 300 s). i4 with manual_1..4 + "nothing before start": transitive passes,
-  antisymmetric runs out at 60 s (261 hyps).
-- Random CTI check (relations/cti.ts, boat): learning_switch invariant inductive on 98 random good states.
-- All other TS walkers handle tup/proj (602656b); tsc clean outside infer.ts/machine.ts/prove.ts (fix those).
+## Done
+- Trusted: `tup`/`proj` terms; kernel.ts reads tuple keys part by part (keyParts = Lean `parts`, cells `M[⟨k1|…⟩]` =
+  Lean `cellT`, tuple equality as `and`, cell equality part by part); Lean twin in Kernel.lean (+~700 lines; all modules
+  build; propext/Classical.choice/Quot.sound). Map names holding column characters read no column (hole found by the
+  lane's review; Lean refused it). kernel/tuples.test.ts (adversarial) in the shards; mutants 170/177 killed, 7
+  equivalent (MUTANTS.md).
+- Lean end to end: `bun lean-kernel/export-kernel.ts --switch` (learning_switch + published invariant, 155 s on boat);
+  `--tuples`.
+- DSL `.sorts`, `.relations` (RelRef has/at/add/remove/each/union); runtime decides tuple quantifiers/writes per part.
+- Ports: learning_switch, learning_switch_i4 native (models.ts; phased kept as `phased`); agree.ts 12,000 steps each no
+  difference; check.ts 43,672 / 240 states = TLC; broken variants reach bad.
+- learning_switch PROVEN WITH NOTHING WRITTEN at strict 60 s pinned (engine, core/infer.ts): gate-ic 18.7/16.4/18.0 s,
+  gate-ic2 56.1/18.5/40.6 s. Hand sets (relations/hand.ts): learning_switch 3–5 s, i4 11.5 s (the written I4 set
+  needed two laws to hold whenever set, not only after start).
+- Gates: IC3Syn 29×3 gate-ic: 24 all three / 25 some (main 22/24), no broken proven; gate-ic2 (HEAD 033f8e2,
+  noisier VMs): 22 / 25. Quick bar (laneRL-quick2, vs main 9b62ecf): wrong 0, nothing lost solid; g332 same searches,
+  time +3% to +39% across runs (base varies 288–381 s; cellParts now memoized). Shards: all pass (shard2's one
+  failure a 5 s timeout, passes alone: gate-shard2b).
 
-## Since (later commits)
-- learning_switch PROVEN WITH NOTHING WRITTEN (engine, b71c3dc): runs/laneRL/tr6, process 41.1 s, infer 29.9 s, work 2.29M,
-  14 laws incl. help_3 (projected place) and help_4. Pinned confirmation: runs/laneRL/pin1 (engine agent).
-- Lean end to end: `bun lean-kernel/export-kernel.ts --switch > Switch.lean` (997 KB), Lean 155 s on boat, the five
-  laws via Kern.smachine_sound (runs/laneRL/sw1/switch.log); --tuples adds rotation.
-- i4 port: Src/Dst/Link hold nodes + SrcSet/DstSet/LinkSet (no ∸ 1). check.ts: 240 states = TLC; broken reaches bad.
-  agree.ts: both switches agree with phased (12,000 steps each). learning_switch check.ts: 43,672 states = TLC, broken
-  reaches bad (runs/laneRL/chk2). Pinned 3 runs (runs/laneRL/pin3): proven 33.0 / 42.8 / 61.4 s (r3 slow VM).
-- i4 hand set: instantiation gap (FAIL=2 shows the model breaks transitivity before the step) — prover agent on it.
-- Runtime: uncrossed parts on own breakpoints; identity writes copy the map.
-
-## Next, in order
-1. tsc errors left in core/infer.ts (3), core/machine.ts (1), kernel/prove.ts (3) ('a' in e patterns: use 'b' in e).
-2. Engine (core/infer.ts), done for learning_switch: tuple keys native, projected places P(x, _, y, _), a map's value as
-   a key, domainStep, early Houdini on relation rules (DESIGN.md gen/laneRL). learning_switch pinned: 16 runs, 15
-   proven, 14 within 60 s (17-56 s; 0.25M counted work). i4 open: rows and small-instance states cost 5-10x their
-   counted rate (rows as arrays, not objects), the 4-node BFS cuts in setup (2,100+ junk cubes), round-0 Houdini stops at
-   "route_tc is transitive @start" (no cube to blame) — look at that goal first. Rerun the 29 + ten when the
-   sharded_kv_no_lost_keys prover fix lands (unknown at HEAD with either infer.ts).
-3. agree.ts: native vs phased ports agree on random request sequences (phase rows run to the end).
-4. check.ts/TLC state counts for the native ports (43,672 and 240).
-5. kernel/mutants.ts over the new kernel lines; adversarial tests (kernel/tuples.test.ts, add to test shards);
-   pi reviews (sol xhigh + terra), read-only.
-6. Gates: IC3Syn 29×3 strict 60 s pinned; DuoAI ten; bun bar vs main; test shards; Lean e2e of a switch proof.
+## Open
+1. DuoAI ten: gate-ten2 7/10 (consensus_wo_decide, distributed_lock, ring_leader_election unknown at ~61 s) vs main
+   10/10. Paired 3-run check running: runs/laneRL/ten3-rl (HEAD and HEAD with GDP_WIDE_PARTS=0) vs
+   ../gdp-wired/runs/laneRL-ten3-main. Suspect 033f8e2 (wide goals over parts by EPR). If losses hold: gate the wide
+   path (and set-first, already gated) to machines with tuple keys.
+2. learning_switch_i4 with nothing written: unknown at ~55–75 s (engine: small instance cost, cubes; DESIGN.md).
+3. Broken switches end unknown (never proven), not refuted (runs don't reach the bad states in budget).
+4. pi reviews (sol xhigh, terra) not run: pi's OpenAI login expired (invalid_grant). Re-login, then review
+   kernel.ts's tuple lines and Kernel.lean's.
+5. certCyclic (core/cyclic.ts) ignores withWall on a flip relation with a symmetric law (prover side finding).
+6. Stretch not started: Ivy/mypyvy reader.
