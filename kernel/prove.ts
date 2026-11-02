@@ -1103,6 +1103,8 @@ export const keyValue = (cell: string, w: Record<string, number>): number | unde
 // instances. None found: the model is one on every tuple of the goal's keys. Untrusted: it chooses instances only.
 export const modelRounds = 4
 // A condition as the disjuncts it is the or of (¬(a ∧ b) as ¬a, ¬b).
+// (GDP_MODEL_CUTS=0: every tuple evaluated whole, for comparing)
+const modelCuts = env.GDP_MODEL_CUTS !== '0'
 const disjuncts = (c: C): C[] => (c.op === 'or' ? c.xs.flatMap(disjuncts) : c.op === 'not' && c.x.op === 'and' ? c.x.xs.flatMap(y => disjuncts({op: 'not', x: y})) : c.op === 'not' && c.x.op === 'not' ? disjuncts(c.x.x) : [c])
 export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: Goal, w: Record<string, number>, most = 64): Instances | undefined {
   const pm = plainOf(m), qs = Object.entries(pm.step.flags ?? {}).filter((e): e is [string, Extract<C, {op: 'all'}>] => e[1].op === 'all' && w[`?${e[0]}`] === 1)
@@ -1160,7 +1162,7 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
     // every tuple below, so transitivity's T(t, x, y) false cuts its z; a law about four keys over ten values each, 10,000
     // tuples, took the whole share before, its broken tuples never reached)
     const ready: C[][] = Array.from({length: n + 1}, () => [])
-    for (const d of disjuncts(body)) { const t = JSON.stringify(d); ready[names.reduce((a, x, j) => (t.includes(`"name":${JSON.stringify(x)}`) ? j + 1 : a), 0)]!.push(d) }
+    if (modelCuts) for (const d of disjuncts(body)) { const t = JSON.stringify(d); ready[names.reduce((a, x, j) => (t.includes(`"name":${JSON.stringify(x)}`) ? j + 1 : a), 0)]!.push(d) }
     const go = (i: number, at: Record<string, number>, terms: E[]): void => {
       if (added >= most || evals > until || (evals % 512 === 0 && pastWall())) return
       for (const d of ready[i]!) { evals++; if (ev(() => evalC(d, read(at), st, mm)) === true) return }
@@ -1899,13 +1901,15 @@ const strict = (usual: boolean) => !usual && (strictOn || env.GDP_STRICT !== '0'
 export const withStrict = <T>(f: () => T): T => { const o = strictOn; strictOn = true; try { return f() } finally { strictOn = o } }
 // (by machine and by the law set's names: one machine is asked with many sets)
 const sortsMemo = new WeakMap<Machine, Map<string, {key: (law: string, k: string) => string, of: (e: E) => string | undefined, find: (a: string) => string, anchored: (a: string) => boolean}>>()
+const sortPlaces = env.GDP_SORT_PLACES !== '0'
 function sortsOf(m: Machine, laws: Law[]) {
   const par = new Map<string, string>(), find = (a: string): string => { const q = par.get(a); if (q === undefined || q === a) return a; const r = find(q); par.set(a, r); return r }
   const named = new Set<string>(), union = (a: string, b: string) => { named.add(a); named.add(b); const ra = find(a), rb = find(b); if (ra !== rb) par.set(ra, rb) }
   const pats = patternsOf(m, laws), whole = new Map<string, string>()
   // (a map of one part read at a name, Src[p]: its value a sort too, F:Src, as a function's, what it is compared with and
   // the places it is read at: Src[Src[p]] is no key of Src where Src's values are nodes and its keys packets)
-  const valued = (e: Extract<E, {op: 'get'}>): boolean => !(pats[e.map]?.length! > 1) && e.key.op !== 'tup' && (e.key.op === 'var' || e.key.op === 'get')
+  // (GDP_SORT_PLACES=0: neither, for comparing)
+  const valued = (e: Extract<E, {op: 'get'}>): boolean => sortPlaces && !(pats[e.map]?.length! > 1) && e.key.op !== 'tup' && (e.key.op === 'var' || e.key.op === 'get')
   const leaves = (e: E, k: number, out: [E, number][]): void => { if (e.op === 'add') { leaves(e.a, k, out); leaves(e.b, k, out) } else if (e.op === 'mul') leaves(e.a, k * e.k, out); else if (e.op !== 'const') out.push([e, k]) }
   const walkC = (c: C, name: (v: string) => string): void => {
     const node = (e: E): string | undefined => (e.op === 'var' ? name(e.name) : e.op === 'get' && (m.fns?.[e.map] || valued(e)) ? `F:${e.map}` : undefined)
@@ -1915,7 +1919,7 @@ function sortsOf(m: Machine, laws: Law[]) {
       if (x.op === 'get' && x.key) {
         if (m.fns?.[x.map!]) { const n = node(x.key); if (n) union(n, `A:${x.map}`) }
         // (a tuple key: each part of its place's sort, M:map:i)
-        else if (x.key.op === 'tup') tupleParts(x.key).forEach((e, i) => { const n = node(e); if (n) union(n, `M:${x.map}:${i}`) })
+        else if (x.key.op === 'tup' && sortPlaces) tupleParts(x.key).forEach((e, i) => { const n = node(e); if (n) union(n, `M:${x.map}:${i}`) })
         else {
           const ls: [E, number][] = []; leaves(x.key, 1, ls)
           const pat = pats[x.map!] ?? [1]
@@ -1995,7 +1999,9 @@ export function lawInstances(m: Machine, laws: Law[], i: number): Instances {
 // (GDP_SET_FIRST=0: the usual way alone, for comparing)
 const setFirstOn = env.GDP_SET_FIRST !== '0'
 const setFirst = (m: Machine, laws: Law[]): ReturnType<typeof proveSetFast> | undefined => {
-  if (!eprOn || !setFirstOn || pastWall() || !fastShape(m, laws) || !Object.values(patternsOf(plainOf(m), laws)).some(c => c.length > 1)) return undefined
+  // (machines with tuple keys alone, patterns of zeros: on radix keys the usual way is the one tuned, and a set proof
+  // first cost sharded KV's no-lost-keys, whose witness passes ask the whole set again and again, 2.8M of work to 45M)
+  if (!eprOn || !setFirstOn || pastWall() || !fastShape(m, laws) || !Object.values(patternsOf(plainOf(m), laws)).some(c => c.length > 1 && c.every(x => x === 0))) return undefined
   const out = proveSetFast(m, laws)
   if (modelsTrace) console.error(`[models] the set first: ${out.proven ? out.checked ? 'proven' : 'proven, not checked' : `not proven at ${out.failed?.goal}`}`)
   return out.proven && out.checked && out.proof ? out : undefined
@@ -2008,9 +2014,10 @@ function proveLawsAsGiven(m: Machine, laws: Law[], defer?: (finish: () => void) 
   // Each law's two goals (start and step) get their own instances, seeded with its own keys.
   // (a machine with sums: its instances are its plain machine's, whose flags hold each sum's facts at every key)
   const pm = plainOf(m), keys = [...readKeys(pm, laws), ...witnesses(pm)], instances: Record<string, Instances> = {}
-  // (an EPR-shaped machine's set proved first as proveSetFast proves it: each law settled by the EPR path, its instances
-  // sorted and only the tuples its proofs read, its cores widened to goals that small; i4's learning switch over relations
-  // 6 s there against 80 s here, whose check alone read goals of 1,200 hypotheses for 55 s. Not proven, the usual way)
+  // (an EPR-shaped machine's set over tuple keys proved first as proveSetFast proves it: each law settled by the EPR
+  // path, its instances sorted and only the tuples its proofs read, its cores widened to goals that small; i4's learning
+  // switch over relations 6 s there against 80 s here, whose check alone read goals of 1,200 hypotheses for 55 s. Not
+  // proven, the usual way)
   const fast = defer ? undefined : setFirst(m, laws)
   if (!fast) laws.forEach((law, i) => {
     instances[law.name] = instancesFor(pm, laws, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), {
