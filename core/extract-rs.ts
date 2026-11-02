@@ -40,7 +40,10 @@ export function readRust(dir: string, names: string[], cargo?: string): SModule 
   let out: string
   try { out = cp.execFileSync(rsReader(cargo), [JSON.stringify({root: dir, names})], {encoding: 'utf8', maxBuffer: 1 << 29, stdio: ['ignore', 'pipe', 'pipe'], ...readerRun()}) }
   catch (e) { throw new Refusal(dir, statedRefusal(e) ?? `the Rust reader didn't run (${String((e as {stderr?: string}).stderr ?? (e as Error).message).split('\n').filter(Boolean).slice(-2).join(' | ')}): cargo is needed to extract Rust`) }
-  return JSON.parse(out) as SModule
+  const m = JSON.parse(out) as SModule & {error?: unknown}
+  // (the crate's files not parsing: the reader's error, the source refused with it)
+  if (m.error !== undefined) throw new Refusal(dir, `the crate doesn't parse: ${typeof m.error === 'string' ? m.error : JSON.stringify(m.error)}`)
+  return m
 }
 
 // `at`: the crate's directory, or a file in it (a path or a URL).

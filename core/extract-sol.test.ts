@@ -152,3 +152,26 @@ t('a call into other code whose failure the function goes on past: refused (re-e
   expect(x.ok).toBe(false)
   expect(x.refusals[0]!.what).toMatch(/re-entrancy: withdraw: a call into other code whose failure the function goes on past/)
 }, 600_000)
+
+// anvil's state on disk (boat's disks filled with ~/.foundry/anvil/tmp from killed runs): the harness keeps anvil's in a
+// directory of its own, gdp-anvil-<pid>-*, which a killed harness's watchdog removes, and removes at start what killed
+// runs before it left (their directories, anvil's old state folders).
+t('a killed harness leaves no anvil state behind; what killed runs left is removed at start', async () => {
+  const {existsSync, mkdirSync, readdirSync, utimesSync} = await import('node:fs')
+  const home = mkdtempSync(`${tmpdir()}/gdp-solhome-`), legacy = `${home}/.foundry/anvil/tmp`
+  mkdirSync(`${legacy}/old-state`, {recursive: true}); mkdirSync(`${legacy}/new-state`, {recursive: true})
+  utimesSync(`${legacy}/old-state`, Date.now() / 1000 - 3 * 3600, Date.now() / 1000 - 3 * 3600)
+  const dead = `${tmpdir()}/gdp-anvil-999999999-left`
+  mkdirSync(dead, {recursive: true})
+  const harness = new URL('./sol/harness.py', import.meta.url).pathname
+  const p = Bun.spawn(['python3', '-c', `import sys, time; sys.path.insert(0, ${JSON.stringify(harness.replace(/\/[^/]*$/, ''))}); import harness; harness.start_anvil(); print(harness.S['anvil_dir'], flush=True); time.sleep(600)`], {stdout: 'pipe', env: {...process.env, HOME: home}})
+  const reader = p.stdout.getReader(), {value} = await reader.read()
+  const d = new TextDecoder().decode(value).trim()
+  expect(existsSync(d)).toBe(true)
+  expect(existsSync(dead)).toBe(false)
+  expect(readdirSync(legacy)).toEqual(['new-state'])
+  p.kill(9)
+  for (let i = 0; i < 40 && existsSync(d); i++) await Bun.sleep(250)
+  expect(existsSync(d)).toBe(false)
+  expect(readdirSync(tmpdir()).filter(n => n.startsWith(`gdp-anvil-${p.pid}-`))).toEqual([])
+}, 120_000)
