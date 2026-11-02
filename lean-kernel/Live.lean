@@ -258,6 +258,8 @@ def primeE (pr pm : List (Nat × Nat)) : E → E
   | .get m k => .get (match lookup (fun q => q.1 == m) pm with
       | some q => q.2
       | none => m) (primeE pr pm k)
+  | .tup a b => .tup (primeE pr pm a) (primeE pr pm b)
+  | .proj k a => .proj k (primeE pr pm a)
 def primeC (pr pm : List (Nat × Nat)) : C → C
   | .le a b => .le (primeE pr pm a) (primeE pr pm b)
   | .lt a b => .lt (primeE pr pm a) (primeE pr pm b)
@@ -336,6 +338,11 @@ theorem primeE_eval : (e : E) → (∀ i, occE i e = true → i ∉ pr.map (·.2
       rcases hmm.2 with h | h
       · exact absurd h hnot
       · rw [h]
+  | .tup a b, hv, hm => by
+    simp only [primeE, evalE, primeE_eval a (fun i hi => hv i (by simp [occE, hi])) (fun mp h => hm mp (by simp [occME, h])),
+      primeE_eval b (fun i hi => hv i (by simp [occE, hi])) (fun mp h => hm mp (by simp [occME, h]))]
+  | .proj k a, hv, hm => by
+    simp only [primeE, evalE, primeE_eval a (fun i hi => hv i (by simp [occE, hi])) (fun mp h => hm mp (by simp [occME, h]))]
 theorem primeC_eval : (c : C) → (∀ i, occC i c = true → i ∉ pr.map (·.2) ∧ (i ∈ pr.map (·.1) ∨ ρ' i = ρ i)) →
     (∀ mp, occMC mp c = true → mp ∉ pm.map (·.2) ∧ (mp ∈ pm.map (·.1) ∨ M' mp = M mp)) →
     evalC (primed pr ρ' ρ) (primedMaps pm M' M) (primeC pr pm c) = evalC ρ' M' c

@@ -79,8 +79,8 @@ const walkE = (e: E, scope: Scope): void => {
       walkE(e.key, scope); return
     }
     case 'if': walkC(e.c, scope); walkE(e.then, scope); walkE(e.else, scope); return
-    case 'mul': walkE(e.a, scope); return
-    case 'add': case 'sub': case 'min': case 'max': case 'prod': walkE(e.a, scope); walkE(e.b, scope); return
+    case 'mul': case 'proj': walkE(e.a, scope); return
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': walkE(e.a, scope); walkE(e.b, scope); return
     case 'var': case 'const': return
   }
 }

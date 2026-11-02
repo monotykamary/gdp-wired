@@ -66,7 +66,9 @@ Two claims rest on a link the format does not carry, and the kernel doesn't chec
 - **Terms and conditions** are the kernel's E and C as objects with `op`: `var`, `const`, `add`, `sub` (truncated at
   0), `mul` (by a natural), `prod`, `min`, `max`, `if`, `get` (a map's cell, or a function's value); `<`, `<=`, `=`,
   `and` and `or` of any number of parts, `not`, `flag`, `all`. Over the rationals, `QE` and `QC`: no truncation,
-  `mul` by a rational, `and` and `or` binary.
+  `mul` by a rational, `and` and `or` binary. Native `tup`/`proj` terms and tuple-keyed cells
+  are outside versions 1.0/1.1: the reader and writer refuse them with an explicit reason rather
+  than flattening their parts into a scalar key.
 
 ## Linear forms, atoms and columns
 

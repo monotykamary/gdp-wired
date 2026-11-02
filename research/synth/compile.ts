@@ -14,7 +14,7 @@
 // Functions from outside the rule are tabulated: the keys a box point can read one at are bounded (the box bounds the
 // params, the state and the request; a history's state, by its depth), so each becomes a table of its values up to
 // there, read as a map.
-import {type C, type E, type Fn, type Law, type Machine, compileFunction, fnValue} from '../../core/machine.ts'
+import {type C, type E, type Fn, type Law, type Machine, compileFunction, cpair, fnValue} from '../../core/machine.ts'
 import type {Loop} from '../../kernel/kernel.ts'
 import {FN_KEYS, type Target, expressions} from '../search/compile.ts'
 
@@ -60,6 +60,9 @@ export function fnTables(p: Problem, box: Box): Record<string, number[]> {
       case 'prod': return up(e.a) * up(e.b)
       case 'min': return Math.min(up(e.a), up(e.b))
       case 'max': return Math.max(up(e.a), up(e.b))
+      // (the pairing grows with each part; a part is at most its pair)
+      case 'tup': return cpair(up(e.a), up(e.b))
+      case 'proj': return up(e.a)
       case 'if': upC(e.c); return Math.max(up(e.then), up(e.else))
       case 'get': { const key = up(e.key); if (!fns[e.map]) throw new Error(`the synthesizers read no map (${e.map})`); return table(e.map, key) }
     }

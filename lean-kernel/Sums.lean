@@ -194,6 +194,8 @@ def gOkE (k : Nat) : E → Bool
   | .get _ key => match key with
     | .var i => i == k
     | _ => false
+  | .tup a b => gOkE k a && gOkE k b
+  | .proj _ a => gOkE k a
 def gOkC (k : Nat) : C → Bool
   | .le a b => gOkE k a && gOkE k b
   | .lt a b => gOkE k a && gOkE k b
@@ -222,6 +224,8 @@ theorem g_sliceE (k : Nat) (ρ : Nat → Nat) (M : Nat → Nat → Nat) : (e : E
     simp only [evalE, g_sliceC k ρ M c h.1.1, g_sliceE k ρ M t h.1.2, g_sliceE k ρ M f h.2]
   | .get m key, h => by
     cases key <;> simp_all [gOkE, evalE]
+  | .tup a b, h => by simp only [gOkE, Bool.and_eq_true] at h; simp only [evalE, g_sliceE k ρ M a h.1, g_sliceE k ρ M b h.2]
+  | .proj _ a, h => by simp only [gOkE] at h; simp only [evalE, g_sliceE k ρ M a h]
 theorem g_sliceC (k : Nat) (ρ : Nat → Nat) (M : Nat → Nat → Nat) : (c : C) → gOkC k c = true →
     evalC ρ M c = evalC (fun _ => 0) (fun mp _ => M mp (ρ k)) c
   | .le a b, h => by simp only [gOkC, Bool.and_eq_true] at h; simp only [evalC, g_sliceE k ρ M a h.1, g_sliceE k ρ M b h.2]
@@ -325,6 +329,8 @@ def mapsE : E → List Nat
   | .prod a b => mapsE a ++ mapsE b
   | .ite c t f => mapsC c ++ mapsE t ++ mapsE f
   | .get m key => m :: mapsE key
+  | .tup a b => mapsE a ++ mapsE b
+  | .proj _ a => mapsE a
 def mapsC : C → List Nat
   | .le a b => mapsE a ++ mapsE b
   | .lt a b => mapsE a ++ mapsE b
@@ -355,6 +361,8 @@ theorem mapsE_occ (mp : Nat) : (e : E) → occME mp e = true → mp ∈ mapsE e
     rcases h with h | h
     · exact Or.inl h.symm
     · exact Or.inr (mapsE_occ mp key h)
+  | .tup a b, h => by simp only [occME, Bool.or_eq_true] at h; simp only [mapsE, List.mem_append]; exact h.imp (mapsE_occ mp a) (mapsE_occ mp b)
+  | .proj _ a, h => by simp only [occME] at h; simp only [mapsE]; exact mapsE_occ mp a h
 theorem mapsC_occ (mp : Nat) : (c : C) → occMC mp c = true → mp ∈ mapsC c
   | .le a b, h => by simp only [occMC, Bool.or_eq_true] at h; simp only [mapsC, List.mem_append]; exact h.imp (mapsE_occ mp a) (mapsE_occ mp b)
   | .lt a b, h => by simp only [occMC, Bool.or_eq_true] at h; simp only [mapsC, List.mem_append]; exact h.imp (mapsE_occ mp a) (mapsE_occ mp b)

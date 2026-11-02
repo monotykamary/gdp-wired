@@ -4,7 +4,7 @@
 // its broken variants refused, what the kernel refuses, and a fuzz: every law over two keys the kernel accepts holds on
 // every run.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Law, type Machine, type Request, compileJs, interpret, loadJs, lcg} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, compileJs, cpair, cunpair, interpret, loadJs, lcg} from './machine.ts'
 import {watch} from './watch.ts'
 import {proveLaws} from '../kernel/prove.ts'
 import {everyKey, nat, proveSteps, rule, when} from './dsl.ts'
@@ -44,6 +44,8 @@ const evalBrute = (e: E, env: Env, I: Map<number, number>, J: Map<number, number
     case 'add': return evalBrute(e.a, env, I, J) + evalBrute(e.b, env, I, J)
     case 'sub': return Math.max(0, evalBrute(e.a, env, I, J) - evalBrute(e.b, env, I, J))
     case 'get': return (e.map === 'I' ? I : J).get(evalBrute(e.key, env, I, J)) ?? 0
+    case 'tup': return cpair(evalBrute(e.a, env, I, J), evalBrute(e.b, env, I, J))
+    case 'proj': return cunpair(evalBrute(e.a, env, I, J))[e.k]
     case 'if': case 'max': case 'min': case 'mul': case 'prod': throw new Error(e.op)
   }
 }

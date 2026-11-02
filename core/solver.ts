@@ -80,7 +80,7 @@ export const linOfE = (e: E): Lin | undefined => {
     case 'const': return konst(e.value)
     case 'add': { const a = linOfE(e.a), b = linOfE(e.b); return a && b && plus(a, b) }
     case 'mul': { const a = linOfE(e.a); return a && times(a, e.k) }
-    case 'sub': case 'prod': case 'min': case 'max': case 'if': case 'get': return undefined
+    case 'sub': case 'prod': case 'min': case 'max': case 'if': case 'get': case 'tup': case 'proj': return undefined
   }
 }
 // l with each name of m's replaced by its form there

@@ -43,6 +43,120 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneRL: native relations (maps keyed by tuples) in the kernel, Lean and the DSL; the gates
+
+Branch gen/laneRL from main 3000a12. Trusted: two terms, `tup(a, b)` (Cantor's pairing tri(a + b) + b; n-tuples nest
+right) and `proj(k, a)` (cun's parts), in core/machine.ts, kernel/kernel.ts and lean-kernel/Kernel.lean, line for line:
+a tuple has no linear form; its parts (`parts`/`keyParts`: a tup's parts' forms, proj 1 of one its rest while two or
+more are left) read a cell `M[⟨k1|…⟩]` (Lean `cellT m ks`, valued `maps m (tupk ks)`); proj 0 is the first part, proj 1
+the last of two; two tuples are equal exactly when their parts are (truth and facts as `and`); two tuple cells equal
+when every part is decided equal both ways (Lean `keysEq`). Lean's new statements: `parts_sound` (parts ⇒ ∃ values,
+tupk of them is the term's value), `shapeT_sound`, `eqSh_sound`, `factsSh_sound`, `cellT_col`, `cellEq_sound`;
+`linear_sound`, `truth_sound`, `facts_sound` and `sound` unchanged in statement; axioms propext, Classical.choice,
+Quot.sound. Untrusted around it: scope (one key shape per map, `mapArities`; writes at every tuple read part by part,
+`eachParts`; names reserve ⟨ ⟩ |; a map whose name holds a column's characters reads no column — a hole of the older
+naming, found by the lane's review, Lean refused it), the prover and the CDCL reader (tuple cells paired part by part),
+the EPR path (a tuple key a tuple of its parts), the interpreter (quantifiers and writes at every tuple on each part's
+breakpoints; a write the request leaves as it is copies the map), `.sorts`/`.relations` in the DSL.
+
+- **Ports.** learning_switch and learning_switch_i4 over relations (models.ts; the phased ones kept as `phased`): one step
+  an action. Faithful: relations/agree.ts (12,000 random steps each, the phased port's rows run out: no difference);
+  check.ts against TLC: learning_switch 43,672 states, i4 240 (TLC's), each broken variant reaching a bad state.
+- **The published invariants check** (relations/hand.ts, search off): learning_switch with mypyvy's help_3/help_4 in
+  3.0 s on boat (main's packed port: unknown at 300 s); i4 with I4's manual_1..4 and the setup laws in 12.7 s (two of
+  the written laws were not inductive as written: they held only after start; a CTI check found it).
+- **Lean end to end:** `bun lean-kernel/export-kernel.ts --switch` (997 KB): learning_switch's five laws, kernel.ts's
+  proof, checked through `Kern.smachine_sound` on boat in 155 s; `--tuples`: tuple goals, a tampered tuple-cell equality
+  refused, symmetric, ordered and rotated relations end to end.
+- **Soundness gates:** kernel/tuples.test.ts (adversarial: one part equal, lengths, plain vs tuple cells, aliasing, proj
+  of non-tuples, reserved names, tuple equality's facts, comprehensions that write what they read, the runtime against
+  set semantics); mutants over the changed kernel lines 170 of 177 killed, the 7 survivors equivalent (MUTANTS.md). The
+  pi reviews (sol, terra) could not run: pi's OpenAI login had expired (invalid_grant); a fresh-context review ran
+  instead and found the map-name hole.
+- **Gates (boat, large, --timing).** IC3Syn 29 × 3 at strict 60 s (runs/laneRL/gate-ic): **24 of 29 proven within 60 s
+  in all three runs** (main 22), 25 in at least one (main 24); learning_switch 18.7 / 16.4 / 18.0 s; no broken variant
+  proven. DuoAI's ten: 9 of 10 (distributed_lock unknown, as on main). Quick bar against main 9b62ecf: wrong 0 in every
+  group, nothing lost solid (CHC +9.33, gained 8; ITS -2, lost 4 none solid; TIP lost 1 none solid; rw gained 1, lost
+  1 none solid; f1, f2, SV level; g332 same searches, +3% time after a fix). Test shards: all 7 pass.
+- **The ten, paired with main (3 runs each, same setup).** Two prover changes cost radix-keyed rules (consensus_wo_decide,
+  distributed_lock, ring_leader_election unknown at 60 s), bisected commit by commit and gated to rules with tuple keys
+  (2d7e5d3, 26fed6b): then 30 of 30 within 60 s against main's 29 of 30 (runs/laneRL/ten3-fix). IC3Syn at 26fed6b
+  (gate-ic3): 22 in all three runs, 25 in some; the misses at identical counted work to gate-ic's (wall), but
+  sharded_kv_no_lost_keys once unknown at 400M work (2.8M otherwise), an outlier not yet explained.
+- **Not closed:** learning_switch_i4 with nothing written (unknown at 60 s; below).
+
+## gen/laneRL: the engine over relations keyed by tuples; learning_switch proven with nothing written (pinned, strict 60 s); i4 not yet (untrusted; nothing trusted changed by this part)
+
+Branch gen/laneRL (the lead's tuple keys: core/machine.ts `tup`/`proj`, kernel cells `M[⟨k1|…⟩]`, `.relations`). The
+engine part is core/infer.ts only; runs in `runs/laneRL/` of the worktree (boat large, `--timing`, one job a VM).
+
+**1. Where the switches stopped (runs/laneRL/tr0, tr1).** Not the join, nor the laws as given: infer's own random runs.
+learning_switch's runs took 108-114 s for 720 requests (~150 ms a step: the interpreter's writeEveryTuple at every
+part's breakpoints, P of four places, params drawn up to 64), i4's 58 s; the engine never started.
+
+**2. What was built (core/infer.ts).**
+- **Tuple keys read natively** (keySorts): a read at `tup(x1..xn)` is the map's places `M:0..n-1`, each part a place of its
+  own (a write at every tuple's own parts, `proj 0 ∘ proj 1ⁱ` of its key, read back as part i); Machine.relations' sorts
+  unite the places first (`R:Node`); `keyOf` builds a tuple key for a tuple map (the radix's otherwise); `valuesAt` and
+  the small instance's renamings decode tuple keys (partsOf). No width-3 or 96-literal cap from packing: a view whose tuple
+  places pass 48 is split by relation (each alone, each two) before its rows are read; literals that hold at every row
+  are dropped and those at none are one-literal cubes, so the 96 counts the informative ones.
+- **Candidates over tuple atoms**: every tuple of the view's keys with repeats (T(x, y, x)); **projected places**,
+  P(x, _, y, _): the view's keys at some parts, each once, the rest free, its cell 1 where some tuple agrees (only "it
+  holds" is a literal; its law quantifies the free parts as keys of its own, so it stays EPR); both literals of a
+  relation's tuple (a tuple never held is a cube of one literal); **a map's value as a key** (`defs`): Src(q), a node a
+  packet holds, one more view key of the values' sort, distinct from the view's keys in the frame, its places with or
+  without it (Pend(q, c, _) beside T(Src(q), c, Src(q))); a map's value compared with a key, 0/1 (Link(x) = x);
+  minimal implication reads `_` as any key (P(x, x, y, y) goes where P(x, _, y, _) is kept).
+- **domainStep** (the samples' step on rules of relations): every write at every tuple evaluated, compiled, only at the
+  tuples the map holds and those the step's equalities pin (partial assignments read off the write with the request's
+  values in place; the own cell 0 there), the flags at every key below a bound past every value and constant; the
+  assumption, scalars and one-key writes once. Its first 6 steps are checked against run.step (a difference: the
+  interpreter's from then on). relations/stepbench.ts: 0.04-0.07 ms a step against the interpreter's 8 ms; CHECK=4000
+  steps compared on both ports, i4 2,490 of them past the start: none differ. Used by the runs (relation rules: 400
+  trials, params ≤ 4) and the small instance's BFS.
+- **On rules of relations**: no join rounds (hulls state no law of tuples) and no runs' Houdini; a key below a param is
+  bounded, not ordered; a relation empty in every small state grows the instance by one element of one sort (the sort
+  with the most relation places first: three nodes can't all be linked in pairs, i4 never starts); views of three keys
+  at most; the Houdini fixpoint over round 0's cubes first (each 4-place cube's own goal ran to the EPR cap: 14 of 23
+  "unsure", 14 s counted), which cut learning_switch's counted work 2.23M → 0.25M.
+
+**3. learning_switch: proven, nothing written.** The pinned setup (`jobs.ts --ms 60000`, strict 60 s, large):
+pin3 (bdf1498) 33.0 / 42.8 / 61.4 s (counted work 2.23M each; r3 a slow VM); pin4-pin6 (early Houdini, 0.25M work)
+53.7 / 26.8 / 48.3, 32.2 / 65.8 / 53.1, 31.2 / 30.6 / 46.8 s; pin7, pin8 17.1, 32.4 s; final2 35.0 s; with pin1 (56.4 s,
+b71c3dc) and ic29a (unknown, a wall stop at 69.3 s, bdf1498): 16 runs, 15 proven by verdict, 14 within 60 s. The same
+counted work takes 2-3x the wall on some large VMs (twophase's 1.52M: 15.6-59.5 s).
+The laws found (13, the cone), among them:
+- help_3 as a projected place: `never T[x, y, x] = 0 ∧ P[x, _, y, _] ≥ 1` (x ≠ y);
+- help_4 as two: `never T[x, y, x] = 0 ∧ T[x, y, _] ≥ 1` and `never T[x, _, y] ≥ 1 ∧ T[x, y, x] = 0`;
+- the table's shape: `never T[x, x, y]`, `never T[x, y, y]`, `never T[x, x, x]`, `never T[x, y, z] ∧ T[x, z, y]`;
+- and P cubes at full tuples (P[x, x, y, x], P[x, y, y, x], ...) the proof keeps.
+
+**4. i4: unknown.** What stands in the way, measured (runs/laneRL/pin6-pin8, i4t1): the small instance's states and the
+views' rows cost 5-10x their counted rate on i4 (each instance 1.5 s counted, 8-9 s real; the views 4 s counted, 30 s
+real: rows of ~100 atoms, 0.5M of them), the BFS at 4 nodes cuts in the setup phase (708 of 1,917 states expanded), so
+2,100-2,600 cubes come out of it, most junk the filter has no time to kill, and the round-0 Houdini over them stopped at
+"route_tc is transitive @start" (no cube to blame). The hand set proves since f53f531/c34c5db (the lead's, 25.6 s).
+Next: rows by state, not by object (the views' atoms as arrays), a BFS that reaches past the setup (symmetry of the
+packets is measured slower here: keyOf3's renamings cost more than the states they save), the filter's states deeper.
+
+**4b. Memory and the broken variant (runs/laneRL/mem1, mem2; /usr/bin/time -v, pinned).** i4 was OOM-killed at 14 GB in
+the lead's 29×3 gate; with the small instance (8,000 states), a view's rows (8,000) and the pool (600 cubes) bounded on
+rules of relations, engine views keeping no rows, and each early-Houdini set proof within a quarter of the engine's time
+left: 10.9 GB → 4.4 GB, unknown at 72 s (the round-0 set proof stops at "route_tc is transitive @start", out of time at
+2 hypotheses: a prover question). learning_switch 0.7 GB, proven 27.6 / 35.3 s. Broken learning_switch's error ("P is
+read at keys of 4 and of 1 parts") comes from dsl.ts's second search over `withMapSums()` (sums of the tuple maps at a
+plain key), not from infer.ts; infer.ts drops any form about every key that reads a map keyed by tuples anyway.
+
+**5. Gates (one run each, large, `--timing`; runs/laneRL/ic29a at bdf1498, final2 at HEAD).** IC3Syn: 23 proven by
+verdict, 21 within 60 s at HEAD (learning_switch new; consensus_forall 75.9 s and consensus_wo_decide 101.6 s at their
+usual counted work, 24.95M and 25.29M: VM speed). sharded_kv_no_lost_keys unknown at HEAD with infer.ts at 13896d9
+too (proven at bdf1498 before c34c5db/f53f531: a prover change). DuoAI's ten: 8 of 10; distributed_lock unknown with the
+base infer.ts as well (3 of 3), ring_leader_election's unknown a wall stop (proven again at the same counted work). A/B
+on one tree (infer.ts at 13896d9 against this lane's): twophase, consensus_forall, consensus_epr, ring: identical
+counted work. Every change is gated on rules of relations but the informative-literal count, the one-literal cubes
+apart and the place names of maps of three or more parts; the A/B's four protocols didn't move by them.
+
 ## gen/laneQ: where a counted goal's time goes; lazy count instances (CEGAR) and the counted search's leaves by the simplex's point (paxos_epr and mldr not won; untrusted; nothing trusted changed)
 
 **Where the time went** (GDP_COUNTS_PROF, boat large, each alone; C3's code): mldr's probe at 300 s, 578 s of wall: the

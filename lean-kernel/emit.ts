@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type CountCert, type CountedGoal, type CountInst, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+import {type CountCert, type CountedGoal, type CountInst, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, cellParts, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {chooseLevels, clock, grow, minimal, proveBuilt, proveLaws, proveSetFast, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {exactNat, leanSurface, leanTerms} from './lean-terms.ts'
@@ -20,22 +20,9 @@ export type Exported = {name: string, goal: Goal, tree: Tree}
 // --- to Lean ------------------------------------------------------------------------------------------------------------
 
 const varsOf = (c: C): string[] => [...JSON.stringify(c).matchAll(/"op":"var","name":"([^"]+)"/g)].map(m => m[1]!)
-const parseKey = (text: string): Lin => {
-  const lin: Lin = {}
-  let depth = 0, start = 0
-  for (let i = 0; i <= text.length; i++) {
-    const ch = text[i]
-    if (ch === '[') depth++
-    else if (ch === ']') depth--
-    else if ((ch === ',' && depth === 0) || i === text.length) {
-      if (i > start) { const part = text.slice(start, i), at = part.lastIndexOf(':'); lin[part.slice(0, at)] = Number(part.slice(at + 1)) }
-      start = i + 1
-    }
-  }
-  return lin
-}
-const cellKey = (cell: string) => parseKey(cell.slice(cell.indexOf('[') + 1, -1))
-const cellMap = (cell: string) => cell.slice(0, cell.indexOf('['))
+// A cell's map, and its key rows: a plain key's one (M[k], Lean's cell) or a tuple's parts' (M[⟨k1|…⟩], Lean's cellT).
+const cellMap = (cell: string) => cellParts(cell).map
+const cellKeys = (cell: string): Lin[] => { const p = cellParts(cell); return p.keys ?? [p.key!] }
 const decide = (lin: Lin, path: Path): boolean | undefined => {
   if (Object.keys(lin).every(key => key === '1')) return (lin['1'] ?? 0) <= 0
   const d = path.get(canon(lin))?.holds
@@ -68,7 +55,8 @@ function reachedChoices(goal: Goal, leafList: {leaf: Tree & {leaf: Step[], produ
         case 'var': case 'const': return
         case 'mul': return walkE(e.a)
         case 'get': return walkE(e.key)
-        case 'add': case 'prod': walkE(e.a); walkE(e.b); return
+        case 'add': case 'prod': case 'tup': walkE(e.a); walkE(e.b); return
+        case 'proj': return walkE(e.a)
         case 'sub': case 'min': case 'max':
           walkE(e.a); walkE(e.b)
           if (linear(e.a, path) && linear(e.b, path) && !decided(e, path)) out.add(termColumn(e))
@@ -130,7 +118,7 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
   // cells among their factors.
   const monos = new Set<string>()
   const addMono = (name: string) => { monos.add(name); for (const f of factorsOf(name)) if (isCell(f)) addCell(f) }
-  const addCell = (name: string) => { if (cells.has(name)) return; cells.add(name); for (const key of Object.keys(cellKey(name))) if (isMonomial(key)) addMono(key); else if (key.includes('[')) addCell(key); else if (key.startsWith('⟦')) terms.add(key) }
+  const addCell = (name: string) => { if (cells.has(name)) return; cells.add(name); for (const key of cellKeys(name).flatMap(l => Object.keys(l))) if (isMonomial(key)) addMono(key); else if (key.includes('[')) addCell(key); else if (key.startsWith('⟦')) terms.add(key) }
   const subterms = (c: C): E[] => {
     const out2: E[] = []
     const we = (e: E): void => { out2.push(e); if (e.op === 'if') { wc(e.c); we(e.then); we(e.else) } else if (e.op === 'get') we(e.key); else if ('a' in e) { we(e.a); if ('b' in e) we(e.b) } }
@@ -180,7 +168,7 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
   const place = (name: string): void => {
     if (placed.has(name)) return
     placed.add(name)
-    for (const d of isMonomial(name) ? factorsOf(name) : Object.keys(cellKey(name))) if (cells.has(d) || cellMonos.includes(d)) place(d)
+    for (const d of isMonomial(name) ? factorsOf(name) : cellKeys(name).flatMap(l => Object.keys(l))) if (cells.has(d) || cellMonos.includes(d)) place(d)
     late.push(name)
   }
   for (const cell of [...cells].sort((a, b) => depth(a) - depth(b))) place(cell)
@@ -199,7 +187,7 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
   const row = (lin: Lin) => `(sp ${sparse(dense(lin))} ${int(lin['1'] ?? 0)})`
   const {e, c} = leanTerms(vars, maps, ex.name)
   const tab = cols.map(name => (isMonomial(name) ? `.mono ${list(factorsOf(name).map(f => { const j = col.get(f); if (j === undefined) throw new Error(`${ex.name}: factor ${f}`); return j }).sort((a, b) => a - b).map(String))}`
-    : name.includes('[') ? `.cell ${maps.indexOf(cellMap(name))} ${row(cellKey(name))}`
+    : name.includes('[') ? (cellParts(name).keys ? `.cellT ${maps.indexOf(cellMap(name))} ${list(cellKeys(name).map(row))}` : `.cell ${maps.indexOf(cellMap(name))} ${row(cellKeys(name)[0]!)}`)
     : name.startsWith('⟦') ? `.term (${e(columnTerm(name)!)})`
     : `.var ${vars.indexOf(name)}`))
 
@@ -233,13 +221,15 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
       return `.cut ${s.of} ${int(s.g)} ${sparse(dense(q))} ${int(cc)}`
     })
     if (tamper && dropStep && leafNo++ === 0) steps = steps.slice(0, -1) // the first leaf loses its last step
-    // Cell pairs the path proves equal (Lean re-checks each).
+    // Cell pairs the path proves equal (Lean re-checks each): one map, and the keys' difference decided 0 both ways (a
+    // tuple's, part by part, as many parts each; a plain key and a tuple never).
     const eqs: string[] = [], pairs: string[] = []
-    const cellCols = cols.map((name, j) => ({name, j})).filter(c2 => isCell(c2.name))
+    const cellCols = cols.map((name, j) => ({name, j, ...cellParts(name)})).filter(c2 => isCell(c2.name))
+    const zero = (a: Lin, b: Lin) => { const d = sub(a, b); return decide(d, path) === true && decide(scale(d, -1), path) === true }
     for (const [a, p] of cellCols.entries()) for (const q of cellCols.slice(a + 1)) {
-      if (cellMap(p.name) !== cellMap(q.name)) continue
-      const d = sub(cellKey(p.name), cellKey(q.name))
-      if (decide(d, path) === true && decide(scale(d, -1), path) === true) { eqs.push(`(${p.j}, ${q.j})`); pairs.push([p.name, q.name].sort().join('\n')) }
+      if (p.map !== q.map) continue
+      const same = p.key && q.key ? zero(p.key, q.key) : !!p.keys && !!q.keys && p.keys.length === q.keys.length && p.keys.every((x, i) => zero(x, q.keys![i]!))
+      if (same) { eqs.push(`(${p.j}, ${q.j})`); pairs.push([p.name, q.name].sort().join('\n')) }
     }
     // Each row with where Lean finds it (a hint: missed, Lean looks among all of the leaf's rows).
     const hint = (src?: RowSrc): string => {
@@ -549,6 +539,8 @@ function sharedTerms(vars: string[], where: string, plainE: (t: E) => string) {
       case 'add': case 'sub': case 'min': case 'max': case 'prod': return `.${t.op} (${e(t.a)}) (${e(t.b)})`
       case 'if': return `.ite (${c(t.c)}) (${e(t.then)}) (${e(t.else)})`
       case 'get': return plainE(t)
+      case 'tup': return `.tup (${e(t.a)}) (${e(t.b)})`
+      case 'proj': return `.proj ${t.k} (${e(t.a)})`
     }
   }
   const c = (t: C): string => {
@@ -677,6 +669,8 @@ export function readable(id: string, laws: Law[], vars: string[], maps: string[]
         case 'min': case 'max': return `(${e.op} ${t(e.a)} ${t(e.b)})`
         case 'if': return `(if ${p(e.c)} then ${t(e.then)} else ${t(e.else)})`
         case 'get': { const a = plain ? arithOf(e.map) : undefined; return a ? `(${t(e.key)} ${a.op} ${a.k})` : `(μ ${q(e.map)} (${t(e.key)}))` }
+        case 'tup': return `(Kern.cpair ${t(e.a)} ${t(e.b)})`
+        case 'proj': return `(Kern.pickP ${e.k} ${t(e.a)})`
       }
     }
     const p = (c: C): string => {
@@ -758,7 +752,7 @@ ${plain}`
           const shown = natShow(e.key) === undefined ? undefined : statementOfE(e)
           return shown === undefined ? undefined : new Map([[`get:${shown}`, {c: 1, show: `(${shown} : Int)`}]])
         }
-        case 'sub': case 'min': case 'max': case 'prod': case 'if': return undefined
+        case 'sub': case 'min': case 'max': case 'prod': case 'if': case 'tup': case 'proj': return undefined
       }
     }
     const side = (ts: [string, number][]) => (ts.length ? ts.map(([show, c]) => (c === 1 ? show : `${c} * ${show}`)).join(' + ') : '0')
@@ -1223,7 +1217,7 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   const sub1 = (c2: C, vars: Record<string, E>): C => substC(c2, {vars, maps: {}, flags: {}})
   const carriedKeys = (cs: C[]): E[] => {
     const out = new Map<string, E>()
-    const inE = (x2: E): void => { if (x2.op === 'get') { if ((m.inputMaps ?? []).includes(x2.map)) out.set(JSON.stringify(x2.key), x2.key); inE(x2.key) } else if (x2.op === 'if') (inC(x2.c), inE(x2.then), inE(x2.else)); else if (x2.op === 'mul') inE(x2.a); else if ('a' in x2) (inE(x2.a), inE(x2.b)) }
+    const inE = (x2: E): void => { if (x2.op === 'get') { if ((m.inputMaps ?? []).includes(x2.map)) out.set(JSON.stringify(x2.key), x2.key); inE(x2.key) } else if (x2.op === 'if') (inC(x2.c), inE(x2.then), inE(x2.else)); else if (x2.op === 'mul' || x2.op === 'proj') inE(x2.a); else if ('a' in x2) (inE(x2.a), inE(x2.b)) }
     const inC = (c2: C): void => (c2.op === 'flag' || c2.op === 'all' ? undefined : c2.op === 'not' ? inC(c2.x) : c2.op === 'and' || c2.op === 'or' ? c2.xs.forEach(inC) : (inE(c2.a), inE(c2.b)))
     cs.forEach(inC)
     return [...out.values()]

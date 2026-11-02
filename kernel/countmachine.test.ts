@@ -3,7 +3,7 @@
 // mutated, every accepted set of laws true on every reachable state of the small instances (count maps read at the
 // request's view, a law's at the state), by brute force.
 import {describe, expect, test} from 'bun:test'
-import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, seeded, times, x} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, all, any, atMost, cpair, cunpair, get, ite, less, n, not, plus, same, seeded, times, x} from '../core/machine.ts'
 import {type CountCert, type CountInst, type MapRead, type Tree, substE, check, checkCountedLaws, checkMC, countedObligations, mcGoal, obligations} from './kernel.ts'
 import {clock, grow} from './prove.ts'
 import {countedProof, pickExample, toyCounted, toyRounds} from '../lean-kernel/count-examples.ts'
@@ -25,6 +25,8 @@ const ev = (e: E, env: Env, maps: Maps): number => {
     case 'min': return Math.min(ev(e.a, env, maps), ev(e.b, env, maps))
     case 'max': return Math.max(ev(e.a, env, maps), ev(e.b, env, maps))
     case 'if': return holds(e.c, env, maps) ? ev(e.then, env, maps) : ev(e.else, env, maps)
+    case 'tup': return cpair(ev(e.a, env, maps), ev(e.b, env, maps))
+    case 'proj': return cunpair(ev(e.a, env, maps))[e.k]
     case 'get': return maps[e.map]?.(ev(e.key, env, maps)) ?? 0
   }
 }
@@ -122,6 +124,15 @@ describe('counts in a machine', () => {
     expect(bad({c: {j: 'x', key: 'n', below: x('size'), body: get('quorum', x('n'))}})).toThrow(/doesn't declare/)
     // (a law's key, as the count would read it frozen at the state: Lean's cDeclOk refuses it too)
     expect(bad({c: {j: 'x', key: 'n', below: x('size'), body: get('Vote', x('a'))}})).toThrow(/doesn't declare/)
+  })
+
+  test('count certificates keep refusing native tuples and projections at the scalar boundary', () => {
+    expect(checkCountedLaws(toy.m, toy.laws, proof)).toBe(true)
+    const tup: E = {op: 'tup', a: n(0), b: n(0)}, proj: E = {op: 'proj', k: 0, a: tup}
+    for (const term of [tup, proj]) {
+      expect(checkCountedLaws(toy.m, toy.laws, withCert(stepOne, k => ({...k, reads: k.reads.map((r, i) => i ? r : [r[0], r[1], term] as MapRead)})))).toBe(false)
+      expect(checkCountedLaws(toy.m, toy.laws, withCert(stepOne, k => ({...k, insts: k.insts.map((j, i) => i ? j : {...j, below: term})})))).toBe(false)
+    }
   })
 
   test('each guard on a certificate refuses what only it refuses', () => {

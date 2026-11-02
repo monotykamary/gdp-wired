@@ -1,9 +1,42 @@
 // proveRule and proveSteps search for what the laws need where the prover alone doesn't prove them and no run breaks
 // them: lemmas (core/discover.ts), then invariants (core/infer.ts). `{search: false}` is the prover alone.
-import {expect, test} from 'bun:test'
+import {expect, spyOn, test} from 'bun:test'
 import {nat, oneOf, proveRule, proveSteps, rule, when} from './dsl.ts'
 import {bucket, bucketLaw, pool, poolLaw} from '../examples/infer.ts'
 import {retries, retryLaws, retrySteps} from '../examples/lemmas.ts'
+import {withWall} from '../kernel/prove.ts'
+
+const assignment = () => {
+  const r = rule('bounded initial steps').inputs({n: nat}).state({x: 0}).step(({n}) => ({x: n}))
+  return {r, law: r.stepLaw('the assignment', ({n}, after) => after.x.eq(n))}
+}
+
+test('from any state, an exhausted caller budget bounds the initial step-law set', () => {
+  const {r, law} = assignment()
+  // No counterexample exists: without a whole-step bound this proves even though
+  // the caller's budget was exhausted before the first goal could be grown.
+  expect(proveSteps(r, [], [law], {search: {ms: -1}, from: 'any'})).toMatchObject({proven: false, stuck: 'unknown'})
+  // The wall is scoped. Unbudgeted and reachable-state calls keep their behavior.
+  expect(proveSteps(r, [], [law], {search: false, from: 'any'})).toMatchObject({proven: true, checked: true})
+  expect(proveSteps(r, [], [law], {search: {ms: -1}})).toMatchObject({proven: true, checked: true})
+})
+
+test('preflight runs and arbitrary-state trials honor the enclosing wall without extending it', () => {
+  const {r, law} = assignment(), params = spyOn(r, 'randomParams'), inputs = spyOn(r, 'randomInput')
+  try {
+    // The nested caller budget cannot extend an already exhausted enclosing wall.
+    const v = withWall(-Infinity, () => proveSteps(r, [], [law], {search: {ms: 1000}, from: 'any'}))
+    expect(v).toMatchObject({proven: false, stuck: 'unknown'})
+    expect(params).not.toHaveBeenCalled()
+    expect(inputs).not.toHaveBeenCalled()
+  } finally { params.mockRestore(); inputs.mockRestore() }
+  expect(proveSteps(r, [], [law], {search: false})).toMatchObject({proven: true, checked: true})
+})
+
+test('a bounded from-any step proof still refuses a broken step law', () => {
+  const {r} = assignment(), bad = r.stepLaw('not the assignment', ({n}, after) => after.x.eq(n.plus(1)))
+  expect(proveSteps(r, [], [bad], {search: {ms: 1000}, from: 'any'})).toMatchObject({proven: false, stuck: 'sat'})
+})
 
 test('an invariant nobody wrote is found and proven, and said as a law', () => {
   const r = bucket(), law = bucketLaw(r)

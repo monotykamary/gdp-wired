@@ -129,6 +129,7 @@ export function compile(given: Machine, law: Watched, space: Space, chunk: numbe
         if (w.maximum(key) < cells.length) return cells.slice(0, -1).reduce((acc, cell, c) => w.select(w.eq(key, k(c)), cell, acc), cells.at(-1)!)
         return cells.reduce((acc, cell, c) => w.select(w.eq(key, k(c)), cell, acc), fallback(e.map, env))
       }
+      case 'tup': case 'proj': throw new Error('the GPU search takes no tuple key')
     }
   }
   const cx = (c: C, env: Env): Word => {

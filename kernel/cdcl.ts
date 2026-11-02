@@ -20,7 +20,7 @@
 import {type Constraint, type Lin, type Step, costs, env, refuteFast, solve, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isMonomial, leafConstraints} from './kernel.ts'
-import {atPoint, cellPair, growWide, late, leafRowsOf, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, wideFor, wideScope, type Outcome} from './prove.ts'
+import {atPoint, cellPair, tupleCellPairs, growWide, late, leafRowsOf, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, wideFor, wideScope, type Outcome} from './prove.ts'
 import {Clausal, Reader, type Row, namesOf} from './reader.ts'
 import {Simplex} from './simplex.ts'
 
@@ -164,7 +164,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   // Each pair's two atoms read once a session: their variables and which way each stores its form (the same reading as
   // recOf and canon at every node, which this list's rebuilds, nearly every node, spent most of a wide goal's time on).
   type PairRec = {d: Lin, neg: Lin, mono: boolean, xd?: Var, sd?: boolean, xn?: Var, sn?: boolean, read?: boolean}
-  const pairRecs = new Map<string, Map<string, PairRec>>()
+  const pairRecs = new Map<string, Map<string, PairRec | PairRec[]>>()
   let flat: PairRec[] = [], flatAt = -1
   const valOf = (x: Var | undefined, same: boolean | undefined): boolean | undefined => (x?.val === undefined ? undefined : same ? x.val : !x.val)
   const openCellsLive = (): Lin[] => {
@@ -179,8 +179,14 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
           if (!row) pairRecs.set(ns[i]!, (row = new Map()))
           for (let j = i + 1; j < ns.length; j++) {
             let r = row.get(ns[j]!)
-            if (!r) { const pair = cellPair(ns[i]!, ns[j]!); row.set(ns[j]!, (r = {d: pair.d, neg: pair.neg, mono: Object.keys(pair.d).some(isMonomial)})) }
-            flat.push(r)
+            if (!r) {
+              // (two tuple cells: a pair for each part, each split on as a plain key's difference is)
+              const parts = tupleCellPairs(ns[i]!, ns[j]!)
+              if (parts) r = parts.map(([d, neg]) => ({d: d!, neg: neg!, mono: false}))
+              else { const pair = cellPair(ns[i]!, ns[j]!); r = {d: pair.d, neg: pair.neg, mono: Object.keys(pair.d).some(isMonomial)} }
+              row.set(ns[j]!, r)
+            }
+            if (Array.isArray(r)) flat.push(...r); else flat.push(r)
           }
         }
       }
@@ -622,7 +628,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
         for (const id of reader.entered) { if (single(id)) { bxIn.add(id); bx.assert(id, full[reader.slotOf(id)]!.lin) } if (sx && !toRetract.delete(id)) toAssert.add(id) }
         if (verify && !clausal) {
           const mine = new Set(rowsR.map(r => canon(r.lin))), theirs = new Set(leafConstraints(goal, pathOf()).map(r => canon(r.lin)))
-          if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}`)
+          if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}: reader's alone ${[...mine].filter(x => !theirs.has(x)).slice(0, 4).join(' ; ')}; kernel's alone ${[...theirs].filter(x => !mine.has(x)).slice(0, 4).join(' ; ')}; path ${[...pathOf()].map(([k2, a]) => `${a.holds ? '' : '¬'}${k2}`).join(' ; ')}`)
         }
         work.n += 1 + full.length
         costs.cdclNodes++; costs.cdclRows += full.length

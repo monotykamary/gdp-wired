@@ -106,6 +106,7 @@ export function encE(e: E, at = 'term'): Json {
     case 'mul': return {op: e.op, k: nat(e.k, `${at}.k`), a: encE(e.a, `${at}.a`)}
     case 'if': return {op: e.op, c: encC(e.c, `${at}.c`), then: encE(e.then, `${at}.then`), else: encE(e.else, `${at}.else`)}
     case 'get': return {op: e.op, map: name(e.map, `${at}.map`), key: encE(e.key, `${at}.key`)}
+    case 'tup': case 'proj': return fail(at, 'tuple terms are not supported by interchange 1.1')
     default: return fail(at, `no term op ${JSON.stringify((e as {op: unknown}).op)}`)
   }
 }
@@ -119,6 +120,7 @@ export function decE(x: unknown, at = 'term'): E {
     case 'mul': obj(o, at, ['op', 'k', 'a']); return {op: 'mul', k: nat(o.k, `${at}.k`), a: decE(o.a, `${at}.a`)}
     case 'if': obj(o, at, ['op', 'c', 'then', 'else']); return {op: 'if', c: decC(o.c, `${at}.c`), then: decE(o.then, `${at}.then`), else: decE(o.else, `${at}.else`)}
     case 'get': obj(o, at, ['op', 'map', 'key']); return {op: 'get', map: name(o.map, `${at}.map`), key: decE(o.key, `${at}.key`)}
+    case 'tup': case 'proj': return fail(at, 'tuple terms are not supported by interchange 1.1')
     default: return fail(at, `no term op ${JSON.stringify(o.op ?? null)}`)
   }
 }
@@ -229,6 +231,8 @@ function encAtom(key: string, cols: Columns, at: string): Json {
   if (isMonomial(key)) return {mono: factorsOf(key).map((f, i) => encAtom(f, cols, `${at}.mono[${i}]`))}
   if (isCell(key)) {
     const map = key.slice(0, key.indexOf('[')), inner = key.slice(key.indexOf('[') + 1, -1)
+    // Version 1.1 has one linear key, not the native tuple's list of linear parts.
+    if (inner.startsWith('⟨')) fail(at, 'tuple-keyed cells are not supported by interchange 1.1')
     // (a cell's name is the kernel's canon of its key: written back from the key read, it must be the same text)
     const lin = parseKey(inner)
     if (canon(lin) !== inner) fail(at, `a cell whose key ${inner} isn't one the kernel writes`)
@@ -254,7 +258,9 @@ function decAtom(x: unknown, cols: Columns, at: string): string {
     return [...fs].sort().join('*')
   }
   obj(o, at, ['cell', 'key'])
-  return `${name(o.cell, `${at}.cell`)}[${canon(decLin(o.key, cols, `${at}.key`))}]`
+  const key = canon(decLin(o.key, cols, `${at}.key`))
+  if (key.startsWith('⟨')) fail(at, 'tuple-keyed cells are not supported by interchange 1.1')
+  return `${name(o.cell, `${at}.cell`)}[${key}]`
 }
 export function encLin(lin: Lin, cols: Columns, at = 'row'): Json {
   if (!isObj(lin)) fail(at, 'a linear form')

@@ -53,10 +53,10 @@ export function toSmt(goal: Goal): string {
     switch (t.op) {
       case 'var': vars.add(t.name); return
       case 'const': return
-      case 'mul': return count(t.a)
+      case 'mul': case 'proj': return count(t.a)
       case 'get': maps.add(t.map); return count(t.key)
       case 'if': return (count(t.c), count(t.then), count(t.else))
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': return (count(t.a), count(t.b))
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return (count(t.a), count(t.b))
       case '<': case '<=': case '=': return (count(t.a), count(t.b))
       case 'and': case 'or': return t.xs.forEach(count)
       case 'not': return count(t.x)
@@ -90,6 +90,7 @@ export function toSmt(goal: Goal): string {
       case 'max': { const a = go(t.a), b = go(t.b); return `(ite (<= ${a} ${b}) ${b} ${a})` }
       case 'if': return `(ite ${go(t.c)} ${go(t.then)} ${go(t.else)})`
       case 'get': return `(${sym(`map ${t.map}`)} ${go(t.key)})`
+      case 'tup': case 'proj': throw new Error('the SMT-LIB goal takes no tuple key')
       case '<': case '<=': case '=': return `(${t.op} ${go(t.a)} ${go(t.b)})`
       case 'and': return t.xs.length ? `(and ${t.xs.map(go).join(' ')})` : 'true'
       case 'or': return t.xs.length ? `(or ${t.xs.map(go).join(' ')})` : 'false'

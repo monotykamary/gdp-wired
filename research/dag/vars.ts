@@ -14,7 +14,7 @@ import {openAtoms} from './tree.ts'
 const goal = loadGoal(readFileSync(process.argv[2]!, 'utf8'))
 const namesOf = (c: C): Set<string> => {
   const out = new Set<string>()
-  const e = (x: E): void => { switch (x.op) { case 'var': out.add(x.name); return; case 'const': return; case 'mul': return e(x.a); case 'get': return e(x.key); case 'if': c1(x.c); e(x.then); return e(x.else); case 'add': case 'sub': case 'min': case 'max': case 'prod': e(x.a); return e(x.b) } }
+  const e = (x: E): void => { switch (x.op) { case 'var': out.add(x.name); return; case 'const': return; case 'mul': case 'proj': return e(x.a); case 'get': return e(x.key); case 'if': c1(x.c); e(x.then); return e(x.else); case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': e(x.a); return e(x.b) } }
   const c1 = (x: C): void => { switch (x.op) { case 'and': case 'or': return x.xs.forEach(c1); case 'not': return c1(x.x); case 'flag': case 'all': return; case '<': case '<=': case '=': e(x.a); return e(x.b) } }
   c1(c)
   return out

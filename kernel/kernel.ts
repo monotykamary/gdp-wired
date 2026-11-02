@@ -25,6 +25,13 @@ import {type Constraint, type Lin, type Step, add, k, scale, sub, v} from '../co
 // the types), it fails loudly instead of returning undefined.
 export function unreachable(value: never): never { throw new Error(`unhandled case: ${JSON.stringify(value)}`) }
 
+// Tuple keys (core/machine.ts's tup and proj): an n-tuple nests to the right, tup(x1, tup(x2, … xn)); one part is the
+// part itself. `tupleParts` reads one back ([x1, …, xn]; anything else one part); `part` is the i-th of n parts of a
+// natural read as an n-tuple (proj 0, proj 0 ∘ proj 1, …, the last proj 1 ∘ … ∘ proj 1).
+export const tuple = (parts: E[]): E => parts.slice(0, -1).reduceRight<E>((b, a) => ({op: 'tup', a, b}), parts.at(-1)!)
+export const tupleParts = (e: E): E[] => (e.op === 'tup' ? [e.a, ...tupleParts(e.b)] : [e])
+export const part = (key: E, i: number, n: number): E => { let e = key; for (let j = 0; j < i; j++) e = {op: 'proj', k: 1, a: e}; return i < n - 1 ? {op: 'proj', k: 0, a: e} : e }
+
 export type Tree = {split: Lin, yes: Tree, no: Tree} | {leaf: Step[], products?: [number, number][], squares?: Lin[]}
 export type Goal = {name: string, hyps: C[]}
 
@@ -81,7 +88,8 @@ const choiceFree = (e: E): boolean => {
     case 'var': case 'const': out = true; break
     case 'mul': out = choiceFree(e.a); break
     case 'get': out = choiceFree(e.key); break
-    case 'add': case 'prod': out = choiceFree(e.a) && choiceFree(e.b); break
+    case 'add': case 'prod': case 'tup': out = choiceFree(e.a) && choiceFree(e.b); break
+    case 'proj': out = choiceFree(e.a); break
     case 'sub': case 'min': case 'max': case 'if': out = false; break
   }
   freeMemo.set(e, out)
@@ -111,7 +119,7 @@ function linearOf(e: E, path: Path): Lin | undefined {
 const safe = (lin: Lin) => Object.values(lin).every(c => Number.isSafeInteger(c))
 function linearOp(e: E, path: Path): Lin | undefined {
   switch (e.op) {
-    case 'var': return e.name === '1' || /[*[\],:⟦]/.test(e.name) ? undefined : v(e.name) // those characters build cells, monomials and term columns
+    case 'var': return e.name === '1' || /[*[\],:⟦⟨⟩|]/.test(e.name) ? undefined : v(e.name) // those characters build cells, monomials, term columns and tuple keys
     case 'const': return k(e.value)
     case 'mul': { const a = linear(e.a, path); return a && Number.isSafeInteger(e.k) ? scale(a, e.k) : undefined } // (10 · 0.1 is a float 1)
     case 'prod': { const a = linear(e.a, path), b = linear(e.b, path); return a && b && times(a, b) }
@@ -125,8 +133,31 @@ function linearOp(e: E, path: Path): Lin | undefined {
       return (e.op === 'min') === aLeB ? a : b
     }
     case 'if': { const c = truth(e.c, path); return c === undefined ? v(termColumn(e)) : linear(c ? e.then : e.else, path) }
-    case 'get': { const key = linear(e.key, path); return key && v(`${e.map}[${canon(key)}]`) }
+    case 'get': {
+      // (a map's name builds its cells' columns: one with the characters of a column could spell another read's)
+      if (!plainMap(e.map)) return undefined
+      if (e.key.op === 'tup' || e.key.op === 'proj') { const keys = keyParts(e.key, path); if (keys) return v(`${e.map}[⟨${keys.map(canon).join('|')}⟩]`); if (e.key.op === 'tup') return undefined }
+      const key = linear(e.key, path); return key && v(`${e.map}[${canon(key)}]`)
+    }
+    // A tuple is no linear form (its pairing is not linear); a part of one read back is the part (Lean's linear).
+    case 'tup': return undefined
+    case 'proj': { const ps = keyParts(e.a, path); return !ps ? undefined : e.k === 0 ? ps[0] : ps.length === 2 ? ps[1] : undefined }
   }
+}
+// A map's name that builds no other column (kept per name: read at every cell of every path).
+const plainMaps = new Map<string, boolean>()
+export const plainMap = (name: string): boolean => { let ok = plainMaps.get(name); if (ok === undefined) plainMaps.set(name, (ok = name !== '1' && !/[*[\],:⟦⟧⟨⟩|]/.test(name))); return ok }
+// A tuple key's parts as linear forms (Lean's `parts`): tup(a, b) is a's form, then b's parts if b is a tuple, else b's
+// form; so tup(tup(a, b), c) has none (its first part is a tuple). A read at it is the cell M[⟨k1|k2|…⟩].
+// A tuple's rest (proj 1 of it) is its parts after the first, while two or more are left (Lean's `parts`).
+function keyParts(e: E, path: Path): Lin[] | undefined {
+  if (e.op === 'proj') { const ps = e.k === 0 ? undefined : keyParts(e.a, path); return ps && ps.length >= 3 ? ps.slice(1) : undefined }
+  if (e.op !== 'tup') return undefined
+  const a = linear(e.a, path)
+  if (!a) return undefined
+  if (e.b.op !== 'tup') { const b = linear(e.b, path); return b && [a, b] }
+  const rest = keyParts(e.b, path)
+  return rest && [a, ...rest]
 }
 
 // --- term columns -------------------------------------------------------------------------------------------------------
@@ -264,6 +295,8 @@ function truthOf(c: C, path: Path): boolean | undefined {
       return ts.includes(dominant) ? dominant : ts.every(t => t === !dominant) ? !dominant : undefined
     }
     case '<': case '<=': case '=': {
+      const parts = tupleEq(c)
+      if (parts) { const a = truth(parts[0], path), b = truth(parts[1], path); return a === false || b === false ? false : a === true && b === true ? true : undefined }
       const cmp = comparison(c, path)
       if (!cmp) return undefined
       const ts = cmp.when.map(lin => decide(lin, path))
@@ -271,6 +304,23 @@ function truthOf(c: C, path: Path): boolean | undefined {
     }
     default: return unreachable(c)
   }
+}
+
+// An equality of two tuples as its two parts' equalities (tup(a1, a2) = tup(b1, b2): a1 = b1, a2 = b2), kept per condition.
+const tupleEqMemo = new WeakMap<C, [C, C] | null>(), tupleAndMemo = new WeakMap<C, C>()
+// (the same as one condition, `and` of the two: kernel/reader.ts reads it so)
+export function tupleAnd(c: Extract<C, {a: E}>): C | undefined {
+  const parts = tupleEq(c)
+  if (!parts) return undefined
+  let out = tupleAndMemo.get(c)
+  if (!out) tupleAndMemo.set(c, (out = {op: 'and', xs: parts}))
+  return out
+}
+export function tupleEq(c: Extract<C, {a: E}>): [C, C] | undefined {
+  if (c.op !== '=' || c.a.op !== 'tup' || c.b.op !== 'tup') return undefined
+  let out = tupleEqMemo.get(c)
+  if (out === undefined) tupleEqMemo.set(c, (out = [{op: '=', a: c.a.a, b: c.b.a}, {op: '=', a: c.a.b, b: c.b.b}]))
+  return out ?? undefined
 }
 
 // The linear facts a hypothesis gives under the path (each lin <= 0).
@@ -285,6 +335,13 @@ export function facts(c: C, path: Path, positive = true): Lin[] {
       return open.length === 0 ? [k(1)] : open.length === 1 ? facts(open[0]!, path, positive) : []
     }
     case '<': case '<=': case '=': {
+      // Two tuples equal is their parts equal (the pairing is a bijection): Lean's facts of `and (eq a1 b1) (eq a2 b2)`.
+      const parts = tupleEq(c)
+      if (parts) {
+        if (positive) return [...facts(parts[0], path, true), ...facts(parts[1], path, true)]
+        const open = parts.filter(y => truth(y, path) !== true)
+        return open.length === 0 ? [k(1)] : open.length === 1 ? facts(open[0]!, path, false) : []
+      }
       const cmp = comparison(c, path)
       if (!cmp) return []
       if (positive) return cmp.when
@@ -370,11 +427,11 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
   for (const [i, h] of goal.hyps.entries()) for (const lin of factsOf(h)) rows.push({lin, label: '', src: {fact: i}})
   const names = new Set(rows.flatMap(r => Object.keys(r.lin).filter(key => key !== '1')))
   // Two reads of one map whose keys the path proves equal are equal.
-  const cells = [...names].filter(isCell).map(name => ({name, map: name.slice(0, name.indexOf('[')), key: keyOf(name)}))
+  const cells = [...names].filter(isCell).map(name => ({name, ...cellParts(name)}))
   for (const [i, p] of cells.entries()) for (const q of cells.slice(i + 1)) {
     if (p.map !== q.map) continue
-    const d = sub(p.key, q.key)
-    if (decide(d, path) === true && decide(scale(d, -1), path) === true) rows.push({lin: sub(v(p.name), v(q.name)), label: '', src: {pair: [p.name, q.name]}}, {lin: sub(v(q.name), v(p.name)), label: '', src: {pair: [p.name, q.name]}})
+    if (!sameKey(p, q, path)) continue
+    rows.push({lin: sub(v(p.name), v(q.name)), label: '', src: {pair: [p.name, q.name]}}, {lin: sub(v(q.name), v(p.name)), label: '', src: {pair: [p.name, q.name]}})
   }
   // Each term column's rows, and the columns those rows bring in turn.
   const seen = new Set<string>(), todo = [...names].filter(n => n.startsWith('⟦'))
@@ -390,20 +447,43 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
   for (const name of names) rows.push({lin: {[name]: -1}, label: '', src: {nat: name}})
   return rows
 }
-const keyOf = (cell: string): Lin => {
-  const inner = cell.slice(cell.indexOf('[') + 1, -1)
-  const out: Lin = Object.create(null)
-  // Keys are canonical texts `name:coef` joined by ',' at the outer level; a name may itself be a cell with brackets.
-  let depth = 0, start = 0
-  const parts: string[] = []
-  for (let i = 0; i <= inner.length; i++) {
-    const ch = inner[i]
-    if (ch === '[') depth++
-    else if (ch === ']') depth--
-    else if ((ch === ',' && depth === 0) || i === inner.length) { if (i > start) parts.push(inner.slice(start, i)); start = i + 1 }
-  }
-  for (const part of parts) { const at = part.lastIndexOf(':'); out[part.slice(0, at)] = Number(part.slice(at + 1)) }
+// A cell's map and key: M[k] a key, M[⟨k1|k2|…⟩] a tuple's parts (each a canonical text). Split at the outer level only:
+// a name in a key may itself be a cell, with brackets, commas and bars of its own.
+// (kept per name: every leaf reads its cells' keys again; a form is never changed once built)
+const cellMemo = new Map<string, {map: string, key?: Lin, keys?: Lin[]}>()
+export function cellParts(cell: string): {map: string, key?: Lin, keys?: Lin[]} {
+  let out = cellMemo.get(cell)
+  if (!out) { if (cellMemo.size > 200_000) cellMemo.clear(); cellMemo.set(cell, (out = cellParts0(cell))) }
   return out
+}
+function cellParts0(cell: string): {map: string, key?: Lin, keys?: Lin[]} {
+  const map = cell.slice(0, cell.indexOf('[')), inner = cell.slice(cell.indexOf('[') + 1, -1)
+  if (inner.startsWith('⟨') && inner.endsWith('⟩')) return {map, keys: splitOuter(inner.slice(1, -1), '|').map(linOf)}
+  return {map, key: linOf(inner)}
+}
+const splitOuter = (text: string, sep: string): string[] => {
+  const parts: string[] = []
+  let depth = 0, start = 0
+  for (let i = 0; i <= text.length; i++) {
+    const ch = text[i]
+    if (ch === '[' || ch === '⟨') depth++
+    else if (ch === ']' || ch === '⟩') depth--
+    else if ((ch === sep && depth === 0) || i === text.length) { parts.push(text.slice(start, i)); start = i + 1 }
+  }
+  return parts
+}
+// A canonical text read back: `name:coef` joined by ',' at the outer level.
+const linOf = (text: string): Lin => {
+  const out: Lin = Object.create(null)
+  for (const part of splitOuter(text, ',')) if (part) { const at = part.lastIndexOf(':'); out[part.slice(0, at)] = Number(part.slice(at + 1)) }
+  return out
+}
+// Two keys the path proves equal: two plain keys whose difference it decides 0 both ways, or two tuples of as many parts,
+// each pair of parts so (Lean's cellEq). A plain key and a tuple are never claimed equal.
+function sameKey(p: {key?: Lin, keys?: Lin[]}, q: {key?: Lin, keys?: Lin[]}, path: Path): boolean {
+  const zero = (a: Lin, b: Lin) => { const d = sub(a, b); return decide(d, path) === true && decide(scale(d, -1), path) === true }
+  if (p.key && q.key) return zero(p.key, q.key)
+  return !!p.keys && !!q.keys && p.keys.length === q.keys.length && p.keys.every((a, i) => zero(a, q.keys![i]!))
 }
 
 // A leaf may also use the product of two of its rows: p <= 0 and q <= 0 give p·q >= 0, as nlinarith does; and the
@@ -439,7 +519,8 @@ function natural(e: E): boolean {
     case 'prod': return natural(e.a) && natural(e.b)
     case 'if': return naturalC(e.c) && natural(e.then) && natural(e.else)
     case 'get': return natural(e.key)
-    case 'add': case 'sub': case 'min': case 'max': return natural(e.a) && natural(e.b)
+    case 'add': case 'sub': case 'min': case 'max': case 'tup': return natural(e.a) && natural(e.b)
+    case 'proj': return (e.k === 0 || e.k === 1) && natural(e.a)
     default: return unreachable(e)
   }
 }
@@ -460,7 +541,8 @@ export function substE(e: E, s: Subst): E {
     case 'prod': return {...e, a: substE(e.a, s), b: substE(e.b, s)}
     case 'if': return {op: 'if', c: substC(e.c, s), then: substE(e.then, s), else: substE(e.else, s)}
     case 'get': { const key = substE(e.key, s), f = own(s.maps, e.map); return f ? f(key) : {op: 'get', map: e.map, key} }
-    case 'add': case 'sub': case 'min': case 'max': return {...e, a: substE(e.a, s), b: substE(e.b, s)}
+    case 'add': case 'sub': case 'min': case 'max': case 'tup': return {...e, a: substE(e.a, s), b: substE(e.b, s)}
+    case 'proj': return {...e, a: substE(e.a, s)}
     default: return unreachable(e)
   }
 }
@@ -552,8 +634,8 @@ export const crossFree = (c: C, keys: string[]): C => {
   const id = keys.join(','), hit = crossCache.get(c)?.get(id)
   if (hit) return hit
   const zero: E = {op: 'const', value: 0}
-  const e = (t: E): E => (t.op === 'if' ? {...t, c: crossFree(t.c, keys), then: e(t.then), else: e(t.else)} : t.op === 'get' ? {...t, key: e(t.key)} : t.op === 'mul' ? {...t, a: e(t.a)}
-    : t.op === 'add' || t.op === 'sub' || t.op === 'min' || t.op === 'max' || t.op === 'prod' ? {...t, a: e(t.a), b: e(t.b)} : t)
+  const e = (t: E): E => (t.op === 'if' ? {...t, c: crossFree(t.c, keys), then: e(t.then), else: e(t.else)} : t.op === 'get' ? {...t, key: e(t.key)} : t.op === 'mul' || t.op === 'proj' ? {...t, a: e(t.a)}
+    : t.op === 'add' || t.op === 'sub' || t.op === 'min' || t.op === 'max' || t.op === 'prod' || t.op === 'tup' ? {...t, a: e(t.a), b: e(t.b)} : t)
   const out: C = crossing(c, keys) ? {op: '<=', a: zero, b: zero} : c.op === 'not' ? {op: 'not', x: crossFree(c.x, keys)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(y => crossFree(y, keys))}
     : c.op === 'all' ? {...c, c: crossFree(c.c, keys)} : c.op === 'flag' ? c : {...c, a: e(c.a), b: e(c.b)}
   if (!crossCache.has(c)) crossCache.set(c, new Map())
@@ -615,9 +697,9 @@ function reads(t: E | C, out: Reads = {vars: new Set(), maps: new Set(), flags: 
     case 'all': { const inner = reads(t.c); for (const key of boundOf(t)) inner.vars.delete(key); for (const k of ['vars', 'maps', 'flags'] as const) for (const name of inner[k]) out[k].add(name); break }
     case 'not': reads(t.x, out); break
     case 'and': case 'or': for (const y of t.xs) reads(y, out); break
-    case 'mul': reads(t.a, out); break
+    case 'mul': case 'proj': reads(t.a, out); break
     case 'if': reads(t.c, out); reads(t.then, out); reads(t.else, out); break
-    case 'add': case 'sub': case 'min': case 'max': case 'prod': case '<': case '<=': case '=': reads(t.a, out); reads(t.b, out); break
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': case '<': case '<=': case '=': reads(t.a, out); reads(t.b, out); break
     default: unreachable(t)
   }
   return out
@@ -639,7 +721,7 @@ function inScope(what: string, ts: (E | C)[], vars: string[], maps: string[] = [
 // keeps a later step's names apart from every name of the machine instead.) A name of the machine, a law's or step
 // law's key with one of them would be read as the kernel's own (a param ?f as the flag f's 0/1 variable: "s <= ?f" was
 // accepted, false at ?f = 0; Lean refuses it).
-const plainName = (what: string, name: string) => { if (name === '1' || /[*[\],:#?~'⟦⟧]/.test(name)) throw new Error(`${what}: the name ${name} is reserved (1, or * [ ] , : # ? ~ ' ⟦ ⟧)`) }
+const plainName = (what: string, name: string) => { if (name === '1' || /[*[\],:#?~'⟦⟧⟨⟩|]/.test(name)) throw new Error(`${what}: the name ${name} is reserved (1, or * [ ] , : # ? ~ ' ⟦ ⟧ ⟨ ⟩ |)`) }
 const distinct = (what: string, names: string[]) => { const seen = new Set<string>(); for (const name of names) { if (seen.has(name)) throw new Error(`${what} declares ${name} twice`); seen.add(name) } }
 
 // A machine (without its history: historyMachine checks that and scopes the plain machine it makes) and its laws. The
@@ -676,9 +758,19 @@ export function scope(m: Machine, laws: Law[] = []) {
     }
     else { unquantified(what, c); inScope(what, [c], names, readable, flags.slice(0, i)) }
   })
+  const arity = mapArities(m, laws)
   for (const [map, w] of Object.entries(m.step.maps ?? {})) {
     const what = `${m.name}'s write to ${map}`
-    if ('each' in w) { bound(what, w.each, w.value); unquantified(what, w.value); inScope(what, [w.value], [...names, w.each], readable, flags) }
+    // At every key of a tuple-keyed map, the key is read as its parts (proj k, or the key whole at a read of the map):
+    // the runtimes compute the write at every tuple of parts, each part read as a bound key is.
+    if ('each' in w && (own(arity, map) ?? 1) > 1) {
+      const t = eachParts(w, arity[map]!)
+      plainName(what, w.each)
+      if (readsKey(t.value, w.each)) throw new Error(`${what}: the key ${w.each} is read as its ${arity[map]} parts (or whole, as the key of a map of ${arity[map]}), nothing else`)
+      for (const key of t.names) { bound(what, key, t.value); apart(what, crossFree({op: '=', a: t.value, b: {op: 'const', value: 0}}, t.names), key, t.names) }
+      unquantified(what, w.value); inScope(what, [t.value], [...names, ...t.names], readable, flags)
+    }
+    else if ('each' in w) { bound(what, w.each, w.value); unquantified(what, w.value); inScope(what, [w.value], [...names, w.each], readable, flags) }
     else { unquantified(what, w.key); unquantified(what, w.value); inScope(what, [w.key, w.value], names, readable, flags) }
   }
   for (const e of Object.values(m.step.state ?? {})) unquantified(`${m.name}'s step`, e)
@@ -701,11 +793,65 @@ export function scope(m: Machine, laws: Law[] = []) {
   for (const fact of facts) inScope(`fact ${fact.name}`, [fact.holds], [...m.params, ...keysOf(fact)], fns)
 }
 
+// Each map's number of parts (1 a plain key): every read and every write of a map is at keys of one shape, so a tuple
+// map's cells are its tuples alone (the runtimes keep them apart from a plain key's). A function, a count and a carried
+// map take plain keys.
+// Lean keyArity at an empty path: projected tuple tails have the arity of their linear parts.
+const keyArity = (key: E): number => keyParts(key, new Map())?.length ?? tupleParts(key).length
+export function mapArities(m: Machine, laws: Law[] = []): Record<string, number> {
+  const out: Record<string, number> = Object.create(null)
+  const plainOnly = new Set([...Object.keys(m.fns ?? {}), ...Object.keys(m.counts ?? {}), ...(m.inputMaps ?? [])])
+  const note = (map: string, key: E) => {
+    const n = keyArity(key), had = own(out, map)
+    if (had !== undefined && had !== n) throw new Error(`${m.name}: the map ${map} is read at keys of ${had} and of ${n} parts`)
+    if (n > 1 && plainOnly.has(map)) throw new Error(`${m.name}: ${map} is a function, a count or a carried map, read at plain keys only`)
+    out[map] = n
+  }
+  walkTerms([...machineTermsOf(m), ...laws.map(l => l.holds)], o => { if (o.op === 'get' && typeof o.map === 'string' && o.key) note(o.map, o.key as E) })
+  for (const [map, w] of Object.entries(m.step.maps ?? {})) if (!('each' in w)) note(map, w.key)
+  return out
+}
+const walkTerms = (ts: unknown[], f: (o: Record<string, unknown>) => void): void => {
+  const go = (t: unknown): void => { if (Array.isArray(t)) { t.forEach(go); return } if (!t || typeof t !== 'object') return; f(t as Record<string, unknown>); for (const x of Object.values(t)) go(x) }
+  ts.forEach(go)
+}
+const machineTermsOf = (m: Machine): unknown[] => [m.state, m.step, m.pre, m.assume, m.facts, m.history, m.sums, m.counts, m.leasts]
+// A write at every key of an n-part map, read at its parts: the key named each, at k.1 … k.n (each$1 …), the value with
+// the key the tuple of them and each part read back (proj of a tuple its part), so it reads the parts as bound keys.
+export function eachParts(w: {each: string, value: E}, n: number): {names: string[], value: E} {
+  const names = Array.from({length: n}, (_, i) => `${w.each}$${i + 1}`)
+  // (the flags it reads left as they are)
+  const flags: Record<string, C> = Object.fromEntries([...JSON.stringify(w.value).matchAll(/"op":"flag","name":"((?:[^"\\]|\\.)*)"/g)].map(m => [JSON.parse(`"${m[1]}"`), {op: 'flag', name: JSON.parse(`"${m[1]}"`)} as C]))
+  const at = substE(w.value, {vars: {[w.each]: tuple(names.map((name): E => ({op: 'var', name})))}, maps: {}, flags})
+  return {names, value: projected(at)}
+}
+// proj of a tuple read as its part, throughout.
+export function projected(e: E): E {
+  switch (e.op) {
+    case 'var': case 'const': return e
+    case 'proj': { const a = projected(e.a); return a.op === 'tup' ? (e.k === 0 ? a.a : a.b) : {op: 'proj', k: e.k, a} }
+    case 'mul': return {...e, a: projected(e.a)}
+    case 'get': return {...e, key: projected(e.key)}
+    case 'if': return {op: 'if', c: projectedC(e.c), then: projected(e.then), else: projected(e.else)}
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {...e, a: projected(e.a), b: projected(e.b)}
+    default: return unreachable(e)
+  }
+}
+export const projectedC = (c: C): C => c.op === 'not' ? {op: 'not', x: projectedC(c.x)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(projectedC)}
+  : c.op === 'all' ? {...c, c: projectedC(c.c)} : c.op === 'flag' ? c : {...c, a: projected(c.a), b: projected(c.b)}
+
 // A key bound in t is read in key terms only: the key, or the key plus or less a term that doesn't read it (k + e, e + k,
 // k ∸ e), each a map's key (no function's or count's: their values don't stop where a map's cells do) or a side of a
 // comparison whose other side doesn't read the key. Then t is constant between finitely many keys (the runtimes'
 // breakpoints: each map's cells and each compared value, shifted by the offsets), so a runtime decides it on those.
 const readsKey = (t: E | C, key: string) => JSON.stringify(t).includes(`"op":"var","name":${JSON.stringify(key)}`)
+// A tuple key's parts each read the same way: the key alone in a part, or plus or less a term that doesn't read it; a
+// comparison of two tuples of as many parts compares them part by part.
+const tupleSides = (u: Extract<C, {a: E}>): [E, E][] | undefined => {
+  if (u.op !== '=' || u.a.op !== 'tup' || u.b.op !== 'tup') return undefined
+  const as = tupleParts(u.a), bs = tupleParts(u.b)
+  return as.length === bs.length ? as.map((a, i) => [a, bs[i]!]) : undefined
+}
 export const keyTerm = (e: E, key: string): boolean => e.op === 'var' ? e.name === key
   : e.op === 'add' ? (e.a.op === 'var' && e.a.name === key && !readsKey(e.b, key)) || (e.b.op === 'var' && e.b.name === key && !readsKey(e.a, key))
   : e.op === 'sub' && e.a.op === 'var' && e.a.name === key && !readsKey(e.b, key)
@@ -714,19 +860,23 @@ function keyOnly(what: string, t: E | C, key: string, fns: string[] = []): void 
   const walk = (u: E | C): void => {
     switch (u.op) {
       case 'var': if (u.name === key) bad(); break
-      case 'get': if (!(keyTerm(u.key, key) && !fns.includes(u.map))) walk(u.key); break
+      case 'get':
+        if (u.key.op === 'tup' && !fns.includes(u.map)) { for (const part of tupleParts(u.key)) if (!keyTerm(part, key)) walk(part) }
+        else if (!(keyTerm(u.key, key) && !fns.includes(u.map))) walk(u.key)
+        break
       case 'const': case 'flag': break
       case 'not': walk(u.x); break
       case 'all': walk(u.c); break
       case 'and': case 'or': u.xs.forEach(walk); break
-      case 'mul': walk(u.a); break
+      case 'mul': case 'proj': walk(u.a); break
       case 'if': walk(u.c); walk(u.then); walk(u.else); break
-      case '<': case '<=': case '=':
-        if (keyTerm(u.a, key) && !readsKey(u.b, key)) walk(u.b)
-        else if (keyTerm(u.b, key) && !readsKey(u.a, key)) walk(u.a)
-        else { walk(u.a); walk(u.b) }
+      case '<': case '<=': case '=': {
+        const side = (a: E, b: E) => { if (keyTerm(a, key) && !readsKey(b, key)) walk(b); else if (keyTerm(b, key) && !readsKey(a, key)) walk(a); else { walk(a); walk(b) } }
+        const pairs = tupleSides(u)
+        if (pairs) for (const [a, b] of pairs) side(a, b); else side(u.a, u.b)
         break
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': walk(u.a); walk(u.b); break
+      }
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': walk(u.a); walk(u.b); break
       default: unreachable(u)
     }
   }
@@ -736,9 +886,10 @@ function keyOnly(what: string, t: E | C, key: string, fns: string[] = []): void 
 // another (the comparisons between two of them, plainly, are set aside before: crossFree).
 function apart(what: string, t: C, key: string, keys: string[]): void {
   const others = keys.filter(k => k !== key), other = (e: E) => others.some(k => readsKey(e, k))
+  const cmp = (a: E, b: E) => (keyTerm(a, key) && (other(a) || other(b))) || (keyTerm(b, key) && (other(a) || other(b)))
   const walk = (u: E | C): void => {
-    if ((u.op === 'get' && keyTerm(u.key, key) && other(u.key))
-      || ((u.op === '<' || u.op === '<=' || u.op === '=') && ((keyTerm(u.a, key) && (other(u.a) || other(u.b))) || (keyTerm(u.b, key) && (other(u.a) || other(u.b))))))
+    if ((u.op === 'get' && (u.key.op === 'tup' ? tupleParts(u.key).some(p => keyTerm(p, key) && other(p)) : keyTerm(u.key, key) && other(u.key)))
+      || ((u.op === '<' || u.op === '<=' || u.op === '=') && (tupleSides(u)?.some(([a, b]) => cmp(a, b)) ?? cmp(u.a, u.b))))
       throw new Error(`${what}: the keys ${keys.join(', ')} are each read on their own, and compared with one another only plainly (i < j, i <= j, i = j)`)
     for (const x of Object.values(u)) if (x && typeof x === 'object') (Array.isArray(x) ? x : [x]).forEach(y => walk(y as E | C))
   }
@@ -754,9 +905,9 @@ export const plainKey = (t: E | C, key: string): boolean => {
       case 'not': return walk(u.x)
       case 'all': return walk(u.c)
       case 'and': case 'or': return u.xs.every(walk)
-      case 'mul': return walk(u.a)
+      case 'mul': case 'proj': return walk(u.a)
       case 'if': return walk(u.c) && walk(u.then) && walk(u.else)
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': case '<': case '<=': case '=': return walk(u.a) && walk(u.b)
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': case '<': case '<=': case '=': return walk(u.a) && walk(u.b)
       default: return unreachable(u)
     }
   }
@@ -841,6 +992,7 @@ const sumTermOk = (e: E, key: string): boolean => {
     case 'mul': return sumTermOk(e.a, key)
     case 'if': return sumCondOk(e.c, key) && sumTermOk(e.then, key) && sumTermOk(e.else, key)
     case 'add': case 'sub': case 'min': case 'max': case 'prod': return sumTermOk(e.a, key) && sumTermOk(e.b, key)
+    case 'tup': case 'proj': return false
     default: return unreachable(e)
   }
 }
@@ -1050,6 +1202,7 @@ const natE = (e: E, env: Record<string, bigint>): bigint => {
     case 'max': { const a = natE(e.a, env), b = natE(e.b, env); return a > b ? a : b }
     case 'if': return natC(e.c, env) ? natE(e.then, env) : natE(e.else, env)
     case 'get': return 0n
+    case 'tup': case 'proj': throw new Error('a loop\'s run is read over no tuple')
     default: return unreachable(e)
   }
 }
@@ -1120,6 +1273,8 @@ function foldTerm(e: E, f: (e: E) => E, fc: (c: C) => C): E {
     case 'prod': { const a = f(e.a), b = f(e.b); return a.op === 'const' ? foldMul(a.value, b) : b.op === 'const' ? foldMul(b.value, a) : {op: 'prod', a, b} }
     case 'if': { const c = fc(e.c); return isTC(c) ? f(e.then) : isFC(c) ? f(e.else) : {op: 'if', c, then: f(e.then), else: f(e.else)} }
     case 'get': return {op: 'get', map: e.map, key: f(e.key)}
+    case 'tup': return {op: 'tup', a: f(e.a), b: f(e.b)}
+    case 'proj': return {op: 'proj', k: e.k, a: f(e.a)}
     default: return unreachable(e)
   }
 }
@@ -1161,7 +1316,8 @@ const substituter = (vars: Record<string, E>) => {
       case 'mul': o = {op: 'mul', k: e.k, a: se(e.a)}; break
       case 'if': o = {op: 'if', c: sc(e.c), then: se(e.then), else: se(e.else)}; break
       case 'get': o = {op: 'get', map: e.map, key: se(e.key)}; break
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': o = {op: e.op, a: se(e.a), b: se(e.b)}; break
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': o = {op: e.op, a: se(e.a), b: se(e.b)}; break
+      case 'proj': o = {op: 'proj', k: e.k, a: se(e.a)}; break
       default: return unreachable(e)
     }
     me.set(e, o)
@@ -1755,13 +1911,13 @@ function countsScope(m: Machine, laws: Law[]): void {
     if (!natural(d.below) || !natural(d.body)) throw new Error(`${what}: a negative constant or factor is outside the kernel`)
   }
 }
-// keyParts: the terms a key term gives the parameters: one, the term (j a constant 0); two, the term written base·a + b
+// countKeyParts (CountMachine.lean): the terms a key term gives the parameters: one, the term (j a constant 0); two, the term written base·a + b
 // (j at a, lo at b). toCount: a read cell as Count.lean's count (its variable, the declaration with its parameters at
 // the parts); toCounts: each.
-const keyParts = (d: CountDecl, e: E): [E, E] | undefined =>
+const countKeyParts = (d: CountDecl, e: E): [E, E] | undefined =>
   (!baseOf(d) ? [{op: 'const', value: 0}, e] : e.op === 'add' && e.a.op === 'mul' && e.a.k === baseOf(d) ? [e.a.a, e.b] : undefined)
 const toCount = (ds: CountDecl[], r: MapRead): Count | undefined => {
-  const d = ds.find(x => x.map === r[1]), p = d && keyParts(d, r[2])
+  const d = ds.find(x => x.map === r[1]), p = d && countKeyParts(d, r[2])
   if (!d || !p) return undefined
   const at: Subst = {vars: {[d.j]: p[0], [loOf(d)]: p[1]}, maps: {}, flags: {}}
   return {v: r[0], key: d.key, below: substE(d.below, at), body: substE(d.body, at)}
@@ -1777,7 +1933,7 @@ function toCounts(ds: CountDecl[], rs: MapRead[]): Count[] | undefined {
 }
 // readHyp: the read's variable is its cell; for two parameters, where the second part is below the base.
 const readHyp = (ds: CountDecl[], r: MapRead): C => {
-  const eq: C = {op: '=', a: {op: 'var', name: r[0]}, b: {op: 'get', map: r[1], key: r[2]}}, d = ds.find(x => x.map === r[1]), p = d && baseOf(d) ? keyParts(d, r[2]) : undefined
+  const eq: C = {op: '=', a: {op: 'var', name: r[0]}, b: {op: 'get', map: r[1], key: r[2]}}, d = ds.find(x => x.map === r[1]), p = d && baseOf(d) ? countKeyParts(d, r[2]) : undefined
   return p ? {op: 'or', xs: [{op: '<=', a: {op: 'const', value: baseOf(d!)}, b: p[1]}, eq]} : eq
 }
 // A count at least its body at distinct keys (Lean's pickHyp, pickHyps): a pick names a read and key terms; where the
@@ -1810,6 +1966,9 @@ const safeTerm = (t: unknown): boolean => {
     case 'get': return typeof e.map === 'string' && safeTerm(e.key)
     case 'add': case 'sub': case 'min': case 'max': case 'prod': return safeTerm(e.a) && safeTerm(e.b)
     case 'if': return safeCond(e.c) && safeTerm(e.then) && safeTerm(e.else)
+    // Count certificates still use the scalar/packed-key language, not native tuple terms.
+    // These were refused by the default too; make that unchanged boundary explicit.
+    case 'tup': case 'proj': return false
     default: return false
   }
 }

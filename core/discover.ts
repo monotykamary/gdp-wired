@@ -131,7 +131,7 @@ function powers(e: E): Lin | undefined {
       }
       return o
     }
-    case 'sub': case 'min': case 'max': case 'if': case 'get': return undefined
+    case 'sub': case 'min': case 'max': case 'if': case 'get': case 'tup': case 'proj': return undefined
   }
 }
 // The law a goal is of (the kernel names each goal after its law: '<law> @step').

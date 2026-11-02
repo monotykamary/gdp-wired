@@ -17,11 +17,11 @@
 // both runtimes do.
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {env as knobs} from './solver.ts'
-import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
+import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE} from './exists.ts'
-import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
-import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
+import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
+import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
@@ -873,6 +873,32 @@ export class MapRef {
   sum(of?: (cell: Term) => TermLike): Term { return sumOver(this.name, key => (of ? of(this.at(key)) : this.at(key)), !of) }
 }
 
+// A relation over sorts (`.relations({route: ['Node', 'Node', 'Node']})`): a set of tuples, a map keyed by tuples
+// (core/machine.ts's tup), each cell 0 or 1. The kernel compares two tuples part by part, never by arithmetic, so the
+// laws over relations are EPR's (the protocols' laws, as Ivy and mypyvy state them). One write per relation per step:
+// a tuple added or removed, or the relation after the step as a set comprehension (`each`, or `union`), which writes
+// many tuples at once.
+export class RelRef {
+  constructor(readonly name: string, readonly sorts: readonly string[]) {}
+  private key(xs: TermLike[]): E {
+    if (xs.length !== this.sorts.length) throw new Error(`${this.name} relates ${this.sorts.length} (${this.sorts.join(', ')}), not ${xs.length}`)
+    return xs.length === 1 ? termOf(xs[0]!) : tuple(xs.map(termOf))
+  }
+  // The cell at a tuple (0 or 1), and whether the tuple is in the relation.
+  at(...xs: TermLike[]): Term { return new Term({op: 'get', map: this.name, key: this.key(xs)}) }
+  has(...xs: TermLike[]): Cond { return this.at(...xs).atLeast(1) }
+  // The relation after the step: each tuple in it where f holds (its parts as f reads them).
+  each(f: (...xs: Term[]) => Cond): MapWrite {
+    const each = `k$${++boundCounter}`, n = this.sorts.length, k = v(each)
+    const parts = n === 1 ? [k] : Array.from({length: n}, (_, i) => new Term(part(k.e, i, n)))
+    return {map: this.name, each, value: when(f(...parts), 1, 0).e}
+  }
+  // The relation with the tuples where f holds added; with one tuple added or removed where c holds.
+  union(f: (...xs: Term[]) => Cond): MapWrite { return this.each((...xs) => this.has(...xs).or(f(...xs))) }
+  add(xs: TermLike[], c: Cond = yes): MapWrite { const key = this.key(xs); return {map: this.name, key, value: when(c, 1, new Term({op: 'get', map: this.name, key})).e} }
+  remove(xs: TermLike[], c: Cond = yes): MapWrite { const key = this.key(xs); return {map: this.name, key, value: when(c, 0, new Term({op: 'get', map: this.name, key})).e} }
+}
+
 // A list: a map's positions 0 .. len − 1 and its length (the state variable <name>_len), every cell past the end 0
 // (`within`, a law). An operation is a write at every key (positions shift: the key read at k ∸ 1 or k + 1, which the
 // runtimes decide on breakpoints) and a new length; `apply` takes several, the first whose condition holds.
@@ -1186,7 +1212,8 @@ function swapE(e: E, from: C, to: C): E {
     case 'mul': return {...e, a: swapE(e.a, from, to)}
     case 'if': return {op: 'if', c: swapC(e.c, from, to), then: swapE(e.then, from, to), else: swapE(e.else, from, to)}
     case 'get': return {...e, key: swapE(e.key, from, to)}
-    case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: swapE(e.a, from, to), b: swapE(e.b, from, to)}
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {...e, a: swapE(e.a, from, to), b: swapE(e.b, from, to)}
+    case 'proj': return {...e, a: swapE(e.a, from, to)}
   }
 }
 // The first per-step truth inside c not under a quantifier of its own: a flag, or a quantifier.
@@ -1205,7 +1232,8 @@ function perStepE(e: E): PerStep | undefined {
     case 'mul': return perStepE(e.a)
     case 'if': return perStep(e.c) ?? perStepE(e.then) ?? perStepE(e.else)
     case 'get': return perStepE(e.key)
-    case 'add': case 'sub': case 'min': case 'max': case 'prod': return perStepE(e.a) ?? perStepE(e.b)
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return perStepE(e.a) ?? perStepE(e.b)
+    case 'proj': return perStepE(e.a)
   }
 }
 class Hoister {
@@ -1228,7 +1256,8 @@ class Hoister {
       case 'mul': return {...e, a: this.term(e.a, bound)}
       case 'if': return {op: 'if', c: this.cond(e.c, bound), then: this.term(e.then, bound), else: this.term(e.else, bound)}
       case 'get': return {...e, key: this.term(e.key, bound)}
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: this.term(e.a, bound), b: this.term(e.b, bound)}
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {...e, a: this.term(e.a, bound), b: this.term(e.b, bound)}
+      case 'proj': return {...e, a: this.term(e.a, bound)}
     }
   }
   // A quantifier as a flag (or, with per-step truths inside, a condition over flags).
@@ -1477,6 +1506,7 @@ const recurJs = (name: string, args: string[], zero: E, next: E, uses: [string, 
       case 'min': return `Math.min(${js(e.a)}, ${js(e.b)})`
       case 'max': return `Math.max(${js(e.a)}, ${js(e.b)})`
       case 'if': return `(${jc(e.c)} ? ${js(e.then)} : ${js(e.else)})`
+      case 'tup': case 'proj': throw new Error('a recurrence takes no tuple key')
       case 'get': {
         const i = uses.findIndex(([u]) => u === e.map), args = uses[i]![1].arity > 1 ? pairedArgs(e.key, uses[i]![1].arity) : undefined
         return args ? `$g${i}(${args.map(js).join(', ')})` : `${fns.get(e.map)!}(${js(e.key)})`
@@ -1551,7 +1581,8 @@ const markedE = (e: E): E => {
     case 'mul': return {...e, a: markedE(e.a)}
     case 'if': return {op: 'if', c: marked(e.c), then: markedE(e.then), else: markedE(e.else)}
     case 'get': return {op: 'get', map: e.map, key: markedE(e.key)}
-    case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: markedE(e.a), b: markedE(e.b)}
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {...e, a: markedE(e.a), b: markedE(e.b)}
+    case 'proj': return {...e, a: markedE(e.a)}
   }
 }
 const marked = (c: C): C => c.op === 'flag' ? c : c.op === 'all' ? {...c, c: marked(c.c)} : c.op === 'not' ? {op: 'not', x: marked(c.x)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(marked)} : {...c, a: markedE(c.a), b: markedE(c.b)}
@@ -1564,6 +1595,9 @@ type Spec = {
   inputs: [string, Kind<unknown>][]
   state: [string, number | ((p: never) => TermLike)][]
   maps: [string, number][]
+  // Relations over sorts (in `maps`, each starting empty): each with the sort of each of its places.
+  rels?: [string, string[]][]
+  sorts?: string[]
   lists?: string[]
   // Maps and lists of a kind: their parts are in `maps` (and the length in `state`).
   cells?: [string, Kind<unknown>][]
@@ -1629,9 +1663,10 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   withMapSums(): this | undefined {
     const m = this.machine
     if (m.history) return undefined
-    const have = new Set(Object.keys(m.sums ?? {})), more = new Set(this.spec.sumsRead ?? [])
+    const have = new Set(Object.keys(m.sums ?? {})), more = new Set(this.spec.sumsRead ?? []), arity = mapArities(m)
     for (const [map, init] of Object.entries(m.maps ?? {})) {
-      if (init !== 0 || !m.step.maps?.[map] || (m.inputMaps ?? []).includes(map)) continue
+      // (a map keyed by tuples has no sum read at one key: a sum's term reads its maps at the key alone)
+      if (init !== 0 || !m.step.maps?.[map] || (m.inputMaps ?? []).includes(map) || (arity[map] ?? 1) > 1) continue
       const name = (new MapRef(map, 0).sum().e as {name: string}).name
       if (have.has(name)) continue
       try { sumMachine({...m, sums: {...m.sums, ...sumsIn([], [name])}}); more.add(name) } catch { /* a sum the kernel takes no cover of */ }
@@ -1666,6 +1701,17 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       for (const part of kind.vars(n)) maps.push([part, enc[part]!])
     }
     return this.with({maps: [...this.spec.maps, ...maps], cells: [...(this.spec.cells ?? []), ...cells]})
+  }
+  // Sorts: names for sets of identities (nodes, packets, values), unbounded, read only by equality; a relation's places
+  // and a law's keys name theirs. Relations over them, each starting empty: `.relations({route: ['Node', 'Node']})`.
+  sorts(...names: string[]): Rule<P, I, S, M, F, R, Su, Q> { return this.with({sorts: [...(this.spec.sorts ?? []), ...names]}) }
+  // (`.relations(env => [...])`, a function, is a history's relations, below)
+  relations<T extends Record<string, readonly string[]>>(rels: T): Rule<P, I, S, M & {[k in keyof T]: RelRef}, F, R, Su, Q>
+  relations(f: (env: P & I & Su & Q) => Relation[]): Rule<P, I, S, M, F, R, Su, Q>
+  relations(x: Record<string, readonly string[]> | ((env: never) => Relation[])): never {
+    if (typeof x === 'function') return this.with({relations: x})
+    for (const [n, sorts] of Object.entries(x)) for (const so of sorts) if (!(this.spec.sorts ?? []).includes(so)) throw new Error(`relation ${n}: ${so} is no sort of ${this.spec.name} (.sorts(...) first)`)
+    return this.with({maps: [...this.spec.maps, ...Object.keys(x).map(n => [n, 0] as [string, number])], rels: [...(this.spec.rels ?? []), ...Object.entries(x).map(([n, so]) => [n, [...so]] as [string, string[]])]})
   }
   // Integers (Int), each starting at an integer or at one over the params; kept as two naturals, <name> and <name>$neg.
   ints<T extends Record<string, number | ((p: P) => IntLike)>>(init: T): Rule<P, I, S & {[k in keyof T]: Int}, M, F, R, Su, Q> {
@@ -1775,7 +1821,6 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     return this.with({leasts: [...(this.spec.leasts ?? []), ...Object.entries(defs) as [string, (env: never) => LeastDef][]]})
   }
   keep(f: (env: P & I & S & M & F & Su & Q) => Cond): Rule<P, I, S, M, F, R, Su, Q> { return this.with({keep: f as (env: never) => Cond}) }
-  relations(f: (env: P & I & Su & Q) => Relation[]): Rule<P, I, S, M, F, R, Su, Q> { return this.with({relations: f as (env: never) => Relation[]}) }
   // Requests come in nondecreasing `order`; a record whose order plus `after` is at most the request's is dropped
   // (the kernel proves it adds nothing to any query).
   prune(order: keyof R & string, after: (p: P) => TermLike): Rule<P, I, S, M, F, R, Su, Q> { return this.with({prune: {order, after: after as (p: never) => TermLike}}) }
@@ -1990,6 +2035,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // Maps and lists of a kind in place of their parts' maps (and a list's length), each part's map named by `at`.
   private composites(out: Record<string, unknown>, at: (part: string) => string, len: (name: string) => Term): void {
     const init = new Map(this.spec.maps)
+    for (const [n, sorts] of this.spec.rels ?? []) out[n] = new RelRef(at(n), sorts)
     for (const [n, k] of this.spec.cells ?? []) { for (const part of k.vars(n)) delete out[part]; out[n] = new CellsRef(n, k, part => new MapRef(at(part), init.get(part)!)) }
     for (const [n, k] of this.spec.items ?? []) { for (const part of k.vars(n)) delete out[part]; out[n] = new ItemsRef(n, k, len(n), part => new ListRef(at(part), len(n))) }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -2102,6 +2148,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       ...(Object.keys(fns).length ? {fns} : {}),
       ...(facts.length ? {facts} : {}),
       ...(Object.keys(leasts).length ? {leasts} : {}),
+      ...(s.rels?.length ? {relations: Object.fromEntries(s.rels)} : {}),
     }
     if (s.record) {
       const kinds = new Map(s.inputs)
@@ -2641,7 +2688,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     && facts.filter(readsParams).every(f => holds(f, params))
   const cap = watchWork.n + perTrial * budget.trials
   try {
-    const late = () => budget.until !== undefined && performance.now() > budget.until
+    const late = () => pastWall() || budget.until !== undefined && performance.now() > budget.until
     for (let trial = 0; trial < budget.trials && watchWork.n <= cap && !late(); trial++) {
       // (`mixed`: the trials in turn at bounds 1 to 4, every fourth near)
       const bound = budget.mixed ? 1 + trial % 4 : budget.bound, guided = guides, near = budget.mixed && trial % 4 ? undefined : budget.near
@@ -2675,7 +2722,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     // variable of a kind is drawn as its kind draws (33 yes/nos drawn from 0..7 almost never make a lawful state).
     const steps1 = stepLaws.filter(sl => (sl.steps ?? 1) === 1), given = withKinds(r, laws)
     const wide = Object.keys(m.state).length + m.inputs.length >= 32, lawsHere = wide ? given : [], kinded = wide ? r.kindsOfState() : []
-    for (let trial = 0; budget.states !== false && !m.history && (steps1.length || lawsHere.length) && trial < budget.trials * 4 && watchWork.n <= cap; trial++) {
+    for (let trial = 0; budget.states !== false && !m.history && (steps1.length || lawsHere.length) && trial < budget.trials * 4 && watchWork.n <= cap && !late(); trial++) {
       const params = r.randomParams(rand, bound)
       if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m) || !factsHold(params)) continue
       const scalars: Record<string, number> = Object.fromEntries(Object.keys(m.state).map(n => [n, rand(8)]))
@@ -2722,6 +2769,13 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
   return searched(r, laws, [], v, opts)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
+  const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
+  // From any state, the caller's budget includes preflight runs and all initial
+  // goals, not a fresh budget per goal. Keep reachable-state search unchanged.
+  return opts.from !== 'any' || ms === undefined ? proveStepsIn(r, laws, stepLaws, opts)
+    : withWall(performance.now() + ms, () => proveStepsIn(r, laws, stepLaws, opts))
+}
+function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions): Verdict {
   r = r.withSumsOf(laws, stepLaws)
   noting(r, laws, stepLaws)
   const refuted = refuteByRuns(r, laws, stepLaws)
