@@ -43,3 +43,6 @@ lean-kernel/KindExamples.lean
 core/rs/target/
 # The regulated corpus's fetched sources (the code is its authors'; fetched again at the pinned commit)
 /research/regulated/corpus/.cache/
+
+# an agent's checkpoint notes (per worktree, never on main)
+/NEXT.md
