@@ -1891,21 +1891,39 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
 }
 function proveOne(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram} {
   const law = laws[i]!, pm = plainOf(m), inst = lawInstances(m, laws, i)
+  // Keep the ordinary fallback's actual trees too. A local proof can use a
+  // ghost value as a key where EPR's sorted instances were insufficient. The
+  // complete-set path widens these trees and checks every obligation afresh.
+  const remember = (at: Instances, trees: Record<string, Tree>) => {
+    if (!Object.values(m.step.maps ?? {}).some(w => !('each' in w) && w.key.op === 'tup') || !fastShape(m, laws)) return
+    const byName = new Map(laws.map(l => [l.name, l])), proofs: Record<string, Proof1> = {}
+    for (const g of obligations(m, laws, {[law.name]: at}, i)) {
+      const tree = trees[g.name]
+      if (!tree) return
+      const src = sourcesOf(m, laws, at, g, usedHyps(g, tree))
+      proofs[g.name] = {part: g, tree, uses: new Map((src ? [...src.keys()] : laws.map(l => l.name)).map(n => [n, textOfLaw(byName.get(n)!)])), ...(src ? {tuples: src} : {})}
+    }
+    const memo = memoOf(m)
+    if (memo.proven.size >= 4096) memo.proven.clear()
+    memo.proven.set(law.name, {text: textOfLaw(law), inst: at, proofs})
+  }
   const few = triggered(pm, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
   if (!sameInstances(few, inst)) {
     let proven = true
+    const done: Record<string, Tree> = {}
     for (const goal of obligations(m, laws, {[law.name]: few}, i)) {
       const o = grow(goal)
-      if ('tree' in o) continue
+      if ('tree' in o) { done[goal.name] = o.tree; continue }
       proven = false
       // (a goal that ran out past the deadline: the next instances can't be tried, and it is the verdict's goal)
       if (o.stuck === 'unknown' && ranOut()) return {proven: false, goal: goal.name, stuck: 'unknown'}
       break
     }
-    if (proven) return {proven: true}
+    if (proven) { remember(few, done); return {proven: true} }
   }
   // (a model breaking a law at a tuple of the goal's keys: those added, the law asked again)
-  const {result: a} = withModels(m, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), growAll, grownModel, grownSettled)
+  const {result: a, inst: at} = withModels(m, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), growAll, grownModel, grownSettled)
+  if (!a.out) remember(at, a.done)
   return a.out ? {proven: false, goal: a.goal!.name, stuck: a.out.stuck, ...(a.out.witness ? {witness: a.out.witness} : {}), ...(a.out.diagram ? {diagram: a.out.diagram} : {})} : {proven: true}
 }
 // Goals grown in turn up to the first one unproven (withModels' question in proveLaw and proveThinned): the trees, their
