@@ -193,6 +193,7 @@ export class Reader {
         break
       }
       case 'get': {
+        if (e.map === '1' || /[*[\],:⟦⟧⟨⟩|]/.test(e.map)) { lin = undefined; break } // (kernel.ts's: no column a map's name could spell)
         // (a tuple key: its parts' forms, the cell M[⟨k1|k2|…⟩], kernel.ts's keyParts)
         if (e.key.op === 'tup' || e.key.op === 'proj') {
           const ps = this.tparts(e.key)

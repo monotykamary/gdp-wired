@@ -382,7 +382,7 @@ const unpair = (z: number, n: number): number[] => {
 // goal is refuted, and it has a model (x = w = 0, Q = 1: M at cpair(0, 0) = 0 and at cpair(0, cpair(1, 0)) = 2).
 // Lean numbers its maps, so its cellT columns stay apart. The fix: refuse a map named 1 or with * [ ] , : ⟦ ⟧ ⟨ ⟩ | in
 // linearOp's get, as a variable is. `bun test --todo` runs it.
-test.todo('a map named with reserved characters spells no other read\'s column', () => {
+test('a map named with reserved characters spells no other read\'s column', () => {
   const g: Goal = {name: 'a spelled column', hyps: [eq(M(T(x, M(w, 'Q:1|v'))), K(0)), eq(M(T(x, X('Q'), M(w, 'v'))), K(1))]}
   refused(g, [], {x: 0, w: 0, Q: 1}, {M: [[2, 1]]})
   // (and with plain keys: A[B[Q[w:1]:1] read as A at B[Q[w] and as A[B at Q[w])

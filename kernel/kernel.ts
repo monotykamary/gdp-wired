@@ -134,6 +134,8 @@ function linearOp(e: E, path: Path): Lin | undefined {
     }
     case 'if': { const c = truth(e.c, path); return c === undefined ? v(termColumn(e)) : linear(c ? e.then : e.else, path) }
     case 'get': {
+      // (a map's name builds its cells' columns: one with the characters of a column could spell another read's)
+      if (e.map === '1' || /[*[\],:⟦⟧⟨⟩|]/.test(e.map)) return undefined
       if (e.key.op === 'tup' || e.key.op === 'proj') { const keys = keyParts(e.key, path); if (keys) return v(`${e.map}[⟨${keys.map(canon).join('|')}⟩]`); if (e.key.op === 'tup') return undefined }
       const key = linear(e.key, path); return key && v(`${e.map}[${canon(key)}]`)
     }
