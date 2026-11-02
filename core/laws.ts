@@ -438,6 +438,9 @@ function compare(op: string, a: V, b: V, e: X & {k: 'bin'}): Cond {
     if (lit === undefined || !ch.values.includes(lit)) throw new LawError(`${show(ox)} isn't one of ${ch.values.join(', ')}`)
     return eq(ch.is(lit))
   }
+  // A quantified map key and a string identity use the same id as m[identity].
+  // This is equality of keys, not an ordering or coercion between strings and numbers.
+  if (a.t === 'key' && b.t === 'str' || a.t === 'str' && b.t === 'key') return eq(key(a).eq(key(b)))
   if (a.t === 'str' || b.t === 'str') { const [s, o] = a.t === 'str' ? [a.v, b] : [(b as {v: Str}).v, a]; return eq(o.t === 'str' ? s.eq(o.v) : o.t === 'lit' ? s.eq(o.v) : fail('a string compared with what isn\'t one')) }
   if (a.t === 'cond' && b.t === 'cond') return eq(a.v.iff(b.v))
   const x = num(a), y = num(b)

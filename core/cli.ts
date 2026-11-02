@@ -11,6 +11,7 @@
 // answers, skip, stores) from the flags or from gdp.toml (configFor, below). Exit code: 0 when no law stated in
 // the code is broken, 1 when one is, 2 when one couldn't be checked (the rule refused, or the law not read).
 import type {Extraction, Name} from './extract.ts'
+import {type SecurityCandidate, securityTemplates} from './security.ts'
 import {type Verdict, proveLeadsTo, proveRule, proveSteps} from './dsl.ts'
 import type {Law} from './machine.ts'
 import {type Built, type Calendar, type Cite, LawError, type LawOpts, type LawText, buildLaw, buildLeadsTo, buildTwoRuns, citesIn, isLeadsTo, isTwoRuns, lawsIn, namesWithClock} from './laws.ts'
@@ -42,6 +43,7 @@ function args(argv: string[]): {cmd: string, targets: string[], o: Opts} {
     const a = argv[i]!
     if (a === '--json') o.json = true
     else if (a === '--no-propose') o.propose = false
+    else if (a === '--security') o.security = true
     else if (a === '--require-review') o.requireReview = true
     else if (a.startsWith('--')) {
       const [k, inline] = a.slice(2).split('=') as [string, string | undefined], v = inline ?? argv[++i] ?? ''
@@ -220,7 +222,8 @@ const merge = (a: Record<string, unknown>, b: Record<string, unknown>): Record<s
 // --- one target: its rules, their laws -------------------------------------------------------------------------------------
 type LawOut = {name: string, expr: string, where?: string, kind?: 'law' | 'step' | 'two runs' | 'leads to', from?: 'any', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], replayed?: string, why?: string, assumes?: string[], found?: string[], cites?: string[], cert?: string, ms: number}
 export type RuleOut = {file: string, lang: string, entry?: string, ok: boolean, refusals: {where: string, what: string}[], notes: string[], names: Name[], checked?: string, env?: string[],
-  laws: LawOut[], proposed: LawOut[], brokenProposed?: number, source?: string}
+  laws: LawOut[], proposed: LawOut[], brokenProposed?: number, source?: string,
+  security?: (LawOut & Pick<SecurityCandidate, 'securityKind' | 'review'>)[]}
 
 // The entries to read: the one given, else the one inferred; where several classes or structs qualify, each of them; a
 // file of functions, each function a law is stated on.
@@ -399,7 +402,14 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
             // (a method that makes an effect did its work where it made it: a charge, a handled message)
             ...Object.entries((x as {read?: {effectsOf?: Record<string, string[]>}}).read?.effectsOf ?? {}).flatMap(([method, vs]) => vs.map(rule => ({method, rule})))]})
         r.env = sys.models.map(md => `${md.name}: ${md.assumes}`)
-      } catch (e) { r.laws = mine.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read', why: `the environment: ${(e as Error).message}`, ms: 0})); continue }
+      } catch (e) {
+        const why = `the environment: ${(e as Error).message}`
+        r.laws = mine.map(l => ({name: l.name, expr: l.expr, where: l.where, verdict: 'not read', why, ms: 0}))
+        // Opt-in security checking must not silently succeed when there are no stated laws
+        // and the requested attacker/concurrency model could not be constructed.
+        if (o.security) { r.ok = false; r.refusals.push({where: t.at, what: why}) }
+        continue
+      }
     }
     // (a law is known by its name: a name stated twice in one rule is refused, both times)
     const twice = (l: LawText) => stated.filter(m => m.name === l.name).map(m => m.where)
@@ -421,6 +431,18 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
         : sys ? proveInEnv(x, l, o.ms, proven as Law[], {...ctx, sys, entry: name}) : prove(x, l, o.ms, proven, {...ctx, entry: name, ...(from ? {from, inductive, together: stated.filter(m => twice(m).length === 1 && kindOf(m) === 'law' && inductive!.has(m.name))} : {})})
     }
     r.laws = outsOf
+    if (o.security) {
+      // Deliberately separate from accepted policy and from heuristic proposals that hide broken guesses.
+      // Do not pass previously proven candidates as hypotheses; use the same environment/replay as stated laws.
+      const candidates = securityTemplates(x), until = Date.now() + o.ms
+      r.security = candidates.map(l => ({...(Date.now() >= until
+        ? {name: l.name, expr: l.expr, verdict: 'unknown' as const, why: 'security proposal budget exhausted', ms: 0}
+        : sys ? proveInEnv(x, l, Math.max(1, Math.min(2000, until - Date.now())), [], {...ctx, sys, entry: name, cert: undefined})
+        : prove(x, l, Math.max(1, Math.min(2000, until - Date.now())), [], {...ctx, entry: name, cert: undefined})),
+        securityKind: l.securityKind, review: l.review,
+        where: `${l.method ? `above ${l.method}: ` : ''}${COMMENT[t.lang]} gdp: law ${l.name}: ${l.expr}`}))
+      r.notes.push('security candidates require policy review; arbitrary requests in arbitrary order, values within the extracted types; bind identity/roles to authentication, not caller claims')
+    }
     if (o.propose && x.model) { const p = propose(x, t.lang, o, proven, new Set(stated.map(l => l.expr.replace(/\s+/g, '')))); r.proposed = p.shown; r.brokenProposed = p.broken }
   }
   // (every law stated is accounted for: one that no rule took is reported not read, with why, never dropped)
@@ -716,6 +738,11 @@ function printRule(r: RuleOut, o: Opts) {
     if (proposed) out(`             ${l.where}`)
   }
   if (r.laws.length) { out('  laws stated in the code:'); for (const l of r.laws) law(l, false) }
+  if (r.security) {
+    out('  security candidates (NOT accepted policy; review the requirement and authentication boundary):')
+    for (const l of r.security) law(l, true)
+    out('    Candidates do not affect the exit code. State reviewed candidates as gdp: law comments.')
+  }
   if (r.proposed.length || r.brokenProposed) {
     out('  laws proposed (nothing written; state one with the comment under it):')
     for (const l of r.proposed) law(l, true)
@@ -727,7 +754,7 @@ function printRule(r: RuleOut, o: Opts) {
 }
 const label = (n: Name) => (n.role === 'answer' ? `${n.code.split('.').pop()}(...)` : n.role === 'input' && n.method ? `${n.method}(${n.code})` : n.role === 'result' && n.method ? `${n.method}() result` : n.code)
 
-const USAGE = `gdp-wired check <file|dir>... [--entry X] [--methods a,b] [--failures kept] [--on-error discard] [--json] [--ms 10000] [--no-propose] [--clock s|ms] [--cert <dir>] [--from any] [--require-review]
+const USAGE = `gdp-wired check <file|dir>... [--entry X] [--methods a,b] [--failures kept] [--on-error discard] [--json] [--ms 10000] [--no-propose] [--clock s|ms] [--cert <dir>] [--from any] [--require-review] [--security]
 gdp-wired draft <file> --clause <text> | --clause-file <file> --cite <ref> [--llm <command> | --answer <file>] [--by <who>]
 
 Reads the rule in each file (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, Swift, C, C++, TypeScript, Effect, XState), checks it
@@ -737,14 +764,17 @@ against the code by running both, proves the laws stated in the code (\`# gdp: l
 the clause a law answers: \`gdp: cite <law name>: <clause>\` (drafted from the clause's text by \`draft\`, marked unreviewed until a person signs it);
 --cert <dir> writes each proven law's certificate (its meta the citations); --from any (or from = "any" in gdp.toml, for every
 rule or one) proves every law from every state the laws allow, for code that steps the rule from states it is handed. Exit code: 1 when a stated law is broken, 2 when
-one couldn't be checked.`
+one couldn't be checked.
+--security proposes authorization, tenant-write isolation, workflow, quota and ledger candidates over the code's names.
+Candidates require policy review, show broken runs too, and do not affect the exit code. Arbitrary input identities are
+not authenticated identities. State the intended policy with gdp: law comments; use gdp: env for concurrent isolation.`
 
 // Every target's rules and their laws, and the exit code (1: a stated law broken; 2: one not checked).
 export async function check(targets: string[], given: Partial<Opts> = {}, each?: (r: RuleOut) => void): Promise<{rules: RuleOut[], exit: number}> {
   const o: Opts = {ms: 10_000, propose: true, ...given}, all: RuleOut[] = []
   for (const p of targets) for (const t of targetsOf(p)) { const rs = await checkTarget(t, o); all.push(...rs); if (each) rs.forEach(each) }
   const stated = all.flatMap(r => r.laws)
-  return {rules: all, exit: stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') ? 2 : 0}
+  return {rules: all, exit: stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') || o.security && all.some(r => !r.ok) ? 2 : 0}
 }
 // --- draft: laws from a clause, for a person to review ----------------------------------------------------------------
 // gdp-wired draft <file> --clause <text> | --clause-file <f> --cite <ref> [--llm <command> | --answer <file>] [--by <who>]:

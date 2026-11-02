@@ -19,7 +19,7 @@ const runs = (cmds: string) => cmds.split(/\s+/).filter(Boolean).map((f): Unit =
 
 const units: Unit[] = [
   {name: 'scripts/gen-lean-library.ts --check', dir: '.', args: ['scripts/gen-lean-library.ts', '--check'], test: false},
-  ...tests('core', `exports.test.ts guarded.test.ts cli.test.ts solver.test.ts rand.test.ts dsl.test.ts sums.test.ts
+  ...tests('core', `exports.test.ts guarded.test.ts cli.test.ts security.test.ts solver.test.ts rand.test.ts dsl.test.ts sums.test.ts
     arith.test.ts conformance.test.ts compose.test.ts relational.test.ts quantifiers.test.ts functions.test.ts
     keyterms.test.ts lists.test.ts liveness.test.ts sizes.test.ts values.test.ts rationals.test.ts builders.test.ts
     gdp.test.ts datatypes.test.ts lemmas.test.ts discover.test.ts infer.test.ts cyclic.test.ts cycles.test.ts
@@ -34,7 +34,7 @@ const units: Unit[] = [
     examples/folds.ts examples/trees.ts examples/pairs.ts examples/groups.ts examples/charts.ts examples/xstate.ts
     examples/effect.ts examples/effect-retry.ts examples/effect-stm.ts examples/effect-queue.ts examples/infer.ts
     examples/arith.ts examples/cyclic.ts examples/cycles.ts examples/data.ts examples/abstract.ts`),
-  ...tests('.', 'compare/tip/translate.test.ts'),
+  ...tests('.', 'compare/tip/translate.test.ts research/security/score.test.ts'),
   ...runs(`examples/scopes.ts examples/lists.ts examples/sizes.ts examples/liveness.ts examples/sums.ts
     examples/nonterm.ts examples/rationals.ts examples/budget.ts examples/gdp.ts examples/steps.ts
     examples/jev-fabric/run.ts`),
