@@ -32,7 +32,7 @@ const ptime = <T>(k: string, f: () => T): T => { const t = performance.now(); tr
 let dumped = 0
 // (GDP_COUNTS_LAZY=0: every instance and pick certFor proposes in the goal at once, as before; `wide`: the narrow
 // instances at once, the widened goal's further instances and picks lazily)
-const lazyMode = env.GDP_COUNTS_LAZY ?? 'wide', pool = Number(env.GDP_COUNTS_POOL ?? 400)
+const lazyMode = env.GDP_COUNTS_LAZY ?? 'wide', pool = Number(env.GDP_COUNTS_POOL ?? 1000)
 
 const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
 const json = (t: unknown) => JSON.stringify(t)
@@ -215,6 +215,13 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
     insts.splice(10), wits.splice(10)
     for (const a of named) for (const c of named) if (a !== c && bound(a) === bound(c) && !(post(c) && !post(a))) add([[1, a[0]], [-1, c[0]]], 0, byMap.get(a[1])!.below)
     for (const a of named) add([[1, a[0]]], 0, byMap.get(a[1])!.below)
+    // (a lazy pool's further instances: each count at most its bound, and every two of a bound that meet)
+    if (cap > 24) {
+      for (const a of named) add([[1, a[0]]], -1, byMap.get(a[1])!.below)
+      const had = new Set(insts.map(i => json([i.terms, i.unit])))
+      for (const [i, a] of named.entries()) for (const [j, c] of named.entries())
+        if (i < j && bound(a) === bound(c) && post(a) === post(c) && !had.has(json([[[1, a[0]], [1, c[0]]], -1]))) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
+    }
   }
   // (wide: each count picked at the keys the goal reads the maps its body reads at its key and its instances' witnesses:
   // at least its body there, at every two of them and at all of them)
