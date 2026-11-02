@@ -43,7 +43,8 @@ if (argv[0] === '--jobs') {
     const log = join(dir, `trade-${s.id}.log`), text = existsSync(log) ? readFileSync(log, 'utf8') : '', w = written(s)
     const at = text.indexOf('--- json\n'), j = at < 0 ? undefined : (() => { try { return JSON.parse(text.slice(at + 9).split(/\n--- (stderr)/)[0]!) as {rules: {entry?: string, ok: boolean, refusals: {where: string, what: string}[], laws: {name: string, verdict: string, ms: number, why?: string}[]}[]} } catch { return undefined } })()
     const head = `| ${s.id} | ${s.lang} | ${s.kind}`
-    if (!j) { rows.push(`${head} | — | no result | — | ${w.lines} + ${w.toml} |`); other++; continue }
+    // (a check the VM killed, out of memory: its laws undecided)
+    if (!j) { rows.push(`${head} | — | no result${/exit null/.test(text) ? ' (the prover was killed: out of memory)' : ''} | — | ${w.lines} + ${w.toml} |`); other++; continue }
     for (const r of j.rules.filter(x => x.laws.length)) {
       for (const l of r.laws) {
         if (l.verdict === 'proven') proven++; else if (l.verdict === 'broken') broken++; else if (l.verdict === 'unknown') unknown++; else other++
