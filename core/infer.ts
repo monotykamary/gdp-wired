@@ -2880,10 +2880,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           let hs = [...new Map([...cubes, ...pending, ...pool].filter(g => !dead.has(textOf(g)) && !atStart(g)).map(g => [textOf(g), g])).values()]
           for (let k = 0; k < 200 && hs.length && vnow() < eUntil && !stop(); k++) {
             const t2 = vnow(), hl = [...laws, ...hs.map(lawFor), ...(ghost ? [ghost.some] : [])]
-            let v = within(t0 + ms, () => prove(hl, true))
+            // (the early one each proof within a quarter of what is left of the engine's: the rounds after it keep theirs)
+            const hEnd = early ? Math.min(t0 + ms, vnow() + (eUntil - vnow()) / 4) : t0 + ms
+            let v = within(hEnd, () => prove(hl, true))
             const at0 = String(v.goal ?? ''), g0 = v.proven && v.checked ? undefined : hs.find(c => at0.startsWith(`${textOf(c)} @`))
             // (or at a law the caller gave, a kind's: no cube to blame, so the usual proof's verdict)
-            if (!(v.proven && v.checked) && (g0 ? at0.endsWith('@step') && stands.has(lawFor(g0).name) : true)) v = within(t0 + ms, () => prove(hl))
+            if (!(v.proven && v.checked) && (g0 ? at0.endsWith('@step') && stands.has(lawFor(g0).name) : true)) v = within(hEnd, () => prove(hl))
             const at = String(v.goal ?? ''), g = v.proven && v.checked ? undefined : hs.find(c => at.startsWith(`${textOf(c)} @`))
             opts.progress?.('join houdini', {cubes: hs.length, proven: v.proven && v.checked ? 1 : 0, ms: Math.round(vnow() - t2), at: at.slice(0, 100), ...(g ? {} : {stuck: String(v.stuck ?? ''), why: String(v.why ?? '').slice(0, 160)})})
             if (v.proven && v.checked) { why = 'inductive'; cone = hs; enumProof = v; enumSome = ghost ? [ghost.some] : []; cubes = hs; break }
