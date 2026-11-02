@@ -1504,7 +1504,7 @@ class Soundness:
             items.append(sh_item(f"{k}-fuzz-{s}-again", cmd.format(s=s), cwd, 900, 60))
             kinds.append((k, s))
         # (a soundness failure run again at the newest main, this commit, once it is past the failing one: fuzz_status)
-        recheck = st.setdefault("fuzz_recheck", [])
+        recheck, rechecks = st.setdefault("fuzz_recheck", []), {}
         if not st.get("fuzz_recheck_seeded"):  # (once: the failures recorded before the re-runs, still standing)
             rows = jl(TM / "fuzz.jsonl")
             for (k, sd), (st_, r) in fuzz_status(rows, {(r["kind"], r["seed"]) for r in rows if r["code"] != 0 and fuzz_row_class(r) == "soundness"}).items():
@@ -1518,6 +1518,7 @@ class Soundness:
             cwd, cmd = FUZZ[k]
             items.append(sh_item(f"{k}-fuzz-{s}-recheck", cmd.format(s=s), cwd, 900, 60))
             kinds.append((k, s))
+            rechecks[items[-1]["name"]] = [k, s, failed]
         while len(items) < n and (open_kinds or open_langs or open_r):
             s = st["seed"] = st.get("seed", 1000) + 1
             # (the readers' slots: an xfuzz seed and a reader fuzz seed in turn, either alone when the other is closed)
@@ -1550,14 +1551,29 @@ class Soundness:
         self.tm.save_state()
         if not items:
             return None
-        codes = {}
+        codes, why = {}, {}
 
         def on_row(it, row):
             codes[it["name"]] = row.get("code", -1)
+            why[it["name"]] = str(row.get("error") or row.get("err") or ("preempted" if row.get("preempted") else "lost" if row.get("lost") else ""))[:120]
 
         def after(logs):
+            unrun = []
             for it, (k, s) in zip(items, kinds):
                 out = logs.get(it["name"], {}).get("out", "")
+                if codes.get(it["name"], -1) == -1 and not out.strip():
+                    # never ran: no row, or boat's give-back (exit -1, not a word of output; a run prints at least its
+                    # runner's header). No result and no crash: 11-01 to 11-02 2,275 such rows were filed as FUZZ CRASH
+                    # (infrastructure) and run again. A fresh seed takes a fuzz seed's place; a mutant, a recheck and a
+                    # crash's second run are put back, their seeds being the point.
+                    unrun.append(why.get(it["name"]) or "no row")
+                    if k == "mutant":
+                        self.mutants.append(s)
+                    elif it["name"] in rechecks:
+                        self.tm.state.setdefault("fuzz_recheck", []).append(rechecks[it["name"]])
+                    elif it["name"].endswith("-again"):
+                        self.tm.state.setdefault("fuzz_again", []).append([k, s])
+                    continue
                 if k == "mutant":
                     with contextlib.suppress(Exception):
                         r = json.loads(out.strip().splitlines()[-1])
@@ -1595,6 +1611,12 @@ class Soundness:
                     self.tm.state.setdefault("fuzz_again", []).append([k, s])
                 if cls == "soundness" and [k, s, self.commit] not in self.tm.state.setdefault("fuzz_recheck", []):
                     self.tm.state["fuzz_recheck"].append([k, s, self.commit])
+            if unrun:
+                c = {}
+                for w in unrun:
+                    c[w] = c.get(w, 0) + 1
+                log(f"{label}: {len(unrun)} of {len(items)} items never ran (exit -1, no output: {'; '.join(f'{w} ({n})' for w, n in sorted(c.items(), key=lambda x: -x[1])[:3])}): "
+                    "not results; mutants, rechecks and second runs put back, fresh seeds for the rest")
         label = f"sound {self.commit[:12]}"
         return Batch(self.tm, label, "b", items, vms, tracked(self.tm, "sound", label, on_row), root=self.tree, after=after)
 
@@ -1795,8 +1817,11 @@ class Treadmill(T.Treadmill):
                     git("config", f"submodule.{m}.url", str(MAIN / m), cwd=path)
             subprocess.run(["git", "-C", str(path), "-c", "protocol.file.allow=always", "submodule", "update", "--init"], capture_output=True, timeout=600)
             (path / ".treadmill-ready").write_text(sha)
+        # (and the soundness work's, main's head, and every live batch's tree: 11-02 08:26, a restart made main's tree
+        # for the fuzz, then the speed chain's two trees pushed it out as the oldest, and every fuzz batch failed on it)
         keep = {sha[:12], (self.state.get("sweep") or "")[:12], *(c[:12] for f in (self.speed, self.ic3, self.rw, self.ten) for c in f.active),
-                *((self.speed.prev_done(c) or "")[:12] for c in self.speed.active)}
+                *((self.speed.prev_done(c) or "")[:12] for c in self.speed.active), *([self.sound.commit[:12]] if self.sound else []),
+                *(pathlib.Path(b.root).name for b in self.batches if not b.done and b.root)}
         for old in [p for p in sorted((TM / "trees").iterdir(), key=lambda p: p.stat().st_mtime)[:-2] if p.name not in keep]:
             with contextlib.suppress(Exception):
                 git("worktree", "remove", "--force", str(old))

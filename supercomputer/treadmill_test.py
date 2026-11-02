@@ -9,6 +9,7 @@ import json
 import pathlib
 import sys
 import time
+import types
 import unittest
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -169,6 +170,50 @@ class FuzzRecheck(unittest.TestCase):
         self.assertEqual({v[0] for v in tm.fuzz_status(FIVE, keys).values()}, {"pending"})
         still = [{**FIVE[0], "t": FIVE[0]["t"] + 7200, "commit": D2, "recheck": True}]
         self.assertEqual(tm.fuzz_status(FIVE + still, keys)[("cdcl", 63373)][0], "unsound")
+
+
+# 11-01 to 11-02: 2,275 fuzz rows "exit -1" with no output, each filed as FUZZ CRASH (infrastructure) and run again.
+# None was a run that crashed (a run prints at least bun's header): items boat gave back or never reported. They are no
+# result now: not filed, not counted, not run again; a mutant, a recheck and a crash's second run are put back.
+class NeverRan(unittest.TestCase):
+    def test_never_ran_is_no_result(self):
+        s = FillYields.soundness(self)
+        s.today_counts = lambda: {}
+        s.tm.state.update(fuzz_again=[["kernel", 5]], fuzz_recheck=[["cdcl", 6, "f" * 40]])
+        s.mutants = [41]
+        got, logged = [], []
+        real = tm.Batch, tm.append, tm.log
+        tm.tracked = lambda _tm, chain, label, on_row: on_row  # (FillYields' stub restores the real one)
+        tm.Batch = lambda _tm, label, chain, items, vms, on_row, root=None, after=None, **k: types.SimpleNamespace(items=items, on_row=on_row, after=after)
+        tm.append, tm.log = (lambda path, row: got.append((path.name, row))), logged.append
+        self.addCleanup(lambda: (setattr(tm, "Batch", real[0]), setattr(tm, "append", real[1]), setattr(tm, "log", real[2])))
+        b = s.batch(1)
+        names = [it["name"] for it in b.items]
+        self.assertIn("mutant-41", names)
+        self.assertIn("kernel-fuzz-5-again", names)
+        self.assertIn("cdcl-fuzz-6-recheck", names)
+        fresh = [n for n in names if n.split("-")[1] == "fuzz" and n.split("-")[-1].isdigit()]
+        ran, crashed = fresh[0], fresh[1]
+        logs = {ran: {"out": "bun test v1.4.3\n 12 pass\n"}, crashed: {"out": "bun test v1.4.3\nkernel.test.ts:\n"}}
+        for it in b.items:
+            if it["name"] == ran:
+                b.on_row(it, {"code": 0})
+            elif it["name"] == crashed:
+                b.on_row(it, {"code": -1})
+            elif it["name"] in ("mutant-41", "kernel-fuzz-5-again"):
+                b.on_row(it, {"code": -1, "error": "boat couldn't run it now", "lost": True})
+            # (the rest: no row at all)
+        b.after(logs)
+        fuzz = [r for f, r in got if f == "fuzz.jsonl"]
+        self.assertEqual(sorted(r["code"] for r in fuzz), [-1, 0])  # (the run and the crash, no more)
+        self.assertEqual(next(r for r in fuzz if r["code"] == -1)["class"], "infra")
+        self.assertFalse([f for f, _ in got if f in ("xfuzz.jsonl", "rfuzz.jsonl", "mutants.jsonl")])
+        self.assertEqual(s.mutants, [41])
+        self.assertIn(["kernel", 5], s.tm.state["fuzz_again"])
+        self.assertIn(["cdcl", 6, "f" * 40], s.tm.state["fuzz_recheck"])
+        self.assertEqual(s.tm.state["fuzz_again"].count(["kernel", 5]), 1)
+        self.assertEqual(sum(1 for l in logged if "FUZZ CRASH" in l), 1)
+        self.assertTrue(any("never ran" in l and "boat couldn't run it now (2)" in l for l in logged))
 
 
 # The logs read as they grow (tm.Log): 11-01 to 11-02 the loop parsed fuzz.jsonl, xfuzz.jsonl and rfuzz.jsonl whole
