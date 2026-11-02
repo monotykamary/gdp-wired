@@ -181,6 +181,36 @@ ${text}
   process.exit(0)
 }
 
+// The learning switch over relations (research/protocols/ic3syn/models.ts, Endive's learning_switch as mypyvy states
+// it), with its published invariant (the table laws and the two of research/protocols/relations/hand.ts), proven by
+// kernel/prove.ts and checked through Kern.smachine_sound: a quantified flag (noRoute), writes at every tuple of 3 and 4
+// parts, laws about 3 and 4 keys. Usage: bun export-kernel.ts --switch > Switch.lean
+if (process.argv.includes('--switch')) {
+  const {protocols, tabR} = await import('../research/protocols/ic3syn/models.ts')
+  const {below} = await import('../research/protocols/ic3syn/common.ts')
+  const p = protocols.find(q => q.id === 'learning_switch')!
+  const r: any = p.make()
+  const L = (l: any): Law => l.law ?? l
+  const laws: Law[] = [...p.laws(r).map(L),
+    L(r.law('pending: the source routes back', ({size, T, P}: any) => forall((ps, pd, s, d) => below(size, ps, pd, s, d).and(P.has(ps, pd, s, d), ps.eq(s).not()).implies(tabR(T, ps, s, ps))))),
+    L(r.law('a route leads back to the root', ({size, T}: any) => forall((t, x, y) => below(size, t, x, y).and(tabR(T, t, x, y), t.eq(y).not(), x.eq(y).not()).implies(tabR(T, t, y, t))))),
+  ]
+  const text = smachineToLean('switch', r.machine as Machine, laws)
+  console.log(`import Sets
+open Kern Cert
+set_option maxRecDepth 100000
+set_option maxHeartbeats 0
+
+/-! The learning switch over relations (Endive's learning_switch.tla, mypyvy's): its table laws and the two invariants
+that make them inductive, proven by kernel/prove.ts and checked through Kern.smachine_sound. -/
+
+${text}
+
+#print axioms switch_laws
+${laws.map((_, j) => `#print axioms switch.law${j}`).join('\n')}`)
+  process.exit(0)
+}
+
 // Tuple keys (Kernel.lean's tup, proj and cellT): goals over tuples with the kernel's trees through Kern.sound, one
 // tampered (a cell equality claimed where the keys differ in one part), a projection through a projection (a 3-tuple's
 // middle part, read by `parts`), and relations proven by kernel.ts through Kern.smachine_sound, one tampered.
@@ -213,9 +243,14 @@ if (process.argv.includes('--tuples')) {
   const ord = rule('ordered triples').sorts('N').inputs({a: nat, b: nat, c: nat}).relations({T: ['N', 'N', 'N']})
     .step(({a, b, c, T}) => ({T: T.add([a, b, c], a.lt(b).and(b.lt(c)))}))
   const ordLaw = ord.law('every triple is increasing', ({T}) => forall((p, q, r) => T.has(p, q, r).implies(p.lt(q).and(q.lt(r)))))
+  // Rotations: each step adds (a, b, c) and its two rotations at every triple, so the middle part is read as proj 0 (proj 1 _).
+  const rot = rule('rotations').sorts('N').inputs({a: nat, b: nat, c: nat}).relations({T: ['N', 'N', 'N']})
+    .step(({a, b, c, T}) => ({T: T.union((p, q, s) => p.eq(a).and(q.eq(b), s.eq(c)).or(p.eq(b).and(q.eq(c), s.eq(a)), p.eq(c).and(q.eq(a), s.eq(b))))}))
+  const rotLaw = rot.law('T is closed under rotation', ({T}) => forall((p, q, s) => T.has(p, q, s).implies(T.has(q, s, p))))
   const rules = [
     smachineToLean('sym', symR.machine, [symLaw], {tamper: {what: 'the symmetric proof offered for the rule that adds (a, b) one way', machine: sym(false).machine}}),
     smachineToLean('ord', ord.machine, [ordLaw]),
+    smachineToLean('rot', rot.machine, [rotLaw]),
   ]
   console.log(`import Sets
 open Kern Cert
@@ -246,7 +281,9 @@ ${exs.map((_, i) => `#print axioms t${2000 + i}`).join('\n')}
 #print axioms sym_laws
 #print axioms sym.law0
 #print axioms ord_laws
-#print axioms ord.law0`)
+#print axioms ord.law0
+#print axioms rot_laws
+#print axioms rot.law0`)
   process.exit(0)
 }
 
