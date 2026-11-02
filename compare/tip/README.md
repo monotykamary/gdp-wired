@@ -38,6 +38,110 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### Container observers and conditional equations (gen/laneTB, TB2)
+
+Main `c6036e6` was merged before these gates. Three full paired runs on boat, 492 tasks each, 60 s wall;
+`runs/bar/runs/laneTB2-lazy-tip{1,2,3}` in the lane worktree (frozen solver `0e27f345df99+09b85b07`). Each run's differences were rerun three times per side.
+
+| theorems (492) | proven, by run | wrong |
+| --- | --- | --- |
+| this branch | 225, 225, 222 | 0 |
+| main c6036e6 | 222, 221, 222 | 0 |
+
+Each run gained three solid tasks after reruns and lost none. `isaplanner/prop_52`, `prod/prop_06` and tree-sort
+count (`sort_TSortCount`) each proved 12/12 against 0/12. Tree-count answers took 11.0–30.1 s. The third pass
+had three initial misses recovered on reruns; there is **no aggregate count gain by the min/max noise rule**
+(the branch's lowest, 222, equals main's highest). The per-task gains are solid. These are not claims that every
+task or every sort is solved. The reports retain unsupported, error, unknown and timeout counts.
+
+What changed, in untrusted search and export only:
+- `core/data-synth.ts` recognises an additive list observer, including its per-element equality guard, and lifts
+  that algebra to recursive containers and nested forests. Each invented fold is an ordinary admitted definition.
+  It conjectures observer homomorphisms through builders, preserving accumulator contributions. Tree-sort count
+  uses three proved lemmas: count through flatten, the observer through insertion, and the observer through toTree.
+- It conjectures conditional observer equations for removal under presence and absence guards, and selector
+  membership as the premise for minimum-then-rest. Correlated samples reject missing equality cases; no sample
+  is a proof. Each accepted lemma is proved by the existing cyclic kernel before it can be used.
+- `core/data.ts` prioritises an observer family together, and `core/transfer.ts` carries the appended definitions
+  and exact fact table through certificate composition. The inherited arithmetic case-minimisation pass now
+  applies only to scalar laws; spending that pass on structural equalities caused three losses in an earlier,
+  rejected run. `lean-kernel/data.ts` closes the simplified guarded conclusion arithmetically.
+- Call-count ranks are admitted lazily, after the light first proof attempt fails. Refutation and transfer inspection
+  do not construct these unused definitions. A rejected quick bar exposed eager admission's cost on singleton laws;
+  same-VM profiling isolated it, and the final code matches main's counted work on both affected laws. The default
+  `programOf` API still includes counters, and every included definition goes through the same admission checks.
+
+`bun run check` and all seven shards pass on merged main (`runs/tb2/lazy-checks2`), including
+new adversarial, nested-container, guarded-law and lazy-rank tests. Tree count, both guarded removal equations, selector
+membership, prop_52 and prop_06 replay in Lean: only propext, Classical.choice and Quot.sound, no sorry. The
+quick bar (`runs/bar/runs/laneTB2-lazy-quick`) has wrong 0, no solid solve loss, no failed one-vCPU jobs and
+Lean 6/6. All 34 paired one-vCPU tests have overlapping timing bands (three runs a side). The lane's
+`runs/REPORT.md` records the rejected trials, profiling, run paths and final disposition.
+Heap-sort and full selection-sort count remain open in the probes; the large quicksort case is not claimed solved.
+
+### Observers over builders, call counts as ranks (gen/laneTB)
+
+Three runs of this branch (19a4d3e: main 3000a12 merged, `runs/tb/gb1..3` in its worktree) against three of main
+3000a12 launched with them (`runs/tb/gm1..3` in a detached worktree), boat, 60 s:
+
+| theorems (492) | proven, by run | refused (unsupported) | refuted | wrong |
+| --- | --- | --- | --- | --- |
+| gdp-wired, this branch | 220, 219, 220 | 62 | 7 | 0 |
+| gdp-wired, main 3000a12 | 218, 220, 221 | 61-62 | 7 | 0 |
+
+- Gained in every run, none in main's: `isaplanner/prop_52` (count n xs = count n (rev xs), through count over ++);
+  `prod/prop_25` (length over ++) in the screen's three runs, in some of main's here. No aggregate gain (our lowest,
+  219, below main's highest, 221); lost in one run each, none in two: `isaplanner/prop_78`, `list_nat_Select`. Lean
+  4.34.0 re-checks `prop_52` (axioms propext, Classical.choice, Quot.sound); `prop_25`'s cyclic proof checks, its
+  statement read back through the built-ins (`+2` as `+`) doesn't in the exporter (as `ins_ord_eq` before).
+- What it adds (core/data.ts, the search only; nothing trusted changed):
+  - **An observer distributed over a builder**, conjectured where the values agree: for a function to a natural reading
+    a datatype and one returning that datatype from values of it, `o(m(a, b)) = o(a) + o(b)`; for two builders of one
+    signature, `o(m1(v)) + o(m2(v)) = o(a)`. It makes count and length over ++ and merge, count over take plus drop,
+    over evens plus odds, over a filter plus its complement (quicksort's, the pivot a variable), each seven symbols
+    and more a side, past the enumeration. The family's members are proven together (a member is a hit where another
+    of its observer is: count over ++ leaves the filters' counts), the law tried again after the last.
+  - **A well-founded function's recursion ranked by its call count** (`callsFn`): `f_calls`, f's body with each value 1
+    plus the counts at the calls it makes, its termination proven as any function's with f's measure. Before, the
+    scheme's rank was f's measure, and where it falls only by a size law (quicksort through filter, the merge sorts
+    through take and drop or pairwise, bitonic sort through evens and odds, heap sort through hmerge, selection sort
+    through delete) each step's descent was out of reach: a descent goal reads the node's instances, never its lemma
+    uses. Now each descent is one unfolding of `f_calls`. `sort_QSortCount` is proven so (the law at two unfoldings,
+    no lemma) at 55 s of its 57, not within the gate's runs.
+  - **The lean pass for cases outside termination**: a case node first without the shapes and etas at fields' values
+    and what only they reach. A merge's case (`count x (merge xs ys)`, the cons-cons case after `x ≤ y`): proven in
+    0.2 s with 8 of its 33 instances, past 11 s with all of them (a minimisation, each instance dropped where the node
+    stays proven).
+- Not yet, by cause: the case nodes' instances. With every lemma it needs proven, quicksort's count at one unfolding
+  is out of its time on a node of 458 instances; `count x (merge xs ys) = count x xs + count x ys` alone is proven
+  in 21 s of counted work (no lemma, its cases not split on `x = head`, five times the patience), its four cons-cons
+  cases 3 to 12 s each, the rest under 0.1 s. A case node's instances chosen by what its proof reads (the minimisation
+  above, 8 of 33) is the next step: every sort's count law here waits on it.
+
+Then a case node's instances by what its proof reads (e422642, `runs/tb/gd1..3` against the same main runs):
+
+| theorems (492) | proven, by run | wrong |
+| --- | --- | --- |
+| gdp-wired, this branch | 219, 219, 217 | 0 |
+| gdp-wired, main 3000a12 | 218, 220, 221 | 0 |
+
+- A case node is tried first with its leaner instances (no shapes or etas at fields' values, and what only they reach;
+  a read both the conclusion and a use's conclusion make, which cancels, left unread), within a third of the attempt's
+  time a goal, and with all of them where that fails (a variant, the other nodes' trees kept; `within`, a spec's own
+  time, core/cyclic.ts). `count x (merge xs ys) = count x xs + count x ys` is proven in 7 to 12 s, no lemma (its
+  cons-cons cases 0.2 to 1.8 s each; none in 96 s before), `length (merge xs ys)` in 5 to 12 s.
+- No sort law moves (`--only sort_`: 4 of 126 here and on main, insertion sort's). Gained in every run, none of main's:
+  `isaplanner/prop_52`; `list_Select` 3 of 3 against 1. Lost, every run against every one of main's: `isaplanner/prop_50`
+  and `list_PairOdds`, both proven at 47 to 55 s on main: a leaner try that fails spends its third. At an eighth
+  `list_PairOdds` comes back and count through merge is out of time again.
+- Tried and not kept: kernel/prove.ts's wide parts (`growWide`) for case goals: a model of a part breaks most of the
+  other facts, so a part of 20 to 40 hypotheses doubles to the whole in two rounds; congruences kept by the share of
+  the case's models whose explanations use them (half): count through merge out of time again.
+- What the sorts wait on, each its own: quicksort's step with both lemmas proven, a node of 107 instances and 5 uses,
+  out of time leaner too; tree sort a count over the tree with its accumulator, which no function states; heap sort
+  `count ∘ toList` through hmerge, toList's recursion at `hmerge(x3, y)`; selection sort count through delete under
+  membership; bitonic sort count through its stitch and pairs.
+
 ### The sorts' proof stage: insertion's lemmas (gen/laneS5)
 
 Three runs of this branch (ad04b35: gen/tip-int 93602f8 with main d62c911, `runs/s5/d-r1..3` in its worktree) against
