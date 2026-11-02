@@ -489,6 +489,7 @@ function chainOf(s: Setup, cls: ts.ClassLikeDeclaration): ts.ClassLikeDeclaratio
   for (let c = cls; ;) {
     const h = c.heritageClauses?.find(x => x.token === ts.SyntaxKind.ExtendsKeyword)
     if (!h) return chain
+    if (h.types.length !== 1) return refuse(h, 'extends must name exactly one base class')
     c = base(h.types[0]!.expression, h)!
   }
 }

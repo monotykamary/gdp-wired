@@ -201,6 +201,19 @@ final class Reader {
   func load(_ paths: [String]) {
     for p in paths {
       guard let src = try? String(contentsOfFile: p, encoding: .utf8) else { continue }
+      // A linear, conservative resource preflight before SwiftParser's error recovery. Deep
+      // unclosed delimiters can make that recovery exponential, even in a tiny source file.
+      // Count text (including strings/comments), not syntax: this is a reader limit, not a
+      // claim that the source is invalid. The compiler still checks every accepted source.
+      var depth = 0
+      for c in src.utf8 {
+        if c == 40 || c == 91 || c == 123 { depth += 1 }
+        else if c == 41 || c == 93 || c == 125 { depth = max(0, depth - 1) }
+        if depth > 32 {
+          FileHandle.standardError.write(Data("gdp: refused: \(p): the source nests delimiter characters past reader limit 32 (including strings and comments)\n".utf8))
+          exit(1)
+        }
+      }
       let parsed = Parser.parse(source: src)
       let folded = OperatorTable.standardOperators.foldAll(parsed) { _ in }.as(SourceFileSyntax.self) ?? parsed
       let rel = p.hasPrefix(root + "/") ? String(p.dropFirst(root.count + 1)) : p

@@ -23,7 +23,7 @@
 //   run with its loops accelerated, checked as the rest are. A large closure goal (a program of many locations, whose
 //   body reads every rule) is closed by the set's parts (`cases`): each part's goal at its location, the location
 //   substituted and the constants folded, which leaves only that location's rules (kernel.ts's checkRecurCases).
-import {type C, type E, n as K, same as eq, seeded, walkOnce, x as V} from './machine.ts'
+import {type C, type E, cpair, cunpair, n as K, same as eq, seeded, walkOnce, x as V} from './machine.ts'
 import {type Loop, type Recur, type RecurCases, type Tree, caseGoals, checkRecur, checkRecurCases, coverGoal, loopMachine, recurGoal, substC, trueC} from '../kernel/kernel.ts'
 import {clock, counted, grow, realModels} from '../kernel/prove.ts'
 import {work} from './solver.ts'
@@ -74,6 +74,8 @@ function simpE0(e: E): E {
     case 'min': case 'max': { const a = simpE(e.a), b = simpE(e.b); return a.op === 'const' && b.op === 'const' ? K(Math[e.op](a.value, b.value)) : {op: e.op, a, b} }
     case 'if': return ite(simpC(e.c), simpE(e.then), simpE(e.else))
     case 'get': return {op: 'get', map: e.map, key: simpE(e.key)}
+    case 'tup': return {op: 'tup', a: simpE(e.a), b: simpE(e.b)}
+    case 'proj': return {op: 'proj', k: e.k, a: simpE(e.a)}
   }
 }
 // An and's (an or's) parts simplified, its nested and-s (or-s) walked in place, each part once (x ∧ x is x): the parts
@@ -135,6 +137,8 @@ const CASES_FROM = 20_000
 class Overflow extends Error {}
 const BIG = 2 ** 48
 const big = (x: number) => { if (x > BIG) throw new Overflow(); return x }
+// (two parts summing below 2^24 pair below BIG)
+const bigPair = (x: number, y: number) => { if (x + y >= 2 ** 24) throw new Overflow(); return cpair(x, y) }
 function cE(e: E): (env: Env) => number {
   switch (e.op) {
     case 'var': { const n = e.name; return env => env[n] ?? 0 }
@@ -147,6 +151,8 @@ function cE(e: E): (env: Env) => number {
     case 'max': { const a = cE(e.a), b = cE(e.b); return env => Math.max(a(env), b(env)) }
     case 'if': { const c = cC(e.c), a = cE(e.then), b = cE(e.else); return env => (c(env) ? a(env) : b(env)) }
     case 'get': return () => 0
+    case 'tup': { const a = cE(e.a), b = cE(e.b); return env => bigPair(a(env), b(env)) }
+    case 'proj': { const a = cE(e.a), k = e.k; return env => cunpair(a(env))[k] }
   }
 }
 function cC(c: C): (env: Env) => boolean {

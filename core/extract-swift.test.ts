@@ -84,6 +84,7 @@ t('the check\'s build: a package swiftc rejects refused with its message; swift 
   expect(bad.refusals[0]!.what).toMatch(/^the source doesn't compile \(swift build\): .*cannot convert value of type 'String' to specified type 'Int'/)
   const killed = killedBuild(() => extractSwift(file(src), {entry: 'Meter', check: budget}))
   expect(killed.refusals[0]!.what).toMatch(/^the check's harness failed, twice .*swift build failed twice with nothing to say of the code/)
+  expect(killed.refusals[0]!.what).toContain('Swift compiler build-check limit 0.001 s per attempt (source not verified)')
 }, 900_000)
 
 // (no harness can be made for the code, a property of a type it can't name: the code refused, never a difference)
@@ -94,3 +95,11 @@ t('a property whose type the harness can\'t name: refused with why, not "the rul
   expect(x.ok).toBe(false)
   expect(x.refusals.map(r => r.what).join('; ')).not.toMatch(/the rule and the code differ/)
 }, 900_000)
+
+for (const [seed, entry] of [[735726, 'Tally'], [739158, 'Meter'], [744834, 'Meter'], [735990, 'Tally'], [746946, 'Limiter']] as const) {
+  t(`reader fuzz ${seed}: deep open Swift syntax is refused before parser recovery`, () => {
+    const x = extractSwift(new URL(`./reader-fixtures/swift-${seed}.swift`, import.meta.url), {entry, check: budget})
+    expect(x.ok).toBe(false)
+    expect(x.refusals[0]!.what).toMatch(/delimiter characters.*reader limit 32/)
+  }, 60_000)
+}

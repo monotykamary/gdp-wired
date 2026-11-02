@@ -344,8 +344,8 @@ function walker(b: Built, fs: ReturnType<typeof factsOf>, nodeOf: Map<string, nu
     }
     if (a.op !== c.op) return false
     switch (a.op) {
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': { const o = c as typeof a; return walkE(a.a, o.a) && walkE(a.b, o.b) }
-      case 'mul': { const o = c as typeof a; return a.k === o.k && walkE(a.a, o.a) }
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': { const o = c as typeof a; return walkE(a.a, o.a) && walkE(a.b, o.b) }
+      case 'mul': case 'proj': { const o = c as typeof a; return a.k === o.k && walkE(a.a, o.a) }
       case 'if': { const o = c as typeof a; return walkC(a.c, o.c) && walkE(a.then, o.then) && walkE(a.else, o.else) }
       case 'var': case 'const': return false
     }

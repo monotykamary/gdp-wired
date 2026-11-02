@@ -42,30 +42,33 @@ test('wall-clock scopes do not turn EPR work into elapsed wall time', () => {
   withDeadline(end, () => { eprMeter.n += 10_000_000; expect(withinDeadline(Infinity)).toBe(end) })
 })
 
-const c = (name: string): C => ({op: '=', a: {op: 'get', map: 'R', key: x(name)}, b: n(1)})
-const goal = (name: string): Goal => ({name, hyps: Array.from({length: 12}, (_, i) => c(`k${i}`))})
+const key = (name: string, tupled: boolean) => tupled ? {op: 'tup' as const, a: x(name), b: x(name + '-second')} : x(name)
+const c = (name: string, tupled = false): C => ({op: '=', a: {op: 'get', map: 'R', key: key(name, tupled)}, b: n(1)})
+const goal = (name: string, tupled = false): Goal => ({name, hyps: Array.from({length: 12}, (_, i) => c(`k${i}`, tupled))})
 
-test('an actual EPR query stops at an inherited counted deadline, not just at a wall cap', () => {
+for (const tupled of [false, true]) {
+test(`${tupled ? 'tuple' : 'radix'} EPR stops at an inherited counted deadline, not just at a wall cap`, () => {
   const old = eprScope.patterns, hook = decideHook.on
   let decision: ReturnType<typeof decide> | undefined
-  eprScope.patterns = {R: [1]}; decideHook.on = (_, d) => { decision = d }
+  eprScope.patterns = {R: tupled ? [0, 0] : [1]}; decideHook.on = (_, d) => { decision = d }
   try {
     for (const full of [false, true]) counted(1, () => {
       const before = eprMeter.n
-      const out = withDeadline(clock() + 1, () => grow(goal(`clock-stop-${full}`)))
+      const out = withDeadline(clock() + 1, () => grow(goal(`clock-stop-${tupled}-${full}`, tupled)))
       expect(decision).toEqual({unknown: 'past the deadline'})
       expect('tree' in out).toBe(false)
       expect(eprMeter.n - before).toBeGreaterThan(1)
-      expect(eprMeter.n - before).toBeLessThanOrEqual(4096)
+      // Facts and encoding have separate 4096-unit checkpoints; native tuple encoding can enter both.
+      expect(eprMeter.n - before).toBeLessThanOrEqual(8192)
     }, full)
   } finally { eprScope.patterns = old; decideHook.on = hook }
 })
 
-test('EPR queries that fit keep their decisions, and proof trees still replay', () => {
+test(`${tupled ? 'tuple' : 'radix'} EPR queries that fit keep their decisions, and proof trees still replay`, () => {
   const old = eprScope.patterns
-  eprScope.patterns = {R: [1]}
+  eprScope.patterns = {R: tupled ? [0, 0] : [1]}
   try {
-    const sat = goal('clock-sat'), unsat: Goal = {name: 'clock-unsat', hyps: [c('one'), {op: '=', a: {op: 'get', map: 'R', key: x('one')}, b: n(0)}]}
+    const sat = goal(`clock-sat-${tupled}`, tupled), unsat: Goal = {name: `clock-unsat-${tupled}`, hyps: [c('one', tupled), {op: '=', a: {op: 'get', map: 'R', key: key('one', tupled)}, b: n(0)}]}
     for (const g of [sat, unsat]) {
       const baseline = decide(g, eprScope.patterns, {exact: true})
       expect('unknown' in baseline).toBe(false)
@@ -81,3 +84,4 @@ test('EPR queries that fit keep their decisions, and proof trees still replay', 
     }
   } finally { eprScope.patterns = old }
 })
+}

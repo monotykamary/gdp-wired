@@ -69,7 +69,7 @@ const postMs = performance.now() - t1
 
 // --- the variables ---
 const names = new Set<string>()
-const walkE = (e: E): void => { switch (e.op) { case 'var': names.add(e.name); return; case 'const': return; case 'mul': return walkE(e.a); case 'get': return walkE(e.key); case 'if': walkC(e.c); walkE(e.then); return walkE(e.else); case 'add': case 'sub': case 'min': case 'max': case 'prod': walkE(e.a); return walkE(e.b) } }
+const walkE = (e: E): void => { switch (e.op) { case 'var': names.add(e.name); return; case 'const': return; case 'mul': case 'proj': return walkE(e.a); case 'get': return walkE(e.key); case 'if': walkC(e.c); walkE(e.then); return walkE(e.else); case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': walkE(e.a); return walkE(e.b) } }
 const walkC = (c: C): void => { switch (c.op) { case 'and': case 'or': return c.xs.forEach(walkC); case 'not': return walkC(c.x); case 'flag': case 'all': return; case '<': case '<=': case '=': walkE(c.a); return walkE(c.b) } }
 goal.hyps.forEach(walkC)
 const tops = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(tops) : [c])

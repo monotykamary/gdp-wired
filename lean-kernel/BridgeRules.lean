@@ -946,6 +946,10 @@ theorem occE_inline (fl : List (Nat × C)) {i : Nat} (hi : flagOf fl i = none) :
     · exact Or.inl (Or.inr (occE_inline fl hi t h))
     · exact Or.inr (occE_inline fl hi f h)
   | .get _ key, h => by simp only [occE] at h; simp only [inlineE, occE]; exact occE_inline fl hi key h
+  | .tup a b, h => by
+    simp only [occE, Bool.or_eq_true] at h; simp only [inlineE, occE, Bool.or_eq_true]
+    exact h.imp (occE_inline fl hi a) (occE_inline fl hi b)
+  | .proj _ a, h => by simp only [occE] at h; simp only [inlineE, occE]; exact occE_inline fl hi a h
 theorem occC_inline (fl : List (Nat × C)) {i : Nat} (hi : flagOf fl i = none) : ∀ c : C, occC i c = true → occC i (inlineC fl c) = true
   | .le a b, h => by
     simp only [occC, Bool.or_eq_true] at h; simp only [inlineC, occC, Bool.or_eq_true]

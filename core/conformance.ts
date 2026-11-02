@@ -14,8 +14,9 @@ import {type Callable, type Measure, type Nat, define, natural, when} from './da
 export const E_OPS = ['var', 'const', 'add', 'sub', 'mul', 'prod', 'min', 'max', 'if', 'get'] as const satisfies readonly E['op'][]
 export const C_OPS = ['<', '<=', '=', 'and', 'or', 'not', 'flag'] as const satisfies readonly C['op'][]
 type Covers<T, L extends readonly unknown[]> = [Exclude<T, L[number]>] extends [never] ? true : false
-// A quantified flag ('all') is a whole flag the kernel closes, not a term: its own tests are kernel/sets.test.ts.
-export const coverage: [Covers<E['op'], typeof E_OPS>, Covers<Exclude<C['op'], 'all'>, typeof C_OPS>] = [true, true]
+// A quantified flag ('all') is a whole flag the kernel closes, not a term: its own tests are kernel/sets.test.ts. Tuple
+// keys (tup, proj) are not drawn here.
+export const coverage: [Covers<Exclude<E['op'], 'tup' | 'proj'>, typeof E_OPS>, Covers<Exclude<C['op'], 'all'>, typeof C_OPS>] = [true, true]
 
 let seed = Number(process.env.FUZZ_SEED ?? 777)
 export const reseed = (s: number) => { seed = s }
@@ -72,8 +73,8 @@ export function reference(k: Case): {value: number, holds: boolean, flag: boolea
 export const inlineE = (t: E, f: C): E => {
   switch (t.op) {
     case 'var': case 'const': return t
-    case 'mul': return {...t, a: inlineE(t.a, f)}
-    case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...t, a: inlineE(t.a, f), b: inlineE(t.b, f)}
+    case 'mul': case 'proj': return {...t, a: inlineE(t.a, f)}
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {...t, a: inlineE(t.a, f), b: inlineE(t.b, f)}
     case 'if': return {op: 'if', c: inlineC(t.c, f), then: inlineE(t.then, f), else: inlineE(t.else, f)}
     case 'get': return {...t, key: inlineE(t.key, f)}
   }

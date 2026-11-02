@@ -5,7 +5,7 @@
 // Arithmetic is linear: +, −, × by a constant, min, max, if. Maps are naturals indexed by naturals, every cell starting
 // at the same value; a law about a map holds for every key x, and is proven at one arbitrary x (with the law assumed at
 // every other key the step reads).
-import {boundOf, crossFree, historyMachine, keyTerm, plainKey, scope, sumRuntime} from '../kernel/kernel.ts'
+import {boundOf, crossFree, eachParts, historyMachine, tuple, keyTerm, mapArities, plainKey, scope, sumRuntime, tupleParts} from '../kernel/kernel.ts'
 import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
 
 // The one generator of the repo's random draws: x' = (1103515245 x + 12345) mod 2^31, exact (Math.imul). In doubles
@@ -43,6 +43,11 @@ export type E =
   | {op: 'prod', a: E, b: E} // a product of two terms: only the kernel proves with it (its monomials as atoms)
   | {op: 'if', c: C, then: E, else: E}
   | {op: 'get', map: string, key: E}
+  // A tuple of naturals as one natural: the Cantor pairing tri(a + b) + b (tri(s) = 0 + 1 + … + s), a bijection, so a
+  // tuple key's cells are equal exactly when the keys are, part by part. An n-tuple nests to the right: tup(x1,
+  // tup(x2, … tup(xn-1, xn))). `proj` reads a natural's pair back: its first part (k 0) or its second (k 1).
+  | {op: 'tup', a: E, b: E}
+  | {op: 'proj', k: 0 | 1, a: E}
 export type C =
   | {op: '<' | '<=' | '=', a: E, b: E}
   | {op: 'and', xs: C[]}
@@ -83,6 +88,9 @@ export type Machine = {
   // `some` 1 where there is such a key (else 0, the key 0). `key` is the key `where` and `by` are read at. To the
   // kernel each is an input like any other: what makes it the least is the rule's assumption (core/dsl.ts's least).
   leasts?: Record<string, Least>
+  // Relations over sorts (core/dsl.ts's .relations): each a map keyed by tuples, with the sort of each place. A hint for
+  // the provers' searches only (the kernel reads a tuple key by its parts, whatever their sorts).
+  relations?: Record<string, string[]>
 }
 // (a part with `neg` is the integer e − neg, as Int keeps one: two naturals)
 export type Least = {some: string, key: string, where: C, by: {e: E, neg?: E, desc?: boolean}[]}
@@ -139,7 +147,7 @@ export type Law = {name: string, holds: C, forall?: string, keys?: string[], sta
 export type SomeWitness = {terms?: Record<string, E>, ghost?: Record<string, {start: E, step: E}>}
 export type SomeProof = {vars: string[], body: C, sub?: Record<string, E>, ghost?: true, map?: {name: string, at: E}}
 
-export {unreachable} from '../kernel/kernel.ts'
+export {unreachable, tuple, tupleParts, part} from '../kernel/kernel.ts'
 
 // Builders.
 export const x = (name: string): E => ({op: 'var', name})
@@ -152,6 +160,17 @@ export const max = (a: E, b: E): E => ({op: 'max', a, b})
 export const prod = (a: E, b: E): E => ({op: 'prod', a, b})
 export const ite = (c: C, then: E, otherwise: E): E => ({op: 'if', c, then, else: otherwise})
 export const get = (map: string, key: E): E => ({op: 'get', map, key})
+// The pairing and its inverse as the runtimes compute them, exactly (Lean's cpair and cun): tri(a + b) + b, and back.
+export const cpair = (a: number, b: number): number => { const s = a + b; return exactPair(s % 2 === 0 ? (s / 2) * (s + 1) + b : s * ((s + 1) / 2) + b) }
+const exactPair = (v: number): number => { if (!Number.isSafeInteger(v)) throw new RangeError('a tuple key passed 2^53 - 1, past which the proofs over the naturals no longer describe the run'); return v }
+export const cunpair = (z: number): [number, number] => {
+  let s = Math.floor((Math.sqrt(8 * z + 1) - 1) / 2)
+  while (s > 0 && tri(s) > z) s--
+  while (tri(s + 1) <= z) s++
+  const b = z - tri(s)
+  return [s - b, b]
+}
+const tri = (s: number): number => (s % 2 === 0 ? (s / 2) * (s + 1) : s * ((s + 1) / 2))
 export const less = (a: E, b: E): C => ({op: '<', a, b})
 export const atMost = (a: E, b: E): C => ({op: '<=', a, b})
 export const same = (a: E, b: E): C => ({op: '=', a, b})
@@ -234,19 +253,31 @@ function keysAt(st: State, maps: string[]): number[] {
 // read at a key term, or a compared value, shifted by the term's offset; and the offset itself for k ∸ e), so each
 // breakpoint p with p - 1 .. p + 2, 0, and one past them all are every case: between two keys that are none of those,
 // no comparison turns and no read moves onto a cell.
-type Breaks = {reads: {map: string, off?: E, minus: boolean}[], cmps: {value: E, off?: E, minus: boolean}[]}
+// A read at a tuple key whose i-th of n parts is a key term reads the i-th part of each cell's key (`part`).
+type Breaks = {reads: {map: string, off?: E, minus: boolean, part?: [number, number]}[], cmps: {value: E, off?: E, minus: boolean}[]}
 const breaksCache = new WeakMap<object, Map<string, Breaks>>()
 function breaksOf(t: E | C, key: string): Breaks {
   const hit = breaksCache.get(t)?.get(key)
   if (hit) return hit
   const out: Breaks = {reads: [], cmps: []}
   const termOf = (e: E): {off?: E, minus: boolean} => (e.op === 'var' ? {minus: false} : e.op === 'add' ? {off: e.a.op === 'var' && e.a.name === key ? e.b : e.a, minus: false} : {off: (e as {b: E}).b, minus: true})
+  const cmp = (a: E, b: E): boolean => {
+    if (!keyTerm(a, key) && !keyTerm(b, key)) return false
+    const [kt, other] = keyTerm(a, key) ? [a, b] : [b, a]
+    out.cmps.push({value: other, ...termOf(kt)}); walk(other); return true
+  }
   const walk = (u: E | C): void => {
     if (u.op === 'get' && keyTerm(u.key, key)) { out.reads.push({map: u.map, ...termOf(u.key)}); return }
-    if ((u.op === '<' || u.op === '<=' || u.op === '=') && (keyTerm(u.a, key) || keyTerm(u.b, key))) {
-      const [kt, other] = keyTerm(u.a, key) ? [u.a, u.b] : [u.b, u.a]
-      out.cmps.push({value: other, ...termOf(kt)}); walk(other); return
+    if (u.op === 'get' && u.key.op === 'tup') {
+      const parts = tupleParts(u.key)
+      parts.forEach((p, i) => { if (keyTerm(p, key)) out.reads.push({map: u.map, ...termOf(p), part: [i, parts.length]}); else walk(p) })
+      return
     }
+    if (u.op === '=' && u.a.op === 'tup' && u.b.op === 'tup') {
+      const as = tupleParts(u.a), bs = tupleParts(u.b)
+      if (as.length === bs.length) { as.forEach((a, i) => { if (!cmp(a, bs[i]!)) { walk(a); walk(bs[i]!) } }); return }
+    }
+    if ((u.op === '<' || u.op === '<=' || u.op === '=') && cmp(u.a, u.b)) return
     for (const v of Object.values(u)) if (v && typeof v === 'object') (Array.isArray(v) ? v : [v]).forEach(y => walk(y as E | C))
   }
   walk(t)
@@ -258,7 +289,7 @@ function breakKeys(b: Breaks, env: Env, st: State, m: Machine): number[] {
   const points = new Set<number>([0])
   for (const r of b.reads) {
     const d = r.off ? evalE(r.off, env, st, m) : 0
-    for (const s of st.maps[r.map]?.keys() ?? []) { if (r.minus) points.add(s + d); else if (s >= d) points.add(s - d) }
+    for (const s0 of st.maps[r.map]?.keys() ?? []) { const s = r.part ? partsOf(s0, r.part[1])[r.part[0]]! : s0; if (r.minus) points.add(s + d); else if (s >= d) points.add(s - d) }
     if (r.minus) points.add(d)
   }
   for (const c of b.cmps) {
@@ -285,6 +316,13 @@ function tupleKeys(c: Extract<C, {op: 'all'}>, env: Env, st: State, m: Machine):
   const parts = names.map(n => breaksOf(body, n))
   return spread(breakKeys({reads: parts.flatMap(b => b.reads), cmps: parts.flatMap(b => b.cmps)}, env, st, m), names.length)
 }
+// A natural's n parts, read as an n-tuple (the inverse of cpair nested to the right).
+export const partsOf = (z: number, n: number): number[] => {
+  const out: number[] = []
+  for (let i = 0; i + 1 < n; i++) { const [a, b] = cunpair(z); out.push(a); z = b }
+  out.push(z)
+  return out
+}
 const spread = (keys: number[], n: number): number[] => [...new Set(keys.flatMap(k => Array.from({length: n}, (_, i) => k + i)))].sort((a, b) => a - b)
 export const naturalIn = (v: unknown, what: string): number => {
   if (typeof v !== 'number' || !Number.isSafeInteger(v) || v < 0) throw new RangeError(`${what} must be a natural below 2^53, not ${String(v)}`)
@@ -308,6 +346,8 @@ export function evalE(e: E, env: Env, st: State, m: Machine): number {
     case 'min': return Math.min(evalE(e.a, env, st, m), evalE(e.b, env, st, m))
     case 'max': return Math.max(evalE(e.a, env, st, m), evalE(e.b, env, st, m))
     case 'if': return evalC(e.c, env, st, m) ? evalE(e.then, env, st, m) : evalE(e.else, env, st, m)
+    case 'tup': return cpair(evalE(e.a, env, st, m), evalE(e.b, env, st, m))
+    case 'proj': return cunpair(evalE(e.a, env, st, m))[e.k]
     case 'get': {
       const fn = m.fns && Object.hasOwn(m.fns, e.map) ? m.fns[e.map] : undefined, args = fn?.call ? pairedArgs(e.key, fn.arity!) : undefined
       if (args) { const xs = args.map(a => evalE(a, env, st, m)); return naturalIn(callOf(fn!)(...xs), `${e.map}(${xs.join(', ')})`) }
@@ -380,6 +420,8 @@ export function compileE(e: E, m: Machine): (env: Env, st: State) => number {
     case 'min': { const a = compileE(e.a, m), b = compileE(e.b, m); return (env, st) => Math.min(a(env, st), b(env, st)) }
     case 'max': { const a = compileE(e.a, m), b = compileE(e.b, m); return (env, st) => Math.max(a(env, st), b(env, st)) }
     case 'if': { const c = compileC(e.c, m), t = compileE(e.then, m), f = compileE(e.else, m); return (env, st) => (c(env, st) ? t(env, st) : f(env, st)) }
+    case 'tup': { const a = compileE(e.a, m), b = compileE(e.b, m); return (env, st) => cpair(a(env, st), b(env, st)) }
+    case 'proj': { const a = compileE(e.a, m), k = e.k; return (env, st) => cunpair(a(env, st))[k] }
     case 'get': {
       const map = e.map, key = compileE(e.key, m)
       return (env, st) => {
@@ -406,7 +448,11 @@ export function compileC(c: C, m: Machine): (env: Env, st: State) => boolean {
 // A write at every key: its value at each key the maps it reads hold a cell at, and its new default past them.
 // With the key in key terms, every key up to the last breakpoint is computed (the stretches between breakpoints hold the
 // same value, which need not be the default), and past it the value is the new default.
-function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine): {cells: Map<number, number>, default: number} {
+function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine, parts = 1, map?: string): {cells: Map<number, number>, default: number} {
+  if (parts > 1) {
+    const t = eachParts(w, parts), same = map !== undefined && unchanged(t, map, env, st, m)
+    return same ? {cells: new Map(st.maps[map]!), default: st.defaults && Object.hasOwn(st.defaults, map) ? st.defaults[map]! : m.maps![map]!} : writeEveryTuple(t, env, st, m)
+  }
   if (!plainKey(w.value, w.each)) {
     const ks = breakKeys(breaksOf(w.value, w.each), env, st, m), top = ks.at(-1)!
     // (each breakpoint on its own, and each stretch between two at one key of it: no read moves and no comparison turns
@@ -424,6 +470,69 @@ function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine
   const fallback = evalE(w.value, {...env, [w.each]: past}, st, m), cells = new Map<number, number>()
   for (const key of keys.slice(0, -1)) { const v = evalE(w.value, {...env, [w.each]: key}, st, m); if (v !== fallback) cells.set(key, v) }
   return {cells, default: fallback}
+}
+
+// A write at every tuple of a map of n parts, read at its parts (kernel.ts's eachParts): each part's breakpoints together
+// (as a condition at every tuple of keys reads them), every tuple of them, and each stretch between two breakpoints at
+// one key of it. Past the last breakpoint in any part the value must be the new default (a value other than it along an
+// unbounded stretch is cells without end), and a stretch filled in two parts or more at once must read no comparison
+// between the parts (the value along it then depends on more than the stretch).
+function writeEveryTuple(t: {names: string[], value: E}, env: Env, st: State, m: Machine): {cells: Map<number, number>, default: number} {
+  const n = t.names.length, body: C = {op: '=', a: t.value, b: {op: 'const', value: 0}}, free = crossFree(body, t.names)
+  const bs = t.names.map(name => breaksOf(free, name))
+  const crossed = JSON.stringify(free) !== JSON.stringify(body)
+  // (parts compared with no other part: each on its own breakpoints; else all of them together, n keys after each)
+  const merged = crossed ? spread(breakKeys({reads: bs.flatMap(b => b.reads), cmps: bs.flatMap(b => b.cmps)}, env, st, m), n) : undefined
+  const kss = bs.map(b => merged ?? breakKeys(b, env, st, m))
+  const at = (xs: number[]) => evalE(t.value, {...env, ...Object.fromEntries(t.names.map((name, i) => [name, xs[i]!]))}, st, m)
+  const fallback = at(kss.map(ks => ks.at(-1)!)), cells = new Map<number, number>()
+  // (each key of a part's keys, and after each the stretch up to the next, at its first key: [key, end) with end the
+  // next; the last key stands for every key past it)
+  const segss = kss.map(ks => {
+    const segs: [number, number][] = []
+    for (let i = 0; i < ks.length; i++) { segs.push([ks[i]!, i + 1 < ks.length ? ks[i]! + 1 : Infinity]); if (i + 1 < ks.length && ks[i + 1]! > ks[i]! + 1) segs.push([ks[i]! + 1, ks[i + 1]!]) }
+    return segs
+  })
+  const go = (i: number, picked: [number, number][]): void => {
+    if (i < n) { for (const g of segss[i]!) go(i + 1, [...picked, g]); return }
+    const v = at(picked.map(g => g[0]))
+    if (v === fallback) return
+    if (picked.some(g => g[1] === Infinity)) throw new RangeError('a write at every tuple holds other than its default at tuples without end')
+    const wide = picked.filter(g => g[1] - g[0] > 1).length
+    if (wide > 1 && crossed) throw new RangeError('a write at every tuple compares its parts along stretches of keys: its cells there are not one value')
+    let size = 1
+    for (const g of picked) size *= g[1] - g[0]
+    if (size > 1_000_000) throw new RangeError('a write at every tuple fills more than a million tuples at once')
+    const fill = (j: number, xs: number[]): void => {
+      if (j === n) { cells.set(tupleKey(xs), v); return }
+      for (let x = picked[j]![0]; x < picked[j]![1]; x++) fill(j + 1, [...xs, x])
+    }
+    fill(0, [])
+  }
+  go(0, [])
+  return {cells, default: fallback}
+}
+const tupleKey = (xs: number[]): number => xs.slice(0, -1).reduceRight((b, a) => cpair(a, b), xs.at(-1)!)
+
+// Whether a write at every tuple leaves the map as it is at this step: its value, with every condition that reads no part
+// decided at the request (the flags, the inputs, the state), is the map's own cell at the tuple of the parts, as read
+// (M[k]) or as a member (if(1 <= M[k], 1, 0) where every cell is 0 or 1 already). Then no tuple need be visited.
+function unchanged(t: {names: string[], value: E}, map: string, env: Env, st: State, m: Machine): boolean {
+  const names = new Set(t.names), reads = (u: E | C) => JSON.stringify(u).match(/"name":"([^"]+)"/g)?.some(x => names.has(x.slice(8, -1))) ?? false
+  const cond = (c: C): boolean | C => {
+    if (!reads(c)) { try { return evalC(c, env, st, m) } catch { return c } }
+    if (c.op === 'and' || c.op === 'or') {
+      const xs: C[] = []
+      for (const y of c.xs) { const v = cond(y); if (v === (c.op === 'or')) return v; if (typeof v !== 'boolean') xs.push(v) }
+      return xs.length === 0 ? c.op === 'and' : xs.length === 1 ? xs[0]! : {op: c.op, xs}
+    }
+    return c
+  }
+  const term = (e: E): E => { if (e.op !== 'if') return e; const c = cond(e.c); return c === true ? term(e.then) : c === false ? term(e.else) : {...e, c: c as C} }
+  const v = term(t.value), own = (e: E) => e.op === 'get' && e.map === map && JSON.stringify(e.key) === JSON.stringify(tuple(t.names.map((name): E => ({op: 'var', name}))))
+  if (own(v)) return true
+  const zeroOne = () => [...(st.maps[map]?.values() ?? [])].every(x => x === 0 || x === 1) && (st.defaults?.[map] ?? m.maps![map]!) <= 1
+  return v.op === 'if' && v.then.op === 'const' && v.then.value === 1 && v.else.op === 'const' && v.else.value === 0 && v.c.op === '<=' && v.c.a.op === 'const' && v.c.a.value === 1 && own(v.c.b) && zeroOne()
 }
 
 // The machine a runtime steps (with a history, kernel.ts's plain machine), its queries, and the inputs a request carries.
@@ -498,7 +607,7 @@ export const numbersOf = (input: Request): Record<string, number> => Object.from
 const refused = (m: Machine) => `${m.name}: the request fails the rule's assumption, so no proof covers the step it would take`
 // The interpreter: persistent (a step leaves the state it was given as it was), so searches can branch from any state.
 export function interpret(m: Machine) {
-  const {h, plain, carried} = runnable(m)
+  const {h, plain, carried} = runnable(m), arity = mapArities(plain)
   const args = (params: Env, input?: Request): Env => {
     const env: Env = {}
     for (const p of m.params) env[p] = naturalIn(params[p], `param ${p}`)
@@ -553,7 +662,7 @@ export function interpret(m: Machine) {
       if (m.assume && !evalC(m.assume, env, st, plain)) throw new RangeError(refused(m))
       const scalars = {...st.scalars}
       for (const [name, e] of Object.entries(plain.step.state ?? {})) scalars[name] = evalE(e, env, st, plain)
-      const writes = Object.entries(plain.step.maps ?? {}).map(([name, w]) => [name, 'each' in w ? writeEvery(w, env, st, plain) : {key: evalE(w.key, env, st, plain), value: evalE(w.value, env, st, plain)}] as const)
+      const writes = Object.entries(plain.step.maps ?? {}).map(([name, w]) => [name, 'each' in w ? writeEvery(w, env, st, plain, arity[name] ?? 1, name) : {key: evalE(w.key, env, st, plain), value: evalE(w.value, env, st, plain)}] as const)
       const maps = Object.fromEntries(Object.entries(given.maps).map(([name, cells]) => [name, new Map(cells)]))
       const defaults = {...given.defaults}
       for (const [name, w] of writes) if ('cells' in w) { maps[name] = w.cells; defaults[name] = w.default } else maps[name]!.set(w.key, w.value)
@@ -572,6 +681,8 @@ export function interpret(m: Machine) {
 const RUNTIME: [string, string][] = [
   ['$n', `function $n(v, what) { if (typeof v !== 'number' || !Number.isSafeInteger(v) || v < 0) throw new RangeError(what + ' must be a natural below 2^53, not ' + v); return v; }`],
   ['$x', `function $x(v) { if (v > 9007199254740991) throw new RangeError('a value passed 2^53 - 1, past which the proofs over the naturals no longer describe the run'); return v; }`],
+  ['$p', `function $p(a, b) { const s = a + b, v = (s % 2 === 0 ? (s / 2) * (s + 1) : s * ((s + 1) / 2)) + b; if (!Number.isSafeInteger(v)) throw new RangeError('a tuple key passed 2^53 - 1, past which the proofs over the naturals no longer describe the run'); return v; }`],
+  ['$u', `function $u(z) { const tri = t => (t % 2 === 0 ? (t / 2) * (t + 1) : t * ((t + 1) / 2)); let s = Math.floor((Math.sqrt(8 * z + 1) - 1) / 2); while (s > 0 && tri(s) > z) s--; while (tri(s + 1) <= z) s++; const b = z - tri(s); return [s - b, b]; }`],
   ['$m', `function $m(v, what) { if (!(v instanceof Map)) throw new RangeError(what + ' must be a Map of naturals'); for (const [key, x] of v) { $n(key, 'a key of ' + what); $n(x, 'a cell of ' + what); } return v; }`],
   ['$keys', `function $keys(maps, names) { const keys = new Set(); let past = 0; for (const c of Object.values(maps)) for (const key of c.keys()) past = Math.max(past, key + 1); for (const n of names) for (const key of maps[n].keys()) keys.add(key); return [...keys, past]; }`],
   ['$breaks', `function $breaks(maps, reads, cmps) { const p = new Set([0]); for (const [n, d, minus] of reads) { for (const s of maps[n].keys()) { if (minus) p.add(s + d); else if (s >= d) p.add(s - d); } if (minus) p.add(d); } for (const [v, d, minus] of cmps) { if (minus) { p.add(v + d); p.add(d); } else if (v >= d) p.add(v - d); } const keys = new Set(); for (const q of p) for (let i = -1; i <= 2; i++) if (q + i >= 0) keys.add(q + i); const sorted = [...keys].sort((a, b) => a - b); sorted.push(sorted[sorted.length - 1] + 1); return sorted; }`],
@@ -609,6 +720,11 @@ function joinOf(c: C, k: string, k1: string): {x: E, y: E} | undefined {
 
 export function compileJs(m: Machine): string {
   const {h, plain, queries, carried} = runnable(m)
+  // (a condition or a write at every key over a tuple key: the interpreter decides those, part by part)
+  const atEvery = [...Object.values(plain.step.flags ?? {}).filter(c => c.op === 'all'), ...Object.values(plain.step.maps ?? {}).filter(w => 'each' in w)]
+  const arity = mapArities(plain)
+  if (JSON.stringify(atEvery).includes('"op":"tup"') || Object.entries(plain.step.maps ?? {}).some(([map, w]) => 'each' in w && (arity[map] ?? 1) > 1))
+    throw new Error(`${m.name}: compileJs takes no tuple key at every key (interpret runs it)`)
   const id = (name: string) => JSON.stringify(name)
   const flags = Object.keys(plain.step.flags ?? {}), carriedMaps = m.inputMaps ?? [], fns = Object.keys(m.fns ?? {})
   // A key bound by a quantified flag or a write at every key is the JS parameter k (k1, k2 for a flag's further keys).
@@ -624,6 +740,8 @@ export function compileJs(m: Machine): string {
       case 'min': return `Math.min(${ex(e.a)}, ${ex(e.b)})`
       case 'max': return `Math.max(${ex(e.a)}, ${ex(e.b)})`
       case 'if': return `(${cx(e.c)} ? ${ex(e.then)} : ${ex(e.else)})`
+      case 'tup': return `$p(${ex(e.a)}, ${ex(e.b)})`
+      case 'proj': return `$u(${ex(e.a)})[${e.k}]`
       case 'get': {
         const fn = m.fns && Object.hasOwn(m.fns, e.map) ? m.fns[e.map] : undefined, args = fn?.call ? pairedArgs(e.key, fn.arity!) : undefined
         if (args) return `$n(fnc${fns.indexOf(e.map)}(${args.map(ex).join(', ')}), ${id(`${e.map}()`)})`
@@ -777,6 +895,7 @@ function symE(e: E, s: Sym): Cases<Lin> {
     case 'add': return cross(symE(e.a, s), a => symE(e.b, s).map(b => ({path: b.path, value: add(a, b.value)})))
     case 'mul': return symE(e.a, s).map(a => ({path: a.path, value: scale(a.value, e.k)}))
     case 'prod': throw new Error('a product of two terms: kernel/prove.ts proves with products, this prover does not')
+    case 'tup': case 'proj': throw new Error('a tuple key: kernel/prove.ts proves with tuples, this prover does not')
     case 'sub': // truncated at 0, as on naturals
       return cross(symE(e.a, s), a => symE(e.b, s).flatMap(b => [
         {path: [...b.path, ...le(b.value, a)], value: sub(a, b.value)},

@@ -10,7 +10,7 @@ body(k), with the declaration's parameters at x and its key variable `key` at k 
 votes for x, the members of a request's set). One parameter: `j` at x. Two (`atJ`): `j` at x / base and `lo` at
 x % base, so a count over a pair (a, b), the nodes that voted b at round a, is read at a relation's composed key base·a
 + b; a certificate's read of it at a key term written base·a + b gives Count.lean the count with j at a and lo at b,
-under the hypothesis `base ≤ b ∨ the cell` (`keyParts`, `readHyp`), so a key past the base reads nothing. The map is one the request carries (`mp ∈ s.carried`), so the machine
+under the hypothesis `base ≤ b ∨ the cell` (`countKeyParts`, `readHyp`), so a key past the base reads nothing. The map is one the request carries (`mp ∈ s.carried`), so the machine
 itself is an `SMachine` as it was: its runs (`CReach`) are `SReach`'s with each request's count maps at their counts,
 read at the request's view (its inputs set, over the state's maps and the maps it carries; a count reads no flag,
 quantified flag or witness, so the view's flags don't change it). A guard (the assumption)
@@ -173,7 +173,7 @@ theorem pickHyp_true (c : Count) (ks : List E) (X : Nat → Nat) (M : Nat → Na
 
 -- A key term's parts, the terms the parameters take: one parameter, the term (j a constant 0); two, the term written
 -- base·a + b (j at a, lo at b), which is the count at (a, b) where b < base.
-def keyParts (d : CDecl) (e : E) : Option (E × E) :=
+def countKeyParts (d : CDecl) (e : E) : Option (E × E) :=
   if d.base == 0 then some (.const 0, e) else match e with
     | .add (.mul b a) c => if b == d.base then some (a, c) else none
     | _ => none
@@ -181,7 +181,7 @@ def keyParts (d : CDecl) (e : E) : Option (E × E) :=
 -- A read cell as Count.lean's count: its variable, the declaration with its parameters at the key term's parts.
 def toCount (ds : List CDecl) (r : Nat × Nat × E) : Option Count :=
   match lookup (fun d => d.mp == r.2.1) ds with
-  | some d => (keyParts d r.2.2).map fun p => ⟨r.1, d.key, substE [(d.lo, p.2), (d.j, p.1)] d.below, substE [(d.lo, p.2), (d.j, p.1)] d.body⟩
+  | some d => (countKeyParts d r.2.2).map fun p => ⟨r.1, d.key, substE [(d.lo, p.2), (d.j, p.1)] d.below, substE [(d.lo, p.2), (d.j, p.1)] d.body⟩
   | none => none
 
 def toCounts (ds : List CDecl) : List (Nat × Nat × E) → Option (List Count)
@@ -193,7 +193,7 @@ def toCounts (ds : List CDecl) : List (Nat × Nat × E) → Option (List Count)
 -- A read's hypothesis: its variable is the cell; for two parameters, where the second part is below the base.
 def readHyp (ds : List CDecl) (r : Nat × Nat × E) : C :=
   match lookup (fun d => d.mp == r.2.1) ds with
-  | some d => if d.base == 0 then .eq (.var r.1) (.get r.2.1 r.2.2) else match keyParts d r.2.2 with
+  | some d => if d.base == 0 then .eq (.var r.1) (.get r.2.1 r.2.2) else match countKeyParts d r.2.2 with
     | some p => .or (.le (.const d.base) p.2) (.eq (.var r.1) (.get r.2.1 r.2.2))
     | none => .eq (.var r.1) (.get r.2.1 r.2.2)
   | none => .eq (.var r.1) (.get r.2.1 r.2.2)
@@ -366,9 +366,9 @@ theorem atJ_congr (d : CDecl) (x : Nat) {ρ ρ' : Nat → Nat} (i : Nat) (h : i 
     · simp only [if_neg h1, if_neg h2]; exact h h1 h2
 
 -- A key term's parts read the key term's variables only, and are the parameters where the second is below the base.
-theorem keyParts_occ {d : CDecl} {e : E} {p : E × E} (h : keyParts d e = some p) (i : Nat) :
+theorem keyParts_occ {d : CDecl} {e : E} {p : E × E} (h : countKeyParts d e = some p) (i : Nat) :
     (occE i p.1 = true → occE i e = true) ∧ (occE i p.2 = true → occE i e = true) := by
-  unfold keyParts at h
+  unfold countKeyParts at h
   by_cases hb : d.base = 0
   · simp only [hb, beq_self_eq_true, ite_true, Option.some.injEq] at h; subst h; simp [occE]
   · rw [if_neg (by simp [hb])] at h
@@ -379,9 +379,9 @@ theorem keyParts_occ {d : CDecl} {e : E} {p : E × E} (h : keyParts d e = some p
       · cases h
     · cases h
 
-theorem keyParts_eval {d : CDecl} {e : E} {p : E × E} (h : keyParts d e = some p) (ρ : Nat → Nat) (M : Nat → Nat → Nat)
+theorem keyParts_eval {d : CDecl} {e : E} {p : E × E} (h : countKeyParts d e = some p) (ρ : Nat → Nat) (M : Nat → Nat → Nat)
     (hg : d.base = 0 ∨ evalE ρ M p.2 < d.base) : evalE ρ M p.1 = evalE ρ M e / d.base ∧ evalE ρ M p.2 = evalE ρ M e % d.base := by
-  unfold keyParts at h
+  unfold countKeyParts at h
   by_cases hb : d.base = 0
   · simp only [hb, beq_self_eq_true, ite_true, Option.some.injEq] at h; subst h; simp [evalE, hb]
   · have hpos : 0 < d.base := Nat.pos_of_ne_zero hb
@@ -414,7 +414,7 @@ theorem subst2_congr {lo j : Nat} {a b : E} {X X' : Nat → Nat} {M : Nat → Na
 
 -- A read's count, its parameters at the key term's parts, is the declaration's count at the key term's value, where the
 -- second part is below the base.
-theorem cnt_read {d : CDecl} {e : E} {p : E × E} (hp : keyParts d e = some p) (hjk : d.j ≠ d.key) (hlk : d.lo ≠ d.key)
+theorem cnt_read {d : CDecl} {e : E} {p : E × E} (hp : countKeyParts d e = some p) (hjk : d.j ≠ d.key) (hlk : d.lo ≠ d.key)
     (hke : occE d.key e = false) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hg : d.base = 0 ∨ evalE ρ M p.2 < d.base) :
     sumBelow (fun k => evalE (upd ρ d.key k) M (substE [(d.lo, p.2), (d.j, p.1)] d.body)) (evalE ρ M (substE [(d.lo, p.2), (d.j, p.1)] d.below))
       = cntOf d ρ M (evalE ρ M e) := by
@@ -523,7 +523,7 @@ theorem mc_sound (hyps : List C) (ds : List CDecl) (k : CCert) (hck : checkMC hy
     congrE ρ' ρ M e (fun i hi => hother i (fun r hr hri => by have := he r hr; rw [hri] at this; simp [this] at hi))
   -- A read's parts: its declaration and the key term's parts.
   have hparts : ∀ r ∈ k.reads, ∀ c, toCount ds r = some c → ∃ d ∈ ds, ∃ p, lookup (fun d => d.mp == r.2.1) ds = some d
-      ∧ d.mp = r.2.1 ∧ keyParts d r.2.2 = some p
+      ∧ d.mp = r.2.1 ∧ countKeyParts d r.2.2 = some p
       ∧ c = ⟨r.1, d.key, substE [(d.lo, p.2), (d.j, p.1)] d.below, substE [(d.lo, p.2), (d.j, p.1)] d.body⟩ := by
     intro r _ c hc
     simp only [toCount] at hc
@@ -531,14 +531,14 @@ theorem mc_sound (hyps : List C) (ds : List CDecl) (k : CCert) (hck : checkMC hy
     · rename_i d hl
       obtain ⟨hdm, hdq⟩ := lookup_some hl
       simp only [beq_iff_eq] at hdq
-      cases hk : keyParts d r.2.2 with
+      cases hk : countKeyParts d r.2.2 with
       | none => simp [hk] at hc
       | some p =>
         rw [hk] at hc
         exact ⟨d, hdm, p, hl, hdq, hk, (Option.some.inj hc).symm⟩
     · cases hc
   -- The key term's parts read no read's variable, and a read's count reads none.
-  have hpr : ∀ r ∈ k.reads, ∀ d p, keyParts d r.2.2 = some p → ∀ r' ∈ k.reads, occE r'.1 p.1 = false ∧ occE r'.1 p.2 = false := by
+  have hpr : ∀ r ∈ k.reads, ∀ d p, countKeyParts d r.2.2 = some p → ∀ r' ∈ k.reads, occE r'.1 p.1 = false ∧ occE r'.1 p.2 = false := by
     intro r hr d p hp r' hr'
     have h0 := (hfr' r' hr').2.2 r hr
     refine ⟨?_, ?_⟩
@@ -791,6 +791,8 @@ theorem occ_renE (mr : List (Nat × Nat)) (i : Nat) : (e : E) → occE i (substR
   | .get m key => by
     simp only [substRE, frameRd]
     split <;> simp [getRd, occE, occ_renE mr i key]
+  | .tup a b => by simp [substRE, occE, occ_renE mr i a, occ_renE mr i b]
+  | .proj _ a => by simp [substRE, occE, occ_renE mr i a]
 theorem occ_renC (mr : List (Nat × Nat)) (i : Nat) : (c : C) → occC i (substRC [] (frameRd mr getRd) c) = occC i c
   | .le a b => by simp [substRC, occC, occ_renE mr i a, occ_renE mr i b]
   | .lt a b => by simp [substRC, occC, occ_renE mr i a, occ_renE mr i b]

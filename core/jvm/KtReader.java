@@ -70,11 +70,11 @@ public final class KtReader implements Jvm.Env {
   Map<String, Object> read(Map<?, ?> req) throws Exception {
     String path = (String) req.get("file"), root = (String) req.get("root");
     src = Files.readString(Path.of(path));
-    // (the PSI recovering from deep unclosed nesting took 23 minutes on one source: past MAX_DEPTH brackets it is refused
-    // before the parse, as the Rust reader refuses it)
+    // A linear, conservative text limit before PSI error recovery (which can be exponential
+    // on unclosed delimiters). Includes strings/comments; this is a resource refusal, not a syntax claim.
     int depth = 0, most = 0;
-    for (int i = 0; i < src.length(); i++) { char c = src.charAt(i); if (c == '(' || c == '[' || c == '{') most = Math.max(most, ++depth); else if (c == ')' || c == ']' || c == '}') depth--; }
-    if (most > 1000) Jvm.refuse(new File(path).getName() + ": the source nests " + most + " brackets deep (past 1000)");
+    for (int i = 0; i < src.length(); i++) { char c = src.charAt(i); if (c == '(' || c == '[' || c == '{') most = Math.max(most, ++depth); else if (c == ')' || c == ']' || c == '}') depth = Math.max(0, depth - 1); }
+    if (most > 32) Jvm.refuse(new File(path).getName() + ": the source nests " + most + " delimiter characters deep (reader limit 32, including strings and comments)");
     base = new File(path).getName();
     KtPsiFactory f = factory();
     file = f.createFile(base, src);
@@ -128,7 +128,7 @@ public final class KtReader implements Jvm.Env {
 
   // --- positions ---------------------------------------------------------------------------------------------------------
   int line(int off) { int i = Arrays.binarySearch(lines, off); return i >= 0 ? i + 1 : -i - 1; }
-  String where(PsiElement e) { int o = e.getTextRange().getStartOffset(), l = line(o); return base + ":" + l + ":" + (o - lines[l - 1] + 1); }
+  String where(PsiElement e) { if (e == null) Jvm.refuse(base + ": incomplete syntax: a required expression is missing"); int o = e.getTextRange().getStartOffset(), l = line(o); return base + ":" + l + ":" + (o - lines[l - 1] + 1); }
   String zero() { return base + ":0:0"; }
   static String text(PsiElement e) { String x = e.getText().replaceAll("\\s+", " "); return x.length() <= 60 ? x : x.substring(0, 57) + "..."; }
   List<Object> span(PsiElement e) { return List.of(e.getTextRange().getStartOffset(), e.getTextRange().getEndOffset()); }
@@ -313,6 +313,7 @@ public final class KtReader implements Jvm.Env {
   }
   static List<KtDeclaration> body(KtClassOrObject k) { return k.getBody() == null ? List.of() : k.getBody().getDeclarations(); }
   String key(KtClassOrObject k, KtNamedFunction fn) {
+    if (fn.getName() == null) Jvm.refuse(where(fn) + ": a function declaration is missing its name");
     long same = body(k).stream().filter(d -> d instanceof KtNamedFunction f && Objects.equals(f.getName(), fn.getName())).count();
     String n = same > 1 ? fn.getName() + "/" + fn.getValueParameters().size() : fn.getName();
     return fn.hasModifier(KtTokens.PRIVATE_KEYWORD) || Set.of("equals", "hashCode", "toString").contains(fn.getName()) ? "_" + n : n;

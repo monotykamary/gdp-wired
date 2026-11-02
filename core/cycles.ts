@@ -25,7 +25,7 @@
 // values (a constant on a region, a line, bounds), proves them from the facts as cyclic claims (Houdini), and proves the
 // laws with them as facts.
 import type {C, E, Law, Machine, Request, State} from './machine.ts'
-import {argsKey, atMost as le, compileFunction, evalC as evalMC, evalE as evalME, fnValue, get, interpret, minus as sub, n as k, pairedArgs, plus as add, same as eqC, seeded, walk, x as v} from './machine.ts'
+import {argsKey, atMost as le, compileFunction, cpair, cunpair, evalC as evalMC, evalE as evalME, fnValue, get, interpret, minus as sub, n as k, pairedArgs, plus as add, same as eqC, seeded, tupleParts, walk, x as v} from './machine.ts'
 import type {Goal, Liveness, Loop, Tree} from '../kernel/kernel.ts'
 import {check, livenessHelpful, livenessParts, loopLiveness, loopMachine, loopObligations, strongly, substC, substE} from '../kernel/kernel.ts'
 import {type Cyclic, type Fact, checkCyclic, factsAvoid, lexLt} from '../kernel/cyclic.ts'
@@ -71,6 +71,8 @@ export const showE = (e: E): string => {
     case 'min': case 'max': return `${e.op}(${showE(e.a)}, ${showE(e.b)})`
     case 'if': return `if ${showC(e.c)} then ${showE(e.then)} else ${showE(e.else)}`
     case 'get': { const as = pairedArgs(e.key, 2), as3 = as && pairedArgs(e.key, 3); return `${e.map}(${(as3 ?? as ?? [e.key]).map(showE).join(', ')})` }
+    case 'tup': return `⟨${tupleParts(e).map(showE).join(', ')}⟩`
+    case 'proj': return `${e.k === 0 ? 'fst' : 'snd'}(${showE(e.a)})`
   }
 }
 export const showC = (c: C): string => {
@@ -155,6 +157,8 @@ function ev(cx: Ctx, e: E, env: Record<string, number>, rec?: Rec): number | und
     case 'min': return two(e.a, e.b, Math.min)
     case 'max': return two(e.a, e.b, Math.max)
     case 'prod': return two(e.a, e.b, (x, y) => x * y)
+    case 'tup': return two(e.a, e.b, cpair)
+    case 'proj': { const x = ev(cx, e.a, env, rec); return x === undefined ? undefined : cunpair(x)[e.k] }
     case 'mul': { const x = ev(cx, e.a, env, rec); return x === undefined ? undefined : e.k * x }
     case 'if': { const c = evC(cx, e.c, env, rec); return c === undefined ? undefined : ev(cx, c ? e.then : e.else, env, rec) }
     case 'get': {

@@ -5,14 +5,14 @@ import {expect, test} from 'bun:test'
 import {mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
-import {type Law, type Machine, atMost, get, ite, min, n, plus, x} from '../core/machine.ts'
+import {type E, type Law, type Machine, atMost, get, ite, min, n, plus, x} from '../core/machine.ts'
 import {type Fold, type Goal, type Loop, type QGoal, type Tree, canon, check, foldObligations, leafConstraints, loopObligations, termColumn} from '../kernel/kernel.ts'
 import {type Lin, solve} from '../core/solver.ts'
 import {grow, proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {growQ} from '../kernel/qprove.ts'
 import {kindCases, recurRegressions, reseed} from '../core/conformance.ts'
 import {q} from '../core/q.ts'
-import {type Certificate, type Document, FormatError, fromInterchange, toInterchange} from './format.ts'
+import {type Certificate, type Document, FormatError, decE, decLin, encE, encLin, fromInterchange, toInterchange} from './format.ts'
 import {checkDocument, goalsOf} from './check.ts'
 
 const cap: Machine = {name: 'cap', params: ['cap'], inputs: ['amt', 'k'], state: {used: n(0)}, maps: {M: 0},
@@ -61,6 +61,16 @@ function certificates(): Certificate[] {
 }
 const certs = certificates()
 const docs = certs.map(c => JSON.parse(JSON.stringify(toInterchange(c))) as Document)
+
+test('interchange 1.1 explicitly refuses tuple terms and tuple-keyed cells', () => {
+  const tup: E = {op: 'tup', a: n(2), b: n(3)}, proj: E = {op: 'proj', k: 1, a: tup}
+  for (const e of [tup, proj, get('M', tup), get('M', proj)]) {
+    expect(() => encE(e)).toThrow(/tuple terms are not supported/)
+    expect(() => decE(e)).toThrow(/tuple terms are not supported/)
+  }
+  expect(() => encLin({'M[⟨a:1|b:1⟩]': 1}, {terms: [], index: new Map()})).toThrow(/tuple-keyed cells are not supported/)
+  expect(() => decLin([null, [1, {cell: 'M', key: [null, [1, '⟨a|b⟩']]}]], {read: []})).toThrow(/tuple-keyed cells are not supported/)
+})
 
 test('each certificate reads back to itself, and the kernel accepts it', () => {
   for (const [i, c] of certs.entries()) {

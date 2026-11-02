@@ -22,7 +22,8 @@ function rename(e: E, prefix: string, m: Machine, inputs: Record<string, E>): E 
     case 'mul': return {...e, a: rename(e.a, prefix, m, inputs)}
     case 'if': return {op: 'if', c: renameC(e.c, prefix, m, inputs), then: rename(e.then, prefix, m, inputs), else: rename(e.else, prefix, m, inputs)}
     case 'get': return {op: 'get', map: m.inputMaps?.includes(e.map) ? e.map : `${prefix}${e.map}`, key: rename(e.key, prefix, m, inputs)}
-    case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: rename(e.a, prefix, m, inputs), b: rename(e.b, prefix, m, inputs)}
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {...e, a: rename(e.a, prefix, m, inputs), b: rename(e.b, prefix, m, inputs)}
+    case 'proj': return {...e, a: rename(e.a, prefix, m, inputs)}
     default: return unreachable(e)
   }
 }

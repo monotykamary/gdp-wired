@@ -5,7 +5,7 @@
 // isn't installed (research/extract/go-setup.sh installs it in a job).
 import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
-import {mkdirSync, mkdtempSync, writeFileSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {extractGo, type GoExtraction, type GoOptions} from './extract-go.ts'
 import {no, proveRule, proveSteps} from './dsl.ts'
@@ -460,3 +460,8 @@ t('the check\'s build: go build killed is the harness\'s failure, retried once',
   expect(killed.ok).toBe(false)
   expect(killed.refusals[0]!.what).toMatch(/^the check's harness failed, twice .*go build failed twice with nothing to say of the code/)
 }, 120_000)
+
+t('reader fuzz 685506: return arity is checked before result types are read', () => {
+  const src = readFileSync(new URL('./reader-fixtures/go-685506.go', import.meta.url), 'utf8')
+  refused(go(src.replace(/^package p\n/, ''), 'C'), /return has 1 values, but the function declares 0 results/)
+}, 60_000)

@@ -49,6 +49,8 @@ def inlineE (fl : List (Nat × C)) : E → E
   | .prod a b => .prod (inlineE fl a) (inlineE fl b)
   | .ite c t f => .ite (inlineC fl c) (inlineE fl t) (inlineE fl f)
   | .get m key => .get m (inlineE fl key)
+  | .tup a b => .tup (inlineE fl a) (inlineE fl b)
+  | .proj k a => .proj k (inlineE fl a)
 def inlineC (fl : List (Nat × C)) : C → C
   | .le a b => .le (inlineE fl a) (inlineE fl b)
   | .lt a b => .lt (inlineE fl a) (inlineE fl b)
@@ -101,6 +103,8 @@ theorem inline_evalE (fl : List (Nat × C)) (ρ : Nat → Nat) (maps : Nat → N
   | .prod a b => by simp [inlineE, evalE, inline_evalE fl ρ maps a, inline_evalE fl ρ maps b]
   | .ite c t f => by simp [inlineE, evalE, inline_evalC fl ρ maps c, inline_evalE fl ρ maps t, inline_evalE fl ρ maps f]
   | .get m key => by simp [inlineE, evalE, inline_evalE fl ρ maps key]
+  | .tup a b => by simp [inlineE, evalE, inline_evalE fl ρ maps a, inline_evalE fl ρ maps b]
+  | .proj k a => by simp [inlineE, evalE, inline_evalE fl ρ maps a]
 theorem inline_evalC (fl : List (Nat × C)) (ρ : Nat → Nat) (maps : Nat → Nat → Nat) :
     (c : C) → evalC ρ maps (inlineC fl c) = evalC (decideFlags fl ρ maps) maps c
   | .le a b => by simp [inlineC, evalC, inline_evalE fl ρ maps a, inline_evalE fl ρ maps b]

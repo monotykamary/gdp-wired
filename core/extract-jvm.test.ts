@@ -6,7 +6,7 @@
 // Skipped where no JDK (Java) or no kotlinc (Kotlin) is installed.
 import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
-import {mkdirSync, mkdtempSync, writeFileSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {proveRule, proveSteps} from './dsl.ts'
 import {type JvmOptions, extractJava, extractKotlin} from './extract-jvm.ts'
@@ -370,3 +370,12 @@ tk('Kotlin: a name past the class file\'s 65,535 bytes is refused up front (kotl
   expect(x.ok).toBe(false)
   expect(x.refusals[0]!.what).toMatch(/a name or a string of 100001 bytes, past the class file's 65,535/)
 })
+
+for (const [seed, entry, reason] of [[724362, 'Budget', /required expression is missing/], [765282, 'C', /function declaration is missing its name/], [737430, 'Budget', /delimiter characters.*reader limit 32/]] as const) {
+  tk(`reader fuzz ${seed}: malformed Kotlin is refused with its cause`, () => {
+    const src = readFileSync(new URL(`./reader-fixtures/jvm-${seed}.kt`, import.meta.url), 'utf8')
+    const x = kotlin(src.replace(/^package demo\n/, ''), entry)
+    expect(x.ok).toBe(false)
+    expect(x.refusals[0]!.what).toMatch(reason)
+  })
+}

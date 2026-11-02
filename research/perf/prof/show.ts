@@ -12,6 +12,8 @@ export const showE = (e: E): string => {
     case 'max': return `max(${showE(e.a)}, ${showE(e.b)})`
     case 'if': return `if(${showC(e.c)}, ${showE(e.then)}, ${showE(e.else)})`
     case 'get': return `${e.map}[${showE(e.key)}]`
+    case 'tup': return `⟨${showE(e.a)}, ${showE(e.b)}⟩`
+    case 'proj': return `proj(${e.k}, ${showE(e.a)})`
     default: return JSON.stringify(e)
   }
 }

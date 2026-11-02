@@ -363,10 +363,10 @@ function renamer(to: Record<string, string>) {
     switch (e.op) {
       case 'var': out = to[e.name] !== undefined ? v(to[e.name]!) : e; break
       case 'const': out = e; break
-      case 'mul': out = {...e, a: e1(e.a)}; break
+      case 'mul': case 'proj': out = {...e, a: e1(e.a)}; break
       case 'if': out = {op: 'if', c: c1(e.c), then: e1(e.then), else: e1(e.else)}; break
       case 'get': out = {op: 'get', map: e.map, key: e1(e.key)}; break
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': out = {...e, a: e1(e.a), b: e1(e.b)}; break
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': out = {...e, a: e1(e.a), b: e1(e.b)}; break
     }
     memo.set(e, out)
     return out

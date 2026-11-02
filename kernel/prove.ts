@@ -8,7 +8,7 @@
 //   - a refutation of a split's yes side that never reads the split refutes its parent (lift), and the no side is skipped;
 //   - a hypothesis' rows and open atoms, and every term inside them, are reused from an earlier path that decided the
 //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
-import {type C, type E, type Law, type Machine, evalC, evalE, walkOnce} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, cpair, evalC, evalE, walkOnce} from '../core/machine.ts'
 import {type Lin, type Step, add, costs, env, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {allowNode, allowTranslated, certCyclic, certOn, certSearch, stepCertFloor, translateMs, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, loopNodes, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
@@ -16,8 +16,9 @@ import type {TStats} from '../core/translate.ts'
 import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
 import {REFUTED, growCdcl} from './cdcl.ts'
-import {type Diagram, type Patterns, decide, eprMeter, pastEprCap, patternsOf} from './epr.ts'
-import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
+import {type Diagram, type Patterns, decide, eprMeter, pastEprCap, patternsOf, withEprCap} from './epr.ts'
+import {projected, tupleParts} from './kernel.ts'
+import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, cellParts, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 function openE(e: E, path: Path, out: Lin[]): void {
@@ -26,6 +27,8 @@ function openE(e: E, path: Path, out: Lin[]): void {
     case 'mul': return openE(e.a, path, out)
     case 'prod': return (openE(e.a, path, out), openE(e.b, path, out))
     case 'get': return openE(e.key, path, out)
+    case 'tup': return (openE(e.a, path, out), openE(e.b, path, out))
+    case 'proj': return openE(e.a.op === 'tup' ? (e.k === 0 ? e.a.a : e.a.b) : e.a, path, out)
     case 'if': { const t = truth(e.c, path); if (t === undefined) openC(e.c, path, out); else openE(t ? e.then : e.else, path, out); return }
     case 'add': case 'sub': case 'min': case 'max': {
       openE(e.a, path, out), openE(e.b, path, out)
@@ -41,6 +44,8 @@ function openC(c: C, path: Path, out: Lin[]): void {
   if (c.op === 'flag' || c.op === 'all') return
   if (c.op === 'not') return openC(c.x, path, out)
   if (c.op === 'and' || c.op === 'or') return c.xs.forEach(y => openC(y, path, out))
+  // (two tuples equal: their parts' equalities, the kernel's reading)
+  if (c.op === '=' && c.a.op === 'tup' && c.b.op === 'tup') return [c.a.a, c.a.b].forEach((x, i) => openC({op: '=', a: x, b: i ? (c.b as {b: E}).b : (c.b as {a: E}).a}, path, out))
   const a = linear(c.a, path), b = linear(c.b, path), own: Lin[] = []
   if (a && b) {
     const d = sub(a, b)
@@ -65,6 +70,10 @@ function openH(c: C, path: Path, out: Lin[], positive = true): void {
     return
   }
   if (c.op === 'flag' || c.op === 'all') return
+  if (c.op === '=' && c.a.op === 'tup' && c.b.op === 'tup') {
+    const parts: C[] = [{op: '=', a: c.a.a, b: c.b.a}, {op: '=', a: c.a.b, b: c.b.b}]
+    return openH(positive ? {op: 'and', xs: parts} : {op: 'or', xs: parts.map((x): C => ({op: 'not', x}))}, path, out, true)
+  }
   const before = out.length
   openE(c.a, path, out), openE(c.b, path, out)
   if (out.length === before && !positive && c.op === '=' && truth(c, path) === undefined) openC(c, path, out)
@@ -77,7 +86,7 @@ export const pairedKeys = {skip: false}
 // (each cell's map and key, and each pair's difference both ways, made once: the pairs are quadratic in the names, and
 // the same forms at every node keep what is remembered per form)
 // (by the first cell, then the second: no key text made per lookup, the search's nodes ask for every pair again)
-const cellKeys = new Map<string, {map: string, key: Lin}>(), cellPairs = new Map<string, Map<string, {d: Lin, neg: Lin, q0?: Lin, q1?: Lin}>>()
+const cellKeys = new Map<string, {map: string, key?: Lin, keys?: Lin[]}>(), cellPairs = new Map<string, Map<string, {d: Lin, neg: Lin, q0?: Lin, q1?: Lin}>>()
 let cellPairsN = 0
 export const cellPair = (a: string, b: string): {d: Lin, neg: Lin, q0?: Lin, q1?: Lin} => {
   let row = cellPairs.get(a)
@@ -85,12 +94,34 @@ export const cellPair = (a: string, b: string): {d: Lin, neg: Lin, q0?: Lin, q1?
   let pair = row.get(b)
   if (!pair) {
     if (++cellPairsN > 200_000) { cellPairs.clear(); cellPairsN = 1; cellPairs.set(a, (row = new Map())) }
-    const d = sub(cellKey(a).key, cellKey(b).key)
+    const d = sub(cellKey(a).key ?? {}, cellKey(b).key ?? {})
     row.set(b, (pair = {d, neg: scale(d, -1)}))
   }
   return pair
 }
-const cellKey = (n: string) => { let c = cellKeys.get(n); if (!c) { if (cellKeys.size > 100_000) cellKeys.clear(); cellKeys.set(n, (c = {map: n.slice(0, n.indexOf('[')), key: parseKey(n.slice(n.indexOf('[') + 1, -1))})) } return c }
+const cellKey = (n: string) => { let c = cellKeys.get(n); if (!c) { if (cellKeys.size > 100_000) cellKeys.clear(); cellKeys.set(n, (c = cellParts(n))) } return c }
+// Two tuple cells of one map: their parts compared one at a time, the first the path leaves open (each way), none
+// once a part is decided apart. (Each part's difference made once per pair, as a plain key's.)
+const tuplePairs = new Map<string, Lin[][]>()
+// Two cells' parts as pairs of differences: [] for two keys of different shapes (never equal), undefined for plain keys.
+export const tupleCellPairs = (a: string, b: string): Lin[][] | undefined => {
+  const ka = cellKey(a).keys, kb = cellKey(b).keys
+  if (!ka && !kb) return undefined
+  if (!ka || !kb || ka.length !== kb.length) return []
+  const id = `${a} ${b}`
+  let ds = tuplePairs.get(id)
+  if (!ds) { if (tuplePairs.size > 200_000) tuplePairs.clear(); tuplePairs.set(id, (ds = ka.map((k, i) => { const d = sub(k, kb[i]!); return [d, scale(d, -1)] }))) }
+  return ds
+}
+const tupleOpen = (a: string, b: string, _ka: Lin[], _kb: Lin[], dec: (lin: Lin) => boolean | undefined): Lin | undefined => {
+  for (const [d, neg] of tupleCellPairs(a, b)!) {
+    const x = dec(d!), y = dec(neg!)
+    if (x === undefined) return d
+    if (x === true && y === undefined) return neg
+    if (!(x && y)) return undefined
+  }
+  return undefined
+}
 function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
   const seen = new Set<string>(), names: string[] = []
   for (const r of rows) for (const n in r.lin) if (!seen.has(n)) { seen.add(n); if (isCell(n)) names.push(n) }
@@ -99,6 +130,7 @@ function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
   const dec = (lin: Lin) => path.get(canon(lin))?.holds ?? (path.has(canonFlip(lin)) ? !path.get(canonFlip(lin))!.holds : undefined)
   for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
     if (cs[i]!.map !== cs[j]!.map) continue
+    if (cs[i]!.keys || cs[j]!.keys) { const t = cs[i]!.keys && cs[j]!.keys ? tupleOpen(names[i]!, names[j]!, cs[i]!.keys!, cs[j]!.keys!, dec) : undefined; if (t) out.push(t); continue }
     const pair = cellPair(names[i]!, names[j]!), d = pair.d
     if (pairedKeys.skip && Object.keys(d).some(isMonomial)) continue
     // Two cells of a run's map (core/cyclic.ts: time u and key k at u + k·Ω) at keys k·Ω and k'·Ω: k = k' first, a
@@ -383,7 +415,9 @@ export const brokenOf = (goal: Goal): ((w: Record<string, number>, ids?: number[
 const termsSeen = new WeakMap<Goal, number>()
 const termsOf = (goal: Goal): number => { let n = termsSeen.get(goal); if (n === undefined) { n = 0; walkOnce(goal.hyps, () => { n!++ }); termsSeen.set(goal, n) } return n }
 export const wideFor = (goal: Goal): boolean => !wideBusy && goal.hyps.length >= wideAt && termsOf(goal) >= wideTerms
-export function growWide(goal: Goal, budget: {nodes: number, until?: number}, ask = (g: Goal, until: number): Outcome & {core?: number[]} => grow(g, new Map(), {nodes: 0, until})): (Outcome & {core?: number[]}) | undefined {
+// (`keep`: a part's tree kept as the part's, with the part and its hypotheses' indices in the whole as its core, not
+// widened: settle's, whose final proof is made over the instances its proofs read)
+export function growWide(goal: Goal, budget: {nodes: number, until?: number}, ask = (g: Goal, until: number): Outcome & {core?: number[]} => grow(g, new Map(), {nodes: 0, until}), keep = false): (Outcome & {core?: number[], part?: Goal}) | undefined {
   const hyps = goal.hyps, last = hyps.length - 1, broken = brokenOf(goal), now = clock(), w = fullWork()
   const end = withinDeadline(budget.until ?? Infinity), span = wideShare * (end - now), room = wideShare * (workCap - w), until = now + span
   const part = new Set<number>([last]), near = new Set(cellsIn(hyps[last])), cells = new Map<number, Set<string>>()
@@ -403,6 +437,7 @@ export function growWide(goal: Goal, budget: {nodes: number, until?: number}, as
       try { out = withWork(Math.min(w + room, fullWork() + f * room), () => ask(g, Math.min(until, at + f * span))) } finally { wideScope.judge = undefined }
       wideHook.on?.(g, out)
       if (wideTrace) console.error(`[wide] ${goal.name.slice(0, 40)}: part ${g.hyps.length} of ${hyps.length}, ${'tree' in out ? 'tree' : out.stuck} in ${Math.round(performance.now() - t0)} ms${'tree' in out ? '' : ` ${out.why?.slice(0, 50) ?? ''}`}`)
+      if ('tree' in out && keep) { wideStats.trees++; return {tree: out.tree, nodes: out.nodes, part: g, core: ids} }
       if ('tree' in out) { const tree = withWork(w + room, () => withDeadline(until, () => widen(g, goal, out.tree))); if (tree) wideStats.trees++; return tree && {tree, nodes: out.nodes} }
       if (out.why === REFUTED) return {...out, ...(out.core ? {core: out.core.map(i => ids[i]!)} : {})}
       if (out.stuck !== 'sat' || !out.witness) return undefined
@@ -421,10 +456,20 @@ export function growWide(goal: Goal, budget: {nodes: number, until?: number}, as
     return undefined
   } finally { wideBusy = false }
 }
+// (the abstraction of a whole wide goal, quadratic in its cells, within GDP_WIDE_EPR units: i4's learning switch's
+// largest decision otherwise 0.47M, its engine set's step goal of 7,590 hypotheses 19M, past its caller's end, in 10 GB)
+const wideEprUnits = Number(env.GDP_WIDE_EPR ?? 2_000_000), wideParts = env.GDP_WIDE_PARTS !== '0'
+// (only where the rule has tuple keys, its patterns n zeros: radix-keyed rules keep main's path, consensus_wo_decide's
+// and ring_leader_election's proofs among them, lost to it at 60 s)
+const tupledScope = (): boolean => !!eprScope.patterns && Object.values(eprScope.patterns).some(c => c.length > 1 && c[0] === 0)
+// (a part of a wide goal by the EPR path first, its core widened to the part, else the usual search)
+const eprPart = (gp: Goal, until: number): Outcome => eprFirst(gp, {nodes: 0, until}) ?? grow(gp, new Map(), {nodes: 0, until})
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
-  if (!path.size && !budget.nodes && wideFor(goal)) { const out = growWide(goal, budget); if (out) return out }
+  const wide = !path.size && !budget.nodes && wideFor(goal), epr = !!eprScope.patterns && !eprScope.busy
+  // (a wide goal's parts by the EPR path too, where the goal is EPR-shaped)
+  if (wide) { const out = epr && wideParts && tupledScope() ? growWide(goal, budget, eprPart) : growWide(goal, budget); if (out) return out }
   // (not for a wide goal's part: its abstraction's search reads no judge, and the whole goal is decided by it after)
-  if (eprScope.patterns && !eprScope.busy && !wideBusy && !path.size && !budget.nodes) { const out = eprFirst(goal, budget); if (out) return out }
+  if (epr && !wideBusy && !path.size && !budget.nodes) { const out = wide && tupledScope() ? withEprCap(wideEprUnits, () => eprFirst(goal, budget)) : eprFirst(goal, budget); if (out) return out }
   // Past a few cases, CDCL over the atoms (kernel/cdcl.ts), with most of the budget: a linear goal's refutation there
   // is a resolution of short clauses, which the tree search would find again in every case that reaches one. Unknown
   // there, the plain search, the cuts and the plain search again have the rest. Not for a law over k steps in a row
@@ -1005,7 +1050,7 @@ function fractional(point: Record<string, number> | undefined, path: Path): Lin 
 // The keys a proof assumes the every-key laws at: every key the step and the laws read, and the fresh key of the goal.
 // Each map read of a term (inE) or a condition (inC) given to f, outermost first, a quantified flag's body included.
 const eachRead = (f: (e: Extract<E, {op: 'get'}>) => void) => {
-  const inE = (e: E): void => { if (e.op === 'get') { f(e); inE(e.key) } else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul') inE(e.a); else if ('a' in e) (inE(e.a), inE(e.b)) }
+  const inE = (e: E): void => { if (e.op === 'get') { f(e); inE(e.key) } else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul' || e.op === 'proj') inE(e.a); else if ('b' in e) (inE(e.a), inE(e.b)) }
   const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
   return {inE, inC}
 }
@@ -1014,10 +1059,12 @@ function readKeys(m: Machine, laws: Law[]): E[] {
   const out = new Map<string, E>()
   const bound = new Set<string>([...Object.values(m.step.flags ?? {}).flatMap(c => (c.op === 'all' ? boundOf(c) : [])), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))])
   const free = (e: E) => !JSON.stringify(e).match(/"name":"([^"]+)"/g)?.some(n => bound.has(n.slice(8, -1)))
-  const {inE, inC} = eachRead(e => { if (free(e.key)) out.set(JSON.stringify(e.key), e.key) })
+  // (a tuple key's parts are the keys: a law about every tuple of keys is assumed at them)
+  const put = (key: E) => { for (const p of tupleParts(key)) if (free(p)) out.set(JSON.stringify(p), p) }
+  const {inE, inC} = eachRead(e => put(e.key))
   Object.values(m.step.state ?? {}).forEach(inE)
   Object.values(m.step.flags ?? {}).forEach(inC)
-  for (const w of Object.values(m.step.maps ?? {})) { if (!('each' in w)) { out.set(JSON.stringify(w.key), w.key); inE(w.key) } inE(w.value) }
+  for (const w of Object.values(m.step.maps ?? {})) { if (!('each' in w)) { for (const p of tupleParts(w.key)) out.set(JSON.stringify(p), p); inE(w.key) } inE(w.value) }
   for (const l of laws.filter(l => !l.forall)) inC(l.holds)
   return keysInlined(m, [...out.values()])
 }
@@ -1034,7 +1081,12 @@ const shifts = (m: Machine) => Object.values(m.step.maps ?? {}).some(w => 'each'
 // The keys some goals read a map at, and at each map, in one walk.
 function mapReads(goals: Goal[]): {keys: E[], byMap: Map<string, E[]>} {
   const all = new Map<string, E>(), out = new Map<string, Map<string, E>>()
-  const {inC} = eachRead(e => { const id = JSON.stringify(e.key); all.set(id, e.key); if (!out.has(e.map)) out.set(e.map, new Map()); out.get(e.map)!.set(id, e.key) })
+  // (a tuple key: its parts are the keys, each part read back from a tuple as the part; the map's key the tuple of them)
+  const {inC} = eachRead(e0 => {
+    const key = e0.key.op === 'tup' || e0.key.op === 'proj' ? projected(e0.key) : e0.key, id = JSON.stringify(key)
+    for (const p of tupleParts(key)) all.set(JSON.stringify(p), p)
+    if (!out.has(e0.map)) out.set(e0.map, new Map()); out.get(e0.map)!.set(id, key)
+  })
   for (const g of goals) g.hyps.forEach(inC)
   return {keys: [...all.values()], byMap: new Map([...out].map(([mp, ks]) => [mp, [...ks.values()]]))}
 }
@@ -1042,6 +1094,12 @@ function mapReads(goals: Goal[]): {keys: E[], byMap: Map<string, E[]>} {
 // where the names have these (a name left out is 0, as a model leaves it).
 export const keyValue = (cell: string, w: Record<string, number>): number | undefined => {
   const inner = cell.slice(cell.indexOf('[') + 1, -1)
+  // (a tuple's parts each valued so, the key their pairing)
+  if (inner.startsWith('⟨')) {
+    const parts = cellParts(cell).keys!.map(k => keyValue(`_[${canon(k)}]`, w))
+    if (parts.some(x => x === undefined)) return undefined
+    try { return parts.slice(0, -1).reduceRight((b: number, a) => cpair(a!, b), parts.at(-1)!) } catch { return undefined }
+  }
   // (its parts split at the commas outside brackets: a part may be a cell itself, Pending[idn[n:1]:64,n:1], valued as the
   // model values it)
   const parts: string[] = []
@@ -1065,6 +1123,10 @@ export const keyValue = (cell: string, w: Record<string, number>): number | unde
 // the values the goal's keys take, and each tuple where one fails added, as the goal's terms with those values, to its
 // instances. None found: the model is one on every tuple of the goal's keys. Untrusted: it chooses instances only.
 export const modelRounds = 4
+// A condition as the disjuncts it is the or of (¬(a ∧ b) as ¬a, ¬b).
+// (GDP_MODEL_CUTS=0: every tuple evaluated whole, for comparing)
+const modelCuts = env.GDP_MODEL_CUTS !== '0'
+const disjuncts = (c: C): C[] => (c.op === 'or' ? c.xs.flatMap(disjuncts) : c.op === 'not' && c.x.op === 'and' ? c.x.xs.flatMap(y => disjuncts({op: 'not', x: y})) : c.op === 'not' && c.x.op === 'not' ? disjuncts(c.x.x) : [c])
 export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: Goal, w: Record<string, number>, most = 64): Instances | undefined {
   const pm = plainOf(m), qs = Object.entries(pm.step.flags ?? {}).filter((e): e is [string, Extract<C, {op: 'all'}>] => e[1].op === 'all' && w[`?${e[0]}`] === 1)
   const keyed = laws.filter(l => l.forall)
@@ -1095,7 +1157,9 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   // Each bound key over its own sort as the model fills it: the terms its body's map reads bind matched against the
   // goal's keys (M[x·N + y] against M[a·N + b] binds x to a), one term a value; a key no read binds (or only a
   // function's), every key of the goal.
-  const keys = mapReads([goal]).keys, all = new Map<number, E>()
+  const {keys, byMap} = mapReads([goal]), all = new Map<number, E>()
+  // (a law's key read at a tuple's place is matched against that map's tuples: its sort is the place's)
+  const tupled = [...byMap.values()].some(ks => ks.some(k => k.op === 'tup'))
   for (const e of keys) { const v2 = valueOf(e); if (v2 !== undefined && !all.has(v2)) all.set(v2, e) }
   if (!all.size) return undefined
   // (each sort's witnesses first: an ∃ law's ghost, a quantified flag's witness, the terms a model most often breaks a
@@ -1109,7 +1173,7 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   // (a key no read binds is a value, an epoch say, over the naturals: 0, their least, is one of its terms too, as Ivy's
   // ordered sorts have their zero; a law before the start, nothing above 0, is assumed there)
   const zero: E = {op: 'const', value: 0}
-  const sortsOf = (body: C, names: string[], atoms: boolean): Map<number, E>[] => sortTerms(body, names, fns, () => keys).map(ts => {
+  const sortsOf = (body: C, names: string[], atoms: boolean): Map<number, E>[] => sortTerms(body, names, fns, mp => (tupled ? [...keys, ...(byMap.get(mp) ?? [])] : keys)).map(ts => {
     const p = new Map<number, E>()
     for (const e of ts ?? []) { const v2 = valueOf(e); if (v2 !== undefined && !p.has(v2) && (!atoms || e.op === 'var')) p.set(v2, e) }
     const q = p.size ? p : atoms ? new Map([...all].filter(([, e]) => e.op === 'var')) : all, r = witnessFirst(q.size ? q : all)
@@ -1126,8 +1190,14 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
     // (a law at one key assumed at a term of every value its sort takes already: nothing to add)
     if (n === 1) { const covered = new Set(had.map(valueOf)); if ([...sorts[0]!.keys()].every(v2 => covered.has(v2))) return }
     for (let t = 0; t + n <= had.length; t += n) have.add(JSON.stringify(had.slice(t, t + n)))
+    // (the body's disjuncts, each checked as soon as the keys it reads are bound: one that holds there holds the body at
+    // every tuple below, so transitivity's T(t, x, y) false cuts its z; a law about four keys over ten values each, 10,000
+    // tuples, took the whole share before, its broken tuples never reached)
+    const ready: C[][] = Array.from({length: n + 1}, () => [])
+    if (modelCuts) for (const d of disjuncts(body)) { const t = JSON.stringify(d); ready[names.reduce((a, x, j) => (t.includes(`"name":${JSON.stringify(x)}`) ? j + 1 : a), 0)]!.push(d) }
     const go = (i: number, at: Record<string, number>, terms: E[]): void => {
       if (added >= most || evals > until || (evals % 512 === 0 && pastWall())) return
+      for (const d of ready[i]!) { evals++; if (ev(() => evalC(d, read(at), st, mm)) === true) return }
       if (i === n) {
         evals++
         if (ev(() => evalC(body, read(at), st, mm)) !== false) return
@@ -1139,6 +1209,7 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
       for (const [v2, e] of sorts[i]!) go(i + 1, {...at, [names[i]!]: v2}, [...terms, e])
     }
     go(0, {}, [])
+    if (modelsTrace) console.error(`[models]   ${atoms ? 'atoms' : 'all'} ${id.slice(0, 30)}: sorts ${sorts.map(x => x.size).join('x')}, evals ${evals} of ${until}, added ${added}`)
   }
   // the goal's own names first; every key it reads where they show nothing
   for (const atoms of [true, false]) {
@@ -1156,6 +1227,8 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
 // not the goal's usual budget again; a later round left unsettled gives back the first round's answer, so the verdict is
 // never one the model's tuples made worse. Untrusted.
 export const modelShare = 3
+// (GDP_MODELS_TRACE=1: each model round, its goal and the tuples a model adds, on stderr)
+const modelsTrace = !!env.GDP_MODELS_TRACE, modelFloor = Number(env.GDP_MODEL_FLOOR ?? 1_000)
 const costNow = (): number => (rate ? clock() : fullWork() / groundRate)
 const within = <T>(ms: number, f: () => T): T => (rate ? withDeadline(clock() + ms, f) : withWork(fullWork() + groundRate * ms, f))
 export function withModels<T>(m: Machine, laws: Law[], inst: Instances, goalOf: (i: Instances) => Goal[], ask: (gs: Goal[]) => T,
@@ -1167,11 +1240,12 @@ function modelsLoop<T>(m: Machine, laws: Law[], inst: Instances, goalOf: (i: Ins
   let at = inst, first: {result: T, inst: Instances} | undefined, cap = 0
   for (let round = 0; ; round++) {
     const c0 = costNow(), result = round ? within(Math.max(0, cap), () => ask(goalOf(at))) : ask(goalOf(at))
-    if (round) cap -= costNow() - c0; else cap = Math.max(1_000, modelShare * (costNow() - c0))
-    if (round && !settled(result)) return first!
+    if (round) cap -= costNow() - c0; else cap = Math.max(modelFloor, modelShare * (costNow() - c0))
+    if (round && !settled(result)) { if (modelsTrace) console.error(`[models] round ${round} unsettled in ${Math.round(costNow() - c0)} cost`); return first! }
     if (pastWall()) return first ?? {result, inst: at}
     first ??= {result, inst: at}
     const mw = modelOf(result), more = mw && round < modelRounds && cap > 0 ? modelInstances(m, laws, at, mw.goal, mw.w) : undefined
+    if (modelsTrace) console.error(`[models] round ${round} ${mw ? `model at ${mw.goal.name} (${mw.goal.hyps.length} hyps)` : settled(result) ? 'settled' : 'unsettled'} ${Math.round(costNow() - c0)} cost, cap ${Math.round(cap)}; ${more ? `+${Object.entries(more).map(([n, ks]) => `${n.slice(0, 24)}:${ks.length - (at[n]?.length ?? 0)}`).filter(x => !x.endsWith(':0')).join(' ')}` : 'no more'}`)
     if (!more) return {result, inst: at}
     at = more
   }
@@ -1548,7 +1622,8 @@ function substVar(c: C, name: string, by: E): C {
       case 'mul': return {...t, a: e(t.a)}
       case 'if': return {op: 'if', c: substVar(t.c, name, by), then: e(t.then), else: e(t.else)}
       case 'get': return {...t, key: e(t.key)}
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...t, a: e(t.a), b: e(t.b)}
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {...t, a: e(t.a), b: e(t.b)}
+      case 'proj': return {...t, a: e(t.a)}
     }
   }
   return c.op === 'flag' ? c : c.op === 'all' ? {...c, c: substVar(c.c, name, by)} : c.op === 'not' ? {op: 'not', x: substVar(c.x, name, by)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(y => substVar(y, name, by))} : {...c, a: e(c.a), b: e(c.b)}
@@ -1718,7 +1793,9 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
     for (const g of obligations(m, laws, {[law.name]: inst}, i)) {
       if (proofs[g.name]) continue
       if (late()) return strict(usual) ? unknown(g) : last ?? unknown(g)
-      let o: (Outcome & {part?: Goal, core?: number[]}) | undefined = eprScope.patterns ? eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late) : undefined
+      // (a wide goal decided over parts (growWide), each part by the EPR path: the abstraction of the whole is quadratic in
+      // its cells, i4's engine set's step goal of 7,590 hypotheses ran 19M units past its caller's end and 10 GB)
+      let o: (Outcome & {part?: Goal, core?: number[]}) | undefined = !eprScope.patterns ? undefined : wideFor(g) && tupledScope() ? eprWide(g, late) ?? withEprCap(wideEprUnits, () => eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late)) : eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late)
       // (a refutation whose core's proof didn't finish: a model from fewer instances, which these refute, is no answer;
       // decideLaw's unknown, the usual search's next)
       if (!o && eprLast.refuted) { if (!usual) { decideNote.refuted = true; return undefined } } else if (!o && (last || !usual)) return strict(usual) ? undefined : last
@@ -1749,6 +1826,14 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
   }
 }
 
+// A wide goal over parts, each asked by the EPR path (its core widened to the part) or else the usual search: a tree is
+// the part's, a model one of the whole. Parts for four times eprFirst's window (growWide's share of it), each part
+// within that window.
+function eprWide(g: Goal, late: () => boolean): (Outcome & {part?: Goal, core?: number[]}) | undefined {
+  const out = growWide(g, {nodes: 0, until: clock() + 16_000}, (gp, until) => { const u = Math.max(until, clock() + 4_000); return eprFirst(gp, {nodes: 0, until: u}, true, late) ?? grow(gp, new Map(), {nodes: 0, until: u}) }, true)
+  eprLast.refuted = false
+  return out && ('tree' in out || (out.stuck === 'sat' && out.witness)) ? out : undefined
+}
 // A set of laws proven as proveLaws proves it, for a search that drops a law the proof fails at and asks again (the
 // enumeration's set proof): each law's goals settled in order (kept from this call or decideLaw's where they stand), the
 // first law not proven returned with its goal's model; when every law is, the proof made once: each law's instances only
@@ -1858,18 +1943,28 @@ const strict = (usual: boolean) => !usual && (strictOn || env.GDP_STRICT !== '0'
 export const withStrict = <T>(f: () => T): T => { const o = strictOn; strictOn = true; try { return f() } finally { strictOn = o } }
 // (by machine and by the law set's names: one machine is asked with many sets)
 const sortsMemo = new WeakMap<Machine, Map<string, {key: (law: string, k: string) => string, of: (e: E) => string | undefined, find: (a: string) => string, anchored: (a: string) => boolean}>>()
+const sortPlacesOn = env.GDP_SORT_PLACES !== '0'
 function sortsOf(m: Machine, laws: Law[]) {
   const par = new Map<string, string>(), find = (a: string): string => { const q = par.get(a); if (q === undefined || q === a) return a; const r = find(q); par.set(a, r); return r }
   const named = new Set<string>(), union = (a: string, b: string) => { named.add(a); named.add(b); const ra = find(a), rb = find(b); if (ra !== rb) par.set(ra, rb) }
   const pats = patternsOf(m, laws), whole = new Map<string, string>()
+  // (only on machines with tuple keys, whose patterns are n zeros: elsewhere the sorts are as before, distributed_lock's
+  // instances among them)
+  const sortPlaces = sortPlacesOn && Object.values(pats).some(c => c.length > 1 && c[0] === 0)
+  // (a map of one part read at a name, Src[p]: its value a sort too, F:Src, as a function's, what it is compared with and
+  // the places it is read at: Src[Src[p]] is no key of Src where Src's values are nodes and its keys packets)
+  // (GDP_SORT_PLACES=0: neither, for comparing)
+  const valued = (e: Extract<E, {op: 'get'}>): boolean => sortPlaces && !((pats[e.map]?.length ?? 0) > 1) && e.key.op !== 'tup' && (e.key.op === 'var' || e.key.op === 'get')
   const leaves = (e: E, k: number, out: [E, number][]): void => { if (e.op === 'add') { leaves(e.a, k, out); leaves(e.b, k, out) } else if (e.op === 'mul') leaves(e.a, k * e.k, out); else if (e.op !== 'const') out.push([e, k]) }
   const walkC = (c: C, name: (v: string) => string): void => {
-    const node = (e: E): string | undefined => (e.op === 'var' ? name(e.name) : e.op === 'get' && m.fns?.[e.map] ? `F:${e.map}` : undefined)
+    const node = (e: E): string | undefined => (e.op === 'var' ? name(e.name) : e.op === 'get' && (m.fns?.[e.map] || valued(e)) ? `F:${e.map}` : undefined)
     const visit = (o: unknown): void => {
       if (!o || typeof o !== 'object') return
       const x = o as {op?: string, map?: string, key?: E, a?: E, b?: E}
       if (x.op === 'get' && x.key) {
         if (m.fns?.[x.map!]) { const n = node(x.key); if (n) union(n, `A:${x.map}`) }
+        // (a tuple key: each part of its place's sort, M:map:i)
+        else if (x.key.op === 'tup' && sortPlaces) tupleParts(x.key).forEach((e, i) => { const n = node(e); if (n) union(n, `M:${x.map}:${i}`) })
         else {
           const ls: [E, number][] = []; leaves(x.key, 1, ls)
           const pat = pats[x.map!] ?? [1]
@@ -1909,7 +2004,7 @@ function sortsOf(m: Machine, laws: Law[]) {
     // never a part's sort)
     if (ls.length !== 1 || ls[0]![1] !== 1) { const cs = ls.map(([, c]) => c).sort((a, b) => b - a).join(','); const mp = Object.keys(pats).find(k2 => pats[k2]!.length > 1 && [...pats[k2]!].sort((a, b) => b - a).join(',') === cs); return mp ? `K:${mp}` : `K:?${cs}` }
     const x = ls[0]![0]
-    return x.op === 'var' ? (x.name.endsWith('#') ? undefined : `V:${x.name}`) : x.op === 'get' && m.fns?.[x.map] ? `F:${x.map}` : undefined
+    return x.op === 'var' ? (x.name.endsWith('#') ? undefined : `V:${x.name}`) : x.op === 'get' && (m.fns?.[x.map] || valued(x)) ? `F:${x.map}` : undefined
   }
   return {key: (law: string, k: string) => `L:${law}:${k}`, of, find, anchored: (a: string) => /^K:/.test(a) || !!anchorOf.get(find(a))}
 }
@@ -1946,6 +2041,16 @@ export function lawInstances(m: Machine, laws: Law[], i: number): Instances {
     focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
   })
 }
+// (GDP_SET_FIRST=0: the usual way alone, for comparing)
+const setFirstOn = env.GDP_SET_FIRST !== '0'
+const setFirst = (m: Machine, laws: Law[]): ReturnType<typeof proveSetFast> | undefined => {
+  // (machines with tuple keys alone, patterns of zeros: on radix keys the usual way is the one tuned, and a set proof
+  // first cost sharded KV's no-lost-keys, whose witness passes ask the whole set again and again, 2.8M of work to 45M)
+  if (!eprOn || !setFirstOn || pastWall() || !fastShape(m, laws) || !Object.values(patternsOf(plainOf(m), laws)).some(c => c.length > 1 && c.every(x => x === 0))) return undefined
+  const out = proveSetFast(m, laws)
+  if (modelsTrace) console.error(`[models] the set first: ${out.proven ? out.checked ? 'proven' : 'proven, not checked' : `not proven at ${out.failed?.goal}`}`)
+  return out.proven && out.checked && out.proof ? out : undefined
+}
 // `defer`: the usual trees now, their certificate and check given to it as `finish`, which proveStepLaws runs once every
 // step law is proven too: a verdict that fails needs neither (TigerBeetle's laws spent 50 s of 67 on the laws' certificate
 // and check before a step law failed). Deferred, a certificate not made leaves the check to checkStepLaws, which reads
@@ -1954,7 +2059,12 @@ function proveLawsAsGiven(m: Machine, laws: Law[], defer?: (finish: () => void) 
   // Each law's two goals (start and step) get their own instances, seeded with its own keys.
   // (a machine with sums: its instances are its plain machine's, whose flags hold each sum's facts at every key)
   const pm = plainOf(m), keys = [...readKeys(pm, laws), ...witnesses(pm)], instances: Record<string, Instances> = {}
-  laws.forEach((law, i) => {
+  // (an EPR-shaped machine's set over tuple keys proved first as proveSetFast proves it: each law settled by the EPR
+  // path, its instances sorted and only the tuples its proofs read, its cores widened to goals that small; i4's learning
+  // switch over relations 6 s there against 80 s here, whose check alone read goals of 1,200 hypotheses for 55 s. Not
+  // proven, the usual way)
+  const fast = defer ? undefined : setFirst(m, laws)
+  if (!fast) laws.forEach((law, i) => {
     instances[law.name] = instancesFor(pm, laws, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), {
       seed: [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : []), ...(law.keys ?? []).map((name): E => ({op: 'var', name}))],
       focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
@@ -1968,7 +2078,7 @@ function proveLawsAsGiven(m: Machine, laws: Law[], defer?: (finish: () => void) 
   const modes = cyclicOn() || certOn(), hist = modes && m.history ? historyMachine(m) : undefined, mc = hist ? hist.machine : m
   const why = modes ? (sumsWhy(m) ?? uncoveredWhy(mc, laws)) : undefined, cert = certOn() && !why
   usualCheck.on = !cert && !defer
-  const t0 = performance.now(), out = (() => { try { return proveThinned(m, laws, {...instances}) } finally { usualCheck.on = true } })(), usualMs = performance.now() - t0
+  const t0 = performance.now(), out = fast ?? (() => { try { return proveThinned(m, laws, {...instances}) } finally { usualCheck.on = true } })(), usualMs = performance.now() - t0
   if (out.proof) usualProof.last = {m, laws, proof: out.proof}
   const inst = out.proof?.instances ?? instances
   const searched = () => { const {facts, specs} = machineNodes(mc, laws, inst); return proveCyclic(facts, specs) }
@@ -2018,6 +2128,7 @@ function thinned(m: Machine, laws: Law[], instances: Record<string, Instances>):
   for (const [i, law] of laws.entries()) {
     const full = instances[law.name]!, focus = law.forall ? [`${law.forall}#`] : []
     const few = triggered(plainOf(m), laws, full, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), focus)
+    if (modelsTrace) console.error(`[models] law ${law.name}: ${Object.values(full).reduce((a, ks) => a + ks.length, 0)} keys, ${Object.values(few).reduce((a, ks) => a + ks.length, 0)} triggered`)
     // (thinned instances first, then the full ones; each asked again at the tuples its models ask for)
     for (const inst of sameInstances(few, full) ? [full] : [few, full]) {
       const {result: a, inst: at} = withModels(m, laws, inst, i2 => obligations(m, laws, {...instances, [law.name]: i2}, i), growAll, grownModel, grownSettled)
@@ -2338,7 +2449,7 @@ export function certLoop(l: Loop, laws: Law[], rank: E | E[], trees: Record<stri
 // The key terms a condition reads maps at; a primed map's key is a key of the map before the step too.
 function readKeysC(c: C): E[] {
   const out: E[] = []
-  const inE = (e: E): void => { if (e.op === 'get') (out.push(e.key), inE(e.key)); else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul') inE(e.a); else if ('a' in e) (inE(e.a), inE(e.b)) }
+  const inE = (e: E): void => { if (e.op === 'get') (out.push(...tupleParts(e.key)), inE(e.key)); else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul' || e.op === 'proj') inE(e.a); else if ('b' in e) (inE(e.a), inE(e.b)) }
   const inC = (x: C): void => (x.op === 'flag' || x.op === 'all' ? undefined : x.op === 'not' ? inC(x.x) : x.op === 'and' || x.op === 'or' ? x.xs.forEach(inC) : (inE(x.a), inE(x.b)))
   inC(c)
   return out
@@ -2367,7 +2478,7 @@ export function concretize(goal: Goal, bound = 12): Record<string, number> | und
       case 'mul': return e.k * ev(e.a, env)
       case 'prod': return ev(e.a, env) * ev(e.b, env)
       case 'if': return holds(e.c, env) ? ev(e.then, env) : ev(e.else, env)
-      case 'get': return NaN
+      case 'get': case 'tup': case 'proj': return NaN
     }
   }
   const holds = (c: C, env: Record<string, number>): boolean => c.op === 'not' ? !holds(c.x, env) : c.op === 'and' ? c.xs.every(y => holds(y, env)) : c.op === 'or' ? c.xs.some(y => holds(y, env))

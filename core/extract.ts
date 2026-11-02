@@ -251,6 +251,9 @@ function builderOf(m: Model, sorts: Sorts): string {
   const params = (t: object) => [...I.varsOf(t as N).vars].filter(n => m.params.some(p => p.name === n))
   const start = (v: Var) => {
     const t = m.init[v.name]!, ps = params(t.e), fn = (x: string) => (ps.length ? `({${ps.join(', ')}}) => ${x}` : x)
+    // The kernel's start expressions read parameters only, not functions (including div/mod).
+    // A narrowing cast can introduce one even when the source spells no division.
+    walk(t.e, o => { if (o.op === 'divk' || o.op === 'modk') throw new Refusal(m.file ?? m.entry, `${v.name}: division or remainder in an initializer (including a wrapping conversion) is outside the reader's start-expression subset`) })
     const at = pterm(t, P, ctx(), v.name)
     if (v.sort.k === 'num') return sorts.get(v.name) === 'nat' ? (ps.length ? fn(at) : at) : `int.from(${ps.length ? fn(at) : at})`
     if (v.sort.k === 'bool') return `bool.from(${ps.length ? fn(at) : at === 'yes' ? 'true' : at === 'no' ? 'false' : at})`

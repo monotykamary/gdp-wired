@@ -1,4 +1,4 @@
-// Mutation testing for the trusted base (kernel.ts, core/check.ts, cyclic.ts, core/solver.ts's rows): each mutant changes
+// Mutation testing for the trusted base (kernel.ts and its tuple sites, core/check.ts, cyclic.ts, core/solver.ts's rows): each mutant changes
 // one operator, constant or quantifier at one place; the battery (fast tests first, the kernel fuzz last) must fail on
 // it. A mutant that survives is a change nothing notices: a blind spot in the tests (or an equivalent mutant, which the
 // report lets a reader judge).
@@ -43,22 +43,37 @@ const own: Record<string, [RegExp, string][]> = {
 // A record read or built through the object prototype, in every target: an own entry read as any property (a name like
 // constructor or toString then reads Object's), a row built on {} (a variable __proto__, assigned, is dropped).
 const named: [RegExp, string][] = [[/Object\.hasOwn\(/g, 'Reflect.has('], [/Object\.create\(null\)/g, '{}']]
+// Tuple keys (gen/laneRL): kernel.ts's tuple sites, mutated past the operators above, numbered after every other mutant
+// (so theirs keep their numbers): a part read for another (ps[0] and ps[1], parts[0] and parts[1], proj's a.a and a.b, a
+// tuple equality's right side read on its left), a tuple's rest whole (.slice(1)), the parts' lengths left unchecked,
+// a cell name's brackets not counted when its key is split, the names ⟨ ⟩ | no longer reserved, a pair claimed where the
+// keys differ, a tuple key's part read as a key term where it isn't.
+const tupleSites = {file: 'kernel/kernel.ts', only: ['linearOp', 'keyParts', 'keyArity', 'truthOf', 'tupleEq', 'tupleAnd', 'facts', 'leafRows', 'cellParts', 'splitOuter', 'linOf', 'sameKey',
+  'plainName', 'mapArities', 'eachParts', 'projected', 'projectedC', 'tupleSides', 'keyOnly', 'apart', 'plainKey', 'tuple', 'tupleParts', 'part']}
+const tupleOps: [RegExp, string][] = [
+  [/ps\[0\]/g, 'ps[1]'], [/ps\[1\]/g, 'ps[0]'], [/parts\[0\]/g, 'parts[1]'], [/parts\[1\]/g, 'parts[0]'], [/a\.a : a\.b/g, 'a.b : a.a'],
+  [/b: c\.b\.a/g, 'b: c.a.a'], [/b: c\.b\.b/g, 'b: c.a.b'], [/\.slice\(1\)/g, ''], [/p\.keys\.length === q\.keys\.length && /g, ''],
+  [/ \|\| ch === '⟨'/g, ''], [/ \|\| ch === '⟩'/g, ''], [/⟨⟩\|\]/g, ']'], [/!sameKey\(/g, 'sameKey('], [/!keyTerm\(part, key\)/g, 'keyTerm(part, key)'],
+  [/keyTerm\(p, key\) && other\(p\)/g, 'keyTerm(p, key)'], [/e\.b\.op !== 'tup'/g, "e.b.op === 'proj'"], [/keyParts\(key, new Map\(\)\)\?\.length \?\? /g, ''],
+]
 type Mutant = {id: number, file: string, line: number, from: string, to: string, at: number, length: number}
 
 export function mutants(): Mutant[] {
   const out: Mutant[] = []
-  for (const {file, only} of targets) {
+  const scan = (file: string, only: string[] | undefined, ops: (file: string) => [RegExp, string][]) => {
     const text = readFileSync(resolve(root, file), 'utf8')
     let offset = 0, inside: string | undefined
     for (const [i, line] of text.split('\n').entries()) {
       const code = line.replace(/\/\/.*$/, '') // comments aren't code
       inside = declared.exec(line)?.[1] ?? (/^\S/.test(line) && !line.startsWith('//') && !line.startsWith('}') ? undefined : inside)
-      if (!code.trim().startsWith('import ') && (!only || (inside && only.includes(inside)))) for (const [pattern, to] of [...operators, ...own[file] ?? [], ...named]) {
+      if (!code.trim().startsWith('import ') && (!only || (inside && only.includes(inside)))) for (const [pattern, to] of ops(file)) {
         for (const m of code.matchAll(pattern)) out.push({id: out.length, file, line: i + 1, from: m[0], to, at: offset + m.index, length: m[0].length})
       }
       offset += line.length + 1
     }
   }
+  for (const {file, only} of targets) scan(file, only, f => [...operators, ...own[f] ?? [], ...named])
+  scan(tupleSites.file, tupleSites.only, () => tupleOps)
   return out
 }
 
@@ -88,6 +103,7 @@ export function equivalentOf(m: Mutant, list = equivalents()): Equivalent | unde
 const battery: {name: string, cwd: string, cmd: string[], env?: Record<string, string>, ms: number}[] = [
   {name: 'counts', cwd: 'kernel', cmd: ['bun', 'test', 'count.test.ts'], ms: 120_000},
   {name: 'countmachine', cwd: 'kernel', cmd: ['bun', 'test', 'countmachine.test.ts'], ms: 180_000},
+  {name: 'tuples', cwd: 'kernel', cmd: ['bun', 'test', 'tuples.test.ts'], ms: 180_000},
   {name: 'refusals', cwd: 'kernel', cmd: ['bun', 'test', 'refusals.test.ts'], ms: 60_000},
   {name: 'tamper', cwd: 'kernel', cmd: ['bun', 'test', 'tamper.test.ts'], ms: 120_000},
   {name: 'cyclic', cwd: 'core', cmd: ['bun', 'test', 'cyclic.test.ts'], ms: 120_000},
