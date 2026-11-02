@@ -610,23 +610,25 @@ const learningSwitchR = (bug?: Bug) => rule('learning switch')
     P: P.each((a: Term, b: Term, c: Term, d: Term) => when(news, P.has(a, b, c, d).or(a.eq(ps).and(b.eq(pd), c.eq(ps), d.eq(ps))),
       when(forwards, a.eq(nondet).and(P.has(a, b, c, d)).or(a.eq(ps).and(b.eq(pd), c.eq(sw1), d.lt(size))), P.has(a, b, c, d)))),
   }))
+// (src, dst and link as functions into Node, each a map of the node itself beside a 0/1 map of whether Init has set it:
+// no node is read through a truncation, v ∸ 1, as the phased port's v + 1 encoding reads it)
 const learningSwitchI4R = (bug?: Bug) => rule('learning switch i4')
   .params({size: nat, packets: nat}).pre(({size, packets}) => size.atLeast(1).and(size.atMost(N), packets.atMost(N)))
   .sorts('Packet', 'Node').relations({Pend: ['Packet', 'Node', 'Node'], Dom: ['Node', 'Node'], T: ['Node', 'Node', 'Node']})
   .inputs({op: oneOf('src', 'dst', 'link', 'start', 'new_packet', 'flood', 'route'), p: nat, sw0: nat, sw1: nat, sw2: nat})
   .assume(({p, sw0, sw1, sw2, size, packets}) => p.lt(packets).and(below(size, sw0, sw1, sw2)))
   .state({started: 0})
-  .maps({Src: 0, Dst: 0, Link: 0})
-  .flags(({p, sw1, sw2, size, packets, Src, Dst, Link, T}: any) => {
-    const d = Dst.at(p).minus(1)
+  .maps({Src: 0, Dst: 0, Link: 0, SrcSet: 0, DstSet: 0, LinkSet: 0})
+  .flags(({p, sw1, sw2, size, packets, SrcSet, DstSet, LinkSet, Dst, T}: any) => {
+    const d = Dst.at(p)
     return {
-      total: everyKey(q => q.lt(packets).implies(Src.at(q).atLeast(1).and(Dst.at(q).atLeast(1)))),
-      linked: everyKey(x => x.lt(size).implies(Link.at(x).atLeast(1))),
+      total: everyKey(q => q.lt(packets).implies(SrcSet.has(q).and(DstSet.has(q)))),
+      linked: everyKey(x => x.lt(size).implies(LinkSet.has(x))),
       below2: everyKey(z => z.lt(size).implies(z.eq(sw1).or(T.has(d, sw1, z).not(), tabR(T, d, sw2, z)))),
     }
   })
   .flags(({op, p, sw0, sw1, sw2, started, total, linked, below2, Src, Dst, Pend, Dom, T}: any) => {
-    const s = Src.at(p).minus(1), d = Dst.at(p).minus(1), live = started.eq(1)
+    const s = Src.at(p), d = Dst.at(p), live = started.eq(1)
     const floods = op.is('flood').and(live, Pend.has(p, sw0, sw1), Dom.has(d, sw1).not())
     const routes = op.is('route').and(live, Pend.has(p, sw0, sw1), Dom.has(d, sw1), tabR(T, d, sw1, sw2), sw1.eq(sw2).not(), below2)
     return {
@@ -634,17 +636,19 @@ const learningSwitchI4R = (bug?: Bug) => rule('learning switch i4')
       floods, routes, learns: floods.or(routes).and(Dom.has(s, sw1).not(), s.eq(sw1).not()), cond2: d.eq(sw1).not(),
     }
   })
-  .step(({op, p, sw0, sw1, sw2, size, setup, starts, news, floods, routes, learns, cond2, started, Src, Dst, Link, Pend, Dom, T}: any) => {
-    const src = Src.at(p).minus(1)
+  .step(({op, p, sw0, sw1, sw2, size, setup, starts, news, floods, routes, learns, cond2, started, Src, Dst, Link, SrcSet, DstSet, LinkSet, Pend, Dom, T}: any) => {
+    const src = Src.at(p), pairs = setup.and(op.is('link'), sw0.eq(sw1).not(), LinkSet.has(sw0).not(), LinkSet.has(sw1).not())
     return {
       started: when(starts, 1, started),
-      Src: Src.set(p, when(setup.and(op.is('src')), sw0.plus(1), Src.at(p))),
-      Dst: Dst.set(p, when(setup.and(op.is('dst')), sw0.plus(1), Dst.at(p))),
-      Link: Link.each((k: Term) => when(setup.and(op.is('link'), sw0.eq(sw1).not(), Link.at(sw0).eq(0), Link.at(sw1).eq(0)), when(k.eq(sw0), sw1.plus(1), when(k.eq(sw1), sw0.plus(1), Link.at(k))), Link.at(k))),
+      Src: Src.set(p, when(setup.and(op.is('src')), sw0, Src.at(p))), SrcSet: SrcSet.set(p, when(setup.and(op.is('src')), 1, SrcSet.at(p))),
+      Dst: Dst.set(p, when(setup.and(op.is('dst')), sw0, Dst.at(p))), DstSet: DstSet.set(p, when(setup.and(op.is('dst')), 1, DstSet.at(p))),
+      // link[sw0] = sw1 and link[sw1] = sw0 at once, both unset before: a total link is then symmetric with no self-loop
+      Link: Link.each((k: Term) => when(pairs.and(k.eq(sw0)), sw1, when(pairs.and(k.eq(sw1)), sw0, Link.at(k)))),
+      LinkSet: LinkSet.each((k: Term) => when(pairs.and(k.eq(sw0).or(k.eq(sw1))), 1, LinkSet.at(k))),
       Dom: Dom.add([src, sw1], learns),
       T: learnT(T, learns, size, src, sw0, sw1, !!bug),
       Pend: Pend.each((q: Term, x: Term, y: Term) => when(news.and(q.eq(p), x.eq(src), y.eq(src)), yes,
-        when(floods.and(cond2, q.eq(p), x.eq(sw1), y.lt(size)), y.eq(Link.at(sw1).minus(1)).and(y.eq(sw0).not()),
+        when(floods.and(cond2, q.eq(p), x.eq(sw1), y.lt(size)), y.eq(Link.at(sw1)).and(y.eq(sw0).not()),
           when(routes.and(cond2, q.eq(p), x.eq(sw1), y.eq(sw2)), yes, Pend.has(q, x, y))))),
     }
   })
@@ -999,7 +1003,7 @@ export const protocols: Protocol[] = [
     bad: r => r.scalar('started') === 1 && tableBadR(r, 4),
     check: {params: {size: 4, packets: 1}, inputs: {op: range(7), p: [0], sw0: N4, sw1: N4, sw2: N4},
       uses: [['p', 'sw0'], ['p', 'sw0'], ['sw0', 'sw1'], [], ['p'], ['p', 'sw0', 'sw1'], ['p', 'sw0', 'sw1', 'sw2']],
-      project: r => r.scalar('started') ? [cells(r, 'Src', [0]), cells(r, 'Dst', [0]), cells(r, 'Link', N4), N4.flatMap(x => N4.map(y => r.cell('Dom', tk(x, y)))),
+      project: r => r.scalar('started') ? [[r.cell('Src', 0)], [r.cell('Dst', 0)], N4.map(x => r.cell('Link', x)), N4.flatMap(x => N4.map(y => r.cell('Dom', tk(x, y)))),
         N4.flatMap(x => N4.map(y => r.cell('Pend', tk(0, x, y)))), tableCellsR(r, 4)] : undefined,
       tlc: tlc('learning_switch_i4', consts({Node: nodes(4), Packet: ['p1']}), 'Safety')}},
   {id: 'paxos_epr', ic3syn: 'pyv-paxos-epr', file: 'paxos_epr.pyv', source: 'mypyvy examples/pd/paxos_epr.pyv (12a8f54; Endive benchmarks/paxos_epr.tla is faulty)',
