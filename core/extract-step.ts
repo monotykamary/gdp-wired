@@ -3970,6 +3970,10 @@ const g0 = (m: Model, name: string): Raw => { const v = m.state.find(x => x.name
 // A front end's whole run: the module read, the model printed and built, the code run beside it.
 export function extractStep(mod: SModule, h: (read: StepRead) => Harness, opts: StepOptions): Extraction & {read?: StepRead} {
   const notes: string[] = []
+  // (a reader that said why it read nothing, the source not parsing say, or gave no module: refused with why)
+  const said = (mod as {error?: unknown} | undefined)?.error
+  if (said !== undefined || !mod || typeof mod.funcs !== 'object' || !mod.funcs || typeof mod.recs !== 'object' || !mod.recs)
+    return {ok: false, refusals: [{where: (mod as {path?: string} | undefined)?.path ?? (mod as {file?: string} | undefined)?.file ?? 'the reader', what: said !== undefined ? `the reader read nothing: ${typeof said === 'string' ? said : JSON.stringify(said)}` : 'the reader gave no module of the source'}], notes}
   // (an argument the code declares no type of, given one: `types`, by its name)
   for (const f of Object.values(mod.funcs)) for (const pa of f.params) {
     const t = opts.types?.[pa.name]
