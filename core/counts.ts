@@ -32,8 +32,6 @@ const ptime = <T>(k: string, f: () => T): T => { const t = performance.now(); tr
 let dumped = 0
 // (GDP_COUNTS_LAZY=0: every instance and pick certFor proposes in the goal at once, as before; `wide`: the narrow
 // instances at once, the widened goal's further instances and picks lazily)
-// (GDP_COUNTS_CLAUSAL=1: the step goal decided by the CDCL search over the goal read as clauses)
-const clausalOn = env.GDP_COUNTS_CLAUSAL === '1'
 const lazyMode = env.GDP_COUNTS_LAZY ?? 'wide', pool = Number(env.GDP_COUNTS_POOL ?? 1000)
 
 const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
@@ -462,7 +460,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
       for (;;) {
         const step = built.at(-1)
         if (!step?.gg) break
-        const q = ptime('decide', () => growCdcl(step.gg!, new Map(), {nodes: 0, until: Math.min(until, clock() + Math.min(2 * ms, 5_000))}, {model: true, core: true, ...(clausalOn ? {clausal: true} : {})}) as Refuted)
+        const q = ptime('decide', () => growCdcl(step.gg!, new Map(), {nodes: 0, until: Math.min(until, clock() + Math.min(2 * ms, 5_000))}, {model: true, core: true}) as Refuted)
         if (!('tree' in q) && q.why === REFUTED && q.core) {
           const gg = step.gg, last = gg.hyps.length - 1, used = new Set(q.core.map(h => json(gg.hyps[h]))), cut: Instances = {}
           for (const [name, ts2] of Object.entries(at)) {
