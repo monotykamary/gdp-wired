@@ -246,9 +246,9 @@ class Reader:
         if mod.path == self.file or base:
           fid = f"{cdef.name}.{n.name}"
           # (a base's method read where its module is: its positions in its own file, super() its own bases')
-          file, self.file, sup, self.supers = self.file, mod.path, self.supers, bases
+          file, self.file, sup, self.supers, dfn, self.defining = self.file, mod.path, self.supers, bases, getattr(self, 'defining', None), cdef.name
           try: self.funcs[fid] = self.func(n, mod, cdef.name, fid)
-          finally: self.file, self.supers = file, sup
+          finally: self.file, self.supers, self.defining = file, sup, dfn
           methods[n.name] = fid
         else: methods[n.name] = None  # another module's method: not read
     r = {'name': q, 'short': cdef.name, 'fields': fields, 'methods': methods, 'bases': bases, 'p': where(mod.path, cdef), 'cattrs': cattrs,
@@ -584,9 +584,10 @@ class Reader:
     if isinstance(x, ast.Await): return {'e': 'await', 'x': E(x.value), 'p': p}
     if isinstance(x, ast.Call):
       # super().m(...): the first base (in the order its bases are listed, theirs after) whose m is read, on self;
-      # super().__init__() where no base has one: object's, nothing
+      # super().__init__() where no base has one: object's, nothing; super(C, self) in C's own method is super()
       fx = x.func
-      if isinstance(fx, ast.Attribute) and isinstance(fx.value, ast.Call) and isinstance(fx.value.func, ast.Name) and fx.value.func.id == 'super' and not fx.value.args:
+      sa = fx.value.args if isinstance(fx, ast.Attribute) and isinstance(fx.value, ast.Call) else None
+      if isinstance(fx, ast.Attribute) and isinstance(fx.value, ast.Call) and isinstance(fx.value.func, ast.Name) and fx.value.func.id == 'super' and (not sa or (len(sa) == 2 and not fx.value.keywords and all(isinstance(a, ast.Name) for a in sa) and sa[0].id == getattr(self, 'defining', None) and sa[1].id == 'self')):
         mid = next((self.recs[b]['methods'][fx.attr] for b in self.supers if self.recs.get(b) and fx.attr in self.recs[b]['methods']), False)
         if mid is False and fx.attr == '__init__' and not x.args and not x.keywords: return {'e': 'none', 'p': p}
         if not mid: return {'e': 'no', 'why': f"{text(x)}: a base's method not read", 'p': p}

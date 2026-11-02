@@ -42,6 +42,7 @@ function args(argv: string[]): {cmd: string, targets: string[], o: Opts} {
     const a = argv[i]!
     if (a === '--json') o.json = true
     else if (a === '--no-propose') o.propose = false
+    else if (a === '--require-review') o.requireReview = true
     else if (a.startsWith('--')) {
       const [k, inline] = a.slice(2).split('=') as [string, string | undefined], v = inline ?? argv[++i] ?? ''
       const key = k.replace(/-(\w)/g, (_, c: string) => c.toUpperCase())
@@ -703,12 +704,14 @@ function printRule(r: RuleOut, o: Opts) {
 }
 const label = (n: Name) => (n.role === 'answer' ? `${n.code.split('.').pop()}(...)` : n.role === 'input' && n.method ? `${n.method}(${n.code})` : n.role === 'result' && n.method ? `${n.method}() result` : n.code)
 
-const USAGE = `gdp-wired check <file|dir>... [--entry X] [--methods a,b] [--failures kept] [--on-error discard] [--json] [--ms 10000] [--no-propose] [--clock s|ms] [--cert <dir>] [--from any]
+const USAGE = `gdp-wired check <file|dir>... [--entry X] [--methods a,b] [--failures kept] [--on-error discard] [--json] [--ms 10000] [--no-propose] [--clock s|ms] [--cert <dir>] [--from any] [--require-review]
+gdp-wired draft <file> --clause <text> | --clause-file <file> --cite <ref> [--llm <command> | --answer <file>] [--by <who>]
 
 Reads the rule in each file (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, Swift, C, C++, TypeScript, Effect, XState), checks it
 against the code by running both, proves the laws stated in the code (\`# gdp: law <name>: <expr>\`, \`// gdp: law ...\`,
 @GdpLaw("<name>: <expr>")) and proposes others. Laws about two runs: \`<secret> never reaches <fields>\`, \`isolated by <argument>\`,
-\`agrees with <Class>\`; a duration over the clock: \`now - t < 30 days\`; the clause a law answers: \`gdp: cite <law name>: <clause>\`;
+\`agrees with <Class>\`; a duration over the clock: \`now - t < 30 days\`, \`now - t <= 10 business days\` (the calendar: [calendar] in gdp.toml);
+the clause a law answers: \`gdp: cite <law name>: <clause>\` (drafted from the clause's text by \`draft\`, marked unreviewed until a person signs it);
 --cert <dir> writes each proven law's certificate (its meta the citations); --from any (or from = "any" in gdp.toml, for every
 rule or one) proves every law from every state the laws allow, for code that steps the rule from states it is handed. Exit code: 1 when a stated law is broken, 2 when
 one couldn't be checked.`
@@ -720,14 +723,51 @@ export async function check(targets: string[], given: Partial<Opts> = {}, each?:
   const stated = all.flatMap(r => r.laws)
   return {rules: all, exit: stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') ? 2 : 0}
 }
+// --- draft: laws from a clause, for a person to review ----------------------------------------------------------------
+// gdp-wired draft <file> --clause <text> | --clause-file <f> --cite <ref> [--llm <command> | --answer <file>] [--by <who>]:
+// the question (core/draft.ts) printed, or asked of the command (on its stdin) or read from an answer, each law it
+// proposes read over the code's names, the comments to paste printed with where they go.
+async function draft(target: string, o: Opts): Promise<number> {
+  const {draftComments, draftPrompt, parseDraft, vetDrafts} = await import('./draft.ts')
+  const clause = (o.clause as string | undefined) ?? (o.clauseFile ? fs.readFileSync(o.clauseFile as string, 'utf8') : undefined), cite = (o.cite as string | undefined) ?? 'the clause'
+  if (!clause) { out('gdp-wired draft: --clause <text> or --clause-file <file>'); return 2 }
+  const t = targetsOf(target)[0]!, rules = await rulesOf(t, {...o, propose: false}, []), x = rules.find(r => r.x.ok)?.x
+  if (!x) { out(`gdp-wired draft: no rule read from ${target}: ${rules[0]?.x.refusals[0]?.what ?? ''}`); return 2 }
+  const prompt = draftPrompt(x, clause, cite)
+  let answer: string
+  if (o.answer) answer = fs.readFileSync(o.answer as string, 'utf8')
+  else if (o.llm) {
+    const {spawnSync} = proc.getBuiltinModule('node:child_process') as {spawnSync: (c: string, a: string[], o: object) => {stdout: string, status: number | null}}
+    const p = spawnSync('sh', ['-c', o.llm as string], {input: prompt, encoding: 'utf8', maxBuffer: 1 << 26})
+    if (p.status !== 0) { out(`gdp-wired draft: ${o.llm as string} exited ${p.status}`); return 2 }
+    answer = p.stdout
+  } else { out(prompt); return 0 }
+  const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at)), unit = o.clock ?? cfg.all.clock ?? CLOCK[t.lang]
+  const {kept, refused} = vetDrafts(x, parseDraft(answer), {clock: unit === 's' ? 1 : unit === 'ms' ? 1000 : undefined, ...(cfg.all.calendar ? {calendar: cfg.all.calendar as Calendar} : {})})
+  const by = (o.by as string | undefined) ?? (o.llm ? String(o.llm).split(/\s+/)[0]! : 'an answer given'), c = COMMENT[t.lang]
+  out(`${kept.length} laws drafted from ${cite}, each to be reviewed by a person (then [reviewed-by: <name>, <date>] in place of [unreviewed ...]):`)
+  for (const d of kept) { out(`\n  ${d.method ? `on the line above ${d.method}` : 'in the class (a law of every state)'}:`); for (const l of draftComments(c, d, cite, by)) out(`    ${l}`) }
+  for (const r of refused) out(`\n  refused: ${r.d.name}: ${r.d.expr}\n    ${r.why}`)
+  return kept.length ? 0 : 2
+}
+
+// Every target's rules and their laws, and the exit code (1: a stated law broken; 2: one not checked, or with
+// --require-review, one cited unreviewed).
 export async function main(argv: string[]): Promise<number> {
   const {cmd, targets, o} = args(argv)
+  if (cmd === 'draft' && targets.length === 1) return draft(targets[0]!, o)
   if (cmd !== 'check' || !targets.length) { out(USAGE); return cmd === 'help' || cmd === '--help' || cmd === '-h' || !cmd ? 0 : 2 }
   tint = colors(proc.env, !!proc.stdout.isTTY, !!o.json)
-  const {rules: all, exit: code} = await check(targets, o, o.json ? undefined : r => printRule(r, o))
+  const {rules: all, exit: code0} = await check(targets, o, o.json ? undefined : r => printRule(r, o))
   const stated = all.flatMap(r => r.laws)
+  const {reviewOf} = await import('./draft.ts'), unreviewed = stated.filter(l => (l.cites ?? []).some(c => reviewOf(c) === 'unreviewed'))
+  const code = code0 === 0 && o.requireReview && unreviewed.length ? 2 : code0
   if (o.json) out(JSON.stringify({rules: all.map(({source: _s, ...r}) => r), exit: code}, null, 1))
-  else if (stated.length) { const n = (v: LawOut['verdict']) => stated.filter(l => l.verdict === v).length; out(`${paint('green', n('proven'))} of ${stated.length} stated laws proven, ${paint('red', n('broken'))} broken, ${paint('yellow', n('unknown'))} unknown, ${paint('yellow', n('not read'))} not read`) }
+  else if (stated.length) {
+    const n = (v: LawOut['verdict']) => stated.filter(l => l.verdict === v).length
+    out(`${paint('green', n('proven'))} of ${stated.length} stated laws proven, ${paint('red', n('broken'))} broken, ${paint('yellow', n('unknown'))} unknown, ${paint('yellow', n('not read'))} not read`)
+    if (unreviewed.length) out(`${paint('yellow', unreviewed.length)} cited unreviewed (drafted, no person's sign-off yet: [reviewed-by: <name>, <date>])${o.requireReview ? ': refused by --require-review' : ''}: ${unreviewed.map(l => l.name).join('; ')}`)
+  }
   return code
 }
 

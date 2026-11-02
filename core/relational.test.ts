@@ -5,6 +5,7 @@ import {interpret, type State} from './machine.ts'
 import {all, forall, nat, oneOf, proveRule, proveSteps, rule, when} from './dsl.ts'
 import {agreement, isolation, noninterference, proveTwoRuns, twoRuns} from './relational.ts'
 import {businessDays, citesIn, duration, parse} from './laws.ts'
+import {draftComments, draftPrompt, parseDraft, reviewOf, vetDrafts} from './draft.ts'
 import {check} from './cli.ts'
 import {type Document, fromInterchange} from '../interchange/format.ts'
 import {checkCertificate} from '../interchange/check.ts'
@@ -237,4 +238,30 @@ test.skipIf(!hasPython)('the CLI: a deadline in business days over the calendar 
   expect(laws['within 10 business days']!.verdict).toBe('proven')
   expect(laws['within 9 business days']!.verdict).toBe('broken')
   expect(laws['within 9 business days']!.run!.length).toBeGreaterThan(1)
+}, 300_000)
+
+// --- drafting laws from a clause (draft.ts): read over the code's names, marked unreviewed until a person signs ------------
+test.skipIf(!hasPython)('drafting: a drafter\'s laws read over the code\'s names, refused where they name what it lacks; an unreviewed citation refused by --require-review', async () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-draft-`)
+  writeFileSync(`${dir}/desk.py`, DESK.split('\n').filter(l => !l.includes('gdp:')).join('\n'))
+  const {extractPython} = await import('./extract-py.ts')
+  const x = await extractPython(`${dir}/desk.py`, {})
+  const prompt = draftPrompt(x, 'Act on a request for access no later than 30 days after its receipt.', '45 CFR 164.524(b)(2)')
+  expect(prompt).toContain('requests  state (fields: received, fulfilled, escalated)')
+  expect(prompt).toContain('fulfill(rid)  request')
+  const answer = 'Sure:\n[{"method": "fulfill", "name": "acted on within 30 days.", "expr": "requests[rid].fulfilled implies now - requests[rid].received < 30 days", "answers": "no later than 30 days"},' +
+    ' {"method": null, "name": "denied: never both", "expr": "forall r in requests: not requests[r].denied", "answers": "deny"}]'
+  const {kept, refused} = vetDrafts(x, parseDraft(answer), {clock: 1})
+  expect(kept.map(d => d.name)).toEqual(['acted on within 30 days'])
+  expect(refused[0]!.d.name).toBe('denied - never both')
+  const lines = draftComments('#', kept[0]!, '45 CFR 164.524(b)(2)', 'a model')
+  expect(lines[1]).toBe('# gdp: cite acted on within 30 days: 45 CFR 164.524(b)(2): "no later than 30 days" [unreviewed: drafted by a model]')
+  expect([reviewOf(lines[1]!), reviewOf('x [reviewed-by: A. Person, 2026-11-02]'), reviewOf('45 CFR 164.524')]).toEqual(['unreviewed', 'reviewed', 'unmarked'])
+  // (pasted above fulfill: checked as any law, its citation unreviewed until signed)
+  writeFileSync(`${dir}/desk.py`, DESK.split('\n').filter(l => !l.includes('gdp:')).join('\n').replace('    def fulfill(', `    ${lines[0]}\n    ${lines[1]}\n    def fulfill(`))
+  const {main} = await import('./cli.ts')
+  expect(await main(['check', `${dir}/desk.py`, '--no-propose', '--json'])).toBe(0)
+  expect(await main(['check', `${dir}/desk.py`, '--no-propose', '--json', '--require-review'])).toBe(2)
+  writeFileSync(`${dir}/desk.py`, readFileSync(`${dir}/desk.py`, 'utf8').replace('[unreviewed: drafted by a model]', '[reviewed-by: A. Person, 2026-11-02]'))
+  expect(await main(['check', `${dir}/desk.py`, '--no-propose', '--json', '--require-review'])).toBe(0)
 }, 300_000)
