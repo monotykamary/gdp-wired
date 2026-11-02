@@ -137,6 +137,7 @@ class Reader:
     self.local_stack = []
     self.caught = []  # (the names the handlers being read bind their exceptions to)
     self.based, self.supers, self.defs, self.local_imps = set(), [], {}, []  # (the bases read as bases; the bases of the class whose method is read)
+    self.class_mros, self.class_attrs, self.class_bound = {}, {}, {}
 
   # --- types -------------------------------------------------------------------------------------------------------
   def find_class(self, mod, name, depth=0):
@@ -179,6 +180,45 @@ class Reader:
     imp = m.imports.get(name)
     if imp and imp[0] == 'name': return self.ret_of(imp[1], imp[2], depth + 1)
     return None
+  def class_constants(self, cdef):
+    """Own scalar literals and every name that shadows a base's literal. Mutable values are not constants."""
+    values, bound = {}, set()
+    static = not cdef.keywords and not cdef.decorator_list
+    for n in cdef.body:
+      if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        names = {n.name}
+      elif isinstance(n, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+        targets = n.targets if isinstance(n, ast.Assign) else [n.target]
+        names = {x.id for t in targets for x in ast.walk(t) if isinstance(x, ast.Name) and isinstance(x.ctx, ast.Store)} if not isinstance(n, ast.AnnAssign) or n.value is not None else set()
+      elif isinstance(n, ast.Pass) or isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant):
+        continue
+      else:
+        # Control flow, imports and dynamic class-body code may shadow any earlier literal.
+        values.clear()
+        static = False
+        continue
+      bound.update(names)
+      for name in names: values.pop(name, None)
+      target = n.targets[0] if isinstance(n, ast.Assign) and len(n.targets) == 1 else n.target if isinstance(n, ast.AnnAssign) else None
+      value = n.value if isinstance(n, (ast.Assign, ast.AnnAssign)) else None
+      if isinstance(target, ast.Name) and isinstance(value, ast.Constant) and isinstance(value.value, (int, float, str, bool, type(None))) and not isinstance(value.value, bytes):
+        values[target.id] = value.value
+    return values, bound, static
+
+  def class_mro(self, q, bases):
+    """Python's C3 order, or no inherited constants if a base/order is not known."""
+    if len(set(bases)) != len(bases) or any(self.class_mros.get(b) is None for b in bases): return None
+    seqs = [list(self.class_mros[b]) for b in bases] + [list(bases)]
+    order = [q]
+    while any(seqs):
+      seqs = [s for s in seqs if s]
+      head = next((s[0] for s in seqs if not any(s[0] in t[1:] for t in seqs)), None)
+      if head is None: return None
+      order.append(head)
+      for s in seqs:
+        if s and s[0] == head: s.pop(0)
+    return order
+
   def rec_of(self, mod, cdef, base=False):
     """A class as a record type: its fields (annotations, its bases' first), its methods (to resolve calls). A class
     of the file, or a base of one (another module's too: its methods are the class's own), has its methods read."""
@@ -189,12 +229,15 @@ class Reader:
     self.defs[q] = (mod, cdef)
     self.recs[q] = None  # (being read)
     fields, methods, bases, kinds, rets = [], {}, [], set(), {}
+    cattrs, bound, static = self.class_constants(cdef)
     for b in cdef.bases:
       bn = dotted(b.value if isinstance(b, ast.Subscript) else b)
-      if bn in ('TypedDict', 'typing.TypedDict', 'typing_extensions.TypedDict'): kinds.add('typeddict'); continue
-      if bn in ('BaseModel', 'pydantic.BaseModel'): kinds.add('pydantic'); continue
-      if bn in ('Protocol', 'typing.Protocol', 'ABC', 'abc.ABC'): kinds.add('protocol'); continue
-      if bn in ('Generic', 'object', 'Exception'): continue
+      if bn in ('TypedDict', 'typing.TypedDict', 'typing_extensions.TypedDict'): kinds.add('typeddict'); static = False; continue
+      if bn in ('BaseModel', 'pydantic.BaseModel'): kinds.add('pydantic'); static = False; continue
+      if bn in ('Protocol', 'typing.Protocol', 'ABC', 'abc.ABC'): kinds.add('protocol'); static = False; continue
+      if bn in ('Generic', 'object', 'Exception'):
+        if bn != 'object': static = False
+        continue
       hit = self.find_class(mod, bn.split('.')[-1]) if bn else None
       if hit:
         bq = self.rec_of(*hit, base=base or mod.path == self.file)
@@ -206,7 +249,9 @@ class Reader:
             if not any(g['name'] == f['name'] for g in fields): fields.append(f)
           for m, fid in br['methods'].items(): methods[m] = fid
           rets.update(br.get('rets', {}))
-      elif bn: kinds.add('outside-base:' + bn)
+      elif bn:
+        kinds.add('outside-base:' + bn)
+        static = False
     dataclass = any((dotted(d.func if isinstance(d, ast.Call) else d) or '').split('.')[-1] == 'dataclass' for d in cdef.decorator_list)
     frozen = any(isinstance(d, ast.Call) and any(k.arg == 'frozen' and isinstance(k.value, ast.Constant) and k.value.value for k in d.keywords) for d in cdef.decorator_list)
     # (a dataclass whose == is its fields' unless eq=False says it is identity)
@@ -229,11 +274,7 @@ class Reader:
             name, t = n.targets[0].attr, self.ty(anns[v.values[0].id], mod)
             if t['k'] == 'opt': t = t['of']
         if t is not None and not any(g['name'] == name for g in fields): fields.append({'name': name, 't': t, 'init': True})
-    cattrs = {}
     for n in cdef.body:
-      # (a class attribute set to a constant, PREFIX = None, LOCK_PERIOD = 5: read through self as that constant)
-      if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name) and isinstance(n.value, ast.Constant) and isinstance(n.value.value, (int, float, str, bool, type(None))) and not isinstance(n.value.value, bytes):
-        cattrs[n.targets[0].id] = n.value.value
       if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name):
         ann = n.annotation
         if dotted(ann.value if isinstance(ann, ast.Subscript) else ann) in ('ClassVar', 'typing.ClassVar'): continue
@@ -251,6 +292,18 @@ class Reader:
           finally: self.file, self.supers, self.defining = file, sup, dfn
           methods[n.name] = fid
         else: methods[n.name] = None  # another module's method: not read
+    self.class_attrs[q], self.class_bound[q] = cattrs, bound
+    order = self.class_mro(q, bases) if static else None
+    self.class_mros[q] = order
+    if order is not None:
+      cattrs = {}
+      for owner in reversed(order):
+        for name in self.class_bound[owner]: cattrs.pop(name, None)
+        cattrs.update(self.class_attrs[owner])
+    # A scalar selected by attribute lookup also shadows an inherited method/property of that name.
+    for name in cattrs:
+      methods.pop(name, None)
+      rets.pop(name, None)
     r = {'name': q, 'short': cdef.name, 'fields': fields, 'methods': methods, 'bases': bases, 'p': where(mod.path, cdef), 'cattrs': cattrs,
          'kinds': sorted(kinds | ({'dataclass'} if dataclass else set()) | ({'frozen'} if frozen else set()) | (set() if total else {'partial'})),
          'own': mod.path == self.file, 'module': mod.name, **({'rets': rets} if rets else {})}

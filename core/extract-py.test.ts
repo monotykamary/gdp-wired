@@ -6,7 +6,7 @@ import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
 import {mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
-import {type PyOptions, extractPython} from './extract-py.ts'
+import {type PyOptions, extractPython, readPython} from './extract-py.ts'
 import {all, proveRule, proveSteps, yes} from './dsl.ts'
 import {assumed, disjoint} from './extract-step.ts'
 
@@ -688,4 +688,71 @@ t('an injected dependency\'s call left out inside a try: the check\'s dependency
 
 t('a key of the other kind than its dict\'s (a str into a dict[int, int]): refused, never one it holds', () => {
   refused(py('class A:\n    def __init__(self):\n        self.d: dict[int, int] = {}\n\n    def f(self, k: str) -> int:\n        return self.d.get(k, 0)\n', {entry: 'A'}), /a string key of a map keyed by numbers/)
+})
+
+// Immutable inherited defaults, not a fresh copy of mutable class state. Python's own C3 lookup is the oracle.
+const inheritanceRoot = 'class Root:\n    CAP = 1\n    LABEL = "root"\n    ENABLED = True\n    EMPTY = None\n    def __init__(self):\n        self.total = 0\n'
+const inheritanceStep = '    def put(self, amount: int) -> int:\n        if self.total + amount <= self.CAP:\n            self.total += amount\n        return self.total\n'
+const classConstants = (code: string) => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-pyattrs-`), file = `${dir}/m.py`
+  writeFileSync(file, code)
+  const m = readPython(file, ['Limit'])
+  return Object.values(m.recs).find(r => r.short === 'Limit')!.cattrs ?? {}
+}
+
+t('inherited immutable class defaults follow C3, not flattened direct-base attributes', () => {
+  const inherited = inheritanceRoot + 'class Limit(Root):\n    pass\n' + inheritanceStep
+  expect(classConstants(inherited)).toMatchObject({CAP: 1, LABEL: 'root', ENABLED: true, EMPTY: null})
+  ok(py(inherited, {entry: 'Limit', methods: ['put']}))
+  const diamond = inheritanceRoot + 'class Left(Root):\n    pass\nclass Right(Root):\n    CAP = 2\nclass Limit(Left, Right):\n    pass\n' + inheritanceStep
+  expect(classConstants(diamond).CAP).toBe(2)
+  ok(py(diamond, {entry: 'Limit', methods: ['put']}))
+  const own = diamond.replace('class Limit(Left, Right):\n    pass', 'class Limit(Left, Right):\n    CAP = 5')
+  expect(classConstants(own).CAP).toBe(5)
+  ok(py(own, {entry: 'Limit', methods: ['put']}))
+})
+
+t('a nonliteral or property declaration shadows a base constant instead of falling through', () => {
+  const mutable = inheritanceRoot + 'class Limit(Root):\n    CAP = [4]\n' + inheritanceStep
+  expect(classConstants(mutable).CAP).toBeUndefined()
+  refused(py(mutable, {entry: 'Limit', methods: ['put']}), /no field CAP/)
+  const getter = inheritanceRoot + 'class Limit(Root):\n    @property\n    def CAP(self) -> int:\n        return 7\n' + inheritanceStep
+  expect(classConstants(getter).CAP).toBeUndefined()
+  ok(py(getter, {entry: 'Limit', methods: ['put']}))
+})
+
+t('inherited constants are resolved across repository reexports, not guessed for outside bases', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-pybase-`)
+  writeFileSync(`${dir}/base.py`, inheritanceRoot)
+  writeFileSync(`${dir}/exports.py`, 'from base import Root\n')
+  writeFileSync(`${dir}/m.py`, 'from exports import Root\nclass Limit(Root):\n    pass\n' + inheritanceStep)
+  const imported = extractPython(`${dir}/m.py`, {root: dir, entry: 'Limit', methods: ['put'], check: budget})
+  expect(imported.ok).toBe(true)
+  expect(imported.evidence!.mismatch).toBeUndefined()
+  expect(imported.evidence!.requests).toBeGreaterThan(0)
+  // The harness instruments the entry module, not the imported constructor. Both method arms are hit;
+  // assert the exact known missing marker rather than claim full cross-module instrumentation.
+  expect(imported.evidence!.coverage).toEqual({arms: 3, hit: 2, missed: ['the arm at base.py:7']})
+  const outside = inheritanceRoot + 'class Limit(Root, list):\n    pass\n' + inheritanceStep
+  expect(classConstants(outside).CAP).toBeUndefined()
+  refused(py(outside, {entry: 'Limit', methods: ['put']}), /no field CAP|outside|base/)
+})
+
+t('dynamic class bodies and runtime monkey patches cannot become accepted inherited constants', () => {
+  const dynamic = inheritanceRoot + 'class Limit(Root):\n    if True:\n        CAP = 4\n' + inheritanceStep
+  expect(classConstants(dynamic).CAP).toBeUndefined()
+  refused(py(dynamic, {entry: 'Limit', methods: ['put']}), /no field CAP/)
+  const patched = inheritanceRoot + 'Root.CAP = 8\nclass Limit(Root):\n    pass\n' + inheritanceStep
+  refused(py(patched, {entry: 'Limit', methods: ['put']}), /differ|doesn.t agree|conform|mismatch/)
+  const changed = inheritanceRoot + 'class Limit(Root):\n    CAP = 2\n    CAP += 1\n' + inheritanceStep
+  expect(classConstants(changed).CAP).toBeUndefined()
+  refused(py(changed, {entry: 'Limit', methods: ['put']}), /no field CAP/)
+})
+
+t('selected scalar defaults shadow inherited descriptors and remain dynamic in base methods', () => {
+  const inheritedMethod = inheritanceRoot + inheritanceStep + 'class Limit(Root):\n    CAP = 4\n'
+  ok(py(inheritedMethod, {entry: 'Limit', methods: ['put']}))
+  const descriptor = inheritanceRoot + 'class Left(Root):\n    CAP = 2\nclass Right(Root):\n    @property\n    def CAP(self) -> int:\n        return 7\nclass Limit(Left, Right):\n    pass\n' + inheritanceStep
+  expect(classConstants(descriptor).CAP).toBe(2)
+  ok(py(descriptor, {entry: 'Limit', methods: ['put']}))
 })

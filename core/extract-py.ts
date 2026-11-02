@@ -18,7 +18,8 @@
 // past which a step is refused), floats at whole values (as JavaScript's numbers are read: a float literal that isn't
 // whole is refused, and so is a true division but in math.floor, math.ceil or int of x / k), bools, strs (set and
 // compared), Literal strings as choices, X | None (a None one holds 0, beside a flag), the module's dataclasses and
-// classes as records (nested, by reference), dict[int | str, scalar or record] as maps (d[k], get, pop, in, del, and a
+// classes as records (nested, by reference), immutable scalar class defaults through known bases in Python C3
+// order (mutable or dynamically shadowed attributes are not copied), dict[int | str, scalar or record] as maps (d[k], get, pop, in, del, and a
 // write of one key a step), an object the caller gives as a record of inputs (its fields read, their types from its
 // class's annotations in the repository's modules), if, early returns, ternaries, and/or with Python's values,
 // truthiness, raise and assert (the step's failure: its refusal, or with failures: 'kept' its result), calls of the
