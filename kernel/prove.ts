@@ -1921,11 +1921,14 @@ const strict = (usual: boolean) => !usual && (strictOn || env.GDP_STRICT !== '0'
 export const withStrict = <T>(f: () => T): T => { const o = strictOn; strictOn = true; try { return f() } finally { strictOn = o } }
 // (by machine and by the law set's names: one machine is asked with many sets)
 const sortsMemo = new WeakMap<Machine, Map<string, {key: (law: string, k: string) => string, of: (e: E) => string | undefined, find: (a: string) => string, anchored: (a: string) => boolean}>>()
-const sortPlaces = env.GDP_SORT_PLACES !== '0'
+const sortPlacesOn = env.GDP_SORT_PLACES !== '0'
 function sortsOf(m: Machine, laws: Law[]) {
   const par = new Map<string, string>(), find = (a: string): string => { const q = par.get(a); if (q === undefined || q === a) return a; const r = find(q); par.set(a, r); return r }
   const named = new Set<string>(), union = (a: string, b: string) => { named.add(a); named.add(b); const ra = find(a), rb = find(b); if (ra !== rb) par.set(ra, rb) }
   const pats = patternsOf(m, laws), whole = new Map<string, string>()
+  // (only on machines with tuple keys, whose patterns are n zeros: elsewhere the sorts are as before, distributed_lock's
+  // instances among them)
+  const sortPlaces = sortPlacesOn && Object.values(pats).some(c => c.length > 1 && c[0] === 0)
   // (a map of one part read at a name, Src[p]: its value a sort too, F:Src, as a function's, what it is compared with and
   // the places it is read at: Src[Src[p]] is no key of Src where Src's values are nodes and its keys packets)
   // (GDP_SORT_PLACES=0: neither, for comparing)
