@@ -45,10 +45,10 @@ export function substVarsE(e: E, s: Record<string, E>): E {
   switch (e.op) {
     case 'var': return s[e.name] ?? e
     case 'const': return e
-    case 'mul': return {...e, a: substVarsE(e.a, s)}
+    case 'mul': case 'proj': return {...e, a: substVarsE(e.a, s)}
     case 'if': return {op: 'if', c: substVars(e.c, s), then: substVarsE(e.then, s), else: substVarsE(e.else, s)}
     case 'get': return {...e, key: substVarsE(e.key, s)}
-    case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: substVarsE(e.a, s), b: substVarsE(e.b, s)}
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {...e, a: substVarsE(e.a, s), b: substVarsE(e.b, s)}
   }
 }
 export function substVars(c: C, s: Record<string, E>): C {
@@ -83,7 +83,7 @@ function lin(e: E, bound: Set<string>): Lin | undefined {
       const scale = (es: E[]): E[] => es.map(x => (e.k === 1 ? x : {op: 'mul', k: e.k, a: x}))
       return {k: Object.fromEntries(Object.entries(a.k).map(([n, c]) => [n, c * e.k])), pos: scale(a.pos), neg: scale(a.neg)}
     }
-    case 'sub': case 'min': case 'max': case 'prod': case 'if': case 'get': return free ? {k: {}, pos: [e], neg: []} : undefined
+    case 'sub': case 'min': case 'max': case 'prod': case 'if': case 'get': case 'tup': case 'proj': return free ? {k: {}, pos: [e], neg: []} : undefined
   }
 }
 // The atoms of P, each as Σ c·x ⋈ R+ − R− over the bound naturals.
@@ -319,7 +319,7 @@ function onlyKeys(e: E, bound: Set<string>): boolean {
     case 'var': case 'const': return false
     case 'add': case 'sub': case 'min': case 'max': case 'prod': return onlyKeys(e.a, bound) && onlyKeys(e.b, bound)
     case 'mul': return onlyKeys(e.a, bound)
-    case 'if': return false
+    case 'if': case 'tup': case 'proj': return false
     case 'get': return false
   }
 }
@@ -828,6 +828,8 @@ export function showE(e: E): string {
     case 'min': case 'max': return `${e.op}(${showE(e.a)}, ${showE(e.b)})`
     case 'if': return `(${showC(e.c)} ? ${showE(e.then)} : ${showE(e.else)})`
     case 'get': return `${e.map}[${showE(e.key)}]`
+    case 'tup': return `⟨${showE(e.a)}, ${showE(e.b)}⟩`
+    case 'proj': return `${e.k === 0 ? 'fst' : 'snd'}(${showE(e.a)})`
   }
 }
 export function showC(c: C): string {

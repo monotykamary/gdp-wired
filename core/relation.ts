@@ -12,7 +12,7 @@
 // written: kernel.ts's pairs, the DSL's x and x$neg, compare/term's s and s$n), and whose values after the turn are a
 // difference split both ways (u := P ∸ N, w := N ∸ P) or linear, are one integer, u − w: the path then needs no split
 // for them (u − w becomes P − N exactly), and a rank over them is over the integer. Each is named by its first part.
-import type {C, E, Law} from './machine.ts'
+import {type C, type E, type Law, cpair, cunpair} from './machine.ts'
 import type {Loop} from '../kernel/kernel.ts'
 import {clock} from '../kernel/prove.ts'
 import {type Lin, canon, konst, plus, solve, subst, times, vars, work} from './solver.ts'
@@ -68,6 +68,7 @@ function alts(e: E, p: PP, n: {left: number}): [PP, Lin][] {
     }))
     case 'if': return chain(e, p, n, alts)
     case 'get': throw new Refused('a map')
+    case 'tup': case 'proj': throw new Refused('a tuple key')
   }
 }
 // A row lin <= 0 added (none where the pins decide it: kept or dropped); an equation of one variable pins it.
@@ -143,6 +144,8 @@ function valueAt(e: E, pins: Record<string, number>): number | undefined {
       if (a === undefined || b === undefined) return undefined
       return e.op === 'add' ? a + b : e.op === 'sub' ? Math.max(0, a - b) : e.op === 'min' ? Math.min(a, b) : e.op === 'max' ? Math.max(a, b) : a * b
     }
+    case 'tup': { const a = valueAt(e.a, pins), b = a === undefined ? undefined : valueAt(e.b, pins); return a === undefined || b === undefined ? undefined : cpair(a, b) }
+    case 'proj': { const a = valueAt(e.a, pins); return a === undefined ? undefined : cunpair(a)[e.k] }
     case 'get': return undefined
   }
 }
@@ -288,8 +291,8 @@ const renameE = (e: E, names: Set<string>, f: (x: string) => string): E => {
   switch (e.op) {
     case 'var': return names.has(e.name) ? {op: 'var', name: f(e.name)} : e
     case 'const': return e
-    case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: renameE(e.a, names, f), b: renameE(e.b, names, f)}
-    case 'mul': return {...e, a: renameE(e.a, names, f)}
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': return {...e, a: renameE(e.a, names, f), b: renameE(e.b, names, f)}
+    case 'mul': case 'proj': return {...e, a: renameE(e.a, names, f)}
     case 'if': return {op: 'if', c: renameC(e.c, names, f), then: renameE(e.then, names, f), else: renameE(e.else, names, f)}
     case 'get': return {...e, key: renameE(e.key, names, f)}
   }

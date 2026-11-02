@@ -228,7 +228,7 @@ export function isolation(m: Machine, level: Level): Machine {
     if (e.op === 'get') { const j = seen.get(JSON.stringify(e)); return j !== undefined ? x(rd(j)) : get(e.map, sigma(e.key)) }
     if (e.op === 'if') return ite(sigmaC(e.c), sigma(e.then), sigma(e.else))
     if (e.op === 'const') return e
-    if (e.op === 'mul') return {...e, a: sigma(e.a)}
+    if (e.op === 'mul' || e.op === 'proj') return {...e, a: sigma(e.a)}
     return {...e, a: sigma(e.a), b: sigma(e.b)}
   }
   const sigmaC = (c: C): C => {

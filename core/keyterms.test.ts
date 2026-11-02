@@ -2,7 +2,7 @@
 // every key, and compute a write at every key, on finitely many breakpoints. Random conditions and values over two maps a
 // request carries, against brute force over every key up to well past every cell and value, interpreted and compiled.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Machine, interpret, loadJs, seeded} from './machine.ts'
+import {type C, type E, type Machine, cpair, cunpair, interpret, loadJs, seeded} from './machine.ts'
 import {plainKey} from '../kernel/kernel.ts'
 
 const rand = seeded(17)
@@ -35,6 +35,8 @@ const evalBrute = (e: E, k: number, env: Record<string, number>, I: Map<number, 
     case 'sub': return Math.max(0, evalBrute(e.a, k, env, I, J) - evalBrute(e.b, k, env, I, J))
     case 'if': return holdsBrute(e.c, k, env, I, J) ? evalBrute(e.then, k, env, I, J) : evalBrute(e.else, k, env, I, J)
     case 'get': return (e.map === 'I' ? I : J).get(evalBrute(e.key, k, env, I, J)) ?? 0
+    case 'tup': return cpair(evalBrute(e.a, k, env, I, J), evalBrute(e.b, k, env, I, J))
+    case 'proj': return cunpair(evalBrute(e.a, k, env, I, J))[e.k]
     case 'mul': case 'prod': case 'min': case 'max': throw new Error(e.op)
   }
 }

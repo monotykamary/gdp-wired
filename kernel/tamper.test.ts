@@ -10,7 +10,7 @@
 //     and proofs as the plain names', and nothing false accepted, at random.
 // This is what the mutation run (mutants.ts) leans on to see whether a change to kernel.ts or check.ts goes unnoticed.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Law, type Machine, type State, evalC, interpret, seeded} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, type State, cpair, cunpair, evalC, interpret, seeded} from '../core/machine.ts'
 import {admitFlagged, boundedLoss, capLaws, inflight, inflightLoss, loss, windowCeiling, windowLimit} from '../core/models.ts'
 import {type Constraint, type Lin, type Step, add, k, scale, sub, v} from '../core/solver.ts'
 import {checkRefutation, checkWitness} from '../core/check.ts'
@@ -131,6 +131,8 @@ const evE = (e: E, env: Record<string, number>, cells: (map: string, key: number
     case 'min': return Math.min(evE(e.a, env, cells), evE(e.b, env, cells))
     case 'max': return Math.max(evE(e.a, env, cells), evE(e.b, env, cells))
     case 'if': return evC(e.c, env, cells) ? evE(e.then, env, cells) : evE(e.else, env, cells)
+    case 'tup': return cpair(evE(e.a, env, cells), evE(e.b, env, cells))
+    case 'proj': return cunpair(evE(e.a, env, cells))[e.k]
     case 'get': return cells(e.map, evE(e.key, env, cells))
   }
 }

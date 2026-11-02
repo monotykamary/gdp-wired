@@ -31,6 +31,8 @@ function openE(e: E, path: Path, out: Lin[]): void {
     case 'mul': return openE(e.a, path, out)
     case 'prod': return (openE(e.a, path, out), openE(e.b, path, out))
     case 'get': return openE(e.key, path, out)
+    case 'tup': return (openE(e.a, path, out), openE(e.b, path, out))
+    case 'proj': return openE(e.a.op === 'tup' ? (e.k === 0 ? e.a.a : e.a.b) : e.a, path, out)
     case 'if': { const t = truth(e.c, path); if (t === undefined) openC(e.c, path, out); else openE(t ? e.then : e.else, path, out); return }
     case 'add': case 'sub': case 'min': case 'max': {
       openE(e.a, path, out), openE(e.b, path, out)

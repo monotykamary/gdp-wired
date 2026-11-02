@@ -75,6 +75,7 @@ export function compileKernel(p: Problem, box: Box, K: number, kernel: Kernel, c
       case 'max': return w.max(ex(e.a, env), ex(e.b, env))
       case 'if': return w.select(cx(e.c, env), ex(e.then, env), ex(e.else, env))
       case 'get': throw new Error('synthesis kernels read no maps')
+      case 'tup': case 'proj': throw new Error('the synthesizer takes no tuple key')
     }
   }
   const cx = (c: C, env: Env): Word => {

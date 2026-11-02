@@ -65,6 +65,7 @@ export function compileMoreKernel(p: Problem, box: Box, K: number, kind: MoreKin
       case 'max': return w.max(ex(e.a, env), ex(e.b, env))
       case 'if': return w.select(cx(e.c, env), ex(e.then, env), ex(e.else, env))
       case 'get': throw new Error('a map read left in a problem: fromMapMachine turns reads into tracked cells')
+      case 'tup': case 'proj': throw new Error('the synthesizer takes no tuple key')
     }
   }
   const cx = (c: C, env: Env): Word => {

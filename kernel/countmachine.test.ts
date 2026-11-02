@@ -3,7 +3,7 @@
 // mutated, every accepted set of laws true on every reachable state of the small instances (count maps read at the
 // request's view, a law's at the state), by brute force.
 import {describe, expect, test} from 'bun:test'
-import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, seeded, x} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, all, any, atMost, cpair, cunpair, get, ite, less, n, not, plus, same, seeded, x} from '../core/machine.ts'
 import {type CountCert, type CountInst, type MapRead, check, checkCountedLaws, checkMC, countedObligations, mcGoal, obligations} from './kernel.ts'
 import {clock, grow} from './prove.ts'
 import {countedProof, toyCounted} from '../lean-kernel/count-examples.ts'
@@ -24,6 +24,8 @@ const ev = (e: E, env: Env, maps: Maps): number => {
     case 'min': return Math.min(ev(e.a, env, maps), ev(e.b, env, maps))
     case 'max': return Math.max(ev(e.a, env, maps), ev(e.b, env, maps))
     case 'if': return holds(e.c, env, maps) ? ev(e.then, env, maps) : ev(e.else, env, maps)
+    case 'tup': return cpair(ev(e.a, env, maps), ev(e.b, env, maps))
+    case 'proj': return cunpair(ev(e.a, env, maps))[e.k]
     case 'get': return maps[e.map]?.(ev(e.key, env, maps)) ?? 0
   }
 }

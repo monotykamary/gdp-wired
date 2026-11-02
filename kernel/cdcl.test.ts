@@ -5,7 +5,7 @@
 // other way round. FUZZ_SEED and FUZZ_SCALE shard it, as kernel.test.ts; GDP_CDCL_VERIFY=1 (the suite's shards) also
 // compares reader.ts's rows with kernel.ts's at every node of the search and every leaf of the unfolded tree.
 import {expect, test} from 'bun:test'
-import {type C, type E, seeded} from '../core/machine.ts'
+import {type C, type E, cpair, cunpair, seeded} from '../core/machine.ts'
 import type {Lin} from '../core/solver.ts'
 import {type Goal, type Path, canon, check, leafConstraints, termColumn} from './kernel.ts'
 import {clock, grow} from './prove.ts'
@@ -52,6 +52,8 @@ const ev = (e: E, env: Env): number => {
     case 'mul': return e.k * ev(e.a, env)
     case 'prod': return ev(e.a, env) * ev(e.b, env)
     case 'if': return evC(e.c, env) ? ev(e.then, env) : ev(e.else, env)
+    case 'tup': return cpair(ev(e.a, env), ev(e.b, env))
+    case 'proj': return cunpair(ev(e.a, env))[e.k]
     case 'get': return env.M[ev(e.key, env)] ?? 0
   }
 }
