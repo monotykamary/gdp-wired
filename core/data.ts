@@ -36,6 +36,7 @@ import {rankOfPaths, ranksOfCalls, showC} from './cycles.ts'
 import type {Path as RelPath, Relation} from './relation.ts'
 import type {Lin} from './solver.ts'
 import {proveThrough, transferPlan} from './transfer.ts'
+import {synthesizedLemmas, synthesizedObserver} from './data-synth.ts'
 
 // --- sorts and the AST ------------------------------------------------------------------------------------------------
 
@@ -1505,7 +1506,9 @@ export const ctorMap = (d: Data, j: number) => `${d.name}.${d.ctors[j]!.name}`
 // `ints`: whether it reads an integer.
 export type Program = {datas: Data[], fns: Fn[], params: string[], divisors: number[], ints: boolean}
 // Everything a law reads: the datatypes, the functions (with those they call), the function parameters.
-export function programOf(laws: DataLaw[], extra: Fn[] = []): Program {
+// `allowCounters: false` leaves optional call-count ranks for a later search pass;
+// the original functions and every definition actually included are still admitted normally.
+export function programOf(laws: DataLaw[], extra: Fn[] = [], allowCounters = true): Program {
   const fs = new Map<string, Fn>(), ds = new Map<string, Data>(), ps = new Set<string>()
   // A datatype with those its fields name (its group, those declared before it).
   const addSort = (s: Sort) => { if (s instanceof Data && !ds.has(s.name)) { ds.set(s.name, s); for (const c of s.ctors) for (const f of c.fields) addSort(fieldSort(f)) } }
@@ -1530,7 +1533,7 @@ export function programOf(laws: DataLaw[], extra: Fn[] = []): Program {
   if (folds.length) { for (const n of folds) visit({op: 'call', fn: n, args: []}); for (const f of fs.values()) place(f) }
   // (and outside a termination's proofs, the call count of each well-founded function whose measure falls only by a
   // lemma: its recursion's rank as an induction, `callsFn`)
-  const counters = inTermination.on ? [] : order.flatMap(f => (f.decreases === undefined && f.termination?.obligations.some(o => o.lemmas.length) ? [callsFn(f)].filter(n => n !== undefined) : []))
+  const counters = !allowCounters || inTermination.on ? [] : order.flatMap(f => (f.decreases === undefined && f.termination?.obligations.some(o => o.lemmas.length) ? [callsFn(f)].filter(n => n !== undefined) : []))
   if (counters.length) { for (const n of counters) visit({op: 'call', fn: n, args: []}); for (const f of fs.values()) place(f) }
   const divs = new Set<number>()
   let ints = false
@@ -1852,7 +1855,7 @@ export type Options = {samples?: number, depth?: number, lemmas?: boolean | Data
 // A sample whose evaluation passes the bounds (EvalLimit, or the stack) is skipped.
 export function refute(l: DataLaw, n = 400, seed = 7): Record<string, string> | undefined {
   return bounded(() => {
-    for (const s of samples(l.vars, programOf([l]).params, n, seed)) {
+    for (const s of samples(l.vars, programOf([l], [], false).params, n, seed)) {
       let ok: boolean
       try { ok = evalY(l.holds, s.env, s.params) } catch (e) { if (e instanceof RangeError) continue; throw new Error(`${l.name}: ${(e as Error).message}`) }
       if (!ok) return Object.fromEntries(l.vars.map(v => [v.name, showValue(v.sort, s.env.get(v.name)!)]))
@@ -2762,7 +2765,9 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
       const fnReads = (t: unknown) => new Set(readsOnce(t).filter(r => r.op === 'get' && p.fns.some(f => f.name === r.map)).map(r => sid(r)))
       const inConcl = fnReads(concl), common = new Set([...fnReads(us.map(useConcl))].filter(x => inConcl.has(x)))
       const lean = reached(p, fs, insts.filter(q => !atField(q)), from, ms, common)
-      if (insts.some(atField) && !inTermination.on) leaner.set(`${name}, case ${i + 1}`, lean)
+      // Structural equalities need their constructor fields; the arithmetic observer
+      // cancellation pass only spends time on scalar laws, never on those equalities.
+      if (insts.some(atField) && !inTermination.on && aboutNaturals(mb.law)) leaner.set(`${name}, case ${i + 1}`, lean)
       plan.push({name: `${name}, case ${i + 1}`, hyps: c.lits, concl, sub: 0, insts, uses: us})
     }
     plans.push(plan)
@@ -3689,14 +3694,15 @@ function proveDataCounted(l: DataLaw, opts: Options, until: number): DataVerdict
 // is the refutation and the law alone at one unfolding, 'rest' all after those.
 // `merge`: the merged schemes are tried (the law's own search, and the law said through the built-ins; not a bridge's).
 export type SearchCtx = {p: Program, fs: Facts, base: Proven[], level: number, merge?: boolean}
-export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchCtx, phase: 'all' | 'first' | 'rest' = 'all'): {verdict: DataVerdict, out?: Proven} {
+export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchCtx, phase: 'all' | 'first' | 'rest' = 'all'): {verdict: DataVerdict, out?: Proven, facts?: Facts} {
   const t0 = performance.now(), w0 = work.n
-  const p = ctx?.p ?? programOf([l, ...(Array.isArray(opts.lemmas) ? opts.lemmas : [])]), fs = ctx?.fs ?? factsOf(p)
+  let p = ctx?.p ?? programOf([l, ...(Array.isArray(opts.lemmas) ? opts.lemmas : [])], [], false), fs = ctx?.fs ?? factsOf(p)
   const base = ctx?.base ?? [], lv = ctx?.level ?? 0
-  let out: Proven | undefined
-  const done = (v: Omit<DataVerdict, 'ms' | 'law'>): {verdict: DataVerdict, out?: Proven} => {
+  let out: Proven | undefined, proofFacts: Facts | undefined
+  const contexts = new Map<Program, Facts>([[p, fs]])
+  const done = (v: Omit<DataVerdict, 'ms' | 'law'>): {verdict: DataVerdict, out?: Proven, facts?: Facts} => {
     if (dataTrace) console.error(`[data] ${l.name}: ${work.n - w0} units of work in ${Math.round(performance.now() - t0)} ms`)
-    return {verdict: {law: l.name, ...v, ms: Math.round(performance.now() - t0)}, out}
+    return {verdict: {law: l.name, ...v, ms: Math.round(performance.now() - t0)}, out, facts: proofFacts}
   }
   if (phase !== 'rest') {
     const cex = refute(l, opts.samples ?? 400)
@@ -3711,13 +3717,24 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
     while (todo.length) { const i = todo.pop()!; if (seen.has(i)) continue; seen.add(i); for (const u of nodes[i]!.uses) todo.push(u.node) }
     return lemmas.filter(q => seen.has(nodes.indexOf(nodes.find(n => n.name === q.spec.name)!))).map(q => q.law.name)
   }
-  const ok = (r: ReturnType<typeof proveWith>, lemmas: Proven[], prog = p) => (tried += r.tried, r.out ? (out = r.out, done({proven: true, checked: true, proof: r.verdict, lemmas: used(r.out, lemmas), scheme: r.scheme, tried, program: prog, node: r.out.nodes.indexOf(r.out.spec)})) : undefined)
+  const ok = (r: ReturnType<typeof proveWith>, lemmas: Proven[], prog = p) => (tried += r.tried, r.out ? (out = r.out, proofFacts = contexts.get(prog), done({proven: true, checked: true, proof: r.verdict, lemmas: used(r.out, lemmas), scheme: r.scheme, tried, program: prog, node: r.out.nodes.indexOf(r.out.spec)})) : undefined)
   // A law that calls no function (arithmetic alone: an integer's, a remainder's) has nothing to induct on: its cases.
   if (phase !== 'rest' && opts.induction !== false && !JSON.stringify(l.holds).includes('"op":"call"')) { const c = ok(proveWith(p, fs, l, base, lv + 1, opts, until, 3000, [1, 2], 'cases'), base); if (c) return c }
   const first = phase === 'rest' || (opts.lemmasFirst && Array.isArray(opts.lemmas)) ? undefined : proveWith(p, fs, l, base, lv + 1, opts, until, 6000, [1], 'plain', !ctx || ctx.merge === true)
   const one = first && ok(first, base)
   if (one) return one
   if (phase === 'first') return done({proven: false, checked: false, lemmas: [], tried, ...stuckOf(first!.last)})
+  // Call-count ranks are useful only after the law's light first attempt fails.
+  // Admitting them eagerly made even singleton laws re-prove unused recursive
+  // definitions. Extend the vocabulary here, preserving prior proof fact indices.
+  if (opts.induction !== false && !inTermination.on) {
+    const next = programOf([l, ...(Array.isArray(opts.lemmas) ? opts.lemmas : [])], p.fns)
+    if (next.fns.some(f => !p.fns.includes(f))) {
+      const made = factsOf(next), extra = made.facts.filter(f => !fs.at.has(f.name!))
+      fs = {facts: [...fs.facts, ...extra], at: new Map([...fs.at, ...extra.map((f, i) => [f.name!, fs.facts.length + i] as const)]), arity: made.arity}
+      p = next; contexts.set(p, fs)
+    }
+  }
   const without = opts.lemmas === false || opts.induction === false
   if (without) return ok(proveWith(p, fs, l, base, lv + 1, opts, until, 20000, [2, 3]), base) ?? (opts.induction === false ? undefined : ok(proveWith(p, fs, l, base, lv + 1, opts, until, 3000, [1, 2], 'cases'), base)) ?? done({proven: false, checked: false, lemmas: [], tried, ...stuckOf(first?.last)})
   // The law at two unfoldings before any conjecture, each scheme within a short time (3 s of counted work): a law that
@@ -3729,9 +3746,20 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   // is proven only by proving the law: none is tried)
   const tc = performance.now(), calc = Array.isArray(opts.lemmas) ? [] : calculated(p, l, 2, 6).filter(c => !lawAgain(l, c))
   if (dataTrace) console.error(`[data] ${l.name}: ${calc.length} calculated in ${Math.round(performance.now() - tc)} ms`)
-  const cands = Array.isArray(opts.lemmas) ? opts.lemmas : [...calc, ...conjectures(p, l).filter(c => !lawAgain(l, c))]
+  const invented = Array.isArray(opts.lemmas) ? [] : synthesizedLemmas(p).filter(c => !lawAgain(l, c))
+  for (const c of invented) distributed.add(c)
+  const cands = Array.isArray(opts.lemmas) ? opts.lemmas : [...calc, ...invented, ...conjectures(p, l).filter(c => !lawAgain(l, c))]
   if (dataTrace) for (const c of calc) console.error(`[data]   calculated ${c.name.slice(0, 200)}`)
-  const p2 = ctx ? p : programOf([l, ...cands]), fs2 = ctx ? fs : factsOf(p2)
+  // A transfer context predates invented observer definitions. Extend its vocabulary, retaining
+  // the old fact indices used by its already-proved nodes; new definitions/congruences append.
+  const p2 = ctx && !invented.length ? p : programOf([l, ...cands], ctx ? p.fns : [])
+  const madeFacts = p2 === p ? fs : factsOf(p2)
+  const extraFacts = ctx ? madeFacts.facts.filter(f => !fs.at.has(f.name!)) : []
+  const fs2: Facts = !ctx ? madeFacts : !extraFacts.length ? fs : {
+    facts: [...fs.facts, ...extraFacts],
+    at: new Map([...fs.at, ...extraFacts.map((f, i) => [f.name!, fs.facts.length + i] as const)]), arity: madeFacts.arity,
+  }
+  contexts.set(p2, fs2)
   // Each scheme's goals: the law's, and each companion's (a lemma may be what only a companion's goal reads).
   const goalOf = (law: DataLaw, uses: SchemeUse[], on: Scheme['on'], concls: C[], shapes?: E[]) => {
     const concl = encY(p2, law.holds, new Map()), ihc = uses.map(u => substC(concls[u.member ?? 0] ?? concl, {vars: u.subst, maps: {}, flags: {}}))
@@ -3746,7 +3774,7 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   for (const g of goals) lemmaUsesFor(p2, fs2, others.map((c, i) => ({law: c, node: i, concl: encY(p2, c.holds, new Map())})), g.from, g.insts, [], undefined, goalHits)
   // (an observer distributed over one builder the goal reads, over the others too: count through ++ leaves the counts of
   // quicksort's two filters, which the filters' complement law then joins)
-  const observer = (c: DataLaw) => { const y = c.holds as {b?: X}; let f: string | undefined; walk(y.b, o => { if (!f && o.op === 'call') f = o.fn as string }); return f }
+  const observer = (c: DataLaw) => { const family = synthesizedObserver(c); if (family) return family; const y = c.holds as {b?: X}; let f: string | undefined; walk(y.b, o => { if (!f && o.op === 'call') f = o.fn as string }); return f }
   const hitObservers = new Set(others.flatMap((c, i) => (goalHits.has(i) && distributed.has(c) ? [observer(c)] : [])))
   const matchesGoal = (c: DataLaw) => goalHits.has(others.indexOf(c)) || (distributed.has(c) && hitObservers.has(observer(c)))
   // Those the goal matches first, of those the ones of the law's shape (an implication for an implication) first, then
@@ -3761,7 +3789,9 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   const observers = new Set([...(lawY.op === '=' ? [lawY.a, lawY.b] : lawY.op === 'holds' ? [lawY.x] : [])].flatMap(x => (x.op === 'call' && !(fnOf(x.fn).ret instanceof Data) ? [x.fn] : [])))
   for (const f of [...observers]) for (const g of fnsIn(fnOf(f).body())) if (!(fnOf(g).ret instanceof Data)) observers.add(g)
   const under = (c: DataLaw) => { const fs2 = [...fnsIn(c.holds)], obs = fs2.filter(f => observers.has(f)), makers = fs2.filter(f => fnOf(f).ret instanceof Data); return obs.length > 0 && makers.length > 0 && [...obs, ...makers].some(f => !inLaw.has(f)) }
-  const score = (c: DataLaw, hit: boolean) => (hit ? 8 : 0) + (under(c) ? 4 : 0) + (implication(c.holds) === implication(l.holds) ? 2 : 0) + (fusion(c.holds) ? 1 : 0)
+  // Targeted observer families include the premises of their guarded equations; keep
+  // those ahead of undirected enumeration so the whole dependency chain gets a turn.
+  const score = (c: DataLaw, hit: boolean) => (synthesizedObserver(c) ? 16 : 0) + (hit ? 8 : 0) + (under(c) ? 4 : 0) + (implication(c.holds) === implication(l.holds) ? 2 : 0) + (fusion(c.holds) ? 1 : 0)
   if (dataTrace) console.error(`[data] ${l.name}: ${cands.length} conjectures at ${Math.round(clock())} of ${Math.round(until)}${cands.map(c => `\n[data]   conjecture ${c.name.slice(0, 160)}`).join('')}`)
   // (the calculated steps first, in their order: each before the one it was calculated from)
   const calcSet = new Set(calc)

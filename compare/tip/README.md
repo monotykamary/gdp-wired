@@ -38,6 +38,47 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### Container observers and conditional equations (gen/laneTB, TB2)
+
+Main `c6036e6` was merged before these gates. Three full paired runs on boat, 492 tasks each, 60 s wall;
+`runs/bar/runs/laneTB2-lazy-tip{1,2,3}` in the lane worktree (frozen solver `0e27f345df99+09b85b07`). Each run's differences were rerun three times per side.
+
+| theorems (492) | proven, by run | wrong |
+| --- | --- | --- |
+| this branch | 225, 225, 222 | 0 |
+| main c6036e6 | 222, 221, 222 | 0 |
+
+Each run gained three solid tasks after reruns and lost none. `isaplanner/prop_52`, `prod/prop_06` and tree-sort
+count (`sort_TSortCount`) each proved 12/12 against 0/12. Tree-count answers took 11.0–30.1 s. The third pass
+had three initial misses recovered on reruns; there is **no aggregate count gain by the min/max noise rule**
+(the branch's lowest, 222, equals main's highest). The per-task gains are solid. These are not claims that every
+task or every sort is solved. The reports retain unsupported, error, unknown and timeout counts.
+
+What changed, in untrusted search and export only:
+- `core/data-synth.ts` recognises an additive list observer, including its per-element equality guard, and lifts
+  that algebra to recursive containers and nested forests. Each invented fold is an ordinary admitted definition.
+  It conjectures observer homomorphisms through builders, preserving accumulator contributions. Tree-sort count
+  uses three proved lemmas: count through flatten, the observer through insertion, and the observer through toTree.
+- It conjectures conditional observer equations for removal under presence and absence guards, and selector
+  membership as the premise for minimum-then-rest. Correlated samples reject missing equality cases; no sample
+  is a proof. Each accepted lemma is proved by the existing cyclic kernel before it can be used.
+- `core/data.ts` prioritises an observer family together, and `core/transfer.ts` carries the appended definitions
+  and exact fact table through certificate composition. The inherited arithmetic case-minimisation pass now
+  applies only to scalar laws; spending that pass on structural equalities caused three losses in an earlier,
+  rejected run. `lean-kernel/data.ts` closes the simplified guarded conclusion arithmetically.
+- Call-count ranks are admitted lazily, after the light first proof attempt fails. Refutation and transfer inspection
+  do not construct these unused definitions. A rejected quick bar exposed eager admission's cost on singleton laws;
+  same-VM profiling isolated it, and the final code matches main's counted work on both affected laws. The default
+  `programOf` API still includes counters, and every included definition goes through the same admission checks.
+
+`bun run check` and all seven shards pass on merged main (`runs/tb2/lazy-checks2`), including
+new adversarial, nested-container, guarded-law and lazy-rank tests. Tree count, both guarded removal equations, selector
+membership, prop_52 and prop_06 replay in Lean: only propext, Classical.choice and Quot.sound, no sorry. The
+quick bar (`runs/bar/runs/laneTB2-lazy-quick`) has wrong 0, no solid solve loss, no failed one-vCPU jobs and
+Lean 6/6. All 34 paired one-vCPU tests have overlapping timing bands (three runs a side). The lane's
+`runs/REPORT.md` records the rejected trials, profiling, run paths and final disposition.
+Heap-sort and full selection-sort count remain open in the probes; the large quicksort case is not claimed solved.
+
 ### Observers over builders, call counts as ranks (gen/laneTB)
 
 Three runs of this branch (19a4d3e: main 3000a12 merged, `runs/tb/gb1..3` in its worktree) against three of main
