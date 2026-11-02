@@ -71,7 +71,7 @@ function harness(pkg: GoPkg, read: GoRead, m: Model, discard: boolean): {code: s
         break
       }
       // A big.Int's nil flag and a map's are set with their values; a left-out field is compared, not set.
-      case 'bignil': case 'mapnil': case 'frame': break
+      case 'bignil': case 'mapnil': case 'frame': case 'sink': break
     }
   }
   const frames = read.leaves.filter(l => l.kind === 'frame')
