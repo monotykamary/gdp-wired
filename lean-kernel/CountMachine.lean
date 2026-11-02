@@ -454,6 +454,8 @@ theorem occ_renE (mr : List (Nat × Nat)) (i : Nat) : (e : E) → occE i (substR
   | .get m key => by
     simp only [substRE, frameRd]
     split <;> simp [getRd, occE, occ_renE mr i key]
+  | .tup a b => by simp [substRE, occE, occ_renE mr i a, occ_renE mr i b]
+  | .proj _ a => by simp [substRE, occE, occ_renE mr i a]
 theorem occ_renC (mr : List (Nat × Nat)) (i : Nat) : (c : C) → occC i (substRC [] (frameRd mr getRd) c) = occC i c
   | .le a b => by simp [substRC, occC, occ_renE mr i a, occ_renE mr i b]
   | .lt a b => by simp [substRC, occC, occ_renE mr i a, occ_renE mr i b]

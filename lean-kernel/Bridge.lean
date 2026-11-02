@@ -90,6 +90,8 @@ def readsAtE (fr to : E) : E → E
   | .prod a b => .prod (readsAtE fr to a) (readsAtE fr to b)
   | .ite c t f => .ite (readsAtC fr to c) (readsAtE fr to t) (readsAtE fr to f)
   | .get m key => if beqE key fr then .get m to else .get m (readsAtE fr to key)
+  | .tup a b => .tup (readsAtE fr to a) (readsAtE fr to b)
+  | .proj k a => .proj k (readsAtE fr to a)
 def readsAtC (fr to : E) : C → C
   | .le a b => .le (readsAtE fr to a) (readsAtE fr to b)
   | .lt a b => .lt (readsAtE fr to a) (readsAtE fr to b)
@@ -118,6 +120,8 @@ theorem readsAt_evalE : (e : E) → evalE ρ M (readsAtE fr to e) = evalE ρ M e
     split
     · rename_i hb; simp only [evalE, h, beqE_eq hb]
     · simp only [evalE, readsAt_evalE key]
+  | .tup a b => by simp only [readsAtE, evalE, readsAt_evalE a, readsAt_evalE b]
+  | .proj k a => by simp only [readsAtE, evalE, readsAt_evalE a]
 theorem readsAt_evalC : (c : C) → evalC ρ M (readsAtC fr to c) = evalC ρ M c
   | .le a b => by simp only [readsAtC, evalC, readsAt_evalE a, readsAt_evalE b]
   | .lt a b => by simp only [readsAtC, evalC, readsAt_evalE a, readsAt_evalE b]

@@ -18,6 +18,92 @@ open Cert
 set_option linter.unusedSimpArgs false
 set_option linter.unusedSectionVars false
 
+/-! The pairing a tuple key is read through (Data.lean's datatype codes use it too): `cun`, the naturals onto the pairs
+in order of their sum, and `cpair` its inverse (`cun_cpair`, `cpair_cun`); `tupk`, naturals packed by `cpair`, right-nested. -/
+
+/-- The naturals onto the pairs, in order of their sum: 0 is (0, 0), and each next natural the pair after. -/
+def cun : Nat → Nat × Nat
+  | 0 => (0, 0)
+  | n + 1 => match cun n with
+    | (0, b) => (b + 1, 0)
+    | (a + 1, b) => (a, b + 1)
+
+/-- 0 + 1 + … + s. -/
+def tri : Nat → Nat
+  | 0 => 0
+  | s + 1 => tri s + s + 1
+
+/-- `cun`'s inverse. -/
+def cpair (a b : Nat) : Nat := tri (a + b) + b
+
+theorem le_tri : ∀ s, s ≤ tri s
+  | 0 => Nat.le_refl 0
+  | s + 1 => by have := le_tri s; simp only [tri]; omega
+
+theorem cpair_succ_left (b : Nat) : cpair (b + 1) 0 = cpair 0 b + 1 := by
+  simp only [cpair, Nat.add_zero, Nat.zero_add, tri]
+
+theorem cpair_succ_right (a b : Nat) : cpair a (b + 1) = cpair (a + 1) b + 1 := by
+  simp only [cpair]
+  have e : a + (b + 1) = a + 1 + b := by omega
+  rw [e]; omega
+
+theorem cpair_cun : ∀ n, cpair (cun n).1 (cun n).2 = n
+  | 0 => rfl
+  | n + 1 => by
+    have ih := cpair_cun n
+    rcases h : cun n with ⟨a, b⟩
+    rw [h] at ih
+    cases a with
+    | zero => simp only [cun, h]; rw [cpair_succ_left]; simp only at ih; omega
+    | succ a => simp only [cun, h]; rw [cpair_succ_right]; simp only at ih; omega
+
+theorem cun_tri : ∀ s b, b ≤ s → cun (tri s + b) = (s - b, b)
+  | 0, 0, _ => rfl
+  | 0, _ + 1, h => absurd h (by omega)
+  | s + 1, 0, _ => by
+    have ih := cun_tri s s (Nat.le_refl s)
+    have e : tri (s + 1) + 0 = (tri s + s) + 1 := by simp only [tri]; try omega
+    rw [e]
+    simp only [cun, ih, Nat.sub_self, Nat.sub_zero]
+  | s + 1, b + 1, h => by
+    have ih := cun_tri (s + 1) b (by omega)
+    have e : tri (s + 1) + (b + 1) = (tri (s + 1) + b) + 1 := by omega
+    rw [e]
+    simp only [cun, ih]
+    have e2 : s + 1 - b = (s - b) + 1 := by omega
+    rw [e2]
+    simp only
+    have e3 : s + 1 - (b + 1) = s - b := by omega
+    rw [e3]
+
+theorem cun_cpair (a b : Nat) : cun (cpair a b) = (a, b) := by
+  unfold cpair
+  rw [cun_tri (a + b) b (by omega)]
+  simp
+
+@[simp] theorem cun_cpair_fst (a b : Nat) : (cun (cpair a b)).1 = a := by rw [cun_cpair]
+@[simp] theorem cun_cpair_snd (a b : Nat) : (cun (cpair a b)).2 = b := by rw [cun_cpair]
+@[simp] theorem cpair_cun_eq (n : Nat) : cpair (cun n).1 (cun n).2 = n := cpair_cun n
+
+/-- Naturals packed by `cpair`, right-nested; one is itself. -/
+def tupk : List Nat → Nat
+  | [] => 0
+  | [x] => x
+  | x :: xs => cpair x (tupk xs)
+
+@[simp] theorem tupk_one (x : Nat) : tupk [x] = x := rfl
+@[simp] theorem tupk_cons (x y : Nat) (ys : List Nat) : tupk (x :: y :: ys) = cpair x (tupk (y :: ys)) := rfl
+
+-- A pair's part: the first (k = 0) or the second (any other k).
+def pickP (k v : Nat) : Nat := if k = 0 then (cun v).1 else (cun v).2
+
+-- Equal naturals are equal pairs.
+theorem eq_iff_cun (n1 n2 : Nat) : n1 = n2 ↔ (cun n1).1 = (cun n2).1 ∧ (cun n1).2 = (cun n2).2 := by
+  constructor
+  · intro h; subst h; exact ⟨rfl, rfl⟩
+  · intro h; rw [← cpair_cun n1, ← cpair_cun n2, h.1, h.2]
+
 mutual
 inductive E where
   | var (i : Nat)
@@ -30,6 +116,8 @@ inductive E where
   | prod (a b : E)
   | ite (c : C) (t f : E)
   | get (m : Nat) (key : E)
+  | tup (a b : E)               -- the pair (Cantor's `cpair`) of two terms; an n-tuple nests to the right
+  | proj (k : Nat) (a : E)      -- a pair's first part (k = 0) or second (any other k)
 inductive C where
   | le (a b : E)
   | lt (a b : E)
@@ -56,6 +144,8 @@ def beqE : E → E → Bool
   | .prod x0 x1, .prod y0 y1 => beqE x0 y0 && beqE x1 y1
   | .ite x0 x1 x2, .ite y0 y1 y2 => beqC x0 y0 && beqE x1 y1 && beqE x2 y2
   | .get x0 x1, .get y0 y1 => x0 == y0 && beqE x1 y1
+  | .tup x0 x1, .tup y0 y1 => beqE x0 y0 && beqE x1 y1
+  | .proj x0 x1, .proj y0 y1 => x0 == y0 && beqE x1 y1
   | _, _ => false
 def beqC : C → C → Bool
   | .le x0 x1, .le y0 y1 => beqE x0 y0 && beqE x1 y1
@@ -99,6 +189,12 @@ theorem beqE_eq : ∀ {a b : E}, beqE a b = true → a = b
   | .get x0 x1, .get y0 y1, h => by
     simp only [beqE, Bool.and_eq_true, beq_iff_eq] at h
     rw [h.1, beqE_eq h.2]
+  | .tup x0 x1, .tup y0 y1, h => by
+    simp only [beqE, Bool.and_eq_true, beq_iff_eq] at h
+    rw [beqE_eq h.1, beqE_eq h.2]
+  | .proj x0 x1, .proj y0 y1, h => by
+    simp only [beqE, Bool.and_eq_true, beq_iff_eq] at h
+    rw [h.1, beqE_eq h.2]
   | .var _, .const _, h => by simp [beqE] at h
   | .var _, .add _ _, h => by simp [beqE] at h
   | .var _, .sub _ _, h => by simp [beqE] at h
@@ -108,6 +204,8 @@ theorem beqE_eq : ∀ {a b : E}, beqE a b = true → a = b
   | .var _, .prod _ _, h => by simp [beqE] at h
   | .var _, .ite _ _ _, h => by simp [beqE] at h
   | .var _, .get _ _, h => by simp [beqE] at h
+  | .var _, .tup _ _, h => by simp [beqE] at h
+  | .var _, .proj _ _, h => by simp [beqE] at h
   | .const _, .var _, h => by simp [beqE] at h
   | .const _, .add _ _, h => by simp [beqE] at h
   | .const _, .sub _ _, h => by simp [beqE] at h
@@ -117,6 +215,8 @@ theorem beqE_eq : ∀ {a b : E}, beqE a b = true → a = b
   | .const _, .prod _ _, h => by simp [beqE] at h
   | .const _, .ite _ _ _, h => by simp [beqE] at h
   | .const _, .get _ _, h => by simp [beqE] at h
+  | .const _, .tup _ _, h => by simp [beqE] at h
+  | .const _, .proj _ _, h => by simp [beqE] at h
   | .add _ _, .var _, h => by simp [beqE] at h
   | .add _ _, .const _, h => by simp [beqE] at h
   | .add _ _, .sub _ _, h => by simp [beqE] at h
@@ -126,6 +226,8 @@ theorem beqE_eq : ∀ {a b : E}, beqE a b = true → a = b
   | .add _ _, .prod _ _, h => by simp [beqE] at h
   | .add _ _, .ite _ _ _, h => by simp [beqE] at h
   | .add _ _, .get _ _, h => by simp [beqE] at h
+  | .add _ _, .tup _ _, h => by simp [beqE] at h
+  | .add _ _, .proj _ _, h => by simp [beqE] at h
   | .sub _ _, .var _, h => by simp [beqE] at h
   | .sub _ _, .const _, h => by simp [beqE] at h
   | .sub _ _, .add _ _, h => by simp [beqE] at h
@@ -135,6 +237,8 @@ theorem beqE_eq : ∀ {a b : E}, beqE a b = true → a = b
   | .sub _ _, .prod _ _, h => by simp [beqE] at h
   | .sub _ _, .ite _ _ _, h => by simp [beqE] at h
   | .sub _ _, .get _ _, h => by simp [beqE] at h
+  | .sub _ _, .tup _ _, h => by simp [beqE] at h
+  | .sub _ _, .proj _ _, h => by simp [beqE] at h
   | .mul _ _, .var _, h => by simp [beqE] at h
   | .mul _ _, .const _, h => by simp [beqE] at h
   | .mul _ _, .add _ _, h => by simp [beqE] at h
@@ -144,6 +248,8 @@ theorem beqE_eq : ∀ {a b : E}, beqE a b = true → a = b
   | .mul _ _, .prod _ _, h => by simp [beqE] at h
   | .mul _ _, .ite _ _ _, h => by simp [beqE] at h
   | .mul _ _, .get _ _, h => by simp [beqE] at h
+  | .mul _ _, .tup _ _, h => by simp [beqE] at h
+  | .mul _ _, .proj _ _, h => by simp [beqE] at h
   | .min _ _, .var _, h => by simp [beqE] at h
   | .min _ _, .const _, h => by simp [beqE] at h
   | .min _ _, .add _ _, h => by simp [beqE] at h
@@ -153,6 +259,8 @@ theorem beqE_eq : ∀ {a b : E}, beqE a b = true → a = b
   | .min _ _, .prod _ _, h => by simp [beqE] at h
   | .min _ _, .ite _ _ _, h => by simp [beqE] at h
   | .min _ _, .get _ _, h => by simp [beqE] at h
+  | .min _ _, .tup _ _, h => by simp [beqE] at h
+  | .min _ _, .proj _ _, h => by simp [beqE] at h
   | .max _ _, .var _, h => by simp [beqE] at h
   | .max _ _, .const _, h => by simp [beqE] at h
   | .max _ _, .add _ _, h => by simp [beqE] at h
@@ -162,6 +270,8 @@ theorem beqE_eq : ∀ {a b : E}, beqE a b = true → a = b
   | .max _ _, .prod _ _, h => by simp [beqE] at h
   | .max _ _, .ite _ _ _, h => by simp [beqE] at h
   | .max _ _, .get _ _, h => by simp [beqE] at h
+  | .max _ _, .tup _ _, h => by simp [beqE] at h
+  | .max _ _, .proj _ _, h => by simp [beqE] at h
   | .prod _ _, .var _, h => by simp [beqE] at h
   | .prod _ _, .const _, h => by simp [beqE] at h
   | .prod _ _, .add _ _, h => by simp [beqE] at h
@@ -171,6 +281,8 @@ theorem beqE_eq : ∀ {a b : E}, beqE a b = true → a = b
   | .prod _ _, .max _ _, h => by simp [beqE] at h
   | .prod _ _, .ite _ _ _, h => by simp [beqE] at h
   | .prod _ _, .get _ _, h => by simp [beqE] at h
+  | .prod _ _, .tup _ _, h => by simp [beqE] at h
+  | .prod _ _, .proj _ _, h => by simp [beqE] at h
   | .ite _ _ _, .var _, h => by simp [beqE] at h
   | .ite _ _ _, .const _, h => by simp [beqE] at h
   | .ite _ _ _, .add _ _, h => by simp [beqE] at h
@@ -180,6 +292,8 @@ theorem beqE_eq : ∀ {a b : E}, beqE a b = true → a = b
   | .ite _ _ _, .max _ _, h => by simp [beqE] at h
   | .ite _ _ _, .prod _ _, h => by simp [beqE] at h
   | .ite _ _ _, .get _ _, h => by simp [beqE] at h
+  | .ite _ _ _, .tup _ _, h => by simp [beqE] at h
+  | .ite _ _ _, .proj _ _, h => by simp [beqE] at h
   | .get _ _, .var _, h => by simp [beqE] at h
   | .get _ _, .const _, h => by simp [beqE] at h
   | .get _ _, .add _ _, h => by simp [beqE] at h
@@ -189,6 +303,30 @@ theorem beqE_eq : ∀ {a b : E}, beqE a b = true → a = b
   | .get _ _, .max _ _, h => by simp [beqE] at h
   | .get _ _, .prod _ _, h => by simp [beqE] at h
   | .get _ _, .ite _ _ _, h => by simp [beqE] at h
+  | .get _ _, .tup _ _, h => by simp [beqE] at h
+  | .get _ _, .proj _ _, h => by simp [beqE] at h
+  | .tup _ _, .var _, h => by simp [beqE] at h
+  | .tup _ _, .const _, h => by simp [beqE] at h
+  | .tup _ _, .add _ _, h => by simp [beqE] at h
+  | .tup _ _, .sub _ _, h => by simp [beqE] at h
+  | .tup _ _, .mul _ _, h => by simp [beqE] at h
+  | .tup _ _, .min _ _, h => by simp [beqE] at h
+  | .tup _ _, .max _ _, h => by simp [beqE] at h
+  | .tup _ _, .prod _ _, h => by simp [beqE] at h
+  | .tup _ _, .ite _ _ _, h => by simp [beqE] at h
+  | .tup _ _, .get _ _, h => by simp [beqE] at h
+  | .tup _ _, .proj _ _, h => by simp [beqE] at h
+  | .proj _ _, .var _, h => by simp [beqE] at h
+  | .proj _ _, .const _, h => by simp [beqE] at h
+  | .proj _ _, .add _ _, h => by simp [beqE] at h
+  | .proj _ _, .sub _ _, h => by simp [beqE] at h
+  | .proj _ _, .mul _ _, h => by simp [beqE] at h
+  | .proj _ _, .min _ _, h => by simp [beqE] at h
+  | .proj _ _, .max _ _, h => by simp [beqE] at h
+  | .proj _ _, .prod _ _, h => by simp [beqE] at h
+  | .proj _ _, .ite _ _ _, h => by simp [beqE] at h
+  | .proj _ _, .get _ _, h => by simp [beqE] at h
+  | .proj _ _, .tup _ _, h => by simp [beqE] at h
 theorem beqC_eq : ∀ {a b : C}, beqC a b = true → a = b
   | .le x0 x1, .le y0 y1, h => by
     simp only [beqC, Bool.and_eq_true, beq_iff_eq] at h
@@ -252,6 +390,8 @@ def evalE (env : Nat → Nat) (maps : Nat → Nat → Nat) : E → Nat
   | .prod a b => evalE env maps a * evalE env maps b
   | .ite c t f => if evalC env maps c then evalE env maps t else evalE env maps f
   | .get m key => maps m (evalE env maps key)
+  | .tup a b => cpair (evalE env maps a) (evalE env maps b)
+  | .proj k a => pickP k (evalE env maps a)
 def evalC (env : Nat → Nat) (maps : Nat → Nat → Nat) : C → Bool
   | .le a b => decide (evalE env maps a ≤ evalE env maps b)
   | .lt a b => decide (evalE env maps a < evalE env maps b)
@@ -364,6 +504,7 @@ theorem dec_sound {path : Path} {x : List Int} (hP : PathHolds path x) {l : Row}
 inductive VDef where
   | var (i : Nat)
   | cell (m : Nat) (key : Row)
+  | cellT (m : Nat) (keys : List Row)  -- map m's cell at the tuple of the keys (`tupk` of their values)
   | mono (fs : List Nat)        -- the product of earlier columns (a monomial)
   | term (e : E)                -- a choice the path leaves open (∸, min, max, if), standing for its value
 
@@ -374,6 +515,7 @@ def prodV (x : List Int) : List Nat → Int
 def valD (env : Nat → Nat) (maps : Nat → Nat → Nat) : VDef → List Int → Int
   | .var i, _ => (env i : Int)
   | .cell m k, x => (maps m (eval k x).toNat : Int)
+  | .cellT m ks, x => (maps m (tupk (ks.map fun k => (eval k x).toNat)) : Int)
   | .mono fs, x => ((prodV x fs).toNat : Int)
   | .term e, _ => (evalE env maps e : Int)
 
@@ -402,6 +544,14 @@ def isVar (i : Nat) : VDef → Bool
   | _ => false
 def isCell (m : Nat) (k : Row) : VDef → Bool
   | .cell m' k' => m' == m && same k' k
+  | _ => false
+-- Rows equal pairwise (`same`), the lists of one length.
+def sameL : List Row → List Row → Bool
+  | [], [] => true
+  | a :: as, b :: bs => same a b && sameL as bs
+  | _, _ => false
+def isCellT (m : Nat) (ks : List Row) : VDef → Bool
+  | .cellT m' ks' => m' == m && sameL ks' ks
   | _ => false
 def isTerm (e : E) : VDef → Bool
   | .term e' => beqE e' e
@@ -470,6 +620,45 @@ def rowMul (tab : List VDef) (a b : Row) : Option Row :=
   | some p => some (ladd p (ladd (lscale a.const ⟨b.coefs, 0⟩) (ladd (lscale b.const ⟨a.coefs, 0⟩) (lconst (a.const * b.const)))))
   | none => none
 
+/-! Tuples. `shapeT` reads a tuple's term as its tree of pairs, each leaf a part that isn't a tuple, with its linear form
+if it has one. Two tuples are equal exactly when their parts are, pair by pair (`cpair` is a bijection), so the truth and
+the facts of their equality are those of the conjunction of their parts' equalities. A map's cell at a right-nested
+tuple whose parts have linear forms is a column of its own (`cellT`), keyed by the parts' forms (`partsSh`). -/
+
+inductive Sh where
+  | leaf (r : Option Row)
+  | node (a b : Sh)
+
+def isTup : E → Bool
+  | .tup _ _ => true
+  | _ => false
+
+-- Kleene's and: the truth of `.and`.
+def kand : Option Bool → Option Bool → Option Bool
+  | some false, _ => some false
+  | _, some false => some false
+  | some true, some true => some true
+  | _, _ => none
+
+-- The truth of an equality of two linear forms under the path.
+def eqL (path : Path) (la lb : Row) : Option Bool :=
+  match dec path (lsub la lb), dec path (lsub lb la) with
+  | some false, _ => some false
+  | _, some false => some false
+  | some true, some true => some true
+  | _, _ => none
+
+-- Two trees of linear forms equal: leaves by their forms, pairs part by part.
+def eqSh (path : Path) : Sh → Sh → Option Bool
+  | .leaf (some la), .leaf (some lb) => eqL path la lb
+  | .node s1 s2, .node t1 t2 => kand (eqSh path s1 t1) (eqSh path s2 t2)
+  | _, _ => none
+
+-- A right-nested tuple's parts, each a leaf with a linear form.
+def partsSh : Sh → Option (List Row)
+  | .leaf (some r) => some [r]
+  | .node (.leaf (some r)) t => (partsSh t).map (r :: ·)
+  | _ => none
 
 mutual
 def linear (tab : List VDef) (path : Path) : E → Option Row
@@ -506,9 +695,15 @@ def linear (tab : List VDef) (path : Path) : E → Option Row
     | some true => linear tab path t
     | some false => linear tab path f
     | none => termCol tab (.ite c t f)
-  | .get m key => match linear tab path key with
+  | .get m key => if isTup key then
+      (match partsSh (shapeT tab path key) with
+       | some rs => (findIdx (isCellT m rs) tab).map lunit
+       | none => none)
+    else match linear tab path key with
     | some lk => (findIdx (isCell m lk) tab).map lunit
     | none => none
+  | .tup _ _ => none
+  | .proj k a => projL tab path k [] a
 def truth (tab : List VDef) (path : Path) : C → Option Bool
   | .le a b => match linear tab path a, linear tab path b with
     | some la, some lb => dec path (lsub la lb)
@@ -516,12 +711,9 @@ def truth (tab : List VDef) (path : Path) : C → Option Bool
   | .lt a b => match linear tab path a, linear tab path b with
     | some la, some lb => dec path (ladd (lsub la lb) (lconst 1))
     | _, _ => none
-  | .eq a b => match linear tab path a, linear tab path b with
-    | some la, some lb => match dec path (lsub la lb), dec path (lsub lb la) with
-      | some false, _ => some false
-      | _, some false => some false
-      | some true, some true => some true
-      | _, _ => none
+  | .eq a b => if isTup a && isTup b then eqSh path (shapeT tab path a) (shapeT tab path b)
+    else match linear tab path a, linear tab path b with
+    | some la, some lb => eqL path la lb
     | _, _ => none
   | .and a b => match truth tab path a, truth tab path b with
     | some false, _ => some false
@@ -536,7 +728,118 @@ def truth (tab : List VDef) (path : Path) : C → Option Bool
   | .not a => match truth tab path a with
     | some b => some (!b)
     | none => none
+-- A tuple's tree of linear forms; anything else has none.
+def shapeT (tab : List VDef) (path : Path) : E → Sh
+  | .tup a b => .node (if isTup a then shapeT tab path a else .leaf (linear tab path a))
+      (if isTup b then shapeT tab path b else .leaf (linear tab path b))
+  | _ => .leaf none
+-- The linear form of the part of a term that the selectors k :: rest pick, in order (0 the first part, any other k the
+-- second), through its tuples and projections: proj k (proj k0 e) picks k0 then k.
+def projL (tab : List VDef) (path : Path) (k : Nat) (rest : List Nat) : E → Option Row
+  | .tup a b => if k = 0 then
+      (match rest with
+       | [] => linear tab path a
+       | k' :: rest' => projL tab path k' rest' a)
+    else
+      (match rest with
+       | [] => linear tab path b
+       | k' :: rest' => projL tab path k' rest' b)
+  | .proj k0 a => projL tab path k0 (k :: rest) a
+  | _ => none
 end
+
+-- The selectors' part of a natural read as nested pairs.
+def selP : List Nat → Nat → Nat
+  | [], v => v
+  | k :: ks, v => selP ks (pickP k v)
+
+-- What a tree of linear forms says of a natural: a leaf's form is its value, a pair's parts are its parts'.
+def DenSh (x : List Int) : Sh → Nat → Prop
+  | .leaf none, _ => True
+  | .leaf (some r), v => eval r x = (v : Int)
+  | .node s t, v => DenSh x s (cun v).1 ∧ DenSh x t (cun v).2
+
+theorem decide_cast_eq (a b : Nat) : decide ((a : Int) = (b : Int)) = decide (a = b) :=
+  decide_eq_decide.mpr (by constructor <;> intro h <;> omega)
+
+theorem decide_eq_cun (n1 n2 : Nat) :
+    decide (n1 = n2) = (decide ((cun n1).1 = (cun n2).1) && decide ((cun n1).2 = (cun n2).2)) := by
+  rw [← Bool.decide_and]; exact decide_eq_decide.mpr (eq_iff_cun n1 n2)
+
+theorem kand_sound {P Q r : Bool} {a b : Option Bool} (ha : ∀ v, a = some v → P = v) (hb : ∀ v, b = some v → Q = v)
+    (h : kand a b = some r) : (P && Q) = r := by
+  rcases a with _ | _ | _ <;> rcases b with _ | _ | _ <;> simp only [kand, Option.some.injEq, reduceCtorEq] at h <;>
+    subst h <;> simp_all
+
+theorem eqL_sound {path : Path} {x : List Int} (hP : PathHolds path x) {la lb : Row} {b : Bool}
+    (h : eqL path la lb = some b) : decide (eval la x = eval lb x) = b := by
+  simp only [eqL] at h
+  revert h
+  rcases h1 : dec path (lsub la lb) with _ | _ | _ <;> rcases h2 : dec path (lsub lb la) with _ | _ | _ <;>
+    intro h <;> simp only [Option.some.injEq, reduceCtorEq] at h <;> subst h <;>
+    first
+      | (have t1 := dec_sound hP h1; have t2 := dec_sound hP h2; rw [eval_lsub] at t1 t2
+         simp only [decide_eq_true_eq, decide_eq_false_iff_not] at t1 t2 ⊢; omega)
+      | (have t1 := dec_sound hP h1; rw [eval_lsub] at t1
+         simp only [decide_eq_true_eq, decide_eq_false_iff_not] at t1 ⊢; omega)
+      | (have t2 := dec_sound hP h2; rw [eval_lsub] at t2
+         simp only [decide_eq_true_eq, decide_eq_false_iff_not] at t2 ⊢; omega)
+
+theorem eqSh_sound {path : Path} {x : List Int} (hP : PathHolds path x) :
+    ∀ (s t : Sh) (n1 n2 : Nat) (b : Bool), DenSh x s n1 → DenSh x t n2 → eqSh path s t = some b → decide (n1 = n2) = b
+  | .leaf (some la), .leaf (some lb), n1, n2, b, h1, h2, h => by
+    simp only [eqSh] at h
+    have := eqL_sound hP h
+    simp only [DenSh] at h1 h2
+    rw [h1, h2, decide_cast_eq] at this
+    exact this
+  | .node s1 s2, .node t1 t2, n1, n2, b, h1, h2, h => by
+    simp only [DenSh] at h1 h2
+    simp only [eqSh] at h
+    rw [decide_eq_cun]
+    exact kand_sound (fun v hv => eqSh_sound hP s1 t1 _ _ v h1.1 h2.1 hv) (fun v hv => eqSh_sound hP s2 t2 _ _ v h1.2 h2.2 hv) h
+  | .leaf none, .leaf _, _, _, _, _, _, h => by simp [eqSh] at h
+  | .leaf none, .node _ _, _, _, _, _, _, h => by simp [eqSh] at h
+  | .leaf (some _), .leaf none, _, _, _, _, _, h => by simp [eqSh] at h
+  | .leaf (some _), .node _ _, _, _, _, _, _, h => by simp [eqSh] at h
+  | .node _ _, .leaf _, _, _, _, _, _, h => by simp [eqSh] at h
+
+theorem partsSh_ne : ∀ {s : Sh} {rs : List Row}, partsSh s = some rs → rs ≠ []
+  | .leaf (some r), rs, h => by simp only [partsSh, Option.some.injEq] at h; subst h; simp
+  | .node (.leaf (some r)) t, rs, h => by
+    simp only [partsSh, Option.map_eq_some_iff] at h
+    obtain ⟨rs', _, rfl⟩ := h; simp
+  | .leaf none, _, h => by simp [partsSh] at h
+  | .node (.leaf none) _, _, h => by simp [partsSh] at h
+  | .node (.node _ _) _, _, h => by simp [partsSh] at h
+
+-- A tuple's parts' values packed are the tuple's value.
+theorem partsSh_sound {x : List Int} : ∀ (s : Sh) (rs : List Row) (v : Nat), partsSh s = some rs → DenSh x s v →
+    tupk (rs.map fun r => (eval r x).toNat) = v
+  | .leaf (some r), rs, v, h, hd => by
+    simp only [partsSh, Option.some.injEq] at h; subst h
+    simp only [DenSh] at hd
+    simp [hd]
+  | .node (.leaf (some r)) t, rs, v, h, hd => by
+    simp only [partsSh, Option.map_eq_some_iff] at h
+    obtain ⟨rs', hrs', rfl⟩ := h
+    simp only [DenSh] at hd
+    obtain ⟨r1, rs1, rfl⟩ := List.exists_cons_of_ne_nil (partsSh_ne hrs')
+    have ih := partsSh_sound t _ _ hrs' hd.2
+    simp only [List.map_cons, tupk_cons] at ih ⊢
+    rw [ih, hd.1]; simp
+  | .leaf none, _, _, h, _ => by simp [partsSh] at h
+  | .node (.leaf none) _, _, _, h, _ => by simp [partsSh] at h
+  | .node (.node _ _) _, _, _, h, _ => by simp [partsSh] at h
+
+theorem sameL_map {x : List Int} : ∀ {as bs : List Row}, sameL as bs = true →
+    as.map (fun r => (eval r x).toNat) = bs.map (fun r => (eval r x).toNat)
+  | [], [], _ => rfl
+  | a :: as, b :: bs, h => by
+    simp only [sameL, Bool.and_eq_true] at h
+    simp only [List.map_cons, same_eval h.1 x, sameL_map h.2]
+  | [], _ :: _, h => by simp [sameL] at h
+  | _ :: _, [], h => by simp [sameL] at h
 
 section
 variable {tab : List VDef} {env : Nat → Nat} {maps : Nat → Nat → Nat} {x : List Int} {path : Path}
@@ -573,6 +876,17 @@ theorem cell_col (hM : Model tab env maps x) {m j : Nat} {k : Row} (h : findIdx 
     obtain ⟨rfl, hs⟩ := hv
     simp only [valD, same_eval hs x]
   | _ => simp [isCell] at hv
+
+theorem cellT_col (hM : Model tab env maps x) {m j : Nat} {ks : List Row} (h : findIdx (isCellT m ks) tab = some j) :
+    x.getD j 0 = (maps m (tupk (ks.map fun r => (eval r x).toNat)) : Int) := by
+  obtain ⟨d, hd, hv⟩ := findIdx_some h
+  rw [hM.1 j d hd]
+  cases d with
+  | cellT m' ks' =>
+    simp only [isCellT, Bool.and_eq_true, beq_iff_eq] at hv
+    obtain ⟨rfl, hs⟩ := hv
+    simp only [valD, sameL_map hs]
+  | _ => simp [isCellT] at hv
 
 theorem fac_val (hM : Model tab env maps x) {i : Nat} {fs : List Nat} (h : fac tab i = some fs) : x.getD i 0 = prodV x fs := by
   simp only [fac] at h
@@ -751,13 +1065,26 @@ theorem linear_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
   | .get m key, l, h => by
     simp only [linear] at h
     split at h
-    · rename_i lk hk
-      cases hj : findIdx (isCell m lk) tab with
-      | none => simp [hj] at h
-      | some j =>
-        simp only [hj, Option.map_some, Option.some.injEq] at h; subst h
-        rw [eval_lunit, cell_col hM hj, linear_sound hM hP key lk hk, evalE]; simp
-    · simp at h
+    · split at h
+      · rename_i rs hrs
+        cases hj : findIdx (isCellT m rs) tab with
+        | none => simp [hj] at h
+        | some j =>
+          simp only [hj, Option.map_some, Option.some.injEq] at h; subst h
+          rw [eval_lunit, cellT_col hM hj, partsSh_sound _ rs _ hrs (shapeT_sound hM hP key), evalE]
+      · simp at h
+    · split at h
+      · rename_i lk hk
+        cases hj : findIdx (isCell m lk) tab with
+        | none => simp [hj] at h
+        | some j =>
+          simp only [hj, Option.map_some, Option.some.injEq] at h; subst h
+          rw [eval_lunit, cell_col hM hj, linear_sound hM hP key lk hk, evalE]; simp
+      · simp at h
+  | .tup _ _, l, h => by simp [linear] at h
+  | .proj k a, l, h => by
+    simp only [linear] at h
+    rw [projL_sound hM hP k [] a l h]; rfl
 theorem truth_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
     (c : C) → (b : Bool) → truth tab path c = some b → evalC env maps c = b
   | .le a b', r, h => by
@@ -783,21 +1110,14 @@ theorem truth_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
   | .eq a b', r, h => by
     simp only [truth] at h
     split at h
-    · rename_i la lb ha hb
-      have ea := linear_sound hM hP a la ha
-      have eb := linear_sound hM hP b' lb hb
-      simp only [evalC]
-      revert h
-      rcases h1 : dec path (lsub la lb) with _ | _ | _ <;> rcases h2 : dec path (lsub lb la) with _ | _ | _ <;>
-        intro h <;> simp only [Option.some.injEq, reduceCtorEq] at h <;> subst h <;>
-        first
-          | (have t1 := dec_sound hP h1; have t2 := dec_sound hP h2; rw [eval_lsub] at t1 t2
-             simp only [decide_eq_true_eq, decide_eq_false_iff_not] at t1 t2 ⊢; omega)
-          | (have t1 := dec_sound hP h1; rw [eval_lsub] at t1
-             simp only [decide_eq_true_eq, decide_eq_false_iff_not] at t1 ⊢; omega)
-          | (have t2 := dec_sound hP h2; rw [eval_lsub] at t2
-             simp only [decide_eq_true_eq, decide_eq_false_iff_not] at t2 ⊢; omega)
-    · simp at h
+    · simp only [evalC]
+      exact eqSh_sound hP _ _ _ _ r (shapeT_sound hM hP a) (shapeT_sound hM hP b') h
+    · split at h
+      · rename_i la lb ha hb
+        have := eqL_sound hP h
+        rw [linear_sound hM hP a la ha, linear_sound hM hP b' lb hb, decide_cast_eq] at this
+        simp only [evalC]; exact this
+      · simp at h
   | .and a b', r, h => by
     simp only [truth] at h
     simp only [evalC]
@@ -819,10 +1139,162 @@ theorem truth_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
     split at h
     · rename_i r' h1; simp only [Option.some.injEq] at h; subst h; simp [evalC, truth_sound hM hP a r' h1]
     · simp at h
+theorem shapeT_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
+    (e : E) → DenSh x (shapeT tab path e) (evalE env maps e)
+  | .tup a b => by
+    have ha : DenSh x (if isTup a then shapeT tab path a else .leaf (linear tab path a)) (evalE env maps a) := by
+      split
+      · exact shapeT_sound hM hP a
+      · cases hl : linear tab path a with
+        | none => exact trivial
+        | some r => exact linear_sound hM hP a r hl
+    have hb : DenSh x (if isTup b then shapeT tab path b else .leaf (linear tab path b)) (evalE env maps b) := by
+      split
+      · exact shapeT_sound hM hP b
+      · cases hl : linear tab path b with
+        | none => exact trivial
+        | some r => exact linear_sound hM hP b r hl
+    simp only [shapeT, evalE, DenSh, cun_cpair_fst, cun_cpair_snd]
+    exact ⟨ha, hb⟩
+  | .var _ => trivial
+  | .const _ => trivial
+  | .add _ _ => trivial
+  | .sub _ _ => trivial
+  | .mul _ _ => trivial
+  | .min _ _ => trivial
+  | .max _ _ => trivial
+  | .prod _ _ => trivial
+  | .ite _ _ _ => trivial
+  | .get _ _ => trivial
+  | .proj _ _ => trivial
+theorem projL_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
+    (k : Nat) → (rest : List Nat) → (e : E) → (l : Row) → projL tab path k rest e = some l →
+      eval l x = (selP rest (pickP k (evalE env maps e)) : Int)
+  | k, rest, .tup a b, l, h => by
+    simp only [projL] at h
+    simp only [evalE, pickP, cun_cpair_fst, cun_cpair_snd]
+    split at h
+    · rename_i hk
+      simp only [hk, ↓reduceIte]
+      split at h
+      · rw [linear_sound hM hP a l h]; rfl
+      · rename_i k' rest'
+        rw [projL_sound hM hP k' rest' a l h]; rfl
+    · rename_i hk
+      simp only [hk, ↓reduceIte]
+      split at h
+      · rw [linear_sound hM hP b l h]; rfl
+      · rename_i k' rest'
+        rw [projL_sound hM hP k' rest' b l h]; rfl
+  | k, rest, .proj k0 a, l, h => by
+    simp only [projL] at h
+    rw [projL_sound hM hP k0 (k :: rest) a l h]; rfl
+  | _, _, .var _, _, h => by simp [projL] at h
+  | _, _, .const _, _, h => by simp [projL] at h
+  | _, _, .add _ _, _, h => by simp [projL] at h
+  | _, _, .sub _ _, _, h => by simp [projL] at h
+  | _, _, .mul _ _, _, h => by simp [projL] at h
+  | _, _, .min _ _, _, h => by simp [projL] at h
+  | _, _, .max _ _, _, h => by simp [projL] at h
+  | _, _, .prod _ _, _, h => by simp [projL] at h
+  | _, _, .ite _ _ _, _, h => by simp [projL] at h
+  | _, _, .get _ _, _, h => by simp [projL] at h
 end
 end
 
 /-! Facts: the rows a hypothesis gives under the path, when it has the truth value `pos`. -/
+
+-- An equality of two linear forms: both differences ≤ 0 when it holds; when it fails, whichever strict side the path
+-- leaves open.
+def eqF (path : Path) (pos : Bool) (la lb : Row) : List Row :=
+  if pos then [lsub la lb, lsub lb la]
+  else
+    let u1 := ladd (lsub la lb) (lconst 1)
+    let u2 := ladd (lsub lb la) (lconst 1)
+    let o1 := dec path u1 != some false
+    let o2 := dec path u2 != some false
+    if o1 && o2 then [] else if o1 then [u1] else if o2 then [u2] else [lconst 1]
+
+-- An equality of two tuples: the facts of the conjunction of their parts' equalities (as `.and`'s).
+def factsSh (path : Path) (pos : Bool) : Sh → Sh → List Row
+  | .leaf (some la), .leaf (some lb) => eqF path pos la lb
+  | .node s1 s2, .node t1 t2 =>
+    if pos then factsSh path pos s1 t1 ++ factsSh path pos s2 t2
+    else
+      let oa := eqSh path s1 t1 != some (!pos)
+      let ob := eqSh path s2 t2 != some (!pos)
+      if oa && ob then [] else if oa then factsSh path pos s1 t1 else if ob then factsSh path pos s2 t2 else [lconst 1]
+  | _, _ => []
+
+theorem eqF_sound {path : Path} {x : List Int} (hP : PathHolds path x) {la lb : Row} {pos : Bool}
+    (h : decide (eval la x = eval lb x) = pos) : ∀ r ∈ eqF path pos la lb, eval r x ≤ 0 := by
+  intro r hr
+  simp only [eqF] at hr
+  cases pos with
+  | true =>
+    simp only [decide_eq_true_eq] at h
+    simp only [ite_true, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hr
+    rcases hr with hr | hr <;> subst hr <;> rw [eval_lsub] <;> omega
+  | false =>
+    simp only [decide_eq_false_iff_not] at h
+    simp only [Bool.false_eq_true, ite_false] at hr
+    have d1 := fun (hv : dec path (ladd (lsub la lb) (lconst 1)) = some false) => dec_sound hP hv
+    have d2 := fun (hv : dec path (ladd (lsub lb la) (lconst 1)) = some false) => dec_sound hP hv
+    simp only [eval_ladd, eval_lsub, eval_lconst, decide_eq_false_iff_not] at d1 d2
+    split at hr
+    · simp at hr
+    · split at hr
+      · have := d2 (by simp_all)
+        simp only [List.mem_singleton] at hr; subst hr
+        rw [eval_ladd, eval_lsub, eval_lconst]; omega
+      · split at hr
+        · have := d1 (by simp_all)
+          simp only [List.mem_singleton] at hr; subst hr
+          rw [eval_ladd, eval_lsub, eval_lconst]; omega
+        · have := d1 (by simp_all); have := d2 (by simp_all); omega
+
+theorem factsSh_sound {path : Path} {x : List Int} (hP : PathHolds path x) :
+    ∀ (s t : Sh) (n1 n2 : Nat) (pos : Bool), DenSh x s n1 → DenSh x t n2 → decide (n1 = n2) = pos →
+      ∀ r ∈ factsSh path pos s t, eval r x ≤ 0
+  | .leaf (some la), .leaf (some lb), n1, n2, pos, h1, h2, h, r, hr => by
+    simp only [factsSh] at hr
+    simp only [DenSh] at h1 h2
+    exact eqF_sound hP (by rw [h1, h2, decide_cast_eq]; exact h) r hr
+  | .node s1 s2, .node t1 t2, n1, n2, pos, h1, h2, h, r, hr => by
+    simp only [DenSh] at h1 h2
+    simp only [factsSh] at hr
+    rw [decide_eq_cun] at h
+    have ta := fun v (hv : eqSh path s1 t1 = some v) => eqSh_sound hP s1 t1 _ _ v h1.1 h2.1 hv
+    have tb := fun v (hv : eqSh path s2 t2 = some v) => eqSh_sound hP s2 t2 _ _ v h1.2 h2.2 hv
+    cases pos with
+    | true =>
+      simp only [Bool.and_eq_true] at h
+      simp only [ite_true, List.mem_append] at hr
+      rcases hr with hr | hr
+      · exact factsSh_sound hP s1 t1 _ _ true h1.1 h2.1 h.1 r hr
+      · exact factsSh_sound hP s2 t2 _ _ true h1.2 h2.2 h.2 r hr
+    | false =>
+      simp only [Bool.false_eq_true, ite_false, Bool.not_false] at hr
+      simp only [Bool.and_eq_false_iff] at h
+      split at hr
+      · simp at hr
+      · split at hr
+        · have hb : eqSh path s2 t2 = some true := by simp_all
+          have := tb true hb
+          exact factsSh_sound hP s1 t1 _ _ false h1.1 h2.1 (by simp_all) r hr
+        · split at hr
+          · have ha : eqSh path s1 t1 = some true := by simp_all
+            have := ta true ha
+            exact factsSh_sound hP s2 t2 _ _ false h1.2 h2.2 (by simp_all) r hr
+          · have ha : eqSh path s1 t1 = some true := by simp_all
+            have hb : eqSh path s2 t2 = some true := by simp_all
+            have := ta true ha; have := tb true hb
+            simp_all
+  | .leaf none, .leaf _, _, _, _, _, _, _, r, hr => by simp [factsSh] at hr
+  | .leaf none, .node _ _, _, _, _, _, _, _, r, hr => by simp [factsSh] at hr
+  | .leaf (some _), .leaf none, _, _, _, _, _, _, r, hr => by simp [factsSh] at hr
+  | .leaf (some _), .node _ _, _, _, _, _, _, _, r, hr => by simp [factsSh] at hr
+  | .node _ _, .leaf _, _, _, _, _, _, _, r, hr => by simp [factsSh] at hr
 
 def facts (tab : List VDef) (path : Path) : Bool → C → List Row
   | pos, .not a => facts tab path (!pos) a
@@ -848,15 +1320,9 @@ def facts (tab : List VDef) (path : Path) : Bool → C → List Row
       if pos then [ladd (lsub la lb) (lconst 1)]
       else let u := lsub lb la; if dec path u == some false then [lconst 1] else [u]
     | _, _ => []
-  | pos, .eq a b => match linear tab path a, linear tab path b with
-    | some la, some lb =>
-      if pos then [lsub la lb, lsub lb la]
-      else
-        let u1 := ladd (lsub la lb) (lconst 1)
-        let u2 := ladd (lsub lb la) (lconst 1)
-        let o1 := dec path u1 != some false
-        let o2 := dec path u2 != some false
-        if o1 && o2 then [] else if o1 then [u1] else if o2 then [u2] else [lconst 1]
+  | pos, .eq a b => if isTup a && isTup b then factsSh path pos (shapeT tab path a) (shapeT tab path b)
+    else match linear tab path a, linear tab path b with
+    | some la, some lb => eqF path pos la lb
     | _, _ => []
 
 section
@@ -970,32 +1436,13 @@ theorem facts_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
   | .eq a b, pos, h, r, hr => by
     simp only [facts] at hr
     split at hr
-    · rename_i la lb ha hb
-      have ea := linear_sound hM hP a la ha
-      have eb := linear_sound hM hP b lb hb
-      cases pos with
-      | true =>
-        simp only [evalC, decide_eq_true_eq] at h
-        simp only [ite_true, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hr
-        rcases hr with hr | hr <;> subst hr <;> rw [eval_lsub] <;> omega
-      | false =>
-        simp only [evalC, decide_eq_false_iff_not] at h
-        simp only [Bool.false_eq_true, ite_false] at hr
-        have d1 := fun (hv : dec path (ladd (lsub la lb) (lconst 1)) = some false) => dec_sound hP hv
-        have d2 := fun (hv : dec path (ladd (lsub lb la) (lconst 1)) = some false) => dec_sound hP hv
-        simp only [eval_ladd, eval_lsub, eval_lconst, decide_eq_false_iff_not] at d1 d2
-        split at hr
-        · simp at hr
-        · split at hr
-          · have := d2 (by simp_all)
-            simp only [List.mem_singleton] at hr; subst hr
-            rw [eval_ladd, eval_lsub, eval_lconst]; omega
-          · split at hr
-            · have := d1 (by simp_all)
-              simp only [List.mem_singleton] at hr; subst hr
-              rw [eval_ladd, eval_lsub, eval_lconst]; omega
-            · have := d1 (by simp_all); have := d2 (by simp_all); omega
-    · simp at hr
+    · exact factsSh_sound hP _ _ _ _ pos (shapeT_sound hM hP a) (shapeT_sound hM hP b) (by simpa [evalC] using h) r hr
+    · split at hr
+      · rename_i la lb ha hb
+        refine eqF_sound hP ?_ r hr
+        rw [linear_sound hM hP a la ha, linear_sound hM hP b lb hb, decide_cast_eq]
+        simpa only [evalC] using h
+      · simp at hr
 end
 
 /-! Leaves and trees. -/
@@ -1004,12 +1451,19 @@ def atomRow (a : Row × Bool) : Row := if a.2 then a.1 else flip a.1
 def natRows : Nat → List Row
   | 0 => []
   | n + 1 => lscale (-1) (lunit n) :: natRows n
+-- Two lists of keys of one length that the path proves equal, key by key.
+def keysEq (path : Path) : List Row → List Row → Bool
+  | [], [] => true
+  | k :: ks, k' :: ks' => dec path (lsub k k') == some true && dec path (lsub k' k) == some true && keysEq path ks ks'
+  | _, _ => false
 -- Two cells of one map whose keys the path proves equal are equal (the pair is the leaf's claim; it is checked here).
 def cellEq (tab : List VDef) (path : Path) (p : Nat × Nat) : List Row :=
   match tab[p.1]?, tab[p.2]? with
   | some (.cell m k), some (.cell m' k') =>
     if m == m' && dec path (lsub k k') == some true && dec path (lsub k' k) == some true
     then [lsub (lunit p.1) (lunit p.2), lsub (lunit p.2) (lunit p.1)] else []
+  | some (.cellT m ks), some (.cellT m' ks') =>
+    if m == m' && keysEq path ks ks' then [lsub (lunit p.1) (lunit p.2), lsub (lunit p.2) (lunit p.1)] else []
   | _, _ => []
 -- A term column's rows: its bounds, whichever way its choice goes (min ≤ each side, max ≥ each side, a ∸ b ≥ a − b and
 -- ≤ a, an if ≤ the sum of its branches when both are constants), and its equality to the term's form under the path
@@ -1123,6 +1577,7 @@ def wfTab : Nat → List VDef → Bool
   | _, [] => true
   | n, .var _ :: ds => wfTab (n + 1) ds
   | n, .cell _ k :: ds => k.coefs.all (·.1 < n) && wfTab (n + 1) ds
+  | n, .cellT _ ks :: ds => ks.all (fun k => k.coefs.all (·.1 < n)) && wfTab (n + 1) ds
   | n, .mono fs :: ds => fs.all (· < n) && wfTab (n + 1) ds
   | n, .term _ :: ds => wfTab (n + 1) ds
 
@@ -1206,6 +1661,50 @@ theorem termRows_sound {path : Path} (hM : Model tab env maps x) (hP : PathHolds
       · simp at hr
   · simp at hr
 
+theorem keysEq_map {path : Path} (hP : PathHolds path x) : ∀ {ks ks' : List Row}, keysEq path ks ks' = true →
+    ks.map (fun r => (eval r x).toNat) = ks'.map (fun r => (eval r x).toNat)
+  | [], [], _ => rfl
+  | k :: ks, k' :: ks', h => by
+    simp only [keysEq, Bool.and_eq_true, beq_iff_eq] at h
+    obtain ⟨⟨h1, h2⟩, h3⟩ := h
+    have t1 := dec_sound hP h1; have t2 := dec_sound hP h2
+    simp only [eval_lsub, decide_eq_true_eq] at t1 t2
+    have hkk : eval k x = eval k' x := by omega
+    simp only [List.map_cons, hkk, keysEq_map hP h3]
+  | [], _ :: _, h => by simp [keysEq] at h
+  | _ :: _, [], h => by simp [keysEq] at h
+
+theorem cellEq_sound {path : Path} (hM : Model tab env maps x) (hP : PathHolds path x) (p : Nat × Nat) :
+    ∀ r ∈ cellEq tab path p, eval r x ≤ 0 := by
+  intro r hr
+  simp only [cellEq] at hr
+  split at hr
+  · rename_i m k m' k' h1 h2
+    split at hr
+    · rename_i hc
+      simp only [Bool.and_eq_true, beq_iff_eq] at hc
+      obtain ⟨⟨rfl, hk1⟩, hk2⟩ := hc
+      have t1 := dec_sound hP hk1; have t2 := dec_sound hP hk2
+      simp only [eval_lsub, decide_eq_true_eq] at t1 t2
+      have e1 := hM.1 p.1 _ h1; have e2 := hM.1 p.2 _ h2
+      simp only [valD] at e1 e2
+      have hkk : eval k x = eval k' x := by omega
+      simp only [List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hr
+      rcases hr with rfl | rfl <;> rw [eval_lsub, eval_lunit, eval_lunit, e1, e2, hkk] <;> omega
+    · simp at hr
+  · rename_i m ks m' ks' h1 h2
+    split at hr
+    · rename_i hc
+      simp only [Bool.and_eq_true, beq_iff_eq] at hc
+      obtain ⟨rfl, hk⟩ := hc
+      have e1 := hM.1 p.1 _ h1; have e2 := hM.1 p.2 _ h2
+      simp only [valD] at e1 e2
+      rw [keysEq_map hP hk] at e1
+      simp only [List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hr
+      rcases hr with rfl | rfl <;> rw [eval_lsub, eval_lunit, eval_lunit, e1, e2] <;> omega
+    · simp at hr
+  · simp at hr
+
 theorem leafRows_sound {path : Path} (hM : Model tab env maps x) (hP : PathHolds path x) {hyps : List C}
     (hH : ∀ c ∈ hyps, evalC env maps c = true) (eqs : List (Nat × Nat)) : ∀ r ∈ leafRows tab path hyps eqs, eval r x ≤ 0 := by
   intro r hr
@@ -1218,22 +1717,7 @@ theorem leafRows_sound {path : Path} (hM : Model tab env maps x) (hP : PathHolds
     | false => rw [h2] at this; simp only [decide_eq_false_iff_not] at this; simp only [ite_false, Bool.false_eq_true, eval_flip]; omega
   · exact facts_sound hM hP c true (hH c hc) r hr
   · exact natRows_sound hM _ r hr
-  · simp only [cellEq] at hr
-    split at hr
-    · rename_i m k m' k' h1 h2
-      split at hr
-      · rename_i hc
-        simp only [Bool.and_eq_true, beq_iff_eq] at hc
-        obtain ⟨⟨rfl, hk1⟩, hk2⟩ := hc
-        have t1 := dec_sound hP hk1; have t2 := dec_sound hP hk2
-        simp only [eval_lsub, decide_eq_true_eq] at t1 t2
-        have e1 := hM.1 p.1 _ h1; have e2 := hM.1 p.2 _ h2
-        simp only [valD] at e1 e2
-        have hkk : eval k x = eval k' x := by omega
-        simp only [List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hr
-        rcases hr with rfl | rfl <;> rw [eval_lsub, eval_lunit, eval_lunit, e1, e2, hkk] <;> omega
-      · simp at hr
-    · simp at hr
+  · exact cellEq_sound hM hP p r hr
   · exact termRows_sound hM hP r hr
 
 -- A hint names some of the leaf's rows.
@@ -1402,12 +1886,14 @@ theorem dot_append : ∀ (a : List (Nat × Int)) (l1 l2 : List Int), (∀ p ∈ 
 def Refs (n : Nat) : VDef → Prop
   | .var _ => True
   | .cell _ k => ∀ p ∈ k.coefs, p.1 < n
+  | .cellT _ ks => ∀ k ∈ ks, ∀ p ∈ k.coefs, p.1 < n
   | .mono fs => ∀ f ∈ fs, f < n
   | .term _ => True
 
 theorem Refs.mono_le {n m : Nat} (h : n ≤ m) : ∀ {d : VDef}, Refs n d → Refs m d
   | .var _, _ => trivial
   | .cell _ _, hd => fun p hp => by have := hd p hp; omega
+  | .cellT _ _, hd => fun k hk p hp => by have := hd k hk p hp; omega
   | .mono _, hd => fun f hf => by have := hd f hf; omega
   | .term _, _ => trivial
 
@@ -1419,11 +1905,20 @@ theorem prodV_append_left (acc more : List Int) : ∀ fs : List Nat, (∀ f ∈ 
     have hf := h f List.mem_cons_self
     rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_append_left hf]
 
+theorem map_eval_append (acc more : List Int) : ∀ ks : List Row, (∀ k ∈ ks, ∀ p ∈ k.coefs, p.1 < acc.length) →
+    ks.map (fun r => (eval r (acc ++ more)).toNat) = ks.map (fun r => (eval r acc).toNat)
+  | [], _ => rfl
+  | k :: ks, h => by
+    simp only [List.map_cons]
+    rw [map_eval_append acc more ks (fun k' hk' => h k' (List.mem_cons_of_mem _ hk'))]
+    simp only [eval, dot_append k.coefs acc more (h k List.mem_cons_self)]
+
 theorem valD_append (env : Nat → Nat) (maps : Nat → Nat → Nat) (d : VDef) (acc more : List Int)
     (h : Refs acc.length d) : valD env maps d (acc ++ more) = valD env maps d acc := by
   cases d with
   | var i => rfl
   | cell m k => simp only [Refs] at h; simp only [valD, eval, dot_append k.coefs acc more h]
+  | cellT m ks => simp only [Refs] at h; simp only [valD, map_eval_append acc more ks h]
   | mono fs => simp only [valD, prodV_append_left acc more fs h]
   | term e => rfl
 
@@ -1469,6 +1964,9 @@ theorem build_valid (env : Nat → Nat) (maps : Nat → Nat → Nat) : ∀ (ds :
       cases d with
       | var i => exact ⟨trivial, by simpa [wfTab] using hw⟩
       | cell m k =>
+        simp only [wfTab, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at hw
+        exact ⟨hw.1, hw.2⟩
+      | cellT m ks =>
         simp only [wfTab, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at hw
         exact ⟨hw.1, hw.2⟩
       | mono fs =>
@@ -1524,6 +2022,8 @@ def substE (σ : List (Nat × E)) : E → E
   | .prod a b => .prod (substE σ a) (substE σ b)
   | .ite c t f => .ite (substC σ c) (substE σ t) (substE σ f)
   | .get m key => .get m (substE σ key)
+  | .tup a b => .tup (substE σ a) (substE σ b)
+  | .proj k a => .proj k (substE σ a)
 def substC (σ : List (Nat × E)) : C → C
   | .le a b => .le (substE σ a) (substE σ b)
   | .lt a b => .lt (substE σ a) (substE σ b)
@@ -1554,6 +2054,8 @@ theorem subst_evalE (σ : List (Nat × E)) (ρ : Nat → Nat) (maps : Nat → Na
   | .prod a b => by simp [substE, evalE, subst_evalE σ ρ maps a, subst_evalE σ ρ maps b]
   | .ite c t f => by simp [substE, evalE, subst_evalC σ ρ maps c, subst_evalE σ ρ maps t, subst_evalE σ ρ maps f]
   | .get m key => by simp [substE, evalE, subst_evalE σ ρ maps key]
+  | .tup a b => by simp [substE, evalE, subst_evalE σ ρ maps a, subst_evalE σ ρ maps b]
+  | .proj k a => by simp [substE, evalE, subst_evalE σ ρ maps a]
 theorem subst_evalC (σ : List (Nat × E)) (ρ : Nat → Nat) (maps : Nat → Nat → Nat) :
     (c : C) → evalC ρ maps (substC σ c) = evalC (applyS σ ρ maps) maps c
   | .le a b => by simp [substC, evalC, subst_evalE σ ρ maps a, subst_evalE σ ρ maps b]
@@ -1576,6 +2078,8 @@ def occE (i : Nat) : E → Bool
   | .prod a b => occE i a || occE i b
   | .ite c t f => occC i c || occE i t || occE i f
   | .get _ key => occE i key
+  | .tup a b => occE i a || occE i b
+  | .proj _ a => occE i a
 def occC (i : Nat) : C → Bool
   | .le a b => occE i a || occE i b
   | .lt a b => occE i a || occE i b
@@ -1605,6 +2109,9 @@ theorem congrE (ρ ρ' : Nat → Nat) (maps : Nat → Nat → Nat) :
     simp only [evalE, congrC ρ ρ' maps c (fun i hi => h i (by simp [occE, hi])), congrE ρ ρ' maps t (fun i hi => h i (by simp [occE, hi])),
       congrE ρ ρ' maps f (fun i hi => h i (by simp [occE, hi]))]
   | .get m key, h => by simp only [evalE, congrE ρ ρ' maps key (fun i hi => h i (by simp [occE, hi]))]
+  | .tup a b, h => by
+    simp only [evalE, congrE ρ ρ' maps a (fun i hi => h i (by simp [occE, hi])), congrE ρ ρ' maps b (fun i hi => h i (by simp [occE, hi]))]
+  | .proj k a, h => by simp only [evalE, congrE ρ ρ' maps a (fun i hi => h i (by simp [occE, hi]))]
 theorem congrC (ρ ρ' : Nat → Nat) (maps : Nat → Nat → Nat) :
     (c : C) → (∀ i, occC i c = true → ρ i = ρ' i) → evalC ρ maps c = evalC ρ' maps c
   | .le a b, h => by
@@ -1978,6 +2485,8 @@ def readsE : E → Bool
   | .prod a b => readsE a || readsE b
   | .ite c t f => readsC c || readsE t || readsE f
   | .get _ _ => true
+  | .tup a b => readsE a || readsE b
+  | .proj _ a => readsE a
 def readsC : C → Bool
   | .le a b => readsE a || readsE b
   | .lt a b => readsE a || readsE b
@@ -2001,6 +2510,8 @@ theorem noReadsE (ρ : Nat → Nat) (M M' : Nat → Nat → Nat) : (e : E) → r
     simp only [readsE, Bool.or_eq_false_iff] at h
     simp only [evalE, noReadsC ρ M M' c h.1.1, noReadsE ρ M M' t h.1.2, noReadsE ρ M M' f h.2]
   | .get _ _, h => by simp [readsE] at h
+  | .tup a b, h => by simp only [readsE, Bool.or_eq_false_iff] at h; simp only [evalE, noReadsE ρ M M' a h.1, noReadsE ρ M M' b h.2]
+  | .proj _ a, h => by simp only [readsE] at h; simp only [evalE, noReadsE ρ M M' a h]
 theorem noReadsC (ρ : Nat → Nat) (M M' : Nat → Nat → Nat) : (c : C) → readsC c = false → evalC ρ M c = evalC ρ M' c
   | .le a b, h => by simp only [readsC, Bool.or_eq_false_iff] at h; simp only [evalC, noReadsE ρ M M' a h.1, noReadsE ρ M M' b h.2]
   | .lt a b, h => by simp only [readsC, Bool.or_eq_false_iff] at h; simp only [evalC, noReadsE ρ M M' a h.1, noReadsE ρ M M' b h.2]
@@ -2025,6 +2536,8 @@ def substRE (σ : List (Nat × E)) (rd : Nat → E → E) : E → E
   | .prod a b => .prod (substRE σ rd a) (substRE σ rd b)
   | .ite c t f => .ite (substRC σ rd c) (substRE σ rd t) (substRE σ rd f)
   | .get m key => rd m (substRE σ rd key)
+  | .tup a b => .tup (substRE σ rd a) (substRE σ rd b)
+  | .proj k a => .proj k (substRE σ rd a)
 def substRC (σ : List (Nat × E)) (rd : Nat → E → E) : C → C
   | .le a b => .le (substRE σ rd a) (substRE σ rd b)
   | .lt a b => .lt (substRE σ rd a) (substRE σ rd b)
@@ -2052,6 +2565,8 @@ theorem substR_evalE : (e : E) → evalE W M (substRE σ rd e) = evalE (applyS �
   | .prod a b => by simp [substRE, evalE, substR_evalE a, substR_evalE b]
   | .ite c t f => by simp [substRE, evalE, substR_evalC c, substR_evalE t, substR_evalE f]
   | .get m key => by simp only [substRE, evalE, hrd, substR_evalE key]
+  | .tup a b => by simp [substRE, evalE, substR_evalE a, substR_evalE b]
+  | .proj k a => by simp [substRE, evalE, substR_evalE a]
 theorem substR_evalC : (c : C) → evalC W M (substRC σ rd c) = evalC (applyS σ W M) M' c
   | .le a b => by simp [substRC, evalC, substR_evalE a, substR_evalE b]
   | .lt a b => by simp [substRC, evalC, substR_evalE a, substR_evalE b]
