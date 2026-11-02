@@ -98,6 +98,14 @@ real: rows of ~100 atoms, 0.5M of them), the BFS at 4 nodes cuts in the setup ph
 Next: rows by state, not by object (the views' atoms as arrays), a BFS that reaches past the setup (symmetry of the
 packets is measured slower here: keyOf3's renamings cost more than the states they save), the filter's states deeper.
 
+**4b. Memory and the broken variant (runs/laneRL/mem1, mem2; /usr/bin/time -v, pinned).** i4 was OOM-killed at 14 GB in
+the lead's 29×3 gate; with the small instance (8,000 states), a view's rows (8,000) and the pool (600 cubes) bounded on
+rules of relations, engine views keeping no rows, and each early-Houdini set proof within a quarter of the engine's time
+left: 10.9 GB → 4.4 GB, unknown at 72 s (the round-0 set proof stops at "route_tc is transitive @start", out of time at
+2 hypotheses: a prover question). learning_switch 0.7 GB, proven 27.6 / 35.3 s. Broken learning_switch's error ("P is
+read at keys of 4 and of 1 parts") comes from dsl.ts's second search over `withMapSums()` (sums of the tuple maps at a
+plain key), not from infer.ts; infer.ts drops any form about every key that reads a map keyed by tuples anyway.
+
 **5. Gates (one run each, large, `--timing`; runs/laneRL/ic29a at bdf1498, final2 at HEAD).** IC3Syn: 23 proven by
 verdict, 21 within 60 s at HEAD (learning_switch new; consensus_forall 75.9 s and consensus_wo_decide 101.6 s at their
 usual counted work, 24.95M and 25.29M: VM speed). sharded_kv_no_lost_keys unknown at HEAD with infer.ts at 13896d9
