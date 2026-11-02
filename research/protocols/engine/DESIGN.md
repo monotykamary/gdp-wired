@@ -43,6 +43,55 @@ to a counterexample.
 round 0 stops being too strong); the pilot on all ten (2 runs at 60 s, tight caps); the six proven stay proven; the
 quick bar against 5d4da3f's baseline; one full bar at the end.
 
+## gen/laneQ: where a counted goal's time goes; lazy count instances (CEGAR) and the counted search's leaves by the simplex's point (paxos_epr and mldr not won; untrusted; nothing trusted changed)
+
+**Where the time went** (GDP_COUNTS_PROF, boat large, each alone; C3's code): mldr's probe at 300 s, 578 s of wall: the
+CDCL decision first 201 s and the tree search 182 s (149 s on goals past 300 hypotheses); encoding 1.3 s, MBQI 1.6 s,
+the kernel's check nothing. A widened Houdini step goal held 303 hypotheses, 176 of them picks and 24 count instances,
+and ran out at 31 s counted (36-116 s wall). paxos-hand's 600 s: the decision 477 s, its leaves' exact elimination
+(Fourier-Motzkin over every row, where every atom is decided) 228-314 s of it; one decision capped at 5 s counted ran
+176 s wall (the counted clock does not count the elimination's equality substitutions). paxos_epr at 60 s: 834 CDCL
+runs, 781 MBQI rounds, the decision 59 of 82 s; its 58 candidates each about 0.7 s, mostly unknown.
+
+**The mechanism (core/counts.ts, kernel/cdcl.ts, kernel/prove.ts; untrusted).**
+- Lazy count instances and picks: a widened goal carries the counting lemma's instances and picks some model broke, of a
+  pool certFor proposes (1000 at most, GDP_COUNTS_POOL; with each count at most its bound and every two that meet),
+  the narrow ten at once (GDP_COUNTS_LAZY=wide; `1` all lazily, `0` as before). A pool hypothesis is broken where no
+  completion of the model meets it (the cells it leaves out at their start, at 1, one map flipped from either; an
+  instance's witness at each value below 16: brokenOf's new `defaults`); where nothing else is broken or asked, read
+  strictly (left-out cells at their start alone), since a completion may meet an instance only at a witness some law
+  then breaks. The choice is kept by the reads it names, across the goal's rebuilds. Lazy everywhere (`1`) lost
+  consensus_wo_decide and consensus_forall (each round a fresh CDCL search); `wide` keeps the narrow goals as they were.
+- The counted search's models (CdclOptions.point): a leaf whose rows the simplex's point meets at integers is a model,
+  and at a fractional point a fractional name is split on (branch and bound), not the exact elimination over every
+  row. Everywhere, it lost chc/G/s_split_34 (frontier round 2, solid) and DuoAI's decentralized_lock (3 of 3): those
+  searches read the models; scoped to the counted search it loses neither.
+
+**Per goal, before (GDP_COUNTS_LAZY=0 GDP_CDCL_POINT=0) and after, same tree 07ef2f3, two runs each:** paxos-hand at 300
+s, the leaves' elimination 314/286 s → 1.8/1.3 s of wall; the cone the same 18 of 37, and Houdini now reaches its
+rounds within the wall (before, every goal after the cone was unknown at 2 ms: the wall had passed). The hand set alone
+(GDP_COUNTS_GIVEN=1): "decision proposed" kept (before refuted by a model the narrow instances left). mldr's probe:
+578-600 s → 256-295 s of wall over the same 34 laws; a widened Houdini goal 303 hypotheses (176 picks) → 135-230 (58-93
+instances and picks chosen of up to 1000 offered), each still unknown at its 31 s counted share. The wall per run varies
+2.7× between VMs of one type (paxos-hand's hand set: the same 802,489 decisions in 185 and 504 s), so the counted
+figures and the decisions are the comparison.
+
+**What blocks paxos_epr and mldr.** paxos_epr: the search proposes the decision and choosable counts but not the
+propose phase's invariants; and even the hand set leaves one value decided, decision has votes, choosable and busy
+rows unknown at 40 s counted each (busy rows reads no count: its goal needs rowOk at a composed key j = a·N + b, which
+modelInstances may never ask). mldr: Houdini's five quorum and term goals stay unknown at 31 s counted (790-2400
+hypotheses over their MBQI rounds, the tree search on goals past 300). NEXT.md lists the next steps.
+
+**Gates** (64af398, the final code but a type fix; against main 3000a12; IC3Syn with C3's jobs: boat large, 4 vCPU, 14
+GB, each alone, strict 60 s, three runs, broken variants once; DuoAI ten three runs): runs within 60 s 70 against 69;
+protocols within 60 s in every run 23 against 21 (consensus_wo_decide 24/31/43 against 48/58/109 s, a gain by the
+noise rule; firewall 26/32/50 against 22/45/unknown, not by it); consensus_forall 52/98/111 against 38/58/71 (no
+protocol lost by the noise rule); no broken variant proven either side; paxos_epr and mldr unknown both sides. DuoAI
+ten 30 of 30 against 29 of 30. Quick bar (`laneQ-quick2`): wrong 0 everywhere, lost 0 solid in every group (CHC +10.7,
+ITS +6.7, f2's term/Piecewise lost at the limit, not solid); g332 the same search on 331 of 332. Shards 10 of 10 on
+07ef2f3; build, oxlint on the changed files clean. Bytes (core/, kernel/ against 3000a12, all lanes merged): +21.1k, of
+which this lane's counts.ts +5.4k, cdcl.ts +1.8k (1.0k of it the profile's split of the solve), prove.ts +0.2k.
+
 ## gen/laneC3: quorum counting over two parameters, proven in Lean; the counted search proposes the decision and choosable counts (paxos_epr not won)
 
 **Trusted (Lean first).** CountMachine.lean's count declaration takes a second parameter: `CDecl ⟨mp, post, j, key,
