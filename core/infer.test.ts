@@ -27,7 +27,7 @@ test('a law that needs an invariant: not proven alone, proven with what the sear
     // The rule's own prover, on the law and what was found: the same verdict.
     expect(proveRule(r as never, [law, ...v.found.map(f => f.law)])).toMatchObject({proven: true, checked: true})
   }
-})
+}, 60_000)
 
 test('what was found reads as the builder call that states it, and that call, written out, proves the law again', () => {
   const r = pool(), v = inferLaws(r, [poolLaw(r)], [], {ms: 15000})
@@ -38,7 +38,7 @@ test('what was found reads as the builder call that states it, and that call, wr
   expect(w.found.map(f => f.source)).toEqual(["r.law('every k: Expiry[k] <= until', ({until, Expiry}) => forall(k => Expiry.at(k).atMost(until)))"])
   const leased = l.law('every k: Expiry[k] <= until', ({until, Expiry}) => forall(k => Expiry.at(k).atMost(until)))
   expect(proveRule(l, [leaseLaw(l), leased])).toMatchObject({proven: true, checked: true})
-})
+}, 60_000)
 
 test('an invariant over four values (the join: the samples\' hull, made inductive): one account within the total paid in', () => {
   const r = accounts(), law = accountsLaw(r)

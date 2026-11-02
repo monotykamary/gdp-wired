@@ -1,0 +1,212 @@
+[
+  {
+    "file": "q3-base-base-hand-1.json.gz.model.gz",
+    "sha256": "0a382b936cbe46ca95403c7eec4b915db85d9c9325822220a17b5aaea1c18bfc",
+    "bytes": 598
+  },
+  {
+    "file": "q3-capture3-zip-mldr-1.json.gz",
+    "sha256": "982032c10b1bb3b1bb054953e743f4fd8aed3412cbdae067b2dadef3b787657f",
+    "bytes": 6768
+  },
+  {
+    "file": "q3-base-base-hand-4.json.gz",
+    "sha256": "40709c9eb2f38dd1d63204e4fe0921d2144c49b1a84f893c1f7b4038cc96df81",
+    "bytes": 4007
+  },
+  {
+    "file": "q3-capture3-zip-mldr-5.json.gz.model.gz",
+    "sha256": "48960addfa4c387488d1fb247d3ebacd73dffdbd7232a64c20a524c4b52d392d",
+    "bytes": 729
+  },
+  {
+    "file": "q3b-capture-7.json.gz",
+    "sha256": "6bb05e9bc516cd471b77ed0910ec105ab87dd36593724094b389546e5e081853",
+    "bytes": 11658
+  },
+  {
+    "file": "q3b-resume-16.json.gz.model.gz",
+    "sha256": "50f568c55011a6e6e93b65c778fea75f67ab7472ebc49d328d833e2d6cf7df37",
+    "bytes": 751
+  },
+  {
+    "file": "q3-capture3-zip-hand-4.json.gz",
+    "sha256": "aebed6bc3f1751f5f54703a7ac2b279276896b4a1e3adf1a817506ec72e71992",
+    "bytes": 4076
+  },
+  {
+    "file": "q3-capture3-zip-mldr-1.json.gz.model.gz",
+    "sha256": "d8dc446315eb25c7205034b23c8679a71345c4f1daa59c8e48ade3afeb3b89c1",
+    "bytes": 963
+  },
+  {
+    "file": "q3-capture3-zip-hand-2.json.gz.model.gz",
+    "sha256": "9f6064d8a3354c8fddbfcc359d3d667f1a16ba0f81afbe9746ef3c7c0750eebc",
+    "bytes": 689
+  },
+  {
+    "file": "q3-capture3-zip-mldr-4.json.gz.model.gz",
+    "sha256": "a10f19f81b0cf16bcfe1e314fa8a95c897e6ed54ef437619576c902c429a3095",
+    "bytes": 674
+  },
+  {
+    "file": "q3b-resume-1.json.gz.model.gz",
+    "sha256": "08ff6d7a2db71fd0d307d41be28e2e5013c4dab79f51b869d2a84b753f7a18e6",
+    "bytes": 553
+  },
+  {
+    "file": "q3-capture3-zip-mldr-2.json.gz",
+    "sha256": "0e4dc310ea20e6aec1b0c5b3144f80d57737ddfa36fd659828b5be28fa14daf3",
+    "bytes": 7146
+  },
+  {
+    "file": "q3b-resume-16.json.gz",
+    "sha256": "5e608c43077d9c8b087f745695e2a1e8c378a97b0a6644040a1b6e2b13a06001",
+    "bytes": 8751
+  },
+  {
+    "file": "paxos_epr-1.json.gz.model.gz",
+    "sha256": "267628f6df76e5d403e6dc65916326a46d56f54563db55d46bdd64b8b4ae36fe",
+    "bytes": 664
+  },
+  {
+    "file": "q3-capture3-zip-mldr-3.json.gz",
+    "sha256": "65c4108eeb624f17011b059acb121ea1fcbbab151841a56ca7d570818d3a97f2",
+    "bytes": 7893
+  },
+  {
+    "file": "q3-capture3-zip-hand-8.json.gz.model.gz",
+    "sha256": "5ab5bc27b2254289e8acd8340a7d9057810048e49ca9f1a8e9ec14af9d7036d5",
+    "bytes": 495
+  },
+  {
+    "file": "q3b-capture-7.json.gz.model.gz",
+    "sha256": "a32e4d2fc9fc7a036f7ad190f446c37c77aedb4e03e967023f0ab941a8f89a65",
+    "bytes": 246
+  },
+  {
+    "file": "q3-base-base-hand-4.json.gz.model.gz",
+    "sha256": "1dd3020fb6860bef8b98fb61558dab5b2ab494b1d026c01906e5f64affb39d87",
+    "bytes": 357
+  },
+  {
+    "file": "q3-capture3-zip-hand-3.json.gz.model.gz",
+    "sha256": "24f36bb182b6ac46414248a21d5934fa89927ecbd14be06a2aa076a8fb364033",
+    "bytes": 293
+  },
+  {
+    "file": "q3-capture3-zip-hand-2.json.gz",
+    "sha256": "f74ac1b004c2aba64a9618d9fc0d597968a4a793b7273d5e0c4db791970bb354",
+    "bytes": 5960
+  },
+  {
+    "file": "residual-mldr.json.gz",
+    "sha256": "47b047d2f6613327d8754fe0e57eaa88a70866f54969c86817495df8dc6c2309",
+    "bytes": 5390
+  },
+  {
+    "file": "q3-capture3-zip-hand-4.json.gz.model.gz",
+    "sha256": "13eb1b9f28c039415cf7de8da3277bfd48e76d79f0931e0e52f023872c25b52a",
+    "bytes": 587
+  },
+  {
+    "file": "q3-base-base-hand-3.json.gz",
+    "sha256": "528e55f14c99c57f7e38787d66753486bf69bff6f94f9968986fabf8203bb950",
+    "bytes": 2626
+  },
+  {
+    "file": "paxos_epr-3.json.gz",
+    "sha256": "584a509b0401b12fb6a83cc54774f193c6fcc6204372e524d5ecbd422220f9ec",
+    "bytes": 9444
+  },
+  {
+    "file": "q3-base-base-hand-3.json.gz.model.gz",
+    "sha256": "9b005db351d6227b3b50f3e51575c2bacc835031045c4987ee050d86a851458b",
+    "bytes": 402
+  },
+  {
+    "file": "residual-mldr.json.gz.model.gz",
+    "sha256": "3994e74c1c39a405ae0d83d70653a86c788e516c13fe302238e3f09cc350e286",
+    "bytes": 416
+  },
+  {
+    "file": "q3-base-base-hand-2.json.gz",
+    "sha256": "748e0982f4fadd1ce9dd2703c0c797756dbff480ba00fa9f43318ed0ff7238fc",
+    "bytes": 1710
+  },
+  {
+    "file": "paxos_epr-2.json.gz",
+    "sha256": "de7ca0290368ff17cf5db9d827930ed531fab0370e52580561362725441c5c87",
+    "bytes": 9542
+  },
+  {
+    "file": "q3-capture3-zip-mldr-3.json.gz.model.gz",
+    "sha256": "51e1b4b0b4946bdbf7aa939fefe3482793a142171448b1c57310cdba5f88e03f",
+    "bytes": 761
+  },
+  {
+    "file": "q3-capture3-zip-hand-3.json.gz",
+    "sha256": "8601dcc7f252a7495477557b95c427e8e59bb259a90b8a3340d8e5b9fa7ee2eb",
+    "bytes": 5419
+  },
+  {
+    "file": "paxos_epr-2.json.gz.model.gz",
+    "sha256": "7ce19cd1fb05fa764bc5124245f8963de7d3e5bf4e1a573d17fb780028fb3868",
+    "bytes": 809
+  },
+  {
+    "file": "q3-capture3-zip-hand-8.json.gz",
+    "sha256": "b83d75cc6f842013d3424fa8b5552ca52e0dc7d35baffb0e688609411e4cd401",
+    "bytes": 2521
+  },
+  {
+    "file": "q3-capture3-zip-mldr-5.json.gz",
+    "sha256": "0585012e46c639235e7b8f2f6699a6d1d92887e58b02d6e43344004ea2486d5c",
+    "bytes": 29003
+  },
+  {
+    "file": "q3-base-base-hand-2.json.gz.model.gz",
+    "sha256": "19fc8fb9e3cfcd6f0c4d5a28633ad985395d7c386b4a2a5e2fe3701dab718732",
+    "bytes": 332
+  },
+  {
+    "file": "q3b-resume-1.json.gz",
+    "sha256": "5fe6660abcc25f903eb3b94bb0b20564dc144029092aa9d1b39bf14e83709e88",
+    "bytes": 4413
+  },
+  {
+    "file": "q3-capture3-zip-hand-1.json.gz",
+    "sha256": "92db52ec05d1a23ae18326b05699e3b94483ef9a44018a14b1d6122bca98ff18",
+    "bytes": 7333
+  },
+  {
+    "file": "q3-capture3-zip-mldr-2.json.gz.model.gz",
+    "sha256": "9995cfe4baabe9ac23ce4c9a03ccd1c4dc40e10e1287ed0e06b5275572e4ddc1",
+    "bytes": 855
+  },
+  {
+    "file": "q3-capture3-zip-hand-1.json.gz.model.gz",
+    "sha256": "86c81fdad446349ff4deb97c85ccbeccdc0a939ab1fce15f4be55904869f8d00",
+    "bytes": 827
+  },
+  {
+    "file": "q3-capture3-zip-mldr-4.json.gz",
+    "sha256": "218e53efc18429325485b3d2aa9b8a00d7b1abf54167bb180aefe095533f84d3",
+    "bytes": 57850
+  },
+  {
+    "file": "paxos_epr-1.json.gz",
+    "sha256": "3e3e2224ea276f861250511ec11e3bb95bfdc2bab7d6831d55b73b798c327d53",
+    "bytes": 6363
+  },
+  {
+    "file": "paxos_epr-3.json.gz.model.gz",
+    "sha256": "e65351ee1d162134bb5641c0ae27aaf8616471c15f1c7e21a9bd6b2edb04c897",
+    "bytes": 582
+  },
+  {
+    "file": "q3-base-base-hand-1.json.gz",
+    "sha256": "9963201382393cf19ce63490777597eaa976c1ebb34e633a90e6fb5daefa12b9",
+    "bytes": 4220
+  }
+]
