@@ -1226,7 +1226,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   }
 
   // --- Houdini on the runs' neighbors ----------------------------------------------------------------------------------
-  let alive = forms.slice().sort((p, q) => p.size - q.size).slice(0, maxCandidates)
+  // (a map keyed by tuples is read at its tuples only: a form about every key reads it at one key, which no law can)
+  const tupleMaps = new Set(Object.entries(m.relations ?? {}).filter(([, srt]) => srt.length > 1).map(([mp]) => mp))
+  walk([m.step, m.assume ?? null, ...laws.map(l => l.holds)], o => { if (o.op === 'get' && (o.key as E | undefined)?.op === 'tup') tupleMaps.add(String(o.map)) })
+  const plainKeyed = (f: Form) => f.view !== undefined || !atomsIn(f).some(i => atoms[i]!.cell && tupleMaps.has(atoms[i]!.parts[0]![0]))
+  let alive = forms.filter(plainKeyed).sort((p, q) => p.size - q.size).slice(0, maxCandidates)
   const ctis: Point[] = []
   // (a law about keys is evaluated at every tuple of the state's keys, as watch does: counted as that many evaluations)
   const lawful = (params: Env, st: State) => {
@@ -1309,7 +1313,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // eight values most unusual at it are read (furthest past the samples in its guard, then the rarest there).
   const choiceMode = modes.find(mo => mo.choice && !atoms[mo.atom]!.cell)
   const condAtoms = plain.filter(i => !atoms[i]!.param && i !== choiceMode?.atom)
-  const fromCti = (p: Point): Form[] => {
+  const fromCti = (p: Point): Form[] => fromCti0(p).filter(plainKeyed)
+  const fromCti0 = (p: Point): Form[] => {
     const end = Math.min(until, now() + Math.max(300, (until - now()) / 8))
     const sc = p.scalar, pv = (coef: [number, number][]) => { let v = 0; for (const [i, c] of coef) v += c * valueOf(atoms[i]!, sc); return v }
     const gv = choiceMode ? valueOf(atoms[choiceMode.atom]!, sc) : undefined
@@ -1473,7 +1478,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         go(0, {...params, ...st.scalars})
         return out
       }
-      views.push({...v, atoms: va, rows: distinctRows(rowsOf), rowsOf})
+      // (an engine view's rows are read off the small states where it is enumerated, not kept here)
+      views.push({...v, atoms: va, rows: product ? [] : distinctRows(rowsOf), rowsOf})
     }
     // The pairs: where the rule composes two keys into one (Link[N·a + b] beside Known[a], Known[b]), the cells at two
     // keys x and y and at N·x + y, a row per two keys a state holds (or the parts of a composed key it holds, or a fresh
@@ -2055,6 +2061,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       Object.assign(m.fns, tb)
       try { return f() } finally { for (const [k, fn] of saved) m.fns[k] = fn }
     }
+    // (a rule of relations: its small instance, rows and pool bounded, so a large one ends unknown within its memory)
+    const rel = !!Object.keys(m.relations ?? {}).length
     let freeCount = 0, grown: (q: string) => number = () => 0
     const popcount = (w: number) => { w -= (w >>> 1) & 0x55555555; w = (w & 0x33333333) + ((w >>> 2) & 0x33333333); return (((w + (w >>> 4)) & 0x0f0f0f0f) * 0x01010101) >>> 24 }
     const enumerated = (): Form[] => {
@@ -2106,7 +2114,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // (`visit`: each new state as the BFS finds it, which ends the BFS by answering false: the filter reads as it goes)
       const instance = (grow: (q: string) => number, share: number | undefined, rnd: Rand, cap = 2_000_000, visit?: (q: Sample) => boolean) => {
         let halt = false
-        const base = share === undefined, most = base ? 20_000 : cap, combosMax = base ? 2048 : 16_384, reqs: {params: Env, combos: Request[]}[] = []
+        const base = share === undefined, most = base ? (rel ? 8_000 : 20_000) : cap, combosMax = base ? 2048 : 16_384, reqs: {params: Env, combos: Request[]}[] = []
         const size = (q: string) => Math.max(2, Math.min(3, width[ss.indexOf(q)] ?? 2)) + grow(q), keyDom = (q: string) => Array.from({length: ordered(q) ? 4 + grow(q) : size(q)}, (_, i) => i)
         const fnDom = (q: string) => Object.keys(m.fns ?? {}).filter(f => vf(`V:${f}`) === vf(q) && ss.includes(ks.find(`F:${f}`))).flatMap(f => keyDom(ks.find(`F:${f}`)).map(k => { try { return fnValue(m.fns![f]!, k) } catch { return 0 } }))
         const domOf = (v: string, drawn: Set<number>): number[] => { const q = ks.find(v); return ss.includes(q) ? (fnDom(q).length ? fnDom(q) : keyDom(q)) : [...drawn].sort((a, b) => a - b) }
@@ -2331,8 +2339,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         // ones, so a deep state's (a leader's) would be left out)
         viewSorts.set(vi, keys)
         const v = views[vi]!, R: Float64Array[] = [], seenRows = new Set<string>()
-        for (const q of smallAll.length ? smallAll : []) { if (R.length >= 20_000) break; for (const row of withTable(q.params, () => v.rowsOf(q.params, q.st))) { const r = valuesOf(row), k2 = vecKey(r); if (!seenRows.has(k2)) { seenRows.add(k2); R.push(r) } } }
-        if (!R.length) R.push(...v.rows.slice(0, 3000).map(valuesOf))
+        for (const q of smallAll.length ? smallAll : []) { if (R.length >= (rel ? 8_000 : 20_000)) break; for (const row of withTable(q.params, () => v.rowsOf(q.params, q.st))) { const r = valuesOf(row), k2 = vecKey(r); if (!seenRows.has(k2)) { seenRows.add(k2); R.push(r) } } }
+        if (!R.length) R.push(...distinctRows(v.rowsOf).slice(0, 3000).map(valuesOf))
         try { if (!m.params.length) R.push(...v.rowsOf({}, run.init({})).map(valuesOf)) } catch { /* (the samples hold the start) */ }
         // (each literal with the rows it is true at, as bits; `id` its atoms, `name` its text under a renaming of the keys)
         const W = Math.ceil(R.length / 32), lits: {lit: Lit, id: string, name: (ren: number[]) => string, reads: number[], bits: Uint32Array, before?: [number, number], state: boolean}[] = []
@@ -2425,7 +2433,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         out.push(...[...found1, ...found.map(ls => ls.map(l => lits[l]!.lit))].map(c => formOf(c, vi)))
         }
       }
-      const made0 = out.filter((f, i) => !set.some(g => textOf(g) === textOf(f)) && out.findIndex(g => textOf(g) === textOf(f)) === i)
+      const seenText = new Set<string>(), made1 = out.filter(f => { const t = textOf(f); return !set.some(g => textOf(g) === t) && !seenText.has(t) && !!seenText.add(t) })
+      const made0 = rel && made1.length > 600 ? [...made1].sort((a, b) => a.cube!.length - b.cube!.length).slice(0, 600) : made1
       return env.GDP_POOL !== '0' ? dataFilter(made0) : made0
       // The pool's data filter (DuoAI's junk killed by data before any solver call; research/protocols/engine/DESIGN.md,
       // gen/pool): each cube asked at every reachable state of larger instances, one more element of every sort and then
