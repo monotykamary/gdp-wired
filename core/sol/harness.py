@@ -15,6 +15,9 @@ How the rule's values are the code's:
 import json
 import os
 import random
+import shutil
+import signal
+import tempfile
 import socket
 import subprocess
 import sys
@@ -67,13 +70,56 @@ class RpcError(Exception):
   pass
 
 
+# anvil's state on disk: none it keeps (--prune-history), and whatever it writes (its cache, a HOME's ~/.foundry) in a
+# directory of this harness's own, gdp-anvil-<pid>-*, removed when it stops. anvil runs under a watchdog in its own
+# session: the harness gone, even killed (SIGKILL, a preempted job), the watchdog stops anvil and removes the directory.
+# What killed runs of earlier harnesses left (their directory, their pid gone; anvil's own ~/.foundry/anvil/tmp state
+# folders past STALE_S unwritten) is removed at start.
+STALE_S = 2 * 3600
+WATCH = 'd=$1; h=$2; shift 2; trap \'kill $a 2>/dev/null; wait $a 2>/dev/null; rm -rf "$d"; exit 0\' TERM INT HUP; HOME="$d" "$@" & a=$!; while kill -0 "$h" 2>/dev/null && kill -0 $a 2>/dev/null; do sleep 0.5; done; kill $a 2>/dev/null; wait $a 2>/dev/null; rm -rf "$d"'
+
+
+def clean_stale():
+  base = tempfile.gettempdir()
+  for n in os.listdir(base):
+    if not n.startswith('gdp-anvil-'): continue
+    try: pid = int(n.split('-')[2])
+    except (IndexError, ValueError): continue
+    try: os.kill(pid, 0); continue  # (its harness still runs)
+    except ProcessLookupError: pass
+    except PermissionError: continue
+    shutil.rmtree(os.path.join(base, n), ignore_errors=True)
+  legacy = os.path.join(os.path.expanduser('~'), '.foundry', 'anvil', 'tmp')
+  if os.path.isdir(legacy):
+    now = time.time()
+    for n in os.listdir(legacy):
+      p = os.path.join(legacy, n)
+      try:
+        if now - os.path.getmtime(p) > STALE_S: shutil.rmtree(p, ignore_errors=True) if os.path.isdir(p) else os.remove(p)
+      except OSError: pass
+
+
+def stop_anvil():
+  p, d = S.pop('anvil', None), S.pop('anvil_dir', None)
+  if p is not None:
+    try: os.killpg(p.pid, signal.SIGTERM)
+    except (ProcessLookupError, PermissionError): pass
+    try: p.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+      try: os.killpg(p.pid, signal.SIGKILL)
+      except (ProcessLookupError, PermissionError): pass
+  if d: shutil.rmtree(d, ignore_errors=True)
+
+
 def start_anvil():
   exe = os.environ.get('GDP_ANVIL') or 'anvil'
+  clean_stale()
   for _ in range(20):
     port = random.randint(20000, 60000)
     with socket.socket() as s:
       if s.connect_ex(('127.0.0.1', port)) == 0: continue
-    p = subprocess.Popen([exe, '--port', str(port), '--silent', '--gas-price', '0', '--base-fee', '0', '--disable-block-gas-limit', '--disable-code-size-limit', '--auto-impersonate', '--accounts', '1', '--hardfork', 'cancun'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    d = S['anvil_dir'] = tempfile.mkdtemp(prefix=f'gdp-anvil-{os.getpid()}-')
+    p = subprocess.Popen(['sh', '-c', WATCH, 'gdp-anvil', d, str(os.getpid()), exe, '--port', str(port), '--silent', '--gas-price', '0', '--base-fee', '0', '--disable-block-gas-limit', '--disable-code-size-limit', '--auto-impersonate', '--accounts', '1', '--hardfork', 'cancun', '--prune-history', '--cache-path', os.path.join(d, 'cache')], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     S['anvil'] = p
     PORT[0] = port
     for _ in range(100):
@@ -83,7 +129,7 @@ def start_anvil():
       except Exception:
         if p.poll() is not None: break
         time.sleep(0.05)
-    p.kill()
+    stop_anvil()
   raise RuntimeError('anvil did not start (foundry\'s anvil on the PATH, or $GDP_ANVIL)')
 
 
@@ -477,7 +523,7 @@ def main():
     try: res = replay(req)
     except Exception as e: res = {'error': f'{type(e).__name__}: {e}'[:500], **({'transport': True} if isinstance(e, OSError) else {})}
     finally:
-      if S.get('anvil'): S['anvil'].kill()
+      stop_anvil()
     print(json.dumps(res))
     return
   fin = open(sys.argv[1], 'r'); fout = open(sys.argv[2], 'w')
@@ -504,8 +550,15 @@ def main():
         res = {'error': f'{type(e).__name__}: {e}'[:500], **({'transport': True} if isinstance(e, OSError) else {})}
       fout.write(json.dumps(res) + '\n'); fout.flush()
   finally:
-    if S.get('anvil'): S['anvil'].kill()
+    stop_anvil()
+
+
+def on_signal(n, _f):
+  # (stopped by a signal: anvil and its directory go first)
+  stop_anvil()
+  sys.exit(128 + n)
 
 
 if __name__ == '__main__':
+  for n in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP): signal.signal(n, on_signal)
   main()
