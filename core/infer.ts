@@ -2247,7 +2247,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         // (a relation no state of the small instance holds a tuple of (a start its states never reach: three nodes can't
         // all be linked in pairs): the instance one element larger in one sort, the first that fills every relation)
         const none = (r: typeof r0) => Object.entries(m.relations ?? {}).some(([mp, srts]) => srts.length > 1 && ![...r.small, ...r.others].some(q => [...(q.st.maps[mp]?.values() ?? [])].some(c => c >= 1)))
-        if (none(r0)) for (const s1 of ss) { if (stop()) break; const g1 = (q: string) => (q === s1 ? 1 : 0), req = smallReq.length; const r1 = instance(g1, undefined, rand); if (!none(r1)) { smallReq.splice(0, req); r0 = r1; grown = g1; break } smallReq.length = req }
+        // (the sort with the most places in the relations first)
+        const placesOf2 = (q: string) => [...ks.arity.keys()].filter(mp => ks.tupled.has(mp)).reduce((k, mp) => k + Array.from({length: ks.arity.get(mp)!}, (_, i) => ks.find(`${mp}:${i}`)).filter(t => t === q).length, 0)
+        if (none(r0)) for (const s1 of [...ss].sort((a, b) => placesOf2(b) - placesOf2(a))) { if (stop()) break; const g1 = (q: string) => (q === s1 ? 1 : 0), req = smallReq.length; const r1 = instance(g1, undefined, rand); if (!none(r1)) { smallReq.splice(0, req); r0 = r1; grown = g1; break } smallReq.length = req }
         const own = [...r0.small, ...r0.others], most = new Map<string, number>()
         samples.unshift(...r0.small)
         for (const q of own) for (const [mp, cs] of Object.entries(q.st.maps)) for (const c of cs.values()) most.set(mp, Math.max(most.get(mp) ?? 0, c))
@@ -2270,7 +2272,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const out: Form[] = []
       for (const counts of width.reduce<number[][]>((acc, w) => acc.flatMap(c => Array.from({length: w + 1}, (_, k) => [...c, k])), [[]])) {
         const keys0 = ss.flatMap((s, i) => Array.from({length: counts[i]!}, () => s)), vars0 = keys0.map((_, i) => `key${i + 1}$enum`)
-        if (!keys0.length || keys0.length > 5 || stop()) continue
+        // (on a rule of relations three keys at most, a map's value as a fourth: the cubes over its tuples read no more)
+        if (!keys0.length || keys0.length > (Object.keys(m.relations ?? {}).length ? 3 : 5) || stop()) continue
         // (a view of all the maps first; where its literals are too many, a view of each tuple map alone and of each two,
         // beside the maps of plain keys: a cube reads two or three literals, so two relations at a time hold it)
         // (and a view of these keys with a map's value at one of them as one more key, of the values' sort: Src(q) − 1,
