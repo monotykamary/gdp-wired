@@ -1,4 +1,4 @@
-# The embedded corpus: boat, 60 s a law, commit efad281 (corpus3; repro.log beside it)
+# The embedded corpus: boat, 60 s a law, commit 19be90e (main merged in)
 
 23 laws on 6 files of 4 projects: 18 proven, 4 broken, 1 unknown, 0 not read; wrong 0
 
@@ -9,29 +9,29 @@ masked by NMTcontrol bit by bit, the heartbeat timer), and each law ran 20 to 30
 
 | Item | Domain | Law | Expected | Verdict | Time |
 | --- | --- | --- | --- | --- | --- |
-| makair-alarm | medical | detections_capped | proven | proven | 0.7 s |
-| makair-alarm | medical | cycles_counted_only_when_triggered | unknown | unknown | 60.4 s |
-| makair-alarm | medical | same_cycle_counts_once | proven | proven | 0.5 s |
-| makair-alarm | medical | first_detection_counts | broken | broken | 0.4 s |
-| makair-activation | medical | stop_needs_a_second_press | proven | proven | 0.3 s |
-| makair-activation | medical | refresh_never_stops | proven | proven | 0.1 s |
-| makair-rpi-watchdog | medical | countdown_at_most_its_start | proven | proven | 0.2 s |
+| makair-alarm | medical | detections_capped | proven | proven | 1.9 s |
+| makair-alarm | medical | cycles_counted_only_when_triggered | unknown | unknown | 61.2 s |
+| makair-alarm | medical | same_cycle_counts_once | proven | proven | 1.1 s |
+| makair-alarm | medical | first_detection_counts | broken | broken | 1.1 s |
+| makair-activation | medical | stop_needs_a_second_press | proven | proven | 0.6 s |
+| makair-activation | medical | refresh_never_stops | proven | proven | 0.3 s |
+| makair-rpi-watchdog | medical | countdown_at_most_its_start | proven | proven | 0.4 s |
 | makair-rpi-watchdog | medical | switched_off_when_count_ends | proven | proven | 0.2 s |
-| px4-arming | flight control | armed_only_when_checks_pass | proven | proven | 6.3 s |
-| px4-arming | flight control | armed_only_from_standby | proven | proven | 1.9 s |
-| px4-arming | flight control | shutdown_is_final | broken | broken | 0.7 s |
-| px4-arming | flight control | shutdown_left_only_in_hil | proven | proven | 1.4 s |
+| px4-arming | flight control | armed_only_when_checks_pass | proven | proven | 16.3 s |
+| px4-arming | flight control | armed_only_from_standby | proven | proven | 11.6 s |
+| px4-arming | flight control | shutdown_is_final | broken | broken | 1.9 s |
+| px4-arming | flight control | shutdown_left_only_in_hil | proven | proven | 11.5 s |
 | px4-arming | flight control | denied_changes_nothing | broken | broken | 0.0 s |
-| canopen-node-guarding | industrial fieldbus | timeout_when_life_expires | proven | proven | 0.6 s |
-| canopen-node-guarding | industrial fieldbus | guard_request_rearms | proven | proven | 0.3 s |
-| canopen-node-guarding | industrial fieldbus | life_timer_counts_down | proven | proven | 0.3 s |
-| canopen-node-guarding | industrial fieldbus | disable_stops_guarding | proven | proven | 0.3 s |
-| canopen-node-guarding | industrial fieldbus | disable_clears_the_timeout | broken | broken | 3.4 s |
-| foxbms-interlock | automotive BMS | init_accepted_only_when_uninitialized | proven | proven | 4.2 s |
-| foxbms-interlock | automotive BMS | never_uninitialized_again | proven | proven | 1.6 s |
-| foxbms-interlock | automotive BMS | reentry_guard_released | proven | proven | 3.3 s |
-| foxbms-interlock | automotive BMS | no_illegal_request_counted | proven | proven | 3.7 s |
-| foxbms-interlock | automotive BMS | timer_bounded | proven | proven | 3.4 s |
+| canopen-node-guarding | industrial fieldbus | timeout_when_life_expires | proven | proven | 0.9 s |
+| canopen-node-guarding | industrial fieldbus | guard_request_rearms | proven | proven | 0.4 s |
+| canopen-node-guarding | industrial fieldbus | life_timer_counts_down | proven | proven | 0.4 s |
+| canopen-node-guarding | industrial fieldbus | disable_stops_guarding | proven | proven | 0.4 s |
+| canopen-node-guarding | industrial fieldbus | disable_clears_the_timeout | broken | broken | 7.7 s |
+| foxbms-interlock | automotive BMS | init_accepted_only_when_uninitialized | proven | proven | 1.0 s |
+| foxbms-interlock | automotive BMS | never_uninitialized_again | proven | proven | 0.5 s |
+| foxbms-interlock | automotive BMS | reentry_guard_released | proven | proven | 1.7 s |
+| foxbms-interlock | automotive BMS | no_illegal_request_counted | proven | proven | 1.5 s |
+| foxbms-interlock | automotive BMS | timer_bounded | proven | proven | 1.4 s |
 
 ## The refuted laws run on the real code (research/embedded/repro/run.ts, boat)
 
