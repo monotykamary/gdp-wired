@@ -244,7 +244,9 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     if (tkey.has(key)) return tkey.get(key)!
     if (r.tagUsed === 'union') return add(key, {k: 'union', go})
     const t = add(key, {k: 'struct', own: true, name: go, go, fields: []})
-    ttab[t]!.fields = (r.inner ?? []).filter(f => f.kind === 'FieldDecl').map(f => ({name: f.name ?? '', t: tyOf(f.type!), embedded: false}))
+    // (a void * field: a flag where the code only sets it to NULL or not and tests it against NULL, CANopen's CO_FLAG;
+    // any other use of it refused where it is)
+    ttab[t]!.fields = (r.inner ?? []).filter(f => f.kind === 'FieldDecl').map(f => { const ft = tyOf(f.type!), pt = T(ft); return {name: f.name ?? '', t: pt.k === 'ptr' && T(pt.elem!).k === 'void' ? add(`nullflag:${f.type!.qualType}`, {k: 'bool', go: f.type!.qualType, nullflag: true}) : ft, embedded: false} })
     return t
   }
   function tyOf(ty: {qualType: string, desugaredQualType?: string}): number { return parseT(ty.qualType, ty.desugaredQualType) }
@@ -399,9 +401,22 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     return !!n.type && T(tyOf(n.type)).signed === false
   }
   const calleeName = (n: CN): string | undefined => { const c = strip(n.inner![0]!); const d = (c.kind === 'ImplicitCastExpr' ? strip(c.inner![0]!) : c).referencedDecl; return d?.kind === 'FunctionDecl' ? d.name : undefined }
+  // (a pointer flag's field, read where a flag is: tested, compared with NULL)
+  const flagOf = (n0: CN): CN | undefined => { let n = strip(n0); while (CAST.has(n.kind) && ['BitCast', 'NoOp', 'LValueToRValue'].includes(n.castKind!)) n = strip(n.inner![0]!); const f = n.kind === 'MemberExpr' ? fields.get(n.referencedMemberDecl!) : undefined; return f && T(T(recT(f.rec)).fields![f.i]!.t).nullflag ? n : undefined }
+  const isNull = (n0: CN): boolean => { const n = strip(n0); return (CAST.has(n.kind) && (n.castKind === 'NullToPointer' || ((n.castKind === 'IntegralToPointer' || n.castKind === 'BitCast') && isNull(n.inner![0]!)))) || fold(n) === 0 || n.kind === 'CXXNullPtrLiteralExpr' || n.kind === 'GNUNullExpr' }
+  let flagRead = false
+  const readFlag = (n: CN): GX => { flagRead = true; try { return x(n) } finally { flagRead = false } }
   // A condition: a boolean as it is; a number compared with 0; a pointer with NULL.
   const cond = (n0: CN): GX => {
     const n = strip(n0)
+    const fl = flagOf(n.kind === 'ImplicitCastExpr' && n.castKind === 'PointerToBoolean' ? n.inner![0]! : n)
+    if (fl) return readFlag(fl)
+    if (n.kind === 'BinaryOperator' && (n.opcode === '==' || n.opcode === '!=') && (flagOf(n.inner![0]!) || flagOf(n.inner![1]!))) {
+      const [f, o] = flagOf(n.inner![0]!) ? [flagOf(n.inner![0]!)!, n.inner![1]!] : [flagOf(n.inner![1]!)!, n.inner![0]!]
+      if (!isNull(o)) return no(n, `${text(n)}: a pointer flag compared with other than NULL`)
+      const v = readFlag(f)
+      return n.opcode === '!=' ? v : {e: 'un', ...at(n, boolT), op: '!', x: v}
+    }
     if (n.kind === 'CallExpr' && calleeName(n) === '__builtin_expect') return cond(n.inner![1]!)
     if ((n.kind === 'ImplicitCastExpr' || n.kind === 'CStyleCastExpr') && ['IntegralCast', 'IntegralToBoolean', 'PointerToBoolean'].includes(n.castKind!) && isBoolish(n.inner![0]!)) return cond(n.inner![0]!)
     if (n.kind === 'BinaryOperator' && CMP.has(n.opcode!)) return {e: 'bin', ...at(n, boolT), op: n.opcode, x: x(n.inner![0]!), y: x(n.inner![1]!)}
@@ -505,6 +520,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       }
       case 'MemberExpr': {
         const f = fields.get(n.referencedMemberDecl!)
+        if (f && !flagRead && !asPlace && T(T(recT(f.rec)).fields![f.i]!.t).nullflag) return no(n, `${text(n)}: a void * read as a pointer (the subset reads one as a flag: set to NULL or not, tested against NULL)`)
         if (!f) return no(n, `${text(n)}: a member that isn't a field of a struct read here`)
         if (records.get(f.rec)!.tagUsed === 'union') return no(n, `${text(n)}: a union's member (one storage read as several types)`)
         const b = kids[0]!
@@ -695,6 +711,12 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         if (n.opcode === ',') return ss(kids)
         if (n.opcode !== '=') break
         const [l, r] = kids as [CN, CN], rs = strip(r)
+        // (a pointer flag set: NULL its false, a constant other than 0 its true)
+        if (flagOf(l)) {
+          const k = isNull(r) ? 0 : (() => { let v = strip(r); while (CAST.has(v.kind)) v = strip(v.inner![0]!); return fold(v) })()
+          if (k === undefined) return sno(n, `${text(n)}: a pointer flag set to other than NULL or a constant`)
+          return [{s: 'assign', p, op: '=', l: [place(l)], r: [{e: 'lit', ...at(r, boolT), c: {bool: k !== 0}}]}]
+        }
         // a = b = c: b set first, then a to b's value.
         if (rs.kind === 'BinaryOperator' && rs.opcode === '=') return [...st(rs), {s: 'assign', p, op: '=', l: [place(l)], r: [conv2(r, tyOf(l.type!), x(rs.inner![0]!))]}]
         const [ps, rv] = pre(() => x(r))

@@ -43,7 +43,7 @@ import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 
 // --- the reader's JSON ----------------------------------------------------------------------------------------------
-export type TT = {k: string, go?: string, fixed?: boolean, box?: boolean, mutex?: boolean, generic?: boolean, name?: string, pkg?: string, own?: boolean, bits?: number, signed?: boolean, untyped?: boolean, ub?: boolean, elem?: number, key?: number,
+export type TT = {k: string, go?: string, nullflag?: boolean, fixed?: boolean, box?: boolean, mutex?: boolean, generic?: boolean, name?: string, pkg?: string, own?: boolean, bits?: number, signed?: boolean, untyped?: boolean, ub?: boolean, elem?: number, key?: number,
   fields?: {name: string, t: number, embedded: boolean}[], xfields?: {name: string, t: number, embedded: boolean, exported: boolean}[], methods?: {name: string, ptr: boolean}[], params?: number[], results?: number[], elems?: number[], iface?: boolean, args?: number[], len?: number}
 type GC = {int?: string, bool?: boolean, str?: string, float?: string, other?: string}
 export type GX = {e: string, p: string, t: number, text: string, c?: GC, why?: string, what?: string, b?: GX, n?: string, o?: string, id?: string, x?: GX, y?: GX, op?: string, f?: GX, a?: GX[], k?: string, lo?: GX, hi?: GX, three?: boolean,
@@ -646,18 +646,23 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
   const outputs: string[] = [], results: NonNullable<Model['results']> = {}
   type Final = {sel: B, leaves: Map<string, Term>, maps: Map<string, {key: K, has: B, vals: Record<string, Term>}>, lists: Map<string, ListOp[]>, out?: [string, Term], more?: [string, Term][]}
   const finals: Final[] = [], events: Event[] = [], methods: GoRead['methods'] = []
+  const lowered0 = (fn: GoFunc) => go.funcs[`${fn.recv?.type ?? ''}.${fn.name}`]!
+  // (an out-parameter some path of the function returns without writing: not every statement writes *p)
+  const boxKept = (f: SFunc, id?: string): boolean => !!id && !writesAll(f.body as unknown[], id)
   for (const fn of chosen) {
     g.method = fn.name
     const sel = I.is(evL, fn.name)
     let p: Path = {pc: [sel], locals: new Map(), heap: new Map(heap), called: [], locks: [], defers: []}
     const bound = go.bindParams(fn, sel, p), args = bound.args, params = bound.params
     p = bound.p
+    // (an out-parameter a path leaves as the caller gave it: what the caller gave, an input, read at the start)
+    for (const pa of fn.params) { const pt = go.T(pa.t); if (pt.k === 'ptr' && go.T(pt.elem!).box && (go.T(pt.elem!).fields ?? []).length === 1 && boxKept(lowered0(fn), pa.id)) g.lazyFieldIn(`in:${fn.name}_${pa.name ?? 'arg'}`, 'value', p, fn) }
     // The receiver.
     if (fn.recv?.id) p = g.bindLocal(fn.recv.id, fn.recv.ptr ? {t: 'ptr', to: {k: 'obj', id: 'this', path: []}} : {t: 'struct', ty: String(td.t), f: fields}, fn, p)
     const errAt = fn.results.length && go.T(fn.results.at(-1)!.t).k === 'error' ? fn.results.length - 1 : -1
     const kept = fn.results.filter((_, i) => i !== errAt)
     if (kept.length > 1) refuse(fn, `${fn.name} returns ${kept.length} values (a result kept is one value)`)
-    const lowered = go.funcs[`${fn.recv?.type ?? ''}.${fn.name}`]!
+    const lowered = lowered0(fn)
     g.spans.set(`${opts.entry}.${fn.name}`, [fn.p.split(':')[0]!, fn.span[0], fn.span[1]])
     const flow = g.block(lowered.body, p)
     if (flow.brk?.length) refuse(fn, 'a break outside a switch')
@@ -965,4 +970,10 @@ function probe(pkg: GoPkg, name: string): {where: string, what: string} {
   }
   const writes = fn.params.some(x => go.T(x.t).k === 'ptr')
   return {where: fn.p, what: `${name}: a function of its arguments${writes ? ' (the objects its pointers give are the caller\'s)' : ''}, not a step of a state the subset reads (a struct and its methods)`}
+}
+
+// (whether a body's first statement sets *p, the out-parameter whose id is given: then no path leaves the caller's value)
+function writesAll(body: unknown[], id: string): boolean {
+  const first = body[0] as {s?: string, l?: {e?: string, x?: {id?: string}, pl?: {x?: {id?: string}}}[]} | undefined
+  return !!first && first.s === 'assign' && JSON.stringify(first.l ?? []).includes(JSON.stringify(id))
 }

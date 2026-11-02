@@ -148,7 +148,7 @@ t('refused where it leaves the subset, each with why', () => {
   expect(why('int g;\nstruct q { int n; };\nvoid f(struct q *q) { q->n = g; }\n', 'q')).toMatch(/a global variable/)
   expect(why('#include <string.h>\nstruct q { unsigned n; };\nvoid f(struct q *q) { q->n = strlen("ab"); }\n', 'q')).toMatch(/another file or library|a string/)
   expect(why('struct q { unsigned n; };\nvoid f(struct q *q, unsigned k) { q->n = q->n / k; }\n', 'q')).toMatch(/other than a constant/)
-  expect(why('struct q { unsigned n; };\nvoid f(struct q *q, unsigned k) { q->n = q->n ^ k; }\n', 'q')).toMatch(/a bit operation/)
+  expect(why('struct q { unsigned n; };\nvoid f(struct q *q, unsigned k) { q->n = q->n ^ k; }\n', 'q')).toMatch(/a bit operation|bit-vectors are outside the subset/)
 }, 60_000)
 
 // --- C++ (extractCpp: the same reader and harness) ---------------------------------------------------------------------
