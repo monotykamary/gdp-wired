@@ -19,7 +19,7 @@ import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {env as knobs} from './solver.ts'
 import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
-import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE} from './exists.ts'
+import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
@@ -2930,14 +2930,31 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
   // rest assumed, the failing dropped, until none fails; then the set through `back`, the ∃ verdict as the search's)
   if (sk?.cands.length) {
     const tm = target.machine, hUntil = clock() + (until - clock()) / 2
+    const native = Object.values(sk.maps).some(g => !('each' in g.write) && g.write.key.op === 'tup')
     let keep = [...sk.cands]
     for (let round = 0; round < 8 && clock() < hUntil; round++) {
       const ls = withKinds(target, [...fresh.map(f => f.law), ...sought, ...keep])
-      const drop = keep.filter(c => clock() >= hUntil || !withDeadline(Math.min(hUntil, clock() + 3_000), () => proveLaw(tm, ls, ls.indexOf(c))).proven)
+      const helpers = withKinds(target, [...fresh.map(f => f.law), ...keep])
+      const drop = keep.filter(c => {
+        if (clock() >= hUntil) return true
+        const end = Math.min(hUntil, clock() + 3_000)
+        if (!native) return !withDeadline(end, () => proveLaw(tm, ls, ls.indexOf(c))).proven
+        // A local provenance fact usually needs only itself. Prove that small
+        // obligation before instantiating all mutually dependent witnesses.
+        // The existing memo widens its actual trees in the final checked set.
+        if (round === 0 && withDeadline(Math.min(end, clock() + 500), () => proveSetFast(tm, [c])).proven) return false
+        const local = witnessSupport(tm, helpers, c, Object.keys(sk.maps))
+        if (withDeadline(Math.min(end, clock() + 1_000), () => proveLaw(tm, local, local.indexOf(c))).proven) return false
+        return !withDeadline(end, () => proveLaw(tm, ls, ls.indexOf(c))).proven
+      })
       if (clock() >= hUntil) break
       if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: ghost supports round ${round}: ${keep.length} kept, ${drop.length} dropped: ${keep.map(c => c.name).join('; ').slice(0, 1500)}`)
       if (!drop.length) {
-        const b = back(target, keep.map(law => ({law})), false)
+        for (const l of native ? sought : []) {
+          const local = witnessSupport(tm, ls, l)
+          if (local.length < ls.length) withDeadline(Math.min(hUntil, clock() + 3_000), () => proveLaw(tm, local, local.indexOf(l)))
+        }
+        const b = back(target, keep.map(law => ({law})), native)
         if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: ghost supports set: ${b.proven ? 'proven' : `${b.goal} ${b.stuck} ${b.why ?? ''}`}`)
         if (b.proven && b.checked) { const found = keep.map(law => ({law, text: law.name})); return {...b, proven: true, checked: true, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])} }
         break
