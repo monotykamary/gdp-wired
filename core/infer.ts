@@ -251,7 +251,18 @@ export function domainStep(m: Machine, most = 20_000): ((params: Env, st: State,
     return e2(r.value)
   }
   const compare = (op: string, a: number, b: number) => (op === '<' ? a < b : op === '<=' ? a <= b : a === b)
-  const flags = Object.entries(m.step.flags ?? {})
+  // (a condition at every key read at the keys below the bound and one past it: past every value the state, request and
+  // the rule's own constants hold, no read moves and no comparison turns; the interpreter's breakpoints otherwise)
+  const constTop = Math.max(0, ...[...JSON.stringify([m.step, m.assume ?? null]).matchAll(/"value":(\d+)/g)].map(q => Number(q[1])))
+  const domC = (c: C): ((env: Env, st: State, D: number) => boolean) => {
+    if (c.op === 'all' && !c.keys?.length) { const body = domC(c.c), k = c.key; return (env, st, D) => { const was = env[k]; try { for (let i = 0; i <= Math.max(D, constTop + 2); i++) { env[k] = i; if (!body(env, st, D)) return false } return true } finally { if (was === undefined) delete env[k]; else env[k] = was } } }
+    if (c.op === 'and') { const xs = c.xs.map(domC); return (env, st, D) => xs.every(x2 => x2(env, st, D)) }
+    if (c.op === 'or') { const xs = c.xs.map(domC); return (env, st, D) => xs.some(x2 => x2(env, st, D)) }
+    if (c.op === 'not') { const y = domC(c.x); return (env, st, D) => !y(env, st, D) }
+    const f = JSON.stringify(c).includes('"op":"all"') ? (env: Env, st: State) => evalC(c, env, st, m) : compileC(c, m)
+    return (env, st) => f(env, st)
+  }
+  const flags = Object.entries(m.step.flags ?? {}).map(([name, c]) => [name, domC(c)] as const), assume = m.assume ? domC(m.assume) : undefined
   let checks = 6, off = false
   const same2 = (a: State, b: State) => JSON.stringify([a.scalars, Object.entries(a.maps).map(([k, c]) => [k, [...c].sort((p, q) => p[0] - q[0])])]) === JSON.stringify([b.scalars, Object.entries(b.maps).map(([k, c]) => [k, [...c].sort((p, q) => p[0] - q[0])])])
   const slow = (params: Env, st: State, input: Request) => (allowed(m, run, params, st, input) ? run.step(params, st, input) : undefined)
@@ -265,8 +276,8 @@ export function domainStep(m: Machine, most = 20_000): ((params: Env, st: State,
     // (as the interpreter's step: the flags in turn, the assumption, then every value read off the state before it)
     const env: Env = {...params}
     for (const i of m.inputs) if (typeof input[i] === 'number') env[i] = input[i] as number
-    for (const [name, c] of flags) env[`?${name}`] = evalC(c, env, st, m) ? 1 : 0
-    if (m.assume && !evalC(m.assume, env, st, m)) return undefined
+    for (const [name, c] of flags) env[`?${name}`] = c(env, st, D) ? 1 : 0
+    if (assume && !assume(env, st, D)) return undefined
     const next: State = {scalars: {...st.scalars}, maps: Object.fromEntries(Object.entries(st.maps).map(([mp, cells]) => [mp, new Map(cells)]))}
     for (const [v, f] of scalarsNext) next.scalars[v] = f(env, st)
     const sets = keyed.map(w => [w.mp, w.key(env, st), w.value(env, st)] as const)
@@ -728,7 +739,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // runs the least, the engine's small instance its samples)
   const relStep = domainStep(m)
   const runsTimed = timed || opts.runsMs !== undefined, runsUntil = Math.min(wallUntil, performance.now() + (opts.runsMs ?? 500)), least = opts.runs ?? (relStep ? 2000 : Math.min(inferRuns, Math.max(2000, 4 * ms)))
-  const moreRuns = (trial: number) => (runsTimed ? performance.now() < runsUntil : trial < Math.max(cap, least) && (used.tries < least || offered < cap) && !stop())
+  const moreRuns = (trial: number) => (runsTimed ? performance.now() < runsUntil : trial < (relStep ? 400 : Math.max(cap, least)) && (used.tries < least || offered < cap) && !stop())
   let trials = 0
   // (an assumption with "there exists", a value the request brings, may admit no request at a small bound, a multiple
   // of 5 but 0, say: a trial whose steps moved nothing doubles the bound at once)
