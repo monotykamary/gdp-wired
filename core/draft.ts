@@ -31,7 +31,8 @@ export function parseDraft(text: string): Draft[] {
   const at = text.indexOf('['), end = text.lastIndexOf(']')
   if (at < 0 || end < at) throw new Error('the answer holds no JSON array')
   const xs = JSON.parse(text.slice(at, end + 1)) as Record<string, unknown>[]
-  return xs.map(o => ({...(typeof o.method === 'string' && o.method ? {method: o.method} : {}), name: String(o.name ?? '').replace(/:/g, ' -').trim().replace(/[.\s]+$/, ''), expr: String(o.expr ?? '').trim(), answers: String(o.answers ?? '').trim()}))
+  const str = (v: unknown): string => (typeof v === 'string' ? v : v === undefined || v === null ? '' : JSON.stringify(v))
+  return xs.map(o => ({...(typeof o.method === 'string' && o.method ? {method: o.method} : {}), name: str(o.name).replace(/:/g, ' -').trim().replace(/[.\s]+$/, ''), expr: str(o.expr).trim(), answers: str(o.answers).trim()}))
 }
 // Each draft read over the code's names as `check` would read it: kept, or refused with why.
 export function vetDrafts(x: Extraction, ds: Draft[], opts: LawOpts = {}): {kept: Draft[], refused: {d: Draft, why: string}[]} {

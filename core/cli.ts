@@ -761,7 +761,7 @@ async function draft(target: string, o: Opts): Promise<number> {
   } else { out(prompt); return 0 }
   const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at)), unit = o.clock ?? cfg.all.clock ?? CLOCK[t.lang]
   const {kept, refused} = vetDrafts(x, parseDraft(answer), {clock: unit === 's' ? 1 : unit === 'ms' ? 1000 : undefined, ...(cfg.all.calendar ? {calendar: cfg.all.calendar as Calendar} : {})})
-  const by = (o.by as string | undefined) ?? (o.llm ? String(o.llm).split(/\s+/)[0]! : 'an answer given'), c = COMMENT[t.lang]
+  const by = (o.by as string | undefined) ?? (o.llm ? (o.llm as string).split(/\s+/)[0]! : 'an answer given'), c = COMMENT[t.lang]
   out(`${kept.length} laws drafted from ${cite}, each to be reviewed by a person (then [reviewed-by: <name>, <date>] in place of [unreviewed ...]):`)
   for (const d of kept) { out(`\n  ${d.method ? `on the line above ${d.method}` : 'in the class (a law of every state)'}:`); for (const l of draftComments(c, d, cite, by)) out(`    ${l}`) }
   for (const r of refused) out(`\n  refused: ${r.d.name}: ${r.d.expr}\n    ${r.why}`)
