@@ -20,7 +20,7 @@ import {env as knobs} from './solver.ts'
 import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE} from './exists.ts'
-import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
+import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
@@ -1625,9 +1625,10 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   withMapSums(): this | undefined {
     const m = this.machine
     if (m.history) return undefined
-    const have = new Set(Object.keys(m.sums ?? {})), more = new Set(this.spec.sumsRead ?? [])
+    const have = new Set(Object.keys(m.sums ?? {})), more = new Set(this.spec.sumsRead ?? []), arity = mapArities(m)
     for (const [map, init] of Object.entries(m.maps ?? {})) {
-      if (init !== 0 || !m.step.maps?.[map] || (m.inputMaps ?? []).includes(map)) continue
+      // (a map keyed by tuples has no sum read at one key: a sum's term reads its maps at the key alone)
+      if (init !== 0 || !m.step.maps?.[map] || (m.inputMaps ?? []).includes(map) || (arity[map] ?? 1) > 1) continue
       const name = (new MapRef(map, 0).sum().e as {name: string}).name
       if (have.has(name)) continue
       try { sumMachine({...m, sums: {...m.sums, ...sumsIn([], [name])}}); more.add(name) } catch { /* a sum the kernel takes no cover of */ }
