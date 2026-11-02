@@ -12,6 +12,7 @@ and apart, `benchmarks/false` (68 false properties), to test refutations.
 | --- | --- |
 | `tip.ts` | TIP's format read (S-expressions, `declare-datatype(s)` with `par`, `define-fun(s)-rec`, `match`, `lambda`, `@`, `prove`), and an evaluator of a TIP program on values. It uses no gdp-wired code |
 | `translate.ts` | A TIP problem as a `proveData` law: each datatype at the instances the problem uses (mutual where their fields reach each other), Peano naturals as naturals, each polymorphic function at its instances, a higher-order function specialised at the lambdas it is passed, the goal's sort variables and TIP's uninterpreted sorts as abstract sorts, an uninterpreted constant or function and a function variable of the goal as unknown functions (`fnParam` where it is one of a natural). Every refusal has a reason, and every change to the statement is recorded (below) |
+| `witness.ts` | Structural first-position witness proposals for existential indices (Int or Peano), based on datatype shape rather than names; capture-avoiding simultaneous substitution into the original goal. Each proposal is an ordinary definition, not an axiom |
 | `solve.ts` | One task: translate, check the translation against TIP's evaluator on random values (the goal at 200 values, each function at 100), then `proveData` with the run's budget. Answers proven (the kernel checked the cyclic proof), refuted (a counterexample TIP's evaluator confirms breaks the goal as TIP states it), unknown, unsupported, or error. Its diagnostic flags are below |
 | `modal_tip.py` | The run on Modal: every task and tool in its own container (2 vCPU, 4 GB), each tool under the same 60 s wall-clock limit, all at once. The image builds the TIP tools (`tip-org/tools` at `ca4c414`, with Stack) and makes cvc5's and Vampire's files once |
 | `summary.ts` | The tables below from a run's `results.jsonl` |
@@ -861,6 +862,28 @@ by at least one of the three). On the 184 of those whose statement the translati
   (`rotate_structural_mod`, `propositional_AndCommutative`).
 - An earlier run, `runs/modal/tip/full1`, had cvc5 refuse 46 files on the `_` pattern; gdp-wired's answers there are
   72 proven (one task fewer translated: Bool fields weren't read yet).
+
+## Structural existential witnesses (Lane TB3)
+
+When an existential index has no candidate among the outer variables, `witness.ts` proposes the first matching
+position in a list-shaped datatype. It recognises two constructors (empty and an element plus recursive tail),
+regardless of constructor names or field order, and returns an Int or Peano index. It adds an ordinary structurally
+recursive function to a copy of the TIP program. The source's definitions are unchanged. No property of the proposed
+index is assumed: `H ⇒ B[index := witness]` must be proved and kernel-checked, and a failed candidate stays unknown,
+not refuted. Existing variable-witness searches retain their candidate budgets.
+
+Instantiation is simultaneous and capture-avoiding under `let`, `match`, lambdas and quantifiers. The independent
+TIP evaluator checks the generated function and the instantiated goal just like other translated definitions.
+This is witness synthesis, not general existential elimination or support for quantifiers inside arbitrary terms.
+The integer `list_elem` task is admitted but not claimed proven; the Peano `list_nat_elem` witness proof also replays
+in Lean, with the original existential introduced from the checked witness theorem.
+
+Three paired full passes at 60 s against `beb36eb` (`runs/bar/runs/tb3-final-tip{1,2,3}` in the TB3 worktree)
+reduce unsupported from 62 to 60 every time. `list_nat_elem` is proven in all 12 observations (initial passes and
+three difference reruns per pass), against unsupported in all 12 base observations. `list_elem` is honestly unknown
+in all three full passes. No task is newly refused, no task is lost solidly, and wrong is 0. Total proven counts are
+226/226/222 against 224/224/224: the per-task gain is solid, but the aggregate count gain is not. The 58 termination
+refusals, one expanding-datatype refusal and one integer-product refusal remain.
 
 ## Existential goals (after 0.20.0)
 

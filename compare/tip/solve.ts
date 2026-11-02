@@ -38,6 +38,7 @@ let tip: Tip, tr: Translation
 try {
   tip = parseTip(readFileSync(file, 'utf8'))
   tr = translate(tip, file.split('/').slice(-2).join('/'), [...lemmaSx, ...(args.includes('--asserts') ? tip.asserts : [])], {sorts: args.includes('--naturals') ? 'naturals' : 'abstract'})
+  tip = tr.tip // includes ordinary definitions proposed by existential witness search
 } catch (e) {
   if (e instanceof Unsupported) done('unsupported', {why: e.message})
   done('unsupported', {why: `translation failed: ${(e as Error).message.slice(0, 300)}`, error: true})
@@ -119,7 +120,7 @@ if (tr!.some) {
     say({stage: 'prove', law: `witness ${w.terms.join(', ')}`, proven: wv.proven, checked: wv.checked, proveMs: wv.ms})
     if (wv.proven && wv.checked) done('proven', {changes: tr!.changes, witness: w.terms, scheme: wv.scheme, lemmas: wv.lemmas})
   }
-  done('unknown', {changes: tr!.changes, why: 'an existential goal: no witness among its variables proves it, and nothing refutes it'})
+  done('unknown', {changes: tr!.changes, why: 'an existential goal: no candidate witness proves it, and nothing refutes it'})
 }
 
 const given: DataLaw[] = [...tr!.lemmas, ...(conjSize ? conjectures(programOf([tr!.law]), tr!.law, conjMax, conjSize) : [])]
