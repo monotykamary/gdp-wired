@@ -5,10 +5,10 @@ noted), each with the command that reproduces it.
 
 ## 0.45.0
 
-A security fix in how the kernel reads names, more of TIP through termination, IC3Syn on pinned hardware, ∃ verdicts checked by the kernel, Lean on every sampled ITS certificate, sturdier readers and
-distributed apps through the CLI. Trusted changes: how the kernel and `gdp-wired-check` read names, the ∃ admission
-through ghost witnesses (Lean's `forall_some_of_ghostsubst`) and core/data.ts's termination admissions (Lean's
-`wf_fix_inv_unique_ring`).
+A security fix in how the kernel reads names, more of TIP through termination, IC3Syn on pinned hardware, ∃ verdicts
+checked by the kernel, Lean on every sampled ITS certificate, sturdier readers and distributed apps through the CLI.
+Trusted changes: how the kernel and `gdp-wired-check` read names, the ∃ admission through ghost witnesses (Lean's
+`forall_some_of_ghostsubst`) and core/data.ts's termination admissions (Lean's `wf_fix_inv_unique_ring`).
 - **Security: names read through the JavaScript prototype.** 0.44.0's TypeScript kernel and its standalone
   `gdp-wired-check` read some user-chosen names (`constructor`, `__proto__`, `toString`, `valueOf`, `hasOwnProperty`)
   through the JavaScript object prototype, so a specially crafted certificate or rule using such a name could be
