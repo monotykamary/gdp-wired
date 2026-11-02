@@ -32,7 +32,7 @@ const ptime = <T>(k: string, f: () => T): T => { const t = performance.now(); tr
 let dumped = 0
 // (GDP_COUNTS_LAZY=0: every instance and pick certFor proposes in the goal at once, as before; `wide`: the narrow
 // instances at once, the widened goal's further instances and picks lazily)
-const lazyMode = env.GDP_COUNTS_LAZY ?? '1'
+const lazyMode = env.GDP_COUNTS_LAZY ?? 'wide', pool = Number(env.GDP_COUNTS_POOL ?? 400)
 
 const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
 const json = (t: unknown) => JSON.stringify(t)
@@ -179,7 +179,7 @@ export function guardLaws(m: Machine): {counts: Machine['counts'], laws: Law[]} 
 // The count cells the goal reads (each before the step with its post name's twin), instances over pairs of them with one
 // bound (a count that doesn't drop, +1 and −1; two that meet, +1, +1 and −1), each with a fresh witness; and the laws and
 // quantified flags at the witnesses (returned, for the goal's law's instances).
-export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: string, key: string, body: E}[], wide = false): {reads: MapRead[], insts: CountInst[], wits: string[], picks: [string, E[]][], loose: boolean} {
+export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: string, key: string, body: E}[], wide = false, most = wide ? 24 : 10): {reads: MapRead[], insts: CountInst[], wits: string[], picks: [string, E[]][], loose: boolean} {
   const byMap = new Map(decls.map(d => [d.map, d])), last = goal.hyps.at(-1)
   // (the conclusion's reads first, then those at a constant or the law's own names, then the rest)
   const own = (t: E) => t.op === 'const' || (t.op === 'var' && json(last).includes(`"name":${json(t.name)}`))
@@ -209,7 +209,8 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
     if (a !== d && !post(a) && !post(d) && keyless(a[1]) && keyless(d[1]) && bound(a) === bound(c) && bound(d) === bound(c)) add([[1, a[0]], [-1, d[0]], [-1, c[0]]], 0, byMap.get(c[1])!.below)
   // (wide, asked by a model the instances above leave: every count at most each other one of its bound, either way, and
   // each positive only where a key is in it; a count read with no partner is then tied to its cells at a witness)
-  const cap = wide ? 24 : 10
+  // (`most`: the instances kept, 24 widened; a lazy goal's pool takes many more, as only those a model breaks are asked)
+  const cap = most
   if (wide) {
     insts.splice(10), wits.splice(10)
     for (const a of named) for (const c of named) if (a !== c && bound(a) === bound(c) && !(post(c) && !post(a))) add([[1, a[0]], [-1, c[0]]], 0, byMap.get(a[1])!.below)
@@ -405,7 +406,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     const chosen = new Set<string>()
     type Pool = {fg: Goal, keys: string[]}
     const build = () => obligations(at).map(({goal, decls}) => {
-      const full = pass ? certFor(goal, decls, wide) : none
+      const full = pass ? certFor(goal, decls, wide, wide && lazyMode !== '0' ? pool : undefined) : none
       if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide) || !('picks' in full)) return {goal, decls, c: full, gg: ptime('encode', () => mcGoal(goal.hyps, decls, full)), pool: undefined as Pool | undefined}
       const rd = new Map(full.reads.map(r => [r[0], json([r[1], r[2]])]))
       const keys = [...full.picks.map(q => `p${json([rd.get(q[0]), q[1]])}`), ...full.insts.map(i => `i${json([i.terms.map(([z, x]) => [z, rd.get(x)]), i.unit, i.below])}`)]
