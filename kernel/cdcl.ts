@@ -364,6 +364,12 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     for (const r of rows) { let x = r.lin['1'] ?? 0; for (const n of namesOf(r.lin)) x += r.lin[n]! * w[n]!; if (x > 0) return undefined }
     return w
   }
+  // (the point as it is, each name the rows read; undefined where the simplex doesn't know one)
+  const roundless = (lp: Simplex, rows: Row[]): Record<string, number> | undefined => {
+    const w: Record<string, number> = {}
+    for (const r of rows) for (const n of namesOf(r.lin)) if (!(n in w)) { const j = lp.indexOf(n); if (j === undefined) return undefined; w[n] = lp.value(j) }
+    return w
+  }
   // (the point rounded, each name the rows read; undefined where the simplex doesn't know one)
   const roundedOf = (lp: Simplex, rows: Row[]): Record<string, number> | undefined => {
     const w: Record<string, number> = {}
@@ -736,6 +742,12 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
             // (and the kernel's reading too (GDP_CDCL_POINT=0: not): a leaf whose rows the simplex's point meets at integers
             // is met, and the exact elimination, which finds as much over every row, is not run there)
             if ((clausal || pointLeaf) && !open && lpSat) { const w = pointOf(sx, rowsR); if (w) { verdict = {kind: 'sat', witness: w}; return } }
+            // (a model's search, at a leaf whose point is not integral: split on a fractional name of it (branch and bound)
+            // where one is not split on yet, not the exact elimination over every row)
+            if (pointLeaf && opts.model && !clausal && !open && lpSat) {
+              const point = roundless(sx, rowsR)
+              if (point && Object.entries(point).some(([x0, value]) => Math.abs(value - Math.round(value)) >= 1e-9 && !isMonomial(x0) && !decidedLin(Math.floor(value) === 0 ? {[x0]: 1} : {[x0]: 1, 1: -Math.floor(value)}))) { verdict = {kind: 'unknown', point}; return }
+            }
           }
           st.fmCalls++
           const rows = plain(), tf = timing ? performance.now() : 0
