@@ -86,8 +86,36 @@ Three laws are built on it. Each returns the rule built, the laws and step laws 
 second or daylight saving. So the arithmetic stays linear: an integer constant beside the clock. The kernel decides it
 as any other linear term. These are refused, each with the reason:
 - months, years and quarters, which have several lengths;
-- business or working days and weekdays, which depend on a calendar;
 - a duration that isn't a whole number of the clock's units (500 ms on a clock of seconds).
+
+**Business days** (core/calendar.ts) are counted over a calendar the person states once, in gdp.toml:
+
+    [calendar]
+    weekend = ["sat", "sun"]
+    holidays = ["2026-11-26", "2026-12-25", "2027-01-01"]
+    utc_offset = "-05:00"
+
+- **In a law:** `now - received <= 10 business days` is "the business days after received's day, up to and including
+  now's, are at most 10". The day of receipt doesn't count and the last day counts whole. The count is negative when
+  now is before received. Only a difference of two times compares with business days. In the library,
+  `businessDays(calendar, clock)` (`gdp-wired/laws`) gives the same count as a term.
+- **The arithmetic.** It stays the kernel's own: linear, with one division by a week. The count up to a time's day is
+  k·w + (the working weekdays up to its weekday) − (the listed holidays up to its day). Here w is the time's week, the
+  weekday's terms are comparisons with 7D·w, and each holiday is one comparison with the time. The holidays form a
+  balanced choice, one path per count, never 2^n.
+  - **A law of the state** divides by the week with div$k, whose facts the kernel already has.
+  - **A law of one step** can't read a function, and a deadline is a law of a step. So each time's week there is a key
+    of the step law, under a guard that only ⌊y/7D⌋ meets: ∀w. 7D·w ≤ y < 7D·w + 7D → L. That is L at ⌊y/7D⌋, since
+    the guard has one solution. A time that may be below 0 takes two keys, w⁺ − w⁻.
+  - Nothing new is trusted. The certificate is the existing `stepLaws` kind, and Lean checks it like any other
+    (below).
+- **What runs check.** The run search reads a step law's keys from 0 up and would never meet a week near 2,900. So
+  core/watch.ts reads a key scaled past the small ones (k·w, k ≥ 16, in a comparison) where that comparison turns:
+  ⌊t/k⌋ and the keys beside it. The search from a counterexample also tries its other values (a map cell's time of
+  receipt) as inputs. Both are untrusted: they only add what a run checks or tries.
+- **What it doesn't model:** daylight saving (one fixed offset), holidays not listed (a year with no list has none), and
+  half days. The calendar is a statement, like a citation. A deadline proven over it holds for that calendar only. A
+  law that a request *is* answered by a deadline still needs the sweep below.
 
 "Within 30 calendar days" is 30 days. "Within one month" must be restated in days, and that restatement is the
 reader's call, recorded in the citation.
@@ -118,6 +146,10 @@ including one that goes back. A law about two attempts in a row (the lockout bel
   person's.
 - **Dangling citations.** A citation naming no law stated in the target is refused ("not read", exit code 2), so a
   renamed law can't silently drop its clause.
+- **Drafted and signed.** `gdp-wired draft` asks a drafter for laws from a clause's text, reads each over the code's
+  names, and prints its citation marked `[unreviewed: drafted by ...]`. A person signs it off as
+  `[reviewed-by: <name>, <date>]`. `check --require-review` exits 2 while a law is cited unreviewed. The mark is text,
+  like the citation: it says who signed, never that the law is faithful (DRAFTING.md).
 - **In the library,** `certify(rule, laws, stepLaws, meta)` makes the same document for any rule. For a law about two
   runs, that rule is the one built. Lean checks the same document through interchange/lean.ts's path.
 
@@ -156,11 +188,32 @@ including one that goes back. A law about two attempts in a row (the lockout bel
       gdp-wired check <target> --cert <root>/<name>      # each target's verdicts, its certificates in <root>/<name>
       bun research/regulated/lean.ts <root> Certs.lean   # then lean Certs.lean against lean-kernel's library
 
+**Business days and drafting (gen/laneHC):**
+- **The count.** It is checked against a day-by-day walk of the calendar with JavaScript's Date: 3,200 pairs of
+  times over four calendars (Sat–Sun at −05:00 and −14:00, Fri–Sat at +03:00, Sunday only at +14:00), on both clocks,
+  with eight holidays including two on a weekend. The term's value and `count` agree with the walk on every pair.
+- **Laws over the count.**
+  - Built with the builders: a 14-calendar-day desk is proven within 10 business days. The law of one step is proven
+    by the kernel alone; the law of the state, given its helper "under 14 days", also by the kernel alone. Within 9
+    business days is broken by a run: from a request received on a Saturday, the tenth business day falls on the 13th
+    calendar day.
+  - Through the CLI, in Python, with the calendar in gdp.toml: 10 business days proven, 9 broken with a run. With no
+    calendar the law is not read, with why.
+- **Lean.** The CLI's two certificates of business-day laws (keys, guards and holidays) are checked by Lean 4.34.0
+  against the twin: 4 theorems, `propext`, `Classical.choice` and `Quot.sound` only, 75 s on boat
+  (`runs/regulated/lean1`).
+- **Drafting** (`DRAFTING.md`). One test covers the path:
+  - an answer's laws are read over the code's names;
+  - one naming a cell the code lacks is refused;
+  - a kept law pasted with its citation is proven;
+  - `--require-review` exits 2 until the citation is signed, then 0.
+
 **Not verified, or not done:**
 - **Runs aren't shortened.** A refutation's run is the first the search found, not the shortest.
 - **No sweep.** A deadline over every overdue record at once needs a loop over a map, which the readers don't take
   yet.
-- **Time is linear only.** Months, years, business days and time zones are refused, not modelled.
+- **Time is linear only.** Months and years are refused, not modelled; business days only over the calendar stated,
+  one fixed offset from UTC.
 - **Durations need a known clock.** The clock's unit is known for Python, Elixir, Rust, TypeScript, Java and
   Kotlin. Others need `clock` in gdp.toml.
 - **What two-run laws don't take:** histories, carried lists or maps, nodes, and laws with "there exists" lifted
