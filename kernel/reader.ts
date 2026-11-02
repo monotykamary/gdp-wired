@@ -13,7 +13,7 @@
 // and each leaf's derivation is found again among kernel.ts's rows when the search's refutation is unfolded).
 import type {C, E} from '../core/machine.ts'
 import {type Lin, add, costs, env, k, scale, sub, v} from '../core/solver.ts'
-import {type Goal, atomOf, canon, canonFlip, cellParts, columnTerm, factorsOf, isCell, termColumn, tupleAnd, tupleParts} from './kernel.ts'
+import {type Goal, atomOf, canon, canonFlip, cellParts, plainMap, columnTerm, factorsOf, isCell, termColumn, tupleAnd, tupleParts} from './kernel.ts'
 
 export type W = ReadonlySet<string>
 export const none: W = new Set<string>()
@@ -193,7 +193,7 @@ export class Reader {
         break
       }
       case 'get': {
-        if (e.map === '1' || /[*[\],:⟦⟧⟨⟩|]/.test(e.map)) { lin = undefined; break } // (kernel.ts's: no column a map's name could spell)
+        if (!plainMap(e.map)) { lin = undefined; break } // (kernel.ts's: no column a map's name could spell)
         // (a tuple key: its parts' forms, the cell M[⟨k1|k2|…⟩], kernel.ts's keyParts)
         if (e.key.op === 'tup' || e.key.op === 'proj') {
           const ps = this.tparts(e.key)

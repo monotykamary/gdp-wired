@@ -135,7 +135,7 @@ function linearOp(e: E, path: Path): Lin | undefined {
     case 'if': { const c = truth(e.c, path); return c === undefined ? v(termColumn(e)) : linear(c ? e.then : e.else, path) }
     case 'get': {
       // (a map's name builds its cells' columns: one with the characters of a column could spell another read's)
-      if (e.map === '1' || /[*[\],:⟦⟧⟨⟩|]/.test(e.map)) return undefined
+      if (!plainMap(e.map)) return undefined
       if (e.key.op === 'tup' || e.key.op === 'proj') { const keys = keyParts(e.key, path); if (keys) return v(`${e.map}[⟨${keys.map(canon).join('|')}⟩]`); if (e.key.op === 'tup') return undefined }
       const key = linear(e.key, path); return key && v(`${e.map}[${canon(key)}]`)
     }
@@ -144,6 +144,9 @@ function linearOp(e: E, path: Path): Lin | undefined {
     case 'proj': { const ps = keyParts(e.a, path); return !ps ? undefined : e.k === 0 ? ps[0] : ps.length === 2 ? ps[1] : undefined }
   }
 }
+// A map's name that builds no other column (kept per name: read at every cell of every path).
+const plainMaps = new Map<string, boolean>()
+export const plainMap = (name: string): boolean => { let ok = plainMaps.get(name); if (ok === undefined) plainMaps.set(name, (ok = name !== '1' && !/[*[\],:⟦⟧⟨⟩|]/.test(name))); return ok }
 // A tuple key's parts as linear forms (Lean's `parts`): tup(a, b) is a's form, then b's parts if b is a tuple, else b's
 // form; so tup(tup(a, b), c) has none (its first part is a tuple). A read at it is the cell M[⟨k1|k2|…⟩].
 // A tuple's rest (proj 1 of it) is its parts after the first, while two or more are left (Lean's `parts`).
