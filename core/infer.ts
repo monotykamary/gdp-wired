@@ -204,9 +204,15 @@ const few = (vals: number[]) => vals.length <= 4 && vals.every(x => x <= 8)
 // interpreted evaluations); the rest of the step the interpreter's. Its first steps are checked against the
 // interpreter's, and one that differs, or a domain past `most` tuples, leaves the interpreter's.
 export function domainStep(m: Machine, most = 20_000): ((params: Env, st: State, input: Request) => State | undefined) | undefined {
-  const rels = Object.entries(m.step.maps ?? {}).flatMap(([mp, w]) => ('each' in w && (m.relations?.[mp]?.length ?? 0) > 1 ? [{mp, n: m.relations![mp]!.length, w}] : []))
-  if (!rels.length || m.history || m.leasts || m.inputMaps?.length || m.counts) return undefined
-  const run = interpret(m), rest = interpret({...m, step: {...m.step, maps: Object.fromEntries(Object.entries(m.step.maps ?? {}).filter(([mp]) => !rels.some(r => r.mp === mp)))}})
+  // (every write at every key, a relation's at its tuples and a plain map's at its keys, n 1; a write at one key as itself)
+  const tupled = (mp: string) => (m.relations?.[mp]?.length ?? 0) > 1
+  if (!Object.entries(m.step.maps ?? {}).some(([mp, w]) => 'each' in w && tupled(mp)) || m.history || m.leasts || m.inputMaps?.length || m.counts || m.fns) return undefined
+  // (a write at every key of a map keyed by tuples that names no relation: the interpreter's)
+  if (Object.entries(m.step.maps ?? {}).some(([mp, w]) => 'each' in w && !tupled(mp) && JSON.stringify(w).includes('"op":"proj"'))) return undefined
+  const rels = Object.entries(m.step.maps ?? {}).flatMap(([mp, w]) => ('each' in w ? [{mp, n: tupled(mp) ? m.relations![mp]!.length : 1, w}] : []))
+  const keyed = Object.entries(m.step.maps ?? {}).flatMap(([mp, w]) => ('each' in w ? [] : [{mp, key: compileE(w.key, m), value: compileE(w.value, m)}]))
+  const scalarsNext = Object.entries(m.step.state ?? {}).map(([v, e]) => [v, compileE(e, m)] as const)
+  const run = interpret(m)
   const each = rels.map(r => { const t = eachParts(r.w as {each: string, value: E}, r.n); return {...r, names: t.names, value: t.value, f: compileE(t.value, m)} })
   // Where a relation's new value may be other than 0 at a tuple it doesn't hold: partial assignments of its parts (a part
   // a step's equality pins, `part = value`), an over-approximation read off the value with the step's own values in
@@ -253,24 +259,30 @@ export function domainStep(m: Machine, most = 20_000): ((params: Env, st: State,
     if (off) return slow(params, st, input)
     let top = 0
     for (const v of [...Object.values(params), ...Object.values(st.scalars), ...Object.values(input)]) if (typeof v === 'number' && v > top) top = v
-    for (const r of rels) for (const k of st.maps[r.mp]?.keys() ?? []) for (const d of tupleOf(k, r.n)) if (d > top) top = d
+    for (const [mp, cells] of Object.entries(st.maps)) for (const k of cells.keys()) { if (tupled(mp)) { for (const d of tupleOf(k, m.relations![mp]!.length)) if (d > top) top = d } else if (k > top) top = k }
     const D = top + 2
     if (each.some(r => D ** r.n > most)) return slow(params, st, input)
-    if (!allowed(m, rest, params, st, input)) return undefined
-    const next = rest.step(params, st, input), env: Env = {...params, ...st.scalars}
+    // (as the interpreter's step: the flags in turn, the assumption, then every value read off the state before it)
+    const env: Env = {...params}
     for (const i of m.inputs) if (typeof input[i] === 'number') env[i] = input[i] as number
     for (const [name, c] of flags) env[`?${name}`] = evalC(c, env, st, m) ? 1 : 0
-    const defaults = {...next.defaults}
+    if (m.assume && !evalC(m.assume, env, st, m)) return undefined
+    const next: State = {scalars: {...st.scalars}, maps: Object.fromEntries(Object.entries(st.maps).map(([mp, cells]) => [mp, new Map(cells)]))}
+    for (const [v, f] of scalarsNext) next.scalars[v] = f(env, st)
+    const sets = keyed.map(w => [w.mp, w.key(env, st), w.value(env, st)] as const)
+    const defaults = {...st.defaults}
     for (const r of each) {
       const far = r.names.map(() => D + 1)
       r.names.forEach((nm, i) => (env[nm] = far[i]!))
       const fallback = r.f(env, st), cells = new Map<number, number>(), at = (xs: number[]) => { r.names.forEach((nm, i) => (env[nm] = xs[i]!)); const v = r.f(env, st); if (v !== fallback) cells.set(xs.slice(0, -1).reduceRight((b, a) => cpair(a, b), xs.at(-1)!), v) }
       // (the tuples it holds and those its pins allow, where its cells are 0 by default; else every tuple below D)
       const pins = fallback === 0 && !st.defaults?.[r.mp] && !m.maps?.[r.mp] ? pinsOf(r, env, st) : undefined
+      if (r.n === 1) for (const k of st.maps[r.mp]?.keys() ?? []) if (k >= D) at([k])
       const each2 = (fixed: Map<number, number>) => { const xs = r.names.map((_, i) => fixed.get(i) ?? 0), free = r.names.map((_, i) => i).filter(i => !fixed.has(i)); for (;;) { at(xs); let j = free.length - 1; while (j >= 0 && ++xs[free[j]!]! === D) xs[free[j--]!] = 0; if (j < 0) break } }
       if (pins) { for (const k of st.maps[r.mp]?.keys() ?? []) at(tupleOf(k, r.n)); if (pins !== 'no') for (const p2 of pins) each2(p2) } else each2(new Map())
       next.maps[r.mp] = cells; defaults[r.mp] = fallback
     }
+    for (const [mp, k, v] of sets) next.maps[mp]!.set(k, v)
     const out = {...next, defaults}
     if (checks > 0) { checks--; let want: State | undefined; try { want = run.step(params, st, input) } catch { want = undefined } if (!want || !same2(want, out)) { off = true; return slow(params, st, input) } }
     return out

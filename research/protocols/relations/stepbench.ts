@@ -17,7 +17,7 @@ for (const [name, f] of [['domain', fast], ...(process.env.ONLY ? [] : [['interp
 // (CHECK=n: n steps, each from the same state by both, their states compared)
 if (process.env.CHECK) {
   const rnd = seeded(5), canon = (s: any) => s && JSON.stringify([s.scalars, Object.entries(s.maps).map(([k, c]: any) => [k, [...c].filter(([, v]: any) => v !== (s.defaults?.[k] ?? 0)).sort((p: any, q: any) => p[0] - q[0])])])
-  let st = run.init(params), bad = 0
+  let st = run.init(params), bad = 0, live = 0
   for (let k = 0; k < Number(process.env.CHECK); k++) {
     const inp = r.randomInput(rnd, size - 1, params)
     let a, b
@@ -25,7 +25,8 @@ if (process.env.CHECK) {
     try { b = slow(params, st, inp) } catch { b = undefined }
     if (canon(a) !== canon(b)) { bad++; if (bad < 3) console.log('differ', JSON.stringify(inp), canon(a)?.slice(0, 300), canon(b)?.slice(0, 300)) }
     if (b) st = b
-    if (k % 100 === 99) st = run.init(params)
+    if (Object.values(st.scalars).some((v: any) => v > 0)) live++
+    if (k % 400 === 399) st = run.init(params)
   }
-  console.log('check', process.env.CHECK, 'differ', bad)
+  console.log('check', process.env.CHECK, 'differ', bad, 'from a state with a scalar past 0', live)
 }
