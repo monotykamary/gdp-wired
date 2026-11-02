@@ -451,14 +451,17 @@ export function growWide(goal: Goal, budget: {nodes: number, until?: number}, as
 // (the abstraction of a whole wide goal, quadratic in its cells, within GDP_WIDE_EPR units: i4's learning switch's
 // largest decision otherwise 0.47M, its engine set's step goal of 7,590 hypotheses 19M, past its caller's end, in 10 GB)
 const wideEprUnits = Number(env.GDP_WIDE_EPR ?? 2_000_000), wideParts = env.GDP_WIDE_PARTS !== '0'
+// (only where the rule has tuple keys, its patterns n zeros: radix-keyed rules keep main's path, consensus_wo_decide's
+// and ring_leader_election's proofs among them, lost to it at 60 s)
+const tupledScope = (): boolean => !!eprScope.patterns && Object.values(eprScope.patterns).some(c => c.length > 1 && c[0] === 0)
 // (a part of a wide goal by the EPR path first, its core widened to the part, else the usual search)
 const eprPart = (gp: Goal, until: number): Outcome => eprFirst(gp, {nodes: 0, until}) ?? grow(gp, new Map(), {nodes: 0, until})
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
   const wide = !path.size && !budget.nodes && wideFor(goal), epr = !!eprScope.patterns && !eprScope.busy
   // (a wide goal's parts by the EPR path too, where the goal is EPR-shaped)
-  if (wide) { const out = epr && wideParts ? growWide(goal, budget, eprPart) : growWide(goal, budget); if (out) return out }
+  if (wide) { const out = epr && wideParts && tupledScope() ? growWide(goal, budget, eprPart) : growWide(goal, budget); if (out) return out }
   // (not for a wide goal's part: its abstraction's search reads no judge, and the whole goal is decided by it after)
-  if (epr && !wideBusy && !path.size && !budget.nodes) { const out = wide ? withEprCap(wideEprUnits, () => eprFirst(goal, budget)) : eprFirst(goal, budget); if (out) return out }
+  if (epr && !wideBusy && !path.size && !budget.nodes) { const out = wide && tupledScope() ? withEprCap(wideEprUnits, () => eprFirst(goal, budget)) : eprFirst(goal, budget); if (out) return out }
   // Past a few cases, CDCL over the atoms (kernel/cdcl.ts), with most of the budget: a linear goal's refutation there
   // is a resolution of short clauses, which the tree search would find again in every case that reaches one. Unknown
   // there, the plain search, the cuts and the plain search again have the rest. Not for a law over k steps in a row
@@ -1773,7 +1776,7 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
       if (late()) return strict(usual) ? unknown(g) : last ?? unknown(g)
       // (a wide goal decided over parts (growWide), each part by the EPR path: the abstraction of the whole is quadratic in
       // its cells, i4's engine set's step goal of 7,590 hypotheses ran 19M units past its caller's end and 10 GB)
-      let o: (Outcome & {part?: Goal, core?: number[]}) | undefined = !eprScope.patterns ? undefined : wideFor(g) ? eprWide(g, late) ?? withEprCap(wideEprUnits, () => eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late)) : eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late)
+      let o: (Outcome & {part?: Goal, core?: number[]}) | undefined = !eprScope.patterns ? undefined : wideFor(g) && tupledScope() ? eprWide(g, late) ?? withEprCap(wideEprUnits, () => eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late)) : eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late)
       // (a refutation whose core's proof didn't finish: a model from fewer instances, which these refute, is no answer;
       // decideLaw's unknown, the usual search's next)
       if (!o && eprLast.refuted) { if (!usual) { decideNote.refuted = true; return undefined } } else if (!o && (last || !usual)) return strict(usual) ? undefined : last
