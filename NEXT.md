@@ -26,6 +26,16 @@ Goal: IC3Syn's learning_switch and learning_switch_i4 proven with nothing writte
 - Random CTI check (relations/cti.ts, boat): learning_switch invariant inductive on 98 random good states.
 - All other TS walkers handle tup/proj (602656b); tsc clean outside infer.ts/machine.ts/prove.ts (fix those).
 
+## Since (later commits)
+- learning_switch PROVEN WITH NOTHING WRITTEN (engine, b71c3dc): runs/laneRL/tr6, process 41.1 s, infer 29.9 s, work 2.29M,
+  14 laws incl. help_3 (projected place) and help_4. Pinned confirmation: runs/laneRL/pin1 (engine agent).
+- Lean end to end: `bun lean-kernel/export-kernel.ts --switch > Switch.lean` (997 KB), Lean 155 s on boat, the five
+  laws via Kern.smachine_sound (runs/laneRL/sw1/switch.log); --tuples adds rotation.
+- i4 port: Src/Dst/Link hold nodes + SrcSet/DstSet/LinkSet (no ∸ 1). check.ts: 240 states = TLC; broken reaches bad.
+  agree.ts: both switches agree with phased (12,000 steps each). learning_switch BFS: runs/laneRL/chk2.
+- i4 hand set: instantiation gap (FAIL=2 shows the model breaks transitivity before the step) — prover agent on it.
+- Runtime: uncrossed parts on own breakpoints; identity writes copy the map.
+
 ## Next, in order
 1. tsc errors left in core/infer.ts (3), core/machine.ts (1), kernel/prove.ts (3) ('a' in e patterns: use 'b' in e).
 2. Engine (core/infer.ts): tuple atoms as candidates (R(t,y,t), R ⇒ S at a projection, 4-place with don't-care
