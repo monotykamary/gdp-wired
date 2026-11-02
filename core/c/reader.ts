@@ -132,7 +132,8 @@ const FAIL: Record<string, string> = {abort: 'abort()', __assert_rtn: 'an assert
 // file's directory)
 // (`picks`: an overloaded method's arity, the one read: `functions: ['throttle/1']`)
 // (leave: globals the rule leaves out, an output the code writes for other code, never read into what it keeps)
-export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp = false, root?: string, picks: Record<string, number> = {}, pickNames: string[] = [], leave: string[] = []): CRead {
+// (cut: the file's own functions a call of which the request answers, as another file's)
+export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp = false, root?: string, picks: Record<string, number> = {}, pickNames: string[] = [], leave: string[] = [], cut: string[] = []): CRead {
   const path = node<{resolve: (...p: string[]) => string, basename: (p: string) => string}>('node:path'), fs = node<{readFileSync: (p: string, e: string) => string}>('node:fs')
   const main = path.resolve(file), base = path.basename(file), dir = `${path.resolve(root ?? main.replace(/\/[^/]*$/, ''))}/`, srcs = new Map<string, string>()
   locate(tu)
@@ -427,12 +428,15 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   // inside it is refused, its effect would be lost.)
   let placing = false
   // (a place in a global left out, or its address)
-  const leftOut = (n0: CN): boolean => { const n = strip(n0); if (n.kind === 'DeclRefExpr') return left.has(n.referencedDecl?.id ?? ''); if (n.kind === 'MemberExpr' && !n.isArrow || n.kind === 'ArraySubscriptExpr' || (n.kind === 'UnaryOperator' && n.opcode === '&') || (CAST.has(n.kind) && n.castKind === 'ArrayToPointerDecay')) return leftOut(n.inner![0]!); return false }
+  // (a field of the entry left out, `leave`, or anything reached through one: an object other code owns, a buffer the
+  // code writes for it)
+  const leftField = (n: CN) => { const f = fields.get(n.referencedMemberDecl ?? ''); return !!f && f.rec === entryRec && leave.includes(String(n.name)) }
+  const leftOut = (n0: CN): boolean => { const n = strip(n0); if (n.kind === 'DeclRefExpr') return left.has(n.referencedDecl?.id ?? ''); if (n.kind === 'MemberExpr' && leftField(n)) return true; if (n.kind === 'MemberExpr' || n.kind === 'ArraySubscriptExpr' || (n.kind === 'UnaryOperator' && n.opcode === '&') || (CAST.has(n.kind) && n.castKind === 'ArrayToPointerDecay')) return leftOut(n.inner![0]!); return false }
   const effects = (n: CN): boolean => (n.kind === 'CallExpr' && funcs.has(calleeName(n) ?? '')) || ['CompoundAssignOperator'].includes(n.kind) || (n.kind === 'BinaryOperator' && n.opcode === '=') || (n.kind === 'UnaryOperator' && ['++', '--'].includes(n.opcode!)) || (n.inner ?? []).some(effects)
   const x = (n0: CN): GX => {
     const n = strip(n0), t = n.type ? tyOf(n.type) : -1, a = at(n, t), kids = n.inner ?? []
     const asPlace = placing; placing = false
-    if (left.size && leftOut(n)) return {e: 'opaque', ...a, why: `${text(n)}: left out (leave: an output for other code, never read into the rule)`}
+    if ((left.size || leave.length) && leftOut(n)) return {e: 'opaque', ...a, why: `${text(n)}: left out (leave: an output for other code, never read into the rule)`}
     if (t >= 0 && T(t).k === 'float' && !asPlace) return effects(n) ? no(n, `${text(n)}: a float computed with an effect of the file's own code (floats are left out)`) : {e: 'opaque', ...a, why: `${text(n)}: a float (left out of the rule: a binary fraction that rounds)`}
     const k = t >= 0 && T(t).k === 'int' ? fold(n) : undefined
     if (k !== undefined) return Number.isSafeInteger(k) ? lit(n, k, t) : no(n, `${text(n)}: the constant ${n.kind === 'IntegerLiteral' ? n.value : k} is past 2^53 (the rule's numbers stop there)`)
@@ -547,7 +551,8 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     if (name === '__builtin_expect') return x(args[0]!)
     if (name === 'exit' || name === '_Exit') return no(n, `${name}: the process ends`)
     if (cpp && (name === 'min' || name === 'max') && args.length === 2) return {e: 'call', ...a, builtin: name, a: args.map(x)}
-    const f = funcs.get(name)
+    // (one of the file's own the caller answers, `answers`: read as other code's, its value the request's)
+    const f = cut.includes(name) ? undefined : funcs.get(name)
     if (f?.$m) return no(n, `${name}: a static method`)
     // (another file's or a library's function: at the boundary where it is inferred, with its end, where the check
     // stubs an answered one in a copy of the file)
@@ -580,7 +585,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   function st(n: CN): GS[] {
     const p = pos(n), kids = n.inner ?? []
     // (a write into a global left out: its value computed, the write not kept)
-    if (left.size && (n.kind === 'CompoundAssignOperator' || (n.kind === 'BinaryOperator' && n.opcode === '=') || (n.kind === 'UnaryOperator' && ['++', '--'].includes(n.opcode!))) && leftOut(kids[0]!)) {
+    if ((left.size || leave.length) && (n.kind === 'CompoundAssignOperator' || (n.kind === 'BinaryOperator' && n.opcode === '=') || (n.kind === 'UnaryOperator' && ['++', '--'].includes(n.opcode!))) && leftOut(kids[0]!)) {
       if (n.kind === 'UnaryOperator') return []
       const [ps, v] = pre(() => x(kids[1]!))
       return [...ps, {s: 'expr', p, x: v}]

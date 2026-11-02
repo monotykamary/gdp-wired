@@ -52,8 +52,9 @@ export type COptions = {
   // Calls of other code answered by the request (the callee's name: its result's type) or left out, as `gdp: answer`
   // and `gdp: skip` comments say at one call.
   answers?: Record<string, string>, skip?: string[],
-  // Globals the rule leaves out (a file keeping its state in globals): an output the code writes for other code (a
-  // database mirror, a report), which nothing the rule keeps reads; a read of one into what it keeps is refused.
+  // Globals the rule leaves out (a file keeping its state in globals), or the entry's fields: an output the code writes
+  // for other code (a database mirror, a CAN buffer, a report), which nothing the rule keeps reads; a read of one into
+  // what it keeps is refused. (`answers` may name the file's own functions too: each call of one the request's value.)
   leave?: string[],
   onError?: 'refuse' | 'discard', domains?: Record<string, 'nat' | 'int'>, check?: GoCheckOptions,
 }
@@ -82,7 +83,11 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
   }
   // (no entry: the file's one struct its functions write, each struct of the dump tried)
   if (!opts.entry) {
-    const names = [...new Set((tu.inner ?? []).filter(n => n.kind === 'RecordDecl' && n.name && n.completeDefinition).map(n => String(n.name)))]
+    // (each struct by its tag or a typedef's name, an unnamed one's typedef too, that a function of the file takes a
+    // pointer to first)
+    const firsts = new Set((tu.inner ?? []).filter(n => n.kind === 'FunctionDecl' && n.inner?.some(c => c.kind === 'CompoundStmt')).map(n => n.inner!.find(c => c.kind === 'ParmVarDecl')?.type?.qualType.replace(/\b(const|volatile|struct)\b|\*/g, '').trim()).filter((t): t is string => !!t))
+    const typedefNames = (tu.inner ?? []).filter(n => n.kind === 'TypedefDecl' && (n.inner ?? []).some(c => /Record|Elaborated/.test(c.kind))).map(n => String(n.name))
+    const names = [...new Set([...(tu.inner ?? []).filter(n => n.kind === 'RecordDecl' && n.name && n.completeDefinition).map(n => String(n.name)), ...typedefNames])].filter(n => firsts.has(n))
     const ok = names.filter(n => { try { const c = readC(file, n, tu, target, cpp, opts.root); readGo(c.pkg, {methods: c.methods}); return true } catch (e) { if (e instanceof Refusal) return false; throw e } })
     // (none: the file's globals, where its functions keep the state there)
     if (!ok.length && !cpp) {
@@ -96,7 +101,7 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
     if (ok.length !== 1) throw new Refusal(file, ok.length ? `several structs written by the file's functions (${ok.join(', ')}): name one (entry)` : 'no struct the file\'s functions write: name the entry')
     return readCFile(file, {...opts, entry: ok[0]!}, cpp)
   }
-  return {c: readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])])), (opts.functions ?? opts.methods ?? []).map(f => f.split('/')[0]!), opts.leave ?? []), flags}
+  return {c: readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])])), (opts.functions ?? opts.methods ?? []).map(f => f.split('/')[0]!), opts.leave ?? [], Object.keys(opts.answers ?? {})), flags}
 }
 export function extractC(at: string | FileURL, given: COptions = {}, cpp = false): Extraction & {leaves?: GoLeaf[]} {
   const notes: string[] = [], file = pathOf(at), fns = given.methods ?? given.functions, opts: COptions = {...given, ...(fns ? {functions: fns} : {})}
