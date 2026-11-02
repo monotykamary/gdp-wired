@@ -2,7 +2,7 @@
 // random machines whose map values read the other map and whose scalars read both, so a write seen before every read
 // is done would show; and branches made with fork stay apart. FUZZ_SEED and FUZZ_SCALE shard it as kernel.test.ts.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Machine, type State, compileJs, interpret, loadJs, lcg} from './machine.ts'
+import {type C, type E, type Machine, type State, compileJs, fastStep, interpret, loadJs, lcg} from './machine.ts'
 import {distinctNames, sortedList} from '../examples/pairs.ts'
 
 let seed = Number(process.env.FUZZ_SEED ?? 777)
@@ -45,15 +45,15 @@ const same = (a: State, b: State) => { expect(a.scalars).toEqual(b.scalars); exp
 test('the generated JavaScript steps as the interpreter does', () => {
   let steps = 0, forks = 0
   for (let trial = 0; trial < 2000 * scale; trial++) {
-    const m = machine(), gen = load(m), run = interpret(m)
+    const m = machine(), gen = load(m), run = interpret(m), fast = fastStep(m)!
     const params = {p: rand(4)}
     const input = () => ({a: rand(4), b: rand(4)})
     let st = run.init(params), g = gen.init(params)
     same(st, g)
     for (let i = 0; i < 1 + rand(30); i++) {
-      const r = input()
+      const r = input(), f = fast(params, st, r)
       st = run.step(params, st, r), g = gen.step(params, g, r)
-      same(st, g)
+      same(st, g); same(st, f)
       steps++
     }
     // Two branches from one state: fork each, step them apart, then neither sees the other.
@@ -66,6 +66,28 @@ test('the generated JavaScript steps as the interpreter does', () => {
   }
   console.log(`compiled vs interpreted: ${steps.toLocaleString()} steps and ${forks.toLocaleString()} forks agree`)
 }, 600_000)
+
+test('fastStep forks only accepted requests, after all pre-state reads', () => {
+  let copies = 0
+  class WatchedMap extends Map<number, number> {
+    override [Symbol.iterator]() { copies++; return super[Symbol.iterator]() }
+  }
+  const zero: E = {op: 'const', value: 0}
+  const m: Machine = {name: 'deferred fork', params: [], inputs: ['take'], state: {}, maps: {A: 0, B: 0},
+    assume: {op: '<', a: {op: 'var', name: 'take'}, b: {op: 'const', value: 1}},
+    step: {maps: {A: {key: zero, value: {op: 'get', map: 'B', key: zero}}, B: {key: zero, value: {op: 'get', map: 'A', key: zero}}}}}
+  const st: State = {scalars: {}, maps: {A: new WatchedMap([[0, 1]]), B: new WatchedMap([[0, 2]])}}
+  const step = fastStep(m)!
+  expect(() => step({}, st, {take: 2})).toThrow('fails the rule\'s assumption')
+  expect(copies).toBe(0)
+  const next = step({}, st, {take: 0})
+  expect(copies).toBe(2)
+  expect(next.maps.A!.get(0)).toBe(2)
+  expect(next.maps.B!.get(0)).toBe(1)
+  next.maps.A!.set(0, 99)
+  expect(st.maps.A!.get(0)).toBe(1)
+  expect(st.maps.B!.get(0)).toBe(2)
+})
 
 // A module declares only the runtime helpers it calls: a helper declared and never called is dead code in the caller's
 // bundle (and a lint error there).

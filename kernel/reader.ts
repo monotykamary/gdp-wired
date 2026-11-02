@@ -12,6 +12,7 @@
 // Nothing here is trusted: the rows it gives are the kernel's (the search's tree is checked by kernel.ts at the end,
 // and each leaf's derivation is found again among kernel.ts's rows when the search's refutation is unfolded).
 import type {C, E} from '../core/machine.ts'
+import {shareTerms} from './share.ts'
 import {type Lin, add, costs, env, k, scale, sub, v} from '../core/solver.ts'
 import {type Goal, atomOf, canon, canonFlip, cellParts, plainMap, columnTerm, factorsOf, isCell, termColumn, tupleAnd} from './kernel.ts'
 
@@ -79,6 +80,7 @@ class Seg { constructor(readonly kind: number, readonly i: number, readonly j = 
 type Finding = {key: object}
 export class Reader {
   private node = 0
+  private share = shareTerms()
   private natRows = new Map<string, Row>()
   private atomRows = new Map<string, Row>()
   private leafAtomRows = new WeakMap<Lin, Row[]>()
@@ -163,6 +165,7 @@ export class Reader {
     return {t: undefined, w: none, pos: -1, fin: false}
   }
   linear(e: E): LV {
+    e = this.share(e)
     this.read(e)
     const had = this.ls.get(e)
     if (had && this.ok(had, e)) return had
@@ -237,6 +240,7 @@ export class Reader {
     return {when: atoms.when, unless: atoms.unless, r}
   }
   truth(c: C): TV {
+    c = this.share(c)
     this.read(c)
     const had = this.ts.get(c)
     if (had && this.ok(had, c)) return had

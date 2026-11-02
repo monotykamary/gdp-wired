@@ -32,6 +32,8 @@
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
+import {bitIntersection, bitIntersects} from './bitsets.ts'
+import {samplePredicates} from './sample-cache.ts'
 import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, compileC, compileE, cpair, fastStep, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, partsOf as tupleOf, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
@@ -656,7 +658,9 @@ function comparisons(m: Machine, laws: Law[], atoms: Atom[], coords: number[], m
 }
 
 export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
-  return quietly(() => withDeadline(clock() + (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - performance.now())), () => inferLawsSearch(target, laws, stepLaws, opts)))
+  // Repeated rounds and minimization can ask the same root goal again. Keep only
+  // completed trees for this search, keyed by exact hypotheses and prover modes.
+  return withTrees(() => quietly(() => withDeadline(clock() + (opts.wall === undefined ? opts.ms ?? 20000 : Math.max(0, opts.wall - performance.now())), () => inferLawsSearch(target, laws, stepLaws, opts))))
 }
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
   // (GDP_INFER_TRACE=2: each phase's progress too, to stderr)
@@ -2388,8 +2392,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           if (!only && tm.length > 1) tries.push(...tm.map(mp => ({only: new Set([mp]), der})), ...(tm.length > 2 ? tm.flatMap((a, i) => tm.slice(i + 1).map(b => ({only: new Set([a, b]), der}))) : []))
           continue
         }
-        const empty = (b: Uint32Array) => b.every(w => w === 0), and = (a: Uint32Array, b: Uint32Array) => a.map((w, k) => w & b[k]!)
-        const none = (ls: number[]) => empty(ls.slice(1).reduce((b, l) => and(b, lits[l]!.bits), lits[ls[0]!]!.bits))
+        const empty = (b: Uint32Array) => !bitIntersects([b]), and = bitIntersection
+        const none = (ls: number[]) => !bitIntersects(ls.map(l => lits[l]!.bits))
         // (a renaming of a sort's keys moves each literal to the place its keys go to)
         const perms = keys.reduce<number[][]>((acc, s) => acc.flatMap(p => keys.flatMap((t, j) => (t === s && !p.includes(j) ? [[...p, j]] : []))), [[]])
         const canon = (ls: number[]) => perms.map(ren => ls.map(l => lits[l]!.name(ren)).sort().join('&')).sort()[0]!
@@ -2397,9 +2401,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const dfs = (from: number, chosen: number[], size: number, bits?: Uint32Array, most = 400) => {
           for (let j = from; j < lits.length && found.length < most; j++) {
             if (chosen.some(c => lits[c]!.id === lits[j]!.id)) continue
-            const now2 = [...chosen, j], b = bits ? and(bits, lits[j]!.bits) : lits[j]!.bits
-            if (now2.length < size) { if (!empty(b)) dfs(j + 1, now2, size, b, most); continue }
-            if (!empty(b) || now2.some((_, k) => now2.length > 1 && none(now2.filter((__, q) => q !== k)))) continue
+            const now2 = [...chosen, j], next = lits[j]!.bits
+            // A leaf only asks whether any row holds the cube. Stop at its first witness,
+            // without materializing a bitmap (also for each minimality check).
+            if (now2.length < size) { const b = bits ? and(bits, next) : next; if (!empty(b)) dfs(j + 1, now2, size, b, most); continue }
+            if (bitIntersects(bits ? [bits, next] : [next]) || now2.some((_, k) => now2.length > 1 && none(now2.filter((__, q) => q !== k)))) continue
             // (a cube reading no state (keys and functions alone) is a fact of the functions' tables, or false: none)
             if (contradicts(now2.map(l => lits[l]!.lit)) || !now2.some(l => lits[l]!.state) || oneSided(now2.map(l => lits[l]!.lit), vi)) continue
             const read = new Set(now2.flatMap(l => lits[l]!.reads)), k2 = canon(now2)
@@ -2412,10 +2418,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const found1 = found.map(ls => ls.map(l => lits[l]!.lit))
         found.length = 0
         lits.splice(0, lits.length, ...informative)
-        for (let size = 2; size <= (lits.length <= 40 ? 4 : 3); size++) dfs(0, [], size)
+        // Cube-only callers discard wider cubes at the API boundary. Do not build
+        // or data-filter them first: use the requested width during enumeration.
+        const requestedWidth = opts.cubes || Infinity
+        for (let size = 2; size <= Math.min(requestedWidth, lits.length <= 40 ? 4 : 3); size++) dfs(0, [], size)
         // (where they are more: the four-literal cubes with a chain of three keys of one sort, a < b < c (betweenness, and a
         // cycle's turns of it), the two order literals and any two others, 200 at most; and the doubled patterns below)
-        if (lits.length > 40) {
+        if (lits.length > 40 && requestedWidth >= 4) {
           const at = found.length
           lits.forEach((a, i) => lits.forEach((b, j) => { if (a.before && b.before && a.before[1] === b.before[0] && a.before[0] !== b.before[1] && found.length < at + 200) { const ab = and(a.bits, b.bits); if (!empty(ab)) dfs(0, [i, j], 4, ab, at + 200) } }))
           // (and "two of a pattern are one", DuoAI's: a two-literal pattern some row has, beside its image under a renaming of
@@ -2424,8 +2433,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           for (const ren of perms.filter(r => r.some((k, i) => k !== i))) for (let i = 0; i < lits.length && found.length < at2 + 200; i++) for (let j = i + 1; j < lits.length && found.length < at2 + 200; j++) {
             const i2 = byName.get(lits[i]!.name(ren)), j2 = byName.get(lits[j]!.name(ren))
             if (i2 === undefined || j2 === undefined || new Set([i, j, i2, j2]).size < 4 || lits[i]!.id === lits[j]!.id || empty(and(lits[i]!.bits, lits[j]!.bits))) continue
-            const ls2 = [i, j, i2, j2], b2 = ls2.slice(1).reduce((b, l) => and(b, lits[l]!.bits), lits[i]!.bits)
-            if (!empty(b2) || ls2.some((_, k) => none(ls2.filter((__, q) => q !== k))) || contradicts(ls2.map(l => lits[l]!.lit)) || oneSided(ls2.map(l => lits[l]!.lit), vi)) continue
+            const ls2 = [i, j, i2, j2]
+            if (!none(ls2) || ls2.some((_, k) => none(ls2.filter((__, q) => q !== k))) || contradicts(ls2.map(l => lits[l]!.lit)) || oneSided(ls2.map(l => lits[l]!.lit), vi)) continue
             const read = new Set(ls2.flatMap(l => lits[l]!.reads)), k2 = canon(ls2)
             if (read.size === keys.length && !seen.has(k2)) { seen.add(k2); found.push(ls2) }
           }
@@ -2457,6 +2466,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           if (!live.length || stop()) break
           const killed = new Set<Form>(), byView = new Map<number, Form[]>()
           for (const f of live) byView.set(f.view!, [...(byView.get(f.view!) ?? []), f])
+          // Each literal is shared by many cubes. Read it once per row, lazily, retaining
+          // the original cube/row order and the exact near-miss counts before a kill.
+          const tables = new Map([...byView].map(([vi, fs]) => [vi, samplePredicates(fs.map(f => f.cube!), l => JSON.stringify(l), litAt)]))
           let read = 0, still = 0, lastKill = 0
           const r = instance(grow, share, seeded(29 + k), most5, q => {
             if (read >= most5 || (read >= (k ? 0 : least5) && still >= quiet) || stop()) return false
@@ -2466,7 +2478,19 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
               const alive = fs.filter(f => !killed.has(f))
               if (!alive.length) continue
               const rows = withTable(q.params, () => views[vi]!.rowsOf(q.params, q.st, true))
-              for (const f of alive) { let near = 0; for (const row of rows) { let off = 0; for (const l of f.cube!) if (!litAt(l, row) && ++off > 1) break; if (off === 0) { killed.add(f); break } if (off === 1) near++ } if (near) nearMiss.set(f, (nearMiss.get(f) ?? 0) + near) }
+              const table = tables.get(vi)!, holds = table.on(rows)
+              for (let fi = 0; fi < fs.length; fi++) {
+                const f = fs[fi]!
+                if (killed.has(f)) continue
+                let near = 0
+                for (let ri = 0; ri < rows.length; ri++) {
+                  let off = 0
+                  for (const l of table.groups[fi]!) if (!holds(l, ri) && ++off > 1) break
+                  if (off === 0) { killed.add(f); break }
+                  if (off === 1) near++
+                }
+                if (near) nearMiss.set(f, (nearMiss.get(f) ?? 0) + near)
+              }
             }
             if (killed.size > before) lastKill = read
             still = killed.size > before ? 0 : still + 1
