@@ -82,7 +82,7 @@ export function score(rs: ItemResult[]): string {
 if (!import.meta.main) { /* imported: fetchItem and score only */ } else if (argv.includes('--jobs')) {
   process.stdout.write(`${JSON.stringify(ITEMS.map(it => ({name: it.id, cmd: `. research/langs/c/clang-setup.sh >/dev/null && bun install --frozen-lockfile >/dev/null 2>&1 && bun research/embedded/corpus/run.ts --only ${it.id} --ms ${ms} --json /tmp/r.json >/dev/null; cat /tmp/r.json`, timeout: 3600, cpu: 2})), null, 1)}\n`)
 } else if (opt('score')) {
-  const dir = resolve(opt('score')), rs: ItemResult[] = ITEMS.flatMap(it => { const f = join(dir, `${it.id}.log`); if (!existsSync(f)) return []; const t = readFileSync(f, 'utf8'); const i = t.indexOf('['); try { return JSON.parse(t.slice(i)) as ItemResult[] } catch { return [] } })
+  const dir = resolve(opt('score')), rs: ItemResult[] = ITEMS.flatMap(it => { const f = join(dir, `${it.id}.log`); if (!existsSync(f)) return []; const t = readFileSync(f, 'utf8').split('\n--- stderr')[0]!; const i = t.indexOf('['); try { return JSON.parse(t.slice(i)) as ItemResult[] } catch { return [] } })
   if (opt('json')) writeFileSync(opt('json'), `${JSON.stringify(rs, null, 1)}\n`)
   const md = score(rs)
   if (opt('md')) writeFileSync(opt('md'), `${md}\n`)

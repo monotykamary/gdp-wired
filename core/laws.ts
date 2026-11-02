@@ -408,6 +408,15 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
     c.roles.add(n.role); if (n.method) c.methods.add(n.method)
     return rest(e.segs, leaf(n, c, dry), c, names, dry, e)
   }
+  // (a call answered per constant arguments, C's: f(em, BUS_OFF) its answer f_x_18, by the code's constants)
+  const call0 = e.segs[0]
+  if (call0 && 'call' in call0 && call0.args && names.some(x => x.role === 'answer' && x.code.startsWith(`${e.head}_`))) {
+    const sig = splitArgs(call0.args).map(a => { const k = /^-?\d+$/.test(a) ? Number(a) : /^[A-Za-z_]\w*$/.test(a) ? c.consts?.[a] : undefined; return typeof k === 'number' ? String(k).replace('-', 'm') : 'x' }).join('_')
+    const per = names.find(x => x.role === 'answer' && x.code === `${e.head}_${sig}`)
+    if (!per) throw new LawError(`${e.head}(${call0.args}): no answer of the code for these arguments (its answers: ${names.filter(x => x.role === 'answer' && x.code.startsWith(`${e.head}_`)).map(x => x.code).join(', ')})`)
+    c.roles.add(per.role)
+    return rest(e.segs.slice(1), leaf(per, c, dry), c, names, dry, e)
+  }
   // (self.x, this.x, state.x, @x: the state's x; a bare `state` or `s` is a name of the code's, a field named so)
   const explicit = (['self', 'this', 'state', 's'].includes(e.head) && e.segs.length > 0) || e.head.startsWith('@')
   const parts = [e.head.replace(/^@/, ''), ...e.segs.map(s => ('f' in s ? s.f : undefined))]

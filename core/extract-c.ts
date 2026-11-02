@@ -437,7 +437,7 @@ export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r:
     const ofSource = (l: string) => !/(^|\/)(harness\.(c|cpp)|gdp_stubs\.c):/.test(l) && (l.includes(`${base}:`) || !l.includes(work))
     try { link([]) } catch (x) {
       // (C's names: a C++ one is demangled, `A::f(int)`, below)
-      const names = [...new Set([...why(x).matchAll(/undefined (?:reference to [`']|symbol: )_?([A-Za-z_]\w*)(?=['`\s]|$)|"_([A-Za-z_]\w*)", referenced from/gm)].map(m => m[1] ?? m[2]!))]
+      const names = [...new Set([...why(x).matchAll(/undefined (?:reference to [`']|symbol: )_?([A-Za-z_]\w*)(?=['`]|$)|"_([A-Za-z_]\w*)", referenced from/gm)].map(m => m[1] ?? m[2]!))]
       // (C++: the linker names other code's functions demangled, `A::f(int) const`: their own names from the object's
       // undefined symbols, each matched by its demangled form; a stub is named so, `void _ZNK1A1fEi(void)`)
       const demangled = new Set([...why(x).matchAll(/"([^"]+)", referenced from|undefined reference to [`']([^'`]+)'/g)].map(m => m[1] ?? m[2]!).filter(d => /[:(]/.test(d)))
