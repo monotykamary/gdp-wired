@@ -23,10 +23,11 @@ measurements: research/protocols/engine/DESIGN.md, the two gen/laneRL sections.
   failure a 5 s timeout, passes alone: gate-shard2b).
 
 ## Open
-1. DuoAI ten: gate-ten2 7/10 (consensus_wo_decide, distributed_lock, ring_leader_election unknown at ~61 s) vs main
-   10/10. Paired 3-run check running: runs/laneRL/ten3-rl (HEAD and HEAD with GDP_WIDE_PARTS=0) vs
-   ../gdp-wired/runs/laneRL-ten3-main. Suspect 033f8e2 (wide goals over parts by EPR). If losses hold: gate the wide
-   path (and set-first, already gated) to machines with tuple keys.
+1. DuoAI ten: paired 3 runs vs main (runs/laneRL/ten3-rl vs ../gdp-wired/runs/laneRL-ten3-main): RL lost
+   consensus_wo_decide, distributed_lock, ring_leader_election (main proves them). Bisected (scratchpad worktrees,
+   2 runs a commit): distributed_lock = the sorts by tuple places / one-part map values (f53f531) → gated to tuple
+   rules (2d7e5d3); the other two = 033f8e2's wide-goal EPR path → gated to tuple rules (26fed6b). Confirming:
+   runs/laneRL/ten3-fix (ten ×3) and gate-ic3 (IC3Syn 29 ×3 + broken).
 2. learning_switch_i4 with nothing written: unknown at ~55–75 s (engine: small instance cost, cubes; DESIGN.md).
 3. Broken switches end unknown (never proven), not refuted (runs don't reach the bad states in budget).
 4. pi reviews (sol xhigh, terra) not run: pi's OpenAI login expired (invalid_grant). Re-login, then review
