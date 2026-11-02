@@ -16,7 +16,7 @@ of that model, and concludes the law about the Lean definitions from `cyclic_sou
 - `cun`, the naturals onto the pairs, in order of their sum (`cun 0 = (0, 0)`, then each pair after the last), with
   `cpair` its inverse (`cun_cpair`, `cpair_cun`): a bijection, the one a datatype's codes are built from, each part at
   most the whole (`cun_fst_le`, `cun_snd_le`) so a value's fields have smaller codes;
-- `tup q k i`, the i-th of k naturals packed in q by `tupk` (`tup_tupk`), at most q (`tup_le`);
+- `tup q k i`, the i-th of k naturals packed in q by `tupk` (Kernel.lean's, with `cun` and `cpair`), at most q (`tup_le`);
 - `wf_fix_unique`: a definition by well-founded recursion has exactly one solution. core/data.ts takes a function whose
   recursion isn't structural once the kernel has proven that each of its calls lowers a measure (a lexicographic tuple
   of naturals, the order of the cyclic ranks, `lexLt`) under the path to the call; its body, read as a functional F of
