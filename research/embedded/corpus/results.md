@@ -2,6 +2,11 @@
 
 23 laws on 6 files of 4 projects: 18 proven, 4 broken, 1 unknown, 0 not read; wrong 0
 
+With canopen-nmt (runs/embedded/boat/nmt2, each law alone): 28 laws on 7 files, 18 proven, 4 broken, 6 unknown; wrong 0.
+canopen-nmt is read and checked against its code (319 requests from the start, 400 from drawn states, 3 s), but its
+five laws are unknown: the prover's budget runs out at 539 hypotheses (the step's bit tests, the error register
+masked by NMTcontrol bit by bit, the heartbeat timer), and each law ran 20 to 30 minutes, past its --ms 20000.
+
 | Item | Domain | Law | Expected | Verdict | Time |
 | --- | --- | --- | --- | --- | --- |
 | makair-alarm | medical | detections_capped | proven | proven | 0.7 s |

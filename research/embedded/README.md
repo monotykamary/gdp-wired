@@ -31,7 +31,11 @@ request's): declarations only.
 
 ## Results
 
-See `corpus/results.md` (the boat run, 60 s a law). The refuted laws, each run again on the real code by
+See `corpus/results.md` (the boat run, 60 s a law): **28 laws on 7 files of 4 projects, 18 proven, 4 broken (each
+as expected, each run again on the real code), 6 unknown; wrong 0.** Five of the unknown are canopen-nmt's: its file
+is read and checked against the code in 3 s, but each law exhausts the prover (539 hypotheses: the error register
+masked by NMTcontrol bit by bit beside the heartbeat timer), and each ran 20 to 30 minutes, past the CLI's --ms: a
+time limit the base prover doesn't keep, to be fixed apart. The refuted laws, each run again on the real code by
 `repro/run.ts` (output in results.md):
 
 - **px4-arming `shutdown_is_final`:** the transition table keeps SHUTDOWN, but in HIL a request for STANDBY is always
