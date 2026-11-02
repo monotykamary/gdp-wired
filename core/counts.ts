@@ -27,6 +27,7 @@ import {env} from './solver.ts'
 // profiles: each step goal left unknown or with a model past GDP_COUNTS_DUMP_MIN (300) hypotheses, the first GDP_COUNTS_DUMP_N (3))
 export const cprof: Record<string, number> = {}
 export const countsDump: {on?: (goal: object) => void} = {}
+const tally = (k: string, n = 1) => { cprof[k] = (cprof[k] ?? 0) + n }
 const ptime = <T>(k: string, f: () => T): T => { const t = performance.now(); try { return f() } finally { cprof[k] = (cprof[k] ?? 0) + performance.now() - t } }
 let dumped = 0
 
@@ -327,7 +328,7 @@ export function cone<P>(m: Machine, set: Law[], attempt: (law: Law, ls: Law[], m
         // (a law out of time over every kept law: tried again over more, its goals only grow; where Houdini follows, its
         // share is larger)
         if (houdini && t === 2 && 'stuck' in r && r.stuck !== 'sat') slow.add(law.name)
-        if ('proof' in r) { kept.set(law.name, r.proof); grew = any = true; if (env.GDP_COUNTS_TRACE === '3') console.error(`counts: keep ${law.name.slice(0, 50)} tier ${t}`) }
+        if ('proof' in r) { kept.set(law.name, r.proof); grew = any = true; if (env.GDP_COUNTS_TRACE?.includes('3')) console.error(`counts: keep ${law.name.slice(0, 50)} tier ${t}`) }
       }
       if (t === 2) break
     }
@@ -427,6 +428,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
         if ('tree' in q || q.stuck !== 'sat' || !q.witness) break
         if (!more()) return {stuck: 'unknown'}
         const asked = ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!))
+        tally('#rounds'); tally('#hyps', step.gg.hyps.length)
         if (!asked) {
           if (countsDump.on && pass && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps}) }
           if (pass && !wide && houdini && 'loose' in step.c && (step.c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); continue }
@@ -446,7 +448,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
         }) : undefined
         const o = viaPart ?? (gg && ptime(`grow${(gg.hyps.length > 300 ? '>300' : '')}`, () => grow(gg, new Map(), {nodes: 0, until: Math.min(until, clock() + ms)})))
         if (countsDump.on && gg && o && !('tree' in o) && gg.hyps.length > Number(env.GDP_COUNTS_DUMP_MIN ?? 300) && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: goal.name, ls: ls.map(l => l.name), stuck: (o as {stuck?: string}).stuck, hyps: gg.hyps}) }
-        if (env.GDP_COUNTS_TRACE === '2') console.error(`counts: ${ls.length === 1 ? 'alone' : `with ${ls.length}`} ${pass} ${goal.name}: ${o && 'tree' in o ? 'proven' : gg ? (o as {stuck?: string}).stuck : 'no read'} ${gg?.hyps.length ?? 0} hyps ${Math.round(clock() - t0)} ms`)
+        if (env.GDP_COUNTS_TRACE?.includes('2')) console.error(`counts: ${ls.length === 1 ? 'alone' : `with ${ls.length}`} ${pass} ${goal.name}: ${o && 'tree' in o ? 'proven' : gg ? (o as {stuck?: string}).stuck : 'no read'} ${gg?.hyps.length ?? 0} hyps (insts ${'insts' in c ? c.insts.length : 0} picks ${'picks' in c ? c.picks.length : 0}${wide ? ' wide' : ''}) ${Math.round(clock() - t0)} ms`)
         // (the tree search's model of the step goal: the instances it asks for, as the CDCL search's, and the goals again)
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && more()) {
           const asked = ptime('mbqi', () => modelInstances(m, ls, at, gg, o.witness!))
@@ -461,8 +463,8 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     }
   }
   const traced = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Tried<Proof> => {
-    const t0 = clock(), r = attempt(law, ls, pass, ms)
-    if (env.GDP_COUNTS_TRACE === '3') console.error(`counts: try ${law.name.slice(0, 50)} | ls ${ls.length} pass ${pass} ms ${ms} took ${Math.round(clock() - t0)} -> ${'proof' in r ? 'kept' : r.stuck}`)
+    const t0 = clock(), w0 = performance.now(), p0 = {...cprof}, r = attempt(law, ls, pass, ms)
+    if (env.GDP_COUNTS_TRACE?.includes('3')) console.error(`counts: try ${law.name.slice(0, 50)} | ls ${ls.length} pass ${pass} ms ${Math.round(ms)} took ${Math.round(clock() - t0)} wall ${Math.round(performance.now() - w0)} [${Object.entries(cprof).filter(([k2, x]) => x - (p0[k2] ?? 0) >= 1).map(([k2, x]) => `${k2} ${Math.round(x - (p0[k2] ?? 0))}`).join(' ')}] -> ${'proof' in r ? 'kept' : r.stuck}`)
     return r
   }
   // The cone (a law about no key is assumed in every goal, so with one in the set nothing is kept); with every caller
