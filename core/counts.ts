@@ -17,7 +17,7 @@
 //      what is left; then, for the counted search, Houdini over the rest; the kernel checks the set (checkCountedLaws).
 import {type C, type E, type Law, type Machine} from './machine.ts'
 import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, scope, substC, substE} from '../kernel/kernel.ts'
-import {clock, counted, fullRate, grow, modelInstances, wallAt, widen, withWall} from '../kernel/prove.ts'
+import {brokenOf, clock, counted, fullRate, grow, modelInstances, wallAt, widen, withWall} from '../kernel/prove.ts'
 import {REFUTED, type Refuted, cdclStats, growCdcl} from '../kernel/cdcl.ts'
 import {inferLaws} from './infer.ts'
 import {smallOf, trueSmall} from './exists.ts'
@@ -30,6 +30,8 @@ export const countsDump: {on?: (goal: object) => void} = {}
 const tally = (k: string, n = 1) => { cprof[k] = (cprof[k] ?? 0) + n }
 const ptime = <T>(k: string, f: () => T): T => { const t = performance.now(); try { return f() } finally { cprof[k] = (cprof[k] ?? 0) + performance.now() - t } }
 let dumped = 0
+// (GDP_COUNTS_LAZY=0: every instance and pick certFor proposes in the goal at once, as before)
+const lazy = env.GDP_COUNTS_LAZY !== '0'
 
 const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
 const json = (t: unknown) => JSON.stringify(t)
@@ -396,7 +398,28 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     // a caller's law or where a read is in none of them: the cone's many refuted candidates keep the narrow ones)
     let wide = false
     const isCaller = houdini && caller.some(l => l.name === law.name)
-    const build = () => obligations(at).map(({goal, decls}) => { const c = pass ? certFor(goal, decls, wide) : none; return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c))} })
+    // (lazy (CEGAR): the goal carries the counting lemma's instances and picks some model of it broke, of all certFor
+    // proposes: each model read against the rest, as a state, and those it breaks added, until a model breaks none; an
+    // instance by the reads it names, a pick by its read and terms, so the choice outlives the goal's rebuilds)
+    const chosen = new Set<string>()
+    type Pool = {fg: Goal, keys: string[]}
+    const build = () => obligations(at).map(({goal, decls}) => {
+      const full = pass ? certFor(goal, decls, wide) : none
+      if (!pass || !lazy || !('picks' in full)) return {goal, decls, c: full, gg: ptime('encode', () => mcGoal(goal.hyps, decls, full)), pool: undefined as Pool | undefined}
+      const rd = new Map(full.reads.map(r => [r[0], json([r[1], r[2]])]))
+      const keys = [...full.picks.map(q => `p${json([rd.get(q[0]), q[1]])}`), ...full.insts.map(i => `i${json([i.terms.map(([z, x]) => [z, rd.get(x)]), i.unit, i.below])}`)]
+      const c = {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}
+      const fg = ptime('encode', () => mcGoal(goal.hyps, decls, full))
+      return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c)), pool: fg && keys.length ? {fg, keys} : undefined}
+    })
+    // (the pool's hypotheses a model breaks, chosen; whether there were any)
+    const breaks = (b: ReturnType<typeof build>[number] | undefined, w: Record<string, number>): boolean => ptime('lazy', () => {
+      if (!b?.pool) return false
+      const {fg, keys} = b.pool, base = fg.hyps.length - keys.length, ids = keys.flatMap((q, j) => (chosen.has(q) ? [] : [base + j])), bad = ids.length ? brokenOf(fg)(w, ids) : []
+      for (const i of bad) chosen.add(keys[i - base]!)
+      tally('#lazy', bad.length)
+      return bad.length > 0
+    })
     let built = build()
     const t0 = clock(), more = () => clock() - t0 <= Math.max(ms, 1_000)
     // The step goal decided first by the CDCL search for a model (its phases the simplex's point: a model is met where the
@@ -421,14 +444,15 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
             cut[name] = !l ? ts2 : Array.from({length: ts2.length / n}, (_, t) => ts2.slice(t * n, t * n + n)).filter(t => used.has(json(assumed([l], {[name]: t})[0]))).flat()
           }
           at = cut
-          built = obligations(at).map(({goal, decls}, j) => ({goal, decls, c: built[j]!.c, gg: mcGoal(goal.hyps, decls, built[j]!.c)}))
+          built = obligations(at).map(({goal, decls}, j) => ({goal, decls, c: built[j]!.c, gg: mcGoal(goal.hyps, decls, built[j]!.c), pool: built[j]!.pool}))
           part = {gg: built.at(-1)!.gg!, core: {name: gg.name, hyps: (q.core.includes(last) ? q.core : [...q.core, last]).map(h => gg.hyps[h]!)}}
           break
         }
         if ('tree' in q || q.stuck !== 'sat' || !q.witness) break
         if (!more()) return {stuck: 'unknown'}
-        const asked = ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!))
+        const lz = breaks(step, q.witness), asked = ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!))
         tally('#rounds'); tally('#hyps', step.gg.hyps.length)
+        if (lz && !asked) { built = build(); continue }
         if (!asked) {
           if (countsDump.on && pass && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps}) }
           if (pass && !wide && houdini && 'loose' in step.c && (step.c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); continue }
@@ -448,11 +472,11 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
         }) : undefined
         const o = viaPart ?? (gg && ptime(`grow${(gg.hyps.length > 300 ? '>300' : '')}`, () => grow(gg, new Map(), {nodes: 0, until: Math.min(until, clock() + ms)})))
         if (countsDump.on && gg && o && !('tree' in o) && gg.hyps.length > Number(env.GDP_COUNTS_DUMP_MIN ?? 300) && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: goal.name, ls: ls.map(l => l.name), stuck: (o as {stuck?: string}).stuck, hyps: gg.hyps}) }
-        if (env.GDP_COUNTS_TRACE?.includes('2')) console.error(`counts: ${ls.length === 1 ? 'alone' : `with ${ls.length}`} ${pass} ${goal.name}: ${o && 'tree' in o ? 'proven' : gg ? (o as {stuck?: string}).stuck : 'no read'} ${gg?.hyps.length ?? 0} hyps (insts ${'insts' in c ? c.insts.length : 0} picks ${'picks' in c ? c.picks.length : 0}${wide ? ' wide' : ''}) ${Math.round(clock() - t0)} ms`)
+        if (env.GDP_COUNTS_TRACE?.includes('2')) console.error(`counts: ${ls.length === 1 ? 'alone' : `with ${ls.length}`} ${pass} ${goal.name}: ${o && 'tree' in o ? 'proven' : gg ? (o as {stuck?: string}).stuck : 'no read'} ${gg?.hyps.length ?? 0} hyps (insts ${'insts' in c ? c.insts.length : 0} picks ${'picks' in c ? c.picks.length : 0}${wide ? ' wide' : ''}${built.find(b => b.gg === gg)?.pool ? ` of ${built.find(b => b.gg === gg)!.pool!.keys.length}` : ''}) ${Math.round(clock() - t0)} ms`)
         // (the tree search's model of the step goal: the instances it asks for, as the CDCL search's, and the goals again)
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && more()) {
-          const asked = ptime('mbqi', () => modelInstances(m, ls, at, gg, o.witness!))
-          if (asked) { at = asked; built = build(); again = true; break }
+          const lz = breaks(built.at(-1), o.witness), asked = ptime('mbqi', () => modelInstances(m, ls, at, gg, o.witness!))
+          if (asked || lz) { if (asked) at = asked; built = build(); again = true; break }
         }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && houdini && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); again = true; break }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) return refuted(gg, o.witness)
