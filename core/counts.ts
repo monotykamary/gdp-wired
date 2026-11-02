@@ -411,7 +411,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     // proposes: each model read against the rest, as a state, and those it breaks added, until a model breaks none; an
     // instance by the reads it names, a pick by its read and terms, so the choice outlives the goal's rebuilds)
     const chosen = new Set<string>()
-    type Pool = {fg: Goal, keys: string[]}
+    type Pool = {fg: Goal, keys: string[], wits: (string | undefined)[]}
     const build = () => obligations(at).map(({goal, decls}) => {
       const full = pass ? certFor(goal, decls, wide, wide && lazyMode !== '0' ? pool : undefined) : none
       if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide) || !('picks' in full)) return {goal, decls, c: full, gg: ptime('encode', () => mcGoal(goal.hyps, decls, full)), pool: undefined as Pool | undefined}
@@ -420,12 +420,18 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
       if (lazyMode === 'wide') for (const q of keys.slice(full.picks.length, full.picks.length + 10)) chosen.add(q)
       const c = {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}
       const fg = ptime('encode', () => mcGoal(goal.hyps, decls, full))
-      return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c)), pool: fg && keys.length ? {fg, keys} : undefined}
+      return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c)), pool: fg && keys.length ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)]} : undefined}
     })
     // (the pool's hypotheses a model breaks, chosen; whether there were any)
     const breaks = (b: ReturnType<typeof build>[number] | undefined, w: Record<string, number>): boolean => ptime('lazy', () => {
       if (!b?.pool) return false
-      const {fg, keys} = b.pool, base = fg.hyps.length - keys.length, ids = keys.flatMap((q, j) => (chosen.has(q) ? [] : [base + j])), bad = ids.length ? brokenOf(fg)(w, ids) : []
+      // (an instance broken at every value of its witness below 16: the model can't choose one; a pick has none)
+      const {fg, keys, wits} = b.pool, base = fg.hyps.length - keys.length, ids = keys.flatMap((q, j) => (chosen.has(q) ? [] : [base + j])), judge = brokenOf(fg)
+      let bad = ids.length ? judge(w, ids) : []
+      for (let x = 1; x < 16 && bad.some(i => wits[i - base]); x++) {
+        const at = bad.filter(i => wits[i - base]), held = new Set(at.filter(i => !judge({...w, [wits[i - base]!]: x}, [i]).length))
+        bad = bad.filter(i => !held.has(i))
+      }
       for (const i of bad) chosen.add(keys[i - base]!)
       tally('#lazy', bad.length)
       return bad.length > 0
