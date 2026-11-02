@@ -623,7 +623,8 @@ def rowMul (tab : List VDef) (a b : Row) : Option Row :=
 /-! Tuples. `shapeT` reads a tuple's term as its tree of pairs, each leaf a part that isn't a tuple, with its linear form
 if it has one. Two tuples are equal exactly when their parts are, pair by pair (`cpair` is a bijection), so the truth and
 the facts of their equality are those of the conjunction of their parts' equalities. A map's cell at a right-nested
-tuple whose parts have linear forms is a column of its own (`cellT`), keyed by the parts' forms (`partsSh`). -/
+tuple whose parts have linear forms is a column of its own (`cellT`), keyed by the parts' forms (`parts`): a tuple's,
+or a projection's (the second part of a tuple of three or more is itself a tuple, whose parts are the rest). -/
 
 inductive Sh where
   | leaf (r : Option Row)
@@ -653,12 +654,6 @@ def eqSh (path : Path) : Sh → Sh → Option Bool
   | .leaf (some la), .leaf (some lb) => eqL path la lb
   | .node s1 s2, .node t1 t2 => kand (eqSh path s1 t1) (eqSh path s2 t2)
   | _, _ => none
-
--- A right-nested tuple's parts, each a leaf with a linear form.
-def partsSh : Sh → Option (List Row)
-  | .leaf (some r) => some [r]
-  | .node (.leaf (some r)) t => (partsSh t).map (r :: ·)
-  | _ => none
 
 mutual
 def linear (tab : List VDef) (path : Path) : E → Option Row
@@ -695,15 +690,20 @@ def linear (tab : List VDef) (path : Path) : E → Option Row
     | some true => linear tab path t
     | some false => linear tab path f
     | none => termCol tab (.ite c t f)
-  | .get m key => if isTup key then
-      (match partsSh (shapeT tab path key) with
-       | some rs => (findIdx (isCellT m rs) tab).map lunit
-       | none => none)
-    else match linear tab path key with
-    | some lk => (findIdx (isCell m lk) tab).map lunit
-    | none => none
+  | .get m key => match parts tab path key with
+    | some rs => (findIdx (isCellT m rs) tab).map lunit
+    | none => match linear tab path key with
+      | some lk => (findIdx (isCell m lk) tab).map lunit
+      | none => none
   | .tup _ _ => none
-  | .proj k a => projL tab path k [] a
+  | .proj k a => if k = 0 then
+      (match parts tab path a with
+       | some (r :: _) => some r
+       | _ => none)
+    else
+      (match parts tab path a with
+       | some [_, r] => some r
+       | _ => none)
 def truth (tab : List VDef) (path : Path) : C → Option Bool
   | .le a b => match linear tab path a, linear tab path b with
     | some la, some lb => dec path (lsub la lb)
@@ -733,25 +733,18 @@ def shapeT (tab : List VDef) (path : Path) : E → Sh
   | .tup a b => .node (if isTup a then shapeT tab path a else .leaf (linear tab path a))
       (if isTup b then shapeT tab path b else .leaf (linear tab path b))
   | _ => .leaf none
--- The linear form of the part of a term that the selectors k :: rest pick, in order (0 the first part, any other k the
--- second), through its tuples and projections: proj k (proj k0 e) picks k0 then k.
-def projL (tab : List VDef) (path : Path) (k : Nat) (rest : List Nat) : E → Option Row
-  | .tup a b => if k = 0 then
-      (match rest with
-       | [] => linear tab path a
-       | k' :: rest' => projL tab path k' rest' a)
-    else
-      (match rest with
-       | [] => linear tab path b
-       | k' :: rest' => projL tab path k' rest' b)
-  | .proj k0 a => projL tab path k0 (k :: rest) a
+-- A tuple's parts' linear forms (two or more): a tup's, its first part's form then its second's parts (its form, if
+-- it is no tuple); a second part's (proj k with k ≠ 0), the rest of its tuple's parts when they are two or more.
+def parts (tab : List VDef) (path : Path) : E → Option (List Row)
+  | .tup a b => match linear tab path a, (if isTup b then parts tab path b else (linear tab path b).map (fun r => [r])) with
+    | some r, some rs => some (r :: rs)
+    | _, _ => none
+  | .proj k a => if k = 0 then none else
+      (match parts tab path a with
+       | some (_ :: rest) => if 2 ≤ rest.length then some rest else none
+       | _ => none)
   | _ => none
 end
-
--- The selectors' part of a natural read as nested pairs.
-def selP : List Nat → Nat → Nat
-  | [], v => v
-  | k :: ks, v => selP ks (pickP k v)
 
 -- What a tree of linear forms says of a natural: a leaf's form is its value, a pair's parts are its parts'.
 def DenSh (x : List Int) : Sh → Nat → Prop
@@ -804,33 +797,29 @@ theorem eqSh_sound {path : Path} {x : List Int} (hP : PathHolds path x) :
   | .leaf (some _), .node _ _, _, _, _, _, _, h => by simp [eqSh] at h
   | .node _ _, .leaf _, _, _, _, _, _, h => by simp [eqSh] at h
 
-theorem partsSh_ne : ∀ {s : Sh} {rs : List Row}, partsSh s = some rs → rs ≠ []
-  | .leaf (some r), rs, h => by simp only [partsSh, Option.some.injEq] at h; subst h; simp
-  | .node (.leaf (some r)) t, rs, h => by
-    simp only [partsSh, Option.map_eq_some_iff] at h
-    obtain ⟨rs', _, rfl⟩ := h; simp
-  | .leaf none, _, h => by simp [partsSh] at h
-  | .node (.leaf none) _, _, h => by simp [partsSh] at h
-  | .node (.node _ _) _, _, h => by simp [partsSh] at h
+-- Rows and the naturals they evaluate to, one by one.
+def RowsVal (x : List Int) : List Row → List Nat → Prop
+  | [], [] => True
+  | r :: rs, v :: vs => eval r x = (v : Int) ∧ RowsVal x rs vs
+  | _, _ => False
 
--- A tuple's parts' values packed are the tuple's value.
-theorem partsSh_sound {x : List Int} : ∀ (s : Sh) (rs : List Row) (v : Nat), partsSh s = some rs → DenSh x s v →
-    tupk (rs.map fun r => (eval r x).toNat) = v
-  | .leaf (some r), rs, v, h, hd => by
-    simp only [partsSh, Option.some.injEq] at h; subst h
-    simp only [DenSh] at hd
-    simp [hd]
-  | .node (.leaf (some r)) t, rs, v, h, hd => by
-    simp only [partsSh, Option.map_eq_some_iff] at h
-    obtain ⟨rs', hrs', rfl⟩ := h
-    simp only [DenSh] at hd
-    obtain ⟨r1, rs1, rfl⟩ := List.exists_cons_of_ne_nil (partsSh_ne hrs')
-    have ih := partsSh_sound t _ _ hrs' hd.2
-    simp only [List.map_cons, tupk_cons] at ih ⊢
-    rw [ih, hd.1]; simp
-  | .leaf none, _, _, h, _ => by simp [partsSh] at h
-  | .node (.leaf none) _, _, _, h, _ => by simp [partsSh] at h
-  | .node (.node _ _) _, _, _, h, _ => by simp [partsSh] at h
+theorem rowsVal_len {x : List Int} : ∀ {rs : List Row} {vs : List Nat}, RowsVal x rs vs → rs.length = vs.length
+  | [], [], _ => rfl
+  | _ :: _, _ :: _, h => by simp only [List.length_cons, rowsVal_len h.2]
+  | [], _ :: _, h => h.elim
+  | _ :: _, [], h => h.elim
+
+theorem rowsVal_map {x : List Int} : ∀ {rs : List Row} {vs : List Nat}, RowsVal x rs vs →
+    rs.map (fun r => (eval r x).toNat) = vs
+  | [], [], _ => rfl
+  | _ :: _, _ :: _, h => by simp only [List.map_cons, h.1, rowsVal_map h.2, Int.toNat_natCast]
+  | [], _ :: _, h => h.elim
+  | _ :: _, [], h => h.elim
+
+theorem tupk_cons_ne {v : Nat} {vs : List Nat} (h : vs ≠ []) : tupk (v :: vs) = cpair v (tupk vs) := by
+  cases vs with
+  | nil => exact absurd rfl h
+  | cons _ _ => rfl
 
 theorem sameL_map {x : List Int} : ∀ {as bs : List Row}, sameL as bs = true →
     as.map (fun r => (eval r x).toNat) = bs.map (fun r => (eval r x).toNat)
@@ -1065,14 +1054,13 @@ theorem linear_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
   | .get m key, l, h => by
     simp only [linear] at h
     split at h
-    · split at h
-      · rename_i rs hrs
-        cases hj : findIdx (isCellT m rs) tab with
-        | none => simp [hj] at h
-        | some j =>
-          simp only [hj, Option.map_some, Option.some.injEq] at h; subst h
-          rw [eval_lunit, cellT_col hM hj, partsSh_sound _ rs _ hrs (shapeT_sound hM hP key), evalE]
-      · simp at h
+    · rename_i rs hrs
+      cases hj : findIdx (isCellT m rs) tab with
+      | none => simp [hj] at h
+      | some j =>
+        simp only [hj, Option.map_some, Option.some.injEq] at h; subst h
+        obtain ⟨vs, hv, ht, _⟩ := parts_sound hM hP key rs hrs
+        rw [eval_lunit, cellT_col hM hj, rowsVal_map hv, ht, evalE]
     · split at h
       · rename_i lk hk
         cases hj : findIdx (isCell m lk) tab with
@@ -1084,7 +1072,26 @@ theorem linear_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
   | .tup _ _, l, h => by simp [linear] at h
   | .proj k a, l, h => by
     simp only [linear] at h
-    rw [projL_sound hM hP k [] a l h]; rfl
+    split at h
+    · rename_i hk
+      split at h
+      · rename_i r rs' hp
+        simp only [Option.some.injEq] at h; subst h
+        obtain ⟨vs, hv, ht, hl⟩ := parts_sound hM hP a _ hp
+        match vs, hv with
+        | v :: vs', hv =>
+          have hne : vs' ≠ [] := by
+            intro e; subst e; have := rowsVal_len hv.2; simp only [List.length_nil, List.length_cons] at hl this; omega
+          rw [hv.1, evalE, ← ht, tupk_cons_ne hne]; simp [pickP, hk]
+      · simp at h
+    · rename_i hk
+      split at h
+      · rename_i r0 r hp
+        simp only [Option.some.injEq] at h; subst h
+        obtain ⟨vs, hv, ht, _⟩ := parts_sound hM hP a _ hp
+        match vs, hv with
+        | [v0, v], hv => rw [hv.2.1, evalE, ← ht, tupk_cons, tupk_one]; simp [pickP, hk]
+      · simp at h
 theorem truth_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
     (c : C) → (b : Bool) → truth tab path c = some b → evalC env maps c = b
   | .le a b', r, h => by
@@ -1167,38 +1174,55 @@ theorem shapeT_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
   | .ite _ _ _ => trivial
   | .get _ _ => trivial
   | .proj _ _ => trivial
-theorem projL_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
-    (k : Nat) → (rest : List Nat) → (e : E) → (l : Row) → projL tab path k rest e = some l →
-      eval l x = (selP rest (pickP k (evalE env maps e)) : Int)
-  | k, rest, .tup a b, l, h => by
-    simp only [projL] at h
-    simp only [evalE, pickP, cun_cpair_fst, cun_cpair_snd]
+theorem parts_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
+    (e : E) → (rs : List Row) → parts tab path e = some rs →
+      ∃ vs, RowsVal x rs vs ∧ tupk vs = evalE env maps e ∧ 2 ≤ rs.length
+  | .tup a b, rs, h => by
+    simp only [parts] at h
     split at h
+    · rename_i r rs' ha hb
+      simp only [Option.some.injEq] at h; subst h
+      have ea := linear_sound hM hP a r ha
+      split at hb
+      · obtain ⟨vs, hv, ht, hl⟩ := parts_sound hM hP b rs' hb
+        have hne : vs ≠ [] := by intro e; subst e; have := rowsVal_len hv; simp only [List.length_nil, List.length_cons] at hl this; omega
+        refine ⟨evalE env maps a :: vs, ⟨ea, hv⟩, ?_, by simp; omega⟩
+        rw [tupk_cons_ne hne, ht, evalE]
+      · cases hlb : linear tab path b with
+        | none => simp [hlb] at hb
+        | some rb =>
+          simp only [hlb, Option.map_some, Option.some.injEq] at hb; subst hb
+          refine ⟨[evalE env maps a, evalE env maps b], ⟨ea, linear_sound hM hP b rb hlb, trivial⟩, ?_, by simp⟩
+          simp [evalE]
+    · simp at h
+  | .proj k a, rs, h => by
+    simp only [parts] at h
+    split at h
+    · simp at h
     · rename_i hk
-      simp only [hk, ↓reduceIte]
       split at h
-      · rw [linear_sound hM hP a l h]; rfl
-      · rename_i k' rest'
-        rw [projL_sound hM hP k' rest' a l h]; rfl
-    · rename_i hk
-      simp only [hk, ↓reduceIte]
-      split at h
-      · rw [linear_sound hM hP b l h]; rfl
-      · rename_i k' rest'
-        rw [projL_sound hM hP k' rest' b l h]; rfl
-  | k, rest, .proj k0 a, l, h => by
-    simp only [projL] at h
-    rw [projL_sound hM hP k0 (k :: rest) a l h]; rfl
-  | _, _, .var _, _, h => by simp [projL] at h
-  | _, _, .const _, _, h => by simp [projL] at h
-  | _, _, .add _ _, _, h => by simp [projL] at h
-  | _, _, .sub _ _, _, h => by simp [projL] at h
-  | _, _, .mul _ _, _, h => by simp [projL] at h
-  | _, _, .min _ _, _, h => by simp [projL] at h
-  | _, _, .max _ _, _, h => by simp [projL] at h
-  | _, _, .prod _ _, _, h => by simp [projL] at h
-  | _, _, .ite _ _ _, _, h => by simp [projL] at h
-  | _, _, .get _ _, _, h => by simp [projL] at h
+      · rename_i r0 rest hp
+        split at h
+        · rename_i hl
+          simp only [Option.some.injEq] at h; subst h
+          obtain ⟨vs, hv, ht, _⟩ := parts_sound hM hP a _ hp
+          match vs, hv with
+          | v0 :: vs', hv =>
+            have hne : vs' ≠ [] := by intro e; subst e; have := rowsVal_len hv.2; simp only [List.length_nil, List.length_cons] at hl this; omega
+            refine ⟨vs', hv.2, ?_, hl⟩
+            rw [evalE, ← ht, tupk_cons_ne hne]; simp [pickP, hk]
+        · simp at h
+      · simp at h
+  | .var _, _, h => by simp [parts] at h
+  | .const _, _, h => by simp [parts] at h
+  | .add _ _, _, h => by simp [parts] at h
+  | .sub _ _, _, h => by simp [parts] at h
+  | .mul _ _, _, h => by simp [parts] at h
+  | .min _ _, _, h => by simp [parts] at h
+  | .max _ _, _, h => by simp [parts] at h
+  | .prod _ _, _, h => by simp [parts] at h
+  | .ite _ _ _, _, h => by simp [parts] at h
+  | .get _ _, _, h => by simp [parts] at h
 end
 end
 

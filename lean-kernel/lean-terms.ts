@@ -20,6 +20,8 @@ export function leanTerms(vars: readonly string[], maps: readonly string[], wher
       case 'add': case 'sub': case 'min': case 'max': case 'prod': return `.${t.op} (${e(t.a)}) (${e(t.b)})`
       case 'if': return `.ite (${c(t.c)}) (${e(t.then)}) (${e(t.else)})`
       case 'get': return `.get ${mx(t.map)} (${e(t.key)})`
+      case 'tup': return `.tup (${e(t.a)}) (${e(t.b)})`
+      case 'proj': return `.proj ${t.k} (${e(t.a)})`
       default: return unreachable(t)
     }
   }
@@ -56,6 +58,9 @@ export function leanSurface(names: Record<string, string>, where: string, get?: 
       case 'min': case 'max': return `(${t.op} ${e(t.a)} ${e(t.b)})`
       case 'if': return `(if ${c(t.c)} then ${e(t.then)} else ${e(t.else)})`
       case 'get': if (!get) throw new Error(`${where}: reads ${t.map}, a function or a map`); return get(t.map, t.key, e)
+      // A tuple is its pairing (Kernel.lean's cpair), a part of one the pair's part (pickP: 0 the first, 1 the second).
+      case 'tup': return `(Kern.cpair ${e(t.a)} ${e(t.b)})`
+      case 'proj': return `(Kern.pickP ${t.k} ${e(t.a)})`
       default: return unreachable(t)
     }
   }

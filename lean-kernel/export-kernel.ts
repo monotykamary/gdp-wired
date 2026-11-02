@@ -1,7 +1,7 @@
 // Real kernel trees as Lean data, each a theorem by Kern.sound with `decide +kernel`: the TypeScript kernel's verdicts,
 // re-checked by a Lean twin whose soundness is proven. Usage: bun export-kernel.ts > Trees.lean
 // The exporter is untrusted: it names columns, orders rows and claims cell equalities; Lean checks every claim.
-import type {C, Law, Machine} from '../core/machine.ts'
+import type {C, E, Law, Machine} from '../core/machine.ts'
 import {all, any, atMost, bit, get, ite, less, max, min, minus, n, not, plus, prod, same, times, x} from '../core/machine.ts'
 import {admit, admitFlagged, boundedLoss, capLaws, inflight, inflightLoss, loss, windowCeiling, windowLimit} from '../core/models.ts'
 import {agree, product} from '../research/next/relational.ts'
@@ -10,6 +10,7 @@ import {grow, proveLaws} from '../kernel/prove.ts'
 import {counterLaws, counterSteps, counters, escrowLaws, escrowSteps, escrowWatched, meterRefinement, poolLaws, poolTotal, pooled, twoPhaseRefinement} from '../examples/composition.ts'
 import {type Exported, TRUE, encode, foldToLean, grown, hasSets, hmachineToLean, loopToLean, machineToLean, mmachineToLean, goalToLean, smachineToLean} from './emit.ts'
 import {authority, authorityLaws, authorityPairs, authoritySteps} from '../examples/sets.ts'
+import {forall, nat, rule} from '../core/dsl.ts'
 
 const out: Exported[] = []
 function machine(what: string, m: Machine, laws: Law[]) {
@@ -177,6 +178,75 @@ ${text}
 
 #print axioms window_hlaws
 #print axioms window_ceiling`)
+  process.exit(0)
+}
+
+// Tuple keys (Kernel.lean's tup, proj and cellT): goals over tuples with the kernel's trees through Kern.sound, one
+// tampered (a cell equality claimed where the keys differ in one part), a projection through a projection (a 3-tuple's
+// middle part, read by `parts`), and relations proven by kernel.ts through Kern.smachine_sound, one tampered.
+// Usage: bun export-kernel.ts --tuples > Tuples.lean
+if (process.argv.includes('--tuples')) {
+  const tp = (...xs: E[]): E => xs.slice(0, -1).reduceRight<E>((b, a) => ({op: 'tup', a, b}), xs.at(-1)!)
+  const at = (map: string, key: E): E => ({op: 'get', map, key})
+  const [vx, vy, vz, vu, vw, vt] = ['x', 'y', 'z', 'u', 'w', 't'].map(x)
+  const tgoals: Goal[] = [
+    {name: 'R at (x, y) and at (u, w) are one cell when x = u and y = w', hyps: [same(vx!, vu!), same(vy!, vw!), atMost(n(1), at('R', tp(vx!, vy!))), atMost(at('R', tp(vu!, vw!)), n(0))]},
+    {name: '(x, y) = (u, w) gives x = u', hyps: [same(tp(vx!, vy!), tp(vu!, vw!)), atMost(plus(vx!, n(1)), vu!)]},
+    {name: '(x, y) = (u, w) when x = u and y = w', hyps: [not(same(tp(vx!, vy!), tp(vu!, vw!))), same(vx!, vu!), same(vy!, vw!)]},
+    {name: 'the first part of (x, y) is x', hyps: [same({op: 'proj', k: 0, a: tp(vx!, vy!)}, n(5)), atMost(vx!, n(4))]},
+    {name: 'S at (x, y, z) and at (u, w, t) are one cell when the parts are equal', hyps: [same(vx!, vu!), same(vy!, vw!), same(vz!, vt!), atMost(n(1), at('S', tp(vx!, vy!, vz!))), atMost(at('S', tp(vu!, vw!, vt!)), n(0))]},
+  ]
+  const exs: Exported[] = tgoals.map(g => { const o = grow(g); if (!('tree' in o)) throw new Error(`tuples: ${g.name} stuck`); return {name: `tuples: ${g.name}`, goal: g, tree: o.tree} })
+  const honest = exs.map((ex, i) => goalToLean(ex, 2000 + i))
+  // The first goal's tree offered for R at (u, w + 1): the leaf still claims R⟨x|y⟩ = R⟨u|w + 1⟩, whose second parts
+  // the path doesn't prove equal (y = w is decided, y = w + 1 is not). The goal holds at R⟨x|y⟩ = 1, R⟨u|w + 1⟩ = 0.
+  const swap = (text: string, from: string, to: string) => { if (text.split(from).length !== 2) throw new Error(`tuples: the tamper needs ${from} once`); return text.replace(from, to) }
+  let tampered = honest[0]!.replace(/t2000/g, 'tampered2000').replace(/^-- tuples: .*$/m, '-- TAMPERED: the tree for R at (u, w) offered for R at (u, w + 1), a cell equality claimed whose second parts differ. Lean computes the check to false.')
+  tampered = swap(tampered, '.cellT 0 [(sp [(1, 1)] 0), (sp [(3, 1)] 0)]', '.cellT 0 [(sp [(1, 1)] 0), (sp [(3, 1)] 1)]')
+  tampered = swap(tampered, '(.tup (.var 1) (.var 3))', '(.tup (.var 1) (.add (.var 3) (.const 1)))')
+  tampered = tampered.replace(/theorem tampered2000 [^]*$/, 'example : checkGoal tampered2000_goal tampered2000_tree = false := by decide +kernel')
+  // The rules: a symmetric relation (each step adds (a, b) both ways, a write at every pair) and ordered triples (a
+  // triple added when increasing, a write at one tuple).
+  const sym = (both: boolean) => rule(both ? 'symmetric pairs' : 'pairs one way').sorts('N').inputs({a: nat, b: nat}).relations({R: ['N', 'N']})
+    .step(({a, b, R}) => ({R: R.union((p, q) => (both ? p.eq(a).and(q.eq(b)).or(p.eq(b).and(q.eq(a))) : p.eq(a).and(q.eq(b))))}))
+  const symR = sym(true), symLaw = symR.law('R is symmetric', ({R}) => forall((p, q) => R.has(p, q).implies(R.has(q, p))))
+  const ord = rule('ordered triples').sorts('N').inputs({a: nat, b: nat, c: nat}).relations({T: ['N', 'N', 'N']})
+    .step(({a, b, c, T}) => ({T: T.add([a, b, c], a.lt(b).and(b.lt(c)))}))
+  const ordLaw = ord.law('every triple is increasing', ({T}) => forall((p, q, r) => T.has(p, q, r).implies(p.lt(q).and(q.lt(r)))))
+  const rules = [
+    smachineToLean('sym', symR.machine, [symLaw], {tamper: {what: 'the symmetric proof offered for the rule that adds (a, b) one way', machine: sym(false).machine}}),
+    smachineToLean('ord', ord.machine, [ordLaw]),
+  ]
+  console.log(`import Sets
+open Kern Cert
+set_option maxRecDepth 100000
+set_option maxHeartbeats 0
+
+/-! Tuple keys (Kernel.lean's tup, proj and cellT): the kernel's trees for goals over tuples, a tampered cell equality,
+a projection through a projection, and two relations through Kern.smachine_sound. -/
+
+${honest.join('\n\n')}
+
+${tampered}
+
+-- The middle part of (x, (y, z)), read as proj 0 (proj 1 _), is y: proj 1's parts are (y, z), proj 0 their first.
+def projnest_goal : Goal := ⟨[.var 0, .var 1, .var 2],
+  [.le (.const 1) (.proj 0 (.proj 1 (.tup (.var 1) (.tup (.var 0) (.var 2))))), .eq (.var 0) (.const 0)]⟩
+def projnest_tree : Tree := .leafAt [((sp [(0, (-1))] 1), .fact 0), ((sp [(0, 1)] 0), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] []
+theorem projnest : ∀ env maps, ¬ ∀ c ∈ projnest_goal.hyps, evalC env maps c = true :=
+  sound projnest_goal projnest_tree (by decide +kernel)
+-- Its last part (proj 1 (proj 1 _)) is z, not y: the same tree for y's place read as z's is refused.
+example : checkGoal ⟨[.var 0, .var 1, .var 2], [.le (.const 1) (.proj 1 (.proj 1 (.tup (.var 1) (.tup (.var 0) (.var 2))))), .eq (.var 0) (.const 0)]⟩
+  projnest_tree = false := by decide +kernel
+
+${rules.join('\n\n')}
+
+${exs.map((_, i) => `#print axioms t${2000 + i}`).join('\n')}
+#print axioms projnest
+#print axioms sym_laws
+#print axioms sym.law0
+#print axioms ord_laws
+#print axioms ord.law0`)
   process.exit(0)
 }
 
