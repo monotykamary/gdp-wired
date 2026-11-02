@@ -21,7 +21,7 @@ import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence,
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
-import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
+import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
@@ -2641,7 +2641,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     && facts.filter(readsParams).every(f => holds(f, params))
   const cap = watchWork.n + perTrial * budget.trials
   try {
-    const late = () => budget.until !== undefined && performance.now() > budget.until
+    const late = () => pastWall() || budget.until !== undefined && performance.now() > budget.until
     for (let trial = 0; trial < budget.trials && watchWork.n <= cap && !late(); trial++) {
       // (`mixed`: the trials in turn at bounds 1 to 4, every fourth near)
       const bound = budget.mixed ? 1 + trial % 4 : budget.bound, guided = guides, near = budget.mixed && trial % 4 ? undefined : budget.near
@@ -2675,7 +2675,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     // variable of a kind is drawn as its kind draws (33 yes/nos drawn from 0..7 almost never make a lawful state).
     const steps1 = stepLaws.filter(sl => (sl.steps ?? 1) === 1), given = withKinds(r, laws)
     const wide = Object.keys(m.state).length + m.inputs.length >= 32, lawsHere = wide ? given : [], kinded = wide ? r.kindsOfState() : []
-    for (let trial = 0; budget.states !== false && !m.history && (steps1.length || lawsHere.length) && trial < budget.trials * 4 && watchWork.n <= cap; trial++) {
+    for (let trial = 0; budget.states !== false && !m.history && (steps1.length || lawsHere.length) && trial < budget.trials * 4 && watchWork.n <= cap && !late(); trial++) {
       const params = r.randomParams(rand, bound)
       if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m) || !factsHold(params)) continue
       const scalars: Record<string, number> = Object.fromEntries(Object.keys(m.state).map(n => [n, rand(8)]))
@@ -2722,6 +2722,13 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
   return searched(r, laws, [], v, opts)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
+  const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
+  // From any state, the caller's budget includes preflight runs and all initial
+  // goals, not a fresh budget per goal. Keep reachable-state search unchanged.
+  return opts.from !== 'any' || ms === undefined ? proveStepsIn(r, laws, stepLaws, opts)
+    : withWall(performance.now() + ms, () => proveStepsIn(r, laws, stepLaws, opts))
+}
+function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions): Verdict {
   r = r.withSumsOf(laws, stepLaws)
   noting(r, laws, stepLaws)
   const refuted = refuteByRuns(r, laws, stepLaws)
