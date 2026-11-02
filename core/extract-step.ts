@@ -866,6 +866,8 @@ export class Stepper {
   // collection's own order only (the first from either end); in the pass after the passes ran out, none.
   drainLeast(o: Extract<Obj, {k: 'map'}>, at: SX, where: (k: K) => B, by: (k: K) => {e: N, desc?: boolean}[]): {key: N, some: B, held: B, where: (k: K) => B} {
     if (this.drain!.rank) return this.rankLeast(o, at, where, by)
+    // (a dict's keys in order: the passes would run over every number up to the greatest key, refused)
+    if (!o.decl.ordered) return refuse(at, `${at.text}: a dict's keys taken in order in a loop (the subset reads a loop over a list of the state)`)
     const dr = this.drain!, kk: K = {op: 'num', e: I.nvar(LEAST_KEY)}, name = o.decl.name
     let w: B, parts: {e: N, desc?: boolean}[]
     this.drainSetup++

@@ -1,0 +1,23 @@
+{
+ "id": "microoptimus",
+ "repo": "https://github.com/borischeunguk/MicroOptimus",
+ "commit": "1e21132f1a20fb0231bfccf2deb82943f06777ff",
+ "licence": "Apache-2.0",
+ "lang": "Java",
+ "kind": "pre-trade risk checks",
+ "about": "order size, notional, price-deviation, rate and position limits per client, positions and per-client counts in Agrona Long2LongHashMaps",
+ "check": [
+  "osm/src/main/java/com/microoptimus/osm/sor/RiskManager.java"
+ ],
+ "toml": "[rules.RiskManager]\nclasspath = [\"/tmp/agrona.jar\"]\nsources = [\"common/src/main/java\"]\nmethods = [\"checkOrder\", \"updatePosition\", \"setReferencePrice\"]\n",
+ "edits": [
+  {
+   "file": "osm/src/main/java/com/microoptimus/osm/sor/RiskManager.java",
+   "before": "^    public RiskCheckResult checkOrder\\(",
+   "lines": [
+    "// gdp: law an approved order is within the order size limits: not result.approved or (request.quantity >= minOrderSize and request.quantity <= maxOrderSize)"
+   ]
+  }
+ ],
+ "setup": "curl -sfL -o /tmp/agrona.jar https://repo1.maven.org/maven2/org/agrona/agrona/1.21.2/agrona-1.21.2.jar"
+}
