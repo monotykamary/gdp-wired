@@ -78,6 +78,11 @@ breakpoints; a write the request leaves as it is copies the map), `.sorts`/`.rel
   proven. DuoAI's ten: 9 of 10 (distributed_lock unknown, as on main). Quick bar against main 9b62ecf: wrong 0 in every
   group, nothing lost solid (CHC +9.33, gained 8; ITS -2, lost 4 none solid; TIP lost 1 none solid; rw gained 1, lost
   1 none solid; f1, f2, SV level; g332 same searches, +3% time after a fix). Test shards: all 7 pass.
+- **The ten, paired with main (3 runs each, same setup).** Two prover changes cost radix-keyed rules (consensus_wo_decide,
+  distributed_lock, ring_leader_election unknown at 60 s), bisected commit by commit and gated to rules with tuple keys
+  (2d7e5d3, 26fed6b): then 30 of 30 within 60 s against main's 29 of 30 (runs/laneRL/ten3-fix). IC3Syn at 26fed6b
+  (gate-ic3): 22 in all three runs, 25 in some; the misses at identical counted work to gate-ic's (wall), but
+  sharded_kv_no_lost_keys once unknown at 400M work (2.8M otherwise), an outlier not yet explained.
 - **Not closed:** learning_switch_i4 with nothing written (unknown at 60 s; below).
 
 ## gen/laneRL: the engine over relations keyed by tuples; learning_switch proven with nothing written (pinned, strict 60 s); i4 not yet (untrusted; nothing trusted changed by this part)
