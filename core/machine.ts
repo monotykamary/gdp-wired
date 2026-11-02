@@ -5,7 +5,7 @@
 // Arithmetic is linear: +, −, × by a constant, min, max, if. Maps are naturals indexed by naturals, every cell starting
 // at the same value; a law about a map holds for every key x, and is proven at one arbitrary x (with the law assumed at
 // every other key the step reads).
-import {boundOf, crossFree, eachParts, historyMachine, keyTerm, mapArities, plainKey, scope, sumRuntime, tupleParts} from '../kernel/kernel.ts'
+import {boundOf, crossFree, eachParts, historyMachine, tuple, keyTerm, mapArities, plainKey, scope, sumRuntime, tupleParts} from '../kernel/kernel.ts'
 import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
 
 // The one generator of the repo's random draws: x' = (1103515245 x + 12345) mod 2^31, exact (Math.imul). In doubles
@@ -446,8 +446,11 @@ export function compileC(c: C, m: Machine): (env: Env, st: State) => boolean {
 // A write at every key: its value at each key the maps it reads hold a cell at, and its new default past them.
 // With the key in key terms, every key up to the last breakpoint is computed (the stretches between breakpoints hold the
 // same value, which need not be the default), and past it the value is the new default.
-function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine, parts = 1): {cells: Map<number, number>, default: number} {
-  if (parts > 1) return writeEveryTuple(eachParts(w, parts), env, st, m)
+function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine, parts = 1, map?: string): {cells: Map<number, number>, default: number} {
+  if (parts > 1) {
+    const t = eachParts(w, parts), same = map !== undefined && unchanged(t, map, env, st, m)
+    return same ? {cells: new Map(st.maps[map]!), default: st.defaults && Object.hasOwn(st.defaults, map) ? st.defaults[map]! : m.maps![map]!} : writeEveryTuple(t, env, st, m)
+  }
   if (!plainKey(w.value, w.each)) {
     const ks = breakKeys(breaksOf(w.value, w.each), env, st, m), top = ks.at(-1)!
     // (each breakpoint on its own, and each stretch between two at one key of it: no read moves and no comparison turns
@@ -508,6 +511,27 @@ function writeEveryTuple(t: {names: string[], value: E}, env: Env, st: State, m:
   return {cells, default: fallback}
 }
 const tupleKey = (xs: number[]): number => xs.slice(0, -1).reduceRight((b, a) => cpair(a, b), xs.at(-1)!)
+
+// Whether a write at every tuple leaves the map as it is at this step: its value, with every condition that reads no part
+// decided at the request (the flags, the inputs, the state), is the map's own cell at the tuple of the parts, as read
+// (M[k]) or as a member (if(1 <= M[k], 1, 0) where every cell is 0 or 1 already). Then no tuple need be visited.
+function unchanged(t: {names: string[], value: E}, map: string, env: Env, st: State, m: Machine): boolean {
+  const names = new Set(t.names), reads = (u: E | C) => JSON.stringify(u).match(/"name":"([^"]+)"/g)?.some(x => names.has(x.slice(8, -1))) ?? false
+  const cond = (c: C): boolean | C => {
+    if (!reads(c)) { try { return evalC(c, env, st, m) } catch { return c } }
+    if (c.op === 'and' || c.op === 'or') {
+      const xs: C[] = []
+      for (const y of c.xs) { const v = cond(y); if (v === (c.op === 'or')) return v; if (typeof v !== 'boolean') xs.push(v) }
+      return xs.length === 0 ? c.op === 'and' : xs.length === 1 ? xs[0]! : {op: c.op, xs}
+    }
+    return c
+  }
+  const term = (e: E): E => { if (e.op !== 'if') return e; const c = cond(e.c); return c === true ? term(e.then) : c === false ? term(e.else) : {...e, c: c as C} }
+  const v = term(t.value), own = (e: E) => e.op === 'get' && e.map === map && JSON.stringify(e.key) === JSON.stringify(tuple(t.names.map((name): E => ({op: 'var', name}))))
+  if (own(v)) return true
+  const zeroOne = () => [...(st.maps[map]?.values() ?? [])].every(x => x === 0 || x === 1) && (st.defaults?.[map] ?? m.maps![map]!) <= 1
+  return v.op === 'if' && v.then.op === 'const' && v.then.value === 1 && v.else.op === 'const' && v.else.value === 0 && v.c.op === '<=' && v.c.a.op === 'const' && v.c.a.value === 1 && own(v.c.b) && zeroOne()
+}
 
 // The machine a runtime steps (with a history, kernel.ts's plain machine), its queries, and the inputs a request carries.
 function runnable(m: Machine) {
@@ -636,7 +660,7 @@ export function interpret(m: Machine) {
       if (m.assume && !evalC(m.assume, env, st, plain)) throw new RangeError(refused(m))
       const scalars = {...st.scalars}
       for (const [name, e] of Object.entries(plain.step.state ?? {})) scalars[name] = evalE(e, env, st, plain)
-      const writes = Object.entries(plain.step.maps ?? {}).map(([name, w]) => [name, 'each' in w ? writeEvery(w, env, st, plain, arity[name] ?? 1) : {key: evalE(w.key, env, st, plain), value: evalE(w.value, env, st, plain)}] as const)
+      const writes = Object.entries(plain.step.maps ?? {}).map(([name, w]) => [name, 'each' in w ? writeEvery(w, env, st, plain, arity[name] ?? 1, name) : {key: evalE(w.key, env, st, plain), value: evalE(w.value, env, st, plain)}] as const)
       const maps = Object.fromEntries(Object.entries(given.maps).map(([name, cells]) => [name, new Map(cells)]))
       const defaults = {...given.defaults}
       for (const [name, w] of writes) if ('cells' in w) { maps[name] = w.cells; defaults[name] = w.default } else maps[name]!.set(w.key, w.value)
