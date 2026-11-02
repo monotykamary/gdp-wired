@@ -426,14 +426,16 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
       return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c)), pool: fg && keys.length ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)]} : undefined}
     })
     // (the pool's hypotheses a model breaks, chosen; whether there were any)
-    const breaks = (b: ReturnType<typeof build>[number] | undefined, w: Record<string, number>): boolean => ptime('lazy', () => {
+    // (`strict`, where nothing else is broken or asked: the cells it leaves out at their start alone, as a model whose
+    // completion meets an instance may still meet it only at a witness some law then breaks)
+    const breaks = (b: ReturnType<typeof build>[number] | undefined, w: Record<string, number>, strict = false): boolean => ptime('lazy', () => {
       if (!b?.pool) return false
       // (broken where no completion of the model meets it: the cells it leaves out at their start, at 1, or one map's
       // flipped from either, and an instance's witness at each value below 16)
       const {fg, keys, wits} = b.pool, base = fg.hyps.length - keys.length, ids = keys.flatMap((q, j) => (chosen.has(q) ? [] : [base + j])), judge = brokenOf(fg)
       let bad = ids.length ? judge(w, ids) : []
       const mps = [...new Set(bad.flatMap(i => [...reads(fg.hyps[i], () => true).values()].map(([mp]) => mp)))], one1 = Object.fromEntries(mps.map(mp => [mp, 1]))
-      for (const d of [undefined, one1, ...mps.map(mp => ({[mp]: 1})), ...mps.map(mp => ({...one1, [mp]: 0}))]) for (let x = 0; x < 16 && bad.length; x++) {
+      for (const d of strict ? [undefined] : [undefined, one1, ...mps.map(mp => ({[mp]: 1})), ...mps.map(mp => ({...one1, [mp]: 0}))]) for (let x = 0; x < 16 && bad.length; x++) {
         if (x && !bad.some(i => wits[i - base])) break
         const w2 = {...w}
         for (const i of bad) if (wits[i - base]) w2[wits[i - base]!] = x
@@ -474,7 +476,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
         }
         if ('tree' in q || q.stuck !== 'sat' || !q.witness) break
         if (!more()) return {stuck: 'unknown'}
-        const lz = breaks(step, q.witness), asked = ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!))
+        const asked = ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!)), lz = breaks(step, q.witness) || (!asked && breaks(step, q.witness, true))
         tally('#rounds'); tally('#hyps', step.gg.hyps.length)
         if (lz && !asked) { built = build(); continue }
         if (!asked) {
@@ -499,7 +501,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
         if (env.GDP_COUNTS_TRACE?.includes('2')) console.error(`counts: ${ls.length === 1 ? 'alone' : `with ${ls.length}`} ${pass} ${goal.name}: ${o && 'tree' in o ? 'proven' : gg ? (o as {stuck?: string}).stuck : 'no read'} ${gg?.hyps.length ?? 0} hyps (insts ${'insts' in c ? c.insts.length : 0} picks ${'picks' in c ? c.picks.length : 0}${wide ? ' wide' : ''}${built.find(b => b.gg === gg)?.pool ? ` of ${built.find(b => b.gg === gg)!.pool!.keys.length}` : ''}) ${Math.round(clock() - t0)} ms`)
         // (the tree search's model of the step goal: the instances it asks for, as the CDCL search's, and the goals again)
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && more()) {
-          const lz = breaks(built.at(-1), o.witness), asked = ptime('mbqi', () => modelInstances(m, ls, at, gg, o.witness!))
+          const asked = ptime('mbqi', () => modelInstances(m, ls, at, gg, o.witness!)), lz = breaks(built.at(-1), o.witness) || (!asked && breaks(built.at(-1), o.witness, true))
           if (asked || lz) { if (asked) at = asked; built = build(); again = true; break }
         }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && houdini && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); again = true; break }
