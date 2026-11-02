@@ -116,7 +116,8 @@ function locate(root: CN) {
       if (k === 'loc') n.$at = at(n.loc)
       else if (k === 'range') { n.$b = at(n.range!.begin); n.$e = at(n.range!.end) }
       // (doc comments, FullComment and its parts, are no code)
-      else if (k === 'inner') { n.inner = n.inner!.filter(c => !c.kind.endsWith('Comment')); for (const c of n.inner) walk(c) }
+      // (a for's absent parts are empty objects, kind-less)
+      else if (k === 'inner') { n.inner = n.inner!.filter(c => !(c.kind ?? '').endsWith('Comment')); for (const c of n.inner) walk(c) }
     }
     n.$at ??= n.$b
   }
@@ -673,9 +674,9 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       case 'WhileStmt': case 'DoStmt': case 'ForStmt': {
         // (an endless loop nothing leaves, an assertion's trap or a wait for the watchdog's reset: the code stops there,
         // the step's failure)
-        const c0 = n.kind === 'ForStmt' ? kids[2] : n.kind === 'DoStmt' ? kids[1] : kids.find(k => k.kind !== 'NullStmt' && !k.kind.endsWith('Stmt'))
+        const c0 = n.kind === 'ForStmt' ? (kids[2]?.kind ? kids[2] : undefined) : n.kind === 'DoStmt' ? kids[1] : kids.find(k => k.kind && k.kind !== 'NullStmt' && !k.kind.endsWith('Stmt'))
         const body = n.kind === 'DoStmt' ? kids[0] : kids.at(-1), leaves = (b: CN): boolean => ['BreakStmt', 'ReturnStmt', 'GotoStmt', 'IndirectGotoStmt'].includes(b.kind) || (b.inner ?? []).some(leaves) || (b.kind === 'CallExpr' && !FAIL[calleeName(b) ?? ''])
-        const k = c0 && c0.kind !== 'NullStmt' ? fold(c0) : n.kind === 'ForStmt' && (c0 === undefined || c0.kind === 'NullStmt') ? 1 : undefined
+        const k = c0 && c0.kind !== 'NullStmt' ? fold(c0) : n.kind === 'ForStmt' ? 1 : undefined
         if (k !== undefined && k !== 0 && body && !leaves(body)) return [{s: 'expr', p, x: {e: 'call', ...at(n, -1), builtin: 'panic', a: [], what: 'an endless loop (the code stops there)'}}]
         // (do { ... } while (0), a macro's one statement: its body once, where nothing in it breaks or continues it)
         const exits = (b: CN): boolean => ['BreakStmt', 'ContinueStmt'].includes(b.kind) || (!['WhileStmt', 'DoStmt', 'ForStmt', 'SwitchStmt'].includes(b.kind) && (b.inner ?? []).some(exits))

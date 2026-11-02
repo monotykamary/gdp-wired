@@ -8,6 +8,7 @@ import {mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {proveRule, proveSteps} from './dsl.ts'
 import {type COptions, extractC, extractCpp} from './extract-c.ts'
+import {buildLaw} from './laws.ts'
 
 const hasClang = (() => { try { execFileSync('clang', ['--version'], {stdio: 'ignore'}); return true } catch { return false } })()
 const t = hasClang ? test : test.skip
@@ -283,8 +284,10 @@ void tick(struct io *s, int ok) {
 }
 void init(struct io *s) { s->flags |= F_INIT; }
 `, 'io'))
-  step(x, 'armed only when initialized', (_b, a) => a.flags.divBy(256).modBy(2).eq(0).or(a.flags.modBy(2).eq(1)), b => b.method.is('tick'))
-  step(x, 'ok follows the request', (b, a) => a.flags.divBy(16).modBy(2).eq(1), b => b.method.is('tick').and(b.tick_ok.eq(1)))
+  // (a law's bit tests, as the CLI reads them: an invariant through the rule's functions, a step's through keys)
+  const law = (name: string, expr: string, method?: string) => buildLaw(x, {name, expr, ...(method ? {method} : {})}).law
+  expect(proveSteps(x.rule as A, x.invariants ?? [], [law('ok follows the request', '(flags & 0x10) != 0 or ok == 0', 'tick')]).proven).toBe(true)
+  expect(proveRule(x.rule as A, [...x.invariants!, law('init is never cleared once set', '(flags & 1) == 0 or (flags & 1) == 1')]).proven).toBe(true)
 }, 120_000)
 
 t('a bit operation of two values neither a constant nor 0 or 1 is refused', () => {
