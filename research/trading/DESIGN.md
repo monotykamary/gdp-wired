@@ -139,3 +139,81 @@ a choice of "ask" and "bid"; the lists read in order; `try_match`'s `time` read 
   on the changed files clean.
 - **Size:** core/ +28 KB outside tests (extract-step.ts +17 KB, machine.ts +3.5 KB, dsl.ts +3.2 KB, laws.ts +1.6 KB);
   kernel/ and lean-kernel/ unchanged.
+
+# Lane TR (gen/laneTR): rounding in the kinds, while loops over the state's lists, the corpus
+
+The tile's two missing parts: the pieces through the CLI, and the measure on several engines in the readers' languages.
+
+## Rounding to a tick
+
+**In the kinds** (core/dsl.ts, core/ticks.test.ts): `floorTo(k)`, `ceilTo(k)`, `roundTo(k, mode)` and `onTick(k)` on
+naturals, `int`s and decimals (a decimal's tick in its own units: `price.roundTo(0.05)` at 2 places is 5 cents), the
+modes `'halfEven'` (Python's round), `'halfUp'` (JavaScript's and Java's Math.round), `'halfDown'` and `'halfAway'` (Go's
+and Rust's round). Each is built from divBy and modBy (a half up is ⌊(2x + k) / 2k⌋·k, a half down −⌊(k − 2x) / 2k⌋·k, a
+half to the even one by the remainder's double against k), so nothing new reaches the kernel or Lean. Tested against a
+reference over exact integers at every residue, and a quoter's laws proven (on a tick, at most the price, within a tick,
+within half a tick, each mode's own half) with a mode said to round its halves another way refuted.
+
+**In the readers.** The executor's quotient (core/extract-step.ts) takes a mode: floor, ceil, trunc, and to the nearest
+by `even`, `up` or `away`, behind one SX node (`rnd`) any reader lowers to. Java: a float division is kept (`fdiv`, a
+true division, read only where Math.round, rint, floor, ceil or a cast to an integer rounds it; anywhere else a value
+outside the subset, refused where the rule reads it), Kotlin's `round` the even one. TypeScript: Math.round and
+Math.trunc of x / k beside floor and ceil.
+
+**A fix to gdp-wired's own claim.** laneO read Python's `round(a / k)` as exact below 2^53. It isn't: a / k not a half
+is at least 1/(2k) from one, and the float a / k is within |a / k|·2^-53 of a / k, which is below 1/(2k) only for |a| <
+2^52. At a = 3·2^51 + 2, a / 3 = 2^51 + 2/3 is stored as 2^51 + 0.5 and Python rounds it to the even 2^51: round(a / 3)·3
+− a = −2, while the rule (exact) said +1, so "within half a tick" was proven of code that breaks it there. Every
+rounding to the nearest now has an edge at |a| ≥ 2^52 (2^23 for a float's 24 bits, and floor, ceil and trunc at 2^24
+for floats): the rule refuses there and the check counts it apart (the shared executor's check now reads the edges, as
+Go's did). core/rounding.test.ts replays the case in Python.
+
+**Floats, what stays refused.** A float division read anywhere but under a rounding to a whole number; a division by a
+value that isn't a constant (Java's `|p − ref|·100.0 / ref > max`); a float remainder; a non-whole float literal. The
+reason is the same each time: the rule's numbers are exact integers, and the code's float operation rounds at a place
+that depends on the operands' size, which no linear term states. Where rounding back to an integer makes the result
+exact below a bound, the reader reads it with that bound as an edge; elsewhere it refuses rather than approximate.
+
+## While loops over the state's lists
+
+A matching loop (`while left > 0 and self.asks: best = min(self.asks, key=...); fill; take it out`), a scheduler
+running what is due (`while self.tasks and self.tasks[0].due <= now: self.tasks.pop(0)`), a window pruning old hits: a
+while loop whose passes take the first item of a list of the state, each pass that goes on taking it out. Python's
+`while` is now read (core/extract-step.ts `whileStmt`, `whileRank`; core/loops.test.ts) in two ways, both a fold as
+laneO's for loops are (every request carries the run its passes compute, assumed to be that run; nothing unrolled):
+
+- **In the list's places** (xs[0], pop(0), xs[-1], pop()): the passes are the places in order (from the last down for
+  the other end), each place's pass holding its item; a pass where the condition fails, or a break, return or failure,
+  ends the loop; after the loop each place reached is as its pass left it (one write at every key, read from the run
+  at the place), and where the passes ran out of items the condition is read once more with the list empty (a loop
+  that goes on then never ends: refused there).
+- **In an order of its own** (min or max by a key, Mesa's best bid and ask): the request also carries the list's held
+  keys in that order (`<list>__ord`, increasing by the order at every two places, each held) and each held key's place
+  there (`<list>__rk`, the place's item tying it under the order), and the run holds, for each list, how many items
+  the passes took out and the fields of the one they hold; a pass's item is the one at that count. After the loop the
+  items placed before the count are out and the one at it has the passes' fields. Several lists at once (Mesa's
+  clear_all_crosses takes a bid and an ask each pass).
+
+Two constraints shaped this. The kernel decides a quantified condition by finitely many keys only where each key is
+read as a map's key or compared with a term that doesn't read it (kernel/kernel.ts's `keyOnly`, `apart`): a pass's
+item read through the run (`asks.at(ord.at(run.at(i).a).k)`) is in the fragment, but "the least item after the last
+taken" over every pass and key is not (it compares two bound keys' cells), nor is "the key at its place is itself"
+(`ord.at(rk.at(k)).k = k`, the key against a term reading it). So places are tied to keys through the order's parts,
+and two items that tie under the order have no increasing list: the rule refuses there, an edge the check counts apart
+(which of two tied items comes first is the code's: Python's list order, a heap's layout). Second, a fold over a dict's
+keys in order would run over every number up to the greatest key (a price), which the check's run can't hold: refused.
+
+Refused, each where it is: a pass that writes the state other than its own item (a counter of the object, another
+map, an append to the list), reads another item of the list, or changes a field the order reads of an item it keeps; a
+list read in two orders in one loop; and, as the rule's refusal (seen by the check where the code reaches it), a pass
+that keeps its item where the condition holds again (the code's next pass would take the same item).
+
+**What it proves.** Laws about each item through the passes' own place: the queue's "the tasks run were due" is proven
+in seconds; "no task left is due" is not proven (it isn't true: a due task can wait behind one that isn't; the search
+found no run within its budget, so unknown, not broken). In an order of its own, the reading is exact (the drain test:
+2,300 requests from the start and drawn states, every branch arm), and "an ask filled never grows" is proven, but at
+2 to 4 minutes and 5 to 9 GB; at Mesa's size (two lists, two orders, eight least keys) the prover runs out of memory
+(over 10 GB) even with no law, the increasing list over every two places and the places map each adding gigabytes.
+Laws that need induction over the passes ("fills never exceed the order": 0 ≤ left ≤ qty at every pass) aren't
+proven by any fold: the equations alone don't give a fact of every pass (core/extract-py.test.ts says so of laneO's
+folds), and no lemma about a fold's running values is inferred yet.
