@@ -258,3 +258,23 @@ the scale of a real book, in that order.
 **Defects.** Reading the five refused engines found five defects, one in each, each replayed in the project's own
 code at its pin (kept private, not contacted). None came from a verdict: each engine was refused before its laws were
 read.
+
+## Gates (lane TR)
+
+- **Trusted code:** none changed (kernel/, lean-kernel/, core/check.ts: no diff), so no Lean twin, mutants or kernel
+  review were needed. terra (pi, `--provider openai`) was unavailable: the OpenAI login was refused (`invalid_grant`).
+  An independent agent reviewed the reader changes instead; its ten findings are above, each fixed.
+- **Tests:** the trading job (core/ticks, rounding, ordered, orderbook, loops tests and examples/orderbook.ts) 17 of 17
+  and its three examples; `bun scripts/test-shards.ts`, 7 shards on boat, every shard exit 0. One 5 s test,
+  infer.test.ts's first, timed out in one shard; on fixed large VMs, four runs a side, it takes 2.5–3.2 s here and
+  2.1–7.9 s on main.
+- **Quick bar** (`bun bar --quick`, 1d8ed91 against main 811e4ea, every group): wrong 0 in every group, nothing lost
+  solid; CHC-COMP −9, ITS −6 and −2 per component, none solid (7 and 6 flips at the time limit; no code those read
+  changed); TIP, SV-COMP, both frontier rounds, the real-world corpus and research/dag's 332 unchanged; Lean 6 of 6.
+  On the final tree (83556a7 against ae2e91b: f1, f2, rw): wrong 0, nothing lost solid; the real-world corpus's 4 lost
+  at the limit (its rules are written by hand: only the methods added to the kinds reach them) were noise: with the
+  base launched beside the candidate, 2 gained, 0 lost.
+- **tsc** no error outside the research files that need the vendored repos; **oxlint** clean on this lane's files
+  (one error remains in research/hw/run-more.ts, not this lane's).
+- **Size:** core/ +50 KB outside tests (extract-step.ts +36 KB, extract.ts +4 KB, extract-check.ts +3.3 KB, dsl.ts
+  +3 KB).
