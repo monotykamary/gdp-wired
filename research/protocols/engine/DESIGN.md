@@ -497,6 +497,88 @@ failures on both the 5 s tests past their limit on these VMs (XState, the bridge
 kernel/count.test.ts 61 of 61 and core/exists.test.ts 12 of 12 on the final head. Bytes against 479a22a: +7,900
 (core/exists.ts +4,864, kernel/kernel.ts +2,165, core/dsl.ts +871).
 
+### gen/laneY6 (from gen/laneC3 819e0c6): mldr's invariant over Lane C3's counts, probed
+
+research/protocols/ic3syn/mldrprobe.ts writes Endive's inductive invariant for MongoLoglessDynamicRaft (benchmarks/
+MongoLoglessDynamicRaft_IndProofs.tla at 8b6f2ab: six conjuncts) over counts added to the port's machine:
+cfgSize[s] = |config[s]|, old[s] = |{k ∈ config[s] : ¬newer(k, s)}| (one parameter, a cross-cell body; ConfigDisabled(s)
+is 2·old[s] <= cfgSize[s]), and Lane C3's pair counts at N·s + t: xm = |config[s] \ config[t]|, xn = |config[s] ∩
+config[t]|, low = |{k ∈ config[s] : CT[k] < CfgT[t]}|. Laws: a primary at its config term; one config term, one primary
+newest (Inv3915); one version and term, one config (Inv1758, read as: equal (CV, CfgT) give equal configs); quorums
+overlap or a config disabled (Inv2973: ∀ u, w, 2u + xm[s,t] > xn and 2w + xm[t,s] > xn → u + w > xn); every quorum at a
+config term or disabled (Inv3246: 2·low[t,s] <= cfgSize[t]); and before start, a copied config the one picked and
+version 1 (what the run showed missing). core/counts.ts's searchCounted with them as callers: all true on the small
+instances; every one of them refused in Houdini, each step goal "sat" with every other law assumed, at 0.2-1.8 s.
+The models it gives up on (GDP_COUNTS_DUMP) are not the protocol's: become_leader with S = {3} for config[3] = {1, 3}
+while the request's count inX (|config[i]|) is 0 (and inS 1), so majorityOf passes. The dump is attempt()'s
+branch where modelInstances asks for nothing at the model (pass 1), so inX's value stays free there; why it asks for no
+Count.lean instance at the request's count read in the assumption was not traced further. That is core/counts.ts's (Lane C3's): with those instances asked, the probe says whether the
+invariant goes through. Nothing built in core/ on this branch.
+
+### gen/laneY6 on C3's f1e8559: the probe again
+
+With C3's widened count instances (f1e8559) the probe's laws are still all refused (searchCounted 1,190 s, every step
+goal "sat" or, for "every quorum at a config term", unknown at 99-111 s). The model it now gives up on for one primary
+per term (GDP_COUNTS_DUMP, the 'nothing asked' branch, full witness): become_leader with i = 2 and S = {1, 2} (S[1], S[2]
+set), config[2] = {1, 2} (Config[2·64 + 1], Config[2·64 + 2] set), while inS = 1 and inX = 1. Each count is now above 0
+where a key is in it (the fix's instance), but nothing makes it at least the number of distinct keys known to be in it,
+so 2·inS > inX holds with one count each and the majority check passes for a set of two out of two. What it lacks: a
+count at least the number of distinct keys its body holds at (count ≥ body(k1) + body(k2) for k1 ≠ k2, Count.lean's sum
+split at two keys). Sent to C3 through the coordinator. Nothing in core/ on this branch.
+
+### gen/laneY6 on C3's 855bfbe (picks): the probe again
+
+Still refused, every law (1,249 s). The pass-1 model for one primary per term is now count-consistent where counts are
+read (size 5, inX = 4, inS = 3, the picks tying them to S's and config's cells): become_leader at term 2 by i = 1 with
+three voters of a four-member config, while another server (key$3) is primary at term 2 with config term 2. Endive's
+proof refutes this with "every quorum at a config term, or disabled" at (config of i, key$3): the voters all have
+CT <= 1 < 2, so low[1·N + key$3] >= 3 and 2·3 > |config[1]| = 4, and the config is not disabled (the voters are not
+newer than i's config, so old[1] >= 3). But the goal reads none of low, old, cfgSize, xm, xn: that law's instance at
+(1, key$3) is not in the goal. modelInstances asks for a law's instance where the model breaks it at a tuple of the
+goal's keys, and in this model the law holds there, because the counts it reads are no cells of the model and are read
+as 0: disabled(1) is 2·0 <= 0, true, so the law is satisfied and nothing is asked. What would put the keys there: when
+modelInstances evaluates a law at a tuple, a count the model has no cell for evaluated from its definition over the
+model's cells (its body summed over the keys below its bound, the picks' reading), not as 0; then "disabled" is false
+here, the law broken at (1, key$3), and its instance asked with its counts, whose picks C3's 855bfbe then supplies.
+Sent to C3 through the coordinator.
+
+### gen/laneY6 on C3's 26a3440 (counts from their definitions in modelInstances): the probe again
+
+Still refused, every law (537 s; pass 1 now runs out at 73-93 s on three of the laws). The instances are asked now: the
+pass-1 model for one primary per term reads old, cfgSize and low at the leader's config and the other primary. It is
+still not a state of the protocol, by two counts the picks should pin: become_leader by i = 2, S[0] = S[2] = 1 (the
+read S[w$12] with w$12 = 0, and S[key$2#] with key$2# = 2) yet inS = 1; config[1] = {0, 2} (Config[64·1 + w$12],
+Config[64·1 + key$2#]), CT[0] = 0 and CT[2] = 1 both below CfgT[3] = 2, yet low[64·1 + 3] = 1. Each count is 1 where
+the two distinct keys its body holds at would make it 2: no pick at (w$12, key$2#) in this goal, though both are read as
+the body's map's keys (S at both, Config[64·1 + ·] at both). Sent to C3 through the coordinator: whether w$12 (a witness)
+is among the key terms certFor picks at.
+
+### gen/laneY6 on C3's e5d9f38 (picks at the instances' witnesses too): the probe again
+
+Still refused (1,056 s). Changed: in the Houdini rounds "every quorum at a config term, or disabled" is no longer
+refused by a model but runs out (59-75 s), as do "quorums overlap" (56-72 s) and "one version and term, one config"
+(66-134 s); one primary per term is still refused (pass 1, 37 s), by a model the tree search keeps (counts.ts's dump for
+that branch carries the hypotheses, not the witness, so this run doesn't show it). Even were every law's goal settled,
+each step goal of this set costs 55-134 s of the counted budget, past a 60 s run for the whole search: mldr at 60 s
+needs these goals far cheaper as well as settled.
+
+### gen/laneY6: mldr shelved at 60 s (what was reached)
+
+- **The invariant over Lane C3's counts**: Endive's six conjuncts for MongoLoglessDynamicRaft (Inv866, Inv3915, Inv1758,
+  Inv2973, Inv3246, Safety) plus two pre-start laws (a copied config the one picked; version 1), written over one-
+  parameter counts (cfgSize, old: a cross-cell body) and C3's two-parameter counts at N·s + t (xm, xn, low):
+  research/protocols/ic3syn/mldrprobe.ts, all true on the small instances.
+- **What settles and what doesn't** (searchCounted with the laws as callers, the pinned setup, C3's fixes in turn: f1e8559
+  widened instances, 855bfbe picks, 26a3440 counts from their definitions in modelInstances, e5d9f38 picks at the
+  instances' witnesses): the pre-start laws and the per-server cross-cell law (a primary at its config term) kept; every
+  quorum at a config term, quorums overlap, and one version and term, one config now run out (56-134 s) where they were
+  refused by spurious models; one primary per term still refused by a model the tree search keeps.
+- **The cost**: each step goal of this set costs 55-134 s of the counted budget alone, against a 60 s budget for the whole
+  search. The next lever for mldr is the counted goals' cost (smaller goals: fewer hypotheses per step goal, the count
+  instances and picks a goal needs rather than all of them under the cap), not more counting theory: the theory C3
+  added (two parameters, picks, definitions in the model) now gives the instances the proof needs.
+- gen/laneY6 (the probe and these notes) is kept as a record, not for merging.
+
 ## gen/laneJ: IC3Syn at strict wall time; lazy hypotheses for big root goals (built, measured, held: on gen/laneJ 07250a7); a retried counted attempt seeded by its last model's instances (merged alone as gen/laneJ2; untrusted; nothing trusted changed)
 
 Held: the lazy hypotheses (kernel/prove.ts) cost the step goals time (g332 391 s against 354) and read 18 against 20 at
