@@ -16,7 +16,7 @@ of that model, and concludes the law about the Lean definitions from `cyclic_sou
 - `cun`, the naturals onto the pairs, in order of their sum (`cun 0 = (0, 0)`, then each pair after the last), with
   `cpair` its inverse (`cun_cpair`, `cpair_cun`): a bijection, the one a datatype's codes are built from, each part at
   most the whole (`cun_fst_le`, `cun_snd_le`) so a value's fields have smaller codes;
-- `tup q k i`, the i-th of k naturals packed in q by `tupk` (`tup_tupk`), at most q (`tup_le`);
+- `tup q k i`, the i-th of k naturals packed in q by `tupk` (Kernel.lean's, with `cun` and `cpair`), at most q (`tup_le`);
 - `wf_fix_unique`: a definition by well-founded recursion has exactly one solution. core/data.ts takes a function whose
   recursion isn't structural once the kernel has proven that each of its calls lowers a measure (a lexicographic tuple
   of naturals, the order of the cyclic ranks, `lexLt`) under the path to the call; its body, read as a functional F of
@@ -92,72 +92,10 @@ theorem unpk_pk (a b : Nat) : unpk (pk a b) = (a, b) := by
   have := unpk_pk 0 b; simp only [pk, Nat.zero_add] at this; rw [this]
 @[simp] theorem unpk_zero : unpk 0 = (0, 0) := unpk_pk 0 0
 
-/-! ### A bijection between the naturals and the pairs -/
+/-! ### A bijection between the naturals and the pairs
 
-/-- The naturals onto the pairs, in order of their sum: 0 is (0, 0), and each next natural the pair after. -/
-def cun : Nat → Nat × Nat
-  | 0 => (0, 0)
-  | n + 1 => match cun n with
-    | (0, b) => (b + 1, 0)
-    | (a + 1, b) => (a, b + 1)
-
-/-- 0 + 1 + … + s. -/
-def tri : Nat → Nat
-  | 0 => 0
-  | s + 1 => tri s + s + 1
-
-/-- `cun`'s inverse. -/
-def cpair (a b : Nat) : Nat := tri (a + b) + b
-
-theorem le_tri : ∀ s, s ≤ tri s
-  | 0 => Nat.le_refl 0
-  | s + 1 => by have := le_tri s; simp only [tri]; omega
-
-theorem cpair_succ_left (b : Nat) : cpair (b + 1) 0 = cpair 0 b + 1 := by
-  simp only [cpair, Nat.add_zero, Nat.zero_add, tri]
-
-theorem cpair_succ_right (a b : Nat) : cpair a (b + 1) = cpair (a + 1) b + 1 := by
-  simp only [cpair]
-  have e : a + (b + 1) = a + 1 + b := by omega
-  rw [e]; omega
-
-theorem cpair_cun : ∀ n, cpair (cun n).1 (cun n).2 = n
-  | 0 => rfl
-  | n + 1 => by
-    have ih := cpair_cun n
-    rcases h : cun n with ⟨a, b⟩
-    rw [h] at ih
-    cases a with
-    | zero => simp only [cun, h]; rw [cpair_succ_left]; simp only at ih; omega
-    | succ a => simp only [cun, h]; rw [cpair_succ_right]; simp only at ih; omega
-
-theorem cun_tri : ∀ s b, b ≤ s → cun (tri s + b) = (s - b, b)
-  | 0, 0, _ => rfl
-  | 0, _ + 1, h => absurd h (by omega)
-  | s + 1, 0, _ => by
-    have ih := cun_tri s s (Nat.le_refl s)
-    have e : tri (s + 1) + 0 = (tri s + s) + 1 := by simp only [tri]; try omega
-    rw [e]
-    simp only [cun, ih, Nat.sub_self, Nat.sub_zero]
-  | s + 1, b + 1, h => by
-    have ih := cun_tri (s + 1) b (by omega)
-    have e : tri (s + 1) + (b + 1) = (tri (s + 1) + b) + 1 := by omega
-    rw [e]
-    simp only [cun, ih]
-    have e2 : s + 1 - b = (s - b) + 1 := by omega
-    rw [e2]
-    simp only
-    have e3 : s + 1 - (b + 1) = s - b := by omega
-    rw [e3]
-
-theorem cun_cpair (a b : Nat) : cun (cpair a b) = (a, b) := by
-  unfold cpair
-  rw [cun_tri (a + b) b (by omega)]
-  simp
-
-@[simp] theorem cun_cpair_fst (a b : Nat) : (cun (cpair a b)).1 = a := by rw [cun_cpair]
-@[simp] theorem cun_cpair_snd (a b : Nat) : (cun (cpair a b)).2 = b := by rw [cun_cpair]
-@[simp] theorem cpair_cun_eq (n : Nat) : cpair (cun n).1 (cun n).2 = n := cpair_cun n
+`cun`, `tri`, `cpair` and their inverse laws (`cun_cpair`, `cpair_cun`) are Kernel.lean's (a tuple key is a term there);
+what a datatype's codes need beyond them is here. -/
 
 theorem cpair_ge (a b : Nat) : a + b ≤ cpair a b := by
   unfold cpair; have := le_tri (a + b); omega
@@ -177,12 +115,6 @@ def tup (q : Nat) : Nat → Nat → Nat
   | _ + 2, 0 => (cun q).1
   | k + 2, i + 1 => tup (cun q).2 (k + 1) i
 
-/-- Naturals packed by `cpair`, right-nested; one is itself. -/
-def tupk : List Nat → Nat
-  | [] => 0
-  | [x] => x
-  | x :: xs => cpair x (tupk xs)
-
 theorem tup_le : ∀ (k i q : Nat), tup q k i ≤ q
   | 0, _, _ => Nat.le_refl _
   | 1, _, _ => Nat.le_refl _
@@ -192,8 +124,6 @@ theorem tup_le : ∀ (k i q : Nat), tup q k i ≤ q
 @[simp] theorem tup_two_zero (k a q : Nat) : tup (cpair a q) (k + 2) 0 = a := by simp [tup]
 @[simp] theorem tup_two_succ (k i a q : Nat) : tup (cpair a q) (k + 2) (i + 1) = tup q (k + 1) i := by simp [tup]
 @[simp] theorem tup_one (q i : Nat) : tup q 1 i = q := rfl
-@[simp] theorem tupk_one (x : Nat) : tupk [x] = x := rfl
-@[simp] theorem tupk_cons (x y : Nat) (ys : List Nat) : tupk (x :: y :: ys) = cpair x (tupk (y :: ys)) := rfl
 
 /-! ### Definitions by well-founded recursion -/
 

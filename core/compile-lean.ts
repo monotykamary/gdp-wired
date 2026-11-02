@@ -20,6 +20,7 @@ function emit(m: Machine, tag: string, laws: Law[]): string {
       case 'min': case 'max': return `(${e.op} ${ex(e.a, st)} ${ex(e.b, st)})`
       case 'if': return `(if ${cx(e.c, st)} then ${ex(e.then, st)} else ${ex(e.else, st)})`
       case 'get': return `(${st}.${e.map} ${ex(e.key, st)})`
+      case 'tup': case 'proj': throw new Error('the first Lean export takes no tuple key')
     }
   }
   const cx = (c: C, st = 'st'): string => {

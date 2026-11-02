@@ -16,7 +16,7 @@
 //     slopes the values show, and over pairs of points (f(y) − f(x) for x ≤ y)
 // One JSON line out: the existing search's verdict and found text, the table's answer, sizes and times.
 import type {C, E, Law} from '../../core/machine.ts'
-import {compileFunction, pairedArgs, seeded} from '../../core/machine.ts'
+import {compileFunction, cpair, cunpair, pairedArgs, seeded} from '../../core/machine.ts'
 import type {Fact} from '../../kernel/cyclic.ts'
 import {check, loopObligations, livenessHelpful, type Liveness, type Loop} from '../../kernel/kernel.ts'
 import {grow, proveLiveness} from '../../kernel/prove.ts'
@@ -46,6 +46,8 @@ function ev(e: E, env: Env, call: (f: string, key: E, env: Env) => number): numb
     case 'min': return Math.min(ev(e.a, env, call), ev(e.b, env, call))
     case 'max': return Math.max(ev(e.a, env, call), ev(e.b, env, call))
     case 'if': return evc(e.c, env, call) ? ev(e.then, env, call) : ev(e.else, env, call)
+    case 'tup': return cpair(ev(e.a, env, call), ev(e.b, env, call))
+    case 'proj': return cunpair(ev(e.a, env, call))[e.k]
     case 'get': return call(e.map, e.key, env)
   }
 }

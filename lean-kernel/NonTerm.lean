@@ -357,6 +357,8 @@ def simpE : E → E
     let c' := simpC c
     if isT c' then simpE t else if isF c' then simpE f else .ite c' (simpE t) (simpE f)
   | .get m key => .get m (simpE key)
+  | .tup a b => .tup (simpE a) (simpE b)
+  | .proj k a => .proj k (simpE a)
 def simpC : C → C
   | .le a b => sfLe (simpE a) (simpE b)
   | .lt a b => sfLt (simpE a) (simpE b)
@@ -451,6 +453,8 @@ theorem simpE_evalE : (e : E) → evalE ρ maps (simpE e) = evalE ρ maps e
       · rename_i _ h; rw [isF_eval h] at hc; simp [evalE, ← hc, simpE_evalE f]
       · simp [evalE, hc, simpE_evalE t, simpE_evalE f]
   | .get m key => by simp [simpE, evalE, simpE_evalE key]
+  | .tup a b => by simp [simpE, evalE, simpE_evalE a, simpE_evalE b]
+  | .proj k a => by simp [simpE, evalE, simpE_evalE a]
 theorem simpC_evalC : (c : C) → evalC ρ maps (simpC c) = evalC ρ maps c
   | .le a b => by simp [simpC, sfLe_eval, evalC, simpE_evalE a, simpE_evalE b]
   | .lt a b => by simp [simpC, sfLt_eval, evalC, simpE_evalE a, simpE_evalE b]

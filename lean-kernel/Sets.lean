@@ -500,6 +500,8 @@ def occME (mp : Nat) : E → Bool
   | .prod a b => occME mp a || occME mp b
   | .ite c t f => occMC mp c || occME mp t || occME mp f
   | .get m key => m == mp || occME mp key
+  | .tup a b => occME mp a || occME mp b
+  | .proj _ a => occME mp a
 def occMC (mp : Nat) : C → Bool
   | .le a b => occME mp a || occME mp b
   | .lt a b => occME mp a || occME mp b
@@ -529,6 +531,8 @@ theorem congrME (ρ : Nat → Nat) (M M' : Nat → Nat → Nat) :
       congrME ρ M M' f (fun mp hm => h mp (by simp [occME, hm]))]
   | .get m key, h => by
     simp only [evalE, congrME ρ M M' key (fun mp hm => h mp (by simp [occME, hm])), h m (by simp [occME])]
+  | .tup a b, h => by simp only [evalE, congrME ρ M M' a (fun mp hm => h mp (by simp [occME, hm])), congrME ρ M M' b (fun mp hm => h mp (by simp [occME, hm]))]
+  | .proj k a, h => by simp only [evalE, congrME ρ M M' a (fun mp hm => h mp (by simp [occME, hm]))]
 theorem congrMC (ρ : Nat → Nat) (M M' : Nat → Nat → Nat) :
     (c : C) → (∀ mp, occMC mp c = true → M mp = M' mp) → evalC ρ M c = evalC ρ M' c
   | .le a b, h => by simp only [evalC, congrME ρ M M' a (fun mp hm => h mp (by simp [occMC, hm])), congrME ρ M M' b (fun mp hm => h mp (by simp [occMC, hm]))]
@@ -588,6 +592,8 @@ theorem substR_evalE_on : (e : E) → avoidsMapsE X e = true → evalE W M (subs
     have hmz : m ∉ X := avoidsMapsE_occ h (by simp [occME])
     simp only [substRE, evalE]
     rw [hrd m _ hmz, substR_evalE_on key (amE h (fun mp hm => by simp [occME, hm]))]
+  | .tup a b, h => by simp [substRE, evalE, substR_evalE_on a (amE h (fun mp hm => by simp [occME, hm])), substR_evalE_on b (amE h (fun mp hm => by simp [occME, hm]))]
+  | .proj k a, h => by simp [substRE, evalE, substR_evalE_on a (amE h (fun mp hm => by simp [occME, hm]))]
 theorem substR_evalC_on : (c : C) → avoidsMaps X c = true → evalC W M (substRC σ rd c) = evalC (applyS σ W M) M' c
   | .le a b, h => by simp [substRC, evalC, substR_evalE_on a (amCE h (fun mp hm => by simp [occMC, hm])), substR_evalE_on b (amCE h (fun mp hm => by simp [occMC, hm]))]
   | .lt a b, h => by simp [substRC, evalC, substR_evalE_on a (amCE h (fun mp hm => by simp [occMC, hm])), substR_evalE_on b (amCE h (fun mp hm => by simp [occMC, hm]))]

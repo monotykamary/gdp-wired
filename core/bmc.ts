@@ -98,8 +98,8 @@ const occurrences = (xs: (C | E)[], out = new Map<string, number>()): Map<string
     switch (x.op) {
       case 'var': out.set(x.name, (out.get(x.name) ?? 0) + 1); return
       case 'const': case 'flag': return
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': case '<': case '<=': case '=': go(x.a); go(x.b); return
-      case 'mul': go(x.a); return
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': case '<': case '<=': case '=': go(x.a); go(x.b); return
+      case 'mul': case 'proj': go(x.a); return
       case 'if': go(x.c); go(x.then); go(x.else); return
       case 'get': go(x.key); return
       case 'and': case 'or': x.xs.forEach(go); return
@@ -130,8 +130,8 @@ export function tidier(bools: Set<string>) {
     if (hit) return hit as E
     let out: E = e
     switch (e.op) {
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': { const a = e1(e.a), b = e1(e.b); if (a !== e.a || b !== e.b) out = {...e, a, b}; break }
-      case 'mul': { const a = e1(e.a); if (a !== e.a) out = {...e, a}; break }
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'tup': { const a = e1(e.a), b = e1(e.b); if (a !== e.a || b !== e.b) out = {...e, a, b}; break }
+      case 'mul': case 'proj': { const a = e1(e.a); if (a !== e.a) out = {...e, a}; break }
       case 'if': {
         const c = c1(e.c), t = e1(e.then), f = e1(e.else), v = oneOf(c)
         if (v !== undefined && t.op === 'const' && t.value === 1 && f.op === 'const' && f.value === 0) out = {op: 'var', name: v}

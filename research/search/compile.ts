@@ -2,7 +2,7 @@
 // candidate per index. The machine and its law compile to straight-line u32 code (what the forked Handwired's word
 // operations would emit), once as WGSL and once as JavaScript for the CPU baseline. Nothing here is trusted: whatever
 // the kernel reports is replayed by the interpreter before it is shown.
-import {type C, type E, type Law, type Machine, type Request, compileFunction, evalC, fnValue, interpret, noQuantifier, pointWrite} from '../../core/machine.ts'
+import {type C, type E, type Law, type Machine, type Request, compileFunction, cpair, evalC, fnValue, interpret, noQuantifier, pointWrite} from '../../core/machine.ts'
 import {type Watched, allowed, isStepLaw, watch} from '../../core/watch.ts'
 import {historyMachine} from '../../kernel/kernel.ts'
 
@@ -85,6 +85,9 @@ export function fitsU32(given: Machine, law: Watched, s: Space): {vars: Record<s
       case 'min': v = Math.min(up(e.a), up(e.b)); break
       case 'max': v = Math.max(up(e.a), up(e.b)); break
       case 'if': upC(e.c); v = Math.max(up(e.then), up(e.else)); break
+      // (the pairing grows with each part; a part is at most its pair)
+      case 'tup': v = cpair(up(e.a), up(e.b)); break
+      case 'proj': v = up(e.a); break
       case 'get': { const kb = up(e.key); v = fns[e.map] ? fnTop(e.map, kb) : cells[e.map]!; break }
     }
     if (!(v <= limit)) throw new Error(`${m.name}: at depth ${s.depth} and bound ${s.bound}, a value could pass 2^32 - 1, where the GPU search's u32 code would wrap`)
@@ -138,6 +141,7 @@ export function expressions(m: Machine, target: Target, name: (n: string) => str
       case 'max': return target === 'wgsl' ? `max(${ex(e.a)}, ${ex(e.b)})` : `Math.max(${ex(e.a)}, ${ex(e.b)})`
       case 'if': return sel(cx(e.c), ex(e.then), ex(e.else))
       case 'get': { const key = ex(e.key); return sel(`${key} < ${u(K)}`, `m_${e.map}[${target === 'wgsl' ? `min(${key}, ${u(K - 1)})` : key}]`, u(m.maps![e.map]!)) }
+      case 'tup': case 'proj': throw new Error('the hand-written shader takes no tuple key')
     }
   }
   const cx = (c: C): string => {
