@@ -5,8 +5,7 @@ noted), each with the command that reproduces it.
 
 ## 0.45.0
 
-A security fix in how the kernel reads names, more of TIP through termination, IC3Syn on pinned hardware, CHC-COMP
-measured VM-paired, ∃ verdicts checked by the kernel, Lean on every sampled ITS certificate, sturdier readers and
+A security fix in how the kernel reads names, more of TIP through termination, IC3Syn on pinned hardware, ∃ verdicts checked by the kernel, Lean on every sampled ITS certificate, sturdier readers and
 distributed apps through the CLI. Trusted changes: how the kernel and `gdp-wired-check` read names, the ∃ admission
 through ghost witnesses (Lean's `forall_some_of_ghostsubst`) and core/data.ts's termination admissions (Lean's
 `wf_fix_inv_unique_ring`).
@@ -38,10 +37,6 @@ through ghost witnesses (Lean's `forall_some_of_ghostsubst`) and core/data.ts's 
   terms over the ghosted machine). Before, the ∃ verdict rested on core/exists.ts's construction, which is untrusted.
 - **DuoAI's ten**: ticket_lock proven on 40 of 40 seeds (from 24; 38 within 60 s). Infer restarts one run in four from a
   sample holding a state variable's rarest value, and a join's never-law is split per unreached state.
-- **CHC-COMP, VM-paired**: each task's tools in turn on one VM, alone, on the same 4 vCPUs, their order rotated
-  (`--paired 1`), three runs on main e196807: gdp-wired 1,166–1,167 of 1,406, Golem 1,159–1,160, Spacer 1,147–1,156. A
-  narrow lead over Golem by our rule (our lowest run above its highest), in our harness, not CHC-COMP's own setup; per
-  task neither is ahead (Golem solves 94 tasks more often, gdp-wired 84; sign test p = 0.5).
 - **The searches**: every search on the exact generator (CHC's and ITS's runs reused the floating-point stream's
   10,466-step cycle 300–400 times). The cut search stops at the counted deadline and counts its leaf reads (a runaway
   obligation 133–172 s → 19–24 s, the same verdict). A wide goal (256+ hypotheses, 40,000+ terms) is grown from a small
