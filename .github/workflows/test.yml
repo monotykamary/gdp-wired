@@ -4,12 +4,18 @@ name: Test
 # conformance of the two runtimes, kernel tamper/refusals/step laws, the nine example domains, the README snippets),
 # and the npm package as a user installs it, on the oldest and newest Node it supports. The long runs (the kernel's
 # 32-seed soundness fuzz, histories, the Lean twin, mutation testing) are supercomputer/suite.json on Modal.
+#
+# The quick tests (`bun run test`, scripts/test-shards.ts) run as parallel shards, balanced on the seconds each unit
+# took (scripts/test-shards.json); together they are exactly `bun run test`. The shard count is the matrix's length.
+# publish.yml calls this workflow before it packs, so a release passes the same checks.
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -18,8 +24,9 @@ jobs:
   check:
     # (ubuntu-24.04, not ubuntu-latest: -latest moves to Ubuntu 26.04 in November 2026, which changes the clang and the
     # JDK the C, C++, Java and Kotlin cases run on; 24.04's are clang 18.1.3 and JDK 17)
+    name: Types and lint
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
         with:
@@ -28,8 +35,23 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Types and lint
         run: bun run check
-      - name: Quick tests
-        run: bun run test
+
+  test:
+    name: Quick tests ${{ matrix.shard }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Quick tests, shard ${{ matrix.shard }} of ${{ strategy.job-total }}
+        run: bun scripts/test-shards.ts --shard ${{ matrix.shard }}/${{ strategy.job-total }}
 
   package:
     # (ubuntu-24.04, not ubuntu-latest: -latest moves to Ubuntu 26.04 in November 2026, which changes the clang and the
