@@ -111,8 +111,9 @@ as any other linear term. These are refused, each with the reason:
     (below).
 - **What runs check.** The run search reads a step law's keys from 0 up and would never meet a week near 2,900. So
   core/watch.ts reads a key scaled past the small ones (k·w, k ≥ 16, in a comparison) where that comparison turns:
-  ⌊t/k⌋ and the keys beside it. The search from a counterexample also tries its other values (a map cell's time of
-  receipt) as inputs. Both are untrusted: they only add what a run checks or tries.
+  ⌊t/k⌋ and the keys beside it. For a law of steps, or one that divides by an hour or more, the search from a
+  counterexample also tries its other values as inputs (a map cell's time of receipt). On every search, that phase
+  cost CHC-COMP time at the limit in the quick bar. Both are untrusted: they only add what a run checks or tries.
 - **What it doesn't model:** daylight saving (one fixed offset), holidays not listed (a year with no list has none), and
   half days. The calendar is a statement, like a citation. A deadline proven over it holds for that calendar only. A
   law that a request *is* answered by a deadline still needs the sweep below.
