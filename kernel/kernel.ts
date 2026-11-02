@@ -449,7 +449,14 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
 }
 // A cell's map and key: M[k] a key, M[⟨k1|k2|…⟩] a tuple's parts (each a canonical text). Split at the outer level only:
 // a name in a key may itself be a cell, with brackets, commas and bars of its own.
+// (kept per name: every leaf reads its cells' keys again; a form is never changed once built)
+const cellMemo = new Map<string, {map: string, key?: Lin, keys?: Lin[]}>()
 export function cellParts(cell: string): {map: string, key?: Lin, keys?: Lin[]} {
+  let out = cellMemo.get(cell)
+  if (!out) { if (cellMemo.size > 200_000) cellMemo.clear(); cellMemo.set(cell, (out = cellParts0(cell))) }
+  return out
+}
+function cellParts0(cell: string): {map: string, key?: Lin, keys?: Lin[]} {
   const map = cell.slice(0, cell.indexOf('[')), inner = cell.slice(cell.indexOf('[') + 1, -1)
   if (inner.startsWith('⟨') && inner.endsWith('⟩')) return {map, keys: splitOuter(inner.slice(1, -1), '|').map(linOf)}
   return {map, key: linOf(inner)}
