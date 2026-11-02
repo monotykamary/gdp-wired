@@ -77,6 +77,30 @@ Three runs of this branch (19a4d3e: main 3000a12 merged, `runs/tb/gb1..3` in its
   cases 3 to 12 s each, the rest under 0.1 s. A case node's instances chosen by what its proof reads (the minimisation
   above, 8 of 33) is the next step: every sort's count law here waits on it.
 
+Then a case node's instances by what its proof reads (e422642, `runs/tb/gd1..3` against the same main runs):
+
+| theorems (492) | proven, by run | wrong |
+| --- | --- | --- |
+| gdp-wired, this branch | 219, 219, 217 | 0 |
+| gdp-wired, main 3000a12 | 218, 220, 221 | 0 |
+
+- A case node is tried first with its leaner instances (no shapes or etas at fields' values, and what only they reach;
+  a read both the conclusion and a use's conclusion make, which cancels, left unread), within a third of the attempt's
+  time a goal, and with all of them where that fails (a variant, the other nodes' trees kept; `within`, a spec's own
+  time, core/cyclic.ts). `count x (merge xs ys) = count x xs + count x ys` is proven in 7 to 12 s, no lemma (its
+  cons-cons cases 0.2 to 1.8 s each; none in 96 s before), `length (merge xs ys)` in 5 to 12 s.
+- No sort law moves (`--only sort_`: 4 of 126 here and on main, insertion sort's). Gained in every run, none of main's:
+  `isaplanner/prop_52`; `list_Select` 3 of 3 against 1. Lost, every run against every one of main's: `isaplanner/prop_50`
+  and `list_PairOdds`, both proven at 47 to 55 s on main: a leaner try that fails spends its third. At an eighth
+  `list_PairOdds` comes back and count through merge is out of time again.
+- Tried and not kept: kernel/prove.ts's wide parts (`growWide`) for case goals: a model of a part breaks most of the
+  other facts, so a part of 20 to 40 hypotheses doubles to the whole in two rounds; congruences kept by the share of
+  the case's models whose explanations use them (half): count through merge out of time again.
+- What the sorts wait on, each its own: quicksort's step with both lemmas proven, a node of 107 instances and 5 uses,
+  out of time leaner too; tree sort a count over the tree with its accumulator, which no function states; heap sort
+  `count ∘ toList` through hmerge, toList's recursion at `hmerge(x3, y)`; selection sort count through delete under
+  membership; bitonic sort count through its stitch and pairs.
+
 ### The sorts' proof stage: insertion's lemmas (gen/laneS5)
 
 Three runs of this branch (ad04b35: gen/tip-int 93602f8 with main d62c911, `runs/s5/d-r1..3` in its worktree) against
