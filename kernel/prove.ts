@@ -16,7 +16,7 @@ import type {TStats} from '../core/translate.ts'
 import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
 import {REFUTED, growCdcl} from './cdcl.ts'
-import {type Diagram, type Patterns, decide, pastEprCap, patternsOf} from './epr.ts'
+import {type Diagram, type Patterns, decide, pastEprCap, patternsOf, withEprCap} from './epr.ts'
 import {projected, tupleParts} from './kernel.ts'
 import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, cellParts, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
@@ -407,7 +407,9 @@ export const brokenOf = (goal: Goal): ((w: Record<string, number>, ids?: number[
 const termsSeen = new WeakMap<Goal, number>()
 const termsOf = (goal: Goal): number => { let n = termsSeen.get(goal); if (n === undefined) { n = 0; walkOnce(goal.hyps, () => { n!++ }); termsSeen.set(goal, n) } return n }
 export const wideFor = (goal: Goal): boolean => !wideBusy && goal.hyps.length >= wideAt && termsOf(goal) >= wideTerms
-export function growWide(goal: Goal, budget: {nodes: number, until?: number}, ask = (g: Goal, until: number): Outcome & {core?: number[]} => grow(g, new Map(), {nodes: 0, until})): (Outcome & {core?: number[]}) | undefined {
+// (`keep`: a part's tree kept as the part's, with the part and its hypotheses' indices in the whole as its core, not
+// widened: settle's, whose final proof is made over the instances its proofs read)
+export function growWide(goal: Goal, budget: {nodes: number, until?: number}, ask = (g: Goal, until: number): Outcome & {core?: number[]} => grow(g, new Map(), {nodes: 0, until}), keep = false): (Outcome & {core?: number[], part?: Goal}) | undefined {
   const hyps = goal.hyps, last = hyps.length - 1, broken = brokenOf(goal), now = clock(), w = fullWork()
   const end = withinDeadline(budget.until ?? Infinity), span = wideShare * (end - now), room = wideShare * (workCap - w), until = now + span
   const part = new Set<number>([last]), near = new Set(cellsIn(hyps[last])), cells = new Map<number, Set<string>>()
@@ -427,6 +429,7 @@ export function growWide(goal: Goal, budget: {nodes: number, until?: number}, as
       try { out = withWork(Math.min(w + room, fullWork() + f * room), () => ask(g, Math.min(until, at + f * span))) } finally { wideScope.judge = undefined }
       wideHook.on?.(g, out)
       if (wideTrace) console.error(`[wide] ${goal.name.slice(0, 40)}: part ${g.hyps.length} of ${hyps.length}, ${'tree' in out ? 'tree' : out.stuck} in ${Math.round(performance.now() - t0)} ms${'tree' in out ? '' : ` ${out.why?.slice(0, 50) ?? ''}`}`)
+      if ('tree' in out && keep) { wideStats.trees++; return {tree: out.tree, nodes: out.nodes, part: g, core: ids} }
       if ('tree' in out) { const tree = withWork(w + room, () => withDeadline(until, () => widen(g, goal, out.tree))); if (tree) wideStats.trees++; return tree && {tree, nodes: out.nodes} }
       if (out.why === REFUTED) return {...out, ...(out.core ? {core: out.core.map(i => ids[i]!)} : {})}
       if (out.stuck !== 'sat' || !out.witness) return undefined
@@ -445,10 +448,17 @@ export function growWide(goal: Goal, budget: {nodes: number, until?: number}, as
     return undefined
   } finally { wideBusy = false }
 }
+// (the abstraction of a whole wide goal, quadratic in its cells, within GDP_WIDE_EPR units: i4's learning switch's
+// largest decision otherwise 0.47M, its engine set's step goal of 7,590 hypotheses 19M, past its caller's end, in 10 GB)
+const wideEprUnits = Number(env.GDP_WIDE_EPR ?? 2_000_000), wideParts = env.GDP_WIDE_PARTS !== '0'
+// (a part of a wide goal by the EPR path first, its core widened to the part, else the usual search)
+const eprPart = (gp: Goal, until: number): Outcome => eprFirst(gp, {nodes: 0, until}) ?? grow(gp, new Map(), {nodes: 0, until})
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
-  if (!path.size && !budget.nodes && wideFor(goal)) { const out = growWide(goal, budget); if (out) return out }
+  const wide = !path.size && !budget.nodes && wideFor(goal), epr = !!eprScope.patterns && !eprScope.busy
+  // (a wide goal's parts by the EPR path too, where the goal is EPR-shaped)
+  if (wide) { const out = epr && wideParts ? growWide(goal, budget, eprPart) : growWide(goal, budget); if (out) return out }
   // (not for a wide goal's part: its abstraction's search reads no judge, and the whole goal is decided by it after)
-  if (eprScope.patterns && !eprScope.busy && !wideBusy && !path.size && !budget.nodes) { const out = eprFirst(goal, budget); if (out) return out }
+  if (epr && !wideBusy && !path.size && !budget.nodes) { const out = wide ? withEprCap(wideEprUnits, () => eprFirst(goal, budget)) : eprFirst(goal, budget); if (out) return out }
   // Past a few cases, CDCL over the atoms (kernel/cdcl.ts), with most of the budget: a linear goal's refutation there
   // is a resolution of short clauses, which the tree search would find again in every case that reaches one. Unknown
   // there, the plain search, the cuts and the plain search again have the rest. Not for a law over k steps in a row
@@ -1761,7 +1771,9 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
     for (const g of obligations(m, laws, {[law.name]: inst}, i)) {
       if (proofs[g.name]) continue
       if (late()) return strict(usual) ? unknown(g) : last ?? unknown(g)
-      let o: (Outcome & {part?: Goal, core?: number[]}) | undefined = eprScope.patterns ? eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late) : undefined
+      // (a wide goal decided over parts (growWide), each part by the EPR path: the abstraction of the whole is quadratic in
+      // its cells, i4's engine set's step goal of 7,590 hypotheses ran 19M units past its caller's end and 10 GB)
+      let o: (Outcome & {part?: Goal, core?: number[]}) | undefined = !eprScope.patterns ? undefined : wideFor(g) ? eprWide(g, late) ?? withEprCap(wideEprUnits, () => eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late)) : eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late)
       // (a refutation whose core's proof didn't finish: a model from fewer instances, which these refute, is no answer;
       // decideLaw's unknown, the usual search's next)
       if (!o && eprLast.refuted) { if (!usual) { decideNote.refuted = true; return undefined } } else if (!o && (last || !usual)) return strict(usual) ? undefined : last
@@ -1792,6 +1804,14 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
   }
 }
 
+// A wide goal over parts, each asked by the EPR path (its core widened to the part) or else the usual search: a tree is
+// the part's, a model one of the whole. Parts for four times eprFirst's window (growWide's share of it), each part
+// within that window.
+function eprWide(g: Goal, late: () => boolean): (Outcome & {part?: Goal, core?: number[]}) | undefined {
+  const out = growWide(g, {nodes: 0, until: clock() + 16_000}, (gp, until) => { const u = Math.max(until, clock() + 4_000); return eprFirst(gp, {nodes: 0, until: u}, true, late) ?? grow(gp, new Map(), {nodes: 0, until: u}) }, true)
+  eprLast.refuted = false
+  return out && ('tree' in out || (out.stuck === 'sat' && out.witness)) ? out : undefined
+}
 // A set of laws proven as proveLaws proves it, for a search that drops a law the proof fails at and asks again (the
 // enumeration's set proof): each law's goals settled in order (kept from this call or decideLaw's where they stand), the
 // first law not proven returned with its goal's model; when every law is, the proof made once: each law's instances only
