@@ -38,6 +38,45 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### Observers over builders, call counts as ranks (gen/laneTB)
+
+Three runs of this branch (19a4d3e: main 3000a12 merged, `runs/tb/gb1..3` in its worktree) against three of main
+3000a12 launched with them (`runs/tb/gm1..3` in a detached worktree), boat, 60 s:
+
+| theorems (492) | proven, by run | refused (unsupported) | refuted | wrong |
+| --- | --- | --- | --- | --- |
+| gdp-wired, this branch | 220, 219, 220 | 62 | 7 | 0 |
+| gdp-wired, main 3000a12 | 218, 220, 221 | 61-62 | 7 | 0 |
+
+- Gained in every run, none in main's: `isaplanner/prop_52` (count n xs = count n (rev xs), through count over ++);
+  `prod/prop_25` (length over ++) in the screen's three runs, in some of main's here. No aggregate gain (our lowest,
+  219, below main's highest, 221); lost in one run each, none in two: `isaplanner/prop_78`, `list_nat_Select`. Lean
+  4.34.0 re-checks `prop_52` (axioms propext, Classical.choice, Quot.sound); `prop_25`'s cyclic proof checks, its
+  statement read back through the built-ins (`+2` as `+`) doesn't in the exporter (as `ins_ord_eq` before).
+- What it adds (core/data.ts, the search only; nothing trusted changed):
+  - **An observer distributed over a builder**, conjectured where the values agree: for a function to a natural reading
+    a datatype and one returning that datatype from values of it, `o(m(a, b)) = o(a) + o(b)`; for two builders of one
+    signature, `o(m1(v)) + o(m2(v)) = o(a)`. It makes count and length over ++ and merge, count over take plus drop,
+    over evens plus odds, over a filter plus its complement (quicksort's, the pivot a variable), each seven symbols
+    and more a side, past the enumeration. The family's members are proven together (a member is a hit where another
+    of its observer is: count over ++ leaves the filters' counts), the law tried again after the last.
+  - **A well-founded function's recursion ranked by its call count** (`callsFn`): `f_calls`, f's body with each value 1
+    plus the counts at the calls it makes, its termination proven as any function's with f's measure. Before, the
+    scheme's rank was f's measure, and where it falls only by a size law (quicksort through filter, the merge sorts
+    through take and drop or pairwise, bitonic sort through evens and odds, heap sort through hmerge, selection sort
+    through delete) each step's descent was out of reach: a descent goal reads the node's instances, never its lemma
+    uses. Now each descent is one unfolding of `f_calls`. `sort_QSortCount` is proven so (the law at two unfoldings,
+    no lemma) at 55 s of its 57, not within the gate's runs.
+  - **The lean pass for cases outside termination**: a case node first without the shapes and etas at fields' values
+    and what only they reach. A merge's case (`count x (merge xs ys)`, the cons-cons case after `x ≤ y`): proven in
+    0.2 s with 8 of its 33 instances, past 11 s with all of them (a minimisation, each instance dropped where the node
+    stays proven).
+- Not yet, by cause: the case nodes' instances. With every lemma it needs proven, quicksort's count at one unfolding
+  is out of its time on a node of 458 instances; `count x (merge xs ys) = count x xs + count x ys` alone is proven
+  in 21 s of counted work (no lemma, its cases not split on `x = head`, five times the patience), its four cons-cons
+  cases 3 to 12 s each, the rest under 0.1 s. A case node's instances chosen by what its proof reads (the minimisation
+  above, 8 of 33) is the next step: every sort's count law here waits on it.
+
 ### The sorts' proof stage: insertion's lemmas (gen/laneS5)
 
 Three runs of this branch (ad04b35: gen/tip-int 93602f8 with main d62c911, `runs/s5/d-r1..3` in its worktree) against
