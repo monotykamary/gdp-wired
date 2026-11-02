@@ -60,6 +60,7 @@ type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, qui
 type Clause = {lits: Map<string, boolean>, node: number, input?: boolean}
 // GDP_CDCL_LP=0: each node solved by elimination alone (no simplex); GDP_CDCL_FILL (8): the simplex's tableau begun
 // again past this many entries a row the node reads (research/step's comparisons).
+const pointLeaf = env.GDP_CDCL_POINT !== '0'
 const lpFill = Number(env.GDP_CDCL_FILL ?? 8), lpGrow = Number(env.GDP_CDCL_GROW ?? 4), lpBase = Number(env.GDP_CDCL_BASE ?? 500), lpGreedy = Number(env.GDP_CDCL_GREEDY ?? 200), useLp = env.GDP_CDCL_LP !== '0', verify = env.GDP_CDCL_VERIFY === '1'
 // Counters research/step reads (times only while `on`).
 export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0, nodes: 0, boundRounds: 0}
@@ -731,7 +732,9 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
             if (open && lpSat && wideScope.judge) { const w = roundedOf(sx, rowsR); if (w && wideScope.judge(w)) { verdict = {kind: 'sat', witness: w}; judged = true; return } }
             if (steps || (open && lp.kind === 'sat')) return
             // (the clausal mode, every clause satisfied: the simplex's point, where it is integral, is a model)
-            if (clausal && !open && lpSat) { const w = pointOf(sx, rowsR); if (w) { verdict = {kind: 'sat', witness: w}; return } }
+            // (and the kernel's reading too (GDP_CDCL_POINT=0: not): a leaf whose rows the simplex's point meets at integers
+            // is met, and the exact elimination, which finds as much over every row, is not run there)
+            if ((clausal || pointLeaf) && !open && lpSat) { const w = pointOf(sx, rowsR); if (w) { verdict = {kind: 'sat', witness: w}; return } }
           }
           st.fmCalls++
           const rows = plain()
