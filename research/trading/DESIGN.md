@@ -217,3 +217,31 @@ found no run within its budget, so unknown, not broken). In an order of its own,
 Laws that need induction over the passes ("fills never exceed the order": 0 ≤ left ≤ qty at every pass) aren't
 proven by any fold: the equations alone don't give a fact of every pass (core/extract-py.test.ts says so of laneO's
 folds), and no lemma about a fold's running values is inferred yet.
+
+## The measure: research/trading/corpus
+
+Six engines at pinned commits (`engines/<id>.json`: the repository, the files, the comment laws and gdp.toml's lines,
+nothing else written), run through the CLI on boat (`bun research/trading/corpus/run.ts --jobs`, then `--collect`;
+results.md). Every engine besides Mesa was found by searching for order books, matching engines and risk modules under
+MIT, Apache-2.0, BSD or ISC in the readers' languages, preferring the smallest and flattest.
+
+| Engine | Language | Verdicts | What stops the rest |
+| --- | --- | --- | --- |
+| mesa (mesa-examples, Apache-2.0) | Python | 3 proven, 2 refuted (each run replayed in the code by research/trading/mesa.ts), 9–12 s a law | |
+| mesa-clear (the same, with clear_all_crosses) | Python | read and checked exactly (2,314 requests, every branch arm, ties counted apart); no verdict | the prover runs out of memory (over 10 GB) on two lists taken by orders of their own, even with no law |
+| zaranip/trading-system (MIT) | Python | not read | an item class whose fields its `__init__` sets from untyped arguments (no type to read them by); heaps of objects ordered by an `__lt__` that branches on the item's side; one object in the heap and in the index |
+| tpmullee/financial-markets-studio (MIT) | Python | not read | `str.lower`; then heaps of `[key, time, id, order]` lists and an index holding the same entries |
+| Nicolas-Pedernera/order-matching-engine (MIT) | TypeScript | not read | arrays of records and loops (the TypeScript reader has neither) |
+| manuelinfosec/limit-orderbook-go (MIT) | Go | not read | shopspring/decimal prices; `container/heap` through an interface |
+| borischeunguk/MicroOptimus RiskManager (Apache-2.0) | Java | not read | an enum of another source root read as a class (`OrderType.LIMIT`); then a double quotient by a field (the price deviation) |
+
+So the measure holds on one engine of six, as laneO left it; the five others are refused, each at the first construct
+the readers don't take, never misread. What real engines are made of, from this sample: heaps (`heapq`,
+`container/heap`, `BinaryHeap`, `PriorityQueue`) more than sorted maps, holding tuples or objects that an index holds
+too; nested levels (a price's queue); floats or decimal libraries for prices; and a matching loop over two sides at
+once. Reading them needs heaps whose top ties are an edge, objects in two places of the state, and the loops' proofs at
+the scale of a real book, in that order.
+
+**Defects.** Reading the five refused engines found five defects, one in each, each replayed in the project's own
+code at its pin (kept private, not contacted). None came from a verdict: each engine was refused before its laws were
+read.
