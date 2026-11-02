@@ -30,7 +30,7 @@ import {type C, type E, argsKey, atMost as leC, get, n as k, same as eqC, walk, 
 import {type Fact} from '../kernel/cyclic.ts'
 import {substC, substE} from '../kernel/kernel.ts'
 import {type CyclicVerdict, type NodeSpec, and as andC, implies, proveCyclic} from './cyclic.ts'
-import {clock, counted, pairedKeys, wideLimits, withDeadline} from '../kernel/prove.ts'
+import {clock, counted, pairedKeys, withDeadline} from '../kernel/prove.ts'
 import {env, work} from './solver.ts'
 import {rankOfPaths, ranksOfCalls, showC} from './cycles.ts'
 import type {Path as RelPath, Relation} from './relation.ts'
@@ -2120,7 +2120,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   const late = () => w.until !== undefined && clock() > w.until
   const tt = performance.now(), lap = (what: string) => { if (dataTrace) console.error(`[data]   instances: ${what} at ${Math.round(performance.now() - tt)} ms`) }
   const insts: NodeSpec['insts'] = [], seen = new Set<string>()
-  const inst = (fact: string, at: E[]) => { const i = fs.at.get(fact); if (i === undefined) return; const id = sid([i, at]); if (!seen.has(id)) { seen.add(id); insts.push({fact: i, at}) } }
+  const inst = (fact: string, at: E[]) => { const i = fs.at.get(fact); if (i === undefined) return undefined; const id = sid([i, at]); if (seen.has(id)) return undefined; seen.add(id); const q = {fact: i, at}; insts.push(q); return q }
   const holdsAt = (fact: string, at: E[]) => { const f = fs.facts[fs.at.get(fact)!]!; return substShared(f.holds, Object.fromEntries(f.keys.map((key, q) => [key, at[q]!]))) }
   // (each read once, where walk first reaches it: a read again adds nothing where these are used)
   const reads = (t: unknown): {map: string, key: E}[] => readsOnce(t).map(o => ({map: (o as {map: string}).map, key: (o as {key: E}).key}))
@@ -2773,7 +2773,9 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
     const comps = mb.rank ?? [size], mid = [...comps, ...Array.from({length: rankWidth(p) - comps.length}, () => k(0))]
     for (const {sub, cases, ...n} of plan) {
       const spec: NodeSpec = {...n, rank: [k(level), ...mid, k(sub)], uses: cases ? cases.map((g, i) => ({node: offsets[mi]! + 1 + i, subst: {}, guard: g})) : n.uses.map(u => (u.node < 0 ? {...u, node: offsets[-1 - u.node]!} : u))}
-      // (a case's leaner instances first, all of them where those don't prove it: the kernel's search on each node apart)
+      // (a case's leaner instances first, within a third of the attempt's time, all of them where those don't prove it:
+      // the kernel's search on each node apart, the other nodes' trees kept. A merge's case node, past 11 s with all of its
+      // 33 instances, is proven in 0.2 s with 8: count x (merge xs ys) = count x xs + count x ys now in 7 s, none in 96)
       const lean = leaner.get(n.name)
       specs.push(lean ? {...spec, insts: lean, within: attemptMs.ms / 3, variants: [{...spec, within: attemptMs.ms}]} : spec)
     }
@@ -2782,16 +2784,14 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
   // Each attempt within its own time (a goal past it is left unknown, and the attempt fails).
   if (dataTrace) console.error(`[data] @${Math.round(performance.now())} ${l.name} (${scheme?.name}) depth ${depth}, ${lemmas.length} lemmas: built in ${Math.round(clock() - t0)} ms (counted), ${specs.length} nodes, ${specs.reduce((n, x) => n + x.insts.length, 0)} instances`)
   if (clock() > t0 + attemptMs.ms) return {verdict: {proven: false, checked: false, node: name, goal: name, stuck: 'unknown'}, specs, main: base}
-  const was = pairedKeys.skip, wasWide = {...wideLimits}
+  const was = pairedKeys.skip
   pairedKeys.skip = true
-  if (env.DATA_WIDE && !inTermination.on) Object.assign(wideLimits, {at: Number(env.DATA_WIDE), terms: 0})
   try {
     // Within a termination's proof (its obligations and their size laws), first without the shapes at a field's value
     // (a field of a variable, of a field, of a function's value): each is a split on that value's constructor that a
     // size's descent rarely reads, and a node with a few of them grows past its time (hmerge's size law: past 20 s with
-    // them, 0.8 s without). Then the nodes as built. Elsewhere, the cases' nodes first without the shapes and etas at
-    // fields' values and what only they reach (`leaner`): a merge's case node, past 11 s with all of its 33 instances,
-    // is proven in 0.2 s with 8; a node none of them reads is the same in both passes, its tree kept.
+    // them, 0.8 s without). Then the nodes as built. (Elsewhere a case's node is tried leaner first on its own, all of
+    // its instances where that fails: `leaner`, above.)
     const lean = !inTermination.on ? specs : specs.map((n, i) => (i < base ? n : {...n, insts: n.insts.filter(q => !(fs.facts[q.fact]!.name.startsWith('shape ') && fieldValue(q.at[0])))}))
     if (lean.some((n, i) => n.insts.length < specs[i]!.insts.length)) {
       // (nine tenths for a law about naturals alone, a size law's or a decrease's, which reads no value's constructor)
@@ -2800,7 +2800,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
       if (v.proven && v.checked) return {verdict: v, specs: lean, main: base}
     }
     return {verdict: withDeadline(t0 + attemptMs.ms, () => proveCyclic(fs.facts, specs)), specs, main: base}
-  } finally { pairedKeys.skip = was; Object.assign(wideLimits, wasWide) }
+  } finally { pairedKeys.skip = was }
 }
 // Whether a termination's obligations are being proven (core/data.ts's proveMeasures).
 const inTermination = {on: false}
@@ -3149,16 +3149,6 @@ function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: n
     last = verdict
     if (nodeTrace && !verdict.proven && new RegExp(nodeTrace).test(verdict.goal)) { const n = specs.find(x => x.name === verdict.goal); if (n) console.error(`[node] ${n.name}: ${verdict.stuck}\n hyps: ${n.hyps.map(showC).join(' ; ')}\n concl: ${showC(n.concl)}\n uses:\n   ${n.uses.map(u => `${specs[u.node]?.name.slice(0, 40)}: ${showC(substC(specs[u.node]!.concl, {vars: u.subst, maps: {}, flags: {}}))} if ${showC(u.guard)}`).join('\n   ')}\n instances:\n   ${n.insts.map(q => `${fs.facts[q.fact]!.name}: ${showC(holdsAt(fs, q))}`).join('\n   ')}`) }
     if (dataTrace) console.error(`[data]   -> ${verdict.proven ? (verdict.checked ? 'proven' : `not checked: ${verdict.why}`) : `${verdict.goal}: ${verdict.stuck}`}`)
-    if (env.DATA_MIN && !verdict.proven && new RegExp(env.DATA_MIN).test(verdict.goal)) {
-      const fi = specs.findIndex(x => x.name === (verdict as {goal: string}).goal), T = Number(env.DATA_MIN_T ?? 30000)
-      const tryWith = (insts: NodeSpec['insts'], t: number) => { const sp = specs.map((x, i) => (i === fi ? {...x, insts, within: undefined, variants: undefined} : x)); const t0 = clock(); const v = withDeadline(clock() + t, () => proveCyclic(fs.facts, sp)); return {v: v.proven ? 'proven' : `${v.goal}: ${v.stuck}`, ms: Math.round(clock() - t0)} }
-      const full = (specs[fi]!.variants?.at(-1) ?? specs[fi]!).insts
-      console.error(`[min] full ${full.length}: ${JSON.stringify(tryWith(full, 120000))}`)
-      let cur = [...full]
-      for (let i = cur.length - 1; i >= 0; i--) { const w2 = cur.filter((_, j) => j !== i), r = tryWith(w2, T), nm = fs.facts[cur[i]!.fact]!.name; if (r.v === 'proven') { cur = w2; console.error(`[min] drop ${nm} (${r.ms})`) } else console.error(`[min] keep ${nm}: ${showC(holdsAt(fs, cur[i]!)).slice(0, 220)} (${r.v.slice(-30)})`) }
-      for (const q of cur) console.error(`[min]   ${fs.facts[q.fact]!.name}: ${showC(holdsAt(fs, q)).slice(0, 400)}`)
-      console.error(`[min] ${cur.length} of ${full.length}: ${JSON.stringify(tryWith(cur, 60000))}`)
-    }
     if (!(verdict.proven && verdict.checked) && clock() <= t2 + attemptMs.ms) done.add(key)
     if (verdict.proven && verdict.checked) return {out: {law: l, spec: specs[main]!, nodes: specs}, verdict, scheme: s?.name ?? (without ? 'no induction' : undefined), tried}
   }

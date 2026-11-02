@@ -324,8 +324,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
       // (`within`: the spec's own, each of its goals: core/data.ts's case nodes, their leaner instances first)
       later = spec.within ?? (j ? (refuted ? 1_000 : 3_000) : spec.main || spec.carry ? 4_000 : undefined)
       if (spec.uses.some(u => weak.has(u.node))) continue
-      const tq = clock(), r = attempt(spec)
-      if (env.GDP_CYCLIC_TIME) console.error(`[ntime] ${spec.name.slice(-40)}: ${spec.insts.length} insts, ${spec.uses.length} uses, ${Math.round(clock() - tq)} ms, ${'proven' in r ? r.stuck : 'ok'}`)
+      const r = attempt(spec)
       if ('proven' in r) { failed ??= r; if (r.stuck === 'sat') refuted = true; continue }
       nodes[i] = r; shapes[i] = spec; failed = undefined
       if (spec.weak) weak.add(i)
