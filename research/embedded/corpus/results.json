@@ -1,1 +1,260 @@
-[]
+[
+ {
+  "id": "makair-alarm",
+  "project": "MakAir ventilator firmware",
+  "domain": "medical",
+  "ok": true,
+  "refusals": [],
+  "checked": "checked against the code: 180 requests from the start, 400 from drawn states, 22 from the prover's witnesses",
+  "laws": [
+   {
+    "item": "makair-alarm",
+    "name": "detections_capped",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 717
+   },
+   {
+    "item": "makair-alarm",
+    "name": "cycles_counted_only_when_triggered",
+    "expect": "unknown",
+    "verdict": "unknown",
+    "ms": 60444,
+    "why": "a model; the search found nothing that proves it in 8905 ms; a state the laws allow where a step breaks it, no run from the start found reaching it: m_priority = 0, m_code = 0, m_detectionThreshold = 255, m_detectionNumber = 255, m_cycleNumber = 0, m_cyclesSinceTrigger = 1, m_enabled = false, p_priority = 0, p_code = 0, p_detectionThreshold = 0, detected(p_cycleNumber) = 1, getPriority() result = 0, getCode() result = 0, getCyclesSinceTrigger() result = 0, isTriggered() result = false, isEnabled() result = false, method = \"detected\"",
+    "note": "false at a threshold of 255 (the uint8_t count wraps past it), 256 detections deep; MakAir sets thresholds of 1 to 3"
+   },
+   {
+    "item": "makair-alarm",
+    "name": "same_cycle_counts_once",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 486
+   },
+   {
+    "item": "makair-alarm",
+    "name": "first_detection_counts",
+    "expect": "broken",
+    "verdict": "broken",
+    "ms": 428,
+    "run": [
+     "made with p_priority = 0, p_code = 0, p_detectionThreshold = 1",
+     "detected(p_cycleNumber=4294967295)"
+    ],
+    "note": "a detection at cycle 4294967295 right after a reset is taken for one already counted (the sentinel UINT32_MAX)"
+   }
+  ],
+  "seconds": 64.4
+ },
+ {
+  "id": "makair-activation",
+  "project": "MakAir ventilator firmware",
+  "domain": "medical",
+  "ok": true,
+  "refusals": [],
+  "checked": "checked against the code: 1309 requests from the start, 400 from drawn states, 22 from the prover's witnesses",
+  "laws": [
+   {
+    "item": "makair-activation",
+    "name": "stop_needs_a_second_press",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 322
+   },
+   {
+    "item": "makair-activation",
+    "name": "refresh_never_stops",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 138
+   }
+  ],
+  "seconds": 3.4
+ },
+ {
+  "id": "makair-rpi-watchdog",
+  "project": "MakAir ventilator firmware",
+  "domain": "medical",
+  "ok": true,
+  "refusals": [],
+  "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 15 from the prover's witnesses",
+  "laws": [
+   {
+    "item": "makair-rpi-watchdog",
+    "name": "countdown_at_most_its_start",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 176
+   },
+   {
+    "item": "makair-rpi-watchdog",
+    "name": "switched_off_when_count_ends",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 166
+   }
+  ],
+  "seconds": 2.6
+ },
+ {
+  "id": "px4-arming",
+  "project": "PX4 Autopilot v1.14.3",
+  "domain": "flight control",
+  "ok": true,
+  "refusals": [],
+  "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 34 from the prover's witnesses",
+  "laws": [
+   {
+    "item": "px4-arming",
+    "name": "armed_only_when_checks_pass",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 6264
+   },
+   {
+    "item": "px4-arming",
+    "name": "armed_only_from_standby",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 1891
+   },
+   {
+    "item": "px4-arming",
+    "name": "shutdown_is_final",
+    "expect": "broken",
+    "verdict": "broken",
+    "ms": 727,
+    "run": [
+     "arming_state_transition(status.hil_state=1, status.nav_state=5, status.latest_disarming_reason=7, status.latest_arming_reason=7, status.armed_time=7, new_arming_state=2, armed.lockdown=true, fRunPreArmChecks=true, calling_reason=2) with canArm(...) = false",
+     "forceArmState(new_arm_state=6) with canArm(...) = false",
+     "forceArmState(new_arm_state=7) with canArm(...) = false",
+     "forceArmState(new_arm_state=5) with canArm(...) = false",
+     "forceArmState(new_arm_state=1) with canArm(...) = true",
+     "arming_state_transition(status.hil_state=0, status.nav_state=5, status.latest_disarming_reason=6, status.latest_arming_reason=8, status.armed_time=0, new_arming_state=5, armed.lockdown=true, fRunPreArmChecks=true, calling_reason=2) with canArm(...) = false",
+     "arming_state_transition(status.hil_state=1, status.nav_state=5, status.latest_disarming_reason=3, status.latest_arming_reason=5, status.armed_time=8, new_arming_state=4, armed.lockdown=false, fRunPreArmChecks=true, calling_reason=1) with canArm(...) = false",
+     "arming_state_transition(status.hil_state=1, status.nav_state=0, status.latest_disarming_reason=3, status.latest_arming_reason=5, status.armed_time=8, new_arming_state=3, armed.lockdown=true, fRunPreArmChecks=true, calling_reason=8) with canArm(...) = false",
+     "forceArmState(new_arm_state=5) with canArm(...) = true",
+     "forceArmState(new_arm_state=4) with canArm(...) = true",
+     "forceArmState(new_arm_state=3) with canArm(...) = true",
+     "arming_state_transition(status.hil_state=7, status.nav_state=5, status.latest_disarming_reason=0, status.latest_arming_reason=0, status.armed_time=1, new_arming_state=1, armed.lockdown=false, fRunPreArmChecks=false, calling_reason=5) with canArm(...) = true",
+     "forceArmState(new_arm_state=4) with canArm(...) = true",
+     "arming_state_transition(status.hil_state=1, status.nav_state=8, status.latest_disarming_reason=5, status.latest_arming_reason=4, status.armed_time=5, new_arming_state=1, armed.lockdown=false, fRunPreArmChecks=false, calling_reason=8) with canArm(...) = false"
+    ],
+    "note": "the table keeps SHUTDOWN; in HIL a request for STANDBY is always valid (\"HIL can always go to standby\"), from SHUTDOWN too"
+   },
+   {
+    "item": "px4-arming",
+    "name": "shutdown_left_only_in_hil",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 1415
+   },
+   {
+    "item": "px4-arming",
+    "name": "denied_changes_nothing",
+    "expect": "broken",
+    "verdict": "broken",
+    "ms": 3,
+    "run": [
+     "arming_state_transition(status.hil_state=3, status.nav_state=0, status.latest_disarming_reason=0, status.latest_arming_reason=3, status.armed_time=0, new_arming_state=3, armed.lockdown=false, fRunPreArmChecks=false, calling_reason=2) with canArm(...) = true",
+     "arming_state_transition(status.hil_state=1, status.nav_state=1, status.latest_disarming_reason=3, status.latest_arming_reason=2, status.armed_time=1, new_arming_state=2, armed.lockdown=false, fRunPreArmChecks=true, calling_reason=2) with canArm(...) = true"
+    ],
+    "note": "in HIL, STANDBY_ERROR is cleared to STANDBY before the request is judged: a denied request still changes the state"
+   }
+  ],
+  "seconds": 16.8
+ },
+ {
+  "id": "canopen-node-guarding",
+  "project": "CANopenNode",
+  "domain": "industrial fieldbus",
+  "ok": true,
+  "refusals": [],
+  "checked": "checked against the code: 2341 requests from the start, 400 from drawn states, 21 from the prover's witnesses",
+  "laws": [
+   {
+    "item": "canopen-node-guarding",
+    "name": "timeout_when_life_expires",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 583
+   },
+   {
+    "item": "canopen-node-guarding",
+    "name": "guard_request_rearms",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 328
+   },
+   {
+    "item": "canopen-node-guarding",
+    "name": "life_timer_counts_down",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 336
+   },
+   {
+    "item": "canopen-node-guarding",
+    "name": "disable_stops_guarding",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 273
+   },
+   {
+    "item": "canopen-node-guarding",
+    "name": "disable_clears_the_timeout",
+    "expect": "broken",
+    "verdict": "broken",
+    "ms": 3422,
+    "why": "broken from a state the laws allow (from = \"any\"), no run from the start found reaching it; a state the laws allow where a step breaks it, no run from the start found reaching it: CANrxNew = false, lifeTime_us = 6, lifeTimer = 3, toggle = 0, lifeTimeTimeout = 7, CO_nodeGuardingSlave_process(NMTstate) = 2, CO_nodeGuardingSlave_process(slaveDisable) = 3, CO_nodeGuardingSlave_process(timeDifference_us) = 0, CO_nodeGuardingSlave_process(timerNext_us.value) = 2, CO_nodeGuardingSlave_process() result = 6, method = \"CO_nodeGuardingSlave_process\"",
+    "note": "disabling the slave stops the timer but keeps a life guarding timeout raised (its error bit is reset only when a guard request arrives)"
+   }
+  ],
+  "seconds": 7
+ },
+ {
+  "id": "foxbms-interlock",
+  "project": "foxBMS 2 v1.12.0",
+  "domain": "automotive BMS",
+  "ok": true,
+  "refusals": [],
+  "checked": "checked against the code: 1441 requests from the start, 400 from drawn states, 33 from the prover's witnesses",
+  "laws": [
+   {
+    "item": "foxbms-interlock",
+    "name": "init_accepted_only_when_uninitialized",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 4222
+   },
+   {
+    "item": "foxbms-interlock",
+    "name": "never_uninitialized_again",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 1616
+   },
+   {
+    "item": "foxbms-interlock",
+    "name": "reentry_guard_released",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 3288
+   },
+   {
+    "item": "foxbms-interlock",
+    "name": "no_illegal_request_counted",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 3671
+   },
+   {
+    "item": "foxbms-interlock",
+    "name": "timer_bounded",
+    "expect": "proven",
+    "verdict": "proven",
+    "ms": 3376
+   }
+  ],
+  "seconds": 45.7
+ }
+]
