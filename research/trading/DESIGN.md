@@ -157,8 +157,10 @@ within half a tick, each mode's own half) with a mode said to round its halves a
 **In the readers.** The executor's quotient (core/extract-step.ts) takes a mode: floor, ceil, trunc, and to the nearest
 by `even`, `up` or `away`, behind one SX node (`rnd`) any reader lowers to. Java: a float division is kept (`fdiv`, a
 true division, read only where Math.round, rint, floor, ceil or a cast to an integer rounds it; anywhere else a value
-outside the subset, refused where the rule reads it), Kotlin's `round` the even one. TypeScript: Math.round and
-Math.trunc of x / k beside floor and ceil.
+outside the subset, refused where the rule reads it), Kotlin's `round` the even one; an integer passed or cast as a
+float (javac's `Math.round(float)` for an integer argument, `(float) p`) is exact below 2^24, an edge past it, and a
+division with a float operand has a float's precision. TypeScript: Math.trunc of x / k beside floor and ceil (its
+Math.round stays refused: the TypeScript reader keeps no edge, and past 2^52 it isn't exact).
 
 **A fix to gdp-wired's own claim.** laneO read Python's `round(a / k)` as exact below 2^53. It isn't: a / k not a half
 is at least 1/(2k) from one, and the float a / k is within |a / k|·2^-53 of a / k, which is below 1/(2k) only for |a| <
@@ -194,7 +196,7 @@ laneO's for loops are (every request carries the run its passes compute, assumed
   items placed before the count are out and the one at it has the passes' fields. Several lists at once (Mesa's
   clear_all_crosses takes a bid and an ask each pass).
 
-Two constraints shaped this. The kernel decides a quantified condition by finitely many keys only where each key is
+Two constraints shaped this, and one review. The kernel decides a quantified condition by finitely many keys only where each key is
 read as a map's key or compared with a term that doesn't read it (kernel/kernel.ts's `keyOnly`, `apart`): a pass's
 item read through the run (`asks.at(ord.at(run.at(i).a).k)`) is in the fragment, but "the least item after the last
 taken" over every pass and key is not (it compares two bound keys' cells), nor is "the key at its place is itself"
@@ -202,6 +204,17 @@ taken" over every pass and key is not (it compares two bound keys' cells), nor i
 and two items that tie under the order have no increasing list: the rule refuses there, an edge the check counts apart
 (which of two tied items comes first is the code's: Python's list order, a heap's layout). Second, a fold over a dict's
 keys in order would run over every number up to the greatest key (a price), which the check's run can't hold: refused.
+
+**Review** (an independent read of the code, terra being unavailable: the OpenAI login pi uses was refused): ten
+findings, each fixed and tested. The one that mattered: the places map only tied a key to a place by the order's
+parts, so two tied items could share a place and the rule took one pass for both; now two held keys at one place are
+one, so ties have no run and the rule refuses there. The others: the order's assumptions held for every request (now
+only where the loop runs, and ties an edge only there); a loop's write at every key on one branch kept on the other; a
+failure after the loop not seen as following a write; the list read again after a pass took its item out (it gave the
+same item); remove's equality and an order field changed before a remove; a pass in a loop over places that keeps its
+item now ends the loop (the next condition reads the same item); Java's `Math.round` of an integer division (read as
+the exact quotient), an integer converted to a float, and a float operand's precision; TypeScript's Math.round (a
+refusal where the code goes on, withdrawn).
 
 Refused, each where it is: a pass that writes the state other than its own item (a counter of the object, another
 map, an append to the list), reads another item of the list, or changes a field the order reads of an item it keeps; a
