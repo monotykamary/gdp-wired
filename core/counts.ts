@@ -16,8 +16,8 @@
 //      induction), the proof the caller's (the counted goals here, the kernel's for an ∃ law's cubes), in two thirds of
 //      what is left; then, for the counted search, Houdini over the rest; the kernel checks the set (checkCountedLaws).
 import {type C, type E, type Law, type Machine} from './machine.ts'
-import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, scope, substC} from '../kernel/kernel.ts'
-import {clock, counted, fullRate, grow, modelInstances, wallAt, widen, withWall} from '../kernel/prove.ts'
+import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, scope, substC, substE} from '../kernel/kernel.ts'
+import {brokenOf, clock, counted, fullRate, grow, modelInstances, wallAt, widen, withWall} from '../kernel/prove.ts'
 import {REFUTED, type Refuted, cdclStats, growCdcl} from '../kernel/cdcl.ts'
 import {inferLaws} from './infer.ts'
 import {smallOf, trueSmall} from './exists.ts'
@@ -27,8 +27,12 @@ import {env} from './solver.ts'
 // profiles: each step goal left unknown or with a model past GDP_COUNTS_DUMP_MIN (300) hypotheses, the first GDP_COUNTS_DUMP_N (3))
 export const cprof: Record<string, number> = {}
 export const countsDump: {on?: (goal: object) => void} = {}
+const tally = (k: string, n = 1) => { cprof[k] = (cprof[k] ?? 0) + n }
 const ptime = <T>(k: string, f: () => T): T => { const t = performance.now(); try { return f() } finally { cprof[k] = (cprof[k] ?? 0) + performance.now() - t } }
 let dumped = 0
+// (GDP_COUNTS_LAZY=0: every instance and pick certFor proposes in the goal at once, as before; `wide`: the narrow
+// instances at once, the widened goal's further instances and picks lazily)
+const lazyMode = env.GDP_COUNTS_LAZY ?? 'wide', pool = Number(env.GDP_COUNTS_POOL ?? 1000)
 
 const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
 const json = (t: unknown) => JSON.stringify(t)
@@ -46,6 +50,8 @@ function reads(t0: unknown, map: (m: string) => boolean, out: Map<string, [strin
   return out
 }
 const mentions = (t: unknown, name: string) => json(t).includes(`"name":${json(name)}`)
+// Whether some object within t0 meets p (a condition nested in a term's `if` too).
+const some = (t0: unknown, p: (x: any) => boolean): boolean => !!t0 && typeof t0 === 'object' && (p(t0) || Object.values(t0).some(y => some(y, p)))
 const atoms = (c: C): C[] => (c.op === 'and' || c.op === 'or' ? c.xs.flatMap(atoms) : c.op === 'not' ? atoms(c.x) : [c])
 
 // --- candidates from the guard's shape -----------------------------------------------------------------------------------
@@ -76,29 +82,93 @@ export function guardLaws(m: Machine): {counts: Machine['counts'], laws: Law[]} 
     }
   }
   for (const [mp, w] of Object.entries(m.step.maps ?? {})) {
-    if ('each' in w || w.key.op !== 'var' || !m.inputs.includes(w.key.name)) continue
-    const t = w.key.name, written = inline({op: '<=', a: one, b: w.value} as C)
-    const law = (name: string, cmp: C): Law => when(name, {op: '<=', a: one, b: {op: 'get', map: mp, key: v('a$c')}}, cmp)
+    // (the written key: a request's value t, or two, t and u, composed N·t + u (a relation's cell): a count of two
+    // parameters, read at the law's N·a + b with b < N)
+    if ('each' in w) continue
+    const k0 = w.key, ps = k0.op === 'var' ? [k0.name] : k0.op === 'add' && k0.a.op === 'mul' && k0.a.k > 1 && k0.a.a.op === 'var' && k0.b.op === 'var' && k0.a.a.name !== k0.b.name ? [k0.a.a.name, k0.b.name] : []
+    if (!ps.length || !ps.every(i => m.inputs.includes(i))) continue
+    const t = ps[0]!, base = ps.length === 2 && k0.op === 'add' && k0.a.op === 'mul' ? k0.a.k : 0, written = inline({op: '<=', a: one, b: w.value} as C)
+    const at: E = base ? {op: 'add', a: {op: 'mul', k: base, a: v('a$c')}, b: v('b$c')} : v('a$c')
+    const law = (name: string, cmp: C): Law => (base
+      ? {name, forall: 'a$c', keys: ['b$c'], holds: {op: 'or', xs: [{op: 'not', x: {op: 'and', xs: [{op: '<=', a: one, b: {op: 'get', map: mp, key: at}}, {op: '<', a: v('b$c'), b: k(base)}]}}, cmp]}}
+      : when(name, {op: '<=', a: one, b: {op: 'get', map: mp, key: v('a$c')}}, cmp))
     // A comparison with a state count at the written key.
-    for (const g of guards) for (const [, [c, key]] of reads(g, isCount)) {
+    if (!base) for (const g of guards) for (const [, [c, key]] of reads(g, isCount)) {
       if (json(key) !== json(v(t)) || mentions(m.counts![c]!.body, t)) continue
       if (m.inputs.some(i => i !== t && mentions(g, i))) continue
       laws.push(law(`${mp} keeps ${c}'s bound`, substC(g, {vars: {[t]: v('a$c')}, maps: {}, flags: {}})))
     }
-    // A quantified flag the write reads: every member of a counted set satisfies R(member, t).
+    // What the write reads of every member of a counted set: R(member, t) by a quantified flag (∀ q. h(q) → R(q, t)),
+    // or by a request's count of the members without it read 0 (|{k: h(k) ∧ ¬R(k, t)}| = 0).
+    const said: {key: string, h: C, r: C}[] = []
     for (const [f, q] of Object.entries(flags)) {
       if (q.op !== 'all' || q.keys?.length || !mentions(written, `?${f}`) || q.c.op !== 'or' || q.c.xs.length !== 2) continue
       const [h, r] = q.c.xs[0]!.op === 'not' ? [q.c.xs[0]!.x, q.c.xs[1]!] : [q.c.xs[1]!.op === 'not' ? q.c.xs[1]!.x : undefined, q.c.xs[0]!]
-      if (!h || !r) continue
+      if (h && r) said.push({key: q.key, h, r})
+    }
+    for (const [c0, d0] of Object.entries(m.counts ?? {})) {
+      const zero0 = some(written, x => x.op === '=' && x.a?.op === 'get' && x.a.map === c0 && x.b?.op === 'const' && x.b.value === 0)
+      const b0 = d0.body.op === 'if' && d0.body.c.op === 'and' && d0.body.c.xs.length === 2 ? d0.body.c.xs : undefined
+      if (!zero0 || !b0 || mentions([d0.body, d0.below], d0.j)) continue
+      const [h, r] = b0[1]!.op === 'not' ? [b0[0]!, b0[1]!.x] : b0[0]!.op === 'not' ? [b0[1]!, b0[0]!.x] : []
+      if (h && r) said.push({key: d0.key, h, r})
+    }
+    for (const {key: qk, h, r} of said) {
       for (const [c, d] of Object.entries(all)) {
-        // the set: the count's body is the flag's hypothesis at its key
+        // the set: the count's body is the hypothesis at its key
         const body = d.body.op === 'if' ? d.body.c : undefined
-        if (!body || json(substC(body, {vars: {[d.key]: v(q.key)}, maps: {}, flags: {}})) !== json(h)) continue
-        if (m.inputs.some(i => i !== t && mentions(r, i))) continue
-        const name = `${c}$${mp}`, j = `${name}$x`, key = `${name}$k`
-        counts[name] = {j, key, below: d.below, body: {op: 'if', c: substC(r, {vars: {[q.key]: v(key), [t]: v(j)}, maps: {}, flags: {}}), then: one, else: zero}}
+        if (!body || json(substC(body, {vars: {[d.key]: v(qk)}, maps: {}, flags: {}})) !== json(h)) continue
+        if (m.inputs.some(i => !ps.includes(i) && mentions(r, i))) continue
+        const name = `${c}$${mp}`, j = `${name}$x`, key = `${name}$k`, lo = `${name}$y`
+        counts[name] = {j, key, below: d.below, body: {op: 'if', c: substC(r, {vars: {[qk]: v(key), [t]: v(j), ...(base ? {[ps[1]!]: v(lo)} : {})}, maps: {}, flags: {}}), then: one, else: zero}, ...(base ? {lo, base} : {})}
         for (const g of [...guards, ...more]) if (reads(g, x => x === c).size)
-          laws.push(law(`${mp} keeps ${c}'s bound through ${name}`, substC(g, {vars: {}, maps: {[c]: () => ({op: 'get', map: name, key: v('a$c')})}, flags: {}})))
+          laws.push(law(`${mp} keeps ${c}'s bound through ${name}`, substC(g, {vars: {}, maps: {[c]: () => ({op: 'get', map: name, key: at})}, flags: {}})))
+      }
+    }
+  }
+  // Who did or still can write a relation: a write W[N²·n + N·t + u] := 1 by a request's node n (below the bound of the
+  // set the guard counts) under a flag whose literals reading n are G(n, t, u). Its count over two parameters,
+  // c(t, u) = |{k: G(k, t, u) ∨ W[N²·k + N·t + u]}|, the keys that wrote it at (t, u) or may yet; a set the guard counts
+  // and every such k meet unless c is at most what the guard's comparison forbids. Proposed under each map P the flag
+  // reads at N·t + u alone (a cell the writes at (t, u) need), at another (c, d): P[N·c + d] ∧ a < c (∧ b ≠ d, or a ≤ c ∧
+  // b ≠ d) ⇒ ¬(the guard's comparison with c at (a, b)): no majority could write W at (a, b) once P holds further on.
+  const lin = (e: E): Map<string, number> | undefined => {
+    if (e.op === 'var') return new Map([[e.name, 1]])
+    if (e.op === 'mul' && e.a.op === 'var') return new Map([[e.a.name, e.k]])
+    if (e.op !== 'add') return undefined
+    const x = lin(e.a), y = lin(e.b)
+    if (!x || !y || [...x.keys()].some(q => y.has(q))) return undefined
+    return new Map([...x, ...y])
+  }
+  const conj = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(conj) : [c])
+  for (const [mp, w] of Object.entries(m.step.maps ?? {})) {
+    if ('each' in w) continue
+    const l = lin(w.key), es = l && [...l.entries()].sort((x, y) => y[1] - x[1])
+    if (!es || es.length !== 3 || !es.every(([q]) => m.inputs.includes(q))) continue
+    const [[nd, c0], [t, c1], [u, c2]] = es as [[string, number], [string, number], [string, number]]
+    if (c2 !== 1 || c1 < 2 || c0 !== c1 * c1) continue
+    const base = c1
+    for (const [f, fc] of Object.entries(flags)) {
+      if (fc.op === 'all' || !json(w.value).includes(`"op":"flag","name":${json(f)}`)) continue
+      const parts = conj(inline(fc)), dep = parts.filter(x => mentions(x, nd))
+      if (!dep.length || dep.some(x => m.inputs.some(i => ![nd, t, u].includes(i) && mentions(x, i)))) continue
+      const ps = parts.flatMap(x => (x.op === '=' && x.a.op === 'get' && x.b.op === 'const' && x.b.value === 1 ? [x.a] : x.op === '<=' && x.a.op === 'const' && x.a.value === 1 && x.b.op === 'get' ? [x.b] : []))
+        .filter(g => { const kl = lin(g.key); return !!kl && kl.size === 2 && kl.get(t) === base && kl.get(u) === 1 })
+      if (!ps.length) continue
+      for (const [c, d] of Object.entries(all)) {
+        if (d.body.op !== 'if' || !json(m.assume).includes(json({op: '<', a: v(nd), b: d.below}))) continue
+        const gs = guards.filter(g => reads(g, x => x === c).size)
+        if (!gs.length || mentions(d.body, d.j)) continue
+        const name = `can$${mp}$${c}`, j = `${name}$x`, key = `${name}$k`, lo = `${name}$y`, sub = {vars: {[nd]: v(key), [t]: v(j), [u]: v(lo)}, maps: {}, flags: {}}
+        const body: C = {op: 'or', xs: [{op: 'and', xs: dep.map(x => substC(x, sub))}, {op: '<=', a: one, b: {op: 'get', map: mp, key: substE(w.key, sub)}}]}
+        counts[name] = {j, key, lo, base, below: d.below, body: {op: 'if', c: body, then: one, else: zero}}
+        const pk2 = (a: string, b: string): E => ({op: 'add', a: {op: 'mul', k: base, a: v(a)}, b: v(b)})
+        for (const g of gs) for (const pg of ps) for (const [r1, r2] of [['<', true], ['<', false], ['<=', true]] as const) {
+          const hyp: C = {op: 'and', xs: [{op: '<=', a: one, b: {op: 'get', map: pg.map, key: pk2('c$c', 'd$c')}}, {op: r1, a: v('a$c'), b: v('c$c')} as C,
+            ...(r2 ? [{op: 'not', x: {op: '=', a: v('b$c'), b: v('d$c')}} as C] : []), {op: '<', a: v('b$c'), b: k(base)}, {op: '<', a: v('d$c'), b: k(base)}]}
+          laws.push({name: `${pg.map} at (c, d) bounds ${name} at (a, b): a ${r1} c${r2 ? ', b ≠ d' : ''}`, forall: 'a$c', keys: ['b$c', 'c$c', 'd$c'],
+            holds: {op: 'or', xs: [{op: 'not', x: hyp}, {op: 'not', x: substC(g, {vars: {}, maps: {[c]: () => ({op: 'get', map: name, key: pk2('a$c', 'b$c')})}, flags: {}})}]}})
+        }
       }
     }
   }
@@ -109,7 +179,7 @@ export function guardLaws(m: Machine): {counts: Machine['counts'], laws: Law[]} 
 // The count cells the goal reads (each before the step with its post name's twin), instances over pairs of them with one
 // bound (a count that doesn't drop, +1 and −1; two that meet, +1, +1 and −1), each with a fresh witness; and the laws and
 // quantified flags at the witnesses (returned, for the goal's law's instances).
-export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: string, body: E}[]): {reads: MapRead[], insts: CountInst[], wits: string[]} {
+export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: string, key: string, body: E}[], wide = false, most = wide ? 24 : 10): {reads: MapRead[], insts: CountInst[], wits: string[], picks: [string, E[]][], loose: boolean} {
   const byMap = new Map(decls.map(d => [d.map, d])), last = goal.hyps.at(-1)
   // (the conclusion's reads first, then those at a constant or the law's own names, then the rest)
   const own = (t: E) => t.op === 'const' || (t.op === 'var' && json(last).includes(`"name":${json(t.name)}`))
@@ -133,7 +203,43 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
     if (i < j && (ranked(a) || ranked(c)) && bound(a) === bound(c) && !post(a) && !post(c)) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
   for (const [i, a] of named.entries()) for (const [j, c] of named.entries())
     if (i < j && !(ranked(a) || ranked(c)) && bound(a) === bound(c) && !post(a) && !post(c)) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
-  return {reads: named, insts: insts.slice(0, 10), wits: wits.slice(0, 10)}
+  // (a count after the step, the conclusion's, at least a request's count less another: a set's members all in it but
+  // those a guard's count of the rest finds, |Q| ≤ missing + votes)
+  for (const c of named) if (post(c) && rank([c[1], c[2]]) === 0) for (const a of named) for (const d of named)
+    if (a !== d && !post(a) && !post(d) && keyless(a[1]) && keyless(d[1]) && bound(a) === bound(c) && bound(d) === bound(c)) add([[1, a[0]], [-1, d[0]], [-1, c[0]]], 0, byMap.get(c[1])!.below)
+  // (wide, asked by a model the instances above leave: every count at most each other one of its bound, either way, and
+  // each positive only where a key is in it; a count read with no partner is then tied to its cells at a witness)
+  // (`most`: the instances kept, 24 widened; a lazy goal's pool takes many more, as only those a model breaks are asked)
+  const cap = most
+  if (wide) {
+    insts.splice(10), wits.splice(10)
+    for (const a of named) for (const c of named) if (a !== c && bound(a) === bound(c) && !(post(c) && !post(a))) add([[1, a[0]], [-1, c[0]]], 0, byMap.get(a[1])!.below)
+    for (const a of named) add([[1, a[0]]], 0, byMap.get(a[1])!.below)
+    // (a lazy pool's further instances: each count at most its bound, and every two of a bound that meet)
+    if (cap > 24) {
+      for (const a of named) add([[1, a[0]]], -1, byMap.get(a[1])!.below)
+      const had = new Set(insts.map(i => json([i.terms, i.unit])))
+      for (const [i, a] of named.entries()) for (const [j, c] of named.entries())
+        if (i < j && bound(a) === bound(c) && post(a) === post(c) && !had.has(json([[[1, a[0]], [1, c[0]]], -1]))) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
+    }
+  }
+  // (wide: each count picked at the keys the goal reads the maps its body reads at its key and its instances' witnesses:
+  // at least its body there, at every two of them and at all of them)
+  const picks: [string, E[]][] = []
+  if (wide) for (const r of named) {
+    const d = byMap.get(r[1])!, at = [...reads(d.body, () => true).values()].filter(([, key]) => json(key) === json(v(d.key))).map(([mp]) => mp)
+    if (!at.length) continue
+    // (the key terms the goal reads those maps at, and the witnesses of the instances that name this count: a member the
+    // counting lemma found is a key too; three of each first, six at most)
+    const gs = [...new Map([...reads(goal.hyps, mp => at.includes(mp)).values()].map(([, t]) => [json(t), t] as [string, E])).values()].filter(t => !mentions(t, d.key))
+    const ws = insts.slice(0, cap).filter(i => i.terms.some(([, x]) => x === r[0])).map(i => v(i.wit)), ts0 = [...gs.slice(0, 3), ...ws.slice(0, 3), ...gs.slice(3), ...ws.slice(3)]
+    const ts = [...new Map(ts0.map(t => [json(t), t] as [string, E])).values()].slice(0, 6)
+    for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++) picks.push([r[0], [ts[i]!, ts[j]!]])
+    if (ts.length > 2) picks.push([r[0], ts])
+  }
+  // (loose: a read no instance among the first ten names, which only widening ties to its cells)
+  const loose = named.some(r => !insts.slice(0, 10).some(i => i.terms.some(([, x]) => x === r[0])))
+  return {reads: named, insts: insts.slice(0, cap), wits: wits.slice(0, cap), picks, loose}
 }
 
 // --- the candidates --------------------------------------------------------------------------------------------------
@@ -233,7 +339,7 @@ export function cone<P>(m: Machine, set: Law[], attempt: (law: Law, ls: Law[], m
         // (a law out of time over every kept law: tried again over more, its goals only grow; where Houdini follows, its
         // share is larger)
         if (houdini && t === 2 && 'stuck' in r && r.stuck !== 'sat') slow.add(law.name)
-        if ('proof' in r) { kept.set(law.name, r.proof); grew = any = true; if (env.GDP_COUNTS_TRACE === '3') console.error(`counts: keep ${law.name.slice(0, 50)} tier ${t}`) }
+        if ('proof' in r) { kept.set(law.name, r.proof); grew = any = true; if (env.GDP_COUNTS_TRACE?.includes('3')) console.error(`counts: keep ${law.name.slice(0, 50)} tier ${t}`) }
       }
       if (t === 2) break
     }
@@ -259,22 +365,24 @@ export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted 
   if (!env.GDP_COUNTS_PROF) return run()
   cdclStats.on = true
   const t = performance.now(), out = run()
-  console.error(`counts: prof total ${Math.round(performance.now() - t)} ms; ${Object.entries(cprof).map(([k2, x]) => `${k2} ${Math.round(x)}`).join(', ')}; cdcl runs ${cdclStats.runs} conflicts ${cdclStats.conflicts} decisions ${cdclStats.decisions} solveMs ${Math.round(cdclStats.solveMs)} rowsMs ${Math.round(cdclStats.rowsMs)} coreMs ${Math.round(cdclStats.coreMs)} unfoldMs ${Math.round(cdclStats.unfoldMs)} lpMs ${Math.round(cdclStats.lpMs)} boundMs ${Math.round(cdclStats.boundMs)} orderMs ${Math.round(cdclStats.orderMs)}`)
+  console.error(`counts: prof total ${Math.round(performance.now() - t)} ms; ${Object.entries(cprof).map(([k2, x]) => `${k2} ${Math.round(x)}`).join(', ')}; cdcl runs ${cdclStats.runs} conflicts ${cdclStats.conflicts} decisions ${cdclStats.decisions} solveMs ${Math.round(cdclStats.solveMs)} rowsMs ${Math.round(cdclStats.rowsMs)} coreMs ${Math.round(cdclStats.coreMs)} unfoldMs ${Math.round(cdclStats.unfoldMs)} lpMs ${Math.round(cdclStats.lpMs)} boundMs ${Math.round(cdclStats.boundMs)} orderMs ${Math.round(cdclStats.orderMs)} fmCalls ${cdclStats.fmCalls} lpMisses ${cdclStats.lpMisses} lpUnknown ${cdclStats.lpUnknown} missMs ${Math.round(cdclStats.missMs)} fastMs ${Math.round(cdclStats.fastMs)} fmOpenMs ${Math.round(cdclStats.fmOpenMs)} fmLeafMs ${Math.round(cdclStats.fmLeafMs)} nodes ${cdclStats.nodes}`)
   return out
 }
 function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine, caller: Law[], ms: number): Counted {
   const until = clock() + ms
   if (!caller.every(l => clock() < until && trueSmall(m, [l]))) return {proven: false, laws: caller, m, why: clock() < until ? 'a law fails on the small instances' : 'time'}
   const t1 = clock()
-  let set = [...caller, ...candidates(m0, m, caller, caller, g.laws, ms, until)]
+  // (GDP_COUNTS_GIVEN=1, research's: the callers alone, no candidate: whether a set written whole goes through)
+  let set = env.GDP_COUNTS_GIVEN === '1' ? [...caller] : [...caller, ...candidates(m0, m, caller, caller, g.laws, ms, until)]
   if (env.GDP_COUNTS_TRACE) console.error(`counts: candidates at ${Math.round(clock() - t1)} ms: ${set.map(l => l.name).join('; ')}`)
   // (the law's own names and the request's values that key a map: an action's value keys none)
   const keys0 = [...[...reads([m.step, m.assume ?? null], () => true).values()].map(([, key]) => key), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [] : [w.key]))]
   const keyed = m.inputs.filter(i => keys0.some(key => mentions(key, i))).map(v)
   const terms = (l: Law): E[] => [...(l.forall ? [v(`${l.forall}#`)] : []), ...(l.keys ?? []).map(v), ...keyed]
   type Proof = {instances: Instances, certs: Record<string, CountCert>}
-  let counted = true
-  const none = {reads: [] as MapRead[], insts: [] as CountInst[]}
+  const widened = new Set<string>()
+  let counted = true, houdini = false // (houdini: the rounds over the whole set, after the cone; only they widen)
+  const none: ReturnType<typeof certFor> = {reads: [], insts: [], wits: [], picks: [], loose: false}
   // One law's goals and their certificates, the laws `ls` assumed (a subsequence of the set): pass 0 with no instances of
   // the lemma, pass 1 with the cells' (one set of witnesses a law); a tree each within `ms`. The instances: the
   // quantified flags at the law's own terms, then what the goals' models ask.
@@ -288,14 +396,54 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     // (the model broken: the attempt starts at the instances it asks for, its last attempt's and the tuples the new laws
     // break it at, where the rounds of models would lead it again)
     let seed: Instances | undefined
-    if (cti && !ls.some(l => !cti.ls.has(l.name) && reads(l.holds, isCount).size)) {
+    // (not where the attempt may widen: its narrow model is no model of the widened goal)
+    if (cti && !(houdini && caller.some(l => l.name === law.name) && !widened.has(law.name)) && !ls.some(l => !cti.ls.has(l.name) && reads(l.holds, isCount).size)) {
       const at0 = Object.fromEntries(Object.entries(cti.at).filter(([n]) => n.startsWith('?') || ls.some(l => l.name === n)))
       if (!(seed = ptime('mbqi', () => modelInstances(m, ls, at0, cti.gg, cti.w)))) return {stuck: 'sat'}
     }
     const refuted = (gg: Goal, w: Record<string, number>): Tried<Proof> => { models.set(id, {gg, w, at, ls: new Set(ls.map(l => l.name))}); return {stuck: 'sat'} }
     let at: Instances = seed ?? Object.fromEntries(Object.entries(m.step.flags ?? {}).flatMap(([f, q]) => (q.op === 'all' && !q.keys?.length ? [[`?${f}`, ts]] : [])))
     const obligations = (i: Instances) => ptime('encode', () => countedObligations(m, ls, {[law.name]: i}, ls.indexOf(law)))
-    const build = () => obligations(at).map(({goal, decls}) => { const c = pass ? certFor(goal, decls) : none; return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c))} })
+    // (`wide`: the count instances widened once, where a model is left that the narrow ones and the laws don't refute, for
+    // a caller's law or where a read is in none of them: the cone's many refuted candidates keep the narrow ones)
+    let wide = false
+    const isCaller = houdini && caller.some(l => l.name === law.name)
+    // (lazy (CEGAR): the goal carries the counting lemma's instances and picks some model of it broke, of all certFor
+    // proposes: each model read against the rest, as a state, and those it breaks added, until a model breaks none; an
+    // instance by the reads it names, a pick by its read and terms, so the choice outlives the goal's rebuilds)
+    const chosen = new Set<string>()
+    type Pool = {fg: Goal, keys: string[], wits: (string | undefined)[]}
+    const build = () => obligations(at).map(({goal, decls}) => {
+      const full = pass ? certFor(goal, decls, wide, wide && lazyMode !== '0' ? pool : undefined) : none
+      if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide)) return {goal, decls, c: full, gg: ptime('encode', () => mcGoal(goal.hyps, decls, full)), pool: undefined as Pool | undefined}
+      const rd = new Map(full.reads.map(r => [r[0], json([r[1], r[2]])]))
+      const keys = [...full.picks.map(q => `p${json([rd.get(q[0]), q[1]])}`), ...full.insts.map(i => `i${json([i.terms.map(([z, x]) => [z, rd.get(x)]), i.unit, i.below])}`)]
+      if (lazyMode === 'wide') for (const q of keys.slice(full.picks.length, full.picks.length + 10)) chosen.add(q)
+      const c = {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}
+      const fg = ptime('encode', () => mcGoal(goal.hyps, decls, full))
+      return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c)), pool: fg && keys.length ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)]} : undefined}
+    })
+    // (the pool's hypotheses a model breaks, chosen; whether there were any)
+    // (`strict`, where nothing else is broken or asked: the cells it leaves out at their start alone, as a model whose
+    // completion meets an instance may still meet it only at a witness some law then breaks)
+    const breaks = (b: ReturnType<typeof build>[number] | undefined, w: Record<string, number>, strict = false): boolean => ptime('lazy', () => {
+      if (!b?.pool) return false
+      // (broken where no completion of the model meets it: the cells it leaves out at their start, at 1, or one map's
+      // flipped from either, and an instance's witness at each value below 16)
+      const {fg, keys, wits} = b.pool, base = fg.hyps.length - keys.length, ids = keys.flatMap((q, j) => (chosen.has(q) ? [] : [base + j])), judge = brokenOf(fg)
+      let bad = ids.length ? judge(w, ids) : []
+      const mps = [...new Set(bad.flatMap(i => [...reads(fg.hyps[i], () => true).values()].map(([mp]) => mp)))], one1 = Object.fromEntries(mps.map(mp => [mp, 1]))
+      for (const d of strict ? [undefined] : [undefined, one1, ...mps.map(mp => ({[mp]: 1})), ...mps.map(mp => ({...one1, [mp]: 0}))]) for (let x = 0; x < 16 && bad.length; x++) {
+        if (x && !bad.some(i => wits[i - base])) break
+        const w2 = {...w}
+        for (const i of bad) if (wits[i - base]) w2[wits[i - base]!] = x
+        const still = new Set(judge(w2, bad, false, d))
+        bad = bad.filter(i => still.has(i))
+      }
+      for (const i of bad) chosen.add(keys[i - base]!)
+      tally('#lazy', bad.length)
+      return bad.length > 0
+    })
     let built = build()
     const t0 = clock(), more = () => clock() - t0 <= Math.max(ms, 1_000)
     // The step goal decided first by the CDCL search for a model (its phases the simplex's point: a model is met where the
@@ -312,7 +460,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
       for (;;) {
         const step = built.at(-1)
         if (!step?.gg) break
-        const q = ptime('decide', () => growCdcl(step.gg!, new Map(), {nodes: 0, until: Math.min(until, clock() + Math.min(2 * ms, 5_000))}, {model: true, core: true}) as Refuted)
+        const q = ptime('decide', () => growCdcl(step.gg!, new Map(), {nodes: 0, until: Math.min(until, clock() + Math.min(2 * ms, 5_000))}, {model: true, core: true, point: true}) as Refuted)
         if (!('tree' in q) && q.why === REFUTED && q.core) {
           const gg = step.gg, last = gg.hyps.length - 1, used = new Set(q.core.map(h => json(gg.hyps[h]))), cut: Instances = {}
           for (const [name, ts2] of Object.entries(at)) {
@@ -320,15 +468,18 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
             cut[name] = !l ? ts2 : Array.from({length: ts2.length / n}, (_, t) => ts2.slice(t * n, t * n + n)).filter(t => used.has(json(assumed([l], {[name]: t})[0]))).flat()
           }
           at = cut
-          built = obligations(at).map(({goal, decls}, j) => ({goal, decls, c: built[j]!.c, gg: mcGoal(goal.hyps, decls, built[j]!.c)}))
+          built = obligations(at).map(({goal, decls}, j) => ({goal, decls, c: built[j]!.c, gg: mcGoal(goal.hyps, decls, built[j]!.c), pool: built[j]!.pool}))
           part = {gg: built.at(-1)!.gg!, core: {name: gg.name, hyps: (q.core.includes(last) ? q.core : [...q.core, last]).map(h => gg.hyps[h]!)}}
           break
         }
         if ('tree' in q || q.stuck !== 'sat' || !q.witness) break
         if (!more()) return {stuck: 'unknown'}
-        const asked = ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!))
+        const asked = ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!)), lz = breaks(step, q.witness) || (!asked && breaks(step, q.witness, true))
+        tally('#rounds'); tally('#hyps', step.gg.hyps.length)
+        if (lz && !asked) { built = build(); continue }
         if (!asked) {
           if (countsDump.on && pass && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps}) }
+          if (pass && !wide && houdini && 'loose' in step.c && (step.c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); continue }
           return refuted(step.gg, q.witness)
         }
         at = asked
@@ -345,22 +496,23 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
         }) : undefined
         const o = viaPart ?? (gg && ptime(`grow${(gg.hyps.length > 300 ? '>300' : '')}`, () => grow(gg, new Map(), {nodes: 0, until: Math.min(until, clock() + ms)})))
         if (countsDump.on && gg && o && !('tree' in o) && gg.hyps.length > Number(env.GDP_COUNTS_DUMP_MIN ?? 300) && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: goal.name, ls: ls.map(l => l.name), stuck: (o as {stuck?: string}).stuck, hyps: gg.hyps}) }
-        if (env.GDP_COUNTS_TRACE === '2') console.error(`counts: ${ls.length === 1 ? 'alone' : `with ${ls.length}`} ${pass} ${goal.name}: ${o && 'tree' in o ? 'proven' : gg ? (o as {stuck?: string}).stuck : 'no read'} ${gg?.hyps.length ?? 0} hyps ${Math.round(clock() - t0)} ms`)
+        if (env.GDP_COUNTS_TRACE?.includes('2')) console.error(`counts: ${ls.length === 1 ? 'alone' : `with ${ls.length}`} ${pass} ${goal.name}: ${o && 'tree' in o ? 'proven' : gg ? (o as {stuck?: string}).stuck : 'no read'} ${gg?.hyps.length ?? 0} hyps (insts ${'insts' in c ? c.insts.length : 0} picks ${'picks' in c ? c.picks.length : 0}${wide ? ' wide' : ''}${built.find(b => b.gg === gg)?.pool ? ` of ${built.find(b => b.gg === gg)!.pool!.keys.length}` : ''}) ${Math.round(clock() - t0)} ms`)
         // (the tree search's model of the step goal: the instances it asks for, as the CDCL search's, and the goals again)
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && more()) {
-          const asked = ptime('mbqi', () => modelInstances(m, ls, at, gg, o.witness!))
-          if (asked) { at = asked; built = build(); again = true; break }
+          const asked = ptime('mbqi', () => modelInstances(m, ls, at, gg, o.witness!)), lz = breaks(built.at(-1), o.witness) || (!asked && breaks(built.at(-1), o.witness, true))
+          if (asked || lz) { if (asked) at = asked; built = build(); again = true; break }
         }
+        if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && houdini && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); again = true; break }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) return refuted(gg, o.witness)
         if (!o || !('tree' in o)) return {stuck: gg ? (o as {stuck?: string}).stuck ?? '' : ''}
-        certs[goal.name] = {reads: c.reads, insts: c.insts, tree: o.tree}
+        certs[goal.name] = {reads: c.reads, insts: c.insts, tree: o.tree, ...('picks' in c && c.picks.length ? {picks: c.picks} : {})}
       }
       if (!again) return {proof: {instances: at, certs}}
     }
   }
   const traced = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Tried<Proof> => {
-    const t0 = clock(), r = attempt(law, ls, pass, ms)
-    if (env.GDP_COUNTS_TRACE === '3') console.error(`counts: try ${law.name.slice(0, 50)} | ls ${ls.length} pass ${pass} ms ${ms} took ${Math.round(clock() - t0)} -> ${'proof' in r ? 'kept' : r.stuck}`)
+    const t0 = clock(), w0 = performance.now(), p0 = {...cprof}, r = attempt(law, ls, pass, ms)
+    if (env.GDP_COUNTS_TRACE?.includes('3')) console.error(`counts: try ${law.name.slice(0, 50)} | ls ${ls.length} pass ${pass} ms ${Math.round(ms)} took ${Math.round(clock() - t0)} wall ${Math.round(performance.now() - w0)} [${Object.entries(cprof).filter(([k2, x]) => x - (p0[k2] ?? 0) >= 1).map(([k2, x]) => `${k2} ${Math.round(x - (p0[k2] ?? 0))}`).join(' ')}] -> ${'proof' in r ? 'kept' : r.stuck}`)
     return r
   }
   // The cone (a law about no key is assumed in every goal, so with one in the set nothing is kept); with every caller
@@ -373,6 +525,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
   if (caller.every(l => kept.has(l.name))) return finish(set.filter(l => kept.has(l.name)), keptProof())
   // (each law not kept an even share of what is left a round)
   let carried = new Map<string, Proof>()
+  houdini = true
   for (let round = 0; clock() < until; round++) {
     const {instances, certs} = keptProof(), failed = new Set<string>(), proofs = new Map<string, Proof>(), share = (until - clock()) / Math.max(1, set.filter(l => !kept.has(l.name) && !carried.has(l.name)).length)
     // (the callers last, so they meet every support kept so far)
