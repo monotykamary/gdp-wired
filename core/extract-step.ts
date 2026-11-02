@@ -594,7 +594,7 @@ export class Stepper {
     if (this.inFold) return refuse(s, 'a loop inside a loop\'s pass (one fold at a time)')
     const q0 = p, i = I.nvar(PASS), body = s.body as SS[], own = assigned(body)
     const run = this.newVar(`loop$${this.folds.length}`, {k: 'num'}, 'input', undefined, false).name
-    const cin: N = back ? I.add(i, I.num(1)) : i, cout: N = back ? i : I.add(i, I.num(1))
+    const cin: N = back ? I.add(i, I.num(1)) : i
     const fields: Var[] = [], init: Record<string, Term> = {}, locals = new Map(q0.locals)
     for (const n of [...own].filter(x => q0.locals.has(x))) {
       if (FLAGS.includes(n)) refuse(s, `${n}: a local the loop carries named as a fold's own values are`)

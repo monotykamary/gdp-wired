@@ -301,9 +301,9 @@ function builderOf(m: Model, sorts: Sorts): string {
         const all = I.or(I.not(g.held), I.and(I.cmp('<', place, cnt), same(byAt(ordAt(place)), g.by)))
         sorts.set('j$', 'nat')
         // (two items that tie under the order: no list of keys is increasing, so the rule refuses there, an edge)
-        for (const [vs, c, gate] of [['i$, j$', inc, undefined], ['i$', held, undefined], ['kl$', all, undefined]] as const) {
-          const t = `everyKey((${vs}) => ${pb(c, P, ctx())})`; void gate
-          const e = envOf(c, ...(gate ? [gate] : [])).slice(1, -1).split(', ').filter(n => Boolean(n) && n !== 'j$')
+        for (const [vs, c] of [['i$, j$', inc], ['i$', held], ['kl$', all]] as const) {
+          const t = `everyKey((${vs}) => ${pb(c, P, ctx())})`
+          const e = envOf(c).slice(1, -1).split(', ').filter(n => Boolean(n) && n !== 'j$')
           lines.push(`  .assume((${withChoices(`{${[...new Set([...e, g.ord, `${g.ord}_len`])].join(', ')}}`, t, P)}) => ${t})`)
         }
       }

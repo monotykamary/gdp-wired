@@ -5,7 +5,6 @@
 import {expect, test} from 'bun:test'
 import {type Rounding, decimal, fun, int, nat, proveDecision, when} from './dsl.ts'
 
-const MODES: Rounding[] = ['halfEven', 'halfUp', 'halfDown', 'halfAway']
 // The reference: x/k rounded by the mode, over exact integers.
 const ref = (x: number, k: number, mode: Rounding): number => {
   const q = Math.floor(x / k), r = x - q * k
