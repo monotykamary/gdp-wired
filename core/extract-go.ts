@@ -152,13 +152,17 @@ class Go {
     if (tt.k === 'struct') {
       return {e: 'struct', p: at.p, ty: String(t), fields: (tt.fields ?? []).map(g => {
         const s = this.scalar(g.t)
-        return [g.name, typeof s === 'string' && !['ptr', 'struct', 'error'].includes(this.T(g.t).k) ? {e: 'opaque', p: at.p, why: `${g.name}: ${s}`, firm: true} : this.zero(g.t, at)]
+        return [g.name, typeof s === 'string' && !['ptr', 'struct', 'error'].includes(this.T(g.t).k) ? {e: 'opaque', p: at.p, why: `${g.name}: ${s}`, ...(this.floaty(g.t) ? {sink: true} : {firm: true})} : this.zero(g.t, at)]
       })}
     }
-    return {e: 'opaque', p: at.p, why: `a value of type ${this.tname(t)} (outside the subset)`, firm: true}
+    return {e: 'opaque', p: at.p, why: `a value of type ${this.tname(t)} (outside the subset)`, ...(this.floaty(t) ? {sink: true} : {firm: true})}
   }
+  // A float, or a fixed array of them: C's measurements, left out of the rule where they are only written (a value
+  // that is one, read into what the rule keeps, is refused there).
+  floaty(t: number): boolean { const x = this.T(t); return x.k === 'float' || (x.k === 'array' && !!x.fixed && this.T(x.elem!).k === 'float') }
   x(x: GX): SX {
     const at = this.at(x), c = x.c
+    if (x.e === 'opaque') return {e: 'opaque', ...at, why: x.why}
     if (c) {
       if (c.int !== undefined) {
         const ty = this.intTy(x.t)
@@ -478,6 +482,11 @@ class Go {
         this.leaves.push({name: decl.name, path: fp, kind: 'list', t: f.t, go: this.tname(f.t)})
         heap.set(id, {k: 'list', decl, ops: [], origin: 'state'})
         out.set(f.name, {t: 'list', id})
+      } else if (this.floaty(f.t)) {
+        // (a float field: left out, written as the code writes it, never compared; a read of it is a float's)
+        out.set(f.name, {t: 'opaque', why: `${fp.join('.')}: a ${this.tname(f.t)} (a float, left out of the rule: nothing it keeps may read one)`, sink: true})
+        this.leaves.push({name: '', path: fp, kind: 'sink', t: f.t, go: this.tname(f.t)})
+        g.notes.add(`${fp.join('.')}: a ${this.tname(f.t)}, a float, left out (the rule keeps nothing read from it; a float read into what it keeps is refused)`)
       } else {
         out.set(f.name, {t: 'opaque', why: `${fp.join('.')} is a ${this.tname(f.t)}, a field outside the subset (left out of the rule)`, firm: true})
         this.leaves.push({name: '', path: fp, kind: 'frame', t: f.t, go: this.tname(f.t)})
@@ -796,7 +805,7 @@ function materialize(go: Go, p: Path, at: {p: string}): {leaves: Map<string, Ter
   const self = p.heap.get('this') as Extract<StepObj, {k: 'rec'}>
   const seen = new Map<string, string>()
   for (const l of go.leaves) {
-    if (l.kind === 'frame' || l.kind === 'bignil' || l.kind === 'mapnil') continue
+    if (l.kind === 'frame' || l.kind === 'sink' || l.kind === 'bignil' || l.kind === 'mapnil') continue
     let v: V | undefined = {t: 'struct', ty: self.ty, f: self.f}
     for (const s of l.path) v = v?.t === 'struct' ? v.f.get(s) : undefined
     if (!v) continue

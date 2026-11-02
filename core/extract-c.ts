@@ -52,6 +52,9 @@ export type COptions = {
   // Calls of other code answered by the request (the callee's name: its result's type) or left out, as `gdp: answer`
   // and `gdp: skip` comments say at one call.
   answers?: Record<string, string>, skip?: string[],
+  // Globals the rule leaves out (a file keeping its state in globals): an output the code writes for other code (a
+  // database mirror, a report), which nothing the rule keeps reads; a read of one into what it keeps is refused.
+  leave?: string[],
   onError?: 'refuse' | 'discard', domains?: Record<string, 'nat' | 'int'>, check?: GoCheckOptions,
 }
 type FS = {readFileSync: (p: string, e: string) => string, mkdtempSync: (p: string) => string, writeFileSync: (p: string, s: string) => void, rmSync: (p: string, o?: unknown) => void, mkdirSync: (p: string, o?: unknown) => void}
@@ -86,7 +89,7 @@ export function readCFile(file: string, opts: COptions, cpp = false): {c: CRead,
     if (ok.length !== 1) throw new Refusal(file, ok.length ? `several structs written by the file's functions (${ok.join(', ')}): name one (entry)` : 'no struct the file\'s functions write: name the entry')
     return readCFile(file, {...opts, entry: ok[0]!}, cpp)
   }
-  return {c: readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])])), (opts.functions ?? opts.methods ?? []).map(f => f.split('/')[0]!)), flags}
+  return {c: readC(file, opts.entry, tu, target, cpp, opts.root, Object.fromEntries((opts.functions ?? []).filter(f => f.includes('/')).map(f => [f.split('/')[0]!, Number(f.split('/')[1])])), (opts.functions ?? opts.methods ?? []).map(f => f.split('/')[0]!), opts.leave ?? []), flags}
 }
 export function extractC(at: string | FileURL, given: COptions = {}, cpp = false): Extraction & {leaves?: GoLeaf[]} {
   const notes: string[] = [], file = pathOf(at), fns = given.methods ?? given.functions, opts: COptions = {...given, ...(fns ? {functions: fns} : {})}
@@ -190,7 +193,7 @@ export function harnessC(file: string, c: CRead, read: GoRead, opts: COptions, c
     // (with out-parameters, the result is a record: the value returned and what each holds)
     const rec = outs.length ? `gdp_rec = 1; gdp_putf(",\\"out\\":{"); ${[...(rt !== undefined ? [['result', 'r0', rt] as [string, string, number]] : []), ...outs].map(([n, v, et], j) => `gdp_putf("${j ? ',' : ''}\\"${n}\\":"); ${T(et).k === 'int' ? `gdp_putf(${T(et).signed === false ? '"%llu", (unsigned long long)' : '"%lld", (long long)'}(${v}))` : `gdp_putf("%s", ${v} ? "true" : "false")`};`).join(' ')} gdp_putf("},\\"hasOut\\":true");` : ''
     const load = G ? `gdp_load(o); ${given.map(([n, a]) => `memcpy((void *)&${n}, (const void *)&${a}, sizeof ${n});`).join(' ')}\n    ` : ''
-    return `if (!strcmp(m, ${q(meth.name)})) {\n    ${lines.join('\n    ')}\n    memcpy(gdp_pre, (void *)o, sizeof(gdp_T));\n    ${load}int sg = sigsetjmp(gdp_jb, 1);\n    if (!sg) { gdp_armed = 1; ${cpp ? 'try { ' : ''}${invoke} ${failed} gdp_armed = 0; ${rec}${cpp ? ' } catch (...) { gdp_armed = 0; gdp_sig = SIGUSR2; }' : ''} } else gdp_sig = sg;\n    ${G ? 'gdp_store(o);\n    ' : ''}return gdp_after(o);\n  }`
+    return `if (!strcmp(m, ${q(meth.name)})) {\n    ${lines.join('\n    ')}\n    memcpy(gdp_pre, (void *)o, sizeof(gdp_T));\n    ${load}int sg = sigsetjmp(gdp_jb, 1);\n    if (!sg) { gdp_armed = 1; gdp_watch(1); ${cpp ? 'try { ' : ''}${invoke} ${failed} gdp_watch(0); gdp_armed = 0; ${rec}${cpp ? ' } catch (...) { gdp_watch(0); gdp_armed = 0; gdp_sig = SIGUSR2; }' : ''} } else { gdp_watch(0); gdp_sig = sg; }\n    ${G ? 'gdp_store(o);\n    ' : ''}return gdp_after(o);\n  }`
   })
   const frameLines = frames.map(l => { const e = acc(l.path); return `if (memcmp((char *)&${e}, (char *)gdp_pre + ((char *)&${e} - (char *)o), sizeof ${e})) return ${q(l.path.join('.'))};` })
   // The object, made as the code makes it: C's zeroed; C++'s constructed (in zeroed memory) with the rule's parameters.
@@ -222,6 +225,7 @@ static long long gdp_answer(const char *name) {
 #include <signal.h>
 #include <setjmp.h>
 #include <errno.h>
+#include <sys/time.h>
 ${cpp ? '#include <new>\n#include <type_traits>\n' : '#include <stdbool.h>\n'}
 ${G ? `// The file's globals, the state: an object of them each request loads, and stores back after it.
 ${G.externs.map(n => `__typeof__(${n}) ${n};`).join('\n')}
@@ -285,6 +289,8 @@ static const char *gdp_set(gdp_T *o, const char *st) {
 static sigjmp_buf gdp_jb; static volatile sig_atomic_t gdp_armed;
 static int gdp_sig, gdp_err, gdp_has, gdp_outu, gdp_isb, gdp_rec; static long long gdp_outv; static bool gdp_outb;
 static void gdp_on(int s) { if (gdp_armed) { gdp_armed = 0; siglongjmp(gdp_jb, s); } signal(s, SIG_DFL); raise(s); }
+// (a call that doesn't return within 2 s, an endless loop: the code's failure, as the rule's)
+static void gdp_watch(int on) { struct itimerval t; memset(&t, 0, sizeof t); t.it_value.tv_sec = on ? 2 : 0; setitimer(ITIMER_REAL, &t, 0); }
 static const char *gdp_frame(gdp_T *o) {
   (void)o;
   ${frameLines.join('\n  ')}
@@ -296,7 +302,7 @@ ${cpp ? 'extern "C" ' : ''}void gdp_extern_called(const char *n) { gdp_extern = 
 static const char *gdp_after(gdp_T *o) {
   const char *f = gdp_frame(o);
   if (f) { gdp_putf(",\\"frame\\":\\"%s\\"", f); }
-  if (gdp_sig) gdp_putf(",\\"panic\\":\\"%s\\"", gdp_sig == SIGABRT ? "SIGABRT (abort, or an assertion failing)" : gdp_sig == SIGTRAP || gdp_sig == SIGILL ? "undefined behavior (the sanitizer's trap)" : gdp_sig == SIGUSR1 ? "another file's function called" : gdp_sig == SIGUSR2 ? "an exception thrown" : "a signal");
+  if (gdp_sig) gdp_putf(",\\"panic\\":\\"%s\\"", gdp_sig == SIGABRT ? "SIGABRT (abort, or an assertion failing)" : gdp_sig == SIGTRAP || gdp_sig == SIGILL ? "undefined behavior (the sanitizer's trap)" : gdp_sig == SIGUSR1 ? "another file's function called" : gdp_sig == SIGUSR2 ? "an exception thrown" : gdp_sig == SIGALRM ? "the code didn't return (an endless loop)" : "a signal");
   else if (gdp_err) gdp_putf(",\\"err\\":\\"its result is its failure (%lld)\\"", gdp_outv);
   if (!gdp_sig && gdp_has && !gdp_rec) { if (gdp_isb) gdp_putf(",\\"out\\":%s,\\"hasOut\\":true", gdp_outb ? "true" : "false"); else if (gdp_outu) gdp_putf(",\\"out\\":\\"%llu\\",\\"hasOut\\":true", (unsigned long long)gdp_outv); else gdp_putf(",\\"out\\":\\"%lld\\",\\"hasOut\\":true", gdp_outv); }
   if (${opts.onError === 'discard' ? 1 : 0} && (gdp_sig || gdp_err)) memcpy((void *)o, gdp_pre, sizeof(gdp_T));
@@ -315,7 +321,7 @@ int main(int argc, char **argv) {
   if (argc < 3) return 2;
   FILE *in = fopen(argv[1], "r"), *out = fopen(argv[2], "w");
   if (!in || !out) return 2;
-  int sigs[] = {SIGABRT, SIGTRAP, SIGILL, SIGFPE, SIGSEGV, SIGBUS};
+  int sigs[] = {SIGABRT, SIGTRAP, SIGILL, SIGFPE, SIGSEGV, SIGBUS, SIGALRM};
   for (unsigned i = 0; i < sizeof sigs / sizeof *sigs; i++) signal(sigs[i], gdp_on);
   gdp_T **objs = 0; size_t nobj = 0;
   char *line = 0; size_t lcap = 0;

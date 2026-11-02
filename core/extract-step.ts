@@ -141,7 +141,8 @@ type V =
   | {t: 'fmt', tpl: string, k: K}
   // (firm: a value merged only with itself, refused where a path would make it another; Go's)
   // (ask: the value of a call of other code left out by inference, answered by the next run where it is read)
-  | {t: 'opaque', why: string, firm?: boolean, ask?: string, sattr?: {store: string, path: string}}
+  // (sink: a field the rule leaves out that the code may write, a C float's: written as the code writes it, never kept)
+  | {t: 'opaque', why: string, firm?: boolean, ask?: string, sattr?: {store: string, path: string}, sink?: boolean}
   // (ret: the callee's declared result type; recv: the object its method is called on)
   | {t: 'ext', q: string, text: string, patch?: Patch, ret?: SType, recv?: V, nothrow?: boolean}
   | {t: 'fn', id: string, self?: V, caps?: Map<string, V>} | {t: 'cls', rec: string, patch?: Patch} | {t: 'builtin', n: string} | {t: 'lib', q: string}
@@ -654,7 +655,10 @@ export class Stepper {
   merge(a: Path, b: Path, at: {p: string}): Path {
     let k = 0
     while (k < a.pc.length && k < b.pc.length && I.same(a.pc[k]!, b.pc[k]!)) k++
-    const c = I.and(...a.pc.slice(k)), pc = a.pc.slice(0, k)
+    const c = I.and(...a.pc.slice(k)), cb = I.and(...b.pc.slice(k))
+    // (the two paths' own conditions: one or the other holds past the merge, which is no longer true where a path of
+    // either left before it, a return or a break in a branch)
+    const pc = [...a.pc.slice(0, k), ...(I.same(cb, I.not(c)) || I.same(c, I.not(cb)) || (c.op === 'const' && c.v) || (cb.op === 'const' && cb.v) ? [] : [I.or(c, cb)])]
     if (c.op === 'const') return c.v ? {...a, pc} : {...b, pc}
     if (a.locks.join() !== b.locks.join()) refuse(at, 'a mutex locked on one path and not on another')
     const locals = new Map<string, V>()
@@ -1806,7 +1810,7 @@ export class Stepper {
     switch (x.e) {
       case 'int': { const ty = (x.ity as IntTy | undefined) ?? (x.ty ? this.intTy(x.ty as SType) : undefined); return [{t: 'num', e: I.num(Number(x.v)), ...(ty ? {ty} : {})}, p] }
       case 'unit': return [{t: 'none'}, p]
-      case 'opaque': return [{t: 'opaque', why: String(x.why), ...(x.firm ? {firm: true} : {})}, p]
+      case 'opaque': return [{t: 'opaque', why: String(x.why), ...(x.firm ? {firm: true} : {}), ...(x.sink ? {sink: true} : {})}, p]
       case 'ref': case 'lock': return this.ev(x.x as SX, p)
       case 'copy': { const [v, q] = this.ev(x.x as SX, p); return this.copy(v, q, x) }
       case 'cast': return this.cast(x, p)
@@ -2639,7 +2643,7 @@ export class Stepper {
     if (!path.length) { if (x.t !== 'struct') return refuse(at, 'a struct set to other than a struct'); return {...o, f: new Map(x.f)} }
     const set = (fs: Map<string, V>, segs: string[]): Map<string, V> => {
       const seg = segs[0]!, rest = segs.slice(1), out = new Map(fs)
-      if (!rest.length) { const old = fs.get(seg); if (old?.t === 'opaque') refuse(at, `writes ${old.why}`); out.set(seg, x); return out }
+      if (!rest.length) { const old = fs.get(seg); if (old?.t === 'opaque' && old.sink) { out.set(seg, old); return out } if (old?.t === 'opaque') refuse(at, `writes ${old.why}`); out.set(seg, x); return out }
       const inner = fs.get(seg)
       if (inner?.t !== 'struct') return refuse(at, `.${seg} of other than a struct`)
       out.set(seg, {...inner, f: set(inner.f, rest)})

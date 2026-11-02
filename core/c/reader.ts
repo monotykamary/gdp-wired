@@ -131,7 +131,8 @@ const FAIL: Record<string, string> = {abort: 'abort()', __assert_rtn: 'an assert
 // (`root`: the project's own files, whose functions are read too: a static inline helper of its header; by default the
 // file's directory)
 // (`picks`: an overloaded method's arity, the one read: `functions: ['throttle/1']`)
-export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp = false, root?: string, picks: Record<string, number> = {}, pickNames: string[] = []): CRead {
+// (leave: globals the rule leaves out, an output the code writes for other code, never read into what it keeps)
+export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp = false, root?: string, picks: Record<string, number> = {}, pickNames: string[] = [], leave: string[] = []): CRead {
   const path = node<{resolve: (...p: string[]) => string, basename: (p: string) => string}>('node:path'), fs = node<{readFileSync: (p: string, e: string) => string}>('node:fs')
   const main = path.resolve(file), base = path.basename(file), dir = `${path.resolve(root ?? main.replace(/\/[^/]*$/, ''))}/`, srcs = new Map<string, string>()
   locate(tu)
@@ -250,6 +251,9 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     if (s === '_Bool' || s === 'bool') return boolT
     const arr = /^(.*?)\s*\[(\d+)\]$/.exec(s)
     if (arr) return add(`arr:${s}`, {k: 'array', go: s, elem: parseT(arr[1]!), len: Number(arr[2]), fixed: true})
+    // (an unnamed struct's spelling, `struct (unnamed struct at f.c:3:8)`, is no function type)
+    const un0 = /^(struct|union|class) \((?:unnamed|anonymous) (?:struct|union|class) at .*:(\d+):(\d+)\)$/.exec(s)
+    if (un0) { const id = anon.get(`${un0[2]}:${un0[3]}`); return id ? recT(id) : add(`opaque:${s}`, {k: 'opaque', go: s}) }
     if (/\(\*\)|\(.*\)$/.test(s)) return add(`fn:${s}`, {k: 'func', go: s})
     if (/\*$/.test(s)) { const e = parseT(s.replace(/\s*\*$/, '')); return add(`ptr:${e}`, {k: 'ptr', go: s, elem: e}) }
     if (/&$/.test(s)) return add(`ref:${s}`, {k: 'ref', go: s})
@@ -318,7 +322,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   // only read that the file doesn't own (extern, volatile, or another file's to write: not static) is the request's:
   // the value each request finds there, set by the check before the call (read once a request).
   const stem = base.replace(/\.[^.]*$/, ''), gmode = !entryRec && !cpp && entry === stem
-  const gfield = new Map<string, number>(), ginput = new Set<string>(), gnodes: CN[] = [], fnReads = new Map<string, Set<string>>()
+  const gfield = new Map<string, number>(), ginput = new Set<string>(), gnodes: CN[] = [], fnReads = new Map<string, Set<string>>(), left = new Set<string>()
   if (gmode) {
     const reads = new Set<string>(), writes = new Set<string>(), all = new Set<string>()
     const bare = (n: CN): CN => ((n.kind === 'ParenExpr' || CAST.has(n.kind) && ['LValueToRValue', 'NoOp'].includes(n.castKind!)) && n.inner?.length ? bare(n.inner[0]!) : n)
@@ -336,6 +340,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     for (const [name, f] of funcs) for (const g of callees(f)) for (const id of fnReads.get(g) ?? []) fnReads.get(name)!.add(id)
     for (const [id, g] of globals) {
       if (!all.has(id)) continue
+      if (leave.includes(g.name!)) { left.add(id); continue }
       const qt = g.type!.qualType
       if (/^const /.test(qt) && !writes.has(id)) continue
       if (/\[\]$/.test(qt.trim())) refuse(g, `${g.name}: an array of unknown size (its length is another file's)`)
@@ -417,8 +422,18 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
     return value()
   }
   const pre = <T>(f: () => T): [GS[], T] => { const outer = pending, og = guarded; pending = []; guarded = 0; try { const v = f(); return [pending, v] } finally { pending = outer; guarded = og } }
+  // (a float's value: left out, a value nothing the rule keeps may read; one read into an integer, a condition or a
+  // comparison is refused there. Its operands are the code's measurements: an assignment or a call of the file's own
+  // inside it is refused, its effect would be lost.)
+  let placing = false
+  // (a place in a global left out, or its address)
+  const leftOut = (n0: CN): boolean => { const n = strip(n0); if (n.kind === 'DeclRefExpr') return left.has(n.referencedDecl?.id ?? ''); if (n.kind === 'MemberExpr' && !n.isArrow || n.kind === 'ArraySubscriptExpr' || (n.kind === 'UnaryOperator' && n.opcode === '&') || (CAST.has(n.kind) && n.castKind === 'ArrayToPointerDecay')) return leftOut(n.inner![0]!); return false }
+  const effects = (n: CN): boolean => (n.kind === 'CallExpr' && funcs.has(calleeName(n) ?? '')) || ['CompoundAssignOperator'].includes(n.kind) || (n.kind === 'BinaryOperator' && n.opcode === '=') || (n.kind === 'UnaryOperator' && ['++', '--'].includes(n.opcode!)) || (n.inner ?? []).some(effects)
   const x = (n0: CN): GX => {
     const n = strip(n0), t = n.type ? tyOf(n.type) : -1, a = at(n, t), kids = n.inner ?? []
+    const asPlace = placing; placing = false
+    if (left.size && leftOut(n)) return {e: 'opaque', ...a, why: `${text(n)}: left out (leave: an output for other code, never read into the rule)`}
+    if (t >= 0 && T(t).k === 'float' && !asPlace) return effects(n) ? no(n, `${text(n)}: a float computed with an effect of the file's own code (floats are left out)`) : {e: 'opaque', ...a, why: `${text(n)}: a float (left out of the rule: a binary fraction that rounds)`}
     const k = t >= 0 && T(t).k === 'int' ? fold(n) : undefined
     if (k !== undefined) return Number.isSafeInteger(k) ? lit(n, k, t) : no(n, `${text(n)}: the constant ${n.kind === 'IntegerLiteral' ? n.value : k} is past 2^53 (the rule's numbers stop there)`)
     switch (n.kind) {
@@ -438,6 +453,7 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         if (d.kind === 'ParmVarDecl') { const v: GX = {e: 'id', ...a, ...(boxed.has(d.id) ? {t: boxed.get(d.id)!} : {}), o: 'var', id: d.id, n: d.name}; return refs.has(d.id) ? {e: 'sel', ...a, k: 'field', x: v, path: [0]} : v }
         if (d.kind === 'VarDecl' && /&$/.test(d.type?.qualType ?? '')) return no(n, `${d.name}: a reference held in a local (a second name for a place)`)
         if (d.kind === 'VarDecl' && gfield.has(d.id)) return {e: 'sel', ...a, k: 'field', x: self0(n), path: [gfield.get(d.id)!]}
+        if (d.kind === 'VarDecl' && left.has(d.id)) return {e: 'opaque', ...a, why: `${d.name}: left out (leave: an output for other code, never read into the rule)`}
         if (d.kind === 'VarDecl') return globals.has(d.id) ? no(n, `${d.name}: a ${globals.get(d.id)!.storageClass === 'static' ? 'static' : 'global'} variable (state every object shares)`) : {e: 'id', ...a, o: 'var', id: d.id, n: d.name}
         if (d.kind === 'FunctionDecl') return no(n, `${d.name}: a function used as a value`)
         return no(n, `${text(n)}: a ${d.kind}`)
@@ -457,6 +473,9 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
         if (ck === 'ToVoid') return x(inner)
         if (ck === 'FunctionToPointerDecay' || ck === 'BuiltinFnToFnPtr') return x(inner)
         if (ck === 'BitCast' && T(t).k === 'ptr' && strip(inner).type && tyOf(strip(inner).type!) === t) return x(inner)
+        // (a pointer to the state made a void * or another pointer type, given to other code: still a pointer to the
+        // state, which that code may change; anything read through it here is refused)
+        if (ck === 'BitCast' && T(t).k === 'ptr' && strip(inner).type && T(tyOf(strip(inner).type!)).k === 'ptr') return x(inner)
         return no(n, `${text(n)}: a ${ck} conversion${ck === 'IntegralToFloating' || ck.includes('Floating') ? ' (floats are outside the subset)' : ck.includes('Pointer') ? ' (a pointer made from other than the state\'s objects)' : ''}`)
       }
       case 'BinaryOperator': {
@@ -516,9 +535,9 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   }
   // A place: a local, a field (through a pointer: ->), *p.
   const place = (n0: CN): GX => {
-    const n = strip(n0)
-    if (n.kind === 'DeclRefExpr' || n.kind === 'MemberExpr' || n.kind === 'CXXOperatorCallExpr' || (n.kind === 'UnaryOperator' && n.opcode === '*')) return x(n)
-    if (n.kind === 'ArraySubscriptExpr') return x(n)
+    const n = strip(n0), at0 = (): GX => { const was = placing; placing = true; try { return x(n) } finally { placing = was } }
+    if (n.kind === 'DeclRefExpr' || n.kind === 'MemberExpr' || n.kind === 'CXXOperatorCallExpr' || (n.kind === 'UnaryOperator' && n.opcode === '*')) return at0()
+    if (n.kind === 'ArraySubscriptExpr') return at0()
     return no(n, `${text(n)}: a place the subset doesn't write`)
   }
   const call = (n: CN): GX => {
@@ -560,6 +579,12 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   const ends = (b: GS[]) => { const l = b.at(-1); return !!l && (l.s === 'return' || l.s === 'panic' || (l.s === 'branch' && l.tok === 'break')) }
   function st(n: CN): GS[] {
     const p = pos(n), kids = n.inner ?? []
+    // (a write into a global left out: its value computed, the write not kept)
+    if (left.size && (n.kind === 'CompoundAssignOperator' || (n.kind === 'BinaryOperator' && n.opcode === '=') || (n.kind === 'UnaryOperator' && ['++', '--'].includes(n.opcode!))) && leftOut(kids[0]!)) {
+      if (n.kind === 'UnaryOperator') return []
+      const [ps, v] = pre(() => x(kids[1]!))
+      return [...ps, {s: 'expr', p, x: v}]
+    }
     switch (n.kind) {
       case 'CompoundStmt': return [{s: 'block', p, b: ss(kids)}]
       case 'NullStmt': return []
@@ -592,7 +617,18 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
       case 'CXXTryStmt': return sno(n, 'try and catch (an exception is the step\'s refusal)')
       case 'ExprWithCleanups': return st(kids[0]!)
       case 'CXXForRangeStmt': return sno(n, 'a loop (for over a range)')
-      case 'WhileStmt': case 'DoStmt': case 'ForStmt': return sno(n, `a loop (${n.kind === 'WhileStmt' ? 'while' : n.kind === 'DoStmt' ? 'do' : 'for'})`)
+      case 'WhileStmt': case 'DoStmt': case 'ForStmt': {
+        // (an endless loop nothing leaves, an assertion's trap or a wait for the watchdog's reset: the code stops there,
+        // the step's failure)
+        const c0 = n.kind === 'ForStmt' ? kids[2] : n.kind === 'DoStmt' ? kids[1] : kids.find(k => k.kind !== 'NullStmt' && !k.kind.endsWith('Stmt'))
+        const body = n.kind === 'DoStmt' ? kids[0] : kids.at(-1), leaves = (b: CN): boolean => ['BreakStmt', 'ReturnStmt', 'GotoStmt', 'IndirectGotoStmt'].includes(b.kind) || (b.inner ?? []).some(leaves) || (b.kind === 'CallExpr' && !FAIL[calleeName(b) ?? ''])
+        const k = c0 && c0.kind !== 'NullStmt' ? fold(c0) : n.kind === 'ForStmt' && (c0 === undefined || c0.kind === 'NullStmt') ? 1 : undefined
+        if (k !== undefined && k !== 0 && body && !leaves(body)) return [{s: 'expr', p, x: {e: 'call', ...at(n, -1), builtin: 'panic', a: [], what: 'an endless loop (the code stops there)'}}]
+        // (do { ... } while (0), a macro's one statement: its body once, where nothing in it breaks or continues it)
+        const exits = (b: CN): boolean => ['BreakStmt', 'ContinueStmt'].includes(b.kind) || (!['WhileStmt', 'DoStmt', 'ForStmt', 'SwitchStmt'].includes(b.kind) && (b.inner ?? []).some(exits))
+        if (n.kind === 'DoStmt' && k === 0 && body && !(body.inner ?? []).some(exits)) return block(body)
+        return sno(n, `a loop (${n.kind === 'WhileStmt' ? 'while' : n.kind === 'DoStmt' ? 'do' : 'for'})`)
+      }
       case 'GotoStmt': case 'IndirectGotoStmt': return sno(n, 'goto')
       case 'LabelStmt': return sno(n, 'a label (goto)')
       case 'CaseStmt': case 'DefaultStmt': return sno(n, 'a case label inside a block of the switch')
@@ -691,10 +727,17 @@ export function readC(file: string, entry: string, tu: CN, target: CTarget, cpp 
   if (gmode) {
     const pre: GS[] = []
     for (const g of gnodes) {
-      const v = g.init ? (g.inner ?? []).find(c => !c.kind.endsWith('Attr')) : undefined, t = tyOf(g.type!), k = T(t).k
-      const zero: GX = k === 'int' ? lit(g, 0, t) : k === 'bool' ? {e: 'lit', ...at(g, t), c: {bool: false}} : {e: 'comp', ...at(g, t), elts: []}
+      const v = g.init ? (g.inner ?? []).find(c => !c.kind.endsWith('Attr')) : undefined, t = tyOf(g.type!)
       const empty = !v || (strip(v).kind === 'InitListExpr' && (strip(v).inner ?? []).every(c => c.kind === 'ImplicitValueInitExpr'))
-      pre.push({s: 'assign', p: pos(v ?? g), op: '=', l: [{e: 'sel', ...at(v ?? g, t), k: 'field', x: self0(v ?? g), path: [gfield.get(g.id!)!]}], r: [empty ? zero : x(v)]})
+      // (C's zero, leaf by leaf: each integer and boolean of it 0, an array a list of zeros already)
+      const zeros = (tt: number, place: GX) => {
+        const k = T(tt).k
+        if (k === 'int' || k === 'bool') pre.push({s: 'assign', p: pos(g), op: '=', l: [place], r: [k === 'int' ? lit(g, 0, tt) : {e: 'lit', ...at(g, tt), c: {bool: false}}]})
+        else if (k === 'struct') T(tt).fields!.forEach((f, i) => zeros(f.t, {e: 'sel', ...at(g, f.t), k: 'field', x: place, path: [i]}))
+      }
+      const place: GX = {e: 'sel', ...at(v ?? g, t), k: 'field', x: self0(v ?? g), path: [gfield.get(g.id!)!]}
+      if (empty) zeros(t, place)
+      else pre.push({s: 'assign', p: pos(v!), op: '=', l: [place], r: [x(v!)]})
     }
     ctor = {name: '$ctor', p: pos(td0()), span: [0, 0], recv: {t: ptrT, ptr: true, type: entry, name: 'this', id: 'this'}, params: [], results: [], body: pre} as GoFunc
   }
