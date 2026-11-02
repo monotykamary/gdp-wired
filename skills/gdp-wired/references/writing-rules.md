@@ -24,6 +24,10 @@ const caps = rule('caps')
 - Each map is written once per step (`M.set(k, v)`, `M.bump(k, cond)`), or at every key with `M.each(k => ...)`.
 - `.pre(p => ...)` constrains the params; `.assume(env => ...)` constrains each request.
 - `when(c, a, b)` chooses between two values of any kind. `minus` is truncated at 0.
+- On a tick of k (a price's tick, a lot size): `x.floorTo(k)`, `x.ceilTo(k)`, `x.roundTo(k, mode)` (a half by `'halfEven'`,
+  Python's round; `'halfUp'`, JavaScript's and Java's Math.round; `'halfDown'`; `'halfAway'`, Go's and Rust's round) and
+  `x.onTick(k)`, on naturals, `int`s and decimals (a decimal's tick in its own units: `price.roundTo(0.05)`), each from
+  divBy and modBy.
 
 ## Laws
 

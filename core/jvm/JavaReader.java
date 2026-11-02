@@ -674,7 +674,11 @@ public final class JavaReader implements Jvm.Env {
         TypeCastTree c = (TypeCastTree) e;
         JT from = ty(path, c.getExpression());
         Map<String, Object> v = ex(c.getExpression(), path);
+        // (an integer into a float: exact below 2^24, an edge past it; into a double, below the rule's own 2^53)
+        if ("float".equals(prim(type)) && from != null && integral(from)) return x("fbits", p, "x", v, "bits", 24, "text", t);
         if (ity(type) == null || from == null) return v;
+        // (a float division into an integer: truncated toward zero, a whole number within the type's range)
+        if (floating(from) && "bin".equals(v.get("e")) && Boolean.TRUE.equals(v.get("fdiv"))) v = x("rnd", p, "mode", "trunc", "x", v, "text", t);
         // (a float's whole value into an integer: Java's saturates at the type's range)
         if (floating(from)) return x("bin", p, "op", "+", "x", x("as", p, "x", v, "ity", ity(type)), "y", lit(0, type, p), "ovf", "sat", "text", t);
         int fb = (int) ity(from).get("bits"), tb = (int) ity(type).get("bits");
@@ -712,7 +716,10 @@ public final class JavaReader implements Jvm.Env {
       case PLUS: case MINUS: case MULTIPLY: case DIVIDE: case REMAINDER: {
         if (type != null && type.is("java.lang.String")) return x("bin", p, "op", "+", "x", l, "y", r, "text", t);
         String op = switch (b.getKind()) { case PLUS -> "+"; case MINUS -> "-"; case MULTIPLY -> "*"; case DIVIDE -> "/"; default -> "%"; };
-        if (floating(type) && (op.equals("/") || op.equals("%"))) return no(p, t + ": a float division (the subset reads whole numbers)");
+        // (a float division: a true division, kept only where a rounding to a whole number reads it (Math.round, floor,
+        // ceil, rint, a cast); its precision, a double's 53 bits or a float's 24, bounds where that is exact)
+        if (floating(type) && op.equals("/")) return x("bin", p, "op", "/", "x", l, "y", r, "text", t, "fdiv", true, "prec", "float".equals(prim(type)) || "float".equals(prim(ta)) || "float".equals(prim(tb)) ? 24 : 53);
+        if (floating(type) && op.equals("%")) return no(p, t + ": a float remainder (the subset reads whole numbers)");
         return arith(op, l, ta, r, tb, type, "wrap", p, t);
       }
       case LEFT_SHIFT: case RIGHT_SHIFT: return x("binop", p, "op", b.getKind() == Tree.Kind.LEFT_SHIFT ? "<<" : ">>", "x", at(l, ta, type), "y", r, "text", t);
@@ -794,7 +801,10 @@ public final class JavaReader implements Jvm.Env {
       ExpressionTree a = mi.getArguments().get(i);
       JT pt = i < me.getParameters().size() && !me.isVarArgs() ? jt(me.getParameters().get(i).asType()) : null;
       JT at0 = ty(path, a);
-      args.add(pt != null && num(pt) ? at(ex(a, path), at0, pt) : ex(a, path));
+      // (an integer passed as a float: exact below 2^24, an edge past it)
+      Map<String, Object> av = pt != null && num(pt) ? at(ex(a, path), at0, pt) : ex(a, path);
+      if (pt != null && "float".equals(prim(pt)) && at0 != null && integral(at0)) av = x("fbits", where(new TreePath(path, a), a), "x", av, "bits", 24, "text", text(new TreePath(path, a), a));
+      args.add(av);
       argT.add(pt != null && num(pt) ? pt : at0);
       pure &= pure(a);
     }

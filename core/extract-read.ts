@@ -41,7 +41,8 @@ export type Arg = {k: 'input', name: string} | {k: 'lit', value: string} | {k: '
 export type Event = {select: Record<string, string>, call: string, args: Arg[], names?: string[]}
 // (pre: writes at other keys before this one, in order, where a step writes several: the last one wins at its key)
 // (when: where the write is made at all, a method's own where several keys are written)
-export type MapWrite = {key: K, has: B, vals: Record<string, Term>, pre?: MapWrite[], when?: B}
+// (each: a write at every key at once, its terms over the bound key k$: a loop's passes over an ordered collection)
+export type MapWrite = {key: K, has: B, vals: Record<string, Term>, pre?: MapWrite[], when?: B, each?: true}
 // A list's write in a step (at most one, by cases): an item pushed, the last popped, or the item at i set (i within it).
 export type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: V, when: B}
 export type ListWrite = ({op: 'push', x: Term, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: Term, when: B})[]
@@ -84,7 +85,11 @@ export type Model = {
   seqs?: MapDecl[], folds?: Fold[],
 }
 // (len: the passes, a carried list's length or one past a list of the state's last place; held: a place holds an item)
-export type Fold = {list: string, run: string, fields: Var[], init: Record<string, Term>, step: Record<string, Term>, len: N, state?: true}
+// A while loop's (`loop`), over a collection of the state: its passes' items written back (the run's __w, __h and
+// __f__<field> at each pass's output), `like` a field and the sorts key it shares; `back`: its passes run from the last
+// place down (the run's start at the length, each pass's output at its own place).
+export type Fold = {list: string, run: string, fields: Var[], init: Record<string, Term>, step: Record<string, Term>, len: N, state?: true, back?: true,
+  loop?: {like: [string, string][], cond?: B, entry?: B, drains?: {map: string, ord: string, rk: string, held: B, by: {e: N, desc?: boolean}[]}[]}}
 
 // --- values ---------------------------------------------------------------------------------------------------------
 type V =
@@ -758,7 +763,7 @@ export class Exec {
     if (op === S.PlusToken || op === S.MinusToken || op === S.AsteriskToken || op === S.PercentToken) return [this.arith(op, l, r, e, q2), q2]
     // A fraction is a binary float in the code: each operation on it rounds (0.1 + 0.2 is not 0.3), so a rule over ℚ
     // (gdp-wired/rationals) is the code only where nothing rounds, which no check shows; refused, with what is read.
-    if (op === S.SlashToken) return refuse(e, 'a division whose result may be a fraction (a binary float in the code: each operation on it rounds, where a rule over the rationals would not; Math.floor or Math.ceil of x / k for a constant k is in the subset)')
+    if (op === S.SlashToken) return refuse(e, 'a division whose result may be a fraction (a binary float in the code: each operation on it rounds, where a rule over the rationals would not; Math.floor, Math.ceil or Math.trunc of x / k for a constant k is in the subset; Math.round is not: past 2^52 it isn\'t exact and this reader keeps no edge)')
     if (op === S.AsteriskAsteriskToken) return refuse(e, 'a power')
     if (op === S.CommaToken) return [r, q2]
     if (op === S.InKeyword || op === S.InstanceOfKeyword) return refuse(e, e.operatorToken.getText())
@@ -1299,7 +1304,7 @@ export class Exec {
     return undefined
   }
   private math(m: string, e: ts.CallExpression, p: Path): [V, Path] {
-    if (m === 'floor' || m === 'ceil') {
+    if (m === 'floor' || m === 'ceil' || m === 'trunc') {
       const a = e.arguments[0]
       const strip = (x: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(x) ? strip(x.expression) : x)
       const d = a && strip(a)
@@ -1308,8 +1313,8 @@ export class Exec {
         const [x, q] = this.ev(d.left, p), [k, q2] = this.ev(d.right, q)
         const kn = this.num(k, d.right, q2)
         if (kn.op !== 'const' || kn.v < 1) return refuse(d.right, `Math.${m}(x / k) by other than a positive constant`)
-        const xn = this.num(x, d.left, q2)
-        return [{t: 'num', e: m === 'floor' ? I.divk(kn.v, xn) : I.neg(I.divk(kn.v, I.neg(xn)))}, q2]
+        const xn = this.num(x, d.left, q2), kv = kn.v, fl = I.divk(kv, xn), ce = I.neg(I.divk(kv, I.neg(xn)))
+        return [{t: 'num', e: m === 'floor' ? fl : m === 'ceil' ? ce : I.nite(I.cmp('<', xn, I.num(0)), ce, fl)}, q2]
       }
       // Of an integer, its value.
       const [x, q] = this.ev(d, p)
@@ -1325,7 +1330,7 @@ export class Exec {
       return [{t: 'num', e: I.nite(I.cmp('<', x, I.num(0)), I.neg(x), x)}, q]
     }
     if (m === 'random') return refuse(e, 'Math.random (a step the code takes differently each time)')
-    return refuse(e, `Math.${m} (Math.min, Math.max, Math.abs, and Math.floor or Math.ceil of x / k are in the subset)`)
+    return refuse(e, `Math.${m} (Math.min, Math.max, Math.abs, and Math.floor, Math.ceil or Math.trunc of x / k are in the subset)`)
   }
   now(e: ts.Node, p: Path): [V, Path] {
     if (p.nows > 0) return refuse(e, 'Date.now() read twice in one step (the two reads may differ: read it once into a local)')

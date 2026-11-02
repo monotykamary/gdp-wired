@@ -1,0 +1,25 @@
+{
+ "id": "mesa-clear",
+ "repo": "https://github.com/mesa/mesa-examples",
+ "commit": "5ab1c41db11bb36aa038824341e39110b15d1197",
+ "licence": "Apache-2.0",
+ "lang": "Python",
+ "kind": "order book (continuous double auction)",
+ "about": "the same book, with clear_all_crosses read: a while loop over try_match, each pass taking the best bid and the best ask (max and min by a key) while they cross",
+ "check": [
+  "examples/zi_double_auction/model/order_book.py"
+ ],
+ "toml": "[rules.OrderBook]\nroot = \"examples/zi_double_auction/model\"\nmethods = [\"submit_bid\", \"submit_ask\", \"best_bid\", \"best_ask\", \"spread\", \"try_match\", \"clear_all_crosses\"]\n",
+ "edits": [
+  {
+   "file": "examples/zi_double_auction/model/order_book.py",
+   "before": "^    def clear_all_crosses\\(",
+   "lines": [
+    "# gdp: law the book no longer crosses: forall b in self.bids: forall a in self.asks: b.price < a.price",
+    "# gdp: law the best bids fill first: forall o in old(self.bids): forall j in old(self.bids): o in self.bids or j not in self.bids or o.price > j.price or (o.price == j.price and o.timestamp <= j.timestamp)"
+   ]
+  }
+ ],
+ "memory": 30,
+ "cpu": 4
+}

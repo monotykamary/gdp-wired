@@ -1,0 +1,22 @@
+{
+ "id": "pedernera",
+ "repo": "https://github.com/Nicolas-Pedernera/order-matching-engine",
+ "commit": "5f0dca360a4363807beadc215a1138b8eb4d3452",
+ "licence": "MIT",
+ "lang": "TypeScript",
+ "kind": "matching engine",
+ "about": "price-time matching over sorted arrays of price levels, each an array of resting orders, with a map of order locations; submitOrder a loop against the best opposite order",
+ "check": [
+  "src/matching-engine.ts"
+ ],
+ "setup": "npm install --ignore-scripts >/dev/null 2>&1 || true",
+ "edits": [
+  {
+   "file": "src/matching-engine.ts",
+   "before": "^  submitOrder\\(",
+   "lines": [
+    "// gdp: law fills never exceed the order: result.remainingQuantity >= 0 and result.remainingQuantity <= input.quantity"
+   ]
+  }
+ ]
+}
