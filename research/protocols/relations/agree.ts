@@ -6,7 +6,7 @@ import {phased, protocols, tk} from '../ic3syn/models.ts'
 import {N} from '../ic3syn/common.ts'
 
 const seqs = Number(process.argv[2] ?? 300), len = Number(process.argv[3] ?? 40), R = (n: number) => [...Array(n).keys()]
-const cases = [
+const cases: {id: string, make: () => unknown, params: Record<string, number>, ops: number, row: number, names: string[], n: number, native: (s: any, n: number) => unknown, old: (s: any, n: number) => unknown}[] = [
   {id: 'learning_switch', make: phased.learningSwitch, params: {size: 3}, ops: 2, row: 2, names: ['ps', 'pd', 'sw0', 'sw1', 'nondet'], n: 3,
     native: (s: any, n: number) => [R(n).flatMap(t => R(n).flatMap(x => R(n).map(y => (x === y ? 1 : s.maps.T.get(tk(t, x, y)) ?? 0)))),
       R(n).flatMap(a => R(n).flatMap(b => R(n).flatMap(c => R(n).map(d => s.maps.P.get(tk(a, b, c, d)) ?? 0))))],
