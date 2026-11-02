@@ -365,7 +365,7 @@ export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted 
   if (!env.GDP_COUNTS_PROF) return run()
   cdclStats.on = true
   const t = performance.now(), out = run()
-  console.error(`counts: prof total ${Math.round(performance.now() - t)} ms; ${Object.entries(cprof).map(([k2, x]) => `${k2} ${Math.round(x)}`).join(', ')}; cdcl runs ${cdclStats.runs} conflicts ${cdclStats.conflicts} decisions ${cdclStats.decisions} solveMs ${Math.round(cdclStats.solveMs)} rowsMs ${Math.round(cdclStats.rowsMs)} coreMs ${Math.round(cdclStats.coreMs)} unfoldMs ${Math.round(cdclStats.unfoldMs)} lpMs ${Math.round(cdclStats.lpMs)} boundMs ${Math.round(cdclStats.boundMs)} orderMs ${Math.round(cdclStats.orderMs)}`)
+  console.error(`counts: prof total ${Math.round(performance.now() - t)} ms; ${Object.entries(cprof).map(([k2, x]) => `${k2} ${Math.round(x)}`).join(', ')}; cdcl runs ${cdclStats.runs} conflicts ${cdclStats.conflicts} decisions ${cdclStats.decisions} solveMs ${Math.round(cdclStats.solveMs)} rowsMs ${Math.round(cdclStats.rowsMs)} coreMs ${Math.round(cdclStats.coreMs)} unfoldMs ${Math.round(cdclStats.unfoldMs)} lpMs ${Math.round(cdclStats.lpMs)} boundMs ${Math.round(cdclStats.boundMs)} orderMs ${Math.round(cdclStats.orderMs)} fmCalls ${cdclStats.fmCalls} lpMisses ${cdclStats.lpMisses} lpUnknown ${cdclStats.lpUnknown} missMs ${Math.round(cdclStats.missMs)} fastMs ${Math.round(cdclStats.fastMs)} fmOpenMs ${Math.round(cdclStats.fmOpenMs)} fmLeafMs ${Math.round(cdclStats.fmLeafMs)} nodes ${cdclStats.nodes}`)
   return out
 }
 function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine, caller: Law[], ms: number): Counted {

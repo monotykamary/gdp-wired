@@ -63,7 +63,7 @@ type Clause = {lits: Map<string, boolean>, node: number, input?: boolean}
 const pointLeaf = env.GDP_CDCL_POINT !== '0'
 const lpFill = Number(env.GDP_CDCL_FILL ?? 8), lpGrow = Number(env.GDP_CDCL_GROW ?? 4), lpBase = Number(env.GDP_CDCL_BASE ?? 500), lpGreedy = Number(env.GDP_CDCL_GREEDY ?? 200), useLp = env.GDP_CDCL_LP !== '0', verify = env.GDP_CDCL_VERIFY === '1'
 // Counters research/step reads (times only while `on`).
-export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0, nodes: 0, boundRounds: 0}
+export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0, nodes: 0, boundRounds: 0, fmLeafMs: 0, fmOpenMs: 0, fastMs: 0, missMs: 0}
 
 // `opts.model`: only whether the goal has a model is wanted (core/bmc.ts): a refutation isn't unfolded into a tree, its
 // outcome `unknown` with `why` REFUTED; each decision's phase is the simplex's point's (phaseAtPoint; in the tree search too
@@ -722,7 +722,8 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
             costs.pivots += sx.pivots - p0
             if (timing) { st.lpMs += performance.now() - t0; st.pivots += sx.pivots - p0; st.lpRows = sx.size; st.lpNnz = sx.nnz; st.lpVars = sx.vars; st.lpLoad = full.length; if (lp.kind === 'unknown') st.lpUnknown++ }
             if (lp.kind === 'conflict') {
-              const support = lp.rows.sort((x, y) => x - y), out = solve(support.map(i => full[i]!))
+              const tm = timing ? performance.now() : 0, support = lp.rows.sort((x, y) => x - y), out = solve(support.map(i => full[i]!))
+              if (timing) st.missMs += performance.now() - tm
               if (out.kind === 'refuted') steps = out.steps.map(s => (s.kind === 'input' ? {...s, index: support[s.index]!} : s))
               else st.lpMisses++
             }
@@ -737,12 +738,15 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
             if ((clausal || pointLeaf) && !open && lpSat) { const w = pointOf(sx, rowsR); if (w) { verdict = {kind: 'sat', witness: w}; return } }
           }
           st.fmCalls++
-          const rows = plain()
+          const rows = plain(), tf = timing ? performance.now() : 0
           if (open && rows.length > 60) { const fast = refuteFast(rows); if (fast?.kind === 'refuted') steps = fast.steps.map(s => (s.kind === 'input' ? {...s, index: at(s.index)} : s)) }
+          const tf2 = timing ? performance.now() : 0
+          if (timing) st.fastMs += tf2 - tf
           if (!steps) {
             verdict = open && rows.length > 60 ? solve(rows, 2 * rows.length) : solve(rows)
             if (verdict.kind === 'refuted') steps = verdict.steps.map(s => (s.kind === 'input' ? {...s, index: at(s.index)} : s))
           }
+          if (timing) { if (open) st.fmOpenMs += performance.now() - tf2; else st.fmLeafMs += performance.now() - tf2 }
           if (!steps && open && !columns && full.length > rows.length) { const k = korder(), fast = refuteFast(k.map(i => full[i]!)); if (fast?.kind === 'refuted') steps = fast.steps.map(s => (s.kind === 'input' ? {...s, index: k[s.index]!} : s)) }
         }, ms => { st.solveMs += ms })
         if (judged && verdict?.kind === 'sat') return stuck('sat', 'a model', {witness: verdict.witness})
