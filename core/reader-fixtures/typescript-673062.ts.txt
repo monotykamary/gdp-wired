@@ -1,0 +1,2 @@
+const Mixin = (b: any) => class extends b {}
+export class C extends extends(Object) { n = 0; go(): void { this.n++ } }

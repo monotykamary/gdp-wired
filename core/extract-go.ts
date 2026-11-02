@@ -384,6 +384,7 @@ class Go {
         const r = s.r!
         if (r.length === 1 && fn.results.length > 1) return [{s: 'ret', p: s.p, one: this.x(r[0]!), why: 'a return of one value from a function of several'}]
         if (!r.length && fn.results.length) return [{s: 'ret', p: s.p, bare: fn.results.map(x => x.id ?? null)}]
+        if (r.length !== fn.results.length) return no(`return has ${r.length} values, but the function declares ${fn.results.length} results`)
         return [{s: 'ret', p: s.p, xs: r.map((e, i) => this.as(this.x(e), fn.results[i]!.t))}]
       }
       case 'branch':
