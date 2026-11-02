@@ -452,7 +452,8 @@ export function checkC(file: string, flags: string[], c: CRead, read: GoRead, r:
       }
       if (!names.length) { const b = buildCheck(clang, () => link([]), errorsOf, ofSource, x); if (!('ok' in b)) return {...empty, ...builtEvidence(b)} }
       else {
-        const out = new Set(read.leftOut ?? [])
+        // (left out by its name, or by its name and constant arguments, CO_error_x_1_27: answered per arguments)
+        const left = new Set(read.leftOut ?? []), out = {has: (n: string) => left.has(n) || [...left].some(k => k.startsWith(`${n}_`) && /^[xm\d_]+$/.test(k.slice(n.length + 1)))}
         fs.writeFileSync(stubs, `void gdp_extern_called(const char *);\n${names.map(n => (out.has(n) || out.has(base.get(n) ?? '') ? `void ${n}(void) {}` : `void ${n}(void) { gdp_extern_called(${JSON.stringify(base.get(n) ?? n)}); }`)).join('\n')}\n`)
         const b = buildCheck(clang, () => link([stubs]), errorsOf, ofSource)
         if (!('ok' in b)) return {...empty, ...builtEvidence(b)}
