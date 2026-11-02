@@ -32,7 +32,8 @@ Goal: IC3Syn's learning_switch and learning_switch_i4 proven with nothing writte
 - Lean end to end: `bun lean-kernel/export-kernel.ts --switch > Switch.lean` (997 KB), Lean 155 s on boat, the five
   laws via Kern.smachine_sound (runs/laneRL/sw1/switch.log); --tuples adds rotation.
 - i4 port: Src/Dst/Link hold nodes + SrcSet/DstSet/LinkSet (no ∸ 1). check.ts: 240 states = TLC; broken reaches bad.
-  agree.ts: both switches agree with phased (12,000 steps each). learning_switch BFS: runs/laneRL/chk2.
+  agree.ts: both switches agree with phased (12,000 steps each). learning_switch check.ts: 43,672 states = TLC, broken
+  reaches bad (runs/laneRL/chk2). Pinned 3 runs (runs/laneRL/pin3): proven 33.0 / 42.8 / 61.4 s (r3 slow VM).
 - i4 hand set: instantiation gap (FAIL=2 shows the model breaks transitivity before the step) — prover agent on it.
 - Runtime: uncrossed parts on own breakpoints; identity writes copy the map.
 
