@@ -241,6 +241,117 @@ EIGHT = [
 ]
 
 
+class SpeedRecovery(unittest.TestCase):
+    A, B, C = "a" * 40, "b" * 40, "c" * 40
+
+    def setUp(self):
+        import tempfile
+        from unittest.mock import patch
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = pathlib.Path(tmp.name)
+        for name, value in (("TM", self.root), ("log", lambda *args: None)):
+            p = patch.object(tm, name, value)
+            p.start()
+            self.addCleanup(p.stop)
+        self.owner = types.SimpleNamespace(
+            benches=["chc"], sample=0, batches=[], cache=types.SimpleNamespace(d={}),
+            tree_of=lambda c: self.root, lists=types.SimpleNamespace(get=lambda *args: []),
+            chains={"speed"}, tree=self.root, ideas={})
+
+    def make(self, confirm=None, other_done=True):
+        runs = {
+            self.A: {"status": "done", "t0": 1},
+            self.B: {"status": "done" if other_done else "pending", "t0": 2},
+            self.C: {"status": "running", "t0": 3, "benches": {"chc": {"status": "done"}}},
+        }
+        if confirm is not None:
+            runs[self.C]["confirm"] = confirm
+        path = self.root / "chains" / "speed.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"runs": runs, "wanted": [self.C]}))
+        speed = tm.Speed(self.owner)
+        for c, secs in ((self.A, 1), (self.B, 2), (self.C, 6)):
+            f = speed.obs_file(c, "chc")
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text(json.dumps({"task": {"solved": True, "answer": "sat", "secs": secs}}))
+        return speed
+
+    def confirmation(self, current="done", previous="done"):
+        return {"chc": {"tasks": ["task"], self.C: current, self.A: previous}}
+
+    def test_legacy_baseline_drift_no_longer_blocks_later_chains(self):
+        speed = self.make(self.confirmation())
+        self.assertEqual(speed.prev_done(self.C), self.B)
+        # The old dynamic lookup reproduces the live loop's persistent KeyError.
+        with self.assertRaises(KeyError):
+            speed.st["runs"][self.C]["confirm"]["chc"][speed.prev_done(self.C)]
+        advanced = []
+        self.owner.follow = [speed, types.SimpleNamespace(launch=lambda free: advanced.append(free) or free)]
+        self.assertEqual(tm.Treadmill.main_chains(self.owner, 1), 1)
+        self.assertEqual(advanced, [1])
+        self.assertEqual(speed.status(self.C), "done")
+        self.assertEqual(speed.st["runs"][self.C]["compare_to"], self.A)
+        self.assertEqual(tm.jl(self.root / "speed.jsonl")[0]["prev"], self.A)
+
+    def test_sampling_and_confirmation_keep_one_baseline_when_another_run_finishes(self):
+        speed = self.make(other_done=False)
+        self.assertEqual(speed.solved_set(self.C, "chc"), ["task"])
+        self.assertEqual(speed.st["runs"][self.C]["compare_to"], self.A)
+        speed.st["runs"][self.B]["status"] = "done"
+        self.assertEqual(speed.prev_done(self.C), self.B)
+        a = speed.active[self.C] = {"tree": self.root, "batches": {}, "done": False}
+        speed.advance(self.C, a, 0)
+        cf = speed.st["runs"][self.C]["confirm"]["chc"]
+        self.assertEqual(set(cf), {"tasks", self.C, self.A})
+        cf[self.C] = cf[self.A] = "done"
+        speed.advance(self.C, a, 1)
+        self.assertEqual(tm.jl(self.root / "speed.jsonl")[0]["prev"], self.A)
+        restored = tm.Speed(self.owner)
+        self.assertEqual(restored.comparison_base(self.C), self.A)
+
+    def test_restart_requeues_only_interrupted_confirmation_sides(self):
+        speed = self.make(self.confirmation(current="running"))
+        r = speed.st["runs"][self.C]
+        self.assertEqual(r["status"], "pending")
+        self.assertEqual(r["benches"]["chc"]["status"], "done")
+        self.assertEqual(r["confirm"]["chc"][self.C], "pending")
+        self.assertEqual(r["confirm"]["chc"][self.A], "done")
+        launched = []
+
+        def batch(c, a, bench, got, tasks, free, side=""):
+            launched.append(side)
+            self.assertEqual(r["confirm"][bench][side], "running")
+            r["confirm"][bench][side] = "done"  # completed callback; no external work
+            return 1
+
+        speed.batch = batch
+        a = speed.active[self.C] = {"tree": self.root, "batches": {}, "done": False}
+        self.assertEqual(speed.advance(self.C, a, 1), 0)
+        self.assertEqual(launched, [self.C])
+        self.assertEqual(speed.status(self.C), "done")
+
+    def test_empty_or_inconsistent_legacy_plan_is_rebuilt_not_mixed(self):
+        for confirm in ({}, {**self.confirmation(), "tip": {"tasks": ["other"], self.C: "done", self.B: "done"}}):
+            with self.subTest(confirm=confirm):
+                speed = self.make(confirm)
+                a = speed.active[self.C] = {"tree": self.root, "batches": {}, "done": False}
+                speed.advance(self.C, a, 0)
+                r = speed.st["runs"][self.C]
+                self.assertEqual(r["compare_to"], self.B)
+                self.assertEqual(set(r["confirm"]), {"chc"})
+                self.assertEqual(set(r["confirm"]["chc"]), {"tasks", self.C, self.B})
+                self.assertEqual(r["confirm"]["chc"][self.B], "pending")
+
+    def test_first_run_keeps_no_baseline_after_a_concurrent_completion(self):
+        speed = self.make(other_done=False)
+        speed.st["runs"][self.A]["status"] = "pending"
+        self.assertIsNone(speed.comparison_base(self.C))
+        speed.st["runs"][self.A]["status"] = "done"
+        self.assertEqual(speed.prev_done(self.C), self.A)
+        self.assertIsNone(speed.comparison_base(self.C))
+
+
 class SpeedByWork(unittest.TestCase):
     def test_the_eight_are_noise(self):
         for task, c, prev, was_s, now_s, was_w, now_w, solved in EIGHT:

@@ -837,6 +837,32 @@ class Speed(Follow):
 
     def reset(self, r: dict):
         r["benches"] = {b: x for b, x in r.get("benches", {}).items() if x.get("status") == "done"}
+        # The old process's confirmation batches cannot finish in this process.
+        # Keep completed sides; resubmit only sides interrupted by the restart.
+        for cf in r.get("confirm", {}).values():
+            for side, status in cf.items():
+                if side != "tasks" and status == "running":
+                    cf[side] = "pending"
+
+    def comparison_base(self, c: str) -> str | None:
+        """Pin the baseline across overlapping completions and process restarts."""
+        r = self.st["runs"][c]
+        if "compare_to" not in r:
+            prev = self.prev_done(c)
+            if "confirm" in r:
+                # Older state already chose a baseline in the confirmation keys.
+                # Recomputing prev_done here can select a later-finishing run and
+                # raise KeyError forever, before the loop reaches fill or status.
+                sides = {side for cf in r["confirm"].values() for side in cf if side not in ("tasks", c)}
+                if len(sides) == 1:
+                    prev = next(iter(sides))
+                else:
+                    # An empty/ambiguous legacy plan has no recoverable baseline.
+                    # Rebuild it from the observations; never mix two comparisons.
+                    r.pop("confirm")
+            r["compare_to"] = prev
+            self.save()
+        return r["compare_to"]
 
     def fingerprint_all(self, c: str) -> str:
         return "".join(fingerprint(c, b) for b in SPEED_BENCHES)
@@ -861,7 +887,7 @@ class Speed(Follow):
         return set(b.get("claimed", [])), b.get("status") != "done"
 
     def solved_set(self, c: str, bench: str) -> list[str]:
-        prev = self.prev_done(c)
+        prev = self.comparison_base(c)
         ts = set()
         if prev:
             ts |= {t for t, o in json.loads(self.obs_file(prev, bench).read_text()).items() if o.get("solved")} if self.obs_file(prev, bench).exists() else set()
@@ -901,7 +927,7 @@ class Speed(Follow):
             return free
         # each task flagged (slower or lost) once more, timed, at both commits: the search's own spread on identical code
         # reaches 3x on a few tasks (two runs of 0010208 and 604b62d: 6.3 s and 2.0 s), so one run is no regression
-        prev = self.prev_done(c)
+        prev = self.comparison_base(c)
         if "confirm" not in r:
             r["confirm"] = {b: {"tasks": ts, c: "pending", prev: "pending"} for b, ts in self.flagged(c, prev).items() if ts} if prev else {}
             self.save()
@@ -1004,7 +1030,7 @@ class Speed(Follow):
         flagged by the first runs counts only if its confirming runs agree: slower when the faster of its two runs here
         is SLOWER times the slower of its two there (and FLOOR_S more), lost when neither run here solved it; the others
         are `noise`."""
-        prev = self.prev_done(c)
+        prev = self.comparison_base(c)
         for bench in SPEED_BENCHES:
             f = self.obs_file(c, bench)
             if not f.exists():
@@ -1847,7 +1873,7 @@ class Treadmill(T.Treadmill):
         # (and the soundness work's, main's head, and every live batch's tree: 11-02 08:26, a restart made main's tree
         # for the fuzz, then the speed chain's two trees pushed it out as the oldest, and every fuzz batch failed on it)
         keep = {sha[:12], (self.state.get("sweep") or "")[:12], *(c[:12] for f in (self.speed, self.ic3, self.rw, self.ten) for c in f.active),
-                *((self.speed.prev_done(c) or "")[:12] for c in self.speed.active), *([self.sound.commit[:12]] if self.sound else []),
+                *((self.speed.st["runs"][c].get("compare_to", self.speed.prev_done(c)) or "")[:12] for c in self.speed.active), *([self.sound.commit[:12]] if self.sound else []),
                 *(pathlib.Path(b.root).name for b in self.batches if not b.done and b.root)}
         for old in [p for p in sorted((TM / "trees").iterdir(), key=lambda p: p.stat().st_mtime)[:-2] if p.name not in keep]:
             with contextlib.suppress(Exception):
