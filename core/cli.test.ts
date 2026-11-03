@@ -703,6 +703,7 @@ ${helper ? '    # gdp: law a within 3: a <= 3\n' : ''}
   const a = await check([`${dir}/mirror.py`], {ms: 5000, propose: false})
   // (true from the start, not inductive alone: unknown, the law it needs said)
   expect(a.rules[0]!.laws.map(l => l.verdict)).toEqual(['unknown'])
+  expect(a.exit).toBe(0)
   expect(a.rules[0]!.laws[0]!.why).toMatch(/not inductive from every state the laws allow/)
   const reach = await check([`${dir}/mirror.py`], {ms: 5000, propose: false, from: 'reachable'})
   expect(reach.rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
