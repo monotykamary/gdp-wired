@@ -310,6 +310,25 @@ t('Rust unresolved type and const parameters remain refused', () => {
   }
 }, 120_000)
 
+for (const [name, initial, body, expected] of [
+  ['plain arguments', 7, 'self.value = first(self.seen, 0);', {value: 0, seen: 0}],
+  ['earlier read before later effects', 7, 'self.value = first(self.seen, { self.seen = self.seen.wrapping_add(1); 0 });', {value: 0, seen: 1}],
+  ['each prelude before its own value', 7, 'self.value = first({ self.seen = self.seen.wrapping_add(1); self.seen }, { self.seen = self.seen.wrapping_add(1); 0 });', {value: 1, seen: 2}],
+  ['earlier failure before later effects', 4_294_967_295, 'self.value = first(self.value + 1u32, { self.seen = self.seen.wrapping_add(1); 0 });', {value: 4_294_967_295, seen: 0, failed: true}],
+  ['local callable shadows the free function', 7, 'let first = |a: u32, _b: u32| a.wrapping_add(10); self.value = first(self.seen, 0);', {value: 10, seen: 0}],
+] as const) t(`Rust free calls: ${name}`, () => {
+  const dir = genericCrate(`fn first(a: u32, _b: u32) -> u32 { a }
+    pub struct Meter { value: u32, seen: u32 }
+    impl Meter {
+      pub fn new() -> Self { Self { value: ${initial}, seen: 0 } }
+      pub fn take(&mut self) { ${body} }
+    }
+  `)
+  const x = ok(extractRust(dir, {entry: 'Meter', check: budget, failures: 'kept', strict: true}))
+  const r = x.rule!, runtime = r.interpreter(), params = r.encodeParams({})
+  expect(r.decode(runtime.step(params, runtime.init(params), r.encodeInput({})))).toMatchObject(expected)
+}, 300_000)
+
 type X = ReturnType<typeof extractRust>
 const ok = (x: X) => {
   if (!x.ok) throw new Error(`refused: ${JSON.stringify(x.refusals)}\n${x.source ?? ''}\n${JSON.stringify(x.evidence)}`)

@@ -91,6 +91,11 @@ syntactically unshadowed primitive names: visible same-named types/modules, alia
 a disabled implicit prelude, generic path arguments and explicit trait-qualified calls do not authorize
 it. This is not general alias, trait or import resolution.
 
+Unqualified Rust calls resolved to a fixed source function materialize each argument after its own
+prelude and before the next argument. This preserves cross-argument reads and early failures.
+Local callable values, indirect calls and ordinary method calls retain their existing lowering;
+this does not claim general call or receiver evaluation-order coverage.
+
 Rust lifetime parameters alone do not make a struct declaration or method/free-function signature
 value-generic. Type and const parameters on those declarations and signatures remain flagged as generic
 and refused, including when mixed with lifetimes. This does not generalize to parameters on `impl` blocks

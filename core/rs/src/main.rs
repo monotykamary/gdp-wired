@@ -648,6 +648,25 @@ impl Reader {
     }))
   }
   fn call(&mut self, c: &syn::ExprCall, p: &str, t: &str) -> (Vec<Value>, Value) {
+    // A resolved free function is a fixed callee, unlike a mutable local callable.
+    // Materialize its arguments in source order, not after all their preludes.
+    if let Expr::Path(x) = &*c.func {
+      if x.qself.is_none() && x.path.leading_colon.is_none() && x.path.segments.len() == 1 &&
+        matches!(x.path.segments[0].arguments, syn::PathArguments::None) {
+        let f = self.path_expr(&x.path, p, t);
+        if f["e"] == "fn" {
+          let mut pre = vec![]; let mut args = vec![];
+          for arg in &c.args {
+            let (mut ap, value) = self.expr(arg);
+            pre.append(&mut ap);
+            let value = if is_place(&value) { json!({"e": "copy", "x": value, "p": value["p"]}) } else { value };
+            let var = json!({"e": "var", "n": self.temp(), "p": p});
+            pre.push(json!({"s": "set", "p": p, "to": var, "x": value})); args.push(var);
+          }
+          return (pre, json!({"e": "call", "f": f, "args": args, "kw": [], "p": p, "text": t}))
+        }
+      }
+    }
     let (mut pre, args) = self.args(&c.args);
     let f = match &*c.func { Expr::Path(x) => x.path.clone(), _ => { let (mut fp, fv) = self.expr(&c.func); pre.append(&mut fp); return (pre, json!({"e": "call", "f": fv, "args": args, "kw": [], "p": p, "text": t})) } };
     let segs: Vec<String> = f.segments.iter().map(|s| s.ident.to_string()).collect();
