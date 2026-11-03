@@ -132,7 +132,15 @@ suffix avoids identifiers across the loaded source. Declaration, bridge targets 
 use that same name. Field/value names and names in unrelated scopes do not themselves trigger renaming.
 Relevant import/glob uncertainty, macros, attributes or unexpanded modules prevent a fresh-name claim;
 this is conservative and does not expand aliases or macros. Ordinary noncollision paths are retained.
-Fixed root bridge names (`__gdp_now`, `__gdp_answer`) are not renamed by this bounded repair.
+Root bridge repair is a separate bounded step. Value-namespace bindings that collide with `__gdp_now`
+or `__gdp_answer` can receive fresh names under the same closed-inventory requirement. Functions,
+constants, statics and tuple/unit constructors occupy this namespace; type-only bindings, fields and
+other module scopes do not. Relevant imports/globs or foreign declarations that leave freshness
+uncertain refuse; no import or macro-expanded namespace resolution is claimed.
+The bridge names are chosen once at the crate root **before** rewriting clock/answered calls and are
+used unchanged in those substitutions and declarations. The helper module and its byte position are
+still queried **after** rewriting. Original calls to same-spelled user functions are not renamed.
+This does not broaden D3 callee admission, general name resolution, or source/harness error claims.
 
 The current Rust record/method tables use short names. A reached record with multiple source declarations,
 or a called method with multiple source candidates (including trait/inherent collisions), is refused rather

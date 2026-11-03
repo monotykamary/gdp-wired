@@ -642,9 +642,105 @@ t('Rust helper module: renaming does not widen closed-callee reader admission', 
   helperRefusal('D3-module-limit', genericCrate(`mod nested {mod __gdp_harness {} ${d3Source()}}`), 'closed callee: source namespace is not closed')
 }, 300_000)
 
-t('Rust helper module: fixed root bridge collisions remain a separate limitation', () => {
-  const dir = genericCrate('pub fn __gdp_now()->u32 {0}' + helperMeter)
-  helperRefusal('fixed-root-bridge', dir, "the check's harness failed, twice")
+const replayBridges = (dir: string, file = 'src/lib.rs'): {now?: string, answer?: string, error?: string} => JSON.parse(execFileSync(rsReader(), [JSON.stringify({root:dir, harness_bridges:{file}})], {encoding:'utf8'}))
+const bridgeRefusal = (name: string, dir: string, why = 'fresh root bridge: namespace is not closed') => {
+  execFileSync('cargo', ['check', '--quiet', '--manifest-path', `${dir}/Cargo.toml`], {stdio:'pipe'})
+  const x = extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'})
+  expect({name, ok:x.ok}).toEqual({name, ok:false})
+  expect(x.refusals[0]!.what).toContain(why)
+  console.log(JSON.stringify({bridgeControl:name, native:'cargo-check-pass', refusal:x.refusals[0]!.what}))
+}
+
+t('Rust root bridge: original now and answer collisions are source-valid and replay', () => {
+  for (const name of ['now', 'answer']) {
+    const dir = genericCrate(`pub fn __gdp_${name}()->u32 {0}` + helperMeter)
+    execFileSync('cargo', ['check', '--quiet', '--manifest-path', `${dir}/Cargo.toml`], {stdio:'pipe'})
+    expect(replayBridges(dir)).toEqual({now:`__gdp_now${name === 'now' ? '_1' : ''}`, answer:`__gdp_answer${name === 'answer' ? '_1' : ''}`})
+    const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+    const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+    expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({}))).value).toBe(1)
+  }
+}, 300_000)
+
+t('Rust root bridge: suffixes and raw identity are deterministic across declaration order', () => {
+  const a = 'fn r#__gdp_now()->u32 {0} fn __gdp_now_1()->u32 {0} fn unused(__gdp_now_2:u32) {}'
+  const b = 'const r#__gdp_answer:u32=0; const __gdp_answer_1:u32=0;'
+  for (const declarations of [a + b, b + a]) {
+    const dir = genericCrate(declarations + helperMeter)
+    expect(replayBridges(dir)).toEqual({now:'__gdp_now_3', answer:'__gdp_answer_2'})
+    ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  }
+}, 300_000)
+
+t('Rust root bridge: constants, statics and tuple or unit constructors occupy values', () => {
+  for (const declarations of [
+    'const __gdp_now:u32=0; static __gdp_answer:u32=0;',
+    'struct __gdp_now; struct __gdp_answer(u32);',
+  ]) {
+    const dir = genericCrate(declarations + helperMeter)
+    expect(replayBridges(dir)).toEqual({now:'__gdp_now_1', answer:'__gdp_answer_1'})
+    ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  }
+}, 300_000)
+
+t('Rust root bridge: types, named-field structs, fields and other scopes keep defaults', () => {
+  for (const source of [
+    `use std::mem; type __gdp_now = u32; mod __gdp_answer {} mod other {pub fn __gdp_now() {} pub fn __gdp_answer() {}} ${helperMeter}`,
+    `use std::mem; struct __gdp_now {n:u32} struct __gdp_answer {n:u32} ${helperMeter}`,
+    `use std::mem; ${helperMeter.replaceAll('value', '__gdp_now')}`,
+    `use std::mem; ${helperMeter.replaceAll('value', '__gdp_answer')}`,
+  ]) {
+    const dir = genericCrate(source)
+    expect(replayBridges(dir)).toEqual({now:'__gdp_now', answer:'__gdp_answer'})
+    ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  }
+}, 300_000)
+
+t('Rust root bridge: original calls to user functions are not rewritten', () => {
+  const dir = genericCrate('fn __gdp_now()->u32 {7} fn __gdp_answer()->u32 {9}' + helperMeter.replace('self.value = 1', 'self.value = __gdp_now() + __gdp_answer()'))
+  const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+  expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({}))).value).toBe(16)
+}, 300_000)
+
+const bridgeClock = `mod __gdp_harness {}
+  type Instant = std::time::Instant;
+  pub struct Clock {stamp:std::time::Instant, value:u32}
+  impl Clock {
+    pub fn new()->Self {Self {stamp:Instant::now(), value:0}}
+    pub fn take(&mut self) {self.stamp = Instant::now(); self.value = std::process::id();}
+  }`
+t('Rust root bridge: both rewrites and declarations share chosen names in inline and file modules', () => {
+  const root = 'fn __gdp_now()->u32 {7} fn __gdp_now_1()->u32 {0} fn __gdp_answer()->u32 {9}'
+  for (const inline of [true, false]) {
+    const dir = genericCrate(root + (inline ? `mod nested { // café }\n ${bridgeClock} }` : 'mod nested;'))
+    if (!inline) writeFileSync(`${dir}/src/nested.rs`, bridgeClock)
+    expect(replayBridges(dir)).toEqual({now:'__gdp_now_2', answer:'__gdp_answer_1'})
+    expect(replaySite(dir, inline ? 'src/lib.rs' : 'src/nested.rs', 'crate::nested').harness_name).toBe('__gdp_harness_1')
+    ok(extractRust(dir, {entry:'Clock', check:budget, strict:true, failures:'kept', answers:{'std::process::id':'u32'}}))
+  }
+}, 300_000)
+
+t('Rust root bridge: namespace uncertainty cannot become guessed freshness', () => {
+  for (const [name, declarations] of [
+    ['import', 'fn __gdp_now() {} use std::mem;'],
+    ['cfg', '#[cfg(any())] fn __gdp_answer() {}'],
+    ['macro', 'fn __gdp_now() {} macro_rules! unused {() => {}}'],
+    ['renamed-import', 'mod supplier {pub fn value() {}} use supplier::value as __gdp_answer;'],
+    ['glob-import', 'mod supplier {pub fn __gdp_answer() {}} use supplier::*;'],
+    ['foreign-function', 'extern "C" {fn __gdp_answer();}'],
+    ['foreign-static', 'extern "C" {static __gdp_now:u32;}'],
+  ]) bridgeRefusal(name!, genericCrate(declarations + helperMeter))
+  const dir = genericCrate('fn __gdp_now() {} mod nested {mod extra;}' + helperMeter)
+  mkdirSync(`${dir}/src/nested`)
+  writeFileSync(`${dir}/src/nested/extra.rs`, 'pub fn unused() {}')
+  bridgeRefusal('unexpanded-external', dir)
+}, 300_000)
+
+t('Rust root bridge: naming does not widen D3 admission or accept an unknown root', () => {
+  const dir = genericCrate(`fn __gdp_now() {} mod nested {mod excluded {} ${d3Source()}}`)
+  bridgeRefusal('D3-module-limit', dir, 'closed callee: source namespace is not closed')
+  expect(replayBridges(dir, 'src/missing.rs').error).toContain('one known crate-root bridge scope')
 }, 300_000)
 
 t('Rust inline replay: ambiguous or unknown placement is refused', () => {

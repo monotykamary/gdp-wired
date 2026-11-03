@@ -247,10 +247,19 @@ function harnessFor(dir: string, mod: SModule, read: StepRead, opts: RsOptions):
     // The clock: Instant::now() read through the harness (the request's time), the code's own calls rewritten first.
     const lib = fs.existsSync(`${work}/src/lib.rs`) ? 'src/lib.rs' : 'src/main.rs'
     const walk = (d: string): string[] => fs.readdirSync(d, {withFileTypes: true} as never).flatMap((e: unknown) => { const x = e as {name: string, isDirectory: () => boolean}; return x.isDirectory() ? walk(`${d}/${x.name}`) : x.name.endsWith('.rs') ? [`${d}/${x.name}`] : [] })
+    // Allocate bridges once on the unmodified Rust copy, before the chosen names
+    // become references in rewritten calls. Placement is still queried afterwards.
+    const bridges = JSON.parse(cp.execFileSync(rsReader(opts.cargo), [JSON.stringify({root:work, harness_bridges:{file:lib}})], {encoding:'utf8', maxBuffer:1 << 20, stdio:['ignore','pipe','pipe'], ...readerRun()})) as {now?: string, answer?: string, error?: string}
+    if (bridges.error) throw new Refusal(mod.file, bridges.error)
+    const {now:nowName, answer:answerName} = bridges
+    if (typeof nowName !== 'string' || !/^__gdp_now(?:_[1-9][0-9]*)?$/.test(nowName) ||
+      typeof answerName !== 'string' || !/^__gdp_answer(?:_[1-9][0-9]*)?$/.test(answerName)) {
+      throw new Refusal(mod.file, 'Rust native replay has no validated root bridge names')
+    }
     // (each answered call rewritten to the harness's answer, from the crate's own text, before the clock's; the call
     // kept in a branch never taken, so the answer is of the type the call is, which a binding needn't write)
-    for (const [f, t] of stubbed(read, f => fs.readFileSync(`${dir}/${f}`, 'utf8'), (a, _, call) => `(if false { ${call} } else { crate::__gdp_answer(${JSON.stringify(a.key)}) })`)) fs.writeFileSync(`${work}/${f}`, t)
-    for (const f of walk(`${work}/src`)) { const s = fs.readFileSync(f, 'utf8'); const t = s.replace(/\b(?:std::time::)?Instant::now\(\)/g, 'crate::__gdp_now()'); if (t !== s) fs.writeFileSync(f, t) }
+    for (const [f, t] of stubbed(read, f => fs.readFileSync(`${dir}/${f}`, 'utf8'), (a, _, call) => `(if false { ${call} } else { crate::${answerName}(${JSON.stringify(a.key)}) })`)) fs.writeFileSync(`${work}/${f}`, t)
+    for (const f of walk(`${work}/src`)) { const s = fs.readFileSync(f, 'utf8'); const t = s.replace(/\b(?:std::time::)?Instant::now\(\)/g, `crate::${nowName}()`); if (t !== s) fs.writeFileSync(f, t) }
     // Query the parser after rewrites: original offsets are stale after stubs
     // or clock substitutions. Append for file modules; insert before the exact
     // closing brace for inline modules, keeping private-field access in scope.
@@ -273,7 +282,7 @@ function harnessFor(dir: string, mod: SModule, read: StepRead, opts: RsOptions):
     }
     const code = harnessCode(mod, read, cls, harnessName), insertedAt = prefix.split('\n').length, addedLines = code.split('\n').length - 1
     fs.writeFileSync(`${work}/${file}`, prefix + code + suffix)
-    fs.writeFileSync(`${work}/${lib}`, `${fs.readFileSync(`${work}/${lib}`, 'utf8')}\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn __gdp_now() -> std::time::Instant { ${modPath}::${harnessName}::now() }\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn __gdp_answer<T: ${modPath}::${harnessName}::GdpAns>(k: &str) -> T { ${modPath}::${harnessName}::answer(k) }\n`)
+    fs.writeFileSync(`${work}/${lib}`, `${fs.readFileSync(`${work}/${lib}`, 'utf8')}\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn ${nowName}() -> std::time::Instant { ${modPath}::${harnessName}::now() }\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn ${answerName}<T: ${modPath}::${harnessName}::GdpAns>(k: &str) -> T { ${modPath}::${harnessName}::answer(k) }\n`)
     const target = `${os.tmpdir()}/gdp-rscheck-target`
     const built = buildCheck('cargo', () => cp.execFileSync(opts.cargo ?? 'cargo', ['test', '--lib', '--no-run', '--message-format=json', '--target-dir', target], {cwd: work, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 28, env: {...proc?.env}, timeout: compileLimit(), killSignal: 'SIGKILL'}),
       e => String((e as {stdout?: string}).stdout ?? '').split('\n').flatMap(l => { try { const j = JSON.parse(l) as {reason?: string, message?: {level?: string, rendered?: string}}; return j.reason === 'compiler-message' && j.message?.level === 'error' ? [(j.message.rendered ?? '').replace(/\s+/g, ' ')] : [] } catch { return [] } }),

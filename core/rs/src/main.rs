@@ -45,9 +45,10 @@ impl<'ast> Visit<'ast> for UnexpandedModules {
     syn::visit::visit_item_mod(self, m);
   }
 }
-// Native module hygiene only. Do not guess exports or expand macros in order
+// Native helper hygiene only. Do not guess exports or expand macros in order
 // to rename a colliding helper; existing noncollision behavior is unchanged.
-fn native_harness_name(files: &[File], scope: &File) -> Result<String, &'static str> {
+// Module helpers occupy the type namespace; root function bridges occupy values.
+fn native_helper_name(files: &[File], scope: &File, base: &str, value_namespace: bool) -> Result<String, &'static str> {
   fn identifiers(tokens: proc_macro2::TokenStream, names: &mut BTreeSet<String>) {
     for token in tokens { match token {
       proc_macro2::TokenTree::Ident(i) => { names.insert(i.to_string().trim_start_matches("r#").to_string()); }
@@ -65,19 +66,29 @@ fn native_harness_name(files: &[File], scope: &File) -> Result<String, &'static 
       syn::UseTree::Glob(_) => true, // this scope may import the helper name; do not guess
     }
   }
-  let base = "__gdp_harness";
   let canonical = |m: &str| m.split("::").map(|s| s.trim_start_matches("r#")).collect::<Vec<_>>().join("::");
   let child = format!("{}::{base}", canonical(&scope.module));
-  let occupied = files.iter().any(|f| canonical(&f.module) == child) || scope.items.iter().any(|i| match i {
+  let occupied = (!value_namespace && files.iter().any(|f| canonical(&f.module) == child)) || scope.items.iter().any(|i| match i {
+    Item::Use(i) => imported(&i.tree, base, ""),
+    _ if value_namespace => match i {
+      Item::Fn(i) => named(&i.sig.ident, base), Item::Const(i) => named(&i.ident, base),
+      Item::Static(i) => named(&i.ident, base),
+      Item::Struct(i) => matches!(&i.fields, Fields::Unnamed(_) | Fields::Unit) && named(&i.ident, base),
+      Item::ForeignMod(i) => i.items.iter().any(|i| match i {
+        syn::ForeignItem::Fn(i) => named(&i.sig.ident, base),
+        syn::ForeignItem::Static(i) => named(&i.ident, base), _ => false,
+      }),
+      _ => false,
+    },
     Item::Mod(i) => named(&i.ident, base), Item::Struct(i) => named(&i.ident, base),
     Item::Enum(i) => named(&i.ident, base), Item::Union(i) => named(&i.ident, base),
     Item::Type(i) => named(&i.ident, base), Item::Trait(i) => named(&i.ident, base),
-    Item::TraitAlias(i) => named(&i.ident, base), Item::Use(i) => imported(&i.tree, base, ""),
+    Item::TraitAlias(i) => named(&i.ident, base),
     Item::ExternCrate(i) => named(i.rename.as_ref().map(|(_, n)| n).unwrap_or(&i.ident), base),
     _ => false,
   });
-  // Field/parameter/value names and modules in unrelated scopes do not collide
-  // with this type-namespace declaration. Do not turn them into new refusals.
+  // Only bindings in this declaration's namespace and scope trigger repair.
+  // A same-spelled field or an unrelated module must not cause a new refusal.
   if !occupied { return Ok(base.into()) }
   let mut names = BTreeSet::new();
   let mut missing = UnexpandedModules::default();
@@ -87,13 +98,14 @@ fn native_harness_name(files: &[File], scope: &File) -> Result<String, &'static 
     for item in &f.items { identifiers(item.to_token_stream(), &mut names); missing.visit_item(item); }
   }
   if missing.found || files.iter().any(|f| !f.closed_source) {
-    return Err("native replay cannot choose a fresh helper module: namespace is not closed")
+    return Err(if value_namespace { "native replay cannot choose a fresh root bridge: namespace is not closed" }
+      else { "native replay cannot choose a fresh helper module: namespace is not closed" })
   }
   for n in 1..=names.len() + 1 {
     let candidate = format!("{base}_{n}");
     if !names.contains(&candidate) { return Ok(candidate) }
   }
-  Err("native replay has no fresh helper module name")
+  Err(if value_namespace { "native replay has no fresh root bridge name" } else { "native replay has no fresh helper module name" })
 }
 fn unparen(mut e: &Expr) -> &Expr { while let Expr::Paren(p) = e { e = &p.expr; } e }
 fn ordinary_function(s: &syn::Signature) -> bool {
@@ -1081,12 +1093,28 @@ fn run() {
   let req: Value = serde_json::from_str(&std::env::args().nth(1).expect("a request")).expect("JSON");
   let root = PathBuf::from(req["root"].as_str().unwrap());
   let files = match Reader::load(&root) { Ok(f) => f, Err(e) => { println!("{}", json!({"error": e})); return } };
+  // Choose crate-root bridge names BEFORE rewriting calls. Reallocating after
+  // insertion would count the chosen references and could choose another suffix.
+  if let Some(scope) = req.get("harness_bridges") {
+    let roots: Vec<_> = files.iter().filter(|f| f.module == "crate" && Some(f.rel.as_str()) == scope["file"].as_str()).collect();
+    if let [f] = roots.as_slice() {
+      let names = native_helper_name(&files, f, "__gdp_now", true).and_then(|now|
+        native_helper_name(&files, f, "__gdp_answer", true).map(|answer| (now, answer)));
+      match names {
+        Ok((now, answer)) => println!("{}", json!({"now": now, "answer": answer})),
+        Err(why) => println!("{}", json!({"error": why})),
+      }
+    } else {
+      println!("{}", json!({"error": "native replay requires one known crate-root bridge scope"}));
+    }
+    return;
+  }
   // Native replay reparses the rewritten copy, so answer/clock edits cannot
   // stale an inline module's byte position. This does not alter reader admission.
   if let Some(scope) = req.get("harness_scope") {
     let matches: Vec<_> = files.iter().filter(|f| Some(f.rel.as_str()) == scope["file"].as_str() && Some(f.module.as_str()) == scope["module"].as_str()).collect();
     if let [f] = matches.as_slice() {
-      match native_harness_name(&files, f) {
+      match native_helper_name(&files, f, "__gdp_harness", false) {
         Ok(name) => println!("{}", json!({"inline_end": f.inline_end, "harness_name": name})),
         Err(why) => println!("{}", json!({"error": why})),
       }
