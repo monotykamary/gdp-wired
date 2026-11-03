@@ -129,6 +129,11 @@ original boolean constructor argument actually enables enforcement. Flipping onl
 argument changes the native outcome for unchanged calls and source bytes. This does not
 upgrade the older unused-argument fixtures into a general forwarding guarantee.
 
+The module also checks two meaningful boolean parameters: swapping their positions
+or flipping either alone changes the original's native outcome for the same witness
+calls and source bytes. This is a finite parameter-binding contrast, not a generic
+argument-order guarantee.
+
 ## Measured coverage
 
 The complete-corpus baseline on 2026-11-03 is tree `7db037f` (main `927a521`): **18 published,
