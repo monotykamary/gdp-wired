@@ -104,6 +104,63 @@ t('Rust atomic ordering: argument effects survive an invalid-order failure', () 
   }
 }, 300_000)
 
+t('Rust atomic sequencing: capture an earlier read before the later argument mutates it', () => {
+  const dir = genericCrate(`use std::sync::atomic::{AtomicU32, Ordering};
+    pub struct Meter { value: AtomicU32, seen: u32 }
+    impl Meter {
+      pub fn new() -> Self { Self { value: AtomicU32::new(7), seen: 0 } }
+      pub fn store(&mut self, order: Ordering) {
+        self.value.store(self.seen, { self.seen = self.seen.wrapping_add(1); order });
+      }
+    }
+  `)
+  const x = ok(extractRust(dir, {entry: 'Meter', check: budget, failures: 'kept', strict: true}))
+  const r = x.rule!, runtime = r.interpreter(), params = r.encodeParams({})
+  for (const order of ['Relaxed', 'Release', 'Acquire', 'AcqRel', 'SeqCst']) {
+    const failed = order === 'Acquire' || order === 'AcqRel'
+    const state = runtime.step(params, runtime.init(params), r.encodeInput({order}))
+    expect(r.decode(state)).toMatchObject({value: failed ? 7 : 0, seen: 1, failed})
+  }
+  const request = r.encodeInput({order: 'Release'})
+  const first = runtime.step(params, runtime.init(params), request)
+  expect(r.decode(runtime.step(params, first, request))).toMatchObject({value: 1, seen: 2, failed: false})
+}, 300_000)
+
+t('Rust atomic sequencing: an earlier argument failure prevents later argument effects', () => {
+  const dir = genericCrate(`use std::sync::atomic::{AtomicU32, Ordering};
+    pub struct Meter { value: AtomicU32, seen: u32, operand: u32 }
+    impl Meter {
+      pub fn new(start: u32) -> Self { Self { value: AtomicU32::new(7), seen: 0, operand: start } }
+      pub fn store(&mut self, order: Ordering) {
+        self.value.store(self.operand + 1u32, { self.seen = self.seen.wrapping_add(1); order });
+      }
+    }
+  `)
+  const x = ok(extractRust(dir, {entry: 'Meter', check: budget, failures: 'kept', strict: true}))
+  const r = x.rule!, runtime = r.interpreter()
+  for (const start of [0, 1, 4_294_967_295]) for (const order of ['Relaxed', 'Release', 'Acquire', 'AcqRel', 'SeqCst']) {
+    const params = r.encodeParams({start}), overflow = start === 4_294_967_295
+    const failed = overflow || order === 'Acquire' || order === 'AcqRel'
+    const state = runtime.step(params, runtime.init(params), r.encodeInput({order}))
+    expect(r.decode(state)).toMatchObject({value: failed ? 7 : start + 1, seen: overflow ? 0 : 1, failed})
+  }
+}, 300_000)
+
+t('Rust atomic sequencing: variable division remains refused', () => {
+  const dir = genericCrate(`use std::sync::atomic::{AtomicU32, Ordering};
+    pub struct Meter { value: AtomicU32, seen: u32, divisor: u32 }
+    impl Meter {
+      pub fn new(divisor: u32) -> Self { Self { value: AtomicU32::new(7), seen: 0, divisor } }
+      pub fn store(&mut self, order: Ordering) {
+        self.value.store(10u32 / self.divisor, { self.seen = self.seen.wrapping_add(1); order });
+      }
+    }
+  `)
+  const x = extractRust(dir, {entry: 'Meter', check: budget, failures: 'kept', strict: true})
+  expect(x.ok).toBe(false)
+  expect(x.refusals.map(r => r.what).join('; ')).toContain("division by a value that isn't a constant")
+}, 120_000)
+
 t('Rust atomic ordering: unresolved aliases and wildcard imports remain refused', () => {
   for (const [imports, order] of [
     ['use std::sync::atomic::*;', 'Ordering'],

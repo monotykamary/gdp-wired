@@ -678,22 +678,25 @@ impl Reader {
   }
   fn method(&mut self, m: &syn::ExprMethodCall, p: &str, t: &str) -> (Vec<Value>, Value) {
     let (mut pre, r) = self.expr(&m.receiver);
-    let (mut ap, args) = self.args(&m.args);
-    pre.append(&mut ap);
     let name = m.method.to_string();
-    if ((name == "load" && args.len() == 1) || (name == "store" && args.len() == 2)) && self.atomic_field(&m.receiver) {
-      // Evaluate arguments before checking the ordering. Invalid orders panic
-      // before the atomic operation; their values must not be erased as literals.
+    if ((name == "load" && m.args.len() == 1) || (name == "store" && m.args.len() == 2)) && self.atomic_field(&m.receiver) {
+      // Rust evaluates arguments left to right. Capture each value (including
+      // any failure) after its own prelude, before the next argument's effects.
       let mut values = vec![];
-      for arg in &args {
+      for arg in &m.args {
+        let (mut ap, value) = self.expr(arg);
+        pre.append(&mut ap);
+        let value = if is_place(&value) { json!({"e": "copy", "x": value, "p": value["p"]}) } else { value };
         let var = json!({"e": "var", "n": self.temp(), "p": p});
-        pre.push(json!({"s": "set", "p": p, "to": var, "x": arg})); values.push(var);
+        pre.push(json!({"s": "set", "p": p, "to": var, "x": value})); values.push(var);
       }
       let allowed = if name == "load" { ["Relaxed", "Acquire", "SeqCst"] } else { ["Relaxed", "Release", "SeqCst"] };
       let tests: Vec<Value> = allowed.iter().map(|order| json!({"e": "cmp", "op": "==", "x": values.last().unwrap(), "y": ordering_variant(order, p), "p": p})).collect();
       pre.push(json!({"s": "if", "p": p, "c": {"e": "or", "xs": tests, "strict": true, "p": p}, "then": [], "else": [{"s": "fail", "p": p, "why": format!("atomic {name}: invalid memory ordering")}]}));
       return (pre, json!({"e": "rmw", "op": name, "place": r, "args": values[..values.len()-1].to_vec(), "p": p, "text": t}));
     }
+    let (mut ap, args) = self.args(&m.args);
+    pre.append(&mut ap);
     let a = |i: usize| args.get(i).cloned().unwrap_or(Value::Null);
     let bin = |op: &str, ovf: &str| json!({"e": "bin", "op": op, "x": r, "y": a(0), "p": p, "text": t, "ovf": ovf, "div": "trunc"});
     let v = match name.as_str() {

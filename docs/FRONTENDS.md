@@ -77,6 +77,8 @@ Go reader's exact JavaScript-integer range restriction.
 Rust reads dynamic `Ordering` values for `load`/`store` on direct standard atomic state fields.
 The five standard variants remain choice inputs: invalid load orders (`Release`, `AcqRel`) and invalid
 store orders (`Acquire`, `AcqRel`) cause a failure before the atomic operation, after argument evaluation.
+Each argument is materialized immediately after its own prelude, before the next argument is evaluated;
+an earlier argument failure therefore prevents later argument effects.
 With `failures: 'kept'`, earlier state changes survive that failure. Standard/core-qualified types and direct
 imports are recognized conservatively; aliases, wildcard imports and broader dynamic RMW operations
 remain outside this increment. Native replay executes Rust's actual atomic methods. As for existing
