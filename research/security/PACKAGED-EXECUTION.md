@@ -1,6 +1,23 @@
 # Owned packed security execution
 
-This is an **opt-in execution probe**, not a new security policy, public replay API, or CI registration. It is pinned to the unchanged runtime/fixture inputs of `ce28b821285f9aee8f25277c78697426003e923a` (tree `8fdbaababd8b300c6cd48634dbb06cbb47b786c6`). The pins deliberately reject a different source baseline. Earlier `6f` receipts remain about `6f`.
+This is an **opt-in execution probe**, not a new security policy, public replay API, or CI registration. Its pin manifest carries the historical labels `ce28b821285f9aee8f25277c78697426003e923a` (base) and `8fdbaababd8b300c6cd48634dbb06cbb47b786c6` (tree). These labels are copied into the receipt; they are not a check of Git HEAD or an attestation of the whole source tree. Earlier `6f` receipts remain about `6f`.
+
+## File-hash check scope
+
+Before and after the probes, the source-pin check compares SHA-256 hashes for exactly the ten files enumerated in `packaged-source-pins.json`:
+
+- `action.yml`
+- `core/cli.ts`
+- `core/security.ts`
+- `scripts/build.ts`
+- `tsconfig.build.json`
+- `package.json`
+- `.github/fixtures/security-action/candidate.ts`
+- `.github/fixtures/security-action/stated-broken.ts`
+- `research/security/call-order.test.ts`
+- `research/security/score.ts`
+
+A mismatch in an enumerated file is rejected. **Changes to unlisted files are not rejected by this check.** The `base` and `tree` fields are copied historical labels, not verified HEAD or whole-tree identities. Matching these ten hashes does not establish that the complete checkout or all packaged code comes from the labeled commit. The separate package-file comparisons establish equality between the installed files and the packed artifact, not a whole-tree source attestation.
 
 ## Run on boat
 
@@ -27,7 +44,7 @@ Budgets remain finite: each job has 4 CPUs, 8 GiB and 600 seconds; source CLI ch
 ## Scope exclusions
 
 - Local shell execution does **not** execute GitHub's checkout/setup-node actions, composite condition evaluator, job permissions, or hosted runner environment. The branch conditions are selected from the existing fixed expressions; no arbitrary expression evaluator is added.
-- The tarball's package metadata may say `0.46.0`; its evidence is its current-source pins and tarball hash, **not** the released registry artifact. No registry release is fetched as a security target, no tag or publication is changed, and no live workflow is dispatched.
+- The tarball's package metadata may say `0.46.0`; its evidence is the ten enumerated file-hash checks and tarball hash, **not** a whole-tree source attestation or the released registry artifact. No registry release is fetched as a security target, no tag or publication is changed, and no live workflow is dispatched.
 - This probes the root package's `gdp-wired` CLI used by the Action; it does not establish a separate `gdp-wired-cli` wrapper-package receipt.
 - The package is exercised on owned fixtures only. Candidate proposals still require review and do not become accepted policies. Same output from different source/order does not establish identity.
 - This probe is invoked explicitly through its jobs manifest, not added to the shared smoke, quick suites, workflows, readers, or production exports.
