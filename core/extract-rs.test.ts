@@ -455,11 +455,116 @@ t('Rust D2: a scalar tail does not erase an unsupported receiver prelude', () =>
   expect(x.refusals.map(r => r.what).join('; ')).toContain('a loop')
 }, 300_000)
 
-t('Rust method sequencing: unlisted computed receivers and indirect callees keep native mismatch refusals', () => {
+const d3First = 'fn first(a:u32, _b:u32)->u32 { a }'
+const d3Prefix = 'self.seen = self.seen.wrapping_add(1);'
+const d3Call = `self.value = ({ ${d3Prefix} first })({ self.seen = self.seen.wrapping_mul(2); self.seen }, 0);`
+const d3Source = (body = d3Call, target = d3First, seen = 0) => `${target}
+  pub struct Meter {value:u32, seen:u32}
+  impl Meter {
+    pub fn new()->Self {Self {value:7, seen:${seen}}}
+    pub fn take(&mut self) {${body}}
+  }`
+const d3Refused = (name: string, source: string, reason: string) => {
+  const dir = genericCrate(source)
+  // Identity refusal is not established by compiler-invalid source.
+  execFileSync('cargo', ['check', '--quiet', '--manifest-path', `${dir}/Cargo.toml`], {stdio:'pipe'})
+  const x = extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'})
+  expect({name, ok:x.ok}).toEqual({name, ok:false})
+  const why = x.refusals.map(r => r.what).join('; ')
+  expect(why).toContain(reason)
+  console.log(JSON.stringify({d3Control:name, native:'cargo-check-pass', reader:'refused', mismatch:!!x.evidence?.mismatch, why}))
+}
+
+t('Rust D3: fixed item block preserves callee order and exact function identity', () => {
+  const dir = genericCrate(d3Source())
+  const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  expect(JSON.stringify(readRust(dir, ['Meter']).funcs['Meter::take'])).toContain('"f":{"e":"fn","id":"first"')
+  const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({}), input = r.encodeInput({})
+  const first = rt.step(p, rt.init(p), input)
+  expect(r.decode(first)).toMatchObject({value:2, seen:2})
+  expect(r.decode(rt.step(p, first, input))).toMatchObject({value:6, seen:6})
+}, 300_000)
+
+t('Rust D3 reader only: matching inline module retains fixed identity', () => {
+  // Native source is valid, but the existing inline-module replay harness cannot
+  // find __gdp_harness. This is reader identity evidence, not native conformance.
+  const dir = genericCrate(`pub mod nested {${d3Source()}}`)
+  execFileSync('cargo', ['check', '--quiet', '--manifest-path', `${dir}/Cargo.toml`], {stdio:'pipe'})
+  const mod = readRust(dir, ['Meter'])
+  expect((mod as {fmods?: Record<string, string>}).fmods?.first).toBe('crate::nested')
+  expect(JSON.stringify(mod.funcs['Meter::take'])).toContain('"f":{"e":"fn","id":"first"')
+}, 300_000)
+
+t('Rust D3: each argument value is captured before the next argument prelude', () => {
+  const dir = genericCrate(d3Source(`self.value = ({${d3Prefix} first})(self.seen, {self.seen = self.seen.wrapping_add(1); 0});`))
+  const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+  expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({})))).toMatchObject({value:1, seen:2})
+}, 300_000)
+
+t('Rust D3: callee assignment failure prevents argument writes', () => {
+  const dir = genericCrate(d3Source('self.value = ({self.seen = self.seen + 1; first})({self.value = 99; 0}, 0);', d3First, 4_294_967_295))
+  const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+  expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({})))).toMatchObject({value:7, seen:4_294_967_295, failed:true})
+}, 300_000)
+
+t('Rust D3: actual global declaration collisions refuse in either order', () => {
+  const other = 'pub mod other {pub fn first(_a:u32, b:u32)->u32 {b}}'
+  for (const before of [false, true]) {
+    d3Refused(`collision-${before}`, before ? other + d3Source() : d3Source() + other, 'exactly one loaded function declaration')
+  }
+}, 300_000)
+
+t('Rust D3: local and actual value namespace competitors refuse', () => {
+  d3Refused('local-shadow', d3Source(`let first = |a:u32, _b:u32| a; ${d3Call}`), 'value-name ambiguity')
+  d3Refused('alias', d3Source(`let chosen = first; ${d3Call.replace(' first })', ' chosen })')}`), 'exactly one loaded function declaration')
+  d3Refused('nonliteral-constant', d3Source() + 'mod other {pub const first:u32 = 1 + 1;}', 'value-name ambiguity')
+  d3Refused('static-name', d3Source() + 'mod other {pub static first:u32 = 1;}', 'value-name ambiguity')
+  d3Refused('local-item-after-call', d3Source(`${d3Call} fn first(a:u32, _b:u32)->u32 {a}`), 'value-name ambiguity')
+  d3Refused('different-caller-module', `${d3First} pub mod nested {const first:fn(u32,u32)->u32 = crate::first; ${d3Source(d3Call, '')}}`, 'caller file/module')
+}, 300_000)
+
+t('Rust D3: imports and macro/cfg uncertainty refuse conservatively', () => {
+  const module = 'mod helper {pub fn first(a:u32, _b:u32)->u32 {a}}'
+  for (const binding of ['use helper::first;', 'use helper::*;']) {
+    d3Refused(binding, d3Source(d3Call, module + binding), 'source namespace is not closed')
+  }
+  d3Refused('renamed-import', d3Source(d3Call.replace(' first })', ' chosen })'), module + 'use helper::first as chosen;'), 'exactly one loaded function declaration')
+  d3Refused('disabled-module', d3Source() + '#[cfg(any())] mod absent;', 'source namespace is not closed')
+  d3Refused('macro', d3Source() + 'macro_rules! extra {() => {fn unrelated(){}}} extra!();', 'source namespace is not closed')
+  d3Refused('attribute', d3Source(d3Call, '#[inline] ' + d3First), 'source namespace is not closed')
+}, 300_000)
+
+t('Rust D3: generic and noninteger signatures do not gain admission', () => {
+  const generic = 'fn first<T>(a:T, _b:T)->T {a}'
+  d3Refused('inferred-generic', d3Source(d3Call, generic), 'ordinary nongeneric integer signature')
+  d3Refused('explicit-generic', d3Source(d3Call.replace(' first })', ' first::<u32> })'), generic), 'bare function-item tail')
+  d3Refused('reference-signature', d3Source(d3Call.replace(' self.seen }, 0)', ' &self.seen }, 0)'), 'fn first(a:&u32, _b:u32)->u32 {*a}'), 'ordinary nongeneric integer signature')
+  d3Refused('const-function', d3Source(d3Call, 'const ' + d3First), 'ordinary nongeneric integer signature')
+}, 300_000)
+
+t('Rust D3: out-of-contract callees retain refusals without expanding block support', () => {
+  d3Refused('aliased-field', 'type Count = u32;' + d3Source().replace('seen:u32', 'seen:Count'), 'one primitive assignment')
+  d3Refused('nested-arithmetic', d3Source(d3Call.replace(d3Prefix, 'self.seen = (self.seen + 1) + 0;')), 'one primitive assignment')
+  d3Refused('extra-assignment', d3Source(d3Call.replace(d3Prefix, d3Prefix + d3Prefix)), 'the rule and the code differ')
+  d3Refused('block-binding', d3Source(d3Call.replace(d3Prefix, `let chosen = first; ${d3Prefix}`).replace(' first })', ' chosen })')), 'the rule and the code differ')
+  d3Refused('pointer-cast', d3Source(d3Call.replace(' first })', ' first as fn(u32,u32)->u32 })')), 'a fn cast')
+  d3Refused('return-prefix', d3Source('self.value = ({return; first})({self.value = 99; 0}, 0);'), 'the rule and the code differ')
+  d3Refused('panic-prefix', d3Source('self.value = ({panic!("callee"); first})({self.value = 99; 0}, 0);'), 'the rule and the code differ')
+}, 300_000)
+
+t('Rust D3: an independently supported pure function-item block is not banned', () => {
+  const dir = genericCrate(d3Source('self.value = ({first})(3, 0);'))
+  const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+  expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({})))).toMatchObject({value:3, seen:0})
+}, 300_000)
+
+t('Rust method sequencing: unlisted computed receivers keep native mismatch refusals', () => {
   for (const [initial, body] of [
     [4_294_967_295, 'self.value = ((self.value + 1u32) + 0u32).max({ self.seen = self.seen.wrapping_add(1); 0 });'],
     [7, 'self.value = ({ self.seen = self.seen.wrapping_add(1); self.seen.wrapping_add(0) }).max({ self.seen = self.seen.wrapping_add(1); 0 });'],
-    [7, 'self.value = ({ self.seen = self.seen.wrapping_add(1); first })({ self.seen = self.seen.wrapping_mul(2); self.seen }, 0);'],
   ] as const) {
     const dir = genericCrate(`fn first(a:u32, _b:u32)->u32 { a }
       pub struct Meter {value:u32, seen:u32}

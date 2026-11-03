@@ -105,6 +105,18 @@ block ending in a direct primitive state field captures that field after its exi
 early returns or panics in the prelude prevent later argument effects. Other computed or
 side-effectful receivers, indirect callees, trait methods and generic dispatch do not enter this shortcut;
 existing native mismatch and unsupported-source refusals remain outside this bounded increment.
+Literal suffix/type compatibility is not a value-range guarantee: native Rust, the literal parser and
+safe-number/model limits still apply.
+
+A separate closed callee-block path supports exactly one same-typed primitive state-field assignment
+(field plus a compatible integer literal, checked `+` or `wrapping_add`), followed by a bare function
+item. It requires one actual loaded declaration globally, matching known caller file/module, an ordinary
+safe synchronous nongeneric integer signature and exact arity. Its assignment precedes immediate
+left-to-right argument captures. Shadows and ambiguous identities refuse rather than select a map entry.
+This deliberately conservative path declines crate-wide imports, macros, non-doc attributes, unresolved
+module metadata, local item declarations and unsupported visibility/signatures. Only verified inherent
+caller identity enters it; it adds no general alias/callee resolution or shared-executor behavior.
+Other callee shapes keep their prior lowering and refusals, not a blanket language ban.
 
 The current Rust record/method tables use short names. A reached record with multiple source declarations,
 or a called method with multiple source candidates (including trait/inherent collisions), is refused rather
