@@ -65,6 +65,15 @@ an arity or its parameter clause such as `"(seed: Int)"`. Swift resolves same-la
 only for exact declared scalar arguments or explicit integer conversions; context-dependent literal
 overloads and failable initializers remain refused. Kotlin continues to use an arity.
 
+Go reads direct `time.Now().UnixMilli()` and `time.Now().Unix()` projections, including qualified import
+aliases, as a millisecond request-time input. The check substitutes only `time.Now` with that input;
+Go still executes the original `UnixMilli`/`Unix` projection and surrounding method. Negative epoch times
+use floor division for seconds, not Go integer division's truncation. Multiple reads assume the step
+runs within one millisecond clock tick; time may move backwards between requests. This does not add
+monotonic-clock semantics, stored/local `time.Time` values, finer projections such as `UnixNano`, or clock
+reads nested inside answered calls (overlapping source substitutions are refused). Inputs retain the
+Go reader's exact JavaScript-integer range restriction.
+
 Rust lifetime parameters alone do not make a struct declaration or method/free-function signature
 value-generic. Type and const parameters on those declarations and signatures remain flagged as generic
 and refused, including when mixed with lifetimes. This does not generalize to parameters on `impl` blocks

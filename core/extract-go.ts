@@ -9,7 +9,8 @@
 //
 // The subset: a named struct of the package and the methods given (pointer or value receivers), the object starting
 // at Go's zero value; fields of integer types (every width, signed and unsigned, named ones such as time.Duration),
-// bool, string, *big.Int (an unbounded integer, nil a state of its own), nested structs (embedded ones too), maps from
+// bool, string, direct time.Now().UnixMilli()/Unix() projections (one millisecond request tick; the check replaces
+// only Now, not the native projection), *big.Int (an unbounded integer, nil a state of its own), nested structs, maps from
 // integers or strings to integers, booleans or structs of them, and slices of integers or booleans as lists; locals,
 // assignments (=, :=, op=, ++, --, tuples), if, switch (with a tag or without, fallthrough, break), early returns,
 // calls of the package's functions and methods (inlined), pointers to the state's objects (an interior pointer &x.f
@@ -47,7 +48,7 @@ export type TT = {k: string, go?: string, nullflag?: boolean, fixed?: boolean, b
   fields?: {name: string, t: number, embedded: boolean}[], xfields?: {name: string, t: number, embedded: boolean, exported: boolean}[], methods?: {name: string, ptr: boolean}[], params?: number[], results?: number[], elems?: number[], iface?: boolean, args?: number[], len?: number}
 type GC = {int?: string, bool?: boolean, str?: string, float?: string, other?: string}
 export type GX = {e: string, p: string, t: number, text: string, c?: GC, why?: string, what?: string, b?: GX, n?: string, o?: string, id?: string, x?: GX, y?: GX, op?: string, f?: GX, a?: GX[], k?: string, lo?: GX, hi?: GX, three?: boolean,
-  path?: number[], indirect?: boolean, mptr?: boolean, mtype?: string, mpkg?: string, pkg?: string, builtin?: string, conv?: boolean, ell?: boolean, elts?: {field?: string, k?: GX, v: GX}[], i?: GX}
+  path?: number[], indirect?: boolean, mptr?: boolean, mtype?: string, mpkg?: string, pkg?: string, builtin?: string, conv?: boolean, ell?: boolean, elts?: {field?: string, k?: GX, v: GX}[], i?: GX, end?: string}
 export type GS = {s: string, p: string, why?: string, x?: GX, op?: string, l?: GX[], r?: GX[], c?: GX, then?: GS[], else?: GS, init?: GS, tag?: GX, cases?: {list?: GX[], default?: boolean, b: GS[], p: string}[],
   b?: GS[], specs?: {names: {name: string, id: string, t: number, c?: GC}[], v: GX[], const?: boolean, type?: boolean}[], tok?: string, label?: string, st?: GS}
 export type GoParam = {name?: string, id?: string, t: number, variadic?: boolean, ts?: string}
@@ -82,6 +83,7 @@ type V = StepValue
 class Go {
   readonly g: Stepper
   readonly leaves: GoLeaf[] = []
+  readonly clocks = new Map<string, GoClock>()
   readonly funcs: Record<string, SFunc> = {}
   constructor(readonly pkg: GoPkg, readonly opts: GoOptions, inf?: Inferred) {
     const mod: SModule = {lang: pkg.lang ?? 'go', file: pkg.files[0]?.name ?? 'go', path: pkg.dir ? `${pkg.dir}/${pkg.files[0]?.name ?? ''}` : '', module: pkg.package, root: pkg.dir ?? '', entries: [], recs: {}, funcs: this.funcs, split: false}
@@ -268,6 +270,16 @@ class Go {
     if (x.builtin) return this.builtin(x)
     if (f.e === 'sel' && f.k === 'qual') return this.std(x)
     if (f.e === 'sel' && f.k === 'method') {
+      // Keep Time opaque: only a direct Now projection is a scalar. Preserve
+      // the native projection in the check; substitute just its clock source.
+      const now = f.x
+      if ((!this.pkg.lang || this.pkg.lang === 'go') && f.mpkg === 'time' && (f.n === 'Unix' || f.n === 'UnixMilli') && !a.length &&
+          now?.e === 'call' && !now.a?.length && now.f?.e === 'sel' && now.f.k === 'qual' && now.f.pkg === 'time' && now.f.n === 'Now') {
+        if (!now.end) return this.no(x, 'time.Now(): the reader did not provide a clock source span')
+        this.clocks.set(now.p, {p: now.p, end: now.end, callee: now.f.text})
+        const clock: SX = {e: 'clock', ...at}
+        return f.n === 'UnixMilli' ? clock : {e: 'bin', ...at, op: '//', x: clock, y: {e: 'int', p: x.p, v: 1000}}
+      }
       // A method promoted from an embedded field: its receiver is that field (through the embedded fields on the way).
       let rt = this.T(f.x!.t), base = rt.k === 'ptr' ? rt.elem! : f.x!.t, emb: SX | undefined
       if ((f.path ?? []).length > 1) {
@@ -577,7 +589,8 @@ class Go {
 
 // --- the model --------------------------------------------------------------------------------------------------------
 // (answers: the calls answered, each request's values the last argument of its event; ranges: each one's type's)
-export type GoRead = {answers?: (Answer & {range?: [number, number]})[], leftOut?: string[], ctor?: {name: string, t: number, arg: Arg}[], model: Model, edges: B[], unsigned: string[], leaves: GoLeaf[], spans: [string, number, number][], entry: string, methods: {name: string, ptr: boolean, params: {name: string, t: number, arg: Arg}[], results: number[], err: boolean}[]}
+export type GoClock = {p: string, end: string, callee: string}
+export type GoRead = {clocks?: GoClock[], answers?: (Answer & {range?: [number, number]})[], leftOut?: string[], ctor?: {name: string, t: number, arg: Arg}[], model: Model, edges: B[], unsigned: string[], leaves: GoLeaf[], spans: [string, number, number][], entry: string, methods: {name: string, ptr: boolean, params: {name: string, t: number, arg: Arg}[], results: number[], err: boolean}[]}
 type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: V, when: B}
 // Read with the boundary inferred unless strict (core/extract-step.ts's readStep: each refused run adds what the next
 // infers): Go's check can't stub a call, so a call of another package is left out where nothing reads its value.
@@ -731,6 +744,14 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
   for (const e of events) e.args = e.args.map(recOf)
   const answers = [...g.answers.values()].map(a => ({...a, ...(g.ints.get(a.inputs.name) ? {range: rangeOf(g.ints.get(a.inputs.name)!)} : {})}))
   if (answers.length) for (const e of events) e.args.push({k: 'rec', fields: answers.flatMap(a => [a.inputs.name, ...(a.inputs.none ? [a.inputs.none] : [])]).map(n => [n, {k: 'input', name: n} as Arg])})
+  // An answered outer call must not swallow a clock substitution or reuse its offsets.
+  for (const clock of go.clocks.values()) for (const answer of answers) for (const site of answer.at ?? []) {
+    const c = /^(.*):(\d+):(\d+)$/.exec(clock.p), a = /^(.*):(\d+):(\d+)$/.exec(site.p)
+    if (!c || !a || c[1] !== a[1] || !site.end) continue
+    const cs = c.slice(2).map(Number), as = a.slice(2).map(Number), ce = clock.end.split(':').map(Number), ae = site.end.split(':').map(Number)
+    const before = (x: number[], y: number[]) => x[0]! < y[0]! || (x[0] === y[0] && x[1]! < y[1]!)
+    if (before(cs, ae) && before(as, ce)) refuse(clock.p, 'a clock read inside an answered call (overlapping source substitutions)')
+  }
   // (and the harness's: it makes the struct with the fields read)
   for (const mt of methods) mt.params = mt.params.map(pa => ({...pa, arg: recOf(pa.arg)}))
   // The methods together: each variable by the method called.
@@ -791,6 +812,7 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
   for (const l of go.leaves) if (l.kind === 'big' && state.some(v => v.name === l.name)) laws.push(`r.law(${JSON.stringify(`${l.name}: a nil one holds 0`)}, ({${l.name}, ${l.name}_nil}) => any(${l.name}_nil.not(), ${l.name}.eq(0)))`)
   for (const d of maps) laws.push(`r.law(${JSON.stringify(`${d.name}: a nil map holds no key`)}, ({${d.name}, ${d.name}_nil}) => forall(k => any(${d.name}_nil.not(), ${d.name}.at(k).has.not())))`)
   const layout: Layout = {k: 'rec', fields: state.filter(v => !outputs.includes(v.name)).map(v => [v.name, {k: 'scalar', name: v.name}] as [string, Layout])}
+  if (g.now) g.notes.add('Go wall clock: UnixMilli and Unix projections use one millisecond request tick; multiple reads assume the step stays within that tick. General time.Time values and finer projections remain outside the subset.')
   const model: Model = {
     name: opts.entry, shape: 'class', file: pkg.files[0]?.name ?? 'go', entry: opts.entry,
     params: cparams, inputs: g.inputs, state, maps, init, writes, mapWrites, outputs, ...(lists.length ? {lists, listWrites} : {}),
@@ -799,7 +821,7 @@ function readGo1(pkg: GoPkg, o: GoOptions, go: Go): GoRead {
   // Unsigned inputs are naturals (the input's kind); a state variable's sort is the printer's to decide (a natural where
   // every write is proven one: a wrap by cases may not be, though it stays within the type, which its law says).
   const unsigned = [...g.ints].filter(([n, ty]) => { const [lo, hi] = rangeOf(ty); return lo === 0 && hi > 0 && (g.inputs.some(v => v.name === n) || cparams.some(v => v.name === n)) }).map(([n]) => n)
-  return {...(pkg.ctor ? {ctor: ctorArgs} : {}), ...(g.leftOut.size ? {leftOut: [...g.leftOut]} : {}), model, edges: g.edges, unsigned, leaves: go.leaves.filter(l => l.kind === 'frame' || state.some(v => v.name === l.name) || maps.some(d => d.name === l.name) || lists.some(d => d.name === l.name)), spans: [...g.spans.values()], entry: opts.entry, methods, ...(answers.length ? {answers} : {})}
+  return {...(g.now ? {clocks: [...go.clocks.values()]} : {}), ...(pkg.ctor ? {ctor: ctorArgs} : {}), ...(g.leftOut.size ? {leftOut: [...g.leftOut]} : {}), model, edges: g.edges, unsigned, leaves: go.leaves.filter(l => l.kind === 'frame' || state.some(v => v.name === l.name) || maps.some(d => d.name === l.name) || lists.some(d => d.name === l.name)), spans: [...g.spans.values()], entry: opts.entry, methods, ...(answers.length ? {answers} : {})}
 }
 function termOf(v: V | undefined, at: {p: string}): Term {
   // (none: a path that ends without the value, which a reader of malformed source may join in)

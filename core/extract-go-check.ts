@@ -29,6 +29,7 @@ type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) =>
 function harness(pkg: GoPkg, read: GoRead, m: Model, discard: boolean): {code: string, imports: Set<string>} {
   const T = (t: number): TT => pkg.ttab[t] ?? {k: 'invalid'}
   const imports = new Set(['bufio', 'encoding/json', 'fmt', 'os', 'reflect', 'strconv', 'math/big'])
+  if (read.clocks?.length) imports.add('time')
   const qual = (t: number) => { const x = T(t); if (x.pkg && !x.own && x.pkg !== '') imports.add(x.pkg) }
   const acc = (path: string[]) => `o.${path.join('.')}`
   const get: string[] = [], set: string[] = []
@@ -114,12 +115,17 @@ import (
 ${[...imports].sort().map(p => `\t${p.split('/')[0]!.includes('.') ? `${p.replace(/[^A-Za-z0-9]/g, '_').replace(/^/, 'gdp_')} ` : ''}${JSON.stringify(p)}`).join('\n')}
 )
 
+${read.clocks?.length ? `// Only the time source is substituted; Unix/UnixMilli run in Go unchanged.
+var gdpNow int64
+func gdpTimeNow(_ func() time.Time) time.Time { return time.UnixMilli(gdpNow) }
+` : ''}
 type gdpStep struct {
 	M string            \`json:"m"\`
 	A []json.RawMessage \`json:"a"\`
 }
 type gdpCmd struct {
 	Op    string                     \`json:"op"\`
+	Now int64 \`json:"now"\`
 	ID    int                        \`json:"id"\`
 	State map[string]json.RawMessage \`json:"state"\`
 	M     string                     \`json:"m"\`
@@ -274,7 +280,7 @@ func GdpHarnessMain(in, out string) {
 		case "get":
 			res = map[string]any{"state": gdpGet(objs[c.ID])}
 		case "call":
-			${read.answers?.length ? 'gdpAnswers = c.Answers\n\t\t\t' : ''}res = gdpRun(objs[c.ID], gdpStep{M: c.M, A: c.A})
+			${read.clocks?.length ? 'gdpNow = c.Now\n\t\t\t' : ''}${read.answers?.length ? 'gdpAnswers = c.Answers\n\t\t\t' : ''}res = gdpRun(objs[c.ID], gdpStep{M: c.M, A: c.A})
 		}
 		b, _ := json.Marshal(res)
 		wr.Write(b)
@@ -323,7 +329,18 @@ export function checkGo(dir: string, pkg: GoPkg, read: GoRead, r: Rule, sorts: S
     if (opts.keep) { fs.mkdirSync(opts.keep, {recursive: true}); fs.writeFileSync(`${opts.keep}/harness.go`, code) }
     // (each answered call rewritten to the harness's answer in a copy of its file, the build told by an overlay)
     const over: Record<string, string> = {}
-    for (const [f, t] of stubbed(read as never, f => fs.readFileSync(`${dir}/${f}`, 'utf8'), (a, _i, t) => `gdpAnswer[${a.ty}](${JSON.stringify(a.key)}, ${t.slice(0, t.indexOf('('))}, ${t.slice(t.indexOf('(') + 1)}`)) { const o = node<{resolve: (...p: string[]) => string}>('node:path').resolve(dir, f); fs.writeFileSync(`${work}/${f}`, t); over[o] = over[node<{realpathSync: (p: string) => string}>('node:fs').realpathSync(o)] = `${work}/${f}` }
+    const answers = read.answers ?? [], clocks = read.clocks ?? []
+    // Go positions count UTF-8 bytes; explicit stub spans count JS code units.
+    const byteSpan = (p: string, end: string): [number, number] => {
+      const m = /^(.*):(\d+):(\d+)$/.exec(p)!, lines = fs.readFileSync(`${dir}/${m[1]!}`, 'utf8').split('\n')
+      const offset = (line: number, column: number) => lines.slice(0, line - 1).reduce((n, s) => n + s.length + 1, 0) + new TextDecoder('utf-8', {fatal: true}).decode(new TextEncoder().encode(lines[line - 1]!).slice(0, column - 1)).length
+      const e = end.split(':').map(Number)
+      return [offset(Number(m[2]), Number(m[3])), offset(e[0]!, e[1]!)]
+    }
+    const clockSites = clocks.map(c => ({key: 'Go wall clock', at: [{p: c.p, span: byteSpan(c.p, c.end)}]}))
+    // A Unicode clock prefix also moves any answer later on the same line.
+    const answerSites = !clocks.length ? answers : answers.map(a => ({...a, at: a.at?.map(s => s.span || !s.end ? s : {...s, span: byteSpan(s.p, s.end)})}))
+    for (const [f, t] of stubbed({...read, answers: [...answerSites, ...clockSites]} as never, f => fs.readFileSync(`${dir}/${f}`, 'utf8'), (a, i, t) => i >= answers.length ? `gdpTimeNow(${clocks[i - answers.length]!.callee})` : `gdpAnswer[${a.ty}](${JSON.stringify(a.key)}, ${t.slice(0, t.indexOf('('))}, ${t.slice(t.indexOf('(') + 1)}`)) { const o = node<{resolve: (...p: string[]) => string}>('node:path').resolve(dir, f); fs.writeFileSync(`${work}/${f}`, t); over[o] = over[node<{realpathSync: (p: string) => string}>('node:fs').realpathSync(o)] = `${work}/${f}` }
     if (Object.keys(over).length) fs.writeFileSync(`${work}/overlay.json`, JSON.stringify({Replace: over}))
     // The harness's own package in -coverpkg too: the counters are written only where main is instrumented.
     // (a rewritten copy isn't instrumented with -cover, which reads the files as they are: no arms counted then)
@@ -426,6 +443,7 @@ export function speak(work: string, bin: string, env: Record<string, string | un
       return s
     }
     let coverage: Coverage | undefined
+    let now = 0
     const r0 = performance.now()
     const side: CodeSide = {
       // (a constructor's arguments, C++'s: the rule's parameters)
@@ -439,14 +457,14 @@ export function speak(work: string, bin: string, env: Record<string, string | un
           const v = args.pop() as Record<string, Raw>
           answers = Object.fromEntries(read.answers.map(a => { const x = v[a.inputs.name] ?? 0; if (a.fit && a.range && (Number(x) < a.range[0] || Number(x) > a.range[1])) throw new Outside(`${a.key} answers ${String(x)}, outside its type`); return [a.key, a.inputs.none && v[a.inputs.none] === true ? {none: true} : {in: x}] }))
         }
-        const res = ask({op: 'call', id: self, m: e.call, a: args, ...(answers ? {answers} : {})}) as {out?: unknown, hasOut?: boolean, err?: string, panic?: string, bad?: string, frame?: string}
+        const res = ask({op: 'call', id: self, m: e.call, now, a: args, ...(answers ? {answers} : {})}) as {out?: unknown, hasOut?: boolean, err?: string, panic?: string, bad?: string, frame?: string}
         if (res.frame) throw new Error(`the code changes ${res.frame}, a field the rule leaves out`)
         if (res.bad) return {ok: false, error: `the code can't be given it (${res.bad})`}
         if (res.err !== undefined || res.panic !== undefined) return {ok: false, error: res.err !== undefined ? `error: ${res.err}` : `panic: ${res.panic}`}
         return {ok: true, value: typeof res.out === 'string' && /^-?\d+$/.test(res.out) && m.results?.[e.call] && m.state.find(v => v.name === (m.results![e.call] as {name: string}).name)?.sort.k === 'num' ? Number(res.out) : res.out}
       },
       args: (inputs, e) => e.args.map(a => argJson(a, inputs)),
-      setNow: () => {},
+      setNow: n => { if (!Number.isSafeInteger(n)) throw new Outside('Go clock outside the exact integer range'); now = n },
       coverage: () => (coverage ??= closeAndCount()),
       input: (v, x, rand) => { const y = rand(8) === 0 ? x : fit(x, v.name, rand); return typeof y === 'number' && y < 0 && sorts.get(v.name) === 'nat' ? -y : y },
       drawSnap: rand => {
