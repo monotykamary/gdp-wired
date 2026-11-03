@@ -27,6 +27,7 @@
 // of the bar's own apps (`modal billing report`) between phases and every five minutes.
 import {closeSync, cpSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync} from 'node:fs'
 import {dirname, join, resolve} from 'node:path'
+import {acquireBarSlot, type BarSlot} from './bar-slots.ts'
 import {type Dev, type Obs, type Rows, type TaskCmp, VIEWS, compareTasks, differing, goalSig, goals, hash, inBand, keyOfCmd, predict, testTimes, devSet} from './bar-lib.ts'
 
 const VERSION = 1
@@ -36,7 +37,7 @@ const opt = (k: string, d = '') => { const i = argv.indexOf(`--${k}`); return i 
 const flag = (k: string) => argv.includes(`--${k}`)
 // --smoke: the bar itself end to end on each group's pilot tasks, the base launched together (nothing cached)
 const smoke = flag('smoke'), quick = flag('quick'), together = flag('together') || smoke, rivals = flag('rivals'), backend = opt('backend', 'boat')
-const nRuns = Number(opt('runs', '3')), nReruns = Number(opt('reruns', '3')), maxProcs = Number(opt('procs', '24'))
+const nRuns = Number(opt('runs', '3')), nReruns = Number(opt('reruns', '3')), maxProcs = Number(opt('procs', '6'))
 const budget = Number(opt('budget', 'Infinity'))  // (no cap unless asked: spend is reported, never a stop)
 if (!['modal', 'boat', 'auto'].includes(backend)) throw new Error('--backend modal | boat | auto')
 
@@ -54,7 +55,8 @@ const mkdir = (d: string) => mkdirSync(d, {recursive: true})
 const readJson = <T>(f: string): T => JSON.parse(readFileSync(f, 'utf8')) as T
 const writeJson = (f: string, x: unknown) => { mkdir(dirname(f)); writeFileSync(f, JSON.stringify(x, null, 1) + '\n') }
 
-let stopping = false
+let stopping = false, workStarted = false
+let barSlot: BarSlot | undefined, heartbeat: ReturnType<typeof setInterval> | undefined
 // a tree's runners' directory: supercomputer/, or modal/ in a tree from before the rename
 const sc = (tree: string) => existsSync(join(tree, 'supercomputer', 'run.py')) ? 'supercomputer' : 'modal'
 type Child = {pid: number, kill: (s: NodeJS.Signals) => void, what: string, cwd: string}
@@ -100,7 +102,7 @@ async function stopAll(why: string) {
   stopping = true
   log(`stopping ${live.size} launch(es): ${why}`)
   await Promise.all([...live.values()].map(stop))
-  reap()
+  if (workStarted) reap()
 }
 function reap() {
   for (const t of new Set([...treesUsed, HERE + '/..'])) {
@@ -111,7 +113,14 @@ function reap() {
   }
 }
 for (const s of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) process.on(s, () => { void stopAll(s).then(() => process.exit(130)) })
-process.on('exit', () => { for (const c of live.values()) try { c.kill('SIGINT') } catch { /* gone */ } declare(true) })
+function finishAdmission() {
+  if (heartbeat) clearInterval(heartbeat)
+  try { declare(true) } finally { barSlot?.release(); barSlot = undefined; workStarted = false }
+}
+process.on('exit', () => {
+  for (const c of live.values()) try { c.kill('SIGINT') } catch { /* gone */ }
+  finishAdmission()
+})
 // On boat, the bar declares the work it still has to launch (the supercomputer's demand): while it runs, the VMs its
 // launches release stay up for its next group (at most as many as it held at once lately, 10 minutes at most), and they
 // stop a minute after it ends. A tree whose supercomputer/boat.py isn't yet the door to the supercomputer tool gets this
@@ -122,11 +131,10 @@ const CLIENT = `bar-${process.pid}`
 // (and every launch is the supercomputer scheduler's class 2, a gate: it takes the treadmill's slots first)
 const SC_CONFIG: Record<string, string> = {SUPERCOMPUTER_CLASS: 'gate', ...(existsSync(join(HERE, '..', 'supercomputer.toml')) ? {SUPERCOMPUTER_CONFIG: resolve(HERE, '..', 'supercomputer.toml')} : {})}
 function declare(done = false) {
-  if (backend === 'modal') return
+  if (!workStarted || backend === 'modal') return
   Bun.spawnSync(['python3', join(HERE, '..', 'supercomputer', 'boat.py'), 'demand', CLIENT, ...(done ? ['--done'] : ['--for', '300', '--pid', String(process.pid)])], {stdout: 'ignore', stderr: 'ignore', env: {...process.env, ...SC_CONFIG}})
 }
-declare()
-if (backend !== 'modal') setInterval(declare, 120_000).unref()
+// Demand and its heartbeat start only after quick-bar admission in main().
 const overlaid = new Set<string>()
 const backendOf = (p: Pass) => {
   const b = p.backend ?? backend, d = join(p.tree.path, 'modal')
@@ -183,7 +191,13 @@ type Pass = {group: string, side: Side, tree: Tree, dir: string, tasks?: string[
 type Job = {name: string, cmd: string, cwd?: string, cpu?: number, memory?: number, timeout?: number, timing?: boolean}
 type Group = {key: string, views: string[], cap: number, launch: (p: Pass) => Promise<number>, pairAlways?: boolean, noRerun?: boolean, candOnly?: boolean, after?: string, inQuick: boolean}
 
-const py = (p: Pass, script: string, args: string[], cap: number) => run(['python3', script, '--backend', backendOf(p), '--out', p.dir, ...args], {cwd: p.tree.path, log: `${p.dir}.log`, cap})
+const py = (p: Pass, script: string, args: string[], cap: number, env?: Record<string, string>) => {
+  const b = backendOf(p)
+  // One driver per pass; each runner submits all of its shards in one starmap.
+  // Explicit boat does not need the Modal client's imports or interpreter re-exec.
+  const driver = b === 'boat' ? ['python3', join(HERE, 'boat-pass.py'), p.tree.path, join(p.tree.path, script)] : ['python3', script]
+  return run([...driver, '--backend', b, '--out', p.dir, ...args], {cwd: p.tree.path, log: `${p.dir}.log`, cap, env})
+}
 const listFile = (p: Pass, sep: string) => { const f = `${p.dir}.tasks`; writeFileSync(f, p.tasks!.join(sep)); return f }
 async function jobsPass(p: Pass, jobs: Job[], keyOf: (j: Job) => string, cap: number, extra: string[] = []) {
   const keep = p.tasks ? new Set(p.tasks) : undefined, js = keep ? jobs.filter(j => keep.has(keyOf(j))) : jobs
@@ -225,8 +239,8 @@ const GROUPS: Group[] = [
     writeJson(`${p.dir}.keys.json`, Object.fromEntries(jobs.map(j => [j.name, j.name])))
     const runner = join(p.tree.path, 'research/query/modal_query.py'), mine = join(HERE, '..', 'research/query/modal_query.py')
     if (!readFileSync(runner, 'utf8').includes('fanout.cli') && resolve(runner) !== resolve(mine)) cpSync(mine, runner)
-    return run(['python3', 'research/query/modal_query.py', '--backend', backendOf(p), '--jobs', `${p.dir}.jobs.json`, '--out', p.dir],
-      {cwd: p.tree.path, log: `${p.dir}.log`, env: {GDP_QUERY_BASE: join(BAR, 'none'), SUPERCOMPUTER_CLASS: 'gate'}, cap: 1200})
+    return py(p, 'research/query/modal_query.py', ['--jobs', `${p.dir}.jobs.json`], 1200,
+      {GDP_QUERY_BASE: join(BAR, 'none'), SUPERCOMPUTER_CLASS: 'gate'})
   }},
   {key: 'suite', views: ['suite'], cap: 2400, inQuick: false, launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, sc(p.tree.path), 'suite.json')), j => j.name, 2400)},
   {key: 'suite-usual', views: ['suite-usual'], cap: 2400, inQuick: false, after: 'suite', launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, sc(p.tree.path), 'suite.json')), j => j.name, 2400, ['--usual'])},
@@ -702,6 +716,12 @@ async function main() {
     console.log(`${dir}: billed $${spentBy(new Set(j.spend.apps), bills)} for its ${j.spend.apps.length} apps, $${spentBy(new Set(j.spend.baselineApps ?? []), bills)} for the baseline runs it made; the last hour reported starts ${bills.map(b => b.interval_start).sort().at(-1) ?? 'none'}Z`)
     return
   }
+  // No tree copy, demand process, pilot or pass may launch before admission.
+  // Read-only commands above and standalone supercomputer clients do not wait.
+  if (quick) barSlot = await acquireBarSlot({log})
+  workStarted = true
+  declare()
+  if (backend !== 'modal') heartbeat = setInterval(declare, 120_000).unref()
   const only = opt('only', '') ? opt('only').split(',') : undefined
   for (const k of only ?? []) if (!GROUPS.some(g => g.key === k)) throw new Error(`no group ${k}: ${GROUPS.map(g => g.key).join(', ')}`)
   const base = treeOf(opt('base', 'main'))
@@ -774,4 +794,4 @@ await main().catch(async (e: unknown) => {
   console.error(e)
   await stopAll('an error')
   process.exit(1)
-})
+}).finally(finishAdmission)

@@ -5,8 +5,10 @@ import {expect, test} from 'bun:test'
 import type {C, E, Law} from './machine.ts'
 import {type CNode, type Cyclic, type Fact, type Use, descentGoal, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
 import type {Goal, Tree} from '../kernel/kernel.ts'
-import {foldNodes, loopNodes, machineNodes, proveCyclic, recurNodes} from './cyclic.ts'
-import {grow, proveLaws} from '../kernel/prove.ts'
+import {certCyclic, foldNodes, loopNodes, machineNodes, proveCyclic, quietly, recurNodes, translatedProof} from './cyclic.ts'
+import {clock, counted, fullRate, grow, proveLaws, withDeadline, withWall} from '../kernel/prove.ts'
+import {forall, rule} from './dsl.ts'
+import {close, decide, readsFirst, tstats} from './translate.ts'
 import {foldObligations, loopObligations} from '../kernel/kernel.ts'
 import {mccarthy, mutual} from '../examples/cyclic.ts'
 import {counter, counterLaws, growing, retries, retryLaws} from '../examples/lemmas.ts'
@@ -15,6 +17,41 @@ import {euclid} from '../examples/cycles.ts'
 
 const proof = (e: ReturnType<typeof mccarthy>): Cyclic => { const r = proveCyclic(e.facts, e.specs); if (!r.proven || !r.checked) throw new Error('not proven'); return r.proof }
 const n: E = {op: 'var', name: 'n'}
+
+test('cyclic certification of a flipped symmetric relation respects the caller wall', () => {
+  const r = rule('flipped symmetry').sorts('N').relations({R: ['N', 'N']})
+    .step(({R}: any) => ({R: R.each((x: any, y: any) => R.has(y, x))}))
+  const law = r.law('symmetric', ({R}: any) => forall((x, y) => R.has(x, y).implies(R.has(y, x))))
+  const m = r.machine, usual = quietly(() => proveLaws(m, [law]))
+  expect(usual.proven && usual.checked).toBe(true)
+  const start = performance.now(), budget = 200
+  // Isolate certification: setup and the usual proof are outside its caller budget.
+  // The counted clock alone used to leave close() splitting long after withWall expired.
+  const out = withWall(start + budget, () => counted(fullRate, () => withDeadline(clock() + budget, () =>
+    certCyclic('machine', m.name, st => translatedProof(() => 'flipped symmetry regression',
+      () => machineNodes(m, [law], usual.proof!.instances, usual.proof!, st), st), undefined)), true))
+  expect(performance.now() - start).toBeLessThan(budget + 300)
+  expect(out.checked).toBe(false)
+}, 10_000)
+
+test('cyclic entry and recursive translation stop at a counted or wall deadline', () => {
+  const g: Goal = {name: 'expired', hyps: []}
+  const stopped = () => {
+    let called = false
+    const inner = () => { called = true; return undefined }
+    expect(certCyclic('test', 'expired', () => { called = true; return {} }, undefined).checked).toBe(false)
+    expect(decide(g, [], inner, tstats(), Infinity)).toBeUndefined()
+    expect(readsFirst(g, [], lin => lin, inner, tstats(), Infinity)).toBeUndefined()
+    expect(close(g, new Map(), tstats(), Infinity)).toBeUndefined()
+    expect(called).toBe(false)
+  }
+  counted(fullRate, () => withDeadline(clock() - 1, stopped), true)
+  withWall(performance.now() - 1, stopped)
+  // Cancellation is scoped, not sticky.
+  let called = false
+  certCyclic('test', 'restored', () => { called = true; return {} }, undefined)
+  expect(called).toBe(true)
+})
 
 test('nested and mutual inductions are proven; a false claim is not', () => {
   expect(refuseCyclic(proof(mccarthy()))).toBeUndefined()
