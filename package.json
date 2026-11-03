@@ -198,6 +198,7 @@
     "prepublishOnly": "bun scripts/build.ts",
     "smoke": "sh scripts/smoke.sh",
     "bar": "bun gates/bar.ts",
+    "test:bar": "bun test ./gates/bar.test.ts",
     "test": "bun scripts/test-shards.ts"
   },
   "devDependencies": {

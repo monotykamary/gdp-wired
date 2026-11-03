@@ -1,12 +1,23 @@
 // The builders (dsl.ts) against the hand-written machines of models.ts: the same verdicts, and the same runs step by
 // step through both runtimes; kinds encode and decode as declared; laws with forall, decisions and loops prove and
 // refute as they should; and what the types let through, the kernel's scope check still refuses.
-import {expect, test} from 'bun:test'
+import {expect, spyOn, test} from 'bun:test'
 import {type Machine, type State, interpret, search, seeded} from './machine.ts'
 import {admitFlagged, boundedLoss, capLaws, loss, windowCeiling, windowLimit} from './models.ts'
-import {proveLaws} from '../kernel/prove.ts'
+import {clock, proveLaws, queryHook} from '../kernel/prove.ts'
 import {wide} from '../examples/wide.ts'
 import {type DecisionEnv, type Rule, type Term, Cond, all, bool, count, forall, fun, loop, maybe, min, nat, oneOf, proveDecision, proveLoop, proveRule, proveSteps, relation, rule, upTo, when} from './dsl.ts'
+
+test('bounded non-witness preflight retains its ordinary clock', () => {
+  const time = spyOn(performance, 'now').mockReturnValue(987654321), old = queryHook.on
+  let first: number | undefined
+  queryHook.on = () => { first ??= clock() }
+  try {
+    const r = rule('non-witness preflight').inputs({}).state({n: 0}).step(({n}) => ({n}))
+    expect(proveRule(r, [r.law('zero', ({n}) => n.eq(0))], {search: {ms: 1000}})).toMatchObject({proven: true, checked: true})
+    expect(first).toBe(987654321)
+  } finally { queryHook.on = old; time.mockRestore() }
+})
 
 const rand = seeded(Number(process.env.FUZZ_SEED ?? 777))
 const cells = (st: State) => JSON.stringify(Object.fromEntries(Object.entries(st.maps).map(([n, m]) => [n, [...m.entries()].sort((a, b) => a[0] - b[0])])))

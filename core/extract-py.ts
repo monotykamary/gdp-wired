@@ -51,6 +51,8 @@ export type PyOptions = StepOptions & {
   root?: string,
   // The Python to run (the one with the code's dependencies installed); by default python3.
   python?: string,
+  // Django settings imported before the target module; tables are never created.
+  djangoSettings?: string,
 }
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
 const here = (f: string) => asset(`py/${f}`)
@@ -71,6 +73,6 @@ export function extractPython(at: string | FileURL, opts: PyOptions = {}): Extra
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
     throw e
   }
-  const harness = (): Harness => ({cmd: opts.python ?? 'python3', args: [here('harness.py')], env: {PYTHONDONTWRITEBYTECODE: '1'}, hello: {root: mod.root, path: mod.path, module: mod.module}})
+  const harness = (): Harness => ({cmd: opts.python ?? 'python3', args: [here('harness.py')], env: {PYTHONDONTWRITEBYTECODE: '1', ...(opts.djangoSettings ? {DJANGO_SETTINGS_MODULE: opts.djangoSettings} : {})}, hello: {root: mod.root, path: mod.path, module: mod.module}})
   return extractStep(mod, harness, opts)
 }

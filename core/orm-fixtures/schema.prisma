@@ -1,0 +1,5 @@
+model Account {
+  id String @id
+  amount Int
+  active Boolean
+}

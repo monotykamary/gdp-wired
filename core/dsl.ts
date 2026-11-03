@@ -24,7 +24,7 @@ import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
-import {inferLaws} from './infer.ts'
+import {inferLaws, inferRates} from './infer.ts'
 import {findBoundedRun} from './bmc.ts'
 import {conjunction, proveKInduction} from './kind.ts'
 import {cycleLemmas, findLeadsTo, findRank} from './cycles.ts'
@@ -2764,7 +2764,11 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
   // step goal of no_lost_keys' laws as given took 57 s of 60 choosing a witness term)
   // (an eighth where such a law binds several names: proveSome gives a ghost map to one bound name alone)
   const share = laws.some(l => (l.some?.length ?? 0) > 1 && l.forall) ? 8 : laws.some(l => l.some?.length && l.forall) ? 2 : 1
-  const out = ms === undefined ? given() : withWall(performance.now() + ms / share, given)
+  // Quantified witness preflight needs a counted allocation: a slow attempt must
+  // not seed different memoized decisions. Other laws keep their existing budget;
+  // inference's query rate is not calibrated for their whole-set preflight.
+  const out = ms === undefined ? given() : withWall(performance.now() + ms / share, () =>
+    share === 1 ? given() : counted(inferRates.work, () => withDeadline(clock() + ms / share, given)))
   const v: Verdict = {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   return searched(r, laws, [], v, opts)
 }
@@ -2937,15 +2941,19 @@ function searchedUntil(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: La
       const helpers = withKinds(target, [...fresh.map(f => f.law), ...keep])
       const drop = keep.filter(c => {
         if (clock() >= hUntil) return true
-        const end = Math.min(hUntil, clock() + 3_000)
-        if (!native) return !withDeadline(end, () => proveLaw(tm, ls, ls.indexOf(c))).proven
-        // A local provenance fact usually needs only itself. Prove that small
-        // obligation before instantiating all mutually dependent witnesses.
-        // The existing memo widens its actual trees in the final checked set.
-        if (round === 0 && withDeadline(Math.min(end, clock() + 500), () => proveSetFast(tm, [c])).proven) return false
-        const local = witnessSupport(tm, helpers, c, Object.keys(sk.maps))
-        if (withDeadline(Math.min(end, clock() + 1_000), () => proveLaw(tm, local, local.indexOf(c))).proven) return false
-        return !withDeadline(end, () => proveLaw(tm, ls, ls.indexOf(c))).proven
+        const budget = Math.min(3_000, hUntil - clock())
+        // Keep support selection deterministic on slow VMs, including native
+        // tuple supports. Nested counted searches retain their existing clock.
+        return counted(fullRate, () => {
+          const end = clock() + budget
+          if (!native) return !withDeadline(end, () => proveLaw(tm, ls, ls.indexOf(c))).proven
+          // Try local provenance before instantiating every witness. All three
+          // attempts share the same existing support-query allocation.
+          if (round === 0 && withDeadline(Math.min(end, clock() + 500), () => proveSetFast(tm, [c])).proven) return false
+          const local = witnessSupport(tm, helpers, c, Object.keys(sk.maps))
+          if (withDeadline(Math.min(end, clock() + 1_000), () => proveLaw(tm, local, local.indexOf(c))).proven) return false
+          return !withDeadline(end, () => proveLaw(tm, ls, ls.indexOf(c))).proven
+        }, true)
       })
       if (clock() >= hUntil) break
       if (knobs.GDP_EXISTS_LOG === '1') console.error(`exists: ghost supports round ${round}: ${keep.length} kept, ${drop.length} dropped: ${keep.map(c => c.name).join('; ').slice(0, 1500)}`)

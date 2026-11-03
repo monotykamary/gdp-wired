@@ -13,7 +13,7 @@ import {type C, type E, walk} from './machine.ts'
 import {type Lin, type Step, add, costs, env, refuteFast, scale, solve} from './solver.ts'
 import {checkRefutation} from './check.ts'
 import {type Goal, type Path, type Subst, type Tree, canon, canonFlip, columnTerm, factorsOf, isCell, isMonomial, leafConstraints, leafConstraintsReusing, linear, substE, truth, withProducts} from '../kernel/kernel.ts'
-import {cellProducts, clock, grow, leafRowsOf, parseKey, withinDeadline} from '../kernel/prove.ts'
+import {cellProducts, grow, late, leafRowsOf, parseKey, withinDeadline} from '../kernel/prove.ts'
 import {Reader, times} from '../kernel/reader.ts'
 
 // How the usual goal's names read in the node's: `s`, a substitution of its variables and maps (which builds the node's
@@ -24,7 +24,14 @@ const omega = 'O$'
 const debugOn = () => !!env.GDP_CYCLIC_DEBUG
 
 // A cell's key, from its name (`M[key]`, the key's canonical text, whose names may be cells themselves).
-const keyOf = (cell: string): Lin => parseKey(cell.slice(cell.indexOf('[') + 1, -1))
+const keyOf = (cell: string): Lin | undefined => {
+  const text = cell.slice(cell.indexOf('[') + 1, -1)
+  // The time encoding below is scalar. A tuple cell is not a linear key: parsing its
+  // separators as coefficients made NaN rows, on which elimination's gcd never ends.
+  if (text.startsWith('⟨')) return undefined
+  const key = parseKey(text)
+  return Object.values(key).every(Number.isFinite) ? key : undefined
+}
 
 // A linear form of the usual goal read in the node's, at the node's path: undefined where a column has no linear form
 // there (a product of a term column).
@@ -51,7 +58,7 @@ export function renamer(r: Rename): Renamer {
       return out
     }
     if (isCell(name)) {
-      const map = name.slice(0, name.indexOf('[')), key = lin(keyOf(name), wp)
+      const map = name.slice(0, name.indexOf('[')), original = keyOf(name), key = original && lin(original, wp)
       if (!key) return undefined
       const to = cells[map]
       if (!to) return {[`${map}[${canon(key)}]`]: 1}
@@ -127,11 +134,12 @@ function regrow(whole: Goal, wp: Path, until: number): Tree | undefined {
 export function translate(part: Goal, whole: Goal, tree: Tree, ren0: Renamer, st: TStats, until0: number, pp: Path = new Map(), wp: Path = new Map(), swaps: [string, string][] = []): Tree | undefined {
   // (within the deadline it runs in too: a certificate's translation, core/cyclic.ts's translateMs)
   const until = withinDeadline(until0)
+  if (late(until)) return undefined
   const ren: Renamer = swaps.length ? (lin, p) => {
     const out: Lin = {}
     for (const key in lin) {
       let to = key
-      if (isCell(key)) { const kt = canon(keyOf(key)), sw = swaps.find(x => x[0] === kt); if (sw) to = `${key.slice(0, key.indexOf('['))}[${sw[1]}]` }
+      if (isCell(key)) { const k = keyOf(key), sw = k && swaps.find(x => x[0] === canon(k)); if (sw) to = `${key.slice(0, key.indexOf('['))}[${sw[1]}]` }
       out[to] = (out[to] ?? 0) + lin[key]!
     }
     return ren0(out, p)
@@ -147,7 +155,7 @@ export function translate(part: Goal, whole: Goal, tree: Tree, ren0: Renamer, st
     return yes && no ? {split: wl, yes, no} : undefined
   }
   // (past its budget, no translation: each leaf reads the two goals' rows whole, counted, so a large tree's stops there)
-  if (clock() > until) return undefined
+  if (late(until)) return undefined
   // (the usual leaf's rows as its search kept them, where it did: kernel/prove.ts's leafRowsOf; else read again)
   const kept = !tree.products && !tree.squares ? leafRowsOf.get(tree) : undefined
   const rp = kept ? undefined : leafConstraintsReusing(part, pp), rw = rowsAt(whole, wp), at = new Map<string, number>()
@@ -164,7 +172,9 @@ export function translate(part: Goal, whole: Goal, tree: Tree, ren0: Renamer, st
     if (!pair) continue
     const a = ren({[pair[0]]: 1}, wp), b = ren({[pair[1]]: 1}, wp), [ca] = Object.keys(a ?? {}), [cb] = Object.keys(b ?? {})
     if (!ca || !cb || !isCell(ca) || !isCell(cb)) continue
-    const d = add(keyOf(ca), scale(keyOf(cb), -1)), q0: Lin = {}
+    const ak = keyOf(ca), bk = keyOf(cb)
+    if (!ak || !bk) continue
+    const d = add(ak, scale(bk, -1)), q0: Lin = {}
     if (!Object.keys(d).length || Object.keys(d).some(key => key === '1' || !factorsOf(key).includes(omega))) continue
     for (const key of Object.keys(d)) { const fs = [...factorsOf(key)]; fs.splice(fs.indexOf(omega), 1); q0[fs.length ? fs.join('*') : '1'] = (q0[fs.length ? fs.join('*') : '1'] ?? 0) + d[key]! }
     for (const [l, q] of [[d, q0], [scale(d, -1), scale(q0, -1)]] as const) {
@@ -196,6 +206,7 @@ export function translate(part: Goal, whole: Goal, tree: Tree, ren0: Renamer, st
 // side refuted by the product: `apart`), then `inner` with the usual cells at each W found equal read at its K.
 export type Reads = {k: E, w: E}[]
 export function readsFirst(whole: Goal, reads: Reads, ren: Renamer, inner: (wp: Path, swaps: [string, string][]) => Tree | undefined, st: TStats, until: number, wp: Path = new Map(), swaps: [string, string][] = []): Tree | undefined {
+  if (late(withinDeadline(until))) return undefined
   if (!reads.length) return inner(wp, swaps)
   const [r, ...rest] = reads, ku = linear(r!.k, new Map()), wu = linear(r!.w, new Map()), kl = ku && ren(ku, wp), wl = wu && ren(wu, wp)
   if (!ku || !wu || !kl || !wl) return readsFirst(whole, rest, ren, inner, st, until, wp, swaps)
@@ -220,6 +231,7 @@ export function readsFirst(whole: Goal, reads: Reads, ren: Renamer, inner: (wp: 
 // A path where l >= 1 (two cells' keys apart by l = q·Ω) while q <= 0 is a row: refuted by q·Ω <= 0, the product of
 // that row and Ω >= 0.
 function apart(whole: Goal, wp: Path, l: Lin, q: Lin, st: TStats, until: number): Tree | undefined {
+  if (late(withinDeadline(until))) return undefined
   const rows = rowsAt(whole, wp), find = (x: Lin) => { const c = canon(x); return rows.findIndex(r => canon(r.lin) === c) }
   const iq = find(q), io = find({[omega]: -1}), ia = find(add({1: 1}, scale(l, -1)))
   if (iq >= 0 && io >= 0 && ia >= 0) {
@@ -243,6 +255,7 @@ function atomsOf(c: C, wp: Path): Lin[] | undefined {
 // A tree for `whole` that first decides each condition true (a guard, the antecedent of a use's implication), each
 // other side grown on the goal (the node's hypotheses refute it), then `inner` at the path where all hold.
 export function decide(whole: Goal, conds: C[], inner: (wp: Path) => Tree | undefined, st: TStats, until: number, wp: Path = new Map()): Tree | undefined {
+  if (late(withinDeadline(until))) return undefined
   for (const [i, c] of conds.entries()) {
     if (truth(c, wp) === true) continue
     const atoms = atomsOf(c, wp)?.filter(l => known(l, wp) === undefined)
@@ -286,7 +299,9 @@ function cellAtom(g: Goal, wp: Path): Lin | undefined {
   let later: Lin | undefined
   for (const [i, p] of names.entries()) for (const q of names.slice(i + 1)) {
     if (p.slice(0, p.indexOf('[')) !== q.slice(0, q.indexOf('['))) continue
-    const d = add(keyOf(p), scale(keyOf(q), -1))
+    const pk = keyOf(p), qk = keyOf(q)
+    if (!pk || !qk) continue
+    const d = add(pk, scale(qk, -1))
     if (Object.keys(d).some(key => key !== '1' && isMonomial(key))) continue
     const column = Object.keys(d).some(key => key.includes('⟦'))
     for (const l of [d, scale(d, -1)]) if (Object.keys(l).some(key => key !== '1') && known(l, wp) === undefined) { if (!column) return l; later ??= l }
@@ -335,7 +350,9 @@ function omegaPair(g: Goal, wp: Path): {l: Lin, q?: Lin} | undefined {
   const rows = rowsAt(g, wp), names = [...new Set([...rows.flatMap(r => Object.keys(r.lin)), ...conclCells(g, wp)])].filter(isCell)
   for (const [i, p] of names.entries()) for (const q of names.slice(i + 1)) {
     if (p.slice(0, p.indexOf('[')) !== q.slice(0, q.indexOf('['))) continue
-    const d = add(keyOf(p), scale(keyOf(q), -1)), q0: Lin = {}
+    const pk = keyOf(p), qk = keyOf(q)
+    if (!pk || !qk) continue
+    const d = add(pk, scale(qk, -1)), q0: Lin = {}
     if (!Object.keys(d).length || Object.keys(d).some(key => key === '1' || !factorsOf(key).includes(omega))) continue
     for (const key of Object.keys(d)) { const fs = [...factorsOf(key)]; fs.splice(fs.indexOf(omega), 1); const f = fs.length ? fs.join('*') : '1'; q0[f] = (q0[f] ?? 0) + d[key]! }
     if (Object.keys(q0).some(key => key.includes('⟦'))) continue
@@ -350,10 +367,11 @@ function omegaPair(g: Goal, wp: Path): {l: Lin, q?: Lin} | undefined {
 // A case of `g` closed: refuted by its rows, else an open choice, two reads of a function or two cells over time split
 // (each then equal), else the goal grown at the path.
 export function close(g: Goal, wp: Path, st: TStats, until: number): Tree | undefined {
+  if (late(withinDeadline(until))) return undefined
   const l = leafAt(g, wp, true, st)
   if (l) return l
   const pick = choiceAtom(g, wp) ?? cellAtom(g, wp), om = pick ? undefined : omegaPair(g, wp), next = pick ?? om?.l
-  if (next && clock() < until) {
+  if (next && !late(withinDeadline(until))) {
     st.splits++
     const id = canon(next), y = close(g, new Map(wp).set(id, {lin: next, holds: true}), st, until)
     const no = new Map(wp).set(id, {lin: next, holds: false}), n = y && (om?.q ? apart(g, no, next, om.q, st, until) : close(g, no, st, until))
@@ -374,6 +392,7 @@ export function close(g: Goal, wp: Path, st: TStats, until: number): Tree | unde
 // `nUses`: the uses' hypotheses, just before the conclusion refuted (mainGoal's order).
 export function carry(g: Goal, nFacts: number, nUses: number, st: TStats, until0: number): Tree | undefined {
   const until = withinDeadline(until0)
+  if (late(until)) return undefined
   const last = g.hyps.length - 1, uses = g.hyps.slice(last - nUses, last), facts = g.hyps.slice(last - nUses - nFacts, last - nUses)
   const law = (g.hyps[last] as Extract<C, {op: 'not'}>).x
   const parts = uses.map(u => (u.op === 'or' && u.xs.length === 2 && u.xs[0]!.op === 'not' ? {guard: u.xs[0]!.x, concl: u.xs[1]!} : {guard: undefined, concl: u}))
@@ -400,7 +419,7 @@ export function carry(g: Goal, nFacts: number, nUses: number, st: TStats, until0
   }
   const leafOf = (wp: Path, solveIt: boolean) => leafAt(g, wp, solveIt, st), final = (wp: Path) => close(g, wp, st, until)
   const node = (wp: Path, guardsDone: boolean): Tree | undefined => {
-    if (clock() > until) return undefined
+    if (late(until)) return undefined
     // A hypothesis false at the path: the law at t holds there, or a law it is carried from (its guard true) fails.
     if (truth(law, wp) === true || parts.some(p => (p.guard === undefined || truth(p.guard, wp) === true) && truth(p.concl, wp) === false)) return final(wp)
     let next: Lin | undefined

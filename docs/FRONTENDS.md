@@ -150,6 +150,12 @@ the laws from its comments. The contract is the same in every language:
   document (`core/relational.ts`'s `certify`), checked as it is written. `gdp-wired-check` checks it again with
   nothing but the kernel (`interchange/cli.ts`; [interchange.md](interchange.md)).
 
+## ORM-backed handlers
+
+[ORM-backed handlers](ORM.md) documents the explicit Django, SQLAlchemy, Prisma and TypeORM subset,
+its persistence boundary, configuration, and refusals. Their tables use the shared map state and `gdp: env`
+isolation model; the check executes the original handlers with in-memory persistence substitutes.
+
 ## Worked example: Python
 
 | Piece | File | Notes |
