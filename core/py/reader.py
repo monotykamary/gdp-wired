@@ -9,7 +9,7 @@ import ast, builtins, contextlib, importlib, io, json, os, sys, types
 
 BUILTINS = {'min', 'max', 'abs', 'len', 'int', 'float', 'bool', 'str', 'isinstance', 'round', 'sum', 'any', 'all', 'print', 'repr', 'getattr', 'setattr', 'hasattr', 'type', 'list', 'dict', 'set', 'tuple', 'sorted', 'range', 'zip', 'enumerate'}
 # Library functions the executor knows (their meaning, not their code).
-KNOWN = {'time.time', 'time.monotonic', 'time.perf_counter', 'datetime.datetime.now', 'datetime.timedelta', 'math.floor', 'math.ceil', 'math.isfinite', 'math.isnan', 'math.isinf', 'threading.Lock', 'threading.RLock', 'asyncio.Lock'}
+KNOWN = {'time.time', 'time.monotonic', 'time.perf_counter', 'datetime.datetime.now', 'datetime.timedelta', 'dateutil.relativedelta.relativedelta', 'math.floor', 'math.ceil', 'math.isfinite', 'math.isnan', 'math.isinf', 'threading.Lock', 'threading.RLock', 'asyncio.Lock'}
 # The heads of a subscripted type an alias may stand for (`Mode = Literal[...]`).
 TYPE_HEADS = {'Literal', 'Optional', 'Union', 'Final', 'Annotated', 'dict', 'Dict', 'Mapping', 'MutableMapping', 'defaultdict', 'OrderedDict', 'list', 'List', 'Sequence',
               'set', 'Set', 'frozenset', 'FrozenSet', 'AbstractSet', 'MutableSet'}
@@ -179,6 +179,80 @@ class Reader:
     imp = m.imports.get(name)
     if imp and imp[0] == 'name': return self.ret_of(imp[1], imp[2], depth + 1)
     return None
+  def qualified(self, mod, node):
+    n = dotted(node)
+    if not n: return ''
+    h, *tail = n.split('.')
+    imp = mod.imports.get(h)
+    if not imp: return n
+    return '.'.join(([imp[1], imp[2]] if imp[0] == 'name' else [imp[1]]) + tail)
+  def orm_kind(self, mod, cdef, seen=None):
+    seen = set() if seen is None else seen
+    tag = (mod.name, cdef.name)
+    if tag in seen: return None
+    seen.add(tag)
+    for b in cdef.bases:
+      q = self.qualified(mod, b)
+      if q == 'django.db.models.Model': return 'django'
+      if q in ('sqlalchemy.orm.DeclarativeBase', 'sqlalchemy.orm.decl_api.DeclarativeBase'): return 'sqlalchemy'
+      name = dotted(b)
+      v = mod.consts.get(name)
+      if isinstance(v, ast.Call) and self.qualified(mod, v.func) in ('sqlalchemy.orm.declarative_base', 'sqlalchemy.ext.declarative.declarative_base'): return 'sqlalchemy'
+      hit = self.find_class(mod, name) if name else None
+      if hit:
+        k = self.orm_kind(*hit, seen)
+        if k: return k
+    return None
+  def orm_base_safe(self, mod, base, framework, seen=None):
+    """Admit only framework bases and empty declarative scaffolding, never a mixin/MRO we omit."""
+    q = self.qualified(mod, base)
+    if framework == 'django': return q == 'django.db.models.Model'
+    if q in ('sqlalchemy.orm.DeclarativeBase', 'sqlalchemy.orm.decl_api.DeclarativeBase'): return True
+    name = dotted(base)
+    v = mod.consts.get(name)
+    if isinstance(v, ast.Call) and self.qualified(mod, v.func) in ('sqlalchemy.orm.declarative_base', 'sqlalchemy.ext.declarative.declarative_base'):
+      return not v.args and not v.keywords
+    hit = self.find_class(mod, name) if name else None
+    if not hit: return False
+    bm, cls = hit
+    seen = set() if seen is None else seen
+    key = (bm.name, cls.name)
+    if key in seen or cls.decorator_list or cls.keywords: return False
+    seen.add(key)
+    for n in cls.body:
+      if isinstance(n, ast.Pass) or (isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant) and isinstance(n.value.value, str)): continue
+      if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name) and n.targets[0].id == '__abstract__' and isinstance(n.value, ast.Constant) and n.value.value is True: continue
+      return False
+    return bool(cls.bases) and all(self.orm_base_safe(bm, b, framework, seen) for b in cls.bases)
+  def orm_field(self, node, mod, framework):
+    target = node.targets[0] if isinstance(node, ast.Assign) and len(node.targets) == 1 else node.target if isinstance(node, ast.AnnAssign) else None
+    if not isinstance(target, ast.Name) or not isinstance(node.value, ast.Call): return None
+    call = node.value; q = self.qualified(mod, call.func)
+    kw = {k.arg: k.value for k in call.keywords}
+    true = lambda n: isinstance(kw.get(n), ast.Constant) and kw[n].value is True
+    if framework == 'django':
+      if not q.startswith('django.db.models.'): return None
+      kind = q.rsplit('.', 1)[-1]
+      types = {'AutoField': 'int', 'BigAutoField': 'int', 'SmallAutoField': 'int', 'IntegerField': 'int', 'BigIntegerField': 'int', 'SmallIntegerField': 'int', 'PositiveIntegerField': 'int', 'PositiveSmallIntegerField': 'int', 'PositiveBigIntegerField': 'int', 'BooleanField': 'bool', 'CharField': 'str', 'TextField': 'str'}
+      t = {'k': types[kind]} if kind in types else {'k': 'opaque', 'why': 'ORM field ' + q + ' is outside the subset'}
+      if kind == 'DateTimeField': t = {'k': 'int', 'unit': 'datetime-utc'}
+      nullable = true('null')
+    elif q in ('sqlalchemy.Column', 'sqlalchemy.orm.mapped_column'):
+      ty = next((a for a in call.args if not isinstance(a, ast.Constant)), None)
+      tq = self.qualified(mod, ty.func if isinstance(ty, ast.Call) else ty)
+      types = {'Integer': 'int', 'BigInteger': 'int', 'SmallInteger': 'int', 'Boolean': 'bool', 'String': 'str', 'Text': 'str'}
+      kind = tq.rsplit('.', 1)[-1]
+      t = {'k': types[kind]} if tq.startswith('sqlalchemy.') and kind in types else None
+      ann = node.annotation if isinstance(node, ast.AnnAssign) else None
+      if t is None and q == 'sqlalchemy.orm.mapped_column' and isinstance(ann, ast.Subscript) and self.qualified(mod, ann.value) == 'sqlalchemy.orm.Mapped': t = self.ty(ann.slice, mod)
+      if tq == 'sqlalchemy.DateTime':
+        aware = isinstance(ty, ast.Call) and any(k.arg == 'timezone' and isinstance(k.value, ast.Constant) and k.value.value is True for k in ty.keywords)
+        t = {'k': 'int', 'unit': 'datetime-utc' if aware else 'datetime-naive'}
+      t = t or {'k': 'opaque', 'why': 'ORM column ' + (tq or q) + ' is outside the subset'}
+      nullable = true('nullable') or ('nullable' not in kw and q == 'sqlalchemy.Column' and not true('primary_key'))
+    else: return None
+    if nullable and t['k'] != 'opt': t = {'k': 'opt', 'of': t}
+    return {'name': target.id, 't': t, 'primary': true('primary_key')}
   def rec_of(self, mod, cdef, base=False):
     """A class as a record type: its fields (annotations, its bases' first), its methods (to resolve calls). A class
     of the file, or a base of one (another module's too: its methods are the class's own), has its methods read."""
@@ -189,8 +263,10 @@ class Reader:
     self.defs[q] = (mod, cdef)
     self.recs[q] = None  # (being read)
     fields, methods, bases, kinds, rets = [], {}, [], set(), {}
+    orm = self.orm_kind(mod, cdef)
     for b in cdef.bases:
       bn = dotted(b.value if isinstance(b, ast.Subscript) else b)
+      if orm: continue  # ORM inheritance is schema, never an ordinary constructor.
       if bn in ('TypedDict', 'typing.TypedDict', 'typing_extensions.TypedDict'): kinds.add('typeddict'); continue
       if bn in ('BaseModel', 'pydantic.BaseModel'): kinds.add('pydantic'); continue
       if bn in ('Protocol', 'typing.Protocol', 'ABC', 'abc.ABC'): kinds.add('protocol'); continue
@@ -234,7 +310,10 @@ class Reader:
       # (a class attribute set to a constant, PREFIX = None, LOCK_PERIOD = 5: read through self as that constant)
       if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name) and isinstance(n.value, ast.Constant) and isinstance(n.value.value, (int, float, str, bool, type(None))) and not isinstance(n.value.value, bytes):
         cattrs[n.targets[0].id] = n.value.value
-      if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name):
+      of = self.orm_field(n, mod, orm) if orm else None
+      if of:
+        fields = [g for g in fields if g['name'] != of['name']] + [of]
+      if not of and isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name):
         ann = n.annotation
         if dotted(ann.value if isinstance(ann, ast.Subscript) else ann) in ('ClassVar', 'typing.ClassVar'): continue
         f = {'name': n.target.id, 't': self.ty(ann, mod)}
@@ -254,6 +333,16 @@ class Reader:
     r = {'name': q, 'short': cdef.name, 'fields': fields, 'methods': methods, 'bases': bases, 'p': where(mod.path, cdef), 'cattrs': cattrs,
          'kinds': sorted(kinds | ({'dataclass'} if dataclass else set()) | ({'frozen'} if frozen else set()) | (set() if total else {'partial'})),
          'own': mod.path == self.file, 'module': mod.name, **({'rets': rets} if rets else {})}
+    if orm:
+      keys = [f['name'] for f in fields if f.pop('primary', False)]
+      if not keys and orm == 'django':
+        keys = ['id']; fields.insert(0, {'name': 'id', 't': {'k': 'int'}})
+      why = '' if len(keys) == 1 else 'ORM requires one explicit primary key'
+      if any(not self.orm_base_safe(mod, b, orm) for b in cdef.bases): why = 'inherited ORM schema or behavior is outside the table boundary'
+      if cdef.decorator_list or cdef.keywords: why = 'decorated ORM classes or custom metaclasses are outside the table boundary'
+      if any(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and (n.decorator_list or n.name.startswith('__')) for n in cdef.body): why = 'decorated ORM methods or custom magic methods are outside the table boundary'
+      if any(isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'objects' for t in n.targets) for n in cdef.body): why = 'custom ORM managers are outside the table boundary'
+      r['orm'] = {'framework': orm, 'key': keys[0] if len(keys) == 1 else '', 'why': why}
     self.recs[q] = r
     return q
   def ty(self, a, mod):
@@ -281,6 +370,7 @@ class Reader:
       if head in ('set', 'Set', 'frozenset', 'FrozenSet', 'AbstractSet', 'MutableSet') and len(args) == 1: return {'k': 'map', 'key': self.ty(args[0], mod), 'val': {'k': 'none'}, 'set': True, 'py': head}
       return {'k': 'opaque', 'why': f"{text(a)}"}
     n = dotted(a)
+    if self.qualified(mod, a) == 'sqlalchemy.orm.Session': return {'k': 'opaque', 'why': '$orm-session'}
     if n in ('int',): return {'k': 'int'}
     if n in ('float',): return {'k': 'float'}
     if n in ('bool',): return {'k': 'bool'}
@@ -553,6 +643,8 @@ class Reader:
     if isinstance(x, ast.Attribute):
       d = dotted(x)
       base = d.split('.')[0] if d else None
+      q = self.qualified(mod, x)
+      if q in KNOWN and not (self.local_stack and base in self.local_stack[-1]): return {'e': 'lib', 'q': q, 'p': p}
       # (a literal constant of another module of the repository, `boat.BRING_UP`: its value, as the module's own
       # constants are read; what the module is set to at import, the check importing it as it ships)
       lit = self.module_const(mod, x) if d and base in mod.imports and not (self.local_stack and base in self.local_stack[-1]) else None
