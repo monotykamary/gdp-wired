@@ -33,6 +33,9 @@ dependencies installed. `python` selects an interpreter; `djangoSettings` (or th
   `relativedelta` supports named fixed durations (days, weeks, hours, minutes, seconds, milliseconds), not calendar
   months/years or absolute replacements. Mixing naive and aware datetime ordering is refused.
 
+Query refusals identify the schema's primary-key name and supplied filter fields. This is diagnostic only:
+dropping extra filters is not generally behavior-preserving.
+
 Non-primary-key scans, composite keys, foreign-key traversal, inherited table schemas, custom managers and custom
 persistence overrides are refused. Decorated model classes/methods, custom magic methods and cross-session row
 transfers also refuse, except that plain one-argument `__str__` and `__repr__` methods may coexist with selected
