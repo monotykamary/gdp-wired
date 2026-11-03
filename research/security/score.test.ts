@@ -1,6 +1,7 @@
 import './fixed-family.test.ts'
 import './policy-identity.test.ts'
 import './constructor-argument.test.ts'
+import './call-order.test.ts'
 import {expect, test} from 'bun:test'
 import {spawnSync} from 'node:child_process'
 import {createHash} from 'node:crypto'

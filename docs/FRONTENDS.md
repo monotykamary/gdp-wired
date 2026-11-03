@@ -93,8 +93,14 @@ it. This is not general alias, trait or import resolution.
 
 Unqualified Rust calls resolved to a fixed source function materialize each argument after its own
 prelude and before the next argument. This preserves cross-argument reads and early failures.
-Local callable values, indirect calls and ordinary method calls retain their existing lowering;
-this does not claim general call or receiver evaluation-order coverage.
+Local callable values, indirect calls and methods outside the direct-field cases below retain their existing
+lowering; this does not claim general call or receiver evaluation-order coverage.
+
+Direct primitive-integer state-field `min`/`max` receivers are captured before their arguments.
+Direct helper fields with a unique borrowed, nongeneric inherent method in the same source file/module
+also capture the receiver identity, then materialize each argument after its own prelude. Computed or
+side-effectful receivers, indirect callees, trait methods and generic dispatch do not enter this shortcut;
+existing native mismatch and unsupported-source refusals remain outside this bounded increment.
 
 Rust lifetime parameters alone do not make a struct declaration or method/free-function signature
 value-generic. Type and const parameters on those declarations and signatures remain flagged as generic

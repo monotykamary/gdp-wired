@@ -329,6 +329,85 @@ for (const [name, initial, body, expected] of [
   expect(r.decode(runtime.step(params, runtime.init(params), r.encodeInput({})))).toMatchObject(expected)
 }, 300_000)
 
+t('Rust method sequencing: direct primitive extrema capture the receiver first', () => {
+  for (const [method, arg] of [['max', 0], ['min', 10]] as const) {
+    const dir = genericCrate(`pub struct Meter { value:u32, seen:u32 }
+      impl Meter {
+        pub fn new()->Self { Self {value:7, seen:0} }
+        pub fn take(&mut self) {
+          self.value = self.seen.${method}({ self.seen = self.seen.wrapping_add(1); ${arg} });
+        }
+      }`)
+    const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+    const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+    expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({})))).toMatchObject({value:0, seen:1})
+  }
+}, 300_000)
+
+t('Rust method sequencing: fixed borrowed helper preserves argument order and receiver identity', () => {
+  for (const [initial, mutable, args, expected] of [
+    [7, false, 'self.seen, 0', {value:0, seen:0, helper_bias:0}],
+    [7, false, 'self.seen, { self.seen = self.seen.wrapping_add(1); 0 }', {value:0, seen:1, helper_bias:0}],
+    [7, false, '{ self.seen = self.seen.wrapping_add(1); self.seen }, { self.seen = self.seen.wrapping_add(1); 0 }', {value:1, seen:2, helper_bias:0}],
+    [4_294_967_295, false, 'self.value + 1u32, { self.seen = self.seen.wrapping_add(1); 0 }', {value:4_294_967_295, seen:0, helper_bias:0, failed:true}],
+    [7, true, 'self.seen, { self.seen = self.seen.wrapping_add(1); 0 }', {value:1, seen:1, helper_bias:1}],
+  ] as const) {
+    const dir = genericCrate(`pub struct Helper {bias:u32}
+      impl Helper { pub fn first(&${mutable ? 'mut ' : ''}self, a:u32, _b:u32)->u32 {
+        ${mutable ? 'self.bias = self.bias.wrapping_add(1);' : ''} a.wrapping_add(self.bias)
+      } }
+      pub struct Meter {value:u32, seen:u32, helper:Helper}
+      impl Meter {
+        pub fn new()->Self { Self {value:${initial}, seen:0, helper:Helper {bias:0}} }
+        pub fn take(&mut self) { self.value = self.helper.first(${args}); }
+      }`)
+    const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+    const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({}), input = r.encodeInput({})
+    const first = rt.step(p, rt.init(p), input)
+    expect(r.decode(first)).toMatchObject(expected)
+    if (mutable) expect(r.decode(rt.step(p, first, input))).toMatchObject({value:3, seen:2, helper_bias:2})
+  }
+}, 300_000)
+
+t('Rust method sequencing: computed receivers and indirect callees keep native mismatch refusals', () => {
+  for (const [initial, body] of [
+    [4_294_967_295, 'self.value = (self.value + 1u32).max({ self.seen = self.seen.wrapping_add(1); 0 });'],
+    [7, 'self.value = ({ self.seen = self.seen.wrapping_add(1); self.seen }).max({ self.seen = self.seen.wrapping_add(1); 0 });'],
+    [7, 'self.value = ({ self.seen = self.seen.wrapping_add(1); first })({ self.seen = self.seen.wrapping_mul(2); self.seen }, 0);'],
+  ] as const) {
+    const dir = genericCrate(`fn first(a:u32, _b:u32)->u32 { a }
+      pub struct Meter {value:u32, seen:u32}
+      impl Meter {
+        pub fn new()->Self { Self {value:${initial}, seen:0} }
+        pub fn take(&mut self) { ${body} }
+      }`)
+    const x = extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'})
+    expect(x.ok).toBe(false)
+    expect(x.evidence?.mismatch).toContain('the code')
+  }
+}, 300_000)
+
+t('Rust method sequencing: trait and generic helper dispatch do not enter the shortcut', () => {
+  for (const generic of [false, true]) {
+    const dir = genericCrate(`pub struct Helper {bias:u32}
+      ${generic ? '' : 'trait Choose { fn first(&self, a:u32, b:u32)->u32; }'}
+      impl ${generic ? '' : 'Choose for '}Helper {
+        fn first${generic ? '<T>' : ''}(&self, a:u32, _b:u32)->u32 { a.wrapping_add(self.bias) }
+      }
+      pub struct Meter {value:u32, seen:u32, helper:Helper}
+      impl Meter {
+        pub fn new()->Self { Self {value:7, seen:0, helper:Helper {bias:0}} }
+        pub fn take(&mut self) {
+          self.value = self.helper.first${generic ? '::<u32>' : ''}(self.seen, { self.seen = self.seen.wrapping_add(1); 0 });
+        }
+      }`)
+    const x = extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'})
+    expect(x.ok).toBe(false)
+    if (generic) expect(x.refusals.map(r => r.what).join('; ')).toContain('generic')
+    else expect(x.evidence?.mismatch).toContain('the code')
+  }
+}, 300_000)
+
 type X = ReturnType<typeof extractRust>
 const ok = (x: X) => {
   if (!x.ok) throw new Error(`refused: ${JSON.stringify(x.refusals)}\n${x.source ?? ''}\n${JSON.stringify(x.evidence)}`)
