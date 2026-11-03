@@ -34,6 +34,39 @@ function ownedNativeRow(result: OwnedNativeObservation, expectedSteps: number): 
   return [match[1]!, match[2]!, match[3]!, match[4]!]
 }
 
+type OwnedReplayIdentity = Readonly<{
+  sourceSha256: string, entry: 'OwnedOrder', ctor: '()', constructorArguments: readonly [],
+  policyName: string, policyExpr: string, calls: readonly OwnedCall[]
+}>
+// A trusted fixture-runner label, not source authenticity or a production receipt API.
+function ownedReplayIdentity(sourceSha256: string, policy: {name: string, expr: string}, calls: readonly OwnedCall[]): OwnedReplayIdentity {
+  return Object.freeze({sourceSha256, entry: 'OwnedOrder', ctor: '()', constructorArguments: Object.freeze([] as const),
+    policyName: policy.name, policyExpr: policy.expr, calls: Object.freeze([...calls])})
+}
+function ownedIdentityKey(value: OwnedReplayIdentity): string {
+  return JSON.stringify([value.sourceSha256, value.entry, value.ctor, value.constructorArguments, value.policyName, value.policyExpr, value.calls])
+}
+function ownedAssociatedRow(result: OwnedNativeObservation, actual: OwnedReplayIdentity, expected: OwnedReplayIdentity): readonly [string, string, string, string] {
+  const row = ownedNativeRow(result, expected.calls.length)
+  if (ownedIdentityKey(actual) !== ownedIdentityKey(expected)) throw Error('owned replay source or invocation mismatch')
+  return row
+}
+
+test('owned association snapshots identity without bypassing raw result guards', () => {
+  const calls: OwnedCall[] = ['arm', 'hit']
+  const identity = ownedReplayIdentity('0'.repeat(64), {name: 'no value writes', expr: 'value == old(value)'}, calls)
+  calls.reverse()
+  expect(identity.calls).toEqual(['arm', 'hit'])
+  expect(Object.isFrozen(identity)).toBe(true)
+  expect(Object.isFrozen(identity.calls)).toBe(true)
+  const good = {status: 0, signal: null, stdout: 'false:0:2:true\n'}
+  expect(ownedAssociatedRow(good, identity, identity)).toEqual(['false', '0', '2', 'true'])
+  for (const patch of [{status: 7}, {status: null}, {signal: 'SIGTERM'}, {error: new Error('owned failed process')},
+    {stdout: 'false:0:2:true\nfalse:0:2:true\n'}, {stdout: 'false:0:2:'}, {stdout: 'false:0:1:true\n'}]) {
+    expect(() => ownedAssociatedRow({...good, ...patch}, identity, identity)).toThrow()
+  }
+})
+
 test('owned native rows reject inconsistent process or output fields', () => {
   const good = {status: 0, signal: null, stdout: 'false:0:1:true\n'}
   expect(ownedNativeRow(good, 1)).toEqual(['false', '0', '1', 'true'])
@@ -103,6 +136,7 @@ nativeTest('owned multi-call witness order changes the native policy outcome', a
   const hashes = sources.map(text => createHash('sha256').update(text).digest('hex'))
   const results: Awaited<ReturnType<typeof check>>[] = []
   const controls: {version: string, scenario: string, calls: string[], broken: boolean, value: number, steps: number, finalArmed: boolean, sourceSha256: string}[] = []
+  const nativeReplays: {expected: OwnedReplayIdentity, actual: OwnedReplayIdentity, observation: OwnedNativeObservation}[] = []
   try {
     for (const [i, version] of versions.entries()) {
       const dir = join(root, version)
@@ -132,10 +166,15 @@ nativeTest('owned multi-call witness order changes the native policy outcome', a
     expect(reordered).not.toEqual(exact)
     const scenarios = [{kind: 'exact', calls: exact}, {kind: 'reordered', calls: reordered}]
     for (const [i, version] of versions.entries()) for (const scenario of scenarios) {
-      const native = replayOwnedTrace(scenario.calls.map(call => call + '()'), calls =>
-        spawnSync('java', ['-cp', join(root, version), 'ReplayOrder', ...calls], {encoding: 'utf8', timeout: 10_000}))
+      const expected = ownedReplayIdentity(hashes[i]!, law, scenario.calls)
+      const replay = replayOwnedTrace(scenario.calls.map(call => call + '()'), calls => {
+        const bytes = readFileSync(join(root, version, 'OwnedOrder.java'), 'utf8')
+        const actual = ownedReplayIdentity(createHash('sha256').update(bytes).digest('hex'), results[i]!.rules[0]!.laws[0]!, calls)
+        return {actual, observation: spawnSync('java', ['-cp', join(root, version), 'ReplayOrder', ...calls], {encoding: 'utf8', timeout: 10_000})}
+      })
+      const native = replay.observation
       expect(native.status, native.stderr).toBe(0)
-      const [bad, value, steps, armed] = ownedNativeRow(native, scenario.calls.length)
+      const [bad, value, steps, armed] = ownedAssociatedRow(native, replay.actual, expected)
       expect(['true', 'false']).toContain(bad ?? '')
       const firstArm = scenario.calls.indexOf('arm')
       const expectedValue = i === 0 ? scenario.calls.filter((call, j) => call === 'hit' && j > firstArm).length : 0
@@ -147,8 +186,37 @@ nativeTest('owned multi-call witness order changes the native policy outcome', a
       expect(bytes).toBe(sources[i]!)
       const sourceSha256 = createHash('sha256').update(bytes).digest('hex')
       expect(sourceSha256).toBe(hashes[i]!)
+      nativeReplays.push({expected, ...replay})
       controls.push({version, scenario: scenario.kind, calls: scenario.calls, broken: bad === 'true', value: Number(value), steps: Number(steps), finalArmed: armed === 'true', sourceSha256})
     }
+    const originalReordered = nativeReplays[1]!, repairedExact = nativeReplays[2]!, repairedReordered = nativeReplays[3]!
+    expect(repairedExact.observation.stdout).toBe(repairedReordered.observation.stdout)
+    expect(originalReordered.observation.stdout).toBe(repairedReordered.observation.stdout)
+    expect(originalReordered.actual.sourceSha256).not.toBe(repairedReordered.actual.sourceSha256)
+    expect(repairedExact.actual.calls).not.toEqual(repairedReordered.actual.calls)
+    expect({...originalReordered.actual, sourceSha256: repairedReordered.actual.sourceSha256}).toEqual(repairedReordered.expected)
+    expect({...repairedReordered.actual, calls: repairedExact.actual.calls}).toEqual(repairedExact.expected)
+    let collected = 0
+    const collect = (expected: OwnedReplayIdentity, replay: typeof nativeReplays[number]) => {
+      const row = ownedAssociatedRow(replay.observation, replay.actual, expected)
+      collected++
+      return row
+    }
+    for (const replay of [repairedExact, repairedReordered]) {
+      expect(collect(replay.expected, replay)).toEqual(['false', '0', String(exact.length), 'true'])
+    }
+    expect(collected).toBe(2)
+    const mismatches = [
+      {kind: 'source', expected: repairedReordered.expected, replay: originalReordered},
+      {kind: 'order', expected: repairedExact.expected, replay: repairedReordered},
+    ]
+    for (const mismatch of mismatches) {
+      expect(() => collect(mismatch.expected, mismatch.replay)).toThrow('owned replay source or invocation mismatch')
+      expect(collected).toBe(2)
+    }
+    console.log('OWNED_REPLAY_ASSOCIATION ' + JSON.stringify({scope: 'trusted fixture-runner source/invocation consistency only; not authenticity, freshness or lifecycle',
+      matching: 2, collected, mismatches: mismatches.map(({kind, expected, replay}) => ({kind, expected, actual: replay.actual,
+        status: replay.observation.status, signal: replay.observation.signal, stdout: replay.observation.stdout}))}))
     expect(controls[0]!.broken).toBe(true)
     expect(controls[1]!.broken).toBe(false)
     expect(controls[0]!.sourceSha256).toBe(controls[1]!.sourceSha256)
