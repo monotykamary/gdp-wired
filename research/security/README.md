@@ -120,6 +120,10 @@ a weakened law, and the genuine repair. Exact frontend policy names and expressi
 must match the original contract; native replay judges that original contract even
 when a variant declares a weaker one. These controls use the existing score-test shard.
 
+The same source-control module covers repeated policy names, including identical and
+conflicting expressions in both declaration orders. Ambiguous declarations stay unread
+rather than selecting a favorable proof; native execution alone does not clear ambiguity.
+
 ## Measured coverage
 
 The complete-corpus baseline on 2026-11-03 is tree `7db037f` (main `927a521`): **18 published,
