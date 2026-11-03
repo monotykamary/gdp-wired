@@ -4,6 +4,7 @@
 // discriminant, an atomic's fetch_add, and the refusals (a loop, a map in the state). Skipped where cargo isn't
 // installed (research/langs/rust/rust-setup.sh installs it in a job).
 import {expect, test} from 'bun:test'
+import {createHash} from 'node:crypto'
 import {execFileSync} from 'node:child_process'
 import {mkdirSync, mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
@@ -719,6 +720,59 @@ t('Rust root bridge: both rewrites and declarations share chosen names in inline
     expect(replaySite(dir, inline ? 'src/lib.rs' : 'src/nested.rs', 'crate::nested').harness_name).toBe('__gdp_harness_1')
     ok(extractRust(dir, {entry:'Clock', check:budget, strict:true, failures:'kept', answers:{'std::process::id':'u32'}}))
   }
+}, 300_000)
+
+// These cases add inventory sources not covered by the ordinary suffix/constructor tests.
+const nameInventoryConformance = (name: string, declarations: string, expected: {harness: string, now: string, answer: string}) => {
+  const source = bridgeClock.replace('mod __gdp_harness {}', declarations)
+  const dir = genericCrate(source)
+  execFileSync('cargo', ['check', '--quiet', '--manifest-path', `${dir}/Cargo.toml`], {stdio:'pipe'})
+  const names = {...replayBridges(dir), harness:replaySite(dir, 'src/lib.rs', 'crate').harness_name}
+  expect(names).toEqual(expected)
+  const x = ok(extractRust(dir, {entry:'Clock', check:budget, strict:true, failures:'kept', answers:{'std::process::id':'u32'}}))
+  // The configured run/depth bounds are not a guaranteed request count.
+  // ok() already requires accepted conformance and positive native requests.
+  console.log(JSON.stringify({nameInventory:name, source, sourceSha256:createHash('sha256').update(source).digest('hex'), native:'cargo-check-pass', names, ok:x.ok, requests:x.evidence?.requests, evidence:x.evidence}))
+}
+
+t('Rust name inventory: raw loaded module paths reserve suffixes for all helpers', () => {
+  // The loader removes these declarations from root items. Empty module paths
+  // must still reserve their names; raw spelling is the same Rust identity.
+  nameInventoryConformance('loaded-module-paths', `
+    mod r#__gdp_harness {}
+    mod r#__gdp_harness_1 {}
+    mod __gdp_harness_2 {}
+    fn __gdp_now()->u32 {0}
+    mod r#__gdp_now_1 {}
+    mod __gdp_now_2 {}
+    fn __gdp_answer()->u32 {0}
+    mod r#__gdp_answer_1 {}
+    mod __gdp_answer_2 {}
+  `, {harness:'__gdp_harness_3', now:'__gdp_now_3', answer:'__gdp_answer_3'})
+}, 300_000)
+
+t('Rust name inventory: raw named-field and tuple structs distinguish helper namespaces', () => {
+  // The same named-field shape collides with a module but not a function;
+  // a tuple constructor occupies the value namespace as well as the type one.
+  nameInventoryConformance('raw-struct-namespaces', `
+    struct r#__gdp_harness {value:u32}
+    struct r#__gdp_now {value:u32}
+    struct r#__gdp_answer(u32);
+  `, {harness:'__gdp_harness_1', now:'__gdp_now', answer:'__gdp_answer_1'})
+}, 300_000)
+
+t('Rust name inventory: doc and literal suffix text does not occupy identifiers', () => {
+  // Doc attributes are permitted by the closed inventory. Their string values,
+  // ordinary comments and literal text do not reserve the first free suffix.
+  nameInventoryConformance('doc-and-literal-decoys', `
+    #[doc = "__gdp_harness_1 __gdp_now_1 __gdp_answer_1"]
+    type r#__gdp_harness = u32;
+    /// __gdp_harness_1 __gdp_now_1 __gdp_answer_1
+    struct r#__gdp_now;
+    struct r#__gdp_answer(u32);
+    const TEXT:&str = r#"__gdp_harness_1 __gdp_now_1 __gdp_answer_1"#;
+    // __gdp_harness_1 __gdp_now_1 __gdp_answer_1
+  `, {harness:'__gdp_harness_1', now:'__gdp_now_1', answer:'__gdp_answer_1'})
 }, 300_000)
 
 t('Rust root bridge: namespace uncertainty cannot become guessed freshness', () => {
