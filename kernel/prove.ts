@@ -1709,7 +1709,7 @@ function decideLaw0(m: Machine, laws: Law[], i: number, rounds: number): Decided
 type Proof1 = {part: Goal, tree: Tree, uses: Map<string, string>, tuples?: Map<string, Set<string>>}
 type Settled = {text: string, inst: Instances, proofs: Record<string, Proof1>}
 type Unsettled = {goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram, why?: string}
-type Memo = {proven: Map<string, Settled>, models: Map<string, {text: string, model: Unsettled, set: Map<string, string>}>}
+type Memo = {proven: Map<string, Settled>, models: Map<string, {text: string, model: Unsettled, strict: boolean, set: Map<string, string>}>}
 // (GDP_MEMO_CAP: how many machines' decisions are kept, 4 by default; the hits and misses counted for the engine's trace)
 const memoCap = Number(env.GDP_MEMO_CAP ?? 4)
 export const memoHits = {n: 0, miss: 0, setKey: '', setJson: ''}
@@ -1736,11 +1736,11 @@ function settled(m: Machine, laws: Law[], i: number, rounds: number, usual: bool
   if (prev && Object.values(prev.proofs).every(p => stands(p, byName))) { memoHits.n++; return prev }
   memoHits.miss++
   const mo = rounds === modelRounds ? memo.models.get(law.name) : undefined
-  if (mo && mo.text === text && laws.every(l => mo.set.get(l.name) === textOfLaw(l))) return mo.model
+  if (mo && (!strict(usual) || mo.strict) && mo.text === text && laws.every(l => mo.set.get(l.name) === textOfLaw(l))) return mo.model
   const out = settle(m, laws, i, rounds, usual, prev)
   const cap = <T>(x: Map<string, T>) => { if (x.size >= 4096) x.clear(); return x }
   if (out && 'proofs' in out) cap(memo.proven).set(law.name, out)
-  else if (out?.stuck === 'sat' && rounds === modelRounds) cap(memo.models).set(law.name, {text, model: out, set: new Map(laws.map(l => [l.name, textOfLaw(l)]))})
+  else if (out?.stuck === 'sat' && rounds === modelRounds) cap(memo.models).set(law.name, {text, model: out, strict: strict(usual), set: new Map(laws.map(l => [l.name, textOfLaw(l)]))})
   return out
 }
 // The fast path's machines: no history, sums or "there exists" (their goals are other machines' or need witnesses).
