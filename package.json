@@ -92,6 +92,10 @@
       "types": "./dist/core/gdp.d.ts",
       "default": "./dist/core/gdp.js"
     },
+    "./security": {
+      "types": "./dist/core/security.d.ts",
+      "default": "./dist/core/security.js"
+    },
     "./extract": {
       "types": "./dist/core/extract.d.ts",
       "default": "./dist/core/extract.js"

@@ -5,7 +5,7 @@
 # arguments carry are read from the repository's own modules (their class annotations, never run).
 #
 #   python3 -I core/py/reader.py '{"root": <repo>, "file": <file>, "names": [<classes or functions>]}'
-import ast, builtins, contextlib, importlib, io, json, os, sys, types
+import ast, builtins, contextlib, functools, importlib, io, json, os, sys, types
 
 BUILTINS = {'min', 'max', 'abs', 'len', 'int', 'float', 'bool', 'str', 'isinstance', 'round', 'sum', 'any', 'all', 'print', 'repr', 'getattr', 'setattr', 'hasattr', 'type', 'list', 'dict', 'set', 'tuple', 'sorted', 'range', 'zip', 'enumerate'}
 # Library functions the executor knows (their meaning, not their code).
@@ -15,8 +15,13 @@ TYPE_HEADS = {'Literal', 'Optional', 'Union', 'Final', 'Annotated', 'dict', 'Dic
               'set', 'Set', 'frozenset', 'FrozenSet', 'AbstractSet', 'MutableSet'}
 TRANSPARENT = {'staticmethod', 'classmethod', 'property', 'dataclass', 'dataclasses.dataclass', 'override', 'typing.override', 'abstractmethod'}
 
-def where(file, n):
-  return f"{os.path.basename(file)}:{getattr(n, 'lineno', 0)}:{getattr(n, 'col_offset', 0) + 1}"
+@functools.lru_cache(maxsize=256)
+def source_name(file, root):
+  # Stable within a repository, distinct across equal basenames, and shared with the runtime check's source IDs.
+  return os.path.relpath(os.path.realpath(file), os.path.realpath(root)).replace(os.sep, '/')
+
+def where(file, n, root):
+  return f"{source_name(file, root)}:{getattr(n, 'lineno', 0)}:{getattr(n, 'col_offset', 0) + 1}"
 
 def text(n):
   try: s = ast.unparse(n)
@@ -137,6 +142,7 @@ class Reader:
     self.local_stack = []
     self.caught = []  # (the names the handlers being read bind their exceptions to)
     self.based, self.supers, self.defs, self.local_imps = set(), [], {}, []  # (the bases read as bases; the bases of the class whose method is read)
+    self.class_mros, self.class_attrs, self.class_bound = {}, {}, {}
 
   # --- types -------------------------------------------------------------------------------------------------------
   def find_class(self, mod, name, depth=0):
@@ -179,6 +185,45 @@ class Reader:
     imp = m.imports.get(name)
     if imp and imp[0] == 'name': return self.ret_of(imp[1], imp[2], depth + 1)
     return None
+  def class_constants(self, cdef):
+    """Own scalar literals and every name that shadows a base's literal. Mutable values are not constants."""
+    values, bound = {}, set()
+    static = not cdef.keywords and not cdef.decorator_list
+    for n in cdef.body:
+      if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        names = {n.name}
+      elif isinstance(n, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+        targets = n.targets if isinstance(n, ast.Assign) else [n.target]
+        names = {x.id for t in targets for x in ast.walk(t) if isinstance(x, ast.Name) and isinstance(x.ctx, ast.Store)} if not isinstance(n, ast.AnnAssign) or n.value is not None else set()
+      elif isinstance(n, ast.Pass) or isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant):
+        continue
+      else:
+        # Control flow, imports and dynamic class-body code may shadow any earlier literal.
+        values.clear()
+        static = False
+        continue
+      bound.update(names)
+      for name in names: values.pop(name, None)
+      target = n.targets[0] if isinstance(n, ast.Assign) and len(n.targets) == 1 else n.target if isinstance(n, ast.AnnAssign) else None
+      value = n.value if isinstance(n, (ast.Assign, ast.AnnAssign)) else None
+      if isinstance(target, ast.Name) and isinstance(value, ast.Constant) and isinstance(value.value, (int, float, str, bool, type(None))) and not isinstance(value.value, bytes):
+        values[target.id] = value.value
+    return values, bound, static
+
+  def class_mro(self, q, bases):
+    """Python's C3 order, or no inherited constants if a base/order is not known."""
+    if len(set(bases)) != len(bases) or any(self.class_mros.get(b) is None for b in bases): return None
+    seqs = [list(self.class_mros[b]) for b in bases] + [list(bases)]
+    order = [q]
+    while any(seqs):
+      seqs = [s for s in seqs if s]
+      head = next((s[0] for s in seqs if not any(s[0] in t[1:] for t in seqs)), None)
+      if head is None: return None
+      order.append(head)
+      for s in seqs:
+        if s and s[0] == head: s.pop(0)
+    return order
+
   def qualified(self, mod, node):
     n = dotted(node)
     if not n: return ''
@@ -263,14 +308,18 @@ class Reader:
     self.defs[q] = (mod, cdef)
     self.recs[q] = None  # (being read)
     fields, methods, bases, kinds, rets = [], {}, [], set(), {}
+    cattrs, bound, static = self.class_constants(cdef)
     orm = self.orm_kind(mod, cdef)
+    if orm: static = False
     for b in cdef.bases:
       bn = dotted(b.value if isinstance(b, ast.Subscript) else b)
       if orm: continue  # ORM inheritance is schema, never an ordinary constructor.
-      if bn in ('TypedDict', 'typing.TypedDict', 'typing_extensions.TypedDict'): kinds.add('typeddict'); continue
-      if bn in ('BaseModel', 'pydantic.BaseModel'): kinds.add('pydantic'); continue
-      if bn in ('Protocol', 'typing.Protocol', 'ABC', 'abc.ABC'): kinds.add('protocol'); continue
-      if bn in ('Generic', 'object', 'Exception'): continue
+      if bn in ('TypedDict', 'typing.TypedDict', 'typing_extensions.TypedDict'): kinds.add('typeddict'); static = False; continue
+      if bn in ('BaseModel', 'pydantic.BaseModel'): kinds.add('pydantic'); static = False; continue
+      if bn in ('Protocol', 'typing.Protocol', 'ABC', 'abc.ABC'): kinds.add('protocol'); static = False; continue
+      if bn in ('Generic', 'object', 'Exception'):
+        if bn != 'object': static = False
+        continue
       hit = self.find_class(mod, bn.split('.')[-1]) if bn else None
       if hit:
         bq = self.rec_of(*hit, base=base or mod.path == self.file)
@@ -282,7 +331,9 @@ class Reader:
             if not any(g['name'] == f['name'] for g in fields): fields.append(f)
           for m, fid in br['methods'].items(): methods[m] = fid
           rets.update(br.get('rets', {}))
-      elif bn: kinds.add('outside-base:' + bn)
+      elif bn:
+        kinds.add('outside-base:' + bn)
+        static = False
     dataclass = any((dotted(d.func if isinstance(d, ast.Call) else d) or '').split('.')[-1] == 'dataclass' for d in cdef.decorator_list)
     frozen = any(isinstance(d, ast.Call) and any(k.arg == 'frozen' and isinstance(k.value, ast.Constant) and k.value.value for k in d.keywords) for d in cdef.decorator_list)
     # (a dataclass whose == is its fields' unless eq=False says it is identity)
@@ -305,11 +356,7 @@ class Reader:
             name, t = n.targets[0].attr, self.ty(anns[v.values[0].id], mod)
             if t['k'] == 'opt': t = t['of']
         if t is not None and not any(g['name'] == name for g in fields): fields.append({'name': name, 't': t, 'init': True})
-    cattrs = {}
     for n in cdef.body:
-      # (a class attribute set to a constant, PREFIX = None, LOCK_PERIOD = 5: read through self as that constant)
-      if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name) and isinstance(n.value, ast.Constant) and isinstance(n.value.value, (int, float, str, bool, type(None))) and not isinstance(n.value.value, bytes):
-        cattrs[n.targets[0].id] = n.value.value
       of = self.orm_field(n, mod, orm) if orm else None
       if of:
         fields = [g for g in fields if g['name'] != of['name']] + [of]
@@ -330,7 +377,19 @@ class Reader:
           finally: self.file, self.supers, self.defining = file, sup, dfn
           methods[n.name] = fid
         else: methods[n.name] = None  # another module's method: not read
-    r = {'name': q, 'short': cdef.name, 'fields': fields, 'methods': methods, 'bases': bases, 'p': where(mod.path, cdef), 'cattrs': cattrs,
+    self.class_attrs[q], self.class_bound[q] = cattrs, bound
+    order = self.class_mro(q, bases) if static else None
+    self.class_mros[q] = order
+    if order is not None:
+      cattrs = {}
+      for owner in reversed(order):
+        for name in self.class_bound[owner]: cattrs.pop(name, None)
+        cattrs.update(self.class_attrs[owner])
+    # A scalar selected by attribute lookup also shadows an inherited method/property of that name.
+    for name in cattrs:
+      methods.pop(name, None)
+      rets.pop(name, None)
+    r = {'name': q, 'short': cdef.name, 'fields': fields, 'methods': methods, 'bases': bases, 'p': where(mod.path, cdef, self.repo.root), 'cattrs': cattrs,
          'kinds': sorted(kinds | ({'dataclass'} if dataclass else set()) | ({'frozen'} if frozen else set()) | (set() if total else {'partial'})),
          'own': mod.path == self.file, 'module': mod.name, **({'rets': rets} if rets else {})}
     if orm:
@@ -460,14 +519,14 @@ class Reader:
       if a.vararg: params.append({'name': a.vararg.arg, 't': {'k': 'opaque', 'why': '*args'}, 'star': 1})
       if a.kwarg: params.append({'name': a.kwarg.arg, 't': {'k': 'opaque', 'why': '**kwargs'}, 'star': 2})
       body = self.block(n.body, mod)
-      return {'id': fid, 'name': n.name, **({'cls': cls} if cls else {}), 'p': where(self.file, n), 'span': [os.path.basename(self.file), n.lineno, n.end_lineno],
+      return {'id': fid, 'name': n.name, **({'cls': cls} if cls else {}), 'p': where(self.file, n, self.repo.root), 'span': [source_name(self.file, self.repo.root), n.lineno, n.end_lineno],
               'params': params, 'ret': self.ty(n.returns, mod), 'body': body, 'async': isinstance(n, ast.AsyncFunctionDef), 'decorators': decs, 'static': static}
     finally:
       self.local_stack.pop()
       self.local_imps.pop()
   def decorator(self, d):
     f = d.func if isinstance(d, ast.Call) else d
-    return {'name': dotted(f) or text(f), 'text': text(d), 'p': where(self.file, d)}
+    return {'name': dotted(f) or text(f), 'text': text(d), 'p': where(self.file, d, self.repo.root)}
   def locals_of(self, fn):
     out = {x.arg for x in fn.args.posonlyargs + fn.args.args + fn.args.kwonlyargs}
     if fn.args.vararg: out.add(fn.args.vararg.arg)
@@ -486,7 +545,7 @@ class Reader:
         out.append(r)
     return out
   def stmt(self, s, mod):
-    p = where(self.file, s)
+    p = where(self.file, s, self.repo.root)
     E = lambda x: self.expr(x, mod)
     if isinstance(s, ast.Expr):
       if isinstance(s.value, ast.Constant) and (isinstance(s.value.value, str) or s.value.value is Ellipsis): return []  # a docstring, or `...`
@@ -549,7 +608,7 @@ class Reader:
         self.caught.append(h.name)
         try: body = self.block(h.body, mod)
         finally: self.caught.pop()
-        hs.append({'p': where(self.file, h), 'names': [c[0][0] for c in cs], **({'any': True} if h.type is None else {'mro': cs[0][0], 'raise': [mod.name, text(ts[0])]}),
+        hs.append({'p': where(self.file, h, self.repo.root), 'names': [c[0][0] for c in cs], **({'any': True} if h.type is None else {'mro': cs[0][0], 'raise': [mod.name, text(ts[0])]}),
                    **({'open': True} if cs and cs[0][1] else {}), **({'as': h.name} if h.name else {}), 'body': body})
       return [{'s': 'try', 'p': p, 'body': self.block(s.body, mod), 'handlers': hs, 'els': self.block(s.orelse, mod), 'fin': self.block(s.finalbody, mod)}]
     if isinstance(s, (ast.Global, ast.Nonlocal)): return [{'s': 'no', 'p': p, 'why': f"{type(s).__name__.lower()} (a variable every call shares)"}]
@@ -581,7 +640,7 @@ class Reader:
       out += [n for n in bs if n not in out]; op = op or bo
     return out, op
   def target(self, t, mod):
-    p = where(self.file, t)
+    p = where(self.file, t, self.repo.root)
     if isinstance(t, ast.Name): return {'e': 'var', 'n': t.id, 'p': p}
     if isinstance(t, ast.Attribute): return {'e': 'get', 'x': self.expr(t.value, mod), 'f': t.attr, 'p': p, 'text': text(t)}
     if isinstance(t, ast.Subscript): return {'e': 'idx', 'x': self.expr(t.value, mod), 'i': self.expr(t.slice, mod), 'p': p, 'text': text(t)}
@@ -631,7 +690,7 @@ class Reader:
     if r.get('e') == 'no' and 'names' not in r: r['names'] = mentioned(x)
     return r
   def expr1(self, x, mod):
-    p = where(self.file, x)
+    p = where(self.file, x, self.repo.root)
     E = lambda y: self.expr(y, mod)
     if isinstance(x, ast.Constant):
       v = x.value

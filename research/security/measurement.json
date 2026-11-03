@@ -1,0 +1,787 @@
+{
+  "candidate": "7db037f9c54be64f3dc8fb8cc1eac18ffd81366a",
+  "candidateTree": "e03cb798e32eded2349066cb07d92a8b3b26419f",
+  "base": "927a5213ab7993574ae0d65a944f2fc9d63ef99c",
+  "measuredAt": "2026-11-03T03:33:56.415Z",
+  "corpusSha256": "e595e2e66db8fadc49d69758b79d7dda7b014bda36bd65537513da10cc50bc53",
+  "published": {
+    "found": 0,
+    "total": 18
+  },
+  "training": {
+    "found": 0,
+    "total": 1
+  },
+  "extractionCoverage": {
+    "readable": 0,
+    "total": 18
+  },
+  "rows": [
+    {
+      "id": "authlib",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "311da11e41ae44fac570ac5224a45e0fec993939",
+          "sourceSha256": "682f020f3e5643ca411b256d515cb00d67467b9a96d63f49935ba40230f0bfda",
+          "status": "refused",
+          "checkMs": 476.36214199999995,
+          "wallMs": 3250.2380679999997,
+          "refusals": [
+            {
+              "where": "authlib/oauth2/rfc7592/endpoint.py:18:49",
+              "what": "a list literal with items (the subset keeps a list of the state, made empty)"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "1bd2a313492ce0a4d0571c150730907aa3fc91ff",
+          "sourceSha256": "49a0c80e8581f9d95ed96214fe4dfb9952fbfad1a7d443b288d33c48b0df22ca",
+          "status": "refused",
+          "checkMs": 85.23348900000019,
+          "wallMs": 1872.4511929999999,
+          "refusals": [
+            {
+              "where": "authlib/oauth2/rfc7592/endpoint.py:18:49",
+              "what": "a list literal with items (the subset keeps a list of the state, made empty)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "kubeflow",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "8d7720ab80a545fd387917697abc10bf644c22da",
+          "sourceSha256": "d0eb6326d827d073e8bb26121698859a3bf607a06425470ee308b8f93afe8c3e",
+          "status": "refused",
+          "checkMs": 18672.919872,
+          "wallMs": 21003.633972000003,
+          "refusals": [
+            {
+              "where": "run_log_server.go:41:1",
+              "what": "ReadRunLogV1(w): an argument of type http.ResponseWriter (an interface)"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "be4723e33727c6dad71a95cba61e8f61562ab20f",
+          "sourceSha256": "06f8d5f91eefd9645d78bcdc68877cb9323ca754255f169867ae1b2bd2524918",
+          "status": "refused",
+          "checkMs": 946.5648900000015,
+          "wallMs": 3257.7648149999986,
+          "refusals": [
+            {
+              "where": "run_log_server.go:45:1",
+              "what": "ReadRunLogV1(w): an argument of type http.ResponseWriter (an interface)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "openwisp",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "71ea75d0830520d3209d7bb58b86f578d1da173e",
+          "sourceSha256": "50d9f9794f204f6df9547744f2a4a9cf5a5184d75d4880112e64a41ef14c0448",
+          "status": "refused",
+          "checkMs": 303.22983299999987,
+          "wallMs": 2642.968481,
+          "refusals": [
+            {
+              "where": "views.py",
+              "what": "the rule and the code differ: the code doesn't load with the check's harness: \"ModuleNotFoundError: No module named 'django'\""
+            }
+          ],
+          "notes": [
+            "retrieve: kwargs: a local read before it is set (an UnboundLocalError) (openwisp_controller/pki/api/views.py:59:45) is the step's refusal",
+            "get_object_or_404 (openwisp_controller/pki/api/views.py:59:20): left out (inferred: nothing the rule keeps reads its value), run as it is by the check"
+          ]
+        },
+        {
+          "version": "fixed",
+          "sha": "90ded783267aa11b89768b0ec9ae69895cc3730c",
+          "sourceSha256": "e9b3887651bed7abaa1e9b29c88251a9fc3e643ba2213c4c0baff74829150492",
+          "status": "refused",
+          "checkMs": 36.730876999999964,
+          "wallMs": 1629.4860589999998,
+          "refusals": [
+            {
+              "where": "openwisp_controller/pki/api/views.py:58:20",
+              "what": "self.get_object: no field get_object (the object's fields are those its constructor sets)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "juice-shop",
+      "set": "training",
+      "found": false,
+      "reason": "training flaw not reproduced on original code",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "717f5efa886b0417eeecb52378b03cf10567b7e2",
+          "sourceSha256": "92daf82179b91d534014ee19e1e0745dfce79230427b8e6eff77f135fde55fcc",
+          "status": "refused",
+          "checkMs": 1965.4954310000012,
+          "wallMs": 12096.039299,
+          "refusals": [
+            {
+              "where": "basketItems.ts:19:1",
+              "what": "a step function takes the state first"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "oz-timelock",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "52188a21272c9863443ad33a4cd30d4871371642",
+          "sourceSha256": "03fe039d56bc383454fcf335b6c47d804cfeae3520f574c1a41a59b969243105",
+          "status": "refused",
+          "checkMs": 398.4845949999999,
+          "wallMs": 3405.6038820000003,
+          "refusals": [
+            {
+              "where": "TimelockController.sol:23:51",
+              "what": "keccak256(\"TIMELOCK_ADMIN_ROLE\"): keccak256(...) (outside the Solidity subset)"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "cec4f2ef57495d8b1742d62846da212515d99dd5",
+          "sourceSha256": "e086fe599e32b6c52a5e53a2d909af32e41f5e4a1dc1272812df64f8b51561e4",
+          "status": "refused",
+          "checkMs": 63.055105999999796,
+          "wallMs": 2197.9415539999995,
+          "refusals": [
+            {
+              "where": "TimelockController.sol:23:51",
+              "what": "keccak256(\"TIMELOCK_ADMIN_ROLE\"): keccak256(...) (outside the Solidity subset)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "oz-uups",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "6edb6dd1ca43d05a762d84c688116b3327f5e490",
+          "sourceSha256": "40604f24d8f86abcda8bac9e922bbecf3d042a99b03f3b588b94fcf81d3a7d51",
+          "status": "refused",
+          "checkMs": 339.235723,
+          "wallMs": 1667.4240679999998,
+          "refusals": [
+            {
+              "where": "UUPSUpgradeable.sol:19:1",
+              "what": "UUPSUpgradeable: an abstract contract (the subset reads a contract that is deployed)"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "024cc50df478d2e8f78539819749e94d6df60592",
+          "sourceSha256": "b0c97da0d43542ab3e9148095d0fe8e336bdd1b949acd5be1f24fabf0c1d7ada",
+          "status": "refused",
+          "checkMs": 17.053969000000052,
+          "wallMs": 1614.457672,
+          "refusals": [
+            {
+              "where": "UUPSUpgradeable.sol:19:1",
+              "what": "UUPSUpgradeable: an abstract contract (the subset reads a contract that is deployed)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "oz-initializer",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "0c858e20713d266c036692527e5de3ff87865213",
+          "sourceSha256": "1d3b0d20f5dde424be908ed68353103d81250afc201be4bcdca37880674ef2bb",
+          "status": "refused",
+          "checkMs": 574.6196419999999,
+          "wallMs": 1534.841772,
+          "refusals": [
+            {
+              "where": "Initializable.sol:33:1",
+              "what": "Initializable: an abstract contract (the subset reads a contract that is deployed)"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "08840b9f8c21b235466b6d0c5a00a4d3a2de2682",
+          "sourceSha256": "d86e8a98cade69277cf510993f7687a999f28a22f9c15dca145f67d5a91a0eef",
+          "status": "refused",
+          "checkMs": 22.72204099999999,
+          "wallMs": 1143.6772869999998,
+          "refusals": [
+            {
+              "where": "Initializable.sol:35:1",
+              "what": "Initializable: an abstract contract (the subset reads a contract that is deployed)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "oz-supply",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "0c4de6721d9668d7b5b2c5a9400fd0b2a5e8de90",
+          "sourceSha256": "d6ec321680d46358819d59eba09447136dd5e3d6f15a5a8ca7bb63e719d1e77f",
+          "status": "refused",
+          "checkMs": 864.7073250000003,
+          "wallMs": 2070.489614,
+          "refusals": [
+            {
+              "where": "ERC1155Supply.sol:15:1",
+              "what": "ERC1155Supply: an abstract contract (the subset reads a contract that is deployed)"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "c9acfb3c238e2d8bbd1bbfacc97c8322f65ab82a",
+          "sourceSha256": "669cadb1411e85a678da65c612537663bde719ec73853402003ba3ac6b4471e8",
+          "status": "refused",
+          "checkMs": 146.5530230000004,
+          "wallMs": 1094.343648,
+          "refusals": [
+            {
+              "where": "ERC1155Supply.sol:15:1",
+              "what": "ERC1155Supply: an abstract contract (the subset reads a contract that is deployed)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "oz-quorum",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "0d91b620b7e63f07477d9191499e081f879a4929",
+          "sourceSha256": "976d85310f51a6248c0bdc37a3f06fb6c7742c2c028aca58621d12b95358f603",
+          "status": "refused",
+          "checkMs": 389.19698700000004,
+          "wallMs": 1273.66862,
+          "refusals": [
+            {
+              "where": "GovernorVotesQuorumFraction.sol:14:1",
+              "what": "GovernorVotesQuorumFraction: an abstract contract (the subset reads a contract that is deployed)"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "8ea1fc87c9686ce203a2fa38f7b789246e4e16f7",
+          "sourceSha256": "734db135ad8502b31640f5ce52e78d30155ccac28280ff057d678cb07acc8f35",
+          "status": "refused",
+          "checkMs": 142.81274399999984,
+          "wallMs": 1324.5698080000002,
+          "refusals": [
+            {
+              "where": "GovernorVotesQuorumFraction.sol:16:1",
+              "what": "GovernorVotesQuorumFraction: an abstract contract (the subset reads a contract that is deployed)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "oz-crosschain",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "7ddbfe181ee84c56215401c2de4ddd5767b4974e",
+          "sourceSha256": "ac4c967c936214cd34805696223488e1ee1dddb5dc1bb7c9976ad6e4bf79365e",
+          "status": "refused",
+          "checkMs": 233.815249,
+          "wallMs": 1056.7415039999998,
+          "refusals": [
+            {
+              "where": "LibArbitrumL2.sol:16:1",
+              "what": "LibArbitrumL2: a library (the subset reads a contract that is deployed)"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "81336aefb52d5777cd140cf2eac31fdf65d9bc95",
+          "sourceSha256": "a4438487885d3117873434892d4f42466e6e8949377a7670040509e4e6a42e91",
+          "status": "refused",
+          "checkMs": 9.968669999999975,
+          "wallMs": 833.3459730000002,
+          "refusals": [
+            {
+              "where": "LibArbitrumL2.sol:16:1",
+              "what": "LibArbitrumL2: a library (the subset reads a contract that is deployed)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "oz-multicall",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "a83918df1491d9c6a642a16f8c9a8ff93bf042cc",
+          "sourceSha256": "c64cfcae8c69b9a1efe85d166cd54d0503adea871fed0e90aa48026cbfe03091",
+          "status": "refused",
+          "checkMs": 800.302185,
+          "wallMs": 2159.987513,
+          "refusals": [
+            {
+              "where": "Multicall.sol:23:1",
+              "what": "Multicall: an abstract contract (the subset reads a contract that is deployed)"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "88ac712e06832bce73b41e8166cded2729e25205",
+          "sourceSha256": "9cdd8a830b875208e67b9ea7cbff3bc842fc1b9ec68375b1f6375b8f7703eba5",
+          "status": "refused",
+          "checkMs": 20.804294000000027,
+          "wallMs": 1178.8771029999998,
+          "refusals": [
+            {
+              "where": "Multicall.sol:23:1",
+              "what": "Multicall: an abstract contract (the subset reads a contract that is deployed)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "oauth-client",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "68b292affd4e45daeb5842c70e1092f025f234e1",
+          "sourceSha256": "bc843de7a32ad881ce3f70cb3e774ffbe1d829e2c59a5e5d3c976381bde3c776",
+          "status": "refused",
+          "checkMs": 251.623559,
+          "wallMs": 995.605041,
+          "refusals": [
+            {
+              "where": "oauthlib/oauth2/rfc6749/grant_types/base.py:86:31",
+              "what": "self.response_types: no field response_types (the object's fields are those its constructor sets)"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "c951a1d09f99f14e3240973fa83c4f4287d4753d",
+          "sourceSha256": "d8b5acf98f4a46b8a9051eda33133d8279acdf70bdd4438829c19191b15fd66d",
+          "status": "refused",
+          "checkMs": 94.55111000000011,
+          "wallMs": 778.226889,
+          "refusals": [
+            {
+              "where": "oauthlib/oauth2/rfc6749/grant_types/base.py:86:31",
+              "what": "self.response_types: no field response_types (the object's fields are those its constructor sets)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "dk-disclosure",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "ca3b6441f039a8e4cdb5de5c2b3dd85822bc25bf",
+          "sourceSha256": "c0ed19deee4c6f03f0a3b0e59994fd36cd2f1f8e8d6023cd3aab04a13ad017a5",
+          "status": "refused",
+          "checkMs": 993.177825,
+          "wallMs": 2587.528575,
+          "refusals": [
+            {
+              "where": "application.rb",
+              "what": "no class or function Doorkeeper::Orm::ActiveRecord::Mixins::Application in application.rb"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "25d038022c2fcad45af5b73f9d003cf38ff491f6",
+          "sourceSha256": "7a9575dd553bcc62a1253ca6284ed269a08523832761d4f43cc02389cc30e9f4",
+          "status": "refused",
+          "checkMs": 281.3665489999994,
+          "wallMs": 1722.1917210000001,
+          "refusals": [
+            {
+              "where": "application.rb",
+              "what": "no class or function Doorkeeper::Orm::ActiveRecord::Mixins::Application in application.rb"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "dk-revocation",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "fffe0ead4d22f839a417b8d2f893c17a3598f4b9",
+          "sourceSha256": "d71ab52f834fafafdec0653abd894a57b0eef15c6aa49706ea69131490de5ad7",
+          "status": "refused",
+          "checkMs": 348.04914899999994,
+          "wallMs": 1448.563366,
+          "refusals": [
+            {
+              "where": "tokens_controller.rb:15:10",
+              "what": "doorkeeper_token: no field doorkeeper_token (the object's fields are those its constructor sets)"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "fb938051777a3c9cb071e96fc66458f8f615bd53",
+          "sourceSha256": "be9c42f17dfdd89da62b90a1c46564e0552c896e453f0fd9cab2da5f689ebc45",
+          "status": "refused",
+          "checkMs": 100.19631100000015,
+          "wallMs": 755.700975,
+          "refusals": [
+            {
+              "where": "tokens_controller.rb:69:7",
+              "what": "@token ||= AccessToken.by_token(request.POST['token']) ||...: instance_variable_or_write_node (outside the subset)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "dk-public",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "5ee46e32ce90d18c89526733340b9f69d2491eef",
+          "sourceSha256": "beca28ab558032bb5140325d35cc3f2c25cb6e9befd42c58c42bd1217da89a3f",
+          "status": "refused",
+          "checkMs": 1315.953473,
+          "wallMs": 2263.6295229999996,
+          "refusals": [
+            {
+              "where": "tokens_controller.rb:77:7",
+              "what": "@token ||= AccessToken.by_token(request.POST['token']) ||...: instance_variable_or_write_node (outside the subset)"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "66d8e180c99961c313290720db9fd565deccd862",
+          "sourceSha256": "5cebbcc4562535a79912cdaa77ea75bac4190cc1e1d6c6019ddfc1dcc6178709",
+          "status": "refused",
+          "checkMs": 206.42449399999987,
+          "wallMs": 1124.1650880000002,
+          "refusals": [
+            {
+              "where": "tokens_controller.rb:76:7",
+              "what": "@token ||= AccessToken.by_token(request.POST['token']) ||...: instance_variable_or_write_node (outside the subset)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "dk-consent",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "cbaf02625c2292376c452e11f31c556caebfdcab",
+          "sourceSha256": "aa8549adf1eccf80a4adf79db88f361eb33aeb8036df69f3abc55e89f8ff5991",
+          "status": "refused",
+          "checkMs": 324.28353800000014,
+          "wallMs": 1056.205478,
+          "refusals": [
+            {
+              "where": "authorizations_controller.rb:34:10",
+              "what": "skip_authorization?: no field skip_authorization? (the object's fields are those its constructor sets)"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "313af27391d974d314c1869828ca80dc1ae2678c",
+          "sourceSha256": "a51bd77628da43a548388050a03aa6bf3ee53b7a83194ea96134e7e581d0ae56",
+          "status": "refused",
+          "checkMs": 121.42409799999996,
+          "wallMs": 762.372613,
+          "refusals": [
+            {
+              "where": "authorizations_controller.rb:34:10",
+              "what": "skip_authorization?: no field skip_authorization? (the object's fields are those its constructor sets)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "allauth-inactive-token",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "6ff29ebd9cf1024f88f672577e77b287807fbe5d",
+          "sourceSha256": "0e37658c874e2074264fdecbbf00b45eb4c889a1737d06ee7438a5b2879beffa",
+          "status": "refused",
+          "checkMs": 214.026793,
+          "wallMs": 1524.332754,
+          "refusals": [
+            {
+              "where": "allauth/idp/oidc/internal/oauthlib/request_validator.py:252:12",
+              "what": ": the truth of validate_bearer_token_token: a value of no type the code states"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "c54edf947c5a1c8c4ff3cddb75c86000ecb2507d",
+          "sourceSha256": "c1e94349a07b5b233ed7c4d9d02d14d4c0d210f1258505b0c142113df1aa5de1",
+          "status": "refused",
+          "checkMs": 80.8613190000001,
+          "wallMs": 1175.6804319999999,
+          "refusals": [
+            {
+              "where": "allauth/idp/oidc/internal/oauthlib/request_validator.py:252:12",
+              "what": ": the truth of validate_bearer_token_token: a value of no type the code states"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "flask-oauth-freshness",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "18808e1e642c4466f8daa46a68d4e1f77a6d1713",
+          "sourceSha256": "610a18c025f1e10250bb34c7b3badda1657c9f1a3c2e24140e6a6c1d41a6764a",
+          "status": "refused",
+          "checkMs": 703.395578,
+          "wallMs": 1633.4672309999999,
+          "refusals": [
+            {
+              "where": "flask_security/oauth_glue.py:199:16",
+              "what": "oauth_provider is not None: the truth of _security.oauthglue.providers.get(name): the value of _security.oauthglue.providers.get, other code left out; _security.oauthglue.providers.get(name): flask_security.proxies._security.oauthglue.providers.get, other code (flask_security/oauth_glue.py:190:22), whose value is read, and it declares no type: state what it returns (answers: {\"get\": 'int'}, or a `gdp: answer int` comment on its line)"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "8e69f3a94a463c0e8ddc46e31743717559fd8d48",
+          "sourceSha256": "09ab0d6ddc56da35049a55698c4ceb31c5c8e01337877fe7d9b33b69e1b3ff37",
+          "status": "refused",
+          "checkMs": 218.87347499999987,
+          "wallMs": 1623.5813090000001,
+          "refusals": [
+            {
+              "where": "flask_security/oauth_glue.py:208:16",
+              "what": "oauth_provider is not None: the truth of _security.oauthglue.providers.get(name): the value of _security.oauthglue.providers.get, other code left out; _security.oauthglue.providers.get(name): flask_security.proxies._security.oauthglue.providers.get, other code (flask_security/oauth_glue.py:199:22), whose value is read, and it declares no type: state what it returns (answers: {\"get\": 'int'}, or a `gdp: answer int` comment on its line)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "mlflow-trace-authorization",
+      "set": "published",
+      "found": false,
+      "reason": "reader refused an original revision",
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "5a73054b979c1927a2715bc58553f311cdbb7eeb",
+          "sourceSha256": "c9c78584aa61daa61f876c9ce70dd443d3499fee252f2ca7cd77aa2b13ad9962",
+          "status": "refused",
+          "checkMs": 14272.275294,
+          "wallMs": 29436.933268,
+          "refusals": [
+            {
+              "where": "mlflow/server/auth/__init__.py:2318:8",
+              "what": "isinstance(authorization, Response): the truth of isinstance(authorization, Response): of a value outside the subset (authenticate_request(): the value of authenticate_request, other code left out); authenticate_request(): authenticate_request (mlflow/server/auth/__init__.py:2317:21), whose value is read, and it returns Authorization | Response: a union of several types: state what it returns (answers: {\"authenticate_request\": 'int'}, or a `gdp: answer int` comment on its line)"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "version": "fixed",
+          "sha": "f9b1eb510478570609ef451984a255775aa4b937",
+          "sourceSha256": "9b6444d4fc77cb8d5abeed657a8bdb29e78610ad00c351924ec8833ee7a315df",
+          "status": "refused",
+          "checkMs": 10071.913188000006,
+          "wallMs": 21486.042344,
+          "refusals": [
+            {
+              "where": "mlflow/server/auth/__init__.py:2505:8",
+              "what": "isinstance(authorization, Response): the truth of isinstance(authorization, Response): of a value outside the subset (authenticate_request(): the value of authenticate_request, other code left out); authenticate_request(): authenticate_request (mlflow/server/auth/__init__.py:2504:21), whose value is read, and it returns Authorization | Response: a union of several types: state what it returns (answers: {\"authenticate_request\": 'int'}, or a `gdp: answer int` comment on its line)"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    }
+  ],
+  "runtimeOnly": [
+    {
+      "id": "oauth-client",
+      "records": [
+        {
+          "kind": "runtime-only-not-CLI-recall",
+          "version": "vulnerable",
+          "control": {
+            "accepted": true,
+            "authenticated_id": "low",
+            "requested_id": "low",
+            "authorized_ids": [
+              "low",
+              "low"
+            ],
+            "error": null
+          },
+          "attack": {
+            "accepted": true,
+            "authenticated_id": "low",
+            "requested_id": "high",
+            "authorized_ids": [
+              "high",
+              "high"
+            ],
+            "error": null
+          }
+        },
+        {
+          "kind": "runtime-only-not-CLI-recall",
+          "version": "fixed",
+          "control": {
+            "accepted": true,
+            "authenticated_id": "low",
+            "requested_id": "low",
+            "authorized_ids": [
+              "low",
+              "low"
+            ],
+            "error": null
+          },
+          "attack": {
+            "accepted": false,
+            "authenticated_id": "low",
+            "requested_id": "high",
+            "authorized_ids": [],
+            "error": "ServerError"
+          }
+        }
+      ]
+    }
+  ],
+  "runtimeOnlySource": {
+    "candidate": "cae3559",
+    "measuredAt": "2026-11-02T18:50:27.278Z"
+  }
+}

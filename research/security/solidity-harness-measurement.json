@@ -1,0 +1,1204 @@
+{
+  "frontendSnapshot": "ad2b8da56c21",
+  "base": "927a521",
+  "collectedAt": "2026-11-03T04:34:23.643Z",
+  "scope": "Six Solidity cases only; a conditional concrete-deployment experiment, not the full published corpus",
+  "published": {
+    "found": 0,
+    "total": 6
+  },
+  "extractionCoverage": {
+    "readable": 0,
+    "total": 6
+  },
+  "sideCoverage": {
+    "readable": 1,
+    "total": 12
+  },
+  "originalsVerified": 12,
+  "rows": [
+    {
+      "id": "oz-uups",
+      "advisory": "https://github.com/advisories/GHSA-5vp3-v4hc-gx76",
+      "policy": "Upgrades require the authorized proxy context; direct calls to an implementation must not take over the upgrade path.",
+      "options": {
+        "entry": "UUPSUpgradeable",
+        "methods": [
+          "upgradeTo",
+          "upgradeToAndCall"
+        ]
+      },
+      "found": false,
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "6edb6dd1ca43d05a762d84c688116b3327f5e490",
+          "sourceSha256": "40604f24d8f86abcda8bac9e922bbecf3d042a99b03f3b588b94fcf81d3a7d51",
+          "originalUnchanged": true,
+          "elapsedMs": 171.11927600000035,
+          "status": "refused",
+          "harness": {
+            "kind": "repository",
+            "target": {
+              "source": "contracts/proxy/utils/UUPSUpgradeable.sol",
+              "contract": "UUPSUpgradeable"
+            },
+            "source": "contracts/mocks/UUPS/TestInProd.sol",
+            "entry": "UUPSUpgradeableMock",
+            "constructors": [],
+            "overrides": [
+              "UUPSUpgradeableMock._authorizeUpgrade(address) (contracts/mocks/UUPS/TestInProd.sol)"
+            ],
+            "addedMethods": [],
+            "notes": [
+              "Solidity concrete harness (repository): contracts/mocks/UUPS/TestInProd.sol:UUPSUpgradeableMock for contracts/proxy/utils/UUPSUpgradeable.sol:UUPSUpgradeable; the original source units and function bodies are unchanged",
+              "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+              "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+              "harness overrides: UUPSUpgradeableMock._authorizeUpgrade(address) (contracts/mocks/UUPS/TestInProd.sol); additional public entry points: none"
+            ]
+          },
+          "notes": [
+            "Solidity concrete harness (repository): contracts/mocks/UUPS/TestInProd.sol:UUPSUpgradeableMock for contracts/proxy/utils/UUPSUpgradeable.sol:UUPSUpgradeable; the original source units and function bodies are unchanged",
+            "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+            "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+            "harness overrides: UUPSUpgradeableMock._authorizeUpgrade(address) (contracts/mocks/UUPS/TestInProd.sol); additional public entry points: none"
+          ],
+          "refusals": [
+            {
+              "where": "ERC1967Upgrade.sol:19:47",
+              "what": "0x4910fdfa16fed3260ed0e7147f7cc6da11a60208b5b9406d12a635614ffd9143: the constant 3304...(69 d… (past the rule's 2^53, or not whole)"
+            }
+          ]
+        },
+        {
+          "version": "fixed",
+          "sha": "024cc50df478d2e8f78539819749e94d6df60592",
+          "sourceSha256": "b0c97da0d43542ab3e9148095d0fe8e336bdd1b949acd5be1f24fabf0c1d7ada",
+          "originalUnchanged": true,
+          "elapsedMs": 61.96786499999962,
+          "status": "refused",
+          "harness": {
+            "kind": "repository",
+            "target": {
+              "source": "contracts/proxy/utils/UUPSUpgradeable.sol",
+              "contract": "UUPSUpgradeable"
+            },
+            "source": "contracts/mocks/UUPS/TestInProd.sol",
+            "entry": "UUPSUpgradeableMock",
+            "constructors": [],
+            "overrides": [
+              "UUPSUpgradeableMock._authorizeUpgrade(address) (contracts/mocks/UUPS/TestInProd.sol)"
+            ],
+            "addedMethods": [],
+            "notes": [
+              "Solidity concrete harness (repository): contracts/mocks/UUPS/TestInProd.sol:UUPSUpgradeableMock for contracts/proxy/utils/UUPSUpgradeable.sol:UUPSUpgradeable; the original source units and function bodies are unchanged",
+              "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+              "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+              "harness overrides: UUPSUpgradeableMock._authorizeUpgrade(address) (contracts/mocks/UUPS/TestInProd.sol); additional public entry points: none"
+            ]
+          },
+          "notes": [
+            "Solidity concrete harness (repository): contracts/mocks/UUPS/TestInProd.sol:UUPSUpgradeableMock for contracts/proxy/utils/UUPSUpgradeable.sol:UUPSUpgradeable; the original source units and function bodies are unchanged",
+            "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+            "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+            "harness overrides: UUPSUpgradeableMock._authorizeUpgrade(address) (contracts/mocks/UUPS/TestInProd.sol); additional public entry points: none"
+          ],
+          "refusals": [
+            {
+              "where": "ERC1967Upgrade.sol:19:47",
+              "what": "0x4910fdfa16fed3260ed0e7147f7cc6da11a60208b5b9406d12a635614ffd9143: the constant 3304...(69 d… (past the rule's 2^53, or not whole)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "oz-initializer",
+      "advisory": "https://github.com/advisories/GHSA-9c22-pwxw-p6hx",
+      "policy": "An initializer cannot be reentered before its initial execution has completed.",
+      "options": {
+        "entry": "Initializable"
+      },
+      "found": false,
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "0c858e20713d266c036692527e5de3ff87865213",
+          "sourceSha256": "1d3b0d20f5dde424be908ed68353103d81250afc201be4bcdca37880674ef2bb",
+          "originalUnchanged": true,
+          "elapsedMs": 12776.586880000003,
+          "status": "needs-reviewed-policy-and-original-replay",
+          "harness": {
+            "kind": "repository",
+            "target": {
+              "source": "contracts/proxy/utils/Initializable.sol",
+              "contract": "Initializable"
+            },
+            "source": "contracts/mocks/InitializableMock.sol",
+            "entry": "InitializableMock",
+            "constructors": [],
+            "overrides": [],
+            "addedMethods": [
+              "initialize()",
+              "initializeNested()",
+              "initializeWithX(uint256)",
+              "nonInitializable(uint256)",
+              "fail()"
+            ],
+            "notes": [
+              "Solidity concrete harness (repository): contracts/mocks/InitializableMock.sol:InitializableMock for contracts/proxy/utils/Initializable.sol:Initializable; the original source units and function bodies are unchanged",
+              "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+              "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+              "harness overrides: none; additional public entry points: initialize(); initializeNested(); initializeWithX(uint256); nonInitializable(uint256); fail()"
+            ]
+          },
+          "notes": [
+            "Solidity concrete harness (repository): contracts/mocks/InitializableMock.sol:InitializableMock for contracts/proxy/utils/Initializable.sol:Initializable; the original source units and function bodies are unchanged",
+            "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+            "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+            "harness overrides: none; additional public entry points: initialize(); initializeNested(); initializeWithX(uint256); nonInitializable(uint256); fail()",
+            "InitializableMock made by its constructor: its arguments are the rule's params",
+            "initialize: msg.sender is never address(0) (InitializableMock.sol:15:5) is the step's refusal",
+            "initialize: require(_initializing || !_initialized, \"Initializable: contract is already initialized\") (Initializable.sol:48:9) is the step's refusal",
+            "initializeNested: msg.sender is never address(0) (InitializableMock.sol:19:5) is the step's refusal",
+            "initializeNested: require(_initializing || !_initialized, \"Initializable: contract is already initialized\") (Initializable.sol:48:9) is the step's refusal",
+            "initializeWithX: msg.sender is never address(0) (InitializableMock.sol:23:5) is the step's refusal",
+            "initializeWithX: balance + msg.value: past u256's range (no ether past 2^256 exists) (InitializableMock.sol:23:5) is the step's refusal",
+            "initializeWithX: require(_initializing || !_initialized, \"Initializable: contract is already initialized\") (Initializable.sol:48:9) is the step's refusal",
+            "nonInitializable: msg.sender is never address(0) (InitializableMock.sol:27:5) is the step's refusal",
+            "nonInitializable: balance + msg.value: past u256's range (no ether past 2^256 exists) (InitializableMock.sol:27:5) is the step's refusal",
+            "W256$0: a natural (the code refuses it below 0)",
+            "msg_sender: a natural, as given",
+            "msg_sender_: a natural, as given",
+            "msg_value: a natural, as given",
+            "x_: a natural, as given"
+          ],
+          "refusals": [],
+          "evidence": {
+            "runs": 140,
+            "requests": 1680,
+            "fromStates": 400,
+            "probes": {
+              "conditions": 6,
+              "witnesses": 6,
+              "steps": 6
+            },
+            "refusedBoth": 1393,
+            "outside": 0,
+            "edge": 0,
+            "compiledAgreed": 287,
+            "coverage": {
+              "arms": 0,
+              "hit": 0,
+              "missed": []
+            },
+            "ms": 4258,
+            "runMs": 4259
+          },
+          "result": {
+            "rules": [
+              {
+                "file": "runs/security-solidity-harness/oz-initializer/vulnerable/contracts/proxy/utils/Initializable.sol",
+                "lang": "Solidity",
+                "entry": "Initializable",
+                "ok": true,
+                "refusals": [],
+                "notes": [
+                  "Solidity concrete harness (repository): contracts/mocks/InitializableMock.sol:InitializableMock for contracts/proxy/utils/Initializable.sol:Initializable; the original source units and function bodies are unchanged",
+                  "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+                  "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+                  "harness overrides: none; additional public entry points: initialize(); initializeNested(); initializeWithX(uint256); nonInitializable(uint256); fail()",
+                  "InitializableMock made by its constructor: its arguments are the rule's params",
+                  "initialize: msg.sender is never address(0) (InitializableMock.sol:15:5) is the step's refusal",
+                  "initialize: require(_initializing || !_initialized, \"Initializable: contract is already initialized\") (Initializable.sol:48:9) is the step's refusal",
+                  "initializeNested: msg.sender is never address(0) (InitializableMock.sol:19:5) is the step's refusal",
+                  "initializeNested: require(_initializing || !_initialized, \"Initializable: contract is already initialized\") (Initializable.sol:48:9) is the step's refusal",
+                  "initializeWithX: msg.sender is never address(0) (InitializableMock.sol:23:5) is the step's refusal",
+                  "initializeWithX: balance + msg.value: past u256's range (no ether past 2^256 exists) (InitializableMock.sol:23:5) is the step's refusal",
+                  "initializeWithX: require(_initializing || !_initialized, \"Initializable: contract is already initialized\") (Initializable.sol:48:9) is the step's refusal",
+                  "nonInitializable: msg.sender is never address(0) (InitializableMock.sol:27:5) is the step's refusal",
+                  "nonInitializable: balance + msg.value: past u256's range (no ether past 2^256 exists) (InitializableMock.sol:27:5) is the step's refusal",
+                  "W256$0: a natural (the code refuses it below 0)",
+                  "msg_sender: a natural, as given",
+                  "msg_sender_: a natural, as given",
+                  "msg_value: a natural, as given",
+                  "x_: a natural, as given",
+                  "security candidates require policy review; arbitrary requests in arbitrary order, values within the extracted types; bind identity/roles to authentication, not caller claims"
+                ],
+                "names": [
+                  {
+                    "code": "balance",
+                    "rule": "balance",
+                    "role": "state"
+                  },
+                  {
+                    "code": "W256$",
+                    "rule": "W256$",
+                    "role": "state"
+                  },
+                  {
+                    "code": "_initialized",
+                    "rule": "initialized",
+                    "role": "state"
+                  },
+                  {
+                    "code": "_initializing",
+                    "rule": "initializing",
+                    "role": "state"
+                  },
+                  {
+                    "code": "initializerRan",
+                    "rule": "initializerRan",
+                    "role": "state"
+                  },
+                  {
+                    "code": "x",
+                    "rule": "x",
+                    "role": "state"
+                  },
+                  {
+                    "code": "W256$",
+                    "rule": "W256$0",
+                    "role": "param"
+                  },
+                  {
+                    "code": "msg.sender",
+                    "rule": "msg_sender",
+                    "role": "param"
+                  },
+                  {
+                    "code": "msg.sender",
+                    "rule": "msg_sender_",
+                    "role": "input",
+                    "method": "initialize"
+                  },
+                  {
+                    "code": "msg.sender",
+                    "rule": "msg_sender_",
+                    "role": "input",
+                    "method": "initializeNested"
+                  },
+                  {
+                    "code": "msg.sender",
+                    "rule": "msg_sender_",
+                    "role": "input",
+                    "method": "initializeWithX"
+                  },
+                  {
+                    "code": "msg.value",
+                    "rule": "msg_value",
+                    "role": "input",
+                    "method": "initializeWithX"
+                  },
+                  {
+                    "code": "_x",
+                    "rule": "x_",
+                    "role": "input",
+                    "method": "initializeWithX"
+                  },
+                  {
+                    "code": "msg.sender",
+                    "rule": "msg_sender_",
+                    "role": "input",
+                    "method": "nonInitializable"
+                  },
+                  {
+                    "code": "msg.value",
+                    "rule": "msg_value",
+                    "role": "input",
+                    "method": "nonInitializable"
+                  },
+                  {
+                    "code": "_x",
+                    "rule": "x_",
+                    "role": "input",
+                    "method": "nonInitializable"
+                  },
+                  {
+                    "code": "method",
+                    "rule": "method",
+                    "role": "method"
+                  }
+                ],
+                "laws": [],
+                "proposed": [],
+                "source": "// Extracted by gdp-wired/extract from Initializable.sol (InitializableMock, a class and its methods).\n// Checked against the code it was read from; read again with extract() after the code changes.\nimport {all, any, bool, nat, not, oneOf, rule, when} from 'gdp-wired'\n\nexport const initializableMockRule = rule(\"InitializableMock\")\n  .params({W256$0: nat, msg_sender: nat})\n  .inputs({method: oneOf('initialize', 'initializeNested', 'initializeWithX', 'nonInitializable'), msg_sender_: nat, msg_value: nat, x_: nat})\n  .state({balance: 0, W256$: ({W256$0}) => W256$0, initialized: bool.from(false), initializing: bool.from(false), initializerRan: bool.from(false), x: 0})\n  .pre(({W256$0, msg_sender}) => all(all(W256$0.atLeast(2), msg_sender.eq(0).not()), msg_sender.atLeast(0)))\n  .assume(({method, msg_sender_, msg_value, W256$, x_, initializing, initialized, balance}) => all(method.is('initialize').implies(msg_sender_.atLeast(0)), method.is('initializeNested').implies(msg_sender_.atLeast(0)), method.is('initializeWithX').implies(msg_sender_.atLeast(0)), method.is('initializeWithX').implies(all(msg_value.atLeast(0), msg_value.lt(W256$))), method.is('initializeWithX').implies(all(x_.atLeast(0), x_.lt(W256$))), method.is('nonInitializable').implies(msg_sender_.atLeast(0)), method.is('nonInitializable').implies(all(msg_value.atLeast(0), msg_value.lt(W256$))), method.is('nonInitializable').implies(all(x_.atLeast(0), x_.lt(W256$))), method.is('initialize').implies(all(method.is('initialize').implies(msg_sender_.eq(0).not()), not(all(method.is('initialize'), msg_sender_.eq(0).not(), not(initializing), initialized)))), method.is('initializeNested').implies(all(method.is('initializeNested').implies(msg_sender_.eq(0).not()), not(all(method.is('initializeNested'), msg_sender_.eq(0).not(), not(initializing), initialized)))), method.is('initializeWithX').implies(all(method.is('initializeWithX').implies(msg_sender_.eq(0).not()), not(all(method.is('initializeWithX'), msg_sender_.eq(0).not(), W256$.atMost(balance.plus(msg_value)))), not(all(method.is('initializeWithX'), msg_sender_.eq(0).not(), balance.plus(msg_value).lt(W256$), not(initializing), initialized)))), method.is('nonInitializable').implies(all(method.is('nonInitializable').implies(msg_sender_.eq(0).not()), not(all(method.is('nonInitializable'), msg_sender_.eq(0).not(), W256$.atMost(balance.plus(msg_value))))))))\n  .step(({method, balance, msg_value, initializing, initialized, initializerRan, x, x_}) => {\n    const t1 = method.is('initialize')\n    const t2 = method.is('initializeNested')\n    const t3 = any(not(initializing), initialized)\n    return {balance: when(t1, balance, when(t2, balance, balance.plus(msg_value))), initialized: when(t1, t3, when(t2, t3, when(method.is('initializeWithX'), t3, initialized))), initializerRan: any(t1, t2, initializerRan), x: when(t1, x, when(t2, x, x_))}\n  })\n\n// What every state of the code is: a law about every state is about the code's with these beside it.\nexport const initializableMockInvariants = [initializableMockRule.law(\"balance within its type's range\", ({balance, W256$}) => balance.lt(W256$)), initializableMockRule.law(\"x within its type's range\", ({x, W256$}) => x.lt(W256$))]\n",
+                "checked": "checked against the code: 1680 requests from the start, 400 from drawn states, 6 from the prover's witnesses",
+                "security": [
+                  {
+                    "name": "balance never negative",
+                    "expr": "(balance) >= 0",
+                    "kind": "law",
+                    "verdict": "proven",
+                    "ms": 837,
+                    "securityKind": "ledger",
+                    "review": "required",
+                    "where": "// gdp: law balance never negative: (balance) >= 0"
+                  },
+                  {
+                    "name": "balance within W256$",
+                    "expr": "(balance) <= (W256$)",
+                    "verdict": "not read",
+                    "why": "can't read \"$)\"",
+                    "ms": 0,
+                    "securityKind": "quota",
+                    "review": "required",
+                    "where": "// gdp: law balance within W256$: (balance) <= (W256$)"
+                  },
+                  {
+                    "name": "balance within msg.sender",
+                    "expr": "(balance) <= (msg.sender)",
+                    "verdict": "not read",
+                    "why": "msg.sender is an argument of initialize, initializeNested, initializeWithX, nonInitializable: write the law on the method it is about (the line above it), or as <method>.msg.sender",
+                    "ms": 0,
+                    "securityKind": "quota",
+                    "review": "required",
+                    "where": "// gdp: law balance within msg.sender: (balance) <= (msg.sender)"
+                  },
+                  {
+                    "name": "W256$ never negative",
+                    "expr": "(W256$) >= 0",
+                    "verdict": "not read",
+                    "why": "can't read \"$) >= 0\"",
+                    "ms": 0,
+                    "securityKind": "ledger",
+                    "review": "required",
+                    "where": "// gdp: law W256$ never negative: (W256$) >= 0"
+                  },
+                  {
+                    "name": "W256$ within W256$",
+                    "expr": "(W256$) <= (W256$)",
+                    "verdict": "not read",
+                    "why": "can't read \"$) <= (W256$)\"",
+                    "ms": 0,
+                    "securityKind": "quota",
+                    "review": "required",
+                    "where": "// gdp: law W256$ within W256$: (W256$) <= (W256$)"
+                  },
+                  {
+                    "name": "W256$ within msg.sender",
+                    "expr": "(W256$) <= (msg.sender)",
+                    "verdict": "not read",
+                    "why": "can't read \"$) <= (msg.sender)\"",
+                    "ms": 0,
+                    "securityKind": "quota",
+                    "review": "required",
+                    "where": "// gdp: law W256$ within msg.sender: (W256$) <= (msg.sender)"
+                  },
+                  {
+                    "name": "x never negative",
+                    "expr": "(x) >= 0",
+                    "kind": "law",
+                    "verdict": "proven",
+                    "ms": 629,
+                    "securityKind": "ledger",
+                    "review": "required",
+                    "where": "// gdp: law x never negative: (x) >= 0"
+                  },
+                  {
+                    "name": "x within W256$",
+                    "expr": "(x) <= (W256$)",
+                    "verdict": "not read",
+                    "why": "can't read \"$)\"",
+                    "ms": 0,
+                    "securityKind": "quota",
+                    "review": "required",
+                    "where": "// gdp: law x within W256$: (x) <= (W256$)"
+                  },
+                  {
+                    "name": "x within msg.sender",
+                    "expr": "(x) <= (msg.sender)",
+                    "verdict": "not read",
+                    "why": "msg.sender is an argument of initialize, initializeNested, initializeWithX, nonInitializable: write the law on the method it is about (the line above it), or as <method>.msg.sender",
+                    "ms": 0,
+                    "securityKind": "quota",
+                    "review": "required",
+                    "where": "// gdp: law x within msg.sender: (x) <= (msg.sender)"
+                  },
+                  {
+                    "name": "changing balance only after _initialized",
+                    "expr": "(balance != old(balance)) implies old(_initialized)",
+                    "kind": "step",
+                    "verdict": "broken",
+                    "replayed": "replayed on the code (anvil, the contract's bytecode): 1 transactions, 0 calls made from inside another, the state after each the rule's, the law broken there",
+                    "run": [
+                      "made with W256$ = 3, msg.sender = 2",
+                      "initializeWithX(msg.sender=1, msg.value=1, _x=0)"
+                    ],
+                    "assumes": [],
+                    "ms": 66,
+                    "securityKind": "workflow",
+                    "review": "required",
+                    "where": "// gdp: law changing balance only after _initialized: (balance != old(balance)) implies old(_initialized)"
+                  },
+                  {
+                    "name": "changing W256$ only after _initialized",
+                    "expr": "(W256$ != old(W256$)) implies old(_initialized)",
+                    "verdict": "not read",
+                    "why": "can't read \"$ != old(W256$)) implies old(_initialized)\"",
+                    "ms": 0,
+                    "securityKind": "workflow",
+                    "review": "required",
+                    "where": "// gdp: law changing W256$ only after _initialized: (W256$ != old(W256$)) implies old(_initialized)"
+                  },
+                  {
+                    "name": "changing _initializing only after _initialized",
+                    "expr": "(_initializing != old(_initializing)) implies old(_initialized)",
+                    "kind": "step",
+                    "verdict": "proven",
+                    "ms": 1143,
+                    "securityKind": "workflow",
+                    "review": "required",
+                    "where": "// gdp: law changing _initializing only after _initialized: (_initializing != old(_initializing)) implies old(_initialized)"
+                  },
+                  {
+                    "name": "changing initializerRan only after _initialized",
+                    "expr": "(initializerRan != old(initializerRan)) implies old(_initialized)",
+                    "kind": "step",
+                    "verdict": "broken",
+                    "replayed": "replayed on the code (anvil, the contract's bytecode): 1 transactions, 0 calls made from inside another, the state after each the rule's, the law broken there",
+                    "run": [
+                      "made with W256$ = 2, msg.sender = 1",
+                      "initializeNested(msg.sender=3)"
+                    ],
+                    "assumes": [],
+                    "ms": 110,
+                    "securityKind": "workflow",
+                    "review": "required",
+                    "where": "// gdp: law changing initializerRan only after _initialized: (initializerRan != old(initializerRan)) implies old(_initialized)"
+                  },
+                  {
+                    "name": "changing x only after _initialized",
+                    "expr": "(x != old(x)) implies old(_initialized)",
+                    "kind": "step",
+                    "verdict": "broken",
+                    "replayed": "replayed on the code (anvil, the contract's bytecode): 2 transactions, 0 calls made from inside another, the state after each the rule's, the law broken there",
+                    "run": [
+                      "made with W256$ = 3, msg.sender = 2",
+                      "nonInitializable(msg.sender=2, msg.value=1, _x=0)",
+                      "initializeWithX(msg.sender=3, msg.value=1, _x=1)"
+                    ],
+                    "assumes": [],
+                    "ms": 122,
+                    "securityKind": "workflow",
+                    "review": "required",
+                    "where": "// gdp: law changing x only after _initialized: (x != old(x)) implies old(_initialized)"
+                  },
+                  {
+                    "name": "changing balance only after _initializing",
+                    "expr": "(balance != old(balance)) implies old(_initializing)",
+                    "kind": "step",
+                    "verdict": "broken",
+                    "replayed": "replayed on the code (anvil, the contract's bytecode): 3 transactions, 0 calls made from inside another, the state after each the rule's, the law broken there",
+                    "run": [
+                      "made with W256$ = 2, msg.sender = 1",
+                      "initializeNested(msg.sender=3)",
+                      "nonInitializable(msg.sender=2, msg.value=0, _x=1)",
+                      "nonInitializable(msg.sender=2, msg.value=1, _x=0)"
+                    ],
+                    "assumes": [],
+                    "ms": 115,
+                    "securityKind": "workflow",
+                    "review": "required",
+                    "where": "// gdp: law changing balance only after _initializing: (balance != old(balance)) implies old(_initializing)"
+                  },
+                  {
+                    "name": "changing W256$ only after _initializing",
+                    "expr": "(W256$ != old(W256$)) implies old(_initializing)",
+                    "verdict": "not read",
+                    "why": "can't read \"$ != old(W256$)) implies old(_initializing)\"",
+                    "ms": 0,
+                    "securityKind": "workflow",
+                    "review": "required",
+                    "where": "// gdp: law changing W256$ only after _initializing: (W256$ != old(W256$)) implies old(_initializing)"
+                  },
+                  {
+                    "name": "changing _initialized only after _initializing",
+                    "expr": "(_initialized != old(_initialized)) implies old(_initializing)",
+                    "kind": "step",
+                    "verdict": "broken",
+                    "replayed": "replayed on the code (anvil, the contract's bytecode): 1 transactions, 0 calls made from inside another, the state after each the rule's, the law broken there",
+                    "run": [
+                      "made with W256$ = 2, msg.sender = 1",
+                      "initializeNested(msg.sender=3)"
+                    ],
+                    "assumes": [],
+                    "ms": 109,
+                    "securityKind": "workflow",
+                    "review": "required",
+                    "where": "// gdp: law changing _initialized only after _initializing: (_initialized != old(_initialized)) implies old(_initializing)"
+                  },
+                  {
+                    "name": "changing initializerRan only after _initializing",
+                    "expr": "(initializerRan != old(initializerRan)) implies old(_initializing)",
+                    "kind": "step",
+                    "verdict": "broken",
+                    "replayed": "replayed on the code (anvil, the contract's bytecode): 1 transactions, 0 calls made from inside another, the state after each the rule's, the law broken there",
+                    "run": [
+                      "made with W256$ = 2, msg.sender = 1",
+                      "initializeNested(msg.sender=3)"
+                    ],
+                    "assumes": [],
+                    "ms": 69,
+                    "securityKind": "workflow",
+                    "review": "required",
+                    "where": "// gdp: law changing initializerRan only after _initializing: (initializerRan != old(initializerRan)) implies old(_initializing)"
+                  },
+                  {
+                    "name": "changing x only after _initializing",
+                    "expr": "(x != old(x)) implies old(_initializing)",
+                    "kind": "step",
+                    "verdict": "broken",
+                    "replayed": "replayed on the code (anvil, the contract's bytecode): 2 transactions, 0 calls made from inside another, the state after each the rule's, the law broken there",
+                    "run": [
+                      "made with W256$ = 2, msg.sender = 1",
+                      "initializeNested(msg.sender=3)",
+                      "nonInitializable(msg.sender=2, msg.value=0, _x=1)"
+                    ],
+                    "assumes": [],
+                    "ms": 135,
+                    "securityKind": "workflow",
+                    "review": "required",
+                    "where": "// gdp: law changing x only after _initializing: (x != old(x)) implies old(_initializing)"
+                  },
+                  {
+                    "name": "changing balance only after initializerRan",
+                    "expr": "(balance != old(balance)) implies old(initializerRan)",
+                    "kind": "step",
+                    "verdict": "broken",
+                    "replayed": "replayed on the code (anvil, the contract's bytecode): 1 transactions, 0 calls made from inside another, the state after each the rule's, the law broken there",
+                    "run": [
+                      "made with W256$ = 3, msg.sender = 2",
+                      "initializeWithX(msg.sender=1, msg.value=1, _x=0)"
+                    ],
+                    "assumes": [],
+                    "ms": 138,
+                    "securityKind": "workflow",
+                    "review": "required",
+                    "where": "// gdp: law changing balance only after initializerRan: (balance != old(balance)) implies old(initializerRan)"
+                  },
+                  {
+                    "name": "changing W256$ only after initializerRan",
+                    "expr": "(W256$ != old(W256$)) implies old(initializerRan)",
+                    "verdict": "not read",
+                    "why": "can't read \"$ != old(W256$)) implies old(initializerRan)\"",
+                    "ms": 0,
+                    "securityKind": "workflow",
+                    "review": "required",
+                    "where": "// gdp: law changing W256$ only after initializerRan: (W256$ != old(W256$)) implies old(initializerRan)"
+                  },
+                  {
+                    "name": "changing _initialized only after initializerRan",
+                    "expr": "(_initialized != old(_initialized)) implies old(initializerRan)",
+                    "kind": "step",
+                    "verdict": "broken",
+                    "replayed": "replayed on the code (anvil, the contract's bytecode): 1 transactions, 0 calls made from inside another, the state after each the rule's, the law broken there",
+                    "run": [
+                      "made with W256$ = 2, msg.sender = 1",
+                      "initializeNested(msg.sender=3)"
+                    ],
+                    "assumes": [],
+                    "ms": 116,
+                    "securityKind": "workflow",
+                    "review": "required",
+                    "where": "// gdp: law changing _initialized only after initializerRan: (_initialized != old(_initialized)) implies old(initializerRan)"
+                  },
+                  {
+                    "name": "changing _initializing only after initializerRan",
+                    "expr": "(_initializing != old(_initializing)) implies old(initializerRan)",
+                    "kind": "step",
+                    "verdict": "proven",
+                    "ms": 691,
+                    "securityKind": "workflow",
+                    "review": "required",
+                    "where": "// gdp: law changing _initializing only after initializerRan: (_initializing != old(_initializing)) implies old(initializerRan)"
+                  },
+                  {
+                    "name": "changing x only after initializerRan",
+                    "expr": "(x != old(x)) implies old(initializerRan)",
+                    "kind": "step",
+                    "verdict": "broken",
+                    "replayed": "replayed on the code (anvil, the contract's bytecode): 2 transactions, 0 calls made from inside another, the state after each the rule's, the law broken there",
+                    "run": [
+                      "made with W256$ = 2, msg.sender = 2",
+                      "initializeWithX(msg.sender=2, msg.value=0, _x=0)",
+                      "nonInitializable(msg.sender=3, msg.value=0, _x=1)"
+                    ],
+                    "assumes": [],
+                    "ms": 115,
+                    "securityKind": "workflow",
+                    "review": "required",
+                    "where": "// gdp: law changing x only after initializerRan: (x != old(x)) implies old(initializerRan)"
+                  }
+                ]
+              }
+            ],
+            "exit": 0
+          }
+        },
+        {
+          "version": "fixed",
+          "sha": "08840b9f8c21b235466b6d0c5a00a4d3a2de2682",
+          "sourceSha256": "d86e8a98cade69277cf510993f7687a999f28a22f9c15dca145f67d5a91a0eef",
+          "originalUnchanged": true,
+          "elapsedMs": 137.44311500000185,
+          "status": "refused",
+          "harness": {
+            "kind": "repository",
+            "target": {
+              "source": "contracts/proxy/utils/Initializable.sol",
+              "contract": "Initializable"
+            },
+            "source": "contracts/mocks/InitializableMock.sol",
+            "entry": "InitializableMock",
+            "constructors": [],
+            "overrides": [],
+            "addedMethods": [
+              "initialize()",
+              "initializeOnlyInitializing()",
+              "initializerNested()",
+              "onlyInitializingNested()",
+              "initializeWithX(uint256)",
+              "nonInitializable(uint256)",
+              "fail()"
+            ],
+            "notes": [
+              "Solidity concrete harness (repository): contracts/mocks/InitializableMock.sol:InitializableMock for contracts/proxy/utils/Initializable.sol:Initializable; the original source units and function bodies are unchanged",
+              "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+              "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+              "harness overrides: none; additional public entry points: initialize(); initializeOnlyInitializing(); initializerNested(); onlyInitializingNested(); initializeWithX(uint256); nonInitializable(uint256); fail()"
+            ]
+          },
+          "notes": [
+            "Solidity concrete harness (repository): contracts/mocks/InitializableMock.sol:InitializableMock for contracts/proxy/utils/Initializable.sol:Initializable; the original source units and function bodies are unchanged",
+            "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+            "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+            "harness overrides: none; additional public entry points: initialize(); initializeOnlyInitializing(); initializerNested(); onlyInitializingNested(); initializeWithX(uint256); nonInitializable(uint256); fail()"
+          ],
+          "refusals": [
+            {
+              "where": "Address.sol:42:9",
+              "what": "assembly { size := extcodesize(account) }: inline assembly"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "oz-supply",
+      "advisory": "https://github.com/advisories/GHSA-wmpv-c2jp-j2xg",
+      "policy": "The reported total supply must match minted balances even during an untrusted receiver callback.",
+      "options": {
+        "entry": "ERC1155Supply"
+      },
+      "found": false,
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "0c4de6721d9668d7b5b2c5a9400fd0b2a5e8de90",
+          "sourceSha256": "d6ec321680d46358819d59eba09447136dd5e3d6f15a5a8ca7bb63e719d1e77f",
+          "originalUnchanged": true,
+          "elapsedMs": 205.76478300000008,
+          "status": "refused",
+          "harness": {
+            "kind": "repository",
+            "target": {
+              "source": "contracts/token/ERC1155/extensions/ERC1155Supply.sol",
+              "contract": "ERC1155Supply"
+            },
+            "source": "contracts/mocks/ERC1155SupplyMock.sol",
+            "entry": "ERC1155SupplyMock",
+            "constructors": [
+              "ERC1155SupplyMock: constructor(string memory uri) ERC1155Mock(uri) {}",
+              "ERC1155Mock: constructor(string memory uri) ERC1155(uri) {}",
+              "ERC1155: constructor(string memory uri_) {\n        _setURI(uri_);\n    }"
+            ],
+            "overrides": [
+              "ERC165.supportsInterface(bytes4) (contracts/utils/introspection/ERC165.sol)",
+              "ERC1155.supportsInterface(bytes4) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155.uri(uint256) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155.balanceOf(address,uint256) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155.balanceOfBatch(address[],uint256[]) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155.setApprovalForAll(address,bool) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155.isApprovedForAll(address,address) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155.safeTransferFrom(address,address,uint256,uint256,bytes) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155.safeBatchTransferFrom(address,address,uint256[],uint256[],bytes) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155Supply._mint(address,uint256,uint256,bytes) (contracts/token/ERC1155/extensions/ERC1155Supply.sol)",
+              "ERC1155Supply._mintBatch(address,uint256[],uint256[],bytes) (contracts/token/ERC1155/extensions/ERC1155Supply.sol)",
+              "ERC1155Supply._burn(address,uint256,uint256) (contracts/token/ERC1155/extensions/ERC1155Supply.sol)",
+              "ERC1155Supply._burnBatch(address,uint256[],uint256[]) (contracts/token/ERC1155/extensions/ERC1155Supply.sol)",
+              "ERC1155SupplyMock._mint(address,uint256,uint256,bytes) (contracts/mocks/ERC1155SupplyMock.sol)",
+              "ERC1155SupplyMock._mintBatch(address,uint256[],uint256[],bytes) (contracts/mocks/ERC1155SupplyMock.sol)",
+              "ERC1155SupplyMock._burn(address,uint256,uint256) (contracts/mocks/ERC1155SupplyMock.sol)",
+              "ERC1155SupplyMock._burnBatch(address,uint256[],uint256[]) (contracts/mocks/ERC1155SupplyMock.sol)"
+            ],
+            "addedMethods": [],
+            "notes": [
+              "Solidity concrete harness (repository): contracts/mocks/ERC1155SupplyMock.sol:ERC1155SupplyMock for contracts/token/ERC1155/extensions/ERC1155Supply.sol:ERC1155Supply; the original source units and function bodies are unchanged",
+              "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+              "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+              "harness overrides: ERC165.supportsInterface(bytes4) (contracts/utils/introspection/ERC165.sol); ERC1155.supportsInterface(bytes4) (contracts/token/ERC1155/ERC1155.sol); ERC1155.uri(uint256) (contracts/token/ERC1155/ERC1155.sol); ERC1155.balanceOf(address,uint256) (contracts/token/ERC1155/ERC1155.sol); ERC1155.balanceOfBatch(address[],uint256[]) (contracts/token/ERC1155/ERC1155.sol); ERC1155.setApprovalForAll(address,bool) (contracts/token/ERC1155/ERC1155.sol); ERC1155.isApprovedForAll(address,address) (contracts/token/ERC1155/ERC1155.sol); ERC1155.safeTransferFrom(address,address,uint256,uint256,bytes) (contracts/token/ERC1155/ERC1155.sol); ERC1155.safeBatchTransferFrom(address,address,uint256[],uint256[],bytes) (contracts/token/ERC1155/ERC1155.sol); ERC1155Supply._mint(address,uint256,uint256,bytes) (contracts/token/ERC1155/extensions/ERC1155Supply.sol); ERC1155Supply._mintBatch(address,uint256[],uint256[],bytes) (contracts/token/ERC1155/extensions/ERC1155Supply.sol); ERC1155Supply._burn(address,uint256,uint256) (contracts/token/ERC1155/extensions/ERC1155Supply.sol); ERC1155Supply._burnBatch(address,uint256[],uint256[]) (contracts/token/ERC1155/extensions/ERC1155Supply.sol); ERC1155SupplyMock._mint(address,uint256,uint256,bytes) (contracts/mocks/ERC1155SupplyMock.sol); ERC1155SupplyMock._mintBatch(address,uint256[],uint256[],bytes) (contracts/mocks/ERC1155SupplyMock.sol); ERC1155SupplyMock._burn(address,uint256,uint256) (contracts/mocks/ERC1155SupplyMock.sol); ERC1155SupplyMock._burnBatch(address,uint256[],uint256[]) (contracts/mocks/ERC1155SupplyMock.sol); additional public entry points: none"
+            ]
+          },
+          "notes": [
+            "Solidity concrete harness (repository): contracts/mocks/ERC1155SupplyMock.sol:ERC1155SupplyMock for contracts/token/ERC1155/extensions/ERC1155Supply.sol:ERC1155Supply; the original source units and function bodies are unchanged",
+            "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+            "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+            "harness overrides: ERC165.supportsInterface(bytes4) (contracts/utils/introspection/ERC165.sol); ERC1155.supportsInterface(bytes4) (contracts/token/ERC1155/ERC1155.sol); ERC1155.uri(uint256) (contracts/token/ERC1155/ERC1155.sol); ERC1155.balanceOf(address,uint256) (contracts/token/ERC1155/ERC1155.sol); ERC1155.balanceOfBatch(address[],uint256[]) (contracts/token/ERC1155/ERC1155.sol); ERC1155.setApprovalForAll(address,bool) (contracts/token/ERC1155/ERC1155.sol); ERC1155.isApprovedForAll(address,address) (contracts/token/ERC1155/ERC1155.sol); ERC1155.safeTransferFrom(address,address,uint256,uint256,bytes) (contracts/token/ERC1155/ERC1155.sol); ERC1155.safeBatchTransferFrom(address,address,uint256[],uint256[],bytes) (contracts/token/ERC1155/ERC1155.sol); ERC1155Supply._mint(address,uint256,uint256,bytes) (contracts/token/ERC1155/extensions/ERC1155Supply.sol); ERC1155Supply._mintBatch(address,uint256[],uint256[],bytes) (contracts/token/ERC1155/extensions/ERC1155Supply.sol); ERC1155Supply._burn(address,uint256,uint256) (contracts/token/ERC1155/extensions/ERC1155Supply.sol); ERC1155Supply._burnBatch(address,uint256[],uint256[]) (contracts/token/ERC1155/extensions/ERC1155Supply.sol); ERC1155SupplyMock._mint(address,uint256,uint256,bytes) (contracts/mocks/ERC1155SupplyMock.sol); ERC1155SupplyMock._mintBatch(address,uint256[],uint256[],bytes) (contracts/mocks/ERC1155SupplyMock.sol); ERC1155SupplyMock._burn(address,uint256,uint256) (contracts/mocks/ERC1155SupplyMock.sol); ERC1155SupplyMock._burnBatch(address,uint256[],uint256[]) (contracts/mocks/ERC1155SupplyMock.sol); additional public entry points: none"
+          ],
+          "refusals": [
+            {
+              "where": "ERC1155.sol:446:34",
+              "what": "new uint256[](1): new uint256[](1): a call the subset doesn't read"
+            }
+          ]
+        },
+        {
+          "version": "fixed",
+          "sha": "c9acfb3c238e2d8bbd1bbfacc97c8322f65ab82a",
+          "sourceSha256": "669cadb1411e85a678da65c612537663bde719ec73853402003ba3ac6b4471e8",
+          "originalUnchanged": true,
+          "elapsedMs": 163.3143970000001,
+          "status": "refused",
+          "harness": {
+            "kind": "repository",
+            "target": {
+              "source": "contracts/token/ERC1155/extensions/ERC1155Supply.sol",
+              "contract": "ERC1155Supply"
+            },
+            "source": "contracts/mocks/ERC1155SupplyMock.sol",
+            "entry": "ERC1155SupplyMock",
+            "constructors": [
+              "ERC1155SupplyMock: constructor(string memory uri) ERC1155Mock(uri) {}",
+              "ERC1155Mock: constructor(string memory uri) ERC1155(uri) {}",
+              "ERC1155: constructor(string memory uri_) {\n        _setURI(uri_);\n    }"
+            ],
+            "overrides": [
+              "ERC165.supportsInterface(bytes4) (contracts/utils/introspection/ERC165.sol)",
+              "ERC1155.supportsInterface(bytes4) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155.uri(uint256) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155.balanceOf(address,uint256) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155.balanceOfBatch(address[],uint256[]) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155.setApprovalForAll(address,bool) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155.isApprovedForAll(address,address) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155.safeTransferFrom(address,address,uint256,uint256,bytes) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155.safeBatchTransferFrom(address,address,uint256[],uint256[],bytes) (contracts/token/ERC1155/ERC1155.sol)",
+              "ERC1155Supply._beforeTokenTransfer(address,address,address,uint256[],uint256[],bytes) (contracts/token/ERC1155/extensions/ERC1155Supply.sol)",
+              "ERC1155SupplyMock._beforeTokenTransfer(address,address,address,uint256[],uint256[],bytes) (contracts/mocks/ERC1155SupplyMock.sol)"
+            ],
+            "addedMethods": [],
+            "notes": [
+              "Solidity concrete harness (repository): contracts/mocks/ERC1155SupplyMock.sol:ERC1155SupplyMock for contracts/token/ERC1155/extensions/ERC1155Supply.sol:ERC1155Supply; the original source units and function bodies are unchanged",
+              "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+              "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+              "harness overrides: ERC165.supportsInterface(bytes4) (contracts/utils/introspection/ERC165.sol); ERC1155.supportsInterface(bytes4) (contracts/token/ERC1155/ERC1155.sol); ERC1155.uri(uint256) (contracts/token/ERC1155/ERC1155.sol); ERC1155.balanceOf(address,uint256) (contracts/token/ERC1155/ERC1155.sol); ERC1155.balanceOfBatch(address[],uint256[]) (contracts/token/ERC1155/ERC1155.sol); ERC1155.setApprovalForAll(address,bool) (contracts/token/ERC1155/ERC1155.sol); ERC1155.isApprovedForAll(address,address) (contracts/token/ERC1155/ERC1155.sol); ERC1155.safeTransferFrom(address,address,uint256,uint256,bytes) (contracts/token/ERC1155/ERC1155.sol); ERC1155.safeBatchTransferFrom(address,address,uint256[],uint256[],bytes) (contracts/token/ERC1155/ERC1155.sol); ERC1155Supply._beforeTokenTransfer(address,address,address,uint256[],uint256[],bytes) (contracts/token/ERC1155/extensions/ERC1155Supply.sol); ERC1155SupplyMock._beforeTokenTransfer(address,address,address,uint256[],uint256[],bytes) (contracts/mocks/ERC1155SupplyMock.sol); additional public entry points: none"
+            ]
+          },
+          "notes": [
+            "Solidity concrete harness (repository): contracts/mocks/ERC1155SupplyMock.sol:ERC1155SupplyMock for contracts/token/ERC1155/extensions/ERC1155Supply.sol:ERC1155Supply; the original source units and function bodies are unchanged",
+            "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+            "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+            "harness overrides: ERC165.supportsInterface(bytes4) (contracts/utils/introspection/ERC165.sol); ERC1155.supportsInterface(bytes4) (contracts/token/ERC1155/ERC1155.sol); ERC1155.uri(uint256) (contracts/token/ERC1155/ERC1155.sol); ERC1155.balanceOf(address,uint256) (contracts/token/ERC1155/ERC1155.sol); ERC1155.balanceOfBatch(address[],uint256[]) (contracts/token/ERC1155/ERC1155.sol); ERC1155.setApprovalForAll(address,bool) (contracts/token/ERC1155/ERC1155.sol); ERC1155.isApprovedForAll(address,address) (contracts/token/ERC1155/ERC1155.sol); ERC1155.safeTransferFrom(address,address,uint256,uint256,bytes) (contracts/token/ERC1155/ERC1155.sol); ERC1155.safeBatchTransferFrom(address,address,uint256[],uint256[],bytes) (contracts/token/ERC1155/ERC1155.sol); ERC1155Supply._beforeTokenTransfer(address,address,address,uint256[],uint256[],bytes) (contracts/token/ERC1155/extensions/ERC1155Supply.sol); ERC1155SupplyMock._beforeTokenTransfer(address,address,address,uint256[],uint256[],bytes) (contracts/mocks/ERC1155SupplyMock.sol); additional public entry points: none"
+          ],
+          "refusals": [
+            {
+              "where": "ERC1155Supply.sol:46:13",
+              "what": "for (uint256 i = 0; i < ids.length; ++i) { _totalSupply[ids[i]] += amounts[i]; }: a loop (outside the Solidity subset)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "oz-quorum",
+      "advisory": "https://github.com/advisories/GHSA-xrc4-737v-9q75",
+      "policy": "Lowering the current quorum must not make a previously defeated proposal executable.",
+      "options": {
+        "entry": "GovernorVotesQuorumFraction",
+        "methods": [
+          "quorum",
+          "updateQuorumNumerator"
+        ],
+        "harness": {
+          "file": "contracts/mocks/GovernorMock.sol",
+          "entry": "GovernorMock"
+        }
+      },
+      "found": false,
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "0d91b620b7e63f07477d9191499e081f879a4929",
+          "sourceSha256": "976d85310f51a6248c0bdc37a3f06fb6c7742c2c028aca58621d12b95358f603",
+          "originalUnchanged": true,
+          "elapsedMs": 1628.9682119999998,
+          "status": "refused",
+          "harness": {
+            "kind": "repository",
+            "target": {
+              "source": "contracts/governance/extensions/GovernorVotesQuorumFraction.sol",
+              "contract": "GovernorVotesQuorumFraction"
+            },
+            "source": "contracts/mocks/GovernorMock.sol",
+            "entry": "GovernorMock",
+            "constructors": [
+              "GovernorMock: constructor(\n        string memory name_,\n        IVotes token_,\n        uint256 votingDelay_,\n        uint256 votingPeriod_,\n        uint256 quorumNumerator_\n    )\n        Governor(name_)\n        GovernorSettings(votingDelay_, votingPeriod_, 0)\n        GovernorVotes(token_)\n        GovernorVotesQuorumFraction(quorumNumerator_)\n    {}",
+              "GovernorVotesQuorumFraction: constructor(uint256 quorumNumeratorValue) {\n        _updateQuorumNumerator(quorumNumeratorValue);\n    }",
+              "GovernorVotes: constructor(IVotes tokenAddress) {\n        token = tokenAddress;\n    }",
+              "GovernorSettings: constructor(\n        uint256 initialVotingDelay,\n        uint256 initialVotingPeriod,\n        uint256 initialProposalThreshold\n    ) {\n        _setVotingDelay(initialVotingDelay);\n        _setVotingPeriod(initialVotingPeriod);\n        _setProposalThreshold(initialProposalThreshold);\n    }",
+              "Governor: constructor(string memory name_) EIP712(name_, version()) {\n        _name = name_;\n    }",
+              "EIP712: constructor(string memory name, string memory version) {\n        bytes32 hashedName = keccak256(bytes(name));\n        bytes32 hashedVersion = keccak256(bytes(version));\n        bytes32 typeHash = keccak256(\n            \"EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)\"\n        );\n        _HASHED_NAME = hashedName;\n        _HASHED_VERSION = hashedVersion;\n        _CACHED_CHAIN_ID = block.chainid;\n        _CACHED_DOMAIN_SEPARATOR = _buildDomainSeparator(typeHash, hashedName, hashedVersion);\n        _CACHED_THIS = address(this);\n        _TYPE_HASH = typeHash;\n    }"
+            ],
+            "overrides": [
+              "ERC165.supportsInterface(bytes4) (contracts/utils/introspection/ERC165.sol)",
+              "Governor.supportsInterface(bytes4) (contracts/governance/Governor.sol)",
+              "Governor.name() (contracts/governance/Governor.sol)",
+              "Governor.version() (contracts/governance/Governor.sol)",
+              "Governor.hashProposal(address[],uint256[],bytes[],bytes32) (contracts/governance/Governor.sol)",
+              "Governor.state(uint256) (contracts/governance/Governor.sol)",
+              "Governor.proposalSnapshot(uint256) (contracts/governance/Governor.sol)",
+              "Governor.proposalDeadline(uint256) (contracts/governance/Governor.sol)",
+              "Governor.propose(address[],uint256[],bytes[],string) (contracts/governance/Governor.sol)",
+              "Governor.execute(address[],uint256[],bytes[],bytes32) (contracts/governance/Governor.sol)",
+              "Governor.getVotes(address,uint256) (contracts/governance/Governor.sol)",
+              "Governor.getVotesWithParams(address,uint256,bytes) (contracts/governance/Governor.sol)",
+              "Governor.castVote(uint256,uint8) (contracts/governance/Governor.sol)",
+              "Governor.castVoteWithReason(uint256,uint8,string) (contracts/governance/Governor.sol)",
+              "Governor.castVoteWithReasonAndParams(uint256,uint8,string,bytes) (contracts/governance/Governor.sol)",
+              "Governor.castVoteBySig(uint256,uint8,uint8,bytes32,bytes32) (contracts/governance/Governor.sol)",
+              "Governor.castVoteWithReasonAndParamsBySig(uint256,uint8,string,bytes,uint8,bytes32,bytes32) (contracts/governance/Governor.sol)",
+              "Governor.onERC721Received(address,address,uint256,bytes) (contracts/governance/Governor.sol)",
+              "Governor.onERC1155Received(address,address,uint256,uint256,bytes) (contracts/governance/Governor.sol)",
+              "Governor.onERC1155BatchReceived(address,address,uint256[],uint256[],bytes) (contracts/governance/Governor.sol)",
+              "GovernorProposalThreshold.propose(address[],uint256[],bytes[],string) (contracts/governance/extensions/GovernorProposalThreshold.sol)",
+              "GovernorSettings.votingDelay() (contracts/governance/extensions/GovernorSettings.sol)",
+              "GovernorSettings.votingPeriod() (contracts/governance/extensions/GovernorSettings.sol)",
+              "GovernorSettings.proposalThreshold() (contracts/governance/extensions/GovernorSettings.sol)",
+              "GovernorVotes._getVotes(address,uint256,bytes) (contracts/governance/extensions/GovernorVotes.sol)",
+              "GovernorVotesQuorumFraction.quorum(uint256) (contracts/governance/extensions/GovernorVotesQuorumFraction.sol)",
+              "GovernorCountingSimple.COUNTING_MODE() (contracts/governance/extensions/GovernorCountingSimple.sol)",
+              "GovernorCountingSimple.hasVoted(uint256,address) (contracts/governance/extensions/GovernorCountingSimple.sol)",
+              "GovernorCountingSimple._quorumReached(uint256) (contracts/governance/extensions/GovernorCountingSimple.sol)",
+              "GovernorCountingSimple._voteSucceeded(uint256) (contracts/governance/extensions/GovernorCountingSimple.sol)",
+              "GovernorCountingSimple._countVote(uint256,address,uint8,uint256,bytes) (contracts/governance/extensions/GovernorCountingSimple.sol)",
+              "GovernorMock.proposalThreshold() (contracts/mocks/GovernorMock.sol)",
+              "GovernorMock.propose(address[],uint256[],bytes[],string) (contracts/mocks/GovernorMock.sol)"
+            ],
+            "addedMethods": [
+              "cancel(address[],uint256[],bytes[],bytes32)"
+            ],
+            "notes": [
+              "Solidity concrete harness (repository): contracts/mocks/GovernorMock.sol:GovernorMock for contracts/governance/extensions/GovernorVotesQuorumFraction.sol:GovernorVotesQuorumFraction; the original source units and function bodies are unchanged",
+              "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+              "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+              "harness overrides: ERC165.supportsInterface(bytes4) (contracts/utils/introspection/ERC165.sol); Governor.supportsInterface(bytes4) (contracts/governance/Governor.sol); Governor.name() (contracts/governance/Governor.sol); Governor.version() (contracts/governance/Governor.sol); Governor.hashProposal(address[],uint256[],bytes[],bytes32) (contracts/governance/Governor.sol); Governor.state(uint256) (contracts/governance/Governor.sol); Governor.proposalSnapshot(uint256) (contracts/governance/Governor.sol); Governor.proposalDeadline(uint256) (contracts/governance/Governor.sol); Governor.propose(address[],uint256[],bytes[],string) (contracts/governance/Governor.sol); Governor.execute(address[],uint256[],bytes[],bytes32) (contracts/governance/Governor.sol); Governor.getVotes(address,uint256) (contracts/governance/Governor.sol); Governor.getVotesWithParams(address,uint256,bytes) (contracts/governance/Governor.sol); Governor.castVote(uint256,uint8) (contracts/governance/Governor.sol); Governor.castVoteWithReason(uint256,uint8,string) (contracts/governance/Governor.sol); Governor.castVoteWithReasonAndParams(uint256,uint8,string,bytes) (contracts/governance/Governor.sol); Governor.castVoteBySig(uint256,uint8,uint8,bytes32,bytes32) (contracts/governance/Governor.sol); Governor.castVoteWithReasonAndParamsBySig(uint256,uint8,string,bytes,uint8,bytes32,bytes32) (contracts/governance/Governor.sol); Governor.onERC721Received(address,address,uint256,bytes) (contracts/governance/Governor.sol); Governor.onERC1155Received(address,address,uint256,uint256,bytes) (contracts/governance/Governor.sol); Governor.onERC1155BatchReceived(address,address,uint256[],uint256[],bytes) (contracts/governance/Governor.sol); GovernorProposalThreshold.propose(address[],uint256[],bytes[],string) (contracts/governance/extensions/GovernorProposalThreshold.sol); GovernorSettings.votingDelay() (contracts/governance/extensions/GovernorSettings.sol); GovernorSettings.votingPeriod() (contracts/governance/extensions/GovernorSettings.sol); GovernorSettings.proposalThreshold() (contracts/governance/extensions/GovernorSettings.sol); GovernorVotes._getVotes(address,uint256,bytes) (contracts/governance/extensions/GovernorVotes.sol); GovernorVotesQuorumFraction.quorum(uint256) (contracts/governance/extensions/GovernorVotesQuorumFraction.sol); GovernorCountingSimple.COUNTING_MODE() (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple.hasVoted(uint256,address) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple._quorumReached(uint256) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple._voteSucceeded(uint256) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple._countVote(uint256,address,uint8,uint256,bytes) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorMock.proposalThreshold() (contracts/mocks/GovernorMock.sol); GovernorMock.propose(address[],uint256[],bytes[],string) (contracts/mocks/GovernorMock.sol); additional public entry points: cancel(address[],uint256[],bytes[],bytes32)"
+            ]
+          },
+          "notes": [
+            "Solidity concrete harness (repository): contracts/mocks/GovernorMock.sol:GovernorMock for contracts/governance/extensions/GovernorVotesQuorumFraction.sol:GovernorVotesQuorumFraction; the original source units and function bodies are unchanged",
+            "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+            "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+            "harness overrides: ERC165.supportsInterface(bytes4) (contracts/utils/introspection/ERC165.sol); Governor.supportsInterface(bytes4) (contracts/governance/Governor.sol); Governor.name() (contracts/governance/Governor.sol); Governor.version() (contracts/governance/Governor.sol); Governor.hashProposal(address[],uint256[],bytes[],bytes32) (contracts/governance/Governor.sol); Governor.state(uint256) (contracts/governance/Governor.sol); Governor.proposalSnapshot(uint256) (contracts/governance/Governor.sol); Governor.proposalDeadline(uint256) (contracts/governance/Governor.sol); Governor.propose(address[],uint256[],bytes[],string) (contracts/governance/Governor.sol); Governor.execute(address[],uint256[],bytes[],bytes32) (contracts/governance/Governor.sol); Governor.getVotes(address,uint256) (contracts/governance/Governor.sol); Governor.getVotesWithParams(address,uint256,bytes) (contracts/governance/Governor.sol); Governor.castVote(uint256,uint8) (contracts/governance/Governor.sol); Governor.castVoteWithReason(uint256,uint8,string) (contracts/governance/Governor.sol); Governor.castVoteWithReasonAndParams(uint256,uint8,string,bytes) (contracts/governance/Governor.sol); Governor.castVoteBySig(uint256,uint8,uint8,bytes32,bytes32) (contracts/governance/Governor.sol); Governor.castVoteWithReasonAndParamsBySig(uint256,uint8,string,bytes,uint8,bytes32,bytes32) (contracts/governance/Governor.sol); Governor.onERC721Received(address,address,uint256,bytes) (contracts/governance/Governor.sol); Governor.onERC1155Received(address,address,uint256,uint256,bytes) (contracts/governance/Governor.sol); Governor.onERC1155BatchReceived(address,address,uint256[],uint256[],bytes) (contracts/governance/Governor.sol); GovernorProposalThreshold.propose(address[],uint256[],bytes[],string) (contracts/governance/extensions/GovernorProposalThreshold.sol); GovernorSettings.votingDelay() (contracts/governance/extensions/GovernorSettings.sol); GovernorSettings.votingPeriod() (contracts/governance/extensions/GovernorSettings.sol); GovernorSettings.proposalThreshold() (contracts/governance/extensions/GovernorSettings.sol); GovernorVotes._getVotes(address,uint256,bytes) (contracts/governance/extensions/GovernorVotes.sol); GovernorVotesQuorumFraction.quorum(uint256) (contracts/governance/extensions/GovernorVotesQuorumFraction.sol); GovernorCountingSimple.COUNTING_MODE() (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple.hasVoted(uint256,address) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple._quorumReached(uint256) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple._voteSucceeded(uint256) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple._countVote(uint256,address,uint8,uint256,bytes) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorMock.proposalThreshold() (contracts/mocks/GovernorMock.sol); GovernorMock.propose(address[],uint256[],bytes[],string) (contracts/mocks/GovernorMock.sol); additional public entry points: cancel(address[],uint256[],bytes[],bytes32)"
+          ],
+          "refusals": [
+            {
+              "where": "draft-EIP712.sol:31:5",
+              "what": "bytes32 private immutable _CACHED_DOMAIN_SEPARATOR: an immutable (not yet)"
+            }
+          ]
+        },
+        {
+          "version": "fixed",
+          "sha": "8ea1fc87c9686ce203a2fa38f7b789246e4e16f7",
+          "sourceSha256": "734db135ad8502b31640f5ce52e78d30155ccac28280ff057d678cb07acc8f35",
+          "originalUnchanged": true,
+          "elapsedMs": 1265.0252020000007,
+          "status": "refused",
+          "harness": {
+            "kind": "repository",
+            "target": {
+              "source": "contracts/governance/extensions/GovernorVotesQuorumFraction.sol",
+              "contract": "GovernorVotesQuorumFraction"
+            },
+            "source": "contracts/mocks/GovernorMock.sol",
+            "entry": "GovernorMock",
+            "constructors": [
+              "GovernorMock: constructor(\n        string memory name_,\n        IVotes token_,\n        uint256 votingDelay_,\n        uint256 votingPeriod_,\n        uint256 quorumNumerator_\n    )\n        Governor(name_)\n        GovernorSettings(votingDelay_, votingPeriod_, 0)\n        GovernorVotes(token_)\n        GovernorVotesQuorumFraction(quorumNumerator_)\n    {}",
+              "GovernorVotesQuorumFraction: constructor(uint256 quorumNumeratorValue) {\n        _updateQuorumNumerator(quorumNumeratorValue);\n    }",
+              "GovernorVotes: constructor(IVotes tokenAddress) {\n        token = tokenAddress;\n    }",
+              "GovernorSettings: constructor(\n        uint256 initialVotingDelay,\n        uint256 initialVotingPeriod,\n        uint256 initialProposalThreshold\n    ) {\n        _setVotingDelay(initialVotingDelay);\n        _setVotingPeriod(initialVotingPeriod);\n        _setProposalThreshold(initialProposalThreshold);\n    }",
+              "Governor: constructor(string memory name_) EIP712(name_, version()) {\n        _name = name_;\n    }",
+              "EIP712: constructor(string memory name, string memory version) {\n        bytes32 hashedName = keccak256(bytes(name));\n        bytes32 hashedVersion = keccak256(bytes(version));\n        bytes32 typeHash = keccak256(\n            \"EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)\"\n        );\n        _HASHED_NAME = hashedName;\n        _HASHED_VERSION = hashedVersion;\n        _CACHED_CHAIN_ID = block.chainid;\n        _CACHED_DOMAIN_SEPARATOR = _buildDomainSeparator(typeHash, hashedName, hashedVersion);\n        _CACHED_THIS = address(this);\n        _TYPE_HASH = typeHash;\n    }"
+            ],
+            "overrides": [
+              "ERC165.supportsInterface(bytes4) (contracts/utils/introspection/ERC165.sol)",
+              "Governor.supportsInterface(bytes4) (contracts/governance/Governor.sol)",
+              "Governor.name() (contracts/governance/Governor.sol)",
+              "Governor.version() (contracts/governance/Governor.sol)",
+              "Governor.hashProposal(address[],uint256[],bytes[],bytes32) (contracts/governance/Governor.sol)",
+              "Governor.state(uint256) (contracts/governance/Governor.sol)",
+              "Governor.proposalSnapshot(uint256) (contracts/governance/Governor.sol)",
+              "Governor.proposalDeadline(uint256) (contracts/governance/Governor.sol)",
+              "Governor.propose(address[],uint256[],bytes[],string) (contracts/governance/Governor.sol)",
+              "Governor.execute(address[],uint256[],bytes[],bytes32) (contracts/governance/Governor.sol)",
+              "Governor.getVotes(address,uint256) (contracts/governance/Governor.sol)",
+              "Governor.getVotesWithParams(address,uint256,bytes) (contracts/governance/Governor.sol)",
+              "Governor.castVote(uint256,uint8) (contracts/governance/Governor.sol)",
+              "Governor.castVoteWithReason(uint256,uint8,string) (contracts/governance/Governor.sol)",
+              "Governor.castVoteWithReasonAndParams(uint256,uint8,string,bytes) (contracts/governance/Governor.sol)",
+              "Governor.castVoteBySig(uint256,uint8,uint8,bytes32,bytes32) (contracts/governance/Governor.sol)",
+              "Governor.castVoteWithReasonAndParamsBySig(uint256,uint8,string,bytes,uint8,bytes32,bytes32) (contracts/governance/Governor.sol)",
+              "Governor.onERC721Received(address,address,uint256,bytes) (contracts/governance/Governor.sol)",
+              "Governor.onERC1155Received(address,address,uint256,uint256,bytes) (contracts/governance/Governor.sol)",
+              "Governor.onERC1155BatchReceived(address,address,uint256[],uint256[],bytes) (contracts/governance/Governor.sol)",
+              "GovernorProposalThreshold.propose(address[],uint256[],bytes[],string) (contracts/governance/extensions/GovernorProposalThreshold.sol)",
+              "GovernorSettings.votingDelay() (contracts/governance/extensions/GovernorSettings.sol)",
+              "GovernorSettings.votingPeriod() (contracts/governance/extensions/GovernorSettings.sol)",
+              "GovernorSettings.proposalThreshold() (contracts/governance/extensions/GovernorSettings.sol)",
+              "GovernorVotes._getVotes(address,uint256,bytes) (contracts/governance/extensions/GovernorVotes.sol)",
+              "GovernorVotesQuorumFraction.quorum(uint256) (contracts/governance/extensions/GovernorVotesQuorumFraction.sol)",
+              "GovernorCountingSimple.COUNTING_MODE() (contracts/governance/extensions/GovernorCountingSimple.sol)",
+              "GovernorCountingSimple.hasVoted(uint256,address) (contracts/governance/extensions/GovernorCountingSimple.sol)",
+              "GovernorCountingSimple._quorumReached(uint256) (contracts/governance/extensions/GovernorCountingSimple.sol)",
+              "GovernorCountingSimple._voteSucceeded(uint256) (contracts/governance/extensions/GovernorCountingSimple.sol)",
+              "GovernorCountingSimple._countVote(uint256,address,uint8,uint256,bytes) (contracts/governance/extensions/GovernorCountingSimple.sol)",
+              "GovernorMock.proposalThreshold() (contracts/mocks/GovernorMock.sol)",
+              "GovernorMock.propose(address[],uint256[],bytes[],string) (contracts/mocks/GovernorMock.sol)"
+            ],
+            "addedMethods": [
+              "cancel(address[],uint256[],bytes[],bytes32)"
+            ],
+            "notes": [
+              "Solidity concrete harness (repository): contracts/mocks/GovernorMock.sol:GovernorMock for contracts/governance/extensions/GovernorVotesQuorumFraction.sol:GovernorVotesQuorumFraction; the original source units and function bodies are unchanged",
+              "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+              "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+              "harness overrides: ERC165.supportsInterface(bytes4) (contracts/utils/introspection/ERC165.sol); Governor.supportsInterface(bytes4) (contracts/governance/Governor.sol); Governor.name() (contracts/governance/Governor.sol); Governor.version() (contracts/governance/Governor.sol); Governor.hashProposal(address[],uint256[],bytes[],bytes32) (contracts/governance/Governor.sol); Governor.state(uint256) (contracts/governance/Governor.sol); Governor.proposalSnapshot(uint256) (contracts/governance/Governor.sol); Governor.proposalDeadline(uint256) (contracts/governance/Governor.sol); Governor.propose(address[],uint256[],bytes[],string) (contracts/governance/Governor.sol); Governor.execute(address[],uint256[],bytes[],bytes32) (contracts/governance/Governor.sol); Governor.getVotes(address,uint256) (contracts/governance/Governor.sol); Governor.getVotesWithParams(address,uint256,bytes) (contracts/governance/Governor.sol); Governor.castVote(uint256,uint8) (contracts/governance/Governor.sol); Governor.castVoteWithReason(uint256,uint8,string) (contracts/governance/Governor.sol); Governor.castVoteWithReasonAndParams(uint256,uint8,string,bytes) (contracts/governance/Governor.sol); Governor.castVoteBySig(uint256,uint8,uint8,bytes32,bytes32) (contracts/governance/Governor.sol); Governor.castVoteWithReasonAndParamsBySig(uint256,uint8,string,bytes,uint8,bytes32,bytes32) (contracts/governance/Governor.sol); Governor.onERC721Received(address,address,uint256,bytes) (contracts/governance/Governor.sol); Governor.onERC1155Received(address,address,uint256,uint256,bytes) (contracts/governance/Governor.sol); Governor.onERC1155BatchReceived(address,address,uint256[],uint256[],bytes) (contracts/governance/Governor.sol); GovernorProposalThreshold.propose(address[],uint256[],bytes[],string) (contracts/governance/extensions/GovernorProposalThreshold.sol); GovernorSettings.votingDelay() (contracts/governance/extensions/GovernorSettings.sol); GovernorSettings.votingPeriod() (contracts/governance/extensions/GovernorSettings.sol); GovernorSettings.proposalThreshold() (contracts/governance/extensions/GovernorSettings.sol); GovernorVotes._getVotes(address,uint256,bytes) (contracts/governance/extensions/GovernorVotes.sol); GovernorVotesQuorumFraction.quorum(uint256) (contracts/governance/extensions/GovernorVotesQuorumFraction.sol); GovernorCountingSimple.COUNTING_MODE() (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple.hasVoted(uint256,address) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple._quorumReached(uint256) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple._voteSucceeded(uint256) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple._countVote(uint256,address,uint8,uint256,bytes) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorMock.proposalThreshold() (contracts/mocks/GovernorMock.sol); GovernorMock.propose(address[],uint256[],bytes[],string) (contracts/mocks/GovernorMock.sol); additional public entry points: cancel(address[],uint256[],bytes[],bytes32)"
+            ]
+          },
+          "notes": [
+            "Solidity concrete harness (repository): contracts/mocks/GovernorMock.sol:GovernorMock for contracts/governance/extensions/GovernorVotesQuorumFraction.sol:GovernorVotesQuorumFraction; the original source units and function bodies are unchanged",
+            "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+            "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+            "harness overrides: ERC165.supportsInterface(bytes4) (contracts/utils/introspection/ERC165.sol); Governor.supportsInterface(bytes4) (contracts/governance/Governor.sol); Governor.name() (contracts/governance/Governor.sol); Governor.version() (contracts/governance/Governor.sol); Governor.hashProposal(address[],uint256[],bytes[],bytes32) (contracts/governance/Governor.sol); Governor.state(uint256) (contracts/governance/Governor.sol); Governor.proposalSnapshot(uint256) (contracts/governance/Governor.sol); Governor.proposalDeadline(uint256) (contracts/governance/Governor.sol); Governor.propose(address[],uint256[],bytes[],string) (contracts/governance/Governor.sol); Governor.execute(address[],uint256[],bytes[],bytes32) (contracts/governance/Governor.sol); Governor.getVotes(address,uint256) (contracts/governance/Governor.sol); Governor.getVotesWithParams(address,uint256,bytes) (contracts/governance/Governor.sol); Governor.castVote(uint256,uint8) (contracts/governance/Governor.sol); Governor.castVoteWithReason(uint256,uint8,string) (contracts/governance/Governor.sol); Governor.castVoteWithReasonAndParams(uint256,uint8,string,bytes) (contracts/governance/Governor.sol); Governor.castVoteBySig(uint256,uint8,uint8,bytes32,bytes32) (contracts/governance/Governor.sol); Governor.castVoteWithReasonAndParamsBySig(uint256,uint8,string,bytes,uint8,bytes32,bytes32) (contracts/governance/Governor.sol); Governor.onERC721Received(address,address,uint256,bytes) (contracts/governance/Governor.sol); Governor.onERC1155Received(address,address,uint256,uint256,bytes) (contracts/governance/Governor.sol); Governor.onERC1155BatchReceived(address,address,uint256[],uint256[],bytes) (contracts/governance/Governor.sol); GovernorProposalThreshold.propose(address[],uint256[],bytes[],string) (contracts/governance/extensions/GovernorProposalThreshold.sol); GovernorSettings.votingDelay() (contracts/governance/extensions/GovernorSettings.sol); GovernorSettings.votingPeriod() (contracts/governance/extensions/GovernorSettings.sol); GovernorSettings.proposalThreshold() (contracts/governance/extensions/GovernorSettings.sol); GovernorVotes._getVotes(address,uint256,bytes) (contracts/governance/extensions/GovernorVotes.sol); GovernorVotesQuorumFraction.quorum(uint256) (contracts/governance/extensions/GovernorVotesQuorumFraction.sol); GovernorCountingSimple.COUNTING_MODE() (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple.hasVoted(uint256,address) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple._quorumReached(uint256) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple._voteSucceeded(uint256) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorCountingSimple._countVote(uint256,address,uint8,uint256,bytes) (contracts/governance/extensions/GovernorCountingSimple.sol); GovernorMock.proposalThreshold() (contracts/mocks/GovernorMock.sol); GovernorMock.propose(address[],uint256[],bytes[],string) (contracts/mocks/GovernorMock.sol); additional public entry points: cancel(address[],uint256[],bytes[],bytes32)"
+          ],
+          "refusals": [
+            {
+              "where": "draft-EIP712.sol:31:5",
+              "what": "bytes32 private immutable _CACHED_DOMAIN_SEPARATOR: an immutable (not yet)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "oz-crosschain",
+      "advisory": "https://github.com/advisories/GHSA-9j3m-g383-29qr",
+      "policy": "A direct EOA call must not acquire cross-chain caller privileges.",
+      "options": {
+        "entry": "LibArbitrumL2",
+        "methods": [
+          "isCrossChain"
+        ]
+      },
+      "found": false,
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "7ddbfe181ee84c56215401c2de4ddd5767b4974e",
+          "sourceSha256": "ac4c967c936214cd34805696223488e1ee1dddb5dc1bb7c9976ad6e4bf79365e",
+          "originalUnchanged": true,
+          "elapsedMs": 79.02154200000018,
+          "status": "refused",
+          "harness": {
+            "kind": "library",
+            "target": {
+              "source": "contracts/crosschain/arbitrum/LibArbitrumL2.sol",
+              "contract": "LibArbitrumL2"
+            },
+            "source": "__gdp_concrete.sol",
+            "entry": "GDPConcrete_LibArbitrumL2",
+            "constructors": [],
+            "overrides": [],
+            "addedMethods": [
+              "isCrossChain(address)"
+            ],
+            "generatedSource": "// Generated concrete entry; every original source unit is unchanged.\nimport \"contracts/crosschain/arbitrum/LibArbitrumL2.sol\";\ncontract GDPConcrete_LibArbitrumL2 {\nfunction isCrossChain(address __gdp_arg0) external view returns (bool) { return LibArbitrumL2.isCrossChain(__gdp_arg0); }\n}\n",
+            "notes": [
+              "Solidity concrete harness (library): __gdp_concrete.sol:GDPConcrete_LibArbitrumL2 for contracts/crosschain/arbitrum/LibArbitrumL2.sol:LibArbitrumL2; the original source units and function bodies are unchanged",
+              "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+              "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+              "harness overrides: none; additional public entry points: isCrossChain(address)",
+              "synthetic library caller: only forwarding functions for internal library functions; no storage context, linked library, or external-call behavior is invented"
+            ]
+          },
+          "notes": [
+            "Solidity concrete harness (library): __gdp_concrete.sol:GDPConcrete_LibArbitrumL2 for contracts/crosschain/arbitrum/LibArbitrumL2.sol:LibArbitrumL2; the original source units and function bodies are unchanged",
+            "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+            "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+            "harness overrides: none; additional public entry points: isCrossChain(address)",
+            "synthetic library caller: only forwarding functions for internal library functions; no storage context, linked library, or external-call behavior is invented"
+          ],
+          "refusals": [
+            {
+              "where": "LibArbitrumL2.sol:24:16",
+              "what": "ArbitrumL2_Bridge(arbsys).isTopLevelCall(): ArbitrumL2_Bridge(arbsys).isTopLevelCall(): a call of another contract (outside the Solidity subset)"
+            }
+          ]
+        },
+        {
+          "version": "fixed",
+          "sha": "81336aefb52d5777cd140cf2eac31fdf65d9bc95",
+          "sourceSha256": "a4438487885d3117873434892d4f42466e6e8949377a7670040509e4e6a42e91",
+          "originalUnchanged": true,
+          "elapsedMs": 49.45820499999991,
+          "status": "refused",
+          "harness": {
+            "kind": "library",
+            "target": {
+              "source": "contracts/crosschain/arbitrum/LibArbitrumL2.sol",
+              "contract": "LibArbitrumL2"
+            },
+            "source": "__gdp_concrete.sol",
+            "entry": "GDPConcrete_LibArbitrumL2",
+            "constructors": [],
+            "overrides": [],
+            "addedMethods": [
+              "isCrossChain(address)"
+            ],
+            "generatedSource": "// Generated concrete entry; every original source unit is unchanged.\nimport \"contracts/crosschain/arbitrum/LibArbitrumL2.sol\";\ncontract GDPConcrete_LibArbitrumL2 {\nfunction isCrossChain(address __gdp_arg0) external view returns (bool) { return LibArbitrumL2.isCrossChain(__gdp_arg0); }\n}\n",
+            "notes": [
+              "Solidity concrete harness (library): __gdp_concrete.sol:GDPConcrete_LibArbitrumL2 for contracts/crosschain/arbitrum/LibArbitrumL2.sol:LibArbitrumL2; the original source units and function bodies are unchanged",
+              "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+              "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+              "harness overrides: none; additional public entry points: isCrossChain(address)",
+              "synthetic library caller: only forwarding functions for internal library functions; no storage context, linked library, or external-call behavior is invented"
+            ]
+          },
+          "notes": [
+            "Solidity concrete harness (library): __gdp_concrete.sol:GDPConcrete_LibArbitrumL2 for contracts/crosschain/arbitrum/LibArbitrumL2.sol:LibArbitrumL2; the original source units and function bodies are unchanged",
+            "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+            "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+            "harness overrides: none; additional public entry points: isCrossChain(address)",
+            "synthetic library caller: only forwarding functions for internal library functions; no storage context, linked library, or external-call behavior is invented"
+          ],
+          "refusals": [
+            {
+              "where": "LibArbitrumL2.sol:24:16",
+              "what": "ArbitrumL2_Bridge(arbsys).wasMyCallersAddressAliased(): ArbitrumL2_Bridge(arbsys).wasMyCallersAddressAliased(): a call of another contract (outside the Solidity subset)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "oz-multicall",
+      "advisory": "https://github.com/advisories/GHSA-699g-q6qh-q4v8",
+      "policy": "Each requested subcall must be executed at most once.",
+      "options": {
+        "entry": "Multicall",
+        "methods": [
+          "multicall"
+        ]
+      },
+      "found": false,
+      "sides": [
+        {
+          "version": "vulnerable",
+          "sha": "a83918df1491d9c6a642a16f8c9a8ff93bf042cc",
+          "sourceSha256": "c64cfcae8c69b9a1efe85d166cd54d0503adea871fed0e90aa48026cbfe03091",
+          "originalUnchanged": true,
+          "elapsedMs": 123.7525300000002,
+          "status": "refused",
+          "harness": {
+            "kind": "repository",
+            "target": {
+              "source": "contracts/utils/Multicall.sol",
+              "contract": "Multicall"
+            },
+            "source": "contracts/mocks/ERC2771ContextMock.sol",
+            "entry": "ERC2771ContextMock",
+            "constructors": [
+              "ERC2771ContextMock: constructor(address trustedForwarder) ERC2771Context(trustedForwarder) {\n        emit Sender(_msgSender()); // _msgSender() should be accessible during construction\n    }",
+              "ERC2771Context: constructor(address trustedForwarder) {\n        _trustedForwarder = trustedForwarder;\n    }"
+            ],
+            "overrides": [
+              "ERC2771Context._msgSender() (contracts/metatx/ERC2771Context.sol)",
+              "ERC2771Context._msgData() (contracts/metatx/ERC2771Context.sol)",
+              "ERC2771Context._contextSuffixLength() (contracts/metatx/ERC2771Context.sol)",
+              "ERC2771ContextMock._msgSender() (contracts/mocks/ERC2771ContextMock.sol)",
+              "ERC2771ContextMock._msgData() (contracts/mocks/ERC2771ContextMock.sol)",
+              "ERC2771ContextMock._contextSuffixLength() (contracts/mocks/ERC2771ContextMock.sol)"
+            ],
+            "addedMethods": [],
+            "notes": [
+              "Solidity concrete harness (repository): contracts/mocks/ERC2771ContextMock.sol:ERC2771ContextMock for contracts/utils/Multicall.sol:Multicall; the original source units and function bodies are unchanged",
+              "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+              "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+              "harness overrides: ERC2771Context._msgSender() (contracts/metatx/ERC2771Context.sol); ERC2771Context._msgData() (contracts/metatx/ERC2771Context.sol); ERC2771Context._contextSuffixLength() (contracts/metatx/ERC2771Context.sol); ERC2771ContextMock._msgSender() (contracts/mocks/ERC2771ContextMock.sol); ERC2771ContextMock._msgData() (contracts/mocks/ERC2771ContextMock.sol); ERC2771ContextMock._contextSuffixLength() (contracts/mocks/ERC2771ContextMock.sol); additional public entry points: none"
+            ]
+          },
+          "notes": [
+            "Solidity concrete harness (repository): contracts/mocks/ERC2771ContextMock.sol:ERC2771ContextMock for contracts/utils/Multicall.sol:Multicall; the original source units and function bodies are unchanged",
+            "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+            "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+            "harness overrides: ERC2771Context._msgSender() (contracts/metatx/ERC2771Context.sol); ERC2771Context._msgData() (contracts/metatx/ERC2771Context.sol); ERC2771Context._contextSuffixLength() (contracts/metatx/ERC2771Context.sol); ERC2771ContextMock._msgSender() (contracts/mocks/ERC2771ContextMock.sol); ERC2771ContextMock._msgData() (contracts/mocks/ERC2771ContextMock.sol); ERC2771ContextMock._contextSuffixLength() (contracts/mocks/ERC2771ContextMock.sol); additional public entry points: none"
+          ],
+          "refusals": [
+            {
+              "where": "ERC2771Context.sol:17:5",
+              "what": "address private immutable _trustedForwarder: an immutable (not yet)"
+            }
+          ]
+        },
+        {
+          "version": "fixed",
+          "sha": "88ac712e06832bce73b41e8166cded2729e25205",
+          "sourceSha256": "9cdd8a830b875208e67b9ea7cbff3bc842fc1b9ec68375b1f6375b8f7703eba5",
+          "originalUnchanged": true,
+          "elapsedMs": 83.99801699999989,
+          "status": "refused",
+          "harness": {
+            "kind": "repository",
+            "target": {
+              "source": "contracts/utils/Multicall.sol",
+              "contract": "Multicall"
+            },
+            "source": "contracts/mocks/ERC2771ContextMock.sol",
+            "entry": "ERC2771ContextMock",
+            "constructors": [
+              "ERC2771ContextMock: constructor(address trustedForwarder) ERC2771Context(trustedForwarder) {\n        emit Sender(_msgSender()); // _msgSender() should be accessible during construction\n    }",
+              "ERC2771Context: constructor(address trustedForwarder) {\n        _trustedForwarder = trustedForwarder;\n    }"
+            ],
+            "overrides": [
+              "ERC2771Context._msgSender() (contracts/metatx/ERC2771Context.sol)",
+              "ERC2771Context._msgData() (contracts/metatx/ERC2771Context.sol)",
+              "ERC2771Context._contextSuffixLength() (contracts/metatx/ERC2771Context.sol)",
+              "ERC2771ContextMock._msgSender() (contracts/mocks/ERC2771ContextMock.sol)",
+              "ERC2771ContextMock._msgData() (contracts/mocks/ERC2771ContextMock.sol)",
+              "ERC2771ContextMock._contextSuffixLength() (contracts/mocks/ERC2771ContextMock.sol)"
+            ],
+            "addedMethods": [],
+            "notes": [
+              "Solidity concrete harness (repository): contracts/mocks/ERC2771ContextMock.sol:ERC2771ContextMock for contracts/utils/Multicall.sol:Multicall; the original source units and function bodies are unchanged",
+              "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+              "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+              "harness overrides: ERC2771Context._msgSender() (contracts/metatx/ERC2771Context.sol); ERC2771Context._msgData() (contracts/metatx/ERC2771Context.sol); ERC2771Context._contextSuffixLength() (contracts/metatx/ERC2771Context.sol); ERC2771ContextMock._msgSender() (contracts/mocks/ERC2771ContextMock.sol); ERC2771ContextMock._msgData() (contracts/mocks/ERC2771ContextMock.sol); ERC2771ContextMock._contextSuffixLength() (contracts/mocks/ERC2771ContextMock.sol); additional public entry points: none"
+            ]
+          },
+          "notes": [
+            "Solidity concrete harness (repository): contracts/mocks/ERC2771ContextMock.sol:ERC2771ContextMock for contracts/utils/Multicall.sol:Multicall; the original source units and function bodies are unchanged",
+            "harness scope: laws and replay concern this concrete deployment, not every possible subclass or caller of the abstract contract or library",
+            "harness constructor arguments are rule parameters, subject to the original constructor guards; constructors execute as written (listed in extraction.harness.constructors)",
+            "harness overrides: ERC2771Context._msgSender() (contracts/metatx/ERC2771Context.sol); ERC2771Context._msgData() (contracts/metatx/ERC2771Context.sol); ERC2771Context._contextSuffixLength() (contracts/metatx/ERC2771Context.sol); ERC2771ContextMock._msgSender() (contracts/mocks/ERC2771ContextMock.sol); ERC2771ContextMock._msgData() (contracts/mocks/ERC2771ContextMock.sol); ERC2771ContextMock._contextSuffixLength() (contracts/mocks/ERC2771ContextMock.sol); additional public entry points: none"
+          ],
+          "refusals": [
+            {
+              "where": "ERC2771Context.sol:17:5",
+              "what": "address private immutable _trustedForwarder: an immutable (not yet)"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
