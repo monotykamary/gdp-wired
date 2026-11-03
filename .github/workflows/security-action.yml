@@ -1,0 +1,61 @@
+name: Security Action
+
+on:
+  pull_request:
+    paths: ['action.yml', '.github/workflows/security-action.yml', '.github/fixtures/security-action/**', 'core/**', 'scripts/**', 'package.json', 'bun.lock']
+  push:
+    branches: [main]
+    paths: ['action.yml', '.github/workflows/security-action.yml', '.github/fixtures/security-action/**', 'core/**', 'scripts/**', 'package.json', 'bun.lock']
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  fixture-repository:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with: {path: source}
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile && bun run build
+        working-directory: source
+      - name: Pack the candidate and create a fixture repository
+        id: fixture
+        shell: bash
+        working-directory: source
+        run: |
+          package=$(npm pack --pack-destination "$RUNNER_TEMP" --silent)
+          echo "version=file:$RUNNER_TEMP/$package" >> "$GITHUB_OUTPUT"
+          fixture="$RUNNER_TEMP/security-action-fixture"
+          mkdir -p "$fixture"
+          cp .github/fixtures/security-action/*.ts "$fixture/"
+          git -C "$fixture" init -q
+          echo "root=$fixture" >> "$GITHUB_OUTPUT"
+      - name: Default input remains unchanged
+        uses: ./source
+        with:
+          version: ${{ steps.fixture.outputs.version }}
+          paths: ${{ steps.fixture.outputs.root }}/candidate.ts
+          args: --no-propose
+      - name: Unreviewed candidates do not fail the job
+        uses: ./source
+        with:
+          version: ${{ steps.fixture.outputs.version }}
+          paths: ${{ steps.fixture.outputs.root }}/candidate.ts
+          args: --no-propose
+          security: true
+      - name: A broken stated law still fails
+        id: stated
+        continue-on-error: true
+        uses: ./source
+        with:
+          version: ${{ steps.fixture.outputs.version }}
+          paths: ${{ steps.fixture.outputs.root }}/stated-broken.ts
+          args: --no-propose
+          security: true
+      - name: Require the expected stated-law failure
+        if: steps.stated.outcome != 'failure'
+        run: exit 1

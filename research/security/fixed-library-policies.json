@@ -1,0 +1,369 @@
+{
+  "schema": 1,
+  "kind": "fixed-reader-policy-plan",
+  "scope": "Fixed revisions only. Policy descriptions are reviewed source intent, not formal proofs or a paired-recall measurement.",
+  "cases": [
+    {
+      "id": "GHSA-29wx-vh33-7x7r",
+      "path": "parser.go",
+      "entry": "Parser",
+      "methods": [
+        "ParseWithClaims"
+      ],
+      "revision": "7b1c1c00a171c6c79bbdb40e4ce7d197060c1c2c",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "A token is marked valid only after parsing, allowed-method selection, key resolution, signature verification and enabled claim checks succeed. A signature failure returns before claim-error classification.",
+        "boundary": "Claims, key lookup and signature primitives are external to this method; their real semantics cannot be replaced by a permissive stub.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/golang-jwt/jwt/7b1c1c00a171c6c79bbdb40e4ce7d197060c1c2c/parser.go#L54-L117",
+          "https://github.com/advisories/GHSA-29wx-vh33-7x7r"
+        ],
+        "lines": [
+          54,
+          117
+        ]
+      }
+    },
+    {
+      "id": "GHSA-3jp2-3mrg-2vxc",
+      "path": "oauthlib/oauth2/rfc8628/grant_types/device_code.py",
+      "entry": "DeviceCodeGrant",
+      "methods": [
+        "validate_token_request"
+      ],
+      "revision": "145a9a4690cb4d9de30d15fcc2984e34c49df741",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "A device grant must validate that the supplied device authorization is present, valid and bound to the requesting client before a token is issued.",
+        "boundary": "Device authorization depends on validator hooks and their callers. Reading this local method does not establish end-to-end device validation or fixed-version compliance.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/oauthlib/oauthlib/145a9a4690cb4d9de30d15fcc2984e34c49df741/oauthlib/oauth2/rfc8628/grant_types/device_code.py#L36-L65",
+          "https://github.com/advisories/GHSA-3jp2-3mrg-2vxc"
+        ],
+        "lines": [
+          36,
+          65
+        ]
+      }
+    },
+    {
+      "id": "GHSA-4w5x-x539-ppf5",
+      "path": "v2/exports.go",
+      "entry": "Export",
+      "methods": [
+        "IsClaimRevoked"
+      ],
+      "revision": "e11ce317263cef69619fc1ca743b195d02aa1d8a",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "Activation revocation must use the claim's subject and issued-at time, not the wall clock at validation. Missing claim, subject or issued-at metadata fails closed.",
+        "boundary": "Credential expiry and the server's use of this library result are additional boundaries, not proven by this helper alone.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/nats-io/jwt/e11ce317263cef69619fc1ca743b195d02aa1d8a/v2/exports.go#L177-L192",
+          "https://github.com/advisories/GHSA-4w5x-x539-ppf5"
+        ],
+        "lines": [
+          177,
+          192
+        ]
+      }
+    },
+    {
+      "id": "GHSA-62mh-w5cv-p88c",
+      "path": "v2/imports.go",
+      "entry": "Import",
+      "methods": [
+        "Validate"
+      ],
+      "revision": "6c72fdd73e82fa9ebb151d84773baf4e9164c4ab",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "An import's activation must match the exporting account, importing account, import type and allowed subject, and its activation claims must pass validation.",
+        "boundary": "Validation records errors in a caller-supplied accumulator; an application must reject accumulated errors. This method does not return a grant decision.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/nats-io/jwt/6c72fdd73e82fa9ebb151d84773baf4e9164c4ab/v2/imports.go#L61-L116",
+          "https://github.com/advisories/GHSA-62mh-w5cv-p88c"
+        ],
+        "lines": [
+          61,
+          116
+        ]
+      }
+    },
+    {
+      "id": "GHSA-75c5-xw7c-p5pm",
+      "path": "jwt/api_jwt.py",
+      "entry": "PyJWT",
+      "methods": [
+        "_validate_iss"
+      ],
+      "revision": "33022c25525c1020869c71ce2a4109e44ae4ced1",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "With a scalar expected issuer, the claim must be present and equal to that entire string. With a collection of expected issuers, the claim must be a member. An absent expected issuer leaves this check disabled.",
+        "boundary": "The policy is conditional on a configured issuer; it must not be strengthened into an unconditional issuer requirement.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/jpadilla/pyjwt/33022c25525c1020869c71ce2a4109e44ae4ced1/jwt/api_jwt.py#L415-L429",
+          "https://github.com/advisories/GHSA-75c5-xw7c-p5pm"
+        ],
+        "lines": [
+          415,
+          429
+        ]
+      }
+    },
+    {
+      "id": "GHSA-76rv-2r9v-c5m6",
+      "path": "src/zae_limiter/limiter.py",
+      "entry": "RateLimiter",
+      "methods": [
+        "acquire"
+      ],
+      "revision": "481ce44d818d66e31d8837bc48519660ce4c267f",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "Per-entity bucket placement should not force unrelated entities onto one hot storage partition. In BLOCK mode, storage unavailability must not silently become a granted lease.",
+        "boundary": "The selected acquire method shows lease and failure handling, not the entire storage-partition policy. Repository/schema and DynamoDB behavior are needed for the isolation claim. ALLOW mode intentionally differs.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/zeroae/zae-limiter/481ce44d818d66e31d8837bc48519660ce4c267f/src/zae_limiter/limiter.py#L605-L709",
+          "https://github.com/advisories/GHSA-76rv-2r9v-c5m6"
+        ],
+        "lines": [
+          605,
+          709
+        ]
+      }
+    },
+    {
+      "id": "GHSA-c33x-vcv4-vg3g",
+      "path": "cedar-policy-core/src/est/scope_constraints.rs",
+      "entry": "PrincipalConstraint",
+      "methods": [
+        "try_from"
+      ],
+      "revision": "c4babce0b550860ca4ec5e6fb20fb02db88f5942",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "Converting a principal scope accepts only principal slots; converting a resource scope accepts only resource slots. A mismatched slot produces an error instead of silently changing its meaning.",
+        "boundary": "The relevant operations are TryFrom conversions over enums and recursive policy structures, not a scalar stateful struct method.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/cedar-policy/cedar/c4babce0b550860ca4ec5e6fb20fb02db88f5942/cedar-policy-core/src/est/scope_constraints.rs#L759-L890",
+          "https://github.com/advisories/GHSA-c33x-vcv4-vg3g"
+        ],
+        "lines": [
+          759,
+          890
+        ]
+      }
+    },
+    {
+      "id": "GHSA-c5mf-xmp2-59rc",
+      "path": "authlib/integrations/base_client/sync_openid.py",
+      "entry": "OpenIDMixin",
+      "methods": [
+        "parse_id_token"
+      ],
+      "revision": "6563f6f7a8c2f71d2f85ee7511d72a4fbae3acc0",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "The application-supplied expected nonce remains in the validation parameters; token-provided claims cannot disable the nonce check.",
+        "boundary": "Actual nonce enforcement is delegated to the selected claims class's validate method; preserving the parameter is necessary but not a complete proof.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/authlib/authlib/6563f6f7a8c2f71d2f85ee7511d72a4fbae3acc0/authlib/integrations/base_client/sync_openid.py#L40-L88",
+          "https://github.com/advisories/GHSA-c5mf-xmp2-59rc"
+        ],
+        "lines": [
+          40,
+          88
+        ]
+      }
+    },
+    {
+      "id": "GHSA-fch4-3c6x-j4gc",
+      "path": "authlib/oauth2/rfc7523/jwt_bearer.py",
+      "entry": "JWTBearerGrant",
+      "methods": [
+        "verify_claims"
+      ],
+      "revision": "e3bd41cb29dcfee434453b135ffb487884baeedf",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "JWT bearer claims require a configured nonempty audience set and a mandatory audience claim matching that set; missing server audience configuration is rejected.",
+        "boundary": "The library's claims registry enforces values and essentiality. Its semantics must not be replaced by an unconditional success answer.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/authlib/authlib/e3bd41cb29dcfee434453b135ffb487884baeedf/authlib/oauth2/rfc7523/jwt_bearer.py#L55-L69",
+          "https://github.com/advisories/GHSA-fch4-3c6x-j4gc"
+        ],
+        "lines": [
+          55,
+          69
+        ]
+      }
+    },
+    {
+      "id": "GHSA-g5vw-3h65-2q3v",
+      "path": "src/AccessControl/userfolder.py",
+      "entry": "UserFolder",
+      "methods": [
+        "_doDelUsers"
+      ],
+      "revision": "0f00772d2632947275d25b349d166e69d78e727d",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "Untrusted attribute access must not expose the user folder's mutable data mapping for deletion.",
+        "boundary": "The fix is the data__roles__ declaration, enforced by Zope attribute access. Calling _doDelUsers directly omits that authorization boundary and is not a valid policy test.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/zopefoundation/AccessControl/0f00772d2632947275d25b349d166e69d78e727d/src/AccessControl/userfolder.py#L366-L432",
+          "https://github.com/advisories/GHSA-g5vw-3h65-2q3v"
+        ],
+        "lines": [
+          366,
+          432
+        ]
+      }
+    },
+    {
+      "id": "GHSA-gvp8-978c-rx2q",
+      "path": "jwt/api_jwt.py",
+      "entry": "PyJWT",
+      "methods": [
+        "_merge_options"
+      ],
+      "revision": "0c87c8c8b1a74cac99ad8115f3050efcb7fbed35",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "Merging caller-supplied verification options must not mutate that caller-owned mapping; defaults are applied to a copy so later uses cannot inherit disabled checks.",
+        "boundary": "This is a caller-alias/frame property. A model that copies all inputs automatically cannot establish it.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/jpadilla/pyjwt/0c87c8c8b1a74cac99ad8115f3050efcb7fbed35/jwt/api_jwt.py#L75-L90",
+          "https://github.com/advisories/GHSA-gvp8-978c-rx2q"
+        ],
+        "lines": [
+          75,
+          90
+        ]
+      }
+    },
+    {
+      "id": "GHSA-jq35-7prp-9v3f",
+      "path": "jwt/api_jws.py",
+      "entry": "PyJWS",
+      "methods": [
+        "_verify_signature"
+      ],
+      "revision": "7144e4534c34810f4525dc4578a32addd8212cff",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "A selected signing algorithm must satisfy the caller's allow-list and, for a JWK, equal the algorithm bound to that key before verification is attempted.",
+        "boundary": "Cryptographic verification is an external primitive. This review concerns selection and binding, not a cryptographic proof.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/jpadilla/pyjwt/7144e4534c34810f4525dc4578a32addd8212cff/jwt/api_jws.py#L368-L417",
+          "https://github.com/advisories/GHSA-jq35-7prp-9v3f"
+        ],
+        "lines": [
+          368,
+          417
+        ]
+      }
+    },
+    {
+      "id": "GHSA-pq59-9fq7-m886",
+      "path": "src/AccessControl/ImplPython.py",
+      "entry": "guarded_getattr",
+      "revision": "f980450eea416718be62847f34dfd51822938e43",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "Guarded string formatting preserves guarded attribute access for string instances and subclasses, rejects the unsafe class access path, and chooses container assertions from the accessed object's type.",
+        "boundary": "The safe formatter and Zope security manager are part of the real enforcement path; ordinary getattr or an arbitrary success stub is not equivalent.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/zopefoundation/AccessControl/f980450eea416718be62847f34dfd51822938e43/src/AccessControl/ImplPython.py#L718-L783",
+          "https://github.com/advisories/GHSA-pq59-9fq7-m886"
+        ],
+        "lines": [
+          718,
+          783
+        ]
+      }
+    },
+    {
+      "id": "GHSA-q686-2qmg-hqc7",
+      "path": "authlib/oidc/core/grants/implicit.py",
+      "entry": "OpenIDImplicitGrant",
+      "methods": [
+        "validate_authorization_request"
+      ],
+      "revision": "e3bd41cb29dcfee434453b135ffb487884baeedf",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "OpenID authorization checks the allowed/normalized request scope for openid, not merely the raw requested scope, before proceeding.",
+        "boundary": "The superclass validates and normalizes scope; bypassing it would remove the policy's essential context.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/authlib/authlib/e3bd41cb29dcfee434453b135ffb487884baeedf/authlib/oidc/core/grants/implicit.py#L70-L84",
+          "https://github.com/advisories/GHSA-q686-2qmg-hqc7"
+        ],
+        "lines": [
+          70,
+          84
+        ]
+      }
+    },
+    {
+      "id": "GHSA-w73w-5m7g-f7qc",
+      "path": "map_claims.go",
+      "entry": "MapClaims",
+      "methods": [
+        "VerifyAudience"
+      ],
+      "revision": "ec0a89a131e3e8567adcb21254a5cd20a70ea4ab",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "A required audience cannot be absent or have an unsupported representation; a supported present audience must match the expected audience.",
+        "boundary": "The helper's optional-audience mode is intentionally different; token decoding and caller handling are outside this method.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/dgrijalva/jwt-go/ec0a89a131e3e8567adcb21254a5cd20a70ea4ab/map_claims.go#L11-L28",
+          "https://github.com/advisories/GHSA-w73w-5m7g-f7qc"
+        ],
+        "lines": [
+          11,
+          28
+        ]
+      }
+    },
+    {
+      "id": "GHSA-x9vf-53q3-cvx6",
+      "path": "packages/casl-ability/src/utils.ts",
+      "entry": "setByPath",
+      "revision": "39da920ec1dfadf3655e28bd0389e960ac6871f4",
+      "policy": {
+        "review": "source-intent-only",
+        "text": "setByPath must neither traverse nor assign the named prototype-control keys while writing ordinary object paths.",
+        "boundary": "This is an object-identity and mutation property, not a claim that every malformed path is rejected or that all object operations are safe.",
+        "formalStatus": "not-encoded",
+        "evidence": [
+          "https://raw.githubusercontent.com/stalniy/casl/39da920ec1dfadf3655e28bd0389e960ac6871f4/packages/casl-ability/src/utils.ts#L10-L29",
+          "https://github.com/advisories/GHSA-x9vf-53q3-cvx6"
+        ],
+        "lines": [
+          10,
+          29
+        ]
+      }
+    }
+  ]
+}

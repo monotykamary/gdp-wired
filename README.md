@@ -54,6 +54,39 @@ public `gdp-wired/security` templates, their limits, and the pinned public-advis
 The initial real-code seed set is currently refused by the readers; this is not a claim of
 security-vulnerability recall or universal handler support.
 
+## Security checks in GitHub Actions
+
+The existing Action can opt into the same review-required security candidates as the
+CLI. Install the source language's toolchain and project dependencies first, as for
+ordinary stated-law checks:
+
+```yaml
+- uses: actions/checkout@v5
+- uses: monotykamary/gdp-wired@main
+  with:
+    paths: src/handlers.ts
+    security: true
+    args: --no-propose
+```
+
+`security` defaults to `false`; omitted, the Action's command and behavior are unchanged.
+When `true`, it adds `--security`. The CLI labels candidates **NOT accepted policy** and
+prints broken candidates for review. Candidates never change the exit code or fail the
+build. To enforce a reviewed requirement, state it as a `gdp: law` comment in the source:
+a broken stated law exits 1, while unreadable stated laws or unsupported security
+extraction exit 2. This input does not authenticate caller-supplied identities or certify
+a handler secure. `args` and the optional npm `version` input continue to work as before.
+
+Dependency-layout limitation (also present without `security`): npm-exec can omit
+TypeScript from its temporary package tree when it finds TypeScript in the caller's
+project, leaving the temporary `gdp-wired` unable to import it. Install `gdp-wired` and
+TypeScript together in one package tree, or use the standalone `gdp-wired-cli` when that
+layout occurs. The clean-workspace Action fixture does not fix or waive this limitation.
+
+[The Action fixture workflow](.github/workflows/security-action.yml) tests the candidate
+package against a temporary Git repository: default mode, review-only candidates and an
+expected failing stated law. Its sources are synthetic, not upstream findings.
+
 ## First proof in your language
 
 The rules already in your code (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, Swift, C, C++, TypeScript, Effect,

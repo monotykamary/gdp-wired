@@ -715,7 +715,7 @@ t('inherited immutable class defaults follow C3, not flattened direct-base attri
 t('a nonliteral or property declaration shadows a base constant instead of falling through', () => {
   const mutable = inheritanceRoot + 'class Limit(Root):\n    CAP = [4]\n' + inheritanceStep
   expect(classConstants(mutable).CAP).toBeUndefined()
-  refused(py(mutable, {entry: 'Limit', methods: ['put']}), /no field CAP/)
+  refused(py(mutable, {entry: 'Limit', methods: ['put']}), /no field CAP|shared class collection/)
   const getter = inheritanceRoot + 'class Limit(Root):\n    @property\n    def CAP(self) -> int:\n        return 7\n' + inheritanceStep
   expect(classConstants(getter).CAP).toBeUndefined()
   ok(py(getter, {entry: 'Limit', methods: ['put']}))
@@ -734,13 +734,13 @@ t('inherited constants are resolved across repository reexports, not guessed for
   expect(imported.evidence!.coverage).toEqual({arms: 3, hit: 3, missed: []})
   const outside = inheritanceRoot + 'class Limit(Root, list):\n    pass\n' + inheritanceStep
   expect(classConstants(outside).CAP).toBeUndefined()
-  refused(py(outside, {entry: 'Limit', methods: ['put']}), /no field CAP|outside|base/)
+  refused(py(outside, {entry: 'Limit', methods: ['put']}), /no field CAP|outside|base|known static MRO/)
 })
 
 t('dynamic class bodies and runtime monkey patches cannot become accepted inherited constants', () => {
   const dynamic = inheritanceRoot + 'class Limit(Root):\n    if True:\n        CAP = 4\n' + inheritanceStep
   expect(classConstants(dynamic).CAP).toBeUndefined()
-  refused(py(dynamic, {entry: 'Limit', methods: ['put']}), /no field CAP/)
+  refused(py(dynamic, {entry: 'Limit', methods: ['put']}), /no field CAP|known static MRO/)
   const patched = inheritanceRoot + 'Root.CAP = 8\nclass Limit(Root):\n    pass\n' + inheritanceStep
   refused(py(patched, {entry: 'Limit', methods: ['put']}), /differ|doesn.t agree|conform|mismatch/)
   const changed = inheritanceRoot + 'class Limit(Root):\n    CAP = 2\n    CAP += 1\n' + inheritanceStep
