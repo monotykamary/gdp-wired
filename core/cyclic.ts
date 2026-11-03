@@ -57,7 +57,7 @@ import {type C, type E, type Law, type Machine, atMost as le, get, n as k, plus 
 import type {Fold, Goal, Instances, Loop, StepLaw, Subst, Tree} from '../kernel/kernel.ts'
 import {assumed, boundOf, foldObligations, livenessParts, loopLiveness, loopMachine, loopObligations, obligations, stepLawObligations, substC, substE, witnessesOf} from '../kernel/kernel.ts'
 import {type CNode, type Cyclic, type Fact, type Use, baseHyps, descentGoal, instHyps, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
-import {cellProducts, clock, counted, fullRate, grow, profile, usedHyps, widen, withDeadline, withinDeadline} from '../kernel/prove.ts'
+import {cellProducts, clock, counted, fullRate, grow, late, profile, usedHyps, widen, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {type Reads, type Renamer, type TStats, carry, decide, readsFirst, renamer, translate, tstats} from './translate.ts'
 import {env} from './solver.ts'
 
@@ -315,6 +315,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
     return main3 && !('proven' in uses3) ? {...n3, uses: uses3, main: main3} : uses
   }
   for (const i of order) {
+    if (late(withinDeadline(Infinity))) return {proven: false, checked: false, node: specs[i]!.name, goal: specs[i]!.name, stuck: 'unknown'}
     let failed: Stuck | undefined
     for (const [j, spec] of [specs[i]!, ...(specs[i]!.variants ?? [])].entries()) {
       // (a variant after the first within a few seconds a goal, one second once a node is refuted: a variant the first
@@ -1224,12 +1225,14 @@ export const translateMs = (usualMs = 0, floor = certMs()): number => Math.max(f
 export const stepCertFloor = (): number => Number(env.GDP_CERT_STEP_MS ?? 250)
 function cyclicOf(translated: Translated | undefined, run: () => CyclicVerdict, st: TStats, until?: number, usualMs?: number, floor?: number): {out: CyclicVerdict, how: string, why?: string} {
   let how = 'searched', why: string | undefined
+  const expired = () => late(withinDeadline(until ?? Infinity))
+  if (expired()) return {out: none(), how, why: 'the caller deadline passed'}
   if (translated) {
     const r = withDeadline(clock() + translateMs(usualMs, floor), () => translated(st))
     if (r.verdict?.proven && r.verdict.checked) return {out: r.verdict, how: 'translated'}
     how = 'fallback'; why = r.why ?? (r.verdict && !r.verdict.proven ? `${r.verdict.goal}: ${r.verdict.stuck}` : r.verdict?.why)
   }
-  return {out: until === undefined ? run() : withDeadline(until, run), how, ...(why ? {why} : {})}
+  return {out: expired() ? none() : until === undefined ? run() : withDeadline(until, run), how, ...(why ? {why} : {})}
 }
 // GDP_CYCLIC_PROF=1: where the proof's time went, by goal kind, in its line.
 const profLine = () => (profOn() ? {prof: Object.fromEntries(Object.entries(cyclicProf).map(([key, p]) => [key, Object.fromEntries(Object.entries(p).map(([f, x]) => [f, Math.round(x)]))]))} : {})
@@ -1266,12 +1269,12 @@ export const certMs = () => Number(env.GDP_CERT_MS ?? 10_000)
 export const uncovered = (kind: string, name: string, why: string): void => cycLog({kind, name, uncovered: true, why})
 export function certCyclic(kind: string, name: string, translated: Translated | undefined, run0: (() => CyclicVerdict) | undefined, usualMs?: number, floor?: number): {checked: boolean, proof?: Cyclic, why: string} {
   for (const key of Object.keys(cyclicProf)) delete cyclicProf[key]
-  const st = tstats(), t0 = performance.now(), until = clock() + certMs()
+  const st = tstats(), t0 = performance.now(), until = withinDeadline(clock() + certMs())
   const {out, how, why} = cyclicOf(translated, (translated && !certSearch() ? undefined : run0) ?? none, st, until, usualMs, floor)
   const checked = out.proven && out.checked
   cycLog({kind, name, cert: true, usual: true, cyclic: checked, ms: Math.round(performance.now() - t0), ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {}), ...profLine()})
-  const late = clock() > until ? ` within ${certMs()} ms` : ''
-  return {checked, ...(out.proven ? {proof: out.proof} : {}), why: checked ? '' : `no cyclic proof found${late}${why ? ` (not translated: ${why})` : ''}`}
+  const expired = late(until) ? ' within the caller or certificate budget' : ''
+  return {checked, ...(out.proven ? {proof: out.proof} : {}), why: checked ? '' : `no cyclic proof found${expired}${why ? ` (not translated: ${why})` : ''}`}
 }
 
 // The step laws' searched nodes after the laws' (stepLawNodes over the sk machine), with the flags' closing facts read

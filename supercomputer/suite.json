@@ -1275,6 +1275,14 @@
 "timeout": 900
 },
 {
+"name": "extract-orm",
+"cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && python3 -m venv /tmp/gdp-orm-venv && . /tmp/gdp-orm-venv/bin/activate && pip install -q django sqlalchemy python-dateutil && bun test core/extract-py-orm.test.ts core/extract-orm.test.ts",
+"cwd": ".",
+"cpu": 2.0,
+"memory": 8192,
+"timeout": 600
+},
+{
 "name": "extract-py",
 "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && (python3 -m pip install -q fastapi >/dev/null 2>&1 || true) && cd core && bun test extract-py.test.ts 2>&1",
 "cwd": ".",

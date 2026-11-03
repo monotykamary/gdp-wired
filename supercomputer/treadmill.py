@@ -837,6 +837,32 @@ class Speed(Follow):
 
     def reset(self, r: dict):
         r["benches"] = {b: x for b, x in r.get("benches", {}).items() if x.get("status") == "done"}
+        # The old process's confirmation batches cannot finish in this process.
+        # Keep completed sides; resubmit only sides interrupted by the restart.
+        for cf in r.get("confirm", {}).values():
+            for side, status in cf.items():
+                if side != "tasks" and status == "running":
+                    cf[side] = "pending"
+
+    def comparison_base(self, c: str) -> str | None:
+        """Pin the baseline across overlapping completions and process restarts."""
+        r = self.st["runs"][c]
+        if "compare_to" not in r:
+            prev = self.prev_done(c)
+            if "confirm" in r:
+                # Older state already chose a baseline in the confirmation keys.
+                # Recomputing prev_done here can select a later-finishing run and
+                # raise KeyError forever, before the loop reaches fill or status.
+                sides = {side for cf in r["confirm"].values() for side in cf if side not in ("tasks", c)}
+                if len(sides) == 1:
+                    prev = next(iter(sides))
+                else:
+                    # An empty/ambiguous legacy plan has no recoverable baseline.
+                    # Rebuild it from the observations; never mix two comparisons.
+                    r.pop("confirm")
+            r["compare_to"] = prev
+            self.save()
+        return r["compare_to"]
 
     def fingerprint_all(self, c: str) -> str:
         return "".join(fingerprint(c, b) for b in SPEED_BENCHES)
@@ -861,7 +887,7 @@ class Speed(Follow):
         return set(b.get("claimed", [])), b.get("status") != "done"
 
     def solved_set(self, c: str, bench: str) -> list[str]:
-        prev = self.prev_done(c)
+        prev = self.comparison_base(c)
         ts = set()
         if prev:
             ts |= {t for t, o in json.loads(self.obs_file(prev, bench).read_text()).items() if o.get("solved")} if self.obs_file(prev, bench).exists() else set()
@@ -901,7 +927,7 @@ class Speed(Follow):
             return free
         # each task flagged (slower or lost) once more, timed, at both commits: the search's own spread on identical code
         # reaches 3x on a few tasks (two runs of 0010208 and 604b62d: 6.3 s and 2.0 s), so one run is no regression
-        prev = self.prev_done(c)
+        prev = self.comparison_base(c)
         if "confirm" not in r:
             r["confirm"] = {b: {"tasks": ts, c: "pending", prev: "pending"} for b, ts in self.flagged(c, prev).items() if ts} if prev else {}
             self.save()
@@ -1004,7 +1030,7 @@ class Speed(Follow):
         flagged by the first runs counts only if its confirming runs agree: slower when the faster of its two runs here
         is SLOWER times the slower of its two there (and FLOOR_S more), lost when neither run here solved it; the others
         are `noise`."""
-        prev = self.prev_done(c)
+        prev = self.comparison_base(c)
         for bench in SPEED_BENCHES:
             f = self.obs_file(c, bench)
             if not f.exists():
@@ -1457,6 +1483,20 @@ class Soundness:
         self.dir = TM / "commits" / commit[:12]
         self.dir.mkdir(parents=True, exist_ok=True)
         self.mutants = self.mutant_ids()
+        self.fuzz_hash = self.fuzz_fingerprint(tree)
+
+    @staticmethod
+    def fuzz_fingerprint(tree: pathlib.Path) -> str:
+        # Include the fuzz harness and all kernel sources, not only the three mutant targets.
+        files = sorted((tree / 'kernel').glob('*.ts')) + [tree / 'core/check.ts', tree / 'core/solver.ts']
+        h = hashlib.sha256()
+        for path in files:
+            h.update(str(path.relative_to(tree)).encode() + b'\0' + path.read_bytes() + b'\0')
+        return h.hexdigest()
+
+    def required_kinds(self) -> list[str]:
+        done = self.tm.state.get('fuzzed_inputs', {}).get(self.fuzz_hash, {})
+        return [k for k in FUZZ if k not in done]
 
     def mutant_ids(self) -> list[int]:
         """The trusted base's mutants, once per version of kernel/kernel.ts, core/check.ts and kernel/cyclic.ts (their hash)."""
@@ -1475,13 +1515,22 @@ class Soundness:
                 c[k] = c.get(k, 0) + n
         return c
 
-    def batch(self, vms: int, uncapped: bool = False) -> Batch | None:
+    def batch(self, vms: int, uncapped: bool = False, required: bool = False) -> Batch | None:
         """Fuzz and mutants for `vms` VMs; `uncapped` (the fill of the pool's VMs above the floor): the day's caps
         yield, every kind and language open."""
         st = self.tm.state
         items, kinds = [], []
         n = vms * SLOTS * 8
         counts = self.today_counts()
+        if required:
+            # Exactly one completed run of each kind per changed input fingerprint.
+            # Neither the daily filler caps nor mutants/rechecks can displace these.
+            for k in self.required_kinds():
+                s = st['seed'] = st.get('seed', 1000) + 1
+                cwd, cmd = FUZZ[k]
+                items.append(sh_item(f'{k}-fuzz-{s}', cmd.format(s=s), cwd, 900, 60))
+                kinds.append((k, s))
+            n = len(items)
         for b in self.tm.batches:  # (what is queued now counts too)
             if not b.done and b.label.startswith("sound"):
                 for it in b.items:
@@ -1493,7 +1542,7 @@ class Soundness:
         open_langs = [l for l in XFUZZ for _ in range(XFUZZ[l][2]) if counts.get("x:" + l, 0) < cap_l] if "xfuzz" in self.tm.chains else []
         cap_r = float("inf") if uncapped else RFUZZ_PER_DAY
         open_r = [l for l in XFUZZ for _ in range(XFUZZ[l][2]) if counts.get("r:" + l, 0) < cap_r] if "rfuzz" in self.tm.chains else []
-        while self.mutants and "mutants" in self.tm.chains and len(items) < vms * SLOTS:
+        while not required and self.mutants and "mutants" in self.tm.chains and len(items) < vms * SLOTS:
             m = self.mutants.pop(0)
             items.append(sh_item(f"mutant-{m}", f"bun mutants.ts ids {m} 2>&1 | tail -1", "kernel", 3600, 600))
             kinds.append(("mutant", m))
@@ -1505,7 +1554,7 @@ class Soundness:
             kinds.append((k, s))
         # (a soundness failure run again at the newest main, this commit, once it is past the failing one: fuzz_status)
         recheck, rechecks = st.setdefault("fuzz_recheck", []), {}
-        if not st.get("fuzz_recheck_seeded"):  # (once: the failures recorded before the re-runs, still standing)
+        if not required and not st.get("fuzz_recheck_seeded"):  # (once: the failures recorded before the re-runs, still standing)
             rows = jl(TM / "fuzz.jsonl")
             for (k, sd), (st_, r) in fuzz_status(rows, {(r["kind"], r["seed"]) for r in rows if r["code"] != 0 and fuzz_row_class(r) == "soundness"}).items():
                 if st_ != "fixed" and [k, sd, r["commit"]] not in recheck:
@@ -1601,6 +1650,9 @@ class Soundness:
                         log(f"XFUZZ: {k[2:]} seed {s} at {self.commit[:12]}: the rule and the code differ: {m.group(1)[:200]}")
                     continue
                 cls, rerun, recheck = fuzz_class(code, out), it["name"].endswith("-again"), it["name"].endswith("-recheck")
+                if required and cls != 'infra':
+                    self.tm.state.setdefault('fuzzed_inputs', {}).setdefault(self.fuzz_hash, {})[k] = self.commit
+                    self.tm.save_state()
                 append(TM / "fuzz.jsonl", {"t": time.time(), "commit": self.commit, "kind": k, "seed": s, "code": code,
                                            **({"class": cls, "tail": out[-1500:]} if code != 0 else {}), **({"again": True} if rerun else {}), **({"recheck": True} if recheck else {})})
                 if code != 0:
@@ -1617,8 +1669,9 @@ class Soundness:
                     c[w] = c.get(w, 0) + 1
                 log(f"{label}: {len(unrun)} of {len(items)} items never ran (exit -1, no output: {'; '.join(f'{w} ({n})' for w, n in sorted(c.items(), key=lambda x: -x[1])[:3])}): "
                     "not results; mutants, rechecks and second runs put back, fresh seeds for the rest")
-        label = f"sound {self.commit[:12]}"
-        return Batch(self.tm, label, "b", items, vms, tracked(self.tm, "sound", label, on_row), root=self.tree, after=after)
+        label = f"sound {'required ' if required else ''}{self.commit[:12]}"
+        # Submission items are never victims of gate/interactive preemption, unlike filler.
+        return Batch(self.tm, label, 'c' if required else 'b', items, vms, tracked(self.tm, "sound", label, on_row), root=self.tree, after=after)
 
 
 # ------------------------------------------------------------------------------------------------- the ideas
@@ -1820,7 +1873,7 @@ class Treadmill(T.Treadmill):
         # (and the soundness work's, main's head, and every live batch's tree: 11-02 08:26, a restart made main's tree
         # for the fuzz, then the speed chain's two trees pushed it out as the oldest, and every fuzz batch failed on it)
         keep = {sha[:12], (self.state.get("sweep") or "")[:12], *(c[:12] for f in (self.speed, self.ic3, self.rw, self.ten) for c in f.active),
-                *((self.speed.prev_done(c) or "")[:12] for c in self.speed.active), *([self.sound.commit[:12]] if self.sound else []),
+                *((self.speed.st["runs"][c].get("compare_to", self.speed.prev_done(c)) or "")[:12] for c in self.speed.active), *([self.sound.commit[:12]] if self.sound else []),
                 *(pathlib.Path(b.root).name for b in self.batches if not b.done and b.root)}
         for old in [p for p in sorted((TM / "trees").iterdir(), key=lambda p: p.stat().st_mtime)[:-2] if p.name not in keep]:
             with contextlib.suppress(Exception):
@@ -1893,6 +1946,15 @@ class Treadmill(T.Treadmill):
                 self.ideas[name] = Idea(self, d.parent)
 
     def floor(self, free: int) -> int:
+        # Admit bounded soundness work even when all warm VMs are busy. It queues at
+        # submission priority (not filler), without raising the pool's idle floor.
+        # At most one such batch: if main moves while it runs, the newest inputs go next.
+        if self.sound_on and self.sound and self.sound.required_kinds() and not any(
+                not b.done and b.label.startswith('sound required ') for b in self.batches):
+            b = self.sound.batch(1, required=True)
+            if b:
+                self.batches.append(b)
+                free = max(0, free - b.vms)
         if free > 0 and not self.want("b") and self.sound_on and self.sound:  # (soundness's floor: one VM)
             b = self.sound.batch(1)
             if b:

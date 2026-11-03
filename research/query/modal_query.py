@@ -94,9 +94,34 @@ GOAL = re.compile(r"(?<![\w./-])/goals/([^\s'\"]+)")
 def pack(jobs: str) -> str:
     """The goal files a jobs file reads, from the main checkout's dump, as research/query/.goals-<pid>.tar.zst in this
     tree (untracked, so the batch's tree has it; removed when the run ends). Its path in the tree, or "" for none."""
-    from goalpack import pack_goal_files
+    import subprocess
+    import tarfile
     files = sorted({f"goals/{g}" for j in json.loads(pathlib.Path(jobs).read_text()) for g in GOAL.findall(j["cmd"])})
-    return pack_goal_files(GDP, GOALS, files)
+    if not files:
+        return ""
+    rel = f"research/query/.goals-{os.getpid()}.tar.zst"
+    target = GDP / rel
+    partial = target.with_name(target.name + ".partial")
+    try:
+        with partial.open("wb") as output:
+            compressor = subprocess.Popen(["zstd", "-q", "-10", "-c"], stdin=subprocess.PIPE, stdout=output)
+            try:
+                with compressor.stdin:
+                    # Each job extracts only its own members: neither hardlinks nor symlinks may need another member.
+                    with tarfile.open(fileobj=compressor.stdin, mode="w|", dereference=True) as archive:
+                        for file in files:
+                            archive.add(GOALS.parent / file, arcname=file, recursive=False)
+                status = compressor.wait()
+                if status:
+                    raise subprocess.CalledProcessError(status, compressor.args)
+            finally:
+                if compressor.poll() is None:
+                    compressor.kill()
+                    compressor.wait()
+        partial.replace(target)
+    finally:
+        partial.unlink(missing_ok=True)
+    return rel
 
 
 @app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=2400)

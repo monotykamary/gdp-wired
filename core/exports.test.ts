@@ -50,6 +50,15 @@ for (const [sub, fn, beside] of FRONT) {
   })
 }
 
+test('security templates: public subpath, declarations and both builders', async () => {
+  const e = pkg.exports['./security']!
+  expect(e.types).toBe('./dist/core/security.d.ts')
+  expect(build.files).toContain('core/security.ts')
+  const mod = await import(built ? `${pkg.name}/security` : `${root}core/security.ts`)
+  expect(typeof mod.securityLaws).toBe('function')
+  expect(typeof mod.securityTemplates).toBe('function')
+})
+
 test('gdp-wired-cli: gdp-wired\'s CLI with TypeScript beside it, at gdp-wired\'s own version (they release together)', async () => {
   const cli = JSON.parse(readFileSync(`${root}packages/cli/package.json`, 'utf8')) as {name: string, version: string, bin: Record<string, string>, dependencies: Record<string, string>}
   expect(cli.name).toBe('gdp-wired-cli')

@@ -47,6 +47,8 @@ import {type Arg, type Layout, type MapDecl, type MapWrite, type Model, Refusal,
 import {type ReadOptions, isFactory, isSlice, readClass, readFactory, readFunctions, readSlice} from './extract-shapes.ts'
 import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pidx, pk, pnum, pterm, sortsOf} from './extract-print.ts'
 import {type CheckOptions, type Evidence, check} from './extract-check.ts'
+import {extractOrm, type OrmOptions} from './extract-orm.ts'
+export type {OrmOptions} from './extract-orm.ts'
 // (a rule read is proven from the same import: proveRule(x.rule!, [x.rule!.law(...)]))
 export {proveRule, proveSteps} from './dsl.ts'
 
@@ -58,6 +60,8 @@ export type ExtractOptions = Omit<ReadOptions, 'entry' | 'functions'> & {
   functions?: string[],
   // The file's name, for code given as a string (for locations, and to read it as JavaScript when it ends in .js).
   file?: string,
+  // Explicit injected ORM boundary; schema is relative to the handler's file.
+  orm?: OrmOptions,
   // 'class' or 'functions' (a reducer is functions of one); by default, a class if the entry names one.
   shape?: 'class' | 'functions',
   // Numbers given as naturals or integers (by the rule's variable name, or `map.field` for a map's numbers).
@@ -132,6 +136,10 @@ export function extract(at: Source, opts: ExtractOptions = {}): Extraction {
     ;({code, file} = sourceOf(at, opts.file, 'input.ts'))
     const bad = syntaxError(code, file)
     if (bad) throw new Refusal(file, bad)
+    if (opts.orm) {
+      if (typeof at !== 'string' || at.includes('\n') || !/\.[cm]?[jt]sx?$/.test(at)) throw new Refusal(file, 'ORM checking requires the original module on disk')
+      return extractOrm(file, code, {...opts, orm: opts.orm})
+    }
     const fns = Array.isArray(opts.entry) ? opts.entry : opts.functions
     const o: ReadOptions = {...opts, entry: (Array.isArray(opts.entry) ? opts.entry[0] : opts.entry) ?? fns?.[0] ?? '', ...(fns ? {functions: fns} : {})}
     model = o.entry ? readModel(code, file, o, opts.shape) : inferred(code, file, o, opts.shape)

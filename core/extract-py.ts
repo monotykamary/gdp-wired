@@ -2,7 +2,8 @@
 // own parser (core/py/reader.py, run with the python3 on the PATH or the one given), executed by the shared step
 // executor (core/extract-step.ts), printed, built and checked as every front end's rule is (core/extract.ts's
 // fromModel), the check running the module as it ships through core/py/harness.py. Python is needed only here, at
-// extraction; the rule printed needs nothing but gdp-wired.
+// extraction; the rule printed needs nothing but gdp-wired. Source locations are repository-relative; the check
+// traces exactly the read files, including imported bases, without merging files with the same basename.
 //
 //   const x = extractPython('limiter.py')     // a path or a URL; the class inferred, the boundary too
 //   proveRule(x.rule!, [x.rule!.law('within the limit', ({used, limit}) => used.atMost(limit))])
@@ -18,7 +19,8 @@
 // past which a step is refused), floats at whole values (as JavaScript's numbers are read: a float literal that isn't
 // whole is refused, and so is a true division but in math.floor, math.ceil or int of x / k), bools, strs (set and
 // compared), Literal strings as choices, X | None (a None one holds 0, beside a flag), the module's dataclasses and
-// classes as records (nested, by reference), dict[int | str, scalar or record] as maps (d[k], get, pop, in, del, and a
+// classes as records (nested, by reference), immutable scalar class defaults through known bases in Python C3
+// order (mutable or dynamically shadowed attributes are not copied), dict[int | str, scalar or record] as maps (d[k], get, pop, in, del, and a
 // write of one key a step), an object the caller gives as a record of inputs (its fields read, their types from its
 // class's annotations in the repository's modules), if, early returns, ternaries, and/or with Python's values,
 // truthiness, raise and assert (the step's failure: its refusal, or with failures: 'kept' its result), calls of the
@@ -49,6 +51,8 @@ export type PyOptions = StepOptions & {
   root?: string,
   // The Python to run (the one with the code's dependencies installed); by default python3.
   python?: string,
+  // Django settings imported before the target module; tables are never created.
+  djangoSettings?: string,
 }
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
 const here = (f: string) => asset(`py/${f}`)
@@ -69,6 +73,6 @@ export function extractPython(at: string | FileURL, opts: PyOptions = {}): Extra
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
     throw e
   }
-  const harness = (): Harness => ({cmd: opts.python ?? 'python3', args: [here('harness.py')], env: {PYTHONDONTWRITEBYTECODE: '1'}, hello: {root: mod.root, path: mod.path, module: mod.module}})
+  const harness = (): Harness => ({cmd: opts.python ?? 'python3', args: [here('harness.py')], env: {PYTHONDONTWRITEBYTECODE: '1', ...(opts.djangoSettings ? {DJANGO_SETTINGS_MODULE: opts.djangoSettings} : {})}, hello: {root: mod.root, path: mod.path, module: mod.module}})
   return extractStep(mod, harness, opts)
 }

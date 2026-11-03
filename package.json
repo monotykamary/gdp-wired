@@ -92,6 +92,10 @@
       "types": "./dist/core/gdp.d.ts",
       "default": "./dist/core/gdp.js"
     },
+    "./security": {
+      "types": "./dist/core/security.d.ts",
+      "default": "./dist/core/security.js"
+    },
     "./extract": {
       "types": "./dist/core/extract.d.ts",
       "default": "./dist/core/extract.js"
@@ -194,6 +198,7 @@
     "prepublishOnly": "bun scripts/build.ts",
     "smoke": "sh scripts/smoke.sh",
     "bar": "bun gates/bar.ts",
+    "test:bar": "bun test ./gates/bar.test.ts",
     "test": "bun scripts/test-shards.ts"
   },
   "devDependencies": {

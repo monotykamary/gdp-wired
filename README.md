@@ -42,6 +42,18 @@ protocols, commerce, supply chains, games, education, healthcare, energy, networ
 governance, insurance, bookings, safety and IoT, mobility, media), each checked three ways: the kernel proves every law
 and refutes every broken variant, random runs of both runtimes agree, and Lean checks the trees.
 
+## Security policy candidates
+
+`gdp-wired check src/handler.ts --security --no-propose` proposes authorization, tenant
+write/read isolation, workflow-order, quota and ledger laws over the extracted names.
+Candidates are **not accepted policy**: review the requirement and authentication boundary,
+then state the intended law with the printed `gdp: law` comment. Broken candidates are shown,
+not silently discarded. Requests remain arbitrary; concurrent laws use the existing `gdp: env`
+isolation model. [`research/security/README.md`](research/security/README.md) documents the
+public `gdp-wired/security` templates, their limits, and the pinned public-advisory recall protocol.
+The initial real-code seed set is currently refused by the readers; this is not a claim of
+security-vulnerability recall or universal handler support.
+
 ## First proof in your language
 
 The rules already in your code (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, Swift, C, C++, TypeScript, Effect,

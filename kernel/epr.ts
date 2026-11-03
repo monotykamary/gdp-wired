@@ -55,7 +55,7 @@ const or = (xs: F[]): F => { const ys = xs.filter(x => !(x.k === 'c' && !x.b)); 
 const not = (x: F): F => (x.k === 'c' ? {k: 'c', b: !x.b} : x.k === 'not' ? x.x : {k: 'not', x})
 
 // The functions of one key of the goal being decided (patterns [0]): a read f(x) of one at a part is a part, `f(x)`.
-let fnMaps = new Set<string>()
+let fnMaps = new Set<string>(), fnSignature = ''
 const partName = (e: E): string | undefined => e.op === 'var' ? e.name
   : e.op === 'get' && fnMaps.has(e.map) && !(e as {args?: unknown}).args ? (n => (n === undefined ? undefined : `${e.map}(${n})`))(partName(e.key)) : undefined
 // A key Σ c·x + d as its terms; undefined where it reads anything but parts under constant factors.
@@ -65,8 +65,8 @@ const linTerms = (e: E, k: number, out: [string, number][], d: {c: number}): boo
 // A radix tuple: names (a name twice is a diagonal key, 64·x + x: the tuple (x, x)), no constant, coefficients a chain (each a multiple of the next, the last 1); its parts in
 // order (highest first) with each part's bound (the next coefficient's ratio; the top part none).
 type Tuple = {coefs: number[], parts: string[], bounds: (number | undefined)[]}
-const tupleMemo = new WeakMap<E, Tuple | null>()
-function tupleOf(e: E): Tuple | undefined { let t = tupleMemo.get(e); if (t === undefined) tupleMemo.set(e, (t = tupleOf0(e) ?? null)); return t ?? undefined }
+const tupleMemo = new WeakMap<E, Map<string,Tuple | null>>()
+function tupleOf(e: E): Tuple | undefined { let memo=tupleMemo.get(e); if(!memo) tupleMemo.set(e,(memo=new Map())); let t=memo.get(fnSignature); if(t===undefined) memo.set(fnSignature,(t=tupleOf0(e)??null)); return t??undefined }
 function tupleOf0(e: E): Tuple | undefined {
   // A tuple key (core/machine.ts's tup): its parts, each a name, compared part by part; its pattern n zeros (no radix
   // pattern has a 0), no part bounded (the pairing is a bijection: equal keys, equal parts).
@@ -102,7 +102,9 @@ export function decide(goal: Goal, patterns: Patterns, opts: {conflicts?: number
   return d
 }
 function decide1(goal0: Goal, patterns: Patterns, opts: {conflicts?: number, exact?: boolean, late?: () => boolean} = {}): Decision {
+  const previous=fnMaps, previousSignature=fnSignature
   fnMaps = new Set(Object.entries(patterns).filter(([, c]) => c.length === 1 && c[0] === 0).map(([f]) => f))
+  fnSignature=JSON.stringify([...fnMaps].sort())
   // (a tuple's part read back, proj(tup(a, b)), as the part: the kernel's linear reads it so)
   const goal = JSON.stringify(goal0.hyps).includes('"op":"proj"') ? projectedOf(goal0) : goal0
   // (a model whose order leaves no room between two near constants: again with the constants between them, below)
@@ -110,7 +112,7 @@ function decide1(goal0: Goal, patterns: Patterns, opts: {conflicts?: number, exa
   try {
     const d = decide0(goal, patterns, opts), d2 = 'unknown' in d && d.unknown === noRoom ? decide0(goal, patterns, {...opts, fill: true}) : d
     return 'unknown' in d2 && d2.unknown.startsWith(breaks) && lemmaCache.size ? decide0(goal, patterns, {...opts, fresh: true}) : d2
-  } catch (e) { if (e === pastEnd) return {unknown: 'past the deadline'}; throw e } finally { fnMaps = new Set() }
+  } catch (e) { if (e === pastEnd) return {unknown: 'past the deadline'}; throw e } finally { fnMaps=previous; fnSignature=previousSignature }
 }
 // A read at a key that holds an if (a write at every key read at a ghost's key, M'[c ? w : y]) as the if of the reads at
 // its two keys, M[c ? a : b] = c ? M[a] : M[b] (an if inside the key's sum first lifted to its top), so each is a cell
@@ -123,9 +125,27 @@ const hasIf = (o: unknown): boolean => {
   if (b === undefined) ifMemo.set(o, (b = (o as {op?: string}).op === 'if' || Object.values(o).some(hasIf)))
   return b
 }
-const hoisted = (e: E): E => {
-  if (e.op === 'add') { const a = hoisted(e.a), b = hoisted(e.b); return a.op === 'if' ? {op: 'if', c: a.c, then: hoisted({...e, a: a.then, b}), else: hoisted({...e, a: a.else, b})} : b.op === 'if' ? {op: 'if', c: b.c, then: hoisted({...e, a, b: b.then}), else: hoisted({...e, a, b: b.else})} : a === e.a && b === e.b ? e : {...e, a, b} }
-  if (e.op === 'mul') { const a = hoisted(e.a); return a.op === 'if' ? {op: 'if', c: a.c, then: hoisted({...e, a: a.then}), else: hoisted({...e, a: a.else})} : a === e.a ? e : {...e, a} }
+const underMemo = new WeakMap<E, Map<string, E>>()
+const underGuard = (e: E, guard: C, yes: boolean): E => {
+  if (!hasIf(e)) return e
+  const id = textOfE(guard), key = `${yes}:${id}`, memo = underMemo.get(e) ?? new Map<string,E>()
+  if (!underMemo.has(e)) underMemo.set(e,memo)
+  const was = memo.get(key); if (was) return was
+  const visit = (o: unknown): unknown => {
+    if (!o || typeof o !== 'object' || !hasIf(o)) return o
+    if (Array.isArray(o)) { const xs=o.map(visit); return xs.every((x,i)=>x===o[i]) ? o : xs }
+    const t = o as {op?: string, c?: C, then?: E, else?: E}
+    if (t.op === 'if' && textOfE(t.c!) === id) return visit(yes ? t.then : t.else)
+    let changed=false; const entries=Object.entries(o).map(([k,v]) => { const next=visit(v); if(next!==v) changed=true; return [k,next] }); return changed ? Object.fromEntries(entries) : o
+  }
+  const out = visit(e) as E; memo.set(key,out); return out
+}
+const hoistMemo = new WeakMap<E,E>()
+const hoisted = (e: E): E => { const was = hoistMemo.get(e); if (was) return was; const out = hoisted0(e); hoistMemo.set(e,out); return out }
+const hoisted0 = (e: E): E => {
+  if (e.op === 'if') return {...e, then: hoisted(underGuard(e.then,e.c,true)), else: hoisted(underGuard(e.else,e.c,false))}
+  if (e.op === 'add' || e.op === 'tup') { const a = hoisted(e.a), b = hoisted(e.b); return a.op === 'if' ? {op: 'if', c: a.c, then: hoisted({...e, a: a.then, b: underGuard(b,a.c,true)}), else: hoisted({...e, a: a.else, b: underGuard(b,a.c,false)})} : b.op === 'if' ? {op: 'if', c: b.c, then: hoisted({...e, a: underGuard(a,b.c,true), b: b.then}), else: hoisted({...e, a: underGuard(a,b.c,false), b: b.else})} : a === e.a && b === e.b ? e : {...e, a, b} }
+  if (e.op === 'mul' || e.op === 'proj') { const a = hoisted(e.a); return a.op === 'if' ? {op: 'if', c: a.c, then: hoisted({...e, a: a.then}), else: hoisted({...e, a: a.else})} : a === e.a ? e : {...e, a} }
   return e
 }
 const keysOf = (e: E): number => (e.op === 'if' ? keysOf(e.then) + keysOf(e.else) : 1)
@@ -152,8 +172,12 @@ const liftC = (c: C): C => {
   // (a comparison whose side holds an if over a map's read, a key a ghost's write is read in (64·W'[k] + k = 64·s + d),
   // as the if of the comparisons of its two sides: c ∧ (a₁ ⋈ b) ∨ ¬c ∧ (a₂ ⋈ b), equal to it; at most three ifs in all,
   // counted before they are distributed, 8 leaves)
-  const ifs = (e: E) => textOfE(e).split('"op":"if"').length - 1, reads = (e: E) => textOfE(e).includes('"op":"get"')
-  const few = (hasIf(a) || hasIf(b)) && ifs(a) + ifs(b) <= 3, ha = few ? hoisted(a) : a, hb = few ? hoisted(b) : b
+  const guards = new Set<string>(), seen = new WeakSet<object>()
+  const countGuards = (o: unknown): void => { if (!o || typeof o !== 'object' || seen.has(o) || guards.size > 3) return; seen.add(o); const t=o as {op?: string, c?: C}; if(t.op==='if') guards.add(textOfE(t.c!)); for(const v of Object.values(o)) countGuards(v) }
+  if (hasIf(a)) countGuards(a)
+  if (hasIf(b)) countGuards(b)
+  const reads = (e: E) => textOfE(e).includes('"op":"get"')
+  const few = guards.size > 0 && guards.size <= 3, ha = few ? hoisted(a) : a, hb = few ? hoisted(b) : b
   if (few && ((ha.op === 'if' && reads(ha)) || (hb.op === 'if' && reads(hb))) && keysOf(ha) * keysOf(hb) <= 8) {
     const split = (x: E, y: E): C => (x.op === 'if' ? {op: 'or', xs: [{op: 'and', xs: [x.c, split(x.then, y)]}, {op: 'and', xs: [{op: 'not', x: x.c}, split(x.else, y)]}]}
       : y.op === 'if' ? {op: 'or', xs: [{op: 'and', xs: [y.c, split(x, y.then)]}, {op: 'and', xs: [{op: 'not', x: y.c}, split(x, y.else)]}]} : {...c, a: x, b: y} as C)
@@ -226,9 +250,9 @@ const compInfo = (c: Comp): CompInfo => {
     leavesOf(c.a, 1, ts); leavesOf(c.b, -1, ts)
     const k = (e: E): void => { if (e.op === 'const') consts.push(Math.abs(e.value)); else if (e.op === 'add') (k(e.a), k(e.b)); else if (e.op === 'mul') k(e.a); else if (e.op === 'if') (k(e.then), k(e.else)) }
     k(c.a); k(c.b)
-    compMemo.set(c, (x = {ts, top: Math.max(1, ...consts), ta: tupleOf(c.a), tb: tupleOf(c.b)}))
+    compMemo.set(c, (x = {ts, top: Math.max(1, ...consts)}))
   }
-  return x
+  return {...x, ta: tupleOf(c.a), tb: tupleOf(c.b)}
 }
 // A goal's sorts of terms, as its hypotheses read them: the parts (a name some read's key or a key equality reads; the
 // rest are scalars), the bounded terms, each finite term's cap, the ordered maps and scalars. Two goals with the same
@@ -703,7 +727,7 @@ function encoder(st: State, patterns: Patterns): Enc {
     const theory = [...gOpq].flatMap(x => { const o = opqs.get(x)!; return !o.foreign && o.row ? [o.row] : [] })
     if (theory.length && !opts.fresh) seedLemmas()
     // EPR-shaped: no comparison the abstraction can't read (a counter's arithmetic, a sum, a product) in any hypothesis
-    if (opts.exact) { const loose = [...gOpq].filter(x => { const o = opqs.get(x)!; return o.foreign && !o.tied }).length; if (loose) return {unknown: `${loose} comparisons outside the EPR shape`} }
+    const loose = opts.exact ? [...gOpq].filter(x => { const o = opqs.get(x)!; return o.foreign && !o.tied }) : []
     // --- the search, the goal's hypotheses assumed
     if (opts.late?.()) return {unknown: 'past the deadline'}
     if (goal.name !== lastGoal) solver.fresh()
@@ -871,7 +895,7 @@ function encoder(st: State, patterns: Patterns): Enc {
       return exact()
     }
     const outcome = (o: ReturnType<typeof search>): Decision | {model: boolean[]} => (typeof o === 'string' ? {unknown: o} : o === undefined ? {unknown: 'the conflict budget ran out, or the deadline'}
-      : !o.sat ? {sat: false, core: [...new Set([...o.core].flatMap(g => (index.has(g) ? [index.get(g)!] : [])))].sort((a, b) => a - b)} : {model: o.model})
+      : !o.sat ? {sat: false, core: [...new Set([...o.core].flatMap(g => (index.has(g) ? [index.get(g)!] : [])))].sort((a, b) => a - b)} : loose.length ? {unknown: `${loose.length} comparisons outside the EPR shape`} : {model: o.model})
     // the goal's own terms, for the read-back: its finite variables, cells (of its maps' patterns, and at keys of the
     // wrong sort), ordered cells and functions' parts
     const gFinsL = finsList.filter(f => gFins.has(f)), cellsOf = new Map<string, {id: string, parts: string[]}[]>(), odd: {id: string, map: string, key: E}[] = []

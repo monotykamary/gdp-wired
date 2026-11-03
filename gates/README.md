@@ -47,6 +47,26 @@ seconds (Modal bills an hour once it is over); the report gives the bill for the
 `modal billing report`, and `bun gates/bar.ts spend <run dir>` reads it again later. The default backend is Modal
 (`--backend boat` or `auto` are keyed apart in the cache: boat's vCPUs are faster and move answers across the limit).
 
+## Laptop admission and drivers
+
+Quick bars (`--quick`, including quick baselines) acquire one of **two laptop-wide slots** before copying trees,
+announcing demand, or launching a pilot/pass. Slots live in `~/.local/share/gdp-wired/bar-slots`, independent of
+worktree and `GDPW_BAR_DIR`. A waiting bar prints its wait and retries every 120 seconds. Read-only commands and
+standalone `supercomputer run --jobs ...` clients do not acquire a slot. Full bars are not covered by this quick-bar
+limit. Each bar also defaults to six simultaneous local pass drivers (`--procs` overrides this).
+
+`bar-slots.ts` uses the OS `flock` primitive through Bun FFI (macOS/Linux). The kernel releases ownership on exit,
+including SIGKILL. PID metadata left by a crashed process is cleared on the next acquisition; a reused PID cannot
+strand a slot. The two lock files are never unlinked, avoiding stale-cleaner races with newly acquired owners.
+Do not delete the slot directory while bars are running. Normal/error/signal cleanup releases the slot after the
+bar stops its children. Tests: `bun run test:bar` (also registered in the seven-shard suite).
+
+SV, TIP and CHC already submit **one starmap batch per pass**, not one local Python driver per shard. `BoatEx`
+turns that list into one scheduler submission; per-shard Python workers run remotely. For explicit boat passes,
+`boat-pass.py` supplies the existing lightweight Modal stub and suppresses only that process's unnecessary Modal
+interpreter re-exec. Arguments, shard batching and result handling are unchanged. Auto/Modal passes (including the
+bar's fallback after three boat failures) retain the ordinary runner and real Modal client.
+
 ## Measured
 
 Every figure from the run directory named, under the main checkout's `runs/bar/`; Modal's bill from `modal billing

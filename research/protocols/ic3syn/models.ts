@@ -358,6 +358,29 @@ const clientServer = (db: boolean) => (bug?: Bug) => (rule(db ? 'client server d
     } : {}),
   }))
 
+// Native tuple port of the same seven actions: no packed-key aliases in
+// synthesized provenance laws. The old packed form above remains a reference.
+const clientServerDb = (bug?: Bug) => rule('client server db ae')
+  .sorts('Node', 'Request', 'Response', 'DbRequestId')
+  .relations({Match: ['Request', 'Response'], RequestSent: ['Node', 'Request'], ResponseSent: ['Node', 'Response'], ResponseReceived: ['Node', 'Response'], DbRequestSent: ['DbRequestId', 'Request'], DbResponseSent: ['DbRequestId', 'Response'], T: ['DbRequestId', 'Node']})
+  .inputs({op: oneOf('match', 'start', 'new_request', 'receive_response', 'server_process_request', 'db_process_request', 'server_process_db_response'), n: nat, r: nat, p: nat, i: nat})
+  .assume(({n, r, p, i}) => lt(n, r, p, i))
+  .state({started: 0})
+  .flags(({i, T}) => ({noneWithId: everyKey(m => m.lt(N).implies(T.has(i, m).not()))}))
+  .flags(({op, n, r, p, i, started, noneWithId, RequestSent, ResponseSent, DbRequestSent, DbResponseSent, T, Match}) => ({
+    matches: op.is('match').and(started.eq(0)), starts: op.is('start').and(started.eq(0)),
+    requests: op.is('new_request').and(started.eq(1)),
+    receives: op.is('receive_response').and(started.eq(1), ResponseSent.has(n, p)),
+    serverRequests: op.is('server_process_request').and(started.eq(1), RequestSent.has(n, r), noneWithId),
+    dbResponds: op.is('db_process_request').and(started.eq(1), DbRequestSent.has(i, r), bug ? yes : Match.has(r, p)),
+    serverResponds: op.is('server_process_db_response').and(started.eq(1), DbResponseSent.has(i, p), T.has(i, n)),
+  }))
+  .step(({n, r, p, i, started, matches, starts, requests, receives, serverRequests, dbResponds, serverResponds, Match, RequestSent, ResponseSent, ResponseReceived, DbRequestSent, DbResponseSent, T}) => ({
+    started: when(starts, 1, started), Match: Match.add([r, p], matches), RequestSent: RequestSent.add([n, r], requests),
+    ResponseSent: ResponseSent.add([n, p], serverResponds), ResponseReceived: ResponseReceived.add([n, p], receives),
+    DbRequestSent: DbRequestSent.add([i, r], serverRequests), DbResponseSent: DbResponseSent.add([i, p], dbResponds), T: T.add([i, n], serverRequests),
+  }))
+
 // --- ex-simple-election: simple_election.tla. Quorum is the majorities of Acceptor, 0 .. size − 1 (the config's, with
 // the full set: a superset enables what its subsets do); <<a, p>> \in promise is Promise[p·N + a], and DidNotPromise(a)
 // is read through Promised[a] (kept = ∃p promise(a, p), as naive consensus's Voted).
@@ -928,17 +951,19 @@ export const protocols: Protocol[] = [
         // decide's projection to its values, as the port keeps it
         fix: [`sed -i 's/^====/DecideView == <<vote, {v \\\\in Value : \\\\E Q \\\\in Quorum : <<Q, v>> \\\\in decide}, decision>>\\n====/' naive_consensus.tla`]}}},
   ...[false, true].map((db): Protocol => {
-    const Ns = N2, R = N2, P = N2, I = N2
+    const Ns = N2, R = N2, P = N2, I = N2, key = db ? tk : (a: number, b: number) => a * N + b
+    const keys = Ns.flatMap(a => R.map(b => key(a, b)))
     return {id: db ? 'client_server_db_ae' : 'client_server_ae', ic3syn: db ? 'pyv-client-server-db-ae' : 'pyv-client-server-ae', file: db ? 'client_server_db_ae.tla' : 'client_server_ae.tla',
       source: `Endive benchmarks/${db ? 'client_server_db_ae' : 'client_server_ae'}.tla (mypyvy's)`, safety: '<<n, p>> \\in response_received => \\E r: <<n, r>> \\in request_sent /\\ <<r, p>> \\in match',
-      make: clientServer(db), bug: db ? 'db_process_request without match' : 'respond without match',
-      laws: r => [r.law('a received response was matched', ({RequestSent, Match, ResponseReceived}: any) => forall((n, p) => lt(n, p).and(ResponseReceived.at(pk(n, p))).implies(
+      make: db ? clientServerDb : clientServer(false), bug: db ? 'db_process_request without match' : 'respond without match',
+      laws: r => db ? [r.law('a received response was matched', ({RequestSent, Match, ResponseReceived}: any) => forall((n, p) => lt(n, p).and(ResponseReceived.has(n, p)).implies(
+        exists(x => x.lt(N).and(RequestSent.has(n, x), Match.has(x, p))))))] : [r.law('a received response was matched', ({RequestSent, Match, ResponseReceived}: any) => forall((n, p) => lt(n, p).and(ResponseReceived.at(pk(n, p))).implies(
         exists(x => x.lt(N).and(RequestSent.at(pk(n, x)), Match.at(pk(x, p)))))))],
-      bad: r => Ns.some(n => P.some(p => r.cell('ResponseReceived', n * N + p) && !R.some(x => r.cell('RequestSent', n * N + x) && r.cell('Match', x * N + p)))),
+      bad: r => Ns.some(n => P.some(p => r.cell('ResponseReceived', key(n, p)) && !R.some(x => r.cell('RequestSent', key(n, x)) && r.cell('Match', key(x, p))))),
       check: {inputs: {op: db ? range(7) : range(5), n: Ns, r: R, p: P, ...(db ? {i: I} : {})},
         uses: db ? [['r', 'p'], [], ['n', 'r'], ['n', 'p'], ['n', 'r', 'i'], ['i', 'r', 'p'], ['n', 'i', 'p']] : [['r', 'p'], [], ['n', 'r'], ['n', 'r', 'p'], ['n', 'p']],
-        project: r => r.scalar('started') ? [['Match', 'RequestSent', 'ResponseSent', 'ResponseReceived'].map(m => cells(r, m, pairs(N2, N2))),
-          ...(db ? [['DbRequestSent', 'DbResponseSent', 'T'].map(m => cells(r, m, pairs(N2, N2)))] : [])] : undefined,
+        project: r => r.scalar('started') ? [['Match', 'RequestSent', 'ResponseSent', 'ResponseReceived'].map(m => cells(r, m, keys)),
+          ...(db ? [['DbRequestSent', 'DbResponseSent', 'T'].map(m => cells(r, m, keys))] : [])] : undefined,
         tlc: tlc(db ? 'client_server_db_ae' : 'client_server_ae', consts({Node: nodes(2), Request: nodes(2, 'r'), Response: nodes(2, 'p'), ...(db ? {DbRequestId: nodes(2, 'i')} : {})}), 'Safety')}}
   }),
   {id: 'simple_election', ic3syn: 'ex-simple-election', file: 'simple_election.tla', source: 'Endive benchmarks/simple_election.tla', safety: 'pi \\in leader /\\ pj \\in leader => pi = pj',

@@ -25,8 +25,9 @@
 // launch it started and runs supercomputer/reap.sh in every tree it used. Each tree's first launch of a group is a pilot of
 // one or two tasks, read before the fan-out. `--budget <$>` (none by default: spend is information) is checked against the real spend
 // of the bar's own apps (`modal billing report`) between phases and every five minutes.
-import {closeSync, cpSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync} from 'node:fs'
+import {closeSync, cpSync, existsSync, mkdirSync, lstatSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync} from 'node:fs'
 import {dirname, join, resolve} from 'node:path'
+import {acquireBarSlot, type BarSlot} from './bar-slots.ts'
 import {type Dev, type Obs, type Rows, type TaskCmp, VIEWS, compareTasks, differing, goalSig, goals, hash, inBand, keyOfCmd, predict, testTimes, devSet} from './bar-lib.ts'
 
 const VERSION = 1
@@ -36,15 +37,15 @@ const opt = (k: string, d = '') => { const i = argv.indexOf(`--${k}`); return i 
 const flag = (k: string) => argv.includes(`--${k}`)
 // --smoke: the bar itself end to end on each group's pilot tasks, the base launched together (nothing cached)
 const smoke = flag('smoke'), quick = flag('quick'), together = flag('together') || smoke, rivals = flag('rivals'), backend = opt('backend', 'boat')
-const nRuns = Number(opt('runs', '3')), nReruns = Number(opt('reruns', '3')), maxProcs = Number(opt('procs', '24'))
+const nRuns = Number(opt('runs', '3')), nReruns = Number(opt('reruns', '3')), maxProcs = Number(opt('procs', '6'))
 const budget = Number(opt('budget', 'Infinity'))  // (no cap unless asked: spend is reported, never a stop)
 if (!['modal', 'boat', 'auto'].includes(backend)) throw new Error('--backend modal | boat | auto')
 
 // ------------------------------------------------------------------------------------------------------- the shell
-const out0 = (args: string[], cwd?: string) => {
+const out0 = (args: string[], cwd?: string, trim = true) => {
   const p = Bun.spawnSync(args, {cwd, stdout: 'pipe', stderr: 'pipe'})
   if (p.exitCode !== 0) throw new Error(`${args.join(' ')}: ${p.stderr.toString().slice(-600)}`)
-  return p.stdout.toString().trim()
+  return trim ? p.stdout.toString().trim() : p.stdout.toString()
 }
 const HERE = dirname(import.meta.path)
 const MAIN = dirname(out0(['git', 'rev-parse', '--path-format=absolute', '--git-common-dir'], HERE))
@@ -54,7 +55,8 @@ const mkdir = (d: string) => mkdirSync(d, {recursive: true})
 const readJson = <T>(f: string): T => JSON.parse(readFileSync(f, 'utf8')) as T
 const writeJson = (f: string, x: unknown) => { mkdir(dirname(f)); writeFileSync(f, JSON.stringify(x, null, 1) + '\n') }
 
-let stopping = false
+let stopping = false, workStarted = false
+let barSlot: BarSlot | undefined, heartbeat: ReturnType<typeof setInterval> | undefined
 // a tree's runners' directory: supercomputer/, or modal/ in a tree from before the rename
 const sc = (tree: string) => existsSync(join(tree, 'supercomputer', 'run.py')) ? 'supercomputer' : 'modal'
 type Child = {pid: number, kill: (s: NodeJS.Signals) => void, what: string, cwd: string}
@@ -100,7 +102,7 @@ async function stopAll(why: string) {
   stopping = true
   log(`stopping ${live.size} launch(es): ${why}`)
   await Promise.all([...live.values()].map(stop))
-  reap()
+  if (workStarted) reap()
 }
 function reap() {
   for (const t of new Set([...treesUsed, HERE + '/..'])) {
@@ -111,7 +113,14 @@ function reap() {
   }
 }
 for (const s of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) process.on(s, () => { void stopAll(s).then(() => process.exit(130)) })
-process.on('exit', () => { for (const c of live.values()) try { c.kill('SIGINT') } catch { /* gone */ } declare(true) })
+function finishAdmission() {
+  if (heartbeat) clearInterval(heartbeat)
+  try { declare(true) } finally { barSlot?.release(); barSlot = undefined; workStarted = false }
+}
+process.on('exit', () => {
+  for (const c of live.values()) try { c.kill('SIGINT') } catch { /* gone */ }
+  finishAdmission()
+})
 // On boat, the bar declares the work it still has to launch (the supercomputer's demand): while it runs, the VMs its
 // launches release stay up for its next group (at most as many as it held at once lately, 10 minutes at most), and they
 // stop a minute after it ends. A tree whose supercomputer/boat.py isn't yet the door to the supercomputer tool gets this
@@ -122,11 +131,10 @@ const CLIENT = `bar-${process.pid}`
 // (and every launch is the supercomputer scheduler's class 2, a gate: it takes the treadmill's slots first)
 const SC_CONFIG: Record<string, string> = {SUPERCOMPUTER_CLASS: 'gate', ...(existsSync(join(HERE, '..', 'supercomputer.toml')) ? {SUPERCOMPUTER_CONFIG: resolve(HERE, '..', 'supercomputer.toml')} : {})}
 function declare(done = false) {
-  if (backend === 'modal') return
+  if (!workStarted || backend === 'modal') return
   Bun.spawnSync(['python3', join(HERE, '..', 'supercomputer', 'boat.py'), 'demand', CLIENT, ...(done ? ['--done'] : ['--for', '300', '--pid', String(process.pid)])], {stdout: 'ignore', stderr: 'ignore', env: {...process.env, ...SC_CONFIG}})
 }
-declare()
-if (backend !== 'modal') setInterval(declare, 120_000).unref()
+// Demand and its heartbeat start only after quick-bar admission in main().
 const overlaid = new Set<string>()
 const backendOf = (p: Pass) => {
   const b = p.backend ?? backend, d = join(p.tree.path, 'modal')
@@ -143,6 +151,30 @@ type Tree = {path: string, sha: string, key: string, clean: boolean, label: stri
 // A directory with no uncommitted changes is its commit's tree; one with changes is copied (what git sees, untracked
 // files too, without node_modules, runs/ and .git) to <bar>/trees/<sha>+<hash of the changes>, so editing it while
 // the runners upload it changes nothing, and the same changes are the same tree.
+// A detached worktree keeps both the upload root and research/query's shared-fixture root correct.
+function snapshotRoot(path: string, src: string): boolean {
+  if (!existsSync(join(path, '.git'))) return false
+  try {
+    return out0(['git', 'rev-parse', '--show-toplevel'], path) === realpathSync(path) &&
+      out0(['git', 'rev-parse', '--path-format=absolute', '--git-common-dir'], path) === out0(['git', 'rev-parse', '--path-format=absolute', '--git-common-dir'], src)
+  } catch { return false }
+}
+// Flatten the source's Git-visible files into the snapshot's private index. rsync excludes submodule .git files,
+// so leaving gitlinks in that index would silently omit their contents from the uploader's git ls-files walk.
+// Force-add preserves tracked-but-ignored files; later generated untracked assets must remain visible too.
+function snapshotFiles(src: string, dst: string, prefix = ''): string[] {
+  const files: string[] = []
+  for (const f of out0(['git', 'ls-files', '-z', '-co', '--exclude-standard'], src, false).split('\0').filter(Boolean)) {
+    const from = join(src, f), to = join(dst, f)
+    let fromDir: boolean, toDir: boolean
+    try { fromDir = lstatSync(from).isDirectory(); toDir = lstatSync(to).isDirectory() }
+    catch { continue } // deleted or excluded by the snapshot copy
+    if (fromDir) {
+      if (existsSync(join(from, '.git'))) files.push(...snapshotFiles(from, to, prefix + f + '/'))
+    } else if (!toDir) files.push(prefix + f)
+  }
+  return files
+}
 function treeOf(rev: string): Tree {
   if (existsSync(rev) && statSync(rev).isDirectory()) {
     const src = realpathSync(rev), sha = out0(['git', 'rev-parse', 'HEAD'], src)
@@ -152,10 +184,19 @@ function treeOf(rev: string): Tree {
     h.update(dirt + out0(['git', 'diff', 'HEAD'], src))
     for (const f of out0(['git', 'ls-files', '-o', '--exclude-standard'], src).split('\n').filter(Boolean)) h.update(f + '\0' + (existsSync(join(src, f)) ? readFileSync(join(src, f)).toString('base64') : ''))
     const key = `${sha.slice(0, 12)}+${h.digest('hex').slice(0, 8)}`, path = join(BAR, 'trees', key)
-    if (!existsSync(join(path, '.bar-ready'))) {
+    if (!existsSync(join(path, '.bar-ready')) || !snapshotRoot(path, src)) {
       log(`copying ${src} (uncommitted changes) to ${path}`)
-      mkdir(path)
+      if (!snapshotRoot(path, src)) {
+        // Repair old rsync-only caches as well as creating new ones; --force permits an interrupted registration.
+        rmSync(path, {recursive: true, force: true})
+        mkdir(dirname(path))
+        out0(['git', 'worktree', 'add', '--force', '--detach', '--no-checkout', path, sha], src)
+      }
       out0(['rsync', '-a', '--delete', '--exclude', 'node_modules/', '--exclude', '/runs/', '--exclude', '.git', '--exclude', '*.olean', '--exclude', '*.ilean', '--exclude', '.lake/', '--exclude', 'supercomputer/.live/', '--exclude', 'modal/.live/', '--exclude', '.bar-lean/', `${src}/`, `${path}/`])
+      const manifest = join(out0(['git', 'rev-parse', '--absolute-git-dir'], path), 'bar-files')
+      writeFileSync(manifest, snapshotFiles(src, path).join('\0') + '\0')
+      out0(['git', 'read-tree', '--empty'], path)
+      out0(['git', '--literal-pathspecs', 'add', '-f', `--pathspec-from-file=${manifest}`, '--pathspec-file-nul'], path)
       out0(['bun', 'install', '--frozen-lockfile'], path)
       writeFileSync(join(path, '.bar-ready'), key + '\n')
     }
@@ -183,7 +224,13 @@ type Pass = {group: string, side: Side, tree: Tree, dir: string, tasks?: string[
 type Job = {name: string, cmd: string, cwd?: string, cpu?: number, memory?: number, timeout?: number, timing?: boolean}
 type Group = {key: string, views: string[], cap: number, launch: (p: Pass) => Promise<number>, pairAlways?: boolean, noRerun?: boolean, candOnly?: boolean, after?: string, inQuick: boolean}
 
-const py = (p: Pass, script: string, args: string[], cap: number) => run(['python3', script, '--backend', backendOf(p), '--out', p.dir, ...args], {cwd: p.tree.path, log: `${p.dir}.log`, cap})
+const py = (p: Pass, script: string, args: string[], cap: number, env?: Record<string, string>) => {
+  const b = backendOf(p)
+  // One driver per pass; each runner submits all of its shards in one starmap.
+  // Explicit boat does not need the Modal client's imports or interpreter re-exec.
+  const driver = b === 'boat' ? ['python3', join(HERE, 'boat-pass.py'), p.tree.path, join(p.tree.path, script)] : ['python3', script]
+  return run([...driver, '--backend', b, '--out', p.dir, ...args], {cwd: p.tree.path, log: `${p.dir}.log`, cap, env})
+}
 const listFile = (p: Pass, sep: string) => { const f = `${p.dir}.tasks`; writeFileSync(f, p.tasks!.join(sep)); return f }
 async function jobsPass(p: Pass, jobs: Job[], keyOf: (j: Job) => string, cap: number, extra: string[] = []) {
   const keep = p.tasks ? new Set(p.tasks) : undefined, js = keep ? jobs.filter(j => keep.has(keyOf(j))) : jobs
@@ -224,12 +271,9 @@ const GROUPS: Group[] = [
     writeJson(`${p.dir}.jobs.json`, jobs)
     writeJson(`${p.dir}.keys.json`, Object.fromEntries(jobs.map(j => [j.name, j.name])))
     const runner = join(p.tree.path, 'research/query/modal_query.py'), mine = join(HERE, '..', 'research/query/modal_query.py')
-    if (!readFileSync(runner, 'utf8').includes('fanout.cli') && resolve(runner) !== resolve(mine)) {
-      cpSync(mine, runner)
-      cpSync(join(HERE, '..', 'research/query/goalpack.py'), join(p.tree.path, 'research/query/goalpack.py'))
-    }
-    return run(['python3', 'research/query/modal_query.py', '--backend', backendOf(p), '--jobs', `${p.dir}.jobs.json`, '--out', p.dir],
-      {cwd: p.tree.path, log: `${p.dir}.log`, env: {GDP_QUERY_BASE: join(BAR, 'none'), SUPERCOMPUTER_CLASS: 'gate'}, cap: 1200})
+    if (!readFileSync(runner, 'utf8').includes('fanout.cli') && resolve(runner) !== resolve(mine)) cpSync(mine, runner)
+    return py(p, 'research/query/modal_query.py', ['--jobs', `${p.dir}.jobs.json`], 1200,
+      {GDP_QUERY_BASE: join(BAR, 'none'), SUPERCOMPUTER_CLASS: 'gate'})
   }},
   {key: 'suite', views: ['suite'], cap: 2400, inQuick: false, launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, sc(p.tree.path), 'suite.json')), j => j.name, 2400)},
   {key: 'suite-usual', views: ['suite-usual'], cap: 2400, inQuick: false, after: 'suite', launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, sc(p.tree.path), 'suite.json')), j => j.name, 2400, ['--usual'])},
@@ -550,7 +594,7 @@ function consensus(rs: Rows[]): Rows {
   return out
 }
 function report(results: Result[], cand: Tree, base: Tree, outDir: string, t0: number, since: Date): string {
-  const L: string[] = [], J: Record<string, unknown> = {}
+  const L: string[] = [], J: Record<string, unknown> = {}, coverageErrors: string[] = []
   const p = (s = '') => L.push(s)
   p(`# The bar: ${cand.label} against ${base.label}`)
   p()
@@ -569,6 +613,11 @@ function report(results: Result[], cand: Tree, base: Tree, outDir: string, t0: n
       const restrict = (x: Rows) => keep ? new Map([...x].filter(([t]) => keep.has(t))) : x
       const c = v.parse(r.cand, cand.path), bs = r.base.map(b => restrict(v.parse(b, base.path)))
       if (!c.size && !bs.some(b => b.size)) continue
+      if (!c.size) {
+        const error = `${v.key}: zero candidate goals against a nonempty baseline`
+        coverageErrors.push(error)
+        p(`**ERROR: ${error}.**\n`)
+      }
       const hc = v.headline(c), hb = bs.map(b => v.headline(b)), keys = Object.keys(hc)
       const mean = Object.fromEntries(keys.map(k => [k, hb.length ? Math.round(hb.reduce((s, h) => s + (h[k] ?? 0), 0) / hb.length * 100) / 100 : NaN]))
       p(`## ${v.title}${r.quick ? ` (${smoke ? 'smoke' : 'dev set'}: ${fmt(r.quick.length)} tasks)` : ''}`)
@@ -638,8 +687,11 @@ function report(results: Result[], cand: Tree, base: Tree, outDir: string, t0: n
   J.wall_s = wall
   J.spend = {own, apps: [...apps], baselineApps: [...madeNow], baselineMadeNow: spentBy(madeNow, bills), estimate: est, lastHour}
   J.results = results
+  J.coverageErrors = coverageErrors
   writeJson(join(outDir, 'report.json'), J)
   writeFileSync(join(outDir, 'REPORT.md'), L.join('\n') + '\n')
+  // Keep both reports as evidence, but never certify an unexecuted candidate.
+  if (coverageErrors.length) throw new Error(coverageErrors.join('; '))
   return L.join('\n')
 }
 function onecpu(r: Result, p: (s?: string) => void) {
@@ -705,6 +757,12 @@ async function main() {
     console.log(`${dir}: billed $${spentBy(new Set(j.spend.apps), bills)} for its ${j.spend.apps.length} apps, $${spentBy(new Set(j.spend.baselineApps ?? []), bills)} for the baseline runs it made; the last hour reported starts ${bills.map(b => b.interval_start).sort().at(-1) ?? 'none'}Z`)
     return
   }
+  // No tree copy, demand process, pilot or pass may launch before admission.
+  // Read-only commands above and standalone supercomputer clients do not wait.
+  if (quick) barSlot = await acquireBarSlot({log})
+  workStarted = true
+  declare()
+  if (backend !== 'modal') heartbeat = setInterval(declare, 120_000).unref()
   const only = opt('only', '') ? opt('only').split(',') : undefined
   for (const k of only ?? []) if (!GROUPS.some(g => g.key === k)) throw new Error(`no group ${k}: ${GROUPS.map(g => g.key).join(', ')}`)
   const base = treeOf(opt('base', 'main'))
@@ -777,4 +835,4 @@ await main().catch(async (e: unknown) => {
   console.error(e)
   await stopAll('an error')
   process.exit(1)
-})
+}).finally(finishAdmission)

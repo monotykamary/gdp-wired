@@ -50,7 +50,7 @@ export type SFunc = {id: string, name: string, cls?: string, p: string, span: [s
   // recursion check, or after it)
   recv?: string, results?: number, why?: string, late?: string}
 // (rets: the declared result types of its methods, another module's class's too: an inferred answer's type)
-export type SRec = {name: string, short: string, fields: {name: string, t: SType, dflt?: SX, inject?: boolean}[], methods: Record<string, string | null>, kinds: string[], own: boolean, module: string, p: string, rets?: Record<string, SType>, cattrs?: Record<string, number | string | boolean | null>}
+export type SRec = {orm?: {framework: 'django' | 'sqlalchemy' | 'prisma' | 'typeorm', key: string, why?: string}, name: string, short: string, fields: {name: string, t: SType, dflt?: SX, inject?: boolean}[], methods: Record<string, string | null>, kinds: string[], own: boolean, module: string, p: string, rets?: Record<string, SType>, cattrs?: Record<string, number | string | boolean | null>}
 export type SModule = {lang: string, file: string, path: string, module: string, root: string, consts?: Record<string, number | string | boolean>, entries: ({k: 'class', rec: string} | {k: 'func', id: string} | {k: 'missing', name: string})[], recs: Record<string, SRec>, funcs: Record<string, SFunc>, enums?: Record<string, {values: string[], discs: number[], data: boolean}>, error?: string,
   // false: a condition the path takes is kept whole (a negated disjunction not split into its parts: Go's reader's);
   // 'nil-false': only nil and false are false (Ruby's), not Python's truthiness
@@ -76,7 +76,7 @@ type Try = {hs: Handler[], to: [Path, number, Kind][], ws: B[], depth: number}
 // fields are left out, read as values outside the subset). apart: the templates name distinct keys (stated: a key of
 // one never has the form of another's, as "{}" and "{}:lock" might).
 export type StoreVal = 'int' | 'float' | 'str' | string[] | {json: Record<string, string | string[]>}
-export type StoreDecl = {get?: string[], set?: string[], delete?: string[], add?: string[], incr?: string[], skip?: string[], value?: 'int' | 'float' | 'str', attrs?: Record<string, null | boolean | number | string>, async?: Record<string, boolean>,
+export type StoreDecl = {ormSession?: boolean, get?: string[], set?: string[], delete?: string[], add?: string[], incr?: string[], skip?: string[], value?: 'int' | 'float' | 'str', attrs?: Record<string, null | boolean | number | string>, async?: Record<string, boolean>,
   values?: Record<string, StoreVal>, apart?: boolean,
   // nothrow: its calls taken not to raise inside a try (stated: the store's failures left to the system's environment
   // model, core/system.ts's STORE_FAILS, not each call's input)
@@ -175,7 +175,7 @@ type Place = {k: 'local', id: string, path: string[]} | {k: 'heap', ptr: V, path
 export type Recipe = {k: 'num' | 'bool' | 'str', ty?: IntTy} | {k: 'big'} | {k: 'no', why: string}
 type Origin = 'state' | 'input' | 'fresh'
 type Obj =
-  | {k: 'rec', ty: string, f: Map<string, V>, origin: Origin, lazy?: string, moved?: boolean}
+  | {k: 'rec', ty: string, f: Map<string, V>, origin: Origin, lazy?: string, moved?: boolean, orm?: {table: string, key: K, session?: string, loaded?: boolean, deleted?: boolean}}
   // (w: the step's last write; pre: the writes at other keys before it, in order: a scalar map's, keyed by numbers)
   // (ew: a write at every key, its terms over k$, before the others: a while loop's passes over the collection)
   | {k: 'map', decl: MapDecl, val?: SType, nil?: B, w?: CellWrite, pre?: CellWrite[], ew?: CellWrite, origin: Origin}
@@ -190,20 +190,20 @@ export type {V as StepValue, Path as StepPath, Obj as StepObj, Ptr as StepPtr}
 // A string that is one of a choice's literals on every path (a literal, or literals by a condition): the choice's.
 const asChoice = (k: K, vs: string[]): L | undefined => { if (k.op === 'slit') return vs.includes(k.value) ? I.llit(k.value, vs) : undefined; if (k.op !== 'kite') return undefined; const a = asChoice(k.a, vs), b = asChoice(k.b, vs); return a && b ? I.lite(k.c, a, b) : undefined }
 // What the harness is told: where each leaf of the state is, how each argument is made, what each stub answers.
-export type Leaf = {t?: SType, name: string, path: string[], kind: 'num' | 'bool' | 'str' | 'choice' | 'none' | 'map' | 'frame', float?: boolean, set?: boolean, cls?: string, fields?: {name: string, float?: boolean, choice?: boolean}[], key?: 'num' | 'str', store?: string, tpl?: string, ordered?: boolean, str?: boolean,
+export type Leaf = {orm?: {rec: string, key: string, framework: string, fields: {name: string, t: SType}[]}, t?: SType, name: string, path: string[], kind: 'num' | 'bool' | 'str' | 'choice' | 'none' | 'map' | 'frame', float?: boolean, set?: boolean, cls?: string, fields?: {name: string, float?: boolean, choice?: boolean}[], key?: 'num' | 'str', store?: string, tpl?: string, ordered?: boolean, str?: boolean,
   // (a store's JSON records, or its choice of literals: what the harness decodes and encodes)
   json?: JField[], choice?: boolean}
 // (list: a list the request carries, its items made by `item` (a record's fields, as read; or its one value))
-export type PArg = {k: 'in', name: string, float?: boolean, sym?: boolean, bytes?: boolean, z?: Raw} | {k: 'opt', none: string, v: PArg} | {k: 'rec', cls: string, f: [string, PArg][]} | {k: 'inert', dict?: boolean} | {k: 'store', name: string} | {k: 'dflt'}
+export type PArg = {k: 'in', time?: string, name: string, float?: boolean, sym?: boolean, bytes?: boolean, z?: Raw} | {k: 'opt', none: string, v: PArg} | {k: 'rec', cls: string, f: [string, PArg][]} | {k: 'inert', dict?: boolean} | {k: 'store', name: string} | {k: 'dflt'}
   | {k: 'list', name: string, item: PArg}
 // (how: 'inferred' from the callee's declared type, or 'tagged' by a gdp: comment; stated where absent)
 // (at: the calls answered, each from its position to its end, `line:col`; ty: the call's type in the code's language)
 // (raises: the input saying whether the call raises, and which handler's class (cls, by the choice's values after
 // 'none'); pass: a call left out, the stub running it unless it raises)
-export type Answer = {key: string, patch: Patch, async: boolean, inputs: {name: string, none?: string, float?: boolean}, sort: string, how?: string, at?: {p: string, end?: string, span?: [number, number]}[], ty?: string, fit?: boolean,
+export type Answer = {key: string, patch: Patch, async: boolean, inputs: {name: string, none?: string, float?: boolean, time?: string}, sort: string, how?: string, at?: {p: string, end?: string, span?: [number, number]}[], ty?: string, fit?: boolean,
   raises?: {name: string, cls: unknown[], m: string}[], pass?: boolean, effect?: boolean, quiet?: boolean}
 // (inject: the fields the harness sets to the store it gives, after the constructor: a field injected by a framework)
-export type StepRead = {ints: Record<string, IntTy>, madeAt?: string, model: Model, leaves: Leaf[], args: Record<string, [string, PArg][]>, answers: Answer[], ctor: [string, PArg][], kept: boolean, arms: [string, number][], cls?: string, stores: Record<string, StoreDecl>, results: Record<string, 'none' | 'scalar' | 'maybe'>, inject?: string[], globals?: {name: string, mod: string}[], effectsOf?: Record<string, string[]>, inert?: {store: string, path: string}[], edges?: B[]}
+export type StepRead = {ints: Record<string, IntTy>, madeAt?: string, naiveUtc?: boolean, model: Model, leaves: Leaf[], args: Record<string, [string, PArg][]>, answers: Answer[], ctor: [string, PArg][], kept: boolean, arms: [string, number][], cls?: string, stores: Record<string, StoreDecl>, results: Record<string, 'none' | 'scalar' | 'maybe'>, inject?: string[], globals?: {name: string, mod: string}[], effectsOf?: Record<string, string[]>, inert?: {store: string, path: string}[], edges?: B[]}
 
 const where = (x: {p: string}) => x.p || '?'
 const refuse = (x: {p: string} | string, what: string): never => { throw new Refusal(typeof x === 'string' ? x : where(x), what) }
@@ -216,13 +216,17 @@ const constOf = (v: V): number | undefined => (v.t === 'num' && v.e.op === 'cons
 const LEAST_KEY = 'kl$'
 
 // The sorts a type string names (an answer's): int, float, bool, str, a choice of quoted strings, each `| None`.
-function sortOfText(s: string, at: string): {t: SType} {
+function sortOfText(s: string, at: string, lang: string): {t: SType} {
   const parts = s.split('|').map(x => x.trim()).filter(Boolean), none = parts.includes('None'), rest = parts.filter(x => x !== 'None')
   const one = (): SType => {
     if (rest.length && rest.every(x => /^['"].*['"]$/.test(x))) return {k: 'choice', values: rest.map(x => x.slice(1, -1))}
     if (rest.length !== 1) return refuse(at, `the answer type ${JSON.stringify(s)} (int, float, bool, str or quoted strings, each with | None)`)
     const k = rest[0]!
     if (k === 'int' || k === 'float' || k === 'bool' || k === 'str') return {k}
+    if (k === 'datetime' || k === 'datetime-naive' || k === 'datetime-utc') {
+      if (lang !== 'python') return refuse(at, 'stated datetime values are supported only by the Python harness')
+      return {k: 'int', unit: k === 'datetime-utc' ? k : 'datetime-naive'}
+    }
     // (a fixed width, a compiled language's: u32, i64, usize, uint8, int32)
     const w = /^(u|i|uint|int)(8|16|32|64|128|size)$/.exec(k)
     if (w) return {k: 'int', bits: w[2] === 'size' ? 64 : Number(w[2]), signed: !w[1]!.startsWith('u')}
@@ -337,8 +341,12 @@ export class Stepper {
   }
   // An input of a type: its variables, the value, and how the harness makes it.
   input(name: string, t: SType, at: {p: string}, p: Path, role: Var['role'] = 'input'): [V, PArg] {
+    if (t.k === 'opaque' && t.why === '$orm-session' && role === 'input') {
+      this.storeDecls.set(name, {ormSession: true})
+      return [{t: 'ext', q: `orm-session:${name}`, text: name}, {k: 'store', name}]
+    }
     const s = this.scalar(t)
-    if (s) { const v = this.newVar(name, s, role); this.typed(v, t, role); return [this.valueOf(v), {k: 'in', name: v.name, z: zeroRaw(s), ...(t.k === 'float' ? {float: true} : {}), ...(t.k === 'choice' && t.sym ? {sym: true} : {}), ...(t.k === 'str' && t.bytes ? {bytes: true} : {})}] }
+    if (s) { const v = this.newVar(name, s, role); this.typed(v, t, role); return [this.timeField(this.valueOf(v), t, true, at), {k: 'in', name: v.name, z: zeroRaw(s), ...(t.k === 'int' && t.unit?.startsWith('datetime-') ? {time: t.unit} : {}), ...(t.k === 'float' ? {float: true} : {}), ...(t.k === 'choice' && t.sym ? {sym: true} : {}), ...(t.k === 'str' && t.bytes ? {bytes: true} : {})}] }
     if (t.k === 'opt') {
       if (t.of.k === 'rec') {
         const none = this.newVar(`${name}_none`, {k: 'bool'}, role, `whether ${name} is None`)
@@ -348,8 +356,8 @@ export class Stepper {
       const inner = this.scalar(t.of)
       if (!inner) return refuse(at, `${name}: an optional ${this.why(t.of)}`)
       const v = this.newVar(name, inner, role, `0 where ${name} is None`), none = this.newVar(`${name}_none`, {k: 'bool'}, role, `whether ${name} is None`)
-      this.typed(v, t.of, role)
-      return [{t: 'opt', has: I.not(I.bvar(none.name)), v: this.valueOf(v)}, {k: 'opt', none: none.name, v: {k: 'in', name: v.name, z: zeroRaw(inner), ...(t.of.k === 'float' ? {float: true} : {}), ...(t.of.k === 'str' && t.of.bytes ? {bytes: true} : {})}}]
+      this.typed(v, t.of, role, t.of.k === 'int' && t.of.unit?.startsWith('datetime-') ? I.and(this.sel, I.not(I.bvar(none.name))) : this.sel)
+      return [{t: 'opt', has: I.not(I.bvar(none.name)), v: this.timeField(this.valueOf(v), t.of, true, at)}, {k: 'opt', none: none.name, v: {k: 'in', name: v.name, z: zeroRaw(inner), ...(t.of.k === 'int' && t.of.unit?.startsWith('datetime-') ? {time: t.of.unit} : {}), ...(t.of.k === 'float' ? {float: true} : {}), ...(t.of.k === 'str' && t.of.bytes ? {bytes: true} : {})}}]
     }
     if (t.k === 'none') return [{t: 'none'}, {k: 'dflt'}]
     // A list the request carries, of any length: a map by place (as a list of the state is), each place below its
@@ -383,6 +391,10 @@ export class Stepper {
   // (the request's arguments kept though no term reads them: opts.keep)
   kept = new Set<string>()
   typed(v: Var, t: SType | IntTy, role: Var['role'], sel = this.sel) {
+    if ('k' in t && t.k === 'int' && t.unit?.startsWith('datetime-') && role !== 'state') {
+      const out = I.or(I.cmp('<', I.nvar(v.name), I.num(-62_135_596_800_000)), I.cmp('<', I.num(253_402_300_799_999), I.nvar(v.name)))
+      if (role === 'param') this.paramsOut.push(I.and(sel, out)); else this.refusals.push(I.and(sel, out))
+    }
     if ('k' in t && t.k === 'str' && t.bytes) this.bytesVars.add(v.name)
     const ty = 'k' in t ? this.intTy(t) : t
     if (!ty) return
@@ -1382,6 +1394,8 @@ export class Stepper {
     if (obj.origin === 'input') return refuse(at, `${at.text}: writes an object the caller gave (the caller's, not the state)`)
     if (obj.moved) return refuse(at, `${at.text}: writes an object already put in a map (one object in two places)`)
     if (obj.origin === 'state' && !this.init && !obj.f.has(f)) return refuse(at, `${at.text}: a field the constructor doesn't set (the state's fields are the constructor's)`)
+    const fieldType = this.mod.recs[obj.ty]?.fields.find(x => x.name === f)?.t
+    v = this.timeField(v, fieldType, false, at)
     const old = obj.f.get(f)
     if (old?.t === 'opaque' && obj.origin === 'state' && !this.init) return refuse(at, `${at.text}: writes ${old.why}`)
     if (o.id === 'this' && this.frozen.has(f) && !this.init) return refuse(at, `${at.text}: writes a field the constructor sets to a constant (None of no type the code states, or other code's function)`)
@@ -1649,6 +1663,147 @@ export class Stepper {
     return [v, this.assume(p, l.held)]
   }
 
+  timeField(v: V, t: SType | undefined, read: boolean, at: {p: string, text?: string}): V {
+    const inner = t?.k === 'opt' ? t.of : t
+    if (inner?.k !== 'int' || !inner.unit?.startsWith('datetime-')) return v
+    if (inner.unit === 'datetime-naive') { this.naiveUtc = true; this.notes.add('naive datetime values require a UTC process timezone') }
+    if (v.t === 'opt') return {...v, v: this.timeField(v.v, inner, read, at)}
+    if (v.t === 'none') return v
+    const utc = inner.unit === 'datetime-utc' ? I.T : I.F
+    if (read && v.t === 'num') return {t: 'val', ty: '$dt', f: new Map<string, V>([['ms', v], ['utc', {t: 'bool', e: utc}]])}
+    if (v.t === 'val' && v.ty === '$dt' && I.same((v.f.get('utc') as {e?: B} | undefined)?.e ?? I.F, utc)) return read ? v : v.f.get('ms')!
+    return refuse(at, `${at.text}: expected ${inner.unit} value`)
+  }
+
+  // ORM rows are detached copies. Only save/create/delete writes the table; mutating a fetched
+  // object does not. Tables start empty and have the same map semantics used by system.ts.
+  naiveUtc = false
+  readonly ormTables = new Map<string, {id: string, decl: MapDecl}>()
+  ormTable(rec: string, at: SX, p: Path): {id: string, decl: MapDecl} {
+    let table = this.ormTables.get(rec)
+    if (!table) {
+      const r = this.rec(rec, at), meta = r.orm
+      if (!meta || meta.why) return refuse(at, meta?.why || `${rec}: no ORM schema`)
+      if (r.fields.some(f => ['__proto__', 'prototype', 'constructor'].includes(f.name))) return refuse(at, `${rec}: reserved ORM column name`)
+      if (r.methods.save || r.methods.delete || r.methods.__init__) return refuse(at, `${rec}: custom ORM constructor/save/delete is outside the table boundary`)
+      const kt = r.fields.find(f => f.name === meta.key)?.t
+      if (kt?.k !== 'int' && kt?.k !== 'str') return refuse(at, `${rec}: primary key must be a non-null integer or string`)
+      const fields: Var[] = []
+      for (const f of r.fields) {
+        if (f.name === meta.key) continue
+        const t = f.t.k === 'opt' ? f.t.of : f.t, sort = this.scalar(t)
+        if (!sort) return refuse(at, `${rec}.${f.name}: ${this.why(t)}`)
+        if (r.fields.some(g => g.name === `${f.name}_has`)) return refuse(at, `${rec}: reserved ORM presence column`)
+        fields.push({name: f.name, sort, role: 'state'})
+        if (f.t.k === 'opt') fields.push({name: `${f.name}_has`, sort: {k: 'bool'}, role: 'state'})
+      }
+      const v = this.newVar(r.short, {k: 'num'}, 'state'), decl: MapDecl = {name: v.name, key: kt.k === 'int' ? 'num' : 'str', fields, scalar: false, js: 'Map'}
+      table = {id: `orm:${rec}`, decl}
+      this.maps.push(decl); this.ormTables.set(rec, table)
+      this.initHeap.set(table.id, {k: 'map', decl, val: {k: 'rec', name: rec}, origin: 'state'})
+      this.notes.add(`${rec}: ${meta.framework} table keyed by ${meta.key}; explicit keys, detached rows, no database touched by the check. Database constraints, triggers and signals are outside this stated table boundary; use gdp: env for isolation and store failures.`)
+    }
+    if (!p.heap.has(table.id)) p.heap.set(table.id, this.initHeap.get(table.id)!)
+    return table
+  }
+  ormRow(rec: string, key: K, vals: Map<string, V>, at: SX, p: Path): [V, Path] {
+    const r = this.rec(rec, at), table = this.ormTable(rec, at, p), f = new Map<string, V>()
+    for (const fd of r.fields) {
+      if (fd.name === r.orm!.key) { f.set(fd.name, key.op === 'num' ? {t: 'num', e: key.e} : {t: 'str', e: key}); continue }
+      const v = vals.get(fd.name)!
+      f.set(fd.name, fd.t.k === 'opt' ? {t: 'opt', has: this.boolv(vals.get(`${fd.name}_has`)!, at), v} : v)
+    }
+    const id = `fresh:${this.fresh++}`
+    return [{t: 'ref', id}, {...p, heap: new Map(p.heap).set(id, {k: 'rec', ty: rec, f, origin: 'fresh', orm: {table: table.id, key, loaded: true}})}]
+  }
+  ormCall(rec: string, op: string, args: V[], kw: [string, V][], at: SX, p: Path): [V, Path] {
+    const r = this.rec(rec, at), table = this.ormTable(rec, at, p), meta = r.orm!, o = p.heap.get(table.id) as Extract<Obj, {k: 'map'}>
+    if (this.tries.length) return refuse(at, 'ORM operations inside try require modeled database exception classes')
+    if (args.length) return refuse(at, `${at.text}: ORM arguments must be named`)
+    if (op === 'new' || op === 'create') {
+      const f = new Map(kw)
+      for (const fd of r.fields) { const v = f.get(fd.name); if (v) f.set(fd.name, this.timeField(v, fd.t, false, at)) }
+      if (f.size !== kw.length || kw.some(([n]) => !r.fields.some(fd => fd.name === n)) || r.fields.some(fd => !f.has(fd.name))) return refuse(at, `${at.text}: give every ORM column explicitly, including the primary key`)
+      const key = this.keyOf(f.get(meta.key)!, at), id = `fresh:${this.fresh++}`
+      keyKind(table.decl, key, at)
+      let q: Path = {...p, heap: new Map(p.heap).set(id, {k: 'rec', ty: rec, f, origin: 'fresh', orm: {table: table.id, key}})}
+      const row: V = {t: 'ref', id}
+      if (op === 'create') {
+        const has = this.cellOf(o, key, q, at).has
+        this.fail(q, has, at, `${at.text}: duplicate primary key (an IntegrityError)`); q = this.assume(q, I.not(has))
+        q = this.ormPersist(row, 'save', [], [], at, q)[1]
+      }
+      return [row, q]
+    }
+    if (kw.length !== 1 || ![meta.key, 'pk'].includes(kw[0]![0])) return refuse(at, `${at.text}: ORM queries require exactly the primary key ${JSON.stringify(meta.key)} (or "pk"); received filters: ${kw.map(([n]) => JSON.stringify(n)).join(', ') || '(none)'}; non-key filters need a scan`)
+    const key = this.keyOf(kw[0]![1], at), c = this.cellOf(o, key, p, at)
+    if (op === 'filter') return [{t: 'val', ty: `$orm-query:${rec}`, f: new Map([['key', kw[0]![1]]])}, p]
+    if (op !== 'get') return refuse(at, `${at.text}: unsupported ORM operation ${op}`)
+    this.fail(p, I.not(c.has), at, `${at.text}: row not found (DoesNotExist)`)
+    return this.ormRow(rec, key, c.vals, at, this.assume(p, c.has))
+  }
+  ormSession(name: string, op: string, args: V[], kw: [string, V][], at: SX, p: Path): [V, Path] {
+    if (kw.length || this.tries.length || p.called.includes(`session-committed:${name}`)) return refuse(at, `${at.text}: session options, exception handling or operations after commit are outside the subset`)
+    if (op === 'get' && args.length === 2 && args[0]?.t === 'cls') {
+      const rec = args[0].rec, r = this.rec(rec, at)
+      if (r.orm?.framework !== 'sqlalchemy') return refuse(at, `${at.text}: Session.get requires a mapped class`)
+      if (p.called.includes(`session-read:${rec}`)) return refuse(at, `${at.text}: repeated session reads require an identity map`)
+      const table = this.ormTable(rec, at, p), key = this.keyOf(args[1]!, at), c = this.cellOf(p.heap.get(table.id) as Extract<Obj, {k: 'map'}>, key, p, at)
+      const [v, q] = this.ormRow(rec, key, c.vals, at, p), row = q.heap.get((v as {id: string}).id) as Extract<Obj, {k: 'rec'}>
+      row.orm!.session = name
+      return [{t: 'opt', has: c.has, v}, {...q, called: [...q.called, `session-read:${rec}`]}]
+    }
+    if ((op === 'add' || op === 'delete') && args.length === 1 && args[0]?.t === 'ref') {
+      const v = args[0], row = p.heap.get(v.id)
+      if (row?.k !== 'rec' || !row.orm || this.rec(row.ty, at).orm?.framework !== 'sqlalchemy') return refuse(at, `${at.text}: session requires a mapped row`)
+      if (row.orm.session && row.orm.session !== name) return refuse(at, `${at.text}: transferring a row between sessions is outside the subset`)
+      if (op === 'delete' && !row.orm.loaded) return refuse(at, `${at.text}: deleting a transient session row is outside the subset`)
+      return [{t: 'none'}, {...p, heap: new Map(p.heap).set(v.id, {...row, orm: {...row.orm, session: name, deleted: op === 'delete'}})}]
+    }
+    if (op === 'commit' && !args.length) {
+      let q = p
+      const pending: {table: string, key: K}[] = []
+      for (const row of p.heap.values()) if (row.k === 'rec' && row.orm?.session === name) {
+        const table = q.heap.get(row.orm.table) as Extract<Obj, {k: 'map'}>, exists = this.cellOf(table, row.orm.key, q, at).has
+        // A missing get returned None, not an object added to the session. Only paths that
+        // established its presence may flush it; otherwise the extraction is refused.
+        if (row.orm.loaded && !this.holds(q, exists)) return refuse(at, `${at.text}: committing a session read without establishing row presence`)
+        if (!row.orm.loaded && !row.orm.deleted) {
+          const duplicate = I.or(exists, ...pending.filter(v => v.table === row.orm!.table).map(v => I.keq(v.key, row.orm!.key)))
+          this.fail(q, duplicate, at, `${at.text}: duplicate primary key (IntegrityError)`); q = this.assume(q, I.not(duplicate))
+          pending.push(row.orm)
+        }
+      }
+      for (const [id, row] of p.heap) if (row.k === 'rec' && row.orm?.session === name) q = this.ormPersist({t: 'ref', id}, row.orm.deleted ? 'delete' : 'save', [], [], at, q)[1]
+      return [{t: 'none'}, {...q, called: [...q.called, `session-committed:${name}`]}]
+    }
+    return refuse(at, `${at.text}: unsupported session operation ${op}`)
+  }
+  ormPersist(v: V, op: string, args: V[], kw: [string, V][], at: SX, p: Path): [V, Path] {
+    if (args.length || kw.length || this.tries.length) return refuse(at, `${at.text}: ORM save/delete options or exception handler outside the subset`)
+    const row = v.t === 'ref' ? p.heap.get(v.id) : undefined
+    if (row?.k !== 'rec' || !row.orm) return refuse(at, `${at.text}: save/delete requires a row fetched or created in this request`)
+    const r = this.rec(row.ty, at), key = this.keyOf(row.f.get(r.orm!.key)!, at)
+    if (!I.same(key, row.orm.key)) return refuse(at, `${at.text}: changing an ORM primary key is outside the subset`)
+    const o = p.heap.get(row.orm.table) as Extract<Obj, {k: 'map'}>
+    if (op === 'delete') {
+      const q = this.mapDel({t: 'ref', id: row.orm.table}, key, at, p, false)
+      if (r.orm!.framework === 'django' && v.t === 'ref') q.heap.set(v.id, {...row, f: new Map(row.f).set(r.orm!.key, {t: 'none'})})
+      return [{t: 'none'}, q]
+    }
+    const vals = new Map<string, V>()
+    for (const fd of r.fields) {
+      if (fd.name === r.orm!.key) continue
+      const value = row.f.get(fd.name) ?? refuse(at, `${at.text}: missing column ${fd.name}`), f = o.decl.fields.find(f => f.name === fd.name)!
+      if (fd.t.k === 'opt') {
+        const has = value.t === 'none' ? I.F : value.t === 'opt' ? value.has : I.T
+        const inner = value.t === 'none' ? zeroOf(f.sort) : value.t === 'opt' ? value.v : value
+        vals.set(fd.name, this.ite(has, this.fit(inner, f, at), zeroOf(f.sort), at)); vals.set(`${fd.name}_has`, {t: 'bool', e: has})
+      } else vals.set(fd.name, this.fit(value, f, at))
+    }
+    return [{t: 'none'}, this.writeCell(row.orm.table, o, key, I.T, vals, at, p)]
+  }
+
   // --- stores ---------------------------------------------------------------------------------------------------------
   storeMap(store: string, tpl: string, kn: boolean, at: SX, p: Path): [string, Extract<Obj, {k: 'map'}>] {
     const key = `${store}\u0000${tpl}`
@@ -1667,7 +1822,7 @@ export class Stepper {
         const fields: Var[] = []
         for (const [f, t] of Object.entries(sv.json)) {
           if (t === 'str' || t === 'str | None') { json.push({name: f, out: true}); continue }
-          const st = Array.isArray(t) ? {t: {k: 'choice', values: t} as SType} : sortOfText(t, at.p), opt = st.t.k === 'opt', inner = st.t.k === 'opt' ? st.t.of : st.t
+          const st = Array.isArray(t) ? {t: {k: 'choice', values: t} as SType} : sortOfText(t, at.p, this.mod.lang), opt = st.t.k === 'opt', inner = st.t.k === 'opt' ? st.t.of : st.t
           fields.push({name: f, sort: this.scalar(inner)!, role: 'state'})
           if (opt) fields.push({name: `${f}_has`, sort: {k: 'bool'}, role: 'state'})
           json.push({name: f, ...(opt ? {opt} : {}), ...(inner.k === 'choice' ? {choice: true, vals: inner.values} : {})})
@@ -1888,6 +2043,15 @@ export class Stepper {
     return [v, p]
   }
   valCall(o: Extract<V, {t: 'val'}>, m: string, args: V[], kw: [string, V][], x: SX, p: Path): [V, Path] {
+    if (o.ty.startsWith('$orm-query:')) {
+      if (args.length || kw.length || this.tries.length) return refuse(x, `${x.text}: ORM query options or exception handlers outside the subset`)
+      const rec = o.ty.slice(11), table = this.ormTable(rec, x, p), key = this.keyOf(o.f.get('key')!, x)
+      const obj = p.heap.get(table.id) as Extract<Obj, {k: 'map'}>, c = this.cellOf(obj, key, p, x)
+      if (m === 'exists') return [{t: 'bool', e: c.has}, p]
+      if (m === 'first') { const [v, q] = this.ormRow(rec, key, c.vals, x, p); return [{t: 'opt', has: c.has, v}, q] }
+      if (m === 'delete') return [{t: 'none'}, this.mapDel({t: 'ref', id: table.id}, key, x, p, false)]
+      return refuse(x, `${x.text}: unsupported ORM query operation ${m}`)
+    }
     if (o.ty === '$dt' && m === 'timestamp' && !args.length && !kw.length) return [{t: 'val', ty: '$ts', f: o.f}, p]
     if (o.ty === '$dict' && m === 'get' && !kw.length && args.length >= 1 && args.length <= 2) {
       const ks = strLit(args[0]!), d: V = args[1] ?? {t: 'none'}
@@ -1925,12 +2089,16 @@ export class Stepper {
     // (a datetime past year 9999 or before year 1: Python's OverflowError, the step's failure there)
     const mk = (t: string, e: N): V => {
       if (t === '$dt') this.fail(p, I.or(I.cmp('<', e, I.num(-62_135_596_800_000)), I.cmp('<', I.num(253_402_300_799_999), e)), x, `${x.text}: a datetime out of its range (an OverflowError)`)
-      return {t: 'val', ty: t, f: new Map([['ms', {t: 'num', e}]])}
+      const source = a.t === 'val' && a.ty === '$dt' ? a : b.t === 'val' && b.ty === '$dt' ? b : undefined
+      return {t: 'val', ty: t, f: new Map<string, V>([['ms', {t: 'num', e}], ...(t === '$dt' ? [['utc', source?.f.get('utc') ?? {t: 'bool', e: I.F}] as [string, V]] : [])])}
     }
     if (op === '+' && ty(a) === '$dt' && ty(b) === '$td') return mk('$dt', I.add(ms(a), ms(b)))
     if (op === '+' && ty(a) === '$td' && ty(b) === '$dt') return mk('$dt', I.add(ms(a), ms(b)))
     if (op === '-' && ty(a) === '$dt' && ty(b) === '$td') return mk('$dt', I.sub(ms(a), ms(b)))
-    if (op === '-' && ty(a) === '$dt' && ty(b) === '$dt') return mk('$td', I.sub(ms(a), ms(b)))
+    if (op === '-' && a.t === 'val' && a.ty === '$dt' && b.t === 'val' && b.ty === '$dt') {
+      if (!I.same(a.f.get('utc') ?? {t: 'bool', e: I.F}, b.f.get('utc') ?? {t: 'bool', e: I.F})) return refuse(x, 'mixed aware and naive datetimes')
+      return mk('$td', I.sub(ms(a), ms(b)))
+    }
     if ((op === '+' || op === '-') && ty(a) === '$td' && ty(b) === '$td') return mk('$td', op === '+' ? I.add(ms(a), ms(b)) : I.sub(ms(a), ms(b)))
     if (op === '*' && ty(a) === '$ts' && constOf(b) === 1000) return {t: 'num', e: ms(a)}
     return refuse(x, `${x.text}: ${ty(a).replace('$', '')} ${op} ${ty(b).replace('$', '')}`)
@@ -1964,21 +2132,21 @@ export class Stepper {
     let a = this.answers.get(key)
     const short = key.split(/\.|::/).pop()!
     if (!a) {
-      const t = typeof type === 'string' ? sortOfText(type, at.p).t : type, text = typeof type === 'string' ? type : typeText(type)
+      const t = typeof type === 'string' ? sortOfText(type, at.p, this.mod.lang).t : type, text = typeof type === 'string' ? type : typeText(type)
       const inner = t.k === 'opt' ? t.of : t, s = this.scalar(inner)!
       const v = this.newVar(short, s, 'input', how === 'stated' ? `what ${names[0]} returns (stated: answers)` : `what ${names[0]} returns (${how}: any ${text})`)
       const none = t.k === 'opt' ? this.newVar(`${short}_none`, {k: 'bool'}, 'input', `whether ${names[0]} returns None`).name : undefined
       // (a result of a fixed width: within it, the claim is for the values its type holds)
       const fit = !!this.intTy(inner)
-      if (fit) this.typed(v, inner, 'input')
-      a = {key, patch: patch ?? {}, async: awaited, inputs: {name: v.name, ...(none ? {none} : {}), ...(inner.k === 'float' ? {float: true} : {})}, sort: text, ...(how === 'stated' ? {} : {how}), ...(fit ? {fit} : {}), at: [], ...(at.ty ? {ty: at.ty as string} : {})}
+      this.typed(v, inner, 'input', inner.k === 'int' && inner.unit?.startsWith('datetime-') && none ? I.and(this.sel, I.not(I.bvar(none))) : this.sel)
+      a = {key, patch: patch ?? {}, async: awaited, inputs: {name: v.name, ...(none ? {none} : {}), ...(inner.k === 'float' ? {float: true} : {}), ...(inner.k === 'int' && inner.unit?.startsWith('datetime-') ? {time: inner.unit} : {})}, sort: text, ...(how === 'stated' ? {} : {how}), ...(fit ? {fit} : {}), at: [], ...(at.ty ? {ty: at.ty as string} : {})}
       this.answers.set(key, a)
       this.notes.add(how === 'stated' ? `${names[0]} (${at.p}): answered by the request (stated), its arguments not read` : `${names[0]} (${at.p}): answered by the request (${how}: its value is read; assumes ${names[0]} may return any ${text}), its arguments not read`)
     } else if (a.async !== awaited) return refuse(at, `${at.text}: ${key} awaited at one call and not at another`)
     // (a callee whose declared result is a fixed-width integer, the reader's `ity`: an answer is within it where it is read)
     if (at.ity && this.vars.get(a.inputs.name)!.sort.k === 'num') this.typed(this.vars.get(a.inputs.name)!, at.ity as IntTy, 'input', I.and(this.sel, this.cond(p)))
     if (!a.at!.some(x => x.p === site.p)) a.at!.push(site)
-    const vv = this.valueOf(this.vars.get(a.inputs.name)!)
+    const vv = this.timeField(this.valueOf(this.vars.get(a.inputs.name)!), a.inputs.time ? {k: 'int', unit: a.inputs.time} : undefined, true, at)
     return [a.inputs.none ? {t: 'opt', has: I.not(I.bvar(a.inputs.none)), v: vv} : vv, this.mayRaise(a, names[0]!, at, q)]
   }
   // A call left out inside a try (its value unread): stubbed only to raise where the request says, else run as it is.
@@ -2497,6 +2665,7 @@ export class Stepper {
       }
       case 'cls': {
         const r = this.rec(o.rec, x), mid = r.methods[f]
+        if (r.orm && f === 'objects' && r.orm.framework !== 'sqlalchemy') return [{t: 'ext', q: `orm:${r.name}`, text: x.text ?? f}, q]
         if (mid) return [{t: 'fn', id: mid}, q]
         return [{t: 'ext', q: `${o.rec}.${f}`, text: x.text ?? f, ...(o.patch?.path ? {patch: {...o.patch, path: [...o.patch.path, f]}} : {}), ...(r.rets?.[f] ? {ret: r.rets[f]} : {})}, q]
       }
@@ -2510,7 +2679,7 @@ export class Stepper {
     // (super().f: the base's method the reader resolved, on this object)
     if (typeof x.sup === 'string') return [{t: 'fn', id: x.sup, self: o}, q]
     const v = obj.f.get(f)
-    if (v) return [v, q]
+    if (v) return [this.timeField(v, r.fields.find(fd => fd.name === f)?.t, true, x), q]
     const mid = r.methods[f]
     if (mid !== undefined) {
       if (mid === null) return this.inf ? [{t: 'ext', q: `${r.name}.${f}`, text: x.text ?? f, patch: {mod: r.module, path: [r.short, f]}, recv: o, ...(r.rets?.[f] ? {ret: r.rets[f]} : {})}, q] : refuse(x, `${x.text}: a method of another module's class`)
@@ -2670,6 +2839,19 @@ export class Stepper {
       else { const [, o] = this.mapObj(b, x, q2); e = this.cellOf(o, this.keyOf(a, x.x as SX), q2, x).has }
       return out(op === 'in' ? e : I.not(e))
     }
+    const da = a.t === 'opt' ? a.v : a, db = b.t === 'opt' ? b.v : b
+    if (da.t === 'val' && da.ty === '$dt' && db.t === 'val' && db.ty === '$dt') {
+      const ah = a.t === 'opt' ? a.has : I.T, bh = b.t === 'opt' ? b.has : I.T
+      const sameZone = I.same(da.f.get('utc') ?? {t: 'bool', e: I.F}, db.f.get('utc') ?? {t: 'bool', e: I.F})
+      const na = this.numOf(da.f.get('ms')!, x, q2), nb = this.numOf(db.f.get('ms')!, x, q2)
+      if (op === '==' || op === '!=') {
+        const eq = this.equal(a, b, x, q2)
+        return out(op === '==' ? eq : I.not(eq))
+      }
+      if (!sameZone) return refuse(x, 'mixed aware and naive datetimes')
+      this.fail(q2, I.not(I.and(ah, bh)), x, `${x.text}: ordering None and a datetime (a TypeError)`)
+      return out(op === '<' ? I.cmp('<', na, nb) : op === '<=' ? I.cmp('<=', na, nb) : op === '>' ? I.cmp('<', nb, na) : I.cmp('<=', nb, na))
+    }
     if (op === '==' || op === '!=') { const e = this.equal(a, b, x, q2); return out(op === '==' ? e : I.not(e)) }
     if (a.t === 'str' || b.t === 'str' || a.t === 'choice' || b.t === 'choice') return refuse(x, `${x.text}: strings ordered (the subset compares them for equality)`)
     const na = this.numOf(a, x, q2), nb = this.numOf(b, x, q2)
@@ -2677,6 +2859,13 @@ export class Stepper {
   }
   equal(a: V, b: V, at: SX, p: Path): B {
     if (a.t === 'none' || b.t === 'none') { const o = a.t === 'none' ? b : a; return o.t === 'none' ? I.T : o.t === 'opt' ? I.not(o.has) : I.F }
+    const da = a.t === 'opt' ? a.v : a, db = b.t === 'opt' ? b.v : b
+    if (da.t === 'val' && da.ty === '$dt' && db.t === 'val' && db.ty === '$dt') {
+      const ah = a.t === 'opt' ? a.has : I.T, bh = b.t === 'opt' ? b.has : I.T
+      const same = I.same(da.f.get('utc') ?? {t: 'bool', e: I.F}, db.f.get('utc') ?? {t: 'bool', e: I.F})
+      const values = same ? I.cmp('=', this.numOf(da.f.get('ms')!, at, p), this.numOf(db.f.get('ms')!, at, p)) : I.F
+      return I.or(I.and(I.not(ah), I.not(bh)), I.and(ah, bh, values))
+    }
     if (a.t === 'opt') return I.and(a.has, this.equal(a.v, b, at, p))
     if (b.t === 'opt') return I.and(b.has, this.equal(a, b.v, at, p))
     if (a.t === 'num' && b.t === 'num') return I.cmp('=', a.e, b.e)
@@ -2730,6 +2919,14 @@ export class Stepper {
   // where nothing reads it.
   // A constant string in a hole (a literal, a stated attribute: a store's name) is literal text of the template; a
   // % format ('%s.lock.%s' % (a, b)) is read as the f-string it spells.
+  checkOrmDisplay(v: V, at: SX): void {
+    // Formatting can call user code even when its result is discarded. Keep
+    // non-scalar conversion outside the boundary if a modeled ORM class has
+    // display hooks; this also covers containers/optionals holding such rows.
+    if (this.mod.lang === 'python' && !['num', 'bool', 'str', 'choice', 'none'].includes(v.t) &&
+        Object.values(this.mod.recs).some(r => r.orm && ('__str__' in r.methods || '__repr__' in r.methods)))
+      refuse(at, `${at.text}: implicit ORM display conversion may execute custom methods`)
+  }
   fstr(x: SX, p: Path, given?: (string | V)[]): [V, Path] {
     const parts = given ?? x.parts as (string | {x: SX, plain: boolean})[]
     let q = p, tpl = '', hole: K | undefined, n = 0, opaque = false, ask: V | undefined
@@ -2739,6 +2936,7 @@ export class Stepper {
       const plain = 't' in part || part.plain
       if ('t' in part) v = part
       else { const [v1, q2] = this.ev(part.x, q); v = v1; q = q2 }
+      this.checkOrmDisplay(v, x)
       if (v.t === 'str' && v.e.op === 'slit' && plain) { tpl += v.e.value.replace(/\{\}/g, '{ }'); continue }
       n++
       if (v.t === 'opaque' && v.ask) ask ??= v
@@ -2791,6 +2989,12 @@ export class Stepper {
     if (fx.e === 'get') {
       const [o, q1] = this.ev(fx.x as SX, q)
       q = q1
+      if (o.t === 'ext' && o.q.startsWith('orm-session:')) return this.evArgs(x, q, (args, kw, q2) => this.ormSession(o.q.slice(12), String(fx.f), args, kw, x, q2))
+      if (o.t === 'ext' && o.q.startsWith('orm:')) return this.evArgs(x, q, (args, kw, q2) => this.ormCall(o.q.slice(4), String(fx.f), args, kw, x, q2))
+      if (o.t === 'ref') {
+        const row = q.heap.get(o.id)
+        if (row?.k === 'rec' && this.mod.recs[row.ty]?.orm && ['save', 'delete'].includes(String(fx.f))) return this.evArgs(x, q, (args, kw, q2) => this.ormPersist(o, String(fx.f), args, kw, x, q2))
+      }
       if (o.t === 'val') return this.evArgs(x, q, (args, kw, q2) => this.valCall(o, String(fx.f), args, kw, x, q2))
       const ord = this.orderedObj(o, q)
       if (ord) return this.listCall(ord[0], ord[1], String(fx.f), x, q)
@@ -2813,6 +3017,7 @@ export class Stepper {
         }
       }
       case 'cls': {
+        if (this.mod.recs[f.rec]?.orm) return this.evArgs(x, q, (args, kw, q2) => this.ormCall(f.rec, 'new', args, kw, x, q2))
         // (another module's class made: other code, at the boundary)
         const r = this.inf ? this.mod.recs[f.rec] : undefined
         if (r && !r.own && !madeByInit(r)) return this.boundary(x, {key: f.rec, name: names[0] ?? r.short, ...(f.patch ? {patch: f.patch} : {}), ret: {k: 'rec', name: f.rec}, refusal: `${x.text}: ${r.short} made (the subset makes the module's own dataclasses)`}, q, awaited)
@@ -2905,6 +3110,7 @@ export class Stepper {
       return [{t: 'opaque', why: n === 'list' ? `${n}() [] (an empty list, a collection only where a field declares its type)` : `${n}() {} (an empty ${n === 'dict' ? 'dict' : 'set'}, a collection only where a field declares its type)`}, p]
     return this.evArgs(x, p, (args, kw, q) => {
       if (kw.length) return refuse(x, `${x.text}: ${n} given keywords`)
+      if (n === 'str' || n === 'repr') for (const v of args) this.checkOrmDisplay(v, x)
       // (int of a timestamp: its whole seconds)
       if (n === 'int' && args[0]?.t === 'val') return args[0].ty === '$ts' ? [{t: 'num', e: I.divk(1000, this.numOf(args[0].f.get('ms')!, x, q))}, q] : refuse(x, `${x.text}: int of a ${args[0].ty.slice(1)}`)
       if (args.some(a => a.t === 'opaque') && ['str', 'repr', 'len', 'isinstance', 'round', 'int', 'float', 'bool'].includes(n)) { const ask = args.find(a => a.t === 'opaque' && a.ask) as {why: string, ask: string} | undefined; return [{t: 'opaque', why: `${x.text}: of a value outside the subset${ask ? ` (${ask.why})` : ''}`, ...(ask ? {ask: ask.ask} : {})}, q] }
@@ -2964,13 +3170,18 @@ export class Stepper {
     if (q0 === 'threading.Lock' || q0 === 'threading.RLock' || q0 === 'asyncio.Lock') return [{t: 'lock'}, p]
     // A datetime: the request's time (in whole seconds, as time.time()), in milliseconds; a timedelta by its parts.
     if (q0 === 'datetime.datetime.now') {
-      if ((x.args as SX[]).length || (x.kw as unknown[]).length) return refuse(x, `${x.text}: now() given a time zone`)
+      const args = x.args as SX[], kw = x.kw as [string, SX][]
+      const zone = args[0] ?? kw.find(([k]) => k === 'tz')?.[1]
+      const isUTC = (z: SX | undefined): boolean => !!z && ((z.e === 'ext' && z.q === 'datetime.timezone.utc') || (z.e === 'get' && z.f === 'utc' && (z.x as SX).e === 'ext' && (z.x as SX).q === 'datetime.timezone'))
+      if (args.length + kw.length > 1 || (kw.length && kw[0]![0] !== 'tz') || (zone && !isUTC(zone))) return refuse(x, `${x.text}: only timezone.utc is supported`)
       this.notes.add(`${q0}() is the request's time (an input, at whole seconds: the claim is for those)`)
+      if (!zone) { this.naiveUtc = true; this.notes.add('naive datetime clocks require a UTC process timezone') }
       const [t, q] = this.clock(x, p)
-      return [{t: 'val', ty: '$dt', f: new Map([['ms', {t: 'num', e: I.mulk(1000, (t as {e: N}).e)}]])}, q]
+      return [{t: 'val', ty: '$dt', f: new Map<string, V>([['ms', {t: 'num', e: I.mulk(1000, (t as {e: N}).e)}], ['utc', {t: 'bool', e: zone ? I.T : I.F}]])}, q]
     }
-    if (q0 === 'datetime.timedelta') return this.evArgs(x, p, (args, kw, q) => {
+    if (q0 === 'datetime.timedelta' || q0 === 'dateutil.relativedelta.relativedelta') return this.evArgs(x, p, (args, kw, q) => {
       const unit: Record<string, number> = {days: 86_400_000, seconds: 1000, milliseconds: 1, minutes: 60_000, hours: 3_600_000, weeks: 604_800_000}
+      if (q0 === 'dateutil.relativedelta.relativedelta' && args.length) return refuse(x, `${x.text}: relativedelta requires named linear durations`)
       if (args.length > 1) return refuse(x, `${x.text}: a timedelta of positional parts past its days`)
       const parts: [string, V][] = [...(args.length ? [['days', args[0]!] as [string, V]] : []), ...kw]
       let ms: N = I.num(0)
@@ -3825,18 +4036,19 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
       const [, p2] = g.callFunc(fn, {t: 'ref', id: 'this'}, args, kw, {e: 'call', p: fn.p, text: `${r.short}()`}, p, false)
       made = p2
       if (ctor.length) g.notes.add(`${r.short} made by its constructor: its arguments are the rule's params`)
-    } else if (r.kinds.includes('dataclass')) {
+    } else if (r.kinds.includes('dataclass') || r.orm) {
+      if (r.orm?.why) refuse(r, r.orm.why)
       const f = new Map<string, V>()
       let p = fresh
       for (const fd of r.fields) {
-        if (fd.dflt) { const [d, p2] = g.ev(fd.dflt, p); f.set(fd.name, d); p = p2; g.declared.set(`this.${fd.name}`, fd.t); continue }
+        if (fd.dflt) { const [d, p2] = g.ev(fd.dflt, p); f.set(fd.name, g.timeField(d, fd.t, false, {p: r.p})); p = p2; g.declared.set(`this.${fd.name}`, fd.t); continue }
         const [v, a] = g.input(fd.name, fd.t, {p: r.p}, p, 'param')
         if (a.k === 'inert') refuse(r, `${r.short}.${fd.name}: a field of ${g.why(fd.t)}`)
-        f.set(fd.name, v); ctor.push([fd.name, a]); g.declared.set(`this.${fd.name}`, fd.t)
+        f.set(fd.name, g.timeField(v, fd.t, false, {p: r.p})); ctor.push([fd.name, a]); g.declared.set(`this.${fd.name}`, fd.t)
       }
       if (r.methods.__post_init__) refuse(r, `${r.short}: __post_init__`)
       made = {...p, heap: new Map(p.heap).set('this', {k: 'rec', ty: cls, f, origin: 'state'})}
-      g.notes.add(`${r.short}: a dataclass, made with its fields' defaults (the claim is for objects made so) and the others as params`)
+      g.notes.add(r.orm ? `${r.short}: a ${r.orm.framework} row; every declared column supplied as a parameter, no database read by its constructor` : `${r.short}: a dataclass, made with its fields' defaults (the claim is for objects made so) and the others as params`)
     } else made = fresh
     // (what the constructor refuses, a narrowing cast's value that doesn't fit, is the precondition's)
     pre = I.and(I.not(I.or(...g.fails)), I.not(I.or(...g.paramsOut)), I.not(I.or(...g.refusals.splice(r0))))
@@ -4134,6 +4346,10 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
   // Inputs no term reads are still the request's (the check builds the arguments from them).
   const maps = g.maps.filter(d => [...g.initHeap.values()].some(o => o.k === 'map' && o.decl === d))
   const stores: StepRead['stores'] = Object.fromEntries([...new Set([...Object.keys(opts.stores ?? {}), ...g.storeDecls.keys()])].map(n => [n, {...g.storeDecl(n), async: g.storeAsync[n] ?? {}}]))
+  for (const [rec, table] of g.ormTables) {
+    const r = g.rec(rec, at)
+    leaves.push({name: table.decl.name, path: [], kind: 'map', key: table.decl.key, orm: {rec, key: r.orm!.key, framework: r.orm!.framework, fields: r.fields}})
+  }
   for (const sm of g.storeMaps.values()) {
     const str = sm.decl.fields[0]?.sort.k === 'str' && !sm.json
     leaves.push({name: sm.decl.name, path: [], kind: 'map', key: sm.decl.key, store: sm.store, tpl: sm.tpl, ...(stores[sm.store]?.value !== 'int' && stores[sm.store]?.values?.[sm.tpl] !== 'int' && !sm.json && !sm.choice && !str ? {float: true} : {}), ...(sm.json ? {json: sm.json} : {}), ...(sm.choice ? {choice: true} : {}), ...(str ? {str: true} : {})})
@@ -4151,6 +4367,16 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
   // A fixed-width field within its type's range (every state of the code is).
   laws.push(...rangeLaws(state, g.ints))
   for (const l of leaves) if (l.kind === 'none') { const base = l.name.replace(/_none$/, ''); if (g.vars.get(base)?.sort.k === 'num') laws.push(`r.law(${JSON.stringify(`${base}: a None one holds 0`)}, ({${base}, ${l.name}}) => any(${l.name}.not(), ${base}.eq(0)))`) }
+  for (const [rec, table] of g.ormTables) {
+    const nullable = g.rec(rec, at).fields.filter(f => f.t.k === 'opt'), n = table.decl.name
+    if (nullable.length) {
+      const zero = (f: typeof nullable[number]): string => {
+        const t = f.t.k === 'opt' ? f.t.of : f.t, cell = `${n}.at(k).${f.name}`
+        return t.k === 'bool' ? `${cell}.not()` : t.k === 'str' ? `${cell}.eq('')` : `${cell}.eq(0)`
+      }
+      laws.push(`r.law(${JSON.stringify(`${n}: absent nullable columns hold the default`)}, ({${n}}) => forall(k => all(${nullable.map(f => `any(${n}.at(k).${f.name}_has, ${zero(f)})`).join(', ')})))`)
+    }
+  }
   // (a stored JSON record's optional field: absent, its cell holds the default, as the text holds nothing there)
   for (const sm of g.storeMaps.values()) {
     const opts = (sm.json ?? []).filter(f => f.opt), n = sm.decl.name
@@ -4206,7 +4432,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     ...(g.leasts.length ? {leasts: g.leasts} : {}),
     ...(g.used.size || g.folds.length ? {seqs: g.seqs.filter(d => g.used.has(d.name)), folds: g.folds} : {}),
   }
-  return {ints: Object.fromEntries(g.ints), ...(g.madeAt ? {madeAt: g.madeAt.name} : {}), model, leaves, args: argsOf, answers: [...g.answers.values()], ctor, kept, arms: [...g.arms].map(a => { const i = a.lastIndexOf(':'); return [a.slice(0, i), Number(a.slice(i + 1))] }), ...(cls ? {cls} : {}), stores, results: resultKinds, ...(g.injectedFields.length ? {inject: g.injectedFields} : {}), ...(g.globalStores.length ? {globals: g.globalStores} : {}), ...(g.inertAttrs.length ? {inert: g.inertAttrs} : {}), ...(g.edges.length ? {edges: g.edges} : {}), ...(effectVars.length ? {effectsOf: Object.fromEntries(finals.map((f, i) => [chosen[i]!.name, effectVars.filter(e => f.path.eff?.has(e.key)).map(e => e.v.name)]))} : {})}
+  return {ints: Object.fromEntries(g.ints), ...(g.naiveUtc ? {naiveUtc: true} : {}), ...(g.madeAt ? {madeAt: g.madeAt.name} : {}), model, leaves, args: argsOf, answers: [...g.answers.values()], ctor, kept, arms: [...g.arms].map(a => { const i = a.lastIndexOf(':'); return [a.slice(0, i), Number(a.slice(i + 1))] }), ...(cls ? {cls} : {}), stores, results: resultKinds, ...(g.injectedFields.length ? {inject: g.injectedFields} : {}), ...(g.globalStores.length ? {globals: g.globalStores} : {}), ...(g.inertAttrs.length ? {inert: g.inertAttrs} : {}), ...(g.edges.length ? {edges: g.edges} : {}), ...(effectVars.length ? {effectsOf: Object.fromEntries(finals.map((f, i) => [chosen[i]!.name, effectVars.filter(e => f.path.eff?.has(e.key)).map(e => e.v.name)]))} : {})}
 }
 // A type's range (64 bits and wider: the rule's numbers stop at ±2^53 before the type's do, and are refused there).
 export const rangeOf = (ty: IntTy): [number, number] => (ty.bits === 0 || ty.bits >= 64 ? (ty.signed ? [-Infinity, Infinity] : [0, Infinity]) : ty.signed ? [-(2 ** (ty.bits - 1)), 2 ** (ty.bits - 1) - 1] : [0, 2 ** ty.bits - 1])
@@ -4346,7 +4572,7 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
       if (l === undefined) throw new HarnessFailure('the harness stopped before it answered')
       return stopped(JSON.parse(l) as Record<string, unknown>)
     }
-    const hi = ask({op: 'hello', ...h.hello, leaves: read.leaves, ctor: read.ctor, answers: read.answers, kept: read.kept, cls: read.cls ?? null, stores: read.stores, arms: read.arms, discard: opts.onError === 'discard', ...(read.inject ? {inject: read.inject} : {}), ...(read.globals ? {globals: read.globals} : {}), ...(read.inert ? {inert: read.inert} : {}), ...(opts.fields ? {fields: opts.fields} : {})})
+    const hi = ask({op: 'hello', ...h.hello, naiveUtc: read.naiveUtc, leaves: read.leaves, ctor: read.ctor, answers: read.answers, kept: read.kept, cls: read.cls ?? null, stores: read.stores, arms: read.arms, discard: opts.onError === 'discard', ...(read.inject ? {inject: read.inject} : {}), ...(read.globals ? {globals: read.globals} : {}), ...(read.inert ? {inert: read.inert} : {}), ...(opts.fields ? {fields: opts.fields} : {})})
     if (hi.error) return {...empty, mismatch: `the code doesn't load with the check's harness: ${JSON.stringify(hi.error)}`}
     const num = (x: unknown, at: string): number => { const n = Number(x); if (typeof x === 'string' && Number.isSafeInteger(n) && String(n) === x) return n; throw new Outside(`${at} is ${String(x)}`) }
     const toSnap = (s: Record<string, unknown>): Snap => {
@@ -4357,7 +4583,7 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
     }
     const j = (x: Raw) => (typeof x === 'number' ? String(x) : x)
     const snapJson = (s: Snap): Record<string, unknown> => ({...Object.fromEntries(Object.entries(s.leaves).map(([k, v]) => [k, j(v)])), ...Object.fromEntries(Object.entries(s.maps).map(([k, cells]) => [k, Object.fromEntries(Object.entries(cells).map(([key, c]) => [key, Object.fromEntries(Object.entries(c).map(([f, x]) => [f, j(x)]))]))]))})
-    const build = (a: PArg, inputs: Record<string, Raw>): unknown => (a.k === 'in' ? {in: inputs[a.name] ?? a.z ?? 0, ...(a.float ? {float: true} : {}), ...(a.sym ? {sym: true} : {}), ...(a.bytes ? {bytes: true} : {})} : a.k === 'opt' ? (inputs[a.none] === true ? {none: true} : build(a.v, inputs)) : a.k === 'rec' ? (a.f.length ? {rec: a.cls, f: Object.fromEntries(a.f.map(([f, x]) => [f, build(x, inputs)]))} : {inert: true}) : a.k === 'inert' ? {inert: true, ...(a.dict ? {dict: true} : {})} : a.k === 'store' ? {store: a.name}
+    const build = (a: PArg, inputs: Record<string, Raw>): unknown => (a.k === 'in' ? {in: inputs[a.name] ?? a.z ?? 0, ...(a.float ? {float: true} : {}), ...(a.sym ? {sym: true} : {}), ...(a.bytes ? {bytes: true} : {}), ...(a.time ? {time: a.time} : {})} : a.k === 'opt' ? (inputs[a.none] === true ? {none: true} : build(a.v, inputs)) : a.k === 'rec' ? (a.f.length ? {rec: a.cls, f: Object.fromEntries(a.f.map(([f, x]) => [f, build(x, inputs)]))} : {inert: true}) : a.k === 'inert' ? {inert: true, ...(a.dict ? {dict: true} : {})} : a.k === 'store' ? {store: a.name}
       : a.k === 'list' ? {list: ((inputs[a.name] ?? []) as unknown as Record<string, Raw>[]).map(it => build(a.item, it))} : {dflt: true})
     const ctorArgs = (params: Record<string, Raw>) => read.ctor.map(([n, a]) => [n, build(a, params)])
     let now = 0, inputsNow: Record<string, Raw> = {}
@@ -4365,9 +4591,10 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
     const answersOf = (call: string) => Object.fromEntries(read.answers.map(a => {
       const v = inputsNow[a.inputs.name] ?? 0, ty = read.ints[a.inputs.name], n = Number(v)
       if (a.fit && ty && !(a.inputs.none && inputsNow[a.inputs.none] === true)) { const [lo, hi] = rangeOf(ty); if (n < lo || n > hi) throw new Outside(`${a.key} answers ${String(v)}, outside its type`) }
+      if (a.inputs.time && !(a.inputs.none && inputsNow[a.inputs.none] === true) && (n < -62_135_596_800_000 || n > 253_402_300_799_999)) throw new Outside(`${a.key} answers a datetime outside Python's range`)
       // (a call that may raise: the class of the handler the request says, by its index; a call left out runs as it is)
       const rs = a.raises?.find(x => x.m === call), r = rs && inputsNow[rs.name], raise = r === true ? 0 : typeof r === 'string' && r !== 'none' ? rs!.cls.findIndex((_, i) => (g0r(read.model, rs!.name, i + 1)) === r) : -1
-      return [a.key, {...(a.pass ? {pass: true} : a.inputs.none && inputsNow[a.inputs.none] === true ? {none: true} : {in: v, ...(a.inputs.float ? {float: true} : {})}), ...(raise >= 0 ? {raise: rs!.cls[raise]} : {})}]
+      return [a.key, {...(a.pass ? {pass: true} : a.inputs.none && inputsNow[a.inputs.none] === true ? {none: true} : {in: v, ...(a.inputs.float ? {float: true} : {}), ...(a.inputs.time ? {time: a.inputs.time} : {})}), ...(raise >= 0 ? {raise: rs!.cls[raise]} : {})}]
     }))
     let coverage: Coverage | undefined
     const r0 = performance.now()
@@ -4420,12 +4647,19 @@ function checkStepOnce(h: Harness, read: StepRead, r: Rule, sorts: Sorts, opts: 
             // (a stored JSON record's absent optional field: its default, as the text holds nothing there)
             const jl = read.leaves.find(l => l.name === d.name)?.json
             for (const f of jl ?? []) if (f.opt && cells[key]![`${f.name}_has`] === false) cells[key]![f.name] = f.choice ? f.vals![0]! : 0
+            for (const f of read.leaves.find(l => l.name === d.name)?.orm?.fields ?? []) if (f.t.k === 'opt' && cells[key]![`${f.name}_has`] === false) cells[key]![f.name] = f.t.of.k === 'str' ? '' : f.t.of.k === 'bool' ? false : 0
           }
           maps[d.name] = cells
         }
         return {leaves, maps}
       },
-      normalize: s => { for (const l of read.leaves) if (l.kind === 'none' && s.leaves[l.name] === true) s.leaves[l.name.replace(/_none$/, '')] = g0(m, l.name.replace(/_none$/, '')); return s },
+      normalize: s => {
+        for (const l of read.leaves) {
+          if (l.kind === 'none' && s.leaves[l.name] === true) s.leaves[l.name.replace(/_none$/, '')] = g0(m, l.name.replace(/_none$/, ''))
+          for (const f of l.orm?.fields ?? []) if (f.t.k === 'opt') for (const c of Object.values(s.maps[l.name] ?? {})) if (c[`${f.name}_has`] === false) c[f.name] = f.t.of.k === 'str' ? '' : f.t.of.k === 'bool' ? false : 0
+        }
+        return s
+      },
       // (where the code goes on past what the rule's claim covers (a rounding past a float's exact range): an edge)
       // (and where two items of a list a loop takes by an order tie under it)
       ...(read.edges?.length || m.folds?.some(d => d.loop?.drains) ? {edge: (s: Snap, raw: Record<string, Raw>) => (read.edges ?? []).some(c => evalTerm(c, {...s.leaves, ...raw}, (map, key, field) => (field === 'has' ? !!s.maps[map]?.[String(key)] : s.maps[map]?.[String(key)]?.[field] ?? 0)) === true) || tiesIn(m, s, raw)} : {}),
@@ -4457,6 +4691,7 @@ const g0 = (m: Model, name: string): Raw => { const v = m.state.find(x => x.name
 // A front end's whole run: the module read, the model printed and built, the code run beside it.
 export function extractStep(mod: SModule, h: (read: StepRead) => Harness, opts: StepOptions): Extraction & {read?: StepRead} {
   const notes: string[] = []
+  if (Object.values({...opts.types, ...opts.answers}).some(t => /datetime/.test(t))) notes.push('Stated datetime values are millisecond-aligned Python datetimes: datetime/datetime-naive is naive, datetime-utc is UTC-aware. None remains distinct; other precision and timezone semantics are outside this stated boundary.')
   // (a reader that said why it read nothing, the source not parsing say, or gave no module: refused with why)
   const said = (mod as {error?: unknown} | undefined)?.error
   if (said !== undefined || !mod || typeof mod.funcs !== 'object' || !mod.funcs || typeof mod.recs !== 'object' || !mod.recs)
@@ -4464,7 +4699,7 @@ export function extractStep(mod: SModule, h: (read: StepRead) => Harness, opts: 
   // (an argument the code declares no type of, given one: `types`, by its name)
   for (const f of Object.values(mod.funcs)) for (const pa of f.params) {
     const t = opts.types?.[pa.name]
-    if (t && pa.t.k === 'any') { try { pa.t = sortOfText(t, f.p).t; notes.push(`${f.name}(${pa.name}): a ${t} (stated)`) } catch (e) { if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}; throw e } }
+    if (t && pa.t.k === 'any') { try { pa.t = sortOfText(t, f.p, mod.lang).t; notes.push(`${f.name}(${pa.name}): a ${t} (stated)`) } catch (e) { if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}; throw e } }
   }
   // (and a field the class declares no type of: its declared type, by name)
   for (const r of Object.values(mod.recs)) for (const [f, t] of Object.entries(opts.types ?? {})) {
@@ -4473,7 +4708,7 @@ export function extractStep(mod: SModule, h: (read: StepRead) => Harness, opts: 
     let sets = false
     if (init) deep(init.body, st => { const to = st.to as SX | undefined; if (st.s === 'set' && to?.e === 'get' && (to.x as SX).e === 'var' && (to.x as SX).n === 'self' && to.f === f) sets = true })
     if (!r.own || r.fields.some(x => x.name === f) || !sets) continue
-    try { r.fields.push({name: f, t: sortOfText(t, r.p).t}) } catch (e) { if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}; throw e }
+    try { r.fields.push({name: f, t: sortOfText(t, r.p, mod.lang).t}) } catch (e) { if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}; throw e }
   }
   let read: StepRead
   try { read = readStep(mod, opts) } catch (e) {
@@ -4490,7 +4725,7 @@ export function stepNames(read: StepRead): Name[] {
   const out: Name[] = [], m = read.model, at = (code: string) => out.find(n => n.code === code && n.role === 'state')
   for (const l of read.leaves) {
     const code = l.path.join('.')
-    if (l.kind === 'map') out.push({code: l.store ?? code, rule: l.name, role: 'state', map: {fields: m.maps.find(d => d.name === l.name)?.fields.map(f => f.name) ?? [], ...(l.store ? {store: l.store, tpl: l.tpl ?? '{}'} : {}), ...(l.ordered ? {ordered: true} : {})}})
+    if (l.kind === 'map') out.push({code: l.orm ? l.name : l.store ?? code, rule: l.name, role: 'state', map: {fields: m.maps.find(d => d.name === l.name)?.fields.map(f => f.name) ?? [], ...(l.orm ? {store: l.orm.rec, tpl: '{}'} : l.store ? {store: l.store, tpl: l.tpl ?? '{}'} : {}), ...(l.ordered ? {ordered: true} : {})}})
     else if (l.kind === 'none') { const n = at(code); if (n) n.none = l.name; else out.push({code, rule: '', role: 'state', none: l.name}) }
     else if (l.kind !== 'frame') out.push({code, rule: l.name, role: 'state'})
   }

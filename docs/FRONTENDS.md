@@ -55,6 +55,9 @@ Two routes reach the Model:
   and TypeScript (`core/extract-shapes.ts`) execute into the Model themselves. Each implements its own `CodeSide`:
   `core/extract-go-check.ts` builds a generated harness with `go build -cover` and calls `drive`.
 
+Solidity deployment contexts, constructor-only subclasses and library callers are described in
+[Solidity harnesses](SOLIDITY.md); the original source stays unchanged and the chosen context is reported.
+
 ## The differential check
 
 `drive(m, r, sorts, code, opts)` in `core/extract-check.ts` holds a reader to the code it read. On the rule's side,
@@ -149,6 +152,12 @@ the laws from its comments. The contract is the same in every language:
   stated laws is found by Houdini (`houdini`). `--cert <dir>` writes each proven law's certificate as an interchange
   document (`core/relational.ts`'s `certify`), checked as it is written. `gdp-wired-check` checks it again with
   nothing but the kernel (`interchange/cli.ts`; [interchange.md](interchange.md)).
+
+## ORM-backed handlers
+
+[ORM-backed handlers](ORM.md) documents the explicit Django, SQLAlchemy, Prisma and TypeORM subset,
+its persistence boundary, configuration, and refusals. Their tables use the shared map state and `gdp: env`
+isolation model; the check executes the original handlers with in-memory persistence substitutes.
 
 ## Worked example: Python
 

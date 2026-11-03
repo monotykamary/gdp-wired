@@ -4,9 +4,9 @@
 // refusals (a loop, a float that isn't whole, other code). Skipped where python3 isn't installed.
 import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
-import {mkdtempSync, writeFileSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, symlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
-import {type PyOptions, extractPython} from './extract-py.ts'
+import {type PyOptions, extractPython, readPython} from './extract-py.ts'
 import {all, proveRule, proveSteps, yes} from './dsl.ts'
 import {assumed, disjoint} from './extract-step.ts'
 
@@ -688,4 +688,118 @@ t('an injected dependency\'s call left out inside a try: the check\'s dependency
 
 t('a key of the other kind than its dict\'s (a str into a dict[int, int]): refused, never one it holds', () => {
   refused(py('class A:\n    def __init__(self):\n        self.d: dict[int, int] = {}\n\n    def f(self, k: str) -> int:\n        return self.d.get(k, 0)\n', {entry: 'A'}), /a string key of a map keyed by numbers/)
+})
+
+// Immutable inherited defaults, not a fresh copy of mutable class state. Python's own C3 lookup is the oracle.
+const inheritanceRoot = 'class Root:\n    CAP = 1\n    LABEL = "root"\n    ENABLED = True\n    EMPTY = None\n    def __init__(self):\n        self.total = 0\n'
+const inheritanceStep = '    def put(self, amount: int) -> int:\n        if self.total + amount <= self.CAP:\n            self.total += amount\n        return self.total\n'
+const classConstants = (code: string) => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-pyattrs-`), file = `${dir}/m.py`
+  writeFileSync(file, code)
+  const m = readPython(file, ['Limit'])
+  return Object.values(m.recs).find(r => r.short === 'Limit')!.cattrs ?? {}
+}
+
+t('inherited immutable class defaults follow C3, not flattened direct-base attributes', () => {
+  const inherited = inheritanceRoot + 'class Limit(Root):\n    pass\n' + inheritanceStep
+  expect(classConstants(inherited)).toMatchObject({CAP: 1, LABEL: 'root', ENABLED: true, EMPTY: null})
+  ok(py(inherited, {entry: 'Limit', methods: ['put']}))
+  const diamond = inheritanceRoot + 'class Left(Root):\n    pass\nclass Right(Root):\n    CAP = 2\nclass Limit(Left, Right):\n    pass\n' + inheritanceStep
+  expect(classConstants(diamond).CAP).toBe(2)
+  ok(py(diamond, {entry: 'Limit', methods: ['put']}))
+  const own = diamond.replace('class Limit(Left, Right):\n    pass', 'class Limit(Left, Right):\n    CAP = 5')
+  expect(classConstants(own).CAP).toBe(5)
+  ok(py(own, {entry: 'Limit', methods: ['put']}))
+})
+
+t('a nonliteral or property declaration shadows a base constant instead of falling through', () => {
+  const mutable = inheritanceRoot + 'class Limit(Root):\n    CAP = [4]\n' + inheritanceStep
+  expect(classConstants(mutable).CAP).toBeUndefined()
+  refused(py(mutable, {entry: 'Limit', methods: ['put']}), /no field CAP/)
+  const getter = inheritanceRoot + 'class Limit(Root):\n    @property\n    def CAP(self) -> int:\n        return 7\n' + inheritanceStep
+  expect(classConstants(getter).CAP).toBeUndefined()
+  ok(py(getter, {entry: 'Limit', methods: ['put']}))
+})
+
+t('inherited constants are resolved across repository reexports, not guessed for outside bases', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-pybase-`)
+  writeFileSync(`${dir}/base.py`, inheritanceRoot)
+  writeFileSync(`${dir}/exports.py`, 'from base import Root\n')
+  writeFileSync(`${dir}/m.py`, 'from exports import Root\nclass Limit(Root):\n    pass\n' + inheritanceStep)
+  const imported = extractPython(`${dir}/m.py`, {root: dir, entry: 'Limit', methods: ['put'], check: budget})
+  expect(imported.ok).toBe(true)
+  expect(imported.evidence!.mismatch).toBeUndefined()
+  expect(imported.evidence!.requests).toBeGreaterThan(0)
+  // The imported constructor is part of the read code and must be traced too.
+  expect(imported.evidence!.coverage).toEqual({arms: 3, hit: 3, missed: []})
+  const outside = inheritanceRoot + 'class Limit(Root, list):\n    pass\n' + inheritanceStep
+  expect(classConstants(outside).CAP).toBeUndefined()
+  refused(py(outside, {entry: 'Limit', methods: ['put']}), /no field CAP|outside|base/)
+})
+
+t('dynamic class bodies and runtime monkey patches cannot become accepted inherited constants', () => {
+  const dynamic = inheritanceRoot + 'class Limit(Root):\n    if True:\n        CAP = 4\n' + inheritanceStep
+  expect(classConstants(dynamic).CAP).toBeUndefined()
+  refused(py(dynamic, {entry: 'Limit', methods: ['put']}), /no field CAP/)
+  const patched = inheritanceRoot + 'Root.CAP = 8\nclass Limit(Root):\n    pass\n' + inheritanceStep
+  refused(py(patched, {entry: 'Limit', methods: ['put']}), /differ|doesn.t agree|conform|mismatch/)
+  const changed = inheritanceRoot + 'class Limit(Root):\n    CAP = 2\n    CAP += 1\n' + inheritanceStep
+  expect(classConstants(changed).CAP).toBeUndefined()
+  refused(py(changed, {entry: 'Limit', methods: ['put']}), /no field CAP/)
+})
+
+t('selected scalar defaults shadow inherited descriptors and remain dynamic in base methods', () => {
+  const inheritedMethod = inheritanceRoot + inheritanceStep + 'class Limit(Root):\n    CAP = 4\n'
+  ok(py(inheritedMethod, {entry: 'Limit', methods: ['put']}))
+  const descriptor = inheritanceRoot + 'class Left(Root):\n    CAP = 2\nclass Right(Root):\n    @property\n    def CAP(self) -> int:\n        return 7\nclass Limit(Left, Right):\n    pass\n' + inheritanceStep
+  expect(classConstants(descriptor).CAP).toBe(2)
+  ok(py(descriptor, {entry: 'Limit', methods: ['put']}))
+})
+
+// Paths identify the actual read modules, never only the basename or every import in the repository.
+t('inherited Python method coverage distinguishes equal basenames', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-pycoverage-`)
+  for (const p of ['left', 'right']) { mkdirSync(`${dir}/${p}`); writeFileSync(`${dir}/${p}/__init__.py`, '') }
+  writeFileSync(`${dir}/left/limits.py`, inheritanceRoot + inheritanceStep)
+  writeFileSync(`${dir}/right/limits.py`, 'from left.limits import Root\nclass Limit(Root):\n    CAP = 4\n    def __init__(self):\n        super().__init__()\n')
+  const x = ok(extractPython(`${dir}/right/limits.py`, {root: dir, entry: 'Limit', methods: ['put'], check: budget}))
+  expect([...new Set(x.read!.arms.map(([file]) => file))].sort()).toEqual(['left/limits.py', 'right/limits.py'])
+  symlinkSync(dir, `${dir}-alias`, 'dir')
+  const alias = ok(extractPython(`${dir}-alias/right/limits.py`, {root: `${dir}-alias`, entry: 'Limit', methods: ['put'], check: budget}))
+  expect(alias.read!.arms).toEqual(x.read!.arms)
+})
+
+t('the Python tracer counts only exact read-source files, including equal basenames', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-pytrace-`)
+  for (const p of ['left', 'right', 'noise']) {
+    mkdirSync(`${dir}/${p}`); writeFileSync(`${dir}/${p}/__init__.py`, '')
+    writeFileSync(`${dir}/${p}/limits.py`, 'def f():\n    return 1\n')
+  }
+  const script = String.raw`import importlib, importlib.util, json, os, sys
+spec = importlib.util.spec_from_file_location('harness', sys.argv[1])
+h = importlib.util.module_from_spec(spec); spec.loader.exec_module(h)
+root = sys.argv[2]
+h.hello({'root': root, 'path': os.path.join(root, 'left', 'limits.py'), 'module': 'left.limits', 'answers': [], 'arms': [['left/limits.py', 2], ['right/limits.py', 2]]})
+results = []
+for name in ('left', 'right', 'noise'):
+    m = importlib.import_module(name + '.limits')
+    h.HIT.clear()
+    sys.settrace(h.tracer)
+    m.f()
+    sys.settrace(None)
+    results.append(sorted(h.HIT))
+h.S['loop'].close()
+print(json.dumps(results))`
+  const out = execFileSync('python3', ['-I', '-c', script, new URL('./py/harness.py', import.meta.url).pathname, dir], {encoding: 'utf8'})
+  expect(JSON.parse(out)).toEqual([[['left/limits.py', 2]], [['right/limits.py', 2]], []])
+})
+
+t('nested module exception sites retain their source identity through request stubs', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-pysites-`)
+  mkdirSync(`${dir}/pkg`); writeFileSync(`${dir}/pkg/__init__.py`, '')
+  writeFileSync(`${dir}/pkg/m.py`, TRY); writeFileSync(`${dir}/other.py`, OTHER)
+  const x = ok(extractPython(`${dir}/pkg/m.py`, {root: dir, entry: 'Book', failures: 'kept', check: budget}))
+  expect(x.notes.join('\n')).toContain('pkg/m.py:')
+  const m = readPython(`${dir}/pkg/m.py`, ['Book'], {root: dir})
+  expect(Object.values(m.funcs).every(f => f.span[0] === 'pkg/m.py' && f.p.startsWith('pkg/m.py:'))).toBe(true)
 })
