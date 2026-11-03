@@ -110,6 +110,11 @@ still refutes the policy or omits it. Unrelated entries are not combined into th
 `fixed-family.test.ts` adds an owned original/partial/complete Java control and is imported
 by the existing score-test shard entry. Unknown fixed verdicts remain unknown, not proven.
 
+The same module checks a fixed source that adds an integer constructor: both original
+initializers are repaired, but an unsafe new initializer still blocks admission.
+Original witnesses run on all three versions; the added initializer's own witness runs
+only where that signature exists, with its exact integer argument preserved.
+
 ## Measured coverage
 
 The complete-corpus baseline on 2026-11-03 is tree `7db037f` (main `927a521`): **18 published,
