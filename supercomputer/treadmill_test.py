@@ -527,5 +527,171 @@ class Logs(unittest.TestCase):
         self.assertEqual(tm.rows_of(p, "seed", set()), [])
 
 
+class SweepMainRefresh(unittest.TestCase):
+    """A new main drains the current rounds, never starts another obsolete round."""
+
+    def setUp(self):
+        import tempfile
+        from unittest.mock import patch
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = pathlib.Path(self.temp.name)
+        for obj, name, value in ((tm, 'TM', self.root), (tm.T, 'TM', self.root),
+                                 (tm, 'log', lambda *args: None),
+                                 (tm, 'fingerprint', lambda commit, bench: commit + bench)):
+            p = patch.object(obj, name, value)
+            p.start()
+            self.addCleanup(p.stop)
+        self.old, self.new, self.newest = 'a' * 40, 'b' * 40, 'c' * 40
+        t = self.t = tm.Treadmill.__new__(tm.Treadmill)
+        t.state = {'sweep': self.old, 'sweep_t': time.time()}
+        t.head = t.commit = self.old
+        t.chains, t.benches, t.nogain, t.vms = {'sweep'}, ['chc', 'its'], 3, 8
+        t.batches, t.follow = [], []
+        t.cache = tm.T.Cache()
+        t.tree_of = lambda commit: self.root / 'trees' / commit
+        t.tree = t.tree_of(self.old)
+        t.sweeps = {b: tm.Sweep(t, self.old, t.tree, b) for b in t.benches}
+        for s in t.sweeps.values():
+            s.state['plan'] = [[60, 'base', ''], [300, 'base', '']]
+            s.save()
+
+    def poll(self, head):
+        self.t.head = head
+        self.t.poll_sweeps(head)
+
+    def running(self, s):
+        b = types.SimpleNamespace(done=False, failed=False, chain='a',
+                                  label=f'sweep {s.commit[:12]} {s.bench} 60:base')
+        s.batch = b
+        self.t.batches.append(b)
+        return b
+
+    def test_main_change_drains_rounds_and_preserves_their_history(self):
+        from unittest.mock import Mock
+        old = dict(self.t.sweeps)
+        batches = [self.running(s) for s in old.values()]
+        for bench in old:
+            self.t.cache.put({'commit': self.old, 'bench': bench, 'task': 'kept',
+                              'config': '60:base', 'answer': 'unsat', 'solved': True, 't': 1})
+        cache_before = (self.root / 'cache.jsonl').read_bytes()
+        results = old['chc'].dir / '60-base' / 'results.jsonl'
+        results.parent.mkdir()
+        results.write_text('{"task":"kept","answer":"unsat"}\n')
+        results_before = results.read_bytes()
+        for s in old.values():
+            s.next_round = Mock(return_value=None)
+        self.poll(self.new)
+        self.assertEqual(self.t.main_chains(4), 4)
+        for s in old.values():
+            s.next_round.assert_not_called()
+        self.assertEqual(self.t.commit, self.old)
+
+        batches[0].done = True
+        self.t.batches = [b for b in self.t.batches if not b.done]  # generic step prunes first
+        self.poll(self.newest)
+        self.assertEqual(old['chc'].state['round'], 1)
+        self.assertEqual(self.t.commit, self.old)
+        self.t.main_chains(4)
+        for s in old.values():
+            s.next_round.assert_not_called()
+
+        batches[1].done = True
+        self.t.batches = []
+        self.poll(self.newest)
+        self.assertEqual(self.t.commit, self.newest)
+        self.assertEqual(self.t.state['sweep'], self.newest)
+        for bench, s in old.items():
+            saved = json.loads((s.dir / 'state.json').read_text())
+            self.assertEqual(saved['round'], 1)
+            self.assertEqual(saved['gains'][0]['gained'], 1)
+            self.assertEqual(self.t.sweeps[bench].commit, self.newest)
+            self.assertEqual(self.t.sweeps[bench].state['round'], 0)
+        self.assertEqual(results.read_bytes(), results_before)
+        self.assertEqual((self.root / 'cache.jsonl').read_bytes(), cache_before)
+        self.assertFalse((self.root / 'commits' / self.new[:12]).exists())
+
+    def test_a_finished_batch_is_recorded_before_replacing_its_sweep(self):
+        old = self.t.sweeps['chc']
+        self.running(old).done = True
+        self.t.batches = []
+        self.poll(self.new)
+        self.assertEqual(json.loads((old.dir / 'state.json').read_text())['round'], 1)
+        self.assertEqual(self.t.commit, self.new)
+
+    def test_restart_moves_to_main_without_erasing_archived_rounds(self):
+        old = self.t.sweeps['chc']
+        old.state.update(round=7, gains=[{'round': 6, 'config': '300:base', 'gained': 2}])
+        old.save()
+        before = (old.dir / 'state.json').read_bytes()
+        self.t.sweeps = {}
+        self.poll(self.new)
+        self.assertEqual(self.t.commit, self.new)
+        self.assertEqual((old.dir / 'state.json').read_bytes(), before)
+
+    def test_completion_racing_the_poll_is_finalized_on_the_next_tick(self):
+        old = self.t.sweeps['chc']
+        batch = self.running(old)
+        original_poll = old.poll
+        old.poll = lambda: setattr(batch, 'done', True)
+        self.poll(self.new)
+        self.assertEqual(self.t.commit, self.old)
+        self.assertEqual(old.state['round'], 0)
+        old.poll = original_poll
+        self.poll(self.new)
+        self.assertEqual(old.state['round'], 1)
+        self.assertEqual(self.t.commit, self.new)
+
+    def test_stable_main_keeps_progress_and_can_start_the_next_round(self):
+        from unittest.mock import Mock
+        before = dict(self.t.sweeps)
+        for s in before.values():
+            s.state['round'] = 1
+            s.next_round = Mock(return_value=None)
+        self.poll(self.old)
+        self.t.main_chains(4)
+        for bench, s in before.items():
+            self.assertIs(self.t.sweeps[bench], s)
+            self.assertEqual(s.state['round'], 1)
+            s.next_round.assert_called_once()
+
+    def test_completed_identical_inputs_are_skipped_at_the_new_revision(self):
+        from unittest.mock import patch
+        for s in self.t.sweeps.values():
+            s.state.update(done=True, round=2)
+            s.save()
+        with patch.object(tm, 'fingerprint', lambda commit, bench: bench):
+            self.poll(self.new)
+        self.assertEqual(self.t.commit, self.new)
+        for s in self.t.sweeps.values():
+            self.assertTrue(s.state['done'])
+            self.assertEqual(s.state['same'], self.old)
+        self.assertEqual(self.t.main_chains(4), 4)
+
+    def test_poll_resolves_main_not_the_checkout_head(self):
+        import subprocess
+        from unittest.mock import patch
+        repo = self.root / 'repository'
+        repo.mkdir()
+        def git(*args, **kwargs):
+            return subprocess.run(['git', '-C', str(repo), *args], check=True,
+                                  capture_output=True, text=True).stdout.strip()
+        git('init', '-b', 'main')
+        git('config', 'user.name', 'Test')
+        git('config', 'user.email', 'test@example.invalid')
+        message = self.root / 'message.txt'
+        message.write_text('test: isolated main revision\n')
+        git('commit', '--allow-empty', '-F', str(message))
+        latest = git('rev-parse', 'main')
+        git('checkout', '-b', 'other')
+        git('commit', '--allow-empty', '-F', str(message))
+        self.assertNotEqual(git('rev-parse', 'HEAD'), latest)
+        self.t.sound_on, self.t.t_targets = False, time.time()
+        with patch.object(tm, 'git', git):
+            self.t.poll()
+        self.assertEqual(self.t.head, latest)
+        self.assertEqual(self.t.commit, latest)
+
+
 if __name__ == "__main__":
     unittest.main()

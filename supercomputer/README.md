@@ -17,6 +17,12 @@ PATH on boat, the GPU pods' setup).
 | `boat.py`, `fanout.py`, `agent.py`, `runpod.py`, `store.py` | Doors to the tool's modules of the same names: `import boat` here is the tool's boat, configured for this repo, and `python3 supercomputer/boat.py status` is `supercomputer status` |
 | `reap.sh` | Stops this tree's orphaned Modal apps (a worktree's runners register in its own `.live`), then `supercomputer reap`: dead clients' Modal apps, boat leases and pods, VMs left up past their time |
 
+Sweeps follow the newest local `main` at round boundaries. If `main` changes, no new round is launched
+on the old commit; rounds already running drain and their results/gains are saved first. The next poll
+then adopts the newest `main`, skipping intermediate commits. Existing per-commit cache rows, round
+state and result files remain intact. Completed sweeps whose inputs are unchanged are marked skipped
+at the new revision rather than rerun; a stable `main` keeps its current sweep progress.
+
 The shared state (the pool's registry, the starts ledger, Modal and RunPod tickets, the build caches, the store's
 manifests) is the tool's `~/.local/share/supercomputer/live`; the main checkout's `supercomputer/.live` (and `modal/.live`)
 links there, so a lane still on the code before the tool shares the same registry and lock.
