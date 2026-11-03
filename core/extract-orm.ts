@@ -132,7 +132,7 @@ export function extractOrm(file: string, code: string, opts: StepOptions & {orm:
           body.push({s: 'expr', p, x: call(manager(p), 'create', pair(object(args.get('data')!)), p)})
         } else if ((kind === 'prisma' && op === 'findUnique') || (kind === 'typeorm' && op === 'findOneBy')) {
           const where = kind === 'prisma' ? (args.size === 1 && args.has('where') ? object(args.get('where')!) : fail(c, 'findUnique requires only where')) : args
-          if (!target || where.size !== 1 || !where.has(key)) fail(c, 'read requires an assigned row and exactly its primary key')
+          if (!target || where.size !== 1 || !where.has(key)) fail(c, `read requires an assigned row and exactly its primary key ${JSON.stringify(key)}; received where fields: ${[...where.keys()].map(k => JSON.stringify(k)).join(', ') || '(none)'}`)
           // findUnique/findOneBy return null, whereas the step IR's get fails on absence.
           // This equivalence holds only when the very next operation dereferences the row.
           const next = fn.body.statements[index + 1]
@@ -142,7 +142,7 @@ export function extractOrm(file: string, code: string, opts: StepOptions & {orm:
         } else if (kind === 'prisma' && op === 'update') {
           if (target || args.size !== 2 || !args.has('where') || !args.has('data')) fail(c, 'update requires where and data; its result must be unused')
           const where = object(args.get('where')!), data = object(args.get('data')!), row = `__orm_row_${body.length}`
-          if (where.size !== 1 || !where.has(key) || data.has(key) || !data.size || [...data.keys()].some(k => !fields.some(f => f.name === k))) fail(c, 'update requires a primary key and known non-key columns')
+          if (where.size !== 1 || !where.has(key) || data.has(key) || !data.size || [...data.keys()].some(k => !fields.some(f => f.name === k))) fail(c, `update requires primary key ${JSON.stringify(key)} and known non-key columns; received where fields: ${[...where.keys()].map(k => JSON.stringify(k)).join(', ') || '(none)'}; received data fields: ${[...data.keys()].map(k => JSON.stringify(k)).join(', ') || '(none)'}`)
           body.push({s: 'set', p, to: v(row, p), x: call(manager(p), 'get', pair(where), p)})
           for (const [f, x] of data) body.push({s: 'set', p, to: get(v(row, p), f, p), x: expr(x)})
           body.push({s: 'expr', p, x: call(v(row, p), 'save', [], p)})

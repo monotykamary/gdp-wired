@@ -266,6 +266,21 @@ def lookup(key: int):
     return row.amount
 `, {entry: ['lookup']}))
 })
+django('query diagnostics: name the actual primary key and supplied filters', () => {
+  for (const [filter, received] of [['', '(none)'], ['amount=key', '"amount"'], ['token=key, amount=key', '"token", "amount"']]) {
+    const code = prefix.replace('    id = models.IntegerField(primary_key=True)', '    token = models.IntegerField(primary_key=True)') + `
+def lookup(key: int):
+    return Account.objects.filter(${filter}).exists()
+`
+    const x = run(code, {entry: ['lookup']})
+    expect(x.ok).toBe(false)
+    expect(x.evidence).toBeUndefined()
+    expect(x.refusals[0]!.what).toContain('primary key "token"')
+    expect(x.refusals[0]!.what).toContain(`received filters: ${received}`)
+    expect(x.refusals[0]!.what).toContain('non-key filters need a scan')
+  }
+})
+
 django('Django non-key filters and primary-key mutation refuse', () => {
   for (const [body, why] of [[`Account.objects.filter(amount=key).exists()`, 'non-key filters'], [`row = Account.objects.get(pk=key)\n    row.id += 1\n    row.save()`, 'primary key']] as const) {
     const x = run(prefix + `\ndef bad(key: int):\n    ${body}\n`, {entry: ['bad']})
