@@ -1,7 +1,7 @@
 {
-  "candidate": "cae3559",
-  "base": "6bdeb95",
-  "measuredAt": "2026-11-02T18:50:27.278Z",
+  "candidate": "483d849292e507f097240c1671499d748816a225",
+  "base": "3d7bae1",
+  "measuredAt": "2026-11-03T01:31:43.207Z",
   "published": {
     "found": 0,
     "total": 15
@@ -28,7 +28,7 @@
           "status": "refused",
           "refusals": [
             {
-              "where": "endpoint.py:18:49",
+              "where": "authlib/oauth2/rfc7592/endpoint.py:18:49",
               "what": "a list literal with items (the subset keeps a list of the state, made empty)"
             }
           ],
@@ -41,7 +41,7 @@
           "status": "refused",
           "refusals": [
             {
-              "where": "endpoint.py:18:49",
+              "where": "authlib/oauth2/rfc7592/endpoint.py:18:49",
               "what": "a list literal with items (the subset keeps a list of the state, made empty)"
             }
           ],
@@ -97,12 +97,12 @@
           "refusals": [
             {
               "where": "views.py",
-              "what": "the rule and the code differ: the code doesn't load with the check's harness: \"ModuleNotFoundError: No module named 'django'\""
+              "what": "the rule and the code differ: the code doesn't load with the check's harness: \"ImproperlyConfigured: Requested setting REST_FRAMEWORK, but settings are not configured. You must either define the environment variable DJANGO_SETTINGS_MODULE or call settings.configure() before accessing settings.\""
             }
           ],
           "notes": [
-            "retrieve: kwargs: a local read before it is set (an UnboundLocalError) (views.py:59:45) is the step's refusal",
-            "get_object_or_404 (views.py:59:20): left out (inferred: nothing the rule keeps reads its value), run as it is by the check"
+            "retrieve: kwargs: a local read before it is set (an UnboundLocalError) (openwisp_controller/pki/api/views.py:59:45) is the step's refusal",
+            "get_object_or_404 (openwisp_controller/pki/api/views.py:59:20): left out (inferred: nothing the rule keeps reads its value), run as it is by the check"
           ]
         },
         {
@@ -112,7 +112,7 @@
           "status": "refused",
           "refusals": [
             {
-              "where": "views.py:58:20",
+              "where": "openwisp_controller/pki/api/views.py:58:20",
               "what": "self.get_object: no field get_object (the object's fields are those its constructor sets)"
             }
           ],
@@ -392,7 +392,7 @@
           "status": "refused",
           "refusals": [
             {
-              "where": "base.py:86:31",
+              "where": "oauthlib/oauth2/rfc6749/grant_types/base.py:86:31",
               "what": "self.response_types: no field response_types (the object's fields are those its constructor sets)"
             }
           ],
@@ -405,7 +405,7 @@
           "status": "refused",
           "refusals": [
             {
-              "where": "base.py:86:31",
+              "where": "oauthlib/oauth2/rfc6749/grant_types/base.py:86:31",
               "what": "self.response_types: no field response_types (the object's fields are those its constructor sets)"
             }
           ],
@@ -601,5 +601,9 @@
         }
       ]
     }
-  ]
+  ],
+  "runtimeOnlySource": {
+    "candidate": "cae3559",
+    "measuredAt": "2026-11-02T18:50:27.278Z"
+  }
 }

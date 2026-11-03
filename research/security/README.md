@@ -73,12 +73,13 @@ is deliberately written for this lane and must be reported separately from upstr
 
 ## Measured coverage
 
-On foundation commit `cae3559` (main `6bdeb95`), the expanded seed contains **15 published fixed
-advisories plus one upstream Juice Shop target**. Strict CLI recall is **0/15 published and 0/1
-training**. All 31 original revisions were fetched and source-hash checked; all were refused.
-Extraction coverage is **0/15**, not a hidden success or evidence that the programs are secure.
-The 12 library-focused additions still need unsupported abstract contracts, mixins or inherited state.
-Thus the corpus count increased, but the intended reader-compatible coverage did not.
+Refreshed on 2026-11-03 at `483d849` (main `3d7bae1`), the unchanged seed contains **15 published
+fixed advisories plus one upstream Juice Shop target**. Strict CLI recall remains **0/15 published and
+0/1 training**. All 31 original revisions were fetched and source-hash checked against the earlier
+measurement; all were refused, with no pipeline errors. Extraction coverage remains **0/15**, not a
+hidden success or evidence that the programs are secure. Generic Python inheritance and source-coverage
+improvements did not eliminate these targets' unsupported abstract contracts, mixins, mutable metadata
+or missing deployment configuration. The original expanded measurement was on `cae3559` / `6bdeb95`.
 
 See [RESULTS.md](RESULTS.md) for per-case blockers and `measurement.json` for exact source hashes.
 A separate original-code OAuthlib runtime replay succeeds only on the vulnerable revision. It is

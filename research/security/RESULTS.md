@@ -1,6 +1,7 @@
-# Published policy-vulnerability recall — 2026-11-02
+# Published policy-vulnerability recall — 2026-11-03
 
-Foundation: `cae3559`, based on `6bdeb95`. This is a targeted seed, not population recall.
+Refresh: `483d849`, based on main `3d7bae1`; original foundation: `cae3559` on `6bdeb95`.
+This is the same targeted seed, not population recall. All 31 source hashes match the earlier measurement.
 
 | Measure | Result |
 | --- | --- |
@@ -13,6 +14,7 @@ Foundation: `cae3559`, based on `6bdeb95`. This is a targeted seed, not populati
 
 All 31 revisions were refused. A refusal is not a security finding or a safe-program verdict.
 The library-focused selection increased the attempted corpus, **not actual extraction coverage**.
+The subsequent generic Python inheritance/coverage improvements did not make these original targets readable.
 There was no readable target on which to continue with a reviewed policy. No source was rewritten,
 no abstract contract was replaced with a toy deployed contract, and no security candidate counted.
 
@@ -23,9 +25,9 @@ are in `measurement.json`. Fix revisions are paired with their vulnerable first 
 
 | Case | Published advisory | First blocker on original code |
 | --- | --- | --- |
-| Authlib client configuration | GHSA-c73q-w75p-j82v | Python nonempty class-level list literal |
+| Authlib client configuration | GHSA-c73q-w75p-j82v | Python nonempty list of claim classes in the constructor |
 | Kubeflow run logs | GHSA-wg5q-x4j9-qm54 | Go `http.ResponseWriter` interface argument |
-| OpenWISP organization CRLs | GHSA-9gh4-xw24-9xh5 | Django runtime/inherited `get_object`; handler/ORM boundary |
+| OpenWISP organization CRLs | GHSA-9gh4-xw24-9xh5 | Unconfigured Django runtime/inherited `get_object`; handler/ORM boundary |
 | OpenZeppelin Timelock | GHSA-fg47-3c2x-m2wr | Solidity `keccak256` role constant |
 | OpenZeppelin UUPS | GHSA-5vp3-v4hc-gx76 | Abstract contract |
 | OpenZeppelin Initializable | GHSA-9c22-pwxw-p6hx | Abstract contract |
@@ -55,8 +57,11 @@ receive `high` even though the authenticated principal is `low`. The fixed versi
 This supports the published advisory, but it is not a generated policy proof or discovery. Its count
 in strict CLI recall is **zero**. Reproduce with `oauth-client-replay.py <original-checkout> <vulnerable|fixed>`.
 
-Raw execution: `runs/sec-expanded/results/*.log`; receipts and original entry-file bytes:
-`runs/sec-expanded/receipts/`; retained runtime records: `runs/sec-expanded/summary.json`.
-Every original entry-file SHA-256 was recomputed from the retained bytes. The runner uses unmodified
+Latest CLI execution: `runs/sec-recall-refresh/receipts/*.log`; original entry-file bytes:
+`runs/sec-recall-refresh/sources/`; compact summary: `runs/sec-recall-refresh/SUMMARY.json`.
+The earlier separate runtime corroboration remains in `measurement.json` with its original source
+measurement identified, and in `runs/sec-expanded/summary.json`; it was not
+reclassified as a CLI finding. Every original entry-file SHA-256 was recomputed from the retained bytes
+and matched the earlier measurement. The runner uses unmodified
 pinned full checkouts, and records both revisions even when one refuses. Follow-up reader work should
 first support genuine inherited state/mixins and reviewed deployment contexts, not count stand-ins.
