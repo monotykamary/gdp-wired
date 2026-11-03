@@ -140,7 +140,9 @@ class ORMTable:
       access = {'__getattribute__', '__getattr__', '__setattr__', '__delattr__'}
       if self.meta['framework'] == 'django':
         from django.db.models import Model, Manager
-        methods = {n for n, v in vars(Model).items() if inspect.isfunction(v) or isinstance(v, (staticmethod, classmethod, property))} | access
+        # Display methods are retained, never replaced by persistence stubs. The
+        # reader refuses implicit object display, including discarded results.
+        methods = ({n for n, v in vars(Model).items() if inspect.isfunction(v) or isinstance(v, (staticmethod, classmethod, property))} - {'__str__', '__repr__'}) | access
         unsafe = any(inspect.getattr_static(self.cls, n, None) is not inspect.getattr_static(Model, n, None) for n in methods) or type(self.cls.objects) is not Manager
       else:
         from sqlalchemy.orm.decl_base import _declarative_constructor
