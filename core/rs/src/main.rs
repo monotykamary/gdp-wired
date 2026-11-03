@@ -13,9 +13,35 @@ use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use syn::spanned::Spanned;
+use syn::visit::Visit;
 use syn::{BinOp, Expr, Fields, ImplItem, Item, Lit, Pat, ReturnType, Stmt, Type, UnOp};
 
-struct File { rel: String, items: Vec<Item>, module: String, no_implicit_prelude: bool }
+struct File { rel: String, items: Vec<Item>, module: String, no_implicit_prelude: bool, closed_source: bool }
+// D3 deliberately rejects crate-wide uncertainty rather than expanding macros,
+// interpreting cfg, or implementing import resolution. Inspect before load drops mods.
+struct ClosedSource { clean: bool }
+impl<'ast> Visit<'ast> for ClosedSource {
+  fn visit_attribute(&mut self, a: &'ast syn::Attribute) { if !a.path().is_ident("doc") { self.clean = false; } }
+  fn visit_macro(&mut self, _: &'ast syn::Macro) { self.clean = false; }
+  fn visit_item(&mut self, i: &'ast Item) {
+    if matches!(i, Item::Use(_) | Item::ExternCrate(_) | Item::ForeignMod(_) | Item::Verbatim(_)) { self.clean = false; }
+    syn::visit::visit_item(self, i);
+  }
+}
+#[derive(Default)]
+struct ClosedBindings { names: BTreeSet<String>, items: bool }
+impl<'ast> Visit<'ast> for ClosedBindings {
+  fn visit_pat_ident(&mut self, p: &'ast syn::PatIdent) {
+    self.names.insert(p.ident.to_string());
+    syn::visit::visit_pat_ident(self, p);
+  }
+  fn visit_item(&mut self, _: &'ast Item) { self.items = true; }
+}
+fn unparen(mut e: &Expr) -> &Expr { while let Expr::Paren(p) = e { e = &p.expr; } e }
+fn ordinary_function(s: &syn::Signature) -> bool {
+  s.asyncness.is_none() && s.unsafety.is_none() && s.constness.is_none() && s.abi.is_none() &&
+    s.variadic.is_none() && s.generics.params.is_empty() && s.generics.where_clause.is_none()
+}
 #[derive(Clone, Default)]
 struct Enum { values: Vec<String>, discs: Vec<i64>, data: bool }
 
@@ -30,6 +56,7 @@ struct Reader {
   methods: BTreeMap<String, Vec<(String, String, syn::ImplItemFn)>>, // type -> (file, module, fn)
   free: BTreeMap<String, (String, syn::ItemFn)>,
   fmod: BTreeMap<String, String>,
+  free_counts: BTreeMap<String, usize>, // actual loaded declarations, before map insertion
   // per function
   file: String,
   tmp: usize,
@@ -77,6 +104,9 @@ impl Reader {
     if deep > MAX_DEPTH { eprintln!("gdp: refused: {}: the source nests {deep} brackets deep (past {MAX_DEPTH})", rel.display()); std::process::exit(3) }
     let f = syn::parse_file(&src).map_err(|e| format!("{}: {e}", rel.display()))?;
     let dir: PathBuf = if rel.file_name().map(|n| n == "lib.rs" || n == "main.rs" || n == "mod.rs").unwrap_or(false) { rel.parent().unwrap().to_path_buf() } else { rel.with_extension("") };
+    let mut audit = ClosedSource { clean: true };
+    audit.visit_file(&f);
+    let mut closed_source = audit.clean;
     let no_implicit_prelude = f.attrs.iter().any(|a| a.path().is_ident("no_implicit_prelude"));
     let mut items = vec![];
     for it in f.items {
@@ -85,11 +115,11 @@ impl Reader {
         let name = m.ident.to_string();
         let sub = format!("{module}::{name}");
         match &m.content {
-          Some((_, inner)) => { out.push(File { rel: rel.display().to_string(), items: inner.clone(), module: sub, no_implicit_prelude: no_implicit_prelude || m.attrs.iter().any(|a| a.path().is_ident("no_implicit_prelude")) }); }
+          Some((_, inner)) => { out.push(File { rel: rel.display().to_string(), items: inner.clone(), module: sub, closed_source, no_implicit_prelude: no_implicit_prelude || m.attrs.iter().any(|a| a.path().is_ident("no_implicit_prelude")) }); }
           None => {
             let a = dir.join(format!("{name}.rs"));
             let b = dir.join(&name).join("mod.rs");
-            let r = if root.join(&a).exists() { a } else if root.join(&b).exists() { b } else { continue };
+            let r = if root.join(&a).exists() { a } else if root.join(&b).exists() { b } else { closed_source = false; continue };
             Self::load_file(root, &r, &sub, out)?;
           }
         }
@@ -97,7 +127,7 @@ impl Reader {
       }
       items.push(it);
     }
-    out.push(File { rel: rel.display().to_string(), items, module: module.to_string(), no_implicit_prelude });
+    out.push(File { rel: rel.display().to_string(), items, module: module.to_string(), no_implicit_prelude, closed_source });
     Ok(())
   }
   fn index(&mut self) {
@@ -121,7 +151,7 @@ impl Reader {
               for ii in &im.items { if let ImplItem::Fn(m) = ii { self.methods.entry(ty.clone()).or_default().push((f.rel.clone(), f.module.clone(), m.clone())); } }
             }
           }
-          Item::Fn(fun) => { self.free.insert(fun.sig.ident.to_string(), (f.rel.clone(), fun.clone())); self.fmod.insert(fun.sig.ident.to_string(), f.module.clone()); }
+          Item::Fn(fun) => { *self.free_counts.entry(fun.sig.ident.to_string()).or_default() += 1; self.free.insert(fun.sig.ident.to_string(), (f.rel.clone(), fun.clone())); self.fmod.insert(fun.sig.ident.to_string(), f.module.clone()); }
           Item::Const(c) => { if let Expr::Lit(l) = &*c.expr { if let Some(v) = self.lit(&l.lit, "") { self.consts.insert(c.ident.to_string(), v); } } }
           _ => {}
         }
@@ -660,7 +690,107 @@ impl Reader {
       _ => false,
     }))
   }
+  fn closed_integer(&self, t: &Type) -> Option<String> {
+    let Type::Path(t) = t else { return None };
+    if t.qself.is_some() { return None }
+    let n = t.path.get_ident()?.to_string();
+    self.primitive_integer(&n).then_some(n)
+  }
+  fn closed_field(&self, e: &Expr) -> Option<String> {
+    let Expr::Field(f) = unparen(e) else { return None };
+    if !matches!(&*f.base, Expr::Path(p) if p.qself.is_none() && p.path.is_ident("self")) { return None }
+    let syn::Member::Named(n) = &f.member else { return None };
+    let (_, s) = self.structs.get(self.self_ty.as_ref()?)?;
+    self.closed_integer(&s.fields.iter().find(|f| f.ident.as_ref() == Some(n))?.ty)
+  }
+  fn closed_assignment(&self, e: &Expr) -> bool {
+    let Expr::Assign(a) = e else { return false };
+    let Some(ty) = self.closed_field(&a.left) else { return false };
+    let (field, literal) = match unparen(&a.right) {
+      Expr::Binary(b) if matches!(b.op, BinOp::Add(_)) => (&*b.left, &*b.right),
+      Expr::MethodCall(m) if m.method == "wrapping_add" && m.turbofish.is_none() && m.args.len() == 1 => (&*m.receiver, &m.args[0]),
+      _ => return false,
+    };
+    let Expr::Lit(l) = unparen(literal) else { return false };
+    let Lit::Int(i) = &l.lit else { return false };
+    self.closed_field(field).as_ref() == Some(&ty) && (i.suffix().is_empty() || i.suffix() == ty)
+  }
+  // A verified fixed function item, not a general indirect-call resolver.
+  fn closed_callee(&self, b: &syn::ExprBlock, arity: usize) -> Result<String, &'static str> {
+    let shape = "closed callee: requires one primitive assignment and a bare function-item tail";
+    if b.label.is_some() { return Err(shape) }
+    let [Stmt::Expr(assignment, Some(_)), Stmt::Expr(Expr::Path(tail), None)] = b.block.stmts.as_slice() else { return Err(shape) };
+    if tail.qself.is_some() { return Err(shape) }
+    let Some(name) = tail.path.get_ident().map(|n| n.to_string()) else { return Err(shape) };
+    if self.free_counts.get(&name) != Some(&1) { return Err("closed callee: requires exactly one loaded function declaration") }
+    // Nested modules left unexpanded by the loader, absent files, attributes,
+    // macros and any imports prevent a complete closed namespace claim.
+    if self.files.iter().any(|f| !f.closed_source || f.items.iter().any(|i| matches!(i, Item::Mod(_)))) {
+      return Err("closed callee: source namespace is not closed (module, attribute, macro or import)")
+    }
+    let Some(owner) = &self.self_ty else { return Err("closed callee: caller identity is not established") };
+    let mut records = vec![];
+    let mut callers = vec![];
+    let mut targets = vec![];
+    for f in &self.files { for item in &f.items { match item {
+      Item::Struct(s) if s.ident == owner.as_str() => records.push((f, s)),
+      Item::Impl(i) if matches!(&*i.self_ty, Type::Path(t) if t.qself.is_none() && t.path.is_ident(owner)) => {
+        for m in &i.items { if let ImplItem::Fn(m) = m {
+          if format!("{owner}::{}", m.sig.ident) == self.fid { callers.push((f, i, m)); }
+        } }
+      }
+      Item::Fn(t) if t.sig.ident == name => targets.push((f, t)),
+      _ => {}
+    } } }
+    let ([(rf, record)], [(cf, implementation, caller)], [(tf, target)]) = (records.as_slice(), callers.as_slice(), targets.as_slice()) else {
+      return Err("closed callee: caller/target identity is not unique")
+    };
+    if cf.rel != self.file || cf.rel != tf.rel || cf.module != tf.module || rf.rel != cf.rel || rf.module != cf.module ||
+      !record.generics.params.is_empty() || record.generics.where_clause.is_some() ||
+      implementation.trait_.is_some() || !implementation.generics.params.is_empty() || implementation.generics.where_clause.is_some() ||
+      !ordinary_function(&caller.sig) {
+      return Err("closed callee: caller file/module or ordinary inherent identity is not established")
+    }
+    let mut bindings = ClosedBindings::default();
+    bindings.visit_signature(&caller.sig);
+    bindings.visit_block(&caller.block);
+    if self.is_local(&name) || bindings.names.contains(&name) || bindings.items || self.files.iter().any(|f| f.items.iter().any(|i| match i {
+      Item::Const(i) => i.ident == name, Item::Static(i) => i.ident == name,
+      Item::Struct(i) => i.ident == name, Item::Enum(i) => i.ident == name,
+      Item::Union(i) => i.ident == name, Item::Type(i) => i.ident == name,
+      Item::Trait(i) => i.ident == name, Item::TraitAlias(i) => i.ident == name,
+      _ => false,
+    })) { return Err("closed callee: local/item or value-name ambiguity") }
+    if !ordinary_function(&target.sig) || !matches!(target.vis, syn::Visibility::Inherited | syn::Visibility::Public(_)) ||
+      target.sig.inputs.len() != arity || !target.sig.inputs.iter().all(|a| matches!(a, syn::FnArg::Typed(p) if
+        matches!(&*p.pat, Pat::Ident(i) if i.by_ref.is_none() && i.subpat.is_none()) && self.closed_integer(&p.ty).is_some())) ||
+      !matches!(&target.sig.output, ReturnType::Type(_, t) if self.closed_integer(t).is_some()) {
+      return Err("closed callee: requires an ordinary nongeneric integer signature and exact arity")
+    }
+    if !self.closed_assignment(assignment) { return Err(shape) }
+    Ok(name)
+  }
   fn call(&mut self, c: &syn::ExprCall, p: &str, t: &str) -> (Vec<Value>, Value) {
+    // Only assignment + path-tail candidates enter the new contract. Other
+    // callee shapes retain their existing lowering, not a blanket language ban.
+    let block = match unparen(&c.func) {
+      Expr::Block(b) if matches!(b.block.stmts.as_slice(), [Stmt::Expr(Expr::Assign(_), Some(_)), Stmt::Expr(Expr::Path(_), None)]) => Some(b),
+      _ => None,
+    };
+    if let Some(b) = block {
+      let name = match self.closed_callee(b, c.args.len()) { Ok(n) => n, Err(why) => return (vec![], no(p, why.into())) };
+      let Stmt::Expr(assignment, _) = &b.block.stmts[0] else { unreachable!() };
+      let (mut pre, _) = self.expr(assignment);
+      let mut args = vec![];
+      for arg in &c.args {
+        let (mut ap, value) = self.expr(arg);
+        pre.append(&mut ap);
+        let value = if is_place(&value) { json!({"e": "copy", "x": value, "p": value["p"]}) } else { value };
+        let var = json!({"e": "var", "n": self.temp(), "p": p});
+        pre.push(json!({"s": "set", "p": p, "to": var, "x": value})); args.push(var);
+      }
+      return (pre, json!({"e": "call", "f": {"e": "fn", "id": name, "p": p}, "args": args, "kw": [], "p": p, "text": t}));
+    }
     // A resolved free function is a fixed callee, unlike a mutable local callable.
     // Materialize its arguments in source order, not after all their preludes.
     if let Expr::Path(x) = &*c.func {
@@ -893,7 +1023,7 @@ fn run() {
   let req: Value = serde_json::from_str(&std::env::args().nth(1).expect("a request")).expect("JSON");
   let root = PathBuf::from(req["root"].as_str().unwrap());
   let files = match Reader::load(&root) { Ok(f) => f, Err(e) => { println!("{}", json!({"error": e})); return } };
-  let mut r = Reader { files, smod: BTreeMap::new(), structs: BTreeMap::new(), enums: BTreeMap::new(), consts: BTreeMap::new(), recs: Map::new(), funcs: Map::new(), methods: BTreeMap::new(), free: BTreeMap::new(), fmod: BTreeMap::new(), file: String::new(), tmp: 0, locals: vec![], self_ty: None, lifted: vec![], fid: String::new() };
+  let mut r = Reader { files, smod: BTreeMap::new(), structs: BTreeMap::new(), enums: BTreeMap::new(), consts: BTreeMap::new(), recs: Map::new(), funcs: Map::new(), methods: BTreeMap::new(), free: BTreeMap::new(), fmod: BTreeMap::new(), free_counts: BTreeMap::new(), file: String::new(), tmp: 0, locals: vec![], self_ty: None, lifted: vec![], fid: String::new() };
   r.index();
   for n in r.structs.keys().cloned().collect::<Vec<_>>() { r.rec(&n); }
   let mut entries = vec![];
