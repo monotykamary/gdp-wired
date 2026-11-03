@@ -2,7 +2,8 @@
 // own parser (core/py/reader.py, run with the python3 on the PATH or the one given), executed by the shared step
 // executor (core/extract-step.ts), printed, built and checked as every front end's rule is (core/extract.ts's
 // fromModel), the check running the module as it ships through core/py/harness.py. Python is needed only here, at
-// extraction; the rule printed needs nothing but gdp-wired.
+// extraction; the rule printed needs nothing but gdp-wired. Source locations are repository-relative; the check
+// traces exactly the read files, including imported bases, without merging files with the same basename.
 //
 //   const x = extractPython('limiter.py')     // a path or a URL; the class inferred, the boundary too
 //   proveRule(x.rule!, [x.rule!.law('within the limit', ({used, limit}) => used.atMost(limit))])

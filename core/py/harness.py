@@ -280,10 +280,11 @@ def frames(obj):
 REAL = {}
 def tracer(frame, event, arg):
   f = frame.f_code.co_filename
-  if f not in REAL: REAL[f] = os.path.realpath(f)
-  if REAL[f] == S['path']:
+  if f not in REAL: REAL[f] = S['sources'].get(os.path.realpath(f))
+  source = REAL[f]
+  if source is not None:
     def local(fr, ev, a):
-      if ev == 'line': HIT.add(fr.f_lineno)
+      if ev == 'line': HIT.add((source, fr.f_lineno))
       return local
     return local
   return None
@@ -358,9 +359,11 @@ def raises_here(key):
   f = sys._getframe(1)
   while f is not None and os.path.realpath(f.f_code.co_filename) == os.path.realpath(__file__): f = f.f_back
   if f is None: return True
-  here, line = os.path.basename(f.f_code.co_filename), f.f_lineno
+  here = os.path.relpath(os.path.realpath(f.f_code.co_filename), S['root']).replace(os.sep, '/')
+  line = f.f_lineno
   for site in a['at']:
-    file, l0 = site['p'].split(':')[0], int(site['p'].split(':')[1])
+    parts = site['p'].rsplit(':', 2)
+    file, l0 = parts[0], int(parts[1])
     l1 = int(site['end'].split(':')[0]) if site.get('end') and site['end'].split(':')[0].isdigit() else l0
     if file == here and l0 <= line <= l1: return True
   return False
@@ -397,6 +400,10 @@ def patch_target(p):
 def hello(req):
   S.update(req)
   S['path'] = os.path.realpath(req['path'])
+  S['root'] = os.path.realpath(req['root'])
+  # Only files the reader actually used, including imported bases; never arbitrary repository imports.
+  S['sources'] = {os.path.realpath(os.path.join(S['root'], name)): name for name, _ in req['arms']}
+  REAL.clear(); HIT.clear()
   sys.path.insert(0, req['root'])
   S['mod'] = importlib.import_module(req['module'])
   mod = S['mod']
@@ -511,7 +518,7 @@ def main():
         obj, stores = OBJS[req['id']]
         res = {'state': state_of(obj, stores)}
       elif op == 'call': res = call(req)
-      elif op == 'coverage': res = {'hit': [[os.path.basename(S['path']), n] for n in sorted(HIT)]}
+      elif op == 'coverage': res = {'hit': sorted(HIT)}
       else: res = {'error': f"no op {op}"}
     except Exception as e:
       res = {'error': f"{type(e).__name__}: {e}"[:500]}

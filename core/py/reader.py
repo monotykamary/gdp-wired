@@ -5,7 +5,7 @@
 # arguments carry are read from the repository's own modules (their class annotations, never run).
 #
 #   python3 -I core/py/reader.py '{"root": <repo>, "file": <file>, "names": [<classes or functions>]}'
-import ast, builtins, contextlib, importlib, io, json, os, sys, types
+import ast, builtins, contextlib, functools, importlib, io, json, os, sys, types
 
 BUILTINS = {'min', 'max', 'abs', 'len', 'int', 'float', 'bool', 'str', 'isinstance', 'round', 'sum', 'any', 'all', 'print', 'repr', 'getattr', 'setattr', 'hasattr', 'type', 'list', 'dict', 'set', 'tuple', 'sorted', 'range', 'zip', 'enumerate'}
 # Library functions the executor knows (their meaning, not their code).
@@ -15,8 +15,13 @@ TYPE_HEADS = {'Literal', 'Optional', 'Union', 'Final', 'Annotated', 'dict', 'Dic
               'set', 'Set', 'frozenset', 'FrozenSet', 'AbstractSet', 'MutableSet'}
 TRANSPARENT = {'staticmethod', 'classmethod', 'property', 'dataclass', 'dataclasses.dataclass', 'override', 'typing.override', 'abstractmethod'}
 
-def where(file, n):
-  return f"{os.path.basename(file)}:{getattr(n, 'lineno', 0)}:{getattr(n, 'col_offset', 0) + 1}"
+@functools.lru_cache(maxsize=256)
+def source_name(file, root):
+  # Stable within a repository, distinct across equal basenames, and shared with the runtime check's source IDs.
+  return os.path.relpath(os.path.realpath(file), os.path.realpath(root)).replace(os.sep, '/')
+
+def where(file, n, root):
+  return f"{source_name(file, root)}:{getattr(n, 'lineno', 0)}:{getattr(n, 'col_offset', 0) + 1}"
 
 def text(n):
   try: s = ast.unparse(n)
@@ -304,7 +309,7 @@ class Reader:
     for name in cattrs:
       methods.pop(name, None)
       rets.pop(name, None)
-    r = {'name': q, 'short': cdef.name, 'fields': fields, 'methods': methods, 'bases': bases, 'p': where(mod.path, cdef), 'cattrs': cattrs,
+    r = {'name': q, 'short': cdef.name, 'fields': fields, 'methods': methods, 'bases': bases, 'p': where(mod.path, cdef, self.repo.root), 'cattrs': cattrs,
          'kinds': sorted(kinds | ({'dataclass'} if dataclass else set()) | ({'frozen'} if frozen else set()) | (set() if total else {'partial'})),
          'own': mod.path == self.file, 'module': mod.name, **({'rets': rets} if rets else {})}
     self.recs[q] = r
@@ -419,14 +424,14 @@ class Reader:
       if a.vararg: params.append({'name': a.vararg.arg, 't': {'k': 'opaque', 'why': '*args'}, 'star': 1})
       if a.kwarg: params.append({'name': a.kwarg.arg, 't': {'k': 'opaque', 'why': '**kwargs'}, 'star': 2})
       body = self.block(n.body, mod)
-      return {'id': fid, 'name': n.name, **({'cls': cls} if cls else {}), 'p': where(self.file, n), 'span': [os.path.basename(self.file), n.lineno, n.end_lineno],
+      return {'id': fid, 'name': n.name, **({'cls': cls} if cls else {}), 'p': where(self.file, n, self.repo.root), 'span': [source_name(self.file, self.repo.root), n.lineno, n.end_lineno],
               'params': params, 'ret': self.ty(n.returns, mod), 'body': body, 'async': isinstance(n, ast.AsyncFunctionDef), 'decorators': decs, 'static': static}
     finally:
       self.local_stack.pop()
       self.local_imps.pop()
   def decorator(self, d):
     f = d.func if isinstance(d, ast.Call) else d
-    return {'name': dotted(f) or text(f), 'text': text(d), 'p': where(self.file, d)}
+    return {'name': dotted(f) or text(f), 'text': text(d), 'p': where(self.file, d, self.repo.root)}
   def locals_of(self, fn):
     out = {x.arg for x in fn.args.posonlyargs + fn.args.args + fn.args.kwonlyargs}
     if fn.args.vararg: out.add(fn.args.vararg.arg)
@@ -445,7 +450,7 @@ class Reader:
         out.append(r)
     return out
   def stmt(self, s, mod):
-    p = where(self.file, s)
+    p = where(self.file, s, self.repo.root)
     E = lambda x: self.expr(x, mod)
     if isinstance(s, ast.Expr):
       if isinstance(s.value, ast.Constant) and (isinstance(s.value.value, str) or s.value.value is Ellipsis): return []  # a docstring, or `...`
@@ -508,7 +513,7 @@ class Reader:
         self.caught.append(h.name)
         try: body = self.block(h.body, mod)
         finally: self.caught.pop()
-        hs.append({'p': where(self.file, h), 'names': [c[0][0] for c in cs], **({'any': True} if h.type is None else {'mro': cs[0][0], 'raise': [mod.name, text(ts[0])]}),
+        hs.append({'p': where(self.file, h, self.repo.root), 'names': [c[0][0] for c in cs], **({'any': True} if h.type is None else {'mro': cs[0][0], 'raise': [mod.name, text(ts[0])]}),
                    **({'open': True} if cs and cs[0][1] else {}), **({'as': h.name} if h.name else {}), 'body': body})
       return [{'s': 'try', 'p': p, 'body': self.block(s.body, mod), 'handlers': hs, 'els': self.block(s.orelse, mod), 'fin': self.block(s.finalbody, mod)}]
     if isinstance(s, (ast.Global, ast.Nonlocal)): return [{'s': 'no', 'p': p, 'why': f"{type(s).__name__.lower()} (a variable every call shares)"}]
@@ -540,7 +545,7 @@ class Reader:
       out += [n for n in bs if n not in out]; op = op or bo
     return out, op
   def target(self, t, mod):
-    p = where(self.file, t)
+    p = where(self.file, t, self.repo.root)
     if isinstance(t, ast.Name): return {'e': 'var', 'n': t.id, 'p': p}
     if isinstance(t, ast.Attribute): return {'e': 'get', 'x': self.expr(t.value, mod), 'f': t.attr, 'p': p, 'text': text(t)}
     if isinstance(t, ast.Subscript): return {'e': 'idx', 'x': self.expr(t.value, mod), 'i': self.expr(t.slice, mod), 'p': p, 'text': text(t)}
@@ -590,7 +595,7 @@ class Reader:
     if r.get('e') == 'no' and 'names' not in r: r['names'] = mentioned(x)
     return r
   def expr1(self, x, mod):
-    p = where(self.file, x)
+    p = where(self.file, x, self.repo.root)
     E = lambda y: self.expr(y, mod)
     if isinstance(x, ast.Constant):
       v = x.value
