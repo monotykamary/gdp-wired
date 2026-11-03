@@ -65,10 +65,17 @@ an arity or its parameter clause such as `"(seed: Int)"`. Swift resolves same-la
 only for exact declared scalar arguments or explicit integer conversions; context-dependent literal
 overloads and failable initializers remain refused. Kotlin continues to use an arity.
 
-Rust lifetime parameters alone do not make a declaration value-generic. Lifetime-bearing methods use the
-same original-code replay as other Rust methods. Type and const parameters remain refused, including when
-mixed with lifetimes; this does not specialize arbitrary generic code or add support for otherwise unsupported
-borrowed fields, argument types or ownership operations.
+Rust lifetime parameters alone do not make a struct declaration or method/free-function signature
+value-generic. Type and const parameters on those declarations and signatures remain flagged as generic
+and refused, including when mixed with lifetimes. This does not generalize to parameters on `impl` blocks
+or trait specialization: the existing method index does not retain impl-level generics or trait/self-type
+arguments, and this change does not address that limitation.
+
+Lifetime-bearing methods use the same original-code replay as other Rust methods. The existing type reader
+erases references recursively; unsupported borrowed fields, argument types and ownership operations rely
+on downstream lowering and harness compilation/checks, not a blanket reader-level reference guard.
+This change neither specializes arbitrary generic code nor establishes support for lifetime-only borrowed
+records; the positive replay test uses scalar state and lifetime-bearing methods.
 
 Solidity deployment contexts, constructor-only subclasses and library callers are described in
 [Solidity harnesses](SOLIDITY.md); the original source stays unchanged and the chosen context is reported.
