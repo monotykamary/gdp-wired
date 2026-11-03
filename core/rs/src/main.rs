@@ -16,7 +16,7 @@ use syn::spanned::Spanned;
 use syn::visit::Visit;
 use syn::{BinOp, Expr, Fields, ImplItem, Item, Lit, Pat, ReturnType, Stmt, Type, UnOp};
 
-struct File { rel: String, items: Vec<Item>, module: String, no_implicit_prelude: bool, closed_source: bool }
+struct File { rel: String, items: Vec<Item>, module: String, no_implicit_prelude: bool, closed_source: bool, inline_end: Option<usize> }
 // D3 deliberately rejects crate-wide uncertainty rather than expanding macros,
 // interpreting cfg, or implementing import resolution. Inspect before load drops mods.
 struct ClosedSource { clean: bool }
@@ -115,7 +115,7 @@ impl Reader {
         let name = m.ident.to_string();
         let sub = format!("{module}::{name}");
         match &m.content {
-          Some((_, inner)) => { out.push(File { rel: rel.display().to_string(), items: inner.clone(), module: sub, closed_source, no_implicit_prelude: no_implicit_prelude || m.attrs.iter().any(|a| a.path().is_ident("no_implicit_prelude")) }); }
+          Some((brace, inner)) => { out.push(File { rel: rel.display().to_string(), items: inner.clone(), module: sub, inline_end: Some(brace.span.close().byte_range().start), closed_source, no_implicit_prelude: no_implicit_prelude || m.attrs.iter().any(|a| a.path().is_ident("no_implicit_prelude")) }); }
           None => {
             let a = dir.join(format!("{name}.rs"));
             let b = dir.join(&name).join("mod.rs");
@@ -127,7 +127,7 @@ impl Reader {
       }
       items.push(it);
     }
-    out.push(File { rel: rel.display().to_string(), items, module: module.to_string(), no_implicit_prelude, closed_source });
+    out.push(File { rel: rel.display().to_string(), items, module: module.to_string(), no_implicit_prelude, closed_source, inline_end: None });
     Ok(())
   }
   fn index(&mut self) {
@@ -1023,6 +1023,17 @@ fn run() {
   let req: Value = serde_json::from_str(&std::env::args().nth(1).expect("a request")).expect("JSON");
   let root = PathBuf::from(req["root"].as_str().unwrap());
   let files = match Reader::load(&root) { Ok(f) => f, Err(e) => { println!("{}", json!({"error": e})); return } };
+  // Native replay reparses the rewritten copy, so answer/clock edits cannot
+  // stale an inline module's byte position. This does not alter reader admission.
+  if let Some(scope) = req.get("harness_scope") {
+    let matches: Vec<_> = files.iter().filter(|f| Some(f.rel.as_str()) == scope["file"].as_str() && Some(f.module.as_str()) == scope["module"].as_str()).collect();
+    if let [f] = matches.as_slice() {
+      println!("{}", json!({"inline_end": f.inline_end}));
+    } else {
+      println!("{}", json!({"error": "native replay requires one known file/module scope"}));
+    }
+    return;
+  }
   let mut r = Reader { files, smod: BTreeMap::new(), structs: BTreeMap::new(), enums: BTreeMap::new(), consts: BTreeMap::new(), recs: Map::new(), funcs: Map::new(), methods: BTreeMap::new(), free: BTreeMap::new(), fmod: BTreeMap::new(), free_counts: BTreeMap::new(), file: String::new(), tmp: 0, locals: vec![], self_ty: None, lifted: vec![], fid: String::new() };
   r.index();
   for n in r.structs.keys().cloned().collect::<Vec<_>>() { r.rec(&n); }

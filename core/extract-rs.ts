@@ -143,13 +143,11 @@ function harnessCode(mod: SModule, read: StepRead, cls: Rec | undefined): string
     const f = cls ? fn(cls.methods[m]!) : fn(m)
     const ps = f.params.filter(p => !p.self)
     const args = ps.map((p, i) => { const rs = (p as {rs?: string}).rs ?? ''; const v = fromJson(p.t, `(&a[${i}][1])`, mod); return /^&\s*mut/.test(rs) ? `&mut ${v}` : rs.startsWith('&') ? `&${v}` : v })
-    const target = cls ? `o.${m}(${args.join(', ')})` : `${m}(${args.join(', ')})`
+    const target = cls ? `o.${m}(${args.join(', ')})` : `super::${m}(${args.join(', ')})`
     const ret = f.ret
     const out = ret.k === 'res' ? `match r { Ok(v) => { let _ = &v; Ok(${ret.of.k === 'none' ? 'json!(null)' : tagged(ret.of, 'v')}) } Err(_) => Err("an Err".to_string()) }` : ret.k === 'opt' ? `Ok(match r { Some(v) => ${tagged(ret.of, 'v')}, None => json!(null) })` : ret.k === 'none' ? 'Ok(json!(null))' : `Ok(${tagged(ret, 'r')})`
     return `${JSON.stringify(m)} => { let r = ${target}; ${out} }`
   })
-  const clsMod = cls?.module ?? 'crate'
-  void clsMod
   return `
 #[cfg(test)]
 #[allow(unused, clippy::all)]
@@ -241,8 +239,11 @@ function harnessFor(dir: string, mod: SModule, read: StepRead, opts: RsOptions):
     let toml = fs.readFileSync(`${work}/Cargo.toml`, 'utf8')
     if (!/\[dev-dependencies(\.serde_json)?\][^[]*serde_json/s.test(toml)) toml += '\n[dev-dependencies.serde_json]\nversion = "1"\n'
     fs.writeFileSync(`${work}/Cargo.toml`, toml)
-    const file = cls ? String((cls as {file?: string}).file) : String((mod as {fmods?: Record<string, string>}).fmods ? mod.path.slice(mod.root.length + 1) : mod.path.slice(mod.root.length + 1))
+    const file = cls ? String((cls as {file?: string}).file) : mod.path.slice(mod.root.length + 1)
     const modPath = cls?.module ?? (mod as {fmods?: Record<string, string>}).fmods?.[Object.keys(read.args)[0]!] ?? 'crate'
+    if (!cls && Object.keys(read.args).some(id => (mod as {fmods?: Record<string, string>}).fmods?.[id] !== modPath || mod.funcs[id]?.span?.[0] !== file)) {
+      throw new Refusal(mod.file, 'Rust native replay requires function entries in one known file/module')
+    }
     // The clock: Instant::now() read through the harness (the request's time), the code's own calls rewritten first.
     const lib = fs.existsSync(`${work}/src/lib.rs`) ? 'src/lib.rs' : 'src/main.rs'
     const walk = (d: string): string[] => fs.readdirSync(d, {withFileTypes: true} as never).flatMap((e: unknown) => { const x = e as {name: string, isDirectory: () => boolean}; return x.isDirectory() ? walk(`${d}/${x.name}`) : x.name.endsWith('.rs') ? [`${d}/${x.name}`] : [] })
@@ -250,14 +251,39 @@ function harnessFor(dir: string, mod: SModule, read: StepRead, opts: RsOptions):
     // kept in a branch never taken, so the answer is of the type the call is, which a binding needn't write)
     for (const [f, t] of stubbed(read, f => fs.readFileSync(`${dir}/${f}`, 'utf8'), (a, _, call) => `(if false { ${call} } else { crate::__gdp_answer(${JSON.stringify(a.key)}) })`)) fs.writeFileSync(`${work}/${f}`, t)
     for (const f of walk(`${work}/src`)) { const s = fs.readFileSync(f, 'utf8'); const t = s.replace(/\b(?:std::time::)?Instant::now\(\)/g, 'crate::__gdp_now()'); if (t !== s) fs.writeFileSync(f, t) }
-    // (the lines of the code itself in the files the harness is appended to: an error past them is the harness's)
+    // Query the parser after rewrites: original offsets are stale after stubs
+    // or clock substitutions. Append for file modules; insert before the exact
+    // closing brace for inline modules, keeping private-field access in scope.
     const own = new Map([file, lib].map(f => [f, fs.readFileSync(`${work}/${f}`, 'utf8').split('\n').length]))
-    fs.writeFileSync(`${work}/${file}`, fs.readFileSync(`${work}/${file}`, 'utf8') + harnessCode(mod, read, cls))
+    const site = JSON.parse(cp.execFileSync(rsReader(opts.cargo), [JSON.stringify({root:work, harness_scope:{file, module:modPath}})], {encoding:'utf8', maxBuffer:1 << 20, stdio:['ignore','pipe','pipe'], ...readerRun()})) as {inline_end?: number | null, error?: string}
+    if (site.error || site.inline_end === undefined) throw new Refusal(mod.file, site.error ?? 'Rust native replay has no placement metadata')
+    const source = fs.readFileSync(`${work}/${file}`, 'utf8')
+    let prefix = source, suffix = ''
+    if (site.inline_end !== null) {
+      const bytes = new TextEncoder().encode(source), at = site.inline_end
+      if (!Number.isSafeInteger(at) || at < 0 || at >= bytes.length || bytes[at] !== 125 || source.startsWith('\uFEFF') || /^#![^[]/.test(source)) {
+        throw new Refusal(mod.file, 'Rust native replay has an unsupported inline-module byte position')
+      }
+      const decoder = new TextDecoder('utf-8', {fatal:true})
+      prefix = decoder.decode(bytes.slice(0, at)); suffix = decoder.decode(bytes.slice(at))
+    }
+    const code = harnessCode(mod, read, cls), insertedAt = prefix.split('\n').length, addedLines = code.split('\n').length - 1
+    fs.writeFileSync(`${work}/${file}`, prefix + code + suffix)
     fs.writeFileSync(`${work}/${lib}`, `${fs.readFileSync(`${work}/${lib}`, 'utf8')}\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn __gdp_now() -> std::time::Instant { ${modPath}::__gdp_harness::now() }\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn __gdp_answer<T: ${modPath}::__gdp_harness::GdpAns>(k: &str) -> T { ${modPath}::__gdp_harness::answer(k) }\n`)
     const target = `${os.tmpdir()}/gdp-rscheck-target`
     const built = buildCheck('cargo', () => cp.execFileSync(opts.cargo ?? 'cargo', ['test', '--lib', '--no-run', '--message-format=json', '--target-dir', target], {cwd: work, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 28, env: {...proc?.env}, timeout: compileLimit(), killSignal: 'SIGKILL'}),
       e => String((e as {stdout?: string}).stdout ?? '').split('\n').flatMap(l => { try { const j = JSON.parse(l) as {reason?: string, message?: {level?: string, rendered?: string}}; return j.reason === 'compiler-message' && j.message?.level === 'error' ? [(j.message.rendered ?? '').replace(/\s+/g, ' ')] : [] } catch { return [] } }),
-      l => { const m = /--> ([^\s:]+\.rs):(\d+):\d+/.exec(l); if (!m) return false; const n = own.get(m[1]!); return n === undefined || Number(m[2]) <= n })
+      l => {
+        const m = /--> ([^\s:]+\.rs):(\d+):\d+/.exec(l)
+        if (!m) return false
+        let line = Number(m[2])
+        if (m[1] === file) {
+          if (line > insertedAt && line < insertedAt + addedLines) return false
+          if (line >= insertedAt + addedLines) line -= addedLines
+        }
+        const n = own.get(m[1]!)
+        return n === undefined || line <= n
+      })
     if (!('ok' in built)) return {cmd: 'false', args: [], hello: {}, error: built.why, kind: built.kind}
     const msgs = built.ok
     const exe = msgs.split('\n').flatMap(l => { try { const j = JSON.parse(l) as {reason?: string, executable?: string, target?: {kind?: string[]}}; return j.reason === 'compiler-artifact' && j.executable && j.target?.kind?.includes('lib') ? [j.executable] : [] } catch { return [] } })[0]

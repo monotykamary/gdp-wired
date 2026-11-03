@@ -7,7 +7,7 @@ import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
 import {mkdirSync, mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
-import {extractRust, readRust} from './extract-rs.ts'
+import {extractRust, readRust, rsReader} from './extract-rs.ts'
 import {extractStep} from './extract-step.ts'
 import {proveRule, proveSteps} from './dsl.ts'
 
@@ -485,14 +485,106 @@ t('Rust D3: fixed item block preserves callee order and exact function identity'
   expect(r.decode(rt.step(p, first, input))).toMatchObject({value:6, seen:6})
 }, 300_000)
 
-t('Rust D3 reader only: matching inline module retains fixed identity', () => {
-  // Native source is valid, but the existing inline-module replay harness cannot
-  // find __gdp_harness. This is reader identity evidence, not native conformance.
+t('Rust inline replay: matching module retains fixed identity and native sequencing', () => {
   const dir = genericCrate(`pub mod nested {${d3Source()}}`)
-  execFileSync('cargo', ['check', '--quiet', '--manifest-path', `${dir}/Cargo.toml`], {stdio:'pipe'})
   const mod = readRust(dir, ['Meter'])
   expect((mod as {fmods?: Record<string, string>}).fmods?.first).toBe('crate::nested')
   expect(JSON.stringify(mod.funcs['Meter::take'])).toContain('"f":{"e":"fn","id":"first"')
+  const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({}), input = r.encodeInput({})
+  const first = rt.step(p, rt.init(p), input)
+  expect(r.decode(first)).toMatchObject({value:2, seen:2})
+  expect(r.decode(rt.step(p, first, input))).toMatchObject({value:6, seen:6})
+}, 300_000)
+
+t('Rust inline replay: argument capture and assignment failure remain native-aligned', () => {
+  for (const [body, seen, expected] of [
+    [`self.value = ({${d3Prefix} first})(self.seen, {self.seen = self.seen.wrapping_add(1); 0});`, 0, {value:1, seen:2}],
+    ['self.value = ({self.seen = self.seen + 1; first})({self.value = 99; 0}, 0);', 4_294_967_295, {value:7, seen:4_294_967_295, failed:true}],
+  ] as const) {
+    const dir = genericCrate(`mod nested {${d3Source(body, d3First, seen)}}`)
+    const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+    const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+    expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({})))).toMatchObject(expected)
+  }
+}, 300_000)
+
+const replaySite = (dir: string, file: string, module: string): {inline_end?: number | null, error?: string} => JSON.parse(execFileSync(rsReader(), [JSON.stringify({root:dir, harness_scope:{file, module}})], {encoding:'utf8'}))
+
+t('Rust inline replay: parser byte positions handle Unicode, braces and following source', () => {
+  const source = `// café 🦀\npub mod nested {const TEXT:&str = r#"} { 🦀"#; ${d3Source()}} // scope-end\nfn unrelated() {}`
+  const dir = genericCrate(source)
+  expect(replaySite(dir, 'src/lib.rs', 'crate::nested').inline_end).toBe(new TextEncoder().encode(source.slice(0, source.indexOf('} // scope-end'))).length)
+  const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+  expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({})))).toMatchObject({value:2, seen:2})
+}, 300_000)
+
+t('Rust inline replay: placement follows clock and answered-call rewrites', () => {
+  const dir = genericCrate(`mod nested {
+    use std::time::Instant;
+    pub struct Clock {stamp:Instant, value:u32}
+    impl Clock {
+      pub fn new()->Self {Self {stamp:Instant::now(), value:0}}
+      pub fn take(&mut self) {self.stamp = Instant::now(); self.value = std::process::id();}
+    }
+  }`)
+  ok(extractRust(dir, {entry:'Clock', check:budget, strict:true, failures:'kept', answers:{'std::process::id':'u32'}}))
+}, 300_000)
+
+t('Rust inline replay: external file modules still append in their own scope', () => {
+  const dir = genericCrate('mod nested;')
+  writeFileSync(`${dir}/src/nested.rs`, d3Source())
+  expect(replaySite(dir, 'src/nested.rs', 'crate::nested').inline_end).toBeNull()
+  const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+  expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({})))).toMatchObject({value:2, seen:2})
+}, 300_000)
+
+t('Rust inline replay: source errors before and after insertion remain source errors', () => {
+  const bad = 'fn broken() {let _:u32 = "bad";}\n'
+  for (const before of [true, false]) {
+    const source = `pub mod nested {${d3Source()}}\n`
+    const dir = genericCrate(before ? bad + source : source + bad)
+    const x = extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'})
+    expect(x.ok).toBe(false)
+    expect(x.refusals[0]!.what).toMatch(/^the source doesn't compile \(cargo\): error\[E0308\]/)
+  }
+}, 300_000)
+
+t('Rust inline replay: generated helper collisions remain harness failures', () => {
+  const dir = genericCrate(`mod nested {
+    mod __gdp_harness {}
+    pub struct Meter {value:u32}
+    impl Meter {pub fn new()->Self {Self {value:0}} pub fn take(&mut self) {self.value = 1;}}
+  }`)
+  execFileSync('cargo', ['check', '--quiet', '--manifest-path', `${dir}/Cargo.toml`], {stdio:'pipe'})
+  const x = extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'})
+  expect(x.ok).toBe(false)
+  expect(x.refusals[0]!.what).toMatch(/^the check's harness failed, twice/)
+  expect(x.refusals[0]!.what).toContain('__gdp_harness')
+}, 300_000)
+
+t('Rust inline replay: ambiguous or unknown placement is refused', () => {
+  const dir = genericCrate('#[cfg(any())] mod nested {} #[cfg(not(any()))] mod nested {}')
+  execFileSync('cargo', ['check', '--quiet', '--manifest-path', `${dir}/Cargo.toml`], {stdio:'pipe'})
+  expect(replaySite(dir, 'src/lib.rs', 'crate::nested').error).toContain('one known file/module scope')
+  expect(replaySite(dir, 'src/lib.rs', 'crate::absent').error).toContain('one known file/module scope')
+}, 300_000)
+
+t('Rust inline replay: fixed free functions cannot be shadowed by harness locals', () => {
+  const functions = 'pub fn a(x:u32)->u32 {x} pub fn o(x:u32)->u32 {x} pub fn m(x:u32)->u32 {x}'
+  for (const source of [functions, `mod nested {${functions}}`]) {
+    ok(extractRust(genericCrate(source), {entry:['a','o','m'], check:budget, strict:true, failures:'kept'}))
+  }
+}, 300_000)
+
+t('Rust inline replay: free-function entries must share a known module', () => {
+  const dir = genericCrate('mod left {pub fn a(x:u32)->u32 {x.saturating_add(x)}} mod right {pub fn b(x:u32)->u32 {x}}')
+  ok(extractRust(dir, {entry:'a', check:budget, strict:true, failures:'kept'}))
+  const x = extractRust(dir, {entry:['a','b'], check:budget, strict:true, failures:'kept'})
+  expect(x.ok).toBe(false)
+  expect(x.refusals[0]!.what).toContain('function entries in one known file/module')
 }, 300_000)
 
 t('Rust D3: each argument value is captured before the next argument prelude', () => {

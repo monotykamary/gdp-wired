@@ -118,6 +118,14 @@ module metadata, local item declarations and unsupported visibility/signatures. 
 caller identity enters it; it adds no general alias/callee resolution or shared-executor behavior.
 Other callee shapes keep their prior lowering and refusals, not a blanket language ban.
 
+Rust native replay places its harness inside a uniquely identified loaded inline module, using the
+parser's UTF-8 byte position from the rewritten copy (after clock and answered-call substitutions).
+File modules retain append-at-file-scope placement. Private state stays in its declaring scope; fixed
+free-function calls are qualified against generated-local shadowing. Mixed-file/module function batches
+and unknown/ambiguous placement refuse rather than guess. Source errors after insertion remain source
+errors, while generated harness errors remain harness failures. This does not expand reader admission,
+generic dispatch or module loading; inline BOM/shebang placement is conservatively refused.
+
 The current Rust record/method tables use short names. A reached record with multiple source declarations,
 or a called method with multiple source candidates (including trait/inherent collisions), is refused rather
 than selected by declaration order. This is a reader-identity limit even where Rust itself resolves the call.
