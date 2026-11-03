@@ -64,6 +64,12 @@ noninterference and source-level lock/transaction/CAS mutations, with additional
 This is a small synthetic confidence corpus, **not** additional upstream CVE recall. The deployment-isolation
 case is explicitly model-relative.
 
+The separate [pinned-upstream cohort](mutants-upstream/README.md) measures local mutations of two
+MIT-licensed components we did not write: 9/9 mutants detected and source-replayed, with 0/2 clean
+policies refuted. Its declared boundary covers every public callable operation, not every property or
+whole application. The [result and selection record](mutants-upstream/RESULTS.md) preserve reader
+refusals and configuration requirements; this is not a CVE or ecosystem-coverage claim.
+
 ## Recall protocol
 
 `cases.json` is a small transparent seed set, NOT a representative security benchmark.

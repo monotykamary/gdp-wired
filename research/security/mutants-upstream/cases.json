@@ -1,0 +1,68 @@
+[
+  {
+    "id": "ailice-gas",
+    "vendor": "ailice",
+    "file": "module.py",
+    "entry": "AGasTank",
+    "methods": [
+      "Set",
+      "Consume",
+      "Charge"
+    ],
+    "properties": [],
+    "policies": [
+      {
+        "method": "Consume",
+        "name": "insufficient gas is rejected",
+        "expr": "failed == (amount > old(gas))"
+      }
+    ],
+    "config": "[rules.AGasTank]\nfailures = \"kept\"\nkeep = [\"resourceType\"]\ntypes = {amount = \"int\"}\n",
+    "repository": "myshell-ai/AIlice",
+    "commit": "63a22105cdf8c0d297af332010f46e4153bbc1ec",
+    "upstreamPath": "ailice/common/AGas.py",
+    "license": "MIT",
+    "dependencyPaths": {
+      "ailice/common/AExceptions.py": "ailice/common/AExceptions.py"
+    },
+    "licensePath": "LICENSE",
+    "files": {
+      "LICENSE": "7744917d31e9d1fb985f567b675fdaafc15469859c4cf092a5a1a9a7eb5deee8",
+      "ailice/common/AExceptions.py": "aa0b834c2f7fd0ec507c46f683df85b88d2889de70642dd3ca304bd1af3edecc",
+      "module.py": "1ff1f445c426fc08335ae393c81c3eb9b05fc5f3bb48c315b331f5d0baf88020"
+    }
+  },
+  {
+    "id": "codeagent-iterations",
+    "vendor": "codeagent",
+    "file": "module.py",
+    "entry": "IterationBudget",
+    "methods": [
+      "consume",
+      "refund",
+      "reset"
+    ],
+    "properties": [
+      "total",
+      "consumed",
+      "remaining"
+    ],
+    "policies": [
+      {
+        "name": "iteration reservations stay within the budget",
+        "expr": "_consumed >= 0 && _consumed <= _total"
+      }
+    ],
+    "config": "[rules.IterationBudget]\nfailures = \"kept\"\nmethods = [\"consume\", \"refund\", \"reset\"]\n",
+    "repository": "Harvil1/codeAgent",
+    "commit": "e48780be52949dfcf17338025f6beab48ca01428",
+    "upstreamPath": "agent/budget.py",
+    "license": "MIT",
+    "dependencyPaths": {},
+    "licensePath": "LICENSE",
+    "files": {
+      "LICENSE": "50ecec4436707bde5068edbafcfa44209f460b921e59d2b11b163902b6cdd909",
+      "module.py": "28bf438ccd39461e72f966777c4b9357ae319bdb6ef5043f5b2eba1fe58fe4b0"
+    }
+  }
+]

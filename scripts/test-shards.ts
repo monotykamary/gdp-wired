@@ -36,7 +36,7 @@ const units: Unit[] = [
     examples/folds.ts examples/trees.ts examples/pairs.ts examples/groups.ts examples/charts.ts examples/xstate.ts
     examples/effect.ts examples/effect-retry.ts examples/effect-stm.ts examples/effect-queue.ts examples/infer.ts
     examples/arith.ts examples/cyclic.ts examples/cycles.ts examples/data.ts examples/abstract.ts`),
-  ...tests('.', 'compare/tip/translate.test.ts research/security/score.test.ts research/security/mutants/mutants.test.ts'),
+  ...tests('.', 'compare/tip/translate.test.ts research/security/score.test.ts research/security/mutants/mutants.test.ts research/security/mutants-upstream/upstream.test.ts'),
   ...runs(`examples/scopes.ts examples/lists.ts examples/sizes.ts examples/liveness.ts examples/sums.ts
     examples/nonterm.ts examples/rationals.ts examples/budget.ts examples/gdp.ts examples/steps.ts
     examples/jev-fabric/run.ts`),
