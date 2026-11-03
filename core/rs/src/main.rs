@@ -37,6 +37,64 @@ impl<'ast> Visit<'ast> for ClosedBindings {
   }
   fn visit_item(&mut self, _: &'ast Item) { self.items = true; }
 }
+#[derive(Default)]
+struct UnexpandedModules { found: bool }
+impl<'ast> Visit<'ast> for UnexpandedModules {
+  fn visit_item_mod(&mut self, m: &'ast syn::ItemMod) {
+    if m.content.is_none() { self.found = true; }
+    syn::visit::visit_item_mod(self, m);
+  }
+}
+// Native module hygiene only. Do not guess exports or expand macros in order
+// to rename a colliding helper; existing noncollision behavior is unchanged.
+fn native_harness_name(files: &[File], scope: &File) -> Result<String, &'static str> {
+  fn identifiers(tokens: proc_macro2::TokenStream, names: &mut BTreeSet<String>) {
+    for token in tokens { match token {
+      proc_macro2::TokenTree::Ident(i) => { names.insert(i.to_string().trim_start_matches("r#").to_string()); }
+      proc_macro2::TokenTree::Group(g) => identifiers(g.stream(), names),
+      _ => {}
+    } }
+  }
+  fn named(i: &syn::Ident, name: &str) -> bool { i.to_string().trim_start_matches("r#") == name }
+  fn imported(t: &syn::UseTree, name: &str, parent: &str) -> bool {
+    match t {
+      syn::UseTree::Path(p) => imported(&p.tree, name, &p.ident.to_string()),
+      syn::UseTree::Name(n) => named(&n.ident, name) || (n.ident == "self" && parent.trim_start_matches("r#") == name),
+      syn::UseTree::Rename(r) => named(&r.rename, name),
+      syn::UseTree::Group(g) => g.items.iter().any(|t| imported(t, name, parent)),
+      syn::UseTree::Glob(_) => true, // this scope may import the helper name; do not guess
+    }
+  }
+  let base = "__gdp_harness";
+  let canonical = |m: &str| m.split("::").map(|s| s.trim_start_matches("r#")).collect::<Vec<_>>().join("::");
+  let child = format!("{}::{base}", canonical(&scope.module));
+  let occupied = files.iter().any(|f| canonical(&f.module) == child) || scope.items.iter().any(|i| match i {
+    Item::Mod(i) => named(&i.ident, base), Item::Struct(i) => named(&i.ident, base),
+    Item::Enum(i) => named(&i.ident, base), Item::Union(i) => named(&i.ident, base),
+    Item::Type(i) => named(&i.ident, base), Item::Trait(i) => named(&i.ident, base),
+    Item::TraitAlias(i) => named(&i.ident, base), Item::Use(i) => imported(&i.tree, base, ""),
+    Item::ExternCrate(i) => named(i.rename.as_ref().map(|(_, n)| n).unwrap_or(&i.ident), base),
+    _ => false,
+  });
+  // Field/parameter/value names and modules in unrelated scopes do not collide
+  // with this type-namespace declaration. Do not turn them into new refusals.
+  if !occupied { return Ok(base.into()) }
+  let mut names = BTreeSet::new();
+  let mut missing = UnexpandedModules::default();
+  for f in files {
+    // File loading removes resolved mod declarations from parent items.
+    for part in f.module.split("::") { names.insert(part.trim_start_matches("r#").to_string()); }
+    for item in &f.items { identifiers(item.to_token_stream(), &mut names); missing.visit_item(item); }
+  }
+  if missing.found || files.iter().any(|f| !f.closed_source) {
+    return Err("native replay cannot choose a fresh helper module: namespace is not closed")
+  }
+  for n in 1..=names.len() + 1 {
+    let candidate = format!("{base}_{n}");
+    if !names.contains(&candidate) { return Ok(candidate) }
+  }
+  Err("native replay has no fresh helper module name")
+}
 fn unparen(mut e: &Expr) -> &Expr { while let Expr::Paren(p) = e { e = &p.expr; } e }
 fn ordinary_function(s: &syn::Signature) -> bool {
   s.asyncness.is_none() && s.unsafety.is_none() && s.constness.is_none() && s.abi.is_none() &&
@@ -1028,7 +1086,10 @@ fn run() {
   if let Some(scope) = req.get("harness_scope") {
     let matches: Vec<_> = files.iter().filter(|f| Some(f.rel.as_str()) == scope["file"].as_str() && Some(f.module.as_str()) == scope["module"].as_str()).collect();
     if let [f] = matches.as_slice() {
-      println!("{}", json!({"inline_end": f.inline_end}));
+      match native_harness_name(&files, f) {
+        Ok(name) => println!("{}", json!({"inline_end": f.inline_end, "harness_name": name})),
+        Err(why) => println!("{}", json!({"error": why})),
+      }
     } else {
       println!("{}", json!({"error": "native replay requires one known file/module scope"}));
     }

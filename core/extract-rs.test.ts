@@ -509,7 +509,7 @@ t('Rust inline replay: argument capture and assignment failure remain native-ali
   }
 }, 300_000)
 
-const replaySite = (dir: string, file: string, module: string): {inline_end?: number | null, error?: string} => JSON.parse(execFileSync(rsReader(), [JSON.stringify({root:dir, harness_scope:{file, module}})], {encoding:'utf8'}))
+const replaySite = (dir: string, file: string, module: string): {inline_end?: number | null, harness_name?: string, error?: string} => JSON.parse(execFileSync(rsReader(), [JSON.stringify({root:dir, harness_scope:{file, module}})], {encoding:'utf8'}))
 
 t('Rust inline replay: parser byte positions handle Unicode, braces and following source', () => {
   const source = `// café 🦀\npub mod nested {const TEXT:&str = r#"} { 🦀"#; ${d3Source()}} // scope-end\nfn unrelated() {}`
@@ -552,17 +552,99 @@ t('Rust inline replay: source errors before and after insertion remain source er
   }
 }, 300_000)
 
-t('Rust inline replay: generated helper collisions remain harness failures', () => {
+t('Rust helper module: original collision replays with a fresh fixed name', () => {
   const dir = genericCrate(`mod nested {
     mod __gdp_harness {}
     pub struct Meter {value:u32}
     impl Meter {pub fn new()->Self {Self {value:0}} pub fn take(&mut self) {self.value = 1;}}
   }`)
+  expect(replaySite(dir, 'src/lib.rs', 'crate::nested').harness_name).toBe('__gdp_harness_1')
+  const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+  expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({})))).toMatchObject({value:1})
+}, 300_000)
+
+const helperMeter = 'pub struct Meter {value:u32} impl Meter {pub fn new()->Self {Self {value:0}} pub fn take(&mut self) {self.value = 1;}}'
+const helperRefusal = (name: string, dir: string, why = 'namespace is not closed') => {
   execFileSync('cargo', ['check', '--quiet', '--manifest-path', `${dir}/Cargo.toml`], {stdio:'pipe'})
   const x = extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'})
-  expect(x.ok).toBe(false)
-  expect(x.refusals[0]!.what).toMatch(/^the check's harness failed, twice/)
-  expect(x.refusals[0]!.what).toContain('__gdp_harness')
+  expect({name, ok:x.ok}).toEqual({name, ok:false})
+  expect(x.refusals[0]!.what).toContain(why)
+  console.log(JSON.stringify({helperControl:name, native:'cargo-check-pass', refusal:x.refusals[0]!.what}))
+}
+
+t('Rust helper module: occupied suffixes, module order and raw identifiers are respected', () => {
+  const a = 'mod __gdp_harness {}', b = 'mod __gdp_harness_1 {}'
+  for (const modules of [a + b, b + a]) {
+    const dir = genericCrate(modules + helperMeter)
+    expect(replaySite(dir, 'src/lib.rs', 'crate').harness_name).toBe('__gdp_harness_2')
+    ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  }
+  const dir = genericCrate(`mod nested {mod r#__gdp_harness {} mod __gdp_harness_1 {} fn unused(__gdp_harness_2:u32) {} ${helperMeter}}`)
+  expect(replaySite(dir, 'src/lib.rs', 'crate::nested').harness_name).toBe('__gdp_harness_3')
+  ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+}, 300_000)
+
+t('Rust helper module: noncolliding names in other namespaces or scopes keep the default', () => {
+  for (const source of [
+    `use std::mem; pub fn __gdp_harness()->u32 {0} mod other {pub mod __gdp_harness {}} ${helperMeter}`,
+    `use std::mem; ${helperMeter.replaceAll('value', '__gdp_harness')}`,
+  ]) {
+    const dir = genericCrate(source)
+    expect(replaySite(dir, 'src/lib.rs', 'crate').harness_name).toBe('__gdp_harness')
+    ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  }
+}, 300_000)
+
+t('Rust helper module: a declared type-name collision also receives a fresh module', () => {
+  const dir = genericCrate('type __gdp_harness = u32;' + helperMeter)
+  expect(replaySite(dir, 'src/lib.rs', 'crate').harness_name).toBe('__gdp_harness_1')
+  ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+}, 300_000)
+
+t('Rust helper module: clock and answer bridges target the renamed module', () => {
+  const dir = genericCrate(`mod nested {
+    mod __gdp_harness {}
+    type Instant = std::time::Instant;
+    pub struct Clock {stamp:std::time::Instant, value:u32}
+    impl Clock {
+      pub fn new()->Self {Self {stamp:Instant::now(), value:0}}
+      pub fn take(&mut self) {self.stamp = Instant::now(); self.value = std::process::id();}
+    }
+  }`)
+  expect(replaySite(dir, 'src/lib.rs', 'crate::nested').harness_name).toBe('__gdp_harness_1')
+  ok(extractRust(dir, {entry:'Clock', check:budget, strict:true, failures:'kept', answers:{'std::process::id':'u32'}}))
+}, 300_000)
+
+t('Rust helper module: uncertain namespaces refuse collision repair only', () => {
+  for (const [name, extra] of [
+    ['import', 'use std::mem;'],
+    ['cfg', '#[cfg(any())] mod disabled {}'],
+    ['macro', 'macro_rules! unused {() => {}}'],
+  ]) {
+    helperRefusal(name!, genericCrate(`mod nested {mod __gdp_harness {} ${helperMeter} ${extra}}`))
+  }
+  helperRefusal('renamed-module-import', genericCrate(`mod supplier {pub mod supplied {}} use supplier::supplied as __gdp_harness; ${helperMeter}`))
+  helperRefusal('glob-module-import', genericCrate(`mod supplier {pub mod __gdp_harness {}} use supplier::*; ${helperMeter}`))
+  const clear = genericCrate(`mod nested {use std::mem; ${helperMeter}}`)
+  expect(replaySite(clear, 'src/lib.rs', 'crate::nested').harness_name).toBe('__gdp_harness')
+  ok(extractRust(clear, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+}, 300_000)
+
+t('Rust helper module: unexpanded external declarations prevent a freshness claim', () => {
+  const dir = genericCrate(`mod nested {mod __gdp_harness {} mod extra; ${helperMeter}}`)
+  mkdirSync(`${dir}/src/nested`)
+  writeFileSync(`${dir}/src/nested/extra.rs`, 'pub fn unused() {}')
+  helperRefusal('unexpanded-external', dir)
+}, 300_000)
+
+t('Rust helper module: renaming does not widen closed-callee reader admission', () => {
+  helperRefusal('D3-module-limit', genericCrate(`mod nested {mod __gdp_harness {} ${d3Source()}}`), 'closed callee: source namespace is not closed')
+}, 300_000)
+
+t('Rust helper module: fixed root bridge collisions remain a separate limitation', () => {
+  const dir = genericCrate('pub fn __gdp_now()->u32 {0}' + helperMeter)
+  helperRefusal('fixed-root-bridge', dir, "the check's harness failed, twice")
 }, 300_000)
 
 t('Rust inline replay: ambiguous or unknown placement is refused', () => {

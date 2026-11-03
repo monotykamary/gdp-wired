@@ -116,7 +116,7 @@ function toJson(t: SType, x: string): string {
   if (t.k === 'choice') return `json!(match ${x} { ${t.values.map(v => `${t.enum}::${v} => ${JSON.stringify(v)}`).join(', ')} })`
   return 'json!(null)'
 }
-function harnessCode(mod: SModule, read: StepRead, cls: Rec | undefined): string {
+function harnessCode(mod: SModule, read: StepRead, cls: Rec | undefined, name: string): string {
   const leaves = read.leaves.filter(l => l.kind !== 'frame' && l.kind !== 'map')
   if (read.leaves.some(l => l.kind === 'map')) throw new Refusal(mod.file, 'a map in the state: the Rust harness reads none yet')
   const byPath = new Map<string, Leaf[]>()
@@ -151,7 +151,7 @@ function harnessCode(mod: SModule, read: StepRead, cls: Rec | undefined): string
   return `
 #[cfg(test)]
 #[allow(unused, clippy::all)]
-pub(crate) mod __gdp_harness {
+pub(crate) mod ${name} {
   use super::*;
   use serde_json::{json, Value};
   use std::io::{BufRead, Write};
@@ -255,8 +255,12 @@ function harnessFor(dir: string, mod: SModule, read: StepRead, opts: RsOptions):
     // or clock substitutions. Append for file modules; insert before the exact
     // closing brace for inline modules, keeping private-field access in scope.
     const own = new Map([file, lib].map(f => [f, fs.readFileSync(`${work}/${f}`, 'utf8').split('\n').length]))
-    const site = JSON.parse(cp.execFileSync(rsReader(opts.cargo), [JSON.stringify({root:work, harness_scope:{file, module:modPath}})], {encoding:'utf8', maxBuffer:1 << 20, stdio:['ignore','pipe','pipe'], ...readerRun()})) as {inline_end?: number | null, error?: string}
+    const site = JSON.parse(cp.execFileSync(rsReader(opts.cargo), [JSON.stringify({root:work, harness_scope:{file, module:modPath}})], {encoding:'utf8', maxBuffer:1 << 20, stdio:['ignore','pipe','pipe'], ...readerRun()})) as {inline_end?: number | null, harness_name?: string, error?: string}
     if (site.error || site.inline_end === undefined) throw new Refusal(mod.file, site.error ?? 'Rust native replay has no placement metadata')
+    const harnessName = site.harness_name
+    if (typeof harnessName !== 'string' || !/^__gdp_harness(?:_[1-9][0-9]*)?$/.test(harnessName)) {
+      throw new Refusal(mod.file, 'Rust native replay has no validated helper module name')
+    }
     const source = fs.readFileSync(`${work}/${file}`, 'utf8')
     let prefix = source, suffix = ''
     if (site.inline_end !== null) {
@@ -267,9 +271,9 @@ function harnessFor(dir: string, mod: SModule, read: StepRead, opts: RsOptions):
       const decoder = new TextDecoder('utf-8', {fatal:true})
       prefix = decoder.decode(bytes.slice(0, at)); suffix = decoder.decode(bytes.slice(at))
     }
-    const code = harnessCode(mod, read, cls), insertedAt = prefix.split('\n').length, addedLines = code.split('\n').length - 1
+    const code = harnessCode(mod, read, cls, harnessName), insertedAt = prefix.split('\n').length, addedLines = code.split('\n').length - 1
     fs.writeFileSync(`${work}/${file}`, prefix + code + suffix)
-    fs.writeFileSync(`${work}/${lib}`, `${fs.readFileSync(`${work}/${lib}`, 'utf8')}\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn __gdp_now() -> std::time::Instant { ${modPath}::__gdp_harness::now() }\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn __gdp_answer<T: ${modPath}::__gdp_harness::GdpAns>(k: &str) -> T { ${modPath}::__gdp_harness::answer(k) }\n`)
+    fs.writeFileSync(`${work}/${lib}`, `${fs.readFileSync(`${work}/${lib}`, 'utf8')}\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn __gdp_now() -> std::time::Instant { ${modPath}::${harnessName}::now() }\n#[cfg(test)]\n#[allow(unused)]\npub(crate) fn __gdp_answer<T: ${modPath}::${harnessName}::GdpAns>(k: &str) -> T { ${modPath}::${harnessName}::answer(k) }\n`)
     const target = `${os.tmpdir()}/gdp-rscheck-target`
     const built = buildCheck('cargo', () => cp.execFileSync(opts.cargo ?? 'cargo', ['test', '--lib', '--no-run', '--message-format=json', '--target-dir', target], {cwd: work, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 28, env: {...proc?.env}, timeout: compileLimit(), killSignal: 'SIGKILL'}),
       e => String((e as {stdout?: string}).stdout ?? '').split('\n').flatMap(l => { try { const j = JSON.parse(l) as {reason?: string, message?: {level?: string, rendered?: string}}; return j.reason === 'compiler-message' && j.message?.level === 'error' ? [(j.message.rendered ?? '').replace(/\s+/g, ' ')] : [] } catch { return [] } }),
@@ -290,7 +294,7 @@ function harnessFor(dir: string, mod: SModule, read: StepRead, opts: RsOptions):
     if (!exe) return {cmd: 'false', args: [], hello: {}, error: 'the test build gave no executable', kind: 'harness'}
     read.model.notes.push('Rust: the code is checked in a debug build (overflow checks on); its branch arms are not counted (no instrumentation yet)')
     read.arms.length = 0
-    const test = `${modPath === 'crate' ? '' : `${modPath.replace(/^crate::/, '')}::`}__gdp_harness::__gdp_harness_main`
+    const test = `${modPath === 'crate' ? '' : `${modPath.replace(/^crate::/, '')}::`}${harnessName}::__gdp_harness_main`
     return {cmd: exe, args: [test, '--exact', '--nocapture', '--test-threads=1'], hello: {}}
   } catch (e) {
     if (e instanceof Refusal) return {cmd: 'false', args: [], hello: {}, error: e.what}

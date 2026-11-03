@@ -126,6 +126,14 @@ and unknown/ambiguous placement refuse rather than guess. Source errors after in
 errors, while generated harness errors remain harness failures. This does not expand reader admission,
 generic dispatch or module loading; inline BOM/shebang placement is conservatively refused.
 
+A selected-scope type/module binding named `__gdp_harness` can use a deterministic fresh module name
+when the parsed inventory is closed. Raw identifiers are normalized, and the first unused numeric
+suffix avoids identifiers across the loaded source. Declaration, bridge targets and test selector all
+use that same name. Field/value names and names in unrelated scopes do not themselves trigger renaming.
+Relevant import/glob uncertainty, macros, attributes or unexpanded modules prevent a fresh-name claim;
+this is conservative and does not expand aliases or macros. Ordinary noncollision paths are retained.
+Fixed root bridge names (`__gdp_now`, `__gdp_answer`) are not renamed by this bounded repair.
+
 The current Rust record/method tables use short names. A reached record with multiple source declarations,
 or a called method with multiple source candidates (including trait/inherent collisions), is refused rather
 than selected by declaration order. This is a reader-identity limit even where Rust itself resolves the call.
