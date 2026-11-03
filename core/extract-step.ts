@@ -50,7 +50,7 @@ export type SFunc = {id: string, name: string, cls?: string, p: string, span: [s
   // recursion check, or after it)
   recv?: string, results?: number, why?: string, late?: string}
 // (rets: the declared result types of its methods, another module's class's too: an inferred answer's type)
-export type SRec = {initializers?: string[], orm?: {framework: 'django' | 'sqlalchemy' | 'prisma' | 'typeorm', key: string, why?: string}, name: string, short: string, fields: {name: string, t: SType, dflt?: SX, inject?: boolean}[], methods: Record<string, string | null>, kinds: string[], own: boolean, module: string, p: string, rets?: Record<string, SType>, cattrs?: Record<string, number | string | boolean | null>}
+export type SRec = {initializers?: string[], orm?: {framework: 'django' | 'sqlalchemy' | 'prisma' | 'typeorm', key: string, why?: string}, name: string, short: string, fields: {name: string, t: SType, dflt?: SX, inject?: boolean}[], methods: Record<string, string | null>, kinds: string[], own: boolean, module: string, p: string, rets?: Record<string, SType>, cattrs?: Record<string, number | string | boolean | null>, mro?: string[] | null, declared?: string[], classCollections?: Record<string, string>}
 export type SModule = {lang: string, file: string, path: string, module: string, root: string, consts?: Record<string, number | string | boolean>, entries: ({k: 'class', rec: string} | {k: 'func', id: string} | {k: 'missing', name: string})[], recs: Record<string, SRec>, funcs: Record<string, SFunc>, enums?: Record<string, {values: string[], discs: number[], data: boolean}>, error?: string,
   // false: a condition the path takes is kept whole (a negated disjunction not split into its parts: Go's reader's);
   // 'nil-false': only nil and false are false (Ruby's), not Python's truthiness
@@ -1193,6 +1193,13 @@ export class Stepper {
     if (i < args.length || kw.some(([n]) => !ps.some(x => x.name === n))) {
       if (f.params.some(x => x.star)) return refuse(at, `${f.name}: *args or **kwargs given`)
       return refuse(at, `${f.name}: more arguments than it takes`)
+    }
+    // The supported call supplies no variadic arguments (extra ones were
+    // refused above). Python still binds *args and **kwargs to empty values;
+    // leaving them unbound would invent an UnboundLocalError in the body.
+    if (this.mod.lang === 'python') for (const pa of f.params.filter(x => x.star)) {
+      locals.set(pa.name, pa.star === 1 ? {t: 'tuple', xs: []} : {t: 'val', ty: '$dict', f: new Map()})
+      this.notes.add(`${f.name}: ${pa.star === 1 ? '*' : '**'}${pa.name} is empty (the modeled calls supply only the declared arguments)`)
     }
     const saved = q.locals
     this.frames.push(f.id); this.frameLocals.push(saved)
@@ -2651,6 +2658,16 @@ export class Stepper {
     }
     return refuse(x, `${x.text}: an atomic's ${op}`)
   }
+  classConstant(value: number | string | boolean | null, at: SX): V {
+    if (value === null) return {t: 'none'}
+    if (typeof value === 'boolean') return {t: 'bool', e: value ? I.T : I.F}
+    if (typeof value === 'number') return Number.isInteger(value) ? {t: 'num', e: I.num(value)} : {t: 'opaque', why: `${at.text}: a float`}
+    return {t: 'str', e: {op: 'slit', value}}
+  }
+  classCollection(owner: string, name: string): V {
+    this.notes.add(`${owner}.${name}: a class collection, preserved by the original code; its contents and shared identity are outside the modeled state, never copied or frozen`)
+    return {t: 'opaque', why: `${owner}.${name}: a shared class collection outside the modeled state`}
+  }
   get(x: SX, p: Path): [V, Path] {
     const [o, q] = this.ev(x.x as SX, p), f = String(x.f)
     switch (o.t) {
@@ -2667,6 +2684,9 @@ export class Stepper {
         const r = this.rec(o.rec, x), mid = r.methods[f]
         if (r.orm && f === 'objects' && r.orm.framework !== 'sqlalchemy') return [{t: 'ext', q: `orm:${r.name}`, text: x.text ?? f}, q]
         if (mid) return [{t: 'fn', id: mid}, q]
+        const ca = r.cattrs?.[f]
+        if (ca !== undefined) return [this.classConstant(ca, x), q]
+        if (r.classCollections?.[f]) return [this.classCollection(r.classCollections[f]!, f), q]
         return [{t: 'ext', q: `${o.rec}.${f}`, text: x.text ?? f, ...(o.patch?.path ? {patch: {...o.patch, path: [...o.patch.path, f]}} : {}), ...(r.rets?.[f] ? {ret: r.rets[f]} : {})}, q]
       }
       case 'bool': case 'builtin': case 'choice': case 'fmt': case 'fn': case 'lib': case 'lock': case 'num': case 'str': case 'tuple': case 'res': case 'ptr': case 'struct': case 'err': case 'nil': case 'map': case 'list': case 'push': case 'pop': case 'val': return refuse(x, `${x.text}: a field of a ${o.t === 'val' ? o.ty.slice(1) : o.t}`)
@@ -2676,7 +2696,28 @@ export class Stepper {
     if (obj?.k === 'store') return this.storeAttr(obj.name, f, x, q)
     if (obj?.k !== 'rec') return refuse(x, `${x.text}: a field of other than an object`)
     const r = this.rec(obj.ty, x)
-    // (super().f: the base's method the reader resolved, on this object)
+    // Python super starts after the defining owner in the actual receiver's
+    // C3 order. Only an owner's own binding may win, not its flattened methods.
+    if (typeof x.superFrom === 'string') {
+      const index = r.mro?.indexOf(x.superFrom) ?? -1
+      if (index < 0) return refuse(x, `${x.text}: the receiver's MRO cannot be bound`)
+      const owner = r.mro!.slice(index + 1).find(name => this.rec(name, x).declared?.includes(f))
+      if (!owner) {
+        if (f === '__init__') return [{t: 'builtin', n: '$object_init'}, q]
+        return refuse(x, `${x.text}: no inherited attribute ${f} after ${x.superFrom}`)
+      }
+      const base = this.rec(owner, x), id = base.methods[f]
+      if (id) {
+        const fn = this.func(id, x)
+        if (fn.decorators.some(d => d.name === 'property')) return this.callFunc(fn, o, [], [], x, q, false)
+        return [{t: 'fn', id, self: fn.static ? undefined : o}, q]
+      }
+      const ca = base.cattrs?.[f]
+      if (ca !== undefined) return [this.classConstant(ca, x), q]
+      if (base.classCollections?.[f]) return [this.classCollection(base.classCollections[f]!, f), q]
+      return refuse(x, `${x.text}: inherited attribute ${owner}.${f} cannot be bound`)
+    }
+    // (a base method already resolved by a reader, on this object)
     if (typeof x.sup === 'string') return [{t: 'fn', id: x.sup, self: o}, q]
     const v = obj.f.get(f)
     if (v) return [this.timeField(v, r.fields.find(fd => fd.name === f)?.t, true, x), q]
@@ -2690,7 +2731,8 @@ export class Stepper {
     if (obj.lazy) return this.lazyField(o.id, obj, f, x, q)
     // (a class attribute set to a constant, which no method sets on the object: that constant)
     const ca = r.cattrs?.[f]
-    if (ca !== undefined) return [ca === null ? {t: 'none'} : typeof ca === 'boolean' ? {t: 'bool', e: ca ? I.T : I.F} : typeof ca === 'number' ? (Number.isInteger(ca) ? {t: 'num', e: I.num(ca)} : {t: 'opaque', why: `${x.text}: a float`}) : {t: 'str', e: {op: 'slit', value: ca}}, q]
+    if (ca !== undefined) return [this.classConstant(ca, x), q]
+    if (r.classCollections?.[f]) return [this.classCollection(r.classCollections[f]!, f), q]
     return refuse(x, `${x.text}: no field ${f} (the object's fields are those its constructor sets)`)
   }
   // A field of an object the caller gives, made an input where it is first read.
@@ -3075,13 +3117,59 @@ export class Stepper {
       return refuse(x, `${x.text}: set.${name} (the subset reads add, discard, remove and in)`)
     })
   }
+  // This is a presence check, not a speculative getattr: descriptors and custom
+  // lookup can execute code or raise AttributeError even when a name is declared.
+  hasAttribute(v: V, name: string, at: SX, p: Path): boolean {
+    if (v.t !== 'ref') return refuse(at, `${at.text}: hasattr requires a modeled instance`)
+    const obj = p.heap.get(v.id)
+    if (obj?.k !== 'rec') return refuse(at, `${at.text}: hasattr requires a modeled record`)
+    const r = this.rec(obj.ty, at)
+    if (!r.mro) return refuse(at, `${at.text}: hasattr needs a known static MRO`)
+    for (const owner of r.mro) {
+      const base = this.rec(owner, at)
+      if (base.declared?.some(n => ['__getattribute__', '__getattr__'].includes(n)))
+        return refuse(at, `${at.text}: hasattr with custom attribute lookup`)
+    }
+    const owner = r.mro.map(n => this.rec(n, at)).find(b => b.declared?.includes(name))
+    if (owner) {
+      const id = owner.methods[name]
+      if (id) {
+        const fn = this.func(id, at)
+        if (fn.decorators.some(d => !['staticmethod', 'classmethod', 'override', 'typing.override', 'abstractmethod'].includes(d.name)))
+          return refuse(at, `${at.text}: hasattr may invoke a descriptor`)
+      } else if (!Object.hasOwn(owner.cattrs ?? {}, name) && !Object.hasOwn(owner.classCollections ?? {}, name)) {
+        return refuse(at, `${at.text}: hasattr cannot resolve the final class binding`)
+      }
+      return true
+    }
+    if (obj.f.has(name)) return true
+    // Implicit object/type attributes are outside the reader's explicit MRO.
+    if (name.startsWith('__') && name.endsWith('__')) return refuse(at, `${at.text}: hasattr of an implicit object attribute`)
+    return false
+  }
+  // Entry and nested construction must agree about the final __init__ binding.
+  initMethod(r: SRec, at: {p: string}): string | null | undefined {
+    const id = r.methods.__init__
+    if (this.mod.lang !== 'python') return id
+    const generated = r.kinds.includes('dataclass') || !!r.orm
+    if (!r.mro && !generated) return refuse(at, `${r.short}: construction needs a known static MRO`)
+    const order = (r.mro ?? [r.name]).map(n => this.rec(n, at))
+    if (order.some(b => b.declared?.some(n => ['__new__', '__init_subclass__', '__getattribute__', '__getattr__', '__setattr__', '__delattr__'].includes(n))))
+      return refuse(at, `${r.short}: custom allocation or attribute hooks are outside modeled construction`)
+    const owner = order.find(b => b.declared?.includes('__init__'))
+    if (owner && (!id || owner.methods.__init__ !== id)) return refuse(at, `${r.short}: final __init__ binding is not a known method`)
+    if (id && this.func(id, at).decorators.some(d => !['override', 'typing.override', 'abstractmethod'].includes(d.name)))
+      return refuse(at, `${r.short}: decorated __init__ is outside modeled construction`)
+    return id
+  }
   construct(rec: string, args: V[], kw: [string, V][], x: SX, p: Path): [V, Path] {
     const r = this.rec(rec, x)
+    const initId = this.initMethod(r, x)
     // (a plain class of the repository whose __init__ the reader read: made by running it on a fresh object)
     if (madeByInit(r)) {
       const id = `fresh:${this.fresh++}`, q1: Path = {...p, heap: new Map(p.heap).set(id, {k: 'rec', ty: rec, f: new Map(), origin: 'fresh'})}
       this.notes.add(`${r.short}(...) (${x.p}): made by its __init__, read`)
-      return [{t: 'ref', id}, this.callFunc(this.func(r.methods.__init__!, x), {t: 'ref', id}, args, kw, x, q1, false)[1]]
+      return [{t: 'ref', id}, this.callFunc(this.func(initId!, x), {t: 'ref', id}, args, kw, x, q1, false)[1]]
     }
     if (!r.kinds.includes('dataclass') || !r.own) return refuse(x, `${x.text}: ${r.short} made (the subset makes the module's own dataclasses)`)
     if (r.methods.__init__ || r.methods.__post_init__) return refuse(x, `${x.text}: ${r.short} has its own __init__ or __post_init__`)
@@ -3119,6 +3207,14 @@ export class Stepper {
       const cl = v && this.listOf(v, q, x, true)
       if (n === 'len' && cl) return [{t: 'num', e: cl.len}, q]
       switch (n) {
+        case 'hasattr': {
+          const name = args[1]
+          if (args.length !== 2 || name?.t !== 'str' || name.e.op !== 'slit') return refuse(x, `${x.text}: hasattr requires an object and a literal attribute name`)
+          return [{t: 'bool', e: this.hasAttribute(args[0]!, name.e.value, x, q) ? I.T : I.F}, q]
+        }
+        case '$object_init':
+          if (!args.length) return [{t: 'none'}, q]
+          return refuse(x, `${x.text}: object.__init__ takes no arguments`)
         case 'min': case 'max': {
           if (args.length < 2) return refuse(x, `${x.text}: ${n} of an iterable`)
           const ns = args.map(a => this.numOf(a, x, q))
@@ -3982,7 +4078,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     g.method = '__init__'
     const r0 = g.refusals.length
     let made: Path
-    const initId = r.methods.__init__
+    const initId = g.initMethod(r, at)
     if (initId) g.entryIds.add(initId)
     if (r.kinds.some(k => k.startsWith('generic:'))) refuse(r, `${r.short}: a generic type (its methods read a type parameter)`)
     if (r.initializers && r.initializers.length > 1) throw new InitializerChoice(r)

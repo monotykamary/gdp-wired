@@ -143,6 +143,8 @@ class Reader:
     self.caught = []  # (the names the handlers being read bind their exceptions to)
     self.based, self.supers, self.defs, self.local_imps = set(), [], {}, []  # (the bases read as bases; the bases of the class whose method is read)
     self.class_mros, self.class_attrs, self.class_bound = {}, {}, {}
+    self.class_fields, self.class_methods, self.class_rets = {}, {}, {}
+    self.class_collections = {}
 
   # --- types -------------------------------------------------------------------------------------------------------
   def find_class(self, mod, name, depth=0):
@@ -187,7 +189,7 @@ class Reader:
     return None
   def class_constants(self, cdef):
     """Own scalar literals and every name that shadows a base's literal. Mutable values are not constants."""
-    values, bound = {}, set()
+    values, bound, collections, final_methods = {}, set(), set(), set()
     static = not cdef.keywords and not cdef.decorator_list
     for n in cdef.body:
       if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
@@ -200,15 +202,22 @@ class Reader:
       else:
         # Control flow, imports and dynamic class-body code may shadow any earlier literal.
         values.clear()
+        collections.clear()
         static = False
         continue
       bound.update(names)
-      for name in names: values.pop(name, None)
+      for name in names:
+        values.pop(name, None)
+        collections.discard(name)
+        final_methods.discard(name)
+      if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)): final_methods.add(n.name)
       target = n.targets[0] if isinstance(n, ast.Assign) and len(n.targets) == 1 else n.target if isinstance(n, ast.AnnAssign) else None
       value = n.value if isinstance(n, (ast.Assign, ast.AnnAssign)) else None
       if isinstance(target, ast.Name) and isinstance(value, ast.Constant) and isinstance(value.value, (int, float, str, bool, type(None))) and not isinstance(value.value, bytes):
         values[target.id] = value.value
-    return values, bound, static
+      if isinstance(target, ast.Name) and isinstance(value, (ast.List, ast.Tuple, ast.Dict, ast.Set)):
+        collections.add(target.id)
+    return values, bound, static, collections, final_methods
 
   def class_mro(self, q, bases):
     """Python's C3 order, or no inherited constants if a base/order is not known."""
@@ -308,7 +317,9 @@ class Reader:
     self.defs[q] = (mod, cdef)
     self.recs[q] = None  # (being read)
     fields, methods, bases, kinds, rets = [], {}, [], set(), {}
-    cattrs, bound, static = self.class_constants(cdef)
+    own_fields, own_methods, own_rets = {}, {}, {}
+    cattrs, bound, static, collections, final_methods = self.class_constants(cdef)
+    collections = {name: q for name in collections}
     orm = self.orm_kind(mod, cdef)
     if orm: static = False
     for b in cdef.bases:
@@ -341,7 +352,7 @@ class Reader:
     total = not any(k.arg == 'total' and isinstance(k.value, ast.Constant) and k.value.value is False for k in cdef.keywords)
     # The fields its __init__ sets: annotated there, or set from an annotated argument (a class of another module whose
     # fields aren't declared on the class).
-    init = next((n for n in cdef.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == '__init__'), None)
+    init = next((n for n in reversed(cdef.body) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == '__init__'), None) if '__init__' in final_methods else None
     if init is not None:
       anns = {x.arg: x.annotation for x in init.args.args + init.args.kwonlyargs if x.annotation is not None}
       for n in ast.walk(init):
@@ -355,41 +366,68 @@ class Reader:
             # `x or DEFAULT`: the argument's type, never None
             name, t = n.targets[0].attr, self.ty(anns[v.values[0].id], mod)
             if t['k'] == 'opt': t = t['of']
-        if t is not None and not any(g['name'] == name for g in fields): fields.append({'name': name, 't': t, 'init': True})
+        if t is not None:
+          own_fields[name] = {'name': name, 't': t, 'init': True}
+          fields = [g for g in fields if g['name'] != name] + [own_fields[name]]
     for n in cdef.body:
       of = self.orm_field(n, mod, orm) if orm else None
       if of:
         fields = [g for g in fields if g['name'] != of['name']] + [of]
+        own_fields[of['name']] = of
       if not of and isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name):
         ann = n.annotation
         if dotted(ann.value if isinstance(ann, ast.Subscript) else ann) in ('ClassVar', 'typing.ClassVar'): continue
         f = {'name': n.target.id, 't': self.ty(ann, mod)}
         if n.value is not None: f['dflt'] = self.expr(n.value, mod)
         fields = [g for g in fields if g['name'] != f['name']] + [f]
+        own_fields[f['name']] = f
       elif isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
-        if n.returns is not None: rets[n.name] = self.ty(n.returns, mod)
-        else: rets.pop(n.name, None)
+        if n.returns is not None:
+          rets[n.name] = own_rets[n.name] = self.ty(n.returns, mod)
+        else:
+          rets.pop(n.name, None)
+          own_rets.pop(n.name, None)
         if mod.path == self.file or base:
-          fid = f"{cdef.name}.{n.name}"
+          fid = f"{q}.{n.name}"
           # (a base's method read where its module is: its positions in its own file, super() its own bases')
-          file, self.file, sup, self.supers, dfn, self.defining = self.file, mod.path, self.supers, bases, getattr(self, 'defining', None), cdef.name
+          file, self.file, sup, self.supers, dfn, self.defining = self.file, mod.path, self.supers, bases, getattr(self, 'defining', None), q
           try: self.funcs[fid] = self.func(n, mod, cdef.name, fid)
           finally: self.file, self.supers, self.defining = file, sup, dfn
-          methods[n.name] = fid
-        else: methods[n.name] = None  # another module's method: not read
+          methods[n.name] = own_methods[n.name] = fid
+        else: methods[n.name] = own_methods[n.name] = None  # another module's method: not read
+    # Only the last runtime binding is callable. An annotation without a value
+    # does not bind; an assignment after a method removes its stale metadata.
+    for name in bound - final_methods:
+      methods.pop(name, None)
+      own_methods.pop(name, None)
+      rets.pop(name, None)
+      own_rets.pop(name, None)
     self.class_attrs[q], self.class_bound[q] = cattrs, bound
+    self.class_collections[q] = collections
+    self.class_fields[q], self.class_methods[q], self.class_rets[q] = own_fields, own_methods, own_rets
     order = self.class_mro(q, bases) if static else None
     self.class_mros[q] = order
     if order is not None:
-      cattrs = {}
+      cattrs, methods, rets, selected_fields, collections = {}, {}, {}, {}, {}
       for owner in reversed(order):
-        for name in self.class_bound[owner]: cattrs.pop(name, None)
+        # Only declarations belong to an owner. A flattened base record can
+        # select an ancestor too early in a diamond, or the wrong direct base.
+        for name in self.class_bound[owner]:
+          cattrs.pop(name, None)
+          collections.pop(name, None)
+          methods.pop(name, None)
+          rets.pop(name, None)
         cattrs.update(self.class_attrs[owner])
+        collections.update(self.class_collections[owner])
+        methods.update(self.class_methods[owner])
+        rets.update(self.class_rets[owner])
+        selected_fields.update(self.class_fields[owner])
+      fields = list(selected_fields.values())
     # A scalar selected by attribute lookup also shadows an inherited method/property of that name.
     for name in cattrs:
       methods.pop(name, None)
       rets.pop(name, None)
-    r = {'name': q, 'short': cdef.name, 'fields': fields, 'methods': methods, 'bases': bases, 'p': where(mod.path, cdef, self.repo.root), 'cattrs': cattrs,
+    r = {'name': q, 'short': cdef.name, 'fields': fields, 'methods': methods, 'bases': bases, 'mro': order, 'declared': sorted(bound), 'p': where(mod.path, cdef, self.repo.root), 'cattrs': cattrs, 'classCollections': collections,
          'kinds': sorted(kinds | ({'dataclass'} if dataclass else set()) | ({'frozen'} if frozen else set()) | (set() if total else {'partial'})),
          'own': mod.path == self.file, 'module': mod.name, **({'rets': rets} if rets else {})}
     if orm:
@@ -704,6 +742,14 @@ class Reader:
       return {'e': 'no', 'why': f"{text(x)}: a constant outside the subset", 'p': p}
     if isinstance(x, ast.Name): return self.name(x.id, mod, p)
     if isinstance(x, ast.Attribute):
+      if isinstance(x.value, ast.Call) and isinstance(x.value.func, ast.Name) and x.value.func.id == 'super':
+        args, owner = x.value.args, getattr(self, 'defining', None)
+        valid = not args or (len(args) == 2 and all(isinstance(a, ast.Name) for a in args) and owner and args[0].id == owner.rsplit('.', 1)[-1] and args[1].id == 'self')
+        if not owner or not valid or x.value.keywords:
+          return {'e': 'no', 'why': f"{text(x)}: super outside its defining instance method", 'p': p}
+        # Resolve after this owner in the receiver's MRO, not in the owner's
+        # direct bases: cooperative super may dispatch to a sibling mixin.
+        return {'e': 'get', 'x': {'e': 'var', 'n': 'self', 'p': p}, 'f': x.attr, 'superFrom': owner, 'p': p, 'text': text(x)}
       d = dotted(x)
       base = d.split('.')[0] if d else None
       q = self.qualified(mod, x)
@@ -740,16 +786,6 @@ class Reader:
     if isinstance(x, ast.IfExp): return {'e': 'ite', 'c': E(x.test), 'a': E(x.body), 'b': E(x.orelse), 'p': p}
     if isinstance(x, ast.Await): return {'e': 'await', 'x': E(x.value), 'p': p}
     if isinstance(x, ast.Call):
-      # super().m(...): the first base (in the order its bases are listed, theirs after) whose m is read, on self;
-      # super().__init__() where no base has one: object's, nothing; super(C, self) in C's own method is super()
-      fx = x.func
-      sa = fx.value.args if isinstance(fx, ast.Attribute) and isinstance(fx.value, ast.Call) else None
-      if isinstance(fx, ast.Attribute) and isinstance(fx.value, ast.Call) and isinstance(fx.value.func, ast.Name) and fx.value.func.id == 'super' and (not sa or (len(sa) == 2 and not fx.value.keywords and all(isinstance(a, ast.Name) for a in sa) and sa[0].id == getattr(self, 'defining', None) and sa[1].id == 'self')):
-        mid = next((self.recs[b]['methods'][fx.attr] for b in self.supers if self.recs.get(b) and fx.attr in self.recs[b]['methods']), False)
-        if mid is False and fx.attr == '__init__' and not x.args and not x.keywords: return {'e': 'none', 'p': p}
-        if not mid: return {'e': 'no', 'why': f"{text(x)}: a base's method not read", 'p': p}
-        return {'e': 'call', 'f': {'e': 'get', 'x': {'e': 'var', 'n': 'self', 'p': p}, 'f': fx.attr, 'sup': mid, 'p': p, 'text': text(fx)},
-                'args': [E(a) for a in x.args], 'kw': [[k.arg, E(k.value)] if k.arg else ['**', {'e': 'no', 'why': f"**{text(k.value)}", 'p': p}] for k in x.keywords], 'p': p, 'text': text(x)}
       f = E(x.func)
       if f.get('e') == 'ext' and f.get('q') in KNOWN: f = {'e': 'lib', 'q': f['q'], 'p': f['p']}
       # (a class of the repository made here: its methods read, its __init__ the code that makes it)

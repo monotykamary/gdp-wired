@@ -181,6 +181,25 @@ the laws from its comments. The contract is the same in every language:
 its persistence boundary, configuration, and refusals. Their tables use the shared map state and `gdp: env`
 isolation model; the check executes the original handlers with in-memory persistence substitutes.
 
+## Python inheritance and presence checks
+
+Ordinary Python classes with a statically known C3 MRO select fields, methods and class
+constants by their declaring owner, including cooperative `super()` on the receiver's MRO.
+Module-qualified method IDs distinguish same-named classes in different modules. Class
+collections may be carried opaquely, not read, copied into state or treated as constants.
+Calls with no variadic arguments bind `*args` and `**kwargs` to their actual empty values;
+nonempty variadic calls remain refused.
+
+`hasattr(instance, 'literal')` checks modeled fields and known class bindings without
+reading their values. Properties, unknown descriptors, implicit object attributes and
+dynamic names are refused rather than speculatively evaluated. Final class-body bindings
+matter: assignments replace earlier methods, annotations without values do not, and a
+later unannotated definition clears the earlier return type. Constructor-inferred fields
+come from the final initializer. Entry and nested construction share the same check for
+nonmethod or decorated initializers. Ordinary unknown-MRO construction and custom
+allocation/attribute hooks are refused. Existing dataclass/ORM generation stays a separate
+reader boundary; this is not a claim of universal Python constructor safety.
+
 ## Worked example: Python
 
 | Piece | File | Notes |

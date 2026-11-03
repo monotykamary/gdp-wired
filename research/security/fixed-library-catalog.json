@@ -1,0 +1,605 @@
+{
+  "schema": 1,
+  "kind": "fixed-library-source-catalog",
+  "status": "not-a-recall-measurement",
+  "method": "Read-only git fetch and git show; SHA-256 of exact source blob bytes. No upstream module was imported or executed. A release parent is not assumed vulnerable.",
+  "recall": null,
+  "rows": [
+    {
+      "id": "GHSA-29wx-vh33-7x7r",
+      "aliases": [
+        "CVE-2024-51744"
+      ],
+      "summary": "Bad documentation of error handling in ParseWithClaims can lead to potentially dangerous situations",
+      "language": "Go",
+      "repo": "golang-jwt/jwt",
+      "advisory": "https://github.com/advisories/GHSA-29wx-vh33-7x7r",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2024/11/GHSA-29wx-vh33-7x7r/GHSA-29wx-vh33-7x7r.json",
+        "documentSha256": "cc903538dc548e387903cdf3cbb312fbd005994239f8b87b4078874d448f0bec"
+      },
+      "fixed": {
+        "revision": "7b1c1c00a171c6c79bbdb40e4ce7d197060c1c2c",
+        "reference": "7b1c1c00a171c6c79bbdb40e4ce7d197060c1c2c",
+        "sources": [
+          {
+            "path": "parser.go",
+            "sha256": "7d5fb15339d44e718eba55debb72f856ddf429903b46e726a318abd9ba380ee2",
+            "lines": 176,
+            "url": "https://raw.githubusercontent.com/golang-jwt/jwt/7b1c1c00a171c6c79bbdb40e4ce7d197060c1c2c/parser.go"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    },
+    {
+      "id": "GHSA-3jp2-3mrg-2vxc",
+      "aliases": [
+        "CVE-2026-49272"
+      ],
+      "summary": "OAuthLib: Bearer token can be retrieved as long as client knows a valid client ID for device workflow",
+      "language": "Python",
+      "repo": "oauthlib/oauthlib",
+      "advisory": "https://github.com/advisories/GHSA-3jp2-3mrg-2vxc",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2026/10/GHSA-3jp2-3mrg-2vxc/GHSA-3jp2-3mrg-2vxc.json",
+        "documentSha256": "3930ee1ce7cb5f9fd0a06b8545d7f9bad59936a31dea84276dc9efe484ffcd84"
+      },
+      "fixed": {
+        "revision": "145a9a4690cb4d9de30d15fcc2984e34c49df741",
+        "reference": "v4.0.0",
+        "sources": [
+          {
+            "path": "oauthlib/oauth2/rfc8628/grant_types/__init__.py",
+            "sha256": "f63c20fda35c2e5a8767f62c13a8d00bc41b5a7b06e62bf7e4d9c91ada2e13dc",
+            "lines": 1,
+            "url": "https://raw.githubusercontent.com/oauthlib/oauthlib/145a9a4690cb4d9de30d15fcc2984e34c49df741/oauthlib/oauth2/rfc8628/grant_types/__init__.py"
+          },
+          {
+            "path": "oauthlib/oauth2/rfc8628/grant_types/device_code.py",
+            "sha256": "2251113b4b2e35da85af59b02dae126fc1a7390c65e1c0f9187be256c4890d2a",
+            "lines": 97,
+            "url": "https://raw.githubusercontent.com/oauthlib/oauthlib/145a9a4690cb4d9de30d15fcc2984e34c49df741/oauthlib/oauth2/rfc8628/grant_types/device_code.py"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    },
+    {
+      "id": "GHSA-4w5x-x539-ppf5",
+      "aliases": [
+        "CVE-2020-26892"
+      ],
+      "summary": "Incorrect handling of credential expiry by /nats-io/nats-server",
+      "language": "Go",
+      "repo": "nats-io/jwt",
+      "advisory": "https://github.com/advisories/GHSA-4w5x-x539-ppf5",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2022/02/GHSA-4w5x-x539-ppf5/GHSA-4w5x-x539-ppf5.json",
+        "documentSha256": "05dc498ebeba769fefd8ae3b8694333373640f03e466b9a33f4bf258808bd5d6"
+      },
+      "fixed": {
+        "revision": "e11ce317263cef69619fc1ca743b195d02aa1d8a",
+        "reference": "e11ce317263cef69619fc1ca743b195d02aa1d8a",
+        "sources": [
+          {
+            "path": "exports.go",
+            "sha256": "aa59bbc97cf72fee6fc41c3694c123e144ee50a1d21321434f97af2b6390245c",
+            "lines": 245,
+            "url": "https://raw.githubusercontent.com/nats-io/jwt/e11ce317263cef69619fc1ca743b195d02aa1d8a/exports.go"
+          },
+          {
+            "path": "v2/exports.go",
+            "sha256": "f0340c3d087cbfe857ac85eb60898cf2f60e923cdeaf90a5f7a10fdb4c3c588d",
+            "lines": 273,
+            "url": "https://raw.githubusercontent.com/nats-io/jwt/e11ce317263cef69619fc1ca743b195d02aa1d8a/v2/exports.go"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    },
+    {
+      "id": "GHSA-62mh-w5cv-p88c",
+      "aliases": [
+        "CVE-2021-3127"
+      ],
+      "summary": "nats-io/jwt not enforcing checking of Import token permissions",
+      "language": "Go",
+      "repo": "nats-io/jwt",
+      "advisory": "https://github.com/advisories/GHSA-62mh-w5cv-p88c",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2022/02/GHSA-62mh-w5cv-p88c/GHSA-62mh-w5cv-p88c.json",
+        "documentSha256": "203bab1b009599f8c45af7fe774082cbf8c04e34ab45130d1d6391fd45b87325"
+      },
+      "fixed": {
+        "revision": "6c72fdd73e82fa9ebb151d84773baf4e9164c4ab",
+        "reference": "6c72fdd73e82fa9ebb151d84773baf4e9164c4ab",
+        "sources": [
+          {
+            "path": "imports.go",
+            "sha256": "60cfae7ab45c0a37c4ad66e0ccb790ed9d691f42f78c9c0edbf9f379ecc2e5ac",
+            "lines": 166,
+            "url": "https://raw.githubusercontent.com/nats-io/jwt/6c72fdd73e82fa9ebb151d84773baf4e9164c4ab/imports.go"
+          },
+          {
+            "path": "v2/imports.go",
+            "sha256": "2adb72ec01d96f96e5f111c626fe1975c64a207b00ce6925d41742a66fc8781f",
+            "lines": 168,
+            "url": "https://raw.githubusercontent.com/nats-io/jwt/6c72fdd73e82fa9ebb151d84773baf4e9164c4ab/v2/imports.go"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    },
+    {
+      "id": "GHSA-75c5-xw7c-p5pm",
+      "aliases": [
+        "CVE-2024-53861"
+      ],
+      "summary": "PyJWT Issuer field partial matches allowed",
+      "language": "Python",
+      "repo": "jpadilla/pyjwt",
+      "advisory": "https://github.com/advisories/GHSA-75c5-xw7c-p5pm",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2024/12/GHSA-75c5-xw7c-p5pm/GHSA-75c5-xw7c-p5pm.json",
+        "documentSha256": "2ede31e99a1c39e5fb8d4425d2ccbc592cc44fc897e42fa5d0b40098e1e7196d"
+      },
+      "fixed": {
+        "revision": "33022c25525c1020869c71ce2a4109e44ae4ced1",
+        "reference": "33022c25525c1020869c71ce2a4109e44ae4ced1",
+        "sources": [
+          {
+            "path": "jwt/api_jwt.py",
+            "sha256": "3864f886893597903a147fca75cad4e60eaee8443c07b7a6d2bf6418cf526200",
+            "lines": 433,
+            "url": "https://raw.githubusercontent.com/jpadilla/pyjwt/33022c25525c1020869c71ce2a4109e44ae4ced1/jwt/api_jwt.py"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    },
+    {
+      "id": "GHSA-76rv-2r9v-c5m6",
+      "aliases": [
+        "CVE-2026-27695"
+      ],
+      "summary": "zae-limiter: DynamoDB hot partition throttling enables per-entity Denial of Service",
+      "language": "Python",
+      "repo": "zeroae/zae-limiter",
+      "advisory": "https://github.com/advisories/GHSA-76rv-2r9v-c5m6",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2026/02/GHSA-76rv-2r9v-c5m6/GHSA-76rv-2r9v-c5m6.json",
+        "documentSha256": "023fd78514b1e127f1a7a23cacb5e904910b783beb0c6ded5391d1c3e52114ec"
+      },
+      "fixed": {
+        "revision": "481ce44d818d66e31d8837bc48519660ce4c267f",
+        "reference": "481ce44d818d66e31d8837bc48519660ce4c267f",
+        "sources": [
+          {
+            "path": "src/zae_limiter/limiter.py",
+            "sha256": "aa1714d31b064d3e42008a771a6388321bec582f4bf948bffc220a9148995642",
+            "lines": 1901,
+            "url": "https://raw.githubusercontent.com/zeroae/zae-limiter/481ce44d818d66e31d8837bc48519660ce4c267f/src/zae_limiter/limiter.py"
+          },
+          {
+            "path": "src/zae_limiter/repository.py",
+            "sha256": "eb3528570c89185bd4e425cd98a7ab62addac74a16cef8abf67f8851b7ce687c",
+            "lines": 4301,
+            "url": "https://raw.githubusercontent.com/zeroae/zae-limiter/481ce44d818d66e31d8837bc48519660ce4c267f/src/zae_limiter/repository.py"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    },
+    {
+      "id": "GHSA-c33x-vcv4-vg3g",
+      "aliases": [],
+      "summary": "Cedar: JSON template is in scope missing slot-id validation allows link panic and decision divergence",
+      "language": "Rust",
+      "repo": "cedar-policy/cedar",
+      "advisory": "https://github.com/advisories/GHSA-c33x-vcv4-vg3g",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2026/10/GHSA-c33x-vcv4-vg3g/GHSA-c33x-vcv4-vg3g.json",
+        "documentSha256": "f33ca5d83e1c65649c0126f83f99703edde961b1ad97b9ef41d619baf0ac6e85"
+      },
+      "fixed": {
+        "revision": "c4babce0b550860ca4ec5e6fb20fb02db88f5942",
+        "reference": "v4.11.1",
+        "sources": [
+          {
+            "path": "cedar-policy-core/src/est.rs",
+            "sha256": "3fefefd9bfd8480ec3e227a0dba9d39028043e74cc038ddbf570fe02a43144b3",
+            "lines": 5128,
+            "url": "https://raw.githubusercontent.com/cedar-policy/cedar/c4babce0b550860ca4ec5e6fb20fb02db88f5942/cedar-policy-core/src/est.rs"
+          },
+          {
+            "path": "cedar-policy-core/src/est/annotation.rs",
+            "sha256": "be2dcf9127657da64110e9e40cbd98316b5506393f8c3d016db8cba11096e96b",
+            "lines": 96,
+            "url": "https://raw.githubusercontent.com/cedar-policy/cedar/c4babce0b550860ca4ec5e6fb20fb02db88f5942/cedar-policy-core/src/est/annotation.rs"
+          },
+          {
+            "path": "cedar-policy-core/src/est/err.rs",
+            "sha256": "d12c2a403ca8bdb9ad1087d4981520c38ad29e93dfb7b7042594a6d616db2368",
+            "lines": 121,
+            "url": "https://raw.githubusercontent.com/cedar-policy/cedar/c4babce0b550860ca4ec5e6fb20fb02db88f5942/cedar-policy-core/src/est/err.rs"
+          },
+          {
+            "path": "cedar-policy-core/src/est/expr.rs",
+            "sha256": "bb9ab4c8ba9ae9868c89f0b4715e28e2db5775f5e2228b2f2d0edb2b69e1c489",
+            "lines": 2562,
+            "url": "https://raw.githubusercontent.com/cedar-policy/cedar/c4babce0b550860ca4ec5e6fb20fb02db88f5942/cedar-policy-core/src/est/expr.rs"
+          },
+          {
+            "path": "cedar-policy-core/src/est/policy_set.rs",
+            "sha256": "6cd0371ee0f398db0b0f1d70d20a57d17f65163243d17e956de03c8c1bf44795",
+            "lines": 753,
+            "url": "https://raw.githubusercontent.com/cedar-policy/cedar/c4babce0b550860ca4ec5e6fb20fb02db88f5942/cedar-policy-core/src/est/policy_set.rs"
+          },
+          {
+            "path": "cedar-policy-core/src/est/scope_constraints.rs",
+            "sha256": "4b548ea18cbcbb289d3d3b63fc5b6b1cbd2cdb1084b55792b538a6968d0d309c",
+            "lines": 1076,
+            "url": "https://raw.githubusercontent.com/cedar-policy/cedar/c4babce0b550860ca4ec5e6fb20fb02db88f5942/cedar-policy-core/src/est/scope_constraints.rs"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    },
+    {
+      "id": "GHSA-c5mf-xmp2-59rc",
+      "aliases": [
+        "CVE-2026-114617"
+      ],
+      "summary": "Authlib: ID token can disable its own nonce validation via the nonce_supported claim",
+      "language": "Python",
+      "repo": "authlib/authlib",
+      "advisory": "https://github.com/advisories/GHSA-c5mf-xmp2-59rc",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2026/10/GHSA-c5mf-xmp2-59rc/GHSA-c5mf-xmp2-59rc.json",
+        "documentSha256": "238b6de7150e17d611ae8ae326b98565c756f7183040021516c954b3f29edd0d"
+      },
+      "fixed": {
+        "revision": "6563f6f7a8c2f71d2f85ee7511d72a4fbae3acc0",
+        "reference": "6563f6f7a8c2f71d2f85ee7511d72a4fbae3acc0",
+        "sources": [
+          {
+            "path": "authlib/integrations/base_client/sync_openid.py",
+            "sha256": "5bdf3938f654ae5d3407121656324d35c383d3c9c83336d34cc4c5e8fc5b5aa2",
+            "lines": 123,
+            "url": "https://raw.githubusercontent.com/authlib/authlib/6563f6f7a8c2f71d2f85ee7511d72a4fbae3acc0/authlib/integrations/base_client/sync_openid.py"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    },
+    {
+      "id": "GHSA-fch4-3c6x-j4gc",
+      "aliases": [
+        "CVE-2026-114618"
+      ],
+      "summary": "Authlib: Default JWT bearer grant accepts assertions for the wrong audience",
+      "language": "Python",
+      "repo": "authlib/authlib",
+      "advisory": "https://github.com/advisories/GHSA-fch4-3c6x-j4gc",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2026/10/GHSA-fch4-3c6x-j4gc/GHSA-fch4-3c6x-j4gc.json",
+        "documentSha256": "cac90ec4165e0a0daf714dae5ad0574ca6dc7c77f092e14bdceb9aa0c848ec74"
+      },
+      "fixed": {
+        "revision": "e3bd41cb29dcfee434453b135ffb487884baeedf",
+        "reference": "e3bd41cb29dcfee434453b135ffb487884baeedf",
+        "sources": [
+          {
+            "path": "authlib/oauth2/rfc7523/jwt_bearer.py",
+            "sha256": "76055a9a9b9ad0da18fb2ae7c81314f533efc98ad8b060fbd77a7fa6be59eb19",
+            "lines": 282,
+            "url": "https://raw.githubusercontent.com/authlib/authlib/e3bd41cb29dcfee434453b135ffb487884baeedf/authlib/oauth2/rfc7523/jwt_bearer.py"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    },
+    {
+      "id": "GHSA-g5vw-3h65-2q3v",
+      "aliases": [
+        "CVE-2024-51734"
+      ],
+      "summary": "Access control vulnerable to user data deletion by anonynmous users",
+      "language": "Python",
+      "repo": "zopefoundation/AccessControl",
+      "advisory": "https://github.com/advisories/GHSA-g5vw-3h65-2q3v",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2024/11/GHSA-g5vw-3h65-2q3v/GHSA-g5vw-3h65-2q3v.json",
+        "documentSha256": "0511d395d11a7c7d73261255e282a513a0854be09464f6086d674683e87ea245"
+      },
+      "fixed": {
+        "revision": "0f00772d2632947275d25b349d166e69d78e727d",
+        "reference": "7.2",
+        "sources": [
+          {
+            "path": "src/AccessControl/userfolder.py",
+            "sha256": "45ed2e8175f7faf29c8098a2cbf4984cb693bbee167e6fafcbcf47a654517d89",
+            "lines": 432,
+            "url": "https://raw.githubusercontent.com/zopefoundation/AccessControl/0f00772d2632947275d25b349d166e69d78e727d/src/AccessControl/userfolder.py"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    },
+    {
+      "id": "GHSA-gvp8-978c-rx2q",
+      "aliases": [
+        "CVE-2026-103001"
+      ],
+      "summary": "PyJWT.decode() reintroduces options-dict mutation, enabling silent claim-verification bypass on dict reuse",
+      "language": "Python",
+      "repo": "jpadilla/pyjwt",
+      "advisory": "https://github.com/advisories/GHSA-gvp8-978c-rx2q",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2026/09/GHSA-gvp8-978c-rx2q/GHSA-gvp8-978c-rx2q.json",
+        "documentSha256": "2d8c5caaec78dddab17562d945e39e82a14fd1c948bdb49b381178c554d1af20"
+      },
+      "fixed": {
+        "revision": "0c87c8c8b1a74cac99ad8115f3050efcb7fbed35",
+        "reference": "0c87c8c8b1a74cac99ad8115f3050efcb7fbed35",
+        "sources": [
+          {
+            "path": "jwt/api_jwt.py",
+            "sha256": "88fe0067b597c726ab53a49963207822a1a8efdbc138603146bd4324600cda18",
+            "lines": 595,
+            "url": "https://raw.githubusercontent.com/jpadilla/pyjwt/0c87c8c8b1a74cac99ad8115f3050efcb7fbed35/jwt/api_jwt.py"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    },
+    {
+      "id": "GHSA-jq35-7prp-9v3f",
+      "aliases": [
+        "CVE-2026-48523"
+      ],
+      "summary": "PyJWT: Algorithm allow-list bypass when decoding with `PyJWK` / `PyJWKClient` keys",
+      "language": "Python",
+      "repo": "jpadilla/pyjwt",
+      "advisory": "https://github.com/advisories/GHSA-jq35-7prp-9v3f",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2026/06/GHSA-jq35-7prp-9v3f/GHSA-jq35-7prp-9v3f.json",
+        "documentSha256": "f43c4620e07c91b01c4de246e3f7e128526e2365a2d9b8843eadb5aea2388b49"
+      },
+      "fixed": {
+        "revision": "7144e4534c34810f4525dc4578a32addd8212cff",
+        "reference": "2.13.0",
+        "sources": [
+          {
+            "path": "jwt/api_jws.py",
+            "sha256": "caed888a86cdf1c2f705ed3c397bb50aa4e52cd68ee86b22e46a4141bd9d3975",
+            "lines": 456,
+            "url": "https://raw.githubusercontent.com/jpadilla/pyjwt/7144e4534c34810f4525dc4578a32addd8212cff/jwt/api_jws.py"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    },
+    {
+      "id": "GHSA-pq59-9fq7-m886",
+      "aliases": [
+        "CVE-2026-77401"
+      ],
+      "summary": "Zope AccessControl vulnerable to information disclosure through Python string `format` and `format_map` functions",
+      "language": "Python",
+      "repo": "zopefoundation/AccessControl",
+      "advisory": "https://github.com/advisories/GHSA-pq59-9fq7-m886",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2026/09/GHSA-pq59-9fq7-m886/GHSA-pq59-9fq7-m886.json",
+        "documentSha256": "e43673f4a0de1d0815075c84a2ea3039fc8df5516b7a105d9a548caa9eca6535"
+      },
+      "fixed": {
+        "revision": "f980450eea416718be62847f34dfd51822938e43",
+        "reference": "f980450eea416718be62847f34dfd51822938e43",
+        "sources": [
+          {
+            "path": "src/AccessControl/ImplPython.py",
+            "sha256": "e08b633fd1a39bf3303edae9302a17bd8c8b94fd29320bec9803e33347e74b88",
+            "lines": 914,
+            "url": "https://raw.githubusercontent.com/zopefoundation/AccessControl/f980450eea416718be62847f34dfd51822938e43/src/AccessControl/ImplPython.py"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    },
+    {
+      "id": "GHSA-q686-2qmg-hqc7",
+      "aliases": [
+        "CVE-2026-114619"
+      ],
+      "summary": "Authlib: OpenID implicit grant checks raw scope instead of allowed scope before issuing ID tokens",
+      "language": "Python",
+      "repo": "authlib/authlib",
+      "advisory": "https://github.com/advisories/GHSA-q686-2qmg-hqc7",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2026/10/GHSA-q686-2qmg-hqc7/GHSA-q686-2qmg-hqc7.json",
+        "documentSha256": "297fdfe9e6f2e225031d1bc295b86126c2a831117e0678e4ec757928e1f08c8c"
+      },
+      "fixed": {
+        "revision": "e3bd41cb29dcfee434453b135ffb487884baeedf",
+        "reference": "e3bd41cb29dcfee434453b135ffb487884baeedf",
+        "sources": [
+          {
+            "path": "authlib/oidc/core/grants/implicit.py",
+            "sha256": "f7ff221f13c16a1af1487fcb033119d63c05494ae8c2d11429db14beb5b4236a",
+            "lines": 186,
+            "url": "https://raw.githubusercontent.com/authlib/authlib/e3bd41cb29dcfee434453b135ffb487884baeedf/authlib/oidc/core/grants/implicit.py"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    },
+    {
+      "id": "GHSA-w73w-5m7g-f7qc",
+      "aliases": [
+        "CVE-2020-26160"
+      ],
+      "summary": "Authorization bypass in github.com/dgrijalva/jwt-go",
+      "language": "Go",
+      "repo": "dgrijalva/jwt-go",
+      "advisory": "https://github.com/advisories/GHSA-w73w-5m7g-f7qc",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2021/05/GHSA-w73w-5m7g-f7qc/GHSA-w73w-5m7g-f7qc.json",
+        "documentSha256": "1d2caa609795b9e60bf5b9e430fc26a93dc49ae9d421e7b0d9922882136efb08"
+      },
+      "fixed": {
+        "revision": "ec0a89a131e3e8567adcb21254a5cd20a70ea4ab",
+        "reference": "ec0a89a131e3e8567adcb21254a5cd20a70ea4ab",
+        "sources": [
+          {
+            "path": "map_claims.go",
+            "sha256": "89c917e83e3329af5097163cdcf35818ac7ef411e250459452f9de85a549cc3d",
+            "lines": 113,
+            "url": "https://raw.githubusercontent.com/dgrijalva/jwt-go/ec0a89a131e3e8567adcb21254a5cd20a70ea4ab/map_claims.go"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    },
+    {
+      "id": "GHSA-x9vf-53q3-cvx6",
+      "aliases": [
+        "CVE-2026-1774"
+      ],
+      "summary": "CASL Ability is Vulnerable to Prototype Pollution",
+      "language": "TypeScript",
+      "repo": "stalniy/casl",
+      "advisory": "https://github.com/advisories/GHSA-x9vf-53q3-cvx6",
+      "provenance": {
+        "databaseCommit": "53b81e49512f75baab87cc2cc6934ee91b053be7",
+        "documentUrl": "https://raw.githubusercontent.com/github/advisory-database/53b81e49512f75baab87cc2cc6934ee91b053be7/advisories/github-reviewed/2026/02/GHSA-x9vf-53q3-cvx6/GHSA-x9vf-53q3-cvx6.json",
+        "documentSha256": "97afecb40b163508b245c3b9259d4b3a7acccd18c7e186f1420579bfba34042e"
+      },
+      "fixed": {
+        "revision": "39da920ec1dfadf3655e28bd0389e960ac6871f4",
+        "reference": "39da920ec1dfadf3655e28bd0389e960ac6871f4",
+        "sources": [
+          {
+            "path": "packages/casl-ability/src/utils.ts",
+            "sha256": "e1c074e5df8547fc3f35eae1a7a9fdf5205ab15ffcd25c3d3c1973f960bf3034",
+            "lines": 180,
+            "url": "https://raw.githubusercontent.com/stalniy/casl/39da920ec1dfadf3655e28bd0389e960ac6871f4/packages/casl-ability/src/utils.ts"
+          }
+        ]
+      },
+      "status": "indexed-only",
+      "evaluation": {
+        "reader": "not-run",
+        "policy": "not-reviewed",
+        "originalReplay": "not-run",
+        "fixedProof": "not-run"
+      }
+    }
+  ]
+}

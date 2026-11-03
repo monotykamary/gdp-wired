@@ -14,10 +14,17 @@ inputs:
   paths: {description: 'The files or directories to check, separated by spaces', required: true}
   args: {description: 'More flags (--entry X, --failures kept, --ms 30000, --no-propose, --json)', required: false, default: ''}
   version: {description: 'The gdp-wired version from npm', required: false, default: 'latest'}
+  security: {description: 'Propose review-required security policies (--security); candidates never affect the exit code', required: false, default: 'false'}
 runs:
   using: composite
   steps:
     - uses: actions/setup-node@v4
       with: {node-version: '22'}
-    - shell: bash
+    - name: Check stated laws
+      if: inputs.security != 'true'
+      shell: bash
       run: npx -y -p typescript@5.9.3 -p gdp-wired@${{ inputs.version }} gdp-wired check ${{ inputs.paths }} ${{ inputs.args }}
+    - name: Check stated laws and propose security policies
+      if: inputs.security == 'true'
+      shell: bash
+      run: npx -y -p typescript@5.9.3 -p gdp-wired@${{ inputs.version }} gdp-wired check ${{ inputs.paths }} ${{ inputs.args }} --security

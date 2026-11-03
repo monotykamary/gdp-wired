@@ -24,20 +24,20 @@ const units: Unit[] = [
     keyterms.test.ts lists.test.ts liveness.test.ts sizes.test.ts values.test.ts rationals.test.ts builders.test.ts
     gdp.test.ts datatypes.test.ts lemmas.test.ts discover.test.ts infer.test.ts cyclic.test.ts cycles.test.ts
     nonterm.test.ts data.test.ts data-synth.test.ts hypothesis.test.ts seqs.test.ts abstract.test.ts search.test.ts invoices.test.ts
-    folds.test.ts trees.test.ts pairs.test.ts chart.test.ts xstate.test.ts extract.test.ts extract-py.test.ts extract-orm.test.ts extract-py-orm.test.ts sol-concrete.test.ts effect.test.ts
+    folds.test.ts trees.test.ts pairs.test.ts chart.test.ts xstate.test.ts extract.test.ts extract-py.test.ts extract-py-mro.test.ts extract-py-hasattr.test.ts extract-orm.test.ts extract-py-orm.test.ts sol-concrete.test.ts effect.test.ts
     effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts calendar.test.ts count-facts.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts`),
   ...tests('kernel', 'tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts epr-clock.test.ts epr-image.test.ts triggers.test.ts share.test.ts model-sequence.test.ts'),
   ...tests('research/query', 'goal-pack.test.ts'),
   ...tests('research/audit', 'inventory.test.ts'),
   ...tests('examples', 'examples.test.ts'),
   ...tests('gates', 'bar.test.ts'),
-  ...tests('.', 'scripts/lean-gate/gate.test.ts'),
+  ...tests('.', 'scripts/action.test.ts scripts/lean-gate/gate.test.ts'),
   ...runs(`examples/readme.ts examples/guide.ts examples/composition.ts examples/sets.ts examples/quantifiers.ts
     examples/functions.ts examples/datatypes.ts examples/lemmas.ts examples/discover.ts examples/invoices.ts
     examples/folds.ts examples/trees.ts examples/pairs.ts examples/groups.ts examples/charts.ts examples/xstate.ts
     examples/effect.ts examples/effect-retry.ts examples/effect-stm.ts examples/effect-queue.ts examples/infer.ts
     examples/arith.ts examples/cyclic.ts examples/cycles.ts examples/data.ts examples/abstract.ts`),
-  ...tests('.', 'compare/tip/translate.test.ts research/security/score.test.ts research/security/mutants/mutants.test.ts research/security/mutants-upstream/upstream.test.ts'),
+  ...tests('.', 'compare/tip/translate.test.ts research/security/score.test.ts research/security/fixed-reader.test.ts research/security/mutants/mutants.test.ts research/security/mutants-upstream/upstream.test.ts'),
   ...runs(`examples/scopes.ts examples/lists.ts examples/sizes.ts examples/liveness.ts examples/sums.ts
     examples/nonterm.ts examples/rationals.ts examples/budget.ts examples/gdp.ts examples/steps.ts
     examples/jev-fabric/run.ts`),
