@@ -38,6 +38,73 @@ const step = (x: GoExtraction, name: string, then: (b: any, a: any) => any, when
   if (!v.proven) throw new Error(`${name}: ${JSON.stringify({goal: v.goal, stuck: v.stuck, witness: v.witness})}`)
 }
 
+// --- wall-clock projections -----------------------------------------------------------------------------------------
+t('Go clock: UnixMilli and Unix use one request time and preserve signed epoch rounding', () => {
+  const x = ok(go(`import "time"
+type Clock struct { Millis int64; Seconds int64; Same bool }
+func (c *Clock) Tick() {
+  c.Millis = time.Now().UnixMilli()
+  c.Seconds = time.Now().Unix()
+  c.Same = c.Millis == time.Now().UnixMilli()
+}`, 'Clock', {strict: true, domains: {now: 'int'}}))
+  expect(x.notes.join('\n')).toContain('millisecond')
+  const r = x.rule!, params = r.encodeParams({}), runtime = r.interpreter()
+  const times = [-1001, -1000, -999, -1, 0, 1, 999, 1000, 1001, 1_700_000_000_123]
+  const nativeFile = `${mkdtempSync(`${tmpdir()}/gdp-goclock-`)}/clock.go`
+  writeFileSync(nativeFile, `package main
+import ("encoding/json"; "os"; "time")
+func main() {
+  out := [][2]int64{}
+  for _, ms := range []int64{${times.join(',')}} {
+    t := time.UnixMilli(ms)
+    out = append(out, [2]int64{t.UnixMilli(), t.Unix()})
+  }
+  json.NewEncoder(os.Stdout).Encode(out)
+}`)
+  const native = JSON.parse(execFileSync('go', ['run', nativeFile], {encoding: 'utf8'})) as [number, number][]
+  for (const [i, now] of times.entries()) {
+    const state = runtime.step(params, runtime.init(params), r.encodeInput({method: 'Tick', now}))
+    expect(r.decode(state)).toMatchObject({Millis: native[i]![0], Seconds: native[i]![1], Same: true})
+  }
+}, 120_000)
+
+t('Go clock: aliased imports and UTF-8 columns retain original-code replay', () => {
+  const x = ok(go(`import τ "time"
+type Clock struct { Millis int64 }
+func (c *Clock) Tick() { /* é */ c.Millis = τ.Now().UnixMilli() }
+`, 'Clock', {strict: true}))
+  expect(x.names?.some(n => n.role === 'answer')).toBe(false)
+}, 120_000)
+
+t('Go clock: unsupported time values and finer projections remain refused', () => {
+  refused(go(`import "time"
+type Clock struct { Last time.Time }
+func (c *Clock) Tick() { c.Last = time.Now() }
+`, 'Clock', {strict: true}), /clock|time.Time|a method of time/)
+  refused(go(`import "time"
+type Clock struct { Nanos int64 }
+func (c *Clock) Tick() { c.Nanos = time.Now().UnixNano() }
+`, 'Clock', {strict: true}), /clock|time.Time|a method of time/)
+}, 120_000)
+
+t('Go clock: disjoint answered calls keep their own source substitutions', () => {
+  ok(go(`import ("time"; "runtime")
+type Clock struct { Count int; Millis int64 }
+func (c *Clock) Tick() { c.Count = runtime.NumCPU(); c.Millis = time.Now().UnixMilli() }
+`, 'Clock', {answers: {'runtime.NumCPU': 'int'}}))
+  ok(go(`import (τ "time"; "runtime")
+type Clock struct { Count int; Millis int64 }
+func (c *Clock) Tick() { /* 😀 */ c.Millis = τ.Now().UnixMilli(); c.Count = runtime.NumCPU() }
+`, 'Clock', {answers: {'runtime.NumCPU': 'int'}}))
+}, 120_000)
+
+t('Go clock: a clock nested in an answered call is refused rather than overwritten', () => {
+  refused(go(`import ("time"; "strconv")
+type Clock struct { Text string }
+func (c *Clock) Tick() { c.Text = strconv.FormatInt(time.Now().UnixMilli(), 10) }
+`, 'Clock', {answers: {'strconv.FormatInt': 'str'}}), /clock read inside an answered call/)
+}, 120_000)
+
 // --- the subset -------------------------------------------------------------------------------------------------------
 t('a struct of uint32 counters (gobreaker\'s Counts): increments wrap at 2^32, a result kept', () => {
   const x = ok(go(`
