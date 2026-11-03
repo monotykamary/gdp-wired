@@ -1,5 +1,5 @@
 import {expect, test} from 'bun:test'
-import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {join, resolve} from 'node:path'
 import {acquireBarSlot, BAR_SLOT_COUNT, tryBarSlot} from './bar-slots.ts'
 
@@ -121,6 +121,85 @@ test('quick-bar CLI waits before demand, read-only CLI bypasses slots, and exits
     expect(freed.slot).toBe(0); freed.release()
   } finally { await Promise.all(children.map(stop)); a.release(); b.release(); rmSync(home, {recursive: true, force: true}) }
 }, 30_000)
+
+test('dirty candidate pilots resolve a real snapshot root without changing its content key', async () => {
+  const dir = temp(), src = join(dir, 'source'), bin = join(dir, 'bin'), store = join(dir, 'bar'), children: Child[] = []
+  const env = {...process.env, HOME: dir, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1',
+    GIT_AUTHOR_NAME: 'bar test', GIT_AUTHOR_EMAIL: 'bar@example.invalid', GIT_COMMITTER_NAME: 'bar test', GIT_COMMITTER_EMAIL: 'bar@example.invalid',
+    PATH: `${bin}:${process.env.PATH}`, GDPW_BAR_DIR: store}
+  const git = (cwd: string, ...args: string[]) => {
+    const p = Bun.spawnSync(['git', ...args], {cwd, env, stdout: 'pipe', stderr: 'pipe'})
+    expect(p.exitCode, p.stderr.toString()).toBe(0)
+    return p.stdout.toString().trim()
+  }
+  const put = (p: string, text: string) => writeFileSync(p, text)
+  try {
+    for (const p of [src, bin, join(src, 'gates'), join(src, 'compare/chc'), join(src, 'supercomputer'), join(src, 'modal')]) mkdirSync(p, {recursive: true})
+    writeFileSync(join(bin, 'bun'), `#!/bin/sh\nif [ "$1" = install ]; then exit 0; fi\nexec '${process.execPath}' "$@"\n`, {mode: 0o755})
+    writeFileSync(join(bin, 'modal'), "#!/bin/sh\nprintf '[]\\n'\n", {mode: 0o755})
+    for (const f of ['bar.ts', 'bar-lib.ts', 'bar-slots.ts', 'boat-pass.py']) cpSync(join(import.meta.dir, f), join(src, 'gates', f))
+    put(join(src, 'package.json'), '{}\n')
+    put(join(src, '.gitignore'), 'ignored.txt\n*.tmp\nnode_modules/\n')
+    put(join(src, 'ignored.txt'), 'tracked despite ignore\n')
+    put(join(src, 'payload.txt'), 'base\n')
+    put(join(src, 'supercomputer/boat.py'), '# no demand in this fixture\n')
+    put(join(src, 'supercomputer/run.py'), '# fixture\n')
+    put(join(src, 'supercomputer/agent.py'), "import types\ndef modal_stub(): return types.ModuleType('modal')\n")
+    put(join(src, 'supercomputer/fanout.py'), '# fixture\n')
+    put(join(src, 'modal/boat.py'), '# from supercomputer import: no overlay needed\n')
+    put(join(src, 'compare/chc/modal_chc.py'), `import json,pathlib,subprocess,sys
+root=pathlib.Path(subprocess.check_output(['git','rev-parse','--show-toplevel'],text=True).strip())
+common=subprocess.check_output(['git','rev-parse','--path-format=absolute','--git-common-dir'],text=True).strip()
+out=pathlib.Path(sys.argv[sys.argv.index('--out')+1]);out.mkdir(parents=True,exist_ok=True)
+module=str(pathlib.Path(__file__).resolve().relative_to(root))
+files=subprocess.check_output(['git','ls-files','-z','-co','--exclude-standard'],text=True).split('\\0')
+(out/'root.json').write_text(json.dumps(dict(root=str(root),common=common,module=module,files=files)))
+assert root==pathlib.Path.cwd(), 'wrong snapshot root'
+assert module=='compare/chc/modal_chc.py', module
+names=json.loads(pathlib.Path(sys.argv[sys.argv.index('--tasks-json')+1]).read_text()) if '--tasks-json' in sys.argv else ['fixture']
+(out/'results.jsonl').write_text(''.join(json.dumps(dict(tool='gdp',task=t,answer='unsat',seconds=0.01))+'\\n' for t in names))
+`)
+    const library = join(dir, 'library'); mkdirSync(library)
+    git(library, 'init', '-q')
+    put(join(library, '.gitignore'), 'kept.dat\n*.tmp\n'); put(join(library, 'kept.dat'), 'vendored tracked ignored file\n')
+    git(library, 'add', '-f', '.gitignore', 'kept.dat')
+    const message = join(dir, 'message'); put(message, 'test: fixture\n')
+    git(library, 'commit', '-q', '-F', message)
+    git(src, 'init', '-q'); git(src, '-c', 'protocol.file.allow=always', 'submodule', 'add', '-q', library, 'vendor/lib')
+    git(src, 'add', '.'); git(src, 'add', '-f', 'ignored.txt'); git(src, 'commit', '-q', '-F', message)
+    const sha = git(src, 'rev-parse', 'HEAD'), common = git(src, 'rev-parse', '--path-format=absolute', '--git-common-dir')
+    put(join(src, 'payload.txt'), 'dirty\n'); put(join(src, 'new file.txt'), 'untracked source\n'); put(join(src, 'ignored.tmp'), 'do not ship\n')
+    const key = () => {
+      const h = new Bun.CryptoHasher('sha256'); h.update(git(src, 'status', '--porcelain', '--untracked-files=all') + git(src, 'diff', 'HEAD'))
+      for (const f of git(src, 'ls-files', '-o', '--exclude-standard').split('\n').filter(Boolean)) h.update(f + '\0' + readFileSync(join(src, f)).toString('base64'))
+      return `${sha.slice(0, 12)}+${h.digest('hex').slice(0, 8)}`
+    }
+    const firstKey = key()
+    for (const name of ['fresh', 'reuse', 'legacy']) {
+      if (name === 'legacy') {
+        put(join(src, 'payload.txt'), 'another dirty version\n')
+        const old = join(store, 'trees', key()); mkdirSync(old, {recursive: true}); put(join(old, '.bar-ready'), key() + '\n'); put(join(old, 'stale.tmp'), 'old cache\n')
+      }
+      const expectedKey = key(), snapshot = join(store, 'trees', expectedKey)
+      const p = start([process.execPath, join(src, 'gates/bar.ts'), '--base', sha, '--cand', src, '--only', 'chc', '--together', '--reruns', '0', '--name', name], src, env)
+      children.push(p); const r = await result(p); expect(r.code, r.err).toBe(0)
+      const report = JSON.parse(readFileSync(join(store, 'runs', name, 'report.json'), 'utf8'))
+      expect(report.trees.cand.key).toBe(expectedKey)
+      expect(report.results[0].error).toBeUndefined()
+      const pilotDir = name === 'reuse' ? 'fresh' : name
+      const receipt = JSON.parse(readFileSync(join(store, 'runs', pilotDir, 'chc/pilot-cand/root.json'), 'utf8'))
+      expect(receipt.root).toBe(snapshot); expect(receipt.common).toBe(common); expect(receipt.module).toBe('compare/chc/modal_chc.py')
+      for (const f of ['ignored.txt', 'vendor/lib/kept.dat', 'new file.txt']) expect(receipt.files).toContain(f)
+      expect(receipt.files).not.toContain('ignored.tmp')
+      expect(readFileSync(join(snapshot, 'payload.txt'), 'utf8')).toBe(readFileSync(join(src, 'payload.txt'), 'utf8'))
+      expect(readFileSync(join(snapshot, '.bar-ready'), 'utf8').trim()).toBe(expectedKey)
+      put(join(snapshot, 'late-goals.json'), '{}\n')
+      expect(git(snapshot, 'ls-files', '-o', '--exclude-standard')).toContain('late-goals.json')
+      if (name !== 'legacy') expect(expectedKey).toBe(firstKey)
+      else expect(existsSync(join(snapshot, 'stale.tmp'))).toBe(false)
+    }
+  } finally { await Promise.all(children.map(stop)); rmSync(dir, {recursive: true, force: true}) }
+}, 60_000)
 
 test('report CLI rejects zero candidate coverage per view and preserves the failed report', async () => {
   const dir = temp(), bin = join(dir, 'bin'), children: Child[] = []

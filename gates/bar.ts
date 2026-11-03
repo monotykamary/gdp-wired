@@ -25,7 +25,7 @@
 // launch it started and runs supercomputer/reap.sh in every tree it used. Each tree's first launch of a group is a pilot of
 // one or two tasks, read before the fan-out. `--budget <$>` (none by default: spend is information) is checked against the real spend
 // of the bar's own apps (`modal billing report`) between phases and every five minutes.
-import {closeSync, cpSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync} from 'node:fs'
+import {closeSync, cpSync, existsSync, mkdirSync, lstatSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync} from 'node:fs'
 import {dirname, join, resolve} from 'node:path'
 import {acquireBarSlot, type BarSlot} from './bar-slots.ts'
 import {type Dev, type Obs, type Rows, type TaskCmp, VIEWS, compareTasks, differing, goalSig, goals, hash, inBand, keyOfCmd, predict, testTimes, devSet} from './bar-lib.ts'
@@ -42,10 +42,10 @@ const budget = Number(opt('budget', 'Infinity'))  // (no cap unless asked: spend
 if (!['modal', 'boat', 'auto'].includes(backend)) throw new Error('--backend modal | boat | auto')
 
 // ------------------------------------------------------------------------------------------------------- the shell
-const out0 = (args: string[], cwd?: string) => {
+const out0 = (args: string[], cwd?: string, trim = true) => {
   const p = Bun.spawnSync(args, {cwd, stdout: 'pipe', stderr: 'pipe'})
   if (p.exitCode !== 0) throw new Error(`${args.join(' ')}: ${p.stderr.toString().slice(-600)}`)
-  return p.stdout.toString().trim()
+  return trim ? p.stdout.toString().trim() : p.stdout.toString()
 }
 const HERE = dirname(import.meta.path)
 const MAIN = dirname(out0(['git', 'rev-parse', '--path-format=absolute', '--git-common-dir'], HERE))
@@ -151,6 +151,30 @@ type Tree = {path: string, sha: string, key: string, clean: boolean, label: stri
 // A directory with no uncommitted changes is its commit's tree; one with changes is copied (what git sees, untracked
 // files too, without node_modules, runs/ and .git) to <bar>/trees/<sha>+<hash of the changes>, so editing it while
 // the runners upload it changes nothing, and the same changes are the same tree.
+// A detached worktree keeps both the upload root and research/query's shared-fixture root correct.
+function snapshotRoot(path: string, src: string): boolean {
+  if (!existsSync(join(path, '.git'))) return false
+  try {
+    return out0(['git', 'rev-parse', '--show-toplevel'], path) === realpathSync(path) &&
+      out0(['git', 'rev-parse', '--path-format=absolute', '--git-common-dir'], path) === out0(['git', 'rev-parse', '--path-format=absolute', '--git-common-dir'], src)
+  } catch { return false }
+}
+// Flatten the source's Git-visible files into the snapshot's private index. rsync excludes submodule .git files,
+// so leaving gitlinks in that index would silently omit their contents from the uploader's git ls-files walk.
+// Force-add preserves tracked-but-ignored files; later generated untracked assets must remain visible too.
+function snapshotFiles(src: string, dst: string, prefix = ''): string[] {
+  const files: string[] = []
+  for (const f of out0(['git', 'ls-files', '-z', '-co', '--exclude-standard'], src, false).split('\0').filter(Boolean)) {
+    const from = join(src, f), to = join(dst, f)
+    let fromDir: boolean, toDir: boolean
+    try { fromDir = lstatSync(from).isDirectory(); toDir = lstatSync(to).isDirectory() }
+    catch { continue } // deleted or excluded by the snapshot copy
+    if (fromDir) {
+      if (existsSync(join(from, '.git'))) files.push(...snapshotFiles(from, to, prefix + f + '/'))
+    } else if (!toDir) files.push(prefix + f)
+  }
+  return files
+}
 function treeOf(rev: string): Tree {
   if (existsSync(rev) && statSync(rev).isDirectory()) {
     const src = realpathSync(rev), sha = out0(['git', 'rev-parse', 'HEAD'], src)
@@ -160,10 +184,19 @@ function treeOf(rev: string): Tree {
     h.update(dirt + out0(['git', 'diff', 'HEAD'], src))
     for (const f of out0(['git', 'ls-files', '-o', '--exclude-standard'], src).split('\n').filter(Boolean)) h.update(f + '\0' + (existsSync(join(src, f)) ? readFileSync(join(src, f)).toString('base64') : ''))
     const key = `${sha.slice(0, 12)}+${h.digest('hex').slice(0, 8)}`, path = join(BAR, 'trees', key)
-    if (!existsSync(join(path, '.bar-ready'))) {
+    if (!existsSync(join(path, '.bar-ready')) || !snapshotRoot(path, src)) {
       log(`copying ${src} (uncommitted changes) to ${path}`)
-      mkdir(path)
+      if (!snapshotRoot(path, src)) {
+        // Repair old rsync-only caches as well as creating new ones; --force permits an interrupted registration.
+        rmSync(path, {recursive: true, force: true})
+        mkdir(dirname(path))
+        out0(['git', 'worktree', 'add', '--force', '--detach', '--no-checkout', path, sha], src)
+      }
       out0(['rsync', '-a', '--delete', '--exclude', 'node_modules/', '--exclude', '/runs/', '--exclude', '.git', '--exclude', '*.olean', '--exclude', '*.ilean', '--exclude', '.lake/', '--exclude', 'supercomputer/.live/', '--exclude', 'modal/.live/', '--exclude', '.bar-lean/', `${src}/`, `${path}/`])
+      const manifest = join(out0(['git', 'rev-parse', '--absolute-git-dir'], path), 'bar-files')
+      writeFileSync(manifest, snapshotFiles(src, path).join('\0') + '\0')
+      out0(['git', 'read-tree', '--empty'], path)
+      out0(['git', '--literal-pathspecs', 'add', '-f', `--pathspec-from-file=${manifest}`, '--pathspec-file-nul'], path)
       out0(['bun', 'install', '--frozen-lockfile'], path)
       writeFileSync(join(path, '.bar-ready'), key + '\n')
     }
