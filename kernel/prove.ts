@@ -355,7 +355,8 @@ function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = t
   const now = clock(), end = withinDeadline(budget.until ?? Infinity), w = fullWork()
   eprScope.busy = true
   try {
-    const out = withWork(workCap === Infinity ? Infinity : w + 0.5 * (workCap - w), () => grow(part, new Map(), {nodes: 0, until: end === Infinity ? end : now + 0.5 * (end - now)}))
+    const share = whole ? 0.5 : 1
+    const out = withWork(workCap === Infinity ? Infinity : w + share * (workCap - w), () => grow(part, new Map(), {nodes: 0, until: end === Infinity ? end : now + share * (end - now)}))
     if (!('tree' in out)) { eprLast.refuted = true; return undefined }
     if (!whole) return {...out, part, core}
     const tree = widen(part, goal, out.tree)
@@ -481,7 +482,7 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
   const cdcl = !!root && cdclShare > 0 && !cellProducts.on && Number(/@(\d+) steps/.exec(goal.name)?.[1] ?? 1) <= 1 && !root.some(r => Object.keys(r.lin).some(isMonomial))
   // At the root: plainly first; where the cases multiply past a budget, through cuts. The plain budget halves with each
   // two open choices (what a plain search's cases grow by), so a long run's steps reach the cuts early.
-  if (root && unitFirst && unitsNow) {
+  if (root && unitFirst && unitsNow && !(eprScope.busy && tupledScope())) {
     // A goal that a few cases settle needs no units (finding them costs a Farkas check per atom); the rest get them.
     unitsNow = false
     try {
@@ -1173,10 +1174,12 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   // (a key no read binds is a value, an epoch say, over the naturals: 0, their least, is one of its terms too, as Ivy's
   // ordered sorts have their zero; a law before the start, nothing above 0, is assumed there)
   const zero: E = {op: 'const', value: 0}
+  const accepts = instanceSortGuard(m, laws)
   const sortsOf = (body: C, names: string[], atoms: boolean): Map<number, E>[] => sortTerms(body, names, fns, mp => (tupled ? [...keys, ...(byMap.get(mp) ?? [])] : keys)).map(ts => {
     const p = new Map<number, E>()
     for (const e of ts ?? []) { const v2 = valueOf(e); if (v2 !== undefined && !p.has(v2) && (!atoms || e.op === 'var')) p.set(v2, e) }
-    const q = p.size ? p : atoms ? new Map([...all].filter(([, e]) => e.op === 'var')) : all, r = witnessFirst(q.size ? q : all)
+    const fallback = new Map([...all].filter(([, e]) => !atoms || e.op === 'var'))
+    const q = p.size ? p : fallback, r = witnessFirst(q)
     return ts || r.has(0) ? r : r.set(0, zero)
   })
   const out: Instances = {...inst}
@@ -1204,7 +1207,7 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
         const id2 = JSON.stringify(terms)
         if (have.has(id2)) return
         // Sort-aware consumers must not count tuples they would discard after this pass.
-        if (sorted && bySort(m, laws, {[id]: terms})[id]?.length !== terms.length) { ineligible = true; return }
+        if (sorted && terms.some((e,j) => !accepts(id,j,e))) { ineligible = true; return }
         have.add(id2); out[id] = [...(out[id] ?? []), ...terms]; added++
         return
       }
@@ -1502,22 +1505,36 @@ const triggers = (body: C, key: string): {map: string, at: E}[] => {
 const substKey = (e: E, key: string, by: E): E => JSON.parse(JSON.stringify(e).replaceAll(`{"op":"var","name":${JSON.stringify(key)}}`, JSON.stringify(by))) as E
 // GDP_TRIGGER=0 keeps every instance (for comparing).
 const triggerOn = env.GDP_TRIGGER !== '0'
-function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Instances) => Goal[], focus: string[] = []): Instances {
+export function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Instances) => Goal[], focus: string[] = []): Instances {
   if (!triggerOn) return inst
   // Per name: its bound keys, and for each the triggers that read it alone (a key with none takes any value).
+  // Tuple-keyed function images (including generated witnesses) introduce key
+  // terms outside relational reads. Keep legacy focus seeds for that shape.
+  const tupleFunctions = Object.entries(m.step.maps ?? {}).some(([name, w]) => !m.relations?.[name] && !('each' in w) && w.key.op === 'tup')
+  const tupled = !!Object.keys(m.relations ?? {}).length && !tupleFunctions
   const bodies = new Map<string, {keys: string[], per: {map: string, at: E}[][]}>()
   for (const [n, ks] of Object.entries(inst)) {
     if (!ks.length) continue
     const q = n.startsWith('?') ? m.step.flags?.[n.slice(1)] : undefined, l = q ? undefined : laws.find(x => x.name === n)
     const body = q?.op === 'all' ? q.c : l?.forall ? l.holds : undefined, keys = q?.op === 'all' ? boundOf(q) : l?.forall ? [l.forall, ...(l.keys ?? [])] : []
     if (!body) continue
-    const per = keys.map(key => triggers(body, key).filter(t => keys.every(o => o === key || !JSON.stringify(t.at).includes(`"name":${JSON.stringify(o)}`))))
+    const per = keys.map(key => {
+      const ts = triggers(body, key).filter(t => tupled || keys.every(o => o === key || !JSON.stringify(t.at).includes(`"name":${JSON.stringify(o)}`)))
+      // A joint read constrains the tuple; independent field reads would admit
+      // its Cartesian product again. Missing useful tuples can still enter by MBQI.
+      const joint = tupled ? ts.filter(t => keys.filter(k => JSON.stringify(t.at).includes(`"name":${JSON.stringify(k)}`)).length > 1) : []
+      return joint.length ? joint : ts
+    })
     if (per.some(t => t.length)) bodies.set(n, {keys, per})
   }
   if (!bodies.size) return inst
   const tuplesOf = (n: string, ks: E[]) => { const a = bodies.get(n)!.keys.length; return Array.from({length: Math.floor(ks.length / a)}, (_, t) => ks.slice(t * a, (t + 1) * a)) }
-  const kept = (tuple: E[]) => tuple.some(e => e.op === 'var' && focus.includes(e.name))
+  const kept = (tuple: E[]) => !tupled && tuple.some(e => e.op === 'var' && focus.includes(e.name))
   const out: Instances = Object.fromEntries(Object.entries(inst).map(([n, ks]) => [n, bodies.has(n) ? tuplesOf(n, ks).filter(kept).flat() : ks]))
+  // Tuple substitution is independent of the growing read set. Cache each
+  // candidate's trigger text once, rather than rebuilding it every round.
+  const candidates = new Map<string, {tuple: E[], id: string, tests: (string[] | undefined)[]}[]>()
+  for (const n of bodies.keys()) candidates.set(n, tuplesOf(n, inst[n]!).map(tuple => ({tuple, id: JSON.stringify(tuple), tests: []})))
   for (let round = 0; round < 8 && !pastWall(); round++) {
     const reads = new Set<string>()
     const {inC} = eachRead(e => { reads.add(`${e.map}|${JSON.stringify(e.key)}`) })
@@ -1525,9 +1542,11 @@ function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Insta
     let grew = false
     for (const [n, {keys, per}] of bodies) {
       const have = new Set(tuplesOf(n, out[n]!).map(t => JSON.stringify(t)))
-      for (const tuple of tuplesOf(n, inst[n]!)) {
-        const id = JSON.stringify(tuple)
-        if (have.has(id) || !keys.every((key, i) => !per[i]!.length || per[i]!.some(({map, at}) => reads.has(`${map}|${JSON.stringify(substKey(at, key, tuple[i]!))}`)))) continue
+      for (const {tuple, id, tests} of candidates.get(n)!) {
+        if (have.has(id) || !keys.every((key, i) => {
+          const at = tests[i] ??= per[i]!.map(({map, at}) => `${map}|${JSON.stringify(tupled ? substE(at, {vars: Object.fromEntries(keys.map((k, j) => [k, tuple[j]!])), maps: {}, flags: {}}) : substKey(at, key, tuple[i]!))}`)
+          return !at.length || at.some(t => reads.has(t))
+        })) continue
         out[n]!.push(...tuple); have.add(id); grew = true
       }
     }
@@ -1687,9 +1706,9 @@ export function decideLaw(m: Machine, laws: Law[], i: number, rounds = modelRoun
 }
 // (why decideLaw last answered nothing: `refuted`, the abstraction refuted a goal whose core's proof didn't finish, a
 // goal the CDCL search after it would find no quicker)
-export const decideNote = {refuted: false}
+export const decideNote: {refuted: boolean, hint?: {goal: string, witness: Record<string,number>}} = {refuted: false}
 function decideLaw0(m: Machine, laws: Law[], i: number, rounds: number): Decided {
-  decideNote.refuted = false
+  decideNote.refuted = false; delete decideNote.hint
   if (!fastShape(m, laws)) return undefined
   return withPatterns(m, laws, () => {
     if (!eprScope.patterns) return undefined
@@ -1780,10 +1799,11 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
   const law = laws[i]!, byName = new Map(laws.map(l => [l.name, l]))
   // (decideLaw's and the fast set proof's: each law's keys of its sort alone, `bySort`; proveLaw's and the join's as they
   // were. The fast set proof is checked over the tuples its proofs read, and the usual proof follows where it fails)
-  let inst = prev && laws.every(l => !l.forall || l.name in prev.inst) ? prev.inst : bySort(m, laws, lawInstances(m, laws, i))
+  const reuse = prev && laws.every(l => !l.forall || l.name in prev.inst)
+  let inst = reuse ? prev.inst : bySort(m, laws, lawInstances(m, laws, i))
   // (GDP_DLTRIG=1: decideLaw's first instances only those a goal's reads trigger (proveOne's `triggered`), the model
   // rounds adding the instances a model breaks (MBQI's))
-  if (!prev && !usual && env.GDP_DLTRIG === '1') inst = triggered(plainOf(m), laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
+  if (!reuse && (Object.keys(m.relations ?? {}).length ? env.GDP_DLTRIG !== '0' : !usual && env.GDP_DLTRIG === '1')) inst = triggered(plainOf(m), laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
   const proofs: Record<string, Proof1> = Object.fromEntries(Object.entries(prev?.proofs ?? {}).filter(([, p]) => stands(p, byName)))
   const unknown = (g: Goal, why = 'past the search\'s end'): Unsettled | undefined => (usual ? {goal: g.name, stuck: 'unknown', why} : undefined)
   // (past the `rounds` model rounds, each round within the caller's deadline, its model the answer where the round can't
@@ -1799,6 +1819,9 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
       // (a wide goal decided over parts (growWide), each part by the EPR path: the abstraction of the whole is quadratic in
       // its cells, i4's engine set's step goal of 7,590 hypotheses ran 19M units past its caller's end and 10 GB)
       let o: (Outcome & {part?: Goal, core?: number[]}) | undefined = !eprScope.patterns ? undefined : wideFor(g) && tupledScope() ? eprWide(g, late) ?? withEprCap(wideEprUnits, () => eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late)) : eprFirst(g, {nodes: 0, until: clock() + 4_000}, false, late)
+      // Initial states often erase every map read, leaving a small arithmetic goal
+      // outside EPR. Do not require a whole-set proof just to seed its start tree.
+      if (!o && g.name.endsWith(' @start') && !late()) o = grow(g, new Map(), {nodes: 0, until: end})
       // (a refutation whose core's proof didn't finish: a model from fewer instances, which these refute, is no answer;
       // decideLaw's unknown, the usual search's next)
       if (!o && eprLast.refuted) { if (!usual) { decideNote.refuted = true; return undefined } } else if (!o && (last || !usual)) return strict(usual) ? undefined : last
@@ -1818,7 +1841,7 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
       if (!capped && !raw) return last
       more = raw && bySort(m, laws, raw)
       const count = (x: Instances) => Object.values(x).reduce((s2, ks) => s2 + ks.length, 0)
-      if (strict(usual) && (capped || pastWall() || !more || count(more) <= count(inst))) return undefined
+      if (strict(usual) && (capped || pastWall() || !more || count(more) <= count(inst))) { decideNote.hint = {goal: g.name, witness: o.witness}; return undefined }
       // (the model's only broken instances another sort's: the next round would find it again; decideLaw's no answer)
       if (more && count(more) <= count(inst)) return usual ? last : undefined
       if (!more || pastWall()) return last
@@ -2029,8 +2052,8 @@ function sortsOf(m: Machine, laws: Law[]) {
   }
   return {key: (law: string, k: string) => `L:${law}:${k}`, of, find, anchored: (a: string) => /^K:/.test(a) || !!anchorOf.get(find(a))}
 }
-function bySort(m: Machine, laws: Law[], inst: Instances): Instances {
-  if (!sortedOn) return inst
+function instanceSortGuard(m: Machine, laws: Law[]): (name: string, index: number, e: E) => boolean {
+  if (!sortedOn) return () => true
   let byLaws = sortsMemo.get(m)
   if (!byLaws) sortsMemo.set(m, (byLaws = new Map()))
   const lk = laws.map(l => l.name).join('\u0001')
@@ -2041,13 +2064,25 @@ function bySort(m: Machine, laws: Law[], inst: Instances): Instances {
     if (n.startsWith('?')) { const c = m.step.flags?.[n.slice(1)]; return c?.op === 'all' ? boundOf(c).map(k => `Q:${n.slice(1)}:${k}`) : undefined }
     const l = laws.find(x => x.name === n); return l?.forall ? [l.forall, ...(l.keys ?? [])].map(k => S.key(n, k)) : undefined
   }
+  const wanted = new Map<string, string[] | undefined>()
+  return (n, j, e) => {
+    if (!wanted.has(n)) wanted.set(n, keysOf(n))
+    const want = wanted.get(n)?.[j], se = S.of(e)
+    return !want || !se || !S.anchored(se) || !S.anchored(want) || S.find(se) === S.find(want)
+  }
+}
+function bySort(m: Machine, laws: Law[], inst: Instances): Instances {
+  if (!sortedOn) return inst
+  const accepts = instanceSortGuard(m, laws)
   return Object.fromEntries(Object.entries(inst).map(([n, ks]) => {
-    const want = keysOf(n)
+    const q = n.startsWith('?') ? m.step.flags?.[n.slice(1)] : undefined
+    const l = laws.find(l => l.name === n)
+    const want = q?.op === 'all' ? boundOf(q) : l?.forall ? [l.forall, ...(l.keys ?? [])] : undefined
     if (!want || !ks.length) return [n, ks]
     const a = want.length, out: E[] = []
     for (let t = 0; t + a <= ks.length; t += a) {
       const tuple = ks.slice(t, t + a)
-      const ok = tuple.every((e, j) => { const se = S.of(e); return !se || !S.anchored(se) || !S.anchored(want[j]!) || S.find(se) === S.find(want[j]!) })
+      const ok = tuple.every((e, j) => accepts(n, j, e))
       if (ok) out.push(...tuple)
     }
     return [n, out]
