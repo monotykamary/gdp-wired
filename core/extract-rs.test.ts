@@ -402,10 +402,63 @@ t('Rust D1: a successful computed receiver is captured before the argument chang
   expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({})))).toMatchObject({value:8, failed:false})
 }, 300_000)
 
+t('Rust D2: scalar-field block receivers capture after their prelude and before arguments', () => {
+  for (const [method, arg] of [['max', 0], ['min', 10]] as const) {
+    const dir = genericCrate(`pub struct Meter {value:u32, seen:u32}
+      impl Meter {
+        pub fn new()->Self {Self {value:7, seen:0}}
+        pub fn take(&mut self) {
+          self.value = ({self.seen = self.seen.wrapping_add(1); self.seen}).${method}({self.seen = self.seen.wrapping_add(1); ${arg}});
+        }
+      }`)
+    const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+    const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({}), input = r.encodeInput({})
+    const first = rt.step(p, rt.init(p), input)
+    expect(r.decode(first)).toMatchObject({value:1, seen:2})
+    expect(r.decode(rt.step(p, first, input))).toMatchObject({value:3, seen:4})
+  }
+}, 300_000)
+
+t('Rust D2: receiver-prelude return and panic prevent argument effects', () => {
+  for (const kind of ['return', 'panic'] as const) {
+    const dir = genericCrate(`pub struct Meter {value:u32, seen:u32}
+      impl Meter {
+        pub fn new()->Self {Self {value:7, seen:0}}
+        pub fn take(&mut self, stop:bool) {
+          self.value = ({
+            self.seen = self.seen.wrapping_add(1);
+            if stop { ${kind === 'return' ? 'return;' : 'panic!("receiver");'} }
+            self.seen
+          }).max({self.seen = self.seen.wrapping_add(1); 0});
+        }
+      }`)
+    const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+    const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+    for (const stop of [false, true]) {
+      expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({stop})))).toMatchObject({
+        value:stop ? 7 : 1, seen:stop ? 1 : 2, ...(kind === 'panic' ? {failed:stop} : {}),
+      })
+    }
+  }
+}, 300_000)
+
+t('Rust D2: a scalar tail does not erase an unsupported receiver prelude', () => {
+  const dir = genericCrate(`pub struct Meter {value:u32, seen:u32}
+    impl Meter {
+      pub fn new()->Self {Self {value:7, seen:0}}
+      pub fn take(&mut self) {
+        self.value = ({while self.seen < 1 {self.seen += 1;} self.seen}).max(0);
+      }
+    }`)
+  const x = extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'})
+  expect(x.ok).toBe(false)
+  expect(x.refusals.map(r => r.what).join('; ')).toContain('a loop')
+}, 300_000)
+
 t('Rust method sequencing: unlisted computed receivers and indirect callees keep native mismatch refusals', () => {
   for (const [initial, body] of [
     [4_294_967_295, 'self.value = ((self.value + 1u32) + 0u32).max({ self.seen = self.seen.wrapping_add(1); 0 });'],
-    [7, 'self.value = ({ self.seen = self.seen.wrapping_add(1); self.seen }).max({ self.seen = self.seen.wrapping_add(1); 0 });'],
+    [7, 'self.value = ({ self.seen = self.seen.wrapping_add(1); self.seen.wrapping_add(0) }).max({ self.seen = self.seen.wrapping_add(1); 0 });'],
     [7, 'self.value = ({ self.seen = self.seen.wrapping_add(1); first })({ self.seen = self.seen.wrapping_mul(2); self.seen }, 0);'],
   ] as const) {
     const dir = genericCrate(`fn first(a:u32, _b:u32)->u32 { a }
