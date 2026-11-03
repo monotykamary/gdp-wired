@@ -3,7 +3,7 @@
 // structural recursion refused unless its termination is proven (a measure every call lowers, each call's obligation
 // proven by the kernel), and a tampered proof refused by the kernel.
 import {expect, test} from 'bun:test'
-import {type Bool, type Nat, type Val, type X, type Y, EvalLimit, boolean, checkMeasures, conjectures, data, define, evalX, fnParam, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, valueVar, when} from './data.ts'
+import {type Bool, type Nat, type Val, type X, type Y, EvalLimit, boolean, checkMeasures, conjectures, data, define, evalX, fnNamed, fnParam, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, valueVar, when} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
 import {transferPlan} from './transfer.ts'
 import {Bag, Forest, List, both, ev, Rose, Tree, a3, ack, adversarial, app, bmerge, broken, bsort, heapList, drp, ilv, laws, leq, len, merge, mergeRuns, mir, mrg, nest, nestA, nestB, nested, nonterminating, nz, paren, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken, tokens, wellFounded} from '../examples/data.ts'
@@ -121,6 +121,13 @@ test('a ring of functions that is not structural recursion: a measure each (one 
   expect(o.lemmas).toEqual([expect.stringMatching(/^size law: 2·size\(pairwise\(rs0\)\) <= size\(rs0\) \+ 2/)])
   expect(o.proof?.proven && checkCyclic(o.proof.proof)).toBe(true)
   for (const mk of Object.values(wellFounded)) { const v = proveData(mk()); expect(v.proven && v.checked && v.proof?.proven && checkCyclic(v.proof.proof)).toBe(true) }
+}, 60_000)
+
+test('a singleton law does not admit unused call-count ranks', () => {
+  const v = proveData(wellFounded.bsortOne())
+  expect(v.proven && v.checked).toBe(true)
+  expect(v.program?.fns.some(f => f.name === `${bsort.fn.name}_calls`)).toBe(false)
+  expect(fnNamed(`${bsort.fn.name}_calls`)).toBeUndefined()
 }, 60_000)
 
 test('nested recursion (well-founded, a call in another\'s argument): taken with an invariant of the function, proven with each decrease; its obligations as Nested.lean states them', () => {

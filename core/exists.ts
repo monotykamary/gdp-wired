@@ -14,7 +14,7 @@
 // value before, shifts of it, the request's values and the state before; each is chosen to satisfy P at every
 // counterexample so far, per case of the step (the conditions its updates split on: the request's clause, say).
 // A law under a `forall` key takes witness terms only (a ghost per key would be a map).
-import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, evalC, evalE, fastStep, interpret, n as k, walk, x as v} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, compileC, evalC, evalE, fastStep, interpret, n as k, walk, x as v} from './machine.ts'
 import {type Report, clock, proveLaw, proveLaws, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {env} from './solver.ts'
 import {type Ghosted, ghostedMachine, ghostedOk, substC} from '../kernel/kernel.ts'
@@ -204,11 +204,12 @@ export function ghostOf(m: Machine, law: Law): SomeWitness | undefined {
 }
 // The small instances, the one filter of every candidate (core/counts.ts's laws, the witnesses and ghosts here): each
 // param 2 and 3, every input and carried set below 3, every state the BFS reaches in 300,000 steps (3,000 at most) and
-// the walks past it in a third as many; an instance whose params the machine refuses has no states. Read once a machine.
+// the walks past it in a third as many; an instance whose params the machine refuses has no states. With no params,
+// 2 and 3 denote the same instance, so sample it only once. Read once a machine.
 const smalls = new WeakMap<Machine, {p: Env, sts: State[]}[]>()
 export function smallOf(m: Machine): {p: Env, sts: State[]}[] {
   let out = smalls.get(m)
-  if (!out) smalls.set(m, (out = [2, 3].map(x => { const p = Object.fromEntries(m.params.map(q => [q, x])); try { return {p, sts: small(m, p, 3, 3000, 300_000, 100_000)} } catch { return {p, sts: []} } })))
+  if (!out) smalls.set(m, (out = (m.params.length ? [2, 3] : [2]).map(x => { const p = Object.fromEntries(m.params.map(q => [q, x])); try { return {p, sts: small(m, p, 3, 3000, 300_000, 100_000)} } catch { return {p, sts: []} } })))
   return out
 }
 // Laws true at every small state, at every key below one past their values. With `ghosted`, the machine with ghosts
@@ -216,11 +217,18 @@ export function smallOf(m: Machine): {p: Env, sts: State[]}[] {
 // one instance a machine, however many ghosts are asked of it.
 export function trueSmall(m: Machine, laws: Law[], ghosted?: Machine): boolean {
   const g = ghosted ?? m, run = ghosted && interpret(ghosted)
+  const native = Object.values(g.step.maps ?? {}).some(w => !('each' in w) && w.key.op === 'tup')
+  let steps = 0, step = run?.step
   return smallOf(m).every(({p, sts}) => {
     const at = new Map<State, State>()
     return sts.every(st => {
       let s = st
-      if (run) { const from = pathTo.get(st); try { s = from ? run.step(p, at.get(from[0])!, from[1]) : run.init(p) } catch { return false } at.set(st, s) }
+      if (run) {
+        if (native && ++steps === 1000) step = fastStep(g) ?? run.step
+        const from = pathTo.get(st)
+        try { s = from ? step!(p, at.get(from[0])!, from[1]) : run.init(p) } catch { return false }
+        at.set(st, s)
+      }
       return laws.every(l => holdsAt(g, l, p, s, 4))
     })
   })
@@ -228,13 +236,35 @@ export function trueSmall(m: Machine, laws: Law[], ghosted?: Machine): boolean {
 // A law at a state, its counts the state's, at every key below b.
 // (a state's view once: a law is read at every state, and every law at each)
 const views = new WeakMap<State, State>()
+const sampleTests = new WeakMap<Machine, WeakMap<C, ReturnType<typeof compileC>>>()
 export function holdsAt(m: Machine, law: Law, p: Env, st: State, b: number): boolean {
-  const empty: Request = Object.fromEntries((m.inputMaps ?? []).map(c => [c, new Map()]))
   let view = views.get(st)
-  if (!view) views.set(st, (view = carriedView(m, st, empty, undefined, p)))
+  if (!view) {
+    const empty: Request = Object.fromEntries((m.inputMaps ?? []).map(c => [c, new Map()]))
+    views.set(st, (view = carriedView(m, st, empty, undefined, p)))
+  }
+  let tests = sampleTests.get(m)
+  if (!tests) sampleTests.set(m, (tests = new WeakMap()))
+  let test = tests.get(law.holds)
+  if (!test) tests.set(law.holds, (test = compileC(law.holds, m)))
   const keys = [law.forall, ...(law.keys ?? [])].filter((x): x is string => !!x)
-  const go = (env: Env, ks: string[]): boolean => (ks.length ? Array.from({length: b}, (_, x) => x).every(x => go({...env, [ks[0]!]: x}, ks.slice(1))) : evalC(law.holds, {...env, ...st.scalars}, view, m))
-  return go({...p}, keys)
+  const env: Env = {...p, ...st.scalars}, fixed = new Set(Object.keys(st.scalars))
+  // One environment, not an object/array copy at every tuple prefix. Scalars still
+  // shadow binders, as in the interpreter path; restore duplicate binder names.
+  for (const name of keys) if (!fixed.has(name)) Object.defineProperty(env, name, {value: env[name], writable: true, enumerable: true, configurable: true})
+  const values = keys.length ? Array.from({length: b}, (_, x) => x) : []
+  const go = (depth: number): boolean => {
+    if (depth === keys.length) return test!(env, view!)
+    const name = keys[depth]!, was = env[name]
+    try {
+      for (const value of values) {
+        if (!fixed.has(name)) env[name] = value
+        if (!go(depth + 1)) return false
+      }
+      return true
+    } finally { if (!fixed.has(name)) env[name] = was! }
+  }
+  return go(0)
 }
 
 // --- evaluating ∃ on a state ----------------------------------------------------------------------------------------
@@ -435,6 +465,7 @@ function provenanceOf(m: Machine, mp2: string, val2: string, taken: Set<string>,
   // (the cells the same guard sets beside it)
   for (const [mp3, w3] of Object.entries(m.step.maps ?? {})) if (mp3 !== mp2 && !('each' in w3) && mine(namesOf(w3.key)) && key(setOf(mp3, w3)) === key(set2)) says.push({op: '<=', a: k(1), b: {op: 'get', map: mp3, key: substVarsE(w3.key, sub)}})
   if (!says.length) return undefined
+  if (w2.key.op === 'tup') says.push(...(m.assume ? atomsOf2(m.assume) : []).filter(c => mine(namesOf(c))).map(c => substVars(c, sub)))
   const inv: Law = {name: `${gname} where ${mp2} is set`, forall: ks[0]!, ...(ks.length > 1 ? {keys: ks.slice(1)} : {}), holds: {op: 'or', xs: [{op: 'not', x: {op: '<=', a: k(1), b: {op: 'get', map: mp2, key: K2}}}, says.length === 1 ? says[0]! : {op: 'and', xs: says}]}}
   return {name: gname, write: {key: w2.key, value: {op: 'if', c: set2, then: v(val2), else: G(w2.key)}}, inv}
 }
@@ -505,6 +536,74 @@ function binderGhostsOf(m: Machine, law: Law, taken: Set<string>): {maps: Ghoste
   xs.forEach((x, j) => { combos = combos.flatMap(c => options[j]!.map(o => ({maps: {...c.maps, ...o.maps}, sub: {...c.sub, [x]: o.term}}))).slice(0, 64) })
   return combos
 }
+// A witness's local proof need not instantiate unrelated provenance functions.
+// Keep supports over the target's dependency maps, including reads by their
+// updates and flags. Excluded supports can still prove other
+// members of the final set; no proof/assumption is reused without that check.
+export function witnessSupport(m: Machine, laws: Law[], law: Law, ghosts: string[] = []): Law[] {
+  const maps = new Set<string>(), flags = new Set<string>()
+  const read = (t: unknown): void => walk(t, o => {
+    if (o.op === 'get') maps.add(o.map as string)
+    if (o.op === 'flag' && !flags.has(o.name as string)) { flags.add(o.name as string); read(m.step.flags?.[o.name as string]) }
+  })
+  read(law.holds)
+  const plain = ghosts.every(g => !maps.has(g)), ghostSet = new Set(ghosts)
+  for (const mp of maps) read(m.step.maps?.[mp])
+  return laws.filter(l => {
+    if (l === law) return true
+    let relevant = true
+    walk(l.holds, o => { if (o.op === 'get' && !maps.has(o.map as string) && !(plain && ghostSet.has(o.map as string))) relevant = false })
+    return relevant
+  })
+}
+
+// Candidate closure of row provenance: facts about a write's key, its co-written
+// rows joined at shared inputs, and functional dependencies of each key place.
+// No dependency is presumed to hold: runs discard false ones, the prover checks
+// the remaining simultaneous induction obligations.
+function rowSupports(m: Machine): Law[] {
+  const out: Law[] = [], seen = new Set<string>()
+  const and = (xs: C[]): C => ({op: 'and', xs})
+  const has = (map: string, at: E): C => ({op: '<=', a: k(1), b: {op: 'get', map, key: at}})
+  const expand = (c: C, depth = 0): C[] => c.op === 'and' ? c.xs.flatMap(q => expand(q, depth)) : c.op === 'flag' && depth < 8 && m.step.flags?.[c.name] ? expand(m.step.flags[c.name]!, depth + 1) : [c]
+  const assumptions = m.assume ? expand(m.assume) : []
+  const writes = Object.entries(m.step.maps ?? {}).flatMap(([map, w]) => {
+    if ('each' in w || w.key.op !== 'tup') return []
+    const names = namesOf(w.key)
+    if (!names.length || !names.every(n => m.inputs.includes(n))) return []
+    const flags = new Set<string>()
+    walk(w.value, o => { if (o.op === 'flag') flags.add(o.name as string) })
+    return [{map, w, names, guards: [...flags].flatMap(name => expand({op: 'flag', name})), setter: settersOf(m, map)[0]?.set}]
+  })
+  const emit = (names: string[], pre: C[], post: C, label: string) => {
+    const ren = Object.fromEntries(names.map((n, i) => [n, v(`row${i}$key`)]))
+    const holds: C = substVars({op: 'or', xs: [{op: 'not', x: and(pre)}, post]}, ren)
+    // Quantifier order and conjunction order do not distinguish a proposal.
+    // Keep the first spelling, rather than burdening later goals with both.
+    const id = key([names.slice().sort(), pre.map(key).sort(), post])
+    if (seen.has(id)) return
+    seen.add(id)
+    out.push({name: `${label} (${out.length})`, forall: `row0$key`, ...(names.length > 1 ? {keys: names.slice(1).map((_, i) => `row${i + 1}$key`)} : {}), holds})
+  }
+  const usable = (c: C, names: string[]) => c.op !== 'flag' && c.op !== 'all' && namesOf(c).every(n => names.includes(n) || Object.hasOwn(m.state, n) || m.params.includes(n))
+  for (const a of writes) {
+    for (const c of [...a.guards, ...assumptions].filter(c => usable(c, a.names))) emit(a.names, [has(a.map, a.w.key)], c, `${a.map} row guard`)
+    const freshRow = a.guards.some(c => c.op === 'all' && JSON.stringify(c).includes(`"map":${JSON.stringify(a.map)}`))
+    for (const n of freshRow ? a.names : []) {
+      let other = 'other$row'
+      while (m.inputs.includes(other) || a.names.includes(other)) other += '$'
+      const bounds = assumptions.filter(c => usable(c, a.names) && !readsMaps(c))
+      emit([...a.names, other], [...bounds, ...bounds.map(c => substVars(c, {[n]: v(other)})), has(a.map, a.w.key), has(a.map, substVarsE(a.w.key, {[n]: v(other)}))], {op: '=', a: v(n), b: v(other)}, `${a.map} functional ${n}`)
+    }
+    for (const b of writes) {
+      if (a.map === b.map || !a.setter || key(a.setter) !== key(b.setter) || !a.names.some(n => b.names.includes(n))) continue
+      const names = [...new Set([...a.names, ...b.names])]
+      if (names.length > 4) continue
+      for (const c of a.guards.filter(c => usable(c, names) && readsMaps(c))) emit(names, [has(a.map, a.w.key), has(b.map, b.w.key)], c, `${a.map} / ${b.map} joined guard`)
+    }
+  }
+  return out
+}
 type MapGhost = {name: string, write: {key: E, value: E}, at: E, inv: Law, holds: C, inner?: {name: string, write: {key: E, value: E}, inv: Law}}
 function mapGhostsOf(m: Machine, law: Law, taken: Set<string>): MapGhost[] {
   const x = law.some![0]!, names = [law.forall!, ...(law.keys ?? [])]
@@ -537,11 +636,29 @@ function mapGhostsOf(m: Machine, law: Law, taken: Set<string>): MapGhost[] {
     // (a ghost of a ghost, after those: the value another write's ghost holds, read at that write's key in this step's
     // request: G[i·N + p] := r where DbResponseSent[i·N + p] is set, W[n·N + p] := G[i·N + p] where ResponseSent is.
     // G's own law: where its write's cell is set, what the write's guard says of r, at G's cell)
+    const inner: {g: NonNullable<MapGhost['inner']>, at: E, cost: number}[] = []
     for (const mp2 of Object.keys(m.step.maps ?? {})) {
       if (mp2 === mp) continue
       const w2 = m.step.maps![mp2]!
-      if (!('each' in w2)) for (const val2 of m.inputs) { const g = provenanceOf(m, mp2, val2, taken, keyed); if (g) ghost({op: 'get', map: g.name, key: w2.key}, g) }
+      if ('each' in w2) continue
+      // A witness whose writer needs a universal freshness guard has a more
+      // expensive support obligation than one selected by positive row reads.
+      // On native relations prefer the latter, independently of map order.
+      let cost = 0
+      const seen = new Set<string>(), inspect = (t: unknown): void => walk(t, o => {
+        if (o.op === 'all') cost++
+        if (o.op === 'flag' && !seen.has(o.name as string)) { seen.add(o.name as string); inspect(m.step.flags?.[o.name as string]) }
+      })
+      if (w.key.op === 'tup') inspect(w2.value)
+      for (const val2 of m.inputs) {
+        const g = provenanceOf(m, mp2, val2, taken, keyed)
+        if (g) {
+          if (w.key.op === 'tup') inner.push({g, at: w2.key, cost})
+          else ghost({op: 'get', map: g.name, key: w2.key}, g)
+        }
+      }
     }
+    for (const {g, at} of inner.sort((a, b) => a.cost - b.cost)) ghost({op: 'get', map: g.name, key: at}, g)
   }
   return out
 }
@@ -592,6 +709,23 @@ export function skolemOf(m: Machine, laws: Law[]): {ghost: (m2: Machine) => Mach
     out.push(pl, ...(g.inner ? [g.inner.inv] : []), g.inv)
     plains[l.name] = {plain: pl, sub: {[l.some[0]!]: {op: 'get', map: g.name, key: g.at}}}
     witnesses[l.name] = `w = ${g.name}[${showE(g.at)}], ${g.name}[${showE(g.write.key)}] := ${showE(g.write.value)}`
+  }
+  // Native relations have independent key components. For a relation read by a
+  // witness support, retain the input forgotten by its key as another candidate
+  // ghost. In particular, co-written rows then have converse provenance, rather
+  // than permitting old orphan rows in induction pre-states. These are proposed
+  // laws, filtered on runs and subsequently proved, never admitted assumptions.
+  if (gs.some(g => g.inner) && Object.values(m.step.maps ?? {}).some(w => !('each' in w) && w.key.op === 'tup')) {
+    cands.push(...rowSupports(m).filter(l => trueSmall(m, [l])))
+    const needed = new Set<string>()
+    walk(out, o => { if (o.op === 'get') needed.add(o.map as string) })
+    for (const mp of needed) for (const input of m.inputs) {
+      const q = provenanceOf(m, mp, input, taken)
+      if (!q || parts.some(p => p.write.value.op === 'if' && q.write.value.op === 'if' && key([p.write.key, p.write.value.c]) === key([q.write.key, q.write.value.c]))) continue
+      const mm = ghost(m, [q])
+      if (!trueSmall(m, [q.inv], mm)) continue
+      parts.push(q); taken.add(q.name); cands.push(q.inv)
+    }
   }
   // (each ghost one of the machine it is added to, as kernel.ts's ghostedOk reads it)
   const ok = (m2: Machine) => { let at = m2; for (const q of parts) { const o = one(at, q); if (!ghostedOk(o)) return false; at = ghostedMachine(o) } return true }

@@ -16,7 +16,7 @@ import type {TStats} from '../core/translate.ts'
 import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
 import {REFUTED, growCdcl} from './cdcl.ts'
-import {type Diagram, type Patterns, decide, pastEprCap, patternsOf, withEprCap} from './epr.ts'
+import {type Diagram, type Patterns, decide, eprMeter, pastEprCap, patternsOf, withEprCap} from './epr.ts'
 import {projected, tupleParts} from './kernel.ts'
 import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, cellParts, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
@@ -207,7 +207,10 @@ export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', w
 // clock inside `counted` and in the cost model's work outside it (`withWork`); past either the goal is left `unknown`. A goal with many instances (a law about two keys at its pairs) has that many more rows per leaf.
 // A deadline every goal grown inside `withDeadline` keeps, beside its own budget: a search that proves many things (core/
 // infer.ts, core/discover.ts, the search proveRule falls back on) bounds them all; a goal past it is left `unknown`.
-let deadline = Infinity
+let deadline = Infinity, deadlineEpr = 0
+// EPR has its own work counter. Debit it from a counted deadline, not from clock(): the protocol engine already
+// accounts for EPR in its own clock. A scope's anchor charges all its queries, including nested and failed ones.
+const eprTimeSince = (start: number): number => rate ? (eprMeter.n - start) / rate : 0
 // The clock every budget here reads (grow's `until`, withDeadline's; core/cyclic.ts's and core/data.ts's searches): wall
 // time, or within `counted` the work the prover has done (the solver's rows read and made, each node's rows), `perMs`
 // units a millisecond, so that what a search's budget lets it try, and so its verdict, doesn't depend on the machine's
@@ -257,11 +260,11 @@ const ranOut = (): boolean => pastWall() || withinDeadline(Infinity) <= clock()
 export const wallAt = (): number => wallEnd
 export const late = (until: number): boolean => clock() > until || (workCap !== Infinity && fullWork() > workCap) || pastWall()
 // A budget's end, within the deadline (a translation's own bound, core/cyclic.ts's, kept by the export's GDP_CERT_MS).
-export const withinDeadline = (until: number): number => Math.min(until, deadline)
+export const withinDeadline = (until: number): number => Math.min(until, deadline - eprTimeSince(deadlineEpr))
 export function withDeadline<T>(until: number, f: () => T): T {
-  const outer = deadline
-  deadline = Math.min(outer, until)
-  try { return f() } finally { deadline = outer }
+  const outer = deadline, outerEpr = deadlineEpr
+  deadline = withinDeadline(until); deadlineEpr = eprMeter.n
+  try { return f() } finally { deadline = outer; deadlineEpr = outerEpr }
 }
 // `units: false`: the goal's own order, no units first (a caller after a model, not a proof: a run guided by the
 // prover's witnesses, say, whose models units would steer).
@@ -272,7 +275,8 @@ export function grow(goal: Goal, path: Path = new Map(), budget?: {nodes: number
     if (!rate) return withWork(fullWork() + groundRate * ms, () => grow(goal, path, {nodes: 0}))
     budget = {nodes: 0, until: clock() + ms}
   }
-  if (deadline < (budget.until ?? Infinity)) budget.until = deadline
+  const end = withinDeadline(budget.until ?? Infinity)
+  if (end < (budget.until ?? Infinity)) budget.until = end
   if (budget.units === false && unitsNow) { unitsNow = false; try { return grow(goal, path, budget) } finally { unitsNow = true } }
   if (proveDump && !path.size && !budget.nodes) { proveDump(goal); }
   if (proveTrace && !path.size && !budget.nodes) {
@@ -339,9 +343,12 @@ const withPatterns = <T>(m: Machine, laws: Law[], f: () => T): T => {
 // (`refuted`: the last decision refuted the goal and its core's proof didn't finish: a model from fewer instances, asked
 // before, is then no answer, as the abstraction refutes it at these)
 const eprLast = {refuted: false}
-function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = true, late = (): boolean => pastWall() || pastEprCap()): (Outcome & {part?: Goal, core?: number[]}) | undefined {
+function eprFirst(goal: Goal, budget: {nodes: number, until?: number}, whole = true, stop = (): boolean => pastWall() || pastEprCap()): (Outcome & {part?: Goal, core?: number[]}) | undefined {
   eprLast.refuted = false
-  const d = decide(goal, eprScope.patterns!, {exact: true, late})
+  const start = eprMeter.n, until = budget.until ?? Infinity
+  const d = decide(goal, eprScope.patterns!, {exact: true, late: () => stop() || late(withinDeadline(until - eprTimeSince(start)))})
+  // The local goal's remaining allowance also reaches the core proof or fallback search.
+  if (budget.until !== undefined) budget.until = until - eprTimeSince(start)
   if ('unknown' in d) return undefined
   if (d.sat) return {stuck: 'sat', witness: d.witness, diagram: d.diagram, path: new Map(), why: 'a model'}
   const last = goal.hyps.length - 1, core = d.core.includes(last) ? d.core : [...d.core, last], part: Goal = {name: goal.name, hyps: core.map(i => goal.hyps[i]!)}
@@ -1120,7 +1127,7 @@ export const modelRounds = 4
 // (GDP_MODEL_CUTS=0: every tuple evaluated whole, for comparing)
 const modelCuts = env.GDP_MODEL_CUTS !== '0'
 const disjuncts = (c: C): C[] => (c.op === 'or' ? c.xs.flatMap(disjuncts) : c.op === 'not' && c.x.op === 'and' ? c.x.xs.flatMap(y => disjuncts({op: 'not', x: y})) : c.op === 'not' && c.x.op === 'not' ? disjuncts(c.x.x) : [c])
-export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: Goal, w: Record<string, number>, most = 64): Instances | undefined {
+export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: Goal, w: Record<string, number>, most = 64, sorted = false): Instances | undefined {
   const pm = plainOf(m), qs = Object.entries(pm.step.flags ?? {}).filter((e): e is [string, Extract<C, {op: 'all'}>] => e[1].op === 'all' && w[`?${e[0]}`] === 1)
   const keyed = laws.filter(l => l.forall)
   if (!keyed.length && !qs.length) return undefined
@@ -1175,7 +1182,7 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   const out: Instances = {...inst}
   // (the 20,000 evaluations shared: each law and flag at most an even share of what is left, so the laws about five keys
   // first don't leave none to those after: sharded KV's "a key in transfer has no owner", broken at the goal's own keys)
-  let added = 0, evals = 0, left = 0
+  let added = 0, evals = 0, left = 0, ineligible = false
   const each = (id: string, names: string[], body: C, atoms: boolean) => {
     if (pastWall()) return
     const until = evals + Math.max(256, Math.floor((20_000 - evals) / Math.max(1, left--)))
@@ -1196,6 +1203,8 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
         if (ev(() => evalC(body, read(at), st, mm)) !== false) return
         const id2 = JSON.stringify(terms)
         if (have.has(id2)) return
+        // Sort-aware consumers must not count tuples they would discard after this pass.
+        if (sorted && bySort(m, laws, {[id]: terms})[id]?.length !== terms.length) { ineligible = true; return }
         have.add(id2); out[id] = [...(out[id] ?? []), ...terms]; added++
         return
       }
@@ -1211,7 +1220,8 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
     for (const l of keyed) each(l.name, [l.forall!, ...(l.keys ?? [])], l.holds, atoms)
     for (const [f, q] of qs) each(`?${f}`, boundOf(q), q.c, atoms)
   }
-  return added ? out : undefined
+  // A rejected-only refinement is not evidence that the model satisfies every assumed law.
+  return added || ineligible ? out : undefined
 }
 // A goal (or a law's goals) asked at some instances, and again at those its model asks for (modelInstances), up to
 // modelRounds times. `ask` is the caller's own question; `modelOf` reads a model from its answer, `settled` says it is
@@ -1804,7 +1814,7 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
       last = {goal: g.name, stuck: 'sat', witness: o.witness, ...(o.diagram ? {diagram: o.diagram} : {}), why: 'a model'}
       // (strict, decideLaw's: a model is returned only where confirmed, no assumed law broken at it over its own domain;
       // one that breaks only instances of another sort, or that the rounds or the wall cut off, is no answer)
-      const capped = !(round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end)), raw = capped ? undefined : modelInstances(m, laws, inst, g, o.witness)
+      const capped = !(round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end)), raw = capped ? undefined : modelInstances(m, laws, inst, g, o.witness, undefined, true)
       if (!capped && !raw) return last
       more = raw && bySort(m, laws, raw)
       const count = (x: Instances) => Object.values(x).reduce((s2, ks) => s2 + ks.length, 0)
@@ -1884,21 +1894,39 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
 }
 function proveOne(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram} {
   const law = laws[i]!, pm = plainOf(m), inst = lawInstances(m, laws, i)
+  // Keep the ordinary fallback's actual trees too. A local proof can use a
+  // ghost value as a key where EPR's sorted instances were insufficient. The
+  // complete-set path widens these trees and checks every obligation afresh.
+  const remember = (at: Instances, trees: Record<string, Tree>) => {
+    if (!Object.values(m.step.maps ?? {}).some(w => !('each' in w) && w.key.op === 'tup') || !fastShape(m, laws)) return
+    const byName = new Map(laws.map(l => [l.name, l])), proofs: Record<string, Proof1> = {}
+    for (const g of obligations(m, laws, {[law.name]: at}, i)) {
+      const tree = trees[g.name]
+      if (!tree) return
+      const src = sourcesOf(m, laws, at, g, usedHyps(g, tree))
+      proofs[g.name] = {part: g, tree, uses: new Map((src ? [...src.keys()] : laws.map(l => l.name)).map(n => [n, textOfLaw(byName.get(n)!)])), ...(src ? {tuples: src} : {})}
+    }
+    const memo = memoOf(m)
+    if (memo.proven.size >= 4096) memo.proven.clear()
+    memo.proven.set(law.name, {text: textOfLaw(law), inst: at, proofs})
+  }
   const few = triggered(pm, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
   if (!sameInstances(few, inst)) {
     let proven = true
+    const done: Record<string, Tree> = {}
     for (const goal of obligations(m, laws, {[law.name]: few}, i)) {
       const o = grow(goal)
-      if ('tree' in o) continue
+      if ('tree' in o) { done[goal.name] = o.tree; continue }
       proven = false
       // (a goal that ran out past the deadline: the next instances can't be tried, and it is the verdict's goal)
       if (o.stuck === 'unknown' && ranOut()) return {proven: false, goal: goal.name, stuck: 'unknown'}
       break
     }
-    if (proven) return {proven: true}
+    if (proven) { remember(few, done); return {proven: true} }
   }
   // (a model breaking a law at a tuple of the goal's keys: those added, the law asked again)
-  const {result: a} = withModels(m, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), growAll, grownModel, grownSettled)
+  const {result: a, inst: at} = withModels(m, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), growAll, grownModel, grownSettled)
+  if (!a.out) remember(at, a.done)
   return a.out ? {proven: false, goal: a.goal!.name, stuck: a.out.stuck, ...(a.out.witness ? {witness: a.out.witness} : {}), ...(a.out.diagram ? {diagram: a.out.diagram} : {})} : {proven: true}
 }
 // Goals grown in turn up to the first one unproven (withModels' question in proveLaw and proveThinned): the trees, their

@@ -23,10 +23,10 @@ const units: Unit[] = [
     arith.test.ts conformance.test.ts compose.test.ts relational.test.ts quantifiers.test.ts functions.test.ts
     keyterms.test.ts lists.test.ts liveness.test.ts sizes.test.ts values.test.ts rationals.test.ts builders.test.ts
     gdp.test.ts datatypes.test.ts lemmas.test.ts discover.test.ts infer.test.ts cyclic.test.ts cycles.test.ts
-    nonterm.test.ts data.test.ts hypothesis.test.ts seqs.test.ts abstract.test.ts search.test.ts invoices.test.ts
+    nonterm.test.ts data.test.ts data-synth.test.ts hypothesis.test.ts seqs.test.ts abstract.test.ts search.test.ts invoices.test.ts
     folds.test.ts trees.test.ts pairs.test.ts chart.test.ts xstate.test.ts extract.test.ts effect.test.ts
-    effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts calendar.test.ts`),
-  ...tests('kernel', 'tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts'),
+    effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts calendar.test.ts count-facts.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts`),
+  ...tests('kernel', 'tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts epr-clock.test.ts share.test.ts model-sequence.test.ts'),
   ...tests('examples', 'examples.test.ts'),
   ...tests('.', 'scripts/lean-gate/gate.test.ts'),
   ...runs(`examples/readme.ts examples/guide.ts examples/composition.ts examples/sets.ts examples/quantifiers.ts

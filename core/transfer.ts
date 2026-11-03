@@ -111,7 +111,7 @@ const callsOf = (t: unknown): string[] => { const out: string[] = []; walk(t, o 
 // work for the bridge, then 35,367 for the law, `runs/datafix/trace0`).
 export type Plan = {bridges: Map<string, Op>, unfolds: boolean}
 export function transferPlan(l: DataLaw): Plan | undefined {
-  const p = programOf([l]), bridges = new Map<string, Op>()
+  const p = programOf([l], [], false), bridges = new Map<string, Op>()
   for (const f of p.fns) { const op = builtinOf(f); if (op && !isBridge(l.holds, f, op)) bridges.set(f.name, op) }
   const unfolds = p.fns.some(f => !taken(f))
   return bridges.size || unfolds ? {bridges, unfolds} : undefined
@@ -186,7 +186,7 @@ type Built = {p: Program, lstar: DataLaw, bridges: {fn: Fn, op: Op, law: DataLaw
 function build(l: DataLaw, bridged: Map<string, Op>, unfold: boolean): Built | undefined {
   // Copied: a function that calls a bridged one, or (unfolding) one that isn't recursive, or a copied one; a function
   // that isn't recursive is unfolded where it is called instead.
-  const p0 = programOf([l]), reach = new Set<string>(), unfolded = (n: string) => unfold && !taken(fnOf(n))
+  const p0 = programOf([l], [], false), reach = new Set<string>(), unfolded = (n: string) => unfold && !taken(fnOf(n))
   for (let changed = true; changed;) { changed = false; for (const f of p0.fns) if (!bridged.has(f.name) && !unfolded(f.name) && !reach.has(f.name) && callsOf(f.body()).some(g => bridged.has(g) || unfolded(g) || reach.has(g))) { reach.add(f.name); changed = true } }
   if ([...reach].some(n => fnOf(n).ring.length > 1)) return undefined
   const key = `${unfold}|${[...bridged].map(([f, op]) => `${f}:${op.name}`).sort().join(',')}`, copies = new Map<string, string>()
@@ -217,7 +217,7 @@ function build(l: DataLaw, bridged: Map<string, Op>, unfold: boolean): Built | u
   if (JSON.stringify(lstar.holds) === JSON.stringify(l.holds) || size(lstar.holds) > 8 * size(l.holds) + 4000) return undefined
   const v = (name: string): X => ({op: 'var', name})
   // Only the copies the law said through them reaches (each with those its copy calls).
-  const p1 = programOf([lstar]), back = new Map([...copies].map(([a, b]) => [b, a]))
+  const p1 = programOf([lstar], [], false), back = new Map([...copies].map(([a, b]) => [b, a]))
   const bridges = [...bridged].map(([f, op]) => {
     const fn = fnOf(f), vs = fn.params.map(q => q.name)
     return {fn, op, law: {name: `${f} is ${op.name}`, vars: fn.params.map(q => ({name: q.name, sort: q.sort})), holds: {op: '=', a: {op: 'call', fn: f, args: vs.map(v)}, b: op.x(vs.map(v))}, params: []} as DataLaw}
@@ -226,7 +226,7 @@ function build(l: DataLaw, bridged: Map<string, Op>, unfold: boolean): Built | u
     const fn = fnOf(back.get(c.name)!), vs = fn.params.map(q => q.name), params = [...new Set(fn.paramFns)]
     return {fn, law: {name: `${fn.name} is ${c.name}`, vars: fn.params.map(q => ({name: q.name, sort: q.sort})), holds: {op: '=', a: {op: 'call', fn: fn.name, args: vs.map(v)}, b: {op: 'call', fn: c.name, args: vs.map(v)}}, params} as DataLaw}
   })
-  const p = programOf([l, lstar, ...bridges.map(b => b.law), ...equivs.map(e => e.law)])
+  const p = programOf([l, lstar, ...bridges.map(b => b.law), ...equivs.map(e => e.law)], [], false)
   return {p, lstar, bridges, equivs, copies, unfolded: unfold}
 }
 
@@ -251,14 +251,18 @@ export function proveThrough(l: DataLaw, plan: Plan, opts: Options, until: numbe
     const b = (plan.unfolds ? build(l, bridged, true) : undefined) ?? (bridged.size ? build(l, bridged, false) : undefined)
     if (!b) return undefined
     // One chain of nodes: each bridge (by the search), each copy's law (its node made, or by the search), in order.
-    const fs = factsOf(b.p), chain: Proven[] = [], nodes: NodeSpec[] = [], nodeOf = new Map<string, number>()
+    let fs = factsOf(b.p)
+    const chain: Proven[] = [], nodes: NodeSpec[] = [], nodeOf = new Map<string, number>()
+    // Search may invent ordinary observer definitions. Its facts append to the context's,
+    // preserving the indices of the chain; carry that vocabulary into the final verification.
+    const extend = (r: ReturnType<typeof searchIn>) => { if (r.out && r.facts && r.verdict.program) { fs = r.facts; b.p = r.verdict.program } }
     const add = (pr: Proven) => { chain.push(pr); nodes.splice(0, nodes.length, ...pr.nodes); nodeOf.set(pr.law.name, nodes.findIndex(n => n.name === pr.spec.name)) }
     const ctx = (): SearchCtx => ({p: b.p, fs, base: [...chain], level: chain.length ? top(chain.at(-1)!) : 0})
     const lost: string[] = []
     for (const x of b.bridges) {
       const r = searchIn(x.law, opts, Math.min(until, clock() + 6000 * (opts.patience ?? 1)), ctx())
       tried += r.verdict.tried
-      if (r.out) add(r.out)
+      if (r.out) { extend(r); add(r.out) }
       else lost.push(x.fn.name)
     }
     if (lost.length) {
@@ -273,7 +277,7 @@ export function proveThrough(l: DataLaw, plan: Plan, opts: Options, until: numbe
       const r = searchIn(x.law, {...opts, lemmas: []}, Math.min(until, clock() + 8000 * (opts.patience ?? 1)), ctx())
       tried += r.verdict.tried
       if (!r.out) return undefined
-      add(r.out)
+      extend(r); add(r.out)
     }
     // (through the bridges and unfolded: half the time left, the other half through the unfolding alone, the functions
     // as written)
@@ -282,6 +286,7 @@ export function proveThrough(l: DataLaw, plan: Plan, opts: Options, until: numbe
     tried += r.verdict.tried
     if (!r.out && again && clock() < until) { bridged = new Map(); continue }
     if (!r.out) return {...r.verdict, proven: false, checked: false, law: l.name, counterexample: undefined, tried}
+    extend(r)
     // The nodes: the chain's, then the law's said through them, then the law's own.
     const specs: NodeSpec[] = [...nodes], names = new Set(specs.map(n => n.name)), off = specs.length
     for (const n of r.out.nodes) {
@@ -296,7 +301,7 @@ export function proveThrough(l: DataLaw, plan: Plan, opts: Options, until: numbe
     specs.push(node)
     const v = verify(fs, specs, Math.max(until, clock() + 3000))
     if (!v.proven || !v.checked) return undefined
-    const through = [...b.bridges.map(x => `${x.fn.name} is ${x.op.name}`), ...b.equivs.map(x => x.law.name), ...(b.unfolded ? [`unfolded: ${programOf([l]).fns.filter(f => !taken(f)).map(f => f.name).join(', ')}`] : [])]
+    const through = [...b.bridges.map(x => `${x.fn.name} is ${x.op.name}`), ...b.equivs.map(x => x.law.name), ...(b.unfolded ? [`unfolded: ${programOf([l], [], false).fns.filter(f => !taken(f)).map(f => f.name).join(', ')}`] : [])]
     return {law: l.name, proven: true, checked: true, proof: v, lemmas: [...b.bridges.map(x => x.law.name), ...b.equivs.map(x => x.law.name), ...r.verdict.lemmas], scheme: `${r.verdict.scheme ?? 'no induction'}, through the law ${b.lstar.name}`, tried, program: b.p, node: specs.length - 1, ms: Math.round(performance.now() - t0), through}
   }
 }
