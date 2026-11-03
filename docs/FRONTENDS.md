@@ -65,6 +65,11 @@ an arity or its parameter clause such as `"(seed: Int)"`. Swift resolves same-la
 only for exact declared scalar arguments or explicit integer conversions; context-dependent literal
 overloads and failable initializers remain refused. Kotlin continues to use an arity.
 
+Rust lifetime parameters alone do not make a declaration value-generic. Lifetime-bearing methods use the
+same original-code replay as other Rust methods. Type and const parameters remain refused, including when
+mixed with lifetimes; this does not specialize arbitrary generic code or add support for otherwise unsupported
+borrowed fields, argument types or ownership operations.
+
 Solidity deployment contexts, constructor-only subclasses and library callers are described in
 [Solidity harnesses](SOLIDITY.md); the original source stays unchanged and the chosen context is reported.
 

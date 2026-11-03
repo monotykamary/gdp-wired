@@ -45,6 +45,12 @@ fn text(t: &impl ToTokens) -> String {
 }
 fn no(p: &str, why: String) -> Value { json!({"e": "no", "p": p, "why": why}) }
 fn sno(p: &str, why: String) -> Value { json!({"s": "no", "p": p, "why": why}) }
+// Lifetimes constrain borrowing but do not select a runtime value type. Preserve
+// refusals for type/const parameters; the existing type and ownership checks still
+// decide whether a lifetime-bearing field, argument or operation can be read.
+fn has_type_or_const_params(g: &syn::Generics) -> bool {
+  g.params.iter().any(|p| !matches!(p, syn::GenericParam::Lifetime(_)))
+}
 fn last_ident(p: &syn::Path) -> String { p.segments.last().map(|s| s.ident.to_string()).unwrap_or_default() }
 fn path_str(p: &syn::Path) -> String { p.segments.iter().map(|s| s.ident.to_string()).collect::<Vec<_>>().join("::") }
 fn is_place(v: &Value) -> bool { matches!(v["e"].as_str(), Some("var") | Some("get") | Some("idx")) }
@@ -173,7 +179,7 @@ impl Reader {
     let mut fields = vec![];
     if let Fields::Named(f) = &s.fields { for fd in &f.named { fields.push(json!({"name": fd.ident.as_ref().unwrap().to_string(), "t": self.ty(&fd.ty), "rs": text(&fd.ty)})) } }
     let derives: Vec<String> = s.attrs.iter().filter(|a| a.path().is_ident("derive")).flat_map(|a| text(&a.meta).replace("derive (", "").replace(')', "").split(',').map(|x| x.trim().to_string()).collect::<Vec<_>>()).collect();
-    let generic = !s.generics.params.is_empty();
+    let generic = has_type_or_const_params(&s.generics);
     let mut kinds = vec![json!("value")];
     if derives.iter().any(|d| d == "Default") { kinds.push(json!("default")) }
     if generic { kinds.push(json!(format!("generic:{}", text(&s.generics)))) }
@@ -212,7 +218,7 @@ impl Reader {
     let (mut body, tail) = self.block(block);
     if !tail.is_null() && tail["e"] != "none" { body.push(json!({"s": "ret", "p": self.at(block.span()), "x": tail})) }
     let ret = match &sig.output { ReturnType::Default => json!({"k": "none"}), ReturnType::Type(_, t) => self.ty(t) };
-    let generic = !sig.generics.params.is_empty();
+    let generic = has_type_or_const_params(&sig.generics);
     let decs: Vec<Value> = attrs.iter().filter(|a| !a.path().is_ident("doc") && !a.path().is_ident("inline") && !a.path().is_ident("must_use") && !a.path().is_ident("allow")).map(|a| json!({"name": format!("attr:{}", text(a.path())), "text": text(&a.meta), "p": self.at(a.span())})).collect();
     let out = json!({"id": fid, "name": sig.ident.to_string(), "cls": cls, "p": self.at(sig.ident.span()), "span": [file, sig.span().start().line, block.span().end().line],
       "params": params, "ret": ret, "body": body, "async": sig.asyncness.is_some(), "static": is_static, "recv": recv, "decorators": decs, "generic": generic});
