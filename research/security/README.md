@@ -86,6 +86,18 @@ Refusals remain in the in-scope denominator; also report extraction coverage sep
 Do not call an unrefuted fixed version proven. The training source in core/security.test.ts
 is deliberately written for this lane and must be reported separately from upstream apps.
 
+Receipt admission also requires exactly one original side per required version, a successful
+reader status, and unique entry/constructor/policy identities. Failed or ambiguous receipts,
+blank replay evidence and unread stated laws are refused. Constructor overloads are distinct:
+a proof for one initializer cannot clear a refutation for another. This is consistency checking
+of supplied evidence, not cryptographic attestation of a replay string.
+
+`score.test.ts` includes a paired, **self-owned synthetic** source control: the CLI checks both
+complete versions, and the exact counterexample is replayed on each unchanged source before
+admission. Generated candidates alone still do not count. These controls do not rerun upstream
+vulnerabilities or change either the published/training denominator or the fixed-only cohort's
+`strictRecall: null` result.
+
 ## Measured coverage
 
 The complete-corpus baseline on 2026-11-03 is tree `7db037f` (main `927a521`): **18 published,
