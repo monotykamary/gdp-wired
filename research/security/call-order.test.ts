@@ -206,16 +206,21 @@ nativeTest('owned multi-call witness order changes the native policy outcome', a
       expect(collect(replay.expected, replay)).toEqual(['false', '0', String(exact.length), 'true'])
     }
     expect(collected).toBe(2)
+    const policyExprMismatch = Object.freeze({...repairedExact.expected, policyExpr: 'value != old(value)'})
+    expect(policyExprMismatch.policyExpr).not.toBe(repairedExact.expected.policyExpr)
+    expect({...policyExprMismatch, policyExpr: repairedExact.expected.policyExpr}).toEqual(repairedExact.expected)
     const mismatches = [
       {kind: 'source', expected: repairedReordered.expected, replay: originalReordered},
       {kind: 'order', expected: repairedExact.expected, replay: repairedReordered},
+      {kind: 'policyExpr', expected: policyExprMismatch, replay: repairedExact},
     ]
     for (const mismatch of mismatches) {
       expect(() => collect(mismatch.expected, mismatch.replay)).toThrow('owned replay source or invocation mismatch')
       expect(collected).toBe(2)
+      expect(law.replayed).toBeUndefined()
     }
     console.log('OWNED_REPLAY_ASSOCIATION ' + JSON.stringify({scope: 'trusted fixture-runner source/invocation consistency only; not authenticity, freshness or lifecycle',
-      matching: 2, collected, mismatches: mismatches.map(({kind, expected, replay}) => ({kind, expected, actual: replay.actual,
+      matching: 2, collected, markerBeforeEvidence: law.replayed ?? null, mismatches: mismatches.map(({kind, expected, replay}) => ({kind, expected, actual: replay.actual,
         status: replay.observation.status, signal: replay.observation.signal, stdout: replay.observation.stdout}))}))
     expect(controls[0]!.broken).toBe(true)
     expect(controls[1]!.broken).toBe(false)
