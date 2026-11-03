@@ -13,7 +13,15 @@ EFF = {}
 HIT = set()
 S = {}
 
+def datetime_in(v, unit):
+  epoch = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc if unit == 'datetime-utc' else None)
+  return epoch + datetime.timedelta(milliseconds=int(v))
+
 def enc_num(v):
+  if isinstance(v, datetime.datetime):
+    epoch = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc if v.tzinfo is not None else None)
+    delta = v - epoch
+    return str(delta.days * 86400000 + delta.seconds * 1000 + delta.microseconds // 1000) if delta.microseconds % 1000 == 0 else '?:sub-millisecond datetime'
   if isinstance(v, bool): return v
   if isinstance(v, int): return str(v)
   if isinstance(v, float):
@@ -118,14 +126,139 @@ class FakeStore:
         setattr(self, m, rec(a['key'], a['async']))
       elif a['patch'].get('store') == name and not (a.get('pass') and m in own): setattr(self, m, stub(a['key'], a['async'], (lambda *x, **k: None) if a.get('pass') else None))
 
+ORM_VALIDATED = set()
+
+class ORMTable:
+  """Only the persistence boundary is faked; methods execute on the real model class.
+  Reads detach copies, and save snapshots a row. No schema or database is created.
+  """
+  def __init__(self, leaf):
+    self.leaf, self.meta, self.data = leaf, leaf['orm'], {}
+    self.cls = resolve(self.meta['rec'])
+    self.key = self.meta['key']
+    if self.cls not in ORM_VALIDATED:
+      access = {'__getattribute__', '__getattr__', '__setattr__', '__delattr__'}
+      if self.meta['framework'] == 'django':
+        from django.db.models import Model, Manager
+        methods = {n for n, v in vars(Model).items() if inspect.isfunction(v) or isinstance(v, (staticmethod, classmethod, property))} | access
+        unsafe = any(inspect.getattr_static(self.cls, n, None) is not inspect.getattr_static(Model, n, None) for n in methods) or type(self.cls.objects) is not Manager
+      else:
+        from sqlalchemy.orm.decl_base import _declarative_constructor
+        manager = self.cls._sa_class_manager
+        unsafe = manager.original_init is not _declarative_constructor or self.cls.__init__ is not manager.new_init or any(inspect.getattr_static(self.cls, n, None) is not inspect.getattr_static(object, n, None) for n in access)
+      if unsafe: raise ValueError('custom or inherited ORM persistence behavior is outside the table boundary')
+      ORM_VALIDATED.add(self.cls)
+  def install(self):
+    if self.meta['framework'] == 'django': self.cls.objects = self
+    table = self
+    def save(row, *args, **kw):
+      if args or kw: raise ValueError('ORM save options outside boundary')
+      table.data[getattr(row, table.key)] = {f['name']: getattr(row, f['name']) for f in table.meta['fields']}
+    def delete(row, *args, **kw):
+      if args or kw: raise ValueError('ORM delete options outside boundary')
+      key = getattr(row, table.key)
+      n = int(key in table.data)
+      table.data.pop(key, None)
+      setattr(row, table.key, None)
+      return n, {table.cls._meta.label: n}
+    self.cls.save = save
+    self.cls.delete = delete
+  def lookup(self, kw):
+    if len(kw) != 1: raise ValueError('one primary key required')
+    name, value = next(iter(kw.items()))
+    if name not in ('pk', self.key): raise ValueError('non-key filter')
+    return value
+  def get(self, **kw):
+    key = self.lookup(kw)
+    if key not in self.data: raise self.cls.DoesNotExist()
+    return self.cls(**self.data[key])
+  def create(self, **kw):
+    from django.db import IntegrityError
+    key = kw[self.key]
+    if key in self.data: raise IntegrityError('duplicate primary key')
+    row = self.cls(**kw)
+    row.save()
+    return row
+  def filter(self, **kw):
+    table, key = self, self.lookup(kw)
+    class Query:
+      def exists(self): return key in table.data
+      def first(self): return table.cls(**table.data[key]) if key in table.data else None
+      def delete(self):
+        n = int(key in table.data)
+        table.data.pop(key, None)
+        return n, {table.cls._meta.label: n}
+    return Query()
+
+class ORMSession:
+  def __init__(self): self.loaded, self.added, self.data = [], [], {}
+  def table(self, cls):
+    return next(t for t in OBJ_STORES.values() if isinstance(t, ORMTable) and t.cls is cls)
+  def get(self, cls, key):
+    table = self.table(cls)
+    if key not in table.data: return None
+    row = cls(**table.data[key]); self.loaded.append((row, False))
+    return row
+  def add(self, row):
+    if any(r is row for r, _ in self.loaded): return
+    self.added.append(row)
+    self.loaded.append((row, False))
+  def delete(self, row):
+    self.loaded = [(r, d) for r, d in self.loaded if r is not row]
+    self.loaded.append((row, True))
+  def commit(self):
+    pending = set()
+    for row in self.added:
+      table = self.table(type(row)); key = getattr(row, table.key)
+      if key in table.data or (table, key) in pending: raise ValueError('duplicate primary key')
+      pending.add((table, key))
+    for row, deleted in self.loaded:
+      table = self.table(type(row))
+      if deleted: table.data.pop(getattr(row, table.key), None)
+      else: table.data[getattr(row, table.key)] = {f['name']: getattr(row, f['name']) for f in table.meta['fields']}
+    self.loaded.clear()
+
+def orm_snapshot(table):
+  out = {}
+  for key, row in table.data.items():
+    cell = {}
+    for field in table.meta['fields']:
+      name, t = field['name'], field['t']
+      if name == table.key: continue
+      value = row[name]
+      if t['k'] == 'opt':
+        cell[name + '_has'] = value is not None
+        t = t['of']
+      if value is None: value = '' if t['k'] == 'str' else False if t['k'] == 'bool' else 0
+      cell[name] = value if t['k'] in ('str', 'bool', 'choice') else enc_num(value)
+    out[str(key)] = cell
+  return out
+
+def orm_restore(table, cells):
+  table.data.clear()
+  for key, cell in cells.items():
+    key = int(key) if table.leaf['key'] == 'num' else key
+    row = {table.key: key}
+    for field in table.meta['fields']:
+      name, t = field['name'], field['t']
+      if name == table.key: continue
+      optional = t['k'] == 'opt'
+      if optional: t = t['of']
+      row[name] = None if optional and not cell[name + '_has'] else datetime_in(cell[name], t['unit']) if t.get('unit', '').startswith('datetime-') else int(cell[name]) if t['k'] == 'int' else cell[name]
+    table.data[key] = row
+
 def build(spec, stores):
   if 'in' in spec:
     v = spec['in']
+    if spec.get('time'): return datetime_in(v, spec['time'])
     if spec.get('bytes') and isinstance(v, str): return v.encode('latin-1')
     return float(v) if spec.get('float') and isinstance(v, int) and not isinstance(v, bool) else v
   if spec.get('none'): return None
   if spec.get('inert'): return {} if spec.get('dict') else Inert()
-  if 'store' in spec: return stores.setdefault(spec['store'], FakeStore(S['stores'].get(spec['store'], {}), spec['store']))
+  if 'store' in spec:
+    name = spec['store']
+    if name not in stores: stores[name] = ORMSession() if S['stores'].get(name, {}).get('ormSession') else FakeStore(S['stores'].get(name, {}), name)
+    return stores[name]
   if 'list' in spec: return [build(x, stores) for x in spec['list']]
   if 'rec' in spec:
     cls = resolve(spec['rec'])
@@ -193,6 +326,9 @@ def state_of(obj, stores):
   for l in S['leaves']:
     k = l['kind']
     if k == 'frame': continue
+    if l.get('orm'):
+      s[l['name']] = orm_snapshot(stores[l['name']])
+      continue
     if l.get('store'):
       st = stores.get(l['store'])
       cells = {}
@@ -226,6 +362,7 @@ def state_of(obj, stores):
       s[l['name']] = cells
   # A store's key no template names: the code keeps state the rule has no place for.
   for name, st in stores.items():
+    if isinstance(st, ORMTable): continue
     tpls = [l['tpl'] for l in S['leaves'] if l.get('store') == name]
     for key in st.data:
       if not any(tpl_match(t, key) is not None for t in tpls): raise ValueError(f"the store {name} holds {key!r}, a key no template of the rule names")
@@ -243,6 +380,9 @@ def set_state(obj, stores, state):
     k = l['kind']
     if k in ('frame', 'none'): continue
     v = state.get(l['name'])
+    if l.get('orm'):
+      orm_restore(stores[l['name']], v or {})
+      continue
     if l.get('store'):
       st = stores[l['store']]
       pre, _, post = l['tpl'].partition('{}')
@@ -252,7 +392,10 @@ def set_state(obj, stores, state):
         if l.get('json'): st.data[at] = json.dumps({f['name']: (c[f['name']] if f.get('choice') else num_in(c[f['name']], False)) for f in l['json'] if not f.get('out') and (not f.get('opt') or c.get(f['name'] + '_has'))})
         else: st.data[at] = c['value'] if l.get('choice') or l.get('str') else num_in(c['value'], l.get('float'))
       continue
-    if k == 'num': put(obj, l['path'], num_in(v, l.get('float')))
+    if k == 'num':
+      t = l.get('t') or {}
+      if t.get('k') == 'opt': t = t['of']
+      put(obj, l['path'], datetime_in(v, t['unit']) if t.get('unit', '').startswith('datetime-') else num_in(v, l.get('float')))
     elif k in ('str', 'choice', 'bool'): put(obj, l['path'], v.encode('latin-1') if k == 'str' and is_bytes(l) and isinstance(v, str) else v)
     elif k == 'map':
       d = {}
@@ -298,7 +441,10 @@ class Clock:
 class _Now(datetime.datetime):
   """datetime.datetime with now() the request's time (local, naive, as the code's own now())."""
   @classmethod
-  def now(cls, tz=None): return datetime.datetime.fromtimestamp(NOW[0], tz)
+  def now(cls, tz=None):
+    if tz is None and (time_module.timezone != 0 or time_module.altzone != 0):
+      raise ValueError('naive datetime clocks require a UTC process timezone')
+    return datetime.datetime.fromtimestamp(NOW[0], tz)
   # (where it is seen anyway, a type read while the clock is pinned, pydantic's: a datetime)
   @classmethod
   def __get_pydantic_core_schema__(cls, source, handler): return handler(datetime.datetime)
@@ -395,9 +541,18 @@ def patch_target(p):
   return o, p['path'][-1]
 
 def hello(req):
+  def has_naive(v):
+    if isinstance(v, dict):
+      return v.get('unit') == 'datetime-naive' or v.get('time') == 'datetime-naive' or any(has_naive(x) for x in v.values())
+    return isinstance(v, list) and any(has_naive(x) for x in v)
+  if (req.get('naiveUtc') or has_naive(req)) and (time_module.timezone != 0 or time_module.altzone != 0):
+    raise ValueError('stated naive datetime values require a UTC process timezone')
   S.update(req)
   S['path'] = os.path.realpath(req['path'])
   sys.path.insert(0, req['root'])
+  if os.environ.get('DJANGO_SETTINGS_MODULE'):
+    import django
+    django.setup()
   S['mod'] = importlib.import_module(req['module'])
   mod = S['mod']
   pin_clocks(req['root'])
@@ -432,6 +587,9 @@ def hello(req):
 def make(args):
   global OBJ_STORES
   OBJ_STORES = {}
+  for leaf in S['leaves']:
+    if leaf.get('orm'): OBJ_STORES[leaf['name']] = ORMTable(leaf)
+  for table in OBJ_STORES.values(): table.install()
   if S['cls'] is None: obj = types.SimpleNamespace()
   else:
     kw = fixed_args(args, {})
@@ -454,6 +612,8 @@ def run(x):
   return S['loop'].run_until_complete(x) if inspect.isawaitable(x) else x
 
 def set_globals(stores):
+  for table in stores.values():
+    if isinstance(table, ORMTable): table.install()
   for g in S.get('globals') or []: setattr(importlib.import_module(g['mod']), g['name'], stores[g['name']])
 
 def call(req):
@@ -462,10 +622,14 @@ def call(req):
   OBJ_STORES = stores
   set_globals(stores)
   NOW[0] = int(req.get('now') or 0)
+  for store in stores.values():
+    if isinstance(store, ORMSession): store.loaded.clear(); store.added.clear()
   CUR.clear(); CUR.update(req.get('answers') or {})
   EFF.clear()
   fn = getattr(obj, req['m']) if S['cls'] is not None else getattr(S['mod'], req['m'])
-  kwargs = fixed_args(req['a'], {})
+  try: kwargs = fixed_args(req['a'], {})
+  except OverflowError as e:
+    return {'outside': f'argument outside the declared runtime domain: {e}'}
   before = frames(obj if S['cls'] is not None else None)
   snap = state_of(obj, stores) if S.get('discard') and S['cls'] is not None else None
   sys.settrace(tracer)
