@@ -695,6 +695,33 @@ impl Reader {
     };
     (pre, v)
   }
+  // Only fixed, directly named state fields: no computed receiver, trait dispatch,
+  // generic instantiation or alias expansion enters this sequencing shortcut.
+  fn fixed_method_field(&self, m: &syn::ExprMethodCall) -> bool {
+    if m.turbofish.is_some() { return false }
+    let Expr::Field(f) = &*m.receiver else { return false };
+    if !matches!(&*f.base, Expr::Path(p) if p.qself.is_none() && p.path.is_ident("self")) { return false }
+    let syn::Member::Named(member) = &f.member else { return false };
+    let Some((_, owner)) = self.self_ty.as_ref().and_then(|n| self.structs.get(n)) else { return false };
+    let Some(field) = owner.fields.iter().find(|fd| fd.ident.as_ref() == Some(member)) else { return false };
+    let Type::Path(t) = &field.ty else { return false };
+    if t.qself.is_some() { return false }
+    let Some(ty) = t.path.get_ident().map(|n| n.to_string()) else { return false };
+    let name = m.method.to_string();
+    if self.primitive_integer(&ty) { return matches!(name.as_str(), "min" | "max") && m.args.len() == 1 }
+    let Some((file, rec)) = self.structs.get(&ty) else { return false };
+    if file != &self.file || !rec.generics.params.is_empty() ||
+      self.smod.get(&ty) != self.self_ty.as_ref().and_then(|n| self.smod.get(n)) { return false }
+    if self.methods.get(&ty).map(|ms| ms.iter().filter(|(_, _, f)| f.sig.ident == m.method).count()) != Some(1) { return false }
+    self.files.iter().filter(|f| f.rel == self.file).any(|f| f.items.iter().any(|it| {
+      let Item::Impl(im) = it else { return false };
+      im.trait_.is_none() && im.generics.params.is_empty() &&
+        matches!(&*im.self_ty, Type::Path(t) if t.qself.is_none() && t.path.is_ident(&ty)) &&
+        im.items.iter().any(|it| matches!(it, ImplItem::Fn(f) if f.sig.ident == m.method &&
+          f.sig.generics.params.is_empty() && f.sig.inputs.len() == m.args.len() + 1 &&
+          matches!(f.sig.inputs.first(), Some(syn::FnArg::Receiver(r)) if r.reference.is_some())))
+    }))
+  }
   fn method(&mut self, m: &syn::ExprMethodCall, p: &str, t: &str) -> (Vec<Value>, Value) {
     let (mut pre, r) = self.expr(&m.receiver);
     let name = m.method.to_string();
@@ -714,8 +741,25 @@ impl Reader {
       pre.push(json!({"s": "if", "p": p, "c": {"e": "or", "xs": tests, "strict": true, "p": p}, "then": [], "else": [{"s": "fail", "p": p, "why": format!("atomic {name}: invalid memory ordering")}]}));
       return (pre, json!({"e": "rmw", "op": name, "place": r, "args": values[..values.len()-1].to_vec(), "p": p, "text": t}));
     }
-    let (mut ap, args) = self.args(&m.args);
-    pre.append(&mut ap);
+    let (r, args) = if self.fixed_method_field(m) {
+      // A scalar receiver is captured by value; a borrowed record keeps its
+      // identity (no copy node). Then materialize each argument in source order.
+      let receiver = json!({"e": "var", "n": self.temp(), "p": p});
+      pre.push(json!({"s": "set", "p": p, "to": receiver, "x": r}));
+      let mut args = vec![];
+      for arg in &m.args {
+        let (mut ap, value) = self.expr(arg);
+        pre.append(&mut ap);
+        let value = if is_place(&value) { json!({"e": "copy", "x": value, "p": value["p"]}) } else { value };
+        let var = json!({"e": "var", "n": self.temp(), "p": p});
+        pre.push(json!({"s": "set", "p": p, "to": var, "x": value})); args.push(var);
+      }
+      (receiver, args)
+    } else {
+      let (mut ap, args) = self.args(&m.args);
+      pre.append(&mut ap);
+      (r, args)
+    };
     let a = |i: usize| args.get(i).cloned().unwrap_or(Value::Null);
     let bin = |op: &str, ovf: &str| json!({"e": "bin", "op": op, "x": r, "y": a(0), "p": p, "text": t, "ovf": ovf, "div": "trunc"});
     let v = match name.as_str() {
