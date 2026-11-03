@@ -5,6 +5,7 @@ export type RecallSide = {version: string, status: string, result?: {rules: Rule
 const text = (value: string | undefined) => typeof value === 'string' && value.trim().length > 0
 const ruleKey = (rule: Rule) => JSON.stringify([rule.entry, rule.ctor ?? null])
 const claimKey = (rule: Rule, claim: Claim) => JSON.stringify([rule.entry, rule.ctor ?? null, claim.name, claim.expr])
+const familyKey = (rule: Rule, claim: Claim) => JSON.stringify([rule.entry, claim.name, claim.expr])
 function complete(side: RecallSide): boolean {
   if (!['checked', 'needs-reviewed-policy-and-original-replay'].includes(side.status) || !side.result?.rules.length) return false
   const rules = new Set<string>(), claims = new Set<string>()
@@ -35,8 +36,17 @@ export function scoreRecall(sides: RecallSide[], training = false): {found: bool
   // Only stated laws count, never --security candidates. Replay must explicitly name the original
   // reproduction; an environment-model schedule alone does not meet this bar. Constructor contexts
   // are part of the identity: another overload's proof cannot clear a still-broken original.
-  const broken = before.result.rules.flatMap(r => r.laws.filter(replayed).map(l => claimKey(r, l)))
-  const fixed = after!.result!.rules.flatMap(r => r.laws.map(l => ({key: claimKey(r, l), verdict: l.verdict})))
-  const found = broken.some(key => fixed.some(f => f.key === key && ['proven', 'unknown'].includes(f.verdict)))
+  const broken = before.result.rules.flatMap(rule => rule.laws.filter(replayed).map(claim => ({rule, claim})))
+  const fixedRules = after!.result!.rules
+  const found = broken.some(({rule, claim}) => {
+    const family = familyKey(rule, claim)
+    const original = before.result!.rules.filter(r => r.entry === rule.entry)
+    const fixed = fixedRules.filter(r => r.entry === rule.entry)
+    // Every original initializer stays covered. Every fixed initializer (including a newly added
+    // one) must check this exact policy; a partial repair or omitted law is not a fixed counterpart.
+    return original.every(r => r.laws.some(l => familyKey(r, l) === family))
+      && original.every(r => fixed.some(f => ruleKey(f) === ruleKey(r)))
+      && fixed.every(r => r.laws.some(l => familyKey(r, l) === family && ['proven', 'unknown'].includes(l.verdict)))
+  })
   return {found, reason: found ? 'stated law, original replay, fixed not refuted' : 'no stated law with original replay and checked fixed counterpart'}
 }
