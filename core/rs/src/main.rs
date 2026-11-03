@@ -735,6 +735,43 @@ impl Reader {
           matches!(f.sig.inputs.first(), Some(syn::FnArg::Receiver(r)) if r.reference.is_some())))
     }))
   }
+  // D1 only: a direct primitive field plus a compatible integer literal is a
+  // pure, statically typed receiver. Blocks, calls and other arithmetic stay out.
+  fn literal_sum_receiver(&self, m: &syn::ExprMethodCall) -> bool {
+    if m.turbofish.is_some() || m.args.len() != 1 || (m.method != "min" && m.method != "max") { return false }
+    fn unparen(mut e: &Expr) -> &Expr { while let Expr::Paren(p) = e { e = &p.expr; } e }
+    let Expr::Binary(b) = unparen(&m.receiver) else { return false };
+    if !matches!(b.op, BinOp::Add(_)) { return false }
+    let Expr::Field(f) = unparen(&b.left) else { return false };
+    if !matches!(&*f.base, Expr::Path(p) if p.qself.is_none() && p.path.is_ident("self")) { return false }
+    let syn::Member::Named(member) = &f.member else { return false };
+    let Expr::Lit(lit) = unparen(&b.right) else { return false };
+    let Lit::Int(lit) = &lit.lit else { return false };
+    let Some((_, owner)) = self.self_ty.as_ref().and_then(|n| self.structs.get(n)) else { return false };
+    let Some(field) = owner.fields.iter().find(|fd| fd.ident.as_ref() == Some(member)) else { return false };
+    let Type::Path(t) = &field.ty else { return false };
+    if t.qself.is_some() { return false }
+    let Some(ty) = t.path.get_ident().map(|n| n.to_string()) else { return false };
+    self.primitive_integer(&ty) && (lit.suffix().is_empty() || lit.suffix() == ty.as_str())
+  }
+  // D2: preserve the existing block prelude, then capture its known scalar
+  // field tail before argument effects. Early exits still leave through the prelude.
+  fn scalar_block_receiver(&self, m: &syn::ExprMethodCall) -> bool {
+    if m.turbofish.is_some() || m.args.len() != 1 || (m.method != "min" && m.method != "max") { return false }
+    fn unparen(mut e: &Expr) -> &Expr { while let Expr::Paren(p) = e { e = &p.expr; } e }
+    let Expr::Block(b) = unparen(&m.receiver) else { return false };
+    if b.label.is_some() { return false }
+    let Some(Stmt::Expr(tail, None)) = b.block.stmts.last() else { return false };
+    let Expr::Field(f) = unparen(tail) else { return false };
+    if !matches!(&*f.base, Expr::Path(p) if p.qself.is_none() && p.path.is_ident("self")) { return false }
+    let syn::Member::Named(member) = &f.member else { return false };
+    let Some((_, owner)) = self.self_ty.as_ref().and_then(|n| self.structs.get(n)) else { return false };
+    let Some(field) = owner.fields.iter().find(|fd| fd.ident.as_ref() == Some(member)) else { return false };
+    let Type::Path(t) = &field.ty else { return false };
+    if t.qself.is_some() { return false }
+    let Some(ty) = t.path.get_ident().map(|n| n.to_string()) else { return false };
+    self.primitive_integer(&ty)
+  }
   fn method(&mut self, m: &syn::ExprMethodCall, p: &str, t: &str) -> (Vec<Value>, Value) {
     let (mut pre, r) = self.expr(&m.receiver);
     let name = m.method.to_string();
@@ -754,7 +791,7 @@ impl Reader {
       pre.push(json!({"s": "if", "p": p, "c": {"e": "or", "xs": tests, "strict": true, "p": p}, "then": [], "else": [{"s": "fail", "p": p, "why": format!("atomic {name}: invalid memory ordering")}]}));
       return (pre, json!({"e": "rmw", "op": name, "place": r, "args": values[..values.len()-1].to_vec(), "p": p, "text": t}));
     }
-    let (r, args) = if self.fixed_method_field(m) {
+    let (r, args) = if self.fixed_method_field(m) || self.literal_sum_receiver(m) || self.scalar_block_receiver(m) {
       // A scalar receiver is captured by value; a borrowed record keeps its
       // identity (no copy node). Then materialize each argument in source order.
       let receiver = json!({"e": "var", "n": self.temp(), "p": p});

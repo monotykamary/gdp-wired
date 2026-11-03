@@ -98,7 +98,11 @@ lowering; this does not claim general call or receiver evaluation-order coverage
 
 Direct primitive-integer state-field `min`/`max` receivers are captured before their arguments.
 Direct helper fields with a unique borrowed, nongeneric inherent method in the same source file/module
-also capture the receiver identity, then materialize each argument after its own prelude. Computed or
+also capture the receiver identity, then materialize each argument after its own prelude. A `min`/`max`
+receiver consisting of a direct primitive field plus a type-compatible integer literal (with optional
+parentheses) is also captured first, so checked overflow precedes argument effects. An unlabeled receiver
+block ending in a direct primitive state field captures that field after its existing supported prelude;
+early returns or panics in the prelude prevent later argument effects. Other computed or
 side-effectful receivers, indirect callees, trait methods and generic dispatch do not enter this shortcut;
 existing native mismatch and unsupported-source refusals remain outside this bounded increment.
 

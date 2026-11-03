@@ -152,6 +152,13 @@ complete, strictly framed row with a matching call count before evidence is reco
 Fixed harmless Java probes cover absent/malformed/truncated output, nonzero exit and
 timeout; acceptance here means fixture-row validation, not a policy proof.
 
+A further test-private association gate compares an expected source digest and exact
+ordered invocation with metadata captured by the trusted runner at dispatch, after
+applying the same raw process/row guards. Matching repaired cases pass; source-only
+and order-only substitutions with identical valid output do not collect a row.
+These are fixture-runner consistency checks, not source authenticity, freshness,
+evidence lifecycle or a production receipt/scorer change.
+
 ## Measured coverage
 
 The complete-corpus baseline on 2026-11-03 is tree `7db037f` (main `927a521`): **18 published,
