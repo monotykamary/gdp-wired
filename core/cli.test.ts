@@ -471,6 +471,102 @@ class Lock:
   }
 }, 180_000)
 
+// Every constructor is a separate checked scope, including a constructor that breaks a stated law.
+;(TOOLS.java!() ? test : test.skip)('Java constructor alternatives all keep their class laws and replay receipts', async () => {
+  const dir = files({'Counter.java': `// gdp: law n nonnegative: n >= 0
+public class Counter {
+  private int n;
+  public Counter() { n = 0; }
+  public Counter(boolean negative) { n = -1; }
+  public void tick() { n = 0; }
+}`})
+  const result = await check([`${dir}/Counter.java`], {ms: 3000, propose: false, check: {runs: 30, depth: 6, states: 60}})
+  expect(result.rules.length).toBe(2)
+  expect(new Set(result.rules.map(r => r.ctor))).toEqual(new Set(['()', '(boolean)']))
+  for (const r of result.rules) {
+    expect(r.entry).toBe('Counter')
+    expect(r.ok).toBe(true)
+    expect(r.checked).toContain('requests from the start')
+    expect(r.laws.length).toBe(1)
+  }
+  expect(result.rules.find(r => r.ctor === '()')!.laws[0]!.verdict).toBe('proven')
+  expect(result.rules.find(r => r.ctor === '(boolean)')!.laws[0]!.verdict).toBe('broken')
+  expect(result.exit).toBe(1)
+  const printed = spawnSync(process.execPath, [new URL('./cli.ts', import.meta.url).pathname, 'check', `${dir}/Counter.java`, '--json', '--no-propose', '--ms', '3000'], {encoding: 'utf8'})
+  expect(printed.status).toBe(1)
+  const json = JSON.parse(printed.stdout) as {rules: {ctor?: string}[]}
+  expect(new Set(json.rules.map(r => r.ctor))).toEqual(new Set(['()', '(boolean)']))
+  writeFileSync(`${dir}/gdp.toml`, '[rules.Counter]\nctor = "()"\n')
+  const selected = await check([`${dir}/Counter.java`], {ms: 3000, propose: false})
+  expect(selected.rules.length).toBe(1)
+  expect(selected.rules[0]!.laws[0]!.verdict).toBe('proven')
+})
+;(TOOLS.java!() ? test : test.skip)('constructor variants keep separate certificates', async () => {
+  const dir = files({'Counter.java': `// gdp: law n stays zero: n == 0
+public class Counter {
+  private int n;
+  public Counter() { n = 0; }
+  public Counter(boolean ignored) { n = 0; }
+  public void tick() { n = 0; }
+}`})
+  const result = await check([`${dir}/Counter.java`], {ms: 3000, propose: false, cert: `${dir}/certs`})
+  expect(result.rules.length).toBe(2)
+  const certs = result.rules.map(r => r.laws[0]!.cert)
+  expect(certs.every(Boolean)).toBe(true)
+  expect(new Set(certs).size).toBe(2)
+  for (const cert of certs) expect(readAdv(cert!, 'utf8').length).toBeGreaterThan(0)
+})
+;(TOOLS.java!() ? test : test.skip)('a supported Java constructor never hides an unread constructor', async () => {
+  const dir = files({'Counter.java': `// gdp: law n nonnegative: n >= 0
+  public class Counter {
+    private int n;
+    public Counter() { n = 0; }
+    public Counter(int[] values) { n = values.length; }
+    public void tick() { n = 0; }
+  }`})
+  const result = await check([`${dir}/Counter.java`], {ms: 3000, propose: false})
+  expect(result.rules.length).toBe(2)
+  expect(result.rules.some(r => r.ok)).toBe(true)
+  expect(result.rules.some(r => !r.ok)).toBe(true)
+  expect(result.rules.every(r => r.laws.length === 1)).toBe(true)
+  expect(result.rules.find(r => !r.ok)!.laws[0]!.verdict).toBe('not read')
+  expect(result.exit).toBe(2)
+})
+;(TOOLS.swift!() ? test : test.skip)('Swift initializers each keep their own starts and class laws', async () => {
+  const dir = files({'Meter.swift': `// gdp: law n nonnegative: n >= 0
+struct Meter {
+  var n: Int
+  init() { n = 0 }
+  init(negative: Bool) { n = -1 }
+  mutating func tick() { n = 0 }
+}`})
+  const result = await check([`${dir}/Meter.swift`], {ms: 3000, propose: false, check: {runs: 30, depth: 6, states: 60}})
+  expect(result.rules.length).toBe(2)
+  expect(new Set(result.rules.map(r => r.ctor))).toEqual(new Set(['()', '(negative: Bool)']))
+  for (const r of result.rules) { expect(r.ok).toBe(true); expect(r.checked).toContain('requests from the start') }
+  expect(result.rules.find(r => r.ctor === '()')!.laws[0]!.verdict).toBe('proven')
+  expect(result.rules.find(r => r.ctor === '(negative: Bool)')!.laws[0]!.verdict).toBe('broken')
+  expect(result.exit).toBe(1)
+})
+
+;(TOOLS.swift!() ? test : test.skip)('a supported Swift initializer never hides a failable alternative or its law', async () => {
+  const dir = files({'Meter.swift': `// gdp: law n nonnegative: n >= 0
+struct Meter {
+  var n: Int
+  init() { n = 0 }
+  init?(valid: Bool) { if !valid { return nil }; n = 0 }
+  mutating func tick() { n = 0 }
+}`})
+  const result = await check([`${dir}/Meter.swift`], {ms: 3000, propose: false})
+  expect(new Set(result.rules.map(r => r.ctor))).toEqual(new Set(['()', '(valid: Bool)']))
+  expect(result.rules.find(r => r.ctor === '()')!.ok).toBe(true)
+  const refused = result.rules.find(r => r.ctor === '(valid: Bool)')!
+  expect(refused.ok).toBe(false)
+  expect(refused.refusals.map(r => r.what).join('; ')).toContain('failable initializer')
+  expect(refused.laws[0]!.verdict).toBe('not read')
+  expect(result.exit).toBe(2)
+})
+
 // Color: only on a terminal; piped, with --json, NO_COLOR (any value) or TERM=dumb plain; FORCE_COLOR on. Uncolored, the
 // text is what it was, byte for byte (the colored text less its escapes).
 test('color on a terminal only, NO_COLOR over a terminal, FORCE_COLOR on, and the same text without it', () => {

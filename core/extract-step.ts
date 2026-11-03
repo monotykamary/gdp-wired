@@ -50,7 +50,7 @@ export type SFunc = {id: string, name: string, cls?: string, p: string, span: [s
   // recursion check, or after it)
   recv?: string, results?: number, why?: string, late?: string}
 // (rets: the declared result types of its methods, another module's class's too: an inferred answer's type)
-export type SRec = {orm?: {framework: 'django' | 'sqlalchemy' | 'prisma' | 'typeorm', key: string, why?: string}, name: string, short: string, fields: {name: string, t: SType, dflt?: SX, inject?: boolean}[], methods: Record<string, string | null>, kinds: string[], own: boolean, module: string, p: string, rets?: Record<string, SType>, cattrs?: Record<string, number | string | boolean | null>}
+export type SRec = {initializers?: string[], orm?: {framework: 'django' | 'sqlalchemy' | 'prisma' | 'typeorm', key: string, why?: string}, name: string, short: string, fields: {name: string, t: SType, dflt?: SX, inject?: boolean}[], methods: Record<string, string | null>, kinds: string[], own: boolean, module: string, p: string, rets?: Record<string, SType>, cattrs?: Record<string, number | string | boolean | null>}
 export type SModule = {lang: string, file: string, path: string, module: string, root: string, consts?: Record<string, number | string | boolean>, entries: ({k: 'class', rec: string} | {k: 'func', id: string} | {k: 'missing', name: string})[], recs: Record<string, SRec>, funcs: Record<string, SFunc>, enums?: Record<string, {values: string[], discs: number[], data: boolean}>, error?: string,
   // false: a condition the path takes is kept whole (a negated disjunction not split into its parts: Go's reader's);
   // 'nil-false': only nil and false are false (Ruby's), not Python's truthiness
@@ -3943,6 +3943,13 @@ export function readStep(mod: SModule, opts: StepOptions): StepRead {
     }
   }
 }
+class InitializerChoice extends Refusal {
+  readonly initializers: NonNullable<Extraction['initializers']>
+  constructor(r: SRec) {
+    super(r.p, `${r.short}: several constructors (select ctor, or check every initializer with the CLI)`)
+    this.initializers = {entry: r.name, name: r.short, selectors: r.initializers!}
+  }
+}
 function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
   if (mod.error) refuse(mod.file ?? mod.root ?? '?', mod.error)
   const kept = opts.failures === 'kept', carried = kept && opts.onError !== 'discard'
@@ -3978,6 +3985,7 @@ function readOnce(mod: SModule, opts: StepOptions, g: Stepper): StepRead {
     const initId = r.methods.__init__
     if (initId) g.entryIds.add(initId)
     if (r.kinds.some(k => k.startsWith('generic:'))) refuse(r, `${r.short}: a generic type (its methods read a type parameter)`)
+    if (r.initializers && r.initializers.length > 1) throw new InitializerChoice(r)
     const rustNew = mod.lang === 'rust' ? r.methods.new : undefined
     if (rustNew) g.entryIds.add(rustNew)
     if (mod.lang === 'rust' && rustNew) {
@@ -4712,6 +4720,7 @@ export function extractStep(mod: SModule, h: (read: StepRead) => Harness, opts: 
   }
   let read: StepRead
   try { read = readStep(mod, opts) } catch (e) {
+    if (e instanceof InitializerChoice) return {ok: false, refusals: [{where: e.where, what: e.what}], notes, initializers: e.initializers}
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
     throw e
   }

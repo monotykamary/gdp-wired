@@ -12,7 +12,7 @@
 //   (a path or a URL; the root, by default, the file's package root)
 //
 // The subset: a class (a static nested one too; its superclasses of the code's own sources merged in), its one
-// constructor (or the one of the arity given: `ctor`) with the fields' initializers as the rule's start and its
+// constructor (or the one selected by `ctor` arity / Java signature), with field initializers as the rule's start and its
 // arguments the params, its methods as requests; int, long, short, byte and char with Java's wraparound (Kotlin's Int
 // and Long the same), Math.addExact and the other exact methods trapping (an ArithmeticException: the step's failure),
 // / and % truncating by a constant, floats at whole values; booleans, strings set and compared, enums as choices;
@@ -43,8 +43,8 @@ export type JvmOptions = StepOptions & {
   prebuilt?: boolean,
   // Kotlin: other files of the code compiled with the file (kotlinc has no source path).
   sources?: string[],
-  // The constructor's arity, where the class has several.
-  ctor?: number,
+  // The constructor's arity, or (Java) its erased parameter types, e.g. '(int,java.lang.String)'.
+  ctor?: number | string,
   // The JDK's home (by default $JAVA_HOME, else java and javac on the PATH); Kotlin's (by default $KOTLIN_HOME, else
   // the kotlinc on the PATH).
   javaHome?: string, kotlinHome?: string,
@@ -217,6 +217,7 @@ export function extractJvm(lang: 'java' | 'kotlin', at: string | FileURL, opts: 
   const file = pathOf(at)
   let mod: SModule
   try {
+    if (lang === 'kotlin' && typeof opts.ctor === 'string') throw new Refusal(file, 'Kotlin ctor selection uses an arity, not a Java signature')
     if (opts.stores && Object.keys(opts.stores).length) throw new Refusal(file, `stores: not in the ${lang === 'java' ? 'Java' : 'Kotlin'} front end yet`)
     // (a name or a string past the class file's 65,535 bytes: no compiler makes a class of it, javac and kotlinc throw)
     // (a missing file is the reader's to refuse, with its reason: no JDK, or the file)
