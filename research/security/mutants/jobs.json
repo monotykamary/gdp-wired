@@ -1,0 +1,8 @@
+[
+  {"name":"permission","cmd":"bun install --frozen-lockfile >/dev/null 2>&1 && bun research/security/mutants/run.ts permission","cpu":2,"timeout":600},
+  {"name":"role","cmd":"bun install --frozen-lockfile >/dev/null 2>&1 && bun research/security/mutants/run.ts role","cpu":2,"timeout":600},
+  {"name":"workflow","cmd":"bun install --frozen-lockfile >/dev/null 2>&1 && bun research/security/mutants/run.ts workflow","cpu":2,"timeout":600},
+  {"name":"quota","cmd":"bun install --frozen-lockfile >/dev/null 2>&1 && bun research/security/mutants/run.ts quota","cpu":2,"timeout":600},
+  {"name":"tenant","cmd":"bun install --frozen-lockfile >/dev/null 2>&1 && bun research/security/mutants/run.ts tenant","cpu":2,"timeout":900},
+  {"name":"race","cmd":"bun install --frozen-lockfile >/dev/null 2>&1 && bun research/security/mutants/run.ts race","cpu":2,"timeout":900}
+]

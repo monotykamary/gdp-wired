@@ -1,0 +1,3 @@
+[rules.Payments]
+failures = "kept"
+stores = {cache = {}, gateway = {}}

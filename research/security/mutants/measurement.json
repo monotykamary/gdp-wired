@@ -1,0 +1,2522 @@
+{
+  "schema": 1,
+  "baseCommit": "46ab97b6575b47c48a76dc2307cd5924abc689c6",
+  "scope": "owned synthetic modules, not upstream CVE recall",
+  "configuration": {
+    "msPerLaw": 8000,
+    "security": true,
+    "propose": false,
+    "vmType": "large",
+    "cpu": 2,
+    "isolated": true
+  },
+  "summary": {
+    "baselines": 6,
+    "baselineRefuted": 0,
+    "baselineProven": 6,
+    "mutants": 12,
+    "detected": 12,
+    "fullyRead": 18,
+    "sides": 18,
+    "reviewRequired": true
+  },
+  "rows": [
+    {
+      "fixture": "permission",
+      "file": "module.ts",
+      "budgetMs": 8000,
+      "harness": {
+        "operators.ts": "4304cce87953add80983ee871cf225e3234a07465a5584fc5e049405e93b5c7e",
+        "run.ts": "af09e14ea33c443f9cc0754a56875a5fdccd3cb0a15d9872c4e05ce95b4d69de",
+        "replay.ts": "62e16c918d1887eea326bbe974328775ae1113f32e48bba75f88e7e3ee2d6689",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390"
+      },
+      "runtime": "Bun 1.4.3",
+      "baseline": {
+        "sha256": "91f4554f28a88039e59de66b0efe60d0d1b633b81fc312e782a74fb91cb07d05",
+        "exit": 0,
+        "fullyRead": true,
+        "claims": [
+          {
+            "name": "changes require permission",
+            "expr": "changes != old(changes) implies allowed",
+            "where": "module.ts:4",
+            "kind": "step",
+            "verdict": "proven",
+            "ms": 67,
+            "entry": "PermissionCounter"
+          }
+        ],
+        "rules": [
+          {
+            "entry": "PermissionCounter",
+            "ok": true,
+            "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 2 of 2 branch arms",
+            "refusals": []
+          }
+        ],
+        "proposals": {
+          "count": 3,
+          "broken": 0,
+          "allReviewRequired": true
+        }
+      },
+      "mutants": [
+        {
+          "id": "remove-guard-256-0",
+          "operator": "remove-guard",
+          "start": 256,
+          "end": 282,
+          "before": "if (!allowed) return false",
+          "after": "",
+          "side": {
+            "sha256": "ed3f5fa10f3d8692ab77516b6b5915345c78bdd53c0d3550a86a9cb43bf2fbc1",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "changes require permission",
+                "expr": "changes != old(changes) implies allowed",
+                "where": "module.ts:4",
+                "kind": "step",
+                "verdict": "broken",
+                "run": [
+                  "change(allowed=false)"
+                ],
+                "assumes": [],
+                "ms": 3,
+                "entry": "PermissionCounter"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "PermissionCounter",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 0 from the prover's witnesses",
+                "refusals": []
+              }
+            ],
+            "proposals": {
+              "count": 3,
+              "broken": 2,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "changes require permission",
+              "expr": "changes != old(changes) implies allowed",
+              "entry": "PermissionCounter",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "change",
+                      "args": {
+                        "allowed": false
+                      }
+                    },
+                    "before": {
+                      "allowed": false,
+                      "changes": 0
+                    },
+                    "after": {
+                      "allowed": false,
+                      "changes": 1,
+                      "result": true
+                    }
+                  }
+                ]
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "change",
+                      "args": {
+                        "allowed": false
+                      }
+                    },
+                    "before": {
+                      "allowed": false,
+                      "changes": 0
+                    },
+                    "after": {
+                      "allowed": false,
+                      "changes": 0,
+                      "result": false
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "invert-guard-260-1",
+          "operator": "invert-guard",
+          "start": 260,
+          "end": 268,
+          "before": "!allowed",
+          "after": "!(!allowed)",
+          "side": {
+            "sha256": "6513728cbafc097056ce579f135d51afb593a32ec4b3ad4d949603db436df641",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "changes require permission",
+                "expr": "changes != old(changes) implies allowed",
+                "where": "module.ts:4",
+                "kind": "step",
+                "verdict": "broken",
+                "run": [
+                  "change(allowed=false)"
+                ],
+                "assumes": [],
+                "ms": 0,
+                "entry": "PermissionCounter"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "PermissionCounter",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 2 of 2 branch arms",
+                "refusals": []
+              }
+            ],
+            "proposals": {
+              "count": 3,
+              "broken": 2,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "changes require permission",
+              "expr": "changes != old(changes) implies allowed",
+              "entry": "PermissionCounter",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "change",
+                      "args": {
+                        "allowed": false
+                      }
+                    },
+                    "before": {
+                      "allowed": false,
+                      "changes": 0
+                    },
+                    "after": {
+                      "allowed": false,
+                      "changes": 1,
+                      "result": true
+                    }
+                  }
+                ]
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "change",
+                      "args": {
+                        "allowed": false
+                      }
+                    },
+                    "before": {
+                      "allowed": false,
+                      "changes": 0
+                    },
+                    "after": {
+                      "allowed": false,
+                      "changes": 0,
+                      "result": false
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fixture": "quota",
+      "file": "module.ts",
+      "budgetMs": 8000,
+      "harness": {
+        "operators.ts": "4304cce87953add80983ee871cf225e3234a07465a5584fc5e049405e93b5c7e",
+        "run.ts": "af09e14ea33c443f9cc0754a56875a5fdccd3cb0a15d9872c4e05ce95b4d69de",
+        "replay.ts": "62e16c918d1887eea326bbe974328775ae1113f32e48bba75f88e7e3ee2d6689",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390"
+      },
+      "runtime": "Bun 1.4.3",
+      "baseline": {
+        "sha256": "84365fdcb03e39218969088d9e796f480e6e84536cc1cfba75cc49b003772e57",
+        "exit": 0,
+        "fullyRead": true,
+        "claims": [
+          {
+            "name": "admissions stay within quota",
+            "expr": "used <= limit",
+            "where": "module.ts:6",
+            "kind": "step",
+            "verdict": "proven",
+            "found": [
+              "admit_result is no → used <= limit",
+              "admit_result is yes → used <= limit"
+            ],
+            "ms": 826,
+            "entry": "Quota"
+          }
+        ],
+        "rules": [
+          {
+            "entry": "Quota",
+            "ok": true,
+            "checked": "checked against the code: 1920 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 4 of 4 branch arms",
+            "refusals": []
+          }
+        ],
+        "proposals": {
+          "count": 2,
+          "broken": 0,
+          "allReviewRequired": true
+        }
+      },
+      "mutants": [
+        {
+          "id": "remove-guard-212-0",
+          "operator": "remove-guard",
+          "start": 212,
+          "end": 253,
+          "before": "if (this.used >= this.limit) return false",
+          "after": "",
+          "side": {
+            "sha256": "01fa7448290edcb4e923c7ec649eeebbb2097ba163122593154f9a0a9f8bbb67",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "admissions stay within quota",
+                "expr": "used <= limit",
+                "where": "module.ts:6",
+                "kind": "step",
+                "verdict": "broken",
+                "run": [
+                  "made with limit = 2",
+                  "admit()",
+                  "admit()",
+                  "admit()"
+                ],
+                "assumes": [],
+                "ms": 1,
+                "entry": "Quota"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "Quota",
+                "ok": true,
+                "checked": "checked against the code: 1920 requests from the start, 400 from drawn states, 0 from the prover's witnesses, 2 of 2 branch arms",
+                "refusals": []
+              }
+            ],
+            "proposals": {
+              "count": 2,
+              "broken": 1,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "admissions stay within quota",
+              "expr": "used <= limit",
+              "entry": "Quota",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "admit",
+                      "args": {}
+                    },
+                    "before": {
+                      "limit": 2,
+                      "used": 0
+                    },
+                    "after": {
+                      "limit": 2,
+                      "used": 1,
+                      "result": true
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "admit",
+                      "args": {}
+                    },
+                    "before": {
+                      "limit": 2,
+                      "used": 1
+                    },
+                    "after": {
+                      "limit": 2,
+                      "used": 2,
+                      "result": true
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "admit",
+                      "args": {}
+                    },
+                    "before": {
+                      "limit": 2,
+                      "used": 2
+                    },
+                    "after": {
+                      "limit": 2,
+                      "used": 3,
+                      "result": true
+                    }
+                  }
+                ]
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "admit",
+                      "args": {}
+                    },
+                    "before": {
+                      "limit": 2,
+                      "used": 0
+                    },
+                    "after": {
+                      "limit": 2,
+                      "used": 1,
+                      "result": true
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "admit",
+                      "args": {}
+                    },
+                    "before": {
+                      "limit": 2,
+                      "used": 1
+                    },
+                    "after": {
+                      "limit": 2,
+                      "used": 2,
+                      "result": true
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "admit",
+                      "args": {}
+                    },
+                    "before": {
+                      "limit": 2,
+                      "used": 2
+                    },
+                    "after": {
+                      "limit": 2,
+                      "used": 2,
+                      "result": false
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "invert-guard-216-1",
+          "operator": "invert-guard",
+          "start": 216,
+          "end": 239,
+          "before": "this.used >= this.limit",
+          "after": "!(this.used >= this.limit)",
+          "side": {
+            "sha256": "44b6225954f5c31cce54c7f0f2b8f8a94eae45d9cec00317e804248560ca9538",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "admissions stay within quota",
+                "expr": "used <= limit",
+                "where": "module.ts:6",
+                "kind": "step",
+                "verdict": "broken",
+                "run": [
+                  "made with limit = 0",
+                  "admit()"
+                ],
+                "assumes": [],
+                "ms": 0,
+                "entry": "Quota"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "Quota",
+                "ok": true,
+                "checked": "checked against the code: 1920 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 4 of 4 branch arms",
+                "refusals": []
+              }
+            ],
+            "proposals": {
+              "count": 2,
+              "broken": 1,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "admissions stay within quota",
+              "expr": "used <= limit",
+              "entry": "Quota",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "admit",
+                      "args": {}
+                    },
+                    "before": {
+                      "limit": 0,
+                      "used": 0
+                    },
+                    "after": {
+                      "limit": 0,
+                      "used": 1,
+                      "result": true
+                    }
+                  }
+                ]
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "admit",
+                      "args": {}
+                    },
+                    "before": {
+                      "limit": 0,
+                      "used": 0
+                    },
+                    "after": {
+                      "limit": 0,
+                      "used": 0,
+                      "result": false
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "relax-boundary-226-2",
+          "operator": "relax-boundary",
+          "start": 226,
+          "end": 228,
+          "before": ">=",
+          "after": ">",
+          "side": {
+            "sha256": "e95f595b6a62bc8c2b6721c2429024cb6c9df506c24a51999f97b3bbc7d0fad3",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "admissions stay within quota",
+                "expr": "used <= limit",
+                "where": "module.ts:6",
+                "kind": "step",
+                "verdict": "broken",
+                "run": [
+                  "made with limit = 2",
+                  "admit()",
+                  "admit()",
+                  "admit()"
+                ],
+                "assumes": [],
+                "ms": 2,
+                "entry": "Quota"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "Quota",
+                "ok": true,
+                "checked": "checked against the code: 1920 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 4 of 4 branch arms",
+                "refusals": []
+              }
+            ],
+            "proposals": {
+              "count": 2,
+              "broken": 1,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "admissions stay within quota",
+              "expr": "used <= limit",
+              "entry": "Quota",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "admit",
+                      "args": {}
+                    },
+                    "before": {
+                      "limit": 2,
+                      "used": 0
+                    },
+                    "after": {
+                      "limit": 2,
+                      "used": 1,
+                      "result": true
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "admit",
+                      "args": {}
+                    },
+                    "before": {
+                      "limit": 2,
+                      "used": 1
+                    },
+                    "after": {
+                      "limit": 2,
+                      "used": 2,
+                      "result": true
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "admit",
+                      "args": {}
+                    },
+                    "before": {
+                      "limit": 2,
+                      "used": 2
+                    },
+                    "after": {
+                      "limit": 2,
+                      "used": 3,
+                      "result": true
+                    }
+                  }
+                ]
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "admit",
+                      "args": {}
+                    },
+                    "before": {
+                      "limit": 2,
+                      "used": 0
+                    },
+                    "after": {
+                      "limit": 2,
+                      "used": 1,
+                      "result": true
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "admit",
+                      "args": {}
+                    },
+                    "before": {
+                      "limit": 2,
+                      "used": 1
+                    },
+                    "after": {
+                      "limit": 2,
+                      "used": 2,
+                      "result": true
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "admit",
+                      "args": {}
+                    },
+                    "before": {
+                      "limit": 2,
+                      "used": 2
+                    },
+                    "after": {
+                      "limit": 2,
+                      "used": 2,
+                      "result": false
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fixture": "race",
+      "file": "module.py",
+      "configSha256": "fff1b406c98e6861f9afc97f4ade728fcbee458de72bf15e4e5345e26bbcdfd5",
+      "budgetMs": 8000,
+      "harness": {
+        "operators.ts": "4304cce87953add80983ee871cf225e3234a07465a5584fc5e049405e93b5c7e",
+        "run.ts": "af09e14ea33c443f9cc0754a56875a5fdccd3cb0a15d9872c4e05ce95b4d69de",
+        "replay.ts": "62e16c918d1887eea326bbe974328775ae1113f32e48bba75f88e7e3ee2d6689",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390"
+      },
+      "runtime": "Bun 1.4.3",
+      "baseline": {
+        "sha256": "0762cb6c27e07ee0c689e3b6e84eaec156aa9edcac144df29b35ffb466d15f68",
+        "exit": 0,
+        "fullyRead": true,
+        "claims": [
+          {
+            "name": "one charge per order",
+            "expr": "at most one call between pay and pay",
+            "where": "module.py:8",
+            "kind": "law",
+            "verdict": "proven",
+            "found": [
+              "every k: done$[k] <= cache_.has[k]",
+              "every k: cache_.has[k] <= 1"
+            ],
+            "ms": 1539,
+            "entry": "Payments"
+          }
+        ],
+        "rules": [
+          {
+            "entry": "Payments",
+            "ok": true,
+            "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 0 from the prover's witnesses, 3 of 3 branch arms",
+            "refusals": [],
+            "env": [
+              "atomic: the handler runs as one step: no other step sees it half done"
+            ]
+          }
+        ],
+        "proposals": {
+          "count": 2,
+          "broken": 0,
+          "allReviewRequired": true
+        }
+      },
+      "mutants": [
+        {
+          "id": "weaken-isolation-82-0",
+          "operator": "weaken-isolation",
+          "start": 82,
+          "end": 88,
+          "before": "atomic",
+          "after": "read committed",
+          "side": {
+            "sha256": "291e0fc76f786606a1df1fff0b958132eb27ef6246cafa7cf6489f75f46829e0",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "one charge per order",
+                "expr": "at most one call between pay and pay",
+                "where": "module.py:8",
+                "kind": "law",
+                "verdict": "broken",
+                "run": [
+                  "call 1 begins pay(order=\"b\")",
+                  "call 1 reads cache",
+                  "call 2 begins pay(order=\"b\")",
+                  "call 2 reads cache",
+                  "call 2 commits",
+                  "call 1 commits"
+                ],
+                "ms": 73,
+                "entry": "Payments"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "Payments",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 0 from the prover's witnesses, 3 of 3 branch arms",
+                "refusals": [],
+                "env": [
+                  "read committed: each read of a store sees the latest committed value at its own step; the writes become visible together at commit; nothing is re-read at commit"
+                ]
+              }
+            ],
+            "proposals": {
+              "count": 2,
+              "broken": 0,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "one charge per order",
+              "expr": "at most one call between pay and pay",
+              "entry": "Payments",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "call": 1,
+                    "get": "cache",
+                    "key": "b",
+                    "value": null
+                  },
+                  {
+                    "call": 2,
+                    "get": "cache",
+                    "key": "b",
+                    "value": null
+                  },
+                  {
+                    "call": 2,
+                    "set": "cache",
+                    "key": "b",
+                    "value": 1
+                  },
+                  {
+                    "call": 1,
+                    "set": "cache",
+                    "key": "b",
+                    "value": 1
+                  }
+                ],
+                "effects": [
+                  {
+                    "call": 2,
+                    "dependency": "gateway",
+                    "method": "charge",
+                    "args": [
+                      "b",
+                      0
+                    ]
+                  },
+                  {
+                    "call": 1,
+                    "dependency": "gateway",
+                    "method": "charge",
+                    "args": [
+                      "b",
+                      0
+                    ]
+                  }
+                ],
+                "calls": {
+                  "1": [
+                    "pay",
+                    {
+                      "order": "b",
+                      "amount": 0
+                    }
+                  ],
+                  "2": [
+                    "pay",
+                    {
+                      "order": "b",
+                      "amount": 0
+                    }
+                  ]
+                },
+                "completedArguments": [
+                  {
+                    "call": 1,
+                    "name": "amount",
+                    "value": 0
+                  },
+                  {
+                    "call": 2,
+                    "name": "amount",
+                    "value": 0
+                  }
+                ],
+                "isolation": "read committed",
+                "schedule": "same CLI schedule",
+                "sourceSha256": "291e0fc76f786606a1df1fff0b958132eb27ef6246cafa7cf6489f75f46829e0"
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "call": 1,
+                    "get": "cache",
+                    "key": "b",
+                    "value": null
+                  },
+                  {
+                    "call": 1,
+                    "set": "cache",
+                    "key": "b",
+                    "value": 1
+                  },
+                  {
+                    "call": 2,
+                    "get": "cache",
+                    "key": "b",
+                    "value": 1
+                  }
+                ],
+                "effects": [
+                  {
+                    "call": 1,
+                    "dependency": "gateway",
+                    "method": "charge",
+                    "args": [
+                      "b",
+                      0
+                    ]
+                  }
+                ],
+                "calls": {
+                  "1": [
+                    "pay",
+                    {
+                      "order": "b",
+                      "amount": 0
+                    }
+                  ],
+                  "2": [
+                    "pay",
+                    {
+                      "order": "b",
+                      "amount": 0
+                    }
+                  ]
+                },
+                "completedArguments": [
+                  {
+                    "call": 1,
+                    "name": "amount",
+                    "value": 0
+                  },
+                  {
+                    "call": 2,
+                    "name": "amount",
+                    "value": 0
+                  }
+                ],
+                "isolation": "atomic",
+                "schedule": "same requests serialized under atomic",
+                "sourceSha256": "0762cb6c27e07ee0c689e3b6e84eaec156aa9edcac144df29b35ffb466d15f68"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fixture": "role",
+      "file": "module.ts",
+      "budgetMs": 8000,
+      "harness": {
+        "operators.ts": "4304cce87953add80983ee871cf225e3234a07465a5584fc5e049405e93b5c7e",
+        "run.ts": "af09e14ea33c443f9cc0754a56875a5fdccd3cb0a15d9872c4e05ce95b4d69de",
+        "replay.ts": "62e16c918d1887eea326bbe974328775ae1113f32e48bba75f88e7e3ee2d6689",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390"
+      },
+      "runtime": "Bun 1.4.3",
+      "baseline": {
+        "sha256": "8312ee96ac8763c0036c5bc7affb07753534c4a73cb60babbb958e7bc073bffc",
+        "exit": 0,
+        "fullyRead": true,
+        "claims": [
+          {
+            "name": "only maintainers revise",
+            "expr": "revision != old(revision) implies role == \"maintainer\"",
+            "where": "module.ts:4",
+            "kind": "step",
+            "verdict": "proven",
+            "ms": 81,
+            "entry": "RevisionStore"
+          }
+        ],
+        "rules": [
+          {
+            "entry": "RevisionStore",
+            "ok": true,
+            "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 2 of 2 branch arms",
+            "refusals": []
+          }
+        ],
+        "proposals": {
+          "count": 5,
+          "broken": 2,
+          "allReviewRequired": true
+        }
+      },
+      "mutants": [
+        {
+          "id": "remove-guard-272-0",
+          "operator": "remove-guard",
+          "start": 272,
+          "end": 311,
+          "before": "if (role !== 'maintainer') return false",
+          "after": "",
+          "side": {
+            "sha256": "c3dac7d97daf156be88fb92a351fda8b9b7bceb9228777eb3f5b2edd796a6cf1",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "only maintainers revise",
+                "expr": "revision != old(revision) implies role == \"maintainer\"",
+                "where": "module.ts:4",
+                "kind": "step",
+                "verdict": "broken",
+                "run": [
+                  "revise(role=\"reader\")"
+                ],
+                "assumes": [],
+                "ms": 1,
+                "entry": "RevisionStore"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "RevisionStore",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 0 from the prover's witnesses",
+                "refusals": []
+              }
+            ],
+            "proposals": {
+              "count": 5,
+              "broken": 4,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "only maintainers revise",
+              "expr": "revision != old(revision) implies role == \"maintainer\"",
+              "entry": "RevisionStore",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "revise",
+                      "args": {
+                        "role": "reader"
+                      }
+                    },
+                    "before": {
+                      "role": "reader",
+                      "revision": 0
+                    },
+                    "after": {
+                      "role": "reader",
+                      "revision": 1,
+                      "result": true
+                    }
+                  }
+                ]
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "revise",
+                      "args": {
+                        "role": "reader"
+                      }
+                    },
+                    "before": {
+                      "role": "reader",
+                      "revision": 0
+                    },
+                    "after": {
+                      "role": "reader",
+                      "revision": 0,
+                      "result": false
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "invert-guard-276-1",
+          "operator": "invert-guard",
+          "start": 276,
+          "end": 297,
+          "before": "role !== 'maintainer'",
+          "after": "!(role !== 'maintainer')",
+          "side": {
+            "sha256": "2c3df57cbaa1ef6b6198478645e9b645bde1f4d5f7c62d263fa358a94953cbaf",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "only maintainers revise",
+                "expr": "revision != old(revision) implies role == \"maintainer\"",
+                "where": "module.ts:4",
+                "kind": "step",
+                "verdict": "broken",
+                "run": [
+                  "revise(role=\"reader\")"
+                ],
+                "assumes": [],
+                "ms": 1,
+                "entry": "RevisionStore"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "RevisionStore",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 2 of 2 branch arms",
+                "refusals": []
+              }
+            ],
+            "proposals": {
+              "count": 5,
+              "broken": 2,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "only maintainers revise",
+              "expr": "revision != old(revision) implies role == \"maintainer\"",
+              "entry": "RevisionStore",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "revise",
+                      "args": {
+                        "role": "reader"
+                      }
+                    },
+                    "before": {
+                      "role": "reader",
+                      "revision": 0
+                    },
+                    "after": {
+                      "role": "reader",
+                      "revision": 1,
+                      "result": true
+                    }
+                  }
+                ]
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "revise",
+                      "args": {
+                        "role": "reader"
+                      }
+                    },
+                    "before": {
+                      "role": "reader",
+                      "revision": 0
+                    },
+                    "after": {
+                      "role": "reader",
+                      "revision": 0,
+                      "result": false
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fixture": "tenant",
+      "file": "module.ts",
+      "budgetMs": 8000,
+      "harness": {
+        "operators.ts": "4304cce87953add80983ee871cf225e3234a07465a5584fc5e049405e93b5c7e",
+        "run.ts": "af09e14ea33c443f9cc0754a56875a5fdccd3cb0a15d9872c4e05ce95b4d69de",
+        "replay.ts": "62e16c918d1887eea326bbe974328775ae1113f32e48bba75f88e7e3ee2d6689",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390"
+      },
+      "runtime": "Bun 1.4.3",
+      "baseline": {
+        "sha256": "ec9d0ec6eb6e0616abe214833d80f0d50d148672120d972e03d442249751f627",
+        "exit": 0,
+        "fullyRead": true,
+        "claims": [
+          {
+            "name": "put preserves foreign new rows",
+            "expr": "forall k in rows: k != tenant implies ((k in rows) and (k in old(rows)) and rows[k].value == old(rows[k].value))",
+            "where": "module.ts:4",
+            "kind": "step",
+            "verdict": "proven",
+            "ms": 862,
+            "entry": "TenantStore"
+          },
+          {
+            "name": "put preserves foreign old rows",
+            "expr": "forall k in old(rows): k != tenant implies ((k in rows) and (k in old(rows)) and rows[k].value == old(rows[k].value))",
+            "where": "module.ts:5",
+            "kind": "step",
+            "verdict": "proven",
+            "ms": 309,
+            "entry": "TenantStore"
+          },
+          {
+            "name": "delete preserves foreign new rows",
+            "expr": "forall k in rows: k != tenant implies ((k in rows) and (k in old(rows)) and rows[k].value == old(rows[k].value))",
+            "where": "module.ts:9",
+            "kind": "step",
+            "verdict": "proven",
+            "ms": 296,
+            "entry": "TenantStore"
+          },
+          {
+            "name": "delete preserves foreign old rows",
+            "expr": "forall k in old(rows): k != tenant implies ((k in rows) and (k in old(rows)) and rows[k].value == old(rows[k].value))",
+            "where": "module.ts:10",
+            "kind": "step",
+            "verdict": "proven",
+            "ms": 287,
+            "entry": "TenantStore"
+          }
+        ],
+        "rules": [
+          {
+            "entry": "TenantStore",
+            "ok": true,
+            "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses",
+            "refusals": []
+          }
+        ],
+        "proposals": {
+          "count": 8,
+          "broken": 3,
+          "allReviewRequired": true
+        }
+      },
+      "mutants": [
+        {
+          "id": "wrong-key-559-0",
+          "operator": "wrong-key",
+          "start": 559,
+          "end": 565,
+          "before": "tenant",
+          "after": "_target",
+          "side": {
+            "sha256": "e208defce8c3c354c7ee269cb2225d604eb9ae08c82518256501942c4826ae82",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "put preserves foreign new rows",
+                "expr": "forall k in rows: k != tenant implies ((k in rows) and (k in old(rows)) and rows[k].value == old(rows[k].value))",
+                "where": "module.ts:4",
+                "kind": "step",
+                "verdict": "broken",
+                "run": [
+                  "remove(tenant=\"\", _target=\"b\")",
+                  "put(tenant=\"\", _target=\"bb\", value=-3)"
+                ],
+                "assumes": [],
+                "ms": 1,
+                "entry": "TenantStore"
+              },
+              {
+                "name": "put preserves foreign old rows",
+                "expr": "forall k in old(rows): k != tenant implies ((k in rows) and (k in old(rows)) and rows[k].value == old(rows[k].value))",
+                "where": "module.ts:5",
+                "kind": "step",
+                "verdict": "broken",
+                "run": [
+                  "remove(tenant=\"\", _target=\"baa\")",
+                  "put(tenant=\"\", _target=\"bb\", value=-3)",
+                  "put(tenant=\"\", _target=\"bab\", value=2)",
+                  "put(tenant=\"a\", _target=\"\", value=0)",
+                  "put(tenant=\"\", _target=\"a\", value=3)",
+                  "put(tenant=\"b\", _target=\"\", value=3)"
+                ],
+                "assumes": [],
+                "ms": 1,
+                "entry": "TenantStore"
+              },
+              {
+                "name": "delete preserves foreign new rows",
+                "expr": "forall k in rows: k != tenant implies ((k in rows) and (k in old(rows)) and rows[k].value == old(rows[k].value))",
+                "where": "module.ts:9",
+                "kind": "step",
+                "verdict": "proven",
+                "ms": 661,
+                "entry": "TenantStore"
+              },
+              {
+                "name": "delete preserves foreign old rows",
+                "expr": "forall k in old(rows): k != tenant implies ((k in rows) and (k in old(rows)) and rows[k].value == old(rows[k].value))",
+                "where": "module.ts:10",
+                "kind": "step",
+                "verdict": "proven",
+                "ms": 281,
+                "entry": "TenantStore"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "TenantStore",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses",
+                "refusals": []
+              }
+            ],
+            "proposals": {
+              "count": 8,
+              "broken": 3,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "put preserves foreign new rows",
+              "expr": "forall k in rows: k != tenant implies ((k in rows) and (k in old(rows)) and rows[k].value == old(rows[k].value))",
+              "entry": "TenantStore",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "remove",
+                      "args": {
+                        "tenant": "",
+                        "_target": "b"
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "b",
+                      "rows": {
+                        "$map": []
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "b",
+                      "rows": {
+                        "$map": []
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "",
+                        "_target": "bb",
+                        "value": -3
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "bb",
+                      "value": -3,
+                      "rows": {
+                        "$map": []
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "bb",
+                      "value": -3,
+                      "rows": {
+                        "$map": [
+                          [
+                            "bb",
+                            -3
+                          ]
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "remove",
+                      "args": {
+                        "tenant": "",
+                        "_target": "b"
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "b",
+                      "rows": {
+                        "$map": []
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "b",
+                      "rows": {
+                        "$map": []
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "",
+                        "_target": "bb",
+                        "value": -3
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "bb",
+                      "value": -3,
+                      "rows": {
+                        "$map": []
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "bb",
+                      "value": -3,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            -3
+                          ]
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "law": "put preserves foreign old rows",
+              "expr": "forall k in old(rows): k != tenant implies ((k in rows) and (k in old(rows)) and rows[k].value == old(rows[k].value))",
+              "entry": "TenantStore",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "remove",
+                      "args": {
+                        "tenant": "",
+                        "_target": "baa"
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "baa",
+                      "rows": {
+                        "$map": []
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "baa",
+                      "rows": {
+                        "$map": []
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "",
+                        "_target": "bb",
+                        "value": -3
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "bb",
+                      "value": -3,
+                      "rows": {
+                        "$map": []
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "bb",
+                      "value": -3,
+                      "rows": {
+                        "$map": [
+                          [
+                            "bb",
+                            -3
+                          ]
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "",
+                        "_target": "bab",
+                        "value": 2
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "bab",
+                      "value": 2,
+                      "rows": {
+                        "$map": [
+                          [
+                            "bb",
+                            -3
+                          ]
+                        ]
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "bab",
+                      "value": 2,
+                      "rows": {
+                        "$map": [
+                          [
+                            "bb",
+                            -3
+                          ],
+                          [
+                            "bab",
+                            2
+                          ]
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "a",
+                        "_target": "",
+                        "value": 0
+                      }
+                    },
+                    "before": {
+                      "tenant": "a",
+                      "_target": "",
+                      "value": 0,
+                      "rows": {
+                        "$map": [
+                          [
+                            "bb",
+                            -3
+                          ],
+                          [
+                            "bab",
+                            2
+                          ]
+                        ]
+                      }
+                    },
+                    "after": {
+                      "tenant": "a",
+                      "_target": "",
+                      "value": 0,
+                      "rows": {
+                        "$map": [
+                          [
+                            "bb",
+                            -3
+                          ],
+                          [
+                            "bab",
+                            2
+                          ],
+                          [
+                            "",
+                            0
+                          ]
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "",
+                        "_target": "a",
+                        "value": 3
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "a",
+                      "value": 3,
+                      "rows": {
+                        "$map": [
+                          [
+                            "bb",
+                            -3
+                          ],
+                          [
+                            "bab",
+                            2
+                          ],
+                          [
+                            "",
+                            0
+                          ]
+                        ]
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "a",
+                      "value": 3,
+                      "rows": {
+                        "$map": [
+                          [
+                            "bb",
+                            -3
+                          ],
+                          [
+                            "bab",
+                            2
+                          ],
+                          [
+                            "",
+                            0
+                          ],
+                          [
+                            "a",
+                            3
+                          ]
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "b",
+                        "_target": "",
+                        "value": 3
+                      }
+                    },
+                    "before": {
+                      "tenant": "b",
+                      "_target": "",
+                      "value": 3,
+                      "rows": {
+                        "$map": [
+                          [
+                            "bb",
+                            -3
+                          ],
+                          [
+                            "bab",
+                            2
+                          ],
+                          [
+                            "",
+                            0
+                          ],
+                          [
+                            "a",
+                            3
+                          ]
+                        ]
+                      }
+                    },
+                    "after": {
+                      "tenant": "b",
+                      "_target": "",
+                      "value": 3,
+                      "rows": {
+                        "$map": [
+                          [
+                            "bb",
+                            -3
+                          ],
+                          [
+                            "bab",
+                            2
+                          ],
+                          [
+                            "",
+                            3
+                          ],
+                          [
+                            "a",
+                            3
+                          ]
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "remove",
+                      "args": {
+                        "tenant": "",
+                        "_target": "baa"
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "baa",
+                      "rows": {
+                        "$map": []
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "baa",
+                      "rows": {
+                        "$map": []
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "",
+                        "_target": "bb",
+                        "value": -3
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "bb",
+                      "value": -3,
+                      "rows": {
+                        "$map": []
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "bb",
+                      "value": -3,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            -3
+                          ]
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "",
+                        "_target": "bab",
+                        "value": 2
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "bab",
+                      "value": 2,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            -3
+                          ]
+                        ]
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "bab",
+                      "value": 2,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            2
+                          ]
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "a",
+                        "_target": "",
+                        "value": 0
+                      }
+                    },
+                    "before": {
+                      "tenant": "a",
+                      "_target": "",
+                      "value": 0,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            2
+                          ]
+                        ]
+                      }
+                    },
+                    "after": {
+                      "tenant": "a",
+                      "_target": "",
+                      "value": 0,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            2
+                          ],
+                          [
+                            "a",
+                            0
+                          ]
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "",
+                        "_target": "a",
+                        "value": 3
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "a",
+                      "value": 3,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            2
+                          ],
+                          [
+                            "a",
+                            0
+                          ]
+                        ]
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "a",
+                      "value": 3,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            3
+                          ],
+                          [
+                            "a",
+                            0
+                          ]
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "b",
+                        "_target": "",
+                        "value": 3
+                      }
+                    },
+                    "before": {
+                      "tenant": "b",
+                      "_target": "",
+                      "value": 3,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            3
+                          ],
+                          [
+                            "a",
+                            0
+                          ]
+                        ]
+                      }
+                    },
+                    "after": {
+                      "tenant": "b",
+                      "_target": "",
+                      "value": 3,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            3
+                          ],
+                          [
+                            "a",
+                            0
+                          ],
+                          [
+                            "b",
+                            3
+                          ]
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "wrong-key-972-1",
+          "operator": "wrong-key",
+          "start": 972,
+          "end": 978,
+          "before": "tenant",
+          "after": "_target",
+          "side": {
+            "sha256": "94fd9e85d758810e4066a6d7c32856ef10f9b983d4d3ae1b7e906bd98aebc6e3",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "put preserves foreign new rows",
+                "expr": "forall k in rows: k != tenant implies ((k in rows) and (k in old(rows)) and rows[k].value == old(rows[k].value))",
+                "where": "module.ts:4",
+                "kind": "step",
+                "verdict": "proven",
+                "ms": 628,
+                "entry": "TenantStore"
+              },
+              {
+                "name": "put preserves foreign old rows",
+                "expr": "forall k in old(rows): k != tenant implies ((k in rows) and (k in old(rows)) and rows[k].value == old(rows[k].value))",
+                "where": "module.ts:5",
+                "kind": "step",
+                "verdict": "proven",
+                "ms": 290,
+                "entry": "TenantStore"
+              },
+              {
+                "name": "delete preserves foreign new rows",
+                "expr": "forall k in rows: k != tenant implies ((k in rows) and (k in old(rows)) and rows[k].value == old(rows[k].value))",
+                "where": "module.ts:9",
+                "kind": "step",
+                "verdict": "proven",
+                "ms": 283,
+                "entry": "TenantStore"
+              },
+              {
+                "name": "delete preserves foreign old rows",
+                "expr": "forall k in old(rows): k != tenant implies ((k in rows) and (k in old(rows)) and rows[k].value == old(rows[k].value))",
+                "where": "module.ts:10",
+                "kind": "step",
+                "verdict": "broken",
+                "run": [
+                  "remove(tenant=\"\", _target=\"b\")",
+                  "put(tenant=\"\", _target=\"bb\", value=-3)",
+                  "put(tenant=\"\", _target=\"\", value=-1)",
+                  "remove(tenant=\"bab\", _target=\"\")"
+                ],
+                "assumes": [],
+                "ms": 1,
+                "entry": "TenantStore"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "TenantStore",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses",
+                "refusals": []
+              }
+            ],
+            "proposals": {
+              "count": 8,
+              "broken": 3,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "delete preserves foreign old rows",
+              "expr": "forall k in old(rows): k != tenant implies ((k in rows) and (k in old(rows)) and rows[k].value == old(rows[k].value))",
+              "entry": "TenantStore",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "remove",
+                      "args": {
+                        "tenant": "",
+                        "_target": "b"
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "b",
+                      "rows": {
+                        "$map": []
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "b",
+                      "rows": {
+                        "$map": []
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "",
+                        "_target": "bb",
+                        "value": -3
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "bb",
+                      "value": -3,
+                      "rows": {
+                        "$map": []
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "bb",
+                      "value": -3,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            -3
+                          ]
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "",
+                        "_target": "",
+                        "value": -1
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "",
+                      "value": -1,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            -3
+                          ]
+                        ]
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "",
+                      "value": -1,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            -1
+                          ]
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "remove",
+                      "args": {
+                        "tenant": "bab",
+                        "_target": ""
+                      }
+                    },
+                    "before": {
+                      "tenant": "bab",
+                      "_target": "",
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            -1
+                          ]
+                        ]
+                      }
+                    },
+                    "after": {
+                      "tenant": "bab",
+                      "_target": "",
+                      "rows": {
+                        "$map": []
+                      }
+                    }
+                  }
+                ]
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "remove",
+                      "args": {
+                        "tenant": "",
+                        "_target": "b"
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "b",
+                      "rows": {
+                        "$map": []
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "b",
+                      "rows": {
+                        "$map": []
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "",
+                        "_target": "bb",
+                        "value": -3
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "bb",
+                      "value": -3,
+                      "rows": {
+                        "$map": []
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "bb",
+                      "value": -3,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            -3
+                          ]
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "put",
+                      "args": {
+                        "tenant": "",
+                        "_target": "",
+                        "value": -1
+                      }
+                    },
+                    "before": {
+                      "tenant": "",
+                      "_target": "",
+                      "value": -1,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            -3
+                          ]
+                        ]
+                      }
+                    },
+                    "after": {
+                      "tenant": "",
+                      "_target": "",
+                      "value": -1,
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            -1
+                          ]
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "remove",
+                      "args": {
+                        "tenant": "bab",
+                        "_target": ""
+                      }
+                    },
+                    "before": {
+                      "tenant": "bab",
+                      "_target": "",
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            -1
+                          ]
+                        ]
+                      }
+                    },
+                    "after": {
+                      "tenant": "bab",
+                      "_target": "",
+                      "rows": {
+                        "$map": [
+                          [
+                            "",
+                            -1
+                          ]
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fixture": "workflow",
+      "file": "module.ts",
+      "budgetMs": 8000,
+      "harness": {
+        "operators.ts": "4304cce87953add80983ee871cf225e3234a07465a5584fc5e049405e93b5c7e",
+        "run.ts": "af09e14ea33c443f9cc0754a56875a5fdccd3cb0a15d9872c4e05ce95b4d69de",
+        "replay.ts": "62e16c918d1887eea326bbe974328775ae1113f32e48bba75f88e7e3ee2d6689",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390"
+      },
+      "runtime": "Bun 1.4.3",
+      "baseline": {
+        "sha256": "5e8df049aeb43ac8ee4fe6fecd853d7c89c310b53edfdd3a962aca06f41f23a5",
+        "exit": 0,
+        "fullyRead": true,
+        "claims": [
+          {
+            "name": "approval precedes shipment",
+            "expr": "shipped != old(shipped) implies old(approved)",
+            "where": "module.ts:5",
+            "kind": "step",
+            "verdict": "proven",
+            "ms": 134,
+            "entry": "Shipment"
+          }
+        ],
+        "rules": [
+          {
+            "entry": "Shipment",
+            "ok": true,
+            "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 2 of 2 branch arms",
+            "refusals": []
+          }
+        ],
+        "proposals": {
+          "count": 2,
+          "broken": 1,
+          "allReviewRequired": true
+        }
+      },
+      "mutants": [
+        {
+          "id": "remove-guard-210-0",
+          "operator": "remove-guard",
+          "start": 210,
+          "end": 242,
+          "before": "if (!this.approved) return false",
+          "after": "",
+          "side": {
+            "sha256": "4d6cf2caebd6f0a4570ab3d3c8bd66719ba05cbce61623afb0313c6536f1698d",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "approval precedes shipment",
+                "expr": "shipped != old(shipped) implies old(approved)",
+                "where": "module.ts:5",
+                "kind": "step",
+                "verdict": "broken",
+                "run": [
+                  "ship()"
+                ],
+                "assumes": [],
+                "ms": 1,
+                "entry": "Shipment"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "Shipment",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 0 from the prover's witnesses",
+                "refusals": []
+              }
+            ],
+            "proposals": {
+              "count": 2,
+              "broken": 2,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "approval precedes shipment",
+              "expr": "shipped != old(shipped) implies old(approved)",
+              "entry": "Shipment",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "ship",
+                      "args": {}
+                    },
+                    "before": {
+                      "approved": false,
+                      "shipped": false
+                    },
+                    "after": {
+                      "approved": false,
+                      "shipped": true,
+                      "result": true
+                    }
+                  }
+                ]
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "ship",
+                      "args": {}
+                    },
+                    "before": {
+                      "approved": false,
+                      "shipped": false
+                    },
+                    "after": {
+                      "approved": false,
+                      "shipped": false,
+                      "result": false
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "invert-guard-214-1",
+          "operator": "invert-guard",
+          "start": 214,
+          "end": 228,
+          "before": "!this.approved",
+          "after": "!(!this.approved)",
+          "side": {
+            "sha256": "1cebdbadec99ad62977c670eb926439678cf47f7a7389744826ee187bdf766ac",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "approval precedes shipment",
+                "expr": "shipped != old(shipped) implies old(approved)",
+                "where": "module.ts:5",
+                "kind": "step",
+                "verdict": "broken",
+                "run": [
+                  "ship()"
+                ],
+                "assumes": [],
+                "ms": 0,
+                "entry": "Shipment"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "Shipment",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 2 of 2 branch arms",
+                "refusals": []
+              }
+            ],
+            "proposals": {
+              "count": 2,
+              "broken": 2,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "approval precedes shipment",
+              "expr": "shipped != old(shipped) implies old(approved)",
+              "entry": "Shipment",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "ship",
+                      "args": {}
+                    },
+                    "before": {
+                      "approved": false,
+                      "shipped": false
+                    },
+                    "after": {
+                      "approved": false,
+                      "shipped": true,
+                      "result": true
+                    }
+                  }
+                ]
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "call": {
+                      "method": "ship",
+                      "args": {}
+                    },
+                    "before": {
+                      "approved": false,
+                      "shipped": false
+                    },
+                    "after": {
+                      "approved": false,
+                      "shipped": false,
+                      "result": false
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

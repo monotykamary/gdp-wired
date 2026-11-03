@@ -55,6 +55,13 @@ refusals must not fall back to atomic proofs. These are model-relative results; 
 interleaving is not labelled a replay on a real database. HC2 owns ORM/handler reading;
 no replacement ORM reader is introduced here.
 
+## Owned-mutation confidence benchmark
+
+The [mutation benchmark](mutants/README.md) checks six complete owned training modules with generic operators
+and explicit source policies. Its initial [result](mutants/RESULTS.md) is 12/12 mutants refuted and replayed on
+source, 0/6 clean programs refuted (9/9 clean laws proven), and 18/18 versions read. This is a small synthetic
+confidence corpus, **not** additional upstream CVE recall. The isolation case is explicitly model-relative.
+
 ## Recall protocol
 
 `cases.json` is a small transparent seed set, NOT a representative security benchmark.
