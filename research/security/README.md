@@ -134,6 +134,11 @@ or flipping either alone changes the original's native outcome for the same witn
 calls and source bytes. This is a finite parameter-binding contrast, not a generic
 argument-order guarantee.
 
+`call-order.test.ts` adds a finite stateful contrast using only allowlisted `arm()`
+and `hit()` calls. Reordering the same call multiset changes the original native policy
+outcome while source and empty argument bindings stay fixed. This is not a general
+multi-call replay guarantee.
+
 ## Measured coverage
 
 The complete-corpus baseline on 2026-11-03 is tree `7db037f` (main `927a521`): **18 published,
