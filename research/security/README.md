@@ -115,6 +115,11 @@ initializers are repaired, but an unsafe new initializer still blocks admission.
 Original witnesses run on all three versions; the added initializer's own witness runs
 only where that signature exists, with its exact integer argument preserved.
 
+`policy-identity.test.ts` also compares self-owned source variants with a renamed law,
+a weakened law, and the genuine repair. Exact frontend policy names and expressions
+must match the original contract; native replay judges that original contract even
+when a variant declares a weaker one. These controls use the existing score-test shard.
+
 ## Measured coverage
 
 The complete-corpus baseline on 2026-11-03 is tree `7db037f` (main `927a521`): **18 published,
