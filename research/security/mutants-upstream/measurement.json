@@ -1,0 +1,1454 @@
+{
+  "version": 1,
+  "scope": "local mutations of pinned permissively licensed upstream callable surfaces",
+  "summary": {
+    "modules": 2,
+    "mutants": 9,
+    "detected": 9,
+    "fullyRead": 11,
+    "sides": 11,
+    "cleanLawsProven": 2,
+    "cleanLawsRefuted": 0
+  },
+  "rows": [
+    {
+      "id": "ailice-gas",
+      "budgetMs": 8000,
+      "harness": {
+        "run.ts": "d8edaeb9bc2a3a91606912e303091db409eb927ea178ac7cc5c3e71e299bcebe",
+        "source.py": "d1ea05cdad1c50d12f25f0a645eb65bc63fcb07002513127fba7431b03d6f347",
+        "cases.json": "71c83e7b4a6b19675dd903c26ca9eaf4cf4b4be655e6e989dfda89d90b726fcb",
+        "../mutants/replay.ts": "2bd7f1fe0953fc057a0b4387e4fdf925344a008c975c1ad857b6b937ee40847c"
+      },
+      "provenance": {
+        "id": "ailice-gas",
+        "vendor": "ailice",
+        "file": "module.py",
+        "entry": "AGasTank",
+        "methods": [
+          "Set",
+          "Consume",
+          "Charge"
+        ],
+        "properties": [],
+        "policies": [
+          {
+            "method": "Consume",
+            "name": "insufficient gas is rejected",
+            "expr": "failed == (amount > old(gas))"
+          }
+        ],
+        "config": "[rules.AGasTank]\nfailures = \"kept\"\nkeep = [\"resourceType\"]\ntypes = {amount = \"int\"}\n",
+        "repository": "myshell-ai/AIlice",
+        "commit": "63a22105cdf8c0d297af332010f46e4153bbc1ec",
+        "upstreamPath": "ailice/common/AGas.py",
+        "license": "MIT",
+        "dependencyPaths": {
+          "ailice/common/AExceptions.py": "ailice/common/AExceptions.py"
+        },
+        "licensePath": "LICENSE",
+        "files": {
+          "LICENSE": "7744917d31e9d1fb985f567b675fdaafc15469859c4cf092a5a1a9a7eb5deee8",
+          "ailice/common/AExceptions.py": "aa0b834c2f7fd0ec507c46f683df85b88d2889de70642dd3ca304bd1af3edecc",
+          "module.py": "1ff1f445c426fc08335ae393c81c3eb9b05fc5f3bb48c315b331f5d0baf88020"
+        }
+      },
+      "baseline": {
+        "sha256": "7bff3fc981e0ff6fbc0579cbb7432d440e68aa9ce2dd0f250090535de6266ad8",
+        "exit": 0,
+        "fullyRead": true,
+        "claims": [
+          {
+            "name": "insufficient gas is rejected",
+            "expr": "failed == (amount > old(gas))",
+            "where": "module.py:13",
+            "kind": "step",
+            "verdict": "proven",
+            "ms": 234
+          }
+        ],
+        "rules": [
+          {
+            "entry": "AGasTank",
+            "ok": true,
+            "checked": "checked against the code: 2118 requests from the start, 400 from drawn states, 10 from the prover's witnesses, 5 of 5 branch arms",
+            "refusals": []
+          }
+        ]
+      },
+      "mutants": [
+        {
+          "id": "remove-guard-397",
+          "operator": "remove-guard",
+          "method": "Consume",
+          "startByte": 397,
+          "endByte": 420,
+          "before": "(self.gas - amount) < 0",
+          "after": "False",
+          "side": {
+            "sha256": "9f70082e5373af71ca66777530a23f2f0981c9433272c12521fc4f6b4b789c48",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "insufficient gas is rejected",
+                "expr": "failed == (amount > old(gas))",
+                "where": "module.py:13",
+                "kind": "step",
+                "verdict": "broken",
+                "run": [
+                  "made with amount = -3",
+                  "Set(amount=0)",
+                  "Consume(resourceType=\"\", amount=1)"
+                ],
+                "assumes": [],
+                "ms": 2
+              }
+            ],
+            "rules": [
+              {
+                "entry": "AGasTank",
+                "ok": true,
+                "checked": "checked against the code: 2084 requests from the start, 400 from drawn states, 6 from the prover's witnesses, 4 of 4 branch arms",
+                "refusals": []
+              }
+            ]
+          },
+          "detected": true,
+          "replays": [
+            {
+              "policy": {
+                "method": "Consume",
+                "name": "insufficient gas is rejected",
+                "expr": "failed == (amount > old(gas))"
+              },
+              "mutant": {
+                "ok": true,
+                "initial": {
+                  "gas": -3
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "Set",
+                      "args": {
+                        "amount": 0
+                      }
+                    },
+                    "before": {
+                      "gas": -3,
+                      "amount": 0
+                    },
+                    "after": {
+                      "gas": 0,
+                      "amount": 0,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "Consume",
+                      "args": {
+                        "resourceType": "",
+                        "amount": 1
+                      }
+                    },
+                    "before": {
+                      "gas": 0,
+                      "resourceType": "",
+                      "amount": 1
+                    },
+                    "after": {
+                      "gas": -1,
+                      "resourceType": "",
+                      "amount": 1,
+                      "result": -1,
+                      "failed": false
+                    }
+                  }
+                ],
+                "sourceSha256": "9f70082e5373af71ca66777530a23f2f0981c9433272c12521fc4f6b4b789c48",
+                "broken": true
+              },
+              "parent": {
+                "ok": true,
+                "initial": {
+                  "gas": -3
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "Set",
+                      "args": {
+                        "amount": 0
+                      }
+                    },
+                    "before": {
+                      "gas": -3,
+                      "amount": 0
+                    },
+                    "after": {
+                      "gas": 0,
+                      "amount": 0,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "Consume",
+                      "args": {
+                        "resourceType": "",
+                        "amount": 1
+                      }
+                    },
+                    "before": {
+                      "gas": 0,
+                      "resourceType": "",
+                      "amount": 1
+                    },
+                    "after": {
+                      "gas": 0,
+                      "resourceType": "",
+                      "amount": 1,
+                      "result": null,
+                      "failed": true
+                    }
+                  }
+                ],
+                "sourceSha256": "7bff3fc981e0ff6fbc0579cbb7432d440e68aa9ce2dd0f250090535de6266ad8",
+                "broken": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "invert-guard-397",
+          "operator": "invert-guard",
+          "method": "Consume",
+          "startByte": 397,
+          "endByte": 420,
+          "before": "(self.gas - amount) < 0",
+          "after": "not ((self.gas - amount) < 0)",
+          "side": {
+            "sha256": "523f49e3a979105b64a84f5b51ed7d29ce809d8abcd0ba3af69aed958111170f",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "insufficient gas is rejected",
+                "expr": "failed == (amount > old(gas))",
+                "where": "module.py:13",
+                "kind": "step",
+                "verdict": "broken",
+                "run": [
+                  "made with amount = 1",
+                  "Consume(resourceType=\"\", amount=-3)"
+                ],
+                "assumes": [],
+                "ms": 1
+              }
+            ],
+            "rules": [
+              {
+                "entry": "AGasTank",
+                "ok": true,
+                "checked": "checked against the code: 2125 requests from the start, 400 from drawn states, 10 from the prover's witnesses, 5 of 5 branch arms",
+                "refusals": []
+              }
+            ]
+          },
+          "detected": true,
+          "replays": [
+            {
+              "policy": {
+                "method": "Consume",
+                "name": "insufficient gas is rejected",
+                "expr": "failed == (amount > old(gas))"
+              },
+              "mutant": {
+                "ok": true,
+                "initial": {
+                  "gas": 1
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "Consume",
+                      "args": {
+                        "resourceType": "",
+                        "amount": -3
+                      }
+                    },
+                    "before": {
+                      "gas": 1,
+                      "resourceType": "",
+                      "amount": -3
+                    },
+                    "after": {
+                      "gas": 1,
+                      "resourceType": "",
+                      "amount": -3,
+                      "result": null,
+                      "failed": true
+                    }
+                  }
+                ],
+                "sourceSha256": "523f49e3a979105b64a84f5b51ed7d29ce809d8abcd0ba3af69aed958111170f",
+                "broken": true
+              },
+              "parent": {
+                "ok": true,
+                "initial": {
+                  "gas": 1
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "Consume",
+                      "args": {
+                        "resourceType": "",
+                        "amount": -3
+                      }
+                    },
+                    "before": {
+                      "gas": 1,
+                      "resourceType": "",
+                      "amount": -3
+                    },
+                    "after": {
+                      "gas": 4,
+                      "resourceType": "",
+                      "amount": -3,
+                      "result": 4,
+                      "failed": false
+                    }
+                  }
+                ],
+                "sourceSha256": "7bff3fc981e0ff6fbc0579cbb7432d440e68aa9ce2dd0f250090535de6266ad8",
+                "broken": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "boundary-397",
+          "operator": "boundary",
+          "method": "Consume",
+          "startByte": 397,
+          "endByte": 420,
+          "before": "(self.gas - amount) < 0",
+          "after": "self.gas - amount <= 0",
+          "side": {
+            "sha256": "2201908586b7cbdbbdc511baab8c91bdea4a615b81a92a38bd068d3fa31886b0",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "insufficient gas is rejected",
+                "expr": "failed == (amount > old(gas))",
+                "where": "module.py:13",
+                "kind": "step",
+                "verdict": "broken",
+                "run": [
+                  "made with amount = -3",
+                  "Charge(amount=-3)",
+                  "Set(amount=-1)",
+                  "Consume(resourceType=\"\", amount=2)",
+                  "Consume(resourceType=\"aaa\", amount=-1)"
+                ],
+                "assumes": [],
+                "ms": 6
+              }
+            ],
+            "rules": [
+              {
+                "entry": "AGasTank",
+                "ok": true,
+                "checked": "checked against the code: 2096 requests from the start, 400 from drawn states, 10 from the prover's witnesses, 5 of 5 branch arms",
+                "refusals": []
+              }
+            ]
+          },
+          "detected": true,
+          "replays": [
+            {
+              "policy": {
+                "method": "Consume",
+                "name": "insufficient gas is rejected",
+                "expr": "failed == (amount > old(gas))"
+              },
+              "mutant": {
+                "ok": true,
+                "initial": {
+                  "gas": -3
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "Charge",
+                      "args": {
+                        "amount": -3
+                      }
+                    },
+                    "before": {
+                      "gas": -3,
+                      "amount": -3
+                    },
+                    "after": {
+                      "gas": -6,
+                      "amount": -3,
+                      "result": -6,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "Set",
+                      "args": {
+                        "amount": -1
+                      }
+                    },
+                    "before": {
+                      "gas": -6,
+                      "amount": -1
+                    },
+                    "after": {
+                      "gas": -1,
+                      "amount": -1,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "Consume",
+                      "args": {
+                        "resourceType": "",
+                        "amount": 2
+                      }
+                    },
+                    "before": {
+                      "gas": -1,
+                      "resourceType": "",
+                      "amount": 2
+                    },
+                    "after": {
+                      "gas": -1,
+                      "resourceType": "",
+                      "amount": 2,
+                      "result": null,
+                      "failed": true
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "Consume",
+                      "args": {
+                        "resourceType": "aaa",
+                        "amount": -1
+                      }
+                    },
+                    "before": {
+                      "gas": -1,
+                      "resourceType": "aaa",
+                      "amount": -1
+                    },
+                    "after": {
+                      "gas": -1,
+                      "resourceType": "aaa",
+                      "amount": -1,
+                      "result": null,
+                      "failed": true
+                    }
+                  }
+                ],
+                "sourceSha256": "2201908586b7cbdbbdc511baab8c91bdea4a615b81a92a38bd068d3fa31886b0",
+                "broken": true
+              },
+              "parent": {
+                "ok": true,
+                "initial": {
+                  "gas": -3
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "Charge",
+                      "args": {
+                        "amount": -3
+                      }
+                    },
+                    "before": {
+                      "gas": -3,
+                      "amount": -3
+                    },
+                    "after": {
+                      "gas": -6,
+                      "amount": -3,
+                      "result": -6,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "Set",
+                      "args": {
+                        "amount": -1
+                      }
+                    },
+                    "before": {
+                      "gas": -6,
+                      "amount": -1
+                    },
+                    "after": {
+                      "gas": -1,
+                      "amount": -1,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "Consume",
+                      "args": {
+                        "resourceType": "",
+                        "amount": 2
+                      }
+                    },
+                    "before": {
+                      "gas": -1,
+                      "resourceType": "",
+                      "amount": 2
+                    },
+                    "after": {
+                      "gas": -1,
+                      "resourceType": "",
+                      "amount": 2,
+                      "result": null,
+                      "failed": true
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "Consume",
+                      "args": {
+                        "resourceType": "aaa",
+                        "amount": -1
+                      }
+                    },
+                    "before": {
+                      "gas": -1,
+                      "resourceType": "aaa",
+                      "amount": -1
+                    },
+                    "after": {
+                      "gas": 0,
+                      "resourceType": "aaa",
+                      "amount": -1,
+                      "result": 0,
+                      "failed": false
+                    }
+                  }
+                ],
+                "sourceSha256": "7bff3fc981e0ff6fbc0579cbb7432d440e68aa9ce2dd0f250090535de6266ad8",
+                "broken": false
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "codeagent-iterations",
+      "budgetMs": 8000,
+      "harness": {
+        "run.ts": "d8edaeb9bc2a3a91606912e303091db409eb927ea178ac7cc5c3e71e299bcebe",
+        "source.py": "d1ea05cdad1c50d12f25f0a645eb65bc63fcb07002513127fba7431b03d6f347",
+        "cases.json": "71c83e7b4a6b19675dd903c26ca9eaf4cf4b4be655e6e989dfda89d90b726fcb",
+        "../mutants/replay.ts": "2bd7f1fe0953fc057a0b4387e4fdf925344a008c975c1ad857b6b937ee40847c"
+      },
+      "provenance": {
+        "id": "codeagent-iterations",
+        "vendor": "codeagent",
+        "file": "module.py",
+        "entry": "IterationBudget",
+        "methods": [
+          "consume",
+          "refund",
+          "reset"
+        ],
+        "properties": [
+          "total",
+          "consumed",
+          "remaining"
+        ],
+        "policies": [
+          {
+            "name": "iteration reservations stay within the budget",
+            "expr": "_consumed >= 0 && _consumed <= _total"
+          }
+        ],
+        "config": "[rules.IterationBudget]\nfailures = \"kept\"\nmethods = [\"consume\", \"refund\", \"reset\"]\n",
+        "repository": "Harvil1/codeAgent",
+        "commit": "e48780be52949dfcf17338025f6beab48ca01428",
+        "upstreamPath": "agent/budget.py",
+        "license": "MIT",
+        "dependencyPaths": {},
+        "licensePath": "LICENSE",
+        "files": {
+          "LICENSE": "50ecec4436707bde5068edbafcfa44209f460b921e59d2b11b163902b6cdd909",
+          "module.py": "28bf438ccd39461e72f966777c4b9357ae319bdb6ef5043f5b2eba1fe58fe4b0"
+        }
+      },
+      "baseline": {
+        "sha256": "e91d6f5f500e348051bccb8da3815517cf747713218c6abe277f77dde8cc5ba2",
+        "exit": 0,
+        "fullyRead": true,
+        "claims": [
+          {
+            "name": "iteration reservations stay within the budget",
+            "expr": "_consumed >= 0 && _consumed <= _total",
+            "where": "module.py:15",
+            "kind": "law",
+            "verdict": "proven",
+            "ms": 104
+          }
+        ],
+        "rules": [
+          {
+            "entry": "IterationBudget",
+            "ok": true,
+            "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 8 from the prover's witnesses, 6 of 6 branch arms",
+            "refusals": []
+          }
+        ]
+      },
+      "mutants": [
+        {
+          "id": "remove-guard-1749",
+          "operator": "remove-guard",
+          "method": "consume",
+          "startByte": 1749,
+          "endByte": 1777,
+          "before": "self._consumed < self._total",
+          "after": "True",
+          "side": {
+            "sha256": "6af10b0fec753ba5abf8af6d296b8163cc9d40c453172752fc96889e63729f52",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "iteration reservations stay within the budget",
+                "expr": "_consumed >= 0 && _consumed <= _total",
+                "where": "module.py:15",
+                "kind": "law",
+                "verdict": "broken",
+                "run": [
+                  "made with total = 1",
+                  "refund()",
+                  "reset(total=-3)",
+                  "consume()"
+                ],
+                "assumes": [],
+                "ms": 1
+              }
+            ],
+            "rules": [
+              {
+                "entry": "IterationBudget",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 6 from the prover's witnesses, 6 of 6 branch arms",
+                "refusals": []
+              }
+            ]
+          },
+          "detected": true,
+          "replays": [
+            {
+              "policy": {
+                "name": "iteration reservations stay within the budget",
+                "expr": "_consumed >= 0 && _consumed <= _total"
+              },
+              "mutant": {
+                "ok": true,
+                "initial": {
+                  "_total": 1,
+                  "_consumed": 0
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "refund",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 1,
+                      "_consumed": 0,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "reset",
+                      "args": {
+                        "total": -3
+                      }
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0,
+                      "total": -3
+                    },
+                    "after": {
+                      "_total": 0,
+                      "_consumed": 0,
+                      "total": -3,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "consume",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 0,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 0,
+                      "_consumed": 1,
+                      "result": true,
+                      "failed": false
+                    }
+                  }
+                ],
+                "sourceSha256": "6af10b0fec753ba5abf8af6d296b8163cc9d40c453172752fc96889e63729f52",
+                "broken": true
+              },
+              "parent": {
+                "ok": true,
+                "initial": {
+                  "_total": 1,
+                  "_consumed": 0
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "refund",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 1,
+                      "_consumed": 0,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "reset",
+                      "args": {
+                        "total": -3
+                      }
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0,
+                      "total": -3
+                    },
+                    "after": {
+                      "_total": 0,
+                      "_consumed": 0,
+                      "total": -3,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "consume",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 0,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 0,
+                      "_consumed": 0,
+                      "result": false,
+                      "failed": false
+                    }
+                  }
+                ],
+                "sourceSha256": "e91d6f5f500e348051bccb8da3815517cf747713218c6abe277f77dde8cc5ba2",
+                "broken": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "invert-guard-1749",
+          "operator": "invert-guard",
+          "method": "consume",
+          "startByte": 1749,
+          "endByte": 1777,
+          "before": "self._consumed < self._total",
+          "after": "not (self._consumed < self._total)",
+          "side": {
+            "sha256": "587d180d34acb8de12012f4aa47f3bd3727539a682e2d37d53ca0b9500732aff",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "iteration reservations stay within the budget",
+                "expr": "_consumed >= 0 && _consumed <= _total",
+                "where": "module.py:15",
+                "kind": "law",
+                "verdict": "broken",
+                "run": [
+                  "made with total = 1",
+                  "refund()",
+                  "reset(total=-3)",
+                  "consume()"
+                ],
+                "assumes": [],
+                "ms": 7
+              }
+            ],
+            "rules": [
+              {
+                "entry": "IterationBudget",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 8 from the prover's witnesses, 6 of 6 branch arms",
+                "refusals": []
+              }
+            ]
+          },
+          "detected": true,
+          "replays": [
+            {
+              "policy": {
+                "name": "iteration reservations stay within the budget",
+                "expr": "_consumed >= 0 && _consumed <= _total"
+              },
+              "mutant": {
+                "ok": true,
+                "initial": {
+                  "_total": 1,
+                  "_consumed": 0
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "refund",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 1,
+                      "_consumed": 0,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "reset",
+                      "args": {
+                        "total": -3
+                      }
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0,
+                      "total": -3
+                    },
+                    "after": {
+                      "_total": 0,
+                      "_consumed": 0,
+                      "total": -3,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "consume",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 0,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 0,
+                      "_consumed": 1,
+                      "result": true,
+                      "failed": false
+                    }
+                  }
+                ],
+                "sourceSha256": "587d180d34acb8de12012f4aa47f3bd3727539a682e2d37d53ca0b9500732aff",
+                "broken": true
+              },
+              "parent": {
+                "ok": true,
+                "initial": {
+                  "_total": 1,
+                  "_consumed": 0
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "refund",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 1,
+                      "_consumed": 0,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "reset",
+                      "args": {
+                        "total": -3
+                      }
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0,
+                      "total": -3
+                    },
+                    "after": {
+                      "_total": 0,
+                      "_consumed": 0,
+                      "total": -3,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "consume",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 0,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 0,
+                      "_consumed": 0,
+                      "result": false,
+                      "failed": false
+                    }
+                  }
+                ],
+                "sourceSha256": "e91d6f5f500e348051bccb8da3815517cf747713218c6abe277f77dde8cc5ba2",
+                "broken": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "boundary-1749",
+          "operator": "boundary",
+          "method": "consume",
+          "startByte": 1749,
+          "endByte": 1777,
+          "before": "self._consumed < self._total",
+          "after": "self._consumed <= self._total",
+          "side": {
+            "sha256": "74ec832cc6d610e399aa77c837180ac7eb9b84e743853b7e373085cd2b8dca48",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "iteration reservations stay within the budget",
+                "expr": "_consumed >= 0 && _consumed <= _total",
+                "where": "module.py:15",
+                "kind": "law",
+                "verdict": "broken",
+                "run": [
+                  "made with total = 1",
+                  "refund()",
+                  "reset(total=-3)",
+                  "consume()"
+                ],
+                "assumes": [],
+                "ms": 0
+              }
+            ],
+            "rules": [
+              {
+                "entry": "IterationBudget",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 8 from the prover's witnesses, 6 of 6 branch arms",
+                "refusals": []
+              }
+            ]
+          },
+          "detected": true,
+          "replays": [
+            {
+              "policy": {
+                "name": "iteration reservations stay within the budget",
+                "expr": "_consumed >= 0 && _consumed <= _total"
+              },
+              "mutant": {
+                "ok": true,
+                "initial": {
+                  "_total": 1,
+                  "_consumed": 0
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "refund",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 1,
+                      "_consumed": 0,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "reset",
+                      "args": {
+                        "total": -3
+                      }
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0,
+                      "total": -3
+                    },
+                    "after": {
+                      "_total": 0,
+                      "_consumed": 0,
+                      "total": -3,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "consume",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 0,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 0,
+                      "_consumed": 1,
+                      "result": true,
+                      "failed": false
+                    }
+                  }
+                ],
+                "sourceSha256": "74ec832cc6d610e399aa77c837180ac7eb9b84e743853b7e373085cd2b8dca48",
+                "broken": true
+              },
+              "parent": {
+                "ok": true,
+                "initial": {
+                  "_total": 1,
+                  "_consumed": 0
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "refund",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 1,
+                      "_consumed": 0,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "reset",
+                      "args": {
+                        "total": -3
+                      }
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0,
+                      "total": -3
+                    },
+                    "after": {
+                      "_total": 0,
+                      "_consumed": 0,
+                      "total": -3,
+                      "result": null,
+                      "failed": false
+                    }
+                  },
+                  {
+                    "call": {
+                      "method": "consume",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 0,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 0,
+                      "_consumed": 0,
+                      "result": false,
+                      "failed": false
+                    }
+                  }
+                ],
+                "sourceSha256": "e91d6f5f500e348051bccb8da3815517cf747713218c6abe277f77dde8cc5ba2",
+                "broken": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "remove-guard-2124",
+          "operator": "remove-guard",
+          "method": "refund",
+          "startByte": 2124,
+          "endByte": 2142,
+          "before": "self._consumed > 0",
+          "after": "True",
+          "side": {
+            "sha256": "922986ba505dac0fc42a931a9c21e7a167301b2df32f203bdbea21ea55508187",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "iteration reservations stay within the budget",
+                "expr": "_consumed >= 0 && _consumed <= _total",
+                "where": "module.py:15",
+                "kind": "law",
+                "verdict": "broken",
+                "run": [
+                  "made with total = 1",
+                  "refund()"
+                ],
+                "assumes": [],
+                "ms": 0
+              }
+            ],
+            "rules": [
+              {
+                "entry": "IterationBudget",
+                "ok": true,
+                "checked": "checked against the code: 2398 requests from the start, 400 from drawn states, 6 from the prover's witnesses, 6 of 6 branch arms",
+                "refusals": []
+              }
+            ]
+          },
+          "detected": true,
+          "replays": [
+            {
+              "policy": {
+                "name": "iteration reservations stay within the budget",
+                "expr": "_consumed >= 0 && _consumed <= _total"
+              },
+              "mutant": {
+                "ok": true,
+                "initial": {
+                  "_total": 1,
+                  "_consumed": 0
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "refund",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 1,
+                      "_consumed": -1,
+                      "result": null,
+                      "failed": false
+                    }
+                  }
+                ],
+                "sourceSha256": "922986ba505dac0fc42a931a9c21e7a167301b2df32f203bdbea21ea55508187",
+                "broken": true
+              },
+              "parent": {
+                "ok": true,
+                "initial": {
+                  "_total": 1,
+                  "_consumed": 0
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "refund",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 1,
+                      "_consumed": 0,
+                      "result": null,
+                      "failed": false
+                    }
+                  }
+                ],
+                "sourceSha256": "e91d6f5f500e348051bccb8da3815517cf747713218c6abe277f77dde8cc5ba2",
+                "broken": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "invert-guard-2124",
+          "operator": "invert-guard",
+          "method": "refund",
+          "startByte": 2124,
+          "endByte": 2142,
+          "before": "self._consumed > 0",
+          "after": "not (self._consumed > 0)",
+          "side": {
+            "sha256": "f318e8f906ea1e7f11adbb73989fdca3f76a3aaa3c5c76132193e4aa0b63169f",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "iteration reservations stay within the budget",
+                "expr": "_consumed >= 0 && _consumed <= _total",
+                "where": "module.py:15",
+                "kind": "law",
+                "verdict": "broken",
+                "run": [
+                  "made with total = 1",
+                  "refund()"
+                ],
+                "assumes": [],
+                "ms": 2
+              }
+            ],
+            "rules": [
+              {
+                "entry": "IterationBudget",
+                "ok": true,
+                "checked": "checked against the code: 2398 requests from the start, 400 from drawn states, 8 from the prover's witnesses, 6 of 6 branch arms",
+                "refusals": []
+              }
+            ]
+          },
+          "detected": true,
+          "replays": [
+            {
+              "policy": {
+                "name": "iteration reservations stay within the budget",
+                "expr": "_consumed >= 0 && _consumed <= _total"
+              },
+              "mutant": {
+                "ok": true,
+                "initial": {
+                  "_total": 1,
+                  "_consumed": 0
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "refund",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 1,
+                      "_consumed": -1,
+                      "result": null,
+                      "failed": false
+                    }
+                  }
+                ],
+                "sourceSha256": "f318e8f906ea1e7f11adbb73989fdca3f76a3aaa3c5c76132193e4aa0b63169f",
+                "broken": true
+              },
+              "parent": {
+                "ok": true,
+                "initial": {
+                  "_total": 1,
+                  "_consumed": 0
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "refund",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 1,
+                      "_consumed": 0,
+                      "result": null,
+                      "failed": false
+                    }
+                  }
+                ],
+                "sourceSha256": "e91d6f5f500e348051bccb8da3815517cf747713218c6abe277f77dde8cc5ba2",
+                "broken": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "boundary-2124",
+          "operator": "boundary",
+          "method": "refund",
+          "startByte": 2124,
+          "endByte": 2142,
+          "before": "self._consumed > 0",
+          "after": "self._consumed >= 0",
+          "side": {
+            "sha256": "d9497b0566e2ed7516934cf16cd0b1c8f7863eff6933ebd697319473fc05c625",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "iteration reservations stay within the budget",
+                "expr": "_consumed >= 0 && _consumed <= _total",
+                "where": "module.py:15",
+                "kind": "law",
+                "verdict": "broken",
+                "run": [
+                  "made with total = 1",
+                  "refund()"
+                ],
+                "assumes": [],
+                "ms": 2
+              }
+            ],
+            "rules": [
+              {
+                "entry": "IterationBudget",
+                "ok": true,
+                "checked": "checked against the code: 2398 requests from the start, 400 from drawn states, 8 from the prover's witnesses, 6 of 6 branch arms",
+                "refusals": []
+              }
+            ]
+          },
+          "detected": true,
+          "replays": [
+            {
+              "policy": {
+                "name": "iteration reservations stay within the budget",
+                "expr": "_consumed >= 0 && _consumed <= _total"
+              },
+              "mutant": {
+                "ok": true,
+                "initial": {
+                  "_total": 1,
+                  "_consumed": 0
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "refund",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 1,
+                      "_consumed": -1,
+                      "result": null,
+                      "failed": false
+                    }
+                  }
+                ],
+                "sourceSha256": "d9497b0566e2ed7516934cf16cd0b1c8f7863eff6933ebd697319473fc05c625",
+                "broken": true
+              },
+              "parent": {
+                "ok": true,
+                "initial": {
+                  "_total": 1,
+                  "_consumed": 0
+                },
+                "steps": [
+                  {
+                    "call": {
+                      "method": "refund",
+                      "args": {}
+                    },
+                    "before": {
+                      "_total": 1,
+                      "_consumed": 0
+                    },
+                    "after": {
+                      "_total": 1,
+                      "_consumed": 0,
+                      "result": null,
+                      "failed": false
+                    }
+                  }
+                ],
+                "sourceSha256": "e91d6f5f500e348051bccb8da3815517cf747713218c6abe277f77dde8cc5ba2",
+                "broken": false
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,320 @@
+{
+  "version": 1,
+  "selection": "Convenience sample from read-only GitHub code search; selected by licensing and reader compatibility before mutation measurement, not randomly sampled.",
+  "defaultEntryProbes": [
+    {
+      "name": "kiln",
+      "sourceSha256": "5192172813680a0fadd562f9b496c1d38b40cf911ff58a2751d610fbce5bf101",
+      "repository": "instruktlabs/kiln",
+      "commit": "cde4dfe07d1c90e40ce83859fc5790b923a9df40",
+      "path": "src/agent/call-budget.ts",
+      "url": "https://github.com/instruktlabs/kiln/blob/cde4dfe07d1c90e40ce83859fc5790b923a9df40/src/agent/call-budget.ts",
+      "initial": {
+        "name": "kiln",
+        "entry": "createGenerationCallBudget",
+        "ok": false,
+        "refusals": [
+          {
+            "where": "module.ts:82:9",
+            "what": "the optional field author (a value that may be missing)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "network-ai",
+      "sourceSha256": "b252b2099f9cc5aef02e64983df3c1630fd885fd8503d13998d6ab37500af7b8",
+      "repository": "Jovancoding/Network-AI",
+      "commit": "7cfa5db58221520058c082920d35048c5f2a47d9",
+      "path": "lib/retry-budget.ts",
+      "url": "https://github.com/Jovancoding/Network-AI/blob/7cfa5db58221520058c082920d35048c5f2a47d9/lib/retry-budget.ts",
+      "initial": {
+        "name": "network-ai",
+        "entry": "RetryBudget",
+        "ok": false,
+        "refusals": [
+          {
+            "where": "module.ts:37:15",
+            "what": "options: a constructor argument that isn't a number, a boolean, a union of literals or a Map"
+          }
+        ]
+      }
+    },
+    {
+      "name": "auth0",
+      "sourceSha256": "a0e5300f376cd607608bc49946ebfb6f5aa7431acdb45574a2817a10d0c07464",
+      "repository": "auth0/auth0-mcp-server",
+      "commit": "10390b40dc488fa4b582ba52ce861d33b518a86a",
+      "path": "src/utils/rate-limiter.ts",
+      "url": "https://github.com/auth0/auth0-mcp-server/blob/10390b40dc488fa4b582ba52ce861d33b518a86a/src/utils/rate-limiter.ts",
+      "initial": {
+        "name": "auth0",
+        "entry": "createRateLimiter",
+        "ok": false,
+        "refusals": [
+          {
+            "where": "module.ts:6:1",
+            "what": "createRateLimiter is not a step over a state (a step takes the state first and returns the next): it takes number and returns (key: string) => { allowed: boolean; retryAfterMs: number; }"
+          }
+        ]
+      }
+    },
+    {
+      "name": "mqtt-alias",
+      "sourceSha256": "74a1b1b51145ec6b12aa832439549e5fb574f55cb02d1110083d58503ffa9ddc",
+      "repository": "mqttjs/MQTT.js",
+      "commit": "0ceae419ff0542105fa258b3ae9760798db7b44d",
+      "path": "src/lib/topic-alias-recv.ts",
+      "url": "https://github.com/mqttjs/MQTT.js/blob/0ceae419ff0542105fa258b3ae9760798db7b44d/src/lib/topic-alias-recv.ts",
+      "initial": {
+        "name": "mqtt-alias",
+        "entry": "TopicAliasRecv",
+        "ok": false,
+        "refusals": [
+          {
+            "where": "module.ts:7:2",
+            "what": "aliasToTopic: a map of strings"
+          }
+        ]
+      }
+    },
+    {
+      "name": "docx-editor",
+      "sourceSha256": "40acc2b24df1c96346b30837880e6dc8a88c5bfe1de40ed68d0bc9d0b1b9ef5a",
+      "repository": "eigenpal/docx-editor",
+      "commit": "b9a04a30f26ab000c39f61cff4494a9a8dbb2f15",
+      "path": "packages/core/src/store/runtime/counter.ts",
+      "url": "https://github.com/eigenpal/docx-editor/blob/b9a04a30f26ab000c39f61cff4494a9a8dbb2f15/packages/core/src/store/runtime/counter.ts",
+      "initial": {
+        "name": "docx-editor",
+        "entry": "BoundedCounter",
+        "ok": false,
+        "refusals": [
+          {
+            "where": "module.ts:35:5",
+            "what": "label: a constructor argument that isn't a number, a boolean, a union of literals or a Map"
+          }
+        ]
+      }
+    },
+    {
+      "name": "obsidian-gemini",
+      "sourceSha256": "7505686d5b81f376f48eb0b8a475111b1b7978c6df0c312af748e887d14da149",
+      "repository": "allenhutchison/obsidian-gemini",
+      "commit": "76fa0a2aafa62daace3e49dda39494c3cd15649b",
+      "path": "src/agent/turn-budget.ts",
+      "url": "https://github.com/allenhutchison/obsidian-gemini/blob/76fa0a2aafa62daace3e49dda39494c3cd15649b/src/agent/turn-budget.ts",
+      "initial": {
+        "name": "obsidian-gemini",
+        "entry": "TurnBudget",
+        "ok": false,
+        "refusals": [
+          {
+            "where": "module.ts:44:2",
+            "what": "number | undefined: a value that may be missing (a map's cell is how the subset holds one)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "codeagent",
+      "sourceSha256": "28bf438ccd39461e72f966777c4b9357ae319bdb6ef5043f5b2eba1fe58fe4b0",
+      "repository": "Harvil1/codeAgent",
+      "commit": "e48780be52949dfcf17338025f6beab48ca01428",
+      "path": "agent/budget.py",
+      "url": "https://github.com/Harvil1/codeAgent/blob/e48780be52949dfcf17338025f6beab48ca01428/agent/budget.py",
+      "initial": {
+        "name": "codeagent",
+        "ok": false,
+        "refusals": [
+          {
+            "where": "module.py:29:5",
+            "what": "total: a property (read, not called)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "orca",
+      "sourceSha256": "87f0db8f411d29c49f50ad9066cac3556645dfd2815128c925eff156828696fe",
+      "repository": "stablyai/orca",
+      "commit": "af6cb2cf8c33dc6049befc49cea919a6183e8e57",
+      "path": "src/main/browser/browser-page-initiated-tab-budget.ts",
+      "url": "https://github.com/stablyai/orca/blob/af6cb2cf8c33dc6049befc49cea919a6183e8e57/src/main/browser/browser-page-initiated-tab-budget.ts",
+      "initial": {
+        "name": "orca",
+        "ok": false,
+        "refusals": [
+          {
+            "where": "module.ts:16:30",
+            "what": "a function value"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ailice",
+      "sourceSha256": "1ff1f445c426fc08335ae393c81c3eb9b05fc5f3bb48c315b331f5d0baf88020",
+      "repository": "myshell-ai/AIlice",
+      "commit": "63a22105cdf8c0d297af332010f46e4153bbc1ec",
+      "path": "ailice/common/AGas.py",
+      "url": "https://github.com/myshell-ai/AIlice/blob/63a22105cdf8c0d297af332010f46e4153bbc1ec/ailice/common/AGas.py",
+      "initial": {
+        "name": "ailice",
+        "ok": false,
+        "refusals": [
+          {
+            "where": "module.py:14:12",
+            "what": "self.gas - amount < 0: the truth of Consume_amount: a value of no type the code states"
+          }
+        ]
+      }
+    }
+  ],
+  "configuredAdmissions": [
+    {
+      "id": "ailice-gas",
+      "config": "[rules.AGasTank]\nfailures = \"kept\"\nkeep = [\"resourceType\"]\ntypes = {amount = \"int\"}\n",
+      "methods": [
+        "Set",
+        "Consume",
+        "Charge"
+      ],
+      "propertiesNotRequests": [],
+      "fullyRead": true,
+      "checked": [
+        {
+          "entry": "AGasTank",
+          "ok": true,
+          "checked": "checked against the code: 2118 requests from the start, 400 from drawn states, 10 from the prover's witnesses, 5 of 5 branch arms",
+          "refusals": []
+        }
+      ],
+      "cleanPolicies": [
+        {
+          "name": "insufficient gas is rejected",
+          "expr": "failed == (amount > old(gas))",
+          "where": "module.py:13",
+          "kind": "step",
+          "verdict": "proven",
+          "ms": 234
+        }
+      ]
+    },
+    {
+      "id": "codeagent-iterations",
+      "config": "[rules.IterationBudget]\nfailures = \"kept\"\nmethods = [\"consume\", \"refund\", \"reset\"]\n",
+      "methods": [
+        "consume",
+        "refund",
+        "reset"
+      ],
+      "propertiesNotRequests": [
+        "total",
+        "consumed",
+        "remaining"
+      ],
+      "fullyRead": true,
+      "checked": [
+        {
+          "entry": "IterationBudget",
+          "ok": true,
+          "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 8 from the prover's witnesses, 6 of 6 branch arms",
+          "refusals": []
+        }
+      ],
+      "cleanPolicies": [
+        {
+          "name": "iteration reservations stay within the budget",
+          "expr": "_consumed >= 0 && _consumed <= _total",
+          "where": "module.py:15",
+          "kind": "law",
+          "verdict": "proven",
+          "ms": 104
+        }
+      ]
+    }
+  ],
+  "preReaderExclusions": [
+    {
+      "name": "mimo-code",
+      "reason": "Soft budget / fractional usage ratios and imported types; not submitted to reader.",
+      "sourceSha256": "59461f884886380141f6ac540bded9bb49109a9741ba184fd1f8293521a5fef4"
+    },
+    {
+      "name": "notebooklm",
+      "reason": "Counter data only, no consumption methods to mutate.",
+      "sourceSha256": "2cb2b84dddd13d32505420a92846629c2fe5127fde117ecf3ef6f7901560036a"
+    },
+    {
+      "name": "bisibility",
+      "reason": "Error class and cap constant only, no stateful admission operation.",
+      "sourceSha256": "cdfc654680d66b2556b7836fbc9b2a89b3f33a4442da591ef313caea760f84ae"
+    },
+    {
+      "name": "roket",
+      "reason": "No license grant found through repository license metadata.",
+      "sourceSha256": "448361e1a5e3cd2f39a05cdad6cf0c7c3d564d6d0e75977733cc151c6739f69f"
+    },
+    {
+      "name": "roboppi",
+      "reason": "No license grant found through repository license metadata.",
+      "sourceSha256": "12f381c0b71f92803bae68890e15af23bd2145f3a5bed59bb37f35bdd071ff30"
+    },
+    {
+      "name": "factor",
+      "reason": "No license grant found through repository license endpoint.",
+      "sourceSha256": "10b9f1497fea4470e190af4806ceffd39ce9d885bccc411090d0f503a3eb95dd"
+    },
+    {
+      "name": "networkxternal",
+      "reason": "No license grant found through repository license endpoint.",
+      "sourceSha256": "f4f9703da39ce58272d20da31a3e898fabf0460b76e0c29bff77410dee57ddf5"
+    },
+    {
+      "name": "openclaw",
+      "reason": "Asynchronous service orchestration and external dependencies; not submitted to reader.",
+      "sourceSha256": "84e34b2c2e06e7ae7d98eaec98b246c1bf0c98620e084e670b88b4d5f788d1ed"
+    },
+    {
+      "name": "constructive",
+      "reason": "Callback-driven counter plus asynchronous flushing service; not submitted to reader.",
+      "sourceSha256": "65e76bba8bd15b08765040cf89f5f7cb076cb907fed296089a81ed2499d1bc7d"
+    },
+    {
+      "name": "step-code",
+      "reason": "Asynchronous semaphore and external usage helpers; not submitted to reader.",
+      "sourceSha256": "5f801dfc36479d9e9698b369713be85cec625db453f76b12298907194d97be09"
+    },
+    {
+      "name": "babysitter",
+      "reason": "Callback thresholds, mutable lists and variable division; not submitted to reader.",
+      "sourceSha256": "694be6212bf0a0b33ab3837bd9da0758919b6a3bac0dab14abf8e69da8ab5813"
+    },
+    {
+      "name": "react-email",
+      "reason": "External Redis service and top-level connection; not executed or submitted to reader.",
+      "sourceSha256": "ca13f9955d189ddde9217106f1b3ffb9589fe6e15e96c18b6ffdcf280390bfe8"
+    },
+    {
+      "name": "headroom",
+      "reason": "Floating-point pure functions with variable division, not a stateful scalar budget.",
+      "sourceSha256": "09d10468d735e6b861c3d88326283d110e05b5ca2cf0778254c8be664bbc856b"
+    },
+    {
+      "name": "codectx",
+      "reason": "Tokenization dependency and partial-text operation; not submitted to reader.",
+      "sourceSha256": "0b030e79df089a8eae6871973dd2c90bb4e20df4eb02e8f3f7665760441207d9"
+    },
+    {
+      "name": "posthog",
+      "reason": "AST visitor with inherited traversal and external AST types; not submitted to reader.",
+      "sourceSha256": "3e762415d7ea293aae378f871f2528d96ebd414461fe10610c1eb608f077ef48"
+    },
+    {
+      "name": "trail-mate",
+      "reason": "AGPL-3.0 text, excluded by permissive-license requirement.",
+      "sourceSha256": "44fbdcd2621ef6eb26e4fc94ae8dbcad81e12b3a35ec22df071e4561a820d093"
+    }
+  ]
+}

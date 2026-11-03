@@ -1,0 +1,4 @@
+[
+{"name":"ailice-gas","cmd":"bun install --frozen-lockfile >/dev/null 2>&1 && bun research/security/mutants-upstream/run.ts ailice-gas","cpu":2,"timeout":600},
+{"name":"codeagent-iterations","cmd":"bun install --frozen-lockfile >/dev/null 2>&1 && bun research/security/mutants-upstream/run.ts codeagent-iterations","cpu":2,"timeout":600}
+]

@@ -1,0 +1,2 @@
+# Preserve exact licensed upstream bytes, including their original whitespace.
+vendor/** -whitespace
