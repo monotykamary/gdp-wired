@@ -317,7 +317,7 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
         : fnOfFact.measure ? fnOfFact.params.flatMap((q, j) => (q.sort === 'nat' && JSON.stringify(fnOfFact.body()).includes(`"op":"natmatch","of":{"op":"var","name":${JSON.stringify(`${fnOfFact.name}.${q.name}`)}}`) ? [j] : [])) : []
       const cases = [...natSplit.map((j, q) => `rcases hn${q || ''} : vals ${keys[j]!.v} with _ | m${q || ''}`), ...keys.filter(x => x.s !== 'nat' && x.s !== 'Z').map(x => `rcases ${x.x} with ${casePat(x.s, depth)}`)]
       void i
-      return `${head}\n${obtain.join('\n')}${obtain.length ? '\n' : ''}    simp [${[...rw, 'model', 'unpk_fst', 'unpk_snd', 'unpk_sq_fst', 'unpk_sq_snd', 'unpk_sqb_fst', 'unpk_sqb_snd'].join(', ')}]\n${cases.length ? `    ${cases.join(' <;> ')}\n` : ''}    all_goals (simp [${[fnSimp, dataSimp].filter(Boolean).join(', ')}])\n    all_goals (try split) <;> (try simp_all) <;> (try omega)\n    all_goals (try split) <;> (try simp_all) <;> (try omega)${usesInt ? '\n    all_goals (simp only [Z.enc] at *; (repeat\' split) <;> omega)' : ''}`
+      return `${head}\n${obtain.join('\n')}${obtain.length ? '\n' : ''}    simp [${[...rw, 'model', 'unpk_fst', 'unpk_snd', 'unpk_sq_fst', 'unpk_sq_snd', 'unpk_sqb_fst', 'unpk_sqb_snd'].join(', ')}]\n${cases.length ? `    ${cases.join(' <;> ')}\n` : ''}    all_goals (simp [${[fnSimp, dataSimp].filter(Boolean).join(', ')}])\n    all_goals (try split) <;> (try simp_all) <;> (try omega)\n    all_goals (try split) <;> (try simp_all) <;> (try omega)\n    all_goals (try (intros; simp_all))${usesInt ? '\n    all_goals (simp only [Z.enc] at *; (repeat\' split) <;> omega)' : ''}`
     })
     out.push(`theorem facts_hold${params.map(q => ` (${q} : Nat → Nat)`).join('')} (env : Nat → Nat) : FactsHold ${id}_facts env ${M} := by`,
       `  intro fa hfa vals`, `  simp only [${id}_facts, _root_.List.mem_cons, _root_.List.not_mem_nil, or_false] at hfa`,
@@ -330,7 +330,7 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
       `  have h := ${id}_sound ${M} (fun i => ${env}) (facts_hold${params.map(q => ` ${q}`).join('')} _) _ ${nd}_mem (by simp [${nd}_hyps, ${id}_hyps${node}])`,
       `  rw [${nd}_concl] at h`,
       `  simp [${id}_concl${node}, evalC, evalE, model, unpk_fst, unpk_snd, unpk_sq_fst, unpk_sq_snd, unpk_sqb_fst, unpk_sqb_snd] at h`,
-      `  first | ${usesInt ? 'omega | grind | ' : ''}simpa using h | (intros; simp_all <;> omega)`, '', `end ${id}`)
+      `  first | ${usesInt ? 'omega | ' : ''}simpa using h | grind | (intros; simp_all <;> omega)`, '', `end ${id}`)
     return out.join('\n')
   }
 }

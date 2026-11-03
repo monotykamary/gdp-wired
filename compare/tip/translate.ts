@@ -35,6 +35,8 @@
 //   - A datatype field of sort Bool is a value of a datatype of two constructors of no field (false, true): built from
 //     the condition where a constructor is applied, the condition again where a match binds it.
 //   - An existential at the goal's end (∀ v. H ⇒ ∃ x. B): laws without it, each proven or refuted as a goal (`some`).
+//     With no variable witness of the index sort, propose structural first-position searches over list-shaped
+//     datatypes (witness.ts). The original body at each candidate must be proven; a failed witness is not a refutation.
 //   - Refused, with the reason (`Unsupported`): an existential elsewhere, a quantifier elsewhere than outermost or under an
 //     implication's conclusion, a datatype field of a function sort, a function variable of a function or of an integer,
 //     a function that returns a function, Int arithmetic beyond the above, a selector of a datatype of several
@@ -45,7 +47,8 @@
 //     instances (no finite set of instances: monomorphisation doesn't end).
 // The background facts a problem asserts (`assert`, true lemmas given as hints) aren't given to proveData: the statement
 // is the goal alone.
-import {type Sx, type Tip, type Ty, type V, BOOL, INT, Unsupported, existential, matchTy, prenex, sameTy, show, showTy, substSx, substTy, tyOf} from './tip.ts'
+import {indexWitnesses, substituteWitnesses} from './witness.ts'
+import {type Sx, type Tip, type Ty, type V, BOOL, INT, Unsupported, existential, matchTy, prenex, sameTy, show, showTy, substTy, tyOf} from './tip.ts'
 import {Bool, type Callable, Data, type DataLaw, Integer, Nat, type Sort, Val, type Value, boolean, data, define, evalX, fnParam, integer, law, mutual, natural, no, opaque, programOf, self, unknownFn, when, yes} from '../../core/data.ts'
 
 const NATS: Ty = {k: 'con', name: '$Nat', args: []} // a type variable of the goal, at the naturals
@@ -78,6 +81,9 @@ export type Translation = {
 // sort), or at the naturals (the instance there, a change of the statement).
 // `integers`: Int as the integers whatever the problem uses (compare/chc-adt: a Horn clause's Int is never a natural).
 export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {sorts?: 'abstract' | 'naturals', integers?: boolean} = {}): Translation {
+  // Witness search may add ordinary recursive definitions, never axioms, to its
+  // own program. Leave the caller's parsed source untouched.
+  tip = {...tip, funs: new Map(tip.funs)}
   const abstractVars = (opts.sorts ?? 'abstract') === 'abstract'
   const changes = new Set<string>(), notes = new Set<string>()
   for (const [s2, n] of tip.sortArity) if (n > 0) throw new Unsupported(`an uninterpreted sort of ${n} arguments (${s2})`)
@@ -551,7 +557,8 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {sort
   }
   if (tip.goal.params.length && !abstractVars) changes.add(`monomorphised: the goal's sort variable${tip.goal.params.length > 1 ? 's' : ''} ${tip.goal.params.join(', ')} at the naturals`)
   // An existential goal, ∀ v. H ⇒ ∃ x. B (core/exists.ts's "there exists", where proveData has no law for it): proven
-  // through a witness among the goal's own variables of x's sort (H ⇒ B with it in place, a law of its own), and
+  // through a witness among the goal's own variables of x's sort, else a structural index candidate
+  // (H ⇒ B with it in place, a law of its own), and
   // refuted through what B says whatever x is, its conjuncts that read no x (W: ∃ x. B implies W, so a counterexample
   // to H ⇒ W is one to the goal). Each is a goal without a quantifier, translated as any goal is.
   const ex = existential(tip.goal.body)
@@ -562,15 +569,19 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {sort
     const free = conj(ex.body).filter(c => !reads(c))
     const weakSx = free.length ? ex.with(free.length === 1 ? free[0]! : ['and', ...free]) : undefined
     const outer = prenex(ex.with('true')).vars
-    const options = ex.binders.map(b => outer.filter(v => JSON.stringify(v.ty) === JSON.stringify(b.ty)).map(v => v.name))
-    const combos = options.reduce<string[][]>((acc, os) => acc.flatMap(a => os.map(o => [...a, o])), [[]]).slice(0, 8)
-    const witnesses = combos.filter(c => c.length === ex.binders.length).map(ts => {
-      const sx = ex.with(ex.binders.reduce<Sx>((b, x, i) => substSx(b, x.name, ts[i]!), ex.body))
-      return {law: lawOf(`${name} with ${ex.binders.map((x, i) => `${x.name} := ${ts[i]}`).join(', ')}`, tip.goal.params, sx).law, sx, terms: ts}
+    const options = ex.binders.map(b => {
+      const variables: Sx[] = outer.filter(v => JSON.stringify(v.ty) === JSON.stringify(b.ty)).map(v => v.name)
+      // Preserve the existing variable-witness search and its per-candidate budget.
+      return variables.length ? variables : indexWitnesses(tip, b.ty, outer)
     })
-    if (!weakSx && !witnesses.length) throw new Unsupported('an existential goal with no witness among its variables and nothing it says whatever the witness')
+    const combos = options.reduce<Sx[][]>((acc, os) => acc.flatMap(a => os.map(o => [...a, o])), [[]]).slice(0, 8)
+    const witnesses = combos.filter(c => c.length === ex.binders.length).map(ts => {
+      const sx = ex.with(substituteWitnesses(ex.body, new Map(ex.binders.map((x, i) => [x.name, ts[i]!]))))
+      return {law: lawOf(`${name} with ${ex.binders.map((x, i) => `${x.name} := ${show(ts[i]!)}`).join(', ')}`, tip.goal.params, sx).law, sx, terms: ts.map(show)}
+    })
+    if (!weakSx && !witnesses.length) throw new Unsupported('an existential goal with no candidate witness and nothing it says whatever the witness')
     some = {binders: ex.binders.map(b => b.name), ...(weakSx ? {weak: {law: lawOf(`${name}, whatever the witness`, tip.goal.params, weakSx).law, sx: weakSx}} : {}), witnesses}
-    notes.add('an existential goal: refuted through what it says whatever the witness, proven through a witness among its variables')
+    notes.add('an existential goal: refuted through what it says whatever the witness, proven through a candidate witness (a variable or structural index search)')
   }
   const main = lawOf(name, tip.goal.params, ex ? (some!.weak?.sx ?? some!.witnesses[0]!.sx) : tip.goal.body)
   const extra = lemmas.map((x, i) => {
