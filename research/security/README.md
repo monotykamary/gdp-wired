@@ -143,6 +143,10 @@ Its fixture-only replay gate validates the entire nonempty trace before dispatch
 rejects malformed/unknown calls even after a valid prefix, and supplies one frozen,
 order-preserving snapshot. Negative controls require zero dispatches on rejection.
 
+An additional owned Java entry-marker probe arms the launch observation before and
+after invalid traces. The finite rejection cases reach neither its real replay-spawn
+boundary nor its entry marker; this is not a general process-isolation guarantee.
+
 ## Measured coverage
 
 The complete-corpus baseline on 2026-11-03 is tree `7db037f` (main `927a521`): **18 published,

@@ -2,7 +2,7 @@
 import {expect, test} from 'bun:test'
 import {spawnSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {check} from '../../core/cli.ts'
@@ -135,5 +135,56 @@ nativeTest('owned multi-call witness order changes the native policy outcome', a
     expect(scoreRecall([side('vulnerable', 0), side('fixed', 1)]).found).toBe(true)
     expect(scoreRecall([side('vulnerable', 0), side('fixed', 0)]).found).toBe(false)
     console.log('OWNED_CALL_ORDER ' + JSON.stringify({scope: 'finite owned allowlisted method-order contrast only; no general replay or upstream recall guarantee', hashes, constructorArguments: [], methodArguments: [], witness, reorderedWitness: reordered.map(call => call + '()'), controls}))
+  } finally { rmSync(root, {recursive: true, force: true}) }
+}, 120_000)
+
+nativeTest('owned invalid traces do not launch the armed native entry probe', () => {
+  const root = mkdtempSync(join(tmpdir(), 'owned-launch-boundary-'))
+  const marker = join(root, 'entry.log'), file = join(root, 'OwnedLaunch.java')
+  const source = `import java.nio.file.*;
+    import java.util.Arrays;
+    public class OwnedLaunch {
+      public static void main(String[] args) throws Exception {
+        Files.writeString(Path.of(args[0]), "entered\\n", StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        for (int i = 1; i < args.length; i++) {
+          if (!args[i].equals("arm") && !args[i].equals("hit")) throw new IllegalArgumentException("call not allowed");
+        }
+        System.out.println(String.join(",", Arrays.copyOfRange(args, 1, args.length)));
+      }
+    }`
+  let launches = 0
+  try {
+    writeFileSync(file, source)
+    const compiled = spawnSync('javac', [file], {encoding: 'utf8', timeout: 30_000})
+    expect(compiled.status, compiled.stderr).toBe(0)
+    expect(existsSync(marker)).toBe(false)
+    const launch = (calls: readonly OwnedCall[]) => {
+      launches++
+      return spawnSync('java', ['-cp', root, 'OwnedLaunch', marker, ...calls], {encoding: 'utf8', timeout: 10_000})
+    }
+    const before = replayOwnedTrace(['arm()', 'hit()'], launch)
+    expect(before.status, before.stderr).toBe(0)
+    expect(before.stdout.trim()).toBe('arm,hit')
+    expect(readFileSync(marker, 'utf8')).toBe('entered\n')
+    expect(launches).toBe(1)
+    unlinkSync(marker)
+    const invalid: unknown[] = [
+      ['arm()', 'unknown()'], ['hit()', 'arm()', 'unknown()'],
+      ['arm()', 'hit() ', 'hit()'], ['arm()', 'arm(1)'],
+      ['hit()', 'hit()\narm()'], ['arm()', null], ['arm()', 1], ['arm()', {}],
+      ['unknown()', 'arm()'], [], null, 'arm()',
+    ]
+    for (const trace of invalid) {
+      expect(() => replayOwnedTrace(trace, launch)).toThrow()
+      expect(launches).toBe(1)
+      expect(existsSync(marker)).toBe(false)
+    }
+    const after = replayOwnedTrace(['hit()', 'arm()'], launch)
+    expect(after.status, after.stderr).toBe(0)
+    expect(after.stdout.trim()).toBe('hit,arm')
+    expect(readFileSync(marker, 'utf8')).toBe('entered\n')
+    expect(launches).toBe(2)
+    expect(readFileSync(file, 'utf8')).toBe(source)
+    console.log('OWNED_NO_NATIVE_LAUNCH ' + JSON.stringify({scope: 'finite owned replay-entry probe, not a general process isolation guarantee', sourceSha256: createHash('sha256').update(source).digest('hex'), rejectedCases: invalid.length, rejectedReplayLaunches: 0, rejectedEntryMarkers: 0, positiveReplayLaunches: launches, positiveOrders: [before.stdout.trim(), after.stdout.trim()]}))
   } finally { rmSync(root, {recursive: true, force: true}) }
 }, 120_000)
