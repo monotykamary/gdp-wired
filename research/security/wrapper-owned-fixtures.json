@@ -1,0 +1,17 @@
+{
+  "source": "Exact owned call-order fixture bytes retained from the ce28 packet; reused as data, not a retargeting of its runtime receipt.",
+  "files": {
+    "original": {
+      "sha256": "2e86e2bcc765a85561d2185d9f3b86bdbfa40494fb881f650cbda2d4acd421da",
+      "text": "public class OwnedOrder {\n    public int value = 0;\n    public boolean armed;\n    public OwnedOrder() { armed = false; }\n    public void arm() { armed = true; }\n    // gdp: law no value writes: value == old(value)\n    public void hit() { if (armed) value += 1; }\n  }"
+    },
+    "repaired": {
+      "sha256": "38672644fd3c23aeccfb5eb1827f504c670eb2ba8da586d08bccb1111529e9e0",
+      "text": "public class OwnedOrder {\n    public int value = 0;\n    public boolean armed;\n    public OwnedOrder() { armed = false; }\n    public void arm() { armed = true; }\n    // gdp: law no value writes: value == old(value)\n    public void hit() { if (armed) value += 0; }\n  }"
+    },
+    "driver": {
+      "sha256": "997e605275e9354bd85fc960fc1346f89146a1dc55a8d831de44fe5b8562bcd5",
+      "text": "public class ReplayOrder {\n    public static void main(String[] args) {\n      OwnedOrder current = new OwnedOrder();\n      boolean broken = false;\n      for (String call : args) {\n        int previous = current.value;\n        switch (call) {\n          case \"arm\": current.arm(); break;\n          case \"hit\": current.hit(); break;\n          default: throw new IllegalArgumentException(\"call is not allowlisted\");\n        }\n        if (current.value != previous) broken = true;\n      }\n      System.out.println(broken + \":\" + current.value + \":\" + args.length + \":\" + current.armed);\n    }\n  }"
+    }
+  }
+}
