@@ -222,7 +222,7 @@ const merge = (a: Record<string, unknown>, b: Record<string, unknown>): Record<s
 
 // --- one target: its rules, their laws -------------------------------------------------------------------------------------
 type LawOut = {name: string, expr: string, where?: string, kind?: 'law' | 'step' | 'two runs' | 'leads to', from?: 'any', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], replayed?: string, why?: string, assumes?: string[], found?: string[], cites?: string[], cert?: string, ms: number}
-export type RuleOut = {file: string, lang: string, entry?: string, ok: boolean, refusals: {where: string, what: string}[], notes: string[], names: Name[], checked?: string, env?: string[],
+export type RuleOut = {file: string, lang: string, entry?: string, ctor?: string, ok: boolean, refusals: {where: string, what: string}[], notes: string[], names: Name[], checked?: string, env?: string[],
   laws: LawOut[], proposed: LawOut[], brokenProposed?: number, source?: string,
   security?: (LawOut & Pick<SecurityCandidate, 'securityKind' | 'review'>)[]}
 
@@ -230,14 +230,41 @@ export type RuleOut = {file: string, lang: string, entry?: string, ok: boolean, 
 // file of functions, each function a law is stated on.
 // Every class or function a law is stated on is read too (a class that writes no state, a decision, among them): no law
 // stated in the code is left without a rule to be proven on, or refused with why.
-async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: string, x: Extraction}[]> {
+type ReadRule = {entry?: string, ctor?: string, x: Extraction}
+// Each initializer is a separate scope, with its own original-code replay and laws. Never choose one
+// overload on the caller's behalf or let a successful variant hide another variant's refusal.
+async function expandInitializers(t: Target, o: Opts, laws: Scoped[], rows: ReadRule[]): Promise<ReadRule[]> {
+  if (!rows.some(r => r.x.initializers)) return rows
+  const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, env: _e, ...flags} = o
+  void _j; void _m; void _p; void _c; void _t; void _fr; void _e
+  const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
+  const {clock: _k, from: _f, env: _v, calendar: _cal, ...shared} = cfg.all
+  void _k; void _f; void _v; void _cal
+  const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*/g) ?? []).flatMap(k => k.includes('::') ? [k, ...k.split('::')] : [k]))]
+  const out: ReadRule[] = []
+  for (const row of rows) {
+    const variants = row.x.initializers
+    if (!variants) { out.push(row); continue }
+    const entry = row.entry ?? variants.name
+    const opts = merge(merge({...shared, keep}, cfg.rules[entry] || {}), flags)
+    // A rule-specific constructor choice discovered after entry inference still takes precedence.
+    if (opts.ctor !== undefined) { out.push({entry, x: await extractOne(t, {...opts, entry: variants.entry})}); continue }
+    for (const ctor of [...new Set(variants.selectors)]) {
+      const x = await extractOne(t, {...opts, entry: variants.entry, ctor})
+      x.notes.push(`initializer ${ctor}: separate scope; every initializer is required for coverage of the class`)
+      out.push({entry, ctor, x})
+    }
+  }
+  return out
+}
+async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<ReadRule[]> {
   const got = await rulesOf0(t, o, laws)
-  if (o.entry) return got
+  if (o.entry) return expandInitializers(t, o, laws, got)
   // (a function that is a request of a rule read, a C file's globals', is read with it)
   const evs = (x: Extraction) => { const s = (x.model as {inputs?: {name: string, sort: {k: string, values?: string[]}}[]} | undefined)?.inputs?.find(v => v.name === (x.names ?? []).find(n => n.role === 'method')?.rule)?.sort; return s?.k === 'choice' ? s.values ?? [] : [] }
-  const have = new Set(got.flatMap(r => [r.entry, r.x.model?.name, ...(r.x.ok ? [...(r.x.names ?? []).map(n => n.method), ...evs(r.x)] : [])].filter((n): n is string => !!n)))
+  const have = new Set(got.flatMap(r => [r.entry, r.x.model?.name, r.x.initializers?.name, ...(r.x.ok ? [...(r.x.names ?? []).map(n => n.method), ...evs(r.x)] : [])].filter((n): n is string => !!n)))
   const more = [...new Set(laws.map(l => l.cls ?? l.fn).filter((n): n is string => !!n && !have.has(n)))]
-  if (!more.length) return got
+  if (!more.length) return expandInitializers(t, o, laws, got)
   const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, env: _e, ...flags} = o
   void _j; void _m; void _p; void _c; void _t; void _fr
   const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
@@ -246,7 +273,7 @@ async function rulesOf(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: str
   const keep = [...new Set(laws.flatMap(l => l.expr.match(/[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*/g) ?? []).flatMap(k => (k.includes('::') ? [k, ...k.split('::')] : [k])))]
   const extra = await Promise.all(more.map(async entry => ({entry, x: await extractOne(t, {...merge(merge({...shared, keep}, cfg.rules[entry] || {}), flags), entry})})))
   // (the first rule, read with no entry named, kept only where it read something or nothing else was)
-  return [...got.filter(r => r.x.ok || r.entry || !extra.length), ...extra]
+  return expandInitializers(t, o, laws, [...got.filter(r => r.x.ok || r.entry || !extra.length), ...extra])
 }
 async function rulesOf0(t: Target, o: Opts, laws: Scoped[]): Promise<{entry?: string, x: Extraction}[]> {
   const {json: _j, ms: _m, propose: _p, clock: _c, cert: _t, from: _fr, env: _e, ...flags} = o
@@ -355,14 +382,16 @@ export async function checkTarget(t: Target, o: Opts): Promise<RuleOut[]> {
   const outs: RuleOut[] = []
   // (the clock's unit, for durations in a law: the language's clock, or clock = "s" | "ms" in gdp.toml or --clock)
   const unit = o.clock ?? configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at)).all.clock ?? CLOCK[t.lang]
-  const others = Object.fromEntries(rules.filter(r => r.x.ok).map(r => [r.entry ?? r.x.model?.name ?? '', r.x]))
+  const others = Object.fromEntries(rules.filter(r => r.x.ok && r.ctor === undefined).map(r => [r.entry ?? r.x.model?.name ?? '', r.x]))
   const cfg = configFor(t.lang === 'go' || t.lang === 'rust' || fs.statSync(t.at).isDirectory() ? t.at : path.dirname(t.at))
-  const ctx: Ctx = {ms: o.ms, clock: unit === 's' ? 1 : unit === 'ms' ? 1000 : undefined, others, cites, cert: o.cert, file: path.relative(proc.cwd(), t.at) || t.at, ...(cfg.all.calendar ? {calendar: cfg.all.calendar as Calendar} : {})}
-  for (const {entry, x: x0} of rules) {
+  const baseCtx: Ctx = {ms: o.ms, clock: unit === 's' ? 1 : unit === 'ms' ? 1000 : undefined, others, cites, cert: o.cert, file: path.relative(proc.cwd(), t.at) || t.at, ...(cfg.all.calendar ? {calendar: cfg.all.calendar as Calendar} : {})}
+  for (const [initializerIndex, {entry, ctor, x: x0}] of rules.entries()) {
+    // Different initial states must never overwrite one another's certificates.
+    const ctx = ctor !== undefined && baseCtx.cert ? {...baseCtx, cert: path.join(baseCtx.cert, `initializer-${initializerIndex}`)} : baseCtx
     let x = x0
     const name = entry ?? (x.model?.name || undefined)
     // (a target that is the working directory, a crate's or a package's: `.`)
-    const r: RuleOut = {file: path.relative(proc.cwd(), t.at) || '.', lang: LANG_NAME[t.lang], ...(name ? {entry: name} : {}), ok: x.ok, refusals: x.refusals, notes: x.notes, names: x.names ?? [], laws: [], proposed: [], ...(x.source ? {source: x.source} : {})}
+    const r: RuleOut = {file: path.relative(proc.cwd(), t.at) || '.', lang: LANG_NAME[t.lang], ...(name ? {entry: name} : {}), ...(ctor !== undefined ? {ctor} : {}), ok: x.ok, refusals: x.refusals, notes: x.notes, names: x.names ?? [], laws: [], proposed: [], ...(x.source ? {source: x.source} : {})}
     outs.push(r)
     // (the laws of this rule: all where it is the file's one, else those in its class or on it or its methods, and those
     // outside every class and function)
@@ -718,7 +747,7 @@ export const proposedLaws = (x: Extraction, lang: Lang, ms = 2000): {shown: LawO
 // --- printing ------------------------------------------------------------------------------------------------------------
 const ROLE: Record<Name['role'], string> = {state: 'state', param: 'made with', input: 'request', answer: 'answered', result: 'result', failed: 'failed', method: 'method', clock: 'clock', const: 'constant'}
 function printRule(r: RuleOut, o: Opts) {
-  out(`${r.file}${r.entry ? `: ${r.entry}` : ''} (${r.lang})`)
+  out(`${r.file}${r.entry ? `: ${r.entry}` : ''}${r.ctor !== undefined ? ` [ctor ${r.ctor}]` : ''} (${r.lang})`)
   if (!r.ok) {
     for (const f of r.refusals) out(`  ${paint('yellow', `refused at ${f.where}:`)} ${f.what}`)
   } else {

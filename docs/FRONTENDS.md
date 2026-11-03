@@ -55,6 +55,16 @@ Two routes reach the Model:
   and TypeScript (`core/extract-shapes.ts`) execute into the Model themselves. Each implements its own `CodeSide`:
   `core/extract-go-check.ts` builds a generated harness with `go build -cover` and calls `drive`.
 
+Java and Swift classes with multiple constructors are checked by the CLI as separate initializer scopes.
+Every scope retains the class's laws and must pass its own original-code replay; a successful overload does not
+hide a refused or broken one. JSON and text output identify the `ctor` signature. Ambiguous constructor scopes
+are not silently selected as a cross-rule dependency. A single `extractJava` / `extractSwift` call still refuses
+an unspecified constructor and returns typed `initializers` alternatives. Explicit `ctor` configuration keeps
+precedence: Java accepts an arity or erased parameter signature such as `"(int,java.lang.String)"`; Swift accepts
+an arity or its parameter clause such as `"(seed: Int)"`. Swift resolves same-label delegation
+only for exact declared scalar arguments or explicit integer conversions; context-dependent literal
+overloads and failable initializers remain refused. Kotlin continues to use an arity.
+
 Solidity deployment contexts, constructor-only subclasses and library callers are described in
 [Solidity harnesses](SOLIDITY.md); the original source stays unchanged and the chosen context is reported.
 

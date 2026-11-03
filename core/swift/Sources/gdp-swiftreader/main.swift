@@ -473,7 +473,7 @@ final class Reader {
     // The initializer: the one there is, or the one of the arity asked for (ctor); none: the memberwise one (a struct's)
     // or the default one (a class's whose properties all have initial values).
     var inits: [(InitializerDeclSyntax, String)] = []
-    for (mf, d) in t.members { if let i = d.as(InitializerDeclSyntax.self), i.optionalMark == nil { inits.append((i, mf)) } }
+    for (mf, d) in t.members { if let i = d.as(InitializerDeclSyntax.self) { inits.append((i, mf)) } }
     let initId = "\(t.qual).__init__"
     var ctorJ: J = .null
     let bare = { (s: String) in s.filter { !$0.isWhitespace } }
@@ -487,15 +487,19 @@ final class Reader {
     } else if pick.count != 1 {
       funcs.append((initId, stub(initId, "__init__", t, pick.isEmpty ? "no init of the arity or parameters asked for (ctor)" : "a type with \(pick.count) inits (name one by its arity or its parameters: ctor, e.g. \"(limit: Int)\")")))
       methodsJ.append(("__init__", .s(initId)))
+    } else if pick[0].0.optionalMark != nil {
+      funcs.append((initId, stub(initId, "__init__", t, "a failable initializer (init? or init!)")))
+      methodsJ.append(("__init__", .s(initId)))
     } else {
       let (i, mf) = pick[0]
       funcs.append((initId, with(file: mf) { initFunc(i, t, ps, initId) }))
       methodsJ.append(("__init__", .s(initId)))
-      for (o, of) in inits where o != i {
-        let labels = o.signature.parameterClause.parameters.map { $0.firstName.text }
-        let oid = "\(t.qual).__init__/\(labels.joined(separator: ":"))"
-        funcs.append((oid, with(file: of) { initFunc(o, t, ps, oid) }))
-        methodsJ.append(("__init__/\(labels.joined(separator: ":"))", .s(oid)))
+      for (o, of) in inits {
+        let key = "__init__/" + bare(o.signature.parameterClause.trimmedDescription)
+        if o == i { methodsJ.append((key, .s(initId))); continue }
+        let oid = "\(t.qual).\(key)"
+        funcs.append((oid, o.optionalMark != nil ? stub(oid, key, t, "a failable initializer (init? or init!)") : with(file: of) { initFunc(o, t, ps, oid) }))
+        methodsJ.append((key, .s(oid)))
       }
       ctorJ = ["labels": .a(i.signature.parameterClause.parameters.map { .s($0.firstName.text) }), "throws": .b(i.signature.effectSpecifiers?.trimmedDescription.contains("throws") ?? false),
         "types": .a(i.signature.parameterClause.parameters.map { .s($0.type.trimmedDescription) })]
@@ -521,6 +525,7 @@ final class Reader {
     var inits0: J = .null
     if !own.isEmpty { inits0 = .s("a subclass of \(own[0].qual) (the subset reads a class with no superclass of the code's own)") }
     recs.append((t.qual, ["name": .s(t.qual), "short": .s(t.name), "fields": .a(fields), "methods": .o(methodsJ), "kinds": .a(kinds), "own": true, "module": "", "p": .s("\(t.file):\(t.line):1"),
+      "initializers": ctorArity == nil && ctorSig == nil && inits.count > 1 ? .a(inits.map { .s($0.0.signature.parameterClause.trimmedDescription) }) : .null,
       "swift": ["kind": .s(t.kind), "qual": .s(t.qual), "file": .s(t.file), "priv": .b(t.priv), "ctor": ctorJ, "sigs": .o(sigs), "refused": inits0,
         "props": .a(ps.map { ["name": .s($0.name), "t": .s($0.ttext), "let": .b($0.isLet), "kw": .s($0.kw), "init": .b($0.hasInit)] })]]))
     if !inits0.isNull { funcs.removeAll { $0.0 == initId }; funcs.append((initId, stub(initId, "__init__", t, inits0.str!))) }
@@ -1127,7 +1132,32 @@ final class Reader {
         return ([], no(p, "\(t): a case with associated values, or a static member the context doesn't state"))
       }
       let bt = base.trimmedDescription
-      if bt == "self", n == "init" { let (pre, xs) = args(c.arguments); return (pre, X("call", p, [("f", X("get", p, [("x", v("self", p)), ("f", .s("__init__/\(labels.joined(separator: ":"))")), ("text", "self.init")])), ("args", .a(xs)), ("kw", []), ("text", .s(t))])) }
+      if bt == "self", n == "init" {
+        var candidates = selfTy?.members.compactMap { $0.1.as(InitializerDeclSyntax.self) }.filter { $0.signature.parameterClause.parameters.map { $0.firstName.text } == labels } ?? []
+        if candidates.count > 1 {
+          // No contextual guess for literals, operators, generic conversions or overload results.
+          // A declared scalar value or explicit integer conversion has an exact argument type.
+          func exactScalar(_ e: ExprSyntax) -> TT? {
+            if let parens = e.as(TupleExprSyntax.self), parens.elements.count == 1 { return exactScalar(parens.elements.first!.expression) }
+            let integerCast: Bool = { guard let call = e.as(FunctionCallExprSyntax.self), let name = call.calledExpression.as(DeclReferenceExprSyntax.self)?.baseName.text else { return false }; return INTS[name] != nil && local(name) == nil }()
+            guard e.is(DeclReferenceExprSyntax.self) || e.is(MemberAccessExprSyntax.self) || integerCast,
+                  let known = typeOf(e).map(resolve), case .n(let name, let parameters) = known,
+                  parameters.isEmpty, INTS[name] != nil || name == "Bool" || name == "String" else { return nil }
+            return known
+          }
+          let known = c.arguments.map { exactScalar($0.expression) }
+          candidates = candidates.filter { candidate in
+            let declared = candidate.signature.parameterClause.parameters.map { resolve(parseType($0.type.trimmedDescription)) }
+            return zip(known, declared).allSatisfy { actual, expected in actual == expected }
+          }
+        }
+        guard candidates.count == 1 else { return ([], no(p, "\(t): initializer delegation has ambiguous parameter labels (an exact scalar overload is required)")) }
+        let selected = candidates[0]
+        let key = "__init__/" + selected.signature.parameterClause.trimmedDescription.filter { !$0.isWhitespace }
+        let expected = selected.signature.parameterClause.parameters.map { parseType($0.type.trimmedDescription) }
+        let (pre, xs) = args(c.arguments, expected)
+        return (pre, X("call", p, [("f", X("get", p, [("x", v("self", p)), ("f", .s(key)), ("text", "self.init")])), ("args", .a(xs)), ("kw", []), ("text", .s(t))]))
+      }
       if bt.first?.isUppercase == true, local(bt) == nil, base.is(DeclReferenceExprSyntax.self) || base.is(MemberAccessExprSyntax.self) {
         let tn = bt == "Self" ? selfTy?.name ?? bt : bt
         if let x = ty(named: tn, from: selfTy) {

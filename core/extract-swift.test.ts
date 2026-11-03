@@ -48,6 +48,65 @@ t('the boundary inferred: an injected store by its keys, an answer over a protoc
   expect(step(x, 'a denied user is counted', (b, a) => a.allow_result.not().implies(a.denied.at(b.user).value.atLeast(1))).proven).toBe(true)
 }, 900_000)
 
+t('initializer alternatives retain separate original-code replays', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-swinit-`), file = `${dir}/Meter.swift`
+  writeFileSync(file, `struct Meter {
+    var n: Int
+    init() { n = 7 }
+    init(seed: Int) { n = seed }
+    mutating func tick() { n = n &+ 1 }
+  }`)
+  const choice = extractSwift(file, {entry: 'Meter', check: budget})
+  expect(choice.ok).toBe(false)
+  expect(choice.initializers?.selectors.sort()).toEqual(['()', '(seed: Int)'].sort())
+  for (const ctor of choice.initializers!.selectors) {
+    const x = ok(extractSwift(file, {entry: 'Meter', ctor, check: budget}))
+    expect(x.evidence!.mismatch).toBeUndefined()
+  }
+}, 900_000)
+
+t('typed same-label initializer delegation is resolved by signature', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-swinit-`), file = `${dir}/Meter.swift`
+  writeFileSync(file, `struct Meter {
+    var n: Int
+    init() { self.init(seed: Int32(3)) }
+    init(first: Int32, second: Bool) { self.init(seed: first) }
+    init(seed: Int) { n = seed }
+    init(seed: Int32) { n = Int(seed) + 1 }
+    mutating func tick() { n = n &+ 1 }
+  }`)
+  for (const ctor of ['()', '(first: Int32, second: Bool)']) {
+    const x = ok(extractSwift(file, {entry: 'Meter', ctor, check: budget}))
+    expect(x.evidence!.mismatch).toBeUndefined()
+  }
+}, 900_000)
+
+t('context-dependent literal initializer overloads remain refused', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-swinit-`), file = `${dir}/Meter.swift`
+  writeFileSync(file, `struct Meter {
+    var n: Int
+    init() { self.init(seed: 3) }
+    init(seed: Int) { n = seed }
+    init(seed: Int32) { n = Int(seed) + 1 }
+    mutating func tick() { n = n &+ 1 }
+  }`)
+  const x = extractSwift(file, {entry: 'Meter', ctor: '()', check: budget})
+  expect(x.ok).toBe(false)
+  expect(x.refusals.map(r => r.what).join('; ')).toContain('ambiguous parameter labels')
+}, 900_000)
+
+t('failable initializers are not omitted or replaced by a memberwise initializer', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-swinit-`), file = `${dir}/Meter.swift`
+  writeFileSync(file, `struct Meter {
+    var n: Int
+    init?(valid: Bool) { if !valid { return nil }; n = 0 }
+    mutating func tick() { n = n &+ 1 }
+  }`)
+  const x = extractSwift(file, {entry: 'Meter', check: budget})
+  expect(x.ok).toBe(false)
+  expect(x.refusals.map(r => r.what).join('; ')).toContain('failable initializer')
+}, 900_000)
+
 t('an actor: its methods each one step', () => {
   const x = ok(extractSwift(`${DIR}Tally.swift`, {entry: 'Tally', check: budget}))
   expect(x.notes.join('\n')).toMatch(/an actor, its methods each one step/)

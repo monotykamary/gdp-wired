@@ -47,6 +47,37 @@ const step = (x: X, name: string, then: (b: any, a: any) => any, when: (b: any) 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const inv = (x: X, name: string, holds: (s: any) => any) => proveRule(x.rule! as never, [...(x.invariants ?? []), (x.rule! as never as R).law(name, holds)])
 
+tj('constructor signatures preserve same-arity delegation and keep single extraction scoped', () => {
+  const code = `public class Counter {
+    private int n;
+    public Counter() { this(3L); }
+    public Counter(long seed) { this((int) seed); }
+    public Counter(int seed) { n = seed; }
+    public int tick() { n++; return n; }
+  }`
+  const choice = java(code, 'Counter')
+  expect(choice.ok).toBe(false)
+  expect(choice.initializers?.selectors.sort()).toEqual(['()', '(int)', '(long)'].sort())
+  for (const ctor of choice.initializers!.selectors) ok(java(code, 'Counter', {ctor}))
+  const ambiguous = java(code, 'Counter', {ctor: 1})
+  expect(ambiguous.ok).toBe(false)
+  expect(ambiguous.initializers).toBeUndefined()
+})
+
+tj('independent constructor bodies are replayed independently, not replaced by a canonical body', () => {
+  const code = `public class Counter {
+    private int n;
+    public Counter() { n = -7; }
+    public Counter(boolean positive) { n = positive ? 9 : 2; }
+    public void tick() { n = 0; }
+  }`
+  ok(java(code, 'Counter', {ctor: '()'}))
+  ok(java(code, 'Counter', {ctor: '(boolean)'}))
+  const missing = java(code, 'Counter', {ctor: '(long)'})
+  expect(missing.ok).toBe(false)
+  expect(missing.initializers).toBeUndefined()
+})
+
 tj('int wraps past MAX_VALUE as Java\'s does; Math.addExact traps (an ArithmeticException, kept as the result)', () => {
   const x = ok(java(`
 public class Meter {

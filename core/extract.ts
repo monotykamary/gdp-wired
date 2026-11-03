@@ -71,6 +71,9 @@ export type ExtractOptions = Omit<ReadOptions, 'entry' | 'functions'> & {
 }
 export type Extraction = {
   ok: boolean,
+  // All initializers of the selected class. A single extraction remains refused until one is selected;
+  // the CLI may check every selector separately, never choosing an arbitrary constructor.
+  initializers?: {entry: string, name: string, selectors: string[]},
   // (a state variable that is 0 where the state is between two of the code's calls: a law about the state is about
   // those states; Solidity's pending calls into other code)
   quiet?: string,

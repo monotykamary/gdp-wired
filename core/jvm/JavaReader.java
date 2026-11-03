@@ -66,7 +66,8 @@ public final class JavaReader implements Jvm.Env {
     for (Object n : names) {
       TypeElement te = find(cu, (String) n);
       if (te == null) { entries.add(m("k", "missing", "name", n)); continue; }
-      jvm.put("ctorArity", req.get("ctor"));
+      jvm.put("ctorArity", req.get("ctor") instanceof Number ? req.get("ctor") : null);
+      jvm.put("ctorSignature", req.get("ctor") instanceof String ? req.get("ctor") : null);
       entries.add(m("k", "class", "rec", entry(te)));
     }
     out.put("entries", entries); out.put("recs", recs); out.put("funcs", funcs);
@@ -254,7 +255,8 @@ public final class JavaReader implements Jvm.Env {
     List<ExecutableElement> ctors = new ArrayList<>();
     for (Element e : te.getEnclosedElements()) if (e.getKind() == ElementKind.CONSTRUCTOR) ctors.add((ExecutableElement) e);
     Object want = jvm.get("ctorArity");
-    List<ExecutableElement> pick = ctors.stream().filter(c -> want == null || c.getParameters().size() == ((Number) want).intValue()).toList();
+    String wantedSignature = (String) jvm.get("ctorSignature");
+    List<ExecutableElement> pick = ctors.stream().filter(c -> wantedSignature != null ? ctorSignature(c).equals(wantedSignature.replace(" ", "")) : want == null || c.getParameters().size() == ((Number) want).intValue()).toList();
     Map<String, Object> jctor = m();
     if (pick.size() != 1) {
       methods.put("__init__", name + "#<init>");
@@ -263,19 +265,24 @@ public final class JavaReader implements Jvm.Env {
       ExecutableElement c = pick.get(0);
       methods.put("__init__", name + "#<init>");
       funcs.put(name + "#<init>", ctor(te, c, cpath));
-      for (ExecutableElement o : ctors) if (o != c) { methods.put("__init__/" + o.getParameters().size(), fid(o)); funcs.put(fid(o), ctor(te, o, cpath)); }
+      methods.put("__init__/" + fid(c), name + "#<init>");
+      for (ExecutableElement o : ctors) if (o != c) { methods.put("__init__/" + fid(o), fid(o)); funcs.put(fid(o), ctor(te, o, cpath)); }
       jctor = m("params", c.getParameters().stream().map(v -> erased(v.asType())).toList(), "names", c.getParameters().stream().map(v -> v.getSimpleName().toString()).toList(),
         "jts", c.getParameters().stream().map(v -> String.valueOf(jt(v.asType()))).toList(), "ifaces", c.getParameters().stream().map(v -> iface(v.asType())).toList(),
         "annos", trees.getPath(c) == null ? List.of() : annos(trees.getPath(c), ((MethodTree) trees.getTree(c)).getModifiers().getAnnotations()),
         "paramAnnos", trees.getPath(c) == null ? List.of() : ((MethodTree) trees.getTree(c)).getParameters().stream().map(v -> annos(trees.getPath(c), v.getModifiers().getAnnotations())).toList());
     }
     recs.put(name, m("name", name, "short", te.getSimpleName().toString(), "fields", fields, "methods", methods, "kinds", kinds, "own", true, "module", pkg(cpath.getCompilationUnit()), "p", where(cpath, ct),
+      "initializers", want == null && wantedSignature == null && pick.size() > 1 ? ctors.stream().map(this::ctorSignature).toList() : null,
       "jvm", m("fields", jfields, "annos", annos(cpath, ct.getModifiers().getAnnotations()), "ctor", jctor, "cls", name, "sigs", sigs)));
     jvm.put("cls", name);
     jvm.put("ctor", jctor.get("params"));
     jvm.put("methods", sigs);
     reading.remove(name);
     return name;
+  }
+  String ctorSignature(ExecutableElement c) {
+    return "(" + String.join(",", c.getParameters().stream().map(v -> erased(v.asType())).toList()) + ")";
   }
   String refusedRec(TypeElement te, String name, String why) {
     TreePath cp = trees.getPath(te);
@@ -430,7 +437,7 @@ public final class JavaReader implements Jvm.Env {
       ExecutableElement callee = (ExecutableElement) trees.getElement(ip);
       List<Object> args = new ArrayList<>();
       for (ExpressionTree a : mi.getArguments()) args.add(ex(a, ip));
-      if (mi.getMethodSelect().toString().equals("this")) { delegates = true; body.add(s("expr", p, "x", call(get(self(p), "__init__/" + callee.getParameters().size(), p, "this"), args, p, text(ip, mi)))); }
+      if (mi.getMethodSelect().toString().equals("this")) { delegates = true; body.add(s("expr", p, "x", call(get(self(p), "__init__/" + fid(callee), p, "this"), args, p, text(ip, mi)))); }
       else if (callee != null && trees.getPath(callee) != null) {
         String sid = fid(callee);
         if (!funcs.containsKey(sid)) funcs.put(sid, ctor((TypeElement) callee.getEnclosingElement(), callee, trees.getPath(callee.getEnclosingElement())));
