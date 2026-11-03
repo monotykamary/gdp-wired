@@ -1,8 +1,9 @@
 # Security mutation benchmark
 
 A small **owned synthetic corpus**, not a CVE scanner or an estimate of real-world vulnerability recall.
-The six complete modules derive from the security feature's training shapes and exercise permission checks,
-role checks, tenant-scoped writes/deletes, workflow prerequisites, quota admission, and payment deduplication.
+The ten complete modules derive from the security feature's training shapes and exercise permission checks,
+role checks, tenant-scoped writes/deletes and private reads, workflow prerequisites, quota admission,
+payment deduplication, locks, transaction scope and atomic compare-and-set.
 No third-party target is fetched or probed. Every accepted policy is stated in its source as `gdp: law`.
 
 ## What is measured
@@ -13,7 +14,14 @@ No third-party target is fetched or probed. Every accepted policy is stated in i
 - **invert-guard**: negate that guard's predicate;
 - **wrong-key**: replace a map-call key with another same-typed method parameter;
 - **relax-boundary**: change `>=` to `>` in an early-return guard;
-- **weaken-isolation**: change a Python `gdp: env atomic`/`snapshot` deployment declaration to `read committed`.
+- **weaken-isolation**: change a Python `gdp: env atomic`/`snapshot` deployment declaration to `read committed`;
+- **remove-lock**: remove a one-permit lock wrapper while retaining its operation statements;
+- **narrow-transaction**: move a transaction's leading store read outside its atomic scope;
+- **split-compare-set**: split an atomic scalar `modify` returning `[success, nextValue]` into read-then-write.
+
+The source-level operators recognize canonical Effect/TxRef syntax structurally. They do not recognize
+particular variable names or select a different mutation for a particular fixture. The source operations
+remain executable TypeScript; the compare-and-set uses conditional `TxRef.modify`, not a mocked CAS primitive.
 
 Each mutant changes one contiguous source span. Operators never inspect file names, policy names,
 fixture IDs or verdicts. They do not remove laws or mutate constructor validation. All generated
@@ -44,6 +52,30 @@ retained in `measurement.json`.
 It rejects missing/duplicate fixtures or mutants, changed source/configuration hashes, admission-score
 drift and any difference from the saved concrete replay receipts. The unit suite repeats this verification.
 
+## Private reads and source-level concurrency
+
+For `isolated by tenant seeing result`, `replayIsolation` creates two real objects: one receives every request,
+the other only the selected tenant's. It compares the result of **every** request by that tenant, not just the
+final state. The concrete owner is retained alongside the CLI's encoded owner ID so saved replays do not depend
+on a later process's string-interning table.
+
+`replay_effect.ts` runs the original operation bodies on Effect's runtime. Its instrumentation adds scheduling
+gates between outer operations and exposes existing refs for observation; it never inserts a gate inside a
+lock or transaction. This reproduces the exact counterexample's fiber/step schedule. The clean parent's changed
+atomic boundaries cannot execute an illegal mutant schedule, so its same calls are explicitly projected onto
+serial execution under its real boundaries.
+
+A separate `native_effect.ts` regression removes **all scheduling gates** and runs those calls concurrently
+using only Effect's native `Scheduler.MaxOpsBeforeYield = 32`. All three source-level races also reproduce there;
+clean counterparts remain safe. Only observation of existing refs remains. This guards against inventing a race
+by instrumentation. Native checks run in child processes with hard deadlines. The uniform native scheduler
+setting is not a prover budget or a per-fixture parameter.
+
+The source-level probes exposed a CLI defect: concurrent counterexamples were printed as repeated ordinary
+calls, dropping fiber identity and step boundaries. The CLI now preserves both, while retaining decoded input
+values. The existing `gdp-wired/effect` `fiberRun` export is preserved; its pure formatter lives separately so
+Python-only CLI use does not acquire an optional TypeScript-reader dependency.
+
 ## Isolation and trust boundaries
 
 The race is an explicit **deployment-isolation mutation**, not removal of a source-level transaction API.
@@ -60,7 +92,7 @@ concrete completion on both sides. Missing untyped inputs refuse replay; nothing
 Permission and tenant inputs represent values already resolved by an authentication boundary. The laws
 do not establish that boundary's trustworthiness, nor do these small modules prove whole-app security.
 The tenant policies cover insertion, update and deletion, including deletion of a foreign zero-valued row.
-This corpus does not measure read noninterference, unsupported languages, real database races or upstream CVEs.
+This corpus does not measure unsupported languages, real database races or upstream CVEs.
 
 ## Reproduce on boat
 

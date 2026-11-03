@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "baseCommit": "46ab97b6575b47c48a76dc2307cd5924abc689c6",
+  "baseCommit": "38a3bcc349d02c9c4b54c69d4a7e097f40c43a7d",
   "scope": "owned synthetic modules, not upstream CVE recall",
   "configuration": {
     "msPerLaw": 8000,
@@ -11,25 +11,506 @@
     "isolated": true
   },
   "summary": {
-    "baselines": 6,
+    "baselines": 10,
     "baselineRefuted": 0,
-    "baselineProven": 6,
-    "mutants": 12,
-    "detected": 12,
-    "fullyRead": 18,
-    "sides": 18,
+    "baselineProven": 10,
+    "mutants": 16,
+    "detected": 16,
+    "fullyRead": 26,
+    "sides": 26,
     "reviewRequired": true
   },
   "rows": [
+    {
+      "fixture": "compare-set",
+      "file": "module.ts",
+      "budgetMs": 8000,
+      "harness": {
+        "operators.ts": "595d649b217462ec064a6f8bb923c5a44808ebe0f19525d530274a6d8fad3e6d",
+        "run.ts": "bf4df8389a9d1265aea065b5bf3449b2d185bd5c3e99ca8f304c12a815945ba4",
+        "replay.ts": "2bd7f1fe0953fc057a0b4387e4fdf925344a008c975c1ad857b6b937ee40847c",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390",
+        "replay_effect.ts": "a4763bb803373b8c570fe4a17e86b11763a171db7d5d44764169f679e9c5c456"
+      },
+      "runtime": "Bun 1.4.3",
+      "baseline": {
+        "sha256": "0280857f4a9fba442a8a51804f8ca0a18687589cb11fc8d5d835cf4bcd854525",
+        "exit": 0,
+        "fullyRead": true,
+        "claims": [
+          {
+            "name": "only one grant",
+            "expr": "granted <= 1",
+            "where": "module.ts:3",
+            "kind": "law",
+            "verdict": "proven",
+            "found": [
+              "every k: 1 <= __gdp_claim_accepted[k] → 102·granted + __gdp_pc[k] <= 102",
+              "granted <= consumed",
+              "sum$__gdp_claim_accepted <= 1",
+              "sum$__gdp_claim_accepted <= consumed"
+            ],
+            "ms": 3283,
+            "entry": "make"
+          }
+        ],
+        "rules": [
+          {
+            "entry": "make",
+            "ok": true,
+            "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 10 from the prover's witnesses, 8 of 8 branch arms",
+            "refusals": []
+          }
+        ],
+        "proposals": {
+          "count": 2,
+          "broken": 0,
+          "allReviewRequired": true
+        }
+      },
+      "mutants": [
+        {
+          "id": "split-compare-set-258-0",
+          "operator": "split-compare-set",
+          "start": 258,
+          "end": 370,
+          "before": "const accepted = yield* TxRef.modify(consumed, current => [current === 0, current === 0 ? 1 : current] as const)",
+          "after": "const mutationRead258 = yield* TxRef.get(consumed)\nyield* TxRef.set(consumed, mutationRead258 === 0 ? 1 : mutationRead258)\nconst accepted = mutationRead258 === 0",
+          "side": {
+            "sha256": "f53442a4267886b3da652ad09bee0f3aeba80cb9bc101eae24e572b862d50a81",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "only one grant",
+                "expr": "granted <= 1",
+                "where": "module.ts:3",
+                "kind": "law",
+                "verdict": "broken",
+                "run": [
+                  "fiber 1: claim(), its step 1 of 3",
+                  "fiber 2: claim(), its step 1 of 3",
+                  "fiber 2: claim, its step 2 of 3",
+                  "fiber 1: claim, its step 2 of 3",
+                  "fiber 1: claim, its step 3 of 3",
+                  "fiber 2: claim, its step 3 of 3"
+                ],
+                "assumes": [],
+                "ms": 5,
+                "entry": "make"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "make",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 8 from the prover's witnesses, 10 of 10 branch arms",
+                "refusals": []
+              }
+            ],
+            "proposals": {
+              "count": 2,
+              "broken": 0,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "only one grant",
+              "expr": "granted <= 1",
+              "entry": "make",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "fiber": 1,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 0,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 0,
+                      "granted": 0
+                    }
+                  },
+                  {
+                    "fiber": 2,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 0,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 0,
+                      "granted": 0
+                    }
+                  },
+                  {
+                    "fiber": 2,
+                    "method": "claim",
+                    "step": 2,
+                    "before": {
+                      "consumed": 0,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 0
+                    }
+                  },
+                  {
+                    "fiber": 1,
+                    "method": "claim",
+                    "step": 2,
+                    "before": {
+                      "consumed": 1,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 0
+                    }
+                  },
+                  {
+                    "fiber": 1,
+                    "method": "claim",
+                    "step": 3,
+                    "before": {
+                      "consumed": 1,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 1
+                    }
+                  },
+                  {
+                    "fiber": 2,
+                    "method": "claim",
+                    "step": 3,
+                    "before": {
+                      "consumed": 1,
+                      "granted": 1
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 2
+                    }
+                  }
+                ],
+                "schedule": "exact fiber counterexample",
+                "sourceSha256": "f53442a4267886b3da652ad09bee0f3aeba80cb9bc101eae24e572b862d50a81",
+                "boundaries": {
+                  "claim": 3
+                }
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "fiber": 1,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 0,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 0
+                    }
+                  },
+                  {
+                    "fiber": 1,
+                    "method": "claim",
+                    "step": 2,
+                    "before": {
+                      "consumed": 1,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 1
+                    }
+                  },
+                  {
+                    "fiber": 2,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 1,
+                      "granted": 1
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 1
+                    }
+                  },
+                  {
+                    "fiber": 2,
+                    "method": "claim",
+                    "step": 2,
+                    "before": {
+                      "consumed": 1,
+                      "granted": 1
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 1
+                    }
+                  }
+                ],
+                "schedule": "same calls serialized under clean source boundaries",
+                "sourceSha256": "0280857f4a9fba442a8a51804f8ca0a18687589cb11fc8d5d835cf4bcd854525",
+                "boundaries": {
+                  "claim": 2
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fixture": "lock",
+      "file": "module.ts",
+      "budgetMs": 8000,
+      "harness": {
+        "operators.ts": "595d649b217462ec064a6f8bb923c5a44808ebe0f19525d530274a6d8fad3e6d",
+        "run.ts": "bf4df8389a9d1265aea065b5bf3449b2d185bd5c3e99ca8f304c12a815945ba4",
+        "replay.ts": "2bd7f1fe0953fc057a0b4387e4fdf925344a008c975c1ad857b6b937ee40847c",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390",
+        "replay_effect.ts": "a4763bb803373b8c570fe4a17e86b11763a171db7d5d44764169f679e9c5c456"
+      },
+      "runtime": "Bun 1.4.3",
+      "baseline": {
+        "sha256": "e000df13d9e2970eae67319fed07e5157e237d7b6932f7f87e6c8938d0faf085",
+        "exit": 0,
+        "fullyRead": true,
+        "claims": [
+          {
+            "name": "only one grant",
+            "expr": "granted <= 1",
+            "where": "module.ts:3",
+            "kind": "law",
+            "verdict": "proven",
+            "ms": 151,
+            "entry": "make"
+          }
+        ],
+        "rules": [
+          {
+            "entry": "make",
+            "ok": true,
+            "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 2 of 2 branch arms",
+            "refusals": []
+          }
+        ],
+        "proposals": {
+          "count": 2,
+          "broken": 0,
+          "allReviewRequired": true
+        }
+      },
+      "mutants": [
+        {
+          "id": "remove-lock-309-0",
+          "operator": "remove-lock",
+          "start": 309,
+          "end": 533,
+          "before": "yield* lock.withPermits(1)(Effect.gen(function* () {\n      const current = yield* TxRef.get(consumed)\n      if (current !== 0) return\n      yield* TxRef.set(consumed, 1)\n      yield* TxRef.update(granted, n => n + 1)\n    }))",
+          "after": "const current = yield* TxRef.get(consumed)\nif (current !== 0) return\nyield* TxRef.set(consumed, 1)\nyield* TxRef.update(granted, n => n + 1)",
+          "side": {
+            "sha256": "942e7f625001d491acec71ba4ac4b4bc8509cab2148bbfa33ebaf86571277a72",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "only one grant",
+                "expr": "granted <= 1",
+                "where": "module.ts:3",
+                "kind": "law",
+                "verdict": "broken",
+                "run": [
+                  "fiber 1: claim(), its step 1 of 3",
+                  "fiber 2: claim(), its step 1 of 3",
+                  "fiber 2: claim, its step 2 of 3",
+                  "fiber 1: claim, its step 2 of 3",
+                  "fiber 1: claim, its step 3 of 3",
+                  "fiber 2: claim, its step 3 of 3"
+                ],
+                "assumes": [],
+                "ms": 4,
+                "entry": "make"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "make",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 8 from the prover's witnesses, 8 of 8 branch arms",
+                "refusals": []
+              }
+            ],
+            "proposals": {
+              "count": 2,
+              "broken": 0,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "only one grant",
+              "expr": "granted <= 1",
+              "entry": "make",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "fiber": 1,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 0,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 0,
+                      "granted": 0
+                    }
+                  },
+                  {
+                    "fiber": 2,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 0,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 0,
+                      "granted": 0
+                    }
+                  },
+                  {
+                    "fiber": 2,
+                    "method": "claim",
+                    "step": 2,
+                    "before": {
+                      "consumed": 0,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 0
+                    }
+                  },
+                  {
+                    "fiber": 1,
+                    "method": "claim",
+                    "step": 2,
+                    "before": {
+                      "consumed": 1,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 0
+                    }
+                  },
+                  {
+                    "fiber": 1,
+                    "method": "claim",
+                    "step": 3,
+                    "before": {
+                      "consumed": 1,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 1
+                    }
+                  },
+                  {
+                    "fiber": 2,
+                    "method": "claim",
+                    "step": 3,
+                    "before": {
+                      "consumed": 1,
+                      "granted": 1
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 2
+                    }
+                  }
+                ],
+                "schedule": "exact fiber counterexample",
+                "sourceSha256": "942e7f625001d491acec71ba4ac4b4bc8509cab2148bbfa33ebaf86571277a72",
+                "boundaries": {
+                  "claim": 3
+                }
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "fiber": 1,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 0,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 1
+                    }
+                  },
+                  {
+                    "fiber": 2,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 1,
+                      "granted": 1
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 1
+                    }
+                  }
+                ],
+                "schedule": "same calls serialized under clean source boundaries",
+                "sourceSha256": "e000df13d9e2970eae67319fed07e5157e237d7b6932f7f87e6c8938d0faf085",
+                "boundaries": {
+                  "claim": 1
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
     {
       "fixture": "permission",
       "file": "module.ts",
       "budgetMs": 8000,
       "harness": {
-        "operators.ts": "4304cce87953add80983ee871cf225e3234a07465a5584fc5e049405e93b5c7e",
-        "run.ts": "af09e14ea33c443f9cc0754a56875a5fdccd3cb0a15d9872c4e05ce95b4d69de",
-        "replay.ts": "62e16c918d1887eea326bbe974328775ae1113f32e48bba75f88e7e3ee2d6689",
-        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390"
+        "operators.ts": "595d649b217462ec064a6f8bb923c5a44808ebe0f19525d530274a6d8fad3e6d",
+        "run.ts": "bf4df8389a9d1265aea065b5bf3449b2d185bd5c3e99ca8f304c12a815945ba4",
+        "replay.ts": "2bd7f1fe0953fc057a0b4387e4fdf925344a008c975c1ad857b6b937ee40847c",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390",
+        "replay_effect.ts": "a4763bb803373b8c570fe4a17e86b11763a171db7d5d44764169f679e9c5c456"
       },
       "runtime": "Bun 1.4.3",
       "baseline": {
@@ -43,7 +524,7 @@
             "where": "module.ts:4",
             "kind": "step",
             "verdict": "proven",
-            "ms": 67,
+            "ms": 140,
             "entry": "PermissionCounter"
           }
         ],
@@ -179,7 +660,7 @@
                   "change(allowed=false)"
                 ],
                 "assumes": [],
-                "ms": 0,
+                "ms": 2,
                 "entry": "PermissionCounter"
               }
             ],
@@ -259,10 +740,11 @@
       "file": "module.ts",
       "budgetMs": 8000,
       "harness": {
-        "operators.ts": "4304cce87953add80983ee871cf225e3234a07465a5584fc5e049405e93b5c7e",
-        "run.ts": "af09e14ea33c443f9cc0754a56875a5fdccd3cb0a15d9872c4e05ce95b4d69de",
-        "replay.ts": "62e16c918d1887eea326bbe974328775ae1113f32e48bba75f88e7e3ee2d6689",
-        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390"
+        "operators.ts": "595d649b217462ec064a6f8bb923c5a44808ebe0f19525d530274a6d8fad3e6d",
+        "run.ts": "bf4df8389a9d1265aea065b5bf3449b2d185bd5c3e99ca8f304c12a815945ba4",
+        "replay.ts": "2bd7f1fe0953fc057a0b4387e4fdf925344a008c975c1ad857b6b937ee40847c",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390",
+        "replay_effect.ts": "a4763bb803373b8c570fe4a17e86b11763a171db7d5d44764169f679e9c5c456"
       },
       "runtime": "Bun 1.4.3",
       "baseline": {
@@ -280,7 +762,7 @@
               "admit_result is no → used <= limit",
               "admit_result is yes → used <= limit"
             ],
-            "ms": 826,
+            "ms": 522,
             "entry": "Quota"
           }
         ],
@@ -476,7 +958,7 @@
                   "admit()"
                 ],
                 "assumes": [],
-                "ms": 0,
+                "ms": 1,
                 "entry": "Quota"
               }
             ],
@@ -570,7 +1052,7 @@
                   "admit()"
                 ],
                 "assumes": [],
-                "ms": 2,
+                "ms": 1,
                 "entry": "Quota"
               }
             ],
@@ -707,10 +1189,11 @@
       "configSha256": "fff1b406c98e6861f9afc97f4ade728fcbee458de72bf15e4e5345e26bbcdfd5",
       "budgetMs": 8000,
       "harness": {
-        "operators.ts": "4304cce87953add80983ee871cf225e3234a07465a5584fc5e049405e93b5c7e",
-        "run.ts": "af09e14ea33c443f9cc0754a56875a5fdccd3cb0a15d9872c4e05ce95b4d69de",
-        "replay.ts": "62e16c918d1887eea326bbe974328775ae1113f32e48bba75f88e7e3ee2d6689",
-        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390"
+        "operators.ts": "595d649b217462ec064a6f8bb923c5a44808ebe0f19525d530274a6d8fad3e6d",
+        "run.ts": "bf4df8389a9d1265aea065b5bf3449b2d185bd5c3e99ca8f304c12a815945ba4",
+        "replay.ts": "2bd7f1fe0953fc057a0b4387e4fdf925344a008c975c1ad857b6b937ee40847c",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390",
+        "replay_effect.ts": "a4763bb803373b8c570fe4a17e86b11763a171db7d5d44764169f679e9c5c456"
       },
       "runtime": "Bun 1.4.3",
       "baseline": {
@@ -728,7 +1211,7 @@
               "every k: done$[k] <= cache_.has[k]",
               "every k: cache_.has[k] <= 1"
             ],
-            "ms": 1539,
+            "ms": 1406,
             "entry": "Payments"
           }
         ],
@@ -776,7 +1259,7 @@
                   "call 2 commits",
                   "call 1 commits"
                 ],
-                "ms": 73,
+                "ms": 100,
                 "entry": "Payments"
               }
             ],
@@ -956,14 +1439,569 @@
       ]
     },
     {
+      "fixture": "read-isolation",
+      "file": "module.ts",
+      "budgetMs": 8000,
+      "harness": {
+        "operators.ts": "595d649b217462ec064a6f8bb923c5a44808ebe0f19525d530274a6d8fad3e6d",
+        "run.ts": "bf4df8389a9d1265aea065b5bf3449b2d185bd5c3e99ca8f304c12a815945ba4",
+        "replay.ts": "2bd7f1fe0953fc057a0b4387e4fdf925344a008c975c1ad857b6b937ee40847c",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390",
+        "replay_effect.ts": "a4763bb803373b8c570fe4a17e86b11763a171db7d5d44764169f679e9c5c456"
+      },
+      "runtime": "Bun 1.4.3",
+      "baseline": {
+        "sha256": "2e0400b75f04983f7c7346dd1b439f7d5471bb2afdcbf1b308bdf4917326e70a",
+        "exit": 0,
+        "fullyRead": true,
+        "claims": [
+          {
+            "name": "private reads",
+            "expr": "isolated by tenant seeing result",
+            "where": "module.ts:7",
+            "kind": "two runs",
+            "verdict": "proven",
+            "found": [
+              "rows at B is the same in both runs"
+            ],
+            "ms": 3397,
+            "entry": "PrivateRows"
+          }
+        ],
+        "rules": [
+          {
+            "entry": "PrivateRows",
+            "ok": true,
+            "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 1 of 1 branch arms",
+            "refusals": []
+          }
+        ],
+        "proposals": {
+          "count": 8,
+          "broken": 1,
+          "allReviewRequired": true
+        }
+      },
+      "mutants": [
+        {
+          "id": "wrong-key-355-0",
+          "operator": "wrong-key",
+          "start": 355,
+          "end": 361,
+          "before": "tenant",
+          "after": "_target",
+          "side": {
+            "sha256": "e5f39c5fddde0e04fc8e1f32c9098f0b620ab5653635a40774cf2f731299fcec",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "private reads",
+                "expr": "isolated by tenant seeing result",
+                "where": "module.ts:7",
+                "kind": "two runs",
+                "verdict": "broken",
+                "run": [
+                  "B is 1 (run b takes only B's calls)",
+                  "read(tenant=\"\", _target=\"\")",
+                  "read(tenant=\"\", _target=\"\")",
+                  "put(tenant=\"\", value=3)",
+                  "read(tenant=\"bab\", _target=\"\")",
+                  "put(tenant=\"b\", value=-2)",
+                  "read(tenant=\"a\", _target=\"\")"
+                ],
+                "ms": 13,
+                "entry": "PrivateRows",
+                "concreteOwner": "a"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "PrivateRows",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 1 of 1 branch arms",
+                "refusals": []
+              }
+            ],
+            "proposals": {
+              "count": 8,
+              "broken": 2,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "private reads",
+              "expr": "isolated by tenant seeing result",
+              "entry": "PrivateRows",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "owner": "a",
+                    "all": [
+                      {
+                        "call": {
+                          "method": "read",
+                          "args": {
+                            "tenant": "",
+                            "_target": ""
+                          }
+                        },
+                        "before": {
+                          "tenant": "",
+                          "_target": "",
+                          "rows": {
+                            "$map": []
+                          }
+                        },
+                        "after": {
+                          "tenant": "",
+                          "_target": "",
+                          "rows": {
+                            "$map": []
+                          },
+                          "result": 0
+                        }
+                      },
+                      {
+                        "call": {
+                          "method": "read",
+                          "args": {
+                            "tenant": "",
+                            "_target": ""
+                          }
+                        },
+                        "before": {
+                          "tenant": "",
+                          "_target": "",
+                          "rows": {
+                            "$map": []
+                          }
+                        },
+                        "after": {
+                          "tenant": "",
+                          "_target": "",
+                          "rows": {
+                            "$map": []
+                          },
+                          "result": 0
+                        }
+                      },
+                      {
+                        "call": {
+                          "method": "put",
+                          "args": {
+                            "tenant": "",
+                            "value": 3
+                          }
+                        },
+                        "before": {
+                          "tenant": "",
+                          "value": 3,
+                          "rows": {
+                            "$map": []
+                          }
+                        },
+                        "after": {
+                          "tenant": "",
+                          "value": 3,
+                          "rows": {
+                            "$map": [
+                              [
+                                "",
+                                3
+                              ]
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "call": {
+                          "method": "read",
+                          "args": {
+                            "tenant": "bab",
+                            "_target": ""
+                          }
+                        },
+                        "before": {
+                          "tenant": "bab",
+                          "_target": "",
+                          "rows": {
+                            "$map": [
+                              [
+                                "",
+                                3
+                              ]
+                            ]
+                          }
+                        },
+                        "after": {
+                          "tenant": "bab",
+                          "_target": "",
+                          "rows": {
+                            "$map": [
+                              [
+                                "",
+                                3
+                              ]
+                            ]
+                          },
+                          "result": 3
+                        }
+                      },
+                      {
+                        "call": {
+                          "method": "put",
+                          "args": {
+                            "tenant": "b",
+                            "value": -2
+                          }
+                        },
+                        "before": {
+                          "tenant": "b",
+                          "value": -2,
+                          "rows": {
+                            "$map": [
+                              [
+                                "",
+                                3
+                              ]
+                            ]
+                          }
+                        },
+                        "after": {
+                          "tenant": "b",
+                          "value": -2,
+                          "rows": {
+                            "$map": [
+                              [
+                                "",
+                                3
+                              ],
+                              [
+                                "b",
+                                -2
+                              ]
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "call": {
+                          "method": "read",
+                          "args": {
+                            "tenant": "a",
+                            "_target": ""
+                          }
+                        },
+                        "before": {
+                          "tenant": "a",
+                          "_target": "",
+                          "rows": {
+                            "$map": [
+                              [
+                                "",
+                                3
+                              ],
+                              [
+                                "b",
+                                -2
+                              ]
+                            ]
+                          }
+                        },
+                        "after": {
+                          "tenant": "a",
+                          "_target": "",
+                          "rows": {
+                            "$map": [
+                              [
+                                "",
+                                3
+                              ],
+                              [
+                                "b",
+                                -2
+                              ]
+                            ]
+                          },
+                          "result": 3
+                        }
+                      }
+                    ],
+                    "onlyOwner": [
+                      {
+                        "call": {
+                          "method": "read",
+                          "args": {
+                            "tenant": "a",
+                            "_target": ""
+                          }
+                        },
+                        "before": {
+                          "tenant": "a",
+                          "_target": "",
+                          "rows": {
+                            "$map": []
+                          }
+                        },
+                        "after": {
+                          "tenant": "a",
+                          "_target": "",
+                          "rows": {
+                            "$map": []
+                          },
+                          "result": 0
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "owner": "a",
+                    "all": [
+                      {
+                        "call": {
+                          "method": "read",
+                          "args": {
+                            "tenant": "",
+                            "_target": ""
+                          }
+                        },
+                        "before": {
+                          "tenant": "",
+                          "_target": "",
+                          "rows": {
+                            "$map": []
+                          }
+                        },
+                        "after": {
+                          "tenant": "",
+                          "_target": "",
+                          "rows": {
+                            "$map": []
+                          },
+                          "result": 0
+                        }
+                      },
+                      {
+                        "call": {
+                          "method": "read",
+                          "args": {
+                            "tenant": "",
+                            "_target": ""
+                          }
+                        },
+                        "before": {
+                          "tenant": "",
+                          "_target": "",
+                          "rows": {
+                            "$map": []
+                          }
+                        },
+                        "after": {
+                          "tenant": "",
+                          "_target": "",
+                          "rows": {
+                            "$map": []
+                          },
+                          "result": 0
+                        }
+                      },
+                      {
+                        "call": {
+                          "method": "put",
+                          "args": {
+                            "tenant": "",
+                            "value": 3
+                          }
+                        },
+                        "before": {
+                          "tenant": "",
+                          "value": 3,
+                          "rows": {
+                            "$map": []
+                          }
+                        },
+                        "after": {
+                          "tenant": "",
+                          "value": 3,
+                          "rows": {
+                            "$map": [
+                              [
+                                "",
+                                3
+                              ]
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "call": {
+                          "method": "read",
+                          "args": {
+                            "tenant": "bab",
+                            "_target": ""
+                          }
+                        },
+                        "before": {
+                          "tenant": "bab",
+                          "_target": "",
+                          "rows": {
+                            "$map": [
+                              [
+                                "",
+                                3
+                              ]
+                            ]
+                          }
+                        },
+                        "after": {
+                          "tenant": "bab",
+                          "_target": "",
+                          "rows": {
+                            "$map": [
+                              [
+                                "",
+                                3
+                              ]
+                            ]
+                          },
+                          "result": 0
+                        }
+                      },
+                      {
+                        "call": {
+                          "method": "put",
+                          "args": {
+                            "tenant": "b",
+                            "value": -2
+                          }
+                        },
+                        "before": {
+                          "tenant": "b",
+                          "value": -2,
+                          "rows": {
+                            "$map": [
+                              [
+                                "",
+                                3
+                              ]
+                            ]
+                          }
+                        },
+                        "after": {
+                          "tenant": "b",
+                          "value": -2,
+                          "rows": {
+                            "$map": [
+                              [
+                                "",
+                                3
+                              ],
+                              [
+                                "b",
+                                -2
+                              ]
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "call": {
+                          "method": "read",
+                          "args": {
+                            "tenant": "a",
+                            "_target": ""
+                          }
+                        },
+                        "before": {
+                          "tenant": "a",
+                          "_target": "",
+                          "rows": {
+                            "$map": [
+                              [
+                                "",
+                                3
+                              ],
+                              [
+                                "b",
+                                -2
+                              ]
+                            ]
+                          }
+                        },
+                        "after": {
+                          "tenant": "a",
+                          "_target": "",
+                          "rows": {
+                            "$map": [
+                              [
+                                "",
+                                3
+                              ],
+                              [
+                                "b",
+                                -2
+                              ]
+                            ]
+                          },
+                          "result": 0
+                        }
+                      }
+                    ],
+                    "onlyOwner": [
+                      {
+                        "call": {
+                          "method": "read",
+                          "args": {
+                            "tenant": "a",
+                            "_target": ""
+                          }
+                        },
+                        "before": {
+                          "tenant": "a",
+                          "_target": "",
+                          "rows": {
+                            "$map": []
+                          }
+                        },
+                        "after": {
+                          "tenant": "a",
+                          "_target": "",
+                          "rows": {
+                            "$map": []
+                          },
+                          "result": 0
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "fixture": "role",
       "file": "module.ts",
       "budgetMs": 8000,
       "harness": {
-        "operators.ts": "4304cce87953add80983ee871cf225e3234a07465a5584fc5e049405e93b5c7e",
-        "run.ts": "af09e14ea33c443f9cc0754a56875a5fdccd3cb0a15d9872c4e05ce95b4d69de",
-        "replay.ts": "62e16c918d1887eea326bbe974328775ae1113f32e48bba75f88e7e3ee2d6689",
-        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390"
+        "operators.ts": "595d649b217462ec064a6f8bb923c5a44808ebe0f19525d530274a6d8fad3e6d",
+        "run.ts": "bf4df8389a9d1265aea065b5bf3449b2d185bd5c3e99ca8f304c12a815945ba4",
+        "replay.ts": "2bd7f1fe0953fc057a0b4387e4fdf925344a008c975c1ad857b6b937ee40847c",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390",
+        "replay_effect.ts": "a4763bb803373b8c570fe4a17e86b11763a171db7d5d44764169f679e9c5c456"
       },
       "runtime": "Bun 1.4.3",
       "baseline": {
@@ -977,7 +2015,7 @@
             "where": "module.ts:4",
             "kind": "step",
             "verdict": "proven",
-            "ms": 81,
+            "ms": 87,
             "entry": "RevisionStore"
           }
         ],
@@ -1193,10 +2231,11 @@
       "file": "module.ts",
       "budgetMs": 8000,
       "harness": {
-        "operators.ts": "4304cce87953add80983ee871cf225e3234a07465a5584fc5e049405e93b5c7e",
-        "run.ts": "af09e14ea33c443f9cc0754a56875a5fdccd3cb0a15d9872c4e05ce95b4d69de",
-        "replay.ts": "62e16c918d1887eea326bbe974328775ae1113f32e48bba75f88e7e3ee2d6689",
-        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390"
+        "operators.ts": "595d649b217462ec064a6f8bb923c5a44808ebe0f19525d530274a6d8fad3e6d",
+        "run.ts": "bf4df8389a9d1265aea065b5bf3449b2d185bd5c3e99ca8f304c12a815945ba4",
+        "replay.ts": "2bd7f1fe0953fc057a0b4387e4fdf925344a008c975c1ad857b6b937ee40847c",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390",
+        "replay_effect.ts": "a4763bb803373b8c570fe4a17e86b11763a171db7d5d44764169f679e9c5c456"
       },
       "runtime": "Bun 1.4.3",
       "baseline": {
@@ -1210,7 +2249,7 @@
             "where": "module.ts:4",
             "kind": "step",
             "verdict": "proven",
-            "ms": 862,
+            "ms": 1224,
             "entry": "TenantStore"
           },
           {
@@ -1219,7 +2258,7 @@
             "where": "module.ts:5",
             "kind": "step",
             "verdict": "proven",
-            "ms": 309,
+            "ms": 365,
             "entry": "TenantStore"
           },
           {
@@ -1228,7 +2267,7 @@
             "where": "module.ts:9",
             "kind": "step",
             "verdict": "proven",
-            "ms": 296,
+            "ms": 356,
             "entry": "TenantStore"
           },
           {
@@ -1237,7 +2276,7 @@
             "where": "module.ts:10",
             "kind": "step",
             "verdict": "proven",
-            "ms": 287,
+            "ms": 546,
             "entry": "TenantStore"
           }
         ],
@@ -1279,7 +2318,7 @@
                   "put(tenant=\"\", _target=\"bb\", value=-3)"
                 ],
                 "assumes": [],
-                "ms": 1,
+                "ms": 2,
                 "entry": "TenantStore"
               },
               {
@@ -1297,7 +2336,7 @@
                   "put(tenant=\"b\", _target=\"\", value=3)"
                 ],
                 "assumes": [],
-                "ms": 1,
+                "ms": 4,
                 "entry": "TenantStore"
               },
               {
@@ -1306,7 +2345,7 @@
                 "where": "module.ts:9",
                 "kind": "step",
                 "verdict": "proven",
-                "ms": 661,
+                "ms": 1010,
                 "entry": "TenantStore"
               },
               {
@@ -1315,7 +2354,7 @@
                 "where": "module.ts:10",
                 "kind": "step",
                 "verdict": "proven",
-                "ms": 281,
+                "ms": 340,
                 "entry": "TenantStore"
               }
             ],
@@ -1977,7 +3016,7 @@
                 "where": "module.ts:4",
                 "kind": "step",
                 "verdict": "proven",
-                "ms": 628,
+                "ms": 952,
                 "entry": "TenantStore"
               },
               {
@@ -1986,7 +3025,7 @@
                 "where": "module.ts:5",
                 "kind": "step",
                 "verdict": "proven",
-                "ms": 290,
+                "ms": 327,
                 "entry": "TenantStore"
               },
               {
@@ -1995,7 +3034,7 @@
                 "where": "module.ts:9",
                 "kind": "step",
                 "verdict": "proven",
-                "ms": 283,
+                "ms": 313,
                 "entry": "TenantStore"
               },
               {
@@ -2011,7 +3050,7 @@
                   "remove(tenant=\"bab\", _target=\"\")"
                 ],
                 "assumes": [],
-                "ms": 1,
+                "ms": 3,
                 "entry": "TenantStore"
               }
             ],
@@ -2294,14 +3333,265 @@
       ]
     },
     {
+      "fixture": "transaction",
+      "file": "module.ts",
+      "budgetMs": 8000,
+      "harness": {
+        "operators.ts": "595d649b217462ec064a6f8bb923c5a44808ebe0f19525d530274a6d8fad3e6d",
+        "run.ts": "bf4df8389a9d1265aea065b5bf3449b2d185bd5c3e99ca8f304c12a815945ba4",
+        "replay.ts": "2bd7f1fe0953fc057a0b4387e4fdf925344a008c975c1ad857b6b937ee40847c",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390",
+        "replay_effect.ts": "a4763bb803373b8c570fe4a17e86b11763a171db7d5d44764169f679e9c5c456"
+      },
+      "runtime": "Bun 1.4.3",
+      "baseline": {
+        "sha256": "aa6a3508773f0dadad973fe17df9e822cfae79ecf5260817dd6ebfcce3641a89",
+        "exit": 0,
+        "fullyRead": true,
+        "claims": [
+          {
+            "name": "only one grant",
+            "expr": "granted <= 1",
+            "where": "module.ts:3",
+            "kind": "law",
+            "verdict": "proven",
+            "ms": 121,
+            "entry": "make"
+          }
+        ],
+        "rules": [
+          {
+            "entry": "make",
+            "ok": true,
+            "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 2 from the prover's witnesses, 2 of 2 branch arms",
+            "refusals": []
+          }
+        ],
+        "proposals": {
+          "count": 2,
+          "broken": 0,
+          "allReviewRequired": true
+        }
+      },
+      "mutants": [
+        {
+          "id": "narrow-transaction-258-0",
+          "operator": "narrow-transaction",
+          "start": 258,
+          "end": 472,
+          "before": "yield* Effect.tx(Effect.gen(function* () {\n      const current = yield* TxRef.get(consumed)\n      if (current !== 0) return\n      yield* TxRef.set(consumed, 1)\n      yield* TxRef.update(granted, n => n + 1)\n    }))",
+          "after": "const current = yield* TxRef.get(consumed)\nyield* Effect.tx(Effect.gen(function* () {\n      \n      if (current !== 0) return\n      yield* TxRef.set(consumed, 1)\n      yield* TxRef.update(granted, n => n + 1)\n    }))",
+          "side": {
+            "sha256": "e28b02718c334ed0cead6ccb8e3ced0384ebe056434e9393ddfff31e6033ab18",
+            "exit": 1,
+            "fullyRead": true,
+            "claims": [
+              {
+                "name": "only one grant",
+                "expr": "granted <= 1",
+                "where": "module.ts:3",
+                "kind": "law",
+                "verdict": "broken",
+                "run": [
+                  "fiber 1: claim(), its step 1 of 2",
+                  "fiber 3: claim(), its step 1 of 2",
+                  "fiber 0: claim(), its step 1 of 2",
+                  "fiber 2: claim(), its step 1 of 2",
+                  "fiber 2: claim, its step 2 of 2",
+                  "fiber 0: claim, its step 2 of 2"
+                ],
+                "assumes": [],
+                "ms": 1,
+                "entry": "make"
+              }
+            ],
+            "rules": [
+              {
+                "entry": "make",
+                "ok": true,
+                "checked": "checked against the code: 2400 requests from the start, 400 from drawn states, 6 from the prover's witnesses, 6 of 6 branch arms",
+                "refusals": []
+              }
+            ],
+            "proposals": {
+              "count": 2,
+              "broken": 0,
+              "allReviewRequired": true
+            }
+          },
+          "detected": true,
+          "replays": [
+            {
+              "law": "only one grant",
+              "expr": "granted <= 1",
+              "entry": "make",
+              "mutant": {
+                "ok": true,
+                "broken": true,
+                "steps": [
+                  {
+                    "fiber": 1,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 0,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 0,
+                      "granted": 0
+                    }
+                  },
+                  {
+                    "fiber": 3,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 0,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 0,
+                      "granted": 0
+                    }
+                  },
+                  {
+                    "fiber": 0,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 0,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 0,
+                      "granted": 0
+                    }
+                  },
+                  {
+                    "fiber": 2,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 0,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 0,
+                      "granted": 0
+                    }
+                  },
+                  {
+                    "fiber": 2,
+                    "method": "claim",
+                    "step": 2,
+                    "before": {
+                      "consumed": 0,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 1
+                    }
+                  },
+                  {
+                    "fiber": 0,
+                    "method": "claim",
+                    "step": 2,
+                    "before": {
+                      "consumed": 1,
+                      "granted": 1
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 2
+                    }
+                  }
+                ],
+                "schedule": "exact fiber counterexample",
+                "sourceSha256": "e28b02718c334ed0cead6ccb8e3ced0384ebe056434e9393ddfff31e6033ab18",
+                "boundaries": {
+                  "claim": 2
+                }
+              },
+              "parent": {
+                "ok": true,
+                "broken": false,
+                "steps": [
+                  {
+                    "fiber": 1,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 0,
+                      "granted": 0
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 1
+                    }
+                  },
+                  {
+                    "fiber": 3,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 1,
+                      "granted": 1
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 1
+                    }
+                  },
+                  {
+                    "fiber": 0,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 1,
+                      "granted": 1
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 1
+                    }
+                  },
+                  {
+                    "fiber": 2,
+                    "method": "claim",
+                    "step": 1,
+                    "before": {
+                      "consumed": 1,
+                      "granted": 1
+                    },
+                    "after": {
+                      "consumed": 1,
+                      "granted": 1
+                    }
+                  }
+                ],
+                "schedule": "same calls serialized under clean source boundaries",
+                "sourceSha256": "aa6a3508773f0dadad973fe17df9e822cfae79ecf5260817dd6ebfcce3641a89",
+                "boundaries": {
+                  "claim": 1
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "fixture": "workflow",
       "file": "module.ts",
       "budgetMs": 8000,
       "harness": {
-        "operators.ts": "4304cce87953add80983ee871cf225e3234a07465a5584fc5e049405e93b5c7e",
-        "run.ts": "af09e14ea33c443f9cc0754a56875a5fdccd3cb0a15d9872c4e05ce95b4d69de",
-        "replay.ts": "62e16c918d1887eea326bbe974328775ae1113f32e48bba75f88e7e3ee2d6689",
-        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390"
+        "operators.ts": "595d649b217462ec064a6f8bb923c5a44808ebe0f19525d530274a6d8fad3e6d",
+        "run.ts": "bf4df8389a9d1265aea065b5bf3449b2d185bd5c3e99ca8f304c12a815945ba4",
+        "replay.ts": "2bd7f1fe0953fc057a0b4387e4fdf925344a008c975c1ad857b6b937ee40847c",
+        "replay_race.py": "2e213741a2d0f0f2db1005cc664ba0563eb3e0ed016c7b5969d3590487277390",
+        "replay_effect.ts": "a4763bb803373b8c570fe4a17e86b11763a171db7d5d44764169f679e9c5c456"
       },
       "runtime": "Bun 1.4.3",
       "baseline": {
@@ -2315,7 +3605,7 @@
             "where": "module.ts:5",
             "kind": "step",
             "verdict": "proven",
-            "ms": 134,
+            "ms": 73,
             "entry": "Shipment"
           }
         ],
@@ -2356,7 +3646,7 @@
                   "ship()"
                 ],
                 "assumes": [],
-                "ms": 1,
+                "ms": 0,
                 "entry": "Shipment"
               }
             ],
@@ -2447,7 +3737,7 @@
                   "ship()"
                 ],
                 "assumes": [],
-                "ms": 0,
+                "ms": 1,
                 "entry": "Shipment"
               }
             ],

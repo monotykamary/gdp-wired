@@ -1,9 +1,11 @@
 import {expect, test} from 'bun:test'
-import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
-import {join} from 'node:path'
+import {spawnSync} from 'node:child_process'
+import {join, resolve} from 'node:path'
 import {mutate} from './operators.ts'
-import {holds, parseCall, replayClass} from './replay.ts'
+import {holds, parseCall, replayClass, replayIsolation} from './replay.ts'
+import {instrumentEffect} from './replay_effect.ts'
 import {admit, fixtures, measure, type Side, type MutantResult} from './run.ts'
 import {lawsIn, parse} from '../../../core/laws.ts'
 import {securityLaws} from '../../../core/security.ts'
@@ -25,7 +27,7 @@ test('all owned modules receive only one-site generic mutations and keep every s
     }
     count += mutants.length
   }
-  expect(count).toBe(12)
+  expect(count).toBe(16)
 })
 
 test('renaming and formatting do not select different operators; constructors are not operation guards', () => {
@@ -99,9 +101,64 @@ test('a real violation in another method is not a replay of the scoped step law'
   } finally { rmSync(dir, {recursive: true, force: true}) }
 })
 
+test('read isolation compares intermediate observations, not only an equal final result', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'read-isolation-')), file = join(dir, 'module.ts')
+  try {
+    const clean = source('read-isolation'), mutant = mutate(clean, 'ts')[0]!
+    const run = ["B is 1 (run b takes only B's calls)", 'put(tenant="other", value=3)', 'read(tenant="me", _target="other")', 'put(tenant="other", value=0)', 'read(tenant="me", _target="other")']
+    writeFileSync(file, mutant.source)
+    expect(await replayIsolation(file, 'PrivateRows', 'isolated by tenant seeing result', run, 'me')).toMatchObject({ok: true, broken: true})
+    const parent = join(dir, 'clean.ts')
+    writeFileSync(parent, clean)
+    expect(await replayIsolation(parent, 'PrivateRows', 'isolated by tenant seeing result', run, 'me')).toMatchObject({ok: true, broken: false})
+    expect(await replayIsolation(file, 'PrivateRows', 'isolated by tenant seeing result', run, undefined)).toMatchObject({ok: false})
+  } finally { rmSync(dir, {recursive: true, force: true}) }
+})
+
+test('source scheduling hooks stay outside locks and transactions; operators expose the intended boundaries', () => {
+  for (const [fixture, before, after, op] of [['lock', 1, 3, 'remove-lock'], ['transaction', 1, 2, 'narrow-transaction'], ['compare-set', 2, 3, 'split-compare-set']] as const) {
+    const clean = source(fixture), mutants = mutate(clean, 'ts')
+    expect(mutants.map(m => m.operator)).toEqual([op])
+    expect(instrumentEffect(clean, 'make', 'test').units).toEqual({claim: before})
+    expect(instrumentEffect(mutants[0]!.source, 'make', 'test').units).toEqual({claim: after})
+    const renamed = clean.replaceAll('consumed', 'claimed').replaceAll('granted', 'successes').replaceAll('claim', 'acquire')
+    expect(mutate(renamed, 'ts').map(m => m.operator)).toEqual([op])
+  }
+})
+
+test('source races also reproduce with native runtime preemption and no scheduling hooks', () => {
+  const document = JSON.parse(readFileSync(join(import.meta.dir, 'measurement.json'), 'utf8')) as {rows: Parameters<typeof verify>[0]}
+  const dir = mkdtempSync(join(tmpdir(), 'native-effect-'))
+  symlinkSync(resolve(import.meta.dir, '../../..', 'node_modules'), join(dir, 'node_modules'), 'dir')
+  let reproduced = 0
+  try {
+    for (const row of document.rows) {
+      const original = source(row.fixture, row.file.endsWith('.py') ? 'py' : 'ts')
+      if (!/from ['"]effect['"]/.test(original)) continue
+      const mutants = mutate(original, 'ts')
+      for (const mutant of row.mutants) {
+        const generated = mutants.find(m => m.id === mutant.id)!
+        const law = mutant.side.claims.find(l => l.verdict === 'broken' && l.run?.length)!
+        for (const [label, code, expected] of [['parent', original, false], ['mutant', generated.source, true]] as const) {
+          const file = join(dir, `${row.fixture}-${label}.ts`), input = join(dir, 'request.json')
+          writeFileSync(file, code)
+          writeFileSync(input, JSON.stringify({file, entry: law.entry, expr: law.expr, run: law.run, directory: dir}))
+          const process = spawnSync('bun', [join(import.meta.dir, 'native_effect.ts'), input], {encoding: 'utf8', timeout: 15_000})
+          expect(process.status).toBe(0)
+          const receipt = JSON.parse(process.stdout) as {ok: boolean, broken: boolean, schedulingHooks: boolean}
+          expect(receipt).toMatchObject({ok: true, broken: expected, schedulingHooks: false})
+          console.log('NATIVE_REPLAY ' + JSON.stringify({fixture: row.fixture, side: label, ...receipt}))
+        }
+        reproduced++
+      }
+    }
+    expect(reproduced).toBe(3)
+  } finally { rmSync(dir, {recursive: true, force: true}) }
+}, 120_000)
+
 test('the complete saved corpus replays without asking the prover again', async () => {
   const document = JSON.parse(readFileSync(join(import.meta.dir, 'measurement.json'), 'utf8')) as {rows: Parameters<typeof verify>[0]}
-  expect(await verify(document.rows)).toMatchObject({baselines: 6, baselineRefuted: 0, baselineProven: 6, mutants: 12, detected: 12, replayed: 12})
+  expect(await verify(document.rows)).toMatchObject({baselines: 10, baselineRefuted: 0, baselineProven: 10, mutants: 16, detected: 16, replayed: 16})
   const missing = await verify([]).catch((error: unknown) => error)
   expect(missing).toBeInstanceOf(Error)
   expect((missing as Error).message).toContain('every owned fixture')
@@ -118,5 +175,5 @@ test('every owned mutant is freshly refuted and source-replayed, with no clean p
     for (const m of row.mutants) expect(m.replays[0]!.mutant.steps.length).toBeGreaterThan(0)
     count += row.mutants.length
   }
-  expect(count).toBe(12)
-}, 300_000)
+  expect(count).toBe(16)
+}, 600_000)

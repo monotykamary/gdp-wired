@@ -7,6 +7,31 @@ type Expr = ReturnType<typeof parse>
 type Scope = Record<string, unknown>
 export type Call = {method: string, args: Scope}
 export type Replay = {ok: boolean, broken: boolean, steps: unknown[], why?: string}
+
+// Two real objects: A receives every call, B receives only the selected owner's calls.
+// Compare observations after each call by that owner, not merely the final maps.
+export async function replayIsolation(file: string, entry: string, expr: string, lines: string[], owner: unknown): Promise<Replay> {
+  try {
+    const policy = /^isolated by ([A-Za-z_]\w*) seeing result$/.exec(expr)
+    if (!policy || !['string', 'number'].includes(typeof owner) || !/^B is \d+ \(run b takes only B's calls\)$/.test(lines[0] ?? '')) throw new Error('unsupported isolation witness or missing concrete owner')
+    const requests = lines.slice(1)
+    const selected = requests.filter(line => parseCall(line).args[policy[1]!] === owner)
+    const a = await replayClass(file, entry, 'true', requests)
+    const b = await replayClass(file, entry, 'true', selected)
+    if (!a.ok || !b.ok) return {ok: false, broken: false, steps: [], why: a.why ?? b.why}
+    type Step = {call: Call, before: Scope, after: Scope}
+    const observationsA = (a.steps as Step[]).filter(s => s.call.args[policy[1]!] === owner)
+    const observationsB = b.steps as Step[]
+    if (observationsA.length !== observationsB.length) throw new Error('owner projections do not align')
+    const observed = (value: unknown): unknown => {
+      if (typeof value === 'number' && !Number.isSafeInteger(value)) throw new Error('unsafe numeric observation')
+      if (value !== undefined && value !== null && !['number', 'string', 'boolean'].includes(typeof value)) throw new Error('non-scalar observation outside replay subset')
+      return value
+    }
+    const broken = observationsA.some((step, i) => observed(step.after.result) !== observed(observationsB[i]!.after.result))
+    return {ok: true, broken, steps: [{owner, all: a.steps, onlyOwner: b.steps}]}
+  } catch (e) { return {ok: false, broken: false, steps: [], why: e instanceof Error ? e.message : String(e)} }
+}
 const boolean = (x: unknown): boolean => { if (typeof x !== 'boolean') throw new Error('policy expected a boolean'); return x }
 const number = (x: unknown): number => { if (typeof x !== 'number' || !Number.isSafeInteger(x)) throw new Error('policy expected a safe integer'); return x }
 
