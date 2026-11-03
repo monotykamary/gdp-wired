@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto'
 import {cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {basename, dirname, isAbsolute, join, resolve} from 'node:path'
+import {assertConsumerTypeScript, type ConsumerTypeScript} from './wrapper-typescript-guard.ts'
 
 type Pins = {base: string, tree: string, files: Record<string, string>}
 type Fixture = {text: string, sha256: string}
@@ -15,6 +16,7 @@ const root = resolve(import.meta.dir, '../..')
 function required(name: string) { const i = process.argv.indexOf(name); if (i < 0 || !process.argv[i + 1]) throw Error(`required ${name}`); return resolve(process.argv[i + 1]!) }
 function demand(ok: unknown, why: string): asserts ok { if (!ok) throw Error(why) }
 const out = required('--out'), corePack = required('--core-pack'), wrapperPack = required('--wrapper-pack')
+const guardOnly = process.argv.includes('--typescript-guard-only')
 demand(!existsSync(out), 'refuse to overwrite any prior output directory')
 mkdirSync(out, {recursive: true})
 const work = mkdtempSync(join(tmpdir(), 'gdp-owned-wrapper-'))
@@ -24,7 +26,7 @@ const pins = JSON.parse(readFileSync(join(import.meta.dir, 'wrapper-source-pins.
 const fixtures = JSON.parse(readFileSync(join(import.meta.dir, 'wrapper-owned-fixtures.json'), 'utf8')) as Fixtures
 const env: NodeJS.ProcessEnv & {NPM_CONFIG_CACHE: string} = {...process.env, NPM_CONFIG_CACHE: join(work, 'npm-cache')}
 const commands: Record<string, unknown>[] = [], checks: Record<string, unknown>[] = [], failures: string[] = [], gaps: string[] = []
-const data: Record<string, unknown> = {historicalLabels: {base: pins.base, tree: pins.tree}, pinScope: 'Only enumerated file hashes are checked; labels are not HEAD or whole-tree attestation.', unexercised: ['wrapper-alone registry resolution', 'released registry artifacts', 'Node20 and other toolchain/platform versions', 'GitHub Action/workflow execution']}
+const data: Record<string, unknown> = {historicalLabels: {base: pins.base, tree: pins.tree}, pinScope: 'Only enumerated file hashes are checked; labels are not HEAD or whole-tree attestation.', mode: guardOnly ? 'typescript-guard-only' : 'wrapper-and-native', unexercised: ['wrapper-alone registry resolution', 'released registry artifacts', 'Node20 and other toolchain/platform versions', 'GitHub Action/workflow execution', ...(guardOnly ? ['Java/native controls omitted in selected TypeScript-guard-only mode'] : [])]}
 let finished = false, packet: {sha256: string, bytes: number} | undefined
 const artifacts: {meta: string, tarball: string}[] = []
 const save = () => writeFileSync(join(out, 'summary.json'), JSON.stringify({finished, complete: finished && failures.length === 0 && gaps.length === 0, failures, gaps, data, checks, commands}, null, 2) + '\n')
@@ -42,6 +44,7 @@ function attempt<T>(label: string, action: () => T): T | undefined {
 function inventory(dir: string): string[] { return readdirSync(dir, {withFileTypes: true}).filter(e => e.name !== 'node_modules').flatMap(e => e.isDirectory() ? inventory(join(dir, e.name)).map(f => `${e.name}/${f}`) : [e.name]).sort() }
 try {
   cpSync(import.meta.filename, join(out, 'probe-source.ts'))
+  cpSync(join(import.meta.dir, 'wrapper-typescript-guard.ts'), join(out, 'typescript-guard-source.ts'))
   cpSync(join(import.meta.dir, 'wrapper-source-pins.json'), join(out, 'source-pins.json'))
   cpSync(join(import.meta.dir, 'wrapper-owned-fixtures.json'), join(out, 'owned-fixtures.json'))
   for (const [file, expected] of Object.entries(pins.files)) demand(hash(join(root, file)) === expected, 'enumerated input changed: ' + file)
@@ -94,23 +97,31 @@ try {
   data.installed = {core: verify(coreDir, core), wrapper: verify(wrapperDir, wrapper)}
   const bin = join(wrapperDir, 'bin.js'), link = join(consumer, 'node_modules/.bin/gdp-wired-cli'), coreCli = realpathSync(join(coreDir, 'dist/core/cli.js'))
   demand(realpathSync(link) === realpathSync(bin), 'installed wrapper bin link differs')
-  const resolver = "import {realpathSync} from 'node:fs'; import {fileURLToPath} from 'node:url'; console.log(JSON.stringify({core:realpathSync(fileURLToPath(import.meta.resolve('gdp-wired/cli'))),typescript:realpathSync(fileURLToPath(import.meta.resolve('typescript'))),node:process.version}))"
+  const resolver = "import {readFileSync,realpathSync} from 'node:fs'; import {fileURLToPath} from 'node:url'; const ts=new URL(import.meta.resolve('typescript')); const pkg=JSON.parse(readFileSync(new URL('../package.json',ts),'utf8')); console.log(JSON.stringify({core:realpathSync(fileURLToPath(import.meta.resolve('gdp-wired/cli'))),typescript:realpathSync(fileURLToPath(ts)),typescriptVersion:pkg.version,node:process.version}))"
   const resolution = run('wrapper-import-resolution', node, ['--input-type=module', '-e', resolver], wrapperDir); status(resolution, 0, 'wrapper ESM resolution')
-  const resolved = JSON.parse(resolution.stdout) as {core: string, typescript: string, node: string}
+  const resolved = JSON.parse(resolution.stdout) as {core: string, typescript: string, typescriptVersion: string, node: string}
   demand(resolved.core === coreCli && resolved.node === selected.stdout.trim(), 'wrapper core/runtime resolution mismatch')
+  const expectedTypeScript: ConsumerTypeScript = Object.freeze({path: realpathSync(join(consumer, 'node_modules/typescript/lib/typescript.js')), version: consumerManifest.dependencies.typescript})
+  const observedTypeScript: ConsumerTypeScript = Object.freeze({path: resolved.typescript, version: resolved.typescriptVersion})
+  assertConsumerTypeScript(observedTypeScript, expectedTypeScript)
+  data.typeScript = {expected: expectedTypeScript, observed: observedTypeScript, scope: 'resolved path and installed package version snapshot; not integrity or lifecycle attestation'}
   data.entrypoint = {bin: realpathSync(bin), binSha256: hash(bin), coreCli, coreCliSha256: hash(coreCli), ...resolved}
   const offline = {...env, NPM_CONFIG_OFFLINE: 'true'}
   const lookup = run('npx-bin-resolution', 'npx', ['--no-install', '--call', 'command -v gdp-wired-cli'], consumer, 90_000, offline); status(lookup, 0, 'offline npx resolution')
   demand(realpathSync(lookup.stdout.trim()) === realpathSync(bin), 'npx did not select the installed wrapper')
-  const java = run('java-version', 'java', ['-version'], work, 5000), javac = run('javac-version', 'javac', ['-version'], work, 5000)
-  const native = java.status === 0 && !java.error && javac.status === 0 && !javac.error
-  if (!native) gaps.push('Java toolchain unavailable: no Java CLI/native result claimed')
+  let native = false
+  if (!guardOnly) {
+    const java = run('java-version', 'java', ['-version'], work, 5000), javac = run('javac-version', 'javac', ['-version'], work, 5000)
+    native = java.status === 0 && !java.error && javac.status === 0 && !javac.error
+    if (!native) gaps.push('Java toolchain unavailable: no Java CLI/native result claimed')
+  }
   const cases = join(work, 'fixtures'); mkdirSync(cases)
   for (const name of ['candidate', 'stated-broken']) cpSync(join(root, '.github/fixtures/security-action', name + '.ts'), join(cases, name + '.ts'))
-  for (const name of ['original', 'repaired'] as const) { const dir = join(cases, name); mkdirSync(dir); writeFileSync(join(dir, 'OwnedOrder.java'), fixtures.files[name].text); writeFileSync(join(dir, 'ReplayOrder.java'), fixtures.files.driver.text) }
+  if (!guardOnly) for (const name of ['original', 'repaired'] as const) { const dir = join(cases, name); mkdirSync(dir); writeFileSync(join(dir, 'OwnedOrder.java'), fixtures.files[name].text); writeFileSync(join(dir, 'ReplayOrder.java'), fixtures.files.driver.text) }
   cpSync(cases, join(out, 'sources'), {recursive: true})
   const results: Record<string, Result> = {}; let launches = 0
-  function execute(label: string, file: string, digest: string, security: boolean, isJava: boolean) {
+  function execute(label: string, file: string, digest: string, security: boolean, isJava: boolean, typeScript: ConsumerTypeScript = observedTypeScript) {
+    assertConsumerTypeScript(typeScript, expectedTypeScript)
     demand(hash(file) === digest, 'fixture mismatch before launch'); demand(hash(bin) === wrapper.manifest['bin.js'], 'wrapper entrypoint changed')
     const args = ['--no-install', 'gdp-wired-cli', 'check', file, '--entry', isJava ? 'OwnedOrder' : 'Counter', ...(isJava ? ['--methods', 'arm,hit'] : []), '--no-propose', '--ms', isJava ? '3000' : '2000', '--json', ...(security ? ['--security'] : [])]
     launches++; const runResult = run(label, 'npx', args, consumer, 90_000, offline)
@@ -125,7 +136,21 @@ try {
     checks.push({label, status: 'observed', sourceSha256: digest, exit: result.exit, security, candidates: rule.security?.length ?? 0})
     return result
   }
-  for (const security of [false, true]) for (const name of ['candidate', 'stated-broken', 'original', 'repaired']) {
+  const typeScriptControls: Record<string, unknown>[] = []
+  for (const control of [
+    {kind: 'path', actual: {...observedTypeScript, path: join(consumer, 'owned-other-typescript/lib/typescript.js')}, error: 'owned TypeScript path mismatch'},
+    {kind: 'version', actual: {...observedTypeScript, version: '5.9.2'}, error: 'owned TypeScript version mismatch'},
+  ]) attempt('TypeScript ' + control.kind + ' mismatch rejects before wrapper cases', () => {
+    const before = launches, commandsBefore = commands.length; let rejection: string | undefined
+    demand(before === 0, 'negative controls must precede wrapper-case dispatch')
+    try { execute('must-not-launch-' + control.kind, join(cases, 'candidate.ts'), pins.files['.github/fixtures/security-action/candidate.ts']!, false, false, control.actual) }
+    catch (error) { rejection = (error as Error).message }
+    demand(rejection === control.error && launches === before && commands.length === commandsBefore, 'TypeScript mismatch did not reject before wrapper-case dispatch')
+    typeScriptControls.push({kind: control.kind, actual: control.actual, expected: expectedTypeScript, rejection, beforeLaunches: before, afterLaunches: launches, beforeCommands: commandsBefore, afterCommands: commands.length})
+  })
+  data.typeScriptControls = typeScriptControls
+  const caseNames = guardOnly ? ['candidate', 'stated-broken'] : ['candidate', 'stated-broken', 'original', 'repaired']
+  for (const security of [false, true]) for (const name of caseNames) {
     const isJava = name === 'original' || name === 'repaired', label = `wrapper-${security ? 'on' : 'off'}-${name}`
     if (isJava && !native) { checks.push({label, status: 'gap'}); continue }
     const result = attempt(label, () => {
@@ -168,6 +193,7 @@ try {
     try { execute('must-not-launch', join(cases, 'candidate.ts'), '0'.repeat(64), false, false) } catch { rejected = true }
     demand(rejected && launches === before, 'source mismatch launched wrapper')
   })
+  data.wrapperDispatches = launches
   verify(coreDir, core); verify(wrapperDir, wrapper)
   demand(hash(core.tarball) === core.sha256 && hash(wrapper.tarball) === wrapper.sha256, 'packed artifact bytes changed')
   for (const [file, expected] of Object.entries(pins.files)) demand(hash(join(root, file)) === expected, 'enumerated input changed after probes: ' + file)
