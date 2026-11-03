@@ -797,6 +797,40 @@ t('Rust root bridge: naming does not widen D3 admission or accept an unknown roo
   expect(replayBridges(dir, 'src/missing.rs').error).toContain('one known crate-root bridge scope')
 }, 300_000)
 
+t('Rust raw identifiers: exact entry and distinct scalar encoding keys', () => {
+  const source = `pub struct r#type {r#type:u32, r_type:u32}
+    impl r#type {
+      pub fn new()->Self {Self {r#type:0, r_type:1}}
+      pub fn take(&mut self, r#match:u32, r_match:u32) {self.r#type = r#match; self.r_type = r_match;}
+    }`
+  const dir = genericCrate(source)
+  execFileSync('cargo', ['check', '--quiet', '--manifest-path', `${dir}/Cargo.toml`], {stdio:'pipe'})
+  const x = ok(extractRust(dir, {entry:'r#type', check:budget, strict:true, failures:'kept'}))
+  expect(x.read!.leaves.map(l => ({name:l.name, path:l.path}))).toEqual([
+    {name:'r_type', path:['r#type']}, {name:'r_type_', path:['r_type']},
+  ])
+  const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+  expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({r_match:7, r_match_:19})))).toMatchObject({r_type:7, r_type_:19, failed:false})
+  const bare = extractRust(dir, {entry:'type', check:budget, strict:true, failures:'kept'})
+  expect(bare.ok).toBe(false)
+  expect(bare.refusals[0]!.what).toContain('no class or function type')
+  expect(bare.evidence).toBeUndefined()
+  console.log(JSON.stringify({rawBoundary:'entry-and-state', source, sourceSha256:createHash('sha256').update(source).digest('hex'), native:'cargo-check-pass', entry:'r#type', ok:x.ok, evidence:x.evidence, refusal:bare.refusals[0]!.what}))
+}, 300_000)
+
+t('Rust raw identifiers: inline module keeps exact scope and native selector', () => {
+  const source = `mod r#type {${helperMeter}}`
+  const dir = genericCrate(source)
+  execFileSync('cargo', ['check', '--quiet', '--manifest-path', `${dir}/Cargo.toml`], {stdio:'pipe'})
+  expect(replaySite(dir, 'src/lib.rs', 'crate::r#type').inline_end).toBe(source.lastIndexOf('}'))
+  const bare = replaySite(dir, 'src/lib.rs', 'crate::type')
+  expect(bare.error).toContain('one known file/module scope')
+  const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+  expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({}))).value).toBe(1)
+  console.log(JSON.stringify({rawBoundary:'inline-selector', source, sourceSha256:createHash('sha256').update(source).digest('hex'), native:'cargo-check-pass', entry:'Meter', ok:x.ok, evidence:x.evidence, refusal:bare.error}))
+}, 300_000)
+
 t('Rust inline replay: ambiguous or unknown placement is refused', () => {
   const dir = genericCrate('#[cfg(any())] mod nested {} #[cfg(not(any()))] mod nested {}')
   execFileSync('cargo', ['check', '--quiet', '--manifest-path', `${dir}/Cargo.toml`], {stdio:'pipe'})
