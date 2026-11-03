@@ -21,6 +21,27 @@ function replayOwnedTrace<T>(trace: unknown, dispatch: (calls: readonly OwnedCal
   return dispatch(Object.freeze(calls))
 }
 
+type OwnedNativeObservation = {status: number | null, signal: string | null, error?: Error, stdout: unknown}
+// This is only the fixed OwnedOrder fixture's result format, not a general receipt API.
+function ownedNativeRow(result: OwnedNativeObservation, expectedSteps: number): readonly [string, string, string, string] {
+  if (result.status !== 0 || result.signal !== null || result.error !== undefined || typeof result.stdout !== 'string') {
+    throw Error('owned native replay did not finish successfully')
+  }
+  const match = /^(true|false):(0|[1-9]\d*):(0|[1-9]\d*):(true|false)\n$/.exec(result.stdout)
+  if (!match || match[0] !== result.stdout || !Number.isSafeInteger(Number(match[2])) || !Number.isSafeInteger(Number(match[3])) || Number(match[3]) !== expectedSteps) {
+    throw Error('owned native replay returned an invalid or incomplete row')
+  }
+  return [match[1]!, match[2]!, match[3]!, match[4]!]
+}
+
+test('owned native rows reject inconsistent process or output fields', () => {
+  const good = {status: 0, signal: null, stdout: 'false:0:1:true\n'}
+  expect(ownedNativeRow(good, 1)).toEqual(['false', '0', '1', 'true'])
+  for (const patch of [{status: null}, {signal: 'SIGTERM'}, {error: new Error('owned transport failure')}, {stdout: undefined}, {stdout: false}]) {
+    expect(() => ownedNativeRow({...good, ...patch}, 1)).toThrow()
+  }
+})
+
 test('owned replay validates the whole trace before any dispatch', () => {
   let dispatches = 0, coercions = 0
   const invalid: unknown[] = [
@@ -114,7 +135,7 @@ nativeTest('owned multi-call witness order changes the native policy outcome', a
       const native = replayOwnedTrace(scenario.calls.map(call => call + '()'), calls =>
         spawnSync('java', ['-cp', join(root, version), 'ReplayOrder', ...calls], {encoding: 'utf8', timeout: 10_000}))
       expect(native.status, native.stderr).toBe(0)
-      const [bad, value, steps, armed] = native.stdout.trim().split(':')
+      const [bad, value, steps, armed] = ownedNativeRow(native, scenario.calls.length)
       expect(['true', 'false']).toContain(bad ?? '')
       const firstArm = scenario.calls.indexOf('arm')
       const expectedValue = i === 0 ? scenario.calls.filter((call, j) => call === 'hit' && j > firstArm).length : 0
@@ -135,6 +156,59 @@ nativeTest('owned multi-call witness order changes the native policy outcome', a
     expect(scoreRecall([side('vulnerable', 0), side('fixed', 1)]).found).toBe(true)
     expect(scoreRecall([side('vulnerable', 0), side('fixed', 0)]).found).toBe(false)
     console.log('OWNED_CALL_ORDER ' + JSON.stringify({scope: 'finite owned allowlisted method-order contrast only; no general replay or upstream recall guarantee', hashes, constructorArguments: [], methodArguments: [], witness, reorderedWitness: reordered.map(call => call + '()'), controls}))
+  } finally { rmSync(root, {recursive: true, force: true}) }
+}, 120_000)
+
+nativeTest('owned native process failures never produce an accepted result row', () => {
+  const root = mkdtempSync(join(tmpdir(), 'owned-result-boundary-'))
+  const file = join(root, 'OwnedResultProbe.java')
+  const source = `public class OwnedResultProbe {
+    public static void main(String[] args) throws Exception {
+      String good = "false:0:1:true\\n";
+      switch (args[0]) {
+        case "ok": System.out.print(good); break;
+        case "absent": break;
+        case "invalid": System.out.println("not a result row"); break;
+        case "truncated": System.out.print("false:0:1:"); break;
+        case "no-newline": System.out.print("false:0:1:true"); break;
+        case "extra-row": System.out.print(good + good); break;
+        case "extra-newline": System.out.print(good + "\\n"); break;
+        case "wrong-count": System.out.println("false:0:2:true"); break;
+        case "overflow": System.out.println("false:9007199254740992:1:true"); break;
+        case "nonzero": System.out.print(good); System.exit(7); break;
+        case "timeout": System.out.print(good); System.out.flush(); Thread.sleep(30000); break;
+        default: throw new IllegalArgumentException("unknown owned probe mode");
+      }
+    }
+  }`
+  const observations: {mode: string, status: number | null, signal: string | null, error: string | null, stdout: string, accepted: boolean}[] = []
+  try {
+    writeFileSync(file, source)
+    const compiled = spawnSync('javac', [file], {encoding: 'utf8', timeout: 30_000})
+    expect(compiled.status, compiled.stderr).toBe(0)
+    for (const mode of ['ok', 'absent', 'invalid', 'truncated', 'no-newline', 'extra-row', 'extra-newline', 'wrong-count', 'overflow', 'nonzero', 'timeout']) {
+      const native = spawnSync('java', ['-cp', root, 'OwnedResultProbe', mode], {encoding: 'utf8', timeout: mode === 'timeout' ? 2000 : 10_000})
+      let accepted = false
+      const collect = () => {
+        const row = ownedNativeRow(native, 1)
+        accepted = true
+        return row
+      }
+      if (mode === 'ok') expect(collect()).toEqual(['false', '0', '1', 'true'])
+      else expect(collect).toThrow()
+      expect(accepted).toBe(mode === 'ok')
+      if (mode === 'nonzero') {
+        expect(native.status).toBe(7)
+        expect(native.stdout).toBe('false:0:1:true\n')
+      }
+      if (mode === 'timeout') {
+        expect(native.error).toBeDefined()
+        expect(native.status).not.toBe(0)
+      }
+      observations.push({mode, status: native.status, signal: native.signal, error: native.error?.message ?? null, stdout: native.stdout, accepted})
+      expect(readFileSync(file, 'utf8')).toBe(source)
+    }
+    console.log('OWNED_NATIVE_RESULT_FAILURES ' + JSON.stringify({scope: 'finite owned process/row probes; accepted means fixture row validation only, not policy proof', sourceSha256: createHash('sha256').update(source).digest('hex'), observations}))
   } finally { rmSync(root, {recursive: true, force: true}) }
 }, 120_000)
 

@@ -147,6 +147,11 @@ An additional owned Java entry-marker probe arms the launch observation before a
 after invalid traces. The finite rejection cases reach neither its real replay-spawn
 boundary nor its entry marker; this is not a general process-isolation guarantee.
 
+The owned result-row adapter also requires successful process completion and one
+complete, strictly framed row with a matching call count before evidence is recorded.
+Fixed harmless Java probes cover absent/malformed/truncated output, nonzero exit and
+timeout; acceptance here means fixture-row validation, not a policy proof.
+
 ## Measured coverage
 
 The complete-corpus baseline on 2026-11-03 is tree `7db037f` (main `927a521`): **18 published,
