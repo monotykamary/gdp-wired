@@ -1,6 +1,7 @@
 import {expect, test} from 'bun:test'
+import {spawnSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
-import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {check} from '../../core/cli.ts'
@@ -124,6 +125,81 @@ test('owned paired source is checked and the exact witness replays before strict
     console.log('OWNED_RECALL_CONTROL ' + JSON.stringify({scope: 'self-owned synthetic source only; not upstream recall', originalSha256: hash(beforePath), fixedSha256: hash(fixedPath), strict: {found: 1, total: 1}, fixedRefuted: 0, sourceReplays: 2, candidatesCounted: 0}))
   } finally { rmSync(root, {recursive: true, force: true}) }
 }, 60_000)
+
+const java = () => ['javac', 'java'].every(tool => spawnSync(tool, ['-version'], {timeout: 5000}).status === 0)
+;(java() ? test : test.skip)('owned Java constructor contexts retain exact native replay identity', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'owned-constructor-recall-'))
+  const original = `public class OwnedCounter {
+    public int value = 0;
+    public boolean guarded;
+    public OwnedCounter() { guarded = false; }
+    public OwnedCounter(boolean choice) { guarded = true; }
+    // gdp: law only allowed calls change value: value != old(value) implies allowed
+    public void hit(boolean allowed) { if (guarded && !allowed) return; value++; }
+  }`
+  const fixed = original.replace('guarded = false;', 'guarded = true;')
+  const runner = `public class ReplayMain {
+    public static void main(String[] args) {
+      OwnedCounter current = args[0].equals("default") ? new OwnedCounter() : new OwnedCounter(true);
+      boolean broken = false;
+      for (int i = 1; i < args.length; i++) {
+        boolean allowed = Boolean.parseBoolean(args[i]);
+        int previous = current.value;
+        current.hit(allowed);
+        if (current.value != previous && !allowed) broken = true;
+      }
+      System.out.println(broken + ":" + current.value + ":" + (args.length - 1));
+    }
+  }`
+  const results: Awaited<ReturnType<typeof check>>[] = [], controls: {version: string, ctor: string, broken: boolean, value: number, steps: number}[] = []
+  const hashes: string[] = []
+  try {
+    for (const [version, source] of [['original', original], ['fixed', fixed]] as const) {
+      const dir = join(root, version)
+      mkdirSync(dir)
+      const path = join(dir, 'OwnedCounter.java')
+      writeFileSync(path, source); writeFileSync(join(dir, 'ReplayMain.java'), runner)
+      results.push(await check([path], {entry: 'OwnedCounter', methods: ['hit'], propose: false, ms: 3000, check: {runs: 10, depth: 6, states: 20}}))
+      const compiled = spawnSync('javac', [path, join(dir, 'ReplayMain.java')], {encoding: 'utf8', timeout: 30_000})
+      expect(compiled.status, compiled.stderr).toBe(0)
+      expect(readFileSync(path, 'utf8')).toBe(source)
+      hashes.push(createHash('sha256').update(source).digest('hex'))
+    }
+    const [before, after] = results
+    expect(before!.exit).toBe(1); expect(after!.exit).toBe(0)
+    for (const result of results) {
+      expect(result.rules.map(r => r.ctor).sort((a, b) => (a ?? '').localeCompare(b ?? ''))).toEqual(['()', '(boolean)'])
+      expect(result.rules.every(r => r.ok && !!r.checked && r.entry === 'OwnedCounter')).toBe(true)
+    }
+    const broken = before!.rules.find(r => r.ctor === '()')!.laws[0]!
+    expect(broken.verdict).toBe('broken')
+    expect(before!.rules.find(r => r.ctor === '(boolean)')!.laws[0]!.verdict).toBe('proven')
+    expect(after!.rules.every(r => r.laws[0]!.verdict === 'proven')).toBe(true)
+    const args = broken.run!.map(line => {
+      const match = /^hit\(allowed=(true|false)\)$/.exec(line)
+      if (!match) throw Error('owned Java witness is outside the boolean hit fixture')
+      return match[1]!
+    })
+    expect(args.length).toBeGreaterThan(0)
+    for (const version of ['original', 'fixed']) for (const ctor of ['()', '(boolean)']) {
+      const replay = spawnSync('java', ['-cp', join(root, version), 'ReplayMain', ctor === '()' ? 'default' : 'guarded', ...args], {encoding: 'utf8', timeout: 10_000})
+      expect(replay.status, replay.stderr).toBe(0)
+      const [bad, value, steps] = replay.stdout.trim().split(':')
+      expect(['true', 'false']).toContain(bad ?? '')
+      expect(Number(steps)).toBe(args.length)
+      expect(bad === 'true').toBe(version === 'original' && ctor === '()')
+      controls.push({version, ctor, broken: bad === 'true', value: Number(value), steps: Number(steps)})
+    }
+    expect(readFileSync(join(root, 'original/OwnedCounter.java'), 'utf8')).toBe(original)
+    expect(readFileSync(join(root, 'fixed/OwnedCounter.java'), 'utf8')).toBe(fixed)
+    const sides: RecallSide[] = [{version: 'vulnerable', status: 'checked', result: before!}, {version: 'fixed', status: 'checked', result: after!}]
+    expect(scoreRecall(sides).found).toBe(false)
+    broken.replayed = 'exact boolean witness replayed by javac/java on both unchanged owned originals and both constructors'
+    expect(scoreRecall(sides).found).toBe(true)
+    expect(scoreRecall([sides[0]!, {...sides[1]!, result: before!}]).found).toBe(false) // the other constructor was already safe
+    console.log('OWNED_CONSTRUCTOR_REPLAY ' + JSON.stringify({scope: 'self-owned Java source only; not upstream recall', hashes, controls, matchingFixedAdmitted: true, unchangedOriginalAdmitted: false}))
+  } finally { rmSync(root, {recursive: true, force: true}) }
+}, 90_000)
 
 type Seed = {id: string, set: string, advisory: string, repo: string, before: string, after?: string, path: string, entry: string, policy: string, fixEvidence?: string, cve?: string | null}
 const seeds = JSON.parse(readFileSync(new URL('./cases.json', import.meta.url), 'utf8')) as Seed[]

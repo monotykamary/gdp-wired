@@ -98,6 +98,11 @@ admission. Generated candidates alone still do not count. These controls do not 
 vulnerabilities or change either the published/training denominator or the fixed-only cohort's
 `strictRecall: null` result.
 
+`score.test.ts` also checks a self-owned Java class with two constructors. The same
+CLI witness runs through `javac`/`java` on both versions and both initializers; an
+unchanged broken initializer cannot borrow the already-safe initializer's proof.
+This toolchain-dependent control skips only when Java is unavailable and is run on boat.
+
 ## Measured coverage
 
 The complete-corpus baseline on 2026-11-03 is tree `7db037f` (main `927a521`): **18 published,
