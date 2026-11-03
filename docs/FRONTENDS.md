@@ -102,6 +102,11 @@ also capture the receiver identity, then materialize each argument after its own
 side-effectful receivers, indirect callees, trait methods and generic dispatch do not enter this shortcut;
 existing native mismatch and unsupported-source refusals remain outside this bounded increment.
 
+The current Rust record/method tables use short names. A reached record with multiple source declarations,
+or a called method with multiple source candidates (including trait/inherent collisions), is refused rather
+than selected by declaration order. This is a reader-identity limit even where Rust itself resolves the call.
+Unrelated collisions do not reject an otherwise supported entry; this adds no module/trait resolution support.
+
 Rust lifetime parameters alone do not make a struct declaration or method/free-function signature
 value-generic. Type and const parameters on those declarations and signatures remain flagged as generic
 and refused, including when mixed with lifetimes. This does not generalize to parameters on `impl` blocks

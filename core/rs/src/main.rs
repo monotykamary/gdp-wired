@@ -219,7 +219,11 @@ impl Reader {
   }
   // Whether the crate's Mutex is std's (its lock() a Result) rather than parking_lot's.
   fn std_lock(&self) -> bool { !self.files.iter().any(|f| f.items.iter().any(|i| matches!(i, Item::Use(u) if text(u).contains("parking_lot")))) }
+  fn record_collision(&self, name: &str) -> bool {
+    self.files.iter().flat_map(|f| f.items.iter()).filter(|it| matches!(it, Item::Struct(s) if s.ident == name)).take(2).count() > 1
+  }
   fn named(&self, name: &str, t: &Type) -> Value {
+    if self.record_collision(name) { return json!({"k": "opaque", "why": format!("{name}: multiple source record declarations; module-qualified identity is outside the reader")}) }
     if let Some(e) = self.enums.get(name) {
       if e.data { return json!({"k": "opaque", "why": format!("{name}, an enum with data (a variant record)")}) }
       return json!({"k": "choice", "values": e.values, "discs": e.discs, "enum": name})
@@ -271,7 +275,15 @@ impl Reader {
     }
     self.locals.push(names);
     for s in &block.stmts { if let Stmt::Local(l) = s { self.bind_pat(&l.pat) } }
-    let (mut body, tail) = self.block(block);
+    // The current callable table is keyed by short owner/method names. Do not
+    // let its last inserted declaration choose a module or trait implementation.
+    let collision = cls.and_then(|owner| {
+      if self.record_collision(owner) { Some(format!("{owner}: multiple source record declarations; module-qualified identity is outside the reader")) }
+      else if self.methods.get(owner).map(|ms| ms.iter().filter(|(_, _, m)| m.sig.ident == sig.ident).take(2).count()).unwrap_or(0) > 1 {
+        Some(format!("{owner}::{}: multiple source method candidates; implementation resolution is outside the reader", sig.ident))
+      } else { None }
+    });
+    let (mut body, tail) = if let Some(why) = collision { (vec![sno(&self.at(sig.ident.span()), why)], Value::Null) } else { self.block(block) };
     if !tail.is_null() && tail["e"] != "none" { body.push(json!({"s": "ret", "p": self.at(block.span()), "x": tail})) }
     let ret = match &sig.output { ReturnType::Default => json!({"k": "none"}), ReturnType::Type(_, t) => self.ty(t) };
     let generic = has_type_or_const_params(&sig.generics);
@@ -397,6 +409,7 @@ impl Reader {
         }
         let name = last_ident(&s.path);
         let name = if name == "Self" { self.self_ty.clone().unwrap_or(name) } else { name };
+        if self.record_collision(&name) { return (vec![], no(&p, format!("{name}: multiple source record declarations; module-qualified identity is outside the reader"))) }
         if s.rest.is_some() { return (vec![], no(&p, format!("{t}: a struct update (..rest)"))) }
         let mut pre = vec![]; let mut fields = vec![];
         for f in &s.fields {
