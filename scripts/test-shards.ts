@@ -26,7 +26,7 @@ const units: Unit[] = [
     nonterm.test.ts data.test.ts data-synth.test.ts hypothesis.test.ts seqs.test.ts abstract.test.ts search.test.ts invoices.test.ts
     folds.test.ts trees.test.ts pairs.test.ts chart.test.ts xstate.test.ts extract.test.ts extract-orm.test.ts extract-py-orm.test.ts effect.test.ts
     effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts calendar.test.ts count-facts.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts`),
-  ...tests('kernel', 'tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts epr-clock.test.ts share.test.ts model-sequence.test.ts'),
+  ...tests('kernel', 'tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts epr-clock.test.ts epr-image.test.ts triggers.test.ts share.test.ts model-sequence.test.ts'),
   ...tests('examples', 'examples.test.ts'),
   ...tests('gates', 'bar.test.ts'),
   ...tests('.', 'scripts/lean-gate/gate.test.ts'),
