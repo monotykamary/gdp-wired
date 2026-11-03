@@ -129,7 +129,6 @@ BENCHES = {
 }
 TIP_SETS = ["isaplanner", "prod", "tip2015", "grammars"]
 REFUSED = ("unsupported", "refused")
-SWEEP_HOURS = 24  # a sweep's commit is replaced by main's at the latest after this long
 
 # ---------------------------------------------------------------------------------------- inputs (skip unchanged)
 # The files a chain's runs read: a commit whose files are a commit's the chain already ran gives the same answers, so
@@ -1898,15 +1897,20 @@ class Treadmill(T.Treadmill):
             self.poll_ideas()
 
     def poll_sweeps(self, head: str):
-        # the sweeps keep their commit until every benchmark's chain is done (or SWEEP_HOURS pass), then take main's:
-        # main moves several times an hour, and a chain restarted at each commit would never get past its first round
+        # Record completed rounds before replacing their Sweep objects. The generic loop has already
+        # removed done batches from self.batches, but each Sweep still owns its finalization.
+        for s in self.sweeps.values():
+            s.poll()
         sw = self.state.get("sweep")
-        stale = not sw or (all(s.state["done"] for s in self.sweeps.values()) and self.sweeps) or time.time() - self.state.get("sweep_t", 0) > SWEEP_HOURS * 3600
-        if stale and sw != head and not any(b.chain == "a" and b.label.startswith("sweep") and not b.done for b in self.batches):
-            if sw and all(fingerprint(head, b) == fingerprint(sw, b) for b in self.benches) and all(s.state["done"] for s in self.sweeps.values()):
-                pass  # (main moved, but nothing the sweeps read: they stay done at their commit)
-            else:
-                sw = None
+        if self.sweeps and all(s.state["done"] for s in self.sweeps.values()) and self.state.get("sweep_prev") != sw:
+            self.state["sweep_prev"] = sw
+            self.save_state()
+        # A changed main drains only the rounds already in flight, not the whole multi-round plan.
+        # Check the Sweep's reference too: a batch can finish between polling it and this test.
+        busy = any(s.batch is not None for s in self.sweeps.values()) or any(
+            b.chain == "a" and b.label.startswith("sweep") and not b.done for b in self.batches)
+        if sw != head and not busy:
+            sw = None
         if not sw or not self.sweeps:
             if not sw:
                 self.state.update(sweep=head, sweep_t=time.time())
@@ -1923,8 +1927,6 @@ class Treadmill(T.Treadmill):
                     log(f"sweep {sw[:12]} {b}: skipped (its inputs are {prev[:12]}'s)")
             for f in self.follow:
                 f.want(sw)
-        for s in self.sweeps.values():
-            s.poll()
         if self.sweeps and all(s.state["done"] for s in self.sweeps.values()) and self.state.get("sweep_prev") != sw:
             self.state["sweep_prev"] = sw
             self.save_state()
@@ -1970,7 +1972,8 @@ class Treadmill(T.Treadmill):
             if free <= 0:
                 break
             free = f.launch(free)
-        if "sweep" in self.chains:
+        # While a newer main waits for the current rounds to drain, do not launch another old round.
+        if "sweep" in self.chains and self.commit == self.head:
             live = max(1, sum(1 for sw in self.sweeps.values() if not sw.state["done"]))
             for sw in self.sweeps.values():  # (a): the next round of each benchmark, a fair share of the pool to start with
                 if free <= 0:
