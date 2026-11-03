@@ -139,6 +139,10 @@ and `hit()` calls. Reordering the same call multiset changes the original native
 outcome while source and empty argument bindings stay fixed. This is not a general
 multi-call replay guarantee.
 
+Its fixture-only replay gate validates the entire nonempty trace before dispatch,
+rejects malformed/unknown calls even after a valid prefix, and supplies one frozen,
+order-preserving snapshot. Negative controls require zero dispatches on rejection.
+
 ## Measured coverage
 
 The complete-corpus baseline on 2026-11-03 is tree `7db037f` (main `927a521`): **18 published,

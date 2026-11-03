@@ -8,6 +8,49 @@ import {join} from 'node:path'
 import {check} from '../../core/cli.ts'
 import {scoreRecall, type RecallSide} from './score.ts'
 
+type OwnedCall = 'arm' | 'hit'
+// Fixture-only gate: validate every line before dispatch, then hand over a frozen copy.
+function replayOwnedTrace<T>(trace: unknown, dispatch: (calls: readonly OwnedCall[]) => T): T {
+  if (!Array.isArray(trace) || trace.length === 0) throw Error('owned replay requires a nonempty trace')
+  const calls: OwnedCall[] = []
+  for (const line of trace as unknown[]) {
+    if (line === 'arm()') calls.push('arm')
+    else if (line === 'hit()') calls.push('hit')
+    else throw Error('owned replay rejects a nonallowlisted call')
+  }
+  return dispatch(Object.freeze(calls))
+}
+
+test('owned replay validates the whole trace before any dispatch', () => {
+  let dispatches = 0, coercions = 0
+  const invalid: unknown[] = [
+    null, undefined, 42, 'arm()', {}, [], ['arm()', 7], ['hit()', null], new Array(2),
+    ['arm()', {toString: () => { coercions++; return 'arm()' }}],
+  ]
+  for (const bad of ['unknown()', 'arm(1)', 'arm();', ' hit()', 'hit() ', 'hit()\narm()', 'ARM()', '']) {
+    invalid.push([bad, 'arm()', 'hit()'], ['arm()', bad, 'hit()'], ['arm()', 'hit()', bad])
+  }
+  for (const trace of invalid) {
+    expect(() => replayOwnedTrace(trace, () => { dispatches++; return null })).toThrow()
+    expect(dispatches).toBe(0)
+  }
+  expect(coercions).toBe(0)
+  console.log('OWNED_TRACE_REJECTION ' + JSON.stringify({scope: 'fixture-only malformed-input controls; no general replay guarantee', cases: invalid.length, dispatches, coercions}))
+})
+
+test('owned replay dispatches one frozen order-preserving snapshot', () => {
+  const input = ['hit()', 'arm()', 'arm()', 'hit()']
+  let dispatches = 0
+  const received = replayOwnedTrace(input, calls => {
+    dispatches++
+    expect(Object.isFrozen(calls)).toBe(true)
+    input.fill('unknown()')
+    return [...calls]
+  })
+  expect(received).toEqual(['hit', 'arm', 'arm', 'hit'])
+  expect(dispatches).toBe(1)
+})
+
 const nativeTest = ['javac', 'java'].every(tool => spawnSync(tool, ['-version'], {timeout: 5000}).status === 0) ? test : test.skip
 nativeTest('owned multi-call witness order changes the native policy outcome', async () => {
   const root = mkdtempSync(join(tmpdir(), 'owned-call-order-'))
@@ -59,11 +102,7 @@ nativeTest('owned multi-call witness order changes the native policy outcome', a
     const side = (version: string, i: number): RecallSide => ({version, status: 'checked', result: results[i]!})
     expect(scoreRecall([side('vulnerable', 0), side('fixed', 1)]).found).toBe(false)
     const law = results[0]!.rules[0]!.laws[0]!, witness = law.run!
-    const exact = witness.map(line => {
-      if (line === 'arm()') return 'arm'
-      if (line === 'hit()') return 'hit'
-      throw Error('owned call-order witness is outside the fixed allowlist: ' + JSON.stringify(witness))
-    })
+    const exact = replayOwnedTrace(witness, calls => [...calls])
     expect(exact).toContain('arm')
     expect(exact).toContain('hit')
     const reordered = [...exact.filter(call => call === 'hit'), ...exact.filter(call => call === 'arm')]
@@ -72,7 +111,8 @@ nativeTest('owned multi-call witness order changes the native policy outcome', a
     expect(reordered).not.toEqual(exact)
     const scenarios = [{kind: 'exact', calls: exact}, {kind: 'reordered', calls: reordered}]
     for (const [i, version] of versions.entries()) for (const scenario of scenarios) {
-      const native = spawnSync('java', ['-cp', join(root, version), 'ReplayOrder', ...scenario.calls], {encoding: 'utf8', timeout: 10_000})
+      const native = replayOwnedTrace(scenario.calls.map(call => call + '()'), calls =>
+        spawnSync('java', ['-cp', join(root, version), 'ReplayOrder', ...calls], {encoding: 'utf8', timeout: 10_000}))
       expect(native.status, native.stderr).toBe(0)
       const [bad, value, steps, armed] = native.stdout.trim().split(':')
       expect(['true', 'false']).toContain(bad ?? '')
