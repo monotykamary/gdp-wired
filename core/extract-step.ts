@@ -2919,6 +2919,14 @@ export class Stepper {
   // where nothing reads it.
   // A constant string in a hole (a literal, a stated attribute: a store's name) is literal text of the template; a
   // % format ('%s.lock.%s' % (a, b)) is read as the f-string it spells.
+  checkOrmDisplay(v: V, at: SX): void {
+    // Formatting can call user code even when its result is discarded. Keep
+    // non-scalar conversion outside the boundary if a modeled ORM class has
+    // display hooks; this also covers containers/optionals holding such rows.
+    if (this.mod.lang === 'python' && !['num', 'bool', 'str', 'choice', 'none'].includes(v.t) &&
+        Object.values(this.mod.recs).some(r => r.orm && ('__str__' in r.methods || '__repr__' in r.methods)))
+      refuse(at, `${at.text}: implicit ORM display conversion may execute custom methods`)
+  }
   fstr(x: SX, p: Path, given?: (string | V)[]): [V, Path] {
     const parts = given ?? x.parts as (string | {x: SX, plain: boolean})[]
     let q = p, tpl = '', hole: K | undefined, n = 0, opaque = false, ask: V | undefined
@@ -2928,6 +2936,7 @@ export class Stepper {
       const plain = 't' in part || part.plain
       if ('t' in part) v = part
       else { const [v1, q2] = this.ev(part.x, q); v = v1; q = q2 }
+      this.checkOrmDisplay(v, x)
       if (v.t === 'str' && v.e.op === 'slit' && plain) { tpl += v.e.value.replace(/\{\}/g, '{ }'); continue }
       n++
       if (v.t === 'opaque' && v.ask) ask ??= v
@@ -3101,6 +3110,7 @@ export class Stepper {
       return [{t: 'opaque', why: n === 'list' ? `${n}() [] (an empty list, a collection only where a field declares its type)` : `${n}() {} (an empty ${n === 'dict' ? 'dict' : 'set'}, a collection only where a field declares its type)`}, p]
     return this.evArgs(x, p, (args, kw, q) => {
       if (kw.length) return refuse(x, `${x.text}: ${n} given keywords`)
+      if (n === 'str' || n === 'repr') for (const v of args) this.checkOrmDisplay(v, x)
       // (int of a timestamp: its whole seconds)
       if (n === 'int' && args[0]?.t === 'val') return args[0].ty === '$ts' ? [{t: 'num', e: I.divk(1000, this.numOf(args[0].f.get('ms')!, x, q))}, q] : refuse(x, `${x.text}: int of a ${args[0].ty.slice(1)}`)
       if (args.some(a => a.t === 'opaque') && ['str', 'repr', 'len', 'isinstance', 'round', 'int', 'float', 'bool'].includes(n)) { const ask = args.find(a => a.t === 'opaque' && a.ask) as {why: string, ask: string} | undefined; return [{t: 'opaque', why: `${x.text}: of a value outside the subset${ask ? ` (${ask.why})` : ''}`, ...(ask ? {ask: ask.ask} : {})}, q] }
