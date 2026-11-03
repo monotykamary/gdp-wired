@@ -74,6 +74,14 @@ monotonic-clock semantics, stored/local `time.Time` values, finer projections su
 reads nested inside answered calls (overlapping source substitutions are refused). Inputs retain the
 Go reader's exact JavaScript-integer range restriction.
 
+Rust reads dynamic `Ordering` values for `load`/`store` on direct standard atomic state fields.
+The five standard variants remain choice inputs: invalid load orders (`Release`, `AcqRel`) and invalid
+store orders (`Acquire`, `AcqRel`) cause a failure before the atomic operation, after argument evaluation.
+With `failures: 'kept'`, earlier state changes survive that failure. Standard/core-qualified types and direct
+imports are recognized conservatively; aliases, wildcard imports and broader dynamic RMW operations
+remain outside this increment. Native replay executes Rust's actual atomic methods. As for existing
+atomic support, each request is one non-interleaving call; this is not a concurrent memory-model proof.
+
 Rust reads two-argument integer-primitive associated extrema such as `usize::min(a, b)` and
 `i32::max(a, b)` through the same comparison semantics as its existing min/max support. Native replay
 still checks the original calls, including fixed-width integer boundaries. This shortcut is limited to

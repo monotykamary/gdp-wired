@@ -23,6 +23,117 @@ const genericCrate = (code: string) => {
   return dir
 }
 
+t('Rust atomic ordering: typed load and store retain invalid-order failures', () => {
+  const dir = genericCrate(`use std::sync::atomic::{AtomicU32, Ordering};
+    pub struct Meter { value: AtomicU32 }
+    impl Meter {
+      pub fn new() -> Self { Self { value: AtomicU32::new(7) } }
+      pub fn load(&self, ordering: Ordering) -> u32 { self.value.load(ordering) }
+      pub fn store(&self, value: u32, ordering: Ordering) { self.value.store(value, ordering); }
+    }
+  `)
+  const x = ok(extractRust(dir, {entry: 'Meter', check: budget, failures: 'kept', strict: true, share: false}))
+  expect(x.source).toContain("'Relaxed', 'Release', 'Acquire', 'AcqRel', 'SeqCst'")
+  expect(x.notes.join('\n')).toContain("calls that don't interleave")
+  const load = step(x, 'load never changes the atomic value', (b, a) => a.value.eq(b.value), b => b.method.is('load'))
+  expect(load).toMatchObject({proven: true, checked: true})
+  const store = step(x, 'failed store leaves the atomic value unchanged', (b, a) => a.failed.implies(a.value.eq(b.value)), b => b.method.is('store'))
+  expect(store).toMatchObject({proven: true, checked: true})
+  for (const method of ['load', 'store']) {
+    const invalid = (b: A) => b[`${method}_ordering`].is(method === 'load' ? 'Release' : 'Acquire').or(b[`${method}_ordering`].is('AcqRel'))
+    expect(step(x, `${method} fails exactly on invalid ordering`, (b, a) => invalid(b).implies(a.failed).and(a.failed.implies(invalid(b))), b => b.method.is(method))).toMatchObject({proven: true, checked: true})
+  }
+  expect(step(x, 'successful store keeps the supplied value', (b, a) => a.failed.not().implies(a.value.eq(b.store_value)), b => b.method.is('store'))).toMatchObject({proven: true, checked: true})
+  const r = x.rule!, runtime = r.interpreter(), params = r.encodeParams({})
+  for (const method of ['load', 'store']) for (const order of ['Relaxed', 'Release', 'Acquire', 'AcqRel', 'SeqCst']) {
+    const invalid = order === 'AcqRel' || order === (method === 'load' ? 'Release' : 'Acquire')
+    const next = runtime.step(params, runtime.init(params), r.encodeInput({method, load_ordering: order, store_ordering: order, store_value: 11}))
+    expect(r.decode(next)).toMatchObject({value: method === 'store' && !invalid ? 11 : 7, failed: invalid})
+  }
+}, 300_000)
+
+t('Rust atomic ordering: fully qualified standard types do not use a local Ordering enum', () => {
+  const dir = genericCrate(`pub enum Ordering { Custom }
+    pub struct Meter { value: core::sync::atomic::AtomicU16 }
+    impl Meter {
+      pub fn new() -> Self { Self { value: core::sync::atomic::AtomicU16::new(7) } }
+      pub fn load(&self, order: core::sync::atomic::Ordering) -> u16 { self.value.load(order) }
+      pub fn ordinal(&self, order: core::sync::atomic::Ordering) -> u8 { order as u8 }
+    }
+  `)
+  ok(extractRust(dir, {entry: 'Meter', check: budget, failures: 'kept', strict: true}))
+}, 300_000)
+
+t('Rust atomic ordering: nonstandard enum values stay their own and dynamic RMW remains refused', () => {
+  const own = genericCrate(`#[derive(Clone, Copy, Debug)] pub enum Ordering { First, Second }
+    pub struct Meter { value: u8 }
+    impl Meter {
+      pub fn new() -> Self { Self { value: 0 } }
+      pub fn choose(&mut self, order: Ordering) { self.value = match order { Ordering::First => 1, Ordering::Second => 2 }; }
+    }
+  `)
+  const x = ok(extractRust(own, {entry: 'Meter', check: budget, strict: true}))
+  expect(x.source).not.toContain('Relaxed')
+  const dynamic = genericCrate(`use std::sync::atomic::{AtomicU32, Ordering};
+    pub struct Meter { value: AtomicU32 }
+    impl Meter {
+      pub fn new() -> Self { Self { value: AtomicU32::new(0) } }
+      pub fn add(&self, n: u32, order: Ordering) -> u32 { self.value.fetch_add(n, order) }
+    }
+  `)
+  const refused = extractRust(dynamic, {entry: 'Meter', check: budget, strict: true})
+  expect(refused.ok).toBe(false)
+  expect(refused.refusals.length).toBeGreaterThan(0)
+}, 300_000)
+
+t('Rust atomic ordering: argument effects survive an invalid-order failure', () => {
+  const dir = genericCrate(`use std::sync::atomic::{AtomicU32, Ordering};
+    pub struct Meter { value: AtomicU32, seen: u8 }
+    impl Meter {
+      pub fn new() -> Self { Self { value: AtomicU32::new(7), seen: 0 } }
+      pub fn store(&mut self, n: u32, order: Ordering) {
+        self.value.store({ self.seen = self.seen.wrapping_add(1); n }, order);
+      }
+    }
+  `)
+  const x = ok(extractRust(dir, {entry: 'Meter', check: budget, failures: 'kept', strict: true}))
+  const r = x.rule!, runtime = r.interpreter(), params = r.encodeParams({})
+  for (const order of ['Acquire', 'Release']) {
+    const next = runtime.step(params, runtime.init(params), r.encodeInput({n: 11, order}))
+    expect(r.decode(next)).toMatchObject({seen: 1, value: order === 'Acquire' ? 7 : 11, failed: order === 'Acquire'})
+  }
+}, 300_000)
+
+t('Rust atomic ordering: unresolved aliases and wildcard imports remain refused', () => {
+  for (const [imports, order] of [
+    ['use std::sync::atomic::*;', 'Ordering'],
+    ['use std::sync::atomic::{AtomicU32, Ordering as Order};', 'Order'],
+  ]) {
+    const dir = genericCrate(`${imports}
+      pub struct Meter { value: AtomicU32 }
+      impl Meter {
+        pub fn new() -> Self { Self { value: AtomicU32::new(0) } }
+        pub fn load(&self, ordering: ${order}) -> u32 { self.value.load(ordering) }
+      }
+    `)
+    const x = extractRust(dir, {entry: 'Meter', check: budget, strict: true})
+    expect(x.ok).toBe(false)
+    expect(x.refusals.length).toBeGreaterThan(0)
+  }
+}, 120_000)
+
+t('Rust atomic ordering: an explicit crate alias cannot masquerade as std or core', () => {
+  for (const root of ['std', 'core']) {
+    const dir = genericCrate(`extern crate other as ${root};
+      pub struct Meter { value: u32 }
+      impl Meter { pub fn load(&self, order: ::${root}::sync::atomic::Ordering) -> u32 { self.value } }
+    `)
+    const mod = readRust(dir, ['Meter'])
+    const order = mod.funcs['Meter::load']!.params.find(p => p.name === 'order')!
+    expect(order.t.k).toBe('opaque')
+  }
+}, 120_000)
+
 t('Rust primitive extrema: every integer width replays its native associated min and max', () => {
   const types = ['u8', 'u16', 'u32', 'u64', 'u128', 'usize', 'i8', 'i16', 'i32', 'i64', 'i128', 'isize']
   const dir = genericCrate(`
