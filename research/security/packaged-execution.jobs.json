@@ -1,0 +1,18 @@
+[
+  {
+    "name": "packaged-security",
+    "cmd": "set -eu; case \"${GDP_PACKAGE_RUN:-owned}\" in *[!A-Za-z0-9_-]*) exit 2;; esac; prefix=runs/package-execution/${GDP_PACKAGE_RUN:-owned}; test ! -e \"$prefix\"; timeout 90s bun install --frozen-lockfile; NODE_OPTIONS=--max-old-space-size=4096 bun run build; mkdir -p \"$prefix/artifact\"; npm pack --json --pack-destination \"$prefix/artifact\" > \"$prefix/artifact/pack.json\"; NODE_OPTIONS=--max-old-space-size=4096 bun research/security/packaged-execution.ts --pack \"$prefix/artifact/pack.json\" --out \"$prefix/evidence\" --emit-packet",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "packaged-static",
+    "cmd": "timeout 90s bun install --frozen-lockfile && NODE_OPTIONS=--max-old-space-size=4096 bunx tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --types bun --strict --skipLibCheck --noImplicitReturns --noFallthroughCasesInSwitch --noUncheckedIndexedAccess research/security/packaged-execution.ts && bunx oxlint --type-aware --deny-warnings --disable-nested-config research/security/packaged-execution.ts",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 600,
+    "vm_type": "large"
+  }
+]

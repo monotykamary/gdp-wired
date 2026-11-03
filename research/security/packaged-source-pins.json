@@ -1,0 +1,16 @@
+{
+  "base": "ce28b821285f9aee8f25277c78697426003e923a",
+  "tree": "8fdbaababd8b300c6cd48634dbb06cbb47b786c6",
+  "files": {
+    "action.yml": "b90634a2300ed151a2a96fe29aafa9c6c751a0e4014f51f8a6f5aa2d8e5e0d15",
+    "core/cli.ts": "e703beaf73a425d1a3b6888c35bd1ddb6ecf180850374abe6e049b8ef5fe81fb",
+    "core/security.ts": "2ae985348168318390a38c5899f9dd1125606d8e688b9dbe27c5deb19014a526",
+    "scripts/build.ts": "b604fbe9fee8a36e7f292c71984e442642c2a7186fd3c850ea5d789b7b6d5f5f",
+    "tsconfig.build.json": "d4c4964d1ef35b2642254588ee2087699055c689b068e67bc0b850627c7ea094",
+    "package.json": "4a02a9aeb05ef4c16f107515fdb307787d90b62cf7c72f5db8c210a82b600837",
+    ".github/fixtures/security-action/candidate.ts": "9542a87bac5af3b8880d053c008e0aeda9209ce6b19b8129a95b1e402655d41c",
+    ".github/fixtures/security-action/stated-broken.ts": "c8017e900f5c7e34dfc3bc1d2529cdd4e99a085e0a74e6f07b85fdc3998b09be",
+    "research/security/call-order.test.ts": "b3d09a515280a6d1b94845ecea939363f5bf5e9532c3e76e4a176c50e31a049f",
+    "research/security/score.ts": "5a9d3fb50c2923a3e56079ca88f32da84aff7983d83be7e6358b459d474e78b1"
+  }
+}
