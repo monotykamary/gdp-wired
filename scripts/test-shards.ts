@@ -28,6 +28,7 @@ const units: Unit[] = [
     effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts calendar.test.ts count-facts.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts`),
   ...tests('kernel', 'tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts epr-clock.test.ts share.test.ts model-sequence.test.ts'),
   ...tests('examples', 'examples.test.ts'),
+  ...tests('gates', 'bar.test.ts'),
   ...tests('.', 'scripts/lean-gate/gate.test.ts'),
   ...runs(`examples/readme.ts examples/guide.ts examples/composition.ts examples/sets.ts examples/quantifiers.ts
     examples/functions.ts examples/datatypes.ts examples/lemmas.ts examples/discover.ts examples/invoices.ts
