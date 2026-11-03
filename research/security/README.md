@@ -57,10 +57,12 @@ no replacement ORM reader is introduced here.
 
 ## Owned-mutation confidence benchmark
 
-The [mutation benchmark](mutants/README.md) checks six complete owned training modules with generic operators
-and explicit source policies. Its initial [result](mutants/RESULTS.md) is 12/12 mutants refuted and replayed on
-source, 0/6 clean programs refuted (9/9 clean laws proven), and 18/18 versions read. This is a small synthetic
-confidence corpus, **not** additional upstream CVE recall. The isolation case is explicitly model-relative.
+The [mutation benchmark](mutants/README.md) checks ten complete owned training modules with generic operators
+and explicit source policies. Its [result](mutants/RESULTS.md) is 16/16 mutants refuted and replayed on source,
+0/10 clean programs refuted (13/13 clean laws proven), and 26/26 versions read. It includes private-read
+noninterference and source-level lock/transaction/CAS mutations, with additional native-runtime race checks.
+This is a small synthetic confidence corpus, **not** additional upstream CVE recall. The deployment-isolation
+case is explicitly model-relative.
 
 ## Recall protocol
 

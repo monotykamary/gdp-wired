@@ -216,5 +216,9 @@ test('the CLI on a file using Schedule and STM (4.x, examples/effect-bank.ts; 3.
     const b = await check([file], {ms: 8000, propose: false}), law = b.rules.find(r => r.entry === 'make')!.laws.find(l => l.name === 'the money is conserved')!
     expect([v, b.exit, law.verdict]).toEqual([v, 1, 'broken'])
     expect(law.run!.length).toBeGreaterThanOrEqual(4)
+    expect(law.run!.every(line => /^fiber \d+:/.test(line))).toBe(true)
+    expect(new Set(law.run!.map(line => /^fiber (\d+):/.exec(line)![1])).size).toBeGreaterThanOrEqual(2)
+    expect(law.run!.some(line => line.includes('its step 1 of 2'))).toBe(true)
+    expect(law.run!.some(line => line.includes('its step 2 of 2'))).toBe(true)
   }
 }, 300_000)

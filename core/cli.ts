@@ -11,6 +11,7 @@
 // answers, skip, stores) from the flags or from gdp.toml (configFor, below). Exit code: 0 when no law stated in
 // the code is broken, 1 when one is, 2 when one couldn't be checked (the rule refused, or the law not read).
 import type {Extraction, Name} from './extract.ts'
+import {fiberRun} from './fiber-run.ts'
 import {type SecurityCandidate, securityTemplates} from './security.ts'
 import {type Verdict, proveLeadsTo, proveRule, proveSteps} from './dsl.ts'
 import type {Law} from './machine.ts'
@@ -638,6 +639,10 @@ function shownValue(x: Extraction, rule: string, vars: Record<string, unknown>, 
 // A run as calls of the code: the constructor's arguments, then each request (the method, its arguments by the code's
 // names, the answers and the clock), the last the one that breaks the law.
 export function runOf(x: Extraction, run: NonNullable<Verdict['run']>): string[] {
+  if (x.fibers?.length) {
+    const plain = {...x, fibers: undefined}
+    return [...runOf(plain, {params: run.params, trace: []}), ...fiberRun(x, run, q => runOf(plain, {params: {}, trace: [q]}).at(-1)!)]
+  }
   const names = namesWithClock(x), code = (n: Name) => n.code
   const ps = names.filter(n => n.role === 'param' && n.rule && n.rule in run.params)
   const lines = ps.length ? [`made with ${ps.map(n => `${code(n)} = ${shownValue(x, n.rule, run.params, n.none)}`).join(', ')}`] : []

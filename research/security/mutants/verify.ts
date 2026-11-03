@@ -1,17 +1,17 @@
 import assert from 'node:assert/strict'
 import {createHash} from 'node:crypto'
-import {cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync} from 'node:fs'
+import {cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
-import {join} from 'node:path'
+import {join, resolve} from 'node:path'
 import {mutate} from './operators.ts'
-import {admit, fixtures, replayPython, summarize, type Measurement} from './run.ts'
-import {replayClass} from './replay.ts'
+import {admit, fixtures, replaySource, summarize, type Measurement} from './run.ts'
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex')
 const json = (x: unknown): unknown => JSON.parse(JSON.stringify(x, (_k, v: unknown) => v instanceof Map ? {$map: [...v]} : v))
 export async function verify(rows: Measurement[]) {
   assert.deepEqual(rows.map(r => r.fixture).sort(), fixtures, 'every owned fixture appears exactly once')
   const root = mkdtempSync(join(tmpdir(), 'security-replay-'))
+  symlinkSync(resolve(import.meta.dir, '../../..', 'node_modules'), join(root, 'node_modules'), 'dir')
   let replayed = 0, witnesses = 0
   try {
     for (const row of rows) {
@@ -36,11 +36,9 @@ export async function verify(rows: Measurement[]) {
         for (const record of saved.replays) {
           const law = saved.side.claims.find(l => l.entry === record.entry && l.name === record.law && l.expr === record.expr)!
           assert.ok(law?.run?.length && law.entry)
-          const scope = law.kind === 'step' ? Number(law.where?.split(':').at(-1)) : undefined
-          const mutant = language === 'ts' ? await replayClass(path, law.entry, law.expr, law.run, scope) : replayPython(path, law, dir)
+          const mutant = await replaySource(path, law, dir)
           const cleanLaw = row.baseline.claims.find(l => l.entry === law.entry && l.name === law.name && l.expr === law.expr)!
-          const cleanScope = cleanLaw.kind === 'step' ? Number(cleanLaw.where?.split(':').at(-1)) : undefined
-          const parent = language === 'ts' ? await replayClass(file, law.entry, law.expr, law.run, cleanScope) : replayPython(file, law, dir)
+          const parent = await replaySource(file, {...cleanLaw, run: law.run, concreteOwner: law.concreteOwner}, dir, true)
           assert.deepEqual(json(mutant), json(record.mutant), 'saved mutant replay is reproduced exactly')
           assert.deepEqual(json(parent), json(record.parent), 'saved clean replay is reproduced exactly')
           assert.ok(mutant.ok && mutant.broken && parent.ok && !parent.broken)
