@@ -14,7 +14,10 @@
 // from_millis ...), atomics as the field they are (load, store, fetch_add, compare_exchange: one request is one step,
 // the claim is for calls that don't interleave), a Mutex's lock as its value, nested structs by value (a copy where
 // the code copies), the crate's struct arguments as records of inputs, closures that don't assign to what they
-// capture, panics and assertions (failures). Refused, each where it is with why: loops, generics and traits objects,
+// capture, panics and assertions (failures). Lifetime-only struct declarations and method/free-function signatures
+// are not flagged generic; type/const parameters on those declarations/signatures remain refused. This does not
+// cover the existing index's loss of impl-level generics or trait/self-type arguments (see docs/FRONTENDS.md).
+// Also refused, each where it is with why: loops and trait objects,
 // enums with data, references kept, maps and vectors (for now), floats, unsafe pointers, other crates' code.
 import {type Extraction} from './extract.ts'
 import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'

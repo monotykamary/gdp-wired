@@ -7,7 +7,7 @@ import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
 import {mkdirSync, mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
-import {extractRust} from './extract-rs.ts'
+import {extractRust, readRust} from './extract-rs.ts'
 import {extractStep} from './extract-step.ts'
 import {proveRule, proveSteps} from './dsl.ts'
 
@@ -15,6 +15,87 @@ const hasCargo = (() => { try { execFileSync('cargo', ['--version'], {stdio: 'ig
 const t = hasCargo ? test : test.skip
 const DIR = new URL('./rs/examples/limits', import.meta.url).pathname
 const budget = {runs: 40, depth: 8, states: 80}
+const genericCrate = (code: string) => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-rs-generics-`)
+  mkdirSync(`${dir}/src`)
+  writeFileSync(`${dir}/Cargo.toml`, '[package]\nname = "generic_meter"\nversion = "0.1.0"\nedition = "2021"\n')
+  writeFileSync(`${dir}/src/lib.rs`, code)
+  return dir
+}
+
+t('Rust lifetime parameters do not masquerade as type or const parameters', () => {
+  const dir = genericCrate(`
+    pub struct Borrowed<'a> { value: &'a u8 }
+    pub struct Typed<T> { value: T }
+    pub struct Fixed<const N: usize> { value: [u8; N] }
+    pub fn borrowed<'a>(value: &'a u8) -> u8 { *value }
+    pub fn typed<T>(value: T) -> T { value }
+    pub fn fixed<const N: usize>() -> usize { N }
+  `)
+  const mod = readRust(dir, ['Borrowed', 'Typed', 'Fixed', 'borrowed', 'typed', 'fixed'])
+  expect(mod.recs.Borrowed!.kinds.some(k => k.startsWith('generic:'))).toBe(false)
+  expect(mod.recs.Typed!.kinds.some(k => k.startsWith('generic:'))).toBe(true)
+  expect(mod.recs.Fixed!.kinds.some(k => k.startsWith('generic:'))).toBe(true)
+  expect(Object.values(mod.funcs).find(f => f.name === 'borrowed')).toHaveProperty('generic', false)
+  expect(Object.values(mod.funcs).find(f => f.name === 'typed')).toHaveProperty('generic', true)
+  expect(Object.values(mod.funcs).find(f => f.name === 'fixed')).toHaveProperty('generic', true)
+}, 120_000)
+
+t('Rust lifetime-bearing methods retain original-code replay', () => {
+  const dir = genericCrate(`
+    pub struct Meter { used: u8 }
+    impl Meter {
+      pub fn new() -> Self { Self { used: 0 } }
+      pub fn add<'a>(&'a mut self, amount: u8) {
+        self.used = self.used.wrapping_add(amount);
+      }
+      pub fn clear<'a: 'b, 'b>(&'a mut self) { self.used = 0; }
+    }
+  `)
+  const x = extractRust(dir, {entry: 'Meter', methods: ['add', 'clear'], check: budget})
+  expect(x.ok).toBe(true)
+  expect(x.evidence?.requests).toBeGreaterThan(0)
+}, 120_000)
+
+t('Rust lifetime parameters do not authorize unsupported borrowed fields', () => {
+  const dir = genericCrate(`
+    pub struct Borrowed<'a> { bytes: &'a [u8], used: u8 }
+    impl<'a> Borrowed<'a> {
+      pub fn new(bytes: &'a [u8]) -> Self { Self { bytes, used: 0 } }
+      pub fn advance(&mut self) { self.used = self.used.wrapping_add(1); }
+    }
+  `)
+  const x = extractRust(dir, {entry: 'Borrowed', check: budget})
+  expect(x.ok).toBe(false)
+  expect(x.refusals.length).toBeGreaterThan(0)
+  expect(x.refusals.every(r => !r.what.includes('a generic type'))).toBe(true)
+}, 120_000)
+
+t('Rust lifetime parameters do not erase mixed type or const method parameters', () => {
+  for (const method of [
+    "pub fn add<'a, T>(&'a mut self, amount: u8, value: T) { self.used = amount; }",
+    "pub fn add<'a, const N: usize>(&'a mut self, amount: u8) { self.used = amount; }",
+  ]) {
+    const dir = genericCrate(`pub struct Meter { used: u8 } impl Meter {
+      pub fn new() -> Self { Self { used: 0 } } ${method}
+    }`)
+    const x = extractRust(dir, {entry: 'Meter', methods: ['add'], check: budget})
+    expect(x.ok).toBe(false)
+    expect(x.refusals.some(r => r.what.includes('generic'))).toBe(true)
+  }
+}, 120_000)
+
+t('Rust unresolved type and const parameters remain refused', () => {
+  for (const declaration of [
+    'pub struct Meter<T> { value: T }',
+    'pub struct Meter<const N: usize> { value: [u8; N] }',
+  ]) {
+    const x = extractRust(genericCrate(declaration), {entry: 'Meter', check: budget})
+    expect(x.ok).toBe(false)
+    expect(x.refusals.some(r => r.what.includes('a generic type'))).toBe(true)
+  }
+}, 120_000)
+
 type X = ReturnType<typeof extractRust>
 const ok = (x: X) => {
   if (!x.ok) throw new Error(`refused: ${JSON.stringify(x.refusals)}\n${x.source ?? ''}\n${JSON.stringify(x.evidence)}`)
