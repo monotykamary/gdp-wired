@@ -1,5 +1,10 @@
 import {expect, test} from 'bun:test'
-import {readFileSync} from 'node:fs'
+import {createHash} from 'node:crypto'
+import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
+import {check} from '../../core/cli.ts'
+import {replayClass} from './mutants/replay.ts'
 import {type RecallSide, scoreRecall} from './score.ts'
 const side = (version: string, verdict: string): RecallSide => ({version, status: 'checked', result: {rules: [{ok: true, entry: 'Handler', laws: [{name: 'policy', expr: 'result implies admin', verdict, run: ['run'], replayed: 'original code agrees'}]}]}})
 test('recall requires the same stated policy, original replay and fixed counterpart', () => {
@@ -32,6 +37,93 @@ test('refusals, absent laws and un-replayed environment schedules never count', 
   expect(scoreRecall([runtime], true).found).toBe(false)
   expect(scoreRecall([runtime, {version: 'fixed', status: 'runtime-only'}]).found).toBe(false)
 })
+
+test('duplicate or unexpected revision receipts cannot inflate strict recall', () => {
+  const before = side('vulnerable', 'broken'), fixed = side('fixed', 'proven')
+  for (const rows of [[before, fixed, fixed], [before, before, fixed], [before, fixed, side('other', 'proven')]]) {
+    expect(scoreRecall(rows).found).toBe(false)
+    expect(scoreRecall([...rows].reverse()).found).toBe(false)
+  }
+  expect(scoreRecall([before, before], true).found).toBe(false)
+})
+
+test('failed, incomplete and unreviewable receipts never count despite surviving law data', () => {
+  for (const status of ['error', 'refused', 'runtime-only', '', 'checked ']) {
+    const before = side('vulnerable', 'broken'), fixed = side('fixed', 'proven')
+    before.status = status
+    expect(scoreRecall([before, fixed]).found).toBe(false)
+    before.status = 'checked'; fixed.status = status
+    expect(scoreRecall([before, fixed]).found).toBe(false)
+  }
+  const before = side('vulnerable', 'broken'), fixed = side('fixed', 'proven')
+  fixed.result!.rules.push({ok: true, entry: 'Unread', laws: [{name: 'unread policy', expr: 'true', verdict: 'not read'}]})
+  expect(scoreRecall([before, fixed]).found).toBe(false)
+})
+
+test('strict recall requires an unambiguous entry, constructor and policy match', () => {
+  const before = side('vulnerable', 'broken'), fixed = side('fixed', 'proven')
+  before.result!.rules[0]!.ctor = '()'; fixed.result!.rules[0]!.ctor = '(boolean)'
+  expect(scoreRecall([before, fixed]).found).toBe(false)
+  fixed.result!.rules[0]!.ctor = '()'
+  expect(scoreRecall([before, fixed]).found).toBe(true)
+  fixed.result!.rules.push({...fixed.result!.rules[0]!, laws: [{...fixed.result!.rules[0]!.laws[0]!, verdict: 'broken'}]})
+  expect(scoreRecall([before, fixed]).found).toBe(false)
+  fixed.result!.rules.pop()
+  fixed.result!.rules[0]!.laws.push({...fixed.result!.rules[0]!.laws[0]!})
+  expect(scoreRecall([before, fixed]).found).toBe(false)
+})
+
+test('blank replay, empty trace and unnamed policies are not original-code evidence', () => {
+  for (const change of [
+    (s: RecallSide) => { s.result!.rules[0]!.laws[0]!.replayed = '   ' },
+    (s: RecallSide) => { s.result!.rules[0]!.laws[0]!.run = [''] },
+    (s: RecallSide) => { s.result!.rules[0]!.laws[0]!.run = [] },
+    (s: RecallSide) => { s.result!.rules[0]!.laws[0]!.name = '' },
+    (s: RecallSide) => { s.result!.rules[0]!.laws[0]!.expr = ' ' },
+    (s: RecallSide) => { delete s.result!.rules[0]!.entry },
+  ]) {
+    const before = side('vulnerable', 'broken')
+    change(before)
+    expect(scoreRecall([before, side('fixed', 'proven')]).found).toBe(false)
+    expect(scoreRecall([before], true).found).toBe(false)
+  }
+})
+
+test('owned paired source is checked and the exact witness replays before strict admission', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'owned-strict-recall-'))
+  const original = `export class OwnedCounter {
+    value = 0;
+    // gdp: law only allowed calls change value: value != old(value) implies allowed
+    hit(allowed: boolean): void { this.value++; }
+  }`
+  const repaired = original.replace('this.value++;', 'if (allowed) this.value++;')
+  const beforePath = join(root, 'original.ts'), fixedPath = join(root, 'fixed.ts')
+  writeFileSync(beforePath, original); writeFileSync(fixedPath, repaired)
+  try {
+    const options = {entry: 'OwnedCounter', propose: false, security: true, ms: 3000}
+    const before = await check([beforePath], options), fixed = await check([fixedPath], options)
+    expect(before.exit).toBe(1); expect(fixed.exit).toBe(0)
+    expect([...before.rules, ...fixed.rules].every(r => r.ok && !!r.checked)).toBe(true)
+    const broken = before.rules[0]!.laws[0]!, counterpart = fixed.rules[0]!.laws[0]!
+    expect(broken.verdict).toBe('broken'); expect(counterpart.verdict).toBe('proven')
+    expect(broken.run?.length).toBeGreaterThan(0)
+    const sides: RecallSide[] = [{version: 'vulnerable', status: 'checked', result: before}, {version: 'fixed', status: 'checked', result: fixed}]
+    expect(scoreRecall(sides).found).toBe(false) // a model witness alone is not source replay
+    const replay = await replayClass(beforePath, 'OwnedCounter', broken.expr, broken.run!)
+    const clean = await replayClass(fixedPath, 'OwnedCounter', broken.expr, broken.run!)
+    expect(replay.ok && replay.broken && replay.steps.length > 0).toBe(true)
+    expect(clean.ok && !clean.broken && clean.steps.length === replay.steps.length).toBe(true)
+    const hash = (file: string) => createHash('sha256').update(readFileSync(file)).digest('hex')
+    expect(readFileSync(beforePath, 'utf8')).toBe(original)
+    expect(readFileSync(fixedPath, 'utf8')).toBe(repaired)
+    broken.replayed = 'owned original source replayed; the same witness leaves the fixed original unrefuted'
+    expect(scoreRecall(sides).found).toBe(true)
+    const candidatesOnly = structuredClone(sides)
+    candidatesOnly[0]!.result!.rules[0]!.laws = []
+    expect(scoreRecall(candidatesOnly).found).toBe(false)
+    console.log('OWNED_RECALL_CONTROL ' + JSON.stringify({scope: 'self-owned synthetic source only; not upstream recall', originalSha256: hash(beforePath), fixedSha256: hash(fixedPath), strict: {found: 1, total: 1}, fixedRefuted: 0, sourceReplays: 2, candidatesCounted: 0}))
+  } finally { rmSync(root, {recursive: true, force: true}) }
+}, 60_000)
 
 type Seed = {id: string, set: string, advisory: string, repo: string, before: string, after?: string, path: string, entry: string, policy: string, fixEvidence?: string, cve?: string | null}
 const seeds = JSON.parse(readFileSync(new URL('./cases.json', import.meta.url), 'utf8')) as Seed[]
