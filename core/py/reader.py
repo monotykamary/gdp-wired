@@ -340,7 +340,11 @@ class Reader:
       why = '' if len(keys) == 1 else 'ORM requires one explicit primary key'
       if any(not self.orm_base_safe(mod, b, orm) for b in cdef.bases): why = 'inherited ORM schema or behavior is outside the table boundary'
       if cdef.decorator_list or cdef.keywords: why = 'decorated ORM classes or custom metaclasses are outside the table boundary'
-      if any(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and (n.decorator_list or n.name.startswith('__')) for n in cdef.body): why = 'decorated ORM methods or custom magic methods are outside the table boundary'
+      # Plain display bodies are not erased: explicit calls still read their bodies.
+      # Implicit conversions of these records are refused by the step reader.
+      def display(n):
+        return isinstance(n, ast.FunctionDef) and n.name in ('__str__', '__repr__') and not n.decorator_list and len(n.args.posonlyargs + n.args.args) == 1 and not (n.args.defaults or n.args.kwonlyargs or n.args.vararg or n.args.kwarg)
+      if any(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and (n.decorator_list or (n.name.startswith('__') and not display(n))) for n in cdef.body): why = 'decorated ORM methods or custom magic methods are outside the table boundary'
       if any(isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'objects' for t in n.targets) for n in cdef.body): why = 'custom ORM managers are outside the table boundary'
       r['orm'] = {'framework': orm, 'key': keys[0] if len(keys) == 1 else '', 'why': why}
     self.recs[q] = r

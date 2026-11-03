@@ -125,6 +125,78 @@ class Deadline:
   expect(x.refusals.map(r => r.what).join(';')).toContain('mixed aware and naive')
 })
 
+django('ORM display boundary: unrelated display methods do not run during selected methods or persistence', () => {
+  for (const display of ['__str__', '__repr__']) {
+    const code = prefix.replace('    def credit', `    def ${display}(self):
+        self.amount += 1000
+        return 'display'
+    def credit`) + `
+def create(key: int):
+    assert key >= 0
+    row = Account.objects.create(id=key, amount=1, active=True, label='new')
+    return row.amount
+`
+    checked(run(code, {entry: 'Account', methods: ['credit']}))
+    checked(run(code, {entry: ['create']}))
+    // An explicit call is read as code, including its mutation, not skipped.
+    checked(run(code.replace('        self.amount += n', `        self.${display}()\n        self.amount += n`), {entry: 'Account', methods: ['credit']}))
+    // The conservative object-display guard still allows scalar formatting.
+    checked(run(code.replace('        self.amount += n', `        str(n)\n        f'{self.amount}'\n        self.amount += n`), {entry: 'Account', methods: ['credit']}))
+  }
+})
+sqlalchemy('ORM display boundary: selected SQLAlchemy methods and commits retain unrelated repr', () => {
+  const code = `from sqlalchemy import Column, Integer
+from sqlalchemy.orm import declarative_base, Session
+Base = declarative_base()
+class Account(Base):
+    __tablename__ = 'account'
+    id = Column(Integer, primary_key=True)
+    amount = Column(Integer, nullable=False)
+    def __repr__(self):
+        self.amount += 1000
+        return 'display'
+    def credit(self, n: int):
+        self.amount += n
+        return self.amount
+def create(session: Session, key: int):
+    assert key >= 0
+    row = Account(id=key, amount=1)
+    session.add(row)
+    session.commit()
+    return row.amount
+`
+  checked(run(code, {entry: 'Account', methods: ['credit']}))
+  checked(run(code, {entry: ['create']}))
+})
+django('ORM display boundary: implicit display calls cannot silently omit mutations', () => {
+  for (const expression of ['str(self)', 'repr(self)', "f'{self}'", "f'{self!r}'", "'%s' % self", "'{}'.format(self)", 'repr((self,))', 'print(self)']) {
+    const code = prefix.replace('    def credit', `    def __str__(self):
+        self.amount += 1000
+        return 'display'
+    def __repr__(self):
+        self.amount += 1000
+        return 'display'
+    def credit`).replace('        self.amount += n', `        ${expression}\n        self.amount += n`)
+    // Refusal must precede replay: sampling cannot establish an unused call is pure.
+    const x = run(code, {entry: 'Account', methods: ['credit']})
+    expect(x.ok).toBe(false)
+    expect(x.evidence).toBeUndefined()
+  }
+})
+django('ORM display boundary: decorated display and behavior-changing hooks remain refused', () => {
+  for (const hook of ['__init__', '__getattribute__', '__setattr__', '__eq__', '__hash__', '__bool__']) {
+    const code = prefix.replace('    def credit', `    def ${hook}(self, *args):
+        return 0
+    def credit`)
+    expect(run(code, {entry: 'Account', methods: ['credit']}).ok).toBe(false)
+  }
+  const decorated = prefix.replace('    def credit', `    @property
+    def __str__(self):
+        return 'display'
+    def credit`)
+  expect(run(decorated, {entry: 'Account', methods: ['credit']}).ok).toBe(false)
+})
+
 django('Django model columns initialize a real row', () => {
   const x = checked(run(prefix, {entry: 'Account', methods: ['credit']}))
   const r = x.rule!

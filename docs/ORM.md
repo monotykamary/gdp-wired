@@ -35,7 +35,10 @@ dependencies installed. `python` selects an interpreter; `djangoSettings` (or th
 
 Non-primary-key scans, composite keys, foreign-key traversal, inherited table schemas, custom managers and custom
 persistence overrides are refused. Decorated model classes/methods, custom magic methods and cross-session row
-transfers also refuse. Before replacing persistence, the harness validates the original framework methods and
+transfers also refuse, except that plain one-argument `__str__` and `__repr__` methods may coexist with selected
+handlers. Their bodies are retained, not silently erased. Implicit non-scalar display conversion (including an
+unused `str`, `repr` or formatted value) is refused when a modeled ORM class defines these methods: display may
+mutate state or fail even when its result is discarded. Before replacing persistence, the harness validates the original framework methods and
 constructors; a custom hook such as Django `save_base` must not be hidden by the replacement. Numeric map keys
 must be nonnegative in the source's behavior; an unchecked
 `domains` narrowing is not a substitute for that behavior. String keys do not need this restriction.
