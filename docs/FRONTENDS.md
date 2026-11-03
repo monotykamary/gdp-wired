@@ -74,6 +74,13 @@ monotonic-clock semantics, stored/local `time.Time` values, finer projections su
 reads nested inside answered calls (overlapping source substitutions are refused). Inputs retain the
 Go reader's exact JavaScript-integer range restriction.
 
+Rust reads two-argument integer-primitive associated extrema such as `usize::min(a, b)` and
+`i32::max(a, b)` through the same comparison semantics as its existing min/max support. Native replay
+still checks the original calls, including fixed-width integer boundaries. This shortcut is limited to
+syntactically unshadowed primitive names: visible same-named types/modules, aliases, wildcard imports,
+a disabled implicit prelude, generic path arguments and explicit trait-qualified calls do not authorize
+it. This is not general alias, trait or import resolution.
+
 Rust lifetime parameters alone do not make a struct declaration or method/free-function signature
 value-generic. Type and const parameters on those declarations and signatures remain flagged as generic
 and refused, including when mixed with lifetimes. This does not generalize to parameters on `impl` blocks
