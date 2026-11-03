@@ -103,6 +103,13 @@ CLI witness runs through `javac`/`java` on both versions and both initializers; 
 unchanged broken initializer cannot borrow the already-safe initializer's proof.
 This toolchain-dependent control skips only when Java is unavailable and is run on boat.
 
+For a policy on an entry with multiple initializers, the fixed counterpart must retain
+all original constructor contexts and check that same named expression in every fixed
+context, including newly added ones. One repaired overload does not count while another
+still refutes the policy or omits it. Unrelated entries are not combined into that family.
+`fixed-family.test.ts` adds an owned original/partial/complete Java control and is imported
+by the existing score-test shard entry. Unknown fixed verdicts remain unknown, not proven.
+
 ## Measured coverage
 
 The complete-corpus baseline on 2026-11-03 is tree `7db037f` (main `927a521`): **18 published,

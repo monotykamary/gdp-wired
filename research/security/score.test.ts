@@ -1,3 +1,4 @@
+import './fixed-family.test.ts'
 import {expect, test} from 'bun:test'
 import {spawnSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
