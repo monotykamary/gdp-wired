@@ -369,9 +369,42 @@ t('Rust method sequencing: fixed borrowed helper preserves argument order and re
   }
 }, 300_000)
 
-t('Rust method sequencing: computed receivers and indirect callees keep native mismatch refusals', () => {
+t('Rust D1: typed literal-sum receivers fail before argument effects', () => {
+  for (const method of ['min', 'max']) for (const literal of ['1u32', '1']) {
+    const dir = genericCrate(`pub struct Meter {value:u32, seen:u32}
+      impl Meter {
+        pub fn new(start:u32)->Self {Self {value:start, seen:0}}
+        pub fn take(&mut self) {
+          self.value = (self.value + ${literal}).${method}({self.seen = self.seen.wrapping_add(1); 0});
+        }
+      }`)
+    const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+    const r = x.rule!, rt = r.interpreter()
+    for (const start of [0, 4_294_967_294, 4_294_967_295]) {
+      const p = r.encodeParams({start}), failed = start === 4_294_967_295
+      expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({})))).toMatchObject({
+        value:failed ? start : method === 'min' ? 0 : start + 1, seen:failed ? 0 : 1, failed,
+      })
+    }
+  }
+}, 300_000)
+
+t('Rust D1: a successful computed receiver is captured before the argument changes its field', () => {
+  const dir = genericCrate(`pub struct Meter {value:u32}
+    impl Meter {
+      pub fn new()->Self {Self {value:7}}
+      pub fn take(&mut self) {
+        self.value = (self.value + 1u32).max({self.value = self.value.wrapping_add(10); 0});
+      }
+    }`)
+  const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+  expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({})))).toMatchObject({value:8, failed:false})
+}, 300_000)
+
+t('Rust method sequencing: unlisted computed receivers and indirect callees keep native mismatch refusals', () => {
   for (const [initial, body] of [
-    [4_294_967_295, 'self.value = (self.value + 1u32).max({ self.seen = self.seen.wrapping_add(1); 0 });'],
+    [4_294_967_295, 'self.value = ((self.value + 1u32) + 0u32).max({ self.seen = self.seen.wrapping_add(1); 0 });'],
     [7, 'self.value = ({ self.seen = self.seen.wrapping_add(1); self.seen }).max({ self.seen = self.seen.wrapping_add(1); 0 });'],
     [7, 'self.value = ({ self.seen = self.seen.wrapping_add(1); first })({ self.seen = self.seen.wrapping_mul(2); self.seen }, 0);'],
   ] as const) {
