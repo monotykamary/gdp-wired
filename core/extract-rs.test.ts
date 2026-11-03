@@ -408,6 +408,61 @@ t('Rust method sequencing: trait and generic helper dispatch do not enter the sh
   }
 }, 300_000)
 
+t('Rust identity: duplicate record names refuse in either module order', () => {
+  const a = 'pub mod a {pub struct Helper {pub bias:u32} impl Helper {pub fn pick(&self)->u32 {11}}}'
+  const b = 'pub mod b {pub struct Helper {pub bias:u32} impl Helper {pub fn pick(&self)->u32 {22}}}'
+  for (const defs of [a+b, b+a]) {
+    const dir = genericCrate(`${defs}
+      pub struct Meter {value:u32, helper:a::Helper}
+      impl Meter {
+        pub fn new()->Self {Self {value:0, helper:a::Helper {bias:0}}}
+        pub fn take(&mut self) {self.value=self.helper.pick();}
+      }`)
+    execFileSync('cargo', ['check', '--quiet'], {cwd:dir, stdio:'pipe'})
+    const x = extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'})
+    expect(x.ok).toBe(false)
+    expect(x.refusals.map(r => r.what).join('; ')).toContain('multiple source record declarations')
+    expect(x.evidence?.mismatch).toBeUndefined()
+  }
+}, 300_000)
+
+t('Rust identity: trait and inherent collisions refuse in either declaration order', () => {
+  const inherent = 'impl Helper {pub fn pick(&self)->u32 {11}}'
+  const trait = 'trait Alternative {fn pick(&self)->u32;} impl Alternative for Helper {fn pick(&self)->u32 {22}}'
+  for (const defs of [inherent+trait, trait+inherent]) {
+    const dir = genericCrate(`pub struct Helper {bias:u32} ${defs}
+      pub struct Meter {value:u32, helper:Helper}
+      impl Meter {
+        pub fn new()->Self {Self {value:0, helper:Helper {bias:0}}}
+        pub fn take(&mut self) {self.value=self.helper.pick();}
+      }`)
+    execFileSync('cargo', ['check', '--quiet'], {cwd:dir, stdio:'pipe'})
+    const x = extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'})
+    expect(x.ok).toBe(false)
+    expect(x.refusals.map(r => r.what).join('; ')).toContain('multiple source method candidates')
+    expect(x.evidence?.mismatch).toBeUndefined()
+  }
+}, 300_000)
+
+t('Rust identity: unique methods and unrelated collisions retain native-backed behavior', () => {
+  for (const [defs, field, init, expression, expected] of [
+    ['pub mod a {pub struct Left {pub bias:u32} impl Left {pub fn pick(&self)->u32 {11}}} pub mod b {pub struct Right {pub bias:u32} impl Right {pub fn pick(&self)->u32 {22}}}', ', helper:a::Left', ', helper:a::Left {bias:0}', 'self.helper.pick()', 11],
+    ['pub mod a {pub struct Helper {pub bias:u32}} pub mod b {pub struct Helper {pub bias:u32}}', '', '', '7', 7],
+    ['pub struct Helper {bias:u32} trait Alternative {fn pick(&self)->u32;} impl Alternative for Helper {fn pick(&self)->u32 {22}}', ', helper:Helper', ', helper:Helper {bias:0}', 'self.helper.pick()', 22],
+    ['pub struct Helper {bias:u32} impl Helper {pub fn pick(&self)->u32 {11}} trait Alternative {fn pick(&self)->u32;} impl Alternative for Helper {fn pick(&self)->u32 {22}}', ', helper:Helper', ', helper:Helper {bias:7}', 'self.helper.bias', 7],
+  ] as const) {
+    const dir = genericCrate(`${defs}
+      pub struct Meter {value:u32 ${field}}
+      impl Meter {
+        pub fn new()->Self {Self {value:0 ${init}}}
+        pub fn take(&mut self) {self.value=${expression};}
+      }`)
+    const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+    const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+    expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({})))).toMatchObject({value:expected})
+  }
+}, 300_000)
+
 type X = ReturnType<typeof extractRust>
 const ok = (x: X) => {
   if (!x.ok) throw new Error(`refused: ${JSON.stringify(x.refusals)}\n${x.source ?? ''}\n${JSON.stringify(x.evidence)}`)
