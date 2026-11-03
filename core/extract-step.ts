@@ -1735,7 +1735,7 @@ export class Stepper {
       }
       return [row, q]
     }
-    if (kw.length !== 1 || ![meta.key, 'pk'].includes(kw[0]![0])) return refuse(at, `${at.text}: ORM queries require exactly the primary key; non-key filters need a scan`)
+    if (kw.length !== 1 || ![meta.key, 'pk'].includes(kw[0]![0])) return refuse(at, `${at.text}: ORM queries require exactly the primary key ${JSON.stringify(meta.key)} (or "pk"); received filters: ${kw.map(([n]) => JSON.stringify(n)).join(', ') || '(none)'}; non-key filters need a scan`)
     const key = this.keyOf(kw[0]![1], at), c = this.cellOf(o, key, p, at)
     if (op === 'filter') return [{t: 'val', ty: `$orm-query:${rec}`, f: new Map([['key', kw[0]![1]]])}, p]
     if (op !== 'get') return refuse(at, `${at.text}: unsupported ORM operation ${op}`)

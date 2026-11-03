@@ -561,7 +561,7 @@ function consensus(rs: Rows[]): Rows {
   return out
 }
 function report(results: Result[], cand: Tree, base: Tree, outDir: string, t0: number, since: Date): string {
-  const L: string[] = [], J: Record<string, unknown> = {}
+  const L: string[] = [], J: Record<string, unknown> = {}, coverageErrors: string[] = []
   const p = (s = '') => L.push(s)
   p(`# The bar: ${cand.label} against ${base.label}`)
   p()
@@ -580,6 +580,11 @@ function report(results: Result[], cand: Tree, base: Tree, outDir: string, t0: n
       const restrict = (x: Rows) => keep ? new Map([...x].filter(([t]) => keep.has(t))) : x
       const c = v.parse(r.cand, cand.path), bs = r.base.map(b => restrict(v.parse(b, base.path)))
       if (!c.size && !bs.some(b => b.size)) continue
+      if (!c.size) {
+        const error = `${v.key}: zero candidate goals against a nonempty baseline`
+        coverageErrors.push(error)
+        p(`**ERROR: ${error}.**\n`)
+      }
       const hc = v.headline(c), hb = bs.map(b => v.headline(b)), keys = Object.keys(hc)
       const mean = Object.fromEntries(keys.map(k => [k, hb.length ? Math.round(hb.reduce((s, h) => s + (h[k] ?? 0), 0) / hb.length * 100) / 100 : NaN]))
       p(`## ${v.title}${r.quick ? ` (${smoke ? 'smoke' : 'dev set'}: ${fmt(r.quick.length)} tasks)` : ''}`)
@@ -649,8 +654,11 @@ function report(results: Result[], cand: Tree, base: Tree, outDir: string, t0: n
   J.wall_s = wall
   J.spend = {own, apps: [...apps], baselineApps: [...madeNow], baselineMadeNow: spentBy(madeNow, bills), estimate: est, lastHour}
   J.results = results
+  J.coverageErrors = coverageErrors
   writeJson(join(outDir, 'report.json'), J)
   writeFileSync(join(outDir, 'REPORT.md'), L.join('\n') + '\n')
+  // Keep both reports as evidence, but never certify an unexecuted candidate.
+  if (coverageErrors.length) throw new Error(coverageErrors.join('; '))
   return L.join('\n')
 }
 function onecpu(r: Result, p: (s?: string) => void) {

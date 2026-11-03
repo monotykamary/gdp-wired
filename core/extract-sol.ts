@@ -30,7 +30,10 @@ import {allowed, watch} from './watch.ts'
 import {kindOfVar} from './extract-check.ts'
 import type {Sorts} from './extract-print.ts'
 import type {Model} from './extract-read.ts'
+import {substN} from './extract-ir.ts'
 import {Refusal, pathOf, readerRun, statedRefusal, type FileURL} from './extract-read.ts'
+import {concreteSolidity, SolidityHarnessRefusal, type SolidityHarness} from './sol-concrete.ts'
+export type {SolidityHarness} from './sol-concrete.ts'
 const refuse = (where: string, what: string): never => { throw new Refusal(where, what) }
 import {asset, type Harness, type SFunc, type SModule, type SParam, type SRec, type SS, type SType, type SX, type StepOptions, type StepRead, checkStep, node, readStep, stepNames} from './extract-step.ts'
 export {proveRule, proveSteps} from './dsl.ts'
@@ -39,6 +42,8 @@ export type SolOptions = StepOptions & {
   // The project root solc resolves imports from (by default the file's directory), and remappings
   // (`@openzeppelin/=lib/openzeppelin-contracts/`).
   root?: string, remappings?: string[],
+  // Prefer a repository mock; otherwise a constructor-only subclass or internal-library caller.
+  harness?: 'auto' | false | {file: string, entry?: string},
   // false: an address called is an account without code (the rule's steps are whole calls); by default it is any code,
   // which may call back before the call returns (core's re-entrancy: each such entry split at its call).
   reentrant?: boolean,
@@ -58,11 +63,11 @@ const U256: SType = {k: 'int', bits: 256, signed: false, mod: MOD}
 const env = () => (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
 
 // --- solc -------------------------------------------------------------------------------------------------------------
-export type Compiled = {main: number, ast: Map<number, Ast>, text: Map<number, string>, paths: Map<number, string>, contracts: Record<string, Record<string, {abi: unknown[], evm: {bytecode: {object: string}, deployedBytecode: {object: string}, methodIdentifiers: Record<string, string>}, storageLayout: {storage: {label: string, slot: string, offset: number, type: string}[], types: Record<string, {encoding: string, numberOfBytes: string, key?: string, value?: string, label: string}>}}>>}
-export function compile(file: string, o: SolOptions): Compiled {
+export type Compiled = {harness?: SolidityHarness, harnessMethods?: string[], main: number, ast: Map<number, Ast>, text: Map<number, string>, paths: Map<number, string>, contracts: Record<string, Record<string, {abi: unknown[], evm: {bytecode: {object: string}, deployedBytecode: {object: string}, methodIdentifiers: Record<string, string>}, storageLayout: {storage: {label: string, slot: string, offset: number, type: string}[], types: Record<string, {encoding: string, numberOfBytes: string, key?: string, value?: string, label: string}>}}>>}
+export function compile(file: string, o: SolOptions, extra: Record<string, string> = {}): Compiled {
   const cp = node<CP>('node:child_process'), fs = node<FS>('node:fs'), path = node<PathM>('node:path')
   const root = path.resolve(o.root ?? path.dirname(file)), rel = path.relative(root, path.resolve(file))
-  const input = {language: 'Solidity', sources: {[rel]: {content: fs.readFileSync(file, 'utf8')}},
+  const input = {language: 'Solidity', sources: {...Object.fromEntries(Object.entries(extra).map(([p, content]) => [p, {content}])), [rel]: {content: fs.readFileSync(file, 'utf8')}},
     settings: {remappings: o.remappings ?? [], optimizer: {enabled: false}, outputSelection: {'*': {'': ['ast'], '*': ['abi', 'evm.bytecode.object', 'evm.deployedBytecode.object', 'evm.methodIdentifiers', 'storageLayout']}}}}
   let out: string
   const solc = o.solc ?? env().GDP_SOLC ?? 'solc'
@@ -77,7 +82,7 @@ export function compile(file: string, o: SolOptions): Compiled {
     if (p === rel) main = s.id
     ast.set(s.id, s.ast); paths.set(s.id, p)
     const abs = p === rel ? path.resolve(file) : [path.resolve(root, p), path.resolve(root, 'node_modules', p)].find(x => fs.existsSync(x))
-    text.set(s.id, abs ? fs.readFileSync(abs, 'utf8') : '')
+    text.set(s.id, extra[p] ?? (abs ? fs.readFileSync(abs, 'utf8') : ''))
   }
   return {main, ast, text, paths, contracts: j.contracts}
 }
@@ -91,6 +96,7 @@ class Lower {
   readonly funcs: Record<string, SFunc> = {}
   readonly fields: Field[] = []
   readonly consts = new Map<number, SX>()
+  readonly ctorParams = new Map<number, SX>()
   minW = 2
   addrBits = 0
   get ADDR(): SType { return {k: 'int', bits: this.addrBits, signed: false} }
@@ -154,7 +160,7 @@ class Lower {
   }
 
   // The contract: its linearized bases, state, functions.
-  module(name: string | undefined): {mod: SModule, meta: SolMeta} {
+  module(name: string | undefined, selected?: string[]): {mod: SModule, meta: SolMeta} {
     const contracts = [...this.defs.values()].filter(d => d.nodeType === 'ContractDefinition')
     const main = this.c.ast.get(this.c.main)
     const own = contracts.filter(d => main && (main.nodes as Ast[]).includes(d))
@@ -179,10 +185,10 @@ class Lower {
       if (f.nodeType !== 'FunctionDefinition' || !f.body) continue
       if (f.kind === 'constructor') continue
       const id = this.fnId(f)
-      if (this.funcs[id]) continue
+      if (fns[id]) continue
       const pub = f.visibility === 'public' || f.visibility === 'external'
       const name = f.kind === 'receive' ? 'receive' : f.kind === 'fallback' ? 'fallback' : f.name as string
-      if (pub && f.stateMutability !== 'view' && f.stateMutability !== 'pure') {
+      if (pub && (selected ? selected.includes(name) : f.stateMutability !== 'view' && f.stateMutability !== 'pure')) {
         if (methods[name]) this.no(f, `${name}: an overloaded external function (the subset reads one of a name)`)
         methods[name] = `entry:${id}`
         const inputs = (f.parameters.parameters as Ast[]).map(x => x.typeDescriptions.typeString as string)
@@ -319,6 +325,30 @@ class Lower {
     }
     this.cur = {entry: true, payable: top?.stateMutability === 'payable', rets: [], tmp: 0}
     if (this.cur.payable) this.ether = true
+    // Bind constructor arguments derived-first, then execute bodies base-first. Each parameter has a fresh local:
+    // a base's `n` must neither read an unbound derived `n` nor overwrite it when the base mutates its own argument.
+    const used = new Set([...this.defs.values()].map(d => d.name).filter((n): n is string => typeof n === 'string'))
+    const callsCode = (a: unknown): boolean => {
+      if (Array.isArray(a)) return a.some(callsCode)
+      if (!a || typeof a !== 'object') return false
+      const n = a as Ast
+      return n.nodeType === 'FunctionCall' && n.kind !== 'typeConversion' || Object.values(n).some(v => v && typeof v === 'object' && callsCode(v))
+    }
+    for (const c of this.lin) {
+      const cf = ctorOf(c)
+      for (const [i, pa] of ((cf?.parameters.parameters ?? []) as Ast[]).entries()) {
+        const a = c === k ? undefined : given.get(c.id)?.[i]
+        if (c !== k && !a) this.no(cf!, `${c.name}'s constructor given no ${pa.name}`)
+        if (a && callsCode(a)) this.no(a, 'a constructor argument calling code (its initialization order is not supported)')
+        const x = a ? this.ex(a) : {e: 'var' as const, n: pa.name, p: this.at(pa)}
+        let name = `gdp$ctor$${pa.id}`
+        while (used.has(name)) name += '_'
+        used.add(name)
+        const to: SX = {e: 'var', n: name, p: this.at(pa)}
+        body.push({s: 'set', p: this.at(pa), to, x, t: this.ty(pa.typeDescriptions.typeString, pa)})
+        this.ctorParams.set(pa.id, to)
+      }
+    }
     for (const c of [...this.lin].reverse()) {
       for (const n of c.nodes as Ast[]) {
         if (n.nodeType !== 'VariableDeclaration' || n.constant) continue
@@ -328,7 +358,6 @@ class Lower {
       }
       const cf = ctorOf(c)
       if (!cf) continue
-      if (c !== k) (cf.parameters.parameters as Ast[]).forEach((pa, i) => { const a = given.get(c.id)?.[i]; if (!a) this.no(cf, `${c.name}'s constructor given no ${pa.name}`); body.push({s: 'set', p: this.at(cf), to: {e: 'var', n: pa.name, p: this.at(cf)}, x: this.ex(a!)}) })
       body.push(...this.withModifiers(cf, ((cf.modifiers ?? []) as Ast[]).filter(m => this.defs.get(m.modifierName.referencedDeclaration)?.nodeType === 'ModifierDefinition'), 0))
     }
     if (this.ether) body.splice(1, 0, {s: 'set', p, to: self('balance', p), x: this.cur.payable ? {e: 'var', n: 'msg.value', p} : {e: 'int', v: 0, p}})
@@ -339,6 +368,7 @@ class Lower {
     body.unshift({s: 'if', p, c: {e: 'cmp', op: '<', p, text: `${MOD} >= ${this.minW}`, x: W, y: {e: 'int', v: this.minW, p}}, then: [{s: 'fail', p, why: `the width ${MOD} (2^256) is at least ${this.minW}`}], else: []})
     const params: SParam[] = [{name: 'self', t: {k: 'rec', name: k.name}, self: true}, {name: MOD, t: {k: 'int'}}, {name: 'msg.sender', t: this.ADDR}, ...(this.cur.payable ? [{name: 'msg.value', t: U256}] : [])]
     for (const pa of (top?.parameters.parameters ?? []) as Ast[]) params.push({name: pa.name, t: this.ty(pa.typeDescriptions.typeString, pa)})
+    this.ctorParams.clear()
     return {id: '__init__', name: '__init__', p, span: [p, 0, 0], params, ret: {k: 'none'}, body, decorators: []}
   }
 
@@ -429,7 +459,7 @@ class Lower {
     if (n.nodeType === 'Identifier') {
       const f = this.fieldOf(n)
       if (f) return f.t.k === 'opaque' ? (/string|bytes/.test(f.sol) ? undefined : this.no(n, f.t.why)) : self(f.name, p)
-      return {e: 'var', n: n.name, p}
+      return this.ctorParams.get(n.referencedDeclaration) ?? {e: 'var', n: n.name, p}
     }
     if (n.nodeType === 'IndexAccess') {
       if (this.nestedOf(n)) { this.leftOut.add(`${this.text(n)} (${p}): a write to a mapping of mappings, left out`); return undefined }
@@ -481,6 +511,7 @@ class Lower {
         const d = this.defs.get(n.referencedDeclaration)
         if (n.name === 'msg' || n.name === 'block' || n.name === 'tx') return this.no(n, `${n.name} alone`)
         if (this.consts.has(n.referencedDeclaration)) return this.consts.get(n.referencedDeclaration)!
+        if (this.ctorParams.has(n.referencedDeclaration)) return this.ctorParams.get(n.referencedDeclaration)!
         const f = this.fieldOf(n)
         if (f) return f.t.k === 'opaque' ? {e: 'opaque', p, why: `${n.name}: ${f.t.why}`} : self(f.name, p)
         if (d?.nodeType === 'FunctionDefinition') return this.no(n, 'a function as a value')
@@ -621,21 +652,27 @@ const abiType = (ts: string) => (ts.startsWith('address') ? 'address' : ts.start
 
 // --- the front end ---------------------------------------------------------------------------------------------------
 export function readSolidity(file: string, o: SolOptions = {}, reenter = false, compiled?: Compiled): {mod: SModule, meta: SolMeta, c: Compiled} {
-  const c = compiled ?? compile(file, o)
+  const c = compiled ?? concreteSolidity(file, o, compile(file, o), compile)
   const L = new Lower(c, file, reenter)
-  const entry = typeof o.entry === 'string' ? o.entry : undefined
-  const {mod, meta} = L.module(entry)
-  return {mod, meta, c}
+  const entry = c.harness?.entry ?? (typeof o.entry === 'string' ? o.entry : undefined)
+  try {
+    const {mod, meta} = L.module(entry, o.methods ?? c.harnessMethods)
+    return {mod, meta, c}
+  } catch (e) {
+    if (e instanceof Refusal && c.harness) throw new SolidityHarnessRefusal(e, c.harness)
+    throw e
+  }
 }
 
-export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Extraction & {read?: StepRead} {
+export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Extraction & {read?: StepRead, harness?: SolidityHarness} {
   const file = pathOf(at)
   let r: ReturnType<typeof readSolidity>
   try { r = readSolidity(file, opts) } catch (e) {
-    if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: []}
+    if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes: e instanceof SolidityHarnessRefusal ? e.harness.notes : [], ...(e instanceof SolidityHarnessRefusal ? {harness: e.harness} : {})}
     throw e
   }
   const {mod, meta, c} = r
+  const info = c.harness ? {harness: c.harness} : {}
   const out = c.contracts[meta.source]?.[meta.contract]
   const harness = (read: StepRead): Harness => {
     read.arms.length = 0
@@ -655,12 +692,16 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
   const havoc = Object.fromEntries(meta.fields.filter(f => meta.nested.includes(f.name)).map(f => [f.name, (f.t as {val: SType}).val.k === 'bool' ? 'bool' : 'int']))
   const o: StepOptions = {...opts, methods, share: opts.share ?? true, strict: true, onError: 'discard', entry: meta.contract, check: {probes: 'writes', ...opts.check}, answers: {...havoc, ...opts.answers}}
   // extractStep's run, the width's param fixed for the check's own draws (2^52: the proof is for every width)
-  const notes: string[] = []
+  const notes: string[] = [...c.harness?.notes ?? []]
   let read: StepRead
   try { read = readStep(mod, o) } catch (e) {
-    if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
+    if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes, ...info}
     throw e
   }
+  // Constructor argument bounds name the state width; before an object exists that is its initial parameter.
+  // Keep the bound, but bind it in the parameter-only precondition rather than leaving a state reference there.
+  const widthInit = read.model.init[MOD]
+  if (widthInit?.s === 'num') read.model.pre = substN(read.model.pre, MOD, widthInit.e)
   const w = read.model.params.find(v => v.name.startsWith(MOD))
   if (w) (w as {derived?: unknown}).derived = {op: 'const', v: CHECK_W}
   // (an unsigned value is a natural, wrapped where it would go below 0: its state and its mappings' cells naturals, by
@@ -670,11 +711,11 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
   o.domains = {...nats(read), ...opts.domains}
   const unsigned = Object.fromEntries([...read.model.inputs, ...read.model.params].filter(v => read.ints[v.name] && !read.ints[v.name]!.signed).map(v => [v.name, 'nat' as const]))
   const x = fromModel(read.model, mod.file, {...unsigned, ...o.domains}, notes, (rule, sorts) => checkStep(harness(read), read, rule, sorts, o))
-  if (!x.ok) return {...x, read, names: stepNames(read)}
+  if (!x.ok) return {...x, ...info, read, names: stepNames(read)}
   // (a run that breaks a law, from the prover at any width: replayed on the code at the check's before it is shown)
   if (!meta.calls || opts.reentrant === false) {
     const rp = replayer({rule: x.rule!, sorts: x.sorts!, model: read.model, names: stepNames(read), leaves: read.leaves, hello: (harness(read).hello as {sol: unknown}).sol, ctor: read.ctor, replay: compileReplay(opts), opts})
-    return {...x, read, names: stepNames(read), replay: (run: Run, law?: unknown) => rp(run, law)}
+    return {...x, ...info, read, names: stepNames(read), replay: (run: Run, law?: unknown) => rp(run, law)}
   }
   // The rule the laws are proven of: every call into other code a point where any of the contract's calls may run.
   let re: ReturnType<typeof readSolidity>, rread: StepRead
@@ -682,13 +723,15 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
     re = readSolidity(file, opts, true, c)
     rread = readStep(re.mod, {...o, methods: [...methods, ...re.meta.resumes]})
   } catch (e) {
-    if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: `re-entrancy: ${e.what}`}], notes: [...x.notes]}
+    if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: `re-entrancy: ${e.what}`}], notes: [...x.notes], ...info}
     throw e
   }
+  const reWidthInit = rread.model.init[MOD]
+  if (reWidthInit?.s === 'num') rread.model.pre = substN(rread.model.pre, MOD, reWidthInit.e)
   const rw = rread.model.params.find(v => v.name.startsWith(MOD))
   if (rw) (rw as {derived?: unknown}).derived = {op: 'const', v: CHECK_W}
   rread.model.notes.push(...boundaryNotes(meta), `re-entrancy: each call into other code (${re.meta.resumes.map(r => r.replace(/\$resume$/, '')).join(', ')}) is two steps, any of the contract's calls between them (a callee that calls back); a law about the state holds where no call is pending (pending$ == 0)`)
-  const rnotes: string[] = []
+  const rnotes: string[] = [...c.harness?.notes ?? []]
   // The check of the re-entrant rule: its own random runs (calls inside calls, by any address) replayed on the code,
   // every address an Agent that makes the run's calls from inside the call it receives.
   let replays: ReturnType<typeof replayer> | undefined
@@ -710,7 +753,7 @@ export function extractSolidity(at: string | FileURL, opts: SolOptions = {}): Ex
     return ev
   })
   if (rx.ok) rx.notes.push(`re-entrancy: checked by ${runs.runs} runs of the rule replayed on the code (${runs.txs} transactions, ${runs.nested} calls made from inside another, ${runs.steps} steps), an Agent at every address making each call from inside the one it receives`)
-  return {...rx, read: rread, names: stepNames(rread), quiet: 'pending$', ...(replays ? {replay: (run: Run, law?: unknown) => replays!(run, law)} : {})}
+  return {...rx, ...info, read: rread, names: stepNames(rread), quiet: 'pending$', ...(replays ? {replay: (run: Run, law?: unknown) => replays!(run, law)} : {})}
 }
 
 // --- re-entrant runs replayed on the code ---------------------------------------------------------------------------------

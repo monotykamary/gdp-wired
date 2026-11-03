@@ -314,5 +314,62 @@
     "policy": "Prior approval alone must not skip user consent for an unauthenticated public client identity.",
     "fixEvidence": "https://github.com/doorkeeper-gem/doorkeeper/commit/313af27391d974d314c1869828ca80dc1ae2678c",
     "selection": "Stateful library authorization, workflow or ledger logic; reader refusal remains in the denominator."
+  },
+  {
+    "id": "allauth-inactive-token",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-qhmc-3mvr-f2j4",
+    "cwes": [
+      "CWE-613"
+    ],
+    "severity": "medium",
+    "cve": "CVE-2025-65430",
+    "repo": "pennersr/django-allauth",
+    "before": "6ff29ebd9cf1024f88f672577e77b287807fbe5d",
+    "after": "c54edf947c5a1c8c4ff3cddb75c86000ecb2507d",
+    "path": "allauth/idp/oidc/internal/oauthlib/request_validator.py",
+    "entry": "OAuthLibRequestValidator",
+    "methods": [
+      "validate_bearer_token",
+      "validate_refresh_token"
+    ],
+    "policy": "An inactive user must not be accepted by access-token or refresh-token validation.",
+    "fixEvidence": "https://github.com/pennersr/django-allauth/commit/c54edf947c5a1c8c4ff3cddb75c86000ecb2507d",
+    "selection": "Published fixed framework-handler policy bug; original-code refusal remains in the denominator."
+  },
+  {
+    "id": "flask-oauth-freshness",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-97r5-pg8x-p63p",
+    "cwes": [
+      "CWE-287"
+    ],
+    "severity": "medium",
+    "repo": "pallets-eco/flask-security",
+    "before": "18808e1e642c4466f8daa46a68d4e1f77a6d1713",
+    "after": "8e69f3a94a463c0e8ddc46e31743717559fd8d48",
+    "path": "flask_security/oauth_glue.py",
+    "entry": "oauth_verify_response",
+    "policy": "The session freshness timestamp advances only when the OAuth identity belongs to the current session user.",
+    "fixEvidence": "https://github.com/pallets-eco/flask-security/commit/8e69f3a94a463c0e8ddc46e31743717559fd8d48",
+    "selection": "Published fixed framework-handler policy bug; original-code refusal remains in the denominator."
+  },
+  {
+    "id": "mlflow-trace-authorization",
+    "set": "published",
+    "advisory": "https://github.com/advisories/GHSA-2cm6-r77w-6g96",
+    "cwes": [
+      "CWE-284"
+    ],
+    "severity": "high",
+    "cve": "CVE-2026-8147",
+    "repo": "mlflow/mlflow",
+    "before": "5a73054b979c1927a2715bc58553f311cdbb7eeb",
+    "after": "f9b1eb510478570609ef451984a255775aa4b937",
+    "path": "mlflow/server/auth/__init__.py",
+    "entry": "_before_request",
+    "policy": "A trace API operation requires the caller's permission on the owning experiment.",
+    "fixEvidence": "https://github.com/mlflow/mlflow/commit/f9b1eb510478570609ef451984a255775aa4b937",
+    "selection": "Published fixed framework-handler policy bug; original-code refusal remains in the denominator."
   }
 ]

@@ -55,6 +55,9 @@ Two routes reach the Model:
   and TypeScript (`core/extract-shapes.ts`) execute into the Model themselves. Each implements its own `CodeSide`:
   `core/extract-go-check.ts` builds a generated harness with `go build -cover` and calls `drive`.
 
+Solidity deployment contexts, constructor-only subclasses and library callers are described in
+[Solidity harnesses](SOLIDITY.md); the original source stays unchanged and the chosen context is reported.
+
 ## The differential check
 
 `drive(m, r, sorts, code, opts)` in `core/extract-check.ts` holds a reader to the code it read. On the rule's side,

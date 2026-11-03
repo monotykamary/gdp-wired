@@ -122,6 +122,50 @@ test('quick-bar CLI waits before demand, read-only CLI bypasses slots, and exits
   } finally { await Promise.all(children.map(stop)); a.release(); b.release(); rmSync(home, {recursive: true, force: true}) }
 }, 30_000)
 
+test('report CLI rejects zero candidate coverage per view and preserves the failed report', async () => {
+  const dir = temp(), bin = join(dir, 'bin'), children: Child[] = []
+  mkdirSync(bin)
+  writeFileSync(join(bin, 'git'), `#!/bin/sh\nprintf '%s\\n' '${dir}/repo/.git'\n`, {mode: 0o755})
+  writeFileSync(join(bin, 'modal'), "#!/bin/sh\nprintf '[]\\n'\n", {mode: 0o755})
+  const env = {...process.env, PATH: `${bin}:${process.env.PATH}`, GDPW_BAR_DIR: join(dir, 'bar')}
+  const empty = join(dir, 'empty'), solved = join(dir, 'solved'), unsolved = join(dir, 'unsolved')
+  const candIts = join(dir, 'cand-its'), baseIts = join(dir, 'base-its')
+  for (const d of [empty, solved, unsolved, candIts, baseIts]) mkdirSync(d)
+  for (const [d, outcome] of [[solved, 'proven'], [unsolved, 'unknown']])
+    writeFileSync(join(d!, 'g332__fixture.log'), JSON.stringify({goal: 'fixture', outcome, searchMs: 1, leaves: 0, splits: 0}) + '\n')
+  const row = (tool: string) => JSON.stringify({tool, task: 'fixture', answer: 'terminates', seconds: 1}) + '\n'
+  writeFileSync(join(candIts, 'results.jsonl'), row('gdp'))
+  writeFileSync(join(baseIts, 'results.jsonl'), row('gdp') + row('gdp-scc'))
+  const cases = [
+    {name: 'empty-candidate', group: 'g332', cand: empty, base: solved, error: 'g332'},
+    {name: 'missing-directory', group: 'g332', cand: join(dir, 'absent'), base: solved, error: 'g332'},
+    {name: 'later-baseline', group: 'g332', cand: empty, base: `${empty},${solved}`, error: 'g332'},
+    {name: 'empty-both', group: 'g332', cand: empty, base: empty},
+    {name: 'candidate-only', group: 'g332', cand: solved, base: ''},
+    {name: 'unsolved-is-coverage', group: 'g332', cand: unsolved, base: solved},
+    {name: 'second-view-empty', group: 'its', cand: candIts, base: baseIts, error: 'its-scc'},
+  ]
+  try {
+    for (const c of cases) {
+      const out = join(dir, c.name), message = `${c.error}: zero candidate goals against a nonempty baseline`
+      const p = start([process.execPath, bar, 'compare', '--group', c.group, '--cand', c.cand, '--base', c.base,
+        '--cand-tree', dir, '--base-tree', dir, '--out', out], dir, env)
+      children.push(p)
+      const r = await result(p)
+      expect(r.code, r.err).toBe(c.error ? 1 : 0)
+      const report = JSON.parse(readFileSync(join(out, 'report.json'), 'utf8'))
+      expect(report.coverageErrors).toEqual(c.error ? [message] : [])
+      if (c.error) {
+        expect(r.err).toContain(message)
+        expect(readFileSync(join(out, 'REPORT.md'), 'utf8')).toContain(`**ERROR: ${message}.**`)
+        const replay = start([process.execPath, bar, 'report', out], dir, env); children.push(replay)
+        const again = await result(replay)
+        expect(again.code).toBe(1); expect(again.err).toContain(message)
+      }
+    }
+  } finally { await Promise.all(children.map(stop)); rmSync(dir, {recursive: true, force: true}) }
+}, 30_000)
+
 test('one explicit-boat driver preserves arguments without importing or re-execing Modal', async () => {
   const dir = temp(), door = join(dir, 'supercomputer'), runners = join(dir, 'compare')
   mkdirSync(door); mkdirSync(runners)

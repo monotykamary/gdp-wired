@@ -73,18 +73,24 @@ is deliberately written for this lane and must be reported separately from upstr
 
 ## Measured coverage
 
-Refreshed on 2026-11-03 at `483d849` (main `3d7bae1`), the unchanged seed contains **15 published
-fixed advisories plus one upstream Juice Shop target**. Strict CLI recall remains **0/15 published and
-0/1 training**. All 31 original revisions were fetched and source-hash checked against the earlier
-measurement; all were refused, with no pipeline errors. Extraction coverage remains **0/15**, not a
-hidden success or evidence that the programs are secure. Generic Python inheritance and source-coverage
-improvements did not eliminate these targets' unsupported abstract contracts, mixins, mutable metadata
-or missing deployment configuration. The original expanded measurement was on `cae3559` / `6bdeb95`.
+The complete-corpus baseline on 2026-11-03 is tree `7db037f` (main `927a521`): **18 published,
+fixed advisories plus one upstream Juice Shop target**. Strict CLI recall is **0/18 published and
+0/1 training**. All 37 original revisions were fetched and hash-checked against retained evidence;
+all baseline extractions refused, with no pipeline errors. Extraction coverage is **0/18**, not a
+hidden success or evidence that the programs are secure. The three additions are django-allauth
+inactive tokens, Flask-Security OAuth freshness and MLflow trace authorization.
+
+A separate six-case Solidity experiment uses the repository's concrete mocks, or an added
+constructor-only subclass/internal-library caller, with the original bodies unchanged. All 12
+original hashes verify and all 12 deployment contexts are recorded. The vulnerable Initializable
+revision now extracts; the other 11 sides refuse subsequent subset boundaries. Coverage on both
+sides remains **0/6** and strict findings **0/6**. This subset experiment is not a full-corpus rerun.
+See `solidity-harness-measurement.json` and [the explicit harness scope](../../docs/SOLIDITY.md).
 
 See [RESULTS.md](RESULTS.md) for per-case blockers and `measurement.json` for exact source hashes.
 A separate original-code OAuthlib runtime replay succeeds only on the vulnerable revision. It is
 **not** a CLI/prover discovery and does not increase recall. `oauth-client-replay.py` retains that probe.
-No intended policy could be attached to a successfully extracted target in this run.
+Neither the baseline nor the harness subset has produced a reviewed policy refutation with an original replay and a checked fixed counterpart.
 
 Trust and measurement references: README.md; docs/ARCHITECTURE.md (frontends versus
 source); research/ROADMAP.md §5–6; compare/tip/README.md (translation and independent

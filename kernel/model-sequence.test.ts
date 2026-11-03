@@ -1,7 +1,8 @@
 import {expect, test} from 'bun:test'
 import {type C, type E, type Law, type Machine, atMost, n, x} from '../core/machine.ts'
 import {check, type Goal} from './kernel.ts'
-import {clock, decideLaw, grow, modelInstances, withStrict} from './prove.ts'
+import {clock, decideLaw, grow, modelInstances, proveSetFast, withStrict} from './prove.ts'
+import {Cond, nat, proveDecision, proveRule, rule} from '../core/dsl.ts'
 import {decideHook} from './epr.ts'
 import {REFUTED} from './cdcl.ts'
 import {modelSequence} from './model-sequence.ts'
@@ -89,5 +90,67 @@ test('strict decisions do not answer from a model broken only at another sort', 
     const out = withStrict(() => decideLaw(machine, [...laws, target], laws.length))
     expect(models).toBeGreaterThan(0)
     expect(out).toBeUndefined()
+  } finally { decideHook.on = before }
+})
+
+for (const confirmed of [false, true]) test(confirmed ? 'confirmed strict models remain reusable by both callers' : 'ordinary cached models remain unavailable to strict decisions', () => {
+  const target: Law = {name: `cache origin target ${confirmed}`, holds: {op: '=', a: x('ok'), b: n(0)}}
+  const machine: Machine = {...m, name: `cache origin model ${confirmed}`, state: {ok: n(0)}, step: {state: {ok: n(1)}}, pre: {op: '<', a: n(0), b: x('size')}}
+  const set = [target, ...laws], before = decideHook.on
+  let models = 0
+  decideHook.on = (g, d, ms, shaped) => {
+    before?.(g, d, ms, shaped)
+    if (g.name !== `${target.name} @step` || !('sat' in d) || !d.sat) return
+    models++
+    for (const k of Object.keys(d.witness)) delete d.witness[k]
+    Object.assign(d.witness, witness, {'R[Src[p:1]:1]': 0, 'Src[node:1]': confirmed ? 0 : 11, ok: 0})
+  }
+  try {
+    const first = confirmed ? withStrict(() => decideLaw(machine, set, 0)) : proveSetFast(machine, set)
+    expect(first?.proven).toBe(false)
+    const asked = models
+    expect(asked).toBeGreaterThan(0)
+    // Ordinary callers keep their old cache policy, including unconfirmed models.
+    expect(proveSetFast(machine, set).proven).toBe(false)
+    expect(models).toBe(asked)
+    const strict = withStrict(() => decideLaw(machine, set, 0))
+    if (confirmed) {
+      expect(strict).toMatchObject({proven: false, stuck: 'sat'})
+      expect(models).toBe(asked)
+    } else {
+      expect(strict).toBeUndefined()
+      expect(models).toBeGreaterThan(asked)
+    }
+  } finally { decideHook.on = before }
+})
+
+test('public fast proveRule cache does not contaminate strict decisions', () => {
+  const target: Law = {name: 'public cache target', holds: {op: '=', a: x('ok'), b: n(0)}}
+  // The sampled parameter range cannot enter this rule, so the public prover reaches its symbolic path.
+  const r = rule('public cache origin').params({size: nat, packets: nat}).inputs({p: nat, node: nat})
+    .state({ok: 0}).maps({Src: 0, R: 0, S: 0, T: 0}).pre(({size}) => size.gt(100))
+    .assume(() => new Cond(m.assume!)).step(() => ({ok: 1}))
+  const set = [target, ...laws], before = decideHook.on
+  let models = 0
+  decideHook.on = (g, d, ms, shaped) => {
+    before?.(g, d, ms, shaped)
+    if (g.name !== `${target.name} @step` || !('sat' in d) || !d.sat) return
+    models++
+    for (const k of Object.keys(d.witness)) delete d.witness[k]
+    Object.assign(d.witness, witness, {size: 1000, 'Src[node:1]': 1001, 'R[Src[p:1]:1]': 0, ok: 0})
+  }
+  try {
+    const raw = proveRule(r as never, set, {fast: true, search: false})
+    expect(raw).toMatchObject({proven: false, checked: false, stuck: 'sat', witness: {'Src[node:1]': 1001}})
+    expect(raw.run).toBeUndefined()
+    const asked = models
+    expect(asked).toBeGreaterThan(0)
+    expect(proveRule(r as never, set, {fast: true, search: false}).witness).toEqual(raw.witness)
+    expect(models).toBe(asked)
+    // A plain public decision uses grow, not the law-decision memo, and remains independently checked.
+    expect(proveDecision(r.decide('public cache independent decision', () => [], ({node}) => node.atMost(node)))).toMatchObject({proven: true, checked: true})
+    const all = [...r.kindLaws(), ...set]
+    expect(withStrict(() => decideLaw(r.withSumsOf(set).machine, all, all.indexOf(target)))).toBeUndefined()
+    expect(models).toBeGreaterThan(asked)
   } finally { decideHook.on = before }
 })

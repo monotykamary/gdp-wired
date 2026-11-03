@@ -94,6 +94,27 @@ test('harness snapshots isolate rows, prototype keys and duplicate creates', () 
   } finally { rmSync(dir, {recursive: true, force: true}) }
 })
 
+test('query diagnostics: report schema primary keys and supplied where fields', () => {
+  const dir = mkdtempSync(`${tmpdir()}/gdp-orm-query-`)
+  try {
+    writeFileSync(`${dir}/schema.prisma`, 'model Account {\n slug String @id\n amount Int\n}')
+    writeFileSync(`${dir}/entity.ts`, readFileSync(new URL('./orm-fixtures/entity.ts', import.meta.url), 'utf8').replace('id!', 'slug!'))
+    for (const kind of ['prisma', 'typeorm'] as const) for (const op of kind === 'prisma' ? ['read', 'update'] : ['read']) {
+      for (const [where, received] of [['{}', '(none)'], ['{amount: 1}', '"amount"'], ['{slug: key, amount: 1}', '"slug", "amount"']]) {
+        const body = op === 'update' ? `await db.account.update({where: ${where}, data: {amount: 1}})`
+          : `const row = await ${kind === 'prisma' ? `db.account.findUnique({where: ${where}})` : `db.findOneBy(${where})`}; return row.amount`
+        const handler = `${dir}/handler.ts`
+        writeFileSync(handler, `export async function handler(db: any, key: string) { ${body} }`)
+        const x = extract(handler, {entry: 'handler', orm: {schema: kind === 'prisma' ? 'schema.prisma' : 'entity.ts', model: 'Account', kind}})
+        expect(x.ok).toBe(false)
+        expect(x.evidence).toBeUndefined()
+        expect(x.refusals[0]!.what).toContain('primary key "slug"')
+        expect(x.refusals[0]!.what).toContain(`received where fields: ${received}`)
+      }
+    }
+  } finally { rmSync(dir, {recursive: true, force: true}) }
+})
+
 test('non-key updates refuse', () => {
   const x = extract(file, {entry: 'bad', orm})
   expect(x.ok).toBe(false)

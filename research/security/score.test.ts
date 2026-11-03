@@ -37,7 +37,7 @@ type Seed = {id: string, set: string, advisory: string, repo: string, before: st
 const seeds = JSON.parse(readFileSync(new URL('./cases.json', import.meta.url), 'utf8')) as Seed[]
 test('published recall seeds are distinct pinned policy cases with explicit fixes', () => {
   const published = seeds.filter(c => c.set === 'published')
-  expect(published.length).toBeGreaterThanOrEqual(15)
+  expect(published.length).toBeGreaterThanOrEqual(18)
   expect(new Set(seeds.map(c => c.id)).size).toBe(seeds.length)
   expect(new Set(published.map(c => c.advisory)).size).toBe(published.length)
   const cves = published.flatMap(c => c.cve ? [c.cve] : [])
@@ -77,4 +77,36 @@ test('published measurement covers both exact revisions without hiding refusals'
     const rows = m.rows.filter(r => r.set === set)
     expect(m[set]).toEqual({found: rows.filter(r => r.found).length, total: rows.length})
   }
+})
+
+test('Solidity harness recall preserves original pairs and reports deployment assumptions, not findings', () => {
+  type Side = {version: string, sha: string, sourceSha256: string, originalUnchanged: boolean, status: string, harness: {target: {source: string, contract: string}, source: string, entry: string, constructors: string[], overrides: string[], notes: string[]}}
+  type Row = {id: string, found: boolean, sides: Side[]}
+  const m = JSON.parse(readFileSync(new URL('./solidity-harness-measurement.json', import.meta.url), 'utf8')) as {frontendSnapshot: string, rows: Row[], published: {found: number, total: number}, extractionCoverage: {readable: number, total: number}, sideCoverage: {readable: number, total: number}, originalsVerified: number}
+  const baseline = JSON.parse(readFileSync(new URL('./measurement.json', import.meta.url), 'utf8')) as {rows: {id: string, sides: {version: string, sourceSha256: string}[]}[]}
+  expect(m.frontendSnapshot).toMatch(/^[a-f0-9]{12,64}$/)
+  expect(new Set(m.rows.map(r => r.id)).size).toBe(6)
+  for (const r of m.rows) {
+    const c = seeds.find(c => c.id === r.id)!
+    expect(c.set).toBe('published')
+    expect(r.found).toBe(false)
+    expect(r.sides.map(s => s.version)).toEqual(['vulnerable', 'fixed'])
+    for (const s of r.sides) {
+      expect(s.sha).toBe(s.version === 'vulnerable' ? c.before : c.after!)
+      expect(s.sourceSha256).toBe(baseline.rows.find(b => b.id === r.id)!.sides.find(b => b.version === s.version)!.sourceSha256)
+      expect(s.originalUnchanged).toBe(true)
+      expect(['refused', 'needs-reviewed-policy-and-original-replay']).toContain(s.status)
+      expect(s.harness.target).toEqual({source: c.path, contract: c.entry})
+      expect(s.harness.source).toBeTruthy()
+      expect(s.harness.entry).toBeTruthy()
+      expect(s.harness.notes.join('\n')).toContain('not every possible subclass')
+      expect(Array.isArray(s.harness.constructors)).toBe(true)
+      expect(Array.isArray(s.harness.overrides)).toBe(true)
+    }
+  }
+  const readable = (s: Side) => s.status === 'needs-reviewed-policy-and-original-replay'
+  expect(m.published).toEqual({found: 0, total: m.rows.length})
+  expect(m.extractionCoverage).toEqual({readable: m.rows.filter(r => r.sides.every(readable)).length, total: m.rows.length})
+  expect(m.sideCoverage).toEqual({readable: m.rows.flatMap(r => r.sides).filter(readable).length, total: 2 * m.rows.length})
+  expect(m.originalsVerified).toBe(2 * m.rows.length)
 })
