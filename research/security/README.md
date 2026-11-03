@@ -124,6 +124,11 @@ The same source-control module covers repeated policy names, including identical
 conflicting expressions in both declaration orders. Ambiguous declarations stay unread
 rather than selecting a favorable proof; native execution alone does not clear ambiguity.
 
+`constructor-argument.test.ts` adds a separate finite argument-sensitive control: the
+original boolean constructor argument actually enables enforcement. Flipping only that
+argument changes the native outcome for unchanged calls and source bytes. This does not
+upgrade the older unused-argument fixtures into a general forwarding guarantee.
+
 ## Measured coverage
 
 The complete-corpus baseline on 2026-11-03 is tree `7db037f` (main `927a521`): **18 published,
