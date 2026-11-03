@@ -23,6 +23,52 @@ const genericCrate = (code: string) => {
   return dir
 }
 
+t('Rust primitive extrema: every integer width replays its native associated min and max', () => {
+  const types = ['u8', 'u16', 'u32', 'u64', 'u128', 'usize', 'i8', 'i16', 'i32', 'i64', 'i128', 'isize']
+  const dir = genericCrate(`
+    pub struct Meter { ${types.flatMap(t => [`lo_${t}: ${t}`, `hi_${t}: ${t}`]).join(',')} }
+    impl Meter {
+      pub fn new() -> Self { Self { ${types.flatMap(t => [`lo_${t}: 0`, `hi_${t}: 0`]).join(',')} } }
+      ${types.map(t => `pub fn choose_${t}(&mut self, a: ${t}, b: ${t}) { self.lo_${t} = ${t}::min(a, b); self.hi_${t} = ${t}::max(a, b); }`).join('\n')}
+    }
+  `)
+  const x = ok(extractRust(dir, {entry: 'Meter', check: budget, strict: true}))
+  expect(x.notes.join('\n')).not.toMatch(/answered|left out/)
+  expect(x.evidence!.requests).toBeGreaterThan(0)
+}, 300_000)
+
+t('Rust primitive extrema: a same-named user type keeps the declared call', () => {
+  const dir = genericCrate(`
+    #[allow(non_camel_case_types)] pub struct usize;
+    impl usize { pub fn min(_a: u8, b: u8) -> u8 { b } }
+    pub struct Meter { value: u8 }
+    impl Meter {
+      pub fn new() -> Self { Self { value: 0 } }
+      pub fn choose(&mut self, a: u8, b: u8) { self.value = usize::min(a, b); }
+    }
+  `)
+  const body = JSON.stringify(readRust(dir, ['Meter']).funcs['Meter::choose'])
+  expect(body).not.toContain('"builtin"')
+  expect(body).toContain('usize::min')
+}, 300_000)
+
+t('Rust primitive extrema: aliases, modules and glob imports do not authorize primitive lowering', () => {
+  for (const declaration of [
+    'type usize = u8;',
+    'mod custom { pub struct Limit; } use custom::Limit as usize;',
+    'mod usize { pub fn min(a: u8, _b: u8) -> u8 { a } }',
+    'mod custom {} use custom::*;',
+    'extern crate custom as usize;',
+    '#![no_implicit_prelude]',
+  ]) {
+    const dir = genericCrate(`${declaration}
+      pub struct Meter { value: u8 }
+      impl Meter { pub fn choose(&mut self, a: u8, b: u8) { self.value = usize::min(a, b); } }
+    `)
+    expect(JSON.stringify(readRust(dir, ['Meter']).funcs['Meter::choose'])).not.toContain('"builtin"')
+  }
+}, 120_000)
+
 t('Rust lifetime parameters do not masquerade as type or const parameters', () => {
   const dir = genericCrate(`
     pub struct Borrowed<'a> { value: &'a u8 }

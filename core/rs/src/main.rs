@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 use syn::spanned::Spanned;
 use syn::{BinOp, Expr, Fields, ImplItem, Item, Lit, Pat, ReturnType, Stmt, Type, UnOp};
 
-struct File { rel: String, items: Vec<Item>, module: String }
+struct File { rel: String, items: Vec<Item>, module: String, no_implicit_prelude: bool }
 #[derive(Clone, Default)]
 struct Enum { values: Vec<String>, discs: Vec<i64>, data: bool }
 
@@ -73,6 +73,7 @@ impl Reader {
     if deep > MAX_DEPTH { eprintln!("gdp: refused: {}: the source nests {deep} brackets deep (past {MAX_DEPTH})", rel.display()); std::process::exit(3) }
     let f = syn::parse_file(&src).map_err(|e| format!("{}: {e}", rel.display()))?;
     let dir: PathBuf = if rel.file_name().map(|n| n == "lib.rs" || n == "main.rs" || n == "mod.rs").unwrap_or(false) { rel.parent().unwrap().to_path_buf() } else { rel.with_extension("") };
+    let no_implicit_prelude = f.attrs.iter().any(|a| a.path().is_ident("no_implicit_prelude"));
     let mut items = vec![];
     for it in f.items {
       if let Item::Mod(m) = &it {
@@ -80,7 +81,7 @@ impl Reader {
         let name = m.ident.to_string();
         let sub = format!("{module}::{name}");
         match &m.content {
-          Some((_, inner)) => { out.push(File { rel: rel.display().to_string(), items: inner.clone(), module: sub }); }
+          Some((_, inner)) => { out.push(File { rel: rel.display().to_string(), items: inner.clone(), module: sub, no_implicit_prelude: no_implicit_prelude || m.attrs.iter().any(|a| a.path().is_ident("no_implicit_prelude")) }); }
           None => {
             let a = dir.join(format!("{name}.rs"));
             let b = dir.join(&name).join("mod.rs");
@@ -92,7 +93,7 @@ impl Reader {
       }
       items.push(it);
     }
-    out.push(File { rel: rel.display().to_string(), items, module: module.to_string() });
+    out.push(File { rel: rel.display().to_string(), items, module: module.to_string(), no_implicit_prelude });
     Ok(())
   }
   fn index(&mut self) {
@@ -560,6 +561,31 @@ impl Reader {
     for a in xs { let (mut s, v) = self.expr(a); pre.append(&mut s); out.push(if is_place(&v) { json!({"e": "copy", "x": v, "p": v["p"]}) } else { v }) }
     (pre, out)
   }
+  // Only syntactically unshadowed primitive names enter this shortcut. Imports
+  // with unknown exports and a disabled Ord prelude stay on ordinary resolution.
+  fn primitive_integer(&self, name: &str) -> bool {
+    if !["u8", "u16", "u32", "u64", "u128", "usize", "i8", "i16", "i32", "i64", "i128", "isize"].contains(&name) { return false }
+    fn imported(t: &syn::UseTree, name: &str, parent: &str) -> bool {
+      match t {
+        syn::UseTree::Path(p) => imported(&p.tree, name, &p.ident.to_string()),
+        syn::UseTree::Name(n) => n.ident == name || (n.ident == "self" && parent == name),
+        syn::UseTree::Rename(r) => r.rename == name,
+        syn::UseTree::Group(g) => g.items.iter().any(|t| imported(t, name, parent)),
+        syn::UseTree::Glob(_) => true,
+      }
+    }
+    if self.structs.contains_key(name) || self.enums.contains_key(name) || self.files.iter().any(|f| f.no_implicit_prelude || f.module.split("::").any(|n| n == name)) { return false }
+    !self.files.iter().filter(|f| f.rel == self.file).any(|f| f.items.iter().any(|it| match it {
+      Item::Type(t) => t.ident == name,
+      Item::Union(u) => u.ident == name,
+      Item::Trait(t) => t.ident == name,
+      Item::TraitAlias(t) => t.ident == name,
+      Item::Mod(m) => m.ident == name,
+      Item::Use(u) => imported(&u.tree, name, ""),
+      Item::ExternCrate(e) => e.rename.as_ref().map(|(_, n)| n == name).unwrap_or(e.ident == name),
+      _ => false,
+    }))
+  }
   fn call(&mut self, c: &syn::ExprCall, p: &str, t: &str) -> (Vec<Value>, Value) {
     let (mut pre, args) = self.args(&c.args);
     let f = match &*c.func { Expr::Path(x) => x.path.clone(), _ => { let (mut fp, fv) = self.expr(&c.func); pre.append(&mut fp); return (pre, json!({"e": "call", "f": fv, "args": args, "kw": [], "p": p, "text": t})) } };
@@ -569,6 +595,9 @@ impl Reader {
     let k = |kind: &str| json!({"e": kind, "x": a0, "p": p});
     let v = match (segs.len(), name) {
       (1, "Some") => k("some"), (1, "Ok") => k("ok"), (1, "Err") => k("err"),
+      (2, "min") | (2, "max") if args.len() == 2 && self.primitive_integer(&segs[0]) &&
+        matches!(&*c.func, Expr::Path(x) if x.qself.is_none()) && f.segments.iter().all(|s| matches!(s.arguments, syn::PathArguments::None)) =>
+        json!({"e": "call", "f": {"e": "builtin", "n": name, "p": p}, "args": args, "kw": [], "p": p, "text": t}),
       (_, "max") | (_, "min") if segs.iter().any(|s| s == "cmp") || (segs.len() == 1 && !self.free.contains_key(name)) => json!({"e": "call", "f": {"e": "builtin", "n": name, "p": p}, "args": args, "kw": [], "p": p, "text": t}),
       (2, _) if segs[0] == "Instant" && name == "now" => json!({"e": "clock", "p": p}),
       // An atomic's or a lock's constructor: the value it holds (read and written as the field it is).
