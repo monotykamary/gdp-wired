@@ -54,6 +54,10 @@ fn has_type_or_const_params(g: &syn::Generics) -> bool {
 fn last_ident(p: &syn::Path) -> String { p.segments.last().map(|s| s.ident.to_string()).unwrap_or_default() }
 fn path_str(p: &syn::Path) -> String { p.segments.iter().map(|s| s.ident.to_string()).collect::<Vec<_>>().join("::") }
 fn is_place(v: &Value) -> bool { matches!(v["e"].as_str(), Some("var") | Some("get") | Some("idx")) }
+const ORDERINGS: [&str; 5] = ["Relaxed", "Release", "Acquire", "AcqRel", "SeqCst"];
+fn ordering_variant(name: &str, p: &str) -> Value {
+  json!({"e": "variant", "enum": "::std::sync::atomic::Ordering", "v": name, "values": ORDERINGS, "discs": [0, 1, 2, 3, 4], "ord": name, "p": p})
+}
 
 impl Reader {
   fn at(&self, s: Span) -> String { let l = s.start(); format!("{}:{}:{}", self.file, l.line, l.column + 1) }
@@ -125,6 +129,56 @@ impl Reader {
     }
   }
 
+  // A narrow standard-library resolution check, not general use/alias expansion.
+  // Unknown wildcard bindings and visible competing declarations fail closed.
+  fn standard_atomic(&self, path: &syn::Path, wanted: &str) -> bool {
+    if path.segments.iter().any(|s| !matches!(s.arguments, syn::PathArguments::None)) { return false }
+    fn bindings(t: &syn::UseTree, prefix: &[String], wanted: &str, out: &mut Vec<Vec<String>>) {
+      match t {
+        syn::UseTree::Path(p) => { let mut next = prefix.to_vec(); next.push(p.ident.to_string()); bindings(&p.tree, &next, wanted, out); }
+        syn::UseTree::Name(n) => {
+          let name = n.ident.to_string();
+          let mut full = prefix.to_vec();
+          if name != "self" { full.push(name); }
+          if full.last().map(|n| n == wanted).unwrap_or(false) { out.push(full); }
+        }
+        syn::UseTree::Rename(r) if r.rename == wanted => { let mut full = prefix.to_vec(); if r.ident != "self" { full.push(r.ident.to_string()); } out.push(full); }
+        syn::UseTree::Group(g) => for t in &g.items { bindings(t, prefix, wanted, out); },
+        syn::UseTree::Glob(_) => out.push(vec![]),
+        _ => {}
+      }
+    }
+    let imports = |name: &str| {
+      let mut out = vec![];
+      for f in self.files.iter().filter(|f| f.rel == self.file) { for it in &f.items { if let Item::Use(u) = it { bindings(&u.tree, &[], name, &mut out); } } }
+      out
+    };
+    let declared = |name: &str| self.structs.contains_key(name) || self.enums.contains_key(name) || self.files.iter().any(|f| f.module.split("::").any(|n| n == name)) ||
+      self.files.iter().filter(|f| f.rel == self.file).any(|f| f.items.iter().any(|it| match it {
+        Item::Type(t) => t.ident == name, Item::Union(u) => u.ident == name,
+        Item::Trait(t) => t.ident == name, Item::TraitAlias(t) => t.ident == name,
+        Item::Mod(m) => m.ident == name,
+        Item::ExternCrate(e) => e.rename.as_ref().map(|(_, n)| n == name).unwrap_or(e.ident == name && name != "std" && name != "core"),
+        _ => false,
+      }));
+    let standard = |s: &[String]| s.len() == 4 && (s[0] == "std" || s[0] == "core") && s[1] == "sync" && s[2] == "atomic" && s[3] == wanted;
+    let segs: Vec<String> = path.segments.iter().map(|s| s.ident.to_string()).collect();
+    if standard(&segs) { return !declared(&segs[0]) && imports(&segs[0]).is_empty() }
+    if segs.len() != 1 || segs[0] != wanted || declared(wanted) { return false }
+    let found = imports(wanted);
+    !found.is_empty() && found.iter().all(|s| standard(s) && !declared(&s[0]) && imports(&s[0]).is_empty())
+  }
+  fn atomic_field(&self, receiver: &Expr) -> bool {
+    let Expr::Field(f) = receiver else { return false };
+    if !matches!(&*f.base, Expr::Path(p) if p.qself.is_none() && p.path.is_ident("self")) { return false }
+    let syn::Member::Named(name) = &f.member else { return false };
+    let Some((_, rec)) = self.self_ty.as_ref().and_then(|n| self.structs.get(n)) else { return false };
+    let Some(field) = rec.fields.iter().find(|fd| fd.ident.as_ref() == Some(name)) else { return false };
+    let Type::Path(t) = &field.ty else { return false };
+    let name = last_ident(&t.path);
+    t.qself.is_none() && ["AtomicU8", "AtomicU16", "AtomicU32", "AtomicU64", "AtomicUsize", "AtomicI32", "AtomicI64", "AtomicIsize", "AtomicBool"].contains(&name.as_str()) && self.standard_atomic(&t.path, &name)
+  }
+
   // --- types -------------------------------------------------------------------------------------------------------
   fn ty(&self, t: &Type) -> Value {
     match t {
@@ -135,6 +189,7 @@ impl Reader {
       Type::Paren(p) => self.ty(&p.elem),
       Type::Tuple(t) if t.elems.is_empty() => json!({"k": "none"}),
       Type::Path(p) => {
+        if p.qself.is_none() && self.standard_atomic(&p.path, "Ordering") { return json!({"k": "choice", "values": ORDERINGS, "discs": [0, 1, 2, 3, 4], "enum": "::std::sync::atomic::Ordering"}) }
         let seg = match p.path.segments.last() { Some(s) => s, None => return json!({"k": "opaque", "why": text(t)}) };
         let name = seg.ident.to_string();
         let args: Vec<Type> = match &seg.arguments { syn::PathArguments::AngleBracketed(a) => a.args.iter().filter_map(|x| if let syn::GenericArgument::Type(t) = x { Some(t.clone()) } else { None }).collect(), _ => vec![] };
@@ -377,6 +432,12 @@ impl Reader {
   }
   fn path_expr(&mut self, path: &syn::Path, p: &str, t: &str) -> Value {
     let segs: Vec<String> = path.segments.iter().map(|s| s.ident.to_string()).collect();
+    if let Some(last) = segs.last() {
+      if ORDERINGS.contains(&last.as_str()) && segs.len() > 1 {
+        let mut ty = path.clone(); ty.segments.pop(); ty.segments.pop_punct();
+        if self.standard_atomic(&ty, "Ordering") { return ordering_variant(last, p) }
+      }
+    }
     if segs.len() == 1 {
       let n = &segs[0];
       if self.is_local(n) { return json!({"e": "var", "n": n, "p": p}) }
@@ -587,6 +648,25 @@ impl Reader {
     }))
   }
   fn call(&mut self, c: &syn::ExprCall, p: &str, t: &str) -> (Vec<Value>, Value) {
+    // A resolved free function is a fixed callee, unlike a mutable local callable.
+    // Materialize its arguments in source order, not after all their preludes.
+    if let Expr::Path(x) = &*c.func {
+      if x.qself.is_none() && x.path.leading_colon.is_none() && x.path.segments.len() == 1 &&
+        matches!(x.path.segments[0].arguments, syn::PathArguments::None) {
+        let f = self.path_expr(&x.path, p, t);
+        if f["e"] == "fn" {
+          let mut pre = vec![]; let mut args = vec![];
+          for arg in &c.args {
+            let (mut ap, value) = self.expr(arg);
+            pre.append(&mut ap);
+            let value = if is_place(&value) { json!({"e": "copy", "x": value, "p": value["p"]}) } else { value };
+            let var = json!({"e": "var", "n": self.temp(), "p": p});
+            pre.push(json!({"s": "set", "p": p, "to": var, "x": value})); args.push(var);
+          }
+          return (pre, json!({"e": "call", "f": f, "args": args, "kw": [], "p": p, "text": t}))
+        }
+      }
+    }
     let (mut pre, args) = self.args(&c.args);
     let f = match &*c.func { Expr::Path(x) => x.path.clone(), _ => { let (mut fp, fv) = self.expr(&c.func); pre.append(&mut fp); return (pre, json!({"e": "call", "f": fv, "args": args, "kw": [], "p": p, "text": t})) } };
     let segs: Vec<String> = f.segments.iter().map(|s| s.ident.to_string()).collect();
@@ -617,9 +697,25 @@ impl Reader {
   }
   fn method(&mut self, m: &syn::ExprMethodCall, p: &str, t: &str) -> (Vec<Value>, Value) {
     let (mut pre, r) = self.expr(&m.receiver);
+    let name = m.method.to_string();
+    if ((name == "load" && m.args.len() == 1) || (name == "store" && m.args.len() == 2)) && self.atomic_field(&m.receiver) {
+      // Rust evaluates arguments left to right. Capture each value (including
+      // any failure) after its own prelude, before the next argument's effects.
+      let mut values = vec![];
+      for arg in &m.args {
+        let (mut ap, value) = self.expr(arg);
+        pre.append(&mut ap);
+        let value = if is_place(&value) { json!({"e": "copy", "x": value, "p": value["p"]}) } else { value };
+        let var = json!({"e": "var", "n": self.temp(), "p": p});
+        pre.push(json!({"s": "set", "p": p, "to": var, "x": value})); values.push(var);
+      }
+      let allowed = if name == "load" { ["Relaxed", "Acquire", "SeqCst"] } else { ["Relaxed", "Release", "SeqCst"] };
+      let tests: Vec<Value> = allowed.iter().map(|order| json!({"e": "cmp", "op": "==", "x": values.last().unwrap(), "y": ordering_variant(order, p), "p": p})).collect();
+      pre.push(json!({"s": "if", "p": p, "c": {"e": "or", "xs": tests, "strict": true, "p": p}, "then": [], "else": [{"s": "fail", "p": p, "why": format!("atomic {name}: invalid memory ordering")}]}));
+      return (pre, json!({"e": "rmw", "op": name, "place": r, "args": values[..values.len()-1].to_vec(), "p": p, "text": t}));
+    }
     let (mut ap, args) = self.args(&m.args);
     pre.append(&mut ap);
-    let name = m.method.to_string();
     let a = |i: usize| args.get(i).cloned().unwrap_or(Value::Null);
     let bin = |op: &str, ovf: &str| json!({"e": "bin", "op": op, "x": r, "y": a(0), "p": p, "text": t, "ovf": ovf, "div": "trunc"});
     let v = match name.as_str() {
