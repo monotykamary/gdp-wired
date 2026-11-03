@@ -3,6 +3,97 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.46.0
+
+- **Correctness — Python rounding:** `round(a / k)` is exact only below **2^52**, not 2^53.
+  The reader now distinguishes the floating-point boundary instead of proving a half-tick law
+  under an invalid exactness assumption. This is the Python reader fix merged in `9b62ecf3`.
+- **Correctness — strict model cache:** an exported strict decision could return an **unconfirmed
+  model in 0.32.0–0.45.0** after an ordinary fast-path query populated the cache. Strict decisions
+  now recheck that model; ordinary reuse and confirmed strict reuse remain. Fixed in `934ac29`.
+
+### Security policies and the Action
+
+- `check --security` proposes authorization, tenant read/write isolation, workflow order, quota
+  and ledger policies over the code's own names. The public `gdp-wired/security` templates expose
+  the same vocabulary. Candidates are marked **NOT accepted policy**, require review, and never
+  affect the exit code. Only a requirement explicitly stated as a law is enforced.
+- The existing GitHub Action adds the opt-in `security: true` input, defaulting to `false`.
+  The default command is unchanged. A synthetic fixture workflow checks default mode, nonfailing
+  candidates and a broken stated law; packaged Action commands were also checked on Node 22.
+- The existing npm-exec dependency-layout limitation remains: when TypeScript is satisfied by
+  the caller's project, the temporary `gdp-wired` package tree may lack it. Install both together
+  or use `gdp-wired-cli`; the clean-workspace Action fixture is not a general fix for this layout.
+- Source-replayed mutation benchmarks now cover authorization, tenant keys, workflow ordering,
+  quotas, private reads, lock removal, transaction narrowing and compare-and-set replacement.
+  Separate campaigns recorded 12/12 synthetic, 16/16 expanded and 9/9 pinned-component mutants
+  detected, with clean controls retained. These are distinct cohorts, not CVE-recall results.
+- Fixed-version reader evaluation binds targets, revisions, source hashes, options and statuses.
+  All 16 current fixed-library entries remain refused; **no security recall improvement is claimed**.
+  A metadata-only audit inventory utility records provenance and legacy evidence without promoting
+  historical claims to verified findings.
+
+### Readers and user-facing APIs
+
+- Python inheritance follows declaration-owned C3 order, including cooperative `super()` and
+  module-qualified method identities. Literal `hasattr` on modeled instances handles known static
+  bindings; descriptors, unknown final bindings, dynamic names and implicit attributes are refused.
+  Final method and initializer bindings win. Entry and nested construction share conservative
+  checks for unknown MROs, decorated/nonmethod initializers and custom allocation/attribute hooks.
+  Empty variadic arguments are modeled as empty; shared class collections remain opaque.
+- Java and Swift support explicit constructor alternatives. Rust distinguishes lifetime parameters
+  from value generics: supported declaration/signature lifetimes no longer cause a generic-type
+  refusal. This does not add a Rust borrow checker or support arbitrary type/const generics.
+- Database handlers can read explicit Django/SQLAlchemy stores and Prisma/TypeORM operations, with
+  original-code replay, optional Python datetime boundaries and fail-closed refusals. Plain ORM
+  display methods are allowed without erasing explicit side effects; refusal diagnostics identify
+  schema keys and supplied filters.
+- Tick-rounding kinds add `floorTo`, `ceilTo`, `roundTo` and `onTick`, including the documented tie
+  modes. Readers handle supported Java rounded division and exact bounded float conversions.
+  Python list loops can be read as supported folds and first/min/max selections.
+- Business-day deadlines use `[calendar]` or `businessDays()`, checked against a day-by-day walk.
+  `gdp-wired draft` produces cited, unreviewed law drafts; `--require-review` keeps approval explicit.
+  TypeScript relative imports and Python's supported explicit `super(C, self)` are read.
+- Embedded C/C++ support expands to file globals, exact bit operations and supported embedded
+  idioms; a shared path-merge bug is fixed. The trading, regulated and embedded corpora retain
+  their proven, refuted and refused cases rather than presenting unsupported programs as covered.
+- Reader robustness improves malformed Swift/Kotlin recovery and build limits, cause-specific
+  TypeScript/Go/C/JVM refusals, missing-source handling, Go float-sink leaves and shared parse-error
+  handling. Solidity abstract contracts use concrete harnesses with explicit assumptions; anvil
+  temporary state is cleaned on exit and after interrupted runs.
+
+### Proof search and checked theories
+
+- Native tuple-keyed relations are supported by the DSL, kernel and Lean. Name/column aliasing is
+  corrected, and map arity is checked by semantic key parts. Quorum counting has Lean-checked
+  two-parameter counts and distinct-key witnesses. Optional counting facts reuse the existing
+  certificate language; they do not silently change the default search.
+- Protocol search reuses terms, model queries, candidate sets and proof trees, and avoids repeated
+  state copies. Native tuple provenance, checked local supports, joint triggers and conditional
+  image handling extend the recorded strict-budget IC3Syn results, including learning-switch and
+  client/server examples. Wrong-sort MBQI tuples no longer crowd out eligible instances.
+- EPR and cyclic certification honor inherited caller deadlines; bounded witness queries are
+  deterministic, and `proveSteps` from arbitrary states respects the caller's budget. These changes
+  do not increase proof or search budgets.
+- TIP search improves observer-based conjecture ranking, guarded equations, lazy counter admission
+  and structural existential index witnesses. The recorded paired runs retain solid gains without
+  losses; newly used lemmas are rechecked in Lean. The exporter adds a closing tactic without
+  changing theorem statements.
+
+### Feedback and maintenance
+
+- Quick tests run as seven parallel shards; publishing runs the shared test workflow before packing
+  and smoke-testing both packages. Test timeouts explicitly cover the existing counted searches.
+- Raw bar checks reject empty candidate coverage. Dirty candidate snapshots have proper detached
+  Git roots while preserving content keys and vendored files. Two shared laptop driver slots remain
+  enforced; deadline, baseline and restart bookkeeping is strengthened.
+- The treadmill follows main only between completed rounds, keeps live source trees, reuses
+  commit-keyed completed inputs, reads logs incrementally and avoids repeated Git digest work.
+  Items that never ran are not reported as fuzz crashes; baseline speed comparisons survive restart.
+- `NEXT.md` is ignored and kept out of published source history. Both npm packages and the CLI's
+  `gdp-wired` dependency advance together to 0.46.0.
+
+
 ## 0.45.0
 
 A security fix in how the kernel reads names, more of TIP through termination, IC3Syn on pinned hardware, ∃ verdicts
