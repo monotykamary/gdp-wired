@@ -2,12 +2,13 @@
 
 ## Scope and result
 
-V24 checks the **actual default twelve start/step obligations** of the archived
+V24 checked the **actual default twelve start/step obligations** of the archived
 safety machine and its complete original six-law set. This is an assembly of
 retained complete certificates, not one new 25-second solve. No prover is
-imported or called by the assembler or cold checker. Native H01, production
-integration and full frontier admission remain separate; no merge or push.
-Coordinator independent cold review is pending.
+imported or called by the assembler or cold checker. The complete conjunction
+is independently accepted, and its egraph-only research integration was
+fast-forwarded locally as `7fe2f3c3`. Native H01, fullM2, production-runtime
+and full-frontier admission remain open. No push or release occurred.
 
 Final packet: `proofs/canonical-six-law.json`, 99,430 bytes, SHA256
 `212fa129969cfbd315fac23d6aeebb3e1df1450b943b7c0309c31b0b9d50a8f9`.
@@ -24,7 +25,7 @@ The producer and fresh checker verify these unchanged before/after. The packet
 also records the archived compressed input pin and unchanged original artifact
 hashes. Trusted kernel/checker sources were not modified.
 
-## Two genuinely missing starts
+## Two originally missing starts — now certified
 
 V22 batch `20261104-132127-i6q1js`, worker 0, made exactly two proof queries under
 the original contexts and budgets: 25,000 ms outer ceiling plus the 2m work guard.
@@ -35,8 +36,10 @@ Both certificates pass in-process and fresh-process checking:
 
 They were explicitly generated, not inferred from historical step failures.
 The eight preserved positive certificates and independently accepted P3/safety
-step certificates were not re-searched or changed. V21's raw identity mismatch
-remains true and retained.
+step certificates were not re-searched or changed. The V21 owner replay of all
+eight original-context positives and both TIP graphs/controls was reviewed
+and accepted; that review was not a second independent replay of those
+original contexts. V21's raw identity mismatch remains true and retained.
 
 ## Transport and admission
 
@@ -80,12 +83,36 @@ All three outcomes are recorded by `CANONICAL_COLD`. Source pins remain unchange
 Transport used 146,916 metered visits under its 2m/25-second guard. These are
 transport visits, not prover work or a runtime/performance comparison.
 
+## Independent acceptance and local integration
+
+Coordinator batch `20261104-133114-cycaqf`, worker 0, independently verified the
+frozen original machine and ordered six-law set, all twelve unique default
+goals, every source-certificate hash and canonical obligation/expanded-goal
+hash. The complete `checkCountedLaws` passed, including witness freshness;
+both missing-start and direct-package controls rejected. The checker imported
+no prover, assembler or alpha transport. Acceptance is recorded in the
+coordinator workspace at `runs/coord-reviews/CANONICAL-v24/ACCEPT.md`.
+
+The separately reviewed egraph-only candidate was fast-forwarded locally:
+commit `7fe2f3c3420e9c6034b5980a7b3851a51d2a6bb6`, tree
+`3fe68cb153fdde9f157886bc80835ee8d11be7f5`, parent
+`9e7a8b422663edf6182ae21b74767d4bf0a6d863`. Exactly 187 egraph additions
+preserve the frozen egraph bytes and every non-egraph path on main. This was
+not a whole-branch merge or lifecycle conflict resolution. Acceptance:
+`runs/coord-reviews/EGRAPH-INTEGRATION-7fe2f3c/ACCEPT.md`.
+
+The composed-tree receipt is retained at
+`../gdp-wired-astra-egraph-integration/runs/egraph-integration/receipt.json`,
+SHA256 `6114440571c4cda6d70e1dabf8c9f4bd10776fc4f4475386b2445547bfffab0e`.
+The original `e7819c87`, packet and failed evidence remain unchanged.
+
 ## Validation and preserved failure
 
 V24 passes both research TypeScript projects, scoped strict/type-aware lint,
 three transport tests/five assertions, and commitlint. V22 also passed its two
-context-binding tests/six assertions and type/lint checks. Full research
-regression passed in batch `20261104-132901-dvo2d5`: 58 tests, 275 assertions,
+context-binding tests/six assertions and type/lint checks. Before the final
+free-name guard, the full egraph regression passed in batch
+`20261104-132901-dvo2d5`: 58 tests, 275 assertions,
 zero failures. V25 batch `20261104-133025-iwfxrd` then passed the targeted
 free-name guard audit (two tests/eight assertions, clean types/lint). The guard
 rejects flat renaming of a source name that is also free elsewhere, as well as
@@ -93,7 +120,16 @@ target capture. All six recorded maps remain identical and the frozen packet
 is unchanged. `canonical-bindings-v25.json` records this audit and the full
 regression; no proof regeneration or search was performed. The exact V24
 helper source remains at `runs/astra-canonical-v24/source/context-bindings.ts`
-for comparison with that receipt’s original source hash.
+for comparison with that receipt’s original source hash. These are distinct
+pre-guard and targeted post-guard validation phases.
+
+The later actual composed integration tree passed the complete **19-file
+egraph suite: 58 tests / 277 assertions**, including the post-guard tests, in
+batch `20261104-140857-fbyqfn` (worker 0). Both research typechecks, strict
+type-aware project-source lint, canonical cold replay and both controls, all
+six binding maps, both TIP graphs/eight controls, and commitlint passed.
+Broad historical protocol scripts that launch searches were intentionally not
+run; this is not the full repository/frontier gate.
 
 V23 already produced kernel-accepted proofs but its worker exited 1: TypeScript
 caught a one-argument call to zero-argument `Meter.tick()`. Its raw log and source
