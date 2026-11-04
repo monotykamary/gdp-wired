@@ -1,4 +1,4 @@
-import {readFileSync,readdirSync} from 'node:fs'
+import {readFileSync} from 'node:fs'
 import {spawnSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
 import {checkDocument} from '../../interchange/check.ts'

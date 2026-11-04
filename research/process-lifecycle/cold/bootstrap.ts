@@ -2,7 +2,7 @@
 import {readFileSync,writeFileSync,writeSync,mkdirSync,mkdtempSync,copyFileSync,constants,rmSync} from 'node:fs'
 import {createHash} from 'node:crypto'
 import {spawnSync} from 'node:child_process'
-import {dirname,join,resolve,isAbsolute} from 'node:path'
+import {dirname,join,isAbsolute} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {tmpdir} from 'node:os'
 const root=dirname(fileURLToPath(import.meta.url)),expected=process.argv[2],sha=(b:Buffer)=>createHash('sha256').update(b).digest('hex')
