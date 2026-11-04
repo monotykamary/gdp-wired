@@ -1,0 +1,1 @@
+[{"name":"m2-baseline","cmd":"bun install --frozen-lockfile && bun research/egraph/historical/m2.ts","cpu":2,"memory":4096,"timeout":600}]

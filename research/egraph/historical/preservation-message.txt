@@ -1,0 +1,5 @@
+test(research): preserve historical certificate admissions
+
+Recheck retained P1/P2/P4/P5 and TIP certificates without proof search.
+Map remaining start-certificate and native admission gaps explicitly.
+Freeze the independently accepted P3 and safety step proof artifacts.

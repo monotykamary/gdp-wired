@@ -1,0 +1,5 @@
+feat(research): retain checked P3 step and bounded safety probes
+
+Reconstruct both frozen counted contexts without dropping original rows.
+Retain the independently checked P3 bridge proof and negative safety probes.
+Keep the trusted engine and historical ceilings unchanged; no full M2 claim.

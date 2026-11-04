@@ -1,0 +1,3 @@
+[
+  {"name":"astra-validation", "cmd":"bun install --frozen-lockfile && bun test research/egraph && bunx tsc -p research/egraph --pretty false && bunx oxlint --type-aware --deny-warnings --disable-nested-config research/egraph && bun research/egraph/measure.ts", "cpu":2, "memory":4096, "timeout":600}
+]

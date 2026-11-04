@@ -1,0 +1,6 @@
+feat(research): add bounded historical M2 candidate indexes
+
+Keep the original full goals, hypotheses and benchmark caps unchanged.
+Add metered structural and head-directed indexes with explicit ablations.
+Retain failed cap/lint outcomes and separate candidate/model diagnostics
+from checked counted-certificate acceptance. Neither M2 goal flips.

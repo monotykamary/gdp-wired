@@ -1,0 +1,1 @@
+[{"name":"archive-selected","cmd":"python3 research/egraph/historical/extract_selected.py","cpu":2,"memory":4096,"timeout":600}]

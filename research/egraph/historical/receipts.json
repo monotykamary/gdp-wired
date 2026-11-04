@@ -1,0 +1,2071 @@
+{
+  "format": "astra-historical-egraph-receipts-v1",
+  "acceptedBase": "662a1c07e4a521b04a2f05bfc4275d9660eb8ca0",
+  "m2Baseline": "444ece6ebe42d202150bc583c0c55b626b4e32c9",
+  "requestedResources": {
+    "cpu": 2,
+    "memoryMiB": 4096,
+    "timeoutSeconds": 600
+  },
+  "classification": "untimed bounded diagnostics; no native/full-gate admission",
+  "runs": [
+    {
+      "batch": "20261104-094910-vl5syz",
+      "job": "archive-inspect",
+      "log": "runs/astra-history-archive/archive-inspect.log",
+      "logSha256": "4991c5d526391c6e9a14087532fed47656980474a213af7e4ebd7edfbd2c070d",
+      "logBytes": 34814,
+      "summary": "archive-inspect\t0\t9.69\tboat",
+      "placement": {
+        "archive-inspect": {
+          "vm": "bx_xqxvqagx",
+          "type": "large",
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": false,
+          "co_tenants": 0
+        }
+      },
+      "events": []
+    },
+    {
+      "batch": "20261104-095126-e9wbia",
+      "job": "archive-refine",
+      "log": "runs/astra-history-archive-v2/archive-refine.log",
+      "logSha256": "9d7a6ac55d83d21e0bf785bfc57ef217ac490abad20c0e0923dc675d76b3d6ef",
+      "logBytes": 394,
+      "summary": "archive-refine\t1\t1.83\tboat",
+      "placement": {
+        "archive-refine": {
+          "vm": "bx_xqxvqagx",
+          "type": "large",
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": false,
+          "co_tenants": 1
+        }
+      },
+      "events": []
+    },
+    {
+      "batch": "20261104-095233-igx9d0",
+      "job": "archive-checkpoints",
+      "log": "runs/astra-history-archive-v3/archive-checkpoints.log",
+      "logSha256": "414631bbba0f8aec65720d5595929f368d8b7cc2ae4a651a496bd8e9cc309bfa",
+      "logBytes": 129484,
+      "summary": "archive-checkpoints\t0\t11.26\tboat",
+      "placement": {
+        "archive-checkpoints": {
+          "vm": "bx_xqxvqagx",
+          "type": "large",
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": false,
+          "co_tenants": 0
+        }
+      },
+      "events": []
+    },
+    {
+      "batch": "20261104-095436-sb5v1k",
+      "job": "m2-baseline",
+      "log": "runs/astra-history-m2/m2-baseline.log",
+      "logSha256": "e1674b13c54062a051801c34295fce06970aaf25080145f615b4af1899616607",
+      "logBytes": 34841,
+      "summary": "m2-baseline\t0\t116.07\tboat",
+      "placement": {
+        "m2-baseline": {
+          "vm": "bx_xqxvqagx",
+          "type": "large",
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": false,
+          "co_tenants": 1
+        }
+      },
+      "events": [
+        {
+          "kind": "SOURCE",
+          "data": {
+            "baseline": "444ece6ebe42d202150bc583c0c55b626b4e32c9",
+            "hashes": {
+              "core/counts.ts": "de5b034e56dd52ecb97b7df2b4e03f097f11b76923e7ea26dc344ae1e54ca307",
+              "core/dsl.ts": "c5aecf1fecafb60c3d561174e2118cb8b5050df14cdc4148f573dbc4067392b8",
+              "kernel/kernel.ts": "596eaaea9a44a11330178ac37b55377f5747a4ed08a8dd010c26b393c69521e2",
+              "kernel/prove.ts": "5e4232da2abe25c1153edf790af4b339d2be8482c5630b0740315c79f60ce708",
+              "research/protocols/ground-truth/published.ts": "c8077ba60f58923f92e910c99def26e9bd66523f4bd57186539944876432fb6f",
+              "research/protocols/ground-truth/check.ts": "4c9b1849f38c792db7db7df437d42ae62d6797a6946a6f92147a3ec907585fa8",
+              "research/protocols/ground-truth/published.test.ts": "53b23d2218a5d3ca47b577afac509671c0cb0df3eed5ac33195cbd7117bdd9a5",
+              "research/protocols/ic3syn/atomic.ts": "73d1121d75e979cf07604c66b13944a62c35d8a052d17f3cf61d22bb3a61880b",
+              "research/protocols/ic3syn/models.ts": "1c229078df53875c2e67b2573a512bdeb2fce01d39953495260870ea6a475214"
+            },
+            "runtime": "1.4.3",
+            "environment": {
+              "GDP_CYCLIC_LOG": "1"
+            }
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "focus": "one value decided",
+            "verdict": {
+              "proven": false,
+              "checked": false,
+              "why": "not proven: one value decided, P3 decision has quorum"
+            },
+            "attempts": 9,
+            "context": [
+              "one value decided",
+              "P1 proposals unique",
+              "P2 vote proposed",
+              "P3 decision has quorum",
+              "P4 one_b left",
+              "P5 choosable"
+            ],
+            "inputSha256": "61df51ebaf91d1995711d520acedad42ed22aa68ad6a4c766f21779deeb34222",
+            "failure": {
+              "goal": "one value decided @step",
+              "sha256": "58496db30029729c33954d6cc01f61673dbe5bc0c52c4f64b1b4126c0dcc20ca",
+              "hyps": 202
+            },
+            "baselineChecked": false,
+            "comparison": [
+              {
+                "enabled": false,
+                "status": "unsupported-or-exhausted",
+                "reason": "Error: unsupported e-term: if",
+                "instances": 0,
+                "matchingUnits": 87882
+              },
+              {
+                "enabled": true,
+                "status": "unsupported-or-exhausted",
+                "reason": "Error: unsupported e-term: if",
+                "instances": 0,
+                "matchingUnits": 87882
+              }
+            ]
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "focus": "P1 proposals unique",
+            "verdict": {
+              "proven": false,
+              "checked": false,
+              "why": "not proven: one value decided, P3 decision has quorum"
+            },
+            "attempts": 9,
+            "context": [
+              "P1 proposals unique",
+              "one value decided",
+              "P2 vote proposed",
+              "P3 decision has quorum",
+              "P4 one_b left",
+              "P5 choosable"
+            ],
+            "inputSha256": "b7a773208b2ba05a73c934e3f3effc96d470fec4877715b1255e3c2238443538",
+            "baselineChecked": true,
+            "replay": [
+              {
+                "name": "P1 proposals unique @start",
+                "goalSha256": "a6c9d15ca0bc7fdbe423914de4947f3900e7def4993931fa2241e22e0e24ec31",
+                "checked": true
+              },
+              {
+                "name": "P1 proposals unique @step",
+                "goalSha256": "49b268d5b1fb95d8471063c29104330ff0cdeb9203529afab41b915aa5c11914",
+                "checked": true
+              }
+            ],
+            "proofSha256": "889e38cf8c0f9576064efa5079ff5e0773be525bdcd7d86960513ceb68cb7115",
+            "comparison": [
+              {
+                "enabled": false,
+                "status": "not-applicable",
+                "reason": "no failed goal captured",
+                "instances": 0
+              },
+              {
+                "enabled": true,
+                "status": "not-applicable",
+                "reason": "no failed goal captured",
+                "instances": 0
+              }
+            ]
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "focus": "P2 vote proposed",
+            "verdict": {
+              "proven": false,
+              "checked": false,
+              "why": "not proven: one value decided, P3 decision has quorum"
+            },
+            "attempts": 9,
+            "context": [
+              "P2 vote proposed",
+              "one value decided",
+              "P1 proposals unique",
+              "P3 decision has quorum",
+              "P4 one_b left",
+              "P5 choosable"
+            ],
+            "inputSha256": "82ffda65ecb73dae7da9f0d065ee9ade8d9fb82b43696fdc0ea2e862645dbf5b",
+            "baselineChecked": true,
+            "replay": [
+              {
+                "name": "P2 vote proposed @start",
+                "goalSha256": "b178b285b3ec4a985b800c378603ce9c1ec967eb79b00d3179eb76a5e291ae4b",
+                "checked": true
+              },
+              {
+                "name": "P2 vote proposed @step",
+                "goalSha256": "747ab115abb97ae31632d27ccf9b11f6768a147f09b57f251122dac3957afc28",
+                "checked": true
+              }
+            ],
+            "proofSha256": "a8ed2254648f3e1bd432f4052bdf83b2dc36804fe925216e3a14b25e20e9ec10",
+            "comparison": [
+              {
+                "enabled": false,
+                "status": "not-applicable",
+                "reason": "no failed goal captured",
+                "instances": 0
+              },
+              {
+                "enabled": true,
+                "status": "not-applicable",
+                "reason": "no failed goal captured",
+                "instances": 0
+              }
+            ]
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "focus": "P3 decision has quorum",
+            "verdict": {
+              "proven": false,
+              "checked": false,
+              "why": "not proven: P3 decision has quorum, one value decided"
+            },
+            "attempts": 9,
+            "context": [
+              "P3 decision has quorum",
+              "one value decided",
+              "P1 proposals unique",
+              "P2 vote proposed",
+              "P4 one_b left",
+              "P5 choosable"
+            ],
+            "inputSha256": "73828a96d358018b2fc1a8b24dad10f0cd99905044c9126d312ea9afd5216d3d",
+            "failure": {
+              "goal": "P3 decision has quorum @step",
+              "sha256": "a7cee3dd679c5c19df5fd6110c24a723158e8644299c98243df8c0513bd57357",
+              "hyps": 76
+            },
+            "baselineChecked": false,
+            "comparison": [
+              {
+                "enabled": false,
+                "status": "unsupported-or-exhausted",
+                "reason": "Error: unsupported e-term: if",
+                "instances": 0,
+                "matchingUnits": 18264
+              },
+              {
+                "enabled": true,
+                "status": "unsupported-or-exhausted",
+                "reason": "Error: unsupported e-term: if",
+                "instances": 0,
+                "matchingUnits": 18264
+              }
+            ]
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "focus": "P4 one_b left",
+            "verdict": {
+              "proven": false,
+              "checked": false,
+              "why": "not proven: one value decided, P1 proposals unique, P2 vote proposed, P3 decision has quorum, P5 choosable"
+            },
+            "attempts": 11,
+            "context": [
+              "P4 one_b left",
+              "one value decided",
+              "P1 proposals unique",
+              "P2 vote proposed",
+              "P3 decision has quorum",
+              "P5 choosable"
+            ],
+            "inputSha256": "157b2593f9fc6bc495d0223f431e58f8483302c22c6c2454d38db22f51d42859",
+            "baselineChecked": true,
+            "replay": [
+              {
+                "name": "P4 one_b left @start",
+                "goalSha256": "68cd5d9cda629d1943b73db664f32e7992283e194e894f62337eaa806f981424",
+                "checked": true
+              },
+              {
+                "name": "P4 one_b left @step",
+                "goalSha256": "a823c29bf880a94d96a2dcf99f44222bfe2ba366f0ecbee19627925a238c093d",
+                "checked": true
+              }
+            ],
+            "proofSha256": "0c90cbd87a76154b245ede7d195228022f419fd2f68f3c7dd3c3b65d7e5a28a7",
+            "comparison": [
+              {
+                "enabled": false,
+                "status": "not-applicable",
+                "reason": "no failed goal captured",
+                "instances": 0
+              },
+              {
+                "enabled": true,
+                "status": "not-applicable",
+                "reason": "no failed goal captured",
+                "instances": 0
+              }
+            ]
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "focus": "P5 choosable",
+            "verdict": {
+              "proven": false,
+              "checked": false,
+              "why": "not proven: one value decided, P3 decision has quorum"
+            },
+            "attempts": 9,
+            "context": [
+              "P5 choosable",
+              "one value decided",
+              "P1 proposals unique",
+              "P2 vote proposed",
+              "P3 decision has quorum",
+              "P4 one_b left"
+            ],
+            "inputSha256": "63a124bff8b52b77a4a3a37ea70630ce20aa0dfdb0e01b67e42bac65f6a8fd1d",
+            "baselineChecked": true,
+            "replay": [
+              {
+                "name": "P5 choosable @start",
+                "goalSha256": "0b1be7d14b8073a735f51c80d3bbf2b864a16846fbe6764e7728a72e2f160366",
+                "checked": true
+              },
+              {
+                "name": "P5 choosable @step",
+                "goalSha256": "0392e1960a26704cd491891bfdcca4a8566eb76d8c77f467553bc1f496fa676a",
+                "checked": true
+              }
+            ],
+            "proofSha256": "70282f4353c19dfd6c72caff16c8e3807423dbc3500fb85e4b39d39e85cdcc1e",
+            "comparison": [
+              {
+                "enabled": false,
+                "status": "not-applicable",
+                "reason": "no failed goal captured",
+                "instances": 0
+              },
+              {
+                "enabled": true,
+                "status": "not-applicable",
+                "reason": "no failed goal captured",
+                "instances": 0
+              }
+            ]
+          }
+        },
+        {
+          "kind": "POSTFLIGHT",
+          "data": {
+            "unchanged": true,
+            "hashes": {
+              "core/counts.ts": "de5b034e56dd52ecb97b7df2b4e03f097f11b76923e7ea26dc344ae1e54ca307",
+              "core/dsl.ts": "c5aecf1fecafb60c3d561174e2118cb8b5050df14cdc4148f573dbc4067392b8",
+              "kernel/kernel.ts": "596eaaea9a44a11330178ac37b55377f5747a4ed08a8dd010c26b393c69521e2",
+              "kernel/prove.ts": "5e4232da2abe25c1153edf790af4b339d2be8482c5630b0740315c79f60ce708",
+              "research/protocols/ground-truth/published.ts": "c8077ba60f58923f92e910c99def26e9bd66523f4bd57186539944876432fb6f",
+              "research/protocols/ground-truth/check.ts": "4c9b1849f38c792db7db7df437d42ae62d6797a6946a6f92147a3ec907585fa8",
+              "research/protocols/ground-truth/published.test.ts": "53b23d2218a5d3ca47b577afac509671c0cb0df3eed5ac33195cbd7117bdd9a5",
+              "research/protocols/ic3syn/atomic.ts": "73d1121d75e979cf07604c66b13944a62c35d8a052d17f3cf61d22bb3a61880b",
+              "research/protocols/ic3syn/models.ts": "1c229078df53875c2e67b2573a512bdeb2fce01d39953495260870ea6a475214"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "batch": "20261104-095720-89khhn",
+      "job": "archive-selected",
+      "log": "runs/astra-history-selected/archive-selected.log",
+      "logSha256": "b19830a15adc41e80a6aae20e064d36ac3cd232dbd75acd0ecd5c98f671431ef",
+      "logBytes": 91325,
+      "summary": "archive-selected\t0\t13.42\tboat",
+      "placement": {
+        "archive-selected": {
+          "vm": "bx_xqxvqagx",
+          "type": "large",
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": false,
+          "co_tenants": 0
+        }
+      },
+      "events": []
+    },
+    {
+      "batch": "20261104-095835-n28l7h",
+      "job": "archive-fixtures",
+      "log": "runs/astra-history-fixtures/archive-fixtures.log",
+      "logSha256": "d5b4dc10c04247adc409d5d74fb38fb83c1f3dbbcbf59de892817d419f09e2d7",
+      "logBytes": 13794,
+      "summary": "archive-fixtures\t0\t19.43\tboat",
+      "placement": {
+        "archive-fixtures": {
+          "vm": "bx_xqxvqagx",
+          "type": "large",
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": false,
+          "co_tenants": 0
+        }
+      },
+      "events": []
+    },
+    {
+      "batch": "20261104-100012-14x6x4",
+      "job": "historical-compare",
+      "log": "runs/astra-history-compare/historical-compare.log",
+      "logSha256": "36584fe57b5f9b65112dd7d2a1052ce6674f9d04323930fa9b75fe359fbe01f9",
+      "logBytes": 51906,
+      "summary": "historical-compare\t0\t52.32\tboat",
+      "placement": {
+        "historical-compare": {
+          "vm": "bx_xqxvqagx",
+          "type": "large",
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": false,
+          "co_tenants": 0
+        }
+      },
+      "events": [
+        {
+          "kind": "INVENTORY",
+          "data": {
+            "name": "one-value-decided",
+            "inputSha256": "d80126dbfdd5102eb0c2d4b8f220483991afe82d51b1a09ffbae54a1346fccb8",
+            "goalSha256": "58496db30029729c33954d6cc01f61673dbe5bc0c52c4f64b1b4126c0dcc20ca",
+            "ops": {
+              "and": 433,
+              "<": 470,
+              "var": 2285,
+              "const": 1634,
+              "<=": 641,
+              "or": 233,
+              "not": 280,
+              "=": 139,
+              "mul": 596,
+              "get": 564,
+              "tup": 623,
+              "add": 594,
+              "if": 202
+            },
+            "guards": {
+              "=": 2,
+              "and": 104,
+              "<=": 96
+            }
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "name": "one-value-decided",
+            "adapter": "original",
+            "enabled": false,
+            "status": "unsupported-or-exhausted",
+            "matchingUnits": 87882,
+            "reason": "Error: unsupported e-term: if",
+            "checked": false
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "name": "one-value-decided",
+            "adapter": "original",
+            "enabled": true,
+            "status": "unsupported-or-exhausted",
+            "matchingUnits": 87882,
+            "reason": "Error: unsupported e-term: if",
+            "checked": false
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "name": "one-value-decided",
+            "adapter": "ite",
+            "enabled": false,
+            "status": "unsupported-or-exhausted",
+            "matchingUnits": 100000,
+            "reason": "Error: e-matching budget",
+            "checked": false
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "name": "one-value-decided",
+            "adapter": "ite",
+            "enabled": true,
+            "status": "unsupported-or-exhausted",
+            "matchingUnits": 100000,
+            "reason": "Error: e-matching budget",
+            "checked": false
+          }
+        },
+        {
+          "kind": "INVENTORY",
+          "data": {
+            "name": "decision-quorum",
+            "inputSha256": "d0a4edc54c45ef9f1fe325355287adedf06c914fe1fa191cc806774232a30d5a",
+            "goalSha256": "a7cee3dd679c5c19df5fd6110c24a723158e8644299c98243df8c0513bd57357",
+            "ops": {
+              "and": 150,
+              "<": 134,
+              "var": 998,
+              "const": 605,
+              "<=": 251,
+              "or": 96,
+              "not": 133,
+              "=": 108,
+              "mul": 185,
+              "get": 235,
+              "tup": 323,
+              "add": 190,
+              "if": 104
+            },
+            "guards": {
+              "=": 19,
+              "and": 45,
+              "<=": 40
+            }
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "name": "decision-quorum",
+            "adapter": "original",
+            "enabled": false,
+            "status": "unsupported-or-exhausted",
+            "matchingUnits": 18264,
+            "reason": "Error: unsupported e-term: if",
+            "checked": false
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "name": "decision-quorum",
+            "adapter": "original",
+            "enabled": true,
+            "status": "unsupported-or-exhausted",
+            "matchingUnits": 18264,
+            "reason": "Error: unsupported e-term: if",
+            "checked": false
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "name": "decision-quorum",
+            "adapter": "ite",
+            "enabled": false,
+            "status": "unsupported-or-exhausted",
+            "matchingUnits": 100000,
+            "reason": "Error: e-matching budget",
+            "checked": false
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "name": "decision-quorum",
+            "adapter": "ite",
+            "enabled": true,
+            "status": "unsupported-or-exhausted",
+            "matchingUnits": 100000,
+            "reason": "Error: e-matching budget",
+            "checked": false
+          }
+        },
+        {
+          "kind": "SOURCE",
+          "data": {
+            "core/data.ts": "a03b302c75a4dfdb9ac757868cf257615dcbf9549c7e2788d8560b8fe01f3811",
+            "core/cyclic.ts": "d8d80d0c9b2462219aac7aec7831efa1d2e0367b696eab2d26a1825f1b66a790",
+            "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+            "kernel/kernel.ts": "596eaaea9a44a11330178ac37b55377f5747a4ed08a8dd010c26b393c69521e2",
+            "kernel/cyclic.ts": "2562f78ce50f5925da1329306c52ed10fe4cc326331e85359536767dd0b4d777",
+            "kernel/prove.ts": "5e4232da2abe25c1153edf790af4b339d2be8482c5630b0740315c79f60ce708",
+            "compare/tip/tip.ts": "2eb658cc710c6b525e039e008b71094b79d16a9cd86ccf4a7ee5806b3f6b9673",
+            "compare/tip/translate.ts": "074b402a0164fb494042a8d1f8a697b94dd868b3c1f6a1474827ff30ee7643c9",
+            "research/egraph/match.ts": "d1572166a027a281bd8a6d864dc8c04d6069b1d47db06b037f32584122ebe1af",
+            "research/egraph/certify.ts": "b2151bb01591e3bdf0aee3f3be1c183e1b5457d323a17462309f0a00c721e421"
+          }
+        },
+        {
+          "kind": "PRODUCTION_BASELINE",
+          "data": {
+            "proven": false,
+            "checked": false,
+            "goal": "prod/lemma_09.smt2 (structure of v_x with structure of v_y), case 2",
+            "stuck": "sat",
+            "lemmas": [],
+            "ms": 41357,
+            "scope": "unchanged main9753 datatype engine; not historical dirty depth2 overlay"
+          }
+        },
+        {
+          "kind": "LEMMA",
+          "data": {
+            "law": "F1__2b_2b(F1__2b_2b(v_x, v_y), v_z) = F1__2b_2b(v_x, F1__2b_2b(v_y, v_z))",
+            "proven": true,
+            "checked": true,
+            "proofUnits": 324494.76669999957
+          }
+        },
+        {
+          "kind": "LEMMA",
+          "data": {
+            "law": "F2_rev(F1__2b_2b(v_l, D1__28list_20_24T_5fa_29.1(v_z, D1__28list_20_24T_5fa_29.0))) = D1__28list_20_24T_5fa_29.1(v_z, F2_rev(v_l))",
+            "proven": true,
+            "checked": true,
+            "proofUnits": 459373.6267999988
+          }
+        },
+        {
+          "kind": "MATCH",
+          "data": {
+            "assocBindings": [
+              {
+                "v_x": {
+                  "op": "var",
+                  "name": "v_x"
+                },
+                "v_y": {
+                  "op": "var",
+                  "name": "v_y"
+                },
+                "v_z": {
+                  "op": "get",
+                  "map": "D1__28list_20_24T_5fa_29.K_cons",
+                  "key": {
+                    "op": "add",
+                    "a": {
+                      "op": "prod",
+                      "a": {
+                        "op": "add",
+                        "a": {
+                          "op": "var",
+                          "name": "v_z"
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 0
+                        }
+                      },
+                      "b": {
+                        "op": "add",
+                        "a": {
+                          "op": "var",
+                          "name": "v_z"
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 0
+                        }
+                      }
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 0
+                    }
+                  }
+                }
+              }
+            ],
+            "snocBindings": [
+              {
+                "v_l": {
+                  "op": "get",
+                  "map": "F1__2b_2b",
+                  "key": {
+                    "op": "add",
+                    "a": {
+                      "op": "prod",
+                      "a": {
+                        "op": "add",
+                        "a": {
+                          "op": "var",
+                          "name": "v_x"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "v_y"
+                        }
+                      },
+                      "b": {
+                        "op": "add",
+                        "a": {
+                          "op": "var",
+                          "name": "v_x"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "v_y"
+                        }
+                      }
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "v_y"
+                    }
+                  }
+                },
+                "v_z": {
+                  "op": "var",
+                  "name": "v_z"
+                }
+              }
+            ],
+            "matchingUnits": 13822,
+            "explicitSplitHints": [
+              [
+                {
+                  "op": "get",
+                  "map": "F1__2b_2b",
+                  "key": {
+                    "op": "add",
+                    "a": {
+                      "op": "prod",
+                      "a": {
+                        "op": "add",
+                        "a": {
+                          "op": "get",
+                          "map": "F1__2b_2b",
+                          "key": {
+                            "op": "add",
+                            "a": {
+                              "op": "prod",
+                              "a": {
+                                "op": "add",
+                                "a": {
+                                  "op": "var",
+                                  "name": "v_x"
+                                },
+                                "b": {
+                                  "op": "var",
+                                  "name": "v_y"
+                                }
+                              },
+                              "b": {
+                                "op": "add",
+                                "a": {
+                                  "op": "var",
+                                  "name": "v_x"
+                                },
+                                "b": {
+                                  "op": "var",
+                                  "name": "v_y"
+                                }
+                              }
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "v_y"
+                            }
+                          }
+                        },
+                        "b": {
+                          "op": "get",
+                          "map": "D1__28list_20_24T_5fa_29.K_cons",
+                          "key": {
+                            "op": "add",
+                            "a": {
+                              "op": "prod",
+                              "a": {
+                                "op": "add",
+                                "a": {
+                                  "op": "var",
+                                  "name": "v_z"
+                                },
+                                "b": {
+                                  "op": "const",
+                                  "value": 0
+                                }
+                              },
+                              "b": {
+                                "op": "add",
+                                "a": {
+                                  "op": "var",
+                                  "name": "v_z"
+                                },
+                                "b": {
+                                  "op": "const",
+                                  "value": 0
+                                }
+                              }
+                            },
+                            "b": {
+                              "op": "const",
+                              "value": 0
+                            }
+                          }
+                        }
+                      },
+                      "b": {
+                        "op": "add",
+                        "a": {
+                          "op": "get",
+                          "map": "F1__2b_2b",
+                          "key": {
+                            "op": "add",
+                            "a": {
+                              "op": "prod",
+                              "a": {
+                                "op": "add",
+                                "a": {
+                                  "op": "var",
+                                  "name": "v_x"
+                                },
+                                "b": {
+                                  "op": "var",
+                                  "name": "v_y"
+                                }
+                              },
+                              "b": {
+                                "op": "add",
+                                "a": {
+                                  "op": "var",
+                                  "name": "v_x"
+                                },
+                                "b": {
+                                  "op": "var",
+                                  "name": "v_y"
+                                }
+                              }
+                            },
+                            "b": {
+                              "op": "var",
+                              "name": "v_y"
+                            }
+                          }
+                        },
+                        "b": {
+                          "op": "get",
+                          "map": "D1__28list_20_24T_5fa_29.K_cons",
+                          "key": {
+                            "op": "add",
+                            "a": {
+                              "op": "prod",
+                              "a": {
+                                "op": "add",
+                                "a": {
+                                  "op": "var",
+                                  "name": "v_z"
+                                },
+                                "b": {
+                                  "op": "const",
+                                  "value": 0
+                                }
+                              },
+                              "b": {
+                                "op": "add",
+                                "a": {
+                                  "op": "var",
+                                  "name": "v_z"
+                                },
+                                "b": {
+                                  "op": "const",
+                                  "value": 0
+                                }
+                              }
+                            },
+                            "b": {
+                              "op": "const",
+                              "value": 0
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "b": {
+                      "op": "get",
+                      "map": "D1__28list_20_24T_5fa_29.K_cons",
+                      "key": {
+                        "op": "add",
+                        "a": {
+                          "op": "prod",
+                          "a": {
+                            "op": "add",
+                            "a": {
+                              "op": "var",
+                              "name": "v_z"
+                            },
+                            "b": {
+                              "op": "const",
+                              "value": 0
+                            }
+                          },
+                          "b": {
+                            "op": "add",
+                            "a": {
+                              "op": "var",
+                              "name": "v_z"
+                            },
+                            "b": {
+                              "op": "const",
+                              "value": 0
+                            }
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 0
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "op": "get",
+                  "map": "F1__2b_2b",
+                  "key": {
+                    "op": "add",
+                    "a": {
+                      "op": "prod",
+                      "a": {
+                        "op": "add",
+                        "a": {
+                          "op": "var",
+                          "name": "v_x"
+                        },
+                        "b": {
+                          "op": "get",
+                          "map": "F1__2b_2b",
+                          "key": {
+                            "op": "add",
+                            "a": {
+                              "op": "prod",
+                              "a": {
+                                "op": "add",
+                                "a": {
+                                  "op": "var",
+                                  "name": "v_y"
+                                },
+                                "b": {
+                                  "op": "get",
+                                  "map": "D1__28list_20_24T_5fa_29.K_cons",
+                                  "key": {
+                                    "op": "add",
+                                    "a": {
+                                      "op": "prod",
+                                      "a": {
+                                        "op": "add",
+                                        "a": {
+                                          "op": "var",
+                                          "name": "v_z"
+                                        },
+                                        "b": {
+                                          "op": "const",
+                                          "value": 0
+                                        }
+                                      },
+                                      "b": {
+                                        "op": "add",
+                                        "a": {
+                                          "op": "var",
+                                          "name": "v_z"
+                                        },
+                                        "b": {
+                                          "op": "const",
+                                          "value": 0
+                                        }
+                                      }
+                                    },
+                                    "b": {
+                                      "op": "const",
+                                      "value": 0
+                                    }
+                                  }
+                                }
+                              },
+                              "b": {
+                                "op": "add",
+                                "a": {
+                                  "op": "var",
+                                  "name": "v_y"
+                                },
+                                "b": {
+                                  "op": "get",
+                                  "map": "D1__28list_20_24T_5fa_29.K_cons",
+                                  "key": {
+                                    "op": "add",
+                                    "a": {
+                                      "op": "prod",
+                                      "a": {
+                                        "op": "add",
+                                        "a": {
+                                          "op": "var",
+                                          "name": "v_z"
+                                        },
+                                        "b": {
+                                          "op": "const",
+                                          "value": 0
+                                        }
+                                      },
+                                      "b": {
+                                        "op": "add",
+                                        "a": {
+                                          "op": "var",
+                                          "name": "v_z"
+                                        },
+                                        "b": {
+                                          "op": "const",
+                                          "value": 0
+                                        }
+                                      }
+                                    },
+                                    "b": {
+                                      "op": "const",
+                                      "value": 0
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "b": {
+                              "op": "get",
+                              "map": "D1__28list_20_24T_5fa_29.K_cons",
+                              "key": {
+                                "op": "add",
+                                "a": {
+                                  "op": "prod",
+                                  "a": {
+                                    "op": "add",
+                                    "a": {
+                                      "op": "var",
+                                      "name": "v_z"
+                                    },
+                                    "b": {
+                                      "op": "const",
+                                      "value": 0
+                                    }
+                                  },
+                                  "b": {
+                                    "op": "add",
+                                    "a": {
+                                      "op": "var",
+                                      "name": "v_z"
+                                    },
+                                    "b": {
+                                      "op": "const",
+                                      "value": 0
+                                    }
+                                  }
+                                },
+                                "b": {
+                                  "op": "const",
+                                  "value": 0
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "b": {
+                        "op": "add",
+                        "a": {
+                          "op": "var",
+                          "name": "v_x"
+                        },
+                        "b": {
+                          "op": "get",
+                          "map": "F1__2b_2b",
+                          "key": {
+                            "op": "add",
+                            "a": {
+                              "op": "prod",
+                              "a": {
+                                "op": "add",
+                                "a": {
+                                  "op": "var",
+                                  "name": "v_y"
+                                },
+                                "b": {
+                                  "op": "get",
+                                  "map": "D1__28list_20_24T_5fa_29.K_cons",
+                                  "key": {
+                                    "op": "add",
+                                    "a": {
+                                      "op": "prod",
+                                      "a": {
+                                        "op": "add",
+                                        "a": {
+                                          "op": "var",
+                                          "name": "v_z"
+                                        },
+                                        "b": {
+                                          "op": "const",
+                                          "value": 0
+                                        }
+                                      },
+                                      "b": {
+                                        "op": "add",
+                                        "a": {
+                                          "op": "var",
+                                          "name": "v_z"
+                                        },
+                                        "b": {
+                                          "op": "const",
+                                          "value": 0
+                                        }
+                                      }
+                                    },
+                                    "b": {
+                                      "op": "const",
+                                      "value": 0
+                                    }
+                                  }
+                                }
+                              },
+                              "b": {
+                                "op": "add",
+                                "a": {
+                                  "op": "var",
+                                  "name": "v_y"
+                                },
+                                "b": {
+                                  "op": "get",
+                                  "map": "D1__28list_20_24T_5fa_29.K_cons",
+                                  "key": {
+                                    "op": "add",
+                                    "a": {
+                                      "op": "prod",
+                                      "a": {
+                                        "op": "add",
+                                        "a": {
+                                          "op": "var",
+                                          "name": "v_z"
+                                        },
+                                        "b": {
+                                          "op": "const",
+                                          "value": 0
+                                        }
+                                      },
+                                      "b": {
+                                        "op": "add",
+                                        "a": {
+                                          "op": "var",
+                                          "name": "v_z"
+                                        },
+                                        "b": {
+                                          "op": "const",
+                                          "value": 0
+                                        }
+                                      }
+                                    },
+                                    "b": {
+                                      "op": "const",
+                                      "value": 0
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "b": {
+                              "op": "get",
+                              "map": "D1__28list_20_24T_5fa_29.K_cons",
+                              "key": {
+                                "op": "add",
+                                "a": {
+                                  "op": "prod",
+                                  "a": {
+                                    "op": "add",
+                                    "a": {
+                                      "op": "var",
+                                      "name": "v_z"
+                                    },
+                                    "b": {
+                                      "op": "const",
+                                      "value": 0
+                                    }
+                                  },
+                                  "b": {
+                                    "op": "add",
+                                    "a": {
+                                      "op": "var",
+                                      "name": "v_z"
+                                    },
+                                    "b": {
+                                      "op": "const",
+                                      "value": 0
+                                    }
+                                  }
+                                },
+                                "b": {
+                                  "op": "const",
+                                  "value": 0
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "b": {
+                      "op": "get",
+                      "map": "F1__2b_2b",
+                      "key": {
+                        "op": "add",
+                        "a": {
+                          "op": "prod",
+                          "a": {
+                            "op": "add",
+                            "a": {
+                              "op": "var",
+                              "name": "v_y"
+                            },
+                            "b": {
+                              "op": "get",
+                              "map": "D1__28list_20_24T_5fa_29.K_cons",
+                              "key": {
+                                "op": "add",
+                                "a": {
+                                  "op": "prod",
+                                  "a": {
+                                    "op": "add",
+                                    "a": {
+                                      "op": "var",
+                                      "name": "v_z"
+                                    },
+                                    "b": {
+                                      "op": "const",
+                                      "value": 0
+                                    }
+                                  },
+                                  "b": {
+                                    "op": "add",
+                                    "a": {
+                                      "op": "var",
+                                      "name": "v_z"
+                                    },
+                                    "b": {
+                                      "op": "const",
+                                      "value": 0
+                                    }
+                                  }
+                                },
+                                "b": {
+                                  "op": "const",
+                                  "value": 0
+                                }
+                              }
+                            }
+                          },
+                          "b": {
+                            "op": "add",
+                            "a": {
+                              "op": "var",
+                              "name": "v_y"
+                            },
+                            "b": {
+                              "op": "get",
+                              "map": "D1__28list_20_24T_5fa_29.K_cons",
+                              "key": {
+                                "op": "add",
+                                "a": {
+                                  "op": "prod",
+                                  "a": {
+                                    "op": "add",
+                                    "a": {
+                                      "op": "var",
+                                      "name": "v_z"
+                                    },
+                                    "b": {
+                                      "op": "const",
+                                      "value": 0
+                                    }
+                                  },
+                                  "b": {
+                                    "op": "add",
+                                    "a": {
+                                      "op": "var",
+                                      "name": "v_z"
+                                    },
+                                    "b": {
+                                      "op": "const",
+                                      "value": 0
+                                    }
+                                  }
+                                },
+                                "b": {
+                                  "op": "const",
+                                  "value": 0
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "b": {
+                          "op": "get",
+                          "map": "D1__28list_20_24T_5fa_29.K_cons",
+                          "key": {
+                            "op": "add",
+                            "a": {
+                              "op": "prod",
+                              "a": {
+                                "op": "add",
+                                "a": {
+                                  "op": "var",
+                                  "name": "v_z"
+                                },
+                                "b": {
+                                  "op": "const",
+                                  "value": 0
+                                }
+                              },
+                              "b": {
+                                "op": "add",
+                                "a": {
+                                  "op": "var",
+                                  "name": "v_z"
+                                },
+                                "b": {
+                                  "op": "const",
+                                  "value": 0
+                                }
+                              }
+                            },
+                            "b": {
+                              "op": "const",
+                              "value": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            ],
+            "automaticExplanationExtraction": false
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "mode": "disabled",
+            "checked": false,
+            "reason": "Error: historical prod/lemma_09.smt2: sat",
+            "proofUnits": 5165.344000000507,
+            "hintUnits": 4,
+            "matchedSnoc": 1,
+            "checkedRootSnocUses": 0,
+            "controls": {}
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "mode": "enabled-no-hints",
+            "checked": true,
+            "proofUnits": 1384.7379999998957,
+            "hintUnits": 3,
+            "matchedSnoc": 1,
+            "checkedRootSnocUses": 1,
+            "proofSha256": "d6f0f654e62f7b9c19d17f0d1ab60dacf2b07063b72c64482ba84d7c2b367398",
+            "splitNodes": 6,
+            "controls": {
+              "remove-assoc": "historical prod/lemma_09.smt2: its goal",
+              "remove-snoc": "historical prod/lemma_09.smt2: its goal",
+              "corrupt-lemma": "lemma 2 (recursion of F1__2b_2b on v_l): its goal",
+              "nondecreasing-rank": "historical prod/lemma_09.smt2: use 0 doesn't lower the rank"
+            }
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "mode": "enabled",
+            "checked": true,
+            "proofUnits": 1230.9480000026524,
+            "hintUnits": 22,
+            "matchedSnoc": 1,
+            "checkedRootSnocUses": 1,
+            "proofSha256": "492b6821cea7dde59fd9837858a36789955358021aefac50b38cc73cc9d92773",
+            "splitNodes": 4,
+            "controls": {
+              "remove-assoc": "historical prod/lemma_09.smt2: its goal",
+              "remove-snoc": "historical prod/lemma_09.smt2: its goal",
+              "corrupt-lemma": "lemma 2 (recursion of F1__2b_2b on v_l): its goal",
+              "nondecreasing-rank": "historical prod/lemma_09.smt2: use 0 doesn't lower the rank"
+            }
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "mode": "ablated-assoc",
+            "checked": false,
+            "reason": "Error: historical prod/lemma_09.smt2: sat",
+            "proofUnits": 7133.462000001222,
+            "hintUnits": 5,
+            "matchedSnoc": 1,
+            "checkedRootSnocUses": 0,
+            "controls": {}
+          }
+        },
+        {
+          "kind": "RESULT",
+          "data": {
+            "mode": "ablated-snoc",
+            "checked": false,
+            "reason": "Error: historical prod/lemma_09.smt2: sat",
+            "proofUnits": 5569.543999996036,
+            "hintUnits": 4,
+            "matchedSnoc": 1,
+            "checkedRootSnocUses": 0,
+            "controls": {}
+          }
+        },
+        {
+          "kind": "POSTFLIGHT",
+          "data": {
+            "inputUnchanged": true,
+            "sourceUnchanged": true,
+            "hashes": {
+              "core/data.ts": "a03b302c75a4dfdb9ac757868cf257615dcbf9549c7e2788d8560b8fe01f3811",
+              "core/cyclic.ts": "d8d80d0c9b2462219aac7aec7831efa1d2e0367b696eab2d26a1825f1b66a790",
+              "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+              "kernel/kernel.ts": "596eaaea9a44a11330178ac37b55377f5747a4ed08a8dd010c26b393c69521e2",
+              "kernel/cyclic.ts": "2562f78ce50f5925da1329306c52ed10fe4cc326331e85359536767dd0b4d777",
+              "kernel/prove.ts": "5e4232da2abe25c1153edf790af4b339d2be8482c5630b0740315c79f60ce708",
+              "compare/tip/tip.ts": "2eb658cc710c6b525e039e008b71094b79d16a9cd86ccf4a7ee5806b3f6b9673",
+              "compare/tip/translate.ts": "074b402a0164fb494042a8d1f8a697b94dd868b3c1f6a1474827ff30ee7643c9",
+              "research/egraph/match.ts": "d1572166a027a281bd8a6d864dc8c04d6069b1d47db06b037f32584122ebe1af",
+              "research/egraph/certify.ts": "b2151bb01591e3bdf0aee3f3be1c183e1b5457d323a17462309f0a00c721e421"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "batch": "20261104-100210-q8ici3",
+      "job": "fresh-replay",
+      "log": "runs/astra-history-replay/fresh-replay.log",
+      "logSha256": "44fdead5d9e0d868628d8f2f24d0282a45239c37015c24f26389d4b9545b5443",
+      "logBytes": 3625,
+      "summary": "fresh-replay\t0\t9.97\tboat",
+      "placement": {
+        "fresh-replay": {
+          "vm": "bx_xqxvqagx",
+          "type": "large",
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": false,
+          "co_tenants": 0
+        }
+      },
+      "events": [
+        {
+          "kind": "FRESH_REPLAY",
+          "data": {
+            "file": "research/egraph/historical/proofs/tip-enabled-no-hints.json",
+            "sha256": "d6f0f654e62f7b9c19d17f0d1ab60dacf2b07063b72c64482ba84d7c2b367398",
+            "nodes": 9,
+            "rootUses": 2,
+            "checked": true
+          }
+        },
+        {
+          "kind": "FRESH_REPLAY",
+          "data": {
+            "file": "research/egraph/historical/proofs/tip-enabled.json",
+            "sha256": "492b6821cea7dde59fd9837858a36789955358021aefac50b38cc73cc9d92773",
+            "nodes": 9,
+            "rootUses": 2,
+            "checked": true
+          }
+        }
+      ]
+    },
+    {
+      "batch": "20261104-100501-vq7akl",
+      "job": "historical-final-check",
+      "log": "runs/astra-history-final-check-v2/historical-final-check.log",
+      "logSha256": "c1fa379484e02bfcc1c604074e38afd76e6a650ffae08c9a51a1794e7d9078d8",
+      "logBytes": 6549,
+      "summary": "historical-final-check\t0\t18.05\tboat",
+      "placement": {
+        "historical-final-check": {
+          "vm": "bx_xqxvqagx",
+          "type": "large",
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": false,
+          "co_tenants": 0
+        }
+      },
+      "events": [
+        {
+          "kind": "Q3_INPUT",
+          "data": {
+            "id": "paxos-P5-19",
+            "wrapperSha256": "98bbf35993c89be329a58b31beb8f256cc68f14837007da1fd77792095a7363b",
+            "payloadSha256": "2611d4f829c184580f72cee9508d24c9622492b589ae17df058d8a24f4f793df",
+            "goalSha256": "0ff5ab54f683403c9b30b27a53a8f096478711a6b26f349f102aa0c0c39480eb",
+            "fullHistoricalHypotheses": 82,
+            "initiallyBroken": [],
+            "coefficients": {
+              "key$11": 4096,
+              "key$12": 64,
+              "key$13": 1
+            },
+            "decoded": {
+              "key$11": {
+                "op": "const",
+                "value": 1
+              },
+              "key$12": {
+                "op": "const",
+                "value": 7
+              },
+              "key$13": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            "actualModelPoints": [
+              {
+                "op": "=",
+                "a": {
+                  "op": "var",
+                  "name": "size"
+                },
+                "b": {
+                  "op": "const",
+                  "value": 3
+                }
+              },
+              {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "Vote",
+                  "key": {
+                    "op": "const",
+                    "value": 4544
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 1
+                }
+              },
+              {
+                "op": "=",
+                "a": {
+                  "op": "get",
+                  "map": "Proposal",
+                  "key": {
+                    "op": "const",
+                    "value": 448
+                  }
+                },
+                "b": {
+                  "op": "const",
+                  "value": 0
+                }
+              }
+            ],
+            "matches": [
+              {
+                "key$11": {
+                  "op": "const",
+                  "value": 1
+                },
+                "key$12": {
+                  "op": "const",
+                  "value": 7
+                },
+                "key$13": {
+                  "op": "const",
+                  "value": 0
+                }
+              }
+            ],
+            "matchingUnits": 377,
+            "scope": "one saved model, not a protocol or M2 proof"
+          }
+        },
+        {
+          "kind": "Q3_RESULT",
+          "data": {
+            "mode": "disabled",
+            "checked": false,
+            "reason": "Error: paxos-P5-19 model refutation (not M2): sat",
+            "scope": "saved-model refutation only"
+          }
+        },
+        {
+          "kind": "Q3_RESULT",
+          "data": {
+            "mode": "enabled",
+            "checked": true,
+            "proofSha256": "f18b2065323a34f63577bb69895b03117ebb44bb0067c6882870f7c2a18d868e",
+            "removal": "paxos-P5-19 model refutation (not M2): its goal",
+            "scope": "saved-model refutation only"
+          }
+        },
+        {
+          "kind": "Q3_RESULT",
+          "data": {
+            "mode": "wrong-ballot",
+            "checked": false,
+            "reason": "Error: paxos-P5-19 model refutation (not M2): sat",
+            "scope": "saved-model refutation only"
+          }
+        }
+      ]
+    },
+    {
+      "batch": "20261104-100640-eyqp96",
+      "job": "q3-cold-replay",
+      "log": "runs/astra-history-q3-replay/q3-cold-replay.log",
+      "logSha256": "4305aebc2048a597d892dec155fbf427cee7d9103e66c5c2fb7d608746a8c6b8",
+      "logBytes": 191,
+      "summary": "q3-cold-replay\t0\t0.05\tboat",
+      "placement": {
+        "q3-cold-replay": {
+          "vm": "bx_xqxvqagx",
+          "type": "large",
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": false,
+          "co_tenants": 0
+        }
+      },
+      "events": [
+        {
+          "kind": "FRESH_REPLAY",
+          "data": {
+            "file": "research/egraph/historical/q3-proofs/q3-enabled.json",
+            "sha256": "f18b2065323a34f63577bb69895b03117ebb44bb0067c6882870f7c2a18d868e",
+            "nodes": 1,
+            "rootUses": 0,
+            "checked": true
+          }
+        }
+      ]
+    }
+  ],
+  "preflightFailure": {
+    "path": "runs/astra-history-final-check/preflight-failure.log",
+    "sha256": "6b80498d2a6418663813df859845131163322adbe82eb81adfd5f4018c643091",
+    "classification": "input-freeze failure before dispatch; no worker test result"
+  },
+  "sources": [
+    {
+      "path": "research/egraph/README.md",
+      "bytes": 5000,
+      "sha256": "660d764ad7758c2dd9f4866b5613ab72f86280cf51b6f9bfd26726c722dd3c6d"
+    },
+    {
+      "path": "research/egraph/RESULTS.md",
+      "bytes": 8812,
+      "sha256": "e966f0c36002bae7f31e172de88992f6a4c5f4591b45a715dcff2463aa890b2e"
+    },
+    {
+      "path": "research/egraph/certify.ts",
+      "bytes": 3500,
+      "sha256": "b2151bb01591e3bdf0aee3f3be1c183e1b5457d323a17462309f0a00c721e421"
+    },
+    {
+      "path": "research/egraph/congruence.test.ts",
+      "bytes": 2472,
+      "sha256": "0c2267e4f2cb42c7924ce60b837047314dc329888da1c1cceb381164ec9c51e4"
+    },
+    {
+      "path": "research/egraph/finish.jobs.json",
+      "bytes": 318,
+      "sha256": "0789ce7c881755f5bb910725ccea508d3f2766eebb712db07c7a6d39d997b2b6"
+    },
+    {
+      "path": "research/egraph/first.jobs.json",
+      "bytes": 139,
+      "sha256": "a97f102da621b9ae9daa0c04f4454e073f8348070c94bdac926ece34973a213e"
+    },
+    {
+      "path": "research/egraph/historical/BASELINES.md",
+      "bytes": 4533,
+      "sha256": "af792bb4e4b21ba9e0605ac2c4b15e81d8550c5fd6b1f0e51f488510b681fe5f"
+    },
+    {
+      "path": "research/egraph/historical/PROTOCOL.md",
+      "bytes": 2900,
+      "sha256": "5e1edf27d56f8732e64f0882eb8f4c4ebfceefe88cf95fe457b8a1c46d12be01"
+    },
+    {
+      "path": "research/egraph/historical/RESULTS.md",
+      "bytes": 11295,
+      "sha256": "8d1e46764ee9f74dd970cd5ca39a59bc79495123b999a78de0ddfdd69fe2cfb7"
+    },
+    {
+      "path": "research/egraph/historical/archive-meta/store-manifest.json",
+      "bytes": 832,
+      "sha256": "06083fcc46f6df0bc9fb8756ca74f96a55b2195ca916eedacb07567fe84c1ba7"
+    },
+    {
+      "path": "research/egraph/historical/archive-v2.jobs.json",
+      "bytes": 129,
+      "sha256": "575ab8aaa8799dbb5657c509000d9cf280a3f70c40a65726b09c9a98e6605a20"
+    },
+    {
+      "path": "research/egraph/historical/archive-v3.jobs.json",
+      "bytes": 134,
+      "sha256": "c744f4215e5c244ead5cd73f9d698f7c04eba93a29f50a23c64c0520f185688d"
+    },
+    {
+      "path": "research/egraph/historical/archive.jobs.json",
+      "bytes": 127,
+      "sha256": "1b38365f6450a6bd1cdfa30dd220c9a9ddb8ddcbfa04cb08fae441ae495310b8"
+    },
+    {
+      "path": "research/egraph/historical/commit-message.txt",
+      "bytes": 283,
+      "sha256": "63df5ed1029ef64cfc146ef53b3e33473718b0cc73be6b7c7c6286a11a98b4c0"
+    },
+    {
+      "path": "research/egraph/historical/commitlint.config.cjs",
+      "bytes": 388,
+      "sha256": "6ebc8400093b52a69b8055c35ca19b7742bb41c9e4705618215e1d65262d729f"
+    },
+    {
+      "path": "research/egraph/historical/compare.jobs.json",
+      "bytes": 430,
+      "sha256": "6dbeb9a6730157aca1ef7742152b56c7677fe005befff4359bc785d59f33af9f"
+    },
+    {
+      "path": "research/egraph/historical/extract.jobs.json",
+      "bytes": 129,
+      "sha256": "5ff9c6bfe70b7a5633aab79e27724d31ec2e0cc77772ed19bff3e59c6709f4c4"
+    },
+    {
+      "path": "research/egraph/historical/extract_fixtures.py",
+      "bytes": 2239,
+      "sha256": "be77ce04d44ba722b19ff5d4f9792c33da0ca531be1cda83aaa179da36d63bba"
+    },
+    {
+      "path": "research/egraph/historical/extract_selected.py",
+      "bytes": 2618,
+      "sha256": "c06df9d96fd0aadfb5a916bbd60885f8b9368197ea94aa5b6053d19cadbb3f01"
+    },
+    {
+      "path": "research/egraph/historical/final.jobs.json",
+      "bytes": 621,
+      "sha256": "fa0f392ae41d6ebd82b712704361ac17e7a356037a72b04400c7c560cd3f59c3"
+    },
+    {
+      "path": "research/egraph/historical/fixtures.jobs.json",
+      "bytes": 129,
+      "sha256": "48638622a5e2eb8231138e3d586103f3ff960779d6b9ebef3e184f3afd4d8f0a"
+    },
+    {
+      "path": "research/egraph/historical/inputs/gdp-wired-laneQ3/core/fixtures/published-ground/README.md",
+      "bytes": 3196,
+      "sha256": "3664e10a76bb94bf32fc89360e54760284135aeb14be3ed8fb7056d986d99d78"
+    },
+    {
+      "path": "research/egraph/historical/inputs/gdp-wired-laneQ3/core/fixtures/published-ground/paxos-P5-19.json",
+      "bytes": 6647,
+      "sha256": "98bbf35993c89be329a58b31beb8f256cc68f14837007da1fd77792095a7363b"
+    },
+    {
+      "path": "research/egraph/historical/inputs/gdp-wired-laneRL/research/frontier2/tasks/tip/prod/lemma_09.broken.smt2",
+      "bytes": 736,
+      "sha256": "b338202f614781dddadef69664bc876cadfd5c6b423ae0be6e3e6b9b0f623e6a"
+    },
+    {
+      "path": "research/egraph/historical/inputs/gdp-wired-laneRL/research/frontier2/tasks/tip/prod/lemma_09.smt2",
+      "bytes": 612,
+      "sha256": "225ccffbf1a98c7334f6be2d86e13efe07ce707e1fcaa8b3b5dd6b4869654888"
+    },
+    {
+      "path": "research/egraph/historical/inputs/m2/decision-quorum.json.gz",
+      "bytes": 4301,
+      "sha256": "6aac4db7a1f149f51ce8356e9f4f475474c583e36d7d44c69a4e7ba973411bba"
+    },
+    {
+      "path": "research/egraph/historical/inputs/m2/one-value-decided.json.gz",
+      "bytes": 6843,
+      "sha256": "c5eac7b02e6ab460d9d9e3864ad7d2a667ec583f7fb6478da7abcb75a71c7bc1"
+    },
+    {
+      "path": "research/egraph/historical/inputs/materialized-manifest.json",
+      "bytes": 974,
+      "sha256": "d2bcc4d0f9163a6b9c0516b5b84fb86cdadd2557c7f2b9f667532df49ae99550"
+    },
+    {
+      "path": "research/egraph/historical/inspect_archive.py",
+      "bytes": 1753,
+      "sha256": "7cb746ae34a9abf4a6d7a5b6d4a8476b49a20993639cd93d7a49b68ec804d9c8"
+    },
+    {
+      "path": "research/egraph/historical/inspect_archive_v2.py",
+      "bytes": 1835,
+      "sha256": "61d4c841347515080810a0399e01dc3e184ef108d35cff7d8ddcd4fac32d4e84"
+    },
+    {
+      "path": "research/egraph/historical/inspect_archive_v3.py",
+      "bytes": 2071,
+      "sha256": "644096fbf38bc3adb1a72b3dda583c097f9baaf7fc5b78b75101dd5e430bbcbb"
+    },
+    {
+      "path": "research/egraph/historical/m2-ite.ts",
+      "bytes": 2438,
+      "sha256": "81825de8417b48d5b02ff4bb239cf80903e97f7a2de4aacb88d3fcf16da7755c"
+    },
+    {
+      "path": "research/egraph/historical/m2.jobs.json",
+      "bytes": 139,
+      "sha256": "63d6a67bcbf543a70f48645d478844dd71eb8f9a0abee9641d07bb1f1ba98857"
+    },
+    {
+      "path": "research/egraph/historical/m2.ts",
+      "bytes": 4971,
+      "sha256": "f570271de48a7d6e48c1c0ce4de6e551e365537f263fafba295b88dc930bbe36"
+    },
+    {
+      "path": "research/egraph/historical/materialize.ts",
+      "bytes": 1762,
+      "sha256": "7020e9781506881160236cf6eaffe001a7bdb226e934d63617300a5cf784e72a"
+    },
+    {
+      "path": "research/egraph/historical/proofs/materialized-manifest.json",
+      "bytes": 496,
+      "sha256": "7593653d244ac9bc74dc3d05082b24af192bff28dd2659d783e9156ad3d9329a"
+    },
+    {
+      "path": "research/egraph/historical/proofs/tip-enabled-no-hints.json",
+      "bytes": 512457,
+      "sha256": "d6f0f654e62f7b9c19d17f0d1ab60dacf2b07063b72c64482ba84d7c2b367398"
+    },
+    {
+      "path": "research/egraph/historical/proofs/tip-enabled.json",
+      "bytes": 517477,
+      "sha256": "492b6821cea7dde59fd9837858a36789955358021aefac50b38cc73cc9d92773"
+    },
+    {
+      "path": "research/egraph/historical/q3-inspect.ts",
+      "bytes": 678,
+      "sha256": "11723bdec6ed3efe468c60f12cd60a8bbf8361bfb6ae9075d92a98ad0781b102"
+    },
+    {
+      "path": "research/egraph/historical/q3-proofs/materialized-manifest.json",
+      "bytes": 343,
+      "sha256": "492bb1910984f3a3b99a80309efa7e290d7b27d23ca3b5d2a3981bb3bf2cd708"
+    },
+    {
+      "path": "research/egraph/historical/q3-proofs/q3-enabled.json",
+      "bytes": 52345,
+      "sha256": "f18b2065323a34f63577bb69895b03117ebb44bb0067c6882870f7c2a18d868e"
+    },
+    {
+      "path": "research/egraph/historical/q3-replay.jobs.json",
+      "bytes": 166,
+      "sha256": "dcc57b79d13a499940e918d9d3d12608e138ab613f20eb3b044e9e4e9f24852c"
+    },
+    {
+      "path": "research/egraph/historical/q3.ts",
+      "bytes": 4485,
+      "sha256": "e02eb63c8f72ee653f3c1cde358de82784eca5202779f3512e09c8ce122bc58b"
+    },
+    {
+      "path": "research/egraph/historical/replay.jobs.json",
+      "bytes": 721,
+      "sha256": "3c7d48e65652136dcbd55497c76d03be574f3058425f59bebda9b68f97a72b8a"
+    },
+    {
+      "path": "research/egraph/historical/replay.ts",
+      "bytes": 571,
+      "sha256": "b0143a4eec5d05eb89ecfb9c3ef93a6972500ab409ba179d67e21a4e87271857"
+    },
+    {
+      "path": "research/egraph/historical/tip.ts",
+      "bytes": 7003,
+      "sha256": "e2fd82d3197a052f7d9a4bf0860712865987339eeee84fd4fc944ed3b35ccaa1"
+    },
+    {
+      "path": "research/egraph/historical/tsconfig.json",
+      "bytes": 77,
+      "sha256": "8d19425bd266574ae8a2efb1b0ecf3cba7d89192fac2520c6f3487b4ca16d554"
+    },
+    {
+      "path": "research/egraph/ite.test.ts",
+      "bytes": 2122,
+      "sha256": "630ac5dc8ae232b1f883b924896b1dd910eff97802adad55de5a1fa4a474554b"
+    },
+    {
+      "path": "research/egraph/ite.ts",
+      "bytes": 3802,
+      "sha256": "b6c85a8be9e916d38514e87f81f898aed67c6f52b58e2c03eac5c2d3ee0f7408"
+    },
+    {
+      "path": "research/egraph/match.test.ts",
+      "bytes": 3453,
+      "sha256": "a435b2eba024512aee24785f7dcb7dd97e5b8f29cb22c9e4d97520a8dce0a4df"
+    },
+    {
+      "path": "research/egraph/match.ts",
+      "bytes": 5481,
+      "sha256": "d1572166a027a281bd8a6d864dc8c04d6069b1d47db06b037f32584122ebe1af"
+    },
+    {
+      "path": "research/egraph/measure.ts",
+      "bytes": 2553,
+      "sha256": "a7c7353338f6049383cdf447b983975854e9860d8ae45e35f547839b88dfe657"
+    },
+    {
+      "path": "research/egraph/probe.ts",
+      "bytes": 848,
+      "sha256": "eb52a01ff233ef55157bccf26f371ae3e6d88881cc688838578618e173b36225"
+    },
+    {
+      "path": "research/egraph/receipts/bridge-only-failure.log",
+      "bytes": 1366,
+      "sha256": "5f06c19c22fb6965f513f47494aef84945fb081152f53cc3f9738aac5632bc6f"
+    },
+    {
+      "path": "research/egraph/receipts/bridge-placement.json",
+      "bytes": 152,
+      "sha256": "7bdfa7eeb57df63445ab2d264c52755f3cfee9d2534f8577766797246345f47b"
+    },
+    {
+      "path": "research/egraph/receipts/cancelled-first.json",
+      "bytes": 735,
+      "sha256": "921d985f3dfb602b4914aebeb765cd835048af50ff3e06d8e0a43321c5ce452e"
+    },
+    {
+      "path": "research/egraph/receipts/commitlint-placement.json",
+      "bytes": 155,
+      "sha256": "97f2fe5463da30c3553a3adfe7462314c64ba0303cb0c94a58ac22875f0dae25"
+    },
+    {
+      "path": "research/egraph/receipts/commitlint-rules.txt",
+      "bytes": 388,
+      "sha256": "6ebc8400093b52a69b8055c35ca19b7742bb41c9e4705618215e1d65262d729f"
+    },
+    {
+      "path": "research/egraph/receipts/commitlint-setup-failure.log",
+      "bytes": 539,
+      "sha256": "ee8d3959ccacdcf2303bfaec5094b9cb5d2048f84c688f5946d0e1da2a4285fa"
+    },
+    {
+      "path": "research/egraph/receipts/commitlint.log",
+      "bytes": 432,
+      "sha256": "827bebea74029bee5c2f993367b5190dbd3c45c3ace313bb0ac260b291d5676b"
+    },
+    {
+      "path": "research/egraph/receipts/final-measurements.log",
+      "bytes": 2052,
+      "sha256": "ad341143daf98097c388471a4ac45592799e4e2c4b46d81f51d6077f79272f5c"
+    },
+    {
+      "path": "research/egraph/receipts/final-placement.json",
+      "bytes": 151,
+      "sha256": "150dba3255c6eb8beb1c71d34c686e7a6901efc1539f06d881c83ad3e58e5338"
+    },
+    {
+      "path": "research/egraph/receipts/full-project-static-failure.log",
+      "bytes": 15084,
+      "sha256": "742b22d998438a1ed0879c988924e58f6bf7ac5bd621820efd3646051ff266ec"
+    },
+    {
+      "path": "research/egraph/receipts/initial-validation-placement.json",
+      "bytes": 155,
+      "sha256": "292f38f390f6cf15994ed3891bf7056026455ff558889fccb5623339513950f3"
+    },
+    {
+      "path": "research/egraph/receipts/probe-placement.json",
+      "bytes": 150,
+      "sha256": "5e7053909d7221eafd58f523dd40e92c95846ce59981acb4b40b78b8e2b1ff58"
+    },
+    {
+      "path": "research/egraph/receipts/split-validation-placement.json",
+      "bytes": 155,
+      "sha256": "865bb13943805e09c9f8db4a185a960a53a0fa7cca6de05f507541b779014d67"
+    },
+    {
+      "path": "research/egraph/receipts/validation-initial.log",
+      "bytes": 2140,
+      "sha256": "97e3b313623db161109f7674e4d9e3bdeeff71b111726b51dc18df153b9055cc"
+    },
+    {
+      "path": "research/egraph/recheck.jobs.json",
+      "bytes": 306,
+      "sha256": "34c01d5f8082d5c86765213aeeadafa2aac2ba1beb83370e92f3162fe6a0b80a"
+    },
+    {
+      "path": "research/egraph/recursive.test.ts",
+      "bytes": 1124,
+      "sha256": "1d7256ef32c4fa84790e7c5cedd51bb25cdb560ed9f867cebddf856d7afd0108"
+    },
+    {
+      "path": "research/egraph/recursive.ts",
+      "bytes": 3553,
+      "sha256": "3a0167af4eb6423bcd4b64d23b6564ac19b72ed43adcb02ba1bb29cb9b2f4cd4"
+    },
+    {
+      "path": "research/egraph/tsconfig.json",
+      "bytes": 62,
+      "sha256": "e0598280fc97c8355a2effd109a52419659039903e50c3ac00aac688411c36b7"
+    },
+    {
+      "path": "research/egraph/validation.jobs.json",
+      "bytes": 304,
+      "sha256": "e5d5ae460a1208f326819d51bb7766f1423412c5fa18261dc573b76843dc7956"
+    },
+    {
+      "path": "research/egraph/vote.ts",
+      "bytes": 1429,
+      "sha256": "deed6ed764329cda97dff73c92f96939c522274411a028061b5ca95f7119dbb4"
+    }
+  ]
+}

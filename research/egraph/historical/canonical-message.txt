@@ -1,0 +1,5 @@
+feat(research): check the canonical six-law conjunction
+
+Retain the two missing start certificates with independent cold checks.
+Transport existing proofs into one canonical context without new search.
+Keep native H01 and full frontier admission explicitly separate.

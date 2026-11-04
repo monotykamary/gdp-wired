@@ -1,0 +1,26 @@
+{
+  "originLog": "runs/astra-history-fixtures/archive-fixtures.log",
+  "originLogSha256": "d5b4dc10c04247adc409d5d74fb38fb83c1f3dbbcbf59de892817d419f09e2d7",
+  "artifacts": [
+    {
+      "name": "gdp-wired-laneQ3/core/fixtures/published-ground/paxos-P5-19.json",
+      "sha256": "98bbf35993c89be329a58b31beb8f256cc68f14837007da1fd77792095a7363b",
+      "bytes": 6647
+    },
+    {
+      "name": "gdp-wired-laneQ3/core/fixtures/published-ground/README.md",
+      "sha256": "3664e10a76bb94bf32fc89360e54760284135aeb14be3ed8fb7056d986d99d78",
+      "bytes": 3196
+    },
+    {
+      "name": "gdp-wired-laneRL/research/frontier2/tasks/tip/prod/lemma_09.smt2",
+      "sha256": "225ccffbf1a98c7334f6be2d86e13efe07ce707e1fcaa8b3b5dd6b4869654888",
+      "bytes": 612
+    },
+    {
+      "name": "gdp-wired-laneRL/research/frontier2/tasks/tip/prod/lemma_09.broken.smt2",
+      "sha256": "b338202f614781dddadef69664bc876cadfd5c6b423ae0be6e3e6b9b0f623e6a",
+      "bytes": 736
+    }
+  ]
+}

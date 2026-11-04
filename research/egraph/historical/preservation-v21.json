@@ -1,0 +1,169 @@
+{
+  "batch": "20261104-131758-31gmal",
+  "uploadedTree": "edcae4c49cd5",
+  "workerExit": 0,
+  "checkerSha256": "8bc14b4372594d3da7915c788aa9fda26fc1fbff3c089461e98736cd8d742a06",
+  "logSha256": "6c40ccf02c908f93a696f01a37027ac47207acd4580e065bd0dfbd03303fc585",
+  "records": [
+    {
+      "id": "P1",
+      "focus": "P1 proposals unique",
+      "source": {
+        "kernel/kernel.ts": "596eaaea9a44a11330178ac37b55377f5747a4ed08a8dd010c26b393c69521e2",
+        "kernel/cyclic.ts": "2562f78ce50f5925da1329306c52ed10fe4cc326331e85359536767dd0b4d777",
+        "core/check.ts": "9ae2d3c4323dd1e22d02219c1f33dcd92dfc6856a7500e969b43232d2fa6fd5b",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb"
+      },
+      "attemptSha256": "634bcc43ec28aef4256b107620976299ddb5ecd7deb4dc9f7ce589aa521a112c",
+      "proofSha256": "889e38cf8c0f9576064efa5079ff5e0773be525bdcd7d86960513ceb68cb7115",
+      "replay": [
+        {
+          "name": "P1 proposals unique @start",
+          "goalSha256": "a6c9d15ca0bc7fdbe423914de4947f3900e7def4993931fa2241e22e0e24ec31",
+          "checked": true,
+          "fresh": true
+        },
+        {
+          "name": "P1 proposals unique @step",
+          "goalSha256": "49b268d5b1fb95d8471063c29104330ff0cdeb9203529afab41b915aa5c11914",
+          "checked": true,
+          "fresh": true
+        }
+      ],
+      "machineMatchesSafety": false,
+      "lawSetMatchesSafety": false,
+      "noProverInvoked": true
+    },
+    {
+      "id": "P2",
+      "focus": "P2 vote proposed",
+      "source": {
+        "kernel/kernel.ts": "596eaaea9a44a11330178ac37b55377f5747a4ed08a8dd010c26b393c69521e2",
+        "kernel/cyclic.ts": "2562f78ce50f5925da1329306c52ed10fe4cc326331e85359536767dd0b4d777",
+        "core/check.ts": "9ae2d3c4323dd1e22d02219c1f33dcd92dfc6856a7500e969b43232d2fa6fd5b",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb"
+      },
+      "attemptSha256": "4dcefbd3ffba095e8c2f5c9afd57056c9bf14cea8a0d5ee5bf567cf081437bbc",
+      "proofSha256": "a8ed2254648f3e1bd432f4052bdf83b2dc36804fe925216e3a14b25e20e9ec10",
+      "replay": [
+        {
+          "name": "P2 vote proposed @start",
+          "goalSha256": "b178b285b3ec4a985b800c378603ce9c1ec967eb79b00d3179eb76a5e291ae4b",
+          "checked": true,
+          "fresh": true
+        },
+        {
+          "name": "P2 vote proposed @step",
+          "goalSha256": "747ab115abb97ae31632d27ccf9b11f6768a147f09b57f251122dac3957afc28",
+          "checked": true,
+          "fresh": true
+        }
+      ],
+      "machineMatchesSafety": false,
+      "lawSetMatchesSafety": false,
+      "noProverInvoked": true
+    },
+    {
+      "id": "P4",
+      "focus": "P4 one_b left",
+      "source": {
+        "kernel/kernel.ts": "596eaaea9a44a11330178ac37b55377f5747a4ed08a8dd010c26b393c69521e2",
+        "kernel/cyclic.ts": "2562f78ce50f5925da1329306c52ed10fe4cc326331e85359536767dd0b4d777",
+        "core/check.ts": "9ae2d3c4323dd1e22d02219c1f33dcd92dfc6856a7500e969b43232d2fa6fd5b",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb"
+      },
+      "attemptSha256": "7199450fbf8c61e454ab5f9b59171b51bbdf722dddcc79ece447fc3a834f325e",
+      "proofSha256": "0c90cbd87a76154b245ede7d195228022f419fd2f68f3c7dd3c3b65d7e5a28a7",
+      "replay": [
+        {
+          "name": "P4 one_b left @start",
+          "goalSha256": "68cd5d9cda629d1943b73db664f32e7992283e194e894f62337eaa806f981424",
+          "checked": true,
+          "fresh": true
+        },
+        {
+          "name": "P4 one_b left @step",
+          "goalSha256": "a823c29bf880a94d96a2dcf99f44222bfe2ba366f0ecbee19627925a238c093d",
+          "checked": true,
+          "fresh": true
+        }
+      ],
+      "machineMatchesSafety": false,
+      "lawSetMatchesSafety": false,
+      "noProverInvoked": true
+    },
+    {
+      "id": "P5",
+      "focus": "P5 choosable",
+      "source": {
+        "kernel/kernel.ts": "596eaaea9a44a11330178ac37b55377f5747a4ed08a8dd010c26b393c69521e2",
+        "kernel/cyclic.ts": "2562f78ce50f5925da1329306c52ed10fe4cc326331e85359536767dd0b4d777",
+        "core/check.ts": "9ae2d3c4323dd1e22d02219c1f33dcd92dfc6856a7500e969b43232d2fa6fd5b",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb"
+      },
+      "attemptSha256": "fe20786b55676014e03f0112269e6933a8036465c56f79e9b231700028ef2f36",
+      "proofSha256": "70282f4353c19dfd6c72caff16c8e3807423dbc3500fb85e4b39d39e85cdcc1e",
+      "replay": [
+        {
+          "name": "P5 choosable @start",
+          "goalSha256": "0b1be7d14b8073a735f51c80d3bbf2b864a16846fbe6764e7728a72e2f160366",
+          "checked": true,
+          "fresh": true
+        },
+        {
+          "name": "P5 choosable @step",
+          "goalSha256": "0392e1960a26704cd491891bfdcca4a8566eb76d8c77f467553bc1f496fa676a",
+          "checked": true,
+          "fresh": true
+        }
+      ],
+      "machineMatchesSafety": false,
+      "lawSetMatchesSafety": false,
+      "noProverInvoked": true
+    },
+    {
+      "id": "tip-enabled-no-hints.json",
+      "source": {
+        "kernel/kernel.ts": "596eaaea9a44a11330178ac37b55377f5747a4ed08a8dd010c26b393c69521e2",
+        "kernel/cyclic.ts": "2562f78ce50f5925da1329306c52ed10fe4cc326331e85359536767dd0b4d777",
+        "core/check.ts": "9ae2d3c4323dd1e22d02219c1f33dcd92dfc6856a7500e969b43232d2fa6fd5b",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb"
+      },
+      "proofSha256": "d6f0f654e62f7b9c19d17f0d1ab60dacf2b07063b72c64482ba84d7c2b367398",
+      "nodes": 9,
+      "rootUses": 2,
+      "rootConclSha256": "28cf5b8086d5afd6143535b54344310c809683d497b0436eef44e262368f35bf",
+      "checked": true,
+      "controls": {
+        "remove-root-use-0": "historical prod/lemma_09.smt2: its goal",
+        "remove-root-use-1": "historical prod/lemma_09.smt2: its goal",
+        "corrupt-snoc": "lemma 2 (recursion of F1__2b_2b on v_l): its goal",
+        "nondecreasing-rank": "historical prod/lemma_09.smt2: use 0 doesn't lower the rank"
+      },
+      "noProverInvoked": true
+    },
+    {
+      "id": "tip-enabled.json",
+      "source": {
+        "kernel/kernel.ts": "596eaaea9a44a11330178ac37b55377f5747a4ed08a8dd010c26b393c69521e2",
+        "kernel/cyclic.ts": "2562f78ce50f5925da1329306c52ed10fe4cc326331e85359536767dd0b4d777",
+        "core/check.ts": "9ae2d3c4323dd1e22d02219c1f33dcd92dfc6856a7500e969b43232d2fa6fd5b",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb"
+      },
+      "proofSha256": "492b6821cea7dde59fd9837858a36789955358021aefac50b38cc73cc9d92773",
+      "nodes": 9,
+      "rootUses": 2,
+      "rootConclSha256": "28cf5b8086d5afd6143535b54344310c809683d497b0436eef44e262368f35bf",
+      "checked": true,
+      "controls": {
+        "remove-root-use-0": "historical prod/lemma_09.smt2: its goal",
+        "remove-root-use-1": "historical prod/lemma_09.smt2: its goal",
+        "corrupt-snoc": "lemma 2 (recursion of F1__2b_2b on v_l): its goal",
+        "nondecreasing-rank": "historical prod/lemma_09.smt2: use 0 doesn't lower the rank"
+      },
+      "noProverInvoked": true
+    }
+  ],
+  "commitlintPassed": true,
+  "nativeAdmission": false
+}

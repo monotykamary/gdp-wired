@@ -1,0 +1,1759 @@
+{
+  "format": "existing-row-recovery/1",
+  "sourceLogSha256": "813f055ad56ae10e945d0985efd76853cc838c5417f6f1aff0e99cc27a0eb4dd",
+  "records": [
+    {
+      "name": "one-value-decided",
+      "goalSha256": "58496db30029729c33954d6cc01f61673dbe5bc0c52c4f64b1b4126c0dcc20ca",
+      "compressedSha256": "c5eac7b02e6ab460d9d9e3864ad7d2a667ec583f7fb6478da7abcb75a71c7bc1",
+      "instances": {
+        "one value decided": [
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          }
+        ],
+        "P1 proposals unique": [
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w?noProposal"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w?noProposal"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w?noProposal"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w?noProposal"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w?noProposal"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "w?noProposal"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w?noProposal"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w?noProposal"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w?noProposal"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "w?noProposal"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          }
+        ],
+        "P2 vote proposed": [
+          {
+            "op": "var",
+            "name": "w?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "w?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "w$50"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w$60"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w$60"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "w$20"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w$20"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w$22"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "w$58"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "w$70"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "w$72"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "w$58"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "w$194"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "w$58"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "w$70"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w$62"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "w$62"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "w$62"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          }
+        ],
+        "P3 decision has quorum": [
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          }
+        ],
+        "P5 choosable": [
+          {
+            "op": "const",
+            "value": 0
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w?noProposal"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$3"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "key$2#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$4"
+          },
+          {
+            "op": "var",
+            "name": "key$5"
+          }
+        ]
+      },
+      "reads": [
+        [
+          "r$0",
+          "missing",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$1",
+          "members",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$2",
+          "pubVotes",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$2#"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "key$5"
+            }
+          }
+        ],
+        [
+          "r$3",
+          "pubVotes",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$4"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "v"
+            }
+          }
+        ],
+        [
+          "r$4",
+          "pubVotes",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$4"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "key$5"
+            }
+          }
+        ],
+        [
+          "r$5",
+          "pubVotes",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$2#"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "key$3"
+            }
+          }
+        ],
+        [
+          "r$6",
+          "pubBlocked",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "r"
+            }
+          }
+        ],
+        [
+          "r$7",
+          "pubBlocked",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$2#"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "key$5"
+            }
+          }
+        ],
+        [
+          "r$8",
+          "pubBlocked",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$2#"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "r"
+            }
+          }
+        ],
+        [
+          "r$9",
+          "pubBlocked",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$4"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "key$3"
+            }
+          }
+        ],
+        [
+          "r$10",
+          "pubBlocked",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$2#"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "key$3"
+            }
+          }
+        ],
+        [
+          "r$11",
+          "pubBlocked",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$4"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "key$5"
+            }
+          }
+        ],
+        [
+          "r$12",
+          "pubBlocked",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$4"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "r"
+            }
+          }
+        ],
+        [
+          "r$13",
+          "pubBlocked",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$4"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "v"
+            }
+          }
+        ],
+        [
+          "r$14",
+          "pubBlocked",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$2#"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "v"
+            }
+          }
+        ]
+      ]
+    },
+    {
+      "name": "decision-quorum",
+      "goalSha256": "a7cee3dd679c5c19df5fd6110c24a723158e8644299c98243df8c0513bd57357",
+      "compressedSha256": "6aac4db7a1f149f51ce8356e9f4f475474c583e36d7d44c69a4e7ba973411bba",
+      "instances": {
+        "P3 decision has quorum": [
+          {
+            "op": "var",
+            "name": "key$90#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$90#"
+          },
+          {
+            "op": "var",
+            "name": "key$91"
+          }
+        ],
+        "one value decided": [
+          {
+            "op": "var",
+            "name": "key$90#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "key$90#"
+          },
+          {
+            "op": "var",
+            "name": "key$91"
+          },
+          {
+            "op": "var",
+            "name": "key$90#"
+          },
+          {
+            "op": "var",
+            "name": "key$91"
+          },
+          {
+            "op": "var",
+            "name": "key$90#"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          }
+        ],
+        "P1 proposals unique": [
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "maxr"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "maxr"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w?noProposal"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w?noProposal"
+          }
+        ],
+        "P2 vote proposed": [
+          {
+            "op": "var",
+            "name": "w?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w2?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "w$9"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w$2"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w$3"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w?rowsOk"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          },
+          {
+            "op": "var",
+            "name": "w$19"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "v"
+          }
+        ],
+        "P5 choosable": [
+          {
+            "op": "var",
+            "name": "key$90#"
+          },
+          {
+            "op": "var",
+            "name": "key$91"
+          },
+          {
+            "op": "var",
+            "name": "r"
+          },
+          {
+            "op": "var",
+            "name": "w3?rowsOk"
+          }
+        ]
+      },
+      "reads": [
+        [
+          "r$0",
+          "missing",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$1",
+          "pubVotes#",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$90#"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "key$91"
+            }
+          }
+        ],
+        [
+          "r$2",
+          "members",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$3",
+          "pubVotes",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$90#"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "v"
+            }
+          }
+        ],
+        [
+          "r$4",
+          "pubVotes",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$90#"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "key$91"
+            }
+          }
+        ],
+        [
+          "r$5",
+          "pubBlocked",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "key$90#"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "key$91"
+            }
+          }
+        ]
+      ]
+    }
+  ]
+}

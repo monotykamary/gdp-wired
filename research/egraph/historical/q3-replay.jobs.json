@@ -1,0 +1,1 @@
+[{"name":"q3-cold-replay","cmd":"bun research/egraph/historical/replay.ts research/egraph/historical/q3-proofs/q3-enabled.json","cpu":2,"memory":4096,"timeout":600}]

@@ -1,0 +1,243 @@
+{
+  "format": "astra-m2-index-receipts/1",
+  "sourceBase": "98c7071a9afcb47ba391a9230dc9b6129270f3ff",
+  "matchingCaps": {
+    "units": 100000,
+    "nodes": 512,
+    "wallMs": 1000,
+    "maxResults": 32
+  },
+  "workerRequest": {
+    "cpu": 2,
+    "memoryMiB": 4096,
+    "seconds": 600
+  },
+  "m2Flip": false,
+  "scope": "candidate search and exact existing-row provenance, not a complete counted proof; no timing claims",
+  "receipts": [
+    {
+      "run": "astra-m2-index-v1",
+      "job": "m2-index-v1",
+      "files": [
+        {
+          "path": "runs/astra-m2-index-v1/controller.log",
+          "bytes": 405,
+          "sha256": "b622041a1082cdd632603e247f917f9ea7da509cbe8e0d1edb1942f3dd4831b5"
+        },
+        {
+          "path": "runs/astra-m2-index-v1/results/m2-index-v1.log",
+          "bytes": 5428,
+          "sha256": "6dbb2479d93448291d5fdeb9cf7d9bbddf939d9c79e0c9ca2a9509f2df9f521a"
+        },
+        {
+          "path": "runs/astra-m2-index-v1/results/summary.tsv",
+          "bytes": 24,
+          "sha256": "46a50d13157cf82b4be27baad1236f0c5c73c30938bb0f0515cf3318c6389cda"
+        },
+        {
+          "path": "runs/astra-m2-index-v1/results/backends.json",
+          "bytes": 771,
+          "sha256": "c3654b864bceef7b39ba2cdd2dac8ae730884dfda88bbf76c63b7d8ef46d6318"
+        },
+        {
+          "path": "runs/astra-m2-index-v1/results/placement.json",
+          "bytes": 184,
+          "sha256": "11e7ddf112d11c7beb04f4f3b9b430db30277d8de23cce7237d85b48e9d64803"
+        }
+      ],
+      "summary": "m2-index-v1\t0\t2.33\tboat"
+    },
+    {
+      "run": "astra-m2-compact-v2",
+      "job": "m2-compact-v2",
+      "files": [
+        {
+          "path": "runs/astra-m2-compact-v2/controller.log",
+          "bytes": 406,
+          "sha256": "a74f94a9a74be5fb87f13d52604d5c71e0aeb47eb37befe4b6ff5e0e7d2e9609"
+        },
+        {
+          "path": "runs/astra-m2-compact-v2/results/m2-compact-v2.log",
+          "bytes": 5367,
+          "sha256": "23e29d000e990708d3258154563aba0f876524e87d4d79da8bb474f26d128298"
+        },
+        {
+          "path": "runs/astra-m2-compact-v2/results/summary.tsv",
+          "bytes": 27,
+          "sha256": "b410653565b6f3f516a0852cef3288ab749359468246cff37ddd6bcaade8f27c"
+        },
+        {
+          "path": "runs/astra-m2-compact-v2/results/backends.json",
+          "bytes": 771,
+          "sha256": "0362c7489684a87479bdbeb81fd5adb84c53153c685fc1b01a19341b37703d6a"
+        },
+        {
+          "path": "runs/astra-m2-compact-v2/results/placement.json",
+          "bytes": 186,
+          "sha256": "60941ca4a9cc19ee965a0a1bb0e78d44c0174e142aeb613299c99d1036679167"
+        }
+      ],
+      "summary": "m2-compact-v2\t1\t15.75\tboat"
+    },
+    {
+      "run": "astra-m2-equality-v3",
+      "job": "m2-equality-v3",
+      "files": [
+        {
+          "path": "runs/astra-m2-equality-v3/controller.log",
+          "bytes": 406,
+          "sha256": "c6d6bcc6f060039809470729d54dc6b61a81f40023b82d8567e8527c4308f5b6"
+        },
+        {
+          "path": "runs/astra-m2-equality-v3/results/m2-equality-v3.log",
+          "bytes": 4747,
+          "sha256": "3acd0f2a0b5a75c108d28b2e9892a7d7b1c535348801ac52e17e56851c7e1a04"
+        },
+        {
+          "path": "runs/astra-m2-equality-v3/results/summary.tsv",
+          "bytes": 28,
+          "sha256": "f3783eb9db293da86d3cf6470eefc04dc9f78f8c8d28f8c8922f238c71fbfe5d"
+        },
+        {
+          "path": "runs/astra-m2-equality-v3/results/backends.json",
+          "bytes": 771,
+          "sha256": "93a64a0fd96932af672a427af4aa227d999571def46b16d196cc59f4603677c5"
+        },
+        {
+          "path": "runs/astra-m2-equality-v3/results/placement.json",
+          "bytes": 187,
+          "sha256": "41f42e01493bb26632de8ad27e368ab5bd984fabef15f05387718c771acf6122"
+        }
+      ],
+      "summary": "m2-equality-v3\t0\t11.93\tboat"
+    },
+    {
+      "run": "astra-m2-trigger-v4",
+      "job": "m2-trigger-v4",
+      "files": [
+        {
+          "path": "runs/astra-m2-trigger-v4/controller.log",
+          "bytes": 406,
+          "sha256": "e64983432e2c20bbcfc5275d2eeecc605eb4c81955ad7c887b0529bd8c8da7a1"
+        },
+        {
+          "path": "runs/astra-m2-trigger-v4/results/m2-trigger-v4.log",
+          "bytes": 11684,
+          "sha256": "3d70c3c88febbc184e1b81ce10fc6192ea6c769b0ddeaaf9f1a987fed96bd38d"
+        },
+        {
+          "path": "runs/astra-m2-trigger-v4/results/summary.tsv",
+          "bytes": 27,
+          "sha256": "38b059f07af2d288b784e3bfdaeb98a11bd1aef5dace3f28e438de2c019fca8d"
+        },
+        {
+          "path": "runs/astra-m2-trigger-v4/results/backends.json",
+          "bytes": 771,
+          "sha256": "dfe69722f4ffb127a8b2172055601141f5135c613241e2decf146544ca4dc868"
+        },
+        {
+          "path": "runs/astra-m2-trigger-v4/results/placement.json",
+          "bytes": 186,
+          "sha256": "f3fd6cc0b752d650130d69118ba121156246e9fc88fab51e8ca26b3913fa0386"
+        }
+      ],
+      "summary": "m2-trigger-v4\t0\t13.92\tboat"
+    },
+    {
+      "run": "astra-m2-admission-v5",
+      "job": "m2-admission-v5",
+      "files": [
+        {
+          "path": "runs/astra-m2-admission-v5/controller.log",
+          "bytes": 405,
+          "sha256": "ce8b2587ec56151a4fcc23f7af47dfaed1ab555982a94929a1523eb4a09af5e9"
+        },
+        {
+          "path": "runs/astra-m2-admission-v5/results/m2-admission-v5.log",
+          "bytes": 51863,
+          "sha256": "87936350826a3b72158a42082a9698f9f20ddc9b34d018fc238bbf0298bb6c1c"
+        },
+        {
+          "path": "runs/astra-m2-admission-v5/results/summary.tsv",
+          "bytes": 28,
+          "sha256": "1f0e85d373a596e859e0d90bdc834b6221e7123d16a775fb8af496864d47998e"
+        },
+        {
+          "path": "runs/astra-m2-admission-v5/results/backends.json",
+          "bytes": 771,
+          "sha256": "9adf4c48b5e94304d4ac70bd741492efdccd5a347ca95203796f03133dc71323"
+        },
+        {
+          "path": "runs/astra-m2-admission-v5/results/placement.json",
+          "bytes": 188,
+          "sha256": "b5c06f0f03bab7736d0d5276c3d967b567f9c8942983ac355c0610ce6160e33d"
+        }
+      ],
+      "summary": "m2-admission-v5\t0\t7.03\tboat"
+    },
+    {
+      "run": "astra-m2-novelty-v6",
+      "job": "m2-novelty-v6",
+      "files": [
+        {
+          "path": "runs/astra-m2-novelty-v6/controller.log",
+          "bytes": 406,
+          "sha256": "aa591e8c5d0dbf936da270f7b7f906a80f1854461341fa0b8d957a57b9187c07"
+        },
+        {
+          "path": "runs/astra-m2-novelty-v6/results/m2-novelty-v6.log",
+          "bytes": 20216,
+          "sha256": "3328fea467285de93977f2c47a5356a6f804f5ed7fe30252fc720668cefb6307"
+        },
+        {
+          "path": "runs/astra-m2-novelty-v6/results/summary.tsv",
+          "bytes": 27,
+          "sha256": "4146229ffa3830c6eb441450d9e1e6f600d1c5afca03b269e5e6737c3de0628d"
+        },
+        {
+          "path": "runs/astra-m2-novelty-v6/results/backends.json",
+          "bytes": 771,
+          "sha256": "f932cebbadcd648dda4795dd468b46e1a938deffe4ae11f54e739c21fee24990"
+        },
+        {
+          "path": "runs/astra-m2-novelty-v6/results/placement.json",
+          "bytes": 186,
+          "sha256": "ecbc834d2957ceef360ae35babe9ae91e73dbe23fd5f148b2740c4757bef53fe"
+        }
+      ],
+      "summary": "m2-novelty-v6\t0\t13.44\tboat"
+    },
+    {
+      "run": "astra-m2-recover-v7",
+      "job": "m2-recover-v7",
+      "files": [
+        {
+          "path": "runs/astra-m2-recover-v7/controller.log",
+          "bytes": 406,
+          "sha256": "72af3f37661f5e46867701a63327c2318c7d9747a8b212b22b7c2648fa474d58"
+        },
+        {
+          "path": "runs/astra-m2-recover-v7/results/m2-recover-v7.log",
+          "bytes": 45864,
+          "sha256": "813f055ad56ae10e945d0985efd76853cc838c5417f6f1aff0e99cc27a0eb4dd"
+        },
+        {
+          "path": "runs/astra-m2-recover-v7/results/summary.tsv",
+          "bytes": 27,
+          "sha256": "3db3f354c90527b687dafbdb704b34f6c2c68a4ba87df09bcf27e54f628dad01"
+        },
+        {
+          "path": "runs/astra-m2-recover-v7/results/backends.json",
+          "bytes": 771,
+          "sha256": "f8d16229b6fc56c22e783dc7b158b85c3467e2df523a9f9c7d5fad03b6196f35"
+        },
+        {
+          "path": "runs/astra-m2-recover-v7/results/placement.json",
+          "bytes": 186,
+          "sha256": "297e316ef8fa5a8a0699182492269683c3083890f61c93943e33a8527c218279"
+        }
+      ],
+      "summary": "m2-recover-v7\t0\t23.51\tboat"
+    }
+  ]
+}

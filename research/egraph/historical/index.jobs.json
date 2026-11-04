@@ -1,0 +1,1 @@
+[{"name":"m2-index-v1","cmd":"status=0; bun --no-install research/egraph/historical/m2-index.ts || status=1; bun test research/egraph/indexed-match.test.ts research/egraph/match.test.ts research/egraph/ite.test.ts research/egraph/congruence.test.ts research/egraph/recursive.test.ts || status=1; exit $status","cpu":2,"memory":4096,"timeout":600}]

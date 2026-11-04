@@ -1,0 +1,16 @@
+{
+  "originLog": "runs/astra-history-compare/historical-compare.log",
+  "originLogSha256": "36584fe57b5f9b65112dd7d2a1052ce6674f9d04323930fa9b75fe359fbe01f9",
+  "artifacts": [
+    {
+      "name": "tip-enabled-no-hints.json",
+      "sha256": "d6f0f654e62f7b9c19d17f0d1ab60dacf2b07063b72c64482ba84d7c2b367398",
+      "bytes": 512457
+    },
+    {
+      "name": "tip-enabled.json",
+      "sha256": "492b6821cea7dde59fd9837858a36789955358021aefac50b38cc73cc9d92773",
+      "bytes": 517477
+    }
+  ]
+}

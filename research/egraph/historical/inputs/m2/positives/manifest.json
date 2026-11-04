@@ -1,0 +1,218 @@
+{
+  "engine": "444ece6ebe42d202150bc583c0c55b626b4e32c9",
+  "originLogSha256": "e1674b13c54062a051801c34295fce06970aaf25080145f615b4af1899616607",
+  "artifacts": [
+    {
+      "id": "P1",
+      "file": "P1.json.gz",
+      "originalName": "m2-P1-proposals-unique.json",
+      "rawSha256": "634bcc43ec28aef4256b107620976299ddb5ecd7deb4dc9f7ce589aa521a112c",
+      "gzipSha256": "a26265df23bb452f6ab7fc5a80f8faa878f635cb36fe4255213cdea7c8e3cb0f",
+      "expected": {
+        "focus": "P1 proposals unique",
+        "verdict": {
+          "proven": false,
+          "checked": false,
+          "why": "not proven: one value decided, P3 decision has quorum"
+        },
+        "attempts": 9,
+        "context": [
+          "P1 proposals unique",
+          "one value decided",
+          "P2 vote proposed",
+          "P3 decision has quorum",
+          "P4 one_b left",
+          "P5 choosable"
+        ],
+        "inputSha256": "b7a773208b2ba05a73c934e3f3effc96d470fec4877715b1255e3c2238443538",
+        "baselineChecked": true,
+        "replay": [
+          {
+            "name": "P1 proposals unique @start",
+            "goalSha256": "a6c9d15ca0bc7fdbe423914de4947f3900e7def4993931fa2241e22e0e24ec31",
+            "checked": true
+          },
+          {
+            "name": "P1 proposals unique @step",
+            "goalSha256": "49b268d5b1fb95d8471063c29104330ff0cdeb9203529afab41b915aa5c11914",
+            "checked": true
+          }
+        ],
+        "proofSha256": "889e38cf8c0f9576064efa5079ff5e0773be525bdcd7d86960513ceb68cb7115",
+        "comparison": [
+          {
+            "enabled": false,
+            "status": "not-applicable",
+            "reason": "no failed goal captured",
+            "instances": 0
+          },
+          {
+            "enabled": true,
+            "status": "not-applicable",
+            "reason": "no failed goal captured",
+            "instances": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "P2",
+      "file": "P2.json.gz",
+      "originalName": "m2-P2-vote-proposed.json",
+      "rawSha256": "4dcefbd3ffba095e8c2f5c9afd57056c9bf14cea8a0d5ee5bf567cf081437bbc",
+      "gzipSha256": "7bbe562ac32c9fc9a0a12ffc00746b87fbda4b1c333d7aa304dd047a8c8839e3",
+      "expected": {
+        "focus": "P2 vote proposed",
+        "verdict": {
+          "proven": false,
+          "checked": false,
+          "why": "not proven: one value decided, P3 decision has quorum"
+        },
+        "attempts": 9,
+        "context": [
+          "P2 vote proposed",
+          "one value decided",
+          "P1 proposals unique",
+          "P3 decision has quorum",
+          "P4 one_b left",
+          "P5 choosable"
+        ],
+        "inputSha256": "82ffda65ecb73dae7da9f0d065ee9ade8d9fb82b43696fdc0ea2e862645dbf5b",
+        "baselineChecked": true,
+        "replay": [
+          {
+            "name": "P2 vote proposed @start",
+            "goalSha256": "b178b285b3ec4a985b800c378603ce9c1ec967eb79b00d3179eb76a5e291ae4b",
+            "checked": true
+          },
+          {
+            "name": "P2 vote proposed @step",
+            "goalSha256": "747ab115abb97ae31632d27ccf9b11f6768a147f09b57f251122dac3957afc28",
+            "checked": true
+          }
+        ],
+        "proofSha256": "a8ed2254648f3e1bd432f4052bdf83b2dc36804fe925216e3a14b25e20e9ec10",
+        "comparison": [
+          {
+            "enabled": false,
+            "status": "not-applicable",
+            "reason": "no failed goal captured",
+            "instances": 0
+          },
+          {
+            "enabled": true,
+            "status": "not-applicable",
+            "reason": "no failed goal captured",
+            "instances": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "P4",
+      "file": "P4.json.gz",
+      "originalName": "m2-P4-one_b-left.json",
+      "rawSha256": "7199450fbf8c61e454ab5f9b59171b51bbdf722dddcc79ece447fc3a834f325e",
+      "gzipSha256": "501735b9d39cc44b9ca8c915ba9f28d035d4c869b8f033b3ddd97cf2175f994b",
+      "expected": {
+        "focus": "P4 one_b left",
+        "verdict": {
+          "proven": false,
+          "checked": false,
+          "why": "not proven: one value decided, P1 proposals unique, P2 vote proposed, P3 decision has quorum, P5 choosable"
+        },
+        "attempts": 11,
+        "context": [
+          "P4 one_b left",
+          "one value decided",
+          "P1 proposals unique",
+          "P2 vote proposed",
+          "P3 decision has quorum",
+          "P5 choosable"
+        ],
+        "inputSha256": "157b2593f9fc6bc495d0223f431e58f8483302c22c6c2454d38db22f51d42859",
+        "baselineChecked": true,
+        "replay": [
+          {
+            "name": "P4 one_b left @start",
+            "goalSha256": "68cd5d9cda629d1943b73db664f32e7992283e194e894f62337eaa806f981424",
+            "checked": true
+          },
+          {
+            "name": "P4 one_b left @step",
+            "goalSha256": "a823c29bf880a94d96a2dcf99f44222bfe2ba366f0ecbee19627925a238c093d",
+            "checked": true
+          }
+        ],
+        "proofSha256": "0c90cbd87a76154b245ede7d195228022f419fd2f68f3c7dd3c3b65d7e5a28a7",
+        "comparison": [
+          {
+            "enabled": false,
+            "status": "not-applicable",
+            "reason": "no failed goal captured",
+            "instances": 0
+          },
+          {
+            "enabled": true,
+            "status": "not-applicable",
+            "reason": "no failed goal captured",
+            "instances": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "P5",
+      "file": "P5.json.gz",
+      "originalName": "m2-P5-choosable.json",
+      "rawSha256": "fe20786b55676014e03f0112269e6933a8036465c56f79e9b231700028ef2f36",
+      "gzipSha256": "358ea39deaeb46b53e42c4e3b56569ff0f68fcbbdda19701099602bc28c01043",
+      "expected": {
+        "focus": "P5 choosable",
+        "verdict": {
+          "proven": false,
+          "checked": false,
+          "why": "not proven: one value decided, P3 decision has quorum"
+        },
+        "attempts": 9,
+        "context": [
+          "P5 choosable",
+          "one value decided",
+          "P1 proposals unique",
+          "P2 vote proposed",
+          "P3 decision has quorum",
+          "P4 one_b left"
+        ],
+        "inputSha256": "63a124bff8b52b77a4a3a37ea70630ce20aa0dfdb0e01b67e42bac65f6a8fd1d",
+        "baselineChecked": true,
+        "replay": [
+          {
+            "name": "P5 choosable @start",
+            "goalSha256": "0b1be7d14b8073a735f51c80d3bbf2b864a16846fbe6764e7728a72e2f160366",
+            "checked": true
+          },
+          {
+            "name": "P5 choosable @step",
+            "goalSha256": "0392e1960a26704cd491891bfdcca4a8566eb76d8c77f467553bc1f496fa676a",
+            "checked": true
+          }
+        ],
+        "proofSha256": "70282f4353c19dfd6c72caff16c8e3807423dbc3500fb85e4b39d39e85cdcc1e",
+        "comparison": [
+          {
+            "enabled": false,
+            "status": "not-applicable",
+            "reason": "no failed goal captured",
+            "instances": 0
+          },
+          {
+            "enabled": true,
+            "status": "not-applicable",
+            "reason": "no failed goal captured",
+            "instances": 0
+          }
+        ]
+      }
+    }
+  ]
+}

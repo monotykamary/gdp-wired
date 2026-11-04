@@ -1,0 +1,5 @@
+test(egraph): compare preserved Paxos and TIP obligations
+
+Pin historical inputs and retain bounded baseline and ablation evidence.
+Keep ITE candidate encoding untrusted and recheck complete proof graphs.
+Record full-gate and whole-context limitations without synthetic substitutes.

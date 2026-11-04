@@ -1,0 +1,1 @@
+[{"name":"canonical-checkpoint-v24","cmd":"bun test research/egraph/","cpu":2,"memory":4096,"timeout":120}]

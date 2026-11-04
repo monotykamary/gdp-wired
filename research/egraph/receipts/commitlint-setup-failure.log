@@ -1,0 +1,14 @@
+
+--- stderr ---
+Resolving dependencies
+Resolved, downloaded and extracted [435]
+Saved lockfile
+file:///tmp/bunx-1000-@commitlint/cli@19.8.1/node_modules/@commitlint/cli/lib/cli.js:132
+        throw err;
+        ^
+
+TypeError: Could not find git root from /work/gdp-wired/commit-check
+    at getEditCommit (file:///tmp/bunx-1000-@commitlint/cli@19.8.1/node_modules/@commitlint/read/lib/get-edit-commit.js:8:15)
+    at async main (file:///tmp/bunx-1000-@commitlint/cli@19.8.1/node_modules/@commitlint/cli/lib/cli.js:179:19)
+
+Node.js v20.20.2

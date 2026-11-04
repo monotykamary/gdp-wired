@@ -1,0 +1,35 @@
+{
+  "batch": "20261104-133025-iwfxrd",
+  "uploadedTree": "c3057a842a07",
+  "workerExit": 0,
+  "audit": {
+    "contexts": 6,
+    "sourceAndTargetFreeCaptureRejected": true,
+    "mapsUnchanged": true,
+    "proofSha256": "212fa129969cfbd315fac23d6aeebb3e1df1450b943b7c0309c31b0b9d50a8f9",
+    "proofSearchQueries": 0
+  },
+  "logSha256": "f7382c9b63ada3dbb17a610680ae9f298addc1f87a3caf0f66b6089cdca092b2",
+  "sourceSha256": {
+    "research/egraph/context-bindings.ts": "d40cffa954f0f80d561411429e4132ef7e58be60d8a036483104ec9ae29a3d02",
+    "research/egraph/context-bindings.test.ts": "62d8f63064ce93ec08d0cbb22ee2dd7fda5dc16460b94d4091b3db7f6d796e24",
+    "research/egraph/historical/canonical-bindings-audit.ts": "d68e083de4dcd41d36fdaf828d9218be018600ce0fe1f2e9594bbb597b3b49b5"
+  },
+  "targetedTests": {
+    "passed": 2,
+    "failed": 0,
+    "assertions": 8
+  },
+  "typecheck": true,
+  "lint": true,
+  "fullRegression": {
+    "batch": "20261104-132901-dvo2d5",
+    "workerExit": 0,
+    "passed": 58,
+    "failed": 0,
+    "assertions": 275,
+    "logSha256": "d681932abb1563119f784f1773f83185b547d161476e4a92a4ce6ef02d9f29f1"
+  },
+  "canonicalReceiptSha256": "7f38fa90007dbe1acee3b3533cb0183469b842b854c69d99cf5a85396be37236",
+  "nativeAdmission": false
+}

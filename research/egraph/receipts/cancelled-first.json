@@ -1,0 +1,21 @@
+{
+  "batch": "20261104-083134-s90qj2",
+  "tree": "7d082784bac9",
+  "image": "sc-f0d8daeee6c3",
+  "class": "submission",
+  "timing": true,
+  "requestedCpu": 2,
+  "requestedMemoryMiB": 4096,
+  "requestedTimeoutSeconds": 600,
+  "schedulerWorkerLimitSeconds": 570,
+  "beforeCancellation": {"queued": 1, "running": 0},
+  "reason": "Coordinator-directed cancellation of stalled timing reservation before untimed correctness resubmission",
+  "controllerPid": 94766,
+  "signal": "SIGTERM",
+  "cleanup": "signals_as_interrupt / Scheduled.close normal owned-controller path",
+  "exitCode": 130,
+  "afterCancellation": {"pidAbsent": true, "schedulerBatchAbsent": true},
+  "workerPlacement": null,
+  "workerResult": null,
+  "timingClaim": false
+}

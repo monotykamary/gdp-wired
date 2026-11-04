@@ -1,0 +1,3 @@
+[
+  {"name":"astra-recheck", "cmd":"bun install --frozen-lockfile && bun test research/egraph/congruence.test.ts && bunx tsc -p . --pretty false && bunx oxlint --type-aware --deny-warnings --disable-nested-config research/egraph && bun research/egraph/measure.ts", "cpu":2, "memory":4096, "timeout":600}
+]
