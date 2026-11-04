@@ -3,7 +3,8 @@ import {readFileSync,writeSync} from 'node:fs'
 import {createHash} from 'node:crypto'
 import {spawnSync} from 'node:child_process'
 import {basename} from 'node:path'
-import {checkDocument} from './checker/interchange/check.ts'
+// Repo API is referenced only for types; runtime must use the verified frozen bundle.
+import type * as CheckerModule from '../../../interchange/check.ts'
 const sha=(x:Buffer|string)=>createHash('sha256').update(x).digest('hex'),need=(x:unknown,m:string)=>{if(!x)throw Error(m)}
 let emitted=0
 function emit(data:unknown){const b=Buffer.from('LIFECYCLE_COLD '+JSON.stringify(data)+'\n');if(emitted+b.length>250000)throw Error('evidence cap');let n=0;while(n<b.length)n+=writeSync(1,b.subarray(n));emitted+=b.length}
@@ -12,6 +13,9 @@ try{
  need(sha(raw)===pin,'manifest pin mismatch')
  function inventory(){return manifest.files.map((f:any)=>({path:f.path,sha256:sha(readFileSync(f.path)),expected:f.sha256}))}
  const before=inventory();need(before.every((f:any)=>f.sha256===f.expected),'input drift before checking')
+ // No source-tree fallback: this absolute file URL names only the staged checker.
+ const stagedChecker=new URL('./checker/interchange/check.ts',import.meta.url)
+ const {checkDocument}:typeof CheckerModule=await import(stagedChecker.href)
  emit({event:'inputs-before',manifestSha256:sha(raw),files:before})
  need(manifest.certificates.length===9&&new Set(manifest.certificates.map((c:any)=>c.name)).size===9,'expected nine distinct source laws')
  const results=[]

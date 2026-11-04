@@ -21,14 +21,15 @@ if(process.argv[2]==='setup'){
 }else if(process.argv[2]==='certificates'){
  const {checkDocument}=await import('../../../interchange/check.ts')
  const sourcePath='research/process-lifecycle/model.py',lines=readFileSync(sourcePath,'utf8').split('\n')
- const expected=lines.flatMap((line,i)=>{const m=line.match(/^\s*# gdp: law (.*?): (.*)$/);return m?[{name:m[1],expr:m[2],where:sourcePath+':'+(i+1)}]:[]})
+ const expected=lines.flatMap((line,i)=>{const m=line.match(/^\s*# gdp: law (.*?): (.*)$/);if(!m)return [];const [,name,expr]=m;if(name===undefined||expr===undefined)throw Error('invalid law annotation capture');return [{name,expr,where:sourcePath+':'+(i+1)}]})
  need(expected.length===9,'wrong unchanged law count')
  const dir='lifecycle-v2-work/certs',files=existsSync(dir)?readdirSync(dir).filter(f=>f.endsWith('.json')).sort():[]
  const accepted=new Set<string>();let failed=false
  for(const file of files){
   const raw=readFileSync(dir+'/'+file);let verdict:any
   try{const doc=JSON.parse(raw.toString()),law=expected.find(l=>l.name===doc.meta?.law)
-   need(law&&doc.meta.expr===law.expr&&doc.meta.where===law.where&&doc.meta.file===sourcePath&&doc.meta.entry==='Lifecycle','certificate/source binding mismatch')
+   if(!law)throw Error('certificate/source binding mismatch')
+   need(doc.meta.expr===law.expr&&doc.meta.where===law.where&&doc.meta.file===sourcePath&&doc.meta.entry==='Lifecycle','certificate/source binding mismatch')
    need(!accepted.has(law.name),'duplicate certificate')
    const checked=checkDocument(doc);need(checked.accepted&&checked.claims.some(c=>c.name===law.name&&c.accepted),'certificate refused')
    accepted.add(law.name);verdict={accepted:true,law:law.name,checked}
