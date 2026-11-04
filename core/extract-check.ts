@@ -342,7 +342,7 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
   return retried(() => checkOnce(code, file, m, r, sorts, opts), noEvidence)
 }
 function checkOnce(code: string, file: string, m: Model, r: Rule, sorts: Sorts, opts: CheckOptions & {given?: Record<string, 'nat' | 'int'>}): Evidence {
-  const isClass = m.shape === 'class', fns = m.shape === 'class' ? [m.entry] : [...new Set(m.events.map(e => e.call))]
+  const isClass = m.shape === 'class', standalone = !!m.standalone, fns = m.shape === 'class' ? [m.entry] : [...new Set(m.events.map(e => e.call))]
   let answers: Record<string, Raw> = {}
   // (the modules whose functions the class calls: each export answers its input, or nothing, by the callee's name)
   const ans = (path: string) => () => { const n = Object.keys(m.answers ?? {}).find(k => m.answers![k] === path); return n === undefined ? undefined : answers[n] }
@@ -380,6 +380,7 @@ function checkOnce(code: string, file: string, m: Model, r: Rule, sorts: Sorts, 
     at: (snap, params) => (box.call('$at', undefined, [valueOf(snap, m.layout, m, evalAt(params), box.ctx), ctorValues(params)]).ok ? (box.ctx.__r as {value: object}).value : (() => { throw new Error(`could not make the object: ${(box.ctx.__r as {error?: string}).error}`) })()),
     snapOf: (self, params) => snapOf(stateOf(self), m.layout, m, evalAt(params)),
     call: (self, e, args) => {
+      if (standalone) return box.call(e.call, undefined, args)
       for (const f of new Set(Object.values(m.answers ?? {}))) if (!f.startsWith('import:')) (self as Record<string, unknown>)[f] = answering(f)
       return box.call('$method', self, [e.call, args])
     },
@@ -392,7 +393,7 @@ function checkOnce(code: string, file: string, m: Model, r: Rule, sorts: Sorts, 
     args: (inputs, e) => {
       answers = inputs
       const dateIn = (n: string) => { const x = m.inputs.find(v => v.name === n); return x?.sort.k === 'num' && x.sort.date ? vmOf().runInContext(`new Date(${Number(inputs[n])})`, box.ctx) : inputs[n] }
-      const build = (a: Arg): unknown => (a.k === 'input' ? dateIn(a.name) : a.k === 'lit' ? a.value : a.k === 'rec' ? Object.fromEntries(a.fields.map(([f, x]) => [f, build(x)])) : a.k === 'lazy'
+      const build = (a: Arg): unknown => (a.k === 'input' ? dateIn(a.name) : a.k === 'maybe-bool' ? (inputs[a.missing] ? undefined : inputs[a.name]) : a.k === 'lit' ? a.value : a.k === 'rec' ? Object.fromEntries(a.fields.map(([f, x]) => [f, build(x)])) : a.k === 'lazy'
         ? Object.fromEntries([...m.inputs].filter(v => m.lazy?.get(v.name)?.prefix === a.prefix).map(v => [m.lazy!.get(v.name)!.field, inputs[v.name]]))
         : undefined)
       return e.args.map(build)
@@ -414,7 +415,7 @@ function checkOnce(code: string, file: string, m: Model, r: Rule, sorts: Sorts, 
 // (through its side) and of the rule, and compared.
 export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: CheckOptions & {given?: Record<string, 'nat' | 'int'>} = {}): Evidence {
   const t0 = performance.now(), rand = seeded((opts.seed ?? 7) >>> 0 || 1), bound = opts.bound ?? 12
-  const isClass = m.shape === 'class'
+  const isClass = m.shape === 'class', standalone = !!m.standalone
   const interp = r.interpreter(), gen = r.compiled(), machine = r.machine
   const ev: Evidence = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0}
   const consts = constantsOf(m), strs = stringsOf(m)
@@ -445,7 +446,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
   }
   const ruleInputs = (inputs: Record<string, Raw>, e: Ev): Record<string, Raw> => {
     const used = new Set<string>()
-    const walk = (a: Arg) => { if (a.k === 'input') used.add(a.name); else if (a.k === 'rec') a.fields.forEach(([, x]) => walk(x)); else if (a.k === 'lazy') for (const v of m.inputs) if (m.lazy?.get(v.name)?.prefix === a.prefix) used.add(v.name) }
+    const walk = (a: Arg) => { if (a.k === 'input') used.add(a.name); else if (a.k === 'maybe-bool') { used.add(a.name); used.add(a.missing) } else if (a.k === 'rec') a.fields.forEach(([, x]) => walk(x)); else if (a.k === 'lazy') for (const v of m.inputs) if (m.lazy?.get(v.name)?.prefix === a.prefix) used.add(v.name) }
     e.args.forEach(walk)
     for (const v of m.inputs) if (v.note?.startsWith('Date.now()') || m.answers?.[v.name]) used.add(v.name)
     // An input the event doesn't bring: its kind's first value (the rule reads it only under another event).
@@ -461,7 +462,11 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
     // The code.
     let res: {refused: string} | {snap: Snap, out?: Raw, self?: object} | {outside: string}
     try {
-      if (isClass) {
+      if (standalone) {
+        const c = code.call(undefined, e, args)
+        if (!c.ok && c.outside) { next.stop = true; ev.outside++; return undefined }
+        res = c.ok ? {snap: side.snap, out: c.value as Raw} : {refused: c.error}
+      } else if (isClass) {
         const self = side.self!, c = code.call(self, e, args)
         if (!c.ok && c.outside) { next.stop = true; ev.outside++; return undefined }
         if (!c.ok) res = {refused: c.error}
@@ -517,7 +522,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
     if ('refused' in rule!) return `${where}: ${req} ${from}: the rule refuses it (${rule.refused}), the code doesn't`
     const ruleSide = ruleSnap(r, m, (rule as {st: State}).st, sorts), diff = sameSnap(res.snap, ruleSide)
     if (diff) return `${where}: ${req} ${from}: ${diff}`
-    if (isClass) {
+    if (isClass || standalone) {
       // The method's result, as the rule keeps it: a value, a record's fields, or a value and whether it is missing.
       const rk = m.results?.[e.call], d = r.decode((rule as {st: State}).st)
       const bad = (what: string) => `${where}: ${req} ${from}: ${e.call} returns ${JSON.stringify(res.out)}, ${what}`

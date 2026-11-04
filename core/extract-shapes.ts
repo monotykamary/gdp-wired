@@ -342,6 +342,95 @@ function argOf(ex: Exec, param: ts.ParameterDeclaration, prefix: string, body: t
 }
 const sortOf = (sh: Shape, lits: string[]): Sort => (sh.k === 'str' && lits.length ? {k: 'choice', values: [...lits, OTHER]} : sh.k === 'num' || sh.k === 'bool' || sh.k === 'choice' || sh.k === 'str' ? sh : (() => { throw new Error('a compound sort') })())
 
+// Experimental opt-in: a pure, standalone scalar function. No third-party call or state is synthesized.
+export function readStandalone(code: string, file: string, opts: ReadOptions): Model {
+  const s = setupOf(code, file, opts.typed, opts.files), fn = findFunction(s.sf, opts.entry)
+  // Loading the module must not execute unrelated initializers or imports in the check.
+  if (s.sf.statements.length !== 1 || !(s.sf.statements[0] === fn ||
+      (ts.isVariableStatement(s.sf.statements[0]!) && s.sf.statements[0]!.declarationList.declarations.length === 1 &&
+       s.sf.statements[0]!.declarationList.declarations[0]!.initializer === fn)))
+    refuse(fn, 'standalone: only the selected function declaration may be present at module scope')
+  if (!fn.body || fn.asteriskToken || fn.modifiers?.some(m => m.kind === ts.SyntaxKind.AsyncKeyword)) refuse(fn, 'standalone: async, generator or missing body')
+  // These source bindings collide with global absence, coverage instrumentation or executor joins.
+  // Refuse before conformance execution rather than replace their semantics.
+  if (opts.entry === 'undefined' || opts.entry === '__cov') refuse(fn, 'standalone: reserved entry name')
+  if ((ts.isFunctionDeclaration(fn) || ts.isFunctionExpression(fn)) && fn.name &&
+      (fn.name.text === 'undefined' || fn.name.text === '__cov'))
+    refuse(fn.name, 'standalone: reserved function name')
+  const names = new Set<string>()
+  for (const p of fn.parameters) {
+    if (!ts.isIdentifier(p.name) || p.dotDotDotToken || p.initializer) refuse(p, 'standalone: rest, destructuring and defaults are outside the subset')
+    const name = (p.name as ts.Identifier).text
+    if (name === 'undefined' || name === '__cov' || name === '$join' || name === 'this') refuse(p, `standalone: reserved parameter ${name}`)
+    names.add(name)
+  }
+  // Be deliberately narrower than the general executor: do not silently drop effects,
+  // calls, object access, writes, globals, loops, closures or exceptions.
+  const guard = (n: ts.Node): void => {
+    if (ts.isTypeNode(n)) return
+    if (ts.isCallExpression(n) || ts.isNewExpression(n) || ts.isPropertyAccessExpression(n) || ts.isElementAccessExpression(n) ||
+        ts.isVariableDeclaration(n) || ts.isFunctionLike(n) || ts.isThrowStatement(n) || ts.isTryStatement(n) ||
+        ts.isForStatement(n) || ts.isForInStatement(n) || ts.isForOfStatement(n) || ts.isWhileStatement(n) || ts.isDoStatement(n) ||
+        ts.isAwaitExpression(n) || ts.isYieldExpression(n) || ts.isDeleteExpression(n) || ts.isObjectLiteralExpression(n) || ts.isArrayLiteralExpression(n) ||
+        n.kind === ts.SyntaxKind.ThisKeyword || n.kind === ts.SyntaxKind.NullKeyword ||
+        (ts.isBinaryExpression(n) && n.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && n.operatorToken.kind <= ts.SyntaxKind.LastAssignment) ||
+        ((ts.isPrefixUnaryExpression(n) || ts.isPostfixUnaryExpression(n)) && (n.operator === ts.SyntaxKind.PlusPlusToken || n.operator === ts.SyntaxKind.MinusMinusToken)))
+      refuse(n, 'standalone: effects or unsupported syntax')
+    if (ts.isIdentifier(n) && n.text !== 'undefined' && !names.has(n.text)) refuse(n, 'standalone: non-input identifier')
+    ts.forEachChild(n, guard)
+  }
+  guard(fn.body!)
+  const ex = new Exec(s, true), heap: Heap = new Map(), args: Arg[] = []
+  let p: Path = {pc: [], locals: new Map(), heap, wrote: [], nows: 0}
+  for (const param of fn.parameters) {
+    const name = (param.name as ts.Identifier).text, t = s.checker.getTypeAtLocation(param), parts = t.isUnion() ? t.types : [t]
+    const missing = parts.filter(x => !!(x.flags & ts.TypeFlags.Undefined)), rest = parts.filter(x => !(x.flags & ts.TypeFlags.Undefined))
+    if (parts.some(x => !!(x.flags & ts.TypeFlags.Null))) refuse(param, 'standalone: null input is outside the subset')
+    const bool = rest.length > 0 && rest.every(x => !!(x.flags & ts.TypeFlags.BooleanLike))
+    const num = rest.length > 0 && rest.every(x => !!(x.flags & ts.TypeFlags.NumberLike))
+    if ((!bool && !num) || (missing.length && !bool)) refuse(param, 'standalone: only numeric, boolean, or boolean | undefined inputs')
+    const x = ex.newVar(name, {k: bool ? 'bool' : 'num'}, 'input')
+    let v: V = Exec.valueOf(x)
+    if (missing.length) {
+      const m = ex.newVar(`${name}_missing`, {k: 'bool'}, 'input')
+      v = {t: 'opt', has: I.not((Exec.valueOf(m) as V & {t: 'bool'}).e), v}
+      args.push({k: 'maybe-bool', name: x.name, missing: m.name})
+    } else args.push({k: 'input', name: x.name})
+    p = ex.bind(param.name, v, p)
+  }
+  const sig = s.checker.getSignatureFromDeclaration(fn)!, rt = s.checker.getReturnTypeOfSignature(sig), parts = rt.isUnion() ? rt.types : [rt]
+  if (parts.some(x => !!(x.flags & ts.TypeFlags.Null))) refuse(fn, 'standalone: null result is outside the subset')
+  const rest = parts.filter(x => !(x.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Void)))
+  const bool = rest.length > 0 && rest.every(x => !!(x.flags & ts.TypeFlags.BooleanLike))
+  const num = rest.length > 0 && rest.every(x => !!(x.flags & ts.TypeFlags.NumberLike))
+  if (!bool && !num) refuse(fn, 'standalone: result must be numeric or boolean, optionally undefined')
+  const val = ex.newVar(`${opts.entry}_result`, {k: bool ? 'bool' : 'num'}, 'state')
+  const absent = ex.newVar(`${opts.entry}_result_missing`, {k: 'bool'}, 'state')
+  let outs: [Path, V][]
+  if (ts.isBlock(fn.body!)) {
+    const flow = ex.block(fn.body!.statements, p)
+    outs = [...flow.rets, ...(flow.live ? [[flow.live, {t: 'undef'} as V] as [Path, V]] : [])]
+  } else { const [v, q] = ex.ev(fn.body! as ts.Expression, p); outs = [[q, v]] }
+  outs = outs.filter(([q]) => ex.feasible(q))
+  if (!outs.length) refuse(fn, 'standalone: no reachable return')
+  const final = joinAll(ex, outs.map(([q, v]) => {
+    if ((v.t === 'undef' && v.null) || (v.t === 'opt' && v.null)) refuse(fn, 'standalone: null result')
+    const has = v.t === 'undef' ? I.F : v.t === 'opt' ? v.has : I.T
+    const inner = v.t === 'undef' ? undefined : v.t === 'opt' ? v.v : v
+    const there = inner ? outValue(ex, inner, val, {...q, pc: [...q.pc, has]}, fn) : Exec.defaultOf(val.sort)
+    const sv: StateVal = {leaves: new Map(), maps: new Map()}
+    sv.leaves.set(val.name, ex.mergeScalar(has, there, Exec.defaultOf(val.sort), fn))
+    sv.leaves.set(absent.name, {t: 'bool', e: I.not(has)})
+    return [q, sv]
+  }), fn)
+  const model = finish(s, {name: opts.entry, shape: 'functions', file, entry: opts.entry,
+    layout: {k: 'rec', fields: []}, init: {[val.name]: termOf(Exec.defaultOf(val.sort)), [absent.name]: termOf(Exec.defaultOf(absent.sort))},
+    final, refuse: refusalOf(ex), pre: I.T, events: [{select: {}, call: opts.entry, args, names: fn.parameters.map(x => x.name.getText())}], outputs: [val.name, absent.name]})
+  model.standalone = true
+  model.results = {[opts.entry]: {k: 'maybe', name: val.name, missing: absent.name, null: false}}
+  return model
+}
+
 export function readFunctions(code: string, file: string, opts: ReadOptions): Model {
   // Read again while an untyped input turns out to be of another sort than a number.
   for (let typed = {...opts.typed}; ;) {

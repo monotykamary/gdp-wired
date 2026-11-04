@@ -36,7 +36,7 @@ export type LeastRead = {name: string, some: string, map: string, key: string, w
 export type Layout = {k: 'scalar', name: string} | {k: 'rec', fields: [string, Layout][]} | {k: 'map', name: string} | {k: 'list', name: string} | {k: 'const', value: Term}
 export type Term = {s: 'num', e: N} | {s: 'bool', e: B} | {s: 'choice', e: L} | {s: 'str', e: K}
 // How a request is made of the code: the call, and its arguments built from the rule's inputs.
-export type Arg = {k: 'input', name: string} | {k: 'lit', value: string} | {k: 'rec', fields: [string, Arg][]} | {k: 'state'} | {k: 'lazy', prefix: string}
+export type Arg = {k: 'input', name: string} | {k: 'maybe-bool', name: string, missing: string} | {k: 'lit', value: string} | {k: 'rec', fields: [string, Arg][]} | {k: 'state'} | {k: 'lazy', prefix: string}
 // (names: the code's own name of each argument, for a law written over them)
 export type Event = {select: Record<string, string>, call: string, args: Arg[], names?: string[]}
 // (pre: writes at other keys before this one, in order, where a step writes several: the last one wins at its key)
@@ -48,6 +48,7 @@ export type ListOp = {op: 'push', x: V, when: B} | {op: 'pop', when: B} | {op: '
 export type ListWrite = ({op: 'push', x: Term, when: B} | {op: 'pop', when: B} | {op: 'set', i: N, x: Term, when: B})[]
 export type Model = {
   name: string, shape: 'reducer' | 'functions' | 'class', file: string, entry: string,
+  standalone?: true,
   params: Var[], inputs: Var[], state: Var[], maps: MapDecl[],
   // The event: an input choosing the method, function or action type (undefined for a single one).
   event?: string,
@@ -304,7 +305,7 @@ export class Exec {
   throws: {pc: B[]}[] = []
   private depth = 0
   private ids = 0
-  constructor(readonly s: Setup) {}
+  constructor(readonly s: Setup, private readonly standalone = false) {}
   fresh(base: string): string {
     const clean = base.replace(/^#/, '').replace(/[^A-Za-z0-9_]/g, '_').replace(/^(\d)/, '_$1') || 'x'
     let n = clean, i = 2
@@ -544,10 +545,11 @@ export class Exec {
   // where it is there.
   private narrow(e: ts.Expression, pt: Path, pe: Path): [Path, Path] {
     const strip = (x: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(x) ? strip(x.expression) : x)
-    let x = strip(e), present = true
+    let x = strip(e), present = true, absenceTest = false
     if (ts.isPrefixUnaryExpression(x) && x.operator === ts.SyntaxKind.ExclamationToken) { x = strip(x.operand); present = false }
     else if (ts.isBinaryExpression(x) && (x.right.kind === ts.SyntaxKind.UndefinedKeyword || (ts.isIdentifier(x.right) && x.right.text === 'undefined') || x.right.kind === ts.SyntaxKind.NullKeyword)) {
       const op = x.operatorToken.kind
+      absenceTest = true
       if (op === ts.SyntaxKind.EqualsEqualsEqualsToken || op === ts.SyntaxKind.EqualsEqualsToken) present = false
       else if (op !== ts.SyntaxKind.ExclamationEqualsEqualsToken && op !== ts.SyntaxKind.ExclamationEqualsToken) return [pt, pe]
       x = strip(x.left)
@@ -556,6 +558,9 @@ export class Exec {
     const v = pt.locals.get(x.text)
     if (v?.t !== 'opt') return [pt, pe]
     const set = (p: Path, there: boolean): Path => ({...p, locals: new Map(p.locals).set(x.text, there ? v.v : {t: 'undef'})})
+    // A falsy optional scalar can be present (false or 0), not just absent.
+    // Preserve the opt value on that arm; only an explicit absence comparison narrows both arms.
+    if (this.standalone && !absenceTest) return present ? [set(pt, true), pe] : [pt, set(pe, true)]
     return present ? [set(pt, true), set(pe, false)] : [set(pt, false), set(pe, true)]
   }
   bind(name: ts.BindingName, v: V, p: Path): Path {

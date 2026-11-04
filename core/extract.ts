@@ -44,7 +44,7 @@ import type {Law} from './machine.ts'
 import * as I from './extract-ir.ts'
 import {type B, type K, type N, PASS} from './extract-ir.ts'
 import {type Arg, type Layout, type MapDecl, type MapWrite, type Model, Refusal, type Source, type Term, type Var, placed, sourceOf, syntaxError, tooDeep} from './extract-read.ts'
-import {type ReadOptions, isFactory, isSlice, readClass, readFactory, readFunctions, readSlice} from './extract-shapes.ts'
+import {type ReadOptions, isFactory, isSlice, readClass, readFactory, readFunctions, readSlice, readStandalone} from './extract-shapes.ts'
 import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pidx, pk, pnum, pterm, sortsOf} from './extract-print.ts'
 import {type CheckOptions, type Evidence, check} from './extract-check.ts'
 import {extractOrm, type OrmOptions} from './extract-orm.ts'
@@ -64,6 +64,8 @@ export type ExtractOptions = Omit<ReadOptions, 'entry' | 'functions'> & {
   orm?: OrmOptions,
   // 'class' or 'functions' (a reducer is functions of one); by default, a class if the entry names one.
   shape?: 'class' | 'functions',
+  // Experimental opt-in: one pure standalone scalar function, not a state reducer.
+  mode?: 'standalone',
   // Numbers given as naturals or integers (by the rule's variable name, or `map.field` for a map's numbers).
   domains?: Record<string, 'nat' | 'int'>,
   // The check's budget (runs, depth, states, probes, seed).
@@ -120,6 +122,7 @@ export function namesOf(m: Model): Name[] {
   lay(m.layout, '')
   const arg = (a: Arg, at: string, method: string) => {
     if (a.k === 'input') out.push({code: at, rule: a.name, role: 'input', method})
+    else if (a.k === 'maybe-bool') out.push({code: at, rule: a.name, none: a.missing, role: 'input', method})
     else if (a.k === 'rec') for (const [f, x] of a.fields) arg(x, `${at}.${f}`, method)
   }
   for (const e of m.events) e.args.forEach((a, i) => { const n = e.names?.[i]; if (n) arg(a, n, e.call) })
@@ -140,12 +143,16 @@ export function extract(at: Source, opts: ExtractOptions = {}): Extraction {
     const bad = syntaxError(code, file)
     if (bad) throw new Refusal(file, bad)
     if (opts.orm) {
+      if (opts.mode === 'standalone') throw new Refusal(file, 'standalone mode cannot use ORM')
       if (typeof at !== 'string' || at.includes('\n') || !/\.[cm]?[jt]sx?$/.test(at)) throw new Refusal(file, 'ORM checking requires the original module on disk')
       return extractOrm(file, code, {...opts, orm: opts.orm})
     }
     const fns = Array.isArray(opts.entry) ? opts.entry : opts.functions
     const o: ReadOptions = {...opts, entry: (Array.isArray(opts.entry) ? opts.entry[0] : opts.entry) ?? fns?.[0] ?? '', ...(fns ? {functions: fns} : {})}
-    model = o.entry ? readModel(code, file, o, opts.shape) : inferred(code, file, o, opts.shape)
+    if (opts.mode === 'standalone') {
+      if (!o.entry || Array.isArray(opts.entry) || opts.functions || opts.shape || opts.orm) throw new Refusal(file, 'standalone mode needs exactly one named function and no other shape')
+      model = readStandalone(code, placed(file), o)
+    } else model = o.entry ? readModel(code, file, o, opts.shape) : inferred(code, file, o, opts.shape)
     model.file = file
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
