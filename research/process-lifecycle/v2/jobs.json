@@ -1,0 +1,1 @@
+[{"name":"pure-lifecycle-instrumented-v2","cmd":"bun --no-install research/process-lifecycle/v2/run.ts","cpu":2,"memory":4096,"timeout":60}]
