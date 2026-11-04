@@ -831,6 +831,37 @@ t('Rust raw identifiers: inline module keeps exact scope and native selector', (
   console.log(JSON.stringify({rawBoundary:'inline-selector', source, sourceSha256:createHash('sha256').update(source).digest('hex'), native:'cargo-check-pass', entry:'Meter', ok:x.ok, evidence:x.evidence, refusal:bare.error}))
 }, 300_000)
 
+t('Rust external modules: raw default filenames and redirected paths are not inferred', () => {
+  for (const [name, root, file] of [
+    ['raw-default-file', 'mod r#type;', 'src/type.rs'],
+    ['path-redirect', '#[path="actual.rs"] mod renamed;', 'src/actual.rs'],
+  ] as const) {
+    const dir = genericCrate(root), files = {'src/lib.rs':root, [file]:helperMeter}
+    writeFileSync(`${dir}/${file}`, helperMeter)
+    execFileSync('cargo', ['check', '--quiet', '--manifest-path', `${dir}/Cargo.toml`], {stdio:'pipe'})
+    expect(readRust(dir, ['Meter']).entries).toEqual([{k:'missing', name:'Meter'}])
+    const x = extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'})
+    expect(x.ok).toBe(false)
+    expect(x.refusals[0]!.what).toContain('no class or function Meter')
+    expect(x.evidence).toBeUndefined()
+    console.log(JSON.stringify({externalBoundary:name, files, native:'cargo-check-pass', ok:x.ok, refusal:x.refusals[0]!.what}))
+  }
+}, 300_000)
+
+t('Rust external modules: literal filename agreement selects and replays a raw module', () => {
+  // This is filename agreement, not general #[path] interpretation or raw filename loading.
+  const root = '#[path="r#type.rs"] mod r#type;', file = 'src/r#type.rs'
+  const dir = genericCrate(root), files = {'src/lib.rs':root, [file]:helperMeter}
+  writeFileSync(`${dir}/${file}`, helperMeter)
+  execFileSync('cargo', ['check', '--quiet', '--manifest-path', `${dir}/Cargo.toml`], {stdio:'pipe'})
+  expect(readRust(dir, ['Meter']).recs.Meter).toMatchObject({file, module:'crate::r#type'})
+  expect(replaySite(dir, file, 'crate::r#type').inline_end).toBeNull()
+  const x = ok(extractRust(dir, {entry:'Meter', check:budget, strict:true, failures:'kept'}))
+  const r = x.rule!, rt = r.interpreter(), p = r.encodeParams({})
+  expect(r.decode(rt.step(p, rt.init(p), r.encodeInput({}))).value).toBe(1)
+  console.log(JSON.stringify({externalBoundary:'raw-path-agreement', files, native:'cargo-check-pass', ok:x.ok, evidence:x.evidence}))
+}, 300_000)
+
 t('Rust inline replay: ambiguous or unknown placement is refused', () => {
   const dir = genericCrate('#[cfg(any())] mod nested {} #[cfg(not(any()))] mod nested {}')
   execFileSync('cargo', ['check', '--quiet', '--manifest-path', `${dir}/Cargo.toml`], {stdio:'pipe'})
