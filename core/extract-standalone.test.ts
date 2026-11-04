@@ -1,6 +1,9 @@
 import {expect, test} from 'bun:test'
 import {extract} from './extract.ts'
 import {check as checkSource} from './extract-check.ts'
+import {buildLaw} from './laws.ts'
+import {proveSteps} from './dsl.ts'
+import {evalC} from './machine.ts'
 
 const check = {runs: 20, depth: 5, states: 20, probes: false as const}
 const options = {entry: 'decide', mode: 'standalone' as const, check}
@@ -87,6 +90,99 @@ test('empty source state never hides a wrong return or missing bit in prover pro
     expect(evidence.probes.steps).toBeGreaterThan(0)
     expect(evidence.mismatch).toContain('returns')
     expect(evidence.mismatch).not.toContain('in the code, undefined in the rule')
+  }
+})
+
+test('standalone laws preserve optional boolean truth, absence and hidden payloads', () => {
+  const x = ok('export function decide(flag: boolean | undefined): boolean | undefined { return flag; }')
+  const verdict = (expr: string) => {
+    const built = buildLaw(x, {name: expr, expr, method: 'decide', where: 'owned.ts', line: 1})
+    if (built.kind !== 'step') throw new Error('expected step law')
+    return proveSteps(x.rule!, x.invariants ?? [], [built.law], {from: 'any', search: false})
+  }
+  for (const expr of [
+    'flag == true implies result == true',
+    'flag == false implies result == false',
+    'flag is undefined implies result is undefined',
+    'flag is undefined implies (flag != true and flag != false)',
+    'flag is undefined implies not flag',
+    'flag implies result == true',
+    'flag == result',
+    'result is undefined implies (result != true and result != false)',
+  ]) expect({expr, ...verdict(expr)}).toMatchObject({proven: true, checked: true})
+  // These were falsely tautological when comparisons discarded the missing bit.
+  for (const expr of ['flag == true or flag == false', 'result == true or result == false']) {
+    const failed = verdict(expr)
+    expect(failed).toMatchObject({proven: false, checked: false})
+    expect(failed.witness?.flag_missing).toBe(1)
+  }
+})
+
+test('standalone laws preserve optional numeric comparisons and refuse absent arithmetic', () => {
+  const x = ok('export function decide(flag: boolean): number | undefined { if (flag) return 4; }')
+  const law = (expr: string) => buildLaw(x, {name: expr, expr, method: 'decide', where: 'owned.ts', line: 1})
+  for (const expr of ['result is undefined implies result != 0', 'result is undefined implies not (result >= 0)', 'flag implies result == 4']) {
+    const built = law(expr)
+    if (built.kind !== 'step') throw new Error('expected step law')
+    expect(proveSteps(x.rule!, x.invariants ?? [], [built.law], {from: 'any', search: false})).toMatchObject({proven: true, checked: true})
+  }
+  for (const expr of ['result + 1 > 0', '-result < 0', 'abs(result) >= 0', 'max(result, 0) >= 0']) expect(() => law(expr)).toThrow('arithmetic on an optional standalone value is not supported')
+})
+
+test('standalone optional predicates check both hidden boolean values and present values', () => {
+  const x = ok('export function decide(flag: boolean | undefined): boolean | undefined { return flag; }')
+  const r = x.rule!, st = r.interpreter().init(r.encodeParams({}))
+  for (const missing of [false, true]) for (const hidden of [false, true]) {
+    const env: Record<string, number> = {}
+    for (const [key, value] of Object.entries(r.encodeInput({flag: hidden, flag_missing: missing}))) if (typeof value === 'number') env[key] = value
+    const cases: [string, boolean][] = [
+      ['flag == true', !missing && hidden],
+      ['flag == false', !missing && !hidden],
+      ['flag != true', missing || !hidden],
+      ['flag != false', missing || hidden],
+      ['flag is undefined', missing],
+      ['not flag or false', missing || !hidden],
+      ['flag == true or flag == false', !missing],
+    ]
+    for (const [expr, expected] of cases) {
+      const built = buildLaw(x, {name: expr, expr, method: 'decide'})
+      expect({expr, missing, hidden, actual: evalC(built.law.then, env, st, r.machine)}).toEqual({expr, missing, hidden, actual: expected})
+    }
+  }
+})
+
+test('optional floor-division refuses original numerators before comparison rewrites', () => {
+  const x = ok('export function decide(flag: boolean): number | undefined { if (flag) return 4; }')
+  for (const op of ['==', '!=', '<', '<=', '>', '>=']) for (const expr of [`result // 2 ${op} 0`, `0 ${op} result // 2`]) {
+    for (const expression of [expr, `not (${expr})`]) {
+      expect(() => buildLaw(x, {name: expression, expr: expression, method: 'decide'})).toThrow('arithmetic on an optional standalone value is not supported')
+    }
+  }
+})
+
+test('nonoptional division rewrites retain standalone and default-reader semantics', () => {
+  const standalone = ok('export function decide(n: number): number { return n; }')
+  const legacy = extract('export class Counter { value = 0; set(n: number) { this.value = n; } }', {entry: 'Counter', check})
+  expect(legacy.ok).toBe(true)
+  expect(legacy.model?.standalone).not.toBe(true)
+  const comparisons: Record<string, (a: number, b: number) => boolean> = {
+    '==': (a, b) => a === b, '!=': (a, b) => a !== b,
+    '<': (a, b) => a < b, '<=': (a, b) => a <= b,
+    '>': (a, b) => a > b, '>=': (a, b) => a >= b,
+  }
+  for (const [x, method, values] of [[standalone, 'decide', [-4, -3, -1, 0, 1, 2, 3, 4]], [legacy, 'set', [0, 1, 2, 3, 4]]] as const) {
+    const r = x.rule!, st = r.interpreter().init(r.encodeParams({}))
+    const inputName = x.names!.find(n => n.role === 'input' && n.code === 'n' && n.method === method)!.rule
+    for (const [op, compare] of Object.entries(comparisons)) for (const left of [false, true]) for (const negate of [false, true]) {
+      const expr = left ? `n // 2 ${op} 0` : `0 ${op} n // 2`
+      const built = buildLaw(x, {name: expr, expr: negate ? `not (${expr})` : expr, method})
+      for (const n of values) {
+        const env: Record<string, number> = {}
+        for (const [key, value] of Object.entries(r.encodeInput({[inputName]: n, method}))) if (typeof value === 'number') env[key] = value
+        const expected = left ? compare(Math.floor(n / 2), 0) : compare(0, Math.floor(n / 2))
+        expect(evalC(built.law.then, env, st, r.machine)).toBe(negate ? !expected : expected)
+      }
+    }
   }
 })
 

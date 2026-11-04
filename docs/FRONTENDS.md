@@ -299,6 +299,11 @@ The numeric or boolean result is kept separately with a missing flag: fall-throu
 and `return undefined` reset the result to absent, while present `false` stays
 present. `names` exposes the arguments and the result's `none` flag to comment laws;
 `result is undefined` is an absence test, not equality with the placeholder value.
+In standalone comment laws, direct optional comparisons retain presence: an absent
+value equals neither `true` nor `false` nor a number, and optional boolean
+truthiness requires presence. Two absent optional values compare equal. Arithmetic
+on an optional value is refused rather than using its hidden placeholder. These
+semantics are opt-in with this frontend; other frontend law routes are unchanged.
 
 This is a **safe-integer subset**, not a model of all JavaScript numbers. Numeric
 literal unions retain their exact finite input set (at most 64 safe integers),

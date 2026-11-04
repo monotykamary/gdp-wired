@@ -179,7 +179,7 @@ type V = {t: 'num', v: Int} | {t: 'cond', v: Cond} | {t: 'str', v: Str} | {t: 'c
 // (bits: in a law of one step, which reads no function, each run of a mask's bits named by keys the law holds at every
 // value of, with the facts that make them that run: ks the keys, used how many are taken, hyps the facts)
 type Bits = {ks: Term[], used: number, hyps: Cond[]}
-type Ctx = {consts?: Record<string, number | string | boolean>, b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>, clock?: number, bits?: Bits,
+type Ctx = {strictOptional?: boolean, consts?: Record<string, number | string | boolean>, b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>, clock?: number, bits?: Bits,
   // (business days: the calendar, and in a law of one step each time's week, a key: `pins` collects the times on a
   // first reading, then holds each one's pinned week and the guard on it)
   cal?: BusinessDays, pins?: Pins,
@@ -200,20 +200,21 @@ const calendarOf = (opts: LawOpts): BusinessDays | undefined => {
   try { return businessDays(opts.calendar, opts.clock === 1000 ? 'ms' : 's') } catch (e) { throw e instanceof CalendarError ? new LawError(`the calendar: ${e.message}`) : e }
 }
 export function buildLaw(x: Extraction, l: LawText, opts: LawOpts = {}): Built {
+  const strictOptional = x.model?.standalone === true
   const names = namesWithClock(x), r = x.rule as unknown as {law: (n: string, f: (e: never) => unknown) => unknown, stepLaw: (n: string, f: (b: never, a: never) => unknown, w?: (b: never) => Cond) => unknown}
   if (!r) throw new LawError('the extraction has no rule')
   if (!l.expr) throw new LawError(`${l.name}: a law is stated as <name>: <expr>`)
   const e = parse(l.expr)
   // A first reading finds what the law reads: a request, a result, the failure or the state before make it a step law.
   const cal = opts.clock === undefined ? undefined : calendarOf(opts)
-  const probe: Ctx = {consts: x.consts, b: {}, a: {}, step: true, method: l.method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock, cal}
+  const probe: Ctx = {strictOptional, consts: x.consts, b: {}, a: {}, step: true, method: l.method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock, cal}
   read(e, probe, names, true)
   // (a law on a method, the line above it, is a law of its step: the state after it, old(x) before)
   const step = !!l.method || ['input', 'answer', 'result', 'failed', 'clock', 'method', 'old'].some(k => probe.roles.has(k))
   const method = probe.methods.size === 1 ? [...probe.methods][0] : l.method
   if (probe.methods.size > 1) throw new LawError(`it reads the arguments of ${[...probe.methods].join(' and ')}: a law of one step is about one method`)
   const gate = step && method && names.some(n => n.role === 'method') ? method : undefined
-  const body0 = (b: Record<string, unknown>, a: Record<string, unknown>, pins?: Ctx['pins'], bits?: Bits) => read(e, {consts: x.consts, b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock, cal, pins, ...(bits ? {bits} : {})}, names, false) as Cond
+  const body0 = (b: Record<string, unknown>, a: Record<string, unknown>, pins?: Ctx['pins'], bits?: Bits) => read(e, {strictOptional, consts: x.consts, b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock, cal, pins, ...(bits ? {bits} : {})}, names, false) as Cond
   // (a step law's bit tests: read once to count the keys they take, then at every value of them, the facts implying it)
   const bitBody = (b: Record<string, unknown>, a: Record<string, unknown>): Cond | ReturnType<typeof forall> => {
     const count: Bits = {ks: [], used: 0, hyps: []}
@@ -264,7 +265,7 @@ function read(e: X, c: Ctx, names: Name[], dry: boolean): unknown {
       if (over.t !== 'map') throw new LawError(`forall ${f.v} in ...: over a map (a dict, a Map, a hash) or a list`)
       return {over, env: f.over.k === 'old' || !c.step ? c.b : c.a}
     })
-    if (dry) { for (const f of chain) c.keys.set(f.v, new Term({op: 'const', value: 0})); return cond(val(body, c, names, true)) }
+    if (dry) { for (const f of chain) c.keys.set(f.v, new Term({op: 'const', value: 0})); return cond(val(body, c, names, true), c.strictOptional) }
     const at = (ks: Term[]): Cond => {
       const held = overs.map((o, i) => {
         const m = o.env[o.over.n.rule] as {at: (k: Term) => Record<string, unknown>}
@@ -272,15 +273,15 @@ function read(e: X, c: Ctx, names: Name[], dry: boolean): unknown {
         if (o.over.n.map?.ordered) c.items!.set(chain[i]!.v, {map: m.at(ks[i]!), fields: o.over.n.map.fields})
         return m.at(ks[i]!).has as Cond
       })
-      return all(...held).implies(cond(val(body, c, names, false)))
+      return all(...held).implies(cond(val(body, c, names, false), c.strictOptional))
     }
     return chain.length === 1 ? forall(k => at([k])) : chain.length === 2 ? forall((k, j) => at([k, j])) : forall((k, j, i) => at([k, j, i]))
   }
-  return cond(val(e, c, names, dry))
+  return cond(val(e, c, names, dry), c.strictOptional)
 }
-const cond = (v: V): Cond => {
+const cond = (v: V, strictOptional = false): Cond => {
   if (v.t === 'cond') return v.v
-  if (v.t === 'opt' && v.v?.t === 'cond') return v.v.v
+  if (v.t === 'opt' && v.v?.t === 'cond') return strictOptional ? all(not(v.none), v.v.v) : v.v.v
   throw new LawError(`a ${v.t === 'num' ? 'number' : v.t} where a condition is read`)
 }
 const num = (v: V): Int => {
@@ -330,11 +331,12 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
         }
       }
       const xs = e.xs.map(go)
+      if (c.strictOptional && xs.some(v => v.t === 'opt')) throw new LawError('arithmetic on an optional standalone value is not supported')
       if (dry) return DRY
       if (e.f === 'abs') return {t: 'num', v: Int.of(num(xs[0]!).abs)}
       return {t: 'num', v: xs.slice(1).reduce((m, y) => (e.f === 'min' ? m.min(num(y)) : m.max(num(y))), num(xs[0]!))}
     }
-    case 'un': { const v = go(e.x); if (dry) return v.t === 'cond' ? v : DRY; return e.op === '-' ? {t: 'num', v: num(v).negate()} : {t: 'cond', v: not(cond(v))} }
+    case 'un': { const v = go(e.x); if (c.strictOptional && e.op === '-' && v.t === 'opt') throw new LawError('arithmetic on an optional standalone value is not supported'); if (dry) return v.t === 'cond' ? v : DRY; return e.op === '-' ? {t: 'num', v: num(v).negate()} : {t: 'cond', v: not(cond(v, c.strictOptional))} }
     case 'bin': {
       // (a comparison with x // k on one side, k a positive constant: the same comparison without the division, exact
       // over the integers (a <= x // k is k·a <= x; a < x // k is k·(a + 1) <= x), so it needs no function, which a law
@@ -343,6 +345,8 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
       if (flip[e.op] && (e.a.k === 'bdur' || e.b.k === 'bdur')) return {t: 'cond', v: businessCompare(e, flip, c, go, dry)}
       const divk = (x: X) => (x.k === 'bin' && x.op === '//' && (constOf(x.b) ?? 0) >= 1 ? x as X & {k: 'bin'} : undefined)
       if (flip[e.op] && (divk(e.b) || divk(e.a))) {
+        // Inspect the original numerator before rewriting division into comparisons.
+        if (c.strictOptional) for (const d of [divk(e.a), divk(e.b)]) if (d && go(d.a).t === 'opt') throw new LawError('arithmetic on an optional standalone value is not supported')
         const [op, lhs, d] = divk(e.b) ? [e.op, e.a, divk(e.b)!] : [flip[e.op]!, e.b, divk(e.a)!]
         const k = constOf(d.b)!, ka: X = {k: 'bin', op: '*', a: {k: 'num', v: k}, b: lhs}, ka1: X = {k: 'bin', op: '*', a: {k: 'num', v: k}, b: {k: 'bin', op: '+', a: lhs, b: {k: 'num', v: 1}}}
         const le = (a: X, b: X): X => ({k: 'bin', op: '<=', a, b}), lt = (a: X, b: X): X => ({k: 'bin', op: '<', a, b})
@@ -356,7 +360,8 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
       const lit = (x: X): V => { try { return go(x) } catch (err) { if (x.k !== 'path' || !(err instanceof LawError) || !['==', '!='].includes(e.op)) throw err; return {t: 'lit', v: lastName(x) ?? '', err} } }
       const a = lit(e.a), b = lit(e.b)
       if (a.t === 'lit' && a.err && b.t === 'lit' && b.err) throw a.err
-      if (['&&', '||', '=>'].includes(e.op)) return dry ? {t: 'cond', v: yes} : {t: 'cond', v: e.op === '&&' ? all(cond(a), cond(b)) : e.op === '||' ? any(cond(a), cond(b)) : cond(a).implies(cond(b))}
+      if (['&&', '||', '=>'].includes(e.op)) return dry ? {t: 'cond', v: yes} : {t: 'cond', v: e.op === '&&' ? all(cond(a, c.strictOptional), cond(b, c.strictOptional)) : e.op === '||' ? any(cond(a, c.strictOptional), cond(b, c.strictOptional)) : cond(a, c.strictOptional).implies(cond(b, c.strictOptional))}
+      if (c.strictOptional && ['+', '-', '*', '//', '/', '%', '&', '|'].includes(e.op) && [a, b].some(v => v.t === 'opt')) throw new LawError('arithmetic on an optional standalone value is not supported')
       if (dry) return ['+', '-', '*', '//', '/', '%', '&', '|'].includes(e.op) ? DRY : {t: 'cond', v: yes}
       // x & K and x | K with K a constant (a literal or a constant of the code): K's runs of ones, ((x div 2^lo) mod 2^n)·2^lo
       // each, as the extractor reads the code's (core/extract-step.ts's bitop); x | K is x + K − (x & K).
@@ -387,7 +392,7 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
       if (e.op === '+' || e.op === '-') return {t: 'num', v: e.op === '+' ? num(a).plus(num(b)) : num(a).minus(num(b))}
       if (e.op === '*') { const k = constOf(e.a) ?? constOf(e.b); if (k === undefined) throw new LawError('× by a constant only (a product of two values is outside linear arithmetic)'); return {t: 'num', v: num(constOf(e.a) === undefined ? a : b).times(k)} }
       if (e.op === '//' || e.op === '/' || e.op === '%') { const k = constOf(e.b); if (!k || k < 1) throw new LawError(`${e.op} by a positive constant only`); return e.op === '%' ? {t: 'num', v: Int.of(num(a).modBy(k))} : {t: 'num', v: num(a).divBy(k)} }
-      return {t: 'cond', v: compare(e.op, a, b, e)}
+      return {t: 'cond', v: compare(e.op, a, b, e, c.strictOptional)}
     }
     case 'path': return path(e, c, names, dry)
     case 'forall': return fail('forall ... in ...: at the top of the law only')
@@ -420,11 +425,23 @@ function businessCompare(e: X & {k: 'bin'}, flip: Record<string, string>, c: Ctx
 // (a path's last name: a choice's value written as one, Outcome.SLOW_ERROR)
 const lastName = (x: X & {k: 'path'}): string | undefined => (x.segs.length ? (x.segs.at(-1) as {f?: string}).f : x.head)
 const constOf = (x: X): number | undefined => (x.k === 'num' ? x.v : x.k === 'un' && x.op === '-' && x.x.k === 'num' ? -x.x.v : undefined)
-function compare(op: string, a: V, b: V, e: X & {k: 'bin'}): Cond {
+function compare(op: string, a: V, b: V, e: X & {k: 'bin'}, strictOptional = false): Cond {
   if (b.t === 'null' || a.t === 'null') {
     const o = a.t === 'null' ? b : a, none = o.t === 'opt' ? o.none : o.t === 'cell' ? not(o.rec.has as Cond) : undefined
     if (!none) throw new LawError(`${show(a.t === 'null' ? e.b : e.a)} is never None here (the rule holds no None for it)`)
     return op === '==' ? none : op === '!=' ? not(none) : fail(`${op} with None`)
+  }
+  // A standalone optional value is absent regardless of its hidden scalar payload.
+  // Keep the established law language of other frontends unchanged.
+  if (strictOptional && (a.t === 'opt' || b.t === 'opt')) {
+    const av = a.t === 'opt' ? a.v : a, bv = b.t === 'opt' ? b.v : b
+    const present = all(a.t === 'opt' ? not(a.none) : yes, b.t === 'opt' ? not(b.none) : yes)
+    if (op === '==' || op === '!=') {
+      const absent = a.t === 'opt' && b.t === 'opt' ? all(a.none, b.none) : no
+      const equal = any(absent, av && bv ? all(present, compare('==', av, bv, e)) : no)
+      return op === '==' ? equal : not(equal)
+    }
+    return av && bv ? all(present, compare(op, av, bv, e)) : no
   }
   const un = (v: V): V => (v.t === 'opt' && v.v ? v.v : v)
   a = un(a); b = un(b)
