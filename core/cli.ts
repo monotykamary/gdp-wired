@@ -35,7 +35,7 @@ const paint = (c: keyof typeof SGR, s: string | number) => (tint && s !== '' ? `
 const VERDICT = {proven: 'green', broken: 'red', unknown: 'yellow', 'not read': 'yellow'} as const
 
 // --- the options ---------------------------------------------------------------------------------------------------------
-export type Opts = {entry?: string, methods?: string[], failures?: 'refuse' | 'kept', onError?: 'refuse' | 'discard', json?: boolean, ms: number, propose: boolean, root?: string,
+export type Opts = {entry?: string, mode?: 'standalone', methods?: string[], failures?: 'refuse' | 'kept', onError?: 'refuse' | 'discard', json?: boolean, ms: number, propose: boolean, root?: string,
   python?: string, clock?: string, cert?: string, [k: string]: unknown}
 function args(argv: string[]): {cmd: string, targets: string[], o: Opts} {
   const o: Opts = {ms: 10_000, propose: true}, targets: string[] = []
@@ -136,8 +136,8 @@ async function extractWith(t: Target, o: Record<string, unknown>): Promise<Extra
       // (Effect and XState run on the package the file's own project has, imported here as the code imports it)
       const code = fs.readFileSync(f, 'utf8'), file = path.relative(proc.cwd(), f) || f, {createRequire} = proc.getBuiltinModule('node:module') as {createRequire: (p: string) => {resolve: (s: string) => string}}
       const own = async (spec: string) => { try { return await import(createRequire(f).resolve(spec)) as Record<string, unknown> } catch { return undefined } }
-      if (/from\s+['"]effect(\/\w+)?['"]/.test(code)) { const {extractEffect} = await import('./effect.ts'), effect = await own('effect'); return extractEffect(file, {...(effect ? {effect} : {}), ...o} as never) }
-      if (/from\s+['"]xstate['"]/.test(code) && /\bcreateMachine\b/.test(code)) { const {extractXState} = await import('./extract-xstate.ts'), xstate = await own('xstate'); return extractXState(file, {...(xstate ? {xstate} : {}), ...o} as never) as Extraction }
+      if (o.mode === undefined && /from\s+['"]effect(\/\w+)?['"]/.test(code)) { const {extractEffect} = await import('./effect.ts'), effect = await own('effect'); return extractEffect(file, {...(effect ? {effect} : {}), ...o} as never) }
+      if (o.mode === undefined && /from\s+['"]xstate['"]/.test(code) && /\bcreateMachine\b/.test(code)) { const {extractXState} = await import('./extract-xstate.ts'), xstate = await own('xstate'); return extractXState(file, {...(xstate ? {xstate} : {}), ...o} as never) as Extraction }
       const {extract} = await import('./extract.ts'), files = relativeImports(f)
       return extract(file, {...(Object.keys(files).length ? {files} : {}), ...o} as never)
     }
@@ -788,7 +788,7 @@ function printRule(r: RuleOut, o: Opts) {
 }
 const label = (n: Name) => (n.role === 'answer' ? `${n.code.split('.').pop()}(...)` : n.role === 'input' && n.method ? `${n.method}(${n.code})` : n.role === 'result' && n.method ? `${n.method}() result` : n.code)
 
-const USAGE = `gdp-wired check <file|dir>... [--entry X] [--methods a,b] [--failures kept] [--on-error discard] [--json] [--ms 10000] [--no-propose] [--clock s|ms] [--cert <dir>] [--from any] [--require-review] [--security]
+const USAGE = `gdp-wired check <file|dir>... [--entry X] [--mode standalone] [--methods a,b] [--failures kept] [--on-error discard] [--json] [--ms 10000] [--no-propose] [--clock s|ms] [--cert <dir>] [--from any] [--require-review] [--security]
 gdp-wired draft <file> --clause <text> | --clause-file <file> --cite <ref> [--llm <command> | --answer <file>] [--by <who>]
 
 Reads the rule in each file (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, Swift, C, C++, TypeScript, Effect, XState), checks it

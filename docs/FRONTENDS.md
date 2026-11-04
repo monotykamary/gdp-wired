@@ -282,6 +282,49 @@ nonmethod or decorated initializers. Ordinary unknown-MRO construction and custo
 allocation/attribute hooks are refused. Existing dataclass/ORM generation stays a separate
 reader boundary; this is not a claim of universal Python constructor safety.
 
+## Opt-in standalone TypeScript scalar functions
+
+The existing `gdp-wired/extract` API accepts `mode: 'standalone'` with exactly one
+named `entry`. The CLI has `--entry decide --mode standalone`; `[rules.decide]`
+in `gdp.toml` can set `mode = "standalone"`. Without this explicit mode the existing
+reducer, class and factory routes are unchanged.
+
+```ts
+const x = extract('./decision.ts', {entry: 'decide', mode: 'standalone'})
+```
+
+Each invocation has independent scalar arguments, not a first argument reused as
+state. Numeric and boolean arguments, and `boolean | undefined`, are supported.
+The numeric or boolean result is kept separately with a missing flag: fall-through
+and `return undefined` reset the result to absent, while present `false` stays
+present. `names` exposes the arguments and the result's `none` flag to comment laws;
+`result is undefined` is an absence test, not equality with the placeholder value.
+
+This is a **safe-integer subset**, not a model of all JavaScript numbers. Numeric
+literal unions retain their exact finite input set (at most 64 safe integers),
+recorded in `model.standaloneDomains` and the extraction notes. Other values are
+outside the claim; the rule rejects them and the differential checker does not
+execute out-of-domain probes. Fractional literals/domains, NaN, infinities and
+unsafe integers are not silently rounded. A supplied `domains` restriction remains
+explicit; a natural restriction contradicting negative union members is refused.
+
+The reader resolves the reachable bindings by TypeScript symbol, not spelling.
+Module constants may contain inert primitives/arrays and references to earlier
+inert constants. Direct, same-file pure helpers are inlined. Type-only imports are
+erased, with supplied relative `files` used for their types. Value imports,
+re-exports, executable initializers, mutable module bindings, indirect calls,
+recursion, closures, objects, mutation, loops, async and exceptions in the reachable
+routine are refused before conformance. Uncalled function bodies may coexist in
+the file but are not claimed as supported. `model.standaloneBindings` lists the
+reachable function/constant bindings; coverage counts the entry and reached helpers.
+
+The check still compiles and executes the original module, not a hand-written
+replacement. Its VM is a differential-test harness, **not an OS security sandbox**.
+Untrusted source requires separately verified process/filesystem/network containment.
+Passing owned examples does not establish third-party source support; a real-source
+assessment needs exact revision/closure, ordinary domains, nonzero original-code
+conformance and stated laws, with the sampled-vs-equivalence distinction preserved.
+
 ## Worked example: Python
 
 | Piece | File | Notes |

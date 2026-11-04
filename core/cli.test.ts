@@ -346,6 +346,27 @@ export class W {
   expect(exit).toBe(2)
 })
 
+test('standalone scalar mode is explicit through CLI and gdp.toml', async () => {
+  const source = `import type {Code} from './types';
+const pick = (x: boolean | undefined) => x ? 8 : 2;
+// gdp: law finite answer: result == 2 or result == 8
+export function decide(n: Code, x: boolean | undefined) { return pick(x); }`
+  const dir = files({'decision.ts': source, 'types.ts': 'export type Code = -3 | 9;'})
+  const result = await check([`${dir}/decision.ts`], {entry: 'decide', mode: 'standalone', ms: 2000, propose: false})
+  expect({exit: result.exit, rules: result.rules}).toMatchObject({exit: 0, rules: [{ok: true}]})
+  expect(result.rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
+  expect(result.rules[0]!.names.find(n => n.code === 'result')?.none).toBeDefined()
+  expect(result.rules[0]!.notes.join(' ')).toContain('declared numeric input domain n: -3, 9')
+  const noMode = await check([`${dir}/decision.ts`], {entry: 'decide', ms: 2000, propose: false})
+  expect(noMode.rules[0]!.ok).toBe(false)
+  writeFileSync(`${dir}/gdp.toml`, '[rules.decide]\nmode = "standalone"\n')
+  const configured = await check([`${dir}/decision.ts`], {entry: 'decide', ms: 2000, propose: false})
+  expect(configured.rules[0]!.ok).toBe(true)
+  const proc = spawnSync('bun', [new URL('./cli.ts', import.meta.url).pathname, 'check', `${dir}/decision.ts`, '--entry', 'decide', '--mode', 'standalone', '--no-propose', '--json'], {encoding: 'utf8'})
+  expect(proc.status).toBe(0)
+  expect(JSON.parse(proc.stdout).rules[0].ok).toBe(true)
+})
+
 test('gdp.toml, pyproject.toml\'s [tool.gdp] and package.json\'s "gdp": the options of every rule and of one', async () => {
   const {configFor, toml} = await import('./cli.ts')
   expect(toml('failures = "kept" # all\n[rules.H]\nmethods = ["a", \'b\']\nstores.c.attrs = {"d.e" = "None", n = 3}\n[rules."x.y"]\nstrict = true\n'))

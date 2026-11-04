@@ -49,6 +49,9 @@ export type ListWrite = ({op: 'push', x: Term, when: B} | {op: 'pop', when: B} |
 export type Model = {
   name: string, shape: 'reducer' | 'functions' | 'class', file: string, entry: string,
   standalone?: true,
+  // The opt-in reader preserves numeric literal unions as request-domain restrictions.
+  standaloneDomains?: Record<string, number[]>,
+  standaloneBindings?: string[],
   params: Var[], inputs: Var[], state: Var[], maps: MapDecl[],
   // The event: an input choosing the method, function or action type (undefined for a single one).
   event?: string,

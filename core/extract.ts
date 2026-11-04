@@ -64,7 +64,8 @@ export type ExtractOptions = Omit<ReadOptions, 'entry' | 'functions'> & {
   orm?: OrmOptions,
   // 'class' or 'functions' (a reducer is functions of one); by default, a class if the entry names one.
   shape?: 'class' | 'functions',
-  // Experimental opt-in: one pure standalone scalar function, not a state reducer.
+  // Explicit opt-in: one closed, pure scalar function (not a state reducer).
+  // Safe integers only; numeric literal unions restrict its request domain.
   mode?: 'standalone',
   // Numbers given as naturals or integers (by the rule's variable name, or `map.field` for a map's numbers).
   domains?: Record<string, 'nat' | 'int'>,
@@ -140,6 +141,7 @@ export function extract(at: Source, opts: ExtractOptions = {}): Extraction {
   let model: Model, code: string, file: string
   try {
     ;({code, file} = sourceOf(at, opts.file, 'input.ts'))
+    if (opts.mode !== undefined && opts.mode !== 'standalone') throw new Refusal(file, `unsupported extraction mode: ${String(opts.mode)}`)
     const bad = syntaxError(code, file)
     if (bad) throw new Refusal(file, bad)
     if (opts.orm) {
@@ -159,6 +161,8 @@ export function extract(at: Source, opts: ExtractOptions = {}): Extraction {
     if (tooDeep(e)) return {ok: false, refusals: [{where: opts.file ?? (typeof at === 'string' && !at.includes('\n') ? at : 'input.ts'), what: 'the source nests too deeply to read'}], notes}
     throw e
   }
+  if (model.standalone && Object.entries(model.standaloneDomains ?? {}).some(([n, xs]) => opts.domains?.[n] === 'nat' && xs.some(x => x < 0)))
+    return {ok: false, refusals: [{where: file, what: 'standalone: a natural domain contradicts the declared negative numeric literals'}], notes, model}
   return {...fromModel(model, file, opts.domains, notes, (rule, sorts) => check(code, file, model, rule, sorts, {...opts.check, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})), names: namesOf(model)}
 }
 function readModel(code: string, file: string, opts: ReadOptions, shape?: 'class' | 'functions'): Model {

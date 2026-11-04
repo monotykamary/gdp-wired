@@ -50,6 +50,15 @@ for (const [sub, fn, beside] of FRONT) {
   })
 }
 
+test('standalone mode ships through the existing extract public subpath', async () => {
+  const mod: typeof import('./extract.ts') = await import(built ? `${pkg.name}/extract` : `${root}core/extract.ts`)
+  const x = mod.extract('export function decide(x: boolean | undefined) { return x; }', {entry: 'decide', mode: 'standalone', check: {runs: 2, depth: 2, states: 2, probes: false}})
+  expect(x.ok).toBe(true)
+  expect(x.model?.standalone).toBe(true)
+  expect(x.names?.find(n => n.role === 'result')?.none).toBeDefined()
+  if (built) expect(existsSync(`${root}dist/core/extract-standalone.js`)).toBe(true)
+})
+
 test('security templates: public subpath, declarations and both builders', async () => {
   const e = pkg.exports['./security']!
   expect(e.types).toBe('./dist/core/security.d.ts')

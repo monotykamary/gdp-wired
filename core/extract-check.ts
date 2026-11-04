@@ -437,7 +437,8 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
       if (v.note?.startsWith('Date.now()')) { const d = rand(6); lastNow = d === 0 ? Math.max(0, lastNow - rand(50)) : d === 1 ? rand(10_000) : lastNow + rand(d * 40); inputs[v.name] = lastNow; continue }
       const keys = Object.values(st.maps).flatMap(c => Object.keys(c))
       // An input given as a natural (domains) is drawn as one: the claim is for those, as the user said.
-      const x = draw(v.sort, sorts, v.name, rand, near, bound, [...strs, ...keys])
+      const finite = m.standaloneDomains?.[v.name]
+      const x = finite ? finite[rand(finite.length)]! : draw(v.sort, sorts, v.name, rand, near, bound, [...strs, ...keys])
       inputs[v.name] = code.input ? code.input(v, x, rand) : opts.given?.[v.name] === 'nat' && typeof x === 'number' ? Math.abs(x) : x
     }
     // (a list the request carries: up to 4 items, mostly, each field drawn by its sort)
@@ -455,6 +456,9 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
   // Steps the code and the rule from one state; undefined when they agree (the next state on both sides is returned
   // through `next`), else the difference.
   const step = (params: Record<string, Raw>, ps: Record<string, number>, side: Side, st: State, inputs: Record<string, Raw>, e: Ev, next: {side?: Side, st?: State, stop?: boolean}, where: string): string | undefined => {
+    // A source type's finite numeric domain is part of the standalone claim, not
+    // behavior the source is alleged to reject. Never execute an out-of-domain probe.
+    if (m.standalone && Object.entries(m.standaloneDomains ?? {}).some(([name, values]) => !values.includes(inputs[name] as number))) { ev.outside++; next.stop = true; return undefined }
     const args = code.args(inputs, e), raw = ruleInputs(inputs, e)
     if (m.folds) carry(m, raw, inputs, side.snap, params, r.decode(st) as unknown as Record<string, Record<string, Record<string, Raw>>>)
     const nowVar = m.inputs.find(v => v.note?.startsWith('Date.now()'))
@@ -465,7 +469,9 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
       if (standalone) {
         const c = code.call(undefined, e, args)
         if (!c.ok && c.outside) { next.stop = true; ev.outside++; return undefined }
-        res = c.ok ? {snap: side.snap, out: c.value as Raw} : {refused: c.error}
+        // Result fields in a prover witness are not state held by a pure
+        // function. Compare the returned value below, never carry those fields.
+        res = c.ok ? {snap: {leaves: {}, maps: {}}, out: c.value as Raw} : {refused: c.error}
       } else if (isClass) {
         const self = side.self!, c = code.call(self, e, args)
         if (!c.ok && c.outside) { next.stop = true; ev.outside++; return undefined }
