@@ -685,8 +685,7 @@ class Waits:
 
 // from = "any": a law proven only with an invariant the search finds holds from the start, not from every state the laws
 // allow; stated beside it, the invariant makes the two one inductive set, proven from any state.
-;(TOOLS.python!() ? test : test.skip)('the CLI from any state: a law needing an invariant refuted from a state alone, proven with it stated', async () => {
-  const code = (helper: boolean) => `
+const mirrorCode = (helper: boolean) => `
 class Mirror:
     # gdp: law b within 3: b <= 3
 ${helper ? '    # gdp: law a within 3: a <= 3\n' : ''}
@@ -699,7 +698,8 @@ ${helper ? '    # gdp: law a within 3: a <= 3\n' : ''}
             self.a += 1
         self.b = self.a
 `
-  const dir = files({'mirror.py': code(false), 'gdp.toml': 'from = "any"\n'})
+;(TOOLS.python!() ? test : test.skip)('the CLI from any state: a law needing an invariant refuted from a state alone, proven with it stated', async () => {
+  const dir = files({'mirror.py': mirrorCode(false), 'gdp.toml': 'from = "any"\n'})
   const a = await check([`${dir}/mirror.py`], {ms: 5000, propose: false})
   // (true from the start, not inductive alone: unknown, the law it needs said)
   expect(a.rules[0]!.laws.map(l => l.verdict)).toEqual(['unknown'])
@@ -707,9 +707,35 @@ ${helper ? '    # gdp: law a within 3: a <= 3\n' : ''}
   expect(a.rules[0]!.laws[0]!.why).toMatch(/not inductive from every state the laws allow/)
   const reach = await check([`${dir}/mirror.py`], {ms: 5000, propose: false, from: 'reachable'})
   expect(reach.rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
-  writeFileSync(`${dir}/mirror.py`, code(true))
+  writeFileSync(`${dir}/mirror.py`, mirrorCode(true))
   const b = await check([`${dir}/mirror.py`], {ms: 5000, propose: false})
   expect(b.rules[0]!.laws.map(l => [l.verdict, l.from])).toEqual([['proven', 'any'], ['proven', 'any']])
+}, 180_000)
+
+// Candidate verdicts cannot mask stated-law precedence, even when target order is reversed.
+;(TOOLS.python!() ? test : test.skip)('the CLI prioritizes mixed stated verdicts over review-only candidates', async () => {
+  const fixtures = new URL('../.github/fixtures/security-action/', import.meta.url).pathname
+  const candidate = `${fixtures}candidate.ts`, broken = `${fixtures}stated-broken.ts`
+  const source = readAdv(candidate, 'utf8')
+  const unread = source.replace('  hit(', '  // gdp: law missing identity: value != old(value) implies administrator\n  hit(')
+  expect(unread).not.toBe(source)
+  const dir = files({'mirror.py': mirrorCode(false), 'not-read.ts': unread, 'gdp.toml': 'from = "any"\n'})
+  const unknown = `${dir}/mirror.py`, notRead = `${dir}/not-read.ts`
+  for (const row of [
+    {targets: [unknown, candidate], verdicts: ['unknown'], exit: 0},
+    {targets: [notRead, unknown, candidate], verdicts: ['not read', 'unknown'], exit: 2},
+    {targets: [notRead, unknown, broken, candidate], verdicts: ['broken', 'not read', 'unknown'], exit: 1},
+    {targets: [candidate, broken, unknown, notRead], verdicts: ['broken', 'not read', 'unknown'], exit: 1},
+  ] satisfies {targets: string[], verdicts: ('broken' | 'not read' | 'unknown')[], exit: 0 | 1 | 2}[]) {
+    const result = await check(row.targets, {ms: 5000, propose: false, security: true})
+    expect(result.rules.every(r => r.ok)).toBe(true)
+    expect(result.rules.flatMap(r => r.laws.map(l => l.verdict)).sort()).toEqual(row.verdicts)
+    expect(result.exit).toBe(row.exit)
+    const candidateOnly = result.rules.find(r => r.file.endsWith('/candidate.ts'))
+    expect(candidateOnly?.laws).toEqual([])
+    expect(candidateOnly?.security?.some(l => l.verdict === 'broken')).toBe(true)
+    expect(result.rules.flatMap(r => r.security ?? []).every(l => l.review === 'required')).toBe(true)
+  }
 }, 180_000)
 
 // Laws of "eventually" in the code's comments: `<from> leads to <to> by <rank> via [<cond> ->] <method>(<arg> = <value>)`,
