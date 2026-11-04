@@ -38,6 +38,7 @@ class _Rejected(ValueError):
 
 @dataclass(frozen=True)
 class RequestContext:
+    """Caller assertions, not parser proof of method/path/account or request lineage."""
     target_id: str
     kind: str
     reason: str = 'explicit'
@@ -68,7 +69,7 @@ class DeletionResponse:
 
 
 def _fail(code):
-    raise DecodeError(code)
+    raise DecodeError(code) from None
 
 
 def _member(value, choices):

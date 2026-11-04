@@ -2,6 +2,7 @@
 from dataclasses import FrozenInstanceError, replace
 import copy
 import json
+import traceback
 import unittest
 
 from delete_response import (DecodeError, RequestContext, decode_acceptance,
@@ -291,6 +292,35 @@ class DeleteResponseTests(unittest.TestCase):
                 self.assertIsNone(error.__cause__)
             else:
                 self.fail('fixture should be refused')
+
+    def test_outer_exception_suppressed_but_context_retained(self):
+        marker = 'synthetic-outer-secret-marker'
+        cases = ((body() + b' trailing', {}, 'invalid-json'),
+                 (body() + b'\xff', {}, 'invalid-utf8'),
+                 (body(), {'status': 404}, 'unexpected-http-status'))
+        for data, kwargs, code in cases:
+            with self.subTest(code=code):
+                try:
+                    raise RuntimeError(marker)
+                except RuntimeError as outer:
+                    # Formatting no frame objects keeps this regression free of
+                    # source-file reads; the implicit context remains intact.
+                    outer.__traceback__ = None
+                    try:
+                        self.decode(data, **kwargs)
+                    except DecodeError as error:
+                        self.assertEqual(str(error), code)
+                        self.assertEqual(error.args, (code,))
+                        self.assertIs(error.__context__, outer)
+                        self.assertEqual(str(error.__context__), marker)
+                        self.assertTrue(error.__suppress_context__)
+                        self.assertIsNone(error.__cause__)
+                        formatted = ''.join(traceback.format_exception(type(error), error, None))
+                        self.assertIn('DecodeError: ' + code, formatted)
+                        self.assertNotIn(marker, formatted)
+                        self.assertNotIn(marker, repr(error))
+                    else:
+                        self.fail('fixture should be refused')
 
     def test_pure_repeatability_and_immutable_result(self):
         doc = document('completed')
