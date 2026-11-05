@@ -1,0 +1,395 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [1.94s]
+BEGIN scoped-ts
+CHECK scoped-ts EXIT=0
+BEGIN repo-ts
+research/audit/check.ts(7,20): error TS2307: Cannot find module '../../vendor/gdp-ts/src/index.ts' or its corresponding type declarations.
+research/audit/check.ts(8,46): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-program.ts' or its corresponding type declarations.
+research/audit/check.ts(31,49): error TS7006: Parameter 'u' implicitly has an 'any' type.
+research/audit/check.ts(31,52): error TS7006: Parameter 'p' implicitly has an 'any' type.
+research/audit/circuit.ts(11,52): error TS2307: Cannot find module '../../vendor/handwired/src/runtime/numeric-ui-core.ts' or its corresponding type declarations.
+research/audit/circuit.ts(12,46): error TS2307: Cannot find module '../../vendor/handwired/src/runtime/cells.ts' or its corresponding type declarations.
+research/audit/circuit.ts(13,59): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-program.ts' or its corresponding type declarations.
+research/audit/circuit.ts(14,46): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/regex/bits.ts' or its corresponding type declarations.
+research/audit/circuit.ts(54,58): error TS7006: Parameter 'memberTeam' implicitly has an 'any' type.
+research/audit/circuit.ts(54,70): error TS7006: Parameter 'slot' implicitly has an 'any' type.
+research/audit/circuit.ts(107,30): error TS7006: Parameter 'wire' implicitly has an 'any' type.
+research/audit/circuit.ts(107,36): error TS7006: Parameter 'slot' implicitly has an 'any' type.
+research/audit/circuit.ts(108,30): error TS7006: Parameter 'wire' implicitly has an 'any' type.
+research/audit/circuit.ts(108,36): error TS7006: Parameter 'slot' implicitly has an 'any' type.
+research/audit/gdp.ts(3,51): error TS2307: Cannot find module '../../vendor/gdp-ts/src/index.ts' or its corresponding type declarations.
+research/audit/laws.ts(6,32): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-program.ts' or its corresponding type declarations.
+research/enum/circuit.ts(3,25): error TS2307: Cannot find module '../../vendor/handwired/src/runtime/numeric-ui-core.ts' or its corresponding type declarations.
+research/enum/circuit.ts(4,56): error TS2307: Cannot find module '../../vendor/handwired/src/runtime/cells.ts' or its corresponding type declarations.
+research/enum/circuit.ts(5,59): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-program.ts' or its corresponding type declarations.
+research/enum/circuit.ts(6,54): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/regex/bits.ts' or its corresponding type declarations.
+research/enum/circuit.ts(22,40): error TS7006: Parameter 'column' implicitly has an 'any' type.
+research/enum/circuit.ts(51,29): error TS7006: Parameter 'wire' implicitly has an 'any' type.
+research/enum/circuit.ts(51,35): error TS7006: Parameter 'column' implicitly has an 'any' type.
+research/enum/circuit.ts(55,28): error TS7006: Parameter 'column' implicitly has an 'any' type.
+research/enum/circuit.ts(55,36): error TS7006: Parameter 'bit' implicitly has an 'any' type.
+research/enum/circuit.ts(55,60): error TS7006: Parameter 'wire' implicitly has an 'any' type.
+research/enum/circuit.ts(55,66): error TS7006: Parameter 'position' implicitly has an 'any' type.
+research/enum/cpu-check.ts(2,46): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-program.ts' or its corresponding type declarations.
+research/enum/kernel-page.ts(3,75): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/enum/kernel-page.ts(4,76): error TS2307: Cannot find module '../../vendor/handwired/lab/json-search/gpu/measure.ts' or its corresponding type declarations.
+research/enum/kernel-page.ts(52,181): error TS7006: Parameter 's' implicitly has an 'any' type.
+research/enum/kernel-page.ts(53,166): error TS7006: Parameter 's' implicitly has an 'any' type.
+research/enum/page.ts(2,31): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/bit-emit.ts' or its corresponding type declarations.
+research/enum/page.ts(3,76): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/enum/page.ts(4,76): error TS2307: Cannot find module '../../vendor/handwired/lab/json-search/gpu/measure.ts' or its corresponding type declarations.
+research/enum/page.ts(30,202): error TS7006: Parameter 's' implicitly has an 'any' type.
+research/enum/page.ts(32,78): error TS7006: Parameter 's' implicitly has an 'any' type.
+research/enum/run-kernel.ts(1,43): error TS2307: Cannot find module '../../vendor/handwired/lab/json-search/gpu/chrome.ts' or its corresponding type declarations.
+research/enum/run.ts(1,43): error TS2307: Cannot find module '../../vendor/handwired/lab/json-search/gpu/chrome.ts' or its corresponding type declarations.
+research/gpu/page.ts(3,31): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/bit-emit.ts' or its corresponding type declarations.
+research/gpu/page.ts(4,28): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-emit.ts' or its corresponding type declarations.
+research/gpu/page.ts(5,76): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/gpu/page.ts(6,32): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-program.ts' or its corresponding type declarations.
+research/gpu/page.ts(7,76): error TS2307: Cannot find module '../../vendor/handwired/lab/json-search/gpu/measure.ts' or its corresponding type declarations.
+research/gpu/page.ts(123,43): error TS7006: Parameter 's' implicitly has an 'any' type.
+research/gpu/page.ts(124,184): error TS7006: Parameter 's' implicitly has an 'any' type.
+research/gpu/page.ts(125,40): error TS7006: Parameter 's' implicitly has an 'any' type.
+research/gpu/run.ts(3,52): error TS2307: Cannot find module '../../vendor/handwired/lab/json-search/gpu/chrome.ts' or its corresponding type declarations.
+research/hw/check-cpu.ts(4,32): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-program.ts' or its corresponding type declarations.
+research/hw/check-more.ts(4,32): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-program.ts' or its corresponding type declarations.
+research/hw/check-more.ts(5,27): error TS2307: Cannot find module '../../vendor/handwired/src/runtime/words.ts' or its corresponding type declarations.
+research/hw/check-steps.ts(8,32): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-program.ts' or its corresponding type declarations.
+research/hw/check-synth-more.ts(18,29): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/hw/check-synth.ts(15,29): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/hw/compile.ts(32,82): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-program.ts' or its corresponding type declarations.
+research/hw/compile.ts(33,38): error TS2307: Cannot find module '../../vendor/handwired/src/runtime/words.ts' or its corresponding type declarations.
+research/hw/enum.ts(9,64): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-program.ts' or its corresponding type declarations.
+research/hw/enum.ts(10,38): error TS2307: Cannot find module '../../vendor/handwired/src/runtime/words.ts' or its corresponding type declarations.
+research/hw/probe-more.ts(3,76): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/hw/probe-more.ts(4,28): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-emit.ts' or its corresponding type declarations.
+research/hw/probe-rebac.ts(2,76): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/hw/probe-rebac.ts(3,28): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-emit.ts' or its corresponding type declarations.
+research/hw/profile-setup.ts(9,28): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-emit.ts' or its corresponding type declarations.
+research/hw/profile-setup.ts(16,27): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/hw/rebac.ts(13,82): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-program.ts' or its corresponding type declarations.
+research/hw/rebac.ts(14,38): error TS2307: Cannot find module '../../vendor/handwired/src/runtime/words.ts' or its corresponding type declarations.
+research/hw/run-more.ts(6,96): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/hw/run-more.ts(7,28): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-emit.ts' or its corresponding type declarations.
+research/hw/run-synth-more.ts(25,23): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/hw/run-synth.ts(20,23): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/hw/run.ts(10,96): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/hw/run.ts(11,28): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-emit.ts' or its corresponding type declarations.
+research/hw/synth-more.ts(18,100): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-program.ts' or its corresponding type declarations.
+research/hw/synth-more.ts(19,28): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-emit.ts' or its corresponding type declarations.
+research/hw/synth-more.ts(20,38): error TS2307: Cannot find module '../../vendor/handwired/src/runtime/words.ts' or its corresponding type declarations.
+research/hw/synth.ts(19,100): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-program.ts' or its corresponding type declarations.
+research/hw/synth.ts(20,28): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-emit.ts' or its corresponding type declarations.
+research/hw/synth.ts(21,38): error TS2307: Cannot find module '../../vendor/handwired/src/runtime/words.ts' or its corresponding type declarations.
+research/modal-gpu/suite.ts(6,75): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/next/rebac/page.ts(4,75): error TS2307: Cannot find module '../../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/next/rebac/page.ts(5,54): error TS2307: Cannot find module '../../../vendor/handwired/lab/json-search/gpu/measure.ts' or its corresponding type declarations.
+research/next/rebac/page.ts(83,147): error TS7006: Parameter 's' implicitly has an 'any' type.
+research/next/rebac/run.ts(1,33): error TS2307: Cannot find module '../../../vendor/handwired/lab/json-search/gpu/chrome.ts' or its corresponding type declarations.
+research/perf/enum-ours.ts(7,85): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/perf/enum-ours.ts(8,37): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-emit.ts' or its corresponding type declarations.
+research/search/page.ts(2,75): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/search/page.ts(3,37): error TS2307: Cannot find module '../../vendor/handwired/lab/json-search/gpu/measure.ts' or its corresponding type declarations.
+research/search/run.ts(1,33): error TS2307: Cannot find module '../../vendor/handwired/lab/json-search/gpu/chrome.ts' or its corresponding type declarations.
+research/synth/run-more.ts(19,29): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/synth/run.ts(19,23): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+research/table/gpu.ts(14,100): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-program.ts' or its corresponding type declarations.
+research/table/gpu.ts(15,28): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/loop-emit.ts' or its corresponding type declarations.
+research/table/gpu.ts(16,38): error TS2307: Cannot find module '../../vendor/handwired/src/runtime/words.ts' or its corresponding type declarations.
+research/table/gpu.ts(23,29): error TS2307: Cannot find module '../../vendor/handwired/src/json-search/gpu/host.ts' or its corresponding type declarations.
+CHECK repo-ts EXIT=2
+BEGIN scoped-lint
+Found 0 warnings and 0 errors.
+Finished in 3.0s on 7 files with 100 rules using 2 threads.
+CHECK scoped-lint EXIT=0
+BEGIN repo-lint
+
+  x typescript(no-redundant-type-constituents): 'any' overrides all other types in this union type.
+    ,-[research/hw/run-more.ts:78:13]
+ 77 |   const runner = await createProgramRunner(device, module, loop.sharedValues, store)
+ 78 |   let hand: Awaited<ReturnType<typeof createKernelRunner>> | undefined, handTables: Uint32Array | undefined
+    :             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 79 |   if (has('--hand')) {
+    `----
+
+Found 0 warnings and 1 error.
+Finished in 59.1s on 890 files with 100 rules using 2 threads.
+CHECK repo-lint EXIT=1
+BEGIN build
+dist: 218 entries
+CHECK build EXIT=0
+BEGIN package-absent
+node v20.20.2: proven, kernel accepts; compiled spend 110; Lean project of 21 files; a gate minted once; a recurrence's lemma used
+gdp-wired check: a proven law exits 0, a broken one 1
+typescript consumer: declarations resolve and type-check
+gdp-wired-cli check: a proven law exits 0, a broken one 1
+gdp-wired-check: the CLI's certificate accepted, its tampered twin refused
+CHECK package-absent EXIT=0
+BEGIN package-schema
+dist: 218 entries
+bun pack v1.4.3 (c6da4a4d3)
+
+packed 5.98KB package.json
+packed 1.1KB LICENSE
+packed 57.88KB README.md
+packed 1.97KB dist/core/accel.d.ts
+packed 65.16KB dist/core/accel.js
+packed 164B dist/core/bitsets.d.ts
+packed 0.83KB dist/core/bitsets.js
+packed 2.1KB dist/core/bmc.d.ts
+packed 35.17KB dist/core/bmc.js
+packed 2.29KB dist/core/c/reader.d.ts
+packed 81.18KB dist/core/c/reader.js
+packed 0.83KB dist/core/calendar.d.ts
+packed 5.60KB dist/core/calendar.js
+packed 3.36KB dist/core/chart.d.ts
+packed 21.51KB dist/core/chart.js
+packed 272B dist/core/check.d.ts
+packed 3.0KB dist/core/check.js
+packed 2.70KB dist/core/cli.d.ts
+packed 73.51KB dist/core/cli.js
+packed 1.30KB dist/core/compose.d.ts
+packed 16.41KB dist/core/compose.js
+packed 1.43KB dist/core/counts.d.ts
+packed 50.59KB dist/core/counts.js
+packed 3.88KB dist/core/cycles.d.ts
+packed 109.78KB dist/core/cycles.js
+packed 6.42KB dist/core/cyclic.d.ts
+packed 111.1KB dist/core/cyclic.js
+packed 200B dist/core/data-synth.d.ts
+packed 12.97KB dist/core/data-synth.js
+packed 13.37KB dist/core/data.d.ts
+packed 0.32MB dist/core/data.js
+packed 0.78KB dist/core/discover.d.ts
+packed 32.24KB dist/core/discover.js
+packed 0.69KB dist/core/draft.d.ts
+packed 4.32KB dist/core/draft.js
+packed 42.61KB dist/core/dsl.d.ts
+packed 239.47KB dist/core/dsl.js
+packed 1.79KB dist/core/effect-prims.d.ts
+packed 44.29KB dist/core/effect-prims.js
+packed 2.99KB dist/core/effect-schedule.d.ts
+packed 51.56KB dist/core/effect-schedule.js
+packed 4.1KB dist/core/effect-schema.d.ts
+packed 27.45KB dist/core/effect-schema.js
+packed 2.74KB dist/core/effect.d.ts
+packed 74.16KB dist/core/effect.js
+packed 9.32KB dist/core/ex/harness.exs
+packed 2.36KB dist/core/ex/json.exs
+packed 34.65KB dist/core/ex/reader.exs
+packed 2.12KB dist/core/exists.d.ts
+packed 74.58KB dist/core/exists.js
+packed 1.59KB dist/core/extract-c.d.ts
+packed 40.1KB dist/core/extract-c.js
+packed 4.80KB dist/core/extract-check.d.ts
+packed 64.45KB dist/core/extract-check.js
+packed 0.62KB dist/core/extract-ex.d.ts
+packed 1.69KB dist/core/extract-ex.js
+packed 1.0KB dist/core/extract-go-check.d.ts
+packed 35.1KB dist/core/extract-go-check.js
+packed 5.0KB dist/core/extract-go.d.ts
+packed 79.28KB dist/core/extract-go.js
+packed 3.0KB dist/core/extract-ir.d.ts
+packed 8.67KB dist/core/extract-ir.js
+packed 0.94KB dist/core/extract-jvm.d.ts
+packed 16.35KB dist/core/extract-jvm.js
+packed 454B dist/core/extract-orm.d.ts
+packed 18.64KB dist/core/extract-orm.js
+packed 1.40KB dist/core/extract-print.d.ts
+packed 27.59KB dist/core/extract-print.js
+packed 0.59KB dist/core/extract-py.d.ts
+packed 1.69KB dist/core/extract-py.js
+packed 0.60KB dist/core/extract-rb.d.ts
+packed 1.60KB dist/core/extract-rb.js
+packed 11.73KB dist/core/extract-read.d.ts
+packed 105.78KB dist/core/extract-read.js
+packed 0.56KB dist/core/extract-rs.d.ts
+packed 23.56KB dist/core/extract-rs.js
+packed 2.0KB dist/core/extract-shapes.d.ts
+packed 103.66KB dist/core/extract-shapes.js
+packed 2.67KB dist/core/extract-sol.d.ts
+packed 74.40KB dist/core/extract-sol.js
+packed 175B dist/core/extract-standalone.d.ts
+packed 10.56KB dist/core/extract-standalone.js
+packed 30.13KB dist/core/extract-step.d.ts
+packed 0.41MB dist/core/extract-step.js
+packed 0.89KB dist/core/extract-swift.d.ts
+packed 32.1KB dist/core/extract-swift.js
+packed 1.18KB dist/core/extract-xstate.d.ts
+packed 58.0KB dist/core/extract-xstate.js
+packed 2.69KB dist/core/extract.d.ts
+packed 37.30KB dist/core/extract.js
+packed 244B dist/core/fiber-run.d.ts
+packed 1.25KB dist/core/fiber-run.js
+packed 272B dist/core/fresh.d.ts
+packed 6.53KB dist/core/fresh.js
+packed 1.60KB dist/core/gdp.d.ts
+packed 3.48KB dist/core/gdp.js
+packed 34B dist/core/go/go.mod
+packed 24.72KB dist/core/go/reader.go
+packed 1.63KB dist/core/infer.d.ts
+packed 0.36MB dist/core/infer.js
+packed 25.64KB dist/core/jvm/Harness.java
+packed 61.54KB dist/core/jvm/JavaReader.java
+packed 30.19KB dist/core/jvm/Jvm.java
+packed 76.94KB dist/core/jvm/KtReader.java
+packed 0.54KB dist/core/jvm/Rt.java
+packed 0.89KB dist/core/kind.d.ts
+packed 5.0KB dist/core/kind.js
+packed 2.0KB dist/core/laws.d.ts
+packed 62.1KB dist/core/laws.js
+packed 1.20KB dist/core/live.d.ts
+packed 30.11KB dist/core/live.js
+packed 7.71KB dist/core/machine.d.ts
+packed 73.59KB dist/core/machine.js
+packed 1.29KB dist/core/nonterm.d.ts
+packed 46.1KB dist/core/nonterm.js
+packed 64B dist/core/orm-fixtures/schema.prisma
+packed 3.99KB dist/core/orm/harness.js
+packed 31.70KB dist/core/py/harness.py
+packed 57.22KB dist/core/py/reader.py
+packed 0.97KB dist/core/q.d.ts
+packed 2.53KB dist/core/q.js
+packed 4.39KB dist/core/rationals.d.ts
+packed 15.43KB dist/core/rationals.js
+packed 9.29KB dist/core/rb/harness.rb
+packed 29.98KB dist/core/rb/reader.rb
+packed 1.72KB dist/core/reader-fixtures/README.md
+packed 209B dist/core/reader-fixtures/c-693042.cpp
+packed 218B dist/core/reader-fixtures/go-685506.go
+packed 312B dist/core/reader-fixtures/jvm-724362.kt
+packed 404B dist/core/reader-fixtures/jvm-737430.kt
+packed 79B dist/core/reader-fixtures/jvm-765282.kt
+packed 381B dist/core/reader-fixtures/swift-735726.swift
+packed 4.41KB dist/core/reader-fixtures/swift-735990.swift
+packed 133B dist/core/reader-fixtures/swift-739158.swift
+packed 411B dist/core/reader-fixtures/swift-744834.swift
+packed 0.92KB dist/core/reader-fixtures/swift-746946.swift
+packed 118B dist/core/reader-fixtures/typescript-673062.ts.txt
+packed 1.0KB dist/core/relation.d.ts
+packed 26.94KB dist/core/relation.js
+packed 1.71KB dist/core/relational.d.ts
+packed 22.86KB dist/core/relational.js
+packed 2.68KB dist/core/rs/Cargo.lock
+packed 274B dist/core/rs/Cargo.toml
+packed 76.71KB dist/core/rs/src/main.rs
+packed 0.61KB dist/core/sample-cache.d.ts
+packed 1.80KB dist/core/sample-cache.js
+packed 0.97KB dist/core/security.d.ts
+packed 5.47KB dist/core/security.js
+packed 0.83KB dist/core/sol-concrete.d.ts
+packed 12.67KB dist/core/sol-concrete.js
+packed 2.23KB dist/core/sol/Replay.sol
+packed 22.46KB dist/core/sol/harness.py
+packed 2.95KB dist/core/solver.d.ts
+packed 22.90KB dist/core/solver.js
+packed 10.63KB dist/core/swift/Harness.swift
+packed 1.35KB dist/core/swift/Main.swift
+packed 0.80KB dist/core/swift/Package.swift
+packed 92.80KB dist/core/swift/Sources/gdp-swiftreader/main.swift
+packed 3.54KB dist/core/system.d.ts
+packed 46.0KB dist/core/system.js
+packed 0.51KB dist/core/transfer.d.ts
+packed 31.54KB dist/core/transfer.js
+packed 1.41KB dist/core/translate.d.ts
+packed 31.21KB dist/core/translate.js
+packed 1.0KB dist/core/watch.d.ts
+packed 10.65KB dist/core/watch.js
+packed 2.32KB dist/core/xstate.d.ts
+packed 38.79KB dist/core/xstate.js
+packed 0.90KB dist/interchange/check.d.ts
+packed 11.70KB dist/interchange/check.js
+packed 31B dist/interchange/cli.d.ts
+packed 2.64KB dist/interchange/cli.js
+packed 4.21KB dist/interchange/format.d.ts
+packed 51.13KB dist/interchange/format.js
+packed 2.00KB dist/kernel/cdcl.d.ts
+packed 72.36KB dist/kernel/cdcl.js
+packed 1.57KB dist/kernel/cyclic.d.ts
+packed 3.73KB dist/kernel/cyclic.js
+packed 1.11KB dist/kernel/epr.d.ts
+packed 97.56KB dist/kernel/epr.js
+packed 12.64KB dist/kernel/kernel.d.ts
+packed 147.77KB dist/kernel/kernel.js
+packed 162B dist/kernel/model-sequence.d.ts
+packed 1.44KB dist/kernel/model-sequence.js
+packed 8.96KB dist/kernel/prove.d.ts
+packed 199.72KB dist/kernel/prove.js
+packed 0.53KB dist/kernel/qprove.d.ts
+packed 6.49KB dist/kernel/qprove.js
+packed 4.40KB dist/kernel/reader.d.ts
+packed 58.79KB dist/kernel/reader.js
+packed 72B dist/kernel/share.d.ts
+packed 1.48KB dist/kernel/share.js
+packed 1.52KB dist/kernel/simplex.d.ts
+packed 18.0KB dist/kernel/simplex.js
+packed 10.82KB dist/lean-kernel/emit.d.ts
+packed 197.26KB dist/lean-kernel/emit.js
+packed 460B dist/lean-kernel/lean-terms.d.ts
+packed 4.79KB dist/lean-kernel/lean-terms.js
+packed 58B dist/lean-kernel/library.d.ts
+packed 0.94MB dist/lean-kernel/library.js
+packed 1.17KB dist/lean-kernel/qlean.d.ts
+packed 5.96KB dist/lean-kernel/qlean.js
+
+/tmp/tmp.5OQB8fIPHo/pack/gdp-wired-0.46.0.tgz
+
+Total files: 202
+Shasum: 5a91f59fce908e0b1fb9f0155c69c33644815f20
+Integrity: sha512-Hzk2S+6RJW1vv[...]LfImKYoSJRN9Q==
+Unpacked size: 6.23MB
+Packed size: 1.63MB
+packed schema runtime: 3.22.4, proven && checked; broken state refused
+packed schema types: Effect 3.22.4
+packed schema runtime: 4.0.7, proven && checked; broken state refused
+packed schema types: Effect 4.0.7
+CHECK package-schema EXIT=0
+BEGIN ci-list
+core/effect-schema.test.ts  (not measured)
+CHECK ci-list EXIT=0
+BEGIN commitlint
+CHECK commitlint EXIT=1
+
+--- stderr ---
+$ oxlint --type-aware --deny-warnings --disable-nested-config
+error: script "lint" exited with code 1
+cyclic: {"kind":"machine","name":"budget","cert":true,"usual":true,"cyclic":true,"ms":24,"usualMs":6,"route":"translated","leaves":7,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"tokens","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":9,"route":"translated","leaves":16,"regrown":0,"splits":7,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"recurrence","name":"delay","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"waits","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":4,"route":"translated","leaves":8,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":53,"usualMs":7,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":51,"usualMs":4,"route":"translated","leaves":5,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":31,"usualMs":1,"route":"translated","leaves":5,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":31,"usualMs":1,"route":"translated","leaves":4,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":36,"usualMs":6,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":36,"usualMs":3,"route":"translated","leaves":5,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":10,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":45,"usualMs":7,"route":"translated","leaves":5,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":42,"usualMs":1,"route":"translated","leaves":4,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"packed schema","cert":true,"usual":true,"cyclic":true,"ms":44,"usualMs":9,"route":"translated","leaves":22,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"packed schema","cert":true,"usual":true,"cyclic":true,"ms":42,"usualMs":15,"route":"translated","leaves":22,"regrown":0,"splits":10,"carried":2,"uncarried":0,"cached":0}
+file:///tmp/tmp.aYkjmeH5cl/node_modules/@commitlint/cli/lib/cli.js:133
+        throw err;
+        ^
+
+TypeError: Could not find git root from /work/gdp-wired
+    at getEditCommit (file:///tmp/tmp.aYkjmeH5cl/node_modules/@commitlint/read/lib/get-edit-commit.js:8:15)
+    at async main (file:///tmp/tmp.aYkjmeH5cl/node_modules/@commitlint/cli/lib/cli.js:199:19)
+
+Node.js v20.20.2

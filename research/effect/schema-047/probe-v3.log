@@ -1,0 +1,203 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [2.32s]
+{"version":3,"name":"int","ast":{"from":{"annotations":{"Symbol(effect/annotation/Title)":"number","Symbol(effect/annotation/Description)":"a number"},"_tag":"NumberKeyword"},"filter":"<function>","annotations":{"Symbol(effect/annotation/SchemaId)":"Symbol(effect/SchemaId/Int)","Symbol(effect/annotation/Identifier)":"Int","Symbol(effect/annotation/Title)":"int","Symbol(effect/annotation/Description)":"an integer","Symbol(effect/annotation/JSONSchema)":{"type":"integer"}},"_tag":"Refinement"}}
+{"version":3,"name":"bounds","ast":{"from":{"from":{"from":{"annotations":{"Symbol(effect/annotation/Title)":"number","Symbol(effect/annotation/Description)":"a number"},"_tag":"NumberKeyword"},"filter":"<function>","annotations":{"Symbol(effect/annotation/SchemaId)":"Symbol(effect/SchemaId/Int)","Symbol(effect/annotation/Identifier)":"Int","Symbol(effect/annotation/Title)":"int","Symbol(effect/annotation/Description)":"an integer","Symbol(effect/annotation/JSONSchema)":{"type":"integer"}},"_tag":"Refinement"},"filter":"<function>","annotations":{"Symbol(effect/annotation/SchemaId)":"Symbol(effect/SchemaId/GreaterThan)","Symbol(effect/annotation/Title)":"greaterThan(-3)","Symbol(effect/annotation/Description)":"a number greater than -3","Symbol(effect/annotation/JSONSchema)":{"exclusiveMinimum":-3}},"_tag":"Refinement"},"filter":"<function>","annotations":{"Symbol(effect/annotation/SchemaId)":"Symbol(effect/SchemaId/LessThanOrEqualTo)","Symbol(effect/annotation/Title)":"lessThanOrEqualTo(7)","Symbol(effect/annotation/Description)":"a number less than or equal to 7","Symbol(effect/annotation/JSONSchema)":{"maximum":7}},"_tag":"Refinement"}}
+{"version":3,"name":"between","ast":{"from":{"from":{"annotations":{"Symbol(effect/annotation/Title)":"number","Symbol(effect/annotation/Description)":"a number"},"_tag":"NumberKeyword"},"filter":"<function>","annotations":{"Symbol(effect/annotation/SchemaId)":"Symbol(effect/SchemaId/Int)","Symbol(effect/annotation/Identifier)":"Int","Symbol(effect/annotation/Title)":"int","Symbol(effect/annotation/Description)":"an integer","Symbol(effect/annotation/JSONSchema)":{"type":"integer"}},"_tag":"Refinement"},"filter":"<function>","annotations":{"Symbol(effect/annotation/SchemaId)":"Symbol(effect/SchemaId/Between)","Symbol(effect/annotation/Title)":"between(-3, 7)","Symbol(effect/annotation/Description)":"a number between -3 and 7","Symbol(effect/annotation/JSONSchema)":{"minimum":-3,"maximum":7}},"_tag":"Refinement"}}
+{"version":3,"name":"custom","ast":{"from":{"from":{"annotations":{"Symbol(effect/annotation/Title)":"number","Symbol(effect/annotation/Description)":"a number"},"_tag":"NumberKeyword"},"filter":"<function>","annotations":{"Symbol(effect/annotation/SchemaId)":"Symbol(effect/SchemaId/Int)","Symbol(effect/annotation/Identifier)":"Int","Symbol(effect/annotation/Title)":"int","Symbol(effect/annotation/Description)":"an integer","Symbol(effect/annotation/JSONSchema)":{"type":"integer"}},"_tag":"Refinement"},"filter":"<function>","annotations":{},"_tag":"Refinement"}}
+{"version":3,"name":"branded","ast":{"from":{"annotations":{"Symbol(effect/annotation/Title)":"number","Symbol(effect/annotation/Description)":"a number"},"_tag":"NumberKeyword"},"filter":"<function>","annotations":{"Symbol(effect/annotation/SchemaId)":"Symbol(effect/SchemaId/Int)","Symbol(effect/annotation/Title)":"int","Symbol(effect/annotation/Description)":"an integer","Symbol(effect/annotation/JSONSchema)":{"type":"integer"},"Symbol(effect/annotation/Brand)":["Count"]},"_tag":"Refinement"}}
+{"version":3,"acceptedIntegers":[["-Infinity",false],["Infinity",false],["NaN",false],["1.5",false],["-9007199254740991",true],["9007199254740991",true],["9007199254740992",false],["-9007199254740992",false],["0",true]]}
+{"version":4,"name":"int","ast":{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":{"expected":"an integer","representation":{"id":"effect/schema/isInt","payload":null},"toJsonSchema":"<function>","toCode":"<function>","arbitraryConstraint":{"number":"integer"}},"aborted":false}],"_tag":"Number"}}
+{"version":4,"name":"bounds","ast":{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":{"expected":"an integer","representation":{"id":"effect/schema/isInt","payload":null},"toJsonSchema":"<function>","toCode":"<function>","arbitraryConstraint":{"number":"integer"}},"aborted":false},{"_tag":"Filter","run":"<function>","annotations":{"expected":"a value greater than -3","arbitraryConstraint":{"order":"<function>","minimum":-3,"exclusiveMinimum":true},"representation":{"id":"effect/schema/isGreaterThan","payload":{"exclusiveMinimum":-3}},"toJsonSchema":"<function>","toCode":"<function>"},"aborted":false},{"_tag":"Filter","run":"<function>","annotations":{"expected":"a value less than or equal to 7","arbitraryConstraint":{"order":"<function>","maximum":7},"representation":{"id":"effect/schema/isLessThanOrEqualTo","payload":{"maximum":7}},"toJsonSchema":"<function>","toCode":"<function>"},"aborted":false}],"_tag":"Number"}}
+{"version":4,"name":"between","ast":{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":{"expected":"an integer","representation":{"id":"effect/schema/isInt","payload":null},"toJsonSchema":"<function>","toCode":"<function>","arbitraryConstraint":{"number":"integer"}},"aborted":false},{"_tag":"Filter","run":"<function>","annotations":{"expected":"a value between -3 and 7","arbitraryConstraint":{"order":"<function>","minimum":-3,"maximum":7},"representation":{"id":"effect/schema/isBetween","payload":{"minimum":-3,"maximum":7}},"toJsonSchema":"<function>","toCode":"<function>"},"aborted":false}],"_tag":"Number"}}
+{"version":4,"name":"custom","ast":{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":{"expected":"an integer","representation":{"id":"effect/schema/isInt","payload":null},"toJsonSchema":"<function>","toCode":"<function>","arbitraryConstraint":{"number":"integer"}},"aborted":false},{"_tag":"Filter","run":"<function>","aborted":false}],"_tag":"Number"}}
+{"version":4,"name":"branded","ast":{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":{"expected":"an integer","representation":{"id":"effect/schema/isInt","payload":null},"toJsonSchema":"<function>","toCode":"<function>","arbitraryConstraint":{"number":"integer"}},"aborted":false}],"_tag":"Number"}}
+{"version":4,"acceptedIntegers":[["-Infinity",false],["Infinity",false],["NaN",false],["1.5",false],["-9007199254740991",true],["9007199254740991",true],["9007199254740992",false],["-9007199254740992",false],["0",true]]}
+effect er.MAX_SAFE_INTEGER` in JSON Schema.
+ *
+ * Arbitrary:
+ *
+ * During arbitrary generation, this applies an integer constraint.
+ *
+ * @stability stable
+ * @category validation
+ * @since 4.0.0
+ */
+export function isInt(annotations?: Annotations.Filter) {
+  return makeFilter(
+    (n: number) => globalThis.Number.isSafeInteger(n),
+    {
+      expected: "an integer",
+      representation: {
+        id: "effect/schema/isInt",
+        payload: null
+      },
+      toJsonSchema: () => ({
+        type: "integer",
+        minimum: globalThis.Number.MIN_SAFE_INTEGER,
+        maximum: globalThis.Number.MAX_SAFE_INTEGER
+      }),
+      toCode: () => ({ runtime: "Schema.isInt()" }),
+      arbitraryConstraint: {
+        number: "integer"
+      },
+      ...annotations
+    }
+  )
+}
+/**
+ * Type-level representation of {@link Int}.
+ *
+ * @stability stable
+ * @category models
+ * @since 3.10.0
+ */
+export interface Int extends Number {
+  readonly "Rebuild": Int
+}
+/**
+ * Schema for integers, rejecting `NaN`, `Infinity`, and `-Infinity`.
+ *
+ * @stability stable
+ * @category schemas
+ * @since 3.10.0
+ */
+export const Int: Int = Number.check(isInt())
+/**
+ * Type-level representation of {@link Natural}.
+ *
+ * @stability stable
+ * @category models
+ * @since 4.0.0
+ */
+export interface Natural extends Int {
+  readonly "Rebuild": Natural
+}
+/**
+ * Schema for non-negative safe integers, including zero.
+ *
+ * **When to use**
+ *
+ * Use when you need a count, index, or size that cannot be negative.
+ *
+ * @see {@link
+effect3 ype IntSchemaId = typeof IntSchemaId
+
+/**
+ * Ensures that the provided value is an integer number (excluding NaN, +Infinity, and -Infinity).
+ *
+ * @category number filters
+ * @since 3.10.0
+ */
+export const int =
+  <S extends Schema.Any>(annotations?: Annotations.Filter<Schema.Type<S>>) =>
+  <A extends number>(self: S & Schema<A, Schema.Encoded<S>, Schema.Context<S>>): filter<S> =>
+    self.pipe(
+      filter((a) => Number.isSafeInteger(a), {
+        schemaId: IntSchemaId,
+        title: "int",
+        description: "an integer",
+        jsonSchema: { type: "integer" },
+        ...annotations
+      })
+    )
+
+/**
+ * @category schema id
+ * @since 3.10.0
+ */
+export const LessThanSchemaId: unique symbol = schemaId_.LessThanSchemaId
+
+/**
+ * @category schema id
+ * @since 3.10.0
+ */
+export type LessThanSchemaId = typeof LessThanSchemaId
+
+/**
+ * This filter checks whether the provided number is less than the specified maximum.
+ *
+ * @category number filters
+ * @since 3.10.0
+ */
+export const lessThan =
+  <S extends Schema.Any>(exclusiveMaximum: number, annotations?: Annotations.Filter<Schema.Type<S>>) =>
+  <A extends number>(self: S & Schema<A, Schema.Encoded<S>, Schema.Context<S>>): filter<S> =>
+    self.pipe(
+      filter((a) => a < exclusiveMaximum, {
+        schemaId: LessThanSchemaId,
+        title: `lessThan(${exclusiveMaximum})`,
+        description: exclusiveMaximum === 0 ? "a negative number" : `a number less than ${exclusiveMaximum}`,
+        jsonSchema: { exclusiveMaximum },
+
+effect3  nominal branded schema by applying a brand to a given schema.
+ *
+ * ```
+ * Schema<A> + B -> Schema<A & Brand<B>>
+ * ```
+ *
+ * @example
+ * ```ts
+ * import * as Schema from "effect/Schema"
+ *
+ * const Int = Schema.Number.pipe(Schema.int(), Schema.brand("Int"))
+ * type Int = Schema.Schema.Type<typeof Int> // number & Brand<"Int">
+ * ```
+ *
+ * @category branding
+ * @since 3.10.0
+ */
+export const brand = <S extends Schema.Any, B extends string | symbol>(
+  brand: B,
+  annotations?: Annotations.Schema<Schema.Type<S> & Brand<B>>
+) =>
+(self: S): brand<S, B> => {
+  const annotation: AST.BrandAnnotation = option_.match(AST.getBrandAnnotation(self.ast), {
+    onNone: () => [brand],
+    onSome: (brands) => [...brands, brand]
+  })
+  const ast = AST.annotations(
+    self.ast,
+    toASTAnnotations({
+      [AST.BrandAnnotationId]: annotation,
+      ...annotations
+    })
+  )
+  return makeBrandClass(self, ast)
+}
+
+/**
+ * @category combinators
+ * @since 3.10.0
+ */
+export const partial = <A, I, R>(
+  self: Schema<A, I, R>
+): SchemaClass<{ [K in keyof A]?: A[K] | undefined }, { [K in keyof I]?: I[K] | undefined }, R> =>
+  make(AST.partial(self.ast))
+
+/**
+ * @category combinators
+ * @since 3.10.0
+ */
+export const partialWith: {
+  /**
+   * @category combinators
+   * @since 3.10.0
+   */
+  <const Options extends { readonly exact: true }>(options: Options): <A, I, R>(
+    self: Schema<A, I, R>
+  ) => SchemaClass<{ [K in keyof A]?: A[K] }, { [K in keyof I]?: I[K] }, R>
+  /**
+   * @category combinators

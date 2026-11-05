@@ -16,7 +16,7 @@
 // a Schema's kind.
 import ts from 'typescript'
 import * as dsl from './dsl.ts'
-import type {Kind, Rule} from './dsl.ts'
+import type {Rule} from './dsl.ts'
 import {type Law, type Rand, interpret, lcg, seeded} from './machine.ts'
 import {allowed} from './watch.ts'
 import * as I from './extract-ir.ts'
@@ -836,50 +836,6 @@ export function conforms<S>(r: Rule, svc: Service<S>, opts: {draw: (rand: Rand) 
   return {checked}
 }
 
-// A Schema's kind (its type side, 3.x or 4.x): a struct a record, string literals a choice, a tagged union of structs a
-// variant on `_tag`, integers int (nat where at least 0), Boolean, String, `X | null` and optional fields a maybe, a
-// Schema.Class its fields. A number that may be fractional, and any other Schema, is refused with the path to it.
-// 3.x's AST nodes by 4.x's names:
-const TAGS: Record<string, string> = {NumberKeyword: 'Number', BooleanKeyword: 'Boolean', StringKeyword: 'String', TypeLiteral: 'Objects', UndefinedKeyword: 'Undefined'}
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function fromSchema(schema: {ast: unknown, fields?: Record<string, {ast: unknown}>}): Kind<any> {
-  type Ast = Mod
-  const fail = (path: string, what: string): never => { throw new Error(`fromSchema: ${path || 'the schema'} is ${what}`) }
-  const tagOf = (a: Ast): string => TAGS[a?._tag] ?? a?._tag
-  const ann = (a: Ast, id: string) => { const k = Object.getOwnPropertySymbols(a.annotations ?? {}).find(x => x.description === id); return k ? a.annotations[k] : undefined }
-  const base = (a: Ast): Ast => (a._tag === 'Refinement' ? base(a.from) : a)
-  // An integer: 4.x's checks on Number (isInt, a minimum), 3.x's Refinements down to NumberKeyword (Int, a JSON Schema minimum).
-  const num = (a: Ast, path: string): Kind<unknown> => {
-    let int = false, min = -Infinity
-    for (let x = a; x; x = x._tag === 'Refinement' ? x.from : undefined) {
-      const js = ann(x, 'effect/annotation/JSONSchema') as {type?: string, minimum?: number} | undefined
-      for (const c of [...(x.checks ?? []).map((c: Ast) => c.annotations ?? {}).map((an: Ast) => ({int: an.representation?.id === 'effect/schema/isInt' || an.arbitraryConstraint?.number?.isInteger, min: an.arbitraryConstraint?.minimum})),
-        {int: js?.type === 'integer' || ann(x, 'effect/annotation/SchemaId')?.description === 'effect/SchemaId/Int', min: js?.minimum}]) { int ||= !!c.int; if (typeof c.min === 'number') min = Math.max(min, c.min) }
-    }
-    return int ? (min >= 0 ? dsl.nat : dsl.int) : fail(path, 'a number that may be fractional (an integer schema, Schema.Int, is read)')
-  }
-  const props = (a: Ast) => a.propertySignatures as {name: PropertyKey, type: Ast, isOptional?: boolean, context?: {isOptional?: boolean}}[]
-  const go = (a: Ast, path: string): Kind<unknown> => {
-    const tag = tagOf(a)
-    if (tag === 'Transformation') return go(a.to, path)
-    if (tag === 'Number' || (tag === 'Refinement' && tagOf(base(a)) === 'Number')) return num(a, path)
-    if (tag === 'Refinement') return go(a.from, path)
-    if (tag === 'Boolean') return dsl.bool
-    if (tag === 'String') return dsl.str()
-    if (tag === 'Literal') return typeof a.literal === 'string' ? dsl.oneOf(a.literal) : fail(path, `the literal ${String(a.literal)} (string literals are read)`)
-    if (tag === 'Objects') { if (a.indexSignatures?.length) fail(path, 'a record with an index signature'); return dsl.record(fieldsOf(a, path, false) as never) }
-    if (tag !== 'Union') return fail(path, `a ${a?._tag} schema (structs, literals, tagged unions, integers, booleans and strings are read)`)
-    const types = a.types as Ast[], missing = types.filter(t => ['Null', 'Undefined'].includes(tagOf(t)) || (t._tag === 'Literal' && t.literal === null)), rest = types.filter(t => !missing.includes(t))
-    const caseOf = (t: Ast) => { const p = tagOf(t) === 'Objects' ? props(t).find(x => x.name === '_tag') : undefined; return p?.type._tag === 'Literal' && typeof p.type.literal === 'string' ? p.type.literal as string : undefined }
-    if (missing.length && rest.length === 1) return dsl.maybe(go(rest[0]!, path))
-    if (rest.every(t => t._tag === 'Literal' && typeof t.literal === 'string')) return dsl.oneOf(...rest.map(t => t.literal as string))
-    if (!missing.length && rest.every(caseOf)) return dsl.variant(Object.fromEntries(rest.map(t => [caseOf(t)!, fieldsOf(t, path, true)])) as never, {tag: '_tag'})
-    return fail(path, 'a union other than of string literals, of structs tagged by _tag, or with null')
-  }
-  const fieldsOf = (a: Ast, path: string, tagged: boolean): Record<string, Kind<unknown>> => Object.fromEntries(props(a).filter(p => !(tagged && p.name === '_tag')).map(p => {
-    const k = go(p.type, `${path ? `${path}.` : ''}${String(p.name)}`)
-    return [String(p.name), (p.isOptional || p.context?.isOptional) && !('of' in k) ? dsl.maybe(k) : k]
-  }))
-  const ast = schema.ast as Ast
-  return schema.fields && tagOf(ast) !== 'Objects' ? dsl.record(Object.fromEntries(Object.entries(schema.fields).map(([f, x]) => [f, go(x.ast as Ast, f)])) as never) : go(ast, '')
-}
+// The decoded Schema frontend is independent of service extraction and keeps Effect optional.
+export {fromSchema, SchemaError, SchemaKind} from './effect-schema.ts'
+export type {SchemaConstraint, SchemaDiagnostic, SchemaLike, SchemaOptions, SchemaReport, SchemaSymbolic, SchemaValue} from './effect-schema.ts'

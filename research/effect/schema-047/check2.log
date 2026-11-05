@@ -1,0 +1,52 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [520.00ms]
+Found 0 warnings and 0 errors.
+Finished in 2.0s on 7 files with 100 rules using 2 threads.
+bun test v1.4.3 (c6da4a4d3)
+core/effect-schema.test.ts  (not measured)
+
+--- stderr ---
+
+core/effect-schema.test.ts:
+(pass) Schema 4.0.7: safe integers, bounds, exclusivity, thresholds and literals [5.98ms]
+(pass) Schema 4.0.7: structural and strict nullable codecs [4.81ms]
+cyclic: {"kind":"machine","name":"schema bounded state","cert":true,"usual":true,"cyclic":true,"ms":61,"usualMs":16,"route":"translated","leaves":18,"regrown":0,"splits":8,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"schema inputs and params","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"schema inputs and params","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":2,"route":"translated","leaves":10,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"nullable clear","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":2,"route":"translated","leaves":11,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"schema tagged clear","cert":true,"usual":true,"cyclic":true,"ms":30,"usualMs":5,"route":"translated","leaves":26,"regrown":0,"splits":17,"carried":1,"uncarried":0,"cached":0}
+(pass) Schema 4.0.7: state bounds are checked, never trusted [192.21ms]
+(pass) Schema 4.0.7: fail closed or report every approximation [1.02ms]
+(pass) Schema 3.22.4: safe integers, bounds, exclusivity, thresholds and literals [2.05ms]
+(pass) Schema 3.22.4: structural and strict nullable codecs [2.37ms]
+cyclic: {"kind":"machine","name":"schema bounded state","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"schema inputs and params","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"schema inputs and params","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"nullable clear","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"schema tagged clear","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) Schema 3.22.4: state bounds are checked, never trusted [29.75ms]
+(pass) Schema 3.22.4: fail closed or report every approximation [0.60ms]
+(pass) approximation needs an exact explicit opt-in and report arrays cannot mutate the domain [0.55ms]
+(pass) custom predicates are not executed; paths retained; transforms and collections refused [1.08ms]
+(pass) single tagged structs and singleton unions stay records; tagged codecs enforce all own keys [3.22ms]
+cyclic: {"kind":"machine","name":"signed schema migration","cert":true,"usual":true,"cyclic":false,"ms":22,"usualMs":2,"route":"fallback","leaves":13,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0,"fellBack":"signed schema migration: nonnegative capped: use 0, hypothesis 3 of signed schema migration: nonnegative capped, after a step"}
+cyclic: {"kind":"machine","name":"signed schema migration","uncovered":true,"why":"no cyclic proof found (not translated: signed schema migration: nonnegative capped: use 0, hypothesis 3 of signed schema migration: nonnegative capped, after a step)"}
+(pass) signed migration rejects the old nat handler and proves the explicit signed one [26.12ms]
+
+ 12 pass
+ 0 fail
+ 2106 expect() calls
+Ran 12 tests across 1 file. [776.00ms]

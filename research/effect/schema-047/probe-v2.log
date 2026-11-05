@@ -1,0 +1,50 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [767.00ms]
+{"v":4,"k":"int","keys":["ast"],"ast":{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":{"expected":"an integer","representation":{"id":"effect/schema/isInt","payload":null},"toJsonSchema":"<function>","toCode":"<function>","arbitraryConstraint":{"number":"integer"}},"aborted":false}],"_tag":"Number"}}
+{"v":4,"k":"bool","keys":["ast"],"ast":{"~effect/Schema":"~effect/Schema","_tag":"Boolean"}}
+{"v":4,"k":"str","keys":["ast"],"ast":{"~effect/Schema":"~effect/Schema","_tag":"String"}}
+{"v":4,"k":"num","keys":["ast"],"ast":{"~effect/Schema":"~effect/Schema","_tag":"Number"}}
+{"v":4,"k":"litNum","keys":["literal","transform","ast"],"ast":{"~effect/Schema":"~effect/Schema","_tag":"Literal","literal":-3}}
+{"v":4,"k":"litBool","keys":["literal","transform","ast"],"ast":{"~effect/Schema":"~effect/Schema","_tag":"Literal","literal":true}}
+{"v":4,"k":"null","keys":["ast"],"ast":{"~effect/Schema":"~effect/Schema","_tag":"Null"}}
+{"v":4,"k":"undef","keys":["ast"],"ast":{"~effect/Schema":"~effect/Schema","_tag":"Undefined"}}
+{"v":4,"k":"nullable","keys":["members","mapMembers","ast"],"ast":{"~effect/Schema":"~effect/Schema","_tag":"Union","types":[{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":{"expected":"an integer","representation":{"id":"effect/schema/isInt","payload":null},"toJsonSchema":"<function>","toCode":"<function>","arbitraryConstraint":{"number":"integer"}},"aborted":false}],"_tag":"Number"},{"~effect/Schema":"~effect/Schema","_tag":"Null"}]}}
+{"v":4,"k":"optional","keys":["fields","mapFields","ast"],"ast":{"~effect/Schema":"~effect/Schema","_tag":"Objects","propertySignatures":[{"name":"x","type":{"~effect/Schema":"~effect/Schema","context":{"isOptional":true,"isMutable":false},"_tag":"Union","types":[{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":"<depth>","aborted":false}],"_tag":"Number"},{"~effect/Schema":"~effect/Schema","_tag":"Undefined"}]}}],"indexSignatures":[]},"fields":{"x":"<function>"}}
+{"v":4,"k":"struct","keys":["fields","mapFields","ast"],"ast":{"~effect/Schema":"~effect/Schema","_tag":"Objects","propertySignatures":[{"name":"a","type":{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":{"expected":"an integer","representation":{"id":"effect/schema/isInt","payload":null},"toJsonSchema":"<function>","toCode":"<function>","arbitraryConstraint":{"number":"integer"}},"aborted":false}],"_tag":"Number"}}],"indexSignatures":[]},"fields":{"a":"<function>"}}
+{"v":4,"k":"array","keys":["value","ast"],"ast":{"~effect/Schema":"~effect/Schema","_tag":"Arrays","isMutable":false,"elements":[],"rest":[{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":{"expected":"an integer","representation":{"id":"effect/schema/isInt","payload":null},"toJsonSchema":"<function>","toCode":"<function>","arbitraryConstraint":{"number":"integer"}},"aborted":false}],"_tag":"Number"}]}}
+{"v":4,"k":"branded","keys":["schema","identifier","ast"],"ast":{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":{"expected":"an integer","representation":{"id":"effect/schema/isInt","payload":null},"toJsonSchema":"<function>","toCode":"<function>","arbitraryConstraint":{"number":"integer"}},"aborted":false}],"_tag":"Number"}}
+{"v":4,"k":"bounds","keys":["ast"],"ast":{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":{"expected":"an integer","representation":{"id":"effect/schema/isInt","payload":null},"toJsonSchema":"<function>","toCode":"<function>","arbitraryConstraint":{"number":"integer"}},"aborted":false},{"_tag":"Filter","run":"<function>","annotations":{"expected":"a value greater than -3","arbitraryConstraint":{"order":"<function>","minimum":-3,"exclusiveMinimum":true},"representation":{"id":"effect/schema/isGreaterThan","payload":{"exclusiveMinimum":-3}},"toJsonSchema":"<function>","toCode":"<function>"},"aborted":false},{"_tag":"Filter","run":"<function>","annotations":{"expected":"a value less than or equal to 7","arbitraryConstraint":{"order":"<function>","maximum":7},"representation":{"id":"effect/schema/isLessThanOrEqualTo","payload":{"maximum":7}},"toJsonSchema":"<function>","toCode":"<function>"},"aborted":false}],"_tag":"Number"}}
+{"v":4,"k":"between","keys":["ast"],"ast":{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":{"expected":"an integer","representation":{"id":"effect/schema/isInt","payload":null},"toJsonSchema":"<function>","toCode":"<function>","arbitraryConstraint":{"number":"integer"}},"aborted":false},{"_tag":"Filter","run":"<function>","annotations":{"expected":"a value between -3 and 7","arbitraryConstraint":{"order":"<function>","minimum":-3,"maximum":7},"representation":{"id":"effect/schema/isBetween","payload":{"minimum":-3,"maximum":7}},"toJsonSchema":"<function>","toCode":"<function>"},"aborted":false}],"_tag":"Number"}}
+{"v":4,"k":"custom","keys":["ast"],"ast":{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":{"expected":"an integer","representation":{"id":"effect/schema/isInt","payload":null},"toJsonSchema":"<function>","toCode":"<function>","arbitraryConstraint":{"number":"integer"}},"aborted":false},{"_tag":"Filter","run":"<function>","aborted":false}],"_tag":"Number"}}
+{"v":4,"k":"regex","keys":["ast"],"ast":{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":{"expected":"a string matching the RegExp ^a","representation":{"id":"effect/schema/isPattern","payload":{"source":"^a","flags":""}},"toJsonSchema":"<function>","arbitraryConstraint":{"patterns":[{"source":"^a","flags":""}]},"toCode":"<function>"},"aborted":false}],"_tag":"String"}}
+{"v":4,"k":"transform","keys":["from","to","ast"],"ast":{"~effect/Schema":"~effect/Schema","encoding":[{"to":{"~effect/Schema":"~effect/Schema","annotations":{"expected":"a string that will be decoded as a number"},"_tag":"String"},"transformation":{"~effect/SchemaTransformation/Transformation":"~effect/SchemaTransformation/Transformation","_tag":"Transformation","decode":{"_tag":"Transform","transform":"<function>"},"encode":{"_tag":"Transform","transform":"<function>"}}}],"_tag":"Number"}}
+{"v":4,"k":"class","keys":[],"ast":{"~effect/Schema":"~effect/Schema","annotations":{"identifier":"C","~constructor":"<function>","toCodec":"<function>","toEquivalence":"<function>","toFormatter":"<function>","~sentinels":[]},"encoding":[{"to":{"~effect/Schema":"~effect/Schema","_tag":"Objects","propertySignatures":[{"name":"x","type":{"~effect/Schema":"~effect/Schema","checks":["<depth>"],"_tag":"Number"}}],"indexSignatures":[]},"transformation":{"~effect/SchemaTransformation/Transformation":"~effect/SchemaTransformation/Transformation","_tag":"Transformation","decode":{"_tag":"Transform","transform":"<function>"},"encode":{"_tag":"Passthrough"}}}],"_tag":"Declaration","typeParameters":[{"~effect/Schema":"~effect/Schema","_tag":"Objects","propertySignatures":[{"name":"x","type":{"~effect/Schema":"~effect/Schema","checks":[{"_tag":"Filter","run":"<function>","annotations":"<depth>","aborted":false}],"_tag":"Number"}}],"indexSignatures":[]}],"run":"<function>"},"fields":{"x":"<function>"}}
+
+--- stderr ---
+4747 |     decode: i => decodeData(i),
+4748 |     encode: a => Array.isArray(a) ? Array.from(a) : Object.assign({}, a)
+4749 |   });
+4750 | };
+4751 | const isField = u => isSchema(u) || isPropertySignature(u);
+4752 | const isFields = fields => Reflect.ownKeys(fields).every(key => isField(fields[key]));
+                                          ^
+TypeError: Reflect.ownKeys requires the first argument be an object
+      at isFields (/work/gdp-wired/node_modules/effect3/dist/esm/Schema.js:4752:36)
+      at getSchemaFromFieldsOr (/work/gdp-wired/node_modules/effect3/dist/esm/Schema.js:4754:43)
+      at <anonymous> (/work/gdp-wired/node_modules/effect3/dist/esm/Schema.js:4776:11)
+      at /work/gdp-wired/[eval]:4:588
+
+Bun v1.4.3 (Linux x64)

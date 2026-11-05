@@ -231,7 +231,9 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   `Semaphore` the service makes is modelled once, its own laws proven (bounded, nothing lost, FIFO, the permits) and
   run beside Effect's own on random operations and fibers, so a law states only the service's own
   (`examples/effect-queue.ts`: a worker pool, a release without its acquire refuted by a run). `conforms(rule, service)` runs a rule written by hand
-  beside a running service (Effect's own Semaphore, a store), and `fromSchema(schema)` is a Schema's kind
+  beside a running service (Effect's own Semaphore, a store). `fromSchema(schema)` provides typed symbolic
+  [Schema kinds](docs/effect-schema.md): exact on declared closed decoded values by default, with checked integer
+  bounds and inspectable, opt-in approximation losses
   (`examples/effect.ts`; what is read and refused, with what Effect projects write, in `research/effect/README.md`).
 - **What nobody stated, looked for when the prover alone stops**: where `proveRule` or `proveSteps` doesn't prove the laws
   and no run breaks them, it looks for lemmas about the rule's recurrences and lists (`discover`), lemmas about the

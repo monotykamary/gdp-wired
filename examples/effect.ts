@@ -9,7 +9,7 @@ import {fileURLToPath} from 'node:url'
 import {readFileSync} from 'node:fs'
 import * as effect from 'effect'
 import {Effect, Schema} from 'effect'
-import {type Term, all, bool, forall, int, Int, min, nat, rule, when, yes} from '../core/dsl.ts'
+import {all, bool, forall, int, Int, nat, rule, when, yes} from '../core/dsl.ts'
 import {conforms, extractEffect, fromSchema} from '../core/effect.ts'
 import {proveRule, proveSteps} from '../core/dsl.ts'
 import {DAY, make} from './effect-quota.ts'
@@ -45,8 +45,8 @@ export const quotaConforms = (bug?: 'a window a millisecond too long') => confor
 
 // Commands as a Schema's tagged union: a spend of some units (capped at 100 in all), or a reset.
 export const Command = Schema.Union([Schema.TaggedStruct('Spend', {units: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))}), Schema.TaggedStruct('Reset', {})])
-export const capped = () => rule('capped').inputs({cmd: fromSchema(Command)}).state({total: 0})
-  .step(({cmd, total}) => ({total: cmd.match({Spend: (c: {units: Term}) => min(total.plus(c.units), 100), Reset: () => 0})}))
+export const capped = () => rule('capped').inputs({cmd: fromSchema(Command)}).state({total: int.from(0)})
+  .step(({cmd, total}) => ({total: cmd.match({Spend: c => total.plus(c.units).min(100), Reset: () => Int.of(0)})}))
 
 if (import.meta.main) {
   const results: [string, boolean, boolean][] = []

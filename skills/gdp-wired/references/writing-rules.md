@@ -536,10 +536,15 @@ conforms(quotaRule, {
 // {checked} or {checked, failure: 'with {"limit":2}, after ...: the service takes the request, the rule refuses it'}
 ```
 
-`fromSchema(schema)` is a Schema's kind, for inputs a project already types with Schema: a Struct a `record`, string
-Literals a `oneOf`, a Union of TaggedStructs a `variant` on `_tag` (`cmd.match({Add: c => ..., Clear: () => 0})`),
-`Schema.Int` an `int` (a `nat` checked at least 0), Boolean, String, NullOr and optional fields a `maybe`. A number that
-may be fractional is refused.
+`fromSchema(schema)` supplies a typed symbolic kind for a Schema's **closed decoded values** (Effect 3.22.4 or
+4.0.7), not a proof of its decoder or encoder. Numbers are always signed `Int`, including nonnegative schemas;
+string literals are `Choice`, booleans `Bool`, strings `Str`, structs field objects, tagged unions `Variant` and
+`NullOr` a strict null-only `Maybe`. Integer bounds/literals constrain inputs and become **checked state kind
+laws**; require `proven && checked`. Unknown constraints fail closed. Optional/undefined properties and Class
+field projections require explicit `{mode: 'approximate'}` and produce `kind.report.losses`; they are never called
+exact. Arrays, dynamic collections, fractional numbers and transforms remain refused. See
+[the contract and migration guide](../../../docs/effect-schema.md), including the signed-arithmetic migration and
+why overapproximated counterexamples require concrete validation.
 
 ## Python
 

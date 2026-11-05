@@ -59,6 +59,19 @@ test('standalone mode ships through the existing extract public subpath', async 
   if (built) expect(existsSync(`${root}dist/core/extract-standalone.js`)).toBe(true)
 })
 
+test('Effect Schema: public typed frontend stays on the existing optional Effect subpath', async () => {
+  const mod = await import(built ? `${pkg.name}/effect` : `${root}core/effect.ts`)
+  expect(typeof mod.fromSchema).toBe('function')
+  expect(typeof mod.SchemaKind).toBe('function')
+  expect(typeof mod.SchemaError).toBe('function')
+  if (built) {
+    expect(existsSync(`${root}dist/core/effect-schema.js`)).toBe(true)
+    const declarations = readFileSync(`${root}dist/core/effect-schema.d.ts`, 'utf8')
+    expect(declarations).not.toMatch(/from ['"]effect(?:\/[^'"]*)?['"]/)
+    expect(declarations).not.toContain('Kind<any>')
+  }
+})
+
 test('security templates: public subpath, declarations and both builders', async () => {
   const e = pkg.exports['./security']!
   expect(e.types).toBe('./dist/core/security.d.ts')

@@ -3,6 +3,18 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.47.0 (draft — unreleased; version finalization owned by the release gate)
+
+- **Effect Schema frontend:** `fromSchema` now provides typed symbolic values (signed `Int`, `Bool`,
+  `Choice`/`Str`, records, `Maybe` and tagged unions), not `Kind<any>`. The default runtime contract is
+  explicitly **exact on decoded closed values**, not full Schema decoder/encoder or class equivalence.
+- Safe-integer bounds, strict/inclusive comparisons and integer literals constrain inputs and become
+  checked state-preservation laws. Unsupported predicates fail closed; explicit approximate mode reports
+  every dropped constraint, optional/undefined-to-null normalization and Class field projection.
+- Exact `NullOr` is null-only. Transforms, fractional domains and dynamic collections remain refused.
+  Nonnegative schemas still yield signed arithmetic; old `Term.plus` handlers must migrate explicitly.
+  [Contract, limitations and migration](docs/effect-schema.md). No kernel or general DSL type-engine change.
+
 ## 0.46.0
 
 - **Correctness — Python rounding:** `round(a / k)` is exact only below **2^52**, not 2^53.

@@ -75,7 +75,13 @@ Read (core/effect.ts, through core/extract-shapes.ts's factory reader and core/e
 | a Semaphore of 1 (`withPermits(1)`, `withPermit`) as a lock | tested | tested |
 | `Effect.succeed`, `Effect.sync`, `Effect.void`, `Effect.log*`, spans and log annotations in a pipe | tested | (same reader) |
 | `conforms(rule, service)`: a rule by hand beside the running service | the quota, Semaphore, RateLimiter store, T3 Code | Semaphore |
-| `fromSchema`: Struct, Literal(s), tagged Union, Int (and ≥ 0), Boolean, String, NullOr, optional, Class | tested | tested |
+| `fromSchema`: closed Struct, Literal(s), tagged Union, bounded safe Int, Boolean, String, strict NullOr | tested | tested |
+| `fromSchema`: optional/undefined normalization, Class field projection (explicit approximate mode only) | tested | tested |
+
+The next Schema frontend uses [an explicit closed decoded-value contract](../../docs/effect-schema.md), not
+Schema decoder/encoder equivalence. Integers now retain bounds as checked state invariants as well as input
+assumptions; their TypeScript values are always signed `Int`. Unknown refinements fail closed unless an explicit
+approximation reports the loss. Collection and transformation support is not implied by service extraction.
 
 Refused, with the reason where it is: a failure after a Ref changed on that path outside a transaction (the Ref keeps
 it), combinators in pipes other than retry, repeat and STM.commit (catch, timeout, forks: their effects aren't read),

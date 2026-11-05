@@ -9,7 +9,7 @@ import {join} from 'node:path'
 import {pathToFileURL} from 'node:url'
 import * as effect from 'effect'
 import * as effect3 from 'effect3'
-import {type Term, int, nat, oneOf, proveRule, proveSteps, rule, when} from './dsl.ts'
+import {Int, int, nat, oneOf, proveRule, proveSteps, rule, when} from './dsl.ts'
 import {conforms, extractEffect, fromSchema} from './effect.ts'
 import {quotaConforms, quotaLaws, readQuota} from '../examples/effect.ts'
 
@@ -205,20 +205,31 @@ test('Effect\'s Semaphore (4.x and 3.x) runs as a rule written by hand; a rule t
   expect(proveRule(r, [r.law('never more free than the permits', ({taken}) => taken.atLeast(0))]).proven).toBe(false)
 }, 120_000)
 
-test('Schemas as kinds (4.x and 3.x): structs, literals, tagged unions, integers, null and optional fields', () => {
-  for (const [E, v] of [[effect, 4], [effect3, 3]] as const) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const S: any = E.Schema
-    const nonneg = v === 4 ? S.Int.check(S.isGreaterThanOrEqualTo(0)) : S.NonNegativeInt
-    const lits = v === 4 ? S.Literals(['open', 'closed']) : S.Literal('open', 'closed')
-    const k = fromSchema(S.Struct({n: nonneg, i: S.Int, b: S.Boolean, s: S.String, state: lits, maybe: S.NullOr(S.Int), opt: S.optional(S.Boolean)}))
-    expect(k.sample(() => 0, 1)).toEqual({n: 0, i: -1, b: false, s: expect.anything(), state: 'open', maybe: null, opt: null})
-    const cmd = fromSchema(v === 4 ? S.Union([S.TaggedStruct('Add', {n: nonneg}), S.TaggedStruct('Clear', {})]) : S.Union(S.TaggedStruct('Add', {n: nonneg}), S.TaggedStruct('Clear', {})))
-    const r = rule('sum').inputs({cmd}).state({total: 0}).step(({cmd, total}) => ({total: cmd.match({Add: (c: {n: Term}) => total.plus(c.n), Clear: () => 0})}))
-    expect(proveRule(r, [r.law('the total is never below 0', ({total}) => total.atLeast(0))]).proven).toBe(true)
-    expect(() => fromSchema(S.Number)).toThrow(/a number that may be fractional/)
-    expect(() => fromSchema(S.Struct({at: S.Array(S.Int)}))).toThrow(/fromSchema: at is a/)
+test('Schemas as kinds (4.x and 3.x): signed integers, strict NullOr and explicit optional normalization', () => {
+  const schemas = [
+    {
+      value: effect.Schema.Struct({n: effect.Schema.Int.check(effect.Schema.isGreaterThanOrEqualTo(0)), i: effect.Schema.Int, b: effect.Schema.Boolean, s: effect.Schema.String, state: effect.Schema.Literals(['open', 'closed']), maybe: effect.Schema.NullOr(effect.Schema.Int), opt: effect.Schema.optional(effect.Schema.Boolean)}),
+      command: effect.Schema.Union([effect.Schema.TaggedStruct('Add', {n: effect.Schema.Int.check(effect.Schema.isGreaterThanOrEqualTo(0))}), effect.Schema.TaggedStruct('Clear', {})]),
+    },
+    {
+      value: effect3.Schema.Struct({n: effect3.Schema.NonNegativeInt, i: effect3.Schema.Int, b: effect3.Schema.Boolean, s: effect3.Schema.String, state: effect3.Schema.Literal('open', 'closed'), maybe: effect3.Schema.NullOr(effect3.Schema.Int), opt: effect3.Schema.optional(effect3.Schema.Boolean)}),
+      command: effect3.Schema.Union(effect3.Schema.TaggedStruct('Add', {n: effect3.Schema.NonNegativeInt}), effect3.Schema.TaggedStruct('Clear', {})),
+    },
+  ]
+  for (const s of schemas) {
+    expect(() => fromSchema(s.value)).toThrow(/optional/)
+    const k = fromSchema(s.value, {mode: 'approximate'})
+    expect(k.sample(() => 0, 1)).toMatchObject({n: 0, b: false, state: 'open', maybe: null, opt: null})
+    expect(k.report.runtime).toBe('normalized')
+    expect(k.report.losses.some(l => l.code === 'optional-to-null')).toBe(true)
+    const cmd = fromSchema(s.command)
+    const r = rule('sum').inputs({cmd}).state({total: int.from(0)}).step(({cmd, total}) => ({total: cmd.match({Add: c => total.plus(c.n), Clear: () => Int.of(0)})}))
+    expect(proveRule(r, [r.law('the total is never below 0', ({total}) => total.atLeast(0))])).toMatchObject({proven: true, checked: true})
   }
+  expect(() => fromSchema(effect.Schema.Number)).toThrow(/a number that may be fractional/)
+  expect(() => fromSchema(effect3.Schema.Number)).toThrow(/a number that may be fractional/)
+  expect(() => fromSchema(effect.Schema.Struct({at: effect.Schema.Array(effect.Schema.Int)}))).toThrow(/fromSchema: at is a/)
+  expect(() => fromSchema(effect3.Schema.Struct({at: effect3.Schema.Array(effect3.Schema.Int)}))).toThrow(/fromSchema: at is a/)
 }, 120_000)
 
 test('one way in: two services in a file are refused with their names, none with what to write', () => {

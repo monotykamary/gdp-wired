@@ -1,0 +1,129 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [694.00ms]
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/values.test.ts:
+cyclic: {"kind":"machine","name":"account","cert":true,"usual":true,"cyclic":true,"ms":24,"usualMs":11,"route":"translated","leaves":12,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"account","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"account","cert":true,"usual":true,"cyclic":true,"ms":24,"usualMs":3,"route":"translated","leaves":11,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"account","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) an integer state variable: proven, the broken variant refused, runs agree with plain arithmetic [270.02ms]
+cyclic: {"kind":"machine","name":"wallet","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) decimals: scaled exactly, compared with numbers, mixed places refused [21.56ms]
+(pass) integers in functions: negation, times by a negative constant, abs [1.76ms]
+(pass) strings: patterns computed from the string, equality carries them, laws proven and refused [333.60ms]
+cyclic: {"kind":"machine","name":"ticket","cert":true,"usual":true,"cyclic":true,"ms":105,"usualMs":17,"route":"translated","leaves":82,"regrown":0,"splits":46,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"ticket","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":10,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"ticket","cert":true,"usual":true,"cyclic":true,"ms":81,"usualMs":4,"route":"translated","leaves":14,"regrown":0,"splits":10,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"ticket","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":10,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"ticket","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) state of any kind: a choice, a flag, an optional value and a string, each written by the step and read back [491.26ms]
+
+core/builders.test.ts:
+(pass) clean rules, decisions and values agree with what was built from them [180.38ms]
+cyclic: {"kind":"machine","name":"r","cert":true,"usual":true,"cyclic":true,"ms":2,"usualMs":1,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+(pass) a builder that writes a different expression than it computes is caught [5.42ms]
+(pass) compare: a function and a rule against the code they describe, the encoding checked on real inputs [76.11ms]
+
+core/datatypes.test.ts:
+(pass) a decision over a variant and a record: proven, the broken variant refused, run on runtime values [78.32ms]
+(pass) values outside their kinds are refused as the runtimes refuse them [0.86ms]
+cyclic: {"kind":"machine","name":"hold and release","cert":true,"usual":true,"cyclic":true,"ms":114,"usualMs":29,"route":"translated","leaves":117,"regrown":0,"splits":45,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"hold and release","cert":true,"usual":true,"cyclic":true,"ms":88,"usualMs":8,"route":"translated","leaves":28,"regrown":0,"splits":12,"carried":1,"uncarried":0,"cached":0}
+(pass) a variant as state: laws and step laws proven, the broken variant refused, runs decoded [630.34ms]
+(pass) same: values alike part by part [0.52ms]
+(pass) a function returns records and variants, run as runtime values [2.47ms]
+cyclic: {"kind":"machine","name":"accounts","cert":true,"usual":true,"cyclic":true,"ms":23,"usualMs":9,"route":"translated","leaves":30,"regrown":0,"splits":14,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"accounts","cert":true,"usual":true,"cyclic":true,"ms":15,"usualMs":3,"route":"translated","leaves":16,"regrown":0,"splits":10,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"seats","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":8,"route":"translated","leaves":23,"regrown":0,"splits":7,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"seats","cert":true,"usual":true,"cyclic":true,"ms":33,"usualMs":9,"route":"translated","leaves":36,"regrown":0,"splits":17,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"jobs","cert":true,"usual":true,"cyclic":true,"ms":28,"usualMs":11,"route":"translated","leaves":53,"regrown":0,"splits":18,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"jobs","cert":true,"usual":true,"cyclic":true,"ms":31,"usualMs":2,"route":"translated","leaves":13,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+(pass) maps and lists of a kind: proven, cross-checked, the broken variants refused, runs decoded [708.54ms]
+cyclic: {"kind":"machine","name":"seats","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":5,"route":"translated","leaves":23,"regrown":0,"splits":7,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"seats","cert":true,"usual":true,"cyclic":true,"ms":28,"usualMs":6,"route":"translated","leaves":36,"regrown":0,"splits":17,"carried":1,"uncarried":0,"cached":0}
+(pass) the kinds keep their own laws; a variant named by another key; optional results [62.07ms]
+
+core/effect-schema.test.ts:
+(pass) Schema 4.0.7: safe integers, bounds, exclusivity, thresholds and literals [6.80ms]
+(pass) Schema 4.0.7: structural and strict nullable codecs [4.17ms]
+cyclic: {"kind":"machine","name":"schema bounded state","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":3,"route":"translated","leaves":18,"regrown":0,"splits":8,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"schema inputs and params","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"schema inputs and params","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"nullable clear","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":0,"route":"translated","leaves":11,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"schema tagged clear","cert":true,"usual":true,"cyclic":true,"ms":27,"usualMs":2,"route":"translated","leaves":26,"regrown":0,"splits":17,"carried":1,"uncarried":0,"cached":0}
+(pass) Schema 4.0.7: state bounds are checked, never trusted [81.61ms]
+(pass) Schema 4.0.7: fail closed or report every approximation [0.95ms]
+(pass) Schema 3.22.4: safe integers, bounds, exclusivity, thresholds and literals [2.27ms]
+(pass) Schema 3.22.4: structural and strict nullable codecs [2.31ms]
+cyclic: {"kind":"machine","name":"schema bounded state","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"schema inputs and params","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"schema inputs and params","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"nullable clear","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"schema tagged clear","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) Schema 3.22.4: state bounds are checked, never trusted [28.70ms]
+(pass) Schema 3.22.4: fail closed or report every approximation [0.88ms]
+(pass) exact branded strings, literals, nested fields and tagged payloads match symbolic types on both versions [2.68ms]
+(pass) identity integer codecs agree with Effect decoding and encoding [0.47ms]
+(pass) approximation needs an exact explicit opt-in and report arrays cannot mutate the domain [0.20ms]
+(pass) custom predicates are not executed; paths retained; transforms and collections refused [0.89ms]
+(pass) single tagged structs and singleton unions stay records; tagged codecs enforce all own keys [1.34ms]
+cyclic: {"kind":"machine","name":"signed schema migration","cert":true,"usual":true,"cyclic":false,"ms":16,"usualMs":2,"route":"fallback","leaves":13,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0,"fellBack":"signed schema migration: nonnegative capped: use 0, hypothesis 3 of signed schema migration: nonnegative capped, after a step"}
+cyclic: {"kind":"machine","name":"signed schema migration","uncovered":true,"why":"no cyclic proof found (not translated: signed schema migration: nonnegative capped: use 0, hypothesis 3 of signed schema migration: nonnegative capped, after a step)"}
+(pass) signed migration rejects the old nat handler and proves the explicit signed one [19.79ms]
+
+core/effect.test.ts:
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":28,"usualMs":1,"route":"translated","leaves":11,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":20,"usualMs":9,"route":"translated","leaves":17,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) a service (4.x): Refs, Effect.fn methods, a yielded error, a result; read, checked on the runtime, its law proven [1474.31ms]
+(pass) the forms a make effect is written in (4.x): Layer.effect, a Context.Service, Effect.fn, a lock, Ref.modify [17674.83ms]
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":23,"usualMs":1,"route":"translated","leaves":11,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Wallet","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":4,"route":"translated","leaves":13,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+(pass) a service (3.x): Effect.Service, Data.TaggedError, SynchronizedRef, a lock, Effect.fail; run on Effect 3 [9891.60ms]
+(pass) a Set in a Ref, a flag from Ref.modify, and a failure after a write that changed nothing [1821.39ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) state typed by a Schema (a Struct of Literals and an Int), a record replaced by cases [1295.20ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":850,"usualMs":68,"route":"translated","leaves":415,"regrown":0,"splits":178,"carried":4,"uncarried":0,"cached":0}
+(pass) a map of records in a Ref, copied and set, with the clock: the example's quota proven [4679.85ms]
+(pass) a rule by hand beside the service: the right one runs as it does, a wrong one is caught by a run [201.24ms]
+(pass) Effect's Semaphore (4.x and 3.x) runs as a rule written by hand; a rule that clamps a release is caught [337.34ms]
+cyclic: {"kind":"machine","name":"sum","cert":true,"usual":true,"cyclic":false,"ms":23,"usualMs":3,"route":"fallback","leaves":10,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0,"fellBack":"sum: the total is never below 0: use 0, hypothesis 4 of sum: the total is never below 0, after a step"}
+cyclic: {"kind":"machine","name":"sum","uncovered":true,"why":"no cyclic proof found (not translated: sum: the total is never below 0: use 0, hypothesis 4 of sum: the total is never below 0, after a step)"}
+cyclic: {"kind":"machine","name":"sum","cert":true,"usual":true,"cyclic":false,"ms":8,"usualMs":3,"route":"fallback","leaves":10,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0,"fellBack":"sum: the total is never below 0: use 0, hypothesis 4 of sum: the total is never below 0, after a step"}
+cyclic: {"kind":"machine","name":"sum","uncovered":true,"why":"no cyclic proof found (not translated: sum: the total is never below 0: use 0, hypothesis 4 of sum: the total is never below 0, after a step)"}
+(pass) Schemas as kinds (4.x and 3.x): signed integers, strict NullOr and explicit optional normalization [43.15ms]
+(pass) one way in: two services in a file are refused with their names, none with what to write [568.73ms]
+(pass) what the reader doesn't take is refused where it is, with the reason [7382.86ms]
+
+ 40 pass
+ 0 fail
+ 3575 expect() calls
+Ran 40 tests across 5 files. [48.70s]
