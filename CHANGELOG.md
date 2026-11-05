@@ -3,7 +3,7 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## 0.47.0 (draft — unreleased; version finalization owned by the release gate)
+## 0.47.0
 
 - **Effect Schema frontend:** `fromSchema` now provides typed symbolic values (signed `Int`, `Bool`,
   `Choice`/`Str`, records, `Maybe` and tagged unions), not `Kind<any>`. The default runtime contract is
