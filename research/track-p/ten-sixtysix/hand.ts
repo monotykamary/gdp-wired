@@ -10,7 +10,7 @@ const count:any=idx===10?{reads:[['old','members$Decision',key],['post','members
 function run(at:any,label:string, c=count){const {goal:raw,decls}=countedObligations(m,family,{[target.name]:at},family.indexOf(target))[1]!;const gg=mcGoal(raw.hyps,decls,c);if(!gg){console.log('RESULT',JSON.stringify({idx,label,status:'rejected count'}));return;}
  const out=withWall(performance.now()+2500,()=>counted(fullRate,()=>withDeadline(clock()+1500,()=>grow(gg,new Map(),{nodes:0,until:clock()+1500})),true));
  const checked='tree'in out&&checkMC(raw.hyps,decls,{...c,tree:out.tree}); console.log('RESULT',JSON.stringify({idx,label,status:'tree'in out?'tree':out.stuck,checked,hyps:gg.hyps.length,...(!('tree'in out)?{why:out.why,witness:out.witness}:{})}));
- if(checked)return {raw,decls,gg,proof:{...c,tree:out.tree},at};}
+ if(checked)return {raw,decls,gg,proof:{...c,tree:out.tree},at};return undefined;}
 const trials=idx===10?[{[target.name]:[a,b]}]:[{[laws[45].name]:[V('w'),V('maxr'),V('v')]},{[laws[45].name]:[V('w'),V('maxr'),V('v')],[laws[3].name]:[oldKey,incomingKey]}];
 let result:any;for(let i=0;i<trials.length;i++){result=run(trials[i],'initial-'+i);if(result)break;}
 if(result){let at=structuredClone(result.at);for(const name of Object.keys(at)){const law=laws.find((l:any)=>l.name===name),width=name.startsWith('?')?1:1+(law?.keys?.length??0);for(let pos=at[name].length-width;pos>=0;pos-=width){const next=structuredClone(at);next[name].splice(pos,width);if(!next[name].length)delete next[name];const candidate=run(next,'drop-'+ids[family.findIndex((l:any)=>l.name===name)]+'-'+pos);if(candidate){at=next;result=candidate;}}}

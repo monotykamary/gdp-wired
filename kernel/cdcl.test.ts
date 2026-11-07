@@ -9,7 +9,7 @@ import {type C, type E, cpair, cunpair, seeded} from '../core/machine.ts'
 import type {Lin} from '../core/solver.ts'
 import {type Goal, type Path, canon, check, leafConstraints, termColumn} from './kernel.ts'
 import {clock, grow} from './prove.ts'
-import {REFUTED, growCdcl} from './cdcl.ts'
+import {REFUTED, growCdcl, cdclStats} from './cdcl.ts'
 import {Reader} from './reader.ts'
 
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
@@ -21,6 +21,25 @@ const rand = seeded(Number(process.env.FUZZ_SEED ?? 4242))
 // treadmill files it apart from a soundness failure).
 const draws = function* (n: number, most: number, short: () => boolean) { for (let t = 0; t < most && (t < n || short()); t++) yield t }
 const covered = (what: string, count: number, least = 1) => expect(count, `COVERAGE: ${what}: ${count}, under ${least}`).toBeGreaterThanOrEqual(least)
+test('optional phase counters do not change CDCL verdicts or checked trees',()=>{
+ const v:E={op:'var',name:'timedX'},n=(value:number):E=>({op:'const',value})
+ const goals:Goal[]=[{name:'timed contradiction',hyps:[{op:'<=',a:v,b:n(0)},{op:'<=',a:n(1),b:v}]},{name:'timed choice',hyps:[{op:'or',xs:[{op:'=',a:v,b:n(0)},{op:'=',a:v,b:n(2)}]}]}]
+ const was=cdclStats.on,stamp=()=>({setup:cdclStats.setupMs,prop:cdclStats.propagationMs})
+ try{
+  cdclStats.on=false;const before=stamp(),plain=goals.map(g=>growCdcl(g,new Map(),{nodes:0,until:clock()+500}))
+  expect(stamp()).toEqual(before)
+  cdclStats.on=true;const measured=goals.map(g=>growCdcl(g,new Map(),{nodes:0,until:clock()+500}))
+  expect(cdclStats.setupMs).toBeGreaterThan(before.setup);expect(cdclStats.propagationMs).toBeGreaterThanOrEqual(before.prop)
+  for(let i=0;i<goals.length;i++){
+   const a=plain[i]!,b=measured[i]!;expect('tree'in a).toBe('tree'in b)
+   if('tree'in a)expect(check(goals[i]!,a.tree)).toBe(true)
+   if('tree'in b)expect(check(goals[i]!,b.tree)).toBe(true)
+   if(!('tree'in a)&&!('tree'in b))expect(a.stuck).toBe(b.stuck)
+  }
+  expect(Number.isFinite(cdclStats.firstDecisionMs)).toBe(true)
+ }finally{cdclStats.on=was}
+})
+
 const names = ['x', 'y', 'z', 'w'] as const
 const term = (d: number): E => {
   const r = rand(d <= 0 ? 2 : 9)
