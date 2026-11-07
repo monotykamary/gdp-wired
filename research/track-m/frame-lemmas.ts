@@ -8,7 +8,8 @@ import {REFUTED} from '../../kernel/cdcl.ts'
 import {liftCountProxies} from './lift-count-proxies.ts'
 import {piecesAt,walkLive} from './live-dependencies.ts'
 type Proposal=Pick<CountCert,'reads'|'insts'>
-export function frameLemmas(g:Goal,cert:Proposal,until:number,trace:object[],root:Path=new Map()):Tree|undefined {
+export function frameLemmas(g:Goal,cert:Proposal,until:number,trace:object[],root:Path=new Map(),options:{stopAfterFailed?:number}={}):Tree|undefined {
+ let failed=0
  const seq=modelSequence(root),base=g.hyps.slice(0,g.hyps.length-cert.insts.length),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
  const reads=new Map(cert.reads.map(r=>[r[0],r])),maps=new Set(cert.reads.map(r=>r[1])),wits=new Set(cert.insts.map(i=>i.wit))
  const weaken=(c:C,wit:string):C|undefined=>{
@@ -47,7 +48,7 @@ export function frameLemmas(g:Goal,cert:Proposal,until:number,trace:object[],roo
   const part={...g,hyps:[...relevant,...ctx,h,{op:'not' as const,x:good}]},start=clock(),tree=solve(part,150)
   const no=tree&&widen(part,g,tree,{},root,noPath)
   trace.push({stage:'frame-lemma',index:i,ms:Math.round(clock()-start),proved:!!no})
-  if(!no)continue
+  if(!no){if(++failed>=(options.stopAfterFailed??Infinity)&&!lemmas.length)return undefined;continue}
   lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true})
  }
  if(!lemmas.length||clock()>=until)return undefined

@@ -1,6 +1,6 @@
 // Untrusted Boolean-core recipe: expose witness membership before unrelated
 // conditional fields. Every terminal branch is an ordinary linear refutation.
-import {type C,walkOnce} from '../../core/machine.ts'
+import {type C,type E,same,walkOnce} from '../../core/machine.ts'
 import {type Goal,type Path,type Tree,canon,check,linear,truth} from '../../kernel/kernel.ts'
 import {refuteFast,sub} from '../../core/solver.ts'
 import {clock,grow,rowsAt} from '../../kernel/prove.ts'
@@ -19,6 +19,15 @@ export function booleanCore(g:Goal,root:Path,wits:Set<string>,until:number,trace
   let hit=false;walkOnce(cell.key,(x:any)=>{if(x.op==='var'&&wits.has(x.name))hit=true})
   if(hit)add(o,o.op==='<='?100:50)
  })
+ // Equal witness keys are useful before splitting the two cells' values.
+ // Their equality is only a proposal: both key-order branches still check.
+ const cells=new Map<string,E[]>()
+ walkLive(g.hyps,root,(o:any)=>{if(o.op==='get'&&linear(o.key,root)){const xs=cells.get(o.map)??[];if(!xs.some(k=>JSON.stringify(k)===JSON.stringify(o.key)))xs.push(o.key);cells.set(o.map,xs)}})
+ const mentions=(key:E)=>{const out=new Set<string>();walkOnce(key,(o:any)=>{if(o.op==='var'&&wits.has(o.name))out.add(o.name)});return out}
+ for(const keys of cells.values())for(let i=0;i<keys.length;i++)for(let j=i+1;j<keys.length;j++){
+  const a=keys[i]!,b=keys[j]!,wanted=mentions(a)
+  if([...mentions(b)].some(w=>wanted.has(w)))add(same(a,b),500)
+ }
  const cs=[...chosen.values()].sort((a,b)=>b.score-a.score).slice(0,8).flatMap(({c})=>c.op==='='?[{op:'<=' as const,a:c.a,b:c.b},{op:'<=' as const,a:c.b,b:c.a}]:[c])
  let nodes=0,leaves=0,last:unknown
  const go=(i:number,path:Path):Tree|undefined=>{

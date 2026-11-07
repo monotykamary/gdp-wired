@@ -14,6 +14,13 @@ test('strict successor member bounds suggest checked field ceilings without prot
  expect(tree).toBeDefined();if(tree)expect(check(goal,tree)).toBe(true)
 })
 
+test('equal per-member fields also suggest checked ceiling candidates',()=>{
+ const m:Machine={name:'equal ceilings',params:[],inputs:['source'],inputMaps:['Selected'],state:{},maps:{Clock:0,Epoch:0},step:{flags:{committed:{op:'all',key:'v',c:same(get('Clock',x('v')),get('Clock',x('source')))}}}}
+ const ds=[{map:'Below',j:'row',key:'k',below:n(4),body:ite(less(get('Clock',x('k')),get('Epoch',x('row'))),n(1),n(0))}],cert:Pick<CountCert,'reads'|'insts'>={reads:[['number','Below',x('target')]],insts:[]}
+ expect(fieldBounds(m,ds,cert)).toEqual([atMost(ite(all(same(x('?committed'),n(1)),less(x('target'),n(4))),get('Epoch',x('target')),n(0)),get('Clock',x('source')))])
+ expect(fieldBoundLemmas(m,ds,{name:'no premises',hyps:[]},cert,clock()+1000,[])).toBeUndefined()
+})
+
 test('equal row keys produce checked count-read alias cuts',()=>{
  const m:Machine={name:'aliases',params:[],inputs:['a','i'],state:{},step:{}},ds=[{map:'Size',j:'row',key:'k',below:n(4),body:n(1)}]
  const cert:Pick<CountCert,'reads'|'insts'>={reads:[['left','Size',x('a')],['right','Size',x('i')]],insts:[]},g=mcGoal([less(get('Size',x('a')),get('Size',x('i')))],ds,cert)!

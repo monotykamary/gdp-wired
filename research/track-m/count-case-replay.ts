@@ -16,6 +16,7 @@ import {frameLemmas} from './frame-lemmas.ts'
 import {modelCountPicks} from './model-count-picks.ts'
 import {fieldBoundLemmas} from './field-bound-lemmas.ts'
 import {guardCases} from './guard-cases.ts'
+import {actionGuard} from './action-guard.ts'
 import {countLawSeeds,countRowBridges,independentCountInstances,fieldLawBridges,focusCountCert,rowKeyNames} from '../../core/count-focused.ts'
 import {seedCountWitnessFlags} from '../../core/count-witness-flags.ts'
 const mark=(stage:string)=>{if(process.env.LAB_PROGRESS==='1')console.log(`${stage} ${Math.round(performance.now())}`)}
@@ -41,7 +42,7 @@ if(process.env.LAB_SYMBOLIC_OVERLAP==='1'){
 }
 mark('building-obligations')
 let base=countedObligations(m,laws,{[law.name]:at},index).find(g=>g.goal.name.endsWith('@step'))!
-const focusOptions={carried:m.inputMaps[0],targets:!countedTarget&&process.env.LAB_TARGET_COUNTS==='1'?rows:undefined,algebraic:process.env.LAB_ALGEBRAIC==='1',requestFrames:process.env.LAB_REQUEST_FRAMES==='1',structural:countedTarget&&process.env.LAB_STRUCT_COUNTS==='1',frames:process.env.LAB_FRAME_COUNTS==='1'}
+const focusOptions={carried:process.env.LAB_ALL_CARRIED==='1'?undefined:m.inputMaps[0],targets:!countedTarget&&process.env.LAB_TARGET_COUNTS==='1'?rows:undefined,algebraic:process.env.LAB_ALGEBRAIC==='1',requestFrames:process.env.LAB_REQUEST_FRAMES==='1',structural:countedTarget&&process.env.LAB_STRUCT_COUNTS==='1',frames:process.env.LAB_FRAME_COUNTS==='1'}
 mark('building-certificate')
 const cert={...focusCountCert(m,base.decls,certFor(base.goal,base.decls,true,1000),focusOptions),picks:[] as [string,E[]][]}
 mark('certificate-ready')
@@ -163,7 +164,7 @@ const result=withWall(start+Math.min(60000,Number(process.env.LAB_WALL_MS??10000
   }
   if(!tree&&process.env.LAB_GUARD_CASES==='1'){
    const part={name:goal.name,hyps:order([...prefix,...goal.hyps])},pins:[string,number][]=value===undefined?[]:[[name,value]]
-   const rooted=process.env.LAB_GUARD_PATH==='1',pinned={...part,hyps:part.hyps.map(c=>foldPinned(c,pins))},guard=foldPinned(substC(m.step.flags.leads,{vars:{},maps:{},flags:{canVote:{op:'=',a:x('?canVote'),b:{op:'const',value:1}}}}),rooted?[]:pins),begun=clock()
+   const rooted=process.env.LAB_GUARD_PATH==='1',pinned={...part,hyps:part.hyps.map(c=>foldPinned(c,pins))},guard=foldPinned(actionGuard(m,name,value)??{op:'=',a:{op:'const',value:1},b:{op:'const',value:0}},rooted?[]:pins),begun=clock()
    const root=rooted?new Map(path):new Map(),row=process.env.LAB_ROW_CASE
    if(row){
     const a=`${law.forall}#`,b=law.keys?.[0],actor='i',eq=(key:string)=>{const l={[key]:1,[actor]:-1},r={[actor]:1,[key]:-1};root.set(canon(l),{lin:l,holds:true});root.set(canon(r),{lin:r,holds:true})},gt=(key:string)=>{const l={'1':1,[actor]:1,[key]:-1};root.set(canon(l),{lin:l,holds:true})}

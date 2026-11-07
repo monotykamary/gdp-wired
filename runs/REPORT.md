@@ -847,3 +847,41 @@ limits; its outer runner allowance includes setup and result-collection time.
 accepted. The 3-by-60-second, candidate-generation, and downstream merge gates
 remain unpassed. All new proof search remains untrusted and every accepted
 recipe is checked by the existing kernel; no proof budget was increased.
+
+### Step 1b: action guards, inactive-path reuse, and witness-key congruence (2026-11-08)
+
+The machine-shaped guard proposal now selects the requested action and its
+active carried set, rather than assuming the leader action or the first input
+map. Per-member equalities also propose field ceilings; these remain ordinary
+checked cuts. With both carried inputs considered, the existing capped pool
+already retains the required Q2/request-row union: no pool-size increase or new
+union family was necessary (`action-guard-v1/inventory.log`).
+
+The first reconfiguration failure was an inactive-frame probe consuming its
+leaf allowance before trying the actual false-guard path. The shared probe now
+stops after two unsuccessful cuts, and a concrete inactive-path tree is reused
+only after transport and a fresh kernel check. In `reconfig-v2`, all inactive
+paths check; the remaining failure is in the active count proof. The natural
+row-offset key and direct member key then exposed a missing key-congruence
+proposal. Boolean-core search now proposes equal keys sharing the same witness
+and checks both ordering branches. Its regression proves the natural-subtraction
+alias only under the row-equality path and rejects the unrestricted goal.
+Row-dependent post-count cuts are deferred to the structural row cases instead
+of first trying them in a context where they are false.
+
+`row-keys-v1/leader.log` checks the primary-equal and different/equal row classes
+(reporting 1,233 and 1,217 counted ms), but not different/different; the full
+original branch remains **unknown**. `row-keys-v1/reconfig.log` likewise remains
+unknown at the active Q2 union core. These were non-timing diagnostic placements,
+not timing-gate runs. The unchanged limits are 5,000 counted ms and 60,000 ms of
+internal wall time. The earlier isolated timing request for the superseded
+prototype remained queued; it was gracefully cancelled through its exact client
+PID after the non-timing diagnostic falsified that prototype. The scheduler
+confirmed removal of that request, without cancelling other workloads.
+
+Validation at this checkpoint: `step1-key-check-v1/tests.log` passes **214 tests /
+4,422 assertions across 24 files**; `check.log` passes TypeScript and type-aware
+lint with zero warnings/errors (952 files). `row-keys-v1/tests.log` separately
+passes all 18 directly affected tests. Section 1.5 was reread: its completed
+bounded induction and encoding checks still support I-A/P*, with no stated
+fallback triggered. **Step 1 and every downstream gate remain open.**

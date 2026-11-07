@@ -3,7 +3,7 @@
 import {type C,type Machine,plus,n} from '../../core/machine.ts'
 import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,check,linear,truth} from '../../kernel/kernel.ts'
 import {solve,sub} from '../../core/solver.ts'
-import {atPoint,clock,grow,rowsAt,widen} from '../../kernel/prove.ts'
+import {atPoint,clock,grow,rowsAt,widen,withDeadline} from '../../kernel/prove.ts'
 import {fieldBoundLemmas} from './field-bound-lemmas.ts'
 import {frameLemmas} from './frame-lemmas.ts'
 type Proposal=Pick<CountCert,'reads'|'insts'>
@@ -19,14 +19,19 @@ export function guardCases(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C
  }
  if(!collect(guard)||conditions.length>12)return undefined
  const inactiveGoal={...g,hyps:[...g.hyps.slice(0,slot),{op:'not' as const,x:guard},...g.hyps.slice(slot)]}
- let inactive:Tree|undefined,attempted=false
+ let inactive:Tree|undefined,attempted=false,inactiveLeaf:{tree:Tree,path:Path}|undefined
  const leaf=(hyps:C[],path:Path,active:boolean):Tree|undefined=>{
   if(clock()>=until)return undefined
   const assumption=active?guard:{op:'and' as const,xs:hyps},goal={...g,hyps:[...g.hyps.slice(0,slot),assumption,...g.hyps.slice(slot)]},start=clock(),end=active?until:Math.min(until,clock()+500)
   let proof:Tree|undefined
   if(!active){
-   if(!attempted){attempted=true;const begun=clock();inactive=frameLemmas(inactiveGoal,cert,end,trace,root);trace.push({stage:'shared-frame',ms:Math.round(clock()-begun),proved:!!inactive})}
+   if(!attempted){attempted=true;const begun=clock();inactive=frameLemmas(inactiveGoal,cert,end,trace,root,{stopAfterFailed:2});trace.push({stage:'shared-frame',ms:Math.round(clock()-begun),proved:!!inactive})}
    if(inactive){const shared=widen(inactiveGoal,g,inactive,{},root,path),checked=!!shared&&check(g,shared,path);trace.push({stage:'shared-frame-lift',ms:Math.round(clock()-start),checked});if(checked)return shared}
+  }
+  if(!active&&inactiveLeaf){
+   const shared=withDeadline(Math.min(end,clock()+50),()=>widen(g,g,inactiveLeaf!.tree,{},inactiveLeaf!.path,path)),checked=!!shared&&check(g,shared,path)
+   trace.push({stage:'inactive-path-reuse',ms:Math.round(clock()-start),checked})
+   if(checked)return shared
   }
   if(!active){const simple=solve(rowsAt(goal,path),500);if(simple.kind==='refuted')proof={leaf:simple.steps}}
   if(!proof)proof=active?fieldBoundLemmas(m,ds,goal,cert,end,trace,undefined,path):frameLemmas(goal,cert,end,trace,path)
@@ -35,6 +40,7 @@ export function guardCases(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C
    try{const out=grow(goal,path,{nodes:0,until:end,units:false});if('tree'in out)proof=out.tree}finally{atPoint.on=before}
   }
   const lifted=proof&&widen(goal,g,proof,{},path,path),checked=!!lifted&&check(g,lifted,path)
+  if(!active&&checked&&lifted&&!inactiveLeaf)inactiveLeaf={tree:lifted,path:new Map(path)}
   trace.push({stage:'guard-leaf',active,hyps:hyps.length,ms:Math.round(clock()-start),checked})
   return checked?lifted:undefined
  }
