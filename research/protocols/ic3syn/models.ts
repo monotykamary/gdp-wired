@@ -769,11 +769,11 @@ Safety == \\A r1, r2 \\in Round, v1, v2 \\in Value : (<<r1, v1>> \\in decision /
 const bits = (x: number) => range(3).filter(k => x >> k & 1)
 const setOf = (xs: number[]) => new Map(xs.map(v => [v, 1] as [number, number]))
 const mldrRequests = (inp: any, r?: Read) => {
-  const {op, i, j, sm, qm} = inp, uses: Record<number, string> = {0: 'jS', 1: 'ij', 2: 'iS', 3: 'iSQ', 4: 'ij'}, u = uses[op]!
+  const {op, i, j, sm, qm} = inp, uses: Record<number, string> = {0: 'jS', 1: 'i', 2: '', 3: 'ij', 4: 'iS', 5: 'iSQ', 6: 'ij'}, u = uses[op]!
   if ((!u.includes('i') && i) || (!u.includes('j') && j) || (!u.includes('S') && sm) || (!u.includes('Q') && qm)) return []
-  const X = range(3).filter(k => r!.cell('Config', cpair(i, k))), S = bits(sm)
+  const X = range(3).filter(k => r!.cell('Config', i * N + k)), S = bits(sm)
   const base = {op, i, j, hx: 0, hy: 0, S: setOf(S), Q2: setOf(bits(qm))}
-  return op === 3 ? [{...base, hx: Math.floor(X.length / 2), hy: Math.floor(S.length / 2)}] : [base]
+  return op === 5 ? [{...base, hx: Math.floor(X.length / 2), hy: Math.floor(S.length / 2)}] : [base]
 }
 
 // --- the protocols, with their safety laws, their instances and their TLC cfgs --------------------------------------
@@ -963,8 +963,8 @@ export const protocols: Protocol[] = [
     safety: 'state[s] = Primary /\\ state[t] = Primary /\\ currentTerm[s] = currentTerm[t] => s = t', make: mldr, bug: 'become_leader without a majority',
     laws: r => [r.law('one primary per term', ({size, St, CT}: any) => forall((a, b) => a.lt(size).and(b.lt(size), St.at(a).eq(1), St.at(b).eq(1), CT.at(a).eq(CT.at(b))).implies(a.eq(b))))],
     bad: r => N3.some(a => N3.some(b => a !== b && r.cell('St', a) === 1 && r.cell('St', b) === 1 && r.cell('CT', a) === r.cell('CT', b))),
-    check: {params: {size: 3}, inputs: {op: range(5), i: N3, j: N3, sm: range(8), qm: range(8)}, byState: true, expand: mldrRequests,
+    check: {params: {size: 3}, inputs: {op: range(7), i: N3, j: N3, sm: range(8), qm: range(8)}, byState: true, expand: mldrRequests,
       keep: r => N3.every(s => r.cell('CT', s) <= 2 && r.cell('CV', s) <= 2),
-      project: r => r.scalar('started') ? [cells(r, 'CT', N3), cells(r, 'St', N3), cells(r, 'CV', N3), cells(r, 'CfgT', N3), cells(r, 'Config', N3.flatMap(a => N3.map(b => cpair(a, b))))] : undefined,
+      project: r => r.scalar('started') ? [cells(r, 'CT', N3), cells(r, 'St', N3), cells(r, 'CV', N3), cells(r, 'CfgT', N3), cells(r, 'Config', pairs(N3, N3))] : undefined,
       tlc: tlc('MongoLoglessDynamicRaft', `${consts({Server: nodes(3)}, {Secondary: 'Secondary', Primary: 'Primary', Nil: 'Nil', InitTerm: '0', MaxTerm: '2', MaxLogLen: '0', MaxConfigVersion: '2'})}`, 'OnePrimaryPerTerm', 'CONSTRAINT StateConstraint\n')}},
 ]

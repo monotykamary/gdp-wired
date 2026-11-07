@@ -2,7 +2,7 @@
 // MongoLoglessDynamicRaft_IndProofs.tla at 8b6f2ab. Count encodings use the
 // ordinary checked counting lemmas; no invariant is assumed as a trusted fact.
 import {MapRef, all, forall, type Term} from '../../core/dsl.ts'
-import {mldr} from '../protocols/ic3syn/mldr.ts'
+import {mldr} from './atomic-mldr.ts'
 import {N, pk} from '../protocols/ic3syn/common.ts'
 export const published = () => {
   const r = mldr().counts({

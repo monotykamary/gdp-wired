@@ -431,6 +431,33 @@ Track M is blocked, not merge-ready. No changes were made to main or other
 worktrees, and no trusted checker/Lean change, external solver or budget increase
 was made.
 
+## Fable design — Step 0 passed (P*)
+
+Following `private/handoff/claude-tracks-20261107/MLDR-DESIGN.md`, Section 3.
+The production `mldr` port now uses P*: CV starts at 0; pick writes row 0 and
+sets its CV to 1; copy writes another row and sets its CV to 1; start requires
+all CVs to be 1. There are no C0/Copied/picked variables. Previous native-tuple
+atomic experiments remain reproducible via `research/track-m/atomic-mldr.ts`.
+
+- `runs/track-m/pstar-port-v1/bfs.log`: original `check.ts --only mldr --edges`
+  gives **5,362 states / 18,327 edges**, raw 5,391, done true, bad 0 (37,577 ms).
+- `runs/track-m/pstar-port-v1/broken.log`: original `--broken` gives bad **5**.
+- `runs/track-m/pstar-port-v2/capture.log`: original 60,000-ms harness capture
+  completed in 42,262 ms, with 171 queries. No C0/Copied/picked candidates;
+  `never 1 <= CfgT[x] and started is 0` remains. Safety is still unknown.
+- `runs/track-m/pstar-port-v2/stages.log`: sampling 46/1,205 states, 7,218 ms;
+  direct candidate diagnostic finished in 28,352 ms.
+- Port initialization/election regressions pass, included in the 72-test
+  `runs/track-m/count-proposals-v1/tests.log` run.
+- The first capture was killed at its shell deadline, and the first check had
+  missing vendor snapshots. The corrected capture succeeded. Latest static
+  checks found only two unreachable `cur` comparisons in the new research
+  hand-set probe; these were removed before starting Step 1. Static retry pending.
+
+Step 0 changes no source action, safety law, trusted checker, or proof budget.
+The hand-set proof (Step 1) is now the gate; no new production families or merge
+claims follow without it. Section 1.5 remains pending as of this checkpoint.
+
 ### SHA256 receipts
 
 ```text

@@ -2,10 +2,12 @@
 // its members not newer than its owner; two, Lane C3's: |X \ Y|, |X ∩ Y| over a pair of servers and a config's members
 // below a server's config term), proven by core/counts.ts's searchCounted with the laws as callers.
 import {protocols} from './models.ts'
+import {mldr as atomicMldr} from '../../track-m/atomic-mldr.ts'
 import {type C, type E, type Law, type Machine, all, any, atMost, get, ite, less, n, not, plus, same, times, tuple, x} from '../../../core/machine.ts'
 import {countsDump, searchCounted} from '../../../core/counts.ts'
 const N = 64
-const p = protocols.find(q => q.id === 'mldr')!, r: any = p.make(), m0: Machine = r.machine
+// Archived tuple-port experiment; the P* hand-set probe is mldr2-probe.ts.
+const p = protocols.find(q => q.id === 'mldr')!, r: any = atomicMldr(), m0: Machine = r.machine
 const one = n(1), zero = n(0), ind = (c: C): E => ite(c, one, zero)
 const cfg = (s: E, k: E) => same(get('Config', tuple([s, k])), one)
 const newer = (a: E, b: E): C => any(less(get('CfgT', b), get('CfgT', a)), all(same(get('CfgT', a), get('CfgT', b)), less(get('CV', b), get('CV', a))))
