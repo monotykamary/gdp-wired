@@ -1,0 +1,27 @@
+[
+  {
+    "name": "family-0",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-p/family.ts research/track-p/input/family.json 0 5",
+    "timeout": 180
+  },
+  {
+    "name": "family-1",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-p/family.ts research/track-p/input/family.json 1 5",
+    "timeout": 180
+  },
+  {
+    "name": "family-2",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-p/family.ts research/track-p/input/family.json 2 5",
+    "timeout": 180
+  },
+  {
+    "name": "family-3",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-p/family.ts research/track-p/input/family.json 3 5",
+    "timeout": 180
+  },
+  {
+    "name": "family-4",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-p/family.ts research/track-p/input/family.json 4 5",
+    "timeout": 180
+  }
+]

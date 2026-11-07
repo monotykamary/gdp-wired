@@ -1,0 +1,4 @@
+[
+  {"name":"check", "cmd":"bun install --frozen-lockfile >/dev/null && bun run check", "timeout":180},
+  {"name":"generators", "cmd":"bun install --frozen-lockfile >/dev/null && bun test core/carry.test.ts core/count-support.test.ts core/scan-prefix.test.ts core/support-order.test.ts core/exists-support.test.ts", "timeout":300}
+]

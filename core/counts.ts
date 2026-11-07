@@ -17,10 +17,13 @@
 //      checks the final set. The ∃ search still uses `cone`: relative induction from already-kept candidates.
 import {type C, type E, type Law, type Machine} from './machine.ts'
 import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, scope, substC, substE} from '../kernel/kernel.ts'
-import {brokenOf, clock, counted, fullRate, grow, modelInstances, wallAt, widen, withWall} from '../kernel/prove.ts'
+import {brokenOf, clock, counted, fullRate, grow, modelInstances, wallAt, widen, withDeadline, withWall} from '../kernel/prove.ts'
 import {REFUTED, cdclStats} from '../kernel/cdcl.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
 import {inferLaws} from './infer.ts'
+import {carryCandidates, scanPrefixes} from './carry.ts'
+import {relevantLaws} from './relevance.ts'
+import {countedInstanceSources, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
 import {smallOf, trueSmall} from './exists.ts'
 import {env} from './solver.ts'
 
@@ -40,12 +43,14 @@ const json = (t: unknown) => JSON.stringify(t)
 const one = k(1), zero = k(0)
 
 // Every term t with `get(map, t)` in t0.
-function reads(t0: unknown, map: (m: string) => boolean, out: Map<string, [string, E]> = new Map()): Map<string, [string, E]> {
-  const go = (x: unknown): void => {
-    if (!x || typeof x !== 'object') return
+function reads(t0: unknown, map: (m: string) => boolean, out: Map<string, [string, E]> = new Map(), more?: () => boolean): Map<string, [string, E]> {
+  const go = (x: unknown): boolean => {
+    if (more && !more()) return false
+    if (!x || typeof x !== 'object') return true
     const o = x as Record<string, unknown>
     if (o.op === 'get' && map(o.map as string)) out.set(json([o.map, o.key]), [o.map as string, o.key as E])
-    for (const y of Object.values(o)) go(y)
+    for (const y of Object.values(o)) if (!go(y)) return false
+    return true
   }
   go(t0)
   return out
@@ -180,65 +185,66 @@ export function guardLaws(m: Machine): {counts: Machine['counts'], laws: Law[]} 
 // The count cells the goal reads (each before the step with its post name's twin), instances over pairs of them with one
 // bound (a count that doesn't drop, +1 and −1; two that meet, +1, +1 and −1), each with a fresh witness; and the laws and
 // quantified flags at the witnesses (returned, for the goal's law's instances).
-export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: string, key: string, body: E}[], wide = false, most = wide ? 24 : 10): {reads: MapRead[], insts: CountInst[], wits: string[], picks: [string, E[]][], loose: boolean} {
-  const byMap = new Map(decls.map(d => [d.map, d])), last = goal.hyps.at(-1)
-  // (the conclusion's reads first, then those at a constant or the law's own names, then the rest)
-  const own = (t: E) => t.op === 'const' || (t.op === 'var' && json(last).includes(`"name":${json(t.name)}`))
-  const all0 = [...reads(goal.hyps, mp => byMap.has(mp)).values()], inLast = [...reads(last, mp => byMap.has(mp)).keys()]
+export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: string, key: string, body: E}[], wide = false, most = wide ? 24 : 10, more?: () => boolean): {reads: MapRead[], insts: CountInst[], wits: string[], picks: [string, E[]][], loose: boolean} {
+  const tick = more ?? (() => true), byMap = new Map(decls.map(d => [d.map, d])), last = goal.hyps.at(-1), lastText = json(last)
+  const own = (t: E) => t.op === 'const' || (t.op === 'var' && lastText.includes(`"name":${json(t.name)}`))
+  const all0 = [...reads(goal.hyps, mp => byMap.has(mp), new Map(), more).values()], inLast = [...reads(last, mp => byMap.has(mp), new Map(), more).keys()]
   const rank = ([mp, t]: [string, E]) => (inLast.includes(json([mp, t])) ? 0 : own(t) ? 1 : 2)
   const rs = all0.sort((x, y) => rank(x) - rank(y))
-  // (each read after the step beside its twin before it, when the goal declares both)
-  for (const [mp, t] of [...rs]) if (mp.endsWith('#') && byMap.has(mp.slice(0, -1)) && !rs.some(([m2, t2]) => m2 === mp.slice(0, -1) && json(t2) === json(t))) rs.push([mp.slice(0, -1), t])
-  // (a count whose bound and body don't read its key is one number at every key: read once, at its first-ranked key)
+  for (const [mp, t] of [...rs]) { if (!tick()) break; if (mp.endsWith('#') && byMap.has(mp.slice(0, -1)) && !rs.some(([m2, t2]) => m2 === mp.slice(0, -1) && json(t2) === json(t))) rs.push([mp.slice(0, -1), t]) }
   const once = new Set<string>(), keyless = (mp: string) => { const d = byMap.get(mp)!; return !mentions([d.below, d.body], d.j) }
   const rs1 = rs.filter(([mp]) => !keyless(mp) || (!once.has(mp) && !!once.add(mp)))
-  const named: MapRead[] = rs1.map(([mp, t], i) => [`r$${i}`, mp, t])
-  const bound = (r: MapRead) => json(byMap.get(r[1])!.below)
-  const insts: CountInst[] = [], wits: string[] = []
-  const add = (terms: [number, string][], unit: number, below: E) => { const w = `w$${insts.length}`; wits.push(w); insts.push({wit: w, below, terms, unit}) }
-  // first: a count after the step at least each other one (it doesn't drop; what the step adds); then two counts before it
-  // that meet, the first of the pair one the conclusion or the law's own names read; then the rest at most another
+  const named: MapRead[] = rs1.map(([mp, t], i) => ['r'+'$'+i, mp, t]), bound = (r: MapRead) => json(byMap.get(r[1])!.below)
+  const insts: CountInst[] = [], wits: string[] = [], cap = most, initialCap = wide ? Math.min(10, cap) : cap
+  const add = (terms: [number, string][], unit: number, below: E) => { const w = 'w'+'$'+insts.length; wits.push(w); insts.push({wit: w, below, terms, unit}) }
   const post = (r: MapRead) => r[1].endsWith('#'), ranked = (r: MapRead) => rank([r[1], r[2]]) <= 1
-  for (const c of named) if (post(c)) for (const a of named) if (a !== c && !post(a) && bound(a) === bound(c)) add([[1, a[0]], [-1, c[0]]], 0, byMap.get(c[1])!.below)
-  for (const [i, a] of named.entries()) for (const [j, c] of named.entries())
-    if (i < j && (ranked(a) || ranked(c)) && bound(a) === bound(c) && !post(a) && !post(c)) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
-  for (const [i, a] of named.entries()) for (const [j, c] of named.entries())
-    if (i < j && !(ranked(a) || ranked(c)) && bound(a) === bound(c) && !post(a) && !post(c)) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
-  // (a count after the step, the conclusion's, at least a request's count less another: a set's members all in it but
-  // those a guard's count of the rest finds, |Q| ≤ missing + votes)
-  for (const c of named) if (post(c) && rank([c[1], c[2]]) === 0) for (const a of named) for (const d of named)
-    if (a !== d && !post(a) && !post(d) && keyless(a[1]) && keyless(d[1]) && bound(a) === bound(c) && bound(d) === bound(c)) add([[1, a[0]], [-1, d[0]], [-1, c[0]]], 0, byMap.get(c[1])!.below)
-  // (wide, asked by a model the instances above leave: every count at most each other one of its bound, either way, and
-  // each positive only where a key is in it; a count read with no partner is then tied to its cells at a witness)
-  // (`most`: the instances kept, 24 widened; a lazy goal's pool takes many more, as only those a model breaks are asked)
-  const cap = most
-  if (wide) {
-    insts.splice(10), wits.splice(10)
-    for (const a of named) for (const c of named) if (a !== c && bound(a) === bound(c) && !(post(c) && !post(a))) add([[1, a[0]], [-1, c[0]]], 0, byMap.get(a[1])!.below)
-    for (const a of named) add([[1, a[0]]], 0, byMap.get(a[1])!.below)
-    // (a lazy pool's further instances: each count at most its bound, and every two of a bound that meet)
-    if (cap > 24) {
-      for (const a of named) add([[1, a[0]]], -1, byMap.get(a[1])!.below)
-      const had = new Set(insts.map(i => json([i.terms, i.unit])))
-      for (const [i, a] of named.entries()) for (const [j, c] of named.entries())
-        if (i < j && bound(a) === bound(c) && post(a) === post(c) && !had.has(json([[[1, a[0]], [1, c[0]]], -1]))) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
+  // Stop enumeration as soon as the requested prefix is complete. Later entries
+  // were sliced away before too; the order and contents of completed prefixes stay exact.
+  initial: {
+    for (const c of named) if (post(c)) for (const a of named) {
+      if ((!!more && insts.length >= initialCap) || !tick()) break initial
+      if (a !== c && !post(a) && bound(a) === bound(c)) add([[1, a[0]], [-1, c[0]]], 0, byMap.get(c[1])!.below)
+    }
+    for (const [i, a] of named.entries()) for (const [j, c] of named.entries()) {
+      if ((!!more && insts.length >= initialCap) || !tick()) break initial
+      if (i < j && (ranked(a) || ranked(c)) && bound(a) === bound(c) && !post(a) && !post(c)) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
+    }
+    for (const [i, a] of named.entries()) for (const [j, c] of named.entries()) {
+      if ((!!more && insts.length >= initialCap) || !tick()) break initial
+      if (i < j && !(ranked(a) || ranked(c)) && bound(a) === bound(c) && !post(a) && !post(c)) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
+    }
+    for (const c of named) if (post(c) && rank([c[1], c[2]]) === 0) for (const a of named) for (const d of named) {
+      if ((!!more && insts.length >= initialCap) || !tick()) break initial
+      if (a !== d && !post(a) && !post(d) && keyless(a[1]) && keyless(d[1]) && bound(a) === bound(c) && bound(d) === bound(c)) add([[1, a[0]], [-1, d[0]], [-1, c[0]]], 0, byMap.get(c[1])!.below)
     }
   }
-  // (wide: each count picked at the keys the goal reads the maps its body reads at its key and its instances' witnesses:
-  // at least its body there, at every two of them and at all of them)
+  if (wide) {
+    insts.splice(10); wits.splice(10)
+    pairs: for (const a of named) for (const c of named) {
+      if ((!!more && insts.length >= cap) || !tick()) break pairs
+      if (a !== c && bound(a) === bound(c) && !(post(c) && !post(a))) add([[1, a[0]], [-1, c[0]]], 0, byMap.get(a[1])!.below)
+    }
+    for (const a of named) { if ((!!more && insts.length >= cap) || !tick()) break; add([[1, a[0]]], 0, byMap.get(a[1])!.below) }
+    if (cap > 24) {
+      for (const a of named) { if ((!!more && insts.length >= cap) || !tick()) break; add([[1, a[0]]], -1, byMap.get(a[1])!.below) }
+      const had = new Set(insts.map(i => json([i.terms, i.unit])))
+      meets: for (const [i, a] of named.entries()) for (const [j, c] of named.entries()) {
+        if ((!!more && insts.length >= cap) || !tick()) break meets
+        if (i < j && bound(a) === bound(c) && post(a) === post(c) && !had.has(json([[[1, a[0]], [1, c[0]]], -1]))) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
+      }
+    }
+  }
   const picks: [string, E[]][] = []
   if (wide) for (const r of named) {
-    const d = byMap.get(r[1])!, at = [...reads(d.body, () => true).values()].filter(([, key]) => json(key) === json(v(d.key))).map(([mp]) => mp)
+    if (!tick()) break
+    const d = byMap.get(r[1])!, at = [...reads(d.body, () => true, new Map(), more).values()].filter(([, key]) => json(key) === json(v(d.key))).map(([mp]) => mp)
     if (!at.length) continue
-    // (the key terms the goal reads those maps at, and the witnesses of the instances that name this count: a member the
-    // counting lemma found is a key too; three of each first, six at most)
-    const gs = [...new Map([...reads(goal.hyps, mp => at.includes(mp)).values()].map(([, t]) => [json(t), t] as [string, E])).values()].filter(t => !mentions(t, d.key))
+    const gs = [...new Map([...reads(goal.hyps, mp => at.includes(mp), new Map(), more).values()].map(([, t]) => [json(t), t] as [string, E])).values()].filter(t => !mentions(t, d.key))
     const ws = insts.slice(0, cap).filter(i => i.terms.some(([, x]) => x === r[0])).map(i => v(i.wit)), ts0 = [...gs.slice(0, 3), ...ws.slice(0, 3), ...gs.slice(3), ...ws.slice(3)]
     const ts = [...new Map(ts0.map(t => [json(t), t] as [string, E])).values()].slice(0, 6)
     for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++) picks.push([r[0], [ts[i]!, ts[j]!]])
     if (ts.length > 2) picks.push([r[0], ts])
   }
-  // (loose: a read no instance among the first ten names, which only widening ties to its cells)
   const loose = named.some(r => !insts.slice(0, 10).some(i => i.terms.some(([, x]) => x === r[0])))
   return {reads: named, insts: insts.slice(0, cap), wits: wits.slice(0, cap), picks, loose}
 }
@@ -248,7 +254,7 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
 // small instances reach; the guards' count comparisons (guardLaws, `guarded`); one key a row; the engine's minimal ∀
 // cubes of at most two literals (core/infer.ts's `cubes`, read off these small states, within a quarter of the search's
 // budget `ms`, 15 s at most), its template `shapes` (the caller's laws, or an ∃ law's frame), each guard `u < param` loosened where a caller reads u with no param bound.
-export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, caller: Law[], shapes: Law[], guarded: Law[], ms: number, until: number): Law[] {
+export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, caller: Law[], shapes: Law[], guarded: Law[], ms: number, until: number, support = new Set<Law>()): Law[] {
   const states = ptime('small', () => smallOf(m))
   // (a law of the state only: one the kernel's scope refuses, reading an input or a count of the request (a guard's
   // comparison with a second request count), has no value at a state, and is not proposed)
@@ -302,8 +308,13 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
     return (named.op === 'and' ? named.xs : [named]).map(json)
   }
   for (const l of caller) for (const q of parts(l)) said.add(q)
-  const out = ptime('filter', () => [...kinds, ...guarded, ...rowLaws, ...cubes].filter(l => { const ps = parts(l); if (ps.every(q => said.has(q)) || !trueAll(l)) return false; for (const q of ps) said.add(q); return true }))
-  if (env.GDP_COUNTS_TRACE) console.error(`counts: ${kinds.length + guarded.length + rowLaws.length + cubes.length - out.length} candidates said before or false on the small instances`)
+  const prefixes = scanPrefixes(m, [...caller, ...kinds, ...guarded, ...rowLaws, ...cubes])
+  const admit = (l: Law) => { const ps = parts(l); if (ps.every(q => said.has(q)) || !trueAll(l)) return false; for (const q of ps) said.add(q); return true }
+  const out = ptime('filter', () => [...kinds, ...guarded, ...rowLaws, ...prefixes, ...cubes].filter(admit))
+  const carried = carryCandidates(m, [...caller, ...kinds, ...guarded, ...rowLaws, ...cubes])
+  out.push(...ptime('filter', () => carried.filter(admit)))
+  for (const l of out) if (prefixes.includes(l) || carried.includes(l)) support.add(l)
+  if (env.GDP_COUNTS_TRACE) console.error(`counts: ${kinds.length + guarded.length + rowLaws.length + prefixes.length + carried.length + cubes.length - out.length} candidates said before or false on the small instances`)
   return out
 }
 
@@ -352,6 +363,16 @@ export function cone<P>(m: Machine, set: Law[], attempt: (law: Law, ls: Law[], m
 }
 
 // --- the counted search ----------------------------------------------------------------------------------------------
+// Scheduling only. Candidate membership never authorizes an assumption or a result.
+export const activeSupport = (set: Law[], support: Set<Law>): boolean => set.some(l => support.has(l))
+export function supportOrder(set: Law[], caller: Law[], support: Set<Law>, forModels = false): Law[] {
+  if (forModels && !activeSupport(set, support)) return set
+  if (!activeSupport(set, support)) return [...set.filter(l => !caller.includes(l)), ...set.filter(l => caller.includes(l))]
+  return [...set.filter(l => support.has(l) && !caller.includes(l)), ...set.filter(l => caller.includes(l)), ...set.filter(l => !support.has(l) && !caller.includes(l))]
+}
+export function supportBudget(remaining: number, share: number, priority: boolean, structural = false): number {
+  return Math.max(0, Math.min(remaining, structural ? 5_000 : priority ? Math.max(share, remaining / 3) : share))
+}
 export type Counted = {proven: boolean, laws: Law[], m: Machine, proof?: {instances: Record<string, Instances>, certs: Record<string, CountCert>}, why?: string}
 // On the counted clock (kernel/prove.ts's `counted`, the cost model's work at fullRate a millisecond), as the engine's
 // search is: what a budget lets it try, and so its verdict, is the same on a slow or shared machine as on a fast one; the
@@ -374,7 +395,9 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
   if (!caller.every(l => clock() < until && trueSmall(m, [l]))) return {proven: false, laws: caller, m, why: clock() < until ? 'a law fails on the small instances' : 'time'}
   const t1 = clock()
   // (GDP_COUNTS_GIVEN=1, research's: the callers alone, no candidate: whether a set written whole goes through)
-  let set = env.GDP_COUNTS_GIVEN === '1' ? [...caller] : [...caller, ...candidates(m0, m, caller, caller, g.laws, ms, until)]
+  const support = new Set<Law>()
+  let set = env.GDP_COUNTS_GIVEN === '1' ? [...caller] : [...caller, ...candidates(m0, m, caller, caller, g.laws, ms, until, support)]
+  countsDump.on?.({phase: 'candidates', machine: m, laws: set})
   if (env.GDP_COUNTS_TRACE) console.error(`counts: candidates at ${Math.round(clock() - t1)} ms: ${set.map(l => l.name).join('; ')}`)
   // (the law's own names and the request's values that key a map: an action's value keys none)
   const keys0 = [...[...reads([m.step, m.assume ?? null], () => true).values()].map(([, key]) => key), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [] : [w.key]))]
@@ -401,27 +424,68 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     // without count reads must not suppress the next law's counting-lemma pass.
     if (!pass) counted = true
     const ts = terms(law), id = `${pass} ${law.name}`, cti = models.get(id)
+    const supported = ls.some(l => support.has(l)), modelLaws = supportOrder(ls, caller, support, true)
     // (the model broken: the attempt starts at the instances it asks for, its last attempt's and the tuples the new laws
     // break it at, where the rounds of models would lead it again)
     let seed: Instances | undefined
     // (not where the attempt may widen: its narrow model is no model of the widened goal)
-    if (cti && !(houdini && caller.some(l => l.name === law.name) && !widened.has(law.name)) && !ls.some(l => !cti.ls.has(l.name) && reads(l.holds, isCount).size)) {
+    if (cti && !(supported && pass) && !(houdini && caller.some(l => l.name === law.name) && !widened.has(law.name)) && !ls.some(l => !cti.ls.has(l.name) && reads(l.holds, isCount).size)) {
       const at0 = Object.fromEntries(Object.entries(cti.at).filter(([n]) => n.startsWith('?') || ls.some(l => l.name === n)))
-      if (!(seed = ptime('mbqi', () => modelInstances(m, ls, at0, cti.gg, cti.w)))) return {stuck: 'sat'}
+      if (!(seed = ptime('mbqi', () => modelInstances(m, modelLaws, at0, cti.gg, cti.w)))) return {stuck: 'sat'}
     }
     const refuted = (gg: Goal, w: Record<string, number>): Tried<Proof> => { models.set(id, {gg, w, at, ls: new Set(ls.map(l => l.name))}); return {stuck: 'sat'} }
     let at: Instances = seed ?? Object.fromEntries(Object.entries(m.step.flags ?? {}).flatMap(([f, q]) => (q.op === 'all' && !q.keys?.length ? [[`?${f}`, ts]] : [])))
     const obligations = (i: Instances) => ptime('encode', () => countedObligations(m, ls, {[law.name]: i}, ls.indexOf(law)))
     // (`wide`: the count instances widened once, where a model is left that the narrow ones and the laws don't refute, for
     // a caller's law or where a read is in none of them: the cone's many refuted candidates keep the narrow ones)
+    // Source-only proposals share one 64-tuple/4-per-source budget for this attempt.
+    // The ordinary MBQI path remains available and is unchanged without support.
+    const generation = candidateWork()
+    let seedCount = 0
+    let sourceMaps: ReadonlySet<string> = new Set()
+    if (supported) {
+      const prepared = prepareSupport(m, ls, law, at, pass, generation)
+      at = prepared.at; seedCount = prepared.seedCount; sourceMaps = prepared.sourceMaps
+    }
     let wide = false
     const isCaller = houdini && caller.some(l => l.name === law.name)
     // (lazy (CEGAR): the goal carries the counting lemma's instances and picks some model of it broke, of all certFor
     // proposes: each model read against the rest, as a state, and those it breaks added, until a model breaks none; an
     // instance by the reads it names, a pick by its read and terms, so the choice outlives the goal's rebuilds)
     const chosen = new Set<string>()
-    type Pool = {fg: Goal, keys: string[], wits: (string | undefined)[]}
-    const build = () => obligations(at).map(({goal, decls}) => {
+    type Pool = {fg: Goal, keys: string[], wits: (string | undefined)[], chosen?: Set<string>, cap?: number}
+    type Selection = {chosen: Set<string>, cap: number, previous: Pick<CountCert, 'reads' | 'insts' | 'picks'>, decls: Parameters<typeof certFor>[1], reserve: ReturnType<typeof reservationState>, stable: ReturnType<typeof stableState>}
+    const selections = new Map<string, Selection>()
+    const poolCache = new Map<string, {key: string, value: ReturnType<typeof grammarPool>}>()
+    const countSources = countedInstanceSources(m, ls)
+    const rawBuild = () => obligations(at).map(({goal, decls}) => {
+      if (pass && supported && lazyMode === 'wide') {
+        if (generation.state.deadline || performance.now() >= wallAt()) throw new UnsupportedCountProposal('reservation deadline')
+        let selection = selections.get(goal.name)
+        const reservation = selection && reservationReadClosure(goal, decls, selection.previous, selection.decls, selection.chosen, [...m.params, ...m.inputs, ...Object.keys(m.state)])
+        // Primitive PRE instances cannot introduce another count read. Reuse
+        // the proposal pool while only those instances grow; retained picks
+        // are still reified against this goal, and additional picks may wait
+        // for failure-driven widening. This caches proposals, never a proof.
+        const key = json(Object.entries(at).filter(([name]) => countSources.has(name)))
+        const cached = poolCache.get(goal.name)
+        const pool0 = cached?.key === key ? cached.value : grammarPool(goal, decls, pool, generation)
+        if (cached?.key !== key) poolCache.set(goal.name, {key, value: pool0})
+        if (!selection) {
+          const pick = readTuples(goal.hyps.at(-1), generation.tick).some(([mp]) => mp.endsWith('#') && decls.some(d => d.map === mp))
+            ? polaritySelection(goal, decls, pool0, generation, sourceMaps).pick
+            : smallSelection(goal, decls, pool0.full, readTuples(law.holds, generation.tick).map(([, key]) => key), none, generation)
+          selection = {chosen: new Set(ids(pick)), cap: Math.min(10, pick.insts.length + 2), previous: pick, decls, reserve: reservationState(goal, [m, ls, goal], pool), stable: stableState([m, ls, goal])}
+          selections.set(goal.name, selection)
+        }
+        const full = reservePool(goal, decls, pool0, selection.previous, selection.decls, selection.chosen, selection.reserve, pool, reservation).full
+        const keys = ids(full), lazyRoom = selection.chosen.size < selection.cap
+        const view = chosenView(full, selection.chosen, selection.cap)
+        const c = selectedCertificate(goal, decls, view, selection.stable, lazyRoom)
+        const gg = mcGoal(goal.hyps, decls, c), fg = lazyRoom ? mcGoal(goal.hyps, decls, full) : undefined
+        selection.previous = full; selection.decls = decls
+        return {goal, decls, c, gg, pool: fg ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)], chosen: selection.chosen, cap: selection.cap} as Pool : undefined}
+      }
       const full = pass ? certFor(goal, decls, wide, wide && lazyMode !== '0' ? pool : undefined) : none
       if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide)) return {goal, decls, c: full, gg: ptime('encode', () => mcGoal(goal.hyps, decls, full)), pool: undefined as Pool | undefined}
       const rd = new Map(full.reads.map(r => [r[0], json([r[1], r[2]])]))
@@ -431,6 +495,24 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
       const fg = ptime('encode', () => mcGoal(goal.hyps, decls, full))
       return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c)), pool: fg && keys.length ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)]} : undefined}
     })
+    let lastSignature = ''
+    const build = () => {
+      let built = rawBuild()
+      if (pass && supported) while (seedCount < 64 && clock() < until) {
+        const step = built.at(-1)
+        if (!step?.gg) break
+        const signature = refinementSignature(step.gg, step.c)
+        if (signature === lastSignature) break
+        lastSignature = signature
+        const seeds = sparseReadInstances(m, ls.filter(l => l === law || !reads(l.holds, isCount).size), law, at, step.gg, step.c, 64 - seedCount, step.goal.hyps.at(-1), step.decls, sourceMaps, step.goal.hyps.slice(0, -1), generation)
+        if (!seeds.added.length) break
+        const previous = countSignature(step.c)
+        at = seeds.at; seedCount += seeds.added.length
+        built = rawBuild()
+        if (countSignature(built.at(-1)!.c) !== previous) break
+      }
+      return built
+    }
     // (the pool's hypotheses a model breaks, chosen; whether there were any)
     // (`strict`, where nothing else is broken or asked: the cells it leaves out at their start alone, as a model whose
     // completion meets an instance may still meet it only at a witness some law then breaks)
@@ -438,7 +520,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
       if (!b?.pool) return false
       // (broken where no completion of the model meets it: the cells it leaves out at their start, at 1, or one map's
       // flipped from either, and an instance's witness at each value below 16)
-      const {fg, keys, wits} = b.pool, base = fg.hyps.length - keys.length, ids = keys.flatMap((q, j) => (chosen.has(q) ? [] : [base + j])), judge = brokenOf(fg)
+      const {fg, keys, wits} = b.pool, active = b.pool.chosen ?? chosen, base = fg.hyps.length - keys.length, ids = keys.flatMap((q, j) => (active.has(q) ? [] : [base + j])), judge = brokenOf(fg)
       let bad = ids.length ? judge(w, ids) : []
       const mps = [...new Set(bad.flatMap(i => [...reads(fg.hyps[i], () => true).values()].map(([mp]) => mp)))], one1 = Object.fromEntries(mps.map(mp => [mp, 1]))
       for (const d of strict ? [undefined] : [undefined, one1, ...mps.map(mp => ({[mp]: 1})), ...mps.map(mp => ({...one1, [mp]: 0}))]) for (let x = 0; x < 16 && bad.length; x++) {
@@ -448,11 +530,15 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
         const still = new Set(judge(w2, bad, false, d))
         bad = bad.filter(i => still.has(i))
       }
-      for (const i of bad) chosen.add(keys[i - base]!)
+      if (b.pool.cap !== undefined) { const seen = new Set<string>(); bad = bad.filter(i=>{const key=keys[i-base]!;if(seen.has(key))return false;seen.add(key);return true}).slice(0, Math.max(0, b.pool.cap - active.size)) }
+      for (const i of bad) active.add(keys[i - base]!)
       tally('#lazy', bad.length)
       return bad.length > 0
     })
     let built = build()
+    const observe = (b: ReturnType<typeof build>[number], phase: string, witness?: Record<string, number>) => {
+      if (countsDump.on) countsDump.on({law: law.name, goal: b.goal.name, pass, phase, generation: {...generation.state}, machine: m, laws: ls, rawGoal: b.goal, decls: b.decls, instances: at, certificateRequest: b.c, hyps: b.gg?.hyps, witness, seedCount})
+    }
     let decideStep = decisions.get(id)
     if (!decideStep) {
       if (decisions.size >= 64) decisions.delete(decisions.keys().next().value!)
@@ -486,8 +572,9 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
           break
         }
         if ('tree' in q || q.stuck !== 'sat' || !q.witness) break
+        observe(step, 'model', q.witness)
         if (!more()) return {stuck: 'unknown'}
-        const asked = ptime('mbqi', () => modelInstances(m, ls, at, step.gg!, q.witness!)), lz = breaks(step, q.witness) || (!asked && breaks(step, q.witness, true))
+        const asked = ptime('mbqi', () => modelInstances(m, modelLaws, at, step.gg!, q.witness!)), lz = breaks(step, q.witness) || (!asked && breaks(step, q.witness, true))
         tally('#rounds'); tally('#hyps', step.gg.hyps.length)
         if (lz && !asked) { built = build(); continue }
         if (!asked) {
@@ -508,11 +595,11 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
           return w ? {tree: w, nodes: 0} : undefined
         }) : undefined
         const o = viaPart ?? (gg && ptime(`grow${(gg.hyps.length > 300 ? '>300' : '')}`, () => grow(gg, new Map(), {nodes: 0, until: Math.min(until, clock() + ms)})))
-        if (countsDump.on && gg && o && !('tree' in o) && gg.hyps.length > Number(env.GDP_COUNTS_DUMP_MIN ?? 300) && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: goal.name, ls: ls.map(l => l.name), stuck: (o as {stuck?: string}).stuck, hyps: gg.hyps}) }
+        if (gg && o && !('tree' in o)) observe(built.find(b => b.gg === gg)!, o.stuck, 'witness' in o ? o.witness : undefined)
         if (env.GDP_COUNTS_TRACE?.includes('2')) console.error(`counts: ${ls.length === 1 ? 'alone' : `with ${ls.length}`} ${pass} ${goal.name}: ${o && 'tree' in o ? 'proven' : gg ? (o as {stuck?: string}).stuck : 'no read'} ${gg?.hyps.length ?? 0} hyps (insts ${'insts' in c ? c.insts.length : 0} picks ${'picks' in c ? c.picks.length : 0}${wide ? ' wide' : ''}${built.find(b => b.gg === gg)?.pool ? ` of ${built.find(b => b.gg === gg)!.pool!.keys.length}` : ''}) ${Math.round(clock() - t0)} ms`)
         // (the tree search's model of the step goal: the instances it asks for, as the CDCL search's, and the goals again)
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && more()) {
-          const asked = ptime('mbqi', () => modelInstances(m, ls, at, gg, o.witness!)), lz = breaks(built.at(-1), o.witness) || (!asked && breaks(built.at(-1), o.witness, true))
+          const asked = ptime('mbqi', () => modelInstances(m, modelLaws, at, gg, o.witness!)), lz = breaks(built.at(-1), o.witness) || (!asked && breaks(built.at(-1), o.witness, true))
           if (asked || lz) { if (asked) at = asked; built = build(); again = true; break }
         }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && houdini && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); again = true; break }
@@ -524,7 +611,47 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     }
   }
   const traced = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Tried<Proof> => {
-    const t0 = clock(), w0 = performance.now(), p0 = {...cprof}, r = attempt(law, ls, pass, ms)
+    const t0 = clock(), w0 = performance.now(), p0 = {...cprof}
+    let r: Tried<Proof>
+    try {
+      const end = Math.min(until, clock() + ms)
+      // Probe only strict subsets, within the existing attempt's allowance. A
+      // subset model is not a verdict: failure always widens to the full set.
+      // Kept certificates must be lifted to that full set's exact row layout.
+      if (env.GDP_COUNTS_RELEVANCE === '1') for (const local of relevantLaws(m, ls, law, support)) {
+        const slice = Math.max(0, Math.min(ms / 6, end - clock()))
+        if (!slice) break
+        let probe: Tried<Proof>
+        try { probe = withDeadline(clock() + slice, () => attempt(law, local, pass, slice)) } catch (error) {
+          if (!(error instanceof UnsupportedCountProposal)) throw error
+          continue
+        }
+        if (!('proof' in probe)) continue
+        const localGoals = countedObligations(m, local, {[law.name]: probe.proof.instances}, local.indexOf(law))
+        const wholeGoals = countedObligations(m, ls, {[law.name]: probe.proof.instances}, ls.indexOf(law))
+        const certs: Record<string, CountCert> = {}
+        let complete = true
+        for (let i = 0; i < wholeGoals.length; i++) {
+          const part = localGoals[i]!, whole = wholeGoals[i]!, c = probe.proof.certs[part.goal.name]
+          if (!c) { complete = false; break }
+          const pg = mcGoal(part.goal.hyps, part.decls, c), wg = mcGoal(whole.goal.hyps, whole.decls, c)
+          const tree = pg && wg && withDeadline(end, () => widen(pg, wg, c.tree))
+          if (!tree) { complete = false; break }
+          certs[whole.goal.name] = {...c, tree}
+        }
+        if (complete) {
+          r = {proof: {instances: probe.proof.instances, certs}}
+          countsDump.on?.({phase: 'relevance-proof', law: law.name, local: local.length, whole: ls.length})
+          return r
+        }
+      }
+      r = attempt(law, ls, pass, Math.max(0, end - clock()))
+    } catch (error) {
+      // Invalid or captured proposals are rejected; they cannot become assumptions.
+      if (!(error instanceof UnsupportedCountProposal)) throw error
+      countsDump.on?.({law: law.name, pass, phase: 'rejected proposal', error: String(error)})
+      r = {stuck: 'unknown'}
+    }
     if (env.GDP_COUNTS_TRACE?.includes('3')) console.error(`counts: try ${law.name.slice(0, 50)} | ls ${ls.length} pass ${pass} ms ${Math.round(ms)} took ${Math.round(clock() - t0)} wall ${Math.round(performance.now() - w0)} [${Object.entries(cprof).filter(([k2, x]) => x - (p0[k2] ?? 0) >= 1).map(([k2, x]) => `${k2} ${Math.round(x - (p0[k2] ?? 0))}`).join(' ')}] -> ${'proof' in r ? 'kept' : r.stuck}`)
     return r
   }
@@ -532,8 +659,12 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
   // several smaller contexts before asking these same induction goals. Houdini
   // drops failed helpers and carries proofs whose instantiated support survives.
   // Every returned set still passes checkCountedLaws, including all caller laws.
-  const finish = (ls: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}): Counted =>
-    (ptime('kernel', () => checkCountedLaws(m, ls, proof)) ? {proven: true, laws: ls, m, proof} : {proven: false, laws: ls, m, why: 'the kernel refused the set'})
+  const finish = (ls: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}): Counted => {
+    if (!ptime('kernel', () => checkCountedLaws(m, ls, proof))) return {proven: false, laws: ls, m, why: 'the kernel refused the set'}
+    // Output-only observation, after the unchanged checker accepts every obligation.
+    countsDump.on?.({phase: 'closed-family', machine: m, laws: ls, proof, checked: true})
+    return {proven: true, laws: ls, m, proof}
+  }
   const join = (kept = new Map<string, Proof>()): Counted => {
     const keptProof = () => ({instances: Object.fromEntries([...kept].map(([n, pr]) => [n, pr.instances])), certs: Object.assign({}, ...[...kept.values()].map(pr => pr.certs))})
     if (caller.every(l => kept.has(l.name))) return finish(set.filter(l => kept.has(l.name)), keptProof())
@@ -543,13 +674,22 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     for (let round = 0; clock() < until; round++) {
       const {instances, certs} = keptProof()
       const failed = new Set<string>(), proofs = new Map<string, Proof>(), share = (until - clock()) / Math.max(1, set.filter(l => !kept.has(l.name) && !carried.has(l.name)).length)
-      // (the callers last, so they meet every support kept so far)
-      for (const law of [...set.filter(l => !caller.includes(l)), ...set.filter(l => caller.includes(l))]) {
+      // Structural supports first; no-support scheduling is unchanged.
+      for (const law of supportOrder(set, caller, support)) {
         if (clock() > until) return {proven: false, laws: set, m, why: 'time'}
         if (kept.has(law.name)) continue
         const was = carried.get(law.name)
-        let r: Tried<Proof> = was ? {proof: was} : traced(law, set, 0, share)
-        if (!('proof' in r) && counted) r = traced(law, set, 1, share)
+        const structural = support.has(law) && !caller.includes(law)
+        const boundedSupport = activeSupport(set, support)
+        const allotted = supportBudget(until - clock(), share, boundedSupport && caller.includes(law), structural)
+        const supportUntil = Math.min(until, clock() + (boundedSupport ? Math.min(allotted, 5_000) : allotted)), supportWall = performance.now() + 4_800
+        const ask = (pass: 0 | 1): Tried<Proof> => {
+          const ms = Math.min(allotted, Math.max(0, (boundedSupport ? supportUntil : until) - clock()))
+          return boundedSupport ? withWall(supportWall, () => withDeadline(supportUntil, () => traced(law, set, pass, ms))) : traced(law, set, pass, ms)
+        }
+        const countFirst = env.GDP_COUNTS_COUNT_FIRST === '1' && reads(law.holds, isCount).size > 0
+        let r: Tried<Proof> = was ? {proof: was} : ask(countFirst ? 1 : 0)
+        if (!('proof' in r) && (countFirst || counted)) r = ask(countFirst ? 0 : 1)
         if (!('proof' in r)) { failed.add(law.name); continue }
         proofs.set(law.name, r.proof)
         instances[law.name] = r.proof.instances

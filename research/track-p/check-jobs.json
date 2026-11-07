@@ -1,0 +1,4 @@
+[
+ {"name":"check", "cmd":"bun install --frozen-lockfile >/dev/null && bun run check", "timeout":240},
+ {"name":"relevance", "cmd":"bun install --frozen-lockfile >/dev/null && bun test core/relevance.test.ts", "timeout":60}
+]

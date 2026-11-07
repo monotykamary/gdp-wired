@@ -32,6 +32,7 @@
     "private/**",
     "node_modules/**",
     "dist/**",
-    "research/extract/results/**"
+    "research/extract/results/**",
+    "research/claude-import/**"
   ]
 }
